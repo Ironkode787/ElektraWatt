@@ -159,16 +159,35 @@ const fn field(name: &'static str, label_key: Key<'static>) -> Field {
     }
 }
 
-/// New medium… (doc 11 §2.5, FR-FLU-008): a medium's name, its nominal pressure in bar and its ISO 1219-2 letter.
+/// New medium… (doc 11 §2.5, FR-FLU-008): a usual medium to start from, then the medium's name and its nominal
+/// pressure in bar. The ISO 1219-2 letter (`code`) is no field (rc.2, F26): nothing reads it yet; the action takes it.
 static MEDIUM_NEW: Spec = Spec {
     action: "fluid.medium_new",
     title_key: key!("medium-new-title"),
     fields: &[
+        field("preset", key!("form-medium-preset")),
         field("name", key!("form-medium-name")),
         field("p_nom", key!("form-medium-pressure")),
-        field("code", key!("form-medium-code")),
     ],
 };
+
+/// The usual media New medium… starts from (rc.2, F26), each with its usual nominal pressure in bar (gauge: a vacuum
+/// below the atmosphere); its name is the text `medium-preset-<word>`.
+const MEDIUM_PRESETS: &[(&str, &str)] = &[
+    ("compressed_air", "6"),
+    ("vacuum", "-0.9"),
+    ("hydraulic_oil", "160"),
+    ("cooling_water", "4"),
+    ("lubricant", "5"),
+    ("inert_gas", "10"),
+];
+
+/// The name and the nominal pressure of preset `word` of [`MEDIUM_PRESETS`] in the UI language.
+fn medium_preset(word: &str) -> Option<(String, &'static str)> {
+    let (_, p_nom) = MEDIUM_PRESETS.iter().find(|(w, _)| *w == word)?;
+    let name = strings::lookup(&format!("medium-preset-{}", word.replace('_', "-")))?;
+    Some((name.to_owned(), p_nom))
+}
 
 /// PLC exchange ▸ Export…'s form (doc 10 §6): the format and version, the stations (tags; empty: all) and the document
 /// date (in the window today's to start with; empty: the model's).
@@ -419,7 +438,9 @@ impl FormDialog {
                     })
                     .unwrap_or_else(|| strings::text(key!("form-page-type-note"))),
             ),
-            _ => None,
+            // Every other field says what it changes, with an example, where its form has the text
+            // `form-hint-<action>-<field>` (rc.2, F27).
+            _ => strings::lookup(&format!("form-hint-{}-{field}", self.action).replace(['.', '_'], "-")),
         }
     }
 }
@@ -607,6 +628,19 @@ impl ShellModel {
                 && let Some(code) = code
             {
                 super::layout::new_location_field(form, &code);
+            }
+            // New medium…'s usual medium fills its name and pressure, both still to be changed (rc.2, F26).
+            if form.action == MEDIUM_NEW.action
+                && name == "preset"
+                && let Some((words, p_nom)) = medium_preset(value)
+            {
+                for f in &mut form.fields {
+                    match f.name {
+                        "name" => f.value.clone_from(&words),
+                        "p_nom" => p_nom.clone_into(&mut f.value),
+                        _ => {}
+                    }
+                }
             }
         }
         // Terminal…'s Kind and Part follow each other.
@@ -1167,24 +1201,48 @@ impl ShellModel {
         }
     }
 
-    /// `fluid.medium_new {name, p_nom, code?}` (FR-FLU-008): one `fluid.medium.edit` that makes a medium of that name,
-    /// nominal pressure (bar) and ISO 1219-2 letter; in the window a missing name or pressure opens the form.
+    /// `fluid.medium_new {preset?, name, p_nom, code?}` (FR-FLU-008): one `fluid.medium.edit` that makes a medium of
+    /// that name, nominal pressure (bar) and ISO 1219-2 letter; a usual medium (`preset`, [`MEDIUM_PRESETS`]) gives the
+    /// name and the pressure left out. In the window a missing name or pressure opens the form, whose first field
+    /// offers the usual media.
     pub(crate) fn act_fluid_medium_new(&mut self, p: &Map<String, Value>) -> Outcome {
         let mut v = Vec::new();
-        for f in MEDIUM_NEW.fields {
-            match text_param(p, f.name) {
+        for name in ["preset", "name", "p_nom", "code"] {
+            match text_param(p, name) {
                 Ok(t) => v.push(t),
                 Err(e) => return e,
             }
         }
-        let [name, p_nom, code] = <[String; 3]>::try_from(v).expect("three fields");
+        let [preset, mut name, mut p_nom, code] = <[String; 4]>::try_from(v).expect("four parameters");
+        if !preset.is_empty() {
+            let Some((words, pressure)) = medium_preset(&preset) else {
+                return failed(key!("error-bad-param"), &["preset"]);
+            };
+            if name.is_empty() {
+                name = words;
+            }
+            if p_nom.is_empty() {
+                pressure.clone_into(&mut p_nom);
+            }
+        }
         for (field, value) in [("name", &name), ("p_nom", &p_nom)] {
             if value.trim().is_empty() {
                 // A form opened afresh sets the medium on no row (the Medium row's New medium… names its row after).
                 if p.is_empty() {
                     self.props.medium_for = None;
                 }
-                return self.form_missing(&MEDIUM_NEW, p, field);
+                let out = self.form_missing(&MEDIUM_NEW, p, field);
+                // The first field offers the usual media, in the UI language.
+                if let Some(Dialog::Form(form)) = &mut self.dialog
+                    && form.action == MEDIUM_NEW.action
+                    && let Some(f) = form.fields.iter_mut().find(|f| f.name == "preset")
+                {
+                    f.options = MEDIUM_PRESETS
+                        .iter()
+                        .filter_map(|(w, _)| medium_preset(w).map(|(words, _)| ((*w).to_owned(), words)))
+                        .collect();
+                }
+                return out;
             }
         }
         let pressure = p_nom.trim().replace(',', ".");

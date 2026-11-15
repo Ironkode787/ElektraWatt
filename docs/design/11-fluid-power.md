@@ -233,7 +233,13 @@ deletes a medium (a deletion takes its definitions with it); `fluid.medium.defin
 a fluid port (FI-04: one per port; a new one replaces the definition of the port's whole net, so that a net is never
 defined twice). The derived keys carry their root medium only:
 `Regulated(root, p_set)`, `Vacuum(root)`, `Exhaust(root)`; their texts are "… → 4 bar", "vacuum (from …)" and
-"exhaust" in en-GB and nl-NL. A medium defined in a regulator's outlet net replaces the regulated key there. The
+"exhaust" in en-GB and nl-NL. A medium defined in a regulator's outlet net replaces the regulated key there.
+*As built (rc.2, F26, F27).* New medium… starts from a usual medium (compressed air 6 bar, vacuum -0.9 bar, hydraulic
+oil 160 bar, cooling water 4 bar, lubricant 5 bar, inert gas 10 bar; `fluid.medium_new {preset}`), which fills the name
+and the pressure, both editable. Nothing reads `code` yet (the ISO 1219-2 line number, FR-FLU-023, is Later and the
+letters are unverified, Open question 12), so the form has no Letter field; the action still takes `code`. Every field
+of New medium… and Fluid settings… (and of the symbol policy, the process-tag scheme, module safety and channel mode
+forms) says under it what it changes, with an example: the text `form-hint-<action>-<field>` of a form's field. The
 vacuum port is the one the ejector's part names (`transform`, §2.6); the shipped ejector `ew.fn.ejector` has ports 1
 (supply), 2 (vacuum) and 3 (exhaust).
 

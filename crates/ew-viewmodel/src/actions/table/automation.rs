@@ -356,7 +356,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ))),
     ),
     with_params(
-        "name?:text, p_nom?:text, code?:text",
+        "preset?:text, name?:text, p_nom?:text, code?:text",
         placed(
             place(Group::Media, 1, CommandSize::Large, None),
             "bubble-plus",
