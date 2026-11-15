@@ -3484,37 +3484,57 @@ msgstr ""
 
 #: src/how-to/fluid-workspace.md:34
 msgid ""
-"To start a valve terminal, choose **Draw ▸ Device**, find **Valve terminal, "
-"4 valve positions, 8 outputs** under **Valve terminals** (or type \"valve "
-"terminal\") and click two corners of its box on the page. It is a valve "
-"terminal because its part has valve positions: the fluid navigator lists it "
-"under **Valve terminals**."
+"To start a valve terminal, choose **Draw ▸ Device**, find **Valve terminal "
+"with bus node, 4 valve positions, 8 outputs** under **Valve terminals** (or "
+"type \"valve terminal\") and click once where its top-left corner goes. It "
+"is drawn as its positions: a supply end on the left, then one cell per valve "
+"position in a row, numbered in the sub-base along the bottom. An empty "
+"position is a dashed cell, a blanking plate a plate with both diagonals. It "
+"is a valve terminal because its part has valve positions: the fluid "
+"navigator lists it under **Valve terminals**."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:37
+#: src/how-to/fluid-workspace.md:39
 msgid ""
-"Right-click the terminal's box or its row and choose **Add valve at position "
-"1**: the valve becomes the terminal's child at that position, and its symbol "
-"follows the pointer until you click where it goes. The valve is of the part "
-"the terminal's other valves have, else the library's valve for its "
-"positions. A valve placed into the box from **Symbol** or **Device**, or "
-"dragged into it, becomes the terminal's valve at the next free position too; "
-"the toast names the position. A valve's **Valve position** in Properties "
-"moves it to another free position. The supply plate **Valve terminal supply "
-"plate, ports 1, 3 and 5** placed into the box joins the terminal too: a tube "
-"to its port 1 feeds every valve of the terminal."
+"Click an empty cell, or right-click it and choose **Fill position 2…**: the "
+"device browser opens with the valves for a valve terminal only, and the "
+"valve you choose stands in that cell, at that position. A valve placed into "
+"a cell from **Symbol** or **Device** takes that cell's position; a valve of "
+"the terminal dragged onto another cell moves there, onto a held cell the two "
+"swap. The toast names the position. A valve with a coil of its own to wire "
+"(a stand-alone valve), a coil or a cylinder dropped into the box is not "
+"taken as a position: it stays a device of its own, and the toast says so. A "
+"valve's **Valve position** in Properties moves it to another position; a "
+"position another valve holds offers **Swap** in the toast. The supply plate "
+"**Valve terminal supply plate, ports 1, 3 and 5** placed into the box stands "
+"in the supply end: a tube to its port 1 feeds every valve of the terminal."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:44
+#: src/how-to/fluid-workspace.md:47
 msgid ""
-"Right-click a valve's row: **Set spare** or **Set used**, **Blank position** "
-"to put a blanking plate in its place, and **Plug port** for each working "
-"port that has no line. A module's row adds a valve at a blank or empty "
-"position the same way (**Add valve at position**), and the terminal's box or "
-"row closes an empty position with a blanking plate (**Blank position**)."
+"Right-click a held cell: **Replace at position 2…**, **Empty position 2** "
+"and **Blanking plate at position 2**. A valve's row offers **Set spare** or "
+"**Set used**, **Blank position** and **Plug port** for each working port "
+"that has no line; the terminal's row adds a valve or a blanking plate at "
+"each empty position (**Add valve at position**, **Blank position**). The "
+"rack dialog (**Rack…**) lists the terminal's positions as rows with "
+"**Fill…**, **Blanking plate** and **Empty**. A terminal drawn before this "
+"version as a free box keeps it: its box's menu offers **Draw as slots**, "
+"previewed, which redraws it as its positions and moves its valves on that "
+"page into their cells with their tubes; its Properties list the **Valve "
+"positions**. There are two kinds, and the terminal's menu says which: a "
+"**valve terminal with bus node** is a PLC station (the outputs that drive "
+"its solenoids are inside it, nothing is wired per solenoid); a **multipin "
+"valve terminal** (**Multipin valve terminal, 8 valve positions, 25-pin "
+"plug**) has no station: placed on an electrical page it is its plug, pins 1 "
+"to 16 and the common 25, wired by a cable to an output card. A valve's "
+"solenoid on a terminal is never drawn: its Properties say **driven by output "
+"Q0.0 of -201K1** or **pin 3 of the plug of -201K1**, and its menu has **Go "
+"to the output of solenoid 14** (the channel in the PLC list) or the way to "
+"its plug pin."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:48
+#: src/how-to/fluid-workspace.md:60
 msgid ""
 "Right-click the valve terminal's box or row and choose **Generate "
 "overview…**; from the command search it acts on the selected terminal and "
@@ -3527,11 +3547,11 @@ msgid ""
 "a module: it refreshes the pages."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:55
+#: src/how-to/fluid-workspace.md:67
 msgid "Tubes"
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:57
+#: src/how-to/fluid-workspace.md:69
 msgid ""
 "The tube table has one row per tube. Type a length in millimetres into "
 "**Length** (or with its unit: `2 m`, `35 cm`; in Properties the row is "
@@ -3541,7 +3561,7 @@ msgid ""
 "the starter tubes PU 6 × 4, 8 × 6 and 10 × 8 mm."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:61
+#: src/how-to/fluid-workspace.md:73
 msgid ""
 "Choose **Fluid settings** on the Fluid tab for the default tube of every "
 "line (its outer and inner diameter in mm and its material) and to tag tubes "
@@ -3550,11 +3570,11 @@ msgid ""
 "without a material, the check names it."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:65
+#: src/how-to/fluid-workspace.md:77
 msgid "Media"
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:67
+#: src/how-to/fluid-workspace.md:79
 msgid ""
 "Choose **New medium** on the Fluid tab, or **New medium…** at the top of the "
 "Fluid panel beside **Fluid settings…**, pick a usual medium under **Start "
@@ -3563,7 +3583,7 @@ msgid ""
 "of this form and of **Fluid settings…** says under it what it changes."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:71
+#: src/how-to/fluid-workspace.md:83
 msgid ""
 "Right-click a tube and choose **Medium:** with the medium's name: the tube's "
 "net and every net the medium reaches through the valves carry it. The fluid "
@@ -3575,14 +3595,14 @@ msgid ""
 "supplies, and set it there."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:76
+#: src/how-to/fluid-workspace.md:88
 msgid ""
 "Select the medium's row in the medium table and press `Ctrl+Shift+H` to "
 "highlight its zones on the page; the highlight is a colour with a hatch "
 "pattern, so it reads without colour too."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:79
+#: src/how-to/fluid-workspace.md:91
 msgid ""
 "The panels are described in the [panel "
 "reference](../reference/window/panels.md): Fluid, Tube table and Medium "
