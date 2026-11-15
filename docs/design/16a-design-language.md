@@ -968,7 +968,10 @@ only when the value is not authored**: a pill in `type.caption` and `color.text.
 `color.border.default` naming the source in one word, "inherited", "varies", "page", "derived", "override", "frozen",
 "library" or "generated", with doc 16 §6.2's full chip text as tooltip and accessible description.
 An authored value shows nothing, so the eye finds the exceptions. An empty authored value shows an em dash in
-`color.text.tertiary`. **Editing is in place:** a click or Enter on an editable value turns it into its editor;
+`color.text.tertiary`. *As built (0.3.0-rc.2).* A value chosen from a list (an enumeration, a colour, a structure
+node, the connection grid) shows a 16-px `chevron-down` in `color.text.secondary` at the cell's right end, always,
+and its node is a combo box; a value chosen in the part picker shows a 16-px `dots` icon there while the row's "…"
+actions button is not on show. A navigator table's cell is typed, never a list, so it shows neither. **Editing is in place:** a click or Enter on an editable value turns it into its editor;
 Enter commits, Escape cancels; a read-only value shows no editor and its reason as tooltip. There are no "edit"
 buttons. The row's actions (Reset to derived, Freeze, Why this value?) are in its context menu and in a "…" icon
 button that appears on hover and focus. Two rows never share a label: duplicate labels (today "Tag" and "Tag",

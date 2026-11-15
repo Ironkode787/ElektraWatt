@@ -322,7 +322,7 @@ fn the_address_profile_row_shows_the_name_its_reference_in_the_tooltip() {
     settle(&mut h);
     settle(&mut h);
     assert!(h.query_by_label("siemens-tia-intl@2027.1").is_none());
-    let value = h.get_by_role_and_label(egui::Role::Button, "Siemens TIA (international)");
+    let value = h.get_by_role_and_label(egui::Role::ComboBox, "Siemens TIA (international)");
     value.hover();
     h.run_steps(40);
     assert!(

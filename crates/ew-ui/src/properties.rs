@@ -27,7 +27,7 @@ use egui::{Key, Modifiers, RichText, Sense, TextEdit, Ui, Vec2};
 use ew_viewmodel::key;
 use ew_viewmodel::properties::{
     ChoiceKind, EditRoute, FieldType, Popup, PropRow, PropertySheet, Provenance, RowAction, RowValue,
-    SheetSection, advanced_count, chip_text, chip_word, filtered, group_key, groups, is_header,
+    SheetSection, ValueChooser, advanced_count, chip_text, chip_word, filtered, group_key, groups, is_header,
     read_only_reason, row_label, value_text,
 };
 use ew_viewmodel::shell::{Focus, ShellModel};
@@ -1120,9 +1120,17 @@ impl PropertiesPane {
         } else {
             middle(value)
         };
-        // The cell's node: the value (a button while a click edits it), inside the row's group.
+        // A value chosen from a list says so (the owner's test of 0.3.0-rc.1): a combo box with a chevron at the
+        // cell's right end, always; one chosen in the part picker shows "…" there while the row's actions button is
+        // not on show.
+        let chooser = (!header)
+            .then(|| ew_viewmodel::properties::value_chooser(row))
+            .flatten();
+        // The cell's node: the value (a combo box or a button while a click edits it), inside the row's group.
         let cell_name = shown.clone();
-        let role = if editable {
+        let role = if chooser == Some(ValueChooser::List) {
+            egui::Role::ComboBox
+        } else if editable {
             egui::Role::Button
         } else if link {
             egui::Role::Link
@@ -1130,6 +1138,12 @@ impl PropertiesPane {
             egui::Role::Label
         };
         response.widget_info(|| egui::WidgetInfo::labeled(role, true, &cell_name));
+        if role == egui::Role::ComboBox {
+            // Its list opens with the editor, which stands in the cell's place.
+            child
+                .ctx()
+                .accesskit_node_builder(response.id, |n| n.set_expanded(false));
+        }
         if editable && response.hovered() {
             child.painter().rect_stroke(
                 cell,
@@ -1139,6 +1153,37 @@ impl PropertiesPane {
             );
         }
         let mut text_right = cell.right() - t.space_icon - reserve;
+        match chooser {
+            Some(ValueChooser::List) => {
+                let icon = egui::Rect::from_min_size(
+                    egui::pos2(text_right - t.icon_sm, cell.center().y - t.icon_sm / 2.0),
+                    Vec2::splat(t.icon_sm),
+                );
+                crate::command_bar::paint_icon(
+                    child,
+                    "chevron-down",
+                    icon,
+                    t.text_secondary.color32(),
+                    t.icon_stroke,
+                );
+                text_right = icon.left() - t.space_1;
+            }
+            Some(ValueChooser::Picker) if reserve == 0.0 => {
+                let icon = egui::Rect::from_min_size(
+                    egui::pos2(text_right - t.icon_sm, cell.center().y - t.icon_sm / 2.0),
+                    Vec2::splat(t.icon_sm),
+                );
+                crate::command_bar::paint_icon(
+                    child,
+                    "dots",
+                    icon,
+                    t.text_secondary.color32(),
+                    t.icon_stroke,
+                );
+                text_right = icon.left() - t.space_1;
+            }
+            _ => {}
+        }
         let mut on_chip = false;
         if p.show_chip {
             // Under a wrapped prose value the chip stands on its own line at the cell's right end.

@@ -118,6 +118,37 @@ pub fn has_options(ty: &FieldType) -> bool {
         || ty.is_part_uses()
 }
 
+/// The page's connection grid row, whose editor lists the grids in words.
+pub(crate) const GRID_ROW: &str = "page/grid";
+
+/// Whether editing `row` opens a choice list ([`has_options`], the connection grid's words).
+pub fn opens_choices(row: &PropRow) -> bool {
+    has_options(&row.ty) || row.key == GRID_ROW
+}
+
+/// How an editable row's value is chosen, which its cell shows (the owner's test of 0.3.0-rc.1: a drop-down row
+/// looked like any other): from a list (a chevron, a combo box), or in a picker of parts ("…").
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ValueChooser {
+    /// A closed list: the words of an enumeration, the colours, the structure nodes, the grids.
+    List,
+    /// The part picker: a Parts row, a part link.
+    Picker,
+}
+
+/// The way `row`'s value is chosen; `None` for a row typed as text or one that cannot be edited.
+pub fn value_chooser(row: &PropRow) -> Option<ValueChooser> {
+    if !row.actions.contains(&RowAction::Edit) || !opens_choices(row) {
+        return None;
+    }
+    let part = row.ty.is_part_uses() || matches!(row.ty.inner(), FieldType::Link { kind } if kind == "part");
+    Some(if part {
+        ValueChooser::Picker
+    } else {
+        ValueChooser::List
+    })
+}
+
 /// A popup of the grid.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Popup {

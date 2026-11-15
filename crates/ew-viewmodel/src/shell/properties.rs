@@ -94,8 +94,8 @@ const SURFACE_ROW: &str = "page/derived.surface";
 const PRINTED_LABEL_ROW: &str = "device/derived.printed_label";
 /// The key of a device's Tag row.
 const TAG_ROW: &str = "device/derived.tag";
-/// A page's Connection grid row, a choice of the grids New page offers, in their words.
-const GRID_ROW: &str = "page/grid";
+// A page's Connection grid row, a choice of the grids New page offers, in their words.
+use crate::properties::GRID_ROW;
 
 /// The choices of the Connection grid row: each grid of `PAGE_GRIDS` in its words, with its value.
 fn grid_choices() -> Vec<(String, Value)> {
@@ -880,7 +880,7 @@ impl ShellModel {
         self.props.choices = None;
         self.props.popup = None;
         // A choice editor lists its options (§6.5).
-        if crate::properties::has_options(&row.ty) || row.key == GRID_ROW {
+        if crate::properties::opens_choices(&row) {
             self.props.choices = self.options(&section, &row, "", key);
         }
         Outcome::Done
