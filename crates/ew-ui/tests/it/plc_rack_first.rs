@@ -44,10 +44,16 @@ fn a_station_is_made_as_a_rack_and_filled() {
     let tmp = Tmp::new();
     let mut h = new_project(&tmp);
     // The panel's + (its empty state offers the same).
-    h.get_all_by_label("New station…").next().expect("New station…").click();
+    h.get_all_by_label("New station…")
+        .next()
+        .expect("New station…")
+        .click();
     settle(&mut h);
     assert!(
-        matches!(h.state().shell().dialog(), Some(Dialog::Rack { draft: Some(_), .. })),
+        matches!(
+            h.state().shell().dialog(),
+            Some(Dialog::Rack { draft: Some(_), .. })
+        ),
         "{:?}",
         h.state().shell().dialog()
     );
@@ -59,7 +65,11 @@ fn a_station_is_made_as_a_rack_and_filled() {
         .into_iter()
         .find(|p| p.text.starts_with("EW-GEN-CPU-1"))
         .expect("the starter CPU among the PLC head parts");
-    dispatch(&mut h, "plc.rack_set", json!({"head": cpu.copy.to_string(), "count": 2}));
+    dispatch(
+        &mut h,
+        "plc.rack_set",
+        json!({"head": cpu.copy.to_string(), "count": 2}),
+    );
     settle(&mut h);
     h.get_by_label("Add module… 1").click();
     settle(&mut h);
@@ -92,7 +102,10 @@ fn a_station_is_made_as_a_rack_and_filled() {
         .map(|r| (r.slot, r.gives.as_str()))
         .collect();
     assert_eq!(modules, [(1, "8 DI"), (2, "8 DI")]);
-    assert!(view.rows.iter().all(|r| r.module.is_none() || !r.drawn), "drawn nowhere yet");
+    assert!(
+        view.rows.iter().all(|r| r.module.is_none() || !r.drawn),
+        "drawn nowhere yet"
+    );
     h.get_by_label("Draw on this page");
     h.get_by_label("Put it on a bus page");
     dispatch(&mut h, "ui.dismiss", json!({}));
@@ -120,7 +133,10 @@ fn a_bus_device_is_given_to_a_plc_from_its_menu() {
         .find(|i| i.label == "Add to a new PLC")
         .unwrap_or_else(|| panic!("{:?}", menu.iter().map(|i| &i.label).collect::<Vec<_>>()));
     assert!(add.enabled, "{:?}", add.reason);
-    let device: Uuid = add.params["device"].as_str().and_then(|s| s.parse().ok()).expect("the device");
+    let device: Uuid = add.params["device"]
+        .as_str()
+        .and_then(|s| s.parse().ok())
+        .expect("the device");
     dispatch(&mut h, add.id, add.params.clone());
     settle(&mut h);
     assert!(
@@ -148,7 +164,10 @@ fn a_bus_device_is_given_to_a_plc_from_its_menu() {
         .into_iter()
         .map(|i| i.label)
         .collect();
-    assert!(menu.iter().any(|l| l == "Rack…") && menu.iter().any(|l| l.starts_with("PLC: PLC")), "{menu:?}");
+    assert!(
+        menu.iter().any(|l| l == "Rack…") && menu.iter().any(|l| l.starts_with("PLC: PLC")),
+        "{menu:?}"
+    );
     assert!(!menu.iter().any(|l| l.starts_with("Add to")), "{menu:?}");
     h.state_mut().shell_mut().shutdown();
 }

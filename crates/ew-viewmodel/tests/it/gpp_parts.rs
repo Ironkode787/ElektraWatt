@@ -240,7 +240,9 @@ fn deleting_the_last_representation_deletes_the_device_and_one_undo_restores_bot
     let found = core047(&tmp, &mut s);
     assert_eq!(found.len(), 1, "{found:?}");
     assert!(
-        found[0].ends_with("is not drawn on any page, so its tag shows ? where the page goes; the parts list still counts it"),
+        found[0].ends_with(
+            "is not drawn on any page, so its tag shows ? where the page goes; the parts list still counts it"
+        ),
         "{found:?}"
     );
 }

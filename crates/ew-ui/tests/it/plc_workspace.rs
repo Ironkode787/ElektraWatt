@@ -367,7 +367,11 @@ fn do_card_pick(h: &egui_kittest::Harness<'static, ew_ui::app::App>) -> String {
 
 /// Draws the starter part `number` as a black box from grid cell `at` (six by eight cells) on the page shown, then
 /// takes the Select tool.
-pub(crate) fn draw_black_box(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>, number: &str, at: (i64, i64)) {
+pub(crate) fn draw_black_box(
+    h: &mut egui_kittest::Harness<'static, ew_ui::app::App>,
+    number: &str,
+    at: (i64, i64),
+) {
     wait_for_page(h);
     dispatch(h, "tool.black_box", json!({"part": number, "template": 0}));
     crate::navigators::cursor_k(h, at);
@@ -398,7 +402,10 @@ fn modules_are_added_in_the_rack_and_slot_editor() {
     support::menu_node(&h, "Rack…").click();
     settle(&mut h);
     let id = match h.state().shell().dialog() {
-        Some(Dialog::Rack { station: Some(station), .. }) => *station,
+        Some(Dialog::Rack {
+            station: Some(station),
+            ..
+        }) => *station,
         other => panic!("{other:?}"),
     };
     h.get_by_label_contains("Rack and slots of");
@@ -458,7 +465,10 @@ fn the_free_slot_stays_in_sight_and_a_taken_slot_is_refused() {
     support::menu_node(&h, "Rack…").click();
     settle(&mut h);
     let id = match h.state().shell().dialog() {
-        Some(Dialog::Rack { station: Some(station), .. }) => *station,
+        Some(Dialog::Rack {
+            station: Some(station),
+            ..
+        }) => *station,
         other => panic!("{other:?}"),
     };
     for slot in 1..=22 {
@@ -1406,7 +1416,10 @@ fn a_module_is_dragged_to_a_free_slot_in_the_rack_editor() {
     support::menu_node(&h, "Rack…").click();
     settle(&mut h);
     let id = match h.state().shell().dialog() {
-        Some(Dialog::Rack { station: Some(station), .. }) => *station,
+        Some(Dialog::Rack {
+            station: Some(station),
+            ..
+        }) => *station,
         other => panic!("{other:?}"),
     };
     let pick = do_card_pick(&h);

@@ -226,7 +226,10 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
                 b
             };
             let mut ordered = stations.clone();
-            if let Some(i) = model.last_station().and_then(|l| ordered.iter().position(|(s, _)| *s == l)) {
+            if let Some(i) = model
+                .last_station()
+                .and_then(|l| ordered.iter().position(|(s, _)| *s == l))
+            {
                 let last = ordered.remove(i);
                 ordered.insert(0, last);
             }
@@ -694,7 +697,10 @@ fn rack_spec(model: &ShellModel) -> DialogSpec {
             ..small(
                 strings::text(key!("rack-new-title")).to_owned(),
                 body,
-                DialogButton::new(key!("rack-create"), DialogAnswer::Action("plc.rack_create", json!({}))),
+                DialogButton::new(
+                    key!("rack-create"),
+                    DialogAnswer::Action("plc.rack_create", json!({})),
+                ),
             )
         };
     }

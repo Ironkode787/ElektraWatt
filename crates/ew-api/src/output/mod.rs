@@ -139,8 +139,9 @@ pub use ew_reports::csv::{CsvOptions, LineEnd, Preset, restyle, table_csv};
 pub use ew_reports::table::{Table, TableCell, TableColumn, TableRow};
 pub use ew_reports::xlsx::{WorkbookMeta, base_text, xlsx};
 pub use navigators::{
-    Drawable, HighlightTarget, LibraryCopyDetail, MacroDetail, MacroThumbnail, NaturalKey, NavColumn,
-    NOT_DRAWN, NavKind, NavNode, NavRole, NavTable, Uuid, names_subject, nav_natural_key, tokens as nav_tokens,
+    Drawable, HighlightTarget, LibraryCopyDetail, MacroDetail, MacroThumbnail, NOT_DRAWN, NaturalKey,
+    NavColumn, NavKind, NavNode, NavRole, NavTable, Uuid, names_subject, nav_natural_key,
+    tokens as nav_tokens,
 };
 pub use panel::{PanelAxis, PanelCarrier, PanelPlacement, PanelTables, UnplacedDevice, surface_of_page};
 pub use potential_offer::PotentialOffer;

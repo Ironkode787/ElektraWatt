@@ -354,7 +354,10 @@ impl ShellModel {
                     return Outcome::refused(key!("reason-action-expired"));
                 };
                 self.notes.dismiss(entry.serial);
-                self.dispatch("plc.rack_editor", &serde_json::json!({ "station": station.to_string() }))
+                self.dispatch(
+                    "plc.rack_editor",
+                    &serde_json::json!({ "station": station.to_string() }),
+                )
             }
             Some(NoteAction::NewStation) => {
                 self.notes.dismiss(entry.serial);

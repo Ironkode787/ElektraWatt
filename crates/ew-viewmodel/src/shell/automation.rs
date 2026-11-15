@@ -166,9 +166,7 @@ impl ShellModel {
             Some(Dialog::Rack { draft: Some(d), .. }) => {
                 Some(self.project_session()?.draft_rack(d.head, &d.modules))
             }
-            Some(Dialog::Rack {
-                station: Some(s), ..
-            }) => self.rack_view(*s),
+            Some(Dialog::Rack { station: Some(s), .. }) => self.rack_view(*s),
             _ => None,
         }
     }
@@ -308,10 +306,7 @@ impl ShellModel {
             Some(_) => return failed(key!("error-bad-param"), &["count"]),
             None => None,
         };
-        let Some(Dialog::Rack {
-            draft, count: c, ..
-        }) = &mut self.dialog
-        else {
+        let Some(Dialog::Rack { draft, count: c, .. }) = &mut self.dialog else {
             return Outcome::refused(key!("reason-rack-closed"));
         };
         if let Some(n) = count {
@@ -508,7 +503,11 @@ impl ShellModel {
     /// part named (`fields.set parts`); `draw` puts its symbol on the pointer. In the new-station state the draft
     /// changes.
     pub(crate) fn act_plc_rack_slot(&mut self, p: &Map<String, Value>) -> Outcome {
-        let Some(slot) = p.get("slot").and_then(Value::as_u64).and_then(|s| u32::try_from(s).ok()) else {
+        let Some(slot) = p
+            .get("slot")
+            .and_then(Value::as_u64)
+            .and_then(|s| u32::try_from(s).ok())
+        else {
             return failed(key!("error-bad-param"), &["slot"]);
         };
         let rack = p
@@ -554,7 +553,8 @@ impl ShellModel {
         let Some(view) = self.rack_view(station) else {
             return failed(key!("error-bad-param"), &["station"]);
         };
-        let modules: Vec<&ew_api::output::RackRow> = view.rows.iter().filter(|r| r.module.is_some()).collect();
+        let modules: Vec<&ew_api::output::RackRow> =
+            view.rows.iter().filter(|r| r.module.is_some()).collect();
         let Some(i) = modules.iter().position(|r| r.slot == slot && r.rack == rack) else {
             return failed(key!("error-bad-param"), &["slot"]);
         };
@@ -562,7 +562,11 @@ impl ShellModel {
         let module = row.module.unwrap_or_default();
         match op.as_str() {
             "up" | "down" => {
-                let target = if op == "up" { slot.checked_sub(1) } else { slot.checked_add(1) };
+                let target = if op == "up" {
+                    slot.checked_sub(1)
+                } else {
+                    slot.checked_add(1)
+                };
                 let Some(target) = target.filter(|t| *t > 0) else {
                     return Outcome::Done;
                 };
@@ -573,8 +577,11 @@ impl ShellModel {
                     };
                     let q = self.project_session().map(ew_api::Session::query);
                     let position = |m: Uuid| {
-                        q.as_ref()
-                            .and_then(|q| q.devices().get(m.to_string().parse().ok()?).and_then(|d| d.position))
+                        q.as_ref().and_then(|q| {
+                            q.devices()
+                                .get(m.to_string().parse().ok()?)
+                                .and_then(|d| d.position)
+                        })
                     };
                     let (Some(a), Some(b)) = (position(module), other.module.and_then(position)) else {
                         return Outcome::Done;
@@ -638,7 +645,11 @@ impl ShellModel {
         let symbol = copy
             .and_then(|c| cat.parts.iter().find(|r| r.copy == c))
             .and_then(|r| {
-                let main = r.functions.iter().find(|f| f.main).or_else(|| r.functions.first())?;
+                let main = r
+                    .functions
+                    .iter()
+                    .find(|f| f.main)
+                    .or_else(|| r.functions.first())?;
                 main.symbol.clone()
             })
             .or_else(|| {
@@ -704,10 +715,7 @@ impl ShellModel {
             .project_session()
             .and_then(|s| stations(s).into_iter().find(|x| !before.contains(x)));
         if let Some(Dialog::Rack {
-            station,
-            draft,
-            note,
-            ..
+            station, draft, note, ..
         }) = &mut self.dialog
         {
             *station = made;
@@ -741,7 +749,11 @@ impl ShellModel {
                 )]))
             }
             Ok(Some("bus")) => {
-                let Some(folio) = self.page_rows().iter().find(|r| r.kind == "bus_topology").map(|r| r.folio.clone())
+                let Some(folio) = self
+                    .page_rows()
+                    .iter()
+                    .find(|r| r.kind == "bus_topology")
+                    .map(|r| r.folio.clone())
                 else {
                     return self.rack_refuse(strings::text(key!("reason-rack-no-bus-page")).to_owned());
                 };

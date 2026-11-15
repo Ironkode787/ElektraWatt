@@ -414,7 +414,11 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
             let mut h = crate::plc_workspace::new_project_with_cpu(tmp);
             crate::plc_workspace::draw_black_box(&mut h, "EW-GEN-CPU-1", (30, 10));
             dispatch(&mut h, "ui.dismiss", json!({}));
-            dispatch(&mut h, "page.new", json!({"folio": "102", "type": "multi_line", "title": "Cards"}));
+            dispatch(
+                &mut h,
+                "page.new",
+                json!({"folio": "102", "type": "multi_line", "title": "Cards"}),
+            );
             support::settle(&mut h);
             crate::plc_workspace::draw_black_box(&mut h, "EW-GEN-DI-1", (10, 10));
             h

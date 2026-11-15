@@ -293,7 +293,12 @@ impl Session {
         let q = self.query();
         let fits = |p: &Part| -> Option<String> {
             let plc = p.sections.plc.as_ref().filter(|s| s.role == PlcRole::Station)?;
-            let roles: Vec<&PortRole> = p.sections.bus.iter().flat_map(|b| b.ports.iter().map(|x| &x.role)).collect();
+            let roles: Vec<&PortRole> = p
+                .sections
+                .bus
+                .iter()
+                .flat_map(|b| b.ports.iter().map(|x| &x.role))
+                .collect();
             let leads = roles
                 .iter()
                 .any(|r| matches!(r, PortRole::Master | PortRole::Controller));
@@ -351,7 +356,12 @@ impl Session {
             q.parts()
                 .get(Id::from_uuid(id))
                 .map(|c| c.item.clone())
-                .or_else(|| library.iter().find(|c| c.id.as_uuid() == id).map(|c| c.item.clone()))
+                .or_else(|| {
+                    library
+                        .iter()
+                        .find(|c| c.id.as_uuid() == id)
+                        .map(|c| c.item.clone())
+                })
         };
         let head_part = head.and_then(part_of);
         let max_modules = head_part
@@ -443,11 +453,18 @@ impl Session {
         if d.aspects.plc_module.is_some() {
             return PlcOffer::None;
         }
-        let copies: Vec<_> = d.parts.iter().filter_map(|u| q.parts().get(u.part.copy)).collect();
-        if copies
+        let copies: Vec<_> = d
+            .parts
             .iter()
-            .any(|c| c.item.sections.plc.as_ref().is_some_and(|p| p.role == PlcRole::Module))
-        {
+            .filter_map(|u| q.parts().get(u.part.copy))
+            .collect();
+        if copies.iter().any(|c| {
+            c.item
+                .sections
+                .plc
+                .as_ref()
+                .is_some_and(|p| p.role == PlcRole::Module)
+        }) {
             return PlcOffer::None;
         }
         let roles: Vec<&PortRole> = copies
@@ -455,10 +472,12 @@ impl Session {
             .filter_map(|c| c.item.sections.bus.as_ref())
             .flat_map(|b| b.ports.iter().map(|p| &p.role))
             .collect();
-        if roles
-            .iter()
-            .any(|r| matches!(r, PortRole::Master | PortRole::Controller | PortRole::Slave | PortRole::Device))
-        {
+        if roles.iter().any(|r| {
+            matches!(
+                r,
+                PortRole::Master | PortRole::Controller | PortRole::Slave | PortRole::Device
+            )
+        }) {
             PlcOffer::BusDevice
         } else if roles.is_empty() {
             PlcOffer::None

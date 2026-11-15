@@ -68,8 +68,12 @@ fn a_bus_node_in_the_rack_is_found_and_taken_out_again() {
     let cpu = place(&mut s, "EW-GEN-CPU-1", 1);
     let node = place(&mut s, "EW-GEN-VTM-1", 2);
     assert_eq!(channels(&s, node), 8, "the terminal's channels");
-    run(&mut s, "fields.set", json!({"kind": "device", "targets": [node.to_string()],
-        "path": "plc_station", "value": null}))
+    run(
+        &mut s,
+        "fields.set",
+        json!({"kind": "device", "targets": [node.to_string()],
+        "path": "plc_station", "value": null}),
+    )
     .expect("the station removed");
     assert!(
         !s.plc_cards_without_cpu().iter().any(|(c, _)| *c == node),
@@ -77,11 +81,19 @@ fn a_bus_node_in_the_rack_is_found_and_taken_out_again() {
     );
     let pnd = library_part(&s, "EW-GEN-PND-1");
     let c = copies(&s, &[pnd]);
-    run(&mut s, "fields.set", json!({"kind": "device", "targets": [node.to_string()], "path": "parts",
-        "value": [{"part": {"copy": pnd.to_string()}, "qty": "1"}], "copies": c}))
+    run(
+        &mut s,
+        "fields.set",
+        json!({"kind": "device", "targets": [node.to_string()], "path": "parts",
+        "value": [{"part": {"copy": pnd.to_string()}, "qty": "1"}], "copies": c}),
+    )
     .expect("the bus node's part");
-    run(&mut s, "assembly.attach", json!({"parent": cpu.to_string(),
-        "children": [{"device": node.to_string(), "position": 1}]}))
+    run(
+        &mut s,
+        "assembly.attach",
+        json!({"parent": cpu.to_string(),
+        "children": [{"device": node.to_string(), "position": 1}]}),
+    )
     .expect("attached as the old window did");
     assert!(s.not_a_module(node));
 
@@ -97,7 +109,10 @@ fn a_bus_node_in_the_rack_is_found_and_taken_out_again() {
     assert!(d.aspects.plc_module.is_none());
     assert_eq!(channels(&s, node), 0, "no channel that no part gives");
     assert!(plc_017(&s).is_empty());
-    assert!(s.bus_device(node), "a bus device, to be given to a PLC as a station");
+    assert!(
+        s.bus_device(node),
+        "a bus device, to be given to a PLC as a station"
+    );
 }
 
 /// F17: a copy of a valve terminal is a valve terminal, a station of its own, not the terminal's own module alone.
@@ -165,8 +180,12 @@ fn a_station_that_is_its_own_module_is_one_row() {
 
     let cpu = library_part(&s, "EW-GEN-CPU-1");
     let c = copies(&s, &[cpu]);
-    run(&mut s, "plc.add_station", json!({"part": {"part": {"copy": cpu.to_string()}, "qty": "1"},
-        "copies": c}))
+    run(
+        &mut s,
+        "plc.add_station",
+        json!({"part": {"part": {"copy": cpu.to_string()}, "qty": "1"},
+        "copies": c}),
+    )
     .expect("a station not drawn");
     let t = s.navigator_table(NavKind::Plc);
     let undrawn = t
@@ -174,7 +193,11 @@ fn a_station_that_is_its_own_module_is_one_row() {
         .iter()
         .find(|n| n.role == NavRole::Station && n.records.first() != Some(&vt))
         .expect("the new station");
-    assert!(undrawn.badges.iter().any(|b| b == NOT_DRAWN), "{:?}", undrawn.badges);
+    assert!(
+        undrawn.badges.iter().any(|b| b == NOT_DRAWN),
+        "{:?}",
+        undrawn.badges
+    );
 }
 
 /// F18: `plc.add_station` makes the CPU with its two modules, drawn nowhere, in a new configuration project, in one
@@ -186,8 +209,12 @@ fn a_new_station_is_made_with_its_modules_in_one_step() {
     let [cpu, di, dout] = ["EW-GEN-CPU-1", "EW-GEN-DI-1", "EW-GEN-DO-1"].map(|n| library_part(&s, n));
     let part = |p: Uuid| json!({"part": {"part": {"copy": p.to_string()}, "qty": "1"}});
     let c = copies(&s, &[cpu, di, dout]);
-    run(&mut s, "plc.add_station", json!({
-        "part": part(cpu)["part"], "modules": [part(di), part(dout)], "copies": c}))
+    run(
+        &mut s,
+        "plc.add_station",
+        json!({
+        "part": part(cpu)["part"], "modules": [part(di), part(dout)], "copies": c}),
+    )
     .expect("the station");
     let q = s.query();
     let (station, d) = q
@@ -197,7 +224,10 @@ fn a_new_station_is_made_with_its_modules_in_one_step() {
         .map(|(id, d)| (id.as_uuid(), d.clone()))
         .expect("the station");
     drop(q);
-    assert_eq!(d.aspects.plc_station.as_ref().map(|p| p.role.clone()), Some(StationRole::Cpu));
+    assert_eq!(
+        d.aspects.plc_station.as_ref().map(|p| p.role.clone()),
+        Some(StationRole::Cpu)
+    );
     let view = s.rack_view(station).expect("its rack");
     let modules: Vec<_> = view.rows.iter().filter_map(|r| r.module).collect();
     assert_eq!(modules.len(), 2, "{:?}", view.rows);
@@ -205,7 +235,11 @@ fn a_new_station_is_made_with_its_modules_in_one_step() {
         assert_eq!(channels(&s, *m), 8);
     }
     assert!(view.rows.iter().any(|r| r.gives == "8 DI"), "{:?}", view.rows);
-    assert!(view.rows.iter().any(|r| r.addresses.starts_with('Q')), "{:?}", view.rows);
+    assert!(
+        view.rows.iter().any(|r| r.addresses.starts_with('Q')),
+        "{:?}",
+        view.rows
+    );
     s.undo(&Origin::Gui).expect("one undo");
     assert!(s.world().model.content_eq(&before), "one step");
 }
@@ -219,13 +253,21 @@ fn a_bus_device_is_given_to_a_plc() {
     let cfg = s.plc_config_projects()[0].0;
     let pnd = library_part(&s, "EW-GEN-PND-1");
     let c = copies(&s, &[pnd]);
-    run(&mut s, "plc.add_station", json!({"part": {"part": {"copy": pnd.to_string()}, "qty": "1"},
-        "copies": c}))
+    run(
+        &mut s,
+        "plc.add_station",
+        json!({"part": {"part": {"copy": pnd.to_string()}, "qty": "1"},
+        "copies": c}),
+    )
     .expect_err("a part without PLC data is no station part");
     let card = place(&mut s, "EW-GEN-DI-1", 2);
     assert!(!s.bus_device(card), "a module is no bus device");
-    run(&mut s, "plc.add_station", json!({"device": card.to_string(), "config_project": cfg.to_string()}))
-        .expect_err("a module goes into a rack");
+    run(
+        &mut s,
+        "plc.add_station",
+        json!({"device": card.to_string(), "config_project": cfg.to_string()}),
+    )
+    .expect_err("a module goes into a rack");
     assert!(!s.bus_device(cpu), "the CPU is a station already");
 
     run(&mut s, "device.create", json!({"letter": "A", "counter": 9})).expect("a device");
@@ -237,23 +279,39 @@ fn a_bus_device_is_given_to_a_plc() {
         .map(|(id, _)| id.as_uuid())
         .expect("the device");
     let c = copies(&s, &[pnd]);
-    run(&mut s, "fields.set", json!({"kind": "device", "targets": [node.to_string()], "path": "parts",
-        "value": [{"part": {"copy": pnd.to_string()}, "qty": "1"}], "copies": c}))
+    run(
+        &mut s,
+        "fields.set",
+        json!({"kind": "device", "targets": [node.to_string()], "path": "parts",
+        "value": [{"part": {"copy": pnd.to_string()}, "qty": "1"}], "copies": c}),
+    )
     .expect("its part: a PROFINET device without PLC data");
     assert!(s.bus_device(node));
-    run(&mut s, "plc.add_station", json!({"device": node.to_string(), "config_project": cfg.to_string()}))
-        .expect("a station of PLC1");
+    run(
+        &mut s,
+        "plc.add_station",
+        json!({"device": node.to_string(), "config_project": cfg.to_string()}),
+    )
+    .expect("a station of PLC1");
     let d = device(&s, node).expect("the device");
     let station = d.aspects.plc_station.as_ref().expect("a station");
     assert_eq!(station.role, StationRole::IoDevice);
     assert_eq!(station.config_project.as_uuid(), cfg);
     let view = s.rack_view(node).expect("its rack");
     assert!(!view.described, "the part does not describe its modules");
-    assert_eq!(view.rows.iter().filter(|r| r.module.is_none()).count(), 1, "an open rack: one free row");
+    assert_eq!(
+        view.rows.iter().filter(|r| r.module.is_none()).count(),
+        1,
+        "an open rack: one free row"
+    );
     let di = library_part(&s, "EW-GEN-DI-1");
     let c = copies(&s, &[di]);
-    run(&mut s, "plc.add_module", json!({"station": node.to_string(),
-        "part": {"part": {"copy": di.to_string()}, "qty": "1"}, "count": 2, "copies": c}))
+    run(
+        &mut s,
+        "plc.add_module",
+        json!({"station": node.to_string(),
+        "part": {"part": {"copy": di.to_string()}, "qty": "1"}, "count": 2, "copies": c}),
+    )
     .expect("two modules at once");
     let view = s.rack_view(node).expect("its rack");
     assert_eq!(view.rows.iter().filter(|r| r.module.is_some()).count(), 2);

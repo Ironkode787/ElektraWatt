@@ -75,7 +75,11 @@ pub(crate) fn rack(
     let rows_id = egui::Id::unique(("rack-rows-height", station));
     let rows = ui.data(|d| d.get_temp::<f32>(rows_id)).unwrap_or(0.0);
     // A positional rack fills at its end: the first free row takes modules; a racked one in any free slot.
-    let first_free = view.rows.iter().find(|r| r.module.is_none()).map(|r| (r.rack, r.slot));
+    let first_free = view
+        .rows
+        .iter()
+        .find(|r| r.module.is_none())
+        .map(|r| (r.rack, r.slot));
     let list = ScrollArea::vertical()
         .max_height(room)
         .min_scrolled_height(rows.min(room).max(t.size_row))
@@ -137,7 +141,7 @@ pub(crate) fn rack(
                                     }
                                     let label = strings::text(key!("rack-replace"));
                                     let replace = components::button(ui, Kind::Secondary, label, true, 0.0);
-                                    part_menu(ui, &t, &replace, &parts, r.slot, None, |p| {
+                                    part_menu(&t, &replace, &parts, r.slot, None, |p| {
                                         let mut e = at.clone();
                                         e["op"] = json!("replace");
                                         e["part"] = json!(p.to_string());
@@ -168,7 +172,7 @@ pub(crate) fn rack(
                                     let add = components::button(ui, Kind::Secondary, label, true, 0.0);
                                     let name = format!("{label} {}", r.slot);
                                     add.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
-                                    part_menu(ui, &t, &add, &parts, r.slot, Some(count), |p| {
+                                    part_menu(&t, &add, &parts, r.slot, Some(count), |p| {
                                         Event::Action(
                                             "plc.rack_add",
                                             json!({ "slot": r.slot, "rack": r.rack, "part": p.to_string() }),
@@ -249,7 +253,10 @@ fn new_station_head(
     caption(ui, key!("rack-kind"));
     ui.horizontal_wrapped(|ui| {
         for k in StationKind::ALL {
-            if ui.selectable_label(draft.kind == k, strings::text(k.text_key())).clicked() {
+            if ui
+                .selectable_label(draft.kind == k, strings::text(k.text_key()))
+                .clicked()
+            {
                 events.push(Event::Action("plc.rack_set", json!({ "kind": k.word() })));
             }
         }
@@ -260,7 +267,10 @@ fn new_station_head(
         let shown = draft
             .head
             .and_then(|h| heads.iter().find(|p| p.copy == h))
-            .map_or_else(|| strings::text(key!("rack-choose-head")).to_owned(), |p| p.text.clone());
+            .map_or_else(
+                || strings::text(key!("rack-choose-head")).to_owned(),
+                |p| p.text.clone(),
+            );
         let combo = egui::ComboBox::from_id_salt("rack-head")
             .width((ui.available_width() - t.size_table_column_min * 2.0).max(t.size_table_column_min))
             .selected_text(shown)
@@ -272,7 +282,10 @@ fn new_station_head(
                         format!("{} · {}", p.text, p.gives)
                     };
                     if ui.selectable_label(draft.head == Some(p.copy), text).clicked() {
-                        events.push(Event::Action("plc.rack_set", json!({ "head": p.copy.to_string() })));
+                        events.push(Event::Action(
+                            "plc.rack_set",
+                            json!({ "head": p.copy.to_string() }),
+                        ));
                     }
                 }
             });
@@ -281,7 +294,15 @@ fn new_station_head(
             .response
             .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, &name));
         components::combo_expanded(ui, &combo.response);
-        if components::button(ui, Kind::Secondary, strings::text(key!("rack-new-part")), true, 0.0).clicked() {
+        if components::button(
+            ui,
+            Kind::Secondary,
+            strings::text(key!("rack-new-part")),
+            true,
+            0.0,
+        )
+        .clicked()
+        {
             events.push(Event::Action("part.new", json!({})));
         }
     });
@@ -305,7 +326,6 @@ fn new_station_head(
 /// The picker under a slot's Add module… or Replace… button `button`: the module parts that may sit in `slot`, each
 /// with what it gives, and with `count` the field of how many fill the slots from there; a part chosen sends `pick`.
 fn part_menu(
-    _ui: &Ui,
     t: &theme::Tokens,
     button: &egui::Response,
     parts: &[ew_viewmodel::ew_api::output::ModulePart],
@@ -321,16 +341,17 @@ fn part_menu(
                 ui.horizontal(|ui| {
                     let caption = ui.label(strings::text(key!("rack-count")));
                     let mut n = count;
-                    let field = ui.add(egui::DragValue::new(&mut n).range(1..=64)).labelled_by(caption.id);
+                    let field = ui
+                        .add(egui::DragValue::new(&mut n).range(1..=64))
+                        .labelled_by(caption.id);
                     if field.changed() {
                         events.push(Event::Action("plc.rack_set", json!({ "count": n })));
                     }
                 });
             }
             let fits = |allowed: &[u16]| {
-                (0..u32::from(count.unwrap_or(1))).all(|k| {
-                    allowed.is_empty() || allowed.iter().any(|a| u32::from(*a) == slot + k)
-                })
+                (0..u32::from(count.unwrap_or(1)))
+                    .all(|k| allowed.is_empty() || allowed.iter().any(|a| u32::from(*a) == slot + k))
             };
             let mut any = false;
             for p in parts.iter().filter(|p| fits(&p.allowed)) {

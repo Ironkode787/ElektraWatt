@@ -198,7 +198,11 @@ impl ShellModel {
         let q = session.query();
         // The devices this commit drew on the page that no page drew before it.
         let mut first: Vec<Uuid> = Vec::new();
-        for r in now.reps.iter().filter(|r| !before.reps.iter().any(|b| b.id == r.id)) {
+        for r in now
+            .reps
+            .iter()
+            .filter(|r| !before.reps.iter().any(|b| b.id == r.id))
+        {
             let Some(d) = r.device else { continue };
             let Ok(id) = d.to_string().parse() else {
                 continue;
@@ -223,9 +227,10 @@ impl ShellModel {
         }
         let waiting = session.plc_cards_without_cpu();
         let stations = session.plc_stations_for_cards();
-        let new_station = first.iter().copied().find(|d| {
-            matches!(session.plc_offer(*d), ew_api::output::PlcOffer::Station(_))
-        });
+        let new_station = first
+            .iter()
+            .copied()
+            .find(|d| matches!(session.plc_offer(*d), ew_api::output::PlcOffer::Station(_)));
         // The modules among them (a valve joining its terminal is no module) that sit in a station's rack.
         let q = session.query();
         let module = |d: &Uuid| {

@@ -271,10 +271,15 @@ impl NavigatorPane {
                     // The Fluid panel's Fluid settings… and New medium… (the persona round found them only through
                     // the command search): the same actions as the Project tab's, disabled with their reasons.
                     // The PLC panel's + is New station… (F18 of the rc.1 test: the rack comes first).
-                    let own: &[(&str, crate::icons::IconId, ew_viewmodel::strings::Key<'static>)] = match self.kind {
-                        NavKind::Plc => &[("plc.new_station", crate::icons::IconId::plus, key!("action-plc-new-station"))],
-                        _ => &[],
-                    };
+                    let own: &[(&str, crate::icons::IconId, ew_viewmodel::strings::Key<'static>)] =
+                        match self.kind {
+                            NavKind::Plc => &[(
+                                "plc.new_station",
+                                crate::icons::IconId::plus,
+                                key!("action-plc-new-station"),
+                            )],
+                            _ => &[],
+                        };
                     for (id, icon, label) in own {
                         let state = ew_viewmodel::actions::find(id).map(|a| (a.enabled)(shell));
                         let button = crate::components::icon_toggle(
@@ -1220,7 +1225,9 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
                     if kind != NavKind::Messages {
                         let chip = crate::components::caption_chip(ui, b);
                         // A device no page draws: why its tag shows `?` (F17 of the rc.1 test).
-                        if code == ew_viewmodel::ew_api::output::NOT_DRAWN && matches!(kind, NavKind::Devices | NavKind::Plc) {
+                        if code == ew_viewmodel::ew_api::output::NOT_DRAWN
+                            && matches!(kind, NavKind::Devices | NavKind::Plc)
+                        {
                             chip.on_hover_text(strings::text(key!("nav-badge-not-drawn-tip")));
                         }
                     } else if let Some(status) = crate::messages::finding_badge(code) {

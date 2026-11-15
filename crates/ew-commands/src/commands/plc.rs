@@ -1169,13 +1169,21 @@ impl Command for AddModule {
             let id = self.add_one(tx, &station, self.slot.map(|s| s.saturating_add(n)))?;
             first.get_or_insert(id);
         }
-        Ok(Outcome::primary((Kind::Device, first.unwrap_or(self.station).cast())))
+        Ok(Outcome::primary((
+            Kind::Device,
+            first.unwrap_or(self.station).cast(),
+        )))
     }
 }
 
 impl AddModule {
     /// One module of the part under `station`, at its next position, in `slot` (rack `rack`, else 0) or positional.
-    fn add_one(&self, tx: &mut TxBuilder<'_>, station: &Device, slot: Option<u16>) -> Result<Id<Device>, CmdError> {
+    fn add_one(
+        &self,
+        tx: &mut TxBuilder<'_>,
+        station: &Device,
+        slot: Option<u16>,
+    ) -> Result<Id<Device>, CmdError> {
         let position = tx
             .children_of(self.station)
             .into_iter()
@@ -1293,18 +1301,16 @@ impl Command for AddStation {
                     .as_ref()
                     .is_some_and(|p| p.role == ew_schema::PlcRole::Station)
                 {
-                    return tx.reject(text!(
-                        "refusal-plc-station-part",
-                        copy.item.part_number.as_str()
-                    ));
+                    return tx.reject(text!("refusal-plc-station-part", copy.item.part_number.as_str()));
                 }
                 let id: Id<Device> = tx.mint();
                 tx.insert(Device {
                     id,
                     v: 1,
                     tag: ew_schema::TagSpec::new(
-                        Ident::from_input("A")
-                            .map_err(|e| CmdError::internal(format!("the letter A is no identifier ({e:?})")))?,
+                        Ident::from_input("A").map_err(|e| {
+                            CmdError::internal(format!("the letter A is no identifier ({e:?})"))
+                        })?,
                         None,
                     ),
                     kind: None,
