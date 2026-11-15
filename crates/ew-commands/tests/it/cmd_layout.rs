@@ -13,8 +13,8 @@ use common::*;
 use ew_commands::commands::{
     AddCarrier, AssignModeParam, AssignPart, CarrierKindParam, CarrierParamsParam, CarrierThen,
     CreateEnclosure, CreateLayoutSpace, DeleteCarrier, DeleteEnclosure, DeleteLayoutSpace, DeleteSelection,
-    EditCarrier, EditPartCopy, KindName, LockPlacement, MoveLayoutLabel, MovePlacement, PlaceDevice, PlaceOnParam,
-    RemovePlacement, TargetRef,
+    EditCarrier, EditPartCopy, KindName, LockPlacement, MoveLayoutLabel, MovePlacement, PlaceDevice,
+    PlaceOnParam, RemovePlacement, TargetRef,
 };
 use ew_commands::{CmdError, Command, Engine, Origin};
 use ew_ids::{Id, v5};

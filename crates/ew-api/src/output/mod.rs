@@ -138,13 +138,15 @@ pub use ew_import_catalog::sheet;
 pub use ew_reports::csv::{CsvOptions, LineEnd, Preset, restyle, table_csv};
 pub use ew_reports::table::{Table, TableCell, TableColumn, TableRow};
 pub use ew_reports::xlsx::{WorkbookMeta, base_text, xlsx};
+pub use ew_scene::page::SlotTextBox;
 pub use navigators::{
     Drawable, HighlightTarget, LibraryCopyDetail, MacroDetail, MacroThumbnail, NOT_DRAWN, NaturalKey,
     NavColumn, NavKind, NavNode, NavRole, NavTable, Uuid, names_subject, nav_natural_key,
     tokens as nav_tokens,
 };
-pub use ew_scene::page::SlotTextBox;
-pub use panel::{LegendOffer, PanelAxis, PanelCarrier, PanelPlacement, PanelTables, UnplacedDevice, surface_of_page};
+pub use panel::{
+    LegendOffer, PanelAxis, PanelCarrier, PanelPlacement, PanelTables, UnplacedDevice, surface_of_page,
+};
 pub use potential_offer::PotentialOffer;
 pub(crate) use potential_offer::said_type;
 pub use preview::PreviewEntity;

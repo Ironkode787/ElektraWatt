@@ -454,10 +454,7 @@ pub fn placed_align(align: &Align, angle: Angle2, variant: Orient2) -> Align {
         i128::from(down.y.0),
     );
     // Every value is at most 2·R, so the sheet vector fits `i64`.
-    let sheet = Pt2::new(
-        Nm((dx * bx + dy * wx) as i64),
-        Nm((dx * by + dy * wy) as i64),
-    );
+    let sheet = Pt2::new(Nm((dx * bx + dy * wx) as i64), Nm((dx * by + dy * wy) as i64));
     let moved = variant.apply(sheet);
     let (mx, my) = (i128::from(moved.x.0), i128::from(moved.y.0));
     let side = |c: i128| {
@@ -603,15 +600,27 @@ mod tests {
         }
         // A designation right of a connection line leaving up, starting at the point and running up and right
         // (bottom left): turned a quarter clockwise the line leaves right, and the text stands below it.
-        assert_eq!(placed_align(&Align::BottomLeft, Angle2(0), Orient2::R90), Align::TopLeft);
+        assert_eq!(
+            placed_align(&Align::BottomLeft, Angle2(0), Orient2::R90),
+            Align::TopLeft
+        );
         // A text at 90° (reading bottom to top) keeps 90°; mirrored, it keeps its side along the baseline.
         assert_eq!(upright_angle(Angle2(90_000)), Angle2(90_000));
-        assert_eq!(placed_align(&Align::MiddleLeft, Angle2(90_000), Orient2::M0), Align::MiddleLeft);
-        assert_eq!(placed_align(&Align::TopLeft, Angle2(90_000), Orient2::M0), Align::BottomLeft);
+        assert_eq!(
+            placed_align(&Align::MiddleLeft, Angle2(90_000), Orient2::M0),
+            Align::MiddleLeft
+        );
+        assert_eq!(
+            placed_align(&Align::TopLeft, Angle2(90_000), Orient2::M0),
+            Align::BottomLeft
+        );
         // Every result is readable, for every input angle.
         for a in (0..360_000).step_by(7_500) {
             let r = upright_angle(Angle2(a)).0;
-            assert!((0..=90_000).contains(&r) || (270_001..360_000).contains(&r), "{a} → {r}");
+            assert!(
+                (0..=90_000).contains(&r) || (270_001..360_000).contains(&r),
+                "{a} → {r}"
+            );
         }
     }
 

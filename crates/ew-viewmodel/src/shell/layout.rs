@@ -480,7 +480,10 @@ impl ShellModel {
         }
         let reps = crate::tools::transform::selected_reps(&self.tools.selection, page);
         let [rep] = reps.as_slice() else { return None };
-        Some((rep.0, page.texts.iter().filter(|t| t.rep == rep.0).copied().collect()))
+        Some((
+            rep.0,
+            page.texts.iter().filter(|t| t.rep == rep.0).copied().collect(),
+        ))
     }
 
     /// The selected symbols with a text moved or turned by an override.
@@ -556,15 +559,20 @@ impl ShellModel {
     /// `enclosure_legend`, the no-grid frame's form as Report… takes it) on the focused panel page, in the free part of
     /// the drawing area beside the layout that `Session::legend_offer` finds. One undo step.
     pub(crate) fn act_page_add_legend(&mut self) -> Outcome {
-        let (Some(page), ew_api::output::LegendOffer::At(r)) = (self.focused_page_id(), self.legend_offer()) else {
+        let (Some(page), ew_api::output::LegendOffer::At(r)) = (self.focused_page_id(), self.legend_offer())
+        else {
             return Outcome::refused(key!("reason-legend-no-room"));
         };
         let Some(form) = crate::wizard::shipped_form_id(crate::wizard_data::NOGRID_FRAME) else {
             return Outcome::refused(key!("reason-no-project"));
         };
         let held = self.project_session().is_some_and(|s| {
-            form.as_str()
-                .is_some_and(|id| s.query().forms().iter().any(|(f, _)| f.as_uuid().to_string() == id))
+            form.as_str().is_some_and(|id| {
+                s.query()
+                    .forms()
+                    .iter()
+                    .any(|(f, _)| f.as_uuid().to_string() == id)
+            })
         });
         let mut params = json!({
             "source": { "kind": "enclosure_legend" },

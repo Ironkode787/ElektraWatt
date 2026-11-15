@@ -223,14 +223,15 @@ impl TextPress {
     fn command(&self) -> Option<Box<ew_api::AnyCommand>> {
         let t = &self.text;
         let to = self.to?;
-        let local = t
-            .frame
-            .orient
-            .inverse()
-            .checked_apply(Pt2::new(Nm(to.0 - t.frame.origin.x.0), Nm(to.1 - t.frame.origin.y.0)))?;
-        let mut params = serde_json::json!({"rep": t.rep.to_string(), "slot": t.slot, "pos": [local.x.0, local.y.0]});
-        if self.turns % 4 != 0 {
-            let angle = (i64::from(t.angle.normalized().0) + i64::from(self.turns % 4) * 90_000).rem_euclid(360_000);
+        let local = t.frame.orient.inverse().checked_apply(Pt2::new(
+            Nm(to.0 - t.frame.origin.x.0),
+            Nm(to.1 - t.frame.origin.y.0),
+        ))?;
+        let mut params =
+            serde_json::json!({"rep": t.rep.to_string(), "slot": t.slot, "pos": [local.x.0, local.y.0]});
+        if self.turns != 0 {
+            let angle =
+                (i64::from(t.angle.normalized().0) + i64::from(self.turns % 4) * 90_000).rem_euclid(360_000);
             params["angle"] = serde_json::json!(angle);
         }
         Some(Box::new(ew_api::AnyCommand {
@@ -431,7 +432,10 @@ impl SelectTool {
                 mods,
             } => {
                 self.text = None;
-                if !matches!(self.state, State::Idle | State::Link { .. } | State::Pressed { .. }) {
+                if !matches!(
+                    self.state,
+                    State::Idle | State::Link { .. } | State::Pressed { .. }
+                ) {
                     return None;
                 }
                 let text = text_under(cx, *at)?;
@@ -450,13 +454,20 @@ impl SelectTool {
                 if press.to.is_none() && cx.within(press.from, *at, CLICK_SLOP_PT) {
                     return Some(ToolOutput::None);
                 }
-                let (a, b) = (cx.snapper.sheet_to_page(press.from), cx.snapper.sheet_to_page(*at));
+                let (a, b) = (
+                    cx.snapper.sheet_to_page(press.from),
+                    cx.snapper.sheet_to_page(*at),
+                );
                 let anchor = (
                     press.text.at.x.0.saturating_add(b.0 - a.0),
                     press.text.at.y.0.saturating_add(b.1 - a.1),
                 );
                 let sheet = cx.snapper.page_to_sheet(anchor);
-                press.to = Some(cx.snapper.snap_fine(sheet, super::snap::FineKind::Text, mods.alt).1);
+                press.to = Some(
+                    cx.snapper
+                        .snap_fine(sheet, super::snap::FineKind::Text, mods.alt)
+                        .1,
+                );
                 Some(press.ghost(cx))
             }
             CanvasEvent::Key(ToolKey::RotateCw) => {
@@ -652,11 +663,13 @@ impl SelectTool {
             }
             CanvasEvent::Escape => {
                 let press = self.panel.take()?;
-                Some(if press.gesture.is_some() || press.moved.is_some() || press.label_dragged {
-                    ToolOutput::Cancel
-                } else {
-                    ToolOutput::None
-                })
+                Some(
+                    if press.gesture.is_some() || press.moved.is_some() || press.label_dragged {
+                        ToolOutput::Cancel
+                    } else {
+                        ToolOutput::None
+                    },
+                )
             }
             _ if self.panel.is_some() => Some(ToolOutput::None),
             _ => None,

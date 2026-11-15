@@ -691,7 +691,8 @@ impl Query for LayoutLabel {
                 };
                 let mut structure = q.get::<PageStructure>(page).as_ref().clone();
                 if structure.node(Aspect::Location).is_none()
-                    && let Some(slot) = shown_location(q, page).and_then(|n| resolved_slot(q, n, SlotSource::Explicit))
+                    && let Some(slot) =
+                        shown_location(q, page).and_then(|n| resolved_slot(q, n, SlotSource::Explicit))
                 {
                     structure.slots.insert(Aspect::Location, slot);
                 }

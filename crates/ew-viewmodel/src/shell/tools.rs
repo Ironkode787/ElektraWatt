@@ -134,7 +134,9 @@ impl ShellModel {
         // Over the free part of a panel page where its legend would go, Select at rest says how to add it (F21).
         if hint == crate::tools::Hint::plain(key!("hint-select"))
             && let ew_api::output::LegendOffer::At(r) = self.legend_offer()
-            && let Some((x, y)) = self.canvas().and_then(|c| Some(c.page().snapper.sheet_to_page(c.pointer()?)))
+            && let Some((x, y)) = self
+                .canvas()
+                .and_then(|c| Some(c.page().snapper.sheet_to_page(c.pointer()?)))
             && (r.min().x.0..=r.max().x.0).contains(&x)
             && (r.min().y.0..=r.max().y.0).contains(&y)
         {

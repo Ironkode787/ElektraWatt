@@ -744,7 +744,8 @@ impl Builder<'_> {
             };
             let m = self.fonts.vertical_metrics(&style);
             let desc = if has_descender(text) { m.descent } else { Nm::ZERO };
-            let tag = (!text.is_empty()).then(|| (shaped.advance(), Nm(m.cap_height.0 + desc.0 + 2 * LABEL_PAD.0)));
+            let tag =
+                (!text.is_empty()).then(|| (shaped.advance(), Nm(m.cap_height.0 + desc.0 + 2 * LABEL_PAD.0)));
             let number = item.map(|n| {
                 let t = n.to_string();
                 let sh = self.fonts.shape(&t, &style, None);
@@ -831,10 +832,17 @@ impl Builder<'_> {
         let mut order: Vec<usize> = (0..out.len()).filter(|i| outside[*i].1.is_some()).collect();
         order.sort_by_key(|i| (outside[*i].0.min().x, outside[*i].0.min().y, out[*i].entity.0));
         for i in order {
-            let Some([above, below]) = outside[i].1.clone() else { continue };
+            let Some([above, below]) = outside[i].1.clone() else {
+                continue;
+            };
             let first = out[i].placed.clone();
-            let other = if first.fit == LabelFit::Above { below } else { above };
-            let step = i64::from(first.knockout.height().0 > 0) * (first.knockout.height().0 + LABEL_STACK_GAP.0);
+            let other = if first.fit == LabelFit::Above {
+                below
+            } else {
+                above
+            };
+            let step =
+                i64::from(first.knockout.height().0 > 0) * (first.knockout.height().0 + LABEL_STACK_GAP.0);
             let mut chosen = None;
             'search: for k in 0..STACK_LEVELS {
                 for (n, c) in [&first, &other].into_iter().enumerate() {

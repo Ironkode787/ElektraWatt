@@ -128,7 +128,9 @@ fn align_of(g: &ew_scene::symbol::SymbolGeometry, kind: &ew_schema::SlotKind) ->
 #[test]
 fn a_turned_transformer_keeps_every_text_upright_and_beside_its_point() {
     use ew_schema::SlotKind::{CpDesignation, Tag};
-    let def = starter(include_str!("../../../../content/symbols/ew.iec.transformer-1ph.json"));
+    let def = starter(include_str!(
+        "../../../../content/symbols/ew.iec.transformer-1ph.json"
+    ));
     for variant in Orient2::ALL {
         let g = lower(&def, variant);
         assert!(g.texts.iter().all(|t| t.angle == Angle2::ZERO), "{variant:?}");
@@ -140,8 +142,14 @@ fn a_turned_transformer_keeps_every_text_upright_and_beside_its_point() {
     assert_eq!(align_of(&r90, &CpDesignation(0)), Align::BottomLeft);
     assert_eq!(align_of(&r90, &CpDesignation(2)), Align::TopLeft);
     // Unturned and mirrored they keep their sides as before.
-    assert_eq!(align_of(&lower(&def, Orient2::R0), &CpDesignation(0)), Align::MiddleRight);
-    assert_eq!(align_of(&lower(&def, Orient2::M0), &CpDesignation(0)), Align::MiddleLeft);
+    assert_eq!(
+        align_of(&lower(&def, Orient2::R0), &CpDesignation(0)),
+        Align::MiddleRight
+    );
+    assert_eq!(
+        align_of(&lower(&def, Orient2::M0), &CpDesignation(0)),
+        Align::MiddleLeft
+    );
 }
 
 /// An air supply turned by 270° shows its tag and its port's designation horizontally, the designation above the

@@ -51,7 +51,10 @@ fn a_balloon_off_its_device_drags_alone_and_the_devices_menu_puts_it_back() {
     let bx = row.label_box.expect("902 prints the balloon");
     let grab = sheet(
         &shell,
-        ((bx.min().x.0 + bx.max().x.0) / 2, (bx.min().y.0 + bx.max().y.0) / 2),
+        (
+            (bx.min().x.0 + bx.max().x.0) / 2,
+            (bx.min().y.0 + bx.max().y.0) / 2,
+        ),
     );
     let to = (grab.0 + 15 * MM, grab.1 - 10 * MM);
     done(&mut shell, "canvas.press", at(grab, json!({})));
@@ -61,7 +64,10 @@ fn a_balloon_off_its_device_drags_alone_and_the_devices_menu_puts_it_back() {
     assert!(moved.label_moved, "the label was moved");
     assert_eq!(moved.pose, row.pose, "the device stays where it is");
     let new_box = moved.label_box.unwrap();
-    assert!(new_box.min().x.0 > bx.max().x.0, "the label stands right of where it was");
+    assert!(
+        new_box.min().x.0 > bx.max().x.0,
+        "the label stands right of where it was"
+    );
     // A click on the moved balloon selects its device, whose menu puts the balloon back.
     let on = sheet(
         &shell,
@@ -72,7 +78,10 @@ fn a_balloon_off_its_device_drags_alone_and_the_devices_menu_puts_it_back() {
     );
     done(&mut shell, "canvas.press", at(on, json!({})));
     done(&mut shell, "canvas.release", at(on, json!({})));
-    let menu: Vec<&str> = canvas_menu(&shell, MenuSpot::Object).iter().map(|i| i.id).collect();
+    let menu: Vec<&str> = canvas_menu(&shell, MenuSpot::Object)
+        .iter()
+        .map(|i| i.id)
+        .collect();
     assert!(menu.contains(&"layout.reset_label"), "{menu:?}");
     done(&mut shell, "layout.reset_label", json!({}));
     let back = panel(&shell).placement(id).unwrap().clone();

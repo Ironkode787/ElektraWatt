@@ -29,8 +29,8 @@ use ew_derive::layout::{
 use ew_derive::{DeviceTag, PageRef, Policy, Q, Query, StructurePath, Tag};
 use ew_scene::forms::SheetMap;
 use ew_scene::panel::{
-    BracketDraw, CarrierDraw, LAYOUT_LABEL_STYLE, LabelShow, PanelLabel, PanelView, PlacementDraw, Projection,
-    SurfaceOutline,
+    BracketDraw, CarrierDraw, LAYOUT_LABEL_STYLE, LabelShow, PanelLabel, PanelView, PlacementDraw,
+    Projection, SurfaceOutline,
 };
 use ew_schema::{
     Carrier, CarrierKind, CarrierParams, CarrierRef, Device, Enclosure, LayoutLabels, LayoutSpace, LibCopy,
@@ -989,12 +989,22 @@ const LEGEND_GAP: (i64, i64) = (10_000_000, 5_000_000);
 /// frame's drawing area right of it, left of it, below it or above it (in that order on a tie), [`LEGEND_GAP`] off
 /// the layout and the area's edge, when that part is at least [`LEGEND_MIN`].
 pub(crate) fn legend_offer_of(q: &Q, page: Id<Page>) -> LegendOffer {
-    let Some(view) = panel_view(q, page, Parts { surface: true, ..Parts::NONE }) else {
+    let Some(view) = panel_view(
+        q,
+        page,
+        Parts {
+            surface: true,
+            ..Parts::NONE
+        },
+    ) else {
         return LegendOffer::NoLayout;
     };
     let held = q.table::<ew_schema::ReportBlock>().iter().any(|(_, b)| {
         b.embedded.as_ref().is_some_and(|e| e.page == page)
-            && matches!(b.source, ew_schema::ReportSource::Kind(ew_schema::ReportKind::EnclosureLegend))
+            && matches!(
+                b.source,
+                ew_schema::ReportSource::Kind(ew_schema::ReportKind::EnclosureLegend)
+            )
     });
     if held {
         return LegendOffer::Exists;
@@ -1040,7 +1050,10 @@ pub(crate) fn legend_offer_of(q: &Q, page: Id<Page>) -> LegendOffer {
         }
         let size = i128::from(w) * i128::from(h);
         if best.is_none_or(|(s, _)| size > s) {
-            best = Some((size, Rect::from_points(Pt2::new(Nm(a), Nm(b)), Pt2::new(Nm(c), Nm(d)))));
+            best = Some((
+                size,
+                Rect::from_points(Pt2::new(Nm(a), Nm(b)), Pt2::new(Nm(c), Nm(d))),
+            ));
         }
     }
     best.map_or(LegendOffer::NoRoom, |(_, r)| LegendOffer::At(r))

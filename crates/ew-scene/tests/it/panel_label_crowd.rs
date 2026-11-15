@@ -63,7 +63,7 @@ fn row(show: LabelShow, moved: Option<Pt2>) -> PageView {
 }
 
 fn labels(view: &PageView) -> LayerList {
-    page_display_list(view, Layer::Labels, bundled(), &builtin())
+    page_display_list(view, Layer::Labels, bundled(), builtin())
 }
 
 fn overlap(a: Rect, b: Rect) -> bool {
@@ -117,7 +117,14 @@ fn item_numbers_print_in_balloons_and_both_shows_the_tag_beside_its_balloon() {
             .iter()
             .filter(|i| match &i.kind {
                 // A circle is four cubic arcs.
-                ItemKind::Path(p) => p.path.els.iter().filter(|e| matches!(e, PathEl::CubicTo(..))).count() == 4,
+                ItemKind::Path(p) => {
+                    p.path
+                        .els
+                        .iter()
+                        .filter(|e| matches!(e, PathEl::CubicTo(..)))
+                        .count()
+                        == 4
+                }
                 _ => false,
             })
             .count()
@@ -125,12 +132,21 @@ fn item_numbers_print_in_balloons_and_both_shows_the_tag_beside_its_balloon() {
     let numbers = labels(&row(LabelShow::ItemNumbers, None));
     assert_eq!(circles(&numbers), 7);
     let printed = texts(&numbers);
-    assert!(printed.contains(&"3".to_owned()) && printed.contains(&"9".to_owned()), "{printed:?}");
-    assert!(!printed.iter().any(|t| t.starts_with('-')), "no tag with item numbers alone");
+    assert!(
+        printed.contains(&"3".to_owned()) && printed.contains(&"9".to_owned()),
+        "{printed:?}"
+    );
+    assert!(
+        !printed.iter().any(|t| t.starts_with('-')),
+        "no tag with item numbers alone"
+    );
     let both = labels(&row(LabelShow::Both, None));
     assert_eq!(circles(&both), 7);
     let printed = texts(&both);
-    assert!(printed.contains(&"-100F1".to_owned()) && printed.contains(&"3".to_owned()), "{printed:?}");
+    assert!(
+        printed.contains(&"-100F1".to_owned()) && printed.contains(&"3".to_owned()),
+        "{printed:?}"
+    );
 }
 
 #[test]

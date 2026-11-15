@@ -50,10 +50,9 @@ fn a_selected_symbols_text_drags_alone_turns_hides_and_goes_back() {
         .find(|r| r.device.is_some() && r.black_box.is_none() && page.texts.iter().any(|t| t.rep == r.id))
         .expect("a symbol with texts")
         .clone();
-    let body = page.snapper.page_to_sheet((
-        (rep.body[0] + rep.body[2]) / 2,
-        (rep.body[1] + rep.body[3]) / 2,
-    ));
+    let body = page
+        .snapper
+        .page_to_sheet(((rep.body[0] + rep.body[2]) / 2, (rep.body[1] + rep.body[3]) / 2));
     done(&mut shell, "canvas.press", at(body, json!({})));
     done(&mut shell, "canvas.release", at(body, json!({})));
     let before = texts(&shell);
@@ -68,7 +67,12 @@ fn a_selected_symbols_text_drags_alone_turns_hides_and_goes_back() {
     done(&mut shell, "canvas.release", at(to, json!({})));
     let moved = slot(&shell, tag.slot).expect("the text still prints");
     assert!(moved.moved, "an override moves it");
-    assert!(moved.at.x.0 > tag.at.x.0 + 8 * MM, "{:?} → {:?}", tag.at, moved.at);
+    assert!(
+        moved.at.x.0 > tag.at.x.0 + 8 * MM,
+        "{:?} → {:?}",
+        tag.at,
+        moved.at
+    );
     assert_ne!(moved.angle, tag.angle, "the Rotate key turned it");
     // Its anchor lies on the fine grid of the page (a QET grid page: 793 750 / 3 nm, each point rounded to the nm).
     let off = (i128::from(moved.at.x.0) * 3).rem_euclid(793_750);
@@ -79,7 +83,10 @@ fn a_selected_symbols_text_drags_alone_turns_hides_and_goes_back() {
     }
     // Undo takes it back as one step.
     done(&mut shell, "edit.undo", json!({}));
-    assert_eq!(slot(&shell, tag.slot).map(|t| (t.at, t.moved)), Some((tag.at, false)));
+    assert_eq!(
+        slot(&shell, tag.slot).map(|t| (t.at, t.moved)),
+        Some((tag.at, false))
+    );
     done(&mut shell, "edit.redo", json!({}));
     // The menu over the text hides it; Reset text positions puts the moved one back.
     let over = middle(&shell, &slot(&shell, tag.slot).unwrap());
@@ -90,9 +97,15 @@ fn a_selected_symbols_text_drags_alone_turns_hides_and_goes_back() {
         .find(|i| i.id == "rep.hide_text")
         .expect("Hide text over the text");
     assert_eq!(hide.params, json!({"slot": tag.slot}));
-    assert!(menu.iter().any(|i| i.id == "rep.reset_texts"), "Reset text positions");
+    assert!(
+        menu.iter().any(|i| i.id == "rep.reset_texts"),
+        "Reset text positions"
+    );
     done(&mut shell, "rep.reset_texts", json!({}));
-    assert_eq!(slot(&shell, tag.slot).map(|t| (t.at, t.moved)), Some((tag.at, false)));
+    assert_eq!(
+        slot(&shell, tag.slot).map(|t| (t.at, t.moved)),
+        Some((tag.at, false))
+    );
     done(&mut shell, "rep.hide_text", json!({"slot": tag.slot}));
     assert!(slot(&shell, tag.slot).is_none(), "the hidden text prints no more");
     shell.shutdown();

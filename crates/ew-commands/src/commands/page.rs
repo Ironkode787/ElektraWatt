@@ -11,9 +11,9 @@ use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_model::ModelError;
 use ew_schema::{
-    ContinuationPolicy, Device, Extra, Folio, FormDef, Function, Kind, MountingSurface, Page, PageItem,
-    PageItemKind, PageType, ReportBlock, Representation, Scale, Section, StructureAssignment,
-    LayoutLabels, SurfaceLabelMode, SurfaceView,
+    ContinuationPolicy, Device, Extra, Folio, FormDef, Function, Kind, LayoutLabels, MountingSurface, Page,
+    PageItem, PageItemKind, PageType, ReportBlock, Representation, Scale, Section, StructureAssignment,
+    SurfaceLabelMode, SurfaceView,
 };
 use ew_units::{Grid, Pt2};
 use schemars::JsonSchema;

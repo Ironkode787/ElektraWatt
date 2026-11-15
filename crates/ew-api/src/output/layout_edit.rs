@@ -1291,7 +1291,9 @@ impl Session {
                         surface = Some(id);
                     }
                     "labels" => {
-                        let Some((show, _)) = LABELS.iter().find(|(_, w)| w.eq_ignore_ascii_case(text.trim())) else {
+                        let Some((show, _)) =
+                            LABELS.iter().find(|(_, w)| w.eq_ignore_ascii_case(text.trim()))
+                        else {
                             return invalid("Choose Tags, Item numbers or Both.");
                         };
                         labels = Some(*show);

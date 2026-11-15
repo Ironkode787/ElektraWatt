@@ -237,7 +237,10 @@ fn the_panel_pages_surface_view_rows_set_the_view() {
     );
     assert_eq!(view[0].1, "-UC1 plate");
     assert_eq!(view[1].1, "Abbreviated");
-    assert_eq!(view[2].1, "Tags", "Golden A's 902 labels its devices with their tags");
+    assert_eq!(
+        view[2].1, "Tags",
+        "Golden A's 902 labels its devices with their tags"
+    );
     // The rows sit under their own category, Surface view.
     let categories: Vec<ew_api::output::Category> = s
         .property_sheet(&[page])
