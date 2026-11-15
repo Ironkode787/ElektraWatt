@@ -777,3 +777,9 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   drawn with the saved symbol: its function definition is the part's main function (FT-1766)
 - api-add: the guide's how-to "Make your own PLC or bus part": a card, a head station, a switch and a device on
   PROFINET typed from the data sheet (FT-1766, FT-1767)
+- behaviour-change: Edit part… on a part of one's own (in My parts or kept to the project) opens the bus and PLC
+  forms with what was saved: Save writes My parts' next version and previews the update of the project's copy, or
+  changes a project-local part in place; devices already drawn keep their sockets and ports, as the editor says. A
+  starter or another library's part says why it cannot change and offers Copy as a part of your own… (FT-1766)
+- api-add: `part.edit_copy` takes a project-local copy's `sections`, `cp_pattern` and `function_template`; `part.new`
+  takes `from`, a held part copied as a new part (FT-1766)

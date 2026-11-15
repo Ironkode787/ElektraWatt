@@ -488,6 +488,13 @@ pub struct PartBusPort {
   black-box main function over them, as the starter cards carry, so N1 and N3 give the channels and bind them to the
   pins. A part has one channel spec, so a card with inputs and outputs is two parts until a later format adds a
   second spec. The part is saved into the person's own library (My parts) and embedded, or kept project-local.
+  Edit part… on a part of his own opens the same forms with the saved values: a copy of My parts is saved as the
+  item's next patch version there and the project's copy follows by `library.update` (previewed, listing the devices);
+  a project-local copy changes in place by `part.edit_copy`, which takes its `sections`, `cp_pattern` and
+  `function_template`. Members the forms do not show are kept; the pins and the template are made again only when
+  the channels, the pin pattern or the supply pins changed. A device already drawn keeps its box's sockets and the
+  ports its functions carry (N5 never rewrites one); it takes the change when placed again. A starter part or another
+  library's part stays read-only and is copied as a new part of his own.
 
 ### 2.7 Bus model
 

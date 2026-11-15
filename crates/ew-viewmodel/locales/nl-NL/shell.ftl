@@ -1807,7 +1807,7 @@ refusal-part-edit-no-manufacturer = een artikel heeft een fabrikant nodig
 refusal-part-edit-no-number = een artikel heeft een artikelnummer nodig
 refusal-part-edit-local-fork = een projecteigen kopie wordt ter plekke bewerkt; geef geen `fork`
 refusal-part-edit-not-object = geen artikelitem: geef de velden van het artikel als object
-refusal-part-edit-fixed-members = alleen de identiteit, de omschrijving, de categorie, de eenheid en de technische gegevens kunnen worden bewerkt
+refusal-part-edit-fixed-members = alleen de identiteit, de omschrijving, de categorie, de eenheid en de technische gegevens kunnen worden bewerkt, en van een projecteigen artikel ook zijn secties, pennen en functiesjabloon
 refusal-part-edit-tech-data-list = de technische gegevens zijn een lijst
 refusal-part-edit-unit = de eenheid is piece, m of set
 # parts.import.
@@ -3997,6 +3997,9 @@ action-part-new = Nieuw artikel…
 action-part-bus-row = Een businterface toevoegen of verwijderen
 reason-part-symbol-unsaved = Sla het symbool eerst op in een bibliotheek; het artikel noemt het dan
 part-drawn-with = Getekend met
+part-own-users = Apparaten die dit artikel gebruiken: { $p0 }. Opslaan verbetert het artikel dat ze gebruiken; een al getekend apparaat houdt de aansluitbussen waarmee het is getekend en de buspoorten die het draagt, dus verwijder het en plaats het opnieuw om de wijziging te tekenen.
+part-read-only = Dit artikel hoort bij { $p0 }, dat u niet kunt wijzigen: zijn businterfaces en PLC-gegevens blijven zoals ze zijn. Kopieer het als een eigen artikel om ze te wijzigen.
+part-copy-own = Kopiëren als eigen artikel…
 symbol-make-part = Een artikel maken voor dit symbool…
 symbol-make-part-how = Een artikel waarvan de apparaten met dit symbool worden getekend: zijn identiteit, businterfaces en PLC-gegevens. Sla het symbool eerst op in een bibliotheek.
 # FT-1766: de PLC-sectie van een nieuw artikel.

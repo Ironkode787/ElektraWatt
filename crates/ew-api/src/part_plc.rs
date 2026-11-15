@@ -19,7 +19,7 @@ use ew_schema::{
 };
 use serde_json::Value;
 
-use crate::part_editor::{DraftMessage, enum_words, message};
+use crate::part_editor::{DraftMessage, enum_words, message, stored_word};
 
 /// The members of the PLC form, in its order (`part.field`'s `plc.<member>`).
 pub const PLC_MEMBERS: [&str; 10] = [
@@ -272,6 +272,94 @@ pub(crate) fn check_plc(rows: &PlcRows) -> Vec<DraftMessage> {
         );
     }
     out
+}
+
+/// The form's texts of a held PLC section (the members it shows; a pin list, which the form cannot show as a
+/// pattern, leaves the pattern empty and is kept).
+pub(crate) fn rows_of(s: &PlcSection) -> PlcRows {
+    let channels = s.channels.as_ref();
+    let supply = s.supply_groups.first();
+    PlcRows {
+        role: stored_word(&s.role),
+        kind: channels.map_or_else(String::new, |c| stored_word(&c.kind)),
+        count: channels.map_or_else(String::new, |c| c.count.to_string()),
+        data_type: channels
+            .and_then(|c| c.data_type.as_ref())
+            .map_or_else(String::new, |d| d.as_str().to_owned()),
+        designation: channels.and_then(|c| c.designation.clone()).unwrap_or_default(),
+        pin_of: match &s.pin_of {
+            Some(PinMap::Pattern(p)) => p.clone(),
+            _ => String::new(),
+        },
+        l_plus: supply.map_or_else(String::new, |g| g.cps.l_plus.as_str().to_owned()),
+        m: supply.map_or_else(String::new, |g| g.cps.m.as_str().to_owned()),
+        slots: slots_text(&s.allowed_slots),
+        max_modules: s
+            .limits
+            .as_ref()
+            .and_then(|l| l.max_modules)
+            .map_or_else(String::new, |n| n.to_string()),
+    }
+}
+
+/// Allowed slots as the form writes them: runs as `1-8`, single slots alone (`1-8, 10`).
+fn slots_text(slots: &[u16]) -> String {
+    let mut out: Vec<String> = Vec::new();
+    let mut i = 0;
+    while i < slots.len() {
+        let mut j = i;
+        while j + 1 < slots.len() && slots[j + 1] == slots[j] + 1 {
+            j += 1;
+        }
+        out.push(if j > i {
+            format!("{}-{}", slots[i], slots[j])
+        } else {
+            slots[i].to_string()
+        });
+        i = j + 1;
+    }
+    out.join(", ")
+}
+
+/// Whether two forms give the same pins: the same role, channels, pin pattern and supply pins.
+pub(crate) fn same_pins(a: &PlcRows, b: &PlcRows) -> bool {
+    ["role", "kind", "count", "pin_of", "l_plus", "m"]
+        .iter()
+        .all(|m| a.text(m).trim() == b.text(m).trim())
+}
+
+/// Keeps in a section made from the form what the held section (`held`) has and the form does not show: the unbound
+/// state, the valve positions, the IO-Link window, the ratings, unknown members, a station's I/O lengths, the further
+/// supply groups, a pin list, and the I/O and channel map of a channel kind the form does not derive.
+pub(crate) fn keep_unshown(s: &mut PlcSection, held: Option<&PlcSection>, rows: &PlcRows) {
+    let Some(o) = held else {
+        return;
+    };
+    s.unbound.clone_from(&o.unbound);
+    s.positions.clone_from(&o.positions);
+    s.iolink.clone_from(&o.iolink);
+    s.ratings.clone_from(&o.ratings);
+    s.extra.clone_from(&o.extra);
+    if let Some(old) = &o.limits {
+        let mut l = s.limits.clone().unwrap_or_default();
+        l.max_input_bytes = old.max_input_bytes;
+        l.max_output_bytes = old.max_output_bytes;
+        l.extra.clone_from(&old.extra);
+        s.limits = (l != StationLimits::default()).then_some(l);
+    }
+    if s.supply_groups.len() <= 1 {
+        s.supply_groups.extend(o.supply_groups.iter().skip(1).cloned());
+    }
+    if rows.pin_of.trim().is_empty() && matches!(o.pin_of, Some(PinMap::List(_))) {
+        s.pin_of.clone_from(&o.pin_of);
+    }
+    if rows.io().is_none() {
+        s.io.clone_from(&o.io);
+        s.bit_of.clone_from(&o.bit_of);
+    }
+    if let (Some(c), Some(old)) = (s.channels.as_mut(), o.channels.as_ref()) {
+        c.extra.clone_from(&old.extra);
+    }
 }
 
 /// The PLC section and the CP pattern of a checked form; `None` without a role.

@@ -1859,7 +1859,7 @@ refusal-part-edit-no-manufacturer = a part needs a manufacturer
 refusal-part-edit-no-number = a part needs a part number
 refusal-part-edit-local-fork = a project-local copy is edited in place; give no `fork`
 refusal-part-edit-not-object = not a part item: give the part's members as an object
-refusal-part-edit-fixed-members = only the identity, the description, the category, the unit and the technical data can be edited
+refusal-part-edit-fixed-members = only the identity, the description, the category, the unit and the technical data can be edited, and of a project-local part its sections, pins and function template
 refusal-part-edit-tech-data-list = the technical data are a list
 refusal-part-edit-unit = the unit is piece, m or set
 # parts.import.
@@ -4201,6 +4201,9 @@ action-part-new = New part…
 action-part-bus-row = Add or remove a bus interface
 reason-part-symbol-unsaved = Save the symbol to a library first; the part then names it
 part-drawn-with = Drawn with
+part-own-users = Devices that use this part: { $p0 }. Save corrects the part they use; a device already drawn keeps the sockets it was drawn with and the bus ports it carries, so delete it and place it again to draw the change.
+part-read-only = This part belongs to { $p0 }, which you cannot change: its bus interfaces and PLC data stay as they are. Copy it as a part of your own to change them.
+part-copy-own = Copy as a part of your own…
 symbol-make-part = Make a part for this symbol…
 symbol-make-part-how = A part whose devices are drawn with this symbol: its identity, bus interfaces and PLC data. Save the symbol to a library first.
 # FT-1766: the PLC section of a new part.

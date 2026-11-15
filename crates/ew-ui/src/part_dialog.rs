@@ -447,7 +447,8 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
         .show(ui, |ui| {
             // A new part's form is long: at the main resolution its identity and its PLC section stand side by side,
             // the bus interfaces below them across the dialog.
-            if d.new && ui.available_width() >= 2.0 * (t.size_dialog_label + t.size_control * 6.0) {
+            if (d.new || d.own) && ui.available_width() >= 2.0 * (t.size_dialog_label + t.size_control * 6.0)
+            {
                 let mut left_save = false;
                 let mut right_save = false;
                 let mut left_events = Vec::new();
@@ -463,11 +464,11 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
                 bus_section(ui, d, events);
             } else {
                 save |= identity(ui, d, just_opened, events);
-                if d.new || !d.bus.is_empty() {
+                if d.new || d.own || !d.bus.is_empty() {
                     ui.add_space(t.space_3);
                     bus_section(ui, d, events);
                 }
-                if d.new {
+                if d.new || d.own {
                     ui.add_space(t.space_3);
                     save |= plc_section(ui, d, events);
                 }
@@ -524,10 +525,13 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
                 };
                 read_only(ui, strings::text(key!("part-field-source")), source);
             }
-            if let Some(err) = &e.error {
-                ui.colored_label(t.error.color32(), err);
-            }
         });
+    // The refusal of the last Save stands under the form, above Save, in sight however far the form scrolls; its
+    // field's message stands at the field too.
+    if let Some(err) = &e.error {
+        ui.add_space(t.space_2);
+        ui.colored_label(t.error.color32(), err);
+    }
     if save {
         events.push(Event::Action("part.save", serde_json::Value::Null));
     }
@@ -711,7 +715,7 @@ fn bus_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
     use ew_viewmodel::ew_api::{BUS_MEMBERS, bus_words, role_words};
     let t = theme::current(ui.ctx());
     ui.label(RichText::new(strings::text(key!("part-section-bus"))).font(theme::font(&t.type_body_strong)));
-    if d.new {
+    if d.new || d.own {
         ui.add(
             egui::Label::new(
                 RichText::new(strings::text(key!("part-section-bus-hint")))
@@ -728,7 +732,7 @@ fn bus_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
     if !d.bus.is_empty() {
         // The columns share the row; the remove button keeps its own width.
         let gap = t.space_2;
-        let remove_w = if d.new { t.size_control } else { 0.0 };
+        let remove_w = if d.new || d.own { t.size_control } else { 0.0 };
         let cell = ((ui.available_width() - remove_w - gap * BUS_MEMBERS.len() as f32)
             / BUS_MEMBERS.len() as f32)
             .max(t.size_control);
@@ -753,7 +757,7 @@ fn bus_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
                     let field = format!("bus.{i}.{m}");
                     let value = row.text(m);
                     let name = format!("{} {}", label(m), i + 1);
-                    if !d.new {
+                    if !(d.new || d.own) {
                         let shown = match m {
                             "bus" | "role" | "termination" => bus_choice(m, value),
                             _ => value.to_owned(),
@@ -811,7 +815,7 @@ fn bus_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
                         }
                     }
                 }
-                if d.new {
+                if d.new || d.own {
                     let words = strings::format(key!("part-bus-remove"), &[row.interface.as_str()]);
                     let remove = crate::components::icon_button(ui, crate::icons::IconId::x, &words);
                     if remove.clicked() {
@@ -836,7 +840,7 @@ fn bus_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
             }
         }
     }
-    if d.new {
+    if d.new || d.own {
         ui.add_space(t.space_2);
         if crate::components::button(
             ui,

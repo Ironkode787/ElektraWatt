@@ -269,7 +269,7 @@ fn every_refusal_has_its_pointer() {
         (
             edit(
                 local.id,
-                with("cp_pattern", json!([{"idx": 1, "designation": "1"}])),
+                with("mech", json!({"width": 1_000_000, "height": 1_000_000})),
                 None,
             ),
             "/part",
@@ -324,6 +324,14 @@ fn every_refusal_has_its_pointer() {
         let err = e.preview(&cmd).map(|_| ()).unwrap_err();
         assert_eq!(pointer(err), at, "{cmd:?}");
     }
+    // FT-1766: a project-local copy takes a new CP pattern (the part editor's PLC form); its mechanical data stay
+    // fixed (above).
+    let pins = edit(
+        local.id,
+        with("cp_pattern", json!([{"idx": 1, "designation": "1"}])),
+        None,
+    );
+    assert!(e.preview(&pins).is_ok(), "a local copy's pins change");
     // A document of `copies` that does not read as a library document.
     let mut bad_copies = edit(local.id, described(&local, "x"), None);
     bad_copies.copies = vec![json!({"$k": "part"})];

@@ -785,12 +785,18 @@ impl ShellModel {
     /// part.
     pub(crate) fn act_part_new(&mut self, p: &Map<String, Value>) -> Outcome {
         let symbol = or_return!(string_param(p, "symbol")).map(str::to_owned);
+        let from = match or_return!(string_param(p, "from")).map(str::parse::<Uuid>) {
+            None => None,
+            Some(Ok(c)) => Some(c),
+            Some(Err(_)) => return failed(key!("error-bad-param"), &["from"]),
+        };
         let Some(project) = &self.project else {
             return Outcome::refused(key!("reason-no-project"));
         };
-        let made = match &symbol {
-            Some(address) => project.session.new_part_draft_for_symbol(address),
-            None => project.session.new_part_draft(),
+        let made = match (&symbol, from) {
+            (Some(address), _) => project.session.new_part_draft_for_symbol(address),
+            (None, Some(copy)) => project.session.new_part_draft_from(copy),
+            (None, None) => project.session.new_part_draft(),
         };
         let draft = match made {
             Ok(d) => d,
@@ -841,7 +847,7 @@ impl ShellModel {
         let Some(Dialog::PartEdit(editor)) = &mut self.dialog else {
             return Outcome::refused(key!("reason-no-part-editor"));
         };
-        if !editor.draft.new {
+        if !editor.draft.new && !editor.draft.own {
             return failed(key!("error-part-field"), &["bus"]);
         }
         editor.error = None;
@@ -885,6 +891,9 @@ impl ShellModel {
     pub(crate) fn act_part_save(&mut self) -> Outcome {
         if matches!(&self.dialog, Some(Dialog::PartEdit(e)) if e.draft.new) {
             return self.part_save_new();
+        }
+        if matches!(&self.dialog, Some(Dialog::PartEdit(e)) if e.draft.own && e.draft.fork) {
+            return self.part_save_own_library();
         }
         let Some(project) = &self.project else {
             return Outcome::Done;
@@ -939,6 +948,35 @@ impl ShellModel {
 }
 
 impl ShellModel {
+    /// Save of a corrected part of My parts (FT-1766): its next version goes into My parts, and the card of the
+    /// `library.update` that brings the project's copy to it opens in the Preview tab (the changed fields and the
+    /// devices that use it); Apply commits it. A field that does not parse refuses at its field.
+    fn part_save_own_library(&mut self) -> Outcome {
+        let Some(Dialog::PartEdit(mut editor)) = self.dialog.take() else {
+            return Outcome::refused(key!("reason-no-part-editor"));
+        };
+        let Some(project) = &mut self.project else {
+            return Outcome::Done;
+        };
+        match project.session.own_part_update(&editor.draft) {
+            Ok(cmd) => self.preview_host_card(&cmd.name, cmd.params, key!("reason-library-update")),
+            Err(e) => {
+                if let PartDraftError::Field(m) = &e {
+                    editor.draft.messages.retain(|x| x.field != m.field);
+                    editor.draft.messages.push(m.clone());
+                }
+                let out = draft_refusal(e);
+                editor.error = Some(match &out {
+                    Outcome::Refused { reason_key } => strings::text(*reason_key).to_owned(),
+                    Outcome::Failed { message } => message.clone(),
+                    Outcome::Done => String::new(),
+                });
+                self.dialog = Some(Dialog::PartEdit(editor));
+                out
+            }
+        }
+    }
+
     /// Save of a new part (FT-1766): the part goes into My parts and the project, or into the project alone
     /// (`Session::new_part_command`), in one undo step; a field that does not parse refuses at its field. From the
     /// part dialog, the dialog opens again on the new part.

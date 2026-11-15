@@ -40,6 +40,10 @@ pub const PART_EDITABLE: [&str; 10] = [
     "tech_data",
 ];
 
+/// The members a project-local copy may change besides [`PART_EDITABLE`]: the domain sections, the CP pattern and
+/// the function template, which the part editor's bus and PLC forms make (FT-1766). A copy from a library keeps them.
+pub const PART_EDITABLE_LOCAL: [&str; 3] = ["sections", "cp_pattern", "function_template"];
+
 /// The order units a part takes (D21).
 const UNITS: [&str; 3] = ["piece", "m", "set"];
 
@@ -59,8 +63,11 @@ const UNITS: [&str; 3] = ["piece", "m", "set"];
 ///
 /// `part` is the edited part item (its members, without the copy metadata). Only `manufacturer`, `part_number`,
 /// `type_designation`, `order_number`, `gtin`, `description`, `kind`, `category`, `unit` and `tech_data` may differ
-/// from the copy's; so no edit changes a connection point, the function template, the contacts, the sections or the
-/// mechanical data. `copies` carries library documents the edit names that the project lacks (a manufacturer),
+/// from the copy's, and of a project-local copy also `sections`, `cp_pattern` and `function_template` (the part
+/// editor's bus and PLC forms, FT-1766: the devices that use the copy take the new connection points; a bus port a
+/// function carries keeps its value, N5); so no edit of a library copy changes a connection point, the function
+/// template, the contacts, the sections or the mechanical data, and no edit changes the contacts or the mechanical
+/// data. `copies` carries library documents the edit names that the project lacks (a manufacturer),
 /// embedded as `part.assign` embeds its closure.
 ///
 /// Rejected, with the pointer: `/copy` not a part copy the project holds; `/part` not a part item, or one whose
@@ -91,14 +98,20 @@ fn bad(at: impl Into<String>, message: Text) -> CmdError {
     CmdError::invalid_params(EditPartCopy::NAME, at, message)
 }
 
-/// The part members without the editable ones (D20), for the "other members unchanged" check.
-fn fixed_members(part: &Part) -> Map<String, Value> {
+/// The part members without the editable ones (D20; with `local`, also [`PART_EDITABLE_LOCAL`]), for the "other
+/// members unchanged" check.
+fn fixed_members(part: &Part, local: bool) -> Map<String, Value> {
     let mut m = match serde_json::to_value(part) {
         Ok(Value::Object(m)) => m,
         _ => Map::new(),
     };
     for k in PART_EDITABLE {
         m.remove(k);
+    }
+    if local {
+        for k in PART_EDITABLE_LOCAL {
+            m.remove(k);
+        }
     }
     m
 }
@@ -255,11 +268,11 @@ impl Command for EditPartCopy {
             ));
         };
         let mut part = read_part(&self.part)?;
-        if fixed_members(&part) != fixed_members(&held.item) {
-            return Err(bad("/part", text!("refusal-part-edit-fixed-members")));
-        }
         let project = tx.project().id.as_uuid();
         let local = held.library_id.as_uuid() == project;
+        if fixed_members(&part, local) != fixed_members(&held.item, local) {
+            return Err(bad("/part", text!("refusal-part-edit-fixed-members")));
+        }
         let fork_copy: Option<Id<Part>> = match (local, self.fork) {
             (true, Some(_)) => {
                 return Err(bad("/fork", text!("refusal-part-edit-local-fork")));

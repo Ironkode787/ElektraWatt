@@ -56,6 +56,21 @@ A part has channels of one kind: a card with 16 inputs and 16 outputs is two par
 The starter parts hold such parts to begin with: EW-GEN-ESW-5 (unmanaged switch, 5 ports), EW-GEN-ESW-8 (managed
 switch, 8 ports) and EW-GEN-PND-1 (a PROFINET device, 2 ports).
 
+## Correct a part you made
+
+14. Select a device of the part and choose **Edit ▸ Edit part…** (or **Edit part…** in the menu of the **Parts** row
+    of its Properties). A part of your own, in My parts or kept to the project, opens with the same forms and what you
+    saved: change the number of ports, the pin pattern or any field and **Save**.
+15. A part of My parts is saved there as its next version, and the Preview tab lists what changes and the devices that
+    use it; **Apply** brings the project's copy to it. A part kept to the project changes in place, with the same card.
+16. The next device you place takes the correction. A device already drawn keeps the sockets it was drawn with and the
+    bus ports it carries: delete it and place it again to draw the change. The editor says so above the form.
+
+A starter part or a part of another library is not yours to change: its editor says so and offers **Copy as a part of
+your own…**, a new part with its data, which you save under a part number of your own.
+
+A part cannot be removed from My parts in the window yet: it stays, unused, until you delete it from the library folder.
+
 ## A part drawn with your own symbol
 
 13. In the [symbol editor](../reference/symbol-editor.md), save the symbol with **Save to library**, then choose

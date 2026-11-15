@@ -641,3 +641,93 @@ fn the_symbol_editor_makes_a_part_for_its_saved_symbol() {
     assert_eq!(entry["main"], json!(true));
     assert!(entry["fndef"]["item"].is_string(), "{fndef}: {entry}");
 }
+
+/// Edit part… on the part numbered `number` (as the Edit menu runs it), then a pointer move, so that the window paints
+/// the dialog it opened.
+fn edit_part(d: &mut Driver, number: &str) {
+    assert_eq!(
+        d.shell_mut().dispatch("part.edit", &json!({"part": number})),
+        Outcome::Done
+    );
+    d.input(&ew_ui::visual::Input::Hover { at: (5, 600) });
+    d.settle();
+}
+
+/// A saved part of one's own is corrected (the follow-up of the lane): the switch typed with eight sockets where the
+/// data sheet says six is placed, then Edit part… opens the same forms with what was saved; six sockets, Save, and the
+/// card of the update lists the change before Apply. The part in My parts is its next version, the next placement
+/// stands with six sockets, the form shows six again, and the note says what the device already drawn keeps.
+#[test]
+fn a_part_of_ones_own_is_corrected_and_the_next_placement_takes_it() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    make_port_device(&mut d, "SW-8", "Industrial Ethernet switch, managed", "8");
+    let page = json!({"folio": "2", "type": "bus_topology", "title": "Network"});
+    assert_eq!(d.shell_mut().dispatch("page.new", &page), Outcome::Done);
+    d.settle();
+    let first = place_box(&mut d, "SW-8", (40, 15), (64, 22));
+    assert_eq!(first.len(), 8);
+    edit_part(&mut d, "SW-8");
+    let held = draft(&mut d);
+    assert!(held.own, "a part of My parts is the person's own");
+    assert_eq!(held.bus[0].ports, "8", "the form shows what was saved");
+    let said = d
+        .texts()
+        .into_iter()
+        .any(|t| t.starts_with("Devices that use this part: 1."));
+    assert!(said, "the note says what the drawn device keeps");
+    press(&mut d, "Ports 1");
+    d.input(&key("Ctrl+A"));
+    d.input(&typed("6"));
+    d.settle();
+    press(&mut d, "Save");
+    assert!(
+        d.shell_mut().properties().card().is_some(),
+        "the update's card lists the change"
+    );
+    assert_eq!(d.shell_mut().dispatch("preview.apply", &json!({})), Outcome::Done);
+    d.settle();
+    let second = place_box(&mut d, "SW-8", (40, 40), (64, 47));
+    assert_eq!(second.len(), 6, "the next placement has six sockets: {second:?}");
+    edit_part(&mut d, "SW-8");
+    assert_eq!(draft(&mut d).bus[0].ports, "6", "the form shows the correction");
+    let mine = tmp.0.join("data").join("libraries").join("user-parts.ewlib");
+    assert!(
+        library_text(&mine).contains("\"ports\":6"),
+        "My parts holds the next version"
+    );
+}
+
+/// A starter part is not the person's to change: its editor says so, with the way out, and Copy as a part of your
+/// own opens a new part with its interfaces, which Save keeps under a number of its own.
+#[test]
+fn a_starter_part_is_copied_as_a_part_of_ones_own() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    let page = json!({"folio": "2", "type": "bus_topology", "title": "Network"});
+    assert_eq!(d.shell_mut().dispatch("page.new", &page), Outcome::Done);
+    d.settle();
+    place_box(&mut d, "EW-GEN-ESW-5", (40, 15), (60, 22));
+    edit_part(&mut d, "EW-GEN-ESW-5");
+    assert!(!draft(&mut d).own);
+    let said = d
+        .texts()
+        .into_iter()
+        .any(|t| t.starts_with("This part belongs to ElektraWatt starter parts, which you cannot change"));
+    assert!(said, "the reason in words");
+    press(&mut d, "Copy as a part of your own…");
+    let copy = draft(&mut d);
+    assert!(copy.new, "a new part");
+    assert_eq!(copy.bus[0].ports, "5", "with the starter part's interface");
+    press(&mut d, "Part number");
+    d.input(&key("Ctrl+A"));
+    d.input(&typed("ESW-5-OWN"));
+    d.settle();
+    press(&mut d, "Save");
+    assert!(d.shell_mut().dialog().is_none(), "saved under its own number");
+    let part = records(&mut d)
+        .into_iter()
+        .find(|v| v["part_number"] == "ESW-5-OWN")
+        .expect("the copy");
+    assert_eq!(part["sections"]["bus"]["ports"][0]["ports"], json!(5));
+}

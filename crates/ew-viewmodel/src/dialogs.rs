@@ -446,15 +446,37 @@ fn part_choose_spec(c: &crate::shell::part_dialog::PartChooser) -> DialogSpec {
 
 /// Edit part: a form with Save and Cancel.
 fn part_edit_spec(e: &crate::shell::part_dialog::PartEditor) -> DialogSpec {
-    let body = if e.draft.new {
+    // A part of one's own says what a correction does to the devices already drawn; a part one cannot change says
+    // why, and Copy as a part of your own is the way out (FT-1766).
+    let d = &e.draft;
+    let body = if d.new {
         vec![strings::text(key!("part-new-note")).to_owned()]
-    } else if e.draft.fork {
-        vec![strings::text(key!("part-edit-fork-note")).to_owned()]
-    } else {
+    } else if d.own && d.users > 0 {
+        vec![strings::format(key!("part-own-users"), &[&d.users.to_string()])]
+    } else if d.own {
         Vec::new()
+    } else {
+        let mut lines = Vec::new();
+        if d.fork {
+            lines.push(strings::text(key!("part-edit-fork-note")).to_owned());
+        }
+        if let Some(library) = &d.library {
+            lines.push(strings::format(key!("part-read-only"), &[library]));
+        }
+        lines
     };
+    let mut secondary = vec![cancel()];
+    if !d.new && !d.own {
+        secondary.insert(
+            0,
+            DialogButton::new(
+                key!("part-copy-own"),
+                DialogAnswer::Action("part.new", json!({ "from": d.copy.to_string() })),
+            ),
+        );
+    }
     DialogSpec {
-        secondary: vec![cancel()],
+        secondary,
         form: true,
         ..small(
             e.title(),

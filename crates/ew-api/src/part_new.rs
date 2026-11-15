@@ -110,6 +110,8 @@ impl Session {
             new: true,
             bus: Vec::<BusRow>::new(),
             to_library: true,
+            own: false,
+            users: 0,
             plc: crate::part_plc::PlcRows::new_part(),
             drawn_with: None,
             fndef: None,
@@ -156,16 +158,53 @@ impl Session {
     /// The new part's item from a draft: the fields, the bus section and the function template a placement needs
     /// (see the module documentation); the manufacturer is the caller's.
     fn new_part_item(&self, draft: &PartDraft) -> Result<Part, PartDraftError> {
-        let (mut p, _) = self.draft_part(draft)?;
-        p.sections.bus = bus_section(&draft.bus)?;
+        let mut p = self.sectioned_item(draft)?;
         p.meta.key = Some(p.part_number.clone());
+        Ok(p)
+    }
+
+    /// The item of a new part or of a part of the person's own (`PartDraft::own`): the identity fields over the held
+    /// item, and the bus and PLC sections of the forms over the held sections, keeping every member the forms do not
+    /// show (a port's connector and signal map, a station's I/O lengths, a valve terminal's positions). The pins and
+    /// the function template are made again only when the PLC form's channels, pin pattern or supply pins changed;
+    /// a template is given only to a part that has none.
+    pub(crate) fn sectioned_item(&self, draft: &PartDraft) -> Result<Part, PartDraftError> {
+        let (mut p, _) = self.draft_part(draft)?;
+        let original = &draft.original;
+        // A form left as it was leaves its section as it was, byte for byte.
+        let held_bus: Vec<crate::part_editor::BusRow> = original
+            .sections
+            .bus
+            .as_ref()
+            .map(|b| b.ports.iter().map(crate::part_editor::BusRow::of).collect())
+            .unwrap_or_default();
+        if draft.new || draft.bus != held_bus {
+            p.sections.bus =
+                crate::part_editor::merge_bus(original.sections.bus.as_ref(), bus_section(&draft.bus)?);
+        }
         if let Some(m) = crate::part_plc::check_plc(&draft.plc).into_iter().next() {
             return Err(PartDraftError::Field(m));
         }
+        let held_plc = original.sections.plc.as_ref().map(crate::part_plc::rows_of);
+        let untouched = !draft.new
+            && draft.plc
+                == held_plc
+                    .clone()
+                    .unwrap_or_else(crate::part_plc::PlcRows::new_part);
+        let before = held_plc.unwrap_or_default();
+        let pins_changed = !crate::part_plc::same_pins(&before, &draft.plc);
+        let made = (!untouched)
+            .then(|| crate::part_plc::plc_section(&draft.plc))
+            .flatten();
+        if !untouched && made.is_none() && draft.plc.role.trim().is_empty() {
+            p.sections.plc = None;
+        }
         // The PLC section and its pins: a black-box main function over the pins, as the starter cards carry.
-        if let Some((section, cps)) = crate::part_plc::plc_section(&draft.plc) {
+        if let Some((mut section, cps)) = made {
+            crate::part_plc::keep_unshown(&mut section, original.sections.plc.as_ref(), &draft.plc);
             p.sections.plc = Some(section);
-            if !cps.is_empty()
+            if pins_changed
+                && !cps.is_empty()
                 && let Some(LibDocument::Fndef(def)) = starter_doc("ew.fn.blackbox")
             {
                 p.cp_pattern = ew_schema::KeyedList::from_vec(cps).map_err(|e| {
@@ -347,6 +386,94 @@ impl Session {
 
     /// The `parts.import` of a project-local part: the manufacturer a part copy of the project names under that name,
     /// else a new project-local manufacturer record.
+    /// Saves a corrected part of My parts (a held copy of the person's own library, FT-1766): the part with the forms'
+    /// identity and sections as the library item's next patch version, written into My parts, and the
+    /// `library.update` that brings the project's copy to it (Bulk: its card lists the changed fields and the devices,
+    /// and the devices that use the copy take the new connection points; a bus port a function carries keeps its
+    /// value, N5).
+    ///
+    /// # Errors
+    ///
+    /// [`PartDraftError::Field`] for the first field that does not parse, or on `part` when My parts cannot be
+    /// written; [`PartDraftError::Refused`] (`reason-part-unchanged`) when nothing changed.
+    pub fn own_part_update(&mut self, draft: &PartDraft) -> Result<AnyCommand, PartDraftError> {
+        let item = self.sectioned_item(draft)?;
+        if item == draft.original {
+            return Err(PartDraftError::Refused(ew_commands::text_key!(
+                "reason-part-unchanged"
+            )));
+        }
+        let held = {
+            let q = self.query();
+            q.parts()
+                .get(Id::from_uuid(draft.copy))
+                .map(|c| (**c).clone())
+                .ok_or(PartDraftError::Refused(ew_commands::text_key!(
+                    "reason-part-edit-target"
+                )))?
+        };
+        let lib = held.library_id.as_uuid();
+        let name = draft.library.clone().unwrap_or_default();
+        let failed = |e: String| {
+            PartDraftError::Field(message(
+                "part",
+                ew_commands::text_key!("error-part-library"),
+                &[&name, &e],
+            ))
+        };
+        // The library's own version of the item: a later one written meanwhile is the base of the next.
+        let current = self
+            .libraries()
+            .documents(lib, Kind::Part)
+            .into_iter()
+            .find_map(|d| match d {
+                LibDocument::Part(c) if c.item_id == held.item_id => Some(c.version),
+                _ => None,
+            })
+            .unwrap_or_else(|| held.version.clone());
+        let version = ew_import_catalog::bump_patch(&current).ok_or_else(|| failed(current.clone()))?;
+        let copy = finish(
+            LibCopy {
+                version,
+                item,
+                ..held
+            },
+            LibDocument::Part,
+        );
+        let doc = LibDocument::Part(copy);
+        self.libraries_mut()
+            .write(lib, std::slice::from_ref(&doc))
+            .map_err(|e| failed(e.to_string()))?;
+        let plan = self
+            .update_from_documents(std::slice::from_ref(&doc), &[])
+            .map_err(|e| failed(e.to_string()))?;
+        Ok(plan.command)
+    }
+
+    /// A new part's draft with the identity, the technical data and the sections of the held copy `copy` (Copy as a
+    /// part of your own: a starter part or another library's part, which the person cannot change): Save makes it a
+    /// part of his own under a part number of its own.
+    ///
+    /// # Errors
+    ///
+    /// As [`Session::part_draft`] and [`Session::new_part_draft`].
+    pub fn new_part_draft_from(&self, copy: Uuid) -> Result<PartDraft, PartDraftError> {
+        let held = self
+            .part_draft(copy)
+            .map_err(|_| PartDraftError::Refused(ew_commands::text_key!("reason-part-edit-target")))?;
+        let mut draft = self.new_part_draft()?;
+        draft.fields = held.fields.clone();
+        draft.tech = held.tech.clone();
+        draft.bus = held.bus.clone();
+        draft.plc = held.plc.clone();
+        // The held item keeps what the forms do not show (pins, template, other sections); a new item ID and key.
+        let mut original = held.original.clone();
+        original.meta = Default::default();
+        draft.original = original;
+        draft.manufacturer = held.manufacturer.clone();
+        Ok(draft)
+    }
+
     fn project_part(&self, mut part: Part, maker: &str, item: Uuid) -> Result<NewPart, PartDraftError> {
         let q = self.query();
         let project = q.project().id.as_uuid();

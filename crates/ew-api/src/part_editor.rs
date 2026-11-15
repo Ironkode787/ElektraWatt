@@ -102,6 +102,11 @@ pub struct PartDraft {
     pub cps: Vec<String>,
     /// Whether the draft is a new part (`part.new`): its bus section is edited here, and Save creates the part.
     pub new: bool,
+    /// Whether the part is the person's own (a project-local copy, or a copy of My parts): its bus and PLC sections
+    /// are edited as a new part's are, and Save corrects the part itself (in place, or as My parts' next version).
+    pub own: bool,
+    /// The devices of the project that use the held copy.
+    pub users: usize,
     /// The bus interfaces (doc 10 §2.6 "The bus section"), one row each; read-only on a held copy.
     pub bus: Vec<BusRow>,
     /// Whether Save also adds a new part to the person's own parts library ("My parts").
@@ -163,7 +168,7 @@ impl BusRow {
         }
     }
 
-    fn of(p: &PartBusPort) -> BusRow {
+    pub(crate) fn of(p: &PartBusPort) -> BusRow {
         BusRow {
             interface: p.interface.as_str().to_owned(),
             port_label: opt_text(p.port_label.as_ref()),
@@ -179,7 +184,7 @@ impl BusRow {
 pub const MAX_PORTS: u16 = 64;
 
 /// A stored enum value as the file writes it (`profinet`, `device`).
-fn stored_word<T: serde::Serialize>(value: &T) -> String {
+pub(crate) fn stored_word<T: serde::Serialize>(value: &T) -> String {
     match serde_json::to_value(value) {
         Ok(Value::String(s)) => s,
         _ => String::new(),
@@ -277,6 +282,33 @@ fn check_bus_member(field: &str, m: &str, t: &str) -> Result<(), DraftMessage> {
 }
 
 /// The part's bus section from the draft's rows (checked); `None` without a row.
+/// The bus section of the form over the held one (`held`): each port keeps the members the form does not show (its
+/// connector, rates, address range, IO-Link data, signal map and unknown members) from the held port of the same
+/// interface and port label, and the section its `cable_for` and unknown members.
+pub(crate) fn merge_bus(held: Option<&BusSection>, made: Option<BusSection>) -> Option<BusSection> {
+    let Some(held) = held else {
+        return made;
+    };
+    let mut made = made.unwrap_or_default();
+    for port in &mut made.ports {
+        if let Some(old) = held
+            .ports
+            .iter()
+            .find(|o| o.interface == port.interface && o.port_label == port.port_label)
+        {
+            port.connector.clone_from(&old.connector);
+            port.rates.clone_from(&old.rates);
+            port.address_range.clone_from(&old.address_range);
+            port.iolink.clone_from(&old.iolink);
+            port.signals.clone_from(&old.signals);
+            port.extra.clone_from(&old.extra);
+        }
+    }
+    made.cable_for.clone_from(&held.cable_for);
+    made.extra.clone_from(&held.extra);
+    (made != BusSection::default()).then_some(made)
+}
+
 pub(crate) fn bus_section(rows: &[BusRow]) -> Result<Option<BusSection>, PartDraftError> {
     if rows.is_empty() {
         return Ok(None);
@@ -517,6 +549,13 @@ impl Session {
         let project = q.project().id.as_uuid();
         let lib = c.library_id.as_uuid();
         let p = &c.item;
+        // The person's own part: project-local, or a copy of the writable library My parts.
+        let own = lib == project
+            || self
+                .libraries()
+                .libraries()
+                .iter()
+                .any(|l| l.id == lib && l.key == crate::eplan::USER_PARTS_KEY && l.writable);
         let library = (lib != project).then(|| {
             self.libraries()
                 .libraries()
@@ -551,6 +590,12 @@ impl Session {
             tech,
             messages: Vec::new(),
             fork: lib != project,
+            own,
+            users: q
+                .devices()
+                .iter()
+                .filter(|(_, d)| d.parts.iter().any(|u| u.part.copy.as_uuid() == copy))
+                .count(),
             library,
             version: c.version.clone(),
             functions: self.part_offer_functions(&PartPick::Held(copy)),
@@ -567,7 +612,12 @@ impl Session {
                 .map(|b| b.ports.iter().map(BusRow::of).collect())
                 .unwrap_or_default(),
             to_library: false,
-            plc: crate::part_plc::PlcRows::default(),
+            plc: p
+                .sections
+                .plc
+                .as_ref()
+                .map(crate::part_plc::rows_of)
+                .unwrap_or_else(crate::part_plc::PlcRows::new_part),
             drawn_with: None,
             fndef: None,
             manufacturer: (p.manufacturer.clone(), Vec::new()),
@@ -621,7 +671,7 @@ impl Session {
     ) -> Result<(), PartDraftError> {
         let t = text.trim();
         if let Some(m) = crate::part_plc::plc_field(field) {
-            let Some(slot) = draft.plc.slot(m).filter(|_| draft.new) else {
+            let Some(slot) = draft.plc.slot(m).filter(|_| draft.new || draft.own) else {
                 return Err(PartDraftError::Refused(ew_commands::text_key!(
                     "error-part-field"
                 )));
@@ -640,7 +690,7 @@ impl Session {
             let Some(slot) = draft
                 .bus
                 .get_mut(row)
-                .filter(|_| draft.new)
+                .filter(|_| draft.new || draft.own)
                 .and_then(|r| r.slot(m))
             else {
                 return Err(PartDraftError::Refused(ew_commands::text_key!(
@@ -911,7 +961,11 @@ impl Session {
     /// [`PartDraftError::Field`] for the first field that does not parse; [`PartDraftError::Refused`]
     /// (`reason-part-unchanged`) when the part equals the copy's.
     pub fn part_edit_command(&self, draft: &PartDraft) -> Result<AnyCommand, PartDraftError> {
-        let (part, copies) = self.draft_part(draft)?;
+        let (mut part, copies) = self.draft_part(draft)?;
+        // A project-local part of the person's own takes its forms' sections too.
+        if draft.own && !draft.fork {
+            part = self.sectioned_item(draft)?;
+        }
         if part == draft.original {
             return Err(PartDraftError::Refused(ew_commands::text_key!(
                 "reason-part-unchanged"
