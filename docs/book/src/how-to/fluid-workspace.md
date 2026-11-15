@@ -53,8 +53,11 @@ the middle, and the tube table and the medium table in the bottom dock.
    with their tubes; its Properties list the **Valve positions**.
    There are two kinds, and the terminal's menu says which: a **valve terminal with bus node** is a PLC station (the
    outputs that drive its solenoids are inside it, nothing is wired per solenoid); a **multipin valve terminal**
-   (**Multipin valve terminal, 8 valve positions, 25-pin plug**) has no station: placed on an electrical page it is its
-   plug, pins 1 to 16 and the common 25, wired by a cable to an output card. A valve's solenoid on a terminal is never
+   (**Multipin valve terminal, 8 valve positions, 25-pin plug**) has no station: on an electrical page its row's menu
+   offers **Draw the plug of -201K1 on this page…**, a box with pins 1 to 16 and the common 25. Beside each pin stands
+   what it carries (**-201K1-Q1 14**, or **2 · 14** for an empty position, **COM** for the common). Wire a pin to an
+   output of a PLC card: that output drives the solenoid, the valve on the fluid page shows its address, and the check
+   no longer says the solenoid has no output. A valve's solenoid on a terminal is never
    drawn: its Properties say **driven by output Q0.0 of -201K1** or **pin 3 of the plug of -201K1**, and its menu has
    **Go to the output of solenoid 14** (the channel in the PLC list) or the way to its plug pin.
 9. Right-click the valve terminal's box or row and choose **Generate overview…**; from the command search it acts on

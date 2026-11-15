@@ -455,8 +455,13 @@ card. `is_fluid_terminal` takes both: galleries, cells, seating and the fluid na
 "Valve terminal · multipin, wired"). A terminal valve's solenoid is never drawn: its Properties row says "driven by
 output Q0.0 of -201K1 (inside the terminal: nothing to wire)" or "pin 3 of the plug of -201K1" with a link to the plug
 (or Draw the plug while it is drawn on no electrical page), and its menu offers Go to output (the channel in the PLC list)
-instead of Draw solenoid. Not built: a text per plug pin on the electrical page naming the valve and solenoid it drives
-(each valve's Properties name its pin), and the part editor's controls for the kind, the positions and the pin map.
+instead of Draw solenoid. On an electrical page the plug (the terminal's overview box with a connection point per pin,
+Draw the plug… on the terminal's menu) prints beside each pin what it carries (`plug_pins`): the valve's tag and the
+solenoid where a valve holds the position ("-201K2-Q1 14"), else the position and the solenoid ("2 · 14"), and `COM` for
+the common; the texts are derived, so filling, emptying or swapping a position changes them. A wire from a PLC output
+to a pin makes that output the solenoid's (`wired_solenoid_channel`: the channel whose traced target is the plug pin):
+the valve's `PlcAddress` slot prints it and EW-FL-002 counts the solenoid as driven; no binding is stored. Not built:
+the part editor's controls for the kind, the positions and the pin map (backlog).
 
 ### 3.3 Field devices, linkages, process tags and target tracking
 
