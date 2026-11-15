@@ -352,6 +352,19 @@ valve body: `ew.fn.valve-5-2-sol-spring` 0.2.0 carries ports 1 to 5 with their r
 the new `ew.fn.valve-solenoid` (contact kind `coil`). Golden A's 571334 declares `["14"]` with the template
 `[the 5/2 valve, ew.fn.valve-solenoid]`, so its 28 valves have 28 coil functions with the bindings on their CPs.
 
+*As built (rc.2).* A stand-alone valve's solenoids are drawn and joined in the window. The valve's menu (on its
+symbol and its row) offers **Draw solenoid 14 on an electrical page…** for each coil function not drawn
+(`fluid.draw_solenoid`: the nearest multi-line page, looking back first, with the coil's symbol on the pointer) and
+**Go to solenoid 14 at 101-B4** for one that is; the valve's Properties list each solenoid as a row (where it is drawn,
+a link that goes there or draws it, and the PLC output that drives it, `PlcAddressText`); the coil's menu and
+Properties say **Solenoid 14 of -201Q1**, a link to the valve. The k-th coil function in template order is solenoid k
+(§2.6). Typing another device's tag into a placed symbol's Tag is the Join of `rep.join_device`: it asks once in words
+("-201Q1 has an undrawn …: make this symbol that?"), or says what the device has free and what the symbol is; the
+symbol's device may carry a part whose other functions are neither drawn nor wired, and goes with them. Every coil
+FnDef has a symbol: `ew.fn.valve-solenoid` is drawn by `ew.iec.valve-solenoid` (the coil box, no connection point:
+the coil is bound to a PLC output, not wired). The starter valves EW-GEN-VLV-1 and -2 have the valve as their main
+function (letter Q) and the coil as the second.
+
 ### 3.2 Valve terminals
 
 ```mermaid

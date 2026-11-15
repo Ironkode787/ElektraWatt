@@ -135,7 +135,7 @@ fn a_valves_data_clears_the_next_valves_tag() {
             done(
                 &mut s,
                 "place.pick",
-                json!({"part": "EW-GEN-VLV-1", "template": 0, "letter": "M"}),
+                json!({"part": "EW-GEN-VLV-1", "template": 1, "letter": "M"}),
             );
             done(&mut s, "cursor.set", json!({"x_mm": x, "y_mm": 80.0}));
             done(&mut s, "canvas.activate", json!({"alt": true}));

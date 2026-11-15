@@ -444,6 +444,7 @@ impl ShellModel {
             }
         }
         crate::properties::cps_in_words(&mut sheet);
+        crate::properties::solenoids_in_words(&mut sheet);
         self.positions_in_words(&mut sheet, p.session.decimal_comma());
         crate::properties::header_in_words(&mut sheet);
         // The header's finding chips in the UI language, as the Messages detail renders
@@ -1153,6 +1154,21 @@ impl ShellModel {
             if let Some(outcome) = self.propose_join(&section, key, text) {
                 return outcome;
             }
+            // Another device's tag that the symbol cannot join: the words say why it joins nothing (what that device has
+            // free, what the symbol is; rc.2, F11); the tag is set as typed, a duplicate the checks then name.
+            if let [device] = section.targets.as_slice()
+                && let Some(m) = self.project.as_ref().and_then(|p| p.session.join_misfit(*device, text))
+            {
+                let free = if m.free.is_empty() {
+                    strings::text(key!("props-join-misfit-none")).to_owned()
+                } else {
+                    m.free.join(", ")
+                };
+                self.notify(
+                    strings::format(key!("props-join-misfit"), &[&m.tag, &free, &m.this]),
+                    false,
+                );
+            }
             if matches!(&row.value, RowValue::One { text: shown, .. } if shown.trim() == text.trim()) {
                 self.props.edit = None;
                 self.props.error = None;
@@ -1740,10 +1756,15 @@ impl ShellModel {
         };
         let base_rev = self.revision()?;
         let proposal = self.project.as_ref()?.session.join_proposal(*device, text)?;
-        let shown = strings::format(key!("props-join-proposal"), &[&proposal.tag]);
+        // A free function of the device the symbol becomes is named ("-201Q1 has an undrawn solenoid 14: make this symbol
+        // that?", rc.2 F11); else the symbol joins as an auxiliary contact.
+        let shown = match &proposal.slot {
+            Some(slot) => strings::format(key!("props-join-slot-proposal"), &[&proposal.tag, slot]),
+            None => strings::format(key!("props-join-proposal"), &[&proposal.tag]),
+        };
         // The window offers the "Join …" button; a script or blind transcript is told the action instead.
         let message = if self.mode == Mode::Headless {
-            strings::format(key!("props-join-proposal-script"), &[&proposal.tag])
+            strings::format(key!("props-join-proposal-script"), &[&shown])
         } else {
             shown.clone()
         };

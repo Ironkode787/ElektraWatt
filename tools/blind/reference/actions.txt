@@ -428,6 +428,7 @@ fluid.settings Command "Fluid settings…" menu "Fluid" shortcut none context gl
 project.plc_addresses_at_terminals Command "Channel addresses at terminals" menu "PLC" shortcut none context global params "on?:bool"
 fluid.generate_overview Command "Generate overview…" menu "Fluid" shortcut none context navigator params "station?:ref"
 fluid.valve_add Command "Add valve" menu none shortcut none context global hidden needs-parameters params "module:ref, position:uint"
+fluid.draw_solenoid Command "Draw solenoid" menu none shortcut none context global hidden needs-parameters params "function:ref"
 fluid.set_medium Command "Set medium" menu none shortcut none context canvas needs-parameters params "line:ref, medium:ref"
 fluid.medium_new Command "New medium…" menu "Fluid" shortcut none context global params "name?:text, p_nom?:text, code?:text"
 plc.rack_move Command "Move module" menu none shortcut none context global hidden params "module:ref, slot:text"

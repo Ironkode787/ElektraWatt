@@ -1002,6 +1002,51 @@ impl ShellModel {
         Outcome::Done
     }
 
+    /// `fluid.draw_solenoid {function}` (rc.2, F11): a valve's Draw solenoid 14 on an electrical page…: on the page
+    /// shown when it is an electrical (multi-line) page, else on the first one, the solenoid's coil symbol on the
+    /// pointer, so that a click places it as that solenoid of the valve; a toast says which and where. Refused in words
+    /// without an electrical page.
+    pub(crate) fn act_fluid_draw_solenoid(&mut self, p: &Map<String, Value>) -> Outcome {
+        let function = or_return!(self.record_param(p, "function"));
+        let Some(session) = self.project_session() else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let Some((tag, name, _)) = session.solenoid_of(function) else {
+            return Outcome::refused(key!("reason-not-solenoid"));
+        };
+        // The page shown when it is electrical, else the nearest electrical page before it (a project's electrical
+        // pages usually come before its fluid pages), else after it.
+        let electrical = |i: &usize| self.page_rows().get(*i).is_some_and(|r| r.kind == "multi_line");
+        let here = self.page_index();
+        let Some(page) = (here..=here)
+            .chain((0..here).rev())
+            .chain(here + 1..self.page_count())
+            .find(electrical)
+        else {
+            return Outcome::refused(key!("reason-no-electrical-page"));
+        };
+        if page != here {
+            let out = self.walk(page);
+            if out != Outcome::Done {
+                return out;
+            }
+            // The page change ends the tool now, not after the tool below is armed on the new page.
+            self.sync_tool_context();
+        }
+        let mut pick = Map::new();
+        pick.insert("function".into(), Value::String(function.to_string()));
+        let out = self.act_place_pick(&pick);
+        if out != Outcome::Done {
+            return out;
+        }
+        let folio = self.current_folio().unwrap_or_default().to_owned();
+        self.notify(
+            strings::format(key!("toast-solenoid-draw"), &[&name, &tag, &folio]),
+            false,
+        );
+        Outcome::Done
+    }
+
     /// `fluid.set_medium {line, medium}` (FR-FLU-009): the medium the fluid line's net carries, defined at the line's
     /// end with one `fluid.medium.define`; a toast names the medium and the line.
     pub(crate) fn act_fluid_set_medium(&mut self, p: &Map<String, Value>) -> Outcome {

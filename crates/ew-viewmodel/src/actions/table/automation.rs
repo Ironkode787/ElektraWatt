@@ -323,6 +323,22 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ))),
     ),
+    // A stand-alone valve's Draw solenoid 14 on an electrical page… (rc.2, F11): the coil's symbol on the pointer there.
+    with_params(
+        "function:ref",
+        needs_parameters(hidden(with_aliases(
+            &[("function", ParamForm::Whole)],
+            act(
+                "fluid.draw_solenoid",
+                Command,
+                Menu::Project,
+                &[],
+                writable,
+                None,
+                |s, p| s.act_fluid_draw_solenoid(p),
+            ),
+        ))),
+    ),
     // A fluid line's medium (its context menu) and New medium… (doc 11 §7, FR-FLU-008/-009).
     with_params(
         "line:ref, medium:ref",

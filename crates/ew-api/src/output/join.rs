@@ -19,6 +19,17 @@ use ew_derive::{DeviceTag, FunctionCps, PageOrder, PageRef, Q, RepAnchorCell};
 
 use crate::Session;
 
+/// Why a typed tag joins nothing ([`Session::join_misfit`]).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct JoinMisfit {
+    /// The named device's tag.
+    pub tag: String,
+    /// Its unplaced functions in words (`solenoid 14`, `NO contact 13-14`); empty when it has none.
+    pub free: Vec<String>,
+    /// What the symbol's function is, in the same words.
+    pub this: String,
+}
+
 /// What a symbol drawing one FnDef can join.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct JoinCandidates {
@@ -53,6 +64,8 @@ pub struct JoinProposal {
     pub device: Uuid,
     /// That device's tag as a report prints it (`-K1`).
     pub tag: String,
+    /// The unplaced function the symbol becomes, in words (`solenoid 14`); `None` for a new auxiliary contact.
+    pub slot: Option<String>,
 }
 
 /// What the toast of a join says ("Joined -K1 (NO contact 13-14) at 102-C4").
@@ -145,18 +158,29 @@ fn takes_auxiliary(q: &Q, id: Id<Device>, device: &Device, def: Id<FnDef>) -> bo
     })
 }
 
-/// The one representation of `device` when D3 lets it join another device: the device has exactly one function, a
-/// normal one, no part use and that one representation, which draws only it; terminals and strips never.
+/// The one representation of `device` when D3 lets it join another device: exactly one function of the device is
+/// drawn, a normal one, by that one representation, which draws only it; the device's other functions (of its part)
+/// are neither drawn nor wired, so the join empties the device, which goes with them (rc.2, F11); terminals and strips
+/// never.
 fn joinable_rep(q: &Q, device: Id<Device>) -> Option<(Id<Representation>, Id<Function>)> {
     let d = q.devices().get(device)?;
-    if d.aspects.terminal.is_some() || d.aspects.strip.is_some() || !d.parts.is_empty() {
+    if d.aspects.terminal.is_some() || d.aspects.strip.is_some() {
         return None;
     }
     let idx = q.idx();
-    let mut functions = idx.functions_of_device(device);
-    let (f, None) = (functions.next()?, functions.next()) else {
+    let functions: Vec<Id<Function>> = idx.functions_of_device(device).collect();
+    let mut drawn = functions.iter().filter(|f| idx.reps_of_function(**f).next().is_some());
+    let (Some(&f), None) = (drawn.next(), drawn.next()) else {
         return None;
     };
+    let wired = |g: Id<Function>| {
+        q.connections()
+            .iter()
+            .any(|(_, c)| c.a.function() == Some(g) || c.b.function() == Some(g))
+    };
+    if functions.iter().any(|g| *g != f && wired(*g)) {
+        return None;
+    }
     if q.functions().get(f)?.kind != FunctionKind::Normal {
         return None;
     }
@@ -168,11 +192,44 @@ fn joinable_rep(q: &Q, device: Id<Device>) -> Option<(Id<Representation>, Id<Fun
 }
 
 impl Session {
+    /// Why typing `text` into the Tag field of `device` joins nothing although `text` names another device whose
+    /// placed symbol could join one (rc.2, F11): that device's tag, its free (unplaced) functions in words and what the
+    /// symbol is. `None` when `text` names no other device, `device` has no symbol that could join, or the join is
+    /// proposed ([`Self::join_proposal`]).
+    pub fn join_misfit(&self, device: Uuid, text: &str) -> Option<JoinMisfit> {
+        if self.join_proposal(device, text).is_some() {
+            return None;
+        }
+        let target = self.resolve_reference(text.trim()).ok()?;
+        if target == device {
+            return None;
+        }
+        let q = self.query();
+        let target_id: Id<Device> = Id::from_uuid(target);
+        q.devices().get(target_id)?;
+        let (_, f) = joinable_rep(&q, Id::from_uuid(device))?;
+        let function = q.functions().get(f)?;
+        let idx = q.idx();
+        let mut free: Vec<Id<Function>> = idx
+            .functions_of_device(target_id)
+            .filter(|g| idx.reps_of_function(*g).next().is_none())
+            .collect();
+        free.sort();
+        Some(JoinMisfit {
+            tag: tag_of(&q, target_id),
+            free: free
+                .into_iter()
+                .filter_map(|g| q.functions().get(g).map(|g| super::navigators::function_kind_text(&q, g)))
+                .collect(),
+            this: super::navigators::function_kind_text(&q, function),
+        })
+    }
+
     /// The join that typing `text` into the Tag field of `device` proposes: `text` names another
-    /// existing device (the reference grammar: a bare tag such as `-K1`, `tag:`, `id:`), `device` has exactly
-    /// one function, no part and no other representation, and the named device takes the function's FnDef by
-    /// D2's rule (an unplaced function of it, else a contact joining a device whose family takes auxiliary
-    /// functions). `None` otherwise: the Tag field then keeps its other behaviour.
+    /// existing device (the reference grammar: a bare tag such as `-K1`, `tag:`, `id:`), `device` has one drawn
+    /// function in one representation and nothing else drawn or wired ([`joinable_rep`]), and the named device takes
+    /// the function's FnDef by D2's rule (an unplaced function of it, else a contact joining a device whose family
+    /// takes auxiliary functions). `None` otherwise: the Tag field then keeps its other behaviour.
     pub fn join_proposal(&self, device: Uuid, text: &str) -> Option<JoinProposal> {
         let target = self.resolve_reference(text.trim()).ok()?;
         let q = self.query();
@@ -184,13 +241,19 @@ impl Session {
         let (rep, f) = joinable_rep(&q, Id::from_uuid(device))?;
         let def = q.functions().get(f)?.def;
         let fndef = def.as_uuid();
-        let slot = !self.unplaced_slots(target, fndef).is_empty();
+        // The slot the command fills first (its lowest template entry), in words.
+        let slot = self.unplaced_slots(target, fndef).into_iter().find_map(|(s, _)| {
+            q.functions()
+                .get(Id::from_uuid(s))
+                .map(|s| super::navigators::function_kind_text(&q, s))
+        });
         let joins =
-            slot || (self.auxiliary_fndef(fndef) && takes_auxiliary(&q, target_id, target_device, def));
+            slot.is_some() || (self.auxiliary_fndef(fndef) && takes_auxiliary(&q, target_id, target_device, def));
         joins.then(|| JoinProposal {
             rep: rep.as_uuid(),
             device: target,
             tag: tag_of(&q, target_id),
+            slot,
         })
     }
 

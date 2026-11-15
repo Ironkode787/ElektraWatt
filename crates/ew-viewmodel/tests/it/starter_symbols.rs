@@ -90,16 +90,17 @@ const PATHS: &[(&str, Path)] = &[
     ("ew.iec.terminal@qet10", Path::Terminal("EW-GEN-TRM-1")),
     ("ew.iec.thermostat-nc@qet10", Path::Device("B", MULTI)),
     ("ew.iec.transformer-1ph@qet10", Path::Device("T", MULTI)),
-    ("ew.iec.valve-coil@qet10", Path::Part("EW-GEN-VLV-1", 0, MULTI)),
+    ("ew.iec.valve-coil@qet10", Path::Part("EW-GEN-VLV-1", 1, MULTI)),
+    ("ew.iec.valve-solenoid@qet10", Path::Device("Y", MULTI)),
     ("ew.iso.cylinder-double-acting@qet10", Path::Device("M", FLUID)),
     ("ew.iso.process-valve-2way@qet10", Path::Device("Q", FLUID)),
     (
         "ew.iso.valve-3-2-sol-spring@qet10",
-        Path::Part("EW-GEN-VLV-2", 1, FLUID),
+        Path::Part("EW-GEN-VLV-2", 0, FLUID),
     ),
     (
         "ew.iso.valve-5-2-sol-spring@qet10",
-        Path::Part("EW-GEN-VLV-1", 1, FLUID),
+        Path::Part("EW-GEN-VLV-1", 0, FLUID),
     ),
     ("ew.iso.air-supply@qet10", Path::Device("X", FLUID)),
     ("ew.iso.bulkhead@qet10", Path::Device("X", FLUID)),
@@ -398,8 +399,8 @@ fn every_starter_symbol_reaches_a_usable_device_from_the_picker() {
 
 /// The letter a new project (identifier set EN 81346-2:2009) gives each generic starter part placed from the
 /// picker without a letter of its own: the selector switch and the one-pole on/off switch S (a manual command,
-/// by IEC 81346-2:2019), the valve's coil M (a solenoid actuator), not the switching device's Q or the
-/// relay's K.
+/// by IEC 81346-2:2019), not the switching device's Q or the relay's K. The solenoid valve, whose main function is its
+/// valve (rc.2, F11), is placed on a fluid page: `valve_solenoids` checks its Q.
 #[test]
 fn a_new_project_gives_each_starter_part_its_iec_81346_letter() {
     let tmp = Tmp::new("starter-letters");
@@ -412,7 +413,6 @@ fn a_new_project_gives_each_starter_part_its_iec_81346_letter() {
         ("EW-GEN-SW-1", "S"),
         ("EW-GEN-POS-1", "B"),
         ("EW-GEN-LMP-1", "E"),
-        ("EW-GEN-VLV-1", "M"),
     ]) {
         let before = reps(&s);
         done(&mut s, "place.pick", json!({"part": number, "template": 0}));

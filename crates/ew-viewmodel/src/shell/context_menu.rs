@@ -250,7 +250,11 @@ impl ShellModel {
         self.device_entries(&thing, out);
         self.plc_entries(thing.device, out);
         // The persona round: a valve terminal's box offered no Add valve nor Generate overview….
-        self.fluid_entries(thing.device, out);
+        let coil = match rep.functions.as_slice() {
+            [f] => Some(*f),
+            _ => None,
+        };
+        self.fluid_entries(thing.device, coil, out);
     }
 
     /// A device's PLC entries (F19 of the rc.1 test), on its symbol on any page and on its rows in the Devices and Bus
@@ -391,14 +395,14 @@ impl ShellModel {
                     }
                     _ => {}
                 }
-                self.fluid_entries(device, &mut out);
+                self.fluid_entries(device, None, &mut out);
             }
             // A fluid navigator's device: its fluid actions (doc 11 §7).
             (NavKind::Fluid, NavRole::Device, Some(device)) => {
                 self.go_to(kind, Some(node), &mut out);
                 self.device_entries(&self.row_device(device, node), &mut out);
                 out.extend(self.menu_item("props.focus"));
-                self.fluid_entries(device, &mut out);
+                self.fluid_entries(device, None, &mut out);
             }
             // A configuration project's addressing commands (FR-PLC-014, FR-PLC-015), each previewed.
             (NavKind::Plc | NavKind::PlcGrid, NavRole::ConfigProject, Some(cfg)) => {
@@ -628,11 +632,45 @@ impl ShellModel {
     /// part of its other valves, else the libraries' valve; `fluid.valve_add` puts its symbol on the pointer) and Blank
     /// position at each empty one; on a valve Set used or Set spare and Blank position, on a blanking plate Add valve;
     /// Plug port for each open working
-    /// port (EW-FL-001's). Each is one `valve.set_occupancy` or `fluid.port.close`, one undo step.
-    fn fluid_entries(&self, device: Uuid, out: &mut Vec<ActionItem>) {
+    /// port (EW-FL-001's). Each is one `valve.set_occupancy` or `fluid.port.close`, one undo step. A stand-alone
+    /// valve's solenoids (rc.2, F11): Go to solenoid 14 where its coil is drawn, else Draw solenoid 14 on an electrical
+    /// page… (`fluid.draw_solenoid`); on the symbol of the coil itself (`symbol_of`, the function it draws) Solenoid 14
+    /// of -201Q1, which goes to the valve.
+    fn fluid_entries(&self, device: Uuid, symbol_of: Option<Uuid>, out: &mut Vec<ActionItem>) {
         let Some(session) = self.project_session() else {
             return;
         };
+        match symbol_of.and_then(|f| session.solenoid_of(f)) {
+            Some((tag, name, valve_at)) => {
+                let label = strings::format(key!("props-solenoid-of"), &[&name, &tag]);
+                out.extend(
+                    self.aimed("nav.goto", json!({ "text": valve_at }), label)
+                        .map(|mut i| {
+                            if valve_at.is_none() {
+                                i.enabled = false;
+                                i.reason = Some(strings::text(key!("reason-nav-not-placed")).to_owned());
+                            }
+                            i
+                        }),
+                );
+            }
+            None => {
+                for s in session.valve_solenoids(device) {
+                    out.extend(match &s.drawn {
+                        Some(place) => self.aimed(
+                            "nav.goto",
+                            json!({ "text": place }),
+                            strings::format(key!("canvas-solenoid-go"), &[&s.name, place]),
+                        ),
+                        None => self.aimed(
+                            "fluid.draw_solenoid",
+                            json!({ "function": s.function.to_string() }),
+                            strings::format(key!("canvas-solenoid-draw"), &[&s.name]),
+                        ),
+                    });
+                }
+            }
+        }
         let menu = session.fluid_menu(device);
         if menu.terminal {
             let label = strings::text(key!("action-fluid-generate-overview")).to_owned();

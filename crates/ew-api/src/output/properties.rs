@@ -2742,6 +2742,33 @@ impl Session {
         {
             out.push(row);
         }
+        // A stand-alone valve's solenoids (rc.2, F11): one row each, where its coil is drawn (a link that goes there, or
+        // draws it while it is not) and the PLC output that drives it.
+        if let [one] = devices.as_slice() {
+            for (k, s) in super::rack::solenoids(q, *one).into_iter().enumerate() {
+                let via = s
+                    .output
+                    .as_ref()
+                    .map_or_else(|| "no PLC output".to_owned(), |o| format!("PLC output {o}"));
+                let value = RowValue::One {
+                    json: serde_json::json!({
+                        "name": s.name, "function": s.function.to_string(), "drawn": s.drawn }),
+                    text: s.drawn.clone().unwrap_or_default(),
+                };
+                out.push(derived(
+                    "device",
+                    &format!("solenoid[{k}]"),
+                    None,
+                    Category::Structure,
+                    FieldType::Link {
+                        kind: "solenoid".into(),
+                    },
+                    value,
+                    Provenance::Derived { via },
+                    Vec::new(),
+                ));
+            }
+        }
         // The main location.
         let per: Vec<(Option<Value>, Provenance)> = devices
             .iter()
@@ -3124,6 +3151,35 @@ impl Session {
             provenance,
             Vec::new(),
         ));
+        // The coil symbol of a valve's solenoid says which valve it belongs to (rc.2, F11), a link to the valve.
+        if let [one] = targets
+            && let Some(rep) = q.reps().get(Id::from_uuid(*one))
+            && let [f] = rep.functions.as_slice()
+            && let Some(device) = q.functions().get(*f).and_then(|x| x.device)
+            && let Some(s) = super::rack::solenoids(q, device)
+                .into_iter()
+                .find(|s| s.function == f.as_uuid())
+        {
+            let tag = device_tag_text(q, device);
+            let value = RowValue::One {
+                json: serde_json::json!({"device": device.as_uuid().to_string(), "name": s.name, "tag": tag}),
+                text: format!("Solenoid {} of {tag}", s.name),
+            };
+            out.push(derived(
+                "representation",
+                "solenoid_of",
+                None,
+                Category::Structure,
+                FieldType::Link {
+                    kind: "valve".into(),
+                },
+                value,
+                Provenance::Derived {
+                    via: "the valve's part".into(),
+                },
+                Vec::new(),
+            ));
+        }
         out
     }
 
@@ -3506,9 +3562,12 @@ fn row_type(kind: &str, row_path: &str) -> Option<FieldType> {
 }
 
 /// `<folio>-<cell>` of a device's main representation.
-fn main_location(q: &Q, device: Id<Device>) -> Option<String> {
-    let rep = *q.get::<MainRep>(device).as_ref();
-    let rep = rep?;
+pub(crate) fn main_location(q: &Q, device: Id<Device>) -> Option<String> {
+    rep_location(q, (*q.get::<MainRep>(device).as_ref())?)
+}
+
+/// Where a representation stands: its page's folio and its anchor cell (`102-B6`), the folio alone without a cell.
+pub(crate) fn rep_location(q: &Q, rep: Id<Representation>) -> Option<String> {
     let page = q.reps().get(rep)?.page;
     let folio = folio_of(q, page)?;
     let cell = q.get::<RepAnchorCell>(rep);

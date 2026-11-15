@@ -8,7 +8,7 @@
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_schema::LibDocument;
-use ew_derive::ew_schema::{Device, Part, PlcRole};
+use ew_derive::ew_schema::{ContactKind, Device, Function, Part, PlcRole};
 use ew_derive::{ModuleOrder, Q, Slot, ValveSlot, ValveSlots};
 
 use super::Uuid;
@@ -670,6 +670,27 @@ impl Session {
         }
     }
 
+    /// The solenoids of a stand-alone valve (rc.2, F11): each solenoid its valve part declares, with the coil function
+    /// that is it (the k-th function on a coil FnDef in template order is solenoid k, doc 11 §2.6), where that
+    /// function is drawn and the PLC output that drives it. Empty for a device that declares no solenoid and for a valve
+    /// on a valve terminal, whose coils its module drives.
+    pub fn valve_solenoids(&self, device: Uuid) -> Vec<ValveSolenoid> {
+        solenoids(&self.query(), Id::from_uuid(device))
+    }
+
+    /// The valve a coil function is a solenoid of: its tag, the solenoid and where the valve's main symbol stands
+    /// (`-201Q1`, `14`, `201-C4`); `None` for any other function.
+    pub fn solenoid_of(&self, function: Uuid) -> Option<(String, String, Option<String>)> {
+        let q = self.query();
+        let device = q.functions().get(Id::from_uuid(function))?.device?;
+        let solenoid = solenoids(&q, device).into_iter().find(|s| s.function == function)?;
+        Some((
+            super::properties::device_tag_text(&q, device),
+            solenoid.name,
+            super::properties::main_location(&q, device),
+        ))
+    }
+
     /// Where `device` sits after a drop into a valve terminal's box: on a valve terminal (its tag and the valve
     /// position, none for a supply plate), or loose (a valve on no terminal: the terminal had no free position); `None`
     /// for a device that is neither a valve nor on a valve terminal.
@@ -805,6 +826,62 @@ pub enum TerminalSeat {
         /// The device's tag.
         device: String,
     },
+}
+
+/// One solenoid of a stand-alone valve ([`Session::valve_solenoids`]).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct ValveSolenoid {
+    /// The solenoid (`14`).
+    pub name: String,
+    /// The coil function that is it.
+    pub function: Uuid,
+    /// Where its first drawing stands (`101-B4`); `None` while it is not drawn.
+    pub drawn: Option<String>,
+    /// The PLC output that drives it (`Q0.1`); `None` while none does.
+    pub output: Option<String>,
+}
+
+/// [`Session::valve_solenoids`] of `device`.
+pub(crate) fn solenoids(q: &Q, device: Id<Device>) -> Vec<ValveSolenoid> {
+    let Some(dev) = q.devices().get(device) else {
+        return Vec::new();
+    };
+    if dev.parent.is_some_and(|m| ew_derive::valve_positions(q, m).is_some()) {
+        return Vec::new();
+    }
+    let parts = q.parts();
+    let Some(declared) = dev.parts.iter().find_map(|u| {
+        parts
+            .get(u.part.copy)
+            .and_then(|c| ew_derive::valve_solenoids(&c.item).map(<[_]>::to_vec))
+    }) else {
+        return Vec::new();
+    };
+    let (functions, fndefs) = (q.functions(), q.fndefs());
+    let mut coils: Vec<(Option<u16>, Id<Function>)> = q
+        .idx()
+        .functions_of_device(device)
+        .filter_map(|f| {
+            let func = functions.get(f)?;
+            let coil = fndefs.get(func.def)?.item.contact_kind == ContactKind::Coil;
+            coil.then_some((func.template_entry, f))
+        })
+        .collect();
+    coils.sort();
+    declared
+        .iter()
+        .zip(coils)
+        .map(|(name, (_, f))| ValveSolenoid {
+            name: name.to_string(),
+            function: f.as_uuid(),
+            drawn: q
+                .idx()
+                .reps_of_function(f)
+                .min()
+                .and_then(|r| super::properties::rep_location(q, r)),
+            output: q.get::<ew_derive::PlcAddressText>(f).text.clone(),
+        })
+        .collect()
 }
 
 /// What a device row's fluid actions act on ([`Session::fluid_menu`]).

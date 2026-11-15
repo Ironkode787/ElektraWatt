@@ -59,14 +59,15 @@ fn has_free_bus_port(tx: &TxBuilder<'_>, device: &Device) -> bool {
 /// - **Else a new auxiliary function.** The representation's function moves to `device` as an auxiliary function
 ///   (role aux, no template entry); its record, its CP overrides and everything attached to it stay.
 ///
-/// The source device has exactly one function (the representation's), no part use and no other representation (D3);
-/// it is removed in the same transaction, with the old function in the slot case. What the removed records carry
+/// The source device has no other representation and its other functions (of its part) are neither drawn nor wired
+/// (D3, widened in rc.2 so that a coil placed from a valve part joins another valve); it is removed in the same
+/// transaction with its part use and those functions, and with the old function in the slot case. What the removed records carry
 /// besides that (the device's function text, process tag, structure, frozen tag and its other non-default members;
 /// in the slot case the old function's CP overrides and its other own members) goes with them: the join goes ahead
 /// and the outcome's notices name each dropped member. A main function never lands on a
 /// device that has one (EW-INV-002): the moved function is auxiliary or fills a slot. Refused, with the pointer: a
 /// representation that draws not exactly one normal function of a device, or whose device is a terminal or a strip,
-/// has another function, a part or another representation, or takes part in a device link, which the join would lose
+/// has another function that is drawn or wired, or another representation, or takes part in a device link, which the join would lose
 /// (`/rep`; remove the link first); the representation's own device (`/device`); a
 /// device that cannot take the FnDef by D2's rule (`/device`): it has no unplaced function of the FnDef, and the FnDef
 /// is no contact (NO, NC, change-over) or the device's family takes no auxiliary functions (its main function is no
@@ -218,11 +219,28 @@ impl Command for JoinDevice {
         if terminal_or_strip(&source_device) {
             return not_eligible(text!("refusal-join-terminal"));
         }
-        if tx.functions_of_device(source) != [function] {
-            return not_eligible(text!("refusal-join-other-function"));
-        }
-        if !source_device.parts.is_empty() {
-            return not_eligible(text!("refusal-join-has-part"));
+        // The device's other functions (of its part) are neither drawn nor wired: the join empties the device, which
+        // goes with them and its part use (rc.2, F11).
+        let others: Vec<Id<Function>> = tx
+            .functions_of_device(source)
+            .into_iter()
+            .filter(|g| *g != function)
+            .collect();
+        for g in &others {
+            let other = tx.require::<Function>(*g)?;
+            let attached = !tx.reps_of_function(*g).is_empty()
+                || !tx.connections_of_function(*g).is_empty()
+                || crate::commands::common::function_cp_indices(tx, &other, &source_device)
+                    .iter()
+                    .any(|i| {
+                        let at = EndpointKey::Cp(*g, *i);
+                        !tx.potential_defs_at(at).is_empty()
+                            || !tx.bonds_at(at).is_empty()
+                            || !tx.channels_at_cp(*g, *i).is_empty()
+                    });
+            if attached {
+                return not_eligible(text!("refusal-join-other-function"));
+            }
         }
         if tx.reps_of_function(function) != [self.rep] {
             return not_eligible(text!("refusal-join-other-rep"));
@@ -429,7 +447,13 @@ impl Command for JoinDevice {
         // The emptied source device goes (in the slot case with the old function, which nothing names now); the
         // notices name what goes with them.
         let mut outcome = Outcome::primary((Kind::Representation, self.rep.cast()));
-        let device_members = dropped_device_members(&source_device, &target);
+        let mut device_members = dropped_device_members(&source_device, &target);
+        if !source_device.parts.is_empty() {
+            device_members.push("part");
+        }
+        if !others.is_empty() {
+            device_members.push("unplaced functions");
+        }
         if !device_members.is_empty() {
             outcome.notices.push(format!(
                 "the joined device's {} {} dropped with it",

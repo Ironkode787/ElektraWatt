@@ -45,8 +45,9 @@ const VERSION: &str = "0.1.0";
 /// EW-GEN-CBL-3) and the tubes EW-GEN-TUB-6, -8, -10 and the fittings EW-GEN-FIT-6, -8 (the persona round of M3), 0.9.0
 /// since the devices with ports were added (the unmanaged switch EW-GEN-ESW-5, the managed switch EW-GEN-ESW-8 and the
 /// generic PROFINET device EW-GEN-PND-1; FT-1767), with the cylinder EW-GEN-CYL-1 and the air supply EW-GEN-AIR-1 (the
-/// persona re-test).
-const LIBRARY_VERSION: &str = "0.9.0";
+/// persona re-test), 0.10.0 since the two solenoid valves have the valve as their main function and the basic
+/// pneumatic parts were added (rc.2, F10 and F11).
+const LIBRARY_VERSION: &str = "0.10.0";
 /// The parts whose content changed after 0.1.0, at their next patch version (the selector switch on a
 /// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y. The relay
 /// and the contactor template their contacts beside the coil. The CPU's bus section, after 0.2.0.
@@ -55,7 +56,8 @@ const LIBRARY_VERSION: &str = "0.9.0";
 /// cores' cross-section).
 const BUMPED: &[(&str, &str)] = &[
     ("EW-GEN-SEL-1", "0.1.1"),
-    ("EW-GEN-VLV-1", "0.2.0"),
+    ("EW-GEN-VLV-1", "0.3.0"),
+    ("EW-GEN-VLV-2", "0.2.0"),
     ("EW-GEN-RLY-1", "0.1.2"),
     ("EW-GEN-CON-1", "0.1.3"),
     ("EW-GEN-CPU-1", "0.1.2"),
@@ -511,9 +513,11 @@ fn defs() -> Vec<Def> {
             kind: None,
             description: "Solenoid valve 5/2, spring return",
             cps: cps(&["A1", "A2", "1", "2", "3", "4", "5"]),
+            // The valve is the main function, so the device takes the valve's letter Q and the device browser draws
+            // the valve first; its coil is the second (rc.2, F11).
             template: vec![
-                ("ew.fn.valve-coil", true, vec![0, 1]),
-                ("ew.fn.valve-5-2-sol-spring", false, range(2, 7)),
+                ("ew.fn.valve-5-2-sol-spring", true, range(2, 7)),
+                ("ew.fn.valve-coil", false, vec![0, 1]),
             ],
             contacts: Vec::new(),
             tech: vec![("coil_voltage", q("24", "V"))],
@@ -529,8 +533,8 @@ fn defs() -> Vec<Def> {
             description: "Solenoid valve 3/2, normally closed, spring return",
             cps: cps(&["A1", "A2", "1", "2", "3"]),
             template: vec![
-                ("ew.fn.valve-coil", true, vec![0, 1]),
-                ("ew.fn.valve-3-2-sol-spring", false, range(2, 5)),
+                ("ew.fn.valve-3-2-sol-spring", true, range(2, 5)),
+                ("ew.fn.valve-coil", false, vec![0, 1]),
             ],
             contacts: Vec::new(),
             tech: vec![("coil_voltage", q("24", "V"))],
@@ -1494,9 +1498,9 @@ fn the_generic_cpu_has_its_dp_port() {
     }
 }
 
-/// The stand-alone valve EW-GEN-VLV-1 (0.2.0) declares solenoid 14 in its fluid section;
-/// its coil is the physical A1, A2 of its main function on `ew.fn.valve-coil`, so it has no internal coil,
-/// and the valve body takes the pattern's ports 1 to 5 (the former pattern CP "14" is gone).
+/// The stand-alone valve EW-GEN-VLV-1 (0.3.0) declares solenoid 14 in its fluid section; the valve body is its main
+/// function on the pattern's ports 1 to 5 (the former pattern CP "14" is gone), and its coil is the physical A1, A2 of
+/// its second function on `ew.fn.valve-coil`, so it has no internal coil.
 #[test]
 fn the_stand_alone_valve_declares_its_solenoid_on_its_physical_coil() {
     let parts = parts();
@@ -1507,7 +1511,7 @@ fn the_stand_alone_valve_declares_its_solenoid_on_its_physical_coil() {
             _ => None,
         })
         .expect("the generic valve");
-    assert_eq!(valve.version, "0.2.0");
+    assert_eq!(valve.version, "0.3.0");
     let fluid = valve.item.sections.fluid.as_ref().expect("a fluid section");
     let solenoids: Vec<&str> = fluid.solenoids.iter().map(|s| s.as_str()).collect();
     assert_eq!(solenoids, ["14"]);
@@ -1533,8 +1537,8 @@ fn the_stand_alone_valve_declares_its_solenoid_on_its_physical_coil() {
     assert_eq!(
         template,
         [
-            (Some("ew.fn.valve-coil"), true, vec![0, 1]),
-            (Some("ew.fn.valve-5-2-sol-spring"), false, vec![2, 3, 4, 5, 6]),
+            (Some("ew.fn.valve-5-2-sol-spring"), true, vec![2, 3, 4, 5, 6]),
+            (Some("ew.fn.valve-coil"), false, vec![0, 1]),
         ]
     );
     let LibDocument::Fndef(coil) =

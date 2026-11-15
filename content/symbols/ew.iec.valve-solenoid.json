@@ -1,0 +1,141 @@
+{
+  "$k": "symbol",
+  "id": "e86a1c34-d388-5807-a280-10517921eb01",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "659fe88c-8d31-5989-a7cb-8221cc970e76",
+  "version": "0.1.0",
+  "sha256": "sha256:3a8cb2d9fa8e4ef8642fcfcb5d978370696b8d09ec129427dd98ea7ee838f205",
+  "meta": {
+    "key": "ew.iec.valve-solenoid",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Solenoid of a valve, internal coil",
+    "nl": "Magneetspoel van een ventiel, interne spoel"
+  },
+  "keywords": [
+    "coil",
+    "internal",
+    "solenoid",
+    "valve"
+  ],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "a0f55933-d4dc-5721-bcbf-896c1b7f3f1f",
+    "version_req": "^0.1",
+    "key": "ew.fn.valve-solenoid"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "rect": {
+        "rect": [
+          [
+            -2000000,
+            4000000
+          ],
+          [
+            2000000,
+            12000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          -2000000,
+          12000000
+        ],
+        "to": [
+          2000000,
+          4000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -4000000,
+        8000000
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": "xref",
+      "pos": [
+        4000000,
+        10000000
+      ],
+      "align": "middle_left",
+      "visible": true,
+      "style": "xref.device"
+    },
+    {
+      "kind": "tech_data",
+      "pos": [
+        4000000,
+        6000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": "plc_address",
+      "pos": [
+        -4000000,
+        12000000
+      ],
+      "align": "middle_right",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      0,
+      8000000
+    ]
+  },
+  "link_points": [
+    {
+      "name": "link",
+      "pos": [
+        2000000,
+        8000000
+      ]
+    }
+  ]
+}

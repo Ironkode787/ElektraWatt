@@ -885,9 +885,33 @@ impl ShellModel {
 
     /// `props.follow {row?}` (F or a click on a link row of the grid): follows the device link of
     /// `row` (else the focused row) as the Devices navigator opens the device: its main page shows in the focused
-    /// group and its drawings there are selected.
+    /// group and its drawings there are selected. A valve's solenoid row goes to where its coil is drawn, or draws it
+    /// while it is not (`fluid.draw_solenoid`); a coil's valve row goes to the valve (rc.2, F11).
     pub(crate) fn act_props_follow(&mut self, p: &Map<String, Value>) -> Outcome {
         let key = or_return!(self.props_row_param(p));
+        let solenoid = self.props_find(&key).and_then(|(_, row)| match (row.ty.inner(), &row.value) {
+            (crate::properties::FieldType::Link { kind }, crate::properties::RowValue::One { json, .. })
+                if kind == "solenoid" =>
+            {
+                Some(json.clone())
+            }
+            _ => None,
+        });
+        if let Some(json) = solenoid {
+            let mut params = Map::new();
+            return match json.get("drawn").and_then(Value::as_str) {
+                Some(place) => {
+                    params.insert("text".into(), Value::String(place.to_owned()));
+                    self.act_nav_goto(&params)
+                }
+                None => {
+                    if let Some(f) = json.get("function") {
+                        params.insert("function".into(), f.clone());
+                    }
+                    self.act_fluid_draw_solenoid(&params)
+                }
+            };
+        }
         let device = self
             .props_find(&key)
             .and_then(|(_, row)| match (row.ty.inner(), &row.value) {
@@ -898,6 +922,14 @@ impl ShellModel {
                     .as_str()
                     .and_then(|id| id.parse::<ew_api::output::Uuid>().ok())
                     .map(|id| (id, text.clone())),
+                (
+                    crate::properties::FieldType::Link { kind },
+                    crate::properties::RowValue::One { json, .. },
+                ) if kind == "valve" => json
+                    .get("device")
+                    .and_then(Value::as_str)
+                    .and_then(|id| id.parse::<ew_api::output::Uuid>().ok())
+                    .map(|id| (id, json.get("tag").and_then(Value::as_str).unwrap_or_default().to_owned())),
                 _ => None,
             });
         let Some((device, tag)) = device else {

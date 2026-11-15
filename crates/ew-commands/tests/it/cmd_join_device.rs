@@ -270,6 +270,22 @@ fn a_contact_fills_the_first_slot_and_its_wires_follow_cp_for_cp() {
     assert_eq!(lines(e.model()), before, "one undo step restores the source");
 }
 
+/// rc.2 (F11): a device whose other functions are neither drawn nor wired (-K4's second contact; a part's unplaced
+/// slots) joins, and goes with them; the notice names them.
+#[test]
+fn free_other_functions_go_with_the_join() {
+    let mut e = engine(join_model());
+    let r = e.execute(&join(REP_K4, DEV_K1)).expect("rep.join_device");
+    assert!(
+        r.outcome.notices.iter().any(|n| n.contains("unplaced functions")),
+        "{:?}",
+        r.outcome.notices
+    );
+    assert!(get(&e, DEV_K4).is_none(), "the emptied device is removed");
+    assert!(get(&e, FN_K4_B).is_none(), "with its unplaced function");
+    assert_eq!(get(&e, FN_K4_A).and_then(|f| f.device), Some(DEV_K1));
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // Refusals
 
@@ -277,10 +293,8 @@ fn a_contact_fills_the_first_slot_and_its_wires_follow_cp_for_cp() {
 fn each_refusal_names_its_pointer_and_writes_nothing() {
     let mut e = engine(join_model());
     let rev = e.model().rev();
-    // `/rep`: the device has another function; the device has a part (and other functions); an interruption point;
-    // a terminal.
-    invalid_at(e.execute(&join(REP_K4, DEV_K1)), "/rep", "another function");
-    invalid_at(e.execute(&join(REP_K3, DEV_K1)), "/rep", "exactly one function");
+    // `/rep`: an interruption point; a terminal. (A device's other functions that are neither drawn nor wired go
+    // with the join: `free_other_functions_go_with_the_join`.)
     invalid_at(e.execute(&join(REP_IP_101, DEV_K1)), "/rep", "interruption point");
     invalid_at(e.execute(&join(REP_T1, DEV_K1)), "/rep", "terminal");
     // `/device`: the representation's own device; a device whose family takes no auxiliary contacts; a FnDef that is

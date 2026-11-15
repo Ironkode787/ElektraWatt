@@ -513,7 +513,7 @@ fn a_valve_is_attached_to_a_valve_terminal_and_bound() {
     done(
         &mut s,
         "place.pick",
-        json!({"part": "EW-GEN-VLV-1", "letter": "Y"}),
+        json!({"part": "EW-GEN-VLV-1", "template": 1, "letter": "Y"}),
     );
     cursor_k(&mut s, (44, 30));
     done(&mut s, "canvas.activate", json!({"alt": true}));

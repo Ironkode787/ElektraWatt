@@ -1018,7 +1018,30 @@ impl LabelPath for PropRow {
 
 /// The English label of a row (`Function text`, `Cross-section`).
 pub fn row_label(section: &SheetSection, row: &PropRow) -> String {
+    // A valve's solenoid row is named by its solenoid ("Solenoid 14"), not by its position in the list.
+    if row.key.starts_with("device/derived.solenoid[")
+        && let RowValue::One { json, .. } = &row.value
+        && let Some(name) = json.get("name").and_then(Value::as_str)
+    {
+        return strings::format(key!("props-solenoid"), &[name]);
+    }
     strings::field_label(&section.kind, &row.path_for_label())
+}
+
+/// Writes a valve's solenoid rows in words (rc.2, F11): where the coil is drawn, else "not drawn"; and the coil
+/// symbol's valve as "Solenoid 14 of -201Q1". The JSON value is unchanged.
+pub fn solenoids_in_words(sheet: &mut PropertySheet) {
+    for row in sheet.sections.iter_mut().flat_map(|s| s.rows.iter_mut()) {
+        let RowValue::One { json, text } = &mut row.value else {
+            continue;
+        };
+        if row.key.starts_with("device/derived.solenoid[") && json.get("drawn").is_some_and(Value::is_null) {
+            *text = strings::text(key!("props-solenoid-not-drawn")).to_owned();
+        } else if row.key == "representation/derived.solenoid_of" {
+            let word = |k: &str| json.get(k).and_then(Value::as_str).unwrap_or_default().to_owned();
+            *text = strings::format(key!("props-solenoid-of"), &[&word("name"), &word("tag")]);
+        }
+    }
 }
 
 /// Whether a row is one of a device's connection points (its value names the point: `function`, `idx`, `unused`).
@@ -1735,6 +1758,10 @@ const CHIP_PHRASES: &[(&str, Option<&str>, Key<'static>)] = &[
     ("no tube specification", None, key!("chip-via-no-tube-spec")),
     // A valve's position (the persona round).
     ("on no valve terminal", None, key!("chip-via-no-terminal")),
+    // A valve's solenoids (rc.2, F11).
+    ("PLC output ", Some(""), key!("chip-via-plc-output")),
+    ("no PLC output", None, key!("chip-via-no-plc-output")),
+    ("the valve's part", None, key!("chip-via-valve-part")),
 ];
 
 /// A provenance chip's words in the UI language: each ` · `-separated part of `ew-api`'s English

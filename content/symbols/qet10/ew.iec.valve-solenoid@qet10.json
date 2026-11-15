@@ -1,0 +1,145 @@
+{
+  "$k": "symbol",
+  "id": "14ec81b6-6397-5e96-9511-e7415265c83f",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "04f5ab83-4b7f-593c-8405-632d90a18f9a",
+  "version": "0.1.0",
+  "sha256": "sha256:b73d29b274d4b708caf1341ca361db941e1ec39bc21087936756b32a29810099",
+  "meta": {
+    "key": "ew.iec.valve-solenoid@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Solenoid of a valve, internal coil",
+    "nl": "Magneetspoel van een ventiel, interne spoel"
+  },
+  "keywords": [
+    "coil",
+    "internal",
+    "solenoid",
+    "valve"
+  ],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "a0f55933-d4dc-5721-bcbf-896c1b7f3f1f",
+    "version_req": "^0.1",
+    "key": "ew.fn.valve-solenoid"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "rect": {
+        "rect": [
+          [
+            -1322917,
+            2645833
+          ],
+          [
+            1322917,
+            7937500
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          -1322917,
+          7937500
+        ],
+        "to": [
+          1322917,
+          2645833
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -2645833,
+        5291667
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": "xref",
+      "pos": [
+        2645833,
+        6614583
+      ],
+      "align": "middle_left",
+      "visible": true,
+      "style": "xref.device"
+    },
+    {
+      "kind": "tech_data",
+      "pos": [
+        2645833,
+        3968750
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": "plc_address",
+      "pos": [
+        -2645833,
+        7937500
+      ],
+      "align": "middle_right",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      0,
+      5291667
+    ]
+  },
+  "link_points": [
+    {
+      "name": "link",
+      "pos": [
+        1322917,
+        5291667
+      ]
+    }
+  ]
+}
