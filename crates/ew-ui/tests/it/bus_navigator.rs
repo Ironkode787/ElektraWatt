@@ -43,9 +43,16 @@ fn the_bus_navigator_lists_nets_ports_and_segments_and_edits_an_address() {
     assert!(rows.iter().any(|r| r.label == "-201U1 DP"), "the station's port");
     // Every member names itself: the segment's external interruption point, which has no device, by its name.
     assert!(rows.iter().all(|r| !r.label.trim().is_empty()), "{texts:?}");
+    // The plug stands under the net it passes through (FT-1767) and, with its termination, in the segment.
+    assert!(
+        rows.iter().any(|r| r.label == "-3X1 DP"
+            && r.key.starts_with("nets:logical/")
+            && r.badges.iter().any(|b| b == "passes the net through")),
+        "the plug in its net"
+    );
     let connector = rows
         .iter()
-        .find(|r| r.label == "-3X1 DP")
+        .find(|r| r.label == "-3X1 DP" && r.key.starts_with("nets:physical/"))
         .expect("the connector in the segment");
     assert!(
         connector.badges.iter().any(|b| b == "terminated"),

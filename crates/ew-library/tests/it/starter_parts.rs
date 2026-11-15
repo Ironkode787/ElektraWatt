@@ -77,7 +77,8 @@ const BUMPED: &[(&str, &str)] = &[
 fn bus_section(number: &str) -> Option<Value> {
     let port =
         |interface: &str, bus: &str, role: &str| json!({"interface": interface, "bus": bus, "role": role});
-    let sockets = |role: &str, n: u16| json!({"interface": "X1", "bus": "profinet", "role": role, "ports": n});
+    let sockets =
+        |role: &str, n: u16| json!({"interface": "X1", "bus": "profinet", "role": role, "ports": n});
     match number {
         "EW-GEN-CPU-1" => Some(json!({"ports": [port("DP", "profibus_dp", "master")]})),
         "EW-GEN-CPU-2" => Some(json!({"ports": [
@@ -714,8 +715,16 @@ fn defs() -> Vec<Def> {
             unit: None,
         },
         // FT-1767: the devices with ports, drawn by their PROFINET port function as a box with every socket.
-        port_device("EW-GEN-ESW-5", "Industrial Ethernet switch, unmanaged, 5 ports", "45"),
-        port_device("EW-GEN-ESW-8", "Industrial Ethernet switch, managed, 8 ports, PROFINET", "60"),
+        port_device(
+            "EW-GEN-ESW-5",
+            "Industrial Ethernet switch, unmanaged, 5 ports",
+            "45",
+        ),
+        port_device(
+            "EW-GEN-ESW-8",
+            "Industrial Ethernet switch, managed, 8 ports, PROFINET",
+            "60",
+        ),
         port_device("EW-GEN-PND-1", "PROFINET IO device, generic, 2 ports", "45"),
         // The layout parts. No template, no CP pattern; the layout tools read their sections and `mech`.
         Def {

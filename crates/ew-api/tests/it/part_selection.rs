@@ -1002,7 +1002,10 @@ fn a_new_part_is_made_once_and_never_overwrites_another() {
     let (d, set) = typed(&s, "2");
     set.unwrap();
     let made = s.new_part_command(&d).unwrap();
-    assert_eq!(made.library, None, "without a user library the part is the project's");
+    assert_eq!(
+        made.library, None,
+        "without a user library the part is the project's"
+    );
     commit(&mut s, &made.command);
     let q = s.query();
     let part = q

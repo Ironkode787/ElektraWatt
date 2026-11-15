@@ -345,11 +345,11 @@ impl Query for NetMembersOf {
 /// of normaliser N6, which gives such a port no net), in ID order.
 fn passed_through(q: &Q, ports: &[Id<Function>], bus: &BusSystem) -> Vec<Id<Function>> {
     let functions = q.functions();
-    let lines: Vec<(Option<Id<Function>>, Option<Id<Function>>)> = q
+    let lines: Vec<[Option<Id<Function>>; 2]> = q
         .connections()
         .iter()
         .filter(|(_, c)| matches!(c.kind, ConnectionKind::Bus(_)))
-        .map(|(_, c)| (c.a.function(), c.b.function()))
+        .map(|(_, c)| [c.a.function(), c.b.function()])
         .collect();
     let passive = |f: Id<Function>| {
         functions
@@ -360,7 +360,7 @@ fn passed_through(q: &Q, ports: &[Id<Function>], bus: &BusSystem) -> Vec<Id<Func
     let mut seen: BTreeSet<Id<Function>> = BTreeSet::new();
     let mut queue: Vec<Id<Function>> = ports.to_vec();
     while let Some(f) = queue.pop() {
-        for (a, b) in &lines {
+        for [a, b] in &lines {
             let other = match (a, b) {
                 (Some(a), b) if *a == f => *b,
                 (a, Some(b)) if *b == f => *a,

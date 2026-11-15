@@ -109,7 +109,12 @@ fn a_new_part_with_a_bus_interface_is_made_in_the_window_and_kept_in_my_parts() 
     d.settle();
     let row = draft(&mut d).bus[0].clone();
     assert_eq!(
-        (row.interface.as_str(), row.bus.as_str(), row.role.as_str(), row.ports.as_str()),
+        (
+            row.interface.as_str(),
+            row.bus.as_str(),
+            row.role.as_str(),
+            row.ports.as_str()
+        ),
         ("X1", "profinet", "passive", "5")
     );
     press(&mut d, "Save");
@@ -124,14 +129,22 @@ fn a_new_part_with_a_bus_interface_is_made_in_the_window_and_kept_in_my_parts() 
         .find(|v| v["part_number"] == "SW-5")
         .expect("the project holds the new part");
     assert!(
-        part["description"].to_string().contains("Ethernet switch, unmanaged, 5 ports"),
+        part["description"]
+            .to_string()
+            .contains("Ethernet switch, unmanaged, 5 ports"),
         "{}",
         part["description"]
     );
     let port = &part["sections"]["bus"]["ports"][0];
-    assert_eq!((port["role"].as_str(), port["ports"].as_u64()), (Some("passive"), Some(5)));
+    assert_eq!(
+        (port["role"].as_str(), port["ports"].as_u64()),
+        (Some("passive"), Some(5))
+    );
     let toast = d.shell_mut().toast().map(|t| t.text.clone());
-    assert_eq!(toast.as_deref(), Some("Part SW-5 is in the project and in My parts."));
+    assert_eq!(
+        toast.as_deref(),
+        Some("Part SW-5 is in the project and in My parts.")
+    );
     let mine = tmp.0.join("data").join("libraries").join("user-parts.ewlib");
     assert!(
         library_text(&mine).contains("\"part_number\":\"SW-5\""),
@@ -147,7 +160,9 @@ pub(crate) fn cursor_k(d: &mut Driver, k: (i64, i64)) {
         let s = sn.page_to_sheet((sn.page_of_index(k.0), sn.page_of_index(k.1)));
         (s.0 as f64 / 1e6, s.1 as f64 / 1e6)
     };
-    let _ = d.shell_mut().dispatch("cursor.set", &json!({"x_mm": x, "y_mm": y}));
+    let _ = d
+        .shell_mut()
+        .dispatch("cursor.set", &json!({"x_mm": x, "y_mm": y}));
 }
 
 /// Moves the keyboard cursor onto the connection point labelled `label` (`-K1:P1`) and presses there.
@@ -165,7 +180,9 @@ pub(crate) fn press_cp(d: &mut Driver, label: &str) {
         let s = c.page().snapper.page_to_sheet(at);
         (s.0 as f64 / 1e6, s.1 as f64 / 1e6)
     };
-    let _ = d.shell_mut().dispatch("cursor.set", &json!({"x_mm": x, "y_mm": y}));
+    let _ = d
+        .shell_mut()
+        .dispatch("cursor.set", &json!({"x_mm": x, "y_mm": y}));
     let _ = d.shell_mut().dispatch("canvas.activate", &json!({}));
     d.settle();
 }
@@ -201,7 +218,9 @@ pub(crate) fn place_box(d: &mut Driver, number: &str, a: (i64, i64), b: (i64, i6
 fn findings(d: &mut Driver, prefix: &str) -> Vec<String> {
     use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
     press(d, "Check project");
-    let _ = d.shell_mut().dispatch("navigator.show", &json!({"kind": "messages"}));
+    let _ = d
+        .shell_mut()
+        .dispatch("navigator.show", &json!({"kind": "messages"}));
     d.settle();
     d.shell_mut()
         .nav(NavKind::Messages)
@@ -231,7 +250,11 @@ fn a_switch_joins_a_cpu_and_two_devices_in_one_net() {
     d.settle();
     let switch = place_box(&mut d, "EW-GEN-ESW-5", (40, 15), (60, 22));
     let sockets: Vec<&str> = switch.iter().filter_map(|l| l.split(':').nth(1)).collect();
-    assert_eq!(sockets, ["P1", "P2", "P3", "P4", "P5"], "the switch stands with its sockets");
+    assert_eq!(
+        sockets,
+        ["P1", "P2", "P3", "P4", "P5"],
+        "the switch stands with its sockets"
+    );
     let a = place_box(&mut d, "EW-GEN-PND-1", (15, 45), (30, 52));
     let b = place_box(&mut d, "EW-GEN-PND-1", (65, 45), (80, 52));
     assert_eq!(a.len(), 2, "a device with two sockets: {a:?}");
@@ -245,14 +268,18 @@ fn a_switch_joins_a_cpu_and_two_devices_in_one_net() {
         .key;
     let before = cp_labels(&mut d);
     assert_eq!(
-        d.shell_mut().dispatch("place.pick", &json!({"symbol": symbol, "device": tag})),
+        d.shell_mut()
+            .dispatch("place.pick", &json!({"symbol": symbol, "device": tag})),
         Outcome::Done
     );
     cursor_k(&mut d, (75, 66));
     let _ = d.shell_mut().dispatch("canvas.activate", &json!({}));
     d.input(&key("Escape"));
     d.settle();
-    let x1: Vec<String> = cp_labels(&mut d).into_iter().filter(|l| !before.contains(l)).collect();
+    let x1: Vec<String> = cp_labels(&mut d)
+        .into_iter()
+        .filter(|l| !before.contains(l))
+        .collect();
     // The bus lines: CPU to switch, switch to each device.
     d.input(&key("W"));
     d.settle();
@@ -287,14 +314,20 @@ fn a_switch_joins_a_cpu_and_two_devices_in_one_net() {
         .map(|r| r.key.clone())
         .collect();
     assert_eq!(nodes.len(), 3, "the CPU and both devices are nodes");
-    let _ = d.shell_mut().dispatch("navigator.table", &json!({"kind": "bus", "on": true}));
+    let _ = d
+        .shell_mut()
+        .dispatch("navigator.table", &json!({"kind": "bus", "on": true}));
     d.settle();
     for (row, name) in nodes.iter().zip(["plc-1", "drive-1", "drive-2"]) {
         let set = json!({"kind": "bus", "column": "Address", "value": name, "rows": [row]});
         assert_eq!(d.shell_mut().dispatch("table.set", &set), Outcome::Done, "{row}");
         d.settle();
     }
-    assert_eq!(findings(&mut d, "EW-BUS"), Vec::<String>::new(), "a correct star is silent");
+    assert_eq!(
+        findings(&mut d, "EW-BUS"),
+        Vec::<String>::new(),
+        "a correct star is silent"
+    );
 }
 
 /// Makes a part with one PROFINET interface of role device and `ports` sockets in the part editor (New part… in the
@@ -322,13 +355,22 @@ fn a_managed_switch_and_a_drive_made_in_the_window_are_nodes_of_one_net() {
     use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
-    make_port_device(&mut d, "SW-8M", "Industrial Ethernet switch, managed, 8 ports", "8");
+    make_port_device(
+        &mut d,
+        "SW-8M",
+        "Industrial Ethernet switch, managed, 8 ports",
+        "8",
+    );
     make_port_device(&mut d, "DRV-1", "Frequency converter with PROFINET", "2");
     let page = json!({"folio": "2", "type": "bus_topology", "title": "Network"});
     assert_eq!(d.shell_mut().dispatch("page.new", &page), Outcome::Done);
     d.settle();
     let switch = place_box(&mut d, "SW-8M", (40, 15), (64, 22));
-    assert_eq!(switch.len(), 8, "the switch stands with eight sockets: {switch:?}");
+    assert_eq!(
+        switch.len(),
+        8,
+        "the switch stands with eight sockets: {switch:?}"
+    );
     let drive = place_box(&mut d, "DRV-1", (65, 45), (80, 52));
     let cpu = place_box(&mut d, "EW-GEN-CPU-2", (40, 62), (60, 70));
     let tag = cpu[0].split(':').next().unwrap().to_owned();
@@ -338,12 +380,17 @@ fn a_managed_switch_and_a_drive_made_in_the_window_are_nodes_of_one_net() {
         .expect("the PROFINET port symbol")
         .key;
     let before = cp_labels(&mut d);
-    let _ = d.shell_mut().dispatch("place.pick", &json!({"symbol": symbol, "device": tag}));
+    let _ = d
+        .shell_mut()
+        .dispatch("place.pick", &json!({"symbol": symbol, "device": tag}));
     cursor_k(&mut d, (75, 66));
     let _ = d.shell_mut().dispatch("canvas.activate", &json!({}));
     d.input(&key("Escape"));
     d.settle();
-    let x1: Vec<String> = cp_labels(&mut d).into_iter().filter(|l| !before.contains(l)).collect();
+    let x1: Vec<String> = cp_labels(&mut d)
+        .into_iter()
+        .filter(|l| !before.contains(l))
+        .collect();
     d.input(&key("W"));
     d.settle();
     for (from, to) in [(&x1[0], &switch[0]), (&switch[7], &drive[0])] {
@@ -364,15 +411,24 @@ fn a_managed_switch_and_a_drive_made_in_the_window_are_nodes_of_one_net() {
         .map(|r| r.key.clone())
         .collect();
     assert_eq!(nodes.len(), 3, "the CPU, the switch and the drive are its nodes");
-    assert!(nodes.iter().all(|k| k.starts_with("nets:logical/")), "all in the net: {nodes:?}");
-    let _ = d.shell_mut().dispatch("navigator.table", &json!({"kind": "bus", "on": true}));
+    assert!(
+        nodes.iter().all(|k| k.starts_with("nets:logical/")),
+        "all in the net: {nodes:?}"
+    );
+    let _ = d
+        .shell_mut()
+        .dispatch("navigator.table", &json!({"kind": "bus", "on": true}));
     d.settle();
     for (row, name) in nodes.iter().zip(["plc-1", "switch-1", "drive-1"]) {
         let set = json!({"kind": "bus", "column": "Address", "value": name, "rows": [row]});
         assert_eq!(d.shell_mut().dispatch("table.set", &set), Outcome::Done, "{row}");
         d.settle();
     }
-    assert_eq!(findings(&mut d, "EW-BUS"), Vec::<String>::new(), "named, the net is silent");
+    assert_eq!(
+        findings(&mut d, "EW-BUS"),
+        Vec::<String>::new(),
+        "named, the net is silent"
+    );
 }
 
 /// Makes the input card "DI 8 × 24 V" in the part editor: a PLC module of eight digital inputs whose pins the pattern
@@ -389,7 +445,10 @@ fn make_card(d: &mut Driver, number: &str, slots: &str) {
     press(d, "Channel kind");
     press(d, "DI");
     fill(d, "Channels", "8");
-    let preview = d.texts().into_iter().any(|t| t == "Channel 0 → pin 1 … channel 7 → pin 8");
+    let preview = d
+        .texts()
+        .into_iter()
+        .any(|t| t == "Channel 0 → pin 1 … channel 7 → pin 8");
     assert!(preview, "the pin pattern's preview: {:?}", d.texts());
     fill(d, "Allowed slots", slots);
     press(d, "Save");
@@ -413,9 +472,14 @@ fn rack_add(d: &mut Driver, station: &str, number: &str, slot: u64) {
         .find(|m| m.text.contains(number))
         .unwrap_or_else(|| panic!("Rack and slots offers {number}"))
         .copy;
-    let chose = d.shell_mut().dispatch("plc.rack_part", &json!({"part": part.to_string()}));
+    let chose = d
+        .shell_mut()
+        .dispatch("plc.rack_part", &json!({"part": part.to_string()}));
     assert_eq!(chose, Outcome::Done);
-    assert_eq!(d.shell_mut().dispatch("plc.rack_add", &json!({"slot": slot})), Outcome::Done);
+    assert_eq!(
+        d.shell_mut().dispatch("plc.rack_add", &json!({"slot": slot})),
+        Outcome::Done
+    );
     d.input(&key("Escape"));
     d.settle();
 }
@@ -425,7 +489,11 @@ fn plc_rows(d: &mut Driver) -> Vec<String> {
     use ew_ui::ew_viewmodel::navigators::NavKind;
     let _ = d.shell_mut().dispatch("rail.show", &json!({"pane": "plc"}));
     d.settle();
-    d.shell_mut().shown_rows(NavKind::Plc).into_iter().map(|r| r.text).collect()
+    d.shell_mut()
+        .shown_rows(NavKind::Plc)
+        .into_iter()
+        .map(|r| r.text)
+        .collect()
 }
 
 /// Job 4a: a person makes the card "DI 8 × 24 V" with eight inputs and a pin pattern, saves it, and adds it as a card
@@ -453,7 +521,11 @@ fn a_card_made_in_the_window_is_a_card_of_the_starter_cpu() {
         .filter_map(|v| Some((v["number"].as_u64()?, v["binding"]["cp"][1].as_u64()?)))
         .collect();
     pins.sort_unstable();
-    assert_eq!(pins, (0..8).map(|n| (n, n)).collect::<Vec<_>>(), "each channel binds its pin");
+    assert_eq!(
+        pins,
+        (0..8).map(|n| (n, n)).collect::<Vec<_>>(),
+        "each channel binds its pin"
+    );
 }
 
 /// A head station such as an IM 152, typed from its data sheet: a PLC station with a PROFIBUS DP slave interface,
@@ -492,8 +564,14 @@ fn a_head_station_made_in_the_window_takes_its_cards_and_its_dp_port() {
     assert_eq!(head.len(), 2, "the station's supply pins L+ and M: {head:?}");
     rack_add(&mut d, &tag, "DI8-24", 1);
     let rows = plc_rows(&mut d);
-    assert!(rows.iter().any(|r| r.contains("head station")), "N0 makes it a head station: {rows:?}");
-    assert!(rows.iter().any(|r| r.contains("I0.0")), "its card's channels: {rows:?}");
+    assert!(
+        rows.iter().any(|r| r.contains("head station")),
+        "N0 makes it a head station: {rows:?}"
+    );
+    assert!(
+        rows.iter().any(|r| r.contains("I0.0")),
+        "its card's channels: {rows:?}"
+    );
     // Its DP port, from its row (Place port DP), on a bus-topology page.
     let page = json!({"folio": "2", "type": "bus_topology", "title": "Network"});
     assert_eq!(d.shell_mut().dispatch("page.new", &page), Outcome::Done);
@@ -503,7 +581,9 @@ fn a_head_station_made_in_the_window_takes_its_cards_and_its_dp_port() {
         .find(|i| i.key.starts_with("ew.bus.dp-port@"))
         .expect("the DP port symbol")
         .key;
-    let _ = d.shell_mut().dispatch("place.pick", &json!({"symbol": symbol, "device": tag}));
+    let _ = d
+        .shell_mut()
+        .dispatch("place.pick", &json!({"symbol": symbol, "device": tag}));
     cursor_k(&mut d, (30, 30));
     let _ = d.shell_mut().dispatch("canvas.activate", &json!({}));
     d.input(&key("Escape"));
