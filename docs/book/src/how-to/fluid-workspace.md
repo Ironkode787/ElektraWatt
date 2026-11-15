@@ -32,19 +32,25 @@ the middle, and the tube table and the medium table in the bottom dock.
 ## Valve terminals
 
 6. To start a valve terminal, choose **Draw ▸ Device**, find **Valve terminal, 4 valve positions, 8 outputs** under
-   **Valve terminals** (or type "valve terminal") and click two corners of its box on the page. It is a valve terminal because its part has valve positions: the fluid
-   navigator lists it under **Valve terminals**.
-7. Right-click the terminal's box or its row and choose **Add valve at position 1**: the valve becomes the terminal's
-   child at that position, and its symbol follows the pointer until you click where it goes. The valve is of the part
-   the terminal's other valves have, else the library's valve for its positions. A valve placed into the box from
-   **Symbol** or **Device**, or dragged into it, becomes the terminal's valve at the next free position too; the toast
-   names the position. A valve's **Valve position** in Properties moves it to another free position. The supply plate
-   **Valve terminal supply plate, ports 1, 3 and 5** placed into the box joins the terminal too: a tube to its port 1
-   feeds every valve of the terminal.
-8. Right-click a valve's row: **Set spare** or **Set used**, **Blank position** to put a blanking plate in its place,
-   and **Plug port** for each working port that has no line. A module's row adds a valve at a blank or empty position
-   the same way (**Add valve at position**), and the terminal's box or row closes an empty position with a blanking
-   plate (**Blank position**).
+   **Valve terminals** (or type "valve terminal") and click once where its top-left corner goes. It is drawn as its
+   positions: a supply end on the left, then one cell per valve position in a row, numbered in the sub-base along the
+   bottom. An empty position is a dashed cell, a blanking plate a plate with both diagonals. It is a valve terminal
+   because its part has valve positions: the fluid navigator lists it under **Valve terminals**.
+7. Click an empty cell, or right-click it and choose **Fill position 2…**: the device browser opens with the valves for
+   a valve terminal only, and the valve you choose stands in that cell, at that position. A valve placed into a cell
+   from **Symbol** or **Device** takes that cell's position; a valve of the terminal dragged onto another cell moves
+   there, onto a held cell the two swap. The toast names the position. A valve with a coil of its own to wire (a
+   stand-alone valve), a coil or a cylinder dropped into the box is not taken as a position: it stays a device of its
+   own, and the toast says so. A valve's **Valve position** in Properties moves it to another position; a position
+   another valve holds offers **Swap** in the toast. The supply plate **Valve terminal supply plate, ports 1, 3 and 5**
+   placed into the box stands in the supply end: a tube to its port 1 feeds every valve of the terminal.
+8. Right-click a held cell: **Replace at position 2…**, **Empty position 2** and **Blanking plate at position 2**. A
+   valve's row offers **Set spare** or **Set used**, **Blank position** and **Plug port** for each working port that
+   has no line; the terminal's row adds a valve or a blanking plate at each empty position (**Add valve at position**,
+   **Blank position**). The rack dialog (**Rack…**) lists the terminal's positions as rows with **Fill…**,
+   **Blanking plate** and **Empty**. A terminal drawn before this version as a free box keeps it: its box's menu offers
+   **Draw as slots**, previewed, which redraws it as its positions and moves its valves on that page into their cells
+   with their tubes; its Properties list the **Valve positions**.
 9. Right-click the valve terminal's box or row and choose **Generate overview…**; from the command search it acts on
    the selected terminal and says so while none is selected. The Preview tab lists which modules stand on which
    overview page, and the pages it adds where the frame is full; the tags that change with a page are listed below.

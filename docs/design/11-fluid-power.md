@@ -424,6 +424,26 @@ flowchart TB
   [06](06-schematic-editor.md) §2.2): a line drawn on them is an `Overview` connection and joins no net (FR-PAG-002,
   FR-CON-002).
 
+*As built (rc.2, F15).* On a fluid page a valve terminal is drawn **as its positions**: a black box whose
+`BoxSpec.slots {pitch}` (an optional member, additive in format 0.1) marks it, laid out by `ew_derive::SlotFrame` on the
+page grid: a supply end of six grid steps, then one cell of `pitch` (eleven grid steps, a 5/2 valve of the 12 mm module
+with a step to spare) per position in a row, eight steps high, the sub-base the bottom two with each cell's number in
+it. A row reads best with upright valves whose working ports 2 and 4 leave the box upwards while ports 1, 3 and 5 end
+on the sub-base (the galleries join them, §5.2; the terminal itself is the first gallery slot, so a terminal part that
+taps a gallery feeds it). The cells are the terminal's positions, then its modules' (`terminal_cells`); their content is
+derived, never stored: a valve's own symbol stands in its cell (its tag and the output that drives it, `PlcAddress`),
+a valve drawn on another page is named by its tag, a blanking plate is drawn as one, an empty position dashed. The
+Place tool places such a box with one click (`box.black` with `slots`). A valve placed or moved into a cell takes that
+position (`seat_on_terminal`: a valve of the terminal swaps with the cell's holder through `assembly.attach {swap}`;
+`device.place {replace}` replaces it); every command that changes a position (`assembly.attach`,
+`valve.set_occupancy`, `box.black`, `device.place`) moves the valve's symbols on the box's page into their cells and
+the supply plate into the supply end, their tubes following (`seat_reps`). Only a valve for a terminal is seated
+(`fits_terminal`: a valve function and no coil FnDef with a physical CP); anything else dropped in the box stays its
+own. A page drawn before stays as it is: `valve_terminal.draw_slots {rep}` (Draw as slots, previewed) redraws a free
+box as its positions. A box drawn as its positions is not reshaped (`box.reshape` refuses it). Not built: a terminal
+part with several sizes whose count is asked when it is made (it needs a device-level position count that the channel
+instantiation honours, which an older build would not: not additive).
+
 ### 3.3 Field devices, linkages, process tags and target tracking
 
 The process valves TA05-V-15, -33, -18, -17, -36, -38, -16 and -37 are **field devices** (FR-DEV-027): -203Q1 …
