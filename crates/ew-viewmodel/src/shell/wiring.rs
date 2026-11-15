@@ -761,6 +761,14 @@ impl ShellModel {
                 };
                 strings::format(key, &[&wire])
             })
+            // A route across a text says what was given up (the persona re-test).
+            .chain(plan.over_texts.iter().map(|id| {
+                let wire = session
+                    .connection_words(&folio, *id)
+                    .map(|t| super::tools::rejected_words("", Some(&t)))
+                    .unwrap_or_default();
+                strings::format(key!("route-over-text"), &[&wire])
+            }))
             .collect::<Vec<String>>();
         // Where the plan routes nothing new, no card opens: the message then says why each wire stays unrouted, as
         // the card would. (It gave the counts alone, "0 routed, 2 not routed", and no wire to look at.)

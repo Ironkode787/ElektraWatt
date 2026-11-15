@@ -22,6 +22,9 @@
 //! **Areas.** The ends' bounding box grown by 4 grid steps, then by 16, then the whole drawing area (the sheet on a
 //! page without a frame grid), each clipped to it; the first area with a route wins.
 //!
+//! **Across the texts.** A job no route keeps clear of the texts for is routed across them (one through a text is
+//! better than none, the persona re-test); the plan lists it in `over_texts`.
+//!
 //! **Reasons.** A job left unrouted names the first rule its free route (against the fixed obstacles alone) breaks:
 //! the search is tried again without the other wires, then also without the texts, then also without the reserved
 //! points, then also without the bodies and the frame; the first relaxation that finds a route names the rule. With
@@ -32,7 +35,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use ew_ids::Uuid;
 use ew_schema::Dir4;
 
-use super::measures::{meet, overlap};
+use super::measures::{measure, meet, overlap};
 use super::page::{PageGeometry, Point, Rect};
 use super::search::{CROSSING_COST, Heading, RouteEnd, RouteRequest, route};
 
@@ -59,6 +62,9 @@ pub struct RoutePlan {
     pub routes: Vec<(Uuid, Vec<Point>)>,
     /// The jobs left unrouted: connection and reason.
     pub unrouted: Vec<(Uuid, Unrouted)>,
+    /// The routed jobs whose route crosses a text: no route kept clear of the texts, and one through them is better
+    /// than none (the persona re-test: a tube through a valve's body), in the order of the connection IDs.
+    pub over_texts: Vec<Uuid>,
 }
 
 /// The order of the supply potentials (§5.3, §5.4): L1, L2, L3, L, N, PEN, PE, FE, L+, M, L−, as the rank in
@@ -227,6 +233,9 @@ fn request(
         page.texts.iter().map(|t| grow(t.rect, g / 4)).collect()
     };
     let mut reserved: Vec<Point> = Vec::new();
+    // An end's own stub is the end's way out: another CP facing it two steps away (the stacked valves of the persona
+    // re-test, port 4 under port 5) has its stub on the same point, which reserves it for neither.
+    let own_stubs = [a, b].map(|e| e.dir.map(|_| stub(e)));
     if !relax.points {
         for cp in &page.cps {
             if skip_points.contains(&cp.id) || skip_at.contains(&cp.at) {
@@ -235,7 +244,10 @@ fn request(
             reserved.push(cp.at);
             if let Some(d) = cp.dir.as_ref().and_then(heading) {
                 let v = d.step();
-                reserved.push((cp.at.0 + v.0 * g, cp.at.1 + v.1 * g));
+                let at = (cp.at.0 + v.0 * g, cp.at.1 + v.1 * g);
+                if !own_stubs.contains(&Some(at)) {
+                    reserved.push(at);
+                }
             }
         }
         for j in &page.junctions {
@@ -674,6 +686,35 @@ pub fn route_page(page: &PageGeometry, jobs: &[Uuid]) -> RoutePlan {
             break;
         }
     }
+    // A job no route keeps clear of the texts for is routed across them, in routing order, against the routes so far.
+    let mut over_texts = Vec::new();
+    for j in solve.failed(&state) {
+        let relax = Relax {
+            texts: true,
+            ..Relax::default()
+        };
+        if solve.four_arms(j, &state) {
+            continue;
+        }
+        let Some(r) = solve
+            .request(j, &state, false, relax)
+            .and_then(|req| search_areas(solve.page, &req))
+        else {
+            continue;
+        };
+        let mut drawn = page.clone();
+        for c in &mut drawn.connections {
+            if let Some((route, _)) = state.routes.get(&c.id) {
+                c.polyline.clone_from(route);
+                c.routed = true;
+            }
+        }
+        if keeps_all_but_texts(&drawn, j, &r.0) {
+            state.routes.insert(j, r);
+            over_texts.push(j);
+        }
+    }
+    over_texts.sort_unstable();
     let unrouted = solve
         .failed(&state)
         .into_iter()
@@ -684,6 +725,7 @@ pub fn route_page(page: &PageGeometry, jobs: &[Uuid]) -> RoutePlan {
     RoutePlan {
         routes: state.routes.into_iter().map(|(id, (r, _))| (id, r)).collect(),
         unrouted,
+        over_texts,
     }
 }
 
@@ -707,6 +749,73 @@ pub fn route_one(
     );
     req.arrive = arrive;
     search_areas(page, &req).map(|(points, _)| points)
+}
+
+/// [`route_one`] for a route that no strict search finds: the texts are no obstacles (the persona re-test: a tube from a
+/// valve's port between two stacked valves passes the valve's tag); every other rule holds. The Wire tool takes it, and
+/// says so, when [`route_one`] finds none.
+pub fn route_one_over_texts(
+    page: &PageGeometry,
+    from: OneEnd,
+    to: OneEnd,
+    arrive: Option<Heading>,
+) -> Option<Vec<Point>> {
+    let mut req = request(
+        page,
+        (&from, &to),
+        (&[], &[from.at, to.at]),
+        &routed_wires(page),
+        &[],
+        Relax {
+            texts: true,
+            ..Relax::default()
+        },
+    );
+    req.arrive = arrive;
+    let points = search_areas(page, &req).map(|(points, _)| points)?;
+    // The route as a connection between the ends' CPs, so that the measures judge it.
+    let cp_at = |e: &OneEnd| {
+        page.cps
+            .iter()
+            .find(|c| c.at == e.at && Some(c.rep) == e.rep)
+            .map(|c| c.id)
+    };
+    let (Some(a), Some(b)) = (cp_at(&from), cp_at(&to)) else {
+        return None;
+    };
+    let id = Uuid::nil();
+    let mut drawn = page.clone();
+    for c in &mut drawn.cps {
+        if c.id == a || c.id == b {
+            c.connections.push(id);
+        }
+    }
+    drawn.connections.push(super::DrawnConnection {
+        id,
+        ends: [a, b],
+        routed: true,
+        supply: None,
+        polyline: Vec::new(),
+    });
+    keeps_all_but_texts(&drawn, id, &points).then_some(points)
+}
+
+/// Whether `route` as the polyline of connection `id` of `page` breaks no hard rule but (d), a text: no touch, no
+/// overlap, no stretch through a body (the routes across the texts are judged so, since the search's corridors alone
+/// do not keep (c) once the texts no longer shape them).
+fn keeps_all_but_texts(page: &PageGeometry, id: Uuid, route: &[Point]) -> bool {
+    let mut drawn = page.clone();
+    for c in &mut drawn.connections {
+        if c.id == id {
+            c.polyline = route.to_vec();
+            c.routed = true;
+        }
+    }
+    drawn.connections.retain(|c| c.routed);
+    let m = measure(&drawn);
+    !m.touches.iter().any(|t| t.connection == id)
+        && !m.overlaps.iter().any(|o| o.connections.contains(&id))
+        && !m.through_bodies.iter().any(|t| t.connection == id)
 }
 
 /// The segments of the page's routed connections, in ID order: [`route_one`]'s other wires.

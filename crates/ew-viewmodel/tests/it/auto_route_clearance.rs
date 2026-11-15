@@ -371,7 +371,7 @@ fn without_a_clear_route_the_wire_stays_unrouted_and_the_tool_says_so() {
     click(&mut p.s, p.bottom[0].at, false);
     assert_eq!(
         p.s.tool_hint(),
-        "Click a connection point; Backspace removes the last bend; Esc cancels"
+        "Click a connection point to end, a free point for a bend; Backspace removes the last bend; Esc cancels"
     );
     hover(&mut p.s, p.l.at);
     let unrouted = "No clear route: the wire stays unrouted. Click to place bends.";
@@ -403,7 +403,7 @@ fn without_a_clear_route_the_wire_stays_unrouted_and_the_tool_says_so() {
     click(&mut p.s, p.bottom[1].at, false);
     assert_eq!(
         p.s.tool_hint(),
-        "Click a connection point; Backspace removes the last bend; Esc cancels"
+        "Click a connection point to end, a free point for a bend; Backspace removes the last bend; Esc cancels"
     );
     done(&mut p.s, "ui.dismiss", json!({}));
     // A fixed bend in the box, then the same end: the bend and the L tail are stored as the user drew them.
@@ -449,6 +449,6 @@ fn a_click_that_places_a_bend_says_so() {
     click(&mut p.s, p.bottom[1].at, false);
     assert_eq!(
         p.s.tool_hint(),
-        "Click a connection point; Backspace removes the last bend; Esc cancels"
+        "Click a connection point to end, a free point for a bend; Backspace removes the last bend; Esc cancels"
     );
 }

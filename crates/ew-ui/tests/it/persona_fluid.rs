@@ -1118,3 +1118,160 @@ fn r2j_the_starter_parts_answer_the_cylinder_and_the_air_supply() {
     assert_eq!(no_part(&mut d), 0, "both have their starter part");
     d.shell_mut().shutdown();
 }
+
+/// Moves the representation of `device` on the page shown so that its insertion point is `steps` grid steps from the
+/// insertion point of `of`'s representation.
+fn set_beside(d: &mut Driver, device: Uuid, of: Uuid, steps: (i64, i64)) {
+    let tables = std::sync::Arc::clone(&d.shell_mut().canvas().unwrap().page().tables);
+    let rep = |dev: Uuid| tables.reps.iter().find(|r| r.device == Some(dev)).unwrap().clone();
+    let (r, o) = (rep(device), rep(of));
+    let grid = ew_ui::ew_viewmodel::tools::wire::PageGridMap::new(tables.grid);
+    let k = |v: i64| grid.index(v);
+    let by = [
+        k(o.pos.0) + steps.0 - k(r.pos.0),
+        k(o.pos.1) + steps.1 - k(r.pos.1),
+    ];
+    let mv = json!({"cmd": "rep.move", "params": {"reps": [r.id.to_string()], "steps": by}});
+    assert_eq!(d.shell_mut().dispatch("command.run", &mv), Outcome::Done);
+    d.settle();
+}
+
+/// The re-test's page (frames t0022, t0082): a valve terminal's box holding two 5/2 valves, the second eight grid steps
+/// above the first, so that its ports 5, 1 and 3 face the first's ports 4 and 2 two steps away, and a double-acting
+/// cylinder right of the box at the first valve's height; the first valve and the cylinder.
+fn stacked_valves(d: &mut Driver) -> (Uuid, Uuid) {
+    place_terminal(d, (760, 300), (1260, 520));
+    place_from_browser(d, "valve-5-2-sol-spring", &[(900, 470), (900, 360)]);
+    place_symbol(d, "ew.iso.cylinder-double-acting@qet10", (1500, 470));
+    let valves = devices_drawn(d, "ew.iso.valve-5-2");
+    let tables = std::sync::Arc::clone(&d.shell_mut().canvas().unwrap().page().tables);
+    let y = |v: Uuid| tables.reps.iter().find(|r| r.device == Some(v)).unwrap().pos.1;
+    let (lower, upper) = if y(valves[0]) > y(valves[1]) {
+        (valves[0], valves[1])
+    } else {
+        (valves[1], valves[0])
+    };
+    set_beside(d, upper, lower, (0, -8));
+    let cylinder = device_drawn(d, "ew.iso.cylinder");
+    set_beside(d, cylinder, lower, (40, 0));
+    (lower, cylinder)
+}
+
+/// R2-C of the re-test: the tube from port 4 on top of the lower of two stacked valves to the cylinder's B said "No
+/// clear route: the wire stays unrouted" and stayed a line through the valve; Route page refused ("no route keeps clear
+/// of texts / other connection points"). The tube takes a route.
+#[test]
+fn r2c_a_tube_from_a_port_facing_another_valve_takes_a_route() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    let (valve, cylinder) = stacked_valves(&mut d);
+    let (a, b) = (port(&mut d, valve, "4"), port(&mut d, cylinder, "B"));
+    let _ = d.shell_mut().dispatch("tool.wire", &json!({}));
+    click_at(&mut d, a);
+    d.input(&Input::Hover { at: b });
+    d.settle();
+    let hint = crate::persona_round::state(&mut d)["status"][0].clone();
+    click_at(&mut d, b);
+    d.input(&key("escape"));
+    d.settle();
+    let routed: Vec<bool> = d
+        .shell_mut()
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .connections
+        .iter()
+        .filter(|c| c.kind == "fluid")
+        .map(|c| c.stored_route)
+        .collect();
+    assert_eq!(routed, [true], "the tube is routed; the hint said {hint}");
+    assert_eq!(
+        hint,
+        json!("The route crosses a text: no route keeps clear of the texts here.")
+    );
+    d.shell_mut().shutdown();
+}
+
+/// R2-C, Route page: the same tube stored without a route (as the Wire tool stored it before) is routed by Route page,
+/// whose card says it crosses a text.
+#[test]
+fn r2c_route_page_routes_the_tube_across_a_text_and_says_so() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    let (valve, cylinder) = stacked_valves(&mut d);
+    let page = d.shell_mut().canvas().unwrap().page().tables.page.to_string();
+    let draw = json!({"cmd": "connection.draw", "params": {
+        "a": cp_end(&mut d, valve, "4"), "b": cp_end(&mut d, cylinder, "B"), "page": page,
+        "kind": {"fluid": {}}, "route": []}});
+    assert_eq!(d.shell_mut().dispatch("command.run", &draw), Outcome::Done);
+    d.settle();
+    assert_eq!(d.shell_mut().dispatch("route.page", &json!({})), Outcome::Done);
+    d.input(&Input::Hover { at: (1000, 600) });
+    d.settle();
+    assert!(
+        d.texts()
+            .iter()
+            .any(|t| t.starts_with("Routed across a text, as no route keeps clear of the texts:")),
+        "the card says what was given up"
+    );
+    d.input(&click(d.find("Apply").expect("the card's Apply")));
+    d.settle();
+    let routed: Vec<bool> = d
+        .shell_mut()
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .connections
+        .iter()
+        .filter(|c| c.kind == "fluid")
+        .map(|c| c.stored_route)
+        .collect();
+    assert_eq!(routed, [true]);
+    d.shell_mut().shutdown();
+}
+
+/// R2-C, the bend clicks: the persona's clicks on free points while drawing a tube landed on another tube (a tee and a
+/// part tube) and beside the start port (nothing), and nothing said so. The hint line says what a click at the point
+/// does: a tee on a line, nothing on the start, else a bend.
+#[test]
+fn r2c_the_hint_says_what_a_click_will_do_while_a_tube_is_drawn() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    one_tube(&mut d);
+    let polyline = d.shell_mut().canvas().unwrap().page().tables.connections[0]
+        .polyline
+        .clone();
+    let (p, q) = polyline
+        .windows(2)
+        .map(|w| (w[0], w[1]))
+        .max_by_key(|(p, q)| (p.0 - q.0).abs() + (p.1 - q.1).abs())
+        .unwrap();
+    let snapper = d.shell_mut().canvas().unwrap().page().snapper.clone();
+    let pixel = sheet_pixel(&mut d);
+    let on_line = pixel(snapper.page_to_sheet(((p.0 + q.0) / 2, (p.1 + q.1) / 2)));
+    let cylinder = device_drawn(&mut d, "ew.iso.cylinder");
+    let start = port(&mut d, cylinder, "B");
+    let _ = d.shell_mut().dispatch("tool.wire", &json!({}));
+    click_at(&mut d, start);
+    let hint_at = |d: &mut Driver, at: (i64, i64)| {
+        d.input(&Input::Hover { at });
+        d.settle();
+        crate::persona_round::state(d)["status"][0].clone()
+    };
+    assert_eq!(
+        hint_at(&mut d, on_line),
+        json!("A click here joins the line under the pointer with a tee; Alt+Click places a bend instead.")
+    );
+    assert_eq!(
+        hint_at(&mut d, (start.0, start.1 - 3)),
+        json!("A click here is the start point: click further from it to place a bend.")
+    );
+    let free = hint_at(&mut d, (start.0 + 200, start.1 + 150));
+    assert!(
+        free.as_str().is_some_and(|h| h.contains("a free point for a bend")),
+        "{free}"
+    );
+    d.shell_mut().shutdown();
+}

@@ -179,6 +179,7 @@ fn page_result(
                 }
             })
             .collect(),
+        across_texts: plan.over_texts.iter().map(|id| words(*id)).collect(),
     }
 }
 
@@ -200,6 +201,11 @@ fn page_text(page: &results::RoutePageResult, plan: &RoutePlan) -> String {
     for ((_, why), u) in plan.unrouted.iter().zip(&page.unrouted) {
         out.push_str(&format!("  {}\n", reason(*why, &u.wire).1));
     }
+    for wire in &page.across_texts {
+        out.push_str(&format!(
+            "  Routed across a text, as no route keeps clear of the texts: {wire}.\n"
+        ));
+    }
     out
 }
 
@@ -215,6 +221,7 @@ mod tests {
         let plan = RoutePlan {
             routes: vec![(id(1), vec![(0, 0), (1, 0)])],
             unrouted: vec![(id(2), Unrouted::Texts), (id(3), Unrouted::FourArms)],
+            over_texts: Vec::new(),
         };
         let words = |i: ew_api::output::Uuid| format!("-K{}:1 → -X1:{}", i.as_u128(), i.as_u128());
         let page = page_result("101", &plan, words);

@@ -311,10 +311,11 @@ fn g_a_job_that_would_be_a_junction_s_fourth_arm_is_unrouted() {
 }
 
 #[test]
-fn a_job_whose_stub_a_text_crosses_is_unrouted_for_the_texts() {
+fn a_job_whose_stub_a_text_crosses_is_routed_across_the_text_and_says_so() {
     // The pin text of the next pole lies over a motor pole's stub, between the CP and
-    // its stub node. The page solve leaves the wire unrouted with the reason "texts" and the Wire tool finds no route,
-    // whichever end the CP is; the text's own representation is the CP's.
+    // its stub node. No strict route exists, whichever end the CP is; the text's own representation is the CP's. The
+    // page solve routes it across the text and names it (the persona re-test: one through a text is better than none),
+    // and the Wire tool's strict search finds none, its search across the texts one.
     let mut p = page();
     add_job(
         &mut p,
@@ -336,10 +337,11 @@ fn a_job_whose_stub_a_text_crosses_is_unrouted_for_the_texts() {
         }
     };
     let plan = route_page(&p, &[id(1)]);
-    assert_eq!(plan.unrouted, vec![(id(1), Unrouted::Texts)]);
-    assert_eq!(plan.routes, vec![]);
+    assert_eq!(plan.unrouted, vec![]);
+    assert_eq!(plan.over_texts, vec![id(1)]);
     assert_eq!(route_one(&p, ends(0), ends(1), None), None);
     assert_eq!(route_one(&p, ends(1), ends(0), None), None);
+    assert!(route_one_over_texts(&p, ends(0), ends(1), None).is_some());
     // Without the text, the same wire is routed.
     p.texts.clear();
     assert_eq!(route_page(&p, &[id(1)]).unrouted, vec![]);
@@ -534,14 +536,16 @@ proptest::proptest! {
         let plan = route_page(&p, &jobs(&p));
         let m = measure(&routed(&p, &plan));
         let mine = |c: &Uuid| plan.routes.iter().any(|(r, _)| r == c);
+        // A route across a text gives up rule (d) alone, and the plan names it.
+        let strict = |c: &Uuid| mine(c) && !plan.over_texts.contains(c);
         proptest::prop_assert!(!m.touches.iter().any(|t| mine(&t.connection)), "{:?}", m.touches);
         proptest::prop_assert!(!m.overlaps.iter().any(|o| mine(&o.connections[0]) || mine(&o.connections[1])), "{:?}", m.overlaps);
         proptest::prop_assert!(!m.through_bodies.iter().any(|t| mine(&t.connection)), "{:?}", m.through_bodies);
-        proptest::prop_assert!(!m.through_texts.iter().any(|t| mine(&t.connection)), "{:?}", m.through_texts);
+        proptest::prop_assert!(!m.through_texts.iter().any(|t| strict(&t.connection)), "{:?}", m.through_texts);
         proptest::prop_assert_eq!(&m.four_way, &vec![]);
         for cp in &p.cps {
             if p.texts.iter().any(|t| across_stub(t.rect, cp)) {
-                proptest::prop_assert!(!cp.connections.iter().any(mine), "{:?} {:?}", cp, plan.routes);
+                proptest::prop_assert!(!cp.connections.iter().any(strict), "{:?} {:?}", cp, plan.routes);
             }
         }
     }

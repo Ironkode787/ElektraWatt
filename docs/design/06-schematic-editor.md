@@ -997,7 +997,12 @@ stateDiagram-v2
   and the turned IP end are gone. Without a clear route the ghost is the dashed right-angled line of an unrouted
   wire, the line the page then draws, and the HUD says "No clear route: the wire stays unrouted. Click to place bends."; a commit then stores the
   wire without a route, or with the fixed bends and an L tail as the user's route when a bend was fixed. After a click
-  that places a bend the HUD says "Bend placed: click a connection point to end the wire." Over a junction that
+  that places a bend the HUD says "Bend placed: click a connection point to end the wire." *As built (M3 persona
+  re-test, [ADR-0033](../adr/0033-schematic-routing-model.md) amendment 1).* Where `route_one` finds none, the tool
+  takes `route_one_over_texts` (every hard rule but the texts, checked by the measures) and the HUD says "The route
+  crosses a text: no route keeps clear of the texts here."; Route page routes such a wire likewise and names it in its
+  card. While routing, the HUD says what a click at the point does: over a wire, a tee (Alt+Click a bend); over the
+  start, nothing; elsewhere "Click a connection point to end, a free point for a bend". Over a junction that
   already joins three wires the HUD says "This junction already joins three wires: end on a wire to make a new
   junction.", since the junction is no end target.
 

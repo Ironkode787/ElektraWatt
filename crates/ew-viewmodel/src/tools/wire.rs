@@ -43,7 +43,7 @@ use ew_api::geometry::Dir;
 use ew_api::output::Uuid;
 use ew_api::output::ew_dl::EntityRef;
 use ew_api::output::ew_dl::ew_units::Rect;
-use ew_api::routing::{OneEnd, RouteEnd, clear_one, heading, route_one, unrouted_line};
+use ew_api::routing::{OneEnd, RouteEnd, clear_one, heading, route_one, route_one_over_texts, unrouted_line};
 use serde_json::{Value, json};
 
 use super::{
@@ -695,8 +695,8 @@ type RouteKey = (
     [Option<EntityRef>; 2],
 );
 
-/// A routed tail in the cache: its key, its points, and whether it is the router's fallback.
-type CachedTail = (RouteKey, Vec<(i64, i64)>, bool);
+/// A routed tail in the cache: its key, its points, whether it is the router's fallback, and whether it crosses a text.
+type CachedTail = (RouteKey, Vec<(i64, i64)>, bool, bool);
 
 /// The router's end of a point with the direction a wire leaves it and the representation that draws it.
 fn one_end(at: (i64, i64), dir: Option<Dir>, rep: Option<EntityRef>) -> OneEnd {
@@ -795,6 +795,8 @@ pub struct WireTool {
     /// Whether the last tail the tool computed found no clear route: the status hint says so until
     /// the next wire starts.
     direct: bool,
+    /// Whether the last tail crosses a text, as no route kept clear of the texts: the status hint says so.
+    over_text: bool,
     /// Whether the point is on a junction that already joins three wires: the hint says so.
     full_junction: bool,
     /// How many times the router ran (the exact-count test, §12 item 4).
@@ -831,6 +833,7 @@ impl WireTool {
             state: State::Armed { target: None },
             cache: None,
             direct: false,
+            over_text: false,
             full_junction: false,
             routes: 0,
             labels: (None, None),
@@ -882,25 +885,33 @@ impl WireTool {
         to: &WireTarget,
     ) -> Vec<(i64, i64)> {
         let key: RouteKey = (cx.page.rev, from, from_dir, arrive, to.at(), to.dir(), own);
-        if let Some((k, r, direct)) = &self.cache
+        if let Some((k, r, direct, over_text)) = &self.cache
             && *k == key
         {
             self.direct = *direct;
+            self.over_text = *over_text;
             return r.clone();
         }
         let t = to.at();
         if let Some(points) = through_route(cx, (from, from_dir, arrive), own, to) {
             self.routes += 1;
             self.direct = false;
-            self.cache = Some((key, points.clone(), false));
+            self.over_text = false;
+            self.cache = Some((key, points.clone(), false, false));
             return points;
         }
-        let routed = route_one(
-            &cx.page.geometry,
-            one_end(from, from_dir, own[0]),
-            one_end(t, to.dir(), own[1]),
-            arrive.map(heading),
-        );
+        let (a, b) = (one_end(from, from_dir, own[0]), one_end(t, to.dir(), own[1]));
+        let routed = route_one(&cx.page.geometry, a, b, arrive.map(heading));
+        // Where no route keeps clear of the texts, one across them is better than a line through a body (the persona
+        // re-test); the hint says what was given up.
+        let (routed, over_text) = match routed {
+            Some(points) => (Some(points), false),
+            None => {
+                let across = route_one_over_texts(&cx.page.geometry, a, b, arrive.map(heading));
+                let over = across.is_some();
+                (across, over)
+            }
+        };
         let (points, direct) = match routed {
             Some(points) => (points, false),
             None if arrive.is_some() => (l_tail((from, from_dir, arrive), t, to.dir()), true),
@@ -911,7 +922,8 @@ impl WireTool {
         };
         self.routes += 1;
         self.direct = direct;
-        self.cache = Some((key, points.clone(), direct));
+        self.over_text = over_text;
+        self.cache = Some((key, points.clone(), direct, over_text));
         points
     }
 
@@ -1075,6 +1087,7 @@ impl WireTool {
                 }
                 self.labels = (target.label(cx), None);
                 self.direct = false;
+                self.over_text = false;
                 self.state = State::Routing {
                     fixed: vec![target.at()],
                     marks: Vec::new(),
@@ -1343,6 +1356,7 @@ impl Tool for WireTool {
                     self.state = State::Armed { target: None };
                     self.cache = None;
                     self.direct = false;
+                    self.over_text = false;
                     ToolOutput::Cancel
                 }
                 State::Armed { .. } => ToolOutput::None,
@@ -1358,6 +1372,22 @@ impl Tool for WireTool {
     fn status_hint(&self) -> super::Hint {
         if self.full_junction && matches!(self.state, State::Routing { .. }) {
             return super::Hint::plain(key!("hint-wire-full-junction"));
+        }
+        // While routing, what a click at the point will do where it is no bend (the persona re-test's bend clicks
+        // landed on another tube and made tees, or beside the start port and did nothing).
+        if let State::Routing {
+            start, end: Some(t), ..
+        } = &self.state
+        {
+            if matches!(t, WireTarget::Segment { .. }) {
+                return super::Hint::plain(key!("hint-wire-click-tee"));
+            }
+            if t.same_end(start) {
+                return super::Hint::plain(key!("hint-wire-click-start"));
+            }
+        }
+        if self.over_text {
+            return super::Hint::plain(key!("hint-wire-over-text"));
         }
         // Once a click placed a bend instead of ending on a connection point, the hint says so and what
         // ends the wire (a click that missed a connection point snaps to the grid and bends there).

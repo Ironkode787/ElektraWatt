@@ -36,7 +36,8 @@
 //!   Only a representation that draws a connection point counts: a mark without one (a cable or wire marker, a
 //!   QET cross-section mark) is drawn across its wires on purpose.
 //! - **(d) Through a text.** A segment runs through a text box of a representation (a tag, a slot or pin text, a
-//!   cross-reference text; one box per line). No escape applies. One item per (connection, representation).
+//!   cross-reference text; one box per line). No escape applies. One item per (connection, representation). A router
+//!   gives this rule up alone, and names it, where no route keeps them all (ADR-0033 amendment 1).
 //! - **(g) Four-way junction.** A junction has as many arms as there are distinct directions in which the
 //!   connections ending at it leave it (the direction of each polyline's first segment from its end at the
 //!   junction); four or more arms break the rule (IEC 61082-1's T junctions).
@@ -64,7 +65,7 @@ mod tests;
 
 pub use measures::{Bends, Crossing, FourWay, Measures, Overlap, Through, Touch, TouchedPoint, measure};
 pub use page::{Body, CpPoint, DrawnConnection, JunctionPoint, PageGeometry, Point, Rect, TextBox};
-pub use plan::{OneEnd, RoutePlan, SUPPLY_ORDER, Unrouted, clear_one, route_one, route_page};
+pub use plan::{OneEnd, RoutePlan, SUPPLY_ORDER, Unrouted, clear_one, route_one, route_one_over_texts, route_page};
 pub use search::{
     BEND_COST, CROSSING_COST, Heading, MATE_STEP_COST, MAX_NODES, RouteEnd, RouteRequest, Routed, STEP_COST,
     auto_route, clear, route, unrouted_line,

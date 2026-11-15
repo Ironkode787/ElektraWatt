@@ -96,6 +96,19 @@
 - A move's re-solve runs the router in the Select tool at release; the drag itself still shows followed routes.
 - The IP symbol gains a second form and a normaliser; a project must hold both forms to change a point's direction.
 
+## Amendments
+
+The decision text above is unchanged; these entries refine it.
+
+1. **A route across a text, as the last resort** (2026-11-15, the M3 persona re-test). A tube from port 4 of a valve
+   stacked under another one had no route: the facing port's stub reserved the tube's own stub, and the only way out
+   ran through the valve's tag, so the tube stayed a dashed line through the valve body, "the worst outcome a person
+   can get". Decisions 3 and 5 are refined: an end's own stub is never reserved by another connection point's stub
+   on the same point; where no route keeps every hard rule, the Wire tool and the page solve look for one that keeps
+   every hard rule but rule (d), the texts, check it against the layout measures, take it and say so (the Wire tool's
+   hint, Route page's card row, `RoutePlan::over_texts`; EW-CORE-070 reports the text it crosses). A route through a
+   body, a connection point or another wire is still never drawn.
+
 ## Related
 
 - **Work package:** WP-S2.19 specification; WP-S2.04 (the router's

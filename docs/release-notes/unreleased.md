@@ -425,6 +425,10 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: the starter supply plate EW-GEN-VTS-1 places with its ports 1, 3 and 5 and joins a valve terminal
   whose box it is placed in; the starter parts gain EW-GEN-CYL-1 (double-acting cylinder) and EW-GEN-AIR-1 (an air
   supply, a service unit) for a pneumatics job's own devices (persona re-test R2-E, R2-J)
+- behaviour-change: a wire or tube whose only way out passes a text is routed across it, and the Wire tool's hint and
+  Route page's card say so (ADR-0033 amendment 1); an end's own stub is no longer reserved by a facing connection
+  point's, so a tube from a valve port two steps under another valve takes a route; while drawing, the hint says what a
+  click does (a tee on another line, nothing on the start point, else a bend) (persona re-test R2-C)
 - format-variant: report_block ReportKind tube_list
 - format-variant: report_block ReportKind tube_cut_list
 - format-variant: report_block ReportKind tube_labels
