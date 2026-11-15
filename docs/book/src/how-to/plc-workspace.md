@@ -29,8 +29,9 @@ cards, bind channels and check what each channel drives.
    station, and a click places it. Draw the bus between the ports with **Draw ▸ Wire**, which draws bus lines on a
    bus-topology page: the two ports become one network (a new one named for the bus, PROFIBUS DP, when neither has
    one), with the CPU's port as its master. The starter parts hold a CPU with PROFINET and PROFIBUS DP, a remote I/O
-   head (a station of its own: attach its cards with **Attach cards without a station** on its row) and a PROFIBUS and an
-   Ethernet cable.
+   head (a station of its own: attach its cards with **Attach cards without a station** on its row), an unmanaged and a
+   managed switch, a PROFINET device and a PROFIBUS and an Ethernet cable. Your own cards, stations, switches and
+   devices are made in the part editor: see [Make your own PLC or bus part](own-parts.md).
 6. Choose **Bus** on the rail for the nets: each logical net with its ports, each physical net with its segments and
    their ends. Show it as a table to type a port's address or switch its termination.
 

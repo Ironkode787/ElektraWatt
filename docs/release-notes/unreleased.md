@@ -745,3 +745,7 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   type, name), the pin pattern with a preview of its first and last pins, the supply's L+ and M pins, the allowed
   slots and a station's most modules; the pins become the part's connection points on a black-box function, as the
   starter cards carry (FT-1766)
+- api-add: the symbol editor's Make a part for this symbol… (`part.new {symbol}`) opens the part editor on a new part
+  drawn with the saved symbol: its function definition is the part's main function (FT-1766)
+- api-add: the guide's how-to "Make your own PLC or bus part": a card, a head station, a switch and a device on
+  PROFINET typed from the data sheet (FT-1766, FT-1767)

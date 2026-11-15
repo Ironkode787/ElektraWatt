@@ -45,7 +45,10 @@ See the
 [design standard](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/07a-symbol-design-standard.md)
 for the full authoring profile.
 
-**Save to library** writes a symbol and its owned function definition to the chosen `.ewlib` folder.
+**Save to library** writes a symbol and its owned function definition to the chosen `.ewlib` folder. **Make a part
+for this symbol…** then opens the part editor on a new part drawn with it: its identity, bus interfaces and PLC data
+are typed there ([Make your own PLC or bus part](../how-to/own-parts.md)), and a device placed from the part is drawn
+with the symbol.
 The window remembers that folder. Its symbols appear under **Draw ▸ Place ▸ Symbol…** (`I`), with the library name;
 the page must use the symbol's connection grid. Already embedded copies stay at their existing version until
 you explicitly update them. Repeated placement keeps the authored outline and pins.

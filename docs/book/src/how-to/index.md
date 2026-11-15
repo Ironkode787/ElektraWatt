@@ -22,6 +22,8 @@ EW, start with a [tutorial](../tutorials/index.md) instead.
   and the devices placed on them.
 - [Work in the PLC workspace](plc-workspace.md): the PLC and Bus navigators, the PLC grid, the rack and slot
   editor, freezing and re-addressing, and the exchange with PLC software.
+- [Make your own PLC or bus part](own-parts.md): a card, a head station such as an IM 152, a switch such as a
+  SCALANCE or a device on PROFINET, typed from its data sheet in the part editor and kept in My parts.
 - [Work in the Fluid workspace](fluid-workspace.md): the Fluid navigator, the tube and medium tables, a medium
   and a tube on a line, and the overview page of a valve terminal.
 - [Upgrade a project](upgrade-a-project.md): what a release reads and writes, opening a project of an older format,
