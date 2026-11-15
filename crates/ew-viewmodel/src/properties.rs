@@ -839,15 +839,12 @@ const PRIMARY: &[(&str, &[&str])] = &[
 ];
 
 /// The rows only a rare case needs, under the closed group More at the end of their section (rc.2, F12), by the row
-/// key after `<kind>/` as [`PRIMARY`]: the device's kind and state flags, its tag's numbering, its parent and the stored
+/// key after `<kind>/` as [`PRIMARY`]: the device's kind (its state is a drafter's row: Spare), its tag's numbering, its parent and the stored
 /// structure members a derived row does not show; a function's kind, definition, device, role, part function and
 /// connection-point overrides; a symbol's own members besides its page, place, turn and symbol. A raw value (shown as
 /// data, not words) is one too.
 const MORE: &[(&str, &[&str])] = &[
-    (
-        "device",
-        &["kind", "state", "tag", "parent", "position", "structure"],
-    ),
+    ("device", &["kind", "tag", "parent", "position", "structure"]),
     (
         "function",
         &["kind", "def", "device", "role", "template_entry", "cp_overrides"],

@@ -443,9 +443,9 @@ fn the_transcript_and_describe_members() {
     }
     assert!(!looks_like_uuid(&st["properties"].to_string()));
     // Open and close a category: its rows come and go in the text, the state says expanded or collapsed. More (closed
-    // at first, rc.2) holds the state row; the tag is a Main row and stays.
+    // at first, rc.2) holds the kind row; the tag is a Main row and stays.
     done(&mut shell, "props.focus", json!({}));
-    assert!(!shell.describe().contains("row \"device/state\""));
+    assert!(!shell.describe().contains("row \"device/kind\""));
     done(
         &mut shell,
         "props.category",
@@ -453,7 +453,7 @@ fn the_transcript_and_describe_members() {
     );
     let d = shell.describe();
     assert!(d.contains("  category \"More\" expanded"), "{d}");
-    assert!(d.contains("row \"device/state\""), "{d}");
+    assert!(d.contains("row \"device/kind\""), "{d}");
     done(
         &mut shell,
         "props.category",
@@ -461,7 +461,7 @@ fn the_transcript_and_describe_members() {
     );
     let d = shell.describe();
     assert!(d.contains("  category \"More\" collapsed"), "{d}");
-    assert!(!d.contains("row \"device/state\""), "{d}");
+    assert!(!d.contains("row \"device/kind\""), "{d}");
     assert!(d.contains("row \"device/derived.tag\""), "{d}");
     assert!(d.contains("focus properties"), "{d}");
     // The pane closed: null member and no lines.

@@ -166,9 +166,9 @@ fn only_the_rows_that_belong_are_shown() {
             .map(|v| v.row.key.clone())
             .collect()
     };
-    assert!(!shown("").contains(&"device/state".to_owned()));
+    assert!(!shown("").contains(&"device/kind".to_owned()));
     assert!(
-        shown("State").contains(&"device/state".to_owned()),
+        shown("Kind").contains(&"device/kind".to_owned()),
         "the filter finds a row in More"
     );
     // A valve's ports in Main, each saying it carries no medium yet and, in its chip, where to choose one.

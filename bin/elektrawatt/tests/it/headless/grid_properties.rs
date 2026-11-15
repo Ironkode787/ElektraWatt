@@ -393,14 +393,15 @@ pub(crate) fn pg10_the_pilot_script_is_deterministic_and_replays_case(twice: boo
     ] {
         assert!(paths.iter().any(|p| p == want), "{want}: {paths:?}");
     }
-    // The interruption point's members are read-only (no command edits them yet; §6.12, a follow-up).
+    // The interruption point's sheet shows its own rows (its name among them); the kind they hang under is a rare
+    // row and waits in the closed More.
     let ip = steps
         .iter()
         .filter_map(|s| s["describe"].as_str())
         .find(|d| d.contains("  section function targets 1"))
         .expect("the interruption point's sheet");
     assert!(
-        ip.contains("row \"function/kind\"") && ip.contains("read-only \"no command edits this member yet\""),
+        ip.contains("row \"function/kind.ip.name\"") && !ip.contains("row \"function/kind\" "),
         "{ip}"
     );
 }
