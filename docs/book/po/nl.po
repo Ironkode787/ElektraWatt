@@ -2968,18 +2968,18 @@ msgid ""
 "editor: see [Make your own PLC or bus part](own-parts.md)."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:34
+#: src/how-to/plc-workspace.md:35
 msgid ""
 "Choose **Bus** on the rail for the nets: each logical net with its ports, "
 "each physical net with its segments and their ends. Show it as a table to "
 "type a port's address or switch its termination."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:37
+#: src/how-to/plc-workspace.md:38
 msgid "Addresses"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:39
+#: src/how-to/plc-workspace.md:40
 msgid ""
 "Right-click a module and choose **Re-address…**, or a configuration project "
 "for all its modules: the Preview tab lists each channel whose address moves, "
@@ -2995,11 +2995,11 @@ msgid ""
 "and a lock in the grid's Address cell."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:48 src/reference/window/dialogs.md:114
+#: src/how-to/plc-workspace.md:49 src/reference/window/dialogs.md:114
 msgid "Rack and slots"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:50
+#: src/how-to/plc-workspace.md:51
 msgid ""
 "Right-click a station and choose **Rack and slots…**. Pick the card in "
 "**Module part to add** and choose **Add here** on a free slot; type another "
@@ -3007,11 +3007,11 @@ msgid ""
 "allow is refused, and the reason stays in the dialog."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:54
+#: src/how-to/plc-workspace.md:55
 msgid "The PLC grid"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:56
+#: src/how-to/plc-workspace.md:57
 msgid ""
 "Each row of the grid is a channel. Type in a cell to change a channel's "
 "designation, address, symbol, state, target, comment, data type or signal "
@@ -3019,7 +3019,7 @@ msgid ""
 "with **Safety data…** and **Mode and safety…** (step 16)."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:59
+#: src/how-to/plc-workspace.md:60
 msgid ""
 "Type in the grid's filter to narrow the rows: a word of a cell, or one of "
 "`spare`, `unplaced`, `unassigned`, `tbd`, `duplicate`, `safety`, "
@@ -3027,11 +3027,11 @@ msgid ""
 "header sorts by it, a second click reverses the order."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:63
+#: src/how-to/plc-workspace.md:64
 msgid "Exchange with the PLC software"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:65
+#: src/how-to/plc-workspace.md:66
 msgid ""
 "Choose **Export to PLC software** on the Output tab (or **Output ▸ Export to "
 "PLC software…**), pick the format and choose **Export**, then the file: the "
@@ -3039,7 +3039,7 @@ msgid ""
 "date starts as today's. Import the file in TIA Portal or CODESYS."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:68
+#: src/how-to/plc-workspace.md:69
 msgid ""
 "Choose **Import from PLC software** on the Output tab (or **Output ▸ Import "
 "from PLC software…**) for the file the PLC software wrote back. Look through "
@@ -3047,7 +3047,7 @@ msgid ""
 "value where it can be taken. Choose **Apply**."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:71
+#: src/how-to/plc-workspace.md:72
 msgid ""
 "After an import, the module starts, the symbols or the PLC data the PLC "
 "software owns are protected. Right-click the configuration project and "
@@ -3055,7 +3055,7 @@ msgid ""
 "project."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:73
+#: src/how-to/plc-workspace.md:74
 msgid ""
 "Right-click the configuration project and choose **Import instrument list…** "
 "for a CSV or workbook of process tags and signal types: the Preview tab "
@@ -3063,18 +3063,18 @@ msgid ""
 "**Apply**."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:76
+#: src/how-to/plc-workspace.md:77
 msgid "Settings"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:78
+#: src/how-to/plc-workspace.md:79
 msgid ""
 "Right-click the configuration project and choose **Symbol policy…** for the "
 "template of the automatic symbol, the PLC tag table and whether symbols are "
 "strict IEC 61131-3 identifiers."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:80
+#: src/how-to/plc-workspace.md:81
 msgid ""
 "Right-click a module and choose **Safety data…** for its F-source and "
 "F-destination address and its F-watchdog time; right-click a channel and "
@@ -3082,14 +3082,14 @@ msgid ""
 "channel's safety evaluation and requirement."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:83
+#: src/how-to/plc-workspace.md:84
 msgid ""
 "Choose **Project ▸ Process-tag scheme…** for the pattern process tags "
 "follow, and **Project ▸ Channel addresses at terminals** to print a "
 "channel's address at the terminals on its path."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:86
+#: src/how-to/plc-workspace.md:87
 msgid ""
 "The panels are described in the [panel "
 "reference](../reference/window/panels.md): PLC, PLC grid and Bus; the dialog "
