@@ -6377,3 +6377,9 @@ toast-card-joined = { $p0 } is in slot { $p2 } van { $p1 } gezet.
 choose-station-title = Welk station neemt { $p0 }?
 choose-station-text = De module is getekend op een pagina zonder station. Kies het station in wiens rek hij komt; Annuleren laat hem wachten onder Modules zonder station.
 choose-station-button = { $p0 }
+
+# A card that waits for Apply, in the status bar and on the Preview tab (the owner's test of 0.3.0-rc.1).
+status-waiting = { $p0 } wijzigingen wachten op Toepassen
+status-waiting-one = 1 wijziging wacht op Toepassen
+status-waiting-open = Er staat een voorbeeld open
+status-waiting-tip = Toon het voorbeeld, waar Toepassen de wijzigingen doorvoert

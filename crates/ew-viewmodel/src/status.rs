@@ -14,7 +14,7 @@
 //! out; without a canvas the cursor, zoom and grid. These text fields stay the transcripts' `status` member.
 //!
 //! The window's status bar and the describe line follow the order of [`bar`] instead: the state at the left, then
-//! the findings, the job, the selection, the cursor, the grid, the zoom, the save state, the renderer and the
+//! a card waiting for Apply, the findings, the job, the selection, the cursor, the grid, the zoom, the save state, the renderer and the
 //! notifications, each with its emphasis.
 
 use ew_api::output::{SelectionWords, WireEnd};
@@ -325,6 +325,8 @@ pub fn fields(model: &ShellModel, hide_job: bool) -> Vec<String> {
 pub enum StatusKind {
     /// The state at the left: `Ready`.
     State,
+    /// A card in the Preview tab that waits for Apply: "1 change waits for Apply"; a click brings the Preview forward.
+    Waiting,
     /// The findings of the open Messages pane, when any count is not zero; a click opens Messages.
     Findings,
     /// The running job, 200 ms after it started; a click opens Jobs.
@@ -352,6 +354,7 @@ impl StatusKind {
     pub fn word(self) -> &'static str {
         match self {
             StatusKind::State => "state",
+            StatusKind::Waiting => "waiting",
             StatusKind::Findings => "findings",
             StatusKind::Job => "job",
             StatusKind::Selection => "selection",
@@ -450,9 +453,20 @@ pub fn findings_text(c: crate::navigators::messages::MessageCounts) -> Option<(S
     Some((parts.join(" · "), tone))
 }
 
-/// The status bar of `model` (D12; doc 16a §5.8): the state at the left, then in this order the findings, the job,
-/// the selection, the cursor, the grid, the zoom, the save state, the renderer and the notifications, each only when
-/// it applies. The tool's hint is the HUD's (part 2); the page and the language fields left the bar. `hide_job` leaves
+/// What waits in the Preview tab, in words (the owner's test of 0.3.0-rc.1: Update staged a card he never saw): "1 change
+/// waits for Apply" with the open card's changes, "A preview is open" for a card that changes nothing yet (the paste
+/// choice); `None` without a card. The status bar's field and the Preview tab's mark say it.
+pub fn waiting_text(model: &ShellModel) -> Option<String> {
+    let card = model.properties().card()?;
+    Some(match card.changes {
+        0 => strings::text(key!("status-waiting-open")).to_owned(),
+        n => strings::format_count(count_key!("status-waiting"), n),
+    })
+}
+
+/// The status bar of `model` (D12; doc 16a §5.8): the state at the left, then in this order the waiting card
+/// ([`waiting_text`]), the findings, the job, the selection, the cursor, the grid, the zoom, the save state, the
+/// renderer and the notifications, each only when it applies. The tool's hint is the HUD's (part 2); the page and the language fields left the bar. `hide_job` leaves
 /// the job field out (a job younger than 200 ms).
 pub fn bar(model: &ShellModel, hide_job: bool) -> Vec<StatusField> {
     let field = |kind, text: String, tone| StatusField {
@@ -496,6 +510,12 @@ pub fn bar(model: &ShellModel, hide_job: bool) -> Vec<StatusField> {
         .unwrap_or_else(|| strings::text(key!("status-ready")));
     let mut out = vec![field(StatusKind::State, state.to_owned(), Tone::Normal)];
     if model.project_name().is_some() {
+        if let Some(text) = waiting_text(model) {
+            out.push(StatusField {
+                tip: strings::text(key!("status-waiting-tip")).to_owned(),
+                ..field(StatusKind::Waiting, text, Tone::Strong)
+            });
+        }
         if let Some((text, tone)) = findings(model) {
             out.push(field(StatusKind::Findings, text, tone));
         }

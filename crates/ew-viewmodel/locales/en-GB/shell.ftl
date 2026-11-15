@@ -6639,3 +6639,9 @@ toast-card-joined = { $p0 } joined { $p1 } in slot { $p2 }.
 choose-station-title = Which station takes { $p0 }?
 choose-station-text = The module is drawn on a page without a station. Choose the station whose rack it goes into; Cancel leaves it waiting under Modules without a station.
 choose-station-button = { $p0 }
+
+# A card that waits for Apply, in the status bar and on the Preview tab (the owner's test of 0.3.0-rc.1).
+status-waiting = { $p0 } changes wait for Apply
+status-waiting-one = 1 change waits for Apply
+status-waiting-open = A preview is open
+status-waiting-tip = Show the Preview, where Apply makes the changes

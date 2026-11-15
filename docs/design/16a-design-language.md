@@ -145,8 +145,8 @@ Every element earns its place by being used or by preventing a mistake. Show exc
 
 One accent, one primary action per surface, a contrast budget.
 - **Do** spend the accent on four things only: the primary action, keyboard focus, the selected or active state (in
-  lists, on the rail, the active tool and on the canvas) and links; plus two marks, the product mark in the app
-  button and the 6-px unsaved dot on a canvas tab. Selection uses the same blue in the navigator, the Properties
+  lists, on the rail, the active tool and on the canvas) and links; plus three marks, the product mark in the app
+  button, the 6-px unsaved dot on a canvas tab and the 6-px dot on the Preview tab while a card waits (§6.23). Selection uses the same blue in the navigator, the Properties
   header and the canvas, so the eye joins them.
 - **Do** keep each view to at most three type sizes and three contrast levels (text primary, secondary, tertiary);
   NN/g: "If everything is contrasted, then nothing stands out."
@@ -800,7 +800,8 @@ splitter shares are then kept in the workspace; on show it is at least `size.doc
 than two thirds of that split, a display-only clamp that never rewrites the shares. It lies on
 `color.surface.panel` with a 1-px `color.border.default` above it. Its tab row is 32 px with a `color.border.subtle`
 line under it: tabs in `type.small` with 10-px padding, the active one SemiBold and `color.text.primary` with a 2-px
-accent underline inset 10 px, the others `color.text.secondary`; a tab with items carries a count chip (§6.16); one
+accent underline inset 10 px, the others `color.text.secondary`; a tab with items carries a count chip (§6.16), the
+Preview tab a 6-px accent dot while a card waits (§6.23); one
 close button (Ctrl+J) sits at the row's right end. The **Messages** table follows §6.7 with the columns Severity
 (110 px; the semantic icon and word in SemiBold), Message, Object (120 px, a link in `color.accent` that selects and
 shows the object), Page (80 px) and Rule (90 px), the last two with tabular digits in `color.text.secondary`. It
@@ -831,6 +832,7 @@ Right, in this order:
 
 | Field | Shown | Example | Click |
 |---|---|---|---|
+| Waiting card | while a card waits in the Preview tab | the `eye` icon and "1 change waits for Apply" in `color.text.primary` | shows the Preview tab |
 | Findings | when any count is non-zero | the worst severity's icon and "1 error · 2 warnings", SemiBold in that severity's colour | opens Messages |
 | Job | 200 ms after a job starts | "PDF export 40 %" with a 2-px progress line | opens Jobs |
 | Selection | when not empty (FR-UI-034) | "1 selected" | — |
@@ -1343,6 +1345,14 @@ scrolls, as built. Without a card a tab the user opened by hand shows the empty 
 `color.card.strip`, `radius.md`, `space.3` padding: a 16-px `eye` icon in `color.text.secondary`, "Preview open:
 <summary>" in `type.small` with ellipsis and a tooltip when cut, then Apply (a Subtle button with its label in
 `color.accent` SemiBold), Cancel and Show (Subtle). Polite live region as built.
+
+*As built (0.3.0-rc.2; the owner's test: Update in the Libraries pane and Delete on a page staged a card he never
+saw).* A staged card is said in four places: the dock opens to show the card's header with the Preview tab in front
+(§5.7); the Preview tab carries a 6-px `color.accent` dot after its title for as long as a card waits, also behind
+another tab, its description the status bar's words; the header row is tinted with the accent once when a card first
+shows, fading out over 1.5 s of frame time (still with reduced motion); the status bar's waiting field (§5.8). The
+strip also stands for a bulk command's card (Update…, Delete page, the renumber dialogs) in the Pages pane under its
+tool line and in the Libraries pane under Update…, so the card can be applied or cancelled where it began.
 
 *As built.* A failed card leads in words with what blocks the apply: a macro card reads "The macro clashes with this project and cannot be inserted here (3 conflicts)", and the rule code follows under it as secondary text in `type.small` `color.text.secondary` ("Rule …"); the conflict list below is not repeated in the lead. A macro failure without conflicts reads "The macro cannot be inserted here: …" with the refusal's words; every other failed card keeps its "card-failed" sentence.
 

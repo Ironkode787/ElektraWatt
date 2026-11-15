@@ -514,6 +514,35 @@ fn report<R>(ui: &Ui, shown: &egui::scroll_area::ScrollAreaOutput<R>, closed: f3
     );
 }
 
+/// The strongest opacity of the accent behind a new card's header, a tint under its text and buttons.
+const HIGHLIGHT_ALPHA: f32 = 0.18;
+
+/// The opacity of the highlight behind `card`'s header this frame (the owner's test of 0.3.0-rc.1: a staged card went
+/// unseen): a card the tab shows for the first time is highlighted once, fading out over the canvas's arrival time of
+/// frame time ([`crate::canvas::arrival_opacity`]; still with reduced motion), then never again; `None` once it is over.
+fn header_highlight(ui: &Ui, card: &ew_viewmodel::properties::Card, reduce_motion: bool) -> Option<f32> {
+    let id = egui::Id::unique("ew-preview-highlight");
+    let key = egui::Id::unique(ew_viewmodel::preview::card_key(card));
+    let now = ui.input(|i| i.time);
+    let start = ui.ctx().data_mut(|d| match d.get_temp::<(egui::Id, f64)>(id) {
+        Some((k, start)) if k == key => start,
+        _ => {
+            d.insert_temp(id, (key, now));
+            now
+        }
+    });
+    let opacity = crate::canvas::arrival_opacity(now - start, reduce_motion)?;
+    if reduce_motion {
+        // A still highlight needs one more frame, when its moment is over.
+        let left = crate::canvas::ARRIVAL_SECONDS - (now - start);
+        ui.ctx()
+            .request_repaint_after(std::time::Duration::from_secs_f64(left.max(0.0)));
+    } else {
+        ui.ctx().request_repaint();
+    }
+    Some(opacity)
+}
+
 /// Paints the Preview tab of `shell`.
 pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let rect = ui.available_rect_before_wrap();
@@ -543,9 +572,11 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         let choice = matches!(card.origin, CardOrigin::PasteVersions(_));
 
         let pad = t.space_4;
-        // The header row: title, revision and badge at the left; Apply and Cancel at the right.
+        // The header row: title, revision and badge at the left; Apply and Cancel at the right. A new card's header is
+        // highlighted once (`header_highlight`), under the row's content.
         ui.add_space(t.space_3);
-        ui.horizontal(|ui| {
+        let highlight = ui.painter().add(egui::Shape::Noop);
+        let header = ui.horizontal(|ui| {
             ui.add_space(pad);
             ui.spacing_mut().item_spacing.x = t.space_3;
             let command = card.command();
@@ -624,6 +655,15 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 );
             });
         });
+        if let Some(opacity) = header_highlight(ui, card, shell.reduce_motion()) {
+            let mut fill = t.accent;
+            fill.a = (f32::from(fill.a) * HIGHLIGHT_ALPHA * opacity).round() as u8;
+            let rect = header.response.rect.expand2(egui::vec2(0.0, t.space_2));
+            ui.painter().set(
+                highlight,
+                egui::Shape::rect_filled(rect, theme::radius(t.radius_md), fill.color32()),
+            );
+        }
         let inset = |ui: &mut Ui, f: &mut dyn FnMut(&mut Ui)| {
             ui.horizontal(|ui| {
                 ui.add_space(pad);

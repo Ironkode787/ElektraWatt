@@ -28,6 +28,18 @@ fn group_named(h: &Harness<'_, App>, name: &str) -> bool {
         .any(|n| n.accesskit_node().label().as_deref() == Some(name))
 }
 
+/// The Preview tab's Apply (the Pages pane's strip has one too).
+fn preview_apply<'h>(h: &'h Harness<'_, App>) -> egui_kittest::Node<'h> {
+    let pane = h
+        .get_all_by_role(egui::Role::Group)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Preview"))
+        .expect("the Preview tab")
+        .rect();
+    h.get_all_by_label("Apply")
+        .find(|n| pane.contains_rect(n.rect()))
+        .expect("the Preview tab's Apply")
+}
+
 #[test]
 fn renumber_devices_through_the_dialog_and_the_preview_tab() {
     let tmp = Tmp::new();
@@ -61,7 +73,7 @@ fn renumber_devices_through_the_dialog_and_the_preview_tab() {
     );
     assert!(h.query_by_label("Tags (11)").is_some());
     let before = h.state().shell().can_undo();
-    h.get_by_label("Apply").click();
+    preview_apply(&h).click();
     settle(&mut h);
     assert!(h.state().shell().properties().card().is_none());
     assert!(h.state().shell().can_undo() || before);
@@ -226,7 +238,7 @@ fn w31_2_the_first_tag_change_is_on_show() {
         pane.expand(1.0).contains_rect(first) && first.bottom() <= 1080.0,
         "the first tag change {first:?} inside the tab {pane:?}"
     );
-    let apply = h.get_by_label("Apply").rect();
+    let apply = preview_apply(&h).rect();
     assert!(apply.bottom() <= first.top(), "Apply {apply:?} above the lists");
     assert!(h.query_by_label("Tags (11)").is_some());
     h.state_mut().shell_mut().shutdown();

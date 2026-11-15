@@ -221,12 +221,14 @@ impl Dock {
     /// that group's active tab. `collapsed` hides the left column (the root's child that holds the navigator group;
     /// doc 16a §5.4). `counts` are the count chips of the dock tabs (doc 16a §5.7: Messages' open findings); a pane
     /// absent or at zero has none. Returns what the panel headers' and the tab bars' controls asked for (the segmented
-    /// control's `rail.show`, the bottom dock's close button).
+    /// control's `rail.show`, the bottom dock's close button). `marks` are the panes whose tab carries an accent dot,
+    /// each with the words a screen reader hears for it (the Preview tab while a card waits for Apply).
     pub(crate) fn show(
         &mut self,
         ui: &mut Ui,
         collapsed: bool,
         counts: &[(PaneKind, usize)],
+        marks: &[(PaneKind, String)],
         pane_ui: &mut dyn FnMut(&mut Ui, PaneKind),
     ) -> Vec<Event> {
         let tokens = crate::theme::current(ui.ctx());
@@ -273,6 +275,7 @@ impl Dock {
             chrome,
             events: Vec::new(),
             counts,
+            marks,
         };
         self.tree.ui(&mut behavior, ui);
         let events = std::mem::take(&mut behavior.events);
@@ -712,6 +715,9 @@ struct Header {
 /// A dock tab's horizontal padding and its underline's inset (doc 16a §5.7: 10 px).
 const DOCK_TAB_PADDING: f32 = 10.0;
 
+/// The diameter of a dock tab's accent dot (doc 16a §P4: the 6-px marks).
+const MARK_DOT: f32 = 6.0;
+
 /// How a dock tab draws its title (doc 16a §6.4).
 struct TabLook {
     font: egui::FontId,
@@ -762,6 +768,8 @@ struct DockBehavior<'a> {
     events: Vec<Event>,
     /// The count chips of the dock tabs.
     counts: &'a [(PaneKind, usize)],
+    /// The tabs with an accent dot and its words.
+    marks: &'a [(PaneKind, String)],
 }
 
 impl DockBehavior<'_> {
@@ -983,8 +991,20 @@ impl egui_tiles::Behavior<PaneKind> for DockBehavior<'_> {
         };
         let chip = (count > 0).then(|| crate::components::count_badge_layout(ui, &t, count));
         let chip_w = chip.as_ref().map_or(0.0, |(_, size)| t.space_2 + size.x);
+        // A tab whose pane waits for the user (the Preview tab while a card waits for Apply) carries an accent dot after
+        // its title, also while another tab is in front.
+        let mark = match tiles.get(tile_id) {
+            Some(Tile::Pane(p)) => self
+                .marks
+                .iter()
+                .find(|(k, _)| k == p)
+                .map(|(_, words)| words.clone()),
+            _ => None,
+        };
+        let dot = MARK_DOT;
+        let mark_w = if mark.is_some() { t.space_2 + dot } else { 0.0 };
         let (_, rect) = ui.allocate_space(vec2(
-            galley.size().x + chip_w + 2.0 * DOCK_TAB_PADDING,
+            galley.size().x + mark_w + chip_w + 2.0 * DOCK_TAB_PADDING,
             ui.available_height(),
         ));
         let draggable = self.is_tile_draggable(tiles, tile_id);
@@ -1006,6 +1026,11 @@ impl egui_tiles::Behavior<PaneKind> for DockBehavior<'_> {
             ui.ctx()
                 .accesskit_node_builder(response.id, |n| n.set_value(count.to_string()));
         }
+        if let Some(words) = &mark {
+            let words = words.clone();
+            ui.ctx()
+                .accesskit_node_builder(response.id, |n| n.set_description(words));
+        }
         if ui.is_rect_visible(rect) && !state.is_being_dragged {
             if !state.active {
                 crate::command_bar::state_overlay(ui, &t, &response, true, t.radius_sm);
@@ -1014,8 +1039,13 @@ impl egui_tiles::Behavior<PaneKind> for DockBehavior<'_> {
                 rect.left() + DOCK_TAB_PADDING,
                 rect.center().y - galley.size().y / 2.0,
             );
-            let text_right = at.x + galley.size().x;
+            let mut text_right = at.x + galley.size().x;
             ui.painter().galley(at, galley, look.colour.color32());
+            if mark.is_some() {
+                let centre = pos2(text_right + t.space_2 + dot / 2.0, rect.center().y);
+                ui.painter().circle_filled(centre, dot / 2.0, t.accent.color32());
+                text_right += mark_w;
+            }
             if let Some((chip, size)) = chip {
                 let r =
                     Rect::from_min_size(pos2(text_right + t.space_2, rect.center().y - size.y / 2.0), size);
@@ -1132,7 +1162,7 @@ mod tests {
             ..Default::default()
         };
         let mut out = ctx.run_ui(input, |ui| {
-            egui::CentralPanel::default().show(ui, |ui| dock.show(ui, false, &[], &mut |_, _| {}));
+            egui::CentralPanel::default().show(ui, |ui| dock.show(ui, false, &[], &[], &mut |_, _| {}));
         });
         // Nothing paints the frame; its texture changes are dropped on purpose.
         out.textures_delta.clear();

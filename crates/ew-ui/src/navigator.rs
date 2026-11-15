@@ -401,6 +401,10 @@ impl NavigatorPane {
         if pages {
             reorder_card(ui, shell, events);
         }
+        // Where Delete page starts, the strip of its waiting card.
+        if self.kind == NavKind::Pages {
+            crate::components::bulk_strip(ui, shell, events);
+        }
         // The message panel's header line and quick-fix card above the rows, its detail block below them.
         if self.kind == NavKind::Messages {
             crate::messages::header(ui, shell, events);
@@ -467,6 +471,10 @@ impl NavigatorPane {
         }
         // The Libraries navigator's Update… and the Macros navigator's detail block.
         crate::library_panes::show(ui, shell, self.kind, events);
+        // Under Update…, the strip of its waiting card.
+        if self.kind == NavKind::Libraries {
+            crate::components::bulk_strip(ui, shell, events);
+        }
         // The table card of this navigator's gesture.
         table_card(ui, shell, self.kind, events);
         let visible = self.visible_rows(shell);

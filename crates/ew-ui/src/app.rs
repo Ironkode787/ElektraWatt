@@ -1082,7 +1082,12 @@ impl App {
                     PaneKind::Navigator(ew_viewmodel::navigators::NavKind::Messages),
                     shell.messages_badge(),
                 )];
-                let headers = dock.show(ui, collapsed, &counts, &mut |ui, pane| match pane {
+                // The Preview tab's dot while a card waits for Apply.
+                let marks: Vec<(PaneKind, String)> = ew_viewmodel::status::waiting_text(shell)
+                    .map(|words| (PaneKind::Preview, words))
+                    .into_iter()
+                    .collect();
+                let headers = dock.show(ui, collapsed, &counts, &marks, &mut |ui, pane| match pane {
                     PaneKind::Pages => navigator.show(ui, shell, &mut events),
                     PaneKind::Navigator(k) => navigators
                         .entry(k)

@@ -1152,6 +1152,34 @@ pub(crate) fn card_strip(ui: &mut Ui, shell: &ShellModel, line: &str, events: &m
     true
 }
 
+/// The "Preview open" strip of a bulk command's card ([`card_strip`]: Update… of the Libraries pane, Delete of a page)
+/// in the pane where such an action starts, inset `space.4` like the pane's tool line, so a person who never looks at
+/// the Preview tab can apply or cancel there (the owner's test of 0.3.0-rc.1). Nothing for another card or none.
+pub(crate) fn bulk_strip(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
+    let Some(card) = shell
+        .properties()
+        .card()
+        .filter(|c| matches!(c.origin, CardOrigin::Bulk))
+    else {
+        return;
+    };
+    let line = format!(
+        "{} · {}",
+        card.command(),
+        shell.preview_summary().unwrap_or_default()
+    );
+    let t = tokens(ui);
+    let pad = theme::margin_px(t.space_4);
+    egui::Frame::new()
+        .inner_margin(egui::Margin {
+            left: pad,
+            right: pad,
+            top: 0,
+            bottom: theme::margin_px(t.space_2),
+        })
+        .show(ui, |ui| card_strip(ui, shell, &line, events));
+}
+
 /// A collapsible section header in the style of the property categories (doc 16a §6.8, §6.23): `size.row` high, a
 /// chevron, the title in `type.small` SemiBold `color.text.secondary`, and a count badge. A button node named by the
 /// title with its expanded state. A section that lists no items has no count. Returns whether the section is open.

@@ -6,8 +6,8 @@
 //! grid, the zoom, the save state, the renderer and the notifications stand at the right in that order
 //! (`ew_viewmodel::status::bar`). Each field is `size.status_field` high with `space.3` padding in `type.small`; an
 //! exception stands out (the findings in their severity's colour, Saved in `color.success`, a CPU renderer in
-//! `color.warning`). The findings open Messages, the job opens Jobs, the notifications open the log: those three are
-//! buttons with the hover overlay, the rest are labels.
+//! `color.warning`). A card waiting for Apply shows the Preview, the findings open Messages, the job opens Jobs, the
+//! notifications open the log: those are buttons with the hover overlay, the rest are labels.
 
 use egui::{Align, Layout, Rect, Sense, Ui, pos2, vec2};
 use ew_viewmodel::shell::ShellModel;
@@ -22,6 +22,8 @@ use crate::theme::{self, Tokens, TypeToken};
 /// What a click on a field of `kind` asks for.
 fn click(kind: StatusKind) -> Option<Event> {
     match kind {
+        // A card waiting for Apply: the Preview tab in front.
+        StatusKind::Waiting => Some(Event::Action("preview.show", json!({ "on": true }))),
         StatusKind::Findings => Some(Event::Action("messages.show", json!({ "on": true }))),
         StatusKind::Job => Some(Event::Action("jobs.show", json!({ "on": true }))),
         StatusKind::Notifications => Some(Event::Action("notifications.show", json!({}))),
@@ -36,6 +38,7 @@ fn click(kind: StatusKind) -> Option<Event> {
 /// `color.text.primary`, Read-only a lock in `color.warning`.
 fn icon(field: &StatusField) -> Option<&'static str> {
     match (field.kind, field.tone) {
+        (StatusKind::Waiting, _) => Some("eye"),
         (StatusKind::Findings, Tone::Error) => Some("alert-circle"),
         (StatusKind::Findings, Tone::Warning) => Some("alert-triangle"),
         (StatusKind::Findings, _) => Some("info-circle"),
