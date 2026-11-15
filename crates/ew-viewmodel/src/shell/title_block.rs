@@ -6,7 +6,8 @@
 //! the project's master data, its parties' names, the open revision's label and the names of the parties the current
 //! revision names as author and checker (FT-1718). A project without a revision gets one with the label typed
 //! (`revision.create`, a second step); an open revision without an author gets one (`revision.set_author`). What a title block prints as fixed text of its form is not
-//! a field: an imported QElectroTech template's own texts stay as the form holds them.
+//! a field: an imported QElectroTech template's own texts stay as the form holds them. Nor is the project's edited
+//! date, which the save sets: the form says it in a line over the fields.
 
 use ew_api::AnyCommand;
 use serde_json::{Map, Value, json};
@@ -31,6 +32,8 @@ enum Source {
     ProjectIdent(&'static str),
     /// A date member of the project row, shown and typed in the project's date format; empty removes it.
     ProjectDate(&'static str),
+    /// The project's edited date: set when the project is saved with changes, so a line over the fields, not a field.
+    Edited,
     /// The name of the first party of a role (its serde word); a party of that role is added for a new name.
     Party(&'static str),
     /// The open revision's label, or a new revision's when the project has none.
@@ -89,11 +92,7 @@ const FIELDS: &[(&str, Key<'static>, Source)] = &[
         key!("field-word-created"),
         Source::ProjectDate("master.created"),
     ),
-    (
-        "project.edited",
-        key!("field-word-edited"),
-        Source::ProjectDate("master.edited"),
-    ),
+    ("project.edited", key!("field-word-edited"), Source::Edited),
     (
         "party.customer.name",
         key!("choice-customer"),
@@ -164,6 +163,7 @@ impl ShellModel {
                         facts.revision_author.is_some() || facts.open_revision.is_some()
                     }
                     Source::RevisionChecker => facts.revision_checker.is_some(),
+                    Source::Edited => false,
                     _ => true,
                 };
                 writable.then(|| FormField {
@@ -187,6 +187,23 @@ impl ShellModel {
         let mut notes = Vec::new();
         if facts.fixed_texts {
             notes.push(strings::text(key!("titleblock-note-fixed")).to_owned());
+        }
+        // The edited date the title block prints, which the save sets (the owner's test of 0.3.0-rc.1).
+        let edited = FIELDS
+            .iter()
+            .find(|(_, _, s)| matches!(s, Source::Edited))
+            .and_then(|(path, label, _)| {
+                facts
+                    .fields
+                    .iter()
+                    .find(|(p, _)| p == path)
+                    .map(|(_, t)| (label, t))
+            });
+        if let Some((label, text)) = edited {
+            notes.push(match text.as_str() {
+                "" => strings::format(key!("titleblock-note-edited-none"), &[strings::text(*label)]),
+                date => strings::format(key!("titleblock-note-edited"), &[strings::text(*label), date]),
+            });
         }
         notes
     }
@@ -345,6 +362,8 @@ impl ShellModel {
                         _ => {}
                     }
                 }
+                // Not a field of the form: the save sets it.
+                Source::Edited => {}
                 Source::RevisionLabel if text.is_empty() => {
                     return self.form_failed(
                         TITLE_BLOCK,

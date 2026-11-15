@@ -349,6 +349,8 @@ pub enum FieldReadOnly {
     },
     /// No command edits it yet.
     NoCommand,
+    /// The program sets it when the project is saved with changes (the project's edited date, `Session::save`).
+    OnSave,
 }
 
 impl EditRoute {
@@ -365,6 +367,7 @@ impl EditRoute {
                 format!("read-only:human-only:{command}")
             }
             EditRoute::ReadOnly(FieldReadOnly::NoCommand) => "read-only:no-command".into(),
+            EditRoute::ReadOnly(FieldReadOnly::OnSave) => "read-only:on-save".into(),
         }
     }
 
@@ -758,6 +761,10 @@ pub(crate) fn route_of(kind: &str, path: &str, exposure: &dyn Fn(&str) -> Option
         return EditRoute::ReadOnly(FieldReadOnly::Narrowed {
             why: (*why).to_owned(),
         });
+    }
+    // The project's edited date is the save's (the owner's test of 0.3.0-rc.1).
+    if (kind, path) == ("project", "master.edited") {
+        return EditRoute::ReadOnly(FieldReadOnly::OnSave);
     }
     // 3. `fields.set` by the longest settable prefix.
     let flat = settable_form(path);

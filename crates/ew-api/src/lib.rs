@@ -280,6 +280,10 @@ pub struct SessionOptions {
     /// an in-memory index and no file read (tests, `ew apply`). The GUI and the CLI pass
     /// [`library::LibraryTiers::for_user`].
     pub libraries: Option<library::LibraryTiers>,
+    /// The session's date, as the front-end read it (the window's today; the CLI's `SOURCE_DATE_EPOCH`): a new
+    /// project's created date, and the edited date a save with changes writes ([`Session::save`]). `None` (tests,
+    /// scripts): no date is written, so no output depends on the day it is made.
+    pub today: Option<ew_schema::Date>,
 }
 
 /// How a session's derived values are evaluated (ADR-0002 decisions 2–3, amendment 4).
@@ -305,6 +309,7 @@ impl Default for SessionOptions {
             prevent: None,
             memo: MemoMode::default(),
             libraries: None,
+            today: None,
         }
     }
 }
@@ -623,6 +628,8 @@ pub struct Session {
     libraries: std::sync::OnceLock<(library::Registry, Option<library::LibraryError>)>,
     /// The release's housekeeping trouble not yet taken by the front-end ([`Session::take_release_troubles`]).
     release_troubles: std::cell::RefCell<Vec<release_run::ReleaseTrouble>>,
+    /// The session's date ([`SessionOptions::today`], [`Session::set_today`]).
+    today: Option<ew_schema::Date>,
 }
 
 impl std::fmt::Debug for Session {
@@ -654,6 +661,7 @@ impl Session {
             }
         };
         Session {
+            today: options.today,
             library_tiers: options.libraries,
             libraries: std::sync::OnceLock::new(),
             release_troubles: std::cell::RefCell::new(Vec::new()),
@@ -1546,7 +1554,12 @@ impl Session {
     /// ([`Session::retry_save`]). Every other error, [`SaveError::PendingIncomplete`] (an earlier save is
     /// still incomplete) included, wrote nothing of this model: the session stays dirty and keeps its dirty
     /// set for the next save.
+    ///
+    /// A project with changes saved by a session that has a date ([`Session::set_today`]) first takes that date as its
+    /// edited date (`master.edited`, which the title block's Saved cell and an export's date print), one `fields.set`
+    /// on the history, unless it holds that date already; a project saved without a change keeps its date.
     pub fn save(&mut self) -> Result<SaveReport, SaveError> {
+        self.stamp_edited();
         let model = self.engine.model().clone();
         let Some(p) = &mut self.persistence else {
             return Err(SaveError::ReadOnly(ew_store::ReadOnlyReason::Requested));
@@ -1578,6 +1591,42 @@ impl Session {
             self.engine.mark_saved();
         }
         result
+    }
+
+    /// The session's date from now on (the window passes today's before each action; it moves past midnight).
+    pub fn set_today(&mut self, today: Option<ew_schema::Date>) {
+        self.today = today;
+    }
+
+    /// The edited date of a save ([`Session::save`]): the session's date on a project with changes that holds
+    /// another one. A refusal (a read-only project) writes nothing and the save goes on.
+    fn stamp_edited(&mut self) {
+        let Some(today) = self.today else {
+            return;
+        };
+        if self.persistence.is_none() || !self.is_dirty() {
+            return;
+        }
+        let (id, edited) = {
+            let q = self.query();
+            let p = q.project();
+            (p.id, p.master.edited)
+        };
+        if edited == Some(today) {
+            return;
+        }
+        let cmd = AnyCommand {
+            name: "fields.set".to_owned(),
+            params: serde_json::json!({
+                "kind": "project",
+                "targets": [id.to_string()],
+                "path": "master.edited",
+                "value": today.to_string(),
+            }),
+        };
+        if let Ok(cmd) = self.engine.resolve(&cmd) {
+            let _ = self.execute(cmd.as_ref());
+        }
     }
 
     /// Completes an incomplete save (doc 05 §5.4: the caller retries every 5 s).

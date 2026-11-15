@@ -158,6 +158,9 @@ pub(super) fn open_editing_to(
     let options = ew_api::SessionOptions {
         origin,
         libraries,
+        // A save with changes stamps the project's edited date: `SOURCE_DATE_EPOCH`'s, the CLI's one date (no
+        // wall-clock fallback, so a run gives the same bytes on any day).
+        today: super::export::session_today(),
         ..ew_api::SessionOptions::default()
     };
     let (session, opened) = match ew_api::Session::open(dir, store, options, recovery) {

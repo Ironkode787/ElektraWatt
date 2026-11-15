@@ -543,6 +543,13 @@ pub(super) fn source_date() -> Result<Option<ew_api::output::PdfDate>, String> {
         .ok_or_else(|| format!("SOURCE_DATE_EPOCH is not a date in seconds since 1970: `{text}`"))
 }
 
+/// The day of `SOURCE_DATE_EPOCH` as an editing session's date (`SessionOptions::today`); `None` when it is not set
+/// or not a date.
+pub(super) fn session_today() -> Option<ew_api::catalog::Date> {
+    let d = source_date().ok().flatten()?;
+    ew_api::catalog::Date::new(d.year, d.month, d.day).ok()
+}
+
 /// `ew export ewz`: the project's saved generation, read back from the disk and
 /// verified, packed into `--out` ([`write_atomically`]). The project opens as a reader (no lock); an `.ewz` given as
 /// the project is refused ([`project_dir`]).

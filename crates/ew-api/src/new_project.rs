@@ -112,6 +112,11 @@ impl Session {
             }
             ProjectTemplate::Directory(dir) => from_directory(dir, id, kind)?,
         };
+        // A new project is created on the session's date (a basic project's own date is not this project's).
+        let mut project = project;
+        if let Some(today) = options.today {
+            project.master.created = Some(today);
+        }
         let mut model = Model::from_records(project, records, lib).map_err(|error| OpenError::Model {
             error,
             findings: Vec::new(),

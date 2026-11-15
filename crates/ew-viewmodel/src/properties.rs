@@ -1083,6 +1083,7 @@ pub fn reason_text(reason: &FieldReadOnly) -> String {
         }
         FieldReadOnly::HumanOnly { step, .. } => strings::format(key!("props-ro-human-only"), &[step]),
         FieldReadOnly::NoCommand => strings::text(key!("props-ro-no-command")).to_owned(),
+        FieldReadOnly::OnSave => strings::text(key!("props-ro-on-save")).to_owned(),
     }
 }
 

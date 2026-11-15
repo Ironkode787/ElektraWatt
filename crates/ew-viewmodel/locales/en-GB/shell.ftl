@@ -6649,3 +6649,8 @@ status-waiting-tip = Show the Preview, where Apply makes the changes
 # A date typed in the project's date format (the owner's test of 0.3.0-rc.1).
 refusal-input-date = `{ $p0 }` is not a date: type it as { $p1 }
 hint-date = A date, such as { $p0 }
+
+# The project's edited date is set by the save (the owner's test of 0.3.0-rc.1).
+props-ro-on-save = set when the project is saved
+titleblock-note-edited = { $p0 }: { $p1 }. Set when the project is saved.
+titleblock-note-edited-none = { $p0 }: set when the project is saved.

@@ -58,3 +58,44 @@ fn a_date_is_typed_and_shown_in_the_projects_format() {
     assert_eq!(shown(&shell, CREATED), "2027-02-01");
     shell.shutdown();
 }
+
+const EDITED: &str = "project/master.edited";
+
+/// The owner's test of 0.3.0-rc.1: the edited date is the program's. A new project is created on the session's date;
+/// a save with changes takes the session's date as its edited date, a save without a change keeps it; the row is
+/// read-only and says why.
+#[test]
+fn the_edited_date_is_set_by_a_save_with_changes() {
+    let tmp = Tmp::new("date-edited");
+    let mut shell = tmp.empty_shell(ew_viewmodel::shell::Mode::Gui);
+    shell.set_today("2026-03-04".to_owned());
+    let dir = tmp.0.join("p.ew");
+    done(
+        &mut shell,
+        "file.new",
+        json!({"dir": dir.to_string_lossy(), "template": "builtin"}),
+    );
+    done(&mut shell, "props.project", json!({}));
+    assert_eq!(shown(&shell, CREATED), "04-03-2026", "created on the session's date");
+    let Outcome::Failed { message } =
+        shell.dispatch("props.set", &json!({"row": EDITED, "value": "01-01-2026"}))
+    else {
+        panic!("the edited date is read-only");
+    };
+    assert!(message.contains("set when the project is saved"), "{message}");
+    // A change, then a save on another day: the edited date is that day.
+    done(&mut shell, "page.new", json!({"folio": "2"}));
+    shell.set_today("2026-03-05".to_owned());
+    done(&mut shell, "file.save", json!({}));
+    assert!(!shell.is_dirty(), "the date goes with the save");
+    done(&mut shell, "props.project", json!({}));
+    assert_eq!(shown(&shell, EDITED), "05-03-2026");
+    // A save without a change keeps it.
+    shell.set_today("2026-03-06".to_owned());
+    let rev = shell.revision();
+    done(&mut shell, "file.save", json!({}));
+    assert_eq!(shell.revision(), rev, "nothing written");
+    done(&mut shell, "props.project", json!({}));
+    assert_eq!(shown(&shell, EDITED), "05-03-2026");
+    shell.shutdown();
+}

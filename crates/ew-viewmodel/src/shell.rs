@@ -2078,8 +2078,15 @@ impl ShellModel {
             origin: Origin::Gui,
             ids: self.id_source.map(|make| make()),
             libraries,
+            // A new project's created date.
+            today: self.today_date(),
             ..SessionOptions::default()
         }
+    }
+
+    /// Today's date as the window passed it, parsed; `None` headless.
+    fn today_date(&self) -> Option<ew_api::catalog::Date> {
+        self.today.as_deref().and_then(|t| t.parse().ok())
     }
 
     /// Tells the shell today's date (`YYYY-MM-DD`), which the window reads before it runs an action; the shell never
@@ -2262,9 +2269,12 @@ impl ShellModel {
     }
 
     fn save_project(&mut self) -> Outcome {
+        let today = self.today_date();
         let Some(p) = &mut self.project else {
             return Outcome::refused(key!("reason-no-project"));
         };
+        // A save with changes takes today's date as the project's edited date (`Session::save`).
+        p.session.set_today(today);
         match p.session.save() {
             Ok(saved) => {
                 self.record.saved_steps = self.record.steps.clone();

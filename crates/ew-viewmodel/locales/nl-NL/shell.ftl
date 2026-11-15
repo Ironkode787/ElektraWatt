@@ -6387,3 +6387,8 @@ status-waiting-tip = Toon het voorbeeld, waar Toepassen de wijzigingen doorvoert
 # A date typed in the project's date format (the owner's test of 0.3.0-rc.1).
 refusal-input-date = `{ $p0 }` is geen datum: typ hem als { $p1 }
 hint-date = Een datum, zoals { $p0 }
+
+# The project's edited date is set by the save (the owner's test of 0.3.0-rc.1).
+props-ro-on-save = wordt ingevuld wanneer het project wordt opgeslagen
+titleblock-note-edited = { $p0 }: { $p1 }. Wordt ingevuld wanneer het project wordt opgeslagen.
+titleblock-note-edited-none = { $p0 }: wordt ingevuld wanneer het project wordt opgeslagen.

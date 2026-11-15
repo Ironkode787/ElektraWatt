@@ -21,7 +21,7 @@ project master.created date? other fields.set:master.created
 project master.description mltext other fields.set:master.description
 project master.document_title mltext other fields.set:master.document_title
 project master.drawing_id ident? other fields.set:master.drawing_id
-project master.edited date? other fields.set:master.edited
+project master.edited date? other read-only:on-save
 project master.long_description mltext other fields.set:master.long_description
 project master.manufacturing_year int[0..65535]? other fields.set:master.manufacturing_year
 project master.object_id ident? other fields.set:master.object_id
