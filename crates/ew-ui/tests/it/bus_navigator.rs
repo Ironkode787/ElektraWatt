@@ -65,8 +65,8 @@ fn the_bus_navigator_lists_nets_ports_and_segments_and_edits_an_address() {
         .expect("the address cell of -201U1 DP")
         .rect()
         .center();
+    // The editor opens with the cell's text selected, so what is typed replaces "TBD" (it gave "TBD3").
     double_click(&mut h, at);
-    h.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
     h.event(egui::Event::Text("3".to_owned()));
     settle(&mut h);
     h.key_press(egui::Key::Enter);

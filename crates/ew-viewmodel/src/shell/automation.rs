@@ -42,14 +42,20 @@ impl ShellModel {
             .map_err(|_| failed(key!("error-bad-param"), &[name]))
     }
 
-    /// `plc.attach_cards {station}` (FT-1672): the cards that wait for a CPU become children of `station`, after its
-    /// last child position, with one `assembly.attach`; a toast names them.
+    /// `plc.attach_cards {station, card?}` (FT-1672): the cards that wait for a station (with `card`, that one of
+    /// them) become children of `station`, after its last child position, with one `assembly.attach`; a toast names
+    /// them.
     pub(crate) fn act_plc_attach_cards(&mut self, p: &Map<String, Value>) -> Outcome {
         let station = or_return!(self.record_param(p, "station"));
+        let only = match p.get("card") {
+            Some(_) => Some(or_return!(self.record_param(p, "card"))),
+            None => None,
+        };
         let Some(project) = self.project.as_ref() else {
             return Outcome::refused(key!("reason-no-project"));
         };
-        let cards = project.session.plc_cards_without_cpu();
+        let mut cards = project.session.plc_cards_without_cpu();
+        cards.retain(|(card, _)| only.is_none_or(|o| *card == o));
         if cards.is_empty() {
             return Outcome::refused(key!("reason-no-cards-without-cpu"));
         }

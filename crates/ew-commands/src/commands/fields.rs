@@ -443,6 +443,9 @@ impl SetFields {
                     if path == "bus_port" || path.starts_with("bus_port.") {
                         check_port(tx, t.cast())?;
                     }
+                    if path == "bus_port.address" {
+                        check_address_form(tx, t.cast())?;
+                    }
                     if path == "kind.ip.direction" {
                         refuse_unknown_direction(tx, *t)?;
                     }
@@ -1135,6 +1138,34 @@ fn check_port(tx: &TxBuilder<'_>, function: ew_ids::Id<Function>) -> Result<(), 
         tx.require::<PhysicalNet>(n)?;
     }
     Ok(())
+}
+
+/// An address set on a port has the form of the port's bus system: a PROFINET name typed on a PROFIBUS DP port was
+/// stored, and the port then had no station address (the persona round of M3: "2" typed behind "TBD"). The buses
+/// without a typed address form take any.
+fn check_address_form(tx: &TxBuilder<'_>, function: ew_ids::Id<Function>) -> Result<(), CmdError> {
+    let f = tx.require::<Function>(function)?;
+    let Some(port) = &f.bus_port else {
+        return Ok(());
+    };
+    let AddrValue::Value(address) = &port.address else {
+        return Ok(());
+    };
+    let wrong = match (&port.bus, address) {
+        (BusSystem::ProfibusDp, NetAddress::Profibus(_))
+        | (BusSystem::Profinet, NetAddress::Profinet(_))
+        | (BusSystem::EtherCat, NetAddress::EtherCat(_))
+        | (BusSystem::IoLink, NetAddress::IoLinkPort(_)) => None,
+        (BusSystem::ProfibusDp, _) => Some(text!("refusal-fields-address-profibus")),
+        (BusSystem::Profinet, _) => Some(text!("refusal-fields-address-profinet")),
+        (BusSystem::EtherCat, _) => Some(text!("refusal-fields-address-ethercat")),
+        (BusSystem::IoLink, _) => Some(text!("refusal-fields-address-iolink")),
+        _ => None,
+    };
+    match wrong {
+        Some(text) => Err(CmdError::invalid_params(SetFields::NAME, "/value", text)),
+        None => Ok(()),
+    }
 }
 
 /// A logical net as read back: a bus system this build knows, a unique name, a rate above 0, and a master that is

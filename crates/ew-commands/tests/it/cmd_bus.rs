@@ -170,6 +170,18 @@ fn fields_set_writes_a_bus_port_and_refuses_what_it_cannot_write() {
         json!("off"),
     ))
     .expect("the termination");
+    // An address of another bus's form is refused in words: a PROFINET name is no PROFIBUS station address.
+    let (path, message) = invalid(e.execute(&set(
+        KindName::Function,
+        f.cast(),
+        "bus_port.address",
+        json!({"value": {"profinet": {"name": "tbd2"}}}),
+    )));
+    assert_eq!(path, "/value");
+    assert_eq!(
+        message,
+        "a PROFIBUS DP port takes a station number: type 0 to 125, or TBD"
+    );
     let port = e
         .model()
         .table::<Function>()

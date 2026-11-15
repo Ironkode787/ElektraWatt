@@ -19,7 +19,8 @@ cards, bind channels and check what each channel drives.
 3. Drag a channel's row onto a connection point of a card pin or a coil to bind it. A device wired off the card, or a
    valve beside a valve terminal, is attached to the card and bound in one step; one Undo takes both back.
 4. In a project with two CPUs a new card joins neither and is listed under **Cards without a station**. Right-click
-   the station that takes it and choose **Attach cards without a station**.
+   the card and choose **Attach to** and the station's tag; or right-click the station that takes all of them and
+   choose **Attach cards without a station**.
 
 ## Bus ports and nets
 

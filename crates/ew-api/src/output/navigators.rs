@@ -832,6 +832,29 @@ impl Session {
             .collect()
     }
 
+    /// The stations a card can be attached to (a CPU or a head station) with their short tags, in natural order: a
+    /// waiting card's row offers each (the persona round of M3: a card's own row said nothing of a station).
+    pub fn plc_stations_for_cards(&self) -> Vec<(Uuid, String)> {
+        use ew_derive::ew_schema::StationRole;
+        let q = self.query();
+        let mut out: Vec<(NaturalKey, Uuid, String)> = q
+            .devices()
+            .iter()
+            .filter(|(_, d)| {
+                d.aspects
+                    .plc_station
+                    .as_ref()
+                    .is_some_and(|s| matches!(s.role, StationRole::Cpu | StationRole::HeadStation))
+            })
+            .map(|(id, _)| {
+                let tag = short_tag(&q, id);
+                (natural_key(&tag), id.as_uuid(), tag)
+            })
+            .collect();
+        out.sort();
+        out.into_iter().map(|(_, id, tag)| (id, tag)).collect()
+    }
+
     /// The project's configuration projects with their names, in natural order of the name (the PLC panel's Addresses
     /// menu).
     pub fn plc_config_projects(&self) -> Vec<(Uuid, String)> {

@@ -337,6 +337,7 @@ impl ShellModel {
                 match node.role {
                     NavRole::Station => self.station_entries(device, &mut out),
                     NavRole::Module => {
+                        self.attach_entries(device, &mut out);
                         self.addressing_entries(json!({ "modules": [device.to_string()] }), &mut out);
                         let label = strings::text(key!("action-plc-module-safety")).to_owned();
                         out.extend(self.aimed(
@@ -439,6 +440,25 @@ impl ShellModel {
                 strings::text(Key::run_time(&format!("menu-{}", name.replace(['.', '_'], "-")))).to_owned();
             let params = json!({ "cmd": name, "params": scope });
             out.extend(self.aimed("plc.preview", params, label));
+        }
+    }
+
+    /// A waiting card's own entries: Attach to `<station>` for each station that takes cards, so that a card listed
+    /// under Cards without a station says on its own row where it can go (the persona round of M3).
+    fn attach_entries(&self, card: Uuid, out: &mut Vec<ActionItem>) {
+        let Some(session) = self.project_session() else {
+            return;
+        };
+        if !session.plc_cards_without_cpu().iter().any(|(c, _)| *c == card) {
+            return;
+        }
+        for (station, tag) in session.plc_stations_for_cards() {
+            let label = strings::format(key!("action-plc-attach-to"), &[&tag]);
+            out.extend(self.aimed(
+                "plc.attach_cards",
+                json!({ "station": station.to_string(), "card": card.to_string() }),
+                label,
+            ));
         }
     }
 

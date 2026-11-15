@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-15T01:10:43+01:00\n"
+"POT-Creation-Date: 2026-11-15T01:45:07+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -2422,15 +2422,16 @@ msgstr ""
 #: src/how-to/plc-workspace.md:21
 msgid ""
 "In a project with two CPUs a new card joins neither and is listed under "
-"**Cards without a station**. Right-click the station that takes it and "
+"**Cards without a station**. Right-click the card and choose **Attach to** "
+"and the station's tag; or right-click the station that takes all of them and "
 "choose **Attach cards without a station**."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:24
+#: src/how-to/plc-workspace.md:25
 msgid "Bus ports and nets"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:26
+#: src/how-to/plc-workspace.md:27
 msgid ""
 "A station's port that is in its part but not drawn yet is offered on the "
 "station's row as **Place port DP** (or **Place port X1** for PROFINET): on a "
@@ -2444,18 +2445,18 @@ msgid ""
 "and an Ethernet cable."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:33
+#: src/how-to/plc-workspace.md:34
 msgid ""
 "Choose **Bus** on the rail for the nets: each logical net with its ports, "
 "each physical net with its segments and their ends. Show it as a table to "
 "type a port's address or switch its termination."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:36
+#: src/how-to/plc-workspace.md:37
 msgid "Addresses"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:38
+#: src/how-to/plc-workspace.md:39
 msgid ""
 "Right-click a module and choose **Re-address…**, or a configuration project "
 "for all its modules: the Preview tab lists each channel whose address moves, "
@@ -2471,11 +2472,11 @@ msgid ""
 "and a lock in the grid's Address cell."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:47 src/reference/window/dialogs.md:114
+#: src/how-to/plc-workspace.md:48 src/reference/window/dialogs.md:114
 msgid "Rack and slots"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:49
+#: src/how-to/plc-workspace.md:50
 msgid ""
 "Right-click a station and choose **Rack and slots…**. Pick the card in "
 "**Module part to add** and choose **Add here** on a free slot; type another "
@@ -2483,11 +2484,11 @@ msgid ""
 "allow is refused, and the reason stays in the dialog."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:53
+#: src/how-to/plc-workspace.md:54
 msgid "The PLC grid"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:55
+#: src/how-to/plc-workspace.md:56
 msgid ""
 "Each row of the grid is a channel. Type in a cell to change a channel's "
 "designation, address, symbol, state, target, comment, data type or signal "
@@ -2495,7 +2496,7 @@ msgid ""
 "with **Safety data…** and **Mode and safety…** (step 16)."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:58
+#: src/how-to/plc-workspace.md:59
 msgid ""
 "Type in the grid's filter to narrow the rows: a word of a cell, or one of "
 "`spare`, `unplaced`, `unassigned`, `tbd`, `duplicate`, `safety`, "
@@ -2503,11 +2504,11 @@ msgid ""
 "header sorts by it, a second click reverses the order."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:62
+#: src/how-to/plc-workspace.md:63
 msgid "Exchange with the PLC software"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:64
+#: src/how-to/plc-workspace.md:65
 msgid ""
 "Choose **Export to PLC software** on the Output tab (or **Output ▸ Export to "
 "PLC software…**), pick the format and choose **Export**, then the file: the "
@@ -2515,7 +2516,7 @@ msgid ""
 "date starts as today's. Import the file in TIA Portal or CODESYS."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:67
+#: src/how-to/plc-workspace.md:68
 msgid ""
 "Choose **Import from PLC software** on the Output tab (or **Output ▸ Import "
 "from PLC software…**) for the file the PLC software wrote back. Look through "
@@ -2523,7 +2524,7 @@ msgid ""
 "value where it can be taken. Choose **Apply**."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:70
+#: src/how-to/plc-workspace.md:71
 msgid ""
 "After an import, the module starts, the symbols or the PLC data the PLC "
 "software owns are protected. Right-click the configuration project and "
@@ -2531,7 +2532,7 @@ msgid ""
 "project."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:72
+#: src/how-to/plc-workspace.md:73
 msgid ""
 "Right-click the configuration project and choose **Import instrument list…** "
 "for a CSV or workbook of process tags and signal types: the Preview tab "
@@ -2539,18 +2540,18 @@ msgid ""
 "**Apply**."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:75
+#: src/how-to/plc-workspace.md:76
 msgid "Settings"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:77
+#: src/how-to/plc-workspace.md:78
 msgid ""
 "Right-click the configuration project and choose **Symbol policy…** for the "
 "template of the automatic symbol, the PLC tag table and whether symbols are "
 "strict IEC 61131-3 identifiers."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:79
+#: src/how-to/plc-workspace.md:80
 msgid ""
 "Right-click a module and choose **Safety data…** for its F-source and "
 "F-destination address and its F-watchdog time; right-click a channel and "
@@ -2558,14 +2559,14 @@ msgid ""
 "channel's safety evaluation and requirement."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:82
+#: src/how-to/plc-workspace.md:83
 msgid ""
 "Choose **Project ▸ Process-tag scheme…** for the pattern process tags "
 "follow, and **Project ▸ Channel addresses at terminals** to print a "
 "channel's address at the terminals on its path."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:85
+#: src/how-to/plc-workspace.md:86
 msgid ""
 "The panels are described in the [panel "
 "reference](../reference/window/panels.md): PLC, PLC grid and Bus; the dialog "

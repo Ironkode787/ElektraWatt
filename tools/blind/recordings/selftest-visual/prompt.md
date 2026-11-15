@@ -78,7 +78,8 @@ will do, and look at the picture before you go on.
 
 **What the system does for you.** You have no file dialog of your own: when the program asks the system for a folder or
 a file name, the answer is given for you, always inside your work folder. A new, opened or saved project is the folder
-`project`; an exported PDF is `project.pdf`; an import of another program's project is cancelled; a link to a web page
+`project`; an exported PDF is `project.pdf`; an import of another program's project is cancelled; an import from PLC
+software takes the file you exported to PLC software before (without one it is cancelled); a link to a web page
 does not open. You have no clipboard from outside the program, cannot drop files on the window and cannot resize it.
 
 If you close the program (its own quit command, or the window's close), the run ends: `do` then prints

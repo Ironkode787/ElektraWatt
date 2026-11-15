@@ -1626,6 +1626,10 @@ refusal-fields-master-cp = a master is a CP: {"{"}"cp": [function, index]{"}"}
 refusal-fields-direction-unknown = { $p0 } is not a direction; give source, target or undirected
 refusal-fields-no-aspect = the device has no `{ $p0 }` aspect; `{ $p1 }` cannot be set
 refusal-fields-zero-rate = a data rate of 0 bit/s; give the rate in bit/s (1500000) or null
+refusal-fields-address-profibus = a PROFIBUS DP port takes a station number: type 0 to 125, or TBD
+refusal-fields-address-profinet = a PROFINET port takes a device name with its IP address (cpu-1 192.168.0.1), or TBD
+refusal-fields-address-ethercat = an EtherCAT port takes a position and an alias (pos 3 alias 1001), or TBD
+refusal-fields-address-iolink = an IO-Link port takes its port number (port 2), or TBD
 refusal-fields-line-kind = a line kind is one of working, pilot, exhaust, drain and flexible
 refusal-fields-tube-value = a tube part is a part of the project, a length a length larger than zero; empty takes the derived value
 refusal-fields-copies-in-entry = give the library documents in the command's `copies`, not in an entry
@@ -3225,6 +3229,7 @@ action-navigator-jump = Jump to row
 # WP-S2.07 §8: a channel dragged from the PLC navigator onto a connection point.
 action-navigator-bind = Bind channel
 action-plc-attach-cards = Attach cards without a station
+action-plc-attach-to = Attach to { $p0 }
 action-fluid-generate-overview = Generate overview…
 reason-overview-no-page = The valve terminal is on no page with a frame; place it first
 reason-valve-no-part = No valve part fits this terminal: neither its valves nor the libraries name one for its positions
@@ -3262,7 +3267,7 @@ reason-drop-on-cp = Drop the channel on a connection point
 
 # FX38d: a CP off the channel's card, refused in words before the commit.
 reason-bind-off-card = The connection point is not on the channel's card: a channel binds a pin of its card or the coil of a valve on it
-reason-no-cards-without-cpu = No PLC card waits for a CPU
+reason-no-cards-without-cpu = No PLC card is without a station
 reason-rack-closed = The rack and slot editor is not open
 reason-rack-no-part = No module part is offered: import parts with PLC module data or install a parts library
 reason-line-no-port = The tube ends at no connection point: a medium is defined at a port

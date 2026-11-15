@@ -716,3 +716,16 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - text-change: the window calls a drawn fluid line a tube (slang): Draw ▸ Connect ▸ Tube…, the Properties heading
   "Tube (Working)", the refusals, the medium's count, Line kind: … in the tube's menu; the Fluid panel's table lists the
   tubes drawn with the tube table's columns (M3 persona round)
+- behaviour-change: window a navigator's row takes a click and a right-click across its width, not only on its name
+  (persona re-test)
+- behaviour-change: window a PLC card listed under Cards without a station offers Attach to and each station's tag on
+  its own row; `plc.attach_cards` takes an optional `card` (persona re-test)
+- behaviour-change: window a table's cell editor opened by a double-click or F2 selects the cell's text, so what is
+  typed replaces it ("2" typed over "TBD" gave "TBD2"); one opened by typing keeps the typed character (persona
+  re-test)
+- behaviour-change: command fields.set refuses a bus port's address of another bus's form: a PROFIBUS DP port takes a
+  station number, a PROFINET port a device name, an EtherCAT port a position and alias, an IO-Link port its port
+  number (persona re-test)
+- behaviour-change: elektrawatt `--headless --visual` answers Import from PLC software… with the file the run exported
+  (`plc.aml`, else `plc.xlsx`) in its work folder; without one the import is cancelled as before
+- api-add: `Session::plc_stations_for_cards`

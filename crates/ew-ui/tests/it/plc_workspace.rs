@@ -109,12 +109,9 @@ fn the_plc_grids_close_button_closes_the_dock() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1672: in a new project with two CPUs a new card joins neither; the PLC navigator lists it under "Cards without a
-/// CPU", and Attach cards without a station on the first CPU's row makes it that CPU's module, one undo step.
-#[test]
-fn a_card_without_a_cpu_is_attached_from_the_cpus_row() {
-    let tmp = Tmp::new();
-    let mut h = harness(&tmp, Scripted::default(), None);
+/// A new project with two CPUs and an output card that joined neither, the PLC panel on show.
+fn two_cpus_and_a_card(tmp: &Tmp) -> egui_kittest::Harness<'static, ew_ui::app::App> {
+    let mut h = harness(tmp, Scripted::default(), None);
     settle(&mut h);
     dispatch(
         &mut h,
@@ -142,6 +139,78 @@ fn a_card_without_a_cpu_is_attached_from_the_cpus_row() {
     }
     dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
     settle(&mut h);
+    h
+}
+
+/// The pointer's press and release of `button` at `at`.
+fn click_at(h: &mut egui_kittest::Harness<'_, ew_ui::app::App>, at: egui::Pos2, button: egui::PointerButton) {
+    h.input_mut().events.push(egui::Event::PointerMoved(at));
+    h.run_ok();
+    for pressed in [true, false] {
+        h.input_mut().events.push(egui::Event::PointerButton {
+            pos: at,
+            button,
+            pressed,
+            modifiers: egui::Modifiers::NONE,
+        });
+        h.run_ok();
+    }
+    settle(h);
+}
+
+/// The persona round's re-test: a row takes a click across its width, not only on its name (a right-click beside a
+/// short tag did nothing), and a waiting card's own row offers Attach to `<station>` for each station that takes
+/// cards, which attaches that card alone.
+#[test]
+fn a_waiting_cards_row_takes_a_click_beside_its_name_and_attaches_to_a_station() {
+    let tmp = Tmp::new();
+    let mut h = two_cpus_and_a_card(&tmp);
+    let rows = h.state().shell().shown_rows(NavKind::Plc);
+    let group = rows
+        .iter()
+        .find(|r| r.text == "Cards without a station")
+        .expect("the group of cards without a station");
+    let card = rows
+        .iter()
+        .find(|r| r.parent.as_deref() == Some(group.key.as_str()))
+        .expect("the card under it")
+        .clone();
+    let second = rows
+        .iter()
+        .filter(|r| r.role == NavRole::Station.word())
+        .nth(1)
+        .expect("the second CPU's row")
+        .clone();
+    let name = h.get_by_label(&card.name).rect();
+    let beside = egui::pos2(name.right() + 40.0, name.center().y);
+    click_at(&mut h, beside, egui::PointerButton::Primary);
+    let marked = |h: &egui_kittest::Harness<'_, ew_ui::app::App>| {
+        h.state()
+            .shell()
+            .shown_rows(NavKind::Plc)
+            .into_iter()
+            .find(|r| r.key == card.key)
+            .is_some_and(|r| r.marked)
+    };
+    assert!(marked(&h), "a click beside the name selects the row");
+    click_at(&mut h, beside, egui::PointerButton::Secondary);
+    support::menu_node(&h, &format!("Attach to {}", second.label)).click();
+    settle(&mut h);
+    let rows = h.state().shell().shown_rows(NavKind::Plc);
+    let module = rows
+        .iter()
+        .find(|r| r.role == NavRole::Module.word() && r.label == card.label)
+        .expect("the card as a module");
+    assert_eq!(module.parent.as_deref(), Some(second.key.as_str()));
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// FT-1672: in a new project with two CPUs a new card joins neither; the PLC navigator lists it under "Cards without a
+/// CPU", and Attach cards without a station on the first CPU's row makes it that CPU's module, one undo step.
+#[test]
+fn a_card_without_a_cpu_is_attached_from_the_cpus_row() {
+    let tmp = Tmp::new();
+    let mut h = two_cpus_and_a_card(&tmp);
     let rows = h.state().shell().shown_rows(NavKind::Plc);
     let group = rows
         .iter()

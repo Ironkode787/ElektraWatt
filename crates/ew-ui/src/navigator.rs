@@ -1078,6 +1078,20 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
     } = *tree;
     let is_cursor = cursor == Some(row.key.as_str());
     let mut fix_clicked = false;
+    // The whole row takes a click, not only its text (the persona round of M3: a click or a right-click beside a
+    // short name did nothing). It is registered before the row's widgets, so the chevron, the name and a badge
+    // stay on top of it and it answers in the gaps between them.
+    let gap_rect = egui::Rect::from_min_size(
+        egui::pos2(ui.max_rect().left(), ui.cursor().top()),
+        egui::vec2(ui.max_rect().width(), ui.spacing().interact_size.y),
+    );
+    let gap = ui.interact(
+        gap_rect,
+        ui.scope_id().with(("row-gap", &row.key)),
+        Sense::click(),
+    );
+    // A pointer's convenience only: the row's node for a screen reader and the keyboard is its name.
+    ui.ctx().accesskit_node_builder(gap.id, |n| n.set_hidden());
     let (glyph_clicked, response) = ui
         .horizontal(|ui| {
             // The row's `space.4` padding (doc 16a §6.6), then 20 px of indent per level.
@@ -1225,6 +1239,8 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
         })
         .inner;
     response.widget_info(|| egui::WidgetInfo::selected(egui::Role::TreeItem, true, row.marked, &row.name));
+    // The gap's clicks are the row's; the node, the drag and the menu stay the name's.
+    let response = response.union(gap);
     let (level, position, size, expanded, marked) =
         (row.level, row.position, row.set_size, row.expanded, row.marked);
     ui.ctx().accesskit_node_builder(response.id, |n| {

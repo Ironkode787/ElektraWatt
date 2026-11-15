@@ -48,6 +48,11 @@ use crate::components::Tip as _;
 use crate::icons::{self, IconId};
 use crate::theme::{self, Rgba, Tokens, TypeToken};
 
+/// Where the frame of the last typed character that opened a cell editor is kept, for the editor that opens next.
+fn typed_open_id() -> egui::Id {
+    egui::Id::unique("nav-table-typed-open")
+}
+
 /// A navigator's table between frames.
 #[derive(Default)]
 pub(crate) struct TableUi {
@@ -777,6 +782,9 @@ pub(crate) fn keys(ui: &Ui, nav: &Navigator, card: bool, events: &mut Vec<Event>
             typed
         });
         if !typed.is_empty() {
+            // The editor that this opens holds what was typed: it must not select it (see `editor`).
+            let frame = ui.ctx().cumulative_frame_nr();
+            ui.ctx().data_mut(|d| d.insert_temp(typed_open_id(), frame));
             events.push(Event::Action("table.input", json!({"kind": kind, "text": typed})));
         }
     }
@@ -989,6 +997,24 @@ impl Delegate<'_> {
         let took = self.fresh || self.focused;
         if took {
             ui.memory_mut(|m| m.request_focus(self.edit_id));
+        }
+        // An editor opened on the cell's own text (a double-click, F2) selects it, as the Properties editor does, so
+        // that what is typed replaces it: "2" typed over "TBD" gave "TBD2" (the persona round of M3). One opened by
+        // typing holds the typed character and keeps the caret behind it.
+        if self.fresh && !self.buffer.is_empty() {
+            let now = ui.ctx().cumulative_frame_nr();
+            let typed = ui
+                .ctx()
+                .data_mut(|d| d.remove_temp::<u64>(typed_open_id()))
+                .is_some_and(|at| now.saturating_sub(at) <= 3);
+            if !typed {
+                let mut state =
+                    egui::text_edit::TextEditState::load(ui.ctx(), self.edit_id).unwrap_or_default();
+                state
+                    .cursor
+                    .set_char_range(Some(egui::text::CCursorRange::select_all_str(self.buffer)));
+                state.store(ui.ctx(), self.edit_id);
+            }
         }
         let focused = ui.memory(|m| m.has_focus(self.edit_id));
         // Ctrl+Enter commits every marked row (egui's single-line field ends on a plain Enter only).

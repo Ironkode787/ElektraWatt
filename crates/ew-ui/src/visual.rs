@@ -228,7 +228,8 @@ fn hundredths(text: &str) -> Option<u32> {
 /// The file dialogs answered without a dialog (spec §4.3): bare names in the working directory (the run's `work/`;
 /// a test names its own folder): a project `project`, a PDF `project.pdf`; an import or an image is cancelled, unless
 /// an `answer_open` input named the file the next open dialog answers with, and the system browser opens
-/// nothing (the trait's default).
+/// nothing (the trait's default). An import from PLC software takes the file the run itself exported there
+/// (`plc.aml`, else `plc.xlsx`), so that a run can read the import's preview; without one it is cancelled.
 struct VisualPlatform {
     base: PathBuf,
     /// The file the next open dialog answers with, once ([`Input::AnswerOpen`]).
@@ -268,8 +269,12 @@ impl Platform for VisualPlatform {
             | Prompt::OpenEwz
             | Prompt::OpenImport
             | Prompt::OpenConverter
-            | Prompt::OpenSymbol
-            | Prompt::OpenPlcExchange => Pick::Cancelled,
+            | Prompt::OpenSymbol => Pick::Cancelled,
+            Prompt::OpenPlcExchange => ["plc.aml", "plc.xlsx"]
+                .iter()
+                .map(|name| self.base.join(name))
+                .find(|file| file.is_file())
+                .map_or(Pick::Cancelled, Pick::Path),
         }
     }
 }
