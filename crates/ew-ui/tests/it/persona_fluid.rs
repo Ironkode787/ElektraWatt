@@ -798,3 +798,104 @@ fn r2a_a_valve_placed_inside_a_valve_terminals_box_is_its_valve() {
     assert_eq!(seat(&mut d, loose), ("2".to_owned(), true));
     d.shell_mut().shutdown();
 }
+
+/// A loose 5/2 valve, a double-acting cylinder and the air supply with three tubes: supply to port 1, port 2 to A, port
+/// 4 to B; the valve, the tubes in that order.
+fn valve_and_three_tubes(d: &mut Driver) -> (Uuid, Vec<Uuid>) {
+    place_symbol(d, "ew.iso.valve-5-2-sol-spring@qet10", (1000, 650));
+    place_symbol(d, "ew.iso.cylinder-double-acting@qet10", (1000, 350));
+    place_symbol(d, "ew.iso.air-supply@qet10", (700, 850));
+    let (valve, cylinder, supply) = (
+        device_drawn(d, "ew.iso.valve-5-2"),
+        device_drawn(d, "ew.iso.cylinder"),
+        device_drawn(d, "ew.iso.air-supply"),
+    );
+    let mut lines = Vec::new();
+    for (a, b) in [
+        ((supply, "1"), (valve, "1")),
+        ((valve, "2"), (cylinder, "A")),
+        ((valve, "4"), (cylinder, "B")),
+    ] {
+        let (pa, pb) = (port(d, a.0, a.1), port(d, b.0, b.1));
+        let before: Vec<Uuid> = d.shell_mut().canvas().unwrap().page().tables.connections.iter().map(|c| c.id).collect();
+        draw_tube(d, pa, pb);
+        let new = d
+            .shell_mut()
+            .canvas()
+            .unwrap()
+            .page()
+            .tables
+            .connections
+            .iter()
+            .find(|c| c.kind == "fluid" && !before.contains(&c.id))
+            .map(|c| c.id)
+            .expect("the tube drawn");
+        lines.push(new);
+    }
+    (valve, lines)
+}
+
+/// The Tubes table's cell of column `column` in the row of tube `line`.
+fn tube_cell(d: &mut Driver, line: Uuid, column: &str) -> String {
+    let _ = d
+        .shell_mut()
+        .dispatch("navigator.show", &json!({"kind": "tubes"}));
+    d.settle();
+    let table = d
+        .shell_mut()
+        .nav(NavKind::Tubes)
+        .and_then(|n| n.table())
+        .cloned()
+        .expect("the tube table");
+    let at = table.columns.iter().position(|c| c.key == column).unwrap();
+    table
+        .nodes
+        .iter()
+        .find(|n| n.records.first() == Some(&line))
+        .map(|n| n.cells[at].clone())
+        .unwrap_or_else(|| panic!("no row of {line}"))
+}
+
+/// R2-G of the re-test: a medium set on two tubes at once said "set on 2 connections", but only the first kept it: the
+/// other's row in the tube list stayed empty, the Media list counted one tube too few and the selection read "varies".
+/// Set on the two working tubes, which lie in different nets, both carry it, the Media list counts them, and the
+/// selection reads the medium with both places it is defined at.
+#[test]
+fn r2g_a_medium_set_on_two_tubes_at_once_holds_on_both() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    let (_, lines) = valve_and_three_tubes(&mut d);
+    let medium = json!({"name": "Compressed air", "p_nom": "6"});
+    assert_eq!(d.shell_mut().dispatch("fluid.medium_new", &medium), Outcome::Done);
+    let pick = json!({ "ids": [lines[1].to_string(), lines[2].to_string()] });
+    let _ = d.shell_mut().dispatch("select.set", &pick);
+    d.settle();
+    let edit = json!({"row": "connection/derived.medium"});
+    assert_eq!(d.shell_mut().dispatch("props.edit", &edit), Outcome::Done);
+    let (_, id) = d
+        .shell_mut()
+        .properties()
+        .choices()
+        .and_then(|c| c.items.first().cloned())
+        .expect("the project's medium as a choice");
+    let set = json!({"row": "connection/derived.medium", "value": id});
+    assert_eq!(d.shell_mut().dispatch("props.set", &set), Outcome::Done);
+    let _ = d.shell_mut().dispatch("select.set", &pick);
+    let (text, chip) = prop_row(&mut d, "connection/derived.medium");
+    assert_eq!(text, "Compressed air");
+    assert!(!chip.contains("varies"), "{chip}");
+    for l in &lines[1..] {
+        assert_eq!(tube_cell(&mut d, *l, "medium"), "Compressed air");
+    }
+    let carried = lines
+        .iter()
+        .filter(|l| tube_cell(&mut d, **l, "medium") == "Compressed air")
+        .count();
+    let badge = fluid_nodes(&mut d)
+        .into_iter()
+        .find(|n| n.label == "Compressed air")
+        .and_then(|n| n.badges.first().cloned())
+        .expect("the medium's row");
+    assert_eq!(badge, format!("{carried} lines"), "the Media row counts the tubes that carry it");
+    d.shell_mut().shutdown();
+}

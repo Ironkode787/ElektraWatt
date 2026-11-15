@@ -699,9 +699,10 @@ impl Command for EditMedium {
 /// propagation; without `medium` the port's definition is removed.
 ///
 /// FI-04: the port must be a fluid port, and its net holds at most one definition: a new one replaces the net's (at
-/// this port or at another of the same net), so that a medium set at any port of a net is the net's. Refused: a CP
-/// that is no fluid port (in words); a function or medium that does not exist (`NotFound`). Interactive, one undo
-/// step. Outcome: the definition (the function after a removal).
+/// this port or at another of the same net), so that a medium set at any port of a net is the net's. Each port of
+/// `also` takes the same medium (or loses its definition) in the same step, checked alike (the window's medium set on
+/// several tubes at once). Refused: a CP that is no fluid port (in words); a function or medium that does not exist
+/// (`NotFound`). Interactive, one undo step. Outcome: the definition at the first port (the function after a removal).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DefineMedium {
@@ -714,6 +715,10 @@ pub struct DefineMedium {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<UuidS>")]
     pub medium: Option<Id<Medium>>,
+    /// Further ports that take the same medium (or lose their definition) in the same step, each as `function` and
+    /// `idx`: the window's medium set on several tubes at once.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub also: Vec<crate::commands::device::HintCp>,
 }
 
 impl Command for DefineMedium {
@@ -724,16 +729,26 @@ impl Command for DefineMedium {
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
-        tx.require::<Function>(self.function)?;
-        let (f, idx) = (self.function, self.idx);
+        if let Some(m) = self.medium {
+            tx.require::<Medium>(m)?;
+        }
+        let first = self.define(tx, self.function, self.idx)?;
+        for p in &self.also {
+            self.define(tx, p.function, p.idx)?;
+        }
+        Ok(first)
+    }
+}
+
+impl DefineMedium {
+    /// The definition at one port: the port checked, the definitions of its net replaced (FI-04).
+    fn define(&self, tx: &mut TxBuilder<'_>, f: Id<Function>, idx: u16) -> Result<Outcome, CmdError> {
+        tx.require::<Function>(f)?;
         if !matches!(cp_fluid_class(tx, f, idx), FluidPortClass::Fluid(_)) {
             return tx.reject(text!(
                 "refusal-connection-not-fluid-port",
                 crate::words::cp(tx, f, idx)
             ));
-        }
-        if let Some(m) = self.medium {
-            tx.require::<Medium>(m)?;
         }
         let at = Endpoint::Cp(f, idx);
         // A new medium replaces the definition of the port's whole net, so that a net is never defined twice.

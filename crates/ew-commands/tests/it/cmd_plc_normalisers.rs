@@ -704,6 +704,7 @@ fn n_fl_1_carries_lines_closures_and_media_to_the_new_valve_and_names_what_goes(
             function: body,
             idx,
             medium: Some(air),
+            also: Vec::new(),
         })
         .expect("a medium definition");
     }

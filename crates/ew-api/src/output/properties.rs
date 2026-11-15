@@ -1750,6 +1750,22 @@ fn fluid_line_rows(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid]) -> Vec<Built> {
         tube_per.push(((!text.is_empty()).then_some(Value::String(text)), provenance));
     }
     let options: Vec<String> = media.iter().map(|(id, _)| id.as_uuid().to_string()).collect();
+    // Tubes of one medium defined at different ports read as that medium with each place it is defined at, not as
+    // "varies" (the re-test: two tubes set at once read "varies (2)").
+    let mut vias: Vec<String> = Vec::new();
+    for (_, p) in &medium_per {
+        if let Provenance::Derived { via } = p
+            && !vias.contains(via)
+        {
+            vias.push(via.clone());
+        }
+    }
+    if vias.len() > 1 && medium_per.windows(2).all(|w| w[0].0 == w[1].0) {
+        let via = vias.join(" · ");
+        for (_, p) in &mut medium_per {
+            *p = Provenance::Derived { via: via.clone() };
+        }
+    }
     let (medium_value, medium_provenance) = merge(cx, &FieldType::Text, medium_per);
     // The medium's name stands for its ID.
     let medium_value = match medium_value {

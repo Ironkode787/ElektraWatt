@@ -44,6 +44,9 @@ pub struct LayoutEdit {
     pub kind: String,
     /// The record.
     pub target: Uuid,
+    /// The selection's other records of the kind, for a row that sets them all at once (a tube's medium); empty for
+    /// the others.
+    pub others: Vec<Uuid>,
     /// The row's path (`derived.position`).
     pub row: String,
     /// The text typed (a choice's text for a choice row, `true` or `false` for a yes-or-no row).
@@ -930,7 +933,8 @@ impl Session {
                 json!({"config_project": edit.target.to_string(), "profile": text}),
             ),
             // A fluid line's medium, chosen among the project's media: defined at the line's end, which replaces the
-            // definition of its net (doc 11 §7).
+            // definition of its net (doc 11 §7); the selection's other tubes take it in the same step (`also`: the
+            // re-test set it on two tubes and only the first kept it).
             ("connection", "medium") => {
                 let Some((function, idx)) = self.line_end_cp(edit.target) else {
                     return invalid("The tube ends at no port to define its medium at.");
@@ -938,10 +942,17 @@ impl Session {
                 if text.parse::<Uuid>().is_err() {
                     return invalid("Choose one of the project's media.");
                 }
-                command(
-                    "fluid.medium.define",
-                    json!({"function": function.to_string(), "idx": idx, "medium": text}),
-                )
+                let also: Vec<Value> = edit
+                    .others
+                    .iter()
+                    .filter_map(|l| self.line_end_cp(*l))
+                    .map(|(f, i)| json!({"function": f.to_string(), "idx": i}))
+                    .collect();
+                let mut params = json!({"function": function.to_string(), "idx": idx, "medium": text});
+                if !also.is_empty() {
+                    params["also"] = Value::Array(also);
+                }
+                command("fluid.medium.define", params)
             }
             // A valve's position on its module or valve terminal: `assembly.attach` there at the typed position, which
             // refuses a position another child holds in words.

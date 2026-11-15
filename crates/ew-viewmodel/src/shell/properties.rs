@@ -1273,6 +1273,7 @@ impl ShellModel {
         let edit = ew_api::output::LayoutEdit {
             kind: section.kind.clone(),
             target,
+            others: section.targets.iter().skip(1).copied().collect(),
             row: row.path.clone(),
             text: text.to_owned(),
         };

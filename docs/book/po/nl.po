@@ -3381,8 +3381,9 @@ msgid ""
 "Right-click a tube and choose **Medium:** with the medium's name: the tube's "
 "net and every net the medium reaches through the valves carry it. The fluid "
 "navigator counts the tubes of each medium. A tube's **Medium** in Properties "
-"shows the medium and where it is defined, and sets it too; its **Tube** row "
-"shows the tube it is made of (such as 6×4 mm PU) and where that comes from."
+"shows the medium and where it is defined, and sets it too, on every tube "
+"selected; its **Tube** row shows the tube it is made of (such as 6×4 mm PU) "
+"and where that comes from."
 msgstr ""
 
 #: src/how-to/fluid-workspace.md:55

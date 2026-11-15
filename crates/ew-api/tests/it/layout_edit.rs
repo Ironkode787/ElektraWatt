@@ -53,6 +53,7 @@ fn edit(s: &Session, kind: &str, target: Uuid, row: &str, text: &str) -> Result<
     s.layout_edit(&LayoutEdit {
         kind: kind.to_owned(),
         target,
+        others: Vec::new(),
         row: format!("derived.{row}"),
         text: text.to_owned(),
     })

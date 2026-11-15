@@ -406,6 +406,11 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: a valve placed or dragged into a valve terminal's box is the terminal's valve at its next free
   position, never a function of the terminal's device; the toast names the position, and a valve's Valve position
   stands in Properties' Main group and moves it (persona re-test R2-A)
+- api-add: `fluid.medium.define` takes `also`, further ports that take the same medium in the same step (persona
+  re-test R2-G)
+- behaviour-change: a tube's Medium set in Properties on several tubes at once holds on each of them (only the first
+  kept it), and tubes of one medium defined at different ports read as that medium, not "varies" (persona re-test
+  R2-G)
 - format-variant: report_block ReportKind tube_list
 - format-variant: report_block ReportKind tube_cut_list
 - format-variant: report_block ReportKind tube_labels

@@ -132,6 +132,7 @@ fn a_medium_is_made_changed_and_deleted_with_its_definitions() {
         function: FN_A,
         idx: 0,
         medium: Some(m),
+        also: Vec::new(),
     })
     .expect("defined");
     let gone = e
@@ -199,12 +200,14 @@ fn a_port_holds_one_medium_definition() {
         function: FN_A,
         idx: 0,
         medium: Some(m),
+        also: Vec::new(),
     })
     .unwrap();
     e.execute(&DefineMedium {
         function: FN_A,
         idx: 0,
         medium: Some(n),
+        also: Vec::new(),
     })
     .unwrap();
     let defs: Vec<Id<Medium>> = e
@@ -218,6 +221,7 @@ fn a_port_holds_one_medium_definition() {
         function: FN_A,
         idx: 0,
         medium: None,
+        also: Vec::new(),
     })
     .unwrap();
     assert!(e.model().table::<MediumDef>().is_empty());
@@ -225,7 +229,8 @@ fn a_port_holds_one_medium_definition() {
         refusal(e.execute(&DefineMedium {
             function: FN_102G1,
             idx: 0,
-            medium: Some(m)
+            medium: Some(m),
+            also: Vec::new(),
         })),
         "-102G1:L is not a fluid port"
     );

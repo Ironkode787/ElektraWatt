@@ -508,7 +508,8 @@ golden builder keeps its 28 explicit bindings, because under H1 the map and the 
 
 *As built (WP-S1.25).* `fluid.medium.edit {medium?, set?}`, `fluid.medium.define {function, idx, medium?}`,
 `fluid.tube.set {lines, set, fitting_a?, fitting_b?, reset: [field]}` and `fluid.length.set {lines, length?}` are
-built, each one undo step; the project's default tube and line-tag scheme are the `fluid` member of
+built, each one undo step (`fluid.medium.define` takes `also`, further ports defined alike in the same step: a tube's
+Medium in Properties set on several tubes at once defines it at each tube's end); the project's default tube and line-tag scheme are the `fluid` member of
 `project.settings.set`. `valve.add` refuses a part with a PLC section (a station or module part, which N0 would attach
 to a station; FT-1576). `fluid.line.draw` is `connection.draw` with kind `fluid`; `valve_terminal.generate_overview`
 is built (§5.5); `RouteTubes` is 1.x.

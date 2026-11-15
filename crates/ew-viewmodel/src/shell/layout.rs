@@ -930,6 +930,7 @@ impl ShellModel {
         let edit = ew_api::output::LayoutEdit {
             kind: "page".to_owned(),
             target: page,
+            others: Vec::new(),
             row: "derived.surface".to_owned(),
             text: surface.to_string(),
         };
