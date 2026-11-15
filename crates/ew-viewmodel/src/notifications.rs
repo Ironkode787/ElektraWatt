@@ -101,7 +101,7 @@ impl NoteAction {
             NoteAction::Rack => key!("action-plc-rack-editor"),
             NoteAction::NewStation => key!("action-plc-new-station"),
             NoteAction::ShowFolder => key!("toast-show-folder"),
-            NoteAction::Swap => key!("toast-swap"),
+            NoteAction::Swap => key!("action-fluid-swap"),
         }
     }
 }

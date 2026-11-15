@@ -35,14 +35,22 @@ fn run(s: &mut Session, name: &str, params: Value) -> Result<(), String> {
 }
 
 fn device(s: &Session, id: Uuid) -> std::sync::Arc<Device> {
-    s.query().devices().get(Id::from_uuid(id)).cloned().expect("the device")
+    s.query()
+        .devices()
+        .get(Id::from_uuid(id))
+        .cloned()
+        .expect("the device")
 }
 
 /// The starter symbol `key` in the edition of the fluid page's grid.
 fn edition(s: &Session, key: &str) -> String {
     let page = fluid_page(s);
     let qet = s.query().pages().get(Id::from_uuid(page)).map(|p| p.grid) == Some(Grid::QET_10PX);
-    if qet { format!("{key}@qet10") } else { key.to_owned() }
+    if qet {
+        format!("{key}@qet10")
+    } else {
+        key.to_owned()
+    }
 }
 
 /// The project with a fluid page 201.
@@ -76,7 +84,10 @@ fn new_devices(s: &mut Session, f: impl FnOnce(&mut Session)) -> Vec<Uuid> {
 fn place_terminal(s: &mut Session, at: (i64, i64)) -> Uuid {
     let part = library_part(s, "EW-GEN-VTM-1");
     let key = edition(s, "ew.gen.blackbox");
-    let copies = s.starter_embed_part(part, &key).expect("closure").unwrap_or(json!({"copies": []}));
+    let copies = s
+        .starter_embed_part(part, &key)
+        .expect("closure")
+        .unwrap_or(json!({"copies": []}));
     let symbol = s.starter_symbol_copy(&key).expect("the black box");
     let page = fluid_page(s);
     let count = s.part_positions(part).expect("the terminal's positions");
@@ -110,10 +121,19 @@ fn centre(c: &SlotCell) -> (i64, i64) {
 }
 
 /// Places part `number`'s main function with its symbol `symbol` at `at`, into `terminal`; the new device.
-fn place_into(s: &mut Session, number: &str, symbol: &str, at: (i64, i64), terminal: Uuid) -> Result<Uuid, String> {
+fn place_into(
+    s: &mut Session,
+    number: &str,
+    symbol: &str,
+    at: (i64, i64),
+    terminal: Uuid,
+) -> Result<Uuid, String> {
     let part = library_part(s, number);
     let key = edition(s, symbol);
-    let copies = s.starter_embed_part(part, &key).expect("closure").unwrap_or(json!({"copies": []}));
+    let copies = s
+        .starter_embed_part(part, &key)
+        .expect("closure")
+        .unwrap_or(json!({"copies": []}));
     let symbol = s.starter_symbol_copy(&key).expect("the symbol");
     let page = fluid_page(s);
     let snapped = s.slot_box(page, at, 1).expect("a point").0;
@@ -152,7 +172,14 @@ fn a_terminal_is_drawn_as_its_positions_and_filled_where_its_cells_are() {
     assert!(c.iter().all(|x| x.holder.is_none()), "all empty");
     assert!(c.windows(2).all(|w| w[0].rect[2] == w[1].rect[0]), "in a row");
 
-    let v = place_into(&mut s, "EW-GEN-VLV-3", "ew.iso.valve-5-2-sol-spring", centre(&c[2]), vt).expect("placed");
+    let v = place_into(
+        &mut s,
+        "EW-GEN-VLV-3",
+        "ew.iso.valve-5-2-sol-spring",
+        centre(&c[2]),
+        vt,
+    )
+    .expect("placed");
     assert_eq!(device(&s, v).parent.map(|p| p.as_uuid()), Some(vt));
     assert_eq!(device(&s, v).position, Some(3), "the cell it was placed in");
     let c = cells(&s, vt);
@@ -165,7 +192,12 @@ fn a_terminal_is_drawn_as_its_positions_and_filled_where_its_cells_are() {
 
     // Dragged to cell 1, by grid steps as the Select tool drags.
     let move_to = |s: &mut Session, rep: Uuid, from: (i64, i64), to: (i64, i64)| {
-        let grid = s.query().pages().get(Id::from_uuid(page)).map(|p| p.grid).expect("grid");
+        let grid = s
+            .query()
+            .pages()
+            .get(Id::from_uuid(page))
+            .map(|p| p.grid)
+            .expect("grid");
         let k = |a: i64, b: i64| grid.snap(Nm(b)) - grid.snap(Nm(a));
         run(
             s,
@@ -176,7 +208,14 @@ fn a_terminal_is_drawn_as_its_positions_and_filled_where_its_cells_are() {
     move_to(&mut s, r.id, centre(&c[2]), centre(&c[0])).expect("moved");
     assert_eq!(device(&s, v).position, Some(1), "dragged to cell 1");
 
-    let w = place_into(&mut s, "EW-GEN-VLV-3", "ew.iso.valve-5-2-sol-spring", centre(&c[1]), vt).expect("placed");
+    let w = place_into(
+        &mut s,
+        "EW-GEN-VLV-3",
+        "ew.iso.valve-5-2-sol-spring",
+        centre(&c[1]),
+        vt,
+    )
+    .expect("placed");
     assert_eq!(device(&s, w).position, Some(2));
     let c = cells(&s, vt);
     let r = rep_of(&s, v);
@@ -190,13 +229,26 @@ fn a_terminal_is_drawn_as_its_positions_and_filled_where_its_cells_are() {
     assert_eq!((c[0].holder, c[1].holder), (Some(w), Some(v)));
 
     // A new valve onto a held cell is refused in words; with replace it takes the cell.
-    let refused = place_into(&mut s, "EW-GEN-VLV-3", "ew.iso.valve-5-2-sol-spring", centre(&c[0]), vt);
+    let refused = place_into(
+        &mut s,
+        "EW-GEN-VLV-3",
+        "ew.iso.valve-5-2-sol-spring",
+        centre(&c[0]),
+        vt,
+    );
     let message = refused.expect_err("held");
     assert!(message.contains("already holds"), "{message}");
     assert!(!message.contains("push insert"), "{message}");
 
     // A stand-alone valve (a coil of its own to wire) stays a valve of its own.
-    let own = place_into(&mut s, "EW-GEN-VLV-1", "ew.iso.valve-5-2-sol-spring", centre(&c[3]), vt).expect("placed");
+    let own = place_into(
+        &mut s,
+        "EW-GEN-VLV-1",
+        "ew.iso.valve-5-2-sol-spring",
+        centre(&c[3]),
+        vt,
+    )
+    .expect("placed");
     assert_eq!(device(&s, own).parent, None, "not taken as a position");
     assert!(matches!(
         s.terminal_seat(own),
@@ -213,10 +265,18 @@ fn a_free_box_is_redrawn_as_its_positions_with_its_valves_and_tubes() {
     let page = fluid_page(&s);
     let part = library_part(&s, "EW-GEN-VTM-1");
     let key = edition(&s, "ew.gen.blackbox");
-    let copies = s.starter_embed_part(part, &key).expect("closure").unwrap_or(json!({"copies": []}));
+    let copies = s
+        .starter_embed_part(part, &key)
+        .expect("closure")
+        .unwrap_or(json!({"copies": []}));
     let symbol = s.starter_symbol_copy(&key).expect("the black box");
     let (pos, _) = s.slot_box(page, (60_000_000, 40_000_000), 1).expect("a point");
-    let grid = s.query().pages().get(Id::from_uuid(page)).map(|p| p.grid).expect("grid");
+    let grid = s
+        .query()
+        .pages()
+        .get(Id::from_uuid(page))
+        .map(|p| p.grid)
+        .expect("grid");
     let at = |k: i64| grid.at(k).expect("a grid point").0;
     let made = new_devices(&mut s, |s| {
         run(
@@ -235,7 +295,10 @@ fn a_free_box_is_redrawn_as_its_positions_with_its_valves_and_tubes() {
         .into_iter()
         .find(|r| r.device == Some(vt) && r.black_box.is_some())
         .expect("the free box");
-    assert!(free.black_box.as_ref().is_some_and(|b| b.cells.is_empty()), "a free box shows no cells");
+    assert!(
+        free.black_box.as_ref().is_some_and(|b| b.cells.is_empty()),
+        "a free box shows no cells"
+    );
     // A valve of the terminal drawn below the box, with a tube from its port 2 to a cylinder.
     let v = place_into(
         &mut s,
@@ -245,7 +308,11 @@ fn a_free_box_is_redrawn_as_its_positions_with_its_valves_and_tubes() {
         vt,
     )
     .expect("placed");
-    assert_eq!(device(&s, v).position, Some(1), "the first free position of a free box");
+    assert_eq!(
+        device(&s, v).position,
+        Some(1),
+        "the first free position of a free box"
+    );
     let cyl = place_into(
         &mut s,
         "EW-GEN-CYL-1",
@@ -259,7 +326,10 @@ fn a_free_box_is_redrawn_as_its_positions_with_its_valves_and_tubes() {
     let port = |dev: Uuid, d: &str| {
         t.cps
             .iter()
-            .find(|c| c.label.ends_with(&format!(":{d}")) && t.reps.iter().any(|r| r.id == c.rep && r.device == Some(dev)))
+            .find(|c| {
+                c.label.ends_with(&format!(":{d}"))
+                    && t.reps.iter().any(|r| r.id == c.rep && r.device == Some(dev))
+            })
             .map(|c| (c.function, c.idx))
             .expect("the port")
     };
@@ -271,13 +341,25 @@ fn a_free_box_is_redrawn_as_its_positions_with_its_valves_and_tubes() {
         "a": {"cp": {"function": a.0.to_string(), "idx": a.1}}, "b": {"cp": {"function": b.0.to_string(), "idx": b.1}}}),
     )
     .expect("the tube");
-    bulk(&mut s, "valve_terminal.draw_slots", json!({"rep": free.id.to_string()})).expect("drawn as slots");
+    bulk(
+        &mut s,
+        "valve_terminal.draw_slots",
+        json!({"rep": free.id.to_string()}),
+    )
+    .expect("drawn as slots");
     let c = cells(&s, vt);
     assert_eq!(c.len(), 4);
     let r = rep_of(&s, v);
-    assert!(c[0].rect[0] < r.pos.0 && r.pos.0 < c[0].rect[2], "the valve stands in cell 1");
+    assert!(
+        c[0].rect[0] < r.pos.0 && r.pos.0 < c[0].rect[2],
+        "the valve stands in cell 1"
+    );
     let t = tables(&s);
-    let tube = t.connections.iter().find(|x| x.kind == "fluid").expect("the tube");
+    let tube = t
+        .connections
+        .iter()
+        .find(|x| x.kind == "fluid")
+        .expect("the tube");
     let route = &tube.polyline;
     let p2 = t
         .cps
@@ -290,15 +372,26 @@ fn a_free_box_is_redrawn_as_its_positions_with_its_valves_and_tubes() {
         "the tube follows its valve: {route:?} {p2:?}"
     );
     // A second time is refused in words.
-    let again = bulk(&mut s, "valve_terminal.draw_slots", json!({"rep": free.id.to_string()}));
-    assert!(again.expect_err("refused").contains("drawn as its positions already"));
+    let again = bulk(
+        &mut s,
+        "valve_terminal.draw_slots",
+        json!({"rep": free.id.to_string()}),
+    );
+    assert!(
+        again
+            .expect_err("refused")
+            .contains("drawn as its positions already")
+    );
 }
 
 /// Places starter terminal part `number` drawn as its positions near `at`; its ID.
 fn place_terminal_of(s: &mut Session, number: &str, at: (i64, i64)) -> Uuid {
     let part = library_part(s, number);
     let key = edition(s, "ew.gen.blackbox");
-    let copies = s.starter_embed_part(part, &key).expect("closure").unwrap_or(json!({"copies": []}));
+    let copies = s
+        .starter_embed_part(part, &key)
+        .expect("closure")
+        .unwrap_or(json!({"copies": []}));
     let symbol = s.starter_symbol_copy(&key).expect("the black box");
     let page = fluid_page(s);
     let count = s.part_positions(part).expect("the terminal's positions");
@@ -327,7 +420,14 @@ fn the_two_kinds_of_terminal_drive_their_valves_solenoids_apart() {
         Some(ew_api::output::TerminalKind::BusNode { .. })
     ));
     let c = cells(&s, bus);
-    let v = place_into(&mut s, "EW-GEN-VLV-3", "ew.iso.valve-5-2-sol-spring", centre(&c[0]), bus).expect("placed");
+    let v = place_into(
+        &mut s,
+        "EW-GEN-VLV-3",
+        "ew.iso.valve-5-2-sol-spring",
+        centre(&c[0]),
+        bus,
+    )
+    .expect("placed");
     let sol = s.valve_solenoids(v);
     assert!(
         matches!(
@@ -337,11 +437,25 @@ fn the_two_kinds_of_terminal_drive_their_valves_solenoids_apart() {
         "{sol:?}"
     );
     let multi = place_terminal_of(&mut s, "EW-GEN-VTP-1", (60_000_000, 140_000_000));
-    assert_eq!(s.terminal_kind(multi), Some(ew_api::output::TerminalKind::Multipin));
+    assert_eq!(
+        s.terminal_kind(multi),
+        Some(ew_api::output::TerminalKind::Multipin)
+    );
     let c = cells(&s, multi);
     assert_eq!(c.len(), 8, "the multipin terminal's eight positions");
-    let w = place_into(&mut s, "EW-GEN-VLV-3", "ew.iso.valve-5-2-sol-spring", centre(&c[1]), multi).expect("placed");
-    assert_eq!(device(&s, w).position, Some(2), "a multipin terminal's cell takes its valve too");
+    let w = place_into(
+        &mut s,
+        "EW-GEN-VLV-3",
+        "ew.iso.valve-5-2-sol-spring",
+        centre(&c[1]),
+        multi,
+    )
+    .expect("placed");
+    assert_eq!(
+        device(&s, w).position,
+        Some(2),
+        "a multipin terminal's cell takes its valve too"
+    );
     match s.valve_solenoids(w).first().and_then(|x| x.seat.clone()) {
         Some(ew_api::output::SolenoidSeat::Multipin { pin, plug, .. }) => {
             assert_eq!(pin, "3", "solenoid 14 of position 2 on pin 3");

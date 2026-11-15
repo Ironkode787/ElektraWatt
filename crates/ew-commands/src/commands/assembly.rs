@@ -247,13 +247,14 @@ pub(crate) fn fits_terminal(tx: &TxBuilder<'_>, device: Id<Device>) -> bool {
 /// Whether `device` is a valve terminal: a PLC station of role `valve_terminal`, or a multipin terminal (no station, a
 /// part that names its plug's pins; `ew_derive::is_multipin_terminal`).
 fn is_terminal(tx: &TxBuilder<'_>, device: Id<Device>) -> bool {
-    tx.get::<Device>(device).is_some_and(|t| match &t.aspects.plc_station {
-        Some(s) => s.role == ew_schema::StationRole::ValveTerminal,
-        None => t.parts.iter().any(|u| {
-            tx.get::<LibCopy<ew_schema::Part>>(u.part.copy)
-                .is_some_and(|c| c.item.sections.fluid.as_ref().is_some_and(|f| !f.pins.is_empty()))
-        }),
-    })
+    tx.get::<Device>(device)
+        .is_some_and(|t| match &t.aspects.plc_station {
+            Some(s) => s.role == ew_schema::StationRole::ValveTerminal,
+            None => t.parts.iter().any(|u| {
+                tx.get::<LibCopy<ew_schema::Part>>(u.part.copy)
+                    .is_some_and(|c| c.item.sections.fluid.as_ref().is_some_and(|f| !f.pins.is_empty()))
+            }),
+        })
 }
 
 /// One cell of a valve terminal as the transaction holds it: its module, its position and the child that holds it.
@@ -270,7 +271,10 @@ fn cells_in(tx: &TxBuilder<'_>, terminal: Id<Device>) -> Vec<CellIn> {
     modules.sort();
     let mut out = Vec::new();
     for m in std::iter::once(terminal).chain(modules.into_iter().map(|(_, m)| m)) {
-        let Some(count) = tx.get::<Device>(m).and_then(|d| crate::commands::fluid::position_count(tx, &d)) else {
+        let Some(count) = tx
+            .get::<Device>(m)
+            .and_then(|d| crate::commands::fluid::position_count(tx, &d))
+        else {
             continue;
         };
         let mut children = tx.children_of(m);
@@ -289,7 +293,10 @@ fn cells_in(tx: &TxBuilder<'_>, terminal: Id<Device>) -> Vec<CellIn> {
 }
 
 /// The slotted boxes of valve terminal `terminal` (`BoxSpec.slots`): each representation with its frame on its page.
-fn slotted_boxes(tx: &TxBuilder<'_>, terminal: Id<Device>) -> Vec<(Arc<Representation>, ew_derive::SlotFrame)> {
+fn slotted_boxes(
+    tx: &TxBuilder<'_>,
+    terminal: Id<Device>,
+) -> Vec<(Arc<Representation>, ew_derive::SlotFrame)> {
     let mut reps: Vec<Id<Representation>> = tx
         .functions_of_device(terminal)
         .into_iter()
@@ -319,7 +326,11 @@ fn terminal_of(tx: &TxBuilder<'_>, parent: Id<Device>) -> Option<Id<Device>> {
 
 /// The cell of a slotted box of `terminal` that representation `rep` stands in (the middle of its symbol's graphics,
 /// at the height of its insertion point): (module, position); `None` when it stands in no cell.
-fn cell_under(tx: &TxBuilder<'_>, terminal: Id<Device>, rep: Id<Representation>) -> Option<(Id<Device>, u32)> {
+fn cell_under(
+    tx: &TxBuilder<'_>,
+    terminal: Id<Device>,
+    rep: Id<Representation>,
+) -> Option<(Id<Device>, u32)> {
     let r = tx.get::<Representation>(rep)?;
     let (min, max) = tx
         .get::<LibCopy<ew_schema::SymbolDef>>(r.symbol)
@@ -337,7 +348,12 @@ fn cell_under(tx: &TxBuilder<'_>, terminal: Id<Device>, rep: Id<Representation>)
 
 /// The representations of `device` on `page` that are no box, in ID order: of its valve functions only with
 /// `valves_only`.
-fn reps_on(tx: &TxBuilder<'_>, device: Id<Device>, page: Id<Page>, valves_only: bool) -> Vec<Arc<Representation>> {
+fn reps_on(
+    tx: &TxBuilder<'_>,
+    device: Id<Device>,
+    page: Id<Page>,
+    valves_only: bool,
+) -> Vec<Arc<Representation>> {
     let mut reps: Vec<Arc<Representation>> = tx
         .functions_of_device(device)
         .into_iter()
@@ -456,7 +472,10 @@ pub(crate) fn seat_on_terminal(
         if is_supply_plate(tx, &d) && d.parent != Some(terminal) {
             AttachChildren {
                 parent: terminal,
-                children: vec![ChildSpec { device, position: None }],
+                children: vec![ChildSpec {
+                    device,
+                    position: None,
+                }],
                 swap: false,
             }
             .run(tx)?;

@@ -569,7 +569,12 @@ fn catalogue_part(
     let defs: Vec<_> = part
         .function_template
         .iter()
-        .filter_map(|t| q.fndefs().get(fndef_copy(&t.fndef)).cloned().or_else(|| fndef_of(q, &t.fndef)))
+        .filter_map(|t| {
+            q.fndefs()
+                .get(fndef_copy(&t.fndef))
+                .cloned()
+                .or_else(|| fndef_of(q, &t.fndef))
+        })
         .collect();
     let terminal_valve =
         part.sections.plc.is_none() && ew_derive::fits_terminal(defs.iter().map(|d| &d.item));

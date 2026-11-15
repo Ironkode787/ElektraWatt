@@ -226,17 +226,23 @@ fn ew_fl_002_reports_excess_and_unbound_coils() {
                 Severity::Error,
                 "-1Q1: solenoid 14 is bound to 2 channels: channel 0 of -1U3, channel 1 of -1U3".to_owned()
             ),
-            (Severity::Warning, "-1Q2: no PLC output drives solenoid 14; bind one to it".to_owned()),
+            (
+                Severity::Warning,
+                "-1Q2: no PLC output drives solenoid 14; bind one to it".to_owned()
+            ),
             (
                 Severity::Error,
                 "-1Q4: channel 6 of -1U3 drives a coil that the part does not declare".to_owned()
             ),
-            (Severity::Warning, "-1Q4: no PLC output drives solenoid 14; bind one to it".to_owned()),
+            (
+                Severity::Warning,
+                "-1Q4: no PLC output drives solenoid 14; bind one to it".to_owned()
+            ),
         ]
     );
     assert_eq!(
         ew_checks::messages::title("EW-FL-002", "nl-NL").as_deref(),
-        Some("Kanalen en magneetspoelen komen niet overeen")
+        Some("Magneetspoelen en hun uitgangen")
     );
 }
 
@@ -268,7 +274,7 @@ fn ew_fl_004_lists_spare_valves_and_blanking_plates() {
         dutch(&fx.build(), "EW-FL-004"),
         [
             "-1U3: ventielplaats 2 bevat een reserveventiel, -1Q2",
-            "-1U3: ventielplaats 3 bevat een blindplaat, -?Q3",
+            "-1U3: ventielplaats 3 is afgesloten met een blindplaat, -?Q3",
         ]
     );
     assert_eq!(

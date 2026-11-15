@@ -34,7 +34,11 @@ fn child(device: Id<Device>, position: Option<u32>) -> ChildSpec {
 }
 
 fn attach(parent: Id<Device>, children: Vec<ChildSpec>) -> AttachChildren {
-    AttachChildren { parent, children, swap: false }
+    AttachChildren {
+        parent,
+        children,
+        swap: false,
+    }
 }
 
 fn set_device(device: Id<Device>, path: &str, value: Value) -> SetFields {

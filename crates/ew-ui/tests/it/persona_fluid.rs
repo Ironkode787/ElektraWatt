@@ -1759,7 +1759,11 @@ fn f15_a_terminal_is_drawn_as_its_positions_and_filled_where_they_are() {
     // Its menu: Replace, Empty, Blanking plate; chosen, the plate is drawn as one.
     let at = cell_px(&mut d, 1);
     let on_cell = menu_at(&mut d, at);
-    for label in ["Replace at position 2…", "Empty position 2", "Blanking plate at position 2"] {
+    for label in [
+        "Replace at position 2…",
+        "Empty position 2",
+        "Blanking plate at position 2",
+    ] {
         assert!(on_cell.iter().any(|l| l == label), "{label}: {on_cell:?}");
     }
     d.input(&right_click(at));

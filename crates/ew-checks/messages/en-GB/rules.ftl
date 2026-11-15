@@ -362,7 +362,7 @@ rule-ew-fl-002 = { $form ->
        *[unbound] { $valve }: no PLC output drives solenoid { $solenoid }; bind one to it
     }
     .title = Solenoids and their outputs
-    .hint = Give each solenoid the valve's part names one PLC output (on a valve terminal with a bus node, a channel of the terminal; on a multipin terminal, the output wired to its plug pin), and no output to another coil.
+    .hint = Give each solenoid the valve's part names one PLC output (on a valve terminal with a bus node, a channel of the valve terminal; on a multipin valve terminal, the output wired to its plug pin), and no output to another coil.
 
 rule-ew-fl-004 = { $form ->
         [blank] { $module }: position { $position } is closed by a blanking plate, { $device }

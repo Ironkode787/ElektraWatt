@@ -3103,7 +3103,12 @@ impl Session {
                     Some(super::rack::SolenoidSeat::Terminal { terminal, channel }) => serde_json::json!({
                         "kind": "terminal", "terminal": terminal, "output": s.output,
                         "channel": channel.map(|c| c.to_string()) }),
-                    Some(super::rack::SolenoidSeat::Multipin { terminal, plug_function, pin, plug }) => {
+                    Some(super::rack::SolenoidSeat::Multipin {
+                        terminal,
+                        plug_function,
+                        pin,
+                        plug,
+                    }) => {
                         serde_json::json!({ "kind": "multipin", "terminal": terminal, "pin": pin, "plug": plug,
                             "plug_function": plug_function.map(|f| f.to_string()) })
                     }

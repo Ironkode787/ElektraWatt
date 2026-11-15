@@ -247,7 +247,12 @@ impl ShellModel {
     }
 
     /// Shows `text` as a toast of key `edit` whose action swaps the positions of valves `device` and `holder` (rc.2).
-    pub(super) fn notify_swap(&mut self, text: String, device: ew_api::output::Uuid, holder: ew_api::output::Uuid) {
+    pub(super) fn notify_swap(
+        &mut self,
+        text: String,
+        device: ew_api::output::Uuid,
+        holder: ew_api::output::Uuid,
+    ) {
         let action = self.project.as_ref().map(|p| {
             (
                 NoteAction::Swap,

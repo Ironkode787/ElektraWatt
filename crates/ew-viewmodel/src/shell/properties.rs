@@ -546,7 +546,11 @@ impl ShellModel {
             let Some(terminal) = section.targets.first().copied() else {
                 continue;
             };
-            for row in section.rows.iter_mut().filter(|r| r.key == "device/derived.valve_positions") {
+            for row in section
+                .rows
+                .iter_mut()
+                .filter(|r| r.key == "device/derived.valve_positions")
+            {
                 if let RowValue::One { text, .. } = &mut row.value {
                     *text = session
                         .terminal_positions(terminal)
@@ -1425,7 +1429,10 @@ impl ShellModel {
                 .as_str()
                 .and_then(|p| p.parse::<ew_api::output::Uuid>().ok())
             && let Some(position) = cmd.params["children"][0]["position"].as_u64()
-            && let Some(holder) = project.session.valve_at(parent, position).filter(|h| *h != target)
+            && let Some(holder) = project
+                .session
+                .valve_at(parent, position)
+                .filter(|h| *h != target)
         {
             let tag = |d| project.session.device_tag(d).unwrap_or_default();
             let text = strings::format(

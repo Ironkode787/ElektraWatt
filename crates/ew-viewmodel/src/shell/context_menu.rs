@@ -265,7 +265,12 @@ impl ShellModel {
     /// at) offers Fill position n…
     /// (empty), Replace… (a valve or a blanking plate), Empty and Blanking plate; a free box offers Draw as slots. Whether
     /// the box is drawn as its positions (its menu then lists no position but the cell's).
-    fn terminal_box_entries(&self, rep: &TableRep, at: Option<(i64, i64)>, out: &mut Vec<ActionItem>) -> bool {
+    fn terminal_box_entries(
+        &self,
+        rep: &TableRep,
+        at: Option<(i64, i64)>,
+        out: &mut Vec<ActionItem>,
+    ) -> bool {
         let Some(b) = rep.black_box.as_ref().filter(|b| b.valve_terminal) else {
             return false;
         };
@@ -686,7 +691,13 @@ impl ShellModel {
     /// page… (`fluid.draw_solenoid`); on the symbol of the coil itself (`symbol_of`, the function it draws) Solenoid 14
     /// of -201Q1, which goes to the valve. Without `positions` (a box drawn as its positions, whose cells have their own
     /// entries), no position's entries.
-    fn fluid_entries(&self, device: Uuid, symbol_of: Option<Uuid>, positions: bool, out: &mut Vec<ActionItem>) {
+    fn fluid_entries(
+        &self,
+        device: Uuid,
+        symbol_of: Option<Uuid>,
+        positions: bool,
+        out: &mut Vec<ActionItem>,
+    ) {
         let Some(session) = self.project_session() else {
             return;
         };
@@ -715,7 +726,12 @@ impl ShellModel {
                             out.extend(self.aimed("fluid.go_output", params, label));
                             continue;
                         }
-                        Some(ew_api::output::SolenoidSeat::Multipin { terminal, plug_function, pin, plug }) => {
+                        Some(ew_api::output::SolenoidSeat::Multipin {
+                            terminal,
+                            plug_function,
+                            pin,
+                            plug,
+                        }) => {
                             out.extend(match plug {
                                 Some(place) => self.aimed(
                                     "nav.goto",

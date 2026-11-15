@@ -156,13 +156,13 @@ impl Rule for WorkingPortOpen {
 // ---------------------------------------------------------------------------------------------------------
 // EW-FL-002
 
-/// EW-FL-002 "Coil bindings against solenoids" (doc 15 §4.5.3): conflict, o r, error (excess) / warning (unbound),
+/// EW-FL-002 "Solenoids and their outputs" (doc 15 §4.5.3): conflict, o r, error (excess) / warning (unbound),
 /// device.
 pub const COIL_BINDINGS: RuleMeta = RuleMeta {
     id: "EW-FL-002",
     code: "120002",
     pack: "EW-FL",
-    title: "Coil bindings against solenoids",
+    title: "Solenoids and their outputs",
     kind: RuleKind::Conflict,
     modes: Modes::letters("or"),
     severity: Severity::Error,

@@ -136,10 +136,15 @@ pub fn slot_box(grid: (i64, i64), at: (i64, i64), count: u16) -> Option<((i64, i
     if count == 0 {
         return None;
     }
-    let grid = ew_derive::ew_units::Grid::new(u64::try_from(grid.0).ok()?, u64::try_from(grid.1).ok()?).ok()?;
+    let grid =
+        ew_derive::ew_units::Grid::new(u64::try_from(grid.0).ok()?, u64::try_from(grid.1).ok()?).ok()?;
     let pitch = ew_derive::SlotFrame::pitch(grid);
     let frame = ew_derive::SlotFrame::new(grid, Pt2::new(Nm(at.0), Nm(at.1)), pitch);
     let o = frame.origin();
-    let outline = frame.outline(usize::from(count)).iter().map(|p| (p.x.0, p.y.0)).collect();
+    let outline = frame
+        .outline(usize::from(count))
+        .iter()
+        .map(|p| (p.x.0, p.y.0))
+        .collect();
     Some(((o.x.0, o.y.0), outline, pitch.0))
 }

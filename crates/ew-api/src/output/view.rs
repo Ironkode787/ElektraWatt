@@ -110,13 +110,15 @@ use ew_reports::{BlockRows, Cell, EmbeddedLayout, LinkTarget, Registry, Row, Row
 use ew_scene::embedded::{CoverTables, EmbeddedContent, EmbeddedTable, EmbeddedView};
 use ew_scene::forms::{AssetRef, BoundValue, PageBindings};
 use ew_scene::page::{
-    BreakMarkView, BreakSide, ConnectionView, CpTarget, FrameView, ItemLink, JunctionView, PinText, RepView,
-    CellView, SegmentTerminal, SlotValue, StripTagView, SymbolRef, ValveCellsView, ValveGlyph, ValveGlyphsView,
+    BreakMarkView, BreakSide, CellView, ConnectionView, CpTarget, FrameView, ItemLink, JunctionView, PinText,
+    RepView, SegmentTerminal, SlotValue, StripTagView, SymbolRef, ValveCellsView, ValveGlyph,
+    ValveGlyphsView,
 };
 use ew_scene::table::{TableColumn, TableLink, TableRow, TableRowKind, TableView};
 use ew_schema::{
-    Device, FnRole, FormDef, Function, FunctionKind, JunctionStyle, LabelMode, LibCopy, LibDocument, Page, PageType,
-    RepType, ReportBlock, ReportKind, ReportSource, Representation, Side, SlotKind, SymbolDef, TagPrint,
+    Device, FnRole, FormDef, Function, FunctionKind, JunctionStyle, LabelMode, LibCopy, LibDocument, Page,
+    PageType, RepType, ReportBlock, ReportKind, ReportSource, Representation, Side, SlotKind, SymbolDef,
+    TagPrint,
 };
 
 /// The tag of the cable a bus line is linked to (doc 10 §2.7), printed beside the line as a wire number is; `None` for
@@ -652,15 +654,14 @@ pub fn page_valve_glyphs(q: &Q, page: Id<Page>) -> Vec<ValveGlyphsView> {
 pub fn page_valve_cells(q: &Q, page: Id<Page>) -> Vec<ValveCellsView> {
     let reps = q.reps();
     let functions = q.functions();
-    let Some(grid) = q.pages().get(page).map(|p| p.grid) else {
-        return Vec::new();
-    };
     let mut ids: Vec<Id<Representation>> = q.idx().reps_by_page(page).collect();
     ids.sort();
     let drawn_here = |device: Id<Device>| {
-        q.idx()
-            .functions_of_device(device)
-            .any(|f| q.idx().reps_of_function(f).any(|r| reps.get(r).is_some_and(|r| r.page == page)))
+        q.idx().functions_of_device(device).any(|f| {
+            q.idx()
+                .reps_of_function(f)
+                .any(|r| reps.get(r).is_some_and(|r| r.page == page))
+        })
     };
     let mut out = Vec::new();
     for rid in ids {
@@ -668,7 +669,17 @@ pub fn page_valve_cells(q: &Q, page: Id<Page>) -> Vec<ValveCellsView> {
         let Some(slots) = rep.box_.as_ref().and_then(|b| b.slots.as_ref()) else {
             continue;
         };
-        let Some(terminal) = rep.functions.first().and_then(|f| functions.get(*f)).and_then(|f| f.device) else {
+        let Some(terminal) = rep
+            .functions
+            .first()
+            .and_then(|f| functions.get(*f))
+            .and_then(|f| f.device)
+        else {
+            continue;
+        };
+        // The page is read only where a box is drawn as its positions: a page record's change (a renumber) leaves the
+        // symbol layers of the other pages alone.
+        let Some(grid) = q.pages().get(page).map(|p| p.grid) else {
             continue;
         };
         let cells = ew_derive::terminal_cells(q, terminal)
@@ -686,7 +697,9 @@ pub fn page_valve_cells(q: &Q, page: Id<Page>) -> Vec<ValveCellsView> {
             })
             .collect();
         let supply = ew_derive::terminal_supply(q, terminal).is_some_and(|f| {
-            q.idx().reps_of_function(f).any(|r| reps.get(r).is_some_and(|r| r.page == page))
+            q.idx()
+                .reps_of_function(f)
+                .any(|r| reps.get(r).is_some_and(|r| r.page == page))
         });
         out.push(ValveCellsView {
             rep: rid,

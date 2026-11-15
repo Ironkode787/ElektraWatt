@@ -907,7 +907,10 @@ impl ShellModel {
             // On a bus-topology page the frame draws a topology box (a device with its sockets, doc 10 §2.7).
             let rep_type = (row.rep_type == "topology").then(|| row.rep_type.clone());
             // On a fluid page a valve terminal is drawn as its positions, one click (rc.2, F15).
-            let fluid = self.page_rows().get(self.page_index()).is_some_and(|r| r.kind == "fluid");
+            let fluid = self
+                .page_rows()
+                .get(self.page_index())
+                .is_some_and(|r| r.kind == "fluid");
             let slots = part_copy
                 .filter(|_| fluid)
                 .and_then(|p| self.project.as_ref()?.session.part_positions(p));

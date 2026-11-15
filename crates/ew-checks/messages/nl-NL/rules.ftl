@@ -365,7 +365,7 @@ rule-ew-fl-002 = { $form ->
        *[unbound] { WORD($valve) }: geen PLC-uitgang stuurt magneetspoel { WORD($solenoid) } aan; koppel er een aan
     }
     .title = Magneetspoelen en hun uitgangen
-    .hint = Geef elke magneetspoel die het ventielartikel noemt één PLC-uitgang (op een ventieleiland met busknooppunt een kanaal van het eiland, op een multipol-eiland de uitgang die op zijn stekkerpen is bedraad), en geen uitgang aan een andere spoel.
+    .hint = Geef elke magneetspoel die het ventielartikel noemt één PLC-uitgang (op een ventieleiland met busknooppunt een kanaal van het ventieleiland, op een multipol-ventieleiland de uitgang die met een draad op zijn stekkerpen is aangesloten), en geen uitgang aan een andere spoel.
 
 rule-ew-fl-004 = { $form ->
         [blank] { WORD($module) }: ventielplaats { $position } is afgesloten met een blindplaat, { WORD($device) }

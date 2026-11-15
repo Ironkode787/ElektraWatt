@@ -1312,7 +1312,8 @@ impl Builder<'_> {
                             ),
                         ] {
                             self.push(
-                                Item::path(Path::polyline(&[a, c]), Some(stroke.clone()), None).with_entity(e),
+                                Item::path(Path::polyline(&[a, c]), Some(stroke.clone()), None)
+                                    .with_entity(e),
                             );
                         }
                     }

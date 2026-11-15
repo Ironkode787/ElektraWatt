@@ -821,9 +821,12 @@ impl ShellModel {
         let c = self.canvas()?;
         let p = c.page().snapper.sheet_to_page(at);
         let r = c.page().tables.reps.iter().find(|r| r.id == rep)?;
-        let cell = r.black_box.as_ref()?.cells.iter().find(|x| {
-            x.rect[0] <= p.0 && p.0 < x.rect[2] && x.rect[1] <= p.1 && p.1 <= x.rect[3]
-        })?;
+        let cell = r
+            .black_box
+            .as_ref()?
+            .cells
+            .iter()
+            .find(|x| x.rect[0] <= p.0 && p.0 < x.rect[2] && x.rect[1] <= p.1 && p.1 <= x.rect[3])?;
         Some((r.device?, cell.clone()))
     }
 
@@ -831,8 +834,10 @@ impl ShellModel {
     fn empty_cell_under_pointer(&self, rep: ew_api::output::Uuid) -> Option<Value> {
         let at = self.canvas()?.pointer()?;
         let (terminal, cell) = self.cell_at(rep, at).filter(|(_, c)| c.holder.is_none())?;
-        Some(serde_json::json!({ "terminal": terminal.to_string(), "module": cell.module.to_string(),
-            "position": cell.position }))
+        Some(
+            serde_json::json!({ "terminal": terminal.to_string(), "module": cell.module.to_string(),
+            "position": cell.position }),
+        )
     }
 
     /// The sentence that says where a device dropped into a valve terminal's box now sits (the persona round: a toast

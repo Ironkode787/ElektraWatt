@@ -181,7 +181,8 @@ impl ShellModel {
     /// The `command.run` parameters that set position `position` of valve module `module` to `occupancy`
     /// (`valve.set_occupancy`), with the copies a library valve part needs: the rack dialog's position rows (rc.2).
     pub fn occupancy_params(&self, module: Uuid, position: u32, occupancy: Value) -> Value {
-        let mut params = json!({ "module": module.to_string(), "position": position, "occupancy": occupancy });
+        let mut params =
+            json!({ "module": module.to_string(), "position": position, "occupancy": occupancy });
         let part = params["occupancy"]["valve"]["part"]
             .as_str()
             .and_then(|p| p.parse::<Uuid>().ok());
@@ -1090,7 +1091,11 @@ impl ShellModel {
         let Some(at) = at else {
             return Outcome::refused(key!("reason-cell-not-shown"));
         };
-        let fill = crate::tools::CellFill { terminal, replace, at };
+        let fill = crate::tools::CellFill {
+            terminal,
+            replace,
+            at,
+        };
         if p.contains_key("part") {
             let part = or_return!(self.record_param(p, "part"));
             return self.fill_cell(fill, part);

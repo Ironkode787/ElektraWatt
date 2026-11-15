@@ -1132,7 +1132,9 @@ pub fn solenoids_in_words(sheet: &mut PropertySheet) {
             && let Some(words) = solenoid_seat_words(&json["seat"])
         {
             *text = words;
-        } else if row.key.starts_with("device/derived.solenoid[") && json.get("drawn").is_some_and(Value::is_null) {
+        } else if row.key.starts_with("device/derived.solenoid[")
+            && json.get("drawn").is_some_and(Value::is_null)
+        {
             *text = strings::text(key!("props-solenoid-not-drawn")).to_owned();
         } else if row.key == "representation/derived.solenoid_of" {
             let word = |k: &str| json.get(k).and_then(Value::as_str).unwrap_or_default().to_owned();
@@ -1152,8 +1154,14 @@ pub fn solenoid_seat_words(seat: &Value) -> Option<String> {
             None => strings::format(key!("props-solenoid-terminal-unbound"), &[&word("terminal")]),
         },
         _ => match seat.get("plug").and_then(Value::as_str) {
-            Some(plug) => strings::format(key!("props-solenoid-pin"), &[&word("pin"), &word("terminal"), plug]),
-            None => strings::format(key!("props-solenoid-pin-undrawn"), &[&word("pin"), &word("terminal")]),
+            Some(plug) => strings::format(
+                key!("props-solenoid-pin"),
+                &[&word("pin"), &word("terminal"), plug],
+            ),
+            None => strings::format(
+                key!("props-solenoid-pin-undrawn"),
+                &[&word("pin"), &word("terminal")],
+            ),
         },
     })
 }

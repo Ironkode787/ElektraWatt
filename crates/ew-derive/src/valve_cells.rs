@@ -101,7 +101,10 @@ pub fn graphics_x_extent(symbol: &SymbolDef) -> Option<(Nm, Nm)> {
             Primitive::Rect(r) => xs.extend([r.rect.0.min().x.0, r.rect.0.max().x.0]),
             Primitive::Ellipse(r) => xs.extend([r.rect.0.min().x.0, r.rect.0.max().x.0]),
             Primitive::Arc(r) => xs.extend([r.rect.0.min().x.0, r.rect.0.max().x.0]),
-            Primitive::Circle(c) => xs.extend([c.centre.x.0.saturating_sub(c.r.0), c.centre.x.0.saturating_add(c.r.0)]),
+            Primitive::Circle(c) => xs.extend([
+                c.centre.x.0.saturating_sub(c.r.0),
+                c.centre.x.0.saturating_add(c.r.0),
+            ]),
             _ => {}
         }
     }
@@ -159,7 +162,12 @@ impl SlotFrame {
         let o = self.origin();
         let w = self.x(self.col(n)) - o.x;
         let h = self.y(HEIGHT_STEPS) - o.y;
-        vec![Pt2::ORIGIN, Pt2::new(w, Nm(0)), Pt2::new(w, h), Pt2::new(Nm(0), h)]
+        vec![
+            Pt2::ORIGIN,
+            Pt2::new(w, Nm(0)),
+            Pt2::new(w, h),
+            Pt2::new(Nm(0), h),
+        ]
     }
 
     /// The left and right x of cell `i` (0-based), on the page.
@@ -225,14 +233,18 @@ pub fn terminal_supply(q: &Q, terminal: Id<Device>) -> Option<Id<ew_schema::Func
             .iter()
             .filter_map(|u| parts.get(u.part.copy))
             .filter_map(|p| p.item.sections.fluid.clone())
-            .flat_map(|f| f.galleries.into_iter().filter_map(|g| g.tap.map(|t| t.as_str().to_owned())))
+            .flat_map(|f| {
+                f.galleries
+                    .into_iter()
+                    .filter_map(|g| g.tap.map(|t| t.as_str().to_owned()))
+            })
             .collect();
         let mut fns: Vec<_> = q.idx().functions_of_device(d).collect();
         fns.sort();
         fns.into_iter().find(|f| {
             q.get::<crate::FunctionCps>(*f)
                 .iter()
-                .any(|c| crate::is_fluid(&c.discipline) && taps.iter().any(|t| *t == c.designation))
+                .any(|c| crate::is_fluid(&c.discipline) && taps.contains(&c.designation))
         })
     })
 }
@@ -270,7 +282,11 @@ pub fn solenoid_pin(q: &Q, valve: Id<Device>, solenoid: &str) -> Option<(Id<Devi
     let t = q.devices().get(terminal)?;
     let pin = t.parts.iter().find_map(|u| {
         let fluid = parts.get(u.part.copy)?.item.sections.fluid.clone()?;
-        let entry = fluid.pins.iter().find(|e| e.solenoid.as_str() == solenoid)?.clone();
+        let entry = fluid
+            .pins
+            .iter()
+            .find(|e| e.solenoid.as_str() == solenoid)?
+            .clone();
         crate::eval_map(&entry.pin, ew_plcaddr::MapVar::P, index)
     })?;
     Some((terminal, pin.to_string()))

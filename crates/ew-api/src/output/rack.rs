@@ -738,12 +738,12 @@ impl Session {
     /// (the rule of `ew_derive::valve_positions` for one part); `None` for a part without, or one that is gone.
     pub fn part_positions(&self, part: Uuid) -> Option<u16> {
         let id = Id::from_uuid(part);
-        let copy = self
-            .query()
-            .parts()
-            .get(id)
-            .cloned()
-            .or_else(|| self.library_parts().into_iter().find(|c| c.id == id).map(std::sync::Arc::new))?;
+        let copy = self.query().parts().get(id).cloned().or_else(|| {
+            self.library_parts()
+                .into_iter()
+                .find(|c| c.id == id)
+                .map(std::sync::Arc::new)
+        })?;
         let s = &copy.item.sections;
         s.fluid
             .as_ref()
@@ -754,12 +754,20 @@ impl Session {
     /// The box of a valve terminal of `count` positions drawn as its positions on `page`, its top-left corner at the
     /// grid point nearest `at` (doc 11 §3.2, rc.2): the insertion point and the `box` of `box.black`
     /// (`{outline, slots: {pitch}}`, `ew_derive::SlotFrame`); `None` for a page that is gone or no positions.
-    pub fn slot_box(&self, page: Uuid, at: (i64, i64), count: u16) -> Option<((i64, i64), serde_json::Value)> {
+    pub fn slot_box(
+        &self,
+        page: Uuid,
+        at: (i64, i64),
+        count: u16,
+    ) -> Option<((i64, i64), serde_json::Value)> {
         let grid = self.query().pages().get(Id::from_uuid(page))?.grid;
         let grid = (i64::try_from(grid.num()).ok()?, i64::try_from(grid.den()).ok()?);
         let (pos, outline, pitch) = crate::geometry::slot_box(grid, at, count)?;
         let outline: Vec<[i64; 2]> = outline.iter().map(|p| [p.0, p.1]).collect();
-        Some((pos, serde_json::json!({"outline": outline, "slots": {"pitch": pitch}})))
+        Some((
+            pos,
+            serde_json::json!({"outline": outline, "slots": {"pitch": pitch}}),
+        ))
     }
 
     /// The valve at position `position` (1-based) of module `module`; `None` for an empty or blank position.
@@ -870,8 +878,8 @@ impl Session {
             .filter(|c| {
                 c.item.sections.fluid.as_ref().is_some_and(|f| {
                     f.solenoids
-                            .iter()
-                            .all(|s| mapped.is_empty() || mapped.iter().any(|m| m == s.as_str()))
+                        .iter()
+                        .all(|s| mapped.is_empty() || mapped.iter().any(|m| m == s.as_str()))
                 })
             })
             .collect();
@@ -921,7 +929,11 @@ impl Session {
 fn is_terminal_valve_part(part: &Part) -> bool {
     part.sections.plc.is_none()
         && part.cp_pattern.is_empty()
-        && part.sections.fluid.as_ref().is_some_and(|f| !f.solenoids.is_empty())
+        && part
+            .sections
+            .fluid
+            .as_ref()
+            .is_some_and(|f| !f.solenoids.is_empty())
 }
 
 /// A valve position's content as a word: `valve`, `blank` or `empty`.
@@ -1111,8 +1123,8 @@ fn solenoid_seat(
         }
         None => {
             let bound = q.get::<ew_derive::ChannelsByCp>(());
-            let channel = ew_derive::solenoid_coil(q, valve, name)
-                .map_or((coil, 0), |cp| (cp.function, cp.idx));
+            let channel =
+                ew_derive::solenoid_coil(q, valve, name).map_or((coil, 0), |cp| (cp.function, cp.idx));
             let channel = bound.at_cp(channel.0, channel.1).next();
             SolenoidSeat::Terminal {
                 terminal: tag,

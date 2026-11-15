@@ -462,10 +462,11 @@ fn define_potential_from_the_menu_the_context_menu_and_the_palette() {
     // The canvas context menu over a junction.
     let junction = pick_id(&shell, |t| t.junctions.last().map(|j| j.id.to_string()));
     done(&mut shell, "select.set", json!({"ids": [junction]}));
-    let item = ew_viewmodel::command_bar::canvas_menu(&shell, ew_viewmodel::command_bar::MenuSpot::Object, None)
-        .into_iter()
-        .find(|i| i.id == "potential.draw")
-        .expect("Define potential… over a junction");
+    let item =
+        ew_viewmodel::command_bar::canvas_menu(&shell, ew_viewmodel::command_bar::MenuSpot::Object, None)
+            .into_iter()
+            .find(|i| i.id == "potential.draw")
+            .expect("Define potential… over a junction");
     assert_eq!(item.label, "Define potential…");
     assert!(item.enabled, "{:?}", item.reason);
     done(&mut shell, item.id, item.params);

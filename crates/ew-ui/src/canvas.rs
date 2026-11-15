@@ -1986,7 +1986,10 @@ impl CanvasHost {
         };
         popup.show(|ui| {
             // Over a connection point, Mark not used or Mark used first (FT-1649).
-            for item in cp.iter().chain(&canvas_menu(shell, spot, self.views[group].menu_point)) {
+            for item in cp
+                .iter()
+                .chain(&canvas_menu(shell, spot, self.views[group].menu_point))
+            {
                 crate::menu::item(ui, item, events);
             }
         });

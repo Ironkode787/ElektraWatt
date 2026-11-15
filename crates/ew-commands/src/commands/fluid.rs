@@ -117,7 +117,10 @@ pub struct SetValveOccupancy {
 /// of the first part use whose copy has `plc.positions`; `None` for a device without.
 pub(crate) fn position_count(tx: &TxBuilder<'_>, module: &Device) -> Option<u16> {
     ew_derive::positions_of(module, |i| {
-        let copy = module.parts.get(i).and_then(|u| tx.get::<LibCopy<Part>>(u.part.copy));
+        let copy = module
+            .parts
+            .get(i)
+            .and_then(|u| tx.get::<LibCopy<Part>>(u.part.copy));
         copy.map_or((None, None), |c| {
             let s = &c.item.sections;
             (

@@ -707,7 +707,7 @@ meta!(
     "EW-FL-010",
     "ew-fl-010",
     "120010",
-    "No supply on port 1",
+    "No supply",
     Completeness,
     "or",
     Warning,

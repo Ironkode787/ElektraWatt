@@ -537,7 +537,8 @@ fn the_valve_terminal_shows_its_positions_beside_its_order_codes() {
     for tag in ["-201U3", "-201U8", "-202U2"] {
         h.get_by_label(&format!("Slot of {tag}"));
     }
-    assert!(h.query_all_by_label_contains("Valve positions: 1 ").count() >= 7);
+    // Each sub-base lists its valve positions as rows (rc.2).
+    assert!(h.query_all_by_label_contains("Position 1").count() >= 7);
     h.get_by_label("The slots meet the station's rules.");
     h.state_mut().shell_mut().shutdown();
 }

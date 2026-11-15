@@ -343,7 +343,9 @@ fn position_row(
             .font(theme::font(&t.type_small))
             .color(t.text_secondary.color32())
     };
-    let run = |occupancy: serde_json::Value| Event::Action("command.run", shell.occupancy_params(module, n, occupancy));
+    let run = |occupancy: serde_json::Value| {
+        Event::Action("command.run", shell.occupancy_params(module, n, occupancy))
+    };
     ui.label("");
     ui.label(small(strings::format(key!("rack-position"), &[&n.to_string()])));
     ui.label(small(rack_position_text(p)));
@@ -356,9 +358,15 @@ fn position_row(
         let fill = components::button(ui, Kind::Secondary, label, true, 0.0);
         let name = format!("{label} {n}");
         fill.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
-        part_menu(t, &fill, valve_parts, 1, None, |part| {
-            run(json!({ "valve": { "state": "used", "part": part.to_string() } }))
-        }, events);
+        part_menu(
+            t,
+            &fill,
+            valve_parts,
+            1,
+            None,
+            |part| run(json!({ "valve": { "state": "used", "part": part.to_string() } })),
+            events,
+        );
         if !p.blank {
             let label = strings::text(key!("rack-position-blank"));
             if components::button(ui, Kind::Secondary, label, true, 0.0).clicked() {

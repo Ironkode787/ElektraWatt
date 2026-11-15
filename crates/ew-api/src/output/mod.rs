@@ -102,9 +102,9 @@ use ew_schema::Section;
 use sha2::{Digest, Sha256};
 
 pub use editing::{
-    CatalogueSymbol, JunctionWire, PageTables, PlaceCatalogue, PlacedBy, SymbolShape, TableConnection,
-    SlotCell, TableCp, TableEnd, TableItem, TableJunction, TablePotential, TableRep, TableStructureBox, exchange_map,
-    page_type_takes,
+    CatalogueSymbol, JunctionWire, PageTables, PlaceCatalogue, PlacedBy, SlotCell, SymbolShape,
+    TableConnection, TableCp, TableEnd, TableItem, TableJunction, TablePotential, TableRep,
+    TableStructureBox, exchange_map, page_type_takes,
 };
 /// The display-list IR the pages of an export are made of ([`ExportPages`]' `content`), re-exported so that the
 /// shell names its types (`DisplayList`, `EntityRef`, `Rect`) without a workspace edge to `ew-dl`
@@ -158,7 +158,10 @@ pub use properties::{
     CompanyColour, DeviceMedia, FindingChip, PropRow, PropertySheet, Provenance, RowAction, RowValue,
     SelectionWords, SheetHeader, SheetSection, SheetWhat, SourceLink, WireColours, WireEnd,
 };
-pub use rack::{FluidMenu, ModulePart, PlcOffer, RackPosition, RackRow, RackView, SolenoidSeat, TerminalKind, TerminalSeat, ValveSolenoid, gives_text};
+pub use rack::{
+    FluidMenu, ModulePart, PlcOffer, RackPosition, RackRow, RackView, SolenoidSeat, TerminalKind,
+    TerminalSeat, ValveSolenoid, gives_text,
+};
 pub use raster::{DEFAULT_DPI, DPI_RANGE, page_png, sheet_image};
 pub use revisions::{PageDigest, changed_now, changed_pages, last_changed_in, page_digest, page_digests};
 pub use route_measures::{

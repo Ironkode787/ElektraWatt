@@ -300,7 +300,11 @@ impl Query for FluidNets {
             via.entry(b).or_default().insert(id);
         }
         // The gallery edges of every valve terminal: one star per segment.
-        let mut terminals: Vec<Id<Device>> = q.devices().ids().filter(|d| crate::is_fluid_terminal(q, *d)).collect();
+        let mut terminals: Vec<Id<Device>> = q
+            .devices()
+            .ids()
+            .filter(|d| crate::is_fluid_terminal(q, *d))
+            .collect();
         terminals.sort();
         for vt in terminals {
             for segment in q.get::<Galleries>(vt).iter() {
@@ -520,7 +524,7 @@ pub struct ValveSlotsV {
 pub fn valve_positions(q: &Q, module: Id<Device>) -> Option<u16> {
     let dev = q.devices().get(module)?;
     let parts = q.parts();
-    positions_of(&dev, |i| {
+    positions_of(dev, |i| {
         let section = |c: &ew_schema::LibCopy<ew_schema::Part>| {
             let s = &c.item.sections;
             (
@@ -528,7 +532,10 @@ pub fn valve_positions(q: &Q, module: Id<Device>) -> Option<u16> {
                 s.plc.as_ref().and_then(|p| p.positions.as_ref()).map(|p| p.count),
             )
         };
-        dev.parts.get(i).and_then(|u| parts.get(u.part.copy)).map_or((None, None), |c| section(&c))
+        dev.parts
+            .get(i)
+            .and_then(|u| parts.get(u.part.copy))
+            .map_or((None, None), |c| section(c))
     })
 }
 

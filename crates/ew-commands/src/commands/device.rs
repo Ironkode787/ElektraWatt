@@ -405,7 +405,11 @@ impl Command for PlaceSymbol {
             && let Some(device) = tx.require::<Function>(function)?.device
         {
             super::assembly::seat_on_terminal(tx, device, terminal, Some(rep), self.replace)?;
-        } else if let Some(parent) = tx.require::<Function>(function)?.device.and_then(|d| tx.get::<Device>(d)?.parent) {
+        } else if let Some(parent) = tx
+            .require::<Function>(function)?
+            .device
+            .and_then(|d| tx.get::<Device>(d)?.parent)
+        {
             // A valve of a terminal drawn as its positions, drawn on the box's page, stands in its cell (rc.2).
             super::assembly::seat_reps(tx, parent)?;
         }
