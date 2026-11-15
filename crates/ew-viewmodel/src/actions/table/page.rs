@@ -36,17 +36,19 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_page_title_block(p),
         ),
     ),
-    // Add legend: the panel page's item list beside the layout. An action row: the command bar's lane places its button
-    // on the Page tab; until then the Page menu holds it in its Order submenu, the one that takes an entry without
-    // reshaping the menu.
-    act(
-        "page.add_legend",
-        Command,
-        Menu::Page,
-        &[],
-        legend_addable,
-        grp(Group::Order),
-        |s, _| s.act_page_add_legend(),
+    // Add legend: the panel page's item list beside the layout, with its button on the Page tab.
+    placed(
+        place(Group::Order, 9, CommandSize::Small, None),
+        "list-numbers",
+        act(
+            "page.add_legend",
+            Command,
+            Menu::Page,
+            &[],
+            legend_addable,
+            None,
+            |s, _| s.act_page_add_legend(),
+        ),
     ),
     // Page, New section…
     with_params(

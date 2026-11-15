@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-15T16:05:59+01:00\n"
+"POT-Creation-Date: 2026-11-15T20:08:06+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -2348,45 +2348,47 @@ msgid ""
 "enclosure and its mounting plate, centred and at the scale that fits the "
 "page. A new location, the enclosure and the plate on the page are three "
 "steps of Undo. Another plate goes on the page through the page's **Surface** "
-"row in Properties."
+"row in Properties. At 1:10 and smaller scales the devices are numbered and "
+"the page gets a legend beside the plate that lists each number with its tag, "
+"quantity and part number."
 msgstr ""
 
-#: src/how-to/panel-layout.md:23
+#: src/how-to/panel-layout.md:24
 msgid "Rails and ducts"
 msgstr ""
 
-#: src/how-to/panel-layout.md:25
+#: src/how-to/panel-layout.md:26
 msgid ""
 "Choose **Draw ▸ Rail** and click the rail's start and end on the plate (a "
 "rail runs across or up and down); the tool's card offers the rail part and "
 "the grid step. Draw as many rails as the cabinet needs."
 msgstr ""
 
-#: src/how-to/panel-layout.md:27
+#: src/how-to/panel-layout.md:28
 msgid ""
 "Choose **Draw ▸ Duct** and draw the ducts the same way; the card asks for a "
 "duct's size when its part gives none."
 msgstr ""
 
-#: src/how-to/panel-layout.md:29
+#: src/how-to/panel-layout.md:30
 msgid "Place the devices"
 msgstr ""
 
-#: src/how-to/panel-layout.md:31
+#: src/how-to/panel-layout.md:32
 msgid ""
 "Show **View ▸ Panels ▸ Navigators ▸ Unplaced devices**. It lists the devices "
 "of the page's location that have no place yet. A device without a location "
 "is not listed: give it the location in Properties, under Structure."
 msgstr ""
 
-#: src/how-to/panel-layout.md:33
+#: src/how-to/panel-layout.md:34
 msgid ""
 "Drag a device from the list onto a rail, or select its row, press `Enter` "
 "and click the place. On a rail it snaps to its neighbour, the rail's ends or "
 "the plate grid; a device mounted by screws goes on the plate."
 msgstr ""
 
-#: src/how-to/panel-layout.md:35
+#: src/how-to/panel-layout.md:36
 msgid ""
 "To fill a rail at once, select the rail and choose **Draw ▸ Auto-fill "
 "rail…**: it places the devices you marked in the list, or every unplaced "
@@ -2394,7 +2396,34 @@ msgid ""
 "toast says what did not fit."
 msgstr ""
 
-#: src/how-to/panel-layout.md:39
+#: src/how-to/panel-layout.md:40
+msgid "Labels and the legend"
+msgstr ""
+
+#: src/how-to/panel-layout.md:42
+msgid ""
+"With nothing selected, the page's **Labels** row in Properties chooses what "
+"each device shows: its tag, its item number in a balloon, or both. Labels "
+"that would run into each other move apart, above and below the row, with a "
+"line to their device. On the cabinet's own layout the tags leave out the "
+"cabinet's location."
+msgstr ""
+
+#: src/how-to/panel-layout.md:45
+msgid ""
+"**Add legend** in the page's right-click menu (also **Page ▸ Order ▸ Add "
+"legend**) puts the legend in the free space beside the layout. It is offered "
+"while the page has none."
+msgstr ""
+
+#: src/how-to/panel-layout.md:47
+msgid ""
+"A label or balloon that stands beside its device can be dragged on its own; "
+"its line follows it to the device. **Reset label position** in the device's "
+"right-click menu puts it back."
+msgstr ""
+
+#: src/how-to/panel-layout.md:50
 msgid ""
 "The tools are described one by one in the [tool "
 "reference](../reference/window/tools.md): Place device, Rail and Duct."
@@ -2901,10 +2930,32 @@ msgid ""
 msgstr ""
 
 #: src/how-to/fluid-workspace.md:22
-msgid "Valve terminals"
+msgid "Solenoids"
 msgstr ""
 
 #: src/how-to/fluid-workspace.md:24
+msgid ""
+"Right-click a solenoid valve on its fluid page and choose **Draw solenoid 14 "
+"on an electrical page…**: the electrical page shows with the coil's symbol "
+"on the pointer; click where it goes. It is the valve's own coil, not a "
+"device of its own. The valve's menu then reads **Go to solenoid 14 at** and "
+"the place, its Properties list each solenoid with where it is drawn and the "
+"PLC output that drives it, and the coil's Properties and menu name its valve "
+"(**Solenoid 14 of -201Q1**)."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:29
+msgid ""
+"A coil placed on its own joins a valve when you type the valve's tag into "
+"the coil's **Tag**: the field asks whether to make it the valve's undrawn "
+"solenoid, or says what the valve has free when nothing fits."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:32
+msgid "Valve terminals"
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:34
 msgid ""
 "To start a valve terminal, choose **Draw ▸ Device**, find **Valve terminal, "
 "4 valve positions, 8 outputs** under **Valve terminals** (or type \"valve "
@@ -2913,7 +2964,7 @@ msgid ""
 "under **Valve terminals**."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:27
+#: src/how-to/fluid-workspace.md:37
 msgid ""
 "Right-click the terminal's box or its row and choose **Add valve at position "
 "1**: the valve becomes the terminal's child at that position, and its symbol "
@@ -2927,7 +2978,7 @@ msgid ""
 "to its port 1 feeds every valve of the terminal."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:34
+#: src/how-to/fluid-workspace.md:44
 msgid ""
 "Right-click a valve's row: **Set spare** or **Set used**, **Blank position** "
 "to put a blanking plate in its place, and **Plug port** for each working "
@@ -2936,7 +2987,7 @@ msgid ""
 "row closes an empty position with a blanking plate (**Blank position**)."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:38
+#: src/how-to/fluid-workspace.md:48
 msgid ""
 "Right-click the valve terminal's box or row and choose **Generate "
 "overview…**; from the command search it acts on the selected terminal and "
@@ -2949,11 +3000,11 @@ msgid ""
 "a module: it refreshes the pages."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:45
+#: src/how-to/fluid-workspace.md:55
 msgid "Tubes"
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:47
+#: src/how-to/fluid-workspace.md:57
 msgid ""
 "The tube table has one row per tube. Type a length in millimetres into "
 "**Length** (or with its unit: `2 m`, `35 cm`; in Properties the row is "
@@ -2963,7 +3014,7 @@ msgid ""
 "the starter tubes PU 6 × 4, 8 × 6 and 10 × 8 mm."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:51
+#: src/how-to/fluid-workspace.md:61
 msgid ""
 "Choose **Fluid settings** on the Fluid tab for the default tube of every "
 "line (its outer and inner diameter in mm and its material) and to tag tubes "
@@ -2972,18 +3023,20 @@ msgid ""
 "without a material, the check names it."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:55
+#: src/how-to/fluid-workspace.md:65
 msgid "Media"
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:57
+#: src/how-to/fluid-workspace.md:67
 msgid ""
 "Choose **New medium** on the Fluid tab, or **New medium…** at the top of the "
-"Fluid panel beside **Fluid settings…**, give the medium a name and its "
-"pressure in bar, and choose **Create**."
+"Fluid panel beside **Fluid settings…**, pick a usual medium under **Start "
+"from** (such as **Compressed air**, which fills the name and 6 bar) or give "
+"the medium a name and its pressure in bar, and choose **Create**. Each field "
+"of this form and of **Fluid settings…** says under it what it changes."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:59
+#: src/how-to/fluid-workspace.md:71
 msgid ""
 "Right-click a tube and choose **Medium:** with the medium's name: the tube's "
 "net and every net the medium reaches through the valves carry it. The fluid "
@@ -2995,14 +3048,14 @@ msgid ""
 "supplies, and set it there."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:64
+#: src/how-to/fluid-workspace.md:76
 msgid ""
 "Select the medium's row in the medium table and press `Ctrl+Shift+H` to "
 "highlight its zones on the page; the highlight is a colour with a hatch "
 "pattern, so it reads without colour too."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:67
+#: src/how-to/fluid-workspace.md:79
 msgid ""
 "The panels are described in the [panel "
 "reference](../reference/window/panels.md): Fluid, Tube table and Medium "

@@ -3455,10 +3455,32 @@ msgid ""
 msgstr ""
 
 #: src/how-to/fluid-workspace.md:22
-msgid "Valve terminals"
+msgid "Solenoids"
 msgstr ""
 
 #: src/how-to/fluid-workspace.md:24
+msgid ""
+"Right-click a solenoid valve on its fluid page and choose **Draw solenoid 14 "
+"on an electrical page…**: the electrical page shows with the coil's symbol "
+"on the pointer; click where it goes. It is the valve's own coil, not a "
+"device of its own. The valve's menu then reads **Go to solenoid 14 at** and "
+"the place, its Properties list each solenoid with where it is drawn and the "
+"PLC output that drives it, and the coil's Properties and menu name its valve "
+"(**Solenoid 14 of -201Q1**)."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:29
+msgid ""
+"A coil placed on its own joins a valve when you type the valve's tag into "
+"the coil's **Tag**: the field asks whether to make it the valve's undrawn "
+"solenoid, or says what the valve has free when nothing fits."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:32
+msgid "Valve terminals"
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:34
 msgid ""
 "To start a valve terminal, choose **Draw ▸ Device**, find **Valve terminal, "
 "4 valve positions, 8 outputs** under **Valve terminals** (or type \"valve "
@@ -3467,7 +3489,7 @@ msgid ""
 "under **Valve terminals**."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:27
+#: src/how-to/fluid-workspace.md:37
 msgid ""
 "Right-click the terminal's box or its row and choose **Add valve at position "
 "1**: the valve becomes the terminal's child at that position, and its symbol "
@@ -3481,7 +3503,7 @@ msgid ""
 "to its port 1 feeds every valve of the terminal."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:34
+#: src/how-to/fluid-workspace.md:44
 msgid ""
 "Right-click a valve's row: **Set spare** or **Set used**, **Blank position** "
 "to put a blanking plate in its place, and **Plug port** for each working "
@@ -3490,7 +3512,7 @@ msgid ""
 "row closes an empty position with a blanking plate (**Blank position**)."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:38
+#: src/how-to/fluid-workspace.md:48
 msgid ""
 "Right-click the valve terminal's box or row and choose **Generate "
 "overview…**; from the command search it acts on the selected terminal and "
@@ -3503,11 +3525,11 @@ msgid ""
 "a module: it refreshes the pages."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:45
+#: src/how-to/fluid-workspace.md:55
 msgid "Tubes"
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:47
+#: src/how-to/fluid-workspace.md:57
 msgid ""
 "The tube table has one row per tube. Type a length in millimetres into "
 "**Length** (or with its unit: `2 m`, `35 cm`; in Properties the row is "
@@ -3517,7 +3539,7 @@ msgid ""
 "the starter tubes PU 6 × 4, 8 × 6 and 10 × 8 mm."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:51
+#: src/how-to/fluid-workspace.md:61
 msgid ""
 "Choose **Fluid settings** on the Fluid tab for the default tube of every "
 "line (its outer and inner diameter in mm and its material) and to tag tubes "
@@ -3526,18 +3548,20 @@ msgid ""
 "without a material, the check names it."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:55
+#: src/how-to/fluid-workspace.md:65
 msgid "Media"
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:57
+#: src/how-to/fluid-workspace.md:67
 msgid ""
 "Choose **New medium** on the Fluid tab, or **New medium…** at the top of the "
-"Fluid panel beside **Fluid settings…**, give the medium a name and its "
-"pressure in bar, and choose **Create**."
+"Fluid panel beside **Fluid settings…**, pick a usual medium under **Start "
+"from** (such as **Compressed air**, which fills the name and 6 bar) or give "
+"the medium a name and its pressure in bar, and choose **Create**. Each field "
+"of this form and of **Fluid settings…** says under it what it changes."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:59
+#: src/how-to/fluid-workspace.md:71
 msgid ""
 "Right-click a tube and choose **Medium:** with the medium's name: the tube's "
 "net and every net the medium reaches through the valves carry it. The fluid "
@@ -3549,14 +3573,14 @@ msgid ""
 "supplies, and set it there."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:64
+#: src/how-to/fluid-workspace.md:76
 msgid ""
 "Select the medium's row in the medium table and press `Ctrl+Shift+H` to "
 "highlight its zones on the page; the highlight is a colour with a hatch "
 "pattern, so it reads without colour too."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:67
+#: src/how-to/fluid-workspace.md:79
 msgid ""
 "The panels are described in the [panel "
 "reference](../reference/window/panels.md): Fluid, Tube table and Medium "
