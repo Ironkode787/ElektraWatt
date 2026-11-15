@@ -93,7 +93,8 @@ pub use marker::{MarkerTool, crossed_connections};
 pub use paste::PasteTool;
 pub(crate) use picker::grid_words;
 pub use picker::{
-    Node, PendingTerminal, Picker, PickerMode, PickerRow, category_words, function_categories, symbol_name,
+    Node, PendingTerminal, Picker, PickerMode, PickerRow, Trade, category_words, function_categories,
+    symbol_name, trade_of,
 };
 pub use place::{ORIENT_NAMES, PlaceTarget, PlaceTool, inside_polygon, next_designation};
 pub use rail_draw::{DrawCard, DrawPart, RailDrawTool};

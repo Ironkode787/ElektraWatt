@@ -23,7 +23,7 @@ use ew_derive::ew_rds::IdentifierSet;
 use ew_derive::ew_schema::{
     ConnectionKind, ContactKind, Device, Dir4, Endpoint, FnDef, Function, FunctionKind, IpDirection,
     Junction, JunctionStyle, JunctionWiring, LibCopy, LibDocument, LibRef, LineKind, Page, PageType, Part,
-    RepType, Representation, SymbolDef,
+    PartKind, RepType, Representation, SymbolDef,
 };
 use ew_derive::ew_units::{Nm, Orient2, Pt2, Rect};
 use ew_derive::{
@@ -413,6 +413,28 @@ fn entry_sockets(part: &Part, def: &FnDef) -> Option<u16> {
     ports.iter().find(filed).or(ports.first())?.ports
 }
 
+/// The browser's group of a part with neither a category nor a template, from what its kind and sections say: an
+/// enclosure under `Enclosure`; a mounting plate, rail, duct or end bracket under `MountingAccessory`; a tube under
+/// `FluidTube`; a bus cable and a bus plug (an accessory with a bus interface) under `BusCable`; another cable under
+/// `CablePower`; a fitting under `FluidFitting`. `None` for any other part.
+fn kind_group(part: &Part) -> Option<&'static str> {
+    let bus = part.sections.bus.as_ref();
+    Some(match part.kind {
+        PartKind::Enclosure => "Enclosure",
+        PartKind::MountingPlate | PartKind::Rail | PartKind::Duct | PartKind::EndBracket => {
+            "MountingAccessory"
+        }
+        PartKind::Tube => "FluidTube",
+        PartKind::Cable if bus.is_some_and(|b| !b.cable_for.is_empty()) => "BusCable",
+        PartKind::Cable | PartKind::Wire => "CablePower",
+        PartKind::Accessory if bus.is_some_and(|b| !b.ports.is_empty()) => "BusCable",
+        PartKind::Accessory if part.sections.fluid.as_ref().is_some_and(|f| f.fitting.is_some()) => {
+            "FluidFitting"
+        }
+        _ => return None,
+    })
+}
+
 /// The catalogue row of part `part` with copy ID `copy` (the manufacturer left empty); for a library part without a
 /// function template `None` (a held copy without one is a row without functions, placed with a symbol the
 /// user chooses). `library` names a library part the project does not hold: its template FnDefs that the project
@@ -553,6 +575,7 @@ fn catalogue_part(
             .as_ref()
             .map(|(c, _, _)| c.as_str().to_owned())
             .or(main_category)
+            .or_else(|| kind_group(part).map(str::to_owned))
             .unwrap_or_default(),
         interfaces: if page.kind == PageType::BusTopology {
             part_interfaces(part)

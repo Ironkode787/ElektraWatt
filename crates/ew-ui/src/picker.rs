@@ -23,7 +23,7 @@ use egui::{AtomExt as _, Button, Id, Key, Modifiers, RichText, ScrollArea, Sense
 use ew_viewmodel::key;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
-use ew_viewmodel::tools::{Picker, PickerMode, PickerRow};
+use ew_viewmodel::tools::{Node, Picker, PickerMode, PickerRow};
 use serde_json::json;
 
 use crate::app::Event;
@@ -279,7 +279,21 @@ fn tree(ui: &mut Ui, t: &Tokens, picker: &Picker, pane: Pane, events: &mut Vec<E
             for (node, count) in &picker.nodes {
                 let words = node.words();
                 let chosen = *node == picker.node;
-                let mut atoms = egui::Atoms::new(
+                // A trade has the chevron column of a tree node (open or closed); its sub-groups stand one indent in.
+                let indent = t.size_tree_indent - t.space_3;
+                let mut atoms = egui::Atoms::default();
+                if matches!(node, Node::Trade(_) | Node::Category(_)) {
+                    let level = if matches!(node, Node::Category(_)) {
+                        2.0
+                    } else {
+                        1.0
+                    };
+                    atoms.push_right(egui::Atom::custom(
+                        egui::IdSalt::new(("picker-indent", node.word())),
+                        Vec2::new(indent * level, t.icon_sm),
+                    ));
+                }
+                atoms.push_right(
                     RichText::new(&words)
                         .font(theme::font(&t.type_small))
                         .color(t.text_primary.color32())
@@ -302,12 +316,38 @@ fn tree(ui: &mut Ui, t: &Tokens, picker: &Picker, pane: Pane, events: &mut Vec<E
                 if chosen {
                     paint_current(ui, t, slot, response.rect);
                 }
+                let open = node
+                    .trade()
+                    .filter(|_| matches!(node, Node::Trade(_)))
+                    .map(|tr| picker.trade_open(tr));
+                if let Some(open) = open {
+                    let icon = if open {
+                        crate::icons::IconId::chevron_down
+                    } else {
+                        crate::icons::IconId::chevron_right
+                    };
+                    let at = egui::pos2(
+                        response.rect.left() + ui.spacing().button_padding.x + indent / 2.0,
+                        response.rect.center().y,
+                    );
+                    crate::icons::paint(
+                        ui.painter(),
+                        icon,
+                        egui::Rect::from_center_size(at, Vec2::splat(t.icon_sm)),
+                        t.text_tertiary.color32(),
+                        t.icon_stroke,
+                    );
+                }
                 let name = strings::format(key!("nav-node-name"), &[&words, &count.to_string()]);
-                // A node of the tree: a tree item named by its words and count, the chosen one selected.
+                // A node of the tree: a tree item named by its words and count, the chosen one selected; a trade says
+                // whether it is open.
                 ui.ctx().accesskit_node_builder(response.id, |n| {
                     n.set_role(egui::accesskit::Role::TreeItem);
                     n.set_label(name.clone());
                     n.set_selected(chosen);
+                    if let Some(open) = open {
+                        n.set_expanded(open);
+                    }
                 });
                 if chosen && pane == Pane::Tree {
                     components::focus_ring(ui, &response, t.radius_md);

@@ -5,9 +5,12 @@
 //! (`Session::place_catalogue`, fetched once per (revision, folio) while it is open). The symbol browser
 //! ([`PickerMode::Place`]) lists the symbols, drawings without a part, but the terminals; the device browser
 //! ([`PickerMode::Parts`]) lists the parts with their functions (FT-1696). Its tree ([`Picker::nodes`]) is
-//! All, In this project (also without hits), then one node per function category with words ([`category_words`]; the first level of a
-//! symbol's FnDef category, of a part's own category or its main function's), then Other, each with the count of its
-//! hits under the filter. Its rows ([`Picker::rows`]) are those of the chosen node: the symbol rows (the plain name,
+//! All, In this project (also without hits), then the trades ([`Trade`]: Electrical, PLC and bus, Pneumatics,
+//! Enclosure and mounting) in that order, each opening to its sub-groups, the function categories with words
+//! ([`category_words`]; the first level of a symbol's FnDef category, of a part's own category or its main function's,
+//! else the group its kind gives), then Other, each with the count of its hits under the filter. One table,
+//! [`trade_of`], files each category under its trade (F28). A trade opens when it or one of its groups is chosen, or
+//! by a second click; under a filter every trade with hits stands open, so the tree shows where the hits sit. Its rows ([`Picker::rows`]) are those of the chosen node: the symbol rows (the plain name,
 //! [`symbol_name`], with the badge `embedded` or `starter`, then the `<key>`), then one row per part
 //! ([`PickerRow::Part`]); a part with a function template opens ([`Picker::set_open`]) to one row per function
 //! (`<n> of <count> <fndef> [main]`), and choosing the part itself places its main function. A function that a device
@@ -98,18 +101,21 @@ pub enum Node {
     All,
     /// The project's own symbols and part copies.
     Project,
-    /// The rows of one function category with words, by its key (`ProtectionOvercurrent`).
+    /// The rows of one trade's categories.
+    Trade(Trade),
+    /// The rows of one function category with words, by its key (`ProtectionOvercurrent`): a sub-group of its trade.
     Category(String),
     /// The rows whose category has no words, or that have none.
     Other,
 }
 
 impl Node {
-    /// The node's word in `picker.category {to}`: `all`, `project`, `other` or the category key.
+    /// The node's word in `picker.category {to}`: `all`, `project`, `other`, a trade's word or the category key.
     pub fn word(&self) -> &str {
         match self {
             Node::All => "all",
             Node::Project => "project",
+            Node::Trade(t) => t.word(),
             Node::Category(key) => key,
             Node::Other => "other",
         }
@@ -121,7 +127,10 @@ impl Node {
             "all" => Some(Node::All),
             "project" => Some(Node::Project),
             "other" => Some(Node::Other),
-            key => category_words(key).map(|_| Node::Category(key.to_owned())),
+            key => match Trade::ALL.into_iter().find(|t| t.word() == key) {
+                Some(t) => Some(Node::Trade(t)),
+                None => category_words(key).map(|_| Node::Category(key.to_owned())),
+            },
         }
     }
 
@@ -130,19 +139,124 @@ impl Node {
         match self {
             Node::All => crate::strings::text(key!("choice-all")).to_owned(),
             Node::Project => crate::strings::text(key!("picker-group-project")).to_owned(),
+            Node::Trade(t) => crate::strings::text(t.key()).to_owned(),
             Node::Category(key) => category_words(key).unwrap_or_default().to_owned(),
             Node::Other => crate::strings::text(key!("category-other")).to_owned(),
         }
     }
 
-    /// The node a symbol or part of function category `category` stands under besides All.
+    /// The node a symbol or part of function category `category` stands under besides All: its sub-group, or Other
+    /// for a category without words or a trade.
     fn of_category(category: &str) -> Node {
-        if category_words(category).is_some() {
+        if category_words(category).is_some() && trade_of(category).is_some() {
             Node::Category(category.to_owned())
         } else {
             Node::Other
         }
     }
+
+    /// The trade a node is part of: its own, or its sub-group's.
+    pub fn trade(&self) -> Option<Trade> {
+        match self {
+            Node::Trade(t) => Some(*t),
+            Node::Category(key) => trade_of(key),
+            _ => None,
+        }
+    }
+}
+
+/// A trade, the browser tree's first level under All and In this project (F28).
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
+pub enum Trade {
+    /// Protection, switching, relays, motors, supply, signalling, sensors, terminals, cables.
+    Electrical,
+    /// CPUs and modules, switches, bus cables and plugs.
+    PlcBus,
+    /// Air preparation, valves, valve terminals, cylinders, flow and logic, vacuum, tubes and fittings.
+    Pneumatics,
+    /// Enclosures, plates, rails, ducts.
+    Enclosure,
+}
+
+impl Trade {
+    /// The trades in the tree's order.
+    pub const ALL: [Trade; 4] = [
+        Trade::Electrical,
+        Trade::PlcBus,
+        Trade::Pneumatics,
+        Trade::Enclosure,
+    ];
+
+    /// The word of `picker.category {to}`.
+    pub fn word(self) -> &'static str {
+        match self {
+            Trade::Electrical => "electrical",
+            Trade::PlcBus => "plc_bus",
+            Trade::Pneumatics => "pneumatics",
+            Trade::Enclosure => "enclosure_mounting",
+        }
+    }
+
+    /// The key of the trade's words.
+    fn key(self) -> Key<'static> {
+        match self {
+            Trade::Electrical => key!("picker-trade-electrical"),
+            Trade::PlcBus => key!("picker-trade-plc-bus"),
+            Trade::Pneumatics => key!("picker-trade-pneumatics"),
+            Trade::Enclosure => key!("picker-trade-enclosure"),
+        }
+    }
+}
+
+/// The trade the function category `key` (a browser group) is filed under: the one table of the tree's first level
+/// (F28). `None` for a category that is no trade's (assemblies, interruption points, graphics) and one it does not
+/// know: those stand under Other.
+pub fn trade_of(key: &str) -> Option<Trade> {
+    Some(match key {
+        "ProtectionOvercurrent"
+        | "ProtectionResidualCurrent"
+        | "ProtectionOvervoltage"
+        | "PowerSupplyAcDc"
+        | "TransformerAcAc"
+        | "FrequencyConverter"
+        | "SwitchingMain"
+        | "SwitchingPower"
+        | "Relay"
+        | "SensingTemperature"
+        | "SensingPosition"
+        | "SensingPressure"
+        | "ManualCommand"
+        | "IndicatorLight"
+        | "Meter"
+        | "Lighting"
+        | "Heating"
+        | "Fan"
+        | "MotorRotary"
+        | "SolenoidActuator"
+        | "Terminal"
+        | "TerminalEarth"
+        | "ConnectorSignal"
+        | "CablePower"
+        | "CableSignal"
+        | "EarthingBar"
+        | "Resistor" => Trade::Electrical,
+        "Controller" | "NetworkSwitch" | "BusCable" => Trade::PlcBus,
+        "AirPreparation"
+        | "ValveDirectional"
+        | "ValvePilot"
+        | "ValveTerminal"
+        | "ValveTerminalNode"
+        | "ValveTerminalModule"
+        | "CylinderFluid"
+        | "FlowControl"
+        | "FlowLogic"
+        | "FluidSensor"
+        | "Vacuum"
+        | "FluidFitting"
+        | "FluidTube" => Trade::Pneumatics,
+        "Enclosure" | "MountingAccessory" => Trade::Enclosure,
+        _ => return None,
+    })
 }
 
 /// The words of the function category `key` (the first level of an FnDef category, `ProtectionOvercurrent`) in the UI
@@ -201,6 +315,8 @@ pub struct Picker {
     pub part: Option<usize>,
     /// The chosen node of the tree.
     pub node: Node,
+    /// The trades opened by hand to their sub-groups (besides the chosen group's and, under a filter, every trade).
+    pub open_trades: BTreeSet<Trade>,
     /// The tree under the filter, each node with its count of hits: All, In this project, the categories by their
     /// words, Other, each with hits (All and the chosen node always); empty for the strip chooser and a part's symbol
     /// choice.
@@ -227,6 +343,7 @@ impl Picker {
             pending: None,
             part: None,
             node: Node::All,
+            open_trades: BTreeSet::new(),
             nodes: Vec::new(),
             open: BTreeSet::new(),
             preview: None,
@@ -376,7 +493,7 @@ impl Picker {
                 }
             }
         }
-        // The tree: All, In this project, the categories by their words, Other.
+        // The tree: All, In this project, each trade with its sub-groups by their words when it stands open, Other.
         let mut categories: Vec<Node> = found
             .iter()
             .filter(|(_, n, _)| matches!(n, Node::Category(_)))
@@ -385,11 +502,17 @@ impl Picker {
         categories.sort_by_cached_key(|n| (n.words().to_lowercase(), n.word().to_owned()));
         categories.dedup();
         let mut tree = vec![Node::All, Node::Project];
-        tree.extend(categories);
+        for trade in Trade::ALL {
+            tree.push(Node::Trade(trade));
+            if self.trade_open(trade) {
+                tree.extend(categories.iter().filter(|n| n.trade() == Some(trade)).cloned());
+            }
+        }
         tree.push(Node::Other);
         let count = |node: &Node| match node {
             Node::All => found.len(),
             Node::Project => found.iter().filter(|(_, _, held)| *held).count(),
+            Node::Trade(t) => found.iter().filter(|(_, n, _)| n.trade() == Some(*t)).count(),
             _ => found.iter().filter(|(_, n, _)| n == node).count(),
         };
         let nodes: Vec<(Node, usize)> = tree
@@ -405,6 +528,7 @@ impl Picker {
             let shown = match &self.node {
                 Node::All => true,
                 Node::Project => held,
+                Node::Trade(t) => node.trade() == Some(*t),
                 chosen => *chosen == node,
             };
             if !shown {
@@ -427,10 +551,27 @@ impl Picker {
         self.row = 0;
     }
 
-    /// Chooses the tree's node `node`; the current row goes back to the first.
+    /// Chooses the tree's node `node`; the current row goes back to the first. A trade chosen opens; chosen again it
+    /// closes.
     pub fn set_node(&mut self, node: Node) {
+        if let Node::Trade(t) = node {
+            let again = self.node == node && self.open_trades.contains(&t);
+            if again {
+                self.open_trades.remove(&t);
+            } else {
+                self.open_trades.insert(t);
+            }
+        }
         self.node = node;
         self.refilter();
+    }
+
+    /// Whether trade `t` stands open to its sub-groups: opened by hand, one of its sub-groups chosen, or a filter
+    /// typed (every trade with hits then shows where they sit).
+    pub fn trade_open(&self, t: Trade) -> bool {
+        self.open_trades.contains(&t)
+            || (matches!(self.node, Node::Category(_)) && self.node.trade() == Some(t))
+            || !self.filter.trim().is_empty()
     }
 
     /// Opens (`true`) or closes the part of the current row, a part row or one of its function rows; its part's

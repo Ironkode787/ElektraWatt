@@ -9,15 +9,42 @@ use ew_viewmodel::shell::Mode;
 use ew_viewmodel::tools::{Node, PickerRow};
 use serde_json::json;
 
-/// Each node of the tree lists as many rows as its count says: a category node only parts of that category, In this
-/// project only the project's own copies; every node has its words; `step` moves down the tree.
+/// F28: the tree is All, In this project, the trades, Other; a trade opens to its sub-groups, the categories. Each
+/// node lists as many rows as its count says: a trade the parts of its sub-groups, a category node only parts of that
+/// category, In this project only the project's own copies; every node has its words; `step` moves down the tree.
 #[test]
-fn the_browsers_tree_lists_each_category_with_its_count() {
+fn the_browsers_tree_lists_each_trade_and_category_with_its_count() {
     let tmp = Tmp::new("browser-tree");
     let mut s = tmp.shell_in(Mode::Headless, true, "101");
     done(&mut s, "tool.place_part", json!({}));
+    let closed = s.picker().expect("the browser").nodes.clone();
+    assert_eq!(closed[0].0, Node::All, "{closed:?}");
+    assert!(
+        closed.iter().all(|(n, _)| !matches!(n, Node::Category(_))),
+        "the trades stand closed: {closed:?}"
+    );
+    let words: Vec<String> = closed
+        .iter()
+        .filter(|(n, _)| matches!(n, Node::Trade(_)))
+        .map(|(n, _)| n.words())
+        .collect();
+    assert_eq!(
+        words,
+        ["Electrical", "PLC and bus", "Pneumatics", "Enclosure and mounting"]
+    );
+    // Every trade opened, the categories stand under their trade.
+    for (node, _) in closed.iter().filter(|(n, _)| matches!(n, Node::Trade(_))) {
+        done(&mut s, "picker.category", json!({ "to": node.word() }));
+    }
     let nodes = s.picker().expect("the browser").nodes.clone();
-    assert_eq!(nodes[0].0, Node::All, "{nodes:?}");
+    let mut trade = None;
+    for (node, _) in &nodes {
+        match node {
+            Node::Trade(t) => trade = Some(*t),
+            Node::Category(_) => assert_eq!(node.trade(), trade, "{node:?} under its trade: {nodes:?}"),
+            _ => {}
+        }
+    }
     assert!(
         nodes.iter().any(|(n, _)| matches!(n, Node::Category(_))),
         "{nodes:?}"
@@ -38,6 +65,12 @@ fn the_browsers_tree_lists_each_category_with_its_count() {
         for part in parts {
             match node {
                 Node::Category(key) => assert_eq!(&part.category, key, "{}", part.part_number),
+                Node::Trade(t) => assert_eq!(
+                    ew_viewmodel::tools::trade_of(&part.category),
+                    Some(*t),
+                    "{}",
+                    part.part_number
+                ),
                 Node::Project => assert!(part.library.is_none(), "{}", part.part_number),
                 _ => {}
             }
@@ -47,6 +80,37 @@ fn the_browsers_tree_lists_each_category_with_its_count() {
     done(&mut s, "picker.category", json!({"to": "all"}));
     done(&mut s, "picker.category", json!({"step": 1}));
     assert_eq!(s.picker().expect("the browser").node, nodes[1].0);
+    s.shutdown();
+}
+
+/// F28: every function category the browser names in words has its trade, but the three that are no trade's
+/// (assemblies and black boxes, interruption points, graphics), which stand under Other. A category added without a
+/// trade would stand under Other unseen.
+#[test]
+fn every_named_category_has_its_trade() {
+    let other = ["Assembly", "InterruptionPoint", "Graphic"];
+    for (key, words) in ew_viewmodel::tools::function_categories() {
+        assert_eq!(
+            ew_viewmodel::tools::trade_of(key).is_none(),
+            other.contains(&key),
+            "{key} ({words})"
+        );
+    }
+}
+
+/// F28: a filter searches the whole tree and opens every trade with hits, so the tree shows where they sit.
+#[test]
+fn a_filter_shows_under_which_trade_and_group_the_hits_sit() {
+    let tmp = Tmp::new("browser-filter");
+    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    done(&mut s, "tool.place_part", json!({}));
+    done(&mut s, "picker.filter", json!({"text": "relay"}));
+    let nodes = s.picker().expect("the browser").nodes.clone();
+    let at = |n: &Node| nodes.iter().position(|(x, _)| x == n);
+    let electrical = at(&Node::Trade(ew_viewmodel::tools::Trade::Electrical)).expect("Electrical");
+    let relays = at(&Node::Category("Relay".to_owned())).expect("Relays shows under the filter");
+    assert!(relays > electrical, "{nodes:?}");
+    assert!(nodes[relays].1 > 0, "{nodes:?}");
     s.shutdown();
 }
 

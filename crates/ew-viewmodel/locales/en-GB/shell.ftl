@@ -234,6 +234,11 @@ picker-new-strip = New terminal strip…
 picker-empty-black-box = No black-box symbols or parts to place
 picker-empty-page = Nothing can be placed on this page
 picker-group-project = In this project
+# F28: the device browser's trades.
+picker-trade-electrical = Electrical
+picker-trade-plc-bus = PLC and bus
+picker-trade-pneumatics = Pneumatics
+picker-trade-enclosure = Enclosure and mounting
 picker-group-libraries = From libraries
 # FT-1636: the browser's ratings column and its connection points, and the tree's function categories, one per first
 # level of an FnDef category (the identifier sets' categories, docs/design/07-symbols-parts-macros.md §2.4).
@@ -285,6 +290,8 @@ function-category-FluidFitting = Fittings and silencers
 function-category-FluidSensor = Pressure switches
 function-category-Vacuum = Vacuum
 function-category-ValveTerminal = Valve terminal plates
+function-category-BusCable = Bus cables and plugs
+function-category-FluidTube = Tubes
 reason-letter-needed = Give a letter code: the symbol's category maps to none
 reason-one-rep = Select exactly one representation
 reason-nothing-to-move = Nothing movable is selected

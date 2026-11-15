@@ -54,7 +54,9 @@ fn the_device_browser_opens_by_its_button_browses_a_category_places_by_a_double_
         d.shell_mut().picker().is_some(),
         "the Device button opens the browser"
     );
-    // A category of the tree, clicked, lists its parts alone.
+    // A trade of the tree, clicked, opens to its groups (F28); a group, clicked, lists its parts alone.
+    d.input(&click(starting_with(&d, "Electrical,")));
+    d.settle();
     d.input(&click(starting_with(&d, "Overcurrent protection,")));
     d.settle();
     let picker = d.shell_mut().picker().expect("the browser").clone();
