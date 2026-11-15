@@ -426,7 +426,7 @@ impl Reader {
         if !stmt.readonly() {
             return Err(SqlError::NotReadOnly);
         }
-        let columns: Vec<String> = stmt.column_names().iter().map(|c| (*c).to_owned()).collect();
+        let columns: Vec<String> = stmt.column_names().map(str::to_owned).collect();
         let n = columns.len();
         self.set_deadline(Some(self.profile.deadline_from(deadline_now())));
         let result = self.collect(&mut stmt, n);
@@ -499,12 +499,12 @@ impl Reader {
     }
 
     fn step_error(&self, e: &rusqlite::Error) -> SqlError {
-        if let rusqlite::Error::SqliteFailure(f, _) = e {
-            if f.code == rusqlite::ErrorCode::OperationInterrupted {
-                return SqlError::Deadline {
-                    ms: self.profile.deadline.as_millis(),
-                };
-            }
+        if let rusqlite::Error::SqliteFailure(f, _) = e
+            && f.code == rusqlite::ErrorCode::OperationInterrupted
+        {
+            return SqlError::Deadline {
+                ms: self.profile.deadline.as_millis(),
+            };
         }
         if let Some(what) = self.take_denied() {
             return SqlError::Denied(what);

@@ -215,7 +215,7 @@ dependencies = [
  "objc2-foundation 0.3.2",
  "parking_lot",
  "percent-encoding",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
  "wl-clipboard-rs",
  "x11rb",
 ]
@@ -317,7 +317,7 @@ dependencies = [
  "futures-lite",
  "parking",
  "polling",
- "rustix 1.1.5",
+ "rustix 1.1.6",
  "slab",
  "windows-sys 0.61.2",
 ]
@@ -348,7 +348,7 @@ dependencies = [
  "cfg-if",
  "event-listener",
  "futures-lite",
- "rustix 1.1.5",
+ "rustix 1.1.6",
 ]
 
 [[package]]
@@ -374,7 +374,7 @@ dependencies = [
  "cfg-if",
  "futures-core",
  "futures-io",
- "rustix 1.1.5",
+ "rustix 1.1.6",
  "signal-hook-registry",
  "slab",
  "windows-sys 0.61.2",
@@ -1139,7 +1139,7 @@ checksum = "0e9c71c2167ca323c882b99918929403426e2373ea17242ff5653e0d5e1058be"
 
 [[package]]
 name = "elektrawatt"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "automod",
  "eframe",
@@ -1247,7 +1247,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -1287,7 +1287,7 @@ dependencies = [
 
 [[package]]
 name = "ew"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "automod",
  "boon",
@@ -1305,7 +1305,7 @@ dependencies = [
 
 [[package]]
 name = "ew-api"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "automod",
  "ew-checks",
@@ -1349,7 +1349,7 @@ dependencies = [
 
 [[package]]
 name = "ew-caex"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "ew-interop-api",
  "quick-xml",
@@ -1360,7 +1360,7 @@ dependencies = [
 
 [[package]]
 name = "ew-checks"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "automod",
  "ew-derive",
@@ -1378,7 +1378,7 @@ dependencies = [
 
 [[package]]
 name = "ew-commands"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "automod",
  "ew-commands",
@@ -1401,7 +1401,7 @@ dependencies = [
 
 [[package]]
 name = "ew-derive"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "automod",
  "ew-commands",
@@ -1424,7 +1424,7 @@ dependencies = [
 
 [[package]]
 name = "ew-dl"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "ew-units",
  "insta",
@@ -1436,7 +1436,7 @@ dependencies = [
 
 [[package]]
 name = "ew-export"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "automod",
  "ew-dl",
@@ -1453,7 +1453,7 @@ dependencies = [
 
 [[package]]
 name = "ew-format"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "automod",
  "ew-schema",
@@ -1465,7 +1465,7 @@ dependencies = [
 
 [[package]]
 name = "ew-hack"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "ahash",
  "arrayvec",
@@ -1501,7 +1501,7 @@ dependencies = [
  "regex-automata",
  "regex-syntax",
  "roxmltree",
- "rustix 1.1.5",
+ "rustix 1.1.6",
  "serde",
  "serde_core",
  "serde_json",
@@ -1522,7 +1522,7 @@ dependencies = [
  "wayland-backend",
  "wayland-sys",
  "windows-core",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
  "winnow 1.0.4",
  "yoke",
  "zerocopy",
@@ -1532,7 +1532,7 @@ dependencies = [
 
 [[package]]
 name = "ew-ids"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "getrandom 0.4.3",
  "proptest",
@@ -1543,7 +1543,7 @@ dependencies = [
 
 [[package]]
 name = "ew-import-catalog"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "ew-interop-api",
  "miniz_oxide 0.8.9",
@@ -1556,7 +1556,7 @@ dependencies = [
 
 [[package]]
 name = "ew-import-dxf"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "automod",
  "ew-dl",
@@ -1567,7 +1567,7 @@ dependencies = [
 
 [[package]]
 name = "ew-import-eplan"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "automod",
  "crc32fast",
@@ -1585,7 +1585,7 @@ dependencies = [
 
 [[package]]
 name = "ew-import-qet"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "automod",
  "ew-ids",
@@ -1601,7 +1601,7 @@ dependencies = [
 
 [[package]]
 name = "ew-import-tables"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "automod",
  "ew-ids",
@@ -1617,7 +1617,7 @@ dependencies = [
 
 [[package]]
 name = "ew-interop-api"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "ew-ids",
  "ew-schema",
@@ -1627,14 +1627,14 @@ dependencies = [
 
 [[package]]
 name = "ew-jobs"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "ew-hack",
 ]
 
 [[package]]
 name = "ew-library"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "automod",
  "ew-derive",
@@ -1650,7 +1650,7 @@ dependencies = [
 
 [[package]]
 name = "ew-memo"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "imbl",
  "proptest",
@@ -1658,7 +1658,7 @@ dependencies = [
 
 [[package]]
 name = "ew-mltext"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "proptest",
  "serde",
@@ -1670,7 +1670,7 @@ dependencies = [
 
 [[package]]
 name = "ew-model"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "ew-hack",
  "ew-ids",
@@ -1685,7 +1685,7 @@ dependencies = [
 
 [[package]]
 name = "ew-plc"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "ew-caex",
  "ew-derive",
@@ -1696,14 +1696,14 @@ dependencies = [
 
 [[package]]
 name = "ew-plcaddr"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "proptest",
 ]
 
 [[package]]
 name = "ew-print"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "ashpd",
  "ew-export",
@@ -1714,7 +1714,7 @@ dependencies = [
 
 [[package]]
 name = "ew-rds"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "proptest",
  "serde",
@@ -1724,7 +1724,7 @@ dependencies = [
 
 [[package]]
 name = "ew-render-cpu"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "automod",
  "ew-dl",
@@ -1740,7 +1740,7 @@ dependencies = [
 
 [[package]]
 name = "ew-render2d"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "ew-dl",
  "ew-hack",
@@ -1755,7 +1755,7 @@ dependencies = [
 
 [[package]]
 name = "ew-reports"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "automod",
  "ew-checks",
@@ -1769,7 +1769,7 @@ dependencies = [
 
 [[package]]
 name = "ew-scene"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "automod",
  "ew-derive",
@@ -1791,7 +1791,7 @@ dependencies = [
 
 [[package]]
 name = "ew-schema"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "automod",
  "ew-ids",
@@ -1807,7 +1807,7 @@ dependencies = [
 
 [[package]]
 name = "ew-sqlview"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "automod",
  "ew-checks",
@@ -1822,7 +1822,7 @@ dependencies = [
 
 [[package]]
 name = "ew-store"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "automod",
  "ew-format",
@@ -1837,11 +1837,11 @@ dependencies = [
 
 [[package]]
 name = "ew-testdir"
-version = "0.2.0"
+version = "0.3.0"
 
 [[package]]
 name = "ew-testids"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "chacha20",
  "ew-ids",
@@ -1850,7 +1850,7 @@ dependencies = [
 
 [[package]]
 name = "ew-testkit"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "automod",
  "ew-api",
@@ -1873,7 +1873,7 @@ dependencies = [
 
 [[package]]
 name = "ew-text"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "ew-dl",
  "ew-hack",
@@ -1887,7 +1887,7 @@ dependencies = [
 
 [[package]]
 name = "ew-ui"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "automod",
  "egui",
@@ -1910,7 +1910,7 @@ dependencies = [
 
 [[package]]
 name = "ew-units"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "proptest",
  "serde",
@@ -1919,7 +1919,7 @@ dependencies = [
 
 [[package]]
 name = "ew-viewmodel"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "automod",
  "ew-api",
@@ -1936,7 +1936,7 @@ dependencies = [
 
 [[package]]
 name = "ew-zip"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "ew-hack",
  "miniz_oxide 0.8.9",
@@ -2231,7 +2231,7 @@ version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1bd49230192a3797a9a4d6abe9b3eed6f7fa4c8a8a4947977c6f80025f92cbd8"
 dependencies = [
- "rustix 1.1.5",
+ "rustix 1.1.6",
  "windows-link",
 ]
 
@@ -3018,9 +3018,9 @@ dependencies = [
 
 [[package]]
 name = "libsqlite3-sys"
-version = "0.38.2"
+version = "0.39.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1d20bef17f513b9b3004532233187769cd072d790971f4e4da0e346eb6401e8"
+checksum = "14a5f01b87b92705d07b433c06f96cbc764637d81a0bffb5734ce17cf0f9a2b3"
 dependencies = [
  "cc",
  "pkg-config",
@@ -3632,7 +3632,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7d8fae84b431384b68627d0f9b3b1245fcf9f46f6c0e3dc902e9dce64edd1967"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3935,7 +3935,7 @@ dependencies = [
  "concurrent-queue",
  "hermit-abi",
  "pin-project-lite",
- "rustix 1.1.5",
+ "rustix 1.1.6",
  "windows-sys 0.61.2",
 ]
 
@@ -4287,9 +4287,9 @@ dependencies = [
 
 [[package]]
 name = "rusqlite"
-version = "0.40.2"
+version = "0.41.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23f2a97da3e3873c73cb2a2e71b35c40ff95e0b1eefa8d72d8499a6928c3b5b3"
+checksum = "da9bba6f3506135e120a6586df05be18b48d18896600646a4bec8f993d91a594"
 dependencies = [
  "bitflags 2.13.2",
  "fallible-iterator",
@@ -4334,15 +4334,15 @@ dependencies = [
 
 [[package]]
 name = "rustix"
-version = "1.1.5"
+version = "1.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "891efababe418670775f199f0d233d84843c227a0949a883ce15b37c78d6629d"
+checksum = "e5e76742e5294153d4dde1207dbec5bdd81eef6fabdc0d2118babadabfd858aa"
 dependencies = [
  "bitflags 2.13.2",
  "errno",
  "libc",
  "linux-raw-sys 0.12.1",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -4804,8 +4804,8 @@ dependencies = [
  "fastrand",
  "getrandom 0.4.3",
  "once_cell",
- "rustix 1.1.5",
- "windows-sys 0.61.2",
+ "rustix 1.1.6",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -5303,7 +5303,7 @@ checksum = "38a91b4eaddff87b1cd1074985e3713da4af2c49742d1b356b2c01670a67a078"
 dependencies = [
  "cc",
  "downcast-rs",
- "rustix 1.1.5",
+ "rustix 1.1.6",
  "scoped-tls",
  "smallvec",
  "wayland-sys",
@@ -5316,7 +5316,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3c36a0f861ad76d0901f2800b46321410d9f73f2ea88aac0650d86c32688073"
 dependencies = [
  "bitflags 2.13.2",
- "rustix 1.1.5",
+ "rustix 1.1.6",
  "wayland-backend",
  "wayland-scanner",
 ]
@@ -5338,7 +5338,7 @@ version = "0.31.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4a52d18780be9b1314328a3de5f930b73d2200112e3849ca6cb11822793fb34d"
 dependencies = [
- "rustix 1.1.5",
+ "rustix 1.1.6",
  "wayland-client",
  "xcursor",
 ]
@@ -5617,7 +5617,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -5905,7 +5905,7 @@ dependencies = [
  "libc",
  "log",
  "os_pipe",
- "rustix 1.1.5",
+ "rustix 1.1.6",
  "thiserror 2.0.21",
  "tree_magic_mini",
  "wayland-backend",
@@ -5955,7 +5955,7 @@ dependencies = [
  "libc",
  "libloading",
  "once_cell",
- "rustix 1.1.5",
+ "rustix 1.1.6",
  "x11rb-protocol",
 ]
 
@@ -6004,7 +6004,7 @@ checksum = "9440ea3e5aeabb0ac63af70daf835274065238cdd0cec83418f417eae38bacee"
 
 [[package]]
 name = "xtask"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "cargo_metadata",
@@ -6063,7 +6063,7 @@ dependencies = [
  "hex",
  "libc",
  "ordered-stream",
- "rustix 1.1.5",
+ "rustix 1.1.6",
  "serde",
  "serde_repr",
  "tracing",

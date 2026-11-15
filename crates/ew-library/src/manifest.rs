@@ -188,8 +188,8 @@ pub(crate) fn parse_hash(text: &str) -> Option<[u8; 32]> {
         _ => None,
     };
     let mut out = [0u8; 32];
-    for (b, pair) in out.iter_mut().zip(hex.chunks_exact(2)) {
-        *b = digit(pair[0])? << 4 | digit(pair[1])?;
+    for (b, [high, low]) in out.iter_mut().zip(hex.as_chunks::<2>().0) {
+        *b = digit(*high)? << 4 | digit(*low)?;
     }
     Some(out)
 }

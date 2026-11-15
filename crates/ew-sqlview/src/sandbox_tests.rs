@@ -13,7 +13,7 @@ use crate::sandbox::{Profile, Reader};
 
 /// An image with `t_item(name, n)` behind `api_v1_item` and five rows.
 fn image() -> Vec<u8> {
-    let conn = rusqlite::Connection::open_in_memory().unwrap();
+    let mut conn = rusqlite::Connection::open_in_memory().unwrap();
     conn.execute_batch(
         "CREATE TABLE t_item (name TEXT, n INTEGER);
          CREATE VIEW api_v1_item AS SELECT name, n FROM t_item;

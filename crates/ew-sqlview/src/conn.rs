@@ -95,10 +95,10 @@ impl Wires {
         let bond = w
             .bond
             .and_then(|b| self.partition.bonds().iter().find(|l| l.bond == b));
-        if let Some(bond) = bond {
-            if let (Some(a), Some(b)) = (bond.a, bond.b) {
-                return format!("{} \u{21C4} {}", self.potential_name(a), self.potential_name(b));
-            }
+        if let Some(bond) = bond
+            && let (Some(a), Some(b)) = (bond.a, bond.b)
+        {
+            return format!("{} \u{21C4} {}", self.potential_name(a), self.potential_name(b));
         }
         w.potentials
             .iter()

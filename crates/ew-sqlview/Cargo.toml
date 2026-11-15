@@ -5,7 +5,8 @@
 name = "ew-sqlview"
 version.workspace = true
 edition.workspace = true
-rust-version.workspace = true
+# rusqlite 0.41 (the bundled SQLite 3.54, RUSTSEC-2026-0459) asks for it.
+rust-version = "1.89"
 license = "GPL-3.0-or-later"
 description = "Read-only SQL projection: materialisation, api_v1 views, sandbox, natural collation and the SQL rule implementations."
 repository.workspace = true
@@ -21,13 +22,13 @@ ew-checks = { path = "../ew-checks" }
 # build needs only a C compiler, NFR-MAINT-09). `functions` and `collation`: ew_ml, ew_regexp, the overridden
 # date functions and ew_natural; `hooks`: the authorizer and the progress-handler deadline; `limits`:
 # SQLITE_LIMIT_*; `serialize`: the read-only deserialised copy each consumer reads (doc 17 §6.2).
-rusqlite = { version = "0.40.2", default-features = false, features = ["bundled", "functions", "collation", "hooks", "limits", "serialize"] }
+rusqlite = { version = "0.41.1", default-features = false, features = ["bundled", "functions", "collation", "hooks", "limits", "serialize"] }
 # JSON array columns, the `_ml` columns and `ew_ml`, and the JSON result (`ew.sql-result/1`).
 serde = { workspace = true }
 # The typed JSON result `ew.sql-result/1` and its published schema (WP-S1.22 D5); already in the graph.
 schemars = "1.2.3"
 serde_json = "1.0.154"
-ew-hack = { version = "0.2.0", path = "../ew-hack" }
+ew-hack = { version = "0.3.0", path = "../ew-hack" }
 
 [dev-dependencies]
 automod.workspace = true

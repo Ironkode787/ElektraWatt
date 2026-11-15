@@ -36,7 +36,8 @@ This channel also receives Code of Conduct reports until the conduct contacts ar
 
 | Version | Supported |
 |---|---|
-| 0.2.x | Yes, until the next minor release (0.3.0) |
+| 0.3.x | Yes, until the next minor release (0.4.0) |
+| 0.2.x | No |
 | 0.1.x | No |
 | Earlier development builds | No |
 
