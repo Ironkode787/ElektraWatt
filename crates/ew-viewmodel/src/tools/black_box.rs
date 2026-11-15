@@ -251,7 +251,7 @@ impl BlackBoxTool {
     }
 
     /// The box of a terminal drawn as its positions at the armed point: insertion point, outline, cell width.
-    fn slotted(&self, cx: &ToolCx<'_>) -> Option<((i64, i64), Vec<(i64, i64)>, i64)> {
+    fn slotted(&self, cx: &ToolCx<'_>) -> Option<ew_api::geometry::SlotBox> {
         let (State::Armed { at: Some(at) }, Some(n)) = (&self.state, self.slots) else {
             return None;
         };

@@ -95,6 +95,30 @@ pub fn variant_letter(o: u8) -> char {
     orient2(o).letter()
 }
 
+/// A slotted box ([`slot_box`]): its insertion point, its outline relative to it, and its cell width (nm).
+pub type SlotBox = ((i64, i64), Vec<(i64, i64)>, i64);
+
+/// The box of a valve terminal of `count` positions drawn as its positions (doc 11 §3.2, rc.2) on a page of grid
+/// `grid` (`(num, den)` nm, as the page tables give it), its top-left corner at the grid point nearest `at`: the
+/// insertion point, the outline relative to it, and the cell width (`ew_derive::SlotFrame`); `None` without positions
+/// or for a grid that is none.
+pub fn slot_box(grid: (i64, i64), at: (i64, i64), count: u16) -> Option<SlotBox> {
+    if count == 0 {
+        return None;
+    }
+    let grid =
+        ew_derive::ew_units::Grid::new(u64::try_from(grid.0).ok()?, u64::try_from(grid.1).ok()?).ok()?;
+    let pitch = ew_derive::SlotFrame::pitch(grid);
+    let frame = ew_derive::SlotFrame::new(grid, Pt2::new(Nm(at.0), Nm(at.1)), pitch);
+    let o = frame.origin();
+    let outline = frame
+        .outline(usize::from(count))
+        .iter()
+        .map(|p| (p.x.0, p.y.0))
+        .collect();
+    Some(((o.x.0, o.y.0), outline, pitch.0))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -126,25 +150,4 @@ mod tests {
         assert_eq!(orient_then(0, 1, false), 1);
         assert_eq!(orient_then(0, 2, true), orient_index(Orient2::M180));
     }
-}
-
-/// The box of a valve terminal of `count` positions drawn as its positions (doc 11 §3.2, rc.2) on a page of grid
-/// `grid` (`(num, den)` nm, as the page tables give it), its top-left corner at the grid point nearest `at`: the
-/// insertion point, the outline relative to it, and the cell width (`ew_derive::SlotFrame`); `None` without positions
-/// or for a grid that is none.
-pub fn slot_box(grid: (i64, i64), at: (i64, i64), count: u16) -> Option<((i64, i64), Vec<(i64, i64)>, i64)> {
-    if count == 0 {
-        return None;
-    }
-    let grid =
-        ew_derive::ew_units::Grid::new(u64::try_from(grid.0).ok()?, u64::try_from(grid.1).ok()?).ok()?;
-    let pitch = ew_derive::SlotFrame::pitch(grid);
-    let frame = ew_derive::SlotFrame::new(grid, Pt2::new(Nm(at.0), Nm(at.1)), pitch);
-    let o = frame.origin();
-    let outline = frame
-        .outline(usize::from(count))
-        .iter()
-        .map(|p| (p.x.0, p.y.0))
-        .collect();
-    Some(((o.x.0, o.y.0), outline, pitch.0))
 }
