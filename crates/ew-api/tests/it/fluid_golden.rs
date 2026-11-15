@@ -423,7 +423,12 @@ fn the_working_lines_are_routed_clear_of_the_cylinder_bodies() {
                     .and_then(|y| y.item.meta.key.as_ref())
                     .is_some_and(|k| k.as_str() == "ew.iso.cylinder-double-acting@qet10")
         })
-        .map(|(_, r)| (r.pos.checked_add(corner).unwrap(), r.pos.checked_add(body).unwrap()))
+        .map(|(_, r)| {
+            (
+                r.pos.checked_add(corner).unwrap(),
+                r.pos.checked_add(body).unwrap(),
+            )
+        })
         .collect();
     assert_eq!(bodies.len(), 8);
     let mut routes = BTreeMap::new();
