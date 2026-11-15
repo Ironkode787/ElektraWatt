@@ -184,6 +184,76 @@ impl Command for AttachChildren {
     }
 }
 
+/// Whether `device` has a function on a FnDef of contact kind `valve` (as the transaction holds it).
+fn is_valve_device(tx: &TxBuilder<'_>, device: Id<Device>) -> bool {
+    tx.functions_of_device(device).into_iter().any(|f| {
+        tx.get::<ew_schema::Function>(f)
+            .and_then(|f| tx.get::<LibCopy<FnDef>>(f.def))
+            .is_some_and(|d| d.item.contact_kind == ew_schema::ContactKind::Valve)
+    })
+}
+
+/// Whether `device` uses a part whose fluid section taps a manifold gallery (a valve terminal's supply plate).
+fn is_supply_plate(tx: &TxBuilder<'_>, device: &Device) -> bool {
+    device.parts.iter().any(|u| {
+        tx.get::<LibCopy<ew_schema::Part>>(u.part.copy).is_some_and(|p| {
+            p.item
+                .sections
+                .fluid
+                .as_ref()
+                .is_some_and(|f| f.galleries.iter().any(|g| g.tap.is_some()))
+        })
+    })
+}
+
+/// The `into` of `device.place` and `rep.move` (the persona round: valves placed inside a valve terminal's box stayed
+/// loose devices): `device` drawn inside the box of the valve terminal `terminal` joins it as `assembly.attach` makes
+/// it (with its checks), in the same transaction. A valve takes the terminal's first free valve position (1 … n, n its
+/// `fluid.positions` or `plc.positions.count`); a supply plate (a part that taps a gallery) joins without a position. A
+/// device that is already the terminal's child, the terminal itself, any other device, and a valve when no position is
+/// free, are left as they are. Refused: a `terminal` that is no valve terminal.
+pub(crate) fn seat_on_terminal(
+    tx: &mut TxBuilder<'_>,
+    device: Id<Device>,
+    terminal: Id<Device>,
+) -> Result<(), CmdError> {
+    let t = tx.require::<Device>(terminal)?;
+    let valve_terminal = t
+        .aspects
+        .plc_station
+        .as_ref()
+        .is_some_and(|s| s.role == ew_schema::StationRole::ValveTerminal);
+    if !valve_terminal {
+        return tx.reject(text!(
+            "refusal-seat-not-terminal",
+            crate::words::device(tx, terminal)
+        ));
+    }
+    let d = tx.require::<Device>(device)?;
+    if device == terminal || d.parent == Some(terminal) {
+        return Ok(());
+    }
+    let position = if is_valve_device(tx, device) {
+        let q = ew_derive::Q::new(tx.base_model());
+        let count = ew_derive::valve_positions(&q, terminal).unwrap_or(0);
+        let taken = taken_positions(tx, terminal, &BTreeSet::from([device]));
+        match (1..=u32::from(count)).find(|p| !taken.contains_key(p)) {
+            Some(p) => Some(p),
+            None => return Ok(()),
+        }
+    } else if is_supply_plate(tx, &d) {
+        None
+    } else {
+        return Ok(());
+    };
+    AttachChildren {
+        parent: terminal,
+        children: vec![ChildSpec { device, position }],
+    }
+    .run(tx)
+    .map(|_| ())
+}
+
 /// `valve.add` (`AddValve`, doc 11 §4.3 `valve.add{module, position?, part}`): adds a valve child to a
 /// module (sub-base) of a valve terminal.
 ///

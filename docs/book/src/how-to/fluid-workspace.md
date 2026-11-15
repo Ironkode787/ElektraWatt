@@ -24,7 +24,9 @@ the middle, and the tube table and the medium table in the bottom dock.
    navigator lists it under **Valve terminals**.
 5. Right-click the terminal's box or its row and choose **Add valve at position 1**: the valve becomes the terminal's
    child at that position, and its symbol follows the pointer until you click where it goes. The valve is of the part
-   the terminal's other valves have, else the library's valve for its positions.
+   the terminal's other valves have, else the library's valve for its positions. A valve placed into the box from
+   **Symbol** or **Device**, or dragged into it, becomes the terminal's valve at the next free position too; the toast
+   names the position. A valve's **Valve position** in Properties moves it to another free position.
 6. Right-click a valve's row: **Set spare** or **Set used**, **Blank position** to put a blanking plate in its place,
    and **Plug port** for each working port that has no line. A module's row adds a valve at a blank or empty position
    the same way (**Add valve at position**).

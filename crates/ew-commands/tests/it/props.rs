@@ -160,6 +160,7 @@ fn build(model: &Model, step: &Step) -> Option<Box<dyn DynCommand>> {
                 kind: None,
             },
             connect: vec![],
+            into: None,
         }),
         Step::Move { rep, dx, dy } => boxed(MoveReps {
             routes: Vec::new(),
@@ -169,6 +170,7 @@ fn build(model: &Model, step: &Step) -> Option<Box<dyn DynCommand>> {
             reps: vec![nth::<Representation>(model, *rep)?.id],
             delta: pt(dx * UNIT, dy * UNIT),
             page: None,
+            into: None,
         }),
         Step::Transform { rep, rotate, mirror } => boxed(TransformReps {
             reps: vec![nth::<Representation>(model, *rep)?.id],

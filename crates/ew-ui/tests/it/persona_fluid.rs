@@ -700,3 +700,101 @@ fn p2g_the_fluid_panels_table_lists_the_tubes_and_says_tube() {
     assert_eq!(header.as_deref(), Some("Tube (Working)"));
     d.shell_mut().shutdown();
 }
+
+/// Places the starter symbol the symbol browser finds for `filter` at each of `points`, then Escape.
+fn place_from_browser(d: &mut Driver, filter: &str, points: &[(i64, i64)]) {
+    d.input(&click(d.find("Symbol").unwrap()));
+    d.settle();
+    d.input(&typed(filter));
+    d.settle();
+    d.input(&key("enter"));
+    d.settle();
+    for p in points {
+        click_at(d, *p);
+    }
+    d.input(&key("escape"));
+    d.settle();
+}
+
+/// The devices of the page shown drawn with a symbol whose key starts with `key`, left to right, then top to bottom.
+fn devices_drawn(d: &mut Driver, key: &str) -> Vec<Uuid> {
+    let tables = std::sync::Arc::clone(&d.shell_mut().canvas().unwrap().page().tables);
+    let mut reps: Vec<_> = tables
+        .reps
+        .iter()
+        .filter(|r| r.symbol_key.starts_with(key))
+        .collect();
+    reps.sort_by_key(|r| r.pos);
+    reps.iter().filter_map(|r| r.device).collect()
+}
+
+/// The Valve position row of `valve` (its text) and whether its chip names the terminal it is a child of.
+fn seat(d: &mut Driver, valve: Uuid) -> (String, bool) {
+    let _ = d
+        .shell_mut()
+        .dispatch("select.set", &json!({ "ids": [valve.to_string()] }));
+    let (text, chip) = prop_row(d, "device/derived.position");
+    (text, chip.contains("child of"))
+}
+
+/// R2-A of the re-test: the persona placed valve symbols into the valve terminal's box from the symbol browser, and the
+/// check said all four positions were empty; the Position row stood under Structure and typing into it did nothing.
+/// A valve placed inside the box is the terminal's valve at the next free position, with a toast that names it; its
+/// Valve position row stands in Main and moves it; a loose valve dragged into the box joins it too.
+#[test]
+fn r2a_a_valve_placed_inside_a_valve_terminals_box_is_its_valve() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    place_terminal(&mut d, (760, 300), (1260, 520));
+    place_from_browser(&mut d, "valve-5-2-sol-spring", &[(860, 440), (1100, 440)]);
+    let toast = d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert!(toast.contains("is the valve at position 2 of"), "{toast}");
+    let valves = devices_drawn(&mut d, "ew.iso.valve-5-2");
+    assert_eq!(valves.len(), 2);
+    assert_eq!(seat(&mut d, valves[0]), ("1".to_owned(), true));
+    assert_eq!(seat(&mut d, valves[1]), ("2".to_owned(), true));
+    // The row stands in Main, without a filter, and moves the valve to a free position.
+    let row = d
+        .shell_mut()
+        .properties()
+        .sheet()
+        .and_then(|s| {
+            s.sections
+                .iter()
+                .flat_map(|s| s.rows.iter())
+                .find(|r| r.key == "device/derived.position")
+                .cloned()
+        })
+        .expect("the Valve position row");
+    assert!(
+        ew_ui::ew_viewmodel::properties::is_primary("device", &row),
+        "Valve position is a Main row"
+    );
+    let set = json!({"row": "device/derived.position", "value": "4"});
+    assert_eq!(d.shell_mut().dispatch("props.set", &set), Outcome::Done);
+    assert_eq!(seat(&mut d, valves[1]).0, "4");
+    let set = json!({"row": "device/derived.position", "value": "first"});
+    assert!(matches!(
+        d.shell_mut().dispatch("props.set", &set),
+        Outcome::Failed { .. }
+    ));
+    // A loose valve, dragged into the box, takes the next free position.
+    place_from_browser(&mut d, "valve-5-2-sol-spring", &[(1000, 800)]);
+    let loose = devices_drawn(&mut d, "ew.iso.valve-5-2")
+        .into_iter()
+        .find(|v| !valves.contains(v))
+        .unwrap();
+    assert_eq!(seat(&mut d, loose), ("Absent".to_owned(), false), "loose below the box");
+    let _ = d.shell_mut().dispatch("tool.select", &json!({}));
+    d.input(&Input::Drag {
+        from: (1000, 800),
+        to: (1000, 440),
+        button: PointerButton::Primary,
+        mods: Modifiers::NONE,
+    });
+    d.settle();
+    let toast = d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert!(toast.contains("is the valve at position 2 of"), "{toast}");
+    assert_eq!(seat(&mut d, loose), ("2".to_owned(), true));
+    d.shell_mut().shutdown();
+}

@@ -189,6 +189,7 @@ impl Dsl {
             variant: 0,
             target: PlaceTarget::ExistingFunction { function },
             connect: vec![],
+            into: None,
         });
         primary(&r)
     }
@@ -308,6 +309,7 @@ fn build(seed: u64) -> (Dsl, Ids) {
             role: FnRole::Aux,
         },
         connect: vec![],
+        into: None,
     });
     let rep_102f2_aux: Id<Representation> = primary(&r);
     let f102f2_aux: Id<Function> = *created::<Function>(&r, Kind::Function)

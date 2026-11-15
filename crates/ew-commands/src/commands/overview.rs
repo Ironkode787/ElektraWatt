@@ -218,6 +218,7 @@ impl Command for GenerateOverview {
                             target,
                             connect: Vec::new(),
                             copies: Vec::new(),
+                            into: None,
                         }
                         .run(tx)?;
                     }

@@ -248,6 +248,7 @@ fn a_move_of_a_selection_with_the_surface_view_names_it() {
         delta: Pt2::new(Nm(10 * MM), Nm(0)),
         page: None,
         steps: None,
+        into: None,
     });
     match r {
         Err(ew_commands::CmdError::Rejected { reason, .. }) => assert_eq!(

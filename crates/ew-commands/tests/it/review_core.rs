@@ -68,6 +68,7 @@ fn place_k(letter: &str, page: Id<Page>, pos: Pt2) -> PlaceSymbol {
             kind: None,
         },
         connect: vec![],
+        into: None,
     }
 }
 
@@ -95,6 +96,7 @@ fn move_reps(reps: Vec<Id<Representation>>, delta: Pt2) -> MoveReps {
         reps,
         delta,
         page: None,
+        into: None,
     }
 }
 
@@ -169,6 +171,7 @@ fn f1_a_step_move_that_takes_a_connection_point_out_of_range_is_refused_in_words
         delta: Pt2::ORIGIN,
         page: None,
         steps: Some([0, 6]),
+        into: None,
     }));
     assert_eq!(
         reason,
@@ -341,6 +344,7 @@ fn f3_moving_onto_a_colliding_page_renumbers_the_moved_device() {
         reps: vec![id(0x1201)],
         delta: pt(0, 0),
         page: Some(PAGE_102),
+        into: None,
     })
     .expect("cross-page move of an unconnected representation");
     assert_eq!(row(&e, moved).tag.counter, Some(2), "the next free counter");

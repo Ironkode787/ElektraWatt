@@ -401,6 +401,11 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   offers nothing; FT-1499)
 - format-variant: record medium.schema.json
 - format-variant: record medium_def.schema.json
+- api-add: `device.place` and `rep.move` take `into`, a valve terminal: the placed or moved valve joins it at its
+  first free position (a supply plate without one) in the same undo step (persona re-test R2-A)
+- behaviour-change: a valve placed or dragged into a valve terminal's box is the terminal's valve at its next free
+  position, never a function of the terminal's device; the toast names the position, and a valve's Valve position
+  stands in Properties' Main group and moves it (persona re-test R2-A)
 - format-variant: report_block ReportKind tube_list
 - format-variant: report_block ReportKind tube_cut_list
 - format-variant: report_block ReportKind tube_labels

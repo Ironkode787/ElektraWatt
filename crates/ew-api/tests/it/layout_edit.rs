@@ -66,6 +66,7 @@ fn run(s: &mut Session, cmd: &AnyCommand) {
 fn refusal(r: Result<AnyCommand, LayoutEditError>) -> String {
     match r {
         Err(LayoutEditError::Invalid(m)) => m,
+        Err(e @ LayoutEditError::Refused(_)) => e.to_string(),
         Ok(c) => panic!("compiled {} {}", c.name, c.params),
     }
 }

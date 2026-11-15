@@ -243,6 +243,9 @@ pub struct ConnectHint {
 ///   reported as a notice instead of failing the command.
 /// - The effective `rep_type` must be one the page's type allows (doc 06 §2.2, `allowed_rep_types`);
 ///   else the placement is rejected with the list of allowed types.
+/// - `into` (the window sends the valve terminal whose box the insertion point lies in): the new device joins that
+///   terminal as `assembly::seat_on_terminal` says (a valve at the first free position, a supply plate without one),
+///   in the same transaction; any other device is left as it is.
 ///
 /// Rejected besides: a missing part copy or template index; a template without exactly one main entry (a device
 /// has one main function); a template FnDef that is neither embedded nor in `copies` (embed it
@@ -281,6 +284,10 @@ pub struct PlaceSymbol {
     /// closure as the caller resolved it; empty when the project holds them.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub copies: Vec<Value>,
+    /// The valve terminal whose box the symbol is placed in: a new valve or supply plate joins it (`seat_on_terminal`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<UuidS>")]
+    pub into: Option<Id<Device>>,
 }
 
 impl Command for PlaceSymbol {
@@ -386,6 +393,11 @@ impl Command for PlaceSymbol {
                 return tx.reject(text!("refusal-device-place-lost-cp"));
             };
             hint_wire(tx, Endpoint::Cp(function, fn_cp), &hint.to, self.page, i)?;
+        }
+        if let Some(terminal) = self.into
+            && let Some(device) = tx.require::<Function>(function)?.device
+        {
+            super::assembly::seat_on_terminal(tx, device, terminal)?;
         }
         Ok(Outcome {
             notices,
@@ -616,6 +628,10 @@ fn zero() -> Pt2 {
 /// hint whose target no longer exists is dropped with a notice; a CP the representation does not draw is refused). A
 /// hint onto a point of a connection is refused: a move never splits an existing wire (ADR-0007 decision 4).
 ///
+/// **Into a valve terminal** (`into`, which the Select tool sends for a representation dropped inside a valve
+/// terminal's box): after the move, each device the moved representations draw joins the terminal as `device.place`'s
+/// `into` makes a new one join it; a device already on it stays where it is.
+///
 /// Outcome: none; the notices of dropped hints. Coalesce one drag with a key.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -646,6 +662,11 @@ pub struct MoveReps {
     /// (connect on move).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub connect: Vec<MoveHint>,
+    /// The valve terminal whose box the representations are moved into: the devices they draw join it as
+    /// `device.place`'s `into` makes them.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<UuidS>")]
+    pub into: Option<Id<Device>>,
 }
 
 /// An autoconnect hint of `rep.move`: a `device.place` hint ([`ConnectHint`]) of a representation,
@@ -1045,6 +1066,25 @@ impl Command for MoveReps {
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        let out = self.run_move(tx)?;
+        if let Some(terminal) = self.into {
+            let mut devices: BTreeSet<Id<Device>> = BTreeSet::new();
+            for r in &self.reps {
+                for f in drawn_functions(&*tx.require::<Representation>(*r)?) {
+                    devices.extend(tx.get::<Function>(f).and_then(|f| f.device));
+                }
+            }
+            for d in devices {
+                super::assembly::seat_on_terminal(tx, d, terminal)?;
+            }
+        }
+        Ok(out)
+    }
+}
+
+impl MoveReps {
+    /// The move itself (see the type's documentation), without `into`.
+    fn run_move(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         if self.reps.is_empty() && self.items.is_empty() {
             return tx.reject(text!("refusal-rep-move-nothing"));
         }

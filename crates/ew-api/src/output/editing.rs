@@ -1066,6 +1066,9 @@ pub struct SymbolShape {
     pub rep_type: String,
     /// The FnDef copy the symbol draws (`v5(NS_LIBCOPY, library ‖ item)` of its `fndef` reference).
     pub fndef: Uuid,
+    /// Whether that FnDef is a valve (contact kind `valve`): placed inside a valve terminal's box, it is a valve of its
+    /// own that joins the terminal.
+    pub valve: bool,
 }
 
 /// One connection point of a [`SymbolShape`].
@@ -1326,6 +1329,9 @@ fn shape_with(copy: Uuid, def: &SymbolDef, fndef: Option<Arc<LibCopy<FnDef>>>) -
         outline,
         rep_type: rep_type_word(&def.rep_type),
         fndef: fndef_copy(&def.fndef).as_uuid(),
+        valve: fndef
+            .as_ref()
+            .is_some_and(|d| d.item.contact_kind == ContactKind::Valve),
     }
 }
 
@@ -1656,6 +1662,9 @@ pub struct TableBox {
     pub outline: Vec<(i64, i64)>,
     /// The box CPs: function CP index, point, direction.
     pub cps: Vec<(u16, (i64, i64), Dir)>,
+    /// Whether the box is a valve terminal's (its device a PLC station of role `valve_terminal`): a valve placed inside
+    /// is a valve of its own that joins the terminal, never a function of the terminal's device.
+    pub valve_terminal: bool,
 }
 
 /// The derived potential of a [`TableCp`]: its name, and whether that name is only the fallback.
@@ -1999,6 +2008,10 @@ impl Session {
                         .iter()
                         .map(|cp| (cp.idx, abs(cp.pos), orient_dir(o, dir_of(&cp.dir))))
                         .collect(),
+                    valve_terminal: first
+                        .as_ref()
+                        .and_then(|f| f.device)
+                        .is_some_and(|d| ew_derive::is_valve_terminal(&q, d)),
                 }
             });
             let tag_at = (first.as_ref().is_some_and(|f| f.device.is_some() && ip.is_none()))
@@ -2286,6 +2299,7 @@ mod tests {
             outline: Vec::new(),
             rep_type: String::new(),
             fndef: Uuid::from_u128(def),
+            valve: false,
         }
     }
 

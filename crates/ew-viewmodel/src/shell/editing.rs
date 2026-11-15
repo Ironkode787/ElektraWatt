@@ -192,7 +192,12 @@ impl ShellModel {
             return;
         };
         match note {
-            ResultNote::Placed { pos, wires, moved } => {
+            ResultNote::Placed {
+                pos,
+                wires,
+                moved,
+                into,
+            } => {
                 // The representation the placement added at its insertion point (the lowest ID if several).
                 let Some(rep) = now
                     .reps
@@ -245,6 +250,11 @@ impl ShellModel {
                 // A terminal that left the click point says where and why, after the result.
                 let text = match moved {
                     Some(moved) => format!("{}, {moved}", strings::without_stop(&text)),
+                    None => text,
+                };
+                // A valve dropped into a valve terminal's box says where it sits now.
+                let text = match rep.device.filter(|_| into).and_then(|d| self.seat_words(d)) {
+                    Some(seat) => format!("{text} {seat}"),
                     None => text,
                 };
                 self.notify(text, true);

@@ -587,7 +587,8 @@ Rules:
   page's (FR-NUM-002); the property grid shows the full tag `=P01+J-E-2416-102F1` beside it, read-only.
 - **Representation type mismatch**: placing an overview symbol on a multi-line page is refused with the list of
   allowed types (§2.2).
-- **Black box inside the drop point**: the function joins the box's device (§2.7).
+- **Black box inside the drop point**: the function joins the box's device (§2.7); a valve inside a valve terminal's
+  box is a new device that joins the terminal at its next free position ([11](11-fluid-power.md) §4.3).
 
 *As built.* **Joining an existing device has two paths
 in the design and one built.** Both are `device.place`: with `existing_function` while the device has an unplaced

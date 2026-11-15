@@ -1282,6 +1282,11 @@ impl ShellModel {
                 self.props.set_error(row.key.clone(), message.clone());
                 return Outcome::Failed { message };
             }
+            Err(ew_api::output::LayoutEditError::Refused(reason)) => {
+                let message = strings::text(Key::run_time(reason)).to_owned();
+                self.props.set_error(row.key.clone(), message.clone());
+                return Outcome::Failed { message };
+            }
         };
         let pending = PendingEdit {
             row: row.key.clone(),

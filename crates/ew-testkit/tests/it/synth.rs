@@ -702,6 +702,7 @@ fn moving_a_load_updates_the_routes_of_its_wires() {
             reps: vec![*rep],
             delta,
             page: None,
+            into: None,
         };
         let preview = session.preview(&cmd).expect("the move is accepted");
         let changed_routes: BTreeSet<Uuid> = preview

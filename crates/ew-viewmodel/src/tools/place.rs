@@ -18,7 +18,8 @@
 //! [`PlaceTool::set_symbol`]. **The command** is `device.place {page, symbol, pos, orient, target}` with the armed
 //! target, except that a `new_device` target whose insertion point lies inside the outline of a black box on the
 //! page (even-odd, the boundary inside; the innermost by area, ties by ID) becomes `join_device {device: the box's
-//! device, role: aux}` (doc 06 §2.7). A `new_terminal` target advances its designation after each commit when it is
+//! device, role: aux}` (doc 06 §2.7), but a valve inside a valve terminal's box stays a new device (the host seats it
+//! on the terminal). A `new_terminal` target advances its designation after each commit when it is
 //! decimal digits, and lands on the next free point two grid steps to the right while a terminal of the same strip
 //! sits on its point (the proposals are then not sent). A join target ([`PlaceTarget::Join`]) sends `existing_function` with the device's
 //! next unplaced slot of the symbol's FnDef, else `join_device {device, role: aux}`; its label reads `join -K1`.
@@ -380,6 +381,11 @@ impl PlaceTool {
                     let (Some(b), Some(_)) = (&r.black_box, r.device) else {
                         continue;
                     };
+                    // A valve inside a valve terminal's box is a valve of its own, which the host seats on the
+                    // terminal (`into`), never a function of the terminal's device.
+                    if b.valve_terminal && self.shape.valve {
+                        continue;
+                    }
                     if !inside_polygon(pos, &b.outline) {
                         continue;
                     }

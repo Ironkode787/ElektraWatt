@@ -127,6 +127,7 @@ fn mv(reps: Vec<Id<ew_schema::Representation>>, items: Vec<AnyId>, delta: Pt2) -
         reps,
         delta,
         page: None,
+        into: None,
     }
 }
 
@@ -897,6 +898,7 @@ fn rep_move_moves_items_and_boxes() {
         reps: vec![],
         delta: Pt2::ORIGIN,
         page: None,
+        into: None,
     })
     .expect("a step move of an item");
     let PageItemKind::FreeText(t) = &item(&e, label).kind else {
@@ -997,6 +999,7 @@ fn a_cross_page_move_unlinks_the_old_pages_markers() {
         reps: vec![REP_101F1, REP_IP_101],
         delta: pt(0, 0),
         page: Some(PAGE_102),
+        into: None,
     })
     .expect("moved across pages");
     assert_eq!(conn(&e, CON_W11A).page, Some(PAGE_102));

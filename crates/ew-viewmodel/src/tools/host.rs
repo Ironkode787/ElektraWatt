@@ -198,6 +198,9 @@ pub enum ResultNote {
         /// Why the placement left the click point, as the Place tool's HUD said it (a terminal moved off a
         /// terminal of its strip); `None` when it stands on the click point.
         moved: Option<String>,
+        /// Whether the placement named a valve terminal whose box it lies in (`into`), so that the toast says where
+        /// the device sits now.
+        into: bool,
     },
     /// The IP tool's `connection.draw_to_ip` from the pin under the point's CP: the point's insertion point
     /// (page nm), its committed name and the pin in words.

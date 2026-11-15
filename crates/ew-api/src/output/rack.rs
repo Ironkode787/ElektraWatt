@@ -400,6 +400,24 @@ impl Session {
         }
     }
 
+    /// Where `device` sits after a drop into a valve terminal's box: on a valve terminal (its tag and the valve
+    /// position, none for a supply plate), or loose (a valve on no terminal: the terminal had no free position); `None`
+    /// for a device that is neither a valve nor on a valve terminal.
+    pub fn terminal_seat(&self, device: Uuid) -> Option<TerminalSeat> {
+        let q = self.query();
+        let id: Id<Device> = Id::from_uuid(device);
+        let d = q.devices().get(id)?;
+        let tag = super::properties::device_tag_text(&q, id);
+        match d.parent.filter(|p| ew_derive::is_valve_terminal(&q, *p)) {
+            Some(p) => Some(TerminalSeat::On {
+                device: tag,
+                terminal: super::properties::device_tag_text(&q, p),
+                position: d.position,
+            }),
+            None => (!ew_derive::valve_functions(&q, id).is_empty()).then_some(TerminalSeat::Loose { device: tag }),
+        }
+    }
+
     /// The valve at position `position` (1-based) of module `module`; `None` for an empty or blank position.
     pub fn valve_at(&self, module: Uuid, position: u64) -> Option<Uuid> {
         let q = self.query();
@@ -484,6 +502,25 @@ fn slot_word(s: &ValveSlot) -> &'static str {
         ValveSlot::Blank { .. } => "blank",
         ValveSlot::Empty => "empty",
     }
+}
+
+/// Where a device dropped into a valve terminal's box sits ([`Session::terminal_seat`]).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum TerminalSeat {
+    /// On a valve terminal: its tag, and the valve position (none for a supply plate).
+    On {
+        /// The device's tag.
+        device: String,
+        /// The terminal's tag.
+        terminal: String,
+        /// The valve position.
+        position: Option<u32>,
+    },
+    /// A valve on no valve terminal.
+    Loose {
+        /// The device's tag.
+        device: String,
+    },
 }
 
 /// What a device row's fluid actions act on ([`Session::fluid_menu`]).

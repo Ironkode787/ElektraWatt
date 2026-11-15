@@ -183,6 +183,7 @@ fn place_two(e: &mut Engine, page: Id<ew_schema::Page>, pos: Pt2) -> (Id<Represe
                 kind: None,
             },
             connect: vec![],
+            into: None,
         })
         .expect("device.place");
     let rep: Id<Representation> = typed(r.outcome.primary.expect("primary"));
@@ -273,6 +274,7 @@ fn steps(rep: Id<Representation>, s: [i64; 2]) -> MoveReps {
         delta: Pt2::ORIGIN,
         page: None,
         steps: Some(s),
+        into: None,
     }
 }
 
@@ -402,6 +404,7 @@ fn a_route_to_a_black_box_pin_follows_the_box_on_a_drag_and_a_transform() {
         delta: pt(G, 0),
         page: None,
         steps: None,
+        into: None,
     })
     .expect("a move by a delta");
     check(&e, "a delta");
@@ -629,6 +632,7 @@ fn an_off_grid_position_is_refused_in_words() {
             kind: None,
         },
         connect: vec![],
+        into: None,
     }));
     assert_eq!(
         reason,

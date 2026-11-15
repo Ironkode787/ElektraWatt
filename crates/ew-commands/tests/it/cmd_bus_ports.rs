@@ -210,6 +210,7 @@ fn place_port(e: &mut Engine, device: Id<Device>) -> (Id<Function>, Receipt) {
                 role: FnRole::Aux,
             },
             connect: vec![],
+            into: None,
         })
         .expect("device.place join_device");
     let f = r

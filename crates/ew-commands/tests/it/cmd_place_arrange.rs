@@ -329,6 +329,7 @@ fn place_with(
         variant: 0,
         target,
         connect: vec![],
+        into: None,
     }
 }
 
@@ -856,6 +857,7 @@ fn delta_cmd(reps: Vec<Id<Representation>>, delta: Pt2, page: Option<Id<ew_schem
         delta,
         page,
         steps: None,
+        into: None,
     }
 }
 
@@ -1818,6 +1820,7 @@ fn device_place_with_an_old_target_serialises_as_before() {
             kind: None,
         },
         connect: vec![],
+        into: None,
     };
     assert_eq!(
         serde_json::to_value(&cmd).unwrap(),

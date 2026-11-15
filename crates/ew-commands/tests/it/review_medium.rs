@@ -55,6 +55,7 @@ fn place(page: Id<Page>, rep_type: Option<RepType>) -> PlaceSymbol {
             kind: None,
         },
         connect: vec![],
+        into: None,
     }
 }
 
@@ -156,6 +157,7 @@ fn move_refuses_a_page_whose_type_does_not_allow_the_rep() {
         reps: vec![REP_102G1],
         delta: pt(0, 0),
         page: Some(PAGE_101),
+        into: None,
     }));
     assert!(
         reason.contains("multi-line") && reason.contains("overview"),

@@ -521,6 +521,14 @@ closure?}` (refused on a port that is no fluid port or has a fluid line) are bui
 template has a valve entry ignores `fndef` and lets N-FL-1 make the functions; `fields.set` sets a fluid line's
 `line_kind`.
 
+*As built (M3 persona re-test).* A valve placed or moved into a valve terminal's box is that terminal's valve:
+`device.place` and `rep.move` take `into` (the terminal whose box the window saw the insertion point in), and the new
+or moved device joins it as `assembly.attach` makes it, in the same undo step: a valve at the first free position, a
+supply plate (a part whose fluid section taps a gallery) without a position; a device already on it, any other device,
+and a valve when no position is free, stay as they are. A valve symbol inside a valve terminal's box is a new device,
+never an auxiliary function of the terminal ([06](06-schematic-editor.md) §2.7). The toast names the position. A
+valve's **Valve position** is a Main row of Properties, typed into to move it to a free position (`assembly.attach`).
+
 ---
 
 ## 5. Algorithms

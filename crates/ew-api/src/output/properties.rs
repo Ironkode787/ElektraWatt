@@ -2288,6 +2288,10 @@ impl Session {
         if (generated.is_none() || kind != Kind::ReportBlock) && !fluid_lines {
             built.extend(self.derived_rows(q, cx, kind, &targets, &jsons));
         }
+        // A valve's position is its derived row, not the stored member a second time.
+        if built.iter().any(|b| b.row.key == "device/derived.position") {
+            built.retain(|b| b.row.key != "device/position");
+        }
         if fluid_lines {
             built.extend(fluid_line_rows(q, cx, &targets));
         }
@@ -2496,6 +2500,61 @@ impl Session {
                 Some((&path, editable(&path), false)),
                 Category::Structure,
                 FieldType::Slot,
+                value,
+                provenance,
+                actions,
+            ));
+        }
+        // A valve's position on its valve terminal (the persona round: Position stood under Structure, found only
+        // through the filter, and typing into it did nothing, since `assembly.attach` owns the member and the row was
+        // read-only): one row in Main for valves and the children of a module with valve positions, typed into to move
+        // one valve to another position (`assembly.attach` through `Session::layout_edit`).
+        let seats: Vec<Option<(Option<Id<Device>>, Option<u32>)>> = devices
+            .iter()
+            .map(|d| {
+                let dev = q.devices().get(*d)?;
+                let module = dev.parent.filter(|p| ew_derive::valve_positions(q, *p).is_some());
+                (module.is_some() || !ew_derive::valve_functions(q, *d).is_empty())
+                    .then_some((module, module.and(dev.position)))
+            })
+            .collect();
+        if !seats.is_empty() && seats.iter().all(Option::is_some) {
+            let per: Vec<(Option<Value>, Provenance)> = seats
+                .iter()
+                .flatten()
+                .map(|(module, position)| match module {
+                    Some(m) => (
+                        position.map(|p| Value::String(p.to_string())),
+                        Provenance::Derived {
+                            via: format!("child of {}", device_tag_text(q, *m)),
+                        },
+                    ),
+                    None => (
+                        None,
+                        Provenance::Derived {
+                            via: "on no valve terminal".to_owned(),
+                        },
+                    ),
+                })
+                .collect();
+            let (value, provenance) = merge(cx, &FieldType::Text, per);
+            let actions = if devices.len() == 1 {
+                vec![RowAction::Edit]
+            } else {
+                Vec::new()
+            };
+            out.push(derived(
+                "device",
+                "position",
+                Some((
+                    "derived.position",
+                    EditRoute::Command {
+                        command: "assembly.attach".to_owned(),
+                    },
+                    false,
+                )),
+                Category::Structure,
+                FieldType::Text,
                 value,
                 provenance,
                 actions,

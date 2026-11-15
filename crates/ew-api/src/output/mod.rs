@@ -149,7 +149,7 @@ pub use properties::{
     CompanyColour, FindingChip, PropRow, PropertySheet, Provenance, RowAction, RowValue, SelectionWords,
     SheetHeader, SheetSection, SourceLink, WireColours, WireEnd,
 };
-pub use rack::{FluidMenu, ModulePart, RackRow, RackView};
+pub use rack::{FluidMenu, ModulePart, RackRow, RackView, TerminalSeat};
 pub use raster::{DEFAULT_DPI, DPI_RANGE, page_png, sheet_image};
 pub use revisions::{PageDigest, changed_now, changed_pages, last_changed_in, page_digest, page_digests};
 pub use route_measures::{

@@ -767,6 +767,8 @@ const PRIMARY: &[(&str, &[&str])] = &[
             "function_text",
             "parts",
             "derived.structure.location",
+            // A valve's position on its valve terminal (the persona round: found only through the filter).
+            "derived.position",
         ],
     ),
     (
@@ -1691,6 +1693,8 @@ const CHIP_PHRASES: &[(&str, Option<&str>, Key<'static>)] = &[
     ("medium '", Some("'"), key!("chip-via-medium")),
     ("tube part ", Some(""), key!("chip-via-tube-part")),
     ("no tube specification", None, key!("chip-via-no-tube-spec")),
+    // A valve's position (the persona round).
+    ("on no valve terminal", None, key!("chip-via-no-terminal")),
 ];
 
 /// A provenance chip's words in the UI language: each ` · `-separated part of `ew-api`'s English

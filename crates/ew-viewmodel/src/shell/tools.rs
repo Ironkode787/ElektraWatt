@@ -480,7 +480,7 @@ impl ShellModel {
                 Outcome::Done
             }
             ToolOutput::Preview(cmd) => {
-                let cmd = self.without_held_copies(cmd);
+                let cmd = self.with_terminal(self.without_held_copies(cmd));
                 self.run_preview(cmd.as_ref());
                 Outcome::Done
             }
@@ -489,7 +489,9 @@ impl ShellModel {
                 self.macro_place_from_tool(&key, at)
             }
             ToolOutput::Commit(cmd) => {
-                let cmd = self.without_held_copies(cmd);
+                let cmd = self.with_terminal(self.without_held_copies(cmd));
+                // A drop into a valve terminal's box says where the device sits now.
+                let into = cmd.to_json().is_ok_and(|j| j.get("into").is_some());
                 self.tools.before_commit = self.canvas().map(|c| Arc::clone(&c.page().tables));
                 // The wires a placement draws by its autoconnect hints, said in the toast.
                 let connects = self.autoconnect_words(cmd.as_ref());
@@ -536,6 +538,7 @@ impl ShellModel {
                         pos: (x, y),
                         wires: connects,
                         moved,
+                        into,
                     });
                 }
                 if out == Outcome::Done
@@ -611,6 +614,23 @@ impl ShellModel {
                 }
                 // After Select commits a move or a transform, the selection is the moved representations (one
                 // selection change, no command).
+                if out == Outcome::Done
+                    && into
+                    && cmd.name() == "rep.move"
+                    && let Ok(params) = cmd.to_json()
+                    && let Some(device) = params["reps"][0].as_str().and_then(|r| {
+                        self.canvas()?
+                            .page()
+                            .tables
+                            .reps
+                            .iter()
+                            .find(|x| x.id.to_string() == r)?
+                            .device
+                    })
+                    && let Some(text) = self.seat_words(device)
+                {
+                    self.notify(text, true);
+                }
                 if out == Outcome::Done
                     && self.tools.tool.name() == "select"
                     && matches!(cmd.name(), "rep.move" | "rep.transform")
@@ -701,6 +721,81 @@ impl ShellModel {
         Box::new(AnyCommand {
             name: cmd.name().to_owned(),
             params,
+        })
+    }
+
+    /// The persona round's valves placed inside a valve terminal's box stayed loose devices: a `device.place` whose
+    /// insertion point lies inside the box of a valve terminal of the page, and a `rep.move` of one representation whose
+    /// new insertion point does, name that terminal as `into` (the command seats a valve or a supply plate there and
+    /// leaves any other device). Any other command, and a move of the terminal's own box, is returned as it is.
+    fn with_terminal(&self, cmd: Box<dyn DynCommand>) -> Box<dyn DynCommand> {
+        if !matches!(cmd.name(), "device.place" | "rep.move") {
+            return cmd;
+        }
+        let (Ok(mut params), Some(tables)) = (
+            cmd.to_json(),
+            self.canvas().map(|c| Arc::clone(&c.page().tables)),
+        ) else {
+            return cmd;
+        };
+        let at = |v: &Value| Some((v[0].as_i64()?, v[1].as_i64()?));
+        let (point, moved) = if cmd.name() == "device.place" {
+            (at(&params["pos"]), None)
+        } else {
+            let grid = crate::tools::wire::PageGridMap::new(tables.grid);
+            let rep = match params["reps"].as_array().map(Vec::as_slice) {
+                Some([one]) => one.as_str().and_then(|r| tables.reps.iter().find(|x| x.id.to_string() == r)),
+                _ => None,
+            };
+            let point = rep.zip(at(&params["steps"])).map(|(r, (kx, ky))| {
+                (
+                    grid.coord(grid.index(r.pos.0) + kx),
+                    grid.coord(grid.index(r.pos.1) + ky),
+                )
+            });
+            (point, rep)
+        };
+        let Some(point) = point else { return cmd };
+        let inside = |outline: &[(i64, i64)]| {
+            let (xs, ys) = (outline.iter().map(|p| p.0), outline.iter().map(|p| p.1));
+            matches!((xs.clone().min(), xs.max(), ys.clone().min(), ys.max()),
+                (Some(x0), Some(x1), Some(y0), Some(y1)) if x0 < point.0 && point.0 < x1 && y0 < point.1 && point.1 < y1)
+        };
+        let terminal = tables
+            .reps
+            .iter()
+            .filter(|r| moved.is_none_or(|m| m.id != r.id && m.device != r.device))
+            .filter(|r| {
+                r.black_box
+                    .as_ref()
+                    .is_some_and(|b| b.valve_terminal && inside(&b.outline))
+            })
+            .find_map(|r| r.device);
+        let (Some(terminal), Some(m)) = (terminal, params.as_object_mut()) else {
+            return cmd;
+        };
+        m.insert("into".to_owned(), Value::String(terminal.to_string()));
+        Box::new(AnyCommand {
+            name: cmd.name().to_owned(),
+            params,
+        })
+    }
+
+    /// The sentence that says where a device dropped into a valve terminal's box now sits (the persona round: a toast
+    /// that names the position), or that the terminal had no free position; `None` for a device that is neither a valve
+    /// nor on a valve terminal.
+    pub(super) fn seat_words(&self, device: ew_api::output::Uuid) -> Option<String> {
+        use ew_api::output::TerminalSeat;
+        Some(match self.project.as_ref()?.session.terminal_seat(device)? {
+            TerminalSeat::On {
+                device,
+                terminal,
+                position: Some(p),
+            } => strings::format(key!("toast-seat-valve"), &[&device, &p.to_string(), &terminal]),
+            TerminalSeat::On {
+                device, terminal, ..
+            } => strings::format(key!("toast-seat-plate"), &[&device, &terminal]),
+            TerminalSeat::Loose { device } => strings::format(key!("toast-seat-full"), &[&device]),
         })
     }
 

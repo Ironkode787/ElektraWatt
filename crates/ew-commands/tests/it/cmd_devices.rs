@@ -68,6 +68,7 @@ fn place(page: ew_ids::Id<ew_schema::Page>, pos: Pt2, target: PlaceTarget) -> Pl
         variant: 0,
         target,
         connect: vec![],
+        into: None,
     }
 }
 
@@ -632,6 +633,7 @@ fn mv(reps: Vec<ew_ids::Id<Representation>>, delta: Pt2) -> MoveReps {
         reps,
         delta,
         page: None,
+        into: None,
     }
 }
 
@@ -694,6 +696,7 @@ fn move_across_pages_moves_wires_with_both_ends_and_renumbers() {
         reps: vec![REP_101F1, REP_IP_101],
         delta: pt0(),
         page: Some(PAGE_102),
+        into: None,
     })
     .unwrap();
     assert_eq!(row(&e, REP_101F1).page, PAGE_102);
@@ -722,6 +725,7 @@ fn move_across_pages_rejects_a_wire_with_one_end_left_behind() {
         reps: vec![REP_101F1],
         delta: pt0(),
         page: Some(PAGE_102),
+        into: None,
     };
     rejected(e.execute(&cmd));
     // A wire to a junction stays behind as well.
@@ -733,6 +737,7 @@ fn move_across_pages_rejects_a_wire_with_one_end_left_behind() {
         reps: vec![REP_102G1],
         delta: pt0(),
         page: Some(PAGE_101),
+        into: None,
     };
     rejected(e.execute(&cmd));
     assert_eq!(e.model().rev().0, 0);
@@ -751,6 +756,7 @@ fn move_rejects_empty_lists_and_unknown_references() {
         reps: vec![REP_102F2],
         delta: pt0(),
         page: Some(id(0x998)),
+        into: None,
     }));
 }
 
