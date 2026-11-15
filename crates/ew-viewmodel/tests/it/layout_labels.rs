@@ -95,7 +95,7 @@ fn a_balloon_off_its_device_drags_alone_and_the_devices_menu_puts_it_back() {
     );
     done(&mut shell, "canvas.press", at(on, json!({})));
     done(&mut shell, "canvas.release", at(on, json!({})));
-    let menu: Vec<&str> = canvas_menu(&shell, MenuSpot::Object)
+    let menu: Vec<&str> = canvas_menu(&shell, MenuSpot::Object, None)
         .iter()
         .map(|i| i.id)
         .collect();

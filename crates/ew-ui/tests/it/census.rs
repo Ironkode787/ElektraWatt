@@ -666,7 +666,7 @@ fn census_every_context_menu() {
     let open = |h: &mut Harness<'_, App>, at: egui::Pos2, over: bool, census: &mut Census, surface: &str| {
         crate::tools::right_click(h, at);
         let spot = if over { MenuSpot::Object } else { MenuSpot::Sheet };
-        let first = canvas_menu(h.state().shell(), spot)
+        let first = canvas_menu(h.state().shell(), spot, None)
             .first()
             .map(|i| i.label.clone())
             .expect("a menu");

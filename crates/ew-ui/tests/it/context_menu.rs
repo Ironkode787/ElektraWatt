@@ -86,7 +86,7 @@ fn rep_whose_menu(h: &mut Harness<'static, App>, want: &dyn Fn(&str, &str) -> bo
         .collect();
     let found = ids.into_iter().find(|id| {
         dispatch(h, "select.set", json!({ "ids": [id] }));
-        canvas_menu(h.state().shell(), MenuSpot::Object)
+        canvas_menu(h.state().shell(), MenuSpot::Object, None)
             .iter()
             .any(|i| i.enabled && want(i.id, &i.label))
     });
@@ -518,7 +518,7 @@ fn a_device_rows_menu_offers_what_its_symbol_offers_and_goes_to_it() {
     assert_eq!(h.state().shell().current_folio(), Some("201"));
     // On the page its symbol, selected by Go to, offers the same entries (but Go to and Properties, which the page's
     // general entries hold).
-    let page: Vec<String> = canvas_menu(h.state().shell(), MenuSpot::Object)
+    let page: Vec<String> = canvas_menu(h.state().shell(), MenuSpot::Object, None)
         .into_iter()
         .map(|i| i.label)
         .collect();

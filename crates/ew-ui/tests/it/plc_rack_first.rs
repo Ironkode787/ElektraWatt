@@ -127,7 +127,7 @@ fn a_bus_device_is_given_to_a_plc_from_its_menu() {
     dispatch(&mut h, "edit.select_all", json!({}));
     settle(&mut h);
     // The symbol's menu, as a right-click on it opens it.
-    let menu = canvas_menu(h.state().shell(), MenuSpot::Object);
+    let menu = canvas_menu(h.state().shell(), MenuSpot::Object, None);
     let add = menu
         .iter()
         .find(|i| i.label == "Add to a new PLC")
@@ -160,7 +160,7 @@ fn a_bus_device_is_given_to_a_plc_from_its_menu() {
     let view = h.state().shell().rack_view(*device).expect("its rack");
     assert_eq!(view.rows.iter().filter(|r| r.module.is_some()).count(), 1);
     dispatch(&mut h, "ui.dismiss", json!({}));
-    let menu: Vec<String> = canvas_menu(h.state().shell(), MenuSpot::Object)
+    let menu: Vec<String> = canvas_menu(h.state().shell(), MenuSpot::Object, None)
         .into_iter()
         .map(|i| i.label)
         .collect();

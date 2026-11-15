@@ -300,13 +300,15 @@ impl ShellModel {
                 moved,
                 into,
             } => {
-                // The representation the placement added at its insertion point (the lowest ID if several).
-                let Some(rep) = now
-                    .reps
-                    .iter()
-                    .filter(|r| r.pos == pos && !before.reps.iter().any(|b| b.id == r.id))
-                    .min_by_key(|r| r.id)
-                else {
+                // The representation the placement added at its insertion point (the lowest ID if several), else the one
+                // it added elsewhere (a valve placed in a terminal's cell stands at the cell's point, rc.2).
+                let added = |at: bool| {
+                    now.reps
+                        .iter()
+                        .filter(|r| (!at || r.pos == pos) && !before.reps.iter().any(|b| b.id == r.id))
+                        .min_by_key(|r| r.id)
+                };
+                let Some(rep) = added(true).or_else(|| added(false)) else {
                     return;
                 };
                 let cps: Vec<&ew_api::output::TableCp> = now.cps.iter().filter(|c| c.rep == rep.id).collect();

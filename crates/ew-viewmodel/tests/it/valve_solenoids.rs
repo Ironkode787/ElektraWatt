@@ -87,7 +87,7 @@ fn devices(s: &mut ShellModel) -> Vec<Uuid> {
 /// The canvas menu of the one symbol `rep`, as (label, action, parameters).
 fn menu_of(s: &mut ShellModel, rep: &TableRep) -> Vec<(String, &'static str, serde_json::Value)> {
     done(s, "select.set", json!({"ids": [rep.id.to_string()]}));
-    canvas_menu(s, MenuSpot::Object)
+    canvas_menu(s, MenuSpot::Object, None)
         .into_iter()
         .map(|i| (i.label, i.id, i.params))
         .collect()

@@ -75,8 +75,9 @@ fn row_of(d: &mut Driver, label: &str) -> (i64, i64) {
     d.find(&name).unwrap_or_else(|| panic!("row {name} not on show"))
 }
 
-/// Places the starter valve terminal from the device browser as a box from `a` to `b`, then Escape.
-fn place_terminal(d: &mut Driver, a: (i64, i64), b: (i64, i64)) {
+/// Places the starter valve terminal from the device browser, drawn as its positions with its top-left corner at `a`
+/// (one click, rc.2), then Escape.
+fn place_terminal(d: &mut Driver, a: (i64, i64)) {
     d.input(&click(d.find("Device").unwrap()));
     d.settle();
     d.input(&typed("valve terminal"));
@@ -87,7 +88,6 @@ fn place_terminal(d: &mut Driver, a: (i64, i64), b: (i64, i64)) {
     });
     d.settle();
     click_at(d, a);
-    click_at(d, b);
     // F18 of the rc.1 test: the valve terminal is a station, and its rack dialog opens when it is placed.
     assert!(
         matches!(
@@ -98,6 +98,60 @@ fn place_terminal(d: &mut Driver, a: (i64, i64), b: (i64, i64)) {
     );
     d.input(&key("escape"));
     d.settle();
+    d.input(&key("escape"));
+    d.settle();
+}
+
+/// The window pixel of a page point of the page shown.
+fn page_pixel(d: &mut Driver, at: (i64, i64)) -> (i64, i64) {
+    let snapper = d.shell_mut().canvas().unwrap().page().snapper.clone();
+    let pixel = sheet_pixel(d);
+    pixel(snapper.page_to_sheet(at))
+}
+
+/// The cells of the valve terminal drawn as its positions on the page shown.
+fn cells(d: &mut Driver) -> Vec<ew_ui::ew_viewmodel::ew_api::output::SlotCell> {
+    let tables = std::sync::Arc::clone(&d.shell_mut().canvas().unwrap().page().tables);
+    tables
+        .reps
+        .iter()
+        .find_map(|r| r.black_box.as_ref().filter(|b| !b.cells.is_empty()))
+        .map(|b| b.cells.clone())
+        .expect("a valve terminal drawn as its positions")
+}
+
+/// The window pixel of the middle of cell `i` (0-based) of the valve terminal drawn as its positions.
+fn cell_px(d: &mut Driver, i: usize) -> (i64, i64) {
+    let r = cells(d)[i].rect;
+    page_pixel(d, ((r[0] + r[2]) / 2, (r[1] + r[3]) / 2))
+}
+
+/// The window pixel of the middle of the terminal's supply end.
+fn supply_px(d: &mut Driver) -> (i64, i64) {
+    let tables = std::sync::Arc::clone(&d.shell_mut().canvas().unwrap().page().tables);
+    let r = tables
+        .reps
+        .iter()
+        .find_map(|r| r.black_box.as_ref().and_then(|b| b.supply_end))
+        .expect("a supply end");
+    page_pixel(d, ((r[0] + r[2]) / 2, (r[1] + r[3]) / 2))
+}
+
+/// Add valve at position `n` on the terminal's row in the Fluid panel: the valve's symbol follows the pointer and a
+/// click on the page places it, in its cell.
+fn add_valve(d: &mut Driver, n: usize) {
+    let terminal = fluid_nodes(d)
+        .into_iter()
+        .find(|x| x.role == NavRole::Device)
+        .map(|x| x.label)
+        .expect("the terminal's row");
+    let row = row_of(d, &terminal);
+    d.input(&right_click(row));
+    d.settle();
+    d.input(&click(starting_with(d, &format!("Add valve at position {n}"))));
+    d.settle();
+    let at = cell_px(d, n - 1);
+    click_at(d, at);
     d.input(&key("escape"));
     d.settle();
 }
@@ -172,8 +226,7 @@ fn tubes(d: &mut Driver) -> usize {
 }
 
 /// P2-A: a valve terminal could not be built from the window. From nothing: the starter terminal placed from the device
-/// browser is a valve terminal (the Fluid panel lists it); Add valve at position 1 on its box's menu and at position 2
-/// on its row's menu each make a valve child whose symbol follows the pointer to its place; a cylinder, the air supply
+/// browser is a valve terminal (the Fluid panel lists it); Add valve at position 1 and 2 on its row/// on its row's menu each make a valve child whose symbol follows the pointer to its place; a cylinder, the air supply
 /// and three tubes join them; Generate overview…, greyed in words before, draws the overview page.
 #[test]
 fn p2a_a_valve_terminal_is_built_from_nothing_and_its_overview_generated() {
@@ -188,7 +241,7 @@ fn p2a_a_valve_terminal_is_built_from_nothing_and_its_overview_generated() {
             .map(ew_ui::ew_viewmodel::strings::text),
         Some("Select a valve terminal first: on its page or in the Fluid panel")
     );
-    place_terminal(&mut d, (760, 300), (1260, 520));
+    place_terminal(&mut d, (760, 300));
     let nodes = fluid_nodes(&mut d);
     assert!(
         nodes
@@ -201,23 +254,13 @@ fn p2a_a_valve_terminal_is_built_from_nothing_and_its_overview_generated() {
         .find(|n| n.role == NavRole::Device)
         .map(|n| n.label.clone())
         .expect("the terminal's row");
-    // Add valve at position 1 on the box's menu: the valve's symbol follows the pointer, a click places it.
-    d.input(&right_click((1010, 330)));
-    d.settle();
-    d.input(&click(starting_with(&d, "Add valve at position 1")));
-    d.settle();
-    click_at(&mut d, (860, 440));
-    d.input(&key("escape"));
-    d.settle();
-    // Add valve at position 2 on the terminal's row in the Fluid panel.
-    let row = row_of(&mut d, &terminal);
-    d.input(&right_click(row));
-    d.settle();
-    d.input(&click(starting_with(&d, "Add valve at position 2")));
-    d.settle();
-    click_at(&mut d, (1100, 440));
-    d.input(&key("escape"));
-    d.settle();
+    // The box's empty cell offers Fill position 1… (rc.2); Add valve at position 1 and 2 on the terminal's row in the
+    // Fluid panel: the valve's symbol follows the pointer, a click places it in its cell.
+    let at = cell_px(&mut d, 0);
+    let on_cell = menu_at(&mut d, at);
+    assert!(on_cell.iter().any(|l| l == "Fill position 1…"), "{on_cell:?}");
+    add_valve(&mut d, 1);
+    add_valve(&mut d, 2);
     let nodes = fluid_nodes(&mut d);
     let at = nodes.iter().position(|n| n.label == terminal).unwrap();
     let valves: Vec<&str> = nodes
@@ -387,14 +430,8 @@ fn p2c_the_tube_part_offers_tubes_and_takes_one_from_the_library() {
 fn item3_a_tube_from_a_valve_inside_its_terminals_box_is_routed() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
-    place_terminal(&mut d, (760, 300), (1260, 520));
-    d.input(&right_click((1010, 330)));
-    d.settle();
-    d.input(&click(starting_with(&d, "Add valve at position 1")));
-    d.settle();
-    click_at(&mut d, (900, 440));
-    d.input(&key("escape"));
-    d.settle();
+    place_terminal(&mut d, (760, 300));
+    add_valve(&mut d, 1);
     place_symbol(&mut d, "ew.iso.cylinder-double-acting@qet10", (900, 800));
     let valve = device_drawn(&mut d, "ew.iso.valve");
     let cylinder = device_drawn(&mut d, "ew.iso.cylinder");
@@ -436,14 +473,8 @@ fn cp_end(d: &mut Driver, device: Uuid, designation: &str) -> serde_json::Value 
 /// from the valve's port 4 to the cylinder's port B stored without a route (as the Wire tool stored it when the box
 /// blocked every route); the tube's ID and the window pixel of the middle of its vertical run below the box.
 fn unrouted_tube(d: &mut Driver) -> (String, (i64, i64)) {
-    place_terminal(d, (760, 300), (1260, 520));
-    d.input(&right_click((1010, 330)));
-    d.settle();
-    d.input(&click(starting_with(d, "Add valve at position 1")));
-    d.settle();
-    click_at(d, (900, 440));
-    d.input(&key("escape"));
-    d.settle();
+    place_terminal(d, (760, 300));
+    add_valve(d, 1);
     place_symbol(d, "ew.iso.cylinder-double-acting@qet10", (800, 850));
     let (valve, cylinder) = (
         device_drawn(d, "ew.iso.valve"),
@@ -467,7 +498,9 @@ fn unrouted_tube(d: &mut Driver) -> (String, (i64, i64)) {
     assert!(!c.stored_route, "unrouted");
     // Its vertical run: the segment of the drawn line whose x is the valve port's, between the box and the cylinder.
     let (a, b) = (port(d, valve, "4"), port(d, cylinder, "B"));
-    (c.id.to_string(), (a.0, (a.1.max(520) + b.1) / 2))
+    let bottom = cells(d)[0].rect[3];
+    let bottom = page_pixel(d, (0, bottom)).1;
+    (c.id.to_string(), (a.0, (a.1.max(bottom) + b.1) / 2))
 }
 
 /// P2-F: a click on a dashed (unrouted) tube selected nothing, and a right-click there opened the page's menu. A click
@@ -751,14 +784,16 @@ fn seat(d: &mut Driver, valve: Uuid) -> (String, bool) {
 
 /// R2-A of the re-test: the persona placed valve symbols into the valve terminal's box from the symbol browser, and the
 /// check said all four positions were empty; the Position row stood under Structure and typing into it did nothing.
-/// A valve placed inside the box is the terminal's valve at the next free position, with a toast that names it; its
-/// Valve position row stands in Main and moves it; a loose valve dragged into the box joins it too.
+/// A valve placed inside the box is the terminal's valve at the position of the cell it is placed in (rc.2), with a
+/// toast that names it; its Valve position row stands in Main and moves it; a loose valve dragged into a cell joins it
+/// too.
 #[test]
 fn r2a_a_valve_placed_inside_a_valve_terminals_box_is_its_valve() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
-    place_terminal(&mut d, (760, 300), (1260, 520));
-    place_from_browser(&mut d, "valve-5-2-sol-spring", &[(860, 440), (1100, 440)]);
+    place_terminal(&mut d, (760, 300));
+    let at = [cell_px(&mut d, 0), cell_px(&mut d, 1)];
+    place_from_browser(&mut d, "valve-5-2-sol-spring", &at);
     let toast = d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
     assert!(toast.contains("is the valve at position 2 of"), "{toast}");
     let valves = devices_drawn(&mut d, "ew.iso.valve-5-2");
@@ -802,9 +837,10 @@ fn r2a_a_valve_placed_inside_a_valve_terminals_box_is_its_valve() {
         "loose below the box"
     );
     let _ = d.shell_mut().dispatch("tool.select", &json!({}));
+    let to = cell_px(&mut d, 1);
     d.input(&Input::Drag {
         from: (1000, 800),
-        to: (1000, 440),
+        to,
         button: PointerButton::Primary,
         mods: Modifiers::NONE,
     });
@@ -1079,8 +1115,9 @@ fn r2h_a_tube_length_shows_its_unit_and_a_report_page_its_name() {
 fn r2e_the_supply_plate_has_its_ports_and_feeds_the_valves() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
-    place_terminal(&mut d, (760, 300), (1260, 520));
-    place_from_browser(&mut d, "valve-5-2-sol-spring", &[(1100, 440)]);
+    place_terminal(&mut d, (760, 300));
+    let at = cell_px(&mut d, 0);
+    place_from_browser(&mut d, "valve-5-2-sol-spring", &[at]);
     d.input(&click(d.find("Device").unwrap()));
     d.settle();
     d.input(&typed("supply plate"));
@@ -1090,7 +1127,8 @@ fn r2e_the_supply_plate_has_its_ports_and_feeds_the_valves() {
         mods: Modifiers::NONE,
     });
     d.settle();
-    click_at(&mut d, (860, 440));
+    let at = supply_px(&mut d);
+    click_at(&mut d, at);
     d.input(&key("escape"));
     d.settle();
     let toast = d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
@@ -1182,7 +1220,7 @@ fn set_beside(d: &mut Driver, device: Uuid, of: Uuid, steps: (i64, i64)) {
 /// above the first, so that its ports 5, 1 and 3 face the first's ports 4 and 2 two steps away, and a double-acting
 /// cylinder right of the box at the first valve's height; the first valve and the cylinder.
 fn stacked_valves(d: &mut Driver) -> (Uuid, Uuid) {
-    place_terminal(d, (760, 300), (1260, 520));
+    place_terminal(d, (760, 300));
     place_from_browser(d, "valve-5-2-sol-spring", &[(900, 470), (900, 360)]);
     place_symbol(d, "ew.iso.cylinder-double-acting@qet10", (1500, 470));
     let valves = devices_drawn(d, "ew.iso.valve-5-2");
@@ -1384,9 +1422,11 @@ fn glyph_boxes(items: &[Item], map: &dyn Fn(Pt2) -> Pt2, out: &mut Vec<(String, 
 fn round3_the_generated_overview_stands_in_the_frame_readable_and_titled() {
     let tmp = Tmp::new();
     let mut d = prelude_fluid_page(&tmp);
-    place_terminal(&mut d, (760, 300), (1260, 520));
-    place_plate(&mut d, (860, 440));
-    place_from_browser(&mut d, "valve-5-2-sol-spring", &[(1000, 440), (1100, 440)]);
+    place_terminal(&mut d, (760, 300));
+    let at = supply_px(&mut d);
+    place_plate(&mut d, at);
+    let at = [cell_px(&mut d, 0), cell_px(&mut d, 1)];
+    place_from_browser(&mut d, "valve-5-2-sol-spring", &at);
     let terminal = fluid_nodes(&mut d)
         .into_iter()
         .find(|n| n.role == NavRole::Device)
@@ -1600,21 +1640,27 @@ fn menu_at(d: &mut Driver, at: (i64, i64)) -> Vec<String> {
 }
 
 /// Item 5 of round 3 (friction 9): the terminal's menu offered Add valve at position n only; Blank position stood on a
-/// valve's own menu, so the person added a valve to blank a position. The terminal's box and its row offer Blank
-/// position n at each empty position; chosen, the position is blank and the entry gives way to Add valve.
+/// valve's own menu, so the person added a valve to blank a position. Each empty cell of the terminal's box offers its
+/// Blanking plate and its row Blank position n at each empty position; chosen, the position is blank and the entry gives
+/// way to Add valve.
 #[test]
 fn round3_the_terminal_blanks_an_empty_position() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
-    place_terminal(&mut d, (760, 300), (1260, 520));
+    place_terminal(&mut d, (760, 300));
     let terminal = fluid_nodes(&mut d)
         .into_iter()
         .find(|n| n.role == NavRole::Device)
         .map(|n| n.label)
         .expect("the terminal's row");
-    let on_box = menu_at(&mut d, (1010, 330));
+    // Each empty cell offers its own Blanking plate (rc.2: the box drawn as its positions).
     for n in 1..=4 {
-        assert!(on_box.contains(&format!("Blank position {n}")), "{on_box:?}");
+        let at = cell_px(&mut d, n - 1);
+        let on_cell = menu_at(&mut d, at);
+        assert!(
+            on_cell.contains(&format!("Blanking plate at position {n}")),
+            "{on_cell:?}"
+        );
     }
     let row = row_of(&mut d, &terminal);
     d.input(&right_click(row));
@@ -1673,5 +1719,70 @@ fn round3_the_valve_terminal_is_filed_with_its_plate_and_found_first() {
         Some("EW-GEN-VTM-1"),
         "{rows:?}"
     );
+    d.shell_mut().shutdown();
+}
+
+/// F15 of the rc.1 test: the valve terminal took up a box of two clicks, its empty and blank positions were not drawn,
+/// and a coil placed in the box was taken as a valve. Placed with one click it is drawn as its four positions in a row;
+/// a click on an empty cell opens the device browser narrowed to valves for a terminal, and the valve chosen fills that
+/// cell; the cell's menu has Replace, Empty and Blanking plate; a stand-alone valve placed in a cell stays a valve of its
+/// own and the toast says so.
+#[test]
+fn f15_a_terminal_is_drawn_as_its_positions_and_filled_where_they_are() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    place_terminal(&mut d, (760, 300));
+    let c = cells(&mut d);
+    assert_eq!(c.len(), 4, "the starter terminal's positions");
+    assert!(c.windows(2).all(|w| w[0].rect[1] == w[1].rect[1]), "in a row");
+    // A click on the empty cell 2: the device browser, narrowed to valves for a terminal.
+    let _ = d.shell_mut().dispatch("tool.select", &json!({}));
+    let at = cell_px(&mut d, 1);
+    click_at(&mut d, at);
+    let picker = d.shell_mut().picker().cloned().expect("the device browser");
+    assert!(picker.cell.is_some(), "it fills the cell");
+    assert!(
+        picker.rows.iter().all(|r| match r {
+            ew_ui::ew_viewmodel::tools::PickerRow::Part(p) => picker.catalogue.parts[*p].terminal_valve,
+            _ => true,
+        }),
+        "valves for a terminal only"
+    );
+    d.input(&Input::DoubleClick {
+        at: starting_with(&d, "Solenoid valve 5/2 for a valve terminal"),
+        mods: Modifiers::NONE,
+    });
+    d.settle();
+    let c = cells(&mut d);
+    assert!(c[1].holder.is_some() && !c[1].blank, "cell 2 holds the valve");
+    assert!(c[0].holder.is_none(), "cell 1 stays empty");
+    // Its menu: Replace, Empty, Blanking plate; chosen, the plate is drawn as one.
+    let at = cell_px(&mut d, 1);
+    let on_cell = menu_at(&mut d, at);
+    for label in ["Replace at position 2…", "Empty position 2", "Blanking plate at position 2"] {
+        assert!(on_cell.iter().any(|l| l == label), "{label}: {on_cell:?}");
+    }
+    d.input(&right_click(at));
+    d.settle();
+    d.input(&click(starting_with(&d, "Blanking plate at position 2")));
+    d.settle();
+    assert!(cells(&mut d)[1].blank, "a blanking plate at position 2");
+    // A stand-alone valve (its coil wired) placed in cell 3 stays its own.
+    d.input(&click(d.find("Device").unwrap()));
+    d.settle();
+    d.input(&typed("solenoid valve 5/2, spring"));
+    d.settle();
+    d.input(&Input::DoubleClick {
+        at: starting_with(&d, "Solenoid valve 5/2, spring return"),
+        mods: Modifiers::NONE,
+    });
+    d.settle();
+    let at = cell_px(&mut d, 2);
+    click_at(&mut d, at);
+    let toast = d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert!(toast.contains("stays a device of its own"), "{toast}");
+    d.input(&key("escape"));
+    d.settle();
+    assert!(cells(&mut d)[2].holder.is_none(), "not taken as a position");
     d.shell_mut().shutdown();
 }

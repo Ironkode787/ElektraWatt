@@ -635,8 +635,10 @@ pub fn menu_spot(
 /// - Over an empty spot: Paste, Page properties, New page… and, on a page that is not a panel layout, Print wire
 ///   numbers.
 ///
-/// An entry that cannot run now is disabled and carries its reason, as the bar's button does. No action of its own.
-pub fn canvas_menu(model: &ShellModel, spot: MenuSpot) -> Vec<ActionItem> {
+/// An entry that cannot run now is disabled and carries its reason, as the bar's button does. `at` is the sheet point
+/// the menu was opened at (a right-click's; `None` from the keyboard): a valve terminal's cell there offers its own
+/// entries (rc.2). No action of its own.
+pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -> Vec<ActionItem> {
     let item = |id: &str| model.menu_item(id);
     if spot != MenuSpot::Object {
         let mut items = Vec::new();
@@ -684,7 +686,7 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot) -> Vec<ActionItem> {
             .collect();
     }
     let bar = command_bar_of(model, Tab::Draw);
-    let mut items = model.menu_fits();
+    let mut items = model.menu_fits(at);
     // Rotate, Mirror and Renumber devices… act on symbols: a selection without one (wires, a junction, a text) is
     // not offered them.
     let symbols = model.canvas().is_some_and(|c| {

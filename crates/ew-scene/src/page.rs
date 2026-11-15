@@ -387,8 +387,8 @@ pub struct ValveGlyphsView {
 /// The text style of a valve glyph's part number: the CP-label style.
 pub const VALVE_GLYPH_STYLE: &str = "cp.small";
 
-/// What one cell of a valve terminal drawn as its positions shows (doc 11 §3.2, rc.2); the entity of each is
-/// `v5(rep, "cell" ␟ i)`, i the 0-based cell.
+/// What one cell of a valve terminal drawn as its positions shows (doc 11 §3.2, rc.2); everything a cell draws is the
+/// box representation's entity, so that a click or a right-click on a cell reaches the terminal's box.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum CellView {
     /// A valve: its own symbol stands in the cell; `elsewhere` is its tag when no symbol of it stands on this page.
@@ -1234,18 +1234,18 @@ impl Builder<'_> {
             if n == 0 {
                 continue;
             }
-            let entity = |name: &str| EntityRef(ew_ids::Uuid::new_v5(&v.rep.as_uuid(), name.as_bytes()));
+            let e = EntityRef(v.rep.as_uuid());
             let (top, band, bottom) = f.rows();
             let end = f.end_x();
             let right = f.cell_x(n - 1).1;
-            let base = entity("sub-base");
+
             self.push(
                 Item::path(
                     Path::rect(Rect::from_points(Pt2::new(end, band), Pt2::new(right, bottom))),
                     Some(stroke.clone()),
                     None,
                 )
-                .with_entity(base),
+                .with_entity(e),
             );
             let end_stroke = if v.supply {
                 stroke.clone()
@@ -1258,13 +1258,12 @@ impl Builder<'_> {
                     Some(end_stroke),
                     None,
                 )
-                .with_entity(entity("supply")),
+                .with_entity(e),
             );
             // A quarter of a grid step: the margin of a plate or an empty outline inside its cell.
             let margin = Nm((band.0 - top.0) / 16);
             for (i, (number, cell)) in v.cells.iter().enumerate() {
                 let (l, r) = f.cell_x(i);
-                let e = entity(&format!("cell\u{1F}{i}"));
                 if i > 0 {
                     self.push(
                         Item::path(

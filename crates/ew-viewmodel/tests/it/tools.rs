@@ -789,7 +789,7 @@ fn the_canvas_context_menu_offers_what_fits_then_the_bar_selection_commands_and_
         .id;
     done(&mut shell, "select.set", json!({"ids": [rep.to_string()]}));
     let labels = |s: &ShellModel, spot: MenuSpot| -> Vec<(String, bool)> {
-        canvas_menu(s, spot)
+        canvas_menu(s, spot, None)
             .into_iter()
             .map(|i| (i.label, i.enabled))
             .collect()
@@ -824,9 +824,9 @@ fn the_canvas_context_menu_offers_what_fits_then_the_bar_selection_commands_and_
     shell.shutdown();
     let tmp = Tmp::new("ctx-menu-ro");
     let mut shell = tmp.shell_in(Mode::Headless, false, "103");
-    for item in canvas_menu(&shell, MenuSpot::Object)
+    for item in canvas_menu(&shell, MenuSpot::Object, None)
         .into_iter()
-        .chain(canvas_menu(&shell, MenuSpot::Sheet))
+        .chain(canvas_menu(&shell, MenuSpot::Sheet, None))
         .filter(|i| ["Delete", "Cut", "Rotate clockwise", "New page…"].contains(&i.label.as_str()))
     {
         assert!(!item.enabled, "{}", item.label);

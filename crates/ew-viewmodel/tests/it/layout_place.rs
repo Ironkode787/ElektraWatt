@@ -785,7 +785,7 @@ fn nudge_turn_lock_and_delete_a_selected_placement() {
     assert_eq!(panel(&shell).placement(f1).unwrap().pose.2, 2);
     // Lock, then the menu offers Unlock.
     let labels = |shell: &ShellModel| -> Vec<(String, &'static str)> {
-        canvas_menu(shell, MenuSpot::Object)
+        canvas_menu(shell, MenuSpot::Object, None)
             .into_iter()
             .map(|i: ActionItem| (i.label, i.id))
             .filter(|(_, id)| id.starts_with("layout.") || *id == "edit.delete_selection")

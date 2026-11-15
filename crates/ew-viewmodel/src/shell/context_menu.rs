@@ -50,7 +50,7 @@ struct DeviceThing<'a> {
 
 impl ShellModel {
     /// The entries that fit the selection on the page shown (the module documentation); empty for anything else.
-    pub(crate) fn menu_fits(&self) -> Vec<ActionItem> {
+    pub(crate) fn menu_fits(&self, at: Option<(i64, i64)>) -> Vec<ActionItem> {
         let Some(c) = self.canvas() else {
             return Vec::new();
         };
@@ -116,7 +116,7 @@ impl ShellModel {
                     } else if rep.terminal {
                         self.terminal_fits(rep, &mut out);
                     } else if rep.device.is_some() {
-                        self.device_fits(rep, &mut out);
+                        self.device_fits(rep, at, &mut out);
                     }
                 }
             }
@@ -242,7 +242,7 @@ impl ShellModel {
     }
 
     /// The symbol of a device on the page: [`Self::device_entries`] of its device, function and symbol.
-    fn device_fits(&self, rep: &TableRep, out: &mut Vec<ActionItem>) {
+    fn device_fits(&self, rep: &TableRep, at: Option<(i64, i64)>, out: &mut Vec<ActionItem>) {
         let thing = DeviceThing {
             device: rep.device.unwrap_or_default(),
             function: rep.functions.first().copied(),
@@ -257,14 +257,15 @@ impl ShellModel {
             _ => None,
         };
         // A valve terminal's box: the cell under the pointer when it is drawn as its positions, else Draw as slots.
-        let slotted = self.terminal_box_entries(rep, out);
+        let slotted = self.terminal_box_entries(rep, at, out);
         self.fluid_entries(thing.device, coil, !slotted, out);
     }
 
-    /// A valve terminal's box (rc.2, F15): drawn as its positions, the cell under the pointer offers Fill position n…
+    /// A valve terminal's box (rc.2, F15): drawn as its positions, the cell at `at` (the sheet point the menu was opened
+    /// at) offers Fill position n…
     /// (empty), Replace… (a valve or a blanking plate), Empty and Blanking plate; a free box offers Draw as slots. Whether
     /// the box is drawn as its positions (its menu then lists no position but the cell's).
-    fn terminal_box_entries(&self, rep: &TableRep, out: &mut Vec<ActionItem>) -> bool {
+    fn terminal_box_entries(&self, rep: &TableRep, at: Option<(i64, i64)>, out: &mut Vec<ActionItem>) -> bool {
         let Some(b) = rep.black_box.as_ref().filter(|b| b.valve_terminal) else {
             return false;
         };
@@ -273,7 +274,7 @@ impl ShellModel {
             out.extend(self.aimed("fluid.draw_slots", json!({ "rep": rep.id.to_string() }), label));
             return false;
         }
-        let Some((terminal, cell)) = self.cell_under_pointer(rep.id) else {
+        let Some((terminal, cell)) = at.and_then(|at| self.cell_at(rep.id, at)) else {
             return true;
         };
         let position = cell.position.to_string();

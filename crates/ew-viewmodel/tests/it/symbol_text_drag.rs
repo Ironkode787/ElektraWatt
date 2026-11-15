@@ -91,7 +91,7 @@ fn a_selected_symbols_text_drags_alone_turns_hides_and_goes_back() {
     // The menu over the text hides it; Reset text positions puts the moved one back.
     let over = middle(&shell, &slot(&shell, tag.slot).unwrap());
     done(&mut shell, "canvas.pointer", at(over, json!({})));
-    let menu = canvas_menu(&shell, MenuSpot::Object);
+    let menu = canvas_menu(&shell, MenuSpot::Object, None);
     let hide = menu
         .iter()
         .find(|i| i.id == "rep.hide_text")

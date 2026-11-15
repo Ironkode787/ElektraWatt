@@ -916,6 +916,8 @@ struct GroupView {
     menu_at: Option<Pos2>,
     /// The connection point the open context menu was opened over (its ID): the menu marks it not used or used.
     menu_cp: Option<ew_viewmodel::ew_api::output::Uuid>,
+    /// The sheet point a right-click opened the menu at: a valve terminal's cell there offers its entries (rc.2).
+    menu_point: Option<(i64, i64)>,
     /// The page (session, folio) of the previous frame: a page change suppresses the pointer replay, a view or model
     /// change on the same page sends it again from the pointer's screen position.
     page: Option<(u64, String)>,
@@ -951,6 +953,7 @@ impl GroupView {
             menu_spot: ew_viewmodel::command_bar::MenuSpot::Sheet,
             menu_at: None,
             menu_cp: None,
+            menu_point: None,
             page: None,
             model: None,
             view: None,
@@ -1930,7 +1933,8 @@ impl CanvasHost {
                 .find(|e| shell.selection().items.contains(e))
                 .or_else(|| canvas.pointer_entity().map(|(e, _)| e));
             let spot = menu_spot(canvas, over);
-            if !canvas_menu(shell, spot).is_empty() {
+            let at = canvas.pointer();
+            if !canvas_menu(shell, spot, at).is_empty() {
                 match over.filter(|_| spot == MenuSpot::Object) {
                     Some(e) if !shell.selection().items.contains(&e) => {
                         events.push(Event::Action("select.set", json!({"ids": [e.0.to_string()]})));
@@ -1943,6 +1947,7 @@ impl CanvasHost {
                 self.views[group].menu_spot = spot;
                 self.views[group].menu_cp = canvas.hovered_cp().map(|cp| cp.id);
                 self.views[group].menu_at = None;
+                self.views[group].menu_point = at;
                 open = Some(egui::SetOpenCommand::Bool(true));
             }
         } else if keys {
@@ -1961,6 +1966,7 @@ impl CanvasHost {
                 .or(Some(response.rect.center()));
             self.views[group].menu_spot = MenuSpot::Object;
             self.views[group].menu_cp = None;
+            self.views[group].menu_point = None;
             open = Some(egui::SetOpenCommand::Bool(true));
         } else if response.clicked() || response.secondary_clicked() {
             open = Some(egui::SetOpenCommand::Bool(false));
@@ -1980,7 +1986,7 @@ impl CanvasHost {
         };
         popup.show(|ui| {
             // Over a connection point, Mark not used or Mark used first (FT-1649).
-            for item in cp.iter().chain(&canvas_menu(shell, spot)) {
+            for item in cp.iter().chain(&canvas_menu(shell, spot, self.views[group].menu_point)) {
                 crate::menu::item(ui, item, events);
             }
         });

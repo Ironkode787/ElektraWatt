@@ -811,11 +811,15 @@ impl ShellModel {
         })
     }
 
-    /// The cell of the box representation `rep` (a valve terminal drawn as its positions) under the pointer, with
+    /// The cell of the box representation `rep` (a valve terminal drawn as its positions) at the sheet point `at`, with
     /// what holds it: (terminal, its cell); `None` for any other representation or outside its cells.
-    pub(crate) fn cell_under_pointer(&self, rep: ew_api::output::Uuid) -> Option<(ew_api::output::Uuid, ew_api::output::SlotCell)> {
+    pub(crate) fn cell_at(
+        &self,
+        rep: ew_api::output::Uuid,
+        at: (i64, i64),
+    ) -> Option<(ew_api::output::Uuid, ew_api::output::SlotCell)> {
         let c = self.canvas()?;
-        let p = c.page().snapper.sheet_to_page(c.pointer()?);
+        let p = c.page().snapper.sheet_to_page(at);
         let r = c.page().tables.reps.iter().find(|r| r.id == rep)?;
         let cell = r.black_box.as_ref()?.cells.iter().find(|x| {
             x.rect[0] <= p.0 && p.0 < x.rect[2] && x.rect[1] <= p.1 && p.1 <= x.rect[3]
@@ -825,7 +829,8 @@ impl ShellModel {
 
     /// The `fluid.cell_fill` parameters of the empty cell of `rep` under the pointer; `None` elsewhere.
     fn empty_cell_under_pointer(&self, rep: ew_api::output::Uuid) -> Option<Value> {
-        let (terminal, cell) = self.cell_under_pointer(rep).filter(|(_, c)| c.holder.is_none())?;
+        let at = self.canvas()?.pointer()?;
+        let (terminal, cell) = self.cell_at(rep, at).filter(|(_, c)| c.holder.is_none())?;
         Some(serde_json::json!({ "terminal": terminal.to_string(), "module": cell.module.to_string(),
             "position": cell.position }))
     }
