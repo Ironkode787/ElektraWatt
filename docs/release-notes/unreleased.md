@@ -414,6 +414,8 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: a tube's Medium list ends in New medium… (its only entry while the project has none), and the
   medium it makes is the tube's; an air supply's Properties show the medium it supplies and set it (persona re-test
   R2-F)
+- behaviour-change: on a fluid page autoconnect never joins a valve's working port to another valve's exhaust port
+  (EW-FL-012's conflict): two valves stacked are placed without tubes between them (persona re-test R2-B)
 - format-variant: report_block ReportKind tube_list
 - format-variant: report_block ReportKind tube_cut_list
 - format-variant: report_block ReportKind tube_labels

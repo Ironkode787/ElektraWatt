@@ -826,7 +826,9 @@ tool** (FT-1733): Draw ▸ Connect ▸ Fluid line… on a fluid page is the line
 Flexible), then the Wire tool drawing lines of that kind (`connection.draw` with `{"fluid": {"line_kind"}}`); Draw ▸
 Wire draws working lines. Fluid pages autoconnect: a placed symbol's fluid port facing a free fluid port proposes the
 join, and the committed hint is a working fluid line (`device.place`'s hint takes the fluid kind when both ends are
-fluid ports); a fluid port never proposes an electrical CP, nor an electrical CP a fluid port, on any page. A flexible
+fluid ports); a fluid port never proposes an electrical CP, nor an electrical CP a fluid port, on any page, and a
+valve's working port never proposes another valve's exhaust port, nor the other way round (EW-FL-012's conflict,
+`ew_derive::ValvePort`; the persona re-test's stacked valves). A flexible
 line is drawn as an arc between its ends: a quadratic curve whose control point stands a quarter of the chord to the
 left of it, the route's corners not drawn. Project ▸ Fluid settings… (FT-1752) is a form of the member `fluid` of `project.settings.set`: the default tube's outer and inner diameter in mm and its material, and whether fluid lines are tagged by page and counter; the member's other values are kept, a diameter that is no length is refused in words.
 

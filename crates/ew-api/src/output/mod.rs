@@ -108,6 +108,8 @@ pub use editing::{
 /// shell names its types (`DisplayList`, `EntityRef`, `Rect`) without a workspace edge to `ew-dl`
 /// (architecture §3 rule 7).
 pub use ew_dl;
+// A valve port's side of EW-FL-012, which the page tables and symbol shapes carry for autoconnect.
+pub use ew_derive::ValvePort;
 pub use ew_export::{DxfFile, DxfLayers, Parallelism, PdfDate, PdfReport, SvgFile, svg_file_name};
 pub use fields::{
     Category, EditRoute, FieldReadOnly, FieldType, InputError, ParsedInput, field_catalogue,

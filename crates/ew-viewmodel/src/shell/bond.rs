@@ -441,6 +441,7 @@ mod tests {
             potential: None,
             side: None,
             fluid: false,
+            valve_port: None,
             plc_address: None,
         }
     }

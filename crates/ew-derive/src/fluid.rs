@@ -44,6 +44,39 @@ pub fn is_valve_terminal(q: &Q, device: Id<Device>) -> bool {
     })
 }
 
+/// A valve's port on one side of EW-FL-012's role conflict (FR-FLU-032): a working port (2, 4) or an exhaust port (3,
+/// 5). Joined to each other across two devices' valves with no valve between them, the two conflict; the rule and the
+/// window's autoconnect (which never proposes such a join) read it here.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ValvePort {
+    /// A working port, 2 or 4.
+    Working,
+    /// An exhaust port, 3 or 5.
+    Exhaust,
+}
+
+impl ValvePort {
+    /// The side of a CP of role `role` on a FnDef of contact kind `kind`; `None` for any other port.
+    pub fn of(kind: &ContactKind, role: Option<&FluidPortRole>) -> Option<ValvePort> {
+        if *kind != ContactKind::Valve {
+            return None;
+        }
+        match role? {
+            FluidPortRole::Working2 | FluidPortRole::Working4 => Some(ValvePort::Working),
+            FluidPortRole::Exhaust3 | FluidPortRole::Exhaust5 => Some(ValvePort::Exhaust),
+            _ => None,
+        }
+    }
+
+    /// Whether ports of these sides, on two devices' valves, conflict when joined: a working and an exhaust port.
+    pub fn conflict(a: Option<ValvePort>, b: Option<ValvePort>) -> bool {
+        matches!(
+            (a, b),
+            (Some(ValvePort::Working), Some(ValvePort::Exhaust)) | (Some(ValvePort::Exhaust), Some(ValvePort::Working))
+        )
+    }
+}
+
 /// The open working ports of function `f` (EW-FL-001, FR-FLU-018): its CPs of role `working2` or `working4` that carry
 /// no closure and whose fluid net has no other member, as (CP index, designation) in CP order.
 pub fn open_working_ports(q: &Q, f: Id<Function>) -> Vec<(u16, String)> {

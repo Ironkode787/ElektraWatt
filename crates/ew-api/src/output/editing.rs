@@ -1088,6 +1088,9 @@ pub struct ShapeCp {
     /// Whether the FnDef CP it draws is a fluid port (a pneumatic, vacuum or hydraulic discipline): autoconnect joins a
     /// fluid port to a fluid port only (FT-1733).
     pub fluid: bool,
+    /// The FnDef CP's side of EW-FL-012 (a valve's working or exhaust port): autoconnect never joins two sides that
+    /// conflict.
+    pub valve_port: Option<ew_derive::ValvePort>,
 }
 
 /// What `rep.exchange_symbol` without `pin_map` does to the function CPs a representation draws, from its current
@@ -1298,6 +1301,11 @@ fn shape_with(copy: Uuid, def: &SymbolDef, fndef: Option<Arc<LibCopy<FnDef>>>) -
             .and_then(|d| d.item.cps.iter().find(|c| c.idx == fn_cp))
             .is_some_and(|c| ew_derive::is_fluid(&c.discipline))
     };
+    let valve_port = |fn_cp: u16| {
+        let d = fndef.as_ref()?;
+        let cp = d.item.cps.iter().find(|c| c.idx == fn_cp)?;
+        ew_derive::ValvePort::of(&d.item.contact_kind, cp.port_role.as_ref())
+    };
     let geometry = ew_scene::symbol::lower(def, Orient2::R0);
     let mut outline = Vec::new();
     let mut bounds: Option<Rect> = None;
@@ -1323,6 +1331,7 @@ fn shape_with(copy: Uuid, def: &SymbolDef, fndef: Option<Arc<LibCopy<FnDef>>>) -
                 dir: dir_of(&cp.dir),
                 designation: designation(cp.fn_cp),
                 fluid: fluid(cp.fn_cp),
+                valve_port: valve_port(cp.fn_cp),
             })
             .collect(),
         body,
@@ -1704,6 +1713,8 @@ pub struct TableCp {
     /// Whether it is a fluid port (a pneumatic, vacuum or hydraulic CP): autoconnect joins a fluid port to a fluid port
     /// only (FT-1733).
     pub fluid: bool,
+    /// Its side of EW-FL-012 (a valve's working or exhaust port): autoconnect never joins two sides that conflict.
+    pub valve_port: Option<ew_derive::ValvePort>,
     /// The printed PLC address of the channel bound to it (`ew_derive::PlcAddressText`'s pins); `None`
     /// for an unbound CP or an address that does not resolve.
     pub plc_address: Option<String>,
@@ -2087,6 +2098,14 @@ impl Session {
                     .iter()
                     .find(|c| c.idx == idx)
                     .is_some_and(|c| ew_derive::is_fluid(&c.discipline)),
+                valve_port: q
+                    .functions()
+                    .get(function)
+                    .and_then(|f| q.fndefs().get(f.def))
+                    .and_then(|d| {
+                        let cp = q.get::<ew_derive::FunctionCps>(function).iter().find(|c| c.idx == idx).cloned()?;
+                        ew_derive::ValvePort::of(&d.item.contact_kind, cp.port_role.as_ref())
+                    }),
                 plc_address: q
                     .get::<ew_derive::PlcAddressText>(function)
                     .pins
@@ -2293,6 +2312,7 @@ mod tests {
                     dir: Dir::Up,
                     designation: d.to_owned(),
                     fluid: false,
+                    valve_port: None,
                 })
                 .collect(),
             body: [0; 4],

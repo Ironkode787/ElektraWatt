@@ -955,3 +955,17 @@ fn r2f_new_medium_from_the_tubes_medium_and_the_supplys_medium() {
     assert!(chip.contains("medium defined at"), "{chip}");
     d.shell_mut().shutdown();
 }
+
+/// R2-B of the re-test: a second 5/2 valve placed right above the first had its exhausts 3 and 5 joined to the first's
+/// working ports 2 and 4 by autoconnect, because the ports faced each other. A working port never takes another valve's
+/// exhaust port (EW-FL-012's conflict): the stacked valve is placed without tubes.
+#[test]
+fn r2b_autoconnect_never_joins_an_exhaust_to_a_working_port() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    place_symbol(&mut d, "ew.iso.valve-5-2-sol-spring@qet10", (1000, 650));
+    place_symbol(&mut d, "ew.iso.valve-5-2-sol-spring@qet10", (1000, 500));
+    assert_eq!(devices_drawn(&mut d, "ew.iso.valve-5-2").len(), 2);
+    assert_eq!(tubes(&mut d), 0, "no exhaust joined to a working port");
+    d.shell_mut().shutdown();
+}

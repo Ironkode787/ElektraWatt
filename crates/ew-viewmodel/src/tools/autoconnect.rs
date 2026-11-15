@@ -12,7 +12,9 @@
 //! connection segment collinear with the ray at the walk point stops it (the line is occupied); a segment crossing
 //! the ray is passed. Several CPs at one walk point are hits in label order (the page tables' order; never
 //! the v5 ID, which follows the minted function ID). A fluid port's hit is a fluid port and an electrical CP's an
-//! electrical CP, so on a fluid page autoconnect joins fluid ports with a fluid line (FT-1733). A terminal's ghost CP never takes a CP of a terminal of its own
+//! electrical CP, so on a fluid page autoconnect joins fluid ports with a fluid line (FT-1733); a valve's working port
+//! never takes another valve's exhaust port as a hit, nor the other way round (EW-FL-012's conflict, the persona
+//! re-test: two valves stacked had their exhausts joined to the working ports). A terminal's ghost CP never takes a CP of a terminal of its own
 //! strip as a hit: two terminals of one strip are joined by a bridge, never by a
 //! proposed wire; that terminal's body then stops the walk as any body does. The proposal of a ray is its
 //! first hit; [`ToolKey::NextProposal`](super::ToolKey::NextProposal) (Tab) cycles every ray to its next hit further
@@ -51,6 +53,8 @@ pub struct GhostCp {
     pub strip_tag: Option<String>,
     /// Whether it is a fluid port: a fluid port's hit is a fluid port, an electrical CP's an electrical CP (FT-1733).
     pub fluid: bool,
+    /// Its side of EW-FL-012 (a valve's working or exhaust port): a port of the conflicting side is never its hit.
+    pub valve_port: Option<ew_api::output::ValvePort>,
 }
 
 /// Whether the representation `rep` of the page is a terminal of the strip printed `strip_tag`: a terminal
@@ -191,6 +195,7 @@ fn ray_hits(
                 && q.connections.is_empty()
                 && q.dir == Some(want)
                 && q.fluid == cp.fluid
+                && !ew_api::output::ValvePort::conflict(q.valve_port, cp.valve_port)
                 && !cp.strip_tag.as_deref().is_some_and(|tag| {
                     tables
                         .reps
@@ -387,6 +392,7 @@ pub fn moved_cps(tables: &PageTables, delta: &dyn Fn(EntityRef) -> Option<(i64, 
             connected: !cp.connections.is_empty(),
             strip_tag: moved_strip_tag(tables, cp.rep),
             fluid: cp.fluid,
+            valve_port: cp.valve_port,
         });
     }
     out
@@ -451,6 +457,7 @@ mod tests {
             potential: None,
             side: None,
             fluid: false,
+            valve_port: None,
             plc_address: None,
         }
     }
@@ -483,6 +490,7 @@ mod tests {
             connected: false,
             strip_tag: None,
             fluid: false,
+            valve_port: None,
         }
     }
 

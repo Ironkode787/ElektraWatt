@@ -886,16 +886,10 @@ impl Rule for PortRoleConflict {
                 let entry = by_valve.entry(f).or_insert((Vec::new(), true));
                 entry.0.push(text.clone());
                 entry.1 &= exhaust;
-                if matches!(
-                    cp.port_role,
-                    Some(FluidPortRole::Working2 | FluidPortRole::Working4)
-                ) {
-                    working.push((device, text));
-                } else if matches!(
-                    cp.port_role,
-                    Some(FluidPortRole::Exhaust3 | FluidPortRole::Exhaust5)
-                ) {
-                    exhausts.push((device, text));
+                match ew_derive::ValvePort::of(&ContactKind::Valve, cp.port_role.as_ref()) {
+                    Some(ew_derive::ValvePort::Working) => working.push((device, text)),
+                    Some(ew_derive::ValvePort::Exhaust) => exhausts.push((device, text)),
+                    None => {}
                 }
             }
             for (ports, _) in by_valve
