@@ -764,7 +764,9 @@ impl Driver {
         let painter = match &frames_dir {
             None => None,
             Some(_) => {
-                let dev = crate::offscreen::device()
+                // The default adapter, the GPU where there is one: no gate compares these frames, and a 1920 × 1080
+                // frame took about 1.9 s on WARP and 40 ms on a GPU. The pixel gate stays on `offscreen::device`.
+                let dev = HeadlessDevice::new()
                     .ok_or_else(|| "no offscreen adapter for a visual run".to_owned())?;
                 let strip_ctx = egui::Context::default();
                 crate::app::setup(&strip_ctx);

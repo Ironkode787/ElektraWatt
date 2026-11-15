@@ -82,11 +82,17 @@ impl HeadlessDevice {
         .and_then(open)
     }
 
+    /// A device on the fallback (software) adapter alone: WARP on Windows, lavapipe or llvmpipe where Mesa is
+    /// installed. `None` where there is none.
+    pub fn fallback() -> Option<HeadlessDevice> {
+        fallback_adapter(&instance()).and_then(open)
+    }
+
     /// The devices of the tests: the default adapter's and, when it is another adapter, the fallback (software)
     /// adapter's, so that a machine with a GPU checks WARP (or lavapipe) as well. Empty without any adapter.
     pub fn all() -> Vec<HeadlessDevice> {
         let mut out: Vec<HeadlessDevice> = HeadlessDevice::new().into_iter().collect();
-        if let Some(fallback) = fallback_adapter(&instance()).and_then(open)
+        if let Some(fallback) = HeadlessDevice::fallback()
             && !out.iter().any(|d| d.summary == fallback.summary)
         {
             out.push(fallback);

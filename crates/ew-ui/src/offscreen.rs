@@ -5,7 +5,8 @@
 //! `egui_wgpu` renderer on the headless device of `ew-render2d` (the software adapter where there is one, DX12 WARP
 //! on Windows) into a texture that is read back as an RGBA image. The chrome snapshots replay a test harness's
 //! texture changes into a fresh renderer ([`render`]); the visual play-test driver keeps one renderer for the run
-//! ([`Offscreen`]). It uses only packages already in the graph.
+//! ([`Offscreen`]) on the default adapter instead, the GPU where there is one, since no gate compares its frames.
+//! It uses only packages already in the graph.
 
 use std::sync::mpsc::channel;
 
@@ -37,10 +38,11 @@ impl TextureOp {
     }
 }
 
-/// The headless device of the offscreen renderer: the fallback (software) adapter where there is one, else the
-/// default one. `None` when the machine has no adapter at all.
+/// The headless device of the pixel gate: the fallback (software) adapter where there is one, else the default one,
+/// so that the blessed images are the same on every machine. Only the fallback is opened: opening the GPU's device
+/// beside it as well took about 1.9 s of each snapshot test. `None` when the machine has no adapter at all.
 pub fn device() -> Option<HeadlessDevice> {
-    HeadlessDevice::all().pop()
+    HeadlessDevice::fallback().or_else(HeadlessDevice::new)
 }
 
 /// The texture format of every offscreen image.

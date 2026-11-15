@@ -557,7 +557,8 @@ device renders the window, and each image is compared with its blessed PNG withi
 small bound on differing pixels (at most 10 for the chrome images; at most one in 2,000 for the canvas images). It
 runs in every test run of `ew-ui` on Windows (WARP), with no feature to switch it on (until M2.5-Fix it was behind a
 feature that only `--all-features` set, so a plain `cargo nextest run -p ew-ui` passed without it); its Linux images
-are not blessed at present.
+are not blessed at present. The frames of a visual run (`--visual --frames`, the persona harness), which no gate
+compares, are painted on the default adapter instead: the GPU where there is one, as in the window.
 
 The gated images are under `crates/ew-ui/tests/expected/`: `snapshots/` for the main window, the component gallery, the
 command bar, the dialogs, the panes and single widgets, and `canvas/` for the overlays of folio 101.
