@@ -709,6 +709,24 @@ pub fn off_chrome<'t>(harness: &'t Harness<'_, App>, label: &'t str) -> Option<e
     harness.query_all_by_label(label).rfind(|n| !in_chrome(n))
 }
 
+/// The combo boxes of the window outside the property grid, whose rows chosen from a list are combo boxes too (a
+/// dialog's lists, a pane's), in tree order.
+pub fn combos<'t>(harness: &'t Harness<'_, App>) -> Vec<egui_kittest::Node<'t>> {
+    let grid = harness
+        .query_all_by_label("Properties")
+        .find(|n| n.accesskit_node().role() == egui::accesskit::Role::Button)
+        .map(|n| n.rect());
+    harness
+        .get_all_by_role(egui::accesskit::Role::ComboBox)
+        .filter(|n| {
+            let r = n.rect();
+            grid.is_none_or(|g| {
+                !(r.left() >= g.left() && r.right() <= g.right() + 1.0 && r.top() > g.bottom())
+            })
+        })
+        .collect()
+}
+
 /// The `Tab` nodes of the page view and the docks, without the command bar's tabs.
 pub fn view_tabs<'t>(harness: &'t Harness<'_, App>) -> Vec<egui_kittest::Node<'t>> {
     harness

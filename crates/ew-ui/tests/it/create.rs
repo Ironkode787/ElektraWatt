@@ -141,7 +141,8 @@ fn a_refusal_stays_in_the_dialog_and_the_type_is_a_choice() {
     );
     // Choosing the type from the list.
     // The first list is Type (Connection grid follows it).
-    h.get_all_by_role(egui::Role::ComboBox)
+    crate::support::combos(&h)
+        .into_iter()
         .next()
         .expect("the Type list")
         .click();

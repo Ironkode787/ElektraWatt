@@ -78,10 +78,7 @@ fn form_value(h: &Harness<'static, App>, name: &str) -> String {
 
 /// The shown value of the open dialog's first combo box (New page's Type: Connection grid follows it).
 fn combo_value(h: &Harness<'static, App>) -> String {
-    let combo = h
-        .get_all_by_role(egui::Role::ComboBox)
-        .next()
-        .expect("a combo box");
+    let combo = crate::support::combos(h).into_iter().next().expect("a combo box");
     let node = combo.accesskit_node();
     node.value()
         .map(|v| v.to_string())
@@ -99,7 +96,8 @@ fn choices_show_display_words() {
     settle(&mut h);
     assert_eq!(combo_value(&h), "Multi-line", "the page type in words");
     assert_eq!(form_value(&h, "type"), "multi_line");
-    h.get_all_by_role(egui::Role::ComboBox)
+    crate::support::combos(&h)
+        .into_iter()
         .next()
         .expect("the Type list")
         .click();

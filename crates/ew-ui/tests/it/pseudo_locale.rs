@@ -186,7 +186,11 @@ fn renumber_in_the_pseudo_locale() {
         .expect("the dialog's Renumber")
         .click();
     step(&mut h);
-    h.get_by_label(strings::text(key!("preview-apply"))).click();
+    // The Preview tab's Apply, right of the Pages pane's strip.
+    h.get_all_by_label(strings::text(key!("preview-apply")))
+        .max_by(|a, b| a.rect().left().total_cmp(&b.rect().left()))
+        .expect("Apply")
+        .click();
     step(&mut h);
     h.state_mut().shell_mut().shutdown();
 }
@@ -236,13 +240,19 @@ fn view_language_nederlands_and_back_in_the_window() {
         .expect("the dialog's Renumber")
         .click();
     settle(&mut h);
-    assert!(h.query_by_label("Apply").is_some(), "the open card in English");
+    assert!(
+        h.query_all_by_label("Apply").next().is_some(),
+        "the open card in English"
+    );
     support::open_menu(&mut h, &["View", "Language"]);
     support::menu_node(&h, "Nederlands").click();
     settle(&mut h);
     assert_eq!(h.state().shell().settings().language, "nl");
-    assert!(h.query_by_label("Toepassen").is_some(), "the open card in Dutch");
-    assert!(h.query_by_label("Apply").is_none());
+    assert!(
+        h.query_all_by_label("Toepassen").next().is_some(),
+        "the open card in Dutch"
+    );
+    assert!(h.query_all_by_label("Apply").next().is_none());
     assert!(bar_tab(&h, "Beeld"), "the command bar's View tab");
     assert!(bar_tab(&h, "Pagina"), "the command bar's Page tab");
     assert!(!bar_tab(&h, "Page"));
@@ -250,7 +260,7 @@ fn view_language_nederlands_and_back_in_the_window() {
     support::menu_node(&h, "English").click();
     settle(&mut h);
     assert_eq!(h.state().shell().settings().language, "en");
-    assert!(h.query_by_label("Apply").is_some());
+    assert!(h.query_all_by_label("Apply").next().is_some());
     assert!(bar_tab(&h, "View"));
     assert!(h.query_by_label("Beeld").is_none());
     h.state_mut().shell_mut().shutdown();

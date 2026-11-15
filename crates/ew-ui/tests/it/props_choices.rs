@@ -27,8 +27,11 @@ fn a_row_chosen_from_a_list_is_a_combo_box() {
         .flat_map(|s| s.rows.iter())
         .map(|r| (r.key.clone(), value_chooser(r)))
         .collect();
-    assert!(keys.iter().any(|(_, c)| *c == Some(ValueChooser::List)), "{keys:?}");
-    let text_row = find_row(&sheet, "device/function_text").map(|(_, r)| value_chooser(&r));
+    assert!(
+        keys.iter().any(|(_, c)| *c == Some(ValueChooser::List)),
+        "{keys:?}"
+    );
+    let text_row = find_row(&sheet, "device/function_text").map(|(_, r)| value_chooser(r));
     assert_eq!(text_row, Some(None), "function text is typed");
     // In the window: combo boxes in the property grid, below its filter field.
     let filter = h.get_by_label("Filter properties").rect();

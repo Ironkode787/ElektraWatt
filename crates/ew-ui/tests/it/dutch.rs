@@ -177,7 +177,11 @@ fn renumber(scale: f32) {
         .expect("the dialog's Hernummeren")
         .click();
     step(&mut h);
-    h.get_by_label(strings::text(key!("preview-apply"))).click();
+    // The Preview tab's Apply, right of the Pages pane's strip.
+    h.get_all_by_label(strings::text(key!("preview-apply")))
+        .max_by(|a, b| a.rect().left().total_cmp(&b.rect().left()))
+        .expect("Toepassen")
+        .click();
     step(&mut h);
     h.state_mut().shell_mut().shutdown();
 }

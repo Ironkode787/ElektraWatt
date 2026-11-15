@@ -1145,8 +1145,13 @@ pub(crate) fn card_strip(ui: &mut Ui, shell: &ShellModel, line: &str, events: &m
                     ui.spacing_mut().item_spacing.x = t.space_2;
                     label(ui, line);
                 });
-                let size = Vec2::new(ui.available_width(), t.size_control_inline);
-                ui.allocate_ui_with_layout(size, Layout::right_to_left(Align::Center), |ui| buttons(ui));
+                if buttons_w <= ui.available_width() {
+                    let size = Vec2::new(ui.available_width(), t.size_control_inline);
+                    ui.allocate_ui_with_layout(size, Layout::right_to_left(Align::Center), |ui| buttons(ui));
+                } else {
+                    // Narrower than the three buttons (a large UI scale): they wrap rather than run out of the pane.
+                    ui.horizontal_wrapped(|ui| buttons(ui));
+                }
             }
         });
     true

@@ -18,7 +18,15 @@ fn a_date_reads_and_writes_in_the_projects_format() {
         assert_eq!(day_first.parse(typed), Ok(d), "{typed}");
     }
     assert_eq!(DateFormat::Iso8601.parse("2025-04-14"), Ok(d));
-    for wrong in ["14-04-2025", "31-04-2025", "2025-4-14", "14-04", "14-04-202", "", "aa-bb-cccc"] {
+    for wrong in [
+        "14-04-2025",
+        "31-04-2025",
+        "2025-4-14",
+        "14-04",
+        "14-04-202",
+        "",
+        "aa-bb-cccc",
+    ] {
         let format = if wrong == "14-04-2025" {
             DateFormat::Iso8601
         } else {

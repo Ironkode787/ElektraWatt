@@ -293,7 +293,8 @@ fn the_report_block_form_offers_the_plc_bus_and_fluid_lists() {
         assert!(offered.iter().any(|o| o == k), "{k}: {offered:?}");
     }
     assert!(!offered.iter().any(|o| o == "part_data" || o == "check_report"));
-    h.get_all_by_role(egui::Role::ComboBox)
+    crate::support::combos(&h)
+        .into_iter()
         .next()
         .expect("the Report list")
         .click();
@@ -791,7 +792,8 @@ fn the_plc_export_asks_for_a_file_of_its_format_dated_today() {
     settle(&mut h);
     let today = ew_ui::clock::today();
     assert_eq!(form_value(&h, "date"), today, "the form is dated today");
-    h.get_all_by_role(egui::Role::ComboBox)
+    crate::support::combos(&h)
+        .into_iter()
         .next()
         .expect("the Format list")
         .click();
@@ -1788,7 +1790,8 @@ fn two_stations_and_a_bus_are_built_from_nothing() {
     settle(&mut h);
     support::bar_button(&h, "Report").click();
     settle(&mut h);
-    h.get_all_by_role(egui::Role::ComboBox)
+    crate::support::combos(&h)
+        .into_iter()
         .next()
         .expect("the Report list")
         .click();

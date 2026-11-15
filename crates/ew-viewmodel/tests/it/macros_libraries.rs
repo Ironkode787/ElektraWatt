@@ -456,12 +456,25 @@ fn a_copy_only_in_the_project_says_so_in_both_languages() {
         let table = shell.nav(NavKind::Libraries).and_then(|n| n.table()).unwrap();
         let col = table.columns.iter().position(|c| c.key == "state").unwrap();
         let node = table.nodes.iter().find(|n| n.key == key).unwrap();
-        (node.cells[col].clone(), node.facets.iter().rev().find(|(f, _)| f == "state").unwrap().1.clone())
+        (
+            node.cells[col].clone(),
+            node.facets
+                .iter()
+                .rev()
+                .find(|(f, _)| f == "state")
+                .unwrap()
+                .1
+                .clone(),
+        )
     };
     assert_eq!(state.0, "Alleen in dit project");
     let tip = ew_viewmodel::navigators::library_state_tip(&state.1).expect("a hover text");
     assert!(tip.contains("geen fout"), "{tip}");
-    done(&mut shell, "navigator.row", json!({"kind": "libraries", "key": key}));
+    done(
+        &mut shell,
+        "navigator.row",
+        json!({"kind": "libraries", "key": key}),
+    );
     assert_eq!(shell.libraries_update_count(), 0);
     assert!(strings::set_locale("en"));
 }

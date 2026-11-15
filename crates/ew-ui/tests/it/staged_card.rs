@@ -63,7 +63,10 @@ fn a_staged_delete_is_seen_and_applied_where_it_started() {
         .get_all_by_label("Preview")
         .find(|n| n.accesskit_node().role() == egui::accesskit::Role::Button)
         .expect("the Preview tab");
-    assert_eq!(tab.accesskit_node().description().as_deref(), Some(waiting.as_str()));
+    assert_eq!(
+        tab.accesskit_node().description().as_deref(),
+        Some(waiting.as_str())
+    );
     // The status bar's field brings the Preview forward.
     h.get_by_label(&waiting).click();
     settle(&mut h);
