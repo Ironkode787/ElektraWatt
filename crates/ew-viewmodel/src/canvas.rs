@@ -855,6 +855,23 @@ impl CanvasModel {
         self.hover_link = self.pointer.and_then(|p| self.link_at(p));
     }
 
+    /// Every entity a press at the pointer can pick, in the Select tool's pick order ([`crate::tools::pick_stack`]),
+    /// found now: a press or a release clears the hover while the pointer stands still, and a right click right after
+    /// a click acts on what is under it (the owner's test of 0.3.0-rc.1: a selected symbol's right click gave the
+    /// page's menu). Empty while the pointer is outside the pane.
+    pub fn pointer_stack(&self) -> Vec<EntityRef> {
+        self.pointer
+            .map(|p| {
+                crate::tools::pick_stack(
+                    &self.page,
+                    &self.page.snapper,
+                    p,
+                    HOVER_SLOP_PT / self.points_per_nm(),
+                )
+            })
+            .unwrap_or_default()
+    }
+
     // -------------------------------------------------------------------------------------------------------------
     // Links, the grid cursor and the view of a jump
 

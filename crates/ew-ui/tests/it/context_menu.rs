@@ -294,6 +294,39 @@ fn a_coils_menu_adds_a_contact_and_a_contacts_menu_goes_to_the_coil() {
     d.shell_mut().shutdown();
 }
 
+/// The owner's test of 0.3.0-rc.1: a click selects a coil and a right click on it, the pointer not moved between, gives
+/// the coil's menu (its free contacts) and keeps it selected, not the page's menu (the click had cleared the hover the
+/// menu read).
+#[test]
+fn a_right_click_after_a_click_gives_the_items_menu() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    let pixel = pixel_map(&mut d);
+    place_relay(&mut d, (800, 500));
+    let coil = tables(&mut d).reps[0].clone();
+    let at = body_pixel(&mut d, &pixel, &coil);
+    d.input(&click(at));
+    d.settle();
+    assert_eq!(
+        d.shell_mut().selection().items.first().map(|e| e.0),
+        Some(coil.id),
+        "the click selects the coil"
+    );
+    d.input(&Input::Click {
+        at,
+        button: PointerButton::Secondary,
+        mods: Modifiers::NONE,
+    });
+    d.settle();
+    starting_with(&d, "Add contact ");
+    assert_eq!(
+        d.shell_mut().selection().items.first().map(|e| e.0),
+        Some(coil.id),
+        "the coil stays selected"
+    );
+    d.shell_mut().shutdown();
+}
+
 /// FT-1693: an interruption point's menu goes to its partner and offers its direction and Continue on page….
 #[test]
 fn an_interruption_points_menu_goes_to_its_partner() {
