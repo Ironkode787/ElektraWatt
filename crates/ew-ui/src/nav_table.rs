@@ -1326,10 +1326,17 @@ impl TableDelegate for Delegate<'_> {
             painter.rect_stroke(rect, theme::SQUARE, ring, StrokeKind::Inside);
         }
         response.widget_info(|| egui::WidgetInfo::selected(egui::Role::Cell, true, is_cursor, &name));
-        let response = match &reason {
-            Some(r) => response.tip(r.as_str()),
-            None if elided => response.tip(text.as_str()),
-            None => response,
+        // A library copy's State cell says what its state means (the owner's test of 0.3.0-rc.1).
+        let state_tip =
+            (self.kind == NavKind::Libraries && column.key == "state" && node.role == NavRole::LibCopy)
+                .then(|| node.facets.iter().rev().find(|(f, _)| f == "state"))
+                .flatten()
+                .and_then(|(_, code)| ew_viewmodel::navigators::library_state_tip(code));
+        let response = match (&reason, state_tip) {
+            (Some(r), _) => response.tip(r.as_str()),
+            (None, Some(tip)) => response.tip(tip),
+            (None, None) if elided => response.tip(text.as_str()),
+            (None, None) => response,
         };
         let word = self.kind.word();
         let key = column.key.clone();

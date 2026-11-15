@@ -74,7 +74,7 @@ saves the project. Quitting with unsaved symbol changes asks whether to save the
 page in the current project with the symbol's connection grid and places embedded copies there. The page then
 shows with the copy selected; the message's **Back to the editor** returns to the draft. Project undo removes
 the placement; a second undo removes the new page.
-Test placements are independent draft copies, so **Source missing** in the Libraries navigator refers to
+Test placements are independent draft copies, so **Only in this project** in the Libraries navigator refers to
 their temporary draft source. To place a copy linked to the published library, use **Draw ▸ Place ▸ Symbol…**
 after saving.
 

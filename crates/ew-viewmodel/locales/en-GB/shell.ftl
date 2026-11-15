@@ -4074,7 +4074,7 @@ empty-nav-macros = No macros yet
 empty-nav-macros-text = Save as macro… in the Edit menu stores a selection in a library; its macros are listed here.
 empty-nav-libraries = No libraries yet
 badge-update-available = Update available
-badge-source-missing = Source missing
+badge-source-missing = Only in this project
 badge-deprecated = Deprecated
 badge-local-fork = Local fork
 badge-index-failed = Index failed
@@ -6654,3 +6654,15 @@ hint-date = A date, such as { $p0 }
 props-ro-on-save = set when the project is saved
 titleblock-note-edited = { $p0 }: { $p1 }. Set when the project is saved.
 titleblock-note-edited-none = { $p0 }: set when the project is saved.
+
+# The Libraries pane's states and its Update button in words (the owner's test of 0.3.0-rc.1).
+library-state-current = Current
+library-state-update = Update available ({ $p0 })
+library-state-tip-current = The project's copy is the library's version.
+library-state-tip-update_available = The library has a newer version of this item. Update… shows the changes first; Apply makes them.
+library-state-tip-deprecated = The library no longer offers this item; where it names a successor, use that instead.
+library-state-tip-source_missing = This item exists in this project only: no installed library holds it, such as an imported frame or a part made in the project. That is not a fault, but there is nothing to update it from.
+library-state-tip-local_fork = The project's copy was changed here and is kept apart from its library item; no update replaces it.
+libraries-update-count = Update { $p0 } items…
+libraries-update-count-one = Update 1 item…
+libraries-update-tip = Shows the changes in the Preview first; Apply makes them.

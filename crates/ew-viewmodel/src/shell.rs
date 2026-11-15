@@ -1062,6 +1062,11 @@ mod dispatch_log_tests {
     }
 }
 
+/// A text of `ew-api` (a key with its arguments) in the window's language, as a refusal is worded.
+pub fn text_words(text: &ew_api::Text) -> String {
+    tools::rejected_words("", Some(text))
+}
+
 /// Whether `EW_CONFIG_DIR` is set.
 fn config_dir_overridden() -> bool {
     settings::env_path("EW_CONFIG_DIR").is_some()

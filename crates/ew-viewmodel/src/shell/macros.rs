@@ -820,46 +820,7 @@ impl ShellModel {
     /// and opens the bulk card.
     pub(crate) fn act_libraries_update(&mut self, p: &Map<String, Value>) -> Outcome {
         let keys = or_return!(super::table::list_param(p, "keys"));
-        let Some(table) = self.libraries_table() else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
-        let copy_rows: Vec<&ew_api::output::NavNode> = table
-            .nodes
-            .iter()
-            .filter(|n| n.role == NavRole::LibCopy)
-            .collect();
-        let by_key = |k: &str| copy_rows.iter().find(|n| n.key == k).copied();
-        let chosen: Vec<&ew_api::output::NavNode> = if let Some(keys) = keys {
-            let mut out = Vec::new();
-            for k in &keys {
-                match by_key(k) {
-                    Some(n) => out.push(n),
-                    None => return failed(key!("error-nav-key"), &[k, NavKind::Libraries.word()]),
-                }
-            }
-            out
-        } else {
-            let nav = self.generic(NavKind::Libraries);
-            let marked: Vec<_> = nav
-                .map(|n| n.marked().iter().filter_map(|k| by_key(k)).collect())
-                .unwrap_or_default();
-            if !marked.is_empty() {
-                marked
-            } else if let Some(n) = self.nav_cursor(NavKind::Libraries).and_then(|k| by_key(&k)) {
-                vec![n]
-            } else {
-                copy_rows
-                    .iter()
-                    .copied()
-                    .filter(|n| n.badges.iter().any(|b| b == "update_available"))
-                    .collect()
-            }
-        };
-        let copies: Vec<Uuid> = chosen
-            .iter()
-            .filter(|n| n.badges.iter().any(|b| b == "update_available"))
-            .filter_map(|n| n.records.first().copied())
-            .collect();
+        let copies = or_return!(self.libraries_update_copies(keys));
         if copies.is_empty() {
             return Outcome::refused(key!("reason-no-updates"));
         }
@@ -882,6 +843,57 @@ impl ShellModel {
             plan.command.params,
             key!("reason-library-update"),
         )
+    }
+
+    /// How many copies the Libraries pane's Update… would update now (`libraries.update` without keys): the
+    /// button says it, and is disabled at none.
+    pub fn libraries_update_count(&self) -> usize {
+        self.libraries_update_copies(None).map_or(0, |c| c.len())
+    }
+
+    /// The copies `libraries.update` previews: of the copy rows `keys`, else the marked ones, else the one under the
+    /// cursor, else every copy row, those with an update.
+    fn libraries_update_copies(&self, keys: Option<Vec<String>>) -> Result<Vec<Uuid>, Outcome> {
+        let Some(table) = self.libraries_table() else {
+            return Err(Outcome::refused(key!("reason-no-project")));
+        };
+        let copy_rows: Vec<&ew_api::output::NavNode> = table
+            .nodes
+            .iter()
+            .filter(|n| n.role == NavRole::LibCopy)
+            .collect();
+        let by_key = |k: &str| copy_rows.iter().find(|n| n.key == k).copied();
+        let chosen: Vec<&ew_api::output::NavNode> = if let Some(keys) = keys {
+            let mut out = Vec::new();
+            for k in &keys {
+                match by_key(k) {
+                    Some(n) => out.push(n),
+                    None => return Err(failed(key!("error-nav-key"), &[k, NavKind::Libraries.word()])),
+                }
+            }
+            out
+        } else {
+            let nav = self.generic(NavKind::Libraries);
+            let marked: Vec<_> = nav
+                .map(|n| n.marked().iter().filter_map(|k| by_key(k)).collect())
+                .unwrap_or_default();
+            if !marked.is_empty() {
+                marked
+            } else if let Some(n) = self.nav_cursor(NavKind::Libraries).and_then(|k| by_key(&k)) {
+                vec![n]
+            } else {
+                copy_rows
+                    .iter()
+                    .copied()
+                    .filter(|n| n.badges.iter().any(|b| b == "update_available"))
+                    .collect()
+            }
+        };
+        Ok(chosen
+            .iter()
+            .filter(|n| n.badges.iter().any(|b| b == "update_available"))
+            .filter_map(|n| n.records.first().copied())
+            .collect())
     }
 
     // -----------------------------------------------------------------------------------------------------------

@@ -1232,11 +1232,16 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
                 for (b, code) in row.badges.iter().zip(&row.badge_codes).rev() {
                     if kind != NavKind::Messages {
                         let chip = crate::components::caption_chip(ui, b);
-                        // A device no page draws: why its tag shows `?` (F17 of the rc.1 test).
+                        // A device no page draws: why its tag shows `?`.
                         if code == ew_viewmodel::ew_api::output::NOT_DRAWN
                             && matches!(kind, NavKind::Devices | NavKind::Plc)
                         {
                             chip.on_hover_text(strings::text(key!("nav-badge-not-drawn-tip")));
+                        // A library copy's state says what it means.
+                        } else if kind == NavKind::Libraries
+                            && let Some(tip) = ew_viewmodel::navigators::library_state_tip(code)
+                        {
+                            chip.tip(&tip);
                         }
                     } else if let Some(status) = crate::messages::finding_badge(code) {
                         let badge = crate::components::status_badge(ui, status);

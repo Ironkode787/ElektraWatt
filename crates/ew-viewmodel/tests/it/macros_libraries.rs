@@ -403,7 +403,7 @@ fn make_variable_binds_a_property_row() {
 }
 
 /// UI-4 (Update…): with the frames' and title block's copies without a source, Update… of every copy refuses (no
-/// update); the libraries stand in words, the badge of a copy without a source is "Source missing".
+/// update); the libraries stand in words, the badge of a copy without a source is "Only in this project".
 #[test]
 fn ui4_update_refuses_without_an_update_and_badges_are_words() {
     let tmp = Tmp::new("macros-ui4");
@@ -426,19 +426,44 @@ fn ui4_update_refuses_without_an_update_and_badges_are_words() {
     let detail = shell.library_copy_detail().expect("the copy's detail");
     assert_eq!(detail.name, "Title block QET A4");
     assert_eq!(detail.key, "ew.titleblock.qet-a4");
-    assert_eq!(detail.state, "Source missing");
+    assert_eq!(detail.state.to_string(), "Only in this project");
     let row = shell
         .shown_rows(NavKind::Libraries)
         .into_iter()
         .find(|r| r.key == key)
         .expect("the title block's row on show");
-    assert_eq!(row.badges, ["Source missing"]);
+    assert_eq!(row.badges, ["Only in this project"]);
     assert_eq!(
         shell.dispatch("libraries.update", &json!({"keys": [key]})),
         Outcome::Refused {
             reason_key: key!("reason-no-updates")
         }
     );
+}
+
+/// The owner's test of 0.3.0-rc.1 ("Source missing … No idea what that means"): a copy no installed library holds is
+/// "Only in this project" in the State column, in the UI language (Dutch here), with a hover text that says it is no
+/// fault and cannot be updated; with the cursor on it Update… has nothing to update.
+#[test]
+fn a_copy_only_in_the_project_says_so_in_both_languages() {
+    let tmp = Tmp::new("macros-only-here");
+    let (t, _) = user_library(&tmp.0);
+    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "102");
+    assert!(strings::set_locale("nl"));
+    done(&mut shell, "navigator.show", json!({"kind": "libraries"}));
+    let key = row_key(&shell, NavKind::Libraries, NavRole::LibCopy, "Title block QET A4");
+    let state = {
+        let table = shell.nav(NavKind::Libraries).and_then(|n| n.table()).unwrap();
+        let col = table.columns.iter().position(|c| c.key == "state").unwrap();
+        let node = table.nodes.iter().find(|n| n.key == key).unwrap();
+        (node.cells[col].clone(), node.facets.iter().rev().find(|(f, _)| f == "state").unwrap().1.clone())
+    };
+    assert_eq!(state.0, "Alleen in dit project");
+    let tip = ew_viewmodel::navigators::library_state_tip(&state.1).expect("a hover text");
+    assert!(tip.contains("geen fout"), "{tip}");
+    done(&mut shell, "navigator.row", json!({"kind": "libraries", "key": key}));
+    assert_eq!(shell.libraries_update_count(), 0);
+    assert!(strings::set_locale("en"));
 }
 
 /// `navigator.show` of a navigator already docked behind another tab shows it.
@@ -601,7 +626,8 @@ fn update_previews_keys_then_marked_then_cursor_then_all() {
     let mut both = vec![ca.clone(), cb.clone()];
     both.sort();
 
-    // All: no keys, nothing marked, no cursor row.
+    // All: no keys, nothing marked, no cursor row; Update… says it updates both.
+    assert_eq!(shell.libraries_update_count(), 2);
     done(&mut shell, "libraries.update", json!({}));
     assert_eq!(card_copies(&shell), both, "every copy with an update");
     done(&mut shell, "preview.cancel", json!({}));

@@ -77,16 +77,20 @@ pub(crate) fn tier_word(t: Tier) -> &'static str {
     }
 }
 
-/// A copy state's code (the badge and the `state` facet; empty for a current copy) and its words (the State cell).
-pub(crate) fn copy_state(s: &CopyState) -> (&'static str, String) {
+/// A copy state's code (the badge and the `state` facet; empty for a current copy) and its text (the State cell, in
+/// English here; the shell words it in the UI language from the same text). A copy that no installed library holds is
+/// "Only in this project": an imported frame, a part made in the project, nothing to update it from (the owner's test
+/// of 0.3.0-rc.1 read "Source missing" as a fault).
+pub(crate) fn copy_state(s: &CopyState) -> (&'static str, crate::Text) {
     match s {
-        CopyState::Current => ("", "Current".to_owned()),
-        CopyState::UpdateAvailable { version, .. } => {
-            ("update_available", format!("Update available ({version})"))
-        }
-        CopyState::Deprecated { .. } => ("deprecated", "Deprecated".to_owned()),
-        CopyState::SourceMissing => ("source_missing", "Source missing".to_owned()),
-        CopyState::LocalFork => ("local_fork", "Local fork".to_owned()),
+        CopyState::Current => ("", api_text!("library-state-current")),
+        CopyState::UpdateAvailable { version, .. } => (
+            "update_available",
+            api_text!("library-state-update", version.clone()),
+        ),
+        CopyState::Deprecated { .. } => ("deprecated", api_text!("badge-deprecated")),
+        CopyState::SourceMissing => ("source_missing", api_text!("badge-source-missing")),
+        CopyState::LocalFork => ("local_fork", api_text!("badge-local-fork")),
     }
 }
 
@@ -429,8 +433,10 @@ pub struct LibraryCopyDetail {
     pub library: String,
     /// The copy's version (`1.0.0`).
     pub version: String,
-    /// The copy's state in words (`Current`, `Source missing`).
-    pub state: String,
+    /// The copy's state (`Current`, `Only in this project`), its words in the UI language from its text.
+    pub state: crate::Text,
+    /// The state's code, as the copy's row badge carries it (`source_missing`; empty for a current copy).
+    pub state_code: &'static str,
 }
 
 /// The installed libraries of a tier, in the registry's order.
@@ -620,6 +626,7 @@ impl Session {
             library,
             version: s.version.clone(),
             state: copy_state(&s.state).1,
+            state_code: copy_state(&s.state).0,
         })
     }
 
@@ -745,7 +752,8 @@ impl Session {
         }
         let gnode = project_group(b);
         for s in status {
-            let (code, words) = copy_state(&s.state);
+            let (code, text) = copy_state(&s.state);
+            let words = text.to_string();
             let label = copy_label(q, s.kind, s.copy);
             let mut tags: Vec<String> = s.devices.iter().map(|d| short_tag(q, *d)).collect();
             tags.retain(|t| !t.is_empty());

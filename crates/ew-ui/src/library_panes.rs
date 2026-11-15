@@ -67,22 +67,32 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, kind: NavKind, events: &mut 
     }
 }
 
-/// The Libraries navigator's Update… button.
+/// The Libraries navigator's Update… button: "Update 3 items…" for the copies it would update (the marked rows, else
+/// the cursor's, else every copy with an update), its tooltip that the changes are shown first and made with Apply;
+/// disabled with its reason when those rows have no update (the owner's test of 0.3.0-rc.1).
 fn update_bar(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
+    use components::Tip as _;
     let t = components::tokens(ui);
-    let enabled = ew_viewmodel::actions::find("libraries.update")
-        .is_some_and(|m| ew_viewmodel::actions::enabled_with(m, shell, &serde_json::Map::new()).is_ok());
+    let state = ew_viewmodel::actions::find("libraries.update")
+        .map(|m| ew_viewmodel::actions::enabled_with(m, shell, &serde_json::Map::new()));
+    let count = shell.libraries_update_count();
+    let reason = match state {
+        Some(Err(reason)) => Some(strings::text(reason).to_owned()),
+        _ if count == 0 => Some(strings::text(key!("reason-no-updates")).to_owned()),
+        _ => None,
+    };
+    let label = match count {
+        0 => strings::text(key!("action-libraries-update")).to_owned(),
+        n => strings::format_count(ew_viewmodel::count_key!("libraries-update-count"), n),
+    };
     ui.horizontal(|ui| {
         ui.add_space(t.space_4);
-        if components::button(
-            ui,
-            Kind::Secondary,
-            strings::text(key!("action-libraries-update")),
-            enabled,
-            0.0,
-        )
-        .clicked()
-        {
+        let button = components::button(ui, Kind::Secondary, &label, reason.is_none(), 0.0);
+        let button = match &reason {
+            Some(r) => button.disabled_tip(r),
+            None => button.tip(strings::text(key!("libraries-update-tip"))),
+        };
+        if button.clicked() {
             events.push(Event::Action("libraries.update", json!({})));
         }
     });
@@ -128,7 +138,16 @@ fn copy_detail(ui: &mut Ui, d: &ew_viewmodel::ew_api::output::LibraryCopyDetail)
             &t.type_small,
             t.text_secondary,
         );
-        line(ui, &d.state, &t.type_small, t.text_primary);
+        // The state in words, and under it what it means (the owner's test of 0.3.0-rc.1).
+        line(
+            ui,
+            &ew_viewmodel::shell::text_words(&d.state),
+            &t.type_small,
+            t.text_primary,
+        );
+        if let Some(tip) = ew_viewmodel::navigators::library_state_tip(d.state_code) {
+            line(ui, &tip, &t.type_small, t.text_secondary);
+        }
     });
 }
 

@@ -1795,13 +1795,12 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
         .map(|(i, _)| i)
         .collect();
     // The closed sets' cells, a device's or a node's kind, a terminal's or a channel's state and an
-    // interruption point's direction by their `choice-*` words, a library copy's state by its badge's.
+    // interruption point's direction by their `choice-*` words.
     let closed: Vec<(usize, &str)> = (table.columns.iter().enumerate())
         .filter_map(|(i, c)| match (nav, c.key.as_str()) {
             ("devices" | "structure", "kind") | ("strips" | "plc", "state") | ("ips", "direction") => {
                 Some((i, "choice"))
             }
-            ("libraries", "state") => Some((i, "badge")),
             _ => None,
         })
         .collect();
@@ -1865,6 +1864,15 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
             && let Some(cell) = kind.and_then(|i| node.cells.get_mut(i))
         {
             *cell = strings::kind_heading(&record);
+        }
+        // A library copy's state by its code, in the words of its badge (`library_state_words`).
+        if node.role == NavRole::LibCopy
+            && let Some((_, code)) = node.facets.iter().rev().find(|(f, _)| f == "state")
+            && let Some(cell) = library
+                .and_then(|(_, _, state)| state)
+                .and_then(|i| node.cells.get_mut(i))
+        {
+            *cell = crate::navigators::library_state_words(code, cell);
         }
         for (i, prefix) in &closed {
             if let Some(cell) = node.cells.get_mut(*i)

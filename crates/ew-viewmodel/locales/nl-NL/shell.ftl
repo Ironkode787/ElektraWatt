@@ -3883,7 +3883,7 @@ empty-nav-macros = Nog geen macro's
 empty-nav-macros-text = Opslaan als macro… in het menu Bewerken bewaart een selectie in een bibliotheek; de macro's ervan staan hier.
 empty-nav-libraries = Nog geen bibliotheken
 badge-update-available = Update beschikbaar
-badge-source-missing = Bron ontbreekt
+badge-source-missing = Alleen in dit project
 badge-deprecated = Verouderd
 badge-local-fork = Lokale afsplitsing
 badge-index-failed = Index mislukt
@@ -6392,3 +6392,15 @@ hint-date = Een datum, zoals { $p0 }
 props-ro-on-save = wordt ingevuld wanneer het project wordt opgeslagen
 titleblock-note-edited = { $p0 }: { $p1 }. Wordt ingevuld wanneer het project wordt opgeslagen.
 titleblock-note-edited-none = { $p0 }: wordt ingevuld wanneer het project wordt opgeslagen.
+
+# The Libraries pane's states and its Update button in words (the owner's test of 0.3.0-rc.1).
+library-state-current = Actueel
+library-state-update = Update beschikbaar ({ $p0 })
+library-state-tip-current = De kopie in het project is de versie van de bibliotheek.
+library-state-tip-update_available = De bibliotheek heeft een nieuwere versie van dit item. Bijwerken… toont eerst de wijzigingen; Toepassen voert ze door.
+library-state-tip-deprecated = De bibliotheek biedt dit item niet meer aan; waar ze een opvolger noemt, gebruik die dan.
+library-state-tip-source_missing = Dit item bestaat alleen in dit project: geen geïnstalleerde bibliotheek bevat het, zoals een geïmporteerd kader of een onderdeel dat in het project is gemaakt. Dat is geen fout, maar er is niets om het mee bij te werken.
+library-state-tip-local_fork = De kopie in het project is hier gewijzigd en staat los van het bibliotheekitem; geen update vervangt haar.
+libraries-update-count = { $p0 } items bijwerken…
+libraries-update-count-one = 1 item bijwerken…
+libraries-update-tip = Toont eerst de wijzigingen in het voorbeeld; Toepassen voert ze door.

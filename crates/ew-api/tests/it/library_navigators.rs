@@ -114,7 +114,7 @@ fn cell<'t>(t: &'t NavTable, n: &'t NavNode, key: &str) -> &'t str {
 }
 
 /// UI-4: without libraries (the compiled-in ones only), Golden A's frames and title block have no source (badge
-/// `source_missing`, "Source missing") while its symbols are current; the compiled-in libraries stand under "System",
+/// `source_missing`, "Only in this project") while its symbols are current; the compiled-in libraries stand under "System",
 /// read-only. Tiers and the group of the project's copies are words. (Golden A's parts are its own items, which
 /// `library_status` leaves out)
 #[test]
@@ -143,7 +143,7 @@ fn ui4_golden_a_copies_have_no_source_without_libraries() {
     // The copy is listed by its name in words, not its key
     let copy = row(&t, NavRole::LibCopy, "Title block QET A4");
     assert_eq!(copy.badges, ["source_missing"]);
-    assert_eq!(cell(&t, copy, "state"), "Source missing");
+    assert_eq!(cell(&t, copy, "state"), "Only in this project");
     assert_eq!(cell(&t, copy, "kind"), "Form");
     assert!(
         copy.facets
@@ -154,7 +154,7 @@ fn ui4_golden_a_copies_have_no_source_without_libraries() {
     assert_eq!(detail.name, "Title block QET A4");
     assert_eq!(detail.kind, "Form");
     assert_eq!(detail.key, "ew.titleblock.qet-a4");
-    assert_eq!(detail.state, "Source missing");
+    assert_eq!(detail.state.to_string(), "Only in this project");
     assert!(!detail.version.is_empty());
     assert_eq!(
         s.library_copy_detail(&system.key),
