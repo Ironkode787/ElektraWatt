@@ -780,6 +780,14 @@ impl Session {
         }
     }
 
+    /// Whether `function` is a black-box function (drawn by the black-box frame: a multipin terminal's plug, rc.2).
+    pub fn is_black_box_function(&self, function: Uuid) -> bool {
+        self.query()
+            .functions()
+            .get(Id::from_uuid(function))
+            .is_some_and(|f| f.kind == ew_derive::ew_schema::FunctionKind::BlackBox)
+    }
+
     /// What kind of valve terminal `device` is (rc.2, F15): with a bus node (a PLC station: the outputs that drive its
     /// solenoids are inside it), with the bus its part's first bus port names, or multipin (wired through its plug);
     /// `None` for any other device.

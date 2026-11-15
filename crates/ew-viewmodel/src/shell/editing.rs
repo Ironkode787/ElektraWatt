@@ -1447,6 +1447,13 @@ impl ShellModel {
                                 .iter()
                                 .find(|s| s.fndef_key == fndef && s.allowed && s.black_box)
                         })
+                        // A black-box function on another FnDef (a multipin terminal's plug, rc.2) by the frame too.
+                        .or_else(|| {
+                            let black_box = self.project.as_ref().is_some_and(|p| {
+                                function.parse().is_ok_and(|f| p.session.is_black_box_function(f))
+                            });
+                            cat.symbols.iter().find(|s| black_box && s.allowed && s.black_box)
+                        })
                         .map(|s| s.key.clone())
                 });
                 let Some(i) = symbol.as_deref().and_then(find) else {

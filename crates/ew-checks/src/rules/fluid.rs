@@ -274,7 +274,8 @@ impl Rule for CoilBindings {
         }
         if dev.state == DeviceState::Used {
             for s in &declared {
-                if served.contains(s.as_str()) {
+                // A multipin terminal's valve is served by the output wired to its plug pin (rc.2).
+                if served.contains(s.as_str()) || ew_derive::wired_solenoid_channel(q, d, s.as_str()).is_some() {
                     continue;
                 }
                 out.push(

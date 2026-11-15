@@ -402,6 +402,22 @@ pub enum CellView {
     Empty,
 }
 
+/// The text beside one pin of a multipin valve terminal's plug (rc.2): what the pin carries (`-201K2-Q1 14`, `1 · 14`,
+/// `COM`), read along the wire that leaves the pin, just beside it.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct PlugNoteView {
+    /// The plug's representation (the text's entity).
+    pub rep: Id<Representation>,
+    /// The pin's point on the page.
+    pub at: Pt2,
+    /// Whether a wire leaves the pin vertically (up or down), else horizontally.
+    pub vertical: bool,
+    /// Whether the wire leaves towards larger coordinates (down, or right).
+    pub forward: bool,
+    /// The text.
+    pub text: String,
+}
+
 /// The cells of one valve terminal's box drawn as its positions (`BoxSpec.slots`): the sub-base along the bottom with
 /// each cell's number in it, the supply end on the left, and per cell what it holds.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -493,6 +509,9 @@ pub struct PageView {
     /// The cells of the valve terminals drawn as their positions on this page, drawn in [`Layer::Symbols`] after the
     /// valve glyphs.
     pub valve_cells: Vec<ValveCellsView>,
+    /// The texts beside the pins of the multipin valve terminals' plugs on this page (rc.2), drawn in
+    /// [`Layer::Symbols`] after the valve cells.
+    pub plug_notes: Vec<PlugNoteView>,
     /// The connection points of this page that a link of the export points at (a PLC overview row links to
     /// its coil, doc 10 §5): each gets a named destination ([`Destination::Cp`]) at its drawn position, else
     /// at its representation's position (a CP the symbol does not draw, such as the internal coil 14).
@@ -1194,6 +1213,7 @@ impl Builder<'_> {
             }
         }
         self.valve_cells(view);
+        self.plug_notes(view);
         // The CP destinations of the page, after the symbols (an empty group at the CP: invisible).
         if !view.cp_targets.is_empty() {
             let cps = cp_map(view);
@@ -1323,6 +1343,33 @@ impl Builder<'_> {
                     }
                 }
             }
+        }
+    }
+
+    /// The texts beside the pins of the multipin valve terminals' plugs (rc.2): each starts one millimetre out from
+    /// its pin along the wire's way and stands just beside the wire (turned upright for a pin whose wire leaves up or
+    /// down), in the CP-label style.
+    fn plug_notes(&mut self, view: &PageView) {
+        let gap = Nm(1_000_000);
+        let side = Nm(700_000);
+        for n in &view.plug_notes {
+            let out = if n.forward { gap } else { Nm(-gap.0) };
+            let (at, angle, align) = match (n.vertical, n.forward) {
+                (true, false) => (Pt2::new(n.at.x - side, n.at.y + out), Angle2(90_000), Align::MiddleLeft),
+                (true, true) => (Pt2::new(n.at.x - side, n.at.y + out), Angle2(90_000), Align::MiddleRight),
+                (false, true) => (Pt2::new(n.at.x + out, n.at.y - side), Angle2(0), Align::MiddleLeft),
+                (false, false) => (Pt2::new(n.at.x + out, n.at.y - side), Angle2(0), Align::MiddleRight),
+            };
+            self.text(&TextSpec {
+                text: &n.text,
+                at,
+                angle,
+                align: &align,
+                style_key: VALVE_GLYPH_STYLE,
+                entity: EntityRef(n.rep.as_uuid()),
+                link: None,
+                items: &[],
+            });
         }
     }
 

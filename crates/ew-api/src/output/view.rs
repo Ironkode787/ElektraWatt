@@ -111,7 +111,7 @@ use ew_scene::embedded::{CoverTables, EmbeddedContent, EmbeddedTable, EmbeddedVi
 use ew_scene::forms::{AssetRef, BoundValue, PageBindings};
 use ew_scene::page::{
     BreakMarkView, BreakSide, CellView, ConnectionView, CpTarget, FrameView, ItemLink, JunctionView, PinText,
-    RepView, SegmentTerminal, SlotValue, StripTagView, SymbolRef, ValveCellsView, ValveGlyph,
+    RepView, SegmentTerminal, SlotValue, StripTagView, SymbolRef, ValveCellsView, PlugNoteView, ValveGlyph,
     ValveGlyphsView,
 };
 use ew_scene::table::{TableColumn, TableLink, TableRow, TableRowKind, TableView};
@@ -707,6 +707,60 @@ pub fn page_valve_cells(q: &Q, page: Id<Page>) -> Vec<ValveCellsView> {
             cells,
             supply,
         });
+    }
+    out
+}
+
+/// The texts beside the pins of the multipin valve terminals' plugs on a drawn page (rc.2): for each box
+/// representation of a multipin terminal that is no box drawn as its positions, in representation-ID order, a text
+/// per box CP that a pin of the plug is (`ew_derive::plug_pins`): the valve's tag and the solenoid where a valve holds
+/// the position (`-201K2-Q1 14`), else the position and the solenoid (`1 · 14`), and `COM` for the common. A plain
+/// function of the tracked reads of `q`, like `page_valve_cells`.
+pub fn page_plug_notes(q: &Q, page: Id<Page>) -> Vec<PlugNoteView> {
+    let reps = q.reps();
+    let functions = q.functions();
+    let mut ids: Vec<Id<Representation>> = q.idx().reps_by_page(page).collect();
+    ids.sort();
+    let mut out = Vec::new();
+    for rid in ids {
+        let Some(rep) = reps.get(rid) else { continue };
+        let Some(b) = rep.box_.as_ref().filter(|b| b.slots.is_none() && !b.cps.is_empty()) else {
+            continue;
+        };
+        let Some(&function) = rep.functions.first() else { continue };
+        let Some(terminal) = functions.get(function).and_then(|f| f.device) else {
+            continue;
+        };
+        let pins = ew_derive::plug_pins(q, terminal);
+        if pins.is_empty() {
+            continue;
+        }
+        let cps = q.get::<ew_derive::FunctionCps>(function);
+        for cp in &b.cps {
+            let Some(designation) = cps.iter().find(|c| c.idx == cp.idx).map(|c| c.designation.clone()) else {
+                continue;
+            };
+            let Some((_, carried)) = pins.iter().find(|(d, _)| *d == designation) else {
+                continue;
+            };
+            let text = match carried {
+                ew_derive::PlugPin::Solenoid { valve: Some(v), solenoid, .. } => {
+                    format!("{} {solenoid}", super::properties::device_tag_text(q, *v))
+                }
+                ew_derive::PlugPin::Solenoid { position, solenoid, .. } => format!("{position} · {solenoid}"),
+                ew_derive::PlugPin::Common => "COM".to_owned(),
+            };
+            let o = rep.orient;
+            let at = rep.pos + o.apply(cp.pos);
+            let dir = crate::geometry::orient_dir(crate::geometry::orient_index(o), super::editing::dir_of(&cp.dir));
+            let (vertical, forward) = match dir {
+                crate::geometry::Dir::Up => (true, false),
+                crate::geometry::Dir::Down => (true, true),
+                crate::geometry::Dir::Left => (false, false),
+                crate::geometry::Dir::Right => (false, true),
+            };
+            out.push(PlugNoteView { rep: rid, at, vertical, forward, text });
+        }
     }
     out
 }

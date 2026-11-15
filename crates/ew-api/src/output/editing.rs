@@ -1284,7 +1284,7 @@ pub fn exchange_map(current: &SymbolShape, new: &SymbolShape) -> ExchangeMap {
 }
 
 /// A schema direction as a [`Dir`] (an unknown direction reads `Up`).
-fn dir_of(d: &Dir4) -> Dir {
+pub(crate) fn dir_of(d: &Dir4) -> Dir {
     match d {
         Dir4::Up | Dir4::Unknown(_) => Dir::Up,
         Dir4::Down => Dir::Down,

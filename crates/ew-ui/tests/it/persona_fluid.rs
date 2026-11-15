@@ -1790,3 +1790,62 @@ fn f15_a_terminal_is_drawn_as_its_positions_and_filled_where_they_are() {
     assert!(cells(&mut d)[2].holder.is_none(), "not taken as a position");
     d.shell_mut().shutdown();
 }
+
+/// F15 follow-up: the multipin terminal's plug is drawn from the terminal's row: on an electrical page its menu offers
+/// Draw the plug…, which arms the box of its pins; placed, the plug says beside its pins what each carries (the valve and
+/// its solenoid, an empty position's number, the common).
+#[test]
+fn f15_the_multipin_plug_is_drawn_from_its_terminal_and_names_its_pins() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    d.input(&click(d.find("Device").unwrap()));
+    d.settle();
+    d.input(&typed("multipin"));
+    d.settle();
+    d.input(&Input::DoubleClick {
+        at: starting_with(&d, "Multipin valve terminal"),
+        mods: Modifiers::NONE,
+    });
+    d.settle();
+    click_at(&mut d, (760, 300));
+    d.input(&key("escape"));
+    d.settle();
+    let _ = d.shell_mut().dispatch("tool.select", &json!({}));
+    let at = cell_px(&mut d, 0);
+    click_at(&mut d, at);
+    d.input(&Input::DoubleClick {
+        at: starting_with(&d, "Solenoid valve 5/2 for a valve terminal"),
+        mods: Modifiers::NONE,
+    });
+    d.settle();
+    let terminal = fluid_nodes(&mut d)
+        .into_iter()
+        .find(|n| n.role == NavRole::Device)
+        .map(|n| n.label)
+        .expect("the terminal's row");
+    // On the electrical page 1, the terminal's row offers Draw the plug….
+    let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "1"}));
+    let _ = d.shell_mut().dispatch("view.fit_page", &json!({}));
+    d.settle();
+    let row = row_of(&mut d, &terminal);
+    d.input(&right_click(row));
+    d.settle();
+    d.input(&click(starting_with(&d, &format!("Draw the plug of {terminal}"))));
+    d.settle();
+    assert_eq!(d.shell_mut().tool().name(), "black_box", "the plug's box on the pointer");
+    click_at(&mut d, (800, 400));
+    click_at(&mut d, (1100, 500));
+    d.input(&key("escape"));
+    d.settle();
+    let mut texts = Vec::new();
+    let p = d.shell_mut().canvas().unwrap().page().clone();
+    glyph_boxes(&p.list.items, &|q| q, &mut texts);
+    let texts: Vec<String> = texts.into_iter().map(|(t, _)| t).collect();
+    assert!(texts.iter().any(|t| t == "COM"), "the common: {texts:?}");
+    assert!(texts.iter().any(|t| t == "2 · 14"), "an empty position's pin: {texts:?}");
+    assert!(
+        texts.iter().any(|t| t.ends_with(" 14") && t.starts_with('-')),
+        "the valve's pin names the valve and its solenoid: {texts:?}"
+    );
+    d.shell_mut().shutdown();
+}

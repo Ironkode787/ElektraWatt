@@ -291,3 +291,97 @@ pub fn solenoid_pin(q: &Q, valve: Id<Device>, solenoid: &str) -> Option<(Id<Devi
     })?;
     Some((terminal, pin.to_string()))
 }
+
+/// What one pin of a multipin valve terminal's plug carries ([`plug_pins`]).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum PlugPin {
+    /// A solenoid of a valve position: the position (1-based), the solenoid, and the valve that holds the position.
+    Solenoid {
+        /// The position.
+        position: u32,
+        /// The solenoid ("14").
+        solenoid: String,
+        /// The valve at the position, if any.
+        valve: Option<Id<Device>>,
+    },
+    /// The common of the solenoids: a pin of the plug's pattern that no position's solenoid takes.
+    Common,
+}
+
+/// The pins of a multipin valve terminal's plug by designation (rc.2): each pin a solenoid of a position takes (the
+/// part's `fluid.pins` at every position index), with the valve that holds the position, and every other pin of the
+/// terminal's main function the common. Empty for any other device.
+pub fn plug_pins(q: &Q, terminal: Id<Device>) -> Vec<(String, PlugPin)> {
+    if !is_multipin_terminal(q, terminal) {
+        return Vec::new();
+    }
+    let Some(dev) = q.devices().get(terminal) else {
+        return Vec::new();
+    };
+    let parts = q.parts();
+    let Some(fluid) = dev
+        .parts
+        .iter()
+        .find_map(|u| parts.get(u.part.copy)?.item.sections.fluid.clone().filter(|f| !f.pins.is_empty()))
+    else {
+        return Vec::new();
+    };
+    let slots = q.get::<ValveSlots>(terminal);
+    let mut out: Vec<(String, PlugPin)> = Vec::new();
+    for (p, slot) in (1u32..).zip(slots.slots.iter()) {
+        let valve = match slot {
+            ValveSlot::Valve { device, .. } => Some(*device),
+            _ => None,
+        };
+        for e in &fluid.pins {
+            if let Some(pin) = crate::eval_map(&e.pin, ew_plcaddr::MapVar::P, p - 1) {
+                out.push((
+                    pin.to_string(),
+                    PlugPin::Solenoid {
+                        position: p,
+                        solenoid: e.solenoid.as_str().to_owned(),
+                        valve,
+                    },
+                ));
+            }
+        }
+    }
+    if let Some(main) = *q.get::<crate::MainFunction>(terminal) {
+        for cp in q.get::<crate::FunctionCps>(main).iter() {
+            if !out.iter().any(|(d, _)| *d == cp.designation) {
+                out.push((cp.designation.clone(), PlugPin::Common));
+            }
+        }
+    }
+    out
+}
+
+/// The output channel wired to the plug pin of solenoid `solenoid` of `valve` on a multipin valve terminal (rc.2): of
+/// the channels whose traced target is the terminal's main function, the lowest-ID one whose traced pin is that pin;
+/// `None` for a valve on no multipin terminal or a pin no output reaches.
+pub fn wired_solenoid_channel(q: &Q, valve: Id<Device>, solenoid: &str) -> Option<Id<ew_schema::Channel>> {
+    let (terminal, pin) = solenoid_pin(q, valve, solenoid)?;
+    let main = (*q.get::<crate::MainFunction>(terminal))?;
+    let idx = q
+        .get::<crate::FunctionCps>(main)
+        .iter()
+        .find(|c| c.designation == pin)?
+        .idx;
+    let targeted = q.get::<crate::ChannelsByTarget>(());
+    let channels = q.table::<ew_schema::Channel>();
+    let mut hits: Vec<Id<ew_schema::Channel>> = targeted
+        .targets
+        .get(&main)?
+        .iter()
+        .copied()
+        .filter(|c| {
+            channels.get(*c).is_some_and(|ch| {
+                q.get::<crate::ChannelTargets>(ch.module)
+                    .iter()
+                    .any(|t| t.channel == *c && t.pin.is_some_and(|p| p.function == main && p.idx == idx))
+            })
+        })
+        .collect();
+    hits.sort();
+    hits.first().copied()
+}

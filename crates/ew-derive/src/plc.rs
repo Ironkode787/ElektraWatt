@@ -2243,6 +2243,45 @@ impl Query for PlcAddressText {
                 }
             }
         }
+        // A valve on a multipin valve terminal (rc.2): the outputs wired to its solenoids' plug pins; for its coil
+        // function the output of that solenoid.
+        if own.is_empty()
+            && let Some(device) = function.device
+        {
+            let kind = q.fndefs().get(function.def).map(|d| d.item.contact_kind.clone());
+            let solenoids: Vec<String> = match kind {
+                Some(ew_schema::ContactKind::Valve) => {
+                    let parts = q.parts();
+                    q.devices()
+                        .get(device)
+                        .and_then(|d| {
+                            d.parts.iter().find_map(|u| {
+                                valve_solenoids(&parts.get(u.part.copy)?.item)
+                                    .map(|s| s.iter().map(|x| x.as_str().to_owned()).collect())
+                            })
+                        })
+                        .unwrap_or_default()
+                }
+                Some(ew_schema::ContactKind::Coil) => q
+                    .get::<crate::FunctionCps>(*key)
+                    .iter()
+                    .filter(|c| !c.physical)
+                    .map(|c| c.designation.clone())
+                    .take(1)
+                    .collect(),
+                _ => Vec::new(),
+            };
+            for s in solenoids {
+                let rank = match s.as_str() {
+                    "14" => 0,
+                    "12" => 1,
+                    _ => 2,
+                };
+                if let Some(text) = crate::wired_solenoid_channel(q, device, &s).and_then(address) {
+                    own.push((rank, *key, 0, text));
+                }
+            }
+        }
         own.sort();
         let mut texts: Vec<String> = own.into_iter().map(|(_, _, _, t)| t).collect();
         if texts.is_empty() {
