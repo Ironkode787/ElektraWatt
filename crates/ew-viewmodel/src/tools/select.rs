@@ -60,7 +60,7 @@
 
 use crate::key;
 use crate::strings::Key;
-use ew_api::output::ew_dl::ew_units::Rect;
+use ew_api::output::ew_dl::ew_units::{Nm, Pt2, Rect};
 use ew_api::output::ew_dl::{Destination, EntityRef};
 
 use super::black_box;
@@ -175,6 +175,53 @@ struct PanelPress {
     last: ((i64, i64), Mods),
     /// A carrier's drag once the pointer left the click slop: its displacement on the grid, surface nm.
     moved: Option<(i128, i128)>,
+    /// A press on a placement's label (or balloon) that stands off its footprint: the label's box on the page; a drag
+    /// moves the label alone (`layout.label_move`).
+    label: Option<Rect>,
+    /// Whether the label's drag left the click slop.
+    label_dragged: bool,
+}
+
+/// The `layout.label_move` of a label whose page box `bx` is dragged from `from` to `to` (sheet points): its new
+/// centre as an offset from the footprint's centre, in the surface's frame.
+fn label_move(
+    cx: &ToolCx<'_>,
+    panel: &ew_api::output::PanelTables,
+    placement: &ew_api::output::PanelPlacement,
+    bx: Rect,
+    from: (i64, i64),
+    to: (i64, i64),
+) -> ToolOutput {
+    let (a, b) = (cx.snapper.sheet_to_page(from), cx.snapper.sheet_to_page(to));
+    let mid = |p: i64, q: i64| p + (q - p).div_euclid(2);
+    let centre = (
+        mid(bx.min().x.0, bx.max().x.0).saturating_add(b.0 - a.0),
+        mid(bx.min().y.0, bx.max().y.0).saturating_add(b.1 - a.1),
+    );
+    let (u, v) = panel.to_surface(centre);
+    let fp = placement.footprint;
+    let (cu, cv) = (
+        i128::from(mid(fp.min().x.0, fp.max().x.0)),
+        i128::from(mid(fp.min().y.0, fp.max().y.0)),
+    );
+    let (Ok(du), Ok(dv)) = (i64::try_from(u - cu), i64::try_from(v - cv)) else {
+        return ToolOutput::Cancel;
+    };
+    ToolOutput::Commit(Box::new(ew_api::AnyCommand {
+        name: "layout.label_move".into(),
+        params: serde_json::json!({"placement": placement.id.to_string(), "at": [du, dv]}),
+    }))
+}
+
+/// The ghost of a label whose page box `bx` is dragged from `from` to `to` (sheet points).
+fn label_ghost(cx: &ToolCx<'_>, bx: Rect, from: (i64, i64), to: (i64, i64)) -> ToolOutput {
+    let a = cx.snapper.page_to_sheet((bx.min().x.0, bx.min().y.0));
+    let b = cx.snapper.page_to_sheet((bx.max().x.0, bx.max().y.0));
+    let r = Rect::from_points(Pt2::new(Nm(a.0), Nm(a.1)), Pt2::new(Nm(b.0), Nm(b.1)));
+    ToolOutput::Transient(super::Overlay::new(vec![super::OverlayItem::Ghost {
+        rects: vec![r],
+        offset: (to.0 - from.0, to.1 - from.1),
+    }]))
 }
 
 /// A carrier's displacement for a drag from `from` to `to` (sheet points): whole grid steps on each axis, free with
@@ -307,6 +354,36 @@ impl SelectTool {
                 if matches!(self.state, State::Moving { .. }) {
                     return None;
                 }
+                // A label (or balloon) that stands off its footprint drags alone; one inside its footprint goes with
+                // its device.
+                let page_at = cx.snapper.sheet_to_page(*at);
+                let label = panel.placements.iter().find_map(|p| {
+                    let bx = p.label_box?;
+                    let hit = (bx.min().x.0..=bx.max().x.0).contains(&page_at.0)
+                        && (bx.min().y.0..=bx.max().y.0).contains(&page_at.1);
+                    let fp = super::layout::surface_box(p.footprint);
+                    let (a, b) = (panel.to_page((fp.0, fp.1)), panel.to_page((fp.2, fp.3)));
+                    let off = bx.max().x.0 <= a.0.min(b.0)
+                        || bx.min().x.0 >= a.0.max(b.0)
+                        || bx.max().y.0 <= a.1.min(b.1)
+                        || bx.min().y.0 >= a.1.max(b.1);
+                    (hit && off).then_some((p.id, bx))
+                });
+                if let Some((id, bx)) = label {
+                    self.state = State::Idle;
+                    self.panel = Some(PanelPress {
+                        entity: EntityRef(id),
+                        at: *at,
+                        mods: *mods,
+                        placement: true,
+                        gesture: None,
+                        last: (*at, *mods),
+                        moved: None,
+                        label: Some(bx),
+                        label_dragged: false,
+                    });
+                    return Some(ToolOutput::None);
+                }
                 let entity = cx.pick(*at)?;
                 let kind = super::page_entity_kind(cx.page, entity)?;
                 if !matches!(kind, EntityKind::Placement | EntityKind::Carrier) {
@@ -321,12 +398,21 @@ impl SelectTool {
                     gesture: None,
                     last: (*at, *mods),
                     moved: None,
+                    label: None,
+                    label_dragged: false,
                 });
                 Some(ToolOutput::None)
             }
             CanvasEvent::PointerMove { at, mods } => {
                 let press = self.panel.as_mut()?;
                 press.last = (*at, *mods);
+                if let Some(bx) = press.label {
+                    if !press.label_dragged && cx.within(press.at, *at, CLICK_SLOP_PT) {
+                        return Some(ToolOutput::None);
+                    }
+                    press.label_dragged = true;
+                    return Some(label_ghost(cx, bx, press.at, *at));
+                }
                 if !press.placement {
                     // A carrier's drag.
                     if press.moved.is_none() && cx.within(press.at, *at, CLICK_SLOP_PT) {
@@ -354,6 +440,17 @@ impl SelectTool {
                 mods,
             } => {
                 let mut press = self.panel.take()?;
+                // A label's drop moves it alone; a click on it selects its placement as before.
+                if let Some(bx) = press.label {
+                    if !press.label_dragged {
+                        let last = self.last;
+                        return Some(self.click(last, press.entity, press.at, press.mods, cx));
+                    }
+                    let Some(placement) = panel.placement(press.entity.0) else {
+                        return Some(ToolOutput::Cancel);
+                    };
+                    return Some(label_move(cx, panel, placement, bx, press.at, *at));
+                }
                 // A carrier's drop translates its path (`layout.carrier.edit`).
                 if press.moved.is_some() {
                     let d = carrier_offset(cx, panel, press.at, *at, mods.shift);
@@ -402,7 +499,7 @@ impl SelectTool {
             }
             CanvasEvent::Escape => {
                 let press = self.panel.take()?;
-                Some(if press.gesture.is_some() || press.moved.is_some() {
+                Some(if press.gesture.is_some() || press.moved.is_some() || press.label_dragged {
                     ToolOutput::Cancel
                 } else {
                     ToolOutput::None

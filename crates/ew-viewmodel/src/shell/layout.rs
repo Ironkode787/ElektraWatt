@@ -72,6 +72,19 @@ impl ShellModel {
         self.selected_placement().is_some_and(|(_, r)| r.locked)
     }
 
+    /// Whether the selected placement's label was moved by a person (its menu offers Reset label position).
+    pub fn selected_label_moved(&self) -> bool {
+        self.selected_placement().is_some_and(|(_, r)| r.label_moved)
+    }
+
+    /// Where Add legend would put the focused page's legend (`Session::legend_offer`).
+    pub fn legend_offer(&self) -> ew_api::output::LegendOffer {
+        match (self.focused_page_id(), self.project_session()) {
+            (Some(page), Some(s)) => s.legend_offer(page),
+            _ => ew_api::output::LegendOffer::NoLayout,
+        }
+    }
+
     /// The poses the floating layout ghost predicts (`LayoutGesture::predicted_poses`: the dropped item first, then
     /// each moved neighbour); empty without one. The tests compare them with the committed poses (R1).
     pub fn layout_predicted_poses(&self) -> Vec<(Uuid, (i64, i64, u8))> {
@@ -455,6 +468,50 @@ impl ShellModel {
             "layout.lock",
             json!({ "placement": row.id.to_string(), "locked": locked }),
         )
+    }
+
+    /// `layout.reset_label` (Reset label position in the canvas context menu over a placement): `layout.label_move
+    /// {placement}` of the selected placement, which puts its label back where the label rules place it.
+    pub(crate) fn act_layout_reset_label(&mut self) -> Outcome {
+        let Some((_, row)) = self.selected_placement() else {
+            return Outcome::refused(key!("reason-no-placement"));
+        };
+        self.commit_layout("layout.label_move", json!({ "placement": row.id.to_string() }))
+    }
+
+    /// `page.add_legend` (Page ▸ Add legend): an embedded legend block (`report_block.create` of kind
+    /// `enclosure_legend`, the no-grid frame's form as Report… takes it) on the focused panel page, in the free part of
+    /// the drawing area beside the layout that `Session::legend_offer` finds. One undo step.
+    pub(crate) fn act_page_add_legend(&mut self) -> Outcome {
+        let (Some(page), ew_api::output::LegendOffer::At(r)) = (self.focused_page_id(), self.legend_offer()) else {
+            return Outcome::refused(key!("reason-legend-no-room"));
+        };
+        let Some(form) = crate::wizard::shipped_form_id(crate::wizard_data::NOGRID_FRAME) else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let held = self.project_session().is_some_and(|s| {
+            form.as_str()
+                .is_some_and(|id| s.query().forms().iter().any(|(f, _)| f.as_uuid().to_string() == id))
+        });
+        let mut params = json!({
+            "source": { "kind": "enclosure_legend" },
+            "form": form,
+            "embedded": {
+                "page": page.to_string(),
+                "rect": [[r.min().x.0, r.min().y.0], [r.max().x.0, r.max().y.0]],
+            },
+        });
+        if !held {
+            let copies: Vec<Value> = [crate::wizard_data::NOGRID_FRAME, crate::wizard_data::TITLE_BLOCK]
+                .iter()
+                .filter_map(|k| crate::wizard::shipped_form(k))
+                .collect();
+            params["form_copies"] = Value::Array(copies);
+        }
+        self.commit_from_host(&AnyCommand {
+            name: "report_block.create".into(),
+            params,
+        })
     }
 
     /// `layout.options {mode?, grid?}` (the tool options card's segmented controls): the sticky mode (`free`, `push`,
@@ -891,6 +948,13 @@ impl ShellModel {
         let out = self.layout_form_done(ACTION, out);
         if out == Outcome::Done {
             let shown = self.show_new_surface(page, &before);
+            // A layout page that shows its items by number gets the legend that lists them (F21).
+            if shown
+                && self.panel_view_shows_numbers()
+                && matches!(self.legend_offer(), ew_api::output::LegendOffer::At(_))
+            {
+                let _ = self.act_page_add_legend();
+            }
             // One toast for the step (FT-1719); it replaces the toast of an earlier step. Its Undo takes back the
             // enclosure, so it is offered only when the plate shown on the page is not the newer step.
             let key = if shown {
@@ -901,6 +965,11 @@ impl ShellModel {
             self.notify(strings::format(key, &[&words, &location_code]), !shown);
         }
         out
+    }
+
+    /// Whether the focused panel page's surface view labels its placements with item numbers (alone or with tags).
+    fn panel_view_shows_numbers(&self) -> bool {
+        self.panel_tables().is_some_and(|p| p.numbered)
     }
 
     /// After Enclosure… on a panel layout page that shows no enclosure yet, the page shows the new enclosure's

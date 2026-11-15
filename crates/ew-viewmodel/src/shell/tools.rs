@@ -130,7 +130,17 @@ impl ShellModel {
         if self.strip_chooser_open() {
             return strings::text(key!("hint-choose-strip")).to_owned();
         }
-        self.hint_text(self.tools.tool.status_hint())
+        let hint = self.tools.tool.status_hint();
+        // Over the free part of a panel page where its legend would go, Select at rest says how to add it (F21).
+        if hint == crate::tools::Hint::plain(key!("hint-select"))
+            && let ew_api::output::LegendOffer::At(r) = self.legend_offer()
+            && let Some((x, y)) = self.canvas().and_then(|c| Some(c.page().snapper.sheet_to_page(c.pointer()?)))
+            && (r.min().x.0..=r.max().x.0).contains(&x)
+            && (r.min().y.0..=r.max().y.0).contains(&y)
+        {
+            return strings::text(key!("hint-select-legend")).to_owned();
+        }
+        self.hint_text(hint)
     }
 
     /// The text of hint `hint` with the keys of its actions from the keymap, in their keycap form ("Enter", "Esc";

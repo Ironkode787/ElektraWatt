@@ -577,6 +577,27 @@ pub(crate) fn panel_view(m: &ShellModel) -> Result<(), Key<'static>> {
 }
 
 /// A placement is selected on a panel page that can be changed.
+/// Add legend: a panel page that shows a surface, holds no legend and leaves room beside the layout.
+fn legend_addable(m: &ShellModel) -> Result<(), Key<'static>> {
+    panel_page(m)?;
+    match m.legend_offer() {
+        ew_api::output::LegendOffer::At(_) => Ok(()),
+        ew_api::output::LegendOffer::Exists => Err(key!("reason-legend-exists")),
+        ew_api::output::LegendOffer::NoRoom => Err(key!("reason-legend-no-room")),
+        ew_api::output::LegendOffer::NoLayout => Err(key!("reason-legend-no-layout")),
+    }
+}
+
+/// Reset label position: the selected placement's label was moved.
+fn label_moved(m: &ShellModel) -> Result<(), Key<'static>> {
+    panel_selection(m)?;
+    if m.selected_label_moved() {
+        Ok(())
+    } else {
+        Err(key!("reason-label-not-moved"))
+    }
+}
+
 fn panel_selection(m: &ShellModel) -> Result<(), Key<'static>> {
     panel_page(m)?;
     if m.selected_placements() == 0 {

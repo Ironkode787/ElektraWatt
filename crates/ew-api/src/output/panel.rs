@@ -29,12 +29,12 @@ use ew_derive::layout::{
 use ew_derive::{DeviceTag, PageRef, Policy, Q, Query, StructurePath, Tag};
 use ew_scene::forms::SheetMap;
 use ew_scene::panel::{
-    BracketDraw, CarrierDraw, LAYOUT_LABEL_STYLE, PanelLabel, PanelView, PlacementDraw, Projection,
+    BracketDraw, CarrierDraw, LAYOUT_LABEL_STYLE, LabelShow, PanelLabel, PanelView, PlacementDraw, Projection,
     SurfaceOutline,
 };
 use ew_schema::{
-    Carrier, CarrierKind, CarrierParams, CarrierRef, Device, Enclosure, LayoutSpace, LibCopy, MountKind,
-    MountingSurface, Page, PageItem, PageItemKind, PageType, Part, Placement, StructureNode,
+    Carrier, CarrierKind, CarrierParams, CarrierRef, Device, Enclosure, LayoutLabels, LayoutSpace, LibCopy,
+    MountKind, MountingSurface, Page, PageItem, PageItemKind, PageType, Part, Placement, StructureNode,
     SurfaceLabelMode,
 };
 use ew_text::{Shaped, TextStyle};
@@ -69,6 +69,8 @@ pub struct SurfaceViewOf {
     pub surface: Id<MountingSurface>,
     /// How its placements are labelled.
     pub mode: LabelMode,
+    /// What each placement is labelled with (the view's `labels`; a value of a newer format draws tags).
+    pub show: LabelShow,
     /// The page projection at the page's scale.
     pub projection: Projection,
 }
@@ -115,6 +117,11 @@ impl Query for PageSurfaceView {
                 mode: match v.label_mode {
                     SurfaceLabelMode::Full => LabelMode::Full,
                     SurfaceLabelMode::Abbreviated | SurfaceLabelMode::Unknown(_) => LabelMode::Abbreviated,
+                },
+                show: match v.labels {
+                    LayoutLabels::ItemNumbers => LabelShow::ItemNumbers,
+                    LayoutLabels::Both => LabelShow::Both,
+                    LayoutLabels::Tags | LayoutLabels::Unknown(_) => LabelShow::Tags,
                 },
                 projection: Projection::on_sheet(v.datum_at, &page.scale, sheet_ppb),
             })
@@ -330,9 +337,23 @@ fn label_style(q: &Q) -> TextStyle {
         .unwrap_or(TextStyle::regular(Nm(3_175_000)))
 }
 
-/// The labels of a surface's placements on `page` (`layout_label`), each shaped by [`ShapedText`].
+/// The labels of a surface's placements on `page` (`layout_label`), each shaped by [`ShapedText`], with its item number
+/// (its position in the surface's `layout_legend`, read only when the view shows item numbers, so balloons and the
+/// legend cannot disagree) and where a person moved it (`label_at`).
 fn labels(q: &Q, page: Id<Page>, view: &SurfaceViewOf, ids: &[Id<Placement>]) -> Vec<PanelLabel> {
     let style = label_style(q);
+    let items: std::collections::BTreeMap<Id<Placement>, u32> = if view.show == LabelShow::Tags {
+        std::collections::BTreeMap::new()
+    } else {
+        ew_derive::layout::layout_legend(q, view.surface)
+            .into_iter()
+            .filter_map(|row| match row.item {
+                ew_derive::layout::LegendItem::Placement(p) => Some((p, row.pos)),
+                _ => None,
+            })
+            .collect()
+    };
+    let placements = q.table::<Placement>();
     ids.iter()
         .filter_map(|id| {
             let g = q.get::<PlacementGeometry>(*id);
@@ -344,6 +365,8 @@ fn labels(q: &Q, page: Id<Page>, view: &SurfaceViewOf, ids: &[Id<Placement>]) ->
                 text,
                 footprint: g.footprint,
                 shaped,
+                item: items.get(id).copied(),
+                moved: placements.get(*id).and_then(|p| p.label_at),
             })
         })
         .collect()
@@ -405,6 +428,7 @@ pub(crate) fn panel_view(q: &Q, page: Id<Page>, parts: Parts) -> Option<PanelVie
         } else {
             Vec::new()
         },
+        show: view.show,
     })
 }
 
@@ -496,6 +520,11 @@ pub struct PanelPlacement {
     pub device: Uuid,
     /// The layout label on this page (`layout_label`).
     pub label: String,
+    /// The box of its label (or balloon) where the page prints it, page nm: what a drag of the label grabs; `None`
+    /// when the page prints none.
+    pub label_box: Option<Rect>,
+    /// Whether a person moved its label (`label_at`): its menu offers to put it back.
+    pub label_moved: bool,
     /// The device's tag as a sentence names it (`-102F1`, `T55`).
     pub tag: String,
     /// The rail it sits on; `None` on the surface.
@@ -579,6 +608,8 @@ pub struct PanelTables {
     pub placements: Vec<PanelPlacement>,
     /// The unplaced devices of the surface's layout space, in `unplaced` order.
     pub unplaced: Vec<UnplacedDevice>,
+    /// Whether the view labels its placements with item numbers (alone or with their tags).
+    pub numbered: bool,
     /// Whether the project writes a decimal comma (`settings.formatting.decimal_separator`): the tools' texts
     /// print millimetres as the project's other millimetre texts do.
     pub decimal_comma: bool,
@@ -759,6 +790,7 @@ fn placements_of(q: &Q, page: Id<Page>, surface: Id<MountingSurface>) -> Vec<Pan
     };
     let table = q.table::<Placement>();
     let devices = q.devices();
+    let labels = super::layers::page_layer(q, PageRef::Drawn(page), ew_dl::Layer::Labels);
     let mut out = Vec::new();
     for pid in placements_on(q, surface) {
         let (Some(pl), Some(geom)) = (table.get(pid), q.get::<PlacementGeometry>(pid).as_ref().clone())
@@ -782,6 +814,8 @@ fn placements_of(q: &Q, page: Id<Page>, surface: Id<MountingSurface>) -> Vec<Pan
             placement: pid,
             device: pl.device.as_uuid(),
             label: q.get::<LayoutLabel>((pid, page, view.mode)).as_ref().clone(),
+            label_box: labels.panel_labels.get(&pid.as_uuid()).copied(),
+            label_moved: pl.label_at.is_some(),
             tag: device_tag(q, pl.device),
             carrier: match pl.carrier {
                 CarrierRef::Carrier(c) => Some(c.as_uuid()),
@@ -926,11 +960,99 @@ pub(crate) fn panel_tables_of(q: &Q, folio: &str, page: Id<Page>) -> Option<Pane
         carriers,
         placements,
         unplaced,
+        numbered: view.show != LabelShow::Tags,
         decimal_comma: comma(q),
     })
 }
 
+/// Where Add legend would put a panel page's legend ([`Session::legend_offer`](crate::Session::legend_offer)).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum LegendOffer {
+    /// The page is no panel-layout page, or it shows no surface yet.
+    NoLayout,
+    /// The page holds a legend already (an embedded `enclosure_legend` block).
+    Exists,
+    /// No side of the layout leaves the room a legend needs in the drawing area.
+    NoRoom,
+    /// The rectangle beside the layout on the page (page nm) where the legend goes.
+    At(Rect),
+}
+
+/// The least room a legend takes beside the layout: 60 mm wide, 40 mm high (page nm).
+const LEGEND_MIN: (i64, i64) = (60_000_000, 40_000_000);
+
+/// The gap between the layout and its legend, and between the legend and the drawing area's edge: 10 mm and 5 mm.
+const LEGEND_GAP: (i64, i64) = (10_000_000, 5_000_000);
+
+/// [`LegendOffer`] of the panel page `page`: the layout's extent on the page is its enclosure's outline (else its
+/// plate's, else its usable polygon's bounds) as the page projects it; the legend takes the largest free part of the
+/// frame's drawing area right of it, left of it, below it or above it (in that order on a tie), [`LEGEND_GAP`] off
+/// the layout and the area's edge, when that part is at least [`LEGEND_MIN`].
+pub(crate) fn legend_offer_of(q: &Q, page: Id<Page>) -> LegendOffer {
+    let Some(view) = panel_view(q, page, Parts { surface: true, ..Parts::NONE }) else {
+        return LegendOffer::NoLayout;
+    };
+    let held = q.table::<ew_schema::ReportBlock>().iter().any(|(_, b)| {
+        b.embedded.as_ref().is_some_and(|e| e.page == page)
+            && matches!(b.source, ew_schema::ReportSource::Kind(ew_schema::ReportKind::EnclosureLegend))
+    });
+    if held {
+        return LegendOffer::Exists;
+    }
+    let p = view.projection;
+    let Some(layout) = view.surface.as_ref().and_then(|s| {
+        s.enclosure
+            .map(|(_, r)| r)
+            .or(s.plate)
+            .or_else(|| bounds(&s.usable))
+            .and_then(|r| p.rect(r))
+    }) else {
+        return LegendOffer::NoLayout;
+    };
+    let Some((area, map)) = super::scale_fit::drawing_area(q, page) else {
+        return LegendOffer::NoRoom;
+    };
+    let area = Rect::from_points(map.unapply(area.min()), map.unapply(area.max()));
+    let (gap, edge) = LEGEND_GAP;
+    let (x0, y0, x1, y1) = (
+        area.min().x.0 + edge,
+        area.min().y.0 + edge,
+        area.max().x.0 - edge,
+        area.max().y.0 - edge,
+    );
+    let (lx0, ly0, lx1, ly1) = (
+        layout.min().x.0 - gap,
+        layout.min().y.0 - gap,
+        layout.max().x.0 + gap,
+        layout.max().y.0 + gap,
+    );
+    let sides = [
+        (lx1, y0, x1, y1),
+        (x0, y0, lx0, y1),
+        (x0, ly1, x1, y1),
+        (x0, y0, x1, ly0),
+    ];
+    let mut best: Option<(i128, Rect)> = None;
+    for (a, b, c, d) in sides {
+        let (w, h) = (c.saturating_sub(a), d.saturating_sub(b));
+        if w < LEGEND_MIN.0 || h < LEGEND_MIN.1 {
+            continue;
+        }
+        let size = i128::from(w) * i128::from(h);
+        if best.is_none_or(|(s, _)| size > s) {
+            best = Some((size, Rect::from_points(Pt2::new(Nm(a), Nm(b)), Pt2::new(Nm(c), Nm(d)))));
+        }
+    }
+    best.map_or(LegendOffer::NoRoom, |(_, r)| LegendOffer::At(r))
+}
+
 impl crate::Session {
+    /// Where Add legend would put the legend of the panel page `page` ([`LegendOffer`]); `NoLayout` for a page the
+    /// project does not hold.
+    pub fn legend_offer(&self, page: Uuid) -> LegendOffer {
+        legend_offer_of(&self.query(), Id::from_uuid(page))
+    }
+
     /// `panel_tables(folio)`: the panel data of the panel-layout page labelled `folio` for the layout
     /// tools, keyed by folio like [`Session::page_tables`](crate::Session::page_tables); `None` for an unknown folio,
     /// a page that is not a panel-layout page or one without a surface view. A plain function over `Q`.

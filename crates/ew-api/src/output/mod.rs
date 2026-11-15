@@ -143,7 +143,7 @@ pub use navigators::{
     NavColumn, NavKind, NavNode, NavRole, NavTable, Uuid, names_subject, nav_natural_key,
     tokens as nav_tokens,
 };
-pub use panel::{PanelAxis, PanelCarrier, PanelPlacement, PanelTables, UnplacedDevice, surface_of_page};
+pub use panel::{LegendOffer, PanelAxis, PanelCarrier, PanelPlacement, PanelTables, UnplacedDevice, surface_of_page};
 pub use potential_offer::PotentialOffer;
 pub(crate) use potential_offer::said_type;
 pub use preview::PreviewEntity;

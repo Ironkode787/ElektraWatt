@@ -575,6 +575,9 @@ pub struct LayerList {
     /// moved it, by representation ID: what `TableRep::tag_at` reports. Empty in the other
     /// layers.
     pub tags: BTreeMap<Uuid, Pt2>,
+    /// The labels layer's box of each placement's label on a panel-layout page where it prints (its knockout box,
+    /// `crate::panel`), by placement ID: what a drag of the label grabs. Empty in the other layers and pages.
+    pub panel_labels: BTreeMap<Uuid, Rect>,
 }
 
 /// `page_display_list(page, layer, lang)` for a drawn page (see the module documentation). The language is
@@ -733,7 +736,7 @@ pub fn symbol_preview_text(
 pub(crate) struct Builder<'a> {
     pub(crate) fonts: &'a FontSet,
     styles: &'a TextStyleTable,
-    out: LayerList,
+    pub(crate) out: LayerList,
 }
 
 impl<'a> Builder<'a> {

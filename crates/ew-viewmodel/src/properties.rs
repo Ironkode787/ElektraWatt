@@ -1290,6 +1290,8 @@ pub fn command_choice_text(path: &str, option: &str) -> String {
     match path.rsplit('.').next().unwrap_or(path) {
         "label_mode" => strings::lookup(&format!("choice-label_mode-{}", option.to_lowercase()))
             .map_or_else(|| option.to_owned(), str::to_owned),
+        "labels" => strings::lookup(&format!("choice-labels-{}", option.to_lowercase().replace(' ', "_")))
+            .map_or_else(|| option.to_owned(), str::to_owned),
         "surface" => {
             let (words, ordinal) = match option.rsplit_once(" (") {
                 Some((w, n)) if n.ends_with(')') && n[..n.len() - 1].bytes().all(|b| b.is_ascii_digit()) => {

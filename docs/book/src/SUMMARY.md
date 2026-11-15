@@ -80,6 +80,7 @@
     - [`layout.enclosure.create_from_part`](reference/commands/layout.enclosure.create_from_part.md)
     - [`layout.enclosure.delete`](reference/commands/layout.enclosure.delete.md)
     - [`layout.enclosure.edit`](reference/commands/layout.enclosure.edit.md)
+    - [`layout.label_move`](reference/commands/layout.label_move.md)
     - [`layout.lock`](reference/commands/layout.lock.md)
     - [`layout.move`](reference/commands/layout.move.md)
     - [`layout.place`](reference/commands/layout.place.md)

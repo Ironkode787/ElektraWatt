@@ -72,6 +72,7 @@ fn fx() -> (Engine, AnyKey) {
             surface,
             datum_at: Pt2::new(Nm(25 * MM), Nm(167 * MM)),
             label_mode: LabelModeParam::Abbreviated,
+            labels: None,
             scale: None,
         })
         .unwrap()
@@ -320,6 +321,7 @@ fn a_surface_view_without_a_scale_keeps_the_page_scale() {
             surface,
             datum_at: Pt2::new(Nm(40 * MM), Nm(150 * MM)),
             label_mode: LabelModeParam::Full,
+            labels: None,
             scale: Some(Scale::OneTo(5)),
         })
         .unwrap();
@@ -343,6 +345,7 @@ fn a_scale_of_one_to_zero_is_refused() {
             surface,
             datum_at: Pt2::new(Nm(40 * MM), Nm(150 * MM)),
             label_mode: LabelModeParam::Abbreviated,
+            labels: None,
             scale: Some(Scale::OneTo(0)),
         })
         .unwrap_err();

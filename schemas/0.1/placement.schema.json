@@ -124,6 +124,25 @@
       ],
       "type": "object"
     },
+    "SurfacePt2": {
+      "description": "A point [u, v] in nanometres in the frame of a mounting surface, u to the right, v up (doc 03 §16): not a sheet point.",
+      "items": false,
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      ],
+      "type": "array"
+    },
     "Uuid": {
       "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
       "maxLength": 36,
@@ -169,6 +188,17 @@
     "id": {
       "$ref": "#/$defs/Uuid",
       "description": "The record ID."
+    },
+    "label_at": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SurfacePt2"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Where a person moved the placement's label (or balloon) to on its layout pages: the label's anchor as an offset\nfrom the centre of the footprint, in the surface's frame (`u` right, `v` up, nm), so that it moves with the\nplacement; absent: placed by the label rules (doc 12 §5.3). Additive: an older build keeps it."
     },
     "locked": {
       "description": "Excluded from push, swap and auto-fill (FR-LAY-006).",

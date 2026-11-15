@@ -1438,6 +1438,7 @@ impl Command for PlaceDevice {
             carrier,
             pose,
             locked: false,
+            label_at: None,
             extra: Extra::new(),
         })?;
         Ok(Outcome::primary((Kind::Placement, id.cast())))
@@ -1626,6 +1627,44 @@ impl Command for LockPlacement {
         }
         let locked = self.locked;
         tx.update::<Placement>(self.placement, |p| p.locked = locked)?;
+        Ok(Outcome::primary((Kind::Placement, self.placement.cast())))
+    }
+}
+
+/// `layout.label_move` (`MoveLayoutLabel`, doc 12 §5.3): moves a placement's label (or its item-number balloon) on its
+/// layout pages alone, or puts it back. `at` is the label's centre as an offset from the centre of the placement's
+/// footprint, in the surface's frame (`[u, v]` nm, `v` up), so the label moves with the placement; absent puts the
+/// label back where the label rules place it. Rejected: a placement that does not exist (`/placement`). Interactive.
+/// Outcome: the placement.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct MoveLayoutLabel {
+    /// The placement.
+    #[schemars(with = "UuidS")]
+    pub placement: Id<Placement>,
+    /// The label's centre from the footprint's centre; absent: back to the rules' place.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<SurfacePt2S>")]
+    pub at: Option<Pt2>,
+}
+
+impl Command for MoveLayoutLabel {
+    const NAME: &'static str = "layout.label_move";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        if !tx.exists::<Placement>(self.placement) {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/placement",
+                text!("refusal-params-placement-gone"),
+            ));
+        }
+        let at = self.at;
+        tx.update::<Placement>(self.placement, |p| p.label_at = at)?;
         Ok(Outcome::primary((Kind::Placement, self.placement.cast())))
     }
 }
@@ -2224,6 +2263,7 @@ impl Command for PlaceAssembly {
                 carrier: CarrierRef::Carrier(rail),
                 pose,
                 locked: false,
+                label_at: None,
                 extra: Extra::new(),
             })?;
         }
@@ -2489,6 +2529,7 @@ impl Command for AutoFill {
                 carrier: CarrierRef::Carrier(carrier),
                 pose,
                 locked: false,
+                label_at: None,
                 extra: Extra::new(),
             })?;
         }

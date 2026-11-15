@@ -651,6 +651,9 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot) -> Vec<ActionItem> {
         items.extend(item("page.new"));
         if model.canvas().is_some_and(|c| c.page().panel.is_none()) {
             items.extend(item("project.wire_numbers"));
+        } else if model.legend_offer() != ew_api::output::LegendOffer::NoLayout {
+            // A panel page offers its legend beside the layout (F21).
+            items.extend(item("page.add_legend"));
         }
         // A schematic page offers New station… (F18 of the rc.1 test: the rack comes first).
         if matches!(
@@ -661,14 +664,20 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot) -> Vec<ActionItem> {
         }
         return items;
     }
-    // Over a placement on a panel page, Turn, Flip, Lock or Unlock, and Delete.
+    // Over a placement on a panel page, Turn, Flip, Lock or Unlock, Reset label position when its label was moved,
+    // and Delete.
     if model.selected_placements() > 0 {
         let lock = if model.selected_placement_locked() {
             "layout.unlock_selection"
         } else {
             "layout.lock_selection"
         };
-        return ["layout.rotate", "layout.flip", lock, "edit.delete_selection"]
+        let reset = model.selected_label_moved().then_some("layout.reset_label");
+        return ["layout.rotate", "layout.flip", lock]
+            .into_iter()
+            .chain(reset)
+            .chain(["edit.delete_selection"])
+            .collect::<Vec<_>>()
             .iter()
             .filter_map(|id| actions::find(id))
             .map(|meta| actions::item_of(meta, model))

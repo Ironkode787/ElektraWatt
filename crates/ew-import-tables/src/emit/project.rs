@@ -398,6 +398,7 @@ pub(crate) fn emit_surface_views(cx: &mut Cx<'_>, table: Option<&Table>) {
                 surface: id,
                 datum_at,
                 label_mode,
+                labels: Default::default(),
                 extra: Default::default(),
             }),
             extra: Default::default(),

@@ -26,8 +26,8 @@ use super::fit::Profile;
 use super::pose::{Quarter, clip_offset};
 use crate::Q;
 use crate::query::{Policy, Query};
-use crate::structure::{DevicesByStructure, StructureOf};
-use crate::tag::{DeviceTag, DisplayedTag};
+use crate::structure::{DevicesByStructure, PageStructure, SlotSource, StructureOf, resolved_slot};
+use crate::tag::DeviceTag;
 
 /// The side of the unknown footprint (D5): a 20 × 20 mm square about the pose.
 pub const UNKNOWN_SIDE: i64 = 20_000_000;
@@ -661,7 +661,8 @@ pub enum LabelMode {
 
 /// `layout_label((placement, page, mode))`: the label text of a placement on a layout page (D10's text, doc 12 §5.3):
 /// the device's displayed tag on the page (abbreviated; frozen tags print as frozen, "T55") or its full designation
-/// (full, the page is not read). The text is derived from the device's tag each time, so renumbering a device changes
+/// (full, the page is not read). A layout page without a location of its own suppresses the location of the layout
+/// space its surface view shows (the cabinet the page draws), so "+CAB1-K1" prints "-K1" on that cabinet's layout. The text is derived from the device's tag each time, so renumbering a device changes
 /// its label and no layout record (D-02). A placement of one function prints its device's label: functions carry no
 /// designation member in format 0.1, so D10's ":" suffix has nothing to add yet. Empty for a missing placement, device
 /// or page (the full label reads the page too, so that a deleted page's labels leave the memo store with it).
@@ -683,13 +684,33 @@ impl Query for LayoutLabel {
             return Arc::new(String::new());
         }
         match mode {
-            LabelMode::Abbreviated => q.get::<DisplayedTag>((device, page)),
+            LabelMode::Abbreviated => {
+                let tag = q.get::<DeviceTag>(device);
+                let Some(tag) = tag.as_ref() else {
+                    return Arc::new(String::new());
+                };
+                let mut structure = q.get::<PageStructure>(page).as_ref().clone();
+                if structure.node(Aspect::Location).is_none()
+                    && let Some(slot) = shown_location(q, page).and_then(|n| resolved_slot(q, n, SlotSource::Explicit))
+                {
+                    structure.slots.insert(Aspect::Location, slot);
+                }
+                Arc::new(tag.displayed(&structure))
+            }
             LabelMode::Full => {
                 let tag = q.get::<DeviceTag>(device);
                 Arc::new(tag.as_ref().as_ref().map(|t| t.full.clone()).unwrap_or_default())
             }
         }
     }
+}
+
+/// The location node of the layout space whose surface the panel-layout page `page` shows.
+fn shown_location(q: &Q, page: Id<Page>) -> Option<Id<StructureNode>> {
+    let surface = super::legend::page_surface(q, page)?;
+    let enclosure = q.table::<MountingSurface>().get(surface)?.enclosure;
+    let space = q.table::<Enclosure>().get(enclosure)?.space;
+    Some(q.table::<LayoutSpace>().get(space)?.location)
 }
 
 // ---------------------------------------------------------------------------------------------------------

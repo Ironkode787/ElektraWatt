@@ -56,6 +56,9 @@ pub struct PageLayer {
     /// The labels layer's anchor of each representation's device tag after the tag rule, by representation
     /// ID (`ew_scene::page::LayerList::tags`).
     pub tags: BTreeMap<Uuid, Pt2>,
+    /// The labels layer's box of each placement's label on a panel-layout page, by placement ID
+    /// (`ew_scene::page::LayerList::panel_labels`).
+    pub panel_labels: BTreeMap<Uuid, ew_dl::ew_units::Rect>,
 }
 
 /// An empty view of `page`: the parts a layer reads are filled by its family.
@@ -226,6 +229,7 @@ fn build(q: &Q, page: PageRef, layer: Layer) -> Arc<PageLayer> {
         geometry: l.geometry,
         findings: l.findings,
         tags: l.tags,
+        panel_labels: l.panel_labels,
     })
 }
 

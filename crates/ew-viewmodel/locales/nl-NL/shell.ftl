@@ -6528,3 +6528,22 @@ symbol-use-function = Deze functie gebruiken
 symbol-take-off = Loskoppelen
 symbol-function-locked = Vergrendeld: er wordt een kant-en-klare functie gebruikt. Koppel die los onder Kant-en-klare functie om het type te wijzigen.
 symbol-more-in-guide = Meer in de handleiding
+
+# Een leesbare layoutpagina: positienummers, de legenda, verplaatsbare labels (de test van 0.3.0-rc.1).
+action-page-add-legend = Legenda toevoegen
+action-layout-reset-label = Labelpositie herstellen
+reason-legend-exists = Deze pagina heeft al een legenda
+reason-legend-no-room = Naast de layout is in het tekenvlak geen ruimte voor een legenda; verplaats de layout of kies een kleinere schaal
+reason-legend-no-layout = De pagina toont nog geen montageplaat
+reason-label-not-moved = Het label staat waar de labelregels het zetten
+hint-select-legend = Hier past de legenda: klik met rechts en kies Legenda toevoegen om de apparaten naast de layout op te sommen
+choice-labels-tags = Kenmerken
+choice-labels-item_numbers = Positienummers
+choice-labels-both = Beide
+choice-tags = Kenmerken
+choice-item-numbers = Positienummers
+command-layout-label_move = Layoutlabel verplaatsen
+field-word-labels = Labels
+field-help-word-labels = Waarmee elk apparaat op de layout gelabeld wordt: zijn kenmerk, zijn positienummer in een ballon die de legenda opsomt, of beide.
+field-word-label-at = Labelpositie
+field-help-word-label-at = Waar het label van het apparaat op zijn layoutpagina's naartoe gesleept is; Labelpositie herstellen zet het terug.

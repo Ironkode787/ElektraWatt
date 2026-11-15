@@ -216,6 +216,26 @@
       ],
       "type": "object"
     },
+    "LayoutLabels": {
+      "description": "What a surface view labels each placement with (doc 12 §5.3).",
+      "oneOf": [
+        {
+          "const": "tags",
+          "description": "The tag (`label_mode` says how much of it); the default.",
+          "type": "string"
+        },
+        {
+          "const": "item_numbers",
+          "description": "The placement's position in the surface's legend, in a balloon.",
+          "type": "string"
+        },
+        {
+          "const": "both",
+          "description": "The balloon and the tag beside it.",
+          "type": "string"
+        }
+      ]
+    },
     "LineDash": {
       "description": "The dash pattern of a graphic or a structure box line.",
       "oneOf": [
@@ -531,6 +551,10 @@
         "label_mode": {
           "$ref": "#/$defs/SurfaceLabelMode",
           "description": "How placements are labelled; default abbreviated."
+        },
+        "labels": {
+          "$ref": "#/$defs/LayoutLabels",
+          "description": "What each placement is labelled with: its tag, its item number in a balloon (the legend's position), or both;\ndefault the tag (doc 12 §5.3). Additive: an older build keeps it and draws tags."
         },
         "surface": {
           "$ref": "#/$defs/Uuid",

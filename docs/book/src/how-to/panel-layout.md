@@ -18,7 +18,8 @@ the parts list and the enclosure legend read it from there.
    others from the lists if you like, then **Create**.
    The page now shows the enclosure and its mounting plate, centred and at the scale that fits the page. A new
    location, the enclosure and the plate on the page are three steps of Undo. Another plate goes on the page through
-   the page's **Surface** row in Properties.
+   the page's **Surface** row in Properties. At 1:10 and smaller scales the devices are numbered and the page gets a
+   legend beside the plate that lists each number with its tag, quantity and part number.
 
 ## Rails and ducts
 
@@ -35,6 +36,16 @@ the parts list and the enclosure legend read it from there.
 7. To fill a rail at once, select the rail and choose **Draw ▸ Auto-fill rail…**: it places the devices you marked in
    the list, or every unplaced device that fits, in the order of the schematic or of their tags, and a toast says what
    did not fit.
+
+## Labels and the legend
+
+8. With nothing selected, the page's **Labels** row in Properties chooses what each device shows: its tag, its item
+   number in a balloon, or both. Labels that would run into each other move apart, above and below the row, with a
+   line to their device. On the cabinet's own layout the tags leave out the cabinet's location.
+9. **Add legend** in the page's right-click menu (also **Page ▸ Order ▸ Add legend**) puts the legend in the free space
+   beside the layout. It is offered while the page has none.
+10. A label or balloon that stands beside its device can be dragged on its own; its line follows it to the device.
+    **Reset label position** in the device's right-click menu puts it back.
 
 The tools are described one by one in the [tool reference](../reference/window/tools.md): Place device, Rail and
 Duct.

@@ -405,6 +405,10 @@ pub struct SurfaceView {
     /// How placements are labelled; default abbreviated.
     #[serde(default, skip_serializing_if = "is_default")]
     pub label_mode: SurfaceLabelMode,
+    /// What each placement is labelled with: its tag, its item number in a balloon (the legend's position), or both;
+    /// default the tag (doc 12 §5.3). Additive: an older build keeps it and draws tags.
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub labels: LayoutLabels,
     /// Unknown members (`side`, `clip`, `layers` among them, until they are typed).
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
@@ -422,6 +426,24 @@ pub enum SurfaceLabelMode {
     Abbreviated,
     /// The full designation ("=P01+J-E-2416-X1031").
     Full,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+/// What a surface view labels each placement with (doc 12 §5.3).
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "LayoutLabels")]
+pub enum LayoutLabels {
+    /// The tag (`label_mode` says how much of it); the default.
+    #[default]
+    Tags,
+    /// The placement's position in the surface's legend, in a balloon.
+    ItemNumbers,
+    /// The balloon and the tag beside it.
+    Both,
     /// A value of a newer format, kept verbatim.
     #[serde(skip)]
     Unknown(Value),
@@ -557,5 +579,6 @@ open_enum!(
     MarkerField,
     BoxStyle,
     SurfaceLabelMode,
+    LayoutLabels,
     UnderlayFormat
 );

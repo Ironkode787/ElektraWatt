@@ -578,7 +578,11 @@ impl HeapSize for ew_schema::PageItemKind {
                     ew_schema::SurfaceLabelMode::Unknown(m) => m.heap_size(),
                     _ => 0,
                 };
-                mode + v.extra.heap_size()
+                let labels = match &v.labels {
+                    ew_schema::LayoutLabels::Unknown(m) => m.heap_size(),
+                    _ => 0,
+                };
+                mode + labels + v.extra.heap_size()
             }
             ew_schema::PageItemKind::Unknown(v) => v.heap_size(),
         }

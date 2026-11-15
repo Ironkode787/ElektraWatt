@@ -1370,6 +1370,10 @@ impl ShellModel {
                 return Outcome::Failed { message };
             }
         };
+        // A new layout view that shows item numbers gets the legend that lists them (F21).
+        let numbered_view = row.path.ends_with("surface")
+            && matches!(row.value, RowValue::Absent)
+            && cmd.params.get("labels").and_then(Value::as_str) == Some("item_numbers");
         let pending = PendingEdit {
             row: row.key.clone(),
             kind: section.kind.clone(),
@@ -1383,7 +1387,14 @@ impl ShellModel {
             typed: text.to_owned(),
             label: crate::properties::row_label(section, row),
         };
-        self.run_edit(pending, false)
+        let out = self.run_edit(pending, false);
+        if out == Outcome::Done
+            && numbered_view
+            && matches!(self.legend_offer(), ew_api::output::LegendOffer::At(_))
+        {
+            let _ = self.act_page_add_legend();
+        }
+        out
     }
 
     /// The Group row of terminals: one `StripEdit::GroupLabel` over the section's terminals, through
@@ -1425,6 +1436,10 @@ impl ShellModel {
                 return Outcome::Failed { message };
             }
         };
+        // A new layout view that shows item numbers gets the legend that lists them (F21).
+        let numbered_view = row.path.ends_with("surface")
+            && matches!(row.value, RowValue::Absent)
+            && cmd.params.get("labels").and_then(Value::as_str) == Some("item_numbers");
         let pending = PendingEdit {
             row: row.key.clone(),
             kind: section.kind.clone(),
@@ -1438,7 +1453,14 @@ impl ShellModel {
             typed: text.to_owned(),
             label: crate::properties::row_label(section, row),
         };
-        self.run_edit(pending, false)
+        let out = self.run_edit(pending, false);
+        if out == Outcome::Done
+            && numbered_view
+            && matches!(self.legend_offer(), ew_api::output::LegendOffer::At(_))
+        {
+            let _ = self.act_page_add_legend();
+        }
+        out
     }
 
     /// The command of an edit.

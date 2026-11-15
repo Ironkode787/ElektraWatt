@@ -85,7 +85,7 @@ pub use macro_insert::{MACRO_KINDS, binding_field_ok, coerce_value, instantiate}
 pub use merge::Take;
 #[cfg(feature = "testkit")]
 pub use merge::record_file_of;
-pub use page::{LabelModeParam, PageScope};
+pub use page::{LabelModeParam, LabelsParam, PageScope};
 pub use parts::import_counts;
 pub use paste::{Fragment, FragmentNode, PASTE_KINDS, PASTE_MAX_RECORDS};
 pub use plc::is_on_module;
@@ -228,6 +228,7 @@ commands! {
     layout::MovePlacement,
     layout::RemovePlacement,
     layout::LockPlacement,
+    layout::MoveLayoutLabel,
     layout::PlaceAssembly,
     layout::AutoFill,
     layout::CreateEnclosureFromPart,

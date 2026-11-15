@@ -282,6 +282,12 @@ pub struct Placement {
     /// Excluded from push, swap and auto-fill (FR-LAY-006).
     #[serde(default, skip_serializing_if = "is_false")]
     pub locked: bool,
+    /// Where a person moved the placement's label (or balloon) to on its layout pages: the label's anchor as an offset
+    /// from the centre of the footprint, in the surface's frame (`u` right, `v` up, nm), so that it moves with the
+    /// placement; absent: placed by the label rules (doc 12 §5.3). Additive: an older build keeps it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<SurfacePt2S>")]
+    pub label_at: Option<Pt2>,
     /// Unknown members (`segment`, `variant`) and plugin keys.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

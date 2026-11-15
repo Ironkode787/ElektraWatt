@@ -51,6 +51,8 @@ fn view(labels: bool) -> PageView {
         text: text.to_owned(),
         footprint,
         shaped: None,
+        item: None,
+        moved: None,
     };
     PageView {
         kind: PageKind::Panel,
@@ -81,6 +83,7 @@ fn view(labels: bool) -> PageView {
             } else {
                 Vec::new()
             },
+            show: ew_scene::panel::LabelShow::Tags,
         }),
         ..blank_page(0x01)
     }

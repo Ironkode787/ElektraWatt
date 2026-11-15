@@ -13,7 +13,7 @@ use ew_model::ModelError;
 use ew_schema::{
     ContinuationPolicy, Device, Extra, Folio, FormDef, Function, Kind, MountingSurface, Page, PageItem,
     PageItemKind, PageType, ReportBlock, Representation, Scale, Section, StructureAssignment,
-    SurfaceLabelMode, SurfaceView,
+    LayoutLabels, SurfaceLabelMode, SurfaceView,
 };
 use ew_units::{Grid, Pt2};
 use schemars::JsonSchema;
@@ -777,9 +777,22 @@ pub enum LabelModeParam {
     Full,
 }
 
+/// What a surface view labels each placement with (`labels` of `page.surface_view.set`).
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum LabelsParam {
+    /// The tag.
+    Tags,
+    /// The item number (the legend's position) in a balloon.
+    ItemNumbers,
+    /// The balloon and the tag.
+    Both,
+}
+
 /// `page.surface_view.set` (`SetSurfaceView`, FR-LAY-010): sets the view of one mounting surface on a
-/// panel-layout page: the surface, where its origin lands on the page (`datum_at`, page nm) and the label mode
-/// (default abbreviated). A page holds at most one view: a page that has one keeps it, with its ID, and takes the new
+/// panel-layout page: the surface, where its origin lands on the page (`datum_at`, page nm), the label mode
+/// (default abbreviated) and what each placement is labelled with (`labels`: absent keeps the view's, tags for a new
+/// view). A page holds at most one view: a page that has one keeps it, with its ID, and takes the new
 /// values (members this build keeps verbatim stay); a page without one gets a new page item. What the view draws is
 /// derived from the layout records at the page's scale, never stored. With `scale` the page takes that scale in the
 /// same undo step (the window sends the fitting scale to a page still drawn not to scale); without
@@ -803,6 +816,10 @@ pub struct SetSurfaceView {
     /// How placements are labelled; default abbreviated.
     #[serde(default)]
     pub label_mode: LabelModeParam,
+    /// What each placement is labelled with: `tags`, `item_numbers` or `both`; absent keeps the view's (tags for a
+    /// new view).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub labels: Option<LabelsParam>,
     /// The scale the page takes in the same step (`"not_to_scale"` or `{"one_to": n}`, n at least 1); absent keeps
     /// the page's scale.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -841,6 +858,11 @@ impl Command for SetSurfaceView {
             LabelModeParam::Abbreviated => SurfaceLabelMode::Abbreviated,
             LabelModeParam::Full => SurfaceLabelMode::Full,
         };
+        let labels = self.labels.map(|l| match l {
+            LabelsParam::Tags => LayoutLabels::Tags,
+            LabelsParam::ItemNumbers => LayoutLabels::ItemNumbers,
+            LabelsParam::Both => LayoutLabels::Both,
+        });
         // The page's view: the first by ID (a file may hold more; the page draws the first, D9).
         let existing = tx
             .page_items_on_page(self.page)
@@ -857,6 +879,9 @@ impl Command for SetSurfaceView {
                         v.surface = self.surface;
                         v.datum_at = self.datum_at;
                         v.label_mode = label_mode;
+                        if let Some(l) = labels {
+                            v.labels = l;
+                        }
                     }
                 })?;
                 id
@@ -872,6 +897,7 @@ impl Command for SetSurfaceView {
                         surface: self.surface,
                         datum_at: self.datum_at,
                         label_mode,
+                        labels: labels.unwrap_or_default(),
                         extra: Extra::new(),
                     }),
                     extra: Extra::new(),

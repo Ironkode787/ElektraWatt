@@ -54,6 +54,7 @@ fn placement(id: Id<Placement>, device: Id<ew_schema::Device>, carrier: CarrierR
         carrier,
         pose: Pose3::IDENTITY,
         locked: false,
+        label_at: None,
         extra: Extra::new(),
     }
 }

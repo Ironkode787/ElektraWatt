@@ -192,6 +192,20 @@ pub struct PanelView {
     /// The placements' labels ([`Layer::Labels`](ew_dl::Layer::Labels), and the knockout of
     /// [`Layer::Carriers`](ew_dl::Layer::Carriers)).
     pub labels: Vec<PanelLabel>,
+    /// What each placement is labelled with.
+    pub show: LabelShow,
+}
+
+/// What a surface view labels each placement with (doc 12 §5.3, the view's `labels`).
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum LabelShow {
+    /// The tag.
+    #[default]
+    Tags,
+    /// The item number (the legend position) in a balloon.
+    ItemNumbers,
+    /// The balloon with the tag beside it.
+    Both,
 }
 
 /// The outlines of the shown surface.
@@ -254,6 +268,11 @@ pub struct PanelLabel {
     pub footprint: Rect,
     /// The text shaped in the label style (the memoised `shaped_text`); `None`: the scene shapes it.
     pub shaped: Option<Arc<Shaped>>,
+    /// The placement's position in the surface's legend (`layout_legend`), its item number.
+    pub item: Option<u32>,
+    /// Where a person moved the label to: its centre as an offset from the footprint's centre, in the surface's frame
+    /// (the placement's `label_at`); `None`: placed by the rules.
+    pub moved: Option<Pt2>,
 }
 
 /// How a label was placed (D10's fit steps), in the order they are tried.
@@ -267,6 +286,8 @@ pub enum LabelFit {
     Above,
     /// Outside below the footprint, with a leader.
     Below,
+    /// Where a person moved it (the placement's `label_at`), with a leader when it stands off the footprint.
+    Moved,
 }
 
 /// Whether a label has a glyph that reaches below the baseline: a lower-case `g`, `j`, `p`, `q`, `y` or one of
@@ -302,10 +323,70 @@ pub struct PlacedLabel {
     pub leader: Option<(Pt2, Pt2)>,
     /// The knockout box: the ink box as placed, padded by [`LABEL_PAD`] on every side, on the page.
     pub knockout: Rect,
+    /// The item number's balloon: its centre and radius on the page.
+    pub balloon: Option<(Pt2, Nm)>,
 }
 
-/// A label placed on the page with its text, entity, style and shaped text (the builder's working form).
-type PlacedOnPage<'p> = (&'p str, PlacedLabel, EntityRef, TextStyle, Arc<Shaped>);
+/// A label placed on the page with its texts, entity, style and shaped texts (the builder's working form).
+struct PlacedOnPage<'p> {
+    /// The tag printed (empty with item numbers only).
+    text: &'p str,
+    /// The tag shaped.
+    shaped: Arc<Shaped>,
+    /// The item number in the balloon, with its shaped text.
+    number: Option<(String, Shaped)>,
+    /// Where it stands.
+    placed: PlacedLabel,
+    /// The placement.
+    entity: EntityRef,
+    /// The label style.
+    style: TextStyle,
+}
+
+/// The gap between two labels a crowded row stacks above or below each other: 0.5 mm.
+pub const LABEL_STACK_GAP: Nm = Nm(500_000);
+
+/// The space between an item number and the inside of its balloon, on every side: 0.3 mm.
+pub const BALLOON_PAD: Nm = Nm(300_000);
+
+/// The gap between a balloon and the tag beside it (labels of both): 0.5 mm.
+const BALLOON_GAP: Nm = Nm(500_000);
+
+/// How many levels a crowded label may stack away from its footprint on either side.
+const STACK_LEVELS: i64 = 4;
+
+/// Whether two rectangles share interior points.
+fn overlap(a: Rect, b: Rect) -> bool {
+    a.min().x < b.max().x && b.min().x < a.max().x && a.min().y < b.max().y && b.min().y < a.max().y
+}
+
+/// Whether `inner` lies within `outer`.
+fn within(inner: Rect, outer: Rect) -> bool {
+    inner.min().x >= outer.min().x
+        && inner.min().y >= outer.min().y
+        && inner.max().x <= outer.max().x
+        && inner.max().y <= outer.max().y
+}
+
+/// `l` moved by `dy` on the page: its anchor, its box, its balloon and the near end of its leader (the far end stays on
+/// the footprint).
+fn moved_by(l: &PlacedLabel, dy: i64) -> PlacedLabel {
+    let down = |p: Pt2| Pt2::new(p.x, Nm(p.y.0.saturating_add(dy)));
+    PlacedLabel {
+        fit: l.fit,
+        at: down(l.at),
+        angle: l.angle,
+        align: l.align.clone(),
+        leader: l.leader.map(|(a, b)| (down(a), b)),
+        knockout: Rect::from_points(down(l.knockout.min()), down(l.knockout.max())),
+        balloon: l.balloon.map(|(c, r)| (down(c), r)),
+    }
+}
+
+/// The point of `r` nearest to `p`.
+fn nearest(r: Rect, p: Pt2) -> Pt2 {
+    Pt2::new(p.x.clamp(r.min().x, r.max().x), p.y.clamp(r.min().y, r.max().y))
+}
 
 /// The padded ink box of a one-line text of advance `adv` anchored at `at` with the vertical alignment `valign`
 /// (−1 top, 0 middle, 1 bottom) and centred horizontally, turned by `angle` about `at`: the layout rules of the
@@ -356,41 +437,108 @@ pub fn place_label(
                 align: Align::Centre,
                 leader: None,
                 knockout: ink_box(at, 0, angle, adv, &m, desc),
+                balloon: None,
             }
         }
-        _ => {
-            let cx = centre(fp).x;
-            let top = fp.min().y;
-            let above_top = Nm(top.0 - LEADER_GAP.0 - h.0);
-            let below = bounds.is_some_and(|b| above_top < b.min().y);
-            let (fit, edge, end, align, valign) = if below {
-                let bottom = fp.max().y;
-                (
-                    LabelFit::Below,
-                    bottom,
-                    Nm(bottom.0 + LEADER_GAP.0),
-                    Align::TopCentre,
-                    -1,
-                )
-            } else {
-                (
-                    LabelFit::Above,
-                    top,
-                    Nm(top.0 - LEADER_GAP.0),
-                    Align::BottomCentre,
-                    1,
-                )
-            };
-            let at = Pt2::new(cx, end);
-            PlacedLabel {
-                fit,
-                at,
-                angle: Angle2::ZERO,
-                align,
-                leader: Some((at, Pt2::new(cx, edge))),
-                knockout: ink_box(at, valign, Angle2::ZERO, adv, &m, desc),
-            }
-        }
+        _ => tag_outside(fp, first_side(fp, h, bounds), adv, &m, desc),
+    }
+}
+
+/// The side a label of padded height `h` outside the footprint `fp` takes first: above, or below when above would
+/// leave the surface's page `bounds` at the top.
+fn first_side(fp: Rect, h: Nm, bounds: Option<Rect>) -> LabelFit {
+    let above_top = Nm(fp.min().y.0 - LEADER_GAP.0 - h.0);
+    if bounds.is_some_and(|b| above_top < b.min().y) {
+        LabelFit::Below
+    } else {
+        LabelFit::Above
+    }
+}
+
+/// A tag of advance `adv` outside the footprint `fp` on `side`: its near edge [`LEADER_GAP`] off the footprint's,
+/// centred on it, with a leader line to that edge.
+fn tag_outside(fp: Rect, side: LabelFit, adv: Nm, m: &ew_text::VerticalMetrics, desc: Nm) -> PlacedLabel {
+    let cx = centre(fp).x;
+    let (fit, edge, end, align, valign) = if side == LabelFit::Below {
+        let bottom = fp.max().y;
+        (
+            LabelFit::Below,
+            bottom,
+            Nm(bottom.0 + LEADER_GAP.0),
+            Align::TopCentre,
+            -1,
+        )
+    } else {
+        let top = fp.min().y;
+        (
+            LabelFit::Above,
+            top,
+            Nm(top.0 - LEADER_GAP.0),
+            Align::BottomCentre,
+            1,
+        )
+    };
+    let at = Pt2::new(cx, end);
+    PlacedLabel {
+        fit,
+        at,
+        angle: Angle2::ZERO,
+        align,
+        leader: Some((at, Pt2::new(cx, edge))),
+        knockout: ink_box(at, valign, Angle2::ZERO, adv, m, desc),
+        balloon: None,
+    }
+}
+
+/// The padded size of a label on the page: of the tag, of advance `adv` and padded ink height `h` (`None` without a
+/// tag), and of the balloon of diameter `d` (`None` without an item number). With both, the balloon stands left of
+/// the tag, [`BALLOON_GAP`] apart.
+fn unit_size(tag: Option<(Nm, Nm)>, d: Option<Nm>) -> (Nm, Nm) {
+    let pad = 2 * LABEL_PAD.0;
+    match (tag, d) {
+        (Some((adv, h)), Some(d)) => (Nm(d.0 + BALLOON_GAP.0 + adv.0 + pad), Nm(h.0.max(d.0 + pad))),
+        (Some((adv, h)), None) => (Nm(adv.0 + pad), h),
+        (None, Some(d)) => (Nm(d.0 + pad), Nm(d.0 + pad)),
+        (None, None) => (Nm::ZERO, Nm::ZERO),
+    }
+}
+
+/// A balloon label (with the tag beside it, with `tag`) whose padded box is `bx`: the balloon at the box's left, the
+/// tag after it left-aligned on the middle line; without the tag the balloon fills the box, its number centred.
+fn balloon_label(fit: LabelFit, bx: Rect, d: Nm, tag: bool, leader: Option<(Pt2, Pt2)>) -> PlacedLabel {
+    let r = Nm(d.0 / 2);
+    let c = centre(bx);
+    let (balloon, at, align) = if tag {
+        let cx = Nm(bx.min().x.0 + LABEL_PAD.0 + r.0);
+        let at = Pt2::new(Nm(bx.min().x.0 + LABEL_PAD.0 + d.0 + BALLOON_GAP.0), c.y);
+        ((Pt2::new(cx, c.y), r), at, Align::MiddleLeft)
+    } else {
+        ((c, r), c, Align::Centre)
+    };
+    PlacedLabel {
+        fit,
+        at,
+        angle: Angle2::ZERO,
+        align,
+        leader,
+        knockout: bx,
+        balloon: Some(balloon),
+    }
+}
+
+/// The box of a label `w × h` outside the footprint `fp` on `side` (above or below), [`LEADER_GAP`] off its edge,
+/// centred on it, with its leader from the box's near edge to the footprint's.
+fn outside_box(fp: Rect, side: LabelFit, w: Nm, h: Nm) -> (Rect, (Pt2, Pt2)) {
+    let cx = centre(fp).x;
+    let x0 = Nm(cx.0 - w.0.div_euclid(2));
+    if side == LabelFit::Below {
+        let top = Nm(fp.max().y.0 + LEADER_GAP.0);
+        let bx = Rect::from_points(Pt2::new(x0, top), Pt2::new(Nm(x0.0 + w.0), Nm(top.0 + h.0)));
+        (bx, (Pt2::new(cx, top), Pt2::new(cx, fp.max().y)))
+    } else {
+        let bottom = Nm(fp.min().y.0 - LEADER_GAP.0);
+        let bx = Rect::from_points(Pt2::new(x0, Nm(bottom.0 - h.0)), Pt2::new(Nm(x0.0 + w.0), bottom));
+        (bx, (Pt2::new(cx, bottom), Pt2::new(cx, fp.min().y)))
     }
 }
 
@@ -559,17 +707,28 @@ impl Builder<'_> {
         }
     }
 
-    /// The labels of `panel` as placed on the page, by placement ID, with their entity, style and shaped text (empty
-    /// texts and footprints outside the `Nm` range left out). With `report`, an unknown label style is reported (the
-    /// labels layer); the carriers layer reads the same placement quietly.
+    /// The labels of `panel` as placed on the page, by placement ID, with their entity, style and shaped texts (labels
+    /// with nothing to print and footprints outside the `Nm` range left out; see the module documentation). With
+    /// `report`, an unknown label style is reported (the labels layer); the carriers layer reads the same placement
+    /// quietly.
     fn placed_labels<'p>(&mut self, panel: &'p PanelView, report: bool) -> Vec<PlacedOnPage<'p>> {
         let p = panel.projection;
         let bounds = panel.bounds.and_then(|b| p.rect(b));
         let mut labels: Vec<&PanelLabel> = panel.labels.iter().collect();
         labels.sort_by_key(|l| l.placement);
-        let mut out = Vec::with_capacity(labels.len());
+        let (show_tag, show_number) = match panel.show {
+            LabelShow::Tags => (true, false),
+            LabelShow::ItemNumbers => (false, true),
+            LabelShow::Both => (true, true),
+        };
+        let mut out: Vec<PlacedOnPage<'p>> = Vec::with_capacity(labels.len());
+        // Per label: its footprint on the page and, for one placed outside it by the rules, its first place on
+        // either side (above, below).
+        let mut outside: Vec<(Rect, Option<[PlacedLabel; 2]>)> = Vec::with_capacity(labels.len());
         for l in labels {
-            if l.text.is_empty() {
+            let text: &str = if show_tag { &l.text } else { "" };
+            let item = l.item.filter(|_| show_number);
+            if text.is_empty() && item.is_none() {
                 continue;
             }
             let Some(fp) = p.rect(l.footprint) else { continue };
@@ -580,11 +739,126 @@ impl Builder<'_> {
                 self.style_quiet(LAYOUT_LABEL_STYLE)
             };
             let shaped = match &l.shaped {
-                Some(s) => Arc::clone(s),
-                None => Arc::new(self.fonts.shape(&l.text, &style, None)),
+                Some(s) if !text.is_empty() => Arc::clone(s),
+                _ => Arc::new(self.fonts.shape(text, &style, None)),
             };
-            let placed = place_label(self.fonts, &style, &l.text, &shaped, fp, bounds);
-            out.push((l.text.as_str(), placed, entity, style, shaped));
+            let m = self.fonts.vertical_metrics(&style);
+            let desc = if has_descender(text) { m.descent } else { Nm::ZERO };
+            let tag = (!text.is_empty()).then(|| (shaped.advance(), Nm(m.cap_height.0 + desc.0 + 2 * LABEL_PAD.0)));
+            let number = item.map(|n| {
+                let t = n.to_string();
+                let sh = self.fonts.shape(&t, &style, None);
+                (t, sh)
+            });
+            let d = number
+                .as_ref()
+                .map(|(_, sh)| Nm(sh.advance().0.max(m.cap_height.0) + 2 * BALLOON_PAD.0));
+            let (w, h) = unit_size(tag, d);
+            let moved = l
+                .moved
+                .and_then(|off| centre(l.footprint).checked_add(off))
+                .and_then(|c| p.point(c));
+            let mut sides = None;
+            let placed = if let Some(at) = moved {
+                // Where a person put it: centred on its point, a leader to the footprint when it stands off it.
+                let half = Pt2::new(Nm(w.0.div_euclid(2)), Nm(h.0.div_euclid(2)));
+                let bx = Rect::from_points(
+                    Pt2::new(at.x - half.x, at.y - half.y),
+                    Pt2::new(at.x - half.x + w, at.y - half.y + h),
+                );
+                let leader = (!overlap(bx, fp)).then(|| (nearest(bx, centre(fp)), nearest(fp, centre(bx))));
+                match d {
+                    Some(d) => balloon_label(LabelFit::Moved, bx, d, tag.is_some(), leader),
+                    None => PlacedLabel {
+                        fit: LabelFit::Moved,
+                        at,
+                        angle: Angle2::ZERO,
+                        align: Align::Centre,
+                        leader,
+                        knockout: ink_box(at, 0, Angle2::ZERO, shaped.advance(), &m, desc),
+                        balloon: None,
+                    },
+                }
+            } else if let Some(d) = d {
+                if w <= fp.width() && h <= fp.height() {
+                    let c = centre(fp);
+                    let x0 = Nm(c.x.0 - w.0.div_euclid(2));
+                    let y0 = Nm(c.y.0 - h.0.div_euclid(2));
+                    let bx = Rect::from_points(Pt2::new(x0, y0), Pt2::new(x0 + w, y0 + h));
+                    balloon_label(LabelFit::Horizontal, bx, d, tag.is_some(), None)
+                } else {
+                    let at = |side| {
+                        let (bx, leader) = outside_box(fp, side, w, h);
+                        balloon_label(side, bx, d, tag.is_some(), Some(leader))
+                    };
+                    let both = [at(LabelFit::Above), at(LabelFit::Below)];
+                    let first = first_side(fp, h, bounds);
+                    let placed = both[usize::from(first == LabelFit::Below)].clone();
+                    sides = Some(both);
+                    placed
+                }
+            } else {
+                let placed = place_label(self.fonts, &style, text, &shaped, fp, bounds);
+                if matches!(placed.fit, LabelFit::Above | LabelFit::Below) {
+                    let adv = shaped.advance();
+                    sides = Some([
+                        tag_outside(fp, LabelFit::Above, adv, &m, desc),
+                        tag_outside(fp, LabelFit::Below, adv, &m, desc),
+                    ]);
+                }
+                placed
+            };
+            outside.push((fp, sides));
+            out.push(PlacedOnPage {
+                text,
+                shaped,
+                number,
+                placed,
+                entity,
+                style,
+            });
+        }
+        // Crowded labels move apart: each label placed outside its footprint, left to right, takes the first place
+        // that overlaps no label placed before it: its first side, the other side, then the same one stack level
+        // further out on either side, and so on; a place other than the first must stay on the surface. Labels
+        // inside their footprints and moved ones stand first.
+        let mut taken: Vec<Rect> = out
+            .iter()
+            .zip(&outside)
+            .filter(|(_, (_, sides))| sides.is_none())
+            .map(|(o, _)| o.placed.knockout)
+            .collect();
+        let mut order: Vec<usize> = (0..out.len()).filter(|i| outside[*i].1.is_some()).collect();
+        order.sort_by_key(|i| (outside[*i].0.min().x, outside[*i].0.min().y, out[*i].entity.0));
+        for i in order {
+            let Some([above, below]) = outside[i].1.clone() else { continue };
+            let first = out[i].placed.clone();
+            let other = if first.fit == LabelFit::Above { below } else { above };
+            let step = i64::from(first.knockout.height().0 > 0) * (first.knockout.height().0 + LABEL_STACK_GAP.0);
+            let mut chosen = None;
+            'search: for k in 0..STACK_LEVELS {
+                for (n, c) in [&first, &other].into_iter().enumerate() {
+                    let dir = if c.fit == LabelFit::Above { -1 } else { 1 };
+                    let cand = moved_by(c, dir * k * step);
+                    let base = k == 0 && n == 0;
+                    if !base && bounds.is_some_and(|bd| !within(cand.knockout, bd)) {
+                        continue;
+                    }
+                    if taken.iter().all(|t| !overlap(*t, cand.knockout)) {
+                        chosen = Some(cand);
+                        break 'search;
+                    }
+                }
+            }
+            if let Some(c) = chosen {
+                out[i].placed = c;
+            }
+            taken.push(out[i].placed.knockout);
+        }
+        if report {
+            for o in &out {
+                self.out.panel_labels.insert(o.entity.0, o.placed.knockout);
+            }
         }
         out
     }
@@ -596,7 +870,7 @@ impl Builder<'_> {
         let knockouts: Vec<Rect> = self
             .placed_labels(panel, false)
             .into_iter()
-            .map(|(_, l, ..)| l.knockout)
+            .map(|o| o.placed.knockout)
             .collect();
         let mut carriers: Vec<&CarrierDraw> = panel.carriers.iter().collect();
         carriers.sort_by_key(|c| c.carrier);
@@ -697,15 +971,35 @@ impl Builder<'_> {
     /// The panel labels of [`Layer::Labels`](ew_dl::Layer::Labels) (see the module documentation).
     pub(crate) fn panel_labels(&mut self, view: &PageView) {
         let Some(panel) = &view.panel else { return };
-        for (text, l, entity, style, shaped) in self.placed_labels(panel, true) {
+        for o in self.placed_labels(panel, true) {
+            let (l, entity) = (&o.placed, o.entity);
             if let Some((a, b)) = l.leader {
                 self.push(
                     Item::path(Path::line(a, b), Some(Stroke::pen(Pen::P013)), None).with_entity(entity),
                 );
             }
+            if let (Some((c, r)), Some((number, shaped))) = (l.balloon, &o.number) {
+                self.push(
+                    Item::path(Path::circle(c, r), Some(Stroke::pen(Pen::P018)), None).with_entity(entity),
+                );
+                self.text_shaped(
+                    &TextSpec {
+                        text: number,
+                        at: c,
+                        angle: Angle2::ZERO,
+                        align: &Align::Centre,
+                        style_key: LAYOUT_LABEL_STYLE,
+                        entity,
+                        link: None,
+                        items: &[],
+                    },
+                    &o.style,
+                    shaped,
+                );
+            }
             self.text_shaped(
                 &TextSpec {
-                    text,
+                    text: o.text,
                     at: l.at,
                     angle: l.angle,
                     align: &l.align,
@@ -714,8 +1008,8 @@ impl Builder<'_> {
                     link: None,
                     items: &[],
                 },
-                &style,
-                &shaped,
+                &o.style,
+                &o.shaped,
             );
         }
     }
@@ -734,7 +1028,7 @@ pub fn label_fit(
     let fp = Rect::from_points(Pt2::ORIGIN, Pt2::new(fw, fh));
     match place_label(fonts, style, text, shaped, fp, None).fit {
         f @ (LabelFit::Horizontal | LabelFit::Turned) => Some(f),
-        LabelFit::Above | LabelFit::Below => None,
+        LabelFit::Above | LabelFit::Below | LabelFit::Moved => None,
     }
 }
 

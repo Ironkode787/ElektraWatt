@@ -13,7 +13,7 @@ use common::*;
 use ew_commands::commands::{
     AddCarrier, AssignModeParam, AssignPart, CarrierKindParam, CarrierParamsParam, CarrierThen,
     CreateEnclosure, CreateLayoutSpace, DeleteCarrier, DeleteEnclosure, DeleteLayoutSpace, DeleteSelection,
-    EditCarrier, EditPartCopy, KindName, LockPlacement, MovePlacement, PlaceDevice, PlaceOnParam,
+    EditCarrier, EditPartCopy, KindName, LockPlacement, MoveLayoutLabel, MovePlacement, PlaceDevice, PlaceOnParam,
     RemovePlacement, TargetRef,
 };
 use ew_commands::{CmdError, Command, Engine, Origin};
@@ -24,7 +24,7 @@ use ew_schema::{
     Carrier, CarrierRef, Device, Enclosure, Kind, LayoutSpace, LibCopy, LibDocument, MechData, MountKind,
     MountingSurface, Part, PartRef, PartUse, Placement, Record, StructureNode, SurfaceKind,
 };
-use ew_units::{Dec3, Nm, Pose3, Quat9};
+use ew_units::{Dec3, Nm, Pose3, Pt2, Quat9};
 
 /// The library of this file's part copies.
 const LIB_L: u128 = 0xd000;
@@ -472,10 +472,27 @@ fn placements_are_one_step_each() {
     })
     .unwrap();
     assert!(get(&e, k1).unwrap().locked);
+    // The label moves alone and goes back (F21); the placement's pose stays.
+    let up = Pt2::new(Nm(0), Nm(40 * MM));
+    e.execute(&MoveLayoutLabel {
+        placement: k1,
+        at: Some(up),
+    })
+    .unwrap();
+    assert_eq!(
+        (get(&e, k1).unwrap().label_at, get(&e, k1).unwrap().pose),
+        (Some(up), at(200))
+    );
+    e.execute(&MoveLayoutLabel {
+        placement: k1,
+        at: None,
+    })
+    .unwrap();
+    assert_eq!(get(&e, k1).unwrap().label_at, None);
     e.execute(&RemovePlacement { placement: k2 }).unwrap();
     assert!(get(&e, k2).is_none());
-    assert_eq!(e.history().cursor(), start + 5, "five commands, five steps");
-    for _ in 0..5 {
+    assert_eq!(e.history().cursor(), start + 7, "seven commands, seven steps");
+    for _ in 0..7 {
         e.undo(&Origin::Gui).unwrap();
     }
     assert!(rows::<Placement>(&e).is_empty());

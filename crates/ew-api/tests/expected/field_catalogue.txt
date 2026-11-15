@@ -541,6 +541,7 @@ page_item kind.image.rect json identity read-only:narrowed
 page_item kind.surface_view group? identity read-only:narrowed
 page_item kind.surface_view.datum_at json identity read-only:narrowed
 page_item kind.surface_view.label_mode enum(abbreviated|full) identity read-only:narrowed
+page_item kind.surface_view.labels enum(tags|item_numbers|both) identity read-only:narrowed
 page_item kind.surface_view.surface uuid identity read-only:narrowed
 page_item kind.underlay group? identity read-only:no-command
 page_item kind.underlay.asset text identity read-only:no-command
@@ -648,6 +649,7 @@ placement carrier json other read-only:no-command
 placement device uuid other read-only:no-command
 placement function uuid? other read-only:no-command
 placement id uuid identity read-only:identity
+placement label_at json? other read-only:no-command
 placement locked bool other read-only:no-command
 placement part link(part)? other read-only:no-command
 placement pose group other read-only:no-command

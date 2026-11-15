@@ -497,9 +497,10 @@ which leaves the grid columns right of the plate for the legend. Changing the sc
 (FR-LAY-002).
 
 *As built.* The page item `surface_view`
-is typed with `surface`, `datum_at` and `label_mode`; `side`, `clip` and `layers` stay verbatim until typed
-([03](03-domain-model.md) §6). `page.surface_view.set {page, surface, datum_at, label_mode?}` sets it on a
-`panel_layout` page and is refused on another kind; a second set replaces the view in place; the view cascades with
+is typed with `surface`, `datum_at`, `label_mode` and `labels` (`tags`, the default; `item_numbers`; `both`: what each
+placement is labelled with, §5.3; added in 0.3, an older build keeps it and draws tags); `side`, `clip` and `layers` stay verbatim until typed
+([03](03-domain-model.md) §6). `page.surface_view.set {page, surface, datum_at, label_mode?, labels?}` sets it on a
+`panel_layout` page and is refused on another kind (`labels` absent keeps the view's); a second set replaces the view in place; the view cascades with
 its surface. **The stated scale holds on paper:** the frame maps the page to the sheet at `scale_ppb` (0.986282578 on
 every frame of Golden A and the starters), so the projection divides by it too, `num/den = 10⁹ / (n · scale_ppb)`
 (10⁹ without a map), i128, one rounding half away from zero; the datum stays in page coordinates. On 902 the
@@ -560,8 +561,30 @@ placed (a cut, not a paper-coloured fill), so the carriers layer reads the label
 `ew-scene` bound to the `xref.device` style, not a slot kind of the symbol library. The ink box is estimated as the
 shaped text's advance + 0.2 mm by the face's cap height + 0.2 mm, plus the descent only when the text has a descender
 (a true ink-box query is not built), and compared with the footprint in page space; a label placed outside starts its
-leader 1.5 mm off the footprint, above it, or below when above leaves the surface. Balloons are not built (1.0, FP-3).
+leader 1.5 mm off the footprint, above it, or below when above leaves the surface. Balloons are built in 0.3 (below).
 A function's placement adds no ":" suffix, since functions carry no designation member.
+
+*As built (0.3, the owner's test of the first candidate: at 1:10 the tags of one rail ran into each other).*
+- **What a label shows.** The view's `labels` chooses the tag, the item number or both. The **item number** is the
+  placement's position in `layout_legend` (§5.4), read by the labels layer from the same query as the legend, so the
+  two cannot disagree; it prints in a **balloon** (a circle in pen 0.18 around the number in the label style, 0.3 mm
+  inside), centred in the footprint when it fits, else outside with its leader as a tag. With both, the balloon
+  stands left of the tag in one label. The Properties row Labels sets it. A view the window makes (the page's Surface
+  row, Enclosure… on an empty panel page) takes item numbers at 1:10 and smaller scales (an 18 mm device is under
+  2 mm on paper there and the tags of a row run into each other) and tags at larger scales; such a page gets its
+  legend in the same gesture (§5.4).
+- **Crowded labels move apart.** A label placed outside its footprint takes, left to right by footprint, the first
+  place that overlaps no label placed before it (labels inside their footprints and moved labels stand first): its
+  first side (above, or below when above leaves the surface), the other side, then one stack level (its height plus
+  0.5 mm) further out on either side, up to four levels; a place other than the first must stay on the surface. The
+  leader runs from the label to the footprint's edge. A row without collisions prints as before.
+- **The short form.** A page without a location of its own suppresses the location of the layout space its view
+  shows: on the cabinet's own layout "+CAB1-K1" prints "-K1".
+- **A label can be moved.** A drag of a label (or balloon) that stands off its footprint moves it alone (one inside its
+  footprint goes with its device's drag)
+  (`layout.label_move {placement, at?}`); `Placement.label_at` (added in 0.3) stores the label's centre as an offset
+  from the footprint's centre in the surface's frame, so it moves with the placement; a label off its footprint gets
+  a leader to the footprint's nearest point. Reset label position in the placement's menu removes it.
 
 ### 5.4 Legend and PART DATA
 
@@ -579,6 +602,13 @@ a boxed table titled "LEGEND" in two flow columns of a header and up to 20 rows 
 report --block <its ID> --format csv` writes ([09](09-reports-forms-output.md) §2.2). PART DATA on 902 lists -UC1's
 part lines (NSYPLA1074G, NSYPMM107) and no carrier line: the source is the enclosure device of the surface the page's
 surface view shows, and carrier lines are left out. A `layout.move` rebuilds no `tables` family of 902.
+
+*As built (0.3).* **Add legend** (the page's right-click menu, Page ▸ Order ▸ Add legend; Select at rest says so over
+the free spot) puts an embedded `enclosure_legend` block on a panel page that shows a surface and holds none: in the largest
+free part of the frame's drawing area right of, left of, below or above the layout (its enclosure's outline as
+projected), 10 mm off the layout and 5 mm inside the area, when that part is at least 60 × 40 mm; else it is refused in
+words. The printed columns stay Golden A's (position, DT, quantity, part number); the description stays in the rows and
+the CSV.
 
 ### 5.5 Dimensions and views (1.0)
 

@@ -354,6 +354,7 @@ fn emit_placements(cx: &mut Cx<'_>, table: Option<&Table>, keys: &LayoutKeys) {
                 q: Quat9::IDENTITY,
             },
             locked: false,
+            label_at: None,
             extra: Default::default(),
         }));
     }

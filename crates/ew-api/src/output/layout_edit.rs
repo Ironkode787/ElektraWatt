@@ -23,7 +23,7 @@ use ew_derive::layout::{
     free_length, mount_label, path_length, rail_items,
 };
 use ew_derive::{DeviceTag, DrawnPageOrder, PageRef, Q};
-use ew_scene::panel::Projection;
+use ew_scene::panel::{LabelShow, Projection};
 use ew_schema::{
     Carrier, CarrierKind, CarrierParams, CarrierRef, Device, Enclosure, Kind, LayoutSpace, LibCopy,
     LibDocument, MountingSurface, Page, PageType, Part, PartKind, Placement, Scale,
@@ -754,8 +754,8 @@ fn carrier_rows(q: &Q, id: Id<Carrier>) -> Option<Vec<PropRow>> {
     Some(rows)
 }
 
-/// The panel page's Surface view rows (D12): Surface (the project's surfaces by "<enclosure tag> plate"), Label mode
-/// and Datum, committed by `page.surface_view.set`; empty for any other page.
+/// The panel page's Surface view rows (D12): Surface (the project's surfaces by "<enclosure tag> plate"), Label mode,
+/// Labels (tags, item numbers or both) and Datum, committed by `page.surface_view.set`; empty for any other page.
 pub(crate) fn surface_view_rows(q: &Q, page: Id<Page>) -> Vec<PropRow> {
     let Some(pg) = q.pages().get(page) else {
         return Vec::new();
@@ -800,6 +800,13 @@ pub(crate) fn surface_view_rows(q: &Q, page: Id<Page>) -> Vec<PropRow> {
             vec!["Abbreviated".to_owned(), "Full".to_owned()],
             Some("page.surface_view.set"),
         ));
+        rows.push(choice_row(
+            k,
+            "labels",
+            labels_word(v.show).to_owned(),
+            LABELS.iter().map(|(_, w)| (*w).to_owned()).collect(),
+            Some("page.surface_view.set"),
+        ));
         let d = v.projection.datum;
         rows.push(text_row(
             k,
@@ -819,6 +826,37 @@ pub(crate) fn surface_view_rows(q: &Q, page: Id<Page>) -> Vec<PropRow> {
         r.category = Category::SurfaceView;
     }
     rows
+}
+
+/// What a surface view labels its placements with: the command's value and the row's word, in the row's order.
+const LABELS: [(LabelShow, &str); 3] = [
+    (LabelShow::Tags, "Tags"),
+    (LabelShow::ItemNumbers, "Item numbers"),
+    (LabelShow::Both, "Both"),
+];
+
+/// The row's word of `show`.
+fn labels_word(show: LabelShow) -> &'static str {
+    LABELS.iter().find(|(s, _)| *s == show).map_or("Tags", |(_, w)| w)
+}
+
+/// The command's value of `show` (`labels` of `page.surface_view.set`).
+fn labels_param(show: LabelShow) -> &'static str {
+    match show {
+        LabelShow::Tags => "tags",
+        LabelShow::ItemNumbers => "item_numbers",
+        LabelShow::Both => "both",
+    }
+}
+
+/// What a new surface view labels its placements with at `scale` (the window's rule, doc 12 §5.3): item numbers at
+/// 1:10 and smaller, where an 18 mm device is under 2 mm on paper and the tags of a row run into each other; tags at
+/// a larger scale and on a page not to scale.
+pub fn new_view_labels(scale: &Scale) -> LabelShow {
+    match scale {
+        Scale::OneTo(n) if *n >= 10 => LabelShow::ItemNumbers,
+        _ => LabelShow::Tags,
+    }
 }
 
 /// The project's mounting surfaces with their words, by the words, then ID.
@@ -1187,13 +1225,14 @@ impl Session {
                     json!({"space": edit.target.to_string(), "name": name}),
                 )
             }
-            ("page", "surface" | "label_mode" | "datum") => {
+            ("page", "surface" | "label_mode" | "labels" | "datum") => {
                 let page: Id<Page> = Id::from_uuid(edit.target);
                 if q.pages().get(page).is_none() {
                     return invalid("The page is no longer in the project.");
                 }
                 let view = q.get::<PageSurfaceView>(page).as_ref().clone();
                 let mut scale = None;
+                let mut labels = None;
                 let (mut surface, mut datum, mut mode) = match &view {
                     Some(v) => (
                         Some(v.surface),
@@ -1245,8 +1284,17 @@ impl Session {
                                 q.pages().get(page).map(|p| p.scale.clone()).unwrap_or_default()
                             });
                             datum = centred_datum(&q, page, id, &at).or(datum);
+                            if view.is_none() {
+                                labels = Some(new_view_labels(&at));
+                            }
                         }
                         surface = Some(id);
+                    }
+                    "labels" => {
+                        let Some((show, _)) = LABELS.iter().find(|(_, w)| w.eq_ignore_ascii_case(text.trim())) else {
+                            return invalid("Choose Tags, Item numbers or Both.");
+                        };
+                        labels = Some(*show);
                     }
                     "label_mode" => {
                         mode = match text.to_ascii_lowercase().as_str() {
@@ -1273,6 +1321,9 @@ impl Session {
                     "datum_at": [x, y], "label_mode": mode});
                 if let Some(Scale::OneTo(n)) = scale {
                     params["scale"] = json!({"one_to": n});
+                }
+                if let Some(show) = labels {
+                    params["labels"] = json!(labels_param(show));
                 }
                 command("page.surface_view.set", params)
             }

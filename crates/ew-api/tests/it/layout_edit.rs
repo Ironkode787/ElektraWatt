@@ -231,12 +231,14 @@ fn the_panel_pages_surface_view_rows_set_the_view() {
         [
             ("page/derived.surface", set.clone()),
             ("page/derived.label_mode", set.clone()),
+            ("page/derived.labels", set.clone()),
             ("page/derived.datum", set),
         ]
     );
     assert_eq!(view[0].1, "-UC1 plate");
     assert_eq!(view[1].1, "Abbreviated");
-    // The three rows sit under their own category, Surface view.
+    assert_eq!(view[2].1, "Tags", "Golden A's 902 labels its devices with their tags");
+    // The rows sit under their own category, Surface view.
     let categories: Vec<ew_api::output::Category> = s
         .property_sheet(&[page])
         .sections
@@ -245,7 +247,7 @@ fn the_panel_pages_surface_view_rows_set_the_view() {
         .filter(|r| r.key.starts_with("page/derived.") && view.iter().any(|v| v.0 == r.key))
         .map(|r| r.category)
         .collect();
-    assert_eq!(categories, [ew_api::output::Category::SurfaceView; 3]);
+    assert_eq!(categories, [ew_api::output::Category::SurfaceView; 4]);
     let full = edit(&s, "page", page, "label_mode", "Full").unwrap();
     assert_eq!(full.name, "page.surface_view.set");
     run(&mut s, &full);
@@ -848,7 +850,8 @@ fn a_new_panel_page_takes_the_fitting_scale_with_its_surface() {
     assert_eq!(
         cmd.params,
         json!({"page": new.to_string(), "surface": plate.to_string(), "datum_at": [datum.0, datum.1],
-            "label_mode": "abbreviated", "scale": {"one_to": n}})
+            "label_mode": "abbreviated", "scale": {"one_to": n}, "labels": "item_numbers"}),
+        "a new view at 1:10 numbers its devices"
     );
     run(&mut s, &cmd);
     assert_eq!(scale_of(&s, new), ew_schema::Scale::OneTo(n));

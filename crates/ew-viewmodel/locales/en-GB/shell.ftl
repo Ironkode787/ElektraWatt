@@ -6790,3 +6790,22 @@ symbol-use-function = Use this function
 symbol-take-off = Take off
 symbol-function-locked = Locked: a ready-made function is used. Take it off under Ready-made function to change the type.
 symbol-more-in-guide = More in the guide
+
+# A layout page that can be read: item numbers, the legend, labels that move (the owner's test of 0.3.0-rc.1).
+action-page-add-legend = Add legend
+action-layout-reset-label = Reset label position
+reason-legend-exists = This page has its legend already
+reason-legend-no-room = The drawing area leaves no room beside the layout for a legend; move the layout or choose a smaller scale
+reason-legend-no-layout = The page shows no mounting plate yet
+reason-label-not-moved = The label stands where the label rules put it
+hint-select-legend = The legend fits here: right-click and choose Add legend to list the items beside the layout
+choice-labels-tags = Tags
+choice-labels-item_numbers = Item numbers
+choice-labels-both = Both
+choice-tags = Tags
+choice-item-numbers = Item numbers
+command-layout-label_move = Move layout label
+field-word-labels = Labels
+field-help-word-labels = What each device on the layout is labelled with: its tag, its item number in a balloon that the legend lists, or both.
+field-word-label-at = Label position
+field-help-word-label-at = Where the device's label was dragged to on its layout pages; Reset label position puts it back.

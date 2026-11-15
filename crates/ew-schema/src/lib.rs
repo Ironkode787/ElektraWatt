@@ -167,7 +167,7 @@ pub use page::{
 };
 pub use page_item::{
     BoxStyle, FreeText, Graphic, GraphicShape, GraphicStroke, ImageItem, LineDash, MarkerField, PageItem,
-    PageItemKind, ShapeArc, ShapeCircle, ShapeLine, ShapePoints, ShapeRect, StructureBox, SurfaceLabelMode,
+    PageItemKind, ShapeArc, ShapeCircle, ShapeLine, ShapePoints, ShapeRect, StructureBox, SurfaceLabelMode, LayoutLabels,
     SurfaceView, TextAlign, Underlay, UnderlayFormat, WireMarker,
 };
 pub use plc::{

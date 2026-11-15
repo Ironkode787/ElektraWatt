@@ -586,6 +586,16 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_layout_lock(false),
     ))),
+    // Reset label position in the canvas context menu over a placement whose label was dragged (F21).
+    hidden(in_canvas(act(
+        "layout.reset_label",
+        Command,
+        Menu::Edit,
+        &[],
+        label_moved,
+        None,
+        |s, _| s.act_layout_reset_label(),
+    ))),
     with_params(
         "mode?:enum(free|push|swap), grid?:uint",
         hidden(in_canvas(act(
