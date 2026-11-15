@@ -45,8 +45,9 @@ const VERSION: &str = "0.1.0";
 /// EW-GEN-CBL-3) and the tubes EW-GEN-TUB-6, -8, -10 and the fittings EW-GEN-FIT-6, -8 (the persona round of M3), 0.9.0
 /// since the devices with ports were added (the unmanaged switch EW-GEN-ESW-5, the managed switch EW-GEN-ESW-8 and the
 /// generic PROFINET device EW-GEN-PND-1; FT-1767), with the cylinder EW-GEN-CYL-1 and the air supply EW-GEN-AIR-1 (the
-/// persona re-test), 0.10.0 since the two solenoid valves have the valve as their main function and the basic
-/// pneumatic parts were added (rc.2, F10 and F11).
+/// persona re-test), 0.10.0 since the two solenoid valves have the valve as their main function, the basic
+/// pneumatic parts were added (rc.2, F10 and F11) and the bus plugs (EW-GEN-PLG-1 to -5, a bus line's plugs, doc 10
+/// §2.7).
 const LIBRARY_VERSION: &str = "0.10.0";
 /// The parts whose content changed after 0.1.0, at their next patch version (the selector switch on a
 /// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y. The relay
@@ -76,12 +77,20 @@ const BUMPED: &[(&str, &str)] = &[
 /// The bus section of part `number`: the generic CPUs' interfaces (EW-GEN-CPU-1's DP master; EW-GEN-CPU-2's DP
 /// master and PROFINET controller X1), the remote I/O head's DP slave and PROFINET device X1, and the bus systems
 /// the two bus cables are made for; no termination (the plug carries it), connector, signal map or address range (a
-/// generic part claims no pinout).
+/// generic part claims no pinout). The bus plugs have a passive interface with their connector type and, where they
+/// have one, their termination switch.
 fn bus_section(number: &str) -> Option<Value> {
     let port =
         |interface: &str, bus: &str, role: &str| json!({"interface": interface, "bus": bus, "role": role});
     let sockets =
         |role: &str, n: u16| json!({"interface": "X1", "bus": "profinet", "role": role, "ports": n});
+    let plug = |bus: &str, connector: &str, switch: bool| {
+        let mut p = json!({"interface": "X1", "bus": bus, "role": "passive", "connector": connector});
+        if switch {
+            p["termination"] = json!("off");
+        }
+        p
+    };
     match number {
         "EW-GEN-CPU-1" => Some(json!({"ports": [port("DP", "profibus_dp", "master")]})),
         "EW-GEN-CPU-2" => Some(json!({"ports": [
@@ -99,6 +108,12 @@ fn bus_section(number: &str) -> Option<Value> {
         "EW-GEN-PND-1" => Some(json!({"ports": [sockets("device", 2)]})),
         "EW-GEN-CBL-2" => Some(json!({"cable_for": ["profibus_dp"]})),
         "EW-GEN-CBL-3" => Some(json!({"cable_for": ["profinet", "ethernet_ip", "modbus_tcp"]})),
+        // The bus plugs (doc 10 §2.7): a passive interface of their bus with their connector type; a plug with a
+        // termination switch has it, off.
+        "EW-GEN-PLG-1" | "EW-GEN-PLG-2" => Some(json!({"ports": [plug("profibus_dp", "sub-d-9", true)]})),
+        "EW-GEN-PLG-3" => Some(json!({"ports": [plug("profinet", "rj45", false)]})),
+        "EW-GEN-PLG-4" => Some(json!({"ports": [plug("profinet", "m12-d", false)]})),
+        "EW-GEN-PLG-5" => Some(json!({"ports": [plug("profibus_dp", "m12-b", false)]})),
         _ => None,
     }
 }
@@ -273,6 +288,24 @@ fn fluid(number: &'static str, description: &'static str, fndef: &'static str) -
         description,
         cps: Vec::new(),
         template: vec![(fndef, true, Vec::new())],
+        contacts: Vec::new(),
+        tech: Vec::new(),
+        plc: None,
+        mech: None,
+        sections: None,
+        unit: None,
+    }
+}
+
+
+/// A bus plug (doc 10 §2.7): an accessory at a bus line's end, whose bus section ([`bus_section`]) is its data.
+fn bus_plug(number: &'static str, description: &'static str) -> Def {
+    Def {
+        number,
+        kind: Some("accessory"),
+        description,
+        cps: Vec::new(),
+        template: Vec::new(),
         contacts: Vec::new(),
         tech: Vec::new(),
         plc: None,
@@ -659,6 +692,12 @@ fn defs() -> Vec<Def> {
         tube("EW-GEN-TUB-10", "Tube PU 10 × 8 mm, blue", "10", "8"),
         fitting("EW-GEN-FIT-6", "Push-in fitting G1/8 for tube 6 mm", "G1/8", "6"),
         fitting("EW-GEN-FIT-8", "Push-in fitting G1/4 for tube 8 mm", "G1/4", "8"),
+        // F20: the plugs at a bus line's ends, chosen in the line's Cable form.
+        bus_plug("EW-GEN-PLG-1", "PROFIBUS plug, switchable termination"),
+        bus_plug("EW-GEN-PLG-2", "PROFIBUS plug, switchable termination, programming socket"),
+        bus_plug("EW-GEN-PLG-3", "RJ45 plug for Industrial Ethernet"),
+        bus_plug("EW-GEN-PLG-4", "M12 plug, D-coded, for Industrial Ethernet"),
+        bus_plug("EW-GEN-PLG-5", "M12 plug, B-coded, for PROFIBUS"),
         // The persona re-test: the job's cylinder and air supply kept their "no part" warnings, for want of a starter
         // part. A double-acting cylinder and a service unit for the air-supply point, each on its symbol's FnDef.
         Def {
@@ -865,7 +904,7 @@ fn defs() -> Vec<Def> {
         ),
         fluid("EW-GEN-EJE-1", "Vacuum generator (ejector)", "ew.fn.ejector"),
         fluid("EW-GEN-SUC-1", "Suction cup 30 mm", "ew.fn.suction-cup"),
-        fluid("EW-GEN-PLG-1", "Plug G1/8", "ew.fn.plug-fluid"),
+        fluid("EW-GEN-STP-1", "Blanking plug G1/8", "ew.fn.plug-fluid"),
         fluid(
             "EW-GEN-DIS-1",
             "Distributor block, four outlets",

@@ -1862,6 +1862,83 @@ fn fluid_line_rows(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid]) -> Vec<Built> {
     vec![medium, tube]
 }
 
+/// A bus line's end as the bus lists name it: the port's device tag and its interface (`-101A1:DP`), another function
+/// by its first connection point.
+pub(crate) fn port_words(q: &Q, f: Id<ew_derive::ew_schema::Function>) -> String {
+    match q
+        .functions()
+        .get(f)
+        .and_then(|x| Some((x.device?, x.bus_port.as_ref()?.interface.clone())))
+    {
+        Some((d, interface)) => format!("{}:{interface}", device_tag_text(q, d)),
+        None => function_label(q, f),
+    }
+}
+
+/// The rows of bus lines (doc 10 §2.7): the cable that carries them (its tag) and the plugs at their ends (`-101A1:DP:
+/// EW-GEN-PLG-1 · -300A1:DP: none`). Editing either opens the Cable form of the selected lines (`bus.cable`). None
+/// when a target is no bus line.
+fn bus_line_rows(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Vec<Built> {
+    let lines: Vec<(std::sync::Arc<Connection>, ew_schema::BusLine)> = conns
+        .iter()
+        .filter_map(|c| {
+            let conn = q.connections().get(*c)?.clone();
+            match &conn.kind {
+                ew_schema::ConnectionKind::Bus(l) => {
+                    let l = l.clone();
+                    Some((conn, l))
+                }
+                _ => None,
+            }
+        })
+        .collect();
+    if lines.is_empty() || lines.len() != conns.len() {
+        return Vec::new();
+    }
+    // No cable or plug reads as a dash, in every language.
+    let none = "\u{2014}".to_owned();
+    let end = |e: &ew_schema::Endpoint, plug: &Option<ew_schema::BusPlug>| {
+        let at = match e {
+            ew_schema::Endpoint::Cp(f, _) => port_words(q, *f),
+            _ => String::new(),
+        };
+        let part = plug
+            .as_ref()
+            .and_then(|p| q.parts().get(p.part.copy))
+            .map_or_else(|| none.clone(), |p| p.item.part_number.to_string());
+        format!("{at}: {part}")
+    };
+    let mut cable_per = Vec::new();
+    let mut plug_per = Vec::new();
+    for (conn, line) in &lines {
+        let cable = line.cable.map_or_else(|| none.clone(), |c| device_tag_text(q, c));
+        cable_per.push((Some(Value::String(cable)), Provenance::Authored));
+        let plugs = format!(
+            "{} \u{b7} {}",
+            end(&conn.a, &line.plug_a),
+            end(&conn.b, &line.plug_b)
+        );
+        plug_per.push((Some(Value::String(plugs)), Provenance::Authored));
+    }
+    let route = || EditRoute::Command {
+        command: "bus.cable".to_owned(),
+    };
+    let row = |name: &str, per| {
+        let (value, provenance) = merge(cx, &FieldType::Text, per);
+        derived(
+            "connection",
+            name,
+            Some((&format!("derived.{name}"), route(), false)),
+            Category::Part,
+            FieldType::Text,
+            value,
+            provenance,
+            vec![RowAction::Edit],
+        )
+    };
+    vec![row("bus_cable", cable_per), row("bus_plugs", plug_per)]
+}
+
 /// The fluid port of a source device (a function on a FnDef of category `Source`, the air-supply point): its first
 /// fluid CP; `None` for any other device.
 pub(crate) fn source_port(q: &Q, device: Id<Device>) -> Option<(Id<ew_derive::ew_schema::Function>, u16)> {
@@ -3064,6 +3141,7 @@ impl Session {
             })
             .collect();
         out.push(potential_row(q, cx, "connection", &ends));
+        out.extend(bus_line_rows(q, cx, &conns));
         out
     }
 

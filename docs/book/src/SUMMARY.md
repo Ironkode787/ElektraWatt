@@ -39,6 +39,7 @@
     - [`box.black`](reference/commands/box.black.md)
     - [`box.reshape`](reference/commands/box.reshape.md)
     - [`box.structure`](reference/commands/box.structure.md)
+    - [`bus.cable.set`](reference/commands/bus.cable.set.md)
     - [`bus.logical_net.create`](reference/commands/bus.logical_net.create.md)
     - [`bus.physical_net.create`](reference/commands/bus.physical_net.create.md)
     - [`bus.place_ports`](reference/commands/bus.place_ports.md)

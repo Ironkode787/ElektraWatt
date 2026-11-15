@@ -1322,6 +1322,11 @@ refusal-bus-physical-net-exists = fysiek net { $p0 } bestaat al; namen zijn unie
 refusal-bus-medium-unknown = { $p0 } is geen medium; geef copper of fibre
 refusal-bus-system-unknown = { $p0 } is geen bussysteem; geef profibus_dp, profinet, ethercat, ethernet_ip, io_link, asi, canopen of modbus_tcp
 refusal-bus-zero-rate = een gegevenssnelheid van 0 bit/s; geef de snelheid in bit/s (1500000) of laat haar weg
+refusal-bus-line-not = { $p0 } is geen buslijn; een buskabel hoort op een buslijn
+refusal-bus-lines-none = kies een of meer buslijnen
+refusal-bus-cable-twice = geef een bestaande kabel of een nieuwe, niet beide
+refusal-bus-cable-length = een kabellengte is groter dan nul, niet { $p0 } mm
+refusal-bus-plug-no-switch = stekker { $p0 } heeft geen afsluitschakelaar; laat de afsluiting leeg
 # The project settings: project.checks.set, project.frames.set, project.drawing.set and project.company.set.
 refusal-settings-member-not-object = het instellingenlid `{ $p0 }` is geen object (een nieuwer of beschadigd formaat); het blijft zoals het is
 refusal-drawing-member-not-object = het lid `{ $p0 }` van de projectinstellingen is geen object (een nieuwer of beschadigd formaat); het blijft zoals het is
@@ -5033,6 +5038,8 @@ field-connection-overrides-length = Lengte overschreven
 field-connection-overrides-show-marker = Adermarkering
 field-connection-derived-shielded = Afgeschermd
 field-connection-derived-twisted = Getwist
+field-connection-derived-bus-cable = Kabel
+field-connection-derived-bus-plugs = Stekkers
 field-connection-line-kind = Leidingsoort
 field-connection-tube-part = Slangartikel
 field-connection-tube-length = Slanglengte (mm)
@@ -5529,6 +5536,22 @@ toast-cable-wires-changed = Kabel { $p0 } bevat nu { $p1 }.
 cable-wires-count = { $p0 } draden
 cable-wires-count-one = 1 draad
 
+# F20: Kabel… op een buslijn: de kabel en de stekker aan elk eind.
+action-bus-cable = Buskabel…
+reason-bus-no-lines = Kies de buslijnen die de kabel draagt
+form-bus-cable-length = Lengte (m)
+form-bus-cable-not-for = { $p0 } (niet gemaakt voor { $p1 })
+form-bus-plug-a = Stekker aan het eerste eind
+form-bus-plug-b = Stekker aan het tweede eind
+form-bus-termination-a = Afsluiting aan op het eerste eind
+form-bus-termination-b = Afsluiting aan op het tweede eind
+form-bus-plug-none = { $p0 }: geen stekker
+error-bus-cable-length = "{ $p0 }" is geen lengte. Geef haar in meters, zoals 25 of 2,5.
+error-bus-plug = Geen stekker voor { $p1 } heeft de ID { $p0 }: kies er een uit de lijst.
+toast-bus-cable = Kabel { $p0 } draagt { $p1 }.
+toast-bus-cable-lines = { $p0 } buslijnen
+toast-bus-cable-lines-one = de buslijn
+
 # FT-1372 (ID-1362): Uitvoer ▸ Rapporten ▸ Rapportblok….
 action-report-block-new = Rapportblok…
 report-block-new-title = Nieuw rapportblok
@@ -5957,6 +5980,8 @@ field-help-connection-line-kind = Wat de slang voert: werkleiding, stuurleiding,
 field-help-connection-tube-part = Het slangartikel van deze slang, boven dat van het medium of het project; leeg neemt dat weer.
 field-help-connection-tube-length = De lengte van deze slang in millimeter, of getypt met haar eenheid (2 m, 35 cm); leeg: de lengte ontbreekt.
 field-help-connection-derived-medium = Het medium dat het net van de slang voert en waar het bepaald is. Een keuze bepaalt het aan het eind van de slang, voor elke slang die het bereikt.
+field-help-connection-derived-bus-cable = De buskabel die deze lijn draagt, vermeld in het kabeloverzicht en de stuklijst. Wijzig hem met Kabel….
+field-help-connection-derived-bus-plugs = De stekker aan elk eind van deze lijn, bij de poort waarop hij zit, vermeld in de stuklijst. Wijzig ze met Kabel….
 field-help-connection-derived-tube = Wat de slang is: haar maat en materiaal, van de standaardslang van het project, die van haar medium, haar slangartikel of haar eigen. De chip noemt de bron.
 field-help-connection-number = Het draadnummer zoals getypt of vastgezet. Laat het leeg om de draadnummering het te laten geven.
 field-help-connection-derived-number = Het draadnummer dat wordt afgedrukt: van de draadnummering, tenzij het vastgezet is. Vastzetten houdt het vast wanneer de nummering verandert.

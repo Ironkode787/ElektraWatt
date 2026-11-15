@@ -132,6 +132,26 @@ pub struct BusLine {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<UuidS>")]
     pub cable: Option<Id<Device>>,
+    /// The plug at end a (doc 10 §2.7: a part on the line's end, not a drawn device).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub plug_a: Option<BusPlug>,
+    /// The plug at end b.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub plug_b: Option<BusPlug>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The plug at one end of a bus line (doc 10 §2.7): its part and, for a plug with a termination switch, the switch's
+/// state, which EW-BUS-004 reads as a terminating element at that end.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct BusPlug {
+    /// The plug part.
+    pub part: PartRef,
+    /// The termination switch; absent: the plug has none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub termination: Option<crate::OnOff>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

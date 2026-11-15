@@ -1219,6 +1219,19 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         )),
     ),
+    // The Cable form of a bus line (doc 10 §2.7): Cable… on a selected bus line opens it.
+    with_params(
+        "tag?:text, part?:text, length?:text, plug_a?:text, termination_a?:bool, plug_b?:text, termination_b?:bool",
+        hidden(in_canvas(act(
+            "bus.cable",
+            Command,
+            Menu::Draw,
+            &[],
+            selection_editable,
+            None,
+            |s, p| s.act_bus_cable(p),
+        ))),
+    ),
     // Define potential… from a Potentials row's context menu, at the row's point.
     keeps_banner(with_params(
         "row:text",

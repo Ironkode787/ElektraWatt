@@ -16,6 +16,10 @@
 //!   of a new cable, or of the cable one of them already belongs to, in one form (`Session::cable_form`, its tag, its
 //!   type as written, `3G1.5`, and the wires with their cores) and one apply (`Session::cable_apply`).
 //!
+//! - **Cable…** on selected bus lines (`bus.cable`, doc 10 §2.7) opens the bus line's form instead: the cable that
+//!   carries them (its tag, its part, those made for the bus first, its length) and, for one line, the plug at each end
+//!   with its termination (`Session::bus_cable_form`, one `bus.cable.set`).
+//!
 //! In the window without its parameter each action opens its form; headless the parameter is required. A refusal stays
 //! under the fields, a success closes the form with a toast.
 
@@ -381,6 +385,10 @@ impl ShellModel {
                 return out;
             }
         }
+        // A bus line takes a bus cable and its plugs: its own form, never a refusal of a wire's cores.
+        if self.only_bus_lines_selected() {
+            return self.act_bus_cable(&Map::new());
+        }
         let wires = self.selected_wires();
         if wires.is_empty() {
             return Outcome::refused(key!("reason-cores-no-wires"));
@@ -555,4 +563,247 @@ fn offer_cores(command: &ew_api::AnyCommand) -> usize {
         .get("conductors")
         .and_then(Value::as_array)
         .map_or(0, Vec::len)
+}
+
+/// The action of a bus line's Cable form.
+const BUS_CABLE: &str = "bus.cable";
+
+impl ShellModel {
+    /// The selected connections that are bus lines, in the order of [`Self::selected_wires`].
+    fn selected_bus_lines(&self) -> Vec<Uuid> {
+        let Some(project) = &self.project else {
+            return Vec::new();
+        };
+        self.selected_wires()
+            .into_iter()
+            .filter(|w| project.session.is_bus_line(*w))
+            .collect()
+    }
+
+    /// Whether every selected connection is a bus line (Cable… then opens the bus line's form).
+    fn only_bus_lines_selected(&self) -> bool {
+        let wires = self.selected_wires();
+        !wires.is_empty() && self.selected_bus_lines().len() == wires.len()
+    }
+
+    /// `bus.cable {part?, tag?, length?, plug_a?, termination_a?, plug_b?, termination_b?}` (Cable… on a selected bus
+    /// line, doc 10 §2.7): the cable of the selected bus lines and, for one line, the plug at each end, in one form and
+    /// one undo step. Without `part` the window opens the form: the cable's tag (the lines' cable's, else the tag a new
+    /// cable would take), its part (the cable parts made for the line's bus first, the others saying they are not), its
+    /// length in metres, and for one line the plug at each end with its termination. With `part` it applies: the lines'
+    /// cable keeps its part; a typed tag of another cable links the lines to that cable; else a new cable of the part,
+    /// a typed tag other than the proposal frozen. No bus line selected, a part, plug, length or tag the form does not
+    /// take: refused in words.
+    pub(crate) fn act_bus_cable(&mut self, p: &Map<String, Value>) -> Outcome {
+        let lines = self.selected_bus_lines();
+        if lines.is_empty() {
+            return Outcome::refused(key!("reason-bus-no-lines"));
+        }
+        let Some(project) = &self.project else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let form = project.session.bus_cable_form(&lines);
+        if form.cables.is_empty() {
+            return Outcome::refused(key!("reason-no-cable-part"));
+        }
+        let proposed = match form.cable {
+            Some(_) => Some(form.tag.clone()),
+            None => self.tag_example("cable", "W"),
+        };
+        let Some(part) = given(p, "part") else {
+            return match self.mode {
+                Mode::Headless => failed(key!("error-missing-param"), &["part"]),
+                Mode::Gui if self.in_form_of(BUS_CABLE) => {
+                    let message = self.missing_text("part");
+                    self.form_failed(BUS_CABLE, message)
+                }
+                Mode::Gui => {
+                    let dialog = self.bus_cable_dialog(&form, proposed);
+                    self.open_dialog(Dialog::Form(dialog))
+                }
+            };
+        };
+        let Some(part) = form
+            .cables
+            .iter()
+            .find(|o| o.part.to_string() == part || o.words == part)
+            .map(|o| o.part)
+        else {
+            let message = strings::format(key!("error-no-cable-part"), &[&part]);
+            return self.form_failed(BUS_CABLE, message);
+        };
+        // The cable: the lines' cable while its tag stands, else an existing one the typed tag names, else a new one.
+        let typed = given(p, "tag");
+        let named = typed.as_ref().and_then(|t| {
+            project
+                .session
+                .cables()
+                .into_iter()
+                .find(|(_, tag, _)| tag == t)
+                .map(|(id, _, _)| id)
+        });
+        let cable = match (&typed, form.cable) {
+            (None, Some(c)) => Some(c),
+            (Some(t), Some(c)) if *t == form.tag => Some(c),
+            _ => named,
+        };
+        let frozen = match typed.filter(|t| cable.is_none() && Some(t) != proposed.as_ref()) {
+            None => None,
+            Some(tag) => match project.session.parse_field_input("device", "tag.frozen", &tag) {
+                Ok(parsed) if !parsed.value.is_null() => Some(parsed.value),
+                _ => {
+                    let such_as = proposed.unwrap_or_else(|| "-W1".to_owned());
+                    let message = strings::format(key!("error-strip-tag"), &[&tag, &such_as]);
+                    return self.form_failed(BUS_CABLE, message);
+                }
+            },
+        };
+        let length = match given(p, "length") {
+            None => None,
+            Some(text) => {
+                let nm = project
+                    .session
+                    .parse_field_input("device", "cable.length", &text.replace(',', "."))
+                    .ok()
+                    .and_then(|parsed| parsed.value.get("manual").and_then(Value::as_i64));
+                let Some(nm) = nm else {
+                    let message = strings::format(key!("error-bus-cable-length"), &[&text]);
+                    return self.form_failed(BUS_CABLE, message);
+                };
+                Some(nm)
+            }
+        };
+        let mut plugs: Vec<ew_api::window::PlugChoice> = Vec::new();
+        for (plug, termination) in [("plug_a", "termination_a"), ("plug_b", "termination_b")]
+            .into_iter()
+            .take(form.ends.len())
+        {
+            let on = or_return!(super::bulk::bool_text_param(p, termination, false));
+            let chosen = match given(p, plug) {
+                None => None,
+                Some(text) => match form.plugs.iter().find(|o| o.part.to_string() == text) {
+                    Some(o) => Some(o.part),
+                    None => {
+                        let message = strings::format(key!("error-bus-plug"), &[&text, &form.bus]);
+                        return self.form_failed(BUS_CABLE, message);
+                    }
+                },
+            };
+            plugs.push((chosen, on));
+        }
+        let new_part = cable.is_none().then_some(part);
+        let Some(cmd) = project
+            .session
+            .bus_cable_apply(&lines, cable, new_part, frozen, length, &plugs)
+        else {
+            let message = strings::format(key!("error-no-cable-part"), &[&part.to_string()]);
+            return self.form_failed(BUS_CABLE, message);
+        };
+        match self.commit_from_host(&cmd) {
+            Outcome::Done => {}
+            Outcome::Failed { message } => return self.form_failed(BUS_CABLE, message),
+            other => return other,
+        }
+        let tag = self
+            .project
+            .as_ref()
+            .and_then(|p| {
+                let cable = p.session.bus_cable_form(&lines).cable?;
+                p.session.device_tag(cable)
+            })
+            .unwrap_or_default();
+        let count = strings::format_count(crate::count_key!("toast-bus-cable-lines"), lines.len());
+        self.notify(strings::format(key!("toast-bus-cable"), &[&tag, &count]), true);
+        if self.in_form_of(BUS_CABLE) {
+            self.dialog = None;
+        }
+        Outcome::Done
+    }
+
+    /// The form of [`Self::act_bus_cable`] for `form`, the tag `proposed` for a new cable.
+    fn bus_cable_dialog(&self, form: &ew_api::window::BusCableForm, proposed: Option<String>) -> FormDialog {
+        let field = |name, label_key, options: Vec<(String, String)>, value: String| FormField {
+            name,
+            label_key,
+            choices: &super::choices::NONE,
+            options,
+            value,
+        };
+        let cables = form
+            .cables
+            .iter()
+            .map(|o| {
+                let words = if o.made_for || form.bus.is_empty() {
+                    o.words.clone()
+                } else {
+                    strings::format(key!("form-bus-cable-not-for"), &[&o.words, &form.bus])
+                };
+                (o.part.to_string(), words)
+            })
+            .collect();
+        let mut fields = vec![
+            field(
+                "tag",
+                key!("form-cable-tag"),
+                Vec::new(),
+                proposed.unwrap_or_default(),
+            ),
+            field(
+                "part",
+                key!("form-cable-part"),
+                cables,
+                form.part.map(|u| u.to_string()).unwrap_or_default(),
+            ),
+            field(
+                "length",
+                key!("form-bus-cable-length"),
+                Vec::new(),
+                form.length.clone(),
+            ),
+        ];
+        let ends = [
+            (
+                "plug_a",
+                "termination_a",
+                key!("form-bus-plug-a"),
+                key!("form-bus-termination-a"),
+            ),
+            (
+                "plug_b",
+                "termination_b",
+                key!("form-bus-plug-b"),
+                key!("form-bus-termination-b"),
+            ),
+        ];
+        for ((plug, termination, plug_key, termination_key), end) in ends.into_iter().zip(&form.ends) {
+            // Every choice names its end, which the label cannot (it is a text of the form).
+            let options = std::iter::once((
+                String::new(),
+                strings::format(key!("form-bus-plug-none"), &[&end.words]),
+            ))
+            .chain(
+                form.plugs
+                    .iter()
+                    .map(|o| (o.part.to_string(), format!("{}: {}", end.words, o.words))),
+            )
+            .collect();
+            let value = end.plug.map(|u| u.to_string()).unwrap_or_default();
+            fields.push(field(plug, plug_key, options, value));
+            fields.push(FormField {
+                name: termination,
+                label_key: termination_key,
+                choices: &super::choices::BOOL,
+                options: Vec::new(),
+                value: (end.termination == Some(true)).to_string(),
+            });
+        }
+        FormDialog {
+            action: BUS_CABLE,
+            title_key: key!("bar-cable"),
+            ok_key: key!("dialog-apply"),
+            fields,
+            error: None,
+            table: None,
+        }
+    }
 }

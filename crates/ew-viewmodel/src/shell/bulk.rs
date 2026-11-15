@@ -68,7 +68,7 @@ fn uint_param(p: &Map<String, Value>, name: &str) -> Result<Option<u32>, Outcome
 }
 
 /// A boolean parameter: a JSON boolean or the dialog's `true` / `false`; `default` when absent or empty.
-fn bool_text_param(p: &Map<String, Value>, name: &str, default: bool) -> Result<bool, Outcome> {
+pub(super) fn bool_text_param(p: &Map<String, Value>, name: &str, default: bool) -> Result<bool, Outcome> {
     match p.get(name) {
         None | Some(Value::Null) => Ok(default),
         Some(Value::Bool(b)) => Ok(*b),

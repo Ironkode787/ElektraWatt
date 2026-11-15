@@ -284,6 +284,25 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
     checked.insert(check_form(&mut h, "cable.connect_cores", json!({})));
     // Cable… with the same wire selected.
     checked.insert(check_form(&mut h, "cable.from_wires", json!({})));
+    // A bus line's Cable form, on Golden A's DP line of folio 3.
+    goto(&mut h, "3");
+    let line = h
+        .state()
+        .shell()
+        .canvas()
+        .expect("folio 3")
+        .page()
+        .tables
+        .connections
+        .iter()
+        .find(|c| c.kind == "bus")
+        .expect("the DP line")
+        .id
+        .to_string();
+    dispatch(&mut h, "select.set", json!({ "ids": [line] }));
+    checked.insert(check_form(&mut h, "bus.cable", json!({})));
+    goto(&mut h, "102");
+    dispatch(&mut h, "select.set", json!({ "ids": [wire] }));
     // Supply comes in here… with an interruption point of the page selected.
     let point = h
         .state()

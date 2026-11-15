@@ -13,7 +13,7 @@ use ew_derive::ew_mltext::{MlText, natural_key};
 use ew_derive::ew_plcaddr::{Area, PlcAddress, Purpose, Size};
 use ew_derive::ew_schema::{
     AddrValue, BusPort, Channel, ConnectionKind, Device, Endpoint, Function, IoDir, LengthSource, LogicalNet,
-    NetAddress, OnOff, PhysicalNet, PlcConfigProject, PortClass, PortMode, PortRole, ReportBlock,
+    NetAddress, OnOff, Part, PhysicalNet, PlcConfigProject, PortClass, PortMode, PortRole, ReportBlock,
 };
 use ew_derive::{
     BusSegments, ChannelStates, ChannelTargets, EffectiveState, FunctionCps, ModuleOrder, ModuleStartOf,
@@ -520,11 +520,12 @@ fn termination(t: &Option<OnOff>) -> Cell {
 // ---------------------------------------------------------------------------------------------------------
 // bus_cable_list
 
-/// The two functions a `Bus` connection joins.
-type Ends = (Id<Function>, Id<Function>);
+/// The two functions a `Bus` connection joins, each with the part copy of the plug at that end.
+type Ends = ((Id<Function>, Option<Id<Part>>), (Id<Function>, Option<Id<Part>>));
 
 /// `bus_cable_list` (FR-BUS-008, doc 10 §5): one row per cable of a `Bus` connection, in natural order of its tag:
-/// cable, bus system, part, length, the two ends and the physical net (segment) of its ports.
+/// cable, bus system, part, length, the two ends (a plug at an end named after it, `-101A1:DP · plug EW-GEN-PLG-1`)
+/// and the physical net (segment) of its ports.
 #[derive(Clone, Copy, Debug)]
 pub struct BusCableList;
 
@@ -556,7 +557,11 @@ impl ReportKindDef for BusCableList {
             let (Some(cable), Endpoint::Cp(a, _), Endpoint::Cp(b, _)) = (line.cable, &conn.a, &conn.b) else {
                 continue;
             };
-            by_cable.entry(cable).or_default().push((*a, *b));
+            let plug = |p: &Option<ew_derive::ew_schema::BusPlug>| p.as_ref().map(|p| p.part.copy);
+            by_cable
+                .entry(cable)
+                .or_default()
+                .push(((*a, plug(&line.plug_a)), (*b, plug(&line.plug_b))));
         }
         let mut cables: Vec<_> = by_cable
             .into_iter()
@@ -565,7 +570,7 @@ impl ReportKindDef for BusCableList {
         cables.sort();
         for (_, cable, mut ends) in cables {
             ends.sort();
-            let Some(&(a, b)) = ends.first() else {
+            let Some(&((a, plug_a), (b, plug_b))) = ends.first() else {
                 continue;
             };
             let port = [a, b]
@@ -590,8 +595,8 @@ impl ReportKindDef for BusCableList {
             });
             put(c, &mut cells, "part", ident(&part.unwrap_or_default()));
             put(c, &mut cells, "length", length_cell(q, cable));
-            let end = |f: Id<Function>| {
-                functions
+            let end = |f: Id<Function>, plug: Option<Id<Part>>| {
+                let words = functions
                     .get(f)
                     .and_then(|x| match &x.kind {
                         ew_derive::ew_schema::FunctionKind::Ip(ip) => {
@@ -599,10 +604,14 @@ impl ReportKindDef for BusCableList {
                         }
                         _ => None,
                     })
-                    .unwrap_or_else(|| port_label(q, f))
+                    .unwrap_or_else(|| port_label(q, f));
+                match plug.and_then(|p| q.parts().get(p)) {
+                    Some(p) => format!("{words} \u{b7} plug {}", p.item.part_number),
+                    None => words,
+                }
             };
-            put(c, &mut cells, "from", ident(&end(a)));
-            put(c, &mut cells, "to", ident(&end(b)));
+            put(c, &mut cells, "from", ident(&end(a, plug_a)));
+            put(c, &mut cells, "to", ident(&end(b, plug_b)));
             set.rows.push(Row::data(
                 RowId::entity(cable).with(RowKey::Name("cable".to_owned())),
                 cells,

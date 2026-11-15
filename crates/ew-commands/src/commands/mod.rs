@@ -60,6 +60,7 @@ mod terminal;
 
 pub use assembly::ChildSpec;
 pub use assign::AssignModeParam;
+pub use bus::{BusLineField, PlugParam};
 pub use checks::{CHECKS_MEMBER, SHIPPED_CHECK_SCHEMES};
 pub use common::{EndpointParam, KindName, TargetRef};
 pub use company::COMPANY_MEMBER;
@@ -185,6 +186,7 @@ commands! {
     plc_exchange::ApplyInstrumentList,
     bus::CreateLogicalNet,
     bus::CreatePhysicalNet,
+    bus::SetBusCable,
     supply::SetProjectSupply,
     library::EmbedLibraryCopies,
     revision::CreateRevision,

@@ -1374,6 +1374,11 @@ refusal-bus-physical-net-exists = physical net { $p0 } exists already; names are
 refusal-bus-medium-unknown = { $p0 } is not a medium; give copper or fibre
 refusal-bus-system-unknown = { $p0 } is not a bus system; give profibus_dp, profinet, ethercat, ethernet_ip, io_link, asi, canopen or modbus_tcp
 refusal-bus-zero-rate = a data rate of 0 bit/s; give the rate in bit/s (1500000) or leave it unset
+refusal-bus-line-not = { $p0 } is no bus line; a bus cable goes on a bus line
+refusal-bus-lines-none = select one or more bus lines
+refusal-bus-cable-twice = give an existing cable or a new one, not both
+refusal-bus-cable-length = a cable length is longer than zero, not { $p0 } mm
+refusal-bus-plug-no-switch = plug { $p0 } has no termination switch; leave its termination unset
 # The project settings: project.checks.set, project.frames.set, project.drawing.set and project.company.set.
 refusal-settings-member-not-object = the settings member `{ $p0 }` is not an object (a newer or damaged format); it is kept as it is
 refusal-drawing-member-not-object = the project settings' `{ $p0 }` member is not an object (a newer or damaged format); it is kept as it is
@@ -5288,6 +5293,8 @@ field-connection-overrides-length = Length override
 field-connection-overrides-show-marker = Wire marker
 field-connection-derived-shielded = Shielded
 field-connection-derived-twisted = Twisted
+field-connection-derived-bus-cable = Cable
+field-connection-derived-bus-plugs = Plugs
 field-connection-line-kind = Line kind
 field-connection-tube-part = Tube part
 field-connection-tube-length = Tube length (mm)
@@ -5786,6 +5793,22 @@ toast-cable-wires-changed = Cable { $p0 } now carries { $p1 }.
 cable-wires-count = { $p0 } wires
 cable-wires-count-one = 1 wire
 
+# F20: Cable… on a bus line: its cable and the plug at each end.
+action-bus-cable = Bus cable…
+reason-bus-no-lines = Select the bus lines the cable carries
+form-bus-cable-length = Length (m)
+form-bus-cable-not-for = { $p0 } (not made for { $p1 })
+form-bus-plug-a = Plug at the first end
+form-bus-plug-b = Plug at the second end
+form-bus-termination-a = Termination on at the first end
+form-bus-termination-b = Termination on at the second end
+form-bus-plug-none = { $p0 }: no plug
+error-bus-cable-length = "{ $p0 }" is not a length. Give it in metres, as 25 or 2.5.
+error-bus-plug = No plug for { $p1 } has the ID { $p0 }: choose one from the list.
+toast-bus-cable = Cable { $p0 } carries { $p1 }.
+toast-bus-cable-lines = { $p0 } bus lines
+toast-bus-cable-lines-one = the bus line
+
 # FT-1372 (ID-1362): Output ▸ Reports ▸ Report block….
 action-report-block-new = Report block…
 report-block-new-title = New report block
@@ -6219,6 +6242,8 @@ field-help-connection-line-kind = What the tube carries: working, pilot, exhaust
 field-help-connection-tube-part = The tube part of this tube, over the one its medium or the project gives; empty takes that one again.
 field-help-connection-tube-length = The length of this tube in millimetres, or typed with its unit (2 m, 35 cm); empty: the length is missing.
 field-help-connection-derived-medium = The medium the tube's net carries and where it is defined. Choosing one defines it at the tube's end, for every tube it reaches.
+field-help-connection-derived-bus-cable = The bus cable that carries this line, listed in the cable overview and the parts list. Change it with Cable….
+field-help-connection-derived-bus-plugs = The plug at each end of this line, by the port it sits on, listed in the parts list. Change them with Cable….
 field-help-connection-derived-tube = What the tube is: its size and material, from the project's default tube, its medium's, its tube part or its own. The chip names the source.
 field-help-connection-number = The wire number as typed or frozen. Leave it empty to let wire numbering give it.
 field-help-connection-derived-number = The wire number that is printed: from wire numbering, unless it is frozen. Freeze keeps it when the numbering changes.

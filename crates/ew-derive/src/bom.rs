@@ -62,6 +62,8 @@ pub enum LineSource {
     /// The fitting part at a tube end on a port of the device, one piece each, and the tee part of a fluid junction,
     /// owned by the owner of the junction's lowest tube that has one (FR-FLU-031).
     Fitting,
+    /// The plug at a bus line's end on a port of the device (`BusLine.plug_a`, `plug_b`; doc 10 §2.7), one piece each.
+    Plug,
 }
 
 /// One part line of one device.
@@ -99,7 +101,8 @@ pub struct PartLine {
 /// lines, so a reader of the first line keeps the device's own part. Then the fluid lines (doc 11 §8.2, FR-FLU-014):
 /// the closure parts of its ports ([`LineSource::Closure`]), the tube parts of the tubes it owns (the device of the
 /// tube's from end, else of its to end; [`LineSource::Tube`]) and the fittings at its tube ends and the tees it owns ([`LineSource::Fitting`]), in that
-/// order. A line whose part copy is missing is dropped.
+/// order. Last the plugs at the ends of the bus lines on its ports ([`LineSource::Plug`], by function, CP and line). A
+/// line whose part copy is missing is dropped.
 #[derive(Debug)]
 pub struct DevicePartLines;
 
@@ -156,7 +159,7 @@ impl Query for DevicePartLines {
         }
         let mut functions: Vec<Id<ew_schema::Function>> = q.idx().functions_of_device(*key).collect();
         functions.sort();
-        for f in functions {
+        for f in functions.clone() {
             if let Some(func) = q.functions().get(f) {
                 for o in &func.cp_overrides {
                     if let Some(part) = o.closure.as_ref().and_then(|c| c.part.as_ref()) {
@@ -201,6 +204,26 @@ impl Query for DevicePartLines {
                         && let Some(tee) = q.junctions().get(j).and_then(|x| x.fitting.clone())
                     {
                         push(&tee, Dec3::ONE, LineSource::Fitting);
+                    }
+                }
+            }
+        }
+        for f in functions {
+            for (idx, mut conns) in q.idx().connected_cps_of_function(f) {
+                conns.sort();
+                for c in conns {
+                    let Some(conn) = q.connections().get(c) else {
+                        continue;
+                    };
+                    let ew_schema::ConnectionKind::Bus(line) = &conn.kind else {
+                        continue;
+                    };
+                    for (end, plug) in [(&conn.a, &line.plug_a), (&conn.b, &line.plug_b)] {
+                        if let (ew_schema::Endpoint::Cp(ef, ei), Some(p)) = (end, plug)
+                            && (*ef, *ei) == (f, idx)
+                        {
+                            push(&p.part, Dec3::ONE, LineSource::Plug);
+                        }
                     }
                 }
             }

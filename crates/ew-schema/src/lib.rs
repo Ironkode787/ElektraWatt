@@ -118,7 +118,7 @@ pub use bus::{
 };
 pub use conflict::{Conflict, ConflictBody, ConflictSide, DELETED_SIDE, FILE_CONFLICT_KIND};
 pub use connect::{
-    AcDc, AssignedNumber, BevelSpec, Bond, BondKind, BridgeKind, BridgeSpec, BusLine, CircuitClass,
+    AcDc, AssignedNumber, BevelSpec, Bond, BondKind, BridgeKind, BridgeSpec, BusLine, BusPlug, CircuitClass,
     Conductor, Connection, ConnectionKind, FluidLine, Junction, JunctionStyle, JunctionWiring, LineKind,
     NumberSpec, PotentialDef, PotentialEarthing, PotentialEnv, PotentialType, TempRange, TubeMaterial,
     TubeSpec, WireFlags, WireOverrides, WireProps,

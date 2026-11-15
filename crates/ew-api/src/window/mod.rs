@@ -5,6 +5,8 @@
 //! rows, the edit-cable table's core swap and the PLC navigator's drop. The command line does not use it, and
 //! [`crate::output`] never names it.
 
+// The Cable form of a bus line: its cable and its plugs.
+mod bus_cable;
 // The edit-cable table's gestures (§7).
 mod cable_edit;
 // The Cable form: the selected wires as a cable's cores.
@@ -18,6 +20,7 @@ mod plc_bind;
 // Wire colours as a person types them.
 mod typed;
 
+pub use bus_cable::{BusCableForm, BusLineEnd, BusPartOffer, PlugChoice};
 pub use cable_form::{CableForm, CableRefused, TypeCore};
 pub use clipboard::{
     CopiedFragment, CopyError, FRAGMENT_HEADER, FragmentError, ParsedFragment, parse_fragment,

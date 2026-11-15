@@ -832,6 +832,10 @@ impl ShellModel {
             self.tip_for_refused_row(&section, &row, &out);
             return out;
         }
+        // A bus line's Cable and Plugs rows open its Cable form (doc 10 §2.7).
+        if matches!(&row.route, crate::properties::EditRoute::Command { command } if command == "bus.cable") {
+            return self.act_bus_cable(&Map::new());
+        }
         let shown = buffer.is_none();
         let buffer = match buffer {
             Some(b) => b,

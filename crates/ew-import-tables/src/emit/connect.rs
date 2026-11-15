@@ -245,7 +245,7 @@ pub(crate) fn emit_connections(cx: &mut Cx<'_>, table: Option<&Table>) {
                 };
                 ConnectionKind::Bus(BusLine {
                     cable,
-                    extra: Default::default(),
+                    ..Default::default()
                 })
             }
             PendingKind::Core(key) => match cx.conductors.get(key) {

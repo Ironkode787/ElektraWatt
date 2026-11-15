@@ -119,6 +119,22 @@ use ew_schema::{
     RepType, ReportBlock, ReportKind, ReportSource, Representation, Side, SlotKind, SymbolDef, TagPrint,
 };
 
+/// The tag of the cable a bus line is linked to (doc 10 §2.7), printed beside the line as a wire number is; `None` for
+/// another connection, a line without a cable and one whose cable is drawn on the line's page (its own symbol prints
+/// the tag there, as Golden A's -3W1 on page 3).
+fn bus_cable_text(q: &Q, c: &ew_schema::Connection) -> Option<String> {
+    let ew_schema::ConnectionKind::Bus(line) = &c.kind else {
+        return None;
+    };
+    let cable = line.cable?;
+    let drawn = q.idx().functions_of_device(cable).any(|f| {
+        q.idx()
+            .reps_of_function(f)
+            .any(|r| q.reps().get(r).is_some_and(|r| Some(r.page) == c.page))
+    });
+    (!drawn).then(|| super::properties::device_tag_text(q, cable))
+}
+
 /// The key of the frame form of dividers, and of pages without a form.
 pub const NOGRID_FRAME: &str = "ew.frame.qet-a4-landscape-nogrid";
 
@@ -397,7 +413,7 @@ impl Query for PageSlotsOf {
 }
 
 /// `page_connections(page)`: the connections drawn on a page with their wire-marker texts and, when the project prints
-/// them, their wire numbers.
+/// them, their wire numbers; a bus line prints its cable's tag where it has no number ([`bus_cable_text`]).
 #[derive(Debug)]
 pub struct PageConnectionsOf;
 
@@ -415,7 +431,7 @@ impl Query for PageConnectionsOf {
                 continue;
             };
             let marker = connection_marker(q, &c, grouped.contains(&cid));
-            let number = connection_number(q, cid);
+            let number = connection_number(q, cid).or_else(|| bus_cable_text(q, &c));
             out.push(ConnectionView {
                 connection: c,
                 marker,

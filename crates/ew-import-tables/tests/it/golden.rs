@@ -616,7 +616,7 @@ fn the_bus_connections_and_the_dp_potential_are_those_of_doc_20() {
         one.kind,
         ConnectionKind::Bus(BusLine {
             cable: Some(record_id("devices", "-3W1")),
-            extra: Default::default()
+            ..Default::default()
         })
     );
     assert_eq!(one.page, Some(record_id::<Page>("pages", "3")));
@@ -626,7 +626,7 @@ fn the_bus_connections_and_the_dp_potential_are_those_of_doc_20() {
         two.kind,
         ConnectionKind::Bus(BusLine {
             cable: None,
-            extra: Default::default()
+            ..Default::default()
         })
     );
     assert_eq!(two.page, None, "the mating of the plug is not drawn");

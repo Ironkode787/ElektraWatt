@@ -668,6 +668,23 @@ pub static LINKS: &[LinkDecl] = &[
             }
         })
     },
+    // A bus line's plug parts (doc 10 §2.7), load-tolerant for the same reason.
+    LinkDecl {
+        load_tolerant: true,
+        ..link!(Connection."kind.bus.plug_a.part.copy" -> Part, Forbid, None, |v, out| {
+            if let ConnectionKind::Bus(b) = &v.kind {
+                opt(b.plug_a.as_ref().map(|p| p.part.copy), out);
+            }
+        })
+    },
+    LinkDecl {
+        load_tolerant: true,
+        ..link!(Connection."kind.bus.plug_b.part.copy" -> Part, Forbid, None, |v, out| {
+            if let ConnectionKind::Bus(b) = &v.kind {
+                opt(b.plug_b.as_ref().map(|p| p.part.copy), out);
+            }
+        })
+    },
     lineage_link!(Connection),
     // junction
     link!(Junction."page" -> Page, Cascade, Some(I::JunctionsByPage), |v, out| id(v.page, out)),

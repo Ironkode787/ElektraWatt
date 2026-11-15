@@ -322,7 +322,7 @@ fn a_bus_connection_reads_its_cable() {
         one.kind,
         ConnectionKind::Bus(BusLine {
             cable: Some(cable),
-            extra: Default::default()
+            ..Default::default()
         })
     );
     assert!(one.page.is_some());
@@ -331,7 +331,7 @@ fn a_bus_connection_reads_its_cable() {
         two.kind,
         ConnectionKind::Bus(BusLine {
             cable: None,
-            extra: Default::default()
+            ..Default::default()
         })
     );
     assert!(two.page.is_none());

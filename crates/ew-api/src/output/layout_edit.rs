@@ -1337,7 +1337,8 @@ impl Session {
     /// of that kind by part number, then the system libraries' parts of that kind the project does not hold, each with
     /// the `copies` that embed it and its closure; an enclosure part's plate part and its closure come along. For
     /// `enclosure` only parts with an enclosure section; for `rail` only parts with a rail section; for `cable` (New
-    /// cable…) only parts with cable cores; nothing for any other word. A library part whose closure does not
+    /// cable…) only parts with cable cores; for `plug` (a bus line's Cable…) the accessories with a bus interface;
+    /// nothing for any other word. A library part whose closure does not
     /// resolve is left out.
     pub fn layout_part_offers(&self, kind: &str) -> Vec<LayoutPartOffer> {
         let kind = match kind {
@@ -1345,6 +1346,7 @@ impl Session {
             "rail" => PartKind::Rail,
             "duct" => PartKind::Duct,
             "cable" => PartKind::Cable,
+            "plug" => PartKind::Accessory,
             _ => return Vec::new(),
         };
         let q = self.query();
@@ -1354,6 +1356,7 @@ impl Session {
                     PartKind::Enclosure => c.item.sections.enclosure.is_some(),
                     PartKind::Rail => c.item.sections.rail.is_some(),
                     PartKind::Cable => !c.item.sections.cable_cores.is_empty(),
+                    PartKind::Accessory => c.item.sections.bus.as_ref().is_some_and(|b| !b.ports.is_empty()),
                     _ => true,
                 }
         };

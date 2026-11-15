@@ -1461,7 +1461,7 @@ mod tests {
                 "kind": {"core": F}, "overrides": {"wire_part": {"copy": D}},
                 "source_ref": {"lineage": E, "key": "k"}}),
             json!({"$k": "connection", "id": A, "a": {"junction": B}, "b": {"cp": [C, 0]},
-                "kind": {"bus": {"cable": F}}}),
+                "kind": {"bus": {"cable": F, "plug_a": {"part": {"copy": D}}, "plug_b": {"part": {"copy": D}}}}}),
             json!({"$k": "junction", "id": A, "page": C, "at": [0, 0], "style": "dot", "sequence": [B, F],
                 "fitting": {"copy": D}, "source_ref": {"lineage": E, "key": "k"}}),
             json!({"$k": "connection", "id": A, "a": {"cp": [B, 0]}, "b": {"cp": [C, 0]},
@@ -1543,6 +1543,9 @@ mod tests {
         ("connection.kind.fluid.tube.part.copy", Some(false)),
         ("connection.kind.fluid.fitting_a.copy", Some(false)),
         ("connection.kind.fluid.fitting_b.copy", Some(false)),
+        // A bus plug is its part: a plug pasted where its part is missing cannot stand, as a part use cannot.
+        ("connection.kind.bus.plug_a.part.copy", Some(true)),
+        ("connection.kind.bus.plug_b.part.copy", Some(true)),
         ("potential_def.at.cp[0]", Some(true)),
         ("potential_def.at.junction", Some(true)),
         ("potential_def.props.wire_part.copy", Some(false)),

@@ -8,7 +8,9 @@
 use std::collections::BTreeMap;
 
 use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{AddrValue, BusPort, Function, FunctionKind, Kind, NetAddress, OnOff, PortRole};
+use ew_derive::ew_schema::{
+    AddrValue, BusPort, ConnectionKind, Endpoint, Function, FunctionKind, Kind, NetAddress, OnOff, PortRole,
+};
 use ew_derive::{BusSegments, DeviceTag, NetMembersOf, Q, SegmentMember, external_partner_text};
 
 use crate::finding::{Finding, Severity, Target};
@@ -222,8 +224,30 @@ fn nearest_terminating(ports: &[(Id<Function>, Option<OnOff>)], from_start: bool
     indices.into_iter().find(|i| ports[*i].1.is_some())
 }
 
+/// The termination of a plug with a switch at a bus line's end on port `f` (doc 10 §2.7), the first by CP and line.
+fn plug_termination(q: &Q, f: Id<Function>) -> Option<OnOff> {
+    q.idx()
+        .connected_cps_of_function(f)
+        .into_iter()
+        .find_map(|(idx, mut conns)| {
+            conns.sort();
+            conns.into_iter().find_map(|c| {
+                let conn = q.connections().get(c)?;
+                let ConnectionKind::Bus(line) = &conn.kind else {
+                    return None;
+                };
+                [(&conn.a, &line.plug_a), (&conn.b, &line.plug_b)]
+                    .into_iter()
+                    .find_map(|(end, plug)| match (end, plug) {
+                        (Endpoint::Cp(ef, ei), Some(p)) if (*ef, *ei) == (f, idx) => p.termination.clone(),
+                        _ => None,
+                    })
+            })
+        })
+}
+
 /// EW-BUS-004 over the segments of the physical net (`bus_segments(pnet)`, doc 10 §3.8): at each end the nearest
-/// terminating element (a port with a termination switch), walking inward, must be On, and every other terminating
+/// terminating element (a port with a termination switch, else a plug with one at a bus line's end on the port), walking inward, must be On, and every other terminating
 /// element of the segment Off. Findings, with the port function as target:
 /// - an end's element that is Off (discriminator `end`), an error;
 /// - an element inside the segment that is On (`middle`), an error;
@@ -255,7 +279,8 @@ impl Rule for Termination {
                 .map(|f| {
                     let state = functions
                         .get(f)
-                        .and_then(|x| x.bus_port.as_ref().and_then(|p| p.termination.clone()));
+                        .and_then(|x| x.bus_port.as_ref().and_then(|p| p.termination.clone()))
+                        .or_else(|| plug_termination(q, f));
                     (f, state)
                 })
                 .collect();
