@@ -60,6 +60,10 @@ pub struct Cp {
 /// `function_cps(f)`: the function's connection points, in `idx` order.
 ///
 /// - A missing function has none.
+/// - A function whose `bus_port` names an interface that a part of its device declares with a port count `n`
+///   (`PartBusPort.ports`, doc 10 §2.7 "One interface, many ports") has the CPs `P1` … `Pn`, indices 0 … n − 1, each
+///   as its FnDef's CP of that index or, beyond the FnDef's, as its first CP (bus discipline): the sockets of the
+///   interface, which carries one address.
 /// - A function is *template-origin* when a part use of its device (in `Device.parts` order) has a part copy
 ///   whose `function_template` has an entry naming the function's FnDef copy (the copy of the entry's `fndef`
 ///   reference). The entry is the one at `Function.template_entry` when a part use has one there naming the
@@ -94,10 +98,12 @@ impl Query for FunctionCps {
         let Some(function) = q.functions().get(*key) else {
             return Arc::new(Vec::new());
         };
-        let pattern = template_cps(q, function).or_else(|| match function.kind {
-            FunctionKind::BlackBox => pattern_cps(q, function),
-            _ => None,
-        });
+        let pattern = port_cps(q, function)
+            .or_else(|| template_cps(q, function))
+            .or_else(|| match function.kind {
+                FunctionKind::BlackBox => pattern_cps(q, function),
+                _ => None,
+            });
         let mut cps = pattern.unwrap_or_else(|| fndef_cps(q, function));
         supply_role_fallback(q, function, &mut cps);
         for o in &function.cp_overrides {
@@ -177,6 +183,36 @@ fn supply_role_fallback(q: &Q, function: &Function, cps: &mut [Cp]) {
 /// a function are one pin; elsewhere (terminals, FnDef CPs) they are separate points.
 pub(crate) fn pattern_origin(q: &Q, function: &Function) -> bool {
     matches!(function.kind, FunctionKind::BlackBox) || template_cps(q, function).is_some()
+}
+
+/// The sockets of a multi-port interface (doc 10 §2.7): `P1` … `Pn` when the function's port names an interface that a
+/// part of its device declares with `ports` = n ≥ 1, each the FnDef CP of its index or, beyond those, a copy of the
+/// FnDef's first CP; `None` otherwise, and for a FnDef without CPs.
+fn port_cps(q: &Q, function: &Function) -> Option<Vec<Cp>> {
+    let port = function.bus_port.as_ref()?;
+    let device = q.devices().get(function.device?)?;
+    let parts = q.parts();
+    let n = device.parts.iter().find_map(|u| {
+        let bus = parts.get(u.part.copy)?.item.sections.bus.as_ref()?;
+        bus.ports
+            .iter()
+            .find(|p| p.interface == port.interface && p.port_label == port.port_label)?
+            .ports
+    })?;
+    let own = fndef_cps(q, function);
+    let first = own.first()?.clone();
+    let cps: Vec<Cp> = (0..n)
+        .map(|i| {
+            let mut cp = own.iter().find(|c| c.idx == i).cloned().unwrap_or_else(|| Cp {
+                optional: true,
+                ..first.clone()
+            });
+            cp.idx = i;
+            cp.designation = format!("P{}", u32::from(i) + 1);
+            cp
+        })
+        .collect();
+    (!cps.is_empty()).then_some(cps)
 }
 
 /// The CPs of the function's definition copy.

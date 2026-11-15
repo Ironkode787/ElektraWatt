@@ -729,3 +729,8 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: elektrawatt `--headless --visual` answers Import from PLC software… with the file the run exported
   (`plc.aml`, else `plc.xlsx`) in its work folder; without one the import is cancelled as before
 - api-add: `Session::plc_stations_for_cards`
+- api-add: Edit ▸ New part… (`part.new`) and New part… in the part dialog and the device browser open the part editor
+  on a new part: its identity, technical data and bus interfaces (a row each: interface, port label, bus, role,
+  ports, termination switch); Save puts it into My parts and the project, or the project alone (FT-1766)
+- api-add: format member `PartBusPort.ports` (part): the number of sockets of one bus interface; a port function of
+  such a part has the connection points P1 … Pn and one address for all of them (FT-1767, doc 10 §2.7)

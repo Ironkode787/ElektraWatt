@@ -446,7 +446,9 @@ fn part_choose_spec(c: &crate::shell::part_dialog::PartChooser) -> DialogSpec {
 
 /// Edit part: a form with Save and Cancel.
 fn part_edit_spec(e: &crate::shell::part_dialog::PartEditor) -> DialogSpec {
-    let body = if e.draft.fork {
+    let body = if e.draft.new {
+        vec![strings::text(key!("part-new-note")).to_owned()]
+    } else if e.draft.fork {
         vec![strings::text(key!("part-edit-fork-note")).to_owned()]
     } else {
         Vec::new()

@@ -1918,6 +1918,13 @@ fn part_edit_lines(e: &crate::shell::part_dialog::PartEditor, lines: &mut Vec<St
     for (k, v) in &d.tech {
         lines.push(format!("  tech \"{}\" \"{}\"", user(k), user(v)));
     }
+    for (i, r) in d.bus.iter().enumerate() {
+        let cells: Vec<String> = ew_api::BUS_MEMBERS
+            .iter()
+            .map(|m| format!("{m} \"{}\"", user(r.text(m))))
+            .collect();
+        lines.push(format!("  bus {} {}", i + 1, cells.join(" ")));
+    }
     let none = || strings::text(key!("part-none")).to_owned();
     let functions = if d.functions.is_empty() {
         none()
@@ -1949,10 +1956,7 @@ fn part_edit_lines(e: &crate::shell::part_dialog::PartEditor, lines: &mut Vec<St
         on_off(d.fork)
     ));
     for m in &d.messages {
-        let label = match m.field.strip_prefix("tech:") {
-            Some(key) => key.to_owned(),
-            None => strings::text(Key::run_time(&format!("part-field-{}", m.field))).to_owned(),
-        };
+        let label = crate::shell::part_dialog::field_label(&m.field);
         lines.push(format!(
             "  invalid \"{}\" \"{}\"",
             user(&label),

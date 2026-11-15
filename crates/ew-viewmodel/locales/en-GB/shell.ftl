@@ -4159,6 +4159,35 @@ action-part-favourite = Favourite
 action-part-edit = Edit part…
 action-part-field = Edit field
 action-part-save = Save
+# FT-1766: a new part and its bus interfaces, made in the part editor (Edit ▸ New part…).
+error-part-bus-interface = An interface needs a name, such as X1 or DP
+error-part-bus-system = “{ $p0 }” is no bus system; choose one from the list
+error-part-bus-role = “{ $p0 }” is no port role; choose one from the list
+error-part-bus-ports = “{ $p0 }” is no number of ports: type a whole number from 1 to { $p1 }, such as 8
+error-part-bus-termination = “{ $p0 }” is no state of a termination switch: choose on, off or none
+error-part-bus-twice = Interface { $p0 } is listed twice; give each row its own interface or port label
+error-part-new-id = No new part could be made: the system gave no random number; try again
+error-part-exists = The project or your parts library has part { $p0 } of { $p1 } already; give the new part its own part number
+error-part-library = { $p0 } could not be written: { $p1 }
+dialog-part-new-title = New part
+part-new-note = Type what the data sheet says. Save adds the part to this project and, when ticked, to your parts library, so that your next project has it too.
+part-section-bus = Bus interfaces
+part-section-bus-hint = One row per interface of the data sheet. Controller or master leads the bus (a CPU); device or slave is a node with an address (a head station, a drive, a managed switch); passive has no address and passes the net through (a bus plug, an unmanaged switch). Ports: the number of sockets of one interface, such as 2 or 8; the interface keeps one address for all of them.
+part-bus-interface = Interface
+part-bus-port_label = Port label
+part-bus-bus = Bus
+part-bus-role = Role
+part-bus-ports = Ports
+part-bus-termination = Termination switch
+part-bus-termination-none = None
+part-bus-add = Add interface
+part-bus-remove = Remove interface { $p0 }
+part-bus-none = No bus interface yet: add one for a device on a bus.
+part-to-library = Also add to my parts library
+toast-part-new = Part { $p0 } is in the project.
+toast-part-new-library = Part { $p0 } is in the project and in { $p1 }.
+action-part-new = New part…
+action-part-bus-row = Add or remove a bus interface
 
 # WP-S2.07 part 4b (§9.5): FT-396's paste choice.
 reason-paste-versions = The pasted records use another version of { $p0 }; choose Use the project's copy or Update the project's copy

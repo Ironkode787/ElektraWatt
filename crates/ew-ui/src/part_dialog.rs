@@ -14,6 +14,11 @@
 //! **Edit part.** One row per editable field, the label in the dialog's label column (named by it for AccessKit), the
 //! field's message under it in `color.error`; the technical values as `key` fields; the functions, the connection
 //! points and the source read-only. Every change is `part.field`; Enter saves (`part.save`).
+//!
+//! **New part** (`part.new`, FT-1766) adds the bus interfaces: one row per interface (Interface, Port label, Bus, Role,
+//! Ports, Termination switch, and a remove button), its messages under the row, Add interface (`part.bus_row`), a hint
+//! that says what the roles and the port count mean, and Also add to my parts library. A held part shows its
+//! interfaces read-only.
 
 use egui::{Key, RichText, ScrollArea, Sense, TextEdit, Ui, vec2};
 use ew_viewmodel::key;
@@ -236,6 +241,19 @@ pub(crate) fn chooser(
                 .color(t.text_secondary.color32()),
         );
     }
+    // FT-1766: a part the lists do not have is made here, and the dialog comes back on it.
+    ui.add_space(t.space_2);
+    if crate::components::button(
+        ui,
+        crate::components::Kind::Secondary,
+        strings::text(key!("action-part-new")),
+        true,
+        0.0,
+    )
+    .clicked()
+    {
+        events.push(Event::Action("part.new", serde_json::Value::Null));
+    }
     set_active(&ctx, act);
     if enter && n > 0 {
         picked = Some(act);
@@ -307,6 +325,14 @@ fn kind_field(ui: &mut Ui, label_text: &str, value: &str, events: &mut Vec<Event
     });
 }
 
+/// A text field's accessible information with `name` as its name (egui's `text_edit` takes a hint, not a name), so
+/// that a screen reader and a visual run find it by the words beside it.
+fn named_edit(before: &str, now: &str, name: &str) -> egui::WidgetInfo {
+    let mut info = egui::WidgetInfo::text_edit(true, before, now, "");
+    info.label = Some(name.to_owned());
+    info
+}
+
 fn labelled_field(
     ui: &mut Ui,
     label_text: &str,
@@ -337,6 +363,8 @@ fn labelled_field(
                     .min_size(vec2(0.0, t.size_control)),
             )
             .labelled_by(label.id);
+        // The field carries its label as its own name too, so that a visual run finds it by the words it shows.
+        edit.widget_info(|| named_edit(value, &text, label_text));
         if focus {
             edit.request_focus();
         }
@@ -353,9 +381,11 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
     let t = theme::current(ui.ctx());
     let d = &e.draft;
     let mut save = false;
+    // Doc 16a §2: the form takes the window's height as it grows, sixteen rows at the floor.
+    let height = crate::dialog::grown(t.size_row * 16.0, 0.6, ui.ctx().content_rect().height());
     ScrollArea::vertical()
         .id_salt("part-edit-scroll")
-        .max_height(t.size_row * 16.0)
+        .max_height(height)
         .show(ui, |ui| {
             for (i, f) in ew_viewmodel::ew_api::DRAFT_FIELDS.iter().enumerate() {
                 let label = strings::text(strings::Key::run_time(&format!("part-field-{f}")));
@@ -400,6 +430,23 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
                     );
                 }
             }
+            if d.new || !d.bus.is_empty() {
+                ui.add_space(t.space_3);
+                bus_section(ui, d, events);
+            }
+            if d.new {
+                ui.add_space(t.space_3);
+                let mut to_library = d.to_library;
+                if ui
+                    .checkbox(&mut to_library, strings::text(key!("part-to-library")))
+                    .changed()
+                {
+                    events.push(Event::Action(
+                        "part.field",
+                        json!({ "field": "to_library", "value": to_library.to_string() }),
+                    ));
+                }
+            }
             ui.add_space(t.space_3);
             let none = strings::text(key!("part-none"));
             let read_only = |ui: &mut Ui, label: &str, value: String| {
@@ -442,6 +489,161 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
         });
     if save {
         events.push(Event::Action("part.save", serde_json::Value::Null));
+    }
+}
+
+/// A bus member's choice in words (`profinet` is "PROFINET", an empty termination "None").
+fn bus_choice(member: &str, value: &str) -> String {
+    if member == "termination" && value.is_empty() {
+        return strings::text(key!("part-bus-termination-none")).to_owned();
+    }
+    strings::field_choice_text("function", &format!("bus_port.{member}"), value)
+}
+
+/// The bus interfaces of a draft (FT-1766): a grid row per interface, editable on a new part, with each row's
+/// messages under it; Add interface; the hint on roles and ports.
+fn bus_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Vec<Event>) {
+    use ew_viewmodel::ew_api::{BUS_MEMBERS, bus_words, role_words};
+    let t = theme::current(ui.ctx());
+    ui.label(RichText::new(strings::text(key!("part-section-bus"))).font(theme::font(&t.type_body_strong)));
+    if d.new {
+        ui.add(
+            egui::Label::new(
+                RichText::new(strings::text(key!("part-section-bus-hint")))
+                    .font(theme::font(&t.type_small))
+                    .color(t.text_secondary.color32()),
+            )
+            .wrap(),
+        );
+    }
+    if d.bus.is_empty() {
+        ui.label(RichText::new(strings::text(key!("part-bus-none"))).color(t.text_secondary.color32()));
+    }
+    let label = |m: &str| strings::text(strings::Key::run_time(&format!("part-bus-{m}"))).to_owned();
+    if !d.bus.is_empty() {
+        // The columns share the row; the remove button keeps its own width.
+        let gap = t.space_2;
+        let remove_w = if d.new { t.size_control } else { 0.0 };
+        let cell = ((ui.available_width() - remove_w - gap * BUS_MEMBERS.len() as f32)
+            / BUS_MEMBERS.len() as f32)
+            .max(t.size_control);
+        ui.horizontal(|ui| {
+            ui.spacing_mut().item_spacing.x = gap;
+            for m in BUS_MEMBERS {
+                ui.add_sized(
+                    vec2(cell, t.size_row),
+                    egui::Label::new(
+                        RichText::new(label(m))
+                            .font(theme::font(&t.type_small))
+                            .color(t.text_secondary.color32()),
+                    )
+                    .truncate(),
+                );
+            }
+        });
+        for (i, row) in d.bus.iter().enumerate() {
+            ui.horizontal(|ui| {
+                ui.spacing_mut().item_spacing.x = gap;
+                for m in BUS_MEMBERS {
+                    let field = format!("bus.{i}.{m}");
+                    let value = row.text(m);
+                    let name = format!("{} {}", label(m), i + 1);
+                    if !d.new {
+                        let shown = match m {
+                            "bus" | "role" | "termination" => bus_choice(m, value),
+                            _ => value.to_owned(),
+                        };
+                        ui.add_sized(vec2(cell, t.size_control), egui::Label::new(shown).truncate());
+                        continue;
+                    }
+                    let choices: Option<Vec<String>> = match m {
+                        "bus" => Some(bus_words()),
+                        "role" => Some(role_words()),
+                        "termination" => Some(vec![String::new(), "on".to_owned(), "off".to_owned()]),
+                        _ => None,
+                    };
+                    match choices {
+                        Some(choices) => {
+                            let mut picked = None;
+                            let combo = egui::ComboBox::from_id_salt(&field)
+                                .selected_text(bus_choice(m, value))
+                                .width(cell)
+                                .show_ui(ui, |ui| {
+                                    for c in &choices {
+                                        if ui.selectable_label(c == value, bus_choice(m, c)).clicked() {
+                                            picked = Some(c.clone());
+                                        }
+                                    }
+                                })
+                                .response;
+                            combo
+                                .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, &name));
+                            crate::components::combo_expanded(ui, &combo);
+                            if let Some(c) = picked.filter(|c| c != value) {
+                                events
+                                    .push(Event::Action("part.field", json!({ "field": field, "value": c })));
+                            }
+                        }
+                        None => {
+                            let mut text = value.to_owned();
+                            let hint = match m {
+                                "interface" => "X1",
+                                "port_label" => "P1R",
+                                "ports" => "8",
+                                _ => "",
+                            };
+                            let edit = ui.add_sized(
+                                vec2(cell, t.size_control),
+                                TextEdit::singleline(&mut text).hint_text(hint),
+                            );
+                            edit.widget_info(|| named_edit(value, &text, &name));
+                            if text != value {
+                                events.push(Event::Action(
+                                    "part.field",
+                                    json!({ "field": field, "value": text }),
+                                ));
+                            }
+                        }
+                    }
+                }
+                if d.new {
+                    let words = strings::format(key!("part-bus-remove"), &[row.interface.as_str()]);
+                    let remove = crate::components::icon_button(ui, crate::icons::IconId::x, &words);
+                    if remove.clicked() {
+                        events.push(Event::Action("part.bus_row", json!({ "remove": i + 1 })));
+                    }
+                }
+            });
+            for m in BUS_MEMBERS {
+                if let Some(msg) = d.message(&format!("bus.{i}.{m}")) {
+                    ui.colored_label(
+                        t.error.color32(),
+                        format!(
+                            "{}: {}",
+                            label(m),
+                            ew_viewmodel::shell::part_dialog::message_text(
+                                strings::Key::run_time(msg.key),
+                                &msg.args
+                            )
+                        ),
+                    );
+                }
+            }
+        }
+    }
+    if d.new {
+        ui.add_space(t.space_2);
+        if crate::components::button(
+            ui,
+            crate::components::Kind::Secondary,
+            strings::text(key!("part-bus-add")),
+            true,
+            0.0,
+        )
+        .clicked()
+        {
+            events.push(Event::Action("part.bus_row", serde_json::Value::Null));
+        }
     }
 }
 

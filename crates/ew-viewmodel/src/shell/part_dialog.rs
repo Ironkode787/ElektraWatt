@@ -111,13 +111,29 @@ pub struct PartEditor {
     pub manufacturers: Vec<String>,
     /// The refusal of the last Save.
     pub error: Option<String>,
+    /// The part dialog that New part… was chosen in: Save opens it again on the new part.
+    pub back: Option<Box<PartChooser>>,
 }
 
 impl PartEditor {
-    /// The title (`Edit part 5SY4204-7 (Siemens)`).
+    /// The title (`Edit part 5SY4204-7 (Siemens)`, `New part`).
     pub fn title(&self) -> String {
+        if self.draft.new {
+            return strings::text(key!("dialog-part-new-title")).to_owned();
+        }
         strings::format(key!("dialog-part-edit-title"), &[&self.name])
     }
+}
+
+/// The words of a draft field (`part_number` is "Part number", `bus.1.ports` "Ports", `tech:rated_current` the key).
+pub fn field_label(field: &str) -> String {
+    if let Some(key) = field.strip_prefix("tech:") {
+        return key.to_owned();
+    }
+    if let Some((_, member)) = field.strip_prefix("bus.").and_then(|r| r.split_once('.')) {
+        return strings::text(Key::run_time(&format!("part-bus-{member}"))).to_owned();
+    }
+    strings::text(Key::run_time(&format!("part-field-{field}"))).to_owned()
 }
 
 /// The part kinds the editor's Kind field offers ([`ew_api::PART_KINDS`], tied to the schema's part kinds by a test).
@@ -756,7 +772,72 @@ impl ShellModel {
             name,
             manufacturers,
             error: None,
+            back: None,
         })))
+    }
+
+    /// `part.new` (Edit ▸ New part…, and New part… in the part dialog and the device browser): opens the part editor on
+    /// a new part's draft (FT-1766). From the part dialog, Save returns to it on the new part.
+    pub(crate) fn act_part_new(&mut self) -> Outcome {
+        let Some(project) = &self.project else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let draft = match project.session.new_part_draft() {
+            Ok(d) => d,
+            Err(e) => return draft_refusal(e),
+        };
+        let manufacturers = project.session.part_manufacturers();
+        // The device browser gives way to the editor; it lists the new part when it opens again.
+        self.tools.picker = None;
+        let back = match self.dialog.take() {
+            Some(Dialog::PartChoose(c)) => Some(c),
+            other => {
+                self.dialog = other;
+                None
+            }
+        };
+        let out = self.open_dialog(Dialog::PartEdit(Box::new(PartEditor {
+            draft,
+            name: String::new(),
+            manufacturers,
+            error: None,
+            back: None,
+        })));
+        if let Some(Dialog::PartEdit(e)) = &mut self.dialog {
+            e.back = back;
+        }
+        out
+    }
+
+    /// `part.bus_row {remove?}`: adds a bus interface row to the new part, or removes row `remove` (1-based).
+    pub(crate) fn act_part_bus_row(&mut self, p: &Map<String, Value>) -> Outcome {
+        let remove = match p.get("remove") {
+            None => None,
+            Some(v) => match v
+                .as_u64()
+                .and_then(|i| usize::try_from(i).ok())
+                .filter(|i| *i >= 1)
+            {
+                Some(i) => Some(i - 1),
+                None => return failed(key!("error-bad-param"), &["remove"]),
+            },
+        };
+        let Some(Dialog::PartEdit(editor)) = &mut self.dialog else {
+            return Outcome::refused(key!("reason-no-part-editor"));
+        };
+        if !editor.draft.new {
+            return failed(key!("error-part-field"), &["bus"]);
+        }
+        editor.error = None;
+        match remove {
+            None => editor.draft.add_bus_row(),
+            Some(i) => {
+                if !editor.draft.remove_bus_row(i) {
+                    return failed(key!("error-bad-param"), &["remove"]);
+                }
+            }
+        }
+        Outcome::Done
     }
 
     /// `part.field {field, value}`: sets one field of the draft; a message shows under the field (D21).
@@ -774,6 +855,10 @@ impl ShellModel {
             return Outcome::refused(key!("reason-no-part-editor"));
         };
         editor.error = None;
+        if field == "to_library" && editor.draft.new {
+            editor.draft.to_library = value == "true";
+            return Outcome::Done;
+        }
         match project.session.set_draft_field(&mut editor.draft, &field, &value) {
             Err(PartDraftError::Refused(_)) => failed(key!("error-part-field"), &[&field]),
             Ok(()) | Err(PartDraftError::Field(_)) => Outcome::Done,
@@ -782,6 +867,9 @@ impl ShellModel {
 
     /// `part.save` (Enter): opens the `part` card of `part.edit_copy` (D20); a field that does not parse refuses.
     pub(crate) fn act_part_save(&mut self) -> Outcome {
+        if matches!(&self.dialog, Some(Dialog::PartEdit(e)) if e.draft.new) {
+            return self.part_save_new();
+        }
         let Some(project) = &self.project else {
             return Outcome::Done;
         };
@@ -831,6 +919,57 @@ impl ShellModel {
             key!("reason-part-edit"),
             CardOrigin::Part(Box::new(PartCard { devices, ..card })),
         )
+    }
+}
+
+impl ShellModel {
+    /// Save of a new part (FT-1766): the part goes into My parts and the project, or into the project alone
+    /// (`Session::new_part_command`), in one undo step; a field that does not parse refuses at its field. From the
+    /// part dialog, the dialog opens again on the new part.
+    fn part_save_new(&mut self) -> Outcome {
+        let Some(Dialog::PartEdit(mut editor)) = self.dialog.take() else {
+            return Outcome::refused(key!("reason-no-part-editor"));
+        };
+        let Some(project) = &mut self.project else {
+            return Outcome::Done;
+        };
+        let words = |out: &Outcome| match out {
+            Outcome::Refused { reason_key } => strings::text(*reason_key).to_owned(),
+            Outcome::Failed { message } => message.clone(),
+            Outcome::Done => String::new(),
+        };
+        let made = match project.session.new_part_command(&editor.draft) {
+            Ok(made) => made,
+            Err(e) => {
+                if let PartDraftError::Field(m) = &e {
+                    editor.draft.messages.retain(|x| x.field != m.field);
+                    editor.draft.messages.push(m.clone());
+                }
+                let out = draft_refusal(e);
+                editor.error = Some(words(&out));
+                self.dialog = Some(Dialog::PartEdit(editor));
+                return out;
+            }
+        };
+        let out = self.run_commit(&made.command);
+        if !matches!(out, Outcome::Done) {
+            editor.error = Some(words(&out));
+            self.dialog = Some(Dialog::PartEdit(editor));
+            return out;
+        }
+        let number = editor.draft.text("part_number").trim().to_owned();
+        let toast = match &made.library {
+            Some(name) => strings::format(key!("toast-part-new-library"), &[&number, name]),
+            None => strings::format(key!("toast-part-new"), &[&number]),
+        };
+        self.notify(toast, true);
+        if let Some(mut chooser) = editor.back.take() {
+            chooser.query.text = number;
+            chooser.cursor = 0;
+            self.dialog = Some(Dialog::PartChoose(chooser));
+            self.part_refresh();
+        }
+        Outcome::Done
     }
 }
 

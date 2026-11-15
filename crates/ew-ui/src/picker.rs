@@ -226,6 +226,21 @@ fn header(ui: &mut Ui, shell: &ShellModel, picker: &Picker, events: &mut Vec<Eve
             .wrap(),
         );
     }
+    // FT-1766: the device browser lists parts; one the person's hardware needs is made from here.
+    if picker.mode == PickerMode::Parts && picker.part.is_none() {
+        ui.add_space(t.space_2);
+        if components::button(
+            ui,
+            Kind::Secondary,
+            strings::text(key!("action-part-new")),
+            true,
+            0.0,
+        )
+        .clicked()
+        {
+            events.push(Event::Action("part.new", json!({})));
+        }
+    }
 }
 
 /// The filter field; it holds the keyboard focus while the filter is the browser's pane.

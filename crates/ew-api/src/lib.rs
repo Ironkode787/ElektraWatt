@@ -108,6 +108,7 @@ pub mod migration;
 mod new_project;
 pub mod output;
 mod part_editor;
+mod part_new;
 mod part_offers;
 pub mod plc_exchange;
 pub mod qet_collection;
@@ -138,7 +139,11 @@ pub use cmdlog::{CmdLog, CmdLogError, SCHEMA as CMDLOG_SCHEMA};
 pub use ew_commands::commands::{ChangeClass, FieldChange, classify_update};
 pub use library_ops::{ApiError, AssignMode, CopyState, CpMap, VersionConflict, unreadable_profiles};
 pub use macros::{InsertAt, MacroConflict, MacroError, MacroScope, MacroSpec, MacroValues, SavedMacro};
-pub use part_editor::{DRAFT_FIELDS, PART_KINDS, PartDraft, PartDraftError};
+pub use part_editor::{
+    BUS_MEMBERS, BusRow, DRAFT_FIELDS, MAX_PORTS, PART_KINDS, PartDraft, PartDraftError, bus_words,
+    role_words,
+};
+pub use part_new::NewPart;
 pub use part_offers::{Fit, OfferView, PartOffer, PartOfferQuery, PartPick, PartTarget};
 
 /// The reference of an image file as the asset store makes it ([`sniff_asset`] and the SHA-256 of the bytes): what a

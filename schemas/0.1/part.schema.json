@@ -1833,6 +1833,16 @@
           ],
           "description": "The port label of a multi-port interface (\"P1R\")."
         },
+        "ports": {
+          "description": "The number of physical ports of the interface (doc 10 §2.7, \"One interface, many ports\"): the port function\nof a device of this part has the connection points `P1` … `Pn`, one per socket, and carries the interface's\none address; absent: the port function's own connection points (the PROFINET port's P1 and P2).",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "rates": {
           "description": "The data rates the interface supports (FR-BUS-009, EW-BUS-005); empty: not stated.",
           "items": {

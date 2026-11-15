@@ -981,3 +981,45 @@ fn a_strip_without_terminals_is_offered_the_end_bracket() {
         numbers(&offers)
     );
 }
+
+/// FT-1766: a new part made without a user library is a project-local part with its bus section, drawn by its first
+/// interface's port function; a second new part of the same number and manufacturer is refused at the part number
+/// (a new part never overwrites another), and so is a port count of 0.
+#[test]
+fn a_new_part_is_made_once_and_never_overwrites_another() {
+    let mut s =
+        Session::new_project(ProjectTemplate::Builtin, NewProjectKind::Schematic, options(None)).unwrap();
+    let typed = |s: &Session, ports: &str| {
+        let mut d = s.new_part_draft().unwrap();
+        s.set_draft_field(&mut d, "manufacturer", "Acme").unwrap();
+        s.set_draft_field(&mut d, "part_number", "PN-DEV-2").unwrap();
+        d.add_bus_row();
+        let set = s.set_draft_field(&mut d, "bus.0.ports", ports);
+        (d, set)
+    };
+    let (_, refused) = typed(&s, "0");
+    assert_eq!(field_error(refused.unwrap_err()).1, "error-part-bus-ports");
+    let (d, set) = typed(&s, "2");
+    set.unwrap();
+    let made = s.new_part_command(&d).unwrap();
+    assert_eq!(made.library, None, "without a user library the part is the project's");
+    commit(&mut s, &made.command);
+    let q = s.query();
+    let part = q
+        .parts()
+        .iter()
+        .map(|(_, c)| c.item.clone())
+        .find(|p| p.part_number.as_str() == "PN-DEV-2")
+        .expect("the new part");
+    let port = &part.sections.bus.as_ref().unwrap().ports[0];
+    assert_eq!((port.interface.as_str(), port.ports), ("X1", Some(2)));
+    let [entry] = part.function_template.as_slice() else {
+        panic!("one template entry: {:?}", part.function_template)
+    };
+    assert!(entry.main);
+    assert_eq!(entry.fndef.extra.get("key"), Some(&json!("ew.fn.pn-port")));
+    drop(q);
+    let (again, _) = typed(&s, "2");
+    let (field, key, _) = field_error(s.new_part_command(&again).unwrap_err());
+    assert_eq!((field.as_str(), key), ("part_number", "error-part-exists"));
+}

@@ -282,6 +282,11 @@ pub struct PartBusPort {
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     #[schemars(with = "BTreeMap<String, IdentS>")]
     pub signals: BTreeMap<Ident, Ident>,
+    /// The number of physical ports of the interface (doc 10 §2.7, "One interface, many ports"): the port function
+    /// of a device of this part has the connection points `P1` … `Pn`, one per socket, and carries the interface's
+    /// one address; absent: the port function's own connection points (the PROFINET port's P1 and P2).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ports: Option<u16>,
     /// Unknown members, kept verbatim.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

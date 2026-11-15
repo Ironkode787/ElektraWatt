@@ -1,0 +1,382 @@
+// SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+//! A new part made in the window (`part.new`, FT-1766): [`Session::new_part_draft`] opens the part editor on an empty
+//! draft; [`Session::new_part_command`] turns the draft into the part and the one command that brings it into the
+//! project.
+//!
+//! **Where it is saved.** With [`PartDraft::to_library`] and a user library folder, the part goes into the person's
+//! own parts library ("My parts", [`crate::eplan::USER_PARTS_KEY`], where the EPLAN import adds parts too) and the
+//! project embeds that library copy (`library.embed`): the next project finds it there, and an edit in a project forks
+//! it as any library part. Otherwise it is a project-local part (`parts.import`). A new part never overwrites another:
+//! its item ID is new, and a part of the same number and manufacturer in the project or in My parts refuses the save
+//! at the part number.
+//!
+//! **What it holds.** The identity, the technical values and the bus section the form gives. Its function template
+//! is the one a placement needs: a part without pins whose first interface has a starter port function is drawn by
+//! that port (a switch or a device with ports, placed as a box with every socket); any other part with bus interfaces
+//! keeps no template, so its ports are placed from the device's row (Place port).
+
+use ew_commands::commands::{EmbedLibraryCopies, ImportParts, library_copy_hash};
+use ew_derive::ew_ids::{Id, Uuid, v5};
+use ew_library::starter;
+use ew_mltext::Ident;
+use ew_schema::{Kind, LibCopy, LibDocument, LibRef, Manufacturer, Part, Sha256, TemplateFn};
+use serde_json::{Value, json};
+
+use crate::part_editor::{BusRow, PartDraft, PartDraftError, bus_section, message};
+use crate::{AnyCommand, Session};
+
+/// What saving a new part does: the command that brings it into the project and the library it was added to.
+#[derive(Clone, Debug)]
+pub struct NewPart {
+    /// `library.embed` of the library copy, or `parts.import` of a project-local part.
+    pub command: AnyCommand,
+    /// The name of the library the part was added to; `None` for a project-local part.
+    pub library: Option<String>,
+}
+
+/// The starter document of `key`.
+fn starter_doc(key: &str) -> Option<LibDocument> {
+    LibDocument::from_json(starter::item(key)?.json).ok()
+}
+
+/// The reference to starter FnDef copy `c`, with its key for the reader and the caret requirement of its version.
+fn fndef_ref(c: &LibCopy<ew_schema::FnDef>) -> LibRef {
+    let minor = c.version.split('.').take(2).collect::<Vec<_>>().join(".");
+    let mut r = LibRef {
+        library: Id::from_uuid(c.library_id.as_uuid()),
+        item: Id::from_uuid(c.item_id.as_uuid()),
+        version_req: format!("^{minor}"),
+        extra: Default::default(),
+    };
+    if let Some(key) = &c.item.meta.key {
+        r.extra
+            .insert("key".into(), Value::String(key.as_str().to_owned()));
+    }
+    r
+}
+
+/// The starter port function that draws a port of `bus` (the FnDef of its starter port symbol), with its category.
+fn port_fndef(bus: &ew_schema::BusSystem) -> Option<LibCopy<ew_schema::FnDef>> {
+    let symbol = crate::output::bus_port_symbol_key(bus)?;
+    let LibDocument::Symbol(s) = starter_doc(&symbol)? else {
+        return None;
+    };
+    let key = s.item.fndef.extra.get("key")?.as_str()?.to_owned();
+    match starter_doc(&key)? {
+        LibDocument::Fndef(f) => Some(f),
+        _ => None,
+    }
+}
+
+impl Session {
+    /// The draft of a new part (`part.new`): no manufacturer or number yet, kind device, unit piece, no bus interface,
+    /// saved to My parts too.
+    ///
+    /// # Errors
+    ///
+    /// [`PartDraftError::Refused`] (`error-part-new-id`) when no new item ID can be drawn (no entropy).
+    pub fn new_part_draft(&self) -> Result<PartDraft, PartDraftError> {
+        let item = Id::<()>::try_new_v7()
+            .map_err(|_| PartDraftError::Refused(ew_commands::text_key!("error-part-new-id")))?
+            .as_uuid();
+        let original: Part = serde_json::from_value(json!({
+            "manufacturer": {"library": Uuid::nil(), "item": Uuid::nil(), "version_req": "*"},
+            "part_number": "-",
+        }))
+        .expect("a minimal part");
+        let fields = crate::part_editor::DRAFT_FIELDS
+            .iter()
+            .map(|f| {
+                let text = match *f {
+                    "kind" => "device",
+                    "unit" => "piece",
+                    _ => "",
+                };
+                (*f, text.to_owned())
+            })
+            .collect();
+        Ok(PartDraft {
+            copy: item,
+            fields,
+            tech: Vec::new(),
+            messages: Vec::new(),
+            fork: false,
+            library: None,
+            version: "0.1.0".to_owned(),
+            functions: Vec::new(),
+            cps: Vec::new(),
+            new: true,
+            bus: Vec::<BusRow>::new(),
+            to_library: true,
+            manufacturer: (original.manufacturer.clone(), Vec::new()),
+            original,
+        })
+    }
+
+    /// The new part's item from a draft: the fields, the bus section and the function template a placement needs
+    /// (see the module documentation); the manufacturer is the caller's.
+    fn new_part_item(&self, draft: &PartDraft) -> Result<Part, PartDraftError> {
+        let (mut p, _) = self.draft_part(draft)?;
+        p.sections.bus = bus_section(&draft.bus)?;
+        p.meta.key = Some(p.part_number.clone());
+        let first_port = p.sections.bus.as_ref().and_then(|b| b.ports.first());
+        if p.cp_pattern.is_empty()
+            && let Some(def) = first_port.and_then(|port| port_fndef(&port.bus))
+        {
+            p.function_template = vec![TemplateFn {
+                fndef: fndef_ref(&def),
+                main: true,
+                cps: Vec::new(),
+                extra: Default::default(),
+            }];
+            if p.category.is_none() {
+                p.category = Some(def.item.category.clone());
+            }
+        }
+        Ok(p)
+    }
+
+    /// The part `number` of manufacturer `maker` among `parts` (part number and name compared without regard to case).
+    fn same_part<'a>(&self, parts: impl IntoIterator<Item = &'a Part>, number: &str, maker: &str) -> bool {
+        let q = self.query();
+        parts.into_iter().any(|p| {
+            p.part_number.as_str().eq_ignore_ascii_case(number)
+                && ew_derive::manufacturer_name(&q, &p.manufacturer).eq_ignore_ascii_case(maker)
+        })
+    }
+
+    /// Saves a new part (see the module documentation): into My parts and the command that embeds it, or the
+    /// `parts.import` of a project-local part when the draft keeps it to the project or the window has no user
+    /// library folder.
+    ///
+    /// # Errors
+    ///
+    /// [`PartDraftError::Field`] for the first field that does not parse; on `part_number` (`error-part-exists`) when
+    /// the project or My parts holds a part of that number and manufacturer; on `part` when My parts cannot be written.
+    pub fn new_part_command(&mut self, draft: &PartDraft) -> Result<NewPart, PartDraftError> {
+        let mut part = self.new_part_item(draft)?;
+        let maker = draft.text("manufacturer").trim().to_owned();
+        let number = part.part_number.as_str().to_owned();
+        let exists = || {
+            PartDraftError::Field(message(
+                "part_number",
+                ew_commands::text_key!("error-part-exists"),
+                &[&number, &maker],
+            ))
+        };
+        {
+            let q = self.query();
+            let project = q.project().id.as_uuid();
+            let held: Vec<Part> = q.parts().iter().map(|(_, c)| c.item.clone()).collect();
+            let key_taken = q
+                .parts()
+                .iter()
+                .any(|(_, c)| c.library_id.as_uuid() == project && c.item.meta.key == part.meta.key);
+            if key_taken || self.same_part(&held, &number, &maker) {
+                return Err(exists());
+            }
+        }
+        let library = draft
+            .to_library
+            .then(|| crate::eplan::user_parts_library(self.libraries_mut()).ok())
+            .flatten();
+        let item = draft.copy;
+        let Some(lib) = library else {
+            return self.project_part(part, &maker, item);
+        };
+        let docs = self.libraries().documents(lib, Kind::Part);
+        let mine: Vec<Part> = docs
+            .iter()
+            .filter_map(|d| match d {
+                LibDocument::Part(c) => Some(c.item.clone()),
+                _ => None,
+            })
+            .collect();
+        if self.same_part(&mine, &number, &maker) {
+            return Err(exists());
+        }
+        let mut written = Vec::new();
+        part.manufacturer = match self
+            .libraries()
+            .documents(lib, Kind::Manufacturer)
+            .iter()
+            .find_map(|d| match d {
+                LibDocument::Manufacturer(c) if maker_named(c, &maker) => {
+                    Some(lib_ref(c.library_id.as_uuid(), c.item_id.as_uuid()))
+                }
+                _ => None,
+            }) {
+            Some(r) => r,
+            None => {
+                let copy = new_maker(lib, &maker)?;
+                let r = lib_ref(lib, copy.item_id.as_uuid());
+                written.push(LibDocument::Manufacturer(copy));
+                r
+            }
+        };
+        let copy = finish(
+            LibCopy {
+                id: v5::lib_copy_id(lib, item),
+                v: 1,
+                library_id: Id::from_uuid(lib),
+                item_id: Id::from_uuid(item),
+                version: draft.version.clone(),
+                sha256: Sha256([0; 32]),
+                item: part,
+            },
+            LibDocument::Part,
+        );
+        written.push(LibDocument::Part(copy.clone()));
+        let name = self
+            .libraries()
+            .libraries()
+            .into_iter()
+            .find(|l| l.id == lib)
+            .map(|l| l.name)
+            .unwrap_or_default();
+        self.libraries_mut().write(lib, &written).map_err(|e| {
+            PartDraftError::Field(message(
+                "part",
+                ew_commands::text_key!("error-part-library"),
+                &[&name, &e.to_string()],
+            ))
+        })?;
+        let docs = self.closure_docs(&[lib_ref(lib, item)]).map_err(|e| {
+            PartDraftError::Field(message(
+                "part",
+                ew_commands::text_key!("error-part-library"),
+                &[&name, &e.to_string()],
+            ))
+        })?;
+        let copies = docs.iter().filter_map(|d| serde_json::to_value(d).ok()).collect();
+        let command = AnyCommand::of(&EmbedLibraryCopies { copies }).map_err(|e| {
+            PartDraftError::Field(message(
+                "part",
+                ew_commands::text_key!("error-part-value"),
+                &[&e.to_string()],
+            ))
+        })?;
+        Ok(NewPart {
+            command,
+            library: Some(name),
+        })
+    }
+
+    /// The `parts.import` of a project-local part: the manufacturer a part copy of the project names under that name,
+    /// else a new project-local manufacturer record.
+    fn project_part(&self, mut part: Part, maker: &str, item: Uuid) -> Result<NewPart, PartDraftError> {
+        let q = self.query();
+        let project = q.project().id.as_uuid();
+        let mut copies = Vec::new();
+        let held = q.manufacturers().iter().find_map(|(_, c)| {
+            let r = lib_ref(c.library_id.as_uuid(), c.item_id.as_uuid());
+            ew_derive::manufacturer_name(&q, &r)
+                .eq_ignore_ascii_case(maker)
+                .then_some(r)
+        });
+        part.manufacturer = match held {
+            Some(r) => r,
+            None => {
+                let copy = new_maker(project, maker)?;
+                let r = lib_ref(project, copy.item_id.as_uuid());
+                copies.push(
+                    serde_json::to_value(LibDocument::Manufacturer(copy))
+                        .expect("a manufacturer has a JSON form"),
+                );
+                r
+            }
+        };
+        let copy = finish(
+            LibCopy {
+                id: v5::lib_copy_id(project, item),
+                v: 1,
+                library_id: Id::from_uuid(project),
+                item_id: Id::from_uuid(item),
+                version: "0.1.0".to_owned(),
+                sha256: Sha256([0; 32]),
+                item: part,
+            },
+            LibDocument::Part,
+        );
+        copies.insert(
+            0,
+            serde_json::to_value(LibDocument::Part(copy)).expect("a part has a JSON form"),
+        );
+        let command = AnyCommand::of(&ImportParts { copies }).map_err(|e| {
+            PartDraftError::Field(message(
+                "part",
+                ew_commands::text_key!("error-part-value"),
+                &[&e.to_string()],
+            ))
+        })?;
+        Ok(NewPart {
+            command,
+            library: None,
+        })
+    }
+}
+
+/// A reference to item `item` of library `library`.
+fn lib_ref(library: Uuid, item: Uuid) -> LibRef {
+    LibRef {
+        library: Id::from_uuid(library),
+        item: Id::from_uuid(item),
+        version_req: "^0.1".to_owned(),
+        extra: Default::default(),
+    }
+}
+
+/// Whether manufacturer copy `c` is named `name` (its key or a name, without regard to case).
+fn maker_named(c: &LibCopy<Manufacturer>, name: &str) -> bool {
+    c.item.key.as_str().eq_ignore_ascii_case(name)
+        || c.item
+            .name
+            .languages()
+            .any(|l| c.item.name.get(l).is_some_and(|n| n.eq_ignore_ascii_case(name)))
+        || c.item
+            .name
+            .as_neutral()
+            .is_some_and(|n| n.eq_ignore_ascii_case(name))
+}
+
+/// A new manufacturer record `name` in library `library`: item `v5(library, "manufacturer:<name>")`.
+fn new_maker(library: Uuid, name: &str) -> Result<LibCopy<Manufacturer>, PartDraftError> {
+    let key = Ident::from_input(name).map_err(|e| {
+        PartDraftError::Field(message(
+            "manufacturer",
+            ew_commands::text_key!("error-part-value"),
+            &[&e.to_string()],
+        ))
+    })?;
+    let item = Uuid::new_v5(
+        &library,
+        format!("manufacturer:{}", name.to_lowercase()).as_bytes(),
+    );
+    Ok(finish(
+        LibCopy {
+            id: v5::lib_copy_id(library, item),
+            v: 1,
+            library_id: Id::from_uuid(library),
+            item_id: Id::from_uuid(item),
+            version: "0.1.0".to_owned(),
+            sha256: Sha256([0; 32]),
+            item: Manufacturer {
+                meta: Default::default(),
+                key,
+                name: ew_mltext::MlText::neutral(name),
+                aliases: Vec::new(),
+                brands: Vec::new(),
+                extra: Default::default(),
+            },
+        },
+        LibDocument::Manufacturer,
+    ))
+}
+
+/// A copy with its hash (EW-CORE-014); `doc` makes the library document the hash is taken of.
+fn finish<T: Clone>(mut copy: LibCopy<T>, doc: fn(LibCopy<T>) -> LibDocument) -> LibCopy<T> {
+    copy.sha256 = Sha256(library_copy_hash(&doc(copy.clone())).unwrap_or([0; 32]));
+    copy
+}

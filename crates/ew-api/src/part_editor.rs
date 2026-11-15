@@ -13,7 +13,10 @@ use ew_commands::commands::{EditPartCopy, FieldChange, classify_update};
 use ew_derive::Q;
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_mltext::Ident;
-use ew_schema::{Device, Kind, LibCopy, LibDocument, LibRef, OrderUnit, Part, PartKind, TechVal, TechValue};
+use ew_schema::{
+    BusSection, BusSystem, Device, Kind, LibCopy, LibDocument, LibRef, OrderUnit, Part, PartBusPort,
+    PartKind, PortRole, TechVal, TechValue,
+};
 use serde_json::Value;
 
 use crate::library::ItemQuery;
@@ -97,13 +100,216 @@ pub struct PartDraft {
     pub functions: Vec<String>,
     /// The CP pattern's designations (read-only).
     pub cps: Vec<String>,
-    original: Part,
-    manufacturer: (LibRef, Vec<Value>),
+    /// Whether the draft is a new part (`part.new`): its bus section is edited here, and Save creates the part.
+    pub new: bool,
+    /// The bus interfaces (doc 10 §2.6 "The bus section"), one row each; read-only on a held copy.
+    pub bus: Vec<BusRow>,
+    /// Whether Save also adds a new part to the person's own parts library ("My parts").
+    pub to_library: bool,
+    pub(crate) original: Part,
+    pub(crate) manufacturer: (LibRef, Vec<Value>),
+}
+
+/// The members of a bus interface row, in the form's order (`part.field`'s `bus.<row>.<member>`).
+pub const BUS_MEMBERS: [&str; 6] = ["interface", "port_label", "bus", "role", "ports", "termination"];
+
+/// One bus interface of a draft (`PartBusPort`) as the texts of [`BUS_MEMBERS`]: `bus` and `role` as the file spells
+/// them (`profinet`, `device`), `ports` a count or empty, `termination` `on`, `off` or empty (no switch).
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct BusRow {
+    /// The interface name ("X1", "DP").
+    pub interface: String,
+    /// The port label of an interface listed port by port ("P1R"), else empty.
+    pub port_label: String,
+    /// The bus system.
+    pub bus: String,
+    /// The role.
+    pub role: String,
+    /// The number of physical ports (sockets), else empty.
+    pub ports: String,
+    /// The termination switch's state, else empty.
+    pub termination: String,
+}
+
+impl BusRow {
+    /// The text of member `m` of [`BUS_MEMBERS`]; `""` for another.
+    pub fn text(&self, m: &str) -> &str {
+        match m {
+            "interface" => &self.interface,
+            "port_label" => &self.port_label,
+            "bus" => &self.bus,
+            "role" => &self.role,
+            "ports" => &self.ports,
+            "termination" => &self.termination,
+            _ => "",
+        }
+    }
+
+    fn slot(&mut self, m: &str) -> Option<&mut String> {
+        match m {
+            "interface" => Some(&mut self.interface),
+            "port_label" => Some(&mut self.port_label),
+            "bus" => Some(&mut self.bus),
+            "role" => Some(&mut self.role),
+            "ports" => Some(&mut self.ports),
+            "termination" => Some(&mut self.termination),
+            _ => None,
+        }
+    }
+
+    fn of(p: &PartBusPort) -> BusRow {
+        BusRow {
+            interface: p.interface.as_str().to_owned(),
+            port_label: opt_text(p.port_label.as_ref()),
+            bus: stored_word(&p.bus),
+            role: stored_word(&p.role),
+            ports: p.ports.map_or_else(String::new, |n| n.to_string()),
+            termination: p.termination.as_ref().map_or_else(String::new, stored_word),
+        }
+    }
+}
+
+/// The most sockets one interface takes in the form (a 52-port switch fits).
+pub const MAX_PORTS: u16 = 64;
+
+/// A stored enum value as the file writes it (`profinet`, `device`).
+fn stored_word<T: serde::Serialize>(value: &T) -> String {
+    match serde_json::to_value(value) {
+        Ok(Value::String(s)) => s,
+        _ => String::new(),
+    }
+}
+
+/// The values a schema enum takes, as the file spells them, in declaration order (the form's choices; the verbatim
+/// `Unknown` arm is no choice). Read from the type's JSON schema, so a new variant is offered without a list here.
+pub fn enum_words<T: schemars::JsonSchema>() -> Vec<String> {
+    let schema = serde_json::to_value(schemars::schema_for!(T)).unwrap_or(Value::Null);
+    let consts = |v: &Value| -> Vec<String> {
+        v.as_array()
+            .map(|a| {
+                a.iter()
+                    .filter_map(|b| {
+                        b.get("const")
+                            .or(Some(b))
+                            .and_then(Value::as_str)
+                            .map(str::to_owned)
+                    })
+                    .collect()
+            })
+            .unwrap_or_default()
+    };
+    let mut out = consts(&schema["enum"]);
+    out.extend(consts(&schema["oneOf"]));
+    out
+}
+
+/// The bus systems the form offers ([`BusSystem`]'s values).
+pub fn bus_words() -> Vec<String> {
+    enum_words::<BusSystem>()
+}
+
+/// The port roles the form offers ([`PortRole`]'s values).
+pub fn role_words() -> Vec<String> {
+    enum_words::<PortRole>()
+}
+
+/// The check of one bus member's text: the member's message, if it does not parse.
+fn check_bus_member(field: &str, m: &str, t: &str) -> Result<(), DraftMessage> {
+    let ident = |t: &str| {
+        Ident::from_input(t).map(|_| ()).map_err(|e| {
+            message(
+                field,
+                ew_commands::text_key!("error-part-value"),
+                &[&e.to_string()],
+            )
+        })
+    };
+    match m {
+        "interface" if t.is_empty() => Err(message(
+            field,
+            ew_commands::text_key!("error-part-bus-interface"),
+            &[],
+        )),
+        "interface" => ident(t),
+        "port_label" if t.is_empty() => Ok(()),
+        "port_label" => ident(t),
+        "bus" => match serde_json::from_value::<BusSystem>(Value::String(t.to_owned())) {
+            Ok(BusSystem::Unknown(_)) | Err(_) => Err(message(
+                field,
+                ew_commands::text_key!("error-part-bus-system"),
+                &[t],
+            )),
+            Ok(_) => Ok(()),
+        },
+        "role" => match serde_json::from_value::<PortRole>(Value::String(t.to_owned())) {
+            Ok(PortRole::Unknown(_)) | Err(_) => Err(message(
+                field,
+                ew_commands::text_key!("error-part-bus-role"),
+                &[t],
+            )),
+            Ok(_) => Ok(()),
+        },
+        "ports" if t.is_empty() => Ok(()),
+        "ports" => match t.parse::<u16>() {
+            Ok(n) if (1..=MAX_PORTS).contains(&n) => Ok(()),
+            _ => Err(message(
+                field,
+                ew_commands::text_key!("error-part-bus-ports"),
+                &[t, &MAX_PORTS.to_string()],
+            )),
+        },
+        "termination" => match t {
+            "" | "on" | "off" => Ok(()),
+            _ => Err(message(
+                field,
+                ew_commands::text_key!("error-part-bus-termination"),
+                &[t],
+            )),
+        },
+        _ => Ok(()),
+    }
+}
+
+/// The part's bus section from the draft's rows (checked); `None` without a row.
+pub(crate) fn bus_section(rows: &[BusRow]) -> Result<Option<BusSection>, PartDraftError> {
+    if rows.is_empty() {
+        return Ok(None);
+    }
+    let mut ports = Vec::with_capacity(rows.len());
+    for (i, r) in rows.iter().enumerate() {
+        for m in BUS_MEMBERS {
+            check_bus_member(&format!("bus.{i}.{m}"), m, r.text(m).trim()).map_err(PartDraftError::Field)?;
+        }
+        let word = |t: &str| Value::String(t.trim().to_owned());
+        let opt = |t: &str| (!t.trim().is_empty()).then(|| Ident::from_input(t.trim()).expect("checked"));
+        ports.push(PartBusPort {
+            interface: Ident::from_input(r.interface.trim()).expect("checked"),
+            port_label: opt(&r.port_label),
+            bus: serde_json::from_value(word(&r.bus)).expect("checked"),
+            role: serde_json::from_value(word(&r.role)).expect("checked"),
+            termination: (!r.termination.trim().is_empty())
+                .then(|| serde_json::from_value(word(&r.termination)).expect("checked")),
+            connector: None,
+            rates: Vec::new(),
+            address_range: None,
+            iolink: None,
+            signals: std::collections::BTreeMap::new(),
+            ports: r.ports.trim().parse().ok(),
+            extra: ew_schema::Extra::new(),
+        });
+    }
+    Ok(Some(BusSection {
+        ports,
+        ..BusSection::default()
+    }))
 }
 
 impl PartDraft {
-    /// The text of a field of [`DRAFT_FIELDS`] or `tech:<key>`; `""` for another.
+    /// The text of a field of [`DRAFT_FIELDS`], `tech:<key>` or `bus.<row>.<member>`; `""` for another.
     pub fn text(&self, field: &str) -> &str {
+        if let Some((row, m)) = bus_field(field) {
+            return self.bus.get(row).map_or("", |r| r.text(m));
+        }
         if let Some(key) = field.strip_prefix("tech:") {
             return self
                 .tech
@@ -134,6 +340,76 @@ impl PartDraft {
             self.messages.push(m);
         }
     }
+
+    /// Adds a bus interface row to a new part: the next free interface name `X1`, `X2` …, PROFINET, role device.
+    pub fn add_bus_row(&mut self) {
+        let interface = (1..)
+            .map(|n| format!("X{n}"))
+            .find(|x| {
+                !self
+                    .bus
+                    .iter()
+                    .any(|r| r.interface.trim().eq_ignore_ascii_case(x))
+            })
+            .unwrap_or_default();
+        self.bus.push(BusRow {
+            interface,
+            bus: "profinet".to_owned(),
+            role: "device".to_owned(),
+            ..BusRow::default()
+        });
+        self.recheck_bus();
+    }
+
+    /// Removes bus interface row `row` (0-based); `false` when there is none.
+    pub fn remove_bus_row(&mut self, row: usize) -> bool {
+        if row >= self.bus.len() {
+            return false;
+        }
+        self.bus.remove(row);
+        self.recheck_bus();
+        true
+    }
+
+    /// The messages of every bus member again, after a row came or went (a row's messages follow its index), and the
+    /// pairs given twice.
+    fn recheck_bus(&mut self) {
+        self.messages.retain(|m| bus_field(&m.field).is_none());
+        for i in 0..self.bus.len() {
+            for m in BUS_MEMBERS {
+                let field = format!("bus.{i}.{m}");
+                let text = self.bus[i].text(m).trim().to_owned();
+                if let Err(e) = check_bus_member(&field, m, &text) {
+                    self.messages.push(e);
+                }
+            }
+        }
+        for i in 0..self.bus.len() {
+            let key = |r: &BusRow| {
+                (
+                    r.interface.trim().to_lowercase(),
+                    r.port_label.trim().to_lowercase(),
+                )
+            };
+            let twice = self.bus[..i].iter().any(|r| key(r) == key(&self.bus[i]));
+            let field = format!("bus.{i}.interface");
+            if twice && self.message(&field).is_none() {
+                self.messages.push(message(
+                    &field,
+                    ew_commands::text_key!("error-part-bus-twice"),
+                    &[self.bus[i].interface.trim()],
+                ));
+            }
+        }
+    }
+}
+
+/// `bus.<row>.<member>` as (row, member).
+fn bus_field(field: &str) -> Option<(usize, &'static str)> {
+    let rest = field.strip_prefix("bus.")?;
+    let (row, m) = rest.split_once('.')?;
+    let m = BUS_MEMBERS.into_iter().find(|x| *x == m)?;
+    Some((row.parse().ok()?, m))
 }
 
 /// What saving a draft does (D20's card): the command, the fork item, the field diff, the devices that use the copy
@@ -154,7 +430,7 @@ pub struct PartEditPlan {
     pub bom_added: Vec<String>,
 }
 
-fn message(field: &str, key: &'static str, args: &[&str]) -> DraftMessage {
+pub(crate) fn message(field: &str, key: &'static str, args: &[&str]) -> DraftMessage {
     DraftMessage {
         field: field.to_owned(),
         key,
@@ -274,6 +550,14 @@ impl Session {
                 .iter()
                 .map(|cp| cp.designation.as_str().to_owned())
                 .collect(),
+            new: false,
+            bus: p
+                .sections
+                .bus
+                .as_ref()
+                .map(|b| b.ports.iter().map(BusRow::of).collect())
+                .unwrap_or_default(),
+            to_library: false,
             manufacturer: (p.manufacturer.clone(), Vec::new()),
             original: c.item,
         })
@@ -324,6 +608,24 @@ impl Session {
         text: &str,
     ) -> Result<(), PartDraftError> {
         let t = text.trim();
+        if let Some((row, m)) = bus_field(field) {
+            let Some(slot) = draft
+                .bus
+                .get_mut(row)
+                .filter(|_| draft.new)
+                .and_then(|r| r.slot(m))
+            else {
+                return Err(PartDraftError::Refused(ew_commands::text_key!(
+                    "error-part-field"
+                )));
+            };
+            *slot = text.to_owned();
+            draft.recheck_bus();
+            return match draft.message(field) {
+                Some(m) => Err(PartDraftError::Field(m.clone())),
+                None => Ok(()),
+            };
+        }
         let result = if let Some(key) = field.strip_prefix("tech:") {
             self.set_tech(draft, key, t)
         } else {
@@ -365,6 +667,10 @@ impl Session {
                         ew_commands::text_key!("reason-part-no-manufacturer"),
                         &[],
                     ));
+                }
+                // A new part names any manufacturer: Save finds the record by its name or makes one.
+                if draft.new {
+                    return ident(t).map(|_| ());
                 }
                 let q = self.query();
                 let current = ew_derive::manufacturer_name(&q, &draft.original.manufacturer);
@@ -497,7 +803,7 @@ impl Session {
 
     /// The draft's part item and the manufacturer documents it needs; the first message of a field that does not
     /// parse is the refusal.
-    fn draft_part(&self, draft: &PartDraft) -> Result<(Part, Vec<Value>), PartDraftError> {
+    pub(crate) fn draft_part(&self, draft: &PartDraft) -> Result<(Part, Vec<Value>), PartDraftError> {
         if let Some(m) = draft.messages.first() {
             return Err(PartDraftError::Field(m.clone()));
         }
