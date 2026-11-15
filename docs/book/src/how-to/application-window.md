@@ -15,7 +15,8 @@ With no project open the window shows the start page. It has no news feed and op
 - **Open sample project** opens the CC0 sample project read-only; use **Save as...** to make your own copy.
 - **Import QElectroTech project** reads a `.qet` file into a new project directory.
 - **Create company standard** starts the [company-standard wizard](#company-standard-wizard).
-- **Tutorials** opens the tutorials and a fresh copy of the sample project.
+- **Tutorials and guides** lists the tutorials (step by step, with a practice project) and the how-to guides (how
+  to do one job), as **Help ▸ Tutorials** and **Help ▸ Guides** do.
 - The quick switches set the language and the keymap preset. The privacy line says that this version has no update
   check; **change** opens the privacy step of the [first-run setup](#first-run-setup).
 
@@ -58,7 +59,9 @@ Disabled entries are listed last with the reason. `Escape` closes it.
 ## Keyboard shortcuts
 
 **Help, Keyboard shortcuts** lists the bindings of the EW preset. `F1` opens this guide at the page of what has the
-focus: an open dialog, the palette, the wizard, the project view or the start page. Over a menu item with a shortcut
+focus: an open dialog, the palette, the wizard, the project view or the start page. On the PLC, Bus and Fluid panels,
+the PLC and Fluid tabs, a bus-topology, fluid or panel layout page and in the part editor it opens the guide of that
+job; the **?** in those panels' headers and the tabs' **Guide** do the same. Over a menu item with a shortcut
 the tooltip ends with "F1: learn more"; `F1` while the pointer is on the item opens the page of that item.
 
 ## Workspaces

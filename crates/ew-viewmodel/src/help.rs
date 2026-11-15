@@ -389,6 +389,8 @@ pub fn pane_topic(pane: PaneKind) -> &'static str {
 /// grid, the find pane, the history, the command bar, or the canvas's active tool other than Select.
 fn focus_topic(model: &ShellModel) -> Option<&'static str> {
     Some(match model.focus()? {
+        // A panel with a guide leads to it, in its table mode too (the PLC grid is a table).
+        Focus::Navigator(kind) if nav_topic(kind).starts_with("guide-") => nav_topic(kind),
         Focus::Navigator(kind) if model.nav(kind).is_some_and(|n| n.table_mode().is_some()) => {
             if kind == NavKind::Strips {
                 "strip-editor"

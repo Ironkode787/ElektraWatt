@@ -2741,7 +2741,7 @@ fn describe_lists_the_start_page_the_wizard_and_the_project_view() {
         "button \"Open sample project\"",
         "button \"Import QElectroTech project\"",
         "button \"Create company standard\"",
-        "button \"Tutorials\"",
+        "button \"Tutorials and guides\"",
         "quick \"Language\": \"English\"",
         "item file.new \"New project…\" [Ctrl+N] enabled",
         "item file.discard_journal \"Discard unsaved changes of the earlier session…\" disabled: The project has no journal of an earlier session",

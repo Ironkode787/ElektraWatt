@@ -145,6 +145,26 @@ fn entries(ui: &mut Ui, list: &[MenuEntry], icons: bool, events: &mut Vec<Event>
     }
 }
 
+/// The Help menu's Tutorials and Guides submenus of `shell` (the start page's Tutorials and guides button, F5).
+pub(crate) fn tutorial_lists(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
+    use ew_viewmodel::actions::{Menu, Submenu};
+    let lists: Vec<MenuEntry> = menu_model(shell)
+        .into_iter()
+        .filter(|m| m.menu == Menu::Help)
+        .flat_map(|m| m.entries)
+        .filter(|e| {
+            matches!(
+                e,
+                MenuEntry::Submenu {
+                    submenu: Submenu::Tutorials | Submenu::Guides,
+                    ..
+                }
+            )
+        })
+        .collect();
+    entries(ui, &lists, true, events);
+}
+
 /// The app menu's content (the popup of the command bar's app button): one submenu per menu of `shell`.
 pub(crate) fn app_menu(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     for menu in menu_model(shell) {

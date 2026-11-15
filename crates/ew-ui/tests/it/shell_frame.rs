@@ -35,7 +35,7 @@ fn the_start_page_has_every_entry_of_doc_16_section_3_7() {
         "Open sample project",
         "Import QElectroTech project",
         "Create company standard",
-        "Tutorials",
+        "Tutorials and guides",
         "Language",
         "Keymap",
         "English",

@@ -114,9 +114,10 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             {
                 action(events, "file.open", json!({ "dir": basic }));
             }
-            if ui.button(strings::text(key!("start-tutorials"))).clicked() {
-                action(events, "help.tutorials", Value::Null);
-            }
+            // The tutorials and the how-to guides, as Help lists them (F5).
+            ui.menu_button(strings::text(key!("start-tutorials")), |ui| {
+                crate::menu::tutorial_lists(ui, shell, events);
+            });
             ui.add_space(16.0);
             let settings = shell.settings();
             quick_switch(

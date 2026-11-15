@@ -899,7 +899,7 @@ fn the_reworded_texts_in_both_languages() {
             "a normaliser removed an item the import brought: X",
             "Tutorials",
             "Tutorials",
-            "Tutorials",
+            "Tutorials and guides",
             "A fresh copy of the sample project was made for the tutorials.",
             "Preview of Set property",
         ]
@@ -914,7 +914,7 @@ fn the_reworded_texts_in_both_languages() {
             "een normalisator heeft een element verwijderd dat de import meebracht: X",
             "Zelfstudies",
             "Zelfstudies",
-            "Zelfstudies",
+            "Zelfstudies en handleidingen",
             "Voor de zelfstudies is een nieuwe kopie van het voorbeeldproject gemaakt.",
             "Voorbeeld van eigenschap instellen",
         ]

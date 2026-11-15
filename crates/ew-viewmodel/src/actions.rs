@@ -144,6 +144,8 @@ pub enum Submenu {
     MinFont,
     /// Help, Tutorials: one item per tutorial of [`tutorials`], each with its own start.
     Tutorials,
+    /// Help, Guides: one item per how-to guide of [`guides`], each opening its page.
+    Guides,
     /// PLC, Station, Rack and slots: one item per PLC station.
     RackEditor,
     /// PLC, Station, Attach cards: one item per station that takes cards.
@@ -159,17 +161,29 @@ pub enum Submenu {
     BusPorts,
 }
 
-/// The guide's table of contents, the one place its tutorials are listed (FT-1715).
+/// The guide's table of contents, the one place its tutorials and how-to guides are listed (FT-1715).
 const BOOK_SUMMARY: &str = include_str!("../../../docs/book/src/SUMMARY.md");
 
-/// The tutorials of the guide in its order, read from its table of contents: each its page's name, which
-/// `help.tutorials` takes as `tutorial` and whose label is `tutorial-<name>`, and the page's English title.
-pub fn tutorials() -> impl Iterator<Item = (&'static str, &'static str)> {
-    BOOK_SUMMARY.lines().filter_map(|line| {
-        let (title, rest) = line.trim().strip_prefix("- [")?.split_once("](tutorials/")?;
-        let name = rest.strip_suffix(".md)")?;
+/// The pages of the guide's directory `dir` (`tutorials`) in its order, read from its table of contents: each its
+/// page's name and English title, the directory's index left out.
+fn book_pages(dir: &'static str) -> impl Iterator<Item = (&'static str, &'static str)> {
+    BOOK_SUMMARY.lines().filter_map(move |line| {
+        let (title, rest) = line.trim().strip_prefix("- [")?.split_once("](")?;
+        let name = rest.strip_prefix(dir)?.strip_prefix('/')?.strip_suffix(".md)")?;
         (name != "index").then_some((name, title))
     })
+}
+
+/// The tutorials of the guide in its order: each its page's name, which `help.tutorials` takes as `tutorial` and whose
+/// label is `tutorial-<name>`, and the page's English title.
+pub fn tutorials() -> impl Iterator<Item = (&'static str, &'static str)> {
+    book_pages("tutorials")
+}
+
+/// The how-to guides of the guide in its order (F5): each its page's name, which `help.guide` takes as `guide` and
+/// whose label is `guide-<name>`, and the page's English title.
+pub fn guides() -> impl Iterator<Item = (&'static str, &'static str)> {
+    book_pages("how-to")
 }
 
 impl Submenu {
@@ -192,6 +206,7 @@ impl Submenu {
             Submenu::Language => key!("submenu-language"),
             Submenu::MinFont => key!("submenu-min-font"),
             Submenu::Tutorials => key!("submenu-tutorials"),
+            Submenu::Guides => key!("submenu-guides"),
             Submenu::RackEditor => key!("action-plc-rack-editor"),
             Submenu::AttachCards => key!("action-plc-attach-cards"),
             Submenu::PlcAddressing => key!("submenu-plc-addressing"),
@@ -1576,6 +1591,17 @@ pub fn workspace_label(name: &str) -> String {
         .map_or_else(|| name.to_owned(), str::to_owned)
 }
 
+/// The greyed first line of a submenu that says what its entries are ("How to do one job"): no action runs from it.
+fn heading_item(meta: &ActionMeta, model: &ShellModel, what: Key<'static>) -> ActionItem {
+    let mut item = item_of(meta, model);
+    item.label = strings::text(what).to_owned();
+    item.params = Value::Null;
+    item.shortcut = String::new();
+    item.enabled = false;
+    item.reason = None;
+    item
+}
+
 /// The one greyed item of a submenu that has nothing to offer now, its label and reason the text of `why` (a
 /// command-bar menu button is greyed with it).
 fn nothing_item(meta: &ActionMeta, model: &ShellModel, why: Key<'static>) -> Vec<ActionItem> {
@@ -1739,9 +1765,9 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
                 })
                 .collect()
         }
-        // One item per tutorial, each with its own start.
-        Submenu::Tutorials => tutorials()
-            .map(|(name, title)| {
+        // One item per tutorial, each with its own start, under a line that says what a tutorial is.
+        Submenu::Tutorials => std::iter::once(heading_item(meta, model, key!("submenu-tutorials-what")))
+            .chain(tutorials().map(|(name, title)| {
                 let mut item = item_of(meta, model);
                 item.label = strings::lookup(&format!("tutorial-{name}"))
                     .unwrap_or(title)
@@ -1752,7 +1778,18 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
                 }
                 item.params = json!({ "tutorial": name });
                 item
-            })
+            }))
+            .collect(),
+        // One item per how-to guide, opening its page, under a line that says what a guide is.
+        Submenu::Guides => std::iter::once(heading_item(meta, model, key!("submenu-guides-what")))
+            .chain(guides().map(|(name, title)| {
+                let mut item = item_of(meta, model);
+                item.label = strings::lookup(&format!("guide-{name}"))
+                    .unwrap_or(title)
+                    .to_owned();
+                item.params = json!({ "guide": name });
+                item
+            }))
             .collect(),
         // The stations by tag: Rack and slots… of each; Attach cards to each that takes cards, while cards wait.
         Submenu::RackEditor | Submenu::AttachCards => {
@@ -2144,6 +2181,22 @@ mod tests {
         assert!(tutorials().any(|(name, _)| name == "symbol-editor"));
     }
 
+    /// F5: a how-to guide added to the guide reaches Help ▸ Guides under its own name in both languages.
+    #[test]
+    fn every_guide_of_the_guide_has_a_label_in_both_languages() {
+        let nl = include_str!("../locales/nl-NL/shell.ftl");
+        for (name, title) in guides() {
+            let key = format!("guide-{name}");
+            assert_eq!(strings::lookup(&key), Some(title), "{key} is the page's title");
+            assert!(
+                nl.lines().any(|l| l.starts_with(&format!("{key} = "))),
+                "{key} has no Dutch label"
+            );
+        }
+        assert!(guides().any(|(name, _)| name == "plc-workspace"));
+        assert!(guides().all(|(name, _)| !tutorials().any(|(t, _)| t == name)));
+    }
+
     #[test]
     fn every_entry_has_an_english_label() {
         for a in ACTIONS {
@@ -2172,6 +2225,7 @@ mod tests {
             Submenu::Language,
             Submenu::MinFont,
             Submenu::Tutorials,
+            Submenu::Guides,
         ] {
             assert!(strings::lookup(s.label_key().as_str()).is_some());
         }

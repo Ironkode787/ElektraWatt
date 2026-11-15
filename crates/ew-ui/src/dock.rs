@@ -360,6 +360,8 @@ impl Dock {
                     // Doc 16a §5.7: a bottom pane alone, without the tab row, carries the dock's close button
                     // in its header.
                     close: PaneKind::BOTTOM.contains(pane),
+                    guide: Some(ew_viewmodel::help::pane_topic(*pane))
+                        .filter(|topic| topic.starts_with("guide-")),
                 },
             );
         }
@@ -710,6 +712,8 @@ struct Header {
     segmented: Option<PaneKind>,
     /// The bottom dock's close button at the header's right end (a bottom pane alone).
     close: bool,
+    /// The help topic of the pane's guide, which a small "?" in the header opens (the PLC, Bus and Fluid panels, F5).
+    guide: Option<&'static str>,
 }
 
 /// A dock tab's horizontal padding and its underline's inset (doc 16a §5.7: 10 px).
@@ -807,6 +811,18 @@ impl DockBehavior<'_> {
             if crate::components::icon_button(&mut child, crate::icons::IconId::x, name).clicked() {
                 self.events
                     .push(Event::Action("view.bottom_dock", json!({ "on": false })));
+            }
+        }
+        if let Some(topic) = header.guide {
+            // Left of the close button where the header has one.
+            let size = t.size_control_inline;
+            let right = rect.right() - t.space_2 - if header.close { size + t.space_1 } else { 0.0 };
+            let at = Rect::from_center_size(pos2(right - size / 2.0, rect.center().y), vec2(size, size));
+            let mut child = ui.new_child(egui::UiBuilder::new().max_rect(at));
+            let name = strings::text(key!("nav-guide"));
+            if crate::components::icon_button(&mut child, crate::icons::IconId::help_circle, name).clicked() {
+                self.events
+                    .push(Event::Action("help.documentation", json!({ "topic": topic })));
             }
         }
         if let Some(shown) = header.segmented {

@@ -236,6 +236,19 @@ impl ShellModel {
         Outcome::Done
     }
 
+    /// `help.guide {guide}` (Help ▸ Guides, F5): the page of a how-to guide of the book's table of contents.
+    pub(crate) fn act_help_guide(&mut self, p: &Map<String, Value>) -> Outcome {
+        match string_param(p, "guide") {
+            Err(e) => e,
+            Ok(None) => failed(key!("error-missing-param"), &["guide"]),
+            Ok(Some(g)) if crate::actions::guides().any(|(name, _)| name == g) => {
+                self.request_doc_target(format!("how-to/{g}.html"));
+                Outcome::Done
+            }
+            Ok(Some(_)) => failed(key!("error-bad-param"), &["guide"]),
+        }
+    }
+
     // -----------------------------------------------------------------------------------------------------------
     // First run
 
