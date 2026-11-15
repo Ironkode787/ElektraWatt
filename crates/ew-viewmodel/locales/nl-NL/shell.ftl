@@ -3112,6 +3112,7 @@ action-plc-attach-cards = Kaarten zonder station bevestigen
 action-plc-attach-to = Bevestigen aan { $p0 }
 action-fluid-generate-overview = Overzicht genereren…
 reason-overview-no-page = Het ventieleiland staat op geen pagina met een kader; plaats het eerst
+overview-page-title = Ventieleiland { $p0 }
 reason-valve-no-part = Geen ventielartikel past op dit ventieleiland: zijn ventielen noch de bibliotheken noemen er een voor zijn plaatsen
 action-fluid-valve-add = Ventiel toevoegen
 reason-overview-select = Selecteer eerst een ventieleiland: op zijn pagina of in het paneel Fluïdum

@@ -290,7 +290,7 @@ impl Session {
     /// The parameters of `valve_terminal.generate_overview` for `station` (doc 11 §5.5, FR-FLU-033): the band is the
     /// drawing area of the frame on the page the overview starts from (the first page of a member's overview
     /// representation, else the station's own page), the row's y that of the first overview representation, else a
-    /// third down the drawing area; the starter overview module (`ew.ovw.module`, in the page grid's family) for the
+    /// third down the drawing area; the starter wide overview module (`ew.ovw.module-wide`, in the page grid's family) for the
     /// members not drawn yet, embedded with the command. `None` for an unknown or unplaced station or a page without a
     /// frame grid.
     pub fn overview_params(&self, station: Uuid) -> Option<serde_json::Value> {
@@ -306,8 +306,10 @@ impl Session {
             Some(r) => r.page,
             None => q.reps().get((*q.get::<ew_derive::MainRep>(head))?)?.page,
         };
-        let (area, map) = super::scale_fit::drawing_area(&q, page)?;
-        let (min, max) = (map.unapply(area.min()), map.unapply(area.max()));
+        // The frame's drawing area is in page coordinates already, where the members are placed (the persona round:
+        // read as sheet millimetres and mapped back, the band started left of the frame on a QET-scaled page).
+        let (area, _) = super::scale_fit::drawing_area(&q, page)?;
+        let (min, max) = (area.min(), area.max());
         let y = drawn
             .first()
             .map_or(min.y.0 + (max.y.0 - min.y.0) / 3, |r| r.pos.y.0);
@@ -315,11 +317,14 @@ impl Session {
             "station": station.to_string(), "left": min.x.0, "right": max.x.0, "y": y,
         });
         if drawn.len() < members.len() {
+            // The wide module: its texts (the part numbers, the valve glyphs' part numbers above it) keep their size on
+            // every grid, and the QET edition of the narrow one, two thirds of it, had no room for the starter parts'
+            // numbers (the persona round).
             let grid = q.pages().get(page)?.grid;
             let key = if grid == ew_derive::ew_units::Grid::QET_10PX {
-                "ew.ovw.module@qet10"
+                "ew.ovw.module-wide@qet10"
             } else {
-                "ew.ovw.module"
+                "ew.ovw.module-wide"
             };
             if let Some(symbol) = self.starter_symbol_copy(key) {
                 params["symbol"] = serde_json::json!(symbol.to_string());

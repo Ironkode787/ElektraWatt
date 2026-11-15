@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-15T04:02:57+01:00\n"
+"POT-Creation-Date: 2026-11-15T05:08:37+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -2874,15 +2874,18 @@ msgid ""
 "overview…**; from the command search it acts on the selected terminal and "
 "says so while none is selected. The Preview tab lists which modules stand on "
 "which overview page, and the pages it adds where the frame is full; the tags "
-"that change with a page are listed below. Choose **Apply**. Run it again "
-"after adding a module: it refreshes the pages."
-msgstr ""
-
-#: src/how-to/fluid-workspace.md:40
-msgid "Tubes"
+"that change with a page are listed below. Choose **Apply**. A new overview "
+"page is titled by the terminal, such as **Valve terminal -201A1**: its "
+"modules stand in a strip inside the frame, each valve position on top with "
+"the valve's part number, a blank position crossed. Run it again after adding "
+"a module: it refreshes the pages."
 msgstr ""
 
 #: src/how-to/fluid-workspace.md:42
+msgid "Tubes"
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:44
 msgid ""
 "The tube table has one row per tube. Type a length in millimetres into "
 "**Length** or a tube part into **Tube part**; **Source** then says the value "
@@ -2891,7 +2894,7 @@ msgid ""
 "PU 6 × 4, 8 × 6 and 10 × 8 mm."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:45
+#: src/how-to/fluid-workspace.md:47
 msgid ""
 "Choose **Project ▸ Fluid settings…** for the default tube of every line (its "
 "outer and inner diameter in mm and its material) and to tag tubes by page "
@@ -2900,18 +2903,18 @@ msgid ""
 "material, the check names it."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:49
+#: src/how-to/fluid-workspace.md:51
 msgid "Media"
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:51
+#: src/how-to/fluid-workspace.md:53
 msgid ""
 "Choose **Project ▸ New medium…**, or **New medium…** at the top of the Fluid "
 "panel beside **Fluid settings…**, give the medium a name and its pressure in "
 "bar, and choose **Create**."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:53
+#: src/how-to/fluid-workspace.md:55
 msgid ""
 "Right-click a tube and choose **Medium:** with the medium's name: the tube's "
 "net and every net the medium reaches through the valves carry it. The fluid "
@@ -2923,14 +2926,14 @@ msgid ""
 "supplies, and set it there."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:58
+#: src/how-to/fluid-workspace.md:60
 msgid ""
 "Select the medium's row in the medium table and press `Ctrl+Shift+H` to "
 "highlight its zones on the page; the highlight is a colour with a hatch "
 "pattern, so it reads without colour too."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:61
+#: src/how-to/fluid-workspace.md:63
 msgid ""
 "The panels are described in the [panel "
 "reference](../reference/window/panels.md): Fluid, Tube table and Medium "

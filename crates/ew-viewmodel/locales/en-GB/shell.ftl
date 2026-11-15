@@ -3240,6 +3240,7 @@ action-plc-attach-cards = Attach cards without a station
 action-plc-attach-to = Attach to { $p0 }
 action-fluid-generate-overview = Generate overview…
 reason-overview-no-page = The valve terminal is on no page with a frame; place it first
+overview-page-title = Valve terminal { $p0 }
 reason-valve-no-part = No valve part fits this terminal: neither its valves nor the libraries name one for its positions
 action-fluid-valve-add = Add valve
 reason-overview-select = Select a valve terminal first: on its page or in the Fluid panel

@@ -363,9 +363,13 @@ impl ShellModel {
                 Err(reason) => return Outcome::refused(reason),
             }
         };
-        let Some(params) = self.project_session().and_then(|s| s.overview_params(station)) else {
+        let Some(mut params) = self.project_session().and_then(|s| s.overview_params(station)) else {
             return Outcome::refused(key!("reason-overview-no-page"));
         };
+        // A new overview page names the terminal it shows (the persona round: page 202 had no title).
+        if let Some(tag) = self.project_session().and_then(|s| s.device_tag(station)) {
+            params["title"] = Value::String(strings::format(key!("overview-page-title"), &[&tag]));
+        }
         self.preview_bulk("valve_terminal.generate_overview", params)
     }
 

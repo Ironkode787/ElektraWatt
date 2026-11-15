@@ -38,7 +38,8 @@ pub fn fitting_scale(area: (i64, i64), usable: &[Pt2]) -> Option<u32> {
     )
 }
 
-/// The drawing area of `page` on the sheet and the map of its frame from the page to the sheet: the frame form's
+/// The drawing area of `page` in page coordinates (the frame's geometry, as the scene emits it before the frame's
+/// page-to-sheet map) and that map: the frame form's
 /// grid; for a page whose frame form has no grid, or which has no frame form (a new project's pages), the frame grid
 /// its cells read (the built-in default grid, `ew_derive::frame_grid`), as the canvas does. `None` without a grid.
 pub(crate) fn drawing_area(q: &Q, page: Id<Page>) -> Option<(Rect, SheetMap)> {

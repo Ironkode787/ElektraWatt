@@ -792,3 +792,9 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   fix, and Waive… or Unwaive (persona round)
 - behaviour-change: window Properties of a logical net show its master as the port's pin (-3A1:P1), not as data
   (persona round)
+- behaviour-change: Generate overview… places the valve terminal's strip inside the frame's drawing area on every page
+  form (on a page whose frame maps the page onto the sheet, a QET-scaled one, it started left of the frame), draws
+  the starter terminal and its plate with the wide overview module, whose valve glyphs and part numbers no longer
+  run into each other, and titles a new overview page with the terminal ("Valve terminal -201A1") (persona round 3)
+- api-add: `valve_terminal.generate_overview` takes `title`, the title of a new overview page; the starter symbol
+  `ew.ovw.module-wide` (64 mm, its QET edition 42.3 mm) (persona round 3)

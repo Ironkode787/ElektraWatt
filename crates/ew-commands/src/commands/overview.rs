@@ -21,7 +21,7 @@ use crate::commands::device::{PlaceSymbol, PlaceTarget};
 use crate::commands::page::{CreatePage, printed_folio};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
-use crate::proxy::{NmS, UuidS};
+use crate::proxy::{MlTextS, NmS, UuidS};
 use crate::text::text;
 use crate::tx::TxBuilder;
 
@@ -34,7 +34,7 @@ use crate::tx::TxBuilder;
 /// symbol's graphics from the cursor on, snapped up to the page's grid, at `y`; one that would pass `right` starts
 /// the next page (never inside a module; a member wider than the band alone stands on a page of its own). The pages
 /// are those the members' overview representations are on, in member order, then new assembly-overview pages after
-/// the last (with its frame, grid, structure and, when it is an overview page, its title), the first new one after
+/// the last (with its frame, grid, structure and `title`, else, when it is an overview page, its title), the first new one after
 /// the station's own page when there is none. A member already drawn in member order inside the band (on a later page
 /// than the member before, or on the same page right of it) stays where it stands, so that a refresh of an overview
 /// in order, Golden A's 201 and 202 among them, changes nothing; a refresh moves the representations that stand
@@ -67,6 +67,11 @@ pub struct GenerateOverview {
     /// The library documents to embed first (`lib/` JSON form): the symbol and its closure.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub copies: Vec<Value>,
+    /// The title of a new overview page (the window names the terminal: "Valve terminal -201A1"); empty: a page
+    /// after an overview page takes its title, another none.
+    #[serde(default, skip_serializing_if = "MlText::is_empty")]
+    #[schemars(with = "MlTextS")]
+    pub title: MlText,
 }
 
 /// The first grid position at or right of `x`.
@@ -170,7 +175,7 @@ impl Command for GenerateOverview {
             }
             loop {
                 if index >= pages.len() {
-                    let page = new_page(tx, pages.last().copied().unwrap_or(reference))?;
+                    let page = new_page(tx, pages.last().copied().unwrap_or(reference), &self.title)?;
                     pages.push(page);
                     created.push(page);
                 }
@@ -258,11 +263,13 @@ impl Command for GenerateOverview {
     }
 }
 
-/// A new assembly-overview page after `after`, with its frame, grid and structure, and its title when it is an
-/// assembly-overview page.
-fn new_page(tx: &mut TxBuilder<'_>, after: Id<Page>) -> Result<Id<Page>, CmdError> {
+/// A new assembly-overview page after `after`, with its frame, grid and structure, titled `title`, else with the
+/// title of `after` when it is an assembly-overview page.
+fn new_page(tx: &mut TxBuilder<'_>, after: Id<Page>, title: &MlText) -> Result<Id<Page>, CmdError> {
     let before = tx.require::<Page>(after)?;
-    let title = if before.kind == PageType::AssemblyOverview {
+    let title = if !title.is_empty() {
+        title.clone()
+    } else if before.kind == PageType::AssemblyOverview {
         before.title.clone()
     } else {
         MlText::default()

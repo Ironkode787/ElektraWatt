@@ -136,6 +136,7 @@ const PATHS: &[(&str, Path)] = &[
     ("ew.iso.valve-5-3-pc@qet10", Path::Device("Q", FLUID)),
     ("ew.iso.valve-on-off@qet10", Path::Device("Q", FLUID)),
     ("ew.iso.valve-supply-plate@qet10", Path::Device("Q", FLUID)),
+    ("ew.ovw.module-wide@qet10", Path::DeviceBox("A", OVERVIEW)),
     ("ew.ovw.module@qet10", Path::DeviceBox("A", OVERVIEW)),
     ("ew.ovw.valve-top@qet10", Path::DeviceBox("Q", OVERVIEW)),
 ];

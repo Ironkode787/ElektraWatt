@@ -45,7 +45,7 @@ fn tap(d: &mut Driver, at: (i64, i64)) {
 
 /// A driver of a window of `geometry` over a project made as the play-test's prelude makes it: the wizard's company
 /// standard, then a new project.
-fn prelude(tmp: &Tmp, geometry: Geometry) -> Driver {
+pub(crate) fn prelude(tmp: &Tmp, geometry: Geometry) -> Driver {
     let mut d = Driver::with_geometry(tmp.config(), None, tmp.0.clone(), geometry).unwrap();
     d.enable_accesskit();
     let company = tmp.0.join("company");

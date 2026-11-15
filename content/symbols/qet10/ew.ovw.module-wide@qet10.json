@@ -1,0 +1,124 @@
+{
+  "$k": "symbol",
+  "id": "3a08cde9-6aa0-5b34-a846-122c1f579e18",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "9b94976c-6cb9-5f9f-93a8-6d97fc43f83b",
+  "version": "0.1.0",
+  "sha256": "sha256:26870d7be6935c9ebab862d08324e2cba95f7b590f7d42430e4f72846701dcf3",
+  "meta": {
+    "key": "ew.ovw.module-wide@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Overview module, wide",
+    "nl": "Overzichtsmodule, breed"
+  },
+  "keywords": [
+    "module",
+    "overview",
+    "valve terminal"
+  ],
+  "rep_type": "overview",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "d31d70bd-d668-5fa0-b956-64604e9ffd62",
+    "version_req": "^0.1",
+    "key": "ew.fn.overview"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "rect": {
+        "rect": [
+          [
+            0,
+            0
+          ],
+          [
+            42333333,
+            10583333
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        0,
+        -21828125
+      ],
+      "align": "bottom_left",
+      "visible": true
+    },
+    {
+      "kind": "manufacturer",
+      "pos": [
+        21166667,
+        1984375
+      ],
+      "align": "centre",
+      "visible": true
+    },
+    {
+      "kind": "part_number",
+      "pos": [
+        21166667,
+        5291667
+      ],
+      "align": "centre",
+      "visible": true
+    },
+    {
+      "kind": "type_designation",
+      "pos": [
+        21166667,
+        8598958
+      ],
+      "align": "centre",
+      "visible": true
+    },
+    {
+      "kind": "xref",
+      "pos": [
+        0,
+        11244792
+      ],
+      "align": "top_left",
+      "visible": true,
+      "style": "xref.device"
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    }
+  ],
+  "anchor": "graphic_centre"
+}

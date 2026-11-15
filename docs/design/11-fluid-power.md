@@ -698,11 +698,16 @@ per position of a module from `valve_slots`, a valve as a rectangle with a circl
 both diagonals, an empty position dashed, in a band above the module glyph; the glyphs are derived items, never
 records. Golden A's folio 201 shows 24 and 202 four, each printing 571334 (AC-32's MVP part).
 
-*As built (WP-S2.13).* `valve_terminal.generate_overview {station, left, right, y, symbol?, copies?}` is built, a
+*As built (WP-S2.13).* `valve_terminal.generate_overview {station, left, right, y, symbol?, copies?, title?}` is built, a
 `Bulk` command (previewed, one undo step); the window's entry is Generate overview… on a valve terminal's row of the
 fluid, PLC or device navigator, which sends the drawing area of the frame on the page the overview starts from (the
 first page of a member's overview, else the station's page; `Session::overview_params`) and, for members not drawn
-yet, the starter `ew.ovw.module` of the page grid's family. The members (`assembly_members`) stand left to right, each
+yet, the starter `ew.ovw.module-wide` of the page grid's family (*as built, M3 persona round 3*: the drawing area is
+the frame's, in page coordinates, never mapped as if it lay on the sheet, which put the strip left of a QET frame;
+`ew.ovw.module` is 24 mm wide and its QET edition 15.875 mm, too narrow for the starter parts' numbers and their valve
+glyphs, so the starter overview takes the wide module, 64 mm and 42.3 mm, whose four valve glyphs hold a part number
+of twelve characters; a new overview page is titled by the window with the terminal, "Valve terminal -201A1",
+`title`). The members (`assembly_members`) stand left to right, each
 the width of its symbol's graphics, snapped to the page grid; one that would pass the band's right edge starts the next
 page (the members' overview pages in member order, then new assembly-overview pages after the last, with its frame,
 grid and structure). A member already drawn in member order inside the band (on a later page than the member before,

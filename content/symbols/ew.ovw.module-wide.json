@@ -1,0 +1,122 @@
+{
+  "$k": "symbol",
+  "id": "a2debaae-abf0-5c76-bf6d-7cbd2aa7d53a",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "af7f74f4-b660-5916-8a47-fe3c124034ee",
+  "version": "0.1.0",
+  "sha256": "sha256:8e4e5b78717e5c0781f5d9803034278281473fd1f9f80e677209fab038033007",
+  "meta": {
+    "key": "ew.ovw.module-wide",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Overview module, wide",
+    "nl": "Overzichtsmodule, breed"
+  },
+  "keywords": [
+    "module",
+    "overview",
+    "valve terminal"
+  ],
+  "rep_type": "overview",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "d31d70bd-d668-5fa0-b956-64604e9ffd62",
+    "version_req": "^0.1",
+    "key": "ew.fn.overview"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "rect": {
+        "rect": [
+          [
+            0,
+            0
+          ],
+          [
+            64000000,
+            16000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        0,
+        -33000000
+      ],
+      "align": "bottom_left",
+      "visible": true
+    },
+    {
+      "kind": "manufacturer",
+      "pos": [
+        32000000,
+        3000000
+      ],
+      "align": "centre",
+      "visible": true
+    },
+    {
+      "kind": "part_number",
+      "pos": [
+        32000000,
+        8000000
+      ],
+      "align": "centre",
+      "visible": true
+    },
+    {
+      "kind": "type_designation",
+      "pos": [
+        32000000,
+        13000000
+      ],
+      "align": "centre",
+      "visible": true
+    },
+    {
+      "kind": "xref",
+      "pos": [
+        0,
+        17000000
+      ],
+      "align": "top_left",
+      "visible": true,
+      "style": "xref.device"
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    }
+  ],
+  "anchor": "graphic_centre"
+}

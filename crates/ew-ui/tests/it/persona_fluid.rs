@@ -8,6 +8,8 @@ use crate::persona_round::{click, key, new_project, starting_with, typed};
 use crate::support::Tmp;
 
 use egui::{Modifiers, PointerButton};
+use ew_ui::ew_viewmodel::ew_api::output::ew_dl::ew_units::Pt2;
+use ew_ui::ew_viewmodel::ew_api::output::ew_dl::{Item, ItemKind};
 use ew_ui::ew_viewmodel::ew_api::output::{NavNode, Uuid};
 use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_ui::ew_viewmodel::shell::Outcome;
@@ -1304,5 +1306,139 @@ fn r2c_the_hint_says_what_a_click_will_do_while_a_tube_is_drawn() {
             .is_some_and(|h| h.contains("a free point for a bend")),
         "{free}"
     );
+    d.shell_mut().shutdown();
+}
+
+/// The prelude's project (the wizard's company standard, then a new project, as the play-test made it) with the fluid
+/// page 201 shown, fitted, and the Fluid panel in the left column.
+fn prelude_fluid_page(tmp: &Tmp) -> Driver {
+    let mut d = crate::persona_pages::prelude(tmp, ew_ui::visual::Geometry::DEFAULT);
+    let page = json!({"folio": "201", "type": "fluid", "title": "Clamp pneumatics"});
+    assert_eq!(d.shell_mut().dispatch("page.new", &page), Outcome::Done);
+    let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "201"}));
+    let _ = d.shell_mut().dispatch("view.fit_page", &json!({}));
+    let _ = d.shell_mut().dispatch("rail.show", &json!({"pane": "fluid"}));
+    d.settle();
+    d
+}
+
+/// Places the starter supply plate from the device browser at `at`, then Escape.
+fn place_plate(d: &mut Driver, at: (i64, i64)) {
+    d.input(&click(d.find("Device").unwrap()));
+    d.settle();
+    d.input(&typed("supply plate"));
+    d.settle();
+    d.input(&Input::DoubleClick {
+        at: starting_with(d, "Valve terminal supply plate"),
+        mods: Modifiers::NONE,
+    });
+    d.settle();
+    click_at(d, at);
+    d.input(&key("escape"));
+    d.settle();
+}
+
+/// The sheet rectangles of the glyph runs in `items`, each with its text: the layout boxes through the enclosing
+/// groups' transforms.
+fn glyph_boxes(items: &[Item], map: &dyn Fn(Pt2) -> Pt2, out: &mut Vec<(String, [i64; 4])>) {
+    for item in items {
+        match &item.kind {
+            ItemKind::Glyphs(run) => {
+                let pts = run.layout_quad().map(map);
+                let xs = pts.iter().map(|p| p.x.0);
+                let ys = pts.iter().map(|p| p.y.0);
+                out.push((
+                    run.text.clone(),
+                    [
+                        xs.clone().min().unwrap_or(0),
+                        ys.clone().min().unwrap_or(0),
+                        xs.max().unwrap_or(0),
+                        ys.max().unwrap_or(0),
+                    ],
+                ));
+            }
+            ItemKind::Group(g) => {
+                let t = g.transform;
+                glyph_boxes(&g.items, &|p| map(t.map_or(p, |t| t.apply(p))), out);
+            }
+            _ => {}
+        }
+    }
+}
+
+/// Item 1 of round 3 (frame t0083): Generate overview… on the prelude's project drew the starter terminal's module strip
+/// left of the frame (the drawing area, in page coordinates, was mapped back as if it were on the sheet), too small for
+/// its part numbers, which ran into each other, and without a title. The overview of the terminal with two valves and a
+/// plate stands inside the drawing area, no two of its texts overlap, and the page is titled by the terminal.
+#[test]
+fn round3_the_generated_overview_stands_in_the_frame_readable_and_titled() {
+    let tmp = Tmp::new();
+    let mut d = prelude_fluid_page(&tmp);
+    place_terminal(&mut d, (760, 300), (1260, 520));
+    place_plate(&mut d, (860, 440));
+    place_from_browser(&mut d, "valve-5-2-sol-spring", &[(1000, 440), (1100, 440)]);
+    let terminal = fluid_nodes(&mut d)
+        .into_iter()
+        .find(|n| n.role == NavRole::Device)
+        .map(|n| n.label)
+        .expect("the terminal's row");
+    let row = row_of(&mut d, &terminal);
+    d.input(&right_click(row));
+    d.settle();
+    d.input(&click(starting_with(&d, "Generate overview…")));
+    d.settle();
+    let notices = d.shell_mut().preview_pane().notices().to_vec();
+    let page = notices
+        .iter()
+        .find(|n| n.contains("(new page)"))
+        .and_then(|n| n.strip_prefix("page "))
+        .and_then(|n| n.split([':', ' ']).next())
+        .unwrap_or_else(|| panic!("a new overview page: {notices:?}"))
+        .to_owned();
+    d.input(&click(d.find("Apply").expect("the card's Apply")));
+    d.settle();
+    let _ = d.shell_mut().dispatch("page.goto", &json!({ "folio": page }));
+    d.settle();
+    let canvas = d.shell_mut().canvas().unwrap();
+    let p = canvas.page();
+    assert_eq!(p.title, format!("Valve terminal {terminal}"));
+    // The drawing area on the sheet: the frame's cells.
+    let cells = p.cells.as_ref().expect("a frame grid").cells();
+    let area = cells
+        .iter()
+        .fold([i64::MAX, i64::MAX, i64::MIN, i64::MIN], |a, (_, r)| {
+            [a[0].min(r[0]), a[1].min(r[1]), a[2].max(r[2]), a[3].max(r[3])]
+        });
+    let members: Vec<_> = p
+        .tables
+        .reps
+        .iter()
+        .filter(|r| r.rep_type == "overview")
+        .collect();
+    assert_eq!(members.len(), 2, "the terminal and its plate");
+    for r in &members {
+        let (a, b) = (
+            p.snapper.page_to_sheet((r.body[0], r.body[1])),
+            p.snapper.page_to_sheet((r.body[2], r.body[3])),
+        );
+        assert!(
+            area[0] <= a.0 && area[1] <= a.1 && b.0 <= area[2] && b.1 <= area[3],
+            "{} {a:?}–{b:?} inside the drawing area {area:?}",
+            r.symbol_key
+        );
+    }
+    // The texts in the drawing area (the frame's and the title block's stand outside it).
+    let mut texts = Vec::new();
+    glyph_boxes(&p.list.items, &|q| q, &mut texts);
+    texts.retain(|(t, b)| {
+        !t.trim().is_empty() && area[0] <= b[0] && area[1] <= b[1] && b[2] <= area[2] && b[3] <= area[3]
+    });
+    assert!(texts.iter().any(|(t, _)| t == "EW-GEN-VTM-1"), "{texts:?}");
+    for (i, (t, a)) in texts.iter().enumerate() {
+        for (u, b) in &texts[i + 1..] {
+            let overlap = a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+            assert!(!overlap, "{t:?} {a:?} overlaps {u:?} {b:?}");
+        }
+    }
     d.shell_mut().shutdown();
 }
