@@ -616,7 +616,7 @@ fn drawn_page(q: &Q, folio: &str) -> Option<(PageRef, Id<Page>)> {
 
 impl Session {
     // Qualified addresses distinguish a library master from an older project copy with the same key.
-    fn installed_symbol(&self, address: &str) -> Option<LibCopy<SymbolDef>> {
+    pub(crate) fn installed_symbol(&self, address: &str) -> Option<LibCopy<SymbolDef>> {
         self.libraries()
             .libraries()
             .into_iter()

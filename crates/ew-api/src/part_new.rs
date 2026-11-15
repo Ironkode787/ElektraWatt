@@ -111,9 +111,46 @@ impl Session {
             bus: Vec::<BusRow>::new(),
             to_library: true,
             plc: crate::part_plc::PlcRows::new_part(),
+            drawn_with: None,
+            fndef: None,
             manufacturer: (original.manufacturer.clone(), Vec::new()),
             original,
         })
+    }
+
+    /// The draft of a new part drawn with the symbol at `address` (`library:<library>:<item>`, the symbol editor's
+    /// saved symbol): the symbol's function definition becomes the part's main function, so a device placed from the
+    /// part is drawn with that symbol.
+    ///
+    /// # Errors
+    ///
+    /// [`PartDraftError::Refused`] (`reason-part-symbol-unsaved`) when no installed library holds that symbol;
+    /// as [`Session::new_part_draft`].
+    pub fn new_part_draft_for_symbol(&self, address: &str) -> Result<PartDraft, PartDraftError> {
+        let symbol =
+            self.installed_symbol(address)
+                .ok_or(PartDraftError::Refused(ew_commands::text_key!(
+                    "reason-part-symbol-unsaved"
+                )))?;
+        let mut draft = self.new_part_draft()?;
+        let name = symbol
+            .item
+            .name
+            .as_neutral()
+            .map(str::to_owned)
+            .unwrap_or_else(|| {
+                symbol
+                    .item
+                    .name
+                    .languages()
+                    .next()
+                    .and_then(|l| symbol.item.name.get(l))
+                    .unwrap_or_default()
+                    .to_owned()
+            });
+        draft.drawn_with = Some(name);
+        draft.fndef = Some(symbol.item.fndef.clone());
+        Ok(draft)
     }
 
     /// The new part's item from a draft: the fields, the bus section and the function template a placement needs
@@ -149,8 +186,24 @@ impl Session {
                 }
             }
         }
+        // A part made for a symbol is drawn with it: its function definition is the main template entry.
+        if p.function_template.is_empty()
+            && let Some(r) = &draft.fndef
+        {
+            p.function_template = vec![TemplateFn {
+                fndef: r.clone(),
+                main: true,
+                cps: Vec::new(),
+                extra: Default::default(),
+            }];
+            if p.category.is_none()
+                && let Ok(LibDocument::Fndef(def)) = self.libraries().resolve(r)
+            {
+                p.category = Some(def.item.category.clone());
+            }
+        }
         let first_port = p.sections.bus.as_ref().and_then(|b| b.ports.first());
-        if p.cp_pattern.is_empty()
+        if p.function_template.is_empty()
             && let Some(def) = first_port.and_then(|port| port_fndef(&port.bus))
         {
             p.function_template = vec![TemplateFn {

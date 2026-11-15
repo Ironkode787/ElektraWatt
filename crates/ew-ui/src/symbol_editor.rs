@@ -842,6 +842,22 @@ impl EditorView {
             {
                 action(events, "symbol.scratch", json!({}));
             }
+            // FT-1766: the way from a symbol to a device: a part whose main function the saved symbol draws.
+            if ribbon_command(
+                ui,
+                "symbol-make-part",
+                "package",
+                [false, shell.has_project(), false],
+                String::new(),
+                Some(label(strings::Key::run_time("symbol-make-part-how"))),
+            )
+            .clicked()
+            {
+                match editor.published() {
+                    Some(address) => action(events, "part.new", json!({ "symbol": address })),
+                    None => action(events, "part.new", json!({ "symbol": "" })),
+                }
+            }
             // Discard draft is the explicit way to drop the draft; Close editor, which keeps it, stands at the right
             // end of the header below.
             if ribbon_button(

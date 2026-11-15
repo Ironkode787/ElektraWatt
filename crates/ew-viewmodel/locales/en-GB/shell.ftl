@@ -4189,6 +4189,10 @@ toast-part-new = Part { $p0 } is in the project.
 toast-part-new-library = Part { $p0 } is in the project and in { $p1 }.
 action-part-new = New part…
 action-part-bus-row = Add or remove a bus interface
+reason-part-symbol-unsaved = Save the symbol to a library first; the part then names it
+part-drawn-with = Drawn with
+symbol-make-part = Make a part for this symbol…
+symbol-make-part-how = A part whose devices are drawn with this symbol: its identity, bus interfaces and PLC data. Save the symbol to a library first.
 # FT-1766: the PLC section of a new part.
 error-part-plc-role = “{ $p0 }” is no PLC role; choose station or module
 error-part-plc-kind = “{ $p0 }” is no channel kind; choose one from the list

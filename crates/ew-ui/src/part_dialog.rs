@@ -386,6 +386,16 @@ fn identity(
 ) -> bool {
     let t = theme::current(ui.ctx());
     let mut save = false;
+    if let Some(symbol) = &d.drawn_with {
+        ui.horizontal(|ui| {
+            ui.add_sized(
+                vec2(t.size_dialog_label, t.size_row),
+                egui::Label::new(strings::text(key!("part-drawn-with"))),
+            );
+            ui.add_space(t.space_3);
+            ui.label(RichText::new(symbol).color(t.text_secondary.color32()));
+        });
+    }
     for (i, f) in ew_viewmodel::ew_api::DRAFT_FIELDS.iter().enumerate() {
         let label = strings::text(strings::Key::run_time(&format!("part-field-{f}")));
         if *f == "kind" {
@@ -484,33 +494,36 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
                     ui.label(RichText::new(value).color(t.text_secondary.color32()));
                 });
             };
-            read_only(
-                ui,
-                strings::text(key!("part-field-functions")),
-                if d.functions.is_empty() {
-                    none.to_owned()
-                } else {
-                    d.functions.join(", ")
-                },
-            );
-            read_only(
-                ui,
-                strings::text(key!("part-field-cps")),
-                if d.cps.is_empty() {
-                    none.to_owned()
-                } else {
-                    d.cps.join(", ")
-                },
-            );
-            let source = match &d.library {
-                Some(name) => format!("{name} \u{b7} {}", d.version),
-                None => format!(
-                    "{} \u{b7} {}",
-                    strings::text(key!("part-choose-view-project")),
-                    d.version
-                ),
-            };
-            read_only(ui, strings::text(key!("part-field-source")), source);
+            // A new part has no functions, pins or source yet: Save makes them from the form.
+            if !d.new {
+                read_only(
+                    ui,
+                    strings::text(key!("part-field-functions")),
+                    if d.functions.is_empty() {
+                        none.to_owned()
+                    } else {
+                        d.functions.join(", ")
+                    },
+                );
+                read_only(
+                    ui,
+                    strings::text(key!("part-field-cps")),
+                    if d.cps.is_empty() {
+                        none.to_owned()
+                    } else {
+                        d.cps.join(", ")
+                    },
+                );
+                let source = match &d.library {
+                    Some(name) => format!("{name} \u{b7} {}", d.version),
+                    None => format!(
+                        "{} \u{b7} {}",
+                        strings::text(key!("part-choose-view-project")),
+                        d.version
+                    ),
+                };
+                read_only(ui, strings::text(key!("part-field-source")), source);
+            }
             if let Some(err) = &e.error {
                 ui.colored_label(t.error.color32(), err);
             }

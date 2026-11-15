@@ -3985,6 +3985,10 @@ toast-part-new = Artikel { $p0 } staat in het project.
 toast-part-new-library = Artikel { $p0 } staat in het project en in { $p1 }.
 action-part-new = Nieuw artikel…
 action-part-bus-row = Een businterface toevoegen of verwijderen
+reason-part-symbol-unsaved = Sla het symbool eerst op in een bibliotheek; het artikel noemt het dan
+part-drawn-with = Getekend met
+symbol-make-part = Een artikel maken voor dit symbool…
+symbol-make-part-how = Een artikel waarvan de apparaten met dit symbool worden getekend: zijn identiteit, businterfaces en PLC-gegevens. Sla het symbool eerst op in een bibliotheek.
 # FT-1766: de PLC-sectie van een nieuw artikel.
 error-part-plc-role = “{ $p0 }” is geen PLC-rol; kies station of module
 error-part-plc-kind = “{ $p0 }” is geen kanaalsoort; kies er een uit de lijst

@@ -370,7 +370,7 @@ part.search View "Search parts" menu none shortcut none context global hidden pa
 part.pick Command "Choose" menu none shortcut none context global hidden params "index?:uint, part?:text"
 part.favourite View "Favourite" menu none shortcut none context global hidden params "index?:uint"
 part.edit View "Edit part…" menu "Edit" shortcut none context global params "part?:text"
-part.new View "New part…" menu "Edit" shortcut none context global params ""
+part.new View "New part…" menu "Edit" shortcut none context global params "symbol?:text"
 part.bus_row View "Add or remove a bus interface" menu none shortcut none context global hidden params "remove?:uint"
 part.field View "Edit field" menu none shortcut none context global hidden params "field:text, value:text"
 part.save Command "Save" menu none shortcut none context global hidden params ""

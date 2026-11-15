@@ -712,14 +712,17 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_part_edit(p),
         ),
     ),
-    act(
-        "part.new",
-        View,
-        Menu::Edit,
-        &[],
-        writable,
-        slot(Menu::Edit),
-        |s, _| s.act_part_new(),
+    with_params(
+        "symbol?:text",
+        act(
+            "part.new",
+            View,
+            Menu::Edit,
+            &[],
+            writable,
+            slot(Menu::Edit),
+            |s, p| s.act_part_new(p),
+        ),
     ),
     with_params(
         "remove?:uint",

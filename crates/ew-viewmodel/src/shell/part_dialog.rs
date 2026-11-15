@@ -779,19 +779,32 @@ impl ShellModel {
         })))
     }
 
-    /// `part.new` (Edit ▸ New part…, and New part… in the part dialog and the device browser): opens the part editor on
-    /// a new part's draft (FT-1766). From the part dialog, Save returns to it on the new part.
-    pub(crate) fn act_part_new(&mut self) -> Outcome {
+    /// `part.new {symbol?}` (Edit ▸ New part…, and New part… in the part dialog and the device browser): opens the part
+    /// editor on a new part's draft (FT-1766); with `symbol` (the symbol editor's saved symbol, its library address:
+    /// Make a part for this symbol…), a part drawn with that symbol. From the part dialog, Save returns to it on the new
+    /// part.
+    pub(crate) fn act_part_new(&mut self, p: &Map<String, Value>) -> Outcome {
+        let symbol = or_return!(string_param(p, "symbol")).map(str::to_owned);
         let Some(project) = &self.project else {
             return Outcome::refused(key!("reason-no-project"));
         };
-        let draft = match project.session.new_part_draft() {
+        let made = match &symbol {
+            Some(address) => project.session.new_part_draft_for_symbol(address),
+            None => project.session.new_part_draft(),
+        };
+        let draft = match made {
             Ok(d) => d,
             Err(e) => return draft_refusal(e),
         };
         let manufacturers = project.session.part_manufacturers();
-        // The device browser gives way to the editor; it lists the new part when it opens again.
+        // The device browser gives way to the editor; it lists the new part when it opens again. From the symbol
+        // editor, its view is left with its draft kept (as Close editor does): the part is the project's.
         self.tools.picker = None;
+        if symbol.is_some()
+            && let Some(editor) = &mut self.symbol_editor
+        {
+            editor.shown = false;
+        }
         let back = match self.dialog.take() {
             Some(Dialog::PartChoose(c)) => Some(c),
             other => {

@@ -108,6 +108,10 @@ pub struct PartDraft {
     pub to_library: bool,
     /// The PLC section of a new part (doc 10 §2.6) as its form's texts; no role: none.
     pub plc: crate::part_plc::PlcRows,
+    /// The name of the symbol a new part made from the symbol editor is drawn with ("Make a part for this symbol…").
+    pub drawn_with: Option<String>,
+    /// That symbol's function definition, the new part's main template entry.
+    pub(crate) fndef: Option<LibRef>,
     pub(crate) original: Part,
     pub(crate) manufacturer: (LibRef, Vec<Value>),
 }
@@ -564,6 +568,8 @@ impl Session {
                 .unwrap_or_default(),
             to_library: false,
             plc: crate::part_plc::PlcRows::default(),
+            drawn_with: None,
+            fndef: None,
             manufacturer: (p.manufacturer.clone(), Vec::new()),
             original: c.item,
         })
