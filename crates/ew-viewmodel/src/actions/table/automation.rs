@@ -107,7 +107,12 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     with_params(
         "format?:text, stations?:text, date?:text, path?:path, replace?:bool",
         placed(
-            place(Group::Exchange, 1, CommandSize::Small, Some(key!("bar-plc-export"))),
+            place(
+                Group::Exchange,
+                1,
+                CommandSize::Small,
+                Some(key!("bar-plc-export")),
+            ),
             "transfer-out",
             act("plc.export", Command, Menu::Plc, &[], writable, None, |s, p| {
                 s.act_plc_export(p)
@@ -117,7 +122,12 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     with_params(
         "path?:path, complete?:bool",
         placed(
-            place(Group::Exchange, 2, CommandSize::Small, Some(key!("bar-plc-import"))),
+            place(
+                Group::Exchange,
+                2,
+                CommandSize::Small,
+                Some(key!("bar-plc-import")),
+            ),
             "transfer-in",
             act("plc.import", View, Menu::Plc, &[], writable, None, |s, p| {
                 s.act_plc_import(p)
@@ -390,7 +400,12 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     with_params(
         "kind?:text",
         placed(
-            place(Group::Station, 1, CommandSize::Large, Some(key!("bar-new-station"))),
+            place(
+                Group::Station,
+                1,
+                CommandSize::Large,
+                Some(key!("bar-new-station")),
+            ),
             "cpu-2",
             act(
                 "plc.new_station",

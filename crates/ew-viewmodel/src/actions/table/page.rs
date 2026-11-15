@@ -39,7 +39,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // Add legend: the panel page's item list beside the layout, with its button on the Page tab.
     placed(
         place(Group::Order, 9, CommandSize::Small, None),
-        "list-numbers",
+        "table-plus",
         act(
             "page.add_legend",
             Command,

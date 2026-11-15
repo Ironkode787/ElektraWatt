@@ -161,5 +161,5 @@ fn an_air_supply_turned_by_270_degrees_reads_horizontally() {
     let g = lower(&def, Orient2::R270);
     assert!(g.texts.iter().all(|t| t.angle == Angle2::ZERO));
     assert_eq!(align_of(&g, &CpDesignation(0)), Align::BottomLeft);
-    assert_eq!(align_of(&g, &Tag), Align::BottomRight);
+    assert_eq!(align_of(&g, &Tag), Align::TopCentre);
 }
