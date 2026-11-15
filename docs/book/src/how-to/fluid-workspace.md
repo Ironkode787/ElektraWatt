@@ -26,7 +26,9 @@ the middle, and the tube table and the medium table in the bottom dock.
    child at that position, and its symbol follows the pointer until you click where it goes. The valve is of the part
    the terminal's other valves have, else the library's valve for its positions. A valve placed into the box from
    **Symbol** or **Device**, or dragged into it, becomes the terminal's valve at the next free position too; the toast
-   names the position. A valve's **Valve position** in Properties moves it to another free position.
+   names the position. A valve's **Valve position** in Properties moves it to another free position. The supply plate
+   **Valve terminal supply plate, ports 1, 3 and 5** placed into the box joins the terminal too: a tube to its port 1
+   feeds every valve of the terminal.
 6. Right-click a valve's row: **Set spare** or **Set used**, **Blank position** to put a blanking plate in its place,
    and **Plug port** for each working port that has no line. A module's row adds a valve at a blank or empty position
    the same way (**Add valve at position**).

@@ -422,6 +422,9 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: a tube's length in Properties reads with its unit ("350 mm", it read "350.000"), and a report block
   made with Output ▸ Report block… without a title is titled by its report's name, so its pages read "912 Tube list" in
   the page tree, not "912" (persona re-test R2-H, R2-I)
+- behaviour-change: the starter supply plate EW-GEN-VTS-1 places with its ports 1, 3 and 5 and joins a valve terminal
+  whose box it is placed in; the starter parts gain EW-GEN-CYL-1 (double-acting cylinder) and EW-GEN-AIR-1 (an air
+  supply, a service unit) for a pneumatics job's own devices (persona re-test R2-E, R2-J)
 - format-variant: report_block ReportKind tube_list
 - format-variant: report_block ReportKind tube_cut_list
 - format-variant: report_block ReportKind tube_labels

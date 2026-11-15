@@ -44,7 +44,8 @@ const VERSION: &str = "0.1.0";
 /// EW-GEN-CPU-2, the remote I/O head EW-GEN-RIO-1, the PROFIBUS cable EW-GEN-CBL-2 and the Ethernet cable
 /// EW-GEN-CBL-3) and the tubes EW-GEN-TUB-6, -8, -10 and the fittings EW-GEN-FIT-6, -8 (the persona round of M3), 0.9.0
 /// since the devices with ports were added (the unmanaged switch EW-GEN-ESW-5, the managed switch EW-GEN-ESW-8 and the
-/// generic PROFINET device EW-GEN-PND-1; FT-1767).
+/// generic PROFINET device EW-GEN-PND-1; FT-1767), with the cylinder EW-GEN-CYL-1 and the air supply EW-GEN-AIR-1 (the
+/// persona re-test).
 const LIBRARY_VERSION: &str = "0.9.0";
 /// The parts whose content changed after 0.1.0, at their next patch version (the selector switch on a
 /// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y. The relay
@@ -574,15 +575,15 @@ fn defs() -> Vec<Def> {
             sections: Some(json!({"fluid": {"solenoids": ["14"], "coil": {"voltage": "24", "env": "dc"}}})),
             unit: None,
         },
+        // The persona re-test placed the supply plate from Device and got an empty box with no connection point: its
+        // main function is the supply plate's (ports 1, 3 and 5, the symbol ew.iso.valve-supply-plate); the overview
+        // draws it by that function as it draws the valves.
         Def {
             number: "EW-GEN-VTS-1",
             kind: None,
             description: "Valve terminal supply plate, ports 1, 3 and 5",
             cps: Vec::new(),
-            template: vec![
-                ("ew.fn.overview", true, Vec::new()),
-                ("ew.fn.valve-supply-plate", false, Vec::new()),
-            ],
+            template: vec![("ew.fn.valve-supply-plate", true, Vec::new())],
             contacts: Vec::new(),
             tech: Vec::new(),
             plc: None,
@@ -598,6 +599,34 @@ fn defs() -> Vec<Def> {
         tube("EW-GEN-TUB-10", "Tube PU 10 × 8 mm, blue", "10", "8"),
         fitting("EW-GEN-FIT-6", "Push-in fitting G1/8 for tube 6 mm", "G1/8", "6"),
         fitting("EW-GEN-FIT-8", "Push-in fitting G1/4 for tube 8 mm", "G1/4", "8"),
+        // The persona re-test: the job's cylinder and air supply kept their "no part" warnings, for want of a starter
+        // part. A double-acting cylinder and a service unit for the air-supply point, each on its symbol's FnDef.
+        Def {
+            number: "EW-GEN-CYL-1",
+            kind: None,
+            description: "Cylinder double-acting, bore 32 mm, stroke 100 mm",
+            cps: Vec::new(),
+            template: vec![("ew.fn.cylinder-double-acting", true, Vec::new())],
+            contacts: Vec::new(),
+            tech: Vec::new(),
+            plc: None,
+            mech: None,
+            sections: None,
+            unit: None,
+        },
+        Def {
+            number: "EW-GEN-AIR-1",
+            kind: None,
+            description: "Air supply: service unit G1/4 with shut-off valve and filter regulator",
+            cps: Vec::new(),
+            template: vec![("ew.fn.air-supply", true, Vec::new())],
+            contacts: Vec::new(),
+            tech: Vec::new(),
+            plc: None,
+            mech: None,
+            sections: None,
+            unit: None,
+        },
         Def {
             number: "EW-GEN-TRM-1",
             kind: Some("terminal"),

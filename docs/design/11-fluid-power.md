@@ -257,7 +257,11 @@ EW-GEN-VLV-3 (5/2 with an internal coil, 24 V DC) and supply plate EW-GEN-VTS-1 
 persona round).* EW-GEN-VTM-1 is a station part with its outputs integrated (`plc.role` `station`, the positions map),
 so that a device placed from it is a valve terminal and its own valve module: normaliser N0 gives a station whose
 part maps solenoids to valve positions the role `valve_terminal` ([10](10-plc-and-bus.md) §3.3), and its valves are
-its children. The starter tubes EW-GEN-TUB-6, -8 and -10 (polyurethane 6×4, 8×6 and 10×8 mm, blue, 10 bar; part kind
+its children. *As built (M3 persona re-test).* EW-GEN-VTS-1's one template entry is the supply plate's function, so
+placed from Device it draws ew.iso.valve-supply-plate with its ports 1, 3 and 5 (it was an overview box without a
+connection point) and, placed in a valve terminal's box, joins the terminal (§4.3); the starter parts EW-GEN-CYL-1
+(double-acting cylinder) and EW-GEN-AIR-1 (an air supply: a service unit, on the air-supply point's FnDef) answer the
+"no part" findings of a pneumatics job's own devices. The starter tubes EW-GEN-TUB-6, -8 and -10 (polyurethane 6×4, 8×6 and 10×8 mm, blue, 10 bar; part kind
 `tube`, sold by the metre) and the push-in fittings EW-GEN-FIT-6 and -8 (G1/8 for 6 mm, G1/4 for 8 mm; kind
 `accessory`) carry `fluid.tube` and `fluid.fitting` and no template. A fluid line's Tube part offers the parts of kind
 `tube`, the project's and the system libraries' (a library part is embedded with the edit).

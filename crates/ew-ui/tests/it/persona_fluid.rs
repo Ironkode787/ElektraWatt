@@ -1039,3 +1039,82 @@ fn r2h_a_tube_length_shows_its_unit_and_a_report_page_its_name() {
     assert!(rows.iter().any(|r| r == "912 Tube list"), "{rows:?}");
     d.shell_mut().shutdown();
 }
+
+/// R2-E of the re-test: the supply plate EW-GEN-VTS-1 placed from Device was an empty box with no connection point.
+/// Placed into the valve terminal's box it draws its ports 1, 3 and 5 and joins the terminal as its supply plate, so a
+/// supply line to its port 1 feeds the valve beside it through gallery 1 (no "port 1 has no supply").
+#[test]
+fn r2e_the_supply_plate_has_its_ports_and_feeds_the_valves() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    place_terminal(&mut d, (760, 300), (1260, 520));
+    place_from_browser(&mut d, "valve-5-2-sol-spring", &[(1100, 440)]);
+    d.input(&click(d.find("Device").unwrap()));
+    d.settle();
+    d.input(&typed("supply plate"));
+    d.settle();
+    d.input(&Input::DoubleClick {
+        at: starting_with(&d, "Valve terminal supply plate"),
+        mods: Modifiers::NONE,
+    });
+    d.settle();
+    click_at(&mut d, (860, 440));
+    d.input(&key("escape"));
+    d.settle();
+    let toast = d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert!(toast.contains("is a supply plate of"), "{toast}");
+    let plate = device_drawn(&mut d, "ew.iso.valve-supply-plate");
+    let ports: Vec<String> = {
+        let tables = std::sync::Arc::clone(&d.shell_mut().canvas().unwrap().page().tables);
+        let reps: Vec<Uuid> = tables
+            .reps
+            .iter()
+            .filter(|r| r.device == Some(plate))
+            .map(|r| r.id)
+            .collect();
+        tables
+            .cps
+            .iter()
+            .filter(|c| reps.contains(&c.rep))
+            .filter_map(|c| c.label.rsplit(':').next().map(str::to_owned))
+            .collect()
+    };
+    assert_eq!(ports, ["1", "3", "5"], "the plate's ports");
+    place_symbol(&mut d, "ew.iso.air-supply@qet10", (800, 800));
+    let supply = device_drawn(&mut d, "ew.iso.air-supply");
+    let (a, b) = (port(&mut d, supply, "1"), port(&mut d, plate, "1"));
+    draw_tube(&mut d, a, b);
+    assert_eq!(tubes(&mut d), 1);
+    assert!(findings(&mut d, "EW-FL-010").is_empty(), "the valve's port 1 is fed through the plate");
+    d.shell_mut().shutdown();
+}
+
+/// R2-J of the re-test: the job's cylinder and air supply kept their "no part" warnings, for want of a starter part.
+/// The starter parts EW-GEN-CYL-1 and EW-GEN-AIR-1 answer them.
+#[test]
+fn r2j_the_starter_parts_answer_the_cylinder_and_the_air_supply() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    one_tube(&mut d);
+    let no_part = |d: &mut Driver| {
+        findings(d, "EW-CORE-041")
+            .into_iter()
+            .filter(|m| m.starts_with("-201M1") || m.starts_with("-201X1"))
+            .count()
+    };
+    assert_eq!(no_part(&mut d), 2, "the cylinder and the supply have no part");
+    for (key, part) in [
+        ("ew.iso.cylinder", "EW-GEN-CYL-1"),
+        ("ew.iso.air-supply", "EW-GEN-AIR-1"),
+    ] {
+        let device = device_drawn(&mut d, key);
+        let _ = d
+            .shell_mut()
+            .dispatch("select.set", &json!({ "ids": [device.to_string()] }));
+        d.settle();
+        let set = json!({"row": "device/parts", "value": part});
+        assert_eq!(d.shell_mut().dispatch("props.set", &set), Outcome::Done, "{part}");
+    }
+    assert_eq!(no_part(&mut d), 0, "both have their starter part");
+    d.shell_mut().shutdown();
+}
