@@ -419,6 +419,9 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: a tube's finding chip in Properties opens Messages filtered by the tube's name, and an unnumbered
   wire's by its ends, so the list shows their findings (it filtered by "Tube (Working)" and matched nothing; persona
   re-test R2-D)
+- behaviour-change: a tube's length in Properties reads with its unit ("350 mm", it read "350.000"), and a report block
+  made with Output ▸ Report block… without a title is titled by its report's name, so its pages read "912 Tube list" in
+  the page tree, not "912" (persona re-test R2-H, R2-I)
 - format-variant: report_block ReportKind tube_list
 - format-variant: report_block ReportKind tube_cut_list
 - format-variant: report_block ReportKind tube_labels

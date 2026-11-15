@@ -2388,6 +2388,17 @@ impl Session {
         {
             route_in_cells(q, Id::from_uuid(*c), &mut built);
         }
+        // A tube's length with its unit (the persona re-test read "350.000" and could not tell mm from m).
+        if fluid_lines {
+            for b in &mut built {
+                if b.row.path == super::fields::TUBE_LENGTH
+                    && let RowValue::One { json, text } = &mut b.row.value
+                    && let Some(nm) = json.as_i64()
+                {
+                    *text = format!("{} mm", super::layout_edit::mm_text(q, i128::from(nm)));
+                }
+            }
+        }
         if kind == Kind::Function {
             part_function_row(q, cx, &targets, &mut built);
             bus_address_in_words(&mut built);

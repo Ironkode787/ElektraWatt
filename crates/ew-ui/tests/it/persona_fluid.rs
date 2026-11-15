@@ -1014,3 +1014,28 @@ fn r2d_a_tubes_finding_chip_lists_its_findings() {
     assert!(rows.iter().any(|r| r.starts_with("-201M1 has no part")), "{rows:?}");
     d.shell_mut().shutdown();
 }
+
+/// R2-H and R2-I of the re-test: a tube length typed as 350 read "350.000" with no unit, and the report pages made with
+/// Output ▸ Report stood in the page tree as bare folios ("912"). The length reads "350 mm"; a report block made without
+/// a title of its own is titled by its report's name.
+#[test]
+fn r2h_a_tube_length_shows_its_unit_and_a_report_page_its_name() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    one_tube(&mut d);
+    let set = json!({"row": "connection/tube_length", "value": "350"});
+    assert_eq!(d.shell_mut().dispatch("props.set", &set), Outcome::Done);
+    one_tube_selected(&mut d);
+    assert_eq!(prop_row(&mut d, "connection/tube_length").0, "350 mm");
+    let report = json!({"kind": "tube_list", "folio": "912"});
+    assert_eq!(d.shell_mut().dispatch("report_block.new", &report), Outcome::Done);
+    d.settle();
+    let rows: Vec<String> = d
+        .shell_mut()
+        .shown_rows(NavKind::Pages)
+        .into_iter()
+        .map(|r| r.label)
+        .collect();
+    assert!(rows.iter().any(|r| r == "912 Tube list"), "{rows:?}");
+    d.shell_mut().shutdown();
+}

@@ -1694,7 +1694,7 @@ impl ShellModel {
     }
 
     /// `report_block.new {kind, folio, title?}` (Output ▸ Reports ▸ Report block…): one `report_block.create`
-    /// of the report kind `kind` from folio `folio` on, titled `title`, on the shipped frame without the grid (embedded
+    /// of the report kind `kind` from folio `folio` on, titled `title` (else the report's name), on the shipped frame without the grid (embedded
     /// with its title block where the project does not hold it, as the company-standard wizard's blocks are), in the
     /// section whose folio range holds the folio. In the window without a kind or a folio its form opens, the first
     /// folio after the last page proposed.
@@ -1778,9 +1778,10 @@ impl ShellModel {
                 .collect();
             params["form_copies"] = Value::Array(copies);
         }
-        if !title.is_empty() {
-            params["title"] = Value::String(title);
-        }
+        // Without a title of its own the block is titled by its report's name, so its pages read "912 Tube list" in
+        // the page tree, not a bare folio (the persona re-test).
+        let title = if title.is_empty() { report_kind_words(&kind) } else { title };
+        params["title"] = Value::String(title);
         if let Some(id) = section_of(self, number) {
             params["section"] = Value::String(id);
         }

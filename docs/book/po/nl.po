@@ -949,20 +949,23 @@ msgstr ""
 #, fuzzy
 #| msgid ""
 #| "A report block generates report pages from the project: a parts list, "
-#| "terminal diagrams, a cable list and more. **Output ▸ Report block…** adds "
-#| "one, from the first folio you give."
+#| "terminal diagrams, a cable list and more. **Output ▸ Report block…** (the "
+#| "Output tab's **Report**) adds one, from the first folio you give: every "
+#| "list, a tube list or a PLC card list too, is made this way; a list is no "
+#| "page type of **New page**."
 msgid ""
 "A report block generates report pages from the project: a parts list, "
 "terminal diagrams, a cable list and more. **Output ▸ Report block…** (the "
 "Output tab's **Report**) adds one, from the first folio you give: every "
 "list, a tube list or a PLC card list too, is made this way; a list is no "
-"page type of **New page**."
+"page type of **New page**. Without a title of your own, its pages take the "
+"report's name (\"912 Tube list\")."
 msgstr ""
 "Een rapportblok genereert rapportpagina's uit het project: een stuklijst, "
 "klemmenschema's, een kabellijst en meer. **Uitvoer ▸ Rapportblok…** voegt er "
 "een toe, vanaf het eerste folio dat u opgeeft."
 
-#: src/tutorials/reports-and-pdf.md:43
+#: src/tutorials/reports-and-pdf.md:44
 msgid ""
 "Report pages follow the drawing: change a device, a terminal or a cable, and "
 "its report pages change with it."
@@ -970,7 +973,7 @@ msgstr ""
 "Rapportpagina's volgen de tekening: verander een apparaat, een klem of een "
 "kabel, en de rapportpagina's veranderen mee."
 
-#: src/tutorials/reports-and-pdf.md:44
+#: src/tutorials/reports-and-pdf.md:45
 msgid ""
 "**Output ▸ Export PDF…** writes every page into one PDF; **Output ▸ Print…** "
 "shows each page before it prints."
@@ -978,7 +981,7 @@ msgstr ""
 "**Uitvoer ▸ PDF exporteren…** schrijft elke pagina in één PDF; **Uitvoer ▸ "
 "Afdrukken…** toont elke pagina voordat die wordt afgedrukt."
 
-#: src/tutorials/reports-and-pdf.md:45
+#: src/tutorials/reports-and-pdf.md:46
 msgid ""
 "[A terminal strip and a cable](terminal-strip-and-cable.md) shows where the "
 "terminal diagrams and the cable list take their rows from."
