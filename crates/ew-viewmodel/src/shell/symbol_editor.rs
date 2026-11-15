@@ -27,6 +27,28 @@ pub const TOOLS: [&str; 13] = [
     "polygon",
 ];
 
+/// The disciplines a symbol is drawn for, in the order the editor's Discipline list offers them (rc.2, F9).
+pub const DISCIPLINES: [&str; 5] = ["electrical", "pneumatic", "vacuum", "hydraulic", "bus"];
+
+/// The function types the editor offers for a symbol of `discipline` (one of [`DISCIPLINES`]), in the order of its list:
+/// a valve for a fluid symbol, a contact or a coil for an electrical one, a port for a bus one; a black box for each.
+pub fn function_kinds(discipline: &str) -> &'static [&'static str] {
+    match discipline {
+        "pneumatic" | "vacuum" | "hydraulic" => &["valve", "pole", "black_box"],
+        "bus" => &["bus_port", "black_box"],
+        _ => &[
+            "no",
+            "nc",
+            "co",
+            "coil",
+            "pole",
+            "terminal",
+            "plc_io",
+            "black_box",
+        ],
+    }
+}
+
 /// The editor tools that take a binding of the keymap while the editor shows (doc 16a P8): the main window's drawing
 /// action whose key chooses the tool. Escape (`ui.dismiss`) returns to Select.
 pub const TOOL_KEYS: [(&str, &str); 5] = [
@@ -110,6 +132,8 @@ pub struct SymbolEditor {
     pub sources: Vec<SymbolSource>,
     /// Installed function definitions, read when the editor opens.
     pub functions: Vec<SymbolFunctionChoice>,
+    /// The discipline chosen last, which a symbol without connection points is drawn for.
+    chosen_discipline: Option<&'static str>,
 }
 
 /// A library or project symbol that Edit symbol or Copy and edit opens (FT-1694).
@@ -178,7 +202,33 @@ impl SymbolEditor {
             candidates: Vec::new(),
             sources: Vec::new(),
             functions: Vec::new(),
+            chosen_discipline: None,
         }
+    }
+
+    /// The discipline the symbol is drawn for (one of [`DISCIPLINES`]): the one most of its function's pins have (the
+    /// first met among equals), else the one chosen last, else electrical.
+    pub fn discipline(&self) -> &'static str {
+        let mut counts = [0_usize; DISCIPLINES.len()];
+        for pin in self.draft.function.cps.iter() {
+            let word = serde_json::to_value(&pin.discipline).ok();
+            if let Some(i) = DISCIPLINES
+                .iter()
+                .position(|d| word.as_ref().and_then(Value::as_str) == Some(*d))
+            {
+                counts[i] += 1;
+            }
+        }
+        let most = counts.iter().copied().max().unwrap_or(0);
+        if most == 0 {
+            return self.chosen_discipline.unwrap_or(DISCIPLINES[0]);
+        }
+        let first = self.draft.function.cps.iter().find_map(|pin| {
+            let word = serde_json::to_value(&pin.discipline).ok()?;
+            let i = DISCIPLINES.iter().position(|d| word.as_str() == Some(*d))?;
+            (counts[i] == most).then_some(DISCIPLINES[i])
+        });
+        first.unwrap_or(DISCIPLINES[0])
     }
     /// Whether the draft differs from its last saved state: a new, forked or imported draft is not, until edited.
     pub fn dirty(&self) -> bool {
@@ -757,6 +807,7 @@ impl ShellModel {
             .ok_or_else(|| strings::text(key!("symbol-not-open")).to_owned())?;
         match action {
             "map_cp" => Self::symbol_map_cp(editor, p)?,
+            "discipline" => Self::symbol_discipline(editor, p)?,
             // The potential role of the function pin a connection point draws; `none` clears it (part 3's nit, D6).
             "role" => Self::symbol_role(editor, p)?,
             "path" => Self::symbol_add_path(editor, p)?,
@@ -1048,6 +1099,58 @@ impl ShellModel {
         Ok(())
     }
 
+    /// Sets the discipline the symbol is drawn for (rc.2, F9): every connection point and function pin takes it, and a
+    /// function type it does not offer ([`function_kinds`]) becomes a black box; with `cp`, that one point and the pin it
+    /// draws only (a point that differs). Refused while the draft uses a library's function definition.
+    fn symbol_discipline(editor: &mut SymbolEditor, p: &Map<String, Value>) -> Result<(), String> {
+        let Some(&word) = DISCIPLINES.iter().find(|d| **d == text(p, "discipline")) else {
+            return Err(words(key!("symbol-discipline-invalid")));
+        };
+        if editor.draft.function_ref.is_some() {
+            return Err(words(key!("symbol-function-locked")));
+        }
+        let one = p.get("cp").and_then(Value::as_u64);
+        let before = serde_json::to_value(&editor.draft).map_err(|e| e.to_string())?;
+        let mut d = before.clone();
+        let mut pins = Vec::new();
+        for point in d
+            .pointer_mut("/symbol/cps")
+            .and_then(Value::as_array_mut)
+            .into_iter()
+            .flatten()
+        {
+            if one.is_none_or(|i| point["idx"] == i) {
+                point["discipline"] = json!(word);
+                pins.push(point["fn_cp"].clone());
+            }
+        }
+        for pin in d
+            .pointer_mut("/function/cps")
+            .and_then(Value::as_array_mut)
+            .into_iter()
+            .flatten()
+        {
+            if one.is_none() || pins.contains(&pin["idx"]) {
+                pin["discipline"] = json!(word);
+            }
+        }
+        if one.is_none() {
+            editor.chosen_discipline = Some(word);
+            let kind = d["function"]["contact_kind"].as_str();
+            if kind.is_some_and(|k| !function_kinds(word).contains(&k)) {
+                d["function"]["contact_kind"] = json!("black_box");
+            }
+        }
+        // A symbol with nothing to change (no point yet) keeps its draft: the choice waits for its first point.
+        if d != before {
+            editor.replace(
+                SymbolDraft::parse(&serde_json::to_vec(&d).map_err(|e| e.to_string())?)
+                    .map_err(edit_error)?,
+            );
+        }
+        Ok(())
+    }
+
     /// Sets the potential role of the function pin connection point `cp` draws, or clears it with `none`; refused
     /// while the draft uses a library's function definition.
     fn symbol_role(editor: &mut SymbolEditor, p: &Map<String, Value>) -> Result<(), String> {
@@ -1282,8 +1385,9 @@ impl ShellModel {
     }
 
     /// Adds or moves connection point `idx` (else the next free one) to `x`/`y`, with its function pin, direction
-    /// and, while the draft owns its function, the pin's designation.
+    /// and, while the draft owns its function, the pin's designation. A new point and pin take the symbol's discipline.
     fn symbol_cp(editor: &mut SymbolEditor, p: &Map<String, Value>) -> Result<(), String> {
+        let discipline = editor.discipline();
         let mut d = serde_json::to_value(&editor.draft).map_err(|e| e.to_string())?;
         let index = p.get("idx").and_then(Value::as_u64).unwrap_or_else(|| {
             editor
@@ -1309,7 +1413,7 @@ impl ShellModel {
             .iter()
             .find(|v| v["idx"] == index)
             .cloned()
-            .unwrap_or(json!({"idx":index,"fn_cp":index,"dir":"left"}));
+            .unwrap_or(json!({"idx":index,"fn_cp":index,"dir":"left","discipline":discipline}));
         if let Some(mapping) = p.get("fn_cp") {
             cp["fn_cp"] = mapping.clone();
         }
@@ -1335,7 +1439,7 @@ impl ShellModel {
                 .iter()
                 .find(|v| v["idx"] == fn_cp)
                 .cloned()
-                .unwrap_or(json!({"idx":fn_cp,"designation":index.to_string()}));
+                .unwrap_or(json!({"idx":fn_cp,"designation":index.to_string(),"discipline":discipline}));
             if !text(p, "designation").is_empty() {
                 fcp["designation"] = json!(text(p, "designation"));
             }

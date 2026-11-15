@@ -303,7 +303,11 @@ fn props_filter_keeps_the_matching_rows_while_its_field_is_on_show() {
     assert!(!shell.properties_filter_shown());
     assert_eq!(shell.properties_filter(), "");
     assert_eq!(shell.properties().filter(), "TAG", "the field keeps its text");
-    for (group, _) in groups(&sheet.sections[0], false) {
+    // Every category opened again, More (closed at first) left closed.
+    for (group, _) in groups(&sheet.sections[0], false)
+        .into_iter()
+        .filter(|(g, _)| *g != ew_viewmodel::properties::RowGroup::More)
+    {
         done(
             &mut shell,
             "props.category",

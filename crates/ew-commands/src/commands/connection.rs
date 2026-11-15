@@ -241,6 +241,19 @@ pub(crate) fn cp_fluid_class(tx: &TxBuilder<'_>, f: Id<Function>, idx: u16) -> F
     fluid_port_class(&function, def.as_ref().map(|d| &d.item), &parts, idx)
 }
 
+/// Refuses a fluid port in words where only an electrical point is meant (a potential's definition, a bond's end; rc.2,
+/// F9: Define potential… on an air supply).
+fn refuse_fluid_port(tx: &TxBuilder<'_>, at: &Endpoint) -> Result<(), CmdError> {
+    match at {
+        Endpoint::Cp(f, idx) if matches!(cp_fluid_class(tx, *f, *idx), FluidPortClass::Fluid(_)) => tx
+            .reject(text!(
+                "refusal-electrical-fluid-port",
+                crate::words::cp(tx, *f, *idx)
+            )),
+        _ => Ok(()),
+    }
+}
+
 /// What one end of a drawn connection is to the fluid rules: whether it is fluid (`None`: neither, as an
 /// exempt CP, a junction without connections or an overview connection), and the fluid ports of its medium
 /// it reaches.
@@ -907,8 +920,9 @@ impl Command for ContinueIp {
 /// `potential.define`: names and types a potential at a CP or a junction (FR-CON-010).
 ///
 /// Creates `PotentialDef {at, name, ptype, voltage, env, circuit_class, props}`. `at` must be a CP of an
-/// existing function or an existing junction (a point on a connection is rejected), and must not hold a definition
-/// already: another point of the potential may (doc 08 §3.4). Outcome: the definition.
+/// existing function or an existing junction (a point on a connection is rejected), no fluid port (a potential is
+/// electrical; rc.2, F9), and must not hold a definition already: another point of the potential may (doc 08 §3.4).
+/// Outcome: the definition.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DefinePotential {
@@ -947,6 +961,7 @@ impl Command for DefinePotential {
             return tx.reject(text!("refusal-potential-define-on-connection"));
         };
         self.at.check(tx)?;
+        refuse_fluid_port(tx, &at)?;
         // A potential may hold several definitions (doc 08 §3.4, §3.5: EW-POT-017 when their names differ), but one
         // point defines it once.
         let existing = EndpointKey::of(&at)
@@ -1019,6 +1034,8 @@ impl Command for CreateBond {
         }
         self.a.check(tx)?;
         self.b.check(tx)?;
+        refuse_fluid_port(tx, &a)?;
+        refuse_fluid_port(tx, &b)?;
         if let Some(via) = self.via {
             tx.require::<Connection>(via)?;
         }

@@ -1108,7 +1108,7 @@ impl EditorView {
                             }
                         }
                     }
-                    ui.push_id(editor.generation, |ui| self.properties(ui,draft,&styles,events));
+                    ui.push_id(editor.generation, |ui| self.properties(ui,draft,editor.discipline(),&styles,events));
                     if self.panel == 2 {
                     if section(ui, "fork", "symbol-fork", None, true) {
                         field(ui, "symbol-source-filter", &mut self.source_filter);
@@ -1557,6 +1557,7 @@ impl EditorView {
         &mut self,
         ui: &mut Ui,
         draft: &SymbolDraft,
+        discipline: &'static str,
         styles: &symbols::TextStyleTable,
         events: &mut Vec<Event>,
     ) {
@@ -1754,6 +1755,9 @@ impl EditorView {
             if section(ui, "function", "symbol-function", None, true) {
                 {
                     ui.add_enabled_ui(draft.function_ref.is_none(), |ui| {
+                        // What the symbol is drawn for (rc.2, F9), beside its function type, which follows it.
+                        discipline_control(ui, discipline, None, events);
+                        ui.label(label(strings::Key::run_time("symbol-discipline-help")));
                         ui.label(label(strings::Key::run_time("symbol-function-kind")));
                         // What the type decides, in a drafter's words (F24).
                         ui.label(label(strings::Key::run_time("symbol-function-kind-help")));
@@ -1762,18 +1766,7 @@ impl EditorView {
                         egui::ComboBox::from_id_salt("symbol-function-kind")
                             .selected_text(label(strings::Key::run_time(&format!("symbol-kind-{kind}"))))
                             .show_ui(ui, |ui| {
-                                for kind in [
-                                    "black_box",
-                                    "no",
-                                    "nc",
-                                    "co",
-                                    "coil",
-                                    "pole",
-                                    "terminal",
-                                    "plc_io",
-                                    "bus_port",
-                                    "valve",
-                                ] {
+                                for &kind in ew_viewmodel::shell::symbol_editor::function_kinds(discipline) {
                                     if ui
                                         .selectable_value(
                                             &mut doc["function"]["contact_kind"],
@@ -1874,6 +1867,13 @@ impl EditorView {
                                             owned(label(strings::Key::run_time("symbol-direction")), &owner),
                                         )
                                     });
+                                // One point can differ from the symbol's discipline (rc.2, F9).
+                                let point = cp["idx"].as_u64().and_then(|n| u16::try_from(n).ok());
+                                if let (None, Some(point)) = (&draft.function_ref, point) {
+                                    let current =
+                                        cp["discipline"].as_str().unwrap_or("electrical").to_owned();
+                                    discipline_control(ui, &current, Some(point), events);
+                                }
                                 if delete_button(ui, "symbol-delete-row", &owner) {
                                     remove = Some(i);
                                 }
@@ -2144,6 +2144,37 @@ fn coordinate_field(ui: &mut Ui, value: &mut Value, caption: &str, owner: &str) 
 }
 
 /// A text of the document in a labelled field, committed on Enter or focus loss (M25-p3#4).
+/// The Discipline list (rc.2, F9): what the symbol, or with `cp` one of its points, is drawn for; a choice is one
+/// `symbol.discipline`.
+fn discipline_control(ui: &mut Ui, current: &str, cp: Option<u16>, events: &mut Vec<Event>) {
+    let caption = label(strings::Key::run_time("symbol-discipline"));
+    ui.horizontal(|ui| {
+        if cp.is_none() {
+            ui.label(caption);
+        }
+        let enabled = ui.is_enabled();
+        egui::ComboBox::from_id_salt(("symbol-discipline", cp))
+            .selected_text(strings::choice_text(current))
+            .show_ui(ui, |ui| {
+                for word in ew_viewmodel::shell::symbol_editor::DISCIPLINES {
+                    if ui
+                        .selectable_label(word == current, strings::choice_text(word))
+                        .clicked()
+                        && word != current
+                    {
+                        let mut params = json!({ "discipline": word });
+                        if let Some(cp) = cp {
+                            params["cp"] = json!(cp);
+                        }
+                        action(events, "symbol.discipline", params);
+                    }
+                }
+            })
+            .response
+            .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, enabled, caption));
+    });
+}
+
 /// FT-1691: the category the device and symbol browsers list the symbol under, in the browser's words: the first level
 /// of the draft's own function definition's category. Another category takes `Generic` for its two lower levels. An
 /// assigned library function keeps its own category (`editable` false: the list shows it greyed).

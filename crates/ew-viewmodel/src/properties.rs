@@ -747,13 +747,16 @@ pub fn categories(section: &SheetSection) -> Vec<(Category, Vec<&PropRow>)> {
 }
 
 // Main and Advanced (doc 16a §6.8).
-/// A group of rows in the grid: **Main** (the kind's primary fields, first and open) or one of the sheet's categories.
+/// A group of rows in the grid: **Main** (the kind's primary fields, first and open), one of the sheet's categories, or
+/// **More** (the rows only a rare case needs, last and closed; rc.2, F12).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum RowGroup {
     /// The primary fields of the kind ([`is_primary`]).
     Main,
-    /// A category of the field catalogue, less the Main rows.
+    /// A category of the field catalogue, less the Main and More rows.
     Category(Category),
+    /// The rows only a rare case needs ([`is_more`]).
+    More,
 }
 
 impl RowGroup {
@@ -762,6 +765,7 @@ impl RowGroup {
         match self {
             RowGroup::Main => "main",
             RowGroup::Category(c) => c.word(),
+            RowGroup::More => "more",
         }
     }
 
@@ -769,6 +773,9 @@ impl RowGroup {
     pub fn from_word(word: &str) -> Option<RowGroup> {
         if word == "main" {
             return Some(RowGroup::Main);
+        }
+        if word == "more" {
+            return Some(RowGroup::More);
         }
         Category::ALL
             .iter()
@@ -781,6 +788,7 @@ impl RowGroup {
         match self {
             RowGroup::Main => strings::text(key!("category-main")),
             RowGroup::Category(c) => strings::text(Key::run_time(&format!("category-{}", c.word()))),
+            RowGroup::More => strings::text(key!("category-more")),
         }
     }
 }
@@ -791,7 +799,8 @@ pub fn group_key(kind: &str, group: RowGroup) -> String {
 }
 
 /// The primary fields of a kind, by the row key after `<kind>/`: a row is primary when its key is one of them or a
-/// member of one (`parts[0].part` of `parts`). A kind without a list has no Main group.
+/// member of one (`parts[0].part` of `parts`), and Main shows them in this order. A kind without a list has no Main
+/// group.
 const PRIMARY: &[(&str, &[&str])] = &[
     (
         "page",
@@ -804,10 +813,14 @@ const PRIMARY: &[(&str, &[&str])] = &[
             "function_text",
             "parts",
             "derived.structure.location",
-            // A valve's position on its valve terminal (the persona round: found only through the filter).
-            "derived.position",
             // A fluid source's medium (the persona re-test: a person starts at the source).
             "derived.medium",
+            // Any other fluid device's ports with the medium each carries (rc.2, F9).
+            "derived.port",
+            // A valve's solenoids (rc.2, F11) and its position on its valve terminal (the persona round: found only
+            // through the filter).
+            "derived.solenoid",
+            "derived.position",
         ],
     ),
     (
@@ -824,6 +837,51 @@ const PRIMARY: &[(&str, &[&str])] = &[
     // A wire's and an interruption point's potential: its name, the kind of signal and the voltage (FT-1651).
     ("potential_def", &["name", "ptype", "voltage"]),
 ];
+
+/// The rows only a rare case needs, under the closed group More at the end of their section (rc.2, F12), by the row
+/// key after `<kind>/` as [`PRIMARY`]: the device's kind and state flags, its tag's numbering, its parent and the stored
+/// structure members a derived row does not show; a function's kind, definition, device, role, part function and
+/// connection-point overrides; a symbol's own members besides its page, place, turn and symbol. A raw value (shown as
+/// data, not words) is one too.
+const MORE: &[(&str, &[&str])] = &[
+    (
+        "device",
+        &["kind", "state", "tag", "parent", "position", "structure"],
+    ),
+    (
+        "function",
+        &["kind", "def", "device", "role", "template_entry", "cp_overrides"],
+    ),
+    (
+        "representation",
+        &[
+            "text_slots",
+            "arrangement",
+            "anchor",
+            "box",
+            "functions",
+            "pin_map",
+            "rep_type",
+            "variant",
+        ],
+    ),
+];
+
+/// Whether `row` is one of the rows only a rare case needs (the group More): a [`MORE`] row of its kind or a member the
+/// schema does not list (a raw value).
+pub fn is_more(kind: &str, row: &PropRow) -> bool {
+    let rest = row.key.split_once('/').map_or(row.key.as_str(), |(_, r)| r);
+    row.category == Category::Extra
+        || MORE
+            .iter()
+            .find(|(k, _)| *k == kind)
+            .is_some_and(|(_, paths)| paths.iter().any(|p| under(rest, p)))
+}
+
+/// Whether a group's collapse key is a More group's (`device/more`), which the settings store while it is open.
+pub fn is_more_key(key: &str) -> bool {
+    key.ends_with("/more")
+}
 
 /// The internal members shown only under Advanced, by the row's path: the record version, the ID, the source reference
 /// with its key and lineage, the tag counter, the form's UUID and the members of a page's connection
@@ -849,11 +907,16 @@ fn under(rest: &str, base: &str) -> bool {
 
 /// Whether `row` is one of its kind's primary fields (the Main group).
 pub fn is_primary(kind: &str, row: &PropRow) -> bool {
+    primary_rank(kind, row).is_some() && !is_more(kind, row)
+}
+
+/// The place of `row`'s primary field in its kind's [`PRIMARY`] list; `None` for another row.
+fn primary_rank(kind: &str, row: &PropRow) -> Option<usize> {
     let rest = row.key.split_once('/').map_or(row.key.as_str(), |(_, r)| r);
     PRIMARY
         .iter()
         .find(|(k, _)| *k == kind)
-        .is_some_and(|(_, paths)| paths.iter().any(|p| under(rest, p)))
+        .and_then(|(_, paths)| paths.iter().position(|p| under(rest, p)))
 }
 
 /// Whether `row` is an internal member, shown only while Advanced is on.
@@ -862,16 +925,19 @@ pub fn is_advanced(row: &PropRow) -> bool {
 }
 
 /// The groups of a section in display order with their rows: Main first when the kind has primary rows, then each
-/// category with its other rows; the Advanced rows are left out unless `advanced`. A group without rows is left out.
+/// category with its other rows, then More; the Advanced rows are left out unless `advanced`. A group without rows is
+/// left out.
 pub fn groups(section: &SheetSection, advanced: bool) -> Vec<(RowGroup, Vec<&PropRow>)> {
     let shown = |r: &&PropRow| advanced || !is_advanced(r);
-    let main: Vec<&PropRow> = section
+    let mut main: Vec<&PropRow> = section
         .rows
         .iter()
         .filter(shown)
         .filter(|r| is_primary(&section.kind, r))
         .collect();
-    let main = marker_beside_colour(main);
+    // In the order of the kind's primary fields (a connection's marker beside the colour it prints), a field's own
+    // rows in sheet order.
+    main.sort_by_key(|r| primary_rank(&section.kind, r));
     let mut out = Vec::new();
     if !main.is_empty() {
         out.push((RowGroup::Main, main));
@@ -880,28 +946,22 @@ pub fn groups(section: &SheetSection, advanced: bool) -> Vec<(RowGroup, Vec<&Pro
         let rows: Vec<&PropRow> = rows
             .into_iter()
             .filter(shown)
-            .filter(|r| !is_primary(&section.kind, r))
+            .filter(|r| group_of(section, r) == RowGroup::Category(c))
             .collect();
         if !rows.is_empty() {
             out.push((RowGroup::Category(c), rows));
         }
     }
-    out
-}
-
-/// The Main rows with a connection's `overrides.show_marker` moved right after the colour it prints; the rows
-/// as they are when either is absent.
-fn marker_beside_colour(mut rows: Vec<&PropRow>) -> Vec<&PropRow> {
-    let Some(from) = rows.iter().position(|r| r.path == "overrides.show_marker") else {
-        return rows;
-    };
-    let marker = rows.remove(from);
-    let at = rows
+    let more: Vec<&PropRow> = section
+        .rows
         .iter()
-        .position(|r| r.key.ends_with("/derived.colour"))
-        .map_or(from, |i| i + 1);
-    rows.insert(at, marker);
-    rows
+        .filter(shown)
+        .filter(|r| group_of(section, r) == RowGroup::More)
+        .collect();
+    if !more.is_empty() {
+        out.push((RowGroup::More, more));
+    }
+    out
 }
 
 /// The number of Advanced rows of `sheet` (the "Show advanced (n)" link).
@@ -918,13 +978,16 @@ pub fn advanced_count(sheet: &PropertySheet) -> usize {
 pub fn group_of(section: &SheetSection, row: &PropRow) -> RowGroup {
     if is_primary(&section.kind, row) {
         RowGroup::Main
+    } else if is_more(&section.kind, row) {
+        RowGroup::More
     } else {
         RowGroup::Category(row.category)
     }
 }
 
 /// The rows on show: every row of every expanded group, in display order ([`groups`]); the Advanced rows only while
-/// `advanced` is on; with a non-empty `filter`, only the rows it matches and their parents ([`filtered`]).
+/// `advanced` is on; with a non-empty `filter`, only the rows it matches and their parents ([`filtered`]), in every group,
+/// a closed one too (rc.2, F12: the filter finds a row that waits in the closed More).
 pub fn visible_rows<'s>(
     sheet: &'s PropertySheet,
     collapsed: &BTreeSet<String>,
@@ -934,7 +997,7 @@ pub fn visible_rows<'s>(
     let mut out = Vec::new();
     for s in &sheet.sections {
         for (g, rows) in groups(s, advanced) {
-            if collapsed.contains(&group_key(&s.kind, g)) {
+            if group_shut(collapsed, &s.kind, g, filter) {
                 continue;
             }
             out.extend(
@@ -945,6 +1008,12 @@ pub fn visible_rows<'s>(
         }
     }
     out
+}
+
+/// Whether the group `group` of a section of `kind` shows no rows: it is collapsed and no filter is typed (a filter
+/// searches a closed group too).
+pub fn group_shut(collapsed: &BTreeSet<String>, kind: &str, group: RowGroup, filter: &str) -> bool {
+    filter.trim().is_empty() && collapsed.contains(&group_key(kind, group))
 }
 
 /// The rows of one group that the Properties filter `filter` keeps: those it matches ([`row_matches`]) and, among
@@ -1025,7 +1094,27 @@ pub fn row_label(section: &SheetSection, row: &PropRow) -> String {
     {
         return strings::format(key!("props-solenoid"), &[name]);
     }
+    // A fluid device's port row is named by its port ("Port 2").
+    if row.key.starts_with("device/derived.port[")
+        && let RowValue::One { json, .. } = &row.value
+        && let Some(name) = json.get("designation").and_then(Value::as_str)
+    {
+        return strings::format(key!("props-port"), &[name]);
+    }
     strings::field_label(&section.kind, &row.path_for_label())
+}
+
+/// Writes a fluid port that carries no medium as what to do (rc.2, F9): set one at the air supply. The JSON value is
+/// unchanged.
+pub fn ports_in_words(sheet: &mut PropertySheet) {
+    for row in sheet.sections.iter_mut().flat_map(|s| s.rows.iter_mut()) {
+        if let RowValue::One { json, text } = &mut row.value
+            && row.key.starts_with("device/derived.port[")
+            && json.get("medium").is_some_and(Value::is_null)
+        {
+            *text = strings::text(key!("props-port-no-medium")).to_owned();
+        }
+    }
 }
 
 /// Writes a valve's solenoid rows in words (rc.2, F11): where the coil is drawn, else "not drawn"; and the coil
@@ -1654,7 +1743,10 @@ pub fn what_words(what: &SheetWhat) -> String {
             details.push(word(k));
         }
         if n.fluid() && what.solenoids > 0 {
-            details.push(strings::format_count(count_key!("nature-solenoids"), what.solenoids));
+            details.push(strings::format_count(
+                count_key!("nature-solenoids"),
+                what.solenoids,
+            ));
         }
         if n.bus_device() {
             details.push(word(key!("nature-bus-device")));
@@ -1816,6 +1908,9 @@ const CHIP_PHRASES: &[(&str, Option<&str>, Key<'static>)] = &[
         key!("chip-via-through-valves"),
     ),
     ("no medium definition", None, key!("chip-via-no-medium")),
+    // A source without a medium says what to do (rc.2, F9).
+    ("no medium yet", None, key!("chip-via-no-medium-yet")),
+    ("no medium at its source", None, key!("chip-via-port-no-medium")),
     (
         "project default tube",
         None,

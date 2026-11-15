@@ -52,6 +52,16 @@ impl ShellModel {
         })
     }
 
+    /// Whether a fluid line is selected on the page shown.
+    pub fn fluid_line_selected(&self) -> bool {
+        self.canvas().is_some_and(|c| {
+            let t = &c.page().tables;
+            selection_kinds(&self.tools.selection, t)
+                .iter()
+                .any(|(e, _)| t.connections.iter().any(|c| c.id == e.0 && c.kind == "fluid"))
+        })
+    }
+
     /// Whether the project prints every wire's number on the page (`settings.extra.drawing.wire_numbers`, FT-1692).
     pub fn wire_numbers_on(&self) -> bool {
         self.project.as_ref().is_some_and(|p| {

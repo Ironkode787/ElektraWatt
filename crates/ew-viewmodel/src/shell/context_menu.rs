@@ -14,7 +14,9 @@
 //!   Choose part…, Edit strip, Define potential…. **Several terminals:** Choose part… for them all.
 //! - **A symbol of a device:** on a coil Add contact per free contact of its device (each floats its symbol), on a
 //!   contact Go to coil; Join device… where another device can take it; Choose part…; Edit symbol and Copy and edit;
-//!   Define potential… on a symbol of one connection point; then its device's fluid actions (Add valve, Generate overview…, Plug port).
+//!   Define potential… on a symbol of one electrical connection point; then its device's fluid actions (a source's
+//!   Medium: entries and New medium…, the medium another fluid device's ports carry, Add valve, Generate overview…, Plug
+//!   port).
 //!
 //! [`crate::command_bar::canvas_menu`] puts them first, then the bar's selection commands and the general ones. A
 //! navigator's row offers what the same thing offers on the page from the same functions
@@ -671,6 +673,7 @@ impl ShellModel {
                 }
             }
         }
+        self.device_medium_entries(session, device, out);
         let menu = session.fluid_menu(device);
         if menu.terminal {
             let label = strings::text(key!("action-fluid-generate-overview")).to_owned();
@@ -742,6 +745,37 @@ impl ShellModel {
             let params = json!({ "cmd": "fluid.port.close", "params": {
                 "function": function.to_string(), "idx": idx, "closure": { "kind": "plug" } } });
             out.extend(self.aimed("command.run", params, label));
+        }
+    }
+
+    /// A fluid device's medium (rc.2, F9): a source chooses it, Medium: `<medium>` for each medium of the project (its
+    /// own checked, through its Properties row `device/derived.medium`), then New medium…; any other fluid device names
+    /// each medium its ports carry, or that one carries none, each opening its Properties, where the port rows say from
+    /// where and what to do.
+    fn device_medium_entries(&self, session: &ew_api::Session, device: Uuid, out: &mut Vec<ActionItem>) {
+        let Some(media) = session.device_media(device) else {
+            return;
+        };
+        if media.source {
+            let current = media.carried.first().cloned().flatten().map(|(id, _)| id);
+            for (medium, _) in session.media() {
+                let words = session.medium_text(medium).unwrap_or_default();
+                let label = strings::format(key!("canvas-line-medium"), &[&words]);
+                let params = json!({ "row": "device/derived.medium", "value": medium.to_string() });
+                out.extend(self.aimed("props.set", params, label).map(|mut i| {
+                    i.checked = current == Some(medium);
+                    i
+                }));
+            }
+            out.extend(self.menu_item("fluid.medium_new"));
+            return;
+        }
+        for carried in &media.carried {
+            let label = match carried {
+                Some((_, words)) => strings::format(key!("canvas-line-medium"), &[words]),
+                None => strings::text(key!("canvas-medium-none")).to_owned(),
+            };
+            out.extend(self.aimed("props.focus", json!({}), label));
         }
     }
 

@@ -1513,6 +1513,19 @@ impl SectionCx<'_, '_> {
             }
             return;
         }
+        // rc.2, F12: what the thing is not has no row. An empty aspect of a device (a strip, a terminal, a cable, an
+        // assembly), its place in a parent it does not have, and a function's empty bus port and interruption point
+        // belong to another kind of thing.
+        let not_this = value == RowValue::Absent
+            && match (self.kind, rpath) {
+                ("device", "position") => values_at(self.jsons, "parent").iter().all(Option::is_none),
+                ("device", _) => depth == 0 && ew_commands::commands::ASPECTS.contains(&rpath),
+                ("function", "bus_port" | "kind.ip") => true,
+                _ => false,
+            };
+        if not_this {
+            return;
+        }
         let mut route = spec.route.clone();
         if let Some(why) = &self.closed {
             route = EditRoute::ReadOnly(FieldReadOnly::Narrowed { why: why.clone() });
@@ -1976,29 +1989,33 @@ fn sheet_what(q: &Q, device: Id<Device>) -> SheetWhat {
     }
 }
 
-/// The fluid port of a source device (a function on a FnDef of category `Source`, the air-supply point): its first
-/// fluid CP; `None` for any other device.
+/// The fluid port of a source device, by what it is (rc.2, F9: a source drawn in the symbol editor or made in the part
+/// editor is one too, whatever its category): a device whose only fluid port is a supply or plain port (no consumer's,
+/// no sensing port), on a function that is no interruption point; `None` for any other device.
 pub(crate) fn source_port(q: &Q, device: Id<Device>) -> Option<(Id<ew_derive::ew_schema::Function>, u16)> {
-    q.idx().functions_of_device(device).find_map(|f| {
-        let def = q.functions().get(f).and_then(|x| q.fndefs().get(x.def))?;
-        let (a, b, c) = &def.item.category;
-        if ![a, b, c].iter().any(|c| c.as_str() == "Source") {
-            return None;
-        }
+    use ew_derive::ew_schema::{ContactKind, FluidPortRole};
+    let (functions, fndefs) = (q.functions(), q.fndefs());
+    let mut ports = q.idx().functions_of_device(device).flat_map(|f| {
+        let ip = functions
+            .get(f)
+            .and_then(|x| fndefs.get(x.def))
+            .is_some_and(|d| d.item.contact_kind == ContactKind::Terminal);
         q.get::<ew_derive::FunctionCps>(f)
             .iter()
-            .find(|c| ew_derive::is_fluid(&c.discipline))
-            .map(|c| (f, c.idx))
-    })
+            .filter(|c| ew_derive::is_fluid(&c.discipline))
+            .map(|c| (f, c.idx, ip, c.port_role.clone()))
+            .collect::<Vec<_>>()
+    });
+    let (f, idx, ip, role) = ports.next()?;
+    let plain = matches!(role, None | Some(FluidPortRole::Generic | FluidPortRole::Supply1));
+    (ports.next().is_none() && plain && !ip).then_some((f, idx))
 }
 
-/// A source device's **Medium** row ([`source_port`]): the medium its port's net carries and where it is defined, set
-/// as a tube's (`fluid.medium.define` at the port through [`Session::layout_edit`]); `None` for any other device.
-fn source_medium_row(q: &Q, cx: &SheetCx<'_>, device: Id<Device>) -> Option<Built> {
-    use ew_derive::ew_schema::{Medium, MediumDef};
+/// The medium the fluid net at `at` carries (one medium, else none) and the connection point of the medium definition
+/// in that net (`None`: it is carried there through the valves, or there is none).
+fn medium_at(q: &Q, at: EndpointKey) -> (Option<Id<ew_derive::ew_schema::Medium>>, Option<ew_derive::CpRef>) {
+    use ew_derive::ew_schema::MediumDef;
     use ew_derive::{Effective, MediumZones, node_net};
-    let (f, idx) = source_port(q, device)?;
-    let at = EndpointKey::Cp(f, idx);
     let net = node_net(q, at);
     let medium = match net.map(|n| q.get::<MediumZones>(()).effective(n)) {
         Some(Effective::One(k)) => Some(k.root()),
@@ -2009,12 +2026,21 @@ fn source_medium_row(q: &Q, cx: &SheetCx<'_>, device: Id<Device>) -> Option<Buil
         .iter()
         .map(|(_, d)| d)
         .find(|d| net.is_some() && EndpointKey::of(&d.at).and_then(|k| node_net(q, k)) == net)
-        .and_then(|d| EndpointKey::of(&d.at).and_then(ew_derive::CpRef::of))
-        .map(|cp| cp_label(q, cp));
+        .and_then(|d| EndpointKey::of(&d.at).and_then(ew_derive::CpRef::of));
+    (medium, def)
+}
+
+/// A source device's **Medium** row ([`source_port`]): the medium its port's net carries and where it is defined, set
+/// as a tube's (`fluid.medium.define` at the port through [`Session::layout_edit`]); `None` for any other device.
+/// Without a medium its chip says to choose one (rc.2, F9).
+fn source_medium_row(q: &Q, cx: &SheetCx<'_>, device: Id<Device>) -> Option<Built> {
+    use ew_derive::ew_schema::Medium;
+    let (f, idx) = source_port(q, device)?;
+    let (medium, def) = medium_at(q, EndpointKey::Cp(f, idx));
     let via = match (medium, def) {
-        (Some(_), Some(at)) => format!("medium definition at {at}"),
+        (Some(_), Some(at)) => format!("medium definition at {}", cp_label(q, at)),
         (Some(_), None) => "carried through the valves".to_owned(),
-        (None, _) => "no medium definition".to_owned(),
+        (None, _) => "no medium yet".to_owned(),
     };
     let media = q.table::<Medium>();
     let options: Vec<String> = media.iter().map(|(id, _)| id.as_uuid().to_string()).collect();
@@ -2049,6 +2075,141 @@ fn source_medium_row(q: &Q, cx: &SheetCx<'_>, device: Id<Device>) -> Option<Buil
         provenance,
         vec![RowAction::Edit],
     ))
+}
+
+/// The media of a fluid device, for its menu (rc.2, F9).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct DeviceMedia {
+    /// Whether it is a source: its Medium row and menu set the medium.
+    pub source: bool,
+    /// Each distinct medium its fluid ports carry, in port order, with its words (`Compressed air, 6 bar`); `None` for
+    /// a port that carries none.
+    pub carried: Vec<Option<(Uuid, String)>>,
+}
+
+impl Session {
+    /// The media of the fluid device `device` ([`DeviceMedia`]); `None` for a device without a fluid port.
+    pub fn device_media(&self, device: Uuid) -> Option<DeviceMedia> {
+        let q = self.query();
+        let id = Id::from_uuid(device);
+        let media = q.table::<ew_derive::ew_schema::Medium>();
+        let mut ports: Vec<(String, EndpointKey)> = q
+            .idx()
+            .functions_of_device(id)
+            .flat_map(|f| {
+                q.get::<ew_derive::FunctionCps>(f)
+                    .iter()
+                    .filter(|c| ew_derive::is_fluid(&c.discipline))
+                    .map(|c| (c.designation.clone(), EndpointKey::Cp(f, c.idx)))
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+        if ports.is_empty() {
+            return None;
+        }
+        ports.sort_by(|a, b| ew_mltext::natural_cmp(&a.0, &b.0));
+        let mut carried = Vec::new();
+        for (_, at) in ports {
+            let one = medium_at(&q, at)
+                .0
+                .and_then(|m| media.get(m).map(|x| (m.as_uuid(), medium_words(&x))));
+            if !carried.contains(&one) {
+                carried.push(one);
+            }
+        }
+        Some(DeviceMedia {
+            source: source_port(&q, id).is_some(),
+            carried,
+        })
+    }
+
+    /// The medium `medium` in words ([`medium_words`]); `None` for an ID that names none.
+    pub fn medium_text(&self, medium: Uuid) -> Option<String> {
+        let q = self.query();
+        let media = q.table::<ew_derive::ew_schema::Medium>();
+        media.get(Id::from_uuid(medium)).map(|m| medium_words(&m))
+    }
+}
+
+/// A medium in words: its name and its nominal pressure (`Compressed air, 6 bar`).
+pub(crate) fn medium_words(m: &ew_derive::ew_schema::Medium) -> String {
+    let name = neutral_or_first(&m.name);
+    if m.p_nom == ew_derive::ew_units::Dec3::ZERO {
+        name
+    } else {
+        format!("{name}, {} bar", m.p_nom)
+    }
+}
+
+/// The fluid ports of a device that is no source (rc.2, F9), one read-only row each (`port[n]`, in port order): the
+/// medium the port carries in words and where it is defined, linked to the Medium row of the source whose definition
+/// gives that medium; the value names the port's designation and the medium (`null` for none, which the window writes
+/// as what to do).
+fn fluid_port_rows(q: &Q, device: Id<Device>) -> Vec<Built> {
+    use ew_derive::ew_schema::{Medium, MediumDef};
+    if source_port(q, device).is_some() {
+        return Vec::new();
+    }
+    let (media, defs, functions) = (q.table::<Medium>(), q.table::<MediumDef>(), q.functions());
+    let mut ports: Vec<(Id<Function>, u16, String)> = q
+        .idx()
+        .functions_of_device(device)
+        .flat_map(|f| {
+            q.get::<ew_derive::FunctionCps>(f)
+                .iter()
+                .filter(|c| ew_derive::is_fluid(&c.discipline))
+                .map(|c| (f, c.idx, c.designation.clone()))
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    ports.sort_by(|a, b| ew_mltext::natural_cmp(&a.2, &b.2).then_with(|| (a.0, a.1).cmp(&(b.0, b.1))));
+    ports
+        .into_iter()
+        .enumerate()
+        .map(|(n, (f, idx, designation))| {
+            let (medium, def) = medium_at(q, EndpointKey::Cp(f, idx));
+            let via = match (medium, def) {
+                (Some(_), Some(at)) => format!("medium definition at {}", cp_label(q, at)),
+                (Some(_), None) => "carried through the valves".to_owned(),
+                (None, _) => "no medium at its source".to_owned(),
+            };
+            // The source: the device whose port defines the medium (the first definition of it).
+            let source = medium
+                .and_then(|m| {
+                    defs.iter()
+                        .map(|(_, d)| d)
+                        .filter(|d| d.medium == m)
+                        .min_by_key(|d| d.id)
+                })
+                .and_then(|d| EndpointKey::of(&d.at).and_then(ew_derive::CpRef::of))
+                .and_then(|cp| functions.get(cp.function)?.device);
+            let value = RowValue::One {
+                json: serde_json::json!({
+                    "designation": designation,
+                    "medium": medium.map(|m| m.as_uuid().to_string()),
+                }),
+                text: medium
+                    .and_then(|m| media.get(m))
+                    .map(|m| medium_words(&m))
+                    .unwrap_or_default(),
+            };
+            let mut b = derived(
+                "device",
+                &format!("port[{n}]"),
+                None,
+                Category::Part,
+                FieldType::Text,
+                value,
+                Provenance::Derived { via },
+                Vec::new(),
+            );
+            b.row.source = source.map(|d| SourceLink::Record {
+                id: d.as_uuid(),
+                row: "device/derived.medium".to_owned(),
+            });
+            b
+        })
+        .collect()
 }
 
 /// Doc 16a §8.5: the route points of connection `c` as the frame cells they lie in (`D5`), as
@@ -2575,9 +2736,18 @@ impl Session {
         if (generated.is_none() || kind != Kind::ReportBlock) && !fluid_lines {
             built.extend(self.derived_rows(q, cx, kind, &targets, &jsons));
         }
-        // A valve's position is its derived row, not the stored member a second time.
+        // A valve's position is its derived row, not the stored member a second time; an aspect's structure row (with
+        // Override and Reset) stands for its stored member likewise, so two rows never share a label.
         if built.iter().any(|b| b.row.key == "device/derived.position") {
             built.retain(|b| b.row.key != "device/position");
+        }
+        if kind == Kind::Device {
+            let derived: BTreeSet<String> = built
+                .iter()
+                .filter(|b| b.derived && b.row.path.starts_with("structure."))
+                .map(|b| b.row.path.clone())
+                .collect();
+            built.retain(|b| b.derived || !derived.contains(&b.row.path));
         }
         if fluid_lines {
             built.extend(fluid_line_rows(q, cx, &targets));
@@ -2722,7 +2892,9 @@ impl Session {
         // The structure, per aspect with a node on any target.
         let structures: Vec<std::sync::Arc<ResolvedStructure>> =
             devices.iter().map(|d| q.get::<StructureOf>(*d)).collect();
-        let aspects: BTreeSet<Aspect> = structures.iter().flat_map(|s| s.slots.keys().copied()).collect();
+        let mut aspects: BTreeSet<Aspect> = structures.iter().flat_map(|s| s.slots.keys().copied()).collect();
+        // rc.2, F12: the location is what a drafter sets first, so its row is there on every device, set or not.
+        aspects.insert(Aspect::Location);
         for aspect in aspects {
             let member = member_of_aspect(aspect);
             let mut per = Vec::new();
@@ -2773,7 +2945,8 @@ impl Session {
                 per.push((Some(Value::String(text)), provenance));
             }
             let (value, provenance) = merge(cx, &FieldType::Text, per);
-            let mut actions = Vec::new();
+            // The row stands for its stored member (rc.2, F12): it is typed into as that member is.
+            let mut actions = vec![RowAction::Edit];
             if inherited {
                 actions.push(RowAction::Override);
             }
@@ -2855,6 +3028,10 @@ impl Session {
             && let Some(row) = source_medium_row(q, cx, *one)
         {
             out.push(row);
+        }
+        // Any other fluid device's ports with the medium each carries and from where (rc.2, F9).
+        if let [one] = devices.as_slice() {
+            out.extend(fluid_port_rows(q, *one));
         }
         // A stand-alone valve's solenoids (rc.2, F11): one row each, where its coil is drawn (a link that goes there, or
         // draws it while it is not) and the PLC output that drives it.
@@ -3256,16 +3433,29 @@ impl Session {
             })
             .collect();
         let (value, provenance) = merge(cx, &FieldType::Text, per);
-        out.push(derived(
-            "representation",
-            "xref",
-            None,
-            Category::Texts,
-            FieldType::Text,
-            value,
-            provenance,
-            Vec::new(),
-        ));
+        // rc.2, F12: a cross-reference is an electrical device's (a contact's to its coil); an empty one of a symbol
+        // with no electrical point is not listed.
+        let electrical = targets.iter().any(|t| {
+            q.reps().get(Id::from_uuid(*t)).is_some_and(|r| {
+                r.functions.iter().any(|f| {
+                    q.get::<ew_derive::FunctionCps>(*f)
+                        .iter()
+                        .any(|c| c.discipline == ew_schema::Discipline::Electrical)
+                })
+            })
+        });
+        if value != RowValue::Absent || electrical {
+            out.push(derived(
+                "representation",
+                "xref",
+                None,
+                Category::Texts,
+                FieldType::Text,
+                value,
+                provenance,
+                Vec::new(),
+            ));
+        }
         // The coil symbol of a valve's solenoid says which valve it belongs to (rc.2, F11), a link to the valve.
         if let [one] = targets
             && let Some(rep) = q.reps().get(Id::from_uuid(*one))

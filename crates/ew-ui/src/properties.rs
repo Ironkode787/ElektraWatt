@@ -267,7 +267,7 @@ impl PropertiesPane {
                 let mut need = 0.0_f32;
                 for section in &sheet.sections {
                     for (group, rows) in groups(section, advanced) {
-                        if collapsed.contains(&group_key(&section.kind, group)) {
+                        if ew_viewmodel::properties::group_shut(&collapsed, &section.kind, group, &filter) {
                             continue;
                         }
                         let rows: Vec<&PropRow> = filtered(section, rows, &filter);
@@ -311,7 +311,12 @@ impl PropertiesPane {
                         }
                         for (group, rows) in groups(section, advanced) {
                             let key = group_key(&section.kind, group);
-                            let shut = collapsed.contains(&key);
+                            let shut = ew_viewmodel::properties::group_shut(
+                                &collapsed,
+                                &section.kind,
+                                group,
+                                &filter,
+                            );
                             // The filter keeps the rows it matches (with their parents); an open group left without rows hides.
                             let rows: Vec<&PropRow> = filtered(section, rows, &filter);
                             if !shut && rows.is_empty() {

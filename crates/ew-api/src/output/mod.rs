@@ -141,6 +141,7 @@ pub use ew_reports::csv::{CsvOptions, LineEnd, Preset, restyle, table_csv};
 pub use ew_reports::table::{Table, TableCell, TableColumn, TableRow};
 pub use ew_reports::xlsx::{WorkbookMeta, base_text, xlsx};
 pub use ew_scene::page::SlotTextBox;
+pub use natures::Natures;
 pub use navigators::{
     Drawable, HighlightTarget, LibraryCopyDetail, MacroDetail, MacroThumbnail, NOT_DRAWN, NaturalKey,
     NavColumn, NavKind, NavNode, NavRole, NavTable, Uuid, names_subject, nav_natural_key,
@@ -153,10 +154,9 @@ pub use potential_offer::PotentialOffer;
 pub(crate) use potential_offer::said_type;
 pub use preview::PreviewEntity;
 pub use project_diff::textconv;
-pub use natures::Natures;
 pub use properties::{
-    CompanyColour, FindingChip, PropRow, PropertySheet, Provenance, RowAction, RowValue, SelectionWords,
-    SheetHeader, SheetSection, SheetWhat, SourceLink, WireColours, WireEnd,
+    CompanyColour, DeviceMedia, FindingChip, PropRow, PropertySheet, Provenance, RowAction, RowValue,
+    SelectionWords, SheetHeader, SheetSection, SheetWhat, SourceLink, WireColours, WireEnd,
 };
 pub use rack::{FluidMenu, ModulePart, PlcOffer, RackRow, RackView, TerminalSeat, ValveSolenoid, gives_text};
 pub use raster::{DEFAULT_DPI, DPI_RANGE, page_png, sheet_image};

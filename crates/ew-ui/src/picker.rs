@@ -388,10 +388,17 @@ fn row_texts(picker: &Picker, row: PickerRow) -> RowTexts {
             } else {
                 s.name.clone()
             };
+            // What the symbol is for, in the ratings column (rc.2, F9): "Pneumatic", "Electrical".
+            let rating = s
+                .discipline
+                .as_ref()
+                .and_then(|d| serde_json::to_value(d).ok())
+                .and_then(|v| v.as_str().map(strings::choice_text))
+                .unwrap_or_default();
             RowTexts {
                 name,
                 number: String::new(),
-                rating: String::new(),
+                rating,
                 library: library.to_owned(),
             }
         }
@@ -1005,6 +1012,7 @@ mod tests {
             name_text: Default::default(),
             placed_by: Default::default(),
             category: "ProtectionOvercurrent".to_owned(),
+            discipline: None,
         };
         let catalogue = PlaceCatalogue {
             symbols: vec![symbol],

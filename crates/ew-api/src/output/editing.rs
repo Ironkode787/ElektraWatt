@@ -112,6 +112,9 @@ pub struct CatalogueSymbol {
     /// The first level of its FnDef's category (`ProtectionOvercurrent`, the browser's tree node); empty when the
     /// FnDef is missing.
     pub category: String,
+    /// The discipline its connection points share (rc.2, F9: the browser says what a symbol is for); `None` when they
+    /// differ or it has none.
+    pub discipline: Option<ew_schema::Discipline>,
 }
 
 /// How a symbol gets onto a page: what choosing it in the Insert symbol list does.
@@ -655,7 +658,16 @@ fn symbol_row(
         Some("Graphic") => PlacedBy::Program,
         _ => PlacedBy::Device,
     };
+    let disciplines: Vec<&ew_schema::Discipline> = match def.as_ref() {
+        Some(d) => d.item.cps.iter().map(|c| &c.discipline).collect(),
+        None => symbol.cps.iter().map(|c| &c.discipline).collect(),
+    };
+    let discipline = disciplines
+        .first()
+        .filter(|first| disciplines.iter().all(|d| d == *first))
+        .map(|d| (*d).clone());
     let mut row = CatalogueSymbol {
+        discipline,
         placed_by,
         category: def
             .as_ref()

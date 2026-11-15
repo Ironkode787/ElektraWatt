@@ -717,14 +717,17 @@ fn one_connection(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-/// An editable page whose selection gives a bond its two ends: exactly one selected connection (Draw ▸ Bond).
-/// The headless form that names the two ends (`a` and `b`) needs only the editable page ([`enabled_with`]).
+/// An editable page whose selection gives a bond its two ends: exactly one selected connection, a wire and no tube
+/// (Draw ▸ Bond). The headless form that names the two ends (`a` and `b`) needs only the editable page
+/// ([`enabled_with`]).
 fn bond_ends(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
-    if m.one_connection_selected() {
-        Ok(())
-    } else {
+    if !m.one_connection_selected() {
         Err(key!("reason-bond-selection"))
+    } else if m.fluid_line_selected() {
+        Err(key!("reason-bond-fluid"))
+    } else {
+        Ok(())
     }
 }
 
@@ -1275,6 +1278,16 @@ fn macro_scope_shown(m: &ShellModel) -> Result<(), Key<'static>> {
 fn selection_editable(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
     selection_shown(m)
+}
+
+/// An editable page whose selection is shown and holds no tube: a cable's cores are wires (Cable…; rc.2, F9).
+fn cable_wires(m: &ShellModel) -> Result<(), Key<'static>> {
+    selection_editable(m)?;
+    if m.fluid_line_selected() {
+        Err(key!("reason-cable-fluid"))
+    } else {
+        Ok(())
+    }
 }
 
 use ActionKind::{Command, View};

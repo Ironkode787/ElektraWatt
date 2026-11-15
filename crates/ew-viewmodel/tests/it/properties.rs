@@ -422,7 +422,9 @@ fn the_transcript_and_describe_members() {
     let d = shell.describe();
     assert!(d.contains("properties \"-101F1\" items 1 kinds device 1"), "{d}");
     assert!(d.contains("  section device targets 1"), "{d}");
-    assert!(d.contains("  category \"Identity\" expanded"), "{d}");
+    assert!(d.contains("  category \"Main\" expanded"), "{d}");
+    // The rows only a rare case needs (rc.2, F12) wait in More, closed.
+    assert!(d.contains("  category \"More\" collapsed"), "{d}");
     assert!(
         d.contains("    row \"device/derived.tag\" \"Tag\" \"-101F1\" derived \"numbering scheme 'page-based'\" actions edit freeze"),
         "{d}"
@@ -440,23 +442,27 @@ fn the_transcript_and_describe_members() {
         assert!(!looks_like_uuid(l), "{l}");
     }
     assert!(!looks_like_uuid(&st["properties"].to_string()));
-    // Collapse a category: its rows are gone from the text, the state says collapsed.
+    // Open and close a category: its rows come and go in the text, the state says expanded or collapsed. More (closed
+    // at first, rc.2) holds the state row; the tag is a Main row and stays.
     done(&mut shell, "props.focus", json!({}));
+    assert!(!shell.describe().contains("row \"device/state\""));
     done(
         &mut shell,
         "props.category",
-        json!({"category": "identity", "expanded": false}),
+        json!({"category": "more", "expanded": true}),
     );
     let d = shell.describe();
-    assert!(d.contains("  category \"Identity\" collapsed"), "{d}");
-    // The tag is a Main row, so the collapsed Identity takes the state row with it.
-    assert!(!d.contains("row \"device/state\""), "{d}");
-    assert!(d.contains("row \"device/derived.tag\""), "{d}");
+    assert!(d.contains("  category \"More\" expanded"), "{d}");
+    assert!(d.contains("row \"device/state\""), "{d}");
     done(
         &mut shell,
         "props.category",
-        json!({"category": "identity", "expanded": true}),
+        json!({"category": "more", "expanded": false}),
     );
+    let d = shell.describe();
+    assert!(d.contains("  category \"More\" collapsed"), "{d}");
+    assert!(!d.contains("row \"device/state\""), "{d}");
+    assert!(d.contains("row \"device/derived.tag\""), "{d}");
     assert!(d.contains("focus properties"), "{d}");
     // The pane closed: null member and no lines.
     done(&mut shell, "props.show", json!({"on": false}));
@@ -667,16 +673,19 @@ fn choice_editors_list_options_and_untouched_rows_write_nothing() {
     done(&mut shell, "props.choose", json!({}));
     assert_eq!(text(&shell, "device/state"), "Spare");
     assert_eq!(steps(&shell), before + 1);
-    // A slot picker filtered by the typed text.
+    // A slot picker filtered by the typed text, on the location's one row (the derived row stands for its member).
     done(
         &mut shell,
         "props.edit",
-        json!({"row": "device/structure.location"}),
+        json!({"row": "device/derived.structure.location"}),
     );
     let all = shell.properties().choices().expect("the nodes").items.len();
     assert!(all >= 1);
     let d = shell.describe();
-    assert!(d.contains("  choices \"device/structure.location\""), "{d}");
+    assert!(
+        d.contains("  choices \"device/derived.structure.location\""),
+        "{d}"
+    );
     done(&mut shell, "props.cancel", json!({}));
     shell.shutdown();
 }

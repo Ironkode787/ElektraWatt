@@ -1213,7 +1213,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
                 Command,
                 Menu::Draw,
                 &[],
-                selection_editable,
+                cable_wires,
                 grp(Group::Connect),
                 |s, p| s.act_cable_from_wires(p),
             ),

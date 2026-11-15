@@ -142,7 +142,8 @@ impl ShellModel {
 
     /// The point of the selection a potential is defined at: a selected junction; a selected wire's
     /// `from` end (a connection point or a junction, on the wire's potential as its other end is); a terminal's lowest
-    /// connection point, or the one connection point of a symbol that has one. Anything else is refused in words.
+    /// connection point, or the one connection point of a symbol that has one. Anything else, a fluid port among them,
+    /// is refused in words.
     pub(crate) fn potential_point(&self) -> Result<TableEnd, Key<'static>> {
         // While the form a Potentials row opened is open, the row's point.
         if let Some(at) = self.potential_at.filter(|_| self.potential_form_open()) {
@@ -157,7 +158,7 @@ impl ShellModel {
         let [(e, kind)] = kinds.as_slice() else {
             return Err(reason);
         };
-        match kind {
+        let point = match kind {
             EntityKind::Junction => Ok(TableEnd::Junction { id: e.0 }),
             EntityKind::Connection => tables
                 .connections
@@ -170,7 +171,20 @@ impl ShellModel {
                 rep_point(rep, &tables.cps).ok_or(reason)
             }
             _ => Err(reason),
+        }?;
+        // A potential is electrical: a fluid port has none (rc.2, F9: Define potential… on an air supply).
+        let fluid = tables.cps.iter().any(|c| {
+            c.fluid
+                && point
+                    == TableEnd::Cp {
+                        function: c.function,
+                        idx: c.idx,
+                    }
+        });
+        if fluid {
+            return Err(key!("reason-potential-fluid"));
         }
+        Ok(point)
     }
 
     /// `potential.draw {name?, type?, voltage?}` (Draw ▸ Define potential…): without `name` it opens its parameter form

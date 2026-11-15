@@ -242,9 +242,39 @@ impl ShellModel {
                 .contains(&crate::layout::PaneKind::Properties)
     }
 
-    /// The collapsed categories (`device/identity`), from the settings file (`properties.collapsed`).
+    /// The collapsed categories (`device/identity`), from the settings file (`properties.collapsed`). A section's More
+    /// group is closed until a person opens it (rc.2, F12): its key in the settings means it is open.
     pub fn properties_collapsed(&self) -> BTreeSet<String> {
-        self.settings.properties_collapsed.iter().cloned().collect()
+        let stored = &self.settings.properties_collapsed;
+        let mut out: BTreeSet<String> = stored
+            .iter()
+            .filter(|k| !crate::properties::is_more_key(k))
+            .cloned()
+            .collect();
+        for s in self.props.sheet.iter().flat_map(|sheet| &sheet.sections) {
+            let more = crate::properties::group_key(&s.kind, crate::properties::RowGroup::More);
+            if !stored.contains(&more) {
+                out.insert(more);
+            }
+        }
+        out
+    }
+
+    /// Opens or closes the group `key` in the settings (a More group's key is stored while it is open); whether that
+    /// changed them.
+    fn set_group_open(&mut self, key: String, open: bool) -> bool {
+        let stored = &mut self.settings.properties_collapsed;
+        let keep = open == crate::properties::is_more_key(&key);
+        if stored.contains(&key) == keep {
+            return false;
+        }
+        if keep {
+            stored.push(key);
+            stored.sort();
+        } else {
+            stored.retain(|k| *k != key);
+        }
+        true
     }
 
     /// Whether the grid shows the Advanced rows (`[properties] show_advanced`; `props.show_advanced`).
@@ -445,6 +475,7 @@ impl ShellModel {
         }
         crate::properties::cps_in_words(&mut sheet);
         crate::properties::solenoids_in_words(&mut sheet);
+        crate::properties::ports_in_words(&mut sheet);
         self.positions_in_words(&mut sheet, p.session.decimal_comma());
         crate::properties::header_in_words(&mut sheet);
         // The header's finding chips in the UI language, as the Messages detail renders
@@ -795,15 +826,9 @@ impl ShellModel {
             Ok(None) => crate::properties::group_of(section, row),
         };
         let key = crate::properties::group_key(&section.kind, group);
-        let collapsed = self.settings.properties_collapsed.contains(&key);
+        let collapsed = self.properties_collapsed().contains(&key);
         let expand = p.get("expanded").and_then(Value::as_bool).unwrap_or(collapsed);
-        if expand {
-            self.settings.properties_collapsed.retain(|k| *k != key);
-        } else if !collapsed {
-            self.settings.properties_collapsed.push(key);
-            self.settings.properties_collapsed.sort();
-        }
-        if expand == collapsed {
+        if self.set_group_open(key, expand) {
             self.save_settings();
         }
         Outcome::Done
@@ -2186,8 +2211,7 @@ impl ShellModel {
             return failed(key!("error-no-row"), &[&to]);
         };
         let group = crate::properties::group_key(&section.kind, crate::properties::group_of(section, found));
-        if self.settings.properties_collapsed.contains(&group) {
-            self.settings.properties_collapsed.retain(|k| *k != group);
+        if self.set_group_open(group, true) {
             self.save_settings();
         }
         self.props.row = Some(to);
