@@ -683,7 +683,9 @@ impl Session {
     pub fn solenoid_of(&self, function: Uuid) -> Option<(String, String, Option<String>)> {
         let q = self.query();
         let device = q.functions().get(Id::from_uuid(function))?.device?;
-        let solenoid = solenoids(&q, device).into_iter().find(|s| s.function == function)?;
+        let solenoid = solenoids(&q, device)
+            .into_iter()
+            .find(|s| s.function == function)?;
         Some((
             super::properties::device_tag_text(&q, device),
             solenoid.name,
@@ -846,7 +848,10 @@ pub(crate) fn solenoids(q: &Q, device: Id<Device>) -> Vec<ValveSolenoid> {
     let Some(dev) = q.devices().get(device) else {
         return Vec::new();
     };
-    if dev.parent.is_some_and(|m| ew_derive::valve_positions(q, m).is_some()) {
+    if dev
+        .parent
+        .is_some_and(|m| ew_derive::valve_positions(q, m).is_some())
+    {
         return Vec::new();
     }
     let parts = q.parts();

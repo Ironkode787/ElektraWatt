@@ -2435,10 +2435,7 @@ fn a_symbol_update_that_moves_its_cps_takes_the_routes_along() {
     let preview = e.preview(&update).expect("library.update previews");
     e.commit(preview).expect("library.update");
     let l = l_at();
-    assert_eq!(
-        route_of(&e, CON_L0),
-        vec![pt(0, 4 * G), pt(l.x.0 + MM10, l.y.0)]
-    );
+    assert_eq!(route_of(&e, CON_L0), vec![pt(0, 4 * G), pt(l.x.0 + MM10, l.y.0)]);
     assert_eq!(
         route_of(&e, CON_L1),
         vec![pt(l.x.0 + MM10, l.y.0 + MM10), pt(8 * G, l.y.0 + MM10)]

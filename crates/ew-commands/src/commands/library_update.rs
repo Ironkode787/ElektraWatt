@@ -10,8 +10,8 @@ use std::sync::Arc;
 use ew_ids::Id;
 use ew_model::{AnyKey, AnyRow, EndpointKey};
 use ew_schema::{
-    AnyId, Bond, Channel, Connection, Device, Endpoint, FnDef, Function, FunctionKind, LibCopy, LibDocument, Page,
-    Part, PotentialDef, Representation, Sha256, SymbolDef, TemplateFn, template_entry_of,
+    AnyId, Bond, Channel, Connection, Device, Endpoint, FnDef, Function, FunctionKind, LibCopy, LibDocument,
+    Page, Part, PotentialDef, Representation, Sha256, SymbolDef, TemplateFn, template_entry_of,
 };
 use ew_units::Pt2;
 use schemars::JsonSchema;
@@ -21,8 +21,8 @@ use serde_json::Value;
 use crate::command::{Command, Outcome};
 use crate::commands::connection::follow_moved_cps;
 use crate::commands::library::{check_copy, read_copy};
-use crate::geometry::{RepCp, rep_cps, sub};
 use crate::error::CmdError;
+use crate::geometry::{RepCp, rep_cps, sub};
 use crate::meta::CommandMeta;
 use crate::proxy::UuidS;
 use crate::text::{Text, TextArg, text};
@@ -858,7 +858,8 @@ impl Command for UpdateLibraryCopies {
             let mut moves: BTreeMap<(Id<Function>, u16), Pt2> = BTreeMap::new();
             for a in rep_cps(tx, &rep) {
                 let Some(b) = before.iter().find(|b| {
-                    b.function == a.function && remap.get(&(b.function, b.idx)).copied().unwrap_or(b.idx) == a.idx
+                    b.function == a.function
+                        && remap.get(&(b.function, b.idx)).copied().unwrap_or(b.idx) == a.idx
                 }) else {
                     continue;
                 };

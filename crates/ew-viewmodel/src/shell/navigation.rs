@@ -889,14 +889,15 @@ impl ShellModel {
     /// while it is not (`fluid.draw_solenoid`); a coil's valve row goes to the valve (rc.2, F11).
     pub(crate) fn act_props_follow(&mut self, p: &Map<String, Value>) -> Outcome {
         let key = or_return!(self.props_row_param(p));
-        let solenoid = self.props_find(&key).and_then(|(_, row)| match (row.ty.inner(), &row.value) {
-            (crate::properties::FieldType::Link { kind }, crate::properties::RowValue::One { json, .. })
-                if kind == "solenoid" =>
-            {
-                Some(json.clone())
-            }
-            _ => None,
-        });
+        let solenoid = self
+            .props_find(&key)
+            .and_then(|(_, row)| match (row.ty.inner(), &row.value) {
+                (
+                    crate::properties::FieldType::Link { kind },
+                    crate::properties::RowValue::One { json, .. },
+                ) if kind == "solenoid" => Some(json.clone()),
+                _ => None,
+            });
         if let Some(json) = solenoid {
             let mut params = Map::new();
             return match json.get("drawn").and_then(Value::as_str) {
@@ -929,7 +930,15 @@ impl ShellModel {
                     .get("device")
                     .and_then(Value::as_str)
                     .and_then(|id| id.parse::<ew_api::output::Uuid>().ok())
-                    .map(|id| (id, json.get("tag").and_then(Value::as_str).unwrap_or_default().to_owned())),
+                    .map(|id| {
+                        (
+                            id,
+                            json.get("tag")
+                                .and_then(Value::as_str)
+                                .unwrap_or_default()
+                                .to_owned(),
+                        )
+                    }),
                 _ => None,
             });
         let Some((device, tag)) = device else {

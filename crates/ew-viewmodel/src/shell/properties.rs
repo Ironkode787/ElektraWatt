@@ -1157,7 +1157,10 @@ impl ShellModel {
             // Another device's tag that the symbol cannot join: the words say why it joins nothing (what that device has
             // free, what the symbol is; rc.2, F11); the tag is set as typed, a duplicate the checks then name.
             if let [device] = section.targets.as_slice()
-                && let Some(m) = self.project.as_ref().and_then(|p| p.session.join_misfit(*device, text))
+                && let Some(m) = self
+                    .project
+                    .as_ref()
+                    .and_then(|p| p.session.join_misfit(*device, text))
             {
                 let free = if m.free.is_empty() {
                     strings::text(key!("props-join-misfit-none")).to_owned()

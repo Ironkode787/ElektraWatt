@@ -3170,9 +3170,7 @@ impl Session {
                 "solenoid_of",
                 None,
                 Category::Structure,
-                FieldType::Link {
-                    kind: "valve".into(),
-                },
+                FieldType::Link { kind: "valve".into() },
                 value,
                 Provenance::Derived {
                     via: "the valve's part".into(),

@@ -169,7 +169,9 @@ fn joinable_rep(q: &Q, device: Id<Device>) -> Option<(Id<Representation>, Id<Fun
     }
     let idx = q.idx();
     let functions: Vec<Id<Function>> = idx.functions_of_device(device).collect();
-    let mut drawn = functions.iter().filter(|f| idx.reps_of_function(**f).next().is_some());
+    let mut drawn = functions
+        .iter()
+        .filter(|f| idx.reps_of_function(**f).next().is_some());
     let (Some(&f), None) = (drawn.next(), drawn.next()) else {
         return None;
     };
@@ -219,7 +221,11 @@ impl Session {
             tag: tag_of(&q, target_id),
             free: free
                 .into_iter()
-                .filter_map(|g| q.functions().get(g).map(|g| super::navigators::function_kind_text(&q, g)))
+                .filter_map(|g| {
+                    q.functions()
+                        .get(g)
+                        .map(|g| super::navigators::function_kind_text(&q, g))
+                })
                 .collect(),
             this: super::navigators::function_kind_text(&q, function),
         })
@@ -247,8 +253,8 @@ impl Session {
                 .get(Id::from_uuid(s))
                 .map(|s| super::navigators::function_kind_text(&q, s))
         });
-        let joins =
-            slot.is_some() || (self.auxiliary_fndef(fndef) && takes_auxiliary(&q, target_id, target_device, def));
+        let joins = slot.is_some()
+            || (self.auxiliary_fndef(fndef) && takes_auxiliary(&q, target_id, target_device, def));
         joins.then(|| JoinProposal {
             rep: rep.as_uuid(),
             device: target,

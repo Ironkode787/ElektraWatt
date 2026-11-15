@@ -63,11 +63,7 @@ fn new_rep(s: &ShellModel, before: &[TableRep]) -> TableRep {
 /// Places template entry `template` of the starter part `part` at grid index `k` of the page shown.
 fn place_part(s: &mut ShellModel, part: &str, template: u64, k: (i64, i64)) -> TableRep {
     let before = reps(s);
-    done(
-        s,
-        "place.pick",
-        json!({"part": part, "template": template}),
-    );
+    done(s, "place.pick", json!({"part": part, "template": template}));
     place_at(s, k);
     new_rep(s, &before)
 }
@@ -108,10 +104,7 @@ fn row_text(s: &ShellModel, key: &str) -> Option<String> {
 
 /// The failure message of `props.set` on the Tag row.
 fn set_tag(s: &mut ShellModel, tag: &str) -> String {
-    match s.dispatch(
-        "props.set",
-        &json!({"row": "device/derived.tag", "value": tag}),
-    ) {
+    match s.dispatch("props.set", &json!({"row": "device/derived.tag", "value": tag})) {
         Outcome::Failed { message } => message,
         other => panic!("{other:?}"),
     }
@@ -140,8 +133,16 @@ fn a_valves_menu_draws_its_solenoid_and_both_say_where_the_other_is() {
     let before = reps(&s);
     place_at(&mut s, (20, 20));
     let coil = new_rep(&s, &before);
-    assert!(coil.symbol_key.starts_with("ew.iec.valve-coil"), "{}", coil.symbol_key);
-    assert_eq!(coil.device, Some(device), "the valve's own coil, no second device");
+    assert!(
+        coil.symbol_key.starts_with("ew.iec.valve-coil"),
+        "{}",
+        coil.symbol_key
+    );
+    assert_eq!(
+        coil.device,
+        Some(device),
+        "the valve's own coil, no second device"
+    );
     // The coil says which valve it belongs to, in its menu and its Properties.
     let label = format!("Solenoid 14 of {}", tag_of(&s, &coil));
     let menu = menu_of(&mut s, &coil);
@@ -149,10 +150,7 @@ fn a_valves_menu_draws_its_solenoid_and_both_say_where_the_other_is() {
         menu.iter().any(|(l, id, _)| *l == label && *id == "nav.goto"),
         "{menu:?}"
     );
-    assert_eq!(
-        row_text(&s, "representation/derived.solenoid_of"),
-        Some(label)
-    );
+    assert_eq!(row_text(&s, "representation/derived.solenoid_of"), Some(label));
     // The valve goes to its coil now, and its Properties say where the coil stands.
     done(&mut s, "page.goto", json!({"folio": "102"}));
     let menu = menu_of(&mut s, &valve);
@@ -187,7 +185,10 @@ fn typing_a_valves_tag_into_a_coil_makes_it_that_valves_solenoid_or_says_why_not
     );
     done(&mut s, "props.accept_tag_proposal", json!({}));
     let joined = reps(&s).into_iter().find(|r| r.id == coil.id).unwrap();
-    assert_eq!(joined.device, valve.device, "the coil is the valve's solenoid now");
+    assert_eq!(
+        joined.device, valve.device,
+        "the coil is the valve's solenoid now"
+    );
     assert!(!devices(&mut s).contains(&own), "the emptied device is removed");
     // A relay coil is nothing the valve has free: the words say what it has and what the symbol is.
     let before = reps(&s);

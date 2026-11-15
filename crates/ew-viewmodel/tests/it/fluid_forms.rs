@@ -37,7 +37,10 @@ fn new_medium_starts_from_a_usual_medium_and_explains_its_fields() {
     assert_eq!(names, ["preset", "name", "p_nom"]);
     let preset = &form.fields[0];
     assert!(
-        preset.options.iter().any(|(v, words)| v == "vacuum" && words == "Vacuum"),
+        preset
+            .options
+            .iter()
+            .any(|(v, words)| v == "vacuum" && words == "Vacuum"),
         "{:?}",
         preset.options
     );
@@ -47,7 +50,10 @@ fn new_medium_starts_from_a_usual_medium_and_explains_its_fields() {
     s.set_form_field("preset", "compressed_air");
     let form = common::form(&s);
     let value = |n: &str| form.fields.iter().find(|f| f.name == n).unwrap().value.clone();
-    assert_eq!((value("name"), value("p_nom")), ("Compressed air".to_owned(), "6".to_owned()));
+    assert_eq!(
+        (value("name"), value("p_nom")),
+        ("Compressed air".to_owned(), "6".to_owned())
+    );
     // Still editable: the person's own pressure is the one made.
     s.set_form_field("p_nom", "7");
     assert_eq!(s.submit_form(), Outcome::Done);
@@ -66,7 +72,9 @@ fn the_fluid_settings_fields_say_what_they_change() {
     done(&mut s, "fluid.settings", json!({}));
     let form = common::form(&s);
     for f in &form.fields {
-        let note = form.note(f.name).unwrap_or_else(|| panic!("{} has no hint", f.name));
+        let note = form
+            .note(f.name)
+            .unwrap_or_else(|| panic!("{} has no hint", f.name));
         assert!(note.contains("such as"), "{}: {note}", f.name);
     }
 }
