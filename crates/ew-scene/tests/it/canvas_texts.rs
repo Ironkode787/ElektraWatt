@@ -285,8 +285,8 @@ fn contact(c: &SymbolRef, n: u128, x: i64, name: &str) -> RepView {
 }
 
 /// Three switches in a row, four grid steps apart. Their tags no longer run into
-/// each other nor over a neighbour's CP designation; the first stays where the symbol puts it, and each tag stays
-/// beside its own symbol.
+/// each other nor over a neighbour's CP designation; the first stays where the symbol puts it, and every tag stays
+/// upright.
 #[test]
 fn neighbouring_tags_do_not_run_into_each_other() {
     let c = symbol(CONTACT_NO);
@@ -305,7 +305,7 @@ fn neighbouring_tags_do_not_run_into_each_other() {
         run(&alone, 0x21, "-101S1").rect,
         "the first tag stays"
     );
-    for (i, &(n, x, name)) in names.iter().enumerate() {
+    for (i, &(n, _, name)) in names.iter().enumerate() {
         let t = run(&r, n, name).rect;
         for &(m, _, other) in &names[i + 1..] {
             let o = run(&r, m, other).rect;
@@ -317,15 +317,9 @@ fn neighbouring_tags_do_not_run_into_each_other() {
                 assert!(!overlap(t, o), "{name} {t:?} over {d} of {m:#x} {o:?}");
             }
         }
-        // Beside its own symbol: within a tag's height of its band, and nearer its own axis than any other.
-        let axis = g(x);
-        let mid = (t.min().x.0 + t.max().x.0) / 2;
-        assert!(
-            names
-                .iter()
-                .all(|&(_, y, _)| (mid - axis).abs() <= (mid - g(y)).abs()),
-            "{name} {t:?} nearest its own contact"
-        );
+        // Upright: a tag is never turned to make room (at four grid steps a horizontal tag cannot always stand
+        // nearer its own contact than its neighbour's).
+        assert!(upright(run(&r, n, name)), "{name} upright");
     }
 }
 
@@ -346,7 +340,8 @@ fn tags_with_room_stay_put() {
 }
 
 /// A valve placed four grid steps right of a vertical wire would have its tag on
-/// the wire; the tag moves off it and stays beside its valve, clear of the valve's own texts.
+/// the wire; the tag moves off it, stays upright and stands centred above or below its valve, clear of the valve's own
+/// texts (a tag is never turned to make room).
 #[test]
 fn a_tag_does_not_sit_on_a_wire() {
     let (coil, valve) = (symbol(COIL), symbol(VALVE));
@@ -390,13 +385,13 @@ fn a_tag_does_not_sit_on_a_wire() {
     for own in ["24 V", "A1", "A2"] {
         assert!(!overlap(tag, run(&r, 0x33, own).rect), "clear of {own}");
     }
-    // Beside its valve: between the wire and the valve's axis, level with the valve.
-    assert!(tag.max().x.0 < g(44) && tag.min().x.0 > wire_x, "{tag:?}");
-    assert!(tag.min().y.0 < g(34) && tag.max().y.0 > g(30));
+    // Upright and centred on its valve's axis.
+    assert!(upright(run(&r, 0x33, "-101M1")));
+    assert!(tag.min().x.0 < g(44) && g(44) < tag.max().x.0, "{tag:?}");
 }
 
 /// The labels layer reports each tag's anchor where it prints, after the tag rule. The valve's
-/// tag that the wire would run through moves off it (here it turns about its anchor), and the reported anchor stands
+/// tag that the wire would run through moves off it (here above its valve, upright), and the reported anchor stands
 /// on the moved text's rectangle; the coils print no tag and report none, and no other layer reports tags. Golden A's
 /// folio 3, where the rule moves an anchor, is `ew-api`'s `tag_at_is_where_the_labels_layer_prints_the_tag`.
 #[test]

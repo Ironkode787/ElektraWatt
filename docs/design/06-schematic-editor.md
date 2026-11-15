@@ -198,7 +198,9 @@ the angle they have in the unturned symbol, read from the bottom or the right of
 the governing clause is unverified); a mirror never mirrors glyphs. The anchor moves with the symbol and the
 alignment is chosen so the text keeps its side of the symbol and of its connection point (a tag left of the body
 that a quarter turn brings above it stands centred above; the table for all eight variants is in
-[07](07-symbols-parts-macros.md) §4.1).
+[07](07-symbols-parts-macros.md) §4.1). A device tag the page would put on a wire or another text is never turned to
+make room: it moves, upright, to the other side of its symbol, above or below what is in its way, or centred above or
+below its symbol, and stays where it is when none of these is free.
 
 *As built (0.3).* With one symbol (or black box) selected, each of its texts can be grabbed (the pointer shows a grab
 hand over it) and dragged alone: the anchor snaps to the fine grid (Alt: free), the Rotate key turns the text a quarter

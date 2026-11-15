@@ -918,7 +918,8 @@ placed in three steps:
 3. The alignment keeps the text's side: the direction from the anchor into the text's box (opposite to the
    alignment; a text aligned middle right lies left of its anchor) is mapped by the variant and read back in the
    printed text's frame; each component of at least half the length keeps its sign, a smaller one becomes centre or
-   middle (`placed_align` of `ew-scene`). A connection point's designation that this brings centred above or below
+   middle (`placed_align` of `ew-scene`). A text whose angle a representation's override sets keeps its own
+   alignment instead (only the readability turn flips it): that angle is the sheet's. A connection point's designation that this brings centred above or below
    its point while the point's line leaves sideways runs along the line, away from the body, instead (`slot_align`).
 
 So a tag left of its body that the turn brings above the body stands centred above it, and a designation beside a

@@ -118,9 +118,9 @@
 //! - **Device tags**. A device tag of a symbol that is no black box, without a position or angle override
 //!   and printing horizontally, moves when a wire runs through it, or when it collides (as in rule 2 above) with a
 //!   fixed text of another representation (a black-box caption, a CP designation, a pin text) or with the tag of a
-//!   representation printed before it. It takes the first free place of: turned to read bottom to top on its side of
-//!   the symbol; mirrored about the symbol's vertical axis; mirrored and turned; raised above what is in its way;
-//!   dropped below it. A place is free when no wire runs through it, it overlaps no other text of its own symbol and
+//!   representation printed before it. It stays upright (never turned) and takes the first free place of:
+//!   mirrored about the symbol's vertical axis; raised above what is in its way;
+//!   dropped below it; centred above its symbol ([`SLOT_TEXT_GAP`] above its bounds); centred below it. A place is free when no wire runs through it, it overlaps no other text of its own symbol and
 //!   collides with no text or pin text of another representation (a movable tag printed later yields in its own
 //!   turn). A raise or drop goes [`SLOT_TEXT_GAP`] past the texts and horizontal wires in the way, at most three
 //!   times, and stays within one tag height of the symbol's top or bottom. Without a free place the
@@ -1298,7 +1298,12 @@ impl Builder<'_> {
                     moved: moved || turned,
                     at: frame.origin + frame.orient.apply(pos),
                     angle: symbol::upright_angle(rot),
-                    align: symbol::slot_align(def, slot, rot, frame.orient),
+                    // An angle a person set (or an import) is the sheet's: the text keeps its own alignment.
+                    align: if turned {
+                        symbol::placed_align(&slot.align, rot, Orient2::R0)
+                    } else {
+                        symbol::slot_align(def, slot, rot, frame.orient)
+                    },
                     style_key,
                     unknown,
                     entity,
@@ -1410,7 +1415,10 @@ impl Builder<'_> {
             let pos = ov.and_then(|o| o.pos).unwrap_or(slot.pos);
             let rot = ov.and_then(|o| o.angle).unwrap_or(slot.rot);
             let angle = symbol::upright_angle(rot);
-            let align = bottom_align(&symbol::slot_align(def, slot, rot, frame.orient));
+            let align = match ov.and_then(|o| o.angle) {
+                Some(_) => bottom_align(&symbol::placed_align(&slot.align, rot, Orient2::R0)),
+                None => bottom_align(&symbol::slot_align(def, slot, rot, frame.orient)),
+            };
             let at = frame.origin + frame.orient.apply(pos) + up_by(angle, step);
             let (style_key, _) = symbol::slot_style_key(slot, self.styles);
             self.text(&TextSpec {
@@ -1597,9 +1605,9 @@ impl Builder<'_> {
 
     /// The tag rule (module documentation, "Device tags"): a movable device tag that a wire runs through, or
     /// that collides with a fixed text of another representation (a black box's caption or pin text, a CP
-    /// designation) or with the tag of a representation printed before it, takes the first free place of: turned to
-    /// read bottom to top on its side of its symbol; mirrored to the other side; mirrored and turned; raised above
-    /// what is in its way; dropped below it. A place is free when no wire runs through it, it overlaps no other text
+    /// designation) or with the tag of a representation printed before it, stays upright and takes the first free place
+    /// of: mirrored to the other side; raised above
+    /// what is in its way; dropped below it; centred above its symbol; centred below it. A place is free when no wire runs through it, it overlaps no other text
     /// of its own symbol and collides with no other representation's text or pin text (a movable tag printed later
     /// does not count: it yields in its turn). A raise or drop goes [`SLOT_TEXT_GAP`] past the texts and horizontal
     /// wires in the way, at most [`SLOT_TEXT_DROPS`] times, and keeps within one tag height of its symbol's top or
@@ -1710,14 +1718,8 @@ impl Builder<'_> {
             let (angle, align) = (texts[i].angle, texts[i].align.clone());
             let mirror_at = Pt2::new(axis2 - at.x, at.y);
             let mirror_align = mirrored_align(&align);
-            let mut places: Vec<(Pt2, Angle2, Align)> = Vec::new();
-            if let Some(a) = turned_align(&align) {
-                places.push((at, TURNED, a));
-            }
-            places.push((mirror_at, Angle2::ZERO, mirror_align.clone()));
-            if let Some(a) = turned_align(&mirror_align) {
-                places.push((mirror_at, TURNED, a));
-            }
+            // A tag stays upright: it moves to the other side of its symbol, else above or below what is in its way.
+            let places: Vec<(Pt2, Angle2, Align)> = vec![(mirror_at, Angle2::ZERO, mirror_align.clone())];
             let mut found: Option<(Pt2, Angle2, Align, Rect)> = None;
             for (to, angle, align) in places {
                 texts[i].at = to;
@@ -1762,6 +1764,32 @@ impl Builder<'_> {
                         found = Some((to, angle, align.clone(), b));
                         break;
                     }
+                }
+            }
+            // Centred above its symbol, then below it.
+            let axis = Nm(axis2.0.div_euclid(2));
+            let body = [
+                (
+                    Pt2::new(axis, rv.rep.pos.y + bounds.min().y - SLOT_TEXT_GAP),
+                    Align::BottomCentre,
+                ),
+                (
+                    Pt2::new(axis, rv.rep.pos.y + bounds.max().y + SLOT_TEXT_GAP),
+                    Align::TopCentre,
+                ),
+            ];
+            for (to, a) in body {
+                if found.is_some() {
+                    break;
+                }
+                texts[i].at = to;
+                texts[i].angle = Angle2::ZERO;
+                texts[i].align = a.clone();
+                if let Some(b) = self
+                    .text_box(&texts[i].spec(false), false)
+                    .filter(|b| free(*b, &boxes))
+                {
+                    found = Some((to, Angle2::ZERO, a, b));
                 }
             }
             let t = &mut texts[i];
@@ -2588,21 +2616,6 @@ fn mirrored_align(align: &Align) -> Align {
         Align::BottomLeft => Align::BottomRight,
         Align::BottomRight => Align::BottomLeft,
         other => other.clone(),
-    }
-}
-
-/// The angle of a turned device tag: it reads bottom to top.
-const TURNED: Angle2 = Angle2(90_000);
-
-/// The alignment of a horizontal tag aligned `align` once turned to read bottom to top on the same side of its symbol:
-/// a tag that ends towards its symbol on the left (middle right) keeps its right edge there (its descent
-/// side, bottom centre), one that starts towards it on the right (middle left) its left edge (top centre); `None` for
-/// any other alignment.
-fn turned_align(align: &Align) -> Option<Align> {
-    match align {
-        Align::MiddleRight => Some(Align::BottomCentre),
-        Align::MiddleLeft => Some(Align::TopCentre),
-        _ => None,
     }
 }
 

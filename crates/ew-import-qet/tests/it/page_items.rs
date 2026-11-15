@@ -352,6 +352,56 @@ fn an_element_prints_its_own_texts_and_no_tag_where_qet_prints_none() {
     assert_eq!(centred.align, Some(TextAlign::Centre));
 }
 
+/// An element QET turned keeps QET's look: QET draws an element's text at its own rotation plus the element's, so the
+/// label of an element turned a quarter clockwise reads top to bottom, and stores that angle on the tag slot (EW
+/// prints an angle set on a slot as it is, then readable). A text QET keeps upright (`keep_visual_rotation`) holds the
+/// element's turn taken back in its `rotation`, and comes out upright.
+#[test]
+fn a_turned_elements_texts_keep_qets_angle_unless_qet_keeps_them_upright() {
+    let turned = |uuid: &str, x: u32, label: &str, text: &str| {
+        format!(
+            r#"<element type="embed://import/a.elmt" uuid="{{{uuid}}}" x="{x}" y="400" orientation="1">
+ <terminals/>
+ <elementInformations><elementInformation name="label">{label}</elementInformation></elementInformations>
+ <dynamic_texts>{text}</dynamic_texts>
+</element>"#
+        )
+    };
+    let label = |extra: &str| {
+        format!(
+            r#"<dynamic_elmt_text text_from="ElementInfo" x="5" y="-30" {extra} font="{FONT9}"><text/><info_name>label</info_name></dynamic_elmt_text>"#
+        )
+    };
+    let mine = [
+        turned(
+            "10000000-0000-4000-8000-000000000011",
+            900,
+            "-K8",
+            &label(r#"rotation="0" keep_visual_rotation="false""#),
+        ),
+        turned(
+            "10000000-0000-4000-8000-000000000012",
+            1000,
+            "-K9",
+            &label(r#"rotation="270" keep_visual_rotation="true""#),
+        ),
+    ]
+    .join("\n");
+    let text = project().replacen("<elements>\n", &format!("<elements>\n{mine}\n"), 1);
+    let input = ImportInput::new("turned.qet", text.into_bytes()).unwrap();
+    let b = QetProjectImporter::new()
+        .import(&input, &mut new_project_context())
+        .unwrap();
+    let angle = |x: &str| {
+        let r = reps(&b).into_iter().find(|r| r.pos.x.0 == px(x)).unwrap();
+        r.text_slots.iter().next().and_then(|o| o.angle).map(|a| a.normalized().0)
+    };
+    // Turned with its element: a quarter clockwise, 270° counter-clockwise.
+    assert_eq!(angle("900"), Some(270_000));
+    // Kept upright by QET.
+    assert_eq!(angle("1000"), Some(0));
+}
+
 /// The import of a project whose title block draws the logo `logo` (a `<logo>` resource named `mark`) in a
 /// cell of 40 × 20 px.
 fn logo_project(logo: &str) -> ImportBatch {

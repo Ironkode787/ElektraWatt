@@ -104,6 +104,15 @@ const CONTACT_TEXT_SHIFT_PX: i64 = 28;
 /// The point size QET draws a master's or slave's cross-reference in (`QETApp::diagramTextsFont(5)`).
 const XREF_POINT_SIZE: i64 = 5;
 
+/// The angle on the sheet of a text at `angle` in the frame of the element `e` (counter-clockwise): QET draws an
+/// element's text turned with the element, at its own rotation plus the element's (both clockwise in Qt). A text QET
+/// keeps upright (`keep_visual_rotation`) holds the element's turn taken back in its own `rotation`, so it comes out
+/// upright here too. A slot override stores it as the angle a person set: EW prints it as it is (doc 06 §2.5), so the
+/// import keeps QET's look.
+fn sheet_angle(e: &Elem<'_>, angle: Angle2) -> Angle2 {
+    Angle2(angle.0.saturating_sub(i32::from(e.orient.rotation()) * 1000))
+}
+
 /// The override that shows `slot` at `pos` turned to `angle`.
 fn shown(slot: u16, pos: Pt2, angle: Angle2) -> SlotOverride {
     SlotOverride {
@@ -761,7 +770,7 @@ impl Mx<'_, '_> {
                     .slot_for(e, kind, style.clone(), slot_align.clone())
                     .filter(|i| !overrides.iter().any(|o| o.slot == *i))
             {
-                overrides.push(shown(slot, local, angle));
+                overrides.push(shown(slot, local, sheet_angle(e, angle)));
                 continue;
             }
             if text.trim().is_empty() {
@@ -798,7 +807,7 @@ impl Mx<'_, '_> {
                     overrides.push(SlotOverride {
                         slot,
                         pos: Some(local),
-                        angle: Some(angle),
+                        angle: Some(sheet_angle(e, angle)),
                         visible: Some(true),
                         extra: BTreeMap::new(),
                     });
@@ -811,10 +820,9 @@ impl Mx<'_, '_> {
                 ) else {
                     continue;
                 };
-                let turns = i32::from(e.orient.rotation()) * 1000;
                 let key = items::line_key(&format!("qet:el:{}#text{n}", e.ek), i);
                 let at = Pt2::new(Nm(x), Nm(y));
-                let angle = Angle2(angle.0.saturating_sub(turns));
+                let angle = sheet_angle(e, angle);
                 self.out.records.push(Record::PageItem(ew_schema::PageItem {
                     id: self.inp.ids.id(&key),
                     v: 1,
@@ -894,7 +902,7 @@ impl Mx<'_, '_> {
                 .slot_for(e, &SlotKind::Xref, style, align)
                 .filter(|i| !overrides.iter().any(|o| o.slot == *i))
         {
-            overrides.push(shown(slot, local, angle));
+            overrides.push(shown(slot, local, sheet_angle(e, angle)));
         }
     }
 

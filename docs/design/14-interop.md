@@ -785,7 +785,10 @@ by its import style (§4.10). Each placed element then prints its own texts, eac
   as QET links them), a composite text its format with each `%{name}` replaced by that information. Qt rich text
   prints its plain text, one line per paragraph, in the size of its first span or body (§4.13).
 - **As a slot.** The label and the `function` text show the symbol's tag and function-text slot through a
-  slot override (position, angle, shown), so the printed tag stays the device's live tag. That needs a device
+  slot override (position, angle, shown). The angle is the one QET draws the text at on the sheet, its own rotation
+  plus the element's (a text QET keeps upright with `keep_visual_rotation` holds the element's turn taken back in its
+  `rotation`, so it comes out upright): EW prints an override's angle as it is ([06](06-schematic-editor.md) §2.5), so
+  a turned element keeps QET's look while EW's own symbols keep their texts upright; so the printed tag stays the device's live tag. That needs a device
   whose tag prints the label unchanged (a derived or frozen tag without a structure prefix), a symbol slot of
   that kind in the text's own style, and a text of one line.
 - **Else as a free text** on the page (`qet:el:<key>#text<n>`), the nearest record the model has: it prints the
