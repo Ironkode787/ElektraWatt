@@ -163,6 +163,8 @@ pub struct BlackBoxTool {
     /// The library documents the black box embeds (`box.black`'s `copies`, FT-656); the host sends only those the
     /// project still lacks.
     copies: Vec<Value>,
+    /// The representation type the box takes where it is not the frame's own (`topology` on a bus-topology page).
+    rep_type: Option<String>,
 }
 
 impl BlackBoxTool {
@@ -174,7 +176,14 @@ impl BlackBoxTool {
             state: State::Armed { at: None },
             dropped: false,
             copies: Vec::new(),
+            rep_type: None,
         }
+    }
+
+    /// The tool drawing boxes of representation type `rep_type` (`topology` on a bus-topology page).
+    pub fn with_rep_type(mut self, rep_type: Option<String>) -> BlackBoxTool {
+        self.rep_type = rep_type;
+        self
     }
 
     /// The tool with the library documents its black boxes embed (FT-656).
@@ -252,6 +261,9 @@ impl BlackBoxTool {
         });
         if !self.copies.is_empty() {
             params["copies"] = Value::Array(self.copies.clone());
+        }
+        if let Some(t) = &self.rep_type {
+            params["rep_type"] = Value::String(t.clone());
         }
         Some(Box::new(AnyCommand {
             name: "box.black".into(),

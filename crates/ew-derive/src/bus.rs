@@ -24,7 +24,7 @@ use std::sync::Arc;
 use ew_ids::Id;
 use ew_schema::{
     AddrValue, BusPort, BusSystem, ConnectionKind, Device, Endpoint, ExternalRef, Function, FunctionKind,
-    Junction, LogicalNet, NetAddress, OnOff, PhysicalNet,
+    Junction, LogicalNet, NetAddress, OnOff, PhysicalNet, PortRole,
 };
 
 use crate::Q;
@@ -283,11 +283,14 @@ pub enum NetMaster {
     Other,
 }
 
-/// The members of a logical net: its ports in ID order and its master.
+/// The members of a logical net: its ports in ID order, the passive ports it runs through, and its master.
 #[derive(Clone, PartialEq, Eq, Hash, Debug, Default)]
 pub struct NetMembers {
     /// The functions whose bus port names the net, in ID order.
     pub ports: Vec<Id<Function>>,
+    /// The passive ports of the net's bus that `Bus` lines join to its ports, directly or through other passive ports
+    /// (an unmanaged switch, a bus plug: they pass the net through and name none, doc 10 §2.7), in ID order.
+    pub through: Vec<Id<Function>>,
     /// The master; `None` when the net names none.
     pub master: Option<NetMaster>,
 }
@@ -307,11 +310,12 @@ impl Query for NetMembersOf {
             return Arc::new(NetMembers::default());
         };
         let functions = q.functions();
-        let ports = functions
+        let ports: Vec<Id<Function>> = functions
             .iter()
             .filter(|(_, f)| f.bus_port.as_ref().is_some_and(|p| p.logical_net == Some(*key)))
             .map(|(id, _)| id)
             .collect();
+        let through = passed_through(q, &ports, &net.bus);
         let master = net.master.as_ref().map(|m| match m {
             Endpoint::Cp(f, _) => match functions.get(*f) {
                 Some(func) => match &func.kind {
@@ -329,8 +333,47 @@ impl Query for NetMembersOf {
             },
             _ => NetMaster::Other,
         });
-        Arc::new(NetMembers { ports, master })
+        Arc::new(NetMembers {
+            ports,
+            through,
+            master,
+        })
     }
+}
+
+/// The passive ports of bus `bus` that `Bus` lines reach from `ports`, walking on through passive ports only (the walk
+/// of normaliser N6, which gives such a port no net), in ID order.
+fn passed_through(q: &Q, ports: &[Id<Function>], bus: &BusSystem) -> Vec<Id<Function>> {
+    let functions = q.functions();
+    let lines: Vec<(Option<Id<Function>>, Option<Id<Function>>)> = q
+        .connections()
+        .iter()
+        .filter(|(_, c)| matches!(c.kind, ConnectionKind::Bus(_)))
+        .map(|(_, c)| (c.a.function(), c.b.function()))
+        .collect();
+    let passive = |f: Id<Function>| {
+        functions
+            .get(f)
+            .and_then(|x| x.bus_port.as_ref())
+            .is_some_and(|p| p.role == PortRole::Passive && p.bus == *bus)
+    };
+    let mut seen: BTreeSet<Id<Function>> = BTreeSet::new();
+    let mut queue: Vec<Id<Function>> = ports.to_vec();
+    while let Some(f) = queue.pop() {
+        for (a, b) in &lines {
+            let other = match (a, b) {
+                (Some(a), b) if *a == f => *b,
+                (a, Some(b)) if *b == f => *a,
+                _ => None,
+            };
+            if let Some(o) = other.filter(|o| passive(*o)) {
+                if seen.insert(o) {
+                    queue.push(o);
+                }
+            }
+        }
+    }
+    seen.into_iter().collect()
 }
 
 /// The pins of one core of a bus cable at the two ends of the cable's `Bus` line (FR-BUS-023, doc 08 §7.5): at each

@@ -2184,7 +2184,7 @@ fn port_role_word(r: &ew_derive::ew_schema::PortRole) -> &'static str {
     }
 }
 
-/// Bus (FR-UI-006, doc 10 §6): **Logical nets** → each logical net (its name, then its rate) → its ports; **Physical
+/// Bus (FR-UI-006, doc 10 §6): **Logical nets** → each logical net (its name, then its rate) → its ports, then the passive ports it runs through (a switch, a plug) with the badge `passes through`; **Physical
 /// nets** → each physical net (its name and medium) → its derived segments (`bus_segments`, A5) → their members in walk
 /// order, a port with the badge `end` at an end of its segment and its termination as `terminated` or `not
 /// terminated`, a cable by its tag; then **Ports without a net**. A port row is a table row with [`BUS_COLUMNS`]; its
@@ -2300,6 +2300,11 @@ fn bus_table(q: &Q, b: &mut Builder) {
                     Vec::new()
                 };
                 port_row(b, node, *f, badges);
+            }
+            // A switch or a plug the net runs through stands in the net, as what it is (doc 10 §2.7).
+            for f in &members.through {
+                netted.insert(*f);
+                port_row(b, node, *f, vec!["passes through".to_owned()]);
             }
         }
     }

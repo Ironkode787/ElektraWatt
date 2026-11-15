@@ -527,6 +527,26 @@ pub struct PhysicalNet { pub name: Ident, pub medium: Medium,           // added
   passes the net through and takes none, as Golden A's -3X1 has none: two stations joined plug to plug are one net.
   It never changes a net a port names (two nets in one segment stay EW-BUS-010's). No member is added:
   `logical_net` was there, and an older 0.1 build reads the net as any other. Physical nets are not made this way.
+- **As built (FT-1767): one interface, many ports; switches and devices with ports.** A bus interface is one port
+  function carrying one `BusPort`, so one address: a PROFINET device name and IP address belong to the interface, not
+  to a socket. Its sockets are the function's connection points. `PartBusPort.ports` (optional, additive) gives their
+  number n; a port function whose `bus_port` names such an interface of a part of its device derives the CPs `P1` …
+  `Pn` (`function_cps`; the FnDef's own CPs for the indices it has, a copy of its first CP beyond them), and absent,
+  the FnDef's own CPs stay (the PROFINET port's P1 and the optional P2). A `port_label` still names one port of an
+  interface listed port by port (an import's "X1 P1R"). The neighbours of FR-BUS-010 are the bus lines at those CPs,
+  read from `bus_segments` as before. What the device is follows from the interface's role:
+  - an **unmanaged switch** is an interface of role `passive` with its sockets (EW-GEN-ESW-5: five): no address, it
+    passes the net through and names none (N6), and `net_members` lists it under the net its bus lines join it to
+    (`through`; the Bus navigator's row carries the badge "passes the net through");
+  - a **managed switch** (EW-GEN-ESW-8: eight sockets) and a **device with ports** (a drive, an HMI, a gateway;
+    EW-GEN-PND-1: two) are interfaces of role `device`: a node with its one address, which N6 also walks through;
+  - a **head station** is a part with a PLC section of role station and its interfaces (N0 makes it `head_station`).
+  A part without pins whose first interface has a starter port function names that function as its main template
+  entry; placed on a bus-topology page from the device browser, it is drawn as a box (`box.black` with a port entry,
+  the function staying a normal one; the black-box frame takes the representation type `topology` there) with a
+  socket per CP, labelled P1 … Pn. A later device-description import fills the same members: the interfaces, their
+  roles and their socket counts. The PLC exchange exports the stations of a configuration project, so a switch or a
+  device without a PLC section is left out of the AML file (no refusal).
 - **External partners** are placeholder devices with `PlcStation{role: ExternalPartner}`, `BusNode`, a `BusPort`
   and an `ExternalRef` (project, location, device), but no parts. They are excluded from the BOM (FR-BUS-005). On
   folio 3, the external interruption point "DP" inside the External Connection box is the physical segment end, and

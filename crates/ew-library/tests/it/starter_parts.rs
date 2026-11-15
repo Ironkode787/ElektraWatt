@@ -42,8 +42,10 @@ const VERSION: &str = "0.1.0";
 /// 0.7.0 since the generic valve terminal (module EW-GEN-VTM-1, valve EW-GEN-VLV-3, supply plate EW-GEN-VTS-1;
 /// FT-1326) was added, 0.8.0 since the fieldbus parts were added (the CPU with PROFINET and PROFIBUS DP
 /// EW-GEN-CPU-2, the remote I/O head EW-GEN-RIO-1, the PROFIBUS cable EW-GEN-CBL-2 and the Ethernet cable
-/// EW-GEN-CBL-3) and the tubes EW-GEN-TUB-6, -8, -10 and the fittings EW-GEN-FIT-6, -8 (the persona round of M3).
-const LIBRARY_VERSION: &str = "0.8.0";
+/// EW-GEN-CBL-3) and the tubes EW-GEN-TUB-6, -8, -10 and the fittings EW-GEN-FIT-6, -8 (the persona round of M3), 0.9.0
+/// since the devices with ports were added (the unmanaged switch EW-GEN-ESW-5, the managed switch EW-GEN-ESW-8 and the
+/// generic PROFINET device EW-GEN-PND-1; FT-1767).
+const LIBRARY_VERSION: &str = "0.9.0";
 /// The parts whose content changed after 0.1.0, at their next patch version (the selector switch on a
 /// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y. The relay
 /// and the contactor template their contacts beside the coil. The CPU's bus section, after 0.2.0.
@@ -75,6 +77,7 @@ const BUMPED: &[(&str, &str)] = &[
 fn bus_section(number: &str) -> Option<Value> {
     let port =
         |interface: &str, bus: &str, role: &str| json!({"interface": interface, "bus": bus, "role": role});
+    let sockets = |role: &str, n: u16| json!({"interface": "X1", "bus": "profinet", "role": role, "ports": n});
     match number {
         "EW-GEN-CPU-1" => Some(json!({"ports": [port("DP", "profibus_dp", "master")]})),
         "EW-GEN-CPU-2" => Some(json!({"ports": [
@@ -85,6 +88,11 @@ fn bus_section(number: &str) -> Option<Value> {
             port("DP", "profibus_dp", "slave"),
             port("X1", "profinet", "device"),
         ]})),
+        // FT-1767: one PROFINET interface with its sockets (doc 10 §2.7): an unmanaged switch passes the net through
+        // without an address, a managed one and a device are nodes with one address for all their sockets.
+        "EW-GEN-ESW-5" => Some(json!({"ports": [sockets("passive", 5)]})),
+        "EW-GEN-ESW-8" => Some(json!({"ports": [sockets("device", 8)]})),
+        "EW-GEN-PND-1" => Some(json!({"ports": [sockets("device", 2)]})),
         "EW-GEN-CBL-2" => Some(json!({"cable_for": ["profibus_dp"]})),
         "EW-GEN-CBL-3" => Some(json!({"cable_for": ["profinet", "ethernet_ip", "modbus_tcp"]})),
         _ => None,
@@ -242,6 +250,24 @@ fn fitting(number: &'static str, description: &'static str, thread: &str, tube_o
         plc: None,
         mech: None,
         sections: Some(json!({"fluid": {"fitting": {"port_thread": thread, "tube_od": mm(tube_od)}}})),
+        unit: None,
+    }
+}
+
+/// A device whose one PROFINET interface is its function (FT-1767): no CP pattern, the port function as its main
+/// template entry, whose sockets the bus section counts; on a TS 35 rail, `width` mm wide.
+fn port_device(number: &'static str, description: &'static str, width: &'static str) -> Def {
+    Def {
+        number,
+        kind: None,
+        description,
+        cps: Vec::new(),
+        template: vec![("ew.fn.pn-port", true, Vec::new())],
+        contacts: Vec::new(),
+        tech: vec![("rated_voltage", q("24", "V"))],
+        plc: None,
+        mech: ts35(width, "100", "75"),
+        sections: None,
         unit: None,
     }
 }
@@ -687,6 +713,10 @@ fn defs() -> Vec<Def> {
             sections: None,
             unit: None,
         },
+        // FT-1767: the devices with ports, drawn by their PROFINET port function as a box with every socket.
+        port_device("EW-GEN-ESW-5", "Industrial Ethernet switch, unmanaged, 5 ports", "45"),
+        port_device("EW-GEN-ESW-8", "Industrial Ethernet switch, managed, 8 ports, PROFINET", "60"),
+        port_device("EW-GEN-PND-1", "PROFINET IO device, generic, 2 ports", "45"),
         // The layout parts. No template, no CP pattern; the layout tools read their sections and `mech`.
         Def {
             number: "EW-GEN-ENC-1",

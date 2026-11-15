@@ -325,6 +325,30 @@ fn fndef_of(q: &Q, r: &LibRef) -> Option<Arc<LibCopy<FnDef>>> {
         .or_else(|| starter_fndef(id).map(|c| Arc::new(c.clone())))
 }
 
+/// The socket count of the interface a template entry on port function `def` stands for (doc 10 §2.7): the part's
+/// first port of the bus `def` is filed under (a category word that begins the bus's stored name, as normaliser N5
+/// pairs them), else its first port; `None` for another FnDef or an interface without a count.
+fn entry_sockets(part: &Part, def: &FnDef) -> Option<u16> {
+    if def.contact_kind != ContactKind::BusPort {
+        return None;
+    }
+    let ports = &part.sections.bus.as_ref()?.ports;
+    let words = serde_json::to_value(&def.category).unwrap_or_default();
+    let filed = |p: &&ew_derive::ew_schema::PartBusPort| {
+        let name = serde_json::to_value(&p.bus)
+            .ok()
+            .and_then(|v| v.as_str().map(str::to_owned))
+            .unwrap_or_default();
+        words
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|w| w.as_str())
+            .any(|w| !w.is_empty() && name.starts_with(&w.to_lowercase()))
+    };
+    ports.iter().find(filed).or(ports.first())?.ports
+}
+
 /// The catalogue row of part `part` with copy ID `copy` (the manufacturer left empty); for a library part without a
 /// function template `None` (a held copy without one is a row without functions, placed with a symbol the
 /// user chooses). `library` names a library part the project does not hold: its template FnDefs that the project
@@ -357,9 +381,12 @@ fn catalogue_part(
             // A black box on its own FnDef (the supply's, which declares its source outputs) is drawn by the black
             // box frame, whatever FnDef the frame's symbol names (read from the starter while not embedded).
             let read = def.clone().or_else(|| fndef_of(q, &t.fndef));
-            let is_black_box = read
-                .as_ref()
-                .is_some_and(|d| d.item.contact_kind == ContactKind::BlackBox);
+            // A port function of an interface with a socket count is drawn as a box with every socket (doc 10 §2.7).
+            let sockets = read.as_ref().and_then(|d| entry_sockets(part, &d.item));
+            let is_black_box = sockets.is_some()
+                || read
+                    .as_ref()
+                    .is_some_and(|d| d.item.contact_kind == ContactKind::BlackBox);
             let outputs = read
                 .map(|d| {
                     d.item
@@ -372,7 +399,7 @@ fn catalogue_part(
                 .unwrap_or_default();
             let symbol = rows
                 .iter()
-                .find(|(r, f)| *f == def_id && r.allowed)
+                .find(|(r, f)| sockets.is_none() && *f == def_id && r.allowed)
                 .or_else(|| {
                     rows.iter()
                         .find(|(r, _)| is_black_box && r.black_box && r.allowed)
@@ -397,6 +424,10 @@ fn catalogue_part(
                     (c.idx, d)
                 })
                 .collect::<Vec<(u16, String)>>();
+            let cps = match sockets {
+                Some(n) => (0..n).map(|i| (i, format!("P{}", u32::from(i) + 1))).collect(),
+                None => cps,
+            };
             let fndef_key = def
                 .as_ref()
                 .and_then(|d| d.item.meta.key.as_ref().map(|k| k.as_str().to_owned()))
@@ -531,7 +562,7 @@ fn symbol_row(
         Some("Graphic") => PlacedBy::Program,
         _ => PlacedBy::Device,
     };
-    CatalogueSymbol {
+    let mut row = CatalogueSymbol {
         placed_by,
         category: def
             .as_ref()
@@ -563,7 +594,14 @@ fn symbol_row(
             .into_iter()
             .chain(symbol.keywords.as_slice().iter().map(|k| k.as_str().to_owned()))
             .collect(),
+    };
+    // A device with ports is drawn on a bus-topology page as a box with every socket (doc 10 §2.7): the black-box
+    // frame draws a topology representation there.
+    if row.black_box && page.kind == PageType::BusTopology && !row.allowed {
+        row.rep_type = rep_type_word(&RepType::Topology);
+        row.allowed = true;
     }
+    row
 }
 
 /// The drawn page labelled `folio`.

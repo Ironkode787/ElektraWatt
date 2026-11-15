@@ -1435,7 +1435,8 @@ impl Command for SetAnchorPolicy {
 ///   EW-INV-002); `existing_function` another representation of an existing function, which must be of kind
 ///   `black_box` (else rejected with a hint to use `device.place`); `from_part` the device and every template
 ///   function of the part as in `device.place`, the representation drawing entry `template`, which must be a
-///   black box; `new_terminal` is invalid here.
+///   black box or a port function (a box with the sockets of a multi-port interface, doc 10 §2.7; the function
+///   stays a normal one); `new_terminal` is invalid here.
 /// - The black box's CPs are derived, not stored on the function: the part's CP pattern (the
 ///   template-origin rule of doc 03 §7) or the box CPs.
 ///
@@ -1678,6 +1679,8 @@ fn insert_from_part(
     }
     // Every entry's FnDef must be embedded; the kinds follow their contact kinds.
     let mut defs: Vec<(Id<FnDef>, FunctionKind)> = Vec::new();
+    // The entries on a port function: a box may draw one (its sockets, doc 10 §2.7).
+    let mut ports: Vec<bool> = Vec::new();
     for (i, e) in entries.iter().enumerate() {
         let def: Id<FnDef> = ew_ids::v5::lib_copy_id(e.fndef.library.as_uuid(), e.fndef.item.as_uuid());
         let Some(fndef) = tx.get::<LibCopy<FnDef>>(def) else {
@@ -1688,6 +1691,7 @@ fn insert_from_part(
         } else {
             FunctionKind::Normal
         };
+        ports.push(fndef.item.contact_kind == ContactKind::BusPort);
         defs.push((def, kind));
     }
     // A device has exactly one main function (EW-INV-002): a template without or with several main entries is
@@ -1711,7 +1715,7 @@ fn insert_from_part(
             }
         }
         PartEntry::BlackBox => {
-            if kind != FunctionKind::BlackBox {
+            if kind != FunctionKind::BlackBox && !ports[usize::from(template)] {
                 return tx.reject(text!(
                     "refusal-from-part-not-black-box",
                     template.to_string(),

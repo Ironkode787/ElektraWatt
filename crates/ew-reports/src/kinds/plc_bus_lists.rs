@@ -393,7 +393,8 @@ fn port_row(
 /// `bus_overview` (FR-REP-020, FR-BUS-007, doc 10 §3.6, §5): the generated bus topology overview, per logical net in
 /// name order (segments without a net last), then per member of each physical net's segments in walk order from the
 /// master end: position, station, port, address, connector, termination, cable, cable length and the external flag. A
-/// cable is the member between the two functions it joins.
+/// cable is the member between the two functions it joins. A passive port is a connector, but for a switch (a passive
+/// interface whose part counts its sockets, doc 10 §2.7), which stands as a station with its port and no address.
 #[derive(Clone, Copy, Debug)]
 pub struct BusOverview;
 
@@ -453,7 +454,7 @@ impl ReportKindDef for BusOverview {
                         let external = segment.external_ends.contains(f);
                         put(c, &mut cells, "external", Cell::Bool(external));
                         match (func.and_then(|x| x.bus_port.clone()), func.and_then(|x| x.device)) {
-                            (Some(p), Some(d)) if p.role == PortRole::Passive => {
+                            (Some(p), Some(d)) if p.role == PortRole::Passive && !switch_port(q, d, &p) => {
                                 put(c, &mut cells, "connector", ident(&tag_short(q, d)));
                                 put(c, &mut cells, "termination", termination(&p.termination));
                             }
@@ -489,6 +490,23 @@ impl ReportKindDef for BusOverview {
         }
         set
     }
+}
+
+/// Whether port `p` of device `d` is a switch's: a part of the device declares its interface with a socket count.
+fn switch_port(q: &Q, d: Id<Device>, p: &ew_derive::ew_schema::BusPort) -> bool {
+    let parts = q.parts();
+    q.devices().get(d).is_some_and(|dev| {
+        dev.parts.iter().any(|u| {
+            parts
+                .get(u.part.copy)
+                .and_then(|c| c.item.sections.bus.as_ref())
+                .is_some_and(|b| {
+                    b.ports.iter().any(|x| {
+                        x.interface == p.interface && x.port_label == p.port_label && x.ports.is_some()
+                    })
+                })
+        })
+    })
 }
 
 fn termination(t: &Option<OnOff>) -> Cell {

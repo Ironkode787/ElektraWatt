@@ -2342,6 +2342,7 @@ nav-badge-end = einde
 nav-badge-terminated = afgesloten
 nav-badge-not-terminated = niet afgesloten
 nav-badge-master = master
+nav-badge-passes-through = geeft het net door
 messages-group-error = Fouten
 messages-group-warning = Waarschuwingen
 messages-group-info = Info

@@ -675,8 +675,12 @@ impl ShellModel {
                 }
             };
             self.tools.picker = None;
+            // On a bus-topology page the frame draws a topology box (a device with its sockets, doc 10 §2.7).
+            let rep_type = (row.rep_type == "topology").then(|| row.rep_type.clone());
             self.activate_tool(Box::new(
-                BlackBoxTool::new(copy.to_string(), target).with_copies(copies),
+                BlackBoxTool::new(copy.to_string(), target)
+                    .with_copies(copies)
+                    .with_rep_type(rep_type),
             ));
             return Outcome::Done;
         }

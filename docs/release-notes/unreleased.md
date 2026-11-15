@@ -734,3 +734,10 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   ports, termination switch); Save puts it into My parts and the project, or the project alone (FT-1766)
 - api-add: format member `PartBusPort.ports` (part): the number of sockets of one bus interface; a port function of
   such a part has the connection points P1 … Pn and one address for all of them (FT-1767, doc 10 §2.7)
+- behaviour-change: a device whose part counts the sockets of its interface (a switch, a PROFINET device) is placed
+  from the device browser on a bus-topology page as a box with a connection point per socket, P1 … Pn; the
+  black-box frame draws a topology box there (FT-1767)
+- behaviour-change: the Bus navigator lists an unmanaged switch or a plug under the net its bus lines join it to,
+  with the badge "passes the net through"; the bus overview lists a switch as a station, not as a connector (FT-1767)
+- api-add: starter parts EW-GEN-ESW-5 (unmanaged Ethernet switch, 5 ports), EW-GEN-ESW-8 (managed switch, 8 ports,
+  PROFINET) and EW-GEN-PND-1 (generic PROFINET device, 2 ports); `ew-starter-parts` 0.9.0 (FT-1767)

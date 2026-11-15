@@ -141,8 +141,8 @@ fn a_stub_makes_the_segment_branched() {
     assert!(s[0].members.contains(&f(F5)));
 }
 
-/// `net_members(lnet)`: the ports naming the net in ID order (the passive plug F3 names no logical net) and the
-/// master.
+/// `net_members(lnet)`: the ports naming the net in ID order, the passive plug F3 that names no logical net but passes
+/// it through (FT-1767), and the master.
 #[test]
 fn net_members_are_the_ports_of_the_net_and_its_master() {
     let m = fixture(Some(F4)).build();
@@ -151,6 +151,7 @@ fn net_members_are_the_ports_of_the_net_and_its_master() {
         *members,
         NetMembers {
             ports: vec![id(F1), id(F2), id(F4), id(F6)],
+            through: vec![id(F3)],
             master: Some(NetMaster::Port(id(F4))),
         }
     );

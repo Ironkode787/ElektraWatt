@@ -2419,6 +2419,7 @@ nav-badge-end = end
 nav-badge-terminated = terminated
 nav-badge-not-terminated = not terminated
 nav-badge-master = master
+nav-badge-passes-through = passes the net through
 messages-group-error = Errors
 messages-group-warning = Warnings
 messages-group-info = Infos
