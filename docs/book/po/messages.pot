@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-15T03:11:54+01:00\n"
+"POT-Creation-Date: 2026-11-15T03:49:44+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -711,22 +711,23 @@ msgid ""
 "terminal diagrams, a cable list and more. **Output ▸ Report block…** (the "
 "Output tab's **Report**) adds one, from the first folio you give: every "
 "list, a tube list or a PLC card list too, is made this way; a list is no "
-"page type of **New page**."
+"page type of **New page**. Without a title of your own, its pages take the "
+"report's name (\"912 Tube list\")."
 msgstr ""
 
-#: src/tutorials/reports-and-pdf.md:43
+#: src/tutorials/reports-and-pdf.md:44
 msgid ""
 "Report pages follow the drawing: change a device, a terminal or a cable, and "
 "its report pages change with it."
 msgstr ""
 
-#: src/tutorials/reports-and-pdf.md:44
+#: src/tutorials/reports-and-pdf.md:45
 msgid ""
 "**Output ▸ Export PDF…** writes every page into one PDF; **Output ▸ Print…** "
 "shows each page before it prints."
 msgstr ""
 
-#: src/tutorials/reports-and-pdf.md:45
+#: src/tutorials/reports-and-pdf.md:46
 msgid ""
 "[A terminal strip and a cable](terminal-strip-and-cable.md) shows where the "
 "terminal diagrams and the cable list take their rows from."
@@ -2808,10 +2809,16 @@ msgid ""
 "Right-click the terminal's box or its row and choose **Add valve at position "
 "1**: the valve becomes the terminal's child at that position, and its symbol "
 "follows the pointer until you click where it goes. The valve is of the part "
-"the terminal's other valves have, else the library's valve for its positions."
+"the terminal's other valves have, else the library's valve for its "
+"positions. A valve placed into the box from **Symbol** or **Device**, or "
+"dragged into it, becomes the terminal's valve at the next free position too; "
+"the toast names the position. A valve's **Valve position** in Properties "
+"moves it to another free position. The supply plate **Valve terminal supply "
+"plate, ports 1, 3 and 5** placed into the box joins the terminal too: a tube "
+"to its port 1 feeds every valve of the terminal."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:28
+#: src/how-to/fluid-workspace.md:32
 msgid ""
 "Right-click a valve's row: **Set spare** or **Set used**, **Blank position** "
 "to put a blanking plate in its place, and **Plug port** for each working "
@@ -2819,7 +2826,7 @@ msgid ""
 "position the same way (**Add valve at position**)."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:31
+#: src/how-to/fluid-workspace.md:35
 msgid ""
 "Right-click the valve terminal's box or row and choose **Generate "
 "overview…**; from the command search it acts on the selected terminal and "
@@ -2829,11 +2836,11 @@ msgid ""
 "after adding a module: it refreshes the pages."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:36
+#: src/how-to/fluid-workspace.md:40
 msgid "Tubes"
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:38
+#: src/how-to/fluid-workspace.md:42
 msgid ""
 "The tube table has one row per tube. Type a length in millimetres into "
 "**Length** or a tube part into **Tube part**; **Source** then says the value "
@@ -2842,7 +2849,7 @@ msgid ""
 "PU 6 × 4, 8 × 6 and 10 × 8 mm."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:41
+#: src/how-to/fluid-workspace.md:45
 msgid ""
 "Choose **Project ▸ Fluid settings…** for the default tube of every line (its "
 "outer and inner diameter in mm and its material) and to tag tubes by page "
@@ -2851,34 +2858,37 @@ msgid ""
 "material, the check names it."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:45
+#: src/how-to/fluid-workspace.md:49
 msgid "Media"
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:47
+#: src/how-to/fluid-workspace.md:51
 msgid ""
 "Choose **Project ▸ New medium…**, or **New medium…** at the top of the Fluid "
 "panel beside **Fluid settings…**, give the medium a name and its pressure in "
 "bar, and choose **Create**."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:49
+#: src/how-to/fluid-workspace.md:53
 msgid ""
 "Right-click a tube and choose **Medium:** with the medium's name: the tube's "
 "net and every net the medium reaches through the valves carry it. The fluid "
 "navigator counts the tubes of each medium. A tube's **Medium** in Properties "
-"shows the medium and where it is defined, and sets it too; its **Tube** row "
-"shows the tube it is made of (such as 6×4 mm PU) and where that comes from."
+"shows the medium and where it is defined, and sets it too, on every tube "
+"selected; its list ends in **New medium…**, which makes one and gives it to "
+"the tubes. Its **Tube** row shows the tube it is made of (such as 6×4 mm PU) "
+"and where that comes from. The air supply's Properties show the medium it "
+"supplies, and set it there."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:53
+#: src/how-to/fluid-workspace.md:58
 msgid ""
 "Select the medium's row in the medium table and press `Ctrl+Shift+H` to "
 "highlight its zones on the page; the highlight is a colour with a hatch "
 "pattern, so it reads without colour too."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:56
+#: src/how-to/fluid-workspace.md:61
 msgid ""
 "The panels are described in the [panel "
 "reference](../reference/window/panels.md): Fluid, Tube table and Medium "
@@ -3395,17 +3405,22 @@ msgid ""
 "While you draw, the wire shows the route it will take. The route never runs "
 "through another connection point, along another wire, through a symbol or a "
 "text, over the frame's bands, or through a junction, and never makes a "
-"fourth arm of a junction. When no such route exists the wire shows as a "
+"fourth arm of a junction. Where only a text stands in the way, the route "
+"crosses it and the hint says \"The route crosses a text: no route keeps "
+"clear of the texts here.\" When no route exists at all the wire shows as a "
 "dashed right-angled line and the hint says \"No clear route: the wire stays "
 "unrouted. Click to place bends.\" Ending it there stores an unrouted wire: "
 "it keeps its connection, but it is drawn dashed and the check reports it "
 "until it has a route. Click on empty points to place bends and the wire "
-"follows them (\"Bend placed: click a connection point to end the wire.\"). A "
-"junction that already joins three wires is not an end: the hint says \"This "
-"junction already joins three wires: end on a wire to make a new junction.\""
+"follows them (\"Bend placed: click a connection point to end the wire.\"). "
+"The hint says what a click at the pointer does: on another wire it joins "
+"that wire with a tee (Alt+Click places a bend there instead), on the start "
+"point it does nothing. A junction that already joins three wires is not an "
+"end: the hint says \"This junction already joins three wires: end on a wire "
+"to make a new junction.\""
 msgstr ""
 
-#: src/reference/window/tools.md:141
+#: src/reference/window/tools.md:144
 msgid ""
 "An unrouted wire, from an import or a placement, is drawn as a dashed line "
 "between its ends, straight or with one corner and never diagonal, on the "
@@ -3413,11 +3428,11 @@ msgid ""
 "no route yet. Route page or Route selection draws it."
 msgstr ""
 
-#: src/reference/window/tools.md:145
+#: src/reference/window/tools.md:148
 msgid "Tube"
 msgstr ""
 
-#: src/reference/window/tools.md:147
+#: src/reference/window/tools.md:150
 msgid ""
 "The Wire tool on a fluid page, drawing tubes of a line kind you pick first: "
 "open it with Draw ▸ Connect ▸ Tube…, choose Working, Pilot, Exhaust, Drain "
@@ -3426,28 +3441,28 @@ msgid ""
 "ends. Right-click a tube to change its line kind."
 msgstr ""
 
-#: src/reference/window/tools.md:152
+#: src/reference/window/tools.md:155
 msgid "Next autoconnect proposal"
 msgstr ""
 
-#: src/reference/window/tools.md:154
+#: src/reference/window/tools.md:157
 msgid ""
 "While a symbol floats near other connection points, shows the next of the "
 "connections EW proposes to draw when you place it. It has no menu item; use "
 "its key."
 msgstr ""
 
-#: src/reference/window/tools.md:157
+#: src/reference/window/tools.md:160
 msgid "Connect while moving"
 msgstr ""
 
-#: src/reference/window/tools.md:159
+#: src/reference/window/tools.md:162
 msgid ""
 "While moving a symbol, connects its connection points to the ones it lands "
 "on. It has no menu item; use its key."
 msgstr ""
 
-#: src/reference/window/tools.md:161
+#: src/reference/window/tools.md:164
 msgid ""
 "Connect while moving is on when you start: the wires the moved symbol would "
 "make are shown while you drag and are drawn with the move when you let go, "
@@ -3458,11 +3473,11 @@ msgid ""
 "keyboard follows that setting."
 msgstr ""
 
-#: src/reference/window/tools.md:167
+#: src/reference/window/tools.md:170
 msgid "Edit route"
 msgstr ""
 
-#: src/reference/window/tools.md:169
+#: src/reference/window/tools.md:172
 msgid ""
 "Changes the drawn route of a wire with the mouse. Select the wire: a handle "
 "shows on each of its segments and a dashed one on each bend. Drag a segment "
@@ -3476,31 +3491,32 @@ msgid ""
 "the segment, the arrow keys move it, `Enter` stores it."
 msgstr ""
 
-#: src/reference/window/tools.md:177
+#: src/reference/window/tools.md:180
 msgid "Route page"
 msgstr ""
 
-#: src/reference/window/tools.md:179
+#: src/reference/window/tools.md:182
 msgid ""
 "Routes every unrouted wire of the page on show in one step. Open it with "
 "Draw ▸ Connect ▸ Route page. The Preview tab shows the plan first: \"Route 3 "
 "wires on folio 101: 2 routed, 1 not routed.\", and for each wire that no "
 "route keeps clear, why, such as \"No route keeps clear of other wires: "
-"-101F1:2 → -101E55:L.\" Apply draws the routes, and one Undo takes them "
-"back; the toast says \"Routed 2 wires on folio 101.\" When every wire of the "
-"page has a route it says \"Every wire on folio 101 has a route.\" instead. "
-"The router routes supply wires and long wires first, keeps the wires of a "
-"feed side by side in the order L1, L2, L3, N, PE where their ends allow it, "
-"and keeps every route clear as the Wire tool does. A wire it cannot route "
-"stays unrouted; move a symbol to make room, or place its bends with the Wire "
-"tool."
+"-101F1:2 → -101E55:L.\"; a wire routed across a text, as no route keeps "
+"clear of the texts, is named too. Apply draws the routes, and one Undo takes "
+"them back; the toast says \"Routed 2 wires on folio 101.\" When every wire "
+"of the page has a route it says \"Every wire on folio 101 has a route.\" "
+"instead. The router routes supply wires and long wires first, keeps the "
+"wires of a feed side by side in the order L1, L2, L3, N, PE where their ends "
+"allow it, and keeps every route clear as the Wire tool does. A wire it "
+"cannot route stays unrouted; move a symbol to make room, or place its bends "
+"with the Wire tool."
 msgstr ""
 
-#: src/reference/window/tools.md:188
+#: src/reference/window/tools.md:192
 msgid "Route selection"
 msgstr ""
 
-#: src/reference/window/tools.md:190
+#: src/reference/window/tools.md:194
 msgid ""
 "Routes the selected wires, and every wire with an end on a selected symbol, "
 "again, routed or not; the other wires of the page stay as they are. Open it "
@@ -3508,18 +3524,18 @@ msgid ""
 "Route page does."
 msgstr ""
 
-#: src/reference/window/tools.md:194 src/explanation/eplan-and-ew.md:44
+#: src/reference/window/tools.md:198 src/explanation/eplan-and-ew.md:44
 msgid "Interruption point"
 msgstr ""
 
-#: src/reference/window/tools.md:196
+#: src/reference/window/tools.md:200
 msgid ""
 "Places an interruption point: the end of a potential on this page that "
 "continues at a point of the same name elsewhere. Open it with Draw ▸ Connect "
 "▸ Interruption point."
 msgstr ""
 
-#: src/reference/window/tools.md:199
+#: src/reference/window/tools.md:203
 msgid ""
 "The arrow always points right, the way the signal flows. A source, where the "
 "potential leaves the page, has its wire on the arrow's tail and belongs at "
@@ -3531,7 +3547,7 @@ msgid ""
 "end."
 msgstr ""
 
-#: src/reference/window/tools.md:205
+#: src/reference/window/tools.md:209
 msgid ""
 "Type the name in the field Interruption point name at the page's top left, "
 "once for a pair: the tool then floats the same name as the first point's "
@@ -3548,7 +3564,7 @@ msgid ""
 "target that no source feeds yet carries the target's name."
 msgstr ""
 
-#: src/reference/window/tools.md:215
+#: src/reference/window/tools.md:219
 msgid ""
 "A point keeps room for its texts: where its name or its cross-reference "
 "would print over another interruption point's, it is not placed, and the "
@@ -3557,11 +3573,11 @@ msgid ""
 "anyway."
 msgstr ""
 
-#: src/reference/window/tools.md:219
+#: src/reference/window/tools.md:223
 msgid "Interruption point direction"
 msgstr ""
 
-#: src/reference/window/tools.md:221
+#: src/reference/window/tools.md:225
 msgid ""
 "Turns the interruption point that the tool floats from source to target, or "
 "back. Draw ▸ Connect ▸ Interruption point direction. An undirected point, "
@@ -3569,7 +3585,7 @@ msgid ""
 "properties."
 msgstr ""
 
-#: src/reference/window/tools.md:225
+#: src/reference/window/tools.md:229
 msgid ""
 "The point takes the form of its new direction: the wire moves from the tail "
 "to the tip, or back. Changing the direction of a placed point in its "
@@ -3577,21 +3593,21 @@ msgid ""
 "other form yet: place one point of that direction first."
 msgstr ""
 
-#: src/reference/window/tools.md:229
+#: src/reference/window/tools.md:233
 msgid "Star source"
 msgstr ""
 
-#: src/reference/window/tools.md:231
+#: src/reference/window/tools.md:235
 msgid ""
 "Marks the interruption point as the source of its name in star mode: one "
 "source, many targets. Draw ▸ Connect ▸ Star source."
 msgstr ""
 
-#: src/reference/window/tools.md:234
+#: src/reference/window/tools.md:238
 msgid "Wire marker"
 msgstr ""
 
-#: src/reference/window/tools.md:236
+#: src/reference/window/tools.md:240
 msgid ""
 "Places a wire marker, the label that prints the cross-section and colours of "
 "the wires it marks. Open it with **Marker** on the Draw tab or Shift+W. Drag "
@@ -3608,7 +3624,7 @@ msgid ""
 "text beyond the line's end, clear of the wires."
 msgstr ""
 
-#: src/reference/window/tools.md:246
+#: src/reference/window/tools.md:250
 msgid ""
 "The wires' numbers print on the page with **Draw ▸ Connect ▸ Print wire "
 "numbers**, a setting of the project that the PDF and print follow too: each "
@@ -3618,62 +3634,62 @@ msgid ""
 "and core name it."
 msgstr ""
 
-#: src/reference/window/tools.md:251
+#: src/reference/window/tools.md:255
 msgid "Text"
 msgstr ""
 
-#: src/reference/window/tools.md:253
+#: src/reference/window/tools.md:257
 msgid "Places a free text on the page. Open it with Draw ▸ Annotate ▸ Text."
 msgstr ""
 
-#: src/reference/window/tools.md:255
+#: src/reference/window/tools.md:259
 msgid "Graphic"
 msgstr ""
 
-#: src/reference/window/tools.md:257
+#: src/reference/window/tools.md:261
 msgid ""
 "Draws a graphic: a line, polyline, rectangle, circle, arc or polygon, which "
 "has no electrical meaning. Open it with Draw ▸ Annotate ▸ Graphic and the "
 "shape."
 msgstr ""
 
-#: src/reference/window/tools.md:260 src/explanation/eplan-and-ew.md:120
+#: src/reference/window/tools.md:264 src/explanation/eplan-and-ew.md:120
 msgid "Structure box"
 msgstr ""
 
-#: src/reference/window/tools.md:262
+#: src/reference/window/tools.md:266
 msgid ""
 "Draws a structure box: a dashed frame that puts what it encloses into a "
 "function or location of the project's structure. Open it with Draw ▸ "
 "Annotate ▸ Structure box."
 msgstr ""
 
-#: src/reference/window/tools.md:265
+#: src/reference/window/tools.md:269
 msgid "Image"
 msgstr ""
 
-#: src/reference/window/tools.md:267
+#: src/reference/window/tools.md:271
 msgid ""
 "Places an image file (SVG, PNG or JPEG) on the page. Open it with Draw ▸ "
 "Annotate ▸ Image…."
 msgstr ""
 
-#: src/reference/window/tools.md:269
+#: src/reference/window/tools.md:273
 msgid "Place device"
 msgstr ""
 
-#: src/reference/window/tools.md:271
+#: src/reference/window/tools.md:275
 msgid ""
 "On a panel layout page, places a device of the location on a rail or the "
 "mounting plate. Open it from the Unplaced devices navigator, which lists the "
 "devices of the location that have no place yet."
 msgstr ""
 
-#: src/reference/window/tools.md:274
+#: src/reference/window/tools.md:278
 msgid "Rail"
 msgstr ""
 
-#: src/reference/window/tools.md:276
+#: src/reference/window/tools.md:280
 msgid ""
 "On a panel layout page, draws a mounting rail. Open it with Draw ▸ Rail. The "
 "page shows an enclosure first: Project ▸ Setup ▸ Enclosure… puts the new "
@@ -3681,11 +3697,11 @@ msgid ""
 "layout](../../how-to/panel-layout.md))."
 msgstr ""
 
-#: src/reference/window/tools.md:279
+#: src/reference/window/tools.md:283
 msgid "Duct"
 msgstr ""
 
-#: src/reference/window/tools.md:281
+#: src/reference/window/tools.md:285
 msgid "On a panel layout page, draws a wiring duct. Open it with Draw ▸ Duct."
 msgstr ""
 
