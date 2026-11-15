@@ -111,7 +111,7 @@ tool.place_terminal Command "Terminal…" menu "Draw" shortcut none context canv
 strip.new Command "Terminal strip" menu "Draw" shortcut none context global params "letter?:text, tag?:text, dialog?:bool"
 structure.new Command "Structure node…" menu "Project" shortcut none context global params "kind:enum(functional_assignment|function|installation_site|location|document_kind|user_defined|type), designation:text, parent?:text"
 external_ref.new Command "External reference…" menu "Project" shortcut none context global params "location:text, device:text, connection?:text, project?:text"
-place.pick Command "Pick a symbol to place" menu none shortcut none context canvas hidden params "symbol?:text, part?:text, function?:ref, device?:ref, template?:uint, letter?:text, strip?:text, terminal_designation?:text, designation?:text, count?:uint"
+place.pick Command "Pick a symbol to place" menu none shortcut none context canvas hidden params "symbol?:text, part?:text, function?:ref, device?:ref, port?:text, template?:uint, letter?:text, strip?:text, terminal_designation?:text, designation?:text, count?:uint"
 picker.filter View "Filter the picker" menu none shortcut none context global hidden params "text:text"
 picker.row View "Move the picker's row" menu none shortcut none context global hidden params "step?:int, to?:enum(first|last)"
 picker.category View "Choose a category of the browser" menu none shortcut none context global hidden params "to?:text, step?:int"

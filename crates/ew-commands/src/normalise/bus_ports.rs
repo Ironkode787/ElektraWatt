@@ -46,7 +46,7 @@ use crate::tx::TxBuilder;
 pub struct BusPorts;
 
 /// The bus part of `parts`: the first part use whose part copy has a bus section with at least one port.
-fn bus_part(tx: &TxBuilder<'_>, parts: &[PartUse]) -> Option<Arc<LibCopy<Part>>> {
+pub(crate) fn bus_part(tx: &TxBuilder<'_>, parts: &[PartUse]) -> Option<Arc<LibCopy<Part>>> {
     parts.iter().find_map(|u| {
         tx.get::<LibCopy<Part>>(u.part.copy)
             .filter(|c| c.item.sections.bus.as_ref().is_some_and(|b| !b.ports.is_empty()))
@@ -54,14 +54,14 @@ fn bus_part(tx: &TxBuilder<'_>, parts: &[PartUse]) -> Option<Arc<LibCopy<Part>>>
 }
 
 /// Whether the function's FnDef copy has contact kind `bus_port`.
-fn is_bus_port_function(tx: &TxBuilder<'_>, f: &Function) -> bool {
+pub(crate) fn is_bus_port_function(tx: &TxBuilder<'_>, f: &Function) -> bool {
     tx.get::<LibCopy<FnDef>>(f.def)
         .is_some_and(|d| d.item.contact_kind == ContactKind::BusPort)
 }
 
 /// Whether the FnDef of function `f` is filed under bus system `bus`: one of its category words begins the bus's
 /// stored name, case aside (`Profibus` for `profibus_dp`, `Profinet` for `profinet`).
-fn suits(tx: &TxBuilder<'_>, f: Id<Function>, bus: &BusSystem) -> bool {
+pub(crate) fn suits(tx: &TxBuilder<'_>, f: Id<Function>, bus: &BusSystem) -> bool {
     let name = stored_name(bus);
     tx.get::<Function>(f)
         .and_then(|func| tx.get::<LibCopy<FnDef>>(func.def))
@@ -93,7 +93,7 @@ fn stored_name<T: serde::Serialize>(value: &T) -> String {
 }
 
 /// The function's port made from a part port (D16).
-fn seeded(port: &PartBusPort) -> BusPort {
+pub(crate) fn seeded(port: &PartBusPort) -> BusPort {
     BusPort {
         interface: port.interface.clone(),
         port_label: port.port_label.clone(),

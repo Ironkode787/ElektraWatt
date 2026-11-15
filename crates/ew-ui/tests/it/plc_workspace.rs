@@ -1656,10 +1656,13 @@ fn two_stations_and_a_bus_are_built_from_nothing() {
     wait_for_page(&mut h);
     dispatch(&mut h, "navigator.show", json!({"kind": "plc"}));
     settle(&mut h);
+    // On a bus-topology page the port is a box with its socket: two corners.
     for (tag, x) in [(&cpu, 20), (&head, 50)] {
         station_menu(&mut h, tag, "Place port DP");
-        crate::navigators::cursor_k(&mut h, (x, 30));
-        dispatch(&mut h, "canvas.activate", json!({}));
+        for corner in [(x, 30), (x + 8, 36)] {
+            crate::navigators::cursor_k(&mut h, corner);
+            dispatch(&mut h, "canvas.activate", json!({}));
+        }
         dispatch(&mut h, "tool.select", json!({}));
         settle(&mut h);
     }

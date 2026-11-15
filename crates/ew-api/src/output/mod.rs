@@ -126,7 +126,7 @@ pub use navigation::{CellLabel, GotoError, LinkTarget, PageCells, PageCp, PageLi
 pub use scale_fit::fitting_scale;
 // The panel tables and the pure items of `ew_derive::layout` the layout tool runs, so that
 // `ew-viewmodel` keeps its one dependency.
-pub use editing::bus_port_symbol_key;
+pub use editing::{CatalogueInterface, bus_port_symbol_key, part_interfaces};
 pub use ew_derive::layout::{
     Fit, Profile, RailExtent, RailItem, Resolution, SnapError, SnapMode, brackets, end_gap, fits_rail,
     min_gap, resolve, start_gap,

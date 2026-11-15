@@ -24,9 +24,12 @@ cards, bind channels and check what each channel drives.
 
 ## Bus ports and nets
 
-5. A station's port that is in its part but not drawn yet is offered on the station's row as **Place port DP** (or
-   **Place port X1** for PROFINET): on a bus-topology page it arms the Place tool with the port symbol joined to the
-   station, and a click places it. Draw the bus between the ports with **Draw ▸ Wire**, which draws bus lines on a
+5. A station placed from the device browser on a bus-topology page stands there as its bus interfaces, a box each
+   with its sockets (the starter CPU as DP and X1), and without its supply pins, which are its box on a schematic
+   page. A station's port that is not drawn on the bus-topology page shown is offered on the station's row as **Place
+   port DP** (or **Place port X1** for PROFINET): it arms the Black box tool with that interface's box; two clicks
+   draw it. On another page the same entry places the port symbol joined to the station, for a port no function
+   carries yet. Draw the bus between the ports with **Draw ▸ Wire**, which draws bus lines on a
    bus-topology page: the two ports become one network (a new one named for the bus, PROFIBUS DP, when neither has
    one), with the CPU's port as its master. The starter parts hold a CPU with PROFINET and PROFIBUS DP, a remote I/O
    head (a station of its own: attach its cards with **Attach cards without a station** on its row), an unmanaged and a

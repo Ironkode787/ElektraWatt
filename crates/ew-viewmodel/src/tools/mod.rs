@@ -79,7 +79,7 @@ pub mod text;
 pub mod transform;
 pub mod wire;
 
-pub use black_box::{BlackBoxTool, BoxTarget};
+pub use black_box::{BlackBoxTool, BoxTarget, PortTarget};
 pub use chooser::{Chooser, ChooserRow, ChooserValue};
 pub use duct_draw::DuctDrawTool;
 pub use exchange::ExchangeTool;

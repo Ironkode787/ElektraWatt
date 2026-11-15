@@ -814,3 +814,9 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   and a tube's Properties row reads "Tube length (mm)"; "2 m" was refused with an error that named millimetres
   (persona round 3)
 - text-change: `refusal-input-mm` names the units a length takes; `field-connection-tube-length` says mm
+- api-add: command `bus.place_ports {page, symbol, target: device | from_part, boxes, copies}` draws a device's bus
+  interfaces on a bus-topology page, a box each with a socket per port; `place.pick` takes `port` (persona run m3-p4)
+- behaviour-change: a device whose part has bus interfaces, a station as a switch, placed from the device browser on a
+  bus-topology page stands there as a box per interface with its sockets and without its supply pins (the starter
+  CPU as DP and X1); a station's Place port on a bus-topology page draws that interface's box; an unplaced black-box
+  function (the station's supply pins) is placed with the black box tool (persona run m3-p4)

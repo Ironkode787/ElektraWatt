@@ -64,7 +64,7 @@ pub(crate) fn records(d: &mut Driver) -> Vec<Value> {
 }
 
 /// The texts the page shown prints, groups followed.
-fn page_texts(d: &mut Driver) -> Vec<String> {
+pub(crate) fn page_texts(d: &mut Driver) -> Vec<String> {
     use ew_ui::ew_viewmodel::ew_api::output::ew_dl::{Item, ItemKind};
     fn walk(items: &[Item], out: &mut Vec<String>) {
         for item in items {
@@ -233,7 +233,7 @@ pub(crate) fn place_box(d: &mut Driver, number: &str, a: (i64, i64), b: (i64, i6
 }
 
 /// The texts of the findings of the rules whose code starts with `prefix`, after Check project.
-fn findings(d: &mut Driver, prefix: &str) -> Vec<String> {
+pub(crate) fn findings(d: &mut Driver, prefix: &str) -> Vec<String> {
     use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
     press(d, "Check project");
     let _ = d
@@ -255,8 +255,8 @@ fn findings(d: &mut Driver, prefix: &str) -> Vec<String> {
 
 /// FT-1767, a star on a new project: the CPU with PROFINET, the starter's unmanaged five-port switch and two generic
 /// PROFINET devices, each placed from the device browser on a bus-topology page. The switch and the devices stand as
-/// boxes with every socket (P1 … P5, P1 and P2); the CPU's X1 is placed from its row. Bus lines from the CPU to the
-/// switch and from the switch to each device make one PROFINET net of the CPU and both devices, which the switch
+/// boxes with every socket (P1 … P5, P1 and P2), the CPU as its interfaces DP and X1. Bus lines from the CPU's X1 to
+/// the switch and from the switch to each device make one PROFINET net of the CPU and both devices, which the switch
 /// passes through (the Bus navigator lists it in the net), and no EW-BUS rule speaks.
 #[test]
 fn a_switch_joins_a_cpu_and_two_devices_in_one_net() {
@@ -276,28 +276,9 @@ fn a_switch_joins_a_cpu_and_two_devices_in_one_net() {
     let a = place_box(&mut d, "EW-GEN-PND-1", (15, 45), (30, 52));
     let b = place_box(&mut d, "EW-GEN-PND-1", (65, 45), (80, 52));
     assert_eq!(a.len(), 2, "a device with two sockets: {a:?}");
-    let cpu = place_box(&mut d, "EW-GEN-CPU-2", (40, 62), (60, 70));
-    let tag = cpu[0].split(':').next().unwrap().to_owned();
-    // The CPU's X1, as its row in the PLC navigator places it (Place port X1).
-    let symbol = ew_ui::ew_viewmodel::ew_api::library::starter::items()
-        .iter()
-        .find(|i| i.key.starts_with("ew.bus.pn-port@"))
-        .expect("the PROFINET port symbol")
-        .key;
-    let before = cp_labels(&mut d);
-    assert_eq!(
-        d.shell_mut()
-            .dispatch("place.pick", &json!({"symbol": symbol, "device": tag})),
-        Outcome::Done
-    );
-    cursor_k(&mut d, (75, 66));
-    let _ = d.shell_mut().dispatch("canvas.activate", &json!({}));
-    d.input(&key("Escape"));
-    d.settle();
-    let x1: Vec<String> = cp_labels(&mut d)
-        .into_iter()
-        .filter(|l| !before.contains(l))
-        .collect();
+    // The CPU stands as its interfaces: X1's one socket is its PROFINET port's P1.
+    let cpu = place_box(&mut d, "EW-GEN-CPU-2", (40, 62), (50, 70));
+    let x1: Vec<String> = cpu.iter().filter(|l| l.ends_with(":P1")).cloned().collect();
     // The bus lines: CPU to switch, switch to each device.
     d.input(&key("W"));
     d.settle();
@@ -325,10 +306,12 @@ fn a_switch_joins_a_cpu_and_two_devices_in_one_net() {
         ports.iter().any(|p| p.contains("passes the net through")),
         "the switch is in the net: {ports:?}"
     );
-    // The PROFINET names in the Bus navigator's Address cells, one per node: the switch has none to give.
+    // The PROFINET names in the Bus navigator's Address cells, one per node: the switch has none to give (the CPU's
+    // DP, in no net, is listed apart).
     let nodes: Vec<String> = rows
         .iter()
         .filter(|r| r.role == NavRole::BusPort.word() && !r.text.contains("passes the net through"))
+        .filter(|r| r.key.starts_with("nets:logical/"))
         .map(|r| r.key.clone())
         .collect();
     assert_eq!(nodes.len(), 3, "the CPU and both devices are nodes");
@@ -350,7 +333,7 @@ fn a_switch_joins_a_cpu_and_two_devices_in_one_net() {
 
 /// Makes a part with one PROFINET interface of role device and `ports` sockets in the part editor (New part… in the
 /// device browser), and saves it.
-fn make_port_device(d: &mut Driver, number: &str, description: &str, ports: &str) {
+pub(crate) fn make_port_device(d: &mut Driver, number: &str, description: &str, ports: &str) {
     d.input(&key("Shift+I"));
     d.settle();
     press(d, "New part…");
@@ -390,25 +373,9 @@ fn a_managed_switch_and_a_drive_made_in_the_window_are_nodes_of_one_net() {
         "the switch stands with eight sockets: {switch:?}"
     );
     let drive = place_box(&mut d, "DRV-1", (65, 45), (80, 52));
-    let cpu = place_box(&mut d, "EW-GEN-CPU-2", (40, 62), (60, 70));
-    let tag = cpu[0].split(':').next().unwrap().to_owned();
-    let symbol = ew_ui::ew_viewmodel::ew_api::library::starter::items()
-        .iter()
-        .find(|i| i.key.starts_with("ew.bus.pn-port@"))
-        .expect("the PROFINET port symbol")
-        .key;
-    let before = cp_labels(&mut d);
-    let _ = d
-        .shell_mut()
-        .dispatch("place.pick", &json!({"symbol": symbol, "device": tag}));
-    cursor_k(&mut d, (75, 66));
-    let _ = d.shell_mut().dispatch("canvas.activate", &json!({}));
-    d.input(&key("Escape"));
-    d.settle();
-    let x1: Vec<String> = cp_labels(&mut d)
-        .into_iter()
-        .filter(|l| !before.contains(l))
-        .collect();
+    // The CPU stands as its interfaces DP and X1; X1's one socket is its PROFINET port's P1.
+    let cpu = place_box(&mut d, "EW-GEN-CPU-2", (40, 62), (50, 70));
+    let x1: Vec<String> = cpu.iter().filter(|l| l.ends_with(":P1")).cloned().collect();
     d.input(&key("W"));
     d.settle();
     for (from, to) in [(&x1[0], &switch[0]), (&switch[7], &drive[0])] {
@@ -423,19 +390,16 @@ fn a_managed_switch_and_a_drive_made_in_the_window_are_nodes_of_one_net() {
     let rows = d.shell_mut().shown_rows(NavKind::Bus);
     let nets = rows.iter().filter(|r| r.role == NavRole::Net.word()).count();
     assert_eq!(nets, 1, "one net");
+    // The CPU's DP, in no net, is listed apart.
     let nodes: Vec<String> = rows
         .iter()
-        .filter(|r| r.role == NavRole::BusPort.word())
+        .filter(|r| r.role == NavRole::BusPort.word() && r.key.starts_with("nets:logical/"))
         .map(|r| r.key.clone())
         .collect();
     assert_eq!(nodes.len(), 3, "the CPU, the switch and the drive are its nodes");
-    assert!(
-        nodes.iter().all(|k| k.starts_with("nets:logical/")),
-        "all in the net: {nodes:?}"
-    );
-    // The boxes print their address as the port symbol does: open, it is TBD.
+    // The boxes print their address as the port symbol does: open, it is TBD (the CPU's DP too).
     let open = page_texts(&mut d).into_iter().filter(|t| t == "Node TBD").count();
-    assert_eq!(open, 3, "the CPU's port, the switch and the drive print Node TBD");
+    assert_eq!(open, 4, "the CPU's X1 and DP, the switch and the drive print Node TBD");
     let _ = d
         .shell_mut()
         .dispatch("navigator.table", &json!({"kind": "bus", "on": true}));
@@ -453,7 +417,8 @@ fn a_managed_switch_and_a_drive_made_in_the_window_are_nodes_of_one_net() {
             "{name}: {texts:?}"
         );
     }
-    assert!(!texts.iter().any(|t| t == "Node TBD"), "no address stays open");
+    let open = texts.iter().filter(|t| *t == "Node TBD").count();
+    assert_eq!(open, 1, "no address of the net stays open, only the CPU's DP");
     assert_eq!(
         findings(&mut d, "EW-BUS"),
         Vec::<String>::new(),
@@ -463,7 +428,7 @@ fn a_managed_switch_and_a_drive_made_in_the_window_are_nodes_of_one_net() {
 
 /// Makes the input card "DI 8 × 24 V" in the part editor: a PLC module of eight digital inputs whose pins the pattern
 /// `{n+1}` gives (the preview says channel 0 → pin 1 … channel 7 → pin 8 before Save), allowed in slots `slots`.
-fn make_card(d: &mut Driver, number: &str, slots: &str) {
+pub(crate) fn make_card(d: &mut Driver, number: &str, slots: &str) {
     d.input(&key("Shift+I"));
     d.settle();
     press(d, "New part…");
@@ -515,7 +480,7 @@ fn rack_add(d: &mut Driver, station: &str, number: &str, slot: u64) {
 }
 
 /// The texts of the PLC navigator's rows.
-fn plc_rows(d: &mut Driver) -> Vec<String> {
+pub(crate) fn plc_rows(d: &mut Driver) -> Vec<String> {
     use ew_ui::ew_viewmodel::navigators::NavKind;
     let _ = d.shell_mut().dispatch("rail.show", &json!({"pane": "plc"}));
     d.settle();
@@ -558,6 +523,32 @@ fn a_card_made_in_the_window_is_a_card_of_the_starter_cpu() {
     );
 }
 
+/// Makes a head station such as an IM 152 in the part editor (New part… in the device browser) and saves it: a PLC
+/// station with the supply pins L+ and M, at most 32 modules and one PROFIBUS DP slave interface `DP`.
+pub(crate) fn make_head_station(d: &mut Driver, number: &str) {
+    d.input(&key("Shift+I"));
+    d.settle();
+    press(d, "New part…");
+    fill(d, "Manufacturer", "Acme");
+    fill(d, "Part number", number);
+    fill(d, "Description", "Head station, PROFIBUS DP");
+    press(d, "PLC role");
+    press(d, "Station");
+    fill(d, "Supply L+ pin", "L+");
+    fill(d, "Supply M pin", "M");
+    fill(d, "Most modules", "32");
+    press(d, "Add interface");
+    press(d, "Interface 1");
+    d.input(&key("Ctrl+A"));
+    d.input(&typed("DP"));
+    press(d, "Bus 1");
+    press(d, "PROFIBUS DP");
+    press(d, "Role 1");
+    press(d, "Slave");
+    press(d, "Save");
+    assert!(d.shell_mut().dialog().is_none(), "the head station is saved");
+}
+
 /// A head station such as an IM 152, typed from its data sheet: a PLC station with a PROFIBUS DP slave interface,
 /// its supply pins and at most 32 modules; a card allowed in slots 1 to 32 goes into its slot 1, and its DP port,
 /// placed from the station's row on a bus-topology page, is a slave port in the Bus navigator. Nothing depends on
@@ -567,27 +558,7 @@ fn a_head_station_made_in_the_window_takes_its_cards_and_its_dp_port() {
     use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
-    d.input(&key("Shift+I"));
-    d.settle();
-    press(&mut d, "New part…");
-    fill(&mut d, "Manufacturer", "Acme");
-    fill(&mut d, "Part number", "HEAD-DP");
-    fill(&mut d, "Description", "Head station, PROFIBUS DP");
-    press(&mut d, "PLC role");
-    press(&mut d, "Station");
-    fill(&mut d, "Supply L+ pin", "L+");
-    fill(&mut d, "Supply M pin", "M");
-    fill(&mut d, "Most modules", "32");
-    press(&mut d, "Add interface");
-    press(&mut d, "Interface 1");
-    d.input(&key("Ctrl+A"));
-    d.input(&typed("DP"));
-    press(&mut d, "Bus 1");
-    press(&mut d, "PROFIBUS DP");
-    press(&mut d, "Role 1");
-    press(&mut d, "Slave");
-    press(&mut d, "Save");
-    assert!(d.shell_mut().dialog().is_none(), "the head station is saved");
+    make_head_station(&mut d, "HEAD-DP");
     make_card(&mut d, "DI8-24", "1-32");
     let head = place_box(&mut d, "HEAD-DP", (10, 10), (20, 18));
     let tag = head[0].split(':').next().unwrap().to_owned();
@@ -674,7 +645,7 @@ fn the_symbol_editor_makes_a_part_for_its_saved_symbol() {
 
 /// Edit part… on the part numbered `number` (as the Edit menu runs it), then a pointer move, so that the window paints
 /// the dialog it opened.
-fn edit_part(d: &mut Driver, number: &str) {
+pub(crate) fn edit_part(d: &mut Driver, number: &str) {
     assert_eq!(
         d.shell_mut().dispatch("part.edit", &json!({"part": number})),
         Outcome::Done

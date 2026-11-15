@@ -114,7 +114,7 @@ impl ShellModel {
 
     /// The device a join names: a device's UUID, or a reference (a bare tag such as `-101K1`,
     /// `tag:`, `id:`) that resolves to a device.
-    fn join_device_ref(&self, text: &str) -> Result<Uuid, String> {
+    pub(super) fn join_device_ref(&self, text: &str) -> Result<Uuid, String> {
         let Some(project) = &self.project else {
             return Err(strings::text(key!("reason-no-project")).to_owned());
         };

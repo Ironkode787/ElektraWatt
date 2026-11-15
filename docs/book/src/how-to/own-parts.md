@@ -38,8 +38,11 @@ A part has channels of one kind: a card with 16 inputs and 16 outputs is two par
 9. Under **Bus interfaces**, choose **Add interface**: type the interface `DP`, choose **Bus ▸ PROFIBUS DP** and
    **Role ▸ Slave**. Its PROFINET sister has the interface `X1`, **Bus ▸ PROFINET**, **Role ▸ Device** and **Ports**
    `2`. **Save**.
-10. Place it, add its cards in **Rack and slots…** on its row in the PLC navigator, and place its port with **Place
-    port DP** on that row, on a bus-topology page. A station that only answers on the bus is a head station.
+10. Place it from the device browser on a bus-topology page: it stands there as a box with its DP socket, and its
+    supply pins wait for a schematic page (drag its unplaced function from the **Devices** list there, and draw the
+    box with its pins). Placed first on a schematic page, it gets its port box on a bus-topology page from **Place
+    port DP** on its row in the PLC navigator. Add its cards in **Rack and slots…** on that row. A station that only
+    answers on the bus is a head station.
 
 ## A switch such as a SCALANCE, or a device on PROFINET
 
@@ -49,8 +52,10 @@ A part has channels of one kind: a card with 16 inputs and 16 outputs is two par
     - A **managed** switch and a drive, an HMI or a gateway have the role **Device**: one PROFINET name and IP
       address for the whole interface, however many sockets it has.
 12. **Save**, then place it from the device browser on a bus-topology page: it stands as a box with a connection
-    point per socket, P1, P2 …. Draw the bus lines with **Draw ▸ Wire**: the CPU, the devices and the managed switch
-    are one network, and an unmanaged switch stands in it with "passes the net through" in the **Bus** navigator.
+    point per socket, P1, P2 …. A device with several interfaces, such as the starter CPU with DP and X1, stands as a
+    box per interface, side by side. Draw the bus lines with **Draw ▸ Wire**: the CPU, the devices and the managed
+    switch are one network, and an unmanaged switch stands in it with "passes the net through" in the **Bus**
+    navigator.
     Type each node's name in the navigator's table (its **Address** column): the box prints it ("Node switch-1
     192.168.0.2"), and "Node TBD" while it is open.
 

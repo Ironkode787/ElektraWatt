@@ -64,7 +64,7 @@ pub use checks::{CHECKS_MEMBER, SHIPPED_CHECK_SCHEMES};
 pub use common::{EndpointParam, KindName, TargetRef};
 pub use company::COMPANY_MEMBER;
 pub use connection::{IpAtEnd, WiringChoice};
-pub use device::{ConnectHint, PlaceTarget, allowed_rep_types};
+pub use device::{ConnectHint, PlaceTarget, PortBox, PortsTarget, allowed_rep_types};
 pub use drawing::{Crossings, MarkerModeParam};
 pub use edit::BULK_ABOVE;
 pub use exchange::{ExchangePin, derive_pin_map};
@@ -128,6 +128,7 @@ commands! {
     device::TransformReps,
     device::SetAnchorPolicy,
     device::PlaceBlackBox,
+    device::PlacePortBoxes,
     connection::Connect,
     connection::RouteConnection,
     connection::DeleteConnections,

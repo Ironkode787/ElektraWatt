@@ -566,11 +566,95 @@ impl ShellModel {
         }
     }
 
+    /// Arms the black box tool with the interfaces of a device on a bus-topology page, a box each (`bus.place_ports`,
+    /// doc 10 §2.7): `target` the command's target, `label` what the tool's label names, `part` the part copy of a new
+    /// device (whose closure travels in the placement).
+    fn arm_ports(
+        &mut self,
+        cat: &PlaceCatalogue,
+        target: Value,
+        label: String,
+        interfaces: &[ew_api::output::CatalogueInterface],
+        part: Option<ew_api::output::Uuid>,
+    ) -> Outcome {
+        let Some(project) = &self.project else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let Some(row) = cat.symbols.iter().find(|r| r.black_box && r.allowed) else {
+            return Outcome::refused(key!("reason-unknown-symbol"));
+        };
+        let Some(copy) = row.copy.or_else(|| project.session.starter_symbol_copy(&row.key)) else {
+            return Outcome::refused(key!("reason-unknown-symbol"));
+        };
+        let mut copies: Vec<Value> = match part {
+            Some(part) => match project.session.starter_embed_part(part, &row.key) {
+                Err(keys) => return failed(key!("error-part-fndef-missing"), &[&keys.join(", ")]),
+                Ok(params) => params.map(copies_of).unwrap_or_default(),
+            },
+            None => match project.session.symbol_embed(&row.key) {
+                Ok(params) => params.map(copies_of).unwrap_or_default(),
+                Err(error) => {
+                    return Outcome::Failed {
+                        message: error.to_string(),
+                    };
+                }
+            },
+        };
+        let fndefs: Vec<ew_api::output::Uuid> = interfaces.iter().map(|i| i.fndef).collect();
+        for doc in project.session.port_fndef_copies(&fndefs) {
+            if !copies.iter().any(|c| c["id"] == doc["id"]) {
+                copies.push(doc);
+            }
+        }
+        let interfaces = interfaces
+            .iter()
+            .map(|i| crate::tools::PortTarget {
+                interface: i.interface.clone(),
+                port_label: i.port_label.clone(),
+                fndef: i.fndef.to_string(),
+                sockets: i.sockets.clone(),
+            })
+            .collect();
+        self.tools.picker = None;
+        self.activate_tool(Box::new(
+            BlackBoxTool::new(
+                copy.to_string(),
+                BoxTarget::Ports {
+                    target,
+                    label,
+                    interfaces,
+                },
+            )
+            .with_copies(copies),
+        ));
+        Outcome::Done
+    }
+
     fn arm(&mut self, cat: Arc<PlaceCatalogue>, pick: Pick, p: &Map<String, Value>) -> Outcome {
         let letter_param = match string_param(p, "letter") {
             Ok(v) => v.map(str::to_owned),
             Err(e) => return e,
         };
+        // On a bus-topology page a part with bus interfaces is placed as its interfaces, a box each, with every port
+        // (doc 10 §2.7): a station as a switch or a drive, its supply pins left to its place on a schematic page.
+        if let Pick::PartFn(pi, _) | Pick::PartSymbol(pi, _) = &pick
+            && !cat.parts[*pi].interfaces.is_empty()
+        {
+            let part = &cat.parts[*pi];
+            let Some(letter) = letter_param.or(part.letter.clone()).or_else(|| {
+                cat.symbols
+                    .iter()
+                    .find(|r| r.black_box)
+                    .and_then(|r| r.letter.clone())
+            }) else {
+                return Outcome::refused(key!("reason-letter-needed"));
+            };
+            let target = json!({"from_part": {"part": part.copy.to_string(), "letter": letter}});
+            let label = strings::format(key!("place-target-part"), &[&part.part_number]);
+            let interfaces = part.interfaces.clone();
+            let copy = part.copy;
+            return self.arm_ports(&cat, target, label, &interfaces, Some(copy));
+        }
         let mut box_cps: Option<Vec<(u16, String)>> = None;
         let mut part_copy = None;
         // The letter of the part's own function category, which a black box placed from it takes.
@@ -627,6 +711,24 @@ impl ShellModel {
         // FT-896: the refusals name the way out with its key from the keymap, or without the parenthesis when unbound.
         if self.tools.black_box_pick && !is_box {
             return self.refused_with_key(key!("reason-not-black-box"), "tool.place");
+        }
+        // An unplaced black-box function (a station placed first on a bus-topology page keeps its supply pins for a
+        // schematic page) is drawn by the black box tool as another representation of it.
+        if let (true, Pick::Function(function, _)) = (is_box, &pick)
+            && let Some(project) = &self.project
+            && let Ok(id) = function.parse::<Uuid>()
+        {
+            let cps = project.session.function_cp_list(id);
+            let Some(copy) = row.copy.or_else(|| project.session.starter_symbol_copy(&row.key)) else {
+                return Outcome::refused(key!("reason-unknown-symbol"));
+            };
+            let target = BoxTarget::Function {
+                function: function.clone(),
+                cps,
+            };
+            self.tools.picker = None;
+            self.activate_tool(Box::new(BlackBoxTool::new(copy.to_string(), target)));
+            return Outcome::Done;
         }
         if is_box && matches!(pick, Pick::Function(..) | Pick::Join(..)) {
             return self.refused_with_key(key!("reason-black-box-tool"), "tool.black_box");
@@ -1106,6 +1208,37 @@ impl ShellModel {
             Ok(v) => v.map(str::to_owned),
             Err(e) => return e,
         };
+        let port = match string_param(p, "port") {
+            Ok(v) => v.map(str::to_owned),
+            Err(e) => return e,
+        };
+        // A port of a device (its tag or ID) on a bus-topology page: the box of that interface with its sockets (doc
+        // 10 §2.7); `port` names the interface as its row does ("X1", "X1 P1R").
+        if let (Some(device), Some(port)) = (&device, &port)
+            && self.page_rows().get(self.page_index()).map(|r| r.kind.as_str()) == Some("bus_topology")
+        {
+            let id = match self.join_device_ref(device) {
+                Ok(id) => id,
+                Err(reason) => return failed(key!("error-join-device"), &[device, &reason]),
+            };
+            let folio = self.current_folio().unwrap_or_default().to_owned();
+            let Some(project) = &self.project else {
+                return Outcome::refused(key!("reason-no-project"));
+            };
+            let interfaces: Vec<ew_api::output::CatalogueInterface> = project
+                .session
+                .undrawn_interfaces(id, &folio)
+                .into_iter()
+                .filter(|i| i.label == *port)
+                .collect();
+            if interfaces.is_empty() {
+                return Outcome::refused(key!("reason-port-drawn"));
+            }
+            let tag = project.session.device_tag(id).unwrap_or_default();
+            let label = format!("{tag} {port}");
+            let target = json!({"device": {"device": id.to_string()}});
+            return self.arm_ports(&cat, target, label, &interfaces, None);
+        }
         // A device by its printed tag (or its ID) joins it.
         if let Some(device) = device {
             let Some(i) = symbol.as_deref().and_then(find) else {
@@ -1178,6 +1311,12 @@ impl ShellModel {
                     cat.symbols
                         .iter()
                         .find(|s| s.fndef_key == fndef && s.allowed && !s.black_box)
+                        // A black-box function (a station's supply pins) is drawn by the black-box frame.
+                        .or_else(|| {
+                            cat.symbols
+                                .iter()
+                                .find(|s| s.fndef_key == fndef && s.allowed && s.black_box)
+                        })
                         .map(|s| s.key.clone())
                 });
                 let Some(i) = symbol.as_deref().and_then(find) else {

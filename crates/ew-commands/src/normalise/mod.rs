@@ -33,7 +33,7 @@
 //! output.
 
 mod bus_nets;
-mod bus_ports;
+pub(crate) mod bus_ports;
 pub(crate) mod channel_instantiation;
 mod connection_split;
 mod cp_instantiation;

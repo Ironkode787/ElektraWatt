@@ -65,6 +65,63 @@ pub enum BoxTarget {
         /// The function CP indices among them that are a source's outputs, laid along the bottom edge.
         outputs: Vec<u16>,
     },
+    /// Another representation of an unplaced black-box function (`existing_function`): the supply pins of a station
+    /// placed first on a bus-topology page, drawn on a schematic page.
+    Function {
+        /// The function's ID text.
+        function: String,
+        /// Its CPs: (function CP index, designation).
+        cps: Vec<(u16, String)>,
+    },
+    /// The interfaces of a device on a bus-topology page, a box each (`bus.place_ports`, doc 10 §2.7).
+    Ports {
+        /// The command's `target`: `{"device": {"device": id}}` or `{"from_part": {"part": id, "letter": l}}`.
+        target: Value,
+        /// What the label names (`part EW-GEN-CPU-2`, `-3A1`).
+        label: String,
+        /// The interfaces, in box order from left to right.
+        interfaces: Vec<PortTarget>,
+    },
+}
+
+/// One interface a [`BoxTarget::Ports`] draws.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct PortTarget {
+    /// The interface ("X1").
+    pub interface: String,
+    /// The port label of an interface listed port by port.
+    pub port_label: Option<String>,
+    /// The FnDef copy ID text a new port function takes.
+    pub fndef: String,
+    /// The box's sockets: (function CP index, label).
+    pub sockets: Vec<(u16, String)>,
+}
+
+/// The boxes of a [`BoxTarget::Ports`] for the rectangle with corners `a` and `b` (page nm, grid points): the first
+/// interface's box is the rectangle (grown to fit its sockets), each next one as wide and as high, two grid steps to
+/// the right of the one before; `None` for a rectangle without height.
+pub fn port_layouts(
+    grid: PageGridMap,
+    a: (i64, i64),
+    b: (i64, i64),
+    interfaces: &[PortTarget],
+) -> Option<Vec<BoxLayout>> {
+    let width = (grid.index(b.0) - grid.index(a.0)).abs();
+    let mut x = grid.index(a.0.min(b.0));
+    let mut out = Vec::with_capacity(interfaces.len());
+    for i in interfaces {
+        let l = layout(
+            grid,
+            (grid.coord(x), a.1),
+            (grid.coord(x + width), b.1),
+            &i.sockets,
+            &[],
+        )?;
+        let right = l.0.0 + l.1.get(1).map_or(0, |p| p.0);
+        x = grid.index(right) + 2;
+        out.push(l);
+    }
+    Some(out)
 }
 
 /// A box CP on the page: its function CP index, its point and its direction.
@@ -199,7 +256,8 @@ impl BlackBoxTool {
 
     fn cps(&self) -> &[(u16, String)] {
         match &self.target {
-            BoxTarget::Part { cps, .. } => cps,
+            BoxTarget::Part { cps, .. } | BoxTarget::Function { cps, .. } => cps,
+            BoxTarget::Ports { interfaces, .. } => interfaces.first().map_or(&[], |i| i.sockets.as_slice()),
             BoxTarget::NewDevice { .. } => &[],
         }
     }
@@ -208,7 +266,7 @@ impl BlackBoxTool {
     fn outputs(&self) -> &[u16] {
         match &self.target {
             BoxTarget::Part { outputs, .. } => outputs,
-            BoxTarget::NewDevice { .. } => &[],
+            BoxTarget::NewDevice { .. } | BoxTarget::Ports { .. } | BoxTarget::Function { .. } => &[],
         }
     }
 
@@ -217,26 +275,64 @@ impl BlackBoxTool {
         match &self.target {
             BoxTarget::NewDevice { letter } => crate::strings::format(key!("place-target-new"), &[letter]),
             BoxTarget::Part { number, .. } => crate::strings::format(key!("place-target-part"), &[number]),
+            BoxTarget::Ports { label, .. } => label.clone(),
+            BoxTarget::Function { .. } => crate::strings::text(key!("place-target-function")).to_owned(),
         }
     }
 
-    /// The layout of the current rectangle.
-    fn current(&self, cx: &ToolCx<'_>) -> Option<BoxLayout> {
+    /// The layouts of the current rectangle: its box, or a box per interface of a ports target.
+    fn current(&self, cx: &ToolCx<'_>) -> Option<Vec<BoxLayout>> {
         let State::Outline { first, at } = self.state else {
             return None;
         };
-        layout(
-            PageGridMap::new(cx.page.tables.grid),
-            first,
-            at,
-            self.cps(),
-            self.outputs(),
-        )
+        let grid = PageGridMap::new(cx.page.tables.grid);
+        match &self.target {
+            BoxTarget::Ports { interfaces, .. } => port_layouts(grid, first, at, interfaces),
+            _ => layout(grid, first, at, self.cps(), self.outputs()).map(|l| vec![l]),
+        }
     }
 
-    /// The `box.black` of the current rectangle.
+    /// The `box.black` of the current rectangle, or the `bus.place_ports` of a ports target.
     fn command(&self, cx: &ToolCx<'_>) -> Option<Box<AnyCommand>> {
-        let (pos, outline, cps) = self.current(cx)?;
+        let layouts = self.current(cx)?;
+        if let BoxTarget::Ports {
+            target, interfaces, ..
+        } = &self.target
+        {
+            let boxes: Vec<Value> = layouts
+                .iter()
+                .zip(interfaces)
+                .map(|((pos, outline, cps), i)| {
+                    let mut b = json!({
+                        "interface": i.interface,
+                        "fndef": i.fndef,
+                        "pos": [pos.0, pos.1],
+                        "box": {
+                            "outline": outline.iter().map(|p| vec![p.0, p.1]).collect::<Vec<_>>(),
+                            "cps": cps.iter().map(|(c, p, d)| cp_json(*c, *p, *d)).collect::<Vec<_>>(),
+                        },
+                    });
+                    if let Some(l) = &i.port_label {
+                        b["port_label"] = Value::String(l.clone());
+                    }
+                    b
+                })
+                .collect();
+            let mut params = json!({
+                "page": cx.page.tables.page.to_string(),
+                "symbol": self.symbol,
+                "target": target,
+                "boxes": boxes,
+            });
+            if !self.copies.is_empty() {
+                params["copies"] = Value::Array(self.copies.clone());
+            }
+            return Some(Box::new(AnyCommand {
+                name: "bus.place_ports".into(),
+                params,
+            }));
+        }
+        let (pos, outline, cps) = layouts.into_iter().next()?;
         let target = match &self.target {
             BoxTarget::NewDevice { letter } => json!({"new_device": {"letter": letter}}),
             BoxTarget::Part {
@@ -245,6 +341,8 @@ impl BlackBoxTool {
                 letter,
                 ..
             } => json!({"from_part": {"part": part, "template": template, "letter": letter}}),
+            BoxTarget::Function { function, .. } => json!({"existing_function": {"function": function}}),
+            BoxTarget::Ports { .. } => return None,
         };
         let mut b = json!({
             "outline": outline.iter().map(|p| vec![p.0, p.1]).collect::<Vec<_>>(),
@@ -296,7 +394,7 @@ impl BlackBoxTool {
                         kind: MarkerKind::Cp,
                     });
                 }
-                if let Some((pos, outline, cps)) = current {
+                for (pos, outline, cps) in current.into_iter().flatten() {
                     let mut pts: Vec<(i64, i64)> = outline
                         .iter()
                         .map(|p| cx.snapper.page_to_sheet((pos.0 + p.0, pos.1 + p.1)))
@@ -418,10 +516,11 @@ impl Tool for BlackBoxTool {
             }
             State::Armed { .. } => 0,
         };
-        Some(Ghost::Box {
-            outline,
-            cps: self.cps().len(),
-        })
+        let cps = match &self.target {
+            BoxTarget::Ports { interfaces, .. } => interfaces.iter().map(|i| i.sockets.len()).sum(),
+            _ => self.cps().len(),
+        };
+        Some(Ghost::Box { outline, cps })
     }
 
     fn as_any_mut(&mut self) -> Option<&mut dyn std::any::Any> {

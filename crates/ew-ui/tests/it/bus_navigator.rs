@@ -115,8 +115,11 @@ fn a_cpus_row_places_its_dp_port() {
     settle(&mut h);
     support::menu_node(&h, "Place port DP").click();
     settle(&mut h);
-    crate::navigators::cursor_k(&mut h, (30, 30));
-    dispatch(&mut h, "canvas.activate", json!({}));
+    // On a bus-topology page the port is a box with its socket (doc 10 §2.7): two corners.
+    for corner in [(30, 30), (38, 36)] {
+        crate::navigators::cursor_k(&mut h, corner);
+        dispatch(&mut h, "canvas.activate", json!({}));
+    }
     dispatch(&mut h, "tool.select", json!({}));
     dispatch(&mut h, "rail.show", json!({"pane": "bus"}));
     settle(&mut h);

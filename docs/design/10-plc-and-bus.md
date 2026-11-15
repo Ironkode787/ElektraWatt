@@ -558,11 +558,26 @@ pub struct PhysicalNet { pub name: Ident, pub medium: Medium,           // added
     EW-GEN-PND-1: two) are interfaces of role `device`: a node with its one address, which N6 also walks through;
   - a **head station** is a part with a PLC section of role station and its interfaces (N0 makes it `head_station`).
   A part without pins whose first interface has a starter port function names that function as its main template
-  entry; placed on a bus-topology page from the device browser, it is drawn as a box (`box.black` with a port entry,
-  the function staying a normal one; the black-box frame takes the representation type `topology` there) with a
-  socket per CP, labelled P1 … Pn. A later device-description import fills the same members: the interfaces, their
-  roles and their socket counts. The PLC exchange exports the stations of a configuration project, so a switch or a
-  device without a PLC section is left out of the AML file (no refusal).
+  entry (`box.black` draws such an entry as a box with a socket per CP, the function staying a normal one). A later
+  device-description import fills the same members: the interfaces, their roles and their socket counts. The PLC
+  exchange exports the stations of a configuration project, so a switch or a device without a PLC section is left out
+  of the AML file (no refusal).
+- **As built (persona run m3-p4): a device on a bus-topology page is drawn as its interfaces.** A box of format 0.1
+  draws the CPs of one function (`BoxCp.idx` is a CP of the representation's first function, and an older build reads
+  it so), and an interface is one port function with one address; so the smallest model that shows every port of a
+  device with several interfaces is **one box per interface**, side by side: the CPU EW-GEN-CPU-2 stands as a box DP
+  and a box X1, a head station with one DP interface as one box, a switch as its X1. Each box is the black-box frame
+  of type `topology` on the interface's port function, with a socket per port (`P1` … `Pn` for an interface that
+  counts n, else one socket, the port function's first CP, named by the interface); a box of several sockets names
+  its interface in its middle, every box prints the device's tag and the interface's address, and the first box alone
+  its part. Its supply pins are not on the bus page: they are its black box on a schematic page, which the device's
+  unplaced function places there (the black box tool draws an unplaced black-box function). `bus.place_ports` draws
+  them in one step: for a new device of a part (from the device browser, the template functions made as
+  `device.place` makes them, none drawn there) or an existing one (Place port `<interface>` on a station's row while
+  a bus-topology page is shown, and the Bus panel's Ports not drawn yet); each interface takes the function that
+  carries it, else a port-less bus-port function of the device, else a new port function of its bus's starter FnDef
+  (the PROFINET port's for a bus without one), whose port it gets as N5 gives one. Nothing is added to the format: an
+  older 0.1 build reads every box as any black box.
 - **External partners** are placeholder devices with `PlcStation{role: ExternalPartner}`, `BusNode`, a `BusPort`
   and an `ExternalRef` (project, location, device), but no parts. They are excluded from the BOM (FR-BUS-005). On
   folio 3, the external interruption point "DP" inside the External Connection box is the physical segment end, and

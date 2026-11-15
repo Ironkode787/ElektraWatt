@@ -483,10 +483,21 @@ impl ShellModel {
     /// a CPU (FT-1672), disabled with its reason while no card waits for one.
     fn station_entries(&self, station: Uuid, out: &mut Vec<ActionItem>) {
         if let Some(session) = self.project_session() {
-            let tag = session.device_tag(station).unwrap_or_default();
-            for (port, symbol) in session.uncarried_bus_ports(station) {
-                let label = strings::format(key!("canvas-place-port"), &[&port]);
-                out.extend(self.aimed("place.pick", json!({ "symbol": symbol, "device": tag }), label));
+            // On a bus-topology page each interface not drawn there yet is a box with its sockets (doc 10 §2.7);
+            // elsewhere each port no function carries yet is its bus's port symbol.
+            let folio = self.current_folio().unwrap_or_default();
+            if self.page_rows().get(self.page_index()).map(|r| r.kind.as_str()) == Some("bus_topology") {
+                for i in session.undrawn_interfaces(station, folio) {
+                    let label = strings::format(key!("canvas-place-port"), &[&i.label]);
+                    let params = json!({ "device": station.to_string(), "port": i.label });
+                    out.extend(self.aimed("place.pick", params, label));
+                }
+            } else {
+                let tag = session.device_tag(station).unwrap_or_default();
+                for (port, symbol) in session.uncarried_bus_ports(station) {
+                    let label = strings::format(key!("canvas-place-port"), &[&port]);
+                    out.extend(self.aimed("place.pick", json!({ "symbol": symbol, "device": tag }), label));
+                }
             }
         }
         let label = strings::text(key!("action-plc-rack-editor")).to_owned();

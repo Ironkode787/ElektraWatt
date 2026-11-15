@@ -175,6 +175,9 @@ pub struct CataloguePart {
     /// The first level of the part's own category, else of its main function's FnDef category (the browser's tree
     /// node); empty when it has neither.
     pub category: String,
+    /// On a bus-topology page, the part's interfaces ([`part_interfaces`]): a device of it is placed there as a box
+    /// per interface (`bus.place_ports`, doc 10 §2.7); empty on another page and for a part without them.
+    pub interfaces: Vec<CatalogueInterface>,
 }
 
 /// One function of a part's template in the place catalogue.
@@ -286,6 +289,67 @@ pub fn bus_port_symbol_key(bus: &ew_schema::BusSystem) -> Option<String> {
     })
 }
 
+/// One interface of a part drawn as a box on a bus-topology page (doc 10 §2.7, `bus.place_ports`).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct CatalogueInterface {
+    /// The interface ("DP", "X1").
+    pub interface: String,
+    /// The port label of an interface listed port by port ("P1R").
+    pub port_label: Option<String>,
+    /// The interface in words: the interface, then the port label after a space ("X1", "X1 P1R").
+    pub label: String,
+    /// The box's sockets: each function CP index with its label, `P1` … `Pn` for an interface that counts n ports,
+    /// else one socket (the port function's first CP) named by the interface.
+    pub sockets: Vec<(u16, String)>,
+    /// The copy ID of the starter FnDef a new port function of the interface takes: its bus's port (the DP port's,
+    /// the PROFINET port's), the PROFINET port's for a bus without a starter port of its own.
+    pub fndef: Uuid,
+}
+
+/// The interfaces of a part's bus section in list order, the first of each (interface, port label) pair; an interface
+/// whose bus or role is of a newer format is left out (normaliser N5 gives it to no function).
+pub fn part_interfaces(part: &Part) -> Vec<CatalogueInterface> {
+    let Some(bus) = &part.sections.bus else {
+        return Vec::new();
+    };
+    let mut out: Vec<CatalogueInterface> = Vec::new();
+    for p in &bus.ports {
+        let interface = p.interface.as_str().to_owned();
+        let port_label = p.port_label.as_ref().map(|l| l.as_str().to_owned());
+        if out
+            .iter()
+            .any(|i| i.interface == interface && i.port_label == port_label)
+            || matches!(p.bus, ew_schema::BusSystem::Unknown(_))
+            || matches!(p.role, ew_schema::PortRole::Unknown(_))
+        {
+            continue;
+        }
+        let Some(fndef) = bus_port_symbol_key(&p.bus)
+            .or_else(|| bus_port_symbol_key(&ew_schema::BusSystem::Profinet))
+            .and_then(|k| starter_symbol(&k))
+            .map(|s| fndef_copy(&s.item.fndef).as_uuid())
+        else {
+            continue;
+        };
+        let label = match &port_label {
+            Some(l) => format!("{interface} {l}"),
+            None => interface.clone(),
+        };
+        let sockets = match p.ports.filter(|n| *n > 0) {
+            Some(n) => (0..n).map(|i| (i, format!("P{}", u32::from(i) + 1))).collect(),
+            None => vec![(0, label.clone())],
+        };
+        out.push(CatalogueInterface {
+            interface,
+            port_label,
+            label,
+            sockets,
+            fndef,
+        });
+    }
+    out
+}
+
 /// The starter symbol with this key.
 fn starter_symbol(key: &str) -> Option<&'static LibCopy<SymbolDef>> {
     starter_docs().iter().find_map(|(k, _, d)| match d {
@@ -360,6 +424,7 @@ fn catalogue_part(
     copy: Uuid,
     part: &Part,
     library: Option<(Uuid, Uuid)>,
+    page: &Page,
 ) -> Option<CataloguePart> {
     if part.function_template.is_empty() && library.is_some() {
         return None;
@@ -489,6 +554,11 @@ fn catalogue_part(
             .map(|(c, _, _)| c.as_str().to_owned())
             .or(main_category)
             .unwrap_or_default(),
+        interfaces: if page.kind == PageType::BusTopology {
+            part_interfaces(part)
+        } else {
+            Vec::new()
+        },
     })
 }
 
@@ -741,7 +811,7 @@ impl Session {
         // ([`Session::library_manufacturer`]).
         let mut parts: Vec<CataloguePart> = Vec::new();
         for (id, copy) in q.parts().iter() {
-            if let Some(row) = catalogue_part(&q, set, &rows, id.as_uuid(), &copy.item, None) {
+            if let Some(row) = catalogue_part(&q, set, &rows, id.as_uuid(), &copy.item, None, &page) {
                 parts.push(CataloguePart {
                     manufacturer: ew_derive::manufacturer_name(&q, &copy.item.manufacturer),
                     ..row
@@ -762,7 +832,7 @@ impl Session {
                 .find(|l| l.id == c.library_id.as_uuid())
                 .map(|l| l.name.clone())
                 .unwrap_or_default();
-            if let Some(row) = catalogue_part(&q, set, &rows, c.id.as_uuid(), &c.item, source) {
+            if let Some(row) = catalogue_part(&q, set, &rows, c.id.as_uuid(), &c.item, source, &page) {
                 parts.push(CataloguePart {
                     manufacturer,
                     library_name,
@@ -1386,6 +1456,75 @@ impl Session {
         starter_symbol(key)
             .map(|c| c.id.as_uuid())
             .or_else(|| self.installed_symbol(key).map(|c| c.id.as_uuid()))
+    }
+
+    /// The interfaces of device `device`'s bus part (the first part use whose part has bus interfaces, normaliser
+    /// N5's) that no representation on the drawn page `folio` draws ([`part_interfaces`]): what `bus.place_ports`
+    /// still has to draw there. Empty for a device without such a part or an unknown page.
+    pub fn undrawn_interfaces(&self, device: Uuid, folio: &str) -> Vec<CatalogueInterface> {
+        let q = self.query();
+        let Some((_, page)) = drawn_page(&q, folio) else {
+            return Vec::new();
+        };
+        let id: Id<Device> = Id::from_uuid(device);
+        let Some(part) = q.devices().get(id).and_then(|d| {
+            d.parts.iter().find_map(|u| {
+                q.parts()
+                    .get(u.part.copy)
+                    .filter(|c| c.item.sections.bus.as_ref().is_some_and(|b| !b.ports.is_empty()))
+            })
+        }) else {
+            return Vec::new();
+        };
+        let drawn: Vec<(String, Option<String>)> = q
+            .idx()
+            .functions_of_device(id)
+            .filter(|f| {
+                q.idx()
+                    .reps_of_function(*f)
+                    .any(|r| q.reps().get(r).is_some_and(|r| r.page == page))
+            })
+            .filter_map(|f| q.functions().get(f)?.bus_port.clone())
+            .map(|p| (p.interface.to_string(), p.port_label.map(|l| l.to_string())))
+            .collect();
+        part_interfaces(&part.item)
+            .into_iter()
+            .filter(|i| !drawn.contains(&(i.interface.clone(), i.port_label.clone())))
+            .collect()
+    }
+
+    /// The CPs of function `function` as it derives them (`FunctionCps`): each CP index with its designation, in index
+    /// order; empty for an unknown function. What a black box drawing the function lays on its edges.
+    pub fn function_cp_list(&self, function: Uuid) -> Vec<(u16, String)> {
+        let q = self.query();
+        let mut out: Vec<(u16, String)> = q
+            .get::<FunctionCps>(Id::from_uuid(function))
+            .iter()
+            .map(|c| (c.idx, c.designation.clone()))
+            .collect();
+        out.sort();
+        out
+    }
+
+    /// The starter FnDef documents (`lib/` JSON form) among `fndefs` (copy IDs) that the project does not embed, each
+    /// once: what `bus.place_ports` embeds for the port functions it makes.
+    pub fn port_fndef_copies(&self, fndefs: &[Uuid]) -> Vec<serde_json::Value> {
+        let q = self.query();
+        let mut out: Vec<serde_json::Value> = Vec::new();
+        let mut seen: BTreeSet<Uuid> = BTreeSet::new();
+        for id in fndefs {
+            if q.fndefs().contains(Id::from_uuid(*id)) || !seen.insert(*id) {
+                continue;
+            }
+            if let Some(v) = starter::items()
+                .iter()
+                .find(|i| starter_id(i.json) == Some(*id))
+                .and_then(|i| serde_json::from_str(i.json).ok())
+            {
+                out.push(v);
+            }
+        }
+        out
     }
 }
 

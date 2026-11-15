@@ -746,10 +746,31 @@ fn pin_texts(q: &Q, rep: &Representation, def: &SymbolDef) -> Vec<PinText> {
     if !def.cps.is_empty() || b.cps.is_empty() {
         return Vec::new();
     }
+    // The one socket of an interface's box (an interface that counts no ports, doc 10 §2.7) is named by the
+    // interface, as a single-line bus page names it, not by the port function's first pin ("A" of the DP port).
+    if let ([cp], Some(label)) = (b.cps.as_slice(), port_box_label(q, rep, def)) {
+        return vec![PinText {
+            idx: cp.idx,
+            text: label,
+        }];
+    }
     let texts = q.get::<PlcAddressText>(function);
     let cps = q.get::<FunctionCps>(function);
     let designation = |idx: u16| cps.iter().find(|c| c.idx == idx).map(|c| c.designation.as_str());
     compose_pin_texts(rep, def, function, designation, &texts.pins)
+}
+
+/// The interface a box of a port function draws, in words ("X1", "X1 P1R"; doc 10 §2.7): a black box (a symbol
+/// without CPs on a representation with a box) whose first function carries a bus port; `None` otherwise.
+fn port_box_label(q: &Q, rep: &Representation, def: &SymbolDef) -> Option<String> {
+    if !def.cps.is_empty() || rep.box_.is_none() {
+        return None;
+    }
+    let port = q.functions().get(*rep.functions.first()?)?.bus_port.clone()?;
+    Some(match &port.port_label {
+        Some(l) => format!("{} {}", port.interface.as_str(), l.as_str()),
+        None => port.interface.as_str().to_owned(),
+    })
 }
 
 /// [`pin_texts`] from the function's CP designations (`designation`, by function CP index) and the printed
@@ -839,6 +860,13 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &Representation, def: &SymbolDef) -> 
             // name.
             SlotKind::FunctionText => match f.as_ref().map(|f| &f.kind) {
                 Some(FunctionKind::Ip(ip)) => Some(ip.name.as_str().to_owned()),
+                // The box of an interface with several sockets names it in its middle (doc 10 §2.7); a box of one
+                // socket names it at the socket.
+                _ if rep.box_.as_ref().is_some_and(|b| b.cps.len() > 1)
+                    && port_box_label(q, rep, def).is_some() =>
+                {
+                    port_box_label(q, rep, def)
+                }
                 // A terminal labelled by its function text prints it once, in its tag slot.
                 _ if label.as_ref().is_some_and(|(_, by_text)| *by_text) => None,
                 // A slot with the fallback `process_tag` prints, when the function text is empty, the

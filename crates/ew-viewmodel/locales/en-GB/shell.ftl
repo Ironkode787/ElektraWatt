@@ -39,6 +39,7 @@ command-assembly-attach = Attach assembly
 command-bond-create = Bond potentials
 command-bus-logical_net-create = Create logical bus network
 command-bus-physical_net-create = Create physical bus network
+command-bus-place_ports = Draw a device's bus ports
 command-box-black = Draw black box
 command-box-reshape = Reshape box
 command-box-structure = Draw structure box
@@ -299,6 +300,7 @@ reason-no-picker = The picker is not open
 # WP-S2.18 part 1.
 reason-no-chooser = No chooser is open
 reason-join-not-auxiliary = Only a contact joins an existing device as an auxiliary function; this symbol is not one
+reason-port-drawn = This port is drawn on this page already, or its device's part has no such interface
 reason-join-select = Select one placed symbol to join it to another device, or press J while placing a contact
 reason-join-no-device = No other device can take this symbol's function: a contact joins a relay or a contactor, any function a device whose part lists it unplaced
 chooser-join-question = Join device
@@ -1477,6 +1479,14 @@ refusal-from-part-not-black-box = template entry { $p0 } of part { $p1 } is not 
 refusal-new-terminal-part = part { $p0 } is no terminal of the symbol's function definition; pick a symbol of the part's main function or another part
 refusal-box-black-terminal = a black box is no terminal; place a terminal with `device.place`
 refusal-box-black-few-points = an outline has at least three points
+# bus.place_ports.
+refusal-ports-no-box = name at least one interface to draw
+refusal-ports-no-bus-part = { $p0 } has no part with bus interfaces; give it such a part first
+refusal-ports-no-interface = the part of { $p0 } has no interface { $p1 }
+refusal-ports-newer = interface { $p0 } is of a newer format; this build does not draw it
+refusal-ports-fndef-needed = no function of the device can carry interface { $p0 }; name the port function to make (`fndef`)
+refusal-ports-fndef-not-port = the function definition is no bus port; name a bus port's function definition
+refusal-ports-drawn = { $p0 } { $p1 } is drawn on this page already
 # part.assign.
 refusal-assign-held-other-hash = the project holds { $p0 } at version { $p1 } with another hash; update from library first (library.update)
 refusal-assign-part-unused = { $p0 } does not use the part to replace

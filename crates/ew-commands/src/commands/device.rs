@@ -1392,6 +1392,9 @@ fn box_pivot(
 #[cfg(test)]
 mod box_pivot_tests;
 
+mod port_boxes;
+pub use port_boxes::{PlacePortBoxes, PortBox, PortsTarget};
+
 /// `rep.set_anchor_policy`: sets the cross-reference anchor policy of representations (FR-SYM-010; the
 /// quick fix of MF-13, doc 07 §3.6).
 ///
@@ -1531,29 +1534,7 @@ impl Command for PlaceBlackBox {
             .unwrap_or_else(|| symbol.item.rep_type.clone());
         check_rep_type(tx, &page, &rep_type)?;
         if let Some(b) = &self.box_ {
-            if b.outline.len() < 3 {
-                return Err(CmdError::invalid_params(
-                    Self::NAME,
-                    "/box/outline",
-                    text!("refusal-box-black-few-points"),
-                ));
-            }
-            let mut seen = BTreeSet::new();
-            for (i, cp) in b.cps.iter().enumerate() {
-                if !seen.insert(cp.idx) {
-                    return Err(CmdError::invalid_params(
-                        Self::NAME,
-                        format!("/box/cps/{i}/idx"),
-                        text!("refusal-box-cp-index-twice"),
-                    ));
-                }
-                if self.orient == Orient2::default() {
-                    let Ok(at) = add(self.pos, cp.pos) else {
-                        return tx.reject(text!("refusal-box-black-cp-out-of-range", i.to_string()));
-                    };
-                    require_on_grid(tx, self.page, at, &format!("/box/cps/{i}/pos"))?;
-                }
-            }
+            check_box(Self::NAME, tx, self.page, self.pos, self.orient, b, "/box")?;
         }
         let function = match &self.target {
             PlaceTarget::NewDevice { letter, fndef, kind } => {
@@ -1613,6 +1594,43 @@ impl Command for PlaceBlackBox {
     }
 }
 
+/// The checks of a black box's `box` (`box.black`, `bus.place_ports`), its pointers led by `at`: an outline of at
+/// least three points, no box CP index twice, and, with `orient` r0, every box CP on the page's connection grid.
+pub(crate) fn check_box(
+    command: &'static str,
+    tx: &TxBuilder<'_>,
+    page: Id<Page>,
+    pos: Pt2,
+    orient: Orient2,
+    b: &BoxSpec,
+    at: &str,
+) -> Result<(), CmdError> {
+    if b.outline.len() < 3 {
+        return Err(CmdError::invalid_params(
+            command,
+            format!("{at}/outline"),
+            text!("refusal-box-black-few-points"),
+        ));
+    }
+    let mut seen = BTreeSet::new();
+    for (i, cp) in b.cps.iter().enumerate() {
+        if !seen.insert(cp.idx) {
+            return Err(CmdError::invalid_params(
+                command,
+                format!("{at}/cps/{i}/idx"),
+                text!("refusal-box-cp-index-twice"),
+            ));
+        }
+        if orient == Orient2::default() {
+            let Ok(point) = add(pos, cp.pos) else {
+                return tx.reject(text!("refusal-box-black-cp-out-of-range", i.to_string()));
+            };
+            require_on_grid(tx, page, point, &format!("{at}/cps/{i}/pos"))?;
+        }
+    }
+    Ok(())
+}
+
 // The functions a representation draws: its `functions` and the functions of its pin map.
 fn drawn_functions(rep: &Representation) -> BTreeSet<Id<Function>> {
     rep.functions
@@ -1653,7 +1671,7 @@ pub(crate) fn insert_function(
 
 /// Inserts a function of `device` with the given definition, role and kind; `template_entry` is the index of the
 /// part template entry it is made from, `None` for a function not made from a template.
-fn insert_function_of_kind(
+pub(crate) fn insert_function_of_kind(
     tx: &mut TxBuilder<'_>,
     device: Option<Id<Device>>,
     def: Id<FnDef>,
@@ -1678,16 +1696,18 @@ fn insert_function_of_kind(
 }
 
 /// What the placed entry of a `from_part` target must be.
-enum PartEntry {
+pub(crate) enum PartEntry {
     /// A normal function whose FnDef is the symbol's.
     Normal(Id<FnDef>),
     /// A black box (`box.black`).
     BlackBox,
+    /// Any entry: the device of a part placed by its interfaces (`bus.place_ports`), the entry staying unplaced.
+    Any,
 }
 
 /// The device and template functions of a `from_part` target (see [`PlaceSymbol`]): returns the function of entry
 /// `template`. Checks everything before it writes.
-fn insert_from_part(
+pub(crate) fn insert_from_part(
     tx: &mut TxBuilder<'_>,
     part: Id<Part>,
     template: u16,
@@ -1763,6 +1783,7 @@ fn insert_from_part(
                 ));
             }
         }
+        PartEntry::Any => {}
     }
     let device = insert_part_device(tx, part, letter)?;
     let mut placed_fn = None;
@@ -1780,7 +1801,7 @@ fn insert_from_part(
 }
 
 /// The device of a `from_part` target: `{tag: {letter, counter: none}, parts: [the part, quantity 1]}`.
-fn insert_part_device(
+pub(crate) fn insert_part_device(
     tx: &mut TxBuilder<'_>,
     part: Id<Part>,
     letter: &Ident,

@@ -119,7 +119,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     ),
     keeps_banner(with_params(
-        "symbol?:text, part?:text, function?:ref, device?:ref, template?:uint, letter?:text, strip?:text, terminal_designation?:text, designation?:text, count?:uint",
+        "symbol?:text, part?:text, function?:ref, device?:ref, port?:text, template?:uint, letter?:text, strip?:text, terminal_designation?:text, designation?:text, count?:uint",
         hidden(in_canvas(with_aliases(
             &[
                 ("symbol", ParamForm::Whole),
