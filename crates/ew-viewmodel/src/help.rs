@@ -45,6 +45,12 @@ pub static ANCHORS: &[Anchor] = &[
         "symbol-editor",
         "symbol-editor-and-automated-authoring",
     ),
+    // The symbol editor's Function type and Ready-made function (F24).
+    on(
+        "reference/symbol-editor.md",
+        "symbol-editor-function",
+        "function-type-and-ready-made-functions",
+    ),
     Anchor {
         topic: "home",
         page: "introduction.md",

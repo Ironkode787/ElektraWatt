@@ -1093,6 +1093,8 @@ impl EditorView {
                     if self.panel == 1 {
                         self.pin_mapping(ui, draft, events);
                         if section(ui, "assign", "symbol-assign", None, false) {
+                            // When to use it and what it locks (F24).
+                            ui.label(label(strings::Key::run_time("symbol-assign-help")));
                             let current = editor.functions.iter().find(|f| f.source == self.function_key);
                             let title = current.map(function_choice_name).unwrap_or_else(|| label(strings::Key::run_time("symbol-choose-function")).to_owned());
                             egui::ComboBox::from_id_salt("symbol-function-choice").selected_text(title).width(ui.available_width()).show_ui(ui, |ui| {
@@ -1100,7 +1102,10 @@ impl EditorView {
                                     ui.selectable_value(&mut self.function_key, f.source.clone(), function_choice_name(f)).on_hover_text(&f.key);
                                 }
                             }).response.expanded(ui).widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, label(strings::Key::run_time("symbol-choose-function"))));
-                            if button(ui, "symbol-assign") { action(events, "symbol.function", json!({"key": self.function_key})); }
+                            if button(ui, "symbol-use-function") { action(events, "symbol.function", json!({"key": self.function_key})); }
+                            if draft.function_ref.is_some() && button(ui, "symbol-take-off") {
+                                action(events, "symbol.function", json!({"key": ""}));
+                            }
                         }
                     }
                     ui.push_id(editor.generation, |ui| self.properties(ui,draft,&styles,events));
@@ -1750,6 +1755,8 @@ impl EditorView {
                 {
                     ui.add_enabled_ui(draft.function_ref.is_none(), |ui| {
                         ui.label(label(strings::Key::run_time("symbol-function-kind")));
+                        // What the type decides, in a drafter's words (F24).
+                        ui.label(label(strings::Key::run_time("symbol-function-kind-help")));
                         let kind = doc["function"]["contact_kind"].as_str().unwrap_or("").to_owned();
                         let enabled = ui.is_enabled();
                         egui::ComboBox::from_id_salt("symbol-function-kind")
@@ -1773,6 +1780,9 @@ impl EditorView {
                                             json!(kind),
                                             label(strings::Key::run_time(&format!("symbol-kind-{kind}"))),
                                         )
+                                        .on_hover_text(label(strings::Key::run_time(&format!(
+                                            "symbol-kind-{kind}-help"
+                                        ))))
                                         .changed()
                                     {
                                         changed = true;
@@ -1788,6 +1798,23 @@ impl EditorView {
                                     label(strings::Key::run_time("symbol-function-kind")),
                                 )
                             });
+                        // The chosen type's meaning; an unknown type says nothing more.
+                        if let Some(meaning) = strings::lookup(&format!("symbol-kind-{kind}-help")) {
+                            ui.label(meaning);
+                        }
+                        if draft.function_ref.is_some() {
+                            ui.label(label(strings::Key::run_time("symbol-function-locked")));
+                        }
+                        if ui
+                            .link(label(strings::Key::run_time("symbol-more-in-guide")))
+                            .clicked()
+                        {
+                            action(
+                                events,
+                                "help.documentation",
+                                json!({"topic": "symbol-editor-function"}),
+                            );
+                        }
                         if let Some(cps) = doc["function"]["cps"].as_array_mut() {
                             changed |= function_pins(ui, cps);
                         }

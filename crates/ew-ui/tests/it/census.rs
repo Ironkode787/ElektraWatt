@@ -1129,8 +1129,8 @@ fn census_the_symbol_editor() {
             &["Rectangle 1", "Text slots (1)", "Link point (0)"][..],
         ),
         (
-            "Electrical data",
-            &["Connection points (1)", "Assign function"][..],
+            "Function and connection points",
+            &["Connection points (1)", "Ready-made function"][..],
         ),
         (
             "Library",
@@ -1263,7 +1263,7 @@ fn the_symbol_editors_repeated_controls_name_their_item() {
     }
     h.run_ok();
     names(&h, &["Name of Link point 2", "Delete Link point 2"]);
-    h.get_by_label("Electrical data").click();
+    h.get_by_label("Function and connection points").click();
     h.run_ok();
     h.get_by_label("Connection points (2)").click();
     h.run_ok();

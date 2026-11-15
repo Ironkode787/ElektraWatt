@@ -518,3 +518,33 @@ fn the_relay_coil_is_drawn_wider_than_high() {
     assert!(width > height, "{width} × {height}");
     d.shell_mut().shutdown();
 }
+
+/// The owner's test of 0.3.0-rc.1 (F24): the symbol editor's panel is named for what it holds; under Function type a
+/// line says what it decides and the chosen type's meaning stands under the list; Ready-made function says when to use
+/// it and what it locks; More in the guide opens the reference page at that section.
+#[test]
+fn the_symbol_editor_explains_function_type_and_ready_made_function() {
+    let tmp = Tmp::new();
+    let mut d = editor(&tmp);
+    press(&mut d, "Function and connection points");
+    let texts = d.texts();
+    for line in [
+        "What the symbol is to the program. It decides which connection points the symbol has and how its device is \
+         listed and checked.",
+        "A box with connection points of its own, for a device the program has no type for, such as a drive or a module.",
+    ] {
+        assert!(texts.iter().any(|t| t == line), "{line:?} in {texts:?}");
+    }
+    press(&mut d, "More in the guide");
+    assert_eq!(
+        d.shell_mut().last_help(),
+        Some("reference/symbol-editor.html#function-type-and-ready-made-functions")
+    );
+    press(&mut d, "Ready-made function");
+    assert!(
+        d.texts().iter().any(|t| t.starts_with("Use a ready-made function from the library")),
+        "{:?}",
+        d.texts()
+    );
+    d.shell_mut().shutdown();
+}

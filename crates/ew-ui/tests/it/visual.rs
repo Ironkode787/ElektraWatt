@@ -815,7 +815,7 @@ fn symbol_editor_accessible_controls_and_numeric_keyboard_creation() {
         assert!(d.find(&name).is_some(), "{name}: {:?}", d.labels());
     }
     assert!(d.find("Drawing of Keyboard").is_some());
-    d.input(&click(d.find("Electrical data").unwrap()));
+    d.input(&click(d.find("Function and connection points").unwrap()));
     for name in [
         "Designation 1",
         "Potential role FE",
@@ -875,7 +875,7 @@ fn symbol_editor_drag_and_keyboard_mapping_use_the_same_undoable_action() {
         assert_eq!(d.shell_mut().dispatch(action, &params), Outcome::Done);
     }
     d.settle();
-    d.input(&click(d.find("Electrical data").unwrap()));
+    d.input(&click(d.find("Function and connection points").unwrap()));
     let names: Vec<_> = d
         .shell_mut()
         .symbol_editor()
@@ -1000,7 +1000,7 @@ fn symbol_editor_duplicate_designations_remain_distinguishable_when_mapping() {
         assert_eq!(d.shell_mut().dispatch(action, &params), Outcome::Done);
     }
     d.settle();
-    d.input(&click(d.find("Electrical data").unwrap()));
+    d.input(&click(d.find("Function and connection points").unwrap()));
     assert!(d.find("Function pin N (3)").is_some());
     assert!(d.find("Function pin N (4)").is_some());
     d.input(&click(d.find("Map connection point 1").unwrap()));
@@ -1440,7 +1440,7 @@ fn symbol_editor_canvas_stands_still_across_the_panel_s_tabs() {
     let mut d = symbol_driver(&tmp, "example.tabs");
     let canvas = |d: &Driver| d.find("Drawing of Drawn").expect("the canvas");
     let at = canvas(&d);
-    for tab in ["Electrical data", "Library", "Drawing"] {
+    for tab in ["Function and connection points", "Library", "Drawing"] {
         d.input(&click(d.find(tab).unwrap()));
         d.settle();
         assert_eq!(canvas(&d), at, "{tab}");
@@ -1720,7 +1720,7 @@ fn symbol_editor_supply_block_is_drawn_saved_and_placed_through_the_window() {
         d.input(&click(d.find("Add").unwrap()));
         assert_eq!(d.shell_mut().symbol_editor().unwrap().error, None, "{row}");
     }
-    d.input(&click(d.find("Electrical data").unwrap()));
+    d.input(&click(d.find("Function and connection points").unwrap()));
     d.input(&click(d.find("Pin mapping (6)").unwrap()));
     for (pin, role) in [
         ("1", "M"),
@@ -2308,7 +2308,7 @@ fn symbol_editor_fields_commit_on_focus_loss_and_a_designation_is_retyped() {
     // One undo step for the whole entry (Ctrl+Z in the next field is the field's own).
     assert_eq!(d.shell_mut().dispatch("edit.undo", &json!({})), Outcome::Done);
     assert_eq!(d.shell_mut().symbol_editor().unwrap().draft, before);
-    d.input(&click(d.find("Electrical data").unwrap()));
+    d.input(&click(d.find("Function and connection points").unwrap()));
     d.input(&click(d.find("Designation 1").unwrap()));
     d.input(&key("ctrl+a"));
     d.input(&key("backspace"));
@@ -2453,7 +2453,7 @@ fn symbol_editor_escape_cancels_a_field_and_keeps_the_tool() {
     let before = d.shell_mut().symbol_editor().unwrap().draft.clone();
     for (field, text) in [("Name", "Typed name"), ("Designation 1", "A1")] {
         if field == "Designation 1" {
-            d.input(&click(d.find("Electrical data").unwrap()));
+            d.input(&click(d.find("Function and connection points").unwrap()));
         }
         d.input(&click(d.find(field).unwrap()));
         d.input(&key("ctrl+a"));
@@ -2480,7 +2480,7 @@ fn symbol_editor_escape_cancels_a_field_and_keeps_the_tool() {
 fn symbol_editor_a_drag_of_a_coordinate_commits_once() {
     let tmp = Tmp::new();
     let mut d = symbol_driver(&tmp, "example.slow");
-    d.input(&click(d.find("Electrical data").unwrap()));
+    d.input(&click(d.find("Function and connection points").unwrap()));
     d.input(&click(d.find("Connection points (1)").unwrap()));
     let at = d.find("x (mm) of Connection point 1").unwrap();
     d.input(&Input::Drag {

@@ -4,7 +4,7 @@ Open **Draw ▸ Place ▸ Symbol editor…**. A symbol draft has its own undo hi
 connection points, text slots and cross-reference anchor. Changes do not alter existing placements.
 Choose A to draw; B–H show live rotated/mirrored previews. Select a graphic to move it by dragging or edit
 its coordinates in **Drawing**. **Draw by coordinates** also creates geometry from the keyboard.
-Pin coordinates, directions and function mappings are editable in **Electrical data**.
+Pin coordinates, directions and function mappings are editable in **Function and connection points**.
 In **Pin mapping**, drag a function pin onto a connection point or use its list. Assigning a pin already used
 by another compatible connection swaps their mappings in one undo step. Repeated designations have an ordinal
 in parentheses, so two terminals both named N remain distinguishable. Function choices include their category
@@ -123,7 +123,7 @@ The window and `.ewui` scripts share these actions:
 | `symbol.role` | drawing `cp` and the potential `role` of its function pin (`l1` … `undefined`; `none` clears it) |
 | `symbol.slot` | `kind`, `x`, `y`; e.g. `"tag"` or `{"cp_designation":1}` |
 | `symbol.link` | `name`, `x`, `y` |
-| `symbol.function` | existing function `key`, or `library:<library UUID>:<item UUID>` in `key` |
+| `symbol.function` | existing function `key`, or `library:<library UUID>:<item UUID>` in `key`; an empty `key` takes an assigned function off |
 | `symbol.replace` | complete `document` object |
 | `symbol.undo`, `symbol.redo`, `symbol.validate` | none |
 | `symbol.variant` | `variant` 0–7 for A–H |
@@ -174,9 +174,28 @@ primitives/pins per symbol; archive names, CRCs, decompression ratio and XML dep
 | Manufacturer part | Purchased-product information such as article number, manufacturer and technical ratings; assigned to a project device separately. |
 | Placed device/function | Device tag, function text, chosen part and embedded copies of the symbol/function definitions. |
 
-A new drawing starts with a generic black-box function. In **Electrical data**, under **Function definition**, choose its
-function type and set each pin's potential role and flags, or assign an existing library function. Existing assigned
-functions remain read-only. Internal connections and less common fields are available through **Advanced document**.
+## Function type and ready-made functions
+
+A new drawing starts with a generic black-box function. In **Function and connection points**, under **Function**, the
+**Function type** says what the symbol is to the program; it decides which connection points the symbol has and how
+its device is listed and checked. Each choice says what it is for when you point at it, and the chosen one's meaning
+stands under the list:
+
+| Function type | For |
+|---|---|
+| Generic black box | A device the program has no type for, such as a drive or a module, with connection points of its own. |
+| Normally open, normally closed and change-over contact | A contact of a relay, contactor or switch; it is listed with the coil or device that switches it. |
+| Coil | The coil of a relay or contactor; its contacts refer to it. |
+| Pole | A path through a device, or out of a source: a pole of a breaker, fuse or switch, a supply or an air supply. |
+| Terminal | A terminal of a terminal strip, listed in the terminal diagram. |
+| PLC input/output | A channel of a PLC card, which gets an address and is listed in the PLC lists. |
+| Bus port | A port such as PROFINET or PROFIBUS; its device joins a bus net. |
+| Valve | A fluid power valve; its ports carry air or oil, and it can sit on a valve terminal. |
+
+Set each pin's potential role and flags there. **Ready-made function** offers the library's functions: one that fits
+brings its function type and connection points, so you do not enter them yourself; choose it and **Use this
+function**. While it is used the function type is locked; **Take off** unlocks it and keeps the connection points.
+Internal connections and less common fields are available through **Advanced document**.
 Typing `FE` as a designation changes the printed label; select the FE potential role to give it electrical meaning.
 Text slots obtain tags, technical data and function text from the placed device; the editor shows sample values.
 Library publication does not update already placed copies. The EPLAN importer does not create complete manufacturer

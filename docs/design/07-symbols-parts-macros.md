@@ -1097,12 +1097,14 @@ is `#[ignore]`d (not measured, the owner's rule).
 
 *As built (milestone M2.5).* The **Symbol editor** opens from
 Draw ▸ Place ▸ Symbol editor… (`symbol.new`) and takes the place of the page, with its own command bar (the drawing tools,
-Save to library, Open or import, Test on a new page, Close editor) and three panels: Drawing, Electrical data and
-Library. Its canvas is on the symbol's grid: a click places a connection point on the 4 mm connection grid, a graphic
+Save to library, Open or import, Test on a new page, Close editor) and three panels: Drawing, Function and connection points
+(Electrical data until rc.2, F24: a fluid symbol has no electrical data) and Library. Its canvas is on the symbol's grid: a click places a connection point on the 4 mm connection grid, a graphic
 on 0.5 mm and a text on 1 mm ([07a](07a-symbol-design-standard.md)); a point typed off the grid stays visible as an
-error and blocks the save. The FnDef panel is Electrical data: the function's type and pins with their potential
+error and blocks the save. The FnDef panel is Function and connection points: the function's type (with a line on what it decides, each choice's meaning
+on hover and the chosen one's under the list) and pins with their potential
 roles and flags, and Pin mapping, where a function pin is dragged onto a connection point or chosen from its list
-(`symbol.map_cp`), an occupied compatible pin swapping in one undo step; Assign function takes an existing FnDef. The
+(`symbol.map_cp`), an occupied compatible pin swapping in one undo step; Ready-made function (Assign function until rc.2)
+takes an existing FnDef, which locks the type until Take off (`symbol.function` with an empty `key`) unlocks it. The
 live A–H strip is Variants, drawn through the placement's own lowering. The lint panel is Validation: the editor's
 validation, shared with `ew symbol validate`, not WP-S7.04's library lint. "Test place" is Test on a new page
 (`symbol.scratch`): a new page on the symbol's grid with an embedded test copy, one undo step for the page and one for

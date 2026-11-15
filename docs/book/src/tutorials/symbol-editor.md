@@ -24,10 +24,10 @@ with a test copy, ready to wire.
 5. Choose **Text slot**. Add a **Pin designation** field beside each connection point, with that point's pin number,
    and a **Device tag** field above the body.
    The validation says **Ready to save**. FE is a printed designation: before you use the symbol, give the FE pin its
-   electrical role under **Electrical data**, **Function definition**, and never confuse it with PE.
+   electrical role under **Function and connection points**, **Function**, and never confuse it with PE.
 6. Click B to H under **Variants**: the large preview shows the symbol turned and mirrored, every pin keeping its
    number and turning its direction with the drawing. Choose A to edit again.
-7. In **Electrical data**, under **Connection points**, change the first point's x to 4.5 mm.
+7. In **Function and connection points**, under **Connection points**, change the first point's x to 4.5 mm.
    The validation says "Connection point 1 is off the connection grid. Move it onto the grid before saving." Press
    `Ctrl+Z` to undo the change. Fine drawing coordinates, such as 0.5 mm, remain valid.
 8. In **Library**, type `symbols.ewlib` as the **Library folder** and choose **Save to library**: a name without a

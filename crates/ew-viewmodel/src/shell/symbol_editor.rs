@@ -1151,13 +1151,20 @@ impl ShellModel {
     }
 
     /// Gives the draft the library function definition `key` (its library address or its own key), referenced and
-    /// copied into the draft.
+    /// copied into the draft. An empty `key` takes an assigned definition off (Take off, F24): the draft keeps its
+    /// copy, whose function type and connection points can be changed again.
     fn symbol_function(
         editor: &mut SymbolEditor,
         project: Option<&super::Project>,
         configured_libraries: Option<&ew_api::library::LibraryTiers>,
         p: &Map<String, Value>,
     ) -> Result<(), String> {
+        if text(p, "key").is_empty() && editor.draft.function_ref.is_some() {
+            let mut draft = editor.draft.clone();
+            draft.function_ref = None;
+            editor.replace(draft);
+            return Ok(());
+        }
         let fallback;
         let registry = if let Some(project) = project {
             project.session.libraries()

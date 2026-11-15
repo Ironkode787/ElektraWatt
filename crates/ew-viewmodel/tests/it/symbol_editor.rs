@@ -1981,3 +1981,27 @@ fn new_symbol_over_unsaved_changes_asks_save_discard_or_cancel() {
     assert!(shell.dialog().is_none());
     shell.shutdown();
 }
+
+/// The owner's test of 0.3.0-rc.1 (F24): a ready-made function locks the function type; Take off (`symbol.function`
+/// with an empty key) unlocks it and keeps the function's type and connection points; with none used it is refused.
+#[test]
+fn take_off_unlocks_a_ready_made_function_and_keeps_its_pins() {
+    let tmp = Tmp::new("symbol-take-off");
+    let mut shell = tmp.empty_shell(Mode::Headless);
+    done(
+        &mut shell,
+        "symbol.new",
+        json!({"key":"example.contact","name":"Contact"}),
+    );
+    assert!(!failed(&mut shell, "symbol.function", json!({"key": ""})).is_empty());
+    done(&mut shell, "symbol.function", json!({"key":"ew.fn.contact-no"}));
+    let used = shell.symbol_editor().unwrap().draft.clone();
+    assert!(used.function_ref.is_some());
+    done(&mut shell, "symbol.function", json!({"key": ""}));
+    let taken_off = shell.symbol_editor().unwrap().draft.clone();
+    assert!(taken_off.function_ref.is_none(), "unlocked");
+    assert_eq!(taken_off.function, used.function, "the type and the pins stay");
+    done(&mut shell, "symbol.undo", json!({}));
+    assert!(shell.symbol_editor().unwrap().draft.function_ref.is_some(), "one undo step");
+    shell.shutdown();
+}
