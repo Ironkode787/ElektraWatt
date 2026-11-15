@@ -25,7 +25,9 @@ known by its connection points and has a fallback name until you define it.
 4. Press Enter. The potential is defined in one step: **Undo** takes it back.
 
 When nothing, or more than one item, is selected, **Define potential…** is greyed out and its tooltip says what to
-select. A name left empty is refused with "Name the potential first".
+select. A potential is electrical: on a fluid port (an air supply's) it is greyed out too, and the air supply's own menu
+and its **Medium** row in Properties set the medium instead. A name left empty is refused with "Name the potential
+first".
 
 ## Accept a reasoned potential
 

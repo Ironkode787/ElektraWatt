@@ -176,10 +176,13 @@ primitives/pins per symbol; archive names, CRCs, decompression ratio and XML dep
 
 ## Function type and ready-made functions
 
-A new drawing starts with a generic black-box function. In **Function and connection points**, under **Function**, the
-**Function type** says what the symbol is to the program; it decides which connection points the symbol has and how
-its device is listed and checked. Each choice says what it is for when you point at it, and the chosen one's meaning
-stands under the list:
+A new drawing starts with a generic black-box function. In **Function and connection points**, under **Function**,
+**Discipline** says what the symbol is drawn for: electrical, pneumatic, vacuum, hydraulic or bus. Its connection
+points take it, a new point too, and its device is called by it in Properties ("pneumatic"); one point can differ, set
+under **Connection points**. The **Function type** says what the symbol is to the program; it decides which connection
+points the symbol has and how its device is listed and checked, and its list follows the discipline: a valve for a
+fluid symbol, a contact or a coil for an electrical one, a port for a bus one, a black box for each. Each choice says
+what it is for when you point at it, and the chosen one's meaning stands under the list:
 
 | Function type | For |
 |---|---|

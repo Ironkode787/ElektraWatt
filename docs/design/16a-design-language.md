@@ -992,6 +992,17 @@ button that appears on hover and focus. Two rows never share a label: duplicate 
 
 *As built.* The chip words "inherited" and "varies" were added and "part" dropped, because the model has no part source of its own for a property value. Properties shows Main and Advanced as categories; **the other categories are open by default** (a deviation from the closed default of the spec's D11), and a collapse the user makes is kept in the settings. The header's finding chips and actions popup are not built; a filter for more than twelve rows is not built.
 
+*As built (0.3.0-rc.2).* **The header says what the device is and the rows follow it.** Under the title of one device
+a line in `type.small` names it in trade words from its natures (the disciplines of its points, a bus port, a PLC
+station or module, a terminal, a strip, a cable; `Session::device_natures`): its symbol's name, then its natures
+("Compressed-air supply point · pneumatic", "5/2 valve, solenoid and spring · pneumatic, 1 solenoid"), or the nature
+itself ("PLC station · CPU", "Valve terminal · PLC station on PROFIBUS DP", "Terminal"). A row of another trade is
+not listed (an empty strip, terminal, cable or assembly aspect, an empty bus port or interruption point, an empty
+cross-reference of a symbol without an electrical point). Main holds the kind's primary fields in their list's order;
+a device's are tag, function text, part, location, a source's medium, any other fluid device's ports with the medium
+each carries, a valve's solenoids and position. The rows only a rare case needs stand in a last group **More** per
+section, closed until opened (its open state is remembered); the filter searches closed groups too.
+
 *As built.* The header shows one count chip per severity, also for one finding ("1 Warning", "2 Warnings"); glyphs replace the words when the title does not fit. An edit field opened on its stored value starts with the whole text selected, so typing replaces it.
 
 *As built.* **The label column fits its labels,
