@@ -280,14 +280,11 @@ impl ShellModel {
         };
         let head = match p.get("head") {
             Some(_) => {
-                let head = or_return!(self.record_param(p, "head"));
-                let offered = self.project_session().is_some_and(|s| {
-                    s.station_parts("any").iter().any(|x| x.copy == head)
-                });
-                if !offered {
-                    return failed(key!("error-bad-param"), &["head"]);
-                }
-                Some(head)
+                let offered = self
+                    .project_session()
+                    .map(|s| s.station_parts("any"))
+                    .unwrap_or_default();
+                Some(or_return!(offered_part(p, "head", &offered)).copy)
             }
             None => None,
         };
@@ -403,12 +400,7 @@ impl ShellModel {
     /// The part a rack action names (`part`), else the one chosen in the editor; it must be a module part offered.
     fn rack_part_param(&self, p: &Map<String, Value>) -> Result<ew_api::output::ModulePart, Outcome> {
         if p.contains_key("part") {
-            let part = self.record_param(p, "part")?;
-            return self
-                .module_parts()
-                .into_iter()
-                .find(|m| m.copy == part)
-                .ok_or_else(|| failed(key!("error-bad-param"), &["part"]));
+            return offered_part(p, "part", &self.module_parts());
         }
         self.rack_part()
             .ok_or_else(|| Outcome::refused(key!("reason-rack-no-part")))
@@ -1051,6 +1043,24 @@ pub fn rack_positions_text(r: &ew_api::output::RackRow) -> String {
         })
         .collect::<Vec<_>>()
         .join(" · ")
+}
+
+/// The part of `offered` that parameter `name` names: its copy ID, or its part number (a script's way).
+fn offered_part(
+    p: &Map<String, Value>,
+    name: &str,
+    offered: &[ew_api::output::ModulePart],
+) -> Result<ew_api::output::ModulePart, Outcome> {
+    let text = match string_param(p, name)? {
+        Some(t) => t.trim(),
+        None => return Err(failed(key!("error-missing-param"), &[name])),
+    };
+    let id = text.parse::<Uuid>().ok();
+    offered
+        .iter()
+        .find(|m| Some(m.copy) == id || m.text.split(" · ").next() == Some(text))
+        .cloned()
+        .ok_or_else(|| failed(key!("error-bad-param"), &[name]))
 }
 
 /// What a new station is (F18 of the rc.1 test), as the new-station dialog asks it; it narrows the head parts offered

@@ -104,6 +104,7 @@
     - [`part.edit_copy`](reference/commands/part.edit_copy.md)
     - [`parts.import`](reference/commands/parts.import.md)
     - [`plc.add_module`](reference/commands/plc.add_module.md)
+    - [`plc.add_station`](reference/commands/plc.add_station.md)
     - [`plc.apply_exchange`](reference/commands/plc.apply_exchange.md)
     - [`plc.apply_instrument_list`](reference/commands/plc.apply_instrument_list.md)
     - [`plc.bind_channel`](reference/commands/plc.bind_channel.md)

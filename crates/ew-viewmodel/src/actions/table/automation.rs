@@ -56,7 +56,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         )),
     ),
     with_params(
-        "slot:uint, rack?:uint, part?:ref",
+        "slot:uint, rack?:uint, part?:text",
         hidden(act(
             "plc.rack_add",
             Command,
@@ -333,33 +333,27 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     ),
     with_params(
-        "kind?:text, head?:ref, config?:text, count?:uint",
-        hidden(with_aliases(
-            &[("head", ParamForm::Whole)],
-            act(
-                "plc.rack_set",
-                View,
-                Menu::Project,
-                &[],
-                project_open,
-                None,
-                |s, p| s.act_plc_rack_set(p),
-            ),
+        "kind?:text, head?:text, config?:text, count?:uint",
+        hidden(act(
+            "plc.rack_set",
+            View,
+            Menu::Project,
+            &[],
+            project_open,
+            None,
+            |s, p| s.act_plc_rack_set(p),
         )),
     ),
     with_params(
-        "slot:uint, rack?:uint, op:text, part?:ref",
-        hidden(with_aliases(
-            &[("part", ParamForm::Whole)],
-            act(
-                "plc.rack_slot",
-                Command,
-                Menu::Project,
-                &[],
-                writable,
-                None,
-                |s, p| s.act_plc_rack_slot(p),
-            ),
+        "slot:uint, rack?:uint, op:text, part?:text",
+        hidden(act(
+            "plc.rack_slot",
+            Command,
+            Menu::Project,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_plc_rack_slot(p),
         )),
     ),
     hidden(act(
