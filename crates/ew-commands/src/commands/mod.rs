@@ -182,6 +182,7 @@ commands! {
     plc::AddModule,
     plc::RemoveFromRack,
     plc::AddStation,
+    plc::DrawStation,
     plc_exchange::RecordExchange,
     plc_exchange::ApplyExchange,
     plc_exchange::Unlock,

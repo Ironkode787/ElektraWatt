@@ -171,3 +171,151 @@ fn a_bus_device_is_given_to_a_plc_from_its_menu() {
     assert!(!menu.iter().any(|l| l.starts_with("Add to")), "{menu:?}");
     h.state_mut().shell_mut().shutdown();
 }
+
+/// The new-station dialog with the starter CPU as its head part and `modules` input modules in its rack, not made yet.
+fn draft_with(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>, modules: u64) {
+    dispatch(h, "plc.new_station", json!({}));
+    dispatch(
+        h,
+        "plc.rack_set",
+        json!({"head": "EW-GEN-CPU-1", "count": modules}),
+    );
+    dispatch(h, "plc.rack_add", json!({"slot": 1, "part": "EW-GEN-DI-1"}));
+    settle(h);
+}
+
+/// After Create, Draw on this page puts the station's box and each module's beside it in slot order on the page, in
+/// one undo step; a second time there is nothing left to draw, and that is said in words.
+#[test]
+fn draw_on_this_page_draws_the_station_and_its_modules() {
+    let tmp = Tmp::new();
+    let mut h = new_project(&tmp);
+    draft_with(&mut h, 3);
+    support::menu_node(&h, "Create").click();
+    settle(&mut h);
+    let station = match h.state().shell().dialog() {
+        Some(Dialog::Rack { station: Some(s), .. }) => *s,
+        other => panic!("{other:?}"),
+    };
+    let drawn = |h: &egui_kittest::Harness<'static, ew_ui::app::App>| {
+        let reps = h
+            .state()
+            .shell()
+            .canvas()
+            .map(|c| c.page().tables.reps.clone())
+            .unwrap_or_default();
+        let mut boxes: Vec<(i64, Uuid)> = reps.iter().filter_map(|r| Some((r.body[0], r.device?))).collect();
+        boxes.sort_by_key(|b| b.0);
+        boxes.into_iter().map(|(_, d)| d).collect::<Vec<_>>()
+    };
+    let modules: Vec<Uuid> = h
+        .state()
+        .shell()
+        .rack_view(station)
+        .expect("the rack")
+        .rows
+        .iter()
+        .filter_map(|r| r.module)
+        .collect();
+    h.get_by_label("Draw on this page").click();
+    settle(&mut h);
+    assert!(h.state().shell().dialog().is_none(), "the page is shown");
+    let mut expected = vec![station];
+    expected.extend(modules);
+    assert_eq!(
+        drawn(&h),
+        expected,
+        "the station, then its modules in slot order, left to right"
+    );
+    dispatch(&mut h, "plc.rack_editor", json!({"station": station.to_string()}));
+    settle(&mut h);
+    h.get_by_label("Draw on this page").click();
+    settle(&mut h);
+    h.get_by_label_contains("are drawn already");
+    dispatch(&mut h, "ui.dismiss", json!({}));
+    dispatch(&mut h, "edit.undo", json!({}));
+    settle(&mut h);
+    assert!(drawn(&h).is_empty(), "one undo step takes every box back");
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// New part… presets what the dialog was asked for: from Remote I/O a station part with a device's bus interface, from
+/// PLC (CPU) one whose interface leads the bus, from a slot's Add module… a module part; saved, the new head part is
+/// the draft's head again.
+#[test]
+fn new_part_from_the_rack_starts_as_what_was_asked() {
+    let tmp = Tmp::new();
+    let mut h = new_project(&tmp);
+    let draft_text =
+        |h: &egui_kittest::Harness<'static, ew_ui::app::App>, field: &str| match h.state().shell().dialog() {
+            Some(Dialog::PartEdit(e)) => e.draft.text(field).to_owned(),
+            other => panic!("the part editor: {other:?}"),
+        };
+    dispatch(&mut h, "plc.new_station", json!({}));
+    dispatch(&mut h, "plc.rack_set", json!({"kind": "remote"}));
+    settle(&mut h);
+    h.get_by_label("New part…").click();
+    settle(&mut h);
+    assert_eq!(draft_text(&h, "plc.role"), "station");
+    assert_eq!(draft_text(&h, "bus.0.role"), "device");
+    for (field, value) in [
+        ("manufacturer", "Acme"),
+        ("part_number", "RIO-9"),
+        ("description", "Remote head"),
+    ] {
+        dispatch(&mut h, "part.field", json!({"field": field, "value": value}));
+    }
+    dispatch(&mut h, "part.save", json!({}));
+    settle(&mut h);
+    let head = h
+        .state()
+        .shell()
+        .station_draft()
+        .and_then(|d| d.head)
+        .expect("back with a head part");
+    let parts = h.state().shell().station_parts();
+    assert!(
+        parts
+            .iter()
+            .any(|p| p.copy == head && p.text.starts_with("RIO-9")),
+        "the new part is the head"
+    );
+
+    dispatch(&mut h, "plc.rack_set", json!({"kind": "cpu"}));
+    settle(&mut h);
+    h.get_by_label("New part…").click();
+    settle(&mut h);
+    assert_eq!(draft_text(&h, "bus.0.role"), "controller");
+    dispatch(&mut h, "ui.dismiss", json!({}));
+    settle(&mut h);
+
+    dispatch(&mut h, "plc.new_station", json!({}));
+    dispatch(&mut h, "part.new", json!({"plc": "module"}));
+    settle(&mut h);
+    assert_eq!(draft_text(&h, "plc.role"), "module");
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// At 1920 × 1080 the choices of what the station is stand on one line, and with twelve modules the free slot's
+/// Add module… stays inside the window above Create.
+#[test]
+fn the_new_station_dialog_fits_at_1920() {
+    let tmp = Tmp::new();
+    let mut h = new_project(&tmp);
+    draft_with(&mut h, 12);
+    let rows: Vec<f32> = ["PLC (CPU)", "Remote I/O", "Valve terminal", "Compact device"]
+        .iter()
+        .map(|l| h.get_by_label(l).rect().center().y)
+        .collect();
+    assert!(
+        rows.iter().all(|y| (*y - rows[0]).abs() < 1.0),
+        "one line: {rows:?}"
+    );
+    let add = h.get_by_label("Add module… 13").rect();
+    let create = support::menu_node(&h, "Create").rect();
+    assert!(
+        add.top() >= 0.0 && add.bottom() <= create.top(),
+        "Add module… {add:?} is out of sight above Create {create:?}"
+    );
+    h.state_mut().shell_mut().shutdown();
+}

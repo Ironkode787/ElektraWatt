@@ -713,7 +713,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     ),
     with_params(
-        "symbol?:text, from?:text",
+        "symbol?:text, from?:text, plc?:text",
         act(
             "part.new",
             View,

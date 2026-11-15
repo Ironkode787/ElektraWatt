@@ -31,10 +31,15 @@ modules, bind channels and check what each channel drives.
 
 ## Stations
 
-5. Choose **New station…** (Project menu, or **+** in the PLC navigator). Choose what the station is, its head part
-   and the PLC it belongs to, then fill the rack: **Add module…** on a free slot picks a module part and how many
-   fill the slots from there. **Create** makes the station and its modules, drawn on no page yet; **Draw on this page**
-   or **Put it on a bus page** draws it when you want. A station part placed directly from the device browser opens
+5. Choose **New station…** (Project menu, or **+** in the PLC navigator). Choose what the station is (a hover over
+   each choice says it in full), its head part and the PLC it belongs to, then fill the rack: **Add module…** on a
+   free slot picks a module part and how many fill the slots from there. **New part…** beside the head part, or at
+   the foot of the module picker, opens the part editor already set for what you asked (a CPU's bus interface leads
+   the bus, a remote I/O station's answers on it, a module is a module), and the part you save is chosen when the
+   dialog comes back. **Create** makes the station and its modules, drawn on no page yet. **Draw on this page** puts
+   the station's box and each module's beside it in slot order on the schematic page shown, in rows under what is
+   drawn there, in one undo step (a module drawn already stays where it is); **Put it on a bus page** draws its bus
+   interface. A station part placed directly from the device browser opens
    the same rack at once. On a bus-topology page, the Bus panel or a schematic page, right-click a bus device that
    belongs to no PLC and choose **Add to** and the PLC (or **Add to a new PLC**): it becomes a station of that PLC and
    its rack opens; a part without PLC data gets an open rack whose modules you add. A switch or a plug takes no part.

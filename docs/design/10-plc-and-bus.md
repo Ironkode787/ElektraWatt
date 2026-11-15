@@ -191,7 +191,10 @@ slot: moving a module up or down swaps two modules' positions (`assembly.attach`
 dialog says when addresses moved. Only a module part goes into a rack: the window refuses any other device in words,
 `plc.remove_from_rack` takes a device out again (and, for a device that nothing describes as a module, its aspect and
 its channels), and EW-PLC-017 reports a device in that state with that command as its fix. A copy of a station drops the
-station's own module with `plc_station`, so N0 makes the paste a station again.
+station's own module with `plc_station`, so N0 makes the paste a station again. Draw on this page is one
+`plc.draw_station {station, page, symbol, boxes}`: the window lays the station's box and its modules' out in slot order
+in rows (the black box tool's pin layout over each part's pattern), and the command gives a device made without
+functions its part's template functions before it draws the black-box entry; a device drawn already is left alone.
 
 ### 2.4 Channels
 

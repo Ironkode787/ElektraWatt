@@ -1860,6 +1860,19 @@ pub(crate) fn insert_from_part(
     letter: &Ident,
     placed: PartEntry,
 ) -> Result<Id<Function>, CmdError> {
+    insert_template_functions(tx, part, template, letter, placed, None)
+}
+
+/// [`insert_from_part`], the template functions given to the existing device `existing` when it is `Some` (a device
+/// made without functions, as `plc.add_station` makes a station's modules) instead of to a new device.
+pub(crate) fn insert_template_functions(
+    tx: &mut TxBuilder<'_>,
+    part: Id<Part>,
+    template: u16,
+    letter: &Ident,
+    placed: PartEntry,
+    existing: Option<Id<Device>>,
+) -> Result<Id<Function>, CmdError> {
     let copy = tx.require::<LibCopy<Part>>(part)?;
     let number = copy.item.part_number.as_str().to_owned();
     let entries = copy.item.function_template.clone();
@@ -1867,7 +1880,7 @@ pub(crate) fn insert_from_part(
         // A part without a function template is placed with the symbol the user chose, entry 0 of
         // `device.place` only: the device carries the part and one main function of the symbol's FnDef.
         return match placed {
-            PartEntry::Normal(symbol_def) if template == 0 => {
+            PartEntry::Normal(symbol_def) if template == 0 && existing.is_none() => {
                 let device = insert_part_device(tx, part, letter)?;
                 insert_function(tx, Some(device), symbol_def, FnRole::Main)
             }
@@ -1931,7 +1944,10 @@ pub(crate) fn insert_from_part(
         }
         PartEntry::Any => {}
     }
-    let device = insert_part_device(tx, part, letter)?;
+    let device = match existing {
+        Some(d) => d,
+        None => insert_part_device(tx, part, letter)?,
+    };
     let mut placed_fn = None;
     for (i, (e, (def, kind))) in entries.iter().zip(defs).enumerate() {
         let role = if e.main { FnRole::Main } else { FnRole::Aux };

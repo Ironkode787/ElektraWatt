@@ -251,12 +251,13 @@ fn new_station_head(
         );
     };
     caption(ui, key!("rack-kind"));
-    ui.horizontal_wrapped(|ui| {
+    // One line at 1920 × 1080: the short words, the long form on hover.
+    ui.horizontal(|ui| {
         for k in StationKind::ALL {
-            if ui
+            let choice = ui
                 .selectable_label(draft.kind == k, strings::text(k.text_key()))
-                .clicked()
-            {
+                .on_hover_text(strings::text(k.tip_key()));
+            if choice.clicked() {
                 events.push(Event::Action("plc.rack_set", json!({ "kind": k.word() })));
             }
         }
@@ -303,7 +304,7 @@ fn new_station_head(
         )
         .clicked()
         {
-            events.push(Event::Action("part.new", json!({})));
+            events.push(Event::Action("part.new", json!({ "plc": draft.kind.word() })));
         }
     });
     caption(ui, key!("rack-plc"));
@@ -429,6 +430,14 @@ fn part_menu(
             }
             if !any {
                 ui.label(strings::text(key!("rack-no-part-fits")));
+            }
+            // A module part of your own, made in the part editor, comes back chosen (rc.2).
+            if count.is_some() {
+                ui.separator();
+                if ui.button(strings::text(key!("rack-new-part"))).clicked() {
+                    events.push(Event::Action("part.new", json!({ "plc": "module" })));
+                    ui.close();
+                }
             }
         });
 }

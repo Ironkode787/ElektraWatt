@@ -112,6 +112,7 @@
     - [`plc.bind_channel`](reference/commands/plc.bind_channel.md)
     - [`plc.config_project.create`](reference/commands/plc.config_project.create.md)
     - [`plc.convert_manual_to_auto`](reference/commands/plc.convert_manual_to_auto.md)
+    - [`plc.draw_station`](reference/commands/plc.draw_station.md)
     - [`plc.freeze`](reference/commands/plc.freeze.md)
     - [`plc.readdress`](reference/commands/plc.readdress.md)
     - [`plc.record_exchange`](reference/commands/plc.record_exchange.md)

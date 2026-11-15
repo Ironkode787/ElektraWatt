@@ -623,6 +623,74 @@ impl Session {
         Some(params)
     }
 
+    /// What `plc.draw_station` needs for `station` on page `page` (rc.2, Draw on this page): `at`, the next free place
+    /// of the page (the left of its drawing area under everything drawn on it, its top left on an empty page);
+    /// `right`, the drawing area's right, where the row wraps; `devices`, the station and its modules in slot order that
+    /// no page draws yet, each `[device, part copy]`; the starter black box of the page's grid as `symbol`, with its
+    /// `copies`. `None` for a page without a frame grid, a device that is no station, or no starter symbol.
+    pub fn station_draw_params(&self, station: Uuid, page: Uuid) -> Option<serde_json::Value> {
+        let q = self.query();
+        let page_id: Id<ew_derive::ew_schema::Page> = Id::from_uuid(page);
+        let (area, _) = super::scale_fit::drawing_area(&q, page_id)?;
+        let (min, max) = (area.min(), area.max());
+        // 7.9375 mm, a margin from the frame and the gap under what is drawn.
+        let gap = 7_937_500i64;
+        let bottom = q
+            .reps()
+            .iter()
+            .filter(|(_, r)| r.page == page_id)
+            .map(|(_, r)| {
+                let low = r
+                    .box_
+                    .as_ref()
+                    .map_or(20_000_000, |b| b.outline.iter().map(|p| p.y.0).max().unwrap_or(0));
+                r.pos.y.0 + low
+            })
+            .max();
+        let (x, y) = (min.x.0 + gap, bottom.map_or(min.y.0 + gap, |b| b + 2 * gap));
+        let grid = q.pages().get(page_id)?.grid;
+        let key = if grid == ew_derive::ew_units::Grid::QET_10PX {
+            "ew.gen.blackbox@qet10"
+        } else {
+            "ew.gen.blackbox"
+        };
+        let symbol = self.starter_symbol_copy(key)?;
+        // The station, then its modules in slot order, each that no page draws yet, with its part.
+        let id: Id<Device> = Id::from_uuid(station);
+        let cfg = q.devices().get(id)?.aspects.plc_station.as_ref()?.config_project;
+        let drawn = |d: Id<Device>| {
+            q.idx()
+                .functions_of_device(d)
+                .any(|f| q.idx().reps_of_function(f).next().is_some())
+        };
+        let mut order = vec![id];
+        order.extend(
+            q.get::<ModuleOrder>(cfg)
+                .iter()
+                .filter(|m| m.station == id && m.module != id)
+                .map(|m| m.module),
+        );
+        let devices: Vec<serde_json::Value> = order
+            .into_iter()
+            .filter(|d| !drawn(*d))
+            .filter_map(|d| {
+                let part = q.devices().get(d)?.parts.first()?.part.copy;
+                Some(serde_json::json!([
+                    d.as_uuid().to_string(),
+                    part.as_uuid().to_string()
+                ]))
+            })
+            .collect();
+        let mut params = serde_json::json!({
+            "station": station.to_string(), "page": page.to_string(), "symbol": symbol.to_string(),
+            "at": [x, y], "right": max.x.0 - gap, "devices": devices,
+        });
+        if let Some(embed) = self.starter_embed(key) {
+            params["copies"] = embed["copies"].clone();
+        }
+        Some(params)
+    }
+
     /// What a device row's fluid actions act on (doc 11 §7, FT-1733): whether it is a valve terminal (Generate
     /// overview…), the positions of a valve module, its own position when it is a valve or a blanking plate, the part a
     /// new valve takes and its open working ports (EW-FL-001's).

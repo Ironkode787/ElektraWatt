@@ -120,14 +120,15 @@ slots its part allows. The number of slots comes from the station's part (its mo
 gets an open rack that grows by one free row. A valve terminal shows its stored order codes at the top and each
 module's valve positions under its row.
 
-**New station…** first asks what the station is (a PLC with its CPU, a remote I/O station, a valve terminal with a bus
-node, a compact device with channels of its own), then its head part from the parts that can be that (**New part…**
-opens the part editor and comes back with the new part), and the PLC it belongs to: one of the project's or a new one.
+**New station…** first asks what the station is (PLC (CPU), Remote I/O, Valve terminal, Compact device; each says
+itself in full on hover), then its head part from the parts that can be that (**New part…** opens the part editor set
+up for that kind of station and comes back with the new part chosen), and the PLC it belongs to: one of the project's
+or a new one.
 **Create** makes the station and its modules, drawn on no page yet, in one undo step.
 
 **Add module…** on a free slot opens a picker of the module parts that may sit in that slot (the project's first, then
 those of the installed libraries, which are copied into the project with the module), with a field for how many fill
-the slots from there. On a module's row the arrows move it up and down, the bin empties the slot (a module drawn on no
+the slots from there, and **New part…** for a module part of your own, chosen when the editor saves it. On a module's row the arrows move it up and down, the bin empties the slot (a module drawn on no
 page is deleted, a drawn one leaves the rack and waits under Modules without a station), **Replace…** gives it another
 part and **Draw…** puts its symbol on the pointer when no page draws it. Type a slot into a module's Slot field and
 press `Enter` to move it, as a number or as rack and slot (`1.3`), or drag the module by its tag onto another slot's
@@ -136,8 +137,9 @@ device given to a PLC) says so above them.
 
 A slot the part does not allow, or more modules than the station takes, is refused, and the reason stays under the
 slots; the station's slot findings (EW-PLC-011) are listed there too, each with its icon and the word Error. Under a
-made station, **Draw on this page**, **Make the overview page** (a valve terminal) and **Put it on a bus page** do
-what comes next. **Close** or `Esc` closes the dialog.
+made station, **Draw on this page** (the station's box and each module's not drawn yet, beside it in slot order, in
+rows under what the schematic page shown holds, one undo step), **Make the overview page** (a valve terminal) and
+**Put it on a bus page** do what comes next. **Close** or `Esc` closes the dialog.
 
 ## PLC import
 

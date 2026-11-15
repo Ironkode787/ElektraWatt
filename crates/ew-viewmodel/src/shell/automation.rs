@@ -667,6 +667,73 @@ impl ShellModel {
         }
     }
 
+    /// `plc.draw_station`'s parameters for `station` on `page` (`Session::station_draw_params`): each device not drawn
+    /// yet a box 39.7 × 31.75 mm (wider where its pins need it), with its part's connection points laid out as the black box
+    /// tool lays them (`tools::black_box::layout`), beside the one before it from the next free place, a new row under
+    /// the first where the next box would pass the drawing area's right. A device whose part has no black-box entry is
+    /// left out. `None` without the page shown, its frame or the catalogue.
+    fn station_boxes(&mut self, station: Uuid, page: Uuid) -> Option<Value> {
+        const SIZE: (i64, i64, i64) = (39_687_500, 31_750_000, 7_937_500);
+        let mut params = self.project_session()?.station_draw_params(station, page)?;
+        let grid = crate::tools::wire::PageGridMap::new(self.canvas()?.page().tables.grid);
+        let cat = self.catalogue()?;
+        let snap = |v: i64| grid.coord(grid.index(v));
+        let at = |i: usize| params["at"][i].as_i64().unwrap_or(0);
+        let (x0, y0, right) = (
+            snap(at(0)),
+            snap(at(1)),
+            params["right"].as_i64().unwrap_or(i64::MAX),
+        );
+        let (mut x, mut y) = (x0, y0);
+        let mut boxes = Vec::new();
+        for d in params["devices"].as_array().cloned().unwrap_or_default() {
+            let (Some(device), Some(part)) =
+                (d[0].as_str(), d[1].as_str().and_then(|p| p.parse::<Uuid>().ok()))
+            else {
+                continue;
+            };
+            let Some(entry) = cat
+                .parts
+                .iter()
+                .find(|r| r.copy == part)
+                .and_then(|r| r.functions.iter().find(|f| f.black_box))
+            else {
+                continue;
+            };
+            if x > x0 && x + SIZE.0 > right {
+                x = x0;
+                y += SIZE.1 + 2 * SIZE.2;
+            }
+            let Some((pos, outline, cps)) = crate::tools::black_box::layout(
+                grid,
+                (x, y),
+                (snap(x + SIZE.0), snap(y + SIZE.1)),
+                &entry.cps,
+                &[],
+            ) else {
+                continue;
+            };
+            let width = outline.iter().map(|p| p.0).max().unwrap_or(SIZE.0);
+            boxes.push(json!({
+                "device": device,
+                "pos": [pos.0, pos.1],
+                "box": {
+                    "outline": outline.iter().map(|p| vec![p.0, p.1]).collect::<Vec<_>>(),
+                    "cps": cps.iter().map(|(i, p, dir)| json!({"idx": i, "pos": [p.0, p.1], "dir": dir.word()}))
+                        .collect::<Vec<_>>(),
+                },
+            }));
+            x = snap(x + width + SIZE.2);
+        }
+        if let Some(m) = params.as_object_mut() {
+            for k in ["at", "right", "devices"] {
+                m.remove(k);
+            }
+            m.insert("boxes".into(), Value::Array(boxes));
+        }
+        Some(params)
+    }
+
     /// Puts the symbol of `device`'s part on the pointer, joined to the device (`place.pick {symbol, device}`): its
     /// part's main function's symbol, else the starter black box; the dialog closes so the page takes the click.
     fn draw_device(&mut self, device: Uuid) -> Outcome {
@@ -775,7 +842,16 @@ impl ShellModel {
                 ) {
                     return self.rack_refuse(strings::text(key!("reason-rack-draw-page")).to_owned());
                 }
-                self.draw_device(station)
+                // The station and its modules not drawn yet, in a row in slot order, one undo step (rc.2).
+                let page = self.page_rows().get(self.page_index()).map(|r| r.id);
+                let Some(params) = page.and_then(|page| self.station_boxes(station, page)) else {
+                    return self.rack_refuse(strings::text(key!("reason-rack-no-frame")).to_owned());
+                };
+                let out = self.rack_commit("plc.draw_station", params);
+                if out == Outcome::Done {
+                    self.dialog = None;
+                }
+                out
             }
             Ok(Some("overview")) => {
                 self.dialog = None;
@@ -1326,6 +1402,16 @@ impl StationKind {
             StationKind::Remote => key!("rack-kind-remote"),
             StationKind::ValveTerminal => key!("rack-kind-valve-terminal"),
             StationKind::Compact => key!("rack-kind-compact"),
+        }
+    }
+
+    /// The kind in full words, the hover text of its short choice.
+    pub fn tip_key(self) -> Key<'static> {
+        match self {
+            StationKind::Cpu => key!("rack-kind-cpu-tip"),
+            StationKind::Remote => key!("rack-kind-remote-tip"),
+            StationKind::ValveTerminal => key!("rack-kind-valve-terminal-tip"),
+            StationKind::Compact => key!("rack-kind-compact-tip"),
         }
     }
 }
