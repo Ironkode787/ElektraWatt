@@ -120,9 +120,10 @@ fn lists_and_the_plc_exchange_are_found_on_the_output_tab() {
     );
     let texts = d.texts();
     assert!(
-        texts.iter().any(
-            |t| t.starts_with("Lists (parts, wires, terminals") && t.contains("Report on the Output tab")
-        ),
+        // Under the default type's words (the persona run m3-p4: the line says what the chosen type is for).
+        texts
+            .iter()
+            .any(|t| t.contains("Lists are made with Report on the Output tab")),
         "New page says where lists are made: {texts:?}"
     );
     d.shell_mut().shutdown();

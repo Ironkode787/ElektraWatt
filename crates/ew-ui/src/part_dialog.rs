@@ -864,7 +864,7 @@ fn bus_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
     }
     // A row just added comes into sight whole, with Add interface under it, never half hidden at the form's bottom edge
     // (the persona run m3-p4).
-    let count = ui.id().with("part-bus-rows");
+    let count = ui.scope_id().with("part-bus-rows");
     let before = ui.data(|m| m.get_temp::<usize>(count));
     if before.is_some_and(|n| d.bus.len() > n) {
         ui.scroll_to_cursor(Some(egui::Align::BOTTOM));

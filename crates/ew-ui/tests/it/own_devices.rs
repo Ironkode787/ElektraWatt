@@ -5,8 +5,8 @@
 //! on a bus-topology page stands there with its bus ports. The window's own path: clicks and keys at 1920 × 1080.
 
 use crate::own_parts::{
-    cp_labels, cursor_k, edit_part, fill, make_card, make_head_station, make_port_device, new_project, page_texts,
-    place_box, press, press_cp, records,
+    cp_labels, cursor_k, edit_part, fill, make_card, make_head_station, make_port_device, new_project,
+    page_texts, place_box, press, press_cp, records,
 };
 use crate::persona_round::{key, typed};
 use crate::support::Tmp;
@@ -54,8 +54,14 @@ fn the_bus_panel_lists_the_ports_not_drawn_yet_and_places_them() {
         .and_then(|n| n.node_of(&undrawn[0].0).map(|(_, n)| n.clone()))
         .expect("the DP row");
     let menu = ew_ui::ew_viewmodel::command_bar::navigator_row_menu(d.shell_mut(), NavKind::Bus, &node);
-    let place = menu.iter().find(|i| i.label == "Place port DP").expect("Place port DP");
-    assert!(!place.enabled && place.reason.is_some(), "not on a schematic page: {place:?}");
+    let place = menu
+        .iter()
+        .find(|i| i.label == "Place port DP")
+        .expect("Place port DP");
+    assert!(
+        !place.enabled && place.reason.is_some(),
+        "not on a schematic page: {place:?}"
+    );
     bus_page(&mut d);
     let open = json!({"kind": "bus", "key": undrawn[0].0});
     assert_eq!(d.shell_mut().dispatch("navigator.open", &open), Outcome::Done);
@@ -66,9 +72,15 @@ fn the_bus_panel_lists_the_ports_not_drawn_yet_and_places_them() {
     }
     d.input(&key("Escape"));
     d.settle();
-    let left: Vec<String> = bus_group(&mut d, "ports:undrawn").into_iter().map(|(_, l)| l).collect();
+    let left: Vec<String> = bus_group(&mut d, "ports:undrawn")
+        .into_iter()
+        .map(|(_, l)| l)
+        .collect();
     assert_eq!(left, [format!("{tag} X1")], "the DP is drawn");
-    let loose: Vec<String> = bus_group(&mut d, "ports:none").into_iter().map(|(_, l)| l).collect();
+    let loose: Vec<String> = bus_group(&mut d, "ports:none")
+        .into_iter()
+        .map(|(_, l)| l)
+        .collect();
     assert_eq!(loose, [format!("{tag} DP")], "and listed without a net");
 }
 
@@ -107,7 +119,10 @@ fn the_address_of_a_port_says_its_form_in_the_table_and_in_properties() {
     let _ = d.shell_mut().dispatch("table.edit", &edit);
     d.settle();
     let hint = d.shell_mut().table_edit_hint(NavKind::Bus).unwrap_or_default();
-    assert!(hint.starts_with("on or off"), "the Termination cell's words: {hint:?}");
+    assert!(
+        hint.starts_with("on or off"),
+        "the Termination cell's words: {hint:?}"
+    );
     d.input(&key("Escape"));
     d.settle();
     let set = json!({"kind": "bus", "column": "Address", "value": "plc1 192.168.0.1", "rows": [row]});
@@ -128,7 +143,10 @@ fn the_address_of_a_port_says_its_form_in_the_table_and_in_properties() {
         .and_then(|v| v["id"].as_str())
         .expect("the X1 box")
         .to_owned();
-    assert_eq!(d.shell_mut().dispatch("select.set", &json!({"ids": [rep]})), Outcome::Done);
+    assert_eq!(
+        d.shell_mut().dispatch("select.set", &json!({"ids": [rep]})),
+        Outcome::Done
+    );
     d.settle();
     let first = d
         .shell_mut()
@@ -140,7 +158,10 @@ fn the_address_of_a_port_says_its_form_in_the_table_and_in_properties() {
     assert_eq!(d.shell_mut().dispatch("props.edit", &row), Outcome::Done);
     d.settle();
     let hint = d.shell_mut().property_edit_hint().unwrap_or_default();
-    assert!(hint.contains("plc1 192.168.0.1"), "Properties says the form: {hint:?}");
+    assert!(
+        hint.contains("plc1 192.168.0.1"),
+        "Properties says the form: {hint:?}"
+    );
 }
 
 /// Item 5: the card of a corrected part speaks words. A managed switch of one's own with eight ports, drawn and wired
@@ -153,7 +174,10 @@ fn the_card_of_a_corrected_part_speaks_words_and_names_a_line_that_loses_its_soc
     let mut d = new_project(&tmp);
     make_port_device(&mut d, "SW-8", "Managed switch 8 ports", "8");
     let parts_list = json!({"kind": "parts_summary", "folio": "901"});
-    assert_eq!(d.shell_mut().dispatch("report_block.new", &parts_list), Outcome::Done);
+    assert_eq!(
+        d.shell_mut().dispatch("report_block.new", &parts_list),
+        Outcome::Done
+    );
     bus_page(&mut d);
     let switch = place_box(&mut d, "SW-8", (40, 15), (64, 22));
     let drive = place_box(&mut d, "EW-GEN-PND-1", (40, 45), (55, 52));
@@ -199,7 +223,9 @@ fn the_card_of_a_corrected_part_speaks_words_and_names_a_line_that_loses_its_soc
         "no JSON and no CSV: {all:?}"
     );
     assert!(
-        card.changed.iter().any(|c| c.contains("8 ports → Managed switch 6 ports")),
+        card.changed
+            .iter()
+            .any(|c| c.contains("8 ports → Managed switch 6 ports")),
         "the parts list row's changed column: {card:?}"
     );
     assert_eq!(card.lost, [switch[7].clone()], "the line at P8 loses its socket");
@@ -211,7 +237,10 @@ fn the_card_of_a_corrected_part_speaks_words_and_names_a_line_that_loses_its_soc
         .filter(|l| l.starts_with(&format!("{tag}:")))
         .collect();
     let six: Vec<String> = (1..=6).map(|n| format!("{tag}:P{n}")).collect();
-    assert_eq!(drawn, six, "the drawn box follows: the sockets the part still has");
+    assert_eq!(
+        drawn, six,
+        "the drawn box follows: the sockets the part still has"
+    );
 }
 
 /// Item 6: the New part dialog holds still. The fields stand where they stood after a person types into the first one
@@ -239,8 +268,15 @@ fn the_new_part_dialog_holds_still_while_one_types_and_adds_rows() {
     for _ in 0..4 {
         press(&mut d, "Add interface");
     }
-    let (row, add, save) = (at(&mut d, "Ports 4"), at(&mut d, "Add interface"), at(&mut d, "Save"));
-    assert!(row.1 < add.1 && add.1 < save.1, "the new row and Add interface above the footer: {row:?} {add:?} {save:?}");
+    let (row, add, save) = (
+        at(&mut d, "Ports 4"),
+        at(&mut d, "Add interface"),
+        at(&mut d, "Save"),
+    );
+    assert!(
+        row.1 < add.1 && add.1 < save.1,
+        "the new row and Add interface above the footer: {row:?} {add:?} {save:?}"
+    );
     assert_eq!(save, before.1, "the footer stays where it was");
 }
 
@@ -258,7 +294,9 @@ fn the_small_words_say_what_slots_and_a_bus_page_are_and_the_search_finds_the_ne
     press(&mut d, "Module");
     let texts = d.texts();
     assert!(
-        texts.iter().any(|t| t.starts_with("The slots the card may stand in") && t.contains("1-8, 10")),
+        texts
+            .iter()
+            .any(|t| t.starts_with("The slots the card may stand in") && t.contains("1-8, 10")),
         "Allowed slots says what it takes: {texts:?}"
     );
     d.input(&key("Escape"));
@@ -270,10 +308,15 @@ fn the_small_words_say_what_slots_and_a_bus_page_are_and_the_search_finds_the_ne
     d.settle();
     let texts = d.texts();
     assert!(
-        texts.iter().any(|t| t.starts_with("The network: the devices as boxes")),
+        texts
+            .iter()
+            .any(|t| t.starts_with("The network: the devices as boxes")),
         "the line under Type: {texts:?}"
     );
-    assert!(!texts.iter().any(|t| t.starts_with("Lists (parts")), "no word of lists");
+    assert!(
+        !texts.iter().any(|t| t.starts_with("Lists (parts")),
+        "no word of lists"
+    );
     d.input(&key("Escape"));
     d.settle();
     for word in ["network", "bus", "PROFINET", "PROFIBUS"] {
@@ -281,7 +324,12 @@ fn the_small_words_say_what_slots_and_a_bus_page_are_and_the_search_finds_the_ne
             let _ = d.shell_mut().dispatch("tools.palette", &json!({}));
         }
         d.shell_mut().set_palette_query(word);
-        let ids: Vec<String> = d.shell_mut().palette_entries().into_iter().map(|e| e.id).collect();
+        let ids: Vec<String> = d
+            .shell_mut()
+            .palette_entries()
+            .into_iter()
+            .map(|e| e.id)
+            .collect();
         assert!(
             ids.iter().any(|i| i == "bus") && ids.iter().any(|i| i == "page.new"),
             "{word}: {ids:?}"
@@ -316,9 +364,16 @@ fn a_card_goes_behind_the_station_it_is_placed_beside_or_dragged_onto() {
     let head = head[0].split(':').next().unwrap().to_owned();
     let first = place_box(&mut d, "DI8-24", (74, 10), (88, 16));
     let first = first[0].split(':').next().unwrap().to_owned();
-    assert!(waiting(&mut d).is_empty(), "the card beside the head station is attached");
+    assert!(
+        waiting(&mut d).is_empty(),
+        "the card beside the head station is attached"
+    );
     let rows = d.shell_mut().shown_rows(NavKind::Plc);
-    let key_of = |tag: &str| rows.iter().find(|r| r.label.starts_with(tag)).map(|r| r.key.clone());
+    let key_of = |tag: &str| {
+        rows.iter()
+            .find(|r| r.label.starts_with(tag))
+            .map(|r| r.key.clone())
+    };
     let parent = rows
         .iter()
         .find(|r| r.label.starts_with(&first))
@@ -405,7 +460,10 @@ fn a_station_placed_on_a_bus_page_stands_with_its_bus_ports() {
         assert!(texts.iter().any(|t| t == interface), "{interface}: {texts:?}");
     }
     // The DP socket of the CPU is its DP port's first pin.
-    let cpu_dp = cpu.iter().find(|l| l.ends_with(":A")).expect("the CPU's DP socket");
+    let cpu_dp = cpu
+        .iter()
+        .find(|l| l.ends_with(":A"))
+        .expect("the CPU's DP socket");
     d.input(&key("W"));
     d.settle();
     press_cp(&mut d, cpu_dp);
@@ -450,8 +508,7 @@ fn a_station_placed_on_a_bus_page_stands_with_its_bus_ports() {
     d.settle();
     let before = cp_labels(&mut d);
     assert_eq!(
-        d.shell_mut()
-            .dispatch("place.pick", &json!({"function": device})),
+        d.shell_mut().dispatch("place.pick", &json!({"function": device})),
         Outcome::Done,
         "the black box tool takes the unplaced supply box"
     );
@@ -467,7 +524,11 @@ fn a_station_placed_on_a_bus_page_stands_with_its_bus_ports() {
         .filter(|l| !before.contains(l))
         .collect();
     // The tag follows the main function's page (page-based tags): the bus page's DP box takes it too.
-    let tag = pins.first().and_then(|l| l.split(':').next()).unwrap_or_default().to_owned();
+    let tag = pins
+        .first()
+        .and_then(|l| l.split(':').next())
+        .unwrap_or_default()
+        .to_owned();
     assert_eq!(pins, [format!("{tag}:L+"), format!("{tag}:M")], "the supply pins");
     let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "2"}));
     d.settle();

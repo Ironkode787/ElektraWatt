@@ -399,7 +399,10 @@ fn a_managed_switch_and_a_drive_made_in_the_window_are_nodes_of_one_net() {
     assert_eq!(nodes.len(), 3, "the CPU, the switch and the drive are its nodes");
     // The boxes print their address as the port symbol does: open, it is TBD (the CPU's DP too).
     let open = page_texts(&mut d).into_iter().filter(|t| t == "Node TBD").count();
-    assert_eq!(open, 4, "the CPU's X1 and DP, the switch and the drive print Node TBD");
+    assert_eq!(
+        open, 4,
+        "the CPU's X1 and DP, the switch and the drive print Node TBD"
+    );
     let _ = d
         .shell_mut()
         .dispatch("navigator.table", &json!({"kind": "bus", "on": true}));
@@ -537,6 +540,14 @@ pub(crate) fn make_head_station(d: &mut Driver, number: &str) {
     fill(d, "Supply L+ pin", "L+");
     fill(d, "Supply M pin", "M");
     fill(d, "Most modules", "32");
+    // The form keeps its height and scrolls (the persona run m3-p4): the bus interfaces are below the fold.
+    d.input(&ew_ui::visual::Input::Scroll {
+        at: (960, 600),
+        dx: 0,
+        dy: 20,
+        mods: egui::Modifiers::NONE,
+    });
+    d.settle();
     press(d, "Add interface");
     press(d, "Interface 1");
     d.input(&key("Ctrl+A"));

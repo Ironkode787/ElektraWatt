@@ -5981,6 +5981,25 @@ msgid ""
 "the window:** **Page ▸ Go ▸ Follow cross-reference**."
 msgstr ""
 
+#: src/explanation/eplan-and-ew.md:154
+msgid "Network, Topology, Fieldbus, PROFINET, PROFIBUS"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:156
+msgid "**EW term:** [Bus topology](../reference/glossary.md#bus-topology)"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:158
+msgid ""
+"**The same:** a network page shows the devices with their bus ports and the "
+"bus lines between them, and the ports carry the station addresses. **What "
+"differs:** a device placed on a bus-topology page stands there as a box per "
+"interface with its sockets, and a bus line drawn between two ports makes the "
+"network, named for its bus, without a separate step. **In the window:** "
+"**New page…** with the type **Bus topology**, and **Bus** on the rail. See "
+"[Work in the PLC workspace](../how-to/plc-workspace.md)."
+msgstr ""
+
 #: src/explanation/qet-and-ew.md:3
 msgid ""
 "If you come from QElectroTech, EW draws pages the same way, but it knows "
