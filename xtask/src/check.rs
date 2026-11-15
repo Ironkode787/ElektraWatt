@@ -4,7 +4,8 @@
 //! `check [-p <package>]... [--no-test]`: the one command that checks a change.
 //!
 //! In this order, each step printed with its result: rustfmt over every Rust file (it formats, it does not only
-//! compare), clippy with warnings as errors, the tests and the doctests, and the repository rules. The scope of
+//! compare), clippy with warnings as errors, the tests and the doctests, and the repository rules. Before the tests of
+//! xtask the action list of the reference is written (`target/reference/actions.txt`), which its harness tests read. The scope of
 //! clippy and the tests is the packages named with `-p`, or the whole workspace; all features are on, so the pixel
 //! snapshots of `ew-ui` run too. A failed step does not stop the later ones.
 
@@ -64,6 +65,13 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
     summary.push(("clippy", clippy(root, &scope)?));
 
     if args.test {
+        // The harness's tests read the action list of the reference: written anew, never trusted from an older tree.
+        if args.packages.is_empty() || args.packages.iter().any(|p| p == "xtask") {
+            println!("==> actions.txt: written from the registry for xtask's tests (target/reference)");
+            if !crate::generate::write_actions(root)? {
+                summary.push(("actions", false));
+            }
+        }
         println!("==> tests");
         summary.push((
             "tests",

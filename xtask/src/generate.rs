@@ -21,6 +21,12 @@ use anyhow::{Context, Result};
 /// Where the reference is written, relative to the root.
 pub(crate) const REFERENCE_DIR: &str = "target/reference";
 
+/// The test that writes `actions.txt`, the persona harness's action list; `check` runs it alone before xtask's tests.
+const ACTIONS_TEST: (&str, &[&str]) = (
+    "ew-viewmodel",
+    &["--test", "it", "blind_reference::the_action_list"],
+);
+
 /// The tests that write the reference: the package, then the arguments that choose the test target and the test.
 const REFERENCE: &[(&str, &[&str])] = &[
     // commands/: one parameter schema per command and index.json
@@ -30,10 +36,7 @@ const REFERENCE: &[(&str, &[&str])] = &[
     // keymap-sheet.json
     ("ew-viewmodel", &["--test", "it", "keymaps::the_keymap_sheet"]),
     // actions.txt: the persona harness's action list
-    (
-        "ew-viewmodel",
-        &["--test", "it", "blind_reference::the_action_list"],
-    ),
+    ACTIONS_TEST,
     // cli.json
     ("ew", &["--bin", "ew", "catalogue::tests::the_cli_reference"]),
     // results/: one schema per `--json` result and index.json
@@ -114,24 +117,36 @@ pub(crate) fn reference(root: &Path) -> Result<bool> {
     std::fs::create_dir_all(&dir).with_context(|| format!("creating {}", dir.display()))?;
     build_reference_tests(root)?;
     for (package, args) in REFERENCE {
-        let (target, test) = args.split_at(2);
-        let mut command = Command::new(crate::cargo());
-        command
-            .current_dir(root)
-            .env("EW_REFERENCE_DIR", &dir)
-            .args(["test", "--quiet", "--all-features", "-p", package])
-            .args(target)
-            .arg("--")
-            .args(test);
-        let status = command
-            .status()
-            .with_context(|| format!("running the reference test of {package}"))?;
-        if !status.success() {
-            eprintln!("gen: the reference test of {package} ({}) FAILED", args.join(" "));
+        if !reference_test(root, &dir, package, args)? {
             return Ok(false);
         }
     }
     Ok(true)
+}
+
+/// Writes `actions.txt` alone, over the one there is: the tests of the persona harness read it.
+pub(crate) fn write_actions(root: &Path) -> Result<bool> {
+    let dir: PathBuf = root.join(REFERENCE_DIR);
+    std::fs::create_dir_all(&dir).with_context(|| format!("creating {}", dir.display()))?;
+    reference_test(root, &dir, ACTIONS_TEST.0, ACTIONS_TEST.1)
+}
+
+/// Runs one test of [`REFERENCE`] with `EW_REFERENCE_DIR` set to `dir`.
+fn reference_test(root: &Path, dir: &Path, package: &str, args: &[&str]) -> Result<bool> {
+    let (target, test) = args.split_at(2);
+    let status = Command::new(crate::cargo())
+        .current_dir(root)
+        .env("EW_REFERENCE_DIR", dir)
+        .args(["test", "--quiet", "--all-features", "-p", package])
+        .args(target)
+        .arg("--")
+        .args(test)
+        .status()
+        .with_context(|| format!("running the reference test of {package}"))?;
+    if !status.success() {
+        eprintln!("gen: the reference test of {package} ({}) FAILED", args.join(" "));
+    }
+    Ok(status.success())
 }
 
 /// Builds the test binaries of [`REFERENCE`] in one cargo invocation, so that they compile and link side by side.
