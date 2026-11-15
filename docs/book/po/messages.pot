@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-15T05:34:28+01:00\n"
+"POT-Creation-Date: 2026-11-15T06:28:17+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -2435,44 +2435,56 @@ msgstr ""
 
 #: src/how-to/plc-workspace.md:21
 msgid ""
-"In a project with two CPUs a new card joins neither and is listed under "
-"**Cards without a station**. Right-click the card and choose **Attach to** "
-"and the station's tag; or right-click the station that takes all of them and "
-"choose **Attach cards without a station**."
+"In a project with two stations a new card joins the one drawn beside it on "
+"its page; drawn on a page without a station it is listed under **Cards "
+"without a station**, and its toast says so. Drag the card's row onto the "
+"station's row (a card of another station moves there), or right-click the "
+"card and choose **Attach to** and the station's tag; or right-click the "
+"station that takes all of them and choose **Attach cards without a station**."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:25
+#: src/how-to/plc-workspace.md:26
 msgid "Bus ports and nets"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:27
+#: src/how-to/plc-workspace.md:28
 msgid ""
-"A station's port that is in its part but not drawn yet is offered on the "
-"station's row as **Place port DP** (or **Place port X1** for PROFINET): on a "
-"bus-topology page it arms the Place tool with the port symbol joined to the "
-"station, and a click places it. Draw the bus between the ports with **Draw ▸ "
-"Wire**, which draws bus lines on a bus-topology page: the two ports become "
-"one network (a new one named for the bus, PROFIBUS DP, when neither has "
-"one), with the CPU's port as its master. The starter parts hold a CPU with "
-"PROFINET and PROFIBUS DP, a remote I/O head (a station of its own: attach "
-"its cards with **Attach cards without a station** on its row), an unmanaged "
-"and a managed switch, a PROFINET device and a PROFIBUS and an Ethernet "
-"cable. Your own cards, stations, switches and devices are made in the part "
-"editor: see [Make your own PLC or bus part](own-parts.md)."
+"A station placed from the device browser on a bus-topology page stands there "
+"as its bus interfaces, a box each with its sockets (the starter CPU as DP "
+"and X1), and without its supply pins, which are its box on a schematic page. "
+"A station's port that is not drawn on the bus-topology page shown is offered "
+"on the station's row as **Place port DP** (or **Place port X1** for "
+"PROFINET): it arms the Black box tool with that interface's box; two clicks "
+"draw it. On another page the same entry places the port symbol joined to the "
+"station, for a port no function carries yet. Draw the bus between the ports "
+"with **Draw ▸ Wire**, which draws bus lines on a bus-topology page: the two "
+"ports become one network (a new one named for the bus, PROFIBUS DP, when "
+"neither has one), with the CPU's port as its master. The starter parts hold "
+"a CPU with PROFINET and PROFIBUS DP, a remote I/O head (a station of its "
+"own: attach its cards with **Attach cards without a station** on its row), "
+"an unmanaged and a managed switch, a PROFINET device and a PROFIBUS and an "
+"Ethernet cable. Your own cards, stations, switches and devices are made in "
+"the part editor: see [Make your own PLC or bus part](own-parts.md)."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:35
+#: src/how-to/plc-workspace.md:39
 msgid ""
 "Choose **Bus** on the rail for the nets: each logical net with its ports, "
 "each physical net with its segments and their ends. Show it as a table to "
-"type a port's address or switch its termination."
+"type a port's address or switch its termination: the cell's editor says the "
+"form under it (a PROFIBUS DP station address such as `3`, a PROFINET device "
+"name and IP address such as `plc1 192.168.0.1`). Selected on the page, a "
+"port's symbol or box shows its function first in Properties, with the same "
+"**Address** row. **Ports not drawn yet** lists every interface a part gives "
+"a device that no page draws: Enter, or **Place port** in its menu, draws its "
+"box on the bus-topology page shown."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:38
+#: src/how-to/plc-workspace.md:47
 msgid "Addresses"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:40
+#: src/how-to/plc-workspace.md:49
 msgid ""
 "Right-click a module and choose **Re-address…**, or a configuration project "
 "for all its modules: the Preview tab lists each channel whose address moves, "
@@ -2488,11 +2500,11 @@ msgid ""
 "and a lock in the grid's Address cell."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:49 src/reference/window/dialogs.md:114
+#: src/how-to/plc-workspace.md:58 src/reference/window/dialogs.md:114
 msgid "Rack and slots"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:51
+#: src/how-to/plc-workspace.md:60
 msgid ""
 "Right-click a station and choose **Rack and slots…**. Pick the card in "
 "**Module part to add** and choose **Add here** on a free slot; type another "
@@ -2500,11 +2512,11 @@ msgid ""
 "allow is refused, and the reason stays in the dialog."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:55
+#: src/how-to/plc-workspace.md:64
 msgid "The PLC grid"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:57
+#: src/how-to/plc-workspace.md:66
 msgid ""
 "Each row of the grid is a channel. Type in a cell to change a channel's "
 "designation, address, symbol, state, target, comment, data type or signal "
@@ -2512,7 +2524,7 @@ msgid ""
 "with **Safety data…** and **Mode and safety…** (step 16)."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:60
+#: src/how-to/plc-workspace.md:69
 msgid ""
 "Type in the grid's filter to narrow the rows: a word of a cell, or one of "
 "`spare`, `unplaced`, `unassigned`, `tbd`, `duplicate`, `safety`, "
@@ -2520,11 +2532,11 @@ msgid ""
 "header sorts by it, a second click reverses the order."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:64
+#: src/how-to/plc-workspace.md:73
 msgid "Exchange with the PLC software"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:66
+#: src/how-to/plc-workspace.md:75
 msgid ""
 "Choose **Export to PLC software** on the Output tab (or **Output ▸ Export to "
 "PLC software…**), pick the format and choose **Export**, then the file: the "
@@ -2532,7 +2544,7 @@ msgid ""
 "date starts as today's. Import the file in TIA Portal or CODESYS."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:69
+#: src/how-to/plc-workspace.md:78
 msgid ""
 "Choose **Import from PLC software** on the Output tab (or **Output ▸ Import "
 "from PLC software…**) for the file the PLC software wrote back. Look through "
@@ -2540,7 +2552,7 @@ msgid ""
 "value where it can be taken. Choose **Apply**."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:72
+#: src/how-to/plc-workspace.md:81
 msgid ""
 "After an import, the module starts, the symbols or the PLC data the PLC "
 "software owns are protected. Right-click the configuration project and "
@@ -2548,7 +2560,7 @@ msgid ""
 "project."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:74
+#: src/how-to/plc-workspace.md:83
 msgid ""
 "Right-click the configuration project and choose **Import instrument list…** "
 "for a CSV or workbook of process tags and signal types: the Preview tab "
@@ -2556,18 +2568,18 @@ msgid ""
 "**Apply**."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:77
+#: src/how-to/plc-workspace.md:86
 msgid "Settings"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:79
+#: src/how-to/plc-workspace.md:88
 msgid ""
 "Right-click the configuration project and choose **Symbol policy…** for the "
 "template of the automatic symbol, the PLC tag table and whether symbols are "
 "strict IEC 61131-3 identifiers."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:81
+#: src/how-to/plc-workspace.md:90
 msgid ""
 "Right-click a module and choose **Safety data…** for its F-source and "
 "F-destination address and its F-watchdog time; right-click a channel and "
@@ -2575,14 +2587,14 @@ msgid ""
 "channel's safety evaluation and requirement."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:84
+#: src/how-to/plc-workspace.md:93
 msgid ""
 "Choose **Project ▸ Process-tag scheme…** for the pattern process tags "
 "follow, and **Project ▸ Channel addresses at terminals** to print a "
 "channel's address at the terminals on its path."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:87
+#: src/how-to/plc-workspace.md:96
 msgid ""
 "The panels are described in the [panel "
 "reference](../reference/window/panels.md): PLC, PLC grid and Bus; the dialog "
@@ -2693,57 +2705,63 @@ msgstr ""
 
 #: src/how-to/own-parts.md:41
 msgid ""
-"Place it, add its cards in **Rack and slots…** on its row in the PLC "
-"navigator, and place its port with **Place port DP** on that row, on a "
-"bus-topology page. A station that only answers on the bus is a head station."
+"Place it from the device browser on a bus-topology page: it stands there as "
+"a box with its DP socket, and its supply pins wait for a schematic page "
+"(drag its unplaced function from the **Devices** list there, and draw the "
+"box with its pins). Placed first on a schematic page, it gets its port box "
+"on a bus-topology page from **Place port DP** on its row in the PLC "
+"navigator. Add its cards in **Rack and slots…** on that row. A station that "
+"only answers on the bus is a head station."
 msgstr ""
 
-#: src/how-to/own-parts.md:44
+#: src/how-to/own-parts.md:47
 msgid "A switch such as a SCALANCE, or a device on PROFINET"
 msgstr ""
 
-#: src/how-to/own-parts.md:46
+#: src/how-to/own-parts.md:49
 msgid ""
 "Leave the PLC role at **None**. Under **Bus interfaces**, **Add interface**: "
 "`X1`, **PROFINET**, and the number of **Ports** (sockets) of the data sheet."
 msgstr ""
 
-#: src/how-to/own-parts.md:48
+#: src/how-to/own-parts.md:51
 msgid ""
 "An **unmanaged** switch has the role **Passive**: no address, it passes the "
 "net through."
 msgstr ""
 
-#: src/how-to/own-parts.md:49
+#: src/how-to/own-parts.md:52
 msgid ""
 "A **managed** switch and a drive, an HMI or a gateway have the role "
 "**Device**: one PROFINET name and IP address for the whole interface, "
 "however many sockets it has."
 msgstr ""
 
-#: src/how-to/own-parts.md:51
+#: src/how-to/own-parts.md:54
 msgid ""
 "**Save**, then place it from the device browser on a bus-topology page: it "
-"stands as a box with a connection point per socket, P1, P2 …. Draw the bus "
-"lines with **Draw ▸ Wire**: the CPU, the devices and the managed switch are "
-"one network, and an unmanaged switch stands in it with \"passes the net "
-"through\" in the **Bus** navigator. Type each node's name in the navigator's "
-"table (its **Address** column): the box prints it (\"Node switch-1 "
-"192.168.0.2\"), and \"Node TBD\" while it is open."
+"stands as a box with a connection point per socket, P1, P2 …. A device with "
+"several interfaces, such as the starter CPU with DP and X1, stands as a box "
+"per interface, side by side. Draw the bus lines with **Draw ▸ Wire**: the "
+"CPU, the devices and the managed switch are one network, and an unmanaged "
+"switch stands in it with \"passes the net through\" in the **Bus** "
+"navigator. Type each node's name in the navigator's table (its **Address** "
+"column): the box prints it (\"Node switch-1 192.168.0.2\"), and \"Node TBD\" "
+"while it is open."
 msgstr ""
 
-#: src/how-to/own-parts.md:57
+#: src/how-to/own-parts.md:62
 msgid ""
 "The starter parts hold such parts to begin with: EW-GEN-ESW-5 (unmanaged "
 "switch, 5 ports), EW-GEN-ESW-8 (managed switch, 8 ports) and EW-GEN-PND-1 (a "
 "PROFINET device, 2 ports)."
 msgstr ""
 
-#: src/how-to/own-parts.md:60
+#: src/how-to/own-parts.md:65
 msgid "Correct a part you made"
 msgstr ""
 
-#: src/how-to/own-parts.md:62
+#: src/how-to/own-parts.md:67
 msgid ""
 "Select a device of the part and choose **Edit ▸ Edit part…** (or **Edit "
 "part…** in the menu of the **Parts** row of its Properties). A part of your "
@@ -2752,39 +2770,44 @@ msgid ""
 "**Save**."
 msgstr ""
 
-#: src/how-to/own-parts.md:65
+#: src/how-to/own-parts.md:70
 msgid ""
 "A part of My parts is saved there as its next version, and the Preview tab "
-"lists what changes and the devices that use it; **Apply** brings the "
-"project's copy to it. A part kept to the project changes in place, with the "
-"same card."
+"lists what changes in words (\"Interface X1: 8 ports → 6 ports\", "
+"\"Channels: 8 → 16\", the parts list row's changed column) and the devices "
+"that use it; **Apply** brings the project's copy to it. A part kept to the "
+"project changes in place, with the same card."
 msgstr ""
 
-#: src/how-to/own-parts.md:67
+#: src/how-to/own-parts.md:73
 msgid ""
-"The next device you place takes the correction. A device already drawn keeps "
-"the sockets it was drawn with and the bus ports it carries: delete it and "
-"place it again to draw the change. The editor says so above the form."
+"A device already drawn follows the correction, in both cases: its box shows "
+"the pins and sockets the part still has, and its bus port keeps its bus, "
+"role and address. A bus line at a socket the part no longer has keeps its "
+"end there; the card names it before **Apply**, so that you draw it to "
+"another socket. A pin or socket the part adds shows when the box is drawn "
+"again: delete the box and draw it again (a port from **Ports not drawn yet** "
+"in the **Bus** panel). The editor says so above the form."
 msgstr ""
 
-#: src/how-to/own-parts.md:70
+#: src/how-to/own-parts.md:79
 msgid ""
 "A starter part or a part of another library is not yours to change: its "
 "editor says so and offers **Copy as a part of your own…**, a new part with "
 "its data, which you save under a part number of your own."
 msgstr ""
 
-#: src/how-to/own-parts.md:73
+#: src/how-to/own-parts.md:82
 msgid ""
 "A part cannot be removed from My parts in the window yet: it stays, unused, "
 "until you delete it from the library folder."
 msgstr ""
 
-#: src/how-to/own-parts.md:75
+#: src/how-to/own-parts.md:84
 msgid "A part drawn with your own symbol"
 msgstr ""
 
-#: src/how-to/own-parts.md:77
+#: src/how-to/own-parts.md:86
 msgid ""
 "In the [symbol editor](../reference/symbol-editor.md), save the symbol with "
 "**Save to library**, then choose **Make a part for this symbol…**. The part "
@@ -2792,7 +2815,7 @@ msgid ""
 "part is drawn with it."
 msgstr ""
 
-#: src/how-to/own-parts.md:81
+#: src/how-to/own-parts.md:90
 msgid ""
 "The PLC exchange with PLC software exports the stations of a configuration "
 "project; a switch or a device without a PLC section is not in the exported "
@@ -5440,6 +5463,25 @@ msgid ""
 "the contacts. **What differs:** a cross-reference is computed, never text, "
 "so it cannot go stale; one that points outside the frame is a finding. **In "
 "the window:** **Page ▸ Go ▸ Follow cross-reference**."
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:154
+msgid "Network, Topology, Fieldbus, PROFINET, PROFIBUS"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:156
+msgid "**EW term:** [Bus topology](../reference/glossary.md#bus-topology)"
+msgstr ""
+
+#: src/explanation/eplan-and-ew.md:158
+msgid ""
+"**The same:** a network page shows the devices with their bus ports and the "
+"bus lines between them, and the ports carry the station addresses. **What "
+"differs:** a device placed on a bus-topology page stands there as a box per "
+"interface with its sockets, and a bus line drawn between two ports makes the "
+"network, named for its bus, without a separate step. **In the window:** "
+"**New page…** with the type **Bus topology**, and **Bus** on the rail. See "
+"[Work in the PLC workspace](../how-to/plc-workspace.md)."
 msgstr ""
 
 #: src/explanation/qet-and-ew.md:3

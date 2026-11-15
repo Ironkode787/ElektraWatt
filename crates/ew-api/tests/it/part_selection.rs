@@ -1026,6 +1026,27 @@ fn a_new_part_is_made_once_and_never_overwrites_another() {
     assert_eq!((field.as_str(), key), ("part_number", "error-part-exists"));
 }
 
+/// A proposed interface name follows the bus system chosen for its row (`DP` on PROFIBUS DP, `X<n>` on the others);
+/// a name the person typed stays. (A persona's PROFIBUS DP interface was saved as "X1".)
+#[test]
+fn a_proposed_interface_name_follows_its_bus() {
+    let s = Session::new_project(ProjectTemplate::Builtin, NewProjectKind::Schematic, options(None)).unwrap();
+    let mut d = s.new_part_draft().unwrap();
+    d.add_bus_row();
+    d.add_bus_row();
+    assert_eq!(
+        (d.text("bus.0.interface"), d.text("bus.1.interface")),
+        ("X1", "X2")
+    );
+    s.set_draft_field(&mut d, "bus.1.bus", "profibus_dp").unwrap();
+    assert_eq!(d.text("bus.1.interface"), "DP");
+    s.set_draft_field(&mut d, "bus.1.bus", "profinet").unwrap();
+    assert_eq!(d.text("bus.1.interface"), "X2", "back to the next free X");
+    s.set_draft_field(&mut d, "bus.0.interface", "ETH").unwrap();
+    s.set_draft_field(&mut d, "bus.0.bus", "profibus_dp").unwrap();
+    assert_eq!(d.text("bus.0.interface"), "ETH", "a typed name stays");
+}
+
 /// FT-1766: the PLC form of a new part refuses a pin pattern that gives no pin, at the field, and makes a card's PLC
 /// section, its pins as the CP pattern (channel pins, then the supply's L+ and M) and a black-box main function over
 /// them, as the starter cards carry.

@@ -837,3 +837,5 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - text-change: the part editor says under Allowed slots what it takes ("1-8, 10"; empty: any slot); New page says
   under Type what the chosen type is for; the command search finds the Bus panel and New page by "network", "bus",
   "PROFINET" and "PROFIBUS" (the glossary's term Bus topology) (persona run m3-p4)
+- behaviour-change: the part editor's proposed interface name follows the bus system chosen for its row (`DP` on
+  PROFIBUS DP, `X1`, `X2` … on the others); a name that was typed stays (persona round)

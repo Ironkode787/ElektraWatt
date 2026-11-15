@@ -402,6 +402,44 @@ impl PartDraft {
         self.recheck_bus();
     }
 
+    /// After row `row`'s bus system changed: an interface name that is still a proposal (`X<n>`, `DP`, `DP<n>`) follows
+    /// the bus, `DP` on PROFIBUS DP and `X<n>` on the others, the next free one; a name the person typed stays. (The
+    /// persona round of M3: a PROFIBUS DP interface was saved as "X1".)
+    fn rename_proposed_interface(&mut self, row: usize) {
+        let Some(r) = self.bus.get(row) else {
+            return;
+        };
+        let name = r.interface.trim().to_ascii_uppercase();
+        let numbered = |prefix: &str| {
+            name.strip_prefix(prefix)
+                .is_some_and(|n| n.is_empty() || n.chars().all(|c| c.is_ascii_digit()))
+        };
+        let proposed = numbered("DP") || (numbered("X") && name.len() > 1);
+        if !proposed {
+            return;
+        }
+        let dp = r.bus == "profibus_dp";
+        if dp == numbered("DP") {
+            return;
+        }
+        let taken = |x: &str| {
+            self.bus
+                .iter()
+                .enumerate()
+                .any(|(i, o)| i != row && o.interface.trim().eq_ignore_ascii_case(x))
+        };
+        let next = if dp {
+            std::iter::once("DP".to_owned())
+                .chain((2..).map(|n| format!("DP{n}")))
+                .find(|x| !taken(x))
+        } else {
+            (1..).map(|n| format!("X{n}")).find(|x| !taken(x))
+        };
+        if let (Some(next), Some(r)) = (next, self.bus.get_mut(row)) {
+            r.interface = next;
+        }
+    }
+
     /// Removes bus interface row `row` (0-based); `false` when there is none.
     pub fn remove_bus_row(&mut self, row: usize) -> bool {
         if row >= self.bus.len() {
@@ -703,6 +741,9 @@ impl Session {
                 )));
             };
             *slot = text.to_owned();
+            if m == "bus" {
+                draft.rename_proposed_interface(row);
+            }
             draft.recheck_bus();
             return match draft.message(field) {
                 Some(m) => Err(PartDraftError::Field(m.clone())),
