@@ -873,7 +873,10 @@ impl ShellModel {
                     .into_iter()
                     .filter(|(_, name)| name.to_lowercase().contains(&f))
                     .map(|(id, name)| (name, Value::String(id.to_string())))
-                    .chain([(strings::text(key!("action-fluid-medium-new")).to_owned(), Value::Null)])
+                    .chain([(
+                        strings::text(key!("action-fluid-medium-new")).to_owned(),
+                        Value::Null,
+                    )])
                     .collect()
             }
             // The Surface row's choice is the surface, by its ID: two surfaces may read alike.
@@ -1181,7 +1184,13 @@ impl ShellModel {
     }
 
     /// Compiles the leaf `value` of row `key` into exactly one command and runs the commit path (§6.6).
-    pub(super) fn commit_value(&mut self, key: &str, value: Value, typed: String, notes: Vec<String>) -> Outcome {
+    pub(super) fn commit_value(
+        &mut self,
+        key: &str,
+        value: Value,
+        typed: String,
+        notes: Vec<String>,
+    ) -> Outcome {
         let Some((section, row)) = self.props_find(key) else {
             return failed(key!("error-no-row"), &[key]);
         };

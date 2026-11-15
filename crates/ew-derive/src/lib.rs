@@ -153,8 +153,8 @@ pub use flow::{Flow, FlowBfs, FlowConflict, FlowEntry, FlowNotes, Load, Potentia
 pub use flow_distance::{CpFlowDistanceOf, CpFlowDistances};
 pub use fluid::{
     FluidNet, FluidNets, FluidPartition, FluidTube, FluidTubes, GALLERIES, Galleries, GallerySegment,
-    ValvePort, ValveSlot, ValveSlots, ValveSlotsV, is_fluid, is_valve_terminal, open_working_ports, parent_chain,
-    reached_device, tracked_process_tag, tracked_target, valve_functions, valve_positions,
+    ValvePort, ValveSlot, ValveSlots, ValveSlotsV, is_fluid, is_valve_terminal, open_working_ports,
+    parent_chain, reached_device, tracked_process_tag, tracked_target, valve_functions, valve_positions,
 };
 pub use fluid_media::{
     Effective, MediumKey, MediumOrigin, MediumZones, MediumZonesV, Sourced, TubeProps, TubePropsOf,

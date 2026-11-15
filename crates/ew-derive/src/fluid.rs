@@ -72,7 +72,8 @@ impl ValvePort {
     pub fn conflict(a: Option<ValvePort>, b: Option<ValvePort>) -> bool {
         matches!(
             (a, b),
-            (Some(ValvePort::Working), Some(ValvePort::Exhaust)) | (Some(ValvePort::Exhaust), Some(ValvePort::Working))
+            (Some(ValvePort::Working), Some(ValvePort::Exhaust))
+                | (Some(ValvePort::Exhaust), Some(ValvePort::Working))
         )
     }
 }

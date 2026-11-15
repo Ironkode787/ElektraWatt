@@ -784,7 +784,11 @@ fn r2a_a_valve_placed_inside_a_valve_terminals_box_is_its_valve() {
         .into_iter()
         .find(|v| !valves.contains(v))
         .unwrap();
-    assert_eq!(seat(&mut d, loose), ("Absent".to_owned(), false), "loose below the box");
+    assert_eq!(
+        seat(&mut d, loose),
+        ("Absent".to_owned(), false),
+        "loose below the box"
+    );
     let _ = d.shell_mut().dispatch("tool.select", &json!({}));
     d.input(&Input::Drag {
         from: (1000, 800),
@@ -817,7 +821,16 @@ fn valve_and_three_tubes(d: &mut Driver) -> (Uuid, Vec<Uuid>) {
         ((valve, "4"), (cylinder, "B")),
     ] {
         let (pa, pb) = (port(d, a.0, a.1), port(d, b.0, b.1));
-        let before: Vec<Uuid> = d.shell_mut().canvas().unwrap().page().tables.connections.iter().map(|c| c.id).collect();
+        let before: Vec<Uuid> = d
+            .shell_mut()
+            .canvas()
+            .unwrap()
+            .page()
+            .tables
+            .connections
+            .iter()
+            .map(|c| c.id)
+            .collect();
         draw_tube(d, pa, pb);
         let new = d
             .shell_mut()
@@ -896,7 +909,11 @@ fn r2g_a_medium_set_on_two_tubes_at_once_holds_on_both() {
         .find(|n| n.label == "Compressed air")
         .and_then(|n| n.badges.first().cloned())
         .expect("the medium's row");
-    assert_eq!(badge, format!("{carried} lines"), "the Media row counts the tubes that carry it");
+    assert_eq!(
+        badge,
+        format!("{carried} lines"),
+        "the Media row counts the tubes that carry it"
+    );
     d.shell_mut().shutdown();
 }
 
@@ -1011,7 +1028,10 @@ fn r2d_a_tubes_finding_chip_lists_its_findings() {
         .shell_mut()
         .dispatch("select.set", &json!({ "ids": [cylinder.to_string()] }));
     let rows = chip_findings(&mut d);
-    assert!(rows.iter().any(|r| r.starts_with("-201M1 has no part")), "{rows:?}");
+    assert!(
+        rows.iter().any(|r| r.starts_with("-201M1 has no part")),
+        "{rows:?}"
+    );
     d.shell_mut().shutdown();
 }
 
@@ -1085,7 +1105,10 @@ fn r2e_the_supply_plate_has_its_ports_and_feeds_the_valves() {
     let (a, b) = (port(&mut d, supply, "1"), port(&mut d, plate, "1"));
     draw_tube(&mut d, a, b);
     assert_eq!(tubes(&mut d), 1);
-    assert!(findings(&mut d, "EW-FL-010").is_empty(), "the valve's port 1 is fed through the plate");
+    assert!(
+        findings(&mut d, "EW-FL-010").is_empty(),
+        "the valve's port 1 is fed through the plate"
+    );
     d.shell_mut().shutdown();
 }
 
@@ -1123,7 +1146,14 @@ fn r2j_the_starter_parts_answer_the_cylinder_and_the_air_supply() {
 /// insertion point of `of`'s representation.
 fn set_beside(d: &mut Driver, device: Uuid, of: Uuid, steps: (i64, i64)) {
     let tables = std::sync::Arc::clone(&d.shell_mut().canvas().unwrap().page().tables);
-    let rep = |dev: Uuid| tables.reps.iter().find(|r| r.device == Some(dev)).unwrap().clone();
+    let rep = |dev: Uuid| {
+        tables
+            .reps
+            .iter()
+            .find(|r| r.device == Some(dev))
+            .unwrap()
+            .clone()
+    };
     let (r, o) = (rep(device), rep(of));
     let grid = ew_ui::ew_viewmodel::tools::wire::PageGridMap::new(tables.grid);
     let k = |v: i64| grid.index(v);
@@ -1270,7 +1300,8 @@ fn r2c_the_hint_says_what_a_click_will_do_while_a_tube_is_drawn() {
     );
     let free = hint_at(&mut d, (start.0 + 200, start.1 + 150));
     assert!(
-        free.as_str().is_some_and(|h| h.contains("a free point for a bend")),
+        free.as_str()
+            .is_some_and(|h| h.contains("a free point for a bend")),
         "{free}"
     );
     d.shell_mut().shutdown();

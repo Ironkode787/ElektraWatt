@@ -956,7 +956,8 @@ impl Session {
             }
             // A fluid source's medium: defined at its port, as a tube's at its end.
             ("device", "medium") => {
-                let Some((function, idx)) = super::properties::source_port(&q, Id::from_uuid(edit.target)) else {
+                let Some((function, idx)) = super::properties::source_port(&q, Id::from_uuid(edit.target))
+                else {
                     return invalid("The device has no fluid port to define its medium at.");
                 };
                 if text.parse::<Uuid>().is_err() {
@@ -971,10 +972,14 @@ impl Session {
             // refuses a position another child holds in words.
             ("device", "position") => {
                 let Some(position) = text.parse::<u32>().ok().filter(|p| *p > 0) else {
-                    return Err(LayoutEditError::Refused(ew_commands::text_key!("props-position-number")));
+                    return Err(LayoutEditError::Refused(ew_commands::text_key!(
+                        "props-position-number"
+                    )));
                 };
                 let Some(parent) = q.devices().get(Id::from_uuid(edit.target)).and_then(|d| d.parent) else {
-                    return Err(LayoutEditError::Refused(ew_commands::text_key!("props-position-no-terminal")));
+                    return Err(LayoutEditError::Refused(ew_commands::text_key!(
+                        "props-position-no-terminal"
+                    )));
                 };
                 command(
                     "assembly.attach",

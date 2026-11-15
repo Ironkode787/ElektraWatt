@@ -414,7 +414,8 @@ impl Session {
                 terminal: super::properties::device_tag_text(&q, p),
                 position: d.position,
             }),
-            None => (!ew_derive::valve_functions(&q, id).is_empty()).then_some(TerminalSeat::Loose { device: tag }),
+            None => (!ew_derive::valve_functions(&q, id).is_empty())
+                .then_some(TerminalSeat::Loose { device: tag }),
         }
     }
 

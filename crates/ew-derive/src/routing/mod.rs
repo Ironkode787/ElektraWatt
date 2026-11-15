@@ -65,7 +65,9 @@ mod tests;
 
 pub use measures::{Bends, Crossing, FourWay, Measures, Overlap, Through, Touch, TouchedPoint, measure};
 pub use page::{Body, CpPoint, DrawnConnection, JunctionPoint, PageGeometry, Point, Rect, TextBox};
-pub use plan::{OneEnd, RoutePlan, SUPPLY_ORDER, Unrouted, clear_one, route_one, route_one_over_texts, route_page};
+pub use plan::{
+    OneEnd, RoutePlan, SUPPLY_ORDER, Unrouted, clear_one, route_one, route_one_over_texts, route_page,
+};
 pub use search::{
     BEND_COST, CROSSING_COST, Heading, MATE_STEP_COST, MAX_NODES, RouteEnd, RouteRequest, Routed, STEP_COST,
     auto_route, clear, route, unrouted_line,

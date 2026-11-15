@@ -732,10 +732,9 @@ impl ShellModel {
         if !matches!(cmd.name(), "device.place" | "rep.move") {
             return cmd;
         }
-        let (Ok(mut params), Some(tables)) = (
-            cmd.to_json(),
-            self.canvas().map(|c| Arc::clone(&c.page().tables)),
-        ) else {
+        let (Ok(mut params), Some(tables)) =
+            (cmd.to_json(), self.canvas().map(|c| Arc::clone(&c.page().tables)))
+        else {
             return cmd;
         };
         let at = |v: &Value| Some((v[0].as_i64()?, v[1].as_i64()?));
@@ -744,7 +743,9 @@ impl ShellModel {
         } else {
             let grid = crate::tools::wire::PageGridMap::new(tables.grid);
             let rep = match params["reps"].as_array().map(Vec::as_slice) {
-                Some([one]) => one.as_str().and_then(|r| tables.reps.iter().find(|x| x.id.to_string() == r)),
+                Some([one]) => one
+                    .as_str()
+                    .and_then(|r| tables.reps.iter().find(|x| x.id.to_string() == r)),
                 _ => None,
             };
             let point = rep.zip(at(&params["steps"])).map(|(r, (kx, ky))| {
@@ -792,9 +793,9 @@ impl ShellModel {
                 terminal,
                 position: Some(p),
             } => strings::format(key!("toast-seat-valve"), &[&device, &p.to_string(), &terminal]),
-            TerminalSeat::On {
-                device, terminal, ..
-            } => strings::format(key!("toast-seat-plate"), &[&device, &terminal]),
+            TerminalSeat::On { device, terminal, .. } => {
+                strings::format(key!("toast-seat-plate"), &[&device, &terminal])
+            }
             TerminalSeat::Loose { device } => strings::format(key!("toast-seat-full"), &[&device]),
         })
     }

@@ -1780,7 +1780,11 @@ impl ShellModel {
         }
         // Without a title of its own the block is titled by its report's name, so its pages read "912 Tube list" in
         // the page tree, not a bare folio (the persona re-test).
-        let title = if title.is_empty() { report_kind_words(&kind) } else { title };
+        let title = if title.is_empty() {
+            report_kind_words(&kind)
+        } else {
+            title
+        };
         params["title"] = Value::String(title);
         if let Some(id) = section_of(self, number) {
             params["section"] = Value::String(id);

@@ -2103,7 +2103,11 @@ impl Session {
                     .get(function)
                     .and_then(|f| q.fndefs().get(f.def))
                     .and_then(|d| {
-                        let cp = q.get::<ew_derive::FunctionCps>(function).iter().find(|c| c.idx == idx).cloned()?;
+                        let cp = q
+                            .get::<ew_derive::FunctionCps>(function)
+                            .iter()
+                            .find(|c| c.idx == idx)
+                            .cloned()?;
                         ew_derive::ValvePort::of(&d.item.contact_kind, cp.port_role.as_ref())
                     }),
                 plc_address: q

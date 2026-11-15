@@ -2636,7 +2636,9 @@ impl Session {
         // through the filter, and typing into it did nothing, since `assembly.attach` owns the member and the row was
         // read-only): one row in Main for valves and the children of a module with valve positions, typed into to move
         // one valve to another position (`assembly.attach` through `Session::layout_edit`).
-        let seats: Vec<Option<(Option<Id<Device>>, Option<u32>)>> = devices
+        // Per device: its module with valve positions (if any) and its position there; `None` for no valve.
+        type Seat = (Option<Id<Device>>, Option<u32>);
+        let seats: Vec<Option<Seat>> = devices
             .iter()
             .map(|d| {
                 let dev = q.devices().get(*d)?;
