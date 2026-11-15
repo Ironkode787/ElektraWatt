@@ -2400,6 +2400,51 @@ fn a_positional_contacts_endpoints_survive_a_pattern_re_index() {
     );
 }
 
+/// rc.2: an update of a symbol that draws its CPs elsewhere (the fluid symbols redrawn smaller) takes the routes at them
+/// along as a moved symbol does: the wire still ends on its CP, its far end and its other vertices stay.
+#[test]
+fn a_symbol_update_that_moves_its_cps_takes_the_routes_along() {
+    let mut e = engine(exchange_model(|_| {}));
+    // The lamp drawn by a library copy of the fixture's symbol (an update needs the derived copy identity).
+    let (symbol, held) = relineaged(&fixture_doc(SYM_TWO.as_uuid()), 0xf673_0002);
+    let mut cmd = exchange(REP_L, Id::from_uuid(symbol));
+    cmd.copies = vec![held.clone()];
+    e.execute(&cmd).expect("rep.exchange_symbol with copies");
+    let LibDocument::Symbol(mut new) = LibDocument::from_value(held).expect("a library document") else {
+        panic!("a symbol")
+    };
+    let moved: Vec<ew_schema::SymbolCp> = new
+        .item
+        .cps
+        .clone()
+        .into_vec()
+        .into_iter()
+        .map(|mut c| {
+            c.pos = pt(c.pos.x.0 + MM10, c.pos.y.0);
+            c
+        })
+        .collect();
+    new.item.cps = ew_schema::KeyedList::from_vec(moved).expect("distinct indexes");
+    new.version = "9.0.0".into();
+    let mut v = serde_json::to_value(LibDocument::Symbol(new)).expect("a library document");
+    v["sha256"] = json!(sha_text(&v));
+    let update = AnyCommand {
+        name: "library.update".into(),
+        params: json!({ "copies": [v] }),
+    };
+    let preview = e.preview(&update).expect("library.update previews");
+    e.commit(preview).expect("library.update");
+    let l = l_at();
+    assert_eq!(
+        route_of(&e, CON_L0),
+        vec![pt(0, 4 * G), pt(l.x.0 + MM10, l.y.0)]
+    );
+    assert_eq!(
+        route_of(&e, CON_L1),
+        vec![pt(l.x.0 + MM10, l.y.0 + MM10), pt(8 * G, l.y.0 + MM10)]
+    );
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // `copies` on rep.exchange_symbol
 

@@ -3,8 +3,8 @@
   "id": "47698630-eceb-5e5c-8b0e-720a8cdd42ff",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "3a1233af-4bc5-5e64-b454-920dd9d8487d",
-  "version": "0.1.0",
-  "sha256": "sha256:c9c17deeffa38432313d48d793865cf8df30587f550aa3636705b540b2eacf30",
+  "version": "0.2.0",
+  "sha256": "sha256:7db7d9c572b654b26d64b46811a5cb176af922da5837d552be5ec68a447c33bb",
   "meta": {
     "key": "ew.iso.plug-fluid@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -37,12 +37,12 @@
     {
       "line": {
         "from": [
-          2645833,
-          10583333
+          3307292,
+          9260417
         ],
         "to": [
-          7937500,
-          10583333
+          7276042,
+          9260417
         ],
         "stroke": {
           "pen": {
@@ -54,12 +54,12 @@
     {
       "line": {
         "from": [
-          3307292,
-          9260417
+          3968750,
+          8268229
         ],
         "to": [
-          7276042,
-          9260417
+          6614583,
+          8268229
         ],
         "stroke": {
           "pen": {
@@ -72,11 +72,11 @@
       "line": {
         "from": [
           5291667,
-          10583333
+          9260417
         ],
         "to": [
           5291667,
-          13229167
+          10583333
         ],
         "stroke": {
           "pen": {
@@ -92,7 +92,7 @@
       "fn_cp": 0,
       "pos": [
         5291667,
-        13229167
+        10583333
       ],
       "dir": "down",
       "discipline": "pneumatic"
@@ -102,19 +102,19 @@
     {
       "kind": "tag",
       "pos": [
-        -7937500,
-        -661458
+        2645833,
+        7937500
       ],
-      "align": "bottom_left",
+      "align": "middle_right",
       "visible": true
     },
     {
       "kind": "function_text",
       "pos": [
-        -7937500,
-        11906250
+        7937500,
+        7937500
       ],
-      "align": "top_left",
+      "align": "middle_left",
       "visible": true,
       "fallback": "process_tag"
     },
@@ -124,7 +124,7 @@
       },
       "pos": [
         5953125,
-        11906250
+        11244792
       ],
       "align": "middle_left",
       "visible": true

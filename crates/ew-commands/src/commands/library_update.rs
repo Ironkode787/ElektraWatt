@@ -5,19 +5,23 @@
 //! doc 07 §4.5 ([`classify_update`]), which the session's update plan shows on the card.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_model::{AnyKey, AnyRow, EndpointKey};
 use ew_schema::{
-    AnyId, Bond, Channel, Connection, Device, Endpoint, FnDef, Function, FunctionKind, LibCopy, LibDocument,
-    Part, PotentialDef, Representation, Sha256, TemplateFn, template_entry_of,
+    AnyId, Bond, Channel, Connection, Device, Endpoint, FnDef, Function, FunctionKind, LibCopy, LibDocument, Page,
+    Part, PotentialDef, Representation, Sha256, SymbolDef, TemplateFn, template_entry_of,
 };
+use ew_units::Pt2;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::command::{Command, Outcome};
+use crate::commands::connection::follow_moved_cps;
 use crate::commands::library::{check_copy, read_copy};
+use crate::geometry::{RepCp, rep_cps, sub};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::UuidS;
@@ -366,7 +370,9 @@ pub struct CpMapParam {
 /// the FnDef CP each symbol CP draws). A template-origin function's CP stays on the part pattern entry it is drawn as
 /// (its endpoint is a FnDef CP index where the template entry pairs by position, so it is not mapped as a
 /// pattern index): a part update moves it with that entry, a FnDef update keeps the entry and takes the endpoint the
-/// new FnDef gives it. Referencing records change nowhere else.
+/// new FnDef gives it. Where an updated symbol draws a CP elsewhere, the routes of the connections at it on the
+/// representation's page follow it as a moved symbol's do (`geometry::follow_ends`: the end segments stretch, the
+/// vertices between stay). Referencing records change nowhere else.
 ///
 /// Rejected: no copy (`/copies`), a copy listed twice, one the project does not hold (`/copies/i`), a version that
 /// is not semantic or is lower than the held one (`/copies/i/version`, a downgrade), a mapping for a copy not in
@@ -814,6 +820,24 @@ impl Command for UpdateLibraryCopies {
                 LibDocument::Unknown(_) => unreachable!("check_copy refuses an unknown kind"),
             }
         }
+        // The representations of an updated symbol, with where their CPs stand before the update: the routes of their
+        // connections follow the CPs the new drawing moves.
+        let symbols: BTreeSet<Id<SymbolDef>> = updates
+            .iter()
+            .filter_map(|(_, new, _, changed)| match new {
+                LibDocument::Symbol(c) if *changed => Some(c.id),
+                _ => None,
+            })
+            .collect();
+        let drawn: Vec<(Arc<Representation>, Vec<RepCp>)> = tx
+            .iter::<Representation>()
+            .into_iter()
+            .filter(|r| symbols.contains(&r.symbol))
+            .map(|r| {
+                let cps = rep_cps(tx, &r);
+                (r, cps)
+            })
+            .collect();
         apply_remap(tx, &remap)?;
         for (_, new, _, changed) in updates {
             if !changed {
@@ -828,6 +852,25 @@ impl Command for UpdateLibraryCopies {
                 LibDocument::Manufacturer(c) => tx.put(c),
                 LibDocument::PlcProfile(c) => tx.put(c),
                 LibDocument::Unknown(_) => unreachable!("read_copy refuses an unknown kind"),
+            }
+        }
+        for (rep, before) in drawn {
+            let mut moves: BTreeMap<(Id<Function>, u16), Pt2> = BTreeMap::new();
+            for a in rep_cps(tx, &rep) {
+                let Some(b) = before.iter().find(|b| {
+                    b.function == a.function && remap.get(&(b.function, b.idx)).copied().unwrap_or(b.idx) == a.idx
+                }) else {
+                    continue;
+                };
+                if let Ok(d) = sub(a.pos, b.pos)
+                    && d != Pt2::ORIGIN
+                {
+                    moves.entry((a.function, a.idx)).or_insert(d);
+                }
+            }
+            if !moves.is_empty() {
+                let grid = tx.require::<Page>(rep.page)?.grid;
+                follow_moved_cps(tx, rep.page, grid, &moves, text!("refusal-move-what-update"))?;
             }
         }
         Ok(Outcome {

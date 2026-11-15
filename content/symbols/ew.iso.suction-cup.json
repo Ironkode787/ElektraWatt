@@ -3,8 +3,8 @@
   "id": "2a985087-32ea-55fa-81d2-0f8454e00b62",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "05b76538-56ea-57a3-a6cc-32eef4ef5b14",
-  "version": "0.1.0",
-  "sha256": "sha256:d180f414d73517d10903f6bc96e3502e85151f75ae37ec7f84f4f1053a7521b7",
+  "version": "0.2.0",
+  "sha256": "sha256:e19126ae7a0aa9ab9c0e75ea3848dd3f4f2d8ede2a20307b894047ef705c7764",
   "meta": {
     "key": "ew.iso.suction-cup",
     "licence": "CC-BY-SA-4.0",
@@ -38,20 +38,20 @@
       "polyline": {
         "points": [
           [
-            0,
-            4000000
+            2000000,
+            7000000
           ],
           [
-            4000000,
-            12000000
+            5000000,
+            13000000
           ],
           [
-            12000000,
-            12000000
+            11000000,
+            13000000
           ],
           [
-            16000000,
-            4000000
+            14000000,
+            7000000
           ]
         ],
         "stroke": {
@@ -63,11 +63,26 @@
       "line": {
         "from": [
           8000000,
-          16000000
+          13000000
         ],
         "to": [
           8000000,
-          20000000
+          14000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          8000000,
+          14000000
+        ],
+        "to": [
+          8000000,
+          16000000
         ],
         "stroke": {
           "pen": "p026"
@@ -81,7 +96,7 @@
       "fn_cp": 0,
       "pos": [
         8000000,
-        20000000
+        16000000
       ],
       "dir": "down",
       "discipline": "pneumatic"
@@ -91,19 +106,19 @@
     {
       "kind": "tag",
       "pos": [
-        -12000000,
-        -1000000
+        1000000,
+        9000000
       ],
-      "align": "bottom_left",
+      "align": "middle_right",
       "visible": true
     },
     {
       "kind": "function_text",
       "pos": [
-        -12000000,
-        18000000
+        15000000,
+        9000000
       ],
-      "align": "top_left",
+      "align": "middle_left",
       "visible": true,
       "fallback": "process_tag"
     },
@@ -113,7 +128,7 @@
       },
       "pos": [
         9000000,
-        18000000
+        17000000
       ],
       "align": "middle_left",
       "visible": true

@@ -71,6 +71,16 @@ the fluid part of the QET importer.
    `SymbolDef.iso1219_ref` metadata ([07](07-symbols-parts-macros.md) §2.3; NFR-LIC-06, NFR-LIC-07, NFR-COMP-05).
    QET pneumatic elements are never bundled; imported ones stay in the project's "QET import" library.
 
+   *As built (rc.2).* The shipped set is drawn on one module, so that a fluid page and an electrical page read as one
+   drawing set: a valve position is a square of 12 mm, its ports on the 4 mm grid 4 mm apart with 2 mm leads (the
+   square's edge 2 mm off the grid), the paths drawn from the definition's switching model (a flow arrow, a closed
+   port's T), the actuators 6 mm (solenoid, spring, pilot), the manual override 3 mm. Every other component is a body
+   of 12 mm or less centred between its ports, which stand 8 mm from its centre with 2 mm leads; a port's designation
+   stands beside its tube just beyond the port. Line widths and text sizes are the electrical symbols'. The 5/2
+   solenoid/spring valve and the double-acting cylinder keep their earlier drawing: Golden A holds them and its
+   bootstrap takes them from the shipped set. A library update that draws a CP elsewhere takes the routes at it along
+   (the end segments stretch, a hand-drawn route keeps its other bends).
+
 ---
 
 ## 2. Concepts and data

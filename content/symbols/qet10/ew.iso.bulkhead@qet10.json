@@ -3,8 +3,8 @@
   "id": "25fffe03-e541-5739-a99b-02e258a61baa",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "13626aa4-6fdd-5cd0-b12c-b2d03a7e16ae",
-  "version": "0.1.0",
-  "sha256": "sha256:45d5dc434d85b2542be77dc60adba0b082cbf06a6ee3f8aa30a6c6087bdaa5b5",
+  "version": "0.2.0",
+  "sha256": "sha256:f1aeac2461437eabc22e0ef80649b46f3949ceb872d7b5a1c5e1a136e6d1ab66",
   "meta": {
     "key": "ew.iso.bulkhead@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -37,11 +37,11 @@
     {
       "line": {
         "from": [
-          0,
+          1322917,
           5291667
         ],
         "to": [
-          10583333,
+          9260417,
           5291667
         ],
         "stroke": {
@@ -55,11 +55,11 @@
       "line": {
         "from": [
           5291667,
-          1322917
+          2315104
         ],
         "to": [
           5291667,
-          9260417
+          8268229
         ],
         "stroke": {
           "pen": {
@@ -71,7 +71,7 @@
     {
       "line": {
         "from": [
-          -2645833,
+          1322917,
           5291667
         ],
         "to": [
@@ -88,11 +88,11 @@
     {
       "line": {
         "from": [
-          10583333,
+          9260417,
           5291667
         ],
         "to": [
-          13229167,
+          10583333,
           5291667
         ],
         "stroke": {
@@ -108,7 +108,7 @@
       "idx": 0,
       "fn_cp": 0,
       "pos": [
-        -2645833,
+        0,
         5291667
       ],
       "dir": "left",
@@ -118,7 +118,7 @@
       "idx": 1,
       "fn_cp": 1,
       "pos": [
-        13229167,
+        10583333,
         5291667
       ],
       "dir": "right",
@@ -129,8 +129,8 @@
     {
       "kind": "tag",
       "pos": [
-        -7937500,
-        -661458
+        1322917,
+        661458
       ],
       "align": "bottom_left",
       "visible": true
@@ -138,8 +138,8 @@
     {
       "kind": "function_text",
       "pos": [
-        -7937500,
-        11906250
+        1322917,
+        9921875
       ],
       "align": "top_left",
       "visible": true,
@@ -150,10 +150,10 @@
         "cp_designation": 0
       },
       "pos": [
-        -1322917,
-        4630208
+        -661458,
+        3307292
       ],
-      "align": "middle_left",
+      "align": "middle_right",
       "visible": true
     },
     {
@@ -161,10 +161,10 @@
         "cp_designation": 1
       },
       "pos": [
-        11906250,
-        4630208
+        11244792,
+        3307292
       ],
-      "align": "middle_right",
+      "align": "middle_left",
       "visible": true
     }
   ],

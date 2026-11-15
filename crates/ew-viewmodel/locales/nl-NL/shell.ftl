@@ -1405,6 +1405,7 @@ refusal-ip-arrange-out-of-range = de schikking zet een aansluitpunt buiten het t
 refusal-ip-arrange-too-far = de schikking verplaatst een aansluitpunt te ver
 refusal-move-what-arrangement = de schikking
 refusal-move-what-reshape = de vormwijziging
+refusal-move-what-update = het bijwerken uit de bibliotheek
 refusal-move-route-out-of-range = { $p0 } verplaatst het verloop van { $p1 } buiten het tekenbereik; verplaats minder ver
 refusal-arrange-few-ips = schik ten minste twee onderbrekingspunten
 # device.place, box.black and a device from a part.

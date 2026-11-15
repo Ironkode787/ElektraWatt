@@ -1457,6 +1457,7 @@ refusal-ip-arrange-out-of-range = the arrangement puts a connection point outsid
 refusal-ip-arrange-too-far = the arrangement moves a connection point too far
 refusal-move-what-arrangement = the arrangement
 refusal-move-what-reshape = the reshape
+refusal-move-what-update = the library update
 refusal-move-route-out-of-range = { $p0 } moves the route of { $p1 } outside the drawable range; move it less far
 refusal-arrange-few-ips = arrange at least two interruption points
 # device.place, box.black and a device from a part.

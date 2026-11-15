@@ -3,8 +3,8 @@
   "id": "5f70e141-06b7-5ecb-8b97-dc66bd142a50",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "034fce98-687b-508b-8f57-d72a6e94f107",
-  "version": "0.1.0",
-  "sha256": "sha256:63c867d7b874ec36a8460f539799b6b7be19123e1ca72b68c72d4a01072de6b0",
+  "version": "0.2.0",
+  "sha256": "sha256:a53d70d051b35541b6b93bc49f1e7136844d3a6df1a7ddccaab54b7c9ebf05c8",
   "meta": {
     "key": "ew.iso.pressure-switch@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -38,12 +38,12 @@
       "rect": {
         "rect": [
           [
-            0,
-            0
+            1322917,
+            1322917
           ],
           [
-            10583333,
-            10583333
+            9260417,
+            9260417
           ]
         ],
         "stroke": {
@@ -57,16 +57,16 @@
       "polyline": {
         "points": [
           [
-            2645833,
-            7937500
+            3307292,
+            7276042
           ],
           [
             5291667,
-            2645833
+            3307292
           ],
           [
-            7937500,
-            7937500
+            7276042,
+            7276042
           ]
         ],
         "stroke": {
@@ -80,11 +80,11 @@
       "line": {
         "from": [
           5291667,
-          10583333
+          9260417
         ],
         "to": [
           5291667,
-          13229167
+          10583333
         ],
         "stroke": {
           "pen": {
@@ -100,7 +100,7 @@
       "fn_cp": 0,
       "pos": [
         5291667,
-        13229167
+        10583333
       ],
       "dir": "down",
       "discipline": "pneumatic"
@@ -110,19 +110,19 @@
     {
       "kind": "tag",
       "pos": [
-        -7937500,
-        -661458
+        661458,
+        3968750
       ],
-      "align": "bottom_left",
+      "align": "middle_right",
       "visible": true
     },
     {
       "kind": "function_text",
       "pos": [
-        -7937500,
-        11906250
+        661458,
+        6614583
       ],
-      "align": "top_left",
+      "align": "middle_right",
       "visible": true,
       "fallback": "process_tag"
     },
@@ -132,7 +132,7 @@
       },
       "pos": [
         5953125,
-        11906250
+        11244792
       ],
       "align": "middle_left",
       "visible": true

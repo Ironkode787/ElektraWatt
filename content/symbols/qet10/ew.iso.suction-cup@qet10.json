@@ -3,8 +3,8 @@
   "id": "62068812-be87-505d-9c12-197b6f2306a8",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "bc6f1994-66fc-5eeb-8b17-b30b179abfc9",
-  "version": "0.1.0",
-  "sha256": "sha256:a320309003508cfc43d6fd3a9eb72d49571f181d8227895237c3cc0ea57462bd",
+  "version": "0.2.0",
+  "sha256": "sha256:a4d512e7b8849f4bc8a6623bfaeb13083257d6aa5204bfff1c36e3e26c000c01",
   "meta": {
     "key": "ew.iso.suction-cup@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -38,20 +38,20 @@
       "polyline": {
         "points": [
           [
-            0,
-            2645833
+            1322917,
+            4630208
           ],
           [
-            2645833,
-            7937500
+            3307292,
+            8598958
           ],
           [
-            7937500,
-            7937500
+            7276042,
+            8598958
           ],
           [
-            10583333,
-            2645833
+            9260417,
+            4630208
           ]
         ],
         "stroke": {
@@ -65,11 +65,28 @@
       "line": {
         "from": [
           5291667,
-          10583333
+          8598958
         ],
         "to": [
           5291667,
-          13229167
+          9260417
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          5291667,
+          9260417
+        ],
+        "to": [
+          5291667,
+          10583333
         ],
         "stroke": {
           "pen": {
@@ -85,7 +102,7 @@
       "fn_cp": 0,
       "pos": [
         5291667,
-        13229167
+        10583333
       ],
       "dir": "down",
       "discipline": "pneumatic"
@@ -95,19 +112,19 @@
     {
       "kind": "tag",
       "pos": [
-        -7937500,
-        -661458
+        661458,
+        5953125
       ],
-      "align": "bottom_left",
+      "align": "middle_right",
       "visible": true
     },
     {
       "kind": "function_text",
       "pos": [
-        -7937500,
-        11906250
+        9921875,
+        5953125
       ],
-      "align": "top_left",
+      "align": "middle_left",
       "visible": true,
       "fallback": "process_tag"
     },
@@ -117,7 +134,7 @@
       },
       "pos": [
         5953125,
-        11906250
+        11244792
       ],
       "align": "middle_left",
       "visible": true

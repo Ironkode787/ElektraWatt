@@ -3,8 +3,8 @@
   "id": "9cb3583f-d195-5916-8868-5561a6163407",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "ac524c92-3e8e-516c-a386-828bca809b8b",
-  "version": "0.1.0",
-  "sha256": "sha256:3560850bd4a28ba66c2bcd43ed0f80fa5943222f35cad26104469520468b0aa4",
+  "version": "0.2.0",
+  "sha256": "sha256:fefed95b065012c4b05613bb3a69ddc1729fcb57d79c41cf60dd19e14ba46444",
   "meta": {
     "key": "ew.iso.pressure-gauge@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -41,7 +41,7 @@
           5291667,
           5291667
         ],
-        "r": 4630208,
+        "r": 3307292,
         "stroke": {
           "pen": {
             "width": 264583
@@ -56,8 +56,8 @@
           5291667
         ],
         "to": [
-          7937500,
-          2645833
+          7276042,
+          3307292
         ],
         "stroke": {
           "pen": {
@@ -67,14 +67,39 @@
       }
     },
     {
+      "polygon": {
+        "points": [
+          [
+            6614583,
+            3307292
+          ],
+          [
+            7276042,
+            3968750
+          ],
+          [
+            7276042,
+            3307292
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        },
+        "fill": "by_layer"
+      }
+    },
+    {
       "line": {
         "from": [
           5291667,
-          10583333
+          8598958
         ],
         "to": [
           5291667,
-          13229167
+          10583333
         ],
         "stroke": {
           "pen": {
@@ -90,7 +115,7 @@
       "fn_cp": 0,
       "pos": [
         5291667,
-        13229167
+        10583333
       ],
       "dir": "down",
       "discipline": "pneumatic"
@@ -100,19 +125,19 @@
     {
       "kind": "tag",
       "pos": [
-        -7937500,
-        -661458
+        1322917,
+        3968750
       ],
-      "align": "bottom_left",
+      "align": "middle_right",
       "visible": true
     },
     {
       "kind": "function_text",
       "pos": [
-        -7937500,
-        11906250
+        1322917,
+        6614583
       ],
-      "align": "top_left",
+      "align": "middle_right",
       "visible": true,
       "fallback": "process_tag"
     },
@@ -122,7 +147,7 @@
       },
       "pos": [
         5953125,
-        11906250
+        11244792
       ],
       "align": "middle_left",
       "visible": true

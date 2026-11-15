@@ -3,8 +3,8 @@
   "id": "69f292ce-39c5-5213-b549-37ae7202b4be",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "b6b9fa1b-80ba-5cfc-8a8f-320f7d025952",
-  "version": "0.1.0",
-  "sha256": "sha256:876ec07cdc4823664f3824ab6988d7721a1fcce1ad2798372cc6eed8b607ff6e",
+  "version": "0.2.0",
+  "sha256": "sha256:0f45713e7d388e58c8e40b7774c2647e86eeaf4ab8df9b73e663d6c0acf4c8e7",
   "meta": {
     "key": "ew.iso.vacuum-switch",
     "licence": "CC-BY-SA-4.0",
@@ -39,12 +39,12 @@
       "rect": {
         "rect": [
           [
-            0,
-            0
+            2000000,
+            2000000
           ],
           [
-            16000000,
-            16000000
+            14000000,
+            14000000
           ]
         ],
         "stroke": {
@@ -55,12 +55,12 @@
     {
       "line": {
         "from": [
-          4000000,
-          12000000
+          5000000,
+          11000000
         ],
         "to": [
-          12000000,
-          4000000
+          11000000,
+          5000000
         ],
         "stroke": {
           "pen": "p013"
@@ -71,11 +71,11 @@
       "line": {
         "from": [
           8000000,
-          16000000
+          14000000
         ],
         "to": [
           8000000,
-          20000000
+          16000000
         ],
         "stroke": {
           "pen": "p026"
@@ -89,7 +89,7 @@
       "fn_cp": 0,
       "pos": [
         8000000,
-        20000000
+        16000000
       ],
       "dir": "down",
       "discipline": "pneumatic"
@@ -99,19 +99,19 @@
     {
       "kind": "tag",
       "pos": [
-        -12000000,
-        -1000000
+        1000000,
+        6000000
       ],
-      "align": "bottom_left",
+      "align": "middle_right",
       "visible": true
     },
     {
       "kind": "function_text",
       "pos": [
-        -12000000,
-        18000000
+        1000000,
+        10000000
       ],
-      "align": "top_left",
+      "align": "middle_right",
       "visible": true,
       "fallback": "process_tag"
     },
@@ -121,7 +121,7 @@
       },
       "pos": [
         9000000,
-        18000000
+        17000000
       ],
       "align": "middle_left",
       "visible": true
