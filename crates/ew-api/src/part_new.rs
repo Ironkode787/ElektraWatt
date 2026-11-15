@@ -110,6 +110,7 @@ impl Session {
             new: true,
             bus: Vec::<BusRow>::new(),
             to_library: true,
+            plc: crate::part_plc::PlcRows::new_part(),
             manufacturer: (original.manufacturer.clone(), Vec::new()),
             original,
         })
@@ -121,6 +122,33 @@ impl Session {
         let (mut p, _) = self.draft_part(draft)?;
         p.sections.bus = bus_section(&draft.bus)?;
         p.meta.key = Some(p.part_number.clone());
+        if let Some(m) = crate::part_plc::check_plc(&draft.plc).into_iter().next() {
+            return Err(PartDraftError::Field(m));
+        }
+        // The PLC section and its pins: a black-box main function over the pins, as the starter cards carry.
+        if let Some((section, cps)) = crate::part_plc::plc_section(&draft.plc) {
+            p.sections.plc = Some(section);
+            if !cps.is_empty()
+                && let Some(LibDocument::Fndef(def)) = starter_doc("ew.fn.blackbox")
+            {
+                p.cp_pattern = ew_schema::KeyedList::from_vec(cps).map_err(|e| {
+                    PartDraftError::Field(message(
+                        "plc.pin_of",
+                        ew_commands::text_key!("error-part-value"),
+                        &[&e.to_string()],
+                    ))
+                })?;
+                p.function_template = vec![TemplateFn {
+                    fndef: fndef_ref(&def),
+                    main: true,
+                    cps: p.cp_pattern.iter().map(|c| c.idx).collect(),
+                    extra: Default::default(),
+                }];
+                if p.category.is_none() {
+                    p.category = Some(def.item.category.clone());
+                }
+            }
+        }
         let first_port = p.sections.bus.as_ref().and_then(|b| b.ports.first());
         if p.cp_pattern.is_empty()
             && let Some(def) = first_port.and_then(|port| port_fndef(&port.bus))

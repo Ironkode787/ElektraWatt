@@ -374,3 +374,151 @@ fn a_managed_switch_and_a_drive_made_in_the_window_are_nodes_of_one_net() {
     }
     assert_eq!(findings(&mut d, "EW-BUS"), Vec::<String>::new(), "named, the net is silent");
 }
+
+/// Makes the input card "DI 8 × 24 V" in the part editor: a PLC module of eight digital inputs whose pins the pattern
+/// `{n+1}` gives (the preview says channel 0 → pin 1 … channel 7 → pin 8 before Save), allowed in slots `slots`.
+fn make_card(d: &mut Driver, number: &str, slots: &str) {
+    d.input(&key("Shift+I"));
+    d.settle();
+    press(d, "New part…");
+    fill(d, "Manufacturer", "Acme");
+    fill(d, "Part number", number);
+    fill(d, "Description", "Digital input card, 8 × 24 V DC");
+    press(d, "PLC role");
+    press(d, "Module");
+    press(d, "Channel kind");
+    press(d, "DI");
+    fill(d, "Channels", "8");
+    let preview = d.texts().into_iter().any(|t| t == "Channel 0 → pin 1 … channel 7 → pin 8");
+    assert!(preview, "the pin pattern's preview: {:?}", d.texts());
+    fill(d, "Allowed slots", slots);
+    press(d, "Save");
+    let left = match d.shell_mut().dialog() {
+        Some(Dialog::PartEdit(e)) => Some((e.error.clone(), e.draft.messages.clone())),
+        _ => None,
+    };
+    assert_eq!(left, None, "{number} is saved");
+}
+
+/// Adds the module part numbered `number` to slot `slot` of station `station` (its tag) in Rack and slots….
+fn rack_add(d: &mut Driver, station: &str, number: &str, slot: u64) {
+    let open = d
+        .shell_mut()
+        .dispatch("plc.rack_editor", &json!({"station": format!("tag:{station}")}));
+    assert_eq!(open, Outcome::Done);
+    let part = d
+        .shell_mut()
+        .module_parts()
+        .into_iter()
+        .find(|m| m.text.contains(number))
+        .unwrap_or_else(|| panic!("Rack and slots offers {number}"))
+        .copy;
+    let chose = d.shell_mut().dispatch("plc.rack_part", &json!({"part": part.to_string()}));
+    assert_eq!(chose, Outcome::Done);
+    assert_eq!(d.shell_mut().dispatch("plc.rack_add", &json!({"slot": slot})), Outcome::Done);
+    d.input(&key("Escape"));
+    d.settle();
+}
+
+/// The texts of the PLC navigator's rows.
+fn plc_rows(d: &mut Driver) -> Vec<String> {
+    use ew_ui::ew_viewmodel::navigators::NavKind;
+    let _ = d.shell_mut().dispatch("rail.show", &json!({"pane": "plc"}));
+    d.settle();
+    d.shell_mut().shown_rows(NavKind::Plc).into_iter().map(|r| r.text).collect()
+}
+
+/// Job 4a: a person makes the card "DI 8 × 24 V" with eight inputs and a pin pattern, saves it, and adds it as a card
+/// of the starter CPU by placing it beside the CPU from the device browser (it attaches to the project's one CPU): it
+/// stands with its eight pins, and its eight channels stand in the PLC navigator with their addresses, bound to them.
+#[test]
+fn a_card_made_in_the_window_is_a_card_of_the_starter_cpu() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    make_card(&mut d, "DI8-24", "");
+    let cpu = place_box(&mut d, "EW-GEN-CPU-1", (10, 10), (20, 18));
+    assert_eq!(cpu.len(), 2, "the CPU with L+ and M");
+    // The card placed beside it from the device browser attaches to the project's one CPU.
+    let card = place_box(&mut d, "DI8-24", (30, 10), (44, 18));
+    assert_eq!(card.len(), 8, "the card stands with its eight pins: {card:?}");
+    let rows = plc_rows(&mut d);
+    for channel in ["I0.0", "I0.7"] {
+        assert!(rows.iter().any(|r| r.contains(channel)), "{channel}: {rows:?}");
+    }
+    let all = records(&mut d);
+    // Channel n binds pin n + 1, CP index n of the card's pattern (the pins in channel order).
+    let mut pins: Vec<(u64, u64)> = all
+        .iter()
+        .filter(|v| v.get("module").is_some() && v.get("number").is_some())
+        .filter_map(|v| Some((v["number"].as_u64()?, v["binding"]["cp"][1].as_u64()?)))
+        .collect();
+    pins.sort_unstable();
+    assert_eq!(pins, (0..8).map(|n| (n, n)).collect::<Vec<_>>(), "each channel binds its pin");
+}
+
+/// A head station such as an IM 152, typed from its data sheet: a PLC station with a PROFIBUS DP slave interface,
+/// its supply pins and at most 32 modules; a card allowed in slots 1 to 32 goes into its slot 1, and its DP port,
+/// placed from the station's row on a bus-topology page, is a slave port in the Bus navigator. Nothing depends on
+/// facts the program ships about a manufacturer's product.
+#[test]
+fn a_head_station_made_in_the_window_takes_its_cards_and_its_dp_port() {
+    use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    d.input(&key("Shift+I"));
+    d.settle();
+    press(&mut d, "New part…");
+    fill(&mut d, "Manufacturer", "Acme");
+    fill(&mut d, "Part number", "HEAD-DP");
+    fill(&mut d, "Description", "Head station, PROFIBUS DP");
+    press(&mut d, "PLC role");
+    press(&mut d, "Station");
+    fill(&mut d, "Supply L+ pin", "L+");
+    fill(&mut d, "Supply M pin", "M");
+    fill(&mut d, "Most modules", "32");
+    press(&mut d, "Add interface");
+    press(&mut d, "Interface 1");
+    d.input(&key("Ctrl+A"));
+    d.input(&typed("DP"));
+    press(&mut d, "Bus 1");
+    press(&mut d, "PROFIBUS DP");
+    press(&mut d, "Role 1");
+    press(&mut d, "Slave");
+    press(&mut d, "Save");
+    assert!(d.shell_mut().dialog().is_none(), "the head station is saved");
+    make_card(&mut d, "DI8-24", "1-32");
+    let head = place_box(&mut d, "HEAD-DP", (10, 10), (20, 18));
+    let tag = head[0].split(':').next().unwrap().to_owned();
+    assert_eq!(head.len(), 2, "the station's supply pins L+ and M: {head:?}");
+    rack_add(&mut d, &tag, "DI8-24", 1);
+    let rows = plc_rows(&mut d);
+    assert!(rows.iter().any(|r| r.contains("head station")), "N0 makes it a head station: {rows:?}");
+    assert!(rows.iter().any(|r| r.contains("I0.0")), "its card's channels: {rows:?}");
+    // Its DP port, from its row (Place port DP), on a bus-topology page.
+    let page = json!({"folio": "2", "type": "bus_topology", "title": "Network"});
+    assert_eq!(d.shell_mut().dispatch("page.new", &page), Outcome::Done);
+    d.settle();
+    let symbol = ew_ui::ew_viewmodel::ew_api::library::starter::items()
+        .iter()
+        .find(|i| i.key.starts_with("ew.bus.dp-port@"))
+        .expect("the DP port symbol")
+        .key;
+    let _ = d.shell_mut().dispatch("place.pick", &json!({"symbol": symbol, "device": tag}));
+    cursor_k(&mut d, (30, 30));
+    let _ = d.shell_mut().dispatch("canvas.activate", &json!({}));
+    d.input(&key("Escape"));
+    let _ = d.shell_mut().dispatch("rail.show", &json!({"pane": "bus"}));
+    d.settle();
+    let port = d
+        .shell_mut()
+        .shown_rows(NavKind::Bus)
+        .into_iter()
+        .find(|r| r.role == NavRole::BusPort.word() && r.label == format!("{tag} DP"))
+        .expect("the station's DP port in the Bus navigator");
+    let _ = port;
+    let all = records(&mut d);
+    let slave = all
+        .iter()
+        .any(|v| v["bus_port"]["interface"] == "DP" && v["bus_port"]["role"] == "slave");
+    assert!(slave, "the port is the part's slave interface");
+}

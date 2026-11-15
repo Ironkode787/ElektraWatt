@@ -110,6 +110,7 @@ pub mod output;
 mod part_editor;
 mod part_new;
 mod part_offers;
+mod part_plc;
 pub mod plc_exchange;
 pub mod qet_collection;
 pub mod symbols;
@@ -145,6 +146,7 @@ pub use part_editor::{
 };
 pub use part_new::NewPart;
 pub use part_offers::{Fit, OfferView, PartOffer, PartOfferQuery, PartPick, PartTarget};
+pub use part_plc::{MAX_CHANNELS, PLC_MEMBERS, PlcRows, channel_kind_words, plc_role_words};
 
 /// The reference of an image file as the asset store makes it ([`sniff_asset`] and the SHA-256 of the bytes): what a
 /// front-end reads from a file the user picked or dropped before it asks `item.place` to store it.

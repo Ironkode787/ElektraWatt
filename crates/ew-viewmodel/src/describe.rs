@@ -1925,6 +1925,13 @@ fn part_edit_lines(e: &crate::shell::part_dialog::PartEditor, lines: &mut Vec<St
             .collect();
         lines.push(format!("  bus {} {}", i + 1, cells.join(" ")));
     }
+    if !d.plc.role.trim().is_empty() {
+        let cells: Vec<String> = ew_api::PLC_MEMBERS
+            .iter()
+            .map(|m| format!("{m} \"{}\"", user(d.plc.text(m))))
+            .collect();
+        lines.push(format!("  plc {}", cells.join(" ")));
+    }
     let none = || strings::text(key!("part-none")).to_owned();
     let functions = if d.functions.is_empty() {
         none()

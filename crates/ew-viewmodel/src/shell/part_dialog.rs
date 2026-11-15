@@ -130,6 +130,9 @@ pub fn field_label(field: &str) -> String {
     if let Some(key) = field.strip_prefix("tech:") {
         return key.to_owned();
     }
+    if let Some(member) = field.strip_prefix("plc.") {
+        return strings::text(Key::run_time(&format!("part-plc-{member}"))).to_owned();
+    }
     if let Some((_, member)) = field.strip_prefix("bus.").and_then(|r| r.split_once('.')) {
         return strings::text(Key::run_time(&format!("part-bus-{member}"))).to_owned();
     }

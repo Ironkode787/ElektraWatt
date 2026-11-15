@@ -106,6 +106,8 @@ pub struct PartDraft {
     pub bus: Vec<BusRow>,
     /// Whether Save also adds a new part to the person's own parts library ("My parts").
     pub to_library: bool,
+    /// The PLC section of a new part (doc 10 §2.6) as its form's texts; no role: none.
+    pub plc: crate::part_plc::PlcRows,
     pub(crate) original: Part,
     pub(crate) manufacturer: (LibRef, Vec<Value>),
 }
@@ -307,6 +309,9 @@ pub(crate) fn bus_section(rows: &[BusRow]) -> Result<Option<BusSection>, PartDra
 impl PartDraft {
     /// The text of a field of [`DRAFT_FIELDS`], `tech:<key>` or `bus.<row>.<member>`; `""` for another.
     pub fn text(&self, field: &str) -> &str {
+        if let Some(m) = crate::part_plc::plc_field(field) {
+            return self.plc.text(m);
+        }
         if let Some((row, m)) = bus_field(field) {
             return self.bus.get(row).map_or("", |r| r.text(m));
         }
@@ -558,6 +563,7 @@ impl Session {
                 .map(|b| b.ports.iter().map(BusRow::of).collect())
                 .unwrap_or_default(),
             to_library: false,
+            plc: crate::part_plc::PlcRows::default(),
             manufacturer: (p.manufacturer.clone(), Vec::new()),
             original: c.item,
         })
@@ -608,6 +614,22 @@ impl Session {
         text: &str,
     ) -> Result<(), PartDraftError> {
         let t = text.trim();
+        if let Some(m) = crate::part_plc::plc_field(field) {
+            let Some(slot) = draft.plc.slot(m).filter(|_| draft.new) else {
+                return Err(PartDraftError::Refused(ew_commands::text_key!(
+                    "error-part-field"
+                )));
+            };
+            *slot = text.to_owned();
+            draft
+                .messages
+                .retain(|x| crate::part_plc::plc_field(&x.field).is_none());
+            draft.messages.extend(crate::part_plc::check_plc(&draft.plc));
+            return match draft.message(field) {
+                Some(m) => Err(PartDraftError::Field(m.clone())),
+                None => Ok(()),
+            };
+        }
         if let Some((row, m)) = bus_field(field) {
             let Some(slot) = draft
                 .bus

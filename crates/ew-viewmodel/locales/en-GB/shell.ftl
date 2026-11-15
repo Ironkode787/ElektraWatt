@@ -4189,6 +4189,35 @@ toast-part-new = Part { $p0 } is in the project.
 toast-part-new-library = Part { $p0 } is in the project and in { $p1 }.
 action-part-new = New part…
 action-part-bus-row = Add or remove a bus interface
+# FT-1766: the PLC section of a new part.
+error-part-plc-role = “{ $p0 }” is no PLC role; choose station or module
+error-part-plc-kind = “{ $p0 }” is no channel kind; choose one from the list
+error-part-plc-kind-missing = Choose the kind of the channels
+error-part-plc-count = “{ $p0 }” is no number of channels: type a whole number from 1 to { $p1 }, such as 8
+error-part-plc-count-missing = Type how many channels the part has, such as 8
+error-part-plc-supply = A supply has an L+ pin and an M pin; give both, or neither
+error-part-plc-pin = “{ $p0 }” gives no pin for channel { $p1 }: write the pin of channel n with braces, such as {"{"}n+1{"}"} or X2:{"{"}n+1{"}"}
+error-part-plc-pin-twice = { $p0 } would be the pin of two channels; each channel needs its own pin
+error-part-plc-slots = “{ $p0 }” is no list of slots: type numbers and ranges, such as 1-8, 10
+error-part-plc-max = “{ $p0 }” is no number of modules: type a whole number, such as 32
+part-section-plc = PLC
+part-section-plc-hint = What the part is in the PLC: a station (a CPU, a head station such as an IM 152, a valve terminal) takes cards; a module is a card in a station's slot. A station whose bus interfaces lead the bus is a CPU; one that only answers on the bus is a head station.
+part-plc-role = PLC role
+part-plc-role-none = None
+part-plc-kind = Channel kind
+part-plc-kind-none = None
+part-plc-count = Channels
+part-plc-data_type = Data type
+part-plc-designation = Channel name
+part-plc-pin_of = Pin pattern
+part-plc-pin_of-hint = The pin of channel n: {"{"}n+1{"}"} gives pins 1, 2, 3 …; X2:{"{"}n+1{"}"} gives X2:1, X2:2 …
+part-plc-l_plus = Supply L+ pin
+part-plc-m = Supply M pin
+part-plc-slots = Allowed slots
+part-plc-max_modules = Most modules
+part-plc-pins = Channel { $p0 } → pin { $p1 } … channel { $p2 } → pin { $p3 }
+part-plc-io-in = Occupies { $p0 } input bits
+part-plc-io-out = Occupies { $p0 } output bits
 
 # WP-S2.07 part 4b (§9.5): FT-396's paste choice.
 reason-paste-versions = The pasted records use another version of { $p0 }; choose Use the project's copy or Update the project's copy

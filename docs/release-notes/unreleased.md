@@ -741,3 +741,7 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   with the badge "passes the net through"; the bus overview lists a switch as a station, not as a connector (FT-1767)
 - api-add: starter parts EW-GEN-ESW-5 (unmanaged Ethernet switch, 5 ports), EW-GEN-ESW-8 (managed switch, 8 ports,
   PROFINET) and EW-GEN-PND-1 (generic PROFINET device, 2 ports); `ew-starter-parts` 0.9.0 (FT-1767)
+- api-add: the part editor's PLC section for a new part: role (station or module), channels (kind, count, data
+  type, name), the pin pattern with a preview of its first and last pins, the supply's L+ and M pins, the allowed
+  slots and a station's most modules; the pins become the part's connection points on a black-box function, as the
+  starter cards carry (FT-1766)

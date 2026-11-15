@@ -1023,3 +1023,49 @@ fn a_new_part_is_made_once_and_never_overwrites_another() {
     let (field, key, _) = field_error(s.new_part_command(&again).unwrap_err());
     assert_eq!((field.as_str(), key), ("part_number", "error-part-exists"));
 }
+
+/// FT-1766: the PLC form of a new part refuses a pin pattern that gives no pin, at the field, and makes a card's PLC
+/// section, its pins as the CP pattern (channel pins, then the supply's L+ and M) and a black-box main function over
+/// them, as the starter cards carry.
+#[test]
+fn a_new_card_gets_its_plc_section_and_its_pins() {
+    let mut s =
+        Session::new_project(ProjectTemplate::Builtin, NewProjectKind::Schematic, options(None)).unwrap();
+    let mut d = s.new_part_draft().unwrap();
+    s.set_draft_field(&mut d, "manufacturer", "Acme").unwrap();
+    s.set_draft_field(&mut d, "part_number", "DO4").unwrap();
+    for (f, v) in [("plc.role", "module"), ("plc.kind", "do"), ("plc.count", "4")] {
+        s.set_draft_field(&mut d, f, v).unwrap();
+    }
+    let (field, key, _) = field_error(s.set_draft_field(&mut d, "plc.pin_of", "X2:{n").unwrap_err());
+    assert_eq!((field.as_str(), key), ("plc.pin_of", "error-part-plc-pin"));
+    for (f, v) in [
+        ("plc.pin_of", "X2:{n+1}"),
+        ("plc.l_plus", "L+"),
+        ("plc.m", "M"),
+        ("plc.slots", "1-4"),
+    ] {
+        s.set_draft_field(&mut d, f, v).unwrap();
+    }
+    assert_eq!(d.plc.pins().unwrap().last().unwrap().1, "X2:4");
+    let made = s.new_part_command(&d).unwrap();
+    commit(&mut s, &made.command);
+    let q = s.query();
+    let part = q
+        .parts()
+        .iter()
+        .map(|(_, c)| c.item.clone())
+        .find(|p| p.part_number.as_str() == "DO4")
+        .expect("the new card");
+    let pins: Vec<&str> = part.cp_pattern.iter().map(|c| c.designation.as_str()).collect();
+    assert_eq!(pins, ["X2:1", "X2:2", "X2:3", "X2:4", "L+", "M"]);
+    let plc = part.sections.plc.as_ref().unwrap();
+    assert_eq!(plc.channels.as_ref().map(|c| c.count), Some(4));
+    assert_eq!(plc.allowed_slots, vec![1, 2, 3, 4]);
+    assert_eq!(plc.io.iter().map(|r| r.bits).collect::<Vec<_>>(), [4]);
+    let [entry] = part.function_template.as_slice() else {
+        panic!("one template entry")
+    };
+    assert_eq!(entry.fndef.extra.get("key"), Some(&json!("ew.fn.blackbox")));
+    assert_eq!(entry.cps.len(), 6);
+}

@@ -376,6 +376,54 @@ fn labelled_field(
     enter
 }
 
+/// The identity fields and the technical data of a draft, each field's message under it; `true` when Enter was
+/// pressed in a field.
+fn identity(
+    ui: &mut Ui,
+    d: &ew_viewmodel::ew_api::PartDraft,
+    just_opened: bool,
+    events: &mut Vec<Event>,
+) -> bool {
+    let t = theme::current(ui.ctx());
+    let mut save = false;
+    for (i, f) in ew_viewmodel::ew_api::DRAFT_FIELDS.iter().enumerate() {
+        let label = strings::text(strings::Key::run_time(&format!("part-field-{f}")));
+        if *f == "kind" {
+            kind_field(ui, label, d.text(f), events);
+        } else {
+            save |= labelled_field(ui, label, d.text(f), just_opened && i == 0, |text| {
+                events.push(Event::Action("part.field", json!({ "field": f, "value": text })));
+            });
+        }
+        if let Some(m) = d.message(f) {
+            ui.colored_label(
+                t.error.color32(),
+                ew_viewmodel::shell::part_dialog::message_text(strings::Key::run_time(m.key), &m.args),
+            );
+        }
+    }
+    ui.add_space(t.space_3);
+    ui.label(RichText::new(strings::text(key!("part-field-tech"))).font(theme::font(&t.type_body_strong)));
+    for (k, v) in &d.tech {
+        let field = format!("tech:{k}");
+        // The key in words ("rated_current" reads "Rated current"); the field keeps the raw key.
+        let label = strings::field_label("part", &format!("tech_data.{k}"));
+        save |= labelled_field(ui, &label, v, false, |text| {
+            events.push(Event::Action(
+                "part.field",
+                json!({ "field": field, "value": text }),
+            ));
+        });
+        if let Some(m) = d.message(&format!("tech:{k}")) {
+            ui.colored_label(
+                t.error.color32(),
+                ew_viewmodel::shell::part_dialog::message_text(strings::Key::run_time(m.key), &m.args),
+            );
+        }
+    }
+    save
+}
+
 /// The part editor's body (D20, D21).
 pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mut Vec<Event>) {
     let t = theme::current(ui.ctx());
@@ -387,52 +435,32 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
         .id_salt("part-edit-scroll")
         .max_height(height)
         .show(ui, |ui| {
-            for (i, f) in ew_viewmodel::ew_api::DRAFT_FIELDS.iter().enumerate() {
-                let label = strings::text(strings::Key::run_time(&format!("part-field-{f}")));
-                if *f == "kind" {
-                    kind_field(ui, label, d.text(f), events);
-                } else {
-                    save |= labelled_field(ui, label, d.text(f), just_opened && i == 0, |text| {
-                        events.push(Event::Action("part.field", json!({ "field": f, "value": text })));
-                    });
-                }
-                if let Some(m) = d.message(f) {
-                    ui.colored_label(
-                        t.error.color32(),
-                        ew_viewmodel::shell::part_dialog::message_text(
-                            strings::Key::run_time(m.key),
-                            &m.args,
-                        ),
-                    );
-                }
-            }
-            ui.add_space(t.space_3);
-            ui.label(
-                RichText::new(strings::text(key!("part-field-tech"))).font(theme::font(&t.type_body_strong)),
-            );
-            for (k, v) in &d.tech {
-                let field = format!("tech:{k}");
-                // The key in words ("rated_current" reads "Rated current"); the field keeps the raw key.
-                let label = strings::field_label("part", &format!("tech_data.{k}"));
-                save |= labelled_field(ui, &label, v, false, |text| {
-                    events.push(Event::Action(
-                        "part.field",
-                        json!({ "field": field, "value": text }),
-                    ));
+            // A new part's form is long: at the main resolution its identity and its PLC section stand side by side,
+            // the bus interfaces below them across the dialog.
+            if d.new && ui.available_width() >= 2.0 * (t.size_dialog_label + t.size_control * 6.0) {
+                let mut left_save = false;
+                let mut right_save = false;
+                let mut left_events = Vec::new();
+                let mut right_events = Vec::new();
+                ui.columns(2, |cols| {
+                    left_save = identity(&mut cols[0], d, just_opened, &mut left_events);
+                    right_save = plc_section(&mut cols[1], d, &mut right_events);
                 });
-                if let Some(m) = d.message(&format!("tech:{k}")) {
-                    ui.colored_label(
-                        t.error.color32(),
-                        ew_viewmodel::shell::part_dialog::message_text(
-                            strings::Key::run_time(m.key),
-                            &m.args,
-                        ),
-                    );
-                }
-            }
-            if d.new || !d.bus.is_empty() {
+                events.extend(left_events);
+                events.extend(right_events);
+                save |= left_save || right_save;
                 ui.add_space(t.space_3);
                 bus_section(ui, d, events);
+            } else {
+                save |= identity(ui, d, just_opened, events);
+                if d.new || !d.bus.is_empty() {
+                    ui.add_space(t.space_3);
+                    bus_section(ui, d, events);
+                }
+                if d.new {
+                    ui.add_space(t.space_3);
+                    save |= plc_section(ui, d, events);
+                }
             }
             if d.new {
                 ui.add_space(t.space_3);
@@ -490,6 +518,170 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
     if save {
         events.push(Event::Action("part.save", serde_json::Value::Null));
     }
+}
+
+/// A labelled combo box of the editor: `choices` by their words (`word`), the picked value sent as `part.field`.
+fn labelled_combo(
+    ui: &mut Ui,
+    field: &str,
+    label_text: &str,
+    value: &str,
+    choices: &[String],
+    word: impl Fn(&str) -> String,
+    events: &mut Vec<Event>,
+) {
+    let t = theme::current(ui.ctx());
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing.x = 0.0;
+        ui.allocate_ui_with_layout(
+            vec2(t.size_dialog_label, t.size_control),
+            egui::Layout::left_to_right(egui::Align::Center),
+            |ui| {
+                ui.set_min_size(vec2(t.size_dialog_label, t.size_control));
+                ui.add(egui::Label::new(label_text).truncate())
+            },
+        );
+        ui.add_space(t.space_3);
+        let mut picked = None;
+        let combo = egui::ComboBox::from_id_salt(field)
+            .selected_text(word(value))
+            .width(ui.available_width())
+            .show_ui(ui, |ui| {
+                for c in choices {
+                    if ui.selectable_label(c == value, word(c)).clicked() {
+                        picked = Some(c.clone());
+                    }
+                }
+            })
+            .response;
+        combo.widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, label_text));
+        crate::components::combo_expanded(ui, &combo);
+        if let Some(c) = picked.filter(|c| c != value) {
+            events.push(Event::Action("part.field", json!({ "field": field, "value": c })));
+        }
+    });
+}
+
+/// A small secondary line under a field (a hint, a preview).
+fn note(ui: &mut Ui, text: &str) {
+    let t = theme::current(ui.ctx());
+    ui.horizontal(|ui| {
+        ui.add_space(t.size_dialog_label + t.space_3);
+        ui.add(
+            egui::Label::new(
+                RichText::new(text)
+                    .font(theme::font(&t.type_small))
+                    .color(t.text_secondary.color32()),
+            )
+            .wrap(),
+        );
+    });
+}
+
+/// The PLC section of a new part (FT-1766): its role; for a station or a module the channels (kind, count, data
+/// type, name), the pin pattern with its hint and a preview of the first and last channel's pins, the I/O it occupies,
+/// the supply pins, the allowed slots and a station's most modules; each field's message under it. `true` when Enter
+/// was pressed in a field.
+fn plc_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Vec<Event>) -> bool {
+    use ew_viewmodel::ew_api::{channel_kind_words, plc_role_words};
+    let t = theme::current(ui.ctx());
+    let mut save = false;
+    ui.label(RichText::new(strings::text(key!("part-section-plc"))).font(theme::font(&t.type_body_strong)));
+    ui.add(
+        egui::Label::new(
+            RichText::new(strings::text(key!("part-section-plc-hint")))
+                .font(theme::font(&t.type_small))
+                .color(t.text_secondary.color32()),
+        )
+        .wrap(),
+    );
+    let label = |m: &str| strings::text(strings::Key::run_time(&format!("part-plc-{m}"))).to_owned();
+    let message = |ui: &mut Ui, m: &str| {
+        if let Some(msg) = d.message(&format!("plc.{m}")) {
+            ui.colored_label(
+                t.error.color32(),
+                ew_viewmodel::shell::part_dialog::message_text(strings::Key::run_time(msg.key), &msg.args),
+            );
+        }
+    };
+    let mut roles = vec![String::new()];
+    roles.extend(plc_role_words());
+    let role_word = |v: &str| {
+        if v.is_empty() {
+            strings::text(key!("part-plc-role-none")).to_owned()
+        } else {
+            strings::field_choice_text("part", "sections.plc.role", v)
+        }
+    };
+    labelled_combo(
+        ui,
+        "plc.role",
+        &label("role"),
+        &d.plc.role,
+        &roles,
+        role_word,
+        events,
+    );
+    message(ui, "role");
+    if d.plc.role.trim().is_empty() {
+        return false;
+    }
+    let mut kinds = vec![String::new()];
+    kinds.extend(channel_kind_words());
+    let kind_word = |v: &str| {
+        if v.is_empty() {
+            strings::text(key!("part-plc-kind-none")).to_owned()
+        } else {
+            strings::field_choice_text("channel", "kind", v)
+        }
+    };
+    labelled_combo(
+        ui,
+        "plc.kind",
+        &label("kind"),
+        &d.plc.kind,
+        &kinds,
+        kind_word,
+        events,
+    );
+    message(ui, "kind");
+    let mut text_field = |ui: &mut Ui, m: &str| {
+        let field = format!("plc.{m}");
+        save |= labelled_field(ui, &label(m), d.plc.text(m), false, |text| {
+            events.push(Event::Action(
+                "part.field",
+                json!({ "field": field, "value": text }),
+            ));
+        });
+        message(ui, m);
+    };
+    for m in ["count", "data_type", "designation", "pin_of"] {
+        text_field(ui, m);
+    }
+    note(ui, strings::text(key!("part-plc-pin_of-hint")));
+    if let Some(pins) = d.plc.pins()
+        && let (Some(first), Some(last)) = (pins.first(), pins.last())
+    {
+        note(
+            ui,
+            &strings::format(
+                key!("part-plc-pins"),
+                &[&first.0.to_string(), &first.1, &last.0.to_string(), &last.1],
+            ),
+        );
+    }
+    if let Some((dir, bits)) = d.plc.io() {
+        let k = if dir == "in" {
+            key!("part-plc-io-in")
+        } else {
+            key!("part-plc-io-out")
+        };
+        note(ui, &strings::format(k, &[&bits.to_string()]));
+    }
+    for m in ["l_plus", "m", "slots", "max_modules"] {
+        text_field(ui, m);
+    }
+    save
 }
 
 /// A bus member's choice in words (`profinet` is "PROFINET", an empty termination "None").

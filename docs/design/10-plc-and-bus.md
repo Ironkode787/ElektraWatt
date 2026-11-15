@@ -480,6 +480,14 @@ pub struct PartBusPort {
   gives a port-less bus-port function the first port of the bus its FnDef is filed under (a category word that
   begins the bus's stored name: `Profibus`, `Profinet`), else the first port, so the PROFINET symbol on EW-GEN-CPU-2
   takes `X1` although the part lists `DP` first.
+- **Made in the window (FT-1766).** Edit ▸ New part… (and New part… in the part dialog and the device browser) makes
+  a part with its bus interfaces (a row each) and its PLC section as forms: the role, one channel spec (kind, count,
+  data type, name pattern), the pin pattern (`pin_of`, previewed as "channel 0 → pin 1 … channel 7 → pin 8"), one
+  electronics supply group, the allowed slots and a station's `max_modules`. The I/O range follows from the channels
+  (a digital channel one bit, an analogue one a word, `bit_of` `n` or `16n`); the pins become the CP pattern with a
+  black-box main function over them, as the starter cards carry, so N1 and N3 give the channels and bind them to the
+  pins. A part has one channel spec, so a card with inputs and outputs is two parts until a later format adds a
+  second spec. The part is saved into the person's own library (My parts) and embedded, or kept project-local.
 
 ### 2.7 Bus model
 
