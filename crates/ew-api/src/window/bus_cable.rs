@@ -14,7 +14,7 @@
 
 use ew_derive::bus_word;
 use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{BusSystem, Connection, ConnectionKind, Endpoint, LengthSource, Part};
+use ew_derive::ew_schema::{BusSystem, Connection, ConnectionKind, Endpoint, LengthSource};
 use serde_json::{Value, json};
 
 use crate::output::Uuid;
@@ -89,25 +89,13 @@ impl Session {
         })
     }
 
-    /// The part `id` as the project holds it, else as an installed library has it.
-    fn part_item(&self, id: Uuid) -> Option<Part> {
-        let id: Id<Part> = Id::from_uuid(id);
-        if let Some(c) = self.query().parts().get(id) {
-            return Some(c.item.clone());
-        }
-        self.library_parts()
-            .into_iter()
-            .find(|c| c.id == id)
-            .map(|c| c.item)
-    }
-
     /// The offers of `kind` (`cable` or `plug`) for the bus system `bus` (module documentation).
     fn bus_offers(&self, kind: &str, bus: Option<&BusSystem>) -> Vec<BusPartOffer> {
         let mut out: Vec<BusPartOffer> = self
             .layout_part_offers(kind)
             .into_iter()
             .filter_map(|o| {
-                let section = self.part_item(o.part).and_then(|p| p.sections.bus);
+                let section = self.part_copy(o.part).and_then(|(c, _)| c.item.sections.bus);
                 let made_for = match (kind, &section, bus) {
                     ("cable", Some(s), Some(b)) => s.cable_for.contains(b),
                     (_, Some(s), Some(b)) => s.ports.iter().any(|p| p.bus == *b),

@@ -547,7 +547,7 @@ impl ParseCx for SheetCx<'_> {
 }
 
 /// The neutral text of an `MlText`, else the text of its first language, else empty.
-pub(super) fn neutral_or_first(text: &ew_derive::ew_mltext::MlText) -> String {
+pub(crate) fn neutral_or_first(text: &ew_derive::ew_mltext::MlText) -> String {
     if let Some(n) = text.as_neutral() {
         return n.to_owned();
     }

@@ -755,7 +755,10 @@ fn detail(ui: &mut Ui, t: &Tokens, shell: &ShellModel, picker: &Picker, events: 
     if matches!(row, PickerRow::PartFn(..)) {
         line(ui, &texts.name, &t.type_small, t.text_secondary);
     }
-    line(ui, &library, &t.type_small, t.text_tertiary);
+    // A part's card (F22) says where it comes from; a symbol's row its library.
+    if picker.card.is_none() {
+        line(ui, &library, &t.type_small, t.text_tertiary);
+    }
     let cps = connection_points(picker, row);
     if !cps.is_empty() {
         line(
@@ -764,6 +767,9 @@ fn detail(ui: &mut Ui, t: &Tokens, shell: &ShellModel, picker: &Picker, events: 
             &t.type_small,
             t.text_secondary,
         );
+    }
+    if let Some(view) = &picker.card {
+        crate::part_card::body(ui, t, view, false, events);
     }
     let reason = picker.disabled_words(row);
     if let Some(reason) = &reason {

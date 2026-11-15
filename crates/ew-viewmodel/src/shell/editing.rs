@@ -528,12 +528,25 @@ impl ShellModel {
             .get(picker.row)
             .and_then(|r| picker.row_symbol(*r))
             .map(|s| (s.key.clone(), s.copy));
+        // The current row's part, for its card (F22).
+        let part = match picker.rows.get(picker.row) {
+            Some(PickerRow::Part(p) | PickerRow::PartFn(p, _)) => {
+                picker.catalogue.parts.get(*p).map(|x| x.copy)
+            }
+            _ => None,
+        };
         let shape = symbol.and_then(|(key, copy)| {
             let copy = copy.or_else(|| self.project.as_ref()?.session.starter_symbol_copy(&key))?;
             self.cached_shape(copy.to_string(), |s| s.symbol_shape(copy))
         });
+        let card = match (part, &self.tools.picker) {
+            (Some(copy), Some(p)) if p.card.as_ref().is_some_and(|c| c.card.part == copy) => p.card.clone(),
+            (Some(copy), _) => self.part_card(copy).map(Arc::new),
+            (None, _) => None,
+        };
         if let Some(picker) = &mut self.tools.picker {
             picker.preview = shape;
+            picker.card = card;
         }
     }
 

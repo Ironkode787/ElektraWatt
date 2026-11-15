@@ -13,6 +13,8 @@ mod cable_edit;
 mod cable_form;
 pub(crate) mod clipboard;
 mod find;
+// A part's data at a glance.
+mod part_card;
 // The history panel's rows (§4.2).
 mod history;
 // What a PLC channel dropped on a field device can do.
@@ -28,5 +30,6 @@ pub use clipboard::{
 };
 pub use find::{FindError, FindField, FindHit, FindQuery, FindResults};
 pub use history::{HistoryRow, HistoryView};
+pub use part_card::{PartCard, PartSize};
 pub use plc_bind::OffCardBind;
 pub use typed::UnknownColour;

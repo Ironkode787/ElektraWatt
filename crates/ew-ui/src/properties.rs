@@ -224,6 +224,7 @@ impl PropertiesPane {
             if shell.properties_filter_shown() {
                 self.filter_field(ui, shell, events);
             }
+            part_details(ui, shell, sheet, events);
             if sheet.sections.is_empty() {
                 let text = if sheet.missing > 0 && sheet.header.items == 0 {
                     strings::text(key!("props-gone-title")).to_owned()
@@ -1739,6 +1740,55 @@ pub(crate) fn choices_placement(
 }
 
 /// Whether `row` is a link the grid follows: a device link with a value.
+/// A sheet of one device with a part: the link Part details (F22), whose hover shows the part's card and whose click
+/// keeps it open under the header until clicked again.
+fn part_details(ui: &mut Ui, shell: &ShellModel, sheet: &PropertySheet, events: &mut Vec<Event>) {
+    let Some(device) =
+        sheet
+            .sections
+            .iter()
+            .find(|s| s.kind == "device")
+            .and_then(|s| match s.targets.as_slice() {
+                [one] => Some(*one),
+                _ => None,
+            })
+    else {
+        return;
+    };
+    let Some(view) = shell.device_part_card(device) else {
+        return;
+    };
+    // A filtered sheet shows the rows that match, nothing above them.
+    if !shell.properties_filter().is_empty() {
+        return;
+    }
+    let t = crate::theme::current(ui.ctx());
+    let open_id = egui::Id::unique(("part-details-open", device));
+    let mut open = ui.ctx().data(|d| d.get_temp::<bool>(open_id).unwrap_or(false));
+    egui::Frame::new()
+        .inner_margin(egui::Margin::symmetric(crate::theme::margin_px(t.space_4), 0))
+        .show(ui, |ui| {
+            let link = egui::Link::new(
+                RichText::new(strings::text(key!("action-part-details")))
+                    .font(crate::theme::font(&t.type_small))
+                    .color(t.accent.color32()),
+            );
+            let response = ui.add(link);
+            if response.clicked() {
+                open = !open;
+                ui.ctx().data_mut(|d| d.insert_temp(open_id, open));
+            }
+            if open {
+                crate::part_card::body(ui, &t, &view, true, events);
+            } else {
+                response.on_hover_ui(|ui| {
+                    let mut ignored = Vec::new();
+                    crate::part_card::body(ui, &t, &view, true, &mut ignored);
+                });
+            }
+        });
+}
+
 fn is_link(row: &PropRow) -> bool {
     matches!(row.ty.inner(), FieldType::Link { kind } if kind == "device")
         && matches!(&row.value, RowValue::One { json, .. } if json.is_string())

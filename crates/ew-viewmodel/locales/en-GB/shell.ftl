@@ -244,6 +244,24 @@ picker-group-libraries = From libraries
 # level of an FnDef category (the identifier sets' categories, docs/design/07-symbols-parts-macros.md §2.4).
 column-rating = Ratings
 picker-cps = Connection points: { $p0 }
+# F22: a part's data at a glance.
+card-type = Type
+card-order-number = Order number
+card-technical = Technical data
+card-size = Size
+card-gives = Gives
+card-from = From
+card-interface-ports = { $p0 }, { $p1 } ports
+card-cps = { $p0 } connection points
+card-cps-one = 1 connection point
+card-project-only = This project only
+card-library-version = { $p0 }, version { $p1 }
+card-source-checked = { $p0 } · checked
+card-source-unchecked = { $p0 } · not checked
+card-no-size = No size given
+card-size-beside-rail = Drawn to scale beside a 35 mm rail
+action-part-details = Part details
+action-part-edit-card = Edit part…
 function-category-ProtectionOvercurrent = Overcurrent protection
 function-category-ProtectionResidualCurrent = Residual-current protection
 function-category-ProtectionOvervoltage = Surge protection

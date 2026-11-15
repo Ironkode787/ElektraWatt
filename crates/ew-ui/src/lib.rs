@@ -66,6 +66,7 @@ mod rail;
 // The parts table import card.
 mod part_dialog;
 // The print pre-dialog and its preview.
+mod part_card;
 mod parts_card;
 mod parts_map;
 mod print_dialog;

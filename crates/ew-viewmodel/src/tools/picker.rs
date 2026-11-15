@@ -325,6 +325,8 @@ pub struct Picker {
     pub open: BTreeSet<usize>,
     /// The shape of what the current row places, for the browser's picture; the host sets it after each change.
     pub preview: Option<Arc<SymbolShape>>,
+    /// The card of the current row's part (F22); the host sets it after each change, `None` for a symbol row.
+    pub card: Option<Arc<crate::part_card::PartCardView>>,
     /// The tag of the device each function of a part fills, by (part, function) indices into the catalogue: a device
     /// of the part that has the function unplaced (the host's `template_slots`, set when the browser opens).
     pub joins: BTreeMap<(usize, usize), String>,
@@ -347,6 +349,7 @@ impl Picker {
             nodes: Vec::new(),
             open: BTreeSet::new(),
             preview: None,
+            card: None,
             joins: BTreeMap::new(),
         };
         p.refilter();
@@ -515,6 +518,14 @@ impl Picker {
             Node::Trade(t) => found.iter().filter(|(_, n, _)| n.trade() == Some(*t)).count(),
             _ => found.iter().filter(|(_, n, _)| n == node).count(),
         };
+        // A filter searches the whole tree: a chosen trade or group without a hit gives way to All (F28; the chosen
+        // group left the rows empty while the hits sat elsewhere).
+        if !self.filter.trim().is_empty()
+            && matches!(self.node, Node::Trade(_) | Node::Category(_))
+            && count(&self.node) == 0
+        {
+            self.node = Node::All;
+        }
         let nodes: Vec<(Node, usize)> = tree
             .into_iter()
             .map(|n| {

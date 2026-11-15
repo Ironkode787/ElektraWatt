@@ -771,3 +771,17 @@ impl ShellModel {
         self.preview_import(card.edit.params, source, card.targets)
     }
 }
+
+impl ShellModel {
+    /// The card of part copy `part` (held or of an installed library, F22); `None` without a project or such a part.
+    pub fn part_card(&self, part: ew_api::output::Uuid) -> Option<crate::part_card::PartCardView> {
+        let card = self.project.as_ref()?.session.part_card(part)?;
+        Some(crate::part_card::PartCardView::of(card))
+    }
+
+    /// The card of the first part of device `device`; `None` for a device without a part.
+    pub fn device_part_card(&self, device: ew_api::output::Uuid) -> Option<crate::part_card::PartCardView> {
+        let part = self.project.as_ref()?.session.device_part(device)?;
+        self.part_card(part)
+    }
+}

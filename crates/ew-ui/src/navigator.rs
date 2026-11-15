@@ -1297,6 +1297,26 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
         })
         .inner;
     response.widget_info(|| egui::WidgetInfo::selected(egui::Role::TreeItem, true, row.marked, &row.name));
+    // A device's row shows its part's card on hover (F22), read only when hovered.
+    let response = if kind == NavKind::Devices {
+        let device = tree
+            .shell
+            .nav(kind)
+            .and_then(|n| n.node_of(&row.key))
+            .and_then(|(_, n)| n.records.first().copied());
+        match device {
+            Some(device) => response.on_hover_ui(|ui| {
+                if let Some(view) = tree.shell.device_part_card(device) {
+                    let t = crate::theme::current(ui.ctx());
+                    let mut ignored = Vec::new();
+                    crate::part_card::body(ui, &t, &view, true, &mut ignored);
+                }
+            }),
+            None => response,
+        }
+    } else {
+        response
+    };
     // The gap's clicks are the row's; the node, the drag and the menu stay the name's.
     let response = response.union(gap);
     let (level, position, size, expanded, marked) =
