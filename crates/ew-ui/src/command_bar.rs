@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The command bar (doc 16a §5.2, ADR-0031 decision 3): the tab row (the app button that opens the
-//! app menu, quick access, the six tabs, the command search) on `color.surface.chrome` and the command row (the
+//! app menu, quick access, the tabs, the workspace switch, the command search) on `color.surface.chrome` and the command row (the
 //! active tab's groups of large, small, split and menu buttons, and the tab's next step) on `color.surface.panel`,
 //! generated from `ew_viewmodel::command_bar`. Ctrl+F1 or a double-click on a tab collapses the bar to its tab row;
 //! a tab click then shows the command row as a popover until a command runs or Escape.
@@ -635,6 +635,7 @@ impl CommandBarHost {
                 model.tab,
                 strings::text(strings::Key::run_time("symbol-title")).to_owned(),
             )];
+            model.workspaces.clear();
         }
         if !model.collapsed {
             self.popover = false;
@@ -917,6 +918,7 @@ impl CommandBarHost {
             vec2(search_width, t.size_search_height),
         );
         self.search = Some(search);
+        workspace_switch(ui, t, model, x, search.left() - t.space_3, cy, events);
         let placeholder = strings::text(key!("commandbar-search")).to_owned();
         let response = ui.interact(search, Id::unique("command-search"), Sense::click());
         // The palette's key as the keymap binds it.
@@ -983,6 +985,78 @@ impl CommandBarHost {
         let galley = ui.fonts_mut(|f| f.layout_job(job));
         let at = pos2(left, cy - galley.size().y / 2.0);
         ui.painter().galley(at, galley, t.text_tertiary.color32());
+    }
+}
+
+/// The tab row's workspace switch (doc 16a §5.2, §6.20): a segmented control of the workspaces, its right end at
+/// `right`, the active one chosen; a click loads the other one. Drawn only where it fits right of the tabs (`left`).
+fn workspace_switch(
+    ui: &mut Ui,
+    t: &Tokens,
+    model: &CommandBarModel,
+    left: f32,
+    right: f32,
+    cy: f32,
+    events: &mut Vec<Event>,
+) {
+    let chosen_font = theme::font(&theme::TypeToken {
+        semibold: true,
+        ..t.type_small
+    });
+    let item_w = model
+        .workspaces
+        .iter()
+        .map(|w| text_width(ui, &w.label, chosen_font.clone()))
+        .fold(0.0, f32::max)
+        + 2.0 * t.space_3;
+    let n = model.workspaces.len() as f32;
+    let track = Rect::from_min_max(
+        pos2(
+            right - n * item_w - 2.0 * t.space_1,
+            cy - t.size_control_inline / 2.0 - t.space_1,
+        ),
+        pos2(right, cy + t.size_control_inline / 2.0 + t.space_1),
+    );
+    if model.workspaces.is_empty() || track.left() < left + t.space_3 {
+        return;
+    }
+    let list_id = Id::unique("workspace-switch");
+    let list = ui.interact(track, list_id, Sense::hover());
+    let list_name = strings::text(key!("commandbar-workspaces")).to_owned();
+    // A choice of one, not a list of tabs: the command tabs hold a tab of the same name (PLC).
+    list.widget_info(|| egui::WidgetInfo::labeled(egui::Role::RadioGroup, true, &list_name));
+    ui.painter()
+        .rect_filled(track, theme::radius(t.radius_md), t.surface_sunken.color32());
+    let inner = track.shrink(t.space_1);
+    let items = ui.new_child(UiBuilder::new().max_rect(track).accessibility_parent(list_id));
+    for (i, w) in model.workspaces.iter().enumerate() {
+        let rect = Rect::from_min_size(
+            pos2(inner.left() + i as f32 * item_w, inner.top()),
+            vec2(item_w, inner.height()),
+        );
+        let response = items.interact(rect, list_id.with(&w.name), Sense::click());
+        let label = w.label.clone();
+        response.widget_info(|| egui::WidgetInfo::selected(egui::Role::RadioButton, true, w.active, &label));
+        let (font, colour) = if w.active {
+            ui.painter()
+                .add(theme::shadow(&t.elevation_1).as_shape(rect, theme::radius(t.radius_sm)));
+            ui.painter()
+                .rect_filled(rect, theme::radius(t.radius_sm), t.surface_panel.color32());
+            (chosen_font.clone(), t.text_primary)
+        } else {
+            state_overlay(ui, t, &response, true, t.radius_sm);
+            (theme::font(&t.type_small), t.text_secondary)
+        };
+        ui.painter().text(
+            rect.center(),
+            Align2::CENTER_CENTER,
+            &w.label,
+            font,
+            colour.color32(),
+        );
+        if response.clicked() && !w.active {
+            events.push(Event::Action("view.workspace_load", json!({ "name": w.name })));
+        }
     }
 }
 
@@ -1137,10 +1211,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn left_and_right_wrap_around_the_six_tabs() {
+    fn left_and_right_wrap_around_the_tabs() {
         assert_eq!(step_tab(Tab::Project, -1), Tab::View);
         assert_eq!(step_tab(Tab::View, 1), Tab::Project);
-        assert_eq!(step_tab(Tab::Draw, 1), Tab::Check);
+        assert_eq!(step_tab(Tab::Draw, 1), Tab::Plc);
         assert_eq!(step_tab(Tab::Draw, -1), Tab::Page);
     }
 

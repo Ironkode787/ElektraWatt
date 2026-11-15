@@ -10,7 +10,7 @@
 //! registry, so the egui frame and the `ui.describe` text cannot disagree.
 //!
 //! The menus (doc 16a §9.2) are the app menu's submenus, File, Edit, then one per command-bar
-//! tab (Project, Page, Draw, Check, Output, View), then Window and Help; Insert became Draw and Tools dissolved. An
+//! tab (Project, Page, Draw, PLC, Fluid, Check, Output, View), then Window and Help; Insert became Draw and Tools dissolved. An
 //! action with a [`Placement`] is a command of the bar ([`crate::command_bar`]) and sits in its tab's menu under its
 //! group; a group of more than three commands is a submenu, a smaller one a separated block.
 
@@ -52,6 +52,10 @@ pub enum Menu {
     Page,
     /// Draw: the Draw tab's groups (the former Insert menu and the tools).
     Draw,
+    /// PLC: the PLC tab's groups.
+    Plc,
+    /// Fluid: the Fluid tab's groups.
+    Fluid,
     /// Check: the Check tab's groups.
     Check,
     /// Output: the Output tab's groups.
@@ -66,12 +70,14 @@ pub enum Menu {
 
 impl Menu {
     /// The menus in the app menu's order.
-    pub const ALL: [Menu; 10] = [
+    pub const ALL: [Menu; 12] = [
         Menu::File,
         Menu::Edit,
         Menu::Project,
         Menu::Page,
         Menu::Draw,
+        Menu::Plc,
+        Menu::Fluid,
         Menu::Check,
         Menu::Output,
         Menu::View,
@@ -87,6 +93,8 @@ impl Menu {
             Menu::Project => key!("menu-project"),
             Menu::Page => key!("menu-page"),
             Menu::Draw => key!("menu-draw"),
+            Menu::Plc => key!("menu-plc"),
+            Menu::Fluid => key!("menu-fluid"),
             Menu::Check => key!("menu-check"),
             Menu::Output => key!("menu-output"),
             Menu::View => key!("menu-view"),
@@ -136,6 +144,19 @@ pub enum Submenu {
     MinFont,
     /// Help, Tutorials: one item per tutorial of [`tutorials`], each with its own start.
     Tutorials,
+    /// PLC, Station, Rack and slots: one item per PLC station.
+    RackEditor,
+    /// PLC, Station, Attach cards: one item per station that takes cards.
+    AttachCards,
+    /// PLC, Addresses: the addressing commands of each configuration project
+    /// ([`ShellModel::plc_addressing_items`]).
+    PlcAddressing,
+    /// PLC, Addresses, Symbol policy: one item per configuration project.
+    SymbolPolicy,
+    /// PLC, Lists, Import instrument list: one item per configuration project.
+    InstrumentList,
+    /// PLC, Bus, Place port: one item per port the Bus panel lists as not drawn yet.
+    BusPorts,
 }
 
 /// The guide's table of contents, the one place its tutorials are listed (FT-1715).
@@ -171,6 +192,12 @@ impl Submenu {
             Submenu::Language => key!("submenu-language"),
             Submenu::MinFont => key!("submenu-min-font"),
             Submenu::Tutorials => key!("submenu-tutorials"),
+            Submenu::RackEditor => key!("action-plc-rack-editor"),
+            Submenu::AttachCards => key!("action-plc-attach-cards"),
+            Submenu::PlcAddressing => key!("submenu-plc-addressing"),
+            Submenu::SymbolPolicy => key!("action-plc-symbol-policy"),
+            Submenu::InstrumentList => key!("action-plc-instrument-list"),
+            Submenu::BusPorts => key!("action-bus-place-port"),
         }
     }
 }
@@ -601,6 +628,14 @@ fn fluid_page(m: &ShellModel) -> Result<(), Key<'static>> {
         Ok(Some("fluid")) => Ok(()),
         _ => Err(key!("reason-not-fluid-page")),
     }
+}
+
+/// An editable fluid page for the Fluid tab's symbol and device browsers, else why not in their words.
+fn fluid_symbol_page(m: &ShellModel) -> Result<(), Key<'static>> {
+    fluid_page(m).map_err(|reason| match reason {
+        key if key == key!("reason-not-fluid-page") => key!("reason-fluid-page-symbols"),
+        other => other,
+    })
 }
 
 /// An editable page with a connection or a representation selected (Route selection).
@@ -1511,8 +1546,59 @@ pub(crate) fn switch_on(model: &ShellModel, id: &str) -> Option<bool> {
         // The command bar's collapse.
         "view.command_bar" => model.command_bar_collapsed(),
         "props.show_advanced" => model.properties_show_advanced(),
+        // The PLC and Fluid tabs' workspaces and panels.
+        "plc.workspace" => model.workspace() == "PLC",
+        "fluid.workspace" => model.workspace() == "Fluid",
+        "plc.grid" => model.navigator_open(crate::navigators::NavKind::PlcGrid),
+        "bus.panel" => model.navigator_open(crate::navigators::NavKind::Bus),
+        "fluid.tubes" => model.navigator_open(crate::navigators::NavKind::Tubes),
+        "fluid.media" => model.navigator_open(crate::navigators::NavKind::Media),
         _ => return None,
     })
+}
+
+/// A workspace's label: a built-in workspace in the UI language's words, a saved one by its name.
+pub fn workspace_label(name: &str) -> String {
+    crate::settings::BUILT_IN_WORKSPACES
+        .contains(&name)
+        .then(|| strings::lookup(&format!("workspace-{}", name.to_lowercase())))
+        .flatten()
+        .map_or_else(|| name.to_owned(), str::to_owned)
+}
+
+/// The one greyed item of a submenu that has nothing to offer now, its label and reason the text of `why` (a
+/// command-bar menu button is greyed with it).
+fn nothing_item(meta: &ActionMeta, model: &ShellModel, why: Key<'static>) -> Vec<ActionItem> {
+    let mut item = item_of(meta, model);
+    let text = strings::text(why).to_owned();
+    item.label.clone_from(&text);
+    if item.enabled {
+        item.enabled = false;
+        item.reason = Some(text);
+    }
+    vec![item]
+}
+
+/// One item of `meta` per target of the PLC and Fluid tabs' menu buttons: `targets` as (label, parameters), else
+/// [`nothing_item`] with `why`.
+fn target_items(
+    meta: &ActionMeta,
+    model: &ShellModel,
+    targets: Vec<(String, Value)>,
+    why: Key<'static>,
+) -> Vec<ActionItem> {
+    if targets.is_empty() {
+        return nothing_item(meta, model, why);
+    }
+    targets
+        .into_iter()
+        .map(|(label, params)| {
+            let mut item = item_of(meta, model);
+            item.label = label;
+            item.params = params;
+            item
+        })
+        .collect()
 }
 
 /// The items of a submenu, from the registry actions that have a slot in it (in registry order).
@@ -1600,12 +1686,7 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
                         let mut item = item_of(meta, model);
                         item.checked = name == active;
                         item.params = json!({ "name": name });
-                        // A built-in workspace in the UI language's words, a saved one by its name.
-                        item.label = crate::settings::BUILT_IN_WORKSPACES
-                            .contains(&name.as_str())
-                            .then(|| strings::lookup(&format!("workspace-{}", name.to_lowercase())))
-                            .flatten()
-                            .map_or(name, str::to_owned);
+                        item.label = workspace_label(&name);
                         item.shortcut = String::new();
                         items.push(item);
                     }
@@ -1663,6 +1744,74 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
                 item
             })
             .collect(),
+        // The stations by tag: Rack and slots… of each; Attach cards to each that takes cards, while cards wait.
+        Submenu::RackEditor | Submenu::AttachCards => {
+            let session = model.project_session();
+            let stations = if submenu == Submenu::RackEditor {
+                model.plc_stations()
+            } else {
+                session
+                    .map(ew_api::Session::plc_stations_for_cards)
+                    .unwrap_or_default()
+            };
+            let waiting = session.is_some_and(|s| !s.plc_cards_without_cpu().is_empty());
+            let mut items = target_items(
+                meta,
+                model,
+                stations
+                    .into_iter()
+                    .map(|(id, tag)| (tag, json!({ "station": id.to_string() })))
+                    .collect(),
+                key!("reason-no-station"),
+            );
+            if submenu == Submenu::AttachCards && !waiting {
+                for item in items.iter_mut().filter(|i| i.enabled) {
+                    item.enabled = false;
+                    item.reason = Some(strings::text(key!("reason-no-cards-without-cpu")).to_owned());
+                }
+            }
+            items
+        }
+        Submenu::PlcAddressing => {
+            let items = model.plc_addressing_items();
+            if items.is_empty() {
+                nothing_item(meta, model, key!("reason-no-config-project"))
+            } else {
+                items
+            }
+        }
+        // The configuration projects, by name.
+        Submenu::SymbolPolicy | Submenu::InstrumentList => {
+            let configs = model
+                .project_session()
+                .map(ew_api::Session::plc_config_projects)
+                .unwrap_or_default();
+            target_items(
+                meta,
+                model,
+                configs
+                    .into_iter()
+                    .map(|(id, name)| (name, json!({ "config": id.to_string() })))
+                    .collect(),
+                key!("reason-no-config-project"),
+            )
+        }
+        // On a bus-topology page, the ports the Bus panel lists as not drawn yet.
+        Submenu::BusPorts => {
+            let bus_page =
+                model.page_rows().get(model.page_index()).map(|r| r.kind.as_str()) == Some("bus_topology");
+            if !bus_page {
+                return nothing_item(meta, model, key!("reason-port-bus-page"));
+            }
+            let table = model
+                .project_session()
+                .map(|s| s.navigator_table(crate::navigators::NavKind::Bus));
+            let ports = table.iter().flat_map(|t| &t.nodes).filter_map(|n| {
+                let (device, port) = crate::shell::undrawn_port(&n.key)?;
+                Some((n.label.clone(), json!({ "device": device, "port": port })))
+            });
+            target_items(meta, model, ports.collect(), key!("reason-no-undrawn-port"))
+        }
         Submenu::MinFont => {
             let current = model.settings().min_font_pt;
             MIN_FONT_CHOICES
@@ -1818,7 +1967,7 @@ pub fn group_metas(group: Group) -> Vec<&'static ActionMeta> {
     metas
 }
 
-/// The app menu generated from the registry, in the state of `model` (doc 16a §9.2): File, Edit, the six tabs' menus
+/// The app menu generated from the registry, in the state of `model` (doc 16a §9.2): File, Edit, the tabs' menus
 /// with their groups (a group of more than three entries is a submenu named by the group, a smaller one a separated
 /// block), then Window and Help. Every action with a slot appears exactly once.
 pub fn menu_model(model: &ShellModel) -> Vec<MenuModel> {

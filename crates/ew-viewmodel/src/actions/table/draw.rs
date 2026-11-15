@@ -467,17 +467,21 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_tool_wire(),
         ),
     ))),
-    // Draw ▸ Connect ▸ Fluid line… (FT-1733): the Wire tool drawing fluid lines of a kind picked first.
+    // Fluid ▸ Tubes ▸ Tube… (FT-1733): the Wire tool drawing fluid lines of a kind picked first.
     with_params(
         "line_kind?:text",
-        act(
-            "tool.fluid_line",
-            Command,
-            Menu::Draw,
-            &[],
-            fluid_page,
-            grp(Group::Connect),
-            |s, p| s.act_tool_fluid_line(p),
+        placed(
+            place(Group::Tubes, 2, CommandSize::Large, None),
+            "pipeline",
+            act(
+                "tool.fluid_line",
+                Command,
+                Menu::Fluid,
+                &[],
+                fluid_page,
+                None,
+                |s, p| s.act_tool_fluid_line(p),
+            ),
         ),
     ),
     // Ctrl+Enter: a click with Alt held at the grid cursor (a placement without its autoconnect proposals, a bend

@@ -53,7 +53,7 @@ fn close(a: f32, b: f32) -> bool {
     (a - b).abs() < 0.5
 }
 
-/// CB2: the tab list holds the six tabs Project to View in order, Draw selected; every shown button of the Draw row
+/// CB2: the tab list holds the tabs Project to View in order, Draw selected; every shown button of the Draw row
 /// is named by its short label and carries its shortcut; a click on each enabled plain or split button dispatches its
 /// action.
 #[test]
@@ -69,7 +69,10 @@ fn the_tabs_and_the_draw_row_dispatch_their_actions() {
         })
         .collect();
     let names: Vec<&str> = tabs.iter().map(|(n, _)| n.as_str()).collect();
-    assert_eq!(names, ["Project", "Page", "Draw", "Check", "Output", "View"]);
+    assert_eq!(
+        names,
+        ["Project", "Page", "Draw", "PLC", "Fluid", "Check", "Output", "View"]
+    );
     assert_eq!(
         tabs.iter()
             .filter(|(_, on)| *on)
@@ -182,7 +185,7 @@ fn the_command_surface_from_the_keyboard() {
     assert_eq!(h.state().shell().command_tab(), Tab::Draw);
     h.key_press(Key::ArrowRight);
     settle(&mut h);
-    assert_eq!(h.state().shell().command_tab(), Tab::Check);
+    assert_eq!(h.state().shell().command_tab(), Tab::Plc);
     h.key_press(Key::ArrowLeft);
     h.key_press(Key::ArrowLeft);
     settle(&mut h);

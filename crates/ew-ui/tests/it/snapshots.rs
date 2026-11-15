@@ -318,7 +318,7 @@ fn crop(image: &ew_render_cpu::RgbaImage, rect: egui::Rect) -> ew_render_cpu::Rg
     }
 }
 
-/// CB7 (§12.2): the command bar alone, cropped to its frame, for each of the six tabs, light Comfortable (gated; the
+/// CB7 (§12.2): the command bar alone, cropped to its frame, for each of the tabs, light Comfortable (gated; the
 /// bar in dark and Compact is in the `main-*` images).
 #[test]
 fn the_command_bar_on_every_tab() {
@@ -327,7 +327,7 @@ fn the_command_bar_on_every_tab() {
     {
         let (theme, density) = ("light", "comfortable");
         let (mut h, recorder, tmp) = main_window(theme, density);
-        for tab in ["project", "page", "draw", "check", "output", "view"] {
+        for tab in ew_ui::ew_viewmodel::command_bar::Tab::ALL.map(|t| t.word()) {
             assert_eq!(
                 h.state_mut()
                     .shell_mut()

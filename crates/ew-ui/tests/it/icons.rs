@@ -168,6 +168,11 @@ fn no_icon_key_serves_two_concepts() {
         ("report", &["pane blocks", "report_block.new"]),
         // A QElectroTech project imported, and the same file imported again into its import.
         ("file-import", &["file.import_qet", "file.reimport_qet"]),
+        // The Bus panel and the PLC tab's button that shows it.
+        ("topology-bus", &["pane bus", "bus.panel"]),
+        // A discipline's workspace and its guide, one concept on each of the PLC and Fluid tabs.
+        ("app-window", &["plc.workspace", "fluid.workspace"]),
+        ("book", &["plc.guide", "fluid.guide"]),
     ];
     let mut by_key: BTreeMap<&str, BTreeSet<String>> = BTreeMap::new();
     for a in ew_viewmodel::actions::ACTIONS {

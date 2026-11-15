@@ -30,6 +30,10 @@ pub enum Tab {
     Page,
     /// The core loop: select, place, connect, annotate, arrange (the tab that opens with a project).
     Draw,
+    /// The PLC and the bus: stations, addresses, bus pages, the PLC lists, the exchange with PLC software.
+    Plc,
+    /// Fluid power: fluid pages, tubes, fluid symbols, media and the fluid lists.
+    Fluid,
     /// Make it right before output.
     Check,
     /// Everything that leaves the project.
@@ -40,10 +44,12 @@ pub enum Tab {
 
 impl Tab {
     /// The tabs, left to right.
-    pub const ALL: [Tab; 6] = [
+    pub const ALL: [Tab; 8] = [
         Tab::Project,
         Tab::Page,
         Tab::Draw,
+        Tab::Plc,
+        Tab::Fluid,
         Tab::Check,
         Tab::Output,
         Tab::View,
@@ -55,6 +61,8 @@ impl Tab {
             Tab::Project => Menu::Project,
             Tab::Page => Menu::Page,
             Tab::Draw => Menu::Draw,
+            Tab::Plc => Menu::Plc,
+            Tab::Fluid => Menu::Fluid,
             Tab::Check => Menu::Check,
             Tab::Output => Menu::Output,
             Tab::View => Menu::View,
@@ -67,6 +75,8 @@ impl Tab {
             Tab::Project => "project",
             Tab::Page => "page",
             Tab::Draw => "draw",
+            Tab::Plc => "plc",
+            Tab::Fluid => "fluid",
             Tab::Check => "check",
             Tab::Output => "output",
             Tab::View => "view",
@@ -118,6 +128,28 @@ pub enum Group {
     Annotate,
     /// Draw: rotate, mirror, align, renumber.
     Arrange,
+    /// PLC: the stations and their racks.
+    Station,
+    /// PLC: the channel addresses, the process tags and the symbol names.
+    Addresses,
+    /// PLC: the bus pages, ports and the Bus panel.
+    Bus,
+    /// PLC: the PLC panel, the PLC grid and the instrument list.
+    PlcLists,
+    /// PLC: the exchange with PLC software.
+    Exchange,
+    /// PLC: the PLC workspace and the PLC guide.
+    PlcWorkspace,
+    /// Fluid: a fluid page and the Tube tool.
+    Tubes,
+    /// Fluid: the fluid symbols, valve terminals and the air supply.
+    FluidPlace,
+    /// Fluid: the media and the fluid settings.
+    Media,
+    /// Fluid: the Fluid panel, the tube and medium tables, a valve terminal's overview.
+    FluidLists,
+    /// Fluid: the Fluid workspace and the fluid guide.
+    FluidWorkspace,
     /// Check: run the check scheme.
     Run,
     /// Check: the findings.
@@ -132,8 +164,6 @@ pub enum Group {
     Reports,
     /// Output: the lists.
     Lists,
-    /// Output: the exchange with PLC software.
-    Exchange,
     /// Output: the jobs.
     Jobs,
     /// View: zoom.
@@ -150,7 +180,7 @@ pub enum Group {
 
 impl Group {
     /// Every group, in bar order.
-    pub const ALL: [Group; 27] = [
+    pub const ALL: [Group; 37] = [
         Group::Project,
         Group::Parts,
         Group::Standards,
@@ -164,6 +194,17 @@ impl Group {
         Group::PanelLayout,
         Group::Annotate,
         Group::Arrange,
+        Group::Station,
+        Group::Addresses,
+        Group::Bus,
+        Group::PlcLists,
+        Group::Exchange,
+        Group::PlcWorkspace,
+        Group::Tubes,
+        Group::FluidPlace,
+        Group::Media,
+        Group::FluidLists,
+        Group::FluidWorkspace,
         Group::Run,
         Group::Findings,
         Group::Numbering,
@@ -171,7 +212,6 @@ impl Group {
         Group::Pdf,
         Group::Reports,
         Group::Lists,
-        Group::Exchange,
         Group::Jobs,
         Group::Zoom,
         Group::Show,
@@ -191,8 +231,17 @@ impl Group {
             | Group::PanelLayout
             | Group::Annotate
             | Group::Arrange => Tab::Draw,
+            Group::Station
+            | Group::Addresses
+            | Group::Bus
+            | Group::PlcLists
+            | Group::Exchange
+            | Group::PlcWorkspace => Tab::Plc,
+            Group::Tubes | Group::FluidPlace | Group::Media | Group::FluidLists | Group::FluidWorkspace => {
+                Tab::Fluid
+            }
             Group::Run | Group::Findings | Group::Numbering | Group::Trace => Tab::Check,
-            Group::Pdf | Group::Reports | Group::Lists | Group::Exchange | Group::Jobs => Tab::Output,
+            Group::Pdf | Group::Reports | Group::Lists | Group::Jobs => Tab::Output,
             Group::Zoom | Group::Show | Group::Panels | Group::Layout | Group::Appearance => Tab::View,
         }
     }
@@ -213,6 +262,16 @@ impl Group {
             Group::PanelLayout => "panel-layout",
             Group::Annotate => "annotate",
             Group::Arrange => "arrange",
+            Group::Station => "station",
+            Group::Addresses => "addresses",
+            Group::Bus => "bus",
+            Group::PlcLists => "plc-lists",
+            Group::PlcWorkspace => "plc-workspace",
+            Group::Tubes => "tubes",
+            Group::FluidPlace => "fluid-place",
+            Group::Media => "media",
+            Group::FluidLists => "fluid-lists",
+            Group::FluidWorkspace => "fluid-workspace",
             Group::Run => "run",
             Group::Findings => "findings",
             Group::Numbering => "numbering",
@@ -299,7 +358,7 @@ pub fn next_step(tab: Tab) -> Option<&'static str> {
     match tab {
         Tab::Draw => Some("messages.check"),
         Tab::Check => Some("file.export_pdf"),
-        Tab::Project | Tab::Page | Tab::Output | Tab::View => None,
+        Tab::Project | Tab::Page | Tab::Plc | Tab::Fluid | Tab::Output | Tab::View => None,
     }
 }
 
@@ -363,10 +422,45 @@ pub struct CommandBarModel {
     pub tabs: Vec<(Tab, String)>,
     /// The quick-access buttons of the tab row: Save, Undo, Redo (doc 16a §5.2).
     pub quick: Vec<CommandButton>,
+    /// The tab row's workspace switch, left of the command search: Schematic, PLC and Fluid power, and a saved
+    /// workspace by its name while it is the active one; empty without a project.
+    pub workspaces: Vec<WorkspaceChoice>,
     /// The tab's groups that hold a command, left to right.
     pub groups: Vec<GroupModel>,
     /// The tab's next step.
     pub next: Option<CommandButton>,
+}
+
+/// One choice of the tab row's workspace switch: a click loads it (`view.workspace_load {name}`).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct WorkspaceChoice {
+    /// The workspace's name, the `name` of `view.workspace_load`.
+    pub name: String,
+    /// Its label: a built-in workspace in the UI language's words, a saved one by its name.
+    pub label: String,
+    /// Whether it is the active workspace.
+    pub active: bool,
+}
+
+/// The workspace switch of `model`: the built-in workspaces in their order, then the active workspace when it is a
+/// saved one; none without a project (a workspace lays out the project view).
+pub fn workspace_choices(model: &ShellModel) -> Vec<WorkspaceChoice> {
+    if !model.has_project() {
+        return Vec::new();
+    }
+    let active = model.workspace();
+    let mut names: Vec<&str> = crate::settings::BUILT_IN_WORKSPACES.to_vec();
+    if !names.contains(&active) {
+        names.push(active);
+    }
+    names
+        .into_iter()
+        .map(|name| WorkspaceChoice {
+            name: name.to_owned(),
+            label: actions::workspace_label(name),
+            active: name == active,
+        })
+        .collect()
 }
 
 /// The registry label without its ellipsis (the bar's short label, doc 16a §8 item 3).
@@ -407,6 +501,17 @@ fn button_of(meta: &'static ActionMeta, model: &ShellModel, size: CommandSize) -
     } else {
         ButtonKind::Plain
     };
+    // A menu button whose every entry is greyed (no station yet, no port to place) is greyed with the first one's
+    // reason, so the bar says why before the menu opens.
+    let (mut enabled, mut reason) = (item.enabled, item.reason);
+    if let ButtonKind::Menu(items) = &kind
+        && enabled
+        && !items.is_empty()
+        && items.iter().all(|i| !i.enabled)
+    {
+        enabled = false;
+        reason = items[0].reason.clone();
+    }
     CommandButton {
         id: meta.id,
         label: item.label,
@@ -414,8 +519,8 @@ fn button_of(meta: &'static ActionMeta, model: &ShellModel, size: CommandSize) -
         icon: meta.icon.unwrap_or(""),
         size,
         shortcut: item.shortcut,
-        enabled: item.enabled,
-        reason: item.reason,
+        enabled,
+        reason,
         checked: item.checked,
         topic: item.topic,
         kind,
@@ -458,6 +563,7 @@ pub fn command_bar_of(model: &ShellModel, tab: Tab) -> CommandBarModel {
             .iter()
             .filter_map(|id| action_button(model, id))
             .collect(),
+        workspaces: workspace_choices(model),
         groups,
         next,
     }

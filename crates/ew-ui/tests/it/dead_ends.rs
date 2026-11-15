@@ -102,7 +102,16 @@ fn a_plc_card_without_a_cpu_says_in_the_plc_panel_that_it_waits_for_one() {
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     place_box(&mut d, "EW-GEN-DI-1", (700, 400), (900, 600));
-    d.input(&click(d.find("PLC").unwrap()));
+    // The rail's PLC button, the left-most of the widgets named PLC (the PLC tab and the workspace switch's PLC are
+    // in the command bar).
+    let rail = d
+        .labels()
+        .into_iter()
+        .filter(|(label, _)| label == "PLC")
+        .min_by_key(|(_, (x, _))| *x)
+        .unwrap()
+        .1;
+    d.input(&click(rail));
     d.settle();
     assert!(panel_shown(&mut d, "plc"));
     assert!(d.find("No CPU yet").is_some(), "{:?}", d.labels());

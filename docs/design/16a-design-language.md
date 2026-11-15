@@ -587,11 +587,16 @@ the bar.
    Ctrl+Shift+Z) as `size.quick_access` icon buttons with `icon.sm` in `color.text.secondary`, `radius.sm`; then
    another separator. Microsoft's ribbon guidance pairs every ribbon with an application button and a quick-access
    toolbar so file commands and undo never need a tab change.
-3. **Tabs**: Project, Page, Draw, Check, Output, View, in `type.body` with `space.4` padding; the active one in
+3. **Tabs**: Project, Page, Draw, PLC, Fluid, Check, Output, View, in `type.body` with `space.4` padding; the active one in
    `type.body.strong` and `color.text.primary` with a 2-px `color.accent` underline inset `space.4` from both ends
    (`radius.mark`), the others `color.text.secondary`; hover shows the hover overlay. One click switches; the tab row
    is a `TabList` with `Tab` children for AccessKit.
-4. **Command search**, right-aligned, `size.search` (280 × 24): `color.surface.panel` fill, a 1-px
+4. **The workspace switch** (rc.2, the owner's test: "the workspace buttons should also be there"), left of the
+   command search with a `space.3` gap: a segmented control (§6.20) of Schematic, PLC and Fluid power, and a saved
+   workspace by its name while it is the active one; the active workspace is the chosen item, a click loads another.
+   For AccessKit it is a radio group (the command tabs hold a tab named PLC). It shows while a project is open, where it fits right of
+   the tabs. Saved workspaces, Save layout as and Reset stay in View ▸ Workspaces.
+5. **Command search**, right-aligned, `size.search` (280 × 24): `color.surface.panel` fill, a 1-px
    `color.border.default`, `radius.md`, a 16-px search icon, the placeholder "Search commands and devices" in
    `color.text.tertiary` and the key chip "Ctrl K" at its right end. The icon and the placeholder identify the
    field (WCAG 1.4.11). Focusing it opens the command palette (§6.14) anchored under the field.
@@ -635,7 +640,7 @@ size, bar_label }>` and `icon: IconId`, and each tab names its next-step action;
 placement, in that order. A registry test asserts that every
 placed action has an icon, a label and a docs anchor, and that each tab's groups follow §5.3's order.
 
-*As built.* The command bar is built as above: a tab row with the app button, quick access (Save, Undo, Redo), the six tabs and the command search; a command row with groups of large, small and split buttons, More and the next step. Ctrl+F1 collapses the bar to 33 px; Alt alone or F10 opens the app menu. The fields of the old tool strip (IP name, Text binding, Wire marker, Structure box) moved to a floating **tool options card** at the page view's top left, shown only while one of those tools runs. The command search lists the left rail's panels by their names ("PLC" shows the PLC panel). Commands with no registry action yet are listed by name and drawn nowhere. F6 cycles command bar, navigator, canvas, Properties (and History while it is shown). The registry holds 258 actions for 55 commands.
+*As built.* The command bar is built as above: a tab row with the app button, quick access (Save, Undo, Redo), the tabs, the workspace switch and the command search; a command row with groups of large, small and split buttons, More and the next step. Ctrl+F1 collapses the bar to 33 px; Alt alone or F10 opens the app menu. The fields of the old tool strip (IP name, Text binding, Wire marker, Structure box) moved to a floating **tool options card** at the page view's top left, shown only while one of those tools runs. The command search lists the left rail's panels by their names ("PLC" shows the PLC panel). Commands with no registry action yet are listed by name and drawn nowhere. F6 cycles command bar, navigator, canvas, Properties (and History while it is shown). The registry holds 258 actions for 55 commands.
 
 ### 5.3 The tabs
 
@@ -644,8 +649,10 @@ placed action has an icon, a label and a docs anchor, and that each tab's groups
 | Project | Project: **Properties**, Structure · Parts: Project parts · Standards: Schemes, Company standard · Import: Re-import QElectroTech project… alone (File ▸ Import… takes every file and goes on by what it is, FT-1741; the separate entries Parts table…, Import QElectroTech project…, Import drawing… and Import EPLAN data… are in no menu and no button, the command search finds each by its name) | None · set up once; New, Open and Save are in the app menu and quick access, never duplicated here |
 | Page | Pages: **New page**, Title block fields… (FT-1686), New section, Page properties, Delete page · Order: Renumber pages, Move up, Move down · Go: **Go to** (Ctrl+G), Back (Alt+Left), Forward (Alt+Right), Follow reference (F) | None · folio navigation and page set-up |
 | **Draw** (home) | Select: **Select** · Place: **Symbol** (I), **Device** (Shift+I), Terminal… (its form asks the strip, the kind, how many and from which number, FT-1695), Black box (B), Symbol editor (alone in its column, named for what it is; the group's two large buttons are Symbol and Device) · Connect: **Wire** (W), Edit route, Potential (Shift+P), Interruption (P), Route page and Route selection (stacked in one column), Cable (the selected wires as a cable's cores, FT-1685, alone in its column; below 1920 the Layout group folds into its group button first) · Annotate: **Text** (T), Measure, Marker (the Wire marker, Shift+W) · Arrange: Rotate (R), Mirror (X, Y), Align, Renumber | **Check project** (F7) · the core loop and the tab that opens with a project; the mockup's fifteen commands and its next step, with the commands that joined since: Edit route beside Wire, Route page and Route selection and Symbols (the Symbol editor joined Place, which the editor's persona round asked for; its bar label is "Symbols", the editor's things, since "Editor" names no concept and "New symbol" would mislead when a kept draft reopens; its tooltip, menu entry and palette row are "Symbol editor…"). Move, Delete, Wire marker, Graphic, Image, Structure box, Properties and Change symbol are reached by their keys, the context menu, the app menu's Draw and the palette; Align arrives with its package |
+| PLC | Station: **Rack** ▾ (Rack and slots… of a station), Attach cards ▾ (a station that takes cards) · Addresses: **Addresses** ▾ (Re-address…, Make manual addresses automatic…, Freeze addresses… of each configuration project), Addresses at terminals, Process-tag scheme, Symbol policy ▾ · Bus: **Bus page** (New page… of type Bus topology), Place port ▾ (the ports the Bus panel lists as not drawn yet; on a bus-topology page), Bus panel · Lists: **PLC grid**, Instrument list ▾ · PLC exchange: Export to PLC software, Import from PLC software · Workspace: **PLC workspace** (on while it is active; a second press goes back to Schematic), Guide | None · rc.2 (the owner's test: "the new PLC and Fluid tools should not be hidden in menus"). A menu button (▾) lists one entry per station or configuration project; with nothing to list it is greyed with the reason. The settings of one module or one channel (Safety data…, Mode and safety…) stay on their rows |
+| Fluid | Tubes: **Fluid page** (New page… of type Fluid), **Tube** · Place: **Fluid symbol** (the symbol browser; on a fluid page it offers the fluid symbols), Valve terminal (the device browser at the valve terminals), Air supply (the symbol browser at the air supply and its preparation) · Media: **New medium**, Fluid settings, Medium table · Lists: **Tube table**, Generate overview (of the selected valve terminal) · Workspace: **Fluid workspace**, Guide | None · a button that needs a fluid page is greyed elsewhere with the reason. A fluid line's medium stays on its context menu |
 | Check | Run: **Check project** (F7), Check scheme ▾ · Findings: **Messages**, Next finding (F8), Previous finding (Shift+F8) · Numbering: Freeze tag, Unfreeze tag · Trace: Highlight potential (Ctrl+Shift+H), Clear highlights | **Export PDF** · make it right before output; Renumber lives on Draw (the mockup) |
-| Output | PDF: **Export PDF**, Print · Reports: **Report blocks** (as built: **Report**, the Report block… dialog, where every list page is made), Open generated page · Lists: Parts list, Wire list, Terminal diagram (open their generated pages) · PLC exchange: Export to PLC software, Import from PLC software (stacked; the persona round of M3: three of three personas looked for a list page and the PLC exchange here) · Jobs: Jobs | None · everything that leaves the project |
+| Output | PDF: **Export PDF**, Print · Reports: **Report blocks** (as built: **Report**, the Report block… dialog, where every list page is made), Open generated page · Lists: Parts list, Wire list, Terminal diagram (open their generated pages) · Jobs: Jobs | None · everything that leaves the project; the PLC exchange moved to the PLC tab in rc.2 |
 | View | Zoom: **Fit page** (Home), Zoom in, Zoom out, Actual size · Show: Grid, Snap, Frame statistics, Show tips · Panels: Navigators ▾, Properties, Messages, Jobs, History, Notifications · Layout: Side by side, Workspaces ▾, Reset layout · Appearance: Theme ▾, Density ▾, UI scale ▾ | None · never needed for the work itself |
 
 Commands of later packages join their tab's group when they exist (Macro in Place, Cable in Connect, Waivers in
@@ -1602,7 +1609,9 @@ The tabs, the app menu and the palette's categories all follow the order in whic
 flowchart LR
   P["Project<br/>set up, parts, standards"] --> G["Page<br/>create, order, go to"]
   G --> D["Draw<br/>select, place, connect, annotate, arrange"]
-  D --> C["Check<br/>run, findings, numbering, trace"]
+  D --> L["PLC<br/>stations, addresses, bus, exchange"]
+  L --> F["Fluid<br/>tubes, fluid symbols, media"]
+  F --> C["Check<br/>run, findings, numbering, trace"]
   C --> O["Output<br/>PDF, reports, lists"]
   V["View<br/>zoom, panels, layout, appearance"]
 ```
@@ -1614,7 +1623,7 @@ first and is the large one. The user's eye reads the bar like a checklist.
 
 The app menu holds every action of the registry, in this order: **File** (New project, Open…, Open recent ▸, Close,
 Save, Save as…, Save a copy…, Settings…, Quit), **Edit** (Undo, Redo, Cut, Copy, Paste,
-Duplicate, Delete, Select all, Find and replace…, Properties), then **Project**, **Page**, **Draw**, **Check**,
+Duplicate, Delete, Select all, Find and replace…, Properties), then **Project**, **Page**, **Draw**, **PLC**, **Fluid**, **Check**,
 **Output** and **View** with the same groups and order as the tabs (a group is a submenu when it holds more than three
 commands, otherwise a separated block), then **Window** and **Help**. The as-built menus map onto it: Insert becomes
 Draw; Tools dissolves (Command palette into View and the search field, Settings into File, Renumber devices into

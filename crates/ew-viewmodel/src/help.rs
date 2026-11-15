@@ -36,6 +36,7 @@ pub struct Anchor {
 }
 
 const WINDOW: &str = "how-to/application-window.md";
+const PLC_GUIDE: &str = "how-to/plc-workspace.md";
 
 /// The anchors, in no particular order; `topic` is unique.
 pub static ANCHORS: &[Anchor] = &[
@@ -114,6 +115,13 @@ pub static ANCHORS: &[Anchor] = &[
         page: "tutorials/index.md",
         fragment: Cow::Borrowed(""),
     },
+    // The how-to guides of the disciplines (rc.2, F5): the PLC, Fluid and Workspace buttons' Guide, F1 on their
+    // tabs, navigators and pages, the part editor and a panel layout page.
+    on(PLC_GUIDE, "guide-plc", ""),
+    on(PLC_GUIDE, "guide-bus", "bus-ports-and-nets"),
+    on("how-to/fluid-workspace.md", "guide-fluid", ""),
+    on("how-to/own-parts.md", "guide-own-parts", ""),
+    on("how-to/panel-layout.md", "guide-panel-layout", ""),
     Anchor {
         topic: "commands",
         page: "reference/commands/index.md",
@@ -132,7 +140,6 @@ pub static ANCHORS: &[Anchor] = &[
     on(DIALOGS, "dialog-form", "form-dialogs"),
     on(DIALOGS, "dialog-purge", "purge-unused-images"),
     on(DIALOGS, "dialog-part-choose", "choose-part"),
-    on(DIALOGS, "dialog-part-edit", "edit-part"),
     on(DIALOGS, "dialog-print", "print"),
     on(DIALOGS, "dialog-external-change", "changes-on-disk"),
     on(DIALOGS, "dialog-upgrade", "upgrade-the-format"),
@@ -159,10 +166,6 @@ pub static ANCHORS: &[Anchor] = &[
     on(PANELS, "nav-connections", "connections"),
     on(PANELS, "nav-strips", "terminal-strips"),
     on(PANELS, "nav-cables", "cables"),
-    on(PANELS, "nav-plc", "plc"),
-    on(PANELS, "nav-plc-grid", "plc-grid"),
-    on(PANELS, "nav-bus", "bus"),
-    on(PANELS, "nav-fluid", "fluid"),
     on(PANELS, "nav-tubes", "tube-table"),
     on(PANELS, "nav-media", "medium-table"),
     on(PANELS, "nav-potentials", "potentials"),
@@ -255,6 +258,10 @@ pub fn action_topic(action: &str) -> Option<&'static str> {
         a if a.starts_with("symbol.") => "symbol-editor",
         a if a.starts_with("tool.") => return tool_topic(a),
         a if a.starts_with("view.workspace") => "workspaces",
+        // The PLC and Fluid tabs' commands: their discipline's guide.
+        a if a.starts_with("bus.") => "guide-bus",
+        a if a.starts_with("plc.") || a == "project.plc_addresses_at_terminals" => "guide-plc",
+        a if a.starts_with("fluid.") => "guide-fluid",
         // Every command of the command bar has a page; until the book has a command-bar
         // section the project view's page explains the window it sits in.
         a if crate::actions::find(a).is_some_and(|m| m.placement.is_some()) => "project-view",
@@ -283,9 +290,20 @@ pub fn context_topic(model: &ShellModel) -> &'static str {
         return topic;
     }
     if model.has_project() {
-        "project-view"
+        page_topic(model).unwrap_or("project-view")
     } else {
         "start-page"
+    }
+}
+
+/// The guide of the page on show where its type has one: a bus-topology page the bus part of the PLC guide, a fluid
+/// page the fluid guide, a panel layout page the panel layout guide.
+fn page_topic(model: &ShellModel) -> Option<&'static str> {
+    match model.page_rows().get(model.page_index())?.kind.as_str() {
+        "bus_topology" => Some("guide-bus"),
+        "fluid" => Some("guide-fluid"),
+        "panel_layout" => Some("guide-panel-layout"),
+        _ => None,
     }
 }
 
@@ -308,7 +326,8 @@ pub fn dialog_topic(dialog: &Dialog) -> &'static str {
         Dialog::Form(_) => "dialog-form",
         Dialog::ConfirmPurge { .. } => "dialog-purge",
         Dialog::PartChoose(_) => "dialog-part-choose",
-        Dialog::PartEdit(_) => "dialog-part-edit",
+        // The part editor makes your own parts: the guide that walks through it.
+        Dialog::PartEdit(_) => "guide-own-parts",
         Dialog::Print(_) => "dialog-print",
         Dialog::ExternalChange { .. } => "dialog-external-change",
         Dialog::ConfirmUpgrade { .. } => "dialog-upgrade",
@@ -333,10 +352,10 @@ pub fn nav_topic(kind: NavKind) -> &'static str {
         NavKind::Connections => "nav-connections",
         NavKind::Strips => "nav-strips",
         NavKind::Cables => "nav-cables",
-        NavKind::Plc => "nav-plc",
-        NavKind::PlcGrid => "nav-plc-grid",
-        NavKind::Bus => "nav-bus",
-        NavKind::Fluid => "nav-fluid",
+        // The PLC, Bus and Fluid panels lead to their discipline's guide (rc.2, F5).
+        NavKind::Plc | NavKind::PlcGrid => "guide-plc",
+        NavKind::Bus => "guide-bus",
+        NavKind::Fluid => "guide-fluid",
         NavKind::Tubes => "nav-tubes",
         NavKind::Media => "nav-media",
         NavKind::Potentials => "nav-potentials",
@@ -381,7 +400,11 @@ fn focus_topic(model: &ShellModel) -> Option<&'static str> {
         Focus::Properties => pane_topic(PaneKind::Properties),
         Focus::Find => pane_topic(PaneKind::Find),
         Focus::History => pane_topic(PaneKind::History),
-        Focus::CommandBar => "command-bar",
+        Focus::CommandBar => match model.command_tab() {
+            crate::command_bar::Tab::Plc => "guide-plc",
+            crate::command_bar::Tab::Fluid => "guide-fluid",
+            _ => "command-bar",
+        },
         Focus::Canvas(_) => match crate::command_bar::tool_action(model.tool().name()) {
             "tool.select" => return None,
             action => return tool_topic(action),
@@ -555,7 +578,13 @@ mod tests {
             assert_eq!(anchor(topic).map(|a| a.page), Some(TOOLS), "{id}");
         }
         for kind in NavKind::ALL {
-            assert_eq!(anchor(nav_topic(kind)).map(|a| a.page), Some(PANELS), "{kind:?}");
+            // The PLC, Bus and Fluid panels open their discipline's guide, the others their panel's section.
+            let page = match kind {
+                NavKind::Plc | NavKind::PlcGrid | NavKind::Bus => PLC_GUIDE,
+                NavKind::Fluid => "how-to/fluid-workspace.md",
+                _ => PANELS,
+            };
+            assert_eq!(anchor(nav_topic(kind)).map(|a| a.page), Some(page), "{kind:?}");
             assert_eq!(pane_topic(PaneKind::Navigator(kind)), nav_topic(kind));
         }
         for pane in PaneKind::ALL {
@@ -632,12 +661,7 @@ mod tests {
         ] {
             assert!(anchor(dialog_topic(&dialog)).is_some(), "{dialog:?}");
         }
-        for topic in [
-            "dialog-form",
-            "dialog-part-choose",
-            "dialog-part-edit",
-            "dialog-print",
-        ] {
+        for topic in ["dialog-form", "dialog-part-choose", "dialog-print"] {
             assert_eq!(anchor(topic).map(|a| a.page), Some(DIALOGS), "{topic}");
         }
     }

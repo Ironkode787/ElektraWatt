@@ -6,9 +6,11 @@ modules, bind channels and check what each channel drives.
 
 ## Open it
 
-1. Choose **View ▸ Workspaces ▸ PLC**. The left column shows the PLC navigator and the bottom dock the PLC grid;
-   Properties stays under the navigator. **View ▸ Workspaces ▸ Schematic** goes back; a change you make to the layout
-   is kept for the workspace.
+1. Choose **PLC** in the workspace switch at the right of the tab row, or **PLC workspace** at the end of the
+   **PLC** tab. The left column shows the PLC navigator and the bottom dock the PLC grid; Properties stays under the
+   navigator. **Schematic** in the switch goes back; a change you make to the layout is kept for the workspace. The
+   **PLC** tab holds a button for each PLC and bus command: Rack, Addresses, Bus page, Place port, PLC grid, the
+   exchange with PLC software and this guide.
 
 ## The PLC navigator
 
@@ -87,10 +89,10 @@ modules, bind channels and check what each channel drives.
 
 ## Exchange with the PLC software
 
-12. Choose **Export to PLC software** on the Output tab (or **Output ▸ Export to PLC software…**), pick the format
+13. Choose **Export to PLC software** on the PLC tab (or **PLC ▸ Export to PLC software…**), pick the format
     and choose **Export**, then the file: the dialog names it for the format (`.aml`, `.xlsx` or `.xml`), and the
     document date starts as today's. Import the file in TIA Portal or CODESYS.
-13. Choose **Import from PLC software** on the Output tab (or **Output ▸ Import from PLC software…**) for the file the
+12. Choose **Import from PLC software** on the PLC tab (or **PLC ▸ Import from PLC software…**) for the file the
     PLC software wrote back. Look through its tabs; each conflict shows the side Apply takes, and offers the file's
     value where it can be taken. Choose **Apply**.
 14. After an import, the module starts, the symbols or the PLC data the PLC software owns are protected. Right-click
@@ -105,7 +107,7 @@ modules, bind channels and check what each channel drives.
 17. Right-click a module and choose **Safety data…** for its F-source and F-destination address and its F-watchdog
     time; right-click a channel and choose **Mode and safety…** for a multi-function port's mode and the channel's
     safety evaluation and requirement.
-18. Choose **Project ▸ Process-tag scheme…** for the pattern process tags follow, and **Project ▸ Channel addresses at
+18. Choose **Process-tag scheme** on the PLC tab for the pattern process tags follow, and **Addresses at
     terminals** to print a channel's address at the terminals on its path.
 
 The panels are described in the [panel reference](../reference/window/panels.md): PLC, PLC grid and Bus; the dialog in the

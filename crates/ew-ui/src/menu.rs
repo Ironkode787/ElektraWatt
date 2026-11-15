@@ -3,7 +3,7 @@
 
 //! The app menu (doc 16a §9.2; built the menu bar it replaces), drawn with egui on
 //! every operating system (not native menus): one button of the command bar opens the full tree, File, Edit,
-//! the six tabs' menus with their groups, Window and Help, generated from the action registry by
+//! the tabs' menus with their groups, Window and Help, generated from the action registry by
 //! `ew_viewmodel::actions::menu_model`. Each entry shows its accelerator, is greyed when disabled and gives its
 //! reason as the tooltip; a click is an [`Event::Action`]. Rows follow doc 16a §6.13. An enabled entry with a documentation topic ends its
 //! tooltip with "F1: learn more", and F1 while the pointer is on it opens that topic (FR-UI-031).

@@ -196,7 +196,11 @@ impl ShellModel {
                 // A panel's glossary aliases too ("network" finds Bus, the persona run m3-p4).
                 let aliases = crate::glossary::panel_aliases(button.word);
                 let names = std::iter::once(button.label.as_str()).chain(aliases.iter().copied());
-                let Some(rank) = rank(query, "", names, button.word, 0, state.is_ok()) else {
+                // A panel named exactly what was typed weighs as a label, so that it leads the commands named after
+                // it ("PLC" shows the PLC panel before PLC grid and PLC workspace).
+                let exact = button.label.to_lowercase() == query.trim().to_lowercase();
+                let label = if exact { button.label.as_str() } else { "" };
+                let Some(rank) = rank(query, label, names, button.word, 0, state.is_ok()) else {
                     continue;
                 };
                 ranked.push(Ranked {

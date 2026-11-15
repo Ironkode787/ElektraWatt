@@ -41,17 +41,10 @@ const KEY_ONLY: &[&str] = &[
     "table.paste",
     "table.copy",
     "table.clear",
-    // The PLC navigator's row actions, reached through its row menu.
-    "plc.attach_cards",
-    "plc.rack_editor",
-    "plc.preview",
-    "plc.instrument_list",
-    "plc.symbol_policy",
+    // A PLC module's and a channel's own settings, reached through their row menus.
     "plc.module_safety",
     "plc.channel_settings",
     // A fluid line's medium, reached through its context menu.
-    // A valve terminal's overview, reached through its row menu.
-    "fluid.generate_overview",
     "fluid.set_medium",
     "plc.add_to_plc",
 ];
@@ -99,7 +92,7 @@ fn menu_places(model: &ShellModel) -> BTreeMap<&'static str, Vec<String>> {
 fn the_registry_places_every_command_once_and_the_app_menu_holds_every_action_once() {
     assert_eq!(
         Tab::ALL.map(Tab::word),
-        ["project", "page", "draw", "check", "output", "view"]
+        ["project", "page", "draw", "plc", "fluid", "check", "output", "view"]
     );
     let in_tab_order: Vec<Group> = Tab::ALL.into_iter().flat_map(Tab::groups).collect();
     assert_eq!(in_tab_order, Group::ALL, "the groups run tab by tab");
@@ -298,6 +291,8 @@ fn the_command_tab_and_the_collapse_reach_the_describe_text() {
             ("Project", false),
             ("Page", false),
             ("Draw", false),
+            ("PLC", false),
+            ("Fluid", false),
             ("Check", false),
             ("Output", false),
             ("View", true)

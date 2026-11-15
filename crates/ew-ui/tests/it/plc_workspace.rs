@@ -704,7 +704,7 @@ fn a_module_is_re_addressed_with_its_old_to_new_preview() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// The PLC exchange from the Output menu (doc 10 §4, §6): Export… asks the format in its form and the file, writes
+/// The PLC exchange from the PLC menu (doc 10 §4, §6): Export… asks the format in its form and the file, writes
 /// Golden A's configuration as AML and says what it holds; Import… of that file previews it by tab, with nothing in
 /// conflict or parked, and Apply records the import (the merge's cases are WP-S3.16's tests).
 #[test]
@@ -720,7 +720,7 @@ fn the_plc_exchange_exports_and_previews_an_import() {
     let mut h = harness(&tmp, platform, Some(dir));
     settle(&mut h);
     wait_for_page(&mut h);
-    support::open_menu(&mut h, &["Output"]);
+    support::open_menu(&mut h, &["PLC"]);
     settle(&mut h);
     h.get_by_label("Export to PLC software…").click();
     settle(&mut h);
@@ -741,7 +741,7 @@ fn the_plc_exchange_exports_and_previews_an_import() {
         "{toast}"
     );
     // The project's own file read back: nothing differs from the exchange just recorded.
-    support::open_menu(&mut h, &["Output"]);
+    support::open_menu(&mut h, &["PLC"]);
     settle(&mut h);
     h.get_by_label("Import from PLC software…").click();
     for _ in 0..5 {
@@ -786,7 +786,7 @@ fn the_plc_export_asks_for_a_file_of_its_format_dated_today() {
     let mut h = harness(&tmp, platform, Some(tmp.golden("g.ew")));
     settle(&mut h);
     wait_for_page(&mut h);
-    support::open_menu(&mut h, &["Output"]);
+    support::open_menu(&mut h, &["PLC"]);
     settle(&mut h);
     h.get_by_label("Export to PLC software…").click();
     settle(&mut h);
@@ -1155,7 +1155,7 @@ fn the_plc_export_form_refuses_a_bad_date_before_the_file() {
     use ew_ui::ew_viewmodel::shell::Dialog;
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "203");
-    support::open_menu(&mut h, &["Output"]);
+    support::open_menu(&mut h, &["PLC"]);
     settle(&mut h);
     h.get_by_label("Export to PLC software…").click();
     settle(&mut h);
@@ -1197,13 +1197,13 @@ fn type_into(h: &mut egui_kittest::Harness<'_, ew_ui::app::App>, label: &str, te
     settle(h);
 }
 
-/// FT-1752: the project's PLC and fluid settings from the Project menu. Process-tag scheme… and Fluid settings… are
+/// FT-1752: the project's PLC and fluid settings from the PLC and Fluid menus. Process-tag scheme… and Fluid settings… are
 /// forms that start with the project's values and set them in one step each; Channel addresses at terminals is a switch.
 #[test]
 fn the_process_tag_and_fluid_settings_are_set_from_the_project_menu() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "203");
-    support::open_menu(&mut h, &["Project"]);
+    support::open_menu(&mut h, &["PLC", "Addresses"]);
     settle(&mut h);
     support::menu_node(&h, "Process-tag scheme…").click();
     settle(&mut h);
@@ -1225,7 +1225,7 @@ fn the_process_tag_and_fluid_settings_are_set_from_the_project_menu() {
         "the form shows the scheme set"
     );
     dispatch(&mut h, "ui.dismiss", json!({}));
-    support::open_menu(&mut h, &["Project"]);
+    support::open_menu(&mut h, &["Fluid"]);
     settle(&mut h);
     support::menu_node(&h, "Fluid settings…").click();
     settle(&mut h);
@@ -1246,7 +1246,7 @@ fn the_process_tag_and_fluid_settings_are_set_from_the_project_menu() {
     assert_eq!(form_value(&h, "line_tags"), "true");
     dispatch(&mut h, "ui.dismiss", json!({}));
     assert!(!h.state().shell().plc_addresses_at_terminals_on());
-    support::open_menu(&mut h, &["Project"]);
+    support::open_menu(&mut h, &["PLC", "Addresses"]);
     settle(&mut h);
     support::menu_node(&h, "Channel addresses at terminals").click();
     settle(&mut h);

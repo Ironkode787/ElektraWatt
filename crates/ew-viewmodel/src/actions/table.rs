@@ -7,6 +7,7 @@ use super::ActionMeta;
 
 mod automation;
 mod controls;
+mod disciplines;
 mod draw;
 mod edit;
 mod file;
@@ -26,4 +27,5 @@ pub(super) const SECTIONS: &[&[ActionMeta]] = &[
     panes::ACTIONS,
     controls::ACTIONS,
     automation::ACTIONS,
+    disciplines::ACTIONS,
 ];

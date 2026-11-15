@@ -13,14 +13,23 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         "station:ref, card?:ref",
         needs_parameters(in_navigator(with_aliases(
             &[("station", ParamForm::Whole)],
-            act(
-                "plc.attach_cards",
-                Command,
-                Menu::Project,
-                &[],
-                writable,
-                None,
-                |s, p| s.act_plc_attach_cards(p),
+            placed(
+                place(
+                    Group::Station,
+                    20,
+                    CommandSize::Small,
+                    Some(key!("bar-attach-cards")),
+                ),
+                "cards",
+                act(
+                    "plc.attach_cards",
+                    Command,
+                    Menu::Plc,
+                    &[],
+                    writable,
+                    sub(Menu::Plc, Submenu::AttachCards, false),
+                    |s, p| s.act_plc_attach_cards(p),
+                ),
             ),
         ))),
     ),
@@ -29,14 +38,18 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         "station:ref",
         needs_parameters(in_navigator(with_aliases(
             &[("station", ParamForm::Whole)],
-            act(
-                "plc.rack_editor",
-                View,
-                Menu::Project,
-                &[],
-                project_open,
-                None,
-                |s, p| s.act_plc_rack_editor(p),
+            placed(
+                place(Group::Station, 10, CommandSize::Large, Some(key!("bar-rack"))),
+                "server",
+                act(
+                    "plc.rack_editor",
+                    View,
+                    Menu::Plc,
+                    &[],
+                    project_open,
+                    sub(Menu::Plc, Submenu::RackEditor, false),
+                    |s, p| s.act_plc_rack_editor(p),
+                ),
             ),
         ))),
     ),
@@ -70,32 +83,35 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // A configuration project's or a module's previewed addressing command (its row menu, FR-PLC-014/-015).
     with_params(
         "cmd:text, params?:json",
-        needs_parameters(in_navigator(act(
-            "plc.preview",
-            Command,
-            Menu::Project,
-            &[],
-            writable,
-            None,
-            |s, p| s.act_plc_preview(p),
+        needs_parameters(in_navigator(placed(
+            place(
+                Group::Addresses,
+                1,
+                CommandSize::Large,
+                Some(key!("bar-addresses")),
+            ),
+            "hash",
+            act(
+                "plc.preview",
+                Command,
+                Menu::Plc,
+                &[],
+                writable,
+                sub(Menu::Plc, Submenu::PlcAddressing, false),
+                |s, p| s.act_plc_preview(p),
+            ),
         ))),
     ),
-    // PLC exchange (doc 10 §4, §6): Export… and Import… on the Output tab and in its menu, the import preview's own
+    // PLC exchange (doc 10 §4, §6): Export… and Import… on the PLC tab and in its menu, the import preview's own
     // controls.
     with_params(
         "format?:text, stations?:text, date?:text, path?:path, replace?:bool",
         placed(
             place(Group::Exchange, 1, CommandSize::Small, None),
             "transfer-out",
-            act(
-                "plc.export",
-                Command,
-                Menu::Output,
-                &[],
-                writable,
-                None,
-                |s, p| s.act_plc_export(p),
-            ),
+            act("plc.export", Command, Menu::Plc, &[], writable, None, |s, p| {
+                s.act_plc_export(p)
+            }),
         ),
     ),
     with_params(
@@ -103,7 +119,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         placed(
             place(Group::Exchange, 2, CommandSize::Small, None),
             "transfer-in",
-            act("plc.import", View, Menu::Output, &[], writable, None, |s, p| {
+            act("plc.import", View, Menu::Plc, &[], writable, None, |s, p| {
                 s.act_plc_import(p)
             }),
         ),
@@ -146,14 +162,23 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         "config:ref, path?:path",
         needs_parameters(in_navigator(with_aliases(
             &[("config", ParamForm::Whole)],
-            act(
-                "plc.instrument_list",
-                Command,
-                Menu::Project,
-                &[],
-                writable,
-                None,
-                |s, p| s.act_plc_instrument_list(p),
+            placed(
+                place(
+                    Group::PlcLists,
+                    3,
+                    CommandSize::Small,
+                    Some(key!("bar-instrument-list")),
+                ),
+                "file-spreadsheet",
+                act(
+                    "plc.instrument_list",
+                    Command,
+                    Menu::Plc,
+                    &[],
+                    writable,
+                    sub(Menu::Plc, Submenu::InstrumentList, false),
+                    |s, p| s.act_plc_instrument_list(p),
+                ),
             ),
         ))),
     ),
@@ -162,14 +187,18 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         "config:ref, template?:text, tag_table?:text, strict_iec?:text",
         needs_parameters(in_navigator(with_aliases(
             &[("config", ParamForm::Whole)],
-            act(
-                "plc.symbol_policy",
-                Command,
-                Menu::Project,
-                &[],
-                writable,
-                None,
-                |s, p| s.act_plc_symbol_policy(p),
+            placed(
+                place(Group::Addresses, 4, CommandSize::Small, None),
+                "code",
+                act(
+                    "plc.symbol_policy",
+                    Command,
+                    Menu::Plc,
+                    &[],
+                    writable,
+                    sub(Menu::Plc, Submenu::SymbolPolicy, false),
+                    |s, p| s.act_plc_symbol_policy(p),
+                ),
             ),
         ))),
     ),
@@ -203,41 +232,58 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ))),
     ),
-    // Project ▸ Process-tag scheme…, Fluid settings… and Channel addresses at terminals (FT-1752).
+    // PLC ▸ Addresses: Process-tag scheme… and Channel addresses at terminals; Fluid ▸ Media: Fluid settings… (FT-1752).
     with_params(
         "scheme?:text",
-        act(
-            "plc.process_tag_scheme",
-            Command,
-            Menu::Project,
-            &[],
-            writable,
-            slot(Menu::Project),
-            |s, p| s.act_process_tag_scheme(p),
+        placed(
+            place(Group::Addresses, 3, CommandSize::Small, None),
+            "abc",
+            act(
+                "plc.process_tag_scheme",
+                Command,
+                Menu::Plc,
+                &[],
+                writable,
+                None,
+                |s, p| s.act_process_tag_scheme(p),
+            ),
         ),
     ),
     with_params(
         "od?:text, id?:text, material?:text, line_tags?:text",
-        act(
-            "fluid.settings",
-            Command,
-            Menu::Project,
-            &[],
-            writable,
-            slot(Menu::Project),
-            |s, p| s.act_fluid_settings(p),
+        placed(
+            place(Group::Media, 2, CommandSize::Small, None),
+            "settings-2",
+            act(
+                "fluid.settings",
+                Command,
+                Menu::Fluid,
+                &[],
+                writable,
+                None,
+                |s, p| s.act_fluid_settings(p),
+            ),
         ),
     ),
     with_params(
         "on?:bool",
-        act(
-            "project.plc_addresses_at_terminals",
-            Command,
-            Menu::Project,
-            &[],
-            writable,
-            slot(Menu::Project),
-            |s, p| s.act_plc_addresses_at_terminals(p),
+        placed(
+            place(
+                Group::Addresses,
+                2,
+                CommandSize::Small,
+                Some(key!("bar-addresses-at-terminals")),
+            ),
+            "tags",
+            act(
+                "project.plc_addresses_at_terminals",
+                Command,
+                Menu::Plc,
+                &[],
+                writable,
+                None,
+                |s, p| s.act_plc_addresses_at_terminals(p),
+            ),
         ),
     ),
     // A valve terminal row's Generate overview… (FR-FLU-033): the previewed overview pages; without a row, of the
@@ -246,14 +292,18 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         "station?:ref",
         in_navigator(with_aliases(
             &[("station", ParamForm::Whole)],
-            act(
-                "fluid.generate_overview",
-                Command,
-                Menu::Project,
-                &[],
-                valve_terminal_selected,
-                None,
-                |s, p| s.act_fluid_generate_overview(p),
+            placed(
+                place(Group::FluidLists, 3, CommandSize::Small, None),
+                "report-analytics",
+                act(
+                    "fluid.generate_overview",
+                    Command,
+                    Menu::Fluid,
+                    &[],
+                    valve_terminal_selected,
+                    None,
+                    |s, p| s.act_fluid_generate_overview(p),
+                ),
             ),
         )),
     ),
@@ -291,14 +341,18 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     ),
     with_params(
         "name?:text, p_nom?:text, code?:text",
-        act(
-            "fluid.medium_new",
-            Command,
-            Menu::Project,
-            &[],
-            writable,
-            slot(Menu::Project),
-            |s, p| s.act_fluid_medium_new(p),
+        placed(
+            place(Group::Media, 1, CommandSize::Large, None),
+            "bubble-plus",
+            act(
+                "fluid.medium_new",
+                Command,
+                Menu::Fluid,
+                &[],
+                writable,
+                None,
+                |s, p| s.act_fluid_medium_new(p),
+            ),
         ),
     ),
     with_params(

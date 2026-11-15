@@ -373,9 +373,16 @@ pub fn availability_problems(harness: &Harness<'_, App>, surface: &str) -> Vec<S
     for b in buttons.filter(|b| !b.enabled && shell.symbol_editor().is_none()) {
         check(&b.bar_label, false);
     }
-    for menu in actions::menu_model(shell) {
+    // A menu's own button bears the menu's name, which an entry elsewhere may share (the PLC menu and View ▸
+    // Navigators ▸ PLC): the button that opens a menu is no entry of it.
+    let menus = actions::menu_model(shell);
+    let menu_names: Vec<&str> = menus.iter().map(|m| m.label.as_str()).collect();
+    for menu in &menus {
         for item in menu.items().into_iter().filter(|i| !i.enabled) {
-            check(&menu_label(item), true);
+            let label = menu_label(item);
+            if !menu_names.contains(&label.as_str()) {
+                check(&label, true);
+            }
         }
     }
     problems

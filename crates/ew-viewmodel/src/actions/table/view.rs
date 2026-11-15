@@ -520,7 +520,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     ),
     // The command bar's tab and its collapse (Ctrl+F1, a tab's double click), view actions.
     keeps_banner(with_params(
-        "tab:enum(project|page|draw|check|output|view)",
+        "tab:enum(project|page|draw|plc|fluid|check|output|view)",
         needs_parameters(act(
             "view.command_tab",
             View,

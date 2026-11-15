@@ -171,14 +171,14 @@ fn a_medium_set_on_a_line_replaces_the_definition_of_its_net() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// Media from nothing on Golden A, which defines none: Project ▸ New medium… adds one; a fluid line's context menu on
+/// Media from nothing on Golden A, which defines none: Fluid ▸ New medium… adds one; a fluid line's context menu on
 /// folio 203 sets it on the line's net and sets the line's kind; the medium table's row counts the consumers and
 /// highlights the zones.
 #[test]
 fn a_medium_is_added_set_on_a_line_and_highlighted() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "203");
-    support::open_menu(&mut h, &["Project"]);
+    support::open_menu(&mut h, &["Fluid"]);
     settle(&mut h);
     support::menu_node(&h, "New medium…").click();
     settle(&mut h);
@@ -367,7 +367,7 @@ fn a_silencer_autoconnects_to_a_free_fluid_port_with_a_fluid_line() {
 fn the_fluid_line_picker_draws_a_pilot_line() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "203");
-    support::open_menu(&mut h, &["Draw", "Connect"]);
+    support::open_menu(&mut h, &["Fluid"]);
     settle(&mut h);
     support::menu_node(&h, "Tube…").click();
     settle(&mut h);

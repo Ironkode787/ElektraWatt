@@ -79,6 +79,9 @@ mod layout;
 mod messages;
 mod navigation;
 mod navigators;
+pub(crate) use navigators::undrawn_port;
+// The PLC and Fluid tabs' own entries: workspaces, guides, panels, pages and pickers of a discipline.
+mod command_tabs;
 mod onboarding;
 // Swap cores, and Delete and F2 in navigator trees (FT-490).
 mod row_ops;

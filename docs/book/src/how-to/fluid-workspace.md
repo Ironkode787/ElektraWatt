@@ -5,14 +5,16 @@ the middle, and the tube table and the medium table in the bottom dock.
 
 ## Open it
 
-1. Choose **View ▸ Workspaces ▸ Fluid power**. **View ▸ Workspaces ▸ Schematic** goes back; a change you make to the
-   layout is kept for the workspace.
+1. Choose **Fluid power** in the workspace switch at the right of the tab row, or **Fluid workspace** at the end of
+   the **Fluid** tab. **Schematic** in the switch goes back; a change you make to the layout is kept for the
+   workspace. The **Fluid** tab holds a button for each fluid command: Fluid page, Tube, Fluid symbol, Valve
+   terminal, Air supply, the media, the tube table and this guide.
 
 ## Valves and tubes
 
 2. The fluid navigator lists each valve terminal with its modules and valves, and every other device a tube ends at,
    each with its tubes. Select a tube's row to find it on the page. Its table mode (the Table toggle) lists the tubes.
-3. Draw a tube with **Draw ▸ Wire** on a fluid page, or choose **Draw ▸ Connect ▸ Tube…** to pick its line kind first
+3. Draw a tube with **Draw ▸ Wire** on a fluid page, or choose **Tube** on the Fluid tab to pick its line kind first
    (Pilot, Exhaust, Drain, Flexible). A symbol placed with a fluid port facing a free port is joined to it with a tube.
    Right-click a tube to change its line kind (**Line kind: Working**, **Line kind: Pilot** and the others) or its
    medium; a flexible tube is drawn as an arc.
@@ -46,13 +48,13 @@ the middle, and the tube table and the medium table in the bottom dock.
    in Properties the row is **Tube length (mm)**) or a tube part into **Tube part**; **Source** then says the value is
    manual. Leave a cell empty to take the derived value again. A tube's
    **Tube part** in Properties offers the tube parts, such as the starter tubes PU 6 × 4, 8 × 6 and 10 × 8 mm.
-9. Choose **Project ▸ Fluid settings…** for the default tube of every line (its outer and inner diameter in mm and
+9. Choose **Fluid settings** on the Fluid tab for the default tube of every line (its outer and inner diameter in mm and
    its material) and to tag tubes by page and counter. A toast says what the default tube is now; it reaches the
    tubes drawn already. A tube is specified with its size and its material: without a material, the check names it.
 
 ## Media
 
-10. Choose **Project ▸ New medium…**, or **New medium…** at the top of the Fluid panel beside **Fluid settings…**,
+10. Choose **New medium** on the Fluid tab, or **New medium…** at the top of the Fluid panel beside **Fluid settings…**,
     give the medium a name and its pressure in bar, and choose **Create**.
 11. Right-click a tube and choose **Medium:** with the medium's name: the tube's net and every net the medium
     reaches through the valves carry it. The fluid navigator counts the tubes of each medium. A tube's **Medium** in
