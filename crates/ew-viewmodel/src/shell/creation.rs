@@ -1801,7 +1801,8 @@ impl ShellModel {
             });
             let words = report_kind_words(&kind);
             let text = if empty {
-                let rows = strings::lookup(&format!("report-rows-{}", kind.replace('_', "-"))).unwrap_or_default();
+                let rows =
+                    strings::lookup(&format!("report-rows-{}", kind.replace('_', "-"))).unwrap_or_default();
                 strings::format(key!("toast-report-block-empty"), &[&words, &folio, rows])
             } else {
                 strings::format(key!("toast-report-block-new"), &[&words, &folio])

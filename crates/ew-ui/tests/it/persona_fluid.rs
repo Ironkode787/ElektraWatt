@@ -1448,11 +1448,7 @@ fn round3_the_generated_overview_stands_in_the_frame_readable_and_titled() {
 fn browser_parts(d: &mut Driver) -> (Vec<(String, String)>, Vec<String>) {
     use ew_ui::ew_viewmodel::tools::{Node, PickerRow};
     let p = d.shell_mut().picker().expect("the device browser");
-    let node_of = |category: &str| {
-        Node::of_word(category)
-            .unwrap_or(Node::Other)
-            .words()
-    };
+    let node_of = |category: &str| Node::of_word(category).unwrap_or(Node::Other).words();
     let rows = p
         .rows
         .iter()
@@ -1516,7 +1512,11 @@ fn round3_autoconnect_keeps_a_working_port_off_the_plates_exhaust_and_names_its_
     let four = port(&mut d, valve, "4");
     let _ = d.shell_mut().dispatch("edit.undo", &json!({}));
     d.settle();
-    place_symbol(&mut d, "ew.iso.valve-5-2-sol-spring@qet10", (1000 + five.0 - four.0, 500));
+    place_symbol(
+        &mut d,
+        "ew.iso.valve-5-2-sol-spring@qet10",
+        (1000 + five.0 - four.0, 500),
+    );
     let valve = device_drawn(&mut d, "ew.iso.valve-5-2");
     assert_eq!(port(&mut d, valve, "4").0, five.0, "port 4 under the tap 5");
     assert_eq!(tubes(&mut d), 0, "no working port joined to the exhaust tap");
@@ -1568,7 +1568,11 @@ fn round3_a_tube_length_names_its_unit_and_takes_one_typed() {
     );
     for (typed, shown) in [("2 m", "2000 mm"), ("35 cm", "350 mm"), ("350 mm", "350 mm")] {
         let set = json!({"row": "connection/tube_length", "value": typed});
-        assert_eq!(d.shell_mut().dispatch("props.set", &set), Outcome::Done, "{typed}");
+        assert_eq!(
+            d.shell_mut().dispatch("props.set", &set),
+            Outcome::Done,
+            "{typed}"
+        );
         one_tube_selected(&mut d);
         assert_eq!(prop_row(&mut d, "connection/tube_length").0, shown, "{typed}");
     }

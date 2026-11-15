@@ -18,8 +18,8 @@ use std::sync::Arc;
 use ew_ids::Id;
 use ew_model::EndpointKey;
 use ew_schema::{
-    Connection, ConnectionKind, ContactKind, Device, DeviceKind, DeviceState, Discipline, FluidPortRole, FnDef,
-    Function, FunctionKind, InternalKind, IpDirection, StationRole,
+    Connection, ConnectionKind, ContactKind, Device, DeviceKind, DeviceState, Discipline, FluidPortRole,
+    FnDef, Function, FunctionKind, InternalKind, IpDirection, StationRole,
 };
 
 use crate::nets::{CpRef, Dsu, NetId, ends};
