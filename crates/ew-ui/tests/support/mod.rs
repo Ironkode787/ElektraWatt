@@ -68,6 +68,8 @@ pub struct Scripted {
     pub opened: Rc<RefCell<Vec<String>>>,
     /// The written files the frame asked the system's file opener to open.
     pub opened_files: Rc<RefCell<Vec<PathBuf>>>,
+    /// The projects the frame asked to open in a second window of the program.
+    pub opened_windows: Rc<RefCell<Vec<PathBuf>>>,
 }
 
 impl Platform for Scripted {
@@ -83,6 +85,11 @@ impl Platform for Scripted {
 
     fn open_file(&mut self, file: &std::path::Path) -> bool {
         self.opened_files.borrow_mut().push(file.to_path_buf());
+        true
+    }
+
+    fn open_window(&mut self, project: &std::path::Path) -> bool {
+        self.opened_windows.borrow_mut().push(project.to_path_buf());
         true
     }
 }

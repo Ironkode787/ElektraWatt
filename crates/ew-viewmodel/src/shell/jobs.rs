@@ -232,7 +232,7 @@ impl ShellModel {
         self.notes.push(text, key, action);
     }
 
-    /// Shows `text` as a toast of key `edit` whose action opens the rack of `station` (F18 of the rc.1 test).
+    /// Shows `text` as a toast of key `edit` whose action opens the rack of `station`.
     pub(super) fn notify_rack(&mut self, text: String, station: ew_api::output::Uuid) {
         let action = self.project.as_ref().map(|p| {
             (
@@ -246,7 +246,7 @@ impl ShellModel {
         self.notes.push(text, "edit", action);
     }
 
-    /// Shows `text` as a toast of key `edit` whose action is New station… (F18 of the rc.1 test).
+    /// Shows `text` as a toast of key `edit` whose action is New station….
     pub(super) fn notify_new_station(&mut self, text: String) {
         let action = self.project.as_ref().map(|p| {
             (
@@ -258,6 +258,15 @@ impl ShellModel {
             )
         });
         self.notes.push(text, "edit", action);
+    }
+
+    /// Shows `text` as a toast of key `key` with Show in folder, which opens `folder` in the system's file manager.
+    pub(super) fn notify_folder(&mut self, text: String, key: &'static str, folder: PathBuf) {
+        self.notes.push(
+            text,
+            key,
+            Some((NoteAction::ShowFolder, Validity::Open { path: folder })),
+        );
     }
 
     /// Shows a result's `text` as a toast of key `edit` whose icon follows `tone` (the check's worst severity).
@@ -318,7 +327,7 @@ impl ShellModel {
                 self.notes.dismiss(entry.serial);
                 self.dispatch("edit.undo", &Value::Null)
             }
-            Some(NoteAction::Open) => match (self.mode, entry.open_path(action)) {
+            Some(NoteAction::Open | NoteAction::ShowFolder) => match (self.mode, entry.open_path(action)) {
                 (Mode::Headless, _) => Outcome::refused(key!("reason-no-opener")),
                 (Mode::Gui, Some(path)) => {
                     self.jobs.open_request = Some(path.clone());

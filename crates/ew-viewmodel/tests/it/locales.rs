@@ -129,7 +129,8 @@ fn shipped_file(locale: &str) -> String {
 /// by name: the toasts' button and label words, and the fragments composed into another toast's sentence.
 #[test]
 fn every_toast_ends_with_its_full_stop() {
-    const LABELS: [&str; 9] = [
+    const LABELS: [&str; 10] = [
+        "toast-show-folder",
         "toast-undo",
         "toast-close",
         "toast-open",

@@ -252,7 +252,8 @@ fn the_tutorials_open_a_fresh_copy_of_the_sample_project() {
 }
 
 /// Help ▸ Tutorials offers each tutorial its own start: the first a new project from the basic
-/// project, the reports tutorial the sample's copy, the others their page alone; each opens its own page.
+/// project, the reports tutorial the sample's copy, the others their page alone; each opens its own page. With a
+/// project open the practice project opens in a second window and the open project stays.
 #[test]
 fn each_tutorial_has_its_own_start() {
     let tmp = Tmp::new(STEM);
@@ -283,7 +284,7 @@ fn each_tutorial_has_its_own_start() {
     // The guide's tutorials, each with its start; the list grows with the guide (FT-1715).
     for item in [
         (
-            "A first schematic page with potentials…".to_owned(),
+            "A first schematic page with potentials".to_owned(),
             json!({"tutorial": "first-page"}),
         ),
         (
@@ -291,7 +292,7 @@ fn each_tutorial_has_its_own_start() {
             json!({"tutorial": "terminal-strip-and-cable"}),
         ),
         (
-            "Reports and PDF…".to_owned(),
+            "Reports and PDF".to_owned(),
             json!({"tutorial": "reports-and-pdf"}),
         ),
         (
@@ -318,13 +319,16 @@ fn each_tutorial_has_its_own_start() {
     done(
         &mut shell,
         "help.tutorials",
-        json!({ "tutorial": "reports-and-pdf", "dir": path(&reports), "discard": true }),
+        json!({ "tutorial": "reports-and-pdf", "dir": path(&reports) }),
     );
+    assert_eq!(shell.project_name(), Some("first.ew"), "the open project stays");
+    assert_eq!(shell.window_request(), Some(reports.as_path()));
     let (sample, _) = Session::open_read_only(Path::new(GOLDEN_A), VERSION).unwrap();
-    assert_eq!(shell.page_labels(), sample.page_labels().as_slice());
+    let (copy, _) = Session::open_read_only(&reports, VERSION).unwrap();
+    assert_eq!(copy.page_labels(), sample.page_labels());
     assert_eq!(shell.last_help(), Some("tutorials/reports-and-pdf.html"));
     done(&mut shell, "help.tutorials", json!({ "tutorial": "import-qet" }));
-    assert_eq!(shell.project_name(), Some("reports.ew"), "no project of its own");
+    assert_eq!(shell.project_name(), Some("first.ew"), "no project of its own");
     assert_eq!(shell.last_help(), Some("tutorials/import-qet.html"));
     shell.shutdown();
 }
@@ -2158,6 +2162,7 @@ fn a_headless_run_without_a_configuration_directory_writes_no_workspace() {
         config_dir: None,
         state_dir: None,
         app_version: VERSION.to_owned(),
+        projects_dir: None,
         resources: Resources::default(),
         libraries: None,
     };
@@ -2806,5 +2811,34 @@ fn describe_lists_the_start_page_the_wizard_and_the_project_view() {
     done(&mut shell, "help.notices", json!({}));
     let notices = shell.describe();
     assert!(notices.contains("dialog \"Third-party notices\""), "{notices}");
+    shell.shutdown();
+}
+
+/// The owner's test of 0.3.0-rc.1 (F4): a tutorial asked for a folder and closed the open project before its page
+/// opened. Now its page opens at once; the practice project is made without a question in a new numbered folder
+/// under Tutorials of the projects folder; the open project stays open and the practice project waits for a second
+/// window; a toast says where it is and offers Show in folder.
+#[test]
+fn a_tutorial_keeps_the_open_project_and_asks_no_folder() {
+    let tmp = Tmp::new(STEM);
+    let mut shell = tmp.gui();
+    done(&mut shell, "file.new", json!({ "dir": path(&tmp.0.join("mine.ew")) }));
+    done(&mut shell, "help.tutorials", json!({ "tutorial": "first-page" }));
+    assert!(shell.take_prompt().is_none(), "no folder question");
+    assert_eq!(shell.project_name(), Some("mine.ew"), "the open project stays");
+    assert_eq!(shell.last_help(), Some("tutorials/first-page.html"));
+    let first = shell.take_window_request().expect("a second window");
+    assert!(first.starts_with(tmp.0.join("config").join("projects").join("Tutorials")));
+    assert!(Session::open_read_only(&first, VERSION).is_ok(), "the practice project is written");
+    let toast = shell.notifications().newest_visible().cloned().expect("the toast");
+    assert_eq!(
+        toast.actions(),
+        [ew_viewmodel::notifications::NoteAction::ShowFolder]
+    );
+    // A second start makes a new folder beside the first.
+    done(&mut shell, "help.tutorials", json!({ "tutorial": "first-page" }));
+    let second = shell.take_window_request().expect("a second window again");
+    assert_ne!(first, second);
+    assert_eq!(first.parent(), second.parent());
     shell.shutdown();
 }

@@ -16,8 +16,8 @@ Each tutorial runs as a test of EW's own build, so its steps, menu paths and key
    placed and wired on both sides, a cable created from its part with the field wires as its cores, the strip editor
    and the Cables navigator read. You need the project you saved at the end of the first tutorial.
 3. [Reports and PDF](reports-and-pdf.md): on a copy of the sample project, its report pages read, a parts list and a
-   terminal overview added, the project exported as one PDF and the print preview read. You need EW installed and an
-   empty folder.
+   terminal overview added, the project exported as one PDF and the print preview read. You need EW installed; the
+   copy is made in your projects folder, and a project you have open stays open.
 4. [Importing a QElectroTech project](import-qet.md): a small QElectroTech project imported, its migration report
    read, its missing wire drawn and its parts chosen, until the report holds only the record of the import. You need
    EW installed and the tutorial's file [lamp-circuit.qet](files/lamp-circuit.qet).

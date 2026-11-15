@@ -6463,3 +6463,7 @@ guide-fluid-workspace = Werken in de werkruimte fluïdtechniek
 guide-upgrade-a-project = Een project omzetten
 action-help-guide = Handleiding
 param-guide = Handleiding
+toast-show-folder = In map tonen
+toast-tutorial-here = Het oefenproject van de zelfstudie staat onder Tutorials in uw projectenmap.
+toast-tutorial-second-window = Het oefenproject van de zelfstudie staat onder Tutorials in uw projectenmap; het opent in een tweede venster en uw project blijft hier open.
+banner-second-window-failed = Het tweede venster is niet gestart: open het oefenproject met Bestand ▸ Recent geopend.

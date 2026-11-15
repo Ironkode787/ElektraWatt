@@ -130,7 +130,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     ))),
     with_params(
-        "dir?:path, discard?:bool, tutorial?:text",
+        "dir?:path, tutorial?:text",
         act(
             "help.tutorials",
             Command,

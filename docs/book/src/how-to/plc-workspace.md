@@ -89,10 +89,10 @@ modules, bind channels and check what each channel drives.
 
 ## Exchange with the PLC software
 
-13. Choose **Export to PLC software** on the PLC tab (or **PLC ▸ Export to PLC software…**), pick the format
+12. Choose **Export to PLC software** on the PLC tab (or **PLC ▸ Export to PLC software…**), pick the format
     and choose **Export**, then the file: the dialog names it for the format (`.aml`, `.xlsx` or `.xml`), and the
     document date starts as today's. Import the file in TIA Portal or CODESYS.
-12. Choose **Import from PLC software** on the PLC tab (or **PLC ▸ Import from PLC software…**) for the file the
+13. Choose **Import from PLC software** on the PLC tab (or **PLC ▸ Import from PLC software…**) for the file the
     PLC software wrote back. Look through its tabs; each conflict shows the side Apply takes, and offers the file's
     value where it can be taken. Choose **Apply**.
 14. After an import, the module starts, the symbols or the PLC data the PLC software owns are protected. Right-click

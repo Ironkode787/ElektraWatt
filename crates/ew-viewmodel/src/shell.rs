@@ -167,6 +167,9 @@ pub struct ShellConfig {
     pub state_dir: Option<PathBuf>,
     /// The application version (the store's identity and the transcript header).
     pub app_version: String,
+    /// The user's projects folder, where a tutorial makes its practice project (under `Tutorials`); `None` when the
+    /// environment names none (a headless run asks for a folder).
+    pub projects_dir: Option<PathBuf>,
     /// The read-only resources.
     pub resources: Resources,
     /// The library tiers the shell's sessions open: the Macros and Libraries navigators, Save as
@@ -185,10 +188,17 @@ impl ShellConfig {
         } else {
             None
         };
+        // Overridden, the projects folder sits in the configuration directory too.
+        let projects_dir = if overridden {
+            config_dir.as_ref().map(|d| d.join("projects"))
+        } else {
+            settings::default_projects_dir()
+        };
         ShellConfig {
             config_dir,
             state_dir,
             app_version: app_version.to_owned(),
+            projects_dir,
             resources: Resources::default(),
             libraries: None,
         }
@@ -205,18 +215,20 @@ impl ShellConfig {
                 config_dir: None,
                 state_dir: None,
                 app_version: app_version.to_owned(),
+                projects_dir: None,
                 resources: Resources::default(),
                 libraries: None,
             }
         }
     }
 
-    /// A configuration inside `dir`: settings in `dir`, journals in `dir/state`.
+    /// A configuration inside `dir`: settings in `dir`, journals in `dir/state`, the projects folder `dir/projects`.
     pub fn in_dir(dir: &Path, app_version: &str) -> ShellConfig {
         ShellConfig {
             config_dir: Some(dir.to_path_buf()),
             state_dir: Some(dir.join("state")),
             app_version: app_version.to_owned(),
+            projects_dir: Some(dir.join("projects")),
             resources: Resources::default(),
             libraries: None,
         }
@@ -654,6 +666,8 @@ pub struct ShellModel {
     panes: workspaces::PaneLayoutState,
     /// The documentation page F1 asked for and the window has not opened yet.
     doc_request: Option<DocRequest>,
+    /// A project the window opens in a second window of the program (a tutorial's practice project), taken once.
+    window_request: Option<PathBuf>,
     /// The target of the last documentation request, kept for `ui.describe`.
     last_help: Option<String>,
     /// A note the status bar's state field shows instead of "Ready" while the project it was made for is open at the
@@ -1136,6 +1150,7 @@ impl ShellModel {
                 changed_at: None,
             },
             doc_request: None,
+            window_request: None,
             last_help: None,
             status_note: None,
             area: None,
@@ -1396,6 +1411,16 @@ impl ShellModel {
     pub fn status_note(&self) -> Option<&str> {
         let (text, epoch, rev) = self.status_note.as_ref()?;
         (*epoch == self.project.as_ref().map(|p| p.epoch) && *rev == self.revision()).then_some(text.as_str())
+    }
+
+    /// The project a tutorial asked to open in a second window of the program, taken once by the window.
+    pub fn take_window_request(&mut self) -> Option<PathBuf> {
+        self.window_request.take()
+    }
+
+    /// The project waiting for a second window, if any (tests and the describe text).
+    pub fn window_request(&self) -> Option<&Path> {
+        self.window_request.as_deref()
     }
 
     /// The documentation page F1 asked for, taken once by the window.

@@ -7,13 +7,14 @@ drawn: EW generates them from the schematic, so they follow every change.
 ## What you need
 
 - ElektraWatt installed and started; see [Install ElektraWatt](../how-to/install.md).
-- An empty folder, or a place where EW may create one.
 
 ## Steps
 
-1. Choose **Help ▸ Tutorials ▸ Reports and PDF…** and name a new folder `reports.ew`.
-   EW makes a fresh copy of the sample project there and opens it; the banner says "A fresh copy of the sample
-   project was made for the tutorials." This tutorial's page of the guide opens beside it.
+1. Choose **Help ▸ Tutorials ▸ Reports and PDF**. This tutorial's page of the guide opens at once, and EW makes a
+   fresh copy of the sample project in a new folder under `Tutorials` in your projects folder (`Documents`,
+   `ElektraWatt`); a toast says so, and **Show in folder** shows it. With a project open, the copy opens in a second
+   window and your project stays open; without one it opens here, and the banner says "A fresh copy of the sample
+   project was made for the tutorials."
 2. Read the report pages in the Pages navigator, in section 9 (folios 900 to 999). They are marked generated: the
    parts list (Partlist, 901 and 901.1), a terminal diagram for each terminal strip (903 to 905), the cable overview
    and diagrams (906), the wire list, the PLC overview, the potential overview, the device tag overview and the

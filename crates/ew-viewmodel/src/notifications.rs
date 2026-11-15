@@ -42,10 +42,12 @@ pub enum NoteAction {
     ShowChanges,
     /// Back to the symbol editor and its kept draft, after a test placement.
     BackToEditor,
-    /// The rack dialog of the station a placed module joined (F18 of the rc.1 test).
+    /// The rack dialog of the station a placed module joined.
     Rack,
-    /// New station…, for a module placed while the project has no station (F18 of the rc.1 test).
+    /// New station…, for a module placed while the project has no station.
     NewStation,
+    /// Show the folder a practice project was made in, in the system's file manager.
+    ShowFolder,
 }
 
 impl NoteAction {
@@ -61,6 +63,7 @@ impl NoteAction {
             NoteAction::BackToEditor => "edit",
             NoteAction::Rack => "rack",
             NoteAction::NewStation => "new_station",
+            NoteAction::ShowFolder => "show_folder",
         }
     }
 
@@ -76,6 +79,7 @@ impl NoteAction {
             "edit" => Some(NoteAction::BackToEditor),
             "rack" => Some(NoteAction::Rack),
             "new_station" => Some(NoteAction::NewStation),
+            "show_folder" => Some(NoteAction::ShowFolder),
             _ => None,
         }
     }
@@ -92,6 +96,7 @@ impl NoteAction {
             NoteAction::BackToEditor => key!("toast-back-to-editor"),
             NoteAction::Rack => key!("action-plc-rack-editor"),
             NoteAction::NewStation => key!("action-plc-new-station"),
+            NoteAction::ShowFolder => key!("toast-show-folder"),
         }
     }
 }
@@ -122,9 +127,9 @@ pub(crate) enum Validity {
         /// The revision of the entry at `cursor − 1`.
         rev: u64,
     },
-    /// Open: the file the job wrote in this session.
+    /// Open: the file the job wrote in this session (Show in folder: the folder).
     Open {
-        /// The written file (never printed).
+        /// The written file or folder (never printed).
         path: PathBuf,
     },
     /// A tip's action that needs no step: while project session `epoch` is open; `select` the records it selects

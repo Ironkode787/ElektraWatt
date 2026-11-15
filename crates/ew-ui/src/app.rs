@@ -160,6 +160,12 @@ pub trait Platform {
         false
     }
 
+    /// Opens the project directory `project` in a second window of the program (a tutorial's practice project, while
+    /// this window keeps its project); `false` when it could not be started.
+    fn open_window(&mut self, _project: &std::path::Path) -> bool {
+        false
+    }
+
     /// Prints a built print set: `request` holds the PDF, the title and
     /// whether Print… or Open in PDF viewer asked. The application binary prints with `ew-print` on a worker thread
     /// and answers later; `ctx` is the context to repaint when the end is there. The default refuses: printing is not
@@ -1366,6 +1372,7 @@ impl App {
         }
         self.open_documentation();
         self.open_results();
+        self.open_windows();
         self.open_log_folder();
         self.print_requests(&ctx);
 
@@ -2034,6 +2041,17 @@ impl App {
         while let Some(file) = self.shell.take_open_request() {
             if !self.platform.open_file(&file) {
                 self.shell.show_banner(strings::text(key!("open-failed")));
+            }
+        }
+    }
+
+    /// A tutorial's practice project in a second window; a banner when it could not be started (the project is in the
+    /// recent list).
+    fn open_windows(&mut self) {
+        while let Some(project) = self.shell.take_window_request() {
+            if !self.platform.open_window(&project) {
+                self.shell
+                    .show_banner(strings::text(key!("banner-second-window-failed")));
             }
         }
     }

@@ -386,6 +386,13 @@ impl Platform for RfdPlatform {
             .is_ok()
     }
 
+    /// A second process of this program with the project's directory, as `elektrawatt <project>` starts; no shell. Two
+    /// windows share the settings file (written whole through a rename, the window geometry merged) and the recent
+    /// list in it; each project has its own lock.
+    fn open_window(&mut self, project: &Path) -> bool {
+        current_exe().is_some_and(|exe| std::process::Command::new(exe).arg(project).spawn().is_ok())
+    }
+
     /// The print set goes through `ew-print`'s chain on a thread of its own: Print… through the
     /// system's chain (on Linux the portal, then `lp`, then the viewer; on Windows the Windows print dialog, then the
     /// viewer), Open in PDF viewer through the viewer alone.

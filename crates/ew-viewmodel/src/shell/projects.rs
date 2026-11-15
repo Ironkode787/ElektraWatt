@@ -332,10 +332,13 @@ impl ShellModel {
         outcome
     }
 
-    /// `help.tutorials {tutorial?, dir?}` (Help ▸ Tutorials): each tutorial its own start with its
-    /// page: `first-page` a new project from the basic project, `reports-and-pdf` (and no `tutorial`, the tutorials
-    /// page) a copy of the sample project, the others their page alone (they start from the first tutorial's project,
-    /// or a QElectroTech file).
+    /// `help.tutorials {tutorial?, dir?}` (Help ▸ Tutorials): each tutorial's page opens at once. `first-page` works in
+    /// a new project from the basic project, `reports-and-pdf` (and no `tutorial`, the tutorials page) in a copy of the
+    /// sample project; the others are their page alone (they start from the first tutorial's project, or a
+    /// QElectroTech file). A practice project is made without a question, in a new numbered folder under `Tutorials`
+    /// of the user's projects folder (`dir` names another; a run without a projects folder asks for one). The open
+    /// project stays open: the practice project opens in a second window of the program; without an open project it
+    /// opens in this one. A toast says where it is and offers Show in folder.
     pub(crate) fn act_tutorials(&mut self, p: &Map<String, Value>) -> Outcome {
         let tutorial = match string_param(p, "tutorial") {
             Err(e) => return e,
@@ -344,44 +347,37 @@ impl ShellModel {
             }
             Ok(t) => t.map(str::to_owned),
         };
-        let page = tutorial.as_deref().map(|name| format!("tutorials/{name}.html"));
-        match tutorial.as_deref() {
-            Some("first-page") => return self.tutorial_from_basic(p, page.unwrap_or_default()),
-            None | Some("reports-and-pdf") => {}
-            Some(_) => {
-                self.request_doc_target(page.unwrap_or_default());
-                return Outcome::Done;
-            }
-        }
-        let open_page = |s: &mut ShellModel| match &page {
-            Some(page) => s.request_doc_target(page.clone()),
-            None => s.request_doc("tutorials"),
+        // The template of the practice project: the basic project, or a copy of the sample (its records under new
+        // identities); a tutorial without one is its page alone.
+        let sample = self.config.resources.sample_dir.clone().filter(|d| d.is_dir());
+        let template = match tutorial.as_deref() {
+            Some("first-page") => Some(None),
+            None | Some("reports-and-pdf") => sample.map(Some),
+            Some(_) => None,
         };
-        let Some(sample) = self.config.resources.sample_dir.clone().filter(|d| d.is_dir()) else {
-            // Without the sample the tutorials page still opens.
-            open_page(self);
+        let Some(template) = template else {
+            match tutorial.as_deref() {
+                Some(name) => self.request_doc_target(format!("tutorials/{name}.html")),
+                None => self.request_doc("tutorials"),
+            }
             return Outcome::Done;
         };
-        if self.has_project()
-            && let Some(outcome) = self.guard_unsaved("help.tutorials", p)
-        {
-            return outcome;
-        }
         let dir = match string_param(p, "dir") {
             Err(e) => return e,
             Ok(Some(dir)) => PathBuf::from(dir),
-            Ok(None) => return self.need_path("help.tutorials", Prompt::NewFolder, "dir", p),
+            Ok(None) => match self.tutorial_dir(tutorial.as_deref().unwrap_or("tutorials")) {
+                Some(dir) => dir,
+                None => return self.need_path("help.tutorials", Prompt::NewFolder, "dir", p),
+            },
         };
         if let Some(outcome) = self.require_free_dir(&dir) {
             return outcome;
         }
-        self.close_project();
-        // A fresh copy of the sample project: its records under new identities, in a directory of the user's.
-        let session = match Session::new_project(
-            ProjectTemplate::Directory(&sample),
-            NewProjectKind::Schematic,
-            self.session_options(),
-        ) {
+        let from = match &template {
+            Some(sample) => ProjectTemplate::Directory(sample),
+            None => ProjectTemplate::Builtin,
+        };
+        let session = match Session::new_project(from, NewProjectKind::Schematic, self.session_options()) {
             Ok(s) => s,
             Err(e) => {
                 let message = strings::format(key!("error-new"), &[strings::text(open_error_key(&e))]);
@@ -389,53 +385,58 @@ impl ShellModel {
                 return Outcome::Failed { message };
             }
         };
-        let outcome = self.create_and_install(
-            session,
-            &dir,
-            key!("error-new"),
-            Some(strings::text(key!("banner-tutorial-copy")).to_owned()),
-        );
+        let outcome = if self.has_project() {
+            self.write_for_second_window(session, &dir)
+        } else {
+            let banner = template.map(|_| strings::text(key!("banner-tutorial-copy")).to_owned());
+            let outcome = self.create_and_install(session, &dir, key!("error-new"), banner);
+            if outcome == Outcome::Done {
+                self.notify_folder(
+                    strings::text(key!("toast-tutorial-here")).to_owned(),
+                    "tutorial",
+                    dir.clone(),
+                );
+            }
+            outcome
+        };
         if outcome == Outcome::Done {
-            open_page(self);
+            match tutorial.as_deref() {
+                Some(name) => self.request_doc_target(format!("tutorials/{name}.html")),
+                None => self.request_doc("tutorials"),
+            }
             self.note_missing_guide();
         }
         outcome
     }
 
-    /// The first tutorial's start, a new project from the basic project in the folder `dir` (asked for when
-    /// absent), then its page `page`.
-    fn tutorial_from_basic(&mut self, p: &Map<String, Value>, page: String) -> Outcome {
-        if self.has_project()
-            && let Some(outcome) = self.guard_unsaved("help.tutorials", p)
-        {
-            return outcome;
+    /// The folder of a new practice project of tutorial `name`: `<projects folder>/Tutorials/<name>-<n>` with the first
+    /// `n` from 1 that is not taken; `None` without a projects folder.
+    fn tutorial_dir(&self, name: &str) -> Option<PathBuf> {
+        let root = self.config.projects_dir.as_ref()?.join("Tutorials");
+        (1..)
+            .map(|n| root.join(format!("{name}-{n}")))
+            .find(|dir| !dir.exists())
+    }
+
+    /// Writes the practice project `session` into `dir` beside the open project, which stays open, and asks the
+    /// window to open it in a second window of the program; it joins the recent projects, so it is found again
+    /// there. The message of a failure carries the reason, never a path.
+    fn write_for_second_window(&mut self, mut session: Session, dir: &Path) -> Outcome {
+        if let Err(e) = session.create(dir, self.store_options()) {
+            let message = strings::format(key!("error-new"), &[strings::text(open_error_key(&e))]);
+            self.banner = Some(message.clone());
+            return Outcome::Failed { message };
         }
-        let dir = match string_param(p, "dir") {
-            Err(e) => return e,
-            Ok(Some(dir)) => PathBuf::from(dir),
-            Ok(None) => return self.need_path("help.tutorials", Prompt::NewFolder, "dir", p),
-        };
-        if let Some(outcome) = self.require_free_dir(&dir) {
-            return outcome;
-        }
-        self.close_project();
-        let outcome = match Session::new_project(
-            ProjectTemplate::Builtin,
-            NewProjectKind::Schematic,
-            self.session_options(),
-        ) {
-            Ok(session) => self.create_and_install(session, &dir, key!("error-new"), None),
-            Err(e) => {
-                let message = strings::format(key!("error-new"), &[strings::text(open_error_key(&e))]);
-                self.banner = Some(message.clone());
-                Outcome::Failed { message }
-            }
-        };
-        if outcome == Outcome::Done {
-            self.request_doc_target(page);
-            self.note_missing_guide();
-        }
-        outcome
+        session.close();
+        self.settings.push_recent(&dir.to_string_lossy());
+        self.save_settings();
+        self.window_request = Some(dir.to_path_buf());
+        self.notify_folder(
+            strings::text(key!("toast-tutorial-second-window")).to_owned(),
+            "tutorial",
+            dir.to_path_buf(),
+        );
+        Outcome::Done
     }
 
     /// Without an installed guide a tutorial's project opens with no banner over it, and the status

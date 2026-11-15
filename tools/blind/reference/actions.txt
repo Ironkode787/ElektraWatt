@@ -223,7 +223,7 @@ tab.next View "Next tab" menu "Window" shortcut "Ctrl+Tab" context global params
 tab.previous View "Previous tab" menu "Window" shortcut "Ctrl+Shift+Tab" context global params ""
 tab.focus_other View "Other tab group" menu "Window" shortcut "Ctrl+F6" context global params ""
 help.documentation View "Documentation" menu "Help" shortcut "F1" context global params "topic?:text"
-help.tutorials Command "Tutorials" menu "Help ▸ Tutorials" shortcut none context global params "dir?:path, discard?:bool, tutorial?:text"
+help.tutorials Command "Tutorials" menu "Help ▸ Tutorials" shortcut none context global params "dir?:path, tutorial?:text"
 help.guide View "Guide" menu "Help ▸ Guides" shortcut none context global needs-parameters params "guide:text"
 help.first_run View "First-run setup…" menu "Help" shortcut none context global params "step?:enum(language|origin|privacy|appearance|start)"
 help.shortcuts View "Keyboard shortcuts" menu "Help" shortcut none context global params ""

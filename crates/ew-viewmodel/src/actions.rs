@@ -1772,10 +1772,6 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
                 item.label = strings::lookup(&format!("tutorial-{name}"))
                     .unwrap_or(title)
                     .to_owned();
-                // Doc 16a §8.3: an entry that asks for a folder carries "…" (`act_tutorials`).
-                if matches!(name, "first-page" | "reports-and-pdf") {
-                    item.label.push('…');
-                }
                 item.params = json!({ "tutorial": name });
                 item
             }))

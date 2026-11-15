@@ -6725,3 +6725,7 @@ guide-fluid-workspace = Work in the Fluid workspace
 guide-upgrade-a-project = Upgrade a project
 action-help-guide = Guide
 param-guide = Guide
+toast-show-folder = Show in folder
+toast-tutorial-here = The tutorial's practice project is under Tutorials in your projects folder.
+toast-tutorial-second-window = The tutorial's practice project is under Tutorials in your projects folder; it opens in a second window, and your project stays open here.
+banner-second-window-failed = The second window did not start: open the practice project with File ▸ Open recent.

@@ -277,6 +277,11 @@ impl Platform for VisualPlatform {
                 .map_or(Pick::Cancelled, Pick::Path),
         }
     }
+
+    /// A second window is answered as started: a visual run starts no second process.
+    fn open_window(&mut self, _project: &std::path::Path) -> bool {
+        true
+    }
 }
 
 /// One input of the vocabulary (spec §4.1), coordinates in frame pixels.

@@ -932,6 +932,17 @@ pub(crate) fn env_path(name: &str) -> Option<PathBuf> {
         .map(PathBuf::from)
 }
 
+/// The user's projects folder: `Documents/ElektraWatt` in the home directory (`USERPROFILE` on Windows, `HOME`
+/// elsewhere); `None` without one.
+pub fn default_projects_dir() -> Option<PathBuf> {
+    let home = if cfg!(windows) {
+        env_path("USERPROFILE")
+    } else {
+        env_path("HOME")
+    };
+    home.map(|h| h.join("Documents").join("ElektraWatt"))
+}
+
 /// The settings directory: `EW_CONFIG_DIR` when set, else `%APPDATA%\ElektraWatt` on Windows and
 /// `$XDG_CONFIG_HOME/elektrawatt` (else `~/.config/elektrawatt`) on Linux and any other system (macOS is not supported); `None` when the environment names none.
 pub fn default_config_dir() -> Option<PathBuf> {

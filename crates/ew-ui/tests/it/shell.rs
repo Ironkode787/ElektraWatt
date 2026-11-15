@@ -549,3 +549,31 @@ fn a_small_dialog_is_as_wide_as_its_buttons() {
         "the title at {title}, the first button at {first}"
     );
 }
+
+/// The owner's test of 0.3.0-rc.1 (F4): Help ▸ Tutorials with a project open asks no folder and keeps the project:
+/// the practice project is handed to the platform to open in a second window of the program, and the guide's page
+/// opens at once.
+#[test]
+fn a_tutorial_opens_its_practice_project_in_a_second_window() {
+    let tmp = Tmp::new();
+    let platform = Scripted::default();
+    let mut h = harness(&tmp, platform.clone(), Some(tmp.golden("g.ew")));
+    wait_for_page(&mut h);
+    settle(&mut h);
+    support::open_menu(&mut h, &["Help", "Tutorials"]);
+    support::menu_node(&h, "A first schematic page with potentials").click();
+    settle(&mut h);
+    assert!(platform.asked.borrow().is_empty(), "no folder question");
+    assert_eq!(
+        h.state().shell().project_name(),
+        Some("g.ew"),
+        "the open project stays"
+    );
+    let windows = platform.opened_windows.borrow();
+    assert_eq!(windows.len(), 1, "one second window");
+    assert!(windows[0].is_dir(), "the practice project is written");
+    assert_eq!(
+        h.state().shell().last_help(),
+        Some("tutorials/first-page.html")
+    );
+}
