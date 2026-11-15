@@ -39,7 +39,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         needs_parameters(in_navigator(with_aliases(
             &[("station", ParamForm::Whole)],
             placed(
-                place(Group::Station, 10, CommandSize::Large, Some(key!("bar-rack"))),
+                place(Group::Station, 10, CommandSize::Small, Some(key!("bar-rack"))),
                 "server",
                 act(
                     "plc.rack_editor",
@@ -107,7 +107,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     with_params(
         "format?:text, stations?:text, date?:text, path?:path, replace?:bool",
         placed(
-            place(Group::Exchange, 1, CommandSize::Small, None),
+            place(Group::Exchange, 1, CommandSize::Small, Some(key!("bar-plc-export"))),
             "transfer-out",
             act("plc.export", Command, Menu::Plc, &[], writable, None, |s, p| {
                 s.act_plc_export(p)
@@ -117,7 +117,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     with_params(
         "path?:path, complete?:bool",
         placed(
-            place(Group::Exchange, 2, CommandSize::Small, None),
+            place(Group::Exchange, 2, CommandSize::Small, Some(key!("bar-plc-import"))),
             "transfer-in",
             act("plc.import", View, Menu::Plc, &[], writable, None, |s, p| {
                 s.act_plc_import(p)
@@ -370,18 +370,19 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         )),
     ),
-    // F18 and F19 of the rc.1 test: a station is made as a rack and filled; a bus device is given to a PLC.
+    // A station is made as a rack and filled; a bus device is given to a PLC.
     with_params(
         "kind?:text",
-        with_icon(
-            "cpu",
+        placed(
+            place(Group::Station, 1, CommandSize::Large, Some(key!("bar-new-station"))),
+            "cpu-2",
             act(
                 "plc.new_station",
                 Command,
-                Menu::Project,
+                Menu::Plc,
                 &[],
                 writable,
-                slot(Menu::Project),
+                None,
                 |s, p| s.act_plc_new_station(p),
             ),
         ),

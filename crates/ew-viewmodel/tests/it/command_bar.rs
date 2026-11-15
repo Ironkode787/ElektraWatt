@@ -46,6 +46,7 @@ const KEY_ONLY: &[&str] = &[
     "plc.channel_settings",
     // A fluid line's medium, reached through its context menu.
     "fluid.set_medium",
+    // A bus device given to a PLC, reached through the device's own menus.
     "plc.add_to_plc",
 ];
 

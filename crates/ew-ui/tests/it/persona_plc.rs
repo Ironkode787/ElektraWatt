@@ -66,7 +66,7 @@ fn import_from_plc_software_previews_a_chosen_file_and_a_cancel_changes_nothing(
     d.input(&click(d.find("PLC").expect("the PLC tab")));
     d.settle();
     let before = d.shell_mut().revision();
-    d.input(&click(d.find("Import from PLC software").expect("the button")));
+    d.input(&click(d.find("Import from PLC").expect("the button")));
     d.settle();
     assert!(d.shell_mut().dialog().is_none(), "a cancel opens nothing");
     assert_eq!(d.shell_mut().banner(), None, "and says nothing");
@@ -74,7 +74,7 @@ fn import_from_plc_software_previews_a_chosen_file_and_a_cancel_changes_nothing(
     d.input(&Input::AnswerOpen {
         path: "back.aml".to_owned(),
     });
-    d.input(&click(d.find("Import from PLC software").expect("the button")));
+    d.input(&click(d.find("Import from PLC").expect("the button")));
     d.settle();
     assert!(
         matches!(d.shell_mut().dialog(), Some(Dialog::PlcImport(_))),
@@ -94,7 +94,7 @@ fn lists_are_found_on_the_output_tab_and_the_plc_exchange_on_the_plc_tab() {
     let mut d = new_project(&tmp);
     d.input(&click(d.find("PLC").expect("the PLC tab")));
     d.settle();
-    for button in ["Export to PLC software", "Import from PLC software"] {
+    for button in ["Export to PLC", "Import from PLC"] {
         assert!(d.find(button).is_some(), "{button} on the PLC tab");
     }
     d.input(&click(d.find("Output").expect("the Output tab")));

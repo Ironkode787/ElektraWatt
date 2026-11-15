@@ -404,11 +404,17 @@ msgstr ""
 "project nodig dat u aan het eind van de eerste zelfstudie hebt opgeslagen."
 
 #: src/tutorials/index.md:18
+#, fuzzy
+#| msgid ""
+#| "[Reports and PDF](reports-and-pdf.md): on a copy of the sample project, its "
+#| "report pages read, a parts list and a terminal overview added, the project "
+#| "exported as one PDF and the print preview read. You need EW installed and an "
+#| "empty folder."
 msgid ""
 "[Reports and PDF](reports-and-pdf.md): on a copy of the sample project, its "
 "report pages read, a parts list and a terminal overview added, the project "
-"exported as one PDF and the print preview read. You need EW installed and an "
-"empty folder."
+"exported as one PDF and the print preview read. You need EW installed; the "
+"copy is made in your projects folder, and a project you have open stays open."
 msgstr ""
 "[Rapporten en PDF](reports-and-pdf.md): op een kopie van het "
 "voorbeeldproject de rapportpagina's gelezen, een stuklijst en een "
@@ -498,7 +504,7 @@ msgid "Nothing else: the project starts from EW's built-in basic project."
 msgstr ""
 "Verder niets: het project begint bij het ingebouwde basisproject van EW."
 
-#: src/tutorials/first-page.md:14 src/tutorials/terminal-strip-and-cable.md:13 src/tutorials/reports-and-pdf.md:12 src/tutorials/import-qet.md:16 src/tutorials/symbol-editor.md:13 src/how-to/define-supply-potential.md:12
+#: src/tutorials/first-page.md:14 src/tutorials/terminal-strip-and-cable.md:13 src/tutorials/reports-and-pdf.md:11 src/tutorials/import-qet.md:16 src/tutorials/symbol-editor.md:13 src/how-to/define-supply-potential.md:12
 msgid "Steps"
 msgstr "Stappen"
 
@@ -608,7 +614,7 @@ msgstr ""
 "Kies **Bestand ▸ Opslaan** (`Ctrl+S`). De titelbalk markeert het project "
 "niet meer als gewijzigd, en de statusbalk zegt Opgeslagen."
 
-#: src/tutorials/first-page.md:44 src/tutorials/terminal-strip-and-cable.md:49 src/tutorials/reports-and-pdf.md:38 src/tutorials/import-qet.md:56 src/tutorials/symbol-editor.md:42
+#: src/tutorials/first-page.md:44 src/tutorials/terminal-strip-and-cable.md:49 src/tutorials/reports-and-pdf.md:39 src/tutorials/import-qet.md:56 src/tutorials/symbol-editor.md:42
 msgid "What you learnt"
 msgstr "Wat u hebt geleerd"
 
@@ -786,7 +792,7 @@ msgstr ""
 "van de transformator; de info's zeggen dat nog geen rapport de klemmenstrook "
 "of de kabel dekt."
 
-#: src/tutorials/terminal-strip-and-cable.md:46 src/tutorials/reports-and-pdf.md:35 src/tutorials/import-qet.md:53 src/tutorials/symbol-editor.md:39
+#: src/tutorials/terminal-strip-and-cable.md:46 src/tutorials/reports-and-pdf.md:36 src/tutorials/import-qet.md:53 src/tutorials/symbol-editor.md:39
 msgid ""
 "Choose **File ▸ Save** (`Ctrl+S`). The title bar no longer marks the project "
 "as changed."
@@ -851,24 +857,18 @@ msgstr ""
 "Rapportpagina's worden niet getekend: EW genereert ze uit het schema, dus ze "
 "volgen elke wijziging."
 
-#: src/tutorials/reports-and-pdf.md:10
-msgid "An empty folder, or a place where EW may create one."
-msgstr "Een lege map, of een plek waar EW er een mag maken."
-
-#: src/tutorials/reports-and-pdf.md:14
+#: src/tutorials/reports-and-pdf.md:13
 msgid ""
-"Choose **Help ▸ Tutorials ▸ Reports and PDF…** and name a new folder "
-"`reports.ew`. EW makes a fresh copy of the sample project there and opens "
-"it; the banner says \"A fresh copy of the sample project was made for the "
-"tutorials.\" This tutorial's page of the guide opens beside it."
+"Choose **Help ▸ Tutorials ▸ Reports and PDF**. This tutorial's page of the "
+"guide opens at once, and EW makes a fresh copy of the sample project in a "
+"new folder under `Tutorials` in your projects folder (`Documents`, "
+"`ElektraWatt`); a toast says so, and **Show in folder** shows it. With a "
+"project open, the copy opens in a second window and your project stays open; "
+"without one it opens here, and the banner says \"A fresh copy of the sample "
+"project was made for the tutorials.\""
 msgstr ""
-"Kies **Help ▸ Zelfstudies ▸ Rapporten en PDF…** en geef een nieuwe map de "
-"naam `reports.ew`. EW maakt daar een nieuwe kopie van het voorbeeldproject "
-"en opent die; de banner zegt \"Voor de zelfstudies is een nieuwe kopie van "
-"het voorbeeldproject gemaakt.\" De pagina van deze zelfstudie in de gids "
-"opent ernaast."
 
-#: src/tutorials/reports-and-pdf.md:17
+#: src/tutorials/reports-and-pdf.md:18
 msgid ""
 "Read the report pages in the Pages navigator, in section 9 (folios 900 to "
 "999). They are marked generated: the parts list (Partlist, 901 and 901.1), a "
@@ -885,14 +885,22 @@ msgstr ""
 "apparaatkenmerken en het revisieoverzicht. Klik op een ervan, zoals 904, om "
 "hem te bekijken."
 
-#: src/tutorials/reports-and-pdf.md:21
+#: src/tutorials/reports-and-pdf.md:22
+#, fuzzy
+#| msgid ""
+#| "Choose **Output ▸ Report block…** (on the Output tab: **Report**). In the "
+#| "form, choose the report **Parts list**, keep or type the first folio `912`, "
+#| "type the title `Parts list`, and choose **Create**. The toast says \"Added "
+#| "the report block Parts list from folio 912\". The Pages navigator lists the "
+#| "new pages 912 to 912.3: the parts list device by device, where the Partlist "
+#| "on 901 sums the parts up."
 msgid ""
-"Choose **Output ▸ Report block…** (on the Output tab: **Report**). In the "
-"form, choose the report **Parts list**, keep or type the first folio `912`, "
-"type the title `Parts list`, and choose **Create**. The toast says \"Added "
-"the report block Parts list from folio 912\". The Pages navigator lists the "
-"new pages 912 to 912.3: the parts list device by device, where the Partlist "
-"on 901 sums the parts up."
+"Choose **Output ▸ Report block…** (on the Page or the Output tab: "
+"**Report**). In the form, choose the report **Parts list**, keep or type the "
+"first folio `912`, type the title `Parts list`, and choose **Create**. The "
+"toast says \"Added the report block Parts list from folio 912\". The Pages "
+"navigator lists the new pages 912 to 912.3: the parts list device by device, "
+"where the Partlist on 901 sums the parts up."
 msgstr ""
 "Kies **Uitvoer ▸ Rapportblok…** (op het tabblad Uitvoer: **Rapport**). Kies "
 "in het formulier het rapport **Stuklijst**, houd of typ het eerste folio "
@@ -901,7 +909,7 @@ msgstr ""
 "toont de nieuwe pagina's 912 tot en met 912.3: de stuklijst per apparaat, "
 "waar de Partlist op 901 de artikelen optelt."
 
-#: src/tutorials/reports-and-pdf.md:25
+#: src/tutorials/reports-and-pdf.md:26
 msgid ""
 "Choose **Output ▸ Report block…** again, choose **Terminal overview**, the "
 "first folio `913` and the title `Terminal overview`, and choose **Create**. "
@@ -911,7 +919,7 @@ msgstr ""
 "eerste folio `913` en de titel `Terminal overview`, en kies **Maken**. "
 "Pagina 913 toont alle klemmenstroken van het project op één pagina."
 
-#: src/tutorials/reports-and-pdf.md:28
+#: src/tutorials/reports-and-pdf.md:29
 msgid ""
 "Choose **Output ▸ Export PDF…** (`Ctrl+Shift+E`) and save the file as "
 "`reports.pdf`. When the export is done, the toast says \"Exported "
@@ -926,7 +934,7 @@ msgstr ""
 "de notificatie om het te bekijken: één PDF/A-2b-bestand met elke pagina, een "
 "inhoudsopgave en links voor de kruisverwijzingen."
 
-#: src/tutorials/reports-and-pdf.md:32
+#: src/tutorials/reports-and-pdf.md:33
 msgid ""
 "Choose **Output ▸ Print…** (`Ctrl+P`). The Print dialog shows the range, the "
 "paper and a preview of the first page: \"1 of 41\". Step to the next page in "
@@ -938,7 +946,7 @@ msgstr ""
 "in het voorbeeld naar de volgende pagina om pagina 2 te zien. Kies "
 "**Annuleren** om het venster te sluiten zonder af te drukken."
 
-#: src/tutorials/reports-and-pdf.md:40
+#: src/tutorials/reports-and-pdf.md:41
 msgid ""
 "A report block generates report pages from the project: a parts list, "
 "terminal diagrams, a cable list and more. **Output ▸ Report block…** (the "
@@ -959,7 +967,7 @@ msgstr ""
 "geen pagina: de notificatie zegt dat en wat er rijen aan geeft, zoals een "
 "ventieleiland voor de ventieleilandconfiguratie."
 
-#: src/tutorials/reports-and-pdf.md:45
+#: src/tutorials/reports-and-pdf.md:46
 msgid ""
 "Report pages follow the drawing: change a device, a terminal or a cable, and "
 "its report pages change with it."
@@ -967,7 +975,7 @@ msgstr ""
 "Rapportpagina's volgen de tekening: verander een apparaat, een klem of een "
 "kabel, en de rapportpagina's veranderen mee."
 
-#: src/tutorials/reports-and-pdf.md:46
+#: src/tutorials/reports-and-pdf.md:47
 msgid ""
 "**Output ▸ Export PDF…** writes every page into one PDF; **Output ▸ Print…** "
 "shows each page before it prints."
@@ -975,7 +983,7 @@ msgstr ""
 "**Uitvoer ▸ PDF exporteren…** schrijft elke pagina in één PDF; **Uitvoer ▸ "
 "Afdrukken…** toont elke pagina voordat die wordt afgedrukt."
 
-#: src/tutorials/reports-and-pdf.md:47
+#: src/tutorials/reports-and-pdf.md:48
 msgid ""
 "[A terminal strip and a cable](terminal-strip-and-cable.md) shows where the "
 "terminal diagrams and the cable list take their rows from."
@@ -1274,12 +1282,20 @@ msgstr ""
 "x = 4 mm."
 
 #: src/tutorials/symbol-editor.md:24
+#, fuzzy
+#| msgid ""
+#| "Choose **Text slot**. Add a **Pin designation** field beside each connection "
+#| "point, with that point's pin number, and a **Device tag** field above the "
+#| "body. The validation says **Ready to save**. FE is a printed designation: "
+#| "before you use the symbol, give the FE pin its electrical role under "
+#| "**Electrical data**, **Function definition**, and never confuse it with PE."
 msgid ""
 "Choose **Text slot**. Add a **Pin designation** field beside each connection "
 "point, with that point's pin number, and a **Device tag** field above the "
 "body. The validation says **Ready to save**. FE is a printed designation: "
 "before you use the symbol, give the FE pin its electrical role under "
-"**Electrical data**, **Function definition**, and never confuse it with PE."
+"**Function and connection points**, **Function**, and never confuse it with "
+"PE."
 msgstr ""
 "Kies **Tekstpositie**. Voeg naast elk aansluitpunt een veld "
 "**Aansluitcodering** toe, met het pinnummer van dat punt, en boven de "
@@ -1299,11 +1315,18 @@ msgstr ""
 "richting met de tekening mee. Kies A om weer te bewerken."
 
 #: src/tutorials/symbol-editor.md:30
+#, fuzzy
+#| msgid ""
+#| "In **Electrical data**, under **Connection points**, change the first "
+#| "point's x to 4.5 mm. The validation says \"Connection point 1 is off the "
+#| "connection grid. Move it onto the grid before saving.\" Press `Ctrl+Z` to "
+#| "undo the change. Fine drawing coordinates, such as 0.5 mm, remain valid."
 msgid ""
-"In **Electrical data**, under **Connection points**, change the first "
-"point's x to 4.5 mm. The validation says \"Connection point 1 is off the "
-"connection grid. Move it onto the grid before saving.\" Press `Ctrl+Z` to "
-"undo the change. Fine drawing coordinates, such as 0.5 mm, remain valid."
+"In **Function and connection points**, under **Connection points**, change "
+"the first point's x to 4.5 mm. The validation says \"Connection point 1 is "
+"off the connection grid. Move it onto the grid before saving.\" Press "
+"`Ctrl+Z` to undo the change. Fine drawing coordinates, such as 0.5 mm, "
+"remain valid."
 msgstr ""
 "Wijzig in **Elektrische data**, onder **Aansluitpunten**, de x van het "
 "eerste punt in 4,5 mm. De validatie zegt \"Aansluitpunt 1 ligt buiten het "
@@ -1831,21 +1854,23 @@ msgstr ""
 
 #: src/how-to/application-window.md:18
 msgid ""
-"**Tutorials** opens the tutorials and a fresh copy of the sample project."
+"**Tutorials and guides** lists the tutorials (step by step, with a practice "
+"project) and the how-to guides (how to do one job), as **Help ▸ Tutorials** "
+"and **Help ▸ Guides** do."
 msgstr ""
 
-#: src/how-to/application-window.md:19
+#: src/how-to/application-window.md:20
 msgid ""
 "The quick switches set the language and the keymap preset. The privacy line "
 "says that this version has no update check; **change** opens the privacy "
 "step of the [first-run setup](#first-run-setup)."
 msgstr ""
 
-#: src/how-to/application-window.md:22
+#: src/how-to/application-window.md:23
 msgid "Project view"
 msgstr ""
 
-#: src/how-to/application-window.md:24
+#: src/how-to/application-window.md:25
 msgid ""
 "With a project open the window shows the page list, the page view and the "
 "status bar. The page view shows the current page read-only. `Page Down` and "
@@ -1854,11 +1879,11 @@ msgid ""
 "a new name."
 msgstr ""
 
-#: src/how-to/application-window.md:28
+#: src/how-to/application-window.md:29
 msgid "New project"
 msgstr ""
 
-#: src/how-to/application-window.md:30
+#: src/how-to/application-window.md:31
 msgid ""
 "**File, New project** (`Ctrl+N`) asks for a new, empty directory and writes "
 "the project there at once. The project starts from the default basic project "
@@ -1866,22 +1891,22 @@ msgid ""
 "identities for every record."
 msgstr ""
 
-#: src/how-to/application-window.md:34
+#: src/how-to/application-window.md:35
 msgid "Sample project"
 msgstr ""
 
-#: src/how-to/application-window.md:36
+#: src/how-to/application-window.md:37
 msgid ""
 "**File, Open sample project** opens the sample project read-only, so that "
 "nothing is written into the installation. **Save as...** writes a copy into "
 "a directory of your own and continues in the copy."
 msgstr ""
 
-#: src/how-to/application-window.md:39
+#: src/how-to/application-window.md:40
 msgid "Import a QElectroTech project"
 msgstr ""
 
-#: src/how-to/application-window.md:41
+#: src/how-to/application-window.md:42
 msgid ""
 "**File, Import...**, beside **Open...**, asks for a `.qet` file and then for "
 "a new, empty directory. The importer reads the file into a new project and "
@@ -1891,11 +1916,11 @@ msgid ""
 "read-only."
 msgstr ""
 
-#: src/how-to/application-window.md:46
+#: src/how-to/application-window.md:47
 msgid "Unsaved changes and recovery"
 msgstr ""
 
-#: src/how-to/application-window.md:48
+#: src/how-to/application-window.md:49
 msgid ""
 "Closing, quitting or opening another project with unsaved changes asks "
 "whether to save, discard or cancel. If the application ends while a project "
@@ -1905,52 +1930,57 @@ msgid ""
 "the project for editing."
 msgstr ""
 
-#: src/how-to/application-window.md:53
+#: src/how-to/application-window.md:54
 msgid "Command palette"
 msgstr ""
 
-#: src/how-to/application-window.md:55
+#: src/how-to/application-window.md:56
 msgid ""
 "`Ctrl+K` (or `Ctrl+Shift+P`) opens the palette: type a part of a name and "
 "press `Enter` to run the selected entry. Disabled entries are listed last "
 "with the reason. `Escape` closes it."
 msgstr ""
 
-#: src/how-to/application-window.md:58
+#: src/how-to/application-window.md:59
 msgid "Keyboard shortcuts"
 msgstr ""
 
-#: src/how-to/application-window.md:60
+#: src/how-to/application-window.md:61
 msgid ""
 "**Help, Keyboard shortcuts** lists the bindings of the EW preset. `F1` opens "
 "this guide at the page of what has the focus: an open dialog, the palette, "
-"the wizard, the project view or the start page. Over a menu item with a "
+"the wizard, the project view or the start page. On the PLC, Bus and Fluid "
+"panels, the PLC and Fluid tabs, a bus-topology, fluid or panel layout page "
+"and in the part editor it opens the guide of that job; the **?** in those "
+"panels' headers and the tabs' **Guide** do the same. Over a menu item with a "
 "shortcut the tooltip ends with \"F1: learn more\"; `F1` while the pointer is "
 "on the item opens the page of that item."
 msgstr ""
 
-#: src/how-to/application-window.md:64
+#: src/how-to/application-window.md:67
 msgid "Workspaces"
 msgstr ""
 
-#: src/how-to/application-window.md:66
+#: src/how-to/application-window.md:69
 msgid ""
 "The project view is a dock: drag the border between two panes to resize "
 "them, and drag a pane's title onto another pane to rearrange or tab it. The "
 "program ships the workspaces **Schematic**, **PLC** (see [Work in the PLC "
 "workspace](plc-workspace.md)) and **Fluid power** (see [Work in the Fluid "
-"workspace](fluid-workspace.md)). **View ▸ Workspaces** lists them and the "
-"saved workspaces, saves the current layout under a name and resets the "
-"layout (a shipped workspace to its own layout). A workspace is a file "
-"`workspaces/<name>.json` in the configuration directory; the layout is saved "
-"a second after its last change."
+"workspace](fluid-workspace.md)). The switch at the right of the tab row, "
+"beside the command search, shows them with the active one marked (a saved "
+"workspace by its name while it is active); a click loads another. **View ▸ "
+"Workspaces** lists them and the saved workspaces, saves the current layout "
+"under a name and resets the layout (a shipped workspace to its own layout). "
+"A workspace is a file `workspaces/<name>.json` in the configuration "
+"directory; the layout is saved a second after its last change."
 msgstr ""
 
-#: src/how-to/application-window.md:73
+#: src/how-to/application-window.md:78
 msgid "First-run setup"
 msgstr ""
 
-#: src/how-to/application-window.md:75
+#: src/how-to/application-window.md:80
 msgid ""
 "On the first start the application asks for the language and what you come "
 "from (EPLAN, QElectroTech, KiCad or other), says what it does with your data "
@@ -1960,11 +1990,11 @@ msgid ""
 "First-run setup** runs it again. Nothing in it makes a network connection."
 msgstr ""
 
-#: src/how-to/application-window.md:80
+#: src/how-to/application-window.md:85
 msgid "Company-standard wizard"
 msgstr ""
 
-#: src/how-to/application-window.md:82
+#: src/how-to/application-window.md:87
 msgid ""
 "The wizard collects the conventions of your company and writes a **basic "
 "project**, from which new projects start. It has ten steps: the company, the "
@@ -1978,11 +2008,11 @@ msgid ""
 "to a directory you choose and becomes the default for **New project**."
 msgstr ""
 
-#: src/how-to/application-window.md:90
+#: src/how-to/application-window.md:95
 msgid "About"
 msgstr ""
 
-#: src/how-to/application-window.md:92
+#: src/how-to/application-window.md:97
 msgid ""
 "**Help, About ElektraWatt** shows the version, the page-view renderer, the "
 "privacy state, the licence, the engineering-verification disclaimer, the "
@@ -2910,17 +2940,20 @@ msgstr ""
 
 #: src/how-to/plc-workspace.md:9
 msgid ""
-"Choose **View ▸ Workspaces ▸ PLC**. The left column shows the PLC navigator "
-"and the bottom dock the PLC grid; Properties stays under the navigator. "
-"**View ▸ Workspaces ▸ Schematic** goes back; a change you make to the layout "
-"is kept for the workspace."
-msgstr ""
-
-#: src/how-to/plc-workspace.md:13
-msgid "The PLC navigator"
+"Choose **PLC** in the workspace switch at the right of the tab row, or **PLC "
+"workspace** at the end of the **PLC** tab. The left column shows the PLC "
+"navigator and the bottom dock the PLC grid; Properties stays under the "
+"navigator. **Schematic** in the switch goes back; a change you make to the "
+"layout is kept for the workspace. The **PLC** tab holds a button for each "
+"PLC and bus command: Rack, Addresses, Bus page, Place port, PLC grid, the "
+"exchange with PLC software and this guide."
 msgstr ""
 
 #: src/how-to/plc-workspace.md:15
+msgid "The PLC navigator"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:17
 msgid ""
 "The tree runs from the configuration project to its stations (a CPU, a head "
 "station, a valve terminal), their racks once a module has a rack position, "
@@ -2930,14 +2963,14 @@ msgid ""
 "opens it."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:19
+#: src/how-to/plc-workspace.md:21
 msgid ""
 "Drag a channel's row onto a connection point of a module pin or a coil to "
 "bind it. A device wired off the module, or a valve beside a valve terminal, "
 "is attached to the module and bound in one step; one Undo takes both back."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:21
+#: src/how-to/plc-workspace.md:23
 msgid ""
 "A module drawn on a page joins the project's only station, and its toast "
 "says which slot it got, with **Rack…**. In a project with two stations it "
@@ -2952,11 +2985,11 @@ msgid ""
 "words, and a bus device is given to a PLC as a station of its own (step 5)."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:30
+#: src/how-to/plc-workspace.md:32
 msgid "Stations"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:32
+#: src/how-to/plc-workspace.md:34
 msgid ""
 "Choose **New station…** (Project menu, or **+** in the PLC navigator). "
 "Choose what the station is, its head part and the PLC it belongs to, then "
@@ -2972,11 +3005,11 @@ msgid ""
 "menu says **PLC:** and its name, and offers **Rack…**."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:41
+#: src/how-to/plc-workspace.md:43
 msgid "Bus ports and nets"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:43
+#: src/how-to/plc-workspace.md:45
 msgid ""
 "A station placed from the device browser on a bus-topology page stands there "
 "as its bus interfaces, a box each with its sockets (the starter CPU as DP "
@@ -2996,7 +3029,7 @@ msgid ""
 "made in the part editor: see [Make your own PLC or bus part](own-parts.md)."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:54
+#: src/how-to/plc-workspace.md:56
 msgid ""
 "Choose **Bus** on the rail for the nets: each logical net with its ports, "
 "each physical net with its segments and their ends. Show it as a table to "
@@ -3009,11 +3042,11 @@ msgid ""
 "box on the bus-topology page shown."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:62
+#: src/how-to/plc-workspace.md:64
 msgid "Addresses"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:64
+#: src/how-to/plc-workspace.md:66
 msgid ""
 "Right-click a module and choose **Re-address…**, or a configuration project "
 "for all its modules: the Preview tab lists each channel whose address moves, "
@@ -3029,11 +3062,11 @@ msgid ""
 "and a lock in the grid's Address cell."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:73 src/reference/window/dialogs.md:114
+#: src/how-to/plc-workspace.md:75 src/reference/window/dialogs.md:114
 msgid "Rack and slots"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:75
+#: src/how-to/plc-workspace.md:77
 msgid ""
 "Right-click a station and choose **Rack…**. **Add module…** on a free slot "
 "adds modules; the arrows on a module's row move it, the bin empties its "
@@ -3042,11 +3075,11 @@ msgid ""
 "and the reason stays in the dialog."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:79
+#: src/how-to/plc-workspace.md:81
 msgid "The PLC grid"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:81
+#: src/how-to/plc-workspace.md:83
 msgid ""
 "Each row of the grid is a channel. Type in a cell to change a channel's "
 "designation, address, symbol, state, target, comment, data type or signal "
@@ -3054,7 +3087,7 @@ msgid ""
 "with **Safety data…** and **Mode and safety…** (step 17)."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:84
+#: src/how-to/plc-workspace.md:86
 msgid ""
 "Type in the grid's filter to narrow the rows: a word of a cell, or one of "
 "`spare`, `unplaced`, `unassigned`, `tbd`, `duplicate`, `safety`, "
@@ -3062,27 +3095,27 @@ msgid ""
 "header sorts by it, a second click reverses the order."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:88
+#: src/how-to/plc-workspace.md:90
 msgid "Exchange with the PLC software"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:90
+#: src/how-to/plc-workspace.md:92
 msgid ""
-"Choose **Export to PLC software** on the Output tab (or **Output ▸ Export to "
-"PLC software…**), pick the format and choose **Export**, then the file: the "
+"Choose **Export to PLC software** on the PLC tab (or **PLC ▸ Export to PLC "
+"software…**), pick the format and choose **Export**, then the file: the "
 "dialog names it for the format (`.aml`, `.xlsx` or `.xml`), and the document "
 "date starts as today's. Import the file in TIA Portal or CODESYS."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:93
+#: src/how-to/plc-workspace.md:95
 msgid ""
-"Choose **Import from PLC software** on the Output tab (or **Output ▸ Import "
-"from PLC software…**) for the file the PLC software wrote back. Look through "
-"its tabs; each conflict shows the side Apply takes, and offers the file's "
-"value where it can be taken. Choose **Apply**."
+"Choose **Import from PLC software** on the PLC tab (or **PLC ▸ Import from "
+"PLC software…**) for the file the PLC software wrote back. Look through its "
+"tabs; each conflict shows the side Apply takes, and offers the file's value "
+"where it can be taken. Choose **Apply**."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:96
+#: src/how-to/plc-workspace.md:98
 msgid ""
 "After an import, the module starts, the symbols or the PLC data the PLC "
 "software owns are protected. Right-click the configuration project and "
@@ -3090,7 +3123,7 @@ msgid ""
 "project."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:98
+#: src/how-to/plc-workspace.md:100
 msgid ""
 "Right-click the configuration project and choose **Import instrument list…** "
 "for a CSV or workbook of process tags and signal types: the Preview tab "
@@ -3098,18 +3131,18 @@ msgid ""
 "**Apply**."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:101
+#: src/how-to/plc-workspace.md:103
 msgid "Settings"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:103
+#: src/how-to/plc-workspace.md:105
 msgid ""
 "Right-click the configuration project and choose **Symbol policy…** for the "
 "template of the automatic symbol, the PLC tag table and whether symbols are "
 "strict IEC 61131-3 identifiers."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:105
+#: src/how-to/plc-workspace.md:107
 msgid ""
 "Right-click a module and choose **Safety data…** for its F-source and "
 "F-destination address and its F-watchdog time; right-click a channel and "
@@ -3117,14 +3150,14 @@ msgid ""
 "channel's safety evaluation and requirement."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:108
+#: src/how-to/plc-workspace.md:110
 msgid ""
-"Choose **Project ▸ Process-tag scheme…** for the pattern process tags "
-"follow, and **Project ▸ Channel addresses at terminals** to print a "
-"channel's address at the terminals on its path."
+"Choose **Process-tag scheme** on the PLC tab for the pattern process tags "
+"follow, and **Addresses at terminals** to print a channel's address at the "
+"terminals on its path."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:111
+#: src/how-to/plc-workspace.md:113
 msgid ""
 "The panels are described in the [panel "
 "reference](../reference/window/panels.md): PLC, PLC grid and Bus; the dialog "
@@ -3362,16 +3395,19 @@ msgstr ""
 
 #: src/how-to/fluid-workspace.md:8
 msgid ""
-"Choose **View ▸ Workspaces ▸ Fluid power**. **View ▸ Workspaces ▸ "
-"Schematic** goes back; a change you make to the layout is kept for the "
-"workspace."
-msgstr ""
-
-#: src/how-to/fluid-workspace.md:11
-msgid "Valves and tubes"
+"Choose **Fluid power** in the workspace switch at the right of the tab row, "
+"or **Fluid workspace** at the end of the **Fluid** tab. **Schematic** in the "
+"switch goes back; a change you make to the layout is kept for the workspace. "
+"The **Fluid** tab holds a button for each fluid command: Fluid page, Tube, "
+"Fluid symbol, Valve terminal, Air supply, the media, the tube table and this "
+"guide."
 msgstr ""
 
 #: src/how-to/fluid-workspace.md:13
+msgid "Valves and tubes"
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:15
 msgid ""
 "The fluid navigator lists each valve terminal with its modules and valves, "
 "and every other device a tube ends at, each with its tubes. Select a tube's "
@@ -3379,21 +3415,21 @@ msgid ""
 "tubes."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:15
+#: src/how-to/fluid-workspace.md:17
 msgid ""
-"Draw a tube with **Draw ▸ Wire** on a fluid page, or choose **Draw ▸ Connect "
-"▸ Tube…** to pick its line kind first (Pilot, Exhaust, Drain, Flexible). A "
+"Draw a tube with **Draw ▸ Wire** on a fluid page, or choose **Tube** on the "
+"Fluid tab to pick its line kind first (Pilot, Exhaust, Drain, Flexible). A "
 "symbol placed with a fluid port facing a free port is joined to it with a "
 "tube. Right-click a tube to change its line kind (**Line kind: Working**, "
 "**Line kind: Pilot** and the others) or its medium; a flexible tube is drawn "
 "as an arc."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:20
+#: src/how-to/fluid-workspace.md:22
 msgid "Valve terminals"
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:22
+#: src/how-to/fluid-workspace.md:24
 msgid ""
 "To start a valve terminal, choose **Draw ▸ Device**, find **Valve terminal, "
 "4 valve positions, 8 outputs** under **Valve terminals** (or type \"valve "
@@ -3402,7 +3438,7 @@ msgid ""
 "under **Valve terminals**."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:25
+#: src/how-to/fluid-workspace.md:27
 msgid ""
 "Right-click the terminal's box or its row and choose **Add valve at position "
 "1**: the valve becomes the terminal's child at that position, and its symbol "
@@ -3416,7 +3452,7 @@ msgid ""
 "to its port 1 feeds every valve of the terminal."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:32
+#: src/how-to/fluid-workspace.md:34
 msgid ""
 "Right-click a valve's row: **Set spare** or **Set used**, **Blank position** "
 "to put a blanking plate in its place, and **Plug port** for each working "
@@ -3425,7 +3461,7 @@ msgid ""
 "row closes an empty position with a blanking plate (**Blank position**)."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:36
+#: src/how-to/fluid-workspace.md:38
 msgid ""
 "Right-click the valve terminal's box or row and choose **Generate "
 "overview…**; from the command search it acts on the selected terminal and "
@@ -3438,11 +3474,11 @@ msgid ""
 "a module: it refreshes the pages."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:43
+#: src/how-to/fluid-workspace.md:45
 msgid "Tubes"
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:45
+#: src/how-to/fluid-workspace.md:47
 msgid ""
 "The tube table has one row per tube. Type a length in millimetres into "
 "**Length** (or with its unit: `2 m`, `35 cm`; in Properties the row is "
@@ -3452,27 +3488,27 @@ msgid ""
 "the starter tubes PU 6 × 4, 8 × 6 and 10 × 8 mm."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:49
+#: src/how-to/fluid-workspace.md:51
 msgid ""
-"Choose **Project ▸ Fluid settings…** for the default tube of every line (its "
-"outer and inner diameter in mm and its material) and to tag tubes by page "
-"and counter. A toast says what the default tube is now; it reaches the tubes "
-"drawn already. A tube is specified with its size and its material: without a "
-"material, the check names it."
-msgstr ""
-
-#: src/how-to/fluid-workspace.md:53
-msgid "Media"
+"Choose **Fluid settings** on the Fluid tab for the default tube of every "
+"line (its outer and inner diameter in mm and its material) and to tag tubes "
+"by page and counter. A toast says what the default tube is now; it reaches "
+"the tubes drawn already. A tube is specified with its size and its material: "
+"without a material, the check names it."
 msgstr ""
 
 #: src/how-to/fluid-workspace.md:55
-msgid ""
-"Choose **Project ▸ New medium…**, or **New medium…** at the top of the Fluid "
-"panel beside **Fluid settings…**, give the medium a name and its pressure in "
-"bar, and choose **Create**."
+msgid "Media"
 msgstr ""
 
 #: src/how-to/fluid-workspace.md:57
+msgid ""
+"Choose **New medium** on the Fluid tab, or **New medium…** at the top of the "
+"Fluid panel beside **Fluid settings…**, give the medium a name and its "
+"pressure in bar, and choose **Create**."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:59
 msgid ""
 "Right-click a tube and choose **Medium:** with the medium's name: the tube's "
 "net and every net the medium reaches through the valves carry it. The fluid "
@@ -3484,14 +3520,14 @@ msgid ""
 "supplies, and set it there."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:62
+#: src/how-to/fluid-workspace.md:64
 msgid ""
 "Select the medium's row in the medium table and press `Ctrl+Shift+H` to "
 "highlight its zones on the page; the highlight is a colour with a hatch "
 "pattern, so it reads without colour too."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:65
+#: src/how-to/fluid-workspace.md:67
 msgid ""
 "The panels are described in the [panel "
 "reference](../reference/window/panels.md): Fluid, Tube table and Medium "
@@ -3863,7 +3899,7 @@ msgid ""
 "Device from part…. See [Choose parts](../../how-to/choose-parts.md)."
 msgstr ""
 
-#: src/reference/window/tools.md:67
+#: src/reference/window/tools.md:67 src/reference/symbol-editor.md:190
 msgid "Terminal"
 msgstr ""
 
@@ -4039,10 +4075,10 @@ msgstr ""
 #: src/reference/window/tools.md:150
 msgid ""
 "The Wire tool on a fluid page, drawing tubes of a line kind you pick first: "
-"open it with Draw ▸ Connect ▸ Tube…, choose Working, Pilot, Exhaust, Drain "
-"or Flexible and choose Draw. Draw ▸ Wire draws working tubes. A pilot or "
-"drain tube is dashed; a flexible one (a hose) is drawn as an arc between its "
-"ends. Right-click a tube to change its line kind."
+"open it with Tube on the Fluid tab (Fluid ▸ Tubes ▸ Tube…), choose Working, "
+"Pilot, Exhaust, Drain or Flexible and choose Draw. Draw ▸ Wire draws working "
+"tubes. A pilot or drain tube is dashed; a flexible one (a hose) is drawn as "
+"an arc between its ends. Right-click a tube to change its line kind."
 msgstr ""
 
 #: src/reference/window/tools.md:155
@@ -4615,18 +4651,18 @@ msgstr ""
 
 #: src/reference/window/dialogs.md:144
 msgid ""
-"**Output ▸ Import from PLC software…** asks for an AutomationML file or a "
-"TIA Portal \"PLC Tags\" workbook and shows what it would change in the "
-"project's configuration project, by tab: **Changed** (each field with the "
-"project's and the file's value and what the import makes of it: applied, "
-"rejected because the project owns it or the file leaves it out, kept because "
-"the project changed it, or pending), **Conflicts** (both sides changed the "
+"**PLC ▸ Import from PLC software…** asks for an AutomationML file or a TIA "
+"Portal \"PLC Tags\" workbook and shows what it would change in the project's "
+"configuration project, by tab: **Changed** (each field with the project's "
+"and the file's value and what the import makes of it: applied, rejected "
+"because the project owns it or the file leaves it out, kept because the "
+"project changed it, or pending), **Conflicts** (both sides changed the "
 "field: keep the project's value or take the file's; a comment without a "
 "language never replaces one with languages, nor the other way round), "
 "**Removed** (what the file no longer holds) and **Parking** (the file's "
 "objects that match nothing in the project, or more than one; a module or "
 "station can be created unplaced). Nothing changes until **Apply**, which "
-"makes the import one step of Undo. **Output ▸ Export to PLC software…** is a "
+"makes the import one step of Undo. **PLC ▸ Export to PLC software…** is a "
 "form: the format (AutomationML AR APC 1.4.0 or 1.2.0, the TIA tag workbook, "
 "PLCopen XML for CODESYS), the stations (their tags; empty: all) and the "
 "document date (empty: the project's); it then asks for the file, writes it "
@@ -5047,17 +5083,17 @@ msgid ""
 "to draw; B–H show live rotated/mirrored previews. Select a graphic to move "
 "it by dragging or edit its coordinates in **Drawing**. **Draw by "
 "coordinates** also creates geometry from the keyboard. Pin coordinates, "
-"directions and function mappings are editable in **Electrical data**. In "
-"**Pin mapping**, drag a function pin onto a connection point or use its "
-"list. Assigning a pin already used by another compatible connection swaps "
-"their mappings in one undo step. Repeated designations have an ordinal in "
-"parentheses, so two terminals both named N remain distinguishable. Function "
-"choices include their category and source library. In **Library**, **Fork "
-"existing symbol** searches project and installed-library symbols by name or "
-"key; each choice shows its source and grid. **Create editable copy** leaves "
-"the original unchanged. The command bar and status bar follow the active "
-"symbol; library paths and publication settings live in **Library**. The "
-"ribbon uses the same small icons, labels and selected state as the main "
+"directions and function mappings are editable in **Function and connection "
+"points**. In **Pin mapping**, drag a function pin onto a connection point or "
+"use its list. Assigning a pin already used by another compatible connection "
+"swaps their mappings in one undo step. Repeated designations have an ordinal "
+"in parentheses, so two terminals both named N remain distinguishable. "
+"Function choices include their category and source library. In **Library**, "
+"**Fork existing symbol** searches project and installed-library symbols by "
+"name or key; each choice shows its source and grid. **Create editable copy** "
+"leaves the original unchanged. The command bar and status bar follow the "
+"active symbol; library paths and publication settings live in **Library**. "
+"The ribbon uses the same small icons, labels and selected state as the main "
 "window; each tool's tooltip says what it does and how (\"Line: drag, or "
 "click two points\"). **More shapes** contains ellipse, arc, polyline and "
 "polygon. Press **F1** in the editor to open this reference. Text fields can "
@@ -5322,7 +5358,8 @@ msgstr ""
 
 #: src/reference/symbol-editor.md:126
 msgid ""
-"existing function `key`, or `library:<library UUID>:<item UUID>` in `key`"
+"existing function `key`, or `library:<library UUID>:<item UUID>` in `key`; "
+"an empty `key` takes an assigned function off"
 msgstr ""
 
 #: src/reference/symbol-editor.md:127
@@ -5557,11 +5594,103 @@ msgid ""
 msgstr ""
 
 #: src/reference/symbol-editor.md:177
+msgid "Function type and ready-made functions"
+msgstr ""
+
+#: src/reference/symbol-editor.md:179
 msgid ""
-"A new drawing starts with a generic black-box function. In **Electrical "
-"data**, under **Function definition**, choose its function type and set each "
-"pin's potential role and flags, or assign an existing library function. "
-"Existing assigned functions remain read-only. Internal connections and less "
+"A new drawing starts with a generic black-box function. In **Function and "
+"connection points**, under **Function**, the **Function type** says what the "
+"symbol is to the program; it decides which connection points the symbol has "
+"and how its device is listed and checked. Each choice says what it is for "
+"when you point at it, and the chosen one's meaning stands under the list:"
+msgstr ""
+
+#: src/reference/symbol-editor.md:184
+msgid "Function type"
+msgstr ""
+
+#: src/reference/symbol-editor.md:184
+msgid "For"
+msgstr ""
+
+#: src/reference/symbol-editor.md:186
+msgid "Generic black box"
+msgstr ""
+
+#: src/reference/symbol-editor.md:186
+msgid ""
+"A device the program has no type for, such as a drive or a module, with "
+"connection points of its own."
+msgstr ""
+
+#: src/reference/symbol-editor.md:187
+msgid "Normally open, normally closed and change-over contact"
+msgstr ""
+
+#: src/reference/symbol-editor.md:187
+msgid ""
+"A contact of a relay, contactor or switch; it is listed with the coil or "
+"device that switches it."
+msgstr ""
+
+#: src/reference/symbol-editor.md:188
+msgid "Coil"
+msgstr ""
+
+#: src/reference/symbol-editor.md:188
+msgid "The coil of a relay or contactor; its contacts refer to it."
+msgstr ""
+
+#: src/reference/symbol-editor.md:189
+msgid "Pole"
+msgstr ""
+
+#: src/reference/symbol-editor.md:189
+msgid ""
+"A path through a device, or out of a source: a pole of a breaker, fuse or "
+"switch, a supply or an air supply."
+msgstr ""
+
+#: src/reference/symbol-editor.md:190
+msgid "A terminal of a terminal strip, listed in the terminal diagram."
+msgstr ""
+
+#: src/reference/symbol-editor.md:191
+msgid "PLC input/output"
+msgstr ""
+
+#: src/reference/symbol-editor.md:191
+msgid ""
+"A channel of a PLC card, which gets an address and is listed in the PLC "
+"lists."
+msgstr ""
+
+#: src/reference/symbol-editor.md:192
+msgid "Bus port"
+msgstr ""
+
+#: src/reference/symbol-editor.md:192
+msgid "A port such as PROFINET or PROFIBUS; its device joins a bus net."
+msgstr ""
+
+#: src/reference/symbol-editor.md:193
+msgid "Valve"
+msgstr ""
+
+#: src/reference/symbol-editor.md:193
+msgid ""
+"A fluid power valve; its ports carry air or oil, and it can sit on a valve "
+"terminal."
+msgstr ""
+
+#: src/reference/symbol-editor.md:195
+msgid ""
+"Set each pin's potential role and flags there. **Ready-made function** "
+"offers the library's functions: one that fits brings its function type and "
+"connection points, so you do not enter them yourself; choose it and **Use "
+"this function**. While it is used the function type is locked; **Take off** "
+"unlocks it and keeps the connection points. Internal connections and less "
 "common fields are available through **Advanced document**. Typing `FE` as a "
 "designation changes the printed label; select the FE potential role to give "
 "it electrical meaning. Text slots obtain tags, technical data and function "
@@ -5571,7 +5700,7 @@ msgid ""
 "designations are provisional numbers until the function is reviewed."
 msgstr ""
 
-#: src/reference/symbol-editor.md:185
+#: src/reference/symbol-editor.md:204
 msgid ""
 "Keep `custom.slk` beside the complete `custom.sdb` folder (or the sibling "
 "folder named in the descriptor). Only the Symbol, Variant, Instance and Blob "
@@ -6231,6 +6360,21 @@ msgid ""
 "model, so it cannot go stale. **In the window:** **Page ▸ Go ▸ Follow "
 "cross-reference**."
 msgstr ""
+
+#~ msgid "An empty folder, or a place where EW may create one."
+#~ msgstr "Een lege map, of een plek waar EW er een mag maken."
+
+#~ msgid ""
+#~ "Choose **Help ▸ Tutorials ▸ Reports and PDF…** and name a new folder "
+#~ "`reports.ew`. EW makes a fresh copy of the sample project there and opens "
+#~ "it; the banner says \"A fresh copy of the sample project was made for the "
+#~ "tutorials.\" This tutorial's page of the guide opens beside it."
+#~ msgstr ""
+#~ "Kies **Help ▸ Zelfstudies ▸ Rapporten en PDF…** en geef een nieuwe map de "
+#~ "naam `reports.ew`. EW maakt daar een nieuwe kopie van het voorbeeldproject "
+#~ "en opent die; de banner zegt \"Voor de zelfstudies is een nieuwe kopie van "
+#~ "het voorbeeldproject gemaakt.\" De pagina van deze zelfstudie in de gids "
+#~ "opent ernaast."
 
 #~ msgid ""
 #~ "**Not built yet.** The importer is a library today. The `ew import csv` "
