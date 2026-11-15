@@ -66,7 +66,7 @@
 {"action":"ui.dismiss","params":{}}
 {"action":"nav.goto","params":{"text":"101-G7"}}
 {"action":"tool.place","params":{}}
-{"action":"place.pick","params":{"part":"EW-GEN-VLV-1","letter":"Y"}}
+{"action":"place.pick","params":{"part":"EW-GEN-VLV-1","template":1,"letter":"Y"}}
 {"action":"canvas.activate","params":{"alt":true}}
 {"action":"ui.dismiss","params":{}}
 {"action":"nav.goto","params":{"text":"101-H7"}}
@@ -106,7 +106,7 @@
 {"action":"ui.dismiss","params":{}}
 {"action":"nav.goto","params":{"text":"101-G11"}}
 {"action":"tool.place","params":{}}
-{"action":"place.pick","params":{"part":"EW-GEN-VLV-1","letter":"Y"}}
+{"action":"place.pick","params":{"part":"EW-GEN-VLV-1","template":1,"letter":"Y"}}
 {"action":"canvas.activate","params":{"alt":true}}
 {"action":"ui.dismiss","params":{}}
 {"action":"nav.goto","params":{"text":"101-H11"}}
@@ -146,7 +146,7 @@
 {"action":"ui.dismiss","params":{}}
 {"action":"nav.goto","params":{"text":"101-G15"}}
 {"action":"tool.place","params":{}}
-{"action":"place.pick","params":{"part":"EW-GEN-VLV-1","letter":"Y"}}
+{"action":"place.pick","params":{"part":"EW-GEN-VLV-1","template":1,"letter":"Y"}}
 {"action":"canvas.activate","params":{"alt":true}}
 {"action":"ui.dismiss","params":{}}
 {"action":"nav.goto","params":{"text":"101-H15"}}
