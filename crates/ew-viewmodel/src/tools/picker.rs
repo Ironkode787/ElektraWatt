@@ -330,6 +330,20 @@ pub struct Picker {
     /// The tag of the device each function of a part fills, by (part, function) indices into the catalogue: a device
     /// of the part that has the function unplaced (the host's `template_slots`, set when the browser opens).
     pub joins: BTreeMap<(usize, usize), String>,
+    /// The position of a valve terminal this device browser fills (Fill position n…, Replace…; rc.2): the parts are
+    /// narrowed to valves for a terminal, and the one chosen is placed in that cell.
+    pub cell: Option<CellFill>,
+}
+
+/// A position of a valve terminal drawn as its positions that a [`Picker`] fills.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct CellFill {
+    /// The terminal.
+    pub terminal: ew_api::output::Uuid,
+    /// Whether the chosen valve replaces the cell's valve or blanking plate.
+    pub replace: bool,
+    /// A grid point in the cell's left part on the page, where the valve is placed.
+    pub at: (i64, i64),
 }
 
 impl Picker {
@@ -351,6 +365,7 @@ impl Picker {
             preview: None,
             card: None,
             joins: BTreeMap::new(),
+            cell: None,
         };
         p.refilter();
         p
@@ -473,6 +488,9 @@ impl Picker {
             });
             for p in parts {
                 let part = &self.catalogue.parts[p];
+                if self.cell.is_some() && !part.terminal_valve {
+                    continue;
+                }
                 let mut texts = vec![part.part_number.as_str(), part.manufacturer.as_str()];
                 texts.extend(part.words.iter().map(String::as_str));
                 if part.functions.is_empty() {

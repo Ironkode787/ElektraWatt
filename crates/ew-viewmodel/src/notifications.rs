@@ -48,6 +48,8 @@ pub enum NoteAction {
     NewStation,
     /// Show the folder a practice project was made in, in the system's file manager.
     ShowFolder,
+    /// Swap two valves' positions on their valve terminal, after a typed position another valve holds (rc.2).
+    Swap,
 }
 
 impl NoteAction {
@@ -64,6 +66,7 @@ impl NoteAction {
             NoteAction::Rack => "rack",
             NoteAction::NewStation => "new_station",
             NoteAction::ShowFolder => "show_folder",
+            NoteAction::Swap => "swap",
         }
     }
 
@@ -80,6 +83,7 @@ impl NoteAction {
             "rack" => Some(NoteAction::Rack),
             "new_station" => Some(NoteAction::NewStation),
             "show_folder" => Some(NoteAction::ShowFolder),
+            "swap" => Some(NoteAction::Swap),
             _ => None,
         }
     }
@@ -97,6 +101,7 @@ impl NoteAction {
             NoteAction::Rack => key!("action-plc-rack-editor"),
             NoteAction::NewStation => key!("action-plc-new-station"),
             NoteAction::ShowFolder => key!("toast-show-folder"),
+            NoteAction::Swap => key!("toast-swap"),
         }
     }
 }

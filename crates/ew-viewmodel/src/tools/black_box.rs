@@ -22,6 +22,10 @@
 //! one common pitch, the largest whole number of grid steps that fits `m + 1` times into the edge, the group
 //! centred (half a step to the left when it cannot be centred exactly). Without a part, no CPs.
 //!
+//! **A valve terminal drawn as its positions** ([`BlackBoxTool::with_slots`], doc 11 §3.2, rc.2): the box is sized by the
+//! terminal's positions, not by two clicks; armed, the tool shows it dashed with its top-left corner at the pointer, and
+//! one click commits `box.black` with `box: {outline, slots: {pitch}}` (`ew_api::geometry::slot_box`).
+//!
 //! **Grips** ([`grip_points`], [`reshape_by_grip`]): for an outline of `n` vertices in stored order, grips `0 … n−1`
 //! are the vertices and grips `n … 2n−1` the midpoints of the edges `v0v1, …, v(n−1)v0`. On a rectangle a vertex grip
 //! moves that corner and keeps the rectangle, an edge grip moves that edge perpendicular to itself; on any other
@@ -222,6 +226,8 @@ pub struct BlackBoxTool {
     copies: Vec<Value>,
     /// The representation type the box takes where it is not the frame's own (`topology` on a bus-topology page).
     rep_type: Option<String>,
+    /// The positions of a valve terminal drawn as its positions: one click places its box of that many cells.
+    slots: Option<u16>,
 }
 
 impl BlackBoxTool {
@@ -234,7 +240,22 @@ impl BlackBoxTool {
             dropped: false,
             copies: Vec::new(),
             rep_type: None,
+            slots: None,
         }
+    }
+
+    /// The tool placing a valve terminal of `count` positions drawn as its positions (rc.2): one click, no outline.
+    pub fn with_slots(mut self, count: Option<u16>) -> BlackBoxTool {
+        self.slots = count.filter(|n| *n > 0);
+        self
+    }
+
+    /// The box of a terminal drawn as its positions at the armed point: insertion point, outline, cell width.
+    fn slotted(&self, cx: &ToolCx<'_>) -> Option<((i64, i64), Vec<(i64, i64)>, i64)> {
+        let (State::Armed { at: Some(at) }, Some(n)) = (&self.state, self.slots) else {
+            return None;
+        };
+        ew_api::geometry::slot_box(cx.page.tables.grid, *at, n)
     }
 
     /// The tool drawing boxes of representation type `rep_type` (`topology` on a bus-topology page).
@@ -294,7 +315,11 @@ impl BlackBoxTool {
 
     /// The `box.black` of the current rectangle, or the `bus.place_ports` of a ports target.
     fn command(&self, cx: &ToolCx<'_>) -> Option<Box<AnyCommand>> {
-        let layouts = self.current(cx)?;
+        let slotted = self.slotted(cx);
+        let layouts = match &slotted {
+            Some((pos, outline, _)) => vec![(*pos, outline.clone(), Vec::new())],
+            None => self.current(cx)?,
+        };
         if let BoxTarget::Ports {
             target, interfaces, ..
         } = &self.target
@@ -347,6 +372,9 @@ impl BlackBoxTool {
         let mut b = json!({
             "outline": outline.iter().map(|p| vec![p.0, p.1]).collect::<Vec<_>>(),
         });
+        if let Some((_, _, pitch)) = slotted {
+            b["slots"] = json!({ "pitch": pitch });
+        }
         if !cps.is_empty() {
             b["cps"] = Value::Array(cps.iter().map(|(i, p, d)| cp_json(*i, *p, *d)).collect());
         }
@@ -370,6 +398,26 @@ impl BlackBoxTool {
     }
 
     fn overlay(&self, cx: &ToolCx<'_>) -> Overlay {
+        if let Some((pos, outline, _)) = self.slotted(cx) {
+            let mut pts: Vec<(i64, i64)> = outline
+                .iter()
+                .map(|p| cx.snapper.page_to_sheet((pos.0 + p.0, pos.1 + p.1)))
+                .collect();
+            if let Some(&first) = pts.first() {
+                pts.push(first);
+            }
+            return Overlay::new(vec![
+                OverlayItem::Polyline {
+                    points: pts,
+                    style: Style::dashed(Token::Ghost),
+                },
+                OverlayItem::Label {
+                    at: cx.snapper.page_to_sheet(pos),
+                    text: self.label(),
+                    anchor: Anchor::Right,
+                },
+            ]);
+        }
         match self.state {
             State::Armed { at: None } => Overlay::default(),
             State::Armed { at: Some(at) } => Overlay::new(vec![OverlayItem::Marker {
@@ -434,6 +482,12 @@ impl BlackBoxTool {
 
     fn click(&mut self, cx: &ToolCx<'_>) -> ToolOutput {
         self.dropped = false;
+        if self.slots.is_some() {
+            return match self.command(cx) {
+                Some(cmd) => ToolOutput::Commit(cmd),
+                None => ToolOutput::None,
+            };
+        }
         match self.state {
             State::Armed { at: None } => ToolOutput::None,
             State::Armed { at: Some(at) } => {

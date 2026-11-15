@@ -904,10 +904,16 @@ impl ShellModel {
             self.tools.picker = None;
             // On a bus-topology page the frame draws a topology box (a device with its sockets, doc 10 §2.7).
             let rep_type = (row.rep_type == "topology").then(|| row.rep_type.clone());
+            // On a fluid page a valve terminal is drawn as its positions, one click (rc.2, F15).
+            let fluid = self.page_rows().get(self.page_index()).is_some_and(|r| r.kind == "fluid");
+            let slots = part_copy
+                .filter(|_| fluid)
+                .and_then(|p| self.project.as_ref()?.session.part_positions(p));
             self.activate_tool(Box::new(
                 BlackBoxTool::new(copy.to_string(), target)
                     .with_copies(copies)
-                    .with_rep_type(rep_type),
+                    .with_rep_type(rep_type)
+                    .with_slots(slots),
             ));
             return Outcome::Done;
         }
@@ -1229,6 +1235,10 @@ impl ShellModel {
             return Outcome::Refused { reason_key };
         }
         let (mode, cat, pending) = (picker.mode, Arc::clone(&picker.catalogue), picker.pending.clone());
+        // A valve terminal's position being filled: the valve chosen goes in that cell (rc.2, F15).
+        if let (Some(fill), PickerRow::Part(pi) | PickerRow::PartFn(pi, _)) = (picker.cell, row) {
+            return self.fill_cell(fill, cat.parts[pi].copy);
+        }
         // A part without a function template asks for its symbol, then places with it.
         if let (PickerRow::Symbol(i), Some(pi)) = (row, picker.part) {
             return self.arm(cat, Pick::PartSymbol(pi, i), p);

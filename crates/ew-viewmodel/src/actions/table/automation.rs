@@ -333,6 +333,39 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ))),
     ),
+    // A position of a valve terminal drawn as its positions (rc.2, F15): Fill position n… and Replace… open the device
+    // browser narrowed to valves for a terminal; the valve chosen (or `part`) is placed in that cell.
+    with_params(
+        "terminal:ref, module:ref, position:uint, replace?:bool, part?:ref",
+        needs_parameters(hidden(with_aliases(
+            &[("terminal", ParamForm::Whole)],
+            act(
+                "fluid.cell_fill",
+                Command,
+                Menu::Project,
+                &[],
+                writable,
+                None,
+                |s, p| s.act_fluid_cell_fill(p),
+            ),
+        ))),
+    ),
+    // A valve terminal drawn before as a free box: Draw as slots (rc.2, F15), previewed.
+    with_params(
+        "rep:ref",
+        needs_parameters(hidden(with_aliases(
+            &[("rep", ParamForm::Whole)],
+            act(
+                "fluid.draw_slots",
+                Command,
+                Menu::Project,
+                &[],
+                writable,
+                None,
+                |s, p| s.act_fluid_draw_slots(p),
+            ),
+        ))),
+    ),
     // A stand-alone valve's Draw solenoid 14 on an electrical page… (rc.2, F11): the coil's symbol on the pointer there.
     with_params(
         "function:ref",

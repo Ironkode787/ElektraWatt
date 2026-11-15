@@ -15,7 +15,7 @@
 use egui::{RichText, ScrollArea, Ui};
 use ew_viewmodel::ew_api::output::Uuid;
 use ew_viewmodel::key;
-use ew_viewmodel::shell::{ShellModel, rack_positions_text, rack_slot_text};
+use ew_viewmodel::shell::{ShellModel, rack_position_text, rack_slot_text};
 use ew_viewmodel::strings;
 use serde_json::json;
 
@@ -59,6 +59,7 @@ pub(crate) fn rack(
         ui.label(small(strings::format(key!("rack-order-code"), &[label, code])));
     }
     let parts = shell.module_parts();
+    let valve_parts = shell.terminal_valve_parts();
     let header = |text: &str| {
         RichText::new(text)
             .font(small_strong(&t))
@@ -184,13 +185,12 @@ pub(crate) fn rack(
                             }
                         }
                         ui.end_row();
-                        if !r.positions.is_empty() {
-                            ui.label("");
-                            ui.label(small(strings::format(
-                                key!("rack-positions"),
-                                &[&rack_positions_text(r)],
-                            )));
-                            ui.end_row();
+                        // A valve terminal's positions, one row each (rc.2, F15): what holds it, filled and emptied as
+                        // its cell on the page is.
+                        if let Some(module) = r.module.filter(|_| draft.is_none()) {
+                            for (n, p) in (1u32..).zip(&r.positions) {
+                                position_row(ui, shell, &t, &valve_parts, module, n, p, events);
+                            }
                         }
                     }
                 });
@@ -325,6 +325,59 @@ fn new_station_head(
 
 /// The picker under a slot's Add module… or Replace… button `button`: the module parts that may sit in `slot`, each
 /// with what it gives, and with `count` the field of how many fill the slots from there; a part chosen sends `pick`.
+/// One valve position of a valve terminal's rack row (rc.2, F15): `Position n`, what holds it, and Fill… (the valves for
+/// a terminal), Blanking plate and Empty, each one `valve.set_occupancy`.
+#[allow(clippy::too_many_arguments)]
+fn position_row(
+    ui: &mut Ui,
+    shell: &ShellModel,
+    t: &theme::Tokens,
+    valve_parts: &[ew_viewmodel::ew_api::output::ModulePart],
+    module: Uuid,
+    n: u32,
+    p: &ew_viewmodel::ew_api::output::RackPosition,
+    events: &mut Vec<Event>,
+) {
+    let small = |text: String| {
+        RichText::new(text)
+            .font(theme::font(&t.type_small))
+            .color(t.text_secondary.color32())
+    };
+    let run = |occupancy: serde_json::Value| Event::Action("command.run", shell.occupancy_params(module, n, occupancy));
+    ui.label("");
+    ui.label(small(strings::format(key!("rack-position"), &[&n.to_string()])));
+    ui.label(small(rack_position_text(p)));
+    ui.horizontal(|ui| {
+        let label = if p.holder.is_some() && !p.blank {
+            strings::text(key!("rack-position-replace"))
+        } else {
+            strings::text(key!("rack-position-fill"))
+        };
+        let fill = components::button(ui, Kind::Secondary, label, true, 0.0);
+        let name = format!("{label} {n}");
+        fill.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
+        part_menu(t, &fill, valve_parts, 1, None, |part| {
+            run(json!({ "valve": { "state": "used", "part": part.to_string() } }))
+        }, events);
+        if !p.blank {
+            let label = strings::text(key!("rack-position-blank"));
+            if components::button(ui, Kind::Secondary, label, true, 0.0).clicked() {
+                events.push(run(json!({ "blank": {} })));
+            }
+        }
+        if p.holder.is_some() {
+            let label = strings::format(key!("rack-position-empty"), &[&n.to_string()]);
+            if components::icon_button(ui, IconId::trash, &label).clicked() {
+                events.push(run(json!("empty")));
+            }
+        }
+    });
+    for _ in 0..3 {
+        ui.label("");
+    }
+    ui.end_row();
+}
+
 fn part_menu(
     t: &theme::Tokens,
     button: &egui::Response,

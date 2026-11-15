@@ -2997,7 +2997,7 @@ impl Session {
             .map(|d| {
                 let dev = q.devices().get(*d)?;
                 let module = dev.parent.filter(|p| ew_derive::valve_positions(q, *p).is_some());
-                (module.is_some() || !ew_derive::valve_functions(q, *d).is_empty())
+                (module.is_some() || ew_derive::device_fits_terminal(q, *d))
                     .then_some((module, module.and(dev.position)))
             })
             .collect();
@@ -3042,6 +3042,40 @@ impl Session {
                 provenance,
                 actions,
             ));
+        }
+        // A valve terminal's positions (rc.2, F15: a terminal drawn before as a free box shows its positions nowhere on
+        // its page): each with what holds it, read-only; the window words the blanking plates and the empty ones.
+        if let [one] = devices.as_slice() {
+            let cells = ew_derive::terminal_cells(q, *one);
+            if !cells.is_empty() {
+                let text = cells
+                    .iter()
+                    .map(|c| {
+                        let what = match &c.slot {
+                            ew_derive::ValveSlot::Valve { device, .. } => device_tag_text(q, *device),
+                            ew_derive::ValveSlot::Blank { .. } => "blanking plate".to_owned(),
+                            ew_derive::ValveSlot::Empty => "empty".to_owned(),
+                        };
+                        format!("{} {what}", c.position)
+                    })
+                    .collect::<Vec<_>>()
+                    .join(" · ");
+                out.push(derived(
+                    "device",
+                    "valve_positions",
+                    None,
+                    Category::Structure,
+                    FieldType::Text,
+                    RowValue::One {
+                        json: Value::String(text.clone()),
+                        text,
+                    },
+                    Provenance::Derived {
+                        via: "its valve positions".to_owned(),
+                    },
+                    Vec::new(),
+                ));
+            }
         }
         // A fluid source's medium (the persona re-test started at the air supply and found no medium there): the medium
         // its port's net carries, with where it is defined, chosen among the project's media as a tube's is.

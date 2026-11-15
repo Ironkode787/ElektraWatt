@@ -701,6 +701,13 @@ impl ShellModel {
                 if self.tools.selection.apply(&change) {
                     self.announce_selection();
                 }
+                // A click on an empty cell of a valve terminal drawn as its positions fills it (rc.2, F15).
+                if let SelectionChange::Replace(one) = &change
+                    && let [e] = one.as_slice()
+                    && let Some(params) = self.empty_cell_under_pointer(e.0)
+                {
+                    return self.dispatch("fluid.cell_fill", &params);
+                }
                 Outcome::Done
             }
             ToolOutput::Follow(dest) => {
@@ -802,6 +809,25 @@ impl ShellModel {
             name: cmd.name().to_owned(),
             params,
         })
+    }
+
+    /// The cell of the box representation `rep` (a valve terminal drawn as its positions) under the pointer, with
+    /// what holds it: (terminal, its cell); `None` for any other representation or outside its cells.
+    pub(crate) fn cell_under_pointer(&self, rep: ew_api::output::Uuid) -> Option<(ew_api::output::Uuid, ew_api::output::SlotCell)> {
+        let c = self.canvas()?;
+        let p = c.page().snapper.sheet_to_page(c.pointer()?);
+        let r = c.page().tables.reps.iter().find(|r| r.id == rep)?;
+        let cell = r.black_box.as_ref()?.cells.iter().find(|x| {
+            x.rect[0] <= p.0 && p.0 < x.rect[2] && x.rect[1] <= p.1 && p.1 <= x.rect[3]
+        })?;
+        Some((r.device?, cell.clone()))
+    }
+
+    /// The `fluid.cell_fill` parameters of the empty cell of `rep` under the pointer; `None` elsewhere.
+    fn empty_cell_under_pointer(&self, rep: ew_api::output::Uuid) -> Option<Value> {
+        let (terminal, cell) = self.cell_under_pointer(rep).filter(|(_, c)| c.holder.is_none())?;
+        Some(serde_json::json!({ "terminal": terminal.to_string(), "module": cell.module.to_string(),
+            "position": cell.position }))
     }
 
     /// The sentence that says where a device dropped into a valve terminal's box now sits (the persona round: a toast

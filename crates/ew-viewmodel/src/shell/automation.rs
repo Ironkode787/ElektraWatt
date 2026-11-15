@@ -159,6 +159,29 @@ impl ShellModel {
             .unwrap_or_default()
     }
 
+    /// The valve parts a valve terminal's empty position offers in the rack dialog (rc.2, `Session::terminal_valve_parts`).
+    pub fn terminal_valve_parts(&self) -> Vec<ew_api::output::ModulePart> {
+        self.project_session()
+            .map(ew_api::Session::terminal_valve_parts)
+            .unwrap_or_default()
+    }
+
+    /// The `command.run` parameters that set position `position` of valve module `module` to `occupancy`
+    /// (`valve.set_occupancy`), with the copies a library valve part needs: the rack dialog's position rows (rc.2).
+    pub fn occupancy_params(&self, module: Uuid, position: u32, occupancy: Value) -> Value {
+        let mut params = json!({ "module": module.to_string(), "position": position, "occupancy": occupancy });
+        let part = params["occupancy"]["valve"]["part"]
+            .as_str()
+            .and_then(|p| p.parse::<Uuid>().ok());
+        if let (Some(part), Some(session)) = (part, self.project_session()) {
+            let copies = session.module_part_copies(part);
+            if !copies.is_empty() {
+                params["copies"] = Value::Array(copies);
+            }
+        }
+        json!({ "cmd": "valve.set_occupancy", "params": params })
+    }
+
     /// The rack the open rack dialog shows: its station's (`rack_view`), or in the new-station state the draft's
     /// (`Session::draft_rack`).
     pub fn shown_rack(&self) -> Option<ew_api::output::RackView> {
@@ -1002,6 +1025,105 @@ impl ShellModel {
         Outcome::Done
     }
 
+    /// `fluid.draw_slots {rep}` (rc.2, F15): Draw as slots on a valve terminal drawn before as a free box: the preview
+    /// of `valve_terminal.draw_slots`, committed from it as one undo step.
+    pub(crate) fn act_fluid_draw_slots(&mut self, p: &Map<String, Value>) -> Outcome {
+        let rep = or_return!(self.record_param(p, "rep"));
+        self.preview_bulk("valve_terminal.draw_slots", json!({ "rep": rep.to_string() }))
+    }
+
+    /// `fluid.cell_fill {terminal, module, position, replace?, part?}` (rc.2, F15): Fill position n… or Replace… on a
+    /// cell of a valve terminal drawn as its positions on the page shown: with `part`, that valve is placed in the cell
+    /// ([`Self::fill_cell`]); without, the device browser opens narrowed to valves for a terminal, and its choice does
+    /// it. Refused in words when the terminal is not drawn as its positions on the page shown.
+    pub(crate) fn act_fluid_cell_fill(&mut self, p: &Map<String, Value>) -> Outcome {
+        let terminal = or_return!(self.record_param(p, "terminal"));
+        let module = or_return!(self.record_param(p, "module"));
+        let Some(position) = p.get("position").and_then(Value::as_u64) else {
+            return failed(key!("error-missing-param"), &["position"]);
+        };
+        let replace = p.get("replace").and_then(Value::as_bool).unwrap_or(false);
+        let at = self.canvas().and_then(|c| {
+            let t = &c.page().tables;
+            let grid = crate::tools::wire::PageGridMap::new(t.grid);
+            let cell = t
+                .reps
+                .iter()
+                .filter(|r| r.device == Some(terminal))
+                .filter_map(|r| r.black_box.as_ref())
+                .flat_map(|b| b.cells.iter())
+                .find(|c| c.module == module && u64::from(c.position) == position)?;
+            Some((
+                grid.coord(grid.index(cell.rect[0]) + 1),
+                grid.coord(grid.index(cell.rect[1]) + 2),
+            ))
+        });
+        let Some(at) = at else {
+            return Outcome::refused(key!("reason-cell-not-shown"));
+        };
+        let fill = crate::tools::CellFill { terminal, replace, at };
+        if p.contains_key("part") {
+            let part = or_return!(self.record_param(p, "part"));
+            return self.fill_cell(fill, part);
+        }
+        let out = self.act_open_picker(crate::tools::PickerMode::Parts);
+        if out == Outcome::Done
+            && let Some(picker) = &mut self.tools.picker
+        {
+            picker.cell = Some(fill);
+            picker.refilter();
+        }
+        out
+    }
+
+    /// Places valve part `part` in the cell `fill` names: one `device.place` of the part's main function with its
+    /// symbol at the cell's point, into the terminal (the cell is its position; `replace` removes the cell's valve or
+    /// blanking plate), one undo step; the toast says where it sits.
+    pub(crate) fn fill_cell(&mut self, fill: crate::tools::CellFill, part: Uuid) -> Outcome {
+        self.tools.picker = None;
+        let Some(cat) = self.catalogue() else {
+            return Outcome::refused(key!("reason-no-catalogue"));
+        };
+        let Some(row) = cat.parts.iter().find(|r| r.copy == part) else {
+            return Outcome::refused(key!("reason-valve-no-part"));
+        };
+        let Some(f) = row.functions.iter().find(|f| f.main).or(row.functions.first()) else {
+            return Outcome::refused(key!("reason-no-symbol-for-function"));
+        };
+        let Some(key) = f.symbol.clone() else {
+            return Outcome::refused(key!("reason-no-symbol-for-function"));
+        };
+        let (Some(project), Some(c)) = (self.project.as_ref(), self.canvas()) else {
+            return Outcome::refused(key!("reason-no-page"));
+        };
+        let symbol = cat
+            .symbols
+            .iter()
+            .find(|s| s.key == key)
+            .and_then(|s| s.copy)
+            .or_else(|| project.session.starter_symbol_copy(&key));
+        let Some(symbol) = symbol else {
+            return Outcome::refused(key!("reason-unknown-symbol"));
+        };
+        let mut params = json!({
+            "page": c.page().tables.page.to_string(),
+            "symbol": symbol.to_string(),
+            "pos": [fill.at.0, fill.at.1],
+            "target": {"from_part": {"part": part.to_string(), "template": f.index,
+                "letter": row.letter.clone().unwrap_or_else(|| "Q".to_owned())}},
+            "into": fill.terminal.to_string(),
+        });
+        if fill.replace {
+            params["replace"] = Value::Bool(true);
+        }
+        match project.session.starter_embed_part(part, &key) {
+            Ok(Some(embed)) => params["copies"] = embed["copies"].clone(),
+            Ok(None) => {}
+            Err(keys) => return failed(key!("error-part-fndef-missing"), &[&keys.join(", ")]),
+        }
+        self.run_logged("device.place".to_owned(), params)
+    }
+
     /// `fluid.draw_solenoid {function}` (rc.2, F11): a valve's Draw solenoid 14 on an electrical page…: on the page
     /// shown when it is an electrical (multi-line) page, else on the first one, the solenoid's coil symbol on the
     /// pointer, so that a click places it as that solenoid of the valve; a toast says which and where. Refused in words
@@ -1085,17 +1207,22 @@ pub fn rack_slot_text(r: &ew_api::output::RackRow) -> String {
     }
 }
 
+/// What one valve position holds in words: the valve's tag, `blanking plate` or `empty`.
+pub fn rack_position_text(p: &ew_api::output::RackPosition) -> String {
+    match (&p.valve, p.blank) {
+        (Some(tag), _) => tag.clone(),
+        (None, true) => strings::text(key!("rack-blank")).to_owned(),
+        (None, false) => strings::text(key!("rack-empty")).to_owned(),
+    }
+}
+
 /// A valve terminal module's positions in words: `1 -201U3-Q1 · 2 blank · 3 empty`.
 pub fn rack_positions_text(r: &ew_api::output::RackRow) -> String {
     r.positions
         .iter()
         .enumerate()
-        .map(|(i, (valve, blank))| {
-            let what = match (valve, blank) {
-                (Some(tag), _) => tag.clone(),
-                (None, true) => strings::text(key!("rack-blank")).to_owned(),
-                (None, false) => strings::text(key!("rack-empty")).to_owned(),
-            };
+        .map(|(i, p)| {
+            let what = rack_position_text(p);
             format!("{} {what}", i + 1)
         })
         .collect::<Vec<_>>()

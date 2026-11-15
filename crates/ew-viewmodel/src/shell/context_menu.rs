@@ -256,7 +256,53 @@ impl ShellModel {
             [f] => Some(*f),
             _ => None,
         };
-        self.fluid_entries(thing.device, coil, out);
+        // A valve terminal's box: the cell under the pointer when it is drawn as its positions, else Draw as slots.
+        let slotted = self.terminal_box_entries(rep, out);
+        self.fluid_entries(thing.device, coil, !slotted, out);
+    }
+
+    /// A valve terminal's box (rc.2, F15): drawn as its positions, the cell under the pointer offers Fill position n…
+    /// (empty), Replace… (a valve or a blanking plate), Empty and Blanking plate; a free box offers Draw as slots. Whether
+    /// the box is drawn as its positions (its menu then lists no position but the cell's).
+    fn terminal_box_entries(&self, rep: &TableRep, out: &mut Vec<ActionItem>) -> bool {
+        let Some(b) = rep.black_box.as_ref().filter(|b| b.valve_terminal) else {
+            return false;
+        };
+        if b.cells.is_empty() {
+            let label = strings::text(key!("action-fluid-draw-slots")).to_owned();
+            out.extend(self.aimed("fluid.draw_slots", json!({ "rep": rep.id.to_string() }), label));
+            return false;
+        }
+        let Some((terminal, cell)) = self.cell_under_pointer(rep.id) else {
+            return true;
+        };
+        let position = cell.position.to_string();
+        let fill = |replace: bool| {
+            json!({ "terminal": terminal.to_string(), "module": cell.module.to_string(),
+                "position": cell.position, "replace": replace })
+        };
+        let occupancy = |occupancy: Value| {
+            json!({ "cmd": "valve.set_occupancy", "params": {
+                "module": cell.module.to_string(), "position": cell.position, "occupancy": occupancy } })
+        };
+        match (cell.holder, cell.blank) {
+            (None, _) => {
+                let label = strings::format(key!("canvas-cell-fill"), &[&position]);
+                out.extend(self.aimed("fluid.cell_fill", fill(false), label));
+            }
+            (Some(_), blank) => {
+                let label = strings::format(key!("canvas-cell-replace"), &[&position]);
+                out.extend(self.aimed("fluid.cell_fill", fill(true), label));
+                let label = strings::format(key!("canvas-cell-empty"), &[&position]);
+                out.extend(self.aimed("command.run", occupancy(json!("empty")), label));
+                if blank {
+                    return true;
+                }
+            }
+        }
+        let label = strings::format(key!("canvas-cell-blank"), &[&position]);
+        out.extend(self.aimed("command.run", occupancy(json!({ "blank": {} })), label));
+        true
     }
 
     /// A device's PLC entries (F19 of the rc.1 test), on its symbol on any page and on its rows in the Devices and Bus
@@ -397,14 +443,14 @@ impl ShellModel {
                     }
                     _ => {}
                 }
-                self.fluid_entries(device, None, &mut out);
+                self.fluid_entries(device, None, true, &mut out);
             }
             // A fluid navigator's device: its fluid actions (doc 11 §7).
             (NavKind::Fluid, NavRole::Device, Some(device)) => {
                 self.go_to(kind, Some(node), &mut out);
                 self.device_entries(&self.row_device(device, node), &mut out);
                 out.extend(self.menu_item("props.focus"));
-                self.fluid_entries(device, None, &mut out);
+                self.fluid_entries(device, None, true, &mut out);
             }
             // A configuration project's addressing commands (FR-PLC-014, FR-PLC-015), each previewed.
             (NavKind::Plc | NavKind::PlcGrid, NavRole::ConfigProject, Some(cfg)) => {
@@ -637,8 +683,9 @@ impl ShellModel {
     /// port (EW-FL-001's). Each is one `valve.set_occupancy` or `fluid.port.close`, one undo step. A stand-alone
     /// valve's solenoids (rc.2, F11): Go to solenoid 14 where its coil is drawn, else Draw solenoid 14 on an electrical
     /// page… (`fluid.draw_solenoid`); on the symbol of the coil itself (`symbol_of`, the function it draws) Solenoid 14
-    /// of -201Q1, which goes to the valve.
-    fn fluid_entries(&self, device: Uuid, symbol_of: Option<Uuid>, out: &mut Vec<ActionItem>) {
+    /// of -201Q1, which goes to the valve. Without `positions` (a box drawn as its positions, whose cells have their own
+    /// entries), no position's entries.
+    fn fluid_entries(&self, device: Uuid, symbol_of: Option<Uuid>, positions: bool, out: &mut Vec<ActionItem>) {
         let Some(session) = self.project_session() else {
             return;
         };
@@ -708,7 +755,7 @@ impl ShellModel {
                 label,
             ));
         };
-        for (position, holds) in &menu.positions {
+        for (position, holds) in menu.positions.iter().filter(|_| positions) {
             if *holds != "valve" {
                 add(out, device, *position);
             }

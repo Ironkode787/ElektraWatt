@@ -477,6 +477,7 @@ impl ShellModel {
         crate::properties::solenoids_in_words(&mut sheet);
         crate::properties::ports_in_words(&mut sheet);
         self.positions_in_words(&mut sheet, p.session.decimal_comma());
+        Self::valve_positions_in_words(&mut sheet, &p.session);
         crate::properties::header_in_words(&mut sheet);
         // The header's finding chips in the UI language, as the Messages detail renders
         // them, for the online report's finding of the chip's rule and message.
@@ -535,6 +536,25 @@ impl ShellModel {
                     Some(cell) => strings::format(key!("props-position-cell"), &[&cell, &x_mm, &y_mm]),
                     None => strings::format(key!("props-position"), &[&x_mm, &y_mm]),
                 };
+            }
+        }
+    }
+
+    /// A valve terminal's Valve positions row in the window's words (rc.2): `1 -K1-Q1 · 2 blanking plate · 3 empty`.
+    fn valve_positions_in_words(sheet: &mut PropertySheet, session: &ew_api::Session) {
+        for section in sheet.sections.iter_mut().filter(|s| s.kind == "device") {
+            let Some(terminal) = section.targets.first().copied() else {
+                continue;
+            };
+            for row in section.rows.iter_mut().filter(|r| r.key == "device/derived.valve_positions") {
+                if let RowValue::One { text, .. } = &mut row.value {
+                    *text = session
+                        .terminal_positions(terminal)
+                        .iter()
+                        .map(|(n, p)| format!("{n} {}", super::automation::rack_position_text(p)))
+                        .collect::<Vec<_>>()
+                        .join(" · ");
+                }
             }
         }
     }
@@ -1399,6 +1419,24 @@ impl ShellModel {
                 return Outcome::Failed { message };
             }
         };
+        // A valve's position typed that another valve holds (rc.2, F15): the window offers to swap the two.
+        if row.path == "derived.position"
+            && let Some(parent) = cmd.params["parent"]
+                .as_str()
+                .and_then(|p| p.parse::<ew_api::output::Uuid>().ok())
+            && let Some(position) = cmd.params["children"][0]["position"].as_u64()
+            && let Some(holder) = project.session.valve_at(parent, position).filter(|h| *h != target)
+        {
+            let tag = |d| project.session.device_tag(d).unwrap_or_default();
+            let text = strings::format(
+                key!("toast-position-held"),
+                &[&position.to_string(), &tag(parent), &tag(holder)],
+            );
+            self.props.edit = None;
+            self.props.error = None;
+            self.notify_swap(text, target, holder);
+            return Outcome::Done;
+        }
         // A new layout view that shows item numbers gets the legend that lists them (F21).
         let numbered_view = row.path.ends_with("surface")
             && matches!(row.value, RowValue::Absent)

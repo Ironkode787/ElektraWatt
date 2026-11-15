@@ -246,6 +246,20 @@ impl ShellModel {
         self.notes.push(text, "edit", action);
     }
 
+    /// Shows `text` as a toast of key `edit` whose action swaps the positions of valves `device` and `holder` (rc.2).
+    pub(super) fn notify_swap(&mut self, text: String, device: ew_api::output::Uuid, holder: ew_api::output::Uuid) {
+        let action = self.project.as_ref().map(|p| {
+            (
+                NoteAction::Swap,
+                Validity::Session {
+                    epoch: p.epoch,
+                    select: vec![device, holder],
+                },
+            )
+        });
+        self.notes.push(text, "edit", action);
+    }
+
     /// Shows `text` as a toast of key `edit` whose action is New station….
     pub(super) fn notify_new_station(&mut self, text: String) {
         let action = self.project.as_ref().map(|p| {
@@ -371,6 +385,25 @@ impl ShellModel {
             Some(NoteAction::NewStation) => {
                 self.notes.dismiss(entry.serial);
                 self.dispatch("plc.new_station", &serde_json::json!({}))
+            }
+            // Two valves swap their positions: the first takes the second's, the second the first's.
+            Some(NoteAction::Swap) => {
+                let [device, holder] = entry.selects(action)[..] else {
+                    return Outcome::refused(key!("reason-action-expired"));
+                };
+                self.notes.dismiss(entry.serial);
+                let seat = self.project_session().and_then(|s| {
+                    let h = s.query().devices().get(holder.to_string().parse().ok()?)?.clone();
+                    Some((h.parent?.as_uuid(), h.position?))
+                });
+                let Some((parent, position)) = seat else {
+                    return Outcome::refused(key!("reason-action-expired"));
+                };
+                self.run_logged(
+                    "assembly.attach".to_owned(),
+                    serde_json::json!({ "parent": parent.to_string(), "swap": true,
+                        "children": [{ "device": device.to_string(), "position": position }] }),
+                )
             }
             None => Outcome::refused(key!("reason-no-toast")),
         }

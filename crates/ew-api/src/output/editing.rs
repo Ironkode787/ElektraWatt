@@ -181,6 +181,9 @@ pub struct CataloguePart {
     /// On a bus-topology page, the part's interfaces ([`part_interfaces`]): a device of it is placed there as a box
     /// per interface (`bus.place_ports`, doc 10 §2.7); empty on another page and for a part without them.
     pub interfaces: Vec<CatalogueInterface>,
+    /// Whether the part is a valve for a valve terminal (`ew_derive::fits_terminal`, no PLC section): the parts a
+    /// terminal's empty position offers (rc.2).
+    pub terminal_valve: bool,
 }
 
 /// One function of a part's template in the place catalogue.
@@ -562,6 +565,14 @@ fn catalogue_part(
         set?.mapping(category.as_str(), Some(group.as_str()))
             .map(|m| m.letter().as_str().to_owned())
     });
+    // A valve for a valve terminal (rc.2): a valve without a coil of its own to wire, and no PLC part.
+    let defs: Vec<_> = part
+        .function_template
+        .iter()
+        .filter_map(|t| q.fndefs().get(fndef_copy(&t.fndef)).cloned().or_else(|| fndef_of(q, &t.fndef)))
+        .collect();
+    let terminal_valve =
+        part.sections.plc.is_none() && ew_derive::fits_terminal(defs.iter().map(|d| &d.item));
     Some(CataloguePart {
         copy,
         library,
@@ -585,6 +596,7 @@ fn catalogue_part(
         } else {
             Vec::new()
         },
+        terminal_valve,
     })
 }
 

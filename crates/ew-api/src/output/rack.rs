@@ -38,9 +38,19 @@ pub struct RackRow {
     pub allowed: Vec<u16>,
     /// Whether the module's slot is positional (its rank), not authored.
     pub positional: bool,
-    /// A valve terminal module's positions in order: `Some(valve tag)`, or `None` for a blank or an empty position
-    /// (with `blank` telling them apart).
-    pub positions: Vec<(Option<String>, bool)>,
+    /// A valve terminal module's positions in order (1 … n), each with what holds it (rc.2: one row each).
+    pub positions: Vec<RackPosition>,
+}
+
+/// One valve position of a [`RackRow`].
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct RackPosition {
+    /// The valve or blanking plate that holds it; `None` when empty.
+    pub holder: Option<Uuid>,
+    /// The valve's short tag; `None` for a blanking plate or an empty position.
+    pub valve: Option<String>,
+    /// Whether a blanking plate holds it.
+    pub blank: bool,
 }
 
 /// A module part the editor offers.
@@ -158,9 +168,21 @@ impl Session {
                 .slots
                 .iter()
                 .map(|s| match s {
-                    ValveSlot::Valve { device, .. } => (Some(tag(&q, *device)), false),
-                    ValveSlot::Blank { .. } => (None, true),
-                    ValveSlot::Empty => (None, false),
+                    ValveSlot::Valve { device, .. } => RackPosition {
+                        holder: Some(device.as_uuid()),
+                        valve: Some(tag(&q, *device)),
+                        blank: false,
+                    },
+                    ValveSlot::Blank { device } => RackPosition {
+                        holder: Some(device.as_uuid()),
+                        valve: None,
+                        blank: true,
+                    },
+                    ValveSlot::Empty => RackPosition {
+                        holder: None,
+                        valve: None,
+                        blank: false,
+                    },
                 })
                 .collect();
             rows.push(RackRow {
@@ -733,23 +755,11 @@ impl Session {
     /// grid point nearest `at` (doc 11 §3.2, rc.2): the insertion point and the `box` of `box.black`
     /// (`{outline, slots: {pitch}}`, `ew_derive::SlotFrame`); `None` for a page that is gone or no positions.
     pub fn slot_box(&self, page: Uuid, at: (i64, i64), count: u16) -> Option<((i64, i64), serde_json::Value)> {
-        use ew_derive::ew_units::{Nm, Pt2};
-        if count == 0 {
-            return None;
-        }
         let grid = self.query().pages().get(Id::from_uuid(page))?.grid;
-        let pitch = ew_derive::SlotFrame::pitch(grid);
-        let frame = ew_derive::SlotFrame::new(grid, Pt2::new(Nm(at.0), Nm(at.1)), pitch);
-        let o = frame.origin();
-        let outline: Vec<[i64; 2]> = frame
-            .outline(usize::from(count))
-            .iter()
-            .map(|p| [p.x.0, p.y.0])
-            .collect();
-        Some((
-            (o.x.0, o.y.0),
-            serde_json::json!({"outline": outline, "slots": {"pitch": pitch.0}}),
-        ))
+        let grid = (i64::try_from(grid.num()).ok()?, i64::try_from(grid.den()).ok()?);
+        let (pos, outline, pitch) = crate::geometry::slot_box(grid, at, count)?;
+        let outline: Vec<[i64; 2]> = outline.iter().map(|p| [p.0, p.1]).collect();
+        Some((pos, serde_json::json!({"outline": outline, "slots": {"pitch": pitch}})))
     }
 
     /// The valve at position `position` (1-based) of module `module`; `None` for an empty or blank position.
@@ -760,6 +770,62 @@ impl Session {
             ValveSlot::Valve { device, .. } => Some(device.as_uuid()),
             _ => None,
         }
+    }
+
+    /// The valve positions of a valve terminal, left to right (`ew_derive::terminal_cells`: its own, then its modules'),
+    /// each its number on its module and what holds it; empty for a device without (rc.2).
+    pub fn terminal_positions(&self, terminal: Uuid) -> Vec<(u32, RackPosition)> {
+        let q = self.query();
+        ew_derive::terminal_cells(&q, Id::from_uuid(terminal))
+            .into_iter()
+            .map(|c| {
+                let p = match c.slot {
+                    ValveSlot::Valve { device, .. } => RackPosition {
+                        holder: Some(device.as_uuid()),
+                        valve: Some(tag(&q, device)),
+                        blank: false,
+                    },
+                    ValveSlot::Blank { device } => RackPosition {
+                        holder: Some(device.as_uuid()),
+                        valve: None,
+                        blank: true,
+                    },
+                    ValveSlot::Empty => RackPosition {
+                        holder: None,
+                        valve: None,
+                        blank: false,
+                    },
+                };
+                (c.position, p)
+            })
+            .collect()
+    }
+
+    /// The valve parts a valve terminal's empty position offers (rc.2): the project's and the libraries' parts that are
+    /// valves for a terminal ([`is_terminal_valve_part`]), the project's first, each by part number; as rows of the rack
+    /// dialog's choice.
+    pub fn terminal_valve_parts(&self) -> Vec<ModulePart> {
+        let q = self.query();
+        let held: Vec<_> = q.parts().iter().map(|(_, c)| c.clone()).collect();
+        let mut out: Vec<ModulePart> = Vec::new();
+        for (c, is_held) in held
+            .iter()
+            .map(|c| ((**c).clone(), true))
+            .chain(self.library_parts().into_iter().map(|c| (c, false)))
+        {
+            if !is_terminal_valve_part(&c.item) || out.iter().any(|p| p.copy == c.id.as_uuid()) {
+                continue;
+            }
+            out.push(ModulePart {
+                copy: c.id.as_uuid(),
+                text: part_text(&c.item),
+                held: is_held,
+                allowed: Vec::new(),
+                gives: String::new(),
+            });
+        }
+        out.sort_by(|a, b| (!a.held, &a.text).cmp(&(!b.held, &b.text)));
+        out
     }
 
     /// The valve part a module's position takes from the system libraries while the project has no valve to copy (the
@@ -778,11 +844,10 @@ impl Session {
         let mut parts: Vec<_> = self
             .library_parts()
             .into_iter()
-            .filter(|c| c.item.sections.plc.is_none() && c.item.cp_pattern.is_empty())
+            .filter(|c| is_terminal_valve_part(&c.item))
             .filter(|c| {
                 c.item.sections.fluid.as_ref().is_some_and(|f| {
-                    !f.solenoids.is_empty()
-                        && f.solenoids
+                    f.solenoids
                             .iter()
                             .all(|s| mapped.is_empty() || mapped.iter().any(|m| m == s.as_str()))
                 })
@@ -827,6 +892,14 @@ impl Session {
         let module = q.devices().get(Id::from_uuid(id))?.aspects.plc_module.as_ref()?;
         serde_json::to_value(&module.safety).ok()
     }
+}
+
+/// Whether a part is a valve for a valve terminal: it names solenoids, carries no PLC section and no CP pattern (its
+/// coil is internal: the terminal drives it).
+fn is_terminal_valve_part(part: &Part) -> bool {
+    part.sections.plc.is_none()
+        && part.cp_pattern.is_empty()
+        && part.sections.fluid.as_ref().is_some_and(|f| !f.solenoids.is_empty())
 }
 
 /// A valve position's content as a word: `valve`, `blank` or `empty`.

@@ -115,7 +115,7 @@ mod tips;
 mod wire_colours;
 // The start-up offer after a crash.
 pub mod startup;
-pub use automation::{rack_positions_text, rack_slot_text};
+pub use automation::{rack_position_text, rack_positions_text, rack_slot_text};
 pub use glossary::GlossaryRow;
 pub use macros::MacroVariable;
 pub use tips::Tip;
