@@ -347,6 +347,12 @@ impl Engine {
         self.assets_unsaved = false;
     }
 
+    /// Folds the newest undo step into the one below it ([`History::fold_last`]): the save's edited date, which an undo
+    /// takes back with the edit it follows. `false` when there is no step below it.
+    pub fn fold_last_step(&mut self) -> bool {
+        self.history.fold_last()
+    }
+
     /// Marks the current state as saved (the dirty flag, ARCH §5.3).
     pub fn mark_saved(&mut self) {
         self.history.mark_saved();

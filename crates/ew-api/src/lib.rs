@@ -1556,8 +1556,9 @@ impl Session {
     /// set for the next save.
     ///
     /// A project with changes saved by a session that has a date ([`Session::set_today`]) first takes that date as its
-    /// edited date (`master.edited`, which the title block's Saved cell and an export's date print), one `fields.set`
-    /// on the history, unless it holds that date already; a project saved without a change keeps its date.
+    /// edited date (`master.edited`, which the title block's Saved cell and an export's date print), folded into the
+    /// last undo step (one undo takes it back with that edit), unless it holds that date already; a project saved
+    /// without a change keeps its date.
     pub fn save(&mut self) -> Result<SaveReport, SaveError> {
         self.stamp_edited();
         let model = self.engine.model().clone();
@@ -1624,8 +1625,11 @@ impl Session {
                 "value": today.to_string(),
             }),
         };
-        if let Ok(cmd) = self.engine.resolve(&cmd) {
-            let _ = self.execute(cmd.as_ref());
+        // One undo takes the date back with the edit it follows: no step of its own.
+        if let Ok(cmd) = self.engine.resolve(&cmd)
+            && self.execute(cmd.as_ref()).is_ok()
+        {
+            self.engine.fold_last_step();
         }
     }
 

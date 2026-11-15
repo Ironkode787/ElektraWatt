@@ -97,5 +97,10 @@ fn the_edited_date_is_set_by_a_save_with_changes() {
     assert_eq!(shell.revision(), rev, "nothing written");
     done(&mut shell, "props.project", json!({}));
     assert_eq!(shown(&shell, EDITED), "05-03-2026");
+    // The date is no step of its own: one undo takes back the new page and the date with it.
+    done(&mut shell, "edit.undo", json!({}));
+    assert!(!shell.page_labels().iter().any(|f| f == "2"), "the page is undone");
+    done(&mut shell, "props.project", json!({}));
+    assert_ne!(shown(&shell, EDITED), "05-03-2026", "the date is undone with it");
     shell.shutdown();
 }

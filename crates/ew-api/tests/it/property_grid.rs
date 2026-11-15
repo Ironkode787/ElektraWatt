@@ -127,7 +127,11 @@ fn every_settable_path_maps_to_a_node_with_its_own_route() {
                 .iter()
                 .find(|f| f.path == *path)
                 .unwrap_or_else(|| panic!("{name} {path}: no catalogue node"));
-            let narrowed = matches!(node.route, EditRoute::ReadOnly(FieldReadOnly::Narrowed { .. }));
+            // A settable path the grid shows read-only: narrowed, or set by the save (the edited date).
+            let narrowed = matches!(
+                node.route,
+                EditRoute::ReadOnly(FieldReadOnly::Narrowed { .. } | FieldReadOnly::OnSave)
+            );
             assert!(
                 narrowed
                     || node.route

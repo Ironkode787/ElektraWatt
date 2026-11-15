@@ -246,6 +246,49 @@ impl History {
         self.trim();
     }
 
+    /// Folds the newest entry into the step below it, as if both were one transaction (the save's edited date, which
+    /// one undo takes back with the edit it follows): one op per key in key order, the key both change from the
+    /// step's `before` to the newest `after`; the step keeps its command, origin and label and takes the newest
+    /// entry's revision and state. Nothing when the newest entry is not an applied step with an applied step below it.
+    pub fn fold_last(&mut self) -> bool {
+        let n = self.entries.len();
+        if n < 2 || self.cursor != n || !self.entries[n - 1].is_step() || !self.entries[n - 2].is_step() {
+            return false;
+        }
+        let Some(last) = self.entries.pop() else {
+            return false;
+        };
+        self.cursor = self.entries.len();
+        let Some(below) = self.entries.last_mut() else {
+            return false;
+        };
+        let mut ops: std::collections::BTreeMap<ew_model::AnyKey, Op> =
+            below.tx.ops.iter().map(|o| (o.key(), o.clone())).collect();
+        for op in &last.tx.ops {
+            let merged = match ops.remove(&op.key()) {
+                None => Some(op.clone()),
+                Some(first) => match (first.before(), op.after()) {
+                    (Some(a), Some(b)) => Some(Op::update(a.clone(), b.clone())),
+                    (None, Some(b)) => Some(Op::insert(b.clone())),
+                    (Some(a), None) => Some(Op::delete(a.clone())),
+                    (None, None) => None,
+                },
+            };
+            if let Some(m) = merged {
+                ops.insert(m.key(), m);
+            }
+        }
+        let tx = Arc::make_mut(&mut below.tx);
+        tx.ops = ops.into_values().collect();
+        self.bytes -= below.before_bytes;
+        below.before_bytes = tx.ops.iter().map(before_bytes).sum();
+        below.after_bytes = tx.ops.iter().map(after_bytes).sum();
+        self.bytes += below.before_bytes;
+        below.rev = last.rev;
+        below.state = last.state;
+        true
+    }
+
     /// Drops the oldest entries while a bound is exceeded, keeping at least the newest one.
     fn trim(&mut self) {
         while self.entries.len() > 1
