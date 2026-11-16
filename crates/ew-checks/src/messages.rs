@@ -283,11 +283,20 @@ pub fn has(rule: &str, name: Option<&str>, lang: &str) -> bool {
 /// A quick fix's label in `lang`: its key's message of that language, falling back to en-GB's, and to the
 /// English label for a fix without a key (an importer's).
 pub fn fix_label(fix: &crate::finding::QuickFix, lang: &str) -> String {
+    // A label may name its command's parameters that are a number or a text (`{ $position }`), as printed.
+    let mut args = FluentArgs::new();
+    for (name, value) in fix.params.as_object().into_iter().flatten() {
+        match value {
+            serde_json::Value::Number(n) => args.set(name.as_str(), n.to_string()),
+            serde_json::Value::String(s) => args.set(name.as_str(), s.as_str()),
+            _ => {}
+        }
+    }
     let lookup = |tag: &str| -> Option<String> {
         let b = bundle(tag)?;
         let pattern = b.get_message(fix.key?)?.value()?;
         let mut errors = Vec::new();
-        let text = b.format_pattern(pattern, None, &mut errors);
+        let text = b.format_pattern(pattern, Some(&args), &mut errors);
         errors.is_empty().then(|| text.into_owned())
     };
     lookup(lang)

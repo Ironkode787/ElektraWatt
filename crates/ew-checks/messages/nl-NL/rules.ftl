@@ -427,10 +427,10 @@ rule-ew-fl-013 = { $form ->
         [outside] { WORD($module) }: ventielplaats { $position } ligt buiten de { $count } ventielplaatsen
         [outside_free] { WORD($module) }: ventielplaats { $position } ligt buiten de { $count } ventielplaatsen; vrije ventielplaatsen: { $free }
         [outside_full] { WORD($module) }: ventielplaats { $position } ligt buiten de { $count } ventielplaatsen; elke ventielplaats is bezet
-       *[empty] { WORD($module) }: ventielplaats { $position } is leeg; plaats een ventiel of een blindplaat
+       *[empty] { WORD($module) }: ventielplaats { $position } is leeg; plaats een ventiel, of een blindplaat (rechtsklik op de plaats: Blindplaat)
     }
     .title = Bezetting
-    .hint = Geef elke ventielplaats één ventiel of blindplaat, en elke module een eigen positie.
+    .hint = Geef elke ventielplaats één ventiel of blindplaat (rechtsklik op de plaats: Blindplaat), en elke module een eigen positie.
 
 rule-ew-fl-014 = slang { $tube_nl } gaat van { $from } naar { $to } zonder schotdoorvoer
     .title = Slang verlaat een locatie
@@ -1175,6 +1175,7 @@ fix-declare-pelv-bond = 0 V–PE-verbinding (PELV) vastleggen
 fix-mark-cp-unused = Markeren als niet gebruikt
 fix-plc-take-out = Uit het rek halen
 fix-plc-bind-pins = De kanalen aan hun pinnen koppelen
+fix-blank-position = Blindplaat op ventielplaats { $position }
 
 # De woorden die een regel afdrukt waar een record geen eigen naam heeft (FT-912), per sleutel; WORD(…) in een patroon
 # drukt ze in het Nederlands af.

@@ -424,10 +424,10 @@ rule-ew-fl-013 = { $form ->
         [outside] { $module }: position { $position } is outside its { $count } valve positions
         [outside_free] { $module }: position { $position } is outside its { $count } valve positions; free positions: { $free }
         [outside_full] { $module }: position { $position } is outside its { $count } valve positions; every position is taken
-       *[empty] { $module }: position { $position } is empty; fit a valve or a blanking plate
+       *[empty] { $module }: position { $position } is empty; fit a valve, or a blanking plate (right-click the position: Blanking plate)
     }
     .title = Occupancy
-    .hint = Give each valve position one valve or blanking plate, and each module its own position.
+    .hint = Give each valve position one valve or blanking plate (right-click the position: Blanking plate), and each module its own position.
 
 rule-ew-fl-014 = tube { $tube } crosses from { $from } to { $to } without a bulkhead
     .title = Tube crosses a location
@@ -1151,6 +1151,7 @@ fix-declare-pelv-bond = Declare 0 V–PE bond (PELV)
 fix-mark-cp-unused = Mark not used
 fix-plc-take-out = Take it out of the rack
 fix-plc-bind-pins = Bind the channels to their pins
+fix-blank-position = Blanking plate on position { $position }
 
 # The words a rule prints where a record has no name of its own (FT-912): a pattern of another language wraps an
 # argument that may hold them in WORD(…), which prints that language's message of the same ID instead.

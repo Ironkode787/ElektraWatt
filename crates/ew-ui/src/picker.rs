@@ -445,6 +445,13 @@ fn row_texts(picker: &Picker, row: PickerRow) -> RowTexts {
                 library: String::new(),
             }
         }
+        // The position's blanking plate (rc.2): what it does, in the ratings column.
+        PickerRow::Blank => RowTexts {
+            name: strings::text(key!("picker-blank")).to_owned(),
+            number: String::new(),
+            rating: strings::text(key!("picker-blank-detail")).to_owned(),
+            library: String::new(),
+        },
     }
 }
 

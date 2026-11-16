@@ -2558,6 +2558,79 @@ fn rc2_the_solenoid_is_drawn_from_the_coils_row_and_followed_back() {
     d.shell_mut().shutdown();
 }
 
+/// The rc.2 re-test (friction 8, 9, 14): the check said "fit a valve or a blanking plate", and the person searched the
+/// parts for a blanking plate and found none. The browser of an empty cell lists Blanking plate first (the first valve
+/// stays chosen) and blanks the position; EW-FL-013 says where it is (a right click on the position) and offers it as
+/// its fix; Fix all blanks every empty position in one step, and one undo brings them back.
+#[test]
+fn rc2_a_blanking_plate_is_found_from_the_cell_and_the_check() {
+    use ew_ui::ew_viewmodel::tools::PickerRow;
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    place_terminal(&mut d, (760, 300));
+    let _ = d.shell_mut().dispatch("tool.select", &json!({}));
+    let at = cell_px(&mut d, 0);
+    click_at(&mut d, at);
+    let picker = d.shell_mut().picker().cloned().expect("the device browser");
+    assert_eq!(picker.rows.first(), Some(&PickerRow::Blank));
+    assert!(
+        matches!(picker.rows.get(picker.row), Some(PickerRow::Part(_))),
+        "the first valve chosen"
+    );
+    d.input(&Input::DoubleClick {
+        at: starting_with(&d, "Blanking plate"),
+        mods: Modifiers::NONE,
+    });
+    d.settle();
+    assert!(cells(&mut d)[0].blank, "position 1 blanked");
+    // The check says where, and its fix fits the plate.
+    let messages = findings(&mut d, "EW-FL-013");
+    assert_eq!(messages.len(), 3, "positions 2 to 4 empty: {messages:?}");
+    assert!(
+        messages
+            .iter()
+            .all(|m| m.ends_with("(right-click the position: Blanking plate)")),
+        "{messages:?}"
+    );
+    let nodes = d
+        .shell_mut()
+        .nav(NavKind::Messages)
+        .and_then(|n| n.table())
+        .map(|t| t.nodes.clone())
+        .unwrap_or_default();
+    assert!(
+        nodes
+            .iter()
+            .any(|n| n.cells.iter().any(|c| c == "Blanking plate on position 2")),
+        "the fix"
+    );
+    let group = "severity:warning/rule:EW-FL-013";
+    assert_eq!(
+        d.shell_mut().fix_all_offer(group).map(|o| o.1),
+        Some(3),
+        "Fix all (3)…"
+    );
+    let fix_all = json!({ "key": group });
+    assert_eq!(
+        d.shell_mut().dispatch("messages.fix_all", &fix_all),
+        Outcome::Done
+    );
+    assert_eq!(
+        d.shell_mut().dispatch("preview.apply", &json!({})),
+        Outcome::Done
+    );
+    d.settle();
+    assert!(cells(&mut d).iter().all(|c| c.blank), "every position blanked");
+    let _ = d.shell_mut().dispatch("edit.undo", &json!({}));
+    d.settle();
+    let c = cells(&mut d);
+    assert!(
+        c[0].blank && c[1..].iter().all(|c| c.holder.is_none()),
+        "one undo"
+    );
+    d.shell_mut().shutdown();
+}
+
 /// The rc.2 cabinet run (friction 26, 27): Tube opened a small dialog first, so the clicks meant for the ports fell
 /// into it, and nothing showed the tube's size. Tube starts drawing at once with the line kind used last, the HUD says
 /// the kind and the project's tube and changes the kind, and a project without a default tube is told once where its

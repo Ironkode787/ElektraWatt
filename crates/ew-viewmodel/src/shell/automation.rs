@@ -1281,8 +1281,13 @@ impl ShellModel {
         let Some(at) = at else {
             return Outcome::refused(key!("reason-cell-not-shown"));
         };
+        let Ok(position) = u32::try_from(position) else {
+            return Outcome::refused(key!("reason-cell-not-shown"));
+        };
         let fill = crate::tools::CellFill {
             terminal,
+            module,
+            position,
             replace,
             at,
         };

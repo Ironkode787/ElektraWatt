@@ -1028,7 +1028,7 @@ fn the_picker_filter_matches_descriptions_names_and_keywords_by_token() {
             match r {
                 PickerRow::Part(i) => parts.push(p.catalogue.parts[*i].part_number.clone()),
                 PickerRow::Symbol(i) => symbols.push(p.catalogue.symbols[*i].key.clone()),
-                PickerRow::Strip(_) | PickerRow::PartFn(..) => {}
+                PickerRow::Strip(_) | PickerRow::PartFn(..) | PickerRow::Blank => {}
             }
         }
         (parts, symbols)

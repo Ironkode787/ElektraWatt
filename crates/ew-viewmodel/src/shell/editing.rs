@@ -1386,6 +1386,13 @@ impl ShellModel {
         if let (Some(fill), PickerRow::Part(pi) | PickerRow::PartFn(pi, _)) = (picker.cell, row) {
             return self.fill_cell(fill, cat.parts[pi].copy);
         }
+        // Its Blanking plate (the rc.2 re-test): the position blanked, as the cell's menu does.
+        if let (Some(fill), PickerRow::Blank) = (picker.cell, row) {
+            self.tools.picker = None;
+            let params = json!({ "cmd": "valve.set_occupancy", "params": { "module": fill.module.to_string(),
+                "position": fill.position, "occupancy": { "blank": {} } } });
+            return self.dispatch("command.run", &params);
+        }
         // A part without a function template asks for its symbol, then places with it.
         if let (PickerRow::Symbol(i), Some(pi)) = (row, picker.part) {
             return self.arm(cat, Pick::PartSymbol(pi, i), p);
@@ -1455,6 +1462,8 @@ impl ShellModel {
                     .unwrap_or(Pick::Symbol(symbol));
                 self.arm(cat, pick, &params)
             }
+            // Only a position being filled lists it (above).
+            (_, PickerRow::Blank) => Outcome::refused(key!("reason-no-picker-row")),
         }
     }
 

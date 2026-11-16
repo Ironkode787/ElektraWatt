@@ -91,6 +91,9 @@ pub enum PickerRow {
     /// function ([`Picker::part_main`]); choosing a part copy without one lists the symbols to place it with
     /// ([`Picker::part`]).
     Part(usize),
+    /// A blanking plate for the valve terminal's position the browser fills ([`Picker::cell`], the rc.2 re-test: the
+    /// person searched the parts for one): the first row, above the valves.
+    Blank,
 }
 
 /// A node of the browser's tree.
@@ -340,6 +343,10 @@ pub struct Picker {
 pub struct CellFill {
     /// The terminal.
     pub terminal: ew_api::output::Uuid,
+    /// The module whose position it is (the terminal or one of its modules).
+    pub module: ew_api::output::Uuid,
+    /// The position on that module.
+    pub position: u32,
     /// Whether the chosen valve replaces the cell's valve or blanking plate.
     pub replace: bool,
     /// A grid point in the cell's left part on the page, where the valve is placed.
@@ -407,7 +414,7 @@ impl Picker {
     }
 
     /// Recomputes the tree and the rows after a change of the filter, the node or an opened part; the current row
-    /// goes back to the first.
+    /// goes back to the first (the first valve below a position's Blanking plate).
     pub fn refilter(&mut self) {
         // Every typed token is a case-folded substring of one of the row's texts ("relay" found the generic
         // relay only by its key).
@@ -553,6 +560,13 @@ impl Picker {
             // In this project stands with no hits too, so the tree does not shift when the first part is used.
             .filter(|(n, c)| *c > 0 || *n == Node::All || *n == Node::Project || *n == self.node)
             .collect();
+        // A position being filled: Blanking plate first, the first valve chosen.
+        let blank = self.cell.is_some()
+            && self.node == Node::All
+            && hits(&[crate::strings::text(key!("picker-blank"))]);
+        if blank {
+            rows.push(PickerRow::Blank);
+        }
         for (row, node, held) in found {
             let shown = match &self.node {
                 Node::All => true,
@@ -576,8 +590,8 @@ impl Picker {
             }
         }
         self.nodes = nodes;
+        self.row = usize::from(blank && rows.len() > 1);
         self.rows = rows;
-        self.row = 0;
     }
 
     /// Chooses the tree's node `node`; the current row goes back to the first. A trade chosen opens; chosen again it
@@ -691,7 +705,7 @@ impl Picker {
                 self.catalogue.symbols.iter().find(|s| s.key == key)
             }
             PickerRow::Part(p) => self.row_symbol(PickerRow::PartFn(p, self.part_main(p)?)),
-            PickerRow::Strip(_) => None,
+            PickerRow::Strip(_) | PickerRow::Blank => None,
         }
     }
 
@@ -726,7 +740,7 @@ impl Picker {
             }
             // A part is disabled as the function choosing it places.
             PickerRow::Part(p) => self.disabled(PickerRow::PartFn(p, self.part_main(p)?)),
-            PickerRow::Strip(_) => None,
+            PickerRow::Strip(_) | PickerRow::Blank => None,
         }
     }
 
@@ -836,6 +850,7 @@ impl Picker {
                     strip.tag, strip.next_designation, strip.id
                 )
             }
+            PickerRow::Blank => "row blank".to_owned(),
         };
         if let Some(reason) = self.disabled_words(row) {
             line.push_str(&format!(" disabled: {reason}"));

@@ -18,7 +18,7 @@ use ew_derive::{
 };
 
 use crate::engine::touched_ids;
-use crate::finding::{Finding, Severity, Target};
+use crate::finding::{Finding, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};
 use crate::rules::term::full_tag;
 
@@ -557,12 +557,23 @@ impl Rule for Occupancy {
                     [Target::new(Kind::Device, d)],
                     format!("empty:{p}"),
                     full_tag(q, d, "device"),
-                    format!("{module}: position {p} is empty; fit a valve or a blanking plate"),
+                    format!(
+                        "{module}: position {p} is empty; fit a valve, or a blanking plate (right-click the position: \
+                         Blanking plate)"
+                    ),
                 )
                 .with_severity(Severity::Warning)
                 .arg("form", "empty")
                 .arg("module", module.clone())
-                .arg("position", p.to_string()),
+                .arg("position", p.to_string())
+                // The rc.2 re-test searched the parts for a blanking plate: the fix fits one, Fix all every one.
+                .with_fix(QuickFix {
+                    label: format!("Blanking plate on position {p}"),
+                    key: Some("fix-blank-position"),
+                    command: "valve.set_occupancy".to_owned(),
+                    params: serde_json::json!({ "module": d.to_string(), "position": p,
+                        "occupancy": { "blank": {} } }),
+                }),
             );
         }
         for (p, modules) in modules_by_position(q, d) {

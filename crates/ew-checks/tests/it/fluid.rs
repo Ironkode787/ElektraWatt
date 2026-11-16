@@ -337,11 +337,11 @@ fn ew_fl_013_reports_the_occupancy_defects() {
             ),
             (
                 Severity::Warning,
-                "-1U3: position 2 is empty; fit a valve or a blanking plate".to_owned()
+                "-1U3: position 2 is empty; fit a valve, or a blanking plate (right-click the position: Blanking plate)".to_owned()
             ),
             (
                 Severity::Warning,
-                "-1U3: position 4 is empty; fit a valve or a blanking plate".to_owned()
+                "-1U3: position 4 is empty; fit a valve, or a blanking plate (right-click the position: Blanking plate)".to_owned()
             ),
             (
                 Severity::Error,
@@ -349,19 +349,19 @@ fn ew_fl_013_reports_the_occupancy_defects() {
             ),
             (
                 Severity::Warning,
-                "-1U4: position 1 is empty; fit a valve or a blanking plate".to_owned()
+                "-1U4: position 1 is empty; fit a valve, or a blanking plate (right-click the position: Blanking plate)".to_owned()
             ),
             (
                 Severity::Warning,
-                "-1U4: position 2 is empty; fit a valve or a blanking plate".to_owned()
+                "-1U4: position 2 is empty; fit a valve, or a blanking plate (right-click the position: Blanking plate)".to_owned()
             ),
             (
                 Severity::Warning,
-                "-1U4: position 3 is empty; fit a valve or a blanking plate".to_owned()
+                "-1U4: position 3 is empty; fit a valve, or a blanking plate (right-click the position: Blanking plate)".to_owned()
             ),
             (
                 Severity::Warning,
-                "-1U4: position 4 is empty; fit a valve or a blanking plate".to_owned()
+                "-1U4: position 4 is empty; fit a valve, or a blanking plate (right-click the position: Blanking plate)".to_owned()
             ),
         ]
     );
@@ -371,13 +371,13 @@ fn ew_fl_013_reports_the_occupancy_defects() {
         [
             "-1U1: positie 1 bevat zowel -1U3 als -1U4",
             "-1U3: ventielplaats 1 bevat zowel -1Q1 als -1Q2",
-            "-1U3: ventielplaats 2 is leeg; plaats een ventiel of een blindplaat",
-            "-1U3: ventielplaats 4 is leeg; plaats een ventiel of een blindplaat",
+            "-1U3: ventielplaats 2 is leeg; plaats een ventiel, of een blindplaat (rechtsklik op de plaats: Blindplaat)",
+            "-1U3: ventielplaats 4 is leeg; plaats een ventiel, of een blindplaat (rechtsklik op de plaats: Blindplaat)",
             "-1U3: ventielplaats 5 ligt buiten de 4 ventielplaatsen",
-            "-1U4: ventielplaats 1 is leeg; plaats een ventiel of een blindplaat",
-            "-1U4: ventielplaats 2 is leeg; plaats een ventiel of een blindplaat",
-            "-1U4: ventielplaats 3 is leeg; plaats een ventiel of een blindplaat",
-            "-1U4: ventielplaats 4 is leeg; plaats een ventiel of een blindplaat",
+            "-1U4: ventielplaats 1 is leeg; plaats een ventiel, of een blindplaat (rechtsklik op de plaats: Blindplaat)",
+            "-1U4: ventielplaats 2 is leeg; plaats een ventiel, of een blindplaat (rechtsklik op de plaats: Blindplaat)",
+            "-1U4: ventielplaats 3 is leeg; plaats een ventiel, of een blindplaat (rechtsklik op de plaats: Blindplaat)",
+            "-1U4: ventielplaats 4 is leeg; plaats een ventiel, of een blindplaat (rechtsklik op de plaats: Blindplaat)",
         ]
     );
 }
