@@ -248,3 +248,36 @@ fn a_terminal_stacked_on_another_moves_off_it_by_keyboard_and_by_drag() {
     done(&mut s, "canvas.release", common::at((p.0 - dx, p.1), json!({})));
     assert_eq!(rep_positions(&s), before);
 }
+
+/// The persona round of the second 0.3.0 candidate: Place terminals with How many 4 gave sixteen terminals for four
+/// clicks, and Undo took them away one by one. One click places the four, Select takes over, and Undo and Redo take
+/// the row whole.
+#[test]
+fn how_many_places_that_many_once_and_undo_takes_the_row_whole() {
+    let tmp = Tmp::new("terminal-row");
+    let mut s = common::new_project(&tmp);
+    let terminals = |s: &ShellModel| {
+        s.canvas()
+            .unwrap()
+            .page()
+            .tables
+            .reps
+            .iter()
+            .filter(|r| r.symbol_key.contains("terminal"))
+            .count()
+    };
+    done(
+        &mut s,
+        "tool.place_terminal",
+        json!({"strip": "new", "count": 4}),
+    );
+    done(&mut s, "nav.goto", json!({ "text": "101-D2" }));
+    done(&mut s, "canvas.activate", json!({"alt": true}));
+    assert_eq!(terminals(&s), 4, "one click places the row");
+    assert_eq!(s.tool().name(), "select", "the tool ends with the row");
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(terminals(&s), 0, "one Undo takes the row back");
+    done(&mut s, "edit.redo", json!({}));
+    assert_eq!(terminals(&s), 4, "one Redo lays it again");
+    s.shutdown();
+}

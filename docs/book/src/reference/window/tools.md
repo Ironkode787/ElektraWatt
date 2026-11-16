@@ -72,8 +72,8 @@ Asks which strip (one of the project's, or a new strip with the tag it will take
 installed libraries. It proposes the part of the strip's last terminal of that kind, and for a new strip the starter
 part of the kind (EW-GEN-TRM-1 for a feed-through terminal, EW-GEN-TRM-2 for a protective-earth terminal); another strip
 or kind proposes again, and a part you choose sets the kind it is drawn as. Place then floats the first terminal; one
-click lays the whole row, each terminal two grid steps right of the one before and each with the part. Draw ▸ Place ▸
-Terminal….
+click lays the whole row, each terminal two grid steps right of the one before and each with the part, and the tool
+ends; one Undo takes the row back. Draw ▸ Place ▸ Terminal….
 
 ## Black box
 

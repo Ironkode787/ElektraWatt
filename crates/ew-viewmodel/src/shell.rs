@@ -2527,11 +2527,37 @@ impl ShellModel {
         };
         let origin = Self::origin_of(self.mode, self.person, &self.origin_file);
         let before = p.session.history().cursor();
+        // A Terminal… row is one step for Undo and Redo (rc.2): the steps between its ends are taken together.
+        let extra = match self.tools.row_steps {
+            Some((first, end)) if !redo && before == end => end - first - 1,
+            Some((first, end)) if redo && before == first => end - first - 1,
+            _ => 0,
+        };
         let stepped = if redo {
             p.session.redo(&origin)
         } else {
             p.session.undo(&origin)
         };
+        for _ in 0..extra {
+            if stepped.is_err() {
+                break;
+            }
+            let more = if redo {
+                p.session.redo(&origin)
+            } else {
+                p.session.undo(&origin)
+            };
+            if more.is_err() {
+                break;
+            }
+            if redo {
+                if let Some(step) = self.record.undone.pop() {
+                    self.record.steps.push(step);
+                }
+            } else if let Some(step) = self.record.steps.pop() {
+                self.record.undone.push(step);
+            }
+        }
         match stepped {
             Ok(_) => {
                 let after = p.session.history().cursor();

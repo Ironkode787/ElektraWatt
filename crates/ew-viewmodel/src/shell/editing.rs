@@ -2574,8 +2574,9 @@ impl ShellModel {
     }
 
     /// FT-1695: after the first terminal of a Terminal… row the rest of the row, each by the Place tool's own commit at
-    /// the same point (it lands on the next free point two grid steps right of a terminal of its strip), one undo step
-    /// each.
+    /// the same point (it lands on the next free point two grid steps right of a terminal of its strip). Undo and Redo
+    /// take the row whole (`row_steps`), and Select takes over: one click places the count once (rc.2: four clicks with
+    /// How many 4 gave sixteen terminals).
     fn place_terminal_row(&mut self) {
         let rest = |s: &mut Self| {
             s.with_tool(|t, _| {
@@ -2587,7 +2588,13 @@ impl ShellModel {
             .unwrap_or(0)
         };
         let first = self.tools.before_commit.clone();
-        for _ in 0..rest(self) {
+        let cursor = |s: &Self| s.project.as_ref().map(|p| p.session.history().cursor());
+        let more = rest(self);
+        if more == 0 {
+            return;
+        }
+        let start = cursor(self).map(|c| c.saturating_sub(1));
+        for _ in 0..more {
             if self.send_tool(&CanvasEvent::Activate) != Outcome::Done {
                 break;
             }
@@ -2598,6 +2605,12 @@ impl ShellModel {
             let _ = rest(self);
         }
         self.tools.before_commit = first;
+        self.tools.row_steps = start.zip(cursor(self));
+        if let Some(select) = crate::tools::tool_named("select") {
+            self.tools.tool = select;
+            self.tool_epoch = self.tool_epoch.wrapping_add(1);
+            self.announce_tool();
+        }
     }
 
     /// The place tool's shape after a new revision (§12 item 4): read once again through the per-revision cache, so

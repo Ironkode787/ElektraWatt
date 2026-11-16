@@ -147,6 +147,9 @@ pub(crate) struct ToolHost {
     /// An Undo or a Redo ran: at the end of the dispatch a terminal placement takes its strip's next designation from
     /// the catalogue again.
     pub reread_designation: bool,
+    /// The history entries a Terminal… row laid with one click, `(first, end)` cursor positions: Undo at `end` takes the
+    /// row back whole and Redo at `first` lays it again whole (rc.2); forgotten at the next other commit.
+    pub row_steps: Option<(usize, usize)>,
     /// The last committed interruption point's name and direction, kept across tools.
     pub ip_memory: IpMemory,
     /// `tool.black_box` is choosing: a row that is no black box is refused.
@@ -261,6 +264,7 @@ impl ToolHost {
             notice_basis: None,
             pasted: false,
             reread_designation: false,
+            row_steps: None,
             ip_memory: IpMemory::default(),
             black_box_pick: false,
             grips: None,

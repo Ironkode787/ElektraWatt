@@ -1087,6 +1087,8 @@ impl ShellModel {
                 },
             };
         }
+        // Another commit ends a Terminal… row's single step for Undo and Redo.
+        self.tools.row_steps = None;
         let json = match cmd.to_json() {
             Ok(v) => v,
             Err(e) => return command_failed(&e, &Value::Null),
