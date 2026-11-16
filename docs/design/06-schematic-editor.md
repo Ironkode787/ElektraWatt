@@ -1004,7 +1004,8 @@ stateDiagram-v2
   fixed a bend. A junction that already joins three wires is not an end target.
 - *As built.* The ghost is `route_one`'s route; the passes
   and the turned IP end are gone. Without a clear route the ghost is the dashed right-angled line of an unrouted
-  wire, the line the page then draws, and the HUD says "No clear route: the wire stays unrouted. Click to place bends."; a commit then stores the
+  wire, the line the page then draws, and the HUD says "No clear route: the wire stays a dashed line without a route. Click
+  free points to lead it, or draw it later with Edit route."; a commit then stores the
   wire without a route, or with the fixed bends and an L tail as the user's route when a bend was fixed. After a click
   that places a bend the HUD says "Bend placed: click a connection point to end the wire." *As built (M3 persona
   re-test, [ADR-0033](../adr/0033-schematic-routing-model.md) amendment 1).* Where `route_one` finds none, the tool
@@ -1014,6 +1015,13 @@ stateDiagram-v2
   start, nothing; elsewhere "Click a connection point to end, a free point for a bend". Over a junction that
   already joins three wires the HUD says "This junction already joins three wires: end on a wire to make a new
   junction.", since the junction is no end target.
+- *As built (rc.2 persona runs).* A click inside a symbol's body or a black box's outline places no bend (a bend there
+  draws the wire through the symbol, rule (c) of ADR-0033): it is refused in words, "A bend cannot sit inside a
+  symbol; click one of its connection points, or a free point outside it", and the wire keeps routing. A box that
+  holds another symbol's connection point is an outline drawn around it, as the router treats it, and takes bends. A
+  persona aiming at a power supply's pin clicked its pin text inside the box and got a wire through the box. Before a
+  wire starts, the HUD says that free points clicked while drawing lead the wire: "Click or Enter on a connection
+  point, a junction or a wire to start, then on free points to lead the wire through them".
 
 ### 4.5 Other tools
 

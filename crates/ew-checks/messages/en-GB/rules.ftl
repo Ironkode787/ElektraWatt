@@ -325,9 +325,9 @@ rule-ew-core-072 = { $place ->
 rule-ew-core-073 = { $line ->
         [tube] Tube
        *[wire] Wire
-    } { $wire } has no route: Route page draws it.
+    } { $wire } has no route: it is drawn as a dashed line.
     .title = Unrouted wire
-    .hint = Run Route page or Route selection, or draw its route with Edit route.
+    .hint = Run Route page; where it finds no clear way, draw the route with Edit route or move the symbols.
 
 rule-ew-core-081 = waiver { $waiver } for { $rule } { $form ->
         [not-evaluated] was not evaluated: the rule did not run in scheme { $scheme } ({ $mode } mode)

@@ -23,7 +23,7 @@
 //! | armed | `Press` or `Activate` on a CP, junction or segment | routing | the start is fixed; `Transient` |
 //! | armed | `Press` or `Activate` on the grid | armed | `None` (a wire needs two endpoints) |
 //! | routing | move | routing | `Transient`: the routed ghost from the last fixed vertex to the target (one `auto_route` per changed target), the fixed bends, the target's marker, the length readout |
-//! | routing | `Press` or `Activate` on the grid | routing | a bend is fixed there (the route so far becomes fixed vertices) |
+//! | routing | `Press` or `Activate` on the grid | routing | a bend is fixed there (the route so far becomes fixed vertices); inside a symbol's body `Refused` ([`inside_symbol`]) |
 //! | routing | `Back` | routing | the last fixed bend is removed; without one `None` |
 //! | routing | `Dwell { ms ≥ 80 }` on a valid end | routing | `Preview(connection.draw)` |
 //! | routing | `Press` or `Activate` on a CP, junction or segment other than the start | armed | `Commit(connection.draw {a, b, page, route})`, or `connection.draw_many` for a route through representations ([`pass_through`]) |
@@ -406,6 +406,17 @@ fn near_full_junction(cx: &ToolCx<'_>, at: (i64, i64), alt: bool) -> bool {
             .junctions
             .iter()
             .any(|j| near(j.at) && full_junction(tables, j.id))
+}
+
+/// Whether the page point `p` lies inside a representation's body or black-box outline, which no route crosses
+/// (ADR-0033 rule (c)): not a place for a bend. A body that holds a connection point of another representation is an
+/// outline drawn around it (a valve terminal's box around its valves), as the router treats it, and takes bends.
+fn inside_symbol(cx: &ToolCx<'_>, p: (i64, i64)) -> bool {
+    let page = &cx.page.geometry;
+    let inside = |r: [i64; 4], q: (i64, i64)| r[0] < q.0 && q.0 < r[2] && r[1] < q.1 && q.1 < r[3];
+    page.bodies.iter().any(|b| {
+        inside(b.rect, p) && !page.cps.iter().any(|c| c.rep != b.rep && inside(b.rect, c.at))
+    })
 }
 
 /// The grid coordinate nearest to `v` inside `[lo, hi]`; `None` when no grid coordinate lies inside.
@@ -1127,6 +1138,11 @@ impl WireTool {
                         Some(c) => ToolOutput::Commit(c),
                         None => ToolOutput::None,
                     };
+                }
+                // A bend inside a symbol would draw the wire through it (the rc.2 persona run: a click on a power
+                // supply's pin text, inside its box, fixed a bend there and the wire ran through the box).
+                if inside_symbol(cx, target.at()) {
+                    return ToolOutput::Refused(key!("reason-wire-bend-in-symbol"));
                 }
                 // A bend: the route so far to the grid point becomes fixed.
                 let route = self.full_route(cx, &start, &fixed, &target);

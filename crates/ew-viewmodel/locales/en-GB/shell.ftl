@@ -411,9 +411,9 @@ action-project-crossings = Show crossings as hops
 action-project-wire-numbers = Print wire numbers
 tool-wire = Wire
 tool-route_edit = Edit route
-hint-wire-armed = Click or { $p0 } on a connection point, a junction or a wire to start
+hint-wire-armed = Click or { $p0 } on a connection point, a junction or a wire to start, then on free points to lead the wire through them
 hint-wire-routing = Click a connection point to end, a free point for a bend; { $p0 } removes the last bend; { $p1 } cancels
-hint-wire-direct = No clear route: the wire stays unrouted. Click to place bends.
+hint-wire-direct = No clear route: the wire stays a dashed line without a route. Click free points to lead it, or draw it later with Edit route.
 hint-wire-full-junction = This junction already joins three wires: end on a wire to make a new junction.
 # ID-1497 (11): after a click that placed a bend instead of ending the wire.
 hint-wire-bend = Bend placed: click a connection point to end the wire.
@@ -516,6 +516,7 @@ reason-no-grip = The black box has no such grip
 reason-cp-off-outline = Put the grid cursor on the black box's outline
 reason-ip-end-grid = End the wire on an empty grid point to end it in an interruption point
 reason-wire-one-line = These two points already sit on one line; click a point of another line, or Esc
+reason-wire-bend-in-symbol = A bend cannot sit inside a symbol; click one of its connection points, or a free point outside it
 reason-ip-end-segment = Draw a segment before ending the wire in an interruption point
 reason-ip-symbol = The interruption-point symbol has not exactly one connection point
 

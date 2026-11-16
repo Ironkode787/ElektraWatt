@@ -325,11 +325,11 @@ rule-ew-core-072 = { $place ->
     .hint = Verplaats één tak naar een eigen aftakking een rasterstap verder, zodat elke aftakking drie draden verbindt.
 
 rule-ew-core-073 = { $line ->
-        [tube] Slang { WORD($wire) } heeft geen route: Pagina routeren tekent haar.
-       *[wire] Draad { WORD($wire) } heeft geen route: Pagina routeren tekent hem.
+        [tube] Slang { WORD($wire) } heeft geen route: zij is als gestreepte lijn getekend.
+       *[wire] Draad { WORD($wire) } heeft geen route: hij is als gestreepte lijn getekend.
     }
     .title = Draad zonder route
-    .hint = Gebruik Pagina routeren of Selectie routeren, of teken de route met Route bewerken.
+    .hint = Gebruik Pagina routeren; waar die geen vrije weg vindt, teken de route met Route bewerken of verplaats de symbolen.
 
 rule-ew-core-081 = vrijstelling { $waiver } voor { $rule } { $form ->
         [not-evaluated] is niet beoordeeld: de regel liep niet in schema { $scheme } ({ $mode ->

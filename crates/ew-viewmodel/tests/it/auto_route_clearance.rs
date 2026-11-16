@@ -307,7 +307,8 @@ fn friction_7_the_l_wire_goes_round_the_box_and_over_no_text() {
     assert!(last[0].0 == p.l.at.0 && last[0].1 < p.l.at.1, "{:?}", l.polyline);
     assert_eq!(
         p.s.tool_hint(),
-        "Click or Enter on a connection point, a junction or a wire to start"
+        "Click or Enter on a connection point, a junction or a wire to start, then on free points to lead the wire \
+         through them"
     );
 }
 
@@ -374,7 +375,8 @@ fn without_a_clear_route_the_wire_stays_unrouted_and_the_tool_says_so() {
         "Click a connection point to end, a free point for a bend; Backspace removes the last bend; Esc cancels"
     );
     hover(&mut p.s, p.l.at);
-    let unrouted = "No clear route: the wire stays unrouted. Click to place bends.";
+    let unrouted = "No clear route: the wire stays a dashed line without a route. Click free points to lead it, or \
+                    draw it later with Edit route.";
     assert_eq!(p.s.tool_hint(), unrouted);
     let (from, to) = (p.bottom[0].at, p.l.at);
     let ghost = p.s.wire_ghost_route().expect("the unrouted line");
@@ -450,5 +452,44 @@ fn a_click_that_places_a_bend_says_so() {
     assert_eq!(
         p.s.tool_hint(),
         "Click a connection point to end, a free point for a bend; Backspace removes the last bend; Esc cancels"
+    );
+}
+
+/// The rc.2 persona run on a cabinet: aiming at the power supply's pin, a click landed on the pin's text inside the box,
+/// fixed a bend there, and the wire ran through the box. A click inside a symbol is no bend: it is refused in words,
+/// the wire keeps routing, and ends on the next connection point clear of the box.
+#[test]
+fn a_click_inside_a_symbol_places_no_bend() {
+    let tmp = Tmp::new("rc2-bend-in-box");
+    let mut p = page(&tmp);
+    done(&mut p.s, "tool.wire", json!({}));
+    click(&mut p.s, p.bottom[1].at, false);
+    // A step above the box's bottom edge, where its pin texts stand.
+    let k = index_of(&p.s, p.bottom[0].at);
+    let inside = page_point(&p.s, (k.0 + 21, k.1 + 4));
+    let q = p.s.canvas().unwrap().page().snapper.page_to_sheet(inside);
+    done(&mut p.s, "canvas.pointer", at(q, json!({})));
+    assert_eq!(
+        common::refused(&mut p.s, "canvas.press", at(q, json!({}))),
+        "reason-wire-bend-in-symbol"
+    );
+    done(&mut p.s, "canvas.release", at(q, json!({})));
+    assert_eq!(p.s.tool().state(), "routing");
+    let before = tables(&p.s);
+    hover(&mut p.s, p.n.at);
+    click(&mut p.s, p.n.at, false);
+    let after = tables(&p.s);
+    let new: Vec<&TableConnection> = after
+        .connections
+        .iter()
+        .filter(|c| before.connections.iter().all(|o| o.id != c.id))
+        .collect();
+    assert_eq!(new.len(), 1);
+    assert!(new[0].stored_route, "{:?}", new[0].polyline);
+    assert_eq!(
+        through_boxes(&p.s, new[0], [&p.breaker, &p.psu]),
+        Vec::<String>::new(),
+        "{:?}",
+        new[0].polyline
     );
 }

@@ -133,9 +133,12 @@ While you draw, the wire shows the route it will take. The route never runs thro
 another wire, through a symbol or a text, over the frame's bands, or through a junction, and never makes a fourth
 arm of a junction. Where only a text stands in the way, the route crosses it and the hint says "The route crosses a
 text: no route keeps clear of the texts here." When no route exists at all the wire shows as a dashed right-angled
-line and the hint says "No clear route: the wire stays unrouted. Click to place bends." Ending it there stores an
-unrouted wire: it keeps its connection, but it is drawn dashed and the check reports it until it has a route. Click
-on empty points to place bends and the wire follows them ("Bend placed: click a connection point to end the wire.").
+line and the hint says "No clear route: the wire stays a dashed line without a route. Click free points to lead it,
+or draw it later with Edit route." Ending it there stores an unrouted wire: it keeps its connection, but it is drawn
+dashed and the check reports it ("Wire … has no route: it is drawn as a dashed line.") until it has a route. Click
+on empty points to place bends and the wire follows them ("Bend placed: click a connection point to end the wire.");
+a click inside a symbol places no bend and says so ("A bend cannot sit inside a symbol; click one of its connection
+points, or a free point outside it").
 The hint says what a click at the pointer does: on another wire it joins that wire with a tee (Alt+Click places a bend
 there instead), on the start point it does nothing. A junction
 that already joins three wires is not an end: the hint says "This junction already joins three wires: end on a wire

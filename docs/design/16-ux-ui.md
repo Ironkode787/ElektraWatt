@@ -820,7 +820,8 @@ its plan as a card in the Preview tab, "Route 3 wires on folio 101: 2 routed, 1 
 left unrouted and its reason ("No route keeps clear of other wires: -101F1:2 → -101E55:L."), and Apply commits the
 routes in one undo step with the toast "Routed 2 wires on folio 101."; with nothing to route a toast says "Every wire
 on folio 101 has a route." and no card opens, and a plan that routes nothing opens no card and fails with its first
-line. The Wire tool's HUD says "No clear route: the wire stays unrouted. Click to place bends." while its ghost is the
+line. The Wire tool's HUD says "No clear route: the wire stays a dashed line without a route. Click free points to lead it,
+or draw it later with Edit route." while its ghost is the
 unrouted dashed line, "Bend placed: click a connection point to end the wire." after a bend, and "This junction
 already joins three wires: end on a wire to make a new junction." over such a junction. **Connect on move** (C) is
 no longer refused: a drag of representations commits the proposals it shows with the move, C turns this off or on

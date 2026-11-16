@@ -1217,7 +1217,7 @@ pub fn unrouted_wire(page: Id<Page>, wire: LayoutWire<'_>) -> Finding {
         "",
         wire.words,
         format!(
-            "{} {} has no route: Route page draws it.",
+            "{} {} has no route: it is drawn as a dashed line.",
             wire.noun(),
             wire.words
         ),

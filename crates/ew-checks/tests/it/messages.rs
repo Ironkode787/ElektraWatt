@@ -167,7 +167,7 @@ fn every_word_is_in_every_language_and_nl_nl_words_names_and_decimals() {
     let unrouted = by_hand(
         "EW-CORE-073",
         "",
-        "Wire the junction in C11 → a connection point of another page has no route: Route page draws it.",
+        "Wire the junction in C11 → a connection point of another page has no route: it is drawn as a dashed line.",
         &[
             ("line", "wire"),
             ("wire", "the junction in C11 → a connection point of another page"),
@@ -175,8 +175,8 @@ fn every_word_is_in_every_language_and_nl_nl_words_names_and_decimals() {
     );
     assert_eq!(
         render(&unrouted, "nl-NL"),
-        "Draad de aftakking in C11 → een aansluitpunt van een andere pagina heeft geen route: Pagina routeren tekent \
-         hem."
+        "Draad de aftakking in C11 → een aansluitpunt van een andere pagina heeft geen route: hij is als gestreepte \
+         lijn getekend."
     );
     let pe = by_hand(
         "EW-POT-006",

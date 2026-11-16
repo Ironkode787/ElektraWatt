@@ -581,8 +581,8 @@ fn rk1_an_unrouted_wire_fires_ew_core_073_at_its_severities_and_takes_a_waiver()
     assert_eq!(
         findings(&s, "EW-CORE-073"),
         [(
-            "Wire -103K1:A2 → -103K2:A1 has no route: Route page draws it.".to_owned(),
-            "Draad -103K1:A2 → -103K2:A1 heeft geen route: Pagina routeren tekent hem.".to_owned(),
+            "Wire -103K1:A2 → -103K2:A1 has no route: it is drawn as a dashed line.".to_owned(),
+            "Draad -103K1:A2 → -103K2:A1 heeft geen route: hij is als gestreepte lijn getekend.".to_owned(),
             Info
         )]
     );
