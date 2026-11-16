@@ -488,13 +488,13 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     with_icon(
         "arrows-sort",
         hidden(act(
-            "tool.fluid_line_kind",
+            "fluid.tube_kind",
             Command,
             Menu::Fluid,
             &[],
             fluid_page,
             None,
-            |s, p| s.act_tool_fluid_line_kind(p),
+            |s, p| s.act_fluid_tube_kind(p),
         )),
     ),
     // Ctrl+Enter: a click with Alt held at the grid cursor (a placement without its autoconnect proposals, a bend

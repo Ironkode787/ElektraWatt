@@ -150,8 +150,9 @@ no route yet. Route page or Route selection draws it.
 
 ## Tube
 
-The Wire tool on a fluid page, drawing tubes of a line kind you pick first: open it with Tube on the Fluid tab (Fluid ▸ Tubes ▸ Tube…),
-choose Working, Pilot, Exhaust, Drain or Flexible and choose Draw. Draw ▸ Wire draws working tubes. A pilot or drain
+The Wire tool on a fluid page, drawing tubes at once: open it with Tube on the Fluid tab (Fluid ▸ Tubes ▸ Tube). It draws
+the line kind used last, Working at first; the bar under the page says the kind and the project's default tube, and its
+Line kind button steps through Working, Pilot, Exhaust, Drain and Flexible. Draw ▸ Wire draws working tubes. A pilot or drain
 tube is dashed; a flexible one (a hose) is drawn as an arc between its ends. Right-click a tube to change its line
 kind.
 

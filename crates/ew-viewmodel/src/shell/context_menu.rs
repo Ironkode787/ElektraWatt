@@ -686,7 +686,11 @@ impl ShellModel {
                 }
             }
             // A valve terminal drawn on no fluid page yet (rc.2): Draw on a fluid page….
-            if session.undrawn_fluid_terminals().iter().any(|(t, _)| *t == station) {
+            if session
+                .undrawn_fluid_terminals()
+                .iter()
+                .any(|(t, _)| *t == station)
+            {
                 let label = strings::text(key!("rack-next-fluid")).to_owned();
                 let params = json!({ "terminal": station.to_string() });
                 out.extend(self.aimed("fluid.draw_terminal", params, label));
@@ -768,16 +772,13 @@ impl ShellModel {
                 let label = strings::format(key!("props-solenoid-of"), &[&name, &tag]);
                 let words = strings::format(key!("nav-show-solenoid"), &[&tag, &name]);
                 let params = json!({ "record": device.to_string(), "words": words });
-                out.extend(
-                    self.aimed("nav.show", params, label)
-                        .map(|mut i| {
-                            if valve_at.is_none() {
-                                i.enabled = false;
-                                i.reason = Some(strings::text(key!("reason-nav-not-placed")).to_owned());
-                            }
-                            i
-                        }),
-                );
+                out.extend(self.aimed("nav.show", params, label).map(|mut i| {
+                    if valve_at.is_none() {
+                        i.enabled = false;
+                        i.reason = Some(strings::text(key!("reason-nav-not-placed")).to_owned());
+                    }
+                    i
+                }));
             }
             None => {
                 for s in session.valve_solenoids(device) {

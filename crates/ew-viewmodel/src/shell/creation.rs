@@ -1331,7 +1331,12 @@ impl ShellModel {
             {
                 f.options = undrawn
                     .iter()
-                    .map(|(id, tag)| (id.to_string(), strings::format(key!("valve-terminal-draw-here"), &[tag])))
+                    .map(|(id, tag)| {
+                        (
+                            id.to_string(),
+                            strings::format(key!("valve-terminal-draw-here"), &[tag]),
+                        )
+                    })
                     .chain([(
                         "new".to_owned(),
                         strings::text(key!("valve-terminal-new")).to_owned(),
@@ -1781,9 +1786,9 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `tool.fluid_line_kind` (the Tube tool's Line kind in the HUD, rc.2): the next line kind, remembered; the Tube
+    /// `fluid.tube_kind` (the Tube tool's Line kind in the HUD, rc.2): the next line kind, remembered; the Tube
     /// tool, while it draws no tube, takes it at once.
-    pub(crate) fn act_tool_fluid_line_kind(&mut self, _p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_fluid_tube_kind(&mut self, _p: &Map<String, Value>) -> Outcome {
         let kinds = crate::strings::LINE_KINDS;
         let now = self.tools.tube_kind.unwrap_or("working");
         let next = kinds

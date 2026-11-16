@@ -361,24 +361,18 @@ fn a_silencer_autoconnects_to_a_free_fluid_port_with_a_fluid_line() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1733: Draw ▸ Connect ▸ Fluid line… picks the line kind first; the Wire tool then draws a pilot line between
-/// two free fluid ports of fluid page 203.
+/// FT-1733, rc.2: Fluid ▸ Tube draws at once; the HUD's Line kind steps to Pilot, and the Wire tool then draws a
+/// pilot line between two free fluid ports of fluid page 203.
 #[test]
-fn the_fluid_line_picker_draws_a_pilot_line() {
+fn the_tube_tools_line_kind_draws_a_pilot_line() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "203");
     support::open_menu(&mut h, &["Fluid"]);
     settle(&mut h);
-    support::menu_node(&h, "Tube…").click();
+    support::menu_node(&h, "Tube").click();
     settle(&mut h);
-    h.get_all_by_role(egui::Role::ComboBox)
-        .last()
-        .expect("the Line kind list")
-        .click();
-    settle(&mut h);
-    h.get_by_label("Pilot").click();
-    settle(&mut h);
-    support::off_chrome(&h, "Draw").expect("Draw").click();
+    assert_eq!(h.state().shell().tool().name(), "wire", "no dialog first");
+    h.get_by_label("Line kind: next").click();
     settle(&mut h);
     assert_eq!(h.state().shell().tool().name(), "wire");
     let free: Vec<(i64, i64)> = {

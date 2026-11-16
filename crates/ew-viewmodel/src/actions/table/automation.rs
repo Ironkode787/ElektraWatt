@@ -408,7 +408,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
                     CommandSize::Small,
                     Some(key!("bar-draw-plug")),
                 ),
-                "plug-connected",
+                "bolt",
                 act(
                     "fluid.draw_plug",
                     Command,

@@ -1108,10 +1108,7 @@ fn rc2_a_usual_medium_is_chosen_from_the_medium_list() {
         Outcome::Done
     );
     one_tube_selected(&mut d);
-    assert_eq!(
-        prop_row(&mut d, "connection/derived.medium").0,
-        "Compressed air"
-    );
+    assert_eq!(prop_row(&mut d, "connection/derived.medium").0, "Compressed air");
     // One undo step takes the medium and its definition back.
     assert_eq!(d.shell_mut().dispatch("edit.undo", &json!({})), Outcome::Done);
     one_tube_selected(&mut d);
@@ -2075,19 +2072,12 @@ fn rc2_the_multipin_plug_is_drawn_from_the_terminal_on_the_fluid_page() {
         None,
         "the Fluid tab's button, for the selected terminal"
     );
-    assert_eq!(
-        prop_row(&mut d, "device/derived.plug").0,
-        "not drawn: draw it…"
-    );
+    assert_eq!(prop_row(&mut d, "device/derived.plug").0, "not drawn: draw it…");
     d.input(&right_click(body));
     d.settle();
     d.input(&click(starting_with(&d, &draw)));
     d.settle();
-    assert_eq!(
-        d.shell_mut().current_folio(),
-        Some("1"),
-        "the electrical page"
-    );
+    assert_eq!(d.shell_mut().current_folio(), Some("1"), "the electrical page");
     assert_eq!(
         d.shell_mut().tool().name(),
         "black_box",
@@ -2144,9 +2134,7 @@ fn rc2_a_terminal_made_as_a_station_is_drawn_on_the_fluid_page() {
         Outcome::Done
     );
     let station = match d.shell_mut().dialog() {
-        Some(ew_ui::ew_viewmodel::shell::Dialog::Rack {
-            station: Some(s), ..
-        }) => *s,
+        Some(ew_ui::ew_viewmodel::shell::Dialog::Rack { station: Some(s), .. }) => *s,
         other => panic!("{other:?}"),
     };
     let tag = fluid_nodes(&mut d)
@@ -2174,7 +2162,7 @@ fn rc2_a_terminal_made_as_a_station_is_drawn_on_the_fluid_page() {
     };
     assert_eq!(
         options,
-        [format!("Draw {tag} here"), "A new terminal…".to_owned()]
+        [format!("Draw {tag} here"), "A new valve terminal…".to_owned()]
     );
     // A new one, placed while the station is undrawn, says so.
     let new = json!({"terminal": "new"});
@@ -2203,10 +2191,7 @@ fn rc2_a_terminal_made_as_a_station_is_drawn_on_the_fluid_page() {
     d.settle();
     // The station's rack dialog: Draw on a fluid page…, its valve in cell 1.
     let rack = json!({"station": station.to_string()});
-    assert_eq!(
-        d.shell_mut().dispatch("plc.rack_editor", &rack),
-        Outcome::Done
-    );
+    assert_eq!(d.shell_mut().dispatch("plc.rack_editor", &rack), Outcome::Done);
     // A frame to show the dialog (a dispatch asks for none).
     d.input(&Input::Hover { at: (1000, 600) });
     d.settle();
@@ -2234,20 +2219,22 @@ fn rc2_a_station_drawn_on_the_schematic_is_drawn_on_the_fluid_page_too() {
     let mut d = fluid_page(&tmp);
     let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "1"}));
     let _ = d.shell_mut().dispatch("plc.new_station", &json!({}));
-    let _ = d.shell_mut().dispatch("plc.rack_set", &json!({"head": "EW-GEN-VTM-1"}));
+    let _ = d
+        .shell_mut()
+        .dispatch("plc.rack_set", &json!({"head": "EW-GEN-VTM-1"}));
     assert_eq!(
         d.shell_mut().dispatch("plc.rack_create", &json!({})),
         Outcome::Done
     );
     let station = match d.shell_mut().dialog() {
-        Some(ew_ui::ew_viewmodel::shell::Dialog::Rack {
-            station: Some(s), ..
-        }) => *s,
+        Some(ew_ui::ew_viewmodel::shell::Dialog::Rack { station: Some(s), .. }) => *s,
         other => panic!("{other:?}"),
     };
     let draw = json!({"step": "draw"});
     assert_eq!(d.shell_mut().dispatch("plc.rack_next", &draw), Outcome::Done);
-    let _ = d.shell_mut().dispatch("plc.rack_editor", &json!({"station": station.to_string()}));
+    let _ = d
+        .shell_mut()
+        .dispatch("plc.rack_editor", &json!({"station": station.to_string()}));
     let fluid = json!({"step": "fluid"});
     assert_eq!(d.shell_mut().dispatch("plc.rack_next", &fluid), Outcome::Done);
     assert_eq!(d.shell_mut().current_folio(), Some("201"));
@@ -2284,10 +2271,7 @@ fn rc2_a_terminals_menu_lists_its_positions_from_the_body() {
         .iter()
         .find(|i| i.label == "Valve terminal · multipin, wired")
         .expect("the kind's line");
-    assert!(
-        kind.shortcut.is_empty() && !kind.enabled,
-        "a heading: {kind:?}"
-    );
+    assert!(kind.shortcut.is_empty() && !kind.enabled, "a heading: {kind:?}");
     let heading = items
         .iter()
         .find(|i| i.label == "Position 1: empty")
@@ -2363,10 +2347,7 @@ fn rc2_a_terminals_menu_lists_its_positions_from_the_body() {
         .filter_map(|r| r.black_box.as_ref().and_then(|b| b.supply_end))
         .max_by_key(|r| r[1])
         .expect("the second terminal's supply end");
-    let at = page_pixel(
-        &mut d,
-        ((supply[0] + supply[2]) / 2, (supply[1] + supply[3]) / 2),
-    );
+    let at = page_pixel(&mut d, ((supply[0] + supply[2]) / 2, (supply[1] + supply[3]) / 2));
     let menu = menu_at(&mut d, at);
     assert!(menu.iter().any(|l| l == "Position 4: empty"), "{menu:?}");
     d.shell_mut().shutdown();
@@ -2402,7 +2383,7 @@ fn rc2_the_tube_tool_draws_at_once_and_says_its_kind_and_size() {
         "{}",
         h.prompt
     );
-    assert!(h.quick.contains(&"tool.fluid_line_kind"), "{:?}", h.quick);
+    assert!(h.quick.contains(&"fluid.tube_kind"), "{:?}", h.quick);
     click_at(&mut d, a);
     click_at(&mut d, b);
     d.input(&key("escape"));
@@ -2410,7 +2391,7 @@ fn rc2_the_tube_tool_draws_at_once_and_says_its_kind_and_size() {
     assert_eq!(tubes(&mut d), 1, "the clicks drew the tube");
     // The kind is changed in the HUD and remembered; the project's tube shows once it is set.
     assert_eq!(
-        d.shell_mut().dispatch("tool.fluid_line_kind", &json!({})),
+        d.shell_mut().dispatch("fluid.tube_kind", &json!({})),
         Outcome::Done
     );
     let set = json!({"od": "6", "id": "4"});

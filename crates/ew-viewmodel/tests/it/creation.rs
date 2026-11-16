@@ -127,7 +127,12 @@ fn page_new_proposes_the_first_free_folio_of_the_section_chosen() {
     done(&mut shell, "page.new", json!({}));
     let folio = |shell: &ShellModel| {
         let form = common::form(shell);
-        form.fields.iter().find(|f| f.name == "folio").unwrap().value.clone()
+        form.fields
+            .iter()
+            .find(|f| f.name == "folio")
+            .unwrap()
+            .value
+            .clone()
     };
     assert!(!folio(&shell).starts_with('7'), "{}", folio(&shell));
     shell.set_form_field("section", "7");

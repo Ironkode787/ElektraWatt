@@ -14,8 +14,8 @@ use serde_json::{Map, Value};
 use super::{Outcome, ShellModel, failed};
 use crate::canvas::{CanvasBackend, CanvasModel, nm_of_mm, pane_out_of_bounds};
 use crate::key;
-use crate::strings;
 use crate::settings::{CANVAS_BACKENDS, MIN_FONT_RANGE};
+use crate::strings;
 
 /// The canvas view of the shell: the pane's size, the grid, the statistics overlay, the backend and the build error.
 pub(super) struct CanvasViewState {
@@ -201,7 +201,9 @@ impl ShellModel {
         const FAR: f64 = 4.0;
         const WORD: &str = "zoom_way_back";
         let Ok(g) = self.group_param(p) else { return };
-        if self.canvas_of(g).is_none_or(|c| c.zoom() < FAR) || self.settings.tips_seen.iter().any(|w| w == WORD) {
+        if self.canvas_of(g).is_none_or(|c| c.zoom() < FAR)
+            || self.settings.tips_seen.iter().any(|w| w == WORD)
+        {
             return;
         }
         self.settings.tips_seen.push(WORD.to_owned());

@@ -947,7 +947,10 @@ impl ShellModel {
                         .sheet()
                         .map(|s| s.header.title.clone())
                         .unwrap_or_default();
-                    params.insert("record".into(), json.get("function").cloned().unwrap_or(Value::Null));
+                    params.insert(
+                        "record".into(),
+                        json.get("function").cloned().unwrap_or(Value::Null),
+                    );
                     let words = strings::format(key!("nav-show-solenoid"), &[&tag, name]);
                     params.insert("words".into(), Value::String(words));
                     self.act_nav_show(&params)
@@ -1103,7 +1106,11 @@ impl ShellModel {
     /// outline marked), and `words` stand beside it until the pointer moves (the persona run read a ring at the cell's
     /// middle as nothing). Refused in words for a thing drawn nowhere.
     pub(crate) fn act_nav_show(&mut self, p: &Map<String, Value>) -> Outcome {
-        let record = match p.get("record").and_then(Value::as_str).map(str::parse::<ew_api::output::Uuid>) {
+        let record = match p
+            .get("record")
+            .and_then(Value::as_str)
+            .map(str::parse::<ew_api::output::Uuid>)
+        {
             Some(Ok(id)) => id,
             _ => return failed(key!("error-missing-param"), &["record"]),
         };
@@ -1111,7 +1118,11 @@ impl ShellModel {
             Ok(w) => w.unwrap_or_default().to_owned(),
             Err(e) => return e,
         };
-        let Some((page, rep)) = self.project.as_ref().and_then(|x| x.session.first_drawing(record)) else {
+        let Some((page, rep)) = self
+            .project
+            .as_ref()
+            .and_then(|x| x.session.first_drawing(record))
+        else {
             return Outcome::refused(key!("reason-nav-not-placed"));
         };
         let Some(g) = self.area.as_ref().map(|a| a.focused) else {
@@ -1128,7 +1139,10 @@ impl ShellModel {
         else {
             return Outcome::Done;
         };
-        let centre = (body[0] + (body[2] - body[0]) / 2, body[1] + (body[3] - body[1]) / 2);
+        let centre = (
+            body[0] + (body[2] - body[0]) / 2,
+            body[1] + (body[3] - body[1]) / 2,
+        );
         self.jump(g, page, Some(centre), CursorAt::None);
         // The page change resets the tool now, not after the mark is set.
         self.sync_tool_context();
@@ -1142,7 +1156,9 @@ impl ShellModel {
             self.announce_selection();
         }
         if !words.is_empty()
-            && let Some(at) = self.canvas_of(g).map(|c| c.page().snapper.page_to_sheet((body[2], body[1])))
+            && let Some(at) = self
+                .canvas_of(g)
+                .map(|c| c.page().snapper.page_to_sheet((body[2], body[1])))
         {
             self.tools.overlay = crate::tools::Overlay::new(vec![crate::tools::OverlayItem::Label {
                 at,

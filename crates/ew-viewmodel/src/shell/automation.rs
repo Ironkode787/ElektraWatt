@@ -1385,12 +1385,19 @@ impl ShellModel {
         let Some(plug) = self.project_session().and_then(|s| s.terminal_plug(terminal)) else {
             return Outcome::refused(key!("reason-not-multipin"));
         };
-        let out = self.arm_on_page(plug.function, "multi_line", key!("reason-no-electrical-page-plug"));
+        let out = self.arm_on_page(
+            plug.function,
+            "multi_line",
+            key!("reason-no-electrical-page-plug"),
+        );
         if out != Outcome::Done {
             return out;
         }
         let folio = self.current_folio().unwrap_or_default().to_owned();
-        self.notify(strings::format(key!("toast-plug-draw"), &[&plug.tag, &folio]), false);
+        self.notify(
+            strings::format(key!("toast-plug-draw"), &[&plug.tag, &folio]),
+            false,
+        );
         Outcome::Done
     }
 
@@ -1435,7 +1442,10 @@ impl ShellModel {
             return out;
         }
         let folio = self.current_folio().unwrap_or_default().to_owned();
-        self.notify(strings::format(key!("toast-terminal-draw"), &[&tag, &folio]), false);
+        self.notify(
+            strings::format(key!("toast-terminal-draw"), &[&tag, &folio]),
+            false,
+        );
         Outcome::Done
     }
 

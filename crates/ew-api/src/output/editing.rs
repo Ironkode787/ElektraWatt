@@ -578,7 +578,11 @@ fn catalogue_part(
         .collect();
     // A valve made for a terminal names the solenoids the terminal drives (rc.2: hand-operated valves fit no position).
     let terminal_valve = part.sections.plc.is_none()
-        && part.sections.fluid.as_ref().is_some_and(|f| !f.solenoids.is_empty())
+        && part
+            .sections
+            .fluid
+            .as_ref()
+            .is_some_and(|f| !f.solenoids.is_empty())
         && ew_derive::fits_terminal(defs.iter().map(|d| &d.item));
     Some(CataloguePart {
         copy,

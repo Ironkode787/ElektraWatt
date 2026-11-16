@@ -933,7 +933,7 @@ Set spare or Set used and Blank position *n*, a blanking plate's Add valve; Plug
 (EW-FL-001's, `ew_derive::open_working_ports`; `fluid.port.close` with a plug). Each is one undo step. **The line
 tool** (FT-1733, rc.2): Fluid ▸ Tube on a fluid page starts the Wire tool at once, drawing lines of the kind used last
 (Working at first; `connection.draw` with `{"fluid": {"line_kind"}}`); the HUD says the kind and the project's default
-tube ("Working line · tube 6/4 mm") and its Line kind button (`tool.fluid_line_kind`) steps through Working, Pilot,
+tube ("Working line · tube 6/4 mm") and its Line kind button (`fluid.tube_kind`) steps through Working, Pilot,
 Exhaust, Drain and Flexible, remembered; a project without a default tube is told once that Fluid settings… sets it.
 Draw ▸ Wire draws working lines. Fluid pages autoconnect: a placed symbol's fluid port facing a free fluid port proposes the
 join, and the committed hint is a working fluid line (`device.place`'s hint takes the fluid kind when both ends are
@@ -970,7 +970,7 @@ a FnDef of category `Source`, the air-supply point) show the same Medium row in 
 and where it is defined, set at its port.
 
 *As built (M3 persona round).* **One word.** The window calls a drawn fluid line a **tube** (Dutch *slang*): Draw ▸
-Connect ▸ Tube…, a tube's Properties headed "Tube (Working)", the refusals, the medium's count ("3 tubes"), the layout
+Connect ▸ Tube, a tube's Properties headed "Tube (Working)", the refusals, the medium's count ("3 tubes"), the layout
 findings; "line kind" stays the attribute (Working, Pilot, Exhaust, Drain, Flexible), "fluid line" stays this document's
 and the format's term. **The Fluid panel's table** lists the tubes drawn: `NavKind::Fluid`'s columns are the tube
 table's (`NavKind::source`), and each tube's first row in the tree carries the tube list's cells.

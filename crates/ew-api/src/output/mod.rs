@@ -159,8 +159,8 @@ pub use properties::{
     SelectionWords, SheetHeader, SheetSection, SheetWhat, SourceLink, WireColours, WireEnd,
 };
 pub use rack::{
-    FluidMenu, ModulePart, PlcOffer, RackPosition, RackRow, RackView, SolenoidSeat, TerminalKind, TerminalPlug,
-    TerminalSeat, ValveSolenoid, gives_text,
+    FluidMenu, ModulePart, PlcOffer, RackPosition, RackRow, RackView, SolenoidSeat, TerminalKind,
+    TerminalPlug, TerminalSeat, ValveSolenoid, gives_text,
 };
 pub use raster::{DEFAULT_DPI, DPI_RANGE, page_png, sheet_image};
 pub use revisions::{PageDigest, changed_now, changed_pages, last_changed_in, page_digest, page_digests};

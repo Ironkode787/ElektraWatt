@@ -316,7 +316,10 @@ impl ShellModel {
             .collect();
         if !undrawn.is_empty() {
             text.push(' ');
-            text.push_str(&strings::format(key!("toast-terminal-undrawn"), &[&undrawn.join(", ")]));
+            text.push_str(&strings::format(
+                key!("toast-terminal-undrawn"),
+                &[&undrawn.join(", ")],
+            ));
         }
         text
     }
