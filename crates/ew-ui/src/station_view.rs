@@ -233,6 +233,13 @@ fn section(ui: &mut Ui, t: &Tokens, title: &str) {
     ui.add_space(t.space_2);
 }
 
+/// The part of a station view's pane `full` that holds the rack and its lists: the pane without the catalogue, which
+/// takes a quarter of it at the right, within what its rows need and what a wide window gives.
+pub(crate) fn lists_rect(full: Rect) -> Rect {
+    let catalogue = (full.width() * 0.26).clamp(280.0, 460.0).min(full.width() * 0.5);
+    Rect::from_min_max(full.min, pos2(full.right() - catalogue, full.bottom()))
+}
+
 /// The view of the station of `tab` in the pane `ui`; `place` is the tab's group and index, `focused` whether it is
 /// the focused group's tab (the view's own lists are the focused tab's). What the person does goes to `events`.
 pub(crate) fn show(
@@ -255,11 +262,8 @@ pub(crate) fn show(
     let shown = shown.as_deref();
     let mut out = Vec::new();
     let all = places(&view, tab.draft.is_some());
-    // The catalogue takes a quarter of the pane, within what its rows need and what a wide window gives.
-    let catalogue_width = (full.width() * 0.26).clamp(280.0, 460.0).min(full.width() * 0.5);
-    let split = full.right() - catalogue_width;
-    let left = Rect::from_min_max(full.min, pos2(split, full.bottom()));
-    let right = Rect::from_min_max(pos2(split, full.top()), full.max);
+    let left = lists_rect(full);
+    let right = Rect::from_min_max(pos2(left.right(), full.top()), full.max);
     ui.painter().line_segment(
         [right.left_top(), right.left_bottom()],
         theme::stroke(t.border_width, t.border_subtle),
@@ -860,7 +864,7 @@ fn channels(
     }
     let under = all.iter().find(|p| tab.cursor == Some(p.cursor) && p.device.is_some());
     let Some(p) = under else {
-        section(ui, t, strings::text(key!("rack-channel")));
+        section(ui, t, strings::text(key!("rack-channels")));
         ui.add(
             egui::Label::new(small(t, strings::text(key!("rack-channels-select")), t.text_tertiary))
                 .selectable(false),

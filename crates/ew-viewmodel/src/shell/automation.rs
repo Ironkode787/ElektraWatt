@@ -603,6 +603,18 @@ impl ShellModel {
         out
     }
 
+    /// [`ShellModel::station_taken`] for the commands that change a slot (Replace, Remove, Move): a made station's
+    /// head stays where it is, which is said in words.
+    pub fn station_module(&self) -> Result<(), Key<'static>> {
+        self.station_taken()?;
+        match self.station_tab() {
+            Some(tab) if tab.draft.is_none() && tab.cursor == Some(StationCursor::Head) => {
+                Err(key!("reason-rack-head"))
+            }
+            _ => Ok(()),
+        }
+    }
+
     /// Whether the cursor of the station view on show stands on something (a module, the station's head, a valve or
     /// a blanking plate), and then whether that is drawn on a page; else why the PLC tab's Module commands have
     /// nothing to act on, in words.
@@ -693,10 +705,16 @@ impl ShellModel {
             return failed(key!("error-bad-param"), &["station"]);
         }
         self.last_station = Some(station);
-        self.open_station(StationTab {
+        let out = self.open_station(StationTab {
             station: Some(station),
             ..StationTab::default()
-        })
+        });
+        // The station is selected until a module is: Properties shows it, the cursor stands on its head.
+        if out == Outcome::Done {
+            let cursor = self.station_tab().and_then(|t| t.cursor);
+            self.rack_cursor(cursor.or(Some(StationCursor::Head)));
+        }
+        out
     }
 
     /// `plc.new_station {kind?}`: the view of a station not made yet, a PLC (CPU) unless `kind` says another, in the
@@ -834,7 +852,8 @@ impl ShellModel {
     }
 
     /// Puts the cursor of the view on show on `place` and selects the device there, as a click on a page selects a
-    /// device: Properties shows it and the PLC tab's commands act on it. A free place clears the selection.
+    /// device: Properties shows it and the PLC tab's commands act on it. On a free place the station is selected,
+    /// so Properties shows what the view is about.
     fn rack_cursor(&mut self, place: Option<StationCursor>) {
         let Some(tab) = self.station_tab_mut() else {
             return;
@@ -842,8 +861,10 @@ impl ShellModel {
         tab.cursor = place;
         // The view has the keys from here on: the arrows walk its places, Delete empties one.
         self.focus = self.area.as_ref().map(|a| super::Focus::Canvas(a.focused));
+        let station = self.station_tab().and_then(|t| t.station.filter(|_| t.draft.is_none()));
         let items = self
             .station_device()
+            .or(station)
             .map(ew_api::output::ew_dl::EntityRef)
             .into_iter()
             .collect();

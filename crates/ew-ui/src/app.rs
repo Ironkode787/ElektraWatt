@@ -318,6 +318,8 @@ pub struct App {
     command_bar: CommandBarHost,
     /// The page view pane's rectangle in the last frame: the HUD, the zoom control and the tool options stand on it.
     page_pane: Option<egui::Rect>,
+    /// The pane of the station's view on show in the last frame; `None` while a page is on show.
+    station_pane: Option<egui::Rect>,
     /// The HUD's rectangle in the last frame.
     hud_rect: Option<egui::Rect>,
     /// The tool options card's rectangle in the last frame (where the ghost is under it).
@@ -407,6 +409,7 @@ impl App {
             text_buffer: None,
             command_bar: CommandBarHost::new(),
             page_pane: None,
+            station_pane: None,
             hud_rect: None,
             options_rect: None,
             options_band: None,
@@ -1151,7 +1154,9 @@ impl App {
         });
         // The HUD, the zoom control and the tool options over the page view (doc 16a §5.5).
         // A station's view is no page: the HUD, the zoom control and the tool options stay away from it.
-        self.page_pane = page_pane.filter(|_| canvas_shown && self.shell.station_tab().is_none());
+        let station = self.shell.station_tab().is_some();
+        self.station_pane = page_pane.filter(|_| canvas_shown && station);
+        self.page_pane = page_pane.filter(|_| canvas_shown && !station);
         self.hud_rect = None;
         let mut options_card = None;
         if self.page_pane.is_none() {
@@ -1240,11 +1245,18 @@ impl App {
             }),
             self.toast_stack,
         );
-        let pivot = match self.page_pane {
-            Some(pane) if self.toasts_low => {
+        let pivot = match (self.page_pane, self.station_pane) {
+            (Some(pane), _) if self.toasts_low => {
                 // Above the zoom control (doc 16a §5.5).
                 let zoom = crate::hud::zoom_rect(&tokens, pane);
                 anchor = egui::pos2(anchor.x, zoom.top() - tokens.space_4);
+                egui::Align2::RIGHT_BOTTOM
+            }
+            // In a station's view the top right holds the catalogue and its filter: the toasts stand at the bottom
+            // right of the rack's lists, where the view is empty longest.
+            (None, Some(pane)) => {
+                let lists = crate::station_view::lists_rect(pane);
+                anchor = egui::pos2(lists.right() - tokens.space_4, lists.bottom() - tokens.space_4);
                 egui::Align2::RIGHT_BOTTOM
             }
             _ => egui::Align2::RIGHT_TOP,

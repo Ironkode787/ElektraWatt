@@ -438,8 +438,8 @@ a valve drawn on another page is named by its tag, a blanking plate is drawn as 
 Place tool places such a box with one click (`box.black` with `slots`), then gives way to Select; the toast names the
 terminal and its positions ("Placed -201K1 at 201-B2: 4 positions, all empty."), and a click whose box would overlap
 another box is refused in words. A terminal made first as a PLC station (the New
-station dialog, its valves in its rack) is drawn on a fluid page by `fluid.draw_terminal` (its rack dialog's Draw on a
-fluid page…, its row in the PLC panel, and Fluid ▸ Valve terminal…, which on a fluid page offers each terminal drawn on
+station view, its valves in its rack) is drawn on a fluid page by `fluid.draw_terminal` (its view's Draw on a
+fluid page… in To do, its row in the PLC panel, and Fluid ▸ Valve terminal…, which on a fluid page offers each terminal drawn on
 no fluid page first, "Draw -104A1 here", then "A new terminal…"): its box of positions on the pointer, joined to the
 terminal as its main function (`join_device`), or another drawing of its main function where it has one; a new terminal
 placed while another is undrawn says so in its placement toast. A valve placed or moved into a cell takes that

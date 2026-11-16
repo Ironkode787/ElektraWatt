@@ -167,11 +167,14 @@ fn the_rack_button_lists_the_stations() {
     );
     let tabs = s.area().expect("the canvas area").focused_group().tabs.len();
     assert_eq!(tabs, 2, "beside the page's tab");
+    // The view opens with the station selected, its cursor on the head, which stays where it is.
+    let station = s.station_tab().and_then(|t| t.station).expect("the station");
+    assert_eq!(s.selection().items, vec![ew_viewmodel::ew_api::output::ew_dl::EntityRef(station)]);
     let remove = button(&s, Tab::Plc, "plc.module_remove");
     assert!(!remove.enabled);
     assert_eq!(
         remove.reason.as_deref(),
-        Some(strings::text(ew_viewmodel::key!("reason-rack-no-module")))
+        Some(strings::text(ew_viewmodel::key!("reason-rack-head")))
     );
     done(&mut s, "plc.rack_select", json!({"slot": 1}));
     assert!(button(&s, Tab::Plc, "plc.module_remove").enabled);

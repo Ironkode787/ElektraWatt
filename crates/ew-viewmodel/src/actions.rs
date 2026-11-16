@@ -367,19 +367,21 @@ fn valve_terminal_selected(m: &ShellModel) -> Result<(), Key<'static>> {
     m.selected_valve_terminal().map(|_| ())
 }
 
-/// The project can be written and the cursor of a station's view stands on a module, the station's head or a valve
-/// (the PLC tab's Module commands), else why not in words.
+/// The project can be written and the cursor of a station's view stands on a module or a valve (the PLC tab's
+/// Replace, Remove and Move), else why not in words.
 fn station_module(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
-    m.station_taken().map(|_| ())
+    m.station_module()
 }
 
-/// [`station_module`], and the module is drawn on no page yet (Draw on a page).
+/// The project can be written, and the module or the head under the cursor of a station's view is drawn on no page
+/// yet (Draw on a page).
 fn station_module_undrawn(m: &ShellModel) -> Result<(), Key<'static>> {
-    match station_module(m)? {
-        () if m.station_draft().is_some() => Err(key!("reason-rack-draft")),
-        () if m.station_taken() == Ok(true) => Err(key!("reason-rack-drawn")),
-        () => Ok(()),
+    writable(m)?;
+    match m.station_taken()? {
+        _ if m.station_draft().is_some() => Err(key!("reason-rack-draft")),
+        true => Err(key!("reason-rack-drawn")),
+        false => Ok(()),
     }
 }
 

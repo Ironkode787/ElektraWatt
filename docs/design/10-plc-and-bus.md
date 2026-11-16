@@ -176,7 +176,8 @@ on a tag or on the page a child is drawn on (D-41).
 a new station the role `head_station` when its parts declare bus ports and none of them leads a bus (no `master` or
 `controller` port: a remote I/O head such as EW-GEN-RIO-1), else `cpu` (persona round of M3). `plc_module` carries `slot` (`SlotPath`: `positional`, the default, or `rack` with rack, slot and subslot), `start` (`IoStarts`; `auto` for both directions by default), `part_use` and `integrated`. `PlcModule.safety` (§2.9) is typed (WP-S1.24). `PlcStation.firmware` and `PlcModule.type_ident` (`{order_number}`, the order number of a module without part data, as an import creates one; a module with a part is identified by its part) are typed (WP-S3.16), each settable with `fields.set`. Not typed, and kept in `extra`: `PlcStation.dd` (§2.8) and `type_ident.dd_module`, the device descriptions'. The aspects are written in the member order of [05](05-project-format-and-persistence.md) §3.1: `assembly` (held verbatim until its work package) before `plc_station` before `plc_module`. The module order of `module_order` is: stations by (`order`, ID); within a station, rack slots first by (rack, slot, subslot), then positional modules in manifold order, whose slot is their 1-based rank. Golden A has seven modules (-201U3 … -201U8, -202U2).
 
-**As built (rc.2): the rack comes first.** A station is made as in TIA Portal: **New station…** opens the rack dialog in
+**As built (rc.2): the rack comes first.** (Since rc.3 the rack dialog named here is the station's view in a tab, §6.)
+A station is made as in TIA Portal: **New station…** opens the rack dialog in
 a new-station state that asks what the station is (a PLC with its CPU, a remote I/O station, a valve terminal with a
 bus node, a compact device with channels of its own; the choice narrows the head parts offered, the role stays what N0
 gives the part's section), its head part and its configuration project (an existing one or a new `PLC<n>`), then fills
@@ -1721,7 +1722,45 @@ metres to the millimetre without trailing zeros (`12.5 m`).
 
 *As built (WP-S2.13).* **The PLC workspace** is the built-in workspace PLC (View ▸ Workspaces): the Schematic layout with the PLC navigator shown in the left column and the **PLC grid** in the bottom dock. The PLC grid is its own navigator kind (`plc_grid`) over the PLC navigator's table, always in table mode, so that the tree and the grid are on show together; Properties stays under the navigator as in every workspace (doc 16a §5.4), not at the right as §2.6 of doc 16 drew it.
 
-*As built (WP-S2.13).* **The rack and slot editor** is a dialog opened by Rack and slots… on a station's row: the station's slots from `Session::rack_view` (the modules in `module_order`, each with its part and the slots its part allows; the free slots of rack 0 up to the station's `limits.max_modules` where the modules have rack positions, else the one slot after the positional modules), a valve terminal's stored order codes (`Assembly.configs`) above the rows and each module's valve positions (`valve_slots`) under its row, and EW-PLC-011's findings on the station below them. Add here builds the new command `plc.add_module {station, part, rack?, slot?, copies?}` (a child of the station at the position after its last child, with the station's letter and the child tag scheme, an authored `rack.slot` or positional; a library part embedded in the same step); a module's slot field builds `fields.set plc_module.slot`. EW-PLC-011's prevent half refuses a slot another module holds (a positional module's number is a slot of rack 0), a slot outside the part's `allowed_slots` and a station beyond its limits; Add here takes only a free slot the editor offers and names the module of a taken one; the refusal stays in the dialog. The slots take the dialog's height (the window's less the rest of the dialog), with the scroll bar always shown. A module dragged by its tag and let go over another slot's row moves there as its slot field does (FT-1752); the row under it is outlined while it hovers.
+*As built (rc.3): the station's view.* The rack is no dialog any more: a station opens as **a view in a canvas tab**
+beside the page tabs (`area::StationTab` on a `Tab`; the tab keeps the page it was opened from, shows no canvas, and
+`ShellModel::canvas` is `None` there, so no tool draws on a page that is not on show). It opens from Rack… (the PLC
+tab, a station's menu), a double click on a station in the PLC panel, placing a station's part, and New station…; a
+jump to a page from the view (a link, Go to page, Draw on a page…) shows the page in a page tab and leaves the
+station's tab in the strip, and `Esc` in the view goes back to the page. One tab per station; a tab whose station is
+gone (deleted, its making undone) closes. The view shows, from `Session::rack_view` (cached per revision and station):
+
+- **the rack drawn**, one card per place left to right: the head (`RackView::head`, the station itself; a station
+  that is its own module has no second row), each slot with its module (what it gives, its tag, its part number, the
+  folio it is drawn on or "not drawn") or free as an outline, and a valve terminal's positions (`RackView::cells`,
+  `terminal_cells`), a valve with its part;
+- **the same places as a table**: slot, module, part (number and description; the part that describes the module for
+  the PLC, else its first part; a module without a part says No part with Choose part…), gives, addresses, drawn on
+  (a link to the page, else Draw on a page…);
+- **the channels** of the module under the cursor (`Session::module_channels`: address, symbol name, the device
+  wired to it as a link to its drawing);
+- **To do** (`ShellModel::station_todo`): EW-PLC-011's findings on the station with the error icon and word and Show,
+  a module without a part (Choose part…), the devices drawn on no page (Draw on a page…: the schematic pages and New
+  page…), a station with bus interfaces on no bus page (Put it on a bus page), a valve terminal on no fluid page and
+  without an overview page;
+- **the catalogue** at the right: the place catalogue's parts (`CataloguePart::plc`, the device browser's list and
+  its filter matching) that fit the station, by group (`PlcGroup`), the parts that do not fit where the cursor stands
+  greyed with the reason; New part… at its foot.
+
+**The cursor** (`StationCursor`: the head, a slot, a valve position) is set by a click on a card or a row or by the
+arrow keys (`plc.rack_select`), and the device under it is the window's selection: Properties shows it, and the PLC
+tab's Module group acts on it (`plc.module_replace`, `plc.module_remove`, `plc.module_draw`, `plc.module_goto`,
+`plc.module_left`, `plc.module_right`, each `plc.rack_slot`'s operation or `nav.show`); a right click gives the same
+commands, Delete empties the slot. On a free place the station is selected. A double click on a catalogue part puts
+it into the cursor's free slot, else the first free one, a drag onto the place it is let go over, onto a module
+replacing its part (`plc.rack_add`); a card dragged to a free slot moves there and onto another module changes places
+with it (`plc.rack_move`: `fields.set plc_module.slot`, `fields.set_many`, or `assembly.attach` for two modules
+without slot numbers of their own). A refusal stays in the view at the place it was refused at. Every step is a
+declared command and one undo step. **New station…** is the same view on a `StationDraft` (what it is, its PLC, its
+head and its modules from the catalogue); nothing is written before Create (`plc.add_station`), and closing the tab
+of a draft with something chosen asks. The dialog's How many field is gone: each double click fills the next slot.
+
+*As built (WP-S2.13; the dialog is the station's view since rc.3, above).* **The rack and slot editor** is a dialog opened by Rack and slots… on a station's row: the station's slots from `Session::rack_view` (the modules in `module_order`, each with its part and the slots its part allows; the free slots of rack 0 up to the station's `limits.max_modules` where the modules have rack positions, else the one slot after the positional modules), a valve terminal's stored order codes (`Assembly.configs`) above the rows and each module's valve positions (`valve_slots`) under its row, and EW-PLC-011's findings on the station below them. Add here builds the new command `plc.add_module {station, part, rack?, slot?, copies?}` (a child of the station at the position after its last child, with the station's letter and the child tag scheme, an authored `rack.slot` or positional; a library part embedded in the same step); a module's slot field builds `fields.set plc_module.slot`. EW-PLC-011's prevent half refuses a slot another module holds (a positional module's number is a slot of rack 0), a slot outside the part's `allowed_slots` and a station beyond its limits; Add here takes only a free slot the editor offers and names the module of a taken one; the refusal stays in the dialog. The slots take the dialog's height (the window's less the rest of the dialog), with the scroll bar always shown. A module dragged by its tag and let go over another slot's row moves there as its slot field does (FT-1752); the row under it is outlined while it hovers.
 
 *As built (WP-S2.13).* **The bus navigator** (rail entry Bus, beside the PLC navigator in the PLC workspace): Logical nets → each `LogicalNet` (its name and rate, `1.5 Mbit/s`) → its ports (`net_members`, the master port badged `master`); Physical nets → each `PhysicalNet` → its segments (`bus_segments`, A5) → their members in walk order (a port badged `end` at an end and `terminated` or `not terminated`, an external interruption point badged `external`, a cable by its tag); then Ports without a net. A port row is a table row (device, interface, address, termination, bus, role, nets); its address cell and the Properties row take the address as the reports print it (`3`, `cpx-1 192.168.0.10` with `mask` and `gateway`, `pos 2 alias 1001`, `port 3`, `TBD`, empty for none), its termination cell on or off; a net's row selects the net, whose rate and master Properties shows (FT-856: Properties names a port's nets by their names and its address in those words). **A part's ports not drawn yet** (FT-831): a station's row offers Place port `<interface>` for each port of its part that no function carries and that a starter symbol draws (the DP port for PROFIBUS DP), arming the Place tool joined to the station; a bus port FnDef joins a device as an auxiliary function, as a contact does, and N5 types the port from the part. **The Wire tool on a bus-topology page** draws `Bus` connections (FT-434); autoconnect stays off there, as on fluid pages.
 
