@@ -2466,6 +2466,98 @@ fn rc2_a_valve_dropped_on_a_multipin_position_is_said_to_sit_there() {
     d.shell_mut().shutdown();
 }
 
+/// The rc.2 re-test (friction 5, 7): on the control page the valve's coil row in the Devices list offered Location…
+/// only, and Follow reference with the coil selected did nothing visible. The coil's row offers Draw solenoid 14 on this
+/// page… while an electrical page is in front (on an electrical page… from the fluid page) and Go to the valve; drawn
+/// and selected, Follow reference goes to the valve.
+#[test]
+fn rc2_the_solenoid_is_drawn_from_the_coils_row_and_followed_back() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    d.input(&click(d.find("Device").unwrap()));
+    d.settle();
+    d.input(&typed("solenoid valve 5/2, spring"));
+    d.settle();
+    d.input(&Input::DoubleClick {
+        at: starting_with(&d, "Solenoid valve 5/2, spring return"),
+        mods: Modifiers::NONE,
+    });
+    d.settle();
+    click_at(&mut d, (900, 500));
+    d.input(&key("escape"));
+    d.settle();
+    let device = d.shell_mut().canvas().unwrap().page().tables.reps[0]
+        .device
+        .expect("the valve");
+    let _ = d
+        .shell_mut()
+        .dispatch("navigator.show", &json!({ "kind": "devices" }));
+    // A frame to show the list (a dispatch asks for none).
+    d.input(&Input::Hover { at: (1000, 600) });
+    d.settle();
+    let valve = d
+        .shell_mut()
+        .nav(NavKind::Devices)
+        .and_then(|n| n.table())
+        .and_then(|t| t.nodes.iter().find(|n| n.records.first() == Some(&device)).cloned())
+        .map(|n| n.label)
+        .expect("the valve's row");
+    let coil_row = |d: &mut Driver| {
+        let name = d
+            .shell_mut()
+            .shown_rows(NavKind::Devices)
+            .into_iter()
+            .find(|r| r.label.starts_with("Coil"))
+            .map(|r| r.name)
+            .expect("the coil's row");
+        d.find(&name).expect("the coil's row on show")
+    };
+    let row = coil_row(&mut d);
+    let on_fluid = menu_at(&mut d, row);
+    assert!(
+        on_fluid.contains(&"Draw solenoid 14 on an electrical page…".to_owned()),
+        "{on_fluid:?}"
+    );
+    let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "1"}));
+    let _ = d.shell_mut().dispatch("view.fit_page", &json!({}));
+    d.settle();
+    let row = coil_row(&mut d);
+    let menu = menu_at(&mut d, row);
+    let go = format!("Go to the valve {valve}");
+    for label in ["Draw solenoid 14 on this page…", go.as_str()] {
+        assert!(menu.iter().any(|l| l == label), "{label}: {menu:?}");
+    }
+    d.input(&right_click(row));
+    d.settle();
+    d.input(&click(starting_with(&d, "Draw solenoid 14 on this page…")));
+    d.settle();
+    assert_eq!(d.shell_mut().current_folio(), Some("1"), "this page");
+    assert_eq!(d.shell_mut().tool().name(), "place");
+    click_at(&mut d, (900, 500));
+    d.input(&key("escape"));
+    d.settle();
+    // The coil selected, Follow reference (its key, F) goes to the valve.
+    let coil = d
+        .shell_mut()
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .reps
+        .iter()
+        .find(|r| r.symbol_key.starts_with("ew.iec.valve-coil"))
+        .map(|r| r.id)
+        .expect("the coil drawn");
+    let _ = d
+        .shell_mut()
+        .dispatch("select.set", &json!({ "ids": [coil.to_string()] }));
+    d.settle();
+    d.input(&key("F"));
+    d.settle();
+    assert_eq!(d.shell_mut().current_folio(), Some("201"), "the valve's page");
+    d.shell_mut().shutdown();
+}
+
 /// The rc.2 cabinet run (friction 26, 27): Tube opened a small dialog first, so the clicks meant for the ports fell
 /// into it, and nothing showed the tube's size. Tube starts drawing at once with the line kind used last, the HUD says
 /// the kind and the project's tube and changes the kind, and a project without a default tube is told once where its

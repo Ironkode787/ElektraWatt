@@ -559,7 +559,13 @@ impl ShellModel {
             }
             (NavKind::Pages, NavRole::Page, _) => self.page_row_fits(&node.key, &mut out),
             // A group of the Devices list ("(none)" too): Location… for every device in it (rc.2).
-            (NavKind::Devices, NavRole::Function | NavRole::Location, _) => {
+            // A valve's coil: its solenoid's entry and Go to the valve (the rc.2 re-test).
+            (NavKind::Devices, NavRole::Function | NavRole::Location, record) => {
+                if node.role == NavRole::Function
+                    && let Some(function) = record
+                {
+                    self.coil_row_entries(function, &mut out);
+                }
                 out.extend(self.menu_item("devices.set_location"));
             }
             // A finding's row: its quick fix, where it has one, and Waive… or Unwaive, as the detail under the list
@@ -798,53 +804,7 @@ impl ShellModel {
             }
             None => {
                 for s in session.valve_solenoids(device) {
-                    // A terminal valve's solenoid (rc.2, F15): Go to output, or its plug pin; never Draw solenoid.
-                    match &s.seat {
-                        Some(ew_api::output::SolenoidSeat::Terminal { channel, .. }) => {
-                            let output = s.output.clone().unwrap_or_default();
-                            let label = strings::format(key!("canvas-solenoid-output"), &[&s.name, &output]);
-                            let params = json!({ "channel": channel.map(|c| c.to_string()) });
-                            out.extend(self.aimed("fluid.go_output", params, label));
-                            continue;
-                        }
-                        Some(ew_api::output::SolenoidSeat::Multipin {
-                            terminal,
-                            terminal_device,
-                            pin,
-                            plug,
-                        }) => {
-                            out.extend(match plug {
-                                Some(place) => self.aimed(
-                                    "nav.goto",
-                                    json!({ "text": place }),
-                                    strings::format(key!("canvas-solenoid-pin"), &[&s.name, pin, terminal]),
-                                ),
-                                None => self.aimed(
-                                    "fluid.draw_plug",
-                                    json!({ "terminal": terminal_device.to_string() }),
-                                    strings::format(key!("canvas-plug-draw"), &[terminal]),
-                                ),
-                            });
-                            continue;
-                        }
-                        None => {}
-                    }
-                    out.extend(match &s.drawn {
-                        Some(place) => {
-                            let tag = session.device_tag(device).unwrap_or_default();
-                            let words = strings::format(key!("nav-show-solenoid"), &[&tag, &s.name]);
-                            self.aimed(
-                                "nav.show",
-                                json!({ "record": s.function.to_string(), "words": words }),
-                                strings::format(key!("canvas-solenoid-go"), &[&s.name, place]),
-                            )
-                        }
-                        None => self.aimed(
-                            "fluid.draw_solenoid",
-                            json!({ "function": s.function.to_string() }),
-                            strings::format(key!("canvas-solenoid-draw"), &[&s.name]),
-                        ),
-                    });
+                    out.extend(self.solenoid_entry(session, device, &s));
                 }
             }
         }
@@ -942,6 +902,113 @@ impl ShellModel {
                 "function": function.to_string(), "idx": idx, "closure": { "kind": "plug" } } });
             out.extend(self.aimed("command.run", params, label));
         }
+    }
+
+    /// The entry of solenoid `s` of valve `device`, on the valve's symbol, its rows and its coil's row alike: a terminal
+    /// valve's Go to output or its plug pin (rc.2, F15; never Draw solenoid); a stand-alone valve's Go to solenoid 14
+    /// where its coil is drawn, else Draw solenoid 14 on this page… while an electrical page is in front (the rc.2
+    /// re-test), on an electrical page… otherwise.
+    fn solenoid_entry(
+        &self,
+        session: &ew_api::Session,
+        device: Uuid,
+        s: &ew_api::output::ValveSolenoid,
+    ) -> Option<ActionItem> {
+        match &s.seat {
+            Some(ew_api::output::SolenoidSeat::Terminal { channel, .. }) => {
+                let output = s.output.clone().unwrap_or_default();
+                let label = strings::format(key!("canvas-solenoid-output"), &[&s.name, &output]);
+                let params = json!({ "channel": channel.map(|c| c.to_string()) });
+                return self.aimed("fluid.go_output", params, label);
+            }
+            Some(ew_api::output::SolenoidSeat::Multipin {
+                terminal,
+                terminal_device,
+                pin,
+                plug,
+            }) => {
+                return match plug {
+                    Some(place) => self.aimed(
+                        "nav.goto",
+                        json!({ "text": place }),
+                        strings::format(key!("canvas-solenoid-pin"), &[&s.name, pin, terminal]),
+                    ),
+                    None => self.aimed(
+                        "fluid.draw_plug",
+                        json!({ "terminal": terminal_device.to_string() }),
+                        strings::format(key!("canvas-plug-draw"), &[terminal]),
+                    ),
+                };
+            }
+            None => {}
+        }
+        match &s.drawn {
+            Some(place) => {
+                let tag = session.device_tag(device).unwrap_or_default();
+                let words = strings::format(key!("nav-show-solenoid"), &[&tag, &s.name]);
+                self.aimed(
+                    "nav.show",
+                    json!({ "record": s.function.to_string(), "words": words }),
+                    strings::format(key!("canvas-solenoid-go"), &[&s.name, place]),
+                )
+            }
+            None => {
+                let here = self
+                    .page_rows()
+                    .get(self.page_index())
+                    .is_some_and(|r| r.kind == "multi_line");
+                let label = if here {
+                    key!("canvas-solenoid-draw-here")
+                } else {
+                    key!("canvas-solenoid-draw")
+                };
+                self.aimed(
+                    "fluid.draw_solenoid",
+                    json!({ "function": s.function.to_string() }),
+                    strings::format(label, &[&s.name]),
+                )
+            }
+        }
+    }
+
+    /// The row of a valve's coil in the Devices list (the rc.2 re-test: it offered Location… only): its solenoid's entry
+    /// ([`Self::solenoid_entry`]) and Go to the valve, as the coil's own symbol offers; nothing for another function.
+    fn coil_row_entries(&self, function: Uuid, out: &mut Vec<ActionItem>) {
+        let Some(session) = self.project_session() else {
+            return;
+        };
+        let Some((tag, name, valve_at)) = session.solenoid_of(function) else {
+            return;
+        };
+        let q = session.query();
+        let functions = q.functions();
+        let Some(device) = function
+            .to_string()
+            .parse()
+            .ok()
+            .and_then(|f| functions.get(f))
+            .and_then(|f| f.device)
+            .map(|d| d.as_uuid())
+        else {
+            return;
+        };
+        if let Some(s) = session
+            .valve_solenoids(device)
+            .into_iter()
+            .find(|s| s.function == function)
+        {
+            out.extend(self.solenoid_entry(session, device, &s));
+        }
+        let words = strings::format(key!("nav-show-solenoid"), &[&tag, &name]);
+        let params = json!({ "record": device.to_string(), "words": words });
+        let label = strings::format(key!("canvas-valve-go"), &[&tag]);
+        out.extend(self.aimed("nav.show", params, label).map(|mut i| {
+            if valve_at.is_none() {
+                i.enabled = false;
+                i.reason = Some(strings::text(key!("reason-nav-not-placed")).to_owned());
+            }
+            i
+        }));
     }
 
     /// A fluid device's medium (rc.2, F9): a source chooses it, Medium: `<medium>` for each medium of the project (its

@@ -872,8 +872,29 @@ impl ShellModel {
         };
         match index {
             Some(i) => self.follow_link(g, i),
-            None => Outcome::refused(key!("reason-no-link")),
+            // The selected coil of a valve's solenoid goes to its valve, as the coil's menu does (the rc.2 re-test:
+            // Follow reference did nothing visible).
+            None => match self.selected_coil_valve() {
+                Some(params) => self.dispatch("nav.show", &params),
+                None => Outcome::refused(key!("reason-no-link")),
+            },
         }
+    }
+
+    /// The `nav.show` parameters that go from the one selected symbol, the coil of a valve's solenoid, to its valve;
+    /// `None` for any other selection.
+    fn selected_coil_valve(&self) -> Option<Value> {
+        let page = self.canvas()?.page();
+        let [e] = crate::tools::transform::selected_reps(self.selection(), page)[..] else {
+            return None;
+        };
+        let rep = page.tables.reps.iter().find(|r| r.id == e.0)?;
+        let [function] = rep.functions[..] else {
+            return None;
+        };
+        let (tag, name, _) = self.project_session()?.solenoid_of(function)?;
+        let words = strings::format(key!("nav-show-solenoid"), &[&tag, &name]);
+        Some(serde_json::json!({ "record": rep.device?.to_string(), "words": words }))
     }
 
     /// Follows link `index` of group `g`'s page: a jump to its target, the cursor at the target point.
