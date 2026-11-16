@@ -526,6 +526,42 @@ fn a_card_made_in_the_window_is_a_card_of_the_starter_cpu() {
     );
 }
 
+/// A person's own input card and the starter CPU, input card and remote I/O head stand under PLC and bus in the device
+/// browser: what a part is to a PLC decides, not the category its drawing as a box gave it (they stood under Other).
+/// The valve terminal with a bus node stays with the valve terminals.
+#[test]
+fn plc_parts_stand_under_plc_and_bus_in_the_device_browser() {
+    use ew_ui::ew_viewmodel::tools::{Node, Trade};
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    make_card(&mut d, "DI8-24", "");
+    d.input(&key("Shift+I"));
+    d.settle();
+    let p = d.shell_mut().picker().expect("the device browser");
+    let trade = |number: &str| {
+        let part = p
+            .catalogue
+            .parts
+            .iter()
+            .find(|c| c.part_number == number)
+            .unwrap_or_else(|| panic!("the browser lists {number}"));
+        Node::of_part(part).trade()
+    };
+    for number in ["DI8-24", "EW-GEN-CPU-1", "EW-GEN-DI-1", "EW-GEN-RIO-1"] {
+        assert_eq!(trade(number), Some(Trade::PlcBus), "{number}");
+    }
+    assert_eq!(trade("EW-GEN-VTM-1"), Some(Trade::Pneumatics));
+    // The tree counts them there, and nothing of a PLC is left under Other.
+    let other: Vec<&str> = p
+        .catalogue
+        .parts
+        .iter()
+        .filter(|c| c.plc.is_some() && Node::of_part(c) == Node::Other)
+        .map(|c| c.part_number.as_str())
+        .collect();
+    assert_eq!(other, Vec::<&str>::new());
+}
+
 /// Makes a head station such as an IM 152 in the part editor (New part… in the device browser) and saves it: a PLC
 /// station with the supply pins L+ and M, at most 32 modules and one PROFIBUS DP slave interface `DP`.
 pub(crate) fn make_head_station(d: &mut Driver, number: &str) {

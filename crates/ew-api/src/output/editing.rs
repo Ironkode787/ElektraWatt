@@ -184,6 +184,105 @@ pub struct CataloguePart {
     /// Whether the part is a valve for a valve terminal (`ew_derive::fits_terminal`, no PLC section): the parts a
     /// terminal's empty position offers (rc.2).
     pub terminal_valve: bool,
+    /// What the part is to a PLC ([`CataloguePlc`]): a station's head or a card; `None` for a part without a PLC
+    /// section. The station view's catalogue lists the parts by it.
+    pub plc: Option<CataloguePlc>,
+    /// Whether the browser files the part under PLC and bus whatever its category says: a PLC card or a station's
+    /// head, or a part with a bus interface. A valve terminal is filed as a valve terminal, with its plates and valves.
+    pub plc_bus: bool,
+}
+
+/// What a part is to a PLC, from its PLC and bus sections ([`CataloguePart::plc`]).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct CataloguePlc {
+    /// The kinds of station the part can head (`cpu`, `remote`, `valve_terminal`, `compact`: [`station_kinds`]); empty
+    /// for a card, which goes into a station's slot.
+    pub heads: Vec<&'static str>,
+    /// What it gives the PLC (`8 DI`, [`super::rack::gives_text`]); empty when its section names neither channels nor
+    /// I/O ranges.
+    pub gives: String,
+    /// The slots a card may sit in; empty: any.
+    pub allowed: Vec<u16>,
+    /// The group the station view's catalogue lists it under.
+    pub group: PlcGroup,
+}
+
+/// The groups of the station view's catalogue, in its order.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
+pub enum PlcGroup {
+    /// A station's head that leads a bus or has no bus port: a PLC's CPU.
+    Cpu,
+    /// A station's head that follows on a bus: an interface module, a remote I/O head, a compact device.
+    Interface,
+    /// A valve terminal with a bus node.
+    ValveTerminal,
+    /// A card of digital inputs.
+    DigitalIn,
+    /// A card of digital outputs.
+    DigitalOut,
+    /// A card of analogue inputs or outputs.
+    Analogue,
+    /// Any other card (counters, IO-Link, supply, mixed).
+    OtherCard,
+    /// A valve for a valve terminal's position.
+    Valve,
+}
+
+/// The kinds of station a part can head (the new station's "what it is"): `cpu` a part whose station leads a bus or
+/// has no bus port (a PLC), `remote` one whose bus ports all follow (an interface module on a bus), `valve_terminal`
+/// one that maps solenoids to valve positions, `compact` one with I/O of its own; a part may be more than one of them.
+/// Empty for a part that is no station's head.
+pub(crate) fn station_kinds(part: &Part) -> Vec<&'static str> {
+    use ew_derive::ew_schema::{PlcRole, PortRole};
+    let Some(plc) = part.sections.plc.as_ref().filter(|s| s.role == PlcRole::Station) else {
+        return Vec::new();
+    };
+    let roles: Vec<&PortRole> = part
+        .sections
+        .bus
+        .iter()
+        .flat_map(|b| b.ports.iter().map(|x| &x.role))
+        .collect();
+    let leads = roles
+        .iter()
+        .any(|r| matches!(r, PortRole::Master | PortRole::Controller));
+    let terminal = plc.positions.is_some();
+    [
+        ("cpu", !terminal && (roles.is_empty() || leads)),
+        ("remote", !terminal && !roles.is_empty() && !leads),
+        ("valve_terminal", terminal),
+        ("compact", !terminal && !plc.io.is_empty()),
+    ]
+    .into_iter()
+    .filter_map(|(word, fits)| fits.then_some(word))
+    .collect()
+}
+
+/// What `part` is to a PLC ([`CataloguePart::plc`]).
+fn catalogue_plc(part: &Part) -> Option<CataloguePlc> {
+    use ew_derive::ew_schema::ChannelKind;
+    let plc = part.sections.plc.as_ref()?;
+    let heads = station_kinds(part);
+    let group = if heads.contains(&"valve_terminal") {
+        PlcGroup::ValveTerminal
+    } else if heads.contains(&"cpu") {
+        PlcGroup::Cpu
+    } else if !heads.is_empty() {
+        PlcGroup::Interface
+    } else {
+        match plc.channels.as_ref().map(|c| &c.kind) {
+            Some(ChannelKind::Di) => PlcGroup::DigitalIn,
+            Some(ChannelKind::Do) => PlcGroup::DigitalOut,
+            Some(ChannelKind::Ai | ChannelKind::Ao) => PlcGroup::Analogue,
+            _ => PlcGroup::OtherCard,
+        }
+    };
+    Some(CataloguePlc {
+        heads,
+        gives: super::rack::gives_text(plc),
+        allowed: plc.allowed_slots.clone(),
+        group,
+    })
 }
 
 /// One function of a part's template in the place catalogue.
@@ -613,6 +712,14 @@ fn catalogue_part(
             Vec::new()
         },
         terminal_valve,
+        plc_bus: part
+            .sections
+            .plc
+            .as_ref()
+            .is_none_or(|p| p.positions.is_none())
+            && (part.sections.plc.is_some()
+                || part.sections.bus.as_ref().is_some_and(|b| !b.ports.is_empty())),
+        plc: catalogue_plc(part),
     })
 }
 

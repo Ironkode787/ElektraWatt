@@ -158,6 +158,17 @@ impl Node {
         }
     }
 
+    /// The node a part stands under besides All: its category's ([`Node::of_category`]); a PLC card, a station's head
+    /// and a part with a bus interface stand under PLC and bus whatever their category says (a CPU drawn as a black
+    /// box stood under Other), in their own group when it is one of that trade, else with the PLCs and controllers.
+    pub fn of_part(part: &ew_api::output::CataloguePart) -> Node {
+        let node = Node::of_category(&part.category);
+        if part.plc_bus && node.trade() != Some(Trade::PlcBus) {
+            return Node::of_category("Controller");
+        }
+        node
+    }
+
     /// The trade a node is part of: its own, or its sub-group's.
     pub fn trade(&self) -> Option<Trade> {
         match self {
@@ -260,6 +271,25 @@ pub fn trade_of(key: &str) -> Option<Trade> {
         "Enclosure" | "MountingAccessory" => Trade::Enclosure,
         _ => return None,
     })
+}
+
+/// The typed tokens of a filter text, case-folded: the browser's filter and the station view's catalogue filter.
+pub(crate) fn filter_tokens(filter: &str) -> Vec<String> {
+    filter.to_lowercase().split_whitespace().map(str::to_owned).collect()
+}
+
+/// Whether every token is a case-folded substring of one of `texts` ("relay" found the generic relay only by its key).
+pub(crate) fn tokens_hit(tokens: &[String], texts: &[&str]) -> bool {
+    let texts: Vec<String> = texts.iter().map(|t| t.to_lowercase()).collect();
+    tokens.iter().all(|tok| texts.iter().any(|t| t.contains(tok.as_str())))
+}
+
+/// The texts a part is found by: its part number, its manufacturer and its words (its description in every language
+/// and its category).
+pub(crate) fn part_texts(part: &ew_api::output::CataloguePart) -> Vec<&str> {
+    let mut texts = vec![part.part_number.as_str(), part.manufacturer.as_str()];
+    texts.extend(part.words.iter().map(String::as_str));
+    texts
 }
 
 /// The words of the function category `key` (the first level of an FnDef category, `ProtectionOvercurrent`) in the UI
@@ -419,11 +449,8 @@ impl Picker {
         // Every typed token is a case-folded substring of one of the row's texts ("relay" found the generic
         // relay only by its key).
         let f = self.filter.to_lowercase();
-        let tokens: Vec<&str> = f.split_whitespace().collect();
-        let hits = |texts: &[&str]| {
-            let texts: Vec<String> = texts.iter().map(|t| t.to_lowercase()).collect();
-            tokens.iter().all(|tok| texts.iter().any(|t| t.contains(tok)))
-        };
+        let tokens = filter_tokens(&self.filter);
+        let hits = |texts: &[&str]| tokens_hit(&tokens, texts);
         let mut rows = Vec::new();
         self.nodes.clear();
         if self.mode == PickerMode::Strip {
@@ -498,8 +525,7 @@ impl Picker {
                 if self.cell.is_some() && !part.terminal_valve {
                     continue;
                 }
-                let mut texts = vec![part.part_number.as_str(), part.manufacturer.as_str()];
-                texts.extend(part.words.iter().map(String::as_str));
+                let mut texts = part_texts(part);
                 if part.functions.is_empty() {
                     // Device from part lists a held copy without a function template as one row.
                     if self.mode != PickerMode::Parts {
@@ -513,11 +539,7 @@ impl Picker {
                     texts.extend(listed.iter().map(|k| part.functions[*k].fndef_key.as_str()));
                 }
                 if hits(&texts) {
-                    found.push((
-                        PickerRow::Part(p),
-                        Node::of_category(&part.category),
-                        part.library.is_none(),
-                    ));
+                    found.push((PickerRow::Part(p), Node::of_part(part), part.library.is_none()));
                 }
             }
         }
