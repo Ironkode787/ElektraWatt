@@ -686,7 +686,7 @@ impl ShellModel {
     /// Arms the black box tool with the interfaces of a device on a bus-topology page, a box each (`bus.place_ports`,
     /// doc 10 §2.7): `target` the command's target, `label` what the tool's label names, `part` the part copy of a new
     /// device (whose closure travels in the placement).
-    fn arm_ports(
+    pub(super) fn arm_ports(
         &mut self,
         cat: &PlaceCatalogue,
         target: Value,

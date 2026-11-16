@@ -6731,3 +6731,5 @@ rack-no-head-part = Er staat geen artikel van deze soort in de bibliotheken. Nie
 rack-use-device = { $p0 } gebruiken, dat al op de bus staat
 rack-bus-page-title = Bus
 reason-rack-which-bus-page = Het project heeft meer bustopologiepagina's: kies er een onder Op een buspagina zetten
+rack-no-bus-interface = Het artikel van { $p0 } heeft geen businterface en hoort dus niet op een buspagina: geef het een artikel met een busknooppunt
+rack-bus-drawn = Elke businterface van { $p0 } staat al op pagina { $p1 }

@@ -467,6 +467,19 @@ impl Session {
         network_switch(&self.query(), Id::from_uuid(device))
     }
 
+    /// Whether a part of `device` declares a bus interface: what a bus-topology page draws of it.
+    pub fn has_bus_interfaces(&self, device: Uuid) -> bool {
+        let q = self.query();
+        q.devices().get(Id::from_uuid(device)).is_some_and(|d| {
+            d.parts.iter().any(|u| {
+                q.parts()
+                    .get(u.part.copy)
+                    .and_then(|c| c.item.sections.bus.as_ref())
+                    .is_some_and(|b| !b.ports.is_empty())
+            })
+        })
+    }
+
     /// The bus devices of the project that belong to no PLC ([`PlcOffer::BusDevice`]), by tag, each with whether one
     /// of its bus ports leads a bus (a master or controller): the new-station dialog offers them as the station.
     pub fn free_bus_devices(&self) -> Vec<(Uuid, String, bool)> {

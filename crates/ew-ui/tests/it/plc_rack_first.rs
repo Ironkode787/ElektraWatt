@@ -312,6 +312,53 @@ fn put_it_on_a_bus_page_makes_the_page_or_asks_which() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// The topology boxes of `device` on the page shown.
+fn topology_boxes(h: &egui_kittest::Harness<'static, ew_ui::app::App>, device: Uuid) -> usize {
+    h.state()
+        .shell()
+        .canvas()
+        .map_or(0, |c| c.page().tables.reps.iter().filter(|r| r.device == Some(device)).count())
+}
+
+/// A station of kind `kind` with head part `head` made in the new-station dialog and put on a bus page from its rack
+/// with two corners of its first box: the station.
+fn station_on_bus_page(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>, kind: &str, head: &str) -> Uuid {
+    dispatch(h, "plc.new_station", json!({}));
+    dispatch(h, "plc.rack_set", json!({"kind": kind, "head": head}));
+    settle(h);
+    support::menu_node(h, "Create").click();
+    settle(h);
+    let station = match h.state().shell().dialog() {
+        Some(Dialog::Rack { station: Some(s), .. }) => *s,
+        other => panic!("{other:?}"),
+    };
+    h.get_by_label("Put it on a bus page").click();
+    settle(h);
+    crate::navigators::cursor_k(h, (10, 10));
+    dispatch(h, "canvas.activate", json!({}));
+    crate::navigators::cursor_k(h, (18, 16));
+    dispatch(h, "canvas.activate", json!({}));
+    dispatch(h, "tool.select", json!({}));
+    settle(h);
+    station
+}
+
+/// The rc.2 persona runs: a valve terminal with a PROFINET bus node goes onto a bus page from its rack as the CPU
+/// does, and a CPU with a PROFIBUS and a PROFINET interface stands there as both boxes, which the toast says.
+#[test]
+fn every_station_kind_goes_onto_a_bus_page_with_all_its_interfaces() {
+    let tmp = Tmp::new();
+    let mut h = new_project(&tmp);
+    let terminal = station_on_bus_page(&mut h, "valve_terminal", "EW-GEN-VTM-2");
+    assert_eq!(topology_boxes(&h, terminal), 1, "the terminal's bus node");
+    dispatch(&mut h, "page.goto", json!({"folio": "101"}));
+    let cpu = station_on_bus_page(&mut h, "cpu", "EW-GEN-CPU-2");
+    assert_eq!(topology_boxes(&h, cpu), 2, "DP and X1");
+    let toast = h.state().shell().toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert_eq!(toast, "Placed as 2 boxes, one for each bus interface.");
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// The new-station dialog with the starter CPU as its head part and `modules` input modules in its rack, not made yet.
 fn draft_with(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>, modules: u64) {
     dispatch(h, "plc.new_station", json!({}));

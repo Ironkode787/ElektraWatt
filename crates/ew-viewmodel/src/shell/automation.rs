@@ -887,6 +887,14 @@ impl ShellModel {
             Ok(Some("bus")) => {
                 // The bus page named, else the only one; with none one is made, asking nothing; with several the
                 // window asks which (rc.2 persona run: the button ended in "make one with New page first").
+                // A station whose part has no bus interface cannot stand on a bus page: said under the slots (the
+                // rc.2 persona run's valve terminal closed the dialog and did nothing).
+                let (tag, bus) = self.project_session().map_or((String::new(), false), |s| {
+                    (s.device_tag(station).unwrap_or_default(), s.has_bus_interfaces(station))
+                });
+                if !bus {
+                    return self.rack_refuse(strings::format(key!("rack-no-bus-interface"), &[&tag]));
+                }
                 let pages = self.bus_pages();
                 let folio = match string_param(p, "folio") {
                     Ok(Some(f)) if pages.iter().any(|(x, _)| x == f) => f.to_owned(),
@@ -921,23 +929,26 @@ impl ShellModel {
                         }
                     },
                 };
+                // Every interface not drawn there, a box each (rc.2 persona run: the CPU stood there with its DP alone).
+                let interfaces = self
+                    .project_session()
+                    .map(|s| s.undrawn_interfaces(station, &folio))
+                    .unwrap_or_default();
+                if interfaces.is_empty() {
+                    return self.rack_refuse(strings::format(key!("rack-bus-drawn"), &[&tag, &folio]));
+                }
                 self.dialog = None;
                 let opened = self.dispatch("page.goto", &json!({ "folio": folio }));
                 if opened != Outcome::Done {
                     return opened;
                 }
-                let folio = self.current_folio().unwrap_or_default().to_owned();
-                let port = self
-                    .project_session()
-                    .and_then(|s| s.undrawn_interfaces(station, &folio).into_iter().next())
-                    .map(|i| i.label);
-                match port {
-                    Some(port) => self.dispatch(
-                        "place.pick",
-                        &json!({ "device": station.to_string(), "port": port }),
-                    ),
-                    None => Outcome::refused(key!("reason-port-drawn")),
-                }
+                let Some(cat) = self.catalogue() else {
+                    return Outcome::refused(key!("reason-no-catalogue"));
+                };
+                let labels: Vec<&str> = interfaces.iter().map(|i| i.label.as_str()).collect();
+                let label = format!("{tag} {}", labels.join(", "));
+                let target = json!({"device": {"device": station.to_string()}});
+                self.arm_ports(&cat, target, label, &interfaces, None)
             }
             Ok(_) => failed(key!("error-bad-param"), &["step"]),
             Err(e) => e,

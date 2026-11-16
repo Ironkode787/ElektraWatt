@@ -48,8 +48,10 @@ const VERSION: &str = "0.1.0";
 /// persona re-test), 0.10.0 since the two solenoid valves have the valve as their main function, the basic
 /// pneumatic parts were added (rc.2, F10 and F11) and the bus plugs (EW-GEN-PLG-1 to -5, a bus line's plugs, doc 10
 /// §2.7), 0.11.0 since the multipin valve terminal EW-GEN-VTP-1 was added and the valve terminal EW-GEN-VTM-1 says
-/// that it has a bus node (rc.2, F15).
-const LIBRARY_VERSION: &str = "0.11.0";
+/// that it has a bus node (rc.2, F15), 0.12.0 since that terminal's bus node has its PROFIBUS DP interface and the
+/// terminal with a PROFINET bus node EW-GEN-VTM-2 was added (the rc.2 persona run: Put it on a bus page did nothing for
+/// a terminal whose part had no bus interface).
+const LIBRARY_VERSION: &str = "0.12.0";
 /// The parts whose content changed after 0.1.0, at their next patch version (the selector switch on a
 /// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y. The relay
 /// and the contactor template their contacts beside the coil. The CPU's bus section, after 0.2.0.
@@ -73,7 +75,7 @@ const BUMPED: &[(&str, &str)] = &[
     ("EW-GEN-TRM-1", "0.1.1"),
     ("EW-GEN-TRM-2", "0.1.1"),
     ("EW-GEN-CBL-1", "0.1.1"),
-    ("EW-GEN-VTM-1", "0.1.1"),
+    ("EW-GEN-VTM-1", "0.1.2"),
 ];
 
 /// The bus section of part `number`: the generic CPUs' interfaces (EW-GEN-CPU-1's DP master; EW-GEN-CPU-2's DP
@@ -108,6 +110,9 @@ fn bus_section(number: &str) -> Option<Value> {
         "EW-GEN-ESW-5" => Some(json!({"ports": [sockets("passive", 5)]})),
         "EW-GEN-ESW-8" => Some(json!({"ports": [sockets("device", 8)]})),
         "EW-GEN-PND-1" => Some(json!({"ports": [sockets("device", 2)]})),
+        // The valve terminals' bus nodes: a PROFIBUS DP slave, a PROFINET device with two sockets.
+        "EW-GEN-VTM-1" => Some(json!({"ports": [port("DP", "profibus_dp", "slave")]})),
+        "EW-GEN-VTM-2" => Some(json!({"ports": [sockets("device", 2)]})),
         "EW-GEN-CBL-2" => Some(json!({"cable_for": ["profibus_dp"]})),
         "EW-GEN-CBL-3" => Some(json!({"cable_for": ["profinet", "ethernet_ip", "modbus_tcp"]})),
         // The bus plugs (doc 10 §2.7): a passive interface of their bus with their connector type; a plug with a
@@ -129,7 +134,7 @@ fn bus_section(number: &str) -> Option<Value> {
 fn own_category(number: &str) -> Option<Value> {
     match number {
         "EW-GEN-CON-1" => Some(json!(["SwitchingPower", "Contactor", "3P"])),
-        "EW-GEN-VTM-1" => Some(json!(["ValveTerminalNode", "Station", "Generic"])),
+        "EW-GEN-VTM-1" | "EW-GEN-VTM-2" => Some(json!(["ValveTerminalNode", "Station", "Generic"])),
         "EW-GEN-VTP-1" => Some(json!(["ValveTerminalNode", "Multipin", "Generic"])),
         _ => None,
     }
@@ -636,7 +641,28 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-VTM-1",
             kind: None,
-            description: "Valve terminal with bus node, 4 valve positions, 8 outputs",
+            description: "Valve terminal with PROFIBUS DP bus node, 4 valve positions, 8 outputs",
+            cps: Vec::new(),
+            template: vec![("ew.fn.overview", true, Vec::new())],
+            contacts: Vec::new(),
+            tech: vec![("rated_voltage", q("24", "V"))],
+            plc: Some(json!({
+                "role": "station",
+                "io": [{"dir": "out", "bits": 8}],
+                "channels": {"count": 8, "kind": "do", "data_type": "Bool", "designation": "{n}"},
+                "bit_of": "n",
+                "unbound": "deactivated",
+                "positions": {"count": 4, "map": [{"solenoid": "14", "channel": "2p"}, {"solenoid": "12", "channel": "2p+1"}]},
+            })),
+            mech: ts35("40", "107", "70"),
+            sections: Some(json!({"fluid": {"positions": 4}})),
+            unit: None,
+        },
+        // The same terminal with a PROFINET bus node (the rc.2 persona run wanted a manifold on PROFINET).
+        Def {
+            number: "EW-GEN-VTM-2",
+            kind: None,
+            description: "Valve terminal with PROFINET bus node, 4 valve positions, 8 outputs",
             cps: Vec::new(),
             template: vec![("ew.fn.overview", true, Vec::new())],
             contacts: Vec::new(),

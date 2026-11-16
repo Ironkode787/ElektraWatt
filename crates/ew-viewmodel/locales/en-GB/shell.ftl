@@ -6993,3 +6993,5 @@ rack-no-head-part = No part of this kind is in the libraries. New part… makes 
 rack-use-device = Use { $p0 }, which is on the bus
 rack-bus-page-title = Bus
 reason-rack-which-bus-page = The project has several bus-topology pages: choose one under Put it on a bus page
+rack-no-bus-interface = { $p0 }'s part has no bus interface, so it has no place on a bus page: give it a part with a bus node
+rack-bus-drawn = Every bus interface of { $p0 } is drawn on page { $p1 } already
