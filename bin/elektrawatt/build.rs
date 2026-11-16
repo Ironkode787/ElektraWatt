@@ -6,12 +6,16 @@
 //! test `app_icon` keeps the two equal) as icon group 1 and hands it to the linker, which takes a `.res` file as an
 //! input (link.exe and lld-link alike). Explorer, the task bar and the setup's shortcut show the first icon group of
 //! the executable. No resource compiler and no build dependency: the `.res` format is a sequence of headed records.
+//! The same script gives the executable's main thread a stack of 8 MiB (see `STACK_BYTES`).
 //! On every other target the script does nothing.
 
 use std::path::Path;
 
 /// The icon, relative to this package.
 const ICO: &str = "../../assets/icons/app/elektrawatt.ico";
+
+/// The stack of the program's main thread on Windows: Linux's default, 8 MiB.
+const STACK_BYTES: u32 = 8 * 1024 * 1024;
 
 /// The resource types of an icon image and of an icon group.
 const RT_ICON: u16 = 3;
@@ -33,6 +37,11 @@ fn main() {
     let path = Path::new(&out).join("elektrawatt-icon.res");
     std::fs::write(&path, res).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
     println!("cargo:rustc-link-arg-bins={}", path.display());
+    // The main thread's stack. Windows fixes it in the executable at link time and gives 1 MiB by default, where
+    // Linux gives 8 MiB: the window's dispatch ran so close to that megabyte that one more inlined function made
+    // the offscreen self-test overflow it in some runs (rc.2). The window runs on the main thread, so the room is
+    // given here, to link.exe and lld-link alike, and does not hang on how the compiler lays out one function.
+    println!("cargo:rustc-link-arg-bins=/STACK:{STACK_BYTES}");
 }
 
 /// The `.res` file of the icon file `ico`: the empty leading record, one `RT_ICON` record per image (IDs from 1) and
