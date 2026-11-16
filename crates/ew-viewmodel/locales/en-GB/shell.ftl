@@ -3387,6 +3387,7 @@ canvas-solenoid-output = Go to the output of solenoid { $p0 } ({ $p1 })
 canvas-solenoid-pin = Go to solenoid { $p0 }: pin { $p1 } of the plug of { $p2 }
 canvas-plug-draw = Draw the plug of { $p0 } on an electrical page…
 canvas-position = Position { $p0 }: { $p1 }
+nav-show-solenoid = { $p0 }, solenoid { $p1 }
 canvas-position-empty = empty
 canvas-position-blank = blanking plate
 canvas-medium-none-go = No medium: go to the air supply { $p0 } and choose one there

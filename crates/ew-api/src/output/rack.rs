@@ -1312,6 +1312,21 @@ impl Session {
         terminal_plug(&self.query(), Id::from_uuid(device))
     }
 
+    /// Where Go to shows a thing (rc.2): the page and the representation of the first drawing (in representation-ID
+    /// order) of function `record`, or of the device `record`'s main function; `None` for one drawn nowhere.
+    pub fn first_drawing(&self, record: Uuid) -> Option<(Uuid, Uuid)> {
+        let q = self.query();
+        let device: Id<Device> = Id::from_uuid(record);
+        let function = if q.devices().contains(device) {
+            (*q.get::<ew_derive::MainFunction>(device))?
+        } else {
+            Id::from_uuid(record)
+        };
+        let rep = q.idx().reps_of_function(function).min()?;
+        let page = q.reps().get(rep)?.page;
+        Some((page.as_uuid(), rep.as_uuid()))
+    }
+
     /// The valve terminal whose main function is `function` (drawn as its positions on a fluid page, as its plug
     /// elsewhere); `None` for any other function.
     pub fn terminal_of_main(&self, function: Uuid) -> Option<Uuid> {

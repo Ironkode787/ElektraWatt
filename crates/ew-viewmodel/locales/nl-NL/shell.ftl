@@ -3259,6 +3259,7 @@ canvas-solenoid-output = Naar de uitgang van magneetspoel { $p0 } ({ $p1 })
 canvas-solenoid-pin = Naar magneetspoel { $p0 }: pen { $p1 } van de stekker van { $p2 }
 canvas-plug-draw = De stekker van { $p0 } op een elektrische pagina tekenen…
 canvas-position = Positie { $p0 }: { $p1 }
+nav-show-solenoid = { $p0 }, magneetspoel { $p1 }
 canvas-position-empty = leeg
 canvas-position-blank = blindplaat
 canvas-medium-none-go = Geen medium: ga naar de persluchtaansluiting { $p0 } en kies er daar een

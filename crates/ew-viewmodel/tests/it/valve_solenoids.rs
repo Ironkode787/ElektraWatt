@@ -144,13 +144,34 @@ fn a_valves_menu_draws_its_solenoid_and_both_say_where_the_other_is() {
         "the valve's own coil, no second device"
     );
     // The coil says which valve it belongs to, in its menu and its Properties.
-    let label = format!("Solenoid 14 of {}", tag_of(&s, &coil));
+    let tag = tag_of(&s, &coil);
+    let label = format!("Solenoid 14 of {tag}");
     let menu = menu_of(&mut s, &coil);
-    assert!(
-        menu.iter().any(|(l, id, _)| *l == label && *id == "nav.goto"),
-        "{menu:?}"
-    );
+    let go = menu
+        .iter()
+        .find(|(l, _, _)| *l == label)
+        .unwrap_or_else(|| panic!("{menu:?}"))
+        .clone();
     assert_eq!(row_text(&s, "representation/derived.solenoid_of"), Some(label));
+    // Going there marks the valve's symbol itself and says what it is (rc.2: a ring at the cell's middle meant
+    // nothing to the persona).
+    assert_eq!(s.dispatch(go.1, &go.2), Outcome::Done);
+    assert_eq!(s.current_folio(), Some("102"));
+    assert!(
+        s.selection()
+            .contains(ew_viewmodel::ew_api::output::ew_dl::EntityRef(valve.id)),
+        "the valve's symbol is marked"
+    );
+    let words = format!("{tag}, solenoid 14");
+    assert!(
+        s.tool_overlay().items.iter().any(|i| matches!(
+            i,
+            ew_viewmodel::tools::OverlayItem::Label { text, .. } if *text == words
+        )),
+        "{:?}",
+        s.tool_overlay()
+    );
+    done(&mut s, "page.goto", json!({"folio": "101"}));
     // The valve goes to its coil now, and its Properties say where the coil stands.
     done(&mut s, "page.goto", json!({"folio": "102"}));
     let menu = menu_of(&mut s, &valve);

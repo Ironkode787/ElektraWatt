@@ -766,8 +766,10 @@ impl ShellModel {
         match symbol_of.and_then(|f| session.solenoid_of(f)) {
             Some((tag, name, valve_at)) => {
                 let label = strings::format(key!("props-solenoid-of"), &[&name, &tag]);
+                let words = strings::format(key!("nav-show-solenoid"), &[&tag, &name]);
+                let params = json!({ "record": device.to_string(), "words": words });
                 out.extend(
-                    self.aimed("nav.goto", json!({ "text": valve_at }), label)
+                    self.aimed("nav.show", params, label)
                         .map(|mut i| {
                             if valve_at.is_none() {
                                 i.enabled = false;
@@ -811,11 +813,15 @@ impl ShellModel {
                         None => {}
                     }
                     out.extend(match &s.drawn {
-                        Some(place) => self.aimed(
-                            "nav.goto",
-                            json!({ "text": place }),
-                            strings::format(key!("canvas-solenoid-go"), &[&s.name, place]),
-                        ),
+                        Some(place) => {
+                            let tag = session.device_tag(device).unwrap_or_default();
+                            let words = strings::format(key!("nav-show-solenoid"), &[&tag, &s.name]);
+                            self.aimed(
+                                "nav.show",
+                                json!({ "record": s.function.to_string(), "words": words }),
+                                strings::format(key!("canvas-solenoid-go"), &[&s.name, place]),
+                            )
+                        }
                         None => self.aimed(
                             "fluid.draw_solenoid",
                             json!({ "function": s.function.to_string() }),

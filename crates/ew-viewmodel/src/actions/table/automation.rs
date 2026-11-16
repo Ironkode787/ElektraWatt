@@ -421,6 +421,19 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
+    // Go to a thing by its drawing (rc.2): a valve's solenoid and the coil's valve, the symbol selected and named.
+    with_params(
+        "record:text, words?:text",
+        needs_parameters(hidden(act(
+            "nav.show",
+            View,
+            Menu::Page,
+            &[],
+            has_pages,
+            None,
+            |s, p| s.act_nav_show(p),
+        ))),
+    ),
     // A valve terminal made as a station, drawn on a fluid page as its positions (rc.2): its PLC row, its rack dialog.
     with_params(
         "terminal:ref",
