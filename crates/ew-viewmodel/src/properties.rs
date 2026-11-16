@@ -834,8 +834,13 @@ const PRIMARY: &[(&str, &[&str])] = &[
             "derived.colour",
             // Whether the wire prints its marker, beside the cross-section and the colour it prints.
             "overrides.show_marker",
+            // A bus line's cable and plugs (a persona run looked for them and did not find them).
+            "derived.bus_cable",
+            "derived.bus_plugs",
         ],
     ),
+    // A bus port's address: the device name and IP, the station address (a persona run looked for them).
+    ("function", &["bus_port.address"]),
     // A wire's and an interruption point's potential: its name, the kind of signal and the voltage (FT-1651).
     ("potential_def", &["name", "ptype", "voltage"]),
 ];
@@ -1103,6 +1108,23 @@ pub fn row_label(section: &SheetSection, row: &PropRow) -> String {
         && let Some(name) = json.get("designation").and_then(Value::as_str)
     {
         return strings::format(key!("props-port"), &[name]);
+    }
+    // A bus port's address is named by what it is on its bus: the device name and IP on PROFINET, the station address
+    // on PROFIBUS (a persona run found "no field for the device name and IP").
+    if section.kind == "function" && row.path == "bus_port.address" {
+        let bus = section
+            .rows
+            .iter()
+            .find(|r| r.path == "bus_port.bus")
+            .and_then(|r| match &r.value {
+                RowValue::One { json, .. } => json.as_str(),
+                _ => None,
+            });
+        match bus {
+            Some("profinet") => return strings::text(key!("props-address-profinet")).to_owned(),
+            Some("profibus_dp") => return strings::text(key!("props-address-profibus")).to_owned(),
+            _ => {}
+        }
     }
     strings::field_label(&section.kind, &row.path_for_label())
 }

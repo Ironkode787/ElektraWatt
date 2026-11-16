@@ -359,6 +359,42 @@ fn every_station_kind_goes_onto_a_bus_page_with_all_its_interfaces() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// A longer persona run found no field for the device name and IP: an empty bus-topology page says its three steps
+/// where the pointer's hint stands, and a CPU's box on it shows its addresses in Main, named as its bus names them.
+#[test]
+fn a_bus_page_says_its_steps_and_a_box_its_addresses() {
+    use ew_ui::ew_viewmodel::properties::{RowGroup, group_of, row_label};
+    let tmp = Tmp::new();
+    let mut h = new_project(&tmp);
+    let cpu = station_on_bus_page(&mut h, "cpu", "EW-GEN-CPU-2");
+    dispatch(&mut h, "select.set", json!({"ids": []}));
+    settle(&mut h);
+    let prompt = ew_ui::ew_viewmodel::command_bar::hud(h.state().shell()).prompt;
+    assert!(prompt.starts_with("1 Place the stations"), "{prompt}");
+    let rep = h
+        .state()
+        .shell()
+        .canvas()
+        .and_then(|c| c.page().tables.reps.iter().find(|r| r.device == Some(cpu)).map(|r| r.id))
+        .expect("a box of the CPU");
+    dispatch(&mut h, "select.set", json!({"ids": [rep.to_string()]}));
+    dispatch(&mut h, "props.show", json!({"on": true}));
+    settle(&mut h);
+    let sheet = h.state().shell().properties().sheet().expect("the sheet").clone();
+    let main: Vec<String> = sheet
+        .sections
+        .iter()
+        .flat_map(|s| s.rows.iter().map(move |r| (s, r)))
+        .filter(|(s, r)| group_of(s, r) == RowGroup::Main)
+        .map(|(s, r)| row_label(s, r))
+        .collect();
+    assert!(
+        main.iter().any(|l| l == "Station address" || l == "Device name and IP"),
+        "{main:?}"
+    );
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// The new-station dialog with the starter CPU as its head part and `modules` input modules in its rack, not made yet.
 fn draft_with(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>, modules: u64) {
     dispatch(h, "plc.new_station", json!({}));

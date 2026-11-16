@@ -989,6 +989,13 @@ pub fn hud(model: &ShellModel) -> HudModel {
                         &key_name(model, "edit.delete_selection"),
                     ],
                 )
+            } else if model
+                .page_rows()
+                .get(model.page_index())
+                .is_some_and(|r| r.kind == "bus_topology")
+            {
+                // A bus-topology page says its three steps where the user looks (a persona run found no way on).
+                strings::text(key!("hud-bus-page-steps")).to_owned()
             } else if let Some(reason) = crate::actions::page_type_reason(model) {
                 // Doc 16a P3: on a page that takes no symbols, with no tool armed, the reason stands
                 // where the user looks: the page type's, as a greyed drawing tool says it.

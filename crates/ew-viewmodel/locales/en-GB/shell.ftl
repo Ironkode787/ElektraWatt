@@ -6995,3 +6995,6 @@ rack-bus-page-title = Bus
 reason-rack-which-bus-page = The project has several bus-topology pages: choose one under Put it on a bus page
 rack-no-bus-interface = { $p0 }'s part has no bus interface, so it has no place on a bus page: give it a part with a bus node
 rack-bus-drawn = Every bus interface of { $p0 } is drawn on page { $p1 } already
+props-address-profinet = Device name and IP
+props-address-profibus = Station address
+hud-bus-page-steps = 1 Place the stations (Device…) · 2 Connect their ports with Wire · 3 Give their addresses in the Bus panel

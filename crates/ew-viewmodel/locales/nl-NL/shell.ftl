@@ -6733,3 +6733,6 @@ rack-bus-page-title = Bus
 reason-rack-which-bus-page = Het project heeft meer bustopologiepagina's: kies er een onder Op een buspagina zetten
 rack-no-bus-interface = Het artikel van { $p0 } heeft geen businterface en hoort dus niet op een buspagina: geef het een artikel met een busknooppunt
 rack-bus-drawn = Elke businterface van { $p0 } staat al op pagina { $p1 }
+props-address-profinet = Apparaatnaam en IP
+props-address-profibus = Stationsadres
+hud-bus-page-steps = 1 Plaats de stations (Apparaat…) · 2 Verbind hun poorten met Draad · 3 Geef hun adressen in het Bus-paneel
