@@ -23,8 +23,8 @@ use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 ///
 /// `label` is the terminal's function text (the "1+" of the reference), `group` the caption of the strip
 /// group that holds its `seq`. `side1` and `side2` list what is wired to the terminal's CPs of that side
-/// (clamp a is side 1, clamp b side 2 on the golden strips): the far end of each wire, `via` the cable and
-/// core when the wire is a core. `bridge` is the label of the bridge the terminal belongs to (`BR1`).
+/// (clamp a is side 1, clamp b side 2 on the golden strips; a CP without a side lists on side 1): the far end of
+/// each wire, `via` the cable and core when the wire is a core. `bridge` is the label of the bridge the terminal belongs to (`BR1`).
 /// `state` is `spare`, `reserved` or `not fitted` as authored, else `used` when the terminal has a wire or
 /// a bridge and `unused` otherwise (doc 08 §6.6).
 ///
@@ -98,10 +98,10 @@ impl ReportKindDef for TerminalDiagram {
                             potential = Cell::Ident(q.get::<PotentialNameOf>(p.id).name.text.clone());
                         }
                         let Some(recs) = by_cp.get(&r) else { continue };
+                        // A CP whose part and definition give it no side lists on side 1, never nowhere.
                         let target = match cp.side {
-                            Some(Side::Side1) => &mut side1,
                             Some(Side::Side2) => &mut side2,
-                            _ => continue,
+                            _ => &mut side1,
                         };
                         for rec in recs {
                             target.push(target_text(q, rec, r));

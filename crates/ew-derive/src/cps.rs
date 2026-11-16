@@ -71,7 +71,7 @@ pub struct Cp {
 ///   named by the entry's `cps` (CP indices, `CpData.idx`; empty means the whole pattern). When `cps` lists as
 ///   many pattern entries as the FnDef has CPs, they pair with the FnDef's CPs by position and each function CP
 ///   keeps the FnDef CP's `idx`; otherwise they are taken in `idx` order with their own `idx` and pair with the
-///   FnDef CP of the same `idx`. Each takes designation, level, side and clamp from the pattern, the potential
+///   FnDef CP of the same `idx`. Each takes its designation from the pattern, level, side, clamp and the potential
 ///   role from the pattern else from its FnDef CP, and discipline, alias, source output, optional, physical and
 ///   port role from its FnDef CP if there is one, else the defaults of a black-box pattern CP. A template naming no
 ///   pattern CP gives the CPs of the function definition.
@@ -307,9 +307,11 @@ fn template_cps(q: &Q, function: &Function) -> Option<Vec<Cp>> {
                 .or_else(|| def_cp.and_then(|f| f.potential_role.clone())),
             source_output: def_cp.is_some_and(|f| f.source_output),
             optional: def_cp.is_some_and(|f| f.optional),
-            level: c.level,
-            side: c.side.clone(),
-            clamp: c.clamp.clone(),
+            // A pattern that names only designations (a generic terminal part) keeps its FnDef's level, side
+            // and clamp, so the terminal diagram can still tell clamp a from clamp b.
+            level: c.level.or_else(|| def_cp.and_then(|f| f.level)),
+            side: c.side.clone().or_else(|| def_cp.and_then(|f| f.side.clone())),
+            clamp: c.clamp.clone().or_else(|| def_cp.and_then(|f| f.clamp.clone())),
             physical: def_cp.is_none_or(|f| f.physical),
             port_role: def_cp.and_then(|f| f.port_role.clone()),
             overridden: false,
