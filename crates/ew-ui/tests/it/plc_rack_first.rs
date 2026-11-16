@@ -106,7 +106,7 @@ fn a_station_is_made_as_a_rack_and_filled() {
         view.rows.iter().all(|r| r.module.is_none() || !r.drawn),
         "drawn nowhere yet"
     );
-    h.get_by_label("Draw on this page");
+    h.get_by_label("Draw on page 101 Control");
     h.get_by_label("Put it on a bus page");
     dispatch(&mut h, "ui.dismiss", json!({}));
     dispatch(&mut h, "edit.undo", json!({}));
@@ -515,6 +515,37 @@ fn the_add_module_picker_takes_a_double_click_in_its_count() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// A persona run: Draw on this page put the station on page 1 without a word. The button names the page in front; on
+/// a page that takes no symbols it is Draw on a page ▸, whose New page… makes a schematic page and draws there.
+#[test]
+fn draw_names_the_page_or_lists_the_pages() {
+    let tmp = Tmp::new();
+    let mut h = new_project(&tmp);
+    draft_with(&mut h, 1);
+    support::menu_node(&h, "Create").click();
+    settle(&mut h);
+    let station = match h.state().shell().dialog() {
+        Some(Dialog::Rack { station: Some(s), .. }) => *s,
+        other => panic!("{other:?}"),
+    };
+    h.get_by_label("Draw on page 101 Control");
+    dispatch(&mut h, "ui.dismiss", json!({}));
+    dispatch(&mut h, "page.new", json!({"folio": "900", "type": "bus_topology", "title": "Field bus"}));
+    dispatch(&mut h, "plc.rack_editor", json!({"station": station.to_string()}));
+    settle(&mut h);
+    h.get_by_label("Draw on a page ▸").click();
+    settle(&mut h);
+    support::menu_node(&h, "101 Control");
+    support::menu_node(&h, "New page…").click();
+    settle(&mut h);
+    let shell = h.state().shell();
+    let row = shell.page_rows().get(shell.page_index()).expect("a page");
+    assert_eq!(row.kind, "multi_line", "a new schematic page");
+    assert_ne!(row.folio, "101");
+    assert_eq!(topology_boxes(&h, station), 1, "the station drawn there");
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// The channel rows of the PLC panel: (channel, module, badges).
 fn channel_rows(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>) -> Vec<(Uuid, Uuid, Vec<String>)> {
     use ew_ui::ew_viewmodel::navigators::NavKind;
@@ -565,7 +596,7 @@ fn modules_drawn_from_the_rack_are_bound_to_their_pins() {
     assert!(topology_boxes(&h, modules[1]) == 1, "the module's box");
     dispatch(&mut h, "plc.rack_editor", json!({"station": station.to_string()}));
     settle(&mut h);
-    h.get_by_label("Draw on this page").click();
+    h.get_by_label("Draw on page 101 Control").click();
     settle(&mut h);
     let rows = channel_rows(&mut h);
     assert_eq!(rows.len(), 16, "two modules of eight channels");
@@ -609,7 +640,7 @@ fn draw_on_this_page_draws_the_station_and_its_modules() {
         .iter()
         .filter_map(|r| r.module)
         .collect();
-    h.get_by_label("Draw on this page").click();
+    h.get_by_label("Draw on page 101 Control").click();
     settle(&mut h);
     assert!(h.state().shell().dialog().is_none(), "the page is shown");
     let mut expected = vec![station];
@@ -621,7 +652,7 @@ fn draw_on_this_page_draws_the_station_and_its_modules() {
     );
     dispatch(&mut h, "plc.rack_editor", json!({"station": station.to_string()}));
     settle(&mut h);
-    h.get_by_label("Draw on this page").click();
+    h.get_by_label("Draw on page 101 Control").click();
     settle(&mut h);
     h.get_by_label_contains("are drawn already");
     dispatch(&mut h, "ui.dismiss", json!({}));

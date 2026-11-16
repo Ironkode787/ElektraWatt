@@ -255,6 +255,30 @@ impl ShellModel {
             .collect()
     }
 
+    /// The folio a page the rack dialog makes takes, asking nothing: New page's proposal, else the first number no page
+    /// has.
+    fn free_folio(&self) -> String {
+        let (proposal, _) = self.new_page_proposal();
+        if !proposal.is_empty() {
+            return proposal;
+        }
+        let labels = self.page_labels();
+        (1u64..)
+            .map(|n| n.to_string())
+            .find(|n| !labels.iter().any(|l| l == n))
+            .unwrap_or_default()
+    }
+
+    /// The project's schematic pages (multi-line and single-line), which take a station's boxes: folio and title, in
+    /// page order (the rack dialog's Draw on a page lists them).
+    pub fn schematic_pages(&self) -> Vec<(String, String)> {
+        self.page_rows()
+            .iter()
+            .filter(|r| matches!(r.kind.as_str(), "multi_line" | "single_line"))
+            .map(|r| (r.folio.clone(), r.title.clone()))
+            .collect()
+    }
+
     /// The project's bus-topology pages: folio and title, in page order (the rack dialog's Put it on a bus page asks
     /// which when there are several).
     pub fn bus_pages(&self) -> Vec<(String, String)> {
@@ -848,8 +872,36 @@ impl ShellModel {
     pub(crate) fn act_plc_rack_next(&mut self, p: &Map<String, Value>) -> Outcome {
         let station = or_return!(self.rack_station());
         match string_param(p, "step") {
-            // The station and its modules not drawn yet, in a row in slot order, one undo step (rc.2).
-            Ok(Some("draw")) => self.draw_from_rack(station, None),
+            // The station and its modules not drawn yet, in a row in slot order, one undo step (rc.2): on the page shown,
+            // the schematic page `folio`, or a new one (`folio` `new`, asking nothing; a persona run's station landed
+            // on page 1 without a word).
+            Ok(Some("draw")) => {
+                let folio = match string_param(p, "folio") {
+                    Ok(Some("new")) => {
+                        let folio = self.free_folio();
+                        let title = strings::text(key!("rack-draw-page-title"));
+                        let made = self.dispatch(
+                            "page.new",
+                            &json!({ "folio": folio, "type": "multi_line", "title": title }),
+                        );
+                        if made != Outcome::Done {
+                            return made;
+                        }
+                        Some(folio)
+                    }
+                    Ok(Some(f)) if self.schematic_pages().iter().any(|(x, _)| x == f) => Some(f.to_owned()),
+                    Ok(Some(_)) => return failed(key!("error-bad-param"), &["folio"]),
+                    Ok(None) => None,
+                    Err(e) => return e,
+                };
+                if let Some(folio) = folio {
+                    let opened = self.dispatch("page.goto", &json!({ "folio": folio }));
+                    if opened != Outcome::Done {
+                        return opened;
+                    }
+                }
+                self.draw_from_rack(station, None)
+            }
             Ok(Some("overview")) => {
                 self.dialog = None;
                 self.act_fluid_generate_overview(&Map::from_iter([(
@@ -876,16 +928,7 @@ impl ShellModel {
                     Ok(None) => match pages.as_slice() {
                         [(only, _)] => only.clone(),
                         [] => {
-                            let (proposal, _) = self.new_page_proposal();
-                            let folio = if proposal.is_empty() {
-                                let labels = self.page_labels();
-                                (1u64..)
-                                    .map(|n| n.to_string())
-                                    .find(|n| !labels.iter().any(|l| l == n))
-                                    .unwrap_or_default()
-                            } else {
-                                proposal
-                            };
+                            let folio = self.free_folio();
                             let title = strings::text(key!("rack-bus-page-title"));
                             let made = self.dispatch(
                                 "page.new",

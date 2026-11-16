@@ -265,7 +265,51 @@ pub(crate) fn rack(
             }
             // With several bus pages Put it on a bus page asks which; with one or none it goes there (or makes it).
             let bus_pages = shell.bus_pages();
+            // Draw names the page it draws on, with the other schematic pages and New page… beside it; on a page that
+            // takes no symbols it is the list itself (a persona run's station landed on page 1 without a word).
+            let schematic = shell.schematic_pages();
+            let shown = shell
+                .page_rows()
+                .get(shell.page_index())
+                .filter(|r| matches!(r.kind.as_str(), "multi_line" | "single_line"))
+                .map(|r| (r.folio.clone(), r.title.clone()));
+            let pages_menu = |button: &egui::Response, events: &mut Vec<Event>| {
+                egui::Popup::menu(button)
+                    .style(crate::menu::menu_style(&t))
+                    .show(|ui| {
+                        for (folio, title) in &schematic {
+                            if ui.button(format!("{folio} {title}").trim()).clicked() {
+                                events.push(Event::Action("plc.rack_next", json!({ "step": "draw", "folio": folio })));
+                                ui.close();
+                            }
+                        }
+                        ui.separator();
+                        if ui.button(strings::text(key!("rack-draw-new-page"))).clicked() {
+                            events.push(Event::Action("plc.rack_next", json!({ "step": "draw", "folio": "new" })));
+                            ui.close();
+                        }
+                    });
+            };
             for (step, label) in steps {
+                if step == "draw" {
+                    match &shown {
+                        Some((folio, title)) => {
+                            let label = strings::format(key!("rack-next-draw-on"), &[folio, title]);
+                            if components::button(ui, Kind::Secondary, label.trim(), true, 0.0).clicked() {
+                                events.push(Event::Action("plc.rack_next", json!({ "step": "draw" })));
+                            }
+                            let other = strings::text(key!("rack-draw-other-page"));
+                            let more = components::icon_button(ui, IconId::chevron_down, other);
+                            pages_menu(&more, events);
+                        }
+                        None => {
+                            let label = strings::text(key!("rack-next-draw-a-page"));
+                            let button = components::button(ui, Kind::Secondary, label, true, 0.0);
+                            pages_menu(&button, events);
+                        }
+                    }
+                    continue;
+                }
                 let button = components::button(ui, Kind::Secondary, strings::text(label), true, 0.0);
                 if step == "bus" && bus_pages.len() > 1 {
                     egui::Popup::menu(&button)
