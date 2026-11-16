@@ -274,9 +274,18 @@ impl Command for FixAll {
                 name: f.cmd.clone(),
                 params: f.params.clone(),
             };
-            last = crate::registry::CommandRegistry::builtin()
-                .resolve(&cmd)?
-                .run(tx)?;
+            // A fix that names no command, or parameters its command does not take, is this command's parameter in
+            // error, in words.
+            let fix = crate::registry::CommandRegistry::builtin()
+                .resolve(&cmd)
+                .map_err(|e| {
+                    CmdError::invalid_params(
+                        Self::NAME,
+                        "/fixes",
+                        text!("refusal-fix-all-bad", e.to_string()),
+                    )
+                })?;
+            last = fix.run(tx)?;
         }
         Ok(last)
     }

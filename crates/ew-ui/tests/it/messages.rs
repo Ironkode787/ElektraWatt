@@ -964,7 +964,10 @@ fn a_findings_row_menu_offers_its_fix_and_waive() {
                 .collect();
             panic!("a finding with a fix among {rules:?}")
         });
-    let menu: Vec<String> = labels(with_fix).into_iter().filter(|l| !l.starts_with("Fix all")).collect();
+    let menu: Vec<String> = labels(with_fix)
+        .into_iter()
+        .filter(|l| !l.starts_with("Fix all"))
+        .collect();
     assert_eq!(menu, ["Fix…", "Waive…"]);
     let without = nodes
         .iter()

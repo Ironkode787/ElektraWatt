@@ -414,7 +414,7 @@ fn tutorial_1_a_first_schematic_page_runs_as_its_page_says() {
             "row level 1 potential \"0VAC\" expanded",
             "row level 1 potential \"24VAC\" expanded",
             "row level 2 rule \"EW-CORE-041 Device without part\" badge \"3\" expanded",
-            "row level 2 rule \"EW-POT-009 Unconnected CP\" badge \"2\" expanded",
+            "row level 2 rule \"EW-POT-009 Unconnected CP\" badge \"2\" badge \"fix all\" expanded",
         ]
     );
     // Step 8: "the Messages header shows E 0, W 0 and pending 5".
@@ -637,9 +637,9 @@ fn tutorial_6_importing_a_qelectrotech_project_runs_as_its_page_says() {
             "messages scheme \"Migration report\" errors 0 warnings 7 infos 7 waived 0 pending 0",
             "row level 2 rule \"EW-CORE-041 Device without part\" badge \"4\" expanded",
             "row level 2 rule \"EW-IMP-119 Element without function semantics\" badge \"1\" expanded",
-            "row level 2 rule \"EW-POT-009 Unconnected CP\" badge \"2\" expanded",
+            "row level 2 rule \"EW-POT-009 Unconnected CP\" badge \"2\" badge \"fix all\" expanded",
             "row level 2 rule \"EW-IMP-006 Font substituted\" badge \"1\" expanded",
-            "row level 2 rule \"EW-IMP-103 Label kept as a frozen tag\" badge \"2\" expanded",
+            "row level 2 rule \"EW-IMP-103 Label kept as a frozen tag\" badge \"2\" badge \"fix all\" expanded",
             "row level 2 rule \"EW-IMP-117 Default folio-index formula\" badge \"1\" expanded",
             "row level 2 rule \"EW-IMP-122 Unlabelled element, tag synthesised\" badge \"1\" expanded",
             "row level 2 rule \"EW-NUM-001 Tag deviates from the scheme\" badge \"2\" expanded",
@@ -656,7 +656,7 @@ fn tutorial_6_importing_a_qelectrotech_project_runs_as_its_page_says() {
             "messages scheme \"Migration report\" errors 0 warnings 1 infos 7 waived 0 pending 0",
             "row level 2 rule \"EW-IMP-119 Element without function semantics\" badge \"1\" expanded",
             "row level 2 rule \"EW-IMP-006 Font substituted\" badge \"1\" expanded",
-            "row level 2 rule \"EW-IMP-103 Label kept as a frozen tag\" badge \"2\" expanded",
+            "row level 2 rule \"EW-IMP-103 Label kept as a frozen tag\" badge \"2\" badge \"fix all\" expanded",
             "row level 2 rule \"EW-IMP-117 Default folio-index formula\" badge \"1\" expanded",
             "row level 2 rule \"EW-IMP-122 Unlabelled element, tag synthesised\" badge \"1\" expanded",
             "row level 2 rule \"EW-NUM-001 Tag deviates from the scheme\" badge \"2\" expanded",

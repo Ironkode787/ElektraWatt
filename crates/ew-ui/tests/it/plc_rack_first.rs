@@ -618,7 +618,11 @@ fn fix_all_marks_every_unconnected_pin_in_one_step() {
             .unwrap_or_default();
         let count = nodes
             .iter()
-            .filter(|n| n.role == NavRole::Finding && n.cells.first().is_some_and(|c| c == "warning") && n.cells.get(1).is_some_and(|c| c == "EW-POT-009"))
+            .filter(|n| {
+                n.role == NavRole::Finding
+                    && n.cells.first().is_some_and(|c| c == "warning")
+                    && n.cells.get(1).is_some_and(|c| c == "EW-POT-009")
+            })
             .count();
         let group = nodes
             .iter()
@@ -635,7 +639,12 @@ fn fix_all_marks_every_unconnected_pin_in_one_step() {
     settle(&mut h);
     dispatch(&mut h, "preview.apply", json!({}));
     settle(&mut h);
-    let toast = h.state().shell().toast().map(|t| t.text.clone()).unwrap_or_default();
+    let toast = h
+        .state()
+        .shell()
+        .toast()
+        .map(|t| t.text.clone())
+        .unwrap_or_default();
     assert_eq!(toast, format!("{before} pins marked not used."));
     assert_eq!(pins(&mut h).0, 0, "the warnings are gone");
     dispatch(&mut h, "edit.undo", json!({}));

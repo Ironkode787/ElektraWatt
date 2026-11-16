@@ -93,6 +93,14 @@ impl Command for GenerateOverview {
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        // A band outside the drawable range is refused in words (the command fuzz found an internal error).
+        if self.left.0 > self.right.0
+            || ![self.left, self.right, self.y]
+                .into_iter()
+                .all(crate::geometry::in_range)
+        {
+            return tx.reject(text!("refusal-overview-out-of-range"));
+        }
         embed_closure(Self::NAME, tx, &self.copies)?;
         tx.require::<Device>(self.station)?;
         let q = Q::new(tx.base_model());
