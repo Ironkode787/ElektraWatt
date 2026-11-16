@@ -15,7 +15,7 @@ With no project open the window shows the start page. It has no news feed and op
 - **Open sample project** opens the CC0 sample project read-only; use **Save as...** to make your own copy.
 - **Import QElectroTech project** reads a `.qet` file into a new project directory.
 - **Create company standard** starts the [company-standard wizard](#company-standard-wizard).
-- **Tutorials and guides** lists the tutorials (step by step, with a practice project) and the how-to guides (how
+- **Tutorials and guides** lists the tutorials (lessons you follow step by step) and the how-to guides (how
   to do one job), as **Help ▸ Tutorials** and **Help ▸ Guides** do.
 - The quick switches set the language and the keymap preset. The privacy line says that this version has no update
   check; **change** opens the privacy step of the [first-run setup](#first-run-setup).

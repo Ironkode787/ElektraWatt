@@ -137,8 +137,9 @@ device given to a PLC) says so above them.
 
 A slot the part does not allow, or more modules than the station takes, is refused, and the reason stays under the
 slots; the station's slot findings (EW-PLC-011) are listed there too, each with its icon and the word Error. Under a
-made station, **Draw on this page** (the station's box and each module's not drawn yet, beside it in slot order, in
-rows under what the schematic page shown holds, one undo step), **Make the overview page** (a valve terminal) and
+made station, **Draw on page …** (it names the schematic page in front, with the other schematic pages and a new
+page beside it; the station's box and each module's not drawn yet, beside it in slot order, in rows under what
+that page holds, one undo step), **Make the overview page** (a valve terminal) and
 **Put it on a bus page** do what comes next. **Close** or `Esc` closes the dialog.
 
 ## PLC import

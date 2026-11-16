@@ -139,7 +139,7 @@ fn help_guides_lists_the_how_to_guides_and_opens_one() {
     let tutorials = help.submenu(Submenu::Tutorials).expect("Help ▸ Tutorials");
     assert_eq!(
         (tutorials[0].label.as_str(), tutorials[0].enabled),
-        ("Step by step, with a practice project", false)
+        ("Lessons you follow step by step", false)
     );
     done(&mut shell, plc.id, plc.params.clone());
     assert_eq!(shell.last_help(), Some("how-to/plc-workspace.html"));

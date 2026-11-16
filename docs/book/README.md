@@ -34,7 +34,6 @@ book does not build without them.
 ```console
 $ cargo xtask docs-gen                          # builds the reference pages and updates src/SUMMARY.md
 $ mdbook build docs/book                        # writes target/book
-$ python3 -I ci/check-book-links.py target/book  # every link of the built pages resolves
 ```
 
 `mdbook serve docs/book` previews the book with live reload.
@@ -64,8 +63,7 @@ $ cargo xtask docs-gen
 - Examples use the anonymised golden project only. Never put a customer, end-user, person, project or drawing
   identifier into a page; use the placeholders of the golden project (`<customer>`, `<drawing id>`).
 - Link design documents with their GitHub address (`https://github.com/Ironkode787/ElektraWatt/blob/main/docs/...`),
-  because the built book does not contain them. `ci/check-book-links.py` checks that such a link names an existing
-  file and heading. Link pages of the book with relative `.md` paths.
+  because the built book does not contain them. Link pages of the book with relative `.md` paths.
 - Say plainly when something is not built yet.
 - A picture (`src/*/images/`) is a frame of the window painted offscreen at 1920 × 1080 from the page's tutorial
   script with frame lines added (`elektrawatt --headless --script <s> --visual --frames <dir> --window 1920x1080
