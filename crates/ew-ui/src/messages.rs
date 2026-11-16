@@ -502,6 +502,19 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             if button.clicked() {
                 events.push(Event::Action("messages.fix", Value::Null));
             }
+            // Every finding of its group with a fix of this kind: Fix all like this (n)… (rc.2 persona run).
+            if let Some((group, n)) = shell
+                .nav_cursor(ew_viewmodel::navigators::NavKind::Messages)
+                .and_then(|k| shell.fix_all_offer(&k))
+            {
+                let label = strings::format(key!("messages-fix-all-like"), &[&n.to_string()]);
+                if components::button(ui, Kind::Secondary, &label, enabled, 0.0).clicked() {
+                    events.push(Event::Action(
+                        "messages.fix_all",
+                        serde_json::json!({ "key": group }),
+                    ));
+                }
+            }
         });
     }
 }

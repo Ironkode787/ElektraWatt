@@ -1243,6 +1243,17 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
                         {
                             chip.tip(&tip);
                         }
+                    } else if code == ew_viewmodel::ew_api::output::FIX_ALL {
+                        // A group whose findings' fixes are of one kind: Fix all (n)… on its row (rc.2 persona run).
+                        if let Some((group, n)) = shell.fix_all_offer(&row.key) {
+                            let label = strings::format(key!("messages-fix-all"), &[&n.to_string()]);
+                            let button = ui.add(egui::Button::new(
+                                egui::RichText::new(label).font(crate::theme::font(&t.type_small)),
+                            ));
+                            if button.clicked() {
+                                events.push(Event::Action("messages.fix_all", json!({ "key": group })));
+                            }
+                        }
                     } else if let Some(status) = crate::messages::finding_badge(code) {
                         let badge = crate::components::status_badge(ui, status);
                         // The Fix badge opens the finding's quick fix, as the detail's Fix… does (FT-1658: a click

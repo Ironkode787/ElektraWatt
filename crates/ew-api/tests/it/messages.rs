@@ -119,7 +119,7 @@ fn the_rows_are_the_online_findings_under_their_severity_and_rule() {
             .iter()
             .filter(|x| x.parent == Some(u32::try_from(at).unwrap()))
             .count();
-        assert_eq!(rule.badges, [n.to_string()]);
+        assert_eq!(rule.badges[0], n.to_string());
     }
     // The severity groups: Errors, Warnings, Infos, the empty ones left out.
     let groups: Vec<&str> = t

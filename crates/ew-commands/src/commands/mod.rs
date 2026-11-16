@@ -206,6 +206,7 @@ commands! {
     checks::SetCheckSchemes,
     // Waiver recording (D7)
     checks::WaiveFinding,
+    checks::FixAll,
     checks::UnwaiveFinding,
     // Conflict records (D19)
     merge::ResolveConflicts,

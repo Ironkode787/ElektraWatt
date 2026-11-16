@@ -225,6 +225,63 @@ impl Command for WaiveFinding {
     }
 }
 
+/// One quick fix of `check.fix_all`: a command and its parameters, as a finding's fix names them.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct FixCommand {
+    /// The command's name.
+    pub cmd: String,
+    /// Its parameters.
+    pub params: Value,
+}
+
+/// `check.fix_all` (`FixAll`, the rc.2 persona run: 29 "pin is not connected" warnings, each with its own Fix and
+/// Apply): the quick fixes of a group of findings, each command run in turn on one transaction, so they are one
+/// preview and one undo step. Rejected: no fix; a fix that is itself `check.fix_all`; a fix its command refuses (the
+/// whole step, in that command's words). Outcome: the last fix's.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct FixAll {
+    /// The fixes, in the findings' order.
+    pub fixes: Vec<FixCommand>,
+}
+
+impl Command for FixAll {
+    const NAME: &'static str = "check.fix_all";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        if self.fixes.is_empty() {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/fixes",
+                text!("refusal-fix-all-none"),
+            ));
+        }
+        let mut last = Outcome::default();
+        for f in &self.fixes {
+            if f.cmd == Self::NAME {
+                return Err(CmdError::invalid_params(
+                    Self::NAME,
+                    "/fixes",
+                    text!("refusal-fix-all-nested"),
+                ));
+            }
+            let cmd = crate::registry::AnyCommand {
+                name: f.cmd.clone(),
+                params: f.params.clone(),
+            };
+            last = crate::registry::CommandRegistry::builtin()
+                .resolve(&cmd)?
+                .run(tx)?;
+        }
+        Ok(last)
+    }
+}
+
 /// `check.unwaive` (`UnwaiveFinding`): removes a waiver (doc 15 §2.5, FR-CHK-009), after which its
 /// finding counts again. Rejected: a waiver that does not exist (at `/waiver`). **Exposure `HumanOnly`**, as
 /// `check.waive`. Interactive; undoable as one step. Outcome: none.

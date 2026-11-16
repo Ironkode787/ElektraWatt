@@ -1796,6 +1796,9 @@ fn strips(q: &Q) -> Vec<Id<Device>> {
 /// and nothing said why); the window explains it on hover.
 pub const NOT_DRAWN: &str = "not drawn";
 
+/// The badge of a Messages rule group every finding of which has a quick fix of one kind: its Fix all.
+pub const FIX_ALL: &str = "fix all";
+
 /// A device's short tag.
 fn short_tag(q: &Q, d: Id<Device>) -> String {
     q.get::<DeviceTag>(d)
@@ -4029,6 +4032,20 @@ impl Session {
                 let findings: Vec<&checks::Finding> =
                     of_severity.iter().copied().filter(|f| f.rule == rule).collect();
                 let meta = checks::rule(rule).map(|r| r.meta());
+                // Every finding of the group has a quick fix of one kind (its key, else its command): Fix all (the
+                // rc.2 persona run met 29 fixes to apply one by one).
+                let kinds: std::collections::BTreeSet<Option<String>> = findings
+                    .iter()
+                    .map(|f| {
+                        f.fix
+                            .as_ref()
+                            .map(|x| x.key.map_or_else(|| x.command.clone(), str::to_owned))
+                    })
+                    .collect();
+                let mut badges = vec![findings.len().to_string()];
+                if findings.len() > 1 && kinds.len() == 1 && kinds.iter().all(Option::is_some) {
+                    badges.push(FIX_ALL.to_owned());
+                }
                 let rnode = b.push(
                     Some(snode),
                     NavRole::Rule,
@@ -4037,7 +4054,7 @@ impl Session {
                         Some(m) if !m.title.is_empty() => format!("{rule} {}", m.title),
                         _ => rule.to_owned(),
                     },
-                    vec![findings.len().to_string()],
+                    badges,
                     Vec::new(),
                     Vec::new(),
                     None,

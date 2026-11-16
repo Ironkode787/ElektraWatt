@@ -47,6 +47,9 @@ pub struct MessagesState {
     /// The origin annotations of the commits made through a quick fix, by (project session, revision): `quick fix
     /// <rule ID>` for the history panel (§7.4, §8.4).
     pub(crate) annotations: BTreeMap<(u64, u64), String>,
+    /// The Fix all card on show: its fix's key (`fix-mark-cp-unused`, else its command) and how many fixes it holds,
+    /// for the toast after Apply.
+    pub(crate) fix_all: Option<(String, usize)>,
     /// The finding row and the date the open Waive prompt commits for: the row's key and the date the
     /// window passed, as `YYYY-MM-DD`.
     pub(crate) waive: Option<(String, Option<String>)>,

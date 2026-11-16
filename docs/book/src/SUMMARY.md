@@ -47,6 +47,7 @@
     - [`bus.physical_net.create`](reference/commands/bus.physical_net.create.md)
     - [`bus.place_ports`](reference/commands/bus.place_ports.md)
     - [`cable.create`](reference/commands/cable.create.md)
+    - [`check.fix_all`](reference/commands/check.fix_all.md)
     - [`check.unwaive`](reference/commands/check.unwaive.md)
     - [`check.waive`](reference/commands/check.waive.md)
     - [`conductor.add`](reference/commands/conductor.add.md)

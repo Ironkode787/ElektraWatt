@@ -143,8 +143,8 @@ pub use ew_reports::xlsx::{WorkbookMeta, base_text, xlsx};
 pub use ew_scene::page::SlotTextBox;
 pub use natures::Natures;
 pub use navigators::{
-    Drawable, HighlightTarget, LibraryCopyDetail, MacroDetail, MacroThumbnail, NOT_DRAWN, NaturalKey,
-    NavColumn, NavKind, NavNode, NavRole, NavTable, Uuid, names_subject, nav_natural_key,
+    Drawable, FIX_ALL, HighlightTarget, LibraryCopyDetail, MacroDetail, MacroThumbnail, NOT_DRAWN,
+    NaturalKey, NavColumn, NavKind, NavNode, NavRole, NavTable, Uuid, names_subject, nav_natural_key,
     tokens as nav_tokens,
 };
 pub use panel::{

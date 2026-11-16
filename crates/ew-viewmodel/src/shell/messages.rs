@@ -701,6 +701,110 @@ impl ShellModel {
         self.preview_fix(fix.command, fix.params, rule, targets)
     }
 
+    /// The Fix all of the Messages row `key` (rc.2 persona run): a rule group whose findings all have a quick fix of
+    /// one kind, or a finding of such a group (Fix all like this): the group's key and its number of findings.
+    pub fn fix_all_offer(&self, key: &str) -> Option<(String, usize)> {
+        let table = self.navs.get(&NavKind::Messages)?.table()?;
+        let (_, node) = table.nodes.iter().enumerate().find(|(_, n)| n.key == key)?;
+        let group = match node.role {
+            NavRole::Rule => node,
+            NavRole::Finding => table.nodes.get(usize::try_from(node.parent?).ok()?)?,
+            _ => return None,
+        };
+        if group.role != NavRole::Rule || !group.badges.iter().any(|b| b == ew_api::output::FIX_ALL) {
+            return None;
+        }
+        let n = group.badges.first()?.parse().ok()?;
+        Some((group.key.clone(), n))
+    }
+
+    /// `messages.fix_all {key}`: the quick fixes of every finding of the group of row `key` (a rule group, or one of
+    /// its findings) as one card: one `check.fix_all`, one Apply, one undo step. A fix that its command refuses now
+    /// (what it changes changed since the check) is left out, and a toast says how many.
+    pub(crate) fn act_messages_fix_all(&mut self, p: &Map<String, Value>) -> Outcome {
+        let key = match string_param(p, "key") {
+            Err(e) => return e,
+            Ok(Some(k)) => k.to_owned(),
+            Ok(None) => return failed(key!("error-missing-param"), &["key"]),
+        };
+        let Some((group, _)) = self.fix_all_offer(&key) else {
+            return Outcome::refused(key!("reason-no-fix"));
+        };
+        let prints: Vec<String> = self
+            .navs
+            .get(&NavKind::Messages)
+            .and_then(|n| n.table())
+            .map(|t| {
+                let at = t.nodes.iter().position(|n| n.key == group);
+                t.nodes
+                    .iter()
+                    .filter(|n| {
+                        n.role == NavRole::Finding && n.parent.and_then(|p| usize::try_from(p).ok()) == at
+                    })
+                    .filter_map(|n| messages::fingerprint_of(&n.key).map(str::to_owned))
+                    .collect()
+            })
+            .unwrap_or_default();
+        let migration = self.messages_shows_migration();
+        let submit = Submit::from(self.origin());
+        let Some(project) = &mut self.project else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let report = if migration {
+            project
+                .session
+                .check(&ew_api::checks::MIGRATION, CheckMode::Release)
+        } else {
+            project
+                .session
+                .check(project.session.online_scheme(), CheckMode::Online)
+        };
+        let found: Vec<&ew_api::checks::Finding> = report
+            .findings
+            .iter()
+            .filter(|f| prints.contains(&f.fingerprint.to_string()))
+            .collect();
+        let Some(first) = found.first() else {
+            return Outcome::refused(key!("reason-no-fix"));
+        };
+        let rule = first.rule.to_owned();
+        let kind = first
+            .fix
+            .as_ref()
+            .map(|x| x.key.map_or_else(|| x.command.clone(), str::to_owned))
+            .unwrap_or_default();
+        let mut fixes = Vec::new();
+        for f in &found {
+            let Some(fix) = &f.fix else { continue };
+            let cmd = AnyCommand {
+                name: fix.command.clone(),
+                params: fix.params.clone(),
+            };
+            if project.session.preview_with(&cmd, submit.clone()).is_ok() {
+                fixes.push(serde_json::json!({ "cmd": fix.command, "params": fix.params }));
+            }
+        }
+        let left = found.len() - fixes.len();
+        let fixes = merge_list_fixes(fixes);
+        if fixes.is_empty() {
+            return Outcome::refused(key!("reason-no-fix"));
+        }
+        let n = found.len() - left;
+        self.messages.fix_all = Some((kind, n));
+        if left > 0 {
+            self.notify(
+                strings::format(key!("toast-fix-all-left"), &[&left.to_string()]),
+                false,
+            );
+        }
+        self.preview_fix(
+            "check.fix_all".to_owned(),
+            serde_json::json!({ "fixes": fixes }),
+            rule,
+            n,
+        )
+    }
+
     /// Previews a quick fix's command and shows its card (`CardOrigin::QuickFix`).
     fn preview_fix(&mut self, name: String, params: Value, rule: String, targets: usize) -> Outcome {
         let Some(rev) = self.revision() else {
@@ -771,6 +875,18 @@ impl ShellModel {
         }
         let Card { preview, edit, .. } = card;
         let out = self.commit_kept(preview, &edit.name, &edit.params, None);
+        // Fix all says what it did, with Undo: "29 pins marked not used."
+        if out == Outcome::Done
+            && edit.name == "check.fix_all"
+            && let Some((kind, n)) = self.messages.fix_all.take()
+        {
+            let own = format!("toast-fix-all-{}", kind.replace(['.', '_'], "-"));
+            let text = match strings::lookup(&own) {
+                Some(_) => strings::format(Key::run_time(&own), &[&n.to_string()]),
+                None => strings::format(key!("toast-fix-all"), &[&n.to_string()]),
+            };
+            self.notify(text, true);
+        }
         if out == Outcome::Done
             && let Some((epoch, now)) = self.epoch_rev()
             && now != rev
@@ -782,6 +898,43 @@ impl ShellModel {
         }
         out
     }
+}
+
+/// Fix all's fixes with those that set the same list of one record merged: each finding's fix sets the whole list (a
+/// function's connection point overrides, each computed alone), so two on one function would undo each other. Their
+/// items are merged by `idx`, a later fix's item replacing an earlier one's; every other fix stays as it is.
+fn merge_list_fixes(fixes: Vec<Value>) -> Vec<Value> {
+    let mut out: Vec<Value> = Vec::new();
+    for f in fixes {
+        let p = &f["params"];
+        let same = |o: &Value| {
+            o["cmd"] == "fields.set"
+                && f["cmd"] == "fields.set"
+                && o["params"]["kind"] == p["kind"]
+                && o["params"]["targets"] == p["targets"]
+                && o["params"]["path"] == p["path"]
+                && o["params"]["value"].is_array()
+                && p["value"].is_array()
+        };
+        let Some(earlier) = out.iter_mut().find(|o| same(o)) else {
+            out.push(f);
+            continue;
+        };
+        let items = p["value"].as_array().cloned().unwrap_or_default();
+        if let Some(list) = earlier["params"]["value"].as_array_mut() {
+            for item in items {
+                match list
+                    .iter_mut()
+                    .find(|x| x.get("idx").is_some() && x.get("idx") == item.get("idx"))
+                {
+                    Some(x) => *x = item,
+                    None => list.push(item),
+                }
+            }
+            list.sort_by_key(|x| x.get("idx").and_then(Value::as_u64));
+        }
+    }
+    out
 }
 
 /// The action of the Waive prompt.

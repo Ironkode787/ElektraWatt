@@ -564,12 +564,23 @@ impl ShellModel {
             }
             // A finding's row: its quick fix, where it has one, and Waive… or Unwaive, as the detail under the list
             // offers them (the persona round of M3: a right-click on a message did nothing).
+            // A group whose findings' fixes are of one kind: Fix all (n)… (rc.2 persona run).
+            (NavKind::Messages, NavRole::Rule, _) => {
+                if let Some((group, n)) = self.fix_all_offer(&node.key) {
+                    let label = strings::format(key!("messages-fix-all"), &[&n.to_string()]);
+                    out.extend(self.aimed("messages.fix_all", json!({ "key": group }), label));
+                }
+            }
             (NavKind::Messages, NavRole::Finding, _) => {
                 let key = json!({ "key": node.key });
                 let has = |badge: &str| node.badges.iter().any(|b| b == badge);
                 if has("fix") {
                     let label = strings::text(key!("messages-fix-button")).to_owned();
                     out.extend(self.aimed("messages.fix", key.clone(), label));
+                }
+                if let Some((group, n)) = self.fix_all_offer(&node.key) {
+                    let label = strings::format(key!("messages-fix-all-like"), &[&n.to_string()]);
+                    out.extend(self.aimed("messages.fix_all", json!({ "key": group }), label));
                 }
                 let (action, label) = if has("waived") {
                     ("messages.unwaive", key!("messages-unwaive-button"))

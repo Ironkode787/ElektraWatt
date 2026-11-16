@@ -372,6 +372,19 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_messages_fix(p),
         ))),
     ),
+    // Fix all of a group of findings whose fixes are of one kind (rc.2 persona run): one card, one Apply.
+    with_params(
+        "key:text",
+        hidden(in_navigator(act(
+            "messages.fix_all",
+            Command,
+            Menu::Check,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_messages_fix_all(p),
+        ))),
+    ),
     // Waive… and Unwaive in the Messages detail (`check.waive`, `check.unwaive`; window only).
     with_params(
         "key?:text, reason?:text, author?:text, date?:text",
