@@ -426,6 +426,16 @@ impl LayoutGesture {
             .or_else(|| Some(String::new()))
     }
 
+    /// A refused release's answer: the refusal in words as the ghost's chip showed it (the tool's own, which names the
+    /// way, else the command's); the plain `reason-layout-refused` when no words are known.
+    pub fn refused_output(&self) -> ToolOutput {
+        let key = key!("reason-layout-refused");
+        match self.refusal().filter(|t| !t.is_empty()) {
+            Some(text) => ToolOutput::RefusedWith(key, capitalised(&text)),
+            None => ToolOutput::Refused(key),
+        }
+    }
+
     /// The command a release commits: none for a refused drop.
     pub fn commit(&self) -> Option<AnyCommand> {
         let r = self.current.as_ref()?;
@@ -987,7 +997,10 @@ fn resolve_at(
                 footprint,
                 neighbours,
                 brackets: brackets_box,
-                local_text: None,
+                // A rail of another profile says so itself; the command's refusal would name the profiles only.
+                local_text: (fit == Fit::DoesNotFit).then(|| {
+                    strings::format(key!("layout-wrong-rail"), &[&label, &c.sentence, &mount_label])
+                }),
                 refused: result.is_err() || fit == Fit::DoesNotFit,
                 command,
                 sheet: SheetGeom::default(),
@@ -1064,8 +1077,15 @@ fn resolve_at(
             let v_min = snap_axis(min0.1, bh, |o| (o.1, o.3));
             let anchor = (u_min - lo.0, v_min - lo.1);
             let footprint = (u_min, v_min, u_min + bw, v_min + bh);
-            let local_text =
-                rail_profile.map(|_| strings::format(key!("layout-off-rail"), &[&label, &mount_label]));
+            // A rail device dropped beside every rail: on the rail it sits on it moves along it only.
+            let on_rail = placement
+                .and_then(|p| p.carrier)
+                .and_then(|c| panel.carrier(c))
+                .map(|c| c.sentence.clone());
+            let local_text = rail_profile.map(|_| match &on_rail {
+                Some(rail) => strings::format(key!("layout-on-rail"), &[&label, rail, &mount_label]),
+                None => strings::format(key!("layout-off-rail"), &[&label, &mount_label]),
+            });
             let mut params = match g.source {
                 Source::Device(d) => json!({ "device": d.to_string() }),
                 Source::Placement(p) => json!({ "placement": p.to_string() }),
@@ -1096,6 +1116,15 @@ fn resolve_at(
                 drawn_shift: (u_min - min0.0, v_min - min0.1),
             })
         }
+    }
+}
+
+/// `s` with its first character upper-cased (a command's refusal begins in lower case).
+fn capitalised(s: &str) -> String {
+    let mut chars = s.chars();
+    match chars.next() {
+        Some(first) => first.to_uppercase().chain(chars).collect(),
+        None => String::new(),
     }
 }
 
@@ -1311,7 +1340,7 @@ impl LayoutPlaceTool {
         g.update(at, mods, cx);
         match g.commit() {
             Some(cmd) => ToolOutput::Commit(Box::new(cmd)),
-            None => ToolOutput::Refused(key!("reason-layout-refused")),
+            None => g.refused_output(),
         }
     }
 }

@@ -118,6 +118,31 @@ fn footprint_centre(shell: &ShellModel, tag: &str) -> (i64, i64) {
     )
 }
 
+/// The sheet point of the footprint of the placement of `tag` that its label does not cover, a tenth of the way in
+/// from a corner: a drag from there moves the device even while it is selected (a drag on its label moves the label).
+fn off_label(shell: &ShellModel, tag: &str) -> (i64, i64) {
+    let t = panel(shell);
+    let p = t.placements.iter().find(|p| p.tag == tag).unwrap();
+    let fp = p.footprint;
+    let (w, h) = (i128::from(fp.width().0), i128::from(fp.height().0));
+    let corners = [(0, 0), (9, 0), (0, 9), (9, 9)].map(|(i, j)| {
+        (
+            i128::from(fp.min().x.0) + w * (2 * i + 1) / 20,
+            i128::from(fp.min().y.0) + h * (2 * j + 1) / 20,
+        )
+    });
+    let free = corners
+        .into_iter()
+        .find(|c| {
+            let q = t.to_page(*c);
+            p.label_box.is_none_or(|b| {
+                !((b.min().x.0..=b.max().x.0).contains(&q.0) && (b.min().y.0..=b.max().y.0).contains(&q.1))
+            })
+        })
+        .expect("a corner of the footprint off its label");
+    sheet_of(shell, free)
+}
+
 /// A click on the footprint of the placement of `tag` (Select on a panel page).
 fn select_placement(shell: &mut ShellModel, tag: &str) {
     let p = footprint_centre(shell, tag);
@@ -437,6 +462,34 @@ fn f55_pushed_onto_rail_1_by_a_drag() {
     shell.shutdown();
 }
 
+/// The persona round of the second 0.3.0 candidate: "The drop is refused; nothing changed" told nothing. A refused drop
+/// names its reason and the way in the bar: -102F1 dragged by Select off its rail onto the plate moves along a rail
+/// only (the refusals of a device's drop: `refused_drops_and_a_plate_placement`).
+#[test]
+fn a_refused_drop_says_why_and_the_way() {
+    let tmp = Tmp::new("layout-refusal-words");
+    let mut shell = writable(&tmp);
+    let revision = shell.revision();
+    select_placement(&mut shell, "-102F1");
+    let from = off_label(&shell, "-102F1");
+    let away = sheet_of(&shell, (300 * MM as i128, 640 * MM as i128));
+    done(&mut shell, "canvas.press", at(from, json!({})));
+    done(&mut shell, "canvas.pointer", at(away, json!({})));
+    assert_eq!(
+        refused(&mut shell, "canvas.release", at(away, json!({}))),
+        "reason-layout-refused"
+    );
+    assert_eq!(
+        shell.tool_notice(),
+        Some(
+            "-102F1 sits on rail 1 and mounts on a TS 35×7.5 rail, so it moves along a rail only: drag it along \
+             rail 1 or onto another rail."
+        )
+    );
+    assert_eq!(shell.revision(), revision, "nothing committed");
+    shell.shutdown();
+}
+
 /// PW-2 from the keyboard: Enter on the F55 row floats it at the start of Rail 1, the arrows step it by snap step,
 /// Enter drops it; with Push as the sticky mode the poses are SN-3's, in one undo step.
 #[test]
@@ -524,7 +577,10 @@ fn refused_drops_and_a_plate_placement() {
     done(&mut shell, "canvas.pointer", at(over, json!({})));
     let g = ghost(&shell);
     assert_eq!(g["carrier"], "Rail 4");
-    assert_eq!(g["refused"], "F55 (TS 35×7.5) does not fit a TS 32 rail");
+    assert_eq!(
+        g["refused"],
+        "F55 mounts on a TS 35×7.5 rail and does not fit rail 4: drop it on a TS 35×7.5 rail."
+    );
     assert_eq!(
         shell.tool_overlay().items.len(),
         1,
@@ -533,6 +589,11 @@ fn refused_drops_and_a_plate_placement() {
     assert_eq!(
         refused(&mut shell, "canvas.release", at(over, json!({}))),
         "reason-layout-refused"
+    );
+    // The refused drop says why in the bar, as its ghost did (rc.2).
+    assert_eq!(
+        shell.tool_notice(),
+        Some("F55 mounts on a TS 35×7.5 rail and does not fit rail 4: drop it on a TS 35×7.5 rail.")
     );
     assert_eq!(shell.revision(), revision, "nothing committed");
 
@@ -545,6 +606,10 @@ fn refused_drops_and_a_plate_placement() {
     assert_eq!(
         refused(&mut shell, "canvas.release", at(away, json!({}))),
         "reason-layout-refused"
+    );
+    assert_eq!(
+        shell.tool_notice(),
+        Some("F55 mounts on a TS 35×7.5 rail; drop it on a rail.")
     );
     assert_eq!(shell.revision(), revision);
     done(&mut shell, "ui.dismiss", json!({}));
@@ -870,7 +935,8 @@ fn a_refused_turn_names_the_rebound_keys_on_every_path() {
 
     // The Select tool: -102F1 dragged along Rail 1.
     let revision = shell.revision();
-    let from = footprint_centre(&shell, "-102F1");
+    select_placement(&mut shell, "-102F1");
+    let from = off_label(&shell, "-102F1");
     done(&mut shell, "canvas.press", at(from, json!({})));
     let to = on_rail(&shell, "Rail 1", 300 * MM);
     done(&mut shell, "canvas.pointer", at(to, json!({})));
@@ -942,7 +1008,8 @@ fn a_refused_turn_keeps_the_ghost_and_its_gesture() {
     // Select's drag of -102F1 along Rail 1: R is refused, the drag goes on and its release commits.
     done(&mut shell, "tool.select", json!({}));
     let revision = shell.revision();
-    let from = footprint_centre(&shell, "-102F1");
+    select_placement(&mut shell, "-102F1");
+    let from = off_label(&shell, "-102F1");
     done(&mut shell, "canvas.press", at(from, json!({})));
     let to = on_rail(&shell, "Rail 1", 400 * MM);
     done(&mut shell, "canvas.pointer", at(to, json!({})));
@@ -1137,8 +1204,8 @@ fn after_a_drop_the_hud_names_no_stack_until_the_pointer_moves() {
         "2 objects overlap here · click again to select the next"
     );
 
-    // Select's drag of F55 further along the rail.
-    let from = footprint_centre(&shell, "F55");
+    // Select's drag of F55 (selected: from a spot off its label) further along the rail.
+    let from = off_label(&shell, "F55");
     done(&mut shell, "canvas.press", at(from, json!({})));
     let to = on_rail(&shell, "Rail 1", 450 * MM);
     done(&mut shell, "canvas.pointer", at(to, json!({})));

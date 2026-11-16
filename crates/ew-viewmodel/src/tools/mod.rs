@@ -421,6 +421,9 @@ pub enum ToolOutput {
     /// The tool refused the event: the key names why (see [`crate::strings`]); the host shows it as every other
     /// refusal and leaves the model unchanged.
     Refused(Key<'static>),
+    /// The tool refused the event with its own words (a refused layout drop says why, rc.2): as `Refused`, the text
+    /// shown instead of the key's.
+    RefusedWith(Key<'static>, String),
     /// Change the selection; the overlay is cleared.
     Select(SelectionChange),
     /// Follow the page's link to this destination (§6.4); the overlay is cleared.
@@ -451,6 +454,7 @@ impl std::fmt::Debug for ToolOutput {
             ToolOutput::Commit(c) => f.debug_tuple("Commit").field(&c.name()).finish(),
             ToolOutput::Cancel => f.write_str("Cancel"),
             ToolOutput::Refused(key) => f.debug_tuple("Refused").field(key).finish(),
+            ToolOutput::RefusedWith(key, text) => f.debug_tuple("RefusedWith").field(key).field(text).finish(),
             ToolOutput::Select(c) => f.debug_tuple("Select").field(c).finish(),
             ToolOutput::Follow(d) => f.debug_tuple("Follow").field(d).finish(),
             ToolOutput::Host(h) => f.debug_tuple("Host").field(h).finish(),

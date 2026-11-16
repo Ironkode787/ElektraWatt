@@ -1071,6 +1071,13 @@ The property grid of a placement shows device (link), realised part, carrier, s 
 and derived rows with provenance: label, footprint, clearance, findings. Selection is synchronised with the device
 navigator and with schematic pages ("show all representations", FR-UI-007).
 
+*As built (rc.2, the persona round: "The drop is refused; nothing changed" told nothing).* A refused drop writes in the
+status bar the words its ghost's chip showed: a rail device beside every rail ("-102F1 sits on rail 1 and mounts on a
+TS 35×7.5 rail, so it moves along a rail only: drag it along rail 1 or onto another rail"; a device not placed yet: "F55
+mounts on a TS 35×7.5 rail; drop it on a rail."), a rail of another profile ("F55 mounts on a TS 35×7.5 rail and does
+not fit rail 4: drop it on a TS 35×7.5 rail."), else the command's own refusal ("No gap on rail 1 is wide enough for
+F55 (300 mm)."). The plain "The drop is refused; nothing changed" is left for a drop with no words.
+
 ### 12.2 3D canvas (1.0)
 
 - **Camera:** orbit about the picked point, pan, zoom to cursor, standard views (front, top, side, iso),

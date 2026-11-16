@@ -833,7 +833,7 @@ impl SelectTool {
                         g.update(*at, *mods, cx);
                         Some(match g.commit() {
                             Some(cmd) => ToolOutput::Commit(Box::new(cmd)),
-                            None => ToolOutput::Refused(key!("reason-layout-refused")),
+                            None => g.refused_output(),
                         })
                     }
                     None => {

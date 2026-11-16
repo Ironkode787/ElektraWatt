@@ -694,6 +694,14 @@ impl ShellModel {
                 self.tools.preview = None;
                 Outcome::Done
             }
+            ToolOutput::RefusedWith(reason_key, text) => {
+                self.tools.overlay = Overlay::default();
+                self.tools.preview = None;
+                self.tools.notice = Some(text.clone());
+                self.tools.notice_sticky = true;
+                self.tools.announcement = Some(text);
+                Outcome::Refused { reason_key }
+            }
             ToolOutput::Refused(reason_key) => {
                 // The same path as a refused canvas key: the status bar shows the reason until the next canvas input.
                 // A refusal ends the gesture it answers: its ghost and its kept preview go, as a refused release's
