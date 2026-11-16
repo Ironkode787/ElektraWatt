@@ -285,7 +285,7 @@ enum DialogKind {
     ImportQet,
     ReimportMatch,
     Reimport,
-    Rack,
+    DiscardStation,
     PlcImport,
     ChooseStation,
 }
@@ -317,8 +317,8 @@ impl DialogKind {
             Self::ConfirmGitSetup => Self::ImportQet,
             Self::ImportQet => Self::ReimportMatch,
             Self::ReimportMatch => Self::Reimport,
-            Self::Reimport => Self::Rack,
-            Self::Rack => Self::PlcImport,
+            Self::Reimport => Self::DiscardStation,
+            Self::DiscardStation => Self::PlcImport,
             Self::PlcImport => Self::ChooseStation,
             Self::ChooseStation => return None,
         })
@@ -351,7 +351,7 @@ fn kind(d: &Dialog) -> DialogKind {
         Dialog::OpenEwz { .. } => DialogKind::OpenEwz,
         Dialog::ImportDrawing { .. } => DialogKind::ImportDrawing,
         Dialog::ImportEplan { .. } => DialogKind::ImportEplan,
-        Dialog::Rack { .. } => DialogKind::Rack,
+        Dialog::DiscardStation => DialogKind::DiscardStation,
         Dialog::PlcImport(_) => DialogKind::PlcImport,
         Dialog::ChooseStation { .. } => DialogKind::ChooseStation,
         Dialog::ConfirmGitSetup { .. } => DialogKind::ConfirmGitSetup,
@@ -408,7 +408,13 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
         DialogKind::GotoPage => simple("nav.goto", json!({})),
         DialogKind::SaveWorkspace => simple("view.workspace_save", json!({})),
         DialogKind::Form => simple("page.new", json!({})),
-        DialogKind::Rack => simple("plc.rack_editor", json!({"station": "tag:-201U1"})),
+        // Closing the view of a station not made yet, with its head chosen, asks.
+        DialogKind::DiscardStation => {
+            let mut h = simple("plc.new_station", json!({}));
+            dispatch(&mut h, "plc.rack_add", json!({"part": "EW-GEN-CPU-1"}));
+            dispatch(&mut h, "tab.close", json!({}));
+            h
+        }
         // Two CPUs on page 101, a card drawn on a page of its own: which station takes it.
         DialogKind::ChooseStation => {
             let mut h = crate::plc_workspace::new_project_with_cpu(tmp);

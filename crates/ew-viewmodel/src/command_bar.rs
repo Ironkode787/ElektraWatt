@@ -130,6 +130,8 @@ pub enum Group {
     Arrange,
     /// PLC: the stations and their racks.
     Station,
+    /// PLC: the module under the cursor of a station's view.
+    Module,
     /// PLC: the channel addresses, the process tags and the symbol names.
     Addresses,
     /// PLC: the bus pages, ports and the Bus panel.
@@ -180,7 +182,7 @@ pub enum Group {
 
 impl Group {
     /// Every group, in bar order.
-    pub const ALL: [Group; 37] = [
+    pub const ALL: [Group; 38] = [
         Group::Project,
         Group::Parts,
         Group::Standards,
@@ -195,6 +197,7 @@ impl Group {
         Group::Annotate,
         Group::Arrange,
         Group::Station,
+        Group::Module,
         Group::Addresses,
         Group::Bus,
         Group::PlcLists,
@@ -232,6 +235,7 @@ impl Group {
             | Group::Annotate
             | Group::Arrange => Tab::Draw,
             Group::Station
+            | Group::Module
             | Group::Addresses
             | Group::Bus
             | Group::PlcLists
@@ -263,6 +267,7 @@ impl Group {
             Group::Annotate => "annotate",
             Group::Arrange => "arrange",
             Group::Station => "station",
+            Group::Module => "module",
             Group::Addresses => "addresses",
             Group::Bus => "bus",
             Group::PlcLists => "plc-lists",

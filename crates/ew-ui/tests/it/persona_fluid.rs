@@ -88,15 +88,12 @@ fn place_terminal(d: &mut Driver, a: (i64, i64)) {
     });
     d.settle();
     click_at(d, a);
-    // F18 of the rc.1 test: the valve terminal is a station, and its rack dialog opens when it is placed.
+    // The valve terminal is a station, and its view opens in a tab beside the page when it is placed.
     assert!(
-        matches!(
-            d.shell_mut().dialog(),
-            Some(ew_ui::ew_viewmodel::shell::Dialog::Rack { station: Some(_), .. })
-        ),
-        "the rack dialog"
+        d.shell_mut().station_tab().is_some_and(|t| t.station.is_some()),
+        "the station's view"
     );
-    d.input(&key("escape"));
+    let _ = d.shell_mut().dispatch("tab.close", &json!({}));
     d.settle();
     d.input(&key("escape"));
     d.settle();
@@ -2140,10 +2137,11 @@ fn rc2_a_terminal_made_as_a_station_is_drawn_on_the_fluid_page() {
         d.shell_mut().dispatch("plc.rack_create", &json!({})),
         Outcome::Done
     );
-    let station = match d.shell_mut().dialog() {
-        Some(ew_ui::ew_viewmodel::shell::Dialog::Rack { station: Some(s), .. }) => *s,
-        other => panic!("{other:?}"),
-    };
+    let station = d
+        .shell_mut()
+        .station_tab()
+        .and_then(|t| t.station)
+        .expect("the station's view");
     let tag = fluid_nodes(&mut d)
         .into_iter()
         .find(|n| n.records.first() == Some(&station))
@@ -2233,10 +2231,11 @@ fn rc2_a_station_drawn_on_the_schematic_is_drawn_on_the_fluid_page_too() {
         d.shell_mut().dispatch("plc.rack_create", &json!({})),
         Outcome::Done
     );
-    let station = match d.shell_mut().dialog() {
-        Some(ew_ui::ew_viewmodel::shell::Dialog::Rack { station: Some(s), .. }) => *s,
-        other => panic!("{other:?}"),
-    };
+    let station = d
+        .shell_mut()
+        .station_tab()
+        .and_then(|t| t.station)
+        .expect("the station's view");
     let draw = json!({"step": "draw"});
     assert_eq!(d.shell_mut().dispatch("plc.rack_next", &draw), Outcome::Done);
     let _ = d

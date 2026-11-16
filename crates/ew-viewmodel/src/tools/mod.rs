@@ -96,6 +96,7 @@ pub use picker::{
     CellFill, Node, PendingTerminal, Picker, PickerMode, PickerRow, Trade, category_words,
     function_categories, symbol_name, trade_of,
 };
+pub(crate) use picker::{filter_tokens, part_texts, tokens_hit};
 pub use place::{ORIENT_NAMES, PlaceTarget, PlaceTool, inside_polygon, next_designation};
 pub use rail_draw::{DrawCard, DrawPart, RailDrawTool};
 pub use route_edit::RouteEditTool;

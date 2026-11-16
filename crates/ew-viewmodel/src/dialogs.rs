@@ -248,8 +248,20 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
                 )
             }
         }
-        // The rack and slot editor: its slots are the dialog's own content; Close.
-        Dialog::Rack { .. } => rack_spec(model),
+        // Closing the view of a station not made yet asks: Close without making it is the danger button, Cancel the
+        // primary.
+        Dialog::DiscardStation => DialogSpec {
+            danger: Some(DialogButton::new(
+                key!("station-discard-close"),
+                DialogAnswer::Action("tab.close", json!({ "confirm": true })),
+            )),
+            asks: true,
+            ..small(
+                strings::text(key!("station-discard-title")).to_owned(),
+                vec![strings::text(key!("station-discard-text")).to_owned()],
+                cancel(),
+            )
+        },
         // The PLC import's preview: its tabs are the dialog's own content; Apply (Enter) or Cancel.
         Dialog::PlcImport(card) => DialogSpec {
             secondary: vec![cancel()],
@@ -669,61 +681,6 @@ fn open_ewz_spec(path: &str, name: &str) -> DialogSpec {
                 key!("ewz-extract"),
                 DialogAnswer::Action("file.open_ewz", json!({ "path": path, "how": "extract" })),
             ),
-        )
-    }
-}
-
-/// The rack and slot editor's title and body (doc 10 §6): "Rack and slots of `<station>`", the station's part and the
-/// most modules it takes, and for a part that does not describe its modules (a bus device given to a PLC, F19) that it
-/// does not; Close is the Primary. In the new-station state (F18) the title is New station and Create (Enter) makes it;
-/// Cancel.
-fn rack_spec(model: &ShellModel) -> DialogSpec {
-    let view = model.shown_rack();
-    let draft = model.station_draft().is_some();
-    let tag = view.as_ref().map(|v| v.tag.clone()).unwrap_or_default();
-    let mut body = Vec::new();
-    if let Some(v) = &view {
-        if !v.part.is_empty() && !draft {
-            body.push(strings::format(key!("rack-station-part"), &[&v.part]));
-        }
-        if let Some(m) = v.max_modules {
-            body.push(strings::format(key!("rack-max-modules"), &[&m.to_string()]));
-        }
-        if !v.described && !draft {
-            body.push(strings::text(key!("rack-not-described")).to_owned());
-        }
-    }
-    if draft {
-        return DialogSpec {
-            secondary: vec![cancel()],
-            form: true,
-            ..small(
-                strings::text(key!("rack-new-title")).to_owned(),
-                body,
-                DialogButton::new(
-                    key!("rack-create"),
-                    DialogAnswer::Action("plc.rack_create", json!({})),
-                ),
-            )
-        };
-    }
-    // A station drawn nowhere has a tag with question marks (`-?A?`): its title names it by its part until it has one
-    // (a persona run could not tell whether the tag was final).
-    let part = view
-        .as_ref()
-        .map(|v| v.part.split(" · ").next().unwrap_or_default().to_owned())
-        .unwrap_or_default();
-    let title = if tag.contains('?') && !part.is_empty() {
-        strings::format(key!("rack-title-undrawn"), &[&part])
-    } else {
-        strings::format(key!("rack-title"), &[&tag])
-    };
-    DialogSpec {
-        form: true,
-        ..small(
-            title,
-            body,
-            DialogButton::new(key!("dialog-close"), DialogAnswer::Dismiss),
         )
     }
 }

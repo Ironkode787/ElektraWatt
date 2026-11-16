@@ -76,6 +76,7 @@ mod picker;
 pub mod properties;
 mod splitter;
 mod start_page;
+mod station_view;
 mod symbol_editor;
 // The start-up offer after a crash.
 mod startup;

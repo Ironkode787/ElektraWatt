@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! F18 and F19 of the rc.1 test in the window, at 1920 × 1080: a station is made as a rack and filled (New station…,
-//! its head part, Add module… with a count, Create, one undo step), and a bus device without PLC data is given to a
-//! PLC from its symbol's menu, whose rack then opens and takes a module.
+//! its head part and its modules from the catalogue, Create, one undo step), and a bus device without PLC data is
+//! given to a PLC from its symbol's menu, whose view then opens and takes a module. The rack is a view in a tab
+//! beside the page tabs (doc 10 §6).
 
 use crate::support;
 
@@ -35,10 +36,43 @@ fn new_project(tmp: &Tmp) -> egui_kittest::Harness<'static, ew_ui::app::App> {
     h
 }
 
-/// F18: the PLC panel's New station… opens the rack dialog in its new-station state; the CPU chosen as its head part,
-/// Add module… on slot 1 with a count of two puts two input modules into slots 1 and 2; Create makes the station and
-/// its modules, drawn nowhere yet, and the dialog shows the made station's rack with what comes next; one Undo takes
-/// it all back.
+/// The station whose view is on show.
+fn station_of(h: &egui_kittest::Harness<'static, ew_ui::app::App>) -> Uuid {
+    h.state()
+        .shell()
+        .station_tab()
+        .and_then(|t| t.station)
+        .unwrap_or_else(|| panic!("a made station's view: {:?}", h.state().shell().station_tab()))
+}
+
+/// A double click on the catalogue's part whose row starts with `number`.
+fn take(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>, number: &str) {
+    let at = h
+        .query_all_by_role(egui::Role::ListItem)
+        .find(|n| n.accesskit_node().label().is_some_and(|l| l.starts_with(number)))
+        .unwrap_or_else(|| panic!("the catalogue lists {number}"))
+        .rect()
+        .center();
+    // Two clicks at one place without time between them: a double click.
+    h.input_mut().events.push(egui::Event::PointerMoved(at));
+    for _ in 0..2 {
+        for pressed in [true, false] {
+            h.input_mut().events.push(egui::Event::PointerButton {
+                pos: at,
+                button: egui::PointerButton::Primary,
+                pressed,
+                modifiers: egui::Modifiers::NONE,
+            });
+        }
+    }
+    h.run();
+    settle(h);
+}
+
+/// F18: the PLC panel's New station… opens the view of a station not made yet in a tab beside the page; a double click
+/// on the CPU in the catalogue makes it the head, two on the input module put two modules into slots 1 and 2; Create
+/// makes the station and its modules, drawn nowhere yet, and the view shows the made station's rack with what is left
+/// to do; one Undo takes it all back, and the tab with it.
 #[test]
 fn a_station_is_made_as_a_rack_and_filled() {
     let tmp = Tmp::new();
@@ -49,51 +83,20 @@ fn a_station_is_made_as_a_rack_and_filled() {
         .expect("New station…")
         .click();
     settle(&mut h);
-    assert!(
-        matches!(
-            h.state().shell().dialog(),
-            Some(Dialog::Rack { draft: Some(_), .. })
-        ),
-        "{:?}",
-        h.state().shell().dialog()
-    );
-    h.get_by_label("New station");
-    let cpu = h
-        .state()
-        .shell()
-        .station_parts()
-        .into_iter()
-        .find(|p| p.text.starts_with("EW-GEN-CPU-1"))
-        .expect("the starter CPU among the PLC head parts");
-    dispatch(
-        &mut h,
-        "plc.rack_set",
-        json!({"head": cpu.copy.to_string(), "count": 2}),
-    );
-    settle(&mut h);
-    h.get_by_label("Add module… 1").click();
-    settle(&mut h);
-    let di = h
-        .state()
-        .shell()
-        .module_parts()
-        .into_iter()
-        .find(|p| p.text.starts_with("EW-GEN-DI-1"))
-        .expect("the input module");
-    h.get_by_label(&format!("{} · {}", di.text, di.gives)).click();
-    settle(&mut h);
+    assert!(h.state().shell().dialog().is_none(), "no dialog lies over the window");
+    assert!(h.state().shell().station_draft().is_some(), "the new station's view");
+    // Nothing is written before Create.
+    let revision = h.state().shell().revision();
+    take(&mut h, "EW-GEN-CPU-1");
+    take(&mut h, "EW-GEN-DI-1");
+    take(&mut h, "EW-GEN-DI-1");
     let draft = h.state().shell().station_draft().cloned().expect("the draft");
-    assert_eq!(draft.modules, vec![di.copy, di.copy], "two modules at once");
-    support::menu_node(&h, "Create").click();
+    assert!(draft.head.is_some(), "the CPU is the head");
+    assert_eq!(draft.modules.len(), 2, "two modules, one per double click");
+    assert_eq!(h.state().shell().revision(), revision, "still nothing written");
+    h.get_by_label("Create").click();
     settle(&mut h);
-    let station = match h.state().shell().dialog() {
-        Some(Dialog::Rack {
-            station: Some(s),
-            draft: None,
-            ..
-        }) => *s,
-        other => panic!("{other:?}"),
-    };
+    let station = station_of(&h);
     let view = h.state().shell().rack_view(station).expect("its rack");
     let modules: Vec<(u32, &str)> = view
         .rows
@@ -106,18 +109,19 @@ fn a_station_is_made_as_a_rack_and_filled() {
         view.rows.iter().all(|r| r.module.is_none() || !r.drawn),
         "drawn nowhere yet"
     );
-    h.get_by_label("Draw on page 101 Control");
+    h.get_by_label("Draw on a page…");
     h.get_by_label("Put it on a bus page");
-    dispatch(&mut h, "ui.dismiss", json!({}));
     dispatch(&mut h, "edit.undo", json!({}));
     settle(&mut h);
     assert!(h.state().shell().rack_view(station).is_none(), "one undo step");
+    assert!(h.state().shell().station_tab().is_none(), "its tab went with it");
     h.state_mut().shell_mut().shutdown();
 }
 
 /// F19: a PROFINET device whose part says nothing of a PLC, drawn on the page: its symbol's menu offers Add to a new
-/// PLC; chosen, it is a station with an open rack whose dialog says that its part does not describe its modules, and
-/// Add module… puts a module into its first slot. Its menu then names its PLC and offers Rack….
+/// PLC; chosen, it is a station with an open rack whose view says that its part does not describe its modules, and a
+/// double click on a module of the catalogue puts it into its first slot. Its menu then names its PLC and offers
+/// Rack….
 #[test]
 fn a_bus_device_is_given_to_a_plc_from_its_menu() {
     let tmp = Tmp::new();
@@ -139,27 +143,15 @@ fn a_bus_device_is_given_to_a_plc_from_its_menu() {
         .expect("the device");
     dispatch(&mut h, add.id, add.params.clone());
     settle(&mut h);
-    assert!(
-        matches!(h.state().shell().dialog(), Some(Dialog::Rack { station: Some(s), .. }) if *s == device),
-        "{:?}",
-        h.state().shell().dialog()
-    );
+    assert_eq!(station_of(&h), device, "its view opens");
     let device = &device;
     h.get_by_label("Its part does not describe its modules: add them as they are built.");
-    h.get_by_label("Add module… 1").click();
-    settle(&mut h);
-    let di = h
-        .state()
-        .shell()
-        .module_parts()
-        .into_iter()
-        .find(|p| p.text.starts_with("EW-GEN-DI-1"))
-        .expect("the input module");
-    h.get_by_label(&format!("{} · {}", di.text, di.gives)).click();
-    settle(&mut h);
+    take(&mut h, "EW-GEN-DI-1");
     let view = h.state().shell().rack_view(*device).expect("its rack");
     assert_eq!(view.rows.iter().filter(|r| r.module.is_some()).count(), 1);
-    dispatch(&mut h, "ui.dismiss", json!({}));
+    dispatch(&mut h, "tab.close", json!({}));
+    dispatch(&mut h, "edit.select_all", json!({}));
+    settle(&mut h);
     let menu: Vec<String> = canvas_menu(h.state().shell(), MenuSpot::Object, None)
         .into_iter()
         .map(|i| i.label)
@@ -256,35 +248,28 @@ fn a_bus_device_is_given_to_a_plc_from_its_properties() {
         .expect("PLC1 among the choices")
         .click();
     settle(&mut h);
-    assert!(
-        matches!(h.state().shell().dialog(), Some(Dialog::Rack { station: Some(s), .. }) if Some(*s) == device),
-        "{:?}",
-        h.state().shell().dialog()
-    );
+    assert_eq!(Some(station_of(&h)), device, "its view opens");
     h.state_mut().shell_mut().shutdown();
 }
 
-/// The rc.2 persona run: in the new-station dialog a kind no library part is for says why and what to do, and a bus
-/// device in no PLC is offered as the station; chosen, it is a station of the dialog's PLC and its rack is shown.
+/// The rc.2 persona run: in a new station's view a kind no library part is for says why and what to do, and a bus
+/// device in no PLC is offered as the station; chosen, it is a station of the view's PLC and its rack is shown.
 #[test]
-fn the_new_station_dialog_offers_a_device_on_the_bus() {
+fn the_new_station_view_offers_a_device_on_the_bus() {
     let tmp = Tmp::new();
     let mut h = new_project(&tmp);
     crate::plc_workspace::draw_black_box(&mut h, "EW-GEN-PND-1", (10, 10));
     dispatch(&mut h, "plc.new_station", json!({}));
     dispatch(&mut h, "plc.rack_set", json!({"kind": "compact"}));
     settle(&mut h);
-    if h.state().shell().station_parts().is_empty() {
+    if h.state().shell().station_catalogue().is_empty() {
         h.get_by_label("No part of this kind is in the libraries. New part… makes one.");
     }
     let (device, tag) = h.state().shell().station_candidates()[0].clone();
     h.get_by_label(&format!("Use {tag}, which is on the bus")).click();
     settle(&mut h);
-    assert!(
-        matches!(h.state().shell().dialog(), Some(Dialog::Rack { station: Some(s), draft: None, .. }) if *s == device),
-        "{:?}",
-        h.state().shell().dialog()
-    );
+    assert_eq!(station_of(&h), device);
+    assert!(h.state().shell().station_draft().is_none(), "made: no draft is left");
     h.state_mut().shell_mut().shutdown();
 }
 
@@ -296,12 +281,9 @@ fn put_it_on_a_bus_page_makes_the_page_or_asks_which() {
     let tmp = Tmp::new();
     let mut h = new_project(&tmp);
     draft_with(&mut h, 1);
-    support::menu_node(&h, "Create").click();
+    h.get_by_label("Create").click();
     settle(&mut h);
-    let station = match h.state().shell().dialog() {
-        Some(Dialog::Rack { station: Some(s), .. }) => *s,
-        other => panic!("{other:?}"),
-    };
+    let station = station_of(&h);
     h.get_by_label("Put it on a bus page").click();
     settle(&mut h);
     let shown = |h: &egui_kittest::Harness<'static, ew_ui::app::App>| {
@@ -313,11 +295,7 @@ fn put_it_on_a_bus_page_makes_the_page_or_asks_which() {
     };
     let (made, kind) = shown(&h).expect("a page");
     assert_eq!(kind, "bus_topology", "the bus page is made and shown");
-    assert!(
-        h.state().shell().dialog().is_none(),
-        "{:?}",
-        h.state().shell().dialog()
-    );
+    assert!(h.state().shell().station_tab().is_none(), "the page is on show, the view's tab beside it");
     dispatch(&mut h, "ui.dismiss", json!({}));
     dispatch(
         &mut h,
@@ -357,12 +335,9 @@ fn station_on_bus_page(
     dispatch(h, "plc.new_station", json!({}));
     dispatch(h, "plc.rack_set", json!({"kind": kind, "head": head}));
     settle(h);
-    support::menu_node(h, "Create").click();
+    h.get_by_label("Create").click();
     settle(h);
-    let station = match h.state().shell().dialog() {
-        Some(Dialog::Rack { station: Some(s), .. }) => *s,
-        other => panic!("{other:?}"),
-    };
+    let station = station_of(h);
     h.get_by_label("Put it on a bus page").click();
     settle(h);
     crate::navigators::cursor_k(h, (10, 10));
@@ -439,36 +414,41 @@ fn a_bus_page_says_its_steps_and_a_box_its_addresses() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// The new-station dialog with the starter CPU as its head part and `modules` input modules in its rack, not made yet.
+/// A new station's view with the starter CPU as its head part and `modules` input modules in its rack, not made yet.
 fn draft_with(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>, modules: u64) {
     dispatch(h, "plc.new_station", json!({}));
-    dispatch(
-        h,
-        "plc.rack_set",
-        json!({"head": "EW-GEN-CPU-1", "count": modules}),
-    );
-    dispatch(h, "plc.rack_add", json!({"slot": 1, "part": "EW-GEN-DI-1"}));
+    dispatch(h, "plc.rack_set", json!({"head": "EW-GEN-CPU-1"}));
+    for _ in 0..modules {
+        dispatch(h, "plc.rack_add", json!({"part": "EW-GEN-DI-1"}));
+    }
     settle(h);
 }
 
-/// A longer persona run: the rack dialog of a station drawn nowhere names it by its part, not by a tag of question
-/// marks, and holds still while its slots are filled: its columns stand where they stood before the first module.
+/// A longer persona run: the view of a station drawn nowhere names it by its part, not by a tag of question marks, in
+/// its tab and in its header, and holds still while its slots are filled: its columns and its catalogue stand where
+/// they stood before the first module.
 #[test]
-fn the_rack_dialog_names_its_station_and_holds_still() {
+fn the_station_view_names_its_station_and_holds_still() {
     let tmp = Tmp::new();
     let mut h = new_project(&tmp);
     dispatch(&mut h, "plc.new_station", json!({}));
     dispatch(&mut h, "plc.rack_set", json!({"head": "EW-GEN-CPU-1"}));
     settle(&mut h);
-    support::menu_node(&h, "Create").click();
+    h.get_by_label("Create").click();
     settle(&mut h);
-    h.get_by_label_contains("Rack and slots of the station EW-GEN-CPU-1");
+    h.get_by_label("EW-GEN-CPU-1 · rack");
     let columns = |h: &egui_kittest::Harness<'static, ew_ui::app::App>| {
-        ["Allowed slots", "Addresses", "Close"].map(|l| support::menu_node(h, l).rect().left())
+        // The view's own texts, not the command bar's buttons of the same name.
+        ["Gives", "Addresses", "Drawn on", "Catalogue"].map(|l| {
+            h.get_all_by_label(l)
+                .filter(|n| n.accesskit_node().role() == egui::accesskit::Role::Label)
+                .map(|n| n.rect().left())
+                .next()
+                .unwrap_or_else(|| panic!("the view's {l}"))
+        })
     };
     let before = columns(&h);
-    dispatch(&mut h, "plc.rack_add", json!({"slot": 1, "part": "EW-GEN-DI-1"}));
-    settle(&mut h);
+    take(&mut h, "EW-GEN-DI-1");
     settle(&mut h);
     let after = columns(&h);
     for (a, b) in before.iter().zip(&after) {
@@ -508,89 +488,33 @@ fn a_click_on_the_selection_brings_its_properties_back() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// A persona run's double click on How many closed the Add module picker without a change: the field takes the double
-/// click and the number typed, and the picker stays open until a part is chosen.
+/// A persona run: Draw on this page put the station on page 1 without a word. Draw on a page… lists the schematic pages
+/// by folio and title, and New page…, which makes a schematic page and draws there; the page drawn on is shown, and
+/// the station's tab stays beside it.
 #[test]
-fn the_add_module_picker_takes_a_double_click_in_its_count() {
-    let tmp = Tmp::new();
-    let mut h = new_project(&tmp);
-    dispatch(&mut h, "plc.new_station", json!({}));
-    dispatch(&mut h, "plc.rack_set", json!({"head": "EW-GEN-CPU-1"}));
-    settle(&mut h);
-    h.get_by_label("Add module… 1").click();
-    settle(&mut h);
-    let field = |h: &egui_kittest::Harness<'static, ew_ui::app::App>| {
-        h.get_all_by_role(egui::Role::TextInput)
-            .last()
-            .expect("the How many field")
-            .rect()
-            .center()
-    };
-    // Two clicks at one place without time between them: a double click.
-    let at = field(&h);
-    for _ in 0..2 {
-        h.input_mut().events.push(egui::Event::PointerButton {
-            pos: at,
-            button: egui::PointerButton::Primary,
-            pressed: true,
-            modifiers: egui::Modifiers::NONE,
-        });
-        h.input_mut().events.push(egui::Event::PointerButton {
-            pos: at,
-            button: egui::PointerButton::Primary,
-            pressed: false,
-            modifiers: egui::Modifiers::NONE,
-        });
-    }
-    h.run();
-    h.input_mut().events.push(egui::Event::Text("3".to_owned()));
-    settle(&mut h);
-    h.key_press(egui::Key::Enter);
-    settle(&mut h);
-    assert!(
-        matches!(h.state().shell().dialog(), Some(Dialog::Rack { count: 3, .. })),
-        "{:?}",
-        h.state().shell().dialog()
-    );
-    assert!(
-        h.query_all_by_label_contains("EW-GEN-DI-1").next().is_some(),
-        "the picker is still open"
-    );
-    h.state_mut().shell_mut().shutdown();
-}
-
-/// A persona run: Draw on this page put the station on page 1 without a word. The button names the page in front; on
-/// a page that takes no symbols it is Draw on a page ▸, whose New page… makes a schematic page and draws there.
-#[test]
-fn draw_names_the_page_or_lists_the_pages() {
+fn draw_on_a_page_lists_the_pages() {
     let tmp = Tmp::new();
     let mut h = new_project(&tmp);
     draft_with(&mut h, 1);
-    support::menu_node(&h, "Create").click();
+    h.get_by_label("Create").click();
     settle(&mut h);
-    let station = match h.state().shell().dialog() {
-        Some(Dialog::Rack { station: Some(s), .. }) => *s,
-        other => panic!("{other:?}"),
-    };
-    h.get_by_label("Draw on page 101 Control");
-    dispatch(&mut h, "ui.dismiss", json!({}));
-    dispatch(
-        &mut h,
-        "page.new",
-        json!({"folio": "900", "type": "bus_topology", "title": "Field bus"}),
-    );
-    dispatch(&mut h, "plc.rack_editor", json!({"station": station.to_string()}));
-    settle(&mut h);
-    h.get_by_label("Draw on a page ▸").click();
+    let station = station_of(&h);
+    h.get_by_label("Draw on a page…").click();
     settle(&mut h);
     support::menu_node(&h, "101 Control");
     support::menu_node(&h, "New page…").click();
     settle(&mut h);
     let shell = h.state().shell();
+    assert!(shell.station_tab().is_none(), "the page is on show");
     let row = shell.page_rows().get(shell.page_index()).expect("a page");
     assert_eq!(row.kind, "multi_line", "a new schematic page");
     assert_ne!(row.folio, "101");
     assert_eq!(topology_boxes(&h, station), 1, "the station drawn there");
+    let tabs = shell.area().expect("the canvas area").focused_group();
+    assert!(
+        tabs.tabs.iter().any(|t| t.station.is_some()),
+        "the station's tab stays open"
+    );
     h.state_mut().shell_mut().shutdown();
 }
 
@@ -674,18 +598,15 @@ fn channel_rows(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>) -> Vec<
 }
 
 /// The tutorials lane: modules drawn from the rack are bound to their pins as modules drawn by hand: no channel stays
-/// unplaced; a module's own Draw… draws it, bound.
+/// unplaced; a module's own Draw on a page… draws it, bound.
 #[test]
 fn modules_drawn_from_the_rack_are_bound_to_their_pins() {
     let tmp = Tmp::new();
     let mut h = new_project(&tmp);
     draft_with(&mut h, 2);
-    support::menu_node(&h, "Create").click();
+    h.get_by_label("Create").click();
     settle(&mut h);
-    let station = match h.state().shell().dialog() {
-        Some(Dialog::Rack { station: Some(s), .. }) => *s,
-        other => panic!("{other:?}"),
-    };
+    let station = station_of(&h);
     let modules: Vec<Uuid> = h
         .state()
         .shell()
@@ -695,18 +616,16 @@ fn modules_drawn_from_the_rack_are_bound_to_their_pins() {
         .iter()
         .filter_map(|r| r.module)
         .collect();
-    // The second module's own Draw…, then Draw on this page for the rest.
-    dispatch(&mut h, "plc.rack_slot", json!({"slot": 2, "op": "draw"}));
+    // The second module's own Draw on a page…, then the To do list's for the rest.
+    dispatch(&mut h, "plc.rack_slot", json!({"slot": 2, "op": "draw", "folio": "101"}));
     settle(&mut h);
-    assert!(
-        h.state().shell().dialog().is_none(),
-        "{:?}",
-        h.state().shell().dialog()
-    );
+    assert!(h.state().shell().station_tab().is_none(), "page 101 is on show");
     assert!(topology_boxes(&h, modules[1]) == 1, "the module's box");
     dispatch(&mut h, "plc.rack_editor", json!({"station": station.to_string()}));
     settle(&mut h);
-    h.get_by_label("Draw on page 101 Control").click();
+    h.get_by_label("Draw on a page…").click();
+    settle(&mut h);
+    support::menu_node(&h, "101 Control").click();
     settle(&mut h);
     let rows = channel_rows(&mut h);
     assert_eq!(rows.len(), 16, "two modules of eight channels");
@@ -717,19 +636,17 @@ fn modules_drawn_from_the_rack_are_bound_to_their_pins() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// After Create, Draw on this page puts the station's box and each module's beside it in slot order on the page, in
-/// one undo step; a second time there is nothing left to draw, and that is said in words.
+/// After Create, Draw on a page… puts the station's box and each module's beside it in slot order on the page chosen,
+/// in one undo step; then nothing is left to draw: the view's To do list no longer offers it, and each row names its
+/// page.
 #[test]
-fn draw_on_this_page_draws_the_station_and_its_modules() {
+fn draw_on_a_page_draws_the_station_and_its_modules() {
     let tmp = Tmp::new();
     let mut h = new_project(&tmp);
     draft_with(&mut h, 3);
-    support::menu_node(&h, "Create").click();
+    h.get_by_label("Create").click();
     settle(&mut h);
-    let station = match h.state().shell().dialog() {
-        Some(Dialog::Rack { station: Some(s), .. }) => *s,
-        other => panic!("{other:?}"),
-    };
+    let station = station_of(&h);
     let drawn = |h: &egui_kittest::Harness<'static, ew_ui::app::App>| {
         let reps = h
             .state()
@@ -750,9 +667,11 @@ fn draw_on_this_page_draws_the_station_and_its_modules() {
         .iter()
         .filter_map(|r| r.module)
         .collect();
-    h.get_by_label("Draw on page 101 Control").click();
+    h.get_by_label("Draw on a page…").click();
     settle(&mut h);
-    assert!(h.state().shell().dialog().is_none(), "the page is shown");
+    support::menu_node(&h, "101 Control").click();
+    settle(&mut h);
+    assert!(h.state().shell().station_tab().is_none(), "the page is shown");
     let mut expected = vec![station];
     expected.extend(modules);
     assert_eq!(
@@ -762,19 +681,25 @@ fn draw_on_this_page_draws_the_station_and_its_modules() {
     );
     dispatch(&mut h, "plc.rack_editor", json!({"station": station.to_string()}));
     settle(&mut h);
-    h.get_by_label("Draw on page 101 Control").click();
-    settle(&mut h);
-    h.get_by_label_contains("are drawn already");
-    dispatch(&mut h, "ui.dismiss", json!({}));
+    assert!(
+        h.query_by_label("Draw on a page…").is_none(),
+        "nothing is left to draw"
+    );
+    assert_eq!(
+        h.query_all_by_label("Page 101").count(),
+        4,
+        "the station and its three modules each name their page"
+    );
+    dispatch(&mut h, "tab.close", json!({}));
     dispatch(&mut h, "edit.undo", json!({}));
     settle(&mut h);
     assert!(drawn(&h).is_empty(), "one undo step takes every box back");
     h.state_mut().shell_mut().shutdown();
 }
 
-/// New part… presets what the dialog was asked for: from Remote I/O a station part with a device's bus interface, from
-/// PLC (CPU) one whose interface leads the bus, from a slot's Add module… a module part; saved, the new head part is
-/// the draft's head again.
+/// New part… at the catalogue's foot presets what the view was asked for: for Remote I/O a station part with a
+/// device's bus interface, for PLC (CPU) one whose interface leads the bus, for a station with its head a module
+/// part; saved, the new head part is the draft's head.
 #[test]
 fn new_part_from_the_rack_starts_as_what_was_asked() {
     let tmp = Tmp::new();
@@ -806,33 +731,29 @@ fn new_part_from_the_rack_starts_as_what_was_asked() {
         .station_draft()
         .and_then(|d| d.head)
         .expect("back with a head part");
-    let parts = h.state().shell().station_parts();
-    assert!(
-        parts
-            .iter()
-            .any(|p| p.copy == head && p.text.starts_with("RIO-9")),
-        "the new part is the head"
-    );
+    let rack = h.state().shell().shown_rack().expect("the draft's rack");
+    assert_eq!(rack.head.module, Some(head));
+    assert!(rack.head.part.starts_with("RIO-9"), "the new part is the head: {}", rack.head.part);
+
+    // With its head chosen the view lists modules, and New part… starts a module part.
+    h.get_by_label("New part…").click();
+    settle(&mut h);
+    assert_eq!(draft_text(&h, "plc.role"), "module");
+    dispatch(&mut h, "ui.dismiss", json!({}));
+    settle(&mut h);
 
     dispatch(&mut h, "plc.rack_set", json!({"kind": "cpu"}));
     settle(&mut h);
     h.get_by_label("New part…").click();
     settle(&mut h);
     assert_eq!(draft_text(&h, "bus.0.role"), "controller");
-    dispatch(&mut h, "ui.dismiss", json!({}));
-    settle(&mut h);
-
-    dispatch(&mut h, "plc.new_station", json!({}));
-    dispatch(&mut h, "part.new", json!({"plc": "module"}));
-    settle(&mut h);
-    assert_eq!(draft_text(&h, "plc.role"), "module");
     h.state_mut().shell_mut().shutdown();
 }
 
-/// At 1920 × 1080 the choices of what the station is stand on one line, and with twelve modules the free slot's
-/// Add module… stays inside the window above Create.
+/// At 1920 × 1080 the choices of what the station is stand on one line, and with twelve modules Create, the To do list
+/// and the catalogue's New part… stay inside the window: the rack scrolls sideways, the lists under it down.
 #[test]
-fn the_new_station_dialog_fits_at_1920() {
+fn the_new_station_view_fits_at_1920() {
     let tmp = Tmp::new();
     let mut h = new_project(&tmp);
     draft_with(&mut h, 12);
@@ -844,27 +765,23 @@ fn the_new_station_dialog_fits_at_1920() {
         rows.iter().all(|y| (*y - rows[0]).abs() < 1.0),
         "one line: {rows:?}"
     );
-    let add = h.get_by_label("Add module… 13").rect();
-    let create = support::menu_node(&h, "Create").rect();
-    assert!(
-        add.top() >= 0.0 && add.bottom() <= create.top(),
-        "Add module… {add:?} is out of sight above Create {create:?}"
-    );
+    let window = h.ctx.content_rect();
+    for label in ["Create", "New part…", "Catalogue"] {
+        let rect = h.get_by_label(label).rect();
+        assert!(window.contains_rect(rect), "{label} {rect:?} is out of the window {window:?}");
+    }
     h.state_mut().shell_mut().shutdown();
 }
 
-/// A station of kind `kind` with head part `head` made in the new-station dialog and drawn nowhere; the dialog closed.
+/// A station of kind `kind` with head part `head` made in a new station's view and drawn nowhere; its tab closed.
 fn made_station(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>, kind: &str, head: &str) -> Uuid {
     dispatch(h, "plc.new_station", json!({}));
     dispatch(h, "plc.rack_set", json!({"kind": kind, "head": head}));
     settle(h);
-    support::menu_node(h, "Create").click();
+    h.get_by_label("Create").click();
     settle(h);
-    let station = match h.state().shell().dialog() {
-        Some(Dialog::Rack { station: Some(s), .. }) => *s,
-        other => panic!("{other:?}"),
-    };
-    dispatch(h, "ui.dismiss", json!({}));
+    let station = station_of(h);
+    dispatch(h, "tab.close", json!({}));
     settle(h);
     station
 }
@@ -1133,34 +1050,14 @@ fn the_chip_says_where_it_goes_and_puts_a_station_here() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// Two small ones of the rc.2 persona run: Add module's How many went on with the 2 of the add before, and the PLC
-/// tab's Bus panel closed the panel that stood open behind another tab. How many is 1 again after an add, in the
-/// new-station dialog and in a made station's rack; Bus panel brings the panel to the front and the status bar says so.
+/// A small one of the rc.2 persona run: the PLC tab's Bus panel closed the panel that stood open behind another tab.
+/// Bus panel brings the panel to the front and the status bar says so.
 #[test]
-fn how_many_goes_back_to_one_and_the_bus_panel_comes_to_the_front() {
+fn the_bus_panel_comes_to_the_front() {
     use ew_ui::ew_viewmodel::layout::PaneKind;
     use ew_ui::ew_viewmodel::navigators::NavKind;
     let tmp = Tmp::new();
     let mut h = new_project(&tmp);
-    let count = |h: &egui_kittest::Harness<'static, ew_ui::app::App>| match h.state().shell().dialog() {
-        Some(Dialog::Rack { count, .. }) => *count,
-        other => panic!("{other:?}"),
-    };
-    draft_with(&mut h, 2);
-    assert_eq!(
-        h.state().shell().station_draft().map(|d| d.modules.len()),
-        Some(2)
-    );
-    assert_eq!(count(&h), 1, "the new-station dialog");
-    dispatch(&mut h, "ui.dismiss", json!({}));
-    let station = made_station(&mut h, "cpu", "EW-GEN-CPU-1");
-    dispatch(&mut h, "plc.rack_editor", json!({"station": station.to_string()}));
-    dispatch(&mut h, "plc.rack_set", json!({"count": 2}));
-    dispatch(&mut h, "plc.rack_add", json!({"slot": 1, "part": "EW-GEN-DI-1"}));
-    settle(&mut h);
-    assert_eq!(count(&h), 1, "a made station's rack");
-    dispatch(&mut h, "ui.dismiss", json!({}));
-
     let bus = PaneKind::Navigator(NavKind::Bus);
     dispatch(&mut h, "bus.panel", json!({}));
     dispatch(&mut h, "rail.show", json!({"pane": "plc"}));

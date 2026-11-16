@@ -501,13 +501,12 @@ fn the_valve_terminals_overview_is_generated_from_its_row() {
     let mut h = on_golden(&tmp, "201");
     dispatch(&mut h, "plc.rack_editor", json!({"station": "tag:-201U1"}));
     settle(&mut h);
-    let station = match h.state().shell().dialog() {
-        Some(ew_ui::ew_viewmodel::shell::Dialog::Rack {
-            station: Some(station),
-            ..
-        }) => *station,
-        other => panic!("{other:?}"),
-    };
+    let station = h
+        .state()
+        .shell()
+        .station_tab()
+        .and_then(|t| t.station)
+        .expect("the valve terminal's view");
     let before = h.state().shell().rack_view(station).expect("the rack");
     let free = before
         .rows
@@ -515,8 +514,9 @@ fn the_valve_terminals_overview_is_generated_from_its_row() {
         .find(|r| r.module.is_none())
         .expect("a free slot")
         .slot;
-    dispatch(&mut h, "plc.rack_add", json!({"slot": free}));
-    dispatch(&mut h, "ui.dismiss", json!({}));
+    dispatch(&mut h, "plc.rack_add", json!({"slot": free, "part": "533361"}));
+    dispatch(&mut h, "tab.close", json!({}));
+    dispatch(&mut h, "select.set", json!({"ids": []}));
     settle(&mut h);
     let added = h
         .state()

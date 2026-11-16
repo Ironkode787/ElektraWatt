@@ -268,6 +268,11 @@ impl AreaBehavior<'_> {
         let Some(tab) = self.area.tabs().find(|(_, _, t)| t.id == id).map(|(_, _, t)| t) else {
             return (String::new(), Vec::new(), String::new());
         };
+        // A station's tab is named by its station; it has none of its page's badges.
+        if tab.station.is_some() {
+            let title = self.shell.tab_title(tab);
+            return (title.clone(), Vec::new(), title);
+        }
         let Some(row) = self.shell.tab_row(tab) else {
             return (String::new(), Vec::new(), String::new());
         };
@@ -287,7 +292,18 @@ impl Behavior<TabPane> for AreaBehavior<'_> {
         if let Some((g, i)) = self.place(pane.0)
             && self.area.groups[g].active == i
         {
-            self.canvas.show_group(ui, self.shell, g, self.events);
+            // A station's tab shows its rack in place of its page (doc 10 §6).
+            match &self.area.groups[g].tabs[i].station {
+                Some(station) => crate::station_view::show(
+                    ui,
+                    self.shell,
+                    station,
+                    (g, i),
+                    g == self.area.focused,
+                    self.events,
+                ),
+                None => self.canvas.show_group(ui, self.shell, g, self.events),
+            }
         }
         UiResponse::None
     }

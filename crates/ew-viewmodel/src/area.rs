@@ -35,9 +35,53 @@ pub struct Tab {
     pub canvas: Option<CanvasModel>,
     /// Its jump history (not persisted).
     pub history: History,
+    /// The station whose view the tab shows instead of its page (doc 10 §6); `None` for a tab that shows its page.
+    /// The tab keeps the page it was opened from: Draw on this page draws there, and a jump to a page leaves the
+    /// tab for a page tab.
+    pub station: Option<StationTab>,
     /// The remembered view of every page visited, with the visit counter of the last visit.
     viewports: BTreeMap<PageId, (Viewport, u64)>,
     visits: u64,
+}
+
+/// A station's view in a tab (doc 10 §6): a PLC, a remote I/O station or a valve terminal as its rack, or a station
+/// not made yet.
+#[derive(Clone, PartialEq, Debug, Default)]
+pub struct StationTab {
+    /// The station device; `None` while the station is not made yet.
+    pub station: Option<ew_api::output::Uuid>,
+    /// The station not made yet: what it is, its head part, its PLC and its cards. Create makes it.
+    pub draft: Option<crate::shell::automation::StationDraft>,
+    /// The place chosen in the rack: a card selects its device as a click on a page does; a free slot takes the
+    /// catalogue's next part.
+    pub cursor: Option<StationCursor>,
+    /// The catalogue's filter text.
+    pub filter: String,
+    /// A line under the rack after a change: the addresses that moved, or what comes next after Create.
+    pub note: Option<String>,
+    /// The last refusal of a change, with the place it was refused at; `None` after a change went through.
+    pub error: Option<(Option<StationCursor>, String)>,
+}
+
+/// A place in a station's rack.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum StationCursor {
+    /// The station itself: its head (a CPU, an interface module, a valve terminal's node).
+    Head,
+    /// A slot, free or taken.
+    Slot {
+        /// The rack (0 for a positional slot).
+        rack: u16,
+        /// The slot.
+        slot: u32,
+    },
+    /// A valve position of a valve terminal.
+    Position {
+        /// The module the position belongs to (the terminal or one of its modules).
+        module: ew_api::output::Uuid,
+        /// The position on that module, 1-based.
+        position: u32,
+    },
 }
 
 impl Tab {
@@ -48,6 +92,7 @@ impl Tab {
             page,
             canvas: None,
             history: History::new(),
+            station: None,
             viewports: BTreeMap::new(),
             visits: 0,
         }
@@ -198,14 +243,87 @@ impl CanvasArea {
         Ok(())
     }
 
+    /// Opens a station's view: a tab after the active one of the focused group, on the same page, active.
+    ///
+    /// # Errors
+    ///
+    /// `reason-tabs-full` with [`MAX_TABS`] tabs.
+    pub fn open_station(&mut self, station: StationTab) -> Result<(), Key<'static>> {
+        if self.tab_count() >= MAX_TABS {
+            return Err(key!("reason-tabs-full"));
+        }
+        let id = self.take_id();
+        let g = &mut self.groups[self.focused];
+        let mut tab = Tab::new(id, g.active_tab().page);
+        tab.station = Some(station);
+        g.tabs.insert(g.active + 1, tab);
+        g.active += 1;
+        self.changed();
+        Ok(())
+    }
+
+    /// Leaves a station's view for a page: when the active tab of `group` shows a station, the nearest tab of the
+    /// group that shows a page becomes active (the one before it first), else a page tab is opened before it.
+    pub fn leave_station(&mut self, group: usize) {
+        let Some(g) = self.groups.get(group) else { return };
+        if g.active_tab().station.is_none() {
+            return;
+        }
+        let page = |i: &usize| g.tabs[*i].station.is_none();
+        let at = (0..g.active).rev().find(page).or_else(|| (g.active..g.tabs.len()).find(page));
+        match at {
+            Some(i) => self.groups[group].active = i,
+            None => {
+                let id = self.take_id();
+                let g = &mut self.groups[group];
+                let tab = Tab::new(id, g.active_tab().page);
+                g.tabs.insert(g.active, tab);
+            }
+        }
+        self.changed();
+    }
+
+    /// Closes the station tabs `gone` names (a station deleted, its making undone); a group's last tab shows its page
+    /// again instead.
+    pub fn drop_stations(&mut self, gone: impl Fn(&StationTab) -> bool) {
+        let mut changed = false;
+        for g in &mut self.groups {
+            let mut i = 0;
+            while i < g.tabs.len() {
+                if !g.tabs[i].station.as_ref().is_some_and(&gone) {
+                    i += 1;
+                    continue;
+                }
+                changed = true;
+                if g.tabs.len() == 1 {
+                    g.tabs[i].station = None;
+                    break;
+                }
+                g.tabs.remove(i);
+                if g.active > i || g.active >= g.tabs.len() {
+                    g.active = g.active.saturating_sub(1);
+                }
+            }
+        }
+        if changed {
+            self.changed();
+        }
+    }
+
     /// `tab.close`: closes the focused group's active tab; the tab to its right (else its left) becomes active; a
-    /// group left empty goes and the other group is focused.
+    /// group left empty goes and the other group is focused. The project's last tab, when it shows a station, shows
+    /// its page again.
     ///
     /// # Errors
     ///
     /// `reason-last-tab` for the project's last tab.
     pub fn close_tab(&mut self) -> Result<(), Key<'static>> {
         if self.tab_count() <= 1 {
+            let last = self.groups[self.focused].active_tab_mut();
+            if last.station.take().is_some() {
+                self.changed();
+                return Ok(());
+            }
             return Err(key!("reason-last-tab"));
         }
         let g = &mut self.groups[self.focused];

@@ -33,7 +33,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ))),
     ),
-    // A station row's Rack and slots… (FR-PLC-028) and the editor's own controls.
+    // A station's Rack… (FR-PLC-028) opens its view as a tab, and the view's own controls.
     with_params(
         "station:ref",
         needs_parameters(in_navigator(with_aliases(
@@ -54,22 +54,137 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ))),
     ),
     with_params(
-        "part:ref",
+        "head?:bool, slot?:uint, rack?:uint, module?:ref, position?:uint, card?:ref, step?:int",
         hidden(with_aliases(
-            &[("part", ParamForm::Whole)],
+            &[("module", ParamForm::Whole), ("card", ParamForm::Whole)],
             act(
-                "plc.rack_part",
+                "plc.rack_select",
                 View,
                 Menu::Project,
                 &[],
                 project_open,
                 None,
-                |s, p| s.act_plc_rack_part(p),
+                |s, p| s.act_plc_rack_select(p),
             ),
         )),
     ),
+    // The PLC tab's commands on the module under the station view's cursor.
     with_params(
-        "slot:uint, rack?:uint, part?:text",
+        "part:text",
+        needs_parameters(placed(
+            place(
+                Group::Module,
+                1,
+                CommandSize::Small,
+                Some(key!("bar-module-replace")),
+            ),
+            "package",
+            act(
+                "plc.module_replace",
+                Command,
+                Menu::Plc,
+                &[],
+                station_module,
+                sub(Menu::Plc, Submenu::ModuleParts, false),
+                |s, p| s.act_plc_module(p, "replace"),
+            ),
+        )),
+    ),
+    placed(
+        place(
+            Group::Module,
+            2,
+            CommandSize::Small,
+            Some(key!("bar-module-remove")),
+        ),
+        "trash",
+        act(
+            "plc.module_remove",
+            Command,
+            Menu::Plc,
+            &[],
+            station_module,
+            None,
+            |s, p| s.act_plc_module(p, "empty"),
+        ),
+    ),
+    with_params(
+        "folio:text",
+        needs_parameters(placed(
+            place(
+                Group::Module,
+                3,
+                CommandSize::Small,
+                Some(key!("bar-module-draw")),
+            ),
+            "pencil",
+            act(
+                "plc.module_draw",
+                Command,
+                Menu::Plc,
+                &[],
+                station_module_undrawn,
+                sub(Menu::Plc, Submenu::ModulePages, false),
+                |s, p| s.act_plc_module(p, "draw"),
+            ),
+        )),
+    ),
+    placed(
+        place(
+            Group::Module,
+            4,
+            CommandSize::Small,
+            Some(key!("bar-module-goto")),
+        ),
+        "current-location",
+        act(
+            "plc.module_goto",
+            View,
+            Menu::Plc,
+            &[],
+            station_module_drawn,
+            None,
+            |s, _| s.act_plc_module_goto(),
+        ),
+    ),
+    placed(
+        place(
+            Group::Module,
+            5,
+            CommandSize::Small,
+            Some(key!("bar-module-left")),
+        ),
+        "arrow-left",
+        act(
+            "plc.module_left",
+            Command,
+            Menu::Plc,
+            &[],
+            station_module,
+            None,
+            |s, p| s.act_plc_module(p, "up"),
+        ),
+    ),
+    placed(
+        place(
+            Group::Module,
+            6,
+            CommandSize::Small,
+            Some(key!("bar-module-right")),
+        ),
+        "arrow-right",
+        act(
+            "plc.module_right",
+            Command,
+            Menu::Plc,
+            &[],
+            station_module,
+            None,
+            |s, p| s.act_plc_module(p, "down"),
+        ),
+    ),
+    with_params(
+        "part:text, slot?:uint, rack?:uint, module?:ref, position?:uint",
         hidden(act(
             "plc.rack_add",
             Command,
@@ -521,7 +636,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     ),
     with_params(
-        "kind?:text, head?:text, config?:text, count?:uint",
+        "kind?:text, head?:text, config?:text, filter?:text",
         hidden(act(
             "plc.rack_set",
             View,
@@ -533,7 +648,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         )),
     ),
     with_params(
-        "slot:uint, rack?:uint, op:text, part?:text",
+        "op:text, slot?:uint, rack?:uint, part?:text, folio?:text",
         hidden(act(
             "plc.rack_slot",
             Command,

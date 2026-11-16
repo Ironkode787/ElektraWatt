@@ -292,6 +292,10 @@ pub fn context_topic(model: &ShellModel) -> &'static str {
     if model.symbol_editor().is_some() {
         return "symbol-editor";
     }
+    // A station's view while the canvas area has the focus: the rack's page of the guide.
+    if model.station_tab().is_some() && matches!(model.focus(), Some(crate::shell::Focus::Canvas(_))) {
+        return "dialog-rack";
+    }
     if let Some(topic) = focus_topic(model) {
         return topic;
     }
@@ -343,7 +347,7 @@ pub fn dialog_topic(dialog: &Dialog) -> &'static str {
         Dialog::OpenEwz { .. } => "dialog-open-ewz",
         Dialog::ImportDrawing { .. } => "dialog-import-drawing",
         Dialog::ImportEplan { .. } => "dialog-import-eplan",
-        Dialog::Rack { .. } => "dialog-rack",
+        Dialog::DiscardStation => "dialog-rack",
         Dialog::PlcImport(_) => "dialog-plc-import",
         Dialog::ConfirmGitSetup { .. } => "dialog-git-setup",
         Dialog::ChooseStation { .. } => "dialog-rack",
@@ -658,14 +662,7 @@ mod tests {
                 name: text(),
                 step: crate::shell::EplanStep::Terms,
             },
-            Dialog::Rack {
-                station: None,
-                draft: None,
-                part: None,
-                count: 1,
-                note: None,
-                error: None,
-            },
+            Dialog::DiscardStation,
         ] {
             assert!(anchor(dialog_topic(&dialog)).is_some(), "{dialog:?}");
         }

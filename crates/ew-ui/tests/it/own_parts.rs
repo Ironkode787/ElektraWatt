@@ -463,22 +463,16 @@ fn rack_add(d: &mut Driver, station: &str, number: &str, slot: u64) {
         .shell_mut()
         .dispatch("plc.rack_editor", &json!({"station": format!("tag:{station}")}));
     assert_eq!(open, Outcome::Done);
-    let part = d
-        .shell_mut()
-        .module_parts()
-        .into_iter()
-        .find(|m| m.text.contains(number))
-        .unwrap_or_else(|| panic!("the rack offers {number}"))
-        .copy;
-    let chose = d
-        .shell_mut()
-        .dispatch("plc.rack_part", &json!({"part": part.to_string()}));
-    assert_eq!(chose, Outcome::Done);
+    assert!(
+        d.shell_mut().station_catalogue().iter().any(|p| p.number == number),
+        "the station's catalogue offers {number}"
+    );
     assert_eq!(
-        d.shell_mut().dispatch("plc.rack_add", &json!({"slot": slot})),
+        d.shell_mut()
+            .dispatch("plc.rack_add", &json!({"slot": slot, "part": number})),
         Outcome::Done
     );
-    d.input(&key("Escape"));
+    assert_eq!(d.shell_mut().dispatch("tab.close", &json!({})), Outcome::Done);
     d.settle();
 }
 

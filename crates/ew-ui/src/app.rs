@@ -688,8 +688,12 @@ impl App {
         if under_row {
             return;
         }
-        // A refusal the rack and slot editor shows under its slots is not made a banner as well (P3).
-        if matches!(self.shell.dialog(), Some(ew_viewmodel::shell::Dialog::Rack { error: Some(e), .. }) if *e == message)
+        // A refusal a station's view shows under its rack is not made a banner as well (P3).
+        if self
+            .shell
+            .station_tab()
+            .and_then(|s| s.error.as_ref())
+            .is_some_and(|(_, e)| *e == message)
         {
             return;
         }
@@ -1115,7 +1119,15 @@ impl App {
                         // The canvas takes the pane above the HUD's strip (doc 16a §5.5): the zoom control and the
                         // tool options stand on the canvas, the HUD under it, never over the drawing.
                         let full = ui.max_rect();
-                        let split = (full.bottom() - crate::hud::strip_height(&tokens)).max(full.top());
+                        // A station's view is no canvas: it takes the whole pane, without the HUD, the zoom control
+                        // and the tool options.
+                        let station = shell.station_tab().is_some();
+                        let strip = if station {
+                            0.0
+                        } else {
+                            crate::hud::strip_height(&tokens)
+                        };
+                        let split = (full.bottom() - strip).max(full.top());
                         let above = egui::Rect::from_min_max(full.min, egui::pos2(full.right(), split));
                         page_pane = Some(above);
                         hud_strip = Some(egui::Rect::from_min_max(egui::pos2(full.left(), split), full.max));
@@ -1138,7 +1150,8 @@ impl App {
             }
         });
         // The HUD, the zoom control and the tool options over the page view (doc 16a §5.5).
-        self.page_pane = page_pane.filter(|_| canvas_shown);
+        // A station's view is no page: the HUD, the zoom control and the tool options stay away from it.
+        self.page_pane = page_pane.filter(|_| canvas_shown && self.shell.station_tab().is_none());
         self.hud_rect = None;
         let mut options_card = None;
         if self.page_pane.is_none() {

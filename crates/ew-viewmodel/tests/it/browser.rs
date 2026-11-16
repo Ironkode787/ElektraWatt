@@ -69,13 +69,8 @@ fn the_browsers_tree_lists_each_trade_and_category_with_its_count() {
         assert_eq!(parts.len(), *count, "{node:?}");
         for part in parts {
             match node {
-                Node::Category(key) => assert_eq!(&part.category, key, "{}", part.part_number),
-                Node::Trade(t) => assert_eq!(
-                    ew_viewmodel::tools::trade_of(&part.category),
-                    Some(*t),
-                    "{}",
-                    part.part_number
-                ),
+                Node::Category(_) => assert_eq!(Node::of_part(part), *node, "{}", part.part_number),
+                Node::Trade(t) => assert_eq!(Node::of_part(part).trade(), Some(*t), "{}", part.part_number),
                 Node::Project => assert!(part.library.is_none(), "{}", part.part_number),
                 _ => {}
             }

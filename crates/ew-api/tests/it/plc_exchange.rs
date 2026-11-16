@@ -1351,11 +1351,12 @@ fn an_import_freezes_the_starts_so_an_inserted_module_moves_nothing() {
 
     let before: Vec<Vec<String>> = modules.iter().map(|m| printed(&s.query(), *m)).collect();
     let copy = s
-        .module_parts()
-        .into_iter()
-        .find(|p| p.text.starts_with("533361"))
-        .expect("the module part")
-        .copy;
+        .query()
+        .parts()
+        .iter()
+        .find(|(_, c)| c.item.part_number.as_str().starts_with("533361"))
+        .map(|(id, _)| id.as_uuid())
+        .expect("the module part");
     let station = device(&s, "-201U1");
     run(
         &mut s,

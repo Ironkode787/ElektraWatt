@@ -146,9 +146,13 @@ fn two_cpus_and_a_card(tmp: &Tmp) -> egui_kittest::Harness<'static, ew_ui::app::
         crate::navigators::cursor_k(&mut h, b);
         dispatch(&mut h, "canvas.activate", json!({}));
         dispatch(&mut h, "tool.select", json!({}));
-        // F18 of the rc.1 test: each CPU's rack opens when it is placed; the card on a page of neither asks which
-        // station takes it. Closed, the card waits.
-        assert!(h.state().shell().dialog().is_some(), "{part}: a dialog");
+        // Each CPU's view opens when it is placed; the card on a page of neither asks which station takes it.
+        // Left with Escape, the card waits.
+        let shell = h.state().shell();
+        assert!(
+            shell.dialog().is_some() || shell.station_tab().is_some(),
+            "{part}: the station's view, or the question"
+        );
         dispatch(&mut h, "ui.dismiss", json!({}));
     }
     dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
@@ -339,31 +343,81 @@ pub(crate) fn new_project_with_cpu(tmp: &Tmp) -> egui_kittest::Harness<'static, 
     );
     settle(&mut h);
     draw_black_box(&mut h, "EW-GEN-CPU-1", (10, 10));
-    // F18 of the rc.1 test: a station placed directly opens its rack dialog, so that it is filled there.
+    // A station placed directly opens its view in a tab beside the page, so that it is filled there.
+    let tabs = &h.state().shell().area().expect("the canvas area").focused_group().tabs;
     assert!(
-        matches!(
-            h.state().shell().dialog(),
-            Some(ew_ui::ew_viewmodel::shell::Dialog::Rack { station: Some(_), .. })
-        ),
-        "{:?}",
-        h.state().shell().dialog()
+        tabs.iter().any(|t| t.station.as_ref().is_some_and(|s| s.station.is_some())),
+        "the CPU's view is a tab beside the page"
     );
-    dispatch(&mut h, "ui.dismiss", json!({}));
     dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
     settle(&mut h);
     h
 }
 
-/// The digital output card's entry in the picker of Add module…: its part and what it gives.
-fn do_card_pick(h: &egui_kittest::Harness<'static, ew_ui::app::App>) -> String {
-    let p = h
-        .state()
+/// The station whose view is on show.
+fn station_of(h: &egui_kittest::Harness<'static, ew_ui::app::App>) -> ew_ui::ew_viewmodel::ew_api::output::Uuid {
+    h.state()
         .shell()
-        .module_parts()
-        .into_iter()
-        .find(|p| p.text.starts_with("EW-GEN-DO-1"))
-        .expect("the output card among the module parts");
-    format!("{} · {}", p.text, p.gives)
+        .station_tab()
+        .and_then(|t| t.station)
+        .expect("a station's view")
+}
+
+/// The centre of the widget named `label` in the station's view.
+fn at(h: &egui_kittest::Harness<'static, ew_ui::app::App>, label: &str) -> egui::Pos2 {
+    h.get_all_by_label(label)
+        .next()
+        .unwrap_or_else(|| panic!("no widget named {label:?}"))
+        .rect()
+        .center()
+}
+
+/// A double click on the catalogue's part whose row starts with `number`.
+fn take(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>, number: &str) {
+    let at = h
+        .query_all_by_role(egui::Role::ListItem)
+        .find(|n| n.accesskit_node().label().is_some_and(|l| l.starts_with(number)))
+        .unwrap_or_else(|| panic!("the catalogue lists {number}"))
+        .rect()
+        .center();
+    h.input_mut().events.push(egui::Event::PointerMoved(at));
+    for _ in 0..2 {
+        for pressed in [true, false] {
+            h.input_mut().events.push(egui::Event::PointerButton {
+                pos: at,
+                button: egui::PointerButton::Primary,
+                pressed,
+                modifiers: egui::Modifiers::NONE,
+            });
+        }
+    }
+    h.run();
+    settle(h);
+}
+
+/// A drag with the primary button from `from` to `to`, in steps.
+fn drag(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>, from: egui::Pos2, to: egui::Pos2) {
+    h.input_mut().events.push(egui::Event::PointerMoved(from));
+    h.run_ok();
+    h.input_mut().events.push(egui::Event::PointerButton {
+        pos: from,
+        button: egui::PointerButton::Primary,
+        pressed: true,
+        modifiers: egui::Modifiers::NONE,
+    });
+    h.run_ok();
+    for i in 1..=8 {
+        let p = from + (to - from) * (i as f32 / 8.0);
+        h.input_mut().events.push(egui::Event::PointerMoved(p));
+        h.run_ok();
+    }
+    h.input_mut().events.push(egui::Event::PointerButton {
+        pos: to,
+        button: egui::PointerButton::Primary,
+        pressed: false,
+        modifiers: egui::Modifiers::NONE,
+    });
+    settle(h);
 }
 
 /// Draws the starter part `number` as a black box from grid cell `at` (six by eight cells) on the page shown, then
@@ -380,15 +434,19 @@ pub(crate) fn draw_black_box(
     crate::navigators::cursor_k(h, (at.0 + 6, at.1 + 8));
     dispatch(h, "canvas.activate", json!({}));
     dispatch(h, "tool.select", json!({}));
+    // A station placed on a page opens its view in a tab; Escape goes back to the page, the tab stays beside it.
+    if h.state().shell().station_tab().is_some() {
+        dispatch(h, "ui.dismiss", json!({}));
+    }
     settle(h);
 }
 
-/// FR-PLC-028 from nothing: Rack… on a new project's CPU row opens the editor; the digital output card
-/// chosen in the picker of Add module… goes into slot 1 and then into slot 2; a slot typed that is no slot is
-/// refused in words under the slots; the navigator lists both cards under the CPU.
+/// FR-PLC-028 from nothing (R1, build my PLC): Rack… on a new project's CPU row opens its view in a tab; a double click
+/// on the digital output card in the catalogue puts it into slot 1, a second into slot 2, and each stands in the
+/// drawn rack and in the table with its part number and description, what it gives and its addresses. The module
+/// under the cursor is the window's selection. The navigator lists both modules under the CPU.
 #[test]
-fn modules_are_added_in_the_rack_and_slot_editor() {
-    use ew_ui::ew_viewmodel::shell::Dialog;
+fn modules_are_added_in_the_station_view() {
     let tmp = Tmp::new();
     let mut h = new_project_with_cpu(&tmp);
     let station = h
@@ -402,40 +460,33 @@ fn modules_are_added_in_the_rack_and_slot_editor() {
     settle(&mut h);
     support::menu_node(&h, "Rack…").click();
     settle(&mut h);
-    let id = match h.state().shell().dialog() {
-        Some(Dialog::Rack {
-            station: Some(station),
-            ..
-        }) => *station,
-        other => panic!("{other:?}"),
-    };
-    h.get_by_label_contains("Rack and slots of");
-    let pick = do_card_pick(&h);
-    for slot in [1, 2] {
-        h.get_by_label(&format!("Add module… {slot}")).click();
-        settle(&mut h);
-        h.get_by_label(&pick).click();
-        settle(&mut h);
-    }
+    let id = station_of(&h);
+    assert!(h.state().shell().dialog().is_none(), "the view is no dialog");
+    take(&mut h, "EW-GEN-DO-1");
+    take(&mut h, "EW-GEN-DO-1");
     let view = h.state().shell().rack_view(id).expect("the view");
-    let cards: Vec<(u32, &str)> = view
+    let modules: Vec<(u32, &str, &str, &str)> = view
         .rows
         .iter()
         .filter(|r| r.module.is_some())
-        .map(|r| (r.slot, r.part.split(' ').next().unwrap_or_default()))
+        .map(|r| (r.slot, r.part.as_str(), r.gives.as_str(), r.addresses.as_str()))
         .collect();
-    assert_eq!(cards, [(1, "EW-GEN-DO-1"), (2, "EW-GEN-DO-1")]);
-    let first = view.rows[0].tag.clone();
-    let name = format!("Slot of {first}");
-    h.get_by_label(&name).click();
-    h.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
-    h.event(egui::Event::Text("x".to_owned()));
-    h.key_press(egui::Key::Enter);
+    let part = "EW-GEN-DO-1 · PLC digital output card, 8 channels";
+    assert_eq!(modules, [(1, part, "8 DO", "Q0.0–Q0.7"), (2, part, "8 DO", "Q1.0–Q1.7")]);
+    // What the rows say stands on the screen: the part in words, what it gives, its addresses.
+    assert_eq!(h.query_all_by_label(part).count(), 2, "the part of each module");
+    for text in ["8 DO", "Q0.0–Q0.7", "Q1.0–Q1.7"] {
+        assert!(h.query_all_by_label(text).next().is_some(), "{text}");
+    }
+    // The module added last is under the cursor, and it is the window's selection.
+    let second = view.rows[1].module.expect("the module in slot 2");
+    assert_eq!(h.state().shell().station_device(), Some(second));
+    assert_eq!(
+        h.state().shell().selection().items,
+        vec![ew_ui::ew_viewmodel::ew_api::output::ew_dl::EntityRef(second)]
+    );
+    dispatch(&mut h, "tab.close", json!({}));
     settle(&mut h);
-    h.get_by_label_contains("is no slot: type a number");
-    support::menu_node(&h, "Close").click();
-    settle(&mut h);
-    assert!(h.state().shell().dialog().is_none());
     let rows = h.state().shell().shown_rows(NavKind::Plc);
     let under: Vec<&str> = rows
         .iter()
@@ -446,12 +497,11 @@ fn modules_are_added_in_the_rack_and_slot_editor() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// The rack and slot editor's slots take the dialog's height at 1920 × 1080: with twenty-two modules the free slot's
-/// Add module… stands inside the window, above the dialog's footer; a slot a module holds is refused in words under the
-/// slots and adds nothing.
+/// A long station at 1920 × 1080: with twenty-two modules the catalogue and the To do list stay inside the window (the
+/// rack scrolls sideways, the table down); the view reads its rack once per revision; a slot a module holds is refused
+/// in words at that slot and adds nothing.
 #[test]
-fn the_free_slot_stays_in_sight_and_a_taken_slot_is_refused() {
-    use ew_ui::ew_viewmodel::shell::Dialog;
+fn a_long_station_stays_usable_and_a_taken_slot_is_refused() {
     let tmp = Tmp::new();
     let mut h = new_project_with_cpu(&tmp);
     let station = h
@@ -465,15 +515,9 @@ fn the_free_slot_stays_in_sight_and_a_taken_slot_is_refused() {
     settle(&mut h);
     support::menu_node(&h, "Rack…").click();
     settle(&mut h);
-    let id = match h.state().shell().dialog() {
-        Some(Dialog::Rack {
-            station: Some(station),
-            ..
-        }) => *station,
-        other => panic!("{other:?}"),
-    };
-    for slot in 1..=22 {
-        dispatch(&mut h, "plc.rack_add", json!({ "slot": slot }));
+    let id = station_of(&h);
+    for _ in 1..=22 {
+        dispatch(&mut h, "plc.rack_add", json!({ "part": "EW-GEN-DI-1" }));
     }
     settle(&mut h);
     let modules = |h: &egui_kittest::Harness<'_, ew_ui::app::App>| {
@@ -481,7 +525,7 @@ fn the_free_slot_stays_in_sight_and_a_taken_slot_is_refused() {
         view.rows.iter().filter(|r| r.module.is_some()).count()
     };
     assert_eq!(modules(&h), 22);
-    // FT-1763: the dialog's spec and its content read one rack view per revision, not one each a frame.
+    // FT-1763: the tab's title and the view read one rack view per revision, not one each a frame.
     let made = h.state().shell().session_calls().rack_view;
     h.run_steps(3);
     assert_eq!(
@@ -489,16 +533,15 @@ fn the_free_slot_stays_in_sight_and_a_taken_slot_is_refused() {
         made,
         "no new rack view without a change"
     );
-    let add = h.get_by_label("Add module… 23").rect();
-    let close = support::menu_node(&h, "Close").rect();
-    assert!(
-        add.top() >= 0.0 && add.bottom() <= close.top(),
-        "Add module… {add:?} is out of sight above the footer {close:?}"
-    );
+    let window = h.ctx.content_rect();
+    for label in ["Catalogue", "New part…", "Drawn on"] {
+        let rect = h.get_all_by_label(label).next().expect(label).rect();
+        assert!(window.contains_rect(rect), "{label} {rect:?} is out of the window {window:?}");
+    }
     let refused = h
         .state_mut()
         .shell_mut()
-        .dispatch("plc.rack_add", &json!({ "slot": 3 }));
+        .dispatch("plc.rack_add", &json!({ "slot": 3, "part": "EW-GEN-DI-1" }));
     assert!(
         matches!(refused, ew_ui::ew_viewmodel::shell::Outcome::Failed { .. }),
         "{refused:?}"
@@ -528,18 +571,24 @@ fn the_valve_terminal_shows_its_positions_beside_its_order_codes() {
     settle(&mut h);
     support::menu_node(&h, "Rack…").click();
     settle(&mut h);
-    h.get_by_label("Rack and slots of -201U1");
+    h.get_by_label("-201U1 · rack");
     let code = format!("Order Code 1: {}", "51E-F13GCQP-D+H2GG");
     assert!(
         h.query_all_by_label_contains(&code).count() >= 1,
         "the stored order code"
     );
+    // Each module stands in the rack as a card and as a row, by its slot and its tag.
     for tag in ["-201U3", "-201U8", "-202U2"] {
-        h.get_by_label(&format!("Slot of {tag}"));
+        let places = h
+            .query_all_by_label_contains(&format!(", {tag}"))
+            .filter(|n| n.accesskit_node().label().is_some_and(|l| l.starts_with("Slot ")))
+            .count();
+        assert_eq!(places, 2, "{tag}: a card and a row");
     }
     // Each sub-base lists its valve positions as rows (rc.2).
     assert!(h.query_all_by_label_contains("Position 1").count() >= 7);
-    h.get_by_label("The slots meet the station's rules.");
+    let shown = h.state().shell().station_shown().expect("the view");
+    assert!(shown.todo.iter().all(|t| !t.error), "no finding of the slot rule: {:?}", shown.todo);
     h.state_mut().shell_mut().shutdown();
 }
 
@@ -1400,11 +1449,11 @@ fn a_configuration_projects_row_unlocks_and_imports_an_instrument_list() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1752: in the rack and slot editor a module dragged by its tag onto a free slot's row moves there, as typing the
-/// slot does (`fields.set plc_module.slot`).
+/// FT-1752 (R2, change it): in the station's view a module dragged by its card onto a free slot moves there
+/// (`fields.set plc_module.slot`), and its addresses follow; one Undo puts it back. Dragged onto another module's
+/// card the two change places.
 #[test]
-fn a_module_is_dragged_to_a_free_slot_in_the_rack_editor() {
-    use ew_ui::ew_viewmodel::shell::Dialog;
+fn a_module_is_dragged_to_another_slot_in_the_station_view() {
     let tmp = Tmp::new();
     let mut h = new_project_with_cpu(&tmp);
     let station = h
@@ -1418,74 +1467,48 @@ fn a_module_is_dragged_to_a_free_slot_in_the_rack_editor() {
     settle(&mut h);
     support::menu_node(&h, "Rack…").click();
     settle(&mut h);
-    let id = match h.state().shell().dialog() {
-        Some(Dialog::Rack {
-            station: Some(station),
-            ..
-        }) => *station,
-        other => panic!("{other:?}"),
+    let id = station_of(&h);
+    take(&mut h, "EW-GEN-DO-1");
+    let rows = |h: &egui_kittest::Harness<'static, ew_ui::app::App>| {
+        h.state().shell().rack_view(id).expect("the rack").rows
     };
-    let pick = do_card_pick(&h);
-    h.get_by_label("Add module… 1").click();
-    settle(&mut h);
-    h.get_by_label(&pick).click();
-    settle(&mut h);
-    let tag = h.state().shell().rack_view(id).expect("the rack").rows[0]
-        .tag
-        .clone();
-    let module = (id, tag, 1u32);
-    // The last free slot's row, the one the module is dropped on.
-    let target = h
-        .state()
-        .shell()
-        .rack_view(id)
-        .expect("the rack")
-        .rows
+    let tag = rows(&h)[0].tag.clone();
+    // The free slot the module is dropped on.
+    let target = rows(&h)
         .iter()
         .rfind(|r| r.module.is_none())
         .map(|r| r.slot)
         .expect("a free slot");
-    let from = h.get_by_label(&module.1).rect().center();
-    let to = h
-        .get_all_by_label("free")
-        .last()
-        .expect("a free slot")
-        .rect()
-        .center();
-    h.input_mut().events.push(egui::Event::PointerMoved(from));
-    h.run_ok();
-    h.input_mut().events.push(egui::Event::PointerButton {
-        pos: from,
-        button: egui::PointerButton::Primary,
-        pressed: true,
-        modifiers: egui::Modifiers::NONE,
-    });
-    h.run_ok();
-    for i in 1..=8 {
-        let p = from + (to - from) * (i as f32 / 8.0);
-        h.input_mut().events.push(egui::Event::PointerMoved(p));
-        h.run_ok();
-    }
-    h.input_mut().events.push(egui::Event::PointerButton {
-        pos: to,
-        button: egui::PointerButton::Primary,
-        pressed: false,
-        modifiers: egui::Modifiers::NONE,
-    });
-    settle(&mut h);
-    let view = h.state().shell().rack_view(module.0).expect("the rack");
-    let row = view
-        .rows
-        .iter()
-        .find(|r| r.tag == module.1)
-        .expect("the module's row");
-    assert_eq!(row.slot, target, "moved onto the slot it was dropped on");
+    let from = at(&h, &format!("Slot 1, {tag}"));
+    let to = at(&h, &format!("Free slot {target}"));
+    drag(&mut h, from, to);
+    let slot_of = |h: &egui_kittest::Harness<'static, ew_ui::app::App>, tag: &str| {
+        rows(h).iter().find(|r| r.tag == tag).map(|r| r.slot)
+    };
+    assert_eq!(slot_of(&h, &tag), Some(target), "moved onto the slot it was dropped on");
     // One undo step puts it back.
     dispatch(&mut h, "edit.undo", json!({}));
     settle(&mut h);
-    let view = h.state().shell().rack_view(module.0).expect("the rack");
-    let slot = view.rows.iter().find(|r| r.tag == module.1).map(|r| r.slot);
-    assert_eq!(slot, Some(module.2), "back in slot {}", module.2);
+    assert_eq!(slot_of(&h, &tag), Some(1), "back in slot 1");
+
+    // A second module; the first dropped on it: the two change places, and their addresses with them.
+    take(&mut h, "EW-GEN-DO-1");
+    let before = rows(&h);
+    let (first, second) = (before[0].clone(), before[1].clone());
+    let from = at(&h, &format!("Slot 1, {}", first.tag));
+    let to = at(&h, &format!("Slot 2, {}", second.tag));
+    drag(&mut h, from, to);
+    let after = rows(&h);
+    assert_eq!(
+        (after[0].module, after[1].module),
+        (second.module, first.module),
+        "the two changed places"
+    );
+    assert_eq!(
+        (after[0].addresses.as_str(), after[1].addresses.as_str()),
+        (first.addresses.as_str(), second.addresses.as_str()),
+        "the addresses follow the slots"
+    );
     h.state_mut().shell_mut().shutdown();
 }
 
@@ -1519,6 +1542,10 @@ fn a_terminal_on_a_traced_path_prints_the_channel_address() {
         crate::navigators::cursor_k(&mut h, b);
         dispatch(&mut h, "canvas.activate", json!({}));
         dispatch(&mut h, "tool.select", json!({}));
+        // The CPU's view opens when it is placed; Escape goes back to the page.
+        if h.state().shell().station_tab().is_some() {
+            dispatch(&mut h, "ui.dismiss", json!({}));
+        }
     }
     dispatch(&mut h, "strip.new", json!({"tag": "-X1"}));
     for (pick, at) in [
@@ -1616,8 +1643,8 @@ fn black_box(h: &mut egui_kittest::Harness<'_, ew_ui::app::App>, part: &str, a: 
     crate::navigators::cursor_k(h, b);
     dispatch(h, "canvas.activate", json!({}));
     dispatch(h, "tool.select", json!({}));
-    // F18 of the rc.1 test: a station's rack opens when it is placed (a waiting card's chooser likewise); closed here.
-    if h.state().shell().dialog().is_some() {
+    // A station's view opens when it is placed (a waiting card's chooser likewise); left here.
+    if h.state().shell().dialog().is_some() || h.state().shell().station_tab().is_some() {
         dispatch(h, "ui.dismiss", json!({}));
     }
 }

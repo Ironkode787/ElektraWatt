@@ -450,23 +450,9 @@ pub enum Dialog {
         /// The step.
         step: EplanStep,
     },
-    /// The rack and slot editor of a station (doc 10 §6, FR-PLC-028): its slots as `Session::rack_view` gives them,
-    /// read each frame; Close. In the new-station state (F18 of the rc.1 test) it shows the draft's rack
-    /// (`Session::draft_rack`) and Create makes the station with its modules.
-    Rack {
-        /// The station device; `None` while the station is a draft.
-        station: Option<ew_api::output::Uuid>,
-        /// The station not made yet: what it is, its head part, its PLC and its modules.
-        draft: Option<Box<crate::shell::automation::StationDraft>>,
-        /// The module part Add module puts into a free slot; `None` before one is chosen (the first offered).
-        part: Option<ew_api::output::Uuid>,
-        /// How many modules of the part Add module puts into the slots from the one chosen (1 to 64).
-        count: u16,
-        /// A line under the slots after a change: the addresses that moved, or what comes next after Create.
-        note: Option<String>,
-        /// The last refusal of a change, under the slots; `None` after a change went through.
-        error: Option<String>,
-    },
+    /// Closing the view of a station not made yet (doc 10 §6): Close without making it, or Cancel. Nothing of the
+    /// station is written before Create, so closing loses what was chosen.
+    DiscardStation,
     /// Which station takes a module placed on a page where none is drawn, in a project of several stations (F18 of the
     /// rc.1 test): a button per station, the last one a module was given to first; Cancel leaves it waiting.
     ChooseStation {
@@ -769,10 +755,16 @@ pub struct ShellModel {
             Option<ew_api::output::PotentialOffer>,
         )>,
     >,
-    /// The rack and slot editor's view (its slot check included), kept for the revision and the station it was made
-    /// for, so the dialog's spec and its content read it once a frame at most (FT-1763).
+    /// The stations' views (their slot checks included), kept for the revision they were made for by station, so the
+    /// tabs' titles and the view on show read each once a revision (FT-1763).
     #[allow(clippy::type_complexity)]
-    rack_cache: std::cell::RefCell<Option<((u64, ew_api::output::Uuid), Option<ew_api::output::RackView>)>>,
+    rack_cache: std::cell::RefCell<(
+        u64,
+        std::collections::BTreeMap<ew_api::output::Uuid, Option<ew_api::output::RackView>>,
+    )>,
+    /// What the station view on show draws ([`automation::StationShown`]), kept for the state it was made for.
+    #[allow(clippy::type_complexity)]
+    station_cache: std::cell::RefCell<Option<(automation::StationKey, std::sync::Arc<automation::StationShown>)>>,
     /// The station a module was last given to (a rack opened, a module attached): the default of the station chooser.
     last_station: Option<ew_api::output::Uuid>,
     /// The wires whose reasoned potential was declined in this session: it is not offered again.
@@ -1211,7 +1203,8 @@ impl ShellModel {
             glossary: glossary::GlossaryState::default(),
             potential_at: None,
             offer_cache: std::cell::RefCell::new(None),
-            rack_cache: std::cell::RefCell::new(None),
+            rack_cache: std::cell::RefCell::default(),
+            station_cache: std::cell::RefCell::new(None),
             last_station: None,
             declined_offers: std::collections::BTreeSet::new(),
             wire_colours: wire_colours::WireColourState::default(),
@@ -2667,6 +2660,14 @@ impl ShellModel {
             || self.tools.junction_editor.take().is_some()
             || self.tools.link_preview.take().is_some()
         {
+            return Outcome::Done;
+        }
+        // Escape in a station's view goes back to the page: the view's tab stays beside the page's (a station placed
+        // on a page opens its view over that page; Escape returns to the drawing, as it closed the rack's dialog).
+        if self.station_tab().is_some()
+            && let Some(Focus::Canvas(g)) = self.focus
+        {
+            self.leave_station(g);
             return Outcome::Done;
         }
         if let Some(outcome) = self.dismiss_properties() {

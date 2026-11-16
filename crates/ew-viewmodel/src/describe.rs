@@ -553,6 +553,10 @@ fn tab_lines(model: &ShellModel, lines: &mut Vec<String>) {
                 (r.folio.clone(), r.title.clone())
             });
             let mut line = format!("  tab \"{folio}\" \"{title}\"");
+            // A station's view names its station.
+            if tab.station.is_some() {
+                line = format!("  tab station \"{}\"", user(&model.tab_title(tab)));
+            }
             if i == group.active {
                 line.push_str(&format!(
                     " selected history back {} forward {}",
@@ -1309,6 +1313,8 @@ fn project_view(model: &ShellModel, lines: &mut Vec<String>) {
     // What the clipboard holds, never its text.
     lines.push(model.clipboard().describe_line());
     tab_lines(model, lines);
+    // A station's view on show, in place of its tab's page.
+    lines.extend(model.station_lines());
     match model.current_folio() {
         Some(folio) => lines.push(format!("page view: {folio}")),
         None => lines.push(format!("page view: {}", strings::text(key!("page-no-pages")))),
@@ -2068,21 +2074,9 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
                 lines.push(format!("  parked \"{}\" {choice}", user(&p.text)));
             }
         }
-        // The rack and slot editor: its paragraphs, each slot with its module, part and allowed slots, the findings.
-        Dialog::Rack { error, note, .. } => {
-            for line in &spec.body {
-                lines.push(format!("  label \"{}\"", user(line)));
-            }
-            lines.extend(model.rack_lines());
-            if let Some(n) = note {
-                lines.push(format!("  note \"{}\"", user(n)));
-            }
-            if let Some(e) = error {
-                lines.push(format!("  error \"{}\"", user(e)));
-            }
-        }
         // The paragraphs; the collision dialog's rows with base, mine, theirs and the side chosen.
-        Dialog::ConfirmUpgrade { .. }
+        Dialog::DiscardStation
+        | Dialog::ConfirmUpgrade { .. }
         | Dialog::OpenEwz { .. }
         | Dialog::ImportDrawing { .. }
         | Dialog::ImportEplan { .. }

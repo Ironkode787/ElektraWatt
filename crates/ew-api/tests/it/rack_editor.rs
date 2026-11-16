@@ -38,11 +38,12 @@ fn station(s: &Session) -> Uuid {
 fn add(s: &mut Session, part: &str) -> Result<(), String> {
     let station = station(s);
     let copy = s
-        .module_parts()
-        .into_iter()
-        .find(|p| p.text.starts_with(part))
-        .expect("the module part")
-        .copy;
+        .query()
+        .parts()
+        .iter()
+        .find(|(_, c)| c.item.part_number.as_str().starts_with(part))
+        .map(|(id, _)| id.as_uuid())
+        .expect("the module part");
     s.execute(&AnyCommand {
         name: "plc.add_module".into(),
         params: json!({"station": station.to_string(),
@@ -123,11 +124,12 @@ fn a_module_into_a_slot_another_module_holds_is_refused() {
     let rev = s.world().rev;
     let station = station(&s);
     let copy = s
-        .module_parts()
-        .into_iter()
-        .find(|p| p.text.starts_with("533361"))
-        .expect("the module part")
-        .copy;
+        .query()
+        .parts()
+        .iter()
+        .find(|(_, c)| c.item.part_number.as_str().starts_with("533361"))
+        .map(|(id, _)| id.as_uuid())
+        .expect("the module part");
     let err = s
         .execute(&AnyCommand {
             name: "plc.add_module".into(),

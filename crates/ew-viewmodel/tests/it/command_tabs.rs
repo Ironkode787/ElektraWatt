@@ -137,8 +137,9 @@ fn the_fluid_buttons_need_a_fluid_page_and_say_so() {
     s.shutdown();
 }
 
-/// The PLC tab's menu buttons list their targets: Rack lists the stations, and a choice opens that station's rack
-/// and slots; without a station the button is greyed with the reason.
+/// The PLC tab's menu buttons list their targets: Rack lists the stations, and a choice opens that station's view in a
+/// tab beside the page; without a station the button is greyed with the reason. The tab's Module commands act on the
+/// module under the view's cursor: greyed with the reason until the cursor stands on one.
 #[test]
 fn the_rack_button_lists_the_stations() {
     let tmp = Tmp::new("tabs-rack");
@@ -159,9 +160,23 @@ fn the_rack_button_lists_the_stations() {
     let first = items.first().expect("a station");
     assert!(first.enabled && !first.label.is_empty(), "{first:?}");
     done(&mut s, first.id, first.params.clone());
-    assert!(matches!(
-        s.dialog(),
-        Some(ew_viewmodel::shell::Dialog::Rack { .. })
-    ));
+    assert!(s.dialog().is_none(), "no dialog lies over the window");
+    assert!(
+        s.station_tab().is_some_and(|t| t.station.is_some()),
+        "the station's view is on show"
+    );
+    let tabs = s.area().expect("the canvas area").focused_group().tabs.len();
+    assert_eq!(tabs, 2, "beside the page's tab");
+    let remove = button(&s, Tab::Plc, "plc.module_remove");
+    assert!(!remove.enabled);
+    assert_eq!(
+        remove.reason.as_deref(),
+        Some(strings::text(ew_viewmodel::key!("reason-rack-no-module")))
+    );
+    done(&mut s, "plc.rack_select", json!({"slot": 1}));
+    assert!(button(&s, Tab::Plc, "plc.module_remove").enabled);
+    // The module is the window's selection, as a click on a page selects a device.
+    let module = s.station_device().expect("the module in slot 1");
+    assert_eq!(s.selection().items, vec![ew_viewmodel::ew_api::output::ew_dl::EntityRef(module)]);
     s.shutdown();
 }

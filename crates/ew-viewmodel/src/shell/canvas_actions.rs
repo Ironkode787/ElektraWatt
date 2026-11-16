@@ -76,8 +76,12 @@ pub(super) fn point_mm(p: &Map<String, Value>) -> Result<Option<(i64, i64)>, Out
 
 impl ShellModel {
     /// The canvas of the page on show (the focused group's active tab); `None` without a page (or when its content
-    /// could not be built).
+    /// could not be built), and while the tab shows a station's view: no page is on show there, so nothing draws on
+    /// the page the view was opened from.
     pub fn canvas(&self) -> Option<&CanvasModel> {
+        if self.station_tab().is_some() {
+            return None;
+        }
         self.canvas_of(self.area.as_ref().map_or(0, |a| a.focused))
     }
 

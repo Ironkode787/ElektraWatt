@@ -81,15 +81,18 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         slot(Menu::Window),
         |s, _| s.act_tab_new(),
     )),
-    keeps_banner(act(
-        "tab.close",
-        View,
-        Menu::Window,
-        &["Ctrl+W"],
-        can_close_tab,
-        slot(Menu::Window),
-        |s, _| s.act_tab_close(),
-    )),
+    with_params(
+        "confirm?:bool",
+        keeps_banner(act(
+            "tab.close",
+            View,
+            Menu::Window,
+            &["Ctrl+W"],
+            can_close_tab,
+            slot(Menu::Window),
+            |s, p| s.act_tab_close(p),
+        )),
+    ),
     keeps_banner(act(
         "tab.next",
         View,

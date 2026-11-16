@@ -1353,6 +1353,19 @@ impl ShellModel {
             self.set_cursor(kind, &key);
             return self.place_undrawn_port(device, port);
         }
+        // Enter (a double click) on a station of the PLC list opens its view beside the page tabs; a network switch
+        // belongs to its PLC with no rack and opens as any other row.
+        if kind == NavKind::Plc
+            && node.role == ew_api::output::NavRole::Station
+            && let Some(station) = node.records.first().copied()
+            && self.project_session().is_some_and(|s| !s.network_switch(station))
+        {
+            self.set_cursor(kind, &key);
+            return self.act_plc_rack_editor(&Map::from_iter([(
+                "station".to_owned(),
+                Value::String(station.to_string()),
+            )]));
+        }
         // Enter on an Unplaced devices row arms the layout place tool on the focused panel page.
         if kind == NavKind::Unplaced
             && node.role == ew_api::output::NavRole::Device

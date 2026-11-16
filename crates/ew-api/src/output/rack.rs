@@ -1,10 +1,11 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The rack and slot editor's view (doc 10 §6, FR-PLC-028): a station's slots with the module in each, its part and
-//! the slots the part allows, the free slots up to the station's limit, the valve positions of a valve terminal's
-//! modules beside its stored order codes, EW-PLC-011's findings on the station, and the module parts the editor
-//! offers. The window builds `plc.add_module` and `fields.set plc_module.slot` from it; the view itself writes nothing.
+//! The station view's data (doc 10 §6, FR-PLC-028): a station as its head and its slots with the module in each (its
+//! part, what it gives, its addresses, the page it is drawn on, the slots its part allows), the free slots up to the
+//! station's limit, a valve terminal's positions beside its stored order codes, a module's channels, and EW-PLC-011's
+//! findings on the station. The parts the view offers are the place catalogue's (`CataloguePart::plc`). The window
+//! builds `plc.add_module` and `fields.set plc_module.slot` from it; the view itself writes nothing.
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_schema::LibDocument;
@@ -26,8 +27,14 @@ pub struct RackRow {
     pub module: Option<Uuid>,
     /// The module's short tag; empty for a free slot.
     pub tag: String,
-    /// Its part's number and description (`EW-GEN-DO-1 · PLC digital output card, 8 channels`); empty for a free slot.
+    /// Its part's number and description (`EW-GEN-DO-1 · PLC digital output card, 8 channels`): the part that
+    /// describes it for the PLC, else its first part; empty for a free slot and for a module without a part.
     pub part: String,
+    /// What its part is to a PLC, as the catalogue groups it; `None` for a free slot and for a module whose part
+    /// says nothing of a PLC.
+    pub group: Option<super::PlcGroup>,
+    /// The folio of the page it is drawn on (its main drawing); `None` when it is drawn nowhere.
+    pub page: Option<String>,
     /// What it gives the PLC ([`gives_text`]: `8 DI`); empty for a free slot.
     pub gives: String,
     /// Its address range, first to last channel address (`I0.0–I0.7`); empty without one.
@@ -51,21 +58,40 @@ pub struct RackPosition {
     pub valve: Option<String>,
     /// Whether a blanking plate holds it.
     pub blank: bool,
+    /// The valve's part, number and description; empty for a blanking plate, an empty position and a valve without a
+    /// part.
+    pub part: String,
+    /// The folio of the page the valve is drawn on; `None` when it is drawn nowhere.
+    pub page: Option<String>,
 }
 
-/// A module part the editor offers.
+/// One valve position of a valve terminal in its station view: the terminal's own positions, then those of each of
+/// its modules, left to right.
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub struct ModulePart {
-    /// The part copy's ID (a library part's copy ID once embedded).
-    pub copy: Uuid,
-    /// The part number and description, as a row of the choice.
-    pub text: String,
-    /// Whether the project holds the copy (else it is embedded with the module).
-    pub held: bool,
-    /// The slots it allows; empty: any.
-    pub allowed: Vec<u16>,
-    /// What it gives the PLC ([`gives_text`]).
-    pub gives: String,
+pub struct RackCell {
+    /// The module the position belongs to (the terminal or one of its modules).
+    pub module: Uuid,
+    /// The position on that module, 1-based.
+    pub position: u32,
+    /// What holds it.
+    pub at: RackPosition,
+}
+
+/// One channel of a module in its station's view: its address, its symbol name and what is wired to it.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct RackChannel {
+    /// The channel.
+    pub channel: Uuid,
+    /// Its number on the module.
+    pub number: u16,
+    /// Its address as drawings print it (`I0.3`); empty when none is derived.
+    pub address: String,
+    /// Its symbol name; empty without one.
+    pub symbol: String,
+    /// The tag of the device wired to it; empty when nothing is.
+    pub wired: String,
+    /// The function wired to it, to go to; `None` when nothing is.
+    pub target: Option<Uuid>,
 }
 
 /// The rack and slot editor's view of one station.
@@ -75,6 +101,12 @@ pub struct RackView {
     pub tag: String,
     /// The station's part (number and description); empty without one.
     pub part: String,
+    /// The station itself as the rack's first card (slot 0): its tag, its part, what it is, where it is drawn.
+    pub head: RackRow,
+    /// The name of the PLC the station belongs to; empty for a station not made yet.
+    pub plc: String,
+    /// A valve terminal's positions, left to right; empty for any other station.
+    pub cells: Vec<RackCell>,
     /// The most modules the station's part takes, when it says.
     pub max_modules: Option<u16>,
     /// The slots: the occupied ones in slot order, then the free ones: in a station whose modules have rack positions,
@@ -146,6 +178,92 @@ fn tag(q: &Q, d: Id<Device>) -> String {
     ew_derive::short_tag(q, d)
 }
 
+/// The folio of the page a device's main drawing stands on; `None` for a device drawn nowhere.
+fn drawn_folio(q: &Q, device: Id<Device>) -> Option<String> {
+    let rep = (*q.get::<ew_derive::MainRep>(device))?;
+    super::properties::folio_of(q, q.reps().get(rep)?.page)
+}
+
+/// The row of a device of a station (a module, or the station itself) at slot 0 of rack 0: its tag, its part (the
+/// one that describes it for the PLC, else its first part: a module made by hand or imported by its order number
+/// showed an empty cell), what the part gives and allows, its addresses and where it is drawn.
+fn device_row(q: &Q, device: Id<Device>) -> RackRow {
+    let described = ew_derive::module_part(q, device);
+    let first = || {
+        let d = q.devices().get(device)?;
+        q.parts().get(d.parts.first()?.part.copy).map(|c| part_text(&c.item))
+    };
+    let page = drawn_folio(q, device);
+    RackRow {
+        module: Some(device.as_uuid()),
+        tag: tag(q, device),
+        part: described
+            .as_ref()
+            .map(|(copy, _)| part_text(&copy.item))
+            .or_else(first)
+            .unwrap_or_default(),
+        group: described
+            .as_ref()
+            .and_then(|(copy, _)| super::editing::catalogue_plc(&copy.item))
+            .map(|p| p.group),
+        gives: described.as_ref().map(|(_, plc)| gives_text(plc)).unwrap_or_default(),
+        addresses: address_range(q, device),
+        drawn: q.get::<ew_derive::MainRep>(device).as_ref().is_some(),
+        page,
+        allowed: described.map(|(_, plc)| plc.allowed_slots).unwrap_or_default(),
+        ..free_row(0, false)
+    }
+}
+
+/// The row of free slot `slot` of rack 0.
+fn free_row(slot: u32, positional: bool) -> RackRow {
+    RackRow {
+        rack: 0,
+        slot,
+        module: None,
+        tag: String::new(),
+        part: String::new(),
+        group: None,
+        page: None,
+        gives: String::new(),
+        addresses: String::new(),
+        drawn: false,
+        allowed: Vec::new(),
+        positional,
+        positions: Vec::new(),
+    }
+}
+
+/// What holds a valve position, as a row says it.
+fn position_of(q: &Q, slot: &ValveSlot) -> RackPosition {
+    let empty = RackPosition {
+        holder: None,
+        valve: None,
+        blank: false,
+        part: String::new(),
+        page: None,
+    };
+    match slot {
+        ValveSlot::Valve { device, .. } => RackPosition {
+            holder: Some(device.as_uuid()),
+            valve: Some(tag(q, *device)),
+            part: q
+                .devices()
+                .get(*device)
+                .and_then(|d| q.parts().get(d.parts.first()?.part.copy).map(|c| part_text(&c.item)))
+                .unwrap_or_default(),
+            page: drawn_folio(q, *device),
+            ..empty
+        },
+        ValveSlot::Blank { device } => RackPosition {
+            holder: Some(device.as_uuid()),
+            blank: true,
+            ..empty
+        },
+        ValveSlot::Empty => empty,
+    }
+}
+
 impl Session {
     /// The rack and slot editor's view of `station` (doc 10 §6); `None` for a record that is no station.
     pub fn rack_view(&self, station: Uuid) -> Option<RackView> {
@@ -160,43 +278,18 @@ impl Session {
                 Slot::Positional(n) => (0, n, true),
                 Slot::Unresolved => continue,
             };
-            let (part, allowed, gives) = ew_derive::module_part(&q, m.module)
-                .map(|(copy, plc)| (part_text(&copy.item), plc.allowed_slots.clone(), gives_text(&plc)))
-                .unwrap_or_default();
             let positions = q
                 .get::<ValveSlots>(m.module)
                 .slots
                 .iter()
-                .map(|s| match s {
-                    ValveSlot::Valve { device, .. } => RackPosition {
-                        holder: Some(device.as_uuid()),
-                        valve: Some(tag(&q, *device)),
-                        blank: false,
-                    },
-                    ValveSlot::Blank { device } => RackPosition {
-                        holder: Some(device.as_uuid()),
-                        valve: None,
-                        blank: true,
-                    },
-                    ValveSlot::Empty => RackPosition {
-                        holder: None,
-                        valve: None,
-                        blank: false,
-                    },
-                })
+                .map(|s| position_of(&q, s))
                 .collect();
             rows.push(RackRow {
                 rack,
                 slot,
-                module: Some(m.module.as_uuid()),
-                tag: tag(&q, m.module),
-                part,
-                gives,
-                addresses: address_range(&q, m.module),
-                drawn: q.get::<ew_derive::MainRep>(m.module).as_ref().is_some(),
-                allowed,
                 positional,
                 positions,
+                ..device_row(&q, m.module)
             });
         }
         let section = crate::checks::rules::plc_wiring::station_section(&q, id);
@@ -216,21 +309,22 @@ impl Session {
             _ => last + 1,
         };
         for slot in (1..=upto).filter(|s| !used.contains(s)) {
-            rows.push(RackRow {
-                rack: 0,
-                slot,
-                module: None,
-                tag: String::new(),
-                part: String::new(),
-                gives: String::new(),
-                addresses: String::new(),
-                drawn: false,
-                allowed: Vec::new(),
-                positional: false,
-                positions: Vec::new(),
-            });
+            rows.push(free_row(slot, false));
         }
         rows.sort_by_key(|r| (r.rack, r.slot, r.module.is_none()));
+        let cells = ew_derive::terminal_cells(&q, id)
+            .into_iter()
+            .map(|c| RackCell {
+                module: c.module.as_uuid(),
+                position: c.position,
+                at: position_of(&q, &c.slot),
+            })
+            .collect();
+        let plc = q
+            .table::<ew_derive::ew_schema::PlcConfigProject>()
+            .get(cfg)
+            .map(|c| c.name.to_string())
+            .unwrap_or_default();
         let order_codes = device
             .aspects
             .assembly
@@ -250,6 +344,9 @@ impl Session {
         Some(RackView {
             tag: tag(&q, id),
             part: section.map(|(copy, _)| part_text(&copy.item)).unwrap_or_default(),
+            head: device_row(&q, id),
+            plc,
+            cells,
             max_modules,
             rows,
             racked,
@@ -259,118 +356,10 @@ impl Session {
         })
     }
 
-    /// The module parts the rack and slot editor offers: the project's part copies whose PLC section is a module's,
-    /// then those of the installed system libraries the project does not hold, each by part number.
-    pub fn module_parts(&self) -> Vec<ModulePart> {
-        let q = self.query();
-        let module = |p: &Part| {
-            p.sections
-                .plc
-                .as_ref()
-                .filter(|s| s.role == PlcRole::Module)
-                .map(|s| (s.allowed_slots.clone(), gives_text(s)))
-        };
-        let mut held: Vec<ModulePart> = q
-            .parts()
-            .iter()
-            .filter_map(|(id, c)| {
-                let (allowed, gives) = module(&c.item)?;
-                Some(ModulePart {
-                    copy: id.as_uuid(),
-                    text: part_text(&c.item),
-                    held: true,
-                    allowed,
-                    gives,
-                })
-            })
-            .collect();
-        held.sort_by(|a, b| a.text.cmp(&b.text));
-        let mut library: Vec<ModulePart> = self
-            .library_parts()
-            .into_iter()
-            .filter(|c| !q.parts().contains(c.id))
-            .filter_map(|c| {
-                let (allowed, gives) = module(&c.item)?;
-                Some(ModulePart {
-                    copy: c.id.as_uuid(),
-                    text: part_text(&c.item),
-                    held: false,
-                    allowed,
-                    gives,
-                })
-            })
-            .collect();
-        library.sort_by(|a, b| a.text.cmp(&b.text));
-        held.extend(library);
-        held
-    }
-
-    /// The station parts the new-station dialog offers for `kind` (F18 of the rc.1 test), the project's copies then
-    /// those of the installed libraries the project does not hold, each by part number: `cpu` a part whose station
-    /// leads a bus or has no bus port (a PLC), `remote` one whose bus ports all follow (an interface module on a bus),
-    /// `valve_terminal` one that maps solenoids to valve positions, `compact` one with I/O of its own; a part may be more
-    /// than one of them. Another word gives every station part.
-    pub fn station_parts(&self, kind: &str) -> Vec<ModulePart> {
-        use ew_derive::ew_schema::PortRole;
-        let q = self.query();
-        let fits = |p: &Part| -> Option<String> {
-            let plc = p.sections.plc.as_ref().filter(|s| s.role == PlcRole::Station)?;
-            let roles: Vec<&PortRole> = p
-                .sections
-                .bus
-                .iter()
-                .flat_map(|b| b.ports.iter().map(|x| &x.role))
-                .collect();
-            let leads = roles
-                .iter()
-                .any(|r| matches!(r, PortRole::Master | PortRole::Controller));
-            let terminal = plc.positions.is_some();
-            let ok = match kind {
-                "cpu" => !terminal && (roles.is_empty() || leads),
-                "remote" => !terminal && !roles.is_empty() && !leads,
-                "valve_terminal" => terminal,
-                "compact" => !terminal && !plc.io.is_empty(),
-                _ => true,
-            };
-            ok.then(|| gives_text(plc))
-        };
-        let mut held: Vec<ModulePart> = q
-            .parts()
-            .iter()
-            .filter_map(|(id, c)| {
-                Some(ModulePart {
-                    copy: id.as_uuid(),
-                    text: part_text(&c.item),
-                    held: true,
-                    allowed: Vec::new(),
-                    gives: fits(&c.item)?,
-                })
-            })
-            .collect();
-        held.sort_by(|a, b| a.text.cmp(&b.text));
-        let mut library: Vec<ModulePart> = self
-            .library_parts()
-            .into_iter()
-            .filter(|c| !q.parts().contains(c.id))
-            .filter_map(|c| {
-                Some(ModulePart {
-                    copy: c.id.as_uuid(),
-                    text: part_text(&c.item),
-                    held: false,
-                    allowed: Vec::new(),
-                    gives: fits(&c.item)?,
-                })
-            })
-            .collect();
-        library.sort_by(|a, b| a.text.cmp(&b.text));
-        held.extend(library);
-        held
-    }
-
-    /// The rack of a station not made yet (the new-station dialog, F18 of the rc.1 test): the head part `head` (a
-    /// project or library part copy) and the module parts `modules` in slot order. A row per module with its part, what
-    /// it gives and the slots it allows, then the free slots up to the head part's most modules, else one free row (an
-    /// open rack grows by one). Nothing has a tag or an address yet.
+    /// The rack of a station not made yet (New station…): the head part `head` (a project or library part copy) and
+    /// the card parts `modules` in slot order. A row per card with its part, what it gives and the slots it allows,
+    /// then the free slots up to the head part's most modules, else one free row (an open rack grows by one). Nothing
+    /// has a tag or an address yet.
     pub fn draft_rack(&self, head: Option<Uuid>, modules: &[Uuid]) -> RackView {
         let q = self.query();
         let library = self.library_parts();
@@ -385,50 +374,40 @@ impl Session {
                         .map(|c| c.item.clone())
                 })
         };
+        let row_of = |slot: u32, id: Uuid| {
+            let part = part_of(id);
+            let plc = part.as_ref().and_then(|p| p.sections.plc.clone());
+            RackRow {
+                module: Some(id),
+                part: part.as_ref().map(part_text).unwrap_or_default(),
+                group: part
+                    .as_ref()
+                    .and_then(super::editing::catalogue_plc)
+                    .map(|p| p.group),
+                gives: plc.as_ref().map(gives_text).unwrap_or_default(),
+                allowed: plc.map(|p| p.allowed_slots).unwrap_or_default(),
+                ..free_row(slot, true)
+            }
+        };
         let head_part = head.and_then(part_of);
         let max_modules = head_part
             .as_ref()
             .and_then(|p| p.sections.plc.as_ref()?.limits.as_ref()?.max_modules);
-        let mut rows: Vec<RackRow> = (1u32..)
-            .zip(modules)
-            .map(|(slot, m)| {
-                let part = part_of(*m);
-                let plc = part.as_ref().and_then(|p| p.sections.plc.clone());
-                RackRow {
-                    rack: 0,
-                    slot,
-                    module: Some(*m),
-                    tag: String::new(),
-                    part: part.as_ref().map(part_text).unwrap_or_default(),
-                    gives: plc.as_ref().map(gives_text).unwrap_or_default(),
-                    addresses: String::new(),
-                    drawn: false,
-                    allowed: plc.map(|p| p.allowed_slots).unwrap_or_default(),
-                    positional: true,
-                    positions: Vec::new(),
-                }
-            })
-            .collect();
+        let mut rows: Vec<RackRow> = (1u32..).zip(modules).map(|(slot, m)| row_of(slot, *m)).collect();
         let n = u32::try_from(modules.len()).unwrap_or(u32::MAX);
         let upto = max_modules.map_or(n.saturating_add(1), |m| u32::from(m).max(n));
         for slot in n.saturating_add(1)..=upto {
-            rows.push(RackRow {
-                rack: 0,
-                slot,
-                module: None,
-                tag: String::new(),
-                part: String::new(),
-                gives: String::new(),
-                addresses: String::new(),
-                drawn: false,
-                allowed: Vec::new(),
-                positional: true,
-                positions: Vec::new(),
-            });
+            rows.push(free_row(slot, true));
         }
         RackView {
             tag: String::new(),
             part: head_part.as_ref().map(part_text).unwrap_or_default(),
+            head: match head {
+                Some(h) => row_of(0, h),
+                None => free_row(0, true),
+            },
+            plc: String::new(),
+            cells: Vec::new(),
             max_modules,
             rows,
             racked: false,
@@ -438,6 +417,42 @@ impl Session {
         }
     }
 
+    /// The channels of module `module`, in channel-number order, as its station's view lists them: each its address,
+    /// its symbol name and what is wired to it; empty for a device without channels.
+    pub fn module_channels(&self, module: Uuid) -> Vec<RackChannel> {
+        let q = self.query();
+        let id: Id<Device> = Id::from_uuid(module);
+        let texts = q.get::<ew_derive::ChannelTexts>(id);
+        let targets = q.get::<ew_derive::ChannelTargets>(id);
+        q.get::<ew_derive::ChannelAddresses>(id)
+            .iter()
+            .map(|e| {
+                let target = targets.iter().find(|t| t.channel == e.channel);
+                RackChannel {
+                    channel: e.channel.as_uuid(),
+                    number: e.number,
+                    address: match &e.address {
+                        ew_derive::ChannelAddr::At { text, .. } => text.clone(),
+                        _ => String::new(),
+                    },
+                    symbol: texts
+                        .iter()
+                        .find(|(c, _)| *c == e.channel)
+                        .and_then(|(_, t)| t.symbol.clone())
+                        .unwrap_or_default(),
+                    wired: target
+                        .and_then(|t| t.device)
+                        .filter(|d| *d != id)
+                        .map(|d| tag(&q, d))
+                        .unwrap_or_default(),
+                    target: target
+                        .filter(|t| t.device.is_some_and(|d| d != id))
+                        .and_then(|t| t.function)
+                        .map(|f| f.as_uuid()),
+                }
+            })
+            .collect()
+    }
     /// Whether `device` carries `plc_module` while nothing of it describes a module (`ew_derive::not_a_module`,
     /// EW-PLC-017's): it is no card a station takes.
     pub fn not_a_module(&self, device: Uuid) -> bool {
@@ -640,6 +655,16 @@ impl Session {
                     .collect()
             })
             .unwrap_or_default()
+    }
+
+    /// Whether an overview page draws `station` or one of its members (its overview representation): a valve
+    /// terminal's view offers Make the overview page until one does.
+    pub fn overview_drawn(&self, station: Uuid) -> bool {
+        let q = self.query();
+        let head: Id<Device> = Id::from_uuid(station);
+        std::iter::once(head)
+            .chain(ew_derive::assembly_members(&q, head))
+            .any(|m| ew_derive::overview_rep(&q, m).is_some())
     }
 
     /// The parameters of `valve_terminal.generate_overview` for `station` (doc 11 §5.5, FR-FLU-033): the band is the
@@ -938,56 +963,9 @@ impl Session {
         let q = self.query();
         ew_derive::terminal_cells(&q, Id::from_uuid(terminal))
             .into_iter()
-            .map(|c| {
-                let p = match c.slot {
-                    ValveSlot::Valve { device, .. } => RackPosition {
-                        holder: Some(device.as_uuid()),
-                        valve: Some(tag(&q, device)),
-                        blank: false,
-                    },
-                    ValveSlot::Blank { device } => RackPosition {
-                        holder: Some(device.as_uuid()),
-                        valve: None,
-                        blank: true,
-                    },
-                    ValveSlot::Empty => RackPosition {
-                        holder: None,
-                        valve: None,
-                        blank: false,
-                    },
-                };
-                (c.position, p)
-            })
+            .map(|c| (c.position, position_of(&q, &c.slot)))
             .collect()
     }
-
-    /// The valve parts a valve terminal's empty position offers (rc.2): the project's and the libraries' parts that are
-    /// valves for a terminal ([`is_terminal_valve_part`]), the project's first, each by part number; as rows of the rack
-    /// dialog's choice.
-    pub fn terminal_valve_parts(&self) -> Vec<ModulePart> {
-        let q = self.query();
-        let held: Vec<_> = q.parts().iter().map(|(_, c)| c.clone()).collect();
-        let mut out: Vec<ModulePart> = Vec::new();
-        for (c, is_held) in held
-            .iter()
-            .map(|c| ((**c).clone(), true))
-            .chain(self.library_parts().into_iter().map(|c| (c, false)))
-        {
-            if !is_terminal_valve_part(&c.item) || out.iter().any(|p| p.copy == c.id.as_uuid()) {
-                continue;
-            }
-            out.push(ModulePart {
-                copy: c.id.as_uuid(),
-                text: part_text(&c.item),
-                held: is_held,
-                allowed: Vec::new(),
-                gives: String::new(),
-            });
-        }
-        out.sort_by(|a, b| (!a.held, &a.text).cmp(&(!b.held, &b.text)));
-        out
-    }
-
     /// The valve part a module's position takes from the system libraries while the project has no valve to copy (the
     /// persona round: Add valve stayed greyed on a new project): of the libraries' parts that name solenoids, carry no
     /// PLC section and no CP pattern (a valve whose coil is internal, as a valve terminal drives it) and whose solenoids

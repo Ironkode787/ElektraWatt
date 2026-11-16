@@ -264,10 +264,8 @@ pub fn show(
         | Dialog::ImportDrawing { .. }
         | Dialog::ImportEplan { .. }
         | Dialog::ConfirmGitSetup { .. }
+        | Dialog::DiscardStation
         | Dialog::ChooseStation { .. } => {}
-        Dialog::Rack { error, note, .. } => {
-            crate::automation::rack(ui, shell, error.as_deref(), note.as_deref(), events);
-        }
         Dialog::PlcImport(card) => crate::automation::plc_import(ui, card, events),
         // The import card lists the kinds of findings under what they ask of the reader: a heading per group, then
         // one row per kind, the first few of each group.

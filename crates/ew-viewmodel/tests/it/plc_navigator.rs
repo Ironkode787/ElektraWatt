@@ -45,6 +45,10 @@ fn black_box(s: &mut ShellModel, part: &str, a: (i64, i64), b: (i64, i64)) {
     cursor_k(s, b);
     done(s, "canvas.activate", json!({}));
     done(s, "tool.select", json!({}));
+    // A station placed on a page opens its view in a tab; Escape goes back to the page.
+    if s.station_tab().is_some() {
+        done(s, "ui.dismiss", json!({}));
+    }
 }
 
 /// The channel IDs and the module of each channel row of the PLC navigator, in row order.

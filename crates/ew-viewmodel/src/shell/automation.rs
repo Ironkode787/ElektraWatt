@@ -6,10 +6,13 @@
 //!
 //! - **Attach cards without a station** (FT-1672): a CPU row of the PLC navigator attaches the cards that wait for a CPU
 //!   (`Session::plc_cards_without_cpu`) with one `assembly.attach`, after the station's last child position.
-//! - **The rack and slot editor** (FR-PLC-028): a station row's Rack and slots… opens `Dialog::Rack`, which shows
-//!   `Session::rack_view` each frame. Add module puts the chosen module part into a free slot with `plc.add_module`
-//!   (a library part embedded in the same step); a module's slot field moves it with `fields.set plc_module.slot`.
-//!   EW-PLC-011's prevent half refuses a slot the part does not allow; the refusal stays under the slots.
+//! - **The station view** (FR-PLC-028, doc 10 §6): a station's Rack… opens its view as a tab beside the page tabs
+//!   (`area::StationTab`), which shows `Session::rack_view`. A part of the view's catalogue (the place catalogue's
+//!   parts that fit the station) goes into a free slot with `plc.add_module` (a library part embedded in the same
+//!   step); a card dragged to another slot moves there with `fields.set plc_module.slot`, or changes places with the
+//!   card it is dropped on. The card under the cursor is the window's selection. EW-PLC-011's prevent half refuses a
+//!   slot the part does not allow; the refusal stays at that slot. New station… is the same view on a station that
+//!   is made by Create.
 //! - **PLC exchange** (doc 10 §4, §6): Export… is a form of format and version, stations and document date that writes
 //!   the file whole or not at all (`Session::plc_export`) and records it (`plc.record_exchange`); Import… reads an AML
 //!   file or a TIA tag workbook into `Dialog::PlcImport`, the preview by tab (changed, conflicts, removed, parking)
@@ -18,7 +21,8 @@
 use ew_api::output::Uuid;
 use serde_json::{Map, Value, json};
 
-use super::{Dialog, Outcome, ShellModel, failed, string_param};
+use super::{Outcome, ShellModel, failed, flag, string_param};
+use crate::area::{StationCursor, StationTab};
 use crate::key;
 use crate::strings;
 use crate::strings::Key;
@@ -131,32 +135,138 @@ impl ShellModel {
     }
 }
 
+/// A part the station view's catalogue offers: a row of the place catalogue ([`ew_api::output::CataloguePart`]) that
+/// fits the station shown, as the view lists it.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct StationPart {
+    /// The part copy's ID (a library part's copy ID once embedded).
+    pub copy: Uuid,
+    /// The part number.
+    pub number: String,
+    /// The part's description in words; empty when it has none.
+    pub description: String,
+    /// What it gives the PLC (`8 DI`); empty for a valve and a part that says neither channels nor I/O ranges.
+    pub gives: String,
+    /// The group it is listed under.
+    pub group: ew_api::output::PlcGroup,
+    /// Why it does not go where the cursor stands (a slot its part does not allow, a valve on a slot); `None` when
+    /// it fits there.
+    pub unfit: Option<String>,
+}
+
+/// What a station's view draws besides its tab ([`ShellModel::station_shown`]).
+#[derive(Clone, PartialEq, Debug)]
+pub struct StationShown {
+    /// The rack: the station's, or the draft's.
+    pub rack: ew_api::output::RackView,
+    /// The catalogue's parts ([`ShellModel::station_catalogue`]).
+    pub catalogue: Vec<StationPart>,
+    /// The channels of the module under the cursor ([`ShellModel::station_channels`]).
+    pub channels: Vec<ew_api::output::RackChannel>,
+    /// What is left to do ([`ShellModel::station_todo`]).
+    pub todo: Vec<StationTodo>,
+}
+
+/// What [`StationShown`] is made for: the revision, the language generation, the place catalogue's key and the
+/// view's own state.
+pub(crate) type StationKey = (u64, u64, Option<(u64, u64, String)>, StationTab);
+
+impl StationPart {
+    /// The part as one line of a choice: its number, its description and what it gives.
+    pub fn words(&self) -> String {
+        [&self.number, &self.description, &self.gives]
+            .into_iter()
+            .filter(|t| !t.is_empty())
+            .map(String::as_str)
+            .collect::<Vec<_>>()
+            .join(" · ")
+    }
+}
+
+/// One line of the station view's To do list: a finding or a step that is left, in a sentence, with its fix.
+#[derive(Clone, PartialEq, Debug)]
+pub struct StationTodo {
+    /// The sentence.
+    pub text: String,
+    /// Whether it is an error (a finding of the slot rule), not a step that is left.
+    pub error: bool,
+    /// The fix beside it.
+    pub fix: Option<TodoFix>,
+}
+
+/// The fix beside a [`StationTodo`].
+#[derive(Clone, PartialEq, Debug)]
+pub enum TodoFix {
+    /// A button that runs an action.
+    Action {
+        /// The button's words.
+        label: String,
+        /// The action.
+        action: &'static str,
+        /// Its parameters.
+        params: Value,
+    },
+    /// Choose part…: the parts that fit the card's slot, one of which becomes its part.
+    ChoosePart {
+        /// The card's rack.
+        rack: u16,
+        /// The card's slot.
+        slot: u32,
+    },
+    /// Draw on a page…: the schematic pages and New page…; the cards not drawn yet are drawn there.
+    DrawOn,
+    /// Put it on a bus page: the bus pages when there are several.
+    BusPage,
+}
+
 impl ShellModel {
     /// The open project's session, for the dialogs' specs and describe lines.
     pub(crate) fn project_session(&self) -> Option<&ew_api::Session> {
         self.project.as_ref().map(|p| &p.session)
     }
 
-    /// The rack and slot editor's view of `station` (doc 10 §6), as the window draws it: made once per revision and
-    /// station (FT-1763).
+    /// The view of `station` (doc 10 §6), as the window draws it: made once per revision and station (FT-1763).
     pub fn rack_view(&self, station: Uuid) -> Option<ew_api::output::RackView> {
-        let key = (self.revision()?, station);
-        if let Some((k, view)) = &*self.rack_cache.borrow()
-            && *k == key
+        let rev = self.revision()?;
         {
-            return view.clone();
+            let mut cache = self.rack_cache.borrow_mut();
+            if cache.0 != rev {
+                *cache = (rev, Default::default());
+            }
+            if let Some(view) = cache.1.get(&station) {
+                return view.clone();
+            }
         }
         self.count(|c| c.rack_view += 1);
         let view = self.project_session()?.rack_view(station);
-        *self.rack_cache.borrow_mut() = Some((key, view.clone()));
+        self.rack_cache.borrow_mut().1.insert(station, view.clone());
         view
     }
 
-    /// The module parts the rack and slot editor offers (`Session::module_parts`).
-    pub fn module_parts(&self) -> Vec<ew_api::output::ModulePart> {
-        self.project_session()
-            .map(ew_api::Session::module_parts)
-            .unwrap_or_default()
+    /// What the station view on show draws: its rack, its catalogue, the channels of the module under its cursor and
+    /// what is left to do, made once for the revision, the language and the view's state (the window reads it every
+    /// frame).
+    pub fn station_shown(&self) -> Option<std::sync::Arc<StationShown>> {
+        let tab = self.station_tab()?;
+        let key: StationKey = (
+            self.revision()?,
+            strings::generation(),
+            self.tools.catalogue.as_ref().map(|(k, _)| k.clone()),
+            tab.clone(),
+        );
+        if let Some((k, shown)) = &*self.station_cache.borrow()
+            && *k == key
+        {
+            return Some(std::sync::Arc::clone(shown));
+        }
+        let shown = std::sync::Arc::new(StationShown {
+            rack: self.rack_of(tab)?,
+            catalogue: self.station_catalogue(),
+            channels: self.station_channels(),
+            todo: self.station_todo(),
+        });
+        *self.station_cache.borrow_mut() = Some((key, std::sync::Arc::clone(&shown)));
+        Some(shown)
     }
 
     /// What kind of valve terminal `device` is, in words (rc.2, F15): `Valve terminal · PLC station on PROFIBUS DP`,
@@ -168,15 +278,8 @@ impl ShellModel {
         ))
     }
 
-    /// The valve parts a valve terminal's empty position offers in the rack dialog (rc.2, `Session::terminal_valve_parts`).
-    pub fn terminal_valve_parts(&self) -> Vec<ew_api::output::ModulePart> {
-        self.project_session()
-            .map(ew_api::Session::terminal_valve_parts)
-            .unwrap_or_default()
-    }
-
     /// The `command.run` parameters that set position `position` of valve module `module` to `occupancy`
-    /// (`valve.set_occupancy`), with the copies a library valve part needs: the rack dialog's position rows (rc.2).
+    /// (`valve.set_occupancy`), with the copies a library valve part needs.
     pub fn occupancy_params(&self, module: Uuid, position: u32, occupancy: Value) -> Value {
         let mut params =
             json!({ "module": module.to_string(), "position": position, "occupancy": occupancy });
@@ -192,26 +295,40 @@ impl ShellModel {
         json!({ "cmd": "valve.set_occupancy", "params": params })
     }
 
-    /// The rack the open rack dialog shows: its station's (`rack_view`), or in the new-station state the draft's
+    /// The station view of the focused group's active tab; `None` while that tab shows a page.
+    pub fn station_tab(&self) -> Option<&StationTab> {
+        self.area.as_ref()?.current().station.as_ref()
+    }
+
+    fn station_tab_mut(&mut self) -> Option<&mut StationTab> {
+        let area = self.area.as_mut()?;
+        let focused = area.focused;
+        area.groups[focused].active_tab_mut().station.as_mut()
+    }
+
+    /// The rack of a tab's station view: its station's (`rack_view`), or for a station not made yet the draft's
     /// (`Session::draft_rack`).
-    pub fn shown_rack(&self) -> Option<ew_api::output::RackView> {
-        match self.dialog() {
-            Some(Dialog::Rack { draft: Some(d), .. }) => {
-                Some(self.project_session()?.draft_rack(d.head, &d.modules))
-            }
-            Some(Dialog::Rack { station: Some(s), .. }) => self.rack_view(*s),
-            _ => None,
+    pub fn rack_of(&self, tab: &StationTab) -> Option<ew_api::output::RackView> {
+        match (&tab.draft, tab.station) {
+            (Some(d), _) => Some(self.project_session()?.draft_rack(d.head, &d.modules)),
+            (None, Some(s)) => self.rack_view(s),
+            (None, None) => None,
         }
     }
 
-    /// The project's PLCs (configuration projects) by name, as the new-station dialog offers them.
+    /// The rack the station view on show draws ([`ShellModel::rack_of`]).
+    pub fn shown_rack(&self) -> Option<ew_api::output::RackView> {
+        self.rack_of(self.station_tab()?)
+    }
+
+    /// The project's PLCs (configuration projects) by name, as a new station offers them.
     pub fn plc_config_projects(&self) -> Vec<(Uuid, String)> {
         self.project_session()
             .map(ew_api::Session::plc_config_projects)
             .unwrap_or_default()
     }
 
-    /// Whether `device` is a valve terminal: its rack dialog offers Make the overview page.
+    /// Whether `device` is a valve terminal: its view offers the fluid page and the overview page.
     pub fn is_valve_terminal(&self, device: Uuid) -> bool {
         self.project_session()
             .is_some_and(|s| s.fluid_menu(device).terminal)
@@ -222,23 +339,12 @@ impl ShellModel {
         self.last_station
     }
 
-    /// The new-station dialog's draft; `None` outside it.
+    /// The station not made yet that the view on show builds; `None` for a made station and outside the view.
     pub fn station_draft(&self) -> Option<&StationDraft> {
-        match self.dialog() {
-            Some(Dialog::Rack { draft: Some(d), .. }) => Some(d),
-            _ => None,
-        }
+        self.station_tab()?.draft.as_ref()
     }
 
-    /// The head parts the new-station dialog offers for what the station is (`Session::station_parts`).
-    pub fn station_parts(&self) -> Vec<ew_api::output::ModulePart> {
-        match (self.project_session(), self.station_draft()) {
-            (Some(s), Some(d)) => s.station_parts(d.kind.word()),
-            _ => Vec::new(),
-        }
-    }
-
-    /// The devices already in the project that the new-station dialog offers as the station (rc.2 persona run): the bus
+    /// The devices already in the project that a new station offers as the station (rc.2 persona run): the bus
     /// devices in no PLC, those that lead a bus for a PLC (CPU), the others for every other kind; by tag.
     pub fn station_candidates(&self) -> Vec<(Uuid, String)> {
         let (Some(s), Some(d)) = (self.project_session(), self.station_draft()) else {
@@ -252,8 +358,8 @@ impl ShellModel {
             .collect()
     }
 
-    /// The folio a page the rack dialog makes takes, asking nothing: New page's proposal, else the first number no page
-    /// has.
+    /// The folio a page the station view makes takes, asking nothing: New page's proposal, else the first number no
+    /// page has.
     pub(super) fn free_folio(&self) -> String {
         let (proposal, _) = self.new_page_proposal();
         if !proposal.is_empty() {
@@ -267,7 +373,7 @@ impl ShellModel {
     }
 
     /// The project's schematic pages (multi-line and single-line), which take a station's boxes: folio and title, in
-    /// page order (the rack dialog's Draw on a page lists them).
+    /// page order (Draw on a page… lists them).
     pub fn schematic_pages(&self) -> Vec<(String, String)> {
         self.page_rows()
             .iter()
@@ -276,8 +382,8 @@ impl ShellModel {
             .collect()
     }
 
-    /// The project's bus-topology pages: folio and title, in page order (the rack dialog's Put it on a bus page asks
-    /// which when there are several).
+    /// The project's bus-topology pages: folio and title, in page order (Put it on a bus page asks which when there
+    /// are several).
     pub fn bus_pages(&self) -> Vec<(String, String)> {
         self.page_rows()
             .iter()
@@ -286,68 +392,358 @@ impl ShellModel {
             .collect()
     }
 
-    /// The module part the open rack and slot editor adds: the one chosen, else the first offered.
-    pub fn rack_part(&self) -> Option<ew_api::output::ModulePart> {
-        let chosen = match self.dialog() {
-            Some(Dialog::Rack { part, .. }) => *part,
-            _ => None,
+    /// The catalogue of the station view on show: the place catalogue's parts (the device browser's) that fit the
+    /// station, under the view's filter (the browser's matching), by group, the parts that fit where the cursor
+    /// stands first. A station not made yet without a head part lists the parts that can head a station of its
+    /// kind, then the cards; a valve terminal lists the valves for a terminal beside the cards.
+    pub fn station_catalogue(&self) -> Vec<StationPart> {
+        let (Some(tab), Some((_, cat))) = (self.station_tab(), self.tools.catalogue.as_ref()) else {
+            return Vec::new();
         };
-        let parts = self.module_parts();
-        chosen
-            .and_then(|c| parts.iter().find(|p| p.copy == c).cloned())
-            .or_else(|| parts.into_iter().next())
+        let view = self.rack_of(tab);
+        let heads = tab
+            .draft
+            .as_ref()
+            .filter(|d| d.head.is_none() || tab.cursor == Some(StationCursor::Head))
+            .map(|d| d.kind.word());
+        let terminal = view.as_ref().is_some_and(|v| !v.cells.is_empty());
+        let tokens = crate::tools::filter_tokens(&tab.filter);
+        let mut out: Vec<(bool, StationPart)> = cat
+            .parts
+            .iter()
+            .filter_map(|p| {
+                let (group, gives, allowed) = match (&p.plc, heads) {
+                    (Some(plc), Some(kind)) if plc.heads.contains(&kind) => {
+                        (plc.group, plc.gives.as_str(), &[][..])
+                    }
+                    (_, Some(_)) => return None,
+                    (Some(plc), None) if plc.heads.is_empty() => {
+                        (plc.group, plc.gives.as_str(), plc.allowed.as_slice())
+                    }
+                    (None, None) if p.terminal_valve && terminal => {
+                        (ew_api::output::PlcGroup::Valve, "", &[][..])
+                    }
+                    _ => return None,
+                };
+                let mut texts = crate::tools::part_texts(p);
+                texts.push(gives);
+                if !crate::tools::tokens_hit(&tokens, &texts) {
+                    return None;
+                }
+                let valve = group == ew_api::output::PlcGroup::Valve;
+                let unfit = match tab.cursor {
+                    Some(StationCursor::Slot { .. }) if valve => {
+                        Some(strings::text(key!("rack-valve-on-slot")).to_owned())
+                    }
+                    Some(StationCursor::Position { .. }) if !valve && heads.is_none() => {
+                        Some(strings::text(key!("rack-module-on-position")).to_owned())
+                    }
+                    Some(StationCursor::Slot { slot, .. })
+                        if !allowed.is_empty() && !allowed.iter().any(|a| u32::from(*a) == slot) =>
+                    {
+                        let slots: Vec<String> = allowed.iter().map(u16::to_string).collect();
+                        Some(strings::format(
+                            key!("rack-part-not-in-slot"),
+                            &[&slot.to_string(), &slots.join(", ")],
+                        ))
+                    }
+                    _ => None,
+                };
+                Some((
+                    p.library.is_some(),
+                    StationPart {
+                        copy: p.copy,
+                        number: p.part_number.clone(),
+                        description: p.description.clone(),
+                        gives: gives.to_owned(),
+                        group,
+                        unfit,
+                    },
+                ))
+            })
+            .collect();
+        out.sort_by(|(la, a), (lb, b)| {
+            (a.group, a.unfit.is_some(), la, &a.number).cmp(&(b.group, b.unfit.is_some(), lb, &b.number))
+        });
+        out.into_iter().map(|(_, p)| p).collect()
     }
 
-    /// The rack dialog of `station`, or of a new station with `draft`.
-    pub(super) fn rack_dialog(station: Option<Uuid>, draft: Option<StationDraft>) -> Dialog {
-        Dialog::Rack {
-            station,
-            draft: draft.map(Box::new),
-            part: None,
-            count: 1,
-            note: None,
-            error: None,
+    /// The device under the cursor of the station view on show: the station itself, the card in a slot, the valve
+    /// or blanking plate on a position; `None` on a free place, for a station not made yet and without a cursor.
+    pub fn station_device(&self) -> Option<Uuid> {
+        let tab = self.station_tab()?;
+        tab.draft.is_none().then_some(())?;
+        let view = self.rack_of(tab)?;
+        match tab.cursor? {
+            StationCursor::Head => tab.station,
+            StationCursor::Slot { rack, slot } => {
+                view.rows.iter().find(|r| r.rack == rack && r.slot == slot)?.module
+            }
+            StationCursor::Position { module, position } => {
+                view.cells
+                    .iter()
+                    .find(|c| c.module == module && c.position == position)?
+                    .at
+                    .holder
+            }
         }
     }
 
-    /// `plc.rack_editor {station}` (FR-PLC-028): opens the rack and slot editor of a station.
+    /// The channels of the card under the cursor, in channel-number order (`Session::module_channels`).
+    pub fn station_channels(&self) -> Vec<ew_api::output::RackChannel> {
+        match (self.project_session(), self.station_device()) {
+            (Some(s), Some(card)) => s.module_channels(card),
+            _ => Vec::new(),
+        }
+    }
+
+    /// What is left to do on the station on show, each in a sentence with its fix: the slot rule's findings, a card
+    /// without a part, the cards drawn on no page, a station on no bus page, a valve terminal on no fluid page; for a
+    /// station not made yet, what Create still needs.
+    pub fn station_todo(&self) -> Vec<StationTodo> {
+        let (Some(tab), Some(session)) = (self.station_tab(), self.project_session()) else {
+            return Vec::new();
+        };
+        let Some(view) = self.rack_of(tab) else {
+            return Vec::new();
+        };
+        let step = |text: String, fix: Option<TodoFix>| StationTodo {
+            text,
+            error: false,
+            fix,
+        };
+        let mut out = Vec::new();
+        if let Some(d) = &tab.draft {
+            let text = match d.head {
+                None => strings::text(key!("rack-choose-head")),
+                Some(_) => strings::text(key!("rack-todo-create")),
+            };
+            out.push(step(text.to_owned(), None));
+            return out;
+        }
+        let Some(station) = tab.station else {
+            return out;
+        };
+        let lang = strings::rule_language();
+        for f in &view.findings {
+            // The finding's card, to go to.
+            let card = f
+                .targets
+                .iter()
+                .map(|t| t.id.as_uuid())
+                .find(|id| view.rows.iter().any(|r| r.module == Some(*id)));
+            out.push(StationTodo {
+                text: ew_api::checks::messages::render(f, lang),
+                error: true,
+                fix: card.map(|c| TodoFix::Action {
+                    label: strings::text(key!("rack-todo-show")).to_owned(),
+                    action: "plc.rack_select",
+                    params: json!({ "card": c.to_string() }),
+                }),
+            });
+        }
+        for r in view.rows.iter().filter(|r| r.module.is_some() && r.part.is_empty()) {
+            out.push(step(
+                strings::format(key!("rack-todo-no-part"), &[&r.tag]),
+                Some(TodoFix::ChoosePart {
+                    rack: r.rack,
+                    slot: r.slot,
+                }),
+            ));
+        }
+        let undrawn: Vec<&str> = std::iter::once(&view.head)
+            .chain(&view.rows)
+            .filter(|r| r.module.is_some() && !r.drawn)
+            .map(|r| r.tag.as_str())
+            .collect();
+        if !undrawn.is_empty() {
+            out.push(step(
+                strings::format(key!("rack-todo-undrawn"), &[&undrawn.join(", ")]),
+                Some(TodoFix::DrawOn),
+            ));
+        }
+        let on_bus_page = self
+            .bus_pages()
+            .iter()
+            .any(|(folio, _)| session.undrawn_interfaces(station, folio).is_empty());
+        if session.has_bus_interfaces(station) && !on_bus_page {
+            out.push(step(
+                strings::format(key!("rack-todo-bus"), &[&view.tag]),
+                Some(TodoFix::BusPage),
+            ));
+        }
+        if self.is_valve_terminal(station) {
+            let next = |label: Key<'static>, name: &str| TodoFix::Action {
+                label: strings::text(label).to_owned(),
+                action: "plc.rack_next",
+                params: json!({ "step": name }),
+            };
+            if session.undrawn_fluid_terminals().iter().any(|(t, _)| *t == station) {
+                out.push(step(
+                    strings::format(key!("rack-todo-fluid"), &[&view.tag]),
+                    Some(next(key!("rack-next-fluid"), "fluid")),
+                ));
+            }
+            if !session.overview_drawn(station) {
+                out.push(step(
+                    strings::text(key!("rack-todo-overview")).to_owned(),
+                    Some(next(key!("rack-next-overview"), "overview")),
+                ));
+            }
+        }
+        out
+    }
+
+    /// Whether the cursor of the station view on show stands on something (a module, the station's head, a valve or
+    /// a blanking plate), and then whether that is drawn on a page; else why the PLC tab's Module commands have
+    /// nothing to act on, in words.
+    pub fn station_taken(&self) -> Result<bool, Key<'static>> {
+        let tab = self.station_tab().ok_or(key!("reason-rack-closed"))?;
+        let view = self.rack_of(tab).ok_or(key!("reason-rack-closed"))?;
+        let (taken, drawn) = match tab.cursor {
+            Some(StationCursor::Head) => (view.head.module.is_some(), view.head.drawn),
+            Some(StationCursor::Slot { rack, slot }) => view
+                .rows
+                .iter()
+                .find(|r| r.rack == rack && r.slot == slot)
+                .map_or((false, false), |r| (r.module.is_some(), r.drawn)),
+            Some(StationCursor::Position { module, position }) => view
+                .cells
+                .iter()
+                .find(|c| c.module == module && c.position == position)
+                .map_or((false, false), |c| (c.at.holder.is_some(), c.at.page.is_some())),
+            None => (false, false),
+        };
+        if taken {
+            Ok(drawn)
+        } else {
+            Err(key!("reason-rack-no-module"))
+        }
+    }
+
+    /// The PLC tab's Module commands (`plc.module_replace {part}`, `plc.module_remove`, `plc.module_draw {folio}`,
+    /// `plc.module_left`, `plc.module_right`): `plc.rack_slot`'s `op` on the module under the cursor.
+    pub(crate) fn act_plc_module(&mut self, p: &Map<String, Value>, op: &str) -> Outcome {
+        let mut params = p.clone();
+        params.insert("op".to_owned(), Value::String(op.to_owned()));
+        self.act_plc_rack_slot(&params)
+    }
+
+    /// `plc.module_goto`: the page the module under the cursor is drawn on, at its drawing (`nav.show`); the
+    /// station's tab stays open beside the page.
+    pub(crate) fn act_plc_module_goto(&mut self) -> Outcome {
+        match self.station_device() {
+            Some(device) => self.dispatch("nav.show", &json!({ "record": device.to_string() })),
+            None => Outcome::refused(key!("reason-rack-no-module")),
+        }
+    }
+
+    /// The end of every dispatch for the station views: a tab whose station is gone (deleted, its making undone)
+    /// closes.
+    pub(super) fn drop_gone_stations(&mut self) {
+        let Some(session) = self.project.as_ref().map(|p| &p.session) else {
+            return;
+        };
+        let gone = |s: &StationTab| {
+            s.draft.is_none() && s.station.is_none_or(|id| session.plc_station_of(id) != Some(id))
+        };
+        if let Some(a) = &mut self.area {
+            a.drop_stations(gone);
+        }
+    }
+
+    /// Opens the view `tab` beside the page tabs, the canvas area focused; the station's tab when it is open already.
+    fn open_station(&mut self, tab: StationTab) -> Outcome {
+        let Some(area) = &mut self.area else {
+            return Outcome::refused(key!("reason-no-pages"));
+        };
+        let same = |s: &StationTab| match tab.station {
+            Some(id) => s.station == Some(id),
+            None => s.draft.is_some(),
+        };
+        let open = area
+            .tabs()
+            .find(|(_, _, t)| t.station.as_ref().is_some_and(same))
+            .map(|(g, i, _)| (g, i));
+        let out = match open {
+            Some((g, i)) => area.activate(g, i),
+            None => area.open_station(tab),
+        };
+        if let Err(key) = out {
+            return Outcome::refused(key);
+        }
+        self.palette = None;
+        self.focus = self.area.as_ref().map(|a| super::Focus::Canvas(a.focused));
+        Outcome::Done
+    }
+
+    /// `plc.rack_editor {station}` (FR-PLC-028): opens the view of a station as a tab beside the page tabs.
     pub(crate) fn act_plc_rack_editor(&mut self, p: &Map<String, Value>) -> Outcome {
         let station = or_return!(self.record_param(p, "station"));
         if self.rack_view(station).is_none() {
             return failed(key!("error-bad-param"), &["station"]);
         }
         self.last_station = Some(station);
-        self.open_dialog(Self::rack_dialog(Some(station), None))
+        self.open_station(StationTab {
+            station: Some(station),
+            ..StationTab::default()
+        })
     }
 
-    /// `plc.new_station {kind?}` (F18 of the rc.1 test): the rack dialog in the new-station state, a PLC (CPU) unless
-    /// `kind` says another, in the project's first PLC, else a new one.
+    /// `plc.new_station {kind?}`: the view of a station not made yet, a PLC (CPU) unless `kind` says another, in the
+    /// project's first PLC, else a new one. Nothing is written before Create.
     pub(crate) fn act_plc_new_station(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match string_param(p, "kind") {
             Ok(Some(w)) => match StationKind::from_word(w) {
-                Some(k) => k,
+                Some(k) => Some(k),
                 None => return failed(key!("error-bad-param"), &["kind"]),
             },
-            Ok(None) => StationKind::Cpu,
+            Ok(None) => None,
             Err(e) => return e,
         };
         let Some(session) = self.project_session() else {
             return Outcome::refused(key!("reason-no-project"));
         };
         let config = session.plc_config_projects().first().map(|(c, _)| *c);
-        self.open_dialog(Self::rack_dialog(
-            None,
-            Some(StationDraft {
-                kind,
+        let out = self.open_station(StationTab {
+            draft: Some(StationDraft {
+                kind: kind.unwrap_or(StationKind::Cpu),
                 head: None,
                 config,
                 modules: Vec::new(),
             }),
-        ))
+            ..StationTab::default()
+        });
+        // A draft that was open already takes the kind asked for.
+        if let (Some(k), Some(d)) = (kind, self.station_tab_mut().and_then(|t| t.draft.as_mut())) {
+            d.kind = k;
+        }
+        out
     }
 
-    /// `plc.rack_set {kind?, head?, config?, count?}`: the new-station dialog's choices (what it is, its head part, its
-    /// PLC: an ID or `new`) and the count Add module fills.
+    /// The part of the place catalogue that parameter `name` names: its copy ID, or its part number (a script's way).
+    fn catalogue_part(
+        &mut self,
+        p: &Map<String, Value>,
+        name: &str,
+    ) -> Result<ew_api::output::CataloguePart, Outcome> {
+        let text = match string_param(p, name)? {
+            Some(t) => t.trim(),
+            None => return Err(failed(key!("error-missing-param"), &[name])),
+        };
+        let id = text.parse::<Uuid>().ok();
+        self.catalogue()
+            .and_then(|c| {
+                c.parts
+                    .iter()
+                    .find(|m| Some(m.copy) == id || m.part_number == text)
+                    .cloned()
+            })
+            .ok_or_else(|| failed(key!("error-bad-param"), &[name]))
+    }
+
+    /// `plc.rack_set {kind?, head?, config?, filter?}`: a new station's choices (what it is, its head part, its PLC: an
+    /// ID or `new`) and the catalogue's filter text.
     pub(crate) fn act_plc_rack_set(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match string_param(p, "kind") {
             Ok(Some(w)) => match StationKind::from_word(w) {
@@ -359,11 +755,11 @@ impl ShellModel {
         };
         let head = match p.get("head") {
             Some(_) => {
-                let offered = self
-                    .project_session()
-                    .map(|s| s.station_parts("any"))
-                    .unwrap_or_default();
-                Some(or_return!(offered_part(p, "head", &offered)).copy)
+                let part = or_return!(self.catalogue_part(p, "head"));
+                if part.plc.as_ref().is_none_or(|x| x.heads.is_empty()) {
+                    return failed(key!("error-bad-param"), &["head"]);
+                }
+                Some(part.copy)
             }
             None => None,
         };
@@ -382,23 +778,26 @@ impl ShellModel {
             Ok(None) => None,
             Err(e) => return e,
         };
-        let count = match p.get("count").map(Value::as_u64) {
-            Some(Some(n @ 1..=64)) => u16::try_from(n).ok(),
-            Some(_) => return failed(key!("error-bad-param"), &["count"]),
-            None => None,
+        let filter = match string_param(p, "filter") {
+            Ok(f) => f.map(str::to_owned),
+            Err(e) => return e,
         };
-        let Some(Dialog::Rack { draft, count: c, .. }) = &mut self.dialog else {
+        let Some(tab) = self.station_tab_mut() else {
             return Outcome::refused(key!("reason-rack-closed"));
         };
-        if let Some(n) = count {
-            *c = n;
+        if let Some(f) = filter {
+            tab.filter = f;
         }
         if kind.is_some() || head.is_some() || config.is_some() {
-            let Some(d) = draft else {
+            let Some(d) = &mut tab.draft else {
                 return Outcome::refused(key!("reason-rack-made"));
             };
-            if let Some(k) = kind {
+            if let Some(k) = kind
+                && k != d.kind
+            {
                 d.kind = k;
+                // Another kind of station has another head.
+                d.head = None;
             }
             if let Some(h) = head {
                 d.head = Some(h);
@@ -406,45 +805,130 @@ impl ShellModel {
             if let Some(c) = config {
                 d.config = c;
             }
+            tab.error = None;
         }
         Outcome::Done
     }
 
-    /// `plc.rack_part {part}`: the module part the open editor's Add module puts into a slot.
-    pub(crate) fn act_plc_rack_part(&mut self, p: &Map<String, Value>) -> Outcome {
-        let part = or_return!(self.record_param(p, "part"));
-        if !self.module_parts().iter().any(|m| m.copy == part) {
-            return failed(key!("error-bad-param"), &["part"]);
+    /// The places of the rack on show in the order the arrow keys walk them: the head, the slots, the positions.
+    fn rack_places(view: &ew_api::output::RackView) -> Vec<StationCursor> {
+        std::iter::once(StationCursor::Head)
+            .chain(view.rows.iter().map(|r| StationCursor::Slot {
+                rack: r.rack,
+                slot: r.slot,
+            }))
+            .chain(view.cells.iter().map(|c| StationCursor::Position {
+                module: c.module,
+                position: c.position,
+            }))
+            .collect()
+    }
+
+    /// Puts the cursor of the view on show on `place` and selects the device there, as a click on a page selects a
+    /// device: Properties shows it and the PLC tab's commands act on it. A free place clears the selection.
+    fn rack_cursor(&mut self, place: Option<StationCursor>) {
+        let Some(tab) = self.station_tab_mut() else {
+            return;
+        };
+        tab.cursor = place;
+        // The view has the keys from here on: the arrows walk its places, Delete empties one.
+        self.focus = self.area.as_ref().map(|a| super::Focus::Canvas(a.focused));
+        let items = self
+            .station_device()
+            .map(ew_api::output::ew_dl::EntityRef)
+            .into_iter()
+            .collect();
+        if self
+            .tools
+            .selection
+            .apply(&crate::tools::SelectionChange::Replace(items))
+        {
+            self.announce_selection();
         }
-        if let Some(Dialog::Rack { part: chosen, .. }) = &mut self.dialog {
-            *chosen = Some(part);
+    }
+
+    /// `plc.rack_select {head?, slot?, rack?, module?, position?, card?, step?}`: the cursor of the station view on
+    /// show: the station's head, a slot, a valve position of `module`, the place of device `card`, or `step` places
+    /// on from where it stands (the arrow keys).
+    pub(crate) fn act_plc_rack_select(&mut self, p: &Map<String, Value>) -> Outcome {
+        let Some(view) = self.shown_rack() else {
+            return Outcome::refused(key!("reason-rack-closed"));
+        };
+        let places = Self::rack_places(&view);
+        let number = |name: &str| p.get(name).and_then(Value::as_u64);
+        let place = if flag(p, "head") {
+            StationCursor::Head
+        } else if let Some(step) = p.get("step").and_then(Value::as_i64) {
+            let at = self
+                .station_tab()
+                .and_then(|t| t.cursor)
+                .and_then(|c| places.iter().position(|x| *x == c));
+            let last = places.len().saturating_sub(1);
+            let to = match at {
+                Some(i) => i.saturating_add_signed(isize::try_from(step).unwrap_or(0)).min(last),
+                None => 0,
+            };
+            places[to]
+        } else if p.contains_key("card") {
+            let card = or_return!(self.record_param(p, "card"));
+            let slot = view.rows.iter().find(|r| r.module == Some(card));
+            let cell = view.cells.iter().find(|c| c.at.holder == Some(card));
+            match (slot, cell) {
+                _ if view.head.module == Some(card) => StationCursor::Head,
+                (Some(r), _) => StationCursor::Slot {
+                    rack: r.rack,
+                    slot: r.slot,
+                },
+                (None, Some(c)) => StationCursor::Position {
+                    module: c.module,
+                    position: c.position,
+                },
+                (None, None) => return failed(key!("error-bad-param"), &["card"]),
+            }
+        } else if let Some(position) = number("position") {
+            StationCursor::Position {
+                module: or_return!(self.record_param(p, "module")),
+                position: u32::try_from(position).unwrap_or(u32::MAX),
+            }
+        } else if let Some(slot) = number("slot") {
+            StationCursor::Slot {
+                rack: number("rack").and_then(|r| u16::try_from(r).ok()).unwrap_or(0),
+                slot: u32::try_from(slot).unwrap_or(u32::MAX),
+            }
+        } else {
+            return failed(key!("error-missing-param"), &["slot"]);
+        };
+        if !places.contains(&place) {
+            return failed(key!("error-bad-param"), &["slot"]);
         }
+        self.rack_cursor(Some(place));
         Outcome::Done
     }
 
-    /// The station of the open rack and slot editor (not a draft).
+    /// The station of the view on show (not a draft).
     fn rack_station(&self) -> Result<Uuid, Outcome> {
-        match self.dialog() {
-            Some(Dialog::Rack {
+        match self.station_tab() {
+            Some(StationTab {
                 station: Some(station),
+                draft: None,
                 ..
             }) => Ok(*station),
-            Some(Dialog::Rack { .. }) => Err(Outcome::refused(key!("reason-rack-draft"))),
-            _ => Err(Outcome::refused(key!("reason-rack-closed"))),
+            Some(_) => Err(Outcome::refused(key!("reason-rack-draft"))),
+            None => Err(Outcome::refused(key!("reason-rack-closed"))),
         }
     }
 
-    /// Writes `why` under the open rack dialog's slots and fails with it.
-    fn rack_refuse(&mut self, why: String) -> Outcome {
-        if let Some(Dialog::Rack { error, .. }) = &mut self.dialog {
-            *error = Some(why.clone());
+    /// Writes `why` at `place` of the rack on show and fails with it.
+    fn rack_refuse(&mut self, place: Option<StationCursor>, why: String) -> Outcome {
+        if let Some(tab) = self.station_tab_mut() {
+            tab.error = Some((place, why.clone()));
         }
         Outcome::Failed { message: why }
     }
 
-    /// Commits a change of the open rack and slot editor: a refusal stays under its slots, a change clears it; a change
-    /// that moved addresses says so under the slots (F18: the rack's order is the truth for slots and addresses).
-    fn rack_commit(&mut self, name: &str, params: Value) -> Outcome {
+    /// Commits a change of the station on show: a refusal stays at `place` of its rack, a change clears it; a change
+    /// that moved addresses says so under the rack (the rack's order is the truth for slots and addresses).
+    fn rack_commit(&mut self, place: Option<StationCursor>, name: &str, params: Value) -> Outcome {
         let addresses = |s: &Self| -> Vec<(Option<Uuid>, String)> {
             s.shown_rack()
                 .map(|v| v.rows.into_iter().map(|r| (r.module, r.addresses)).collect())
@@ -466,74 +950,134 @@ impl ShellModel {
             && before
                 .iter()
                 .any(|(m, a)| m.is_some() && !a.is_empty() && after.iter().any(|(n, b)| n == m && b != a));
-        if let Some(Dialog::Rack { error: e, note, .. }) = &mut self.dialog {
-            *e = error;
-            *note = moved.then(|| strings::text(key!("rack-addresses-moved")).to_owned());
+        if let Some(tab) = self.station_tab_mut() {
+            tab.error = error.map(|e| (place, e));
+            tab.note = moved.then(|| strings::text(key!("rack-addresses-moved")).to_owned());
         }
         out
     }
 
-    /// The part a rack action names (`part`), else the one chosen in the editor; it must be a module part offered.
-    fn rack_part_param(&self, p: &Map<String, Value>) -> Result<ew_api::output::ModulePart, Outcome> {
-        if p.contains_key("part") {
-            return offered_part(p, "part", &self.module_parts());
-        }
-        self.rack_part()
-            .ok_or_else(|| Outcome::refused(key!("reason-rack-no-part")))
-    }
-
-    /// `plc.rack_add {slot, rack?, part?}`: modules of the part (the one named, else the editor's) into a free slot and,
-    /// with the dialog's count above one, the slots after it. In the new-station state they join the draft; else one
-    /// `plc.add_module` (a library part embedded with it): as `rack.slot` in a station whose modules have rack
-    /// positions, else positional after the station's modules. After an add the count is 1 again (the rc.2 persona
-    /// run's next add would have taken the 2 of the one before).
+    /// `plc.rack_add {part, slot?, rack?, module?, position?}`: a part of the catalogue into the rack on show. A card
+    /// goes into the free slot named, else the one the cursor stands on, else the first free one (`plc.add_module`, a
+    /// library part embedded with it: as `rack.slot` in a station whose cards have rack positions, else after the
+    /// station's cards); a valve into the position named, else the cursor's, else the first empty one
+    /// (`valve.set_occupancy`). For a station not made yet a head part becomes its head and a card joins its cards.
+    /// The cursor goes to what was added.
     pub(crate) fn act_plc_rack_add(&mut self, p: &Map<String, Value>) -> Outcome {
-        let Some(slot) = p
-            .get("slot")
-            .and_then(Value::as_u64)
-            .and_then(|s| u16::try_from(s).ok())
-        else {
-            return failed(key!("error-bad-param"), &["slot"]);
+        let Some(view) = self.shown_rack() else {
+            return Outcome::refused(key!("reason-rack-closed"));
         };
-        let rack = p
-            .get("rack")
-            .and_then(Value::as_u64)
-            .and_then(|s| u16::try_from(s).ok());
-        let count = match self.dialog() {
-            Some(Dialog::Rack { count, .. }) => *count,
-            _ => return Outcome::refused(key!("reason-rack-closed")),
-        };
-        // Only a free slot the editor offers takes a module: a taken one names its module, in words under the slots.
-        let view = self.shown_rack();
-        let racked = view.as_ref().is_some_and(|v| v.racked);
-        let rows = view.as_ref().map_or(&[][..], |v| v.rows.as_slice());
-        let at = |r: &&ew_api::output::RackRow| u32::from(slot) == r.slot && rack.unwrap_or(0) == r.rack;
-        if !rows.iter().any(|r| r.module.is_none() && at(&r)) {
-            let shown = match rack.filter(|r| *r > 0) {
-                Some(r) => format!("{r}.{slot}"),
-                None => slot.to_string(),
+        let part = or_return!(self.catalogue_part(p, "part"));
+        let cursor = self.station_tab().and_then(|t| t.cursor);
+        let number = |name: &str| p.get(name).and_then(Value::as_u64);
+        // A valve for a terminal: a position's.
+        if part.plc.is_none() && part.terminal_valve {
+            let station = or_return!(self.rack_station());
+            let named = match number("position") {
+                Some(n) => Some((
+                    or_return!(self.record_param(p, "module")),
+                    u32::try_from(n).unwrap_or(u32::MAX),
+                )),
+                None => None,
             };
-            let why = match rows.iter().find(|r| r.module.is_some() && at(r)) {
-                Some(taken) => strings::format(key!("rack-slot-taken"), &[&shown, &taken.tag]),
-                None => strings::format(key!("rack-slot-not-free"), &[&shown]),
+            let at = named
+                .or(match cursor {
+                    Some(StationCursor::Position { module, position }) => Some((module, position)),
+                    _ => None,
+                })
+                .or_else(|| {
+                    view.cells
+                        .iter()
+                        .find(|c| c.at.holder.is_none())
+                        .map(|c| (c.module, c.position))
+                });
+            let Some((module, position)) = at else {
+                let tag = self
+                    .project_session()
+                    .and_then(|s| s.device_tag(station))
+                    .unwrap_or_default();
+                return self.rack_refuse(cursor, strings::format(key!("rack-no-free-position"), &[&tag]));
             };
-            return self.rack_refuse(why);
+            let place = StationCursor::Position { module, position };
+            let occupancy = json!({ "valve": { "state": "used", "part": part.copy.to_string() } });
+            let run = self.occupancy_params(module, position, occupancy);
+            let out = self.rack_commit(Some(place), "valve.set_occupancy", run["params"].clone());
+            if out == Outcome::Done {
+                self.rack_cursor(Some(place));
+            }
+            return out;
         }
-        let part = or_return!(self.rack_part_param(p));
-        if let Some(Dialog::Rack {
-            draft: Some(d),
-            error,
-            count,
-            ..
-        }) = &mut self.dialog
-        {
-            d.modules
-                .extend(std::iter::repeat_n(part.copy, usize::from(*count)));
-            *error = None;
-            *count = 1;
+        let Some(plc) = &part.plc else {
+            return failed(key!("error-bad-param"), &["part"]);
+        };
+        // A station not made yet: its head, then its cards.
+        if let Some(d) = self.station_tab_mut().and_then(|t| t.draft.as_mut()) {
+            let place = if plc.heads.is_empty() {
+                d.modules.push(part.copy);
+                StationCursor::Slot {
+                    rack: 0,
+                    slot: u32::try_from(d.modules.len()).unwrap_or(u32::MAX),
+                }
+            } else {
+                // With its head chosen the station takes modules: the cursor goes to its first free slot, and the
+                // catalogue lists the modules (on the head it lists the heads, to choose another).
+                d.head = Some(part.copy);
+                StationCursor::Slot {
+                    rack: 0,
+                    slot: u32::try_from(d.modules.len() + 1).unwrap_or(u32::MAX),
+                }
+            };
+            if let Some(tab) = self.station_tab_mut() {
+                tab.error = None;
+                tab.cursor = Some(place);
+            }
             return Outcome::Done;
         }
         let station = or_return!(self.rack_station());
+        if !plc.heads.is_empty() {
+            return self.rack_refuse(
+                cursor,
+                strings::format(key!("rack-part-no-module"), &[&part.part_number]),
+            );
+        }
+        // The free slot named, else the cursor's, else the first: only a free slot the rack offers takes a card.
+        let free = |rack: u16, slot: u32| {
+            view.rows
+                .iter()
+                .any(|r| r.module.is_none() && r.rack == rack && r.slot == slot)
+        };
+        let named = number("slot").map(|s| {
+            (
+                number("rack").and_then(|r| u16::try_from(r).ok()).unwrap_or(0),
+                u32::try_from(s).unwrap_or(u32::MAX),
+            )
+        });
+        let at = named
+            .or(match cursor {
+                Some(StationCursor::Slot { rack, slot }) if free(rack, slot) => Some((rack, slot)),
+                _ => None,
+            })
+            .or_else(|| view.rows.iter().find(|r| r.module.is_none()).map(|r| (r.rack, r.slot)));
+        let Some((rack, slot)) = at else {
+            return self.rack_refuse(cursor, strings::text(key!("rack-full")).to_owned());
+        };
+        let place = StationCursor::Slot { rack, slot };
+        if !free(rack, slot) {
+            let shown = if rack > 0 {
+                format!("{rack}.{slot}")
+            } else {
+                slot.to_string()
+            };
+            let taken = view
+                .rows
+                .iter()
+                .find(|r| r.module.is_some() && r.rack == rack && r.slot == slot);
+            let why = match taken {
+                Some(taken) => strings::format(key!("rack-slot-taken"), &[&shown, &taken.tag]),
+                None => strings::format(key!("rack-slot-not-free"), &[&shown]),
+            };
+            return self.rack_refuse(Some(place), why);
+        }
         let copies = self
             .project_session()
             .map(|s| s.module_part_copies(part.copy))
@@ -542,29 +1086,27 @@ impl ShellModel {
             "station": station.to_string(),
             "part": {"part": {"copy": part.copy.to_string()}, "qty": "1"},
         });
-        if racked || rack.is_some_and(|r| r > 0) {
+        if view.racked || rack > 0 {
             params["slot"] = json!(slot);
-            params["rack"] = json!(rack.unwrap_or(0));
-        }
-        if count > 1 {
-            params["count"] = json!(count);
+            params["rack"] = json!(rack);
         }
         if !copies.is_empty() {
             params["copies"] = Value::Array(copies);
         }
-        let out = self.rack_commit("plc.add_module", params);
-        if out == Outcome::Done
-            && let Some(Dialog::Rack { count, .. }) = &mut self.dialog
-        {
-            *count = 1;
+        let out = self.rack_commit(Some(place), "plc.add_module", params);
+        if out == Outcome::Done {
+            self.rack_cursor(Some(place));
         }
         out
     }
 
-    /// `plc.rack_move {module, slot}`: a module of the open editor into the slot typed (`3`, `<rack>.<slot>`), with
-    /// `fields.set plc_module.slot`; EW-PLC-011 refuses a slot its part does not allow.
+    /// `plc.rack_move {module, slot}`: a module of the station on show into the slot named (`3`, `<rack>.<slot>`), as
+    /// a drag does. On another module's slot the two change places (modules that stand in a row without slot numbers of
+    /// their own swap their positions with one `assembly.attach`, others their slots with one `fields.set_many`); a
+    /// free slot takes it (`fields.set plc_module.slot`). EW-PLC-011 refuses a slot its part does not allow; the
+    /// refusal stays at that slot.
     pub(crate) fn act_plc_rack_move(&mut self, p: &Map<String, Value>) -> Outcome {
-        or_return!(self.rack_station());
+        let station = or_return!(self.rack_station());
         let module = or_return!(self.record_param(p, "module"));
         let text = match string_param(p, "slot") {
             Ok(Some(t)) => t.trim().to_owned(),
@@ -573,83 +1115,195 @@ impl ShellModel {
         };
         let numbers: Vec<Option<u16>> = text.split('.').map(|n| n.trim().parse::<u16>().ok()).collect();
         let (rack, slot) = match numbers.as_slice() {
-            [Some(slot)] => (0, *slot),
-            [Some(rack), Some(slot)] => (*rack, *slot),
+            [Some(slot)] => (0, u32::from(*slot)),
+            [Some(rack), Some(slot)] => (*rack, u32::from(*slot)),
             _ => {
-                return self.rack_refuse(strings::format(key!("rack-bad-slot"), &[&text]));
+                let cursor = self.station_tab().and_then(|t| t.cursor);
+                return self.rack_refuse(cursor, strings::format(key!("rack-bad-slot"), &[&text]));
             }
         };
-        self.rack_commit(
-            "fields.set",
-            json!({"kind": "device", "targets": [module.to_string()], "path": "plc_module.slot",
-                "value": {"rack": {"rack": rack, "slot": slot}}}),
-        )
+        let place = StationCursor::Slot { rack, slot };
+        let Some(view) = self.rack_view(station) else {
+            return failed(key!("error-bad-param"), &["station"]);
+        };
+        let Some(row) = view.rows.iter().find(|r| r.module == Some(module)) else {
+            return failed(key!("error-bad-param"), &["module"]);
+        };
+        let other = view
+            .rows
+            .iter()
+            .find(|r| r.rack == rack && r.slot == slot && r.module.is_some());
+        if other.is_some_and(|o| o.module == Some(module)) {
+            return Outcome::Done;
+        }
+        let set = |m: Uuid, rack: u16, slot: u32| {
+            json!({"kind": "device", "targets": [m.to_string()], "path": "plc_module.slot",
+                "value": {"rack": {"rack": rack, "slot": slot}}})
+        };
+        let out = match other {
+            Some(o) if row.positional && o.positional => {
+                let q = self.project_session().map(ew_api::Session::query);
+                let position = |m: Uuid| {
+                    q.as_ref().and_then(|q| {
+                        q.devices()
+                            .get(m.to_string().parse().ok()?)
+                            .and_then(|d| d.position)
+                    })
+                };
+                let other = o.module.unwrap_or_default();
+                let (Some(a), Some(b)) = (position(module), position(other)) else {
+                    return Outcome::Done;
+                };
+                self.rack_commit(
+                    Some(place),
+                    "assembly.attach",
+                    json!({"parent": station.to_string(), "children": [
+                        {"device": module.to_string(), "position": b},
+                        {"device": other.to_string(), "position": a}]}),
+                )
+            }
+            Some(o) => self.rack_commit(
+                Some(place),
+                "fields.set_many",
+                json!({"edits": [
+                    set(module, rack, slot),
+                    set(o.module.unwrap_or_default(), row.rack, row.slot)]}),
+            ),
+            None => self.rack_commit(Some(place), "fields.set", set(module, rack, slot)),
+        };
+        if out == Outcome::Done {
+            self.rack_cursor_on(module);
+        }
+        out
     }
 
-    /// `plc.rack_slot {slot, rack?, op, part?}`: a module's row: `up` and `down` swap it with the module above or below
-    /// (positional modules their positions with one `assembly.attach`, racked ones their slots with one
-    /// `fields.set_many`, or the slot beside it when that one is free); `empty` takes it out (a module drawn nowhere is
-    /// deleted, a drawn one leaves the rack with `plc.remove_from_rack` and keeps its drawing); `replace` gives it the
-    /// part named (`fields.set parts`); `draw` draws its box on the page shown, bound to its channels
-    /// (`plc.draw_station`). In the new-station state the draft
-    /// changes.
+    /// Puts the cursor on the place of device `card` in the rack on show, when it has one.
+    fn rack_cursor_on(&mut self, card: Uuid) {
+        let place = self.shown_rack().and_then(|v| {
+            v.rows
+                .iter()
+                .find(|r| r.module == Some(card))
+                .map(|r| StationCursor::Slot {
+                    rack: r.rack,
+                    slot: r.slot,
+                })
+        });
+        if place.is_some() {
+            self.rack_cursor(place);
+        }
+    }
+
+    /// `plc.rack_slot {op, slot?, rack?, part?, folio?}`: the card in a slot of the rack on show, the one named, else
+    /// the cursor's. `up` and `down` move it one slot left or right (it changes places with the card there, or takes
+    /// the free slot); `empty` takes it out (a card drawn nowhere is deleted, a drawn one leaves the rack with
+    /// `plc.remove_from_rack` and keeps its drawing); `replace` gives it the part named (`fields.set parts`); `draw`
+    /// draws its box on the schematic page `folio` (`new`: a new page; absent: the page the view was opened from),
+    /// bound to its channels (`plc.draw_station`), and shows that page. With the cursor on a valve position, `empty`
+    /// empties it, `blank` puts a blanking plate on it and `replace` a valve of the part (`valve.set_occupancy`). For a
+    /// station not made yet the draft changes.
     pub(crate) fn act_plc_rack_slot(&mut self, p: &Map<String, Value>) -> Outcome {
-        let Some(slot) = p
-            .get("slot")
-            .and_then(Value::as_u64)
-            .and_then(|s| u32::try_from(s).ok())
-        else {
-            return failed(key!("error-bad-param"), &["slot"]);
-        };
-        let rack = p
-            .get("rack")
-            .and_then(Value::as_u64)
-            .and_then(|s| u16::try_from(s).ok())
-            .unwrap_or(0);
+        const OPS: [&str; 6] = ["up", "down", "empty", "replace", "draw", "blank"];
         let op = match string_param(p, "op") {
-            Ok(Some(o)) if ["up", "down", "empty", "replace", "draw"].contains(&o) => o.to_owned(),
+            Ok(Some(o)) if OPS.contains(&o) => o.to_owned(),
             Ok(Some(_)) => return failed(key!("error-bad-param"), &["op"]),
             Ok(None) => return failed(key!("error-missing-param"), &["op"]),
             Err(e) => return e,
         };
+        let Some(tab) = self.station_tab() else {
+            return Outcome::refused(key!("reason-rack-closed"));
+        };
+        let cursor = match p.get("slot").and_then(Value::as_u64) {
+            Some(slot) => Some(StationCursor::Slot {
+                rack: p
+                    .get("rack")
+                    .and_then(Value::as_u64)
+                    .and_then(|r| u16::try_from(r).ok())
+                    .unwrap_or(0),
+                slot: u32::try_from(slot).unwrap_or(u32::MAX),
+            }),
+            None => tab.cursor,
+        };
+        let Some(cursor) = cursor else {
+            return Outcome::refused(key!("reason-rack-no-module"));
+        };
         let part = if op == "replace" {
-            Some(or_return!(self.rack_part_param(p)))
+            Some(or_return!(self.catalogue_part(p, "part")))
         } else {
             None
         };
-        if let Some(Dialog::Rack {
-            draft: Some(d),
-            error,
-            ..
-        }) = &mut self.dialog
-        {
+        // A station not made yet: its head and its cards are the draft's.
+        if let Some(d) = self.station_tab_mut().and_then(|t| t.draft.as_mut()) {
+            let StationCursor::Slot { slot, .. } = cursor else {
+                match (op.as_str(), part) {
+                    ("empty", _) => d.head = None,
+                    ("replace", Some(x)) if x.plc.as_ref().is_some_and(|x| !x.heads.is_empty()) => {
+                        d.head = Some(x.copy);
+                    }
+                    _ => return Outcome::refused(key!("reason-rack-draft")),
+                }
+                return Outcome::Done;
+            };
             let i = usize::try_from(slot).unwrap_or(usize::MAX).wrapping_sub(1);
             if i >= d.modules.len() {
                 return failed(key!("error-bad-param"), &["slot"]);
             }
+            let mut to = i;
             match op.as_str() {
-                "up" if i > 0 => d.modules.swap(i, i - 1),
-                "down" if i + 1 < d.modules.len() => d.modules.swap(i, i + 1),
+                "up" if i > 0 => {
+                    d.modules.swap(i, i - 1);
+                    to = i - 1;
+                }
+                "down" if i + 1 < d.modules.len() => {
+                    d.modules.swap(i, i + 1);
+                    to = i + 1;
+                }
                 "empty" => {
                     d.modules.remove(i);
                 }
                 "replace" => d.modules[i] = part.map_or(d.modules[i], |x| x.copy),
-                "draw" => return Outcome::refused(key!("reason-rack-draft")),
+                "draw" | "blank" => return Outcome::refused(key!("reason-rack-draft")),
                 _ => {}
             }
-            *error = None;
+            if let Some(tab) = self.station_tab_mut() {
+                tab.error = None;
+                tab.cursor = Some(StationCursor::Slot {
+                    rack: 0,
+                    slot: u32::try_from(to + 1).unwrap_or(u32::MAX),
+                });
+            }
             return Outcome::Done;
         }
         let station = or_return!(self.rack_station());
         let Some(view) = self.rack_view(station) else {
             return failed(key!("error-bad-param"), &["station"]);
         };
+        let (rack, slot) = match cursor {
+            StationCursor::Slot { rack, slot } => (rack, slot),
+            // A valve position: emptied, blanked or given another valve.
+            StationCursor::Position { module, position } => {
+                let occupancy = match (op.as_str(), &part) {
+                    ("empty", _) => json!("empty"),
+                    ("blank", _) => json!({ "blank": {} }),
+                    ("replace", Some(x)) => {
+                        json!({ "valve": { "state": "used", "part": x.copy.to_string() } })
+                    }
+                    _ => return Outcome::refused(key!("reason-rack-position")),
+                };
+                let run = self.occupancy_params(module, position, occupancy);
+                return self.rack_commit(Some(cursor), "valve.set_occupancy", run["params"].clone());
+            }
+            StationCursor::Head => {
+                return match op.as_str() {
+                    "draw" => self.draw_from_rack(station, Some(station), p),
+                    _ => Outcome::refused(key!("reason-rack-head")),
+                };
+            }
+        };
         let modules: Vec<&ew_api::output::RackRow> =
             view.rows.iter().filter(|r| r.module.is_some()).collect();
-        let Some(i) = modules.iter().position(|r| r.slot == slot && r.rack == rack) else {
-            return failed(key!("error-bad-param"), &["slot"]);
+        let Some(row) = modules.iter().find(|r| r.slot == slot && r.rack == rack) else {
+            return Outcome::refused(key!("reason-rack-no-module"));
         };
-        let row = modules[i];
         let module = row.module.unwrap_or_default();
         match op.as_str() {
             "up" | "down" => {
@@ -661,46 +1315,27 @@ impl ShellModel {
                 let Some(target) = target.filter(|t| *t > 0) else {
                     return Outcome::Done;
                 };
-                let other = modules.iter().find(|r| r.rack == rack && r.slot == target);
-                if row.positional {
-                    let Some(other) = other else {
-                        return Outcome::Done;
-                    };
-                    let q = self.project_session().map(ew_api::Session::query);
-                    let position = |m: Uuid| {
-                        q.as_ref().and_then(|q| {
-                            q.devices()
-                                .get(m.to_string().parse().ok()?)
-                                .and_then(|d| d.position)
-                        })
-                    };
-                    let (Some(a), Some(b)) = (position(module), other.module.and_then(position)) else {
-                        return Outcome::Done;
-                    };
-                    let other = other.module.unwrap_or_default();
-                    return self.rack_commit(
-                        "assembly.attach",
-                        json!({"parent": station.to_string(), "children": [
-                            {"device": module.to_string(), "position": b},
-                            {"device": other.to_string(), "position": a}]}),
-                    );
+                // A card in a row without slot numbers stays inside the row of cards.
+                if row.positional && !modules.iter().any(|r| r.rack == rack && r.slot == target) {
+                    return Outcome::Done;
                 }
-                let set = |m: Uuid, s: u32| {
-                    json!({"kind": "device", "targets": [m.to_string()], "path": "plc_module.slot",
-                        "value": {"rack": {"rack": rack, "slot": s}}})
+                let to = if rack > 0 {
+                    format!("{rack}.{target}")
+                } else {
+                    target.to_string()
                 };
-                match other.and_then(|o| o.module) {
-                    Some(o) => self.rack_commit(
-                        "fields.set_many",
-                        json!({"edits": [set(module, target), set(o, slot)]}),
-                    ),
-                    None => self.rack_commit("fields.set", set(module, target)),
-                }
+                self.act_plc_rack_move(&Map::from_iter([
+                    ("module".to_owned(), Value::String(module.to_string())),
+                    ("slot".to_owned(), Value::String(to)),
+                ]))
             }
-            "empty" if row.drawn => {
-                self.rack_commit("plc.remove_from_rack", json!({"device": module.to_string()}))
-            }
+            "empty" if row.drawn => self.rack_commit(
+                Some(cursor),
+                "plc.remove_from_rack",
+                json!({"device": module.to_string()}),
+            ),
             "empty" => self.rack_commit(
+                Some(cursor),
                 "edit.delete",
                 json!({"targets": [{"kind": "device", "id": module.to_string()}]}),
             ),
@@ -713,12 +1348,14 @@ impl ShellModel {
                     .map(|s| s.module_part_copies(part.copy))
                     .unwrap_or_default();
                 self.rack_commit(
+                    Some(cursor),
                     "fields.set",
                     json!({"kind": "device", "targets": [module.to_string()], "path": "parts",
                         "value": [{"part": {"copy": part.copy.to_string()}, "qty": "1"}], "copies": copies}),
                 )
             }
-            _ => self.draw_from_rack(station, Some(module)),
+            "blank" => Outcome::refused(key!("reason-rack-position")),
+            _ => self.draw_from_rack(station, Some(module), p),
         }
     }
 
@@ -789,39 +1426,86 @@ impl ShellModel {
         Some(params)
     }
 
-    /// Draws devices of `station` not drawn yet on the schematic page shown, with one `plc.draw_station`: all of them
-    /// (`only` absent: Draw on this page), or the one module `only` (its row's Draw…), each bound to its channels as a
-    /// box drawn by hand is (normaliser N3). The dialog closes when it drew; a refusal stays under the slots.
-    fn draw_from_rack(&mut self, station: Uuid, only: Option<Uuid>) -> Outcome {
-        if !matches!(
-            self.page_rows().get(self.page_index()).map(|r| r.kind.as_str()),
-            Some("multi_line" | "single_line")
-        ) {
-            return self.rack_refuse(strings::text(key!("reason-rack-draw-page")).to_owned());
+    /// Draws devices of `station` not drawn yet on a schematic page with one `plc.draw_station`: all of them (`only`
+    /// absent: Draw on a page…), or the one device `only` (a card's Draw on a page…), each bound to its channels as a
+    /// box drawn by hand is (normaliser N3). The page is `folio` of `p` (`new`: a new page, asking nothing), else the
+    /// page the view was opened from; the page is shown with what was drawn. A refusal brings the view back and
+    /// stays in it.
+    fn draw_from_rack(&mut self, station: Uuid, only: Option<Uuid>, p: &Map<String, Value>) -> Outcome {
+        let cursor = self.station_tab().and_then(|t| t.cursor);
+        let folio = match string_param(p, "folio") {
+            Ok(Some("new")) => {
+                let folio = self.free_folio();
+                let title = strings::text(key!("rack-draw-page-title"));
+                let made = self.dispatch(
+                    "page.new",
+                    &json!({ "folio": folio, "type": "multi_line", "title": title }),
+                );
+                if made != Outcome::Done {
+                    return made;
+                }
+                folio
+            }
+            Ok(Some(f)) if self.schematic_pages().iter().any(|(x, _)| x == f) => f.to_owned(),
+            Ok(Some(_)) => return failed(key!("error-bad-param"), &["folio"]),
+            Ok(None) => {
+                let shown = self
+                    .page_rows()
+                    .get(self.page_index())
+                    .filter(|r| matches!(r.kind.as_str(), "multi_line" | "single_line"))
+                    .map(|r| r.folio.clone());
+                match shown {
+                    Some(folio) => folio,
+                    None => {
+                        return self
+                            .rack_refuse(cursor, strings::text(key!("reason-rack-draw-page")).to_owned());
+                    }
+                }
+            }
+            Err(e) => return e,
+        };
+        let opened = self.dispatch("page.goto", &json!({ "folio": folio }));
+        if opened != Outcome::Done {
+            return opened;
         }
+        // Back in the station's view, where a refusal is said.
+        let back = |s: &mut Self, why: String| {
+            let _ = s.open_station(StationTab {
+                station: Some(station),
+                ..StationTab::default()
+            });
+            s.rack_refuse(cursor, why)
+        };
         let page = self.page_rows().get(self.page_index()).map(|r| r.id);
         let Some(mut params) = page.and_then(|page| self.station_boxes(station, page)) else {
-            return self.rack_refuse(strings::text(key!("reason-rack-no-frame")).to_owned());
+            return back(self, strings::text(key!("reason-rack-no-frame")).to_owned());
         };
         if let (Some(module), Some(boxes)) = (only, params["boxes"].as_array_mut()) {
             boxes.retain(|b| b["device"].as_str() == Some(module.to_string().as_str()));
         }
-        let out = self.rack_commit("plc.draw_station", params);
-        if out == Outcome::Done {
-            self.dialog = None;
+        let out = self.run_commit(&ew_api::AnyCommand {
+            name: "plc.draw_station".into(),
+            params,
+        });
+        match out {
+            Outcome::Done => Outcome::Done,
+            Outcome::Failed { message } => back(self, message),
+            Outcome::Refused { reason_key } => back(self, strings::text(reason_key).to_owned()),
         }
-        out
     }
 
-    /// `plc.rack_create` (F18 of the rc.1 test): the new-station dialog's Create: the station and its modules, drawn
-    /// nowhere yet, with one `plc.add_station` (library parts embedded with it), one undo step; the dialog then shows
-    /// the station's rack and says what comes next.
+    /// `plc.rack_create`: Create of a station not made yet: the station and its cards, drawn nowhere yet, with one
+    /// `plc.add_station` (library parts embedded with it), one undo step; the view then shows the station's rack, and
+    /// its To do list what comes next.
     pub(crate) fn act_plc_rack_create(&mut self) -> Outcome {
         let Some(d) = self.station_draft().cloned() else {
             return Outcome::refused(key!("reason-rack-made"));
         };
         let Some(head) = d.head else {
-            return self.rack_refuse(strings::text(key!("rack-choose-head")).to_owned());
+            return self.rack_refuse(
+                Some(StationCursor::Head),
+                strings::text(key!("rack-choose-head")).to_owned(),
+            );
         };
         let Some(session) = self.project_session() else {
             return Outcome::refused(key!("reason-no-project"));
@@ -852,90 +1536,45 @@ impl ShellModel {
         if let Some(c) = d.config {
             params["config_project"] = json!(c.to_string());
         }
-        let out = self.rack_commit("plc.add_station", params);
+        let out = self.rack_commit(Some(StationCursor::Head), "plc.add_station", params);
         if out != Outcome::Done {
             return out;
         }
         let made = self
             .project_session()
             .and_then(|s| stations(s).into_iter().find(|x| !before.contains(x)));
-        if let Some(Dialog::Rack {
-            station, draft, note, ..
-        }) = &mut self.dialog
-        {
-            *station = made;
-            *draft = None;
-            *note = Some(strings::text(key!("rack-created")).to_owned());
+        if let Some(tab) = self.station_tab_mut() {
+            tab.station = made;
+            tab.draft = None;
         }
+        self.last_station = made;
+        self.rack_cursor(Some(StationCursor::Head));
         out
     }
 
-    /// `plc.rack_next {step}` (F18 of the rc.1 test): what comes after the station is made, from its rack dialog:
-    /// `draw` puts the station's symbol on the pointer on a schematic page (a valve terminal's box of positions on a fluid
-    /// page); `fluid` draws a valve terminal on a fluid page (`fluid.draw_terminal`); `overview` makes a valve terminal's overview
-    /// pages (`fluid.generate_overview`, previewed); `bus` opens the first bus-topology page and puts the station's first
-    /// interface not drawn there on the pointer.
+    /// `plc.rack_next {step, folio?}`: what is left to do for the station on show, from its To do list: `draw` draws
+    /// the station and its cards not drawn yet on a schematic page ([`ShellModel::draw_from_rack`]); `fluid` draws a
+    /// valve terminal on a fluid page (`fluid.draw_terminal`); `overview` makes a valve terminal's overview pages
+    /// (`fluid.generate_overview`, previewed); `bus` opens a bus-topology page and puts the station's interfaces not
+    /// drawn there on the pointer.
     pub(crate) fn act_plc_rack_next(&mut self, p: &Map<String, Value>) -> Outcome {
         let station = or_return!(self.rack_station());
+        let cursor = self.station_tab().and_then(|t| t.cursor);
         match string_param(p, "step") {
             // A valve terminal on a fluid page: drawn as its positions there (rc.2).
             Ok(Some("fluid")) => {
-                self.dialog = None;
                 self.dispatch("fluid.draw_terminal", &json!({ "terminal": station.to_string() }))
             }
-            Ok(Some("draw"))
-                if p.get("folio").is_none()
-                    && self
-                        .page_rows()
-                        .get(self.page_index())
-                        .is_some_and(|r| r.kind == "fluid")
-                    && self.is_valve_terminal(station) =>
-            {
-                self.dialog = None;
-                self.dispatch("fluid.draw_terminal", &json!({ "terminal": station.to_string() }))
-            }
-            // The station and its modules not drawn yet, in a row in slot order, one undo step (rc.2): on the page shown,
-            // the schematic page `folio`, or a new one (`folio` `new`, asking nothing; a persona run's station landed
-            // on page 1 without a word).
-            Ok(Some("draw")) => {
-                let folio = match string_param(p, "folio") {
-                    Ok(Some("new")) => {
-                        let folio = self.free_folio();
-                        let title = strings::text(key!("rack-draw-page-title"));
-                        let made = self.dispatch(
-                            "page.new",
-                            &json!({ "folio": folio, "type": "multi_line", "title": title }),
-                        );
-                        if made != Outcome::Done {
-                            return made;
-                        }
-                        Some(folio)
-                    }
-                    Ok(Some(f)) if self.schematic_pages().iter().any(|(x, _)| x == f) => Some(f.to_owned()),
-                    Ok(Some(_)) => return failed(key!("error-bad-param"), &["folio"]),
-                    Ok(None) => None,
-                    Err(e) => return e,
-                };
-                if let Some(folio) = folio {
-                    let opened = self.dispatch("page.goto", &json!({ "folio": folio }));
-                    if opened != Outcome::Done {
-                        return opened;
-                    }
-                }
-                self.draw_from_rack(station, None)
-            }
-            Ok(Some("overview")) => {
-                self.dialog = None;
-                self.act_fluid_generate_overview(&Map::from_iter([(
-                    "station".to_owned(),
-                    Value::String(station.to_string()),
-                )]))
-            }
+            // The station and its cards not drawn yet, in a row in slot order, one undo step (rc.2).
+            Ok(Some("draw")) => self.draw_from_rack(station, None, p),
+            Ok(Some("overview")) => self.act_fluid_generate_overview(&Map::from_iter([(
+                "station".to_owned(),
+                Value::String(station.to_string()),
+            )])),
             Ok(Some("bus")) => {
                 // The bus page named, else the only one; with none one is made, asking nothing; with several the
                 // window asks which (rc.2 persona run: the button ended in "make one with New page first").
-                // A station whose part has no bus interface cannot stand on a bus page: said under the slots (the
-                // rc.2 persona run's valve terminal closed the dialog and did nothing).
+                // A station whose part has no bus interface cannot stand on a bus page: said in the view.
                 let (tag, bus) = self.project_session().map_or((String::new(), false), |s| {
                     (
                         s.device_tag(station).unwrap_or_default(),
@@ -943,7 +1582,8 @@ impl ShellModel {
                     )
                 });
                 if !bus {
-                    return self.rack_refuse(strings::format(key!("rack-no-bus-interface"), &[&tag]));
+                    return self
+                        .rack_refuse(cursor, strings::format(key!("rack-no-bus-interface"), &[&tag]));
                 }
                 let pages = self.bus_pages();
                 let folio = match string_param(p, "folio") {
@@ -960,14 +1600,18 @@ impl ShellModel {
                                 &json!({ "folio": folio, "type": "bus_topology", "title": title }),
                             );
                             if made != Outcome::Done {
-                                return self
-                                    .rack_refuse(strings::text(key!("reason-rack-no-bus-page")).to_owned());
+                                return self.rack_refuse(
+                                    cursor,
+                                    strings::text(key!("reason-rack-no-bus-page")).to_owned(),
+                                );
                             }
                             folio
                         }
                         _ => {
-                            return self
-                                .rack_refuse(strings::text(key!("reason-rack-which-bus-page")).to_owned());
+                            return self.rack_refuse(
+                                cursor,
+                                strings::text(key!("reason-rack-which-bus-page")).to_owned(),
+                            );
                         }
                     },
                 };
@@ -977,9 +1621,9 @@ impl ShellModel {
                     .map(|s| s.undrawn_interfaces(station, &folio))
                     .unwrap_or_default();
                 if interfaces.is_empty() {
-                    return self.rack_refuse(strings::format(key!("rack-bus-drawn"), &[&tag, &folio]));
+                    return self
+                        .rack_refuse(cursor, strings::format(key!("rack-bus-drawn"), &[&tag, &folio]));
                 }
-                self.dialog = None;
                 let opened = self.dispatch("page.goto", &json!({ "folio": folio }));
                 if opened != Outcome::Done {
                     return opened;
@@ -992,7 +1636,7 @@ impl ShellModel {
     }
 
     /// `plc.add_to_plc {device, config?}` (F19 of the rc.1 test): a bus device that belongs to no PLC becomes a station
-    /// of the PLC `config` (absent: a new one) with one `plc.add_station`, and its rack dialog opens, so its modules are
+    /// of the PLC `config` (absent: a new one) with one `plc.add_station`, and its view opens, so its cards are
     /// added there; a network switch has no rack, and a toast says which PLC it belongs to now. A module, a station and
     /// a device without an addressed bus port are refused in words.
     pub(crate) fn act_plc_add_to_plc(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -1019,6 +1663,8 @@ impl ShellModel {
         if out != Outcome::Done {
             return out;
         }
+        // Chosen in a new station's view, that view is the device's from here on.
+        let draft = self.station_draft().is_some();
         // A network switch belongs to the PLC with no rack of its own: a toast says so, with Undo (rc.2 persona run).
         let switch = self.project_session().is_some_and(|s| s.network_switch(device));
         if switch {
@@ -1027,26 +1673,33 @@ impl ShellModel {
                 _ => String::new(),
             };
             self.notify(strings::format(key!("toast-plc-joined"), &[&tag, &plc]), true);
-            // Chosen in the new-station dialog, the dialog is done.
-            if matches!(self.dialog, Some(Dialog::Rack { .. })) {
-                self.dialog = None;
+            if draft && let Some(a) = &mut self.area {
+                let _ = a.close_tab();
             }
             return Outcome::Done;
         }
-        self.open_dialog(Self::rack_dialog(Some(device), None))
+        if draft && let Some(tab) = self.station_tab_mut() {
+            *tab = StationTab {
+                station: Some(device),
+                ..StationTab::default()
+            };
+            return Outcome::Done;
+        }
+        self.open_station(StationTab {
+            station: Some(device),
+            ..StationTab::default()
+        })
     }
 
-    /// The describe lines of the rack dialog: a draft's choices, then the slots and findings.
-    pub(crate) fn rack_lines(&self) -> Vec<String> {
-        let Some(v) = self.shown_rack() else {
+    /// The describe lines of the station view on show: a draft's choices, the head, the slots, a valve terminal's
+    /// positions, the cursor, the catalogue's parts, what is left to do, the note and the last refusal.
+    pub(crate) fn station_lines(&self) -> Vec<String> {
+        let (Some(tab), Some(v)) = (self.station_tab(), self.shown_rack()) else {
             return Vec::new();
         };
-        let mut lines = Vec::new();
-        if let Some(d) = self.station_draft() {
+        let mut lines = vec![format!("station \"{}\" \"{}\"", v.tag, v.part)];
+        if let Some(d) = &tab.draft {
             lines.push(format!("  kind {}", d.kind.word()));
-            if !v.part.is_empty() {
-                lines.push(format!("  head \"{}\"", v.part));
-            }
             let config = d
                 .config
                 .and_then(|c| {
@@ -1058,10 +1711,18 @@ impl ShellModel {
                 })
                 .unwrap_or_else(|| strings::text(key!("rack-new-plc")).to_owned());
             lines.push(format!("  plc \"{config}\""));
+        } else {
+            lines.push(format!("  plc \"{}\"", v.plc));
         }
         for (label, code) in &v.order_codes {
             lines.push(format!("  order_code \"{label}\" \"{code}\""));
         }
+        let place = |c: &StationCursor| match c {
+            StationCursor::Head => "head".to_owned(),
+            StationCursor::Slot { rack: 0, slot } => format!("slot {slot}"),
+            StationCursor::Slot { rack, slot } => format!("slot {rack}.{slot}"),
+            StationCursor::Position { position, .. } => format!("position {position}"),
+        };
         for r in &v.rows {
             let mut line = format!("  slot {}", rack_slot_text(r));
             if r.module.is_some() {
@@ -1072,24 +1733,43 @@ impl ShellModel {
                 if !r.addresses.is_empty() {
                     line.push_str(&format!(" at \"{}\"", r.addresses));
                 }
+                if let Some(page) = &r.page {
+                    line.push_str(&format!(" page \"{page}\""));
+                }
                 if !r.allowed.is_empty() {
                     let allowed: Vec<String> = r.allowed.iter().map(u16::to_string).collect();
                     line.push_str(&format!(" allowed {}", allowed.join(",")));
-                }
-                if !r.positions.is_empty() {
-                    line.push_str(&format!(" positions {}", rack_positions_text(r)));
                 }
             } else {
                 line.push_str(" free");
             }
             lines.push(line);
         }
-        let lang = strings::rule_language();
-        for f in &v.findings {
+        for c in &v.cells {
             lines.push(format!(
-                "  finding \"{}\"",
-                ew_api::checks::messages::render(f, lang)
+                "  position {} \"{}\" \"{}\"",
+                c.position,
+                rack_position_text(&c.at),
+                c.at.part
             ));
+        }
+        if let Some(c) = &tab.cursor {
+            lines.push(format!("  cursor {}", place(c)));
+        }
+        for p in self.station_catalogue() {
+            let unfit = p.unfit.map(|u| format!(" unfit \"{u}\"")).unwrap_or_default();
+            lines.push(format!("  part \"{}\" \"{}\"{unfit}", p.number, p.gives));
+        }
+        for t in self.station_todo() {
+            let kind = if t.error { "finding" } else { "todo" };
+            lines.push(format!("  {kind} \"{}\"", t.text));
+        }
+        if let Some(n) = &tab.note {
+            lines.push(format!("  note \"{n}\""));
+        }
+        if let Some((at, e)) = &tab.error {
+            let at = at.as_ref().map(|c| format!(" at {}", place(c))).unwrap_or_default();
+            lines.push(format!("  error{at} \"{e}\""));
         }
         lines
     }
@@ -1509,7 +2189,8 @@ impl ShellModel {
         else {
             return Outcome::refused(none);
         };
-        if page != here {
+        // From a station's view the page is shown in a page tab, also when it is the page the view was opened from.
+        if page != here || self.station_tab().is_some() {
             let out = self.walk(page);
             if out != Outcome::Done {
                 return out;
@@ -1578,24 +2259,6 @@ pub fn rack_positions_text(r: &ew_api::output::RackRow) -> String {
         })
         .collect::<Vec<_>>()
         .join(" · ")
-}
-
-/// The part of `offered` that parameter `name` names: its copy ID, or its part number (a script's way).
-fn offered_part(
-    p: &Map<String, Value>,
-    name: &str,
-    offered: &[ew_api::output::ModulePart],
-) -> Result<ew_api::output::ModulePart, Outcome> {
-    let text = match string_param(p, name)? {
-        Some(t) => t.trim(),
-        None => return Err(failed(key!("error-missing-param"), &[name])),
-    };
-    let id = text.parse::<Uuid>().ok();
-    offered
-        .iter()
-        .find(|m| Some(m.copy) == id || m.text.split(" · ").next() == Some(text))
-        .cloned()
-        .ok_or_else(|| failed(key!("error-bad-param"), &[name]))
 }
 
 /// What a new station is (F18 of the rc.1 test), as the new-station dialog asks it; it narrows the head parts offered

@@ -150,6 +150,10 @@ pub enum Submenu {
     RackEditor,
     /// PLC, Station, Attach cards: one item per station that takes cards.
     AttachCards,
+    /// PLC, Module, Replace: one item per part of the station view's catalogue that fits where the cursor stands.
+    ModuleParts,
+    /// PLC, Module, Draw on a page: one item per schematic page, then New page.
+    ModulePages,
     /// PLC, Addresses: the addressing commands of each configuration project
     /// ([`ShellModel::plc_addressing_items`]).
     PlcAddressing,
@@ -210,6 +214,8 @@ impl Submenu {
             Submenu::Guides => key!("submenu-guides"),
             Submenu::RackEditor => key!("action-plc-rack-editor"),
             Submenu::AttachCards => key!("action-plc-attach-cards"),
+            Submenu::ModuleParts => key!("action-plc-module-replace"),
+            Submenu::ModulePages => key!("action-plc-module-draw"),
             Submenu::PlcAddressing => key!("submenu-plc-addressing"),
             Submenu::SymbolPolicy => key!("action-plc-symbol-policy"),
             Submenu::InstrumentList => key!("action-plc-instrument-list"),
@@ -359,6 +365,30 @@ fn writable_page(m: &ShellModel) -> Result<(), Key<'static>> {
 fn valve_terminal_selected(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     m.selected_valve_terminal().map(|_| ())
+}
+
+/// The project can be written and the cursor of a station's view stands on a module, the station's head or a valve
+/// (the PLC tab's Module commands), else why not in words.
+fn station_module(m: &ShellModel) -> Result<(), Key<'static>> {
+    writable(m)?;
+    m.station_taken().map(|_| ())
+}
+
+/// [`station_module`], and the module is drawn on no page yet (Draw on a page).
+fn station_module_undrawn(m: &ShellModel) -> Result<(), Key<'static>> {
+    match station_module(m)? {
+        () if m.station_draft().is_some() => Err(key!("reason-rack-draft")),
+        () if m.station_taken() == Ok(true) => Err(key!("reason-rack-drawn")),
+        () => Ok(()),
+    }
+}
+
+/// The cursor of a station's view stands on a module that is drawn on a page (Go to page).
+fn station_module_drawn(m: &ShellModel) -> Result<(), Key<'static>> {
+    match m.station_taken()? {
+        true => Ok(()),
+        false => Err(key!("reason-nav-not-placed")),
+    }
 }
 
 /// The project can be written and the selection is one multipin valve terminal (Draw the plug).
@@ -524,7 +554,8 @@ fn can_add_tab(m: &ShellModel) -> Result<(), Key<'static>> {
 fn can_close_tab(m: &ShellModel) -> Result<(), Key<'static>> {
     has_pages(m)?;
     match m.area() {
-        Some(a) if a.tab_count() <= 1 => Err(key!("reason-last-tab")),
+        // A station's view closes even as the last tab: its tab shows its page again.
+        Some(a) if a.tab_count() <= 1 && a.current().station.is_none() => Err(key!("reason-last-tab")),
         _ => Ok(()),
     }
 }
@@ -1505,6 +1536,27 @@ pub fn find(id: &ActionId) -> Option<&'static ActionMeta> {
     ACTIONS.iter().find(|a| a.id == id)
 }
 
+/// The menu of the module under a station view's cursor (a right click on it): the PLC tab's Module commands in bar
+/// order, those with choices (Replace, Draw on a page) as submenus of them.
+pub fn station_menu(model: &ShellModel) -> Vec<MenuEntry> {
+    let mut metas: Vec<&ActionMeta> = ACTIONS
+        .iter()
+        .filter(|a| a.placement.is_some_and(|p| p.group == crate::command_bar::Group::Module))
+        .collect();
+    metas.sort_by_key(|a| a.placement.map(|p| p.order));
+    metas
+        .into_iter()
+        .map(|meta| match meta.menu.and_then(|s| s.submenu) {
+            Some(submenu) => MenuEntry::Submenu {
+                submenu,
+                label: strings::text(submenu.label_key()).to_owned(),
+                items: submenu_items(submenu, &[meta], model),
+            },
+            None => MenuEntry::Item(item_of(meta, model)),
+        })
+        .collect()
+}
+
 /// The shortcut text of an action as a menu shows it: its first binding, or an empty string.
 pub fn shortcut_text(meta: &ActionMeta) -> String {
     meta.shortcut.first().copied().unwrap_or("").to_owned()
@@ -1922,6 +1974,36 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
             }
             items
         }
+        // The parts that fit where the station view's cursor stands, each by number, description and what it gives.
+        Submenu::ModuleParts => target_items(
+            meta,
+            model,
+            model
+                .station_catalogue()
+                .into_iter()
+                .filter(|p| p.unfit.is_none())
+                .map(|p| (p.words(), json!({ "part": p.copy.to_string() })))
+                .collect(),
+            key!("rack-no-part-fits"),
+        ),
+        // The schematic pages by folio and title, then New page….
+        Submenu::ModulePages => target_items(
+            meta,
+            model,
+            model
+                .schematic_pages()
+                .into_iter()
+                .map(|(folio, title)| {
+                    let label = strings::format(key!("rack-next-draw-on"), &[&folio, &title]);
+                    (label.trim().to_owned(), json!({ "folio": folio }))
+                })
+                .chain([(
+                    strings::text(key!("rack-draw-on-new-page")).to_owned(),
+                    json!({ "folio": "new" }),
+                )])
+                .collect(),
+            key!("reason-rack-draw-page"),
+        ),
         Submenu::PlcAddressing => {
             let items = model.plc_addressing_items();
             if items.is_empty() {

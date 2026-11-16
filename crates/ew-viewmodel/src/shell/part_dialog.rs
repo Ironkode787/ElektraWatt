@@ -113,9 +113,6 @@ pub struct PartEditor {
     pub error: Option<String>,
     /// The part dialog that New part… was chosen in: Save opens it again on the new part.
     pub back: Option<Box<PartChooser>>,
-    /// The new-station dialog that New part… was chosen in (F18 of the rc.1 test): Save opens it again, the new part
-    /// its head when it is a station part.
-    pub back_rack: Option<Box<Dialog>>,
 }
 
 impl PartEditor {
@@ -790,7 +787,6 @@ impl ShellModel {
             manufacturers,
             error: None,
             back: None,
-            back_rack: None,
         })))
     }
 
@@ -836,12 +832,11 @@ impl ShellModel {
         {
             editor.shown = false;
         }
-        let (back, back_rack) = match self.dialog.take() {
-            Some(Dialog::PartChoose(c)) => (Some(c), None),
-            Some(rack @ Dialog::Rack { .. }) => (None, Some(Box::new(rack))),
+        let back = match self.dialog.take() {
+            Some(Dialog::PartChoose(c)) => Some(c),
             other => {
                 self.dialog = other;
-                (None, None)
+                None
             }
         };
         let out = self.open_dialog(Dialog::PartEdit(Box::new(PartEditor {
@@ -850,11 +845,9 @@ impl ShellModel {
             manufacturers,
             error: None,
             back: None,
-            back_rack: None,
         })));
         if let Some(Dialog::PartEdit(e)) = &mut self.dialog {
             e.back = back;
-            e.back_rack = back_rack;
         }
         out
     }
@@ -1062,24 +1055,11 @@ impl ShellModel {
             self.dialog = Some(Dialog::PartChoose(chooser));
             self.part_refresh();
         }
-        if let Some(mut rack) = editor.back_rack.take() {
-            // The new part is chosen: the station's head when it can be one, else the module part Add module puts in.
-            let named = |parts: Vec<ew_api::output::ModulePart>| {
-                parts
-                    .into_iter()
-                    .find(|p| p.held && p.text.split(" · ").next() == Some(number.as_str()))
-                    .map(|p| p.copy)
-            };
-            let head = self.project_session().and_then(|s| named(s.station_parts("any")));
-            let module = named(self.module_parts());
-            if let Dialog::Rack { draft, part, .. } = rack.as_mut() {
-                match (draft.as_mut(), head, module) {
-                    (Some(d), Some(h), _) => d.head = Some(h),
-                    (_, _, Some(m)) => *part = Some(m),
-                    _ => {}
-                }
-            }
-            self.dialog = Some(*rack);
+        // Made from the view of a station not made yet, a part that can head a station is its head; a card stands in
+        // the view's catalogue.
+        if self.station_draft().is_some_and(|d| d.head.is_none()) {
+            let head = serde_json::Map::from_iter([("head".to_owned(), serde_json::Value::String(number))]);
+            let _ = self.act_plc_rack_set(&head);
         }
         Outcome::Done
     }

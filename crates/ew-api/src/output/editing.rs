@@ -259,7 +259,7 @@ pub(crate) fn station_kinds(part: &Part) -> Vec<&'static str> {
 }
 
 /// What `part` is to a PLC ([`CataloguePart::plc`]).
-fn catalogue_plc(part: &Part) -> Option<CataloguePlc> {
+pub(crate) fn catalogue_plc(part: &Part) -> Option<CataloguePlc> {
     use ew_derive::ew_schema::ChannelKind;
     let plc = part.sections.plc.as_ref()?;
     let heads = station_kinds(part);

@@ -209,8 +209,9 @@ fn far_offer(
 
 impl ShellModel {
     /// After a commit that drew PLC devices for the first time (F18 of the rc.1 test, the rack comes first): a station
-    /// placed directly opens its rack dialog, so it is filled there (a further symbol of a station drawn before, or a
-    /// station the project had put on a bus page, does not); a module that joined a station says which slot it got, with Rack… as the toast's action; a module that
+    /// placed directly opens its view in a tab beside the page, so it is filled there (a further symbol of a station
+    /// drawn before, a station the project had put on a bus page, or one whose view is open already, does not; Escape
+    /// goes back to the page); a module that joined a station says which slot it got, with Rack… as the toast's action; a module that
     /// waits asks which station takes it when the project has several, and offers New station… when it has none (the
     /// persona run m3-p4 found the PLC panel by trying every icon).
     fn say_card_waits(&mut self, before: &PageTables, now: &PageTables) {
@@ -278,8 +279,16 @@ impl ShellModel {
             .filter_map(|d| waiting.iter().find(|(c, _)| c == d).cloned())
             .collect();
         if let Some(station) = new_station {
-            if !existing {
-                self.open_dialog(Self::rack_dialog(Some(station), None));
+            // A station whose view is open in a tab already (drawn from that view) stays on the page it was drawn on.
+            let open = self.area.as_ref().is_some_and(|a| {
+                a.tabs()
+                    .any(|(_, _, t)| t.station.as_ref().is_some_and(|s| s.station == Some(station)))
+            });
+            if !existing && !open {
+                let _ = self.act_plc_rack_editor(&Map::from_iter([(
+                    "station".to_owned(),
+                    Value::String(station.to_string()),
+                )]));
             }
             return;
         }
@@ -569,8 +578,12 @@ impl ShellModel {
 
     /// The (session, revision, folio) of the focused canvas.
     fn canvas_key(&self) -> Option<(u64, u64, String)> {
-        let c = self.canvas()?;
-        Some((self.project_epoch()?, self.revision()?, c.page().folio.clone()))
+        // A station's view shows no page: its catalogue is that of the page it was opened from.
+        let folio = match self.canvas() {
+            Some(c) => c.page().folio.clone(),
+            None => self.station_tab().and(self.current_folio())?.to_owned(),
+        };
+        Some((self.project_epoch()?, self.revision()?, folio))
     }
 
     /// The name in words of symbol `key` from the cached place catalogue (M39: the Place HUD names the symbol, not
@@ -2228,6 +2241,11 @@ impl ShellModel {
     /// `edit.delete_selection` (Delete, §7.4): `edit.delete` with every entity of the selection the page tables
     /// resolve.
     pub(crate) fn act_delete_selection(&mut self) -> Outcome {
+        // In a station's view Delete takes the card under the cursor out of its slot (a valve off its position).
+        if self.station_tab().is_some() {
+            let empty = Map::from_iter([("op".to_owned(), Value::String("empty".to_owned()))]);
+            return self.act_plc_rack_slot(&empty);
+        }
         self.cancel_pending_move();
         // A device or a function selected by reference (`select.set` with `tag:…`) is deleted as
         // the representations the page shown draws of it, as Cut takes it; a device that no page draws (an empty strip,

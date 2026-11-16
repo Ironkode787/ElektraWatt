@@ -229,8 +229,19 @@ impl ShellModel {
         self.row_index(tab.page).map(|i| &self.page_rows()[i])
     }
 
-    /// A tab's title: `<folio> <title>`.
+    /// A tab's title: `<folio> <title>`; a station's view `<tag> · rack` (a station drawn nowhere by its part
+    /// number, one not made yet "New station").
     pub fn tab_title(&self, tab: &Tab) -> String {
+        if let Some(s) = &tab.station {
+            return match s.station.and_then(|id| self.rack_view(id)) {
+                Some(v) if v.tag.contains('?') && !v.part.is_empty() => strings::format(
+                    key!("station-tab-title"),
+                    &[v.part.split(" · ").next().unwrap_or_default()],
+                ),
+                Some(v) => strings::format(key!("station-tab-title"), &[&v.tag]),
+                None => strings::text(key!("rack-new-title")).to_owned(),
+            };
+        }
         match self.tab_row(tab) {
             Some(r) => strings::format(key!("tab-title"), &[&r.folio, &r.title]),
             None => String::new(),
@@ -575,6 +586,7 @@ impl ShellModel {
         let Some(g) = self.area.as_ref().map(|a| a.focused) else {
             return Outcome::Done;
         };
+        self.leave_station(g);
         if self.current_page() == Some(page) {
             return Outcome::Done;
         }
@@ -586,6 +598,7 @@ impl ShellModel {
     /// A jump of group `g`'s active tab to `page`, to the point `at` by the jump view, or arriving: the location it
     /// leaves goes on the tab's back list unless it is the location it reaches.
     fn jump(&mut self, g: usize, page: PageId, at: Option<(i64, i64)>, cursor: CursorAt) {
+        self.leave_station(g);
         let Some(from) = self.location(g) else { return };
         let zoom = self.canvas_of(g).map_or(1.0, CanvasModel::zoom);
         self.remember_view(g);
@@ -619,6 +632,8 @@ impl ShellModel {
                 c.set_viewport(&viewport);
             }
         } else {
+            // A step undone on another page than the one a station's view was opened from is shown on its page.
+            self.leave_station(g);
             self.remember_view(g);
             self.show(g, page, Arrival::Exact(viewport));
         }
@@ -627,6 +642,27 @@ impl ShellModel {
             && let Some(a) = &mut self.area
         {
             a.groups[g].active_tab_mut().history.record(from);
+        }
+    }
+
+    /// A jump or a walk from a station's view shows the page in a page tab (`CanvasArea::leave_station`): the
+    /// station's tab stays in the strip to come back to. The page tab is built before it is used.
+    pub(super) fn leave_station(&mut self, g: usize) {
+        let shows_station = |s: &Self| {
+            s.area
+                .as_ref()
+                .and_then(|a| a.groups.get(g))
+                .is_some_and(|x| x.active_tab().station.is_some())
+        };
+        if !shows_station(self) {
+            return;
+        }
+        if let Some(a) = &mut self.area {
+            a.leave_station(g);
+        }
+        let tab = self.area.as_ref().map(|a| a.groups[g].active_tab());
+        if let Some((page, None)) = tab.map(|t| (t.page, t.canvas.as_ref())) {
+            self.show(g, page, Arrival::Remembered);
         }
     }
 
@@ -675,11 +711,16 @@ impl ShellModel {
         let (Some(epoch), Some(rev)) = (self.project_epoch(), self.revision()) else {
             return;
         };
+        self.drop_gone_stations();
         let groups = self.area.as_ref().map_or(0, |a| a.groups.len());
         for g in 0..groups {
             let Some(tab) = self.area.as_ref().map(|a| a.groups[g].active_tab()) else {
                 continue;
             };
+            // A station's view shows no page: its tab's page is built when the tab shows it again.
+            if tab.station.is_some() {
+                continue;
+            }
             let page = tab.page;
             let current = tab.canvas.as_ref().map(|c| (c.page().session, c.page().rev));
             let Some(i) = self.row_index(page) else { continue };
@@ -716,6 +757,10 @@ impl ShellModel {
         if let (Some(Focus::Canvas(_)), Some(a)) = (self.focus, &self.area) {
             self.focus = Some(Focus::Canvas(a.focused));
         }
+        // A station's view lists the place catalogue's parts: read once per revision while the view is on show.
+        if self.station_tab().is_some() {
+            let _ = self.catalogue();
+        }
         self.trim_cache();
     }
 
@@ -740,7 +785,18 @@ impl ShellModel {
         self.area_op(CanvasArea::new_tab, "")
     }
 
-    pub(crate) fn act_tab_close(&mut self) -> Outcome {
+    /// `tab.close {confirm?}`: closes the focused group's active tab. The view of a station not made yet asks first
+    /// (nothing of it is written before Create); `confirm` closes it without asking.
+    pub(crate) fn act_tab_close(&mut self, p: &Map<String, Value>) -> Outcome {
+        let unmade = self
+            .station_draft()
+            .is_some_and(|d| d.head.is_some() || !d.modules.is_empty());
+        if unmade && !flag(p, "confirm") && self.mode == super::Mode::Gui {
+            return self.open_dialog(super::Dialog::DiscardStation);
+        }
+        if matches!(self.dialog, Some(super::Dialog::DiscardStation)) {
+            self.dialog = None;
+        }
         self.area_op(CanvasArea::close_tab, "")
     }
 
@@ -1314,6 +1370,11 @@ impl ShellModel {
     // The grid cursor (§6.6)
 
     pub(crate) fn act_cursor(&mut self, p: &Map<String, Value>, dx: i64, dy: i64, cell: bool) -> Outcome {
+        // In a station's view the arrows go from slot to slot.
+        if self.station_tab().is_some() {
+            let step = Map::from_iter([("step".to_owned(), Value::from(dx + dy))]);
+            return self.act_plc_rack_select(&step);
+        }
         let g = or_return!(self.group_param(p));
         match self.canvas_mut(g) {
             Some(c) => {
