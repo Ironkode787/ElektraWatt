@@ -9,7 +9,7 @@
 use super::Seg::{self, C, L, M, Q, Z};
 
 /// The number of icons in the table.
-pub const COUNT: usize = 140;
+pub const COUNT: usize = 141;
 
 /// One icon of the table, named by its key in `snake_case` (`ew_` for the project's own glyphs).
 #[allow(non_camel_case_types, missing_docs)]
@@ -65,6 +65,7 @@ pub enum IconId {
     ew_din_rail,
     ew_duct,
     ew_interruption_point,
+    ew_mounting_plate,
     ew_potential,
     ew_qet_grid,
     ew_shape_arc,
@@ -210,6 +211,7 @@ impl IconId {
         IconId::ew_din_rail,
         IconId::ew_duct,
         IconId::ew_interruption_point,
+        IconId::ew_mounting_plate,
         IconId::ew_potential,
         IconId::ew_qet_grid,
         IconId::ew_shape_arc,
@@ -355,6 +357,7 @@ pub const KEYS: [&str; COUNT] = [
     "ew-din-rail",
     "ew-duct",
     "ew-interruption-point",
+    "ew-mounting-plate",
     "ew-potential",
     "ew-qet-grid",
     "ew-shape-arc",
@@ -1254,6 +1257,38 @@ pub(super) static PATHS: [&[Seg]; COUNT] = [
         L(12.0, 16.0),
         M(20.0, 6.0),
         L(20.0, 18.0),
+    ],
+    // ew-mounting-plate
+    &[
+        M(6.0, 3.0),
+        L(18.0, 3.0),
+        C(18.552, 3.0, 19.0, 3.448, 19.0, 4.0),
+        L(19.0, 20.0),
+        C(19.0, 20.552, 18.552, 21.0, 18.0, 21.0),
+        L(6.0, 21.0),
+        C(5.448, 21.0, 5.0, 20.552, 5.0, 20.0),
+        L(5.0, 4.0),
+        C(5.0, 3.448, 5.448, 3.0, 6.0, 3.0),
+        M(8.0, 7.0),
+        C(8.0, 7.552, 8.448, 8.0, 9.0, 8.0),
+        C(9.552, 8.0, 10.0, 7.552, 10.0, 7.0),
+        C(10.0, 6.448, 9.552, 6.0, 9.0, 6.0),
+        C(8.448, 6.0, 8.0, 6.448, 8.0, 7.0),
+        M(14.0, 7.0),
+        C(14.0, 7.552, 14.448, 8.0, 15.0, 8.0),
+        C(15.552, 8.0, 16.0, 7.552, 16.0, 7.0),
+        C(16.0, 6.448, 15.552, 6.0, 15.0, 6.0),
+        C(14.448, 6.0, 14.0, 6.448, 14.0, 7.0),
+        M(8.0, 17.0),
+        C(8.0, 17.552, 8.448, 18.0, 9.0, 18.0),
+        C(9.552, 18.0, 10.0, 17.552, 10.0, 17.0),
+        C(10.0, 16.448, 9.552, 16.0, 9.0, 16.0),
+        C(8.448, 16.0, 8.0, 16.448, 8.0, 17.0),
+        M(14.0, 17.0),
+        C(14.0, 17.552, 14.448, 18.0, 15.0, 18.0),
+        C(15.552, 18.0, 16.0, 17.552, 16.0, 17.0),
+        C(16.0, 16.448, 15.552, 16.0, 15.0, 16.0),
+        C(14.448, 16.0, 14.0, 16.448, 14.0, 17.0),
     ],
     // ew-potential
     &[

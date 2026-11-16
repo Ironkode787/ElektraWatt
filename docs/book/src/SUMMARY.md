@@ -85,6 +85,7 @@
     - [`layout.enclosure.delete`](reference/commands/layout.enclosure.delete.md)
     - [`layout.enclosure.edit`](reference/commands/layout.enclosure.edit.md)
     - [`layout.label_move`](reference/commands/layout.label_move.md)
+    - [`layout.labels_reset`](reference/commands/layout.labels_reset.md)
     - [`layout.lock`](reference/commands/layout.lock.md)
     - [`layout.move`](reference/commands/layout.move.md)
     - [`layout.place`](reference/commands/layout.place.md)

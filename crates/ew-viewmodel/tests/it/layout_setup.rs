@@ -78,6 +78,25 @@ fn mm_path(c: &PanelCarrier) -> Vec<(i128, i128)> {
         .collect()
 }
 
+/// The Mounting plate… entry of the Draw tab's Enclosure split button: (enabled, reason).
+fn plate_entry(shell: &ShellModel) -> (bool, Option<String>) {
+    let bar = command_bar_of(shell, Tab::Draw);
+    let enclosure = bar
+        .groups
+        .iter()
+        .flat_map(|g| &g.buttons)
+        .find(|b| b.id == "layout.enclosure_new")
+        .expect("Enclosure in the Draw tab");
+    let ew_viewmodel::command_bar::ButtonKind::Split(variants) = &enclosure.kind else {
+        panic!("Enclosure is a split button: {:?}", enclosure.kind)
+    };
+    let plate = variants
+        .iter()
+        .find(|v| v.id == "layout.choose_plate")
+        .expect("Mounting plate… in Enclosure's split");
+    (plate.enabled, plate.reason.clone())
+}
+
 /// The Draw tab's Layout group: (bar label, enabled, reason) per button.
 fn layout_group(shell: &ShellModel) -> Vec<(String, bool, Option<String>)> {
     let bar = command_bar_of(shell, Tab::Draw);
@@ -98,7 +117,12 @@ fn the_layout_group_is_enabled_on_a_panel_page_and_says_why_not_elsewhere() {
     let tmp = Tmp::new("ps7");
     let mut s = tmp.shell_in(Mode::Headless, true, "902");
     let on = |b: &str| (b.to_owned(), true, None);
-    assert_eq!(layout_group(&s), [on("Rail"), on("Duct"), on("Auto-fill rail")]);
+    // The enclosure and the plate stand where the layout tools are (rc.2: the persona found them by the search only).
+    assert_eq!(
+        layout_group(&s),
+        [on("Enclosure"), on("Auto-fill rail"), on("Rail"), on("Duct")]
+    );
+    assert_eq!(plate_entry(&s), (true, None));
     done(&mut s, "page.goto", json!({"folio": "101"}));
     let off = |b: &str| {
         (
@@ -107,9 +131,17 @@ fn the_layout_group_is_enabled_on_a_panel_page_and_says_why_not_elsewhere() {
             Some("Open a panel layout page; make one with New page… and the type Panel layout".to_owned()),
         )
     };
+    // Enclosure… makes an enclosure from any page; the page's tools wait for a layout page.
     assert_eq!(
         layout_group(&s),
-        [off("Rail"), off("Duct"), off("Auto-fill rail")]
+        [on("Enclosure"), off("Auto-fill rail"), off("Rail"), off("Duct")]
+    );
+    assert_eq!(
+        plate_entry(&s),
+        (
+            false,
+            Some("Open a panel layout page; make one with New page… and the type Panel layout".to_owned())
+        )
     );
     assert_eq!(
         refused(&mut s, "tool.rail_draw", json!({})),
@@ -423,6 +455,50 @@ fn a_new_projects_panel_page_takes_the_fitting_scale() {
         json!({"row": "page/derived.surface", "value": plate}),
     );
     assert_eq!(row_text(&s, "page/scale"), "1:20");
+    s.shutdown();
+}
+
+/// The persona round of the second 0.3.0 candidate: on an empty layout page the bar said only that the page takes no
+/// symbols, and the enclosure and the plate were found by the command search. The empty page names its first step,
+/// Plate waits for an enclosure with its reason, and once there is one it opens the page's choice of plates.
+#[test]
+fn an_empty_layout_page_names_its_first_step_and_plate_chooses_a_plate() {
+    let tmp = Tmp::new("layout-first-step");
+    let mut s = new_project(&tmp);
+    done(
+        &mut s,
+        "page.new",
+        json!({"folio": "2", "type": "panel_layout", "title": "Panel"}),
+    );
+    done(&mut s, "select.set", json!({"ids": []}));
+    assert_eq!(
+        ew_viewmodel::command_bar::hud(&s).prompt,
+        "Start with an enclosure: Enclosure on the Draw tab puts it on this page with its mounting plate"
+    );
+    assert_eq!(
+        plate_entry(&s),
+        (
+            false,
+            Some("Create an enclosure first: Enclosure… brings its mounting plate".to_owned())
+        )
+    );
+    done(
+        &mut s,
+        "page.new",
+        json!({"folio": "3", "type": "multi_line", "title": "Power"}),
+    );
+    done(
+        &mut s,
+        "structure.new",
+        json!({"kind": "location", "designation": "CAB1"}),
+    );
+    done(&mut s, "layout.enclosure_new", json!({}));
+    assert!(matches!(s.submit_form(), Outcome::Done));
+    done(&mut s, "page.goto", json!({"folio": "2"}));
+    assert!(plate_entry(&s).0);
+    done(&mut s, "layout.choose_plate", json!({}));
+    let items = s.properties().choices().expect("the page's plates").items.clone();
+    assert_eq!(items.len(), 1, "{items:?}");
     s.shutdown();
 }
 

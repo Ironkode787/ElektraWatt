@@ -351,7 +351,14 @@ pub const fn place(
 }
 
 /// The split buttons: the main action runs the default, the chevron opens its variants (doc 16a §5.2).
-pub const SPLITS: &[(&str, &[&str])] = &[("tool.mirror_x", &["tool.mirror_x", "tool.mirror_y"])];
+pub const SPLITS: &[(&str, &[&str])] = &[
+    ("tool.mirror_x", &["tool.mirror_x", "tool.mirror_y"]),
+    // Enclosure… and the plate a layout page shows (rc.2: the persona looked for both beside Rail and Duct).
+    (
+        "layout.enclosure_new",
+        &["layout.enclosure_new", "layout.choose_plate"],
+    ),
+];
 
 /// The tab's next step (doc 16a §5.2): the one Primary button at the right end of the command row.
 pub fn next_step(tab: Tab) -> Option<&'static str> {
@@ -1002,6 +1009,16 @@ pub fn hud(model: &ShellModel) -> HudModel {
             {
                 // A bus-topology page says its three steps where the user looks (a persona run found no way on).
                 strings::text(key!("hud-bus-page-steps")).to_owned()
+            } else if model.page_rows().get(model.page_index()).map(|r| r.kind.as_str())
+                == Some("panel_layout")
+            {
+                // A layout page names its first step while it shows no plate (rc.2: the persona read only that it
+                // takes no symbols), and the Select hint once it does.
+                if model.panel_tables().is_none() {
+                    strings::text(key!("hud-layout-start")).to_owned()
+                } else {
+                    hint()
+                }
             } else if let Some(reason) = crate::actions::page_type_reason(model) {
                 // Doc 16a P3: on a page that takes no symbols, with no tool armed, the reason stands
                 // where the user looks: the page type's, as a greyed drawing tool says it.

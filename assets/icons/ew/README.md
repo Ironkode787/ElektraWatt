@@ -16,6 +16,7 @@ at the token stroke). `cargo xtask gen-icons` reads them with the vendored set a
 | `din-rail.svg` | `ew-din-rail` | A DIN rail's top-hat profile: the rail seen end-on, a raised channel between two flanges |
 | `duct.svg` | `ew-duct` | A slotted wiring duct: a channel with the comb slots of its two walls |
 | `interruption-point.svg` | `ew-interruption-point` | A conductor ending in an arrow at a page edge: the connection continues elsewhere |
+| `mounting-plate.svg` | `ew-mounting-plate` | A portrait plate with a fixing hole in each corner: the mounting plate a layout page shows |
 | `potential.svg` | `ew-potential` | A conductor with two node dots and two taps ending in connection points: one electrical potential (net) |
 | `qet-grid.svg` | `ew-qet-grid` | A frame with a three-by-three dot grid: the QElectroTech grid badge |
 | `shape-arc.svg` | `ew-shape-arc` | A half-circle arc open at the bottom: the symbol editor's Arc tool |

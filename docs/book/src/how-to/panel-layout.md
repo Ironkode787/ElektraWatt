@@ -7,18 +7,18 @@ the parts list and the enclosure legend read it from there.
 ## Make the page
 
 1. Choose **Page ▸ New page…**, set **Type** to Panel layout, give the page a title such as "Panel layout", and
-   choose **Create**. The page opens empty; the Draw tab's Rail and Duct say what is missing.
+   choose **Create**. The page opens empty and names its first step: start with an enclosure.
 
 ## Add the enclosure
 
-2. Choose **Project ▸ Setup ▸ Enclosure…**. An enclosure belongs to a location (`+CAB1`), the cabinet. The dialog
+2. Choose **Draw ▸ Enclosure** (also **Project ▸ Setup ▸ Enclosure…**). An enclosure belongs to a location (`+CAB1`), the cabinet. The dialog
    proposes the page's location, else the project's first; in a project without one it proposes **New location**,
    the first choice of the Location list, with a code such as `CAB1` that you can change. It proposes the first
    enclosure part of the project or of an installed library, such as "Wall enclosure 600 × 800 × 250 mm"; choose
    others from the lists if you like, then **Create**.
    The page now shows the enclosure and its mounting plate, centred and at the scale that fits the page. A new
    location, the enclosure and the plate on the page are three steps of Undo. Another plate goes on the page through
-   the page's **Surface** row in Properties. Where the tags would not fit the devices on paper (at 1:5 and smaller
+   the page's **Surface** row in Properties, or **Mounting plate…** in the menu of Enclosure's arrow. Where the tags would not fit the devices on paper (at 1:5 and smaller
    scales on an empty plate) the devices are numbered and the page gets a legend beside the plate that lists each
    number with its tag, quantity, part number and description.
 

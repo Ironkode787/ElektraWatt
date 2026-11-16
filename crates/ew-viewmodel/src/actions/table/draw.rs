@@ -654,10 +654,23 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_layout_options(p),
         ))),
     ),
-    // Draw ▸ Layout (Rail, Duct, Auto-fill rail…) on a panel layout page with a
-    // surface view, the draw tools' options card, and Project ▸ Enclosure….
+    // Draw ▸ Layout (Enclosure with Mounting plate… in its split, Auto-fill rail… under it, Rail, Duct) on a panel layout page
+    // with a surface view, the draw tools' options card, and Project ▸ Enclosure… (also in Draw ▸ Layout, rc.2: the
+    // persona looked for the enclosure and the plate beside Rail and Duct).
+    with_icon(
+        "ew-mounting-plate",
+        act(
+            "layout.choose_plate",
+            Command,
+            Menu::Draw,
+            &[],
+            plate_choosable,
+            grp(Group::PanelLayout),
+            |s, _| s.act_layout_choose_plate(),
+        ),
+    ),
     keeps_banner(in_canvas(placed(
-        place(Group::PanelLayout, 1, CommandSize::Small, Some(key!("bar-rail"))),
+        place(Group::PanelLayout, 3, CommandSize::Small, Some(key!("bar-rail"))),
         "ew-din-rail",
         act(
             "tool.rail_draw",
@@ -670,7 +683,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     ))),
     keeps_banner(in_canvas(placed(
-        place(Group::PanelLayout, 2, CommandSize::Small, Some(key!("bar-duct"))),
+        place(Group::PanelLayout, 4, CommandSize::Small, Some(key!("bar-duct"))),
         "ew-duct",
         act(
             "tool.duct_draw",
@@ -687,7 +700,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         placed(
             place(
                 Group::PanelLayout,
-                3,
+                2,
                 CommandSize::Small,
                 Some(key!("bar-auto-fill")),
             ),
@@ -717,17 +730,20 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     ),
     with_params(
         "location?:text, part?:text, new_location?:text",
-        placed(
-            place(Group::Project, 3, CommandSize::Small, Some(key!("bar-enclosure"))),
-            "door",
-            act(
+        placed_also(
+            place(Group::PanelLayout, 1, CommandSize::Small, Some(key!("bar-enclosure"))),
+            placed(
+                place(Group::Project, 3, CommandSize::Small, Some(key!("bar-enclosure"))),
+                "door",
+                act(
                 "layout.enclosure_new",
                 Command,
                 Menu::Project,
                 &[],
                 writable,
                 None,
-                |s, p| s.act_layout_enclosure_new(p),
+                    |s, p| s.act_layout_enclosure_new(p),
+                ),
             ),
         ),
     ),

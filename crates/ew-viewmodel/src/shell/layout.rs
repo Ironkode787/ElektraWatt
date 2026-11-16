@@ -98,6 +98,26 @@ impl ShellModel {
         crate::tools::grabbed_label(&cx, at).is_some()
     }
 
+    /// Whether the project has a mounting plate a layout page can show (an enclosure brings one).
+    pub fn has_plates(&self) -> bool {
+        self.project
+            .as_ref()
+            .is_some_and(|p| !p.session.surface_choices().is_empty())
+    }
+
+    /// `layout.choose_plate` (Draw ▸ Layout ▸ Plate): the page's Surface row in Properties, opened on its choice of
+    /// the project's mounting plates (the page selected, so Properties shows it).
+    pub(crate) fn act_layout_choose_plate(&mut self) -> Outcome {
+        if !self.has_plates() {
+            return Outcome::refused(key!("reason-no-plate"));
+        }
+        let out = self.dispatch("select.set", &json!({"ids": []}));
+        if out != Outcome::Done {
+            return out;
+        }
+        self.dispatch("props.edit", &json!({"row": "page/derived.surface"}))
+    }
+
     /// The placements of the panel page shown whose labels were moved by a person.
     pub fn moved_labels(&self) -> Vec<Uuid> {
         self.panel_tables()

@@ -624,6 +624,16 @@ fn label_moved(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
+/// Draw ▸ Layout ▸ Plate: a panel layout page is on show and the project has a mounting plate to show.
+fn plate_choosable(m: &ShellModel) -> Result<(), Key<'static>> {
+    panel_page(m)?;
+    if m.has_plates() {
+        Ok(())
+    } else {
+        Err(key!("reason-no-plate"))
+    }
+}
+
 /// Reset label positions: a label of the panel page shown was moved.
 fn labels_moved(m: &ShellModel) -> Result<(), Key<'static>> {
     panel_page(m)?;

@@ -136,7 +136,7 @@ fn a_panel_layout_page_from_new_page_to_an_enabled_rail() {
         h.state().shell().dialog()
     );
     assert!(
-        rail_reason(&h).ends_with("disabled: Show an enclosure on this page first: Enclosure… on the Project tab, or the page's Surface in Properties"),
+        rail_reason(&h).ends_with("disabled: Start with an enclosure: Enclosure in this group puts it on the page with its mounting plate; its Mounting plate… shows one the project has"),
         "{}",
         rail_reason(&h)
     );
