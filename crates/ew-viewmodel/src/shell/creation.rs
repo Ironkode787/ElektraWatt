@@ -187,6 +187,27 @@ static PUT_STATION: Spec = Spec {
     fields: &[field("station", key!("form-put-station"))],
 };
 
+/// Draw the plug… from a page that is no electrical page (the rc.2 re-test: Draw plug went to page 1 without a word):
+/// on which electrical page, or a new one. The plug's terminal stands in the form as what it draws.
+static DRAW_PLUG: Spec = Spec {
+    action: "fluid.draw_plug",
+    title_key: key!("draw-page-title"),
+    fields: &[
+        field("terminal", key!("form-draw-what")),
+        field("page", key!("form-draw-page")),
+    ],
+};
+
+/// Draw solenoid 14… from a page that is no electrical page: as [`DRAW_PLUG`], the coil standing as what it draws.
+static DRAW_SOLENOID: Spec = Spec {
+    action: "fluid.draw_solenoid",
+    title_key: key!("draw-page-title"),
+    fields: &[
+        field("function", key!("form-draw-what")),
+        field("page", key!("form-draw-page")),
+    ],
+};
+
 /// The usual media New medium… starts from (rc.2, F26), each with its usual nominal pressure in bar (gauge: a vacuum
 /// below the atmosphere); its name is the text `medium-preset-<word>`.
 const MEDIUM_PRESETS: &[(&str, &str)] = &[
@@ -1493,6 +1514,84 @@ impl ShellModel {
             }
         }
         out
+    }
+
+    /// Brings the electrical page a multipin terminal's plug (`solenoid` false) or a valve's solenoid is drawn on in
+    /// front (the rc.2 re-test: Draw plug went to page 1 without a word): the page `page` names (the folio of a
+    /// multi-line page, or `new`: a new one); without, the page in front when it is one; else in the window the form asks
+    /// which, the electrical pages and New page… (`target`, its words, stands in it as what is drawn), the next one after
+    /// the page in front chosen; headless the nearest one (`none` without any). `Ok(true)`: that page is in front;
+    /// `Ok(false)`: the form asks.
+    pub(super) fn electrical_page_for(
+        &mut self,
+        solenoid: bool,
+        p: &Map<String, Value>,
+        target: (ew_api::output::Uuid, String),
+        none: Key<'static>,
+    ) -> Result<bool, Outcome> {
+        let spec = if solenoid { &DRAW_SOLENOID } else { &DRAW_PLUG };
+        let page = text_param(p, "page")?;
+        // The form, if open, gives way to what was chosen.
+        let _ = self.form_done(spec.action, Outcome::Done);
+        let pages: Vec<(usize, String, String)> = self
+            .page_rows()
+            .iter()
+            .enumerate()
+            .filter(|(_, r)| r.kind == "multi_line")
+            .map(|(i, r)| (i, r.folio.clone(), r.title.clone()))
+            .collect();
+        let folio = match page.as_str() {
+            "new" => {
+                let folio = self.free_folio();
+                let title = strings::text(key!("draw-page-new-title"));
+                let made = self.dispatch(
+                    "page.new",
+                    &json!({ "folio": folio, "type": "multi_line", "title": title }),
+                );
+                if made != Outcome::Done {
+                    return Err(made);
+                }
+                folio
+            }
+            "" if pages.iter().any(|(i, _, _)| *i == self.page_index()) => return Ok(true),
+            "" if self.mode == Mode::Gui => {
+                let here = self.page_index();
+                let next = pages.iter().find(|(i, _, _)| *i > here).or(pages.last());
+                let mut dialog = spec.dialog(p);
+                dialog.ok_key = key!("dialog-draw");
+                for f in &mut dialog.fields {
+                    if f.name == "page" {
+                        f.options = pages
+                            .iter()
+                            .map(|(_, folio, title)| {
+                                let words = strings::format(key!("rack-page-choice"), &[folio, title]);
+                                (folio.clone(), words.trim().to_owned())
+                            })
+                            .chain([("new".to_owned(), strings::text(key!("rack-draw-new-page")).to_owned())])
+                            .collect();
+                        f.value = next.map_or_else(|| "new".to_owned(), |(_, folio, _)| folio.clone());
+                    } else {
+                        f.options = vec![(target.0.to_string(), target.1.clone())];
+                        f.value = target.0.to_string();
+                    }
+                }
+                self.open_dialog(Dialog::Form(dialog));
+                return Ok(false);
+            }
+            "" => {
+                let out = self.show_page_of_kind("multi_line", none);
+                return if out == Outcome::Done { Ok(true) } else { Err(out) };
+            }
+            f if pages.iter().any(|(_, folio, _)| folio == f) => f.to_owned(),
+            _ => return Err(failed(key!("error-bad-param"), &["page"])),
+        };
+        let out = self.dispatch("page.goto", &json!({ "folio": folio }));
+        if out != Outcome::Done {
+            return Err(out);
+        }
+        // The page change ends the tool now, not after a tool is armed on the new page.
+        self.sync_tool_context();
+        Ok(true)
     }
 
     /// The project settings member `member` as JSON (`Value::Null` when absent).

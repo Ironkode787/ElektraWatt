@@ -63,7 +63,7 @@
 {"action":"ui.describe"}
 {"action":"canvas.press","params":{"x_mm":160,"y_mm":134}}
 {"action":"canvas.release","params":{"x_mm":160,"y_mm":134}}
-{"action":"props.follow","params":{"row":"device/derived.solenoid[0]"}}
+{"action":"props.follow","params":{"row":"device/derived.solenoid[0]","page":"1"}}
 {"action":"tool.mirror_y"}
 {"action":"cursor.set","params":{"x_mm":68.792,"y_mm":25}}
 {"action":"canvas.activate","params":{"alt":true}}

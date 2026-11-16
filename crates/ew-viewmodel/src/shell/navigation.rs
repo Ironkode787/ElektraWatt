@@ -917,7 +917,8 @@ impl ShellModel {
     /// `row` (else the focused row) as the Devices navigator opens the device: its main page shows in the focused
     /// group and its drawings there are selected. A valve's solenoid row goes to where its coil is drawn, or draws it
     /// while it is not (`fluid.draw_solenoid`); a coil's valve row goes to the valve (rc.2, F11); a multipin terminal's
-    /// plug row goes to the plug, or draws it while it is not (`fluid.draw_plug`).
+    /// plug row goes to the plug, or draws it while it is not (`fluid.draw_plug`). A draw goes to the electrical page
+    /// `page` names, else as its action decides (the page in front, or the window asks).
     pub(crate) fn act_props_follow(&mut self, p: &Map<String, Value>) -> Outcome {
         let key = or_return!(self.props_row_param(p));
         let solenoid = self
@@ -939,12 +940,17 @@ impl ShellModel {
                 ) if kind == "plug" => Some(json.clone()),
                 _ => None,
             });
+        // The electrical page a draw goes to (`page`, as the window's form asks it; a script names it).
+        let page = p.get("page").cloned().unwrap_or(Value::Null);
         if let Some(json) = plug {
             return match json.get("drawn").and_then(Value::as_str) {
                 Some(place) => self.dispatch("nav.goto", &serde_json::json!({ "text": place })),
                 None => {
                     let t = json.get("terminal").cloned().unwrap_or(Value::Null);
-                    self.dispatch("fluid.draw_plug", &serde_json::json!({ "terminal": t }))
+                    self.dispatch(
+                        "fluid.draw_plug",
+                        &serde_json::json!({ "terminal": t, "page": page }),
+                    )
                 }
             };
         }
@@ -962,7 +968,10 @@ impl ShellModel {
                         Some(place) => self.dispatch("nav.goto", &serde_json::json!({ "text": place })),
                         None => {
                             let t = seat.get("terminal_device").cloned().unwrap_or(Value::Null);
-                            self.dispatch("fluid.draw_plug", &serde_json::json!({ "terminal": t }))
+                            self.dispatch(
+                                "fluid.draw_plug",
+                                &serde_json::json!({ "terminal": t, "page": page }),
+                            )
                         }
                     };
                 }
@@ -988,6 +997,7 @@ impl ShellModel {
                     if let Some(f) = json.get("function") {
                         params.insert("function".into(), f.clone());
                     }
+                    params.insert("page".into(), page);
                     self.act_fluid_draw_solenoid(&params)
                 }
             };

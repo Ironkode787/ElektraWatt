@@ -66,15 +66,19 @@ The Fluid workspace shows the pneumatics beside the page:
 1. Select a solenoid valve on its fluid page. Its Properties list each solenoid, such as **Solenoid 14**, with where it
    is drawn and the PLC output that drives it.
 2. Click "draw it…" in that row, or right-click the valve and choose **Draw solenoid 14 on an electrical page…**: the
-   electrical page shows with the coil on the pointer; click where it goes. The coil carries the valve's tag.
+   window asks on which electrical page (or **New page…**), and that page shows with the coil on the pointer; click
+   where it goes. The coil carries the valve's tag. With an electrical page in front, the entry reads **Draw solenoid
+   14 on this page…** and draws there; the coil's row in the Devices list offers it too, with **Go to the valve**.
 3. Wire the coil to a PLC output. The valve's menu then reads **Go to solenoid 14 at** and the place; going there
-   selects the coil and names it beside it. From the coil, **Solenoid 14 of -201Q1** goes back to the valve.
+   selects the coil and names it beside it. From the coil, **Solenoid 14 of -201Q1**, or **Follow reference** (`F`)
+   with the coil selected, goes back to the valve.
 4. A coil placed on its own joins a valve when you type the valve's tag into the coil's **Tag**: the field asks whether
    to make it the valve's undrawn solenoid.
 
 ## Valve terminals
 
-There are two kinds, and the terminal's menu says which:
+There are two kinds, and its Properties, its menu and its row in the Devices list say which ("Valve terminal · PLC
+station on PROFIBUS DP", "Valve terminal · multipin, wired"):
 
 - a **valve terminal with bus node** is a PLC station on the bus: its valves are driven inside it, each by the output
   its position gives, and nothing is wired per solenoid;
@@ -88,15 +92,19 @@ There are two kinds, and the terminal's menu says which:
    **Draw -104A1 here** for it, its rack dialog **Draw on a fluid page…**, and its valves stand in their cells.
 2. Click an empty cell, or right-click it and choose **Fill position 2…**: the device browser opens with valves; choose
    a valve for a valve terminal, and it stands in that cell with its output.
-3. Right-click a held cell for **Replace at position 2…**, **Empty position 2** and **Blanking plate at position 2**;
+3. Right-click a held cell for **Replace at position 2…**, **Empty position 2** and **Blanking plate at position 2**
+   (an empty cell's device browser lists **Blanking plate** first; the check's warning on an empty position offers it
+   as its fix, and **Fix all** blanks every empty position at once);
    right-click the terminal's body for every position, each under a heading such as **Position 2: empty**.
    A valve dragged onto another cell moves there; onto a held cell the two swap. A valve's **Valve position** in
    Properties moves it too.
-4. A stand-alone valve, a coil or a cylinder dropped into the box is not taken as a position: it stays a device of its
-   own, and the toast says so.
+4. A valve for a valve terminal dropped onto a cell takes that position on either kind of terminal, and the toast
+   says which. A stand-alone valve, a coil or a cylinder dropped into the box is not taken as a position: it stays a
+   device of its own, and the toast says so.
 5. On a multipin terminal, right-click it on any page and choose **Draw the plug of -201K1 on an electrical page…**
-   (or **Draw plug** on the Fluid tab, or the **Plug** row in its Properties): the electrical page shows with the
-   plug on the pointer; click once where it goes. Its pins stand down both sides, and beside each pin stands the valve
+   (or **Draw plug** on the Fluid tab, or the **Plug** row in its Properties): the window asks on which electrical
+   page, and that page shows with the plug on the pointer; click once where it goes. With an electrical page in
+   front it is drawn there. Its pins stand down both sides, and beside each pin stands the valve
    and solenoid it drives. Wire a pin to a PLC output, and the valve on the fluid page shows that output.
 6. The rack dialog (**Rack…**) lists the terminal's positions as rows with **Fill…**, **Blanking plate** and **Empty**.
    **Generate overview…** on the terminal's menu makes the overview pages of its modules and valves, previewed.

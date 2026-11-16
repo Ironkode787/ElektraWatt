@@ -826,7 +826,7 @@ impl ShellModel {
                 None => self.aimed(
                     "fluid.draw_plug",
                     json!({ "terminal": device.to_string() }),
-                    strings::format(key!("canvas-plug-draw"), &[&plug.tag]),
+                    strings::format(self.plug_draw_key(), &[&plug.tag]),
                 ),
             });
         }
@@ -936,7 +936,7 @@ impl ShellModel {
                     None => self.aimed(
                         "fluid.draw_plug",
                         json!({ "terminal": terminal_device.to_string() }),
-                        strings::format(key!("canvas-plug-draw"), &[terminal]),
+                        strings::format(self.plug_draw_key(), &[terminal]),
                     ),
                 };
             }
@@ -953,11 +953,7 @@ impl ShellModel {
                 )
             }
             None => {
-                let here = self
-                    .page_rows()
-                    .get(self.page_index())
-                    .is_some_and(|r| r.kind == "multi_line");
-                let label = if here {
+                let label = if self.electrical_in_front() {
                     key!("canvas-solenoid-draw-here")
                 } else {
                     key!("canvas-solenoid-draw")
@@ -968,6 +964,23 @@ impl ShellModel {
                     strings::format(label, &[&s.name]),
                 )
             }
+        }
+    }
+
+    /// Whether an electrical (multi-line) page is in front: Draw solenoid and Draw the plug draw there (the rc.2
+    /// re-test), and say "on this page…".
+    fn electrical_in_front(&self) -> bool {
+        self.page_rows()
+            .get(self.page_index())
+            .is_some_and(|r| r.kind == "multi_line")
+    }
+
+    /// The label of Draw the plug of `<terminal>`: on this page…, or on an electrical page… (which asks which).
+    fn plug_draw_key(&self) -> Key<'static> {
+        if self.electrical_in_front() {
+            key!("canvas-plug-draw-here")
+        } else {
+            key!("canvas-plug-draw")
         }
     }
 

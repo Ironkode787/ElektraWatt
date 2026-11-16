@@ -272,7 +272,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     )),
     // F (or a click) on a link row of the grid follows it, as F follows a link on the canvas.
     keeps_banner(with_params(
-        "row?:text",
+        "row?:text, page?:text",
         hidden(in_properties(act(
             "props.follow",
             View,

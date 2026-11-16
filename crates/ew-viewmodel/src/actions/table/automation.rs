@@ -379,9 +379,10 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ))),
     ),
-    // A stand-alone valve's Draw solenoid 14 on an electrical page… (rc.2, F11): the coil's symbol on the pointer there.
+    // A stand-alone valve's Draw solenoid 14 on this page… or on an electrical page… (rc.2, F11): the coil's symbol on the
+    // pointer on the electrical page in front, `page` (a folio or `new`), else the page the window asks for.
     with_params(
-        "function:ref",
+        "function:ref, page?:text",
         needs_parameters(hidden(with_aliases(
             &[("function", ParamForm::Whole)],
             act(
@@ -398,7 +399,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // A multipin valve terminal's Draw the plug on an electrical page… (rc.2): from any page, its menu, its Properties
     // row and the Fluid tab (of the selected terminal, greyed in words while none is selected).
     with_params(
-        "terminal?:ref",
+        "terminal?:ref, page?:text",
         with_aliases(
             &[("terminal", ParamForm::Whole)],
             placed(

@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-16T02:50:56+01:00\n"
+"POT-Creation-Date: 2026-11-16T15:52:13+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -545,7 +545,7 @@ msgstr ""
 #: src/tutorials/first-page.md:44 src/tutorials/terminal-strip-and-cable.md:49
 #: src/tutorials/reports-and-pdf.md:39 src/tutorials/import-qet.md:56
 #: src/tutorials/symbol-editor.md:42 src/tutorials/plc-station.md:73
-#: src/tutorials/bus-network.md:76 src/tutorials/pneumatic-circuit.md:99
+#: src/tutorials/bus-network.md:76 src/tutorials/pneumatic-circuit.md:102
 msgid "What you learnt"
 msgstr ""
 
@@ -666,7 +666,7 @@ msgstr ""
 #: src/tutorials/terminal-strip-and-cable.md:46
 #: src/tutorials/reports-and-pdf.md:36 src/tutorials/import-qet.md:53
 #: src/tutorials/symbol-editor.md:39 src/tutorials/plc-station.md:70
-#: src/tutorials/bus-network.md:73 src/tutorials/pneumatic-circuit.md:90
+#: src/tutorials/bus-network.md:73 src/tutorials/pneumatic-circuit.md:93
 msgid ""
 "Choose **File ▸ Save** (`Ctrl+S`). The title bar no longer marks the project "
 "as changed."
@@ -1462,21 +1462,22 @@ msgstr ""
 
 #: src/tutorials/pneumatic-circuit.md:23
 msgid ""
-"Choose **Air supply** on the Fluid tab (**Fluid ▸ Air supply…**). The symbol "
-"browser opens at the air supply and its preparation: choose **air-supply** "
-"and click near the bottom left of the page. Choose **Draw ▸ Select**. The "
-"compressed-air supply point -2X1 is on the page, with its port 1."
+"Choose **Draw ▸ Place ▸ Symbol…**. On a fluid page the symbol browser offers "
+"the fluid symbols: choose **air-supply** and click near the bottom left of "
+"the page. Choose **Draw ▸ Select**. The compressed-air supply point -2X1 is "
+"on the page, with its port 1. (**Air supply** on the Fluid tab places a "
+"supply with its part instead, from the device browser.)"
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:26
+#: src/tutorials/pneumatic-circuit.md:27
 msgid ""
-"Choose **Fluid ▸ Air supply…** again, choose **frl**, the service unit with "
-"filter, regulator and lubricator, and click to the right of the supply "
+"Choose **Draw ▸ Place ▸ Symbol…** again, choose **frl**, the service unit "
+"with filter, regulator and lubricator, and click to the right of the supply "
 "point. Choose **Draw ▸ Select**. The service unit -2V1 is on the page, with "
 "port 1 in, port 2 out."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:29
+#: src/tutorials/pneumatic-circuit.md:30
 msgid ""
 "Choose **Draw ▸ Place ▸ Device from part…** (`Shift+I`), choose **Solenoid "
 "valve 5/2, spring return** (EW-GEN-VLV-1) and click in the middle of the "
@@ -1485,7 +1486,7 @@ msgid ""
 "and 5 at the bottom, its solenoid at the left and its spring at the right."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:33
+#: src/tutorials/pneumatic-circuit.md:34
 msgid ""
 "Choose **Draw ▸ Place ▸ Device from part…**, choose **Cylinder "
 "double-acting, bore 32 mm, stroke 100 mm** (EW-GEN-CYL-1) and click near the "
@@ -1493,7 +1494,7 @@ msgid ""
 "-2M1 is on the page, with its ports A and B."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:36
+#: src/tutorials/pneumatic-circuit.md:37
 msgid ""
 "Choose **Draw ▸ Place ▸ Device from part…** and choose **One-way flow "
 "control valve** (EW-GEN-FCV-1). Before you click, choose **Draw ▸ Arrange ▸ "
@@ -1504,7 +1505,7 @@ msgid ""
 "port it faces."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:41
+#: src/tutorials/pneumatic-circuit.md:42
 msgid ""
 "Choose **Draw ▸ Connect ▸ Wire** (`W`) and draw the tubes, each from one "
 "port to the other: A of -2M1 to 1 of \\-2R1, 2 of -2R1 to 4 of -2Q1; B of "
@@ -1514,14 +1515,14 @@ msgid ""
 "flow controls."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:45
+#: src/tutorials/pneumatic-circuit.md:46
 msgid ""
 "Choose **New medium** on the Fluid tab (**Fluid ▸ New medium…**). Under "
 "**Start from** choose **Compressed air**, which fills the name and 6 bar, "
 "and choose **Create**. The toast says \"Added the medium Compressed air.\""
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:48
+#: src/tutorials/pneumatic-circuit.md:49
 msgid ""
 "Click the supply point -2X1. In Properties, open the **Medium** row and "
 "choose **Compressed air** (or right-click \\-2X1 and choose **Medium:** "
@@ -1530,16 +1531,17 @@ msgid ""
 "through the valve now carries compressed air."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:52
+#: src/tutorials/pneumatic-circuit.md:53
 msgid ""
 "Click the valve -2Q1. In Properties the row **Solenoid 14** says \"not "
 "drawn: draw it…\": click it (or right-click the valve and choose **Draw "
-"solenoid 14 on an electrical page…**). Page 1 shows with the coil on the "
-"pointer, and the toast says \"Click where solenoid 14 of -2Q1 goes on page "
-"1.\""
+"solenoid 14 on an electrical page…**). The window asks on which electrical "
+"page: page 1 is chosen, so choose **Draw**. Page 1 shows with the coil on "
+"the pointer, and the toast says \"Click where solenoid 14 of -2Q1 goes on "
+"page 1.\""
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:55
+#: src/tutorials/pneumatic-circuit.md:57
 msgid ""
 "Choose **Draw ▸ Arrange ▸ Mirror top to bottom** (`Y`), so that the coil's "
 "A1 is at the bottom, and click near the top of page 1, a quarter from the "
@@ -1547,7 +1549,7 @@ msgid ""
 "is the valve's own solenoid, not a device of its own."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:58
+#: src/tutorials/pneumatic-circuit.md:60
 msgid ""
 "Click the **PLC** tab and choose **New station** (**PLC ▸ New station…**). "
 "Choose the head part **EW-GEN-CPU-1**, **Add module…** in slot 1 with "
@@ -1557,38 +1559,40 @@ msgid ""
 "in full."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:63
+#: src/tutorials/pneumatic-circuit.md:65
 msgid ""
 "Choose **Draw ▸ Connect ▸ Wire** (`W`), click A1 of the coil, then pin 1 at "
 "the top of -1A1-A1, the output Q0.0. Choose **Draw ▸ Select**. The solenoid "
 "is wired to the PLC output."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:66
+#: src/tutorials/pneumatic-circuit.md:68
 msgid ""
 "Click page 2 in the Pages navigator and click the valve -2Q1. Its row "
 "**Solenoid 14** now names the place where the coil is drawn, 1-A4."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:68
+#: src/tutorials/pneumatic-circuit.md:70
 msgid ""
 "Choose **Valve terminal** on the Fluid tab (**Fluid ▸ Valve terminal…**). "
 "The device browser opens at the valve terminals: choose **Valve terminal "
-"with bus node, 4 valve positions, 8 outputs** (EW-GEN-VTM-1) and click once "
-"near the top left of the page. Its rack opens; choose **Close**, then **Draw "
-"▸ Select**. The valve terminal -2K1 is drawn as its positions: the supply "
-"end at the left, then four empty cells numbered 1 to 4."
+"with PROFIBUS DP bus node, 4 valve positions, 8 outputs** (EW-GEN-VTM-1) and "
+"click once near the top left of the page. Its rack opens; choose **Close**, "
+"then **Draw ▸ Select**. The valve terminal -2K1 is drawn as its positions: "
+"the supply end at the left, then four empty cells numbered 1 to 4. The toast "
+"says \"Placed -2K1 at 2-…: 4 positions, all empty.\"; one click places one "
+"terminal."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:73
+#: src/tutorials/pneumatic-circuit.md:75
 msgid ""
-"Click the empty cell 1. The device browser opens with valves; type `valve "
-"terminal` into its search and choose **Solenoid valve 5/2 for a valve "
-"terminal, spring return** (EW-GEN-VLV-3). The valve -2Q2 stands in cell 1 "
-"with its output, Q1.0."
+"Click the empty cell 1. The device browser opens with the valves made for a "
+"terminal; type `valve terminal` into its search and choose **Solenoid valve "
+"5/2 for a valve terminal, spring return** (EW-GEN-VLV-3). The valve -2Q2 "
+"stands in cell 1 with its output, Q1.0."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:76
+#: src/tutorials/pneumatic-circuit.md:79
 msgid ""
 "Click the empty cell 2 and choose the same valve. The valve -2Q3 stands in "
 "cell 2 with Q1.2. Click the terminal: its row **Valve positions** reads \"1 "
@@ -1596,13 +1600,13 @@ msgid ""
 "blanking plate in the empty cells; a right click on a cell offers both."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:81
+#: src/tutorials/pneumatic-circuit.md:84
 msgid ""
 "![The fluid page: the circuit to the cylinder, and the valve terminal with "
 "two valves](images/pneumatic-circuit.png)"
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:83
+#: src/tutorials/pneumatic-circuit.md:86
 msgid ""
 "Choose **Fluid settings** on the Fluid tab (**Fluid ▸ Fluid settings…**). "
 "Type the default tube's outer diameter `6`, inner diameter `4`, choose the "
@@ -1611,7 +1615,7 @@ msgid ""
 "drawn already too.\""
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:87
+#: src/tutorials/pneumatic-circuit.md:90
 msgid ""
 "Choose **Tube table** on the Fluid tab (**Fluid ▸ Tube table**). The tube "
 "list opens under the page, one row per tube with its two ends, its medium "
@@ -1619,11 +1623,11 @@ msgid ""
 "until you type it."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:93
+#: src/tutorials/pneumatic-circuit.md:96
 msgid "Two kinds of valve"
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:95
+#: src/tutorials/pneumatic-circuit.md:98
 msgid ""
 "A stand-alone valve, such as -2Q1, has a coil of its own: you draw it on an "
 "electrical page and wire it to a PLC output. A valve on a valve terminal "
@@ -1632,35 +1636,35 @@ msgid ""
 "wired per solenoid."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:101
+#: src/tutorials/pneumatic-circuit.md:104
 msgid ""
 "A fluid page draws the circuit with ISO 1219 symbols; the Wire tool draws "
 "tubes there."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:102
+#: src/tutorials/pneumatic-circuit.md:105
 msgid ""
 "The medium is defined once, at the air supply, and every tube it reaches "
 "carries it."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:103
+#: src/tutorials/pneumatic-circuit.md:106
 msgid ""
 "A valve's solenoid is drawn on an electrical page from the valve, and the "
 "two know each other."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:104
+#: src/tutorials/pneumatic-circuit.md:107
 msgid "A valve terminal is drawn as its positions; a click on a cell fills it."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:105
+#: src/tutorials/pneumatic-circuit.md:108
 msgid ""
 "The tube table lists the tubes with their ends, medium and size; **Output ▸ "
 "Report block…** prints it as a tube list."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:107
+#: src/tutorials/pneumatic-circuit.md:110
 msgid ""
 "To look up these jobs later, see [Work in the Fluid "
 "workspace](../how-to/fluid-workspace.md)."
@@ -2107,9 +2111,9 @@ msgstr ""
 
 #: src/how-to/application-window.md:18
 msgid ""
-"**Tutorials and guides** lists the tutorials (step by step, with a practice "
-"project) and the how-to guides (how to do one job), as **Help ▸ Tutorials** "
-"and **Help ▸ Guides** do."
+"**Tutorials and guides** lists the tutorials (lessons you follow step by "
+"step) and the how-to guides (how to do one job), as **Help ▸ Tutorials** and "
+"**Help ▸ Guides** do."
 msgstr ""
 
 #: src/how-to/application-window.md:20
@@ -2333,14 +2337,17 @@ msgid ""
 "`canvas.activate` with `alt` (Alt+Enter, Alt+Click) places the symbol "
 "without connecting; `tool.next_proposal` (Tab) tries the next target along "
 "each ray. After a placement that connected, the toast names the wires it "
-"drew; one Undo removes the symbol with its wires."
-msgstr ""
-
-#: src/how-to/text-interface.md:31
-msgid "Freeze a tag"
+"drew; one Undo removes the symbol with its wires. A connection point further "
+"than 20 grid steps away, or one behind another wire, is not proposed: the "
+"toast offers it instead, and its Connect draws the wire. Tab still proposes "
+"it."
 msgstr ""
 
 #: src/how-to/text-interface.md:33
+msgid "Freeze a tag"
+msgstr ""
+
+#: src/how-to/text-interface.md:35
 msgid ""
 "Select the device (`select.set` with `refs` `[\"tag:-101S1\"]`) and set its "
 "frozen tag as the page should print it: `props.set` with `row` "
@@ -2350,11 +2357,11 @@ msgid ""
 "several steps."
 msgstr ""
 
-#: src/how-to/text-interface.md:38 src/reference/window/panels.md:92
+#: src/how-to/text-interface.md:40 src/reference/window/panels.md:92
 msgid "Terminal strips"
 msgstr ""
 
-#: src/how-to/text-interface.md:40
+#: src/how-to/text-interface.md:42
 msgid ""
 "`strip.new` creates an empty terminal strip; the toast names it. It draws "
 "nothing until its first terminal is placed: `tool.place_terminal` with "
@@ -2373,7 +2380,7 @@ msgid ""
 "message that lists the project's strips."
 msgstr ""
 
-#: src/how-to/text-interface.md:51
+#: src/how-to/text-interface.md:53
 msgid ""
 "In the Terminal strips navigator a row is named by what it prints: a "
 "terminal by its tag, the strip's label, a colon and its own (`-X1031:1`), "
@@ -2382,7 +2389,7 @@ msgid ""
 "`rows` `[\"-X1031:1\",\"-X1031:2\"]`, a `column` and a `value`)."
 msgstr ""
 
-#: src/how-to/text-interface.md:55
+#: src/how-to/text-interface.md:57
 msgid ""
 "A terminal's connection points print `strip:terminal/clamp` (`-X1031:1/b`): "
 "the starter terminal has clamp `a` on side 1 (internal) and `b` on side 2 "
@@ -2391,11 +2398,11 @@ msgid ""
 "`#n` in connection-point order: `-X1:1/a#1` and `-X1:1/a#2`."
 msgstr ""
 
-#: src/how-to/text-interface.md:59
+#: src/how-to/text-interface.md:61
 msgid "Bridge terminals"
 msgstr ""
 
-#: src/how-to/text-interface.md:61
+#: src/how-to/text-interface.md:63
 msgid ""
 "Select two or more terminals of one strip on the page (click the first "
 "terminal symbol, Shift+click the others, or `select.set` with their "
@@ -2413,11 +2420,11 @@ msgid ""
 "refusal names the reason."
 msgstr ""
 
-#: src/how-to/text-interface.md:71
+#: src/how-to/text-interface.md:73
 msgid "External points"
 msgstr ""
 
-#: src/how-to/text-interface.md:73
+#: src/how-to/text-interface.md:75
 msgid ""
 "`structure.new` with `kind` `location` and the location (`+J-E-206`), then "
 "`external_ref.new` with the location, the device and the connection, once "
@@ -2425,7 +2432,7 @@ msgid ""
 "reference's label is `<device>:<connection>` (`JE-N1000-03:L`)."
 msgstr ""
 
-#: src/how-to/text-interface.md:76
+#: src/how-to/text-interface.md:78
 msgid ""
 "With the Interruption point tool armed, `ip.external` takes that label, or "
 "the label after the location as the page prints it (`+J-E-206 / "
@@ -2433,11 +2440,11 @@ msgid ""
 "reference has fails with a message that lists the labels the project has."
 msgstr ""
 
-#: src/how-to/text-interface.md:80
+#: src/how-to/text-interface.md:82
 msgid "Draw wires"
 msgstr ""
 
-#: src/how-to/text-interface.md:82
+#: src/how-to/text-interface.md:84
 msgid ""
 "With the Wire tool armed, put the grid cursor on a connection point (its "
 "`cp` position), press Enter, move to the other end and press Enter. The "
@@ -2445,7 +2452,7 @@ msgid ""
 "commit."
 msgstr ""
 
-#: src/how-to/text-interface.md:85
+#: src/how-to/text-interface.md:87
 msgid ""
 "`cp.next` and `cp.previous` step the cursor through the page's connection "
 "points in reading order of the cell **column by column** (column 0 to 16, "
@@ -2454,18 +2461,18 @@ msgid ""
 "`cursor.set` needs no walk."
 msgstr ""
 
-#: src/how-to/text-interface.md:88
+#: src/how-to/text-interface.md:90
 msgid ""
 "**Ending a wire on a wire** makes a junction there and splits that wire. The "
 "route's `end` names the wire it would split by its ends (`@101-C12 F55:2 -> "
 "E55:L`): check it before Enter when two wires run through one cell."
 msgstr ""
 
-#: src/how-to/text-interface.md:91
+#: src/how-to/text-interface.md:93
 msgid "Delete"
 msgstr ""
 
-#: src/how-to/text-interface.md:93
+#: src/how-to/text-interface.md:95
 msgid ""
 "`edit.delete_selection` (Delete) deletes what is selected on the page shown: "
 "a representation, a wire, a junction or an item. A device selected by its "
@@ -2475,11 +2482,11 @@ msgid ""
 "refused (`reason-not-on-page`)."
 msgstr ""
 
-#: src/how-to/text-interface.md:98
+#: src/how-to/text-interface.md:100
 msgid "Save and export"
 msgstr ""
 
-#: src/how-to/text-interface.md:100
+#: src/how-to/text-interface.md:102
 msgid ""
 "`file.save` saves. `file.export_pdf` with a file name writes the PDF; the "
 "toast names the file, its page count and its size."
@@ -2992,8 +2999,8 @@ msgstr ""
 #: src/how-to/panel-layout.md:9
 msgid ""
 "Choose **Page ▸ New page…**, set **Type** to Panel layout, give the page a "
-"title such as \"Panel layout\", and choose **Create**. The page opens empty; "
-"the Draw tab's Rail and Duct say what is missing."
+"title such as \"Panel layout\", and choose **Create**. The page opens empty "
+"and names its first step: start with an enclosure."
 msgstr ""
 
 #: src/how-to/panel-layout.md:12
@@ -3002,93 +3009,109 @@ msgstr ""
 
 #: src/how-to/panel-layout.md:14
 msgid ""
-"Choose **Project ▸ Setup ▸ Enclosure…**. An enclosure belongs to a location "
-"(`+CAB1`), the cabinet. The dialog proposes the page's location, else the "
-"project's first; in a project without one it proposes **New location**, the "
-"first choice of the Location list, with a code such as `CAB1` that you can "
-"change. It proposes the first enclosure part of the project or of an "
-"installed library, such as \"Wall enclosure 600 × 800 × 250 mm\"; choose "
-"others from the lists if you like, then **Create**. The page now shows the "
-"enclosure and its mounting plate, centred and at the scale that fits the "
-"page. A new location, the enclosure and the plate on the page are three "
-"steps of Undo. Another plate goes on the page through the page's **Surface** "
-"row in Properties. At 1:10 and smaller scales the devices are numbered and "
-"the page gets a legend beside the plate that lists each number with its tag, "
-"quantity, part number and description."
+"Choose **Enclosure** in the Draw tab's Layout group (also **Project ▸ Setup "
+"▸ Enclosure…**). An enclosure belongs to a location (`+CAB1`), the cabinet. "
+"The dialog proposes the page's location, else the project's first; in a "
+"project without one it proposes **New location**, the first choice of the "
+"Location list, with a code such as `CAB1` that you can change. It proposes "
+"the first enclosure part of the project or of an installed library, such as "
+"\"Wall enclosure 600 × 800 × 250 mm\"; choose others from the lists if you "
+"like, then **Create**. The page now shows the enclosure and its mounting "
+"plate, centred and at the scale that fits the page. A new location, the "
+"enclosure and the plate on the page are three steps of Undo. Another plate "
+"goes on the page through the page's **Surface** row in Properties, or "
+"**Mounting plate…** in the menu of Enclosure's arrow. Where the tags would "
+"not fit the devices on paper (at 1:5 and smaller scales on an empty plate) "
+"the devices are numbered and the page gets a legend beside the plate that "
+"lists each number with its tag, quantity, part number and description."
 msgstr ""
 
-#: src/how-to/panel-layout.md:24
+#: src/how-to/panel-layout.md:25
 msgid "Rails and ducts"
 msgstr ""
 
-#: src/how-to/panel-layout.md:26
+#: src/how-to/panel-layout.md:27
 msgid ""
-"Choose **Draw ▸ Rail** and click the rail's start and end on the plate (a "
-"rail runs across or up and down); the tool's card offers the rail part and "
-"the grid step. Draw as many rails as the cabinet needs."
+"Choose **Draw ▸ Layout ▸ Rail** and click the rail's start and end on the "
+"plate (a rail runs across or up and down); the tool's card offers the rail "
+"part and the grid step. Draw as many rails as the cabinet needs."
 msgstr ""
 
-#: src/how-to/panel-layout.md:28
+#: src/how-to/panel-layout.md:29
 msgid ""
-"Choose **Draw ▸ Duct** and draw the ducts the same way; the card asks for a "
-"duct's size when its part gives none."
-msgstr ""
-
-#: src/how-to/panel-layout.md:30
-msgid "Place the devices"
+"Choose **Draw ▸ Layout ▸ Duct** and click a duct's first point and each next "
+"point; a double click or `Enter` finishes it (`Esc` cancels it). The card "
+"asks for a duct's size when its part gives none."
 msgstr ""
 
 #: src/how-to/panel-layout.md:32
-msgid ""
-"Show **View ▸ Panels ▸ Navigators ▸ Unplaced devices**. It lists the devices "
-"of the page's location that have no place yet. A device without a location "
-"is not listed: give it the location in Properties, under Structure."
+msgid "Place the devices"
 msgstr ""
 
 #: src/how-to/panel-layout.md:34
+msgid ""
+"Show **View ▸ Panels ▸ Navigators ▸ Unplaced devices**. It lists the devices "
+"of the page's location that have no place yet. A device without a location "
+"is not listed: give it the location in Properties, under Structure, or give "
+"many at once: in the Devices list, mark their rows (or their group "
+"\"(none)\"), right-click and choose **Location…**."
+msgstr ""
+
+#: src/how-to/panel-layout.md:38
 msgid ""
 "Drag a device from the list onto a rail, or select its row, press `Enter` "
 "and click the place. On a rail it snaps to its neighbour, the rail's ends or "
 "the plate grid; a device mounted by screws goes on the plate."
 msgstr ""
 
-#: src/how-to/panel-layout.md:36
-msgid ""
-"To fill a rail at once, select the rail and choose **Draw ▸ Auto-fill "
-"rail…**: it places the devices you marked in the list, or every unplaced "
-"device that fits, in the order of the schematic or of their tags, and a "
-"toast says what did not fit."
-msgstr ""
-
 #: src/how-to/panel-layout.md:40
+msgid ""
+"To fill a rail at once, select the rail and choose **Draw ▸ Layout ▸ "
+"Auto-fill rail…**: it places the devices you marked in the list, or every "
+"unplaced device that fits, in the order of the schematic or of their tags, "
+"and a toast says what did not fit. When there is nothing to place, the "
+"dialog says why: every device is placed already, or no device has the "
+"cabinet's location yet. Then **Give the … devices without a location … and "
+"place them** gives them the cabinet's location (one step of Undo) and fills "
+"the rail."
+msgstr ""
+
+#: src/how-to/panel-layout.md:46
 msgid "Labels and the legend"
-msgstr ""
-
-#: src/how-to/panel-layout.md:42
-msgid ""
-"With nothing selected, the page's **Labels** row in Properties chooses what "
-"each device shows: its tag, its item number in a balloon, or both. Labels "
-"that would run into each other move apart, above and below the row, with a "
-"line to their device. On the cabinet's own layout the tags leave out the "
-"cabinet's location."
-msgstr ""
-
-#: src/how-to/panel-layout.md:45
-msgid ""
-"**Add legend** in the page's right-click menu (also **Page ▸ Order ▸ Add "
-"legend**) puts the legend in the free space beside the layout, with the "
-"number, tag, quantity, part number and description of each item; a long "
-"description is cut short with \"…\". It is offered while the page has none."
 msgstr ""
 
 #: src/how-to/panel-layout.md:48
 msgid ""
-"A label or balloon that stands beside its device can be dragged on its own; "
-"its line follows it to the device. **Reset label position** in the device's "
-"right-click menu puts it back."
+"The page's right-click menu (**Labels: Tags**, **Labels: Item numbers**, "
+"**Labels: Both**) and, with nothing selected, the page's **Labels** row in "
+"Properties choose what each device shows: its tag, its item number in a "
+"balloon, or both. A legend added while the devices show their tags offers "
+"**Show item numbers**. Labels that would run into each other move apart, "
+"above and below the row, with a line to their device. On the cabinet's own "
+"layout the tags leave out the cabinet's location."
 msgstr ""
 
-#: src/how-to/panel-layout.md:51
+#: src/how-to/panel-layout.md:52
+msgid ""
+"**Add legend** in the page's right-click menu (also **Page ▸ Order ▸ Add "
+"legend**) puts the legend in the free space beside the layout, with the "
+"number, tag, quantity, part number and description of each item, one table "
+"as wide as its block and as long as its rows. Where the block is narrow, the "
+"part number and quantity give way first; the numbers and tags stay whole. It "
+"is offered while the page has none. Click the legend to select it, drag it "
+"to move it, and drag one of its corners to make it wider or narrower."
+msgstr ""
+
+#: src/how-to/panel-layout.md:57
+msgid ""
+"A label or balloon can be dragged on its own: one beside its device at once, "
+"one on its device once the device is selected (the label then shows a dashed "
+"box with a handle). Its line follows it to the device. **Reset label "
+"position** in the device's right-click menu puts it back; **Reset label "
+"positions** in the page's right-click menu puts every label of the page back."
+msgstr ""
+
+#: src/how-to/panel-layout.md:62
 msgid ""
 "The tools are described one by one in the [tool "
 "reference](../reference/window/tools.md): Place device, Rail and Duct."
@@ -3974,7 +3997,7 @@ msgid ""
 "air supply and reaches every tube the supply feeds through the valves."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:28 src/reference/window/tools.md:148
+#: src/how-to/fluid-workspace.md:28 src/reference/window/tools.md:152
 msgid "Tube"
 msgstr ""
 
@@ -4023,10 +4046,10 @@ msgstr ""
 #: src/how-to/fluid-workspace.md:40
 msgid ""
 "Choose **Air supply** on the Fluid tab for the supply point and its "
-"preparation (service unit, filter, regulator, lubricator), **Fluid symbol** "
-"for any ISO 1219 symbol, or **Draw ▸ Place ▸ Device from part…** for a "
-"valve, cylinder or flow control with its part. On a fluid page the symbol "
-"browser offers the fluid symbols and greys the rest."
+"preparation (service unit, filter, regulator, lubricator), or **Fluid "
+"symbol** for a valve, cylinder, flow control or any other pneumatic part: "
+"both open the device browser, so what you place has its part. A bare ISO "
+"1219 symbol without a part is **Draw ▸ Place ▸ Symbol…**."
 msgstr ""
 
 #: src/how-to/fluid-workspace.md:43
@@ -4038,22 +4061,24 @@ msgstr ""
 
 #: src/how-to/fluid-workspace.md:45
 msgid ""
-"Draw the tubes with **Draw ▸ Connect ▸ Wire**, or choose **Tube** on the "
-"Fluid tab to pick the line kind first."
+"Choose **Tube** on the Fluid tab and click from port to port. The bar under "
+"the page says the line kind and the project's tube, such as \"Working line · "
+"tube 6/4 mm\"; its **Line kind** button changes the kind for the next tubes. "
+"**Draw ▸ Connect ▸ Wire** draws working lines."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:46
+#: src/how-to/fluid-workspace.md:48
 msgid ""
 "Right-click a tube to change its line kind (**Line kind: Working**, **Line "
 "kind: Pilot** and the others) or its medium. A flexible tube is drawn as an "
 "arc."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:49
+#: src/how-to/fluid-workspace.md:51
 msgid "The medium"
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:51
+#: src/how-to/fluid-workspace.md:53
 msgid ""
 "Choose **New medium** on the Fluid tab (**Fluid ▸ New medium…**). Under "
 "**Start from** pick a usual medium, such as **Compressed air** (which fills "
@@ -4061,116 +4086,141 @@ msgid ""
 "**Create**. Each field says under it what it changes."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:54
+#: src/how-to/fluid-workspace.md:56
 msgid ""
 "Select the air supply and choose the medium in its **Medium** row in "
-"Properties, or right-click it and choose **Medium:** and the medium."
+"Properties, or right-click it and choose **Medium:** and the medium. While "
+"the project has no medium yet, the list offers the usual ones, such as "
+"**Compressed air, 6 bar**: choosing one makes it and sets it in one step."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:56
+#: src/how-to/fluid-workspace.md:59
 msgid ""
 "Every tube the supply feeds through the valves carries it; a device's "
 "Properties show the medium each port carries, and say where to set it when "
 "it carries none."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:58
+#: src/how-to/fluid-workspace.md:61
 msgid ""
 "Select a medium's row in the Medium table and press `Ctrl+Shift+H` to "
 "highlight its zones on the page, in a colour with a hatch pattern."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:61
+#: src/how-to/fluid-workspace.md:64
 msgid "The solenoid of a valve"
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:63
+#: src/how-to/fluid-workspace.md:66
 msgid ""
 "Select a solenoid valve on its fluid page. Its Properties list each "
 "solenoid, such as **Solenoid 14**, with where it is drawn and the PLC output "
 "that drives it."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:65
+#: src/how-to/fluid-workspace.md:68
 msgid ""
 "Click \"draw it…\" in that row, or right-click the valve and choose **Draw "
-"solenoid 14 on an electrical page…**: the electrical page shows with the "
-"coil on the pointer; click where it goes. The coil carries the valve's tag."
+"solenoid 14 on an electrical page…**: the window asks on which electrical "
+"page (or **New page…**), and that page shows with the coil on the pointer; "
+"click where it goes. The coil carries the valve's tag. With an electrical "
+"page in front, the entry reads **Draw solenoid 14 on this page…** and draws "
+"there; the coil's row in the Devices list offers it too, with **Go to the "
+"valve**."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:67
+#: src/how-to/fluid-workspace.md:72
 msgid ""
 "Wire the coil to a PLC output. The valve's menu then reads **Go to solenoid "
-"14 at** and the place."
+"14 at** and the place; going there selects the coil and names it beside it. "
+"From the coil, **Solenoid 14 of -201Q1**, or **Follow reference** (`F`) with "
+"the coil selected, goes back to the valve."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:68
+#: src/how-to/fluid-workspace.md:75
 msgid ""
 "A coil placed on its own joins a valve when you type the valve's tag into "
 "the coil's **Tag**: the field asks whether to make it the valve's undrawn "
 "solenoid."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:71
+#: src/how-to/fluid-workspace.md:78
 msgid "Valve terminals"
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:73
-msgid "There are two kinds, and the terminal's menu says which:"
+#: src/how-to/fluid-workspace.md:80
+msgid ""
+"There are two kinds, and its Properties, its menu and its row in the Devices "
+"list say which (\"Valve terminal · PLC station on PROFIBUS DP\", \"Valve "
+"terminal · multipin, wired\"):"
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:75
+#: src/how-to/fluid-workspace.md:83
 msgid ""
 "a **valve terminal with bus node** is a PLC station on the bus: its valves "
 "are driven inside it, each by the output its position gives, and nothing is "
 "wired per solenoid;"
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:77
+#: src/how-to/fluid-workspace.md:85
 msgid ""
 "a **multipin valve terminal** has a multipin plug: each solenoid is wired "
 "from a PLC output to a pin of the plug."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:79
+#: src/how-to/fluid-workspace.md:87
 msgid ""
 "Choose **Valve terminal** on the Fluid tab and choose the terminal, such as "
-"**Valve terminal with bus node, 4 valve positions, 8 outputs**; click once "
-"where its top-left corner goes. It is drawn as its positions: a supply end, "
-"then one numbered cell per position. An empty position is a dashed cell, a "
-"blanking plate a plate with both diagonals."
+"**Valve terminal with PROFIBUS DP bus node, 4 valve positions, 8 outputs**; "
+"click once where its top-left corner goes. It is drawn as its positions: a "
+"supply end, then one numbered cell per position. An empty position is a "
+"dashed cell, a blanking plate a plate with both diagonals. The toast names "
+"the terminal and its positions; a click onto another box is refused. A "
+"terminal made first as a PLC station (**PLC ▸ New station…**) comes first: "
+"**Valve terminal** offers **Draw -104A1 here** for it, its rack dialog "
+"**Draw on a fluid page…**, and its valves stand in their cells."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:82
+#: src/how-to/fluid-workspace.md:93
 msgid ""
 "Click an empty cell, or right-click it and choose **Fill position 2…**: the "
 "device browser opens with valves; choose a valve for a valve terminal, and "
 "it stands in that cell with its output."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:84
+#: src/how-to/fluid-workspace.md:95
 msgid ""
 "Right-click a held cell for **Replace at position 2…**, **Empty position 2** "
-"and **Blanking plate at position 2**. A valve dragged onto another cell "
-"moves there; onto a held cell the two swap. A valve's **Valve position** in "
+"and **Blanking plate at position 2** (an empty cell's device browser lists "
+"**Blanking plate** first; the check's warning on an empty position offers it "
+"as its fix, and **Fix all** blanks every empty position at once); "
+"right-click the terminal's body for every position, each under a heading "
+"such as **Position 2: empty**. A valve dragged onto another cell moves "
+"there; onto a held cell the two swap. A valve's **Valve position** in "
 "Properties moves it too."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:87
+#: src/how-to/fluid-workspace.md:101
 msgid ""
-"A stand-alone valve, a coil or a cylinder dropped into the box is not taken "
-"as a position: it stays a device of its own, and the toast says so."
+"A valve for a valve terminal dropped onto a cell takes that position on "
+"either kind of terminal, and the toast says which. A stand-alone valve, a "
+"coil or a cylinder dropped into the box is not taken as a position: it stays "
+"a device of its own, and the toast says so."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:89
+#: src/how-to/fluid-workspace.md:104
 msgid ""
-"On a multipin terminal, right-click its row on an electrical page and choose "
-"**Draw the plug of -201K1 on this page…**: beside each pin stands the valve "
-"and solenoid it drives. Wire a pin to a PLC output, and the valve on the "
-"fluid page shows that output."
+"On a multipin terminal, right-click it on any page and choose **Draw the "
+"plug of -201K1 on an electrical page…** (or **Draw plug** on the Fluid tab, "
+"or the **Plug** row in its Properties): the window asks on which electrical "
+"page, and that page shows with the plug on the pointer; click once where it "
+"goes. With an electrical page in front it is drawn there. Its pins stand "
+"down both sides, and beside each pin stands the valve and solenoid it "
+"drives. Wire a pin to a PLC output, and the valve on the fluid page shows "
+"that output."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:92
+#: src/how-to/fluid-workspace.md:109
 msgid ""
 "The rack dialog (**Rack…**) lists the terminal's positions as rows with "
 "**Fill…**, **Blanking plate** and **Empty**. **Generate overview…** on the "
@@ -4178,37 +4228,37 @@ msgid ""
 "previewed."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:95
+#: src/how-to/fluid-workspace.md:112
 msgid "Tubes and the tube list"
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:97
+#: src/how-to/fluid-workspace.md:114
 msgid ""
 "Choose **Fluid settings** on the Fluid tab for the default tube of every "
 "line: its outer and inner diameter in mm and its material. A toast says what "
 "the default tube is now; it reaches the tubes drawn already."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:99
+#: src/how-to/fluid-workspace.md:116
 msgid ""
 "Choose **Tube table** on the Fluid tab: one row per tube with its two ends, "
 "medium, line kind, size and material."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:100
+#: src/how-to/fluid-workspace.md:117
 msgid ""
 "Type a length into **Length** (in mm, or with its unit: `2 m`, `35 cm`) or a "
 "tube part into **Tube part**; **Source** then says the value is manual. An "
 "empty cell goes back to the derived value."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:102
+#: src/how-to/fluid-workspace.md:119
 msgid ""
 "To print the tube list, choose **Output ▸ Report block…** and the report "
 "**Tube list**."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:104
+#: src/how-to/fluid-workspace.md:121
 msgid ""
 "The panels are described in the [panel "
 "reference](../reference/window/panels.md): Fluid, Tube table and Medium "
@@ -4591,7 +4641,8 @@ msgid ""
 "protective-earth terminal); another strip or kind proposes again, and a part "
 "you choose sets the kind it is drawn as. Place then floats the first "
 "terminal; one click lays the whole row, each terminal two grid steps right "
-"of the one before and each with the part. Draw ▸ Place ▸ Terminal…."
+"of the one before and each with the part, and the tool ends; one Undo takes "
+"the row back. Draw ▸ Place ▸ Terminal…."
 msgstr ""
 
 #: src/reference/window/tools.md:78 src/explanation/eplan-and-ew.md:112
@@ -4719,24 +4770,30 @@ msgstr ""
 #: src/reference/window/tools.md:132
 msgid ""
 "While you draw, the wire shows the route it will take. The route never runs "
-"through another connection point, along another wire, through a symbol or a "
-"text, over the frame's bands, or through a junction, and never makes a "
-"fourth arm of a junction. Where only a text stands in the way, the route "
-"crosses it and the hint says \"The route crosses a text: no route keeps "
-"clear of the texts here.\" When no route exists at all the wire shows as a "
-"dashed right-angled line and the hint says \"No clear route: the wire stays "
-"unrouted. Click to place bends.\" Ending it there stores an unrouted wire: "
-"it keeps its connection, but it is drawn dashed and the check reports it "
-"until it has a route. Click on empty points to place bends and the wire "
-"follows them (\"Bend placed: click a connection point to end the wire.\"). "
-"The hint says what a click at the pointer does: on another wire it joins "
-"that wire with a tee (Alt+Click places a bend there instead), on the start "
-"point it does nothing. A junction that already joins three wires is not an "
-"end: the hint says \"This junction already joins three wires: end on a wire "
-"to make a new junction.\""
+"through another connection point, along another wire, through a symbol, over "
+"the frame's bands, or through a junction, and never makes a fourth arm of a "
+"junction. It keeps clear of texts too, unless the only way round them is far "
+"longer (round a group of symbols or the sheet) or there is none: then the "
+"route crosses the text and the hint says \"The route crosses a text: keeping "
+"clear of it is a far longer way.\" A device tag on the wire then moves to a "
+"free place beside its symbol. When no route exists at all the wire shows as "
+"a dashed right-angled line and the hint says \"No clear route: the wire "
+"stays a dashed line without a route. Click free points to lead it, or draw "
+"it later with Edit route.\" Ending it there stores an unrouted wire: it "
+"keeps its connection, but it is drawn dashed and the check reports it "
+"(\"Wire … has no route: it is drawn as a dashed line.\") until it has a "
+"route. Click on empty points to place bends and the wire follows them "
+"(\"Bend placed: click a connection point to end the wire.\"); a click inside "
+"a symbol places no bend and says so (\"A bend cannot sit inside a symbol; "
+"click one of its connection points, or a free point outside it\"). The hint "
+"says what a click at the pointer does: on another wire it joins that wire "
+"with a tee (Alt+Click places a bend there instead), on the start point it "
+"does nothing. A junction that already joins three wires is not an end: the "
+"hint says \"This junction already joins three wires: end on a wire to make a "
+"new junction.\""
 msgstr ""
 
-#: src/reference/window/tools.md:144
+#: src/reference/window/tools.md:148
 msgid ""
 "An unrouted wire, from an import or a placement, is drawn as a dashed line "
 "between its ends, straight or with one corner and never diagonal, on the "
@@ -4744,37 +4801,39 @@ msgid ""
 "no route yet. Route page or Route selection draws it."
 msgstr ""
 
-#: src/reference/window/tools.md:150
+#: src/reference/window/tools.md:154
 msgid ""
-"The Wire tool on a fluid page, drawing tubes of a line kind you pick first: "
-"open it with Tube on the Fluid tab (Fluid ▸ Tubes ▸ Tube…), choose Working, "
-"Pilot, Exhaust, Drain or Flexible and choose Draw. Draw ▸ Wire draws working "
-"tubes. A pilot or drain tube is dashed; a flexible one (a hose) is drawn as "
-"an arc between its ends. Right-click a tube to change its line kind."
+"The Wire tool on a fluid page, drawing tubes at once: open it with Tube on "
+"the Fluid tab (Fluid ▸ Tubes ▸ Tube). It draws the line kind used last, "
+"Working at first; the bar under the page says the kind and the project's "
+"default tube, and its Line kind button steps through Working, Pilot, "
+"Exhaust, Drain and Flexible. Draw ▸ Wire draws working tubes. A pilot or "
+"drain tube is dashed; a flexible one (a hose) is drawn as an arc between its "
+"ends. Right-click a tube to change its line kind."
 msgstr ""
 
-#: src/reference/window/tools.md:155
+#: src/reference/window/tools.md:160
 msgid "Next autoconnect proposal"
 msgstr ""
 
-#: src/reference/window/tools.md:157
+#: src/reference/window/tools.md:162
 msgid ""
 "While a symbol floats near other connection points, shows the next of the "
 "connections EW proposes to draw when you place it. It has no menu item; use "
 "its key."
 msgstr ""
 
-#: src/reference/window/tools.md:160
+#: src/reference/window/tools.md:165
 msgid "Connect while moving"
 msgstr ""
 
-#: src/reference/window/tools.md:162
+#: src/reference/window/tools.md:167
 msgid ""
 "While moving a symbol, connects its connection points to the ones it lands "
 "on. It has no menu item; use its key."
 msgstr ""
 
-#: src/reference/window/tools.md:164
+#: src/reference/window/tools.md:169
 msgid ""
 "Connect while moving is on when you start: the wires the moved symbol would "
 "make are shown while you drag and are drawn with the move when you let go, "
@@ -4785,11 +4844,11 @@ msgid ""
 "keyboard follows that setting."
 msgstr ""
 
-#: src/reference/window/tools.md:170
+#: src/reference/window/tools.md:175
 msgid "Edit route"
 msgstr ""
 
-#: src/reference/window/tools.md:172
+#: src/reference/window/tools.md:177
 msgid ""
 "Changes the drawn route of a wire with the mouse. Select the wire: a handle "
 "shows on each of its segments and a dashed one on each bend. Drag a segment "
@@ -4803,32 +4862,32 @@ msgid ""
 "the segment, the arrow keys move it, `Enter` stores it."
 msgstr ""
 
-#: src/reference/window/tools.md:180
+#: src/reference/window/tools.md:185
 msgid "Route page"
 msgstr ""
 
-#: src/reference/window/tools.md:182
+#: src/reference/window/tools.md:187
 msgid ""
 "Routes every unrouted wire of the page on show in one step. Open it with "
 "Draw ▸ Connect ▸ Route page. The Preview tab shows the plan first: \"Route 3 "
 "wires on folio 101: 2 routed, 1 not routed.\", and for each wire that no "
 "route keeps clear, why, such as \"No route keeps clear of other wires: "
-"-101F1:2 → -101E55:L.\"; a wire routed across a text, as no route keeps "
-"clear of the texts, is named too. Apply draws the routes, and one Undo takes "
-"them back; the toast says \"Routed 2 wires on folio 101.\" When every wire "
-"of the page has a route it says \"Every wire on folio 101 has a route.\" "
-"instead. The router routes supply wires and long wires first, keeps the "
-"wires of a feed side by side in the order L1, L2, L3, N, PE where their ends "
-"allow it, and keeps every route clear as the Wire tool does. A wire it "
+"-101F1:2 → -101E55:L.\"; a wire routed across a text, as keeping clear of "
+"the text is a far longer way, is named too. Apply draws the routes, and one "
+"Undo takes them back; the toast says \"Routed 2 wires on folio 101.\" When "
+"every wire of the page has a route it says \"Every wire on folio 101 has a "
+"route.\" instead. The router routes supply wires and long wires first, keeps "
+"the wires of a feed side by side in the order L1, L2, L3, N, PE where their "
+"ends allow it, and keeps every route clear as the Wire tool does. A wire it "
 "cannot route stays unrouted; move a symbol to make room, or place its bends "
 "with the Wire tool."
 msgstr ""
 
-#: src/reference/window/tools.md:192
+#: src/reference/window/tools.md:197
 msgid "Route selection"
 msgstr ""
 
-#: src/reference/window/tools.md:194
+#: src/reference/window/tools.md:199
 msgid ""
 "Routes the selected wires, and every wire with an end on a selected symbol, "
 "again, routed or not; the other wires of the page stay as they are. Open it "
@@ -4836,18 +4895,18 @@ msgid ""
 "Route page does."
 msgstr ""
 
-#: src/reference/window/tools.md:198 src/explanation/eplan-and-ew.md:44
+#: src/reference/window/tools.md:203 src/explanation/eplan-and-ew.md:44
 msgid "Interruption point"
 msgstr ""
 
-#: src/reference/window/tools.md:200
+#: src/reference/window/tools.md:205
 msgid ""
 "Places an interruption point: the end of a potential on this page that "
 "continues at a point of the same name elsewhere. Open it with Draw ▸ Connect "
 "▸ Interruption point."
 msgstr ""
 
-#: src/reference/window/tools.md:203
+#: src/reference/window/tools.md:208
 msgid ""
 "The arrow always points right, the way the signal flows. A source, where the "
 "potential leaves the page, has its wire on the arrow's tail and belongs at "
@@ -4859,24 +4918,27 @@ msgid ""
 "end."
 msgstr ""
 
-#: src/reference/window/tools.md:209
+#: src/reference/window/tools.md:214
 msgid ""
 "Type the name in the field Interruption point name at the page's top left, "
 "once for a pair: the tool then floats the same name as the first point's "
 "partner, on this page or the next: its target after a source, its source "
 "after a target that no source feeds yet. Once the pair is whole the name is "
-"used up, and each further point gets a name of its own until you type one. "
-"When you choose the tool from the Draw tab or the menu, the field has the "
-"keys: type the name and press Enter or Tab, then click where the point goes. "
-"While the field has the keys, D is a letter of the name and the bar says "
-"\"Enter ends the name\"; after Enter, Tab or a click on the page, D turns "
-"the point. The toast of a placed point says its direction (\"Placed L1 as a "
-"target at 101-B2\") and that D before the click gives the other one. A point "
-"names the potential it carries whichever its direction, so a wire on a "
+"used up. Without a typed name the tool offers the partner of a point that "
+"still waits for one (a target without a source, a source without a target); "
+"only when none waits does a point get a new name. Source and Target beside "
+"the name field choose the direction, as D does. When you choose the tool "
+"from the Draw tab or the menu, the field has the keys: type the name and "
+"press Enter or Tab, then click where the point goes. While the field has the "
+"keys, D is a letter of the name and the bar says \"Enter ends the name\"; "
+"after Enter, Tab or a click on the page, D turns the point. The toast of a "
+"placed point says what it is and where its partner is (\"L1: source here at "
+"101-B2, its target at /102.3\"), or that the partner is still to come. A "
+"point names the potential it carries whichever its direction, so a wire on a "
 "target that no source feeds yet carries the target's name."
 msgstr ""
 
-#: src/reference/window/tools.md:219
+#: src/reference/window/tools.md:227
 msgid ""
 "A point keeps room for its texts: where its name or its cross-reference "
 "would print over another interruption point's, it is not placed, and the "
@@ -4885,11 +4947,11 @@ msgid ""
 "anyway."
 msgstr ""
 
-#: src/reference/window/tools.md:223
+#: src/reference/window/tools.md:231
 msgid "Interruption point direction"
 msgstr ""
 
-#: src/reference/window/tools.md:225
+#: src/reference/window/tools.md:233
 msgid ""
 "Turns the interruption point that the tool floats from source to target, or "
 "back. Draw ▸ Connect ▸ Interruption point direction. An undirected point, "
@@ -4897,7 +4959,7 @@ msgid ""
 "properties."
 msgstr ""
 
-#: src/reference/window/tools.md:229
+#: src/reference/window/tools.md:237
 msgid ""
 "The point takes the form of its new direction: the wire moves from the tail "
 "to the tip, or back. Changing the direction of a placed point in its "
@@ -4905,21 +4967,21 @@ msgid ""
 "other form yet: place one point of that direction first."
 msgstr ""
 
-#: src/reference/window/tools.md:233
+#: src/reference/window/tools.md:241
 msgid "Star source"
 msgstr ""
 
-#: src/reference/window/tools.md:235
+#: src/reference/window/tools.md:243
 msgid ""
 "Marks the interruption point as the source of its name in star mode: one "
 "source, many targets. Draw ▸ Connect ▸ Star source."
 msgstr ""
 
-#: src/reference/window/tools.md:238
+#: src/reference/window/tools.md:246
 msgid "Wire marker"
 msgstr ""
 
-#: src/reference/window/tools.md:240
+#: src/reference/window/tools.md:248
 msgid ""
 "Places a wire marker, the label that prints the cross-section and colours of "
 "the wires it marks. Open it with **Marker** on the Draw tab or Shift+W. Drag "
@@ -4936,7 +4998,7 @@ msgid ""
 "text beyond the line's end, clear of the wires."
 msgstr ""
 
-#: src/reference/window/tools.md:250
+#: src/reference/window/tools.md:258
 msgid ""
 "The wires' numbers print on the page with **Draw ▸ Connect ▸ Print wire "
 "numbers**, a setting of the project that the PDF and print follow too: each "
@@ -4946,62 +5008,62 @@ msgid ""
 "and core name it."
 msgstr ""
 
-#: src/reference/window/tools.md:255
+#: src/reference/window/tools.md:263
 msgid "Text"
 msgstr ""
 
-#: src/reference/window/tools.md:257
+#: src/reference/window/tools.md:265
 msgid "Places a free text on the page. Open it with Draw ▸ Annotate ▸ Text."
 msgstr ""
 
-#: src/reference/window/tools.md:259
+#: src/reference/window/tools.md:267
 msgid "Graphic"
 msgstr ""
 
-#: src/reference/window/tools.md:261
+#: src/reference/window/tools.md:269
 msgid ""
 "Draws a graphic: a line, polyline, rectangle, circle, arc or polygon, which "
 "has no electrical meaning. Open it with Draw ▸ Annotate ▸ Graphic and the "
 "shape."
 msgstr ""
 
-#: src/reference/window/tools.md:264 src/explanation/eplan-and-ew.md:120
+#: src/reference/window/tools.md:272 src/explanation/eplan-and-ew.md:120
 msgid "Structure box"
 msgstr ""
 
-#: src/reference/window/tools.md:266
+#: src/reference/window/tools.md:274
 msgid ""
 "Draws a structure box: a dashed frame that puts what it encloses into a "
 "function or location of the project's structure. Open it with Draw ▸ "
 "Annotate ▸ Structure box."
 msgstr ""
 
-#: src/reference/window/tools.md:269
+#: src/reference/window/tools.md:277
 msgid "Image"
 msgstr ""
 
-#: src/reference/window/tools.md:271
+#: src/reference/window/tools.md:279
 msgid ""
 "Places an image file (SVG, PNG or JPEG) on the page. Open it with Draw ▸ "
 "Annotate ▸ Image…."
 msgstr ""
 
-#: src/reference/window/tools.md:273
+#: src/reference/window/tools.md:281
 msgid "Place device"
 msgstr ""
 
-#: src/reference/window/tools.md:275
+#: src/reference/window/tools.md:283
 msgid ""
 "On a panel layout page, places a device of the location on a rail or the "
 "mounting plate. Open it from the Unplaced devices navigator, which lists the "
 "devices of the location that have no place yet."
 msgstr ""
 
-#: src/reference/window/tools.md:278
+#: src/reference/window/tools.md:286
 msgid "Rail"
 msgstr ""
 
-#: src/reference/window/tools.md:280
+#: src/reference/window/tools.md:288
 msgid ""
 "On a panel layout page, draws a mounting rail. Open it with Draw ▸ Rail. The "
 "page shows an enclosure first: Project ▸ Setup ▸ Enclosure… puts the new "
@@ -5009,11 +5071,11 @@ msgid ""
 "layout](../../how-to/panel-layout.md))."
 msgstr ""
 
-#: src/reference/window/tools.md:283
+#: src/reference/window/tools.md:291
 msgid "Duct"
 msgstr ""
 
-#: src/reference/window/tools.md:285
+#: src/reference/window/tools.md:293
 msgid "On a panel layout page, draws a wiring duct. Open it with Draw ▸ Duct."
 msgstr ""
 
@@ -5318,18 +5380,19 @@ msgid ""
 "A slot the part does not allow, or more modules than the station takes, is "
 "refused, and the reason stays under the slots; the station's slot findings "
 "(EW-PLC-011) are listed there too, each with its icon and the word Error. "
-"Under a made station, **Draw on this page** (the station's box and each "
-"module's not drawn yet, beside it in slot order, in rows under what the "
-"schematic page shown holds, one undo step), **Make the overview page** (a "
-"valve terminal) and **Put it on a bus page** do what comes next. **Close** "
-"or `Esc` closes the dialog."
+"Under a made station, **Draw on page …** (it names the schematic page in "
+"front, with the other schematic pages and a new page beside it; the "
+"station's box and each module's not drawn yet, beside it in slot order, in "
+"rows under what that page holds, one undo step), **Make the overview page** "
+"(a valve terminal) and **Put it on a bus page** do what comes next. "
+"**Close** or `Esc` closes the dialog."
 msgstr ""
 
-#: src/reference/window/dialogs.md:144
+#: src/reference/window/dialogs.md:145
 msgid "PLC import"
 msgstr ""
 
-#: src/reference/window/dialogs.md:146
+#: src/reference/window/dialogs.md:147
 msgid ""
 "**PLC ▸ Import from PLC software…** asks for an AutomationML file or a TIA "
 "Portal \"PLC Tags\" workbook and shows what it would change in the project's "

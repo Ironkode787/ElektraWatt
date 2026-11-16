@@ -254,7 +254,7 @@ impl ShellModel {
 
     /// The folio a page the rack dialog makes takes, asking nothing: New page's proposal, else the first number no page
     /// has.
-    fn free_folio(&self) -> String {
+    pub(super) fn free_folio(&self) -> String {
         let (proposal, _) = self.new_page_proposal();
         if !proposal.is_empty() {
             return proposal;
@@ -1353,10 +1353,10 @@ impl ShellModel {
         self.run_logged("device.place".to_owned(), params)
     }
 
-    /// `fluid.draw_solenoid {function}` (rc.2, F11): a valve's Draw solenoid 14 on an electrical page…: on the page
-    /// shown when it is an electrical (multi-line) page, else on the first one, the solenoid's coil symbol on the
-    /// pointer, so that a click places it as that solenoid of the valve; a toast says which and where. Refused in words
-    /// without an electrical page.
+    /// `fluid.draw_solenoid {function, page?}` (rc.2, F11): a valve's Draw solenoid 14 on this page… or on an
+    /// electrical page…: on the electrical page `page` names or the one in front, else the window asks which
+    /// ([`Self::electrical_page_for`]), the solenoid's coil symbol on the pointer, so that a click places it as that
+    /// solenoid of the valve; a toast says which and where. Refused in words without an electrical page (headless).
     pub(crate) fn act_fluid_draw_solenoid(&mut self, p: &Map<String, Value>) -> Outcome {
         let function = or_return!(self.record_param(p, "function"));
         let Some(session) = self.project_session() else {
@@ -1365,8 +1365,9 @@ impl ShellModel {
         let Some((tag, name, _)) = session.solenoid_of(function) else {
             return Outcome::refused(key!("reason-not-solenoid"));
         };
-        let out = self.arm_on_page(function, "multi_line", key!("reason-no-electrical-page"));
-        if out != Outcome::Done {
+        let what = strings::format(key!("props-solenoid-of"), &[&name, &tag]);
+        let out = self.arm_on_electrical_page(p, (function, function), what, key!("reason-no-electrical-page"));
+        if out != Outcome::Done || self.tool().name() != "place" {
             return out;
         }
         let folio = self.current_folio().unwrap_or_default().to_owned();
@@ -1377,10 +1378,11 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `fluid.draw_plug {terminal?}` (rc.2): a multipin valve terminal's Draw the plug on an electrical page…, from any
-    /// page, as a valve's Draw solenoid: the plug's box on the pointer there, so that a click places it; a toast says
-    /// whose and where. Without `terminal`, of the selected multipin terminal. Refused in words for another device or
-    /// without an electrical page.
+    /// `fluid.draw_plug {terminal?, page?}` (rc.2): a multipin valve terminal's Draw the plug on an electrical page…,
+    /// from any page, as a valve's Draw solenoid: the plug's box on the pointer on the electrical page `page` names or
+    /// the one in front, else the window asks which, so that a click places it; a toast says whose and where. Without
+    /// `terminal`, of the selected multipin terminal. Refused in words for another device or without an electrical page
+    /// (headless).
     pub(crate) fn act_fluid_draw_plug(&mut self, p: &Map<String, Value>) -> Outcome {
         let terminal = if p.contains_key("terminal") {
             or_return!(self.record_param(p, "terminal"))
@@ -1393,12 +1395,14 @@ impl ShellModel {
         let Some(plug) = self.project_session().and_then(|s| s.terminal_plug(terminal)) else {
             return Outcome::refused(key!("reason-not-multipin"));
         };
-        let out = self.arm_on_page(
-            plug.function,
-            "multi_line",
+        let what = strings::format(key!("draw-plug-of"), &[&plug.tag]);
+        let out = self.arm_on_electrical_page(
+            p,
+            (terminal, plug.function),
+            what,
             key!("reason-no-electrical-page-plug"),
         );
-        if out != Outcome::Done {
+        if out != Outcome::Done || self.tool().name() != "black_box" {
             return out;
         }
         let folio = self.current_folio().unwrap_or_default().to_owned();
@@ -1470,9 +1474,31 @@ impl ShellModel {
         self.act_place_pick(&pick)
     }
 
+    /// [`Self::electrical_page_for`] for `target` (a solenoid's coil, or a multipin terminal: what the form names in
+    /// `what`), then `function` (the coil itself, or the terminal's plug) on the pointer there; `Done` with no tool armed
+    /// while the window asks which page.
+    fn arm_on_electrical_page(
+        &mut self,
+        p: &Map<String, Value>,
+        (target, function): (Uuid, Uuid),
+        what: String,
+        none: Key<'static>,
+    ) -> Outcome {
+        let solenoid = target == function;
+        match self.electrical_page_for(solenoid, p, (target, what), none) {
+            Ok(true) => {
+                let mut pick = Map::new();
+                pick.insert("function".into(), Value::String(function.to_string()));
+                self.act_place_pick(&pick)
+            }
+            Ok(false) => Outcome::Done,
+            Err(out) => out,
+        }
+    }
+
     /// Shows the page shown when it is of kind `kind`, else the nearest such page before it, else after it; refused
     /// with `none` without one.
-    fn show_page_of_kind(&mut self, kind: &str, none: Key<'static>) -> Outcome {
+    pub(super) fn show_page_of_kind(&mut self, kind: &str, none: Key<'static>) -> Outcome {
         let of_kind = |i: &usize| self.page_rows().get(*i).is_some_and(|r| r.kind == kind);
         let here = self.page_index();
         let Some(page) = (here..=here)

@@ -51,7 +51,8 @@ on the fluid page: it belongs to the valve and stands on an electrical page, whe
     Properties say what -2X1 is, "Compressed-air supply point · pneumatic", and its medium comes from its port 1.
     Every tube it feeds through the valve now carries compressed air.
 11. Click the valve -2Q1. In Properties the row **Solenoid 14** says "not drawn: draw it…": click it (or right-click
-    the valve and choose **Draw solenoid 14 on an electrical page…**).
+    the valve and choose **Draw solenoid 14 on an electrical page…**). The window asks on which electrical page: page
+    1 is chosen, so choose **Draw**.
     Page 1 shows with the coil on the pointer, and the toast says "Click where solenoid 14 of -2Q1 goes on page 1."
 12. Choose **Draw ▸ Arrange ▸ Mirror top to bottom** (`Y`), so that the coil's A1 is at the bottom, and click near
     the top of page 1, a quarter from the left. Choose **Draw ▸ Select**.

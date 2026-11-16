@@ -2080,6 +2080,9 @@ fn rc2_the_multipin_plug_is_drawn_from_the_terminal_on_the_fluid_page() {
     d.settle();
     d.input(&click(starting_with(&d, &draw)));
     d.settle();
+    // The page asked (the rc.2 re-test): the only electrical page chosen.
+    assert_eq!(d.shell_mut().submit_form(), Outcome::Done);
+    d.settle();
     assert_eq!(d.shell_mut().current_folio(), Some("1"), "the electrical page");
     assert_eq!(
         d.shell_mut().tool().name(),
@@ -2628,6 +2631,71 @@ fn rc2_a_blanking_plate_is_found_from_the_cell_and_the_check() {
         c[0].blank && c[1..].iter().all(|c| c.holder.is_none()),
         "one undo"
     );
+    d.shell_mut().shutdown();
+}
+
+/// The rc.2 re-test (friction 12): from the fluid page Draw plug went to page 1, an empty front page, without a word,
+/// and could not be pointed at the control page. From a fluid page it asks on which electrical page (the one after this
+/// page chosen, New page… offered) and draws there; with an electrical page in front it draws there, asking nothing.
+#[test]
+fn rc2_draw_plug_draws_where_the_person_is() {
+    use ew_ui::ew_viewmodel::shell::Dialog;
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    let page = json!({"folio": "202", "type": "multi_line", "title": "Clamp controls"});
+    assert_eq!(d.shell_mut().dispatch("page.new", &page), Outcome::Done);
+    let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "201"}));
+    let _ = d.shell_mut().dispatch("view.fit_page", &json!({}));
+    d.settle();
+    let terminal = place_multipin(&mut d, (760, 300));
+    let body = supply_px(&mut d);
+    click_at(&mut d, body);
+    // The Fluid tab's Draw plug, the terminal selected.
+    assert_eq!(
+        d.shell_mut().dispatch("fluid.draw_plug", &json!({})),
+        Outcome::Done
+    );
+    d.settle();
+    {
+        let Some(Dialog::Form(form)) = d.shell_mut().dialog() else {
+            panic!("the page asked");
+        };
+        let page = form
+            .fields
+            .iter()
+            .find(|f| f.name == "page")
+            .expect("the page");
+        assert_eq!(page.value, "202", "the page after this one");
+        assert!(
+            page.options.iter().any(|(v, w)| v == "new" && w == "New page…"),
+            "{:?}",
+            page.options
+        );
+    }
+    assert_eq!(d.shell_mut().current_folio(), Some("201"), "nothing moved yet");
+    assert_eq!(d.shell_mut().submit_form(), Outcome::Done);
+    d.settle();
+    assert_eq!(d.shell_mut().current_folio(), Some("202"));
+    assert_eq!(d.shell_mut().tool().name(), "black_box");
+    let toast = d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert_eq!(
+        toast,
+        format!("Click where the plug of {terminal} goes on page 202.")
+    );
+    d.input(&key("escape"));
+    d.settle();
+    // On page 1 in front, the terminal's row draws it there, asking nothing.
+    let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "1"}));
+    d.settle();
+    let row = row_of(&mut d, &terminal);
+    d.input(&right_click(row));
+    d.settle();
+    let here = format!("Draw the plug of {terminal} on this page…");
+    d.input(&click(d.find(&here).expect("on this page")));
+    d.settle();
+    assert!(d.shell_mut().dialog().is_none(), "nothing asked");
+    assert_eq!(d.shell_mut().current_folio(), Some("1"));
+    assert_eq!(d.shell_mut().tool().name(), "black_box");
     d.shell_mut().shutdown();
 }
 
