@@ -2090,9 +2090,7 @@ pub fn chip_word(p: &Provenance) -> &'static str {
         Provenance::Derived { via } if via.starts_with("potential definition ") => {
             strings::text(key!("chip-word-potential"))
         }
-        Provenance::Derived { via } if via.starts_with("cable ") => {
-            strings::text(key!("chip-word-cable"))
-        }
+        Provenance::Derived { via } if via.starts_with("cable ") => strings::text(key!("chip-word-cable")),
         Provenance::Derived { via } if via == "project default" || via.starts_with("built-in default") => {
             strings::text(key!("chip-word-default"))
         }

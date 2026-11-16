@@ -250,7 +250,10 @@ impl Session {
             let Some(command) = self.create_cable(offer.part) else {
                 continue;
             };
-            let all = command.params["conductors"].as_array().cloned().unwrap_or_default();
+            let all = command.params["conductors"]
+                .as_array()
+                .cloned()
+                .unwrap_or_default();
             let shielded = all.iter().any(|c| c["shield"] == Value::Bool(true));
             let cores: Vec<&Value> = all.iter().filter(|c| c["shield"] != Value::Bool(true)).collect();
             let green_yellow = cores.iter().any(|c| c["colour"] == json!(["GN", "YE"]));
@@ -269,7 +272,9 @@ impl Session {
             fit.push((cores.len() - wires.len(), off, shielded, offer.number, words));
         }
         fit.sort();
-        fit.into_iter().map(|(_, _, _, number, words)| (number, words)).collect()
+        fit.into_iter()
+            .map(|(_, _, _, number, words)| (number, words))
+            .collect()
     }
 
     /// Whether the potential of one of the wires `wires` says PE.

@@ -101,7 +101,10 @@ fn a_cable_is_offered_cable_parts_only() {
     };
     assert!(c.offers.iter().all(|o| o.kind == "cable"), "only cables");
     done(&mut s, "part.search", json!({ "text": "EW-GEN-CBL-11" }));
-    assert!(results(&s).contains(&"EW-GEN-CBL-11".to_owned()), "the 4G1.5 starter cable");
+    assert!(
+        results(&s).contains(&"EW-GEN-CBL-11".to_owned()),
+        "the 4G1.5 starter cable"
+    );
 }
 
 /// PS1 in the shell: F55's dialog lists the starter's 1P+N MCB (`same-fndef`), then its 1P MCB (`same-category`),

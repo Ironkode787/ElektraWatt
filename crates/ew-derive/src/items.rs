@@ -43,10 +43,10 @@ use crate::note::DeriveNote;
 use crate::pages::{PageOrder, PageRef, PageRefStructure};
 use crate::query::{Policy, Query};
 use crate::settings::DrawingSettingsQ;
-use crate::tag::DisplayedTag;
 use crate::structure::{
     PAGE_ASPECTS, PageStructure, ResolvedSlot, ResolvedStructure, SlotSource, resolved_slot, slot,
 };
+use crate::tag::DisplayedTag;
 use crate::title_block::{TbValue, TitleBlockValues};
 use crate::wire_props::{ConnWireProps, EffectiveProps};
 use crate::{Q, anchor_point};

@@ -430,8 +430,10 @@ impl ShellModel {
                     let mut type_text = form.type_text.clone();
                     if form.cable.is_none() {
                         let parts = project.session.cable_parts_for(&wires, &form.type_text);
-                        let mut options =
-                            vec![(String::new(), strings::text(key!("form-cable-no-part")).to_owned())];
+                        let mut options = vec![(
+                            String::new(),
+                            strings::text(key!("form-cable-no-part")).to_owned(),
+                        )];
                         options.extend(parts);
                         let value = options.get(1).map(|o| o.0.clone()).unwrap_or_default();
                         if !value.is_empty() {

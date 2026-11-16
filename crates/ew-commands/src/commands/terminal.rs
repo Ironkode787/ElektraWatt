@@ -860,7 +860,11 @@ impl Command for AddConductors {
 /// other cores in core order (cores before shields); the conductors left without a core of the part and without
 /// wires go, and the part's cores no conductor took are added. Nothing happens for a device without a cable aspect or
 /// a part that is no cable part with cores. Rejected: more conductors carry wires than the part has cores.
-pub(crate) fn cores_from_part(tx: &mut TxBuilder<'_>, cable: Id<Device>, part: Id<Part>) -> Result<(), CmdError> {
+pub(crate) fn cores_from_part(
+    tx: &mut TxBuilder<'_>,
+    cable: Id<Device>,
+    part: Id<Part>,
+) -> Result<(), CmdError> {
     if tx.get::<Device>(cable).is_none_or(|d| d.aspects.cable.is_none()) {
         return Ok(());
     }
@@ -916,7 +920,10 @@ pub(crate) fn cores_from_part(tx: &mut TxBuilder<'_>, cable: Id<Device>, part: I
             given.push((c.id, i));
         }
     }
-    for c in conductors.iter().filter(|c| !given.iter().any(|(g, _)| *g == c.id)) {
+    for c in conductors
+        .iter()
+        .filter(|c| !given.iter().any(|(g, _)| *g == c.id))
+    {
         tx.delete((Kind::Conductor, c.id.cast()))?;
     }
     for (c, i) in given {

@@ -298,15 +298,24 @@ fn a_wire_made_a_core_takes_the_cores_cross_section_over_its_marker() {
         .sheet()
         .expect("the wire's properties")
         .clone();
-    for (key, want) in [("connection/derived.csa", "1.5"), ("connection/derived.colour", "BN")] {
+    for (key, want) in [
+        ("connection/derived.csa", "1.5"),
+        ("connection/derived.colour", "BN"),
+    ] {
         let (_, row) = find_row(&sheet, key).unwrap_or_else(|| panic!("{key}"));
         match &row.value {
             RowValue::One { text, .. } => assert!(text.contains(want), "{key}: {text}"),
             other => panic!("{key}: {other:?}"),
         }
         let chip = chip_text(&row.provenance);
-        assert!(chip.contains("cable -1W1") && chip.contains("core BN"), "{key}: {chip}");
-        assert!(!row.actions.contains(&RowAction::Override), "{key}: changed at the cable");
+        assert!(
+            chip.contains("cable -1W1") && chip.contains("core BN"),
+            "{key}: {chip}"
+        );
+        assert!(
+            !row.actions.contains(&RowAction::Override),
+            "{key}: changed at the cable"
+        );
     }
     d.shell_mut().shutdown();
 }
@@ -491,9 +500,15 @@ fn ft1685_cable_makes_the_selected_wires_a_cable_in_one_step() {
         Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => {
             let part = &f.fields[0];
             assert_eq!(part.name, "part");
-            let chosen = part.options.iter().find(|o| o.0 == part.value).map(|o| o.1.clone());
+            let chosen = part
+                .options
+                .iter()
+                .find(|o| o.0 == part.value)
+                .map(|o| o.1.clone());
             assert!(
-                chosen.as_deref().is_some_and(|w| w.contains(" · 2X") && w.ends_with(" · BN BU")),
+                chosen
+                    .as_deref()
+                    .is_some_and(|w| w.contains(" · 2X") && w.ends_with(" · BN BU")),
                 "{chosen:?} of {:?}",
                 part.options
             );
@@ -608,7 +623,12 @@ fn ft1685_cable_makes_the_selected_wires_a_cable_in_one_step() {
     d.settle();
     let moved = tag(&mut d);
     assert!(moved.moved, "the tag is moved");
-    assert!(moved.at.y < before.at.y, "up: {:?} from {:?}", moved.at, before.at);
+    assert!(
+        moved.at.y < before.at.y,
+        "up: {:?} from {:?}",
+        moved.at,
+        before.at
+    );
     assert_eq!(
         d.shell_mut().recorded_commands().last().map(|c| c.cmd.clone()),
         Some("fields.set".to_owned())

@@ -18,7 +18,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_ids::Id;
 use ew_schema::{
-    Conductor, Connection, ConnectionKind, Device, Extra, MarkerField, Page, PageItem, PageItemKind, WireMarker,
+    Conductor, Connection, ConnectionKind, Device, Extra, MarkerField, Page, PageItem, PageItemKind,
+    WireMarker,
 };
 use ew_units::{Angle2, Nm, Pt2};
 
@@ -30,7 +31,11 @@ const ROOM: i64 = 6_000_000;
 
 /// Places or extends the marks of `cable` for the connections `wires` that just became its cores (module
 /// documentation).
-pub(crate) fn mark_cores(tx: &mut TxBuilder<'_>, cable: Id<Device>, wires: &[Id<Connection>]) -> Result<(), CmdError> {
+pub(crate) fn mark_cores(
+    tx: &mut TxBuilder<'_>,
+    cable: Id<Device>,
+    wires: &[Id<Connection>],
+) -> Result<(), CmdError> {
     let mut by_page: BTreeMap<Id<Page>, Vec<Id<Connection>>> = BTreeMap::new();
     for w in wires {
         if let Some(page) = tx.get::<Connection>(*w).and_then(|c| c.page)
@@ -86,12 +91,15 @@ pub(crate) fn mark_cores(tx: &mut TxBuilder<'_>, cable: Id<Device>, wires: &[Id<
     Ok(())
 }
 
+/// A mark's place: its point, its angle and the connections it crosses in the line's order.
+type Placement = (Pt2, Angle2, Vec<Id<Connection>>);
+
 /// The place of a mark over the routed connections `routes` (module documentation): its point, its angle (0: a
 /// horizontal line across vertical wires; 90000: a vertical line across horizontal ones) and the connections it
 /// crosses in the line's order; `None` when no connection has a segment for the line to cross.
-pub(crate) fn placement(routes: &[(Id<Connection>, Vec<Pt2>)]) -> Option<(Pt2, Angle2, Vec<Id<Connection>>)> {
+pub(crate) fn placement(routes: &[(Id<Connection>, Vec<Pt2>)]) -> Option<Placement> {
     // (count, roomy, horizontal line, length) ranks a stretch; the best wins, the first of equal ones.
-    let mut best: Option<((usize, bool, bool, i64), Pt2, Angle2, Vec<Id<Connection>>)> = None;
+    let mut best: Option<((usize, bool, bool, i64), Placement)> = None;
     for horizontal_line in [true, false] {
         // Per connection its segments the line would cross: (position across the line, from, to along the wire).
         let segments: Vec<(Id<Connection>, i64, i64, i64)> = routes
@@ -137,10 +145,10 @@ pub(crate) fn placement(routes: &[(Id<Connection>, Vec<Pt2>)]) -> Option<(Pt2, A
             } else {
                 (Pt2::new(Nm(mid), Nm(centre)), Angle2(90_000))
             };
-            best = Some((rank, at, angle, crossed.into_iter().map(|c| c.1).collect()));
+            best = Some((rank, (at, angle, crossed.into_iter().map(|c| c.1).collect())));
         }
     }
-    best.map(|(_, at, angle, connections)| (at, angle, connections))
+    best.map(|(_, place)| place)
 }
 
 #[cfg(test)]

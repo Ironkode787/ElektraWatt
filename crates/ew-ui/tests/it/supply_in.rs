@@ -154,7 +154,10 @@ fn supply_comes_in_here_marks_the_points_and_their_findings_go() {
     d.shell_mut().set_form_field("location", "MCC2");
     d.input(&click(d.find("Apply").expect("Apply")));
     d.settle();
-    assert!(!place.is_empty() && place != "MCC2", "the place it came from: {place}");
+    assert!(
+        !place.is_empty() && place != "MCC2",
+        "the place it came from: {place}"
+    );
     assert_eq!(
         d.shell_mut().recorded_commands().last().unwrap().params["location"],
         json!("MCC2")

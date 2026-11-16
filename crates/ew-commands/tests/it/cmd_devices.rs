@@ -1043,7 +1043,11 @@ fn a_cable_made_from_wires_gets_its_mark_on_each_page() {
     cmd.conductors[1].wires = vec![id(0x4102)];
     cmd.conductors[2].wires = vec![id(0x4103)];
     let r = e.execute(&cmd).unwrap();
-    assert_eq!(marks_on(&e, PAGE_102), [vec![id(0x4102), id(0x4101)]], "left to right");
+    assert_eq!(
+        marks_on(&e, PAGE_102),
+        [vec![id(0x4102), id(0x4101)]],
+        "left to right"
+    );
     assert_eq!(marks_on(&e, PAGE_101), [vec![id(0x4103)]]);
     // A fourth core on the first page joins its mark.
     let cable: ew_ids::Id<Device> = primary(&r);
@@ -1054,10 +1058,7 @@ fn a_cable_made_from_wires_gets_its_mark_on_each_page() {
         conductors: vec![more],
     })
     .unwrap();
-    assert_eq!(
-        marks_on(&e, PAGE_102),
-        [vec![id(0x4102), id(0x4101), id(0x4104)]]
-    );
+    assert_eq!(marks_on(&e, PAGE_102), [vec![id(0x4102), id(0x4101), id(0x4104)]]);
 }
 
 /// A cable part with the cores `cores` of 1.5 mm² (`GNYE` green-yellow, the others their own code as colour).
@@ -1094,7 +1095,9 @@ fn a_part_given_to_a_cable_sets_its_cores() {
         )));
     }
     let mut lib = library();
-    lib.extend([cable_part(1, &["BN", "BU", "GNYE"]), cable_part(2, &["BN"])].map(ew_schema::LibDocument::Part));
+    lib.extend(
+        [cable_part(1, &["BN", "BU", "GNYE"]), cable_part(2, &["BN"])].map(ew_schema::LibDocument::Part),
+    );
     let mut e = engine(Model::from_records(p, records, lib).expect("valid model"));
     let mut cmd = cable_cmd(&["1", "2"]);
     cmd.conductors[0].wires = vec![wires[0]];
@@ -1139,7 +1142,10 @@ fn a_part_given_to_a_cable_sets_its_cores() {
         ConnectionKind::Core(k) => row(&e, k).core.as_str().to_owned(),
         ref other => panic!("{other:?}"),
     };
-    assert_eq!((core_of(wires[0]), core_of(wires[1])), ("BN".to_owned(), "BU".to_owned()));
+    assert_eq!(
+        (core_of(wires[0]), core_of(wires[1])),
+        ("BN".to_owned(), "BU".to_owned())
+    );
 }
 
 #[test]

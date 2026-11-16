@@ -2354,7 +2354,9 @@ impl Builder<'_> {
             }
         };
         let stroke = wire_stroke(view.grid);
-        self.push(Item::path(Path::line(on_line(lo), on_line(hi)), Some(stroke.clone()), None).with_entity(entity));
+        self.push(
+            Item::path(Path::line(on_line(lo), on_line(hi)), Some(stroke.clone()), None).with_entity(entity),
+        );
         for (along, core) in &crossings {
             let p = on_line(*along);
             let tick = Path::line(
@@ -2384,11 +2386,19 @@ impl Builder<'_> {
             let kind_h = self
                 .text_box(&kind, false)
                 .map_or(Nm::ZERO, |b| b.max().y - b.min().y + CABLE_TEXT_GAP);
-            (Pt2::new(start.x, start.y - MARKER_GAP - kind_h), Align::BottomCentre)
+            (
+                Pt2::new(start.x, start.y - MARKER_GAP - kind_h),
+                Align::BottomCentre,
+            )
         };
         let tag_at = m
             .tag_at
-            .and_then(|d| Some(Pt2::new(Nm(m.at.x.0.checked_add(d.x.0)?), Nm(m.at.y.0.checked_add(d.y.0)?))))
+            .and_then(|d| {
+                Some(Pt2::new(
+                    Nm(m.at.x.0.checked_add(d.x.0)?),
+                    Nm(m.at.y.0.checked_add(d.y.0)?),
+                ))
+            })
             .unwrap_or(tag_at);
         let tag = cable_text(&mark.tag, tag_at, &tag_align, CABLE_TAG_STYLE, entity);
         self.text(&tag);
@@ -2409,11 +2419,25 @@ impl Builder<'_> {
             },
         });
         let below = tag_box.max().y + CABLE_TEXT_GAP;
-        let left = cable_text(&mark.kind, Pt2::new(tag_box.min().x, below), &Align::TopLeft, CABLE_KIND_STYLE, entity);
-        let longer = self.text_box(&left, false).is_some_and(|b| b.max().x > tag_box.max().x);
+        let left = cable_text(
+            &mark.kind,
+            Pt2::new(tag_box.min().x, below),
+            &Align::TopLeft,
+            CABLE_KIND_STYLE,
+            entity,
+        );
+        let longer = self
+            .text_box(&left, false)
+            .is_some_and(|b| b.max().x > tag_box.max().x);
         if longer {
             let right = Pt2::new(tag_box.max().x, below);
-            self.text(&cable_text(&mark.kind, right, &Align::TopRight, CABLE_KIND_STYLE, entity));
+            self.text(&cable_text(
+                &mark.kind,
+                right,
+                &Align::TopRight,
+                CABLE_KIND_STYLE,
+                entity,
+            ));
         } else {
             self.text(&left);
         }
@@ -3149,7 +3173,13 @@ pub(crate) struct TextSpec<'a> {
 }
 
 /// A horizontal text of a cable mark, without a link.
-fn cable_text<'a>(text: &'a str, at: Pt2, align: &'a Align, style_key: &'a str, entity: EntityRef) -> TextSpec<'a> {
+fn cable_text<'a>(
+    text: &'a str,
+    at: Pt2,
+    align: &'a Align,
+    style_key: &'a str,
+    entity: EntityRef,
+) -> TextSpec<'a> {
     TextSpec {
         text,
         at,
