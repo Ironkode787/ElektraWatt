@@ -218,6 +218,12 @@ impl ShellModel {
         self.doc_request = Some(DocRequest { target, url, page });
     }
 
+    /// Names the guide page `file` in a toast, where a run without a browser answers a guide link (the offscreen visual
+    /// driver: `book/how-to/plc-workspace.html`).
+    pub fn note_guide_page(&mut self, file: &str) {
+        self.notify_with(strings::format(key!("toast-guide-page"), &[file]), "help", false);
+    }
+
     pub(crate) fn act_documentation(&mut self, p: &Map<String, Value>) -> Outcome {
         let topic = match string_param(p, "topic") {
             Err(e) => return e,

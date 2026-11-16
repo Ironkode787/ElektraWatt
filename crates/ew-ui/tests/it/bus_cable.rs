@@ -41,6 +41,19 @@ fn a_bus_lines_kind_reads_in_words() {
     assert_eq!(kind.as_deref(), Some("Bus line"));
 }
 
+/// A persona run met a banner about mdbook where the guide is not beside the program: in the offscreen visual driver
+/// a guide link names the page's file under `book/` in a toast instead.
+#[test]
+fn a_guide_link_names_its_page_in_a_visual_run() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    d.input(&key("F1"));
+    d.settle();
+    let toast = d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert!(toast.starts_with("The guide's page: book/"), "{toast}");
+    assert!(toast.ends_with(".html"), "{toast}");
+}
+
 fn option(d: &mut ew_ui::visual::Driver, name: &str, words: &str) -> String {
     let Some(Dialog::Form(form)) = d.shell_mut().dialog() else {
         panic!("a form");

@@ -536,7 +536,7 @@ fn f1_without_an_installed_guide_says_so() {
     h.key_press(Key::F1);
     settle(&mut h);
     assert!(platform.opened.borrow().is_empty());
-    assert!(h.query_by_label_contains("user guide is not installed").is_some());
+    assert!(h.query_by_label_contains("guide is not installed with this copy").is_some());
 }
 
 #[test]

@@ -102,7 +102,9 @@ in it, in picture pixels. `--workaround` says how you got round it, if you did. 
 cannot be edited; it needs no note and is not a turn.
 
 The user guide is in the folder `book/` of this run (HTML), as a real program's manual would be. You may read it at any
-time; each time you open it because the window did not tell you what to do, log a `discoverability` entry first.
+time; each time you open it because the window did not tell you what to do, log a `discoverability` entry first. A
+guide link in the window (Guide, a "?" button, F1) opens no browser here: a toast names the page's file under `book/`
+("The guide's page: book/how-to/plc-workspace.html"), which you can read.
 
 ## The hand-back
 

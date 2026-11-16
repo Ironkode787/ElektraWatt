@@ -278,6 +278,12 @@ impl Platform for VisualPlatform {
         }
     }
 
+    /// A guide page is named by its file under the run's `book/` folder, its heading left out: the persona reads it there.
+    fn guide_file(&self, target: &str) -> Option<String> {
+        let page = target.split_once('#').map_or(target, |(page, _)| page);
+        Some(format!("book/{page}"))
+    }
+
     /// A second window is answered as started: a visual run starts no second process.
     fn open_window(&mut self, _project: &std::path::Path) -> bool {
         true

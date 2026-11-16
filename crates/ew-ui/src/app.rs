@@ -154,6 +154,12 @@ pub trait Platform {
         false
     }
 
+    /// The file of the guide's page `target` (`how-to/plc-workspace.html#…`) that a run without a browser names instead
+    /// of opening it (the offscreen visual driver: under its `book/` folder); `None` where a guide page is opened.
+    fn guide_file(&self, _target: &str) -> Option<String> {
+        None
+    }
+
     /// Opens a written file (an exported PDF or table) in the system's default application for its type, by its path;
     /// `false` when it could not be opened.
     fn open_file(&mut self, _file: &std::path::Path) -> bool {
@@ -2103,8 +2109,13 @@ impl App {
                 .url
                 .as_deref()
                 .is_some_and(|url| self.platform.open_url(url));
-            if !opened {
-                self.shell.show_banner(strings::text(key!("doc-missing")));
+            if opened {
+                continue;
+            }
+            // An offscreen visual run names the page's file, so that a persona can read the page it was sent to.
+            match self.platform.guide_file(&request.target) {
+                Some(file) => self.shell.note_guide_page(&file),
+                None => self.shell.show_banner(strings::text(key!("doc-missing"))),
             }
         }
     }
