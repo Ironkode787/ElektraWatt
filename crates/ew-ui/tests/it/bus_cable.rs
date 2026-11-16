@@ -23,7 +23,13 @@ fn a_bus_lines_kind_reads_in_words() {
     d.settle();
     let cpu = place_box(&mut d, "EW-GEN-CPU-2", (20, 15), (30, 22));
     let rio = place_box(&mut d, "EW-GEN-RIO-1", (60, 15), (70, 22));
-    let dp = |labels: &[String]| labels.iter().find(|l| !l.ends_with(":P1")).cloned().expect("a DP socket");
+    let dp = |labels: &[String]| {
+        labels
+            .iter()
+            .find(|l| !l.ends_with(":P1"))
+            .cloned()
+            .expect("a DP socket")
+    };
     d.input(&key("W"));
     d.settle();
     press_cp(&mut d, &dp(&cpu));
@@ -31,9 +37,23 @@ fn a_bus_lines_kind_reads_in_words() {
     d.input(&key("Escape"));
     d.input(&key("Escape"));
     d.settle();
-    let line = d.shell_mut().canvas().expect("the page").page().tables.connections[0].id.to_string();
-    assert_eq!(d.shell_mut().dispatch("select.set", &json!({"ids": [line]})), Outcome::Done);
-    assert_eq!(d.shell_mut().dispatch("props.show", &json!({"on": true})), Outcome::Done);
+    let line = d
+        .shell_mut()
+        .canvas()
+        .expect("the page")
+        .page()
+        .tables
+        .connections[0]
+        .id
+        .to_string();
+    assert_eq!(
+        d.shell_mut().dispatch("select.set", &json!({"ids": [line]})),
+        Outcome::Done
+    );
+    assert_eq!(
+        d.shell_mut().dispatch("props.show", &json!({"on": true})),
+        Outcome::Done
+    );
     d.settle();
     let sheet = d.shell_mut().properties().sheet().expect("the sheet").clone();
     let kind = ew_ui::ew_viewmodel::properties::find_row(&sheet, "connection/kind")
@@ -51,7 +71,7 @@ fn a_guide_link_names_its_page_in_a_visual_run() {
     d.settle();
     let toast = d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
     assert!(toast.starts_with("The guide's page: book/"), "{toast}");
-    assert!(toast.ends_with(".html"), "{toast}");
+    assert!(toast.ends_with(".html."), "{toast}");
 }
 
 fn option(d: &mut ew_ui::visual::Driver, name: &str, words: &str) -> String {

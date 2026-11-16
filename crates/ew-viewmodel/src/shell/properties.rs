@@ -1331,7 +1331,8 @@ impl ShellModel {
             return failed(key!("error-no-row"), &[key]);
         };
         // A bus device's PLC row gives it to the PLC chosen, or to a new one (rc.2 persona run).
-        if matches!(&row.route, crate::properties::EditRoute::Command { command } if command == "plc.add_to_plc") {
+        if matches!(&row.route, crate::properties::EditRoute::Command { command } if command == "plc.add_to_plc")
+        {
             self.props.edit = None;
             self.props.error = None;
             let mut params = Map::new();

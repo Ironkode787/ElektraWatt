@@ -278,14 +278,23 @@ pub(crate) fn rack(
                     .style(crate::menu::menu_style(&t))
                     .show(|ui| {
                         for (folio, title) in &schematic {
-                            if ui.button(format!("{folio} {title}").trim()).clicked() {
-                                events.push(Event::Action("plc.rack_next", json!({ "step": "draw", "folio": folio })));
+                            if ui
+                                .button(strings::format(key!("rack-page-choice"), &[folio, title]).trim())
+                                .clicked()
+                            {
+                                events.push(Event::Action(
+                                    "plc.rack_next",
+                                    json!({ "step": "draw", "folio": folio }),
+                                ));
                                 ui.close();
                             }
                         }
                         ui.separator();
                         if ui.button(strings::text(key!("rack-draw-new-page"))).clicked() {
-                            events.push(Event::Action("plc.rack_next", json!({ "step": "draw", "folio": "new" })));
+                            events.push(Event::Action(
+                                "plc.rack_next",
+                                json!({ "step": "draw", "folio": "new" }),
+                            ));
                             ui.close();
                         }
                     });
@@ -316,7 +325,10 @@ pub(crate) fn rack(
                         .style(crate::menu::menu_style(&t))
                         .show(|ui| {
                             for (folio, title) in &bus_pages {
-                                if ui.button(format!("{folio} {title}").trim()).clicked() {
+                                if ui
+                                    .button(strings::format(key!("rack-page-choice"), &[folio, title]).trim())
+                                    .clicked()
+                                {
                                     events.push(Event::Action(
                                         "plc.rack_next",
                                         json!({ "step": step, "folio": folio }),
@@ -529,7 +541,12 @@ fn part_menu(
                 let mut text = ui
                     .data_mut(|d| d.get_temp::<String>(id))
                     // A number left from another rack yields to this dialog's count.
-                    .filter(|s| s.trim().parse::<u16>().ok().is_none_or(|n| n == count || !(1..=64).contains(&n)))
+                    .filter(|s| {
+                        s.trim()
+                            .parse::<u16>()
+                            .ok()
+                            .is_none_or(|n| n == count || !(1..=64).contains(&n))
+                    })
                     .unwrap_or_else(|| count.to_string());
                 ui.horizontal(|ui| {
                     let caption = ui.label(strings::text(key!("rack-count")));
@@ -542,7 +559,12 @@ fn part_menu(
                         events.push(Event::Action("plc.rack_set", json!({ "count": n })));
                     }
                 });
-                if text.trim().parse::<u16>().ok().is_none_or(|n| !(1..=64).contains(&n)) {
+                if text
+                    .trim()
+                    .parse::<u16>()
+                    .ok()
+                    .is_none_or(|n| !(1..=64).contains(&n))
+                {
                     ui.label(
                         RichText::new(strings::text(key!("rack-count-range")))
                             .font(theme::font(&t.type_small))

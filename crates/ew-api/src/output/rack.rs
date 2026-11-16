@@ -512,7 +512,11 @@ pub(crate) fn network_switch(q: &Q, device: Id<Device>) -> bool {
     let Some(d) = q.devices().get(device) else {
         return false;
     };
-    let copies: Vec<_> = d.parts.iter().filter_map(|u| q.parts().get(u.part.copy)).collect();
+    let copies: Vec<_> = d
+        .parts
+        .iter()
+        .filter_map(|u| q.parts().get(u.part.copy))
+        .collect();
     copies.iter().all(|c| c.item.sections.plc.is_none())
         && copies
             .iter()

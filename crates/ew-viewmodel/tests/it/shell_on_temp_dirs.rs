@@ -241,7 +241,10 @@ fn the_tutorials_open_a_fresh_copy_of_the_sample_project() {
         Some("A fresh copy of the sample project was made for the tutorials.")
     );
     let state = |s: &ShellModel| ew_viewmodel::status::bar(s, false)[0].text.clone();
-    assert_eq!(state(&shell), "The guide is not installed with this copy of the program");
+    assert_eq!(
+        state(&shell),
+        "The guide is not installed with this copy of the program"
+    );
     done(
         &mut shell,
         "page.new",

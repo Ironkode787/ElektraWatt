@@ -325,7 +325,11 @@ impl ShellModel {
                 // A network switch belongs to its PLC with no rack (rc.2 persona run).
                 if !session.network_switch(device) {
                     let label = strings::text(key!("action-plc-rack-editor")).to_owned();
-                    out.extend(self.aimed("plc.rack_editor", json!({ "station": device.to_string() }), label));
+                    out.extend(self.aimed(
+                        "plc.rack_editor",
+                        json!({ "station": device.to_string() }),
+                        label,
+                    ));
                 }
                 out.extend(self.menu_item("plc.add_to_plc").map(|mut i| {
                     i.label = strings::format(key!("canvas-plc-of"), &[&name]);

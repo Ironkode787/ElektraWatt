@@ -334,7 +334,10 @@ fn a_module_drawn_unbound_is_found_and_bound_by_its_fix() {
             .collect()
     };
     let ids = channel_ids(&s);
-    assert!(!ids.is_empty() && ids.iter().all(|(_, b)| *b), "drawn by hand, bound: {ids:?}");
+    assert!(
+        !ids.is_empty() && ids.iter().all(|(_, b)| *b),
+        "drawn by hand, bound: {ids:?}"
+    );
     let findings = |s: &Session| {
         s.check(&PRE_DELIVERY, CheckMode::Online)
             .findings
@@ -342,10 +345,20 @@ fn a_module_drawn_unbound_is_found_and_bound_by_its_fix() {
             .filter(|f| f.rule == "EW-PLC-018")
             .collect::<Vec<_>>()
     };
-    run(&mut s, "plc.bind_channel", json!({"channel": ids[0].0.to_string(), "endpoint": null})).expect("unbind");
+    run(
+        &mut s,
+        "plc.bind_channel",
+        json!({"channel": ids[0].0.to_string(), "endpoint": null}),
+    )
+    .expect("unbind");
     assert!(findings(&s).is_empty(), "one channel unbound on purpose");
     for (c, _) in &ids[1..] {
-        run(&mut s, "plc.bind_channel", json!({"channel": c.to_string(), "endpoint": null})).expect("unbind");
+        run(
+            &mut s,
+            "plc.bind_channel",
+            json!({"channel": c.to_string(), "endpoint": null}),
+        )
+        .expect("unbind");
     }
     let found = findings(&s);
     assert_eq!(found.len(), 1, "{found:?}");

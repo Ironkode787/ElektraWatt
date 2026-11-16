@@ -1549,10 +1549,16 @@ impl Command for BindPins {
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         let dev = tx.require::<Device>(self.module)?;
         if dev.aspects.plc_module.is_none() && dev.aspects.plc_station.is_none() {
-            return tx.reject(text!("refusal-plc-not-in-rack", crate::words::device(tx, self.module)));
+            return tx.reject(text!(
+                "refusal-plc-not-in-rack",
+                crate::words::device(tx, self.module)
+            ));
         }
         if !crate::normalise::module_pin_binding::bind_free_pins(tx, self.module)? {
-            return tx.reject(text!("refusal-plc-pins-bound", crate::words::device(tx, self.module)));
+            return tx.reject(text!(
+                "refusal-plc-pins-bound",
+                crate::words::device(tx, self.module)
+            ));
         }
         Ok(Outcome::primary((Kind::Device, self.module.cast())))
     }

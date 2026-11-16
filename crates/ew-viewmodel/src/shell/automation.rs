@@ -807,7 +807,6 @@ impl ShellModel {
         out
     }
 
-
     /// `plc.rack_create` (F18 of the rc.1 test): the new-station dialog's Create: the station and its modules, drawn
     /// nowhere yet, with one `plc.add_station` (library parts embedded with it), one undo step; the dialog then shows
     /// the station's rack and says what comes next.
@@ -915,7 +914,10 @@ impl ShellModel {
                 // A station whose part has no bus interface cannot stand on a bus page: said under the slots (the
                 // rc.2 persona run's valve terminal closed the dialog and did nothing).
                 let (tag, bus) = self.project_session().map_or((String::new(), false), |s| {
-                    (s.device_tag(station).unwrap_or_default(), s.has_bus_interfaces(station))
+                    (
+                        s.device_tag(station).unwrap_or_default(),
+                        s.has_bus_interfaces(station),
+                    )
                 });
                 if !bus {
                     return self.rack_refuse(strings::format(key!("rack-no-bus-interface"), &[&tag]));
@@ -935,7 +937,8 @@ impl ShellModel {
                                 &json!({ "folio": folio, "type": "bus_topology", "title": title }),
                             );
                             if made != Outcome::Done {
-                                return self.rack_refuse(strings::text(key!("reason-rack-no-bus-page")).to_owned());
+                                return self
+                                    .rack_refuse(strings::text(key!("reason-rack-no-bus-page")).to_owned());
                             }
                             folio
                         }

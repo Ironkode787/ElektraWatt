@@ -209,9 +209,18 @@ fn a_bus_device_is_given_to_a_plc_from_its_properties() {
     h.get_by_label("New PLC…").click();
     settle(&mut h);
     assert!(h.state().shell().dialog().is_none(), "a switch has no rack");
-    let toast = h.state().shell().toast().map(|t| t.text.clone()).unwrap_or_default();
-    assert!(toast.ends_with("belongs to PLC1 now"), "{toast}");
-    assert_eq!(plc_row(&h).as_deref(), Some("PLC1"), "the Properties stay on the switch");
+    let toast = h
+        .state()
+        .shell()
+        .toast()
+        .map(|t| t.text.clone())
+        .unwrap_or_default();
+    assert!(toast.ends_with("belongs to PLC1 now."), "{toast}");
+    assert_eq!(
+        plc_row(&h).as_deref(),
+        Some("PLC1"),
+        "the Properties stay on the switch"
+    );
     let menu: Vec<String> = canvas_menu(h.state().shell(), MenuSpot::Object, None)
         .into_iter()
         .map(|i| i.label)
@@ -222,7 +231,14 @@ fn a_bus_device_is_given_to_a_plc_from_its_properties() {
         h.state()
             .shell()
             .canvas()
-            .map(|c| c.page().tables.reps.iter().map(|r| (r.id, r.device)).collect::<Vec<_>>())
+            .map(|c| {
+                c.page()
+                    .tables
+                    .reps
+                    .iter()
+                    .map(|r| (r.id, r.device))
+                    .collect::<Vec<_>>()
+            })
             .unwrap_or_default()
     };
     let before = reps(&h);
@@ -290,11 +306,18 @@ fn put_it_on_a_bus_page_makes_the_page_or_asks_which() {
     settle(&mut h);
     let shown = |h: &egui_kittest::Harness<'static, ew_ui::app::App>| {
         let shell = h.state().shell();
-        shell.page_rows().get(shell.page_index()).map(|r| (r.folio.clone(), r.kind.clone()))
+        shell
+            .page_rows()
+            .get(shell.page_index())
+            .map(|r| (r.folio.clone(), r.kind.clone()))
     };
     let (made, kind) = shown(&h).expect("a page");
     assert_eq!(kind, "bus_topology", "the bus page is made and shown");
-    assert!(h.state().shell().dialog().is_none(), "{:?}", h.state().shell().dialog());
+    assert!(
+        h.state().shell().dialog().is_none(),
+        "{:?}",
+        h.state().shell().dialog()
+    );
     dispatch(&mut h, "ui.dismiss", json!({}));
     dispatch(
         &mut h,
@@ -314,15 +337,23 @@ fn put_it_on_a_bus_page_makes_the_page_or_asks_which() {
 
 /// The topology boxes of `device` on the page shown.
 fn topology_boxes(h: &egui_kittest::Harness<'static, ew_ui::app::App>, device: Uuid) -> usize {
-    h.state()
-        .shell()
-        .canvas()
-        .map_or(0, |c| c.page().tables.reps.iter().filter(|r| r.device == Some(device)).count())
+    h.state().shell().canvas().map_or(0, |c| {
+        c.page()
+            .tables
+            .reps
+            .iter()
+            .filter(|r| r.device == Some(device))
+            .count()
+    })
 }
 
 /// A station of kind `kind` with head part `head` made in the new-station dialog and put on a bus page from its rack
 /// with two corners of its first box: the station.
-fn station_on_bus_page(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>, kind: &str, head: &str) -> Uuid {
+fn station_on_bus_page(
+    h: &mut egui_kittest::Harness<'static, ew_ui::app::App>,
+    kind: &str,
+    head: &str,
+) -> Uuid {
     dispatch(h, "plc.new_station", json!({}));
     dispatch(h, "plc.rack_set", json!({"kind": kind, "head": head}));
     settle(h);
@@ -354,7 +385,12 @@ fn every_station_kind_goes_onto_a_bus_page_with_all_its_interfaces() {
     dispatch(&mut h, "page.goto", json!({"folio": "101"}));
     let cpu = station_on_bus_page(&mut h, "cpu", "EW-GEN-CPU-2");
     assert_eq!(topology_boxes(&h, cpu), 2, "DP and X1");
-    let toast = h.state().shell().toast().map(|t| t.text.clone()).unwrap_or_default();
+    let toast = h
+        .state()
+        .shell()
+        .toast()
+        .map(|t| t.text.clone())
+        .unwrap_or_default();
     assert_eq!(toast, "Placed as 2 boxes, one for each bus interface.");
     h.state_mut().shell_mut().shutdown();
 }
@@ -375,7 +411,14 @@ fn a_bus_page_says_its_steps_and_a_box_its_addresses() {
         .state()
         .shell()
         .canvas()
-        .and_then(|c| c.page().tables.reps.iter().find(|r| r.device == Some(cpu)).map(|r| r.id))
+        .and_then(|c| {
+            c.page()
+                .tables
+                .reps
+                .iter()
+                .find(|r| r.device == Some(cpu))
+                .map(|r| r.id)
+        })
         .expect("a box of the CPU");
     dispatch(&mut h, "select.set", json!({"ids": [rep.to_string()]}));
     dispatch(&mut h, "props.show", json!({"on": true}));
@@ -389,7 +432,8 @@ fn a_bus_page_says_its_steps_and_a_box_its_addresses() {
         .map(|(s, r)| row_label(s, r))
         .collect();
     assert!(
-        main.iter().any(|l| l == "Station address" || l == "Device name and IP"),
+        main.iter()
+            .any(|l| l == "Station address" || l == "Device name and IP"),
         "{main:?}"
     );
     h.state_mut().shell_mut().shutdown();
@@ -530,7 +574,11 @@ fn draw_names_the_page_or_lists_the_pages() {
     };
     h.get_by_label("Draw on page 101 Control");
     dispatch(&mut h, "ui.dismiss", json!({}));
-    dispatch(&mut h, "page.new", json!({"folio": "900", "type": "bus_topology", "title": "Field bus"}));
+    dispatch(
+        &mut h,
+        "page.new",
+        json!({"folio": "900", "type": "bus_topology", "title": "Field bus"}),
+    );
     dispatch(&mut h, "plc.rack_editor", json!({"station": station.to_string()}));
     settle(&mut h);
     h.get_by_label("Draw on a page ▸").click();
@@ -592,7 +640,11 @@ fn modules_drawn_from_the_rack_are_bound_to_their_pins() {
     // The second module's own Draw…, then Draw on this page for the rest.
     dispatch(&mut h, "plc.rack_slot", json!({"slot": 2, "op": "draw"}));
     settle(&mut h);
-    assert!(h.state().shell().dialog().is_none(), "{:?}", h.state().shell().dialog());
+    assert!(
+        h.state().shell().dialog().is_none(),
+        "{:?}",
+        h.state().shell().dialog()
+    );
     assert!(topology_boxes(&h, modules[1]) == 1, "the module's box");
     dispatch(&mut h, "plc.rack_editor", json!({"station": station.to_string()}));
     settle(&mut h);
