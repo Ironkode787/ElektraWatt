@@ -50,8 +50,9 @@ const VERSION: &str = "0.1.0";
 /// §2.7), 0.11.0 since the multipin valve terminal EW-GEN-VTP-1 was added and the valve terminal EW-GEN-VTM-1 says
 /// that it has a bus node (rc.2, F15), 0.12.0 since that terminal's bus node has its PROFIBUS DP interface and the
 /// terminal with a PROFINET bus node EW-GEN-VTM-2 was added (the rc.2 persona run: Put it on a bus page did nothing for
-/// a terminal whose part had no bus interface).
-const LIBRARY_VERSION: &str = "0.12.0";
+/// a terminal whose part had no bus interface), 0.13.0 since the signal lamps in red, green and yellow EW-GEN-LMP-2 to
+/// -4 were added (the rc.2 persona run: a cabinet door's basics).
+const LIBRARY_VERSION: &str = "0.13.0";
 /// The parts whose content changed after 0.1.0, at their next patch version (the selector switch on a
 /// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y. The relay
 /// and the contactor template their contacts beside the coil. The CPU's bus section, after 0.2.0.
@@ -251,6 +252,23 @@ fn cps(designations: &[&'static str]) -> Vec<(&'static str, Option<&'static str>
 
 fn range(from: u16, to: u16) -> Vec<u16> {
     (from..to).collect()
+}
+
+/// A 24 V signal lamp of a cabinet door in the colour `colour` (IEC 60757 code), drawn as the pilot lamp.
+fn lamp(number: &'static str, description: &'static str, colour: &str) -> Def {
+    Def {
+        number,
+        kind: None,
+        description,
+        cps: cps(&["X1", "X2"]),
+        template: vec![("ew.fn.lamp", true, vec![0, 1])],
+        contacts: Vec::new(),
+        tech: vec![("colour", json!(colour)), ("rated_voltage", q("24", "V"))],
+        plc: None,
+        mech: None,
+        sections: None,
+        unit: None,
+    }
 }
 
 /// A polyurethane tube sold by the metre: its outer and inner diameter in millimetres, blue, rated 10 bar.
@@ -558,6 +576,10 @@ fn defs() -> Vec<Def> {
             sections: None,
             unit: None,
         },
+        // The signal lamps of a cabinet door, by colour (rc.2 persona run, entry 16).
+        lamp("EW-GEN-LMP-2", "Signal lamp, red", "RD"),
+        lamp("EW-GEN-LMP-3", "Signal lamp, green", "GN"),
+        lamp("EW-GEN-LMP-4", "Signal lamp, yellow", "YE"),
         Def {
             number: "EW-GEN-MOT-1",
             kind: None,
@@ -1698,6 +1720,26 @@ fn the_dimensioned_parts_read_back_from_the_shipped_files() {
             .get(number)
             .unwrap_or_else(|| panic!("{number} is shipped"));
         assert!(rec.get("mech").is_none(), "{number}");
+    }
+}
+
+/// rc.2 persona run, entry 16: a search for a signal lamp finds the door's lamps in red, green and yellow.
+#[test]
+fn the_door_lamps_are_found_by_colour() {
+    let reg = Registry::starter_only();
+    let found: Vec<String> = reg
+        .search(&PartQuery {
+            text: "signal lamp".into(),
+            ..PartQuery::default()
+        })
+        .into_iter()
+        .map(|h| h.description)
+        .collect();
+    for colour in ["red", "green", "yellow"] {
+        assert!(
+            found.iter().any(|d| d.contains(colour)),
+            "{colour}: {found:?}"
+        );
     }
 }
 
