@@ -672,16 +672,9 @@ fn pins_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut V
     use ew_viewmodel::ew_api::part_box::{PinsFrom, pin_roles};
     use ew_viewmodel::shell::symbol_editor::role_words;
     let t = theme::current(ui.ctx());
-    // The button beside the title, never at the row's far end: a row that takes the form's whole width would widen
-    // the form with every frame.
     ui.horizontal(|ui| {
-        ui.add_sized(
-            vec2(t.size_dialog_label, t.size_row),
-            egui::Label::new(
-                RichText::new(strings::text(key!("part-pins"))).font(theme::font(&t.type_body_strong)),
-            ),
-        );
-        ui.add_space(t.space_3);
+        ui.label(RichText::new(strings::text(key!("part-pins"))).font(theme::font(&t.type_body_strong)));
+        ui.add_space(t.space_4);
         if crate::components::button(
             ui,
             crate::components::Kind::Secondary,
@@ -761,17 +754,19 @@ fn pins_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut V
             });
         });
     }
-    if crate::components::button(
-        ui,
-        crate::components::Kind::Secondary,
-        strings::text(key!("part-pin-add")),
-        true,
-        0.0,
-    )
-    .clicked()
-    {
-        events.push(Event::Action("part.pin", json!({ "add": true })));
-    }
+    ui.horizontal(|ui| {
+        if crate::components::button(
+            ui,
+            crate::components::Kind::Secondary,
+            strings::text(key!("part-pin-add")),
+            true,
+            0.0,
+        )
+        .clicked()
+        {
+            events.push(Event::Action("part.pin", json!({ "add": true })));
+        }
+    });
 }
 
 /// A labelled combo box of the editor: `choices` by their words (`word`), the picked value sent as `part.field`.

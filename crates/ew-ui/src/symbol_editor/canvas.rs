@@ -301,7 +301,9 @@ impl EditorView {
             // The highlight of what is selected, and of the thing under the pointer.
             for item in &editor.selection {
                 if let Some(r) = outline(*item) {
-                    selection_outline(&painter, &t, r, grip_points.is_empty());
+                    // Corner handles where they stand apart; a small thing keeps its outline alone.
+                    let roomy = r.width().min(r.height()) >= 3.0 * HANDLE;
+                    selection_outline(&painter, &t, r, grip_points.is_empty() && roomy);
                 }
             }
             for g in &grip_points {

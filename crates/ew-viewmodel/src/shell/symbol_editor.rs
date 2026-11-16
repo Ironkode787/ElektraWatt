@@ -1100,11 +1100,25 @@ impl ShellModel {
             Some(editor) => {
                 editor.shown = true;
                 editor.start = true;
+                // The card lists what the libraries hold now: a symbol saved since the editor opened too.
+                self.refresh_symbol_sources()?;
             }
             None if leave => {}
             None => return self.symbol_open_close("new", &Map::new()),
         }
         Ok(())
+    }
+
+    /// Reads the editor's choices (the symbols to copy, the ready-made functions) again.
+    fn refresh_symbol_sources(&mut self) -> Result<(), String> {
+        let Some(mut editor) = self.symbol_editor.take() else {
+            return Ok(());
+        };
+        editor.sources.clear();
+        editor.functions.clear();
+        let read = self.symbol_editor_sources(&mut editor);
+        self.symbol_editor = Some(editor);
+        read
     }
 
     /// The symbols edited lately that a library still holds, most recent first: each as (its address for

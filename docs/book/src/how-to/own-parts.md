@@ -74,17 +74,35 @@ switch, 8 ports) and EW-GEN-PND-1 (a PROFINET device, 2 ports).
     has, and its bus port keeps its bus, role and address. A bus line at a socket the part no longer has keeps its end
     there; the card names it before **Apply**, so that you draw it to another socket. A pin or socket the part adds
     shows when the box is drawn again: delete the box and draw it again (a port from **Ports not drawn yet** in the
-    **Bus** panel). The editor says so above the form.
+    **Bus** panel), or, for a part with a device box, choose **Redraw them** after saving the box (below). The editor
+    says so above the form.
 
 A starter part or a part of another library is not yours to change: its editor says so and offers **Copy as a part of
 your own…**, a new part with its data, which you save under a part number of your own.
+
+## A device that is a box with pins
+
+A circuit protector, a power supply, a drive: a device the program has no symbol for is drawn as a box with its pins on
+the edges. The part says which pins it has and where they stand.
+
+17. In the part editor, **Pins** lists the part's pins, each with its name and the potential it carries. **Add pin**
+    adds one, the cross at a row's end removes it. A PLC card's pins come from its channels and a part drawn with a
+    symbol takes that symbol's connections: the section lists them and says so.
+18. Choose **Pins and box…**. The device box opens on the symbol editor's screen: drag each pin along its edge or onto
+    another edge, drag the box's right or bottom edge to size it, and choose **Save**
+    ([The device box](../reference/symbol-editor.md#the-device-box)).
+19. **Draw ▸ Device** then places the part's box with one click, laid out as you drew it. On the page the box's
+    edges and pins can still be dragged.
+20. To change the box of a device already drawn, choose **Edit this device's box…** in its menu. A library's part
+    becomes the project's own copy when you save, and the devices that used it follow. The message of the save says
+    how many boxes of the part are drawn and offers **Redraw them**.
 
 A part cannot be removed from My parts in the window yet: it stays, unused, until you delete it from the library folder.
 
 ## A part drawn with your own symbol
 
-13. In the [symbol editor](../reference/symbol-editor.md), save the symbol with **Save to library**, then choose
-    **Make a part for this symbol…**. The part editor opens on a new part drawn with that symbol; a device placed from
+13. In the [symbol editor](../reference/symbol-editor.md), save the symbol with **Save**, then open **Draft** and
+    choose **Make a part for this symbol…**. The part editor opens on a new part drawn with that symbol; a device placed from
     the part is drawn with it.
 
 The PLC exchange with PLC software exports the stations of a configuration project; a switch or a device without a PLC

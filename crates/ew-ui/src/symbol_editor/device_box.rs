@@ -312,7 +312,7 @@ impl EditorView {
         let room = 4.0 * STEP_MM;
         let zoom = ((canvas.width() - 2.0 * t.space_7) / (w + 2.0 * room))
             .min((canvas.height() - 2.0 * t.space_7) / (h + 2.0 * room))
-            .clamp(2.0, 14.0);
+            .clamp(2.0, 22.0);
         let origin = canvas.center() - Vec2::new(w, h) / 2.0 * zoom;
         let step = STEP_MM * zoom;
         let at = |kx: f32, ky: f32| origin + Vec2::new(kx, ky) * step;
@@ -390,14 +390,32 @@ impl EditorView {
             painter.line_segment([p, p + out * step], Stroke::new(1.5, ink));
             painter.circle_filled(p, 3.0, t.canvas_sheet.color32());
             painter.circle_stroke(p, 3.0, Stroke::new(1.5, t.canvas_selection.color32()));
-            // The pin's name inside the box, beside its point.
-            let (anchor, offset) = match line.side {
-                Dir4::Up => (egui::Align2::CENTER_TOP, Vec2::new(0.0, t.space_4)),
-                Dir4::Down => (egui::Align2::CENTER_BOTTOM, Vec2::new(0.0, -t.space_4)),
-                Dir4::Left => (egui::Align2::LEFT_CENTER, Vec2::new(t.space_4, 0.0)),
-                _ => (egui::Align2::RIGHT_CENTER, Vec2::new(-t.space_4, 0.0)),
-            };
-            painter.text(p + offset, anchor, &line.name, theme::font(&t.type_small), ink);
+            // The pin's name inside the box, beside its point; on the top and bottom edges it reads upwards, as a
+            // page draws it.
+            let galley = painter.layout_no_wrap(line.name.clone(), theme::font(&t.type_small), ink);
+            let size = galley.size();
+            match line.side {
+                Dir4::Left => {
+                    painter.galley(p + Vec2::new(t.space_4, -size.y / 2.0), galley, ink);
+                }
+                Dir4::Right => {
+                    painter.galley(p + Vec2::new(-t.space_4 - size.x, -size.y / 2.0), galley, ink);
+                }
+                Dir4::Up | Dir4::Down => {
+                    // Turned a quarter: the text's start is its lower end.
+                    let low = if line.side == Dir4::Up {
+                        p.y + t.space_4 + size.x
+                    } else {
+                        p.y - t.space_4
+                    };
+                    let at = Pos2::new(p.x - size.y / 2.0, low);
+                    painter.add(
+                        egui::epaint::TextShape::new(at, galley, ink)
+                            .with_angle(-std::f32::consts::FRAC_PI_2),
+                    );
+                }
+                Dir4::Unknown(_) => {}
+            }
             let frame = Rect::from_center_size(p, Vec2::splat(2.0 * reach));
             if b.selection.contains(&line.idx) {
                 super::canvas::selection_outline(&painter, &t, frame, false);

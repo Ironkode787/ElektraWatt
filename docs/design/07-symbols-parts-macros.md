@@ -459,6 +459,23 @@ re-ordering would re-hash every existing copy. The members typed in this step:
 | `alternatives` | `Vec<AlternativeRef{part: LibRef, kind: equivalent \| successor \| approved}>` | FR-PRT-004 |
 | `configured` | `Configured{order_code, components: Vec<{part: LibRef, qty: Dec3}>}` | FR-PRT-006 |
 | `macros` | `Vec<MacroLink{rep_type, macro: LibRef}>` | FR-PRT-027 |
+| `box` | `PartBox{width, height: Nm, pins: Vec<PartBoxPin{idx (into `cp_pattern`), side: up \| right \| down \| left (the edge, by the direction a wire leaves in), at: Nm (along the edge from the box's top-left corner)}>}`, after `macros` (added after the lock, 0.3.0) | the device box, below |
+
+**The device box** (0.3.0; the owner's test of the second candidate: a copied box-drawn part could get no pin and its
+pins no place). A part whose main function is a black box is drawn as a box with its pins on the edges. Its pins are
+its `cp_pattern`, which a person adds to, removes from and renames in the part editor and on the symbol editor's
+screen (§5); `box` says where they stand: the box's size, and for each pin its edge and its distance along it. Placing
+the part then draws that box with one click (`box.black`): sizes and distances are read onto the page's connection
+grid in whole steps, every pin at least one step from the corners and from its neighbours, the box widened where the
+pins need it (`ew_api::part_box::steps`); a pin the layout does not list stands on the bottom edge after the others. A
+part without `box` is drawn as before, by two clicks, the first half of its pins on top and the rest below. The
+placed box is the page's: its edges and pins are still dragged there (`box.reshape`), and a later change of the
+part's layout asks before it redraws. `box` is an optional member without cascade semantics (ADR-0011 amendment 6):
+an older build keeps it in `extra`, writes it back where it stands, and lays the pins out its own way. A part with a
+PLC section or bus interfaces takes its pins from its channels and ports, and a part drawn with a symbol from that
+symbol: the box editor shows such a part and says so. `part.edit_copy` lets the fork of a library copy change
+`cp_pattern`, `function_template` and `box` as it does the identity, so a library part's box is changed for the
+project; its sections stay the library's.
 
 Every new member is optional and default-omitted, every new enum keeps `Unknown(Value)` and every new object its own
 `extra`. The members of the struct that are not in the list (`classification`, `model3d`, `cp3d`, `drilling`,
@@ -1097,20 +1114,46 @@ is `#[ignore]`d (not measured, the owner's rule).
 
 *As built.* The **Macro browser** is the Macros navigator (`NavKind::Macros`): the macros of every tier, then the project's own macro copies under "In this project"; its detail shows name, version and library, description, the devices and the variables, with "No preview" where the thumbnail should be. Enter on a row, its drop on a canvas or Insert macro… (Draw ▸ Place) arms the macro tool; its click opens the `macro` card in the Preview tab with the value set and the conflicts, and Apply is one undo step; a held macro without an installed source is not inserted. **Save as macro** (Edit menu) is a window-only dialog of name, key, description and library, which is the confirmation of a write that cannot be undone; kind, insertion point and the value-set table are not built, and "make variable" is the hidden action `props.make_variable`. The **Library manager** is the Libraries navigator (`NavKind::Libraries`): the libraries by tier with version, licence, access and index state, then "In this project" with each copy's state in words (Current, Update available, Only in this project, Deprecated, Local fork), each with a hover text of what it means, and the devices that use it; Update… names how many items it updates, is disabled with its reason when they have none, and opens `library.update`'s bulk card; "purge unused" is not in it. Its rows still show IDs rather than names.
 
-*As built (milestone M2.5).* The **Symbol editor** opens from
-Draw ▸ Place ▸ Symbol editor… (`symbol.new`) and takes the place of the page, with its own command bar (the drawing tools,
-Save to library, Open or import, Test on a new page, Close editor) and three panels: Drawing, Function and connection points
-(Electrical data until rc.2, F24: a fluid symbol has no electrical data) and Library. Its canvas is on the symbol's grid: a click places a connection point on the 4 mm connection grid, a graphic
-on 0.5 mm and a text on 1 mm ([07a](07a-symbol-design-standard.md)); a point typed off the grid stays visible as an
-error and blocks the save. The FnDef panel is Function and connection points: the function's type (with a line on what it decides, each choice's meaning
-on hover and the chosen one's under the list) and pins with their potential
-roles and flags, and Pin mapping, where a function pin is dragged onto a connection point or chosen from its list
-(`symbol.map_cp`), an occupied compatible pin swapping in one undo step; Ready-made function (Assign function until rc.2)
-takes an existing FnDef, which locks the type until Take off (`symbol.function` with an empty `key`) unlocks it. The
-live A–H strip is Variants, drawn through the placement's own lowering. The lint panel is Validation: the editor's
-validation, shared with `ew symbol validate`, not WP-S7.04's library lint. "Test place" is Test on a new page
+*As built (0.3.0, the redesign after the owner's test of the second candidate).* The **Symbol editor** opens from
+Draw ▸ Place ▸ Symbol editor… (`symbol.new`) and takes the place of the page, on a screen built as the main window is.
+With nothing in hand it shows a **start card**: New symbol, Copy a library symbol…, Device box for a part…, Import a
+file…, the draft in hand and the symbols edited lately. With a symbol in hand: the **command bar** (Start; Select,
+Line, Rectangle, Circle, More shapes, Text; Connection point, Text field, Other marks for the cross-reference point
+and the mechanical link point; the drawing grid and Snap to grid; Test on a page, Save, the Draft menu and Close
+editor); on the left the **outline** of the symbol (its connection points, texts and shapes, each row a click to the
+thing, and To do, what keeps it from being saved, each sentence a click to the thing it is about, or Ready to save);
+in the middle the **drawing** with the symbol turned and mirrored under it (A to H); on the right **Properties**, the
+rows of what is selected, the rows several selected things share, or with nothing selected the symbol's own (Name,
+What it is, Discipline, Listed under, Library folder; Ready-made function, Function type, Key, Version, Licence, Source
+and the whole document under More). **What it is** asks in a panel builder's words (a device box, a contact, a coil,
+a protective device, a lamp, a terminal) and sets the function type and the category together (`WHAT` in
+`ew-viewmodel`); the model's word stays under More.
+
+**What a person learned on a page works on the drawing.** The selection is the view-model's (`SymbolEditor.selection`),
+so the outline, the drawing and Properties show the same things: a click selects, Shift adds, Ctrl toggles, a
+rectangle dragged from empty paper takes what lies inside it (to the right) or what it touches (to the left), and
+Ctrl+A takes everything. The page's own keys act on it whenever no field is typed into, through the keymap
+(`EDIT_KEYS`): the arrows move it one grid step (the connection grid's with a connection point selected), Delete
+removes it (a connection point with its number's text and its pin), Ctrl+C, Ctrl+X, Ctrl+V and Ctrl+D copy, cut, paste
+and duplicate, Escape ends a gesture, then returns to Select, then clears the selection, and Ctrl+Z and Ctrl+Y step the
+editor's own history. A drag on a thing moves the selection with a ghost of where it lands; the one selected shape's
+handles drag its ends and corners (`symbol.grip`); Line up puts several things on one edge (`symbol.align`). The
+highlight and the handles are the page's (doc 16a §7.1). The tools draw as on a page: a shape by a drag or two clicks,
+a text typed where it was clicked, a connection point on the connection grid with the next number; a tool's options
+stand on a card at the drawing's top left. The live A–H strip is drawn through the placement's own lowering. To do is
+the editor's validation, shared with `ew symbol validate`, not WP-S7.04's library lint. "Test place" is Test on a page
 (`symbol.scratch`): a new page on the symbol's grid with an embedded test copy, one undo step for the page and one for
-the placement. *As built.* A page on another connection
+the placement. Draw by coordinates, the three tabs of the left column and Pin mapping's drag list are gone: a thing's
+place and size are rows of Properties, and a connection point's function pin is its row under More.
+
+**The device box** (§2.5) is the editor's second kind of thing, on the same screen: the pin table on the left (name,
+potential, edge; a row dragged onto another takes its place; Add pin), the box as a device of the part is drawn in the
+middle (a pin dragged along its edge or onto another one, the right and bottom edges dragged to size it), and
+Properties of the selected pins or of the part. Its ways in: the start card, Pins and box… in the part editor, and
+Edit this device's box… on a placed box. Save saves the part (a new part, a part of the project in place, a part of
+My parts as its next version, a library's part as the project's own copy); where boxes of it are drawn already a
+message says how many and offers Redraw them (`part.redraw_boxes`, one `box.reshape` per box).
+*As built.* A page on another connection
 grid refuses the placement, naming both grids as the status bar does ("4 mm", "QET 10 px"), and offers a new page with
 the symbol's grid: **Place on a new page with its grid** places the published symbol there at 40/40 mm and selects
 it, from the Insert symbol picker's greyed row (`picker.new_page`) and from the editor while its draft is saved to a

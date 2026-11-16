@@ -1,82 +1,148 @@
 # Symbol editor and automated authoring
 
-Open **Draw ▸ Place ▸ Symbol editor…**. A symbol draft has its own undo history, drawing, function definition,
-connection points, text slots and cross-reference anchor. Changes do not alter existing placements.
-Choose A to draw; B–H show live rotated/mirrored previews. Select a graphic to move it by dragging or edit
-its coordinates in **Drawing**. **Draw by coordinates** also creates geometry from the keyboard.
-Pin coordinates, directions and function mappings are editable in **Function and connection points**.
-In **Pin mapping**, drag a function pin onto a connection point or use its list. Assigning a pin already used
-by another compatible connection swaps their mappings in one undo step. Repeated designations have an ordinal
-in parentheses, so two terminals both named N remain distinguishable. Function choices include their category
-and source library. In **Library**, **Fork existing symbol** searches project and installed-library symbols by name
-or key; each choice shows its source and grid. **Create editable copy** leaves the original unchanged.
-The command bar and status bar follow the active symbol; library paths and publication settings live in **Library**.
-The ribbon uses the same small icons, labels and selected state as the main window; each tool's tooltip says what
-it does and how ("Line: drag, or click two points"). **More shapes** contains ellipse, arc, polyline and polygon.
-Press **F1** in the editor to open this reference.
-Text fields can show tags, function text, technical data, pin designations or cross-references.
-**Advanced document** exposes the complete draft, including other slot types, styles and arrangements.
-The circle tool takes a centre and a point on its circumference; arcs and ellipses take opposite bounding-box
-corners. Arc creation angles are whole degrees; negative sweep reverses direction. A line, a rectangle, a circle,
-an ellipse and an arc are drawn by two clicks or by one drag. With **Select**, click a shape, a connection point,
-a text slot or a link point to select it; drag it or press an arrow key to move it, and press **Delete** to
-remove it. While you drag, an outline shows where the item will land. A connection point moves on the connection
-grid; a text slot, a shape and a link point move by the drawing grid's step. Each change takes one undo
-step. Numeric property edits commit
-when you press Enter or leave the field, so partially typed coordinates do not reshape the drawing.
-Selected rectangles, circles, ellipses and polygons have **Fill shape**. Text and text slots have a **Text style**
-list showing the project's style sizes; choose a larger style when connection numbers need to match other labels.
+Open **Draw ▸ Place ▸ Symbol editor…**. A symbol draft has its own undo history, drawing, function,
+connection points, text fields and cross-reference point. Changes do not alter existing placements. Press **F1** in the
+editor to open this reference.
 
-**Anchor** sets the point used to calculate the symbol's cross-reference cell on the project page. It does not
-move the symbol's insertion origin. Place it on the left edge for a supply block. **Link point** instead adds a
-named attachment position for a mechanical link; it does not create an electrical connection.
+## The screen
 
-Native connections must lie on the 4 mm grid. In the editor's header, beside **Fit drawing**, **Drawing grid**
-chooses the step that lines, shapes, texts and link points snap to (0.5, 1, 2 or 4 mm, or QET 10 px; 0.5 mm at
-first), and **Snap to grid** turns that snapping off. The canvas draws the drawing grid's dots and, larger, the
-connection grid's. A connection point keeps to the connection grid whatever is chosen. The choice stays for the
-session.
+With nothing in hand the editor shows a **start card**: **New symbol**, **Copy a library symbol…** (a list of the
+project's and the libraries' symbols with a filter; the original stays as it is), **Device box for a part…**
+([below](#the-device-box)), **Import a file…**, the draft in hand and the symbols edited lately. **Start** in the
+command bar returns to it.
 
-**Category**, under the name on the Drawing and Library tabs, is where the symbol browser and the device browser
-list the symbol, in their words ("Relays", "Power supplies"); a new symbol starts under "Assemblies and black boxes".
-A symbol with an assigned library function takes that function's category.
-Numeric pin edits remain exactly as entered: a pin at 4.5 mm is visibly invalid and blocks publication.
-See the
+With a symbol in hand the screen is built as the main window is:
+
+- **The command bar** holds the tools (**Select**, **Line**, **Rectangle**, **Circle**, **More shapes** with
+  ellipse, arc, polyline and polygon, **Text**, **Connection point**, **Text field**, and **Other marks** with the
+  cross-reference point and the mechanical link point), the **Drawing grid** and **Snap to grid**, and at the right
+  end **Test on a page**, **Save**, the **Draft** menu (**Make a part for this symbol…**, **Export draft**,
+  **Discard draft**) and **Close editor**. Each tool's tooltip says what it does and how.
+- **The outline**, on the left, lists what the symbol consists of: its connection points (designation, and the
+  potential each carries), its texts and its shapes. A click on a row selects the thing in the drawing, and the other
+  way round. **To do** lists what keeps the symbol from being saved, each in a sentence and each a click to the thing
+  it is about; with nothing left it says **Ready to save**. An import with more drawings lists them first, and an
+  import's report stands under the lists.
+- **The drawing**, in the middle, with the symbol **Turned and mirrored** under it: A is the drawing you edit, B to H
+  show it turned and mirrored.
+- **Properties**, on the right, shows the rows of what is selected: a shape's place and size, a text's words, style,
+  alignment and rotation, a connection point's designation, potential, direction and place. Several selected things
+  show the rows they share, and a change goes to all of them. With nothing selected it shows the symbol's own rows:
+  **Name**, **What it is**, **Discipline**, **Listed under** and the **Library folder**; the rows a rare case needs
+  stand under **More**. A row commits when you press Enter or leave it, so partially typed numbers do not reshape
+  the drawing; Escape cancels the entry.
+
+## Selecting and moving
+
+What you know from a page works on the drawing. With **Select**: a click selects a thing, `Shift` adds and `Ctrl`
+toggles; a rectangle dragged from empty paper selects the things inside it when dragged to the right and the things it
+touches when dragged to the left; `Ctrl+A` selects everything; a click on empty paper or `Esc` clears the selection.
+A drag on a thing moves the selection, with an outline of where it lands; the arrow keys move it one grid step. A
+connection point moves on the connection grid, and so does a selection that holds one; anything else moves by the
+drawing grid's step. `Delete` removes the selection (a connection point with the text that writes its number),
+`Ctrl+C`, `Ctrl+X` and `Ctrl+V` copy, cut and paste, `Ctrl+D` duplicates, and `Ctrl+Z` and `Ctrl+Y` step the editor's
+own history. The one selected shape shows handles on its ends or corners: drag one to reshape it. With several things
+selected, **Line up** in Properties puts them on one edge. Each change is one undo step.
+
+## Drawing
+
+A line, a rectangle, a circle, an ellipse and an arc are drawn by one drag or by two clicks; the circle takes its
+centre and a point on its circumference, arcs and ellipses opposite corners of their box. A polyline and a polygon take
+a click per corner and a double-click on the last. **Text**: click where the text goes, type it and press Enter
+(`Shift+Enter` starts a new line). What a tool drew is selected, so its rows in Properties take exact numbers, an
+arc's angles, a shape's **Fill shape** or a text's **Text style**. **Connection point** places a point on the
+connection grid; the card at the drawing's top left holds its designation, which counts on, and its direction.
+**Text field** places a text the page fills in: the device's tag, its function text, its technical data, its
+cross-reference, or the number of a connection point. `Esc` ends a half-drawn shape, then returns to **Select**.
+
+**Cross-reference point** (under **Other marks**) sets the point used to calculate the symbol's cross-reference cell
+on the project page. It does not move the symbol's origin, the small cross it is held by when it is placed. Place it
+on the left edge for a supply block. **Mechanical link point** adds a named point where a dashed mechanical link
+attaches; it makes no electrical connection.
+
+Native connections must lie on the 4 mm grid. **Drawing grid** chooses the step that lines, shapes, texts and link
+points snap to (0.5, 1, 2 or 4 mm, or QET 10 px; 0.5 mm at first), and **Snap to grid** turns that snapping off. The
+drawing shows the drawing grid's dots and, larger, the connection grid's. A connection point keeps to the connection
+grid whatever is chosen. The choice stays for the session. A connection point typed off the grid stays where it was
+typed: it shows under **To do** and blocks the save.
+
+## What the symbol is
+
+**What it is** asks what the symbol stands for, in a panel builder's words: a device box, a normally open contact, a
+coil, a protective device, an indicator light, a terminal. It decides how the program lists and checks the symbol's
+device (a contact is listed with its coil, a terminal in the terminal diagram) and where the browsers list the symbol,
+which **Listed under** changes on its own. **Discipline** says what the symbol is drawn for (electrical, pneumatic,
+vacuum, hydraulic or bus); one connection point can differ, under **More** in its rows.
+
+### Function type and ready-made functions
+
+Under **More**, **Function type** shows the program's own word for what **What it is** chose, and **Ready-made
+function** takes a function of a library when one fits: it brings its type and its connection points, so you do not
+enter them yourself, and each connection point's **Function pin** row (under **More**) says which of its pins the point
+draws. While a ready-made function is used the type, the category and the pins' names are locked; choosing **None**
+unlocks them and keeps the function's type and connection points. Repeated designations have an ordinal in
+parentheses, so two terminals both named N remain distinguishable.
+
+**Whole document (for experts)**, under the symbol's rows, shows the complete draft as text, including what the rows
+do not show (other text arrangements, an import's extra members). See the
 [design standard](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/07a-symbol-design-standard.md)
 for the full authoring profile.
 
-**Save to library** writes a symbol and its owned function definition to the chosen `.ewlib` folder. **Make a part
-for this symbol…** then opens the part editor on a new part drawn with it: its identity, bus interfaces and PLC data
-are typed there ([Make your own PLC or bus part](../how-to/own-parts.md)), and a device placed from the part is drawn
-with the symbol.
+## Saving, testing and closing
+
+**Save** writes the symbol and its own function to the library named by **Library folder** (a `.ewlib` folder; a name
+without a folder is a library in your user library folder, and **Choose folder…** picks one). **Make a part for this
+symbol…**, in the **Draft** menu, then opens the part editor on a new part drawn with it: its identity, bus
+interfaces and PLC data are typed there ([Make your own PLC or bus part](../how-to/own-parts.md)), and a device placed
+from the part is drawn with the symbol.
 The window remembers that folder. Its symbols appear under **Draw ▸ Place ▸ Symbol…** (`I`), with the library name;
 the page must use the symbol's connection grid. Already embedded copies stay at their existing version until
 you explicitly update them. Repeated placement keeps the authored outline and pins.
-An assigned existing function definition stays referenced and its semantics cannot be edited in place; any
-later compatible version of it is accepted. A new symbol takes its key from its name (`user.power-block` for
-**Power block**), and the key follows the name until you type one in **Library**. The first save
-gives the draft its own identity, and later saves of that draft update the same symbol: changed content is saved
-as the next patch version (1.0.1 after 1.0.0), and a version you type below the library's is refused. The
-symbol's own function definition keeps its version while it is
-unchanged. A library that already holds a key you typed for a different symbol refuses the save: choose another
-key, or fork that symbol under its own key to change it; a key made from the name takes the next free number
-instead (`user.power-block-2`). A save says where the symbol went, and a refused one says why under the symbol's
-name. Saving a draft under another key than its symbol's makes a new
+A new symbol takes its key from its name (`user.power-block` for **Power block**), and the key follows the name until
+you type one. The first save gives the draft its own identity, and later saves of that draft update the same symbol:
+changed content is saved as the next patch version (1.0.1 after 1.0.0), and a version you type below the library's
+is refused. The symbol's own function keeps its version while it is unchanged. A library that already holds a key you
+typed for a different symbol refuses the save: choose another key, or copy that symbol to change it; a key made from
+the name takes the next free number instead (`user.power-block-2`). A save says where the symbol went, and a refused
+one says why above the drawing and under **To do**. Saving a draft under another key than its symbol's makes a new
 symbol, and a message says so; the symbol with the earlier key stays. **Export draft** writes portable JSON to a
-new file, including incomplete work; an existing file is never overwritten. Leave **Symbol file** empty to
-choose the file in a file dialog, and choose **Choose folder…** to pick the library folder; an empty **Library
-folder** is refused when you save. A relative path is read from your default user library folder.
+new file, including incomplete work; an existing file is never overwritten.
 **Close editor** keeps the draft and its undo history: **Draw ▸ Place ▸ Symbol editor…** returns to it. Only
-**Discard draft** drops it, and **New symbol** starts a fresh draft. While the draft has unsaved changes,
-**New symbol**, **Open or import**, **Create editable copy**, another drawing of an import and **Discard draft**
-first ask whether to save the symbol. While the editor shows, Ctrl+S saves the symbol and the File menu's **Save project**
-saves the project. Quitting with unsaved symbol changes asks whether to save the symbol. **Test on a new page** creates a
-page in the current project with the symbol's connection grid and places embedded copies there. The page then
-shows with the copy selected; the message's **Back to the editor** returns to the draft. Project undo removes
-the placement; a second undo removes the new page.
+**Discard draft** drops it. While the draft has unsaved changes, a way in of the start card, another drawing of an
+import and **Discard draft** first ask whether to save the symbol. While the editor shows, Ctrl+S saves the symbol
+and the File menu's **Save project** saves the project. Quitting with unsaved symbol changes asks whether to save the
+symbol. **Test on a page** creates a page in the current project with the symbol's connection grid and places
+embedded copies there. The page then shows with the copy selected; the message's **Back to the editor** returns to
+the draft. Project undo removes the placement; a second undo removes the new page.
 Test placements are independent draft copies, so **Only in this project** in the Libraries navigator refers to
 their temporary draft source. To place a copy linked to the published library, use **Draw ▸ Place ▸ Symbol…**
 after saving.
+
+## The device box
+
+A device that is a box with pins (a circuit protector, a power supply, a drive, a gateway) needs no drawing: its part
+says which pins it has and where they stand on its box. The editor edits that box on the same screen. Its ways in are
+**Device box for a part…** on the start card (a part of the project, or a new part), **Pins and box…** in the part
+editor, and **Edit this device's box…** in the menu of a box placed on a page.
+
+- **The pin table**, on the left, lists the pins in the order they stand on the box, each with its name, the potential
+  it carries and its edge. **Add pin** adds one; a row dragged onto another takes its place there.
+- **The drawing** shows the box as a device of the part is drawn. Drag a pin along its edge or onto another edge;
+  drag the box's right or bottom edge, or the corner between them, to size it. A click selects a pin, `Shift` and
+  `Ctrl` select more; the arrow keys move the selected pins one grid step along their edge and `Delete` removes them.
+- **Properties** shows the selected pin's **Name**, **Potential**, **Edge** and its place **Along the edge**; with no
+  pin selected the part's number, manufacturer and description (typed here for a new part; **Part data…** opens the
+  part editor for the rest) and the box's width and height.
+
+**Save** saves the part: a new part into your parts library and the project, a part of your own in place, and a
+library's part as the project's own copy, which the devices that used it follow. From then on **Draw ▸ Device**
+places the part's box with one click, laid out as you drew it; on the page its edges and pins can still be dragged.
+Where boxes of the part are drawn already, the message of the save says how many and offers **Redraw them**. **Test
+on a page** saves the box and arms the Device tool with the part.
+
+A PLC card takes its pins from its channels, a bus device its box on a bus page from its interfaces and ports, and a
+part drawn with a symbol its connections from that symbol: the editor shows such a part's box and says where its pins
+come from.
 
 ## AI and command-line tools
 
@@ -130,6 +196,19 @@ The window and `.ewui` scripts share these actions:
 | `symbol.export`, `symbol.save` | `file` or library `directory` respectively |
 | `symbol.directory` | library `directory` that Save uses |
 | `symbol.tool` | `tool`: the drawing tool to choose |
+| `symbol.select` | `items`: a list of things (`cp:0`, `slot:1`, `graphic:2`, `link:0`, `anchor`, each by its place in its list) or `"all"`; optional `mode`: `replace`, `add` or `toggle` |
+| `symbol.move`, `symbol.nudge` | `dx`, `dy`: the selection moved by millimetres, or by grid steps |
+| `symbol.delete`, `symbol.copy`, `symbol.cut`, `symbol.paste`, `symbol.duplicate` | none; they act on the selection |
+| `symbol.align` | `to`: `left`, `centre`, `right`, `top`, `middle` or `bottom` |
+| `symbol.grip` | `grip` (a handle of the one selected shape, counted from 0), `x`, `y` |
+| `symbol.prop` | `key`, `value`: a row of Properties, of the selection or of the symbol itself (`name`, `what`, `category`, `key`, `x`, `y`, `w`, `h`, `dir`, `role`, …) |
+| `symbol.grid` | optional `step` in millimetres, optional `snap` |
+| `symbol.start` | optional `leave: true`: the start card, or back to the draft in hand |
+| `part.box` | optional `part` (a part number, or `id:<copy UUID>`), optional `new: true`: the device box editor |
+| `part.pin` | `add: true` with optional `name`; `remove`: a pin; or `pin` with `name`, `role`, `side` (`top`, `bottom`, `left`, `right`) and `at` in millimetres along the edge |
+| `part.box_size` | `width`, `height` in millimetres |
+| `part.box_select` | `pins`: a list of pin numbers or `"all"`; optional `mode` |
+| `part.redraw_boxes` | `part`: the boxes drawn of the part redrawn as it lays them out |
 | `symbol.place` | `x`, `y` on the current project page |
 | `symbol.scratch` | none; creates a test page in the current project |
 | `symbol.close` | optional `discard: true` |
@@ -140,7 +219,9 @@ before changing the project, and the refusal offers a new page with the symbol's
 its grid** (`symbol.new_page`) places the published symbol there and selects it while the draft is saved to a library
 and unchanged since, and **Test on a new page** places a test copy otherwise. Replacing or opening over a dirty draft
 requires `discard: true`; `symbol.close` keeps the draft unless it has `discard: true`, and `symbol.new` without a
-key or name returns to it, or with `discard: true` starts a fresh draft. `app.quit` with `discard: true` discards an unsaved draft. `ui.describe` and the script state expose the open editor and
+key or name returns to it (with no draft in hand it shows the start card), or with `discard: true` starts a fresh
+draft. While a device box is edited, `symbol.save`, `symbol.scratch`, `symbol.undo`, `symbol.redo`, `symbol.delete`,
+`symbol.nudge`, `symbol.prop` and `symbol.close` act on the box. `app.quit` with `discard: true` discards an unsaved draft. `ui.describe` and the script state expose the open editor and
 validation findings. [The tutorial](../tutorials/symbol-editor.md) includes a complete six-pin example.
 
 ## Imported formats and limits
