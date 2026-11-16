@@ -360,6 +360,12 @@ fn valve_terminal_selected(m: &ShellModel) -> Result<(), Key<'static>> {
     m.selected_valve_terminal().map(|_| ())
 }
 
+/// The project can be written and the selection is one multipin valve terminal (Draw the plug).
+fn multipin_terminal_selected(m: &ShellModel) -> Result<(), Key<'static>> {
+    writable(m)?;
+    m.selected_multipin_terminal().map(|_| ())
+}
+
 /// The project can be written and has an open revision (Approve, Release, Set author).
 fn open_revision(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
@@ -775,6 +781,10 @@ pub fn enabled_with(
     }
     // A valve terminal's row names its terminal.
     if meta.id == "fluid.generate_overview" && p.contains_key("station") {
+        return writable(m);
+    }
+    // A terminal's menu or Properties row names its terminal.
+    if meta.id == "fluid.draw_plug" && p.contains_key("terminal") {
         return writable(m);
     }
     (meta.enabled)(m)

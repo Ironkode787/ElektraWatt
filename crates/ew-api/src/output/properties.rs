@@ -3156,12 +3156,12 @@ impl Session {
                         "channel": channel.map(|c| c.to_string()) }),
                     Some(super::rack::SolenoidSeat::Multipin {
                         terminal,
-                        plug_function,
+                        terminal_device,
                         pin,
                         plug,
                     }) => {
                         serde_json::json!({ "kind": "multipin", "terminal": terminal, "pin": pin, "plug": plug,
-                            "plug_function": plug_function.map(|f| f.to_string()) })
+                            "terminal_device": terminal_device.to_string() })
                     }
                 };
                 let value = RowValue::One {
@@ -3182,6 +3182,28 @@ impl Session {
                     Vec::new(),
                 ));
             }
+        }
+        // A multipin valve terminal's plug (rc.2): where it is drawn (a link that goes there), or that it is not, which
+        // draws it on an electrical page.
+        if let [one] = devices.as_slice()
+            && let Some(plug) = super::rack::terminal_plug(q, *one)
+        {
+            let value = RowValue::One {
+                json: serde_json::json!({ "terminal": one.as_uuid().to_string(), "drawn": plug.drawn }),
+                text: plug.drawn.clone().unwrap_or_default(),
+            };
+            out.push(derived(
+                "device",
+                "plug",
+                None,
+                Category::Structure,
+                FieldType::Link { kind: "plug".into() },
+                value,
+                Provenance::Derived {
+                    via: "its plug".to_owned(),
+                },
+                Vec::new(),
+            ));
         }
         // The main location.
         let per: Vec<(Option<Value>, Provenance)> = devices

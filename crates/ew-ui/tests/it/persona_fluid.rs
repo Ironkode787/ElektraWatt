@@ -1856,3 +1856,99 @@ fn f15_the_multipin_plug_is_drawn_from_its_terminal_and_names_its_pins() {
     );
     d.shell_mut().shutdown();
 }
+
+/// Places the starter multipin valve terminal on the fluid page shown, its top-left corner at `a` (one click), then
+/// Escape and Select; returns its tag.
+fn place_multipin(d: &mut Driver, a: (i64, i64)) -> String {
+    d.input(&click(d.find("Device").unwrap()));
+    d.settle();
+    d.input(&typed("multipin"));
+    d.settle();
+    d.input(&Input::DoubleClick {
+        at: starting_with(d, "Multipin valve terminal"),
+        mods: Modifiers::NONE,
+    });
+    d.settle();
+    click_at(d, a);
+    d.input(&key("escape"));
+    d.settle();
+    let _ = d.shell_mut().dispatch("tool.select", &json!({}));
+    fluid_nodes(d)
+        .into_iter()
+        .find(|n| n.role == NavRole::Device)
+        .map(|n| n.label)
+        .expect("the terminal's row")
+}
+
+/// The rc.2 persona run (friction 10, 11): the multipin terminal's plug could be drawn only from the Devices tree's row
+/// while an electrical page was open; neither the terminal's menu on the fluid page nor the Fluid tab offered it. From
+/// the fluid page the terminal's menu, its Properties row and the Fluid tab draw it as a valve's solenoid is drawn: the
+/// electrical page shows with the plug's box on the pointer; placed, the menu and the row say where it is.
+#[test]
+fn rc2_the_multipin_plug_is_drawn_from_the_terminal_on_the_fluid_page() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    let reason = |d: &mut Driver| {
+        ew_ui::ew_viewmodel::actions::find("fluid.draw_plug")
+            .and_then(|a| (a.enabled)(d.shell_mut()).err())
+            .map(ew_ui::ew_viewmodel::strings::text)
+    };
+    assert_eq!(
+        reason(&mut d),
+        Some("Select a multipin valve terminal to draw its plug"),
+        "the Fluid tab's button, greyed in words"
+    );
+    let terminal = place_multipin(&mut d, (760, 300));
+    // Its body (the supply end, no cell): Draw the plug on an electrical page….
+    let body = supply_px(&mut d);
+    let draw = format!("Draw the plug of {terminal} on an electrical page…");
+    let menu = menu_at(&mut d, body);
+    assert!(menu.contains(&draw), "{menu:?}");
+    click_at(&mut d, body);
+    assert_eq!(
+        reason(&mut d),
+        None,
+        "the Fluid tab's button, for the selected terminal"
+    );
+    assert_eq!(
+        prop_row(&mut d, "device/derived.plug").0,
+        "not drawn: draw it…"
+    );
+    d.input(&right_click(body));
+    d.settle();
+    d.input(&click(starting_with(&d, &draw)));
+    d.settle();
+    assert_eq!(
+        d.shell_mut().current_folio(),
+        Some("1"),
+        "the electrical page"
+    );
+    assert_eq!(
+        d.shell_mut().tool().name(),
+        "black_box",
+        "the plug's box on the pointer"
+    );
+    let toast = d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert_eq!(
+        toast,
+        format!("Click where the plug of {terminal} goes on page 1.")
+    );
+    click_at(&mut d, (800, 400));
+    click_at(&mut d, (1100, 500));
+    d.input(&key("escape"));
+    d.settle();
+    // Back on the fluid page, the terminal says where its plug is.
+    let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "201"}));
+    let _ = d.shell_mut().dispatch("tool.select", &json!({}));
+    d.settle();
+    let body = supply_px(&mut d);
+    let menu = menu_at(&mut d, body);
+    let go = format!("Go to the plug of {terminal} at 1-");
+    assert!(menu.iter().any(|l| l.starts_with(&go)), "{menu:?}");
+    click_at(&mut d, body);
+    assert!(
+        prop_row(&mut d, "device/derived.plug").0.starts_with("1-"),
+        "where it is drawn"
+    );
+    d.shell_mut().shutdown();
+}

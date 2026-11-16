@@ -395,6 +395,32 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ))),
     ),
+    // A multipin valve terminal's Draw the plug on an electrical page… (rc.2): from any page, its menu, its Properties
+    // row and the Fluid tab (of the selected terminal, greyed in words while none is selected).
+    with_params(
+        "terminal?:ref",
+        with_aliases(
+            &[("terminal", ParamForm::Whole)],
+            placed(
+                place(
+                    Group::FluidLists,
+                    4,
+                    CommandSize::Small,
+                    Some(key!("bar-draw-plug")),
+                ),
+                "plug-connected",
+                act(
+                    "fluid.draw_plug",
+                    Command,
+                    Menu::Fluid,
+                    &[],
+                    multipin_terminal_selected,
+                    None,
+                    |s, p| s.act_fluid_draw_plug(p),
+                ),
+            ),
+        ),
+    ),
     // A fluid line's medium (its context menu) and New medium… (doc 11 §7, FR-FLU-008/-009).
     with_params(
         "line:ref, medium:ref",

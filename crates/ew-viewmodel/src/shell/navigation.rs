@@ -887,7 +887,8 @@ impl ShellModel {
     /// `props.follow {row?}` (F or a click on a link row of the grid): follows the device link of
     /// `row` (else the focused row) as the Devices navigator opens the device: its main page shows in the focused
     /// group and its drawings there are selected. A valve's solenoid row goes to where its coil is drawn, or draws it
-    /// while it is not (`fluid.draw_solenoid`); a coil's valve row goes to the valve (rc.2, F11).
+    /// while it is not (`fluid.draw_solenoid`); a coil's valve row goes to the valve (rc.2, F11); a multipin terminal's
+    /// plug row goes to the plug, or draws it while it is not (`fluid.draw_plug`).
     pub(crate) fn act_props_follow(&mut self, p: &Map<String, Value>) -> Outcome {
         let key = or_return!(self.props_row_param(p));
         let solenoid = self
@@ -899,6 +900,25 @@ impl ShellModel {
                 ) if kind == "solenoid" => Some(json.clone()),
                 _ => None,
             });
+        // A multipin terminal's plug row (rc.2): where it is drawn, or draws it while it is not.
+        let plug = self
+            .props_find(&key)
+            .and_then(|(_, row)| match (row.ty.inner(), &row.value) {
+                (
+                    crate::properties::FieldType::Link { kind },
+                    crate::properties::RowValue::One { json, .. },
+                ) if kind == "plug" => Some(json.clone()),
+                _ => None,
+            });
+        if let Some(json) = plug {
+            return match json.get("drawn").and_then(Value::as_str) {
+                Some(place) => self.dispatch("nav.goto", &serde_json::json!({ "text": place })),
+                None => {
+                    let t = json.get("terminal").cloned().unwrap_or(Value::Null);
+                    self.dispatch("fluid.draw_plug", &serde_json::json!({ "terminal": t }))
+                }
+            };
+        }
         if let Some(json) = solenoid {
             let mut params = Map::new();
             // A terminal valve's solenoid (rc.2, F15): its output in the PLC list, or its plug pin on the page.
@@ -912,8 +932,8 @@ impl ShellModel {
                     return match seat.get("plug").and_then(Value::as_str) {
                         Some(place) => self.dispatch("nav.goto", &serde_json::json!({ "text": place })),
                         None => {
-                            let f = seat.get("plug_function").cloned().unwrap_or(Value::Null);
-                            self.dispatch("place.pick", &serde_json::json!({ "function": f }))
+                            let t = seat.get("terminal_device").cloned().unwrap_or(Value::Null);
+                            self.dispatch("fluid.draw_plug", &serde_json::json!({ "terminal": t }))
                         }
                     };
                 }

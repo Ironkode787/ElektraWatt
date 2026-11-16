@@ -455,8 +455,10 @@ card. `is_fluid_terminal` takes both: galleries, cells, seating and the fluid na
 "Valve terminal · multipin, wired"). A terminal valve's solenoid is never drawn: its Properties row says "driven by
 output Q0.0 of -201K1 (inside the terminal: nothing to wire)" or "pin 3 of the plug of -201K1" with a link to the plug
 (or Draw the plug while it is drawn on no electrical page), and its menu offers Go to output (the channel in the PLC list)
-instead of Draw solenoid. On an electrical page the plug (the terminal's overview box with a connection point per pin,
-Draw the plug… on the terminal's menu) prints beside each pin what it carries (`plug_pins`): the valve's tag and the
+instead of Draw solenoid. The plug is drawn from any page as a valve's solenoid is (`fluid.draw_plug`: the terminal's
+menu, its Properties row Plug, the Fluid tab's Draw plug for the selected terminal): the electrical page shown, else the
+nearest one, shows with the plug's box on the pointer; once drawn, the menu and the row go to it. On an electrical page
+the plug (the terminal's overview box with a connection point per pin) prints beside each pin what it carries (`plug_pins`): the valve's tag and the
 solenoid where a valve holds the position ("-201K2-Q1 14"), else the position and the solenoid ("2 · 14"), and `COM` for
 the common; the texts are derived, so filling, emptying or swapping a position changes them. A wire from a PLC output
 to a pin makes that output the solenoid's (`wired_solenoid_channel`: the channel whose traced target is the plug pin):

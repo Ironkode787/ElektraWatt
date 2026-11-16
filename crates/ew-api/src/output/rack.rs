@@ -1169,8 +1169,8 @@ pub enum SolenoidSeat {
     Multipin {
         /// The terminal's tag.
         terminal: String,
-        /// The terminal's main function: drawn on an electrical page, it is the plug.
-        plug_function: Option<Uuid>,
+        /// The terminal (`fluid.draw_plug` draws its plug).
+        terminal_device: Uuid,
         /// The pin (`3`).
         pin: String,
         /// Where the plug is drawn on a page that is no fluid page (`101-C2`); `None` while it is not.
@@ -1243,26 +1243,11 @@ fn solenoid_seat(
     match ew_derive::solenoid_pin(q, valve, name.as_str()) {
         Some((t, pin)) => {
             let main = *q.get::<ew_derive::MainFunction>(t);
-            let pages = q.pages();
-            let plug = main.and_then(|f| {
-                let mut reps: Vec<_> = q
-                    .idx()
-                    .reps_of_function(f)
-                    .filter(|r| {
-                        q.reps()
-                            .get(*r)
-                            .and_then(|r| pages.get(r.page))
-                            .is_some_and(|p| p.kind != ew_derive::ew_schema::PageType::Fluid)
-                    })
-                    .collect();
-                reps.sort();
-                reps.first().and_then(|r| super::properties::rep_location(q, *r))
-            });
             SolenoidSeat::Multipin {
                 terminal: tag,
-                plug_function: main.map(|f| f.as_uuid()),
+                terminal_device: t.as_uuid(),
                 pin,
-                plug,
+                plug: main.and_then(|f| plug_place(q, f)),
             }
         }
         None => {
@@ -1275,6 +1260,56 @@ fn solenoid_seat(
                 channel: channel.map(|c| c.as_uuid()),
             }
         }
+    }
+}
+
+/// Where a multipin terminal's plug (its main function `plug`) is first drawn on a page that is no fluid page
+/// (`101-C2`); `None` while it is not.
+fn plug_place(q: &Q, plug: Id<Function>) -> Option<String> {
+    let pages = q.pages();
+    let mut reps: Vec<_> = q
+        .idx()
+        .reps_of_function(plug)
+        .filter(|r| {
+            q.reps()
+                .get(*r)
+                .and_then(|r| pages.get(r.page))
+                .is_some_and(|p| p.kind != ew_derive::ew_schema::PageType::Fluid)
+        })
+        .collect();
+    reps.sort();
+    reps.first().and_then(|r| super::properties::rep_location(q, *r))
+}
+
+/// The plug of a multipin valve terminal ([`Session::terminal_plug`]).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct TerminalPlug {
+    /// The terminal's tag.
+    pub tag: String,
+    /// The terminal's main function: drawn on an electrical page, it is the plug.
+    pub function: Uuid,
+    /// Where it is drawn on a page that is no fluid page (`101-C2`); `None` while it is not.
+    pub drawn: Option<String>,
+}
+
+/// [`Session::terminal_plug`] of `device`.
+pub(crate) fn terminal_plug(q: &Q, device: Id<Device>) -> Option<TerminalPlug> {
+    if !ew_derive::is_multipin_terminal(q, device) {
+        return None;
+    }
+    let function = (*q.get::<ew_derive::MainFunction>(device))?;
+    Some(TerminalPlug {
+        tag: super::properties::device_tag_text(q, device),
+        function: function.as_uuid(),
+        drawn: plug_place(q, function),
+    })
+}
+
+impl Session {
+    /// The plug of multipin valve terminal `device` (rc.2): its main function and where it is drawn; `None` for any
+    /// other device.
+    pub fn terminal_plug(&self, device: Uuid) -> Option<TerminalPlug> {
+        terminal_plug(&self.query(), Id::from_uuid(device))
     }
 }
 

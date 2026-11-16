@@ -735,7 +735,7 @@ impl ShellModel {
                         }
                         Some(ew_api::output::SolenoidSeat::Multipin {
                             terminal,
-                            plug_function,
+                            terminal_device,
                             pin,
                             plug,
                         }) => {
@@ -746,8 +746,8 @@ impl ShellModel {
                                     strings::format(key!("canvas-solenoid-pin"), &[&s.name, pin, terminal]),
                                 ),
                                 None => self.aimed(
-                                    "place.pick",
-                                    json!({ "function": plug_function.map(|f| f.to_string()) }),
+                                    "fluid.draw_plug",
+                                    json!({ "terminal": terminal_device.to_string() }),
                                     strings::format(key!("canvas-plug-draw"), &[terminal]),
                                 ),
                             });
@@ -778,21 +778,21 @@ impl ShellModel {
             }));
         }
         self.device_medium_entries(session, device, out);
-        // A multipin terminal's plug, drawn on the page shown when it is no fluid page (rc.2): a box with a pin each.
-        let fluid_page = self
-            .page_rows()
-            .get(self.page_index())
-            .is_some_and(|r| r.kind == "fluid");
-        if !fluid_page
-            && session.terminal_kind(device) == Some(ew_api::output::TerminalKind::Multipin)
-            && let Some((main, _)) = session.main_function(device)
-        {
-            let tag = session.device_tag(device).unwrap_or_default();
-            out.extend(self.aimed(
-                "place.pick",
-                json!({ "function": main.to_string() }),
-                strings::format(key!("canvas-plug-draw"), &[&tag]),
-            ));
+        // A multipin terminal's plug (rc.2), from any page: Go to the plug where it is drawn, else Draw the plug on an
+        // electrical page… (`fluid.draw_plug`), a box with a pin each.
+        if let Some(plug) = session.terminal_plug(device) {
+            out.extend(match &plug.drawn {
+                Some(place) => self.aimed(
+                    "nav.goto",
+                    json!({ "text": place }),
+                    strings::format(key!("canvas-plug-go"), &[&plug.tag, place]),
+                ),
+                None => self.aimed(
+                    "fluid.draw_plug",
+                    json!({ "terminal": device.to_string() }),
+                    strings::format(key!("canvas-plug-draw"), &[&plug.tag]),
+                ),
+            });
         }
         let menu = session.fluid_menu(device);
         if menu.terminal {

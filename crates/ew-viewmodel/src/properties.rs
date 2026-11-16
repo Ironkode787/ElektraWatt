@@ -1171,8 +1171,8 @@ pub fn ports_in_words(sheet: &mut PropertySheet) {
     }
 }
 
-/// Writes a valve's solenoid rows in words (rc.2, F11): where the coil is drawn, else "not drawn"; and the coil
-/// symbol's valve as "Solenoid 14 of -201Q1". The JSON value is unchanged.
+/// Writes a valve's solenoid rows in words (rc.2, F11): where the coil is drawn, else "not drawn"; a multipin terminal's
+/// plug row likewise; and the coil symbol's valve as "Solenoid 14 of -201Q1". The JSON value is unchanged.
 pub fn solenoids_in_words(sheet: &mut PropertySheet) {
     for row in sheet.sections.iter_mut().flat_map(|s| s.rows.iter_mut()) {
         let RowValue::One { json, text } = &mut row.value else {
@@ -1186,6 +1186,8 @@ pub fn solenoids_in_words(sheet: &mut PropertySheet) {
             && json.get("drawn").is_some_and(Value::is_null)
         {
             *text = strings::text(key!("props-solenoid-not-drawn")).to_owned();
+        } else if row.key == "device/derived.plug" && json.get("drawn").is_some_and(Value::is_null) {
+            *text = strings::text(key!("props-plug-not-drawn")).to_owned();
         } else if row.key == "representation/derived.solenoid_of" {
             let word = |k: &str| json.get(k).and_then(Value::as_str).unwrap_or_default().to_owned();
             *text = strings::format(key!("props-solenoid-of"), &[&word("name"), &word("tag")]);
@@ -2008,6 +2010,7 @@ const CHIP_PHRASES: &[(&str, Option<&str>, Key<'static>)] = &[
     ("PLC output ", Some(""), key!("chip-via-plc-output")),
     ("no PLC output", None, key!("chip-via-no-plc-output")),
     ("the valve's part", None, key!("chip-via-valve-part")),
+    ("its plug", None, key!("chip-via-plug")),
 ];
 
 /// A provenance chip's words in the UI language: each ` · `-separated part of `ew-api`'s English

@@ -1343,8 +1343,62 @@ impl ShellModel {
         let Some((tag, name, _)) = session.solenoid_of(function) else {
             return Outcome::refused(key!("reason-not-solenoid"));
         };
-        // The page shown when it is electrical, else the nearest electrical page before it (a project's electrical
-        // pages usually come before its fluid pages), else after it.
+        let out = self.arm_on_electrical_page(function, key!("reason-no-electrical-page"));
+        if out != Outcome::Done {
+            return out;
+        }
+        let folio = self.current_folio().unwrap_or_default().to_owned();
+        self.notify(
+            strings::format(key!("toast-solenoid-draw"), &[&name, &tag, &folio]),
+            false,
+        );
+        Outcome::Done
+    }
+
+    /// `fluid.draw_plug {terminal?}` (rc.2): a multipin valve terminal's Draw the plug on an electrical page…, from any
+    /// page, as a valve's Draw solenoid: the plug's box on the pointer there, so that a click places it; a toast says
+    /// whose and where. Without `terminal`, of the selected multipin terminal. Refused in words for another device or
+    /// without an electrical page.
+    pub(crate) fn act_fluid_draw_plug(&mut self, p: &Map<String, Value>) -> Outcome {
+        let terminal = if p.contains_key("terminal") {
+            or_return!(self.record_param(p, "terminal"))
+        } else {
+            match self.selected_multipin_terminal() {
+                Ok(t) => t,
+                Err(reason) => return Outcome::refused(reason),
+            }
+        };
+        let Some(plug) = self.project_session().and_then(|s| s.terminal_plug(terminal)) else {
+            return Outcome::refused(key!("reason-not-multipin"));
+        };
+        let out = self.arm_on_electrical_page(plug.function, key!("reason-no-electrical-page-plug"));
+        if out != Outcome::Done {
+            return out;
+        }
+        let folio = self.current_folio().unwrap_or_default().to_owned();
+        self.notify(strings::format(key!("toast-plug-draw"), &[&plug.tag, &folio]), false);
+        Outcome::Done
+    }
+
+    /// The multipin valve terminal the selection is; else the reason in words: select one, or the selected device is
+    /// none.
+    pub(crate) fn selected_multipin_terminal(&self) -> Result<Uuid, Key<'static>> {
+        let session = self.project_session().ok_or(key!("reason-no-project"))?;
+        let selected = self.selected_devices();
+        let [device] = selected.as_slice() else {
+            return Err(key!("reason-plug-select"));
+        };
+        let device: Uuid = device.parse().map_err(|_| key!("reason-plug-select"))?;
+        match session.terminal_kind(device) {
+            Some(ew_api::output::TerminalKind::Multipin) => Ok(device),
+            _ => Err(key!("reason-not-multipin")),
+        }
+    }
+
+    /// Arms the placement of `function` on the page shown when it is an electrical (multi-line) page, else on the
+    /// nearest one before it (a project's electrical pages usually come before its fluid pages), else after it; refused
+    /// with `none` without an electrical page.
+    fn arm_on_electrical_page(&mut self, function: Uuid, none: Key<'static>) -> Outcome {
         let electrical = |i: &usize| self.page_rows().get(*i).is_some_and(|r| r.kind == "multi_line");
         let here = self.page_index();
         let Some(page) = (here..=here)
@@ -1352,7 +1406,7 @@ impl ShellModel {
             .chain(here + 1..self.page_count())
             .find(electrical)
         else {
-            return Outcome::refused(key!("reason-no-electrical-page"));
+            return Outcome::refused(none);
         };
         if page != here {
             let out = self.walk(page);
@@ -1364,16 +1418,7 @@ impl ShellModel {
         }
         let mut pick = Map::new();
         pick.insert("function".into(), Value::String(function.to_string()));
-        let out = self.act_place_pick(&pick);
-        if out != Outcome::Done {
-            return out;
-        }
-        let folio = self.current_folio().unwrap_or_default().to_owned();
-        self.notify(
-            strings::format(key!("toast-solenoid-draw"), &[&name, &tag, &folio]),
-            false,
-        );
-        Outcome::Done
+        self.act_place_pick(&pick)
     }
 
     /// `fluid.set_medium {line, medium}` (FR-FLU-009): the medium the fluid line's net carries, defined at the line's
