@@ -263,6 +263,54 @@ fn ft1684_the_marker_tool_marks_two_wires_with_a_typed_colour() {
     d.shell_mut().shutdown();
 }
 
+/// The owner's test of the second candidate: two wires drawn, a marker placed over them with 0.75 typed, then the
+/// wires made the cores of a 3G1.5 cable: the wire stayed 0.75 until it was drawn again. A wire that is a cable's core
+/// has its core's cross-section and colour at once, however it got there: Properties shows 1.5 and BN, from the
+/// cable, and offers no override there.
+#[test]
+fn a_wire_made_a_core_takes_the_cores_cross_section_over_its_marker() {
+    use ew_ui::ew_viewmodel::properties::{RowAction, RowValue, chip_text, find_row};
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    let pixel = two_wires(&mut d);
+    let to = mark_across(&mut d, &pixel);
+    fill(&mut d, "Cross-section", "0.75");
+    d.input(&Input::Hover { at: to });
+    d.input(&key("enter"));
+    d.input(&key("escape"));
+    d.settle();
+    select_both(&mut d, &pixel);
+    d.input(&click(d.find("Cable").expect("Cable on the Draw tab")));
+    d.settle();
+    d.input(&key("tab"));
+    d.input(&typed("3G1.5"));
+    d.input(&click(d.find("Apply").unwrap()));
+    d.settle();
+    assert!(d.shell_mut().dialog().is_none(), "{}", banner(&mut d));
+    d.input(&key("escape"));
+    let at = on_wire(&mut d, &pixel, 0);
+    d.input(&Input::Hover { at });
+    d.input(&click(at));
+    d.settle();
+    let sheet = d
+        .shell_mut()
+        .properties()
+        .sheet()
+        .expect("the wire's properties")
+        .clone();
+    for (key, want) in [("connection/derived.csa", "1.5"), ("connection/derived.colour", "BN")] {
+        let (_, row) = find_row(&sheet, key).unwrap_or_else(|| panic!("{key}"));
+        match &row.value {
+            RowValue::One { text, .. } => assert!(text.contains(want), "{key}: {text}"),
+            other => panic!("{key}: {other:?}"),
+        }
+        let chip = chip_text(&row.provenance);
+        assert!(chip.contains("cable -1W1") && chip.contains("core BN"), "{key}: {chip}");
+        assert!(!row.actions.contains(&RowAction::Override), "{key}: changed at the cable");
+    }
+    d.shell_mut().shutdown();
+}
+
 /// The text of the one Wire marker of the page that is not among `before`, and every marker's ID now.
 fn new_marker(d: &mut Driver, before: &[String]) -> (Option<String>, Vec<String>) {
     let t = tables(d);

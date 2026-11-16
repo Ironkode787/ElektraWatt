@@ -316,6 +316,8 @@ impl Command for AssignPart {
             if self.mode != AssignModeParam::Append && adds_copy {
                 crate::commands::layout::follow_part_change(tx, *d, self.part, &before)?;
             }
+            // A cable takes its cores from a cable part (rc.3).
+            crate::commands::terminal::cores_from_part(tx, *d, self.part)?;
         }
         // A strip whose terminal the change widened pushes as a growing strip does.
         let strips: BTreeSet<Id<Device>> = self

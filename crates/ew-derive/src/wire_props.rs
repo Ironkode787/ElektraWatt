@@ -18,7 +18,9 @@
 //! | 1 | project default `ProjectSettings.extra["wire_default"]` | `ProjectDefault` |
 //! | 0 | the built-in defaults of the derivation profile, when the project has no profile | `BuiltIn` |
 //!
-//! [`pick`] is the precedence engine: the first level, from the top, that has a value.
+//! [`pick`] is the precedence engine: the first level, from the top, that has a value. One exception (rc.3): a cable's
+//! core takes the cross-section and colour its conductor states over an override on the wire, since a wire in a cable
+//! is that core; they are changed at the cable.
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -599,8 +601,8 @@ impl Ctx<'_> {
         let colour0 = Some(Prov::new(builtin_colour_for(&colour_attrs, &class), built_in()));
 
         EffectiveProps {
-            csa: pick([l7.csa, l6_csa, l3.csa, csa2, l1.csa, csa0]),
-            colour: pick([l7.colour, l6_colour, l3.colour, colour2, l1.colour, colour0]),
+            csa: pick([l6_csa, l7.csa, l3.csa, csa2, l1.csa, csa0]),
+            colour: pick([l6_colour, l7.colour, l3.colour, colour2, l1.colour, colour0]),
             wire_part: pick([l7.wire_part, l3.wire_part, l1.wire_part]),
             insulation: pick([l7.insulation, l3.insulation, l1.insulation]),
             function: pick([l7.function, l3.function, l1.function]),

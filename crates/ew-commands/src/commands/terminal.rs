@@ -855,6 +855,98 @@ impl Command for AddConductors {
     }
 }
 
+/// A cable given a cable part takes its cores from the part (rc.3): their number, designations, cross-sections and
+/// colours. A conductor whose core the part names keeps it; the other conductors that carry wires take the part's
+/// other cores in core order (cores before shields); the conductors left without a core of the part and without
+/// wires go, and the part's cores no conductor took are added. Nothing happens for a device without a cable aspect or
+/// a part that is no cable part with cores. Rejected: more conductors carry wires than the part has cores.
+pub(crate) fn cores_from_part(tx: &mut TxBuilder<'_>, cable: Id<Device>, part: Id<Part>) -> Result<(), CmdError> {
+    if tx.get::<Device>(cable).is_none_or(|d| d.aspects.cable.is_none()) {
+        return Ok(());
+    }
+    let Some(copy) = tx.get::<LibCopy<Part>>(part) else {
+        return Ok(());
+    };
+    let cores = &copy.item.sections.cable_cores;
+    if copy.item.kind != ew_schema::PartKind::Cable || cores.is_empty() {
+        return Ok(());
+    }
+    let mut conductors: Vec<std::sync::Arc<Conductor>> = tx
+        .conductors_of_cable(cable)
+        .into_iter()
+        .filter_map(|c| tx.get::<Conductor>(c))
+        .collect();
+    conductors.sort_by(|a, b| a.core.natural_cmp(&b.core));
+    let wired: BTreeSet<Id<Conductor>> = tx
+        .iter::<Connection>()
+        .iter()
+        .filter_map(|c| match c.kind {
+            ConnectionKind::Core(k) => Some(k),
+            _ => None,
+        })
+        .collect();
+    let in_use = conductors.iter().filter(|c| wired.contains(&c.id)).count();
+    let room = cores.iter().filter(|k| !k.shield).count();
+    if in_use > room {
+        return tx.reject(text!(
+            "refusal-cable-part-cores",
+            crate::words::device(tx, cable),
+            in_use.to_string(),
+            copy.item.part_number.as_str(),
+            room.to_string()
+        ));
+    }
+    let mut taken = vec![false; cores.len()];
+    let mut given: Vec<(Id<Conductor>, usize)> = Vec::new();
+    for c in &conductors {
+        if let Some(i) = (0..cores.len()).find(|&i| !taken[i] && cores[i].core == c.core) {
+            taken[i] = true;
+            given.push((c.id, i));
+        }
+    }
+    for c in conductors.iter().filter(|c| wired.contains(&c.id)) {
+        if given.iter().any(|(g, _)| *g == c.id) {
+            continue;
+        }
+        let next = (0..cores.len())
+            .find(|&i| !taken[i] && !cores[i].shield)
+            .or_else(|| (0..cores.len()).find(|&i| !taken[i]));
+        if let Some(i) = next {
+            taken[i] = true;
+            given.push((c.id, i));
+        }
+    }
+    for c in conductors.iter().filter(|c| !given.iter().any(|(g, _)| *g == c.id)) {
+        tx.delete((Kind::Conductor, c.id.cast()))?;
+    }
+    for (c, i) in given {
+        let k = &cores[i];
+        tx.update::<Conductor>(c, |r| {
+            r.core = k.core.clone();
+            r.colour = k.colour.clone();
+            r.csa = k.csa.clone();
+            r.shield = k.shield;
+            r.pair = k.pair;
+        })?;
+    }
+    for k in cores.iter().zip(&taken).filter(|(_, t)| !**t).map(|(k, _)| k) {
+        let id: Id<Conductor> = tx.mint();
+        tx.insert(Conductor {
+            id,
+            v: 1,
+            cable,
+            core: k.core.clone(),
+            colour: k.colour.clone(),
+            csa: k.csa.clone(),
+            shield: k.shield,
+            pair: k.pair,
+            source_ref: None,
+            extra: Extra::new(),
+        })?;
+    }
+    Ok(())
+}
+
 /// Rejects a core that is used twice in `specs` or already in `existing`.
 fn check_distinct_cores(
     tx: &TxBuilder<'_>,

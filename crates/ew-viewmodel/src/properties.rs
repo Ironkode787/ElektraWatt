@@ -1988,7 +1988,6 @@ const CHIP_PHRASES: &[(&str, Option<&str>, Key<'static>)] = &[
         Some("'"),
         key!("chip-via-project-description-is"),
     ),
-    ("conductor ", Some(""), key!("chip-via-conductor")),
     (
         "potential definition at ",
         Some(""),
@@ -2041,6 +2040,10 @@ const CHIP_PHRASES: &[(&str, Option<&str>, Key<'static>)] = &[
 fn chip_words(text: &str) -> String {
     text.split(" · ")
         .map(|part| {
+            // A cable's core names two things: the cable and the core (rc.3).
+            if let Some((cable, core)) = part.strip_prefix("cable ").and_then(|p| p.split_once(", core ")) {
+                return strings::format(key!("chip-via-cable-core"), &[cable, core]);
+            }
             CHIP_PHRASES
                 .iter()
                 .find_map(|(before, after, key)| match after {
@@ -2087,7 +2090,7 @@ pub fn chip_word(p: &Provenance) -> &'static str {
         Provenance::Derived { via } if via.starts_with("potential definition ") => {
             strings::text(key!("chip-word-potential"))
         }
-        Provenance::Derived { via } if via.starts_with("conductor ") => {
+        Provenance::Derived { via } if via.starts_with("cable ") => {
             strings::text(key!("chip-word-cable"))
         }
         Provenance::Derived { via } if via == "project default" || via.starts_with("built-in default") => {

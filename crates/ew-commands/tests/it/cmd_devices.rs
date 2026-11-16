@@ -1060,6 +1060,88 @@ fn a_cable_made_from_wires_gets_its_mark_on_each_page() {
     );
 }
 
+/// A cable part with the cores `cores` of 1.5 mm² (`GNYE` green-yellow, the others their own code as colour).
+fn cable_part(item: u128, cores: &[&str]) -> LibCopy<ew_schema::Part> {
+    let mut c = lib_part(0x7700, item, &format!("CAB-{item}"));
+    c.item.kind = ew_schema::PartKind::Cable;
+    c.item.sections.cable_cores = cores
+        .iter()
+        .map(|k| {
+            serde_json::from_value(serde_json::json!({
+                "core": k,
+                "colour": if *k == "GNYE" { serde_json::json!(["GN", "YE"]) } else { serde_json::json!([k]) },
+                "csa": "1.5",
+            }))
+            .unwrap()
+        })
+        .collect();
+    c
+}
+
+/// rc.3 (G6): a part given to a cable that exists sets its cores from the part: a wire's core keeps its wire and takes
+/// the part's designation, cross-section and colour; the cores the cable lacks are added. A part with fewer cores than
+/// the cable has wires is refused and nothing changes.
+#[test]
+fn a_part_given_to_a_cable_sets_its_cores() {
+    let wires = [id::<Connection>(0x4111), id(0x4112)];
+    let (p, mut records, _) = mini_golden_parts();
+    for (n, w) in wires.iter().enumerate() {
+        records.push(Record::Connection(connection(
+            *w,
+            Some(PAGE_102),
+            cp(FN_102G1, 0),
+            cp(FN_T1, u16::try_from(n).unwrap()),
+        )));
+    }
+    let mut lib = library();
+    lib.extend([cable_part(1, &["BN", "BU", "GNYE"]), cable_part(2, &["BN"])].map(ew_schema::LibDocument::Part));
+    let mut e = engine(Model::from_records(p, records, lib).expect("valid model"));
+    let mut cmd = cable_cmd(&["1", "2"]);
+    cmd.conductors[0].wires = vec![wires[0]];
+    cmd.conductors[1].wires = vec![wires[1]];
+    let cable: ew_ids::Id<Device> = primary(&e.execute(&cmd).unwrap());
+    let assign = |item| ew_commands::commands::AssignPart {
+        devices: vec![cable],
+        part: lib_part_id(0x7700, item),
+        copies: vec![],
+        mode: ew_commands::commands::AssignModeParam::ReplaceAll,
+        from: None,
+        qty: None,
+    };
+    let rev = e.model().rev();
+    rejected(e.execute(&assign(2)));
+    assert_eq!(e.model().rev(), rev, "too few cores: nothing changes");
+    e.execute(&assign(1)).unwrap();
+    let cores = |e: &Engine| {
+        let mut out: Vec<(String, String)> = e
+            .model()
+            .table::<Conductor>()
+            .iter()
+            .filter(|(_, c)| c.cable == cable)
+            .map(|(_, c)| {
+                let csa = serde_json::to_value(&c.csa).unwrap().to_string();
+                (c.core.as_str().to_owned(), csa)
+            })
+            .collect();
+        out.sort();
+        out
+    };
+    let csa = "\"1.5\"".to_owned();
+    assert_eq!(
+        cores(&e),
+        [
+            ("BN".to_owned(), csa.clone()),
+            ("BU".to_owned(), csa.clone()),
+            ("GNYE".to_owned(), csa)
+        ]
+    );
+    let core_of = |w: ew_ids::Id<Connection>| match row(&e, w).kind {
+        ConnectionKind::Core(k) => row(&e, k).core.as_str().to_owned(),
+        ref other => panic!("{other:?}"),
+    };
+    assert_eq!((core_of(wires[0]), core_of(wires[1])), ("BN".to_owned(), "BU".to_owned()));
+}
+
 #[test]
 fn add_conductors_extends_a_cable() {
     let mut e = engine(golden_model());

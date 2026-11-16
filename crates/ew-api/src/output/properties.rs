@@ -3418,6 +3418,10 @@ impl Session {
                             note: format!("override on {on}"),
                         }
                     }
+                    // A core's cross-section and colour are the cable's: changed at the cable (rc.3).
+                    other @ PropSource::Conductor(_) => Provenance::Derived {
+                        via: prop_via(q, other, &potential, class.as_ref()),
+                    },
                     other => {
                         can_override = true;
                         Provenance::Derived {
@@ -4111,7 +4115,7 @@ fn prop_via(q: &Q, source: &PropSource, potential: &str, class: Option<&ew_schem
                 .and_then(|k| serde_json::to_value(&k.core).ok())
                 .map(|v| ml_text(&v, src.as_deref()))
                 .unwrap_or_default();
-            format!("conductor {cable}:{core_id}")
+            format!("cable {cable}, core {core_id}")
         }
         PropSource::PotentialDef(d) => {
             let name = q

@@ -644,7 +644,9 @@ rows = [ { class = "control", csa = "0.75" }, { class = "mains", csa = "1.5" } ]
   colour of the colour profile (IEC 60445: BN), not the control circuit's 0.75 mm² (FT-1688). A phase with a known
   voltage below 50 V is matched by the class rules as before.
 - **Which value wins** (FT-1688, as built): the wire's own override (level 7), else the core of its cable (level 6,
-  the conductor's colour and cross-section), else its potential's definition (level 3), else the profile rows of
+  the conductor's colour and cross-section; as built in rc.3 a core's conductor wins over the wire's override for
+  these two, so a wire made a core takes them at once however it got there, Properties names the cable and core as
+  their source and offers no override: they are changed at the cable), else its potential's definition (level 3), else the profile rows of
   its potential's type, AC/DC, voltage and class (level 2), else the project default (level 1), else the built-in
   default of the class (level 0). A new wire carries no value of its own, so it follows its potential's type until a
   person sets one.
