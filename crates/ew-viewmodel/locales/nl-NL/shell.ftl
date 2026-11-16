@@ -6860,3 +6860,4 @@ reason-no-station-off-page = Elk station en busapparaat van het project staat al
 chip-go-page = Naar pagina { $p0 }
 chip-go-page-cell = Naar pagina { $p0 }, { $p1 }
 chip-put-here = Hier zetten
+status-panel-front = Het paneel { $p0 } stond al open: het staat nu vooraan.

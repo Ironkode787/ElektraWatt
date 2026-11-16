@@ -1136,3 +1136,44 @@ fn the_chip_says_where_it_goes_and_puts_a_station_here() {
     assert_eq!(topology_boxes(&h, cpu), 2, "DP and X1");
     h.state_mut().shell_mut().shutdown();
 }
+
+/// Two small ones of the rc.2 persona run: Add module's How many went on with the 2 of the add before, and the PLC
+/// tab's Bus panel closed the panel that stood open behind another tab. How many is 1 again after an add, in the
+/// new-station dialog and in a made station's rack; Bus panel brings the panel to the front and the status bar says so.
+#[test]
+fn how_many_goes_back_to_one_and_the_bus_panel_comes_to_the_front() {
+    use ew_ui::ew_viewmodel::layout::PaneKind;
+    use ew_ui::ew_viewmodel::navigators::NavKind;
+    let tmp = Tmp::new();
+    let mut h = new_project(&tmp);
+    let count = |h: &egui_kittest::Harness<'static, ew_ui::app::App>| match h.state().shell().dialog() {
+        Some(Dialog::Rack { count, .. }) => *count,
+        other => panic!("{other:?}"),
+    };
+    draft_with(&mut h, 2);
+    assert_eq!(h.state().shell().station_draft().map(|d| d.modules.len()), Some(2));
+    assert_eq!(count(&h), 1, "the new-station dialog");
+    dispatch(&mut h, "ui.dismiss", json!({}));
+    let station = made_station(&mut h, "cpu", "EW-GEN-CPU-1");
+    dispatch(&mut h, "plc.rack_editor", json!({"station": station.to_string()}));
+    dispatch(&mut h, "plc.rack_set", json!({"count": 2}));
+    dispatch(&mut h, "plc.rack_add", json!({"slot": 1, "part": "EW-GEN-DI-1"}));
+    settle(&mut h);
+    assert_eq!(count(&h), 1, "a made station's rack");
+    dispatch(&mut h, "ui.dismiss", json!({}));
+
+    let bus = PaneKind::Navigator(NavKind::Bus);
+    dispatch(&mut h, "bus.panel", json!({}));
+    dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
+    settle(&mut h);
+    assert_ne!(h.state().shell().layout().shown_in_place_of(bus), Some(bus), "behind the PLC panel");
+    dispatch(&mut h, "bus.panel", json!({}));
+    settle(&mut h);
+    let shell = h.state().shell();
+    assert_eq!(shell.layout().shown_in_place_of(bus), Some(bus), "in front, not closed");
+    assert_eq!(
+        shell.status_note(),
+        Some("The Bus panel was open already: it is in front now.")
+    );
+    h.state_mut().shell_mut().shutdown();
+}

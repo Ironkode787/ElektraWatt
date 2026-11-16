@@ -8,7 +8,8 @@
 //!   when it is the active one.
 //! - **The guide** (`plc.guide`, `fluid.guide`): the discipline's how-to guide (`help.documentation {topic}`).
 //! - **A panel** (`plc.grid`, `bus.panel`, `fluid.tubes`, `fluid.media`): shows the
-//!   navigator, or hides it when it is shown (`navigator.show {kind, on}`).
+//!   navigator, or hides it when it is shown (`navigator.show {kind, on}`); one docked behind another tab comes to the
+//!   front, and the status bar says so.
 //! - **A page** (`bus.page_new`, `fluid.page_new`): New page… with the page type chosen.
 //! - **A picker** (`fluid.symbol`, `fluid.air_supply`, `fluid.valve_terminal`): the symbol or device browser opened
 //!   at the discipline's things.
@@ -45,8 +46,30 @@ impl ShellModel {
         self.act_documentation(&params(json!({ "topic": topic })))
     }
 
-    /// Shows the navigator `kind`, or hides it when it is shown.
+    /// Shows the navigator `kind`, or hides it when it is shown. Docked behind another tab, or in a collapsed column, it
+    /// comes to the front instead and the status bar says so (the rc.2 persona run's Bus panel button closed a panel
+    /// he could not see).
     pub(crate) fn act_discipline_panel(&mut self, kind: NavKind) -> Outcome {
+        let pane = crate::layout::PaneKind::Navigator(kind);
+        let left = !crate::layout::PaneKind::BOTTOM.contains(&pane);
+        let hidden =
+            self.layout().shown_in_place_of(pane) != Some(pane) || (left && self.chrome.rail_collapsed);
+        if self.navigator_open(kind) && hidden {
+            let layout = self.layout().showing(pane);
+            self.replace_layout(layout);
+            if left {
+                self.chrome.rail_collapsed = false;
+            }
+            self.focus = Some(super::Focus::Navigator(kind));
+            let name = crate::strings::text(pane.title_key());
+            let epoch = self.project.as_ref().map(|p| p.epoch);
+            self.status_note = Some((
+                crate::strings::format(key!("status-panel-front"), &[name]),
+                epoch,
+                self.revision(),
+            ));
+            return Outcome::Done;
+        }
         let on = !self.navigator_open(kind);
         self.act_navigator_show(&params(json!({ "kind": kind.word(), "on": on })))
     }

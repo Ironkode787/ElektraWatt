@@ -7122,3 +7122,4 @@ reason-no-station-off-page = Every station and bus device of the project is on t
 chip-go-page = Go to page { $p0 }
 chip-go-page-cell = Go to page { $p0 }, { $p1 }
 chip-put-here = Put it here
+status-panel-front = The { $p0 } panel was open already: it is in front now.

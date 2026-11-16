@@ -488,7 +488,8 @@ impl ShellModel {
     /// `plc.rack_add {slot, rack?, part?}`: modules of the part (the one named, else the editor's) into a free slot and,
     /// with the dialog's count above one, the slots after it. In the new-station state they join the draft; else one
     /// `plc.add_module` (a library part embedded with it): as `rack.slot` in a station whose modules have rack
-    /// positions, else positional after the station's modules.
+    /// positions, else positional after the station's modules. After an add the count is 1 again (the rc.2 persona
+    /// run's next add would have taken the 2 of the one before).
     pub(crate) fn act_plc_rack_add(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(slot) = p
             .get("slot")
@@ -525,12 +526,14 @@ impl ShellModel {
         if let Some(Dialog::Rack {
             draft: Some(d),
             error,
+            count,
             ..
         }) = &mut self.dialog
         {
             d.modules
-                .extend(std::iter::repeat_n(part.copy, usize::from(count)));
+                .extend(std::iter::repeat_n(part.copy, usize::from(*count)));
             *error = None;
+            *count = 1;
             return Outcome::Done;
         }
         let station = or_return!(self.rack_station());
@@ -552,7 +555,13 @@ impl ShellModel {
         if !copies.is_empty() {
             params["copies"] = Value::Array(copies);
         }
-        self.rack_commit("plc.add_module", params)
+        let out = self.rack_commit("plc.add_module", params);
+        if out == Outcome::Done
+            && let Some(Dialog::Rack { count, .. }) = &mut self.dialog
+        {
+            *count = 1;
+        }
+        out
     }
 
     /// `plc.rack_move {module, slot}`: a module of the open editor into the slot typed (`3`, `<rack>.<slot>`), with
