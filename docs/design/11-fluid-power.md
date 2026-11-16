@@ -955,8 +955,10 @@ its chip naming the sources of its size and material (the project's default tube
 override; §5.4), read-only. **The Fluid panel's tool line** offers Fluid settings… and New medium…, the Project tab's
 actions.
 
-*As built (M3 persona re-test).* The Medium row's list ends in **New medium…**, its only entry while the project has
-no medium; the medium its form makes is set on the row's tubes. **A source's Properties** (a device with a function on
+*As built (M3 persona re-test, rc.2).* The Medium row's list ends in **New medium…**; the medium its form makes is set
+on the row's tubes. While the project has no medium, the list (and the tube's and the source's menus) offers New
+medium…'s usual media first ("Compressed air, 6 bar"): one is made and set on the row's ports in one undo step
+(`fluid.medium.edit {set, at}`). A row whose only action is Edit opens its editor from its "…" at once. **A source's Properties** (a device with a function on
 a FnDef of category `Source`, the air-supply point) show the same Medium row in Main: the medium its port's net carries
 and where it is defined, set at its port.
 

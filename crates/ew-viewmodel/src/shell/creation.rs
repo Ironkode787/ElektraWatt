@@ -197,6 +197,29 @@ fn medium_preset(word: &str) -> Option<(String, &'static str)> {
     Some((name.to_owned(), p_nom))
 }
 
+/// The value of a usual medium in a Medium row's choice: `preset:<word>`.
+pub(super) const PRESET_PREFIX: &str = "preset:";
+
+/// The usual media as a Medium row's choices (rc.2): "Compressed air, 6 bar", its value `preset:<word>`.
+pub(super) fn medium_preset_choices() -> Vec<(String, Value)> {
+    MEDIUM_PRESETS
+        .iter()
+        .filter_map(|(w, _)| {
+            let (name, p_nom) = medium_preset(w)?;
+            Some((
+                strings::format(key!("medium-preset-choice"), &[&name, p_nom]),
+                Value::String(format!("{PRESET_PREFIX}{w}")),
+            ))
+        })
+        .collect()
+}
+
+/// The `set` of `fluid.medium.edit` that makes usual medium `word`, as New medium… makes it from that preset.
+pub(super) fn medium_preset_set(word: &str) -> Option<Value> {
+    let (name, p_nom) = medium_preset(word)?;
+    Some(json!({"name": name, "p_nom": p_nom}))
+}
+
 /// PLC exchange ▸ Export…'s form (doc 10 §6): the format and version, the stations (tags; empty: all) and the document
 /// date (in the window today's to start with; empty: the model's).
 static PLC_EXPORT: Spec = Spec {

@@ -976,8 +976,8 @@ fn choice_texts(d: &mut Driver) -> Vec<String> {
 
 /// R2-F of the re-test: with no medium in the project, a tube's Medium was a text box that refused every text and
 /// offered no list, and the air supply's Properties said nothing of a medium. The Medium row offers New medium… (the
-/// only entry, then the last); the medium the form makes is the tube's; the air supply shows the medium it supplies,
-/// and sets it there too.
+/// last entry); the medium the form makes is the tube's; the air supply shows the medium it supplies, and sets it there
+/// too.
 #[test]
 fn r2f_new_medium_from_the_tubes_medium_and_the_supplys_medium() {
     let tmp = Tmp::new();
@@ -985,8 +985,9 @@ fn r2f_new_medium_from_the_tubes_medium_and_the_supplys_medium() {
     one_tube(&mut d);
     let edit = json!({"row": "connection/derived.medium"});
     assert_eq!(d.shell_mut().dispatch("props.edit", &edit), Outcome::Done);
-    assert_eq!(choice_texts(&mut d), ["New medium…"]);
-    let choose = json!({"index": 0});
+    let texts = choice_texts(&mut d);
+    assert_eq!(texts.last().map(String::as_str), Some("New medium…"));
+    let choose = json!({"index": texts.len() - 1});
     assert_eq!(d.shell_mut().dispatch("props.choose", &choose), Outcome::Done);
     d.settle();
     let action = match d.shell_mut().dialog() {
@@ -1018,6 +1019,73 @@ fn r2f_new_medium_from_the_tubes_medium_and_the_supplys_medium() {
     let (text, chip) = prop_row(&mut d, "device/derived.medium");
     assert_eq!(text, "Compressed air");
     assert!(chip.contains("medium defined at"), "{chip}");
+    d.shell_mut().shutdown();
+}
+
+/// The rc.2 persona run (friction 2): in a project without media the supply's Medium offered a menu with one entry,
+/// Edit, then a list with New medium… alone. The row's "…" opens its list at once; the list and the tube's menu offer
+/// the usual media, and choosing one makes it and sets it in one undo step; New medium… stays last.
+#[test]
+fn rc2_a_usual_medium_is_chosen_from_the_medium_list() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    one_tube(&mut d);
+    let row = json!({"to": "connection/derived.medium"});
+    assert_eq!(d.shell_mut().dispatch("props.row", &row), Outcome::Done);
+    assert_eq!(
+        d.shell_mut().dispatch("props.row_menu", &json!({})),
+        Outcome::Done
+    );
+    assert!(
+        d.shell_mut().properties().popup().is_none(),
+        "no menu of one entry"
+    );
+    let texts = choice_texts(&mut d);
+    assert_eq!(texts.first().map(String::as_str), Some("Compressed air, 6 bar"));
+    assert_eq!(texts.last().map(String::as_str), Some("New medium…"));
+    let _ = d.shell_mut().dispatch("props.cancel", &json!({}));
+    // The tube's menu offers them too.
+    let line = d
+        .shell_mut()
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .connections
+        .iter()
+        .find(|c| c.kind == "fluid")
+        .and_then(|c| match c.polyline.as_slice() {
+            [a, b, ..] => Some(((a.0 + b.0) / 2, (a.1 + b.1) / 2)),
+            _ => None,
+        })
+        .expect("the tube's route");
+    let at = page_pixel(&mut d, line);
+    let menu = menu_at(&mut d, at);
+    assert!(
+        menu.iter().any(|l| l == "Medium: Compressed air, 6 bar"),
+        "{menu:?}"
+    );
+    one_tube_selected(&mut d);
+    let edit = json!({"row": "connection/derived.medium"});
+    assert_eq!(d.shell_mut().dispatch("props.edit", &edit), Outcome::Done);
+    assert_eq!(
+        d.shell_mut().dispatch("props.choose", &json!({"index": 0})),
+        Outcome::Done
+    );
+    one_tube_selected(&mut d);
+    assert_eq!(
+        prop_row(&mut d, "connection/derived.medium").0,
+        "Compressed air"
+    );
+    // One undo step takes the medium and its definition back.
+    assert_eq!(d.shell_mut().dispatch("edit.undo", &json!({})), Outcome::Done);
+    one_tube_selected(&mut d);
+    assert_eq!(d.shell_mut().dispatch("props.edit", &edit), Outcome::Done);
+    assert_eq!(
+        choice_texts(&mut d).first().map(String::as_str),
+        Some("Compressed air, 6 bar"),
+        "no medium in the project again"
+    );
     d.shell_mut().shutdown();
 }
 

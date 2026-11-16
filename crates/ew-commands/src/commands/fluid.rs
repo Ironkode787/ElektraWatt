@@ -597,6 +597,8 @@ fn pneumatic() -> Discipline {
 /// - Without `medium`: a new medium with the values of `set` (required).
 /// - With `medium` and `set`: the medium takes the values of `set`, its ID and provenance kept.
 /// - With `medium` and no `set`: the medium is deleted with its definition points, with a notice naming how many.
+/// - With `set` and `at`: each port of `at` then carries the medium, defined as `fluid.medium.define` defines it, in
+///   the same step (the window's Medium row choosing a usual medium in a project without one, rc.2).
 ///
 /// Refused: an empty name; a discipline other than pneumatic, vacuum or hydraulic; a default tube against FI-05
 /// (diameters larger than zero, the outer larger than the inner, a rating of zero or more); a tube part the project
@@ -612,6 +614,9 @@ pub struct EditMedium {
     /// Its values; absent deletes `medium`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub set: Option<MediumParam>,
+    /// The fluid ports that take the medium in the same step (with `set`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub at: Vec<crate::commands::device::HintCp>,
 }
 
 impl Command for EditMedium {
@@ -686,6 +691,15 @@ impl Command for EditMedium {
                 id
             }
         };
+        if let Some((first, also)) = self.at.split_first() {
+            DefineMedium {
+                function: first.function,
+                idx: first.idx,
+                medium: Some(id),
+                also: also.to_vec(),
+            }
+            .run(tx)?;
+        }
         Ok(Outcome::primary((Kind::Medium, id.cast())))
     }
 }

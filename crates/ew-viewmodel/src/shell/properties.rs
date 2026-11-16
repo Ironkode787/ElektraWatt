@@ -970,15 +970,18 @@ impl ShellModel {
                 details = refs;
                 items
             }
-            // A tube's medium by its name; choosing one commits the medium's ID. New medium… stands last, the only
-            // entry while the project has none (the persona re-test met a text box that refused every text).
+            // A tube's medium by its name; choosing one commits the medium's ID. While the project has none, the usual
+            // media of New medium… (rc.2: a list with one entry, New medium…, offered no ready medium), each made and
+            // set in one step. New medium… stands last (the persona re-test met a text box that refused every text).
             (crate::properties::EditRoute::Command { command }, _) if command == "fluid.medium.define" => {
                 let f = filter.to_lowercase();
-                p.session
-                    .media()
+                let media = p.session.media();
+                let usual = media.is_empty().then(super::creation::medium_preset_choices);
+                media
                     .into_iter()
-                    .filter(|(_, name)| name.to_lowercase().contains(&f))
                     .map(|(id, name)| (name, Value::String(id.to_string())))
+                    .chain(usual.into_iter().flatten())
+                    .filter(|(name, _)| name.to_lowercase().contains(&f))
                     .chain([(
                         strings::text(key!("action-fluid-medium-new")).to_owned(),
                         Value::Null,
@@ -1444,12 +1447,14 @@ impl ShellModel {
         let Some(target) = section.targets.first().copied() else {
             return failed(key!("error-no-row"), &[&row.key]);
         };
+        // A usual medium chosen (rc.2): the ports the row defines its medium at, as for a medium of the project.
+        let preset = text.strip_prefix(super::creation::PRESET_PREFIX);
         let edit = ew_api::output::LayoutEdit {
             kind: section.kind.clone(),
             target,
             others: section.targets.iter().skip(1).copied().collect(),
             row: row.path.clone(),
-            text: text.to_owned(),
+            text: preset.map_or_else(|| text.to_owned(), |_| ew_api::output::Uuid::nil().to_string()),
         };
         let cmd = match project.session.layout_edit(&edit) {
             Ok(c) => c,
@@ -1462,6 +1467,23 @@ impl ShellModel {
                 self.props.set_error(row.key.clone(), message.clone());
                 return Outcome::Failed { message };
             }
+        };
+        // The usual medium is made and defined at those ports in one step (`fluid.medium.edit {set, at}`).
+        let cmd = match preset {
+            Some(word) if cmd.name == "fluid.medium.define" => {
+                let Some(set) = super::creation::medium_preset_set(word) else {
+                    return failed(key!("error-bad-param"), &["preset"]);
+                };
+                let p = &cmd.params;
+                let at: Vec<Value> = std::iter::once(json!({"function": p["function"], "idx": p["idx"]}))
+                    .chain(p["also"].as_array().cloned().unwrap_or_default())
+                    .collect();
+                ew_api::AnyCommand {
+                    name: "fluid.medium.edit".into(),
+                    params: json!({"set": set, "at": at}),
+                }
+            }
+            _ => cmd,
         };
         // A valve's position typed that another valve holds (rc.2, F15): the window offers to swap the two.
         if row.path == "derived.position"
@@ -2445,9 +2467,13 @@ impl ShellModel {
         let Some(key) = self.properties_row() else {
             return Outcome::refused(key!("reason-no-row"));
         };
-        let has_actions = !self.row_menu(&key).is_empty();
-        if !has_actions {
+        let menu = self.row_menu(&key);
+        if menu.is_empty() {
             return Outcome::refused(key!("reason-no-actions"));
+        }
+        // A row whose only action is Edit opens its editor at once, not a menu of one entry (rc.2).
+        if menu == [RowMenuItem::Action(RowAction::Edit)] {
+            return self.row_action(&key, RowAction::Edit);
         }
         self.props.popup = Some(Popup::Actions { row: key, index: 0 });
         Outcome::Done

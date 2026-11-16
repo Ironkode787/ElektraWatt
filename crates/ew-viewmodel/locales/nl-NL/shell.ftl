@@ -3432,6 +3432,7 @@ medium-preset-hydraulic-oil = Hydraulische olie
 medium-preset-cooling-water = Koelwater
 medium-preset-lubricant = Smeermiddel
 medium-preset-inert-gas = Inert gas (stikstof)
+medium-preset-choice = { $p0 }, { $p1 } bar
 form-hint-fluid-medium-new-preset = Een gangbaar medium vult de naam en de gangbare druk in; pas beide aan zoals de opdracht vraagt.
 form-hint-fluid-medium-new-name = De naam die de slangenlijst en elke keuze Medium tonen, zoals Perslucht 6 bar.
 form-hint-fluid-medium-new-p-nom = De nominale druk in bar boven de atmosfeer, zoals 6; vacuüm ligt onder nul, zoals -0,9.

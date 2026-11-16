@@ -3566,6 +3566,7 @@ medium-preset-hydraulic-oil = Hydraulic oil
 medium-preset-cooling-water = Cooling water
 medium-preset-lubricant = Lubricant
 medium-preset-inert-gas = Inert gas (nitrogen)
+medium-preset-choice = { $p0 }, { $p1 } bar
 form-hint-fluid-medium-new-preset = A usual medium fills the name and its usual pressure; change both as the job needs.
 form-hint-fluid-medium-new-name = The name the tube list and every Medium choice show, such as Compressed air 6 bar.
 form-hint-fluid-medium-new-p-nom = The nominal pressure in bar above the atmosphere, such as 6; a vacuum is below zero, such as -0.9.

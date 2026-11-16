@@ -112,6 +112,7 @@ fn a_medium_is_made_changed_and_deleted_with_its_definitions() {
     let mut e = engine(model());
     let made = e
         .execute(&EditMedium {
+            at: Vec::new(),
             medium: None,
             set: Some(air()),
         })
@@ -120,6 +121,7 @@ fn a_medium_is_made_changed_and_deleted_with_its_definitions() {
     let mut renamed = air();
     renamed.name = MlText::neutral("air 4 bar");
     e.execute(&EditMedium {
+        at: Vec::new(),
         medium: Some(m),
         set: Some(renamed),
     })
@@ -137,6 +139,7 @@ fn a_medium_is_made_changed_and_deleted_with_its_definitions() {
     .expect("defined");
     let gone = e
         .execute(&EditMedium {
+            at: Vec::new(),
             medium: Some(m),
             set: None,
         })
@@ -153,6 +156,7 @@ fn a_medium_is_made_changed_and_deleted_with_its_definitions() {
     nameless.name = MlText::default();
     assert_eq!(
         refusal(e.execute(&EditMedium {
+            at: Vec::new(),
             medium: None,
             set: Some(nameless)
         })),
@@ -162,6 +166,7 @@ fn a_medium_is_made_changed_and_deleted_with_its_definitions() {
     electrical.discipline = Discipline::Electrical;
     assert_eq!(
         refusal(e.execute(&EditMedium {
+            at: Vec::new(),
             medium: None,
             set: Some(electrical)
         })),
@@ -176,6 +181,7 @@ fn a_port_holds_one_medium_definition() {
     let mut e = engine(model());
     let m: Id<Medium> = e
         .execute(&EditMedium {
+            at: Vec::new(),
             medium: None,
             set: Some(air()),
         })
@@ -187,6 +193,7 @@ fn a_port_holds_one_medium_definition() {
         .cast();
     let n: Id<Medium> = e
         .execute(&EditMedium {
+            at: Vec::new(),
             medium: None,
             set: Some(air()),
         })

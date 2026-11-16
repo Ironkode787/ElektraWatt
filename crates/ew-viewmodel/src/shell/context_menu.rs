@@ -154,7 +154,20 @@ impl ShellModel {
                 i
             }));
         }
+        self.usual_medium_entries("connection/derived.medium", session, out);
         out.extend(self.menu_item("fluid.medium_new"));
+    }
+
+    /// In a project without a medium, the usual media of New medium… (rc.2): Medium: Compressed air, 6 bar…, each made
+    /// and set through the Properties row `row` of the thing under the pointer in one step.
+    fn usual_medium_entries(&self, row: &str, session: &ew_api::Session, out: &mut Vec<ActionItem>) {
+        if !session.media().is_empty() {
+            return;
+        }
+        for (words, value) in super::creation::medium_preset_choices() {
+            let label = strings::format(key!("canvas-line-medium"), &[&words]);
+            out.extend(self.aimed("props.set", json!({ "row": row, "value": value }), label));
+        }
     }
 
     /// The item of action `id` in the present state, with no parameters.
@@ -893,6 +906,7 @@ impl ShellModel {
                     i
                 }));
             }
+            self.usual_medium_entries("device/derived.medium", session, out);
             out.extend(self.menu_item("fluid.medium_new"));
             return;
         }
