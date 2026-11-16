@@ -2306,6 +2306,18 @@ fn rc2_a_terminals_menu_lists_its_positions_from_the_body() {
         ),
         "the first valve chosen"
     );
+    // Its card names its valve function in words, the part's description, not its category ("Lever onoffvalve").
+    let card = picker.card.as_ref().expect("the first valve's card");
+    let words = &picker.catalogue.parts[match picker.rows[picker.row] {
+        ew_ui::ew_viewmodel::tools::PickerRow::Part(p) => p,
+        _ => unreachable!(),
+    }]
+    .description;
+    assert!(
+        card.card.functions.iter().any(|(k, _)| k == words),
+        "{:?}",
+        card.card.functions
+    );
     d.input(&Input::DoubleClick {
         at: starting_with(&d, "Solenoid valve 5/2 for a valve terminal"),
         mods: Modifiers::NONE,

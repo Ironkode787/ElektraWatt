@@ -131,7 +131,18 @@ impl Session {
                     Ok(ew_derive::ew_schema::LibDocument::Fndef(c)) => Some(c.item),
                     _ => None,
                 });
-            let Some(kind) = def.and_then(|d| crate::output::navigators::kind_text(&d, &[])) else {
+            // A fluid function (a valve, a service unit) reads as the part's description: its category words read
+            // as code ("Lever onoffvalve", the tutorials lane of rc.2).
+            let fluid = def
+                .as_ref()
+                .is_some_and(|d| d.cps.iter().any(|c| ew_derive::is_fluid(&c.discipline)));
+            let description = crate::output::properties::neutral_or_first(&part.description);
+            let kind = if fluid && !description.is_empty() {
+                Some(description)
+            } else {
+                def.and_then(|d| crate::output::navigators::kind_text(&d, &[]))
+            };
+            let Some(kind) = kind else {
                 continue;
             };
             match functions.iter_mut().find(|(k, _)| *k == kind) {
