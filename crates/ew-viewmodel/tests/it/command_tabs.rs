@@ -132,7 +132,7 @@ fn the_fluid_buttons_need_a_fluid_page_and_say_so() {
         assert!(button(&s, Tab::Fluid, id).enabled, "{id}");
     }
     done(&mut s, "fluid.air_supply", json!({}));
-    assert!(s.picker().is_some(), "the symbol browser is open");
+    assert!(s.picker().is_some(), "the device browser is open");
     s.shutdown();
 }
 

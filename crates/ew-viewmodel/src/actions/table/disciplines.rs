@@ -81,8 +81,9 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_discipline_page("fluid"),
         ),
     ),
-    // Fluid ▸ Place: the symbol browser (on a fluid page it offers the fluid symbols and greys the rest), the device
-    // browser at the valve terminals, the symbol browser at the air supply and its preparation.
+    // Fluid ▸ Place: the device browser at the pneumatic parts, at the valve terminals, and at the air supply and its
+    // preparation, so that what is placed has its part (rc.2: the air supply placed from the symbols had none); a bare
+    // symbol stays Draw ▸ Symbol's.
     keeps_banner(placed(
         place(
             Group::FluidPlace,
@@ -98,7 +99,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             &[],
             fluid_symbol_page,
             None,
-            |s, _| s.act_open_picker(crate::tools::PickerMode::Place),
+            |s, _| s.act_discipline_picker(crate::tools::PickerMode::Parts, "pneumatics"),
         ),
     )),
     // A valve terminal of the project drawn on no fluid page yet comes first (rc.2): Draw -104A1 here, or a new one.
@@ -128,7 +129,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             &[],
             fluid_symbol_page,
             None,
-            |s, _| s.act_discipline_picker(crate::tools::PickerMode::Place, "AirPreparation"),
+            |s, _| s.act_discipline_picker(crate::tools::PickerMode::Parts, "AirPreparation"),
         ),
     )),
     // Fluid ▸ Media: the medium table (New medium… and Fluid settings… are declared in `automation`).

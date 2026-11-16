@@ -1022,6 +1022,41 @@ fn r2f_new_medium_from_the_tubes_medium_and_the_supplys_medium() {
     d.shell_mut().shutdown();
 }
 
+/// The rc.2 persona run (friction 3): Fluid ▸ Air supply opened the symbol browser and the supply placed had no part;
+/// the part was found only under Draw ▸ Device. Air supply opens the device browser at the air supply's parts, and the
+/// supply placed from it has its part, with no "no part" finding.
+#[test]
+fn rc2_the_fluid_tabs_air_supply_places_the_part() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    assert_eq!(
+        d.shell_mut().dispatch("fluid.air_supply", &json!({})),
+        Outcome::Done
+    );
+    d.settle();
+    let (rows, _) = browser_parts(&mut d);
+    assert!(
+        rows.iter().any(|(n, _)| n == "EW-GEN-AIR-1"),
+        "the air supply's part: {rows:?}"
+    );
+    // A frame to show the browser (a dispatch asks for none).
+    d.input(&Input::Hover { at: (1000, 600) });
+    d.settle();
+    d.input(&Input::DoubleClick {
+        at: starting_with(&d, "Air supply: service unit"),
+        mods: Modifiers::NONE,
+    });
+    d.settle();
+    click_at(&mut d, (1000, 600));
+    d.input(&key("escape"));
+    d.settle();
+    assert!(
+        findings(&mut d, "EW-CORE-041").is_empty(),
+        "the supply has its part"
+    );
+    d.shell_mut().shutdown();
+}
+
 /// The rc.2 persona run (friction 2): in a project without media the supply's Medium offered a menu with one entry,
 /// Edit, then a list with New medium… alone. The row's "…" opens its list at once; the list and the tube's menu offer
 /// the usual media, and choosing one makes it and sets it in one undo step; New medium… stays last.
