@@ -216,6 +216,9 @@ impl ShellModel {
             };
             // Every interruption point's name is taken for an automatic name, an external one's too.
             out.add_name(name);
+            if ip.get("direction").and_then(Value::as_str) == Some("target") && ip.get("external").is_none() {
+                out.add_target(name);
+            }
             if ip.get("direction").and_then(Value::as_str) != Some("source") || ip.get("external").is_some() {
                 continue;
             }
@@ -521,34 +524,42 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// The toast's sentence for a point `ip.place` put down free (`params`, the command's): "Placed L1 as a target at
-    /// 101-B2; D before the click makes it a source.", the key from the keymap; `None` for an external connection
-    /// point or an undirected one.
+    /// The toast's sentence for a point `ip.place` put down free (`params`, the command's): what was made and where its
+    /// partner is, "IP-1: source here at 101-B2, target on /102.3", or that it has none yet (rc.2 persona run: the toast
+    /// said how D would have made the opposite); `None` for an external connection point or an undirected one.
     pub(super) fn ip_placed_text(&self, params: &Value) -> Option<String> {
         if !params["external"].is_null() {
             return None;
         }
         let name = params["name"].as_str()?;
-        let (with_cell, no_cell) = match IpDir::from_word(params["direction"].as_str()?)? {
-            IpDir::Source => (
-                key!("toast-ip-placed-source"),
-                key!("toast-ip-placed-source-no-cell"),
-            ),
-            IpDir::Target => (
-                key!("toast-ip-placed-target"),
-                key!("toast-ip-placed-target-no-cell"),
-            ),
-            IpDir::Undirected => return None,
-        };
+        let direction = params["direction"].as_str()?;
         let pos = (params["pos"][0].as_i64()?, params["pos"][1].as_i64()?);
+        // The point as the model holds it now: its printed cross-reference names where its partners are.
+        let partner = self
+            .current_folio()
+            .and_then(|f| self.project_session()?.page_tables(f))
+            .and_then(|t| {
+                t.reps
+                    .iter()
+                    .filter(|r| r.pos == pos)
+                    .find_map(|r| r.ip.as_ref().filter(|ip| ip.name == name).map(|ip| ip.continuation.clone()))
+            })
+            .filter(|c| !c.is_empty());
+        let keys = match (IpDir::from_word(direction)?, partner.is_some()) {
+            (IpDir::Source, true) => (key!("toast-ip-placed-source"), key!("toast-ip-placed-source-no-cell")),
+            (IpDir::Source, false) => (key!("toast-ip-placed-source-lone"), key!("toast-ip-placed-source-lone-no-cell")),
+            (IpDir::Target, true) => (key!("toast-ip-placed-target"), key!("toast-ip-placed-target-no-cell")),
+            (IpDir::Target, false) => (key!("toast-ip-placed-target-lone"), key!("toast-ip-placed-target-lone-no-cell")),
+            (IpDir::Undirected, _) => return None,
+        };
         let cell = self.canvas().and_then(|c| {
             let page = c.page();
             page.cell_text(page.snapper.page_to_sheet(pos))
         });
-        let key = crate::command_bar::key_name(self, "tool.ip_direction");
+        let partner = partner.unwrap_or_default();
         Some(match cell {
-            Some(cell) => strings::format(with_cell, &[name, &cell, &key]),
-            None => strings::format(no_cell, &[name, "", &key]),
+            Some(cell) => strings::format(keys.0, &[name, &cell, &partner]),
+            None => strings::format(keys.1, &[name, "", &partner]),
         })
     }
 

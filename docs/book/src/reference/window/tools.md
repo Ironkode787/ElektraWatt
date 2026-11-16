@@ -213,11 +213,14 @@ ends the wire in a point of the right form for that end.
 
 Type the name in the field Interruption point name at the page's top left, once for a pair: the tool then floats the
 same name as the first point's partner, on this page or the next: its target after a source, its source after a
-target that no source feeds yet. Once the pair is whole the name is used up, and each further point gets a name of
-its own until you type one. When you choose the tool from the Draw tab or the menu, the field has the keys: type the
+target that no source feeds yet. Once the pair is whole the name is used up. Without a typed name the tool offers the
+partner of a point that still waits for one (a target without a source, a source without a target); only when none
+waits does a point get a new name. Source and Target beside the name field choose the direction, as D does. When you
+choose the tool from the Draw tab or the menu, the field has the keys: type the
 name and press Enter or Tab, then click where the point goes. While the field has the keys, D is a letter of the name
 and the bar says "Enter ends the name"; after Enter, Tab or a click on the page, D turns the point. The toast of a
-placed point says its direction ("Placed L1 as a target at 101-B2") and that D before the click gives the other one.
+placed point says what it is and where its partner is ("L1: source here at 101-B2, its target at /102.3"), or that
+the partner is still to come.
 A point names the potential it carries whichever its direction, so a wire on a target that no source feeds yet
 carries the target's name.
 

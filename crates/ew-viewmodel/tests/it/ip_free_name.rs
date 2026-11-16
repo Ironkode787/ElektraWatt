@@ -78,7 +78,8 @@ fn a_point_placed_after_a_reopen_takes_a_free_name_and_joins_nothing() {
     done(&mut s, "file.open", json!({"dir": dir.to_string_lossy()}));
     done(&mut s, "page.goto", json!({"folio": "103"}));
     let links = links_to(&s, "102");
-    assert_eq!(place_ip(&mut s, (46, 40), "target").1, "IP-2");
+    // A source: 102's sources wait for targets, and a target would be offered as their partner (rc.2).
+    assert_eq!(place_ip(&mut s, (46, 40), "source").1, "IP-2");
     assert_eq!(
         links_to(&s, "102"),
         links,
@@ -112,7 +113,8 @@ fn a_point_placed_after_an_undo_brings_one_back_takes_a_free_name() {
     );
     done(&mut s, "page.goto", json!({"folio": "103"}));
     let links = links_to(&s, "102");
-    assert_eq!(place_ip(&mut s, (46, 40), "target").1, "IP-1");
+    // A source: 102's source waits for a target, and a target would be offered as its partner (rc.2).
+    assert_eq!(place_ip(&mut s, (46, 40), "source").1, "IP-1");
     assert_eq!(
         links_to(&s, "102"),
         links,
@@ -138,7 +140,8 @@ fn a_point_placed_after_a_paste_takes_a_free_name() {
     done(&mut s, "canvas.activate", json!({}));
     assert_eq!(new_ip(&before, &s).1, "IP", "the pasted point keeps its name");
     done(&mut s, "ui.dismiss", json!({}));
-    assert_eq!(place_ip(&mut s, (50, 40), "target").1, "IP-1");
+    // A source: the pasted source waits for a target, and a target would be offered as its partner (rc.2).
+    assert_eq!(place_ip(&mut s, (60, 40), "source").1, "IP-1");
     s.shutdown();
 }
 

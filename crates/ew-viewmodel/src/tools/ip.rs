@@ -17,11 +17,13 @@
 //! | floating | `Press` primary or `Activate`, the ghost's CP on another interruption point | floating | refused by the host ([`IpTool::refusal`]): nothing committed, the ghost stays |
 //! | floating | `Escape` | — | `None` (the host returns to Select) |
 //!
-//! **The name** is the typed one, unchanged; else a proposal from a base ([`proposal_base`]; an external point's
+//! **The name** is the typed one, unchanged; else, while a point of the project waits for its partner (a target
+//! without a source, a source without a target; [`ProjectIps::waiting`]), that name with the partner's direction (rc.2:
+//! placing the partner of IP-1 is the default); else a proposal from a base ([`proposal_base`]; an external point's
 //! is `IP`): the derived potential name of the page's CP that lies exactly under the ghost's CP when it is
 //! given (not a fallback), else the last name this tool or the Wire tool's P committed, else that potential's fallback
 //! name, else `IP`; then, while an interruption point of the project already has the proposal, the next name of its
-//! numbered series ([`next_in_series`]: `24VDC-1` → `24VDC-2`, `L` → `L-1`), so that only a typed name joins two points.
+//! numbered series ([`next_in_series`]: `24VDC-1` → `24VDC-2`, `L` → `L-1`), so that a new name never joins two points.
 //! **The direction** is `source` while the star is on (a star source is a source point; the chosen
 //! direction is kept for after it), else the one D chose, else `target` for an external point, else `source` in the right or bottom quarter of the page's drawing area and `target` in the left
 //! or top quarter ([`quarter_direction`]: the horizontal quarters first), else the last committed one. After a commit
@@ -208,6 +210,8 @@ pub struct ProjectIps {
     sources: BTreeSet<(String, Uuid)>,
     /// The name of every interruption point of the project, of any direction, external connection points included.
     names: BTreeSet<String>,
+    /// The name of every target point (direction `target`), external connection points left out.
+    targets: BTreeSet<String>,
 }
 
 impl ProjectIps {
@@ -219,6 +223,37 @@ impl ProjectIps {
     /// Notes an interruption point named `name` (an automatic name never takes it).
     pub fn add_name(&mut self, name: &str) {
         self.names.insert(name.to_owned());
+    }
+
+    /// Notes a target point named `name` (not an external connection point, which never pairs).
+    pub fn add_target(&mut self, name: &str) {
+        self.targets.insert(name.to_owned());
+    }
+
+    /// A name whose point waits for its partner, with the partner's direction: a target without a source (its source
+    /// is offered), else a source without a target (a target is offered); `prefer` first when it waits, then in name
+    /// order. With `want` only a partner of that direction. `None` when no point waits (rc.2 persona run: the tool
+    /// offered IP-3 where the source of IP-1 was wanted).
+    pub fn waiting(&self, prefer: &str, want: Option<IpDir>) -> Option<(String, IpDir)> {
+        let lone_targets = self
+            .targets
+            .iter()
+            .filter(|n| !self.has_source(n))
+            .map(|n| (n.clone(), IpDir::Source));
+        let lone_sources = self
+            .sources
+            .iter()
+            .map(|(n, _)| n)
+            .filter(|n| !self.targets.contains(*n))
+            .map(|n| (n.clone(), IpDir::Target));
+        let open: Vec<(String, IpDir)> = lone_targets
+            .chain(lone_sources)
+            .filter(|(_, d)| want.is_none_or(|w| w == *d))
+            .collect();
+        open.iter()
+            .find(|(n, _)| n == prefer)
+            .or_else(|| open.first())
+            .cloned()
     }
 
     /// `base`, or the first name of its series ([`next_in_series`]) that no interruption point of the project and none
@@ -670,6 +705,14 @@ impl IpTool {
                 .and_then(|c| potential_at(tables, c));
             proposal_base(potential, self.memory.last_name.as_deref())
         };
+        // A point that waits for its partner is offered first: the partner's name and direction (a chosen direction
+        // offers only a partner of that direction); a new name only when none waits.
+        if self.external.is_none() && !self.star {
+            let want = chosen.then_some(auto);
+            if let Some((name, direction)) = self.project.waiting(&base, want) {
+                return (name, direction, None);
+            }
+        }
         let (name, direction) = propose(&base, false, auto, chosen, self.star, &self.project, tables);
         let taken = (name != base).then_some(base);
         (name, direction, taken)

@@ -248,6 +248,8 @@ pub(crate) struct IpFields<'a> {
     pub external: Option<&'a str>,
     pub externals: &'a [(String, String)],
     pub focus: bool,
+    /// The ghost's direction word (`source`, `target`; a star source is `source`), for the Source | Target choice.
+    pub direction: Option<&'a str>,
 }
 
 /// The ID of the IP tool's name field: the HUD reads whether it holds the keys.
@@ -276,6 +278,7 @@ pub(crate) fn ip_fields(
         external,
         externals,
         focus,
+        direction,
     } = *shown;
     ui.label(strings::text(key!("action-ip-name")));
     let id = ip_name_field_id();
@@ -316,6 +319,20 @@ pub(crate) fn ip_fields(
             "ip.name",
             serde_json::json!({ "text": name.trim() }),
         ));
+    }
+    // Source | Target as two choices (rc.2 persona run: D alone was learnt from a toast); D still toggles.
+    if let Some(direction) = direction {
+        let choices = [("source", key!("ip-choice-source")), ("target", key!("ip-choice-target"))];
+        let labels: Vec<(&str, bool)> = choices
+            .iter()
+            .map(|(word, key)| (strings::text(*key), *word == direction))
+            .collect();
+        if let Some(i) = segmented(ui, strings::text(key!("action-tool-ip-direction")), &labels) {
+            events.push(crate::app::Event::Action(
+                "tool.ip_direction",
+                serde_json::json!({ "direction": choices[i].0 }),
+            ));
+        }
     }
     if !externals.is_empty() {
         // The label before its field, and the field shows the reference on the ghost ("-" for none).

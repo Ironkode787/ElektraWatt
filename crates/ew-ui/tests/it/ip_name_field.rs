@@ -577,3 +577,32 @@ fn a_row_with_no_value_lets_its_label_run_across_the_value_column() {
         empty.width()
     );
 }
+
+/// rc.2 persona run (entry 14): Source and Target stand beside the name field as two choices, the ghost's direction
+/// chosen; a click on the other one turns the ghost, as D does.
+#[test]
+fn source_and_target_are_two_choices_beside_the_name() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "103");
+    press(&mut h, Key::P);
+    let chosen = |h: &Harness<'_, App>, label: &str| {
+        h.get_all_by_role(egui::Role::Tab)
+            .find(|n| n.accesskit_node().label().as_deref() == Some(label))
+            .unwrap_or_else(|| panic!("the choice {label}"))
+            .accesskit_node()
+            .is_selected()
+    };
+    let (now, other) = match direction(&h) {
+        "source" => ("Source", "Target"),
+        _ => ("Target", "Source"),
+    };
+    assert_eq!(chosen(&h, now), Some(true));
+    assert_eq!(chosen(&h, other), Some(false));
+    h.get_all_by_role(egui::Role::Tab)
+        .find(|n| n.accesskit_node().label().as_deref() == Some(other))
+        .expect("the other choice")
+        .click();
+    settle(&mut h);
+    assert_eq!(direction(&h), other.to_lowercase());
+    assert_eq!(chosen(&h, other), Some(true));
+}

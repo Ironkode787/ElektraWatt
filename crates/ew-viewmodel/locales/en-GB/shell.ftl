@@ -455,6 +455,8 @@ junction-orient = Orientation { $p0 } (R)
 action-tool-ip = Interruption point
 action-tool-black-box = Black box…
 action-tool-ip-direction = Interruption point direction
+ip-choice-source = Source
+ip-choice-target = Target
 action-tool-star-source = Star source
 action-ip-name = Interruption point name
 
@@ -2643,10 +2645,14 @@ toast-ip-connected = Placed the interruption point { $p0 } at { $p1 } and connec
 toast-ip-connected-no-cell = Placed the interruption point { $p0 } and connected it to { $p2 }. Alt+Click or { $p3 } places it without connecting.
 toast-ip-external-connected = Placed the external point { $p0 } at { $p1 } and connected it to { $p2 }. Alt+Click or { $p3 } places it without connecting.
 toast-ip-external-connected-no-cell = Placed the external point { $p0 } and connected it to { $p2 }. Alt+Click or { $p3 } places it without connecting.
-toast-ip-placed-source = Placed { $p0 } as a source at { $p1 }; { $p2 } before the click makes it a target.
-toast-ip-placed-source-no-cell = Placed { $p0 } as a source; { $p2 } before the click makes it a target.
-toast-ip-placed-target = Placed { $p0 } as a target at { $p1 }; { $p2 } before the click makes it a source.
-toast-ip-placed-target-no-cell = Placed { $p0 } as a target; { $p2 } before the click makes it a source.
+toast-ip-placed-source = { $p0 }: source here at { $p1 }, its target at { $p2 }.
+toast-ip-placed-source-no-cell = { $p0 }: source here, its target at { $p2 }.
+toast-ip-placed-source-lone = { $p0 }: source here at { $p1 }; it has no target yet: the next point offers it.
+toast-ip-placed-source-lone-no-cell = { $p0 }: source here; it has no target yet: the next point offers it.
+toast-ip-placed-target = { $p0 }: target here at { $p1 }, its source at { $p2 }.
+toast-ip-placed-target-no-cell = { $p0 }: target here, its source at { $p2 }.
+toast-ip-placed-target-lone = { $p0 }: target here at { $p1 }; it has no source yet: the next point offers it.
+toast-ip-placed-target-lone-no-cell = { $p0 }: target here; it has no source yet: the next point offers it.
 terminal-in-sentence = { $p0 } terminal { $p1 }
 
 # FX38d: a pin whose designation the device shares, by its position in words ("-1A4 pin - (2nd)").

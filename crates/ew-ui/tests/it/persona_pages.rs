@@ -245,7 +245,7 @@ fn a_new_strips_toast_is_whole_at_the_floor() {
 /// The play-tester typed L1 into the tool's name field and clicked near the page's left edge without Enter: the
 /// page's quarters made it a target, and the tool then offered "L1-1 target" ("L1 is taken, so this point is
 /// L1-1"). A point without its partner leaves its name standing and the tool offers the partner; the toast says the
-/// direction the click placed and the key that turns it before the click.
+/// direction the click placed and that the partner is still to come.
 #[test]
 fn after_a_lone_target_the_tool_offers_its_source_and_the_toast_says_the_direction() {
     let tmp = Tmp::new();
@@ -262,8 +262,8 @@ fn after_a_lone_target_the_tool_offers_its_source_and_the_toast_says_the_directi
     assert_eq!(points(&mut d), [("L1".to_owned(), "target".to_owned())]);
     let said = toast(&mut d);
     assert!(
-        said.starts_with("Placed L1 as a target at 101-")
-            && said.ends_with("D before the click makes it a source."),
+        said.starts_with("L1: target here at 101-")
+            && said.ends_with("it has no source yet: the next point offers it."),
         "{said:?}"
     );
     // The next point is L1's source, in the same quarter too.
@@ -287,7 +287,7 @@ fn after_a_lone_target_the_tool_offers_its_source_and_the_toast_says_the_directi
             ("L1".to_owned(), "target".to_owned())
         ]
     );
-    assert!(toast(&mut d).starts_with("Placed L1 as a source at 101-"));
+    assert!(toast(&mut d).starts_with("L1: source here at 101-"));
     // The pair is whole: the name is taken.
     assert_eq!(d.shell_mut().ip_typed_name(), None);
     d.shell_mut().shutdown();

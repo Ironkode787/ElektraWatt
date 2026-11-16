@@ -243,12 +243,11 @@ fn key_of(s: &ShellModel, id: &str) -> String {
 fn choosing_source_for_a_proposed_name_offers_the_next_free_name() {
     let tmp = Tmp::new("g40-free");
     let mut s = source_on_101(&tmp);
-    // No typed name: the proposal is the last committed name's series' first free name, 0V-1, with the quarter's role
-    // (an automatic name never joins the source on 101).
+    // No typed name: the source on 101 waits for a target, so the proposal is its partner (rc.2), "0V" as a target.
     done(&mut s, "tool.ip", json!({}));
     done(&mut s, "cursor.set", json!({"x_mm": 330.0, "y_mm": 150.0}));
-    assert_eq!(ghost(&s)["name"], "0V-1");
-    assert_eq!(ghost(&s)["direction"], "source");
+    assert_eq!(ghost(&s)["name"], "0V");
+    assert_eq!(ghost(&s)["direction"], "target");
     done(&mut s, "tool.ip_direction", json!({"direction": "source"}));
     let g = ghost(&s);
     assert_eq!(

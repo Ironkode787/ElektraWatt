@@ -579,7 +579,7 @@ impl ShellModel {
                         taken,
                     });
                 } else if out == Outcome::Done && (taken.is_some() || cmd.name() == "ip.place") {
-                    // A point placed free says what it became and how the next click turns it, after the reason
+                    // A point placed free says what it became and where its partner is, after the reason
                     // of a renamed point: a click made without reading the pointer's label still tells.
                     let placed = match cmd.name() {
                         "ip.place" => cmd.to_json().ok().and_then(|json| self.ip_placed_text(&json)),
