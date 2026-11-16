@@ -4088,6 +4088,7 @@ form-terminal-kind = Kind
 form-terminal-part = Part
 form-terminal-count = How many
 form-terminal-from = From number
+form-terminal-tag = Tag of a new strip
 reason-no-terminal-kind = No terminal can be placed on this page
 error-terminal-kind = That kind of terminal cannot be placed on this page. Choose one of the list.
 error-terminal-count = How many: give a whole number from 1 to { $p1 }, not "{ $p0 }".

@@ -1661,9 +1661,9 @@ impl ShellModel {
         out
     }
 
-    /// `tool.place_terminal {strip?, kind?, part?, count?, from?}` (Draw ▸ Place ▸ Terminal…, FT-1695): in the window
-    /// without parameters its small form asks which strip (one of the project's, or `new`: a new strip with the tag it
-    /// will take), which kind of terminal (the page's terminal symbols: feed-through, PE…), which part (No part, or a
+    /// `tool.place_terminal {strip?, kind?, part?, count?, from?, tag?}` (Draw ▸ Place ▸ Terminal…, FT-1695): in the
+    /// window without parameters its small form asks which strip (one of the project's, or `new`: a new strip with the
+    /// tag it will take, editable in `tag`; on a page without a terminal `new` comes first and is chosen, rc.2), which kind of terminal (the page's terminal symbols: feed-through, PE…), which part (No part, or a
     /// terminal part of the kinds: [`Self::terminal_part_proposal`] proposes one, and a part chosen sets its kind), how
     /// many and from which number (empty: the strip's next free one). Place then arms the Place tool with the first
     /// terminal floating; a click places the row, each terminal on the next free point two grid steps right of the one
@@ -1678,9 +1678,15 @@ impl ShellModel {
         if kinds.is_empty() {
             return Outcome::refused(key!("reason-no-terminal-kind"));
         }
+        // On a page without a terminal a new strip comes first (rc.2 persona run: the field terminals joined the supply
+        // page's strip, which the form had chosen).
+        let new_first = !self
+            .canvas()
+            .is_some_and(|c| c.page().tables.reps.iter().any(|r| r.terminal));
         if p.is_empty() && self.mode == super::Mode::Gui {
-            let new_words = match self.tag_example("strip", "X") {
-                Some(tag) => strings::format(key!("form-terminal-strip-new"), &[&tag]),
+            let example = self.tag_example("strip", "X");
+            let new_words = match &example {
+                Some(tag) => strings::format(key!("form-terminal-strip-new"), &[tag]),
                 None => strings::text(key!("form-terminal-strip-new-plain")).to_owned(),
             };
             let mut strips: Vec<(String, String)> = cat
@@ -1688,7 +1694,12 @@ impl ShellModel {
                 .iter()
                 .map(|st| (st.id.to_string(), crate::navigators::strip_label(&st.tag)))
                 .collect();
-            strips.push(("new".to_owned(), new_words));
+            let new = ("new".to_owned(), new_words);
+            if new_first {
+                strips.insert(0, new);
+            } else {
+                strips.push(new);
+            }
             // The Part: No part, then every terminal part of the kinds; it proposes the first strip's and kind's.
             let mut parts = vec![(
                 NO_PART.to_owned(),
@@ -1734,6 +1745,13 @@ impl ShellModel {
                     field("part", key!("form-terminal-part"), parts, proposal),
                     field("count", key!("form-terminal-count"), Vec::new(), "1".to_owned()),
                     field("from", key!("form-terminal-from"), Vec::new(), String::new()),
+                    // The tag a new strip gets, editable (another tag is the strip's own, frozen).
+                    field(
+                        "tag",
+                        key!("form-terminal-tag"),
+                        Vec::new(),
+                        example.unwrap_or_default(),
+                    ),
                 ],
                 error: None,
                 table: None,
@@ -1748,6 +1766,7 @@ impl ShellModel {
         let mut strip = Some(text("strip")).filter(|s| !s.is_empty()).unwrap_or_else(|| {
             cat.strips
                 .first()
+                .filter(|_| !new_first)
                 .map_or_else(|| "new".to_owned(), |st| st.id.to_string())
         });
         let mut kind = Some(text("kind"))
@@ -1811,7 +1830,12 @@ impl ShellModel {
         }
         let mut cat = cat;
         if strip == "new" {
-            let made = self.act_strip_new(&Map::new());
+            let mut new = Map::new();
+            let tag = text("tag");
+            if !tag.is_empty() {
+                new.insert("tag".to_owned(), Value::String(tag));
+            }
+            let made = self.act_strip_new(&new);
             if made != Outcome::Done {
                 return self.form_done(ACTION, made);
             }

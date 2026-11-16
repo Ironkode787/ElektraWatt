@@ -3909,6 +3909,7 @@ form-terminal-kind = Soort
 form-terminal-part = Artikel
 form-terminal-count = Aantal
 form-terminal-from = Vanaf nummer
+form-terminal-tag = Kenmerk van een nieuwe klemmenstrook
 reason-no-terminal-kind = Op deze pagina kan geen klem worden geplaatst
 error-terminal-kind = Die soort klem kan niet op deze pagina worden geplaatst. Kies er een uit de lijst.
 error-terminal-count = Aantal: geef een geheel getal van 1 tot en met { $p1 }, niet "{ $p0 }".
