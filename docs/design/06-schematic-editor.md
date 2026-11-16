@@ -1017,8 +1017,9 @@ stateDiagram-v2
   junction.", since the junction is no end target.
 - *As built (rc.2 persona runs).* A click inside a symbol's body or a black box's outline places no bend (a bend there
   draws the wire through the symbol, rule (c) of ADR-0033): it is refused in words, "A bend cannot sit inside a
-  symbol; click one of its connection points, or a free point outside it", and the wire keeps routing. A box that
-  holds another symbol's connection point is an outline drawn around it, as the router treats it, and takes bends. A
+  symbol; click one of its connection points, or a free point outside it", and the wire keeps routing. A run that
+  entered the symbol over one of its connection points takes the bend (a wire drawn through a free terminal, §5.3),
+  and a box that holds another symbol's connection point is an outline drawn around it, as the router treats it. A
   persona aiming at a power supply's pin clicked its pin text inside the box and got a wire through the box. Before a
   wire starts, the HUD says that free points clicked while drawing lead the wire: "Click or Enter on a connection
   point, a junction or a wire to start, then on free points to lead the wire through them".
