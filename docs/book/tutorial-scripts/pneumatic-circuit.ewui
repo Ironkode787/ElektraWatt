@@ -1,12 +1,12 @@
 {"$schema":"ew.uiscript/1","label":"Tutorial: a pneumatic circuit"}
 {"action":"file.new","params":{"dir":"pneumatic-circuit.ew"}}
 {"action":"page.new","params":{"folio":"2","type":"fluid","title":"Pneumatics"}}
-{"action":"fluid.air_supply"}
+{"action":"tool.place"}
 {"action":"place.pick","params":{"symbol":"ew.iso.air-supply@qet10"}}
 {"action":"cursor.set","params":{"x_mm":60,"y_mm":170}}
 {"action":"canvas.activate"}
 {"action":"tool.select"}
-{"action":"fluid.air_supply"}
+{"action":"tool.place"}
 {"action":"place.pick","params":{"symbol":"ew.iso.frl@qet10"}}
 {"action":"cursor.set","params":{"x_mm":100,"y_mm":170}}
 {"action":"canvas.activate"}

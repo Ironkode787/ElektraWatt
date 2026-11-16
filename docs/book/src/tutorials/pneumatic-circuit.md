@@ -20,11 +20,12 @@ on the fluid page: it belongs to the valve and stands on an electrical page, whe
 2. Click the **Fluid** tab and choose **Fluid page**. The **Page ▸ New page…** form opens with the type **Fluid**
    chosen: type the folio `2` and the title `Pneumatics`, and choose **Create**.
    The empty page 2 Pneumatics shows.
-3. Choose **Air supply** on the Fluid tab (**Fluid ▸ Air supply…**). The symbol browser opens at the air supply and
-   its preparation: choose **air-supply** and click near the bottom left of the page. Choose **Draw ▸ Select**.
-   The compressed-air supply point -2X1 is on the page, with its port 1.
-4. Choose **Fluid ▸ Air supply…** again, choose **frl**, the service unit with filter, regulator and lubricator, and
-   click to the right of the supply point. Choose **Draw ▸ Select**.
+3. Choose **Draw ▸ Place ▸ Symbol…**. On a fluid page the symbol browser offers the fluid symbols: choose
+   **air-supply** and click near the bottom left of the page. Choose **Draw ▸ Select**.
+   The compressed-air supply point -2X1 is on the page, with its port 1. (**Air supply** on the Fluid tab places a
+   supply with its part instead, from the device browser.)
+4. Choose **Draw ▸ Place ▸ Symbol…** again, choose **frl**, the service unit with filter, regulator and lubricator,
+   and click to the right of the supply point. Choose **Draw ▸ Select**.
    The service unit -2V1 is on the page, with port 1 in, port 2 out.
 5. Choose **Draw ▸ Place ▸ Device from part…** (`Shift+I`), choose **Solenoid valve 5/2, spring return**
    (EW-GEN-VLV-1) and click in the middle of the page, to the right. Choose **Draw ▸ Select**.
@@ -69,8 +70,9 @@ on the fluid page: it belongs to the valve and stands on an electrical page, whe
     terminals: choose **Valve terminal with bus node, 4 valve positions, 8 outputs** (EW-GEN-VTM-1) and click once
     near the top left of the page. Its rack opens; choose **Close**, then **Draw ▸ Select**.
     The valve terminal -2K1 is drawn as its positions: the supply end at the left, then four empty cells numbered 1
-    to 4.
-17. Click the empty cell 1. The device browser opens with valves; type `valve terminal` into its search and choose
+    to 4. The toast says "Placed -2K1 at 2-…: 4 positions, all empty."; one click places one terminal.
+17. Click the empty cell 1. The device browser opens with the valves made for a terminal; type `valve terminal` into
+    its search and choose
     **Solenoid valve 5/2 for a valve terminal, spring return** (EW-GEN-VLV-3).
     The valve -2Q2 stands in cell 1 with its output, Q1.0.
 18. Click the empty cell 2 and choose the same valve.

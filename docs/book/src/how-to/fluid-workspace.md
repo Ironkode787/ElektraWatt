@@ -38,11 +38,13 @@ The Fluid workspace shows the pneumatics beside the page:
 
 1. Choose **Fluid page** on the Fluid tab: the new-page form opens with the type **Fluid**.
 2. Choose **Air supply** on the Fluid tab for the supply point and its preparation (service unit, filter, regulator,
-   lubricator), **Fluid symbol** for any ISO 1219 symbol, or **Draw ▸ Place ▸ Device from part…** for a valve, cylinder
-   or flow control with its part. On a fluid page the symbol browser offers the fluid symbols and greys the rest.
+   lubricator), or **Fluid symbol** for a valve, cylinder, flow control or any other pneumatic part: both open the
+   device browser, so what you place has its part. A bare ISO 1219 symbol without a part is **Draw ▸ Place ▸ Symbol…**.
 3. A symbol placed with a port facing a free port is joined to it with a tube; hold `Alt` as you click to place it
    without one. `R` before the click turns it.
-4. Draw the tubes with **Draw ▸ Connect ▸ Wire**, or choose **Tube** on the Fluid tab to pick the line kind first.
+4. Choose **Tube** on the Fluid tab and click from port to port. The bar under the page says the line kind and the
+   project's tube, such as "Working line · tube 6/4 mm"; its **Line kind** button changes the kind for the next tubes.
+   **Draw ▸ Connect ▸ Wire** draws working lines.
 5. Right-click a tube to change its line kind (**Line kind: Working**, **Line kind: Pilot** and the others) or its
    medium. A flexible tube is drawn as an arc.
 
@@ -52,7 +54,8 @@ The Fluid workspace shows the pneumatics beside the page:
    **Compressed air** (which fills the name and 6 bar), or type a name and the pressure in bar, and choose **Create**.
    Each field says under it what it changes.
 2. Select the air supply and choose the medium in its **Medium** row in Properties, or right-click it and choose
-   **Medium:** and the medium.
+   **Medium:** and the medium. While the project has no medium yet, the list offers the usual ones, such as
+   **Compressed air, 6 bar**: choosing one makes it and sets it in one step.
 3. Every tube the supply feeds through the valves carries it; a device's Properties show the medium each port carries,
    and say where to set it when it carries none.
 4. Select a medium's row in the Medium table and press `Ctrl+Shift+H` to highlight its zones on the page, in a colour
@@ -64,7 +67,8 @@ The Fluid workspace shows the pneumatics beside the page:
    is drawn and the PLC output that drives it.
 2. Click "draw it…" in that row, or right-click the valve and choose **Draw solenoid 14 on an electrical page…**: the
    electrical page shows with the coil on the pointer; click where it goes. The coil carries the valve's tag.
-3. Wire the coil to a PLC output. The valve's menu then reads **Go to solenoid 14 at** and the place.
+3. Wire the coil to a PLC output. The valve's menu then reads **Go to solenoid 14 at** and the place; going there
+   selects the coil and names it beside it. From the coil, **Solenoid 14 of -201Q1** goes back to the valve.
 4. A coil placed on its own joins a valve when you type the valve's tag into the coil's **Tag**: the field asks whether
    to make it the valve's undrawn solenoid.
 
@@ -79,16 +83,21 @@ There are two kinds, and the terminal's menu says which:
 1. Choose **Valve terminal** on the Fluid tab and choose the terminal, such as **Valve terminal with bus node, 4 valve
    positions, 8 outputs**; click once where its top-left corner goes. It is drawn as its positions: a supply end, then
    one numbered cell per position. An empty position is a dashed cell, a blanking plate a plate with both diagonals.
+   The toast names the terminal and its positions; a click onto another box is refused.
+   A terminal made first as a PLC station (**PLC ▸ New station…**) comes first: **Valve terminal** offers
+   **Draw -104A1 here** for it, its rack dialog **Draw on a fluid page…**, and its valves stand in their cells.
 2. Click an empty cell, or right-click it and choose **Fill position 2…**: the device browser opens with valves; choose
    a valve for a valve terminal, and it stands in that cell with its output.
-3. Right-click a held cell for **Replace at position 2…**, **Empty position 2** and **Blanking plate at position 2**.
+3. Right-click a held cell for **Replace at position 2…**, **Empty position 2** and **Blanking plate at position 2**;
+   right-click the terminal's body for every position, each under a heading such as **Position 2: empty**.
    A valve dragged onto another cell moves there; onto a held cell the two swap. A valve's **Valve position** in
    Properties moves it too.
 4. A stand-alone valve, a coil or a cylinder dropped into the box is not taken as a position: it stays a device of its
    own, and the toast says so.
-5. On a multipin terminal, right-click its row on an electrical page and choose **Draw the plug of -201K1 on this
-   page…**: beside each pin stands the valve and solenoid it drives. Wire a pin to a PLC output, and the valve on the
-   fluid page shows that output.
+5. On a multipin terminal, right-click it on any page and choose **Draw the plug of -201K1 on an electrical page…**
+   (or **Draw plug** on the Fluid tab, or the **Plug** row in its Properties): the electrical page shows with the
+   plug on the pointer; click once where it goes. Its pins stand down both sides, and beside each pin stands the valve
+   and solenoid it drives. Wire a pin to a PLC output, and the valve on the fluid page shows that output.
 6. The rack dialog (**Rack…**) lists the terminal's positions as rows with **Fill…**, **Blanking plate** and **Empty**.
    **Generate overview…** on the terminal's menu makes the overview pages of its modules and valves, previewed.
 
