@@ -34,6 +34,9 @@ cable in the Cables navigator. At the end you have a saved project whose checks 
    The toast says "Cable -1W1 made from 2 wires": the cable is made with its three cores and the
    two field wires are its cores, in one step that one Undo takes back. The cable takes its page number from its
    first core, and the wires take the cores' 1.5 mm² and colours.
+   The page shows the cable's mark at once: a line across the two wires with a slanted stroke on each, the core's
+   name (BN, BU) beside its wire, and at the line's start the tag -1W1 with the type `3G1.5` under it. Drag the mark
+   to move it along the wires; select it and drag its tag to move the tag alone.
 7. Choose **View ▸ Panels ▸ Navigators ▸ Cables** and click the cable -1W1. In the Properties pane, set **Length** to
    `5 m`.
    The Cables navigator lists the cable -1W1 with its three cores: BN, BU and GNYE.
@@ -51,9 +54,12 @@ cable in the Cables navigator. At the end you have a saved project whose checks 
 - A terminal strip is a device of its own, and each terminal you place from the strip's list is one of its terminals,
   with a cabinet side and a field side.
 - **Draw ▸ Connect ▸ Cable…** makes the selected wires a cable's cores in one form: the cable's type as you write it
-  (`3G1.5`, `4x0.75`, or a cable part's number) gives the cores, and each wire's core can be changed before Apply.
+  (`3G1.5`, `4X0.75`, or a cable part's number) gives the cores, and each wire's core can be changed before Apply.
   The same command on a cable's wire opens that cable, to add a wire or take one out. A cable without a drawn cable
   line takes its page number from its first core.
+- A cable's mark is drawn as panel builders draw it: one line across the cable's wires, a stroke on each core with its
+  number or colour beside it, and the cable's tag with its type and size (`3G1.5`: three cores with green-yellow,
+  `4X0.75`: four without). A cable whose wires run over several pages gets a mark on each.
 - The strip editor and the Cables navigator show what passes through each terminal and each core, from the drawing.
 - The reports that list them, the terminal diagram and the cable list, are the subject of
   [Reports and PDF](reports-and-pdf.md).

@@ -779,6 +779,7 @@ pub(crate) fn wire_marker(
             at: Pt2::new(Nm(10_000_000), Nm(10_000_000)),
             angle: ew_units::Angle2::ZERO,
             fields: vec![ew_schema::MarkerField::Csa, ew_schema::MarkerField::Colour],
+            tag_at: None,
             extra: Extra::new(),
         }),
         extra: Extra::new(),

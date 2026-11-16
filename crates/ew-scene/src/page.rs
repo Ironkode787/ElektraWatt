@@ -142,6 +142,15 @@
 //!   in style `marker` [`MARKER_GAP`] beyond the line's end, horizontal: right of the line across a vertical wire
 //!   (aligned middle left), above the line across a horizontal wire (aligned bottom centre). A wire-marker group
 //!   ([`crate::items`]) draws the same line across all its wires. Provisional, like the routes.
+//! - **Cable marks** (rc.3, as panel builders draw a cable): a wire-marker group whose connections are all cores of
+//!   one cable ([`ew_derive::CableMark`]) is drawn whatever the marker mode: the line across the wires it crosses,
+//!   [`MARKER_REACH`] past the outer ones; on each core a slanted stroke (`/`, [`CABLE_TICK`] each way); each core's
+//!   designation (`1`, `BN`, `GNYE`) in style `marker` just past the stroke's upper end (aligned bottom left), right
+//!   of a vertical wire above the line, above a horizontal wire right of the line; the cable's tag in style
+//!   [`CABLE_TAG_STYLE`] at the line's start, left of a horizontal line (aligned middle right) or above a vertical one
+//!   (aligned bottom centre), or at the marker's `tag_at` once moved; and under the tag its type line in
+//!   [`CABLE_KIND_STYLE`] (`CL110 3G1.5`), starting where the tag starts, or ending where it ends when it is the longer.
+//!   Every text is upright.
 //! - **Wire numbers** (FT-1692): a connection's [`ConnectionView::number`] prints once, at the midpoint of its
 //!   longest segment, in style `marker`, [`MARKER_GAP`] beside the wire as a marker's text stands (right of a
 //!   vertical segment, above a horizontal one) but without the marker's line; with a marker of its own it is that
@@ -207,6 +216,18 @@ pub const MARKER_REACH: Nm = Nm(1_500_000);
 
 /// The gap between a wire marker's line and its text (FT-1706).
 pub const MARKER_GAP: Nm = Nm(1_000_000);
+
+/// The text style of a cable mark's tag: the device tag's (rc.3).
+pub const CABLE_TAG_STYLE: &str = "tag.main";
+
+/// The text style of a cable mark's type line (rc.3).
+pub const CABLE_KIND_STYLE: &str = "data.small";
+
+/// Half the run of a cable mark's slanted stroke on a core, along and across the line (rc.3).
+pub const CABLE_TICK: Nm = Nm(1_000_000);
+
+/// The gap between a cable mark's stroke or line and the texts beside them (rc.3).
+pub const CABLE_TEXT_GAP: Nm = Nm(500_000);
 
 /// Where a wire marker's text stands beyond its line (FT-1706).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -629,15 +650,16 @@ pub struct LayerList {
     /// The labels layer's box of each placement's label on a panel-layout page where it prints (its knockout box,
     /// `crate::panel`), by placement ID: what a drag of the label grabs. Empty in the other layers and pages.
     pub panel_labels: BTreeMap<Uuid, Rect>,
-    /// The labels layer's slot texts where they print, in print order: what a drag of a symbol's text grabs. Empty in
-    /// the other layers.
+    /// The labels layer's slot texts where they print, in print order: what a drag of a symbol's text grabs; a cable
+    /// mark's tag is one too, of its wire marker (slot 0). Empty in the other layers.
     pub slot_texts: Vec<SlotTextBox>,
 }
 
-/// A representation's slot text where the labels layer prints it.
+/// A representation's slot text where the labels layer prints it, or a cable mark's tag (`rep` the wire marker, `slot`
+/// 0, `frame` the marker's point unturned).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct SlotTextBox {
-    /// The representation.
+    /// The representation (a cable mark's wire marker).
     pub rep: Uuid,
     /// The symbol's slot index.
     pub slot: u16,
@@ -2298,6 +2320,105 @@ impl Builder<'_> {
         });
     }
 
+    /// One cable's mark (module documentation, "Cable marks"): the line through the marker's `at` across the cable's
+    /// wires, a slanted stroke and the core's designation at each core it crosses, and the tag with the type line at
+    /// the line's start.
+    pub(crate) fn cable_mark(
+        &mut self,
+        view: &PageView,
+        m: &ew_schema::WireMarker,
+        mark: &ew_derive::CableMark,
+        entity: EntityRef,
+    ) {
+        // Turned 90° the line is vertical, across horizontal wires; else horizontal, across vertical ones.
+        let horizontal = m.angle != Angle2(90_000);
+        let cps = cp_map(view);
+        let page = page_rect(view);
+        let crossings: Vec<(Nm, &str)> = mark
+            .cores
+            .iter()
+            .filter_map(|(id, core)| {
+                let cv = view.connections.iter().find(|c| c.connection.id == *id)?;
+                let pts = polyline_of(view, &cps, &cv.connection, page)?;
+                Some((crossing_of(&pts, m.at, horizontal)?, core.as_str()))
+            })
+            .collect();
+        let mine = if horizontal { m.at.x } else { m.at.y };
+        let lo = crossings.iter().map(|c| c.0).min().unwrap_or(mine) - MARKER_REACH;
+        let hi = crossings.iter().map(|c| c.0).max().unwrap_or(mine) + MARKER_REACH;
+        let on_line = |along: Nm| {
+            if horizontal {
+                Pt2::new(along, m.at.y)
+            } else {
+                Pt2::new(m.at.x, along)
+            }
+        };
+        let stroke = wire_stroke(view.grid);
+        self.push(Item::path(Path::line(on_line(lo), on_line(hi)), Some(stroke.clone()), None).with_entity(entity));
+        for (along, core) in &crossings {
+            let p = on_line(*along);
+            let tick = Path::line(
+                Pt2::new(p.x - CABLE_TICK, p.y + CABLE_TICK),
+                Pt2::new(p.x + CABLE_TICK, p.y - CABLE_TICK),
+            );
+            self.push(Item::path(tick, Some(stroke.clone()), None).with_entity(entity));
+            // Beside its own wire, just past the stroke's upper end: right of a vertical wire above the line, above a
+            // horizontal wire right of the line.
+            self.text(&cable_text(
+                core,
+                Pt2::new(p.x + CABLE_TICK + CABLE_TEXT_GAP, p.y - CABLE_TEXT_GAP),
+                &Align::BottomLeft,
+                MARKER_STYLE,
+                entity,
+            ));
+        }
+        // The tag: left of the line's start across vertical wires, above it across horizontal ones; a moved tag where
+        // it was put. The type line under the tag, starting where the tag starts unless it is the longer, then ending
+        // where the tag ends, so that it never reaches the wires.
+        let start = on_line(lo);
+        let (tag_at, tag_align) = if horizontal {
+            (Pt2::new(start.x - MARKER_GAP, start.y), Align::MiddleRight)
+        } else {
+            // Above the line, with room for the type line between the tag and the line's start.
+            let kind = cable_text(&mark.kind, start, &Align::BottomCentre, CABLE_KIND_STYLE, entity);
+            let kind_h = self
+                .text_box(&kind, false)
+                .map_or(Nm::ZERO, |b| b.max().y - b.min().y + CABLE_TEXT_GAP);
+            (Pt2::new(start.x, start.y - MARKER_GAP - kind_h), Align::BottomCentre)
+        };
+        let tag_at = m
+            .tag_at
+            .and_then(|d| Some(Pt2::new(Nm(m.at.x.0.checked_add(d.x.0)?), Nm(m.at.y.0.checked_add(d.y.0)?))))
+            .unwrap_or(tag_at);
+        let tag = cable_text(&mark.tag, tag_at, &tag_align, CABLE_TAG_STYLE, entity);
+        self.text(&tag);
+        let Some(tag_box) = self.text_box(&tag, false) else {
+            return;
+        };
+        // The tag is moved as a symbol's text is, in the frame of the marker's point.
+        self.out.slot_texts.push(SlotTextBox {
+            rep: entity.0,
+            slot: 0,
+            at: tag_at,
+            angle: Angle2::ZERO,
+            moved: m.tag_at.is_some(),
+            rect: tag_box,
+            frame: ew_derive::TextFrame {
+                origin: m.at,
+                orient: Orient2::R0,
+            },
+        });
+        let below = tag_box.max().y + CABLE_TEXT_GAP;
+        let left = cable_text(&mark.kind, Pt2::new(tag_box.min().x, below), &Align::TopLeft, CABLE_KIND_STYLE, entity);
+        let longer = self.text_box(&left, false).is_some_and(|b| b.max().x > tag_box.max().x);
+        if longer {
+            let right = Pt2::new(tag_box.max().x, below);
+            self.text(&cable_text(&mark.kind, right, &Align::TopRight, CABLE_KIND_STYLE, entity));
+        } else {
+            self.text(&left);
+        }
+    }
+
     /// The crossings of the connections `ids` drawn on the page with the line through `at` (horizontal or
     /// vertical), along the line ([`crossing_of`]); a connection the page does not draw, or one the line misses,
     /// has none.
@@ -3025,6 +3146,20 @@ pub(crate) struct TextSpec<'a> {
     pub(crate) link: Option<Link>,
     /// One link per listed item of `text`.
     pub(crate) items: &'a [ItemLink],
+}
+
+/// A horizontal text of a cable mark, without a link.
+fn cable_text<'a>(text: &'a str, at: Pt2, align: &'a Align, style_key: &'a str, entity: EntityRef) -> TextSpec<'a> {
+    TextSpec {
+        text,
+        at,
+        angle: Angle2::ZERO,
+        align,
+        style_key,
+        entity,
+        link: None,
+        items: &[],
+    }
 }
 
 /// The midpoint of the longest segment of `pts` (the first of equal ones) and whether that segment is

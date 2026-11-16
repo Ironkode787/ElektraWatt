@@ -365,6 +365,7 @@ fn wire_marker(item: Id<PageItem>, connections: Vec<Id<ew_schema::Connection>>) 
             at: pt(10_000_000, 10_000_000),
             angle: ew_units::Angle2::ZERO,
             fields: vec![MarkerField::Csa],
+            tag_at: None,
             extra: Default::default(),
         }),
         extra: Default::default(),

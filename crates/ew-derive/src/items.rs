@@ -34,7 +34,7 @@ use ew_ids::Id;
 use ew_mltext::MlText;
 use ew_rds::RdsSyntax;
 use ew_schema::{
-    ColourSpec, Connection, ConnectionKind, Csa, FreeText, Function, FunctionKind, Page, PageItem,
+    ColourSpec, Connection, ConnectionKind, Csa, Device, FreeText, Function, FunctionKind, Page, PageItem,
     PageItemKind, Representation, Slot, StructureBox,
 };
 use ew_units::Pt2;
@@ -43,6 +43,7 @@ use crate::note::DeriveNote;
 use crate::pages::{PageOrder, PageRef, PageRefStructure};
 use crate::query::{Policy, Query};
 use crate::settings::DrawingSettingsQ;
+use crate::tag::DisplayedTag;
 use crate::structure::{
     PAGE_ASPECTS, PageStructure, ResolvedSlot, ResolvedStructure, SlotSource, resolved_slot, slot,
 };
@@ -521,6 +522,84 @@ pub fn group_marker(q: &Q, item: &PageItem) -> Option<GroupMarker> {
     Some(GroupMarker {
         text: parts.join(" "),
         shown,
+    })
+}
+
+/// A wire marker every live connection of which is a core of one cable: the cable's mark (rc.3), drawn as panel
+/// builders draw it (`ew-scene`'s page documentation, "Cable marks").
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct CableMark {
+    /// The cable's tag as the marker's page prints it (`-101W2`).
+    pub tag: String,
+    /// The type line under the tag: the cable part's type designation, then the size ([`cable_size_text`]) unless
+    /// the designation already holds it (`CL110 3G1.5`); the size alone without a part.
+    pub kind: String,
+    /// Each live connection with its core's designation (`BN`, `1`, `GNYE`), in list order.
+    pub cores: Vec<(Id<Connection>, String)>,
+}
+
+/// The size of `cable` in writing: its cores (shields left out), `G` with a green-yellow core else `X`, and their
+/// cross-section in mm² when they share one (`3G1.5`, `4X0.75`, `5G` for mixed or unknown cross-sections); empty for a
+/// cable without cores.
+pub fn cable_size_text(q: &Q, cable: Id<Device>) -> String {
+    let conductors = q.conductors();
+    let cores: Vec<_> = q
+        .idx()
+        .conductors_of_cable(cable)
+        .filter_map(|c| conductors.get(c).cloned())
+        .filter(|c| !c.shield)
+        .collect();
+    if cores.is_empty() {
+        return String::new();
+    }
+    let pe = cores
+        .iter()
+        .any(|c| c.colour.as_ref().and_then(colour_text).as_deref() == Some("GNYE"));
+    let csas: BTreeSet<Option<String>> = cores
+        .iter()
+        .map(|c| match &c.csa {
+            Some(Csa::Mm2(d)) => Some(d.to_string()),
+            _ => None,
+        })
+        .collect();
+    let csa = match csas.into_iter().collect::<Vec<_>>().as_slice() {
+        [Some(one)] => one.clone(),
+        _ => String::new(),
+    };
+    format!("{}{}{csa}", cores.len(), if pe { "G" } else { "X" })
+}
+
+/// The cable mark of a wire-marker item: `None` for another item, a marker without live connections, or one that
+/// lists a connection which is not a core of the same cable as the others.
+pub fn cable_mark(q: &Q, item: &PageItem) -> Option<CableMark> {
+    item.kind.wire_marker()?;
+    let conductors = q.conductors();
+    let mut cable: Option<Id<Device>> = None;
+    let mut cores = Vec::new();
+    for c in live_connections(q, item) {
+        let ConnectionKind::Core(k) = c.kind else {
+            return None;
+        };
+        let k = conductors.get(k)?;
+        if *cable.get_or_insert(k.cable) != k.cable {
+            return None;
+        }
+        cores.push((c.id, k.core.as_str().to_owned()));
+    }
+    let cable = cable?;
+    let size = cable_size_text(q, cable);
+    let squeeze = |s: &str| s.to_lowercase().replace([' ', '×'], "").replace(',', ".");
+    let kind = match crate::part_text::main_part(q, cable)
+        .and_then(|p| p.item.type_designation.as_ref().map(|t| t.as_str().to_owned()))
+    {
+        Some(t) if size.is_empty() || squeeze(&t).contains(&squeeze(&size)) => t,
+        Some(t) => format!("{t} {size}"),
+        None => size,
+    };
+    Some(CableMark {
+        tag: q.get::<DisplayedTag>((cable, item.page)).as_ref().clone(),
+        kind,
+        cores,
     })
 }
 

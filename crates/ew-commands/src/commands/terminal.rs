@@ -728,7 +728,9 @@ fn w() -> Ident {
 /// `cable.create`: a cable device with its conductors (doc 03 §12).
 ///
 /// Creates `Device {tag: {letter, counter, frozen}, parts, function_text, structure, cable}` (no function) and one
-/// `Conductor {cable, core, colour, csa, shield, pair}` per spec, in order; the `wires` of a spec become that core.
+/// `Conductor {cable, core, colour, csa, shield, pair}` per spec, in order; the `wires` of a spec become that core, and
+/// each page they lie on gets the cable's mark (a wire marker listing them, placed where they run side by side).
+///
 /// Rejected: two specs with the same core; a listed connection that is neither a wire nor a core, or listed twice.
 /// Outcome: the cable device.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -809,9 +811,10 @@ impl Command for CreateCable {
     }
 }
 
-/// `conductor.add`: conductors of an existing cable; the `wires` of a spec become that core. Rejected: the device
-/// has no cable aspect; a core already used in the cable or twice in the list; a listed connection that is neither
-/// a wire nor a core, or listed twice. Outcome: the first new conductor.
+/// `conductor.add`: conductors of an existing cable; the `wires` of a spec become that core and join the cable's mark on
+/// their page (or get one, as `cable.create`'s do). Rejected: the device has no cable aspect; a core already used in
+/// the cable or twice in the list; a listed connection that is neither a wire nor a core, or listed twice. Outcome: the
+/// first new conductor.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct AddConductors {
@@ -903,6 +906,11 @@ fn insert_conductors(
             tx.update::<Connection>(*wire, |c| c.kind = ConnectionKind::Core(id))?;
         }
         first.get_or_insert(id);
+    }
+    // Wires made cores get the cable's mark on their pages at once (rc.3).
+    let wires: Vec<Id<Connection>> = specs.iter().flat_map(|s| s.wires.iter().copied()).collect();
+    if !wires.is_empty() {
+        crate::commands::cable_mark::mark_cores(tx, cable, &wires)?;
     }
     Ok(first)
 }

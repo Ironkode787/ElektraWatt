@@ -22,6 +22,7 @@ mod assets;
 mod assign;
 mod box_reshape;
 mod bus;
+mod cable_mark;
 mod checks;
 pub mod common;
 mod company;

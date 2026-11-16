@@ -32,6 +32,7 @@ fn item(n: u128, kind: Value, text: &str, shown: bool) -> ItemView {
         text: text.to_owned(),
         shown,
         asset: None,
+        cable: None,
     }
 }
 

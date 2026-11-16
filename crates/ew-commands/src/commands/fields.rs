@@ -250,6 +250,7 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
             "kind.free_text.align",
             "kind.wire_marker.at",
             "kind.wire_marker.angle",
+            "kind.wire_marker.tag_at",
         ],
     ),
     (

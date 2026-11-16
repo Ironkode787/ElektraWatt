@@ -178,13 +178,22 @@ struct TextPress {
     turns: u8,
 }
 
-/// The text of the one selected representation under the sheet point `at`, the last printed first.
+/// The text of the one selected representation under the sheet point `at`, the last printed first; with no
+/// representation selected, the tag of the one selected page item (a cable mark's, rc.3).
 pub(crate) fn text_under(cx: &ToolCx<'_>, at: (i64, i64)) -> Option<ew_api::output::SlotTextBox> {
     let reps = selected_reps(cx.selection, cx.page);
-    let [rep] = reps.as_slice() else { return None };
+    let items: Vec<EntityRef> = super::selection_kinds(cx.selection, &cx.page.tables)
+        .into_iter()
+        .filter(|(_, k)| *k == super::EntityKind::Item)
+        .map(|(e, _)| e)
+        .collect();
+    let one = match (reps.as_slice(), items.as_slice()) {
+        ([rep], _) | ([], [rep]) => *rep,
+        _ => return None,
+    };
     let p = cx.snapper.sheet_to_page(at);
     cx.page.texts.iter().rev().copied().find(|t| {
-        t.rep == rep.0
+        t.rep == one.0
             && (t.rect.min().x.0..=t.rect.max().x.0).contains(&p.0)
             && (t.rect.min().y.0..=t.rect.max().y.0).contains(&p.1)
     })
@@ -219,14 +228,26 @@ impl TextPress {
         }]))
     }
 
-    /// The `rep.text_set` of the drop: the anchor in the symbol's coordinates and, when turned, the angle.
-    fn command(&self) -> Option<Box<ew_api::AnyCommand>> {
+    /// The `rep.text_set` of the drop: the anchor in the symbol's coordinates and, when turned, the angle; for a cable
+    /// mark's tag (`item`) the `fields.set` of its `tag_at`, upright.
+    fn command(&self, item: bool) -> Option<Box<ew_api::AnyCommand>> {
         let t = &self.text;
         let to = self.to?;
         let local = t.frame.orient.inverse().checked_apply(Pt2::new(
             Nm(to.0 - t.frame.origin.x.0),
             Nm(to.1 - t.frame.origin.y.0),
         ))?;
+        if item {
+            return Some(Box::new(ew_api::AnyCommand {
+                name: "fields.set".into(),
+                params: serde_json::json!({
+                    "kind": "page_item",
+                    "targets": [t.rep.to_string()],
+                    "path": "kind.wire_marker.tag_at",
+                    "value": [local.x.0, local.y.0],
+                }),
+            }));
+        }
         let mut params =
             serde_json::json!({"rep": t.rep.to_string(), "slot": t.slot, "pos": [local.x.0, local.y.0]});
         if self.turns != 0 {
@@ -607,6 +628,10 @@ impl SelectTool {
             CanvasEvent::Key(ToolKey::RotateCw) => {
                 let press = self.text.as_mut()?;
                 press.to?;
+                // A cable mark's tag stays upright.
+                if cx.page.tables.items.iter().any(|i| i.id == press.text.rep) {
+                    return Some(ToolOutput::None);
+                }
                 press.turns = (press.turns + 1) % 4;
                 Some(press.ghost(cx))
             }
@@ -619,7 +644,8 @@ impl SelectTool {
                     let last = self.last;
                     return Some(self.click(last, EntityRef(press.text.rep), press.from, press.mods, cx));
                 }
-                Some(match press.command() {
+                let item = cx.page.tables.items.iter().any(|i| i.id == press.text.rep);
+                Some(match press.command(item) {
                     Some(cmd) => ToolOutput::Commit(cmd),
                     None => ToolOutput::Cancel,
                 })

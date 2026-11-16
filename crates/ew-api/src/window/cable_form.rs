@@ -22,7 +22,7 @@
 use std::collections::BTreeSet;
 
 use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{ColourSpec, Conductor, Connection, ConnectionKind, Csa, Device, PotentialType};
+use ew_derive::ew_schema::{Conductor, Connection, ConnectionKind, Csa, Device, PotentialType};
 use ew_derive::ew_units::Dec3;
 use ew_derive::{EndpointKey, PotentialPartition};
 use serde_json::{Value, json};
@@ -49,7 +49,7 @@ pub struct CableForm {
     pub cable: Option<Uuid>,
     /// That cable's tag as printed, else empty.
     pub tag: String,
-    /// That cable's type in writing (`3G1.5`), else a proposal for the wires (`2x1.5`).
+    /// That cable's type in writing (`3G1.5`), else a proposal for the wires (`2X1.5`).
     pub type_text: String,
     /// The wires and the core each has or gets, in order.
     pub rows: Vec<(Uuid, String)>,
@@ -139,18 +139,6 @@ fn written_cores(count: usize, pe: bool, csa: Dec3) -> Vec<TypeCore> {
     cores
 }
 
-/// The colour codes of a colour specification in their file spelling.
-fn codes(c: &ColourSpec) -> Vec<String> {
-    serde_json::to_value(c)
-        .ok()
-        .and_then(|v| v.as_array().cloned())
-        .unwrap_or_default()
-        .iter()
-        .filter_map(Value::as_str)
-        .map(str::to_owned)
-        .collect()
-}
-
 /// The file spelling of a cross-section in mm² (`1.5`); `None` for another unit.
 fn mm2(csa: &Csa) -> Option<String> {
     match csa {
@@ -226,23 +214,9 @@ impl Session {
         out
     }
 
-    /// The type of `cable` in writing, from its conductors: their count, `G` with a green-yellow core else `x`, and
-    /// their cross-section when they share one (`3G1.5`, `4x`).
+    /// The type of `cable` in writing, from its conductors (`ew_derive::cable_size_text`: `3G1.5`, `4X`).
     pub fn cable_type_text(&self, cable: Uuid) -> String {
-        let cores: Vec<Conductor> = self
-            .conductors_of(cable)
-            .into_iter()
-            .filter(|c| !c.shield)
-            .collect();
-        let pe = cores
-            .iter()
-            .any(|c| c.colour.as_ref().map(codes) == Some(vec!["GN".to_owned(), "YE".to_owned()]));
-        let csas: BTreeSet<Option<String>> = cores.iter().map(|c| c.csa.as_ref().and_then(mm2)).collect();
-        let csa = match csas.into_iter().collect::<Vec<_>>().as_slice() {
-            [Some(one)] => one.clone(),
-            _ => String::new(),
-        };
-        format!("{}{}{csa}", cores.len(), if pe { "G" } else { "x" })
+        ew_derive::cable_size_text(&self.query(), Id::from_uuid(cable))
     }
 
     /// The wires that are cores of `cable`, each with its core, in core order (a core's wires by ID); empty for a
@@ -264,7 +238,7 @@ impl Session {
     }
 
     /// The Cable form of the wires `wires` (module documentation). Without a cable among them the type proposed is
-    /// `<n>x<cross-section>` with the first wire's effective cross-section in mm² (1.5 when it has none), or
+    /// `<n>X<cross-section>` with the first wire's effective cross-section in mm² (1.5 when it has none), or
     /// `<n>G<cross-section>` when the potential of one of the wires says PE.
     pub fn cable_form(&self, wires: &[Uuid]) -> CableForm {
         let q = self.query();
@@ -294,7 +268,7 @@ impl Session {
                         .and_then(|p| crate::output::said_type(&q, p.id))
                         == Some(PotentialType::Pe)
                 });
-                let sign = if pe { "G" } else { "x" };
+                let sign = if pe { "G" } else { "X" };
                 (String::new(), format!("{}{sign}{csa}", wires.len()), Vec::new())
             }
         };

@@ -369,7 +369,7 @@ impl ShellModel {
 
     /// `cable.from_wires {tag?, type?, cores?}` (Draw ▸ Connect ▸ Cable…, FT-1685): the selected wires as the cores of
     /// a cable, in one form. Without `type` the window opens the form: the cable's tag (the cable one of the wires
-    /// already belongs to, else the tag a new cable would take), its type (that cable's, else `<n>x<cross-section>`
+    /// already belongs to, else the tag a new cable would take), its type (that cable's, else `<n>X<cross-section>`
     /// of the first wire), and the wires with the core each gets, which the person can change. With `type` it applies:
     /// a typed tag of another existing cable puts the wires in that cable; a tag other than the proposal is frozen.
     /// `cores` is the form's table, or a text of cores in the wires' order (`BU BN`); absent, each wire keeps its core

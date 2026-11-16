@@ -682,6 +682,7 @@ impl Command for PlaceMarker {
                 at: self.at,
                 angle: self.angle,
                 fields: vec![MarkerField::Csa, MarkerField::Colour],
+                tag_at: None,
                 extra: Extra::new(),
             }),
             extra: Extra::new(),

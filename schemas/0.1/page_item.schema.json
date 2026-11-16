@@ -689,6 +689,17 @@
             "$ref": "#/$defs/MarkerField"
           },
           "type": "array"
+        },
+        "tag_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Pt2"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Where a cable mark's tag stands once moved (rc.3), relative to `at`; absent: at the line's start. A marker\nthat marks no cable ignores it."
         }
       },
       "required": [

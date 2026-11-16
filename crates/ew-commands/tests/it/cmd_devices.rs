@@ -1005,6 +1005,61 @@ fn create_cable_makes_the_listed_wires_its_cores() {
     assert_eq!(row(&e, wire).kind, ConnectionKind::Core(conductors[1]));
 }
 
+/// The wires of each page with their marks: per wire-marker item of the cable's pages, the connections it lists.
+fn marks_on(e: &Engine, page: ew_ids::Id<ew_schema::Page>) -> Vec<Vec<ew_ids::Id<Connection>>> {
+    e.model()
+        .table::<ew_schema::PageItem>()
+        .iter()
+        .filter(|(_, i)| i.page == page)
+        .filter_map(|(_, i)| i.kind.wire_marker().map(|m| m.connections.clone()))
+        .collect()
+}
+
+/// rc.3: wires made a cable's cores get the cable's mark on their page in the same step, one per page they lie on,
+/// over the wires that run side by side in the order the line crosses them; a core added later on a page with a mark
+/// joins that mark.
+#[test]
+fn a_cable_made_from_wires_gets_its_mark_on_each_page() {
+    let mm = |x: i64, y: i64| Pt2::new(ew_units::Nm(x * 1_000_000), ew_units::Nm(y * 1_000_000));
+    let routed = |n: u128, page, x: i64| {
+        let (a, b) = if page == PAGE_101 {
+            (cp(FN_101F1, 0), cp(FN_IP_101, 0))
+        } else {
+            (cp(FN_102G1, 0), cp(FN_T1, 1))
+        };
+        let mut c = connection(id(n), Some(page), a, b);
+        c.route = vec![mm(x, 20), mm(x, 60)];
+        Record::Connection(c)
+    };
+    let model = golden_with(|r| {
+        r.push(routed(0x4101, PAGE_102, 48));
+        r.push(routed(0x4102, PAGE_102, 40));
+        r.push(routed(0x4103, PAGE_101, 40));
+        r.push(routed(0x4104, PAGE_102, 56));
+    });
+    let mut e = engine(model);
+    let mut cmd = cable_cmd(&["BN", "BU", "GNYE"]);
+    cmd.conductors[0].wires = vec![id(0x4101)];
+    cmd.conductors[1].wires = vec![id(0x4102)];
+    cmd.conductors[2].wires = vec![id(0x4103)];
+    let r = e.execute(&cmd).unwrap();
+    assert_eq!(marks_on(&e, PAGE_102), [vec![id(0x4102), id(0x4101)]], "left to right");
+    assert_eq!(marks_on(&e, PAGE_101), [vec![id(0x4103)]]);
+    // A fourth core on the first page joins its mark.
+    let cable: ew_ids::Id<Device> = primary(&r);
+    let mut more = conductor_spec("BK");
+    more.wires = vec![id(0x4104)];
+    e.execute(&AddConductors {
+        cable,
+        conductors: vec![more],
+    })
+    .unwrap();
+    assert_eq!(
+        marks_on(&e, PAGE_102),
+        [vec![id(0x4102), id(0x4101), id(0x4104)]]
+    );
+}
+
 #[test]
 fn add_conductors_extends_a_cable() {
     let mut e = engine(golden_model());

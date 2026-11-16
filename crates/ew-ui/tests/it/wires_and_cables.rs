@@ -354,7 +354,8 @@ fn the_marker_fields_hold_in_every_order_of_use() {
     d.shell_mut().shutdown();
 }
 
-/// The window pixel of the middle of the longest segment of the `i`-th wire of the page.
+/// The window pixel a quarter along the longest segment of the `i`-th wire of the page (clear of a cable's mark, which
+/// stands in the middle).
 fn on_wire(d: &mut Driver, pixel: &impl Fn((i64, i64)) -> (i64, i64), i: usize) -> (i64, i64) {
     let t = tables(d);
     let (p, q) = t.connections[i]
@@ -363,7 +364,7 @@ fn on_wire(d: &mut Driver, pixel: &impl Fn((i64, i64)) -> (i64, i64), i: usize) 
         .map(|s| (s[0], s[1]))
         .max_by_key(|(p, q)| (p.0 - q.0).abs() + (p.1 - q.1).abs())
         .expect("a segment");
-    page_pixel(d, pixel, ((p.0 + q.0) / 2, (p.1 + q.1) / 2))
+    page_pixel(d, pixel, ((3 * p.0 + q.0) / 4, (3 * p.1 + q.1) / 4))
 }
 
 /// FT-1688: a wire whose potential is given the type L1, and nothing else, takes a phase's colour and cross-section
@@ -425,7 +426,7 @@ fn core_cell(d: &mut Driver, i: usize) -> String {
 
 /// FT-1685: two wires selected, Cable on the Draw tab, the type typed as a person writes it (3G1.5), the second
 /// wire's core changed in the form, Apply: one cable with the type's three cores, the two wires its cores as the form
-/// said, in one undo step, and the marker over the wires prints the cores' cross-section and colours, not 0.75.
+/// said, in one undo step, and the cable's mark over the wires at once: its tag, its type and each core's name.
 /// Cable on a selection that holds a cable's wire opens the same form on that cable.
 #[test]
 fn ft1685_cable_makes_the_selected_wires_a_cable_in_one_step() {
@@ -501,16 +502,54 @@ fn ft1685_cable_makes_the_selected_wires_a_cable_in_one_step() {
         };
         assert_eq!(text("connection/kind"), "-1W1 BN");
     }
-    // The marker across both wires: the cores' 1.5 mm² and colours.
-    d.input(&key("escape"));
-    d.settle();
-    let to = mark_across(&mut d, &pixel);
-    d.input(&Input::Hover { at: to });
-    d.input(&key("enter"));
-    d.settle();
+    // The cable's mark is on the page at once, nobody placed it (rc.3): one line over both wires, the cable's tag,
+    // its type line under it, and each core's name beside its own wire.
     let t = tables(&mut d);
-    let marker = t.items.iter().find(|i| i.kind == "wire_marker");
-    assert_eq!(marker.and_then(|m| m.text.as_deref()), Some("1.5 BN GNYE"));
+    let marks: Vec<_> = t.items.iter().filter(|i| i.kind == "wire_marker").collect();
+    assert_eq!(marks.len(), 1, "one mark");
+    let texts = page_texts(&mut d);
+    for said in ["-1W1", "3G1.5", "BN", "GNYE"] {
+        assert!(texts.iter().any(|t| t == said), "{said} on the page: {texts:?}");
+    }
+    assert!(
+        !texts.iter().any(|t| t.contains("0.75")),
+        "no 0.75 on the page: {texts:?}"
+    );
+    // The tag moves as a symbol's text does: the mark clicked by its tag, then the tag dragged up.
+    let mark = marks[0].id;
+    let tag = |d: &mut Driver| {
+        d.shell_mut()
+            .canvas()
+            .unwrap()
+            .page()
+            .texts
+            .iter()
+            .find(|t| t.rep == mark)
+            .copied()
+            .expect("the tag's box")
+    };
+    let before = tag(&mut d);
+    let r = before.rect;
+    let middle = ((r.min().x.0 + r.max().x.0) / 2, (r.min().y.0 + r.max().y.0) / 2);
+    d.input(&key("escape"));
+    let at = page_pixel(&mut d, &pixel, middle);
+    d.input(&Input::Hover { at });
+    d.input(&click(at));
+    d.settle();
+    d.input(&Input::Drag {
+        from: at,
+        to: (at.0, at.1 - 40),
+        button: PointerButton::Primary,
+        mods: Modifiers::NONE,
+    });
+    d.settle();
+    let moved = tag(&mut d);
+    assert!(moved.moved, "the tag is moved");
+    assert!(moved.at.y < before.at.y, "up: {:?} from {:?}", moved.at, before.at);
+    assert_eq!(
+        d.shell_mut().recorded_commands().last().map(|c| c.cmd.clone()),
+        Some("fields.set".to_owned())
+    );
     // The same form on a selection holding a cable's wire: the cable's tag, type and cores.
     d.input(&key("escape"));
     d.settle();

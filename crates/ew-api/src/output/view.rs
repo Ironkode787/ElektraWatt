@@ -472,11 +472,14 @@ pub fn page_items(q: &Q, page: Id<Page>, texts: bool) -> Vec<ew_scene::items::It
             } else {
                 (String::new(), false)
             };
+            // A marker over a cable's cores is the cable's mark, drawn whatever the marker mode.
+            let cable = texts.then(|| ew_derive::cable_mark(q, &item)).flatten();
             ew_scene::items::ItemView {
                 item,
                 text,
                 shown,
                 asset,
+                cable,
             }
         })
         .collect()

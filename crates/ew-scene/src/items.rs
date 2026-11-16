@@ -11,6 +11,7 @@
 //! | graphic | its shape (line, polyline, rectangle, circle, arc in the QET convention, polygon) in the page's wire stroke ([`wire_stroke`]) unless `stroke` sets the width; `dashed`, `dotted` and `dash_dot` are the pen-width multiples of doc 07 §2.3; a closed shape with `fill` is filled black |
 //! | free text | its printed text ([`ItemView::text`]) at `at` in its style (absent: `text.normal`), aligned left, centred or right on `at` and vertically on its middle, at a readable angle with the alignment flipped as slot texts are (doc 06 §2.5) |
 //! | wire marker | when shown ([`ItemView::shown`]): a line through `at` across its wires (horizontal across vertical wires; vertical, turned 90°, across horizontal ones), past the outer wires as a per-connection marker's, and the group text in style `marker` clear of the wires beyond the line's end: right of a horizontal line, reading upwards from the top of a vertical one (FT-1706) |
+//! | cable mark | a wire marker whose connections are all cores of one cable ([`ItemView::cable`]), always: the line across the cable's wires, a slanted stroke on each core, each core's designation beside its wire, and the cable's tag with its type line at the line's start ([`crate::page`], "Cable marks") |
 //! | image | its asset in `rect`: a PNG or JPEG as an image item, an SVG as an image item too, which the export job and the renderers' resolver turn into vector paths ([`crate::images`], FR-SYM-025); the item carries the asset's hash and format and no bytes, as every image of a display list does |
 //! | structure box | its outline in the page's wire stroke width, dotted (0.5 mm on, 1 mm off) or dash-dot (4 mm on, 1 mm off, 0.5 mm on, 1 mm off); its caption in `tag.main` above the outline's top-left vertex (the smallest `y`, then `x`) |
 //!
@@ -44,6 +45,9 @@ pub struct ItemView {
     /// not carry); `None` when the project does not hold it (the item then reads as a PNG and the export reports
     /// the missing bytes). Ignored for the other variants.
     pub asset: Option<AssetRef>,
+    /// For a wire marker that marks a cable (every connection a core of one cable): what the cable's mark prints
+    /// (the page documentation, "Cable marks"); `None` draws the group marker. Ignored for the other variants.
+    pub cable: Option<ew_derive::CableMark>,
 }
 
 /// One structure box of the page with its printed caption.
@@ -184,6 +188,9 @@ impl Builder<'_> {
             let entity = EntityRef(iv.item.id.as_uuid());
             match &iv.item.kind {
                 PageItemKind::FreeText(t) => self.free_text(iv, t, entity),
+                PageItemKind::WireMarker(m) if let Some(mark) = &iv.cable => {
+                    self.cable_mark(view, m, mark, entity);
+                }
                 PageItemKind::WireMarker(m) if iv.shown && !iv.text.is_empty() => {
                     // Turned 90° the group reads upwards over horizontal wires, else across vertical ones.
                     let (place, horizontal) = if m.angle == Angle2(90_000) {
