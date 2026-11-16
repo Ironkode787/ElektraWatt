@@ -266,11 +266,7 @@ fn how_many_places_that_many_once_and_undo_takes_the_row_whole() {
             .filter(|r| r.symbol_key.contains("terminal"))
             .count()
     };
-    done(
-        &mut s,
-        "tool.place_terminal",
-        json!({"strip": "new", "count": 4}),
-    );
+    done(&mut s, "tool.place_terminal", json!({"strip": "new", "count": 4}));
     done(&mut s, "nav.goto", json!({ "text": "101-D2" }));
     done(&mut s, "canvas.activate", json!({"alt": true}));
     assert_eq!(terminals(&s), 4, "one click places the row");

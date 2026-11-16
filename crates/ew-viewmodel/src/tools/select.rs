@@ -297,7 +297,11 @@ fn corners(r: Rect) -> [(i64, i64); 4] {
 /// keeps [`BLOCK_MIN`].
 fn block_rect(cx: &ToolCx<'_>, b: &BlockPress, from: (i64, i64), to: (i64, i64)) -> Rect {
     let (a, z) = (cx.snapper.sheet_to_page(from), cx.snapper.sheet_to_page(to));
-    let mm = |v: i64| v.saturating_add(500_000).div_euclid(1_000_000).saturating_mul(1_000_000);
+    let mm = |v: i64| {
+        v.saturating_add(500_000)
+            .div_euclid(1_000_000)
+            .saturating_mul(1_000_000)
+    };
     let (dx, dy) = (mm(z.0.saturating_sub(a.0)), mm(z.1.saturating_sub(a.1)));
     let [(x0, y0), _, (x1, y1), _] = corners(b.rect);
     let bottom = b.drawn.max().y.0.saturating_add(dy);

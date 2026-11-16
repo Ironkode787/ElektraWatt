@@ -428,10 +428,22 @@ fn a_lookup_table_keeps_positions_and_tags_whole_and_cuts_the_description_last()
     })
     .to_vec();
     let rows = [
-        ["1", "-UC1", "1", "EW-GEN-ENC-1", "Wall enclosure 600 × 800 × 250 mm"],
+        [
+            "1",
+            "-UC1",
+            "1",
+            "EW-GEN-ENC-1",
+            "Wall enclosure 600 × 800 × 250 mm",
+        ],
         ["2", "-UC1-plate", "1", "EW-GEN-MP-1", "Mounting plate"],
         ["3", "", "0.4", "EW-GEN-RAIL-TS35", "DIN rail TS 35 × 7.5"],
-        ["10", "-101F1", "1", "EW-GEN-MCB-1P", "Miniature circuit breaker 1P"],
+        [
+            "10",
+            "-101F1",
+            "1",
+            "EW-GEN-MCB-1P",
+            "Miniature circuit breaker 1P",
+        ],
     ];
     let lowered = |right: i64| {
         let rect = printed_rect(20_000, 2_000, 20_000 + right, 16_000);
@@ -458,7 +470,12 @@ fn a_lookup_table_keeps_positions_and_tags_whole_and_cuts_the_description_last()
                 _ => None,
             })
             .collect();
-        (glyph_texts(&l.list), cut, b, l.list.bounds().map(|r| SHEET.apply_rect(r)))
+        (
+            glyph_texts(&l.list),
+            cut,
+            b,
+            l.list.bounds().map(|r| SHEET.apply_rect(r)),
+        )
     };
     let (texts, cut, b, drawn) = lowered(10_000);
     assert!(cut.is_empty(), "100 mm: nothing cut: {cut:?} {texts:?}");

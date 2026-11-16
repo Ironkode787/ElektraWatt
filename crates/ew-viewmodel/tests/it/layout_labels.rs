@@ -160,7 +160,10 @@ fn a_selected_placements_balloon_drags_alone_and_the_pages_menu_puts_labels_back
     };
     assert_eq!(
         reset(&shell),
-        Some((false, Some("The label stands where the label rules put it".to_owned())))
+        Some((
+            false,
+            Some("The label stands where the label rules put it".to_owned())
+        ))
     );
     assert_eq!(shell.tool_overlay().len(), 2, "the label's box and its handle");
     // A drag that starts on the balloon moves the balloon alone.
@@ -321,7 +324,11 @@ fn a_new_layout_view_at_one_to_five_numbers_tags_that_do_not_fit() {
     );
     done(&mut shell, "page.goto", json!({"folio": "981"}));
     done(&mut shell, "select.set", json!({"ids": []}));
-    done(&mut shell, "props.set", json!({"row": "page/scale", "value": "1:5"}));
+    done(
+        &mut shell,
+        "props.set",
+        json!({"row": "page/scale", "value": "1:5"}),
+    );
     done(
         &mut shell,
         "props.set",

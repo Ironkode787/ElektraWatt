@@ -121,7 +121,13 @@ impl ShellModel {
     /// The placements of the panel page shown whose labels were moved by a person.
     pub fn moved_labels(&self) -> Vec<Uuid> {
         self.panel_tables()
-            .map(|p| p.placements.iter().filter(|r| r.label_moved).map(|r| r.id).collect())
+            .map(|p| {
+                p.placements
+                    .iter()
+                    .filter(|r| r.label_moved)
+                    .map(|r| r.id)
+                    .collect()
+            })
             .unwrap_or_default()
     }
 
@@ -1363,7 +1369,9 @@ impl ShellModel {
         let unlocated = self.project.as_ref()?.session.unlocated_devices().len();
         let location = panel.location.as_str();
         let text = match unlocated {
-            0 if !panel.placements.is_empty() => strings::format(key!("auto-fill-cause-all-placed"), &[location]),
+            0 if !panel.placements.is_empty() => {
+                strings::format(key!("auto-fill-cause-all-placed"), &[location])
+            }
             0 => strings::format(key!("auto-fill-cause-none"), &[location]),
             1 => strings::format(key!("auto-fill-cause-unlocated-one"), &[location]),
             n => strings::format(key!("auto-fill-cause-unlocated"), &[location, &n.to_string()]),

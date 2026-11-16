@@ -355,6 +355,27 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
     for action in ["layout.enclosure_new", "layout.auto_fill_rail"] {
         checked.insert(check_form(&mut h, action, json!({})));
     }
+    // Location… on a marked Devices row (rc.2).
+    dispatch(&mut h, "navigator.show", json!({"kind": "devices"}));
+    settle(&mut h);
+    let device = h
+        .state()
+        .shell()
+        .nav(NavKind::Devices)
+        .and_then(|n| n.table())
+        .and_then(|t| {
+            t.nodes
+                .iter()
+                .find(|n| n.role == NavRole::Device)
+                .map(|n| n.key.clone())
+        })
+        .expect("a device row");
+    dispatch(
+        &mut h,
+        "navigator.mark",
+        json!({"kind": "devices", "key": device}),
+    );
+    checked.insert(check_form(&mut h, "devices.set_location", json!({})));
     h.state_mut().shell_mut().shutdown();
     drop(h);
 

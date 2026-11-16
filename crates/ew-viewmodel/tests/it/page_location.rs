@@ -30,7 +30,15 @@ fn texts(shell: &ShellModel) -> Vec<String> {
 
 /// A miniature circuit breaker placed at grid index `k` of the page shown; its representation.
 fn mcb_at(s: &mut ShellModel, k: (i64, i64)) -> String {
-    let before: Vec<_> = s.canvas().unwrap().page().tables.reps.iter().map(|r| r.id).collect();
+    let before: Vec<_> = s
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .reps
+        .iter()
+        .map(|r| r.id)
+        .collect();
     done(s, "place.pick", json!({"symbol": "ew.iec.mcb-1p@qet10"}));
     let sn = &s.canvas().unwrap().page().snapper;
     let p = sn.page_to_sheet((sn.page_of_index(k.0), sn.page_of_index(k.1)));

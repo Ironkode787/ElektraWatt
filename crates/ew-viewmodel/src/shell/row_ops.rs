@@ -200,7 +200,10 @@ impl ShellModel {
                     name: "location",
                     label_key: key!("form-enclosure-location"),
                     choices: &super::choices::NONE,
-                    options: locations.iter().map(|(id, code)| (id.to_string(), code.clone())).collect(),
+                    options: locations
+                        .iter()
+                        .map(|(id, code)| (id.to_string(), code.clone()))
+                        .collect(),
                     value: locations[0].0.to_string(),
                 }],
                 error: None,
@@ -209,7 +212,9 @@ impl ShellModel {
             return self.open_dialog(super::Dialog::Form(form));
         };
         let Some((location, code)) = locations.iter().find(|(id, code)| {
-            id.to_string() == given || *code == given || code.trim_start_matches('+') == given.trim_start_matches('+')
+            id.to_string() == given
+                || *code == given
+                || code.trim_start_matches('+') == given.trim_start_matches('+')
         }) else {
             return self.form_failed(ACTION, strings::format(key!("error-no-location"), &[&given]));
         };

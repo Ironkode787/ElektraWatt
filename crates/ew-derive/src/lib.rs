@@ -216,8 +216,8 @@ pub use stitch::{
 };
 pub use strip_bridges::{BridgeGroup, StripBridges};
 pub use structure::{
-    DEVICE_ASPECTS, DevicesByStructure, NodePath, PAGE_ASPECTS, PageDisplayStructure, PageStructure, ResolvedSlot,
-    ResolvedStructure, SlotSource, StructureOf, StructurePath,
+    DEVICE_ASPECTS, DevicesByStructure, NodePath, PAGE_ASPECTS, PageDisplayStructure, PageStructure,
+    ResolvedSlot, ResolvedStructure, SlotSource, StructureOf, StructurePath,
 };
 pub use tag::{
     DeviceTag, DisplayedTag, MainFunction, MainRep, Tag, TagSource, cable_core_page, numbering_format,

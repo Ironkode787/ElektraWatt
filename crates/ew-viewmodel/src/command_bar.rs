@@ -670,12 +670,12 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -
                 ("item_numbers", key!("canvas-labels-item-numbers")),
                 ("both", key!("canvas-labels-both")),
             ] {
-                let checked = match (show, numbered) {
-                    ("tags", Some((false, _))) | ("item_numbers", Some((true, false))) | ("both", Some((true, true))) => {
-                        true
-                    }
-                    _ => false,
-                };
+                let checked = matches!(
+                    (show, numbered),
+                    ("tags", Some((false, _)))
+                        | ("item_numbers", Some((true, false)))
+                        | ("both", Some((true, true)))
+                );
                 items.extend(model.menu_item("layout.labels").map(|mut i| {
                     i.params = serde_json::json!({ "show": show });
                     i.label = strings::text(label).to_owned();
@@ -710,11 +710,11 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -
             "edit.delete_selection",
         ]
         .into_iter()
-            .collect::<Vec<_>>()
-            .iter()
-            .filter_map(|id| actions::find(id))
-            .map(|meta| actions::item_of(meta, model))
-            .collect();
+        .collect::<Vec<_>>()
+        .iter()
+        .filter_map(|id| actions::find(id))
+        .map(|meta| actions::item_of(meta, model))
+        .collect();
     }
     let bar = command_bar_of(model, Tab::Draw);
     let mut items = model.menu_fits(at);

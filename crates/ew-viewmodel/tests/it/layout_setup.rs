@@ -661,7 +661,10 @@ fn auto_fill_with_nothing_to_place_says_why_and_gives_devices_the_cabinet() {
     let why = format!("No device has this cabinet's location +J-E-2416 yet: {n} devices have no location.");
     assert_eq!(
         spec.body,
-        ["Fills with every unplaced device that fits the rail.".to_owned(), why]
+        [
+            "Fills with every unplaced device that fits the rail.".to_owned(),
+            why
+        ]
     );
     let give = format!("Give the {n} devices without a location +J-E-2416 and place them");
     let button = spec
@@ -721,32 +724,24 @@ fn location_on_the_none_group_gives_its_devices_a_cabinet_in_one_step() {
     let in_group = table
         .nodes
         .iter()
-        .filter(|n| {
-            n.parent == u32::try_from(at).ok() && n.role == ew_viewmodel::navigators::NavRole::Device
-        })
+        .filter(|n| n.parent == u32::try_from(at).ok() && n.role == ew_viewmodel::navigators::NavRole::Device)
         .count();
     assert!(in_group > 1, "{in_group}");
     let menu = ew_viewmodel::command_bar::navigator_row_menu(&s, NavKind::Devices, &node);
     assert!(
-        menu.iter().any(|i| i.id == "devices.set_location" && i.label == "Location…"),
+        menu.iter()
+            .any(|i| i.id == "devices.set_location" && i.label == "Location…"),
         "{:?}",
         menu.iter().map(|i| &i.label).collect::<Vec<_>>()
     );
-    done(
-        &mut s,
-        "devices.set_location",
-        json!({"location": "+J-E-999"}),
-    );
+    done(&mut s, "devices.set_location", json!({"location": "+J-E-999"}));
     assert_eq!(
         common::toast(&s),
         format!("Gave {in_group} devices the location +J-E-999.")
     );
     let last = s.recorded_commands().last().unwrap().clone();
     assert_eq!(
-        (
-            last.cmd.as_str(),
-            last.params["targets"].as_array().map(Vec::len)
-        ),
+        (last.cmd.as_str(), last.params["targets"].as_array().map(Vec::len)),
         ("fields.set", Some(in_group)),
         "one command for the group"
     );

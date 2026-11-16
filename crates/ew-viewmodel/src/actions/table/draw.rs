@@ -745,17 +745,22 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     with_params(
         "location?:text, part?:text, new_location?:text",
         placed_also(
-            place(Group::PanelLayout, 1, CommandSize::Small, Some(key!("bar-enclosure"))),
+            place(
+                Group::PanelLayout,
+                1,
+                CommandSize::Small,
+                Some(key!("bar-enclosure")),
+            ),
             placed(
                 place(Group::Project, 3, CommandSize::Small, Some(key!("bar-enclosure"))),
                 "door",
                 act(
-                "layout.enclosure_new",
-                Command,
-                Menu::Project,
-                &[],
-                writable,
-                None,
+                    "layout.enclosure_new",
+                    Command,
+                    Menu::Project,
+                    &[],
+                    writable,
+                    None,
                     |s, p| s.act_layout_enclosure_new(p),
                 ),
             ),

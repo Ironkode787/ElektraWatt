@@ -454,7 +454,9 @@ impl std::fmt::Debug for ToolOutput {
             ToolOutput::Commit(c) => f.debug_tuple("Commit").field(&c.name()).finish(),
             ToolOutput::Cancel => f.write_str("Cancel"),
             ToolOutput::Refused(key) => f.debug_tuple("Refused").field(key).finish(),
-            ToolOutput::RefusedWith(key, text) => f.debug_tuple("RefusedWith").field(key).field(text).finish(),
+            ToolOutput::RefusedWith(key, text) => {
+                f.debug_tuple("RefusedWith").field(key).field(text).finish()
+            }
             ToolOutput::Select(c) => f.debug_tuple("Select").field(c).finish(),
             ToolOutput::Follow(d) => f.debug_tuple("Follow").field(d).finish(),
             ToolOutput::Host(h) => f.debug_tuple("Host").field(h).finish(),
