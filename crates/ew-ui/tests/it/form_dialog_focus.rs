@@ -351,6 +351,47 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
     goto(&mut h, "203");
     checked.insert(check_form(&mut h, "fluid.valve_terminal", json!({})));
     dispatch(&mut h, "ui.dismiss", json!({}));
+    // Draw the plug… and Draw solenoid 14… from the fluid page: the page they are drawn on is asked (rc.2), for a
+    // multipin terminal and a stand-alone valve placed on a new fluid page, by their menus' entries.
+    dispatch(
+        &mut h,
+        "page.new",
+        json!({"folio": "995", "type": "fluid", "title": "Fluid"}),
+    );
+    goto(&mut h, "995");
+    for (part, at) in [("EW-GEN-VTP-1", (40.0, 40.0)), ("EW-GEN-VLV-1", (40.0, 120.0))] {
+        dispatch(&mut h, "place.pick", json!({ "part": part, "template": 0 }));
+        let at = json!({ "x_mm": at.0, "y_mm": at.1 });
+        dispatch(&mut h, "canvas.press", at.clone());
+        dispatch(&mut h, "canvas.release", at);
+        dispatch(&mut h, "ui.dismiss", json!({}));
+        dispatch(&mut h, "ui.dismiss", json!({}));
+        settle(&mut h);
+    }
+    let reps: Vec<String> = (h.state().shell().canvas().expect("folio 995").page().tables.reps)
+        .iter()
+        .map(|r| r.id.to_string())
+        .collect();
+    for action in ["fluid.draw_plug", "fluid.draw_solenoid"] {
+        // The form's primary draws on the page it names: back to the fluid page each time.
+        let _ = h.state_mut().shell_mut().dispatch("ui.dismiss", &json!({}));
+        goto(&mut h, "995");
+        let params = reps
+            .iter()
+            .find_map(|rep| {
+                dispatch(&mut h, "select.set", json!({ "ids": [rep] }));
+                let menu = ew_ui::ew_viewmodel::command_bar::canvas_menu(
+                    h.state().shell(),
+                    ew_ui::ew_viewmodel::command_bar::MenuSpot::Object,
+                    None,
+                );
+                menu.into_iter().find(|i| i.id == action).map(|i| i.params)
+            })
+            .unwrap_or_else(|| panic!("{action} on a symbol of folio 995"));
+        checked.insert(check_form(&mut h, action, params));
+        let _ = h.state_mut().shell_mut().dispatch("ui.dismiss", &json!({}));
+    }
+    dispatch(&mut h, "select.set", json!({ "ids": [] }));
     // Put a station on this page… on a bus page while a station with a bus interface is drawn on none (rc.2).
     dispatch(&mut h, "plc.new_station", json!({}));
     dispatch(
