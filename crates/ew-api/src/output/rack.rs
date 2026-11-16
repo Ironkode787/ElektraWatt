@@ -1311,6 +1311,41 @@ impl Session {
     pub fn terminal_plug(&self, device: Uuid) -> Option<TerminalPlug> {
         terminal_plug(&self.query(), Id::from_uuid(device))
     }
+
+    /// The valve terminal whose main function is `function` (drawn as its positions on a fluid page, as its plug
+    /// elsewhere); `None` for any other function.
+    pub fn terminal_of_main(&self, function: Uuid) -> Option<Uuid> {
+        let q = self.query();
+        let device = q.functions().get(Id::from_uuid(function))?.device?;
+        let main = (*q.get::<ew_derive::MainFunction>(device))?;
+        (main.as_uuid() == function && ew_derive::is_fluid_terminal(&q, device)).then(|| device.as_uuid())
+    }
+
+    /// The valve terminals of the project drawn on no fluid page yet (made as a station in the New station dialog, rc.2):
+    /// each with its tag, in natural order of the tag.
+    pub fn undrawn_fluid_terminals(&self) -> Vec<(Uuid, String)> {
+        let q = self.query();
+        let (reps, pages) = (q.reps(), q.pages());
+        let mut out: Vec<(Uuid, String)> = q
+            .devices()
+            .iter()
+            .map(|(id, _)| id)
+            .filter(|d| ew_derive::is_fluid_terminal(&q, *d))
+            .filter(|d| {
+                let main = *q.get::<ew_derive::MainFunction>(*d);
+                !main.is_some_and(|f| {
+                    q.idx().reps_of_function(f).any(|r| {
+                        reps.get(r)
+                            .and_then(|r| pages.get(r.page))
+                            .is_some_and(|p| p.kind == ew_derive::ew_schema::PageType::Fluid)
+                    })
+                })
+            })
+            .map(|d| (d.as_uuid(), super::properties::device_tag_text(&q, d)))
+            .collect();
+        out.sort_by(|a, b| super::join::natural_cmp(&a.1, &b.1));
+        out
+    }
 }
 
 /// What a device row's fluid actions act on ([`Session::fluid_menu`]).

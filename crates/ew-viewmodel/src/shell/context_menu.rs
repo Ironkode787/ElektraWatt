@@ -636,6 +636,12 @@ impl ShellModel {
                     out.extend(self.aimed("place.pick", json!({ "symbol": symbol, "device": tag }), label));
                 }
             }
+            // A valve terminal drawn on no fluid page yet (rc.2): Draw on a fluid page….
+            if session.undrawn_fluid_terminals().iter().any(|(t, _)| *t == station) {
+                let label = strings::text(key!("rack-next-fluid")).to_owned();
+                let params = json!({ "terminal": station.to_string() });
+                out.extend(self.aimed("fluid.draw_terminal", params, label));
+            }
         }
         let label = strings::text(key!("action-plc-rack-editor")).to_owned();
         out.extend(self.aimed(

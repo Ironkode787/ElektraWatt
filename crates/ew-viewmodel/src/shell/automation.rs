@@ -865,12 +865,26 @@ impl ShellModel {
     }
 
     /// `plc.rack_next {step}` (F18 of the rc.1 test): what comes after the station is made, from its rack dialog:
-    /// `draw` puts the station's symbol on the pointer on a schematic page; `overview` makes a valve terminal's overview
+    /// `draw` puts the station's symbol on the pointer on a schematic page (a valve terminal's box of positions on a fluid
+    /// page); `fluid` draws a valve terminal on a fluid page (`fluid.draw_terminal`); `overview` makes a valve terminal's overview
     /// pages (`fluid.generate_overview`, previewed); `bus` opens the first bus-topology page and puts the station's first
     /// interface not drawn there on the pointer.
     pub(crate) fn act_plc_rack_next(&mut self, p: &Map<String, Value>) -> Outcome {
         let station = or_return!(self.rack_station());
         match string_param(p, "step") {
+            // A valve terminal on a fluid page: drawn as its positions there (rc.2).
+            Ok(Some("fluid")) => {
+                self.dialog = None;
+                self.dispatch("fluid.draw_terminal", &json!({ "terminal": station.to_string() }))
+            }
+            Ok(Some("draw"))
+                if p.get("folio").is_none()
+                    && self.page_rows().get(self.page_index()).is_some_and(|r| r.kind == "fluid")
+                    && self.is_valve_terminal(station) =>
+            {
+                self.dialog = None;
+                self.dispatch("fluid.draw_terminal", &json!({ "terminal": station.to_string() }))
+            }
             // The station and its modules not drawn yet, in a row in slot order, one undo step (rc.2): on the page shown,
             // the schematic page `folio`, or a new one (`folio` `new`, asking nothing; a persona run's station landed
             // on page 1 without a word).
@@ -1343,7 +1357,7 @@ impl ShellModel {
         let Some((tag, name, _)) = session.solenoid_of(function) else {
             return Outcome::refused(key!("reason-not-solenoid"));
         };
-        let out = self.arm_on_electrical_page(function, key!("reason-no-electrical-page"));
+        let out = self.arm_on_page(function, "multi_line", key!("reason-no-electrical-page"));
         if out != Outcome::Done {
             return out;
         }
@@ -1371,7 +1385,7 @@ impl ShellModel {
         let Some(plug) = self.project_session().and_then(|s| s.terminal_plug(terminal)) else {
             return Outcome::refused(key!("reason-not-multipin"));
         };
-        let out = self.arm_on_electrical_page(plug.function, key!("reason-no-electrical-page-plug"));
+        let out = self.arm_on_page(plug.function, "multi_line", key!("reason-no-electrical-page-plug"));
         if out != Outcome::Done {
             return out;
         }
@@ -1395,16 +1409,58 @@ impl ShellModel {
         }
     }
 
-    /// Arms the placement of `function` on the page shown when it is an electrical (multi-line) page, else on the
-    /// nearest one before it (a project's electrical pages usually come before its fluid pages), else after it; refused
-    /// with `none` without an electrical page.
-    fn arm_on_electrical_page(&mut self, function: Uuid, none: Key<'static>) -> Outcome {
-        let electrical = |i: &usize| self.page_rows().get(*i).is_some_and(|r| r.kind == "multi_line");
+    /// `fluid.draw_terminal {terminal}` (rc.2): a valve terminal made as a station (its valves in its rack) drawn on a
+    /// fluid page: the fluid page shown, else the nearest one, with its box of positions on the pointer, its valves in
+    /// their cells, so that a click places it; a toast says which and where. Refused in words for a device that is no
+    /// valve terminal or without a fluid page.
+    pub(crate) fn act_fluid_draw_terminal(&mut self, p: &Map<String, Value>) -> Outcome {
+        let terminal = or_return!(self.record_param(p, "terminal"));
+        let Some(session) = self.project_session() else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        if session.terminal_kind(terminal).is_none() {
+            return Outcome::refused(key!("reason-not-valve-terminal"));
+        }
+        let main = session.main_function(terminal).map(|(f, _)| f);
+        let tag = session.device_tag(terminal).unwrap_or_default();
+        let out = match main {
+            Some(main) => self.arm_on_page(main, "fluid", key!("reason-no-fluid-page-terminal")),
+            // Made in the New station dialog, it has no main function yet: its box gives it one.
+            None => match self.show_page_of_kind("fluid", key!("reason-no-fluid-page-terminal")) {
+                Outcome::Done => self.arm_terminal_box(terminal),
+                other => other,
+            },
+        };
+        if out != Outcome::Done {
+            return out;
+        }
+        let folio = self.current_folio().unwrap_or_default().to_owned();
+        self.notify(strings::format(key!("toast-terminal-draw"), &[&tag, &folio]), false);
+        Outcome::Done
+    }
+
+    /// Arms the placement of `function` on the page shown when it is of kind `kind` (`multi_line`, `fluid`), else on the
+    /// nearest such page before it (a project's electrical pages usually come before its fluid pages), else after it;
+    /// refused with `none` without one.
+    fn arm_on_page(&mut self, function: Uuid, kind: &str, none: Key<'static>) -> Outcome {
+        let out = self.show_page_of_kind(kind, none);
+        if out != Outcome::Done {
+            return out;
+        }
+        let mut pick = Map::new();
+        pick.insert("function".into(), Value::String(function.to_string()));
+        self.act_place_pick(&pick)
+    }
+
+    /// Shows the page shown when it is of kind `kind`, else the nearest such page before it, else after it; refused
+    /// with `none` without one.
+    fn show_page_of_kind(&mut self, kind: &str, none: Key<'static>) -> Outcome {
+        let of_kind = |i: &usize| self.page_rows().get(*i).is_some_and(|r| r.kind == kind);
         let here = self.page_index();
         let Some(page) = (here..=here)
             .chain((0..here).rev())
             .chain(here + 1..self.page_count())
-            .find(electrical)
+            .find(of_kind)
         else {
             return Outcome::refused(none);
         };
@@ -1413,12 +1469,10 @@ impl ShellModel {
             if out != Outcome::Done {
                 return out;
             }
-            // The page change ends the tool now, not after the tool below is armed on the new page.
+            // The page change ends the tool now, not after a tool is armed on the new page.
             self.sync_tool_context();
         }
-        let mut pick = Map::new();
-        pick.insert("function".into(), Value::String(function.to_string()));
-        self.act_place_pick(&pick)
+        Outcome::Done
     }
 
     /// `fluid.set_medium {line, medium}` (FR-FLU-009): the medium the fluid line's net carries, defined at the line's

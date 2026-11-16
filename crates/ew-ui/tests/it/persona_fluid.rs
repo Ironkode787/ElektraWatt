@@ -1952,3 +1952,145 @@ fn rc2_the_multipin_plug_is_drawn_from_the_terminal_on_the_fluid_page() {
     );
     d.shell_mut().shutdown();
 }
+
+/// The cells of the box of valve terminal `terminal` drawn as its positions on the page shown.
+fn cells_of(d: &mut Driver, terminal: Uuid) -> Vec<ew_ui::ew_viewmodel::ew_api::output::SlotCell> {
+    let tables = std::sync::Arc::clone(&d.shell_mut().canvas().unwrap().page().tables);
+    tables
+        .reps
+        .iter()
+        .filter(|r| r.device == Some(terminal))
+        .find_map(|r| r.black_box.as_ref().filter(|b| !b.cells.is_empty()))
+        .map(|b| b.cells.clone())
+        .unwrap_or_default()
+}
+
+/// The rc.2 cabinet run (friction 24, 25): a valve terminal made first as a PLC station, its valve in its rack, could not
+/// be put on the pneumatic page: Fluid ▸ Valve terminal made a second terminal without a word, and the station's Draw on
+/// this page refused a fluid page. Fluid ▸ Valve terminal offers the terminal drawn on no fluid page first (Draw … here,
+/// then A new terminal…); a new one placed meanwhile says that the other is still undrawn; the rack dialog's Draw on a
+/// fluid page… puts its box of positions on the pointer, its valve in its cell.
+#[test]
+fn rc2_a_terminal_made_as_a_station_is_drawn_on_the_fluid_page() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    let _ = d.shell_mut().dispatch("plc.new_station", &json!({}));
+    let set = json!({"head": "EW-GEN-VTM-1"});
+    assert_eq!(d.shell_mut().dispatch("plc.rack_set", &set), Outcome::Done);
+    assert_eq!(
+        d.shell_mut().dispatch("plc.rack_create", &json!({})),
+        Outcome::Done
+    );
+    let station = match d.shell_mut().dialog() {
+        Some(ew_ui::ew_viewmodel::shell::Dialog::Rack {
+            station: Some(s), ..
+        }) => *s,
+        other => panic!("{other:?}"),
+    };
+    let tag = fluid_nodes(&mut d)
+        .into_iter()
+        .find(|n| n.records.first() == Some(&station))
+        .map(|n| n.label)
+        .expect("the station's row");
+    let _ = d.shell_mut().dispatch("ui.dismiss", &json!({}));
+    let add = json!({"module": station.to_string(), "position": 1});
+    assert_eq!(d.shell_mut().dispatch("fluid.valve_add", &add), Outcome::Done);
+    d.input(&key("escape"));
+    d.settle();
+    // Fluid ▸ Valve terminal: the station first, then a new one.
+    assert_eq!(
+        d.shell_mut().dispatch("fluid.valve_terminal", &json!({})),
+        Outcome::Done
+    );
+    let options: Vec<String> = match d.shell_mut().dialog() {
+        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => f.fields[0]
+            .options
+            .iter()
+            .map(|(_, words)| words.clone())
+            .collect(),
+        other => panic!("{other:?}"),
+    };
+    assert_eq!(
+        options,
+        [format!("Draw {tag} here"), "A new terminal…".to_owned()]
+    );
+    // A new one, placed while the station is undrawn, says so.
+    let new = json!({"terminal": "new"});
+    assert_eq!(
+        d.shell_mut().dispatch("fluid.valve_terminal", &new),
+        Outcome::Done
+    );
+    assert!(d.shell_mut().picker().is_some(), "the device browser");
+    d.settle();
+    d.input(&typed("valve terminal"));
+    d.settle();
+    d.input(&Input::DoubleClick {
+        at: starting_with(&d, "Valve terminal with bus node, 4"),
+        mods: Modifiers::NONE,
+    });
+    d.settle();
+    click_at(&mut d, (760, 300));
+    let toast = d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert!(
+        toast.contains(&format!("valve terminal {tag} is drawn on no fluid page yet")),
+        "{toast}"
+    );
+    d.input(&key("escape"));
+    d.settle();
+    d.input(&key("escape"));
+    d.settle();
+    // The station's rack dialog: Draw on a fluid page…, its valve in cell 1.
+    let rack = json!({"station": station.to_string()});
+    assert_eq!(
+        d.shell_mut().dispatch("plc.rack_editor", &rack),
+        Outcome::Done
+    );
+    // A frame to show the dialog (a dispatch asks for none).
+    d.input(&Input::Hover { at: (1000, 600) });
+    d.settle();
+    d.input(&click(d.find("Draw on a fluid page…").expect("the rack's step")));
+    d.settle();
+    assert_eq!(d.shell_mut().tool().name(), "black_box");
+    click_at(&mut d, (760, 650));
+    let c = cells_of(&mut d, station);
+    assert_eq!(c.len(), 4, "drawn as its positions");
+    assert!(c[0].holder.is_some(), "its valve in cell 1: {c:?}");
+    // No terminal is left undrawn: the button opens the device browser at once.
+    d.input(&key("escape"));
+    d.settle();
+    let _ = d.shell_mut().dispatch("fluid.valve_terminal", &json!({}));
+    assert!(d.shell_mut().dialog().is_none(), "no choice left");
+    assert!(d.shell_mut().picker().is_some(), "the device browser");
+    d.shell_mut().shutdown();
+}
+
+/// The owner's order (rc.2): the valve terminal made as a station and drawn on the schematic page first, then on the
+/// fluid page from its rack dialog: there too it is drawn as its positions, another drawing of the same terminal.
+#[test]
+fn rc2_a_station_drawn_on_the_schematic_is_drawn_on_the_fluid_page_too() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "1"}));
+    let _ = d.shell_mut().dispatch("plc.new_station", &json!({}));
+    let _ = d.shell_mut().dispatch("plc.rack_set", &json!({"head": "EW-GEN-VTM-1"}));
+    assert_eq!(
+        d.shell_mut().dispatch("plc.rack_create", &json!({})),
+        Outcome::Done
+    );
+    let station = match d.shell_mut().dialog() {
+        Some(ew_ui::ew_viewmodel::shell::Dialog::Rack {
+            station: Some(s), ..
+        }) => *s,
+        other => panic!("{other:?}"),
+    };
+    let draw = json!({"step": "draw"});
+    assert_eq!(d.shell_mut().dispatch("plc.rack_next", &draw), Outcome::Done);
+    let _ = d.shell_mut().dispatch("plc.rack_editor", &json!({"station": station.to_string()}));
+    let fluid = json!({"step": "fluid"});
+    assert_eq!(d.shell_mut().dispatch("plc.rack_next", &fluid), Outcome::Done);
+    assert_eq!(d.shell_mut().current_folio(), Some("201"));
+    assert_eq!(d.shell_mut().tool().name(), "black_box");
+    click_at(&mut d, (760, 400));
+    assert_eq!(cells_of(&mut d, station).len(), 4, "drawn as its positions");
+    d.shell_mut().shutdown();
+}

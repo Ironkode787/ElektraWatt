@@ -541,8 +541,11 @@ impl ShellModel {
                 }
                 // Every placement answers with its result line (the tag and the cell, and the wires it drew),
                 // said at the end of the dispatch, once the page tables show it.
+                // A valve terminal drawn as its positions answers the same way, with what its positions hold (rc.2).
                 if out == Outcome::Done
-                    && cmd.name() == "device.place"
+                    && (cmd.name() == "device.place"
+                        || (cmd.name() == "box.black"
+                            && cmd.to_json().is_ok_and(|j| j["box"].get("slots").is_some())))
                     && let Ok(json) = cmd.to_json()
                     && let (Some(x), Some(y)) = (json["pos"][0].as_i64(), json["pos"][1].as_i64())
                 {

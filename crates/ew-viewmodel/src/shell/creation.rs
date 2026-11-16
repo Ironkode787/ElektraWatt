@@ -171,6 +171,14 @@ static MEDIUM_NEW: Spec = Spec {
     ],
 };
 
+/// Fluid ▸ Valve terminal… on a fluid page while a valve terminal of the project is drawn on no fluid page (rc.2): which
+/// to draw, each such terminal ("Draw -104A1 here") or a new one.
+static VALVE_TERMINAL: Spec = Spec {
+    action: "fluid.valve_terminal",
+    title_key: key!("valve-terminal-title"),
+    fields: &[field("terminal", key!("form-valve-terminal"))],
+};
+
 /// The usual media New medium… starts from (rc.2, F26), each with its usual nominal pressure in bar (gauge: a vacuum
 /// below the atmosphere); its name is the text `medium-preset-<word>`.
 const MEDIUM_PRESETS: &[(&str, &str)] = &[
@@ -1275,6 +1283,45 @@ impl ShellModel {
             return self.commit_value(&row, Value::String(id.to_string()), name, Vec::new());
         }
         out
+    }
+
+    /// `fluid.valve_terminal {terminal?}` (Fluid ▸ Valve terminal…, rc.2): on a fluid page a valve terminal of the project
+    /// that is drawn on no fluid page yet (made as a station first) comes first: the form offers "Draw -104A1 here" for
+    /// each, then "A new terminal…". `terminal` a terminal draws it here (`fluid.draw_terminal`); `new`, or no such
+    /// terminal, opens the device browser at the valve terminals.
+    pub(crate) fn act_fluid_valve_terminal(&mut self, p: &Map<String, Value>) -> Outcome {
+        let terminal = match text_param(p, "terminal") {
+            Ok(t) => t,
+            Err(e) => return e,
+        };
+        let undrawn = self
+            .project_session()
+            .map(ew_api::Session::undrawn_fluid_terminals)
+            .unwrap_or_default();
+        if terminal.is_empty() && !undrawn.is_empty() && self.mode == Mode::Gui {
+            let out = self.form_missing(&VALVE_TERMINAL, p, "terminal");
+            if let Some(Dialog::Form(form)) = &mut self.dialog
+                && form.action == VALVE_TERMINAL.action
+                && let Some(f) = form.fields.iter_mut().find(|f| f.name == "terminal")
+            {
+                f.options = undrawn
+                    .iter()
+                    .map(|(id, tag)| (id.to_string(), strings::format(key!("valve-terminal-draw-here"), &[tag])))
+                    .chain([(
+                        "new".to_owned(),
+                        strings::text(key!("valve-terminal-new")).to_owned(),
+                    )])
+                    .collect();
+                f.value = undrawn[0].0.to_string();
+            }
+            return out;
+        }
+        // The form, if open, gives way to what was chosen.
+        let _ = self.form_done(VALVE_TERMINAL.action, Outcome::Done);
+        if terminal.is_empty() || terminal == "new" {
+            return self.act_discipline_picker(crate::tools::PickerMode::Parts, "ValveTerminalNode");
+        }
+        self.dispatch("fluid.draw_terminal", &json!({ "terminal": terminal }))
     }
 
     /// The project settings member `member` as JSON (`Value::Null` when absent).

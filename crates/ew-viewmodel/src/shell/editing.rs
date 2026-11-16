@@ -289,6 +289,75 @@ impl ShellModel {
         }
     }
 
+    /// A valve terminal placed as its positions (rc.2): the result line `text` with how many positions it has and how
+    /// many are empty, then, while another valve terminal of the project is drawn on no fluid page (made as a station
+    /// first), that one and how to draw it.
+    fn terminal_placed_words(
+        &self,
+        text: String,
+        device: Option<Uuid>,
+        cells: &[ew_api::output::SlotCell],
+    ) -> String {
+        let empty = cells.iter().filter(|c| c.holder.is_none() && !c.blank).count();
+        let (n, e) = (cells.len().to_string(), empty.to_string());
+        let placed = strings::without_stop(&text);
+        let mut text = if empty == cells.len() {
+            strings::format(key!("toast-placed-positions-empty"), &[placed, &n])
+        } else {
+            strings::format(key!("toast-placed-positions"), &[placed, &n, &e])
+        };
+        let undrawn: Vec<String> = self
+            .project_session()
+            .map(ew_api::Session::undrawn_fluid_terminals)
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|(t, _)| Some(*t) != device)
+            .map(|(_, tag)| tag)
+            .collect();
+        if !undrawn.is_empty() {
+            text.push(' ');
+            text.push_str(&strings::format(key!("toast-terminal-undrawn"), &[&undrawn.join(", ")]));
+        }
+        text
+    }
+
+    /// Arms the black box tool with the box of positions of valve terminal `terminal`, a PLC station that has no main
+    /// function yet (made in the New station dialog, rc.2): one click draws it as its positions, its main function the
+    /// box's.
+    pub(super) fn arm_terminal_box(&mut self, terminal: Uuid) -> Outcome {
+        let Some(cat) = self.catalogue() else {
+            return Outcome::refused(key!("reason-no-catalogue"));
+        };
+        let Some(row) = cat.symbols.iter().find(|s| s.black_box && s.allowed) else {
+            return Outcome::refused(key!("reason-unknown-symbol"));
+        };
+        let Some(session) = self.project_session() else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let Some(copy) = row.copy.or_else(|| session.starter_symbol_copy(&row.key)) else {
+            return Outcome::refused(key!("reason-unknown-symbol"));
+        };
+        let copies = match session.symbol_embed(&row.key) {
+            Ok(params) => params.map(copies_of).unwrap_or_default(),
+            Err(error) => {
+                return Outcome::Failed {
+                    message: error.to_string(),
+                };
+            }
+        };
+        let count = u16::try_from(session.terminal_positions(terminal).len()).ok();
+        let target = BoxTarget::Device {
+            device: terminal.to_string(),
+        };
+        self.tools.picker = None;
+        self.activate_tool(Box::new(
+            BlackBoxTool::new(copy.to_string(), target)
+                .with_copies(copies)
+                .with_slots(count),
+        ));
+        Outcome::Done
+    }
+
     fn say_result(&mut self, before: &PageTables, now: &PageTables) {
         let Some(note) = self.tools.result_note.take() else {
             return;
@@ -312,7 +381,10 @@ impl ShellModel {
                     return;
                 };
                 let cps: Vec<&ew_api::output::TableCp> = now.cps.iter().filter(|c| c.rep == rep.id).collect();
-                let tag = crate::describe::rep_tag(rep, &cps).unwrap_or_else(|| rep.symbol_key.clone());
+                // A black box (a valve terminal drawn as its positions) prints no pin label: its device's tag.
+                let tag = crate::describe::rep_tag(rep, &cps)
+                    .or_else(|| rep.device.and_then(|d| self.project_session()?.device_tag(d)))
+                    .unwrap_or_else(|| rep.symbol_key.clone());
                 // A sentence names a terminal "-X1011 terminal 3", never "-X1011:3".
                 let tag = if rep.terminal {
                     crate::describe::terminal_in_sentence(&tag)
@@ -359,6 +431,10 @@ impl ShellModel {
                 // A valve dropped into a valve terminal's box says where it sits now.
                 let text = match rep.device.filter(|_| into).and_then(|d| self.seat_words(d)) {
                     Some(seat) => format!("{text} {seat}"),
+                    None => text,
+                };
+                let text = match rep.black_box.as_ref().filter(|b| !b.cells.is_empty()) {
+                    Some(b) => self.terminal_placed_words(text, rep.device, &b.cells),
                     None => text,
                 };
                 self.notify(text, true);
@@ -843,8 +919,20 @@ impl ShellModel {
                 function: function.clone(),
                 cps,
             };
+            // A valve terminal made as a station, drawn on a fluid page: as its positions, one click (rc.2).
+            let fluid = self
+                .page_rows()
+                .get(self.page_index())
+                .is_some_and(|r| r.kind == "fluid");
+            let slots = project
+                .session
+                .terminal_of_main(id)
+                .filter(|_| fluid)
+                .and_then(|t| u16::try_from(project.session.terminal_positions(t).len()).ok());
             self.tools.picker = None;
-            self.activate_tool(Box::new(BlackBoxTool::new(copy.to_string(), target)));
+            self.activate_tool(Box::new(
+                BlackBoxTool::new(copy.to_string(), target).with_slots(slots),
+            ));
             return Outcome::Done;
         }
         if is_box && matches!(pick, Pick::Function(..) | Pick::Join(..)) {

@@ -433,7 +433,12 @@ on the sub-base (the galleries join them, §5.2; the terminal itself is the firs
 taps a gallery feeds it). The cells are the terminal's positions, then its modules' (`terminal_cells`); their content is
 derived, never stored: a valve's own symbol stands in its cell (its tag and the output that drives it, `PlcAddress`),
 a valve drawn on another page is named by its tag, a blanking plate is drawn as one, an empty position dashed. The
-Place tool places such a box with one click (`box.black` with `slots`). A valve placed or moved into a cell takes that
+Place tool places such a box with one click (`box.black` with `slots`). A terminal made first as a PLC station (the New
+station dialog, its valves in its rack) is drawn on a fluid page by `fluid.draw_terminal` (its rack dialog's Draw on a
+fluid page…, its row in the PLC panel, and Fluid ▸ Valve terminal…, which on a fluid page offers each terminal drawn on
+no fluid page first, "Draw -104A1 here", then "A new terminal…"): its box of positions on the pointer, joined to the
+terminal as its main function (`join_device`), or another drawing of its main function where it has one; a new terminal
+placed while another is undrawn says so in its placement toast. A valve placed or moved into a cell takes that
 position (`seat_on_terminal`: a valve of the terminal swaps with the cell's holder through `assembly.attach {swap}`;
 `device.place {replace}` replaces it); every command that changes a position (`assembly.attach`,
 `valve.set_occupancy`, `box.black`, `device.place`) moves the valve's symbols on the box's page into their cells and

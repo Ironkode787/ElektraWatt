@@ -101,19 +101,23 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_open_picker(crate::tools::PickerMode::Place),
         ),
     )),
-    keeps_banner(placed(
-        place(Group::FluidPlace, 2, CommandSize::Small, None),
-        "columns-3",
-        act(
-            "fluid.valve_terminal",
-            Command,
-            Menu::Fluid,
-            &[],
-            fluid_symbol_page,
-            None,
-            |s, _| s.act_discipline_picker(crate::tools::PickerMode::Parts, "ValveTerminalNode"),
-        ),
-    )),
+    // A valve terminal of the project drawn on no fluid page yet comes first (rc.2): Draw -104A1 here, or a new one.
+    with_params(
+        "terminal?:text",
+        keeps_banner(placed(
+            place(Group::FluidPlace, 2, CommandSize::Small, None),
+            "columns-3",
+            act(
+                "fluid.valve_terminal",
+                Command,
+                Menu::Fluid,
+                &[],
+                fluid_symbol_page,
+                None,
+                |s, p| s.act_fluid_valve_terminal(p),
+            ),
+        )),
+    ),
     keeps_banner(placed(
         place(Group::FluidPlace, 3, CommandSize::Small, None),
         "wind",

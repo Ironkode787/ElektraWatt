@@ -261,7 +261,8 @@ pub(crate) fn rack(
             let terminal = shell.is_valve_terminal(station);
             let mut steps = vec![("draw", key!("rack-next-draw")), ("bus", key!("rack-next-bus"))];
             if terminal {
-                steps.insert(1, ("overview", key!("rack-next-overview")));
+                steps.insert(1, ("fluid", key!("rack-next-fluid")));
+                steps.insert(2, ("overview", key!("rack-next-overview")));
             }
             // With several bus pages Put it on a bus page asks which; with one or none it goes there (or makes it).
             let bus_pages = shell.bus_pages();

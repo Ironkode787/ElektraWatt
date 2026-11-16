@@ -77,6 +77,12 @@ pub enum BoxTarget {
         /// Its CPs: (function CP index, designation).
         cps: Vec<(u16, String)>,
     },
+    /// The main function of a device that has none yet (`join_device`): a valve terminal made as a PLC station, drawn
+    /// first on a fluid page as its positions (rc.2).
+    Device {
+        /// The device's ID text.
+        device: String,
+    },
     /// The interfaces of a device on a bus-topology page, a box each (`bus.place_ports`, doc 10 §2.7).
     Ports {
         /// The command's `target`: `{"device": {"device": id}}` or `{"from_part": {"part": id, "letter": l}}`.
@@ -279,7 +285,7 @@ impl BlackBoxTool {
         match &self.target {
             BoxTarget::Part { cps, .. } | BoxTarget::Function { cps, .. } => cps,
             BoxTarget::Ports { interfaces, .. } => interfaces.first().map_or(&[], |i| i.sockets.as_slice()),
-            BoxTarget::NewDevice { .. } => &[],
+            BoxTarget::NewDevice { .. } | BoxTarget::Device { .. } => &[],
         }
     }
 
@@ -287,7 +293,10 @@ impl BlackBoxTool {
     fn outputs(&self) -> &[u16] {
         match &self.target {
             BoxTarget::Part { outputs, .. } => outputs,
-            BoxTarget::NewDevice { .. } | BoxTarget::Ports { .. } | BoxTarget::Function { .. } => &[],
+            BoxTarget::NewDevice { .. }
+            | BoxTarget::Ports { .. }
+            | BoxTarget::Function { .. }
+            | BoxTarget::Device { .. } => &[],
         }
     }
 
@@ -297,7 +306,9 @@ impl BlackBoxTool {
             BoxTarget::NewDevice { letter } => crate::strings::format(key!("place-target-new"), &[letter]),
             BoxTarget::Part { number, .. } => crate::strings::format(key!("place-target-part"), &[number]),
             BoxTarget::Ports { label, .. } => label.clone(),
-            BoxTarget::Function { .. } => crate::strings::text(key!("place-target-function")).to_owned(),
+            BoxTarget::Function { .. } | BoxTarget::Device { .. } => {
+                crate::strings::text(key!("place-target-function")).to_owned()
+            }
         }
     }
 
@@ -367,6 +378,7 @@ impl BlackBoxTool {
                 ..
             } => json!({"from_part": {"part": part, "template": template, "letter": letter}}),
             BoxTarget::Function { function, .. } => json!({"existing_function": {"function": function}}),
+            BoxTarget::Device { device } => json!({"join_device": {"device": device, "role": "main"}}),
             BoxTarget::Ports { .. } => return None,
         };
         let mut b = json!({

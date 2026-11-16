@@ -421,6 +421,22 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
+    // A valve terminal made as a station, drawn on a fluid page as its positions (rc.2): its PLC row, its rack dialog.
+    with_params(
+        "terminal:ref",
+        needs_parameters(hidden(with_aliases(
+            &[("terminal", ParamForm::Whole)],
+            act(
+                "fluid.draw_terminal",
+                Command,
+                Menu::Project,
+                &[],
+                writable,
+                None,
+                |s, p| s.act_fluid_draw_terminal(p),
+            ),
+        ))),
+    ),
     // A fluid line's medium (its context menu) and New medium… (doc 11 §7, FR-FLU-008/-009).
     with_params(
         "line:ref, medium:ref",
