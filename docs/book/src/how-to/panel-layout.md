@@ -31,7 +31,9 @@ the parts list and the enclosure legend read it from there.
 ## Place the devices
 
 5. Show **View ▸ Panels ▸ Navigators ▸ Unplaced devices**. It lists the devices of the page's location that have no
-   place yet. A device without a location is not listed: give it the location in Properties, under Structure.
+   place yet. A device without a location is not listed: give it the location in Properties, under Structure, or
+   give many at once: in the Devices list, mark their rows (or their group "(none)"), right-click and choose
+   **Location…**.
 6. Drag a device from the list onto a rail, or select its row, press `Enter` and click the place. On a rail it
    snaps to its neighbour, the rail's ends or the plate grid; a device mounted by screws goes on the plate.
 7. To fill a rail at once, select the rail and choose **Draw ▸ Auto-fill rail…**: it places the devices you marked in

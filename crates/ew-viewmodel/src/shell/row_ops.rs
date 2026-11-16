@@ -125,6 +125,117 @@ impl ShellModel {
         Ok((table, rows))
     }
 
+    /// The devices the Devices navigator's acted rows stand for: a device row's device, every device row under a group
+    /// row (a function's or a location's, the "(none)" group too); in node order, each once.
+    pub(crate) fn acted_devices(&self) -> Result<Vec<Uuid>, Outcome> {
+        let (table, rows) = self.acted_rows(NavKind::Devices)?;
+        let mut out: Vec<Uuid> = Vec::new();
+        let mut take = |i: usize| {
+            let n = &table.nodes[i];
+            if n.role == NavRole::Device
+                && let Some(d) = n.records.first()
+                && !out.contains(d)
+            {
+                out.push(*d);
+            }
+        };
+        for i in rows {
+            match table.nodes[i].role {
+                NavRole::Function | NavRole::Location => {
+                    // The device rows of the group: its location groups' children, or its own.
+                    let groups: Vec<usize> = std::iter::once(i)
+                        .chain(
+                            (0..table.nodes.len())
+                                .filter(|&j| table.nodes[j].parent == u32::try_from(i).ok()),
+                        )
+                        .collect();
+                    for j in 0..table.nodes.len() {
+                        if groups
+                            .iter()
+                            .any(|g| table.nodes[j].parent == u32::try_from(*g).ok())
+                        {
+                            take(j);
+                        }
+                    }
+                }
+                _ => take(i),
+            }
+        }
+        if out.is_empty() {
+            return Err(Outcome::refused(key!("reason-no-device-row")));
+        }
+        Ok(out)
+    }
+
+    /// `devices.set_location {location?}` (Location… on Devices rows, rc.2): the devices of the acted rows
+    /// ([`Self::acted_devices`]) get the location (its ID or `+code`), one `fields.set` of `structure.location`, and a
+    /// toast says so. In the window without `location` a dialog asks for it.
+    pub(crate) fn act_devices_set_location(&mut self, p: &Map<String, Value>) -> Outcome {
+        const ACTION: &str = "devices.set_location";
+        let devices = match self.acted_devices() {
+            Ok(d) => d,
+            Err(e) => return e,
+        };
+        let locations = self
+            .project
+            .as_ref()
+            .map(|p| p.session.layout_locations())
+            .unwrap_or_default();
+        let given = match string_param(p, "location") {
+            Ok(g) => g.map(str::trim).filter(|s| !s.is_empty()).map(str::to_owned),
+            Err(e) => return e,
+        };
+        let Some(given) = given else {
+            if self.mode == Mode::Headless {
+                return failed(key!("error-missing-param"), &["location"]);
+            }
+            if locations.is_empty() {
+                return Outcome::refused(key!("reason-no-location"));
+            }
+            let form = super::FormDialog {
+                action: ACTION,
+                title_key: key!("devices-location-title"),
+                ok_key: key!("devices-location-ok"),
+                fields: vec![super::FormField {
+                    name: "location",
+                    label_key: key!("form-enclosure-location"),
+                    choices: &super::choices::NONE,
+                    options: locations.iter().map(|(id, code)| (id.to_string(), code.clone())).collect(),
+                    value: locations[0].0.to_string(),
+                }],
+                error: None,
+                table: None,
+            };
+            return self.open_dialog(super::Dialog::Form(form));
+        };
+        let Some((location, code)) = locations.iter().find(|(id, code)| {
+            id.to_string() == given || *code == given || code.trim_start_matches('+') == given.trim_start_matches('+')
+        }) else {
+            return self.form_failed(ACTION, strings::format(key!("error-no-location"), &[&given]));
+        };
+        let targets: Vec<String> = devices.iter().map(ToString::to_string).collect();
+        let out = self.commit_from_host(&AnyCommand {
+            name: "fields.set".into(),
+            params: json!({
+                "kind": "device",
+                "targets": targets,
+                "path": "structure.location",
+                "value": location.to_string(),
+            }),
+        });
+        if out == Outcome::Done {
+            if self.in_form_of(ACTION) {
+                self.dialog = None;
+            }
+            let text = match devices.len() {
+                1 => strings::format(key!("toast-devices-location-one"), &[code]),
+                n => strings::format(key!("toast-devices-location"), &[&n.to_string(), code]),
+            };
+            self.notify(text, true);
+        }
+        out
+    }
+
     /// The context of `cable.swap_cores`: the Cables navigator is open and focused (headless: open).
     pub(crate) fn cables_shown(&self) -> Result<(), Key<'static>> {
         if !self.navigator_open(NavKind::Cables)

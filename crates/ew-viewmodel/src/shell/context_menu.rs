@@ -489,6 +489,7 @@ impl ShellModel {
                 self.device_entries(&self.row_device(device, node), &mut out);
                 out.extend(self.menu_item("props.focus"));
                 if kind == NavKind::Devices {
+                    out.extend(self.menu_item("devices.set_location"));
                     self.plc_entries(device, &mut out);
                 }
                 match node.role {
@@ -557,6 +558,10 @@ impl ShellModel {
                 self.go_to(kind, wire, &mut out);
             }
             (NavKind::Pages, NavRole::Page, _) => self.page_row_fits(&node.key, &mut out),
+            // A group of the Devices list ("(none)" too): Location… for every device in it (rc.2).
+            (NavKind::Devices, NavRole::Function | NavRole::Location, _) => {
+                out.extend(self.menu_item("devices.set_location"));
+            }
             // A finding's row: its quick fix, where it has one, and Waive… or Unwaive, as the detail under the list
             // offers them (the persona round of M3: a right-click on a message did nothing).
             (NavKind::Messages, NavRole::Finding, _) => {

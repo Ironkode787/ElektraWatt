@@ -1175,6 +1175,20 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_navigator_delete(p),
         ))),
     ),
+    // Location… on Devices rows (rc.2: fifteen devices without a location took fifteen edits): the marked devices, or
+    // every device of a marked group, get one location in one undo step.
+    with_params(
+        "location?:text",
+        hidden(in_navigator(act(
+            "devices.set_location",
+            Command,
+            Menu::Edit,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_devices_set_location(p),
+        ))),
+    ),
     with_params(
         "kind?:text, text?:text, cancel?:bool",
         hidden(in_navigator(act(

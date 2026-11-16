@@ -687,6 +687,80 @@ fn auto_fill_with_nothing_to_place_says_why_and_gives_devices_the_cabinet() {
     s.shutdown();
 }
 
+/// A longer persona round of the second 0.3.0 candidate gave fifteen devices their cabinet one by one: a click on the
+/// group "(none)" did nothing. Location… on the group in the Devices list gives every device in it the location, in
+/// one undo step, and the group's menu offers it.
+#[test]
+fn location_on_the_none_group_gives_its_devices_a_cabinet_in_one_step() {
+    let tmp = Tmp::new("devices-location");
+    let mut s = tmp.shell_in(Mode::Gui, true, "902");
+    let unplaced: Vec<String> = panel(&s).unplaced.iter().map(|u| u.device.to_string()).collect();
+    done(
+        &mut s,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": unplaced,
+            "path": "structure.location", "value": "none"}}),
+    );
+    done(
+        &mut s,
+        "structure.new",
+        json!({"kind": "location", "designation": "J-E-999"}),
+    );
+    done(&mut s, "navigator.show", json!({"kind": "devices"}));
+    let none = common::row_key(
+        &s,
+        NavKind::Devices,
+        ew_viewmodel::navigators::NavRole::Location,
+        "(none)",
+    );
+    done(&mut s, "navigator.mark", json!({"kind": "devices", "key": none}));
+    let table = s.nav(NavKind::Devices).and_then(|n| n.table()).unwrap().clone();
+    let at = table.nodes.iter().position(|n| n.key == none).unwrap();
+    let node = table.nodes[at].clone();
+    // The devices of the group: its device rows.
+    let in_group = table
+        .nodes
+        .iter()
+        .filter(|n| {
+            n.parent == u32::try_from(at).ok() && n.role == ew_viewmodel::navigators::NavRole::Device
+        })
+        .count();
+    assert!(in_group > 1, "{in_group}");
+    let menu = ew_viewmodel::command_bar::navigator_row_menu(&s, NavKind::Devices, &node);
+    assert!(
+        menu.iter().any(|i| i.id == "devices.set_location" && i.label == "Location…"),
+        "{:?}",
+        menu.iter().map(|i| &i.label).collect::<Vec<_>>()
+    );
+    done(
+        &mut s,
+        "devices.set_location",
+        json!({"location": "+J-E-999"}),
+    );
+    assert_eq!(
+        common::toast(&s),
+        format!("Gave {in_group} devices the location +J-E-999.")
+    );
+    let last = s.recorded_commands().last().unwrap().clone();
+    assert_eq!(
+        (
+            last.cmd.as_str(),
+            last.params["targets"].as_array().map(Vec::len)
+        ),
+        ("fields.set", Some(in_group)),
+        "one command for the group"
+    );
+    done(&mut s, "edit.undo", json!({}));
+    let after_undo = common::row_key(
+        &s,
+        NavKind::Devices,
+        ew_viewmodel::navigators::NavRole::Location,
+        "(none)",
+    );
+    assert!(!after_undo.is_empty(), "one undo step brings the group back");
+    s.shutdown();
+}
+
 /// PS-5 through the grid: -102F1's Locked row, its Position row's refusals in words (a text that does not read, and one
 /// the command refuses, the old value kept), and R1's Length row.
 #[test]
