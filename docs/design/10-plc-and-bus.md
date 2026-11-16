@@ -191,10 +191,14 @@ slot: moving a module up or down swaps two modules' positions (`assembly.attach`
 dialog says when addresses moved. Only a module part goes into a rack: the window refuses any other device in words,
 `plc.remove_from_rack` takes a device out again (and, for a device that nothing describes as a module, its aspect and
 its channels), and EW-PLC-017 reports a device in that state with that command as its fix. A copy of a station drops the
-station's own module with `plc_station`, so N0 makes the paste a station again. Draw on this page is one
+station's own module with `plc_station`, so N0 makes the paste a station again. Draw on page `<folio> <title>` (the
+page in front; beside it the other schematic pages and New page…) is one
 `plc.draw_station {station, page, symbol, boxes}`: the window lays the station's box and its modules' out in slot order
 in rows (the black box tool's pin layout over each part's pattern), and the command gives a device made without
-functions its part's template functions before it draws the black-box entry; a device drawn already is left alone.
+functions its part's template functions before it draws the black-box entry; a device drawn already is left alone. A
+module row's Draw… draws that module the same way. N3 binds the channels of a module that gains its main function in
+the transaction, so a module drawn from the rack is bound to its pins as one drawn by hand; EW-PLC-018 reports a drawn
+module with every channel unbound (an earlier build's drawing), its fix `plc.bind_pins`.
 
 ### 2.4 Channels
 
@@ -595,6 +599,13 @@ pub struct PhysicalNet { pub name: Ident, pub medium: Medium,           // added
   - a **managed switch** (EW-GEN-ESW-8: eight sockets) and a **device with ports** (a drive, an HMI, a gateway;
     EW-GEN-PND-1: two) are interfaces of role `device`: a node with its one address, which N6 also walks through;
   - a **head station** is a part with a PLC section of role station and its interfaces (N0 makes it `head_station`).
+  - *As built (rc.2 persona runs).* A device given to a PLC (Add to PLC: its menu, its Bus panel row, the PLC row of
+    its Properties, or "Use <tag>" in the new-station dialog) is a station of that PLC. A **network switch**, a device
+    no part of which has a PLC section and one of whose interfaces has more than two sockets, belongs to the PLC with
+    no rack: no rack dialog opens, a toast with Undo names the PLC, and its menu offers no Rack…. Put it on a bus page
+    places every interface of the station not drawn there, a box each, and makes a bus-topology page when the project
+    has none; a station whose part has no bus interface is refused in words. The starter valve terminals have their bus
+    node as an interface: EW-GEN-VTM-1 PROFIBUS DP, EW-GEN-VTM-2 PROFINET.
   A part without pins whose first interface has a starter port function names that function as its main template
   entry (`box.black` draws such an entry as a box with a socket per CP, the function staying a normal one). A later
   device-description import fills the same members: the interfaces, their roles and their socket counts. The PLC
