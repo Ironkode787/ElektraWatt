@@ -476,6 +476,7 @@ impl ShellModel {
         crate::properties::cps_in_words(&mut sheet);
         crate::properties::solenoids_in_words(&mut sheet);
         crate::properties::ports_in_words(&mut sheet);
+        crate::properties::connection_kind_in_words(&mut sheet);
         self.positions_in_words(&mut sheet, p.session.decimal_comma());
         Self::valve_positions_in_words(&mut sheet, &p.session);
         crate::properties::header_in_words(&mut sheet);

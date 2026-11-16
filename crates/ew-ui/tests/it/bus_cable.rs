@@ -13,6 +13,34 @@ use ew_ui::ew_viewmodel::shell::{Dialog, Outcome};
 use serde_json::{Value, json};
 
 /// The value of the option of form field `name` whose words contain `words`.
+/// A persona run read a bus line's kind as `{"bus":{}}`: a connection's Kind reads in words, Bus line.
+#[test]
+fn a_bus_lines_kind_reads_in_words() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    let page = json!({"folio": "2", "type": "bus_topology", "title": "Network"});
+    assert_eq!(d.shell_mut().dispatch("page.new", &page), Outcome::Done);
+    d.settle();
+    let cpu = place_box(&mut d, "EW-GEN-CPU-2", (20, 15), (30, 22));
+    let rio = place_box(&mut d, "EW-GEN-RIO-1", (60, 15), (70, 22));
+    let dp = |labels: &[String]| labels.iter().find(|l| !l.ends_with(":P1")).cloned().expect("a DP socket");
+    d.input(&key("W"));
+    d.settle();
+    press_cp(&mut d, &dp(&cpu));
+    press_cp(&mut d, &dp(&rio));
+    d.input(&key("Escape"));
+    d.input(&key("Escape"));
+    d.settle();
+    let line = d.shell_mut().canvas().expect("the page").page().tables.connections[0].id.to_string();
+    assert_eq!(d.shell_mut().dispatch("select.set", &json!({"ids": [line]})), Outcome::Done);
+    assert_eq!(d.shell_mut().dispatch("props.show", &json!({"on": true})), Outcome::Done);
+    d.settle();
+    let sheet = d.shell_mut().properties().sheet().expect("the sheet").clone();
+    let kind = ew_ui::ew_viewmodel::properties::find_row(&sheet, "connection/kind")
+        .map(|(_, r)| ew_ui::ew_viewmodel::properties::value_text(r));
+    assert_eq!(kind.as_deref(), Some("Bus line"));
+}
+
 fn option(d: &mut ew_ui::visual::Driver, name: &str, words: &str) -> String {
     let Some(Dialog::Form(form)) = d.shell_mut().dialog() else {
         panic!("a form");

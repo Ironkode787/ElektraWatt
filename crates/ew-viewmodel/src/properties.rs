@@ -1129,6 +1129,28 @@ pub fn row_label(section: &SheetSection, row: &PropRow) -> String {
     strings::field_label(&section.kind, &row.path_for_label())
 }
 
+/// Writes a connection's Kind in words (a persona run read `{"bus":{}}`): its variant, as a word or the one member of
+/// a variant with data, by its `choice-connection-kind-<word>` text (Wire, Bus line, Tube, Bridge) where the text is
+/// raw data or the bare word. The JSON value is unchanged.
+pub fn connection_kind_in_words(sheet: &mut PropertySheet) {
+    for row in sheet.sections.iter_mut().flat_map(|s| s.rows.iter_mut()) {
+        if row.key != "connection/kind" {
+            continue;
+        }
+        if let RowValue::One { json, text } = &mut row.value {
+            let word = match json {
+                Value::String(w) => Some(w.clone()),
+                Value::Object(m) if m.len() == 1 => m.keys().next().cloned(),
+                _ => None,
+            };
+            // A text already in words (a core by its cable's tag and identification, `-1W1 BN`) stays.
+            if let Some(w) = word.filter(|w| text.starts_with('{') || text == w) {
+                *text = strings::field_choice_text("connection", "kind", &w);
+            }
+        }
+    }
+}
+
 /// Writes a fluid port that carries no medium as what to do (rc.2, F9): set one at the air supply; and a bus device's
 /// PLC row while it is in none. The JSON value is unchanged.
 pub fn ports_in_words(sheet: &mut PropertySheet) {
