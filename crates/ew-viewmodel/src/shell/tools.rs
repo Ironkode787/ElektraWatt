@@ -905,7 +905,11 @@ impl ShellModel {
         let json = cmd.to_json().unwrap_or_default();
         let without_hints = hints > 0 && json.get("connect").is_none();
         let same_point = at_nm.is_some_and(|(x, y)| json["pos"] == serde_json::json!([x, y]));
-        if without_hints || !same_point { Vec::new() } else { far }
+        if without_hints || !same_point {
+            Vec::new()
+        } else {
+            far
+        }
     }
 
     fn autoconnect_words(&self, cmd: &dyn DynCommand) -> Option<(String, String)> {
