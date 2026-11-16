@@ -446,7 +446,10 @@ position (`seat_on_terminal`: a valve of the terminal swaps with the cell's hold
 `valve.set_occupancy`, `box.black`, `device.place`) moves the valve's symbols on the box's page into their cells and
 the supply plate into the supply end, their tubes following (`seat_reps`). Only a valve for a terminal is seated
 (`fits_terminal`: a valve function and no coil FnDef with a physical CP); anything else dropped in the box stays its
-own. A page drawn before stays as it is: `valve_terminal.draw_slots {rep}` (Draw as slots, previewed) redraws a free
+own. The browser an empty cell opens lists the valves made for a terminal alone (a part that names solenoids and fits),
+the first chosen. The box's menu lists, on a cell, that position, and on its body every position, each under a heading
+("Position 2: empty") with Fill…, Replace…, Empty and Blanking plate; the terminal's kind is a heading too. A page drawn
+before stays as it is: `valve_terminal.draw_slots {rep}` (Draw as slots, previewed) redraws a free
 box as its positions. A box drawn as its positions is not reshaped (`box.reshape` refuses it). Not built: a terminal
 part with several sizes whose count is asked when it is made (it needs a device-level position count that the channel
 instantiation honours, which an older build would not: not additive).

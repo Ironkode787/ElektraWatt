@@ -1657,8 +1657,13 @@ pub fn workspace_label(name: &str) -> String {
 
 /// The greyed first line of a submenu that says what its entries are ("How to do one job"): no action runs from it.
 fn heading_item(meta: &ActionMeta, model: &ShellModel, what: Key<'static>) -> ActionItem {
+    heading(meta, model, strings::text(what).to_owned())
+}
+
+/// A greyed line `label` of a menu that only says something (a heading): no action runs from it, it has no key.
+pub(crate) fn heading(meta: &ActionMeta, model: &ShellModel, label: String) -> ActionItem {
     let mut item = item_of(meta, model);
-    item.label = strings::text(what).to_owned();
+    item.label = label;
     item.params = Value::Null;
     item.shortcut = String::new();
     item.enabled = false;

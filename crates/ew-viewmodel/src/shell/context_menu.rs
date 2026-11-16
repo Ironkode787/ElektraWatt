@@ -175,6 +175,11 @@ impl ShellModel {
         actions::find(id).map(|m| actions::item_of(m, self))
     }
 
+    /// A line of the menu that only says something (`actions::heading`): greyed, without a key.
+    fn heading(&self, label: String) -> Option<ActionItem> {
+        actions::find("props.focus").map(|m| actions::heading(m, self, label))
+    }
+
     /// The item of action `id` aimed by `params`, labelled `label`, enabled as the action is with them.
     fn aimed(&self, id: &str, params: Value, label: String) -> Option<ActionItem> {
         let meta = actions::find(id)?;
@@ -275,9 +280,9 @@ impl ShellModel {
     }
 
     /// A valve terminal's box (rc.2, F15): drawn as its positions, the cell at `at` (the sheet point the menu was opened
-    /// at) offers Fill position n…
-    /// (empty), Replace… (a valve or a blanking plate), Empty and Blanking plate; a free box offers Draw as slots. Whether
-    /// the box is drawn as its positions (its menu then lists no position but the cell's).
+    /// at), or on its body each position, under a heading "Position 2: empty", with [`Self::position_entries`]; a free box
+    /// on a fluid page offers Draw as slots. Whether the box is drawn as its positions (its menu then lists no position
+    /// of the device's own).
     fn terminal_box_entries(
         &self,
         rep: &TableRep,
@@ -288,13 +293,45 @@ impl ShellModel {
             return false;
         };
         if b.cells.is_empty() {
-            let label = strings::text(key!("action-fluid-draw-slots")).to_owned();
-            out.extend(self.aimed("fluid.draw_slots", json!({ "rep": rep.id.to_string() }), label));
+            // A free box on a fluid page is redrawn as its positions; a multipin terminal's plug elsewhere is no such box.
+            let fluid = self
+                .page_rows()
+                .get(self.page_index())
+                .is_some_and(|r| r.kind == "fluid");
+            if fluid {
+                let label = strings::text(key!("action-fluid-draw-slots")).to_owned();
+                out.extend(self.aimed("fluid.draw_slots", json!({ "rep": rep.id.to_string() }), label));
+            }
             return false;
         }
-        let Some((terminal, cell)) = at.and_then(|at| self.cell_at(rep.id, at)) else {
+        // The cell under the pointer; on the box's body every position (rc.2: a right click on the body offered none),
+        // each under a heading that says what holds it.
+        let cells = match at.and_then(|at| self.cell_at(rep.id, at)) {
+            Some((_, cell)) => vec![cell],
+            None => b.cells.clone(),
+        };
+        let Some(terminal) = rep.device else {
             return true;
         };
+        for cell in &cells {
+            let holds = match (cell.holder, cell.blank) {
+                (None, _) => strings::text(key!("canvas-position-empty")).to_owned(),
+                (Some(_), true) => strings::text(key!("canvas-position-blank")).to_owned(),
+                (Some(h), false) => self
+                    .project_session()
+                    .and_then(|s| s.device_tag(h))
+                    .unwrap_or_default(),
+            };
+            let label = strings::format(key!("canvas-position"), &[&cell.position.to_string(), &holds]);
+            out.extend(self.heading(label));
+            self.position_entries(terminal, cell, out);
+        }
+        true
+    }
+
+    /// The entries of one position of a valve terminal drawn as its positions: Fill position n… (empty), Replace… (a
+    /// valve or a blanking plate), Empty and Blanking plate.
+    fn position_entries(&self, terminal: Uuid, cell: &ew_api::output::SlotCell, out: &mut Vec<ActionItem>) {
         let position = cell.position.to_string();
         let fill = |replace: bool| {
             json!({ "terminal": terminal.to_string(), "module": cell.module.to_string(),
@@ -315,13 +352,12 @@ impl ShellModel {
                 let label = strings::format(key!("canvas-cell-empty"), &[&position]);
                 out.extend(self.aimed("command.run", occupancy(json!("empty")), label));
                 if blank {
-                    return true;
+                    return;
                 }
             }
         }
         let label = strings::format(key!("canvas-cell-blank"), &[&position]);
         out.extend(self.aimed("command.run", occupancy(json!({ "blank": {} })), label));
-        true
     }
 
     /// A device's PLC entries (F19 of the rc.1 test), on its symbol on any page and on its rows in the Devices and Bus
@@ -789,12 +825,10 @@ impl ShellModel {
                 }
             }
         }
-        // What kind of valve terminal it is, in words (F15: a PLC station or a multipin terminal); chosen, Properties.
+        // What kind of valve terminal it is, in words (F15: a PLC station or a multipin terminal), as a heading (rc.2: a
+        // line with a key that did nothing).
         if let Some(words) = self.terminal_kind_words(device) {
-            out.extend(self.menu_item("props.focus").map(|mut i| {
-                i.label = words;
-                i
-            }));
+            out.extend(self.heading(words));
         }
         self.device_medium_entries(session, device, out);
         // A multipin terminal's plug (rc.2), from any page: Go to the plug where it is drawn, else Draw the plug on an
@@ -910,12 +944,22 @@ impl ShellModel {
             out.extend(self.menu_item("fluid.medium_new"));
             return;
         }
+        // What it carries is a heading; no medium leads to the air supply, where one is chosen (rc.2: a line with a key
+        // that did nothing).
         for carried in &media.carried {
-            let label = match carried {
-                Some((_, words)) => strings::format(key!("canvas-line-medium"), &[words]),
-                None => strings::text(key!("canvas-medium-none")).to_owned(),
-            };
-            out.extend(self.aimed("props.focus", json!({}), label));
+            match carried {
+                Some((_, words)) => {
+                    out.extend(self.heading(strings::format(key!("canvas-line-medium"), &[words])));
+                }
+                None => match session.fluid_sources().into_iter().next() {
+                    Some((tag, place)) => out.extend(self.aimed(
+                        "nav.goto",
+                        json!({ "text": place }),
+                        strings::format(key!("canvas-medium-none-go"), &[&tag]),
+                    )),
+                    None => out.extend(self.heading(strings::text(key!("canvas-medium-none")).to_owned())),
+                },
+            }
         }
     }
 

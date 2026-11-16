@@ -2123,6 +2123,28 @@ impl Session {
         })
     }
 
+    /// The fluid sources of the project that are drawn (the air supplies, where a medium is chosen; rc.2): each its tag
+    /// and where its first drawing stands (`201-B4`), in natural order of the tag.
+    pub fn fluid_sources(&self) -> Vec<(String, String)> {
+        let q = self.query();
+        let mut out: Vec<(String, String)> = q
+            .devices()
+            .iter()
+            .map(|(id, _)| id)
+            .filter(|d| source_port(&q, *d).is_some())
+            .filter_map(|d| {
+                let rep = q
+                    .idx()
+                    .functions_of_device(d)
+                    .flat_map(|f| q.idx().reps_of_function(f).collect::<Vec<_>>())
+                    .min()?;
+                Some((device_tag_text(&q, d), rep_location(&q, rep)?))
+            })
+            .collect();
+        out.sort_by(|a, b| ew_mltext::natural_cmp(&a.0, &b.0));
+        out
+    }
+
     /// The medium `medium` in words ([`medium_words`]); `None` for an ID that names none.
     pub fn medium_text(&self, medium: Uuid) -> Option<String> {
         let q = self.query();

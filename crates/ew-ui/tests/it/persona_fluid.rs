@@ -2256,3 +2256,118 @@ fn rc2_a_station_drawn_on_the_schematic_is_drawn_on_the_fluid_page_too() {
     assert_eq!(cells_of(&mut d, station).len(), 4, "drawn as its positions");
     d.shell_mut().shutdown();
 }
+
+/// The rc.2 persona run (friction 8, 9) and the tutorials lane: a right click on the multipin terminal's body offered no
+/// position (only one exactly in a cell did), its kind's line looked like a command with a key and did nothing, the
+/// browser of an empty cell listed hand-operated valves that fit no position, and a valve's "No medium" line had a key
+/// too. On the body the menu lists every position under a heading, the same for both kinds; the kind's line is a
+/// heading; the cell's browser lists the valves made for a terminal, the first of them chosen.
+#[test]
+fn rc2_a_terminals_menu_lists_its_positions_from_the_body() {
+    use ew_ui::ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    let terminal = place_multipin(&mut d, (760, 300));
+    let body = supply_px(&mut d);
+    let menu = menu_at(&mut d, body);
+    for label in [
+        "Position 1: empty",
+        "Fill position 1…",
+        "Position 8: empty",
+        "Blanking plate at position 8",
+    ] {
+        assert!(menu.iter().any(|l| l == label), "{label}: {menu:?}");
+    }
+    click_at(&mut d, body);
+    let items = canvas_menu(d.shell_mut(), MenuSpot::Object, None);
+    let kind = items
+        .iter()
+        .find(|i| i.label == "Valve terminal · multipin, wired")
+        .expect("the kind's line");
+    assert!(
+        kind.shortcut.is_empty() && !kind.enabled,
+        "a heading: {kind:?}"
+    );
+    let heading = items
+        .iter()
+        .find(|i| i.label == "Position 1: empty")
+        .expect("the position's heading");
+    assert!(heading.shortcut.is_empty() && !heading.enabled);
+    // The empty cell's browser: the valves made for a terminal, the first chosen.
+    let at = cell_px(&mut d, 0);
+    click_at(&mut d, at);
+    let picker = d.shell_mut().picker().cloned().expect("the device browser");
+    let parts: Vec<&str> = picker
+        .rows
+        .iter()
+        .filter_map(|r| match r {
+            ew_ui::ew_viewmodel::tools::PickerRow::Part(p) => {
+                Some(picker.catalogue.parts[*p].part_number.as_str())
+            }
+            _ => None,
+        })
+        .collect();
+    assert!(!parts.is_empty(), "valves for a terminal");
+    assert!(
+        !parts
+            .iter()
+            .any(|p| *p == "EW-GEN-SOV-1" || *p == "EW-GEN-VLV-10"),
+        "no hand-operated valve: {parts:?}"
+    );
+    assert!(
+        matches!(
+            picker.rows.get(picker.row),
+            Some(ew_ui::ew_viewmodel::tools::PickerRow::Part(p))
+                if picker.catalogue.parts[*p].terminal_valve
+        ),
+        "the first valve chosen"
+    );
+    d.input(&Input::DoubleClick {
+        at: starting_with(&d, "Solenoid valve 5/2 for a valve terminal"),
+        mods: Modifiers::NONE,
+    });
+    d.settle();
+    // The valve's medium line has no key.
+    let valve = fluid_nodes(&mut d)
+        .into_iter()
+        .find(|n| n.role == NavRole::Device && n.label != terminal)
+        .and_then(|n| n.records.first().copied())
+        .expect("the valve");
+    let rep = d
+        .shell_mut()
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .reps
+        .iter()
+        .find(|r| r.device == Some(valve))
+        .map(|r| r.id)
+        .expect("the valve's symbol");
+    let _ = d
+        .shell_mut()
+        .dispatch("select.set", &json!({ "ids": [rep.to_string()] }));
+    d.settle();
+    let items = canvas_menu(d.shell_mut(), MenuSpot::Object, None);
+    let none = items
+        .iter()
+        .find(|i| i.label.starts_with("No medium"))
+        .unwrap_or_else(|| panic!("the medium line: {items:?}"));
+    assert!(none.shortcut.is_empty(), "no key: {none:?}");
+    // The bus terminal's body lists its positions the same way.
+    place_terminal(&mut d, (760, 650));
+    let tables = std::sync::Arc::clone(&d.shell_mut().canvas().unwrap().page().tables);
+    let supply = tables
+        .reps
+        .iter()
+        .filter_map(|r| r.black_box.as_ref().and_then(|b| b.supply_end))
+        .max_by_key(|r| r[1])
+        .expect("the second terminal's supply end");
+    let at = page_pixel(
+        &mut d,
+        ((supply[0] + supply[2]) / 2, (supply[1] + supply[3]) / 2),
+    );
+    let menu = menu_at(&mut d, at);
+    assert!(menu.iter().any(|l| l == "Position 4: empty"), "{menu:?}");
+    d.shell_mut().shutdown();
+}
