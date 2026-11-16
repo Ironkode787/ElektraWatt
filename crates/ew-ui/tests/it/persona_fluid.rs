@@ -2699,6 +2699,28 @@ fn rc2_draw_plug_draws_where_the_person_is() {
     d.shell_mut().shutdown();
 }
 
+/// The rc.2 re-test (friction 10): the 8-position multipin terminal placed near the frame's right edge ran past it,
+/// positions 4 and up cut off, without a word. Placed there, it stands inside the drawing area, moved left.
+#[test]
+fn rc2_a_terminal_placed_at_the_frames_edge_stands_inside_it() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    let area = {
+        let page = d.shell_mut().canvas().unwrap().page().clone();
+        ew_ui::ew_viewmodel::tools::ip::drawing_area(&page).expect("a frame grid")
+    };
+    // A frame under the pointer first, so the canvas reports where it is.
+    d.input(&Input::Hover { at: (1000, 600) });
+    d.settle();
+    let near_edge = page_pixel(&mut d, (area[2] - 20_000_000, area[1] + 40_000_000));
+    place_multipin(&mut d, near_edge);
+    let c = cells(&mut d);
+    assert_eq!(c.len(), 8, "the multipin terminal's positions");
+    let right = c.iter().map(|x| x.rect[2]).max().unwrap();
+    assert!(right <= area[2], "inside the drawing area: {right} > {}", area[2]);
+    d.shell_mut().shutdown();
+}
+
 /// The rc.2 cabinet run (friction 26, 27): Tube opened a small dialog first, so the clicks meant for the ports fell
 /// into it, and nothing showed the tube's size. Tube starts drawing at once with the line kind used last, the HUD says
 /// the kind and the project's tube and changes the kind, and a project without a default tube is told once where its

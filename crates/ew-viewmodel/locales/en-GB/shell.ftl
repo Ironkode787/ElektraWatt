@@ -486,6 +486,7 @@ hint-box-armed = Click the box's first corner, then its opposite corner; { $p0 }
 hint-box-place = Click to place; { $p0 } ends
 place-target-click = { $p0 }: click to place
 reason-box-occupied = Another box stands here: click on a free place
+reason-box-too-large = The box is { $p0 } × { $p1 } mm: it does not fit in this page's drawing area ({ $p2 } × { $p3 } mm)
 hint-box-outline = Click or { $p0 } at the opposite corner; { $p1 } starts again
 hint-box-dropped = Click or { $p0 } at the first corner; { $p1 } again leaves the tool
 reason-no-ip-symbol = This page's library has no interruption-point symbol

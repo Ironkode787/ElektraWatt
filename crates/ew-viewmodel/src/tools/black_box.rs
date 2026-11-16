@@ -26,8 +26,9 @@
 //! terminal's positions, not by two clicks; armed, the tool shows it dashed with its top-left corner at the pointer, and
 //! one click commits `box.black` with `box: {outline, slots: {pitch}}` (`ew_api::geometry::slot_box`). **A multipin
 //! terminal's plug** ([`BlackBoxTool::with_pins`]) is placed the same way, sized by its pins down its two sides
-//! ([`pin_layout`]). Such a one-click box is refused on another box (`reason-box-occupied`), and the host ends the tool
-//! once it is placed (rc.2: one click, one box).
+//! ([`pin_layout`]). Such a one-click box stands inside the frame's drawing area, moved there by whole grid steps where
+//! it would leave it, and is refused with its size where it is larger than the area (`reason-box-too-large`) and on
+//! another box (`reason-box-occupied`); the host ends the tool once it is placed (rc.2: one click, one box).
 //!
 //! **Grips** ([`grip_points`], [`reshape_by_grip`]): for an outline of `n` vertices in stored order, grips `0 … n−1`
 //! are the vertices and grips `n … 2n−1` the midpoints of the edges `v0v1, …, v(n−1)v0`. On a rectangle a vertex grip
@@ -262,6 +263,45 @@ fn overlaps_a_box(cx: &ToolCx<'_>, pos: (i64, i64), outline: &[(i64, i64)]) -> b
         })
 }
 
+/// `pos` moved by whole grid steps so that the box `outline` at it stands inside the frame's drawing area `area` (page
+/// nm, [`super::ip::drawing_area`]); unmoved on a page without a frame grid. `Err` with the box's and the area's width
+/// and height (nm) when the box is wider or higher than the area.
+fn fit_in_area(
+    area: Option<[i64; 4]>,
+    grid: PageGridMap,
+    pos: (i64, i64),
+    outline: &[(i64, i64)],
+) -> Result<(i64, i64), [i64; 4]> {
+    let (Some(area), Some(&first)) = (area, outline.first()) else {
+        return Ok(pos);
+    };
+    let (lo, hi) = outline.iter().fold((first, first), |(lo, hi), p| {
+        ((lo.0.min(p.0), lo.1.min(p.1)), (hi.0.max(p.0), hi.1.max(p.1)))
+    });
+    let (w, h) = (hi.0 - lo.0, hi.1 - lo.1);
+    let (aw, ah) = (area[2] - area[0], area[3] - area[1]);
+    if w > aw || h > ah {
+        return Err([w, h, aw, ah]);
+    }
+    // The coordinate `p` moved by whole grid steps until the box's edges `lo`, `hi` (relative to it) stand inside
+    // `min … max`.
+    let inward = |p: i64, lo: i64, hi: i64, min: i64, max: i64| -> i64 {
+        let base = grid.index(p);
+        let mut k = 0;
+        while p + lo < min && grid.coord(base + k) + lo < min && k < 100_000 {
+            k += 1;
+        }
+        while p + hi > max && grid.coord(base + k) + hi > max && k > -100_000 {
+            k -= 1;
+        }
+        if k == 0 { p } else { grid.coord(base + k) }
+    };
+    Ok((
+        inward(pos.0, lo.0, hi.0, area[0], area[2]),
+        inward(pos.1, lo.1, hi.1, area[1], area[3]),
+    ))
+}
+
 /// The grid offset of CP `k` of `m` on an edge `width` grid steps long: the CPs one common pitch apart, the
 /// largest whole number of grid steps that fits `m + 1` times into the edge (at least one), and the group centred on
 /// the edge (half a step to the left when it cannot be centred exactly). Every CP lies at least one grid step from both
@@ -339,19 +379,23 @@ impl BlackBoxTool {
     }
 
     /// The box one click places at the armed point: its layout, and the cell width of a terminal drawn as its positions.
+    /// A box that would leave the frame's drawing area is moved inside it by whole grid steps where it fits (the rc.2
+    /// re-test: a terminal ran past the frame's edge, its positions cut off).
     fn one_click_box(&self, cx: &ToolCx<'_>) -> Option<(BoxLayout, Option<i64>)> {
         let State::Armed { at: Some(at) } = &self.state else {
             return None;
         };
-        if let Some(n) = self.slots {
-            let (pos, outline, pitch) = ew_api::geometry::slot_box(cx.page.tables.grid, *at, n)?;
-            return Some(((pos, outline, Vec::new()), Some(pitch)));
-        }
         let grid = PageGridMap::new(cx.page.tables.grid);
-        self.pins
-            .then(|| pin_layout(grid, *at, self.cps()))
-            .flatten()
-            .map(|l| (l, None))
+        let ((pos, outline, cps), pitch) = match self.slots {
+            Some(n) => {
+                let (pos, outline, pitch) = ew_api::geometry::slot_box(cx.page.tables.grid, *at, n)?;
+                ((pos, outline, Vec::new()), Some(pitch))
+            }
+            None if self.pins => (pin_layout(grid, *at, self.cps())?, None),
+            None => return None,
+        };
+        let pos = fit_in_area(super::ip::drawing_area(cx.page), grid, pos, &outline).unwrap_or(pos);
+        Some(((pos, outline, cps), pitch))
     }
 
     /// The tool drawing boxes of representation type `rep_type` (`topology` on a bus-topology page).
@@ -600,11 +644,19 @@ impl BlackBoxTool {
     fn click(&mut self, cx: &ToolCx<'_>) -> ToolOutput {
         self.dropped = false;
         if self.one_click() {
-            // A box never lands on another box (the persona run placed two terminals on one spot).
-            if let Some(((pos, outline, _), _)) = self.one_click_box(cx)
-                && overlaps_a_box(cx, pos, &outline)
-            {
-                return ToolOutput::Refused(key!("reason-box-occupied"));
+            if let Some(((pos, outline, _), _)) = self.one_click_box(cx) {
+                // A box larger than the drawing area says so, with its size (the rc.2 re-test).
+                let (area, grid) = (super::ip::drawing_area(cx.page), PageGridMap::new(cx.page.tables.grid));
+                if let Err(sizes) = fit_in_area(area, grid, pos, &outline) {
+                    let mm = |nm: i64| ((nm + 500_000) / 1_000_000).to_string();
+                    let [w, h, aw, ah] = sizes.map(mm);
+                    let words = crate::strings::format(key!("reason-box-too-large"), &[&w, &h, &aw, &ah]);
+                    return ToolOutput::RefusedWith(key!("reason-box-too-large"), words);
+                }
+                // A box never lands on another box (the persona run placed two terminals on one spot).
+                if overlaps_a_box(cx, pos, &outline) {
+                    return ToolOutput::Refused(key!("reason-box-occupied"));
+                }
             }
             return match self.command(cx) {
                 Some(cmd) => ToolOutput::Commit(cmd),
@@ -948,6 +1000,30 @@ pub fn reshape_overlay(cx: &ToolCx<'_>, outline: &[(i64, i64)], cps: &[(i64, i64
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The rc.2 re-test: a terminal ran past the frame's edge. A box that would leave the drawing area moves inside it
+    /// by whole grid steps; one larger than the area gives both sizes; without a frame grid it stays.
+    #[test]
+    fn a_one_click_box_moves_into_the_drawing_area_or_gives_its_size() {
+        let g = PageGridMap::new((1_000_000, 1));
+        let area = Some([10_000_000, 10_000_000, 100_000_000, 60_000_000]);
+        let outline = [(0, 0), (30_000_000, 0), (30_000_000, 8_000_000), (0, 8_000_000)];
+        assert_eq!(
+            fit_in_area(area, g, (85_000_000, 58_000_000), &outline),
+            Ok((70_000_000, 52_000_000)),
+            "past the right and the bottom"
+        );
+        assert_eq!(
+            fit_in_area(area, g, (4_000_000, 20_000_000), &outline),
+            Ok((10_000_000, 20_000_000))
+        );
+        let wide = [(0, 0), (95_000_000, 0), (95_000_000, 8_000_000), (0, 8_000_000)];
+        assert_eq!(
+            fit_in_area(area, g, (20_000_000, 20_000_000), &wide),
+            Err([95_000_000, 8_000_000, 90_000_000, 50_000_000])
+        );
+        assert_eq!(fit_in_area(None, g, (1, 2), &wide), Ok((1, 2)));
+    }
 
     #[test]
     fn the_default_cps_go_half_on_top_and_grow_the_rectangle() {
