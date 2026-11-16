@@ -185,6 +185,28 @@ fn unplaced_text(
     Some(strings::format(key, &[&tags.join(", ")]))
 }
 
+/// The sentence and the `connection.draw` of a far autoconnect hit `far` (the ghost CP's point, the target's label,
+/// function and index) of the placed representation whose CPs are `cps`: "-1K1:A1 faces -1S1:14, …". Not inlined: the
+/// dispatch's frame stays as it was (the main thread's stack is small).
+#[inline(never)]
+fn far_offer(
+    far: &((i64, i64), String, Uuid, u16),
+    cps: &[&ew_api::output::TableCp],
+    now: &PageTables,
+) -> Option<(String, Value)> {
+    let (at, label, function, idx) = far;
+    let own = cps.iter().find(|c| c.at == *at)?;
+    let wire = json!({
+        "a": {"cp": {"function": own.function.to_string(), "idx": own.idx}},
+        "b": {"cp": {"function": function.to_string(), "idx": idx}},
+        "page": now.page.to_string(),
+    });
+    Some((
+        strings::format(key!("toast-connect-offer"), &[&own.label, label]),
+        wire,
+    ))
+}
+
 impl ShellModel {
     /// After a commit that drew PLC devices for the first time (F18 of the rc.1 test, the rack comes first): a station
     /// placed directly opens its rack dialog, so it is filled there (a further symbol of a station drawn before does
@@ -441,20 +463,8 @@ impl ShellModel {
                     Some(b) => self.terminal_placed_words(text, rep.device, &b.cells),
                     None => text,
                 };
-                // A far autoconnect hit is offered, not drawn: "Connect to -102A1-A2:8?" with Connect (rc.2).
-                let offer = far.first().and_then(|(at, label, function, idx)| {
-                    let own = cps.iter().find(|c| c.at == *at)?;
-                    let wire = serde_json::json!({
-                        "a": {"cp": {"function": own.function.to_string(), "idx": own.idx}},
-                        "b": {"cp": {"function": function.to_string(), "idx": idx}},
-                        "page": now.page.to_string(),
-                    });
-                    Some((
-                        strings::format(key!("toast-connect-offer"), &[&own.label, label]),
-                        wire,
-                    ))
-                });
-                match offer {
+                // A far autoconnect hit is offered, not drawn, with Connect (rc.2).
+                match far.first().and_then(|f| far_offer(f, &cps, now)) {
                     Some((question, wire)) => self.notify_connect_offer(format!("{text} {question}"), wire),
                     None => self.notify(text, true),
                 }

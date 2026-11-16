@@ -526,23 +526,7 @@ impl ShellModel {
                     "device.place" => self.tools.tool.proposal_note(),
                     _ => None,
                 };
-                // The far autoconnect hits the placement does not join, offered by its toast; none at its point moved
-                // or with Alt (a placement without its proposals' hints although it has some).
-                let far = match self.tools.tool.ghost() {
-                    Some(crate::tools::Ghost::Place {
-                        far, hints, at_nm, ..
-                    }) if cmd.name() == "device.place" => {
-                        let json = cmd.to_json().unwrap_or_default();
-                        let without_hints = hints > 0 && json.get("connect").is_none();
-                        let same_point = at_nm.is_some_and(|(x, y)| json["pos"] == serde_json::json!([x, y]));
-                        if without_hints || !same_point {
-                            Vec::new()
-                        } else {
-                            far
-                        }
-                    }
-                    _ => Vec::new(),
-                };
+                let far = self.far_offers(cmd.as_ref());
                 // An earlier toast stays (its Undo expires with this commit); a new toast of key `edit`
                 // replaces it.
                 let out = self.run_commit(cmd.as_ref());
@@ -904,6 +888,26 @@ impl ShellModel {
     /// `2 wires`; `1 tube` where every hint joins a fluid port, persona round 3) and the proposals the ghost showed
     /// (`"2" -> "-101F2:2"`), from the Place tool's ghost; `None` for any other command or a placement without hints
     /// (Alt, or no proposal).
+    /// The far autoconnect hits a `device.place` does not join, offered by its toast; none at its point moved or with
+    /// Alt (a placement without its proposals' hints although it has some). Not inlined: the dispatch's frame stays as
+    /// it was (the main thread's stack is small).
+    #[inline(never)]
+    fn far_offers(&self, cmd: &dyn DynCommand) -> Vec<((i64, i64), String, ew_api::output::Uuid, u16)> {
+        if cmd.name() != "device.place" {
+            return Vec::new();
+        }
+        let Some(crate::tools::Ghost::Place {
+            far, hints, at_nm, ..
+        }) = self.tools.tool.ghost()
+        else {
+            return Vec::new();
+        };
+        let json = cmd.to_json().unwrap_or_default();
+        let without_hints = hints > 0 && json.get("connect").is_none();
+        let same_point = at_nm.is_some_and(|(x, y)| json["pos"] == serde_json::json!([x, y]));
+        if without_hints || !same_point { Vec::new() } else { far }
+    }
+
     fn autoconnect_words(&self, cmd: &dyn DynCommand) -> Option<(String, String)> {
         if cmd.name() != "device.place" {
             return None;

@@ -527,6 +527,7 @@ impl ShellModel {
     /// The toast's sentence for a point `ip.place` put down free (`params`, the command's): what was made and where its
     /// partner is, "IP-1: source here at 101-B2, target on /102.3", or that it has none yet (rc.2 persona run: the toast
     /// said how D would have made the opposite); `None` for an external connection point or an undirected one.
+    #[inline(never)]
     pub(super) fn ip_placed_text(&self, params: &Value) -> Option<String> {
         if !params["external"].is_null() {
             return None;

@@ -451,6 +451,7 @@ impl ShellModel {
 
     /// Shows a placement's `text` with its Undo and Connect, which draws `wire` (`connection.draw`'s parameters), both
     /// valid while the placement is the next undo step (rc.2: a far autoconnect hit is offered, not drawn).
+    #[inline(never)]
     pub(super) fn notify_connect_offer(&mut self, text: String, wire: Value) {
         let validity = self.project.as_ref().and_then(|p| {
             let h = p.session.history();
@@ -473,6 +474,7 @@ impl ShellModel {
 
     /// Shows the toast that the parts list leaves out the devices without a part, when there are any (rc.2 persona run,
     /// entry 31): how many, with Select them.
+    #[inline(never)]
     pub(super) fn notify_unlisted(&mut self) {
         let Some(devices) = self
             .project_session()
