@@ -2436,6 +2436,36 @@ fn rc2_each_valve_terminal_says_its_kind() {
     d.shell_mut().shutdown();
 }
 
+/// The rc.2 re-test (friction 11): a valve for a terminal placed from the device browser over position 1 of the multipin
+/// terminal was taken (its plug's pin 1 named it), but the toast said the terminal had no free position and the valve
+/// stayed one of its own. The toast says where it sits, as on the bus-node terminal.
+#[test]
+fn rc2_a_valve_dropped_on_a_multipin_position_is_said_to_sit_there() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    let terminal = place_multipin(&mut d, (760, 300));
+    d.input(&click(d.find("Device").unwrap()));
+    d.settle();
+    d.input(&typed("for a valve terminal"));
+    d.settle();
+    d.input(&Input::DoubleClick {
+        at: starting_with(&d, "Solenoid valve 5/2 for a valve terminal"),
+        mods: Modifiers::NONE,
+    });
+    d.settle();
+    let at = cell_px(&mut d, 0);
+    click_at(&mut d, at);
+    let toast = d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert!(
+        toast.ends_with(&format!(" is the valve at position 1 of {terminal} now.")),
+        "{toast}"
+    );
+    d.input(&key("escape"));
+    d.settle();
+    assert!(cells(&mut d)[0].holder.is_some(), "position 1 holds it");
+    d.shell_mut().shutdown();
+}
+
 /// The rc.2 cabinet run (friction 26, 27): Tube opened a small dialog first, so the clicks meant for the ports fell
 /// into it, and nothing showed the tube's size. Tube starts drawing at once with the line kind used last, the HUD says
 /// the kind and the project's tube and changes the kind, and a project without a default tube is told once where its

@@ -853,13 +853,14 @@ impl Session {
 
     /// Where `device` sits after a drop into a valve terminal's box: on a valve terminal (its tag and the valve
     /// position, none for a supply plate), loose (a valve for a terminal on none: the terminal had no free position),
-    /// or its own (a device that takes no valve position, rc.2); `None` for a device that is gone.
+    /// or its own (a device that takes no valve position, rc.2); `None` for a device that is gone. A terminal of either
+    /// kind seats it (the rc.2 re-test: a valve the multipin terminal took was said to stay loose).
     pub fn terminal_seat(&self, device: Uuid) -> Option<TerminalSeat> {
         let q = self.query();
         let id: Id<Device> = Id::from_uuid(device);
         let d = q.devices().get(id)?;
         let tag = super::properties::device_tag_text(&q, id);
-        match d.parent.filter(|p| ew_derive::is_valve_terminal(&q, *p)) {
+        match d.parent.filter(|p| ew_derive::is_fluid_terminal(&q, *p)) {
             Some(p) => Some(TerminalSeat::On {
                 device: tag,
                 terminal: super::properties::device_tag_text(&q, p),
