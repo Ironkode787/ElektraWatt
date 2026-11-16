@@ -562,25 +562,28 @@ impl ShellModel {
         // A section chosen in the tree that the current page is not in (a section just made, still empty): its
         // first free folio, since the page after the current one lies outside its range.
         let own = current.and_then(|r| r.section.as_ref().map(|(n, _)| n.to_string()));
-        let folio = match (&from_nav, &self.project) {
-            (Some(chosen), Some(project)) if own.as_ref() != Some(chosen) => {
-                let labels = self.page_labels();
-                project
-                    .session
-                    .query()
-                    .sections()
-                    .iter()
-                    .find(|(_, s)| s.number.to_string() == *chosen)
-                    .and_then(|(_, s)| {
-                        (s.folio_range.0..=s.folio_range.1)
-                            .find(|n| !labels.iter().any(|l| *l == n.to_string()))
-                    })
-                    .map_or(folio, |n| n.to_string())
+        let folio = match &from_nav {
+            Some(chosen) if own.as_ref() != Some(chosen) => {
+                self.section_free_folio(chosen).map_or(folio, |n| n.to_string())
             }
             _ => folio,
         };
         let section = from_nav.or(own).unwrap_or_default();
         (folio, section)
+    }
+
+    /// The first free folio of the section numbered `number`: the first of its range that no page holds, past its
+    /// divider page (rc.2: the persona typed the section's first folio, its divider's); `None` for no such section or a
+    /// full one.
+    pub(super) fn section_free_folio(&self, number: &str) -> Option<u32> {
+        let labels = self.page_labels();
+        let query = self.project.as_ref()?.session.query();
+        let (_, s) = query
+            .sections()
+            .iter()
+            .find(|(_, s)| s.number.to_string() == number.trim())?;
+        let first = s.folio_range.0 + u32::from(s.divider);
+        (first..=s.folio_range.1).find(|n| !labels.iter().any(|l| *l == n.to_string()))
     }
 
     /// A language change (View ▸ Language) fetches the navigators' tables and the property sheet again, so that the

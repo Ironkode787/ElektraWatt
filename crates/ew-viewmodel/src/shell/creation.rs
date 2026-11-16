@@ -646,6 +646,10 @@ impl ShellModel {
         .then(|| self.cable_row_wires());
         // Create enclosure's code of a new location comes and goes with its "New location" choice.
         let code = (name == "location").then(|| self.proposed_location_code());
+        // New page's folio follows its section to the section's first free folio (rc.2: it stayed 3 for section 2).
+        let free = (name == "section" && self.in_form_of(PAGE_NEW.action))
+            .then(|| self.section_free_folio(value))
+            .flatten();
         if let Some(Dialog::Form(form)) = &mut self.dialog {
             if let Some(f) = form.fields.iter_mut().find(|f| f.name == name) {
                 f.value = value.to_owned();
@@ -659,6 +663,11 @@ impl ShellModel {
                 && let Some(code) = code
             {
                 super::layout::new_location_field(form, &code);
+            }
+            if let Some(free) = free
+                && let Some(f) = form.fields.iter_mut().find(|f| f.name == "folio")
+            {
+                f.value = free.to_string();
             }
             // New medium…'s usual medium fills its name and pressure, both still to be changed (rc.2, F26).
             if form.action == MEDIUM_NEW.action

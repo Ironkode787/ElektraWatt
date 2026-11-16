@@ -114,6 +114,31 @@ fn a_label_a_section_and_the_refusals_of_page_new() {
     shell.shutdown();
 }
 
+/// The rc.2 persona run (friction 1): New page proposed folio 3 and kept it when section 2 (pages 200 to 299) was
+/// chosen; 200, typed, was its divider page. Choosing a section in the form proposes its first free folio past the
+/// divider page.
+#[test]
+fn page_new_proposes_the_first_free_folio_of_the_section_chosen() {
+    let tmp = Tmp::new("pagenew-section");
+    let mut shell = new_project(&tmp, Mode::Gui);
+    let create = json!({"cmd": "section.create", "params": {
+        "number": 7, "folio_range": [700, 799], "title": "Pneumatics", "divider": true}});
+    done(&mut shell, "command.run", create);
+    done(&mut shell, "page.new", json!({}));
+    let folio = |shell: &ShellModel| {
+        let form = common::form(shell);
+        form.fields.iter().find(|f| f.name == "folio").unwrap().value.clone()
+    };
+    assert!(!folio(&shell).starts_with('7'), "{}", folio(&shell));
+    shell.set_form_field("section", "7");
+    assert_eq!(folio(&shell), "701", "past the divider page 700");
+    assert_eq!(shell.submit_form(), Outcome::Done);
+    done(&mut shell, "page.new", json!({}));
+    shell.set_form_field("section", "7");
+    assert_eq!(folio(&shell), "702", "the next free one");
+    shell.shutdown();
+}
+
 /// New page's Connection grid, the current page's by default, the grid given otherwise, a wrong word
 /// refused in words; in Properties an empty page's Connection grid row is a choice outside Advanced, set in its words,
 /// and a page that holds items keeps its grid, refused in words.
