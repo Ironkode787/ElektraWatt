@@ -18,7 +18,7 @@ the same devices stay on the schematic pages.
 
 1. Choose **File ▸ New project…** (`Ctrl+N`) and pick an empty folder named `bus-network.ew`.
    EW shows the new project's one empty page, folio 1.
-2. Click the **PLC** tab and choose **Bus page**. The **Page ▸ New page…** form opens with the type **Bus topology**
+2. Click the **PLC** tab and choose **New bus page**. The **Page ▸ New page…** form opens with the type **Bus topology**
    chosen: type the folio `2` and the title `Network`, and choose **Create**.
    The empty page 2 Network shows. On this page the Wire tool draws bus lines.
 3. Choose **Draw ▸ Place ▸ Device from part…** (`Shift+I`), type `CPU` and choose **PLC CPU with PROFINET and

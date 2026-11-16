@@ -62,8 +62,9 @@ The exchange of the hardware and the tags with the PLC software is at the end of
 4. Choose the PLC it belongs to (a remote station: the PLC it serves), or **New PLC**.
 5. Choose **Add module…** on the free slot and pick a module; **How many** fills that many slots from there.
 6. Choose **Create**: the station and its modules are made in one step, drawn on no page yet.
-7. Choose **Draw on this page** to draw the station and its modules side by side in slot order on the schematic page
-   shown, or **Put it on a bus page** to draw its bus interface on the first bus-topology page.
+7. Choose **Draw on page …** to draw the station and its modules side by side in slot order on the schematic page
+   shown (the arrow beside it lists the other schematic pages and **New page…**), or **Put it on a bus page** to put
+   every bus interface of the station on the bus-topology page (made when there is none; with several you choose one).
 
 A station part placed straight from the device browser opens the same rack at once.
 
@@ -129,7 +130,7 @@ A bus-topology page is the network view: each device stands as one box per bus i
 with a connection point per socket, and the bus lines run between the sockets. The device's power and I/O pins stay
 on the schematic pages.
 
-1. Choose **Bus page** on the PLC tab: the new-page form opens with the type **Bus topology**.
+1. Choose **New bus page** on the PLC tab: the new-page form opens with the type **Bus topology**.
 2. Place a station or another bus device from the device browser (**Draw ▸ Place ▸ Device from part…**) with two clicks
    for its box: it stands there as a box per interface, and a station's rack opens.
 3. A station drawn first on a schematic page gets its port box from **Place port DP** (or **Place port X1**) on its row

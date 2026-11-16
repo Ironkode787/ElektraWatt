@@ -45,12 +45,13 @@ Three words of the program, in the trade's meaning:
    The dialog becomes the station's **Rack and slots**: the input module has the addresses I0.0–I0.7, the output
    module Q0.0–Q0.7, each marked **not drawn**, and the line under the slots says the station is made and drawn on no
    page yet. One Undo takes the whole station back.
-9. Choose **Draw on this page**.
+9. Choose **Draw on page 1** (the button names the page in front; the small arrow beside it lists the others).
    The dialog closes, and the CPU -1A1 and its modules -1A1-A1 and -1A1-A2 stand on the page as boxes, side by side
    in slot order, under the switch and the lamp. Each module's pins are numbered from 1: pin 1 is channel 0.
 10. Choose **Draw ▸ Connect ▸ Wire** (`W`). Click contact 14 of -1B1, then pin 1 at the top of -1A1-A1; click X2 of
     -1E1, then pin 1 at the top of -1A1-A2. Choose **Draw ▸ Select**.
-    The switch is wired to the first input and the lamp to the first output.
+    The switch is wired to the first input and the lamp to the first output. Each module's pins print their
+    addresses, I0.0 at pin 1 of -1A1-A1, and the switch becomes the target of channel I0.0.
 11. Choose **PLC grid** on the PLC tab (**PLC ▸ PLC grid**).
     The PLC grid opens under the page: one row per channel, I0.0 to I0.7 of the module -1A1-A1, then Q0.0 to Q0.7 of
     -1A1-A2. I0.0 is channel 0 of the input module, the pin you wired the switch to.
@@ -72,7 +73,7 @@ Three words of the program, in the trade's meaning:
 ## What you learnt
 
 - **New station** builds a station the way TIA Portal does: its head part first, then its modules slot by slot, and
-  **Create** makes them all in one step. **Draw on this page** draws them all at once.
+  **Create** makes them all in one step. **Draw on page …** draws them all at once, bound to their pins.
 - The slot order gives the addresses, and the PLC grid shows them channel by channel, where you type the symbols.
 - The PLC overview is a report page, made by a report block and kept up to date by EW.
 - **Export to PLC** hands the hardware and the symbols to the PLC software.

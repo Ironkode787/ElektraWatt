@@ -766,6 +766,9 @@ fn tutorial_a_plc_with_its_modules_runs_as_its_page_says() {
         input.contains("\"Door_closed\"") && input.contains("\"-1A1-A1\" \"0\" \"DI\""),
         "{input}"
     );
+    // Step 10: the modules drawn from the rack are bound to their pins, so the switch wired to pin 1 is the target of
+    // channel I0.0.
+    assert!(input.contains("-1B1"), "{input}");
     let output = line_of(&overview, "row \"Q0.0\"");
     assert!(
         output.contains("\"Lamp_door\"") && output.contains("\"-1A1-A2\" \"0\" \"DO\""),
