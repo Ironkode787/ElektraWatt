@@ -1567,7 +1567,10 @@ impl ShellModel {
                                 let words = strings::format(key!("rack-page-choice"), &[folio, title]);
                                 (folio.clone(), words.trim().to_owned())
                             })
-                            .chain([("new".to_owned(), strings::text(key!("rack-draw-new-page")).to_owned())])
+                            .chain([(
+                                "new".to_owned(),
+                                strings::text(key!("rack-draw-new-page")).to_owned(),
+                            )])
                             .collect();
                         f.value = next.map_or_else(|| "new".to_owned(), |(_, folio, _)| folio.clone());
                     } else {

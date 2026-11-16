@@ -646,7 +646,10 @@ impl BlackBoxTool {
         if self.one_click() {
             if let Some(((pos, outline, _), _)) = self.one_click_box(cx) {
                 // A box larger than the drawing area says so, with its size (the rc.2 re-test).
-                let (area, grid) = (super::ip::drawing_area(cx.page), PageGridMap::new(cx.page.tables.grid));
+                let (area, grid) = (
+                    super::ip::drawing_area(cx.page),
+                    PageGridMap::new(cx.page.tables.grid),
+                );
                 if let Err(sizes) = fit_in_area(area, grid, pos, &outline) {
                     let mm = |nm: i64| ((nm + 500_000) / 1_000_000).to_string();
                     let [w, h, aw, ah] = sizes.map(mm);

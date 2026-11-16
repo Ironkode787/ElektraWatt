@@ -2432,9 +2432,7 @@ fn rc2_each_valve_terminal_says_its_kind() {
     d.input(&Input::Wait { ms: 1000 });
     d.settle();
     assert!(
-        d.texts()
-            .iter()
-            .any(|t| t == "Valve terminal · multipin, wired"),
+        d.texts().iter().any(|t| t == "Valve terminal · multipin, wired"),
         "the row's hover"
     );
     d.shell_mut().shutdown();
@@ -2503,7 +2501,12 @@ fn rc2_the_solenoid_is_drawn_from_the_coils_row_and_followed_back() {
         .shell_mut()
         .nav(NavKind::Devices)
         .and_then(|n| n.table())
-        .and_then(|t| t.nodes.iter().find(|n| n.records.first() == Some(&device)).cloned())
+        .and_then(|t| {
+            t.nodes
+                .iter()
+                .find(|n| n.records.first() == Some(&device))
+                .cloned()
+        })
         .map(|n| n.label)
         .expect("the valve's row");
     let coil_row = |d: &mut Driver| {
@@ -2619,10 +2622,7 @@ fn rc2_a_blanking_plate_is_found_from_the_cell_and_the_check() {
         d.shell_mut().dispatch("messages.fix_all", &fix_all),
         Outcome::Done
     );
-    assert_eq!(
-        d.shell_mut().dispatch("preview.apply", &json!({})),
-        Outcome::Done
-    );
+    assert_eq!(d.shell_mut().dispatch("preview.apply", &json!({})), Outcome::Done);
     d.settle();
     assert!(cells(&mut d).iter().all(|c| c.blank), "every position blanked");
     let _ = d.shell_mut().dispatch("edit.undo", &json!({}));
@@ -2661,11 +2661,7 @@ fn rc2_draw_plug_draws_where_the_person_is() {
         let Some(Dialog::Form(form)) = d.shell_mut().dialog() else {
             panic!("the page asked");
         };
-        let page = form
-            .fields
-            .iter()
-            .find(|f| f.name == "page")
-            .expect("the page");
+        let page = form.fields.iter().find(|f| f.name == "page").expect("the page");
         assert_eq!(page.value, "202", "the page after this one");
         assert!(
             page.options.iter().any(|(v, w)| v == "new" && w == "New page…"),

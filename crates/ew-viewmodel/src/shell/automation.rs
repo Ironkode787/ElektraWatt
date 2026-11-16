@@ -1366,7 +1366,8 @@ impl ShellModel {
             return Outcome::refused(key!("reason-not-solenoid"));
         };
         let what = strings::format(key!("props-solenoid-of"), &[&name, &tag]);
-        let out = self.arm_on_electrical_page(p, (function, function), what, key!("reason-no-electrical-page"));
+        let out =
+            self.arm_on_electrical_page(p, (function, function), what, key!("reason-no-electrical-page"));
         if out != Outcome::Done || self.tool().name() != "place" {
             return out;
         }

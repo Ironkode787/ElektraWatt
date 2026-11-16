@@ -2051,7 +2051,10 @@ fn source_medium_row(q: &Q, cx: &SheetCx<'_>, device: Id<Device>) -> Option<Buil
     let value = match value {
         // As the list offered it: its name and its pressure ("Compressed air, 6 bar").
         RowValue::One { json, .. } => {
-            let text = medium.and_then(|m| media.get(m)).map(|m| medium_words(m)).unwrap_or_default();
+            let text = medium
+                .and_then(|m| media.get(m))
+                .map(|m| medium_words(m))
+                .unwrap_or_default();
             RowValue::One { json, text }
         }
         other => other,

@@ -1247,7 +1247,10 @@ pub fn hud(model: &ShellModel) -> HudModel {
     };
     // The Tube tool's mode reads Tube, as its button (the rc.2 re-test read "Wire").
     let (action, tool_label) = match actions::find("tool.fluid_line").filter(|_| tube) {
-        Some(a) => (a.id, strings::lookup(&a.label_key()).unwrap_or_default().to_owned()),
+        Some(a) => (
+            a.id,
+            strings::lookup(&a.label_key()).unwrap_or_default().to_owned(),
+        ),
         None => (action, tools::tool_label(name)),
     };
     HudModel {
