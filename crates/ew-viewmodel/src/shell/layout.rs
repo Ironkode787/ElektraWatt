@@ -1154,8 +1154,13 @@ impl ShellModel {
     }
 
     /// Whether the focused panel page's surface view labels its placements with item numbers (alone or with tags).
+    /// Read from the session, not the canvas: the canvas's tables follow at the next frame, after the step that set the
+    /// view.
     fn panel_view_shows_numbers(&self) -> bool {
-        self.panel_tables().is_some_and(|p| p.numbered)
+        match (self.current_folio(), &self.project) {
+            (Some(folio), Some(p)) => p.session.panel_tables(folio).is_some_and(|t| t.numbered),
+            _ => false,
+        }
     }
 
     /// After Enclosure… on a panel layout page that shows no enclosure yet, the page shows the new enclosure's

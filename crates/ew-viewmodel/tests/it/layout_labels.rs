@@ -242,6 +242,12 @@ fn the_legend_beside_a_layout_is_a_lookup_table_that_moves_and_resizes() {
     let mut shell = tmp.shell_in(Mode::Headless, true, "902");
     new_layout_page(&mut shell);
     let t = panel(&shell);
+    assert!(t.numbered);
+    assert!(
+        !common::toast(&shell).contains("show their tags"),
+        "a legend beside numbered devices offers no switch: {}",
+        common::toast(&shell)
+    );
     let [block] = t.blocks.as_slice() else {
         panic!("one legend: {:?}", t.blocks)
     };
