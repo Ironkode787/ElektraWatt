@@ -367,3 +367,45 @@ fn a_new_layout_page_at_one_to_ten_numbers_its_devices_and_gets_its_legend() {
     );
     shell.shutdown();
 }
+
+/// The persona round of the second 0.3.0 candidate found the Labels choice only far down the page's Properties. The
+/// layout page's menu offers Labels: Tags, Item numbers and Both, the current one checked, each one undo step; a
+/// legend added beside tags offers to show the item numbers it lists.
+#[test]
+fn the_pages_menu_chooses_the_labels_and_a_legend_beside_tags_offers_numbers() {
+    let tmp = Tmp::new("layout-labels-menu");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "902");
+    new_layout_page(&mut shell);
+    let checked = |shell: &ShellModel| -> Vec<String> {
+        canvas_menu(shell, MenuSpot::Sheet, None)
+            .into_iter()
+            .filter(|i| i.id == "layout.labels" && i.checked)
+            .map(|i| i.label)
+            .collect()
+    };
+    assert_eq!(checked(&shell), ["Labels: Item numbers"]);
+    done(&mut shell, "layout.labels", json!({"show": "tags"}));
+    assert!(!panel(&shell).numbered);
+    assert_eq!(checked(&shell), ["Labels: Tags"]);
+    // The legend goes, and comes back beside the tags: its toast offers the numbers.
+    let block = panel(&shell).blocks[0].id;
+    done(&mut shell, "select.set", json!({"ids": [block.to_string()]}));
+    done(&mut shell, "edit.delete_selection", json!({}));
+    assert!(panel(&shell).blocks.is_empty());
+    done(&mut shell, "page.add_legend", json!({}));
+    let toast = shell.notifications().newest_visible().expect("the toast").clone();
+    assert_eq!(
+        toast.text,
+        "Legend added. The devices show their tags, not the numbers it lists."
+    );
+    done(
+        &mut shell,
+        "notifications.run",
+        json!({"entry": toast.serial, "action": "item_numbers"}),
+    );
+    assert!(panel(&shell).numbered);
+    assert_eq!(checked(&shell), ["Labels: Item numbers"]);
+    done(&mut shell, "edit.undo", json!({}));
+    assert!(!panel(&shell).numbered, "one undo step");
+    shell.shutdown();
+}

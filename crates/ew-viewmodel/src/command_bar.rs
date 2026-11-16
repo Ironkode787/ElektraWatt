@@ -661,8 +661,28 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -
         if model.canvas().is_some_and(|c| c.page().panel.is_none()) {
             items.extend(item("project.wire_numbers"));
         } else if model.legend_offer() != ew_api::output::LegendOffer::NoLayout {
-            // A panel page offers its legend beside the layout (F21) and puts its moved labels back.
+            // A panel page offers its legend beside the layout (F21), what its devices are labelled with (rc.2) and
+            // puts its moved labels back.
             items.extend(item("page.add_legend"));
+            let numbered = model.panel_tables().map(|p| (p.numbered, p.tagged));
+            for (show, label) in [
+                ("tags", key!("canvas-labels-tags")),
+                ("item_numbers", key!("canvas-labels-item-numbers")),
+                ("both", key!("canvas-labels-both")),
+            ] {
+                let checked = match (show, numbered) {
+                    ("tags", Some((false, _))) | ("item_numbers", Some((true, false))) | ("both", Some((true, true))) => {
+                        true
+                    }
+                    _ => false,
+                };
+                items.extend(model.menu_item("layout.labels").map(|mut i| {
+                    i.params = serde_json::json!({ "show": show });
+                    i.label = strings::text(label).to_owned();
+                    i.checked = checked;
+                    i
+                }));
+            }
             items.extend(item("layout.reset_labels"));
         }
         // A schematic page offers New station… (F18 of the rc.1 test: the rack comes first).

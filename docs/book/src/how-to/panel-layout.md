@@ -44,8 +44,9 @@ the parts list and the enclosure legend read it from there.
 
 ## Labels and the legend
 
-8. With nothing selected, the page's **Labels** row in Properties chooses what each device shows: its tag, its item
-   number in a balloon, or both. Labels that would run into each other move apart, above and below the row, with a
+8. The page's right-click menu (**Labels: Tags**, **Labels: Item numbers**, **Labels: Both**) and, with nothing
+   selected, the page's **Labels** row in Properties choose what each device shows: its tag, its item number in a
+   balloon, or both. A legend added while the devices show their tags offers **Show item numbers**. Labels that would run into each other move apart, above and below the row, with a
    line to their device. On the cabinet's own layout the tags leave out the cabinet's location.
 9. **Add legend** in the page's right-click menu (also **Page ▸ Order ▸ Add legend**) puts the legend in the free space
    beside the layout, with the number, tag, quantity, part number and description of each item, one table as wide as

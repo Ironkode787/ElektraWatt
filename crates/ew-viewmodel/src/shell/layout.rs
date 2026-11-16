@@ -603,6 +603,34 @@ impl ShellModel {
         self.commit_layout("layout.label_move", json!({ "placement": row.id.to_string() }))
     }
 
+    /// `layout.labels {show}` (Labels: Tags, Item numbers or Both in a panel page's menu): the page's Labels row set
+    /// through its own edit (`Session::layout_edit`), one undo step.
+    pub(crate) fn act_layout_labels(&mut self, p: &Map<String, Value>) -> Outcome {
+        let row_word = match p.get("show").and_then(Value::as_str) {
+            Some("tags") => "Tags",
+            Some("item_numbers") => "Item numbers",
+            Some("both") => "Both",
+            Some(_) => return failed(key!("error-bad-param"), &["show"]),
+            None => return failed(key!("error-missing-param"), &["show"]),
+        };
+        let (Some(page), Some(project)) = (self.focused_page_id(), &self.project) else {
+            return Outcome::refused(key!("reason-no-panel-page"));
+        };
+        let edit = ew_api::output::LayoutEdit {
+            kind: "page".to_owned(),
+            target: page,
+            others: Vec::new(),
+            row: "derived.labels".to_owned(),
+            text: row_word.to_owned(),
+        };
+        match project.session.layout_edit(&edit) {
+            Ok(cmd) => self.commit_from_host(&cmd),
+            Err(e) => Outcome::Failed {
+                message: e.to_string(),
+            },
+        }
+    }
+
     /// `layout.reset_labels` (Reset label positions in the canvas context menu over an empty spot of a panel page):
     /// `layout.labels_reset` of every placement of the page whose label was moved, one undo step.
     pub(crate) fn act_layout_reset_labels(&mut self) -> Outcome {
@@ -661,10 +689,15 @@ impl ShellModel {
                 .collect();
             params["form_copies"] = Value::Array(copies);
         }
-        self.commit_from_host(&AnyCommand {
+        let out = self.commit_from_host(&AnyCommand {
             name: "report_block.create".into(),
             params,
-        })
+        });
+        // A legend beside devices that show their tags offers their numbers (rc.2).
+        if out == Outcome::Done && !self.panel_view_shows_numbers() {
+            self.notify_item_numbers(strings::text(key!("toast-legend-tags")).to_owned());
+        }
+        out
     }
 
     /// `layout.options {mode?, grid?}` (the tool options card's segmented controls): the sticky mode (`free`, `push`,

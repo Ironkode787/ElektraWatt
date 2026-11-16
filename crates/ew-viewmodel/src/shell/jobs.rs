@@ -265,6 +265,20 @@ impl ShellModel {
         self.notes.push(text, "edit", action);
     }
 
+    /// Shows `text` as a toast of key `edit` whose action is Show item numbers (the layout page's Labels).
+    pub(super) fn notify_item_numbers(&mut self, text: String) {
+        let action = self.project.as_ref().map(|p| {
+            (
+                NoteAction::ItemNumbers,
+                Validity::Session {
+                    epoch: p.epoch,
+                    select: Vec::new(),
+                },
+            )
+        });
+        self.notes.push(text, "edit", action);
+    }
+
     /// Shows `text` as a toast of key `edit` whose action is New station….
     pub(super) fn notify_new_station(&mut self, text: String) {
         let action = self.project.as_ref().map(|p| {
@@ -390,6 +404,10 @@ impl ShellModel {
             Some(NoteAction::NewStation) => {
                 self.notes.dismiss(entry.serial);
                 self.dispatch("plc.new_station", &serde_json::json!({}))
+            }
+            Some(NoteAction::ItemNumbers) => {
+                self.notes.dismiss(entry.serial);
+                self.dispatch("layout.labels", &serde_json::json!({ "show": "item_numbers" }))
             }
             // Two valves swap their positions: the first takes the second's, the second the first's.
             Some(NoteAction::Swap) => {

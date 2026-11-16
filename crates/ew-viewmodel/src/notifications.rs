@@ -50,6 +50,8 @@ pub enum NoteAction {
     ShowFolder,
     /// Swap two valves' positions on their valve terminal, after a typed position another valve holds (rc.2).
     Swap,
+    /// The layout page's devices labelled with item numbers, after a legend was added beside their tags (rc.2).
+    ItemNumbers,
 }
 
 impl NoteAction {
@@ -67,6 +69,7 @@ impl NoteAction {
             NoteAction::NewStation => "new_station",
             NoteAction::ShowFolder => "show_folder",
             NoteAction::Swap => "swap",
+            NoteAction::ItemNumbers => "item_numbers",
         }
     }
 
@@ -84,6 +87,7 @@ impl NoteAction {
             "new_station" => Some(NoteAction::NewStation),
             "show_folder" => Some(NoteAction::ShowFolder),
             "swap" => Some(NoteAction::Swap),
+            "item_numbers" => Some(NoteAction::ItemNumbers),
             _ => None,
         }
     }
@@ -102,6 +106,7 @@ impl NoteAction {
             NoteAction::NewStation => key!("action-plc-new-station"),
             NoteAction::ShowFolder => key!("toast-show-folder"),
             NoteAction::Swap => key!("action-fluid-swap"),
+            NoteAction::ItemNumbers => key!("toast-show-item-numbers"),
         }
     }
 }

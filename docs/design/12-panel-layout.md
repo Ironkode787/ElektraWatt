@@ -569,7 +569,9 @@ A function's placement adds no ":" suffix, since functions carry no designation 
   placement's position in `layout_legend` (§5.4), read by the labels layer from the same query as the legend, so the
   two cannot disagree; it prints in a **balloon** (a circle in pen 0.18 around the number in the label style, 0.3 mm
   inside), centred in the footprint when it fits, else outside with its leader as a tag. With both, the balloon
-  stands left of the tag in one label. The Properties row Labels sets it. A view the window makes (the page's Surface
+  stands left of the tag in one label. The Properties row Labels sets it, and so does the page's menu (Labels: Tags,
+  Item numbers, Both, the current one checked; `layout.labels {show}`, rc.2); Add legend on a page that shows tags
+  answers with a toast whose Show item numbers switches it. A view the window makes (the page's Surface
   row, Enclosure… on an empty panel page) looks at whether the tags fit: on a surface with placements it takes item
   numbers when the tag of one of them fits its footprint on paper neither across nor turned (the labels layer's own
   fit test), else tags; on a surface without placements it takes item numbers at 1:5 and smaller scales (a 6 mm

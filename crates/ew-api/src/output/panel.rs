@@ -610,6 +610,8 @@ pub struct PanelTables {
     pub unplaced: Vec<UnplacedDevice>,
     /// Whether the view labels its placements with item numbers (alone or with their tags).
     pub numbered: bool,
+    /// Whether the view labels its placements with their tags (alone or with item numbers).
+    pub tagged: bool,
     /// Whether the project writes a decimal comma (`settings.formatting.decimal_separator`): the tools' texts
     /// print millimetres as the project's other millimetre texts do.
     pub decimal_comma: bool,
@@ -979,6 +981,7 @@ pub(crate) fn panel_tables_of(q: &Q, folio: &str, page: Id<Page>) -> Option<Pane
         placements,
         unplaced,
         numbered: view.show != LabelShow::Tags,
+        tagged: view.show != LabelShow::ItemNumbers,
         decimal_comma: comma(q),
         blocks: blocks_of(q, page),
     })

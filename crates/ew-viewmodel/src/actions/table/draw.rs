@@ -632,6 +632,20 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_layout_reset_label(),
     ))),
+    // Labels: Tags, Item numbers or Both in the canvas context menu over an empty spot of a panel page (rc.2: the persona
+    // found the choice only far down the page's Properties).
+    with_params(
+        "show:enum(tags|item_numbers|both)",
+        hidden(in_canvas(act(
+            "layout.labels",
+            Command,
+            Menu::Edit,
+            &[],
+            panel_view,
+            None,
+            |s, p| s.act_layout_labels(p),
+        ))),
+    ),
     // Reset label positions in the canvas context menu over an empty spot of a panel page whose labels were dragged.
     hidden(in_canvas(act(
         "layout.reset_labels",
