@@ -539,17 +539,30 @@ impl ShellModel {
             .current_folio()
             .and_then(|f| self.project_session()?.page_tables(f))
             .and_then(|t| {
-                t.reps
-                    .iter()
-                    .filter(|r| r.pos == pos)
-                    .find_map(|r| r.ip.as_ref().filter(|ip| ip.name == name).map(|ip| ip.continuation.clone()))
+                t.reps.iter().filter(|r| r.pos == pos).find_map(|r| {
+                    r.ip.as_ref()
+                        .filter(|ip| ip.name == name)
+                        .map(|ip| ip.continuation.clone())
+                })
             })
             .filter(|c| !c.is_empty());
         let keys = match (IpDir::from_word(direction)?, partner.is_some()) {
-            (IpDir::Source, true) => (key!("toast-ip-placed-source"), key!("toast-ip-placed-source-no-cell")),
-            (IpDir::Source, false) => (key!("toast-ip-placed-source-lone"), key!("toast-ip-placed-source-lone-no-cell")),
-            (IpDir::Target, true) => (key!("toast-ip-placed-target"), key!("toast-ip-placed-target-no-cell")),
-            (IpDir::Target, false) => (key!("toast-ip-placed-target-lone"), key!("toast-ip-placed-target-lone-no-cell")),
+            (IpDir::Source, true) => (
+                key!("toast-ip-placed-source"),
+                key!("toast-ip-placed-source-no-cell"),
+            ),
+            (IpDir::Source, false) => (
+                key!("toast-ip-placed-source-lone"),
+                key!("toast-ip-placed-source-lone-no-cell"),
+            ),
+            (IpDir::Target, true) => (
+                key!("toast-ip-placed-target"),
+                key!("toast-ip-placed-target-no-cell"),
+            ),
+            (IpDir::Target, false) => (
+                key!("toast-ip-placed-target-lone"),
+                key!("toast-ip-placed-target-lone-no-cell"),
+            ),
             (IpDir::Undirected, _) => return None,
         };
         let cell = self.canvas().and_then(|c| {

@@ -449,7 +449,10 @@ impl ShellModel {
                         "b": {"cp": {"function": function.to_string(), "idx": idx}},
                         "page": now.page.to_string(),
                     });
-                    Some((strings::format(key!("toast-connect-offer"), &[&own.label, label]), wire))
+                    Some((
+                        strings::format(key!("toast-connect-offer"), &[&own.label, label]),
+                        wire,
+                    ))
                 });
                 match offer {
                     Some((question, wire)) => self.notify_connect_offer(format!("{text} {question}"), wire),

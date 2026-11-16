@@ -390,7 +390,10 @@ pub fn proposals(
             continue;
         }
         let (target, is_far) = hits[cycle % hits.len()].clone();
-        let p = Proposal { cp: c.clone(), target };
+        let p = Proposal {
+            cp: c.clone(),
+            target,
+        };
         // A far first hit is offered after the placement; one Tab chose is the drafter's.
         if is_far && cycle == 0 {
             far.push(p);
@@ -554,7 +557,11 @@ mod tests {
             let mut t = tables();
             t.cps.push(cp(1, (0, steps * G), Dir::Up, "X1:1"));
             let p = proposals(&g, &t, &[], AREA, 0);
-            assert_eq!((p.list.len(), p.far.len()), if near { (1, 0) } else { (0, 1) }, "{steps}");
+            assert_eq!(
+                (p.list.len(), p.far.len()),
+                if near { (1, 0) } else { (0, 1) },
+                "{steps}"
+            );
         }
     }
 

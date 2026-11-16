@@ -322,7 +322,10 @@ pub(crate) fn ip_fields(
     }
     // Source | Target as two choices (rc.2 persona run: D alone was learnt from a toast); D still toggles.
     if let Some(direction) = direction {
-        let choices = [("source", key!("ip-choice-source")), ("target", key!("ip-choice-target"))];
+        let choices = [
+            ("source", key!("ip-choice-source")),
+            ("target", key!("ip-choice-target")),
+        ];
         let labels: Vec<(&str, bool)> = choices
             .iter()
             .map(|(word, key)| (strings::text(*key), *word == direction))

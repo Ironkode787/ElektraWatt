@@ -986,7 +986,12 @@ pub fn unlisted_devices(q: &Q) -> Vec<Id<Device>> {
         .ids()
         .filter(|d| ew_checks::rules::device::lacks_part(q, *d))
         .map(|d| {
-            let tag = q.get::<DeviceTag>(d).as_ref().as_ref().map(|t| t.full.clone()).unwrap_or_default();
+            let tag = q
+                .get::<DeviceTag>(d)
+                .as_ref()
+                .as_ref()
+                .map(|t| t.full.clone())
+                .unwrap_or_default();
             (ew_derive::ew_mltext::natural_key(&tag), d)
         })
         .collect();

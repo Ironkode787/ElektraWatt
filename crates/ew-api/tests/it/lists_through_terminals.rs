@@ -41,7 +41,11 @@ fn devices(s: &Session) -> Vec<Uuid> {
 }
 
 fn connections(s: &Session) -> Vec<Uuid> {
-    s.query().connections().iter().map(|(id, _)| id.as_uuid()).collect()
+    s.query()
+        .connections()
+        .iter()
+        .map(|(id, _)| id.as_uuid())
+        .collect()
 }
 
 /// The one function of device `d`.
@@ -97,10 +101,21 @@ fn place(s: &mut Session, number: &str, key: &str, mut target: Value, x: i64) ->
 /// The CSV rows of `csv` as cells by column name, the data rows only.
 fn rows(csv: &str) -> Vec<Vec<(String, String)>> {
     let mut lines = csv.lines();
-    let header: Vec<String> = lines.next().expect("a header").split(',').map(str::to_owned).collect();
+    let header: Vec<String> = lines
+        .next()
+        .expect("a header")
+        .split(',')
+        .map(str::to_owned)
+        .collect();
     lines
         .filter(|l| l.starts_with("data,"))
-        .map(|l| header.iter().cloned().zip(l.split(',').map(str::to_owned)).collect())
+        .map(|l| {
+            header
+                .iter()
+                .cloned()
+                .zip(l.split(',').map(str::to_owned))
+                .collect()
+        })
         .collect()
 }
 
@@ -186,7 +201,8 @@ fn a_channel_wired_through_a_terminal_is_used_and_the_terminal_names_both_ends()
             "first_folio": 903, "title": "Terminal diagram {n}"}),
     );
     let q = s.query();
-    let terminals = row_export(&q, &RowExport::Terminals { strip: None }, None).expect("the terminal diagram");
+    let terminals =
+        row_export(&q, &RowExport::Terminals { strip: None }, None).expect("the terminal diagram");
     let sides: Vec<(String, String)> = rows(&terminals.csv)
         .iter()
         .map(|r| (get(r, "Side 1").to_owned(), get(r, "Side 2").to_owned()))
@@ -195,7 +211,10 @@ fn a_channel_wired_through_a_terminal_is_used_and_the_terminal_names_both_ends()
         sides,
         [
             (format!("{}:13", buttons[0]), format!("{card_tag}:1")),
-            (format!("{}:13 via {cable_tag} BN", buttons[1]), format!("{card_tag}:2")),
+            (
+                format!("{}:13 via {cable_tag} BN", buttons[1]),
+                format!("{card_tag}:2")
+            ),
         ],
         "{}",
         terminals.csv
@@ -210,7 +229,14 @@ fn a_channel_wired_through_a_terminal_is_used_and_the_terminal_names_both_ends()
             .collect();
         let seen: Vec<(&str, &str, &str, &str)> = card_rows
             .iter()
-            .map(|r| (get(r, "Channel"), get(r, "State"), get(r, "Target"), get(r, "Function text")))
+            .map(|r| {
+                (
+                    get(r, "Channel"),
+                    get(r, "State"),
+                    get(r, "Target"),
+                    get(r, "Function text"),
+                )
+            })
             .collect();
         let mut want = vec![
             ("0", "used", buttons[0].as_str(), "Start"),
@@ -225,14 +251,18 @@ fn a_channel_wired_through_a_terminal_is_used_and_the_terminal_names_both_ends()
     let grid = s.navigator_table(NavKind::PlcGrid);
     let col = |key: &str| grid.columns.iter().position(|c| c.key == key).expect(key);
     for (n, button) in buttons.iter().enumerate() {
-        let channel = ew_ids::v5::plc_channel_id::<Device, Channel>(Id::from_uuid(card), u16::try_from(n).expect("n"));
+        let channel =
+            ew_ids::v5::plc_channel_id::<Device, Channel>(Id::from_uuid(card), u16::try_from(n).expect("n"));
         let node = grid
             .nodes
             .iter()
             .find(|r| r.records.first() == Some(&channel.as_uuid()))
             .expect("the channel's row");
         assert_eq!(
-            (node.cells[col("state")].as_str(), node.cells[col("target")].as_str()),
+            (
+                node.cells[col("state")].as_str(),
+                node.cells[col("target")].as_str()
+            ),
             ("used", button.as_str()),
             "channel {n}"
         );
