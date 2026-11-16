@@ -1687,6 +1687,9 @@ fn round3_autoconnect_keeps_a_working_port_off_the_plates_exhaust_and_names_its_
             d.input(&key("r"));
             d.settle();
         }
+        // The valve's port lies beyond the short run: Tab chooses it, so the placement joins it (rc.2).
+        d.input(&key("tab"));
+        d.settle();
         click_at(d, at);
         d.input(&key("escape"));
         d.settle();
