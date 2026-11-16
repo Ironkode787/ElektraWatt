@@ -1,7 +1,10 @@
 # How-to guides
 
-A how-to guide helps you reach one goal that you already understand: short steps, no background. If you are new to
-EW, start with a [tutorial](../tutorials/index.md) instead.
+A how-to guide is where you look up one job when you know what you want to do; a [tutorial](../tutorials/index.md)
+is a lesson you follow once, from start to end, to learn how EW works.
+
+A guide gives short steps for one goal and no background. If you are new to EW, or new to its PLC, bus or pneumatic
+pages, start with a tutorial.
 
 ## Available now
 

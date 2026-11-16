@@ -10,6 +10,9 @@
   - [Reports and PDF](tutorials/reports-and-pdf.md)
   - [Importing a QElectroTech project](tutorials/import-qet.md)
   - [Draw a six-pin power block](tutorials/symbol-editor.md)
+  - [A PLC with its modules](tutorials/plc-station.md)
+  - [A bus network](tutorials/bus-network.md)
+  - [A pneumatic circuit](tutorials/pneumatic-circuit.md)
 
 # How-to guides
 

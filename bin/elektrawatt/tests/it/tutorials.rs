@@ -732,6 +732,192 @@ fn tutorial_draw_a_six_pin_power_block_runs_as_its_page_says() {
     );
 }
 
+/// The line of `describe` that starts with `start`, trimmed (empty when none does).
+fn line_of(describe: &str, start: &str) -> String {
+    lines_of(describe, &[start]).into_iter().next().unwrap_or_default()
+}
+
+/// The PLC tutorial (rc.2, F5): a position switch and a lamp, a station made in the New station dialog with an input
+/// and an output module and drawn on the page, the two wired to the first channels, their symbols typed in the PLC
+/// grid, the PLC overview added, the export to PLC software and the save: every step done, the end state the page
+/// names, and the page passes the lint.
+#[test]
+fn tutorial_a_plc_with_its_modules_runs_as_its_page_says() {
+    let tmp = Tmp::new();
+    let transcript = all_done(&run_tutorial(&tmp, "plc-station"));
+    let [rack, overview, exported, end] = <[String; 4]>::try_from(describes(&transcript)).unwrap();
+    // Steps 5 to 7: the head part and the two modules in their slots, slot 3 free.
+    assert_eq!(
+        lines_of(&rack, &["dialog \"New station\"", "head \"", "slot "]),
+        [
+            "dialog \"New station\"",
+            "head \"EW-GEN-CPU-1 · PLC CPU without on-board I/O\"",
+            "slot 1 \"\" \"EW-GEN-DI-1 · PLC digital input card, 8 channels\" gives \"8 DI\"",
+            "slot 2 \"\" \"EW-GEN-DO-1 · PLC digital output card, 8 channels\" gives \"8 DO\"",
+            "slot 3 free",
+        ]
+    );
+    // Steps 11 and 12: the first channel of each module with its symbol.
+    let input = line_of(&overview, "row \"I0.0\"");
+    assert!(input.contains("\"Door_closed\"") && input.contains("\"-1A1-A1\" \"0\" \"DI\""), "{input}");
+    let output = line_of(&overview, "row \"Q0.0\"");
+    assert!(output.contains("\"Lamp_door\"") && output.contains("\"-1A1-A2\" \"0\" \"DO\""), "{output}");
+    // Step 13: the overview page and its toast.
+    assert_eq!(
+        line_of(&overview, "row level 2 page \"2\""),
+        "row level 2 page \"2\" \"PLC overview\" generated current cursor"
+    );
+    assert_eq!(
+        line_of(&overview, "toast"),
+        "toast \"Added the report block PLC overview from folio 2.\" undo"
+    );
+    // Step 14: the export.
+    assert_eq!(
+        line_of(&exported, "toast"),
+        "toast \"Exported plc-station.aml: 1 station, 2 modules, 16 channels, 2 symbols.\""
+    );
+    assert!(tmp.path("plc-station.aml").is_file());
+    assert_eq!(line_of(&end, "title:"), "title: plc-station.ew - ElektraWatt");
+    assert!(tmp.path("plc-station.ew/project.jsonl").is_file());
+    let items = items(&tmp);
+    assert_eq!(
+        lint(
+            "tutorials/plc-station.md",
+            &page("tutorials/plc-station.md"),
+            Some(&script("plc-station")),
+            &items
+        ),
+        Vec::<String>::new()
+    );
+}
+
+/// The bus tutorial (rc.2, F5): a bus-topology page with the generic CPU, remote I/O station and switch, the bus
+/// lines, the node addresses, a bus cable, a PROFINET device of one's own made in the part editor, the check and the
+/// save: every step done, the end state the page names, and the page passes the lint. The plugs of step 10 are chosen
+/// in the window only (a script names a plug by its record, not its part number).
+#[test]
+fn tutorial_a_bus_network_runs_as_its_page_says() {
+    let tmp = Tmp::new();
+    let transcript = all_done(&run_tutorial(&tmp, "bus-network"));
+    let [cpu, stations, cable, end] = <[String; 4]>::try_from(describes(&transcript)).unwrap();
+    // Step 3: the CPU as a box per interface, and its rack.
+    assert_eq!(
+        lines_of(&cpu, &["toast", "dialog "]),
+        [
+            "toast \"Placed as 2 boxes, one for each bus interface.\" undo",
+            "dialog \"Rack and slots of -2A1\"",
+        ]
+    );
+    // Step 8: both stations belong to the one PLC; the remote one carries its module.
+    assert_eq!(
+        lines_of(&stations, &["row level 2 station", "row level 3 module"]),
+        [
+            "row level 2 station \"-2A1\" badge \"CPU\" expanded",
+            "row level 2 station \"-2A2\" badge \"head station\" expanded",
+            "row level 3 module \"-2A2-A1\" badge \"not drawn\" expanded",
+        ]
+    );
+    // Step 10: the cable.
+    assert_eq!(
+        line_of(&cable, "toast"),
+        "toast \"Cable -W1 carries the bus line.\" undo"
+    );
+    // Steps 9, 13 and 14: every node's address, and the check.
+    assert_eq!(
+        lines_of(&end, &["row \"-2", "toast", "title:"]),
+        [
+            "title: bus-network.ew - ElektraWatt",
+            "row \"-2A1\" \"DP\" \"TBD\" \"\" \"PROFIBUS DP\" \"master\" \"\" \"\"",
+            "row \"-2A1\" \"X1\" \"plc1 192.168.0.1\" \"\" \"PROFINET\" \"controller\" \"PROFINET\" \"\"",
+            "row \"-2A2\" \"DP\" \"TBD\" \"\" \"PROFIBUS DP\" \"slave\" \"\" \"\"",
+            "row \"-2A2\" \"X1\" \"rio1 192.168.0.2\" \"\" \"PROFINET\" \"device\" \"PROFINET\" \"\"",
+            "row \"-2K1\" \"X1\" \"\" \"\" \"PROFINET\" \"passive\" \"\" \"\"",
+            "row \"-2K2\" \"X1\" \"drive1 192.168.0.3\" \"\" \"PROFINET\" \"device\" \"PROFINET\" \"\" cursor \"Address\"",
+            "toast \"Check: 0 errors, 0 warnings, 5 infos.\"",
+        ]
+    );
+    assert!(tmp.path("bus-network.ew/project.jsonl").is_file());
+    let items = items(&tmp);
+    assert_eq!(
+        lint(
+            "tutorials/bus-network.md",
+            &page("tutorials/bus-network.md"),
+            Some(&script("bus-network")),
+            &items
+        ),
+        Vec::<String>::new()
+    );
+}
+
+/// The pneumatic tutorial (rc.2, F5): a fluid page with the air supply and its medium, the service unit, a 5/2 valve
+/// and a cylinder with flow controls, the tubes, the valve's solenoid drawn on page 1 and wired to a PLC output, a
+/// valve terminal with two positions filled, the default tube and the tube table, and the save: every step done, the
+/// end state the page names, and the page passes the lint.
+#[test]
+fn tutorial_a_pneumatic_circuit_runs_as_its_page_says() {
+    let tmp = Tmp::new();
+    let transcript = all_done(&run_tutorial(&tmp, "pneumatic-circuit"));
+    let [medium, valve, terminal, settings, tubes, end] =
+        <[String; 6]>::try_from(describes(&transcript)).unwrap();
+    // Step 10: the supply point and its medium.
+    assert_eq!(
+        lines_of(&medium, &["properties what", "row \"device/derived.medium\""]),
+        [
+            "properties what \"Compressed-air supply point · pneumatic\"",
+            "row \"device/derived.medium\" \"Medium\" \"Compressed air\" derived \"medium definition at -2X1:1\" \
+             actions edit",
+        ]
+    );
+    // Step 15: the valve names where its solenoid is drawn.
+    let solenoid = line_of(&valve, "row \"device/derived.solenoid[0]\"");
+    assert!(
+        solenoid.starts_with("row \"device/derived.solenoid[0]\" \"Solenoid 14\" \"1-A4\""),
+        "{solenoid}"
+    );
+    // Steps 17 and 18: the terminal's positions.
+    let positions = line_of(&terminal, "row \"device/derived.valve_positions\"");
+    assert!(
+        positions.contains("\"Valve positions\" \"1 -2Q2 · 2 -2Q3 · 3 empty · 4 empty\""),
+        "{positions}"
+    );
+    // Step 19: the default tube.
+    assert_eq!(
+        line_of(&settings, "toast"),
+        "toast \"The default tube is 6 × 4 mm PU (polyurethane) now: every tube without one of its own takes it, the \
+         tubes drawn already too.\" undo"
+    );
+    // Step 20: the tube table, a row per tube with its ends, medium and size.
+    assert_eq!(
+        lines_of(&tubes, &["row \"\" \"-2"]),
+        [
+            "row \"\" \"-2M1:A\" \"consumer\" \"-2R1:1\" \"port\" \"Compressed air\" \"working\" \"6×4\" \"PU\" \"\" \"\" \
+             \"—\" \"missing\" \"\" \"\" \"\" \"2\" cursor \"Tag\"",
+            "row \"\" \"-2M1:B\" \"consumer\" \"-2R2:1\" \"port\" \"Compressed air\" \"working\" \"6×4\" \"PU\" \"\" \"\" \
+             \"—\" \"missing\" \"\" \"\" \"\" \"2\"",
+            "row \"\" \"-2Q1:2\" \"working\" \"-2R2:2\" \"port\" \"Compressed air\" \"working\" \"6×4\" \"PU\" \"\" \"\" \
+             \"—\" \"missing\" \"\" \"\" \"\" \"2\"",
+            "row \"\" \"-2Q1:4\" \"working\" \"-2R1:2\" \"port\" \"Compressed air\" \"working\" \"6×4\" \"PU\" \"\" \"\" \
+             \"—\" \"missing\" \"\" \"\" \"\" \"2\"",
+            "row \"\" \"-2V1:2\" \"working\" \"-2Q1:1\" \"supply\" \"Compressed air\" \"working\" \"6×4\" \"PU\" \"\" \"\" \
+             \"—\" \"missing\" \"\" \"\" \"\" \"2\"",
+            "row \"\" \"-2X1:1\" \"port\" \"-2V1:1\" \"supply\" \"Compressed air\" \"working\" \"6×4\" \"PU\" \"\" \"\" \
+             \"—\" \"missing\" \"\" \"\" \"\" \"2\"",
+        ]
+    );
+    assert_eq!(line_of(&end, "title:"), "title: pneumatic-circuit.ew - ElektraWatt");
+    assert!(tmp.path("pneumatic-circuit.ew/project.jsonl").is_file());
+    let items = items(&tmp);
+    assert_eq!(
+        lint(
+            "tutorials/pneumatic-circuit.md",
+            &page("tutorials/pneumatic-circuit.md"),
+            Some(&script("pneumatic-circuit")),
+            &items
+        ),
+        Vec::<String>::new()
+    );
+}
+
 /// The first file or folder named `name` under `dir`, depth first.
 fn find_named(dir: &Path, name: &str) -> Option<std::path::PathBuf> {
     for entry in std::fs::read_dir(dir).ok()?.flatten() {
