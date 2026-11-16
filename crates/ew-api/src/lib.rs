@@ -1009,6 +1009,14 @@ impl Session {
         self.engine.registry()
     }
 
+    /// Whether a command `name` submitted from `origin` passes its exposure class (a `HumanOnly` command only from the
+    /// window): a form leaves out what it could not apply. `false` for an unregistered name.
+    pub fn may_run(&self, name: &str, origin: &Origin) -> bool {
+        self.registry()
+            .get(name)
+            .is_some_and(|e| e.meta().exposure.allows(origin))
+    }
+
     /// The registered metadata of the command named `name` (a canonical name or an alias); `None` for an
     /// unregistered name.
     pub fn command_meta(&self, name: &str) -> Option<CommandMeta> {

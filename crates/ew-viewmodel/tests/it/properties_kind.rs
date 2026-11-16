@@ -366,3 +366,34 @@ fn a_symbol_drawn_as_pneumatic_gives_a_pneumatic_device() {
     );
     s.shutdown();
 }
+
+/// rc.2 persona run, entries 1 and 2: the project's Properties put what a drafter fills first under Main, in the
+/// order of a title block: the title, the project and drawing numbers, the description, the parties, the dates.
+#[test]
+fn the_project_shows_what_a_drafter_fills_first_under_main() {
+    let tmp = Tmp::new("props-project-main");
+    let mut s = new_project(&tmp);
+    done(&mut s, "props.project", json!({}));
+    let sheet = s.properties().sheet().expect("a sheet").clone();
+    let project = sheet
+        .sections
+        .iter()
+        .find(|x| x.kind == "project")
+        .expect("the project's section");
+    let main: Vec<&str> = groups(project, false)
+        .into_iter()
+        .find(|(g, _)| *g == RowGroup::Main)
+        .map(|(_, rows)| rows.iter().map(|r| r.key.as_str()).collect())
+        .unwrap_or_default();
+    let want = [
+        "project/master.document_title",
+        "project/master.project_ref",
+        "project/master.drawing_id",
+        "project/master.description",
+        "project/parties",
+        "project/master.created",
+    ];
+    let first: Vec<&str> = main.iter().copied().filter(|k| want.contains(k)).collect();
+    assert_eq!(first, want, "{main:?}");
+    s.shutdown();
+}

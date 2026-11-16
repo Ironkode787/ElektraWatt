@@ -3868,6 +3868,7 @@ reason-titleblock-fixed = Het titelblok van deze pagina drukt alleen vaste tekst
 titleblock-checked = Gecontroleerd
 titleblock-note-fixed = De teksten die het titelbloksjabloon van deze pagina zelf schrijft, worden afgedrukt zoals het sjabloon ze bevat; het zijn hier geen velden.
 titleblock-note-checked = Gecontroleerd drukt de controleur af die de huidige revisie goedkeurt: { $p0 } op het tabblad { $p1 }.
+titleblock-note-author-person = Auteur staat niet in dit formulier: alleen een persoon in het venster legt de auteur van de revisie vast, een script of plug-in niet.
 titleblock-revision-note = Het label volgt de notatie van het project, zoals { $p0 }, het volgende vrije; { $p1 } ▸ { $p2 } stelt de notatie in.
 error-titleblock-date = Typ { $p0 } als datum, zoals { $p1 }, of laat het leeg.
 error-titleblock-revision = Een revisie houdt haar label; typ er een.

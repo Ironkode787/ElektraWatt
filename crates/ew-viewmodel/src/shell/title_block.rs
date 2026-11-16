@@ -146,6 +146,14 @@ fn edit(kind: &str, target: &str, path: &str, value: Value) -> Value {
 }
 
 impl ShellModel {
+    /// Whether this session may name a revision's author (`revision.set_author` is a person's step at the window).
+    fn may_set_author(&self) -> bool {
+        let origin = self.origin();
+        self.project
+            .as_ref()
+            .is_some_and(|p| p.session.may_run("revision.set_author", &origin))
+    }
+
     /// The form's fields for the focused page: the editable paths its title block prints, in its order, with their text;
     /// the revision label only while it can be written (an open revision, or none yet). `None` without a page.
     fn title_block_fields(&self) -> Option<(String, ew_api::output::TitleBlockFacts, Vec<FormField>)> {
@@ -158,9 +166,13 @@ impl ShellModel {
                 let (name, label_key, source) = FIELDS.iter().find(|(p, _, _)| p == path)?;
                 let writable = match source {
                     Source::RevisionLabel => facts.open_revision.is_some() || !facts.has_revisions,
-                    // A released revision's author is history: its party's name only, while it names one.
+                    // A released revision's author is history: its party's name only, while it names one. An open
+                    // revision without one gets it by `revision.set_author`, which only a person at the window runs: a
+                    // session that may not leaves the field out and says so under the form (`form_foot`), so Apply
+                    // never applies half (rc.2 persona run).
                     Source::RevisionAuthor => {
-                        facts.revision_author.is_some() || facts.open_revision.is_some()
+                        facts.revision_author.is_some()
+                            || (facts.open_revision.is_some() && self.may_set_author())
                     }
                     Source::RevisionChecker => facts.revision_checker.is_some(),
                     Source::Edited => false,
@@ -239,11 +251,8 @@ impl ShellModel {
             return None;
         }
         let (_, facts, _) = self.title_block_fields()?;
-        let prints_checker = facts
-            .fields
-            .iter()
-            .any(|(path, _)| path == "revision.current.checker.name");
-        (prints_checker && facts.revision_checker.is_none()).then(|| {
+        let prints = |p: &str| facts.fields.iter().any(|(path, _)| path == p);
+        let checker = (prints("revision.current.checker.name") && facts.revision_checker.is_none()).then(|| {
             strings::format(
                 key!("titleblock-note-checked"),
                 &[
@@ -251,7 +260,15 @@ impl ShellModel {
                     strings::text(key!("menu-check")),
                 ],
             )
-        })
+        });
+        // The author this session may not set, said before Apply rather than refused after a half-applied one.
+        let author = (prints("revision.current.author.name")
+            && facts.revision_author.is_none()
+            && facts.open_revision.is_some()
+            && !self.may_set_author())
+        .then(|| strings::text(key!("titleblock-note-author-person")).to_owned());
+        let notes: Vec<String> = author.into_iter().chain(checker).collect();
+        (!notes.is_empty()).then(|| notes.join(" "))
     }
 
     /// `page.title_block {<path>: text, …}` (Page ▸ Title block fields…, FT-1686): without a field the window opens the

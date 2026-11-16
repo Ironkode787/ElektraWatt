@@ -4044,6 +4044,7 @@ reason-titleblock-fixed = This page's title block prints only fixed texts of its
 titleblock-checked = Checked
 titleblock-note-fixed = The texts this page's title block template writes itself print as the template holds them; they are not fields here.
 titleblock-note-checked = Checked prints the checker who approves the current revision: { $p0 } on the { $p1 } tab.
+titleblock-note-author-person = Author is not in this form: a person names the revision's author at the window; a script or a plugin cannot.
 titleblock-revision-note = The label takes the project's form, such as { $p0 }, the next free one; { $p1 } ▸ { $p2 } sets the form.
 error-titleblock-date = Type { $p0 } as a date, such as { $p1 }, or leave it empty.
 error-titleblock-revision = A revision keeps its label; type one.

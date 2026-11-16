@@ -843,6 +843,20 @@ const PRIMARY: &[(&str, &[&str])] = &[
     ("function", &["bus_port.address"]),
     // A wire's and an interruption point's potential: its name, the kind of signal and the voltage (FT-1651).
     ("potential_def", &["name", "ptype", "voltage"]),
+    // What a drafter fills first and the title block prints (rc.2 persona run: a long flat list, the drawing number
+    // ten rows down): the title, the project and drawing numbers, the description, the parties (customer, designer)
+    // and the dates.
+    (
+        "project",
+        &[
+            "master.document_title",
+            "master.project_ref",
+            "master.drawing_id",
+            "master.description",
+            "parties",
+            "master.created",
+        ],
+    ),
 ];
 
 /// The rows only a rare case needs, under the closed group More at the end of their section (rc.2, F12), by the row
