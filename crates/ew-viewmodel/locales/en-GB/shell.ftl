@@ -7000,3 +7000,4 @@ props-address-profibus = Station address
 hud-bus-page-steps = 1 Place the stations (Device…) · 2 Connect their ports with Wire · 3 Give their addresses in the Bus panel
 command-plc-bind_pins = Bind channels to their pins
 refusal-plc-pins-bound = Every channel of { $p0 } that its part gives a pin is bound already
+rack-title-undrawn = Rack and slots of the station { $p0 } (its tag follows from where it is drawn)

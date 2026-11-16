@@ -704,10 +704,21 @@ fn rack_spec(model: &ShellModel) -> DialogSpec {
             )
         };
     }
+    // A station drawn nowhere has a tag with question marks (`-?A?`): its title names it by its part until it has one
+    // (a persona run could not tell whether the tag was final).
+    let part = view
+        .as_ref()
+        .map(|v| v.part.split(" · ").next().unwrap_or_default().to_owned())
+        .unwrap_or_default();
+    let title = if tag.contains('?') && !part.is_empty() {
+        strings::format(key!("rack-title-undrawn"), &[&part])
+    } else {
+        strings::format(key!("rack-title"), &[&tag])
+    };
     DialogSpec {
         form: true,
         ..small(
-            strings::format(key!("rack-title"), &[&tag]),
+            title,
             body,
             DialogButton::new(key!("dialog-close"), DialogAnswer::Dismiss),
         )

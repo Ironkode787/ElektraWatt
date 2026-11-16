@@ -407,6 +407,32 @@ fn draft_with(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>, modules: 
     settle(h);
 }
 
+/// A longer persona run: the rack dialog of a station drawn nowhere names it by its part, not by a tag of question
+/// marks, and holds still while its slots are filled: its columns stand where they stood before the first module.
+#[test]
+fn the_rack_dialog_names_its_station_and_holds_still() {
+    let tmp = Tmp::new();
+    let mut h = new_project(&tmp);
+    dispatch(&mut h, "plc.new_station", json!({}));
+    dispatch(&mut h, "plc.rack_set", json!({"head": "EW-GEN-CPU-1"}));
+    settle(&mut h);
+    support::menu_node(&h, "Create").click();
+    settle(&mut h);
+    h.get_by_label_contains("Rack and slots of the station EW-GEN-CPU-1");
+    let columns = |h: &egui_kittest::Harness<'static, ew_ui::app::App>| {
+        ["Allowed slots", "Addresses", "Close"].map(|l| support::menu_node(h, l).rect().left())
+    };
+    let before = columns(&h);
+    dispatch(&mut h, "plc.rack_add", json!({"slot": 1, "part": "EW-GEN-DI-1"}));
+    settle(&mut h);
+    settle(&mut h);
+    let after = columns(&h);
+    for (a, b) in before.iter().zip(&after) {
+        assert!((a - b).abs() < 1.0, "the columns moved: {before:?} → {after:?}");
+    }
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// The channel rows of the PLC panel: (channel, module, badges).
 fn channel_rows(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>) -> Vec<(Uuid, Uuid, Vec<String>)> {
     use ew_ui::ew_viewmodel::navigators::NavKind;

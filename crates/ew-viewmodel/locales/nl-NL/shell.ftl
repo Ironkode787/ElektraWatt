@@ -6738,3 +6738,4 @@ props-address-profibus = Stationsadres
 hud-bus-page-steps = 1 Plaats de stations (Apparaat…) · 2 Verbind hun poorten met Draad · 3 Geef hun adressen in het Bus-paneel
 command-plc-bind_pins = Kanalen aan hun pinnen koppelen
 refusal-plc-pins-bound = Elk kanaal van { $p0 } waaraan zijn artikel een pin geeft, is al gekoppeld
+rack-title-undrawn = Rek en slots van het station { $p0 } (de tag volgt uit waar het getekend wordt)

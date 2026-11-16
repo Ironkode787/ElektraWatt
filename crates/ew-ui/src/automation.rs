@@ -91,17 +91,56 @@ pub(crate) fn rack(
                 .spacing(egui::vec2(t.space_4, t.space_2))
                 .striped(false)
                 .show(ui, |ui| {
-                    for k in [
+                    // The columns hold still while rows are filled (a persona run's second click missed when the
+                    // dialog grew after the first module): each header reserves what a filled row will need, the
+                    // widest offered part and what it gives, an address range, a module's tag with its badge, and a
+                    // module row's buttons.
+                    let wide = |texts: &mut dyn Iterator<Item = String>| {
+                        texts
+                            .map(|s| {
+                                ui.painter()
+                                    .layout_no_wrap(s, theme::font(&t.type_small), crate::theme::NONE)
+                                    .size()
+                                    .x
+                            })
+                            .fold(0.0_f32, f32::max)
+                    };
+                    let room = ui.ctx().content_rect().width() * 0.25;
+                    let reserve = [
+                        // A module row's slot field and its margins.
+                        t.size_table_column_min + 2.0 * t.space_3,
+                        // A module's tag and its "not drawn" chip.
+                        wide(&mut std::iter::once("-00A00-A00".to_owned()))
+                            + wide(&mut std::iter::once(strings::text(key!("nav-badge-not-drawn")).to_owned()))
+                            + 4.0 * t.space_3,
+                        wide(&mut parts.iter().map(|p| p.text.clone())).min(room),
+                        wide(&mut parts.iter().map(|p| p.gives.clone())),
+                        wide(&mut std::iter::once("I100.0–I100.7".to_owned())),
+                        0.0,
+                        3.0 * t.size_control_inline
+                            + [key!("rack-replace"), key!("rack-draw")]
+                                .into_iter()
+                                .map(|k| {
+                                    (wide(&mut std::iter::once(strings::text(k).to_owned())) + 2.0 * t.space_4)
+                                        .max(t.size_button_min_width)
+                                })
+                                .sum::<f32>()
+                            + 5.0 * ui.spacing().item_spacing.x,
+                    ];
+                    let heads = [
                         key!("rack-slot"),
                         key!("rack-module"),
                         key!("rack-part"),
                         key!("rack-gives"),
                         key!("rack-addresses"),
                         key!("rack-allowed"),
-                    ] {
-                        ui.label(header(strings::text(k)));
+                    ];
+                    for (i, w) in reserve.iter().enumerate() {
+                        ui.scope(|ui| {
+                            ui.set_min_width(*w);
+                            ui.label(heads.get(i).map_or_else(|| header(""), |k| header(strings::text(*k))));
+                        });
                     }
-                    ui.label("");
                     ui.end_row();
                     for r in &view.rows {
                         let slot = rack_slot_text(r);
