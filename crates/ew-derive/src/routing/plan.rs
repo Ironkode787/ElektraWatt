@@ -204,7 +204,8 @@ fn request(
     let mut own: [Vec<Rect>; 2] = [Vec::new(), Vec::new()];
     // A representation that draws a CP on a CP end's point (an interruption point drawn on a pin) is that end's own
     // too: the wire leaves the pin through it, as through the pin's own symbol.
-    let on_end = |e: &OneEnd, rep: Uuid| e.dir.is_some() && page.cps.iter().any(|c| c.rep == rep && c.at == e.at);
+    let on_end =
+        |e: &OneEnd, rep: Uuid| e.dir.is_some() && page.cps.iter().any(|c| c.rep == rep && c.at == e.at);
     let place = |rep: Uuid, r: Rect, obstacles: &mut Vec<Rect>, own: &mut [Vec<Rect>; 2]| {
         let mut mine = false;
         for (k, e) in [a, b].into_iter().enumerate() {
@@ -363,7 +364,13 @@ fn search_checked(
     if !crosses_text(page, &found.0) {
         return Some(found);
     }
-    let clear = search_areas(page, &RouteRequest { text_cost: None, ..req.clone() });
+    let clear = search_areas(
+        page,
+        &RouteRequest {
+            text_cost: None,
+            ..req.clone()
+        },
+    );
     let far = clear
         .as_ref()
         .is_none_or(|(c, _)| length(c) * FAR.1 > length(&found.0) * FAR.0);

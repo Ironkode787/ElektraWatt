@@ -564,7 +564,11 @@ fn prepare(req: &RouteRequest) -> Option<Prepared> {
     // Texts block, or while they cost (`text_cost`) mark the nodes inside them.
     let mut text_node = vec![false; nodes];
     for o in &req.texts {
-        let into = if req.text_cost.is_some() { &mut text_node } else { &mut blocked };
+        let into = if req.text_cost.is_some() {
+            &mut text_node
+        } else {
+            &mut blocked
+        };
         mark(&mut space, o, into, OVER_TEXT);
     }
     space.text_node = text_node;
