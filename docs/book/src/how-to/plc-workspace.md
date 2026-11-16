@@ -1,119 +1,171 @@
 # Work in the PLC workspace
 
-The PLC workspace shows a project's PLC configuration beside its pages: the PLC navigator and the bus navigator in the
-left column, the page in the middle and the PLC grid, every channel as a row of a table, in the bottom dock. It is the place to address
-modules, bind channels and check what each channel drives.
+This guide is where you look up one PLC job. To learn the jobs in order, follow the tutorials
+[A PLC with its modules](../tutorials/plc-station.md) and [A bus network](../tutorials/bus-network.md) first.
 
-## Open it
+EW keeps the PLC hardware of a project beside its drawings: each CPU and remote I/O head with the modules in its
+rack, every channel with its address, symbol and what it is wired to, and the bus networks between them. You draw the
+modules on schematic pages as boxes with their pins and wire the field devices to them, as in any ECAD tool; the PLC
+side knows which channel each pin is and exports it all to TIA Portal or CODESYS.
 
-1. Choose **PLC** in the workspace switch at the right of the tab row, or **PLC workspace** at the end of the
-   **PLC** tab. The left column shows the PLC navigator and the bottom dock the PLC grid; Properties stays under the
-   navigator. **Schematic** in the switch goes back; a change you make to the layout is kept for the workspace. The
-   **PLC** tab holds a button for each PLC and bus command: Rack, Addresses, Bus page, Place port, PLC grid, the
-   exchange with PLC software and this guide.
+The PLC workspace shows the PLC side beside the page:
 
-## The PLC navigator
+![The PLC workspace: the PLC panel at the left, the page, the PLC grid under it, the PLC tab](images/plc-workspace.png)
 
-2. The tree runs from the configuration project to its stations (a CPU, a head station, a valve terminal), their
-   racks once a module has a rack position, their modules and each module's channels, with the station's bus ports
-   after its modules. Selecting a row selects the device or channel on the page shown; a drawable on another page is a
-   chip at the top of the canvas that opens it.
-3. Drag a channel's row onto a connection point of a module pin or a coil to bind it. A device wired off the module,
-   or a valve beside a valve terminal, is attached to the module and bound in one step; one Undo takes both back.
-4. A module drawn on a page joins the project's only station, and its toast says which slot it got, with **Rack…**.
-   In a project with two stations it joins the one drawn beside it on its page; drawn on a page without a station, a
-   window asks which station takes it, the one last given a module first. Without any station its toast offers **New
-   station…**. A module that waits is listed under **Modules without a station**: drag its row onto the station's row
-   (a module of another station moves there), or right-click it and choose **Attach to** and the station's tag; or
-   right-click the station that takes all of them and choose **Attach modules without a station**. Only a module goes
-   into a rack: a device whose part has no PLC data is refused in words, and a bus device is given to a PLC as a
-   station of its own (step 5).
+- the **PLC** tab of the command bar at the top, with a button for each PLC job;
+- the **PLC panel** at the left: each PLC with its stations, their modules and each module's channels;
+- **Properties** under it, for what is selected;
+- the page in the middle;
+- the **PLC grid** under the page: one row per channel, edited like a spreadsheet.
 
-## Stations
+## The words
 
-5. Choose **New station…** (Project menu, or **+** in the PLC navigator). Choose what the station is (a hover over
-   each choice says it in full), its head part and the PLC it belongs to, then fill the rack: **Add module…** on a
-   free slot picks a module part and how many fill the slots from there. **New part…** beside the head part, or at
-   the foot of the module picker, opens the part editor already set for what you asked (a CPU's bus interface leads
-   the bus, a remote I/O station's answers on it, a module is a module), and the part you save is chosen when the
-   dialog comes back. **Create** makes the station and its modules, drawn on no page yet. **Draw on this page** puts
-   the station's box and each module's beside it in slot order on the schematic page shown, in rows under what is
-   drawn there, in one undo step (a module drawn already stays where it is); **Put it on a bus page** draws its bus
-   interface. A station part placed directly from the device browser opens
-   the same rack at once. On a bus-topology page, the Bus panel or a schematic page, right-click a bus device that
-   belongs to no PLC and choose **Add to** and the PLC (or **Add to a new PLC**): it becomes a station of that PLC and
-   its rack opens; a part without PLC data gets an open rack whose modules you add. A switch or a plug takes no part.
-   A station's menu says **PLC:** and its name, and offers **Rack…**.
+| Word | What it is |
+|---|---|
+| PLC | One controller's configuration, shown as PLC1 in the PLC panel: what a CPU and its remote stations share. |
+| Station | A CPU or a remote I/O head with the modules it carries; a valve terminal with a bus node is one too. TIA Portal calls it a device in its network view. |
+| Rack | The row of slots of a station. |
+| Slot | A place in the rack, numbered from 1. The slot order gives the addresses. |
+| Module | An I/O card in a slot (the window says module). |
+| Channel | One input or output of a module, such as I0.0: one row of the PLC grid and one pin of the module's box. |
+| Symbol | The PLC tag name of a channel, such as `Door_closed`, as in the PLC tag table. The drawing symbol of a device is another thing. |
 
-## Bus ports and nets
+## In TIA Portal you … here you …
 
-6. A station placed from the device browser on a bus-topology page stands there as its bus interfaces, a box each
-   with its sockets (the starter CPU as DP and X1), and without its supply pins, which are its box on a schematic
-   page. A station's port that is not drawn on the bus-topology page shown is offered on the station's row as **Place
-   port DP** (or **Place port X1** for PROFINET): it arms the Black box tool with that interface's box; two clicks
-   draw it. On another page the same entry places the port symbol joined to the station, for a port no function
-   carries yet. Draw the bus between the ports with **Draw ▸ Wire**, which draws bus lines on a
-   bus-topology page: the two ports become one network (a new one named for the bus, PROFIBUS DP, when neither has
-   one), with the CPU's port as its master. The starter parts hold a CPU with PROFINET and PROFIBUS DP, a remote I/O
-   head (a station of its own: attach its modules with **Attach modules without a station** on its row), an unmanaged and a
-   managed switch, a PROFINET device and a PROFIBUS and an Ethernet cable. Your own cards, stations, switches and
-   devices are made in the part editor: see [Make your own PLC or bus part](own-parts.md).
-7. Choose **Bus** on the rail for the nets: each logical net with its ports, each physical net with its segments and
-   their ends. Show it as a table to type a port's address or switch its termination: the cell's editor says the form
-   under it (a PROFIBUS DP station address such as `3`, a PROFINET device name and IP address such as `plc1
-   192.168.0.1`). Selected on the page, a port's symbol or box shows its function first in Properties, with the same
-   **Address** row. **Ports not drawn yet** lists
-   every interface a part gives a device that no page draws: Enter, or **Place port** in its menu, draws its box on
-   the bus-topology page shown.
+| In TIA Portal you … | Here you … |
+|---|---|
+| add a CPU in the device view | choose **New station** on the PLC tab and pick its head part |
+| plug modules into the rack from the catalogue | choose **Add module…** on a free slot of the station's rack |
+| move a module to another slot | use the arrows of its row in **Rack…**, or type the slot |
+| read the I/O addresses in the device overview | read the **Addresses** column of **Rack…**, or the PLC grid |
+| change a start address | type the address in the PLC grid, or choose **Re-address…** |
+| type the PLC tags | type each channel's **Symbol** in the PLC grid |
+| add an IO device in the network view | place its part on a bus-topology page |
+| connect it to the subnet | draw a bus line between the sockets with **Draw ▸ Connect ▸ Wire** |
+| assign an IO device to a controller | right-click it and choose **Add to** and the PLC |
+| set the PROFINET device name and IP address | type them into the **Address** cell of the Bus panel's table |
+
+The exchange of the hardware and the tags with the PLC software is at the end of this guide.
+
+## Open the workspace
+
+1. Choose **PLC** in the workspace switch at the right of the tab row, or **PLC workspace** on the PLC tab.
+2. **Schematic** in the switch goes back. A change you make to the layout is kept for the workspace.
+
+## Make a station
+
+1. Choose **New station** on the PLC tab (**PLC ▸ New station…**), or **+** in the PLC panel.
+2. Choose what it is: **PLC (CPU)**, **Remote I/O**, **Valve terminal** or **Compact device** (a hover says each in
+   full).
+3. Choose its **Head part**: the CPU, the interface module of a remote station, the valve terminal. **New part…**
+   beside it opens the part editor set for that kind, and the part you save is chosen when you come back.
+4. Choose the PLC it belongs to (a remote station: the PLC it serves), or **New PLC**.
+5. Choose **Add module…** on the free slot and pick a module; **How many** fills that many slots from there.
+6. Choose **Create**: the station and its modules are made in one step, drawn on no page yet.
+7. Choose **Draw on this page** to draw the station and its modules side by side in slot order on the schematic page
+   shown, or **Put it on a bus page** to draw its bus interface on the first bus-topology page.
+
+A station part placed straight from the device browser opens the same rack at once.
+
+## Change a rack
+
+1. Right-click the station (on the page, in the PLC panel) and choose **Rack…**, or choose **Rack** on the PLC tab.
+2. **Add module…** on a free slot adds modules; the arrows move a module up or down; the bin empties its slot;
+   **Replace…** gives it another part; typing a number into its slot field moves it there.
+3. A slot the module's part does not allow is refused, and the reason stays under the slots. When modules move, the
+   line under the slots says their addresses moved with them.
+
+## Put a module into a station
+
+1. A module drawn on a page by itself (from the device browser or the black box) joins the project's only station,
+   and its toast names the slot it got, with **Rack…**.
+2. With two stations it joins the one drawn beside it on its page; on a page without one, a window asks which station
+   takes it. Without any station, its toast offers **New station…**.
+3. A module that waits is listed under **Modules without a station** in the PLC panel: drag its row onto the station's
+   row, or right-click the station and choose **Attach modules without a station**.
+
+Only a module goes into a rack: a device whose part has no PLC data is refused in words.
+
+## Wire a field device to a channel
+
+1. Draw the device (a sensor, a lamp, a coil) on the page beside the module's box.
+2. Choose **Draw ▸ Connect ▸ Wire** (`W`) and wire it to the module's pin: pin 1 is channel 0.
+3. Or drag a channel's row from the PLC panel onto the device's connection point: the device is attached to the module
+   and the channel bound to it in one step, which one Undo takes back.
 
 ## Addresses
 
-8. Right-click a module and choose **Re-address…**, or a configuration project for all its modules: the Preview tab
-   lists each channel whose address moves, old and new, and **Apply** makes the change in one step.
-   **Make manual addresses automatic…** drops the manual addresses that equal the derived ones, and **Freeze
-   addresses…** on a configuration project keeps the address of every used or reserved channel as a manual one and
-   pins each card's start, so that a later change of a card moves none; a spare channel keeps its automatic address.
-   The configuration project's three commands are also in the **Addresses** menu at the top of the PLC panel and of
-   the PLC grid. After **Apply** a toast says how many addresses were frozen or moved, and a manual address (typed,
-   or frozen) carries the badge **manual** in the panel and a lock in the grid's Address cell.
+1. A channel's address comes from its module's slot and the modules before it: the first input module of a station
+   starts at I0.0, the first output module at Q0.0.
+2. To give one channel another address, type it into its **Address** cell in the PLC grid; it keeps it, with the
+   badge **manual** in the panel and a lock in the grid.
+3. Right-click a module and choose **Re-address…** (or the PLC row for all its modules): the Preview tab lists each
+   channel whose address moves, old and new; **Apply** makes the change in one step.
+4. Right-click the PLC row and choose **Freeze addresses…** to keep every used or reserved channel's address when
+   modules move later, or **Make manual addresses automatic…** to drop manual addresses that equal the automatic ones.
+   The three are also under **Addresses** on the PLC tab.
 
-## Rack and slots
+## The PLC grid and the symbols
 
-9. Right-click a station and choose **Rack…**. **Add module…** on a free slot adds modules; the arrows on a module's
-   row move it, the bin empties its slot, **Replace…** gives it another part; type another slot into a module's Slot
-   field to move it. A slot the module's part does not allow is refused, and the reason stays in the dialog.
+1. Choose **PLC grid** on the PLC tab (**PLC ▸ PLC grid**). Each row is a channel.
+2. Click a cell and type: the designation, address, symbol, state, target, comment, data type or signal range. The
+   slot cell takes a number or `<rack>.<slot>`.
+3. Type into the grid's filter to narrow the rows: a word of a cell, or one of `spare`, `unplaced`, `unassigned`,
+   `tbd`, `duplicate`, `safety`, `config:<name>` and `bus:<net>` (`bus:profibus-dp`). A click on a column's header
+   sorts by it.
+4. To have EW write the symbols, right-click the PLC row and choose **Symbol policy…**: the template of the automatic
+   symbol, the PLC tag table and whether symbols must be strict IEC 61131-3 names.
 
-## The PLC grid
+## Give a bus device to a PLC
 
-10. Each row of the grid is a channel. Type in a cell to change a channel's designation, address, symbol, state,
-   target, comment, data type or signal range; the slot cell takes a number or `<rack>.<slot>`. Safety data is set
-   with **Safety data…** and **Mode and safety…** (step 17).
-11. Type in the grid's filter to narrow the rows: a word of a cell, or one of `spare`, `unplaced`, `unassigned`,
-    `tbd`, `duplicate`, `safety`, `config:<name>` and `bus:<net>` (`bus:profibus-dp`). A click on a column's header
-    sorts by it, a second click reverses the order.
+1. On a bus-topology page, a schematic page or in the Bus panel, right-click a bus device that belongs to no PLC.
+2. Choose **Add to** and the PLC, or **Add to a new PLC**: it becomes a station of that PLC and its rack opens.
+
+A switch or a plug takes no part in a PLC; its menu says why. A station's menu says **PLC:** and its PLC's name.
+
+## Bus ports and nets
+
+A bus-topology page is the network view: each device stands as one box per bus interface (PROFINET X1, PROFIBUS DP),
+with a connection point per socket, and the bus lines run between the sockets. The device's power and I/O pins stay
+on the schematic pages.
+
+1. Choose **Bus page** on the PLC tab: the new-page form opens with the type **Bus topology**.
+2. Place a station or another bus device from the device browser (**Draw ▸ Place ▸ Device from part…**) with two clicks
+   for its box: it stands there as a box per interface, and a station's rack opens.
+3. A station drawn first on a schematic page gets its port box from **Place port DP** (or **Place port X1**) on its row
+   in the PLC panel; **Ports not drawn yet** in the Bus panel lists every interface no page draws yet.
+4. Draw the bus lines with **Draw ▸ Connect ▸ Wire**: the ports become one network, named for its bus, with the CPU's
+   port as its controller or master.
+5. Choose **Bus panel** on the PLC tab and switch it to its table. Type each node's address into its **Address** cell
+   as the cell says: a PROFIBUS DP station address such as `3`, a PROFINET device name with its IP address such as
+   `plc1 192.168.0.1`. The box prints it. An unmanaged switch passes the net through and takes none.
+6. Select a bus line and choose **Cable** on the Draw tab: choose the cable (the ones made for that bus first), its
+   length and the plug at each end with its termination, and **Apply**. The line prints the cable's tag; the cable and
+   the plugs go into the parts list.
+
+The starter parts hold a CPU with PROFINET and PROFIBUS DP, a remote I/O head, an unmanaged and a managed switch, a
+PROFINET device, PROFIBUS and Ethernet cables and their plugs. Your own devices with their ports are made in the part
+editor: see [Make your own PLC or bus part](own-parts.md).
 
 ## Exchange with the PLC software
 
-12. Choose **Export to PLC software** on the PLC tab (or **PLC ▸ Export to PLC software…**), pick the format
-    and choose **Export**, then the file: the dialog names it for the format (`.aml`, `.xlsx` or `.xml`), and the
-    document date starts as today's. Import the file in TIA Portal or CODESYS.
-13. Choose **Import from PLC software** on the PLC tab (or **PLC ▸ Import from PLC software…**) for the file the
-    PLC software wrote back. Look through its tabs; each conflict shows the side Apply takes, and offers the file's
-    value where it can be taken. Choose **Apply**.
-14. After an import, the module starts, the symbols or the PLC data the PLC software owns are protected. Right-click
-    the configuration project and choose **Unlock module starts** (or the other group) to edit them in the project.
-15. Right-click the configuration project and choose **Import instrument list…** for a CSV or workbook of process tags
-    and signal types: the Preview tab lists the spare channels it reserves and the tags left open. Choose **Apply**.
+1. Choose **Export to PLC** on the PLC tab (**PLC ▸ Export to PLC software…**) and pick the format: **AutomationML AR
+   APC 1.4.0** (or 1.2.0) carries the stations, their modules, addresses and symbols to TIA Portal; **TIA Portal PLC
+   tags (XLSX)** carries the tag table; **PLCopen XML (CODESYS)** is for CODESYS. Choose **Export**, then the file.
+2. Choose **Import from PLC** on the PLC tab (**PLC ▸ Import from PLC software…**) for the file the PLC software wrote
+   back. Look through its tabs: each conflict shows the side **Apply** takes, and offers the file's value where it can
+   be taken. Choose **Apply**.
+3. After an import, what the PLC software owns (the module starts, the symbols or the PLC data) is protected:
+   right-click the PLC row and choose **Unlock module starts** (or the other group) to edit it here again.
+4. Right-click the PLC row and choose **Import instrument list…** for a list of process tags and signal types (CSV or
+   workbook): the Preview tab lists the spare channels it reserves.
 
 ## Settings
 
-16. Right-click the configuration project and choose **Symbol policy…** for the template of the automatic symbol, the
-    PLC tag table and whether symbols are strict IEC 61131-3 identifiers.
-17. Right-click a module and choose **Safety data…** for its F-source and F-destination address and its F-watchdog
-    time; right-click a channel and choose **Mode and safety…** for a multi-function port's mode and the channel's
-    safety evaluation and requirement.
-18. Choose **Process-tag scheme** on the PLC tab for the pattern process tags follow, and **Addresses at
-    terminals** to print a channel's address at the terminals on its path.
+- **Process-tag scheme** on the PLC tab: the pattern process tags follow.
+- **Addresses at terminals** on the PLC tab: each channel's address printed at the terminals on its path.
+- Right-click a module and choose **Safety data…** for its F-addresses and F-watchdog time; right-click a channel and
+  choose **Mode and safety…** for a multi-function port's mode and the channel's safety data.
 
-The panels are described in the [panel reference](../reference/window/panels.md): PLC, PLC grid and Bus; the dialog in the
-[dialog reference](../reference/window/dialogs.md): Rack and slots and PLC import.
+The panels are described in the [panel reference](../reference/window/panels.md) (PLC, PLC grid, Bus), and the dialogs
+in the [dialog reference](../reference/window/dialogs.md) (Rack and slots, PLC import).

@@ -1002,6 +1002,9 @@ fn the_how_to_and_explanation_pages_name_the_windows_menu_paths() {
         "how-to/upgrade-a-project.md",
         // FT-1687: the panel layout's how-to.
         "how-to/panel-layout.md",
+        // rc.2 (F16): the PLC and the fluid guides.
+        "how-to/plc-workspace.md",
+        "how-to/fluid-workspace.md",
         "explanation/eplan-and-ew.md",
         "explanation/qet-and-ew.md",
         // M25-p3#9: the symbol editor's reference names the window's menu paths.

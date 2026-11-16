@@ -14,7 +14,7 @@ belongs there.
 | `book.toml` | the mdBook configuration (title, language, offline HTML output) |
 | `src/SUMMARY.md` | the table of contents; the entries below `reference/commands/index.md` and `reference/rules/index.md` are generated |
 | `src/introduction.md` | what the guide is and how it is organised |
-| `src/tutorials/` | lessons, each run as a test of the build (WP-S7.05 D10, D11): [a first schematic page](src/tutorials/first-page.md), [a terminal strip and a cable](src/tutorials/terminal-strip-and-cable.md), [reports and PDF](src/tutorials/reports-and-pdf.md), [importing a QElectroTech project](src/tutorials/import-qet.md) and [a six-pin power block](src/tutorials/symbol-editor.md); `files/` holds the files a tutorial starts from. The command line's how-to, [use the command line on the golden project](src/how-to/headless-workflow.md), runs as a test too |
+| `src/tutorials/` | lessons, each run as a test of the build (WP-S7.05 D10, D11): [a first schematic page](src/tutorials/first-page.md), [a terminal strip and a cable](src/tutorials/terminal-strip-and-cable.md), [reports and PDF](src/tutorials/reports-and-pdf.md), [importing a QElectroTech project](src/tutorials/import-qet.md), [a six-pin power block](src/tutorials/symbol-editor.md), [a PLC with its modules](src/tutorials/plc-station.md), [a bus network](src/tutorials/bus-network.md) and [a pneumatic circuit](src/tutorials/pneumatic-circuit.md); `files/` holds the files a tutorial starts from, `images/` its pictures. The command line's how-to, [use the command line on the golden project](src/how-to/headless-workflow.md), runs as a test too |
 | `po/` | the PO template `messages.pot` of the hand-written pages and the table of contents, and `nl.po`, the Dutch translation (WP-S7.05 D14) |
 | `tutorial-scripts/` | the UI script of each window tutorial (`ew.uiscript/1`), run by `elektrawatt`'s `tutorials` test, which also checks the page's menu paths and keys against the window (T6) |
 | `rule-notes/` | the hand-written notes of every shipped rule, one file per rule ID with six headings; `docs-gen` joins them into the rule pages and fails without them (WP-S7.05 D5) |
@@ -67,6 +67,10 @@ $ cargo xtask docs-gen
   because the built book does not contain them. `ci/check-book-links.py` checks that such a link names an existing
   file and heading. Link pages of the book with relative `.md` paths.
 - Say plainly when something is not built yet.
+- A picture (`src/*/images/`) is a frame of the window painted offscreen at 1920 × 1080 from the page's tutorial
+  script with frame lines added (`elektrawatt --headless --script <s> --visual --frames <dir> --window 1920x1080
+  --ppp 1`; the frame lines are described in `crates/ew-ui/src/visual.rs`), cut to the part it shows, with a text
+  alternative. Paint it again when the window it shows changes.
 
 ## Translation
 

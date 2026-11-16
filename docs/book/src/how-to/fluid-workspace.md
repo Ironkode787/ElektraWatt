@@ -1,94 +1,104 @@
 # Work in the Fluid workspace
 
-The Fluid workspace shows a project's pneumatics beside its pages: the fluid navigator in the left column, the page in
-the middle, and the tube table and the medium table in the bottom dock.
+This guide is where you look up one pneumatics job. To learn the jobs in order, follow the tutorial
+[A pneumatic circuit](../tutorials/pneumatic-circuit.md) first.
 
-## Open it
+EW draws pneumatic circuits on fluid pages with the ISO 1219 symbols, beside the electrical pages of the same project.
+It knows which medium each tube carries, which tube runs from which port to which, and which valve each solenoid
+belongs to, so the solenoid drawn on an electrical page and the valve on the fluid page are one device, and the tube
+list is made from the drawing.
 
-1. Choose **Fluid power** in the workspace switch at the right of the tab row, or **Fluid workspace** at the end of
-   the **Fluid** tab. **Schematic** in the switch goes back; a change you make to the layout is kept for the
-   workspace. The **Fluid** tab holds a button for each fluid command: Fluid page, Tube, Fluid symbol, Valve
-   terminal, Air supply, the media, the tube table and this guide.
+The Fluid workspace shows the pneumatics beside the page:
 
-## Valves and tubes
+![The Fluid workspace: the Fluid panel, the fluid page, the tube and medium tables, the Fluid tab](images/fluid-workspace.png)
 
-2. The fluid navigator lists each valve terminal with its modules and valves, and every other device a tube ends at,
-   each with its tubes. Select a tube's row to find it on the page. Its table mode (the Table toggle) lists the tubes.
-3. Draw a tube with **Draw ▸ Wire** on a fluid page, or choose **Tube** on the Fluid tab to pick its line kind first
-   (Pilot, Exhaust, Drain, Flexible). A symbol placed with a fluid port facing a free port is joined to it with a tube.
-   Right-click a tube to change its line kind (**Line kind: Working**, **Line kind: Pilot** and the others) or its
-   medium; a flexible tube is drawn as an arc.
+- the **Fluid** tab of the command bar at the top, with a button for each fluid job;
+- the **Fluid panel** at the left: the valve terminals with their valves, every device a tube ends at with its tubes,
+  and the media;
+- **Properties** under it, for what is selected;
+- the fluid page in the middle;
+- the **Tube table** and the **Medium table** under the page.
 
-## Solenoids
+## The words
 
-4. Right-click a solenoid valve on its fluid page and choose **Draw solenoid 14 on an electrical page…**: the
-   electrical page shows with the coil's symbol on the pointer; click where it goes. It is the valve's own coil, not a
-   device of its own. The valve's menu then reads **Go to solenoid 14 at** and the place, its Properties list each
-   solenoid with where it is drawn and the PLC output that drives it, and the coil's Properties and menu name its
-   valve (**Solenoid 14 of -201Q1**).
-5. A coil placed on its own joins a valve when you type the valve's tag into the coil's **Tag**: the field asks
-   whether to make it the valve's undrawn solenoid, or says what the valve has free when nothing fits.
+| Word | What it is |
+|---|---|
+| Fluid page | A page for the circuit: the symbols are ISO 1219 and the Wire tool draws tubes. |
+| Medium | What the tubes carry, such as compressed air at 6 bar. It is defined at the air supply and reaches every tube the supply feeds through the valves. |
+| Tube | A line between two ports, with its line kind (working, pilot, exhaust, drain, flexible), size and material. |
+| Solenoid | The coil of a valve. It belongs to the valve and is drawn on an electrical page, where it is wired. |
+| Valve terminal | A manifold of valve positions, drawn as its positions; a position holds a valve or a blanking plate. |
+
+## Open the workspace
+
+1. Choose **Fluid power** in the workspace switch at the right of the tab row, or **Fluid workspace** on the Fluid tab.
+2. **Schematic** in the switch goes back. A change you make to the layout is kept for the workspace.
+
+## Draw a circuit
+
+1. Choose **Fluid page** on the Fluid tab: the new-page form opens with the type **Fluid**.
+2. Choose **Air supply** on the Fluid tab for the supply point and its preparation (service unit, filter, regulator,
+   lubricator), **Fluid symbol** for any ISO 1219 symbol, or **Draw ▸ Place ▸ Device from part…** for a valve, cylinder
+   or flow control with its part. On a fluid page the symbol browser offers the fluid symbols and greys the rest.
+3. A symbol placed with a port facing a free port is joined to it with a tube; hold `Alt` as you click to place it
+   without one. `R` before the click turns it.
+4. Draw the tubes with **Draw ▸ Connect ▸ Wire**, or choose **Tube** on the Fluid tab to pick the line kind first.
+5. Right-click a tube to change its line kind (**Line kind: Working**, **Line kind: Pilot** and the others) or its
+   medium. A flexible tube is drawn as an arc.
+
+## The medium
+
+1. Choose **New medium** on the Fluid tab (**Fluid ▸ New medium…**). Under **Start from** pick a usual medium, such as
+   **Compressed air** (which fills the name and 6 bar), or type a name and the pressure in bar, and choose **Create**.
+   Each field says under it what it changes.
+2. Select the air supply and choose the medium in its **Medium** row in Properties, or right-click it and choose
+   **Medium:** and the medium.
+3. Every tube the supply feeds through the valves carries it; a device's Properties show the medium each port carries,
+   and say where to set it when it carries none.
+4. Select a medium's row in the Medium table and press `Ctrl+Shift+H` to highlight its zones on the page, in a colour
+   with a hatch pattern.
+
+## The solenoid of a valve
+
+1. Select a solenoid valve on its fluid page. Its Properties list each solenoid, such as **Solenoid 14**, with where it
+   is drawn and the PLC output that drives it.
+2. Click "draw it…" in that row, or right-click the valve and choose **Draw solenoid 14 on an electrical page…**: the
+   electrical page shows with the coil on the pointer; click where it goes. The coil carries the valve's tag.
+3. Wire the coil to a PLC output. The valve's menu then reads **Go to solenoid 14 at** and the place.
+4. A coil placed on its own joins a valve when you type the valve's tag into the coil's **Tag**: the field asks whether
+   to make it the valve's undrawn solenoid.
 
 ## Valve terminals
 
-6. To start a valve terminal, choose **Draw ▸ Device**, find **Valve terminal with bus node, 4 valve positions, 8 outputs** under
-   **Valve terminals** (or type "valve terminal") and click once where its top-left corner goes. It is drawn as its
-   positions: a supply end on the left, then one cell per valve position in a row, numbered in the sub-base along the
-   bottom. An empty position is a dashed cell, a blanking plate a plate with both diagonals. It is a valve terminal
-   because its part has valve positions: the fluid navigator lists it under **Valve terminals**.
-7. Click an empty cell, or right-click it and choose **Fill position 2…**: the device browser opens with the valves for
-   a valve terminal only, and the valve you choose stands in that cell, at that position. A valve placed into a cell
-   from **Symbol** or **Device** takes that cell's position; a valve of the terminal dragged onto another cell moves
-   there, onto a held cell the two swap. The toast names the position. A valve with a coil of its own to wire (a
-   stand-alone valve), a coil or a cylinder dropped into the box is not taken as a position: it stays a device of its
-   own, and the toast says so. A valve's **Valve position** in Properties moves it to another position; a position
-   another valve holds offers **Swap** in the toast. The supply plate **Valve terminal supply plate, ports 1, 3 and 5**
-   placed into the box stands in the supply end: a tube to its port 1 feeds every valve of the terminal.
-8. Right-click a held cell: **Replace at position 2…**, **Empty position 2** and **Blanking plate at position 2**. A
-   valve's row offers **Set spare** or **Set used**, **Blank position** and **Plug port** for each working port that
-   has no line; the terminal's row adds a valve or a blanking plate at each empty position (**Add valve at position**,
-   **Blank position**). The rack dialog (**Rack…**) lists the terminal's positions as rows with **Fill…**,
-   **Blanking plate** and **Empty**. A terminal drawn before this version as a free box keeps it: its box's menu offers
-   **Draw as slots**, previewed, which redraws it as its positions and moves its valves on that page into their cells
-   with their tubes; its Properties list the **Valve positions**.
-   There are two kinds, and the terminal's menu says which: a **valve terminal with bus node** is a PLC station (the
-   outputs that drive its solenoids are inside it, nothing is wired per solenoid); a **multipin valve terminal**
-   (**Multipin valve terminal, 8 valve positions, 25-pin plug**) has no station: on an electrical page its row's menu
-   offers **Draw the plug of -201K1 on this page…**, a box with pins 1 to 16 and the common 25. Beside each pin stands
-   what it carries (**-201K1-Q1 14**, or **2 · 14** for an empty position, **COM** for the common). Wire a pin to an
-   output of a PLC card: that output drives the solenoid, the valve on the fluid page shows its address, and the check
-   no longer says the solenoid has no output. A valve's solenoid on a terminal is never
-   drawn: its Properties say **driven by output Q0.0 of -201K1** or **pin 3 of the plug of -201K1**, and its menu has
-   **Go to the output of solenoid 14** (the channel in the PLC list) or the way to its plug pin.
-9. Right-click the valve terminal's box or row and choose **Generate overview…**; from the command search it acts on
-   the selected terminal and says so while none is selected. The Preview tab lists which modules stand on which
-   overview page, and the pages it adds where the frame is full; the tags that change with a page are listed below.
-   Choose **Apply**. A new overview page is titled by the terminal, such as **Valve terminal -201A1**: its modules
-   stand in a strip inside the frame, each valve position on top with the valve's part number, a blank position
-   crossed. Run it again after adding a module: it refreshes the pages.
+There are two kinds, and the terminal's menu says which:
 
-## Tubes
+- a **valve terminal with bus node** is a PLC station on the bus: its valves are driven inside it, each by the output
+  its position gives, and nothing is wired per solenoid;
+- a **multipin valve terminal** has a multipin plug: each solenoid is wired from a PLC output to a pin of the plug.
 
-10. The tube table has one row per tube. Type a length in millimetres into **Length** (or with its unit: `2 m`, `35 cm`;
-   in Properties the row is **Tube length (mm)**) or a tube part into **Tube part**; **Source** then says the value is
-   manual. Leave a cell empty to take the derived value again. A tube's
-   **Tube part** in Properties offers the tube parts, such as the starter tubes PU 6 × 4, 8 × 6 and 10 × 8 mm.
-11. Choose **Fluid settings** on the Fluid tab for the default tube of every line (its outer and inner diameter in mm and
-   its material) and to tag tubes by page and counter. A toast says what the default tube is now; it reaches the
-   tubes drawn already. A tube is specified with its size and its material: without a material, the check names it.
+1. Choose **Valve terminal** on the Fluid tab and choose the terminal, such as **Valve terminal with bus node, 4 valve
+   positions, 8 outputs**; click once where its top-left corner goes. It is drawn as its positions: a supply end, then
+   one numbered cell per position. An empty position is a dashed cell, a blanking plate a plate with both diagonals.
+2. Click an empty cell, or right-click it and choose **Fill position 2…**: the device browser opens with valves; choose
+   a valve for a valve terminal, and it stands in that cell with its output.
+3. Right-click a held cell for **Replace at position 2…**, **Empty position 2** and **Blanking plate at position 2**.
+   A valve dragged onto another cell moves there; onto a held cell the two swap. A valve's **Valve position** in
+   Properties moves it too.
+4. A stand-alone valve, a coil or a cylinder dropped into the box is not taken as a position: it stays a device of its
+   own, and the toast says so.
+5. On a multipin terminal, right-click its row on an electrical page and choose **Draw the plug of -201K1 on this
+   page…**: beside each pin stands the valve and solenoid it drives. Wire a pin to a PLC output, and the valve on the
+   fluid page shows that output.
+6. The rack dialog (**Rack…**) lists the terminal's positions as rows with **Fill…**, **Blanking plate** and **Empty**.
+   **Generate overview…** on the terminal's menu makes the overview pages of its modules and valves, previewed.
 
-## Media
+## Tubes and the tube list
 
-12. Choose **New medium** on the Fluid tab, or **New medium…** at the top of the Fluid panel beside **Fluid settings…**,
-    pick a usual medium under **Start from** (such as **Compressed air**, which fills the name and 6 bar) or give the
-    medium a name and its pressure in bar, and choose **Create**. Each field of this form and of **Fluid settings…**
-    says under it what it changes.
-13. Right-click a tube and choose **Medium:** with the medium's name: the tube's net and every net the medium
-    reaches through the valves carry it. The fluid navigator counts the tubes of each medium. A tube's **Medium** in
-    Properties shows the medium and where it is defined, and sets it too, on every tube selected; its list ends in
-    **New medium…**, which makes one and gives it to the tubes. Its **Tube** row shows the tube it is made of (such as
-    6×4 mm PU) and where that comes from. The air supply's Properties show the medium it supplies, and set it there.
-14. Select the medium's row in the medium table and press `Ctrl+Shift+H` to highlight its zones on the page; the
-    highlight is a colour with a hatch pattern, so it reads without colour too.
+1. Choose **Fluid settings** on the Fluid tab for the default tube of every line: its outer and inner diameter in mm
+   and its material. A toast says what the default tube is now; it reaches the tubes drawn already.
+2. Choose **Tube table** on the Fluid tab: one row per tube with its two ends, medium, line kind, size and material.
+3. Type a length into **Length** (in mm, or with its unit: `2 m`, `35 cm`) or a tube part into **Tube part**;
+   **Source** then says the value is manual. An empty cell goes back to the derived value.
+4. To print the tube list, choose **Output ▸ Report block…** and the report **Tube list**.
 
 The panels are described in the [panel reference](../reference/window/panels.md): Fluid, Tube table and Medium table.
