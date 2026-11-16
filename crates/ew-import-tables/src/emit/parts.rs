@@ -480,6 +480,7 @@ pub(crate) fn emit(
             alternatives: Vec::new(),
             configured: None,
             macros: Vec::new(),
+            box_: None,
             extra: Default::default(),
         };
         let item_id = record_id::<LibItem>("parts", &key);

@@ -905,6 +905,7 @@ impl ShellModel {
         let mut part_letter = None;
         let mut part_cps: Vec<(u16, String)> = Vec::new();
         let mut part_outputs: Vec<u16> = Vec::new();
+        let mut part_layout = None;
         let (row_index, part) = match &pick {
             Pick::Symbol(i) | Pick::Function(_, i) | Pick::Join(_, i) => (*i, None),
             Pick::PartFn(pi, fi) => {
@@ -917,6 +918,7 @@ impl ShellModel {
                 // the starter symbol row instead), so the CPs are kept apart from that test (row 4).
                 part_cps = f.cps.clone();
                 part_outputs = f.outputs.clone();
+                part_layout.clone_from(&f.layout);
                 if f.black_box {
                     box_cps = Some(f.cps.clone());
                 }
@@ -1036,6 +1038,7 @@ impl ShellModel {
                         number,
                         cps: part_cps,
                         outputs: part_outputs,
+                        layout: part_layout,
                     }
                 }
                 None => {

@@ -638,6 +638,8 @@ struct Project {
 pub struct ShellModel {
     symbol_editor: Option<symbol_editor::SymbolEditor>,
     symbol_editor_generation: u64,
+    /// What the symbol editor's Copy and Cut hold, from one draft to the next.
+    symbol_clipboard: symbol_editor::Clipboard,
     mode: Mode,
     config: ShellConfig,
     settings: Settings,
@@ -1202,6 +1204,7 @@ impl ShellModel {
             macros: macros::MacroState::default(),
             symbol_editor: None,
             symbol_editor_generation: 0,
+            symbol_clipboard: symbol_editor::Clipboard::default(),
             dispatch_log: None,
             person: mode == Mode::Gui,
             revision: revision::RevisionState::default(),

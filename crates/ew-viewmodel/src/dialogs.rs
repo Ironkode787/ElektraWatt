@@ -355,7 +355,10 @@ fn symbol_discard_spec(pending: &crate::shell::Pending, model: &ShellModel) -> D
             key!("symbol-confirm-title"),
             &[&model
                 .kept_symbol_editor()
-                .map(|e| crate::shell::symbol_editor::name_words(&e.draft.symbol.name))
+                .map(|e| match e.device_box().filter(|b| b.dirty()) {
+                    Some(b) => b.title(),
+                    None => crate::shell::symbol_editor::name_words(&e.draft.symbol.name),
+                })
                 .unwrap_or_default()],
         ),
         body: vec![

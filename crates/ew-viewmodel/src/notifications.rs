@@ -56,6 +56,8 @@ pub enum NoteAction {
     SelectUnlisted,
     /// Draw the wire a placement offered for a far autoconnect hit instead of drawing it (rc.2).
     Connect,
+    /// Redraw the boxes of a part whose device box was changed (rc.3): each as the part lays it out now.
+    RedrawBoxes,
 }
 
 impl NoteAction {
@@ -76,6 +78,7 @@ impl NoteAction {
             NoteAction::ItemNumbers => "item_numbers",
             NoteAction::SelectUnlisted => "select_unlisted",
             NoteAction::Connect => "connect",
+            NoteAction::RedrawBoxes => "redraw_boxes",
         }
     }
 
@@ -96,6 +99,7 @@ impl NoteAction {
             "item_numbers" => Some(NoteAction::ItemNumbers),
             "select_unlisted" => Some(NoteAction::SelectUnlisted),
             "connect" => Some(NoteAction::Connect),
+            "redraw_boxes" => Some(NoteAction::RedrawBoxes),
             _ => None,
         }
     }
@@ -117,6 +121,7 @@ impl NoteAction {
             NoteAction::ItemNumbers => key!("layout-show-item-numbers"),
             NoteAction::SelectUnlisted => key!("note-action-select-unlisted"),
             NoteAction::Connect => key!("note-action-connect"),
+            NoteAction::RedrawBoxes => key!("box-redraw"),
         }
     }
 }

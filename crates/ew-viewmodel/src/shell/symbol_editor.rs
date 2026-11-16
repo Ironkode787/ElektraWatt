@@ -10,6 +10,13 @@ use ew_api::symbols::{self, SymbolDraft};
 use serde_json::{Map, Value, json};
 use std::path::{Path, PathBuf};
 
+mod device_box;
+mod selection;
+mod sheet;
+pub use device_box::{DeviceBox, PinLine, SIDES, side_word};
+pub use selection::{Clipboard, Item, bounds, grips, role_words};
+pub use sheet::{Outline, OutlineGroup, OutlineRow, RowValue, Sheet, SheetRow, Todo, WHAT, trim_mm};
+
 /// The editor's drawing tools, in the order of its bar.
 pub const TOOLS: [&str; 13] = [
     "select",
@@ -25,6 +32,33 @@ pub const TOOLS: [&str; 13] = [
     "link",
     "polyline",
     "polygon",
+];
+
+/// The drawing grids offered, each as nanometres per steps (0.5, 1, 2 and 4 mm and QElectroTech's 10 px), the first
+/// the default (FT-1690). Connection points keep to the symbol's connection grid whatever is chosen.
+pub const GRID_STEPS: [(i64, i64); 5] = [
+    (500_000, 1),
+    (1_000_000, 1),
+    (2_000_000, 1),
+    (4_000_000, 1),
+    (7_937_500, 3),
+];
+
+/// The potential roles a connection point takes, in the role list's order after "None".
+pub const ROLES: [&str; 13] = [
+    "l1",
+    "l2",
+    "l3",
+    "l",
+    "n",
+    "pe",
+    "pen",
+    "fe",
+    "l_plus",
+    "l_minus",
+    "m",
+    "signal",
+    "undefined",
 ];
 
 /// The disciplines a symbol is drawn for, in the order the editor's Discipline list offers them (rc.2, F9).
@@ -57,6 +91,21 @@ pub const TOOL_KEYS: [(&str, &str); 5] = [
     ("rectangle", "tool.black_box"),
     ("text", "tool.text"),
     ("cp", "tool.ip"),
+];
+
+/// The page's editing keys that act on the editor's selection while the editor shows (rc.3: what a person learned on
+/// a page works here): the main window's action whose key it is, the editor's action, and the direction of an arrow.
+pub const EDIT_KEYS: [(&str, &str, (i8, i8)); 10] = [
+    ("edit.delete_selection", "symbol.delete", (0, 0)),
+    ("edit.cut", "symbol.cut", (0, 0)),
+    ("edit.copy", "symbol.copy", (0, 0)),
+    ("edit.paste_clip", "symbol.paste", (0, 0)),
+    ("edit.duplicate", "symbol.duplicate", (0, 0)),
+    ("edit.select_all", "symbol.select", (0, 0)),
+    ("cursor.left", "symbol.nudge", (-1, 0)),
+    ("cursor.right", "symbol.nudge", (1, 0)),
+    ("cursor.up", "symbol.nudge", (0, -1)),
+    ("cursor.down", "symbol.nudge", (0, 1)),
 ];
 
 /// The files the symbol editor opens or imports, as its file picker offers them: the authoring JSON,
@@ -134,6 +183,21 @@ pub struct SymbolEditor {
     pub functions: Vec<SymbolFunctionChoice>,
     /// The discipline chosen last, which a symbol without connection points is drawn for.
     chosen_discipline: Option<&'static str>,
+    /// What is selected in the drawing, in the order it was selected: the outline's rows, the drawing and Properties
+    /// show the same things.
+    pub selection: Vec<Item>,
+    /// The drawing grid lines, shapes, texts and link points snap to: an index into [`GRID_STEPS`]. The person's
+    /// choice for the session, kept from one draft to the next.
+    pub grid: usize,
+    /// Whether the drawing tools snap to the drawing grid (off: to 0.01 mm).
+    pub snap: bool,
+    /// Counts the changes of the draft, so the window reads what it measured of the drawing again.
+    pub revision: u64,
+    /// Whether the start card shows in the drawing's place: the ways in (a new symbol, a copy of a library symbol, a
+    /// device box, an import) and the symbols edited lately.
+    pub start: bool,
+    /// A part's device box, edited in the drawing's place; the symbol draft waits under it.
+    device_box: Option<DeviceBox>,
 }
 
 /// A library or project symbol that Edit symbol or Copy and edit opens (FT-1694).
@@ -203,7 +267,21 @@ impl SymbolEditor {
             sources: Vec::new(),
             functions: Vec::new(),
             chosen_discipline: None,
+            selection: Vec::new(),
+            grid: 0,
+            snap: true,
+            revision: 0,
+            start: false,
+            device_box: None,
         }
+    }
+
+    /// Whether the editor holds work: a draft with something drawn, with unsaved changes, or one of a library.
+    pub fn in_hand(&self) -> bool {
+        self.dirty()
+            || self.stored
+            || !self.draft.symbol.graphics.is_empty()
+            || !self.draft.symbol.cps.is_empty()
     }
 
     /// The discipline the symbol is drawn for (one of [`DISCIPLINES`]): the one most of its function's pins have (the
@@ -232,7 +310,7 @@ impl SymbolEditor {
     }
     /// Whether the draft differs from its last saved state: a new, forked or imported draft is not, until edited.
     pub fn dirty(&self) -> bool {
-        self.saved.as_ref() != Some(&self.draft)
+        self.saved.as_ref() != Some(&self.draft) || self.device_box.as_ref().is_some_and(DeviceBox::dirty)
     }
     /// Whether the draft, unchanged, was exported or published; an unedited new or imported draft is in no library.
     pub fn stored(&self) -> bool {
@@ -240,6 +318,15 @@ impl SymbolEditor {
     }
     /// The key of the words naming the draft's state: unsaved changes, saved, or not saved yet.
     pub fn state_key(&self) -> strings::Key<'static> {
+        if let Some(b) = &self.device_box {
+            return if b.dirty() {
+                key!("symbol-dirty")
+            } else if b.draft.new {
+                key!("symbol-not-saved")
+            } else {
+                key!("symbol-saved")
+            };
+        }
         if self.dirty() {
             key!("symbol-dirty")
         } else if self.stored {
@@ -258,11 +345,17 @@ impl SymbolEditor {
     }
     /// Whether editor undo is available.
     pub fn can_undo(&self) -> bool {
-        !self.undo.is_empty()
+        match &self.device_box {
+            Some(b) => b.can_step(false),
+            None => !self.undo.is_empty(),
+        }
     }
     /// Whether editor redo is available.
     pub fn can_redo(&self) -> bool {
-        !self.redo.is_empty()
+        match &self.device_box {
+            Some(b) => b.can_step(true),
+            None => !self.redo.is_empty(),
+        }
     }
     fn replace(&mut self, mut draft: SymbolDraft) {
         // A key made from the name follows a new name; a key left empty is made from the name again.
@@ -281,6 +374,32 @@ impl SymbolEditor {
         }
         self.redo.clear();
         self.error = None;
+        // A change of the draft is work in hand: the start card gives way to it.
+        self.start = false;
+        self.revision = self.revision.wrapping_add(1);
+        self.prune_selection();
+    }
+}
+
+/// The name of `draft`'s symbol in the window's language.
+pub fn display_name(draft: &SymbolDraft) -> String {
+    name_words(&draft.symbol.name)
+}
+
+impl SymbolSource {
+    /// The symbol as a list names it: its name, and where it is from (its library, or "Project copy"), with "QET" for
+    /// one on QElectroTech's grid.
+    pub fn words(&self) -> (String, String) {
+        let from = self
+            .library
+            .clone()
+            .unwrap_or_else(|| words(key!("symbol-project-copy")));
+        let from = if self.grid == symbols::units::Grid::QET_10PX {
+            strings::format(key!("symbol-source-qet-grid"), &[&from])
+        } else {
+            from
+        };
+        (name_words(&self.name), from)
     }
 }
 
@@ -494,14 +613,21 @@ impl ShellModel {
         };
         match result {
             Ok(()) => {
-                if matches!(action, "place" | "scratch") {
+                // A device box's test arms the Device tool instead (its own message says so).
+                let boxed = self
+                    .kept_symbol_editor()
+                    .is_some_and(|e| e.device_box().is_some());
+                if matches!(action, "place" | "scratch") && !boxed {
                     self.after_test_placement(action == "scratch");
                 }
                 Outcome::Done
             }
             Err(message) => {
                 if let Some(editor) = &mut self.symbol_editor {
-                    editor.error = Some(message.clone());
+                    match &mut editor.device_box {
+                        Some(b) => b.error = Some(message.clone()),
+                        None => editor.error = Some(message.clone()),
+                    }
                 }
                 failed(key!("symbol-operation-failed"), &[&message])
             }
@@ -648,6 +774,7 @@ impl ShellModel {
                 Some(folder) => {
                     editor.directory = folder.to_string_lossy().into_owned();
                     editor.stored = true;
+                    self.settings.record_symbol_edit(text(&params, "source"));
                 }
                 // A copy is a new item: no identity of its source, so Save gives it a free key of its name.
                 None => {
@@ -777,11 +904,21 @@ impl ShellModel {
     }
 
     fn symbol_operation(&mut self, action: &str, p: &Map<String, Value>) -> Result<(), String> {
+        // While a device box is edited, the editor's actions are the box's.
+        if let Some(done) = self.box_operation(action, p) {
+            return done;
+        }
         if matches!(action, "new" | "open" | "fork" | "close") {
             return self.symbol_open_close(action, p);
         }
+        if action == "start" {
+            return self.symbol_start(p);
+        }
         if action == "scratch" {
             return self.symbol_scratch();
+        }
+        if action == "prop" {
+            return self.symbol_prop(p);
         }
         let configured_libraries = self.configured_libraries();
         // The paths are resolved, and an empty one refused, before the draft is borrowed.
@@ -820,12 +957,16 @@ impl ShellModel {
                 if let Some(d) = editor.undo.pop() {
                     editor.redo.push(std::mem::replace(&mut editor.draft, d));
                     editor.error = None;
+                    editor.revision = editor.revision.wrapping_add(1);
+                    editor.prune_selection();
                 }
             }
             "redo" => {
                 if let Some(d) = editor.redo.pop() {
                     editor.undo.push(std::mem::replace(&mut editor.draft, d));
                     editor.error = None;
+                    editor.revision = editor.revision.wrapping_add(1);
+                    editor.prune_selection();
                 }
             }
             "tool" => {
@@ -848,6 +989,27 @@ impl ShellModel {
                 }
                 editor.error = None;
             }
+            "select" => editor.select(p)?,
+            "move" => editor.move_selection(p, false)?,
+            "nudge" => editor.move_selection(p, true)?,
+            "delete" => editor.delete_selection()?,
+            "copy" => self.symbol_clipboard = editor.copied()?,
+            "cut" => {
+                self.symbol_clipboard = editor.copied()?;
+                editor.delete_selection()?;
+            }
+            // What was pasted is what the next paste copies, so each paste lands a step further.
+            "paste" => {
+                editor.paste(&self.symbol_clipboard)?;
+                self.symbol_clipboard = editor.copied()?;
+            }
+            "duplicate" => {
+                let clip = editor.copied()?;
+                editor.paste(&clip)?;
+            }
+            "align" => editor.align(p)?,
+            "grip" => editor.grip(p)?,
+            "grid" => editor.set_grid(p)?,
             "draw" => Self::symbol_draw(editor, p)?,
             "cp" => Self::symbol_cp(editor, p)?,
             "slot" => Self::symbol_slot(editor, p)?,
@@ -915,12 +1077,51 @@ impl ShellModel {
             .map(|p| p.to_string_lossy().into_owned())
             .unwrap_or_default();
         let mut editor = SymbolEditor::new(draft, dir);
+        if let Some(before) = &self.symbol_editor {
+            (editor.grid, editor.snap) = (before.grid, before.snap);
+        }
         self.symbol_editor_generation = self.symbol_editor_generation.wrapping_add(1);
         editor.generation = self.symbol_editor_generation;
         editor.candidates = candidates;
+        // Opened with nothing in hand and nothing named, the editor shows the ways in first.
+        editor.start = action == "new" && !discard && key.is_empty() && text(p, "name").is_empty();
         self.symbol_editor_sources(&mut editor)?;
         self.symbol_editor = Some(editor);
         Ok(())
+    }
+
+    /// `symbol.start {leave?}`: shows the start card in the drawing's place, the editor opened when it was not; with
+    /// `leave`, back to the draft in hand, and with nothing in hand the editor closes.
+    fn symbol_start(&mut self, p: &Map<String, Value>) -> Result<(), String> {
+        let leave = p.get("leave") == Some(&Value::Bool(true));
+        match &mut self.symbol_editor {
+            Some(editor) if leave && editor.in_hand() => editor.start = false,
+            Some(_) if leave => self.symbol_editor = None,
+            Some(editor) => {
+                editor.shown = true;
+                editor.start = true;
+            }
+            None if leave => {}
+            None => return self.symbol_open_close("new", &Map::new()),
+        }
+        Ok(())
+    }
+
+    /// The symbols edited lately that a library still holds, most recent first: each as (its address for
+    /// `symbol.edit`, its name, its library).
+    pub fn symbol_recents(&self) -> Vec<(String, String, String)> {
+        let Some(editor) = self.symbol_editor() else {
+            return Vec::new();
+        };
+        self.settings
+            .symbols_recent
+            .iter()
+            .filter_map(|address| {
+                let source = editor.sources.iter().find(|s| s.source == *address)?;
+                let (name, library) = source.words();
+                Some((address.clone(), name, library))
+            })
+            .collect()
     }
 
     /// The draft a new editor starts with, and the other drawings of an imported file: the file's first drawing
@@ -1222,6 +1423,7 @@ impl ShellModel {
         editor.replace(
             SymbolDraft::parse(&serde_json::to_vec(&d).map_err(|e| e.to_string())?).map_err(edit_error)?,
         );
+        editor.select_last(Item::Graphic(0));
         Ok(())
     }
 
@@ -1381,6 +1583,11 @@ impl ShellModel {
         editor.replace(
             SymbolDraft::parse(&serde_json::to_vec(&d).map_err(|e| e.to_string())?).map_err(edit_error)?,
         );
+        editor.select_last(if tool == "anchor" {
+            Item::Anchor
+        } else {
+            Item::Graphic(0)
+        });
         Ok(())
     }
 
@@ -1450,6 +1657,15 @@ impl ShellModel {
         editor.replace(
             SymbolDraft::parse(&serde_json::to_vec(&d).map_err(|e| e.to_string())?).map_err(edit_error)?,
         );
+        if let Some(at) = editor
+            .draft
+            .symbol
+            .cps
+            .iter()
+            .position(|c| u64::from(c.idx) == index)
+        {
+            editor.selection = vec![Item::Cp(at)];
+        }
         Ok(())
     }
 
@@ -1468,6 +1684,7 @@ impl ShellModel {
         editor.replace(
             SymbolDraft::parse(&serde_json::to_vec(&d).map_err(|e| e.to_string())?).map_err(edit_error)?,
         );
+        editor.select_last(Item::Slot(0));
         Ok(())
     }
 
@@ -1485,6 +1702,7 @@ impl ShellModel {
         editor.replace(
             SymbolDraft::parse(&serde_json::to_vec(&d).map_err(|e| e.to_string())?).map_err(edit_error)?,
         );
+        editor.select_last(Item::Link(0));
         Ok(())
     }
 
@@ -1609,6 +1827,9 @@ impl ShellModel {
         editor.saved = Some(draft);
         editor.stored = true;
         editor.error = None;
+        if let Some((_, address)) = &editor.published {
+            self.settings.record_symbol_edit(address);
+        }
         if !user_tier {
             self.settings
                 .remember_library(&path, self.config.config_dir.as_deref());

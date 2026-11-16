@@ -204,8 +204,15 @@ pub struct PartDraft {
     pub version: String,
     /// The template's function names (read-only).
     pub functions: Vec<String>,
-    /// The CP pattern's designations (read-only).
-    pub cps: Vec<String>,
+    /// The part's pins (its CP pattern): added to, removed from and renamed while they are the person's to change
+    /// ([`PartDraft::pins_from`]).
+    pub pins: Vec<crate::part_box::PinRow>,
+    /// The device box: its size and where each pin stands on it; `None` for a box drawn by two clicks.
+    pub box_: Option<ew_schema::PartBox>,
+    /// The pins that are a source's outputs, which a box without a layout lays along its bottom edge.
+    pub outputs: Vec<u16>,
+    /// Whether a device of the part is drawn as a box: its main function is a black box.
+    pub box_part: bool,
     /// Whether the draft is a new part (`part.new`): its bus section is edited here, and Save creates the part.
     pub new: bool,
     /// Whether the part is the person's own (a project-local copy, or a copy of My parts): its bus and PLC sections
@@ -737,6 +744,25 @@ impl Session {
             .iter()
             .map(|t| (t.key.as_str().to_owned(), tech_text(&t.value)))
             .collect();
+        // The function definition of the part's main function: a copy the project holds, else the library's.
+        let main_def = p
+            .function_template
+            .iter()
+            .find(|t| t.main)
+            .or(p.function_template.first())
+            .and_then(|t| {
+                q.fndefs()
+                    .iter()
+                    .find(|(_, c)| {
+                        c.library_id.as_uuid() == t.fndef.library.as_uuid()
+                            && c.item_id.as_uuid() == t.fndef.item.as_uuid()
+                    })
+                    .map(|(_, c)| c.item.clone())
+                    .or_else(|| match self.libraries().resolve(&t.fndef) {
+                        Ok(LibDocument::Fndef(d)) => Some(d.item),
+                        _ => None,
+                    })
+            });
         Ok(PartDraft {
             copy,
             fields,
@@ -753,11 +779,15 @@ impl Session {
             library,
             version: c.version.clone(),
             functions: self.part_offer_functions(&PartPick::Held(copy)),
-            cps: p
-                .cp_pattern
-                .iter()
-                .map(|cp| cp.designation.as_str().to_owned())
-                .collect(),
+            pins: crate::part_box::pin_rows(p),
+            box_: p.box_.clone(),
+            outputs: main_def
+                .as_ref()
+                .map(|d| d.cps.iter().filter(|c| c.source_output).map(|c| c.idx).collect())
+                .unwrap_or_default(),
+            box_part: main_def
+                .as_ref()
+                .is_some_and(|d| d.contact_kind == ew_schema::ContactKind::BlackBox),
             new: false,
             bus: p
                 .sections
@@ -1126,9 +1156,11 @@ impl Session {
     /// (`reason-part-unchanged`) when the part equals the copy's.
     pub fn part_edit_command(&self, draft: &PartDraft) -> Result<AnyCommand, PartDraftError> {
         let (mut part, copies) = self.draft_part(draft)?;
-        // A project-local part of the person's own takes its forms' sections too.
+        // A project-local part of the person's own takes its forms' sections too; any part its pins and device box.
         if draft.own && !draft.fork {
             part = self.sectioned_item(draft)?;
+        } else {
+            self.apply_pins(draft, &mut part)?;
         }
         if part == draft.original {
             return Err(PartDraftError::Refused(ew_commands::text_key!(

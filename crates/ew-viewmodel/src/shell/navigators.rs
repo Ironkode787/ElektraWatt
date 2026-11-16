@@ -302,6 +302,20 @@ impl ShellModel {
         {
             return ("symbol.tool", json!({ "tool": tool }));
         }
+        // What a person learned on a page works in the editor's drawing: Delete, the clipboard, Select all, and the
+        // arrows, which move the selection by the grid step.
+        if self.symbol_editor().is_some()
+            && let Some((_, edit, (dx, dy))) = crate::shell::symbol_editor::EDIT_KEYS
+                .iter()
+                .find(|(a, ..)| *a == action)
+        {
+            let params = match *edit {
+                "symbol.nudge" => json!({ "dx": dx, "dy": dy }),
+                "symbol.select" => json!({ "items": "all" }),
+                _ => json!({}),
+            };
+            return (edit, params);
+        }
         let strips = self.focused_navigator() == Some(NavKind::Strips);
         // On a panel page (doc 12 §12.4) the canvas's Tab, R and X place, and the arrows nudge
         // a selected placement; each chord stays unique per context.

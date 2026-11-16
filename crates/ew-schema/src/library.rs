@@ -1316,7 +1316,50 @@ pub struct Part {
     /// Macros per representation type (FR-PRT-027).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub macros: Vec<MacroLink>,
+    /// The device box (doc 07 §2.5, "The device box"): how a device of the part is drawn as a box, its size and
+    /// where each pin stands on it; absent: the box is drawn by two clicks, its pins half on top and half below. An
+    /// optional member without cascade semantics (ADR-0011 amendment 6): an older build keeps it and lays the pins
+    /// out its own way.
+    #[serde(rename = "box", default, skip_serializing_if = "Option::is_none")]
+    pub box_: Option<PartBox>,
     /// Unknown members and plugin keys.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The device box of a part ([`Part::box_`]): the rectangle a device of the part is drawn as and the pins on its
+/// edges. A placed box is a copy of it on the page's connection grid (`box.black`); the page's box is then the
+/// person's to reshape, and a later change of the part asks before it redraws.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct PartBox {
+    /// The box's width.
+    #[schemars(with = "NmS")]
+    pub width: Nm,
+    /// The box's height.
+    #[schemars(with = "NmS")]
+    pub height: Nm,
+    /// The pins on the box's edges. A pin of the CP pattern that is not listed stands on the bottom edge, after the
+    /// listed ones.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub pins: Vec<PartBoxPin>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// One pin of a part's device box ([`PartBox::pins`]).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct PartBoxPin {
+    /// The pin: an index into `cp_pattern`.
+    pub idx: u16,
+    /// The edge the pin stands on, named by the direction its wire leaves in: `up` is the top edge, `down` the
+    /// bottom, `left` and `right` the sides.
+    pub side: Dir4,
+    /// The pin's distance along its edge from the box's top-left corner: to the right on the top and bottom
+    /// edges, down on the left and right ones.
+    #[schemars(with = "NmS")]
+    pub at: Nm,
+    /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
 }

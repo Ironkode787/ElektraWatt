@@ -626,12 +626,13 @@ fn the_symbol_editor_makes_a_part_for_its_saved_symbol() {
     d.input(&typed("coil, rect"));
     d.settle();
     press(&mut d, "Copy and edit");
-    press(&mut d, "Save to library");
+    press(&mut d, "Save");
     let fndef = d
         .shell_mut()
         .symbol_editor()
         .and_then(|e| e.published().map(str::to_owned))
         .expect("the symbol is saved to a library");
+    press(&mut d, "Draft");
     press(&mut d, "Make a part for this symbol…");
     let drawn = draft(&mut d).drawn_with;
     assert!(drawn.is_some(), "the new part names the symbol it is drawn with");

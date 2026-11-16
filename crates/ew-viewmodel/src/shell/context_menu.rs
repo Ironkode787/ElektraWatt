@@ -451,6 +451,14 @@ impl ShellModel {
             out.extend(self.menu_item("place.join"));
         }
         out.extend(self.menu_item("part.choose"));
+        // A device drawn as a box: its part's pins and where they stand on the box (rc.3).
+        if thing.here.is_some_and(|rep| rep.black_box.is_some()) {
+            out.extend(self.aimed(
+                "part.box",
+                json!({}),
+                strings::text(key!("context-edit-box")).to_owned(),
+            ));
+        }
         if let Some(symbol) = thing.symbol {
             let symbol = Map::from_iter([("symbol".to_owned(), Value::String(symbol.to_string()))]);
             let refusal = self.symbol_edit_reason(&symbol);

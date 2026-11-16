@@ -567,95 +567,93 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
     // its width while one types (the persona run m3-p4: the dialog grew after the first key and moved up under the
     // pointer): the body scrolls inside it.
     let height = crate::dialog::grown(t.size_row * 16.0, 0.6, ui.ctx().content_rect().height());
-    ScrollArea::vertical()
+    let mut area = ScrollArea::vertical()
         .id_salt("part-edit-scroll")
         .auto_shrink([false, false])
         .min_scrolled_height(height)
-        .max_height(height)
-        .show(ui, |ui| {
-            // A new part's form is long: at the main resolution its identity and its PLC section stand side by side,
-            // the bus interfaces below them across the dialog.
-            if (d.new || d.own) && ui.available_width() >= 2.0 * (t.size_dialog_label + t.size_control * 6.0)
-            {
-                let mut left_save = false;
-                let mut right_save = false;
-                let mut left_events = Vec::new();
-                let mut right_events = Vec::new();
-                ui.columns(2, |cols| {
-                    left_save = identity(&mut cols[0], d, just_opened, &mut left_events);
-                    right_save = plc_section(&mut cols[1], d, &mut right_events);
-                });
-                events.extend(left_events);
-                events.extend(right_events);
-                save |= left_save || right_save;
+        .max_height(height);
+    // A form opens at its top, never where the form before it was left.
+    if just_opened {
+        area = area.vertical_scroll_offset(0.0);
+    }
+    area.show(ui, |ui| {
+        // A new part's form is long: at the main resolution its identity and its PLC section stand side by side,
+        // the bus interfaces below them across the dialog.
+        if (d.new || d.own) && ui.available_width() >= 2.0 * (t.size_dialog_label + t.size_control * 6.0) {
+            let mut left_save = false;
+            let mut right_save = false;
+            let mut left_events = Vec::new();
+            let mut right_events = Vec::new();
+            ui.columns(2, |cols| {
+                left_save = identity(&mut cols[0], d, just_opened, &mut left_events);
+                right_save = plc_section(&mut cols[1], d, &mut right_events);
+                cols[1].add_space(t.space_4);
+                pins_section(&mut cols[1], d, &mut right_events);
+            });
+            events.extend(left_events);
+            events.extend(right_events);
+            save |= left_save || right_save;
+            ui.add_space(t.space_3);
+            bus_section(ui, d, events);
+            save |= size_section(ui, d, events);
+        } else {
+            save |= identity(ui, d, just_opened, events);
+            ui.add_space(t.space_3);
+            pins_section(ui, d, events);
+            if d.new || d.own || !d.bus.is_empty() {
                 ui.add_space(t.space_3);
                 bus_section(ui, d, events);
-                save |= size_section(ui, d, events);
-            } else {
-                save |= identity(ui, d, just_opened, events);
-                if d.new || d.own || !d.bus.is_empty() {
-                    ui.add_space(t.space_3);
-                    bus_section(ui, d, events);
-                }
-                if d.new || d.own {
-                    ui.add_space(t.space_3);
-                    save |= plc_section(ui, d, events);
-                }
-                save |= size_section(ui, d, events);
             }
-            if d.new {
+            if d.new || d.own {
                 ui.add_space(t.space_3);
-                let mut to_library = d.to_library;
-                if ui
-                    .checkbox(&mut to_library, strings::text(key!("part-to-library")))
-                    .changed()
-                {
-                    events.push(Event::Action(
-                        "part.field",
-                        json!({ "field": "to_library", "value": to_library.to_string() }),
-                    ));
-                }
+                save |= plc_section(ui, d, events);
             }
+            save |= size_section(ui, d, events);
+        }
+        if d.new {
             ui.add_space(t.space_3);
-            let none = strings::text(key!("part-none"));
-            let read_only = |ui: &mut Ui, label: &str, value: String| {
-                ui.horizontal(|ui| {
-                    ui.add_sized(vec2(t.size_dialog_label, t.size_row), egui::Label::new(label));
-                    ui.add_space(t.space_3);
-                    ui.label(RichText::new(value).color(t.text_secondary.color32()));
-                });
-            };
-            // A new part has no functions, pins or source yet: Save makes them from the form.
-            if !d.new {
-                read_only(
-                    ui,
-                    strings::text(key!("part-field-functions")),
-                    if d.functions.is_empty() {
-                        none.to_owned()
-                    } else {
-                        d.functions.join(", ")
-                    },
-                );
-                read_only(
-                    ui,
-                    strings::text(key!("part-field-cps")),
-                    if d.cps.is_empty() {
-                        none.to_owned()
-                    } else {
-                        d.cps.join(", ")
-                    },
-                );
-                let source = match &d.library {
-                    Some(name) => format!("{name} \u{b7} {}", d.version),
-                    None => format!(
-                        "{} \u{b7} {}",
-                        strings::text(key!("part-choose-view-project")),
-                        d.version
-                    ),
-                };
-                read_only(ui, strings::text(key!("part-field-source")), source);
+            let mut to_library = d.to_library;
+            if ui
+                .checkbox(&mut to_library, strings::text(key!("part-to-library")))
+                .changed()
+            {
+                events.push(Event::Action(
+                    "part.field",
+                    json!({ "field": "to_library", "value": to_library.to_string() }),
+                ));
             }
-        });
+        }
+        ui.add_space(t.space_3);
+        let none = strings::text(key!("part-none"));
+        let read_only = |ui: &mut Ui, label: &str, value: String| {
+            ui.horizontal(|ui| {
+                ui.add_sized(vec2(t.size_dialog_label, t.size_row), egui::Label::new(label));
+                ui.add_space(t.space_3);
+                ui.label(RichText::new(value).color(t.text_secondary.color32()));
+            });
+        };
+        // A new part has no functions or source yet: Save makes them from the form.
+        if !d.new {
+            read_only(
+                ui,
+                strings::text(key!("part-field-functions")),
+                if d.functions.is_empty() {
+                    none.to_owned()
+                } else {
+                    d.functions.join(", ")
+                },
+            );
+            let source = match &d.library {
+                Some(name) => format!("{name} \u{b7} {}", d.version),
+                None => format!(
+                    "{} \u{b7} {}",
+                    strings::text(key!("part-choose-view-project")),
+                    d.version
+                ),
+            };
+            read_only(ui, strings::text(key!("part-field-source")), source);
+        }
+    });
     // The refusal of the last Save stands under the form, above Save, in sight however far the form scrolls; its
     // field's message stands at the field too.
     if let Some(err) = &e.error {
@@ -664,6 +662,115 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
     }
     if save {
         events.push(Event::Action("part.save", serde_json::Value::Null));
+    }
+}
+
+/// The part's pins (rc.3): each with its name and the potential it carries, added and removed here, and Pins and
+/// box…, which opens the device box on the symbol editor's screen to say where they stand. A part whose pins come
+/// from its channels, its ports or its symbol lists them, with the sentence that says where they come from.
+fn pins_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Vec<Event>) {
+    use ew_viewmodel::ew_api::part_box::{PinsFrom, pin_roles};
+    use ew_viewmodel::shell::symbol_editor::role_words;
+    let t = theme::current(ui.ctx());
+    // The button beside the title, never at the row's far end: a row that takes the form's whole width would widen
+    // the form with every frame.
+    ui.horizontal(|ui| {
+        ui.add_sized(
+            vec2(t.size_dialog_label, t.size_row),
+            egui::Label::new(
+                RichText::new(strings::text(key!("part-pins"))).font(theme::font(&t.type_body_strong)),
+            ),
+        );
+        ui.add_space(t.space_3);
+        if crate::components::button(
+            ui,
+            crate::components::Kind::Secondary,
+            strings::text(key!("part-pins-and-box")),
+            true,
+            0.0,
+        )
+        .on_hover_text(strings::text(key!("part-pins-and-box-how")))
+        .clicked()
+        {
+            events.push(Event::Action("part.box", json!({})));
+        }
+    });
+    if let Some(from) = d.pins_from() {
+        let names: Vec<&str> = d.pins.iter().map(|p| p.name.as_str()).collect();
+        ui.add(
+            egui::Label::new(
+                RichText::new(strings::text(match from {
+                    PinsFrom::Channels => key!("box-pins-from-channels"),
+                    PinsFrom::Ports => key!("box-pins-from-ports"),
+                    PinsFrom::Symbol => key!("box-pins-from-symbol"),
+                }))
+                .font(theme::font(&t.type_small))
+                .color(t.text_secondary.color32()),
+            )
+            .wrap(),
+        );
+        if !names.is_empty() {
+            ui.add(
+                egui::Label::new(RichText::new(names.join(", ")).color(t.text_secondary.color32())).wrap(),
+            );
+        }
+        return;
+    }
+    let mut roles = vec![String::new()];
+    roles.extend(pin_roles());
+    for pin in &d.pins {
+        ui.push_id(("part-pin", pin.idx), |ui| {
+            ui.horizontal(|ui| {
+                let mut name = pin.name.clone();
+                let label = strings::format(key!("part-pin-name"), &[&pin.name]);
+                if crate::symbol_editor::fields::committed_text(
+                    ui,
+                    "name",
+                    &label,
+                    None,
+                    &mut name,
+                    t.size_dialog_label - t.space_3,
+                    false,
+                ) {
+                    events.push(Event::Action("part.pin", json!({ "pin": pin.idx, "name": name })));
+                }
+                ui.add_space(t.space_3);
+                let mut picked = None;
+                let combo = egui::ComboBox::from_id_salt("role")
+                    .selected_text(role_words(&pin.role))
+                    .width(t.size_control * 5.0)
+                    .show_ui(ui, |ui| {
+                        for r in &roles {
+                            if ui.selectable_label(*r == pin.role, role_words(r)).clicked() {
+                                picked = Some(r.clone());
+                            }
+                        }
+                    })
+                    .response;
+                let label = strings::format(key!("part-pin-role"), &[&pin.name]);
+                combo.widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, &label));
+                crate::components::combo_expanded(ui, &combo);
+                if let Some(role) = picked.filter(|r| *r != pin.role) {
+                    let role = if role.is_empty() { "none".to_owned() } else { role };
+                    events.push(Event::Action("part.pin", json!({ "pin": pin.idx, "role": role })));
+                }
+                let remove = strings::format(key!("part-pin-remove"), &[&pin.name]);
+                if crate::components::icon_button(ui, crate::icons::IconId::x, &remove).clicked() {
+                    events.push(Event::Action("part.pin", json!({ "remove": pin.idx })));
+                }
+            });
+        });
+    }
+    if crate::components::button(
+        ui,
+        crate::components::Kind::Secondary,
+        strings::text(key!("part-pin-add")),
+        true,
+        0.0,
+    )
+    .clicked()
+    {
+        events.push(Event::Action("part.pin", json!({ "add": true })));
     }
 }
 

@@ -785,6 +785,31 @@
       },
       "type": "object"
     },
+    "Dir4": {
+      "description": "One of four directions on the sheet.",
+      "oneOf": [
+        {
+          "const": "up",
+          "description": "Up (−y).",
+          "type": "string"
+        },
+        {
+          "const": "right",
+          "description": "Right (+x).",
+          "type": "string"
+        },
+        {
+          "const": "down",
+          "description": "Down (+y).",
+          "type": "string"
+        },
+        {
+          "const": "left",
+          "description": "Left (−x).",
+          "type": "string"
+        }
+      ]
+    },
     "DuctSection": {
       "additionalProperties": true,
       "description": "The duct section of a part (FR-PRT-024, doc 12 §2.5), lengths in nanometres.",
@@ -1782,6 +1807,59 @@
           ]
         }
       },
+      "type": "object"
+    },
+    "PartBox": {
+      "additionalProperties": true,
+      "description": "The device box of a part ([`Part::box_`]): the rectangle a device of the part is drawn as and the pins on its\nedges. A placed box is a copy of it on the page's connection grid (`box.black`); the page's box is then the\nperson's to reshape, and a later change of the part asks before it redraws.",
+      "properties": {
+        "height": {
+          "$ref": "#/$defs/Nm",
+          "description": "The box's height."
+        },
+        "pins": {
+          "description": "The pins on the box's edges. A pin of the CP pattern that is not listed stands on the bottom edge, after the\nlisted ones.",
+          "items": {
+            "$ref": "#/$defs/PartBoxPin"
+          },
+          "type": "array"
+        },
+        "width": {
+          "$ref": "#/$defs/Nm",
+          "description": "The box's width."
+        }
+      },
+      "required": [
+        "width",
+        "height"
+      ],
+      "type": "object"
+    },
+    "PartBoxPin": {
+      "additionalProperties": true,
+      "description": "One pin of a part's device box ([`PartBox::pins`]).",
+      "properties": {
+        "at": {
+          "$ref": "#/$defs/Nm",
+          "description": "The pin's distance along its edge from the box's top-left corner: to the right on the top and bottom\nedges, down on the left and right ones."
+        },
+        "idx": {
+          "description": "The pin: an index into `cp_pattern`.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "side": {
+          "$ref": "#/$defs/Dir4",
+          "description": "The edge the pin stands on, named by the direction its wire leaves in: `up` is the top edge, `down` the\nbottom, `left` and `right` the sides."
+        }
+      },
+      "required": [
+        "idx",
+        "side",
+        "at"
+      ],
       "type": "object"
     },
     "PartBusPort": {
@@ -3029,6 +3107,17 @@
         "$ref": "#/$defs/AlternativeRef"
       },
       "type": "array"
+    },
+    "box": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PartBox"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The device box (doc 07 §2.5, \"The device box\"): how a device of the part is drawn as a box, its size and\nwhere each pin stands on it; absent: the box is drawn by two clicks, its pins half on top and half below. An\noptional member without cascade semantics (ADR-0011 amendment 6): an older build keeps it and lays the pins\nout its own way."
     },
     "category": {
       "description": "Function category for compatibility filters.",

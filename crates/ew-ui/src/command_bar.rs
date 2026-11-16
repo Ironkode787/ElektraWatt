@@ -668,7 +668,7 @@ impl CommandBarHost {
                         ui.painter()
                             .rect_filled(row, theme::SQUARE, t.surface_panel.color32());
                         ui.scope_builder(
-                            UiBuilder::new().max_rect(row.shrink2(vec2(t.space_3, t.space_2))),
+                            UiBuilder::new().max_rect(row.shrink2(vec2(t.space_3, 0.0))),
                             |ui| editor_view.toolbar(ui, shell, events),
                         );
                     } else {

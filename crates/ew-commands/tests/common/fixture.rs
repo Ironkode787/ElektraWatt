@@ -473,6 +473,7 @@ pub fn part(part_id: Id<Part>, part_number: &str) -> LibCopy<Part> {
         alternatives: vec![],
         configured: None,
         macros: vec![],
+        box_: None,
         extra: Extra::new(),
     };
     lib_copy(part_id, item)

@@ -385,6 +385,17 @@ impl ShellModel {
                 }
                 self.dispatch("history.changes", &serde_json::json!({ "entry": index + 1 }))
             }
+            // The boxes of the part redrawn as its device box says; the toast is spent.
+            Some(NoteAction::RedrawBoxes) => {
+                let Some(part) = entry.selects(action).first().copied() else {
+                    return Outcome::refused(key!("reason-action-expired"));
+                };
+                self.notes.dismiss(entry.serial);
+                self.dispatch(
+                    "part.redraw_boxes",
+                    &serde_json::json!({ "part": format!("id:{part}") }),
+                )
+            }
             // The editor's view again, on the kept draft; the toast is spent.
             Some(NoteAction::BackToEditor) => {
                 self.notes.dismiss(entry.serial);

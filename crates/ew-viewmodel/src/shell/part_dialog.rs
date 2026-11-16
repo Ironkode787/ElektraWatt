@@ -710,7 +710,7 @@ impl ShellModel {
     }
 
     /// The copy `part.edit` edits (see the module documentation).
-    fn part_edit_copy(&self, p: &Map<String, Value>) -> Result<Option<Uuid>, Outcome> {
+    pub(super) fn part_edit_copy(&self, p: &Map<String, Value>) -> Result<Option<Uuid>, Outcome> {
         let Some(project) = &self.project else {
             return Ok(None);
         };

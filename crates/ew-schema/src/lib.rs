@@ -152,12 +152,13 @@ pub use library::{
     FormDef, FormKind, FrameColumns, FrameGrid, FrameRows, FreeProp, GalleryData, ImagePrim, InternalKind,
     InternalLinkDef, ItemMeta, ItemStatus, LibCopy, LibItem, Library, LinePrim, MacroDef, MacroInstance,
     MacroKind, MacroLink, MacroVariant, Manufacturer, MechData, MountKind, NamedPoint, OrderUnit, Overflow,
-    Part, PartKind, PartSections, PassThroughSpec, Pen, PlaceholderGroup, PlateSection, PlcAllocation,
-    PlcAllocationStart, PlcAreaMnemonics, PlcMnemonics, PlcParse, PlcProfileDef, PlcProfilePin, PlcRender,
-    PlcSizeMnemonics, PolygonPrim, PolylinePrim, Primitive, RailSection, RectPrim, RepType, Rgb, RowTemplate,
-    RowTemplates, SheetSpec, SheetTransform, ShrinkSpec, Side, SlotFallback, SlotKind, SolenoidPin, Stroke,
-    SwitchPos, SymbolCp, SymbolDef, TableStyle, TemplateFn, TextPrim, TextSlot, TubeData, ValueSet,
-    ValveModel, ValvePath, ValveSection, VarBinding, VarDef, VarType, WrapPolicy,
+    Part, PartBox, PartBoxPin, PartKind, PartSections, PassThroughSpec, Pen, PlaceholderGroup, PlateSection,
+    PlcAllocation, PlcAllocationStart, PlcAreaMnemonics, PlcMnemonics, PlcParse, PlcProfileDef,
+    PlcProfilePin, PlcRender, PlcSizeMnemonics, PolygonPrim, PolylinePrim, Primitive, RailSection, RectPrim,
+    RepType, Rgb, RowTemplate, RowTemplates, SheetSpec, SheetTransform, ShrinkSpec, Side, SlotFallback,
+    SlotKind, SolenoidPin, Stroke, SwitchPos, SymbolCp, SymbolDef, TableStyle, TemplateFn, TextPrim,
+    TextSlot, TubeData, ValueSet, ValveModel, ValvePath, ValveSection, VarBinding, VarDef, VarType,
+    WrapPolicy,
 };
 pub use medium::{FluidSettings, LineKindTube, LineTagScheme, Medium, MediumDef};
 pub use page::{

@@ -1383,6 +1383,9 @@ impl HeapSize for Part {
             + self.alternatives.heap_size()
             + self.configured.heap_size()
             + self.macros.heap_size()
+            + self.box_.as_ref().map_or(0, |b| {
+                b.pins.capacity() * std::mem::size_of::<ew_schema::PartBoxPin>() + b.extra.heap_size()
+            })
             + self.extra.heap_size()
     }
 }

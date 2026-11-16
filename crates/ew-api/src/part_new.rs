@@ -37,12 +37,12 @@ pub struct NewPart {
 }
 
 /// The starter document of `key`.
-fn starter_doc(key: &str) -> Option<LibDocument> {
+pub(crate) fn starter_doc(key: &str) -> Option<LibDocument> {
     LibDocument::from_json(starter::item(key)?.json).ok()
 }
 
 /// The reference to starter FnDef copy `c`, with its key for the reader and the caret requirement of its version.
-fn fndef_ref(c: &LibCopy<ew_schema::FnDef>) -> LibRef {
+pub(crate) fn fndef_ref(c: &LibCopy<ew_schema::FnDef>) -> LibRef {
     let minor = c.version.split('.').take(2).collect::<Vec<_>>().join(".");
     let mut r = LibRef {
         library: Id::from_uuid(c.library_id.as_uuid()),
@@ -107,7 +107,10 @@ impl Session {
             library: None,
             version: "0.1.0".to_owned(),
             functions: Vec::new(),
-            cps: Vec::new(),
+            pins: Vec::new(),
+            box_: None,
+            outputs: Vec::new(),
+            box_part: false,
             new: true,
             bus: Vec::<BusRow>::new(),
             to_library: true,
@@ -256,6 +259,7 @@ impl Session {
                 p.category = Some(def.item.category.clone());
             }
         }
+        self.apply_pins(draft, &mut p)?;
         Ok(p)
     }
 
@@ -470,6 +474,10 @@ impl Session {
         draft.tech = held.tech.clone();
         draft.bus = held.bus.clone();
         draft.plc = held.plc.clone();
+        draft.pins = held.pins.clone();
+        draft.box_ = held.box_.clone();
+        draft.outputs = held.outputs.clone();
+        draft.box_part = held.box_part;
         // The held item keeps what the forms do not show (pins, template, other sections); a new item ID and key.
         let mut original = held.original.clone();
         original.meta = Default::default();

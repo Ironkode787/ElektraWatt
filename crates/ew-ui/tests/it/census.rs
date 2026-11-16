@@ -1110,12 +1110,24 @@ fn the_form_check_names_a_form_the_census_does_not_open() {
     assert_eq!(form_problems(&built, &built), Vec::<String>::new());
 }
 
-/// M25-p3#8: the symbol editor's three panels with a shape, a pin and a slot, each section open.
+/// The symbol editor's screen (rc.3): the start card and its lists; the outline, the drawing and Properties with
+/// nothing selected (More open), with a shape, a connection point and a text field selected, and with several things;
+/// and a part's device box with a pin selected.
 #[test]
 fn census_the_symbol_editor() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "g.ew");
     let mut census = Census::default();
+    dispatch(&mut h, "symbol.new", json!({}));
+    h.run_ok();
+    census.visit(&mut h, "the symbol editor's start card");
+    for way in ["Copy a library symbol\u{2026}", "Device box for a part\u{2026}"] {
+        h.get_by_label(way).click();
+        h.run_ok();
+        census.visit(&mut h, &format!("the start card's {way}"));
+        h.get_by_label("Back").click();
+        h.run_ok();
+    }
     for (action, params) in [
         ("symbol.new", json!({"key": "example.census", "name": "Census"})),
         (
@@ -1127,34 +1139,82 @@ fn census_the_symbol_editor() {
             json!({"x": 0, "y": 4, "designation": "1", "direction": "left"}),
         ),
         ("symbol.slot", json!({"x": 0, "y": -4, "kind": "tag"})),
+        ("symbol.slot", json!({"x": 4, "y": -4, "kind": "tag"})),
+        ("symbol.link", json!({"x": 8, "y": 0, "name": "a"})),
+    ] {
+        dispatch(&mut h, action, params);
+    }
+    for (what, items) in [
+        ("with nothing selected", json!([])),
+        ("with a shape selected", json!(["graphic:0"])),
+        ("with a connection point selected", json!(["cp:0"])),
+        ("with a text field selected", json!(["slot:0"])),
+        ("with several things selected", json!("all")),
+    ] {
+        dispatch(&mut h, "symbol.select", json!({ "items": items }));
+        h.run_ok();
+        for more in h.query_all_by_label("More").collect::<Vec<_>>() {
+            more.click();
+        }
+        h.run_ok();
+        census.visit(&mut h, &format!("the symbol editor {what}"));
+    }
+    dispatch(&mut h, "symbol.tool", json!({"tool": "cp"}));
+    h.run_ok();
+    census.visit(&mut h, "the symbol editor with the Connection point tool");
+    dispatch(&mut h, "part.box", json!({"part": "MICO 4.10"}));
+    dispatch(&mut h, "part.box_select", json!({"pins": [0]}));
+    h.run_ok();
+    census.visit(&mut h, "the device box with a pin selected");
+    dispatch(&mut h, "part.box_select", json!({"pins": []}));
+    h.run_ok();
+    census.visit(&mut h, "the device box");
+    h.state_mut().shell_mut().shutdown();
+    census.assert_clean();
+}
+
+/// A Save refused off the grid answers above the drawing, where the eye is, and stands in the To do list with a click
+/// to the connection point: twice, and no banner as well. (The owner's hands-on test: with the reason only in a list
+/// at the foot of a panel, Save read as a button that does nothing.)
+#[test]
+fn the_symbol_editors_refusal_answers_above_the_drawing_and_in_to_do() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "g.ew");
+    for (action, params) in [
+        ("symbol.new", json!({"key": "example.once", "name": "Once"})),
+        (
+            "symbol.draw",
+            json!({"tool": "line", "x": 0, "y": 0, "x2": 0, "y2": 4}),
+        ),
+        ("symbol.cp", json!({"x": 4.5, "y": 0, "designation": "1"})),
+        ("symbol.directory", json!({"directory": tmp.0.join("once.ewlib")})),
+        ("symbol.select", json!({"items": []})),
     ] {
         dispatch(&mut h, action, params);
     }
     h.run_ok();
-    for (panel, sections) in [
-        (
-            "Drawing",
-            &["Rectangle 1", "Text slots (1)", "Link point (0)"][..],
-        ),
-        (
-            "Function and connection points",
-            &["Connection points (1)", "Ready-made function"][..],
-        ),
-        (
-            "Library",
-            &["Properties", "Advanced document", "Place on current page"][..],
-        ),
-    ] {
-        h.get_by_label(panel).click();
-        h.run_ok();
-        for section in sections {
-            h.get_by_label(section).click();
-            h.run_ok();
-        }
-        census.visit(&mut h, &format!("the symbol editor's {panel} panel"));
-    }
+    let _ = h.state_mut().shell_mut().dispatch("symbol.save", &json!({}));
+    h.run_ok();
+    h.run_ok();
+    let text = "Connection point 1 is off the connection grid. Move it onto the grid before saving.";
+    let shell = h.state().shell();
+    assert_eq!(shell.symbol_editor().unwrap().error.as_deref(), Some(text));
+    assert_eq!(shell.banner(), None);
+    assert_eq!(h.query_all_by_label_contains(text).count(), 2);
+    // The sentence in To do goes to the thing it is about.
+    h.get_by_role_and_label(egui::accesskit::Role::Button, text).click();
+    h.run_ok();
+    let selected: Vec<String> = h
+        .state()
+        .shell()
+        .symbol_editor()
+        .unwrap()
+        .selection
+        .iter()
+        .map(|i| i.word())
+        .collect();
+    assert_eq!(selected, ["cp:0"]);
     h.state_mut().shell_mut().shutdown();
-    census.assert_clean();
 }
 
 /// Doc 16a P8 (M25-p5 nit): the tool buttons name the keys of the keymap that choose them, which their tooltips
@@ -1188,94 +1248,5 @@ fn the_symbol_editors_tool_buttons_name_their_keys() {
     ] {
         assert_eq!(shortcut(&h, tool).as_deref(), key, "{tool}");
     }
-    h.state_mut().shell_mut().shutdown();
-}
-
-/// A Save refused off the grid answers the click under the symbol's name and stands in Validation's list: twice,
-/// and no banner as well. (The owner's hands-on test: with the reason only in the list at the foot of the panel,
-/// Save to library read as a button that does nothing.)
-#[test]
-fn the_symbol_editors_refusal_answers_the_click_under_the_name() {
-    let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "g.ew");
-    for (action, params) in [
-        ("symbol.new", json!({"key": "example.once", "name": "Once"})),
-        (
-            "symbol.draw",
-            json!({"tool": "line", "x": 0, "y": 0, "x2": 0, "y2": 4}),
-        ),
-        ("symbol.cp", json!({"x": 4.5, "y": 0, "designation": "1"})),
-        ("symbol.directory", json!({"directory": tmp.0.join("once.ewlib")})),
-    ] {
-        dispatch(&mut h, action, params);
-    }
-    h.run_ok();
-    h.get_by_label("Save to library").click();
-    h.run_ok();
-    h.run_ok();
-    let text = "Connection point 1 is off the connection grid. Move it onto the grid before saving.";
-    let shell = h.state().shell();
-    assert_eq!(shell.symbol_editor().unwrap().error.as_deref(), Some(text));
-    assert_eq!(shell.banner(), None);
-    assert_eq!(h.query_all_by_label_contains(text).count(), 2);
-    h.state_mut().shell_mut().shutdown();
-}
-
-/// M25-p5#4 (#8): a control repeated for each pin, slot, link point or the selected shape names the item it
-/// belongs to, so no two share a name.
-#[test]
-fn the_symbol_editors_repeated_controls_name_their_item() {
-    let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "g.ew");
-    for (action, params) in [
-        ("symbol.new", json!({"key": "example.names", "name": "Names"})),
-        (
-            "symbol.draw",
-            json!({"tool": "rectangle", "x": 0, "y": 0, "x2": 8, "y2": 8}),
-        ),
-        ("symbol.cp", json!({"x": 0, "y": 4, "designation": "1"})),
-        ("symbol.cp", json!({"x": 0, "y": 8, "designation": "2"})),
-        ("symbol.slot", json!({"x": 0, "y": -4, "kind": "tag"})),
-        ("symbol.slot", json!({"x": 4, "y": -4, "kind": "tag"})),
-        ("symbol.link", json!({"x": 8, "y": 0, "name": "a"})),
-        ("symbol.link", json!({"x": 8, "y": 4, "name": "a"})),
-    ] {
-        dispatch(&mut h, action, params);
-    }
-    h.run_ok();
-    let names = |h: &Harness<'_, App>, names: &[&str]| {
-        for name in names {
-            assert_eq!(h.query_all_by_label(name).count(), 1, "{name}");
-        }
-    };
-    for section in ["Rectangle 1", "Text slots (2)"] {
-        h.get_by_label(section).click();
-        h.run_ok();
-    }
-    h.run_ok();
-    names(
-        &h,
-        &[
-            "Fill shape of Rectangle 1",
-            "Delete Rectangle 1",
-            "Device tag 1 visible",
-            "Device tag 2 visible",
-            "Text style of Device tag 2",
-            "Delete Device tag 2",
-        ],
-    );
-    // The slots close, so the link points show in the panel.
-    for section in ["Text slots (2)", "Link point (2)"] {
-        h.get_by_label(section).click();
-        h.run_ok();
-    }
-    h.run_ok();
-    names(&h, &["Name of Link point 2", "Delete Link point 2"]);
-    h.get_by_label("Function and connection points").click();
-    h.run_ok();
-    h.get_by_label("Connection points (2)").click();
-    h.run_ok();
-    h.run_ok();
-    names(&h, &["Delete Connection point 1", "Delete Connection point 2"]);
     h.state_mut().shell_mut().shutdown();
 }

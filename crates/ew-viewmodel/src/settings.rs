@@ -134,6 +134,9 @@ pub struct Settings {
     /// The tips already shown, by their word ([`crate::shell::Tip::word`]), in the order they were shown
     /// (`tips_seen`).
     pub tips_seen: Vec<String>,
+    /// The symbols edited lately in the symbol editor, by their library address (`library:<library>:<item>`), most
+    /// recent first, at most [`MAX_RECENT`] (`symbols_recent`, written only once one was edited).
+    pub symbols_recent: Vec<String>,
     /// Keys this version does not know, kept and written back.
     extra: toml::Table,
 }
@@ -165,6 +168,7 @@ impl Default for Settings {
             wheel_scrolls: false,
             tips: true,
             tips_seen: Vec::new(),
+            symbols_recent: Vec::new(),
             extra: toml::Table::new(),
         }
     }
@@ -208,6 +212,13 @@ impl Settings {
             self.parts_favourites.sort();
             true
         }
+    }
+
+    /// Records that the symbol at `address` was edited: first in the list, no duplicate, at most [`MAX_RECENT`].
+    pub fn record_symbol_edit(&mut self, address: &str) {
+        self.symbols_recent.retain(|a| a != address);
+        self.symbols_recent.insert(0, address.to_owned());
+        self.symbols_recent.truncate(MAX_RECENT);
     }
 
     /// Records the use of the part `item` (`<library ID>/<item ID>`, D18): first in the list, no duplicate, at most
@@ -291,6 +302,21 @@ impl Settings {
             }
             Some(_) => return None,
         }
+        let mut symbols_recent: Vec<String> = Vec::new();
+        match table.remove("symbols_recent") {
+            None => {}
+            Some(toml::Value::Array(items)) => {
+                for v in items {
+                    match v {
+                        toml::Value::String(s) if !symbols_recent.contains(&s) => symbols_recent.push(s),
+                        toml::Value::String(_) => {}
+                        _ => return None,
+                    }
+                }
+            }
+            Some(_) => return None,
+        }
+        symbols_recent.truncate(MAX_RECENT);
         let comes_from = match take_string(&mut table, "comes_from")? {
             Some(v) if ORIGINS.contains(&v.as_str()) => v,
             _ => String::new(),
@@ -407,6 +433,7 @@ impl Settings {
             wheel_scrolls,
             tips,
             tips_seen,
+            symbols_recent,
             extra: table,
         };
         // The list is normalised on read: no duplicates, at most MAX_RECENT, first occurrence wins.
@@ -548,6 +575,17 @@ impl Settings {
                     self.tips_seen
                         .iter()
                         .map(|t| toml::Value::String(t.clone()))
+                        .collect(),
+                ),
+            );
+        }
+        if !self.symbols_recent.is_empty() {
+            table.insert(
+                "symbols_recent".to_owned(),
+                toml::Value::Array(
+                    self.symbols_recent
+                        .iter()
+                        .map(|a| toml::Value::String(a.clone()))
                         .collect(),
                 ),
             );

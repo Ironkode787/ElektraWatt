@@ -211,6 +211,9 @@ pub struct CatalogueTemplateFn {
     /// The function CP indices whose FnDef point is a source's output (`source_output`: the power supply's + and −),
     /// which a black box placed from the entry lays along its bottom edge (FT-1702); empty when it has none.
     pub outputs: Vec<u16>,
+    /// The part's device box when the entry is its main function (doc 07 §2.5): a click then places the box as the
+    /// part lays it out; `None`: the box is drawn by two clicks.
+    pub layout: Option<ew_schema::PartBox>,
 }
 
 /// The JSON spelling of a representation type (`multi_line`); `unknown` for a type of a newer format.
@@ -554,6 +557,8 @@ fn catalogue_part(
                     .is_some_and(|d| d.item.contact_kind == ContactKind::BlackBox),
                 cps,
                 outputs,
+                // Whether or not the FnDef is embedded yet (as the CPs above).
+                layout: part.box_.clone().filter(|_| t.main),
             }
         })
         .collect();

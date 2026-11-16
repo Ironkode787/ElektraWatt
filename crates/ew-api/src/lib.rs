@@ -107,6 +107,7 @@ mod macros;
 pub mod migration;
 mod new_project;
 pub mod output;
+pub mod part_box;
 mod part_editor;
 mod part_new;
 mod part_offers;

@@ -1960,10 +1960,14 @@ fn part_edit_lines(e: &crate::shell::part_dialog::PartEditor, lines: &mut Vec<St
     } else {
         d.functions.join(", ")
     };
-    let cps = if d.cps.is_empty() {
+    let cps = if d.pins.is_empty() {
         none()
     } else {
-        d.cps.join(", ")
+        d.pins
+            .iter()
+            .map(|p| p.name.as_str())
+            .collect::<Vec<_>>()
+            .join(", ")
     };
     lines.push(format!(
         "  read-only \"{}\" \"{}\"",

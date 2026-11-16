@@ -1492,14 +1492,15 @@ impl App {
             Some(Focus::Find) => Context::Find,
             Some(Focus::CommandBar | Focus::History) | None => Context::Global,
         };
-        // While the symbol editor shows, of the canvas's keys only those that choose its tools apply.
+        // While the symbol editor shows, of the canvas's keys those that choose its tools apply, and those that act
+        // on its selection as they do on a page's (the arrows, Delete, the clipboard, Select all).
         let editor = self.shell.symbol_editor().is_some();
         let applies = |b: &Binding| {
+            use ew_viewmodel::shell::symbol_editor::{EDIT_KEYS, TOOL_KEYS};
             !editor
                 || b.context != Context::Canvas
-                || ew_viewmodel::shell::symbol_editor::TOOL_KEYS
-                    .iter()
-                    .any(|(_, action)| *action == b.action)
+                || TOOL_KEYS.iter().any(|(_, action)| *action == b.action)
+                || EDIT_KEYS.iter().any(|(action, ..)| *action == b.action)
         };
         // Doc 16a §5.9: on the command bar Left and Right move between the tabs.
         if self.shell.focus() == Some(Focus::CommandBar) && !palette_open {
@@ -1590,17 +1591,26 @@ impl App {
                 });
                 hit
             });
+            // In the symbol editor they run its own clipboard (`shortcut_action`).
+            let routed = |shell: &ShellModel, action: &'static str, params: Value| {
+                let (to, own) = shell.shortcut_action(action);
+                if to == action {
+                    Event::Action(action, params)
+                } else {
+                    Event::Action(to, own)
+                }
+            };
             match clip {
                 Some(egui::Event::Copy) => {
-                    events.push(Event::Action("edit.copy", Value::Null));
+                    events.push(routed(&self.shell, "edit.copy", Value::Null));
                     return;
                 }
                 Some(egui::Event::Cut) => {
-                    events.push(Event::Action("edit.cut", Value::Null));
+                    events.push(routed(&self.shell, "edit.cut", Value::Null));
                     return;
                 }
                 Some(egui::Event::Paste(text)) => {
-                    events.push(Event::Action("edit.paste_clip", json!({ "text": text })));
+                    events.push(routed(&self.shell, "edit.paste_clip", json!({ "text": text })));
                     return;
                 }
                 _ => {}

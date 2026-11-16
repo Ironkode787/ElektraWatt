@@ -748,6 +748,65 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_part_field(p),
         )),
     ),
+    // The device box (rc.3, doc 07 §2.5): a part's pins and where they stand on its box, edited on the symbol
+    // editor's screen.
+    with_params(
+        "part?:text, new?:bool, discard?:bool",
+        hidden(act("part.box", View, Menu::Edit, &[], writable, None, |s, p| {
+            s.act_part_box(p)
+        })),
+    ),
+    with_params(
+        "add?:bool, name?:text, remove?:uint, pin?:uint, role?:text, side?:enum(top|bottom|left|right), at?:mm, before?:uint",
+        hidden(act("part.pin", View, Menu::Edit, &[], always, None, |s, p| {
+            s.act_part_pin(p)
+        })),
+    ),
+    with_params(
+        "width?:mm, height?:mm",
+        hidden(act(
+            "part.box_size",
+            View,
+            Menu::Edit,
+            &[],
+            always,
+            None,
+            |s, p| s.act_part_box_size(p),
+        )),
+    ),
+    with_params(
+        "pins:json, mode?:enum(replace|add|toggle)",
+        hidden(act(
+            "part.box_select",
+            View,
+            Menu::Edit,
+            &[],
+            always,
+            None,
+            |s, p| s.act_part_box_select(p),
+        )),
+    ),
+    hidden(act(
+        "part.box_details",
+        View,
+        Menu::Edit,
+        &[],
+        writable,
+        None,
+        |s, _| s.act_part_box_details(),
+    )),
+    with_params(
+        "part:text",
+        hidden(act(
+            "part.redraw_boxes",
+            Command,
+            Menu::Edit,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_part_redraw_boxes(p),
+        )),
+    ),
     hidden(act(
         "part.save",
         Command,
@@ -1014,6 +1073,115 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         "tool:enum(select|line|rectangle|circle|ellipse|arc|text|cp|slot|anchor|link|polyline|polygon)",
         hidden(act("symbol.tool", View, Menu::Edit, &[], always, None, |s, p| {
             s.act_symbol("tool", p)
+        })),
+    ),
+    // What a person does with the drawing's selection, as on a page (rc.3): the page's own keys run these while the
+    // editor shows ([`crate::shell::symbol_editor::EDIT_KEYS`]).
+    with_params(
+        "items:json, mode?:enum(replace|add|toggle)",
+        hidden(act(
+            "symbol.select",
+            View,
+            Menu::Edit,
+            &[],
+            always,
+            None,
+            |s, p| s.act_symbol("select", p),
+        )),
+    ),
+    with_params(
+        "dx?:mm, dy?:mm",
+        hidden(act("symbol.move", View, Menu::Edit, &[], always, None, |s, p| {
+            s.act_symbol("move", p)
+        })),
+    ),
+    with_params(
+        "dx?:int, dy?:int",
+        hidden(act(
+            "symbol.nudge",
+            View,
+            Menu::Edit,
+            &[],
+            always,
+            None,
+            |s, p| s.act_symbol("nudge", p),
+        )),
+    ),
+    hidden(act(
+        "symbol.delete",
+        View,
+        Menu::Edit,
+        &[],
+        always,
+        None,
+        |s, p| s.act_symbol("delete", p),
+    )),
+    hidden(act("symbol.copy", View, Menu::Edit, &[], always, None, |s, p| {
+        s.act_symbol("copy", p)
+    })),
+    hidden(act("symbol.cut", View, Menu::Edit, &[], always, None, |s, p| {
+        s.act_symbol("cut", p)
+    })),
+    hidden(act(
+        "symbol.paste",
+        View,
+        Menu::Edit,
+        &[],
+        always,
+        None,
+        |s, p| s.act_symbol("paste", p),
+    )),
+    hidden(act(
+        "symbol.duplicate",
+        View,
+        Menu::Edit,
+        &[],
+        always,
+        None,
+        |s, p| s.act_symbol("duplicate", p),
+    )),
+    with_params(
+        "to:enum(left|centre|right|top|middle|bottom)",
+        hidden(act(
+            "symbol.align",
+            View,
+            Menu::Edit,
+            &[],
+            always,
+            None,
+            |s, p| s.act_symbol("align", p),
+        )),
+    ),
+    with_params(
+        "grip:uint, x:mm, y:mm",
+        hidden(act("symbol.grip", View, Menu::Edit, &[], always, None, |s, p| {
+            s.act_symbol("grip", p)
+        })),
+    ),
+    with_params(
+        "step?:mm, snap?:bool",
+        hidden(act("symbol.grid", View, Menu::Edit, &[], always, None, |s, p| {
+            s.act_symbol("grid", p)
+        })),
+    ),
+    // The start card: the ways in, in the drawing's place; `leave` returns to the draft in hand.
+    with_params(
+        "leave?:bool",
+        hidden(act(
+            "symbol.start",
+            View,
+            Menu::Edit,
+            &[],
+            always,
+            None,
+            |s, p| s.act_symbol("start", p),
+        )),
+    ),
+    // A row of the editor's Properties: of the selection, or of the symbol itself with nothing selected.
+    with_params(
+        "key:text, value:json",
+        hidden(act("symbol.prop", View, Menu::Edit, &[], always, None, |s, p| {
+            s.act_symbol("prop", p)
         })),
     ),
     with_params(

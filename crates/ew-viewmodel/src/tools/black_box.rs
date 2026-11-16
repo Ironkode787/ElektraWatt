@@ -72,6 +72,8 @@ pub enum BoxTarget {
         cps: Vec<(u16, String)>,
         /// The function CP indices among them that are a source's outputs, laid along the bottom edge.
         outputs: Vec<u16>,
+        /// The part's device box (doc 07 §2.5): one click places the box as the part lays it out.
+        layout: Option<ew_api::part_box::PartBox>,
     },
     /// Another representation of an unplaced black-box function (`existing_function`): the supply pins of a station
     /// placed first on a bus-topology page, drawn on a schematic page.
@@ -163,14 +165,8 @@ pub fn layout(
         return None;
     }
     let n = cps.len();
-    let out = |c: &&(u16, String)| outputs.contains(&c.0);
-    let below = cps.iter().filter(out).count();
-    let (cps, top): (Vec<&(u16, String)>, usize) = if below > 0 && below < n {
-        let inputs = cps.iter().filter(|c| !out(c));
-        (inputs.chain(cps.iter().filter(out)).collect(), n - below)
-    } else {
-        (cps.iter().collect(), n.div_ceil(2))
-    };
+    let indices: Vec<u16> = cps.iter().map(|c| c.0).collect();
+    let (cps, top) = ew_api::part_box::split(&indices, outputs);
     let bottom = n - top;
     if n > 0 {
         let need = i64::try_from(top.max(bottom)).unwrap_or(i64::MAX / 2) + 1;
@@ -186,7 +182,7 @@ pub fn layout(
     let outline = vec![(0, 0), (w, 0), (w, h), (0, h)];
     let width = kx1 - kx0;
     let mut out = Vec::with_capacity(n);
-    for (i, (idx, _)) in cps.iter().enumerate() {
+    for (i, idx) in cps.iter().enumerate() {
         let (k, m, y, dir) = if i < top {
             (i, top, 0, Dir::Up)
         } else {
@@ -302,15 +298,7 @@ fn fit_in_area(
     ))
 }
 
-/// The grid offset of CP `k` of `m` on an edge `width` grid steps long: the CPs one common pitch apart, the
-/// largest whole number of grid steps that fits `m + 1` times into the edge (at least one), and the group centred on
-/// the edge (half a step to the left when it cannot be centred exactly). Every CP lies at least one grid step from both
-/// corners whenever `width ≥ m + 1`, which the layout guarantees.
-fn spread(width: i64, m: i64, k: i64) -> i64 {
-    let pitch = (width / (m + 1)).max(1);
-    let start = (width - (m - 1) * pitch) / 2;
-    start + k * pitch
-}
+use ew_api::part_box::spread;
 
 /// The JSON of a box CP (`{idx, pos, dir}`).
 fn cp_json(idx: u16, pos: (i64, i64), dir: Dir) -> Value {
@@ -372,10 +360,18 @@ impl BlackBoxTool {
         self
     }
 
-    /// Whether one click places the box, sized by what it draws (a terminal's positions, a plug's pins); the host then
-    /// ends the tool.
+    /// The device box of a part target that lays one out.
+    fn part_layout(&self) -> Option<&ew_api::part_box::PartBox> {
+        match &self.target {
+            BoxTarget::Part { layout, .. } => layout.as_ref(),
+            _ => None,
+        }
+    }
+
+    /// Whether one click places the box, sized by what it draws (a terminal's positions, a plug's pins, a part's
+    /// device box); the host then ends the tool.
     pub fn one_click(&self) -> bool {
-        self.slots.is_some() || self.pins
+        self.slots.is_some() || self.pins || self.part_layout().is_some()
     }
 
     /// The box one click places at the armed point: its layout, and the cell width of a terminal drawn as its positions.
@@ -392,7 +388,28 @@ impl BlackBoxTool {
                 ((pos, outline, Vec::new()), Some(pitch))
             }
             None if self.pins => (pin_layout(grid, *at, self.cps())?, None),
-            None => return None,
+            // A part with a device box: the box as the part lays it out, its top-left corner at the pointer.
+            None => {
+                use ew_api::part_box::Dir4;
+                let layout = self.part_layout()?;
+                let pins: Vec<u16> = self.cps().iter().map(|c| c.0).collect();
+                let (pos, outline, cps) =
+                    ew_api::part_box::steps(&pins, self.outputs(), Some(layout), grid.step().max(1))
+                        .on_grid(cx.page.tables.grid, *at)?;
+                let cps = cps
+                    .into_iter()
+                    .map(|(idx, p, dir)| {
+                        let dir = match dir {
+                            Dir4::Up => Dir::Up,
+                            Dir4::Down => Dir::Down,
+                            Dir4::Left => Dir::Left,
+                            _ => Dir::Right,
+                        };
+                        (idx, p, dir)
+                    })
+                    .collect();
+                ((pos, outline, cps), None)
+            }
         };
         let pos = fit_in_area(super::ip::drawing_area(cx.page), grid, pos, &outline).unwrap_or(pos);
         Some(((pos, outline, cps), pitch))

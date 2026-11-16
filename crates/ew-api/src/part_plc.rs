@@ -364,6 +364,10 @@ pub(crate) fn keep_unshown(s: &mut PlcSection, held: Option<&PlcSection>, rows: 
 
 /// The PLC section and the CP pattern of a checked form; `None` without a role.
 pub(crate) fn plc_section(rows: &PlcRows) -> Option<(PlcSection, Vec<CpData>)> {
+    // No role is no section (an empty word reads as a role of a newer format, which a form never makes).
+    if rows.role.trim().is_empty() {
+        return None;
+    }
     let role: PlcRole = serde_json::from_value(Value::String(rows.role.trim().to_owned())).ok()?;
     let word = |t: &str| Value::String(t.trim().to_owned());
     let ident = |t: &str| (!t.trim().is_empty()).then(|| Ident::from_input(t.trim()).expect("checked"));
