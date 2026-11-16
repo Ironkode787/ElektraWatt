@@ -36,7 +36,9 @@ the parts list and the enclosure legend read it from there.
    snaps to its neighbour, the rail's ends or the plate grid; a device mounted by screws goes on the plate.
 7. To fill a rail at once, select the rail and choose **Draw ▸ Auto-fill rail…**: it places the devices you marked in
    the list, or every unplaced device that fits, in the order of the schematic or of their tags, and a toast says what
-   did not fit.
+   did not fit. When there is nothing to place, the dialog says why: every device is placed already, or no device
+   has the cabinet's location yet. Then **Give the … devices without a location … and place them** gives them the
+   cabinet's location (one step of Undo) and fills the rail.
 
 ## Labels and the legend
 

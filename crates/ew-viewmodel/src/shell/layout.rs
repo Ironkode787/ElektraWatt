@@ -1314,6 +1314,43 @@ impl ShellModel {
         notes
     }
 
+    /// Why Auto-fill rail on the page shown has nothing to place, in words, with the number of devices that have no
+    /// location (what its Give-and-place button takes); `None` while devices are marked or the cabinet has unplaced
+    /// devices (a device that does not fit says so in the fill's own words).
+    pub fn fill_cause(&self) -> Option<(String, usize)> {
+        let panel = self.panel_tables()?;
+        if !self.fill_devices().is_empty() || !panel.unplaced.is_empty() {
+            return None;
+        }
+        let unlocated = self.project.as_ref()?.session.unlocated_devices().len();
+        let location = panel.location.as_str();
+        let text = match unlocated {
+            0 if !panel.placements.is_empty() => strings::format(key!("auto-fill-cause-all-placed"), &[location]),
+            0 => strings::format(key!("auto-fill-cause-none"), &[location]),
+            1 => strings::format(key!("auto-fill-cause-unlocated-one"), &[location]),
+            n => strings::format(key!("auto-fill-cause-unlocated"), &[location, &n.to_string()]),
+        };
+        Some((text, unlocated))
+    }
+
+    /// The Auto-fill rail dialog's way out when devices have no location: its button's label and the action's
+    /// parameters (the dialog's rail and order with `locate`); `None` otherwise.
+    pub fn fill_locate_offer(&self) -> Option<(String, Value)> {
+        let (_, n) = self.fill_cause().filter(|(_, n)| *n > 0)?;
+        let location = self.panel_tables()?.location.clone();
+        let label = match n {
+            1 => strings::format(key!("auto-fill-locate-one"), &[&location]),
+            n => strings::format(key!("auto-fill-locate"), &[&n.to_string(), &location]),
+        };
+        let mut params = json!({ "locate": true });
+        if let Some(super::Dialog::Form(f)) = &self.dialog {
+            for field in &f.fields {
+                params[field.name] = Value::String(field.value.clone());
+            }
+        }
+        Some((label, params))
+    }
+
     /// The Auto-fill rail dialog's line on the devices it fills with.
     pub fn fill_devices_text(&self) -> String {
         match self.fill_devices().len() {
@@ -1322,11 +1359,13 @@ impl ShellModel {
         }
     }
 
-    /// `layout.auto_fill_rail {rail?, order}` (Draw ▸ Layout ▸ Auto-fill rail…, D6, §8): `layout.auto_fill` of the
-    /// rail (its label or ID; by default the selected rail, else the page's first) in `order` (`schematic` or `dt`)
-    /// with the Unplaced devices navigator's marked devices, else every unplaced device that fits; a toast says what it
-    /// placed and what did not fit. In the window without `order` the Auto-fill rail dialog opens; a refusal stays
-    /// under its fields.
+    /// `layout.auto_fill_rail {rail?, order, locate?}` (Draw ▸ Layout ▸ Auto-fill rail…, D6, §8): `layout.auto_fill`
+    /// of the rail (its label or ID; by default the selected rail, else the page's first) in `order` (`schematic` or
+    /// `dt`) with the Unplaced devices navigator's marked devices, else every unplaced device that fits; a toast says
+    /// what it placed and what did not fit. With `locate` the devices without a location get the cabinet's first
+    /// (`fields.set` of `structure.location`, its own undo step: the dialog's Give-and-place button, rc.2). In the
+    /// window without `order` the Auto-fill rail dialog opens, saying why there is nothing to place where that is so;
+    /// a refusal stays under its fields.
     pub(crate) fn act_layout_auto_fill_rail(&mut self, p: &Map<String, Value>) -> Outcome {
         const ACTION: &str = "layout.auto_fill_rail";
         let Some(panel) = self.panel_tables() else {
@@ -1385,6 +1424,12 @@ impl ShellModel {
         if order != "schematic" && order != "dt" {
             return failed(key!("error-bad-param"), &["order"]);
         }
+        if super::flag(p, "locate") {
+            let out = self.locate_unlocated(&panel);
+            if out != Outcome::Done {
+                return self.layout_form_done(ACTION, out);
+            }
+        }
         let rail = match given("rail") {
             Some(r) => rails
                 .iter()
@@ -1433,6 +1478,37 @@ impl ShellModel {
             self.notify(text, true);
         }
         self.layout_form_done(ACTION, out)
+    }
+
+    /// Gives every device without a location the location of the cabinet `panel` shows, one `fields.set`.
+    fn locate_unlocated(&mut self, panel: &PanelTables) -> Outcome {
+        let Some(project) = &self.project else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let devices: Vec<String> = project
+            .session
+            .unlocated_devices()
+            .iter()
+            .map(ToString::to_string)
+            .collect();
+        let location = project
+            .session
+            .layout_locations()
+            .into_iter()
+            .find(|(_, code)| *code == panel.location)
+            .map(|(id, _)| id);
+        let (false, Some(location)) = (devices.is_empty(), location) else {
+            return Outcome::Done;
+        };
+        self.commit_from_host(&AnyCommand {
+            name: "fields.set".into(),
+            params: json!({
+                "kind": "device",
+                "targets": devices,
+                "path": "structure.location",
+                "value": location.to_string(),
+            }),
+        })
     }
 
     /// The end of a set-up action: a failure stays in its dialog, a success closes it.

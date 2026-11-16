@@ -696,7 +696,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     ))),
     with_params(
-        "rail?:text, order?:enum(schematic|dt)",
+        "rail?:text, order?:enum(schematic|dt), locate?:bool",
         placed(
             place(
                 Group::PanelLayout,

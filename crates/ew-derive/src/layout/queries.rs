@@ -202,6 +202,11 @@ fn mountability(q: &Q, dev: Id<Device>) -> Mountability {
     if space_of_location(q, location).is_none() {
         return Mountability::NotConsidered;
     }
+    mountability_of_kind(q, dev, &device)
+}
+
+/// Steps 2 to 9 of [`Mountable`]: what the device is mountable as, wherever it is located.
+fn mountability_of_kind(q: &Q, dev: Id<Device>, device: &Device) -> Mountability {
     // 2
     let encloses = q.table::<Enclosure>().iter().any(|(_, e)| e.device == dev);
     let surface = q
@@ -212,7 +217,7 @@ fn mountability(q: &Q, dev: Id<Device>) -> Mountability {
         return Mountability::Exempt(Exempt::Layout);
     }
     // 3
-    if is_strip_with_terminals(q, &device) {
+    if is_strip_with_terminals(q, device) {
         return Mountability::Mountable {
             how: MountAs::Strip,
             primary: None,
@@ -312,6 +317,26 @@ impl Query for Unplaced {
         out.dedup_by_key(|(_, d)| *d);
         Arc::new(out.into_iter().map(|(_, d)| d).collect())
     }
+}
+
+/// The mountable devices that have no location and no placement, in natural order of their full tag (then ID): the
+/// devices no layout space lists, which Auto-fill rail offers to give its cabinet's location (rc.2).
+pub fn unlocated(q: &Q) -> Vec<Id<Device>> {
+    let mut out: Vec<(NaturalKey, Id<Device>)> = q
+        .devices()
+        .iter()
+        .filter(|(d, _)| location_of(q, *d).is_none())
+        .filter(|(d, device)| mountability_of_kind(q, *d, device).is_mountable())
+        .map(|(d, _)| d)
+        .filter(|d| q.idx().placements_of_device(*d).next().is_none())
+        .map(|d| {
+            let tag = q.get::<DeviceTag>(d);
+            let full = tag.as_ref().as_ref().map_or("", |t| t.full.as_str());
+            (natural_key(full), d)
+        })
+        .collect();
+    out.sort();
+    out.into_iter().map(|(_, d)| d).collect()
 }
 
 // ---------------------------------------------------------------------------------------------------------

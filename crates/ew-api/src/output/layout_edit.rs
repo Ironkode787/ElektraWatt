@@ -1464,6 +1464,14 @@ impl Session {
             .collect()
     }
 
+    /// The mountable devices without a location and without a placement (`ew_derive::layout::unlocated`), by tag.
+    pub fn unlocated_devices(&self) -> Vec<Uuid> {
+        ew_derive::layout::unlocated(&self.query())
+            .into_iter()
+            .map(|d| d.as_uuid())
+            .collect()
+    }
+
     /// The project's locations (the structure nodes of the location aspect) as `(node, +code path)`, by path.
     pub fn layout_locations(&self) -> Vec<(Uuid, String)> {
         let q = self.query();

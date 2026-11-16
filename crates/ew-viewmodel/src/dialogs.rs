@@ -967,14 +967,30 @@ fn recovery_spec(name: &str, transactions: usize, base_matches: bool, failed: Op
 
 /// A form of an action's fields: its OK button submits them, beside Cancel.
 fn form_spec(form: &crate::shell::FormDialog, model: &ShellModel) -> DialogSpec {
+    // Auto-fill rail with nothing to place offers to give the devices without a location the cabinet's (rc.2).
+    let mut secondary = vec![cancel()];
+    if form.action == "layout.auto_fill_rail"
+        && let Some((label, params)) = model.fill_locate_offer()
+    {
+        secondary.insert(
+            0,
+            DialogButton {
+                label,
+                answer: DialogAnswer::Action("layout.auto_fill_rail", params),
+                disabled: None,
+            },
+        );
+    }
     DialogSpec {
-        secondary: vec![cancel()],
+        secondary,
         form: true,
         ..small(
             strings::text(form.title_key).to_owned(),
-            // The Auto-fill rail dialog says which devices it fills with.
+            // The Auto-fill rail dialog says which devices it fills with, and why there are none.
             match form.action {
-                "layout.auto_fill_rail" => vec![model.fill_devices_text()],
+                "layout.auto_fill_rail" => std::iter::once(model.fill_devices_text())
+                    .chain(model.fill_cause().map(|(t, _)| t))
+                    .collect(),
                 "layout.enclosure_new" => model.enclosure_form_notes(),
                 "page.title_block" => model.title_block_notes(),
                 _ => Vec::new(),

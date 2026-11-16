@@ -68,7 +68,7 @@ pub use pose::{PoseError, PoseOn, Quarter, check_pose, clip_offset, mm, plate_fr
 pub use queries::{
     CarrierGeom, CarrierGeometry, Exempt, LabelMode, LayoutLabel, MountAs, Mountability, Mountable, Occupied,
     PlacementGeom, PlacementGeometry, RailExtent, RailOccupancy, UNKNOWN_SIDE, Unplaced, places_strip,
-    primary_part, rail_extent, space_of_location,
+    primary_part, rail_extent, space_of_location, unlocated,
 };
 pub use snap::{
     BracketRole, BracketSpan, RailItem, Resolution, SnapError, SnapMode, brackets, cascade, cascade_mirrored,

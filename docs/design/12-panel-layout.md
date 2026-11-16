@@ -1078,6 +1078,12 @@ mounts on a TS 35×7.5 rail; drop it on a rail."), a rail of another profile ("F
 not fit rail 4: drop it on a TS 35×7.5 rail."), else the command's own refusal ("No gap on rail 1 is wide enough for
 F55 (300 mm)."). The plain "The drop is refused; nothing changed" is left for a drop with no words.
 
+*As built (rc.2).* Auto-fill rail's dialog, with no device marked and none unplaced in the cabinet's space, says why:
+every device of the location is placed already, or no device has the location yet and N mountable devices have none
+(`ew_derive::layout::unlocated`: no location, mountable by steps 2 to 9 of §2.7, no placement). Its button "Give the N
+devices without a location +CAB1 and place them" sets their `structure.location` in one `fields.set` (its own undo
+step) and fills the rail.
+
 ### 12.2 3D canvas (1.0)
 
 - **Camera:** orbit about the picked point, pan, zoom to cursor, standard views (front, top, side, iso),
