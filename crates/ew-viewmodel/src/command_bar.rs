@@ -1206,11 +1206,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
         tool_label: tools::tool_label(name),
         icon: actions::find(action).and_then(|a| a.icon).unwrap_or("pointer"),
         quick: if tube {
-            QUICK_TOOLS
-                .iter()
-                .copied()
-                .chain(["fluid.tube_kind"])
-                .collect()
+            QUICK_TOOLS.iter().copied().chain(["fluid.tube_kind"]).collect()
         } else {
             QUICK_TOOLS.to_vec()
         },
