@@ -1833,7 +1833,7 @@ fn rc2_one_click_places_one_terminal_and_says_so() {
     d.settle();
     d.input(&typed("valve terminal"));
     d.settle();
-    let terminal = starting_with(&d, "Valve terminal with bus node, 4");
+    let terminal = starting_with(&d, "Valve terminal with PROFIBUS DP bus node, 4");
     d.input(&Input::DoubleClick {
         at: terminal,
         mods: Modifiers::NONE,
@@ -1858,7 +1858,7 @@ fn rc2_one_click_places_one_terminal_and_says_so() {
     d.input(&typed("valve terminal"));
     d.settle();
     d.input(&Input::DoubleClick {
-        at: starting_with(&d, "Valve terminal with bus node, 4"),
+        at: starting_with(&d, "Valve terminal with PROFIBUS DP bus node, 4"),
         mods: Modifiers::NONE,
     });
     d.settle();
@@ -2175,7 +2175,7 @@ fn rc2_a_terminal_made_as_a_station_is_drawn_on_the_fluid_page() {
     d.input(&typed("valve terminal"));
     d.settle();
     d.input(&Input::DoubleClick {
-        at: starting_with(&d, "Valve terminal with bus node, 4"),
+        at: starting_with(&d, "Valve terminal with PROFIBUS DP bus node, 4"),
         mods: Modifiers::NONE,
     });
     d.settle();

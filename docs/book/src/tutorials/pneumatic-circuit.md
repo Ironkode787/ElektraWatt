@@ -67,8 +67,8 @@ on the fluid page: it belongs to the valve and stands on an electrical page, whe
 15. Click page 2 in the Pages navigator and click the valve -2Q1.
     Its row **Solenoid 14** now names the place where the coil is drawn, 1-A4.
 16. Choose **Valve terminal** on the Fluid tab (**Fluid ▸ Valve terminal…**). The device browser opens at the valve
-    terminals: choose **Valve terminal with bus node, 4 valve positions, 8 outputs** (EW-GEN-VTM-1) and click once
-    near the top left of the page. Its rack opens; choose **Close**, then **Draw ▸ Select**.
+    terminals: choose **Valve terminal with PROFIBUS DP bus node, 4 valve positions, 8 outputs** (EW-GEN-VTM-1) and
+    click once near the top left of the page. Its rack opens; choose **Close**, then **Draw ▸ Select**.
     The valve terminal -2K1 is drawn as its positions: the supply end at the left, then four empty cells numbered 1
     to 4. The toast says "Placed -2K1 at 2-…: 4 positions, all empty."; one click places one terminal.
 17. Click the empty cell 1. The device browser opens with the valves made for a terminal; type `valve terminal` into

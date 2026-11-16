@@ -80,8 +80,8 @@ There are two kinds, and the terminal's menu says which:
   its position gives, and nothing is wired per solenoid;
 - a **multipin valve terminal** has a multipin plug: each solenoid is wired from a PLC output to a pin of the plug.
 
-1. Choose **Valve terminal** on the Fluid tab and choose the terminal, such as **Valve terminal with bus node, 4 valve
-   positions, 8 outputs**; click once where its top-left corner goes. It is drawn as its positions: a supply end, then
+1. Choose **Valve terminal** on the Fluid tab and choose the terminal, such as **Valve terminal with PROFIBUS DP bus
+   node, 4 valve positions, 8 outputs**; click once where its top-left corner goes. It is drawn as its positions: a supply end, then
    one numbered cell per position. An empty position is a dashed cell, a blanking plate a plate with both diagonals.
    The toast names the terminal and its positions; a click onto another box is refused.
    A terminal made first as a PLC station (**PLC ▸ New station…**) comes first: **Valve terminal** offers

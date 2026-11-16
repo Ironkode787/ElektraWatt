@@ -879,7 +879,10 @@ impl ShellModel {
             }
             Ok(Some("draw"))
                 if p.get("folio").is_none()
-                    && self.page_rows().get(self.page_index()).is_some_and(|r| r.kind == "fluid")
+                    && self
+                        .page_rows()
+                        .get(self.page_index())
+                        .is_some_and(|r| r.kind == "fluid")
                     && self.is_valve_terminal(station) =>
             {
                 self.dialog = None;
