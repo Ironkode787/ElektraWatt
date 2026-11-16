@@ -108,6 +108,92 @@ fn a_balloon_off_its_device_drags_alone_and_the_devices_menu_puts_it_back() {
     shell.shutdown();
 }
 
+/// The persona round of the second 0.3.0 candidate: two clicks and three drags on an item number only selected its
+/// device, and the menu had no Reset. With its placement selected, a balloon inside the footprint drags alone (its
+/// handle shows, the device stays); the placement's menu offers Reset label position greyed with its reason until the
+/// label moved, and the page's menu puts every moved label back in one undo step.
+#[test]
+fn a_selected_placements_balloon_drags_alone_and_the_pages_menu_puts_labels_back() {
+    let tmp = Tmp::new("layout-label-inside");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "902");
+    done(
+        &mut shell,
+        "props.set",
+        json!({"row": "page/derived.labels", "value": "Item numbers"}),
+    );
+    // A placement whose balloon stands inside its footprint.
+    let t = panel(&shell);
+    let row = t
+        .placements
+        .iter()
+        .find(|p| {
+            let (Some(bx), fp) = (p.label_box, p.footprint) else {
+                return false;
+            };
+            let (a, b) = (
+                t.to_page((i128::from(fp.min().x.0), i128::from(fp.min().y.0))),
+                t.to_page((i128::from(fp.max().x.0), i128::from(fp.max().y.0))),
+            );
+            a.0.min(b.0) <= bx.min().x.0
+                && bx.max().x.0 <= a.0.max(b.0)
+                && a.1.min(b.1) <= bx.min().y.0
+                && bx.max().y.0 <= a.1.max(b.1)
+        })
+        .expect("a balloon inside its device")
+        .clone();
+    let bx = row.label_box.unwrap();
+    let grab = sheet(
+        &shell,
+        (
+            (bx.min().x.0 + bx.max().x.0) / 2,
+            (bx.min().y.0 + bx.max().y.0) / 2,
+        ),
+    );
+    // A click on the balloon selects the device; its menu greys Reset label position with the reason.
+    common::click(&mut shell, grab, json!({}));
+    assert_eq!(shell.selected_placements(), 1);
+    let reset = |shell: &ShellModel| {
+        canvas_menu(shell, MenuSpot::Object, None)
+            .into_iter()
+            .find(|i| i.id == "layout.reset_label")
+            .map(|i| (i.enabled, i.reason))
+    };
+    assert_eq!(
+        reset(&shell),
+        Some((false, Some("The label stands where the label rules put it".to_owned())))
+    );
+    assert_eq!(shell.tool_overlay().len(), 2, "the label's box and its handle");
+    // A drag that starts on the balloon moves the balloon alone.
+    let to = (grab.0 + 20 * MM, grab.1 - 15 * MM);
+    done(&mut shell, "canvas.pointer", at(grab, json!({})));
+    assert!(shell.label_under_pointer(), "the grab pointer");
+    done(&mut shell, "canvas.press", at(grab, json!({})));
+    done(&mut shell, "canvas.pointer", at(to, json!({})));
+    done(&mut shell, "canvas.release", at(to, json!({})));
+    let moved = panel(&shell).placement(row.id).unwrap().clone();
+    assert!(moved.label_moved, "the label was moved");
+    assert_eq!(moved.pose, row.pose, "the device stays where it is");
+    assert_eq!(reset(&shell).map(|r| r.0), Some(true));
+    // The page's menu puts it back, one undo step.
+    done(&mut shell, "select.set", json!({"ids": []}));
+    let page_menu: Vec<&str> = canvas_menu(&shell, MenuSpot::Sheet, None)
+        .iter()
+        .map(|i| i.id)
+        .collect();
+    assert!(page_menu.contains(&"layout.reset_labels"), "{page_menu:?}");
+    let rev = shell.revision();
+    done(&mut shell, "layout.reset_labels", json!({}));
+    assert_ne!(shell.revision(), rev);
+    assert!(panel(&shell).placements.iter().all(|p| !p.label_moved));
+    assert_eq!(
+        refused(&mut shell, "layout.reset_labels", json!({})),
+        "reason-labels-not-moved"
+    );
+    done(&mut shell, "edit.undo", json!({}));
+    assert!(panel(&shell).placement(row.id).unwrap().label_moved);
+    shell.shutdown();
+}
+
 /// The glyph runs the page on show prints inside the page rectangle `r`, in paint order.
 fn texts_in(shell: &ShellModel, r: Rect) -> Vec<String> {
     use ew_viewmodel::ew_api::output::ew_dl::{Item, ItemKind};

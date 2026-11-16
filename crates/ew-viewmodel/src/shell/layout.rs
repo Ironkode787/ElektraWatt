@@ -77,6 +77,34 @@ impl ShellModel {
         self.selected_placement().is_some_and(|(_, r)| r.label_moved)
     }
 
+    /// Whether the pointer, on a panel page with Select, is over a label that a drag moves on its own
+    /// (`tools::grabbed_label`): the window shows the grab pointer there.
+    pub fn label_under_pointer(&self) -> bool {
+        if self.tools.tool.name() != "select" {
+            return false;
+        }
+        let Some(c) = self.canvas() else { return false };
+        let Some(at) = c.pointer() else { return false };
+        let page = c.page();
+        let cx = crate::tools::ToolCx {
+            page,
+            points_per_nm: c.points_per_nm(),
+            pane: c.pane(),
+            snapper: &page.snapper,
+            selection: &self.tools.selection,
+            layout: self.tools.layout_options,
+            connect_on_move: self.tools.connect_on_move,
+        };
+        crate::tools::grabbed_label(&cx, at).is_some()
+    }
+
+    /// The placements of the panel page shown whose labels were moved by a person.
+    pub fn moved_labels(&self) -> Vec<Uuid> {
+        self.panel_tables()
+            .map(|p| p.placements.iter().filter(|r| r.label_moved).map(|r| r.id).collect())
+            .unwrap_or_default()
+    }
+
     /// Where Add legend would put the focused page's legend (`Session::legend_offer`).
     pub fn legend_offer(&self) -> ew_api::output::LegendOffer {
         match (self.focused_page_id(), self.project_session()) {
@@ -553,6 +581,17 @@ impl ShellModel {
             return Outcome::refused(key!("reason-no-placement"));
         };
         self.commit_layout("layout.label_move", json!({ "placement": row.id.to_string() }))
+    }
+
+    /// `layout.reset_labels` (Reset label positions in the canvas context menu over an empty spot of a panel page):
+    /// `layout.labels_reset` of every placement of the page whose label was moved, one undo step.
+    pub(crate) fn act_layout_reset_labels(&mut self) -> Outcome {
+        let moved = self.moved_labels();
+        if moved.is_empty() {
+            return Outcome::refused(key!("reason-labels-not-moved"));
+        }
+        let ids: Vec<String> = moved.iter().map(ToString::to_string).collect();
+        self.commit_layout("layout.labels_reset", json!({ "placements": ids }))
     }
 
     /// `page.add_legend` (Page ▸ Add legend): an embedded legend block (`report_block.create` of kind

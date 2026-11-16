@@ -630,10 +630,10 @@ pub fn menu_spot(
 ///   terminal's, a device's), then, where the selection holds a symbol, the commands the command bar offers for it
 ///   (the buttons of [`SELECTION_GROUPS`], in the bar's order and as a collapsed group lists them: a split button, then
 ///   its other variants), then Cut, Copy, Paste, Delete and Properties of selection. Over a placement of a panel
-///   page: Turn, Flip, Lock or Unlock, and Delete.
+///   page: Turn, Flip, Lock or Unlock, Reset label position and Delete.
 /// - Over the frame or the title block: Title block fields…, then what an empty spot offers.
 /// - Over an empty spot: Paste, Page properties, New page… and, on a page that is not a panel layout, Print wire
-///   numbers.
+///   numbers; on a panel layout, Add legend and Reset label positions.
 ///
 /// An entry that cannot run now is disabled and carries its reason, as the bar's button does. `at` is the sheet point
 /// the menu was opened at (a right-click's; `None` from the keyboard): a valve terminal's cell there offers its own
@@ -654,8 +654,9 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -
         if model.canvas().is_some_and(|c| c.page().panel.is_none()) {
             items.extend(item("project.wire_numbers"));
         } else if model.legend_offer() != ew_api::output::LegendOffer::NoLayout {
-            // A panel page offers its legend beside the layout (F21).
+            // A panel page offers its legend beside the layout (F21) and puts its moved labels back.
             items.extend(item("page.add_legend"));
+            items.extend(item("layout.reset_labels"));
         }
         // A schematic page offers New station… (F18 of the rc.1 test: the rack comes first).
         if matches!(
@@ -666,19 +667,22 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -
         }
         return items;
     }
-    // Over a placement on a panel page, Turn, Flip, Lock or Unlock, Reset label position when its label was moved,
-    // and Delete.
+    // Over a placement on a panel page, Turn, Flip, Lock or Unlock, Reset label position (disabled with its reason
+    // while the label stands where the rules put it), and Delete.
     if model.selected_placements() > 0 {
         let lock = if model.selected_placement_locked() {
             "layout.unlock_selection"
         } else {
             "layout.lock_selection"
         };
-        let reset = model.selected_label_moved().then_some("layout.reset_label");
-        return ["layout.rotate", "layout.flip", lock]
-            .into_iter()
-            .chain(reset)
-            .chain(["edit.delete_selection"])
+        return [
+            "layout.rotate",
+            "layout.flip",
+            lock,
+            "layout.reset_label",
+            "edit.delete_selection",
+        ]
+        .into_iter()
             .collect::<Vec<_>>()
             .iter()
             .filter_map(|id| actions::find(id))

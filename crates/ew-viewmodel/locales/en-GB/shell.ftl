@@ -6949,6 +6949,10 @@ symbol-more-in-guide = More in the guide
 # A layout page that can be read: item numbers, the legend, labels that move (the owner's test of 0.3.0-rc.1).
 action-page-add-legend = Add legend
 action-layout-reset-label = Reset label position
+action-layout-reset-labels = Reset label positions
+reason-labels-not-moved = Every label stands where the label rules put it
+command-layout-labels_reset = Reset layout labels
+refusal-params-no-placement = give at least one placement
 reason-legend-exists = This page has its legend already
 reason-legend-no-room = The drawing area leaves no room beside the layout for a legend; move the layout or choose a smaller scale
 reason-legend-no-layout = The page shows no mounting plate yet

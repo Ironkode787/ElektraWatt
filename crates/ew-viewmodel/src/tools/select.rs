@@ -343,6 +343,50 @@ pub fn block_grips(cx: &ToolCx<'_>) -> Option<super::Overlay> {
     Some(super::Overlay::new(items))
 }
 
+/// What Select grabs at the sheet point `at` of a panel page: the label (or balloon) under it that drags alone, with
+/// its placement and its box on the page. A label off its footprint drags alone; one inside its footprint drags alone
+/// once its placement is selected, else it goes with its device's drag.
+pub fn grabbed_label(cx: &ToolCx<'_>, at: (i64, i64)) -> Option<(ew_api::output::Uuid, Rect)> {
+    let panel = cx.page.panel.as_deref()?;
+    let page_at = cx.snapper.sheet_to_page(at);
+    panel.placements.iter().find_map(|p| {
+        let bx = p.label_box?;
+        let hit = (bx.min().x.0..=bx.max().x.0).contains(&page_at.0)
+            && (bx.min().y.0..=bx.max().y.0).contains(&page_at.1);
+        let fp = super::layout::surface_box(p.footprint);
+        let (a, b) = (panel.to_page((fp.0, fp.1)), panel.to_page((fp.2, fp.3)));
+        let off = bx.max().x.0 <= a.0.min(b.0)
+            || bx.min().x.0 >= a.0.max(b.0)
+            || bx.max().y.0 <= a.1.min(b.1)
+            || bx.min().y.0 >= a.1.max(b.1);
+        let selected = cx.selection.items.contains(&EntityRef(p.id));
+        (hit && (off || selected)).then_some((p.id, bx))
+    })
+}
+
+/// The handle of the one selected placement's label on a panel page: a dashed square at the label's top right
+/// corner, 3 points across each half, saying the label can be dragged on its own; `None` unless exactly one placement
+/// with a label is selected.
+pub fn label_grip(cx: &ToolCx<'_>) -> Option<super::Overlay> {
+    let panel = cx.page.panel.as_deref()?;
+    let [e] = cx.selection.items.as_slice() else {
+        return None;
+    };
+    let bx = panel.placement(e.0)?.label_box?;
+    let r = cx.nm_of_points(3.0).round() as i64;
+    let s = cx.snapper.page_to_sheet((bx.max().x.0, bx.min().y.0));
+    Some(super::Overlay::new(vec![
+        super::OverlayItem::Rect {
+            r: sheet_rect_of(cx, bx),
+            style: super::Style::dashed(Token::Ghost),
+        },
+        super::OverlayItem::Rect {
+            r: super::rect_of((s.0 - r, s.1 - r), (s.0 + r, s.1 + r)),
+            style: super::Style::solid(Token::Ghost),
+        },
+    ]))
+}
+
 /// The sheet rectangle of the page rectangle `r`.
 fn sheet_rect_of(cx: &ToolCx<'_>, r: Rect) -> Rect {
     let a = cx.snapper.page_to_sheet((r.min().x.0, r.min().y.0));
@@ -635,22 +679,7 @@ impl SelectTool {
                     });
                     return Some(ToolOutput::None);
                 }
-                // A label (or balloon) that stands off its footprint drags alone; one inside its footprint goes with
-                // its device.
-                let page_at = cx.snapper.sheet_to_page(*at);
-                let label = panel.placements.iter().find_map(|p| {
-                    let bx = p.label_box?;
-                    let hit = (bx.min().x.0..=bx.max().x.0).contains(&page_at.0)
-                        && (bx.min().y.0..=bx.max().y.0).contains(&page_at.1);
-                    let fp = super::layout::surface_box(p.footprint);
-                    let (a, b) = (panel.to_page((fp.0, fp.1)), panel.to_page((fp.2, fp.3)));
-                    let off = bx.max().x.0 <= a.0.min(b.0)
-                        || bx.min().x.0 >= a.0.max(b.0)
-                        || bx.max().y.0 <= a.1.min(b.1)
-                        || bx.min().y.0 >= a.1.max(b.1);
-                    (hit && off).then_some((p.id, bx))
-                });
-                if let Some((id, bx)) = label {
+                if let Some((id, bx)) = grabbed_label(cx, *at) {
                     self.state = State::Idle;
                     self.panel = Some(PanelPress {
                         entity: EntityRef(id),

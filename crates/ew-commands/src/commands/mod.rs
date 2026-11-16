@@ -237,6 +237,7 @@ commands! {
     layout::RemovePlacement,
     layout::LockPlacement,
     layout::MoveLayoutLabel,
+    layout::ResetLayoutLabels,
     layout::PlaceAssembly,
     layout::AutoFill,
     layout::CreateEnclosureFromPart,

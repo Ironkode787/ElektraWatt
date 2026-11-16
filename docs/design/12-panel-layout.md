@@ -582,11 +582,15 @@ A function's placement adds no ":" suffix, since functions carry no designation 
   leader runs from the label to the footprint's edge. A row without collisions prints as before.
 - **The short form.** A page without a location of its own suppresses the location of the layout space its view
   shows: on the cabinet's own layout "+CAB1-K1" prints "-K1".
-- **A label can be moved.** A drag of a label (or balloon) that stands off its footprint moves it alone (one inside its
-  footprint goes with its device's drag)
+- **A label can be moved.** A drag of a label (or balloon) that stands off its footprint moves it alone; one inside
+  its footprint moves alone once its placement is selected (rc.2: the persona tried to drag a balloon inside its
+  device), else it goes with its device's drag. With one placement selected its label shows a dashed box with a
+  handle, and the pointer over a label that drags alone is the grab hand
   (`layout.label_move {placement, at?}`); `Placement.label_at` (added in 0.3) stores the label's centre as an offset
   from the footprint's centre in the surface's frame, so it moves with the placement; a label off its footprint gets
-  a leader to the footprint's nearest point. Reset label position in the placement's menu removes it.
+  a leader to the footprint's nearest point. Reset label position in the placement's menu removes it (greyed with its
+  reason while the label stands where the rules put it); Reset label positions in the page's menu removes every one of
+  the page in one step (`layout.labels_reset {placements}`).
 
 ### 5.4 Legend and PART DATA
 

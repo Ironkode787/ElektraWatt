@@ -1669,6 +1669,43 @@ impl Command for MoveLayoutLabel {
     }
 }
 
+/// `layout.labels_reset` (`ResetLayoutLabels`, doc 12 §5.3): puts the labels of the placements back where the label
+/// rules place them, in one step (a layout page's Reset label positions); a placement whose label was not moved is left
+/// untouched. Rejected: an empty `placements` list (`/placements`); a missing placement is not found. Interactive.
+/// Outcome: none.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ResetLayoutLabels {
+    /// The placements, at least one.
+    #[schemars(with = "Vec<UuidS>")]
+    #[schemars(length(min = 1))]
+    pub placements: Vec<Id<Placement>>,
+}
+
+impl Command for ResetLayoutLabels {
+    const NAME: &'static str = "layout.labels_reset";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        if self.placements.is_empty() {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/placements",
+                text!("refusal-params-no-placement"),
+            ));
+        }
+        for id in &self.placements {
+            if tx.require::<Placement>(*id)?.label_at.is_some() {
+                tx.update::<Placement>(*id, |p| p.label_at = None)?;
+            }
+        }
+        Ok(Outcome::default())
+    }
+}
+
 /// D7: when `part.assign` adds the one copy `new` to `device` (modes `replace` and `replace_all`, the part not used
 /// before), the placements of the device whose part copy left the device follow `new`, in the same transaction. A
 /// placement without a part (the primary) and one whose copy the device still uses stay. `before` is the device's part

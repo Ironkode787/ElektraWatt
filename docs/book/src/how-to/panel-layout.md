@@ -48,8 +48,10 @@ the parts list and the enclosure legend read it from there.
    its block and as long as its rows. Where the block is narrow, the part number and quantity give way first; the
    numbers and tags stay whole. It is offered while the page has none. Click the legend to select it, drag it to move
    it, and drag one of its corners to make it wider or narrower.
-10. A label or balloon that stands beside its device can be dragged on its own; its line follows it to the device.
-    **Reset label position** in the device's right-click menu puts it back.
+10. A label or balloon can be dragged on its own: one beside its device at once, one on its device once the device is
+    selected (the label then shows a dashed box with a handle). Its line follows it to the device.
+    **Reset label position** in the device's right-click menu puts it back; **Reset label positions** in the page's
+    right-click menu puts every label of the page back.
 
 The tools are described one by one in the [tool reference](../reference/window/tools.md): Place device, Rail and
 Duct.

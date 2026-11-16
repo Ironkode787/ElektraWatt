@@ -624,6 +624,16 @@ fn label_moved(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
+/// Reset label positions: a label of the panel page shown was moved.
+fn labels_moved(m: &ShellModel) -> Result<(), Key<'static>> {
+    panel_page(m)?;
+    if m.moved_labels().is_empty() {
+        Err(key!("reason-labels-not-moved"))
+    } else {
+        Ok(())
+    }
+}
+
 fn panel_selection(m: &ShellModel) -> Result<(), Key<'static>> {
     panel_page(m)?;
     if m.selected_placements() == 0 {

@@ -6687,6 +6687,10 @@ symbol-more-in-guide = Meer in de handleiding
 # Een leesbare layoutpagina: positienummers, de legenda, verplaatsbare labels (de test van 0.3.0-rc.1).
 action-page-add-legend = Legenda toevoegen
 action-layout-reset-label = Labelpositie herstellen
+action-layout-reset-labels = Labelposities herstellen
+reason-labels-not-moved = Elk label staat waar de labelregels het zetten
+command-layout-labels_reset = Layoutlabels herstellen
+refusal-params-no-placement = geef ten minste één plaatsing
 reason-legend-exists = Deze pagina heeft al een legenda
 reason-legend-no-room = Naast de layout is in het tekenvlak geen ruimte voor een legenda; verplaats de layout of kies een kleinere schaal
 reason-legend-no-layout = De pagina toont nog geen montageplaat

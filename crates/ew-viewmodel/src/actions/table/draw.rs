@@ -632,6 +632,16 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_layout_reset_label(),
     ))),
+    // Reset label positions in the canvas context menu over an empty spot of a panel page whose labels were dragged.
+    hidden(in_canvas(act(
+        "layout.reset_labels",
+        Command,
+        Menu::Edit,
+        &[],
+        labels_moved,
+        None,
+        |s, _| s.act_layout_reset_labels(),
+    ))),
     with_params(
         "mode?:enum(free|push|swap), grid?:uint",
         hidden(in_canvas(act(
