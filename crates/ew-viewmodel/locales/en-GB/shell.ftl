@@ -475,6 +475,9 @@ hint-ip-external = Click or { $p0 } to place the external connection point; type
 
 # FT-896: the Black box tool takes two corners; the armed hint says so before the first click.
 hint-box-armed = Click the box's first corner, then its opposite corner; { $p0 } ends
+hint-box-place = Click to place; { $p0 } ends
+place-target-click = { $p0 }: click to place
+reason-box-occupied = Another box stands here: click on a free place
 hint-box-outline = Click or { $p0 } at the opposite corner; { $p1 } starts again
 hint-box-dropped = Click or { $p0 } at the first corner; { $p1 } again leaves the tool
 reason-no-ip-symbol = This page's library has no interruption-point symbol

@@ -924,14 +924,17 @@ impl ShellModel {
                 .page_rows()
                 .get(self.page_index())
                 .is_some_and(|r| r.kind == "fluid");
-            let slots = project
-                .session
-                .terminal_of_main(id)
+            let terminal = project.session.terminal_of_main(id);
+            let slots = terminal
                 .filter(|_| fluid)
                 .and_then(|t| u16::try_from(project.session.terminal_positions(t).len()).ok());
+            // A multipin terminal's main function elsewhere is its plug: its pins down its two sides, one click.
+            let pins = !fluid && terminal.is_some_and(|t| project.session.terminal_plug(t).is_some());
             self.tools.picker = None;
             self.activate_tool(Box::new(
-                BlackBoxTool::new(copy.to_string(), target).with_slots(slots),
+                BlackBoxTool::new(copy.to_string(), target)
+                    .with_slots(slots)
+                    .with_pins(pins),
             ));
             return Outcome::Done;
         }

@@ -24,7 +24,10 @@
 //!
 //! **A valve terminal drawn as its positions** ([`BlackBoxTool::with_slots`], doc 11 §3.2, rc.2): the box is sized by the
 //! terminal's positions, not by two clicks; armed, the tool shows it dashed with its top-left corner at the pointer, and
-//! one click commits `box.black` with `box: {outline, slots: {pitch}}` (`ew_api::geometry::slot_box`).
+//! one click commits `box.black` with `box: {outline, slots: {pitch}}` (`ew_api::geometry::slot_box`). **A multipin
+//! terminal's plug** ([`BlackBoxTool::with_pins`]) is placed the same way, sized by its pins down its two sides
+//! ([`pin_layout`]). Such a one-click box is refused on another box (`reason-box-occupied`), and the host ends the tool
+//! once it is placed (rc.2: one click, one box).
 //!
 //! **Grips** ([`grip_points`], [`reshape_by_grip`]): for an outline of `n` vertices in stored order, grips `0 … n−1`
 //! are the vertices and grips `n … 2n−1` the midpoints of the edges `v0v1, …, v(n−1)v0`. On a rectangle a vertex grip
@@ -195,6 +198,70 @@ pub fn layout(
     Some((pos, outline, out))
 }
 
+/// The least distance between two pins of a plug (nm): a text of style `data.small` stands above each pin's wire.
+const PIN_PITCH: i64 = 5_000_000;
+
+/// The least width of a plug's box (nm): the pin designations inside stand clear of each other.
+const PIN_BOX_WIDTH: i64 = 15_000_000;
+
+/// The box of a multipin valve terminal's plug with its top-left corner at the grid point `at` (rc.2): its pins down its
+/// left side (the first half, top to bottom) and its right side (the rest), the wires leaving sideways so that each pin's
+/// designation inside and its text outside read horizontally; the pins `PIN_PITCH` apart and the box `PIN_BOX_WIDTH`
+/// wide, each rounded up to whole grid steps; the first pin one pitch lower than the others' spacing, below the box's
+/// cross-reference, the box as high as its longer side. `None` without pins.
+pub fn pin_layout(grid: PageGridMap, at: (i64, i64), cps: &[(u16, String)]) -> Option<BoxLayout> {
+    if cps.is_empty() {
+        return None;
+    }
+    let step = grid.step().max(1);
+    let steps = |nm: i64| ((nm + step - 1) / step).max(1);
+    let (pitch, width) = (steps(PIN_PITCH), steps(PIN_BOX_WIDTH));
+    let left = cps.len().div_ceil(2);
+    let rows = i64::try_from(left).ok()?;
+    let (kx, ky) = (grid.index(at.0), grid.index(at.1));
+    let pos = (grid.coord(kx), grid.coord(ky));
+    let w = grid.coord(kx + width) - pos.0;
+    let h = grid.coord(ky + (rows + 2) * pitch) - pos.1;
+    let outline = vec![(0, 0), (w, 0), (w, h), (0, h)];
+    let out = cps
+        .iter()
+        .enumerate()
+        .map(|(i, (idx, _))| {
+            let (row, x, dir) = if i < left {
+                (i, 0, Dir::Left)
+            } else {
+                (i - left, w, Dir::Right)
+            };
+            let row = i64::try_from(row).unwrap_or(0);
+            (*idx, (x, grid.coord(ky + (row + 2) * pitch) - pos.1), dir)
+        })
+        .collect();
+    Some((pos, outline, out))
+}
+
+/// Whether the box `outline` at `pos` (page nm) overlaps a black box on the page shown.
+fn overlaps_a_box(cx: &ToolCx<'_>, pos: (i64, i64), outline: &[(i64, i64)]) -> bool {
+    let bbox = |pts: &mut dyn Iterator<Item = (i64, i64)>| {
+        pts.fold(None, |acc: Option<[i64; 4]>, (x, y)| {
+            Some(acc.map_or([x, y, x, y], |r| {
+                [r[0].min(x), r[1].min(y), r[2].max(x), r[3].max(y)]
+            }))
+        })
+    };
+    let Some(a) = bbox(&mut outline.iter().map(|p| (pos.0 + p.0, pos.1 + p.1))) else {
+        return false;
+    };
+    cx.page
+        .tables
+        .reps
+        .iter()
+        .filter_map(|r| r.black_box.as_ref())
+        .any(|b| {
+            bbox(&mut b.outline.iter().copied())
+                .is_some_and(|o| a[0] < o[2] && o[0] < a[2] && a[1] < o[3] && o[1] < a[3])
+        })
+}
+
 /// The grid offset of CP `k` of `m` on an edge `width` grid steps long: the CPs one common pitch apart, the
 /// largest whole number of grid steps that fits `m + 1` times into the edge (at least one), and the group centred on
 /// the edge (half a step to the left when it cannot be centred exactly). Every CP lies at least one grid step from both
@@ -234,6 +301,8 @@ pub struct BlackBoxTool {
     rep_type: Option<String>,
     /// The positions of a valve terminal drawn as its positions: one click places its box of that many cells.
     slots: Option<u16>,
+    /// A multipin valve terminal's plug: one click places its box sized by its pins, down its two sides.
+    pins: bool,
 }
 
 impl BlackBoxTool {
@@ -247,6 +316,7 @@ impl BlackBoxTool {
             copies: Vec::new(),
             rep_type: None,
             slots: None,
+            pins: false,
         }
     }
 
@@ -256,12 +326,32 @@ impl BlackBoxTool {
         self
     }
 
-    /// The box of a terminal drawn as its positions at the armed point: insertion point, outline, cell width.
-    fn slotted(&self, cx: &ToolCx<'_>) -> Option<ew_api::geometry::SlotBox> {
-        let (State::Armed { at: Some(at) }, Some(n)) = (&self.state, self.slots) else {
+    /// The tool placing a multipin valve terminal's plug (rc.2): one click, the box sized by its pins ([`pin_layout`]).
+    pub fn with_pins(mut self, pins: bool) -> BlackBoxTool {
+        self.pins = pins;
+        self
+    }
+
+    /// Whether one click places the box, sized by what it draws (a terminal's positions, a plug's pins); the host then
+    /// ends the tool.
+    pub fn one_click(&self) -> bool {
+        self.slots.is_some() || self.pins
+    }
+
+    /// The box one click places at the armed point: its layout, and the cell width of a terminal drawn as its positions.
+    fn one_click_box(&self, cx: &ToolCx<'_>) -> Option<(BoxLayout, Option<i64>)> {
+        let State::Armed { at: Some(at) } = &self.state else {
             return None;
         };
-        ew_api::geometry::slot_box(cx.page.tables.grid, *at, n)
+        if let Some(n) = self.slots {
+            let (pos, outline, pitch) = ew_api::geometry::slot_box(cx.page.tables.grid, *at, n)?;
+            return Some(((pos, outline, Vec::new()), Some(pitch)));
+        }
+        let grid = PageGridMap::new(cx.page.tables.grid);
+        self.pins
+            .then(|| pin_layout(grid, *at, self.cps()))
+            .flatten()
+            .map(|l| (l, None))
     }
 
     /// The tool drawing boxes of representation type `rep_type` (`topology` on a bus-topology page).
@@ -326,9 +416,9 @@ impl BlackBoxTool {
 
     /// The `box.black` of the current rectangle, or the `bus.place_ports` of a ports target.
     fn command(&self, cx: &ToolCx<'_>) -> Option<Box<AnyCommand>> {
-        let slotted = self.slotted(cx);
-        let layouts = match &slotted {
-            Some((pos, outline, _)) => vec![(*pos, outline.clone(), Vec::new())],
+        let one = self.one_click_box(cx);
+        let layouts = match &one {
+            Some((layout, _)) => vec![layout.clone()],
             None => self.current(cx)?,
         };
         if let BoxTarget::Ports {
@@ -384,7 +474,7 @@ impl BlackBoxTool {
         let mut b = json!({
             "outline": outline.iter().map(|p| vec![p.0, p.1]).collect::<Vec<_>>(),
         });
-        if let Some((_, _, pitch)) = slotted {
+        if let Some((_, Some(pitch))) = one {
             b["slots"] = json!({ "pitch": pitch });
         }
         if !cps.is_empty() {
@@ -410,7 +500,7 @@ impl BlackBoxTool {
     }
 
     fn overlay(&self, cx: &ToolCx<'_>) -> Overlay {
-        if let Some((pos, outline, _)) = self.slotted(cx) {
+        if let Some(((pos, outline, cps), _)) = self.one_click_box(cx) {
             let mut pts: Vec<(i64, i64)> = outline
                 .iter()
                 .map(|p| cx.snapper.page_to_sheet((pos.0 + p.0, pos.1 + p.1)))
@@ -418,17 +508,23 @@ impl BlackBoxTool {
             if let Some(&first) = pts.first() {
                 pts.push(first);
             }
-            return Overlay::new(vec![
-                OverlayItem::Polyline {
-                    points: pts,
-                    style: Style::dashed(Token::Ghost),
-                },
-                OverlayItem::Label {
-                    at: cx.snapper.page_to_sheet(pos),
-                    text: self.label(),
-                    anchor: Anchor::Right,
-                },
-            ]);
+            let mut items = vec![OverlayItem::Polyline {
+                points: pts,
+                style: Style::dashed(Token::Ghost),
+            }];
+            for (_, p, _) in &cps {
+                items.push(OverlayItem::Marker {
+                    at: cx.snapper.page_to_sheet((pos.0 + p.0, pos.1 + p.1)),
+                    kind: MarkerKind::Cp,
+                });
+            }
+            // The label at the pointer says what a click does (the persona run took it for a tool of two corners).
+            items.push(OverlayItem::Label {
+                at: cx.snapper.page_to_sheet(pos),
+                text: crate::strings::format(key!("place-target-click"), &[&self.label()]),
+                anchor: Anchor::Right,
+            });
+            return Overlay::new(items);
         }
         match self.state {
             State::Armed { at: None } => Overlay::default(),
@@ -494,7 +590,13 @@ impl BlackBoxTool {
 
     fn click(&mut self, cx: &ToolCx<'_>) -> ToolOutput {
         self.dropped = false;
-        if self.slots.is_some() {
+        if self.one_click() {
+            // A box never lands on another box (the persona run placed two terminals on one spot).
+            if let Some(((pos, outline, _), _)) = self.one_click_box(cx)
+                && overlaps_a_box(cx, pos, &outline)
+            {
+                return ToolOutput::Refused(key!("reason-box-occupied"));
+            }
             return match self.command(cx) {
                 Some(cmd) => ToolOutput::Commit(cmd),
                 None => ToolOutput::None,
@@ -561,6 +663,9 @@ impl Tool for BlackBoxTool {
         match self.state {
             State::Armed { .. } if self.dropped => {
                 super::Hint::new(key!("hint-box-dropped"), &[super::ENTER, super::ESCAPE])
+            }
+            State::Armed { .. } if self.one_click() => {
+                super::Hint::new(key!("hint-box-place"), &[super::ESCAPE])
             }
             State::Armed { .. } => super::Hint::new(key!("hint-box-armed"), &[super::ESCAPE]),
             State::Outline { .. } => {

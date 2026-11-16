@@ -1722,6 +1722,53 @@ fn round3_the_valve_terminal_is_filed_with_its_plate_and_found_first() {
     d.shell_mut().shutdown();
 }
 
+/// The rc.2 persona run (friction 7): the terminal tool took a first and a second click, each made a terminal, the two
+/// tags overprinted and nothing was said. Armed, the hint says a click places it; one click places one terminal, the
+/// tool ends and the toast says what was placed; a terminal clicked onto another is refused in words.
+#[test]
+fn rc2_one_click_places_one_terminal_and_says_so() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    d.input(&click(d.find("Device").unwrap()));
+    d.settle();
+    d.input(&typed("valve terminal"));
+    d.settle();
+    let terminal = starting_with(&d, "Valve terminal with bus node, 4");
+    d.input(&Input::DoubleClick {
+        at: terminal,
+        mods: Modifiers::NONE,
+    });
+    d.settle();
+    d.input(&Input::Hover { at: (760, 300) });
+    d.settle();
+    let hint = crate::persona_round::state(&mut d)["status"][0].clone();
+    assert_eq!(hint, json!("Click to place; Esc ends"));
+    click_at(&mut d, (760, 300));
+    assert_eq!(d.shell_mut().tool().name(), "select", "one click, one terminal");
+    let toast = d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert!(
+        toast.starts_with("Placed -") && toast.ends_with(": 4 positions, all empty."),
+        "{toast}"
+    );
+    d.input(&key("escape"));
+    d.settle();
+    // A second terminal clicked onto the first is refused in words.
+    d.input(&click(d.find("Device").unwrap()));
+    d.settle();
+    d.input(&typed("valve terminal"));
+    d.settle();
+    d.input(&Input::DoubleClick {
+        at: starting_with(&d, "Valve terminal with bus node, 4"),
+        mods: Modifiers::NONE,
+    });
+    d.settle();
+    click_at(&mut d, (780, 320));
+    let status = crate::persona_round::state(&mut d)["status"][0].clone();
+    assert_eq!(status, json!("Another box stands here: click on a free place"));
+    assert_eq!(cells(&mut d).len(), 4, "one terminal only");
+    d.shell_mut().shutdown();
+}
+
 /// F15 of the rc.1 test: the valve terminal took up a box of two clicks, its empty and blank positions were not drawn,
 /// and a coil placed in the box was taken as a valve. Placed with one click it is drawn as its four positions in a row;
 /// a click on an empty cell opens the device browser narrowed to valves for a terminal, and the valve chosen fills that
@@ -1837,14 +1884,29 @@ fn f15_the_multipin_plug_is_drawn_from_its_terminal_and_names_its_pins() {
         "black_box",
         "the plug's box on the pointer"
     );
+    // One click places the plug, sized by its pins (rc.2, friction 12).
     click_at(&mut d, (800, 400));
-    click_at(&mut d, (1100, 500));
-    d.input(&key("escape"));
-    d.settle();
-    let mut texts = Vec::new();
+    assert_eq!(d.shell_mut().tool().name(), "select", "one click, one plug");
+    let mut boxes = Vec::new();
     let p = d.shell_mut().canvas().unwrap().page().clone();
-    glyph_boxes(&p.list.items, &|q| q, &mut texts);
-    let texts: Vec<String> = texts.into_iter().map(|(t, _)| t).collect();
+    glyph_boxes(&p.list.items, &|q| q, &mut boxes);
+    // Each pin's text reads horizontally beside its pin: the pins stand down the box's two sides.
+    let tables = std::sync::Arc::clone(&p.tables);
+    let plug = tables
+        .reps
+        .iter()
+        .find_map(|r| r.black_box.as_ref())
+        .expect("the plug's box");
+    use ew_ui::ew_viewmodel::ew_api::geometry::Dir;
+    assert!(
+        plug.cps.iter().all(|c| matches!(c.2, Dir::Left | Dir::Right)),
+        "pins down the sides: {:?}",
+        plug.cps
+    );
+    for (t, b) in boxes.iter().filter(|(t, _)| t == "COM" || t == "2 · 14") {
+        assert!(b[2] - b[0] > b[3] - b[1], "{t} reads horizontally: {b:?}");
+    }
+    let texts: Vec<String> = boxes.into_iter().map(|(t, _)| t).collect();
     assert!(texts.iter().any(|t| t == "COM"), "the common: {texts:?}");
     assert!(
         texts.iter().any(|t| t == "2 · 14"),
@@ -1934,9 +1996,6 @@ fn rc2_the_multipin_plug_is_drawn_from_the_terminal_on_the_fluid_page() {
         format!("Click where the plug of {terminal} goes on page 1.")
     );
     click_at(&mut d, (800, 400));
-    click_at(&mut d, (1100, 500));
-    d.input(&key("escape"));
-    d.settle();
     // Back on the fluid page, the terminal says where its plug is.
     let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "201"}));
     let _ = d.shell_mut().dispatch("tool.select", &json!({}));

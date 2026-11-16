@@ -1348,7 +1348,7 @@ impl Builder<'_> {
 
     /// The texts beside the pins of the multipin valve terminals' plugs (rc.2): each starts one millimetre out from
     /// its pin along the wire's way and stands just beside the wire (turned upright for a pin whose wire leaves up or
-    /// down), in the CP-label style.
+    /// down, on the wire for one that leaves sideways), at the size of the box's own pin designations.
     fn plug_notes(&mut self, view: &PageView) {
         let gap = Nm(1_000_000);
         let side = Nm(700_000);
@@ -1366,14 +1366,14 @@ impl Builder<'_> {
                     Align::MiddleRight,
                 ),
                 (false, true) => (
-                    Pt2::new(n.at.x + out, n.at.y - side),
+                    Pt2::new(n.at.x + out, n.at.y - Nm(gap.0 / 2)),
                     Angle2(0),
-                    Align::MiddleLeft,
+                    Align::BottomLeft,
                 ),
                 (false, false) => (
-                    Pt2::new(n.at.x + out, n.at.y - side),
+                    Pt2::new(n.at.x + out, n.at.y - Nm(gap.0 / 2)),
                     Angle2(0),
-                    Align::MiddleRight,
+                    Align::BottomRight,
                 ),
             };
             self.text(&TextSpec {
@@ -1381,7 +1381,7 @@ impl Builder<'_> {
                 at,
                 angle,
                 align: &align,
-                style_key: VALVE_GLYPH_STYLE,
+                style_key: "data.small",
                 entity: EntityRef(n.rep.as_uuid()),
                 link: None,
                 items: &[],

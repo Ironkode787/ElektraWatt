@@ -629,8 +629,16 @@ impl ShellModel {
                 {
                     self.announce_selection();
                 }
+                // A box one click places (a valve terminal's positions, a plug's pins) is one box: the tool gives way
+                // to Select too (rc.2: a second click placed a second terminal on the first).
+                let one_click = self
+                    .tools
+                    .tool
+                    .as_any_mut()
+                    .and_then(|t| t.downcast_ref::<crate::tools::black_box::BlackBoxTool>())
+                    .is_some_and(crate::tools::black_box::BlackBoxTool::one_click);
                 if out == Outcome::Done
-                    && self.tools.tool.name() == "layout_place"
+                    && (self.tools.tool.name() == "layout_place" || one_click)
                     && let Some(select) = tool_named("select")
                 {
                     self.tools.tool = select;

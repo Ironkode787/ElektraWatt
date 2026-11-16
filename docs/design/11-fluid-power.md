@@ -433,7 +433,9 @@ on the sub-base (the galleries join them, §5.2; the terminal itself is the firs
 taps a gallery feeds it). The cells are the terminal's positions, then its modules' (`terminal_cells`); their content is
 derived, never stored: a valve's own symbol stands in its cell (its tag and the output that drives it, `PlcAddress`),
 a valve drawn on another page is named by its tag, a blanking plate is drawn as one, an empty position dashed. The
-Place tool places such a box with one click (`box.black` with `slots`). A terminal made first as a PLC station (the New
+Place tool places such a box with one click (`box.black` with `slots`), then gives way to Select; the toast names the
+terminal and its positions ("Placed -201K1 at 201-B2: 4 positions, all empty."), and a click whose box would overlap
+another box is refused in words. A terminal made first as a PLC station (the New
 station dialog, its valves in its rack) is drawn on a fluid page by `fluid.draw_terminal` (its rack dialog's Draw on a
 fluid page…, its row in the PLC panel, and Fluid ▸ Valve terminal…, which on a fluid page offers each terminal drawn on
 no fluid page first, "Draw -104A1 here", then "A new terminal…"): its box of positions on the pointer, joined to the
@@ -463,7 +465,8 @@ output Q0.0 of -201K1 (inside the terminal: nothing to wire)" or "pin 3 of the p
 instead of Draw solenoid. The plug is drawn from any page as a valve's solenoid is (`fluid.draw_plug`: the terminal's
 menu, its Properties row Plug, the Fluid tab's Draw plug for the selected terminal): the electrical page shown, else the
 nearest one, shows with the plug's box on the pointer; once drawn, the menu and the row go to it. On an electrical page
-the plug (the terminal's overview box with a connection point per pin) prints beside each pin what it carries (`plug_pins`): the valve's tag and the
+the plug (the terminal's box with a connection point per pin, placed with one click and sized by its pins: half down
+its left side, the rest down its right, so that each pin's designation and text read horizontally) prints beside each pin what it carries (`plug_pins`): the valve's tag and the
 solenoid where a valve holds the position ("-201K2-Q1 14"), else the position and the solenoid ("2 · 14"), and `COM` for
 the common; the texts are derived, so filling, emptying or swapping a position changes them. A wire from a PLC output
 to a pin makes that output the solenoid's (`wired_solenoid_channel`: the channel whose traced target is the plug pin):
