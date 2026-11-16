@@ -14,6 +14,7 @@ use serde_json::{Map, Value};
 use super::{Outcome, ShellModel, failed};
 use crate::canvas::{CanvasBackend, CanvasModel, nm_of_mm, pane_out_of_bounds};
 use crate::key;
+use crate::strings;
 use crate::settings::{CANVAS_BACKENDS, MIN_FONT_RANGE};
 
 /// The canvas view of the shell: the pane's size, the grid, the statistics overlay, the backend and the build error.
@@ -188,7 +189,25 @@ impl ShellModel {
     }
 
     pub(crate) fn act_zoom_in(&mut self, p: &Map<String, Value>) -> Outcome {
-        self.with_canvas(p, CanvasModel::zoom_in)
+        let out = self.with_canvas(p, CanvasModel::zoom_in);
+        self.say_way_back(p);
+        out
+    }
+
+    /// The first time a person zooms far in (rc.2: the persona was at 1131 % and found no way back but by chance), a
+    /// toast says how the whole page shows again; remembered in the settings' `tips_seen`, so it is said once.
+    fn say_way_back(&mut self, p: &Map<String, Value>) {
+        /// How far in counts as far: four times the paper's size.
+        const FAR: f64 = 4.0;
+        const WORD: &str = "zoom_way_back";
+        let Ok(g) = self.group_param(p) else { return };
+        if self.canvas_of(g).is_none_or(|c| c.zoom() < FAR) || self.settings.tips_seen.iter().any(|w| w == WORD) {
+            return;
+        }
+        self.settings.tips_seen.push(WORD.to_owned());
+        self.save_settings();
+        let key = crate::command_bar::key_name(self, "view.fit_page");
+        self.notify(strings::format(key!("toast-zoom-way-back"), &[&key]), false);
     }
 
     pub(crate) fn act_zoom_out(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -214,10 +233,12 @@ impl ShellModel {
     pub(crate) fn act_zoom_to(&mut self, p: &Map<String, Value>) -> Outcome {
         let percent = or_return!(positive(p, "percent"));
         let anchor = or_return!(point_mm(p));
-        self.with_canvas(p, |c| {
+        let out = self.with_canvas(p, |c| {
             let a = anchor.unwrap_or(c.centre());
             c.zoom_about(percent / 100.0, a);
-        })
+        });
+        self.say_way_back(p);
+        out
     }
 
     pub(crate) fn act_pan(&mut self, p: &Map<String, Value>) -> Outcome {

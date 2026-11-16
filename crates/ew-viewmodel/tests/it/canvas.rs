@@ -614,3 +614,36 @@ fn a_project_switch_at_the_same_revision_and_folio_is_a_new_page() {
     assert_eq!(Some(b.session), shell.project_epoch());
     shell.shutdown();
 }
+
+/// The rc.2 persona run (friction 4): the wheel zoomed to 1131 % and nothing said how to pan or get back. The status
+/// bar's zoom says in its tooltip how to move about, as the wheel is set; the first zoom far in says once how the
+/// whole page shows again.
+#[test]
+fn the_canvas_says_how_to_move_about_and_back() {
+    let tmp = Tmp::new("canvas-ways");
+    let mut shell = tmp.shell("103");
+    let zoom_tip = |shell: &ShellModel| {
+        ew_viewmodel::status::bar(shell, false)
+            .into_iter()
+            .find(|f| f.kind == ew_viewmodel::status::StatusKind::Zoom)
+            .map(|f| f.tip)
+            .unwrap_or_default()
+    };
+    let tip = zoom_tip(&shell);
+    assert!(
+        tip.starts_with("The wheel zooms") && tip.contains("middle button") && tip.contains("Home fits"),
+        "{tip}"
+    );
+    done(&mut shell, "view.zoom_to", json!({"percent": 1200}));
+    let toast = shell.toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert_eq!(
+        toast,
+        "Zoomed far in: Home, or Fit page at the page's lower right, shows the whole page again."
+    );
+    done(&mut shell, "view.fit_page", json!({}));
+    let _ = shell.dispatch("ui.dismiss", &json!({}));
+    let before = shell.notifications().len();
+    done(&mut shell, "view.zoom_to", json!({"percent": 1200}));
+    assert_eq!(shell.notifications().len(), before, "said once");
+    shell.shutdown();
+}

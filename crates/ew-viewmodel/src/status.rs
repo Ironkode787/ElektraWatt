@@ -539,11 +539,20 @@ pub fn bar(model: &ShellModel, hide_job: bool) -> Vec<StatusField> {
                 out.push(field(StatusKind::Cursor, text, Tone::Normal));
             }
             out.push(field(StatusKind::Grid, grid_text(model), Tone::Normal));
-            out.push(field(
-                StatusKind::Zoom,
-                strings::format(key!("status-zoom"), &[&zoom_percent_text(canvas.zoom())]),
-                Tone::Normal,
-            ));
+            // How to move about the page, as the wheel is set (rc.2: nothing told the persona how to pan).
+            let tip = if model.settings().wheel_scrolls {
+                key!("status-tip-zoom-scrolls")
+            } else {
+                key!("status-tip-zoom")
+            };
+            out.push(StatusField {
+                tip: strings::format(tip, &[&crate::command_bar::key_name(model, "view.fit_page")]),
+                ..field(
+                    StatusKind::Zoom,
+                    strings::format(key!("status-zoom"), &[&zoom_percent_text(canvas.zoom())]),
+                    Tone::Normal,
+                )
+            });
         }
         out.push(match model.access() {
             Some(AccessMode::ReadOnly { reason_key }) => StatusField {
