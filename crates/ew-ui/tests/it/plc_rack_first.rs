@@ -433,6 +433,37 @@ fn the_rack_dialog_names_its_station_and_holds_still() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// A persona run: Properties stayed on the project while the switch was selected, until he selected something else
+/// first. A click on what is selected already brings Properties back to it.
+#[test]
+fn a_click_on_the_selection_brings_its_properties_back() {
+    let tmp = Tmp::new();
+    let mut h = new_project(&tmp);
+    crate::plc_workspace::draw_black_box(&mut h, "EW-GEN-ESW-8", (10, 10));
+    dispatch(&mut h, "props.show", json!({"on": true}));
+    let click = |h: &mut egui_kittest::Harness<'static, ew_ui::app::App>| {
+        crate::navigators::cursor_k(h, (13, 14));
+        dispatch(h, "canvas.activate", json!({}));
+        settle(h);
+    };
+    click(&mut h);
+    let kinds = |h: &egui_kittest::Harness<'static, ew_ui::app::App>| -> Vec<String> {
+        h.state()
+            .shell()
+            .properties()
+            .sheet()
+            .map(|s| s.sections.iter().map(|x| x.kind.clone()).collect())
+            .unwrap_or_default()
+    };
+    assert!(kinds(&h).iter().any(|k| k == "device"), "{:?}", kinds(&h));
+    dispatch(&mut h, "props.project", json!({}));
+    settle(&mut h);
+    assert!(!kinds(&h).iter().any(|k| k == "device"), "the project's sheet");
+    click(&mut h);
+    assert!(kinds(&h).iter().any(|k| k == "device"), "{:?}", kinds(&h));
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// The channel rows of the PLC panel: (channel, module, badges).
 fn channel_rows(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>) -> Vec<(Uuid, Uuid, Vec<String>)> {
     use ew_ui::ew_viewmodel::navigators::NavKind;

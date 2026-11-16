@@ -700,6 +700,10 @@ impl ShellModel {
                 self.tools.overlay = Overlay::default();
                 if self.tools.selection.apply(&change) {
                     self.announce_selection();
+                } else if !self.tools.selection.is_empty() {
+                    // A click on what is selected already brings Properties back to it from the project's sheet (a
+                    // persona run's Properties stayed on the project until he selected something else first).
+                    self.props.project_mode = None;
                 }
                 // A click on an empty cell of a valve terminal drawn as its positions fills it (rc.2, F15).
                 if let SelectionChange::Replace(one) = &change
