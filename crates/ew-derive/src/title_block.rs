@@ -322,10 +322,15 @@ fn page_scope(out: &mut Out, q: &Q, project: &Project, page: PageRef) {
         "page.function",
         &structure.render_aspect(Aspect::Function, &syntax),
     );
-    out.text(
-        "page.location",
-        &structure.render_aspect(Aspect::Location, &syntax),
-    );
+    // A drawn page without a location of its own says the one its devices share once (rc.2), as its tags leave it
+    // out.
+    let location = match page {
+        PageRef::Drawn(p) => q
+            .get::<crate::structure::PageDisplayStructure>(p)
+            .render_aspect(Aspect::Location, &syntax),
+        _ => structure.render_aspect(Aspect::Location, &syntax),
+    };
+    out.text("page.location", &location);
     out.text(
         "page.document_kind",
         &structure.render_aspect(Aspect::DocumentKind, &syntax),

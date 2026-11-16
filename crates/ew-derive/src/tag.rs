@@ -36,7 +36,7 @@ use crate::note::{DeriveNote, SchemeIssue};
 use crate::pages::folio_label;
 use crate::profile::{self, CounterScope, NumberingScheme, NumberingSettings};
 use crate::query::{Policy, Query};
-use crate::structure::{PageStructure, ResolvedStructure, StructureOf};
+use crate::structure::{PageDisplayStructure, ResolvedStructure, StructureOf};
 
 /// `main_function(device)`: the device's function with role `Main` and the smallest ID.
 #[derive(Debug)]
@@ -525,7 +525,9 @@ fn render_format(q: &Q, id: Id<Device>, dev: &Device, format: &str) -> String {
     out
 }
 
-/// `displayed_tag(device, page)`: the device's tag as printed on a page (FR-NUM-002); empty for a
+/// `displayed_tag(device, page)`: the device's tag as printed on a page (FR-NUM-002), against the page's
+/// [`PageDisplayStructure`](crate::structure::PageDisplayStructure) (its location left out where every device of the
+/// page shares it, rc.2); empty for a
 /// missing device.
 #[derive(Debug)]
 pub struct DisplayedTag;
@@ -541,7 +543,7 @@ impl Query for DisplayedTag {
         let Some(tag) = tag.as_ref() else {
             return Arc::new(String::new());
         };
-        let page = q.get::<PageStructure>(key.1);
+        let page = q.get::<PageDisplayStructure>(key.1);
         Arc::new(tag.displayed(&page))
     }
 }

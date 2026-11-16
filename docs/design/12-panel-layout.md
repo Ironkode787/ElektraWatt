@@ -581,7 +581,12 @@ A function's placement adds no ":" suffix, since functions carry no designation 
   0.5 mm) further out on either side, up to four levels; a place other than the first must stay on the surface. The
   leader runs from the label to the footprint's edge. A row without collisions prints as before.
 - **The short form.** A page without a location of its own suppresses the location of the layout space its view
-  shows: on the cabinet's own layout "+CAB1-K1" prints "-K1".
+  shows: on the cabinet's own layout "+CAB1-K1" prints "-K1". Since rc.2 this is one rule for every page
+  (`page_display_structure`, which the displayed tag, the layout labels, the legend's DT and the title block's
+  `{page.location}` read): a page without a location of its own takes the cabinet its view shows, else the one location
+  every device drawn on it has (a page whose devices have two locations, or none, takes none), so a schematic page of
+  one cabinet prints "-102A1" and says "+CAB1" once in its title block. Devices still take their structure from the
+  page's own slots only.
 - **A label can be moved.** A drag of a label (or balloon) that stands off its footprint moves it alone; one inside
   its footprint moves alone once its placement is selected (rc.2: the persona tried to drag a balloon inside its
   device), else it goes with its device's drag. With one placement selected its label shows a dashed box with a

@@ -26,7 +26,7 @@ use super::fit::Profile;
 use super::pose::{Quarter, clip_offset};
 use crate::Q;
 use crate::query::{Policy, Query};
-use crate::structure::{DevicesByStructure, PageStructure, SlotSource, StructureOf, resolved_slot};
+use crate::structure::{DevicesByStructure, PageDisplayStructure, StructureOf};
 use crate::tag::DeviceTag;
 
 /// The side of the unknown footprint (D5): a 20 × 20 mm square about the pose.
@@ -714,14 +714,7 @@ impl Query for LayoutLabel {
                 let Some(tag) = tag.as_ref() else {
                     return Arc::new(String::new());
                 };
-                let mut structure = q.get::<PageStructure>(page).as_ref().clone();
-                if structure.node(Aspect::Location).is_none()
-                    && let Some(slot) =
-                        shown_location(q, page).and_then(|n| resolved_slot(q, n, SlotSource::Explicit))
-                {
-                    structure.slots.insert(Aspect::Location, slot);
-                }
-                Arc::new(tag.displayed(&structure))
+                Arc::new(tag.displayed(&q.get::<PageDisplayStructure>(page)))
             }
             LabelMode::Full => {
                 let tag = q.get::<DeviceTag>(device);
@@ -732,7 +725,7 @@ impl Query for LayoutLabel {
 }
 
 /// The location node of the layout space whose surface the panel-layout page `page` shows.
-fn shown_location(q: &Q, page: Id<Page>) -> Option<Id<StructureNode>> {
+pub(crate) fn shown_location(q: &Q, page: Id<Page>) -> Option<Id<StructureNode>> {
     let surface = super::legend::page_surface(q, page)?;
     let enclosure = q.table::<MountingSurface>().get(surface)?.enclosure;
     let space = q.table::<Enclosure>().get(enclosure)?.space;

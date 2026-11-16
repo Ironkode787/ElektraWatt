@@ -211,6 +211,51 @@ impl Query for PageStructure {
     }
 }
 
+/// `page_display_structure(page)`: the structure a page's tags and its title block show against (FR-NUM-002): the
+/// page's own slots ([`PageStructure`]), and on a page without a location of its own the location it draws: the
+/// cabinet its surface view shows (a panel layout), else the one location every device drawn on the page has (rc.2: a
+/// card's tag "+CAB1-102A1-A1" ran into the next one). A page whose devices have no location, or two, takes none. The
+/// devices still take their structure from [`PageStructure`] (step 3 of [`StructureOf`]): this is display only.
+#[derive(Debug)]
+pub struct PageDisplayStructure;
+
+impl Query for PageDisplayStructure {
+    type Key = Id<Page>;
+    type Value = ResolvedStructure;
+    const FAMILY: &'static str = "page_display_structure";
+    const POLICY: Policy = Policy::Cold;
+
+    fn run(q: &Q, key: &Self::Key) -> Arc<ResolvedStructure> {
+        let own = q.get::<PageStructure>(*key);
+        if own.node(Aspect::Location).is_some() {
+            return own;
+        }
+        let shown = crate::layout::shown_location(q, *key).or_else(|| {
+            let (reps, functions) = (q.reps(), q.functions());
+            let mut common: Option<Id<StructureNode>> = None;
+            for r in q.idx().reps_by_page(*key) {
+                let Some(rep) = reps.get(r) else { continue };
+                for device in rep.functions.iter().filter_map(|f| functions.get(*f)?.device) {
+                    let location = q.get::<StructureOf>(device).node(Aspect::Location)?;
+                    if common.is_some_and(|c| c != location) {
+                        return None;
+                    }
+                    common = Some(location);
+                }
+            }
+            common
+        });
+        match shown.and_then(|n| resolved_slot(q, n, SlotSource::Explicit)) {
+            Some(slot) => {
+                let mut out = own.as_ref().clone();
+                out.slots.insert(Aspect::Location, slot);
+                Arc::new(out)
+            }
+            None => own,
+        }
+    }
+}
+
 /// The device a device inherits its structure from: the strip of a terminal, the parent of a child-tag
 /// device.
 pub(crate) fn structure_parent(dev: &Device) -> Option<Id<Device>> {

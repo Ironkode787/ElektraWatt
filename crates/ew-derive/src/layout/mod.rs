@@ -70,6 +70,7 @@ pub use queries::{
     PlacementGeom, PlacementGeometry, RailExtent, RailOccupancy, UNKNOWN_SIDE, Unplaced, places_strip,
     primary_part, rail_extent, space_of_location, unlocated,
 };
+pub(crate) use queries::shown_location;
 pub use snap::{
     BracketRole, BracketSpan, RailItem, Resolution, SnapError, SnapMode, brackets, cascade, cascade_mirrored,
     end_gap, free_length, min_gap, next_fit, resolve, runs, start_gap,

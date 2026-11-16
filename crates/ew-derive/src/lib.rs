@@ -216,7 +216,7 @@ pub use stitch::{
 };
 pub use strip_bridges::{BridgeGroup, StripBridges};
 pub use structure::{
-    DEVICE_ASPECTS, DevicesByStructure, NodePath, PAGE_ASPECTS, PageStructure, ResolvedSlot,
+    DEVICE_ASPECTS, DevicesByStructure, NodePath, PAGE_ASPECTS, PageDisplayStructure, PageStructure, ResolvedSlot,
     ResolvedStructure, SlotSource, StructureOf, StructurePath,
 };
 pub use tag::{
