@@ -161,14 +161,11 @@ impl ShellModel {
 
     /// What kind of valve terminal `device` is, in words (rc.2, F15): `Valve terminal · PLC station on PROFIBUS DP`,
     /// `Valve terminal · PLC station with bus node`, `Valve terminal · multipin, wired`; `None` for any other device.
-    /// The terminal's menu says it; Properties' header can show it.
+    /// The terminal's menu and its row's hover in the Devices list say it ([`crate::properties::terminal_kind_text`]).
     pub fn terminal_kind_words(&self, device: Uuid) -> Option<String> {
-        use ew_api::output::TerminalKind;
-        Some(match self.project_session()?.terminal_kind(device)? {
-            TerminalKind::BusNode { bus: Some(bus) } => strings::format(key!("kind-terminal-bus"), &[&bus]),
-            TerminalKind::BusNode { bus: None } => strings::text(key!("kind-terminal-bus-node")).to_owned(),
-            TerminalKind::Multipin => strings::text(key!("kind-terminal-multipin")).to_owned(),
-        })
+        Some(crate::properties::terminal_kind_text(
+            &self.project_session()?.terminal_kind(device)?,
+        ))
     }
 
     /// The valve parts a valve terminal's empty position offers in the rack dialog (rc.2, `Session::terminal_valve_parts`).

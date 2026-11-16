@@ -1313,7 +1313,8 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
         })
         .inner;
     response.widget_info(|| egui::WidgetInfo::selected(egui::Role::TreeItem, true, row.marked, &row.name));
-    // A device's row shows its part's card on hover (F22), read only when hovered.
+    // A device's row shows its part's card on hover (F22), read only when hovered; a valve terminal's says its kind first
+    // (rc.2, F15).
     let response = if kind == NavKind::Devices {
         let device = tree
             .shell
@@ -1322,6 +1323,9 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
             .and_then(|(_, n)| n.records.first().copied());
         match device {
             Some(device) => response.on_hover_ui(|ui| {
+                if let Some(words) = tree.shell.terminal_kind_words(device) {
+                    ui.strong(words);
+                }
                 if let Some(view) = tree.shell.device_part_card(device) {
                     let t = crate::theme::current(ui.ctx());
                     let mut ignored = Vec::new();

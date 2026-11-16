@@ -1799,10 +1799,14 @@ pub fn header_in_words(sheet: &mut PropertySheet) {
 /// What the one selected device is, in the UI language (rc.2, F9), the header's line under the title: what it is
 /// first — a PLC station or module, a terminal, a strip or a cable by that word, anything else by its symbol's name —
 /// then its natures ("Compressed-air supply point · pneumatic", "5/2 valve, solenoid and spring · pneumatic, 1
-/// solenoid", "PLC station · CPU", "Valve terminal · PLC station on PROFIBUS DP", "Terminal"). A valve's electrical
-/// points are its solenoids, so a fluid device with solenoids counts them instead of saying electrical.
+/// solenoid", "PLC station · CPU", "Valve terminal · PLC station on PROFIBUS DP", "Valve terminal · multipin, wired",
+/// "Terminal"). A valve's electrical points are its solenoids, so a fluid device with solenoids counts them instead of
+/// saying electrical.
 pub fn what_words(what: &SheetWhat) -> String {
     use ew_api::symbols::schema::{Discipline, StationRole};
+    if let Some(kind) = &what.terminal {
+        return terminal_kind_text(kind);
+    }
     let n = &what.natures;
     let word = |k: Key<'static>| strings::text(k).to_owned();
     let role = |r: &StationRole| {
@@ -1812,13 +1816,6 @@ pub fn what_words(what: &SheetWhat) -> String {
             .unwrap_or_default()
     };
     let (lead, mut details): (Option<String>, Vec<String>) = match &n.station {
-        Some(StationRole::ValveTerminal) => {
-            let station = match &what.bus {
-                Some(bus) => strings::format(key!("nature-station-on"), &[&strings::choice_text(bus)]),
-                None => word(key!("nature-plc-station")),
-            };
-            (Some(role(&StationRole::ValveTerminal)), vec![station])
-        }
         Some(r) => (Some(word(key!("nature-plc-station"))), vec![role(r)]),
         None if n.module => (Some(word(key!("nature-plc-module"))), Vec::new()),
         None if n.terminal => (Some(word(key!("nature-terminal"))), Vec::new()),
@@ -1859,6 +1856,18 @@ pub fn what_words(what: &SheetWhat) -> String {
         Some(lead) if details.is_empty() => lead,
         Some(lead) => strings::format(key!("props-what"), &[&lead, &details]),
         None => strings::sentence_start(&details).into_owned(),
+    }
+}
+
+/// What kind of valve terminal it is, in words (rc.2, F15): `Valve terminal · PLC station on PROFIBUS DP`, `Valve
+/// terminal · PLC station with bus node`, `Valve terminal · multipin, wired`. Properties' header, the terminal's menu
+/// and its row's hover in the Devices list say it.
+pub fn terminal_kind_text(kind: &ew_api::output::TerminalKind) -> String {
+    use ew_api::output::TerminalKind;
+    match kind {
+        TerminalKind::BusNode { bus: Some(bus) } => strings::format(key!("kind-terminal-bus"), &[bus]),
+        TerminalKind::BusNode { bus: None } => strings::text(key!("kind-terminal-bus-node")).to_owned(),
+        TerminalKind::Multipin => strings::text(key!("kind-terminal-multipin")).to_owned(),
     }
 }
 

@@ -928,22 +928,7 @@ impl Session {
     /// solenoids are inside it), with the bus its part's first bus port names, or multipin (wired through its plug);
     /// `None` for any other device.
     pub fn terminal_kind(&self, device: Uuid) -> Option<TerminalKind> {
-        let q = self.query();
-        let id: Id<Device> = Id::from_uuid(device);
-        if ew_derive::is_multipin_terminal(&q, id) {
-            return Some(TerminalKind::Multipin);
-        }
-        if !ew_derive::is_valve_terminal(&q, id) {
-            return None;
-        }
-        let bus = q.devices().get(id).and_then(|d| {
-            d.parts.iter().find_map(|u| {
-                let copy = q.parts().get(u.part.copy)?;
-                let port = copy.item.sections.bus.as_ref()?.ports.first()?.clone();
-                Some(ew_derive::bus_word(&port.bus).to_owned())
-            })
-        });
-        Some(TerminalKind::BusNode { bus })
+        terminal_kind(&self.query(), Id::from_uuid(device))
     }
 
     /// The valve positions of a valve terminal, left to right (`ew_derive::terminal_cells`: its own, then its modules'),
@@ -1066,6 +1051,24 @@ impl Session {
         let module = q.devices().get(Id::from_uuid(id))?.aspects.plc_module.as_ref()?;
         serde_json::to_value(&module.safety).ok()
     }
+}
+
+/// What kind of valve terminal `id` is ([`Session::terminal_kind`]); also Properties' header (rc.2).
+pub(crate) fn terminal_kind(q: &ew_derive::Q, id: Id<Device>) -> Option<TerminalKind> {
+    if ew_derive::is_multipin_terminal(q, id) {
+        return Some(TerminalKind::Multipin);
+    }
+    if !ew_derive::is_valve_terminal(q, id) {
+        return None;
+    }
+    let bus = q.devices().get(id).and_then(|d| {
+        d.parts.iter().find_map(|u| {
+            let copy = q.parts().get(u.part.copy)?;
+            let port = copy.item.sections.bus.as_ref()?.ports.first()?.clone();
+            Some(ew_derive::bus_word(&port.bus).to_owned())
+        })
+    });
+    Some(TerminalKind::BusNode { bus })
 }
 
 /// Whether a part is a valve for a valve terminal: it names solenoids, carries no PLC section and no CP pattern (its

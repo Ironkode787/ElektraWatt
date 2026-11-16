@@ -6762,7 +6762,6 @@ nature-hydraulic = hydraulisch
 nature-bus-device = busapparaat
 nature-mechanical = alleen mechanisch
 nature-plc-station = PLC-station
-nature-station-on = PLC-station aan { $p0 }
 nature-plc-module = PLC-module
 nature-terminal = Klem
 nature-strip = Klemmenstrook

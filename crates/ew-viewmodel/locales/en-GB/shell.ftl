@@ -7024,7 +7024,6 @@ nature-hydraulic = hydraulic
 nature-bus-device = bus device
 nature-mechanical = mechanical only
 nature-plc-station = PLC station
-nature-station-on = PLC station on { $p0 }
 nature-plc-module = PLC module
 nature-terminal = Terminal
 nature-strip = Terminal strip

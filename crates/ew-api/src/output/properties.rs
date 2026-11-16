@@ -95,8 +95,8 @@ pub struct SheetWhat {
     pub symbol: Option<ew_derive::ew_mltext::MlText>,
     /// The number of its solenoids (a valve's).
     pub solenoids: usize,
-    /// The bus system of a station's first bus port in its JSON spelling (`profibus_dp`); `None` without one.
-    pub bus: Option<String>,
+    /// What kind of valve terminal it is (`Session::terminal_kind`); `None` for any other device.
+    pub terminal: Option<super::TerminalKind>,
 }
 
 /// One finding in the header.
@@ -1975,17 +1975,11 @@ fn sheet_what(q: &Q, device: Id<Device>) -> SheetWhat {
         .and_then(|r| q.symbols().get(r.symbol))
         .map(|c| c.item.name.clone())
         .filter(|n| !n.is_empty());
-    let functions = q.functions();
-    let bus = q
-        .idx()
-        .functions_of_device(device)
-        .filter_map(|f| functions.get(f)?.bus_port.clone())
-        .find_map(|p| serde_json::to_value(&p.bus).ok()?.as_str().map(str::to_owned));
     SheetWhat {
         natures: super::natures::device_natures(q, device),
         symbol,
         solenoids: super::rack::solenoids(q, device).len(),
-        bus,
+        terminal: super::rack::terminal_kind(q, device),
     }
 }
 

@@ -2368,6 +2368,74 @@ fn rc2_a_terminals_menu_lists_its_positions_from_the_body() {
     d.shell_mut().shutdown();
 }
 
+/// The window pixels of the middles of the supply ends of the valve terminals drawn on the page shown, top to bottom.
+fn supply_ends(d: &mut Driver) -> Vec<(i64, i64)> {
+    let tables = std::sync::Arc::clone(&d.shell_mut().canvas().unwrap().page().tables);
+    let mut ends: Vec<[i64; 4]> = tables
+        .reps
+        .iter()
+        .filter_map(|r| r.black_box.as_ref().and_then(|b| b.supply_end))
+        .collect();
+    ends.sort_by_key(|r| r[1]);
+    ends.into_iter()
+        .map(|r| page_pixel(d, ((r[0] + r[2]) / 2, (r[1] + r[3]) / 2)))
+        .collect()
+}
+
+/// The rc.2 re-test (friction 13): the bus-node terminal's Properties said "Valve terminal · PLC station" and the
+/// multipin one's "Black-box frame · electrical", so the two kinds could be told apart only by their side effects. Each
+/// terminal's Properties header, its menu's heading and its row's hover in the Devices list say its kind in the same
+/// words.
+#[test]
+fn rc2_each_valve_terminal_says_its_kind() {
+    use ew_ui::ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    let multipin = place_multipin(&mut d, (760, 300));
+    place_terminal(&mut d, (760, 650));
+    let ends = supply_ends(&mut d);
+    for (at, words) in [
+        (ends[0], "Valve terminal · multipin, wired"),
+        (ends[1], "Valve terminal · PLC station on PROFIBUS DP"),
+    ] {
+        click_at(&mut d, at);
+        assert!(
+            d.texts().iter().any(|t| t == words),
+            "Properties' header: {words}"
+        );
+        let menu = canvas_menu(d.shell_mut(), MenuSpot::Object, None);
+        assert!(
+            menu.iter().any(|i| i.label == words && !i.enabled),
+            "the menu's heading: {words}"
+        );
+    }
+    // The Devices list's row of the multipin terminal says it under the pointer.
+    let _ = d
+        .shell_mut()
+        .dispatch("navigator.show", &json!({ "kind": "devices" }));
+    // A frame to show the list (a dispatch asks for none).
+    d.input(&Input::Hover { at: (1000, 600) });
+    d.settle();
+    let name = d
+        .shell_mut()
+        .shown_rows(NavKind::Devices)
+        .into_iter()
+        .find(|r| r.label == multipin)
+        .map(|r| r.name)
+        .expect("the terminal's row in the Devices list");
+    let at = d.find(&name).expect("the row on show");
+    d.input(&Input::Hover { at });
+    d.input(&Input::Wait { ms: 1000 });
+    d.settle();
+    assert!(
+        d.texts()
+            .iter()
+            .any(|t| t == "Valve terminal · multipin, wired"),
+        "the row's hover"
+    );
+    d.shell_mut().shutdown();
+}
+
 /// The rc.2 cabinet run (friction 26, 27): Tube opened a small dialog first, so the clicks meant for the ports fell
 /// into it, and nothing showed the tube's size. Tube starts drawing at once with the line kind used last, the HUD says
 /// the kind and the project's tube and changes the kind, and a project without a default tube is told once where its
