@@ -528,12 +528,15 @@ fn tutorial_4_reports_and_pdf_runs_as_its_page_says() {
             "row level 2 page \"911\" \"Revision Overview\" generated changed \"V1.0\"",
         ]
     );
-    // Step 1's toast, which says where the copy is (F4), and step 3's.
+    // Step 1's toast, which says where the copy is (F4), and step 3's, with the devices the parts list leaves out
+    // (rc.2).
     assert_eq!(
         lines_of(&parts, &["toast"]),
         [
             "toast \"The tutorial's practice project is under Tutorials in your projects folder.\" show_folder",
-            "toast \"Added the report block Parts list from folio 912.\" undo"
+            "toast \"Added the report block Parts list from folio 912.\" undo",
+            "toast \"11 devices have no part and are not in the parts list. Select them, then Edit ▸ Choose part… \
+             gives them one.\" select_unlisted"
         ]
     );
     assert_eq!(
