@@ -402,6 +402,13 @@ impl ShellModel {
             .as_ref()
             .and_then(|p| p.session.main_function(devices[0]))
             .map(|f| f.0);
+        // A cable is offered cable parts only (rc.3: every part was offered).
+        let cables = self.project.as_ref().map(|p| p.session.cables()).unwrap_or_default();
+        let kinds = if devices.iter().all(|d| cables.iter().any(|(c, _, _)| c == d)) {
+            vec!["cable".to_owned()]
+        } else {
+            Vec::new()
+        };
         Ok(Some(Target {
             text: if devices.len() == 1 {
                 tag.clone()
@@ -411,7 +418,7 @@ impl ShellModel {
             target: PartTarget::Devices { devices, mode },
             tag: Some(tag),
             function,
-            kinds: Vec::new(),
+            kinds,
         }))
     }
 

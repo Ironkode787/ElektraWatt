@@ -663,7 +663,7 @@ impl ShellModel {
 
     /// Sets the text of field `name` of the open creation dialog (a keystroke or a choice) and clears the last refusal.
     pub fn set_form_field(&mut self, name: &str, value: &str) {
-        let cable_rows = (name == "type"
+        let cable_rows = (["type", "part"].contains(&name)
             && matches!(&self.dialog, Some(Dialog::Form(f)) if f.action == "cable.from_wires"))
         .then(|| self.cable_row_wires());
         // Create enclosure's code of a new location comes and goes with its "New location" choice.
@@ -677,8 +677,21 @@ impl ShellModel {
                 f.value = value.to_owned();
             }
             form.error = None;
-            // Cable…'s cores follow its type.
+            // Cable…'s cores follow its type; a cable part chosen is the type (rc.3).
             if let Some(wires) = &cable_rows {
+                if name == "part"
+                    && !value.is_empty()
+                    && let Some(t) = form.fields.iter_mut().find(|f| f.name == "type")
+                {
+                    t.value = value.to_owned();
+                }
+                // A size typed is no part: the list says so.
+                if name == "type"
+                    && let Some(p) = form.fields.iter_mut().find(|f| f.name == "part")
+                    && p.value != value
+                {
+                    p.value = String::new();
+                }
                 super::cables::retype(self.project.as_ref().map(|p| &p.session), wires, form);
             }
             if form.action == "layout.enclosure_new"

@@ -28,8 +28,9 @@ cable in the Cables navigator. At the end you have a saved project whose checks 
    -1X1:2 to X2 of -1E3. Choose **Draw ▸ Select**.
    The terminal -1X1:1 carries 24VAC and -1X1:2 carries 0VAC to the lamp on the machine.
 6. Click the field wire of -1X1:1, then Shift+click the field wire of -1X1:2. Choose **Draw ▸ Connect ▸ Cable…**
-   (**Cable** on the Draw tab). The form proposes the tag -1W1 and lists the two wires with the core each gets. Type
-   `3G1.5` as the **Type**, a three-core cable of 1.5 mm² whose last core is green-yellow: the first wire gets the
+   (**Cable** on the Draw tab). The form proposes the tag -1W1 and lists the two wires with the core each gets. Its
+   **Cable type** lists the cable parts that fit the wires, the closest first; here type `3G1.5` as the **Size or part
+   number** instead, a three-core cable of 1.5 mm² whose last core is green-yellow, without a part: the first wire gets the
    core BN, the second BU. Choose **Apply**.
    The toast says "Cable -1W1 made from 2 wires": the cable is made with its three cores and the
    two field wires are its cores, in one step that one Undo takes back. The cable takes its page number from its

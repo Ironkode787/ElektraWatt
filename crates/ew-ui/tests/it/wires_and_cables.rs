@@ -485,7 +485,22 @@ fn ft1685_cable_makes_the_selected_wires_a_cable_in_one_step() {
     let steps = d.shell_mut().recorded_commands().len();
     d.input(&click(d.find("Cable").expect("Cable on the Draw tab")));
     d.settle();
-    // The form's first field, the tag, has the keys; Tab goes to the type, whose text is selected.
+    // The cable type comes first: the starter cables that fit two wires, a two-core one first and chosen
+    // (rc.3); typing a size instead makes a cable without a part.
+    match d.shell_mut().dialog() {
+        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => {
+            let part = &f.fields[0];
+            assert_eq!(part.name, "part");
+            let chosen = part.options.iter().find(|o| o.0 == part.value).map(|o| o.1.clone());
+            assert!(
+                chosen.as_deref().is_some_and(|w| w.contains(" · 2X") && w.ends_with(" · BN BU")),
+                "{chosen:?} of {:?}",
+                part.options
+            );
+        }
+        other => panic!("not the Cable form: {other:?}"),
+    }
+    // The form's first text field, the tag, has the keys; Tab goes to the type, whose text is selected.
     d.input(&key("tab"));
     d.input(&typed("3G1.5"));
     d.settle();
@@ -635,7 +650,9 @@ fn company_project(tmp: &Tmp) -> Driver {
 /// The tag field of the Cable form.
 fn form_tag(d: &mut Driver) -> String {
     match d.shell_mut().dialog() {
-        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => f.fields[0].value.clone(),
+        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => {
+            f.fields.iter().find(|x| x.name == "tag").unwrap().value.clone()
+        }
         other => panic!("not the Cable form: {other:?}"),
     }
 }
@@ -800,11 +817,23 @@ fn cable_on_a_supply_with_pe_proposes_a_g_type_and_retyping_proposes_the_cores_a
     d.settle();
     d.input(&click(d.find("Cable").expect("Cable on the Draw tab")));
     d.settle();
+    // The type: the cable part chosen for the wires (rc.3), else the size proposed; with a PE wire a G type.
     let type_text = |d: &mut Driver| match d.shell_mut().dialog() {
-        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => f.fields[1].value.clone(),
+        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => {
+            let part = f.fields.iter().find(|x| x.name == "part");
+            let chosen = part.and_then(|p| p.options.iter().find(|o| !p.value.is_empty() && o.0 == p.value));
+            chosen.map_or_else(
+                || f.fields.iter().find(|x| x.name == "type").unwrap().value.clone(),
+                |o| o.1.clone(),
+            )
+        }
         other => panic!("not the Cable form: {other:?}"),
     };
-    assert_eq!(type_text(&mut d), "3G1.5", "a PE among the wires: a G type");
+    let proposed = type_text(&mut d);
+    assert!(
+        proposed == "3G1.5" || proposed.contains(" · 3G"),
+        "a PE among the wires: a G type: {proposed}"
+    );
     assert_eq!(
         core_cells(&mut d),
         ["BU", "GNYE", "BN"],

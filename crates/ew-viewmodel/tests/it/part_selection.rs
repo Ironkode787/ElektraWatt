@@ -86,6 +86,24 @@ fn select(s: &mut ShellModel, tag: &str) {
     done(s, "select.set", json!({ "refs": [format!("tag:{tag}")] }));
 }
 
+/// rc.3 (G8): a cable's part dialog offers cable parts only, the starter cables among them; before, every part was
+/// offered and the matching cable could not be found among them.
+#[test]
+fn a_cable_is_offered_cable_parts_only() {
+    let tmp = Tmp::new("part-sel-cable");
+    let mut s = golden(&tmp);
+    // A cable of Golden A.
+    let cable = "id:f3b82a14-05e8-5164-bfa5-91d50a302d27";
+    done(&mut s, "select.set", json!({ "refs": [cable] }));
+    done(&mut s, "part.choose", json!({}));
+    let Some(Dialog::PartChoose(c)) = s.dialog() else {
+        panic!("no part dialog")
+    };
+    assert!(c.offers.iter().all(|o| o.kind == "cable"), "only cables");
+    done(&mut s, "part.search", json!({ "text": "EW-GEN-CBL-11" }));
+    assert!(results(&s).contains(&"EW-GEN-CBL-11".to_owned()), "the 4G1.5 starter cable");
+}
+
 /// PS1 in the shell: F55's dialog lists the starter's 1P+N MCB (`same-fndef`), then its 1P MCB (`same-category`),
 /// then every other offer, held copies before library parts; the detail names the template's function; Only parts
 /// that fit keeps the first two; the view In this project lists held copies only.

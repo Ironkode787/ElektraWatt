@@ -424,14 +424,34 @@ impl ShellModel {
                             cells: vec![core.clone()],
                         })
                         .collect();
-                    let dialog = FormDialog {
+                    // A new cable asks for its type first: the cable parts that fit the wires, best first, or none
+                    // and the size typed (rc.3). Choosing a part writes its number as the type.
+                    let mut fields = Vec::new();
+                    let mut type_text = form.type_text.clone();
+                    if form.cable.is_none() {
+                        let parts = project.session.cable_parts_for(&wires, &form.type_text);
+                        let mut options =
+                            vec![(String::new(), strings::text(key!("form-cable-no-part")).to_owned())];
+                        options.extend(parts);
+                        let value = options.get(1).map(|o| o.0.clone()).unwrap_or_default();
+                        if !value.is_empty() {
+                            type_text.clone_from(&value);
+                        }
+                        fields.push(FormField {
+                            name: "part",
+                            label_key: key!("form-cable-kind"),
+                            choices: &super::choices::NONE,
+                            options,
+                            value,
+                        });
+                    }
+                    fields.push(text("tag", key!("form-cable-tag"), proposed.unwrap_or_default()));
+                    fields.push(text("type", key!("form-cable-type"), type_text));
+                    let mut dialog = FormDialog {
                         action: FROM_WIRES,
                         title_key: key!("bar-cable"),
                         ok_key: key!("dialog-apply"),
-                        fields: vec![
-                            text("tag", key!("form-cable-tag"), proposed.unwrap_or_default()),
-                            text("type", key!("form-cable-type"), form.type_text.clone()),
-                        ],
+                        fields,
                         error: None,
                         table: Some(super::FormTable {
                             name: "cores",
@@ -442,6 +462,8 @@ impl ShellModel {
                             rows,
                         }),
                     };
+                    let row_wires: Vec<Uuid> = form.rows.iter().map(|r| r.0).collect();
+                    retype(Some(&project.session), &row_wires, &mut dialog);
                     self.open_dialog(Dialog::Form(dialog))
                 }
             };

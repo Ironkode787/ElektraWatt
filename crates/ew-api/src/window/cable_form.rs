@@ -237,6 +237,54 @@ impl Session {
         rows
     }
 
+    /// The cable parts that fit the wires `wires` (rc.3, the Cable form's type list): power and control cables (each
+    /// core states its cross-section, which a bus cable's do not) with at least as many cores (shields left out) as
+    /// there are wires, and a green-yellow core where a wire's potential says PE; the closest core count first, then
+    /// the cross-section of the size `proposed`, then unshielded, then by number. Each is its number and its words,
+    /// `number · 3G1.5 · BN BU GNYE`.
+    pub fn cable_parts_for(&self, wires: &[Uuid], proposed: &str) -> Vec<(String, String)> {
+        let pe = self.wires_say_pe(wires);
+        let want = written_type(proposed).map(|t| t.2.to_string());
+        let mut fit: Vec<(usize, bool, bool, String, String)> = Vec::new();
+        for offer in self.layout_part_offers("cable") {
+            let Some(command) = self.create_cable(offer.part) else {
+                continue;
+            };
+            let all = command.params["conductors"].as_array().cloned().unwrap_or_default();
+            let shielded = all.iter().any(|c| c["shield"] == Value::Bool(true));
+            let cores: Vec<&Value> = all.iter().filter(|c| c["shield"] != Value::Bool(true)).collect();
+            let green_yellow = cores.iter().any(|c| c["colour"] == json!(["GN", "YE"]));
+            let csas: BTreeSet<Option<&str>> = cores.iter().map(|c| c["csa"].as_str()).collect();
+            if csas.is_empty() || csas.contains(&None) || cores.len() < wires.len() || (pe && !green_yellow) {
+                continue;
+            }
+            let csa = match csas.into_iter().collect::<Vec<_>>().as_slice() {
+                [Some(one)] => (*one).to_owned(),
+                _ => String::new(),
+            };
+            let size = format!("{}{}{csa}", cores.len(), if green_yellow { "G" } else { "X" });
+            let names: Vec<&str> = cores.iter().filter_map(|c| c["core"].as_str()).collect();
+            let words = format!("{} \u{b7} {size} \u{b7} {}", offer.number, names.join(" "));
+            let off = want.as_ref() != Some(&csa);
+            fit.push((cores.len() - wires.len(), off, shielded, offer.number, words));
+        }
+        fit.sort();
+        fit.into_iter().map(|(_, _, _, number, words)| (number, words)).collect()
+    }
+
+    /// Whether the potential of one of the wires `wires` says PE.
+    fn wires_say_pe(&self, wires: &[Uuid]) -> bool {
+        let q = self.query();
+        let partition = q.get::<PotentialPartition>(());
+        wires.iter().any(|w| {
+            q.connections()
+                .get(Id::<Connection>::from_uuid(*w))
+                .and_then(|wire| partition.potential_at(EndpointKey::of(&wire.a)?))
+                .and_then(|p| crate::output::said_type(&q, p.id))
+                == Some(PotentialType::Pe)
+        })
+    }
+
     /// The Cable form of the wires `wires` (module documentation). Without a cable among them the type proposed is
     /// `<n>X<cross-section>` with the first wire's effective cross-section in mm² (1.5 when it has none), or
     /// `<n>G<cross-section>` when the potential of one of the wires says PE.
@@ -260,14 +308,7 @@ impl Session {
                     .unwrap_or_else(|| "1.5".to_owned());
                 // With a protective conductor among the wires the type has its green-yellow core (`3G2.5`), or the
                 // PE wire would get no core.
-                let partition = q.get::<PotentialPartition>(());
-                let pe = wires.iter().any(|w| {
-                    q.connections()
-                        .get(Id::<Connection>::from_uuid(*w))
-                        .and_then(|wire| partition.potential_at(EndpointKey::of(&wire.a)?))
-                        .and_then(|p| crate::output::said_type(&q, p.id))
-                        == Some(PotentialType::Pe)
-                });
+                let pe = self.wires_say_pe(wires);
                 let sign = if pe { "G" } else { "X" };
                 (String::new(), format!("{}{sign}{csa}", wires.len()), Vec::new())
             }

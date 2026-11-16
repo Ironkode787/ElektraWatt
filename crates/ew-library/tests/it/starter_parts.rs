@@ -51,8 +51,9 @@ const VERSION: &str = "0.1.0";
 /// that it has a bus node (rc.2, F15), 0.12.0 since that terminal's bus node has its PROFIBUS DP interface and the
 /// terminal with a PROFINET bus node EW-GEN-VTM-2 was added (the rc.2 persona run: Put it on a bus page did nothing for
 /// a terminal whose part had no bus interface), 0.13.0 since the signal lamps in red, green and yellow EW-GEN-LMP-2 to
-/// -4 were added (the rc.2 persona run: a cabinet door's basics).
-const LIBRARY_VERSION: &str = "0.13.0";
+/// -4 were added (the rc.2 persona run: a cabinet door's basics), 0.14.0 since the generic cables of the common sizes
+/// EW-GEN-CBL-4 to -25 were added (rc.3: a cable part that matches the wires could not be chosen).
+const LIBRARY_VERSION: &str = "0.14.0";
 /// The parts whose content changed after 0.1.0, at their next patch version (the selector switch on a
 /// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y. The relay
 /// and the contactor template their contacts beside the coil. The CPU's bus section, after 0.2.0.
@@ -252,6 +253,39 @@ fn cps(designations: &[&'static str]) -> Vec<(&'static str, Option<&'static str>
 
 fn range(from: u16, to: u16) -> Vec<u16> {
     (from..to).collect()
+}
+
+/// A generic power or control cable of the cross-section `csa` (mm²) with the cores `cores` in their order, named by
+/// colour per HD 308 S2 up to five cores and numbered (black) above, green-yellow last (`GNYE`); `shielded` adds an
+/// overall shield. Its part number and description say the same in words.
+fn cable(number: &'static str, description: &'static str, cores: &str, csa: &str, shielded: bool) -> Def {
+    let mut list: Vec<Value> = cores
+        .split(' ')
+        .map(|core| {
+            let colour: Vec<&str> = match core {
+                "GNYE" => vec!["GN", "YE"],
+                c if c.chars().all(|ch| ch.is_ascii_digit()) => vec!["BK"],
+                c => vec![c],
+            };
+            json!({"core": core, "colour": colour, "csa": csa})
+        })
+        .collect();
+    if shielded {
+        list.push(json!({"core": "SHIELD", "shield": true}));
+    }
+    Def {
+        number,
+        kind: Some("cable"),
+        description,
+        cps: Vec::new(),
+        template: Vec::new(),
+        contacts: Vec::new(),
+        tech: Vec::new(),
+        plc: None,
+        mech: None,
+        sections: Some(json!({"cable_cores": list})),
+        unit: Some("m"),
+    }
 }
 
 /// A 24 V signal lamp of a cabinet door in the colour `colour` (IEC 60757 code), drawn as the pilot lamp.
@@ -580,6 +614,29 @@ fn defs() -> Vec<Def> {
         lamp("EW-GEN-LMP-2", "Signal lamp, red", "RD"),
         lamp("EW-GEN-LMP-3", "Signal lamp, green", "GN"),
         lamp("EW-GEN-LMP-4", "Signal lamp, yellow", "YE"),
+        // The generic cables a panel builder reaches for (rc.3), beside EW-GEN-CBL-1 (3G1.5).
+        cable("EW-GEN-CBL-4", "Cable 2X0.75 mm², cores brown and blue", "BN BU", "0.75", false),
+        cable("EW-GEN-CBL-5", "Cable 3G0.75 mm², cores brown, blue and green-yellow", "BN BU GNYE", "0.75", false),
+        cable("EW-GEN-CBL-6", "Cable 4G0.75 mm², cores brown, black, grey and green-yellow", "BN BK GY GNYE", "0.75", false),
+        cable("EW-GEN-CBL-7", "Cable 5G0.75 mm², cores brown, black, grey, blue and green-yellow", "BN BK GY BU GNYE", "0.75", false),
+        cable("EW-GEN-CBL-8", "Cable 7G0.75 mm², numbered cores and green-yellow", "1 2 3 4 5 6 GNYE", "0.75", false),
+        cable("EW-GEN-CBL-9", "Cable 12G0.75 mm², numbered cores and green-yellow", "1 2 3 4 5 6 7 8 9 10 11 GNYE", "0.75", false),
+        cable("EW-GEN-CBL-10", "Cable 2X1.5 mm², cores brown and blue", "BN BU", "1.5", false),
+        cable("EW-GEN-CBL-11", "Cable 4G1.5 mm², cores brown, black, grey and green-yellow", "BN BK GY GNYE", "1.5", false),
+        cable("EW-GEN-CBL-12", "Cable 5G1.5 mm², cores brown, black, grey, blue and green-yellow", "BN BK GY BU GNYE", "1.5", false),
+        cable("EW-GEN-CBL-13", "Cable 7G1.5 mm², numbered cores and green-yellow", "1 2 3 4 5 6 GNYE", "1.5", false),
+        cable("EW-GEN-CBL-14", "Cable 12G1.5 mm², numbered cores and green-yellow", "1 2 3 4 5 6 7 8 9 10 11 GNYE", "1.5", false),
+        cable("EW-GEN-CBL-15", "Cable 3G2.5 mm², cores brown, blue and green-yellow", "BN BU GNYE", "2.5", false),
+        cable("EW-GEN-CBL-16", "Cable 4G2.5 mm², cores brown, black, grey and green-yellow", "BN BK GY GNYE", "2.5", false),
+        cable("EW-GEN-CBL-17", "Cable 5G2.5 mm², cores brown, black, grey, blue and green-yellow", "BN BK GY BU GNYE", "2.5", false),
+        cable("EW-GEN-CBL-18", "Cable 4G4 mm², cores brown, black, grey and green-yellow", "BN BK GY GNYE", "4", false),
+        cable("EW-GEN-CBL-19", "Cable 5G4 mm², cores brown, black, grey, blue and green-yellow", "BN BK GY BU GNYE", "4", false),
+        cable("EW-GEN-CBL-20", "Cable 4G6 mm², cores brown, black, grey and green-yellow", "BN BK GY GNYE", "6", false),
+        cable("EW-GEN-CBL-21", "Cable 5G6 mm², cores brown, black, grey, blue and green-yellow", "BN BK GY BU GNYE", "6", false),
+        cable("EW-GEN-CBL-22", "Cable 2X0.75 mm², cores brown and blue, shielded", "BN BU", "0.75", true),
+        cable("EW-GEN-CBL-23", "Cable 7G0.75 mm², numbered cores and green-yellow, shielded", "1 2 3 4 5 6 GNYE", "0.75", true),
+        cable("EW-GEN-CBL-24", "Cable 3G1.5 mm², cores brown, blue and green-yellow, shielded", "BN BU GNYE", "1.5", true),
+        cable("EW-GEN-CBL-25", "Cable 4G2.5 mm², cores brown, black, grey and green-yellow, shielded", "BN BK GY GNYE", "2.5", true),
         Def {
             number: "EW-GEN-MOT-1",
             kind: None,
