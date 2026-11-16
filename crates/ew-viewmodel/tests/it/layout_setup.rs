@@ -1087,7 +1087,7 @@ fn the_draw_tools_texts_read_whole() {
         "Choose Rail or Duct first"
     );
     done(&mut s, "tool.rail_draw", json!({}));
-    assert_eq!(s.tool_hint(), "Click the rail's start; Esc cancels");
+    assert_eq!(s.tool_hint(), "Click the rail's start, then its end; Esc cancels");
     click_mm(&mut s, 40.0, 740.0);
     assert_eq!(
         s.tool_hint(),
@@ -1098,7 +1098,11 @@ fn the_draw_tools_texts_read_whole() {
     assert_eq!(overlay_labels(&s), ["570 mm"]);
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "tool.duct_draw", json!({}));
-    assert_eq!(s.tool_hint(), "Click the duct's first point; Esc cancels");
+    // How the duct ends, from the first click on (rc.2: the persona pressed Esc after two points).
+    assert_eq!(
+        s.tool_hint(),
+        "Click the duct's first point, then each next point; a double click or Enter finishes; Esc cancels"
+    );
     assert_eq!(free_click_mm(&mut s, 100.0, 100.0), Outcome::Done);
     assert_eq!(
         s.tool_hint(),

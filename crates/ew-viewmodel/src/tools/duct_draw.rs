@@ -248,7 +248,7 @@ impl Tool for DuctDrawTool {
 
     fn status_hint(&self) -> super::Hint {
         if self.points.is_empty() {
-            super::Hint::new(key!("hint-duct-draw"), &[super::ESCAPE])
+            super::Hint::new(key!("hint-duct-draw"), &[super::ENTER, super::ESCAPE])
         } else {
             super::Hint::new(key!("hint-duct-draw-next"), &[super::ENTER, super::BACK])
         }

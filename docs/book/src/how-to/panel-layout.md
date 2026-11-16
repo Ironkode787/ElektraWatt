@@ -26,7 +26,8 @@ the parts list and the enclosure legend read it from there.
 
 3. Choose **Draw ▸ Rail** and click the rail's start and end on the plate (a rail runs across or up and down); the
    tool's card offers the rail part and the grid step. Draw as many rails as the cabinet needs.
-4. Choose **Draw ▸ Duct** and draw the ducts the same way; the card asks for a duct's size when its part gives none.
+4. Choose **Draw ▸ Duct** and click a duct's first point and each next point; a double click or `Enter` finishes it
+   (`Esc` cancels it). The card asks for a duct's size when its part gives none.
 
 ## Place the devices
 

@@ -553,7 +553,12 @@ fn the_black_box_shows_its_first_corner_and_escape_leaves_in_two_steps() {
         "Click the box's first corner, then its opposite corner; Esc ends \u{b7} 10 connection points"
     );
     cursor_k(&mut s, (30, 30));
-    assert_eq!(canvas(&s)["overlay"], 1, "the grid marker");
+    // rc.2: a chip at the pointer says how the box is drawn, not only the bottom bar.
+    assert_eq!(canvas(&s)["overlay"], 2, "the grid marker and its chip");
+    assert_eq!(
+        s.tool_overlay().labels().collect::<Vec<_>>(),
+        ["Black box: click two corners"]
+    );
     enter_k(&mut s, (30, 30));
     assert_eq!(s.tool().state(), "outline");
     // No area yet: the corner marker and the target's label, so the click visibly registered.

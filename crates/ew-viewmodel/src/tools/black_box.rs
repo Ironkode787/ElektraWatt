@@ -528,10 +528,19 @@ impl BlackBoxTool {
         }
         match self.state {
             State::Armed { at: None } => Overlay::default(),
-            State::Armed { at: Some(at) } => Overlay::new(vec![OverlayItem::Marker {
-                at: cx.snapper.page_to_sheet(at),
-                kind: MarkerKind::Grid,
-            }]),
+            // A chip at the pointer says how the box is drawn, where the person looks (rc.2: a part placed as a black
+            // box asked for two corners in the bottom bar only).
+            State::Armed { at: Some(at) } => Overlay::new(vec![
+                OverlayItem::Marker {
+                    at: cx.snapper.page_to_sheet(at),
+                    kind: MarkerKind::Grid,
+                },
+                OverlayItem::Label {
+                    at: cx.snapper.page_to_sheet(at),
+                    text: crate::strings::text(key!("box-chip-armed")).to_owned(),
+                    anchor: Anchor::Right,
+                },
+            ]),
             State::Outline { first, at } => {
                 let mut items = Vec::new();
                 let current = self.current(cx);
