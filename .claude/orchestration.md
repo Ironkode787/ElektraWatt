@@ -16,13 +16,17 @@ work itself, which is the default for anything small or anything that needs judg
 1. **Brief.** The goal, the files or area, what done looks like, and what not to touch. A few lines; point at the
    documents instead of repeating them. A brief that cannot be written clearly is not ready.
 2. **Build.** One `lane` agent in its own worktree, on the tip the brief names. A work item is not split across
-   agents.
+   agents. Before its final check the lane brings its branch onto the working branch's tip and resolves what meets
+   there itself: it knows its change, the main session does not, and the check then runs on the tree as it will be
+   merged.
 3. **Check.** The agent runs `cargo xtask check -p <its crates>` and reports the summary. Its result is a claim:
    read the diff, and run the check again on the merged tip when the change is large.
 4. **Review.** A change to the file format, to saving and loading, to a core crate or to what a release ships gets
    one independent `reviewer`. The reviewer fixes its own minor findings; a major goes back to the author. A fix
    is not reviewed again.
 5. **Merge** onto the working branch and delete the agent's worktree with its `target`.
+6. **Measure.** After a lane round the main session measures the lanes' time (the model's own and cargo's) and
+   reports it, with what it will change about it.
 
 ## Choosing the agent
 
