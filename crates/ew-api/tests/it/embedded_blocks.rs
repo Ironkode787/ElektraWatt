@@ -174,6 +174,7 @@ fn the_legend_on_902_draws_20_plus_11_rows_and_20_plus_12_with_f55_placed() {
         flow_columns: 2,
         rows: Vec::new(),
         note: None,
+        lookup: None,
     };
     let (flows, rows) = boxed_capacity(rect, &table, SHEET);
     assert_eq!((flows, rows), (2, 20));

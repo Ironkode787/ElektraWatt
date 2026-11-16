@@ -223,6 +223,8 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
             "continuation",
             "empty",
             "manual",
+            // An embedded block's rectangle: a legend moved or resized on its layout page.
+            "embedded.rect",
         ],
     ),
     (KindName::ExternalRef, &["project", "device", "connection"]),

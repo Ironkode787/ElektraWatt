@@ -178,7 +178,7 @@ pub(crate) fn lay_out(fonts: &FontSet, text: &str, style: &TextStyle, spec: &Box
 }
 
 /// The smallest em height whose printed cap height (through `sheet`) is at least `min_cap`.
-fn min_size(fonts: &FontSet, style: &TextStyle, min_cap: Nm, sheet: SheetMap) -> Nm {
+pub(crate) fn min_size(fonts: &FontSet, style: &TextStyle, min_cap: Nm, sheet: SheetMap) -> Nm {
     let m = fonts.face_for(style).metrics;
     let cap = i128::from(m.cap_height.max(1));
     let num = i128::from(min_cap.0.max(0)) * i128::from(m.units_per_em) * i128::from(PPB_ONE);

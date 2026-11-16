@@ -14,7 +14,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
-use ew_api::output::ew_dl::Destination;
+use ew_api::output::ew_dl::{Destination, EntityRef};
 use ew_api::output::{GotoError, PageRow};
 use serde_json::{Map, Value};
 
@@ -435,6 +435,14 @@ impl ShellModel {
         {
             page.panel = project.session.panel_tables(folio).map(Arc::new);
             self.count(|c| c.panel_tables += 1);
+            // A legend on the page is picked by the box it draws, as a placement by its footprint.
+            if let Some(panel) = page.panel.clone() {
+                for b in &panel.blocks {
+                    let a = page.snapper.page_to_sheet((b.drawn.min().x.0, b.drawn.min().y.0));
+                    let z = page.snapper.page_to_sheet((b.drawn.max().x.0, b.drawn.max().y.0));
+                    page.entities.push((EntityRef(b.id), crate::tools::rect_of(a, z)));
+                }
+            }
         }
         let sources = page.list.link_sources();
         if !sources.is_empty() {

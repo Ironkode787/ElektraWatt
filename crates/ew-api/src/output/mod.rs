@@ -148,7 +148,7 @@ pub use navigators::{
     tokens as nav_tokens,
 };
 pub use panel::{
-    LegendOffer, PanelAxis, PanelCarrier, PanelPlacement, PanelTables, UnplacedDevice, surface_of_page,
+    LegendOffer, PanelAxis, PanelBlock, PanelCarrier, PanelPlacement, PanelTables, UnplacedDevice, surface_of_page,
 };
 pub use potential_offer::PotentialOffer;
 pub(crate) use potential_offer::said_type;

@@ -911,6 +911,7 @@ impl ShellModel {
                         crate::tools::route_edit::selected_connection(cx)
                             .map(|c| crate::tools::route_edit::handles_overlay(cx, c))
                     })
+                    .or_else(|| crate::tools::block_grips(cx))
                     .filter(|o| !o.items.is_empty())
             })
             .flatten()

@@ -115,7 +115,7 @@ pub use host::{
 pub(crate) use host::{ResultNote, ToolHost};
 pub use measure::{MeasureTool, distance_nm, measure_label};
 pub use overlay::{Anchor, Dash, MarkerKind, Overlay, OverlayItem, Style, Token, paths_on_sheet};
-pub use select::{CLICK_SLOP_PT, SelectTool, band_selection};
+pub use select::{CLICK_SLOP_PT, SelectTool, band_selection, block_grips};
 pub use snap::{CP_SNAP_PT, FineKind, Snap, SnapKind, Snapper};
 
 use crate::canvas::{CanvasPage, HOVER_SLOP_PT, PageLink};
@@ -903,6 +903,8 @@ pub enum EntityKind {
     Placement,
     /// A carrier on a panel page (from the page's panel tables).
     Carrier,
+    /// A report block embedded on a panel page, its legend (from the page's panel tables).
+    Block,
 }
 
 impl EntityKind {
@@ -916,6 +918,7 @@ impl EntityKind {
             EntityKind::StructureBox => "structure_box",
             EntityKind::Placement => "placement",
             EntityKind::Carrier => "carrier",
+            EntityKind::Block => "report_block",
         }
     }
 }
@@ -947,6 +950,8 @@ pub fn page_entity_kind(page: &CanvasPage, e: EntityRef) -> Option<EntityKind> {
             Some(EntityKind::Placement)
         } else if panel.carrier(e.0).is_some() {
             Some(EntityKind::Carrier)
+        } else if panel.block(e.0).is_some() {
+            Some(EntityKind::Block)
         } else {
             None
         }

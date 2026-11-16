@@ -1269,7 +1269,7 @@ fn cover_tables(q: &Q, block: &ReportBlock) -> CoverTables {
 
 /// The boxed table of an embedded block other than the cover, as printed texts on `page` (see the module
 /// documentation).
-fn boxed_table(q: &Q, block: &ReportBlock, page: Id<Page>) -> EmbeddedTable {
+pub(crate) fn boxed_table(q: &Q, block: &ReportBlock, page: Id<Page>) -> EmbeddedTable {
     let set = q.get::<BlockRows>(block.id);
     let layout = match &block.source {
         ReportSource::Kind(kind) => Registry::builtin().get(kind).map(|k| k.embedded_layout()),
@@ -1345,6 +1345,19 @@ fn boxed_table(q: &Q, block: &ReportBlock, page: Id<Page>) -> EmbeddedTable {
             })
             .collect()
     };
+    // A block with its own printed columns (Add legend's, doc 09 §2.2) is a lookup table: the position and the tag
+    // give way last, the description before them, every other column first.
+    let lookup = (!block.columns.is_empty()).then(|| {
+        let rank = |i: usize| match set.columns[i].key.as_str() {
+            "pos" => 3,
+            "tag" => 2,
+            "description" => 1,
+            _ => 0,
+        };
+        let mut order: Vec<usize> = (0..printed.len()).collect();
+        order.sort_by_key(|&c| rank(printed[c].0));
+        order
+    });
     EmbeddedTable {
         title,
         columns,
@@ -1352,6 +1365,7 @@ fn boxed_table(q: &Q, block: &ReportBlock, page: Id<Page>) -> EmbeddedTable {
         flow_columns: layout.flow_columns,
         rows,
         note,
+        lookup,
     }
 }
 

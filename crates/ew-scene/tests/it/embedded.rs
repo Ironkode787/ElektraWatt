@@ -242,6 +242,7 @@ fn legend(rows: usize) -> EmbeddedView {
                 .map(|n| data_row(&[&n.to_string(), "-X1031", "1", "3044102"]))
                 .collect(),
             note: None,
+            lookup: None,
         }),
     }
 }
@@ -343,6 +344,7 @@ fn a_table_without_headers_draws_no_inner_grid_and_its_texts_inside_the_shadowed
                 data_row(&["Order Code 2", "32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS"]),
             ],
             note: None,
+            lookup: None,
         }),
     };
     let l = page_display_list(&view(vec![v]), Layer::Tables, bundled(), builtin());
@@ -392,6 +394,7 @@ fn a_block_whose_rows_do_not_derive_draws_its_reason_without_a_header() {
             flow_columns: 1,
             rows: Vec::new(),
             note: Some(reason.to_owned()),
+            lookup: None,
         }),
     };
     let l = page_display_list(&view(vec![v]), Layer::Tables, bundled(), builtin());
@@ -404,4 +407,79 @@ fn a_block_whose_rows_do_not_derive_draws_its_reason_without_a_header() {
         .filter(|i| matches!(&i.kind, ItemKind::Path(p) if p.fill.is_some()))
         .count();
     assert_eq!(fills, 1, "the shadow only: no header row without columns");
+}
+
+/// A legend a person added (a lookup table) with the starter's texts, as the persona's cabinet listed them: one flow
+/// column whose box (and shadow) ends under its last row, far above the bottom of its rectangle. 100 mm wide printed,
+/// every text is whole; 60 mm wide, every position and tag stays whole, the part number and the quantity give way
+/// first and the description last.
+#[test]
+fn a_lookup_table_keeps_positions_and_tags_whole_and_cuts_the_description_last() {
+    let columns = [
+        ("Pos", 8),
+        ("DT", 18),
+        ("Qty", 10),
+        ("Part number", 24),
+        ("Description", 40),
+    ]
+    .map(|(h, w)| TableColumn {
+        header: h.to_owned(),
+        weight: w,
+    })
+    .to_vec();
+    let rows = [
+        ["1", "-UC1", "1", "EW-GEN-ENC-1", "Wall enclosure 600 × 800 × 250 mm"],
+        ["2", "-UC1-plate", "1", "EW-GEN-MP-1", "Mounting plate"],
+        ["3", "", "0.4", "EW-GEN-RAIL-TS35", "DIN rail TS 35 × 7.5"],
+        ["10", "-101F1", "1", "EW-GEN-MCB-1P", "Miniature circuit breaker 1P"],
+    ];
+    let lowered = |right: i64| {
+        let rect = printed_rect(20_000, 2_000, 20_000 + right, 16_000);
+        let t = EmbeddedTable {
+            title: "LEGEND".to_owned(),
+            columns: columns.clone(),
+            headers: true,
+            flow_columns: 2,
+            rows: rows.iter().map(|r| data_row(r)).collect(),
+            note: None,
+            lookup: Some(vec![3, 2, 4, 1, 0]),
+        };
+        let b = SHEET.apply_rect(ew_scene::embedded::boxed_box(rect, &t, SHEET));
+        let v = EmbeddedView {
+            rect,
+            content: EmbeddedContent::Table(t),
+        };
+        let l = page_display_list(&view(vec![v]), Layer::Tables, bundled(), builtin());
+        let cut: Vec<usize> = l
+            .findings
+            .iter()
+            .filter_map(|f| match f {
+                PageFinding::Table(TableFinding::Overflow { column, .. }) => Some(*column),
+                _ => None,
+            })
+            .collect();
+        (glyph_texts(&l.list), cut, b, l.list.bounds().map(|r| SHEET.apply_rect(r)))
+    };
+    let (texts, cut, b, drawn) = lowered(10_000);
+    assert!(cut.is_empty(), "100 mm: nothing cut: {cut:?} {texts:?}");
+    for row in rows {
+        for cell in row.iter().filter(|c| !c.is_empty()) {
+            assert!(texts.iter().any(|t| t == cell), "{cell}: {texts:?}");
+        }
+    }
+    // The box: the title band and five rows (9.78 + 5 × 6.52 mm printed), its shadow 2.61 mm below.
+    assert_eq!(b.height().0, 9_780_000 + 5 * 6_520_000, "{b:?}");
+    let drawn = drawn.expect("items");
+    assert!(drawn.max().y.0 <= b.max().y.0 + 2_610_000 + 1_000, "{drawn:?}");
+    let (texts, cut, _, _) = lowered(6_000);
+    for whole in ["Pos", "DT", "10", "-UC1-plate", "-101F1", "Mounting plate"] {
+        assert!(texts.iter().any(|t| t == whole), "60 mm, {whole}: {texts:?}");
+    }
+    assert!(!cut.contains(&0) && !cut.contains(&1), "60 mm: {cut:?}");
+    if cut.contains(&4) {
+        assert!(
+            !texts.iter().any(|t| t.starts_with("EW-")),
+            "the part number gives way before the description: {texts:?}"
+        );
+    }
 }

@@ -18,8 +18,9 @@ the parts list and the enclosure legend read it from there.
    others from the lists if you like, then **Create**.
    The page now shows the enclosure and its mounting plate, centred and at the scale that fits the page. A new
    location, the enclosure and the plate on the page are three steps of Undo. Another plate goes on the page through
-   the page's **Surface** row in Properties. At 1:10 and smaller scales the devices are numbered and the page gets a
-   legend beside the plate that lists each number with its tag, quantity, part number and description.
+   the page's **Surface** row in Properties. Where the tags would not fit the devices on paper (at 1:5 and smaller
+   scales on an empty plate) the devices are numbered and the page gets a legend beside the plate that lists each
+   number with its tag, quantity, part number and description.
 
 ## Rails and ducts
 
@@ -43,8 +44,10 @@ the parts list and the enclosure legend read it from there.
    number in a balloon, or both. Labels that would run into each other move apart, above and below the row, with a
    line to their device. On the cabinet's own layout the tags leave out the cabinet's location.
 9. **Add legend** in the page's right-click menu (also **Page ▸ Order ▸ Add legend**) puts the legend in the free space
-   beside the layout, with the number, tag, quantity, part number and description of each item; a long description is
-   cut short with "…". It is offered while the page has none.
+   beside the layout, with the number, tag, quantity, part number and description of each item, one table as wide as
+   its block and as long as its rows. Where the block is narrow, the part number and quantity give way first; the
+   numbers and tags stay whole. It is offered while the page has none. Click the legend to select it, drag it to move
+   it, and drag one of its corners to make it wider or narrower.
 10. A label or balloon that stands beside its device can be dragged on its own; its line follows it to the device.
     **Reset label position** in the device's right-click menu puts it back.
 

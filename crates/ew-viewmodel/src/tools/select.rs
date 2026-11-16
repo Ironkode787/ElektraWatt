@@ -262,6 +262,92 @@ struct PanelPress {
     label: Option<Rect>,
     /// Whether the label's drag left the click slop.
     label_dragged: bool,
+    /// A press on a legend (an embedded report block): a drag moves or resizes it.
+    block: Option<BlockPress>,
+}
+
+/// A press on a panel page's legend: a drag moves it; a drag of one of its corners, with the legend selected,
+/// resizes it.
+#[derive(Clone, Copy, PartialEq, Debug)]
+struct BlockPress {
+    /// The block's stored rectangle (the room it may take), page nm.
+    rect: Rect,
+    /// The box it draws, page nm.
+    drawn: Rect,
+    /// The corner grabbed (0 top left, 1 top right, 2 bottom right, 3 bottom left); `None` moves the block.
+    corner: Option<usize>,
+    /// Whether the drag left the click slop.
+    dragged: bool,
+}
+
+/// The smallest legend a resize leaves, page nm: 30 × 20 mm.
+const BLOCK_MIN: (i64, i64) = (30_000_000, 20_000_000);
+
+/// How near a corner of the selected legend a press grabs it, in screen points.
+const GRIP_PT: f64 = 4.0;
+
+/// The corners of `r` (top left, top right, bottom right, bottom left), page nm.
+fn corners(r: Rect) -> [(i64, i64); 4] {
+    let (a, z) = (r.min(), r.max());
+    [(a.x.0, a.y.0), (z.x.0, a.y.0), (z.x.0, z.y.0), (a.x.0, z.y.0)]
+}
+
+/// The rectangle a legend takes after a drag from `from` to `to` (sheet points), moved on whole millimetres: the
+/// whole block, or the corner grabbed (a bottom corner sets where its room ends, from the box it draws); a resize
+/// keeps [`BLOCK_MIN`].
+fn block_rect(cx: &ToolCx<'_>, b: &BlockPress, from: (i64, i64), to: (i64, i64)) -> Rect {
+    let (a, z) = (cx.snapper.sheet_to_page(from), cx.snapper.sheet_to_page(to));
+    let mm = |v: i64| v.saturating_add(500_000).div_euclid(1_000_000).saturating_mul(1_000_000);
+    let (dx, dy) = (mm(z.0.saturating_sub(a.0)), mm(z.1.saturating_sub(a.1)));
+    let [(x0, y0), _, (x1, y1), _] = corners(b.rect);
+    let bottom = b.drawn.max().y.0.saturating_add(dy);
+    let (left, top) = (
+        x0.saturating_add(dx).min(x1 - BLOCK_MIN.0),
+        y0.saturating_add(dy).min(y1 - BLOCK_MIN.1),
+    );
+    let right = x1.saturating_add(dx).max(x0 + BLOCK_MIN.0);
+    let (x0, y0, x1, y1) = match b.corner {
+        None => (
+            x0.saturating_add(dx),
+            y0.saturating_add(dy),
+            x1.saturating_add(dx),
+            y1.saturating_add(dy),
+        ),
+        Some(0) => (left, top, x1, y1),
+        Some(1) => (x0, top, right, y1),
+        Some(2) => (x0, y0, right, bottom.max(y0 + BLOCK_MIN.1)),
+        Some(_) => (left, y0, x1, bottom.max(y0 + BLOCK_MIN.1)),
+    };
+    Rect::from_points(Pt2::new(Nm(x0), Nm(y0)), Pt2::new(Nm(x1), Nm(y1)))
+}
+
+/// The grips of the one selected legend on a panel page: a solid square at each corner of its box, 3 points across
+/// each half, where a drag resizes it; `None` unless exactly one legend is selected.
+pub fn block_grips(cx: &ToolCx<'_>) -> Option<super::Overlay> {
+    let panel = cx.page.panel.as_deref()?;
+    let [e] = cx.selection.items.as_slice() else {
+        return None;
+    };
+    let b = panel.block(e.0)?;
+    let r = cx.nm_of_points(3.0).round() as i64;
+    let items = corners(b.drawn)
+        .iter()
+        .map(|c| {
+            let s = cx.snapper.page_to_sheet(*c);
+            super::OverlayItem::Rect {
+                r: super::rect_of((s.0 - r, s.1 - r), (s.0 + r, s.1 + r)),
+                style: super::Style::solid(Token::Ghost),
+            }
+        })
+        .collect();
+    Some(super::Overlay::new(items))
+}
+
+/// The sheet rectangle of the page rectangle `r`.
+fn sheet_rect_of(cx: &ToolCx<'_>, r: Rect) -> Rect {
+    let a = cx.snapper.page_to_sheet((r.min().x.0, r.min().y.0));
+    let z = cx.snapper.page_to_sheet((r.max().x.0, r.max().y.0));
+    super::rect_of(a, z)
 }
 
 /// The `layout.label_move` of a label whose page box `bx` is dragged from `from` to `to` (sheet points): its new
@@ -518,6 +604,37 @@ impl SelectTool {
                 if matches!(self.state, State::Moving { .. }) {
                     return None;
                 }
+                // A corner of the selected legend resizes it.
+                let grip = panel.blocks.iter().find_map(|b| {
+                    if !cx.selection.items.contains(&EntityRef(b.id)) {
+                        return None;
+                    }
+                    let k = corners(b.drawn)
+                        .iter()
+                        .position(|c| cx.within(cx.snapper.page_to_sheet(*c), *at, GRIP_PT))?;
+                    Some((b, k))
+                });
+                if let Some((b, k)) = grip {
+                    self.state = State::Idle;
+                    self.panel = Some(PanelPress {
+                        entity: EntityRef(b.id),
+                        at: *at,
+                        mods: *mods,
+                        placement: false,
+                        gesture: None,
+                        last: (*at, *mods),
+                        moved: None,
+                        label: None,
+                        label_dragged: false,
+                        block: Some(BlockPress {
+                            rect: b.rect,
+                            drawn: b.drawn,
+                            corner: Some(k),
+                            dragged: false,
+                        }),
+                    });
+                    return Some(ToolOutput::None);
+                }
                 // A label (or balloon) that stands off its footprint drags alone; one inside its footprint goes with
                 // its device.
                 let page_at = cx.snapper.sheet_to_page(*at);
@@ -545,14 +662,24 @@ impl SelectTool {
                         moved: None,
                         label: Some(bx),
                         label_dragged: false,
+                        block: None,
                     });
                     return Some(ToolOutput::None);
                 }
                 let entity = cx.pick(*at)?;
                 let kind = super::page_entity_kind(cx.page, entity)?;
-                if !matches!(kind, EntityKind::Placement | EntityKind::Carrier) {
+                if !matches!(
+                    kind,
+                    EntityKind::Placement | EntityKind::Carrier | EntityKind::Block
+                ) {
                     return None;
                 }
+                let block = panel.block(entity.0).map(|b| BlockPress {
+                    rect: b.rect,
+                    drawn: b.drawn,
+                    corner: None,
+                    dragged: false,
+                });
                 self.state = State::Idle;
                 self.panel = Some(PanelPress {
                     entity,
@@ -564,12 +691,26 @@ impl SelectTool {
                     moved: None,
                     label: None,
                     label_dragged: false,
+                    block,
                 });
                 Some(ToolOutput::None)
             }
             CanvasEvent::PointerMove { at, mods } => {
                 let press = self.panel.as_mut()?;
                 press.last = (*at, *mods);
+                if let Some(b) = press.block.as_mut() {
+                    if !b.dragged && cx.within(press.at, *at, CLICK_SLOP_PT) {
+                        return Some(ToolOutput::None);
+                    }
+                    b.dragged = true;
+                    let r = sheet_rect_of(cx, block_rect(cx, b, press.at, *at));
+                    return Some(ToolOutput::Transient(super::Overlay::new(vec![
+                        super::OverlayItem::Ghost {
+                            rects: vec![r],
+                            offset: (0, 0),
+                        },
+                    ])));
+                }
                 if let Some(bx) = press.label {
                     if !press.label_dragged && cx.within(press.at, *at, CLICK_SLOP_PT) {
                         return Some(ToolOutput::None);
@@ -604,6 +745,26 @@ impl SelectTool {
                 mods,
             } => {
                 let mut press = self.panel.take()?;
+                // A legend's drop moves or resizes it (`fields.set` of its rectangle); a click selects it.
+                if let Some(b) = press.block {
+                    if !b.dragged {
+                        let last = self.last;
+                        return Some(self.click(last, press.entity, press.at, press.mods, cx));
+                    }
+                    let r = block_rect(cx, &b, press.at, *at);
+                    if r == b.rect {
+                        return Some(ToolOutput::Cancel);
+                    }
+                    return Some(ToolOutput::Commit(Box::new(ew_api::AnyCommand {
+                        name: "fields.set".into(),
+                        params: serde_json::json!({
+                            "kind": "report_block",
+                            "targets": [press.entity.0.to_string()],
+                            "path": "embedded.rect",
+                            "value": [[r.min().x.0, r.min().y.0], [r.max().x.0, r.max().y.0]],
+                        }),
+                    })));
+                }
                 // A label's drop moves it alone; a click on it selects its placement as before.
                 if let Some(bx) = press.label {
                     if !press.label_dragged {
@@ -664,7 +825,11 @@ impl SelectTool {
             CanvasEvent::Escape => {
                 let press = self.panel.take()?;
                 Some(
-                    if press.gesture.is_some() || press.moved.is_some() || press.label_dragged {
+                    if press.gesture.is_some()
+                        || press.moved.is_some()
+                        || press.label_dragged
+                        || press.block.is_some_and(|b| b.dragged)
+                    {
                         ToolOutput::Cancel
                     } else {
                         ToolOutput::None

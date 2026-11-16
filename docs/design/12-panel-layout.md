@@ -570,9 +570,11 @@ A function's placement adds no ":" suffix, since functions carry no designation 
   two cannot disagree; it prints in a **balloon** (a circle in pen 0.18 around the number in the label style, 0.3 mm
   inside), centred in the footprint when it fits, else outside with its leader as a tag. With both, the balloon
   stands left of the tag in one label. The Properties row Labels sets it. A view the window makes (the page's Surface
-  row, Enclosure… on an empty panel page) takes item numbers at 1:10 and smaller scales (an 18 mm device is under
-  2 mm on paper there and the tags of a row run into each other) and tags at larger scales; such a page gets its
-  legend in the same gesture (§5.4).
+  row, Enclosure… on an empty panel page) looks at whether the tags fit: on a surface with placements it takes item
+  numbers when the tag of one of them fits its footprint on paper neither across nor turned (the labels layer's own
+  fit test), else tags; on a surface without placements it takes item numbers at 1:5 and smaller scales (a 6 mm
+  terminal is little more than a millimetre on paper there); a page not to scale takes tags. A page that starts with
+  item numbers gets its legend in the same gesture (§5.4).
 - **Crowded labels move apart.** A label placed outside its footprint takes, left to right by footprint, the first
   place that overlaps no label placed before it (labels inside their footprints and moved labels stand first): its
   first side (above, or below when above leaves the surface), the other side, then one stack level (its height plus
@@ -609,8 +611,17 @@ free part of the frame's drawing area right of, left of, below or above the layo
 projected), 10 mm off the layout and 5 mm inside the area, when that part is at least 60 × 40 mm; else it is refused in
 words. Such a legend prints position, DT, quantity, part number and description through the block's own printed
 columns (`ReportBlock.columns`, added in 0.3: `{key, weight}` per column, absent means the kind's layout, which an older
-build prints); a long description is cut with an ellipsis at its column's width like every table cell. Golden A's
-block has no `columns` and prints its four columns as before.
+build prints). A block with its own columns is a **lookup table** (rc.2, the persona round: the legend stood over the
+frame's ruler as a narrow strip with every cell cut): one flow column across the block; each column as wide as its
+widest text, the last taking the rest; where the block is narrower, the part number and the quantity give way first,
+then the description, the tag and the position last, each first by shrinking its text to the 1.8 mm cap height and only
+then by being cut (a column cut to nothing prints nothing); the box ends under its last row, so the block's rectangle is
+the room it may take. 100 mm wide, the starter's texts print whole; 60 mm wide, the positions and tags stay whole. On
+its page Select picks the legend by its box, a drag moves it and, with the legend selected, a drag of one of its corners
+resizes it (`fields.set` of `embedded.rect`, on whole millimetres, at least 30 × 20 mm; a bottom corner sets where its
+room ends); Delete removes it. Golden A's block has no `columns` and prints its four columns in two flow columns as
+before. The legend keeps the order of `layout_legend`: the enclosure, the plate and the carriers stand together before
+the devices, since Golden A's legend holds that order and they are items a shop orders and cuts.
 
 ### 5.5 Dimensions and views (1.0)
 

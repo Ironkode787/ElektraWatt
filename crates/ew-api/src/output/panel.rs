@@ -329,7 +329,7 @@ fn bracket_draws(q: &Q, surface: Id<MountingSurface>) -> Vec<BracketDraw> {
 }
 
 /// The label style of the project's text-style table ([`LAYOUT_LABEL_STYLE`]).
-fn label_style(q: &Q) -> TextStyle {
+pub(crate) fn label_style(q: &Q) -> TextStyle {
     let table = text_style_table(q);
     table
         .resolve(LAYOUT_LABEL_STYLE)
@@ -613,9 +613,27 @@ pub struct PanelTables {
     /// Whether the project writes a decimal comma (`settings.formatting.decimal_separator`): the tools' texts
     /// print millimetres as the project's other millimetre texts do.
     pub decimal_comma: bool,
+    /// The report blocks embedded on the page (its legend), by ID: what Select picks, drags and resizes there.
+    pub blocks: Vec<PanelBlock>,
+}
+
+/// A report block embedded on a panel page (a legend), page nm.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct PanelBlock {
+    /// The block's ID.
+    pub id: Uuid,
+    /// Its rectangle as stored (`ReportBlock.embedded.rect`): the room it may take.
+    pub rect: Rect,
+    /// The box it draws (`ew_scene::embedded::boxed_box`: a lookup table ends under its last row).
+    pub drawn: Rect,
 }
 
 impl PanelTables {
+    /// The embedded block with the ID `id`.
+    pub fn block(&self, id: Uuid) -> Option<&PanelBlock> {
+        self.blocks.iter().find(|b| b.id == id)
+    }
+
     /// The placement row with the ID `id`.
     pub fn placement(&self, id: Uuid) -> Option<&PanelPlacement> {
         self.placements.iter().find(|p| p.id == id)
@@ -962,7 +980,33 @@ pub(crate) fn panel_tables_of(q: &Q, folio: &str, page: Id<Page>) -> Option<Pane
         unplaced,
         numbered: view.show != LabelShow::Tags,
         decimal_comma: comma(q),
+        blocks: blocks_of(q, page),
     })
+}
+
+/// The report blocks embedded on `page`, by ID, with the boxes they draw.
+fn blocks_of(q: &Q, page: Id<Page>) -> Vec<PanelBlock> {
+    let sheet = q
+        .get::<PageFrameOf>(PageRef::Drawn(page))
+        .as_ref()
+        .as_ref()
+        .map_or(SheetMap::IDENTITY, |f| SheetMap::of(&f.form));
+    let mut out: Vec<PanelBlock> = q
+        .table::<ew_schema::ReportBlock>()
+        .iter()
+        .filter_map(|(id, b)| {
+            let e = b.embedded.as_ref().filter(|e| e.page == page)?;
+            let rect = e.rect.0;
+            let drawn = ew_scene::embedded::boxed_box(rect, &super::view::boxed_table(q, b, page), sheet);
+            Some(PanelBlock {
+                id: id.as_uuid(),
+                rect,
+                drawn,
+            })
+        })
+        .collect();
+    out.sort_by_key(|b| b.id);
+    out
 }
 
 /// Where Add legend would put a panel page's legend ([`Session::legend_offer`](crate::Session::legend_offer)).
@@ -1019,10 +1063,10 @@ pub(crate) fn legend_offer_of(q: &Q, page: Id<Page>) -> LegendOffer {
     }) else {
         return LegendOffer::NoLayout;
     };
-    let Some((area, map)) = super::scale_fit::drawing_area(q, page) else {
+    // The drawing area is in page coordinates already (the frame's geometry before its page-to-sheet map).
+    let Some((area, _)) = super::scale_fit::drawing_area(q, page) else {
         return LegendOffer::NoRoom;
     };
-    let area = Rect::from_points(map.unapply(area.min()), map.unapply(area.max()));
     let (gap, edge) = LEGEND_GAP;
     let (x0, y0, x1, y1) = (
         area.min().x.0 + edge,

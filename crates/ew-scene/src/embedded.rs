@@ -25,7 +25,9 @@
 //!   the 1.8 mm cap height, then reported, never clipped);
 //! - a block whose rows do not derive prints its [`note`](EmbeddedTable::note) in one spanning row of the first flow
 //!   column; rows beyond the capacity ([`boxed_capacity`]: whole rows of the space under the title band, less a header
-//!   row, per flow column) are not drawn and are reported ([`TableFinding::TooManyRows`], FR-REP-039).
+//!   row, per flow column) are not drawn and are reported ([`TableFinding::TooManyRows`], FR-REP-039);
+//! - a lookup table ([`EmbeddedTable::lookup`], the legend a person adds) draws one flow column with its columns sized
+//!   to their texts and its box (and shadow) ending under its last row ([`boxed_box`]).
 //!
 //! # The cover ([`EmbeddedContent::Cover`])
 //!
@@ -53,7 +55,7 @@ use ew_dl::{Brush, Item, Path, Stroke};
 use ew_text::{DEFAULT_STYLE_KEY, FontSet, TextStyle, TextStyleTable};
 use ew_units::{Nm, Pt2, Rect};
 
-use crate::forms::SheetMap;
+use crate::forms::{CELL_PADDING, SheetMap, min_size};
 use crate::table::{
     HEADER_FILL, LINE_WIDTH, LoweredTable, ROW_HEIGHT, TableColumn, TableFinding, TableLink, TableRow,
     TableRowKind, column_edges_in, push_cell,
@@ -130,6 +132,12 @@ pub struct EmbeddedTable {
     pub rows: Vec<TableRow>,
     /// Printed in one spanning row instead of `rows`: why the block's rows do not derive.
     pub note: Option<String>,
+    /// A lookup table (the legend a person adds beside a layout, doc 09 §2.2): `Some(order)` prints the rows in one
+    /// flow column whose columns are as wide as their widest texts, the last taking what is left, and ends the box
+    /// under its last row ([`boxed_box`]); where the box is narrower than the texts, the columns give way in the
+    /// order of `order` (indices of `columns`), first by shrinking their texts to the smallest size, then by cutting
+    /// them. `None`: the house layout (the weights, [`EmbeddedTable::flow_columns`], the whole rectangle).
+    pub lookup: Option<Vec<usize>>,
 }
 
 /// What an embedded block draws.
@@ -171,8 +179,100 @@ pub fn boxed_capacity(rect: Rect, table: &EmbeddedTable, sheet: SheetMap) -> (us
     let r = sheet.apply_rect(bounded(rect));
     let top = r.min().y.0 + title_band(table).0;
     let slots = usize::try_from((r.max().y.0 - top).max(0) / ROW_HEIGHT.0).unwrap_or(0);
-    let flows = table.flow_columns.clamp(1, MAX_FLOW_COLUMNS) as usize;
+    let flows = if table.lookup.is_some() {
+        1
+    } else {
+        table.flow_columns.clamp(1, MAX_FLOW_COLUMNS) as usize
+    };
     (flows, slots.saturating_sub(usize::from(draws_header(table))))
+}
+
+/// The box a boxed table draws in `rect` (page coordinates) under the map `sheet`, its shadow left out: the rectangle,
+/// or for a lookup table its top part down to its last row (the title band, the header and the rows it draws), never
+/// below the rectangle. What a click on the block hits.
+pub fn boxed_box(rect: Rect, table: &EmbeddedTable, sheet: SheetMap) -> Rect {
+    let rect = bounded(rect);
+    if table.lookup.is_none() {
+        return rect;
+    }
+    let (_, per_flow) = boxed_capacity(rect, table, sheet);
+    let given = if table.note.is_some() { 1 } else { table.rows.len() };
+    let rows = i64::try_from(given.min(per_flow) + usize::from(draws_header(table))).unwrap_or(0);
+    let r = sheet.apply_rect(rect);
+    let bottom = (r.min().y.0 + title_band(table).0 + ROW_HEIGHT.0.saturating_mul(rows)).min(r.max().y.0);
+    Rect::from_points(rect.min(), sheet.unapply(Pt2::new(r.max().x, Nm(bottom))))
+}
+
+/// The column edges of a lookup table between `left` and `right` (printed): each column as wide as its widest text
+/// (the header and the rows `rows`) with its padding, the last taking what is left; where that is more than the
+/// width, the columns give way in the order of `order`: each in turn shrinks to the width of its texts at the
+/// smallest size, and then, in the same order, each is cut, down to nothing (a column with no width prints
+/// nothing), until the columns fit.
+#[allow(clippy::too_many_arguments)]
+fn lookup_edges(
+    t: &EmbeddedTable,
+    rows: &[TableRow],
+    order: &[usize],
+    (left, right): (Nm, Nm),
+    fonts: &FontSet,
+    style: &TextStyle,
+    sheet: SheetMap,
+) -> Vec<Nm> {
+    let n = t.columns.len();
+    // Both insets, and a quarter of a millimetre for the rounding of the shaping at a smaller size.
+    let pad = sheet.scale_len(CELL_PADDING).0.saturating_mul(2) + 250_000;
+    let floor = min_size(fonts, style, crate::table::MIN_CAP_HEIGHT, sheet).min(style.size);
+    // The printed advance of the widest text of each column, at the style's size.
+    let widest: Vec<i64> = (0..n)
+        .map(|c| {
+            let header = draws_header(t).then(|| t.columns[c].header.as_str());
+            let cells = rows
+                .iter()
+                .filter(|r| r.kind == TableRowKind::Data)
+                .filter_map(|r| r.cells.get(c).map(String::as_str));
+            header
+                .into_iter()
+                .chain(cells)
+                .map(|s| sheet.scale_len(fonts.shape(s, style, None).advance()).0)
+                .max()
+                .unwrap_or(0)
+        })
+        .collect();
+    let shrunk = |c: usize| {
+        let w = i128::from(widest[c]) * i128::from(floor.0) / i128::from(style.size.0.max(1));
+        i64::try_from(w).unwrap_or(widest[c]).saturating_add(pad)
+    };
+    let mut width: Vec<i64> = widest.iter().map(|w| w.saturating_add(pad)).collect();
+    for (c, col) in t.columns.iter().enumerate() {
+        if col.weight == 0 {
+            width[c] = 0;
+        }
+    }
+    let total = right.0 - left.0;
+    let mut excess = width.iter().fold(0i64, |a, w| a.saturating_add(*w)) - total;
+    let mut give = |width: &mut Vec<i64>, to: &dyn Fn(usize) -> i64| {
+        for &c in order.iter().filter(|c| **c < n) {
+            if excess <= 0 {
+                break;
+            }
+            let r = (width[c] - to(c).min(width[c])).min(excess);
+            width[c] -= r;
+            excess -= r;
+        }
+    };
+    give(&mut width, &shrunk);
+    give(&mut width, &|_| 0);
+    let mut edges = Vec::with_capacity(n + 1);
+    edges.push(left);
+    let mut x = left.0;
+    for w in &width[..n.saturating_sub(1)] {
+        x = x.saturating_add(*w).min(right.0);
+        edges.push(Nm(x));
+    }
+    if n > 0 {
+        edges.push(right);
+    }
+    edges
 }
 
 /// Whether the flow columns draw a header row: the table asks for one and has columns (a block whose rows do not
@@ -200,7 +300,7 @@ fn lower_boxed(
 ) -> LoweredTable {
     let mut out = LoweredTable::default();
     // Printed coordinates of the box.
-    let r = sheet.apply_rect(rect);
+    let r = sheet.apply_rect(boxed_box(rect, t, sheet));
     let (x0, y0, x1, y1) = (r.min().x, r.min().y, r.max().x, r.max().y);
     let to_page = |x: Nm, y: Nm| sheet.unapply(Pt2::new(x, y));
     let page_rect = |ax: Nm, ay: Nm, bx: Nm, by: Nm| Rect::from_points(to_page(ax, ay), to_page(bx, by));
@@ -280,7 +380,18 @@ fn lower_boxed(
         } else {
             Nm((left.0 + width).min(x1.0))
         };
-        let edges = column_edges_in(&t.columns, left, right);
+        let edges = match &t.lookup {
+            Some(order) if t.note.is_none() => lookup_edges(
+                t,
+                &t.rows[start..end],
+                order,
+                (left, right),
+                fonts,
+                &text_style,
+                sheet,
+            ),
+            _ => column_edges_in(&t.columns, left, right),
+        };
         if draws_header(t) {
             // Whether row `i` of this flow column (0 the header) spans every column.
             let spans = |i: usize| -> bool {
@@ -611,6 +722,7 @@ mod tests {
                 })
                 .collect(),
             note: None,
+            lookup: None,
         }
     }
 

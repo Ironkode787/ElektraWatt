@@ -155,7 +155,9 @@ the same page lists every carrier. `enclosure_legend` prints "LEGEND" in two flo
 position, DT, quantity (without its unit) and part number at weights 10 : 22 : 16 : 35; the manufacturer, the
 description and the unit stay in the rows and the CSV. Golden A's legend is the block `legend-902` on 902 (doc 20
 §17.3's "Legend box"). An embedded block has no first folio, so `ew export report --block` names it by its ID
-(WP-S4.01 D18); the default block of a kind-specific export is never an embedded one.
+(WP-S4.01 D18); the default block of a kind-specific export is never an embedded one. A block with its own printed
+columns (`ReportBlock.columns`, the legend Add legend makes) prints as a lookup table: one flow column, columns sized
+to their texts and its box ending under its last row ([12](12-panel-layout.md) §5.4).
 
 **Encodings and deferred members**:
 - `source` is `{"kind": "<report kind>"}` with the snake_case names of §2.4, or

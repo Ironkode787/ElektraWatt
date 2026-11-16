@@ -849,13 +849,44 @@ fn labels_param(show: LabelShow) -> &'static str {
     }
 }
 
-/// What a new surface view labels its placements with at `scale` (the window's rule, doc 12 §5.3): item numbers at
-/// 1:10 and smaller, where an 18 mm device is under 2 mm on paper and the tags of a row run into each other; tags at
-/// a larger scale and on a page not to scale.
-pub fn new_view_labels(scale: &Scale) -> LabelShow {
-    match scale {
-        Scale::OneTo(n) if *n >= 10 => LabelShow::ItemNumbers,
-        _ => LabelShow::Tags,
+/// What a new surface view of `surface` on `page` labels its placements with at `scale` (the window's rule, doc 12
+/// §5.3): tags on a page not to scale; on a scaled page, item numbers when the tag of a placement already on the
+/// surface fits its footprint on paper neither across nor turned (the scene's own fit test), and tags when every tag
+/// fits; on a surface without placements, item numbers at 1:5 and smaller, where a 6 mm terminal is not much more
+/// than a millimetre on paper and the tags of a row run into each other.
+pub(crate) fn new_view_labels(q: &Q, page: Id<Page>, surface: Id<MountingSurface>, scale: &Scale) -> LabelShow {
+    let Scale::OneTo(n) = scale else {
+        return LabelShow::Tags;
+    };
+    let sheet_ppb = q
+        .get::<super::view::PageFrameOf>(PageRef::Drawn(page))
+        .as_ref()
+        .as_ref()
+        .map_or(ew_scene::forms::SheetMap::IDENTITY, |f| ew_scene::forms::SheetMap::of(&f.form))
+        .scale_ppb;
+    let projection = Projection::on_sheet(ew_derive::ew_units::Pt2::ORIGIN, scale, sheet_ppb);
+    let style = super::panel::label_style(q);
+    let paper = |l: i64| ew_derive::ew_units::Nm(i64::try_from(projection.length(i128::from(l))).unwrap_or(i64::MAX));
+    let fits: Vec<bool> = super::panel::placements_on(q, surface)
+        .into_iter()
+        .filter_map(|p| {
+            let g = q.get::<PlacementGeometry>(p);
+            let fp = g.as_ref().as_ref()?.footprint;
+            let text = q.get::<LayoutLabel>((p, page, LabelMode::Abbreviated)).as_ref().clone();
+            let shaped = q.get::<super::panel::ShapedText>((text.clone(), style));
+            let (fw, fh) = (paper(fp.width().0), paper(fp.height().0));
+            Some(ew_scene::panel::label_fit(ew_text::bundled(), &style, &text, &shaped, fw, fh).is_some())
+        })
+        .collect();
+    let numbers = if fits.is_empty() {
+        *n >= 5
+    } else {
+        fits.contains(&false)
+    };
+    if numbers {
+        LabelShow::ItemNumbers
+    } else {
+        LabelShow::Tags
     }
 }
 
@@ -1285,7 +1316,7 @@ impl Session {
                             });
                             datum = centred_datum(&q, page, id, &at).or(datum);
                             if view.is_none() {
-                                labels = Some(new_view_labels(&at));
+                                labels = Some(new_view_labels(&q, page, id, &at));
                             }
                         }
                         surface = Some(id);

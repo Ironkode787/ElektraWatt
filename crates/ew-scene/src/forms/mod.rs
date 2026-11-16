@@ -77,7 +77,7 @@ use serde_json::Value;
 
 // Shared with the page scene (`crate::page`), which places symbol texts at a point the same way form
 // graphics do, and the report tables (`crate::table`), which lay text into cells.
-pub(crate) use text::{BoxSpec, lay_out, place, split_align};
+pub(crate) use text::{BoxSpec, lay_out, min_size, place, split_align};
 
 /// `FormCell.extra` member: the maximum number of wrapped lines (default 1).
 pub const EXTRA_MAX_LINES: &str = "ew.cell.max_lines";

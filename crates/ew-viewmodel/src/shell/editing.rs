@@ -2152,12 +2152,12 @@ impl ShellModel {
         let Some(page) = self.canvas().map(|c| Arc::clone(c.page())) else {
             return Outcome::refused(key!("reason-nothing-selected"));
         };
-        // On a panel page the selected placements and carriers, without the undrawn-device
+        // On a panel page the selected placements, carriers and legends, without the undrawn-device
         // step (a placement's device is never deleted by it).
         if page.panel.is_some() {
             let list: Vec<Value> = crate::tools::page_selection_kinds(&self.tools.selection, &page)
                 .into_iter()
-                .filter(|(_, k)| matches!(k, EntityKind::Placement | EntityKind::Carrier))
+                .filter(|(_, k)| matches!(k, EntityKind::Placement | EntityKind::Carrier | EntityKind::Block))
                 .map(|(e, k)| json!({"kind": k.kind_name(), "id": e.0.to_string()}))
                 .collect();
             if list.is_empty() {

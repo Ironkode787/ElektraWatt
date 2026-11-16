@@ -11,6 +11,7 @@ use crate::common;
 
 use common::{Tmp, at, done, refused};
 use ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
+use ew_viewmodel::ew_api::output::ew_dl::ew_units::Rect;
 use ew_viewmodel::ew_api::output::{PanelTables, Uuid};
 use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
@@ -104,6 +105,137 @@ fn a_balloon_off_its_device_drags_alone_and_the_devices_menu_puts_it_back() {
     let back = panel(&shell).placement(id).unwrap().clone();
     assert!(!back.label_moved);
     assert_eq!(back.label_box, Some(bx), "back where the label rules put it");
+    shell.shutdown();
+}
+
+/// The glyph runs the page on show prints inside the page rectangle `r`, in paint order.
+fn texts_in(shell: &ShellModel, r: Rect) -> Vec<String> {
+    use ew_viewmodel::ew_api::output::ew_dl::{Item, ItemKind};
+    fn walk(items: &[Item], r: Rect, out: &mut Vec<String>) {
+        for item in items {
+            match &item.kind {
+                ItemKind::Glyphs(run) => {
+                    let (x, y) = (run.origin.x, run.origin.y);
+                    if r.min().x <= x && x <= r.max().x && r.min().y <= y && y <= r.max().y {
+                        out.push(run.text.clone());
+                    }
+                }
+                ItemKind::Group(group) => walk(&group.items, r, out),
+                _ => {}
+            }
+        }
+    }
+    let mut out = Vec::new();
+    walk(&shell.canvas().unwrap().page().list.items, r, &mut out);
+    out
+}
+
+/// Golden A's plate on a new layout page 980, which gets its legend with the view.
+fn new_layout_page(shell: &mut ShellModel) {
+    let surface = panel(shell).surface.to_string();
+    done(
+        shell,
+        "page.new",
+        json!({"folio": "980", "type": "panel_layout", "title": "Cabinet"}),
+    );
+    done(shell, "page.goto", json!({"folio": "980"}));
+    done(
+        shell,
+        "props.set",
+        json!({"row": "page/derived.surface", "value": surface}),
+    );
+}
+
+/// The persona round of the second 0.3.0 candidate: the legend Add legend made stood over the frame's column ruler
+/// as a narrow strip with every cell cut, and could not be clicked. The legend of a new layout page lies inside the
+/// frame's drawing area, is one table across its block, prints every position and every tag whole, and can be
+/// selected, dragged and resized by a corner, each one undo step.
+#[test]
+fn the_legend_beside_a_layout_is_a_lookup_table_that_moves_and_resizes() {
+    let tmp = Tmp::new("layout-legend-table");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "902");
+    new_layout_page(&mut shell);
+    let t = panel(&shell);
+    let [block] = t.blocks.as_slice() else {
+        panic!("one legend: {:?}", t.blocks)
+    };
+    let [a0, b0, a1, b1] =
+        ew_viewmodel::tools::ip::drawing_area(shell.canvas().unwrap().page()).expect("a drawing area");
+    let r = block.rect;
+    assert!(
+        a0 <= r.min().x.0 && r.max().x.0 <= a1 && b0 <= r.min().y.0 && r.max().y.0 <= b1,
+        "the legend {r:?} inside the drawing area ({a0}, {b0})–({a1}, {b1})"
+    );
+    assert!(r.width().0 >= 60 * MM, "{r:?}");
+    let printed = texts_in(&shell, block.drawn);
+    // One table: the header once, every position whole, every tag whole.
+    assert_eq!(printed.iter().filter(|t| *t == "Pos").count(), 1, "{printed:?}");
+    let rows = printed.iter().filter(|t| t.parse::<u32>().is_ok()).count();
+    assert!(rows >= 20, "{printed:?}");
+    assert!(
+        printed
+            .iter()
+            .filter(|t| t.starts_with('='))
+            .all(|t| !t.ends_with('\u{2026}')),
+        "{printed:?}"
+    );
+    // A click on the legend selects it and shows its corners.
+    let centre = sheet(
+        &shell,
+        (
+            (block.drawn.min().x.0 + block.drawn.max().x.0) / 2,
+            (block.drawn.min().y.0 + block.drawn.max().y.0) / 2,
+        ),
+    );
+    common::click(&mut shell, centre, json!({}));
+    assert_eq!(shell.selection().items.len(), 1);
+    assert_eq!(shell.selection().items[0].0, block.id);
+    assert_eq!(shell.tool_overlay().len(), 4, "a grip at each corner");
+    // A drag moves it 10 mm left.
+    let to = (centre.0 - 10 * MM, centre.1);
+    done(&mut shell, "canvas.press", at(centre, json!({})));
+    done(&mut shell, "canvas.pointer", at(to, json!({})));
+    done(&mut shell, "canvas.release", at(to, json!({})));
+    let moved = panel(&shell).block(block.id).copied().expect("the legend");
+    assert_eq!(moved.rect.min().x.0, r.min().x.0 - 10 * MM);
+    assert_eq!(moved.rect.width(), r.width());
+    // Its bottom right corner, dragged 15 mm left, makes it narrower.
+    let corner = sheet(&shell, (moved.drawn.max().x.0, moved.drawn.max().y.0));
+    let to = (corner.0 - 15 * MM, corner.1);
+    done(&mut shell, "canvas.press", at(corner, json!({})));
+    done(&mut shell, "canvas.pointer", at(to, json!({})));
+    done(&mut shell, "canvas.release", at(to, json!({})));
+    let resized = panel(&shell).block(block.id).copied().expect("the legend");
+    assert_eq!(resized.rect.width().0, r.width().0 - 15 * MM);
+    assert_eq!(resized.rect.min(), moved.rect.min());
+    done(&mut shell, "edit.undo", json!({}));
+    done(&mut shell, "edit.undo", json!({}));
+    assert_eq!(panel(&shell).block(block.id).map(|b| b.rect), Some(r));
+    shell.shutdown();
+}
+
+/// The persona round of the second 0.3.0 candidate: at 1:5 nine small devices printed their tags over each other. A
+/// new layout view looks at whether the tags of the placements fit their footprints, not only at the scale: Golden
+/// A's terminals are about a millimetre wide at 1:5, so the view starts with item numbers.
+#[test]
+fn a_new_layout_view_at_one_to_five_numbers_tags_that_do_not_fit() {
+    let tmp = Tmp::new("layout-numbers-fit");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "902");
+    let surface = panel(&shell).surface.to_string();
+    done(
+        &mut shell,
+        "page.new",
+        json!({"folio": "981", "type": "panel_layout", "title": "Cabinet"}),
+    );
+    done(&mut shell, "page.goto", json!({"folio": "981"}));
+    done(&mut shell, "select.set", json!({"ids": []}));
+    done(&mut shell, "props.set", json!({"row": "page/scale", "value": "1:5"}));
+    done(
+        &mut shell,
+        "props.set",
+        json!({"row": "page/derived.surface", "value": surface}),
+    );
+    assert!(panel(&shell).numbered, "item numbers at 1:5");
     shell.shutdown();
 }
 
