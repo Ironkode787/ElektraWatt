@@ -527,6 +527,8 @@ impl ShellModel {
                     _ => None,
                 };
                 let far = self.far_offers(cmd.as_ref());
+                self.tools.drew_existing = cmd.name() == "bus.place_ports"
+                    && cmd.to_json().is_ok_and(|j| j["target"].get("device").is_some());
                 // An earlier toast stays (its Undo expires with this commit); a new toast of key `edit`
                 // replaces it.
                 let out = self.run_commit(cmd.as_ref());

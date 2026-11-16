@@ -1020,3 +1020,70 @@ fn a_bus_page_offers_to_put_a_station_on_it() {
     );
     h.state_mut().shell_mut().shutdown();
 }
+
+/// The rc.2 persona run dragged his CPU's row from the PLC panel onto the bus page and nothing happened. The drop puts
+/// the station there at the drop point, a box per interface, and the tool gives way; a drop that cannot be taken says
+/// why: the station is there already, or the page takes no stations.
+#[test]
+fn a_station_row_dropped_on_the_bus_page_puts_it_there() {
+    use ew_ui::ew_viewmodel::navigators::NavKind;
+    use ew_ui::ew_viewmodel::shell::DragSource;
+    let tmp = Tmp::new();
+    let mut h = new_project(&tmp);
+    let cpu = made_station(&mut h, "cpu", "EW-GEN-CPU-2");
+    dispatch(
+        &mut h,
+        "page.new",
+        json!({"folio": "900", "type": "bus_topology", "title": "Field bus"}),
+    );
+    dispatch(&mut h, "page.goto", json!({"folio": "900"}));
+    settle(&mut h);
+    settle(&mut h);
+    let drop_row = |h: &mut egui_kittest::Harness<'static, ew_ui::app::App>| {
+        let name = h
+            .state()
+            .shell()
+            .shown_rows(NavKind::Plc)
+            .into_iter()
+            .find(|r| r.drag == Some(DragSource::Station(cpu.to_string())))
+            .expect("the CPU's row carries it")
+            .name;
+        let canvas = h
+            .get_all_by_role(egui::Role::Canvas)
+            .next()
+            .expect("the canvas")
+            .accesskit_node()
+            .raw_bounds()
+            .expect("bounds");
+        let to = egui::pos2(
+            ((canvas.x0 + canvas.x1) / 2.0) as f32,
+            ((canvas.y0 + canvas.y1) / 2.0) as f32,
+        );
+        let from = crate::navigators::item_centre(h, &name);
+        crate::navigators::drag(h, from, to);
+    };
+    drop_row(&mut h);
+    assert_eq!(topology_boxes(&h, cpu), 2, "DP and X1 at the drop point");
+    assert_eq!(h.state().shell().tool().name(), "select");
+    assert!(
+        h.state().shell().dialog().is_none(),
+        "its rack does not open again unasked: {:?}",
+        h.state().shell().dialog()
+    );
+
+    drop_row(&mut h);
+    let banner = h.state().shell().banner().unwrap_or_default().to_owned();
+    assert!(
+        banner.starts_with("Every bus interface of") && banner.ends_with("is drawn on page 900 already"),
+        "{banner}"
+    );
+    dispatch(&mut h, "ui.dismiss", json!({}));
+    dispatch(&mut h, "page.goto", json!({"folio": "101"}));
+    settle(&mut h);
+    drop_row(&mut h);
+    assert_eq!(
+        h.state().shell().banner(),
+        Some("A station is put on a bus-topology page: open one, or make one with PLC ▸ New bus page")
+    );
+    h.state_mut().shell_mut().shutdown();
+}

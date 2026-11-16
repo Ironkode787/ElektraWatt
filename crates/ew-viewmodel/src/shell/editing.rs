@@ -209,11 +209,12 @@ fn far_offer(
 
 impl ShellModel {
     /// After a commit that drew PLC devices for the first time (F18 of the rc.1 test, the rack comes first): a station
-    /// placed directly opens its rack dialog, so it is filled there (a further symbol of a station drawn before does
-    /// not); a module that joined a station says which slot it got, with Rack… as the toast's action; a module that
+    /// placed directly opens its rack dialog, so it is filled there (a further symbol of a station drawn before, or a
+    /// station the project had put on a bus page, does not); a module that joined a station says which slot it got, with Rack… as the toast's action; a module that
     /// waits asks which station takes it when the project has several, and offers New station… when it has none (the
     /// persona run m3-p4 found the PLC panel by trying every icon).
     fn say_card_waits(&mut self, before: &PageTables, now: &PageTables) {
+        let existing = std::mem::take(&mut self.tools.drew_existing);
         let Some(session) = self.project_session() else {
             return;
         };
@@ -277,7 +278,9 @@ impl ShellModel {
             .filter_map(|d| waiting.iter().find(|(c, _)| c == d).cloned())
             .collect();
         if let Some(station) = new_station {
-            self.open_dialog(Self::rack_dialog(Some(station), None));
+            if !existing {
+                self.open_dialog(Self::rack_dialog(Some(station), None));
+            }
             return;
         }
         if let Some((card, station)) = joined.first().copied() {

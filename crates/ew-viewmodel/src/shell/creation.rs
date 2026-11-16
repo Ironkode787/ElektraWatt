@@ -1372,8 +1372,11 @@ impl ShellModel {
             Ok(t) => t,
             Err(e) => return e,
         };
+        // In words, as a failure: a row dropped on another page says why (the window shows a failure in its banner).
         if self.page_rows().get(self.page_index()).map(|r| r.kind.as_str()) != Some("bus_topology") {
-            return Outcome::refused(key!("reason-put-station-bus-page"));
+            return Outcome::Failed {
+                message: strings::text(key!("reason-put-station-bus-page")).to_owned(),
+            };
         }
         if station.is_empty() {
             if self.stations_off_page(None).is_empty() {

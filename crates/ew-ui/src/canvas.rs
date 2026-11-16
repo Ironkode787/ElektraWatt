@@ -2136,6 +2136,16 @@ impl CanvasHost {
             p["key"] = json!(key.0);
             events.push(Event::Action("macros.place", p));
         }
+        // A station's or a bus device's row dropped on this canvas puts it on the bus page at the drop point (rc.2).
+        if let Some(pos) = dropped
+            && rect.contains(pos)
+            && egui::DragAndDrop::has_payload_of_type::<crate::navigator::StationDrag>(ui.ctx())
+            && let Some(station) = egui::DragAndDrop::take_payload::<crate::navigator::StationDrag>(ui.ctx())
+        {
+            let mut p = point_with(Self::sheet_point(rect, canvas, pos), Modifiers::NONE);
+            p["station"] = json!(station.0);
+            events.push(Event::Action("bus.put_station", p));
+        }
         // An Unplaced devices row dragged over this canvas floats its device (the layout place
         // tool, armed once per drag), follows the pointer with the modifiers held, and drops it on release.
         let armed_id = egui::Id::unique(("layout-drag-armed", group));

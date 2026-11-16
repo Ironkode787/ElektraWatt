@@ -29,7 +29,7 @@ fn on_golden(tmp: &Tmp) -> Harness<'static, App> {
 }
 
 /// A drag with the primary button from `from` to `to` in steps, one frame each.
-fn drag(h: &mut Harness<'_, App>, from: Pos2, to: Pos2) {
+pub(crate) fn drag(h: &mut Harness<'_, App>, from: Pos2, to: Pos2) {
     h.input_mut().events.push(egui::Event::PointerMoved(from));
     h.run_ok();
     h.input_mut().events.push(egui::Event::PointerButton {
@@ -72,7 +72,7 @@ fn row_key(h: &Harness<'_, App>, kind: NavKind, role: NavRole, label: &str) -> S
 
 /// A point on the first tree item whose name starts with `name`: near its left end (a row's text may be wider than the
 /// pane, so its centre can lie outside the clip).
-fn item_centre(h: &Harness<'_, App>, name: &str) -> Pos2 {
+pub(crate) fn item_centre(h: &Harness<'_, App>, name: &str) -> Pos2 {
     h.get_all_by_role(egui::Role::TreeItem)
         .find(|n| n.accesskit_node().label().is_some_and(|l| l.starts_with(name)))
         .unwrap_or_else(|| panic!("no tree item {name}"))

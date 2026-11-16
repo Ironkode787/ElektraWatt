@@ -85,6 +85,9 @@ pub enum DragSource {
     /// A device row of the Unplaced devices navigator (the device's ID text): dropped on a panel page, the
     /// layout place tool takes it (`tool.place_layout {device}`).
     Device(String),
+    /// A station's row of the PLC navigator, or a device's row of the Bus or the Devices navigator (the device's ID
+    /// text): dropped on a bus-topology page, `bus.put_station` puts it there at the drop point (rc.2).
+    Station(String),
 }
 
 /// One row on show of any navigator, as the widget paints it and the describe text prints it.
@@ -500,6 +503,20 @@ impl ShellModel {
                         .or_else(|| {
                             (k == NavKind::Unplaced && node.role == ew_api::output::NavRole::Device)
                                 .then(|| node.records.first().map(|r| DragSource::Device(r.to_string())))
+                                .flatten()
+                        })
+                        // A station's or a bus device's row drops onto a bus page (the rc.2 persona run dragged his CPU
+                        // from the PLC panel and nothing happened).
+                        .or_else(|| {
+                            let station = match k {
+                                NavKind::Plc => node.role == ew_api::output::NavRole::Station,
+                                NavKind::Bus | NavKind::Devices => {
+                                    node.role == ew_api::output::NavRole::Device
+                                }
+                                _ => false,
+                            };
+                            station
+                                .then(|| node.records.first().map(|r| DragSource::Station(r.to_string())))
                                 .flatten()
                         });
                         ShownRow {

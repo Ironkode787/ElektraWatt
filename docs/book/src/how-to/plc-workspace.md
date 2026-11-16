@@ -135,7 +135,8 @@ on the schematic pages.
    for its box: it stands there as a box per interface, and a station's rack opens.
 3. A station or bus device the project has already (drawn on a schematic page, or made in the rack dialog) goes onto
    the bus page with **Put a station on this page…**: right-click an empty spot of the page, or open the list of
-   **Place port** on the PLC tab, and choose it. It stands there as a box per interface. Placing its part from the
+   **Place port** on the PLC tab, and choose it. It stands there as a box per interface. Dragging its row from the
+   PLC panel, the Bus panel or the Devices panel onto the page does the same at the drop point. Placing its part from the
    device browser, or choosing the Black box tool, on the bus page asks first: **Put -1A1 here** or **A new station**.
    One port box comes from **Place port DP** (or **Place port X1**) on the station's row in the PLC panel; **Ports not
    drawn yet** in the Bus panel lists every interface no page draws yet.
