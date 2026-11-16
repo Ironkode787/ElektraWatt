@@ -734,7 +734,10 @@ fn tutorial_draw_a_six_pin_power_block_runs_as_its_page_says() {
 
 /// The line of `describe` that starts with `start`, trimmed (empty when none does).
 fn line_of(describe: &str, start: &str) -> String {
-    lines_of(describe, &[start]).into_iter().next().unwrap_or_default()
+    lines_of(describe, &[start])
+        .into_iter()
+        .next()
+        .unwrap_or_default()
 }
 
 /// The PLC tutorial (rc.2, F5): a position switch and a lamp, a station made in the New station dialog with an input
@@ -759,9 +762,15 @@ fn tutorial_a_plc_with_its_modules_runs_as_its_page_says() {
     );
     // Steps 11 and 12: the first channel of each module with its symbol.
     let input = line_of(&overview, "row \"I0.0\"");
-    assert!(input.contains("\"Door_closed\"") && input.contains("\"-1A1-A1\" \"0\" \"DI\""), "{input}");
+    assert!(
+        input.contains("\"Door_closed\"") && input.contains("\"-1A1-A1\" \"0\" \"DI\""),
+        "{input}"
+    );
     let output = line_of(&overview, "row \"Q0.0\"");
-    assert!(output.contains("\"Lamp_door\"") && output.contains("\"-1A1-A2\" \"0\" \"DO\""), "{output}");
+    assert!(
+        output.contains("\"Lamp_door\"") && output.contains("\"-1A1-A2\" \"0\" \"DO\""),
+        "{output}"
+    );
     // Step 13: the overview page and its toast.
     assert_eq!(
         line_of(&overview, "row level 2 page \"2\""),
@@ -904,7 +913,10 @@ fn tutorial_a_pneumatic_circuit_runs_as_its_page_says() {
              \"—\" \"missing\" \"\" \"\" \"\" \"2\"",
         ]
     );
-    assert_eq!(line_of(&end, "title:"), "title: pneumatic-circuit.ew - ElektraWatt");
+    assert_eq!(
+        line_of(&end, "title:"),
+        "title: pneumatic-circuit.ew - ElektraWatt"
+    );
     assert!(tmp.path("pneumatic-circuit.ew/project.jsonl").is_file());
     let items = items(&tmp);
     assert_eq!(
