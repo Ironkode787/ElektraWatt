@@ -105,6 +105,7 @@ impl ShellModel {
         let [(e, kind)] = kinds.as_slice() else {
             // Several interruption points: Supply comes in here… for them all (FT-1699).
             out.extend(self.supply_in_item());
+            out.extend(self.supply_remove_item());
             return out;
         };
         match kind {
@@ -197,6 +198,7 @@ impl ShellModel {
     /// Supply comes in here…, Go to its partner, the two directions, Continue on page….
     fn ip_fits(&self, rep: &TableRep, out: &mut Vec<ActionItem>) {
         out.extend(self.supply_in_item());
+        out.extend(self.supply_remove_item());
         let external = rep.ip.as_ref().is_some_and(|ip| ip.external);
         match self.rep_link(rep).filter(|_| !external) {
             Some((params, cell)) => out.extend(self.aimed(

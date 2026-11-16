@@ -743,6 +743,26 @@ fn drawn_page(q: &Q, folio: &str) -> Option<(PageRef, Id<Page>)> {
 }
 
 impl Session {
+    /// Where the interruption points `points` (their functions) come from when every one names the same external
+    /// reference: its location's code and the device there (`+Supply`, `-X0`); `None` otherwise (rc.3: Where the
+    /// supply comes from… shows it to change it).
+    pub fn supply_source(&self, points: &[Uuid]) -> Option<(String, String)> {
+        let q = self.query();
+        let mut shared = None;
+        for f in points {
+            let ew_schema::FunctionKind::Ip(ip) = &q.functions().get(Id::from_uuid(*f))?.kind else {
+                return None;
+            };
+            let x = ip.external?;
+            if *shared.get_or_insert(x) != x {
+                return None;
+            }
+        }
+        let x = q.external_refs().get(shared?).cloned()?;
+        let location = q.structure_nodes().get(x.location)?.code.as_str().to_owned();
+        Some((location, x.device.as_str().to_owned()))
+    }
+
     // Qualified addresses distinguish a library master from an older project copy with the same key.
     pub(crate) fn installed_symbol(&self, address: &str) -> Option<LibCopy<SymbolDef>> {
         self.libraries()

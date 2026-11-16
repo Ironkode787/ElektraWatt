@@ -7,7 +7,9 @@
 //! after the supply) and the device there (the feeder's strip), and Apply is one `ip.supply_in`: the location node
 //! where the project lacks it, the reference, the points' `ip.external`, and the supply's origin where it has none.
 //! The points then print what an external point prints, and pair with nothing, so the unpaired point's finding is
-//! gone. On points that all have the mark it is Remove the supply mark, which takes it off.
+//! gone. On points that all have the mark it is Where the supply comes from…, whose form shows where they come from
+//! now and moves them to the place and device typed (rc.3), with Remove the supply mark beside it in the right-click
+//! menu, which takes the mark off.
 
 use ew_api::AnyCommand;
 use ew_api::output::Uuid;
@@ -45,16 +47,25 @@ impl ShellModel {
         Some((points, marked))
     }
 
-    /// Supply comes in here…, or Remove the supply mark on points that all have it, for the selected interruption
-    /// points (the right-click menu's first entry for a point, and its Properties link); `None` for any other
-    /// selection.
+    /// Supply comes in here…, or Where the supply comes from… on points that all have the mark (its form shows where
+    /// it comes from now, to change it, rc.3), for the selected interruption points (the right-click menu's first
+    /// entry for a point, and its Properties link); `None` for any other selection.
     pub fn supply_in_item(&self) -> Option<ActionItem> {
         let (_, marked) = self.selected_supply_points()?;
         let mut item = self.menu_item(SUPPLY_IN)?;
         if marked {
-            item.label = strings::text(key!("supply-in-remove")).to_owned();
-            item.params = json!({ "remove": true });
+            item.label = strings::text(key!("supply-in-change")).to_owned();
         }
+        Some(item)
+    }
+
+    /// Remove the supply mark, for selected interruption points that all have it (the right-click menu's entry after
+    /// [`Self::supply_in_item`]); `None` otherwise.
+    pub fn supply_remove_item(&self) -> Option<ActionItem> {
+        let (_, marked) = self.selected_supply_points()?;
+        let mut item = self.menu_item(SUPPLY_IN).filter(|_| marked)?;
+        item.label = strings::text(key!("supply-in-remove")).to_owned();
+        item.params = json!({ "remove": true });
         Some(item)
     }
 
@@ -70,6 +81,11 @@ impl ShellModel {
         let Some(project) = &self.project else {
             return proposal();
         };
+        // Points that come from one place already show it, to change it (rc.3).
+        let points = self.selected_supply_points().map(|(p, _)| p).unwrap_or_default();
+        if let Some(now) = project.session.supply_source(&points) {
+            return now;
+        }
         let q = project.session.query();
         let origin = q
             .project()

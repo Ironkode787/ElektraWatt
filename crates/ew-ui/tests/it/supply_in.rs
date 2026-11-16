@@ -139,8 +139,27 @@ fn supply_comes_in_here_marks_the_points_and_their_findings_go() {
     d.input(&key("ctrl+y"));
     d.settle();
     assert!(!has(&findings(&mut d), "EW-CORE-051"));
-    // Remove the supply mark on one marked point, clicked alone, takes it off that point.
+    // rc.3 (G7): where it comes from can be changed: Where the supply comes from… on a marked point shows the place
+    // and device it comes from now, and Apply with another place moves it there.
     let at = points(&mut d, &pixel);
+    d.input(&key("escape"));
+    d.settle();
+    menu(&mut d, at[0], "Where the supply comes from");
+    let place = match d.shell_mut().dialog() {
+        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => f.fields[0].value.clone(),
+        other => panic!("the form: {other:?}"),
+    };
+    let shown_before = d.shell_mut().supply_in_item().map(|i| i.label);
+    assert_eq!(shown_before.as_deref(), Some("Where the supply comes from…"));
+    d.shell_mut().set_form_field("location", "MCC2");
+    d.input(&click(d.find("Apply").expect("Apply")));
+    d.settle();
+    assert!(!place.is_empty() && place != "MCC2", "the place it came from: {place}");
+    assert_eq!(
+        d.shell_mut().recorded_commands().last().unwrap().params["location"],
+        json!("MCC2")
+    );
+    // Remove the supply mark on one marked point, clicked alone, takes it off that point.
     d.input(&key("escape"));
     d.settle();
     menu(&mut d, at[0], "Remove the supply mark");
