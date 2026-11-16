@@ -464,6 +464,57 @@ fn a_click_on_the_selection_brings_its_properties_back() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// A persona run's double click on How many closed the Add module picker without a change: the field takes the double
+/// click and the number typed, and the picker stays open until a part is chosen.
+#[test]
+fn the_add_module_picker_takes_a_double_click_in_its_count() {
+    let tmp = Tmp::new();
+    let mut h = new_project(&tmp);
+    dispatch(&mut h, "plc.new_station", json!({}));
+    dispatch(&mut h, "plc.rack_set", json!({"head": "EW-GEN-CPU-1"}));
+    settle(&mut h);
+    h.get_by_label("Add module… 1").click();
+    settle(&mut h);
+    let field = |h: &egui_kittest::Harness<'static, ew_ui::app::App>| {
+        h.get_all_by_role(egui::Role::TextInput)
+            .last()
+            .expect("the How many field")
+            .rect()
+            .center()
+    };
+    // Two clicks at one place without time between them: a double click.
+    let at = field(&h);
+    for _ in 0..2 {
+        h.input_mut().events.push(egui::Event::PointerButton {
+            pos: at,
+            button: egui::PointerButton::Primary,
+            pressed: true,
+            modifiers: egui::Modifiers::NONE,
+        });
+        h.input_mut().events.push(egui::Event::PointerButton {
+            pos: at,
+            button: egui::PointerButton::Primary,
+            pressed: false,
+            modifiers: egui::Modifiers::NONE,
+        });
+    }
+    h.run();
+    h.input_mut().events.push(egui::Event::Text("3".to_owned()));
+    settle(&mut h);
+    h.key_press(egui::Key::Enter);
+    settle(&mut h);
+    assert!(
+        matches!(h.state().shell().dialog(), Some(Dialog::Rack { count: 3, .. })),
+        "{:?}",
+        h.state().shell().dialog()
+    );
+    assert!(
+        h.query_all_by_label_contains("EW-GEN-DI-1").next().is_some(),
+        "the picker is still open"
+    );
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// The channel rows of the PLC panel: (channel, module, badges).
 fn channel_rows(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>) -> Vec<(Uuid, Uuid, Vec<String>)> {
     use ew_ui::ew_viewmodel::navigators::NavKind;

@@ -6747,3 +6747,4 @@ choice-connection-kind-overview = Overzichtslijn
 choice-connection-kind-internal = Interne verbinding
 choice-connection-kind-fluid = Slang
 toast-guide-page = De pagina van de handleiding: { $p0 }
+rack-count-range = Een getal van 1 tot en met 64

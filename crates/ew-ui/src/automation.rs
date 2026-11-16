@@ -472,20 +472,40 @@ fn part_menu(
     pick: impl Fn(Uuid) -> Event,
     events: &mut Vec<Event>,
 ) {
+    // A click (or a double click) into the count field edits it; only a part chosen or a click outside closes the
+    // picker (a persona run's double click on How many closed it without a change).
     egui::Popup::menu(button)
+        .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
         .style(crate::menu::menu_style(t))
         .show(|ui| {
             if let Some(count) = count {
+                // A text field, so that a double click selects the number as in every field; a number of 1 to 64 is
+                // taken as it is typed, anything else is said under it.
+                let id = egui::Id::unique(("rack-count", slot));
+                let mut text = ui
+                    .data_mut(|d| d.get_temp::<String>(id))
+                    // A number left from another rack yields to this dialog's count.
+                    .filter(|s| s.trim().parse::<u16>().ok().is_none_or(|n| n == count || !(1..=64).contains(&n)))
+                    .unwrap_or_else(|| count.to_string());
                 ui.horizontal(|ui| {
                     let caption = ui.label(strings::text(key!("rack-count")));
-                    let mut n = count;
                     let field = ui
-                        .add(egui::DragValue::new(&mut n).range(1..=64))
+                        .add(egui::TextEdit::singleline(&mut text).desired_width(t.size_table_column_min))
                         .labelled_by(caption.id);
-                    if field.changed() {
+                    if field.changed()
+                        && let Some(n) = text.trim().parse::<u16>().ok().filter(|n| (1..=64).contains(n))
+                    {
                         events.push(Event::Action("plc.rack_set", json!({ "count": n })));
                     }
                 });
+                if text.trim().parse::<u16>().ok().is_none_or(|n| !(1..=64).contains(&n)) {
+                    ui.label(
+                        RichText::new(strings::text(key!("rack-count-range")))
+                            .font(theme::font(&t.type_small))
+                            .color(t.error.color32()),
+                    );
+                }
+                ui.data_mut(|d| d.insert_temp(id, text));
             }
             let fits = |allowed: &[u16]| {
                 (0..u32::from(count.unwrap_or(1)))

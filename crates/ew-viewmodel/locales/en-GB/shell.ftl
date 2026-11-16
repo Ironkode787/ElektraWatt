@@ -7009,3 +7009,4 @@ choice-connection-kind-overview = Overview line
 choice-connection-kind-internal = Internal link
 choice-connection-kind-fluid = Tube
 toast-guide-page = The guide's page: { $p0 }
+rack-count-range = A number from 1 to 64
