@@ -437,8 +437,38 @@ impl ShellModel {
                     other => other,
                 }
             }
+            // The wire a placement offered instead of drawing it.
+            Some(NoteAction::Connect) => {
+                let Some(params) = self.tools.offered_wire.take() else {
+                    return Outcome::refused(key!("reason-action-expired"));
+                };
+                self.notes.dismiss(entry.serial);
+                self.run_logged("connection.draw".to_owned(), params)
+            }
             None => Outcome::refused(key!("reason-no-toast")),
         }
+    }
+
+    /// Shows a placement's `text` with its Undo and Connect, which draws `wire` (`connection.draw`'s parameters), both
+    /// valid while the placement is the next undo step (rc.2: a far autoconnect hit is offered, not drawn).
+    pub(super) fn notify_connect_offer(&mut self, text: String, wire: Value) {
+        let validity = self.project.as_ref().and_then(|p| {
+            let h = p.session.history();
+            let cursor = h.cursor();
+            let rev = h.entries().get(cursor.checked_sub(1)?)?.rev().0;
+            Some(Validity::Undo {
+                epoch: p.epoch,
+                cursor,
+                rev,
+            })
+        });
+        self.tools.offered_wire = Some(wire);
+        self.notes.push_two(
+            text,
+            "edit",
+            validity.clone().map(|v| (NoteAction::Undo, v)),
+            validity.map(|v| (NoteAction::Connect, v)),
+        );
     }
 
     /// Shows the toast that the parts list leaves out the devices without a part, when there are any (rc.2 persona run,

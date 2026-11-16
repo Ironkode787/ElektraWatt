@@ -5208,7 +5208,9 @@ tip-derived-tag = Tags are derived from the structure and the counter.
 tip-generated-page = This page is generated from a report block.
 toast-convert = Convert to connection
 toast-show-block = Show report block
-toast-select-unlisted = Select them
+note-action-select-unlisted = Select them
+note-action-connect = Connect
+toast-connect-offer = { $p0 } faces { $p1 }, further off or across other wires, so it is not connected: Connect draws the wire.
 glossary-row-description = EPLAN: { $p0 }; QET: { $p1 }; { $p2 }
 glossary-none = none
 

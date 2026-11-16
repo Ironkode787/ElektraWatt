@@ -4953,7 +4953,9 @@ tip-derived-tag = Kenmerken volgen uit de structuur en de teller.
 tip-generated-page = Deze pagina wordt gegenereerd uit een rapportblok.
 toast-convert = Omzetten in verbinding
 toast-show-block = Rapportblok tonen
-toast-select-unlisted = Selecteren
+note-action-select-unlisted = Selecteren
+note-action-connect = Verbinden
+toast-connect-offer = { $p0 } staat tegenover { $p1 }, verder weg of over andere draden, en is dus niet verbonden: Verbinden legt de draad.
 glossary-row-description = EPLAN: { $p0 }; QET: { $p1 }; { $p2 }
 glossary-none = geen
 

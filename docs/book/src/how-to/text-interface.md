@@ -26,7 +26,9 @@ its tag, cell, symbol and position, its `cp` lines (connection points, the wires
   wires to them: `ui.describe` prints them as `canvas proposals <n> "<cp>" -> "<target>"`, and the status hint says that
   Enter connects them. `canvas.activate` with `alt` (Alt+Enter, Alt+Click) places the symbol without connecting;
   `tool.next_proposal` (Tab) tries the next target along each ray. After a placement that connected, the toast names
-  the wires it drew; one Undo removes the symbol with its wires.
+  the wires it drew; one Undo removes the symbol with its wires. A connection point further than 20 grid steps away,
+  or one behind another wire, is not proposed: the toast offers it instead, and its Connect draws the wire. Tab still
+  proposes it.
 
 ## Freeze a tag
 

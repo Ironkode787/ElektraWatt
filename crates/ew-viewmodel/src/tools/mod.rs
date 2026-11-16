@@ -272,6 +272,9 @@ pub enum Ghost {
         /// The proposals as the describe text names them: the ghost CP's designation in quotes (two for a split) and
         /// the target CP's label (`None` for a split).
         proposals: Vec<(String, Option<String>)>,
+        /// The far hits the placement does not join (`autoconnect::SHORT_RUN`), offered after it: the ghost CP's point,
+        /// the target CP's label, its function and index.
+        far: Vec<((i64, i64), String, ew_api::output::Uuid, u16)>,
         /// Whether J offers the Join chooser: the symbol's FnDef can be an auxiliary function.
         joinable: bool,
     },

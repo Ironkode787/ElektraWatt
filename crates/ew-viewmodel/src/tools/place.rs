@@ -905,6 +905,20 @@ impl Tool for PlaceTool {
             }),
             hints: self.proposals.list.len(),
             proposals: self.proposals.lines(),
+            far: self
+                .proposals
+                .far
+                .iter()
+                .filter_map(|p| match &p.target {
+                    super::autoconnect::ProposalTarget::Cp {
+                        function,
+                        idx,
+                        label,
+                        ..
+                    } => Some((p.cp.at, label.clone(), function.0, *idx)),
+                    super::autoconnect::ProposalTarget::Split { .. } => None,
+                })
+                .collect(),
             joinable: self.joinable,
         })
     }

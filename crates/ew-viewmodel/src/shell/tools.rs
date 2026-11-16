@@ -526,6 +526,19 @@ impl ShellModel {
                     "device.place" => self.tools.tool.proposal_note(),
                     _ => None,
                 };
+                // The far autoconnect hits the placement does not join, offered by its toast; none at its point moved
+                // or with Alt (a placement without its proposals' hints although it has some).
+                let far = match self.tools.tool.ghost() {
+                    Some(crate::tools::Ghost::Place {
+                        far, hints, at_nm, ..
+                    }) if cmd.name() == "device.place" => {
+                        let json = cmd.to_json().unwrap_or_default();
+                        let without_hints = hints > 0 && json.get("connect").is_none();
+                        let same_point = at_nm.is_some_and(|(x, y)| json["pos"] == serde_json::json!([x, y]));
+                        if without_hints || !same_point { Vec::new() } else { far }
+                    }
+                    _ => Vec::new(),
+                };
                 // An earlier toast stays (its Undo expires with this commit); a new toast of key `edit`
                 // replaces it.
                 let out = self.run_commit(cmd.as_ref());
@@ -554,6 +567,7 @@ impl ShellModel {
                         wires: connects,
                         moved,
                         into,
+                        far,
                     });
                 }
                 // A device placed on a bus page as several boxes, one for each bus interface, says so: two boxes with

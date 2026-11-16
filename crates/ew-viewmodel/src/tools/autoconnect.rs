@@ -20,6 +20,9 @@
 //! first hit; [`ToolKey::NextProposal`](super::ToolKey::NextProposal) (Tab) cycles every ray to its next hit further
 //! along, wrapping.
 //!
+//! **Far hits.** A first hit more than [`SHORT_RUN`] grid steps away, or one whose run crosses a wire, is no proposal:
+//! the placement does not join it, its toast offers it with Connect (rc.2). A far hit that Tab chose is a proposal.
+//!
 //! **The split.** Two ghost CPs that lie on one segment of a connection W and face its two ends (their directions
 //! along the segment, pointing apart) are the split of W: one proposal that sends no hint, because normaliser 7
 //! splits W when the symbol lands on the path the page draws it along (FR-CON-008, doc 06 §5.3), its stored route or,
@@ -34,6 +37,11 @@ use super::wire::PageGridMap;
 
 /// The most grid steps a ray walks.
 pub const MAX_WALK: usize = 2_000;
+
+/// The longest run, in grid steps, that a placement joins by itself (rc.2 persona run, entry 17: a sensor dropped under
+/// an output card was joined to the card's pin by a long wire through other wires). A hit further away, or one whose
+/// run crosses a wire, is far: it is offered after the placement, never drawn by it, unless Tab chose it.
+pub const SHORT_RUN: i64 = 20;
 
 /// A connection point of the ghost, in page nm.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -106,6 +114,8 @@ pub struct Proposal {
 pub struct Proposals {
     /// The proposals in ascending symbol CP index; a split counts once.
     pub list: Vec<Proposal>,
+    /// The far first hits ([`SHORT_RUN`]) that the placement does not join: offered after it, in the same order.
+    pub far: Vec<Proposal>,
 }
 
 impl Proposals {
@@ -163,18 +173,20 @@ pub fn dedup(polyline: &[(i64, i64)]) -> Vec<(i64, i64)> {
     out
 }
 
-/// The hits of one ray (see the module documentation), nearest first.
+/// The hits of one ray (see the module documentation), nearest first, each with whether it is far ([`SHORT_RUN`]).
 fn ray_hits(
     cp: &GhostCp,
     tables: &PageTables,
     own: &[EntityRef],
     area: [i64; 4],
     grid: PageGridMap,
-) -> Vec<ProposalTarget> {
+) -> Vec<(ProposalTarget, bool)> {
     let d = cp.dir.vector();
     let (ix, iy) = (grid.index(cp.at.0), grid.index(cp.at.1));
     let want = opposite(cp.dir);
     let mut hits = Vec::new();
+    // Whether the run so far crossed a wire.
+    let mut crossed = false;
     for k in 1..=MAX_WALK as i64 {
         let (kx, ky) = (ix + d.0 * k, iy + d.1 * k);
         // The walk point: the ray keeps the CP's own coordinate across it.
@@ -203,12 +215,15 @@ fn ray_hits(
                         .any(|r| r.id == q.rep && is_strip_terminal(tables, r, tag))
                 })
             {
-                hits.push(ProposalTarget::Cp {
-                    function: EntityRef(q.function),
-                    idx: q.idx,
-                    at: q.at,
-                    label: q.label.clone(),
-                });
+                hits.push((
+                    ProposalTarget::Cp {
+                        function: EntityRef(q.function),
+                        idx: q.idx,
+                        at: q.at,
+                        label: q.label.clone(),
+                    },
+                    crossed || k > SHORT_RUN,
+                ));
             }
         }
         // A body stops the ray (a CP on its edge was looked at first).
@@ -236,6 +251,17 @@ fn ray_hits(
         if occupied {
             break;
         }
+        // A segment across the ray at the walk point is passed, but the run is no longer free.
+        crossed |= tables.connections.iter().any(|c| {
+            dedup(&c.polyline).windows(2).any(|w| {
+                let (a, b) = (w[0], w[1]);
+                if vertical(cp.dir) {
+                    a.1 == b.1 && grid.index(a.1) == ky && a.0.min(b.0) <= x && x <= a.0.max(b.0)
+                } else {
+                    a.0 == b.0 && grid.index(a.0) == kx && a.1.min(b.1) <= y && y <= a.1.max(b.1)
+                }
+            })
+        });
     }
     hits
 }
@@ -347,6 +373,7 @@ pub fn proposals(
     let mut sorted: Vec<&GhostCp> = cps.iter().collect();
     sorted.sort_by_key(|c| c.symbol_cp);
     let mut list: Vec<Proposal> = Vec::new();
+    let mut far: Vec<Proposal> = Vec::new();
     for c in sorted {
         if c.connected {
             continue;
@@ -362,12 +389,16 @@ pub fn proposals(
         if hits.is_empty() {
             continue;
         }
-        list.push(Proposal {
-            cp: c.clone(),
-            target: hits[cycle % hits.len()].clone(),
-        });
+        let (target, is_far) = hits[cycle % hits.len()].clone();
+        let p = Proposal { cp: c.clone(), target };
+        // A far first hit is offered after the placement; one Tab chose is the drafter's.
+        if is_far && cycle == 0 {
+            far.push(p);
+        } else {
+            list.push(p);
+        }
     }
-    Proposals { list }
+    Proposals { list, far }
 }
 
 /// The ghost CPs of the representations `reps` of the page moved by the page displacements `delta(rep)`: their table
@@ -515,6 +546,18 @@ mod tests {
         );
     }
 
+    /// rc.2 persona run, entry 17: a CP facing the ghost within the short run is proposed, one further away is far.
+    #[test]
+    fn a_hit_beyond_the_short_run_is_far() {
+        let g = [ghost(0, (0, 0), Dir::Down)];
+        for (steps, near) in [(SHORT_RUN, true), (SHORT_RUN + 1, false)] {
+            let mut t = tables();
+            t.cps.push(cp(1, (0, steps * G), Dir::Up, "X1:1"));
+            let p = proposals(&g, &t, &[], AREA, 0);
+            assert_eq!((p.list.len(), p.far.len()), if near { (1, 0) } else { (0, 1) }, "{steps}");
+        }
+    }
+
     #[test]
     fn bodies_and_occupied_lines_stop_the_ray_and_crossings_are_passed() {
         let mut t = tables();
@@ -543,14 +586,16 @@ mod tests {
             1
         );
         t.reps.clear();
-        // A crossing segment is passed.
+        // A crossing segment is passed, but the hit behind it is far: offered, not proposed (rc.2); Tab proposes it.
         t.connections.push(wire(
             0x600,
             vec![(-5 * G, 5 * G), (5 * G, 5 * G)],
             true,
             Vec::new(),
         ));
-        assert_eq!(proposals(&g, &t, &[], AREA, 0).list.len(), 1);
+        let p = proposals(&g, &t, &[], AREA, 0);
+        assert_eq!((p.list.len(), p.far.len()), (0, 1));
+        assert_eq!(proposals(&g, &t, &[], AREA, 1).list.len(), 1);
         // A segment along the ray occupies the line.
         t.connections
             .push(wire(0x601, vec![(0, 3 * G), (0, 7 * G)], true, Vec::new()));

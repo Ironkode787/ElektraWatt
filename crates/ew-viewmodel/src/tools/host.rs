@@ -164,6 +164,9 @@ pub(crate) struct ToolHost {
     pub drop_release: bool,
     /// What the toast says once the page tables of the commit that set it are read, at the end of its dispatch.
     pub result_note: Option<ResultNote>,
+    /// The `connection.draw` a placement's toast offers for a far autoconnect hit (its Connect), while that toast's
+    /// placement is the next undo step.
+    pub offered_wire: Option<serde_json::Value>,
     /// The placing options of the tool options card (the sticky mode and the grid step), kept across tools.
     pub layout_options: super::LayoutOptions,
     /// Whether a move connects its autoconnect proposals, kept across tools for the session (on until
@@ -208,6 +211,8 @@ pub enum ResultNote {
         /// Whether the placement named a valve terminal whose box it lies in (`into`), so that the toast says where
         /// the device sits now.
         into: bool,
+        /// The far autoconnect hits it did not join (`Ghost::Place::far`), the first offered by the toast.
+        far: Vec<((i64, i64), String, ew_api::output::Uuid, u16)>,
     },
     /// The IP tool's `connection.draw_to_ip` from the pin under the point's CP: the point's insertion point
     /// (page nm), its committed name and the pin in words.
@@ -271,6 +276,7 @@ impl ToolHost {
             press_held: false,
             drop_release: false,
             result_note: None,
+            offered_wire: None,
             layout_options: super::LayoutOptions::default(),
             connect_on_move: true,
             tube_kind: None,

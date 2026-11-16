@@ -371,6 +371,7 @@ impl ShellModel {
                 wires,
                 moved,
                 into,
+                far,
             } => {
                 // The representation the placement added at its insertion point (the lowest ID if several), else the one
                 // it added elsewhere (a valve placed in a terminal's cell stands at the cell's point, rc.2).
@@ -440,7 +441,20 @@ impl ShellModel {
                     Some(b) => self.terminal_placed_words(text, rep.device, &b.cells),
                     None => text,
                 };
-                self.notify(text, true);
+                // A far autoconnect hit is offered, not drawn: "Connect to -102A1-A2:8?" with Connect (rc.2).
+                let offer = far.first().and_then(|(at, label, function, idx)| {
+                    let own = cps.iter().find(|c| c.at == *at)?;
+                    let wire = serde_json::json!({
+                        "a": {"cp": {"function": own.function.to_string(), "idx": own.idx}},
+                        "b": {"cp": {"function": function.to_string(), "idx": idx}},
+                        "page": now.page.to_string(),
+                    });
+                    Some((strings::format(key!("toast-connect-offer"), &[&own.label, label]), wire))
+                });
+                match offer {
+                    Some((question, wire)) => self.notify_connect_offer(format!("{text} {question}"), wire),
+                    None => self.notify(text, true),
+                }
             }
             // An interruption point dropped on a pin says where it stands, what it connects to and the way
             // to place it free (the key from the keymap).

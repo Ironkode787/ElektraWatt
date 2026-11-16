@@ -54,6 +54,8 @@ pub enum NoteAction {
     ItemNumbers,
     /// Select the devices the parts list leaves out because they have no part, for Choose part… (rc.2).
     SelectUnlisted,
+    /// Draw the wire a placement offered for a far autoconnect hit instead of drawing it (rc.2).
+    Connect,
 }
 
 impl NoteAction {
@@ -73,6 +75,7 @@ impl NoteAction {
             NoteAction::Swap => "swap",
             NoteAction::ItemNumbers => "item_numbers",
             NoteAction::SelectUnlisted => "select_unlisted",
+            NoteAction::Connect => "connect",
         }
     }
 
@@ -92,6 +95,7 @@ impl NoteAction {
             "swap" => Some(NoteAction::Swap),
             "item_numbers" => Some(NoteAction::ItemNumbers),
             "select_unlisted" => Some(NoteAction::SelectUnlisted),
+            "connect" => Some(NoteAction::Connect),
             _ => None,
         }
     }
@@ -111,7 +115,8 @@ impl NoteAction {
             NoteAction::ShowFolder => key!("toast-show-folder"),
             NoteAction::Swap => key!("action-fluid-swap"),
             NoteAction::ItemNumbers => key!("layout-show-item-numbers"),
-            NoteAction::SelectUnlisted => key!("toast-select-unlisted"),
+            NoteAction::SelectUnlisted => key!("note-action-select-unlisted"),
+            NoteAction::Connect => key!("note-action-connect"),
         }
     }
 }

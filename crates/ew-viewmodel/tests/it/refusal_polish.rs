@@ -65,6 +65,8 @@ fn a_renamed_point_says_its_base_is_taken_in_the_hud_and_the_toast() {
     // Without the typed name (it stays for the source's target) the next proposal on the same page goes on from 0V,
     // which has its source here.
     done(&mut s, "ip.name", json!({"text": ""}));
+    // A source chosen: 0V waits for a target, and a target would be offered as its partner (rc.2).
+    done(&mut s, "tool.ip_direction", json!({"direction": "source"}));
     done(&mut s, "cursor.set", json!({"x_mm": 330.0, "y_mm": 170.0}));
     let g = ghost(&s);
     assert_eq!(
@@ -81,7 +83,7 @@ fn a_renamed_point_says_its_base_is_taken_in_the_hud_and_the_toast() {
     // Then what the click placed (a free point has no result line of its own).
     let said = toast(&s);
     assert!(
-        said.starts_with("0V is taken, so this point is 0V-1. Placed 0V-1 as a source"),
+        said.starts_with("0V is taken, so this point is 0V-1. 0V-1: source here"),
         "{said}"
     );
 }

@@ -729,3 +729,48 @@ fn a_terminal_dropped_on_an_autoconnected_wire_is_split_into_it() {
         Some("Placed -X1031 terminal 71 at 103-D9, connected into the wire it was dropped on.")
     );
 }
+
+/// rc.2 persona run, entry 17: a coil dropped far under a switch (beyond the short run) is not wired to it by itself;
+/// the toast offers the wire with Connect, which draws it in a step of its own.
+#[test]
+fn a_far_pin_is_offered_not_wired() {
+    let tmp = Tmp::new("rc2-far");
+    let mut s = tmp.shell_in(Mode::Headless, true, "103");
+    done(&mut s, "view.zoom_actual", json!({}));
+    place(
+        &mut s,
+        json!({"symbol": "ew.iec.contact-no@qet10", "letter": "S"}),
+        (60, 20),
+    );
+    let before = tables(&s);
+    done(
+        &mut s,
+        "place.pick",
+        json!({"symbol": "ew.iec.coil@qet10", "letter": "K"}),
+    );
+    let p = grid_point(&s, (60, 60));
+    let sheet = s.canvas().unwrap().page().snapper.page_to_sheet(p);
+    done(&mut s, "cursor.set", at(sheet, json!({})));
+    done(&mut s, "canvas.activate", json!({}));
+    done(&mut s, "tool.select", json!({}));
+    assert_eq!(new_ends(&before, &s), Vec::<[String; 2]>::new(), "no wire drawn");
+    let toast = s.toast().cloned().expect("the placement's toast");
+    assert!(
+        toast
+            .text
+            .ends_with("-103K1:A1 faces -103S1:14, further off or across other wires, so it is not connected: Connect draws the wire."),
+        "{}",
+        toast.text
+    );
+    let rev = s.revision();
+    done(
+        &mut s,
+        "notifications.run",
+        json!({"entry": toast.serial, "action": "connect"}),
+    );
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "a step of its own");
+    assert_eq!(
+        new_ends(&before, &s),
+        [["-103K1:A1".to_owned(), "-103S1:14".to_owned()]]
+    );
+}
