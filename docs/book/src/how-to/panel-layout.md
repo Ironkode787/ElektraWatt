@@ -11,23 +11,23 @@ the parts list and the enclosure legend read it from there.
 
 ## Add the enclosure
 
-2. Choose **Draw ▸ Enclosure** (also **Project ▸ Setup ▸ Enclosure…**). An enclosure belongs to a location (`+CAB1`), the cabinet. The dialog
-   proposes the page's location, else the project's first; in a project without one it proposes **New location**,
-   the first choice of the Location list, with a code such as `CAB1` that you can change. It proposes the first
-   enclosure part of the project or of an installed library, such as "Wall enclosure 600 × 800 × 250 mm"; choose
-   others from the lists if you like, then **Create**.
+2. Choose **Enclosure** in the Draw tab's Layout group (also **Project ▸ Setup ▸ Enclosure…**). An enclosure
+   belongs to a location (`+CAB1`), the cabinet. The dialog proposes the page's location, else the project's first;
+   in a project without one it proposes **New location**, the first choice of the Location list, with a code such as
+   `CAB1` that you can change. It proposes the first enclosure part of the project or of an installed library, such as
+   "Wall enclosure 600 × 800 × 250 mm"; choose others from the lists if you like, then **Create**.
    The page now shows the enclosure and its mounting plate, centred and at the scale that fits the page. A new
    location, the enclosure and the plate on the page are three steps of Undo. Another plate goes on the page through
-   the page's **Surface** row in Properties, or **Mounting plate…** in the menu of Enclosure's arrow. Where the tags would not fit the devices on paper (at 1:5 and smaller
-   scales on an empty plate) the devices are numbered and the page gets a legend beside the plate that lists each
-   number with its tag, quantity, part number and description.
+   the page's **Surface** row in Properties, or **Mounting plate…** in the menu of Enclosure's arrow. Where the tags
+   would not fit the devices on paper (at 1:5 and smaller scales on an empty plate) the devices are numbered and the
+   page gets a legend beside the plate that lists each number with its tag, quantity, part number and description.
 
 ## Rails and ducts
 
-3. Choose **Draw ▸ Rail** and click the rail's start and end on the plate (a rail runs across or up and down); the
-   tool's card offers the rail part and the grid step. Draw as many rails as the cabinet needs.
-4. Choose **Draw ▸ Duct** and click a duct's first point and each next point; a double click or `Enter` finishes it
-   (`Esc` cancels it). The card asks for a duct's size when its part gives none.
+3. Choose **Draw ▸ Layout ▸ Rail** and click the rail's start and end on the plate (a rail runs across or up and
+   down); the tool's card offers the rail part and the grid step. Draw as many rails as the cabinet needs.
+4. Choose **Draw ▸ Layout ▸ Duct** and click a duct's first point and each next point; a double click or `Enter`
+   finishes it (`Esc` cancels it). The card asks for a duct's size when its part gives none.
 
 ## Place the devices
 
@@ -37,7 +37,7 @@ the parts list and the enclosure legend read it from there.
    **Location…**.
 6. Drag a device from the list onto a rail, or select its row, press `Enter` and click the place. On a rail it
    snaps to its neighbour, the rail's ends or the plate grid; a device mounted by screws goes on the plate.
-7. To fill a rail at once, select the rail and choose **Draw ▸ Auto-fill rail…**: it places the devices you marked in
+7. To fill a rail at once, select the rail and choose **Draw ▸ Layout ▸ Auto-fill rail…**: it places the devices you marked in
    the list, or every unplaced device that fits, in the order of the schematic or of their tags, and a toast says what
    did not fit. When there is nothing to place, the dialog says why: every device is placed already, or no device
    has the cabinet's location yet. Then **Give the … devices without a location … and place them** gives them the
