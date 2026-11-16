@@ -40,7 +40,7 @@ mod cp_instantiation;
 mod drives_link;
 pub(crate) mod ip_form;
 mod junction_cleanup;
-mod module_pin_binding;
+pub(crate) mod module_pin_binding;
 mod online_numbering;
 pub(crate) mod plc_aspects;
 mod revision_ensure_open;

@@ -13,7 +13,9 @@
 //! only when the pin resolves and no other channel binds it (a CP is in at most one channel, FR-PLC-005);
 //! otherwise the channel stays unbound and a notice says why. A channel that is bound already (an explicit
 //! binding in the same transaction) is left as it is. Channels that existed before the transaction are not bound
-//! by this rule, so an explicit unbinding stays.
+//! by this rule, so an explicit unbinding stays, except on a module that gains its main function in the transaction
+//! (a module made without functions, as `plc.add_station` makes them, drawn now): its unbound channels are bound as
+//! new ones are.
 //!
 //! **Re-pinning after a part change**. A module device of the transaction whose PLC part
 //! copy (the rule of [`module_part_copy`]) differs from the one of the base snapshot re-pins its existing channels
@@ -200,54 +202,90 @@ impl Normaliser for ModulePinBinding {
             .filter_map(|k| tx.get::<Channel>(k.1.cast()))
             .filter(|c| c.binding.is_none())
             .collect();
+        // A module that gains its main function in this transaction (made without functions, as `plc.add_station`
+        // makes its modules, and drawn now) binds its unbound channels as a module drawn at once does (the tutorials
+        // found the rack's Draw on this page left every channel unbound).
+        let gained: std::collections::BTreeSet<Id<Device>> = tx
+            .changed_of(Kind::Function)
+            .into_iter()
+            .filter(|k| tx.is_new(k))
+            .filter_map(|k| tx.get::<Function>(k.1.cast()))
+            .filter(|f| f.role == FnRole::Main)
+            .filter_map(|f| f.device)
+            .collect();
+        for module in gained {
+            for c in channels_by_number(tx, module).into_values() {
+                if c.binding.is_none() && !fresh.iter().any(|x| x.id == c.id) {
+                    fresh.push(c);
+                }
+            }
+        }
         fresh.sort_by_key(|c| (c.module, c.number, c.id));
         for c in fresh {
-            let Some(dev) = tx.get::<Device>(c.module) else {
-                continue;
-            };
-            let Some(pin_of) = module_section(tx, &dev).and_then(|s| s.pin_of) else {
-                continue; // no physical pins: an internal channel (N2 binds valve coils)
-            };
-            let Some(pin) = ew_derive::channel_pin(&pin_of, c.number) else {
-                let why = ew_derive::pin_pattern_error(&pin_of, c.number)
-                    .map_or_else(String::new, |e| format!(" ({e})"));
-                tx.notice(format!(
-                    "channel {} of {} stays unbound: its part's pin map gives no pin for it{why}",
-                    c.number,
-                    words::device(tx, c.module)
-                ));
-                continue;
-            };
-            let Some(main) = main_function(tx, c.module) else {
-                tx.notice(format!(
-                    "channel {} of {} stays unbound: the module has no main function to carry pin {pin}",
-                    c.number,
-                    words::device(tx, c.module)
-                ));
-                continue;
-            };
-            let part = module_part_copy(tx, &dev);
-            let Some(idx) = pin_idx(tx, part.as_deref(), &main, &pin) else {
-                tx.notice(format!(
-                    "channel {} of {} stays unbound: no CP of its main function is named {pin}",
-                    c.number,
-                    words::device(tx, c.module)
-                ));
-                continue;
-            };
-            // whether some channel binds the pin: an index lookup with read-your-writes
-            if !tx.channels_at_cp(main.id, idx).is_empty() {
-                tx.notice(format!(
-                    "channel {} of {} stays unbound: another channel binds its pin {pin}",
-                    c.number,
-                    words::device(tx, c.module)
-                ));
-                continue;
-            }
-            let endpoint = Endpoint::Cp(main.id, idx);
-            tx.update::<Channel>(c.id, |c| c.binding = Some(endpoint))?;
-            changed = true;
+            changed |= bind_channel(tx, &c)?;
         }
         Ok(changed)
     }
+}
+
+/// Binds the unbound channels of `module` to the pins its part's pin map gives them, as a channel made with a drawn
+/// module is bound: `plc.bind_pins`, the quick fix of a module drawn with every channel unbound. Whether one changed.
+pub(crate) fn bind_free_pins(tx: &mut TxBuilder<'_>, module: Id<Device>) -> Result<bool, CmdError> {
+    let mut changed = false;
+    for c in channels_by_number(tx, module).into_values() {
+        if c.binding.is_none() {
+            changed |= bind_channel(tx, &c)?;
+        }
+    }
+    Ok(changed)
+}
+
+/// Binds the unbound channel `c` to the pin its module's part gives it (see the module documentation); a channel that
+/// cannot be bound stays unbound with a notice that says why. Whether it was bound.
+fn bind_channel(tx: &mut TxBuilder<'_>, c: &Channel) -> Result<bool, CmdError> {
+    let Some(dev) = tx.get::<Device>(c.module) else {
+        return Ok(false);
+    };
+    let Some(pin_of) = module_section(tx, &dev).and_then(|s| s.pin_of) else {
+        return Ok(false); // no physical pins: an internal channel (N2 binds valve coils)
+    };
+    let Some(pin) = ew_derive::channel_pin(&pin_of, c.number) else {
+        let why =
+            ew_derive::pin_pattern_error(&pin_of, c.number).map_or_else(String::new, |e| format!(" ({e})"));
+        tx.notice(format!(
+            "channel {} of {} stays unbound: its part's pin map gives no pin for it{why}",
+            c.number,
+            words::device(tx, c.module)
+        ));
+        return Ok(false);
+    };
+    let Some(main) = main_function(tx, c.module) else {
+        tx.notice(format!(
+            "channel {} of {} stays unbound: the module has no main function to carry pin {pin}",
+            c.number,
+            words::device(tx, c.module)
+        ));
+        return Ok(false);
+    };
+    let part = module_part_copy(tx, &dev);
+    let Some(idx) = pin_idx(tx, part.as_deref(), &main, &pin) else {
+        tx.notice(format!(
+            "channel {} of {} stays unbound: no CP of its main function is named {pin}",
+            c.number,
+            words::device(tx, c.module)
+        ));
+        return Ok(false);
+    };
+    // whether some channel binds the pin: an index lookup with read-your-writes
+    if !tx.channels_at_cp(main.id, idx).is_empty() {
+        tx.notice(format!(
+            "channel {} of {} stays unbound: another channel binds its pin {pin}",
+            c.number,
+            words::device(tx, c.module)
+        ));
+        return Ok(false);
+    }
+    let endpoint = Endpoint::Cp(main.id, idx);
+    tx.update::<Channel>(c.id, |c| c.binding = Some(endpoint))?;
+    Ok(true)
 }

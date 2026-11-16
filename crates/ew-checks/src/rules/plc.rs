@@ -1015,6 +1015,78 @@ impl Rule for TbdAddress {
 }
 
 // ---------------------------------------------------------------------------------------------------------
+// EW-PLC-018
+
+/// EW-PLC-018 "Module drawn with its channels unbound" (the rc.2 tutorials): conflict, o r, warning, module.
+pub const PINS_UNBOUND: RuleMeta = RuleMeta {
+    id: "EW-PLC-018",
+    code: "110018",
+    pack: "EW-PLC",
+    title: "Module drawn with its channels unbound",
+    kind: RuleKind::Conflict,
+    modes: Modes::letters("or"),
+    severity: Severity::Warning,
+    release_severity: None,
+    scope: ScopeKind::Module,
+    supersedes: &[],
+    release: Release::V1_0,
+    docs: "reference/rules/ew-plc-018",
+};
+
+/// EW-PLC-018: a module that is drawn, whose part maps its channels to pins, while none of its channels is bound to a
+/// pin: what the rack dialog's Draw on this page left in a project of an earlier build (its addresses stand at no pin,
+/// and a device wired to a pin is no channel's target). One channel unbound on purpose is no finding. Target the
+/// device, discriminator `module`; the quick fix `plc.bind_pins` binds the channels.
+#[derive(Clone, Copy, Debug)]
+pub struct PinsUnbound;
+
+impl Rule for PinsUnbound {
+    fn meta(&self) -> &'static RuleMeta {
+        &PINS_UNBOUND
+    }
+
+    fn run(&self, q: &Q, scope: &Scope) -> Vec<Finding> {
+        let Scope::Module(device) = *scope else {
+            return Vec::new();
+        };
+        if module_part(q, device).is_none_or(|(_, s)| s.pin_of.is_none())
+            || q.get::<ew_derive::MainRep>(device).is_none()
+        {
+            return Vec::new();
+        }
+        let channels = q.table::<Channel>();
+        let ids = q.get::<ModuleChannelIds>(device);
+        if ids.is_empty()
+            || ids
+                .iter()
+                .any(|(_, c)| channels.get(*c).is_none_or(|c| c.binding.is_some()))
+        {
+            return Vec::new();
+        }
+        let tag = full_tag(q, device, "device");
+        vec![
+            Finding::new(
+                &PINS_UNBOUND,
+                [Target::new(Kind::Device, device)],
+                "module",
+                tag.clone(),
+                format!(
+                    "{tag} is drawn, but none of its channels is bound to its pin: its addresses stand at no pin and a \
+                     device wired to it is no channel's target; bind them"
+                ),
+            )
+            .arg("device", tag)
+            .with_fix(QuickFix {
+                label: "Bind the channels to their pins".to_owned(),
+                key: Some("fix-plc-bind-pins"),
+                command: "plc.bind_pins".to_owned(),
+                params: serde_json::json!({ "module": device.to_string() }),
+            }),
+        ]
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------
 // EW-PLC-017
 
 /// EW-PLC-017 "Not a PLC module" (F17 of the rc.1 test): conflict, o r, warning, module.

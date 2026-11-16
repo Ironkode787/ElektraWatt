@@ -6998,3 +6998,5 @@ rack-bus-drawn = Every bus interface of { $p0 } is drawn on page { $p1 } already
 props-address-profinet = Device name and IP
 props-address-profibus = Station address
 hud-bus-page-steps = 1 Place the stations (Device…) · 2 Connect their ports with Wire · 3 Give their addresses in the Bus panel
+command-plc-bind_pins = Bind channels to their pins
+refusal-plc-pins-bound = Every channel of { $p0 } that its part gives a pin is bound already

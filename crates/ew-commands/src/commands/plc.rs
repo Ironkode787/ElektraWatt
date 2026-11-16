@@ -1527,6 +1527,37 @@ impl Command for DrawStation {
     }
 }
 
+/// `plc.bind_pins` (`BindPins`, the quick fix of EW-PLC-018): binds every unbound channel of a module to the pin its
+/// part's pin map gives it, as normaliser N3 binds the channels of a module drawn at once (a module drawn from the rack
+/// by an earlier build kept its channels unbound). A channel that cannot be bound stays unbound with a notice that
+/// says why. Refused in words: a device that is no PLC module; nothing to bind. One undo step. Outcome: the module.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct BindPins {
+    /// The module.
+    #[schemars(with = "UuidS")]
+    pub module: Id<Device>,
+}
+
+impl Command for BindPins {
+    const NAME: &'static str = "plc.bind_pins";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        let dev = tx.require::<Device>(self.module)?;
+        if dev.aspects.plc_module.is_none() && dev.aspects.plc_station.is_none() {
+            return tx.reject(text!("refusal-plc-not-in-rack", crate::words::device(tx, self.module)));
+        }
+        if !crate::normalise::module_pin_binding::bind_free_pins(tx, self.module)? {
+            return tx.reject(text!("refusal-plc-pins-bound", crate::words::device(tx, self.module)));
+        }
+        Ok(Outcome::primary((Kind::Device, self.module.cast())))
+    }
+}
+
 /// `plc.remove_from_rack` (`RemoveFromRack`, F17 of the rc.1 test, the quick fix of EW-PLC-017): takes a device out of
 /// its station's rack.
 ///

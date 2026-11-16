@@ -640,6 +640,10 @@ rule-ew-plc-017 = { $device } sits in the PLC as a module, but its part { $part 
     .title = Not a PLC module
     .hint = Take the device out of the rack; add a bus device to a PLC as a station from its menu.
 
+rule-ew-plc-018 = { $device } is drawn, but none of its channels is bound to its pin: its addresses stand at no pin and a device wired to it is no channel's target; bind them
+    .title = Module drawn with its channels unbound
+    .hint = Bind the channels to their pins with the fix; a module drawn now is bound at once.
+
 rule-ew-saf-001 = { $form ->
         [missing] { WORD($module) } is an F-module without an F-destination address; enter it
         [range] { WORD($module) }: the F-destination address { $address } is outside { $min }..{ $max }, the range of its device description; enter an address inside it
@@ -1146,6 +1150,7 @@ fix-rebind-map-channel = Rebind to the map's channel
 fix-declare-pelv-bond = Declare 0 V–PE bond (PELV)
 fix-mark-cp-unused = Mark not used
 fix-plc-take-out = Take it out of the rack
+fix-plc-bind-pins = Bind the channels to their pins
 
 # The words a rule prints where a record has no name of its own (FT-912): a pattern of another language wraps an
 # argument that may hold them in WORD(…), which prints that language's message of the same ID instead.

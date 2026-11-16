@@ -560,7 +560,8 @@ impl ShellModel {
     /// (positional modules their positions with one `assembly.attach`, racked ones their slots with one
     /// `fields.set_many`, or the slot beside it when that one is free); `empty` takes it out (a module drawn nowhere is
     /// deleted, a drawn one leaves the rack with `plc.remove_from_rack` and keeps its drawing); `replace` gives it the
-    /// part named (`fields.set parts`); `draw` puts its symbol on the pointer. In the new-station state the draft
+    /// part named (`fields.set parts`); `draw` draws its box on the page shown, bound to its channels
+    /// (`plc.draw_station`). In the new-station state the draft
     /// changes.
     pub(crate) fn act_plc_rack_slot(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(slot) = p
@@ -687,7 +688,7 @@ impl ShellModel {
                         "value": [{"part": {"copy": part.copy.to_string()}, "qty": "1"}], "copies": copies}),
                 )
             }
-            _ => self.draw_device(module),
+            _ => self.draw_from_rack(station, Some(module)),
         }
     }
 
@@ -758,42 +759,30 @@ impl ShellModel {
         Some(params)
     }
 
-    /// Puts the symbol of `device`'s part on the pointer, joined to the device (`place.pick {symbol, device}`): its
-    /// part's main function's symbol, else the starter black box; the dialog closes so the page takes the click.
-    fn draw_device(&mut self, device: Uuid) -> Outcome {
-        let Some(cat) = self.catalogue() else {
-            return Outcome::refused(key!("reason-no-catalogue"));
+    /// Draws devices of `station` not drawn yet on the schematic page shown, with one `plc.draw_station`: all of them
+    /// (`only` absent: Draw on this page), or the one module `only` (its row's Draw…), each bound to its channels as a
+    /// box drawn by hand is (normaliser N3). The dialog closes when it drew; a refusal stays under the slots.
+    fn draw_from_rack(&mut self, station: Uuid, only: Option<Uuid>) -> Outcome {
+        if !matches!(
+            self.page_rows().get(self.page_index()).map(|r| r.kind.as_str()),
+            Some("multi_line" | "single_line")
+        ) {
+            return self.rack_refuse(strings::text(key!("reason-rack-draw-page")).to_owned());
+        }
+        let page = self.page_rows().get(self.page_index()).map(|r| r.id);
+        let Some(mut params) = page.and_then(|page| self.station_boxes(station, page)) else {
+            return self.rack_refuse(strings::text(key!("reason-rack-no-frame")).to_owned());
         };
-        let copy = self.project_session().and_then(|s| {
-            let q = s.query();
-            let d = q.devices().get(device.to_string().parse().ok()?)?;
-            d.parts.first().map(|u| u.part.copy.as_uuid())
-        });
-        let symbol = copy
-            .and_then(|c| cat.parts.iter().find(|r| r.copy == c))
-            .and_then(|r| {
-                let main = r
-                    .functions
-                    .iter()
-                    .find(|f| f.main)
-                    .or_else(|| r.functions.first())?;
-                main.symbol.clone()
-            })
-            .or_else(|| {
-                cat.symbols
-                    .iter()
-                    .find(|s| s.key.starts_with("ew.gen.blackbox"))
-                    .map(|s| s.key.clone())
-            });
-        let Some(symbol) = symbol else {
-            return Outcome::refused(key!("reason-unknown-symbol"));
-        };
-        self.dialog = None;
-        self.dispatch(
-            "place.pick",
-            &json!({"symbol": symbol, "device": device.to_string()}),
-        )
+        if let (Some(module), Some(boxes)) = (only, params["boxes"].as_array_mut()) {
+            boxes.retain(|b| b["device"].as_str() == Some(module.to_string().as_str()));
+        }
+        let out = self.rack_commit("plc.draw_station", params);
+        if out == Outcome::Done {
+            self.dialog = None;
+        }
+        out
     }
+
 
     /// `plc.rack_create` (F18 of the rc.1 test): the new-station dialog's Create: the station and its modules, drawn
     /// nowhere yet, with one `plc.add_station` (library parts embedded with it), one undo step; the dialog then shows
@@ -859,24 +848,8 @@ impl ShellModel {
     pub(crate) fn act_plc_rack_next(&mut self, p: &Map<String, Value>) -> Outcome {
         let station = or_return!(self.rack_station());
         match string_param(p, "step") {
-            Ok(Some("draw")) => {
-                if !matches!(
-                    self.page_rows().get(self.page_index()).map(|r| r.kind.as_str()),
-                    Some("multi_line" | "single_line")
-                ) {
-                    return self.rack_refuse(strings::text(key!("reason-rack-draw-page")).to_owned());
-                }
-                // The station and its modules not drawn yet, in a row in slot order, one undo step (rc.2).
-                let page = self.page_rows().get(self.page_index()).map(|r| r.id);
-                let Some(params) = page.and_then(|page| self.station_boxes(station, page)) else {
-                    return self.rack_refuse(strings::text(key!("reason-rack-no-frame")).to_owned());
-                };
-                let out = self.rack_commit("plc.draw_station", params);
-                if out == Outcome::Done {
-                    self.dialog = None;
-                }
-                out
-            }
+            // The station and its modules not drawn yet, in a row in slot order, one undo step (rc.2).
+            Ok(Some("draw")) => self.draw_from_rack(station, None),
             Ok(Some("overview")) => {
                 self.dialog = None;
                 self.act_fluid_generate_overview(&Map::from_iter([(

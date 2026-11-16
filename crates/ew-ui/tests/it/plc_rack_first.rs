@@ -407,6 +407,67 @@ fn draft_with(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>, modules: 
     settle(h);
 }
 
+/// The channel rows of the PLC panel: (channel, module, badges).
+fn channel_rows(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>) -> Vec<(Uuid, Uuid, Vec<String>)> {
+    use ew_ui::ew_viewmodel::navigators::NavKind;
+    dispatch(h, "rail.show", json!({"pane": "plc"}));
+    settle(h);
+    let shell = h.state_mut().shell_mut();
+    let _ = shell.shown_rows(NavKind::Plc);
+    shell
+        .nav(NavKind::Plc)
+        .map(|n| {
+            n.table()
+                .map(|t| t.nodes.clone())
+                .unwrap_or_default()
+                .iter()
+                .filter(|n| n.role == ew_ui::ew_viewmodel::ew_api::output::NavRole::Channel)
+                .map(|n| (n.records[0], n.records[1], n.badges.clone()))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// The tutorials lane: modules drawn from the rack are bound to their pins as modules drawn by hand: no channel stays
+/// unplaced; a module's own Draw… draws it, bound.
+#[test]
+fn modules_drawn_from_the_rack_are_bound_to_their_pins() {
+    let tmp = Tmp::new();
+    let mut h = new_project(&tmp);
+    draft_with(&mut h, 2);
+    support::menu_node(&h, "Create").click();
+    settle(&mut h);
+    let station = match h.state().shell().dialog() {
+        Some(Dialog::Rack { station: Some(s), .. }) => *s,
+        other => panic!("{other:?}"),
+    };
+    let modules: Vec<Uuid> = h
+        .state()
+        .shell()
+        .rack_view(station)
+        .expect("the rack")
+        .rows
+        .iter()
+        .filter_map(|r| r.module)
+        .collect();
+    // The second module's own Draw…, then Draw on this page for the rest.
+    dispatch(&mut h, "plc.rack_slot", json!({"slot": 2, "op": "draw"}));
+    settle(&mut h);
+    assert!(h.state().shell().dialog().is_none(), "{:?}", h.state().shell().dialog());
+    assert!(topology_boxes(&h, modules[1]) == 1, "the module's box");
+    dispatch(&mut h, "plc.rack_editor", json!({"station": station.to_string()}));
+    settle(&mut h);
+    h.get_by_label("Draw on this page").click();
+    settle(&mut h);
+    let rows = channel_rows(&mut h);
+    assert_eq!(rows.len(), 16, "two modules of eight channels");
+    assert!(
+        rows.iter().all(|(_, _, b)| !b.iter().any(|w| w == "unplaced")),
+        "{rows:?}"
+    );
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// After Create, Draw on this page puts the station's box and each module's beside it in slot order on the page, in
 /// one undo step; a second time there is nothing left to draw, and that is said in words.
 #[test]

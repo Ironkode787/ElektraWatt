@@ -317,3 +317,40 @@ fn a_bus_device_is_given_to_a_plc() {
     assert_eq!(view.rows.iter().filter(|r| r.module.is_some()).count(), 2);
     assert!(!s.bus_device(node), "a station is not offered again");
 }
+
+/// The tutorials lane: a module drawn with every channel unbound (what an earlier build's Draw on this page left) is
+/// found by EW-PLC-018, whose quick fix `plc.bind_pins` binds the channels again; one channel unbound on purpose is no
+/// finding.
+#[test]
+fn a_module_drawn_unbound_is_found_and_bound_by_its_fix() {
+    let mut s = new_project(176);
+    let module = place(&mut s, "EW-GEN-DI-1", 1);
+    let channel_ids = |s: &Session| -> Vec<(Uuid, bool)> {
+        s.query()
+            .table::<ew_schema::Channel>()
+            .iter()
+            .filter(|(_, c)| c.module.as_uuid() == module)
+            .map(|(id, c)| (id.as_uuid(), c.binding.is_some()))
+            .collect()
+    };
+    let ids = channel_ids(&s);
+    assert!(!ids.is_empty() && ids.iter().all(|(_, b)| *b), "drawn by hand, bound: {ids:?}");
+    let findings = |s: &Session| {
+        s.check(&PRE_DELIVERY, CheckMode::Online)
+            .findings
+            .into_iter()
+            .filter(|f| f.rule == "EW-PLC-018")
+            .collect::<Vec<_>>()
+    };
+    run(&mut s, "plc.bind_channel", json!({"channel": ids[0].0.to_string(), "endpoint": null})).expect("unbind");
+    assert!(findings(&s).is_empty(), "one channel unbound on purpose");
+    for (c, _) in &ids[1..] {
+        run(&mut s, "plc.bind_channel", json!({"channel": c.to_string(), "endpoint": null})).expect("unbind");
+    }
+    let found = findings(&s);
+    assert_eq!(found.len(), 1, "{found:?}");
+    let fix = found[0].fix.clone().expect("its fix");
+    run(&mut s, &fix.command, fix.params).expect("the fix");
+    assert!(channel_ids(&s).iter().all(|(_, b)| *b));
+    assert!(findings(&s).is_empty());
+}

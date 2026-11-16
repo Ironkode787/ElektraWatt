@@ -644,6 +644,10 @@ rule-ew-plc-017 = { WORD($device) } staat als module in de PLC, maar zijn artike
     .title = Geen PLC-module
     .hint = Haal het apparaat uit het rek; voeg een busapparaat vanuit zijn menu als station aan een PLC toe.
 
+rule-ew-plc-018 = { WORD($device) } is getekend, maar geen van zijn kanalen is aan zijn pin gekoppeld: zijn adressen staan bij geen pin en een apparaat dat erop aangesloten is, is van geen kanaal het doel; koppel ze
+    .title = Module getekend met ongekoppelde kanalen
+    .hint = Koppel de kanalen met de oplossing aan hun pinnen; een module die nu getekend wordt, is meteen gekoppeld.
+
 rule-ew-saf-001 = { $form ->
         [missing] { WORD($module) } is een F-module zonder F-doeladres; vul het in
         [range] { WORD($module) }: het F-doeladres { $address } ligt buiten { $min }..{ $max }, het bereik van zijn apparaatbeschrijving; vul een adres binnen dat bereik in
@@ -1170,6 +1174,7 @@ fix-rebind-map-channel = Koppelen aan het kanaal van de kaart
 fix-declare-pelv-bond = 0 V–PE-verbinding (PELV) vastleggen
 fix-mark-cp-unused = Markeren als niet gebruikt
 fix-plc-take-out = Uit het rek halen
+fix-plc-bind-pins = De kanalen aan hun pinnen koppelen
 
 # De woorden die een regel afdrukt waar een record geen eigen naam heeft (FT-912), per sleutel; WORD(…) in een patroon
 # drukt ze in het Nederlands af.

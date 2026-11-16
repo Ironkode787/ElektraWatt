@@ -181,6 +181,7 @@ commands! {
     // The rack and slot editor (FR-PLC-028)
     plc::AddModule,
     plc::RemoveFromRack,
+    plc::BindPins,
     plc::AddStation,
     plc::DrawStation,
     plc_exchange::RecordExchange,
