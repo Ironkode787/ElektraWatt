@@ -812,6 +812,8 @@ const PRIMARY: &[(&str, &[&str])] = &[
             "derived.tag",
             "function_text",
             "parts",
+            // The PLC a bus device belongs to, or Add to PLC (rc.2 persona run).
+            "derived.plc",
             "derived.structure.location",
             // A fluid source's medium (the persona re-test: a person starts at the source).
             "derived.medium",
@@ -1105,8 +1107,8 @@ pub fn row_label(section: &SheetSection, row: &PropRow) -> String {
     strings::field_label(&section.kind, &row.path_for_label())
 }
 
-/// Writes a fluid port that carries no medium as what to do (rc.2, F9): set one at the air supply. The JSON value is
-/// unchanged.
+/// Writes a fluid port that carries no medium as what to do (rc.2, F9): set one at the air supply; and a bus device's
+/// PLC row while it is in none. The JSON value is unchanged.
 pub fn ports_in_words(sheet: &mut PropertySheet) {
     for row in sheet.sections.iter_mut().flat_map(|s| s.rows.iter_mut()) {
         if let RowValue::One { json, text } = &mut row.value
@@ -1114,6 +1116,13 @@ pub fn ports_in_words(sheet: &mut PropertySheet) {
             && json.get("medium").is_some_and(Value::is_null)
         {
             *text = strings::text(key!("props-port-no-medium")).to_owned();
+        }
+        // A bus device in no PLC: what to do, as its choices do it (rc.2 persona run).
+        if let RowValue::One { json, text } = &mut row.value
+            && row.key == "device/derived.plc"
+            && json.is_null()
+        {
+            *text = strings::text(key!("props-plc-none")).to_owned();
         }
     }
 }

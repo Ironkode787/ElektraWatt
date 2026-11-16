@@ -3077,6 +3077,57 @@ impl Session {
                 ));
             }
         }
+        // The PLC a bus device belongs to (rc.2 persona run: "no such field in the switch's properties"): a station names
+        // its PLC, read-only; a bus device in no PLC (JSON null) is given to one by choosing it, the PLCs by ID
+        // (`plc.add_to_plc`, which the window runs).
+        if let [one] = devices.as_slice() {
+            let row = |value, options, actions: Vec<RowAction>| {
+                let partner = (!actions.is_empty()).then(|| {
+                    let route = EditRoute::Command {
+                        command: "plc.add_to_plc".to_owned(),
+                    };
+                    ("derived.plc", route, false)
+                });
+                derived(
+                    "device",
+                    "plc",
+                    partner,
+                    Category::Identity,
+                    FieldType::Enum { options },
+                    value,
+                    Provenance::Derived {
+                        via: "its PLC station".to_owned(),
+                    },
+                    actions,
+                )
+            };
+            match super::rack::plc_offer(q, *one) {
+                super::rack::PlcOffer::Station(name) => out.push(row(
+                    RowValue::One {
+                        json: Value::String(name.clone()),
+                        text: name,
+                    },
+                    Vec::new(),
+                    Vec::new(),
+                )),
+                super::rack::PlcOffer::BusDevice => {
+                    let options = q
+                        .table::<ew_schema::PlcConfigProject>()
+                        .iter()
+                        .map(|(id, _)| id.as_uuid().to_string())
+                        .collect();
+                    out.push(row(
+                        RowValue::One {
+                            json: Value::Null,
+                            text: "in no PLC".to_owned(),
+                        },
+                        options,
+                        vec![RowAction::Edit],
+                    ));
+                }
+                _ => {}
+            }
+        }
         // A fluid source's medium (the persona re-test started at the air supply and found no medium there): the medium
         // its port's net carries, with where it is defined, chosen among the project's media as a tube's is.
         if let [one] = devices.as_slice()

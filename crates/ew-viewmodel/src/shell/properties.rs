@@ -984,6 +984,18 @@ impl ShellModel {
                     )])
                     .collect()
             }
+            // A bus device's PLC: the project's PLCs by name, then New PLC… (rc.2 persona run); choosing one runs Add to
+            // PLC.
+            (crate::properties::EditRoute::Command { command }, _) if command == "plc.add_to_plc" => {
+                let f = filter.to_lowercase();
+                p.session
+                    .plc_config_projects()
+                    .into_iter()
+                    .filter(|(_, name)| name.to_lowercase().contains(&f))
+                    .map(|(id, name)| (name, Value::String(id.to_string())))
+                    .chain([(strings::text(key!("props-plc-new")).to_owned(), Value::Null)])
+                    .collect()
+            }
             // The Surface row's choice is the surface, by its ID: two surfaces may read alike.
             (crate::properties::EditRoute::Command { .. }, _) if row.key == SURFACE_ROW => {
                 let f = filter.to_lowercase();
@@ -1317,6 +1329,32 @@ impl ShellModel {
         let Some((section, row)) = self.props_find(key) else {
             return failed(key!("error-no-row"), &[key]);
         };
+        // A bus device's PLC row gives it to the PLC chosen, or to a new one (rc.2 persona run).
+        if matches!(&row.route, crate::properties::EditRoute::Command { command } if command == "plc.add_to_plc") {
+            self.props.edit = None;
+            self.props.error = None;
+            let mut params = Map::new();
+            if let Some(device) = section.targets.first() {
+                params.insert("device".to_owned(), Value::String(device.to_string()));
+            }
+            // A choice is the PLC's ID; a name typed is the PLC of that name.
+            if let Value::String(typed) = value {
+                if typed.trim().is_empty() {
+                    return Outcome::Done;
+                }
+                let plcs = self.plc_config_projects();
+                let Some((config, _)) = plcs
+                    .iter()
+                    .find(|(id, name)| id.to_string() == typed || name.eq_ignore_ascii_case(typed.trim()))
+                else {
+                    let message = strings::format(key!("props-plc-unknown"), &[typed.trim()]);
+                    self.props.set_error(key.to_owned(), message.clone());
+                    return Outcome::Failed { message };
+                };
+                params.insert("config".to_owned(), Value::String(config.to_string()));
+            }
+            return self.act_plc_add_to_plc(&params);
+        }
         // A layout row's choice or toggle is its text.
         if matches!(row.route, crate::properties::EditRoute::Command { .. }) {
             let text = match &value {

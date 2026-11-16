@@ -241,6 +241,20 @@ impl ShellModel {
         }
     }
 
+    /// The devices already in the project that the new-station dialog offers as the station (rc.2 persona run): the bus
+    /// devices in no PLC, those that lead a bus for a PLC (CPU), the others for every other kind; by tag.
+    pub fn station_candidates(&self) -> Vec<(Uuid, String)> {
+        let (Some(s), Some(d)) = (self.project_session(), self.station_draft()) else {
+            return Vec::new();
+        };
+        let cpu = d.kind == StationKind::Cpu;
+        s.free_bus_devices()
+            .into_iter()
+            .filter(|(_, _, leads)| *leads == cpu)
+            .map(|(id, tag, _)| (id, tag))
+            .collect()
+    }
+
     /// The module part the open rack and slot editor adds: the one chosen, else the first offered.
     pub fn rack_part(&self) -> Option<ew_api::output::ModulePart> {
         let chosen = match self.dialog() {
@@ -894,7 +908,8 @@ impl ShellModel {
 
     /// `plc.add_to_plc {device, config?}` (F19 of the rc.1 test): a bus device that belongs to no PLC becomes a station
     /// of the PLC `config` (absent: a new one) with one `plc.add_station`, and its rack dialog opens, so its modules are
-    /// added there. A module, a station and a device without an addressed bus port are refused in words.
+    /// added there; a network switch has no rack, and a toast says which PLC it belongs to now. A module, a station and
+    /// a device without an addressed bus port are refused in words.
     pub(crate) fn act_plc_add_to_plc(&mut self, p: &Map<String, Value>) -> Outcome {
         let device = or_return!(self.record_param(p, "device"));
         let config = match p.get("config") {
@@ -918,6 +933,20 @@ impl ShellModel {
         });
         if out != Outcome::Done {
             return out;
+        }
+        // A network switch belongs to the PLC with no rack of its own: a toast says so, with Undo (rc.2 persona run).
+        let switch = self.project_session().is_some_and(|s| s.network_switch(device));
+        if switch {
+            let plc = match self.project_session().map(|s| s.plc_offer(device)) {
+                Some(ew_api::output::PlcOffer::Station(name)) => name,
+                _ => String::new(),
+            };
+            self.notify(strings::format(key!("toast-plc-joined"), &[&tag, &plc]), true);
+            // Chosen in the new-station dialog, the dialog is done.
+            if matches!(self.dialog, Some(Dialog::Rack { .. })) {
+                self.dialog = None;
+            }
+            return Outcome::Done;
         }
         self.open_dialog(Self::rack_dialog(Some(device), None))
     }

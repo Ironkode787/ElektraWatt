@@ -312,9 +312,9 @@ impl ShellModel {
     }
 
     /// A device's PLC entries (F19 of the rc.1 test), on its symbol on any page and on its rows in the Devices and Bus
-    /// panels: a station offers Rack… and names its PLC; a bus device that belongs to no PLC offers Add to `<PLC>` for
-    /// each PLC of the project and Add to a new PLC; a device whose bus ports are all passive (a switch, a plug) says in
-    /// a disabled row why it takes no part.
+    /// panels: a station offers Rack… (a network switch has none) and names its PLC; a bus device that belongs to no
+    /// PLC offers Add to `<PLC>` for each PLC of the project and Add to a new PLC; a device whose bus ports are all
+    /// passive (a switch, a plug) says in a disabled row why it takes no part.
     fn plc_entries(&self, device: Uuid, out: &mut Vec<ActionItem>) {
         use ew_api::output::PlcOffer;
         let Some(session) = self.project_session() else {
@@ -322,8 +322,11 @@ impl ShellModel {
         };
         match session.plc_offer(device) {
             PlcOffer::Station(name) => {
-                let label = strings::text(key!("action-plc-rack-editor")).to_owned();
-                out.extend(self.aimed("plc.rack_editor", json!({ "station": device.to_string() }), label));
+                // A network switch belongs to its PLC with no rack (rc.2 persona run).
+                if !session.network_switch(device) {
+                    let label = strings::text(key!("action-plc-rack-editor")).to_owned();
+                    out.extend(self.aimed("plc.rack_editor", json!({ "station": device.to_string() }), label));
+                }
                 out.extend(self.menu_item("plc.add_to_plc").map(|mut i| {
                     i.label = strings::format(key!("canvas-plc-of"), &[&name]);
                     i.enabled = false;

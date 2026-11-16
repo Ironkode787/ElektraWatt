@@ -6981,3 +6981,13 @@ refusal-plc-station-drawn = { $p0 } and its modules are drawn already, or their 
 command-plc-draw_station = Draw PLC station
 reason-rack-no-frame = The page has no frame to draw the station in
 refusal-plc-not-of-station = { $p0 } is no module of { $p1 }
+# The PLC and bus work as a person met it (rc.2 persona run).
+field-device-derived-plc = PLC
+field-help-device-derived-plc = The PLC this bus device belongs to. A device in no PLC is given to one here: choose a PLC, or New PLC….
+props-plc-none = in no PLC: Add to PLC…
+props-plc-new = New PLC…
+props-plc-unknown = There is no PLC called { $p0 }; choose one from the list.
+nav-badge-in-no-plc = in no PLC
+toast-plc-joined = { $p0 } belongs to { $p1 } now
+rack-no-head-part = No part of this kind is in the libraries. New part… makes one.
+rack-use-device = Use { $p0 }, which is on the bus

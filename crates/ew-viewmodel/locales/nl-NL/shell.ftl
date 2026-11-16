@@ -6719,3 +6719,13 @@ refusal-plc-station-drawn = { $p0 } en zijn modules zijn al getekend, of hun art
 command-plc-draw_station = PLC-station tekenen
 reason-rack-no-frame = De pagina heeft geen kader om het station in te tekenen
 refusal-plc-not-of-station = { $p0 } is geen module van { $p1 }
+# Het PLC- en buswerk zoals iemand het tegenkwam (rc.2-personarun).
+field-device-derived-plc = PLC
+field-help-device-derived-plc = De PLC waar dit busapparaat bij hoort. Een apparaat zonder PLC voeg je hier toe aan een PLC: kies een PLC, of Nieuwe PLC….
+props-plc-none = in geen PLC: aan PLC toevoegen…
+props-plc-new = Nieuwe PLC…
+props-plc-unknown = Er is geen PLC met de naam { $p0 }; kies er een uit de lijst.
+nav-badge-in-no-plc = in geen PLC
+toast-plc-joined = { $p0 } hoort nu bij { $p1 }
+rack-no-head-part = Er staat geen artikel van deze soort in de bibliotheken. Nieuw artikel… maakt er een.
+rack-use-device = { $p0 } gebruiken, dat al op de bus staat

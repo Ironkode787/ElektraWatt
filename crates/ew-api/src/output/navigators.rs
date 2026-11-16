@@ -2205,9 +2205,15 @@ fn bus_table(q: &Q, b: &mut Builder) {
     let pnets = q.table::<PhysicalNet>();
     let name_of = |n: &dyn std::fmt::Display| n.to_string();
     // A port's row: `<device> <interface>` with the cells of `BUS_COLUMNS`.
-    let port_row = |b: &mut Builder, parent: u32, f: Id<Function>, badges: Vec<String>| -> Option<u32> {
+    let port_row = |b: &mut Builder, parent: u32, f: Id<Function>, mut badges: Vec<String>| -> Option<u32> {
         let func = functions.get(f)?;
         let port = func.bus_port.as_ref()?;
+        // The PLC its device belongs to, or that it belongs to none (rc.2 persona run); its menu gives it to one.
+        match func.device.map(|d| super::rack::plc_offer(q, d)) {
+            Some(super::rack::PlcOffer::Station(name)) => badges.push(name),
+            Some(super::rack::PlcOffer::BusDevice) => badges.push("in no PLC".to_owned()),
+            _ => {}
+        }
         let device = func.device.map(|d| short_tag(q, d)).unwrap_or_default();
         let interface = match &port.port_label {
             Some(l) => format!("{} {l}", port.interface),

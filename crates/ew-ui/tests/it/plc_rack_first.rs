@@ -7,7 +7,7 @@
 
 use crate::support;
 
-use egui_kittest::kittest::Queryable;
+use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
 use ew_ui::ew_viewmodel::ew_api::output::Uuid;
 use ew_ui::ew_viewmodel::shell::Dialog;
@@ -169,6 +169,106 @@ fn a_bus_device_is_given_to_a_plc_from_its_menu() {
         "{menu:?}"
     );
     assert!(!menu.iter().any(|l| l.starts_with("Add to")), "{menu:?}");
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// The PLC row of the selected device's Properties: its text.
+fn plc_row(h: &egui_kittest::Harness<'static, ew_ui::app::App>) -> Option<String> {
+    let sheet = h.state().shell().properties().sheet()?.clone();
+    ew_ui::ew_viewmodel::properties::find_row(&sheet, "device/derived.plc")
+        .map(|(_, r)| ew_ui::ew_viewmodel::properties::value_text(r))
+}
+
+/// The rc.2 persona run: a bus device is given to a PLC from where a person looks. A managed switch's Properties show
+/// a PLC row "in no PLC"; its Bus panel row says the same; choosing New PLC… in the row makes it belong to a new PLC
+/// without a rack (a toast with Undo says so, the Properties stay on it and name the PLC, its menu has no Rack…). A
+/// generic PROFINET device's row then offers that PLC, and choosing it opens its rack as before.
+#[test]
+fn a_bus_device_is_given_to_a_plc_from_its_properties() {
+    let tmp = Tmp::new();
+    let mut h = new_project(&tmp);
+    crate::plc_workspace::draw_black_box(&mut h, "EW-GEN-ESW-8", (10, 10));
+    dispatch(&mut h, "edit.select_all", json!({}));
+    dispatch(&mut h, "props.show", json!({"on": true}));
+    settle(&mut h);
+    assert_eq!(plc_row(&h).as_deref(), Some("in no PLC: Add to PLC…"));
+    dispatch(&mut h, "rail.show", json!({"pane": "bus"}));
+    settle(&mut h);
+    let rows = h
+        .state_mut()
+        .shell_mut()
+        .shown_rows(ew_ui::ew_viewmodel::navigators::NavKind::Bus);
+    assert!(
+        rows.iter().any(|r| r.badges.iter().any(|b| b == "in no PLC")),
+        "{:?}",
+        rows.iter().map(|r| &r.text).collect::<Vec<_>>()
+    );
+    dispatch(&mut h, "props.row", json!({"to": "device/derived.plc"}));
+    dispatch(&mut h, "props.edit", json!({}));
+    settle(&mut h);
+    h.get_by_label("New PLC…").click();
+    settle(&mut h);
+    assert!(h.state().shell().dialog().is_none(), "a switch has no rack");
+    let toast = h.state().shell().toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert!(toast.ends_with("belongs to PLC1 now"), "{toast}");
+    assert_eq!(plc_row(&h).as_deref(), Some("PLC1"), "the Properties stay on the switch");
+    let menu: Vec<String> = canvas_menu(h.state().shell(), MenuSpot::Object, None)
+        .into_iter()
+        .map(|i| i.label)
+        .collect();
+    assert!(!menu.iter().any(|l| l == "Rack…"), "{menu:?}");
+
+    let reps = |h: &egui_kittest::Harness<'static, ew_ui::app::App>| {
+        h.state()
+            .shell()
+            .canvas()
+            .map(|c| c.page().tables.reps.iter().map(|r| (r.id, r.device)).collect::<Vec<_>>())
+            .unwrap_or_default()
+    };
+    let before = reps(&h);
+    crate::plc_workspace::draw_black_box(&mut h, "EW-GEN-PND-1", (40, 10));
+    let (rep, device) = reps(&h)
+        .into_iter()
+        .find(|r| !before.contains(r))
+        .expect("the new box");
+    dispatch(&mut h, "select.set", json!({"ids": [rep.to_string()]}));
+    dispatch(&mut h, "props.row", json!({"to": "device/derived.plc"}));
+    dispatch(&mut h, "props.edit", json!({}));
+    settle(&mut h);
+    h.get_all_by_role(egui::Role::ListBoxOption)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("PLC1"))
+        .expect("PLC1 among the choices")
+        .click();
+    settle(&mut h);
+    assert!(
+        matches!(h.state().shell().dialog(), Some(Dialog::Rack { station: Some(s), .. }) if Some(*s) == device),
+        "{:?}",
+        h.state().shell().dialog()
+    );
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// The rc.2 persona run: in the new-station dialog a kind no library part is for says why and what to do, and a bus
+/// device in no PLC is offered as the station; chosen, it is a station of the dialog's PLC and its rack is shown.
+#[test]
+fn the_new_station_dialog_offers_a_device_on_the_bus() {
+    let tmp = Tmp::new();
+    let mut h = new_project(&tmp);
+    crate::plc_workspace::draw_black_box(&mut h, "EW-GEN-PND-1", (10, 10));
+    dispatch(&mut h, "plc.new_station", json!({}));
+    dispatch(&mut h, "plc.rack_set", json!({"kind": "compact"}));
+    settle(&mut h);
+    if h.state().shell().station_parts().is_empty() {
+        h.get_by_label("No part of this kind is in the libraries. New part… makes one.");
+    }
+    let (device, tag) = h.state().shell().station_candidates()[0].clone();
+    h.get_by_label(&format!("Use {tag}, which is on the bus")).click();
+    settle(&mut h);
+    assert!(
+        matches!(h.state().shell().dialog(), Some(Dialog::Rack { station: Some(s), draft: None, .. }) if *s == device),
+        "{:?}",
+        h.state().shell().dialog()
+    );
     h.state_mut().shell_mut().shutdown();
 }
 

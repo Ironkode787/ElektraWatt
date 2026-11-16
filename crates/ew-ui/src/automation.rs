@@ -307,6 +307,26 @@ fn new_station_head(
             events.push(Event::Action("part.new", json!({ "plc": draft.kind.word() })));
         }
     });
+    // A kind no part is offered for says why and what to do (rc.2 persona run: the list was empty with no word).
+    if heads.is_empty() {
+        caption(ui, key!("rack-no-head-part"));
+    }
+    // A device in the project that can be this station is offered as it: Use -3K1, which is on the bus.
+    let candidates = shell.station_candidates();
+    if !candidates.is_empty() {
+        ui.horizontal_wrapped(|ui| {
+            for (device, tag) in &candidates {
+                let label = strings::format(key!("rack-use-device"), &[tag]);
+                if components::button(ui, Kind::Secondary, &label, true, 0.0).clicked() {
+                    let mut params = json!({ "device": device.to_string() });
+                    if let Some(c) = draft.config {
+                        params["config"] = json!(c.to_string());
+                    }
+                    events.push(Event::Action("plc.add_to_plc", params));
+                }
+            }
+        });
+    }
     caption(ui, key!("rack-plc"));
     let configs = shell.plc_config_projects();
     ui.horizontal_wrapped(|ui| {

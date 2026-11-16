@@ -459,55 +459,106 @@ impl Session {
     /// a PLC module (which goes into a rack instead) can be given to a PLC; one whose bus ports are all passive (a switch,
     /// a plug) takes no part in a PLC's configuration; anything else is not offered.
     pub fn plc_offer(&self, device: Uuid) -> PlcOffer {
-        use ew_derive::ew_schema::{PlcConfigProject, PortRole};
-        let q = self.query();
-        let Some(d) = q.devices().get(Id::from_uuid(device)) else {
-            return PlcOffer::None;
-        };
-        if let Some(st) = &d.aspects.plc_station {
-            let name = q
-                .table::<PlcConfigProject>()
-                .get(st.config_project)
-                .map(|c| c.name.to_string())
-                .unwrap_or_default();
-            return PlcOffer::Station(name);
-        }
-        if d.aspects.plc_module.is_some() {
-            return PlcOffer::None;
-        }
-        let copies: Vec<_> = d
-            .parts
-            .iter()
-            .filter_map(|u| q.parts().get(u.part.copy))
-            .collect();
-        if copies.iter().any(|c| {
-            c.item
-                .sections
-                .plc
-                .as_ref()
-                .is_some_and(|p| p.role == PlcRole::Module)
-        }) {
-            return PlcOffer::None;
-        }
-        let roles: Vec<&PortRole> = copies
-            .iter()
-            .filter_map(|c| c.item.sections.bus.as_ref())
-            .flat_map(|b| b.ports.iter().map(|p| &p.role))
-            .collect();
-        if roles.iter().any(|r| {
-            matches!(
-                r,
-                PortRole::Master | PortRole::Controller | PortRole::Slave | PortRole::Device
-            )
-        }) {
-            PlcOffer::BusDevice
-        } else if roles.is_empty() {
-            PlcOffer::None
-        } else {
-            PlcOffer::Passive
-        }
+        plc_offer(&self.query(), Id::from_uuid(device))
     }
 
+    /// Whether `device` is a network switch (rc.2 persona run): it belongs to a PLC without a rack ([`network_switch`]).
+    pub fn network_switch(&self, device: Uuid) -> bool {
+        network_switch(&self.query(), Id::from_uuid(device))
+    }
+
+    /// The bus devices of the project that belong to no PLC ([`PlcOffer::BusDevice`]), by tag, each with whether one
+    /// of its bus ports leads a bus (a master or controller): the new-station dialog offers them as the station.
+    pub fn free_bus_devices(&self) -> Vec<(Uuid, String, bool)> {
+        use ew_derive::ew_schema::PortRole;
+        let q = self.query();
+        let mut out: Vec<(Uuid, String, bool)> = q
+            .devices()
+            .iter()
+            .filter(|(id, _)| plc_offer(&q, *id) == PlcOffer::BusDevice)
+            .map(|(id, d)| {
+                let leads = d
+                    .parts
+                    .iter()
+                    .filter_map(|u| q.parts().get(u.part.copy))
+                    .filter_map(|c| c.item.sections.bus.as_ref())
+                    .flat_map(|b| b.ports.iter())
+                    .any(|p| matches!(p.role, PortRole::Master | PortRole::Controller));
+                (id.as_uuid(), tag(&q, id), leads)
+            })
+            .collect();
+        out.sort_by(|a, b| ew_mltext::natural_cmp(&a.1, &b.1).then_with(|| a.1.cmp(&b.1)));
+        out
+    }
+}
+
+/// Whether `device` is a network switch: no part of it describes it for a PLC, and one of its parts' bus interfaces
+/// has more than two sockets (EW-GEN-ESW-8: eight). A device with ports (a drive, a generic PROFINET device) has one or
+/// two; a switch's sockets lead the bus on to further devices, so it belongs to a PLC with no rack of its own.
+pub(crate) fn network_switch(q: &Q, device: Id<Device>) -> bool {
+    let Some(d) = q.devices().get(device) else {
+        return false;
+    };
+    let copies: Vec<_> = d.parts.iter().filter_map(|u| q.parts().get(u.part.copy)).collect();
+    copies.iter().all(|c| c.item.sections.plc.is_none())
+        && copies
+            .iter()
+            .filter_map(|c| c.item.sections.bus.as_ref())
+            .flat_map(|b| b.ports.iter())
+            .any(|p| p.ports.is_some_and(|n| n > 2))
+}
+
+/// What a device's menu offers for the PLC ([`Session::plc_offer`]).
+pub(crate) fn plc_offer(q: &Q, device: Id<Device>) -> PlcOffer {
+    use ew_derive::ew_schema::{PlcConfigProject, PortRole};
+    let Some(d) = q.devices().get(device) else {
+        return PlcOffer::None;
+    };
+    if let Some(st) = &d.aspects.plc_station {
+        let name = q
+            .table::<PlcConfigProject>()
+            .get(st.config_project)
+            .map(|c| c.name.to_string())
+            .unwrap_or_default();
+        return PlcOffer::Station(name);
+    }
+    if d.aspects.plc_module.is_some() {
+        return PlcOffer::None;
+    }
+    let copies: Vec<_> = d
+        .parts
+        .iter()
+        .filter_map(|u| q.parts().get(u.part.copy))
+        .collect();
+    if copies.iter().any(|c| {
+        c.item
+            .sections
+            .plc
+            .as_ref()
+            .is_some_and(|p| p.role == PlcRole::Module)
+    }) {
+        return PlcOffer::None;
+    }
+    let roles: Vec<&PortRole> = copies
+        .iter()
+        .filter_map(|c| c.item.sections.bus.as_ref())
+        .flat_map(|b| b.ports.iter().map(|p| &p.role))
+        .collect();
+    if roles.iter().any(|r| {
+        matches!(
+            r,
+            PortRole::Master | PortRole::Controller | PortRole::Slave | PortRole::Device
+        )
+    }) {
+        PlcOffer::BusDevice
+    } else if roles.is_empty() {
+        PlcOffer::None
+    } else {
+        PlcOffer::Passive
+    }
+}
+
+impl Session {
     /// The part bus ports of a device that no function of the device carries yet and that a starter symbol can place
     /// (FT-831: the generic CPU's DP port, typed only once a port symbol is placed onto the CPU), in the part's order:
     /// each interface as `DP` or `X1 P1R`, with the symbol's key ([`super::bus_port_symbol_key`]).
