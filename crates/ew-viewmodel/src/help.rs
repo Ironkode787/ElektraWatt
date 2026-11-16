@@ -154,7 +154,7 @@ pub static ANCHORS: &[Anchor] = &[
     on(DIALOGS, "dialog-open-ewz", "open-ewz"),
     on(DIALOGS, "dialog-import-drawing", "import-a-drawing"),
     on(DIALOGS, "dialog-import-eplan", "import-eplan-data"),
-    on(DIALOGS, "dialog-rack", "rack-and-slots"),
+    on(PLC_GUIDE, "dialog-rack", "read-and-change-a-rack"),
     on(DIALOGS, "dialog-plc-import", "plc-import"),
     on(DIALOGS, "dialog-git-setup", "set-up-merge-driver"),
     on(PANELS, "pane-page-view", "page-view"),

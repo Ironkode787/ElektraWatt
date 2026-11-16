@@ -111,37 +111,6 @@ drawings. A file that no mapping fits is mapped column by column (Map the column
 Sets up the repository's git configuration so that git merges the project's files record by record. It asks first
 and writes nothing on Cancel. Open it with Project ▸ Set up merge driver.
 
-## Rack and slots
-
-Opened by **Rack…** on a station's row in the PLC navigator or on its symbol on any page (a right click), by placing a
-station part directly, and by **New station…** (Project menu, the PLC navigator) for a station not made yet: the
-station's slots, one row each, with the module in it, its part, what it gives (`8 DI`), its address range and the
-slots its part allows. The number of slots comes from the station's part (its most modules); a part that says nothing
-gets an open rack that grows by one free row. A valve terminal shows its stored order codes at the top and each
-module's valve positions under its row.
-
-**New station…** first asks what the station is (PLC (CPU), Remote I/O, Valve terminal, Compact device; each says
-itself in full on hover), then its head part from the parts that can be that (**New part…** opens the part editor set
-up for that kind of station and comes back with the new part chosen), and the PLC it belongs to: one of the project's
-or a new one.
-**Create** makes the station and its modules, drawn on no page yet, in one undo step.
-
-**Add module…** on a free slot opens a picker of the module parts that may sit in that slot (the project's first, then
-those of the installed libraries, which are copied into the project with the module), with a field for how many fill
-the slots from there, and **New part…** for a module part of your own, chosen when the editor saves it. On a module's row the arrows move it up and down, the bin empties the slot (a module drawn on no
-page is deleted, a drawn one leaves the rack and waits under Modules without a station), **Replace…** gives it another
-part and **Draw…** puts its symbol on the pointer when no page draws it. Type a slot into a module's Slot field and
-press `Enter` to move it, as a number or as rack and slot (`1.3`), or drag the module by its tag onto another slot's
-row. A move that changes addresses says so under the slots. A station whose part does not describe its modules (a bus
-device given to a PLC) says so above them.
-
-A slot the part does not allow, or more modules than the station takes, is refused, and the reason stays under the
-slots; the station's slot findings (EW-PLC-011) are listed there too, each with its icon and the word Error. Under a
-made station, **Draw on page …** (it names the schematic page in front, with the other schematic pages and a new
-page beside it; the station's box and each module's not drawn yet, beside it in slot order, in rows under what
-that page holds, one undo step), **Make the overview page** (a valve terminal) and
-**Put it on a bus page** do what comes next. **Close** or `Esc` closes the dialog.
-
 ## PLC import
 
 **PLC ▸ Import from PLC software…** asks for an AutomationML file or a TIA Portal "PLC Tags" workbook and shows what it

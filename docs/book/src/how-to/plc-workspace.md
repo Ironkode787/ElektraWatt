@@ -34,10 +34,11 @@ The PLC workspace shows the PLC side beside the page:
 
 | In TIA Portal you … | Here you … |
 |---|---|
-| add a CPU in the device view | choose **New station** on the PLC tab and pick its head part |
-| plug modules into the rack from the catalogue | choose **Add module…** on a free slot of the station's rack |
-| move a module to another slot | use the arrows of its row in **Rack…**, or type the slot |
-| read the I/O addresses in the device overview | read the **Addresses** column of **Rack…**, or the PLC grid |
+| add a CPU in the device view | choose **New station** on the PLC tab and double-click its head part in the catalogue |
+| open the device view of a station | choose **Rack** on the PLC tab, or double-click the station in the PLC panel: its rack opens in a tab |
+| plug modules into the rack from the catalogue | double-click a module in the rack's **Catalogue**, or drag it onto a slot |
+| move a module to another slot | drag its card to the slot, or choose **Move left** or **Move right** on the PLC tab |
+| read the I/O addresses in the device overview | read the **Addresses** column of the station's rack, or the PLC grid |
 | change a start address | type the address in the PLC grid, or choose **Re-address…** |
 | type the PLC tags | type each channel's **Symbol** in the PLC grid |
 | add an IO device in the network view | place its part on a bus-topology page |
@@ -54,32 +55,63 @@ The exchange of the hardware and the tags with the PLC software is at the end of
 
 ## Make a station
 
-1. Choose **New station** on the PLC tab (**PLC ▸ New station…**), or **+** in the PLC panel.
+1. Choose **New station** on the PLC tab (**PLC ▸ New station…**), or **+** in the PLC panel. A tab **New station**
+   opens beside the page tabs; the rest of the window keeps working.
 2. Choose what it is: **PLC (CPU)**, **Remote I/O**, **Valve terminal** or **Compact device** (a hover says each in
-   full).
-3. Choose its **Head part**: the CPU, the interface module of a remote station, the valve terminal. **New part…**
-   beside it opens the part editor set for that kind, and the part you save is chosen when you come back.
-4. Choose the PLC it belongs to (a remote station: the PLC it serves), or **New PLC**.
-5. Choose **Add module…** on the free slot and pick a module; **How many** fills that many slots from there.
-6. Choose **Create**: the station and its modules are made in one step, drawn on no page yet.
-7. Choose **Draw on page …** to draw the station and its modules side by side in slot order on the schematic page
-   shown (the arrow beside it lists the other schematic pages and **New page…**), or **Put it on a bus page** to put
+   full), and the PLC it belongs to (a remote station: the PLC it serves), or **New PLC**.
+3. Double-click its head in the **Catalogue** at the right: the CPU, the interface module of a remote station, the
+   valve terminal. **New part…** under the catalogue opens the part editor set for that kind, and the part you save
+   is the head when you come back.
+4. Double-click each module in the catalogue: it goes into the next free slot. A click on a card selects it:
+   **Remove**, **Move left** and **Move right** on the PLC tab change the rack before it is made.
+5. Choose **Create**: the station and its modules are made in one step, drawn on no page yet. Nothing is written
+   before; closing the tab before Create asks first.
+6. **To do** under the table says what is left. **Draw on a page…** draws the station and its modules side by side
+   in slot order on the schematic page you pick (or **New page…**) and shows that page; **Put it on a bus page** puts
    every bus interface of the station on the bus-topology page (made when there is none; with several you choose one).
 
-A station part placed straight from the device browser opens the same rack at once.
+A station part placed straight from the device browser opens its rack in a tab at once; `Esc` goes back to the page,
+and the tab stays beside it.
 
-## Change a rack
+## Read and change a rack
 
-1. Right-click the station (on the page, in the PLC panel) and choose **Rack…**, or choose **Rack** on the PLC tab.
-2. **Add module…** on a free slot adds modules; the arrows move a module up or down; the bin empties its slot;
-   **Replace…** gives it another part; typing a number into its slot field moves it there.
-3. A slot the module's part does not allow is refused, and the reason stays under the slots. When modules move, the
-   line under the slots says their addresses moved with them.
+Right-click the station (on the page, in the PLC panel) and choose **Rack…**, choose **Rack** on the PLC tab, or
+double-click the station in the PLC panel. Its rack opens in a tab beside the page tabs:
+
+![A station's rack in its tab: the cards, the table, the channels of the selected module, To do, and the catalogue](images/plc-rack.png)
+
+- **The rack, drawn**: one card per place, the head first, then each slot. A card says what the module gives (8 DI),
+  its tag, its part number and the page it is drawn on; a free slot is an outline with a plus.
+- **The table** under it lists the same places: slot, module, part (number and description), what it gives, its
+  addresses and the page it is drawn on. A module without a part says **No part**, with **Choose part…** beside it.
+- **Channels** lists the channels of the selected module: address, symbol name and what is wired to it, which is a
+  link to its place on its page.
+- **To do** says what is wrong or left, each in a sentence with its fix beside it: a module in a slot its part does
+  not allow, a module drawn on no page, a station on no bus page.
+- **The catalogue** at the right lists the parts that fit the station, by kind, under a filter. Parts that do not fit
+  the selected slot are greyed and say why.
+
+To change it:
+
+1. Click a card or a row: the module is selected as a click on a page selects a device. Properties shows it, and the
+   **PLC** tab's buttons act on it: **Replace** (the parts that fit its slot), **Remove**, **Draw on page**, **Go to
+   page**, **Move left** and **Move right**. A right click gives the same commands. `Delete` empties the slot, and
+   the arrow keys go from slot to slot.
+2. Double-click a part in the catalogue to put it into the selected free slot, else into the first free one; or drag
+   it onto a slot. Dropped on a module, it replaces that module's part.
+3. Drag a card onto a free slot to move it there, or onto another module to make the two change places. The
+   addresses follow, and a line under the rack says so.
+4. A slot the module's part does not allow is refused: the slot is outlined in red and the reason stands under the
+   rack.
+5. A valve terminal's positions are places like slots: select one and double-click a valve in the catalogue, or
+   **Remove** to empty it.
+
+Every step is one Undo.
 
 ## Put a module into a station
 
 1. A module drawn on a page by itself (from the device browser or the black box) joins the project's only station,
-   and its toast names the slot it got, with **Rack…**.
+   and its toast names the slot it got, with **Rack…**, which opens the station's rack.
 2. With two stations it joins the one drawn beside it on its page; on a page without one, a window asks which station
    takes it. Without any station, its toast offers **New station…**.
 3. A module that waits is listed under **Modules without a station** in the PLC panel: drag its row onto the station's
@@ -120,7 +152,8 @@ Only a module goes into a rack: a device whose part has no PLC data is refused i
 ## Give a bus device to a PLC
 
 1. On a bus-topology page, a schematic page or in the Bus panel, right-click a bus device that belongs to no PLC.
-2. Choose **Add to** and the PLC, or **Add to a new PLC**: it becomes a station of that PLC and its rack opens.
+2. Choose **Add to** and the PLC, or **Add to a new PLC**: it becomes a station of that PLC and its rack opens in
+   a tab.
 
 A switch or a plug takes no part in a PLC; its menu says why. A station's menu says **PLC:** and its PLC's name.
 
@@ -132,8 +165,9 @@ on the schematic pages.
 
 1. Choose **New bus page** on the PLC tab: the new-page form opens with the type **Bus topology**.
 2. Place a station or another bus device from the device browser (**Draw ▸ Place ▸ Device from part…**) with two clicks
-   for its box: it stands there as a box per interface, and a station's rack opens.
-3. A station or bus device the project has already (drawn on a schematic page, or made in the rack dialog) goes onto
+   for its box: it stands there as a box per interface, and a station's rack opens in a tab (`Esc` goes back to the
+   page).
+3. A station or bus device the project has already (drawn on a schematic page, or made with **New station**) goes onto
    the bus page with **Put a station on this page…**: right-click an empty spot of the page, or open the list of
    **Place port** on the PLC tab, and choose it. It stands there as a box per interface. Dragging its row from the
    PLC panel, the Bus panel or the Devices panel onto the page does the same at the drop point. Placing its part from the
@@ -174,4 +208,4 @@ editor: see [Make your own PLC or bus part](own-parts.md).
   choose **Mode and safety…** for a multi-function port's mode and the channel's safety data.
 
 The panels are described in the [panel reference](../reference/window/panels.md) (PLC, PLC grid, Bus), and the dialogs
-in the [dialog reference](../reference/window/dialogs.md) (Rack and slots, PLC import).
+in the [dialog reference](../reference/window/dialogs.md) (PLC import).

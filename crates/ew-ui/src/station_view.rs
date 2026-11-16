@@ -203,10 +203,18 @@ fn small(t: &Tokens, text: impl Into<String>, colour: theme::Rgba) -> RichText {
     RichText::new(text).font(theme::font(&t.type_small)).color(colour.color32())
 }
 
-/// A table cell's text: `label` at the cell's left, centred in its height.
-fn put_left(ui: &mut Ui, cell: Rect, label: egui::Label) {
+/// The content of a table cell, from the cell's left, centred in its height. The cell lies inside its row, which is
+/// allocated already: its content moves no cursor of the table.
+fn in_cell<R>(ui: &mut Ui, cell: Rect, add: impl FnOnce(&mut Ui) -> R) -> R {
     let layout = egui::Layout::left_to_right(egui::Align::Center);
-    ui.scope_builder(UiBuilder::new().max_rect(cell).layout(layout), |ui| {
+    let mut child = ui.new_child(UiBuilder::new().max_rect(cell).layout(layout));
+    child.set_clip_rect(cell.intersect(ui.clip_rect()));
+    add(&mut child)
+}
+
+/// A table cell's text.
+fn put_left(ui: &mut Ui, cell: Rect, label: egui::Label) {
+    in_cell(ui, cell, |ui| {
         ui.add(label);
     });
 }
@@ -334,7 +342,11 @@ fn header(
             facts.push(strings::format(key!("rack-order-code"), &[label, code]));
         }
         if !facts.is_empty() {
-            ui.add(egui::Label::new(small(t, facts.join(" "), t.text_tertiary)).selectable(false));
+            ui.horizontal_wrapped(|ui| {
+                for fact in facts {
+                    ui.add(egui::Label::new(small(t, fact, t.text_tertiary)).selectable(false));
+                }
+            });
         }
         return;
     };
@@ -587,8 +599,12 @@ fn card(
             painter.galley(at(row), line(ui, text, font, colour, text_width), colour.color32());
         }
     };
-    // The corner says which place it is: the slot's or the position's number, Head for the station itself.
-    let corner = if p.number.is_empty() { &p.slot } else { &p.number };
+    // The corner says which place it is: the slot's number, Position n of a valve terminal, Head for the station
+    // itself.
+    let corner = match p.cursor {
+        StationCursor::Slot { .. } => &p.number,
+        _ => &p.slot,
+    };
     put(0.0, corner, &t.type_caption, t.text_tertiary);
     if !p.taken {
         let plus = Rect::from_center_size(rect.center(), vec2(t.icon_md, t.icon_md));
@@ -713,7 +729,12 @@ fn table(
         text(ui, slot, &p.slot, t.text_secondary);
         interact(ui, t, shell, tab, p, &response, events);
         if !p.taken {
-            text(ui, module, strings::text(key!("rack-free")), t.text_tertiary);
+            // A slot is free, a valve position empty.
+            let word = match p.cursor {
+                StationCursor::Position { .. } => key!("rack-empty"),
+                _ => key!("rack-free"),
+            };
+            text(ui, module, strings::text(word), t.text_tertiary);
             continue;
         }
         if p.tag.is_empty() && tab.draft.is_some() {
@@ -724,8 +745,8 @@ fn table(
         }
         if p.part.is_empty() {
             // The fault a person met as an empty cell: said in words, with the way out beside it.
-            ui.scope_builder(UiBuilder::new().max_rect(part), |ui| {
-                ui.horizontal_centered(|ui| {
+            in_cell(ui, part, |ui| {
+                ui.scope(|ui| {
                     ui.add(
                         egui::Label::new(small(t, strings::text(key!("rack-no-part")), t.warning))
                             .selectable(false),
@@ -739,8 +760,8 @@ fn table(
         text(ui, gives, &p.gives, t.text_secondary);
         text(ui, addresses, &p.addresses, t.text_secondary);
         let Some(device) = p.device else { continue };
-        ui.scope_builder(UiBuilder::new().max_rect(drawn), |ui| {
-            ui.horizontal_centered(|ui| match &p.page {
+        in_cell(ui, drawn, |ui| {
+            ui.scope(|ui| match &p.page {
                 Some(folio) => {
                     let label = strings::format(key!("rack-page"), &[folio]);
                     let link = ui.add(egui::Link::new(small(t, label, t.accent)));
@@ -902,8 +923,8 @@ fn channels(
         text(address, c.address.clone(), t.text_primary);
         text(symbol, c.symbol.clone(), t.text_primary);
         if let Some(target) = c.target {
-            ui.scope_builder(UiBuilder::new().max_rect(wired), |ui| {
-                ui.horizontal_centered(|ui| {
+            in_cell(ui, wired, |ui| {
+                ui.scope(|ui| {
                     let link = ui.add(egui::Link::new(small(t, c.wired.clone(), t.accent)));
                     let name = strings::format(key!("rack-channel-goto"), &[&c.wired]);
                     link.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Link, true, &name));
@@ -1107,9 +1128,17 @@ fn catalogue(
         .as_ref()
         .filter(|d| d.head.is_none())
         .map_or("module", |d| d.kind.word());
-    if components::button(ui, Kind::Secondary, strings::text(key!("rack-new-part")), true, 0.0).clicked() {
-        events.push(Event::Action("part.new", json!({ "plc": kind })));
-    }
+    ui.horizontal(|ui| {
+        if components::button(ui, Kind::Secondary, strings::text(key!("rack-new-part")), true, 0.0).clicked() {
+            events.push(Event::Action("part.new", json!({ "plc": kind })));
+        }
+        // A valve position that holds no valve is closed with a blanking plate: no part of the catalogue.
+        if matches!(tab.cursor, Some(StationCursor::Position { .. }))
+            && components::button(ui, Kind::Secondary, strings::text(key!("rack-put-blank")), true, 0.0).clicked()
+        {
+            events.push(Event::Action("plc.rack_slot", json!({ "op": "blank" })));
+        }
+    });
 }
 
 /// One part of the catalogue: its description with what it gives at the right, its part number under it. A double

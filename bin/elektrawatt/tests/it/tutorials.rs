@@ -743,7 +743,7 @@ fn line_of(describe: &str, start: &str) -> String {
         .unwrap_or_default()
 }
 
-/// The PLC tutorial (rc.2, F5): a position switch and a lamp, a station made in the New station dialog with an input
+/// The PLC tutorial (rc.2, F5): a position switch and a lamp, a station made in a New station tab with an input
 /// and an output module and drawn on the page, the two wired to the first channels, their symbols typed in the PLC
 /// grid, the PLC overview added, the export to PLC software and the save: every step done, the end state the page
 /// names, and the page passes the lint.
@@ -754,10 +754,10 @@ fn tutorial_a_plc_with_its_modules_runs_as_its_page_says() {
     let [rack, overview, exported, end] = <[String; 4]>::try_from(describes(&transcript)).unwrap();
     // Steps 5 to 7: the head part and the two modules in their slots, slot 3 free.
     assert_eq!(
-        lines_of(&rack, &["dialog \"New station\"", "head \"", "slot "]),
+        lines_of(&rack, &["tab station", "station \"", "slot "]),
         [
-            "dialog \"New station\"",
-            "head \"EW-GEN-CPU-1 · PLC CPU without on-board I/O\"",
+            "tab station \"New station\" selected history back 0 forward 0",
+            "station \"\" \"EW-GEN-CPU-1 · PLC CPU without on-board I/O\"",
             "slot 1 \"\" \"EW-GEN-DI-1 · PLC digital input card, 8 channels\" gives \"8 DI\"",
             "slot 2 \"\" \"EW-GEN-DO-1 · PLC digital output card, 8 channels\" gives \"8 DO\"",
             "slot 3 free",
@@ -815,12 +815,13 @@ fn tutorial_a_bus_network_runs_as_its_page_says() {
     let tmp = Tmp::new();
     let transcript = all_done(&run_tutorial(&tmp, "bus-network"));
     let [cpu, stations, cable, end] = <[String; 4]>::try_from(describes(&transcript)).unwrap();
-    // Step 3: the CPU as a box per interface, and its rack.
+    // Step 3: the CPU as a box per interface, and its rack in a tab beside the page.
     assert_eq!(
-        lines_of(&cpu, &["toast", "dialog "]),
+        lines_of(&cpu, &["toast", "tab station", "station \""]),
         [
             "toast \"Placed as 2 boxes, one for each bus interface.\" undo",
-            "dialog \"Rack and slots of -2A1\"",
+            "tab station \"-2A1 · rack\" selected history back 0 forward 0",
+            "station \"-2A1\" \"EW-GEN-CPU-2 · PLC CPU with PROFINET and PROFIBUS DP interfaces, without on-board I/O\"",
         ]
     );
     // Step 8: both stations belong to the one PLC; the remote one carries its module.

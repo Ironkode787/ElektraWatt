@@ -15,7 +15,7 @@
 {"action":"canvas.activate"}
 {"action":"cursor.set","params":{"x_mm":117,"y_mm":195}}
 {"action":"canvas.activate"}
-{"action":"plc.rack_add","params":{"slot":1,"part":"EW-GEN-DI-1"}}
+{"action":"plc.rack_add","params":{"part":"EW-GEN-DI-1"}}
 {"action":"ui.dismiss"}
 {"action":"tool.place_part"}
 {"action":"place.pick","params":{"part":"EW-GEN-ESW-5"}}

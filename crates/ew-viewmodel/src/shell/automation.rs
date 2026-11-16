@@ -551,10 +551,19 @@ impl ShellModel {
                 }),
             ));
         }
-        let undrawn: Vec<&str> = std::iter::once(&view.head)
+        // A device drawn nowhere has a tag of question marks: its part number names it until it is drawn.
+        let name = |r: &ew_api::output::RackRow| {
+            let number = r.part.split(" · ").next().unwrap_or_default();
+            if (r.tag.contains('?') || r.tag.is_empty()) && !number.is_empty() {
+                number.to_owned()
+            } else {
+                r.tag.clone()
+            }
+        };
+        let undrawn: Vec<String> = std::iter::once(&view.head)
             .chain(&view.rows)
             .filter(|r| r.module.is_some() && !r.drawn)
-            .map(|r| r.tag.as_str())
+            .map(name)
             .collect();
         if !undrawn.is_empty() {
             out.push(step(
@@ -568,7 +577,7 @@ impl ShellModel {
             .any(|(folio, _)| session.undrawn_interfaces(station, folio).is_empty());
         if session.has_bus_interfaces(station) && !on_bus_page {
             out.push(step(
-                strings::format(key!("rack-todo-bus"), &[&view.tag]),
+                strings::format(key!("rack-todo-bus"), &[&name(&view.head)]),
                 Some(TodoFix::BusPage),
             ));
         }
@@ -580,7 +589,7 @@ impl ShellModel {
             };
             if session.undrawn_fluid_terminals().iter().any(|(t, _)| *t == station) {
                 out.push(step(
-                    strings::format(key!("rack-todo-fluid"), &[&view.tag]),
+                    strings::format(key!("rack-todo-fluid"), &[&name(&view.head)]),
                     Some(next(key!("rack-next-fluid"), "fluid")),
                 ));
             }
@@ -980,9 +989,17 @@ impl ShellModel {
                 )),
                 None => None,
             };
+            // The position named, else the cursor's while it is empty, else the first empty one.
+            let empty = |module: Uuid, position: u32| {
+                view.cells
+                    .iter()
+                    .any(|c| c.module == module && c.position == position && c.at.holder.is_none())
+            };
             let at = named
                 .or(match cursor {
-                    Some(StationCursor::Position { module, position }) => Some((module, position)),
+                    Some(StationCursor::Position { module, position }) if empty(module, position) => {
+                        Some((module, position))
+                    }
                     _ => None,
                 })
                 .or_else(|| {

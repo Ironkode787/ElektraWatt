@@ -11,12 +11,12 @@
 {"action":"canvas.activate"}
 {"action":"tool.select"}
 {"action":"plc.new_station"}
-{"action":"plc.rack_set","params":{"head":"EW-GEN-CPU-1"}}
-{"action":"plc.rack_add","params":{"slot":1,"part":"EW-GEN-DI-1"}}
-{"action":"plc.rack_add","params":{"slot":2,"part":"EW-GEN-DO-1"}}
+{"action":"plc.rack_add","params":{"part":"EW-GEN-CPU-1"}}
+{"action":"plc.rack_add","params":{"part":"EW-GEN-DI-1"}}
+{"action":"plc.rack_add","params":{"part":"EW-GEN-DO-1"}}
 {"action":"ui.describe"}
 {"action":"plc.rack_create"}
-{"action":"plc.rack_next","params":{"step":"draw"}}
+{"action":"plc.rack_next","params":{"step":"draw","folio":"1"}}
 {"action":"tool.wire"}
 {"action":"cursor.set","params":{"x_mm":68.792,"y_mm":37.042}}
 {"action":"canvas.activate"}

@@ -27,7 +27,7 @@ A field that does not read is refused under it, in words; **Save** says the firs
 6. Type the supply pins (**Supply L+ pin**, **Supply M pin**) when the card has them, and the **Allowed slots**
    (`1-8, 10`) when the data sheet restricts them. **Save**.
 7. Place the card beside the CPU from the device browser: it stands as a box with its pins, joins the project's CPU,
-   and its channels are addressed and bound to their pins. In **Rack and slots…** on a station's row it is offered as
+   and its channels are addressed and bound to their pins. The catalogue of a station's rack (**Rack…**) offers it as
    a module.
 
 A part has channels of one kind: a card with 16 inputs and 16 outputs is two parts, one for each.
@@ -41,7 +41,7 @@ A part has channels of one kind: a card with 16 inputs and 16 outputs is two par
 10. Place it from the device browser on a bus-topology page: it stands there as a box with its DP socket, and its
     supply pins wait for a schematic page (drag its unplaced function from the **Devices** list there, and draw the
     box with its pins). Placed first on a schematic page, it gets its port box on a bus-topology page from **Place
-    port DP** on its row in the PLC navigator. Add its cards in **Rack and slots…** on that row. A station that only
+    port DP** on its row in the PLC navigator. Add its cards in its rack (**Rack…** on that row). A station that only
     answers on the bus is a head station.
 
 ## A switch such as a SCALANCE, or a device on PROFINET

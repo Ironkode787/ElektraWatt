@@ -1324,6 +1324,11 @@ fn selection_shown(m: &ShellModel) -> Result<(), Key<'static>> {
 /// Edit ▸ Delete (M39): an editable page with something selected; it deletes the canvas selection only (a navigator's
 /// rows have their own Delete, `table.clear`), so with nothing selected it is disabled for that reason, as Cut is.
 fn editable_selection(m: &ShellModel) -> Result<(), Key<'static>> {
+    // In a station's view Delete takes out what stands under the cursor: a module, a valve.
+    if m.station_tab().is_some() {
+        writable(m)?;
+        return m.station_taken().map(|_| ());
+    }
     // Delete on a panel page deletes the selected placements and carriers.
     if panel_page(m).is_ok() {
         return if m.selection().is_empty() {

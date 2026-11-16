@@ -109,7 +109,8 @@ pub struct RackView {
     pub cells: Vec<RackCell>,
     /// The most modules the station's part takes, when it says.
     pub max_modules: Option<u16>,
-    /// The slots: the occupied ones in slot order, then the free ones: in a station whose modules have rack positions,
+    /// The slots: the occupied ones in slot order (the station itself, where it is its own module, is the head and
+    /// has no row), then the free ones: in a station whose modules have rack positions,
     /// the free slots of rack 0 up to the station's limit (else one after the last); in a station of positional modules,
     /// the one slot after them (a module added there follows the others, as its position ranks it).
     pub rows: Vec<RackRow>,
@@ -312,6 +313,9 @@ impl Session {
             rows.push(free_row(slot, false));
         }
         rows.sort_by_key(|r| (r.rack, r.slot, r.module.is_none()));
+        // A station that is its own module (a valve terminal with a bus node, a compact device) is the head alone:
+        // its channels and addresses stand at the head, and the slots after it keep their numbers.
+        rows.retain(|r| r.module != Some(station));
         let cells = ew_derive::terminal_cells(&q, id)
             .into_iter()
             .map(|c| RackCell {

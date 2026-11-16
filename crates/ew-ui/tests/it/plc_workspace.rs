@@ -355,7 +355,7 @@ pub(crate) fn new_project_with_cpu(tmp: &Tmp) -> egui_kittest::Harness<'static, 
 }
 
 /// The station whose view is on show.
-fn station_of(h: &egui_kittest::Harness<'static, ew_ui::app::App>) -> ew_ui::ew_viewmodel::ew_api::output::Uuid {
+pub(crate) fn station_of(h: &egui_kittest::Harness<'static, ew_ui::app::App>) -> ew_ui::ew_viewmodel::ew_api::output::Uuid {
     h.state()
         .shell()
         .station_tab()
@@ -364,7 +364,7 @@ fn station_of(h: &egui_kittest::Harness<'static, ew_ui::app::App>) -> ew_ui::ew_
 }
 
 /// The centre of the widget named `label` in the station's view.
-fn at(h: &egui_kittest::Harness<'static, ew_ui::app::App>, label: &str) -> egui::Pos2 {
+pub(crate) fn at(h: &egui_kittest::Harness<'static, ew_ui::app::App>, label: &str) -> egui::Pos2 {
     h.get_all_by_label(label)
         .next()
         .unwrap_or_else(|| panic!("no widget named {label:?}"))
@@ -373,7 +373,7 @@ fn at(h: &egui_kittest::Harness<'static, ew_ui::app::App>, label: &str) -> egui:
 }
 
 /// A double click on the catalogue's part whose row starts with `number`.
-fn take(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>, number: &str) {
+pub(crate) fn take(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>, number: &str) {
     let at = h
         .query_all_by_role(egui::Role::ListItem)
         .find(|n| n.accesskit_node().label().is_some_and(|l| l.starts_with(number)))
@@ -396,7 +396,7 @@ fn take(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>, number: &str) {
 }
 
 /// A drag with the primary button from `from` to `to`, in steps.
-fn drag(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>, from: egui::Pos2, to: egui::Pos2) {
+pub(crate) fn drag(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>, from: egui::Pos2, to: egui::Pos2) {
     h.input_mut().events.push(egui::Event::PointerMoved(from));
     h.run_ok();
     h.input_mut().events.push(egui::Event::PointerButton {

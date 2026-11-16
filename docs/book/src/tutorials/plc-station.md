@@ -31,23 +31,26 @@ Three words of the program, in the trade's meaning:
    the switch, at the same height. Choose **Draw ▸ Select**.
    The lamp -1E1 is on the page, with X1 at the top and X2 at the bottom.
 4. Click the **PLC** tab of the command bar and choose **New station** (**PLC ▸ New station…** in the app menu).
-   The New station dialog opens: what the station is (**PLC (CPU)** is chosen), its head part, the PLC it belongs to
-   (**New PLC**), and its slots, of which slot 1 is free.
-5. Open the **Head part** list and choose **EW-GEN-CPU-1 · PLC CPU without on-board I/O**.
-6. Choose **Add module…** in the row of slot 1 and pick **EW-GEN-DI-1 · PLC digital input card, 8 channels**.
+   A tab **New station** opens beside the page's tab, and the window keeps working around it. It shows what the
+   station is (**PLC (CPU)** is chosen), the PLC it belongs to (**New PLC**), the rack with a place for the head
+   and a free slot 1, and at the right the **Catalogue**, which lists the CPUs. Nothing is written before Create.
+5. Double-click **PLC CPU without on-board I/O** (EW-GEN-CPU-1) in the catalogue.
+   The CPU is the station's head, and the catalogue lists the modules that fit the station.
+6. Double-click **PLC digital input card, 8 channels** (EW-GEN-DI-1) in the catalogue.
    Slot 1 holds the input module, giving 8 DI; slot 2 is free.
-7. Choose **Add module…** in the row of slot 2 and pick **EW-GEN-DO-1 · PLC digital output card, 8 channels**.
-   The rack is filled:
+7. Double-click **PLC digital output card, 8 channels** (EW-GEN-DO-1).
+   The rack is filled, drawn as cards and listed as a table under them:
 
-   ![The New station dialog: the CPU as head part, the input module in slot 1, the output module in slot 2](images/plc-new-station.png)
+   ![The New station tab: the CPU as the head, the input module in slot 1, the output module in slot 2, the catalogue at the right](images/plc-new-station.png)
 
 8. Choose **Create**.
-   The dialog becomes the station's **Rack and slots**: the input module has the addresses I0.0–I0.7, the output
-   module Q0.0–Q0.7, each marked **not drawn**, and the line under the slots says the station is made and drawn on no
-   page yet. One Undo takes the whole station back.
-9. Choose **Draw on page 1** (the button names the page in front; the small arrow beside it lists the others).
-   The dialog closes, and the CPU -1A1 and its modules -1A1-A1 and -1A1-A2 stand on the page as boxes, side by side
-   in slot order, under the switch and the lamp. Each module's pins are numbered from 1: pin 1 is channel 0.
+   The tab is the station's now: the input module has the addresses I0.0–I0.7, the output module Q0.0–Q0.7, each
+   card says **not drawn**, and **To do** under the table says that they are drawn on no page yet. One Undo takes
+   the whole station back.
+9. Choose **Draw on a page…** in the To do list and pick page **1**.
+   Page 1 shows, and the CPU -1A1 and its modules -1A1-A1 and -1A1-A2 stand on it as boxes, side by side in slot
+   order, under the switch and the lamp. Each module's pins are numbered from 1: pin 1 is channel 0. The station's
+   tab stays beside the page's: click it to see the rack again, where each module now names its page.
 10. Choose **Draw ▸ Connect ▸ Wire** (`W`). Click contact 14 of -1B1, then pin 1 at the top of -1A1-A1; click X2 of
     -1E1, then pin 1 at the top of -1A1-A2. Choose **Draw ▸ Select**.
     The switch is wired to the first input and the lamp to the first output. Each module's pins print their
@@ -72,8 +75,9 @@ Three words of the program, in the trade's meaning:
 
 ## What you learnt
 
-- **New station** builds a station the way TIA Portal does: its head part first, then its modules slot by slot, and
-  **Create** makes them all in one step. **Draw on page …** draws them all at once, bound to their pins.
+- **New station** builds a station the way TIA Portal does: its head part first, then its modules slot by slot
+  from the catalogue, and **Create** makes them all in one step. **Draw on a page…** draws them all at once, bound
+  to their pins.
 - The slot order gives the addresses, and the PLC grid shows them channel by channel, where you type the symbols.
 - The PLC overview is a report page, made by a report block and kept up to date by EW.
 - **Export to PLC** hands the hardware and the symbols to the PLC software.
