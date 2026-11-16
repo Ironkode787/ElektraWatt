@@ -133,8 +133,12 @@ on the schematic pages.
 1. Choose **New bus page** on the PLC tab: the new-page form opens with the type **Bus topology**.
 2. Place a station or another bus device from the device browser (**Draw ▸ Place ▸ Device from part…**) with two clicks
    for its box: it stands there as a box per interface, and a station's rack opens.
-3. A station drawn first on a schematic page gets its port box from **Place port DP** (or **Place port X1**) on its row
-   in the PLC panel; **Ports not drawn yet** in the Bus panel lists every interface no page draws yet.
+3. A station or bus device the project has already (drawn on a schematic page, or made in the rack dialog) goes onto
+   the bus page with **Put a station on this page…**: right-click an empty spot of the page, or open the list of
+   **Place port** on the PLC tab, and choose it. It stands there as a box per interface. Placing its part from the
+   device browser, or choosing the Black box tool, on the bus page asks first: **Put -1A1 here** or **A new station**.
+   One port box comes from **Place port DP** (or **Place port X1**) on the station's row in the PLC panel; **Ports not
+   drawn yet** in the Bus panel lists every interface no page draws yet.
 4. Draw the bus lines with **Draw ▸ Connect ▸ Wire**: the ports become one network, named for its bus, with the CPU's
    port as its controller or master.
 5. Choose **Bus panel** on the PLC tab and switch it to its table. Type each node's address into its **Address** cell

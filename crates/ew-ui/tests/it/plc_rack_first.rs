@@ -949,3 +949,74 @@ fn a_station_the_project_has_is_put_on_the_bus_page_not_made_again() {
     );
     h.state_mut().shell_mut().shutdown();
 }
+
+/// The items of the PLC tab's Place port button.
+fn place_port_list(
+    h: &egui_kittest::Harness<'static, ew_ui::app::App>,
+) -> Vec<ew_ui::ew_viewmodel::actions::ActionItem> {
+    use ew_ui::ew_viewmodel::command_bar::{ButtonKind, Tab, command_bar_of};
+    command_bar_of(h.state().shell(), Tab::Plc)
+        .groups
+        .into_iter()
+        .flat_map(|g| g.buttons)
+        .find_map(|b| match b.kind {
+            ButtonKind::Menu(items) if b.id == "bus.place_port" => Some(items),
+            _ => None,
+        })
+        .expect("Place port's list")
+}
+
+/// The rc.2 persona run re-test: a bus page's own menu and the PLC tab's Place port list have Put a station on this
+/// page, listing what the page does not show yet; chosen, the station stands there whole, and the entry is greyed with
+/// its reason once nothing is left to put.
+#[test]
+fn a_bus_page_offers_to_put_a_station_on_it() {
+    let tmp = Tmp::new();
+    let mut h = new_project(&tmp);
+    let cpu = made_station(&mut h, "cpu", "EW-GEN-CPU-2");
+    dispatch(
+        &mut h,
+        "page.new",
+        json!({"folio": "900", "type": "bus_topology", "title": "Field bus"}),
+    );
+    dispatch(&mut h, "page.goto", json!({"folio": "900"}));
+    settle(&mut h);
+    let entry = |h: &egui_kittest::Harness<'static, ew_ui::app::App>| {
+        canvas_menu(h.state().shell(), MenuSpot::Sheet, None)
+            .into_iter()
+            .find(|i| i.id == "bus.put_station")
+            .expect("the page's menu has Put a station on this page")
+    };
+    let put = entry(&h);
+    assert_eq!(put.label, "Put a station on this page…");
+    assert!(put.enabled, "{:?}", put.reason);
+    let list = place_port_list(&h);
+    assert!(
+        list.iter().any(|i| i.id == "bus.put_station"
+            && i.params["station"] == cpu.to_string()
+            && i.enabled),
+        "{list:?}"
+    );
+
+    dispatch(&mut h, "bus.put_station", json!({}));
+    settle(&mut h);
+    assert_eq!(put_station_form(&h).1, cpu.to_string());
+    support::menu_node(&h, "Put here").click();
+    settle(&mut h);
+    two_corners(&mut h);
+    assert_eq!(topology_boxes(&h, cpu), 2, "DP and X1");
+
+    let put = entry(&h);
+    assert!(!put.enabled);
+    assert_eq!(
+        put.reason.as_deref(),
+        Some("Every station and bus device of the project is on this page already")
+    );
+    assert!(
+        !place_port_list(&h)
+            .iter()
+            .any(|i| i.id == "bus.put_station" && i.enabled),
+        "nothing left to put"
+    );
+    h.state_mut().shell_mut().shutdown();
+}
