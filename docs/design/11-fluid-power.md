@@ -901,7 +901,7 @@ the tubes drawn already take it, and that it lacks a material when it does.
 
 | Where | Behaviour | Req. |
 |---|---|---|
-| Fluid page (MVP) | The palette offers fluid symbols only (FR-SYM-006). The line tool draws `Fluid` lines with a line-kind picker; autoconnect works on fluid ports only ([06](06-schematic-editor.md) §2.2). Working and pilot lines differ by dash pattern, never by colour alone (NFR-A11Y-03); drain shares the pilot pattern and is named in the hover text and property grid | FR-FLU-002 |
+| Fluid page (MVP) | The palette offers fluid symbols only (FR-SYM-006). The line tool draws `Fluid` lines of a line kind its HUD changes; autoconnect works on fluid ports only ([06](06-schematic-editor.md) §2.2). Working and pilot lines differ by dash pattern, never by colour alone (NFR-A11Y-03); drain shares the pilot pattern and is named in the hover text and property grid | FR-FLU-002 |
 | Placing a valve part | Placing 571334 on a module position creates the valve child, its functions and the binding per map. The ghost shows the child tag, the address and the position | FR-FLU-004 |
 | Assembly overview page | Read-only content. Dragging a valve onto folio 202 is refused with "edit -202U2's children in the device navigator" ([06](06-schematic-editor.md) §8) | FR-DEV-023 |
 | Device navigator (MVP); slot table (MVP Should; rack/slot editor 1.0, FR-PLC-028) | -201U1 → modules in position order → valves. Context actions: add valve, set spare or blank, close ports, generate overview. The slot table shows the FR-FLU-015 columns next to the order codes | FR-FLU-004, FR-FLU-015 |
@@ -931,9 +931,11 @@ with the part of the module's first valve, else of another module's; disabled wi
 position *n* for each empty one (*as built, M3 persona round 3*: it stood on a valve's menu only); a valve's
 Set spare or Set used and Blank position *n*, a blanking plate's Add valve; Plug port *p* for each open working port
 (EW-FL-001's, `ew_derive::open_working_ports`; `fluid.port.close` with a plug). Each is one undo step. **The line
-tool** (FT-1733): Draw ▸ Connect ▸ Fluid line… on a fluid page is the line-kind picker (Working, Pilot, Exhaust, Drain,
-Flexible), then the Wire tool drawing lines of that kind (`connection.draw` with `{"fluid": {"line_kind"}}`); Draw ▸
-Wire draws working lines. Fluid pages autoconnect: a placed symbol's fluid port facing a free fluid port proposes the
+tool** (FT-1733, rc.2): Fluid ▸ Tube on a fluid page starts the Wire tool at once, drawing lines of the kind used last
+(Working at first; `connection.draw` with `{"fluid": {"line_kind"}}`); the HUD says the kind and the project's default
+tube ("Working line · tube 6/4 mm") and its Line kind button (`tool.fluid_line_kind`) steps through Working, Pilot,
+Exhaust, Drain and Flexible, remembered; a project without a default tube is told once that Fluid settings… sets it.
+Draw ▸ Wire draws working lines. Fluid pages autoconnect: a placed symbol's fluid port facing a free fluid port proposes the
 join, and the committed hint is a working fluid line (`device.place`'s hint takes the fluid kind when both ends are
 fluid ports); a fluid port never proposes an electrical CP, nor an electrical CP a fluid port, on any page, and a
 valve's working port never proposes another valve's exhaust port or a supply plate's exhaust tap, nor the other way

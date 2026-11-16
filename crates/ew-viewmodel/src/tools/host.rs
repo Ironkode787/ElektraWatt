@@ -166,6 +166,10 @@ pub(crate) struct ToolHost {
     /// Whether a move connects its autoconnect proposals, kept across tools for the session (on until
     /// `tool.connect_on_move` turns it off).
     pub connect_on_move: bool,
+    /// The line kind the Tube tool draws, the one chosen last (rc.2); `None` before any: working lines.
+    pub tube_kind: Option<&'static str>,
+    /// Whether the Tube tool said once that the project has no default tube.
+    pub tube_size_said: bool,
     /// Whether a `layout.*` commit of this dispatch announces the selected placement's live text once the page is
     /// read again (at the end of the dispatch).
     pub layout_announce: bool,
@@ -265,6 +269,8 @@ impl ToolHost {
             result_note: None,
             layout_options: super::LayoutOptions::default(),
             connect_on_move: true,
+            tube_kind: None,
+            tube_size_said: false,
             layout_announce: false,
             placed: false,
             placed_device: None,

@@ -343,10 +343,14 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
         let id = record(&h, role);
         checked.insert(check_form(&mut h, action, json!({ param: id })));
     }
-    // Draw ▸ Connect ▸ Fluid line…'s line-kind picker on a fluid page (FT-1733).
+    // Fluid ▸ Valve terminal… on a fluid page while a terminal made as a station is drawn on none (rc.2).
+    dispatch(&mut h, "plc.new_station", json!({}));
+    dispatch(&mut h, "plc.rack_set", json!({"head": "EW-GEN-VTM-1"}));
+    dispatch(&mut h, "plc.rack_create", json!({}));
+    dispatch(&mut h, "ui.dismiss", json!({}));
     goto(&mut h, "203");
-    checked.insert(check_form(&mut h, "tool.fluid_line", json!({})));
-    dispatch(&mut h, "tool.select", json!({}));
+    checked.insert(check_form(&mut h, "fluid.valve_terminal", json!({})));
+    dispatch(&mut h, "ui.dismiss", json!({}));
     goto(&mut h, "902");
     for action in ["layout.enclosure_new", "layout.auto_fill_rail"] {
         checked.insert(check_form(&mut h, action, json!({})));

@@ -2371,3 +2371,57 @@ fn rc2_a_terminals_menu_lists_its_positions_from_the_body() {
     assert!(menu.iter().any(|l| l == "Position 4: empty"), "{menu:?}");
     d.shell_mut().shutdown();
 }
+
+/// The rc.2 cabinet run (friction 26, 27): Tube opened a small dialog first, so the clicks meant for the ports fell
+/// into it, and nothing showed the tube's size. Tube starts drawing at once with the line kind used last, the HUD says
+/// the kind and the project's tube and changes the kind, and a project without a default tube is told once where its
+/// size is set.
+#[test]
+fn rc2_the_tube_tool_draws_at_once_and_says_its_kind_and_size() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    place_symbol(&mut d, "ew.iso.cylinder-double-acting@qet10", (900, 600));
+    place_symbol(&mut d, "ew.iso.air-supply@qet10", (1300, 800));
+    let (cylinder, supply) = (
+        device_drawn(&mut d, "ew.iso.cylinder"),
+        device_drawn(&mut d, "ew.iso.air-supply"),
+    );
+    let (a, b) = (port(&mut d, supply, "1"), port(&mut d, cylinder, "A"));
+    assert_eq!(
+        d.shell_mut().dispatch("tool.fluid_line", &json!({})),
+        Outcome::Done
+    );
+    assert!(d.shell_mut().dialog().is_none(), "no dialog first");
+    assert_eq!(d.shell_mut().tool().name(), "wire");
+    let toast = d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert!(toast.starts_with("This project has no default tube"), "{toast}");
+    let hud = |d: &mut Driver| ew_ui::ew_viewmodel::command_bar::hud(d.shell_mut());
+    let h = hud(&mut d);
+    assert!(
+        h.prompt.starts_with("Working line · no default tube"),
+        "{}",
+        h.prompt
+    );
+    assert!(h.quick.contains(&"tool.fluid_line_kind"), "{:?}", h.quick);
+    click_at(&mut d, a);
+    click_at(&mut d, b);
+    d.input(&key("escape"));
+    d.settle();
+    assert_eq!(tubes(&mut d), 1, "the clicks drew the tube");
+    // The kind is changed in the HUD and remembered; the project's tube shows once it is set.
+    assert_eq!(
+        d.shell_mut().dispatch("tool.fluid_line_kind", &json!({})),
+        Outcome::Done
+    );
+    let set = json!({"od": "6", "id": "4"});
+    assert_eq!(d.shell_mut().dispatch("fluid.settings", &set), Outcome::Done);
+    let _ = d.shell_mut().dispatch("tool.select", &json!({}));
+    let _ = d.shell_mut().dispatch("tool.fluid_line", &json!({}));
+    let h = hud(&mut d);
+    assert!(
+        !h.prompt.starts_with("Working") && h.prompt.contains(" line · tube 6/4 mm"),
+        "{}",
+        h.prompt
+    );
+    d.shell_mut().shutdown();
+}

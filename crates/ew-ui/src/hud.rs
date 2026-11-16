@@ -161,7 +161,7 @@ pub(crate) fn show(ctx: &egui::Context, shell: &ShellModel, pane: Rect, events: 
                     }
                     x = r.right();
                     // The quick tools.
-                    for id in h.quick {
+                    for id in h.quick.iter().copied() {
                         x += t.space_1;
                         let r = Rect::from_min_size(
                             pos2(x, cy - t.size_control / 2.0),

@@ -299,13 +299,6 @@ static CHANNEL_SETTINGS: Spec = Spec {
     ],
 };
 
-/// Draw ▸ Fluid line…'s form (doc 11 §7, FT-1733): the kind of the fluid lines the Wire tool draws next.
-static FLUID_LINE: Spec = Spec {
-    action: "tool.fluid_line",
-    title_key: key!("fluid-line-title"),
-    fields: &[field("line_kind", key!("form-line-kind"))],
-};
-
 /// The field whose type gives the tube materials Fluid settings… offers (a medium's default tube has the project
 /// default's type).
 const TUBE_MATERIAL: (&str, &str) = ("medium", "default_tube.material");
@@ -1765,38 +1758,65 @@ impl ShellModel {
             Ok(k) => k,
             Err(e) => return e,
         };
-        if kind.is_empty() {
-            if self.mode == Mode::Headless {
-                return failed(key!("error-missing-param"), &["line_kind"]);
+        // Without a kind the tool starts at once with the one used last (rc.2: a dialog first caught the clicks meant
+        // for the ports); Line kind in the HUD changes it.
+        let kind = if kind.is_empty() {
+            self.tools.tube_kind.unwrap_or("working")
+        } else {
+            match crate::strings::LINE_KINDS.iter().copied().find(|w| *w == kind) {
+                Some(k) => k,
+                None => return failed(key!("error-bad-param"), &["line_kind"]),
             }
-            let mut dialog = FLUID_LINE.dialog(p);
-            dialog.ok_key = key!("tool-draw");
-            if let Some(f) = dialog.fields.first_mut() {
-                f.options = crate::strings::LINE_KINDS
-                    .iter()
-                    .map(|w| {
-                        (
-                            (*w).to_owned(),
-                            strings::field_choice_text("connection", "line_kind", w),
-                        )
-                    })
-                    .collect();
-                f.value = "working".to_owned();
-            }
-            return self.open_dialog(Dialog::Form(dialog));
-        }
-        let Some(kind) = crate::strings::LINE_KINDS.iter().copied().find(|w| *w == kind) else {
-            return failed(key!("error-bad-param"), &["line_kind"]);
         };
-        if self.in_form_of(FLUID_LINE.action) {
-            self.dialog = None;
-        }
+        self.tools.tube_kind = Some(kind);
         self.activate_tool(Box::new(
             crate::tools::WireTool::new()
                 .with_kind(Some("fluid"))
                 .with_line_kind(kind),
         ));
+        // The first tube of a project without a default tube says where its size is set, once.
+        if self.default_tube_mm().is_none() && !std::mem::replace(&mut self.tools.tube_size_said, true) {
+            self.notify(strings::text(key!("toast-tube-no-size")).to_owned(), false);
+        }
         Outcome::Done
+    }
+
+    /// `tool.fluid_line_kind` (the Tube tool's Line kind in the HUD, rc.2): the next line kind, remembered; the Tube
+    /// tool, while it draws no tube, takes it at once.
+    pub(crate) fn act_tool_fluid_line_kind(&mut self, _p: &Map<String, Value>) -> Outcome {
+        let kinds = crate::strings::LINE_KINDS;
+        let now = self.tools.tube_kind.unwrap_or("working");
+        let next = kinds
+            .iter()
+            .position(|w| *w == now)
+            .map_or(kinds[0], |i| kinds[(i + 1) % kinds.len()]);
+        self.tools.tube_kind = Some(next);
+        if self.tools.tool.name() == "wire" && self.tools.tool.state() != "routing" {
+            self.activate_tool(Box::new(
+                crate::tools::WireTool::new()
+                    .with_kind(Some("fluid"))
+                    .with_line_kind(next),
+            ));
+        }
+        Outcome::Done
+    }
+
+    /// The project's default tube as `outer/inner` millimetres (`6/4`); `None` without one.
+    fn default_tube_mm(&self) -> Option<String> {
+        let tube = self.settings_member("fluid")["default_tube"].clone();
+        let mm = |v: &Value| v.as_i64().map(|nm| super::layout::mm_text(i128::from(nm), false));
+        Some(format!("{}/{}", mm(&tube["od"])?, mm(&tube["id"])?))
+    }
+
+    /// What the Tube tool draws, as the HUD says it (rc.2): its line kind and the project's default tube ("Working
+    /// line · tube 6/4 mm"), or that the project has none and where it is set.
+    pub(crate) fn tube_words(&self) -> String {
+        let kind = self.tools.tube_kind.unwrap_or("working");
+        let kind = strings::field_choice_text("connection", "line_kind", kind);
+        match self.default_tube_mm() {
+            Some(size) => strings::format(key!("hud-tube"), &[&kind, &size]),
+            None => strings::format(key!("hud-tube-no-size"), &[&kind]),
+        }
     }
 
     /// `external_ref.new {location, device, connection?, project?}`: one `external_ref.create` at a location

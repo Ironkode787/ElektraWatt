@@ -883,8 +883,8 @@ pub struct HudModel {
     pub tool_label: String,
     /// The tool's icon key.
     pub icon: &'static str,
-    /// The three quick tools.
-    pub quick: [&'static str; 3],
+    /// The quick tools: the three, and the Tube tool's Line kind while it draws tubes.
+    pub quick: Vec<&'static str>,
     /// What the tool works on (the predicted tag or terminal of Place), when it says.
     pub target: Option<String>,
     /// The prompt: the selection and its keys, the pick stack, or the tool's target and keys.
@@ -952,6 +952,8 @@ pub fn hud(model: &ShellModel) -> HudModel {
     let mut stack = 0;
     let mut field_prompt = None;
     let hint = || crate::status::hint(model);
+    // The Tube tool (the Wire tool on a fluid page) says what it draws first: its line kind and tube (rc.2).
+    let tube = name == "wire" && model.wire_kind() == Ok(Some("fluid"));
     let prompt = match model.tool_ghost() {
         None if name == "select" && tool.state() == "idle" => {
             // Where a drop left the pointer, the stack is the dropped item and what it sits on; the HUD names
@@ -1194,11 +1196,20 @@ pub fn hud(model: &ShellModel) -> HudModel {
         }
         None => model.card_prompt().unwrap_or(prompt),
     };
+    let prompt = if tube {
+        format!("{} \u{b7} {prompt}", model.tube_words())
+    } else {
+        prompt
+    };
     HudModel {
         tool: action,
         tool_label: tools::tool_label(name),
         icon: actions::find(action).and_then(|a| a.icon).unwrap_or("pointer"),
-        quick: QUICK_TOOLS,
+        quick: if tube {
+            QUICK_TOOLS.iter().copied().chain(["tool.fluid_line_kind"]).collect()
+        } else {
+            QUICK_TOOLS.to_vec()
+        },
         target,
         prompt,
         stack,

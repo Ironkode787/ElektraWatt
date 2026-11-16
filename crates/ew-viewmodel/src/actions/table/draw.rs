@@ -484,6 +484,19 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
+    // The Tube tool's Line kind in the HUD (rc.2): the next kind, remembered.
+    with_icon(
+        "arrows-sort",
+        hidden(act(
+            "tool.fluid_line_kind",
+            Command,
+            Menu::Fluid,
+            &[],
+            fluid_page,
+            None,
+            |s, p| s.act_tool_fluid_line_kind(p),
+        )),
+    ),
     // Ctrl+Enter: a click with Alt held at the grid cursor (a placement without its autoconnect proposals, a bend
     // without object snaps), the keyboard's twin of `canvas.activate {alt}` (per-context chords).
     keeps_banner(hidden(in_canvas(act(
