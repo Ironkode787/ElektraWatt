@@ -32,7 +32,7 @@ lanes' time after each round; the persona re-test before the second candidate le
 | Candidate | Cut from | Checklist | State |
 |---|---|---|---|
 | `v0.3.0-rc.1` | `release/0.3`, the commit the tag names | [`checklist-rc.1.md`](checklist-rc.1.md) | Cut on 2026-11-16; its release build passed (run 11 of `release.yml`). **Tested by the owner by hand: not passed.** He found 29 points (the plan's log lists them as F1 to F29); no go |
-| `v0.3.0-rc.2` | `release/0.3`, the commit the tag names | [`checklist-rc.2.md`](checklist-rc.2.md) | Cut on 2026-11-16; waits for its release build and for the owner's hands-on test |
+| `v0.3.0-rc.2` | `release/0.3`, the commit the tag names | [`checklist-rc.2.md`](checklist-rc.2.md) | Cut on 2026-11-16; its release build passed (run 12 of `release.yml`: verify, the guide, the Linux and the Windows package, the sums, the draft); waits for the owner's hands-on test |
 
 Before the first cut, on the tip that the release branch starts from: eight reviews by area and one of the whole
 milestone, each with its fix lane; a persona round of three picture-led runs on a new project, two re-tests, two
