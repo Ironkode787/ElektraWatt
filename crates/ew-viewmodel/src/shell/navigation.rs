@@ -1237,6 +1237,7 @@ impl ShellModel {
                     let _ = self.act_navigator_select(&select);
                 }
                 self.dismiss_export_toasts();
+                self.notify_unlisted();
                 Outcome::Done
             }
             None => Outcome::refused(key!("reason-no-parts-list")),

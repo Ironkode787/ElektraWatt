@@ -5202,6 +5202,7 @@ tip-derived-tag = Tags are derived from the structure and the counter.
 tip-generated-page = This page is generated from a report block.
 toast-convert = Convert to connection
 toast-show-block = Show report block
+toast-select-unlisted = Select them
 glossary-row-description = EPLAN: { $p0 }; QET: { $p1 }; { $p2 }
 glossary-none = none
 
@@ -5958,6 +5959,8 @@ error-report-kind = "{ $p0 }" is not a report; use one of: { $p1 }.
 error-first-folio = The first folio is a number: "{ $p0 }" is not.
 toast-report-block-new = Added the report block { $p0 } from folio { $p1 }.
 toast-report-block-empty = Added the report block { $p0 } from folio { $p1 }; it has nothing to list yet, so it makes no page. { $p2 }.
+toast-parts-unlisted = { $p0 } devices have no part and are not in the parts list. Select them, then Edit ▸ Choose part… gives them one.
+toast-parts-unlisted-one = 1 device has no part and is not in the parts list. Select it, then Edit ▸ Choose part… gives it one.
 
 # FT-1337 and FT-1363 (ID-1359 ruling 1): a command error in the window, by its reason.
 error-command-unknown = There is no command { $p0 }

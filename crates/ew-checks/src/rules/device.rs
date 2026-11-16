@@ -82,13 +82,7 @@ impl Rule for DeviceWithoutPart {
         let Scope::Device(device) = *scope else {
             return Vec::new();
         };
-        let Some(d) = q.devices().get(device) else {
-            return Vec::new();
-        };
-        if !d.parts.is_empty() || d.aspects.strip.is_some() || d.aspects.cable.is_some() {
-            return Vec::new();
-        }
-        if q.idx().functions_of_device(device).next().is_none() {
+        if !lacks_part(q, device) {
             return Vec::new();
         }
         let tag = full_tag(q, device, "device");
@@ -103,6 +97,17 @@ impl Rule for DeviceWithoutPart {
             .arg("device", tag),
         ]
     }
+}
+
+/// Whether EW-CORE-041 reports `device`: a device with functions and without a part use that is no strip and no cable.
+/// The parts list leaves it out; the window says how many there are when it shows the list.
+pub fn lacks_part(q: &Q, device: Id<Device>) -> bool {
+    q.devices().get(device).is_some_and(|d| {
+        d.parts.is_empty()
+            && d.aspects.strip.is_none()
+            && d.aspects.cable.is_none()
+            && q.idx().functions_of_device(device).next().is_some()
+    })
 }
 
 // ---------------------------------------------------------------------------------------------------------

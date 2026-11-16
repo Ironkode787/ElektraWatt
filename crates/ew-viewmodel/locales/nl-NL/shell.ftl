@@ -4947,6 +4947,7 @@ tip-derived-tag = Kenmerken volgen uit de structuur en de teller.
 tip-generated-page = Deze pagina wordt gegenereerd uit een rapportblok.
 toast-convert = Omzetten in verbinding
 toast-show-block = Rapportblok tonen
+toast-select-unlisted = Selecteren
 glossary-row-description = EPLAN: { $p0 }; QET: { $p1 }; { $p2 }
 glossary-none = geen
 
@@ -5701,6 +5702,8 @@ error-report-kind = "{ $p0 }" is geen rapport; gebruik een van: { $p1 }.
 error-first-folio = Het eerste folio moet een nummer zijn; "{ $p0 }" is dat niet.
 toast-report-block-new = Rapportblok { $p0 } toegevoegd vanaf folio { $p1 }.
 toast-report-block-empty = Rapportblok { $p0 } toegevoegd vanaf folio { $p1 }; het heeft nog niets te tonen en maakt dus geen pagina. { $p2 }.
+toast-parts-unlisted = { $p0 } apparaten hebben geen artikel en staan niet in de stuklijst. Selecteer ze; Bewerken ▸ Artikel kiezen… geeft ze er een.
+toast-parts-unlisted-one = 1 apparaat heeft geen artikel en staat niet in de stuklijst. Selecteer het; Bewerken ▸ Artikel kiezen… geeft het er een.
 
 # FT-1337 en FT-1363 (ID-1359 uitspraak 1): een opdrachtfout in het venster, naar de reden.
 error-command-unknown = Er is geen opdracht { $p0 }

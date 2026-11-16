@@ -1979,6 +1979,9 @@ impl ShellModel {
                 strings::format(key!("toast-report-block-new"), &[&words, &folio])
             };
             self.notify(text, true);
+            if matches!(kind.as_str(), "parts_list" | "parts_summary") {
+                self.notify_unlisted();
+            }
         }
         self.form_done(REPORT_NEW.action, out)
     }

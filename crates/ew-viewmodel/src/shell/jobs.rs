@@ -428,8 +428,44 @@ impl ShellModel {
                         "children": [{ "device": device.to_string(), "position": position }] }),
                 )
             }
+            // The devices without a part selected, in Properties, so Choose part… gives them one.
+            Some(NoteAction::SelectUnlisted) => {
+                let ids: Vec<String> = entry.selects(action).iter().map(ToString::to_string).collect();
+                self.notes.dismiss(entry.serial);
+                match self.dispatch("select.set", &serde_json::json!({ "ids": ids })) {
+                    Outcome::Done => self.dispatch("props.focus", &Value::Null),
+                    other => other,
+                }
+            }
             None => Outcome::refused(key!("reason-no-toast")),
         }
+    }
+
+    /// Shows the toast that the parts list leaves out the devices without a part, when there are any (rc.2 persona run,
+    /// entry 31): how many, with Select them.
+    pub(super) fn notify_unlisted(&mut self) {
+        let Some(devices) = self
+            .project_session()
+            .map(|s| ew_api::output::unlisted_devices(&s.query()))
+        else {
+            return;
+        };
+        let text = match devices.len() {
+            0 => return,
+            1 => strings::text(key!("toast-parts-unlisted-one")).to_owned(),
+            n => strings::format(key!("toast-parts-unlisted"), &[&n.to_string()]),
+        };
+        let action = self.project.as_ref().map(|p| {
+            (
+                NoteAction::SelectUnlisted,
+                Validity::Session {
+                    epoch: p.epoch,
+                    select: devices.iter().map(|d| d.as_uuid()).collect(),
+                },
+            )
+        });
+        // Its own key, so it stands beside the toast of the step that added the list (with its Undo).
+        self.notes.push(text, "unlisted", action);
     }
 
     /// `toast.undo`: the newest visible toast's Undo (the registry's undo); the toast goes.

@@ -52,6 +52,8 @@ pub enum NoteAction {
     Swap,
     /// The layout page's devices labelled with item numbers, after a legend was added beside their tags (rc.2).
     ItemNumbers,
+    /// Select the devices the parts list leaves out because they have no part, for Choose part… (rc.2).
+    SelectUnlisted,
 }
 
 impl NoteAction {
@@ -70,6 +72,7 @@ impl NoteAction {
             NoteAction::ShowFolder => "show_folder",
             NoteAction::Swap => "swap",
             NoteAction::ItemNumbers => "item_numbers",
+            NoteAction::SelectUnlisted => "select_unlisted",
         }
     }
 
@@ -88,6 +91,7 @@ impl NoteAction {
             "show_folder" => Some(NoteAction::ShowFolder),
             "swap" => Some(NoteAction::Swap),
             "item_numbers" => Some(NoteAction::ItemNumbers),
+            "select_unlisted" => Some(NoteAction::SelectUnlisted),
             _ => None,
         }
     }
@@ -107,6 +111,7 @@ impl NoteAction {
             NoteAction::ShowFolder => key!("toast-show-folder"),
             NoteAction::Swap => key!("action-fluid-swap"),
             NoteAction::ItemNumbers => key!("layout-show-item-numbers"),
+            NoteAction::SelectUnlisted => key!("toast-select-unlisted"),
         }
     }
 }

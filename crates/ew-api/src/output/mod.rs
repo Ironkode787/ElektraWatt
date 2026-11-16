@@ -171,7 +171,8 @@ pub use route_measures::{
 };
 pub use rows::{
     RowExport, RowsCsv, RowsError, RowsFormat, RowsOutput, block_kind, find_block, page_report_kinds,
-    report_folios, report_kinds, row_export, row_output, sql_table, with_base_digest, workbook_dump,
+    report_folios, report_kinds, row_export, row_output, sql_table, unlisted_devices, with_base_digest,
+    workbook_dump,
 };
 // The table round trip.
 pub use strip_edit::{
