@@ -853,6 +853,30 @@ impl ShellModel {
         Outcome::Done
     }
 
+    /// Arms the black box tool with every interface of part `pi` of `cat`, a box each, for a new device of it with the
+    /// letter `letter` (else the part's, else the black-box symbol's).
+    pub(super) fn arm_part_ports(
+        &mut self,
+        cat: &PlaceCatalogue,
+        pi: usize,
+        letter: Option<String>,
+    ) -> Outcome {
+        let part = &cat.parts[pi];
+        let Some(letter) = letter.or(part.letter.clone()).or_else(|| {
+            cat.symbols
+                .iter()
+                .find(|r| r.black_box)
+                .and_then(|r| r.letter.clone())
+        }) else {
+            return Outcome::refused(key!("reason-letter-needed"));
+        };
+        let target = json!({"from_part": {"part": part.copy.to_string(), "letter": letter}});
+        let label = strings::format(key!("place-target-part"), &[&part.part_number]);
+        let interfaces = part.interfaces.clone();
+        let copy = part.copy;
+        self.arm_ports(cat, target, label, &interfaces, Some(copy))
+    }
+
     fn arm(&mut self, cat: Arc<PlaceCatalogue>, pick: Pick, p: &Map<String, Value>) -> Outcome {
         let letter_param = match string_param(p, "letter") {
             Ok(v) => v.map(str::to_owned),
@@ -863,20 +887,14 @@ impl ShellModel {
         if let Pick::PartFn(pi, _) | Pick::PartSymbol(pi, _) = &pick
             && !cat.parts[*pi].interfaces.is_empty()
         {
-            let part = &cat.parts[*pi];
-            let Some(letter) = letter_param.or(part.letter.clone()).or_else(|| {
-                cat.symbols
-                    .iter()
-                    .find(|r| r.black_box)
-                    .and_then(|r| r.letter.clone())
-            }) else {
-                return Outcome::refused(key!("reason-letter-needed"));
-            };
-            let target = json!({"from_part": {"part": part.copy.to_string(), "letter": letter}});
-            let label = strings::format(key!("place-target-part"), &[&part.part_number]);
-            let interfaces = part.interfaces.clone();
-            let copy = part.copy;
-            return self.arm_ports(&cat, target, label, &interfaces, Some(copy));
+            // A station of this part that the project has and this page does not show comes first (rc.2 persona run:
+            // Device ▸ Place made a second, empty CPU beside the one drawn with its cards): Put -1A1 here, or a new one.
+            let copy = cat.parts[*pi].copy;
+            if self.mode == super::Mode::Gui && !self.stations_off_page(Some(copy)).is_empty() {
+                self.tools.picker = None;
+                return self.ask_put_station(Some((copy, letter_param)));
+            }
+            return self.arm_part_ports(&cat, *pi, letter_param);
         }
         let mut box_cps: Option<Vec<(u16, String)>> = None;
         let mut part_copy = None;

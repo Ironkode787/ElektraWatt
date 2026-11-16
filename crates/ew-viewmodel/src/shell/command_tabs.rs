@@ -85,6 +85,42 @@ impl ShellModel {
         out
     }
 
+    /// On a bus-topology page in front, the stations and bus devices of the project with a bus interface that page
+    /// does not draw yet, with their tags, in natural order of the tag: what Put a station on this page lists (rc.2).
+    /// With `part`, only the PLC stations of that part copy (the device browser placing it asks first). Empty on any
+    /// other page.
+    pub(crate) fn stations_off_page(
+        &self,
+        part: Option<ew_api::output::Uuid>,
+    ) -> Vec<(ew_api::output::Uuid, String)> {
+        let Some(session) = self.project_session() else {
+            return Vec::new();
+        };
+        let Some(folio) = self
+            .page_rows()
+            .get(self.page_index())
+            .filter(|r| r.kind == "bus_topology")
+            .map(|r| r.folio.clone())
+        else {
+            return Vec::new();
+        };
+        let mut out: Vec<(ew_api::output::Uuid, String)> = session
+            .query()
+            .devices()
+            .iter()
+            .filter(|(_, d)| {
+                part.is_none_or(|part| {
+                    d.aspects.plc_station.is_some() && d.parts.iter().any(|u| u.part.copy.as_uuid() == part)
+                })
+            })
+            .map(|(id, _)| id.as_uuid())
+            .filter(|id| !session.undrawn_interfaces(*id, &folio).is_empty())
+            .map(|id| (id, session.device_tag(id).unwrap_or_default()))
+            .collect();
+        out.sort_by(|a, b| super::natural_cmp(&a.1, &b.1));
+        out
+    }
+
     /// `bus.place_port {device, port}`: Place port of a port not drawn yet, on a bus-topology page.
     pub(crate) fn act_bus_place_port(&mut self, p: &Map<String, Value>) -> Outcome {
         let get = |name: &str| match string_param(p, name) {

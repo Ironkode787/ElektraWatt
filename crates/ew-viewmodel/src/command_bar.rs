@@ -686,11 +686,14 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -
             items.extend(item("layout.reset_labels"));
         }
         // A schematic page offers New station… (F18 of the rc.1 test: the rack comes first).
-        if matches!(
-            model.page_rows().get(model.page_index()).map(|r| r.kind.as_str()),
-            Some("multi_line" | "single_line")
-        ) {
+        let kind = model.page_rows().get(model.page_index()).map(|r| r.kind.as_str());
+        if matches!(kind, Some("multi_line" | "single_line")) {
             items.extend(item("plc.new_station"));
+        }
+        // A bus-topology page offers Put a station on this page… (rc.2 persona run: the CPU drawn with its cards had no
+        // way onto it), greyed with its reason when every station is on it.
+        if kind == Some("bus_topology") {
+            items.extend(item("bus.put_station"));
         }
         return items;
     }

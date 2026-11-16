@@ -157,7 +157,8 @@ pub enum Submenu {
     SymbolPolicy,
     /// PLC, Lists, Import instrument list: one item per configuration project.
     InstrumentList,
-    /// PLC, Bus, Place port: one item per port the Bus panel lists as not drawn yet.
+    /// PLC, Bus, Place port: Put a station on this page with one item per station or bus device the bus page does not
+    /// draw yet, then one item per port the Bus panel lists as not drawn yet.
     BusPorts,
 }
 
@@ -706,6 +707,19 @@ fn wire_page(m: &ShellModel) -> Result<(), Key<'static>> {
     m.wire_kind().map(|_| ())
 }
 
+/// An editable bus-topology page that does not draw a station or bus device of the project yet (Put a station on this
+/// page…, rc.2).
+fn put_station_page(m: &ShellModel) -> Result<(), Key<'static>> {
+    editable_page(m)?;
+    if m.page_rows().get(m.page_index()).map(|r| r.kind.as_str()) != Some("bus_topology") {
+        return Err(key!("reason-put-station-bus-page"));
+    }
+    if m.stations_off_page(None).is_empty() {
+        return Err(key!("reason-no-station-off-page"));
+    }
+    Ok(())
+}
+
 /// An editable fluid page (Draw ▸ Fluid line…).
 fn fluid_page(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
@@ -798,6 +812,10 @@ pub fn enabled_with(
     // A Cables row's Cable… selects its cable's wires itself (FT-1693).
     if meta.id == "cable.from_wires" && p.contains_key("cable") {
         return writable_page(m);
+    }
+    // A station named (a menu's row, a row dropped on the page) is refused by the action in words of its own.
+    if meta.id == "bus.put_station" && p.contains_key("station") {
+        return editable_page(m);
     }
     // A valve terminal's row names its terminal.
     if meta.id == "fluid.generate_overview" && p.contains_key("station") {
@@ -1928,12 +1946,30 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
                 key!("reason-no-config-project"),
             )
         }
-        // On a bus-topology page, the ports the Bus panel lists as not drawn yet.
+        // Put a station on this page: on a bus-topology page the stations and bus devices it does not draw yet, each put
+        // there whole (rc.2), else the entry greyed with its reason; then the ports the Bus panel lists as not drawn yet.
         Submenu::BusPorts => {
+            let mut items = Vec::new();
+            if let Some(put) = metas.iter().find(|m| m.id == "bus.put_station") {
+                let stations = model.stations_off_page(None);
+                if stations.is_empty() {
+                    items.push(item_of(put, model));
+                } else {
+                    items.push(heading_item(put, model, key!("submenu-bus-stations")));
+                    items.extend(stations.into_iter().map(|(id, tag)| {
+                        let mut item = item_of(put, model);
+                        item.label = tag;
+                        item.params = json!({ "station": id.to_string() });
+                        item
+                    }));
+                    items.push(heading_item(meta, model, key!("submenu-bus-one-port")));
+                }
+            }
             let bus_page =
                 model.page_rows().get(model.page_index()).map(|r| r.kind.as_str()) == Some("bus_topology");
             if !bus_page {
-                return nothing_item(meta, model, key!("reason-port-bus-page"));
+                items.extend(nothing_item(meta, model, key!("reason-port-bus-page")));
+                return items;
             }
             let table = model
                 .project_session()
@@ -1942,7 +1978,13 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
                 let (device, port) = crate::shell::undrawn_port(&n.key)?;
                 Some((n.label.clone(), json!({ "device": device, "port": port })))
             });
-            target_items(meta, model, ports.collect(), key!("reason-no-undrawn-port"))
+            items.extend(target_items(
+                meta,
+                model,
+                ports.collect(),
+                key!("reason-no-undrawn-port"),
+            ));
+            items
         }
         Submenu::MinFont => {
             let current = model.settings().min_font_pt;

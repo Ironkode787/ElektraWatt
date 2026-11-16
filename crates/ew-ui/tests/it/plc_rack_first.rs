@@ -406,7 +406,7 @@ fn a_bus_page_says_its_steps_and_a_box_its_addresses() {
     dispatch(&mut h, "select.set", json!({"ids": []}));
     settle(&mut h);
     let prompt = ew_ui::ew_viewmodel::command_bar::hud(h.state().shell()).prompt;
-    assert!(prompt.starts_with("1 Place the stations"), "{prompt}");
+    assert!(prompt.starts_with("1 Put the stations here"), "{prompt}");
     let rep = h
         .state()
         .shell()
@@ -849,6 +849,103 @@ fn the_new_station_dialog_fits_at_1920() {
     assert!(
         add.top() >= 0.0 && add.bottom() <= create.top(),
         "Add module… {add:?} is out of sight above Create {create:?}"
+    );
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// A station of kind `kind` with head part `head` made in the new-station dialog and drawn nowhere; the dialog closed.
+fn made_station(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>, kind: &str, head: &str) -> Uuid {
+    dispatch(h, "plc.new_station", json!({}));
+    dispatch(h, "plc.rack_set", json!({"kind": kind, "head": head}));
+    settle(h);
+    support::menu_node(h, "Create").click();
+    settle(h);
+    let station = match h.state().shell().dialog() {
+        Some(Dialog::Rack { station: Some(s), .. }) => *s,
+        other => panic!("{other:?}"),
+    };
+    dispatch(h, "ui.dismiss", json!({}));
+    settle(h);
+    station
+}
+
+/// The Put a station on this page form that is open: its choices (value, words) and the one chosen.
+fn put_station_form(h: &egui_kittest::Harness<'static, ew_ui::app::App>) -> (Vec<(String, String)>, String) {
+    match h.state().shell().dialog() {
+        Some(Dialog::Form(f)) if f.action == "bus.put_station" => {
+            let field = &f.fields[0];
+            (field.options.clone(), field.value.clone())
+        }
+        other => panic!("no Put a station form: {other:?}"),
+    }
+}
+
+/// Two corners of a box on the page shown, then the name of the tool in front.
+fn two_corners(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>) -> String {
+    crate::navigators::cursor_k(h, (10, 10));
+    dispatch(h, "canvas.activate", json!({}));
+    crate::navigators::cursor_k(h, (18, 16));
+    dispatch(h, "canvas.activate", json!({}));
+    settle(h);
+    h.state().shell().tool().name().to_owned()
+}
+
+/// The rc.2 persona run re-test: his CPU stood on a schematic page and he wanted it on the bus page. Placing its part
+/// from the device browser there asks first, "Put <station> here" chosen, or "A new station"; Put here draws the station
+/// the project has, a box for each interface, and the tool gives way instead of taking it again. The Black box tool on
+/// the bus page then offers the station still missing there, not the one placed last.
+#[test]
+fn a_station_the_project_has_is_put_on_the_bus_page_not_made_again() {
+    let tmp = Tmp::new();
+    let mut h = new_project(&tmp);
+    let cpu = made_station(&mut h, "cpu", "EW-GEN-CPU-2");
+    let terminal = made_station(&mut h, "valve_terminal", "EW-GEN-VTM-2");
+    dispatch(
+        &mut h,
+        "page.new",
+        json!({"folio": "900", "type": "bus_topology", "title": "Field bus"}),
+    );
+    dispatch(&mut h, "page.goto", json!({"folio": "900"}));
+    settle(&mut h);
+
+    // The part of the CPU placed as the device browser places it: asked first, the CPU chosen, the terminal (another
+    // part) not offered.
+    dispatch(&mut h, "place.pick", json!({"part": "EW-GEN-CPU-2"}));
+    settle(&mut h);
+    let (choices, chosen) = put_station_form(&h);
+    assert_eq!(chosen, cpu.to_string(), "{choices:?}");
+    assert!(
+        choices.iter().any(|(v, w)| v == "new" && w == "A new station"),
+        "{choices:?}"
+    );
+    assert!(
+        !choices.iter().any(|(v, _)| *v == terminal.to_string()),
+        "{choices:?}"
+    );
+    // "A new station" places the part as before, a new device.
+    dispatch(&mut h, "bus.put_station", json!({"station": "new"}));
+    settle(&mut h);
+    assert!(h.state().shell().dialog().is_none());
+    assert_eq!(h.state().shell().tool().name(), "black_box");
+    dispatch(&mut h, "tool.select", json!({}));
+    // Asked again, Put here.
+    dispatch(&mut h, "place.pick", json!({"part": "EW-GEN-CPU-2"}));
+    settle(&mut h);
+    put_station_form(&h);
+    support::menu_node(&h, "Put here").click();
+    settle(&mut h);
+    let tool = two_corners(&mut h);
+    assert_eq!(topology_boxes(&h, cpu), 2, "the CPU the project has, DP and X1");
+    assert_eq!(tool, "select", "the tool does not take the CPU again");
+
+    // The Black box tool on the bus page offers what is not on it yet: the terminal, not the CPU.
+    dispatch(&mut h, "tool.black_box", json!({}));
+    settle(&mut h);
+    let (choices, chosen) = put_station_form(&h);
+    assert_eq!(chosen, terminal.to_string(), "{choices:?}");
+    assert!(
+        !choices.iter().any(|(v, _)| *v == cpu.to_string()),
+        "{choices:?}"
     );
     h.state_mut().shell_mut().shutdown();
 }

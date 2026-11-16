@@ -30,15 +30,16 @@ fn button(s: &ShellModel, tab: Tab, id: &str) -> CommandButton {
 
 /// Every command of the PLC, bus and fluid power that a person starts by hand has a button on the PLC or the Fluid
 /// tab; the settings of one module, one channel or one fluid line, and a bus device given to a PLC, stay on that
-/// thing's own menu. The exchange with PLC
+/// thing's own menu, and Put a station on this page heads the list of Place port's button. The exchange with PLC
 /// software moved from Output to PLC, and each tab ends with its workspace and its guide.
 #[test]
 fn every_plc_and_fluid_command_has_a_button_on_its_tab() {
-    const ROW_ONLY: [&str; 4] = [
+    const ROW_ONLY: [&str; 5] = [
         "plc.module_safety",
         "plc.channel_settings",
         "fluid.set_medium",
         "plc.add_to_plc",
+        "bus.put_station",
     ];
     for a in ACTIONS.iter().filter(|a| !a.hidden && !a.headless_only) {
         let discipline = ["plc.", "bus.", "fluid."].iter().any(|p| a.id.starts_with(p))

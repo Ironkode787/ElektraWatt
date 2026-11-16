@@ -154,6 +154,9 @@ pub(crate) struct ToolHost {
     pub ip_memory: IpMemory,
     /// `tool.black_box` is choosing: a row that is no black box is refused.
     pub black_box_pick: bool,
+    /// The station part the device browser was placing on a bus page when Put a station on this page asked first:
+    /// its copy and the letter given; "A new station" places it (rc.2).
+    pub put_station_part: Option<(ew_api::output::Uuid, Option<String>)>,
     /// The grips overlay of a selected black box the host set last: cleared while the overlay is it.
     pub grips: Option<Overlay>,
     /// Whether the active tool got a primary press whose release has not come yet.
@@ -272,6 +275,7 @@ impl ToolHost {
             row_steps: None,
             ip_memory: IpMemory::default(),
             black_box_pick: false,
+            put_station_part: None,
             grips: None,
             press_held: false,
             drop_release: false,

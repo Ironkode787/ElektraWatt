@@ -179,6 +179,14 @@ static VALVE_TERMINAL: Spec = Spec {
     fields: &[field("terminal", key!("form-valve-terminal"))],
 };
 
+/// Put a station on this page (rc.2): on a bus-topology page, which station or bus device of the project the page does
+/// not draw yet ("Put -1A1 here"), or a new one.
+static PUT_STATION: Spec = Spec {
+    action: "bus.put_station",
+    title_key: key!("put-station-title"),
+    fields: &[field("station", key!("form-put-station"))],
+};
+
 /// The usual media New medium… starts from (rc.2, F26), each with its usual nominal pressure in bar (gauge: a vacuum
 /// below the atmosphere); its name is the text `medium-preset-<word>`.
 const MEDIUM_PRESETS: &[(&str, &str)] = &[
@@ -1352,6 +1360,136 @@ impl ShellModel {
             return self.act_discipline_picker(crate::tools::PickerMode::Parts, "ValveTerminalNode");
         }
         self.dispatch("fluid.draw_terminal", &json!({ "terminal": terminal }))
+    }
+
+    /// `bus.put_station {station?, x_mm?, y_mm?, group?}` (Put a station on this page…, rc.2): on a bus-topology page,
+    /// every interface of the station or bus device `station` (its tag or ID) that the page does not draw yet, a box
+    /// each, as the rack's Put it on a bus page puts it: on the pointer, or at the sheet point `x_mm`, `y_mm` (a row
+    /// dropped on the page). `new` places what the asking placement waited with (a part from the device browser), else
+    /// opens the black-box picker. Without `station` the window asks which.
+    pub(crate) fn act_bus_put_station(&mut self, p: &Map<String, Value>) -> Outcome {
+        let station = match text_param(p, "station") {
+            Ok(t) => t,
+            Err(e) => return e,
+        };
+        if self.page_rows().get(self.page_index()).map(|r| r.kind.as_str()) != Some("bus_topology") {
+            return Outcome::refused(key!("reason-put-station-bus-page"));
+        }
+        if station.is_empty() {
+            if self.stations_off_page(None).is_empty() {
+                return Outcome::refused(key!("reason-no-station-off-page"));
+            }
+            if self.mode == Mode::Headless {
+                return failed(key!("error-missing-param"), &["station"]);
+            }
+            return self.ask_put_station(None);
+        }
+        let _ = self.form_done(PUT_STATION.action, Outcome::Done);
+        let pending = self.tools.put_station_part.take();
+        if station == "new" {
+            let Some((part, letter)) = pending else {
+                return self.act_open_picker(crate::tools::PickerMode::BlackBox);
+            };
+            let Some(cat) = self.catalogue() else {
+                return Outcome::refused(key!("reason-no-catalogue"));
+            };
+            let Some(pi) = cat.parts.iter().position(|r| r.copy == part) else {
+                return Outcome::refused(key!("reason-unknown-symbol"));
+            };
+            return self.arm_part_ports(&cat, pi, letter);
+        }
+        let device = match self.join_device_ref(&station) {
+            Ok(id) => id,
+            Err(reason) => return failed(key!("error-join-device"), &[&station, &reason]),
+        };
+        let out = self.put_station_here(device);
+        // A drop: the boxes' first corner at the drop point and the opposite one a little below to the right (the boxes
+        // grow to hold their sockets).
+        let (Some(x), Some(y)) = (
+            p.get("x_mm").and_then(Value::as_f64),
+            p.get("y_mm").and_then(Value::as_f64),
+        ) else {
+            return out;
+        };
+        if out != Outcome::Done {
+            return out;
+        }
+        for (dx, dy) in [(0.0, 0.0), (40.0, 24.0)] {
+            let mut corner = p.clone();
+            corner.remove("station");
+            corner.insert("x_mm".into(), json!(x + dx));
+            corner.insert("y_mm".into(), json!(y + dy));
+            for release in [false, true] {
+                let out = self.act_press(&corner, release);
+                if out != Outcome::Done {
+                    return out;
+                }
+            }
+        }
+        Outcome::Done
+    }
+
+    /// Arms the black box tool with every interface of `device` that the bus-topology page in front does not draw yet,
+    /// a box each; a device without a bus interface, or with all of them drawn there, is refused in words.
+    pub(super) fn put_station_here(&mut self, device: ew_api::output::Uuid) -> Outcome {
+        let folio = self.current_folio().unwrap_or_default().to_owned();
+        let Some((tag, bus, interfaces)) = self.project_session().map(|s| {
+            (
+                s.device_tag(device).unwrap_or_default(),
+                s.has_bus_interfaces(device),
+                s.undrawn_interfaces(device, &folio),
+            )
+        }) else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        if !bus {
+            return Outcome::Failed {
+                message: strings::format(key!("rack-no-bus-interface"), &[&tag]),
+            };
+        }
+        if interfaces.is_empty() {
+            return Outcome::Failed {
+                message: strings::format(key!("rack-bus-drawn"), &[&tag, &folio]),
+            };
+        }
+        let Some(cat) = self.catalogue() else {
+            return Outcome::refused(key!("reason-no-catalogue"));
+        };
+        let labels: Vec<&str> = interfaces.iter().map(|i| i.label.as_str()).collect();
+        let label = format!("{tag} {}", labels.join(", "));
+        let target = json!({"device": {"device": device.to_string()}});
+        self.arm_ports(&cat, target, label, &interfaces, None)
+    }
+
+    /// The form Put a station on this page: "Put -1A1 here" for each station or bus device the bus page does not draw
+    /// yet (with `pending`, each PLC station of its part copy), the first chosen, then "A new station". `pending` is the
+    /// placement that asked (the part and the letter given), which "A new station" goes on with.
+    pub(super) fn ask_put_station(
+        &mut self,
+        pending: Option<(ew_api::output::Uuid, Option<String>)>,
+    ) -> Outcome {
+        let offered = self.stations_off_page(pending.as_ref().map(|(part, _)| *part));
+        self.tools.put_station_part = pending;
+        let out = self.open_dialog(Dialog::Form(PUT_STATION.dialog(&Map::new())));
+        if let Some(Dialog::Form(form)) = &mut self.dialog
+            && form.action == PUT_STATION.action
+        {
+            form.ok_key = key!("dialog-put-station");
+            if let Some(f) = form.fields.iter_mut().find(|f| f.name == "station") {
+                f.options = offered
+                    .iter()
+                    .map(|(id, tag)| (id.to_string(), strings::format(key!("put-station-here"), &[tag])))
+                    .chain([(
+                        "new".to_owned(),
+                        strings::text(key!("put-station-new")).to_owned(),
+                    )])
+                    .collect();
+                f.value = offered
+                    .first()
+                    .map_or_else(|| "new".to_owned(), |(id, _)| id.to_string());
+            }
+        }
+        out
     }
 
     /// The project settings member `member` as JSON (`Value::Null` when absent).

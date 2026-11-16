@@ -32,6 +32,19 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
+    // Put a station on this page… (rc.2): its stations head Place port's list; the bus page's own menu has it.
+    with_params(
+        "station?:text, x_mm?:mm, y_mm?:mm, group?:uint",
+        act(
+            "bus.put_station",
+            Command,
+            Menu::Plc,
+            &[],
+            put_station_page,
+            sub(Menu::Plc, Submenu::BusPorts, false),
+            |s, p| s.act_bus_put_station(p),
+        ),
+    ),
     placed(
         place(Group::Bus, 3, CommandSize::Small, None),
         "topology-bus",

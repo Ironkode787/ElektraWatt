@@ -978,13 +978,7 @@ impl ShellModel {
                 if opened != Outcome::Done {
                     return opened;
                 }
-                let Some(cat) = self.catalogue() else {
-                    return Outcome::refused(key!("reason-no-catalogue"));
-                };
-                let labels: Vec<&str> = interfaces.iter().map(|i| i.label.as_str()).collect();
-                let label = format!("{tag} {}", labels.join(", "));
-                let target = json!({"device": {"device": station.to_string()}});
-                self.arm_ports(&cat, target, label, &interfaces, None)
+                self.put_station_here(station)
             }
             Ok(_) => failed(key!("error-bad-param"), &["step"]),
             Err(e) => e,

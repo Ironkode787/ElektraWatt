@@ -633,14 +633,20 @@ impl ShellModel {
                 }
                 // A box one click places (a valve terminal's positions, a plug's pins) is one box: the tool gives way
                 // to Select too (rc.2: a second click placed a second terminal on the first).
-                let one_click = self
+                // So does a station put on a bus page: its interfaces are all drawn there now, and the tool kept taking
+                // it ("-3A1 DP is drawn on this page already", the rc.2 persona run).
+                let gives_way = self
                     .tools
                     .tool
                     .as_any_mut()
                     .and_then(|t| t.downcast_ref::<crate::tools::black_box::BlackBoxTool>())
-                    .is_some_and(crate::tools::black_box::BlackBoxTool::one_click);
+                    .is_some_and(|t| {
+                        t.one_click()
+                            || matches!(t.target(), crate::tools::BoxTarget::Ports { target, .. }
+                                if target.get("device").is_some())
+                    });
                 if out == Outcome::Done
-                    && (self.tools.tool.name() == "layout_place" || one_click)
+                    && (self.tools.tool.name() == "layout_place" || gives_way)
                     && let Some(select) = tool_named("select")
                 {
                     self.tools.tool = select;

@@ -842,10 +842,15 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // The black box tool (§9.4, §9.5)
 
-    /// `tool.black_box` (B): without parameters the picker on the black-box rows; with `place.pick`'s parameters the
-    /// black box tool is armed at once (a row that is no black box is refused).
+    /// `tool.black_box` (B): without parameters the picker on the black-box rows; on a bus-topology page where a
+    /// station or a bus device of the project is not drawn yet, first the choice of Put a station on this page (rc.2
+    /// persona run: the tool kept taking the station placed last); with `place.pick`'s parameters the black box tool is
+    /// armed at once (a row that is no black box is refused).
     pub(crate) fn act_tool_black_box(&mut self, p: &Map<String, Value>) -> Outcome {
         if !p.contains_key("symbol") && !p.contains_key("part") {
+            if self.mode == super::Mode::Gui && !self.stations_off_page(None).is_empty() {
+                return self.ask_put_station(None);
+            }
             return self.act_open_picker(PickerMode::BlackBox);
         }
         self.tools.black_box_pick = true;
