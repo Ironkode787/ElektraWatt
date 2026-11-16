@@ -43,83 +43,95 @@ msgstr "Een QElectroTech-project importeren"
 msgid "Draw a six-pin power block"
 msgstr "Een voedingsblok met zes aansluitingen tekenen"
 
-#: src/SUMMARY.md:14 src/SUMMARY.md:16 src/how-to/index.md:1
+#: src/SUMMARY.md:13 src/tutorials/plc-station.md:1
+msgid "A PLC with its modules"
+msgstr "Een PLC met zijn modules"
+
+#: src/SUMMARY.md:14 src/tutorials/bus-network.md:1
+msgid "A bus network"
+msgstr "Een busnetwerk"
+
+#: src/SUMMARY.md:15 src/tutorials/pneumatic-circuit.md:1
+msgid "A pneumatic circuit"
+msgstr "Een pneumatisch schema"
+
+#: src/SUMMARY.md:17 src/SUMMARY.md:19 src/how-to/index.md:1
 msgid "How-to guides"
 msgstr ""
 
-#: src/SUMMARY.md:17 src/how-to/install.md:1
+#: src/SUMMARY.md:20 src/how-to/install.md:1
 msgid "Install ElektraWatt"
 msgstr ""
 
-#: src/SUMMARY.md:18 src/how-to/application-window.md:1
+#: src/SUMMARY.md:21 src/how-to/application-window.md:1
 msgid "Use the application window"
 msgstr ""
 
-#: src/SUMMARY.md:19 src/how-to/text-interface.md:1
+#: src/SUMMARY.md:22 src/how-to/text-interface.md:1
 msgid "Draw a page from the text interface"
 msgstr ""
 
-#: src/SUMMARY.md:20 src/how-to/headless-workflow.md:1
+#: src/SUMMARY.md:23 src/how-to/headless-workflow.md:1
 msgid "Use the command line on the golden project"
 msgstr "De opdrachtregel gebruiken op het referentieproject"
 
-#: src/SUMMARY.md:21 src/how-to/define-supply-potential.md:1
+#: src/SUMMARY.md:24 src/how-to/define-supply-potential.md:1
 msgid "Define a supply potential"
 msgstr ""
 
-#: src/SUMMARY.md:22 src/how-to/choose-parts.md:1
+#: src/SUMMARY.md:25 src/how-to/choose-parts.md:1
 msgid "Choose parts"
 msgstr ""
 
-#: src/SUMMARY.md:23 src/how-to/panel-layout.md:1
+#: src/SUMMARY.md:26 src/how-to/panel-layout.md:1
 msgid "Draw a panel layout"
 msgstr ""
 
-#: src/SUMMARY.md:24 src/how-to/plc-workspace.md:1
+#: src/SUMMARY.md:27 src/how-to/plc-workspace.md:1
 msgid "Work in the PLC workspace"
 msgstr ""
 
-#: src/SUMMARY.md:25 src/how-to/own-parts.md:1
+#: src/SUMMARY.md:28 src/how-to/own-parts.md:1
 msgid "Make your own PLC or bus part"
 msgstr ""
 
-#: src/SUMMARY.md:26 src/how-to/fluid-workspace.md:1
+#: src/SUMMARY.md:29 src/how-to/fluid-workspace.md:1
 msgid "Work in the Fluid workspace"
 msgstr ""
 
-#: src/SUMMARY.md:27 src/how-to/upgrade-a-project.md:1
+#: src/SUMMARY.md:30 src/how-to/upgrade-a-project.md:1
 msgid "Upgrade a project"
 msgstr ""
 
-#: src/SUMMARY.md:29 src/SUMMARY.md:31 src/reference/index.md:1
+#: src/SUMMARY.md:32 src/SUMMARY.md:34 src/reference/index.md:1
 msgid "Reference"
 msgstr ""
 
-#: src/SUMMARY.md:32 src/reference/window/tools.md:1
+#: src/SUMMARY.md:35 src/reference/window/tools.md:1
 msgid "Tools"
 msgstr ""
 
-#: src/SUMMARY.md:33 src/reference/window/dialogs.md:1
+#: src/SUMMARY.md:36 src/reference/window/dialogs.md:1
 msgid "Dialogs"
 msgstr ""
 
-#: src/SUMMARY.md:34 src/reference/window/panels.md:1
+#: src/SUMMARY.md:37 src/reference/window/panels.md:1
 msgid "Panels"
 msgstr ""
 
-#: src/SUMMARY.md:35 src/reference/symbol-editor.md:1
+#: src/SUMMARY.md:38 src/reference/symbol-editor.md:1
 msgid "Symbol editor and automated authoring"
 msgstr ""
 
-#: src/SUMMARY.md:37 src/SUMMARY.md:39 src/explanation/index.md:1
+#: src/SUMMARY.md:40 src/SUMMARY.md:42 src/explanation/index.md:1
 msgid "Explanation"
 msgstr ""
 
-#: src/SUMMARY.md:40 src/explanation/eplan-and-ew.md:1
+#: src/SUMMARY.md:43 src/explanation/eplan-and-ew.md:1
 msgid "EPLAN and EW"
 msgstr ""
 
-#: src/SUMMARY.md:41 src/explanation/qet-and-ew.md:1
+#: src/SUMMARY.md:44 src/explanation/qet-and-ew.md:1
 msgid "QElectroTech and EW"
 msgstr ""
 
@@ -266,6 +278,18 @@ msgstr ""
 
 #: src/introduction.md:35
 msgid ""
+"**PLCs, bus systems and pneumatics:** the tutorials [A PLC with its "
+"modules](tutorials/plc-station.md), [A bus "
+"network](tutorials/bus-network.md) and [A pneumatic "
+"circuit](tutorials/pneumatic-circuit.md)."
+msgstr ""
+"**PLC's, bussystemen en pneumatiek:** de zelfstudies [Een PLC met zijn "
+"modules](tutorials/plc-station.md), [Een "
+"busnetwerk](tutorials/bus-network.md) en [Een pneumatisch "
+"schema](tutorials/pneumatic-circuit.md)."
+
+#: src/introduction.md:37
+msgid ""
 "**A task at hand:** the how-to guides, among them [Choose "
 "parts](how-to/choose-parts.md), [Draw a panel "
 "layout](how-to/panel-layout.md) and [Upgrade a "
@@ -276,7 +300,7 @@ msgstr ""
 "tekenen](how-to/panel-layout.md) en [Een project "
 "omzetten](how-to/upgrade-a-project.md)."
 
-#: src/introduction.md:37
+#: src/introduction.md:39
 msgid ""
 "**A fact to look up:** the [rule reference](reference/rules/index.md), with "
 "a page per check rule; the window's [tools](reference/window/tools.md), "
@@ -291,7 +315,7 @@ msgstr ""
 "[panelen](reference/window/panels.md) van het venster; en de [release "
 "notes](reference/release-notes/index.md) van elke release."
 
-#: src/introduction.md:40
+#: src/introduction.md:42
 msgid ""
 "**Coming from another program:** [EPLAN and EW](explanation/eplan-and-ew.md) "
 "and [QElectroTech and EW](explanation/qet-and-ew.md) relate the concepts you "
@@ -302,11 +326,11 @@ msgstr ""
 "EW](explanation/qet-and-ew.md) zetten de begrippen die u kent naast die van "
 "EW."
 
-#: src/introduction.md:43
+#: src/introduction.md:45
 msgid "What the guide does not contain"
 msgstr "Wat de gids niet bevat"
 
-#: src/introduction.md:45
+#: src/introduction.md:47
 msgid ""
 "The design documents, the architecture decision records and the work plan "
 "stay in the repository, next to the code they describe. This guide links to "
@@ -318,11 +342,11 @@ msgstr ""
 "neemt ze niet over. Begin bij het "
 "[documentatieoverzicht](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/README.md)."
 
-#: src/introduction.md:49
+#: src/introduction.md:51
 msgid "Offline use"
 msgstr "Offline gebruik"
 
-#: src/introduction.md:51
+#: src/introduction.md:53
 msgid ""
 "The guide builds without network access and is meant to be bundled with the "
 "application, so that the help works without a connection. Pages that link to "
@@ -333,11 +357,11 @@ msgstr ""
 "Pagina's die naar de repository verwijzen, hebben een verbinding nodig om "
 "die links te volgen."
 
-#: src/introduction.md:54
+#: src/introduction.md:56
 msgid "Sample data"
 msgstr "Voorbeeldgegevens"
 
-#: src/introduction.md:56
+#: src/introduction.md:58
 msgid ""
 "Every example uses the anonymised golden project (`golden/J-E-2416`, licence "
 "CC0-1.0). It holds placeholders where a real project would name a customer, "
@@ -352,20 +376,28 @@ msgstr ""
 
 #: src/tutorials/index.md:3
 msgid ""
-"A tutorial is a lesson. It takes you through one complete task, with every "
-"step spelled out and a visible result at the end, so that you learn how the "
-"parts of EW fit together by using them. You do not need to understand why a "
-"step works to do it; the [explanation](../explanation/index.md) section and "
-"the [reference](../reference/index.md) say why and what exactly."
+"A tutorial is a lesson you follow once, from start to end, to learn how EW "
+"works; a [how-to guide](../how-to/index.md) is where you look up one job "
+"later, when you know what you want to do."
 msgstr ""
-"Een zelfstudie is een les. Ze neemt u mee door één volledige taak, met elke "
-"stap uitgeschreven en aan het eind een zichtbaar resultaat, zodat u door te "
-"doen leert hoe de onderdelen van EW samenhangen. U hoeft niet te begrijpen "
-"waarom een stap werkt om hem uit te voeren; de onderdelen "
+"Een zelfstudie is een les die u één keer van begin tot eind volgt om te "
+"leren hoe EW werkt; in een [handleiding](../how-to/index.md) zoekt u later "
+"één taak op, als u weet wat u wilt doen."
+
+#: src/tutorials/index.md:6
+msgid ""
+"A tutorial takes you through one complete task, with every step spelled out "
+"and a visible result at the end. You do not need to understand why a step "
+"works to do it; the [explanation](../explanation/index.md) section and the "
+"[reference](../reference/index.md) say why and what exactly."
+msgstr ""
+"Een zelfstudie neemt u mee door één volledige taak, met elke stap "
+"uitgeschreven en aan het eind een zichtbaar resultaat. U hoeft niet te "
+"begrijpen waarom een stap werkt om hem uit te voeren; de onderdelen "
 "[uitleg](../explanation/index.md) en [naslag](../reference/index.md) zeggen "
 "waarom en wat precies."
 
-#: src/tutorials/index.md:8
+#: src/tutorials/index.md:10
 msgid ""
 "Each tutorial runs as a test of EW's own build, so its steps, menu paths and "
 "keys are the ones the program has."
@@ -373,11 +405,11 @@ msgstr ""
 "Elke zelfstudie draait als test van EW's eigen build, dus de stappen, "
 "menupaden en toetsen zijn die van het programma."
 
-#: src/tutorials/index.md:10 src/how-to/index.md:6
+#: src/tutorials/index.md:12 src/how-to/index.md:9
 msgid "Available now"
 msgstr "Nu beschikbaar"
 
-#: src/tutorials/index.md:12
+#: src/tutorials/index.md:14
 msgid ""
 "[A first schematic page with potentials](first-page.md): a new project, a "
 "transformer and two lamps placed and wired, the potentials named, the "
@@ -389,7 +421,7 @@ msgstr ""
 "benoemd, de navigator Potentialen en het paneel Meldingen gelezen. U hebt EW "
 "nodig en een lege map."
 
-#: src/tutorials/index.md:15
+#: src/tutorials/index.md:17
 msgid ""
 "[A terminal strip and a cable](terminal-strip-and-cable.md): on the project "
 "of the first tutorial, a terminal strip placed and wired on both sides, a "
@@ -403,13 +435,7 @@ msgstr ""
 "aders, de klemmenstrookeditor en de navigator Kabels gelezen. U hebt het "
 "project nodig dat u aan het eind van de eerste zelfstudie hebt opgeslagen."
 
-#: src/tutorials/index.md:18
-#, fuzzy
-#| msgid ""
-#| "[Reports and PDF](reports-and-pdf.md): on a copy of the sample project, its "
-#| "report pages read, a parts list and a terminal overview added, the project "
-#| "exported as one PDF and the print preview read. You need EW installed and an "
-#| "empty folder."
+#: src/tutorials/index.md:20
 msgid ""
 "[Reports and PDF](reports-and-pdf.md): on a copy of the sample project, its "
 "report pages read, a parts list and a terminal overview added, the project "
@@ -419,9 +445,10 @@ msgstr ""
 "[Rapporten en PDF](reports-and-pdf.md): op een kopie van het "
 "voorbeeldproject de rapportpagina's gelezen, een stuklijst en een "
 "klemmenoverzicht toegevoegd, het project als één PDF geëxporteerd en het "
-"afdrukvoorbeeld bekeken. U hebt EW nodig en een lege map."
+"afdrukvoorbeeld bekeken. U hebt EW nodig; de kopie komt in uw projectenmap, "
+"en een project dat u open hebt blijft open."
 
-#: src/tutorials/index.md:21
+#: src/tutorials/index.md:23
 msgid ""
 "[Importing a QElectroTech project](import-qet.md): a small QElectroTech "
 "project imported, its migration report read, its missing wire drawn and its "
@@ -435,7 +462,7 @@ msgstr ""
 "nog het verslag van de import bevat. U hebt EW nodig en het bestand "
 "[lamp-circuit.qet](files/lamp-circuit.qet) van de zelfstudie."
 
-#: src/tutorials/index.md:24
+#: src/tutorials/index.md:26
 msgid ""
 "[Draw a six-pin power block](symbol-editor.md): a power block drawn in the "
 "symbol editor, checked on the connection grid, its eight orientations "
@@ -447,7 +474,50 @@ msgstr ""
 "verbindingsraster, zijn acht oriëntaties bekeken, opgeslagen in een "
 "bibliotheek en getest op een nieuwe pagina. U hebt EW nodig en een lege map."
 
-#: src/tutorials/index.md:28
+#: src/tutorials/index.md:29
+msgid ""
+"[A PLC with its modules](plc-station.md): a CPU with an input and an output "
+"module made in the New station dialog and drawn on a page, a position switch "
+"and a lamp wired to channels, their addresses and symbols in the PLC grid, "
+"the PLC overview page and the export to PLC software. You need EW installed "
+"and an empty folder."
+msgstr ""
+"[Een PLC met zijn modules](plc-station.md): een CPU met een ingangs- en een "
+"uitgangsmodule, gemaakt in het venster Nieuw station en op een pagina "
+"getekend, een positieschakelaar en een lamp aangesloten op kanalen, hun "
+"adressen en symbolen in de PLC-tabel, de PLC-overzichtspagina en de export "
+"naar PLC-software. U hebt EW nodig en een lege map."
+
+#: src/tutorials/index.md:32
+msgid ""
+"[A bus network](bus-network.md): a bus-topology page with a CPU, a remote "
+"I/O station and a switch from the generic parts, the bus lines, the node "
+"addresses, a bus cable with its plugs, a frequency converter of your own "
+"made in the part editor, and the check. You need EW installed and an empty "
+"folder."
+msgstr ""
+"[Een busnetwerk](bus-network.md): een bustopologiepagina met een CPU, een "
+"decentraal I/O-station en een switch uit de generieke artikelen, de "
+"buslijnen, de adressen van de knooppunten, een buskabel met zijn stekkers, "
+"een eigen frequentieregelaar uit de artikeleditor, en de controle. U hebt EW "
+"nodig en een lege map."
+
+#: src/tutorials/index.md:35
+msgid ""
+"[A pneumatic circuit](pneumatic-circuit.md): a fluid page with an air supply "
+"and its medium, a service unit, a 5/2 solenoid valve and a double-acting "
+"cylinder with flow controls, the tubes, the valve's solenoid wired to a PLC "
+"output, a valve terminal with its positions filled, and the tube list. You "
+"need EW installed and an empty folder."
+msgstr ""
+"[Een pneumatisch schema](pneumatic-circuit.md): een fluïdumpagina met een "
+"persluchtvoeding en haar medium, een verzorgingseenheid, een "
+"5/2-magneetventiel en een dubbelwerkende cilinder met "
+"smoorterugslagventielen, de slangen, de magneetspoel van het ventiel "
+"aangesloten op een PLC-uitgang, een ventieleiland met gevulde posities, en "
+"de slangenlijst. U hebt EW nodig en een lege map."
+
+#: src/tutorials/index.md:39
 msgid ""
 "The `ew` command-line program has a how-to of its own: [Use the command line "
 "on the golden project](../how-to/headless-workflow.md)."
@@ -456,18 +526,17 @@ msgstr ""
 "opdrachtregel gebruiken op het "
 "referentieproject](../how-to/headless-workflow.md)."
 
-#: src/tutorials/index.md:31
+#: src/tutorials/index.md:42
 msgid "Planned"
 msgstr "Gepland"
 
-#: src/tutorials/index.md:33
+#: src/tutorials/index.md:44
 msgid ""
-"The documentation requirements (NFR-DOC-03) name the tutorials that follow "
-"at version 1.0: a PLC card with addressing, and 2D/3D layout with the wire "
-"list."
+"The documentation requirements (NFR-DOC-03) name the tutorial that follows "
+"at version 1.0: 2D/3D layout with the wire list."
 msgstr ""
-"De documentatie-eisen (NFR-DOC-03) noemen de zelfstudies die bij versie 1.0 "
-"volgen: een PLC-kaart met adressering, en 2D/3D-layout met de draadlijst."
+"De documentatie-eisen (NFR-DOC-03) noemen de zelfstudie die bij versie 1.0 "
+"volgt: 2D/3D-layout met de draadlijst."
 
 #: src/tutorials/first-page.md:3
 msgid ""
@@ -483,11 +552,11 @@ msgstr ""
 "leest wat EW over de schakeling weet. Aan het eind hebt u een opgeslagen "
 "project waarvan de controles geen fout tonen."
 
-#: src/tutorials/first-page.md:7 src/tutorials/terminal-strip-and-cable.md:8 src/tutorials/reports-and-pdf.md:7 src/tutorials/import-qet.md:8 src/tutorials/symbol-editor.md:8 src/how-to/install.md:7 src/how-to/define-supply-potential.md:7 src/how-to/choose-parts.md:7
+#: src/tutorials/first-page.md:7 src/tutorials/terminal-strip-and-cable.md:8 src/tutorials/reports-and-pdf.md:7 src/tutorials/import-qet.md:8 src/tutorials/symbol-editor.md:8 src/tutorials/plc-station.md:17 src/tutorials/bus-network.md:12 src/tutorials/pneumatic-circuit.md:11 src/how-to/install.md:7 src/how-to/define-supply-potential.md:7 src/how-to/choose-parts.md:7
 msgid "What you need"
 msgstr "Wat u nodig hebt"
 
-#: src/tutorials/first-page.md:9 src/tutorials/reports-and-pdf.md:9 src/tutorials/import-qet.md:10 src/tutorials/symbol-editor.md:10
+#: src/tutorials/first-page.md:9 src/tutorials/reports-and-pdf.md:9 src/tutorials/import-qet.md:10 src/tutorials/symbol-editor.md:10 src/tutorials/plc-station.md:19 src/tutorials/bus-network.md:14 src/tutorials/pneumatic-circuit.md:13
 msgid ""
 "ElektraWatt installed and started; see [Install "
 "ElektraWatt](../how-to/install.md)."
@@ -495,7 +564,7 @@ msgstr ""
 "ElektraWatt, geïnstalleerd en gestart; zie [ElektraWatt "
 "installeren](../how-to/install.md)."
 
-#: src/tutorials/first-page.md:10
+#: src/tutorials/first-page.md:10 src/tutorials/plc-station.md:20 src/tutorials/bus-network.md:15 src/tutorials/pneumatic-circuit.md:14
 msgid "An empty folder for the project, or a place where EW may create one."
 msgstr "Een lege map voor het project, of een plek waar EW er een mag maken."
 
@@ -504,7 +573,7 @@ msgid "Nothing else: the project starts from EW's built-in basic project."
 msgstr ""
 "Verder niets: het project begint bij het ingebouwde basisproject van EW."
 
-#: src/tutorials/first-page.md:14 src/tutorials/terminal-strip-and-cable.md:13 src/tutorials/reports-and-pdf.md:11 src/tutorials/import-qet.md:16 src/tutorials/symbol-editor.md:13 src/how-to/define-supply-potential.md:12
+#: src/tutorials/first-page.md:14 src/tutorials/terminal-strip-and-cable.md:13 src/tutorials/reports-and-pdf.md:11 src/tutorials/import-qet.md:16 src/tutorials/symbol-editor.md:13 src/tutorials/plc-station.md:22 src/tutorials/bus-network.md:17 src/tutorials/pneumatic-circuit.md:16 src/how-to/define-supply-potential.md:12
 msgid "Steps"
 msgstr "Stappen"
 
@@ -614,7 +683,7 @@ msgstr ""
 "Kies **Bestand ▸ Opslaan** (`Ctrl+S`). De titelbalk markeert het project "
 "niet meer als gewijzigd, en de statusbalk zegt Opgeslagen."
 
-#: src/tutorials/first-page.md:44 src/tutorials/terminal-strip-and-cable.md:49 src/tutorials/reports-and-pdf.md:39 src/tutorials/import-qet.md:56 src/tutorials/symbol-editor.md:42
+#: src/tutorials/first-page.md:44 src/tutorials/terminal-strip-and-cable.md:49 src/tutorials/reports-and-pdf.md:39 src/tutorials/import-qet.md:56 src/tutorials/symbol-editor.md:42 src/tutorials/plc-station.md:72 src/tutorials/bus-network.md:76 src/tutorials/pneumatic-circuit.md:99
 msgid "What you learnt"
 msgstr "Wat u hebt geleerd"
 
@@ -792,7 +861,7 @@ msgstr ""
 "van de transformator; de info's zeggen dat nog geen rapport de klemmenstrook "
 "of de kabel dekt."
 
-#: src/tutorials/terminal-strip-and-cable.md:46 src/tutorials/reports-and-pdf.md:36 src/tutorials/import-qet.md:53 src/tutorials/symbol-editor.md:39
+#: src/tutorials/terminal-strip-and-cable.md:46 src/tutorials/reports-and-pdf.md:36 src/tutorials/import-qet.md:53 src/tutorials/symbol-editor.md:39 src/tutorials/plc-station.md:69 src/tutorials/bus-network.md:73 src/tutorials/pneumatic-circuit.md:90
 msgid ""
 "Choose **File ▸ Save** (`Ctrl+S`). The title bar no longer marks the project "
 "as changed."
@@ -867,6 +936,14 @@ msgid ""
 "without one it opens here, and the banner says \"A fresh copy of the sample "
 "project was made for the tutorials.\""
 msgstr ""
+"Kies **Help ▸ Zelfstudies ▸ Rapporten en PDF**. De pagina van deze "
+"zelfstudie in de gebruikershandleiding opent meteen, en EW maakt een verse "
+"kopie van het voorbeeldproject in een nieuwe map onder `Tutorials` in uw "
+"projectenmap (`Documents`, `ElektraWatt`); een notificatie zegt dat, en "
+"**Tonen in map** toont hem. Met een open project opent de kopie in een "
+"tweede venster en blijft uw project open; zonder project opent hij hier, en "
+"de banner zegt dat er een verse kopie van het voorbeeldproject voor de "
+"zelfstudies is gemaakt."
 
 #: src/tutorials/reports-and-pdf.md:18
 msgid ""
@@ -886,14 +963,6 @@ msgstr ""
 "hem te bekijken."
 
 #: src/tutorials/reports-and-pdf.md:22
-#, fuzzy
-#| msgid ""
-#| "Choose **Output ▸ Report block…** (on the Output tab: **Report**). In the "
-#| "form, choose the report **Parts list**, keep or type the first folio `912`, "
-#| "type the title `Parts list`, and choose **Create**. The toast says \"Added "
-#| "the report block Parts list from folio 912\". The Pages navigator lists the "
-#| "new pages 912 to 912.3: the parts list device by device, where the Partlist "
-#| "on 901 sums the parts up."
 msgid ""
 "Choose **Output ▸ Report block…** (on the Page or the Output tab: "
 "**Report**). In the form, choose the report **Parts list**, keep or type the "
@@ -902,12 +971,12 @@ msgid ""
 "navigator lists the new pages 912 to 912.3: the parts list device by device, "
 "where the Partlist on 901 sums the parts up."
 msgstr ""
-"Kies **Uitvoer ▸ Rapportblok…** (op het tabblad Uitvoer: **Rapport**). Kies "
-"in het formulier het rapport **Stuklijst**, houd of typ het eerste folio "
-"`912`, typ de titel `Parts list` en kies **Maken**. De notificatie zegt "
-"\"Rapportblok Stuklijst toegevoegd vanaf folio 912\". De navigator Pagina's "
-"toont de nieuwe pagina's 912 tot en met 912.3: de stuklijst per apparaat, "
-"waar de Partlist op 901 de artikelen optelt."
+"Kies **Uitvoer ▸ Rapportblok…** (op het tabblad Pagina of Uitvoer: "
+"**Rapport**). Kies in het formulier het rapport **Stuklijst**, houd of typ "
+"het eerste folio `912`, typ de titel `Parts list` en kies **Maken**. De "
+"notificatie zegt \"Rapportblok Stuklijst toegevoegd vanaf folio 912\". De "
+"navigator Pagina's toont de nieuwe pagina's 912 tot en met 912.3: de "
+"stuklijst per apparaat, waar de Partlist op 901 de artikelen optelt."
 
 #: src/tutorials/reports-and-pdf.md:26
 msgid ""
@@ -1282,13 +1351,6 @@ msgstr ""
 "x = 4 mm."
 
 #: src/tutorials/symbol-editor.md:24
-#, fuzzy
-#| msgid ""
-#| "Choose **Text slot**. Add a **Pin designation** field beside each connection "
-#| "point, with that point's pin number, and a **Device tag** field above the "
-#| "body. The validation says **Ready to save**. FE is a printed designation: "
-#| "before you use the symbol, give the FE pin its electrical role under "
-#| "**Electrical data**, **Function definition**, and never confuse it with PE."
 msgid ""
 "Choose **Text slot**. Add a **Pin designation** field beside each connection "
 "point, with that point's pin number, and a **Device tag** field above the "
@@ -1301,8 +1363,8 @@ msgstr ""
 "**Aansluitcodering** toe, met het pinnummer van dat punt, en boven de "
 "behuizing een veld **Apparaatkenmerk**. De validatie zegt **Klaar om op te "
 "slaan**. FE is een gedrukte aanduiding: geef de FE-pin voordat u het symbool "
-"gebruikt zijn elektrische rol onder **Elektrische data**, "
-"**Functiedefinitie**, en verwar hem nooit met PE."
+"gebruikt zijn elektrische rol onder **Functie en aansluitpunten**, "
+"**Functie**, en verwar hem nooit met PE."
 
 #: src/tutorials/symbol-editor.md:28
 msgid ""
@@ -1315,12 +1377,6 @@ msgstr ""
 "richting met de tekening mee. Kies A om weer te bewerken."
 
 #: src/tutorials/symbol-editor.md:30
-#, fuzzy
-#| msgid ""
-#| "In **Electrical data**, under **Connection points**, change the first "
-#| "point's x to 4.5 mm. The validation says \"Connection point 1 is off the "
-#| "connection grid. Move it onto the grid before saving.\" Press `Ctrl+Z` to "
-#| "undo the change. Fine drawing coordinates, such as 0.5 mm, remain valid."
 msgid ""
 "In **Function and connection points**, under **Connection points**, change "
 "the first point's x to 4.5 mm. The validation says \"Connection point 1 is "
@@ -1328,11 +1384,11 @@ msgid ""
 "`Ctrl+Z` to undo the change. Fine drawing coordinates, such as 0.5 mm, "
 "remain valid."
 msgstr ""
-"Wijzig in **Elektrische data**, onder **Aansluitpunten**, de x van het "
-"eerste punt in 4,5 mm. De validatie zegt \"Aansluitpunt 1 ligt buiten het "
-"verbindingsraster. Verplaats het naar het raster voordat u opslaat.\" Druk "
-"op `Ctrl+Z` om de wijziging ongedaan te maken. Fijne tekencoördinaten, zoals "
-"0,5 mm, blijven geldig."
+"Wijzig in **Functie en aansluitpunten**, onder **Aansluitpunten**, de x van "
+"het eerste punt in 4,5 mm. De validatie zegt \"Aansluitpunt 1 ligt buiten "
+"het verbindingsraster. Verplaats het naar het raster voordat u opslaat.\" "
+"Druk op `Ctrl+Z` om de wijziging ongedaan te maken. Fijne tekencoördinaten, "
+"zoals 0,5 mm, blijven geldig."
 
 #: src/tutorials/symbol-editor.md:33
 msgid ""
@@ -1416,35 +1472,940 @@ msgstr ""
 "opnieuw. Zie de [naslag](../reference/symbol-editor.md) voor JSON, acties en "
 "importcompatibiliteit."
 
+#: src/tutorials/plc-station.md:3
+msgid ""
+"In this tutorial you draw a small PLC in a new project: a CPU with a digital "
+"input module and a digital output module (the window says _module_ for what "
+"you may call a card). A position switch on a door is wired to the first "
+"input and a pilot lamp to the first output; you give both their PLC symbols, "
+"add the PLC overview page and export the hardware for your PLC software. It "
+"takes about fifteen minutes."
+msgstr ""
+"In deze zelfstudie tekent u een kleine PLC in een nieuw project: een CPU met "
+"een digitale ingangsmodule en een digitale uitgangsmodule (het venster zegt "
+"_module_ voor wat u misschien een kaart noemt). Een positieschakelaar op een "
+"deur komt op de eerste ingang en een signaallamp op de eerste uitgang; u "
+"geeft beide hun PLC-symbool, voegt de PLC-overzichtspagina toe en exporteert "
+"de hardware voor uw PLC-software. Het duurt ongeveer een kwartier."
+
+#: src/tutorials/plc-station.md:8
+msgid "Three words of the program, in the trade's meaning:"
+msgstr "Drie woorden van het programma, in de betekenis van het vak:"
+
+#: src/tutorials/plc-station.md:10
+msgid ""
+"A **station** is a CPU or a remote I/O head with the modules it carries: "
+"what TIA Portal calls a device in its network view."
+msgstr ""
+"Een **station** is een CPU of een decentrale I/O-kop met de modules die hij "
+"draagt: wat TIA Portal in zijn netwerkweergave een apparaat noemt."
+
+#: src/tutorials/plc-station.md:12
+msgid ""
+"Its **rack** is the row of **slots** its modules sit in, numbered from 1. "
+"The slot order gives the addresses: the first input module starts at I0.0."
+msgstr ""
+"Zijn **rek** is de rij **slots** waarin zijn modules zitten, genummerd vanaf "
+"1. De volgorde van de slots geeft de adressen: de eerste ingangsmodule "
+"begint bij I0.0."
+
+#: src/tutorials/plc-station.md:14
+msgid ""
+"A **symbol** here is the PLC tag name of a channel, such as `Door_closed`, "
+"as in the PLC tag table; the drawing symbol of a device is another thing."
+msgstr ""
+"Een **symbool** is hier de PLC-tagnaam van een kanaal, zoals `Door_closed`, "
+"zoals in de PLC-tagtabel; het tekensymbool van een apparaat is iets anders."
+
+#: src/tutorials/plc-station.md:24
+msgid ""
+"Choose **File ▸ New project…** (`Ctrl+N`) and pick an empty folder named "
+"`plc-station.ew`. EW shows the new project's one empty page, folio 1."
+msgstr ""
+"Kies **Bestand ▸ Nieuw project…** (`Ctrl+N`) en wijs een lege map aan met de "
+"naam `plc-station.ew`. EW toont de ene lege pagina van het nieuwe project, "
+"folio 1."
+
+#: src/tutorials/plc-station.md:26
+msgid ""
+"Choose **Draw ▸ Place ▸ Device from part…** (`Shift+I`), or **Device** on "
+"the Draw tab, type `position switch`, choose **Position switch with one "
+"normally open contact** (EW-GEN-POS-1) and click near the top of the page, "
+"about a quarter from the left. Then choose **Draw ▸ Select** to put the tool "
+"away. The switch -1B1 is on the page, with its contact 13 at the top and 14 "
+"at the bottom."
+msgstr ""
+"Kies **Tekenen ▸ Plaatsen ▸ Apparaat uit artikel…** (`Shift+I`), of "
+"**Apparaat** op het tabblad Tekenen, typ `position switch`, kies **Position "
+"switch with one normally open contact** (EW-GEN-POS-1) en klik bovenaan op "
+"de pagina, ongeveer een kwart van links. Kies daarna **Tekenen ▸ "
+"Selecteren** om het gereedschap weg te leggen. De schakelaar -1B1 staat op "
+"de pagina, met zijn contact 13 boven en 14 onder."
+
+#: src/tutorials/plc-station.md:30
+msgid ""
+"Choose **Draw ▸ Place ▸ Device from part…** again, choose **Pilot lamp** "
+"(EW-GEN-LMP-1) and click to the right of the switch, at the same height. "
+"Choose **Draw ▸ Select**. The lamp -1E1 is on the page, with X1 at the top "
+"and X2 at the bottom."
+msgstr ""
+"Kies opnieuw **Tekenen ▸ Plaatsen ▸ Apparaat uit artikel…**, kies **Pilot "
+"lamp** (EW-GEN-LMP-1) en klik rechts van de schakelaar, op dezelfde hoogte. "
+"Kies **Tekenen ▸ Selecteren**. De lamp -1E1 staat op de pagina, met X1 boven "
+"en X2 onder."
+
+#: src/tutorials/plc-station.md:33
+msgid ""
+"Click the **PLC** tab of the command bar and choose **New station** (**PLC ▸ "
+"New station…** in the app menu). The New station dialog opens: what the "
+"station is (**PLC (CPU)** is chosen), its head part, the PLC it belongs to "
+"(**New PLC**), and its slots, of which slot 1 is free."
+msgstr ""
+"Klik op het tabblad **PLC** van de opdrachtbalk en kies **Nieuw station** "
+"(**PLC ▸ Nieuw station…** in het programmamenu). Het venster Nieuw station "
+"opent: wat het station is (**PLC (CPU)** is gekozen), zijn kopartikel, de "
+"PLC waar het bij hoort (**Nieuwe PLC**), en zijn slots, waarvan slot 1 vrij "
+"is."
+
+#: src/tutorials/plc-station.md:36
+msgid ""
+"Open the **Head part** list and choose **EW-GEN-CPU-1 · PLC CPU without "
+"on-board I/O**."
+msgstr ""
+"Open de lijst **Kopartikel** en kies **EW-GEN-CPU-1 · PLC CPU without "
+"on-board I/O**."
+
+#: src/tutorials/plc-station.md:37
+msgid ""
+"Choose **Add module…** in the row of slot 1 and pick **EW-GEN-DI-1 · PLC "
+"digital input card, 8 channels**. Slot 1 holds the input module, giving 8 "
+"DI; slot 2 is free."
+msgstr ""
+"Kies **Module toevoegen…** in de rij van slot 1 en kies **EW-GEN-DI-1 · PLC "
+"digital input card, 8 channels**. Slot 1 houdt de ingangsmodule, die 8 DI "
+"geeft; slot 2 is vrij."
+
+#: src/tutorials/plc-station.md:39
+msgid ""
+"Choose **Add module…** in the row of slot 2 and pick **EW-GEN-DO-1 · PLC "
+"digital output card, 8 channels**. The rack is filled:"
+msgstr ""
+"Kies **Module toevoegen…** in de rij van slot 2 en kies **EW-GEN-DO-1 · PLC "
+"digital output card, 8 channels**. Het rek is gevuld:"
+
+#: src/tutorials/plc-station.md:42
+msgid ""
+"![The New station dialog: the CPU as head part, the input module in slot 1, "
+"the output module in slot 2](images/plc-new-station.png)"
+msgstr ""
+"![Het venster Nieuw station: de CPU als kopartikel, de ingangsmodule in slot "
+"1, de uitgangsmodule in slot 2](images/plc-new-station.png)"
+
+#: src/tutorials/plc-station.md:44
+msgid ""
+"Choose **Create**. The dialog becomes the station's **Rack and slots**: the "
+"input module has the addresses I0.0–I0.7, the output module Q0.0–Q0.7, each "
+"marked **not drawn**, and the line under the slots says the station is made "
+"and drawn on no page yet. One Undo takes the whole station back."
+msgstr ""
+"Kies **Maken**. Het venster wordt **Rek en slots** van het station: de "
+"ingangsmodule heeft de adressen I0.0–I0.7, de uitgangsmodule Q0.0–Q0.7, elk "
+"gemarkeerd als niet getekend, en de regel onder de slots zegt dat het "
+"station gemaakt is en nog op geen pagina getekend. Eén keer Ongedaan maken "
+"neemt het hele station terug."
+
+#: src/tutorials/plc-station.md:48
+msgid ""
+"Choose **Draw on this page**. The dialog closes, and the CPU -1A1 and its "
+"modules -1A1-A1 and -1A1-A2 stand on the page as boxes, side by side in slot "
+"order, under the switch and the lamp. Each module's pins are numbered from "
+"1: pin 1 is channel 0."
+msgstr ""
+"Kies **Op deze pagina tekenen**. Het venster sluit, en de CPU -1A1 en zijn "
+"modules -1A1-A1 en -1A1-A2 staan als kaders op de pagina, naast elkaar in de "
+"volgorde van de slots, onder de schakelaar en de lamp. De pennen van elke "
+"module zijn genummerd vanaf 1: pen 1 is kanaal 0."
+
+#: src/tutorials/plc-station.md:51
+msgid ""
+"Choose **Draw ▸ Connect ▸ Wire** (`W`). Click contact 14 of -1B1, then pin 1 "
+"at the top of -1A1-A1; click X2 of \\-1E1, then pin 1 at the top of -1A1-A2. "
+"Choose **Draw ▸ Select**. The switch is wired to the first input and the "
+"lamp to the first output."
+msgstr ""
+"Kies **Tekenen ▸ Verbinden ▸ Draad** (`W`). Klik op contact 14 van -1B1 en "
+"dan op pen 1 bovenaan -1A1-A1; klik op X2 van -1E1 en dan op pen 1 bovenaan "
+"-1A1-A2. Kies **Tekenen ▸ Selecteren**. De schakelaar zit op de eerste "
+"ingang en de lamp op de eerste uitgang."
+
+#: src/tutorials/plc-station.md:54
+msgid ""
+"Choose **PLC grid** on the PLC tab (**PLC ▸ PLC grid**). The PLC grid opens "
+"under the page: one row per channel, I0.0 to I0.7 of the module -1A1-A1, "
+"then Q0.0 to Q0.7 of \\-1A1-A2. I0.0 is channel 0 of the input module, the "
+"pin you wired the switch to."
+msgstr ""
+"Kies **PLC-tabel** op het tabblad PLC (**PLC ▸ PLC-tabel**). De PLC-tabel "
+"opent onder de pagina: één rij per kanaal, I0.0 tot en met I0.7 van de "
+"module -1A1-A1, daarna Q0.0 tot en met Q0.7 van -1A1-A2. I0.0 is kanaal 0 "
+"van de ingangsmodule, de pen waarop u de schakelaar hebt aangesloten."
+
+#: src/tutorials/plc-station.md:57
+msgid ""
+"Click the **Symbol** cell of I0.0, type `Door_closed` and press `Enter`; do "
+"the same for Q0.0 with `Lamp_door`. The toast says \"Set symbol on 1 "
+"channel.\" The symbols are the tag names the PLC program will use."
+msgstr ""
+"Klik op de cel **Symbool** van I0.0, typ `Door_closed` en druk op `Enter`; "
+"doe hetzelfde voor Q0.0 met `Lamp_door`. Een notificatie bevestigt het "
+"symbool van het kanaal. De symbolen zijn de tagnamen die het PLC-programma "
+"gebruikt."
+
+#: src/tutorials/plc-station.md:59
+msgid ""
+"Choose **Output ▸ Report block…** (**Report** on the Page or the Output "
+"tab). Choose the report **PLC overview**, the first folio `2` and the title "
+"`PLC overview`, and choose **Create**. The toast says \"Added the report "
+"block PLC overview from folio 2\". Click page 2 in the Pages navigator: it "
+"lists every channel with its module, part, address and symbol, `Door_closed` "
+"at I0.0 and `Lamp_door` at Q0.0. EW keeps it up to date; you never draw it."
+msgstr ""
+"Kies **Uitvoer ▸ Rapportblok…** (**Rapport** op het tabblad Pagina of "
+"Uitvoer). Kies het rapport **PLC-overzicht**, het eerste folio `2` en de "
+"titel `PLC overview`, en kies **Maken**. De notificatie zegt dat het "
+"rapportblok vanaf folio 2 is toegevoegd. Klik op pagina 2 in de navigator "
+"Pagina's: die toont elk kanaal met zijn module, artikel, adres en symbool, "
+"`Door_closed` op I0.0 en `Lamp_door` op Q0.0. EW houdt hem bij; u tekent hem "
+"nooit."
+
+#: src/tutorials/plc-station.md:64
+msgid ""
+"Choose **Export to PLC** on the PLC tab (**PLC ▸ Export to PLC software…**). "
+"Keep the format **AutomationML AR APC 1.4.0**, choose **Export** and save "
+"the file as `plc-station.aml`. The toast says \"Exported plc-station.aml: 1 "
+"station, 2 modules, 16 channels, 2 symbols.\" The file carries the station, "
+"its modules in their slots, the addresses and the symbols to TIA Portal; the "
+"format **TIA Portal PLC tags (XLSX)** gives the tag table alone, and "
+"**PLCopen XML** is for CODESYS."
+msgstr ""
+"Kies **Export naar PLC** op het tabblad PLC (**PLC ▸ Naar PLC-software "
+"exporteren…**). Houd het formaat **AutomationML AR APC 1.4.0**, kies "
+"**Exporteren** en sla het bestand op als `plc-station.aml`. De notificatie "
+"meldt 1 station, 2 modules, 16 kanalen en 2 symbolen. Het bestand brengt het "
+"station, zijn modules in hun slots, de adressen en de symbolen naar TIA "
+"Portal; het formaat **TIA Portal PLC tags (XLSX)** geeft alleen de tagtabel, "
+"en **PLCopen XML** is voor CODESYS."
+
+#: src/tutorials/plc-station.md:74
+msgid ""
+"**New station** builds a station the way TIA Portal does: its head part "
+"first, then its modules slot by slot, and **Create** makes them all in one "
+"step. **Draw on this page** draws them all at once."
+msgstr ""
+"**Nieuw station** bouwt een station zoals TIA Portal dat doet: eerst zijn "
+"kopartikel, dan zijn modules slot voor slot, en **Maken** maakt ze allemaal "
+"in één stap. **Op deze pagina tekenen** tekent ze allemaal tegelijk."
+
+#: src/tutorials/plc-station.md:76
+msgid ""
+"The slot order gives the addresses, and the PLC grid shows them channel by "
+"channel, where you type the symbols."
+msgstr ""
+"De volgorde van de slots geeft de adressen, en de PLC-tabel toont ze kanaal "
+"voor kanaal; daar typt u de symbolen."
+
+#: src/tutorials/plc-station.md:77
+msgid ""
+"The PLC overview is a report page, made by a report block and kept up to "
+"date by EW."
+msgstr ""
+"Het PLC-overzicht is een rapportpagina, gemaakt door een rapportblok en door "
+"EW bijgehouden."
+
+#: src/tutorials/plc-station.md:78
+msgid ""
+"**Export to PLC** hands the hardware and the symbols to the PLC software."
+msgstr ""
+"**Export naar PLC** geeft de hardware en de symbolen door aan de "
+"PLC-software."
+
+#: src/tutorials/plc-station.md:80
+msgid ""
+"To look up one of these jobs later, see [Work in the PLC "
+"workspace](../how-to/plc-workspace.md): making and changing a station, "
+"addresses, the PLC grid and the exchange with PLC software. The next "
+"tutorial, [A bus network](bus-network.md), puts a station on PROFINET."
+msgstr ""
+"Om een van deze taken later op te zoeken, zie [Werken in de "
+"PLC-werkruimte](../how-to/plc-workspace.md): een station maken en wijzigen, "
+"adressen, de PLC-tabel en de uitwisseling met PLC-software. De volgende "
+"zelfstudie, [Een busnetwerk](bus-network.md), zet een station op PROFINET."
+
+#: src/tutorials/bus-network.md:3
+msgid ""
+"In this tutorial you draw a small PROFINET network on a bus-topology page: a "
+"CPU, a remote I/O station with an input module and an unmanaged switch, all "
+"from the generic starter parts, then a frequency converter of your own that "
+"you type into the part editor. You give the nodes their names and IP "
+"addresses, set the cable and its plugs on one bus line, and check the "
+"network. It takes about fifteen minutes."
+msgstr ""
+"In deze zelfstudie tekent u een klein PROFINET-netwerk op een "
+"bustopologiepagina: een CPU, een decentraal I/O-station met een "
+"ingangsmodule en een unmanaged switch, allemaal uit de generieke "
+"startartikelen, en daarna een eigen frequentieregelaar die u in de "
+"artikeleditor invoert. U geeft de knooppunten hun naam en IP-adres, legt de "
+"kabel en zijn stekkers vast op één buslijn en controleert het netwerk. Het "
+"duurt ongeveer een kwartier."
+
+#: src/tutorials/bus-network.md:8
+msgid ""
+"A bus-topology page shows the network the way TIA Portal's network view "
+"does: each device as a box per bus interface (PROFINET X1, PROFIBUS DP) with "
+"its sockets, and the bus lines between the sockets. The power and the I/O "
+"wiring of the same devices stay on the schematic pages."
+msgstr ""
+"Een bustopologiepagina toont het netwerk zoals de netwerkweergave van TIA "
+"Portal: elk apparaat als een kader per businterface (PROFINET X1, PROFIBUS "
+"DP) met zijn aansluitingen, en de buslijnen tussen de aansluitingen. De "
+"voeding en de I/O-bedrading van dezelfde apparaten blijven op de "
+"schemapagina's."
+
+#: src/tutorials/bus-network.md:19
+msgid ""
+"Choose **File ▸ New project…** (`Ctrl+N`) and pick an empty folder named "
+"`bus-network.ew`. EW shows the new project's one empty page, folio 1."
+msgstr ""
+"Kies **Bestand ▸ Nieuw project…** (`Ctrl+N`) en wijs een lege map aan met de "
+"naam `bus-network.ew`. EW toont de ene lege pagina van het nieuwe project, "
+"folio 1."
+
+#: src/tutorials/bus-network.md:21
+msgid ""
+"Click the **PLC** tab and choose **Bus page**. The **Page ▸ New page…** form "
+"opens with the type **Bus topology** chosen: type the folio `2` and the "
+"title `Network`, and choose **Create**. The empty page 2 Network shows. On "
+"this page the Wire tool draws bus lines."
+msgstr ""
+"Klik op het tabblad **PLC** en kies **Buspagina**. Het formulier **Pagina ▸ "
+"Nieuwe pagina…** opent met het type Bustopologie gekozen: typ het folio `2` "
+"en de titel `Network`, en kies **Maken**. De lege pagina 2 Network "
+"verschijnt. Op deze pagina tekent het gereedschap Draad buslijnen."
+
+#: src/tutorials/bus-network.md:24
+msgid ""
+"Choose **Draw ▸ Place ▸ Device from part…** (`Shift+I`), type `CPU` and "
+"choose **PLC CPU with PROFINET and PROFIBUS DP interfaces** (EW-GEN-CPU-2). "
+"Click near the top left of the page, then a little lower and to the right, "
+"for the two corners of its box. The toast says \"Placed as 2 boxes, one for "
+"each bus interface\": the CPU -2A1 stands as its DP box and its X1 box, each "
+"with its socket. Its **Rack and slots** dialog opens, because a CPU is a "
+"station; choose **Close**."
+msgstr ""
+"Kies **Tekenen ▸ Plaatsen ▸ Apparaat uit artikel…** (`Shift+I`), typ `CPU` "
+"en kies **PLC CPU with PROFINET and PROFIBUS DP interfaces** (EW-GEN-CPU-2). "
+"Klik linksboven op de pagina en daarna iets lager en naar rechts, voor de "
+"twee hoeken van zijn kader. De notificatie zegt \"Geplaatst als 2 kaders, "
+"één per businterface.\": de CPU -2A1 staat er als zijn DP-kader en zijn "
+"X1-kader, elk met zijn aansluiting. Zijn venster **Rek en slots** opent, "
+"omdat een CPU een station is; kies **Sluiten**."
+
+#: src/tutorials/bus-network.md:29
+msgid ""
+"Choose **Draw ▸ Place ▸ Device from part…** again and choose **Remote I/O "
+"head with PROFINET and PROFIBUS DP interfaces** (EW-GEN-RIO-1). Click two "
+"corners low on the page, under the CPU. The remote I/O station -2A2 stands "
+"as its DP and X1 boxes, and its rack opens."
+msgstr ""
+"Kies opnieuw **Tekenen ▸ Plaatsen ▸ Apparaat uit artikel…** en kies **Remote "
+"I/O head with PROFINET and PROFIBUS DP interfaces** (EW-GEN-RIO-1). Klik "
+"twee hoeken laag op de pagina, onder de CPU. Het decentrale I/O-station -2A2 "
+"staat er als zijn DP- en X1-kader, en zijn rek opent."
+
+#: src/tutorials/bus-network.md:32
+msgid ""
+"In the rack, choose **Add module…** in the row of slot 1, pick **EW-GEN-DI-1 "
+"· PLC digital input card, 8 channels**, then choose **Close**. The station "
+"carries an input module, -2A2-A1, drawn on no page yet."
+msgstr ""
+"Kies in het rek **Module toevoegen…** in de rij van slot 1, kies "
+"**EW-GEN-DI-1 · PLC digital input card, 8 channels** en kies dan "
+"**Sluiten**. Het station draagt een ingangsmodule, -2A2-A1, nog op geen "
+"pagina getekend."
+
+#: src/tutorials/bus-network.md:35
+msgid ""
+"Choose **Draw ▸ Place ▸ Device from part…**, choose **Industrial Ethernet "
+"switch, unmanaged, 5 ports** (EW-GEN-ESW-5) and click two corners between "
+"the CPU and the remote I/O station. Press `Esc`, then choose **Draw ▸ "
+"Select**. The switch -2K1 stands as one box with its sockets P1 to P3 at the "
+"top and P4 and P5 at the bottom."
+msgstr ""
+"Kies **Tekenen ▸ Plaatsen ▸ Apparaat uit artikel…**, kies **Industrial "
+"Ethernet switch, unmanaged, 5 ports** (EW-GEN-ESW-5) en klik twee hoeken "
+"tussen de CPU en het decentrale I/O-station. Druk op `Esc` en kies dan "
+"**Tekenen ▸ Selecteren**. De switch -2K1 staat er als één kader met zijn "
+"aansluitingen P1 tot en met P3 boven en P4 en P5 onder."
+
+#: src/tutorials/bus-network.md:39
+msgid ""
+"Choose **Draw ▸ Connect ▸ Wire** (`W`). Click the socket P1 of the CPU's X1 "
+"box, then P1 of the switch; click P4 of the switch, then the socket P1 of "
+"the remote I/O station's X1 box. Choose **Draw ▸ Select**. The two bus lines "
+"join the CPU, the switch and the remote I/O station into one PROFINET "
+"network."
+msgstr ""
+"Kies **Tekenen ▸ Verbinden ▸ Draad** (`W`). Klik op aansluiting P1 van het "
+"X1-kader van de CPU en dan op P1 van de switch; klik op P4 van de switch en "
+"dan op aansluiting P1 van het X1-kader van het decentrale I/O-station. Kies "
+"**Tekenen ▸ Selecteren**. De twee buslijnen maken van de CPU, de switch en "
+"het decentrale I/O-station één PROFINET-netwerk."
+
+#: src/tutorials/bus-network.md:42
+msgid ""
+"Choose **View ▸ Panels ▸ Navigators ▸ PLC** (the PLC button on the rail at "
+"the left). The PLC panel lists the PLC PLC1 with the CPU -2A1 and the remote "
+"I/O station -2A2, a head station, with its input module: both are stations "
+"of the same PLC."
+msgstr ""
+"Kies **Beeld ▸ Panelen ▸ Navigators ▸ PLC** (de knop PLC in de rail links). "
+"Het paneel PLC toont de PLC PLC1 met de CPU -2A1 en het decentrale "
+"I/O-station -2A2, een kopstation, met zijn ingangsmodule: beide zijn "
+"stations van dezelfde PLC."
+
+#: src/tutorials/bus-network.md:45
+msgid ""
+"Choose **Bus panel** on the PLC tab (**PLC ▸ Bus panel**) and switch it to "
+"its table with the table button left of its filter. Type `plc1 192.168.0.1` "
+"into the **Address** cell of the row -2A1 X1, and `rio1 192.168.0.2` into "
+"that of -2A2 X1. Each X1 box on the page prints its node: \"Node plc1 "
+"192.168.0.1\". The switch passes the network through and takes no address."
+msgstr ""
+"Kies **Buspaneel** op het tabblad PLC (**PLC ▸ Buspaneel**) en zet het op "
+"zijn tabel met de tabelknop links van het filter. Typ `plc1 192.168.0.1` in "
+"de cel **Adres** van de rij -2A1 X1, en `rio1 192.168.0.2` in die van -2A2 "
+"X1. Elk X1-kader op de pagina drukt zijn knooppunt af. De switch geeft het "
+"netwerk door en krijgt geen adres."
+
+#: src/tutorials/bus-network.md:50
+msgid ""
+"Click the bus line between the CPU and the switch and choose **Cable** on "
+"the Draw tab. The Cable form opens with **EW-GEN-CBL-3 · Industrial Ethernet "
+"cable, 4 cores, shielded (PROFINET)**, the cables made for PROFINET first. "
+"Type `5` as the **Length (m)**, choose **EW-GEN-PLG-3 · RJ45 plug for "
+"Industrial Ethernet** as the plug at each end, and choose **Apply**. The "
+"toast says \"Cable -W1 carries the bus line.\" The line prints the cable's "
+"tag, and the cable and its two plugs go into the parts list."
+msgstr ""
+"Klik op de buslijn tussen de CPU en de switch en kies **Kabel** op het "
+"tabblad Tekenen. Het kabelformulier opent met **EW-GEN-CBL-3 · Industrial "
+"Ethernet cable, 4 cores, shielded (PROFINET)**, de kabels voor PROFINET "
+"eerst. Typ `5` als **Lengte (m)**, kies **EW-GEN-PLG-3 · RJ45 plug for "
+"Industrial Ethernet** als stekker aan beide einden, en kies **Toepassen**. "
+"De notificatie zegt dat kabel -W1 de buslijn draagt. De lijn drukt het "
+"kenmerk van de kabel af, en de kabel en zijn twee stekkers komen in de "
+"stuklijst."
+
+#: src/tutorials/bus-network.md:56
+msgid ""
+"Choose **Edit ▸ New part…**. Type the **Manufacturer** `Example`, the **Part "
+"number** `FC-PN-2` and the **Description** `Frequency converter with "
+"PROFINET, 2 ports`. Under **Bus interfaces** choose **Add interface**: it "
+"proposes the interface `X1` on **PROFINET** with the role **Device**; type "
+"**Ports** `2`. Choose **Save**. The toast says \"Part FC-PN-2 is in the "
+"project.\" With **Also add to my parts library** ticked, your next project "
+"has it too."
+msgstr ""
+"Kies **Bewerken ▸ Nieuw artikel…**. Typ als **Fabrikant** `Example`, als "
+"**Artikelnummer** `FC-PN-2` en als **Beschrijving** `Frequency converter "
+"with PROFINET, 2 ports`. Kies onder de businterfaces **Interface "
+"toevoegen**: die stelt de interface `X1` op PROFINET voor met de rol Device; "
+"typ bij de poorten `2`. Kies **Opslaan**. De notificatie zegt \"Artikel "
+"FC-PN-2 staat in het project.\" Met **Ook toevoegen aan mijn "
+"artikelbibliotheek** aangevinkt heeft uw volgende project het ook."
+
+#: src/tutorials/bus-network.md:61
+msgid ""
+"Choose **Draw ▸ Place ▸ Device from part…**, type `FC-PN-2` and click two "
+"corners to the right of the remote I/O station. Press `Esc`, then choose "
+"**Draw ▸ Select**. The converter -2K2 stands as its X1 box with its sockets "
+"P1 and P2."
+msgstr ""
+"Kies **Tekenen ▸ Plaatsen ▸ Apparaat uit artikel…**, typ `FC-PN-2` en klik "
+"twee hoeken rechts van het decentrale I/O-station. Druk op `Esc` en kies dan "
+"**Tekenen ▸ Selecteren**. De regelaar -2K2 staat er als zijn X1-kader met "
+"zijn aansluitingen P1 en P2."
+
+#: src/tutorials/bus-network.md:64
+msgid ""
+"Choose **Draw ▸ Connect ▸ Wire** (`W`), click P5 of the switch, then P1 of "
+"-2K2, and choose **Draw ▸ Select**. In the Bus panel's table, type `drive1 "
+"192.168.0.3` into the **Address** cell of -2K2 X1. The converter is a node "
+"of the same network:"
+msgstr ""
+"Kies **Tekenen ▸ Verbinden ▸ Draad** (`W`), klik op P5 van de switch en dan "
+"op P1 van -2K2, en kies **Tekenen ▸ Selecteren**. Typ in de tabel van het "
+"buspaneel `drive1 192.168.0.3` in de cel **Adres** van -2K2 X1. De regelaar "
+"is een knooppunt van hetzelfde netwerk:"
+
+#: src/tutorials/bus-network.md:68
+msgid ""
+"![The bus page: CPU, switch, remote I/O station and converter, and the Bus "
+"panel's table](images/bus-network.png)"
+msgstr ""
+"![De buspagina: CPU, switch, decentraal I/O-station en "
+"regelaar](images/bus-network.png)"
+
+#: src/tutorials/bus-network.md:70
+msgid ""
+"Choose **Check ▸ Run checks** (`F7`). The toast says \"Check: 0 errors, 0 "
+"warnings, 5 infos.\" The infos say that the DP addresses are still TBD (this "
+"network uses PROFINET only) and that no report lists the stations and the "
+"cable yet."
+msgstr ""
+"Kies **Controle ▸ Controles uitvoeren** (`F7`). De notificatie meldt 0 "
+"fouten, 0 waarschuwingen en 5 meldingen. De meldingen zeggen dat de "
+"DP-adressen nog TBD zijn (dit netwerk gebruikt alleen PROFINET) en dat nog "
+"geen rapport de stations en de kabel opsomt."
+
+#: src/tutorials/bus-network.md:78
+msgid ""
+"A bus-topology page holds the network: a device stands as one box per bus "
+"interface, and **Draw ▸ Connect ▸ Wire** draws the bus lines between their "
+"sockets. A CPU or a remote I/O head is a station, with its rack."
+msgstr ""
+"Een bustopologiepagina houdt het netwerk: een apparaat staat er als één "
+"kader per businterface, en **Tekenen ▸ Verbinden ▸ Draad** tekent de "
+"buslijnen tussen hun aansluitingen. Een CPU of een decentrale I/O-kop is een "
+"station, met zijn rek."
+
+#: src/tutorials/bus-network.md:80
+msgid "The Bus panel's table takes each node's address; the box prints it."
+msgstr ""
+"De tabel van het buspaneel neemt het adres van elk knooppunt; het kader "
+"drukt het af."
+
+#: src/tutorials/bus-network.md:81
+msgid "**Cable** on a bus line sets its cable, length and plugs in one form."
+msgstr ""
+"**Kabel** op een buslijn legt in één formulier de kabel, de lengte en de "
+"stekkers vast."
+
+#: src/tutorials/bus-network.md:82
+msgid ""
+"A device of your own with its ports is typed from its data sheet in the part "
+"editor; [Make your own PLC or bus part](../how-to/own-parts.md) has the "
+"whole of it."
+msgstr ""
+"Een eigen apparaat met zijn poorten voert u vanuit zijn datablad in de "
+"artikeleditor in; [Een eigen PLC- of busartikel "
+"maken](../how-to/own-parts.md) beschrijft het helemaal."
+
+#: src/tutorials/bus-network.md:85
+msgid ""
+"To look up these jobs later, see [Bus ports and "
+"nets](../how-to/plc-workspace.md#bus-ports-and-nets) in the PLC guide. The "
+"tutorial before this one, [A PLC with its modules](plc-station.md), fills a "
+"station's rack and wires its channels."
+msgstr ""
+"Om deze taken later op te zoeken, zie [Buspoorten en "
+"netten](../how-to/plc-workspace.md#bus-ports-and-nets) in de "
+"PLC-handleiding. De zelfstudie hiervoor, [Een PLC met zijn "
+"modules](plc-station.md), vult het rek van een station en sluit zijn kanalen "
+"aan."
+
+#: src/tutorials/pneumatic-circuit.md:3
+msgid ""
+"In this tutorial you draw a pneumatic circuit on a fluid page: an air supply "
+"with its medium, a service unit, a 5/2 solenoid valve and a double-acting "
+"cylinder with a one-way flow control in each line, joined by tubes. You draw "
+"the valve's solenoid on an electrical page and wire it to a PLC output, then "
+"do the same job with a valve terminal, and read the tube list. It takes "
+"about fifteen minutes."
+msgstr ""
+"In deze zelfstudie tekent u een pneumatisch schema op een fluïdumpagina: een "
+"persluchtvoeding met haar medium, een verzorgingseenheid, een "
+"5/2-magneetventiel en een dubbelwerkende cilinder met een "
+"smoorterugslagventiel in elke leiding, verbonden door slangen. U tekent de "
+"magneetspoel van het ventiel op een elektrische pagina en sluit hem aan op "
+"een PLC-uitgang, doet daarna hetzelfde met een ventieleiland en leest de "
+"slangenlijst. Het duurt ongeveer een kwartier."
+
+#: src/tutorials/pneumatic-circuit.md:8
+msgid ""
+"On a fluid page the symbols are the ISO 1219 symbols, the Wire tool draws "
+"tubes, and a valve's solenoid is not drawn on the fluid page: it belongs to "
+"the valve and stands on an electrical page, where it is wired."
+msgstr ""
+"Op een fluïdumpagina zijn de symbolen die van ISO 1219, tekent het "
+"gereedschap Draad slangen, en wordt de magneetspoel van een ventiel niet op "
+"de fluïdumpagina getekend: hij hoort bij het ventiel en staat op een "
+"elektrische pagina, waar hij wordt aangesloten."
+
+#: src/tutorials/pneumatic-circuit.md:18
+msgid ""
+"Choose **File ▸ New project…** (`Ctrl+N`) and pick an empty folder named "
+"`pneumatic-circuit.ew`. EW shows the new project's one empty page, folio 1, "
+"an electrical page."
+msgstr ""
+"Kies **Bestand ▸ Nieuw project…** (`Ctrl+N`) en wijs een lege map aan met de "
+"naam `pneumatic-circuit.ew`. EW toont de ene lege pagina van het nieuwe "
+"project, folio 1, een elektrische pagina."
+
+#: src/tutorials/pneumatic-circuit.md:20
+msgid ""
+"Click the **Fluid** tab and choose **Fluid page**. The **Page ▸ New page…** "
+"form opens with the type **Fluid** chosen: type the folio `2` and the title "
+"`Pneumatics`, and choose **Create**. The empty page 2 Pneumatics shows."
+msgstr ""
+"Klik op het tabblad **Fluïdum** en kies **Fluïdumpagina**. Het formulier "
+"**Pagina ▸ Nieuwe pagina…** opent met het type Fluïdum gekozen: typ het "
+"folio `2` en de titel `Pneumatics`, en kies **Maken**. De lege pagina 2 "
+"Pneumatics verschijnt."
+
+#: src/tutorials/pneumatic-circuit.md:23
+msgid ""
+"Choose **Air supply** on the Fluid tab (**Fluid ▸ Air supply…**). The symbol "
+"browser opens at the air supply and its preparation: choose **air-supply** "
+"and click near the bottom left of the page. Choose **Draw ▸ Select**. The "
+"compressed-air supply point -2X1 is on the page, with its port 1."
+msgstr ""
+"Kies **Persluchtvoeding** op het tabblad Fluïdum (**Fluïdum ▸ "
+"Persluchtvoeding…**). De symboolbrowser opent bij de voeding en haar "
+"luchtbehandeling: kies **air-supply** en klik linksonder op de pagina. Kies "
+"**Tekenen ▸ Selecteren**. Het persluchtaansluitpunt -2X1 staat op de pagina, "
+"met zijn poort 1."
+
+#: src/tutorials/pneumatic-circuit.md:26
+msgid ""
+"Choose **Fluid ▸ Air supply…** again, choose **frl**, the service unit with "
+"filter, regulator and lubricator, and click to the right of the supply "
+"point. Choose **Draw ▸ Select**. The service unit -2V1 is on the page, with "
+"port 1 in, port 2 out."
+msgstr ""
+"Kies opnieuw **Fluïdum ▸ Persluchtvoeding…**, kies **frl**, de "
+"verzorgingseenheid met filter, regelaar en olievernevelaar, en klik rechts "
+"van het aansluitpunt. Kies **Tekenen ▸ Selecteren**. De verzorgingseenheid "
+"-2V1 staat op de pagina, met poort 1 in en poort 2 uit."
+
+#: src/tutorials/pneumatic-circuit.md:29
+msgid ""
+"Choose **Draw ▸ Place ▸ Device from part…** (`Shift+I`), choose **Solenoid "
+"valve 5/2, spring return** (EW-GEN-VLV-1) and click in the middle of the "
+"page, to the right. Choose **Draw ▸ Select**. The valve -2Q1 is on the page: "
+"its working ports 4 and 2 at the top, the supply port 1 and the exhausts 3 "
+"and 5 at the bottom, its solenoid at the left and its spring at the right."
+msgstr ""
+"Kies **Tekenen ▸ Plaatsen ▸ Apparaat uit artikel…** (`Shift+I`), kies "
+"**Solenoid valve 5/2, spring return** (EW-GEN-VLV-1) en klik in het midden "
+"van de pagina, naar rechts. Kies **Tekenen ▸ Selecteren**. Het ventiel -2Q1 "
+"staat op de pagina: zijn werkpoorten 4 en 2 boven, de voedingspoort 1 en de "
+"ontluchtingen 3 en 5 onder, zijn magneetspoel links en zijn veer rechts."
+
+#: src/tutorials/pneumatic-circuit.md:33
+msgid ""
+"Choose **Draw ▸ Place ▸ Device from part…**, choose **Cylinder "
+"double-acting, bore 32 mm, stroke 100 mm** (EW-GEN-CYL-1) and click near the "
+"top of the page, above the valve. Choose **Draw ▸ Select**. The cylinder "
+"-2M1 is on the page, with its ports A and B."
+msgstr ""
+"Kies **Tekenen ▸ Plaatsen ▸ Apparaat uit artikel…**, kies **Cylinder "
+"double-acting, bore 32 mm, stroke 100 mm** (EW-GEN-CYL-1) en klik bovenaan "
+"op de pagina, boven het ventiel. Kies **Tekenen ▸ Selecteren**. De cilinder "
+"-2M1 staat op de pagina, met zijn poorten A en B."
+
+#: src/tutorials/pneumatic-circuit.md:36
+msgid ""
+"Choose **Draw ▸ Place ▸ Device from part…** and choose **One-way flow "
+"control valve** (EW-GEN-FCV-1). Before you click, choose **Draw ▸ Arrange ▸ "
+"Rotate clockwise** (`R`) to stand it upright. Hold `Alt` and click twice, "
+"side by side, between the cylinder and the valve and a little to the left. "
+"Choose **Draw ▸ Select**. The flow controls -2R1 and -2R2 stand upright, "
+"port 1 at the top. `Alt` places a symbol without joining it with a tube to a "
+"port it faces."
+msgstr ""
+"Kies **Tekenen ▸ Plaatsen ▸ Apparaat uit artikel…** en kies **One-way flow "
+"control valve** (EW-GEN-FCV-1). Kies voordat u klikt **Tekenen ▸ Schikken ▸ "
+"Rechtsom draaien** (`R`) om hem rechtop te zetten. Houd `Alt` ingedrukt en "
+"klik twee keer, naast elkaar, tussen de cilinder en het ventiel en iets naar "
+"links. Kies **Tekenen ▸ Selecteren**. De smoorterugslagventielen -2R1 en "
+"-2R2 staan rechtop, poort 1 boven. Met `Alt` plaatst u een symbool zonder "
+"het met een slang te verbinden aan een poort waar het tegenover staat."
+
+#: src/tutorials/pneumatic-circuit.md:41
+msgid ""
+"Choose **Draw ▸ Connect ▸ Wire** (`W`) and draw the tubes, each from one "
+"port to the other: A of -2M1 to 1 of \\-2R1, 2 of -2R1 to 4 of -2Q1; B of "
+"-2M1 to 1 of -2R2, 2 of -2R2 to 2 of -2Q1; 1 of -2X1 to 1 of -2V1, and 2 of "
+"\\-2V1 to 1 of -2Q1. Choose **Draw ▸ Select**. The circuit is joined: "
+"supply, service unit, valve, and the two lines to the cylinder through the "
+"flow controls."
+msgstr ""
+"Kies **Tekenen ▸ Verbinden ▸ Draad** (`W`) en teken de slangen, elk van de "
+"ene poort naar de andere: A van -2M1 naar 1 van -2R1, 2 van -2R1 naar 4 van "
+"-2Q1; B van -2M1 naar 1 van -2R2, 2 van -2R2 naar 2 van -2Q1; 1 van -2X1 "
+"naar 1 van -2V1, en 2 van -2V1 naar 1 van -2Q1. Kies **Tekenen ▸ "
+"Selecteren**. Het schema is verbonden: voeding, verzorgingseenheid, ventiel, "
+"en de twee leidingen naar de cilinder door de smoorterugslagventielen."
+
+#: src/tutorials/pneumatic-circuit.md:45
+msgid ""
+"Choose **New medium** on the Fluid tab (**Fluid ▸ New medium…**). Under "
+"**Start from** choose **Compressed air**, which fills the name and 6 bar, "
+"and choose **Create**. The toast says \"Added the medium Compressed air.\""
+msgstr ""
+"Kies **Nieuw medium** op het tabblad Fluïdum (**Fluïdum ▸ Nieuw medium…**). "
+"Kies onder **Beginnen met** **Perslucht**, dat de naam en 6 bar invult, en "
+"kies **Maken**. Een notificatie zegt dat het medium is toegevoegd."
+
+#: src/tutorials/pneumatic-circuit.md:48
+msgid ""
+"Click the supply point -2X1. In Properties, open the **Medium** row and "
+"choose **Compressed air** (or right-click \\-2X1 and choose **Medium:** "
+"Compressed air). Properties say what -2X1 is, \"Compressed-air supply point "
+"· pneumatic\", and its medium comes from its port 1. Every tube it feeds "
+"through the valve now carries compressed air."
+msgstr ""
+"Klik op het aansluitpunt -2X1. Open in Eigenschappen de rij **Medium** en "
+"kies **Perslucht** (of klik met rechts op -2X1 en kies **Medium:** "
+"Perslucht). Eigenschappen zeggen wat -2X1 is, een persluchtaansluitpunt, "
+"pneumatisch, en dat zijn medium van zijn poort 1 komt. Elke slang die het "
+"via het ventiel voedt, voert nu perslucht."
+
+#: src/tutorials/pneumatic-circuit.md:52
+msgid ""
+"Click the valve -2Q1. In Properties the row **Solenoid 14** says \"not "
+"drawn: draw it…\": click it (or right-click the valve and choose **Draw "
+"solenoid 14 on an electrical page…**). Page 1 shows with the coil on the "
+"pointer, and the toast says \"Click where solenoid 14 of -2Q1 goes on page "
+"1.\""
+msgstr ""
+"Klik op het ventiel -2Q1. In Eigenschappen zegt de rij **Magneetspoel 14** "
+"\"niet getekend: tekenen…\": klik erop (of klik met rechts op het ventiel en "
+"kies **Magneetspoel 14 op een elektrische pagina tekenen…**). Pagina 1 "
+"verschijnt met de spoel aan de aanwijzer, en een notificatie zegt waar u "
+"moet klikken."
+
+#: src/tutorials/pneumatic-circuit.md:55
+msgid ""
+"Choose **Draw ▸ Arrange ▸ Mirror top to bottom** (`Y`), so that the coil's "
+"A1 is at the bottom, and click near the top of page 1, a quarter from the "
+"left. Choose **Draw ▸ Select**. The coil carries the valve's tag, -2Q1: it "
+"is the valve's own solenoid, not a device of its own."
+msgstr ""
+"Kies **Tekenen ▸ Schikken ▸ Boven-onder spiegelen** (`Y`), zodat A1 van de "
+"spoel onder staat, en klik bovenaan op pagina 1, een kwart van links. Kies "
+"**Tekenen ▸ Selecteren**. De spoel draagt het kenmerk van het ventiel, -2Q1: "
+"het is de eigen magneetspoel van het ventiel, geen apparaat op zich."
+
+#: src/tutorials/pneumatic-circuit.md:58
+msgid ""
+"Click the **PLC** tab and choose **New station** (**PLC ▸ New station…**). "
+"Choose the head part **EW-GEN-CPU-1**, **Add module…** in slot 1 with "
+"**EW-GEN-DO-1 · PLC digital output card, 8 channels**, then **Create** and "
+"**Draw on this page**. The CPU -1A1 and its output module -1A1-A1 stand "
+"under the coil. [A PLC with its modules](plc-station.md) shows this dialog "
+"in full."
+msgstr ""
+"Klik op het tabblad **PLC** en kies **Nieuw station** (**PLC ▸ Nieuw "
+"station…**). Kies het kopartikel **EW-GEN-CPU-1**, **Module toevoegen…** in "
+"slot 1 met **EW-GEN-DO-1 · PLC digital output card, 8 channels**, dan "
+"**Maken** en **Op deze pagina tekenen**. De CPU -1A1 en zijn uitgangsmodule "
+"-1A1-A1 staan onder de spoel. [Een PLC met zijn modules](plc-station.md) "
+"toont dit venster volledig."
+
+#: src/tutorials/pneumatic-circuit.md:63
+msgid ""
+"Choose **Draw ▸ Connect ▸ Wire** (`W`), click A1 of the coil, then pin 1 at "
+"the top of -1A1-A1, the output Q0.0. Choose **Draw ▸ Select**. The solenoid "
+"is wired to the PLC output."
+msgstr ""
+"Kies **Tekenen ▸ Verbinden ▸ Draad** (`W`), klik op A1 van de spoel en dan "
+"op pen 1 bovenaan -1A1-A1, de uitgang Q0.0. Kies **Tekenen ▸ Selecteren**. "
+"De magneetspoel zit op de PLC-uitgang."
+
+#: src/tutorials/pneumatic-circuit.md:66
+msgid ""
+"Click page 2 in the Pages navigator and click the valve -2Q1. Its row "
+"**Solenoid 14** now names the place where the coil is drawn, 1-A4."
+msgstr ""
+"Klik op pagina 2 in de navigator Pagina's en klik op het ventiel -2Q1. Zijn "
+"rij **Magneetspoel 14** noemt nu de plaats waar de spoel getekend is, 1-A4."
+
+#: src/tutorials/pneumatic-circuit.md:68
+msgid ""
+"Choose **Valve terminal** on the Fluid tab (**Fluid ▸ Valve terminal…**). "
+"The device browser opens at the valve terminals: choose **Valve terminal "
+"with bus node, 4 valve positions, 8 outputs** (EW-GEN-VTM-1) and click once "
+"near the top left of the page. Its rack opens; choose **Close**, then **Draw "
+"▸ Select**. The valve terminal -2K1 is drawn as its positions: the supply "
+"end at the left, then four empty cells numbered 1 to 4."
+msgstr ""
+"Kies **Ventieleiland** op het tabblad Fluïdum (**Fluïdum ▸ "
+"Ventieleiland…**). De apparatenbrowser opent bij de ventieleilanden: kies "
+"**Valve terminal with bus node, 4 valve positions, 8 outputs** "
+"(EW-GEN-VTM-1) en klik één keer linksboven op de pagina. Zijn rek opent; "
+"kies **Sluiten** en dan **Tekenen ▸ Selecteren**. Het ventieleiland -2K1 is "
+"getekend als zijn posities: de voedingskant links, dan vier lege cellen, "
+"genummerd 1 tot en met 4."
+
+#: src/tutorials/pneumatic-circuit.md:73
+msgid ""
+"Click the empty cell 1. The device browser opens with valves; type `valve "
+"terminal` into its search and choose **Solenoid valve 5/2 for a valve "
+"terminal, spring return** (EW-GEN-VLV-3). The valve -2Q2 stands in cell 1 "
+"with its output, Q1.0."
+msgstr ""
+"Klik op de lege cel 1. De apparatenbrowser opent met ventielen; typ `valve "
+"terminal` in het zoekveld en kies **Solenoid valve 5/2 for a valve terminal, "
+"spring return** (EW-GEN-VLV-3). Het ventiel -2Q2 staat in cel 1 met zijn "
+"uitgang, Q1.0."
+
+#: src/tutorials/pneumatic-circuit.md:76
+msgid ""
+"Click the empty cell 2 and choose the same valve. The valve -2Q3 stands in "
+"cell 2 with Q1.2. Click the terminal: its row **Valve positions** reads \"1 "
+"-2Q2 · 2 -2Q3 · 3 empty · 4 empty\". The check asks for a valve or a "
+"blanking plate in the empty cells; a right click on a cell offers both."
+msgstr ""
+"Klik op de lege cel 2 en kies hetzelfde ventiel. Het ventiel -2Q3 staat in "
+"cel 2 met Q1.2. Klik op het eiland: zijn rij met de ventielposities toont "
+"-2Q2 op 1, -2Q3 op 2 en 3 en 4 leeg. De controle vraagt om een ventiel of "
+"een blindplaat in de lege cellen; een rechterklik op een cel biedt beide."
+
+#: src/tutorials/pneumatic-circuit.md:81
+msgid ""
+"![The fluid page: the circuit to the cylinder, and the valve terminal with "
+"two valves](images/pneumatic-circuit.png)"
+msgstr ""
+"![De fluïdumpagina: het schema naar de cilinder, en het ventieleiland met "
+"twee ventielen](images/pneumatic-circuit.png)"
+
+#: src/tutorials/pneumatic-circuit.md:83
+msgid ""
+"Choose **Fluid settings** on the Fluid tab (**Fluid ▸ Fluid settings…**). "
+"Type the default tube's outer diameter `6`, inner diameter `4`, choose the "
+"material **PU**, and confirm. The toast says \"The default tube is 6 × 4 mm "
+"PU (polyurethane) now: every tube without one of its own takes it, the tubes "
+"drawn already too.\""
+msgstr ""
+"Kies **Instellingen fluïdtechniek** op het tabblad Fluïdum (**Fluïdum ▸ "
+"Instellingen fluïdtechniek…**). Typ voor de standaardslang de buitendiameter "
+"`6` en de binnendiameter `4`, kies het materiaal **PU** en bevestig. Een "
+"notificatie zegt dat de standaardslang nu 6 × 4 mm PU is en dat elke slang "
+"zonder eigen slang hem neemt, ook de slangen die al getekend zijn."
+
+#: src/tutorials/pneumatic-circuit.md:87
+msgid ""
+"Choose **Tube table** on the Fluid tab (**Fluid ▸ Tube table**). The tube "
+"list opens under the page, one row per tube with its two ends, its medium "
+"(Compressed air), its line kind and its size, 6×4 PU. The length stays empty "
+"until you type it."
+msgstr ""
+"Kies **Slangentabel** op het tabblad Fluïdum (**Fluïdum ▸ Slangentabel**). "
+"De slangenlijst opent onder de pagina, één rij per slang met zijn twee "
+"einden, zijn medium (Perslucht), zijn leidingsoort en zijn maat, 6×4 PU. De "
+"lengte blijft leeg tot u hem typt."
+
+#: src/tutorials/pneumatic-circuit.md:93
+msgid "Two kinds of valve"
+msgstr "Twee soorten ventielen"
+
+#: src/tutorials/pneumatic-circuit.md:95
+msgid ""
+"A stand-alone valve, such as -2Q1, has a coil of its own: you draw it on an "
+"electrical page and wire it to a PLC output. A valve on a valve terminal "
+"with a bus node, such as -2Q2, is driven inside the terminal, which is a PLC "
+"station on the bus: its output is given by its position, and nothing is "
+"wired per solenoid."
+msgstr ""
+"Een los ventiel, zoals -2Q1, heeft een eigen spoel: u tekent hem op een "
+"elektrische pagina en sluit hem aan op een PLC-uitgang. Een ventiel op een "
+"ventieleiland met busknooppunt, zoals -2Q2, wordt in het eiland aangestuurd, "
+"dat een PLC-station op de bus is: zijn uitgang volgt uit zijn positie, en "
+"per magneetspoel wordt niets bedraad."
+
+#: src/tutorials/pneumatic-circuit.md:101
+msgid ""
+"A fluid page draws the circuit with ISO 1219 symbols; the Wire tool draws "
+"tubes there."
+msgstr ""
+"Een fluïdumpagina tekent het schema met symbolen volgens ISO 1219; het "
+"gereedschap Draad tekent daar slangen."
+
+#: src/tutorials/pneumatic-circuit.md:102
+msgid ""
+"The medium is defined once, at the air supply, and every tube it reaches "
+"carries it."
+msgstr ""
+"Het medium wordt één keer vastgelegd, bij de persluchtvoeding, en elke slang "
+"die het bereikt voert het."
+
+#: src/tutorials/pneumatic-circuit.md:103
+msgid ""
+"A valve's solenoid is drawn on an electrical page from the valve, and the "
+"two know each other."
+msgstr ""
+"De magneetspoel van een ventiel wordt vanuit het ventiel op een elektrische "
+"pagina getekend, en de twee kennen elkaar."
+
+#: src/tutorials/pneumatic-circuit.md:104
+msgid "A valve terminal is drawn as its positions; a click on a cell fills it."
+msgstr ""
+"Een ventieleiland wordt getekend als zijn posities; een klik op een cel vult "
+"hem."
+
+#: src/tutorials/pneumatic-circuit.md:105
+msgid ""
+"The tube table lists the tubes with their ends, medium and size; **Output ▸ "
+"Report block…** prints it as a tube list."
+msgstr ""
+"De slangentabel toont de slangen met hun einden, medium en maat; **Uitvoer ▸ "
+"Rapportblok…** drukt hem af als slangenlijst."
+
+#: src/tutorials/pneumatic-circuit.md:107
+msgid ""
+"To look up these jobs later, see [Work in the Fluid "
+"workspace](../how-to/fluid-workspace.md)."
+msgstr ""
+"Om deze taken later op te zoeken, zie [Werken in de werkruimte "
+"fluïdtechniek](../how-to/fluid-workspace.md)."
+
 #: src/how-to/index.md:3
 msgid ""
-"A how-to guide helps you reach one goal that you already understand: short "
-"steps, no background. If you are new to EW, start with a "
-"[tutorial](../tutorials/index.md) instead."
+"A how-to guide is where you look up one job when you know what you want to "
+"do; a [tutorial](../tutorials/index.md) is a lesson you follow once, from "
+"start to end, to learn how EW works."
 msgstr ""
 
-#: src/how-to/index.md:8
+#: src/how-to/index.md:6
+msgid ""
+"A guide gives short steps for one goal and no background. If you are new to "
+"EW, or new to its PLC, bus or pneumatic pages, start with a tutorial."
+msgstr ""
+
+#: src/how-to/index.md:11
 msgid ""
 "[Install ElektraWatt](install.md): the Windows setup, silent installs, the "
 "Linux AppImage, the CLI archives and `EW_CONTENT_DIR`, upgrading and "
 "uninstalling."
 msgstr ""
 
-#: src/how-to/index.md:10
+#: src/how-to/index.md:13
 msgid ""
 "[Use the application window](application-window.md): the start page, new, "
 "sample and imported projects, recovery, the command palette, workspaces, the "
 "first-run setup, the company-standard wizard and F1."
 msgstr ""
 
-#: src/how-to/index.md:12
+#: src/how-to/index.md:15
 msgid ""
 "[Draw a page from the text interface](text-interface.md): reading a page as "
 "text, placing, autoconnect, frozen tags, terminal strips, external points, "
 "wires and junctions, delete and export, without a screen."
 msgstr ""
 
-#: src/how-to/index.md:14
+#: src/how-to/index.md:17
 msgid ""
 "[Use the command line on the golden project](headless-workflow.md): the `ew` "
 "program checks a project, writes its pages as PDF and SVG, exports the cable "
@@ -1456,65 +2417,66 @@ msgstr ""
 "SVG, exporteert de kabellijst en de stuklijst en bevraagt het project in "
 "SQL. U hebt een checkout van de repository nodig en het programma `ew`."
 
-#: src/how-to/index.md:17
+#: src/how-to/index.md:20
 msgid ""
 "[Define a supply potential](define-supply-potential.md): a potential's name, "
 "type and voltage from a selected wire, junction or terminal."
 msgstr ""
 
-#: src/how-to/index.md:19
+#: src/how-to/index.md:22
 msgid ""
 "[Choose parts](choose-parts.md): a device's part from the property grid or "
 "the part selection, a device placed from its part, and where the parts are "
 "listed."
 msgstr ""
 
-#: src/how-to/index.md:21
+#: src/how-to/index.md:24
 msgid ""
 "[Draw a panel layout](panel-layout.md): a panel layout page, its enclosure "
 "and mounting plate, rails and ducts, and the devices placed on them."
 msgstr ""
 
-#: src/how-to/index.md:23
+#: src/how-to/index.md:26
 msgid ""
-"[Work in the PLC workspace](plc-workspace.md): the PLC and Bus navigators, "
-"the PLC grid, the rack and slot editor, freezing and re-addressing, and the "
-"exchange with PLC software."
+"[Work in the PLC workspace](plc-workspace.md): what a station, a rack, a "
+"slot, a channel and a symbol are, the jobs of TIA Portal and where they are "
+"here, making and changing a station, addresses, the PLC grid, bus pages and "
+"their nets, and the exchange with PLC software."
 msgstr ""
 
-#: src/how-to/index.md:25
+#: src/how-to/index.md:29
 msgid ""
 "[Make your own PLC or bus part](own-parts.md): a card, a head station such "
 "as an IM 152, a switch such as a SCALANCE or a device on PROFINET, typed "
 "from its data sheet in the part editor and kept in My parts."
 msgstr ""
 
-#: src/how-to/index.md:27
+#: src/how-to/index.md:31
 msgid ""
-"[Work in the Fluid workspace](fluid-workspace.md): the Fluid navigator, the "
-"tube and medium tables, a medium and a tube on a line, and the overview page "
-"of a valve terminal."
+"[Work in the Fluid workspace](fluid-workspace.md): a circuit on a fluid "
+"page, its medium, a valve's solenoid on an electrical page, the two kinds of "
+"valve terminal, and the tubes and the tube list."
 msgstr ""
 
-#: src/how-to/index.md:29
+#: src/how-to/index.md:33
 msgid ""
 "[Upgrade a project](upgrade-a-project.md): what a release reads and writes, "
 "opening a project of an older format, the backup of the first save, `ew "
 "upgrade`, and what changes in the format from 0.1.0."
 msgstr ""
 
-#: src/how-to/index.md:32
+#: src/how-to/index.md:36
 msgid ""
 "More follow the [command-line how-to](headless-workflow.md), for example "
 "replaying a command log with `ew apply`, checking a project in a CI job, and "
 "exporting for a single page range."
 msgstr ""
 
-#: src/how-to/index.md:35
+#: src/how-to/index.md:39
 msgid "Writing a how-to guide"
 msgstr ""
 
-#: src/how-to/index.md:37
+#: src/how-to/index.md:41
 msgid ""
 "A guide names its goal in the title (\"Export one page range as SVG\"), "
 "lists what you need, gives numbered steps and ends when the goal is met. "
@@ -2877,7 +3839,7 @@ msgid ""
 "steps of Undo. Another plate goes on the page through the page's **Surface** "
 "row in Properties. At 1:10 and smaller scales the devices are numbered and "
 "the page gets a legend beside the plate that lists each number with its tag, "
-"quantity and part number."
+"quantity, part number and description."
 msgstr ""
 
 #: src/how-to/panel-layout.md:24
@@ -2939,18 +3901,19 @@ msgstr ""
 #: src/how-to/panel-layout.md:45
 msgid ""
 "**Add legend** in the page's right-click menu (also **Page ▸ Order ▸ Add "
-"legend**) puts the legend in the free space beside the layout. It is offered "
-"while the page has none."
+"legend**) puts the legend in the free space beside the layout, with the "
+"number, tag, quantity, part number and description of each item; a long "
+"description is cut short with \"…\". It is offered while the page has none."
 msgstr ""
 
-#: src/how-to/panel-layout.md:47
+#: src/how-to/panel-layout.md:48
 msgid ""
 "A label or balloon that stands beside its device can be dragged on its own; "
 "its line follows it to the device. **Reset label position** in the device's "
 "right-click menu puts it back."
 msgstr ""
 
-#: src/how-to/panel-layout.md:50
+#: src/how-to/panel-layout.md:51
 msgid ""
 "The tools are described one by one in the [tool "
 "reference](../reference/window/tools.md): Place device, Rail and Duct."
@@ -2958,242 +3921,592 @@ msgstr ""
 
 #: src/how-to/plc-workspace.md:3
 msgid ""
-"The PLC workspace shows a project's PLC configuration beside its pages: the "
-"PLC navigator and the bus navigator in the left column, the page in the "
-"middle and the PLC grid, every channel as a row of a table, in the bottom "
-"dock. It is the place to address modules, bind channels and check what each "
-"channel drives."
+"This guide is where you look up one PLC job. To learn the jobs in order, "
+"follow the tutorials [A PLC with its modules](../tutorials/plc-station.md) "
+"and [A bus network](../tutorials/bus-network.md) first."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:7 src/how-to/fluid-workspace.md:6
-msgid "Open it"
-msgstr ""
-
-#: src/how-to/plc-workspace.md:9
+#: src/how-to/plc-workspace.md:6
 msgid ""
-"Choose **PLC** in the workspace switch at the right of the tab row, or **PLC "
-"workspace** at the end of the **PLC** tab. The left column shows the PLC "
-"navigator and the bottom dock the PLC grid; Properties stays under the "
-"navigator. **Schematic** in the switch goes back; a change you make to the "
-"layout is kept for the workspace. The **PLC** tab holds a button for each "
-"PLC and bus command: Rack, Addresses, Bus page, Place port, PLC grid, the "
-"exchange with PLC software and this guide."
+"EW keeps the PLC hardware of a project beside its drawings: each CPU and "
+"remote I/O head with the modules in its rack, every channel with its "
+"address, symbol and what it is wired to, and the bus networks between them. "
+"You draw the modules on schematic pages as boxes with their pins and wire "
+"the field devices to them, as in any ECAD tool; the PLC side knows which "
+"channel each pin is and exports it all to TIA Portal or CODESYS."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:11
+msgid "The PLC workspace shows the PLC side beside the page:"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:13
+msgid ""
+"![The PLC workspace: the PLC panel at the left, the page, the PLC grid under "
+"it, the PLC tab](images/plc-workspace.png)"
 msgstr ""
 
 #: src/how-to/plc-workspace.md:15
-msgid "The PLC navigator"
-msgstr ""
-
-#: src/how-to/plc-workspace.md:17
 msgid ""
-"The tree runs from the configuration project to its stations (a CPU, a head "
-"station, a valve terminal), their racks once a module has a rack position, "
-"their modules and each module's channels, with the station's bus ports after "
-"its modules. Selecting a row selects the device or channel on the page "
-"shown; a drawable on another page is a chip at the top of the canvas that "
-"opens it."
+"the **PLC** tab of the command bar at the top, with a button for each PLC "
+"job;"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:21
+#: src/how-to/plc-workspace.md:16
 msgid ""
-"Drag a channel's row onto a connection point of a module pin or a coil to "
-"bind it. A device wired off the module, or a valve beside a valve terminal, "
-"is attached to the module and bound in one step; one Undo takes both back."
+"the **PLC panel** at the left: each PLC with its stations, their modules and "
+"each module's channels;"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:23
+#: src/how-to/plc-workspace.md:17 src/how-to/fluid-workspace.md:18
+msgid "**Properties** under it, for what is selected;"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:18
+msgid "the page in the middle;"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:19
 msgid ""
-"A module drawn on a page joins the project's only station, and its toast "
-"says which slot it got, with **Rack…**. In a project with two stations it "
-"joins the one drawn beside it on its page; drawn on a page without a "
-"station, a window asks which station takes it, the one last given a module "
-"first. Without any station its toast offers **New station…**. A module that "
-"waits is listed under **Modules without a station**: drag its row onto the "
-"station's row (a module of another station moves there), or right-click it "
-"and choose **Attach to** and the station's tag; or right-click the station "
-"that takes all of them and choose **Attach modules without a station**. Only "
-"a module goes into a rack: a device whose part has no PLC data is refused in "
-"words, and a bus device is given to a PLC as a station of its own (step 5)."
+"the **PLC grid** under the page: one row per channel, edited like a "
+"spreadsheet."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:32
-msgid "Stations"
+#: src/how-to/plc-workspace.md:21 src/how-to/fluid-workspace.md:22
+msgid "The words"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:34
+#: src/how-to/plc-workspace.md:23 src/how-to/fluid-workspace.md:24
+msgid "Word"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:23 src/how-to/fluid-workspace.md:24
+msgid "What it is"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:25 src/reference/window/panels.md:102
+msgid "PLC"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:25
 msgid ""
-"Choose **New station…** (Project menu, or **+** in the PLC navigator). "
-"Choose what the station is, its head part and the PLC it belongs to, then "
-"fill the rack: **Add module…** on a free slot picks a module part and how "
-"many fill the slots from there. **Create** makes the station and its "
-"modules, drawn on no page yet; **Draw on this page** or **Put it on a bus "
-"page** draws it when you want. A station part placed directly from the "
-"device browser opens the same rack at once. On a bus-topology page, the Bus "
-"panel or a schematic page, right-click a bus device that belongs to no PLC "
-"and choose **Add to** and the PLC (or **Add to a new PLC**): it becomes a "
-"station of that PLC and its rack opens; a part without PLC data gets an open "
-"rack whose modules you add. A switch or a plug takes no part. A station's "
-"menu says **PLC:** and its name, and offers **Rack…**."
+"One controller's configuration, shown as PLC1 in the PLC panel: what a CPU "
+"and its remote stations share."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:26
+msgid "Station"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:26
+msgid ""
+"A CPU or a remote I/O head with the modules it carries; a valve terminal "
+"with a bus node is one too. TIA Portal calls it a device in its network view."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:27
+msgid "Rack"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:27
+msgid "The row of slots of a station."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:28
+msgid "Slot"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:28
+msgid ""
+"A place in the rack, numbered from 1. The slot order gives the addresses."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:29
+msgid "Module"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:29
+msgid "An I/O card in a slot (the window says module)."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:30
+msgid "Channel"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:30
+msgid ""
+"One input or output of a module, such as I0.0: one row of the PLC grid and "
+"one pin of the module's box."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:31 src/reference/window/tools.md:50 src/reference/symbol-editor.md:172
+msgid "Symbol"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:31
+msgid ""
+"The PLC tag name of a channel, such as `Door_closed`, as in the PLC tag "
+"table. The drawing symbol of a device is another thing."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:33
+msgid "In TIA Portal you … here you …"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:35
+msgid "In TIA Portal you …"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:35
+msgid "Here you …"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:37
+msgid "add a CPU in the device view"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:37
+msgid "choose **New station** on the PLC tab and pick its head part"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:38
+msgid "plug modules into the rack from the catalogue"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:38
+msgid "choose **Add module…** on a free slot of the station's rack"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:39
+msgid "move a module to another slot"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:39
+msgid "use the arrows of its row in **Rack…**, or type the slot"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:40
+msgid "read the I/O addresses in the device overview"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:40
+msgid "read the **Addresses** column of **Rack…**, or the PLC grid"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:41
+msgid "change a start address"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:41
+msgid "type the address in the PLC grid, or choose **Re-address…**"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:42
+msgid "type the PLC tags"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:42
+msgid "type each channel's **Symbol** in the PLC grid"
 msgstr ""
 
 #: src/how-to/plc-workspace.md:43
-msgid "Bus ports and nets"
+msgid "add an IO device in the network view"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:43
+msgid "place its part on a bus-topology page"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:44
+msgid "connect it to the subnet"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:44
+msgid "draw a bus line between the sockets with **Draw ▸ Connect ▸ Wire**"
 msgstr ""
 
 #: src/how-to/plc-workspace.md:45
-msgid ""
-"A station placed from the device browser on a bus-topology page stands there "
-"as its bus interfaces, a box each with its sockets (the starter CPU as DP "
-"and X1), and without its supply pins, which are its box on a schematic page. "
-"A station's port that is not drawn on the bus-topology page shown is offered "
-"on the station's row as **Place port DP** (or **Place port X1** for "
-"PROFINET): it arms the Black box tool with that interface's box; two clicks "
-"draw it. On another page the same entry places the port symbol joined to the "
-"station, for a port no function carries yet. Draw the bus between the ports "
-"with **Draw ▸ Wire**, which draws bus lines on a bus-topology page: the two "
-"ports become one network (a new one named for the bus, PROFIBUS DP, when "
-"neither has one), with the CPU's port as its master. The starter parts hold "
-"a CPU with PROFINET and PROFIBUS DP, a remote I/O head (a station of its "
-"own: attach its modules with **Attach modules without a station** on its "
-"row), an unmanaged and a managed switch, a PROFINET device and a PROFIBUS "
-"and an Ethernet cable. Your own cards, stations, switches and devices are "
-"made in the part editor: see [Make your own PLC or bus part](own-parts.md)."
+msgid "assign an IO device to a controller"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:56
+#: src/how-to/plc-workspace.md:45
+msgid "right-click it and choose **Add to** and the PLC"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:46
+msgid "set the PROFINET device name and IP address"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:46
+msgid "type them into the **Address** cell of the Bus panel's table"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:48
 msgid ""
-"Choose **Bus** on the rail for the nets: each logical net with its ports, "
-"each physical net with its segments and their ends. Show it as a table to "
-"type a port's address or switch its termination: the cell's editor says the "
-"form under it (a PROFIBUS DP station address such as `3`, a PROFINET device "
-"name and IP address such as `plc1 192.168.0.1`). Selected on the page, a "
-"port's symbol or box shows its function first in Properties, with the same "
-"**Address** row. **Ports not drawn yet** lists every interface a part gives "
-"a device that no page draws: Enter, or **Place port** in its menu, draws its "
-"box on the bus-topology page shown."
+"The exchange of the hardware and the tags with the PLC software is at the "
+"end of this guide."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:50 src/how-to/fluid-workspace.md:32
+msgid "Open the workspace"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:52
+msgid ""
+"Choose **PLC** in the workspace switch at the right of the tab row, or **PLC "
+"workspace** on the PLC tab."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:53 src/how-to/fluid-workspace.md:35
+msgid ""
+"**Schematic** in the switch goes back. A change you make to the layout is "
+"kept for the workspace."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:55
+msgid "Make a station"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:57
+msgid ""
+"Choose **New station** on the PLC tab (**PLC ▸ New station…**), or **+** in "
+"the PLC panel."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:58
+msgid ""
+"Choose what it is: **PLC (CPU)**, **Remote I/O**, **Valve terminal** or "
+"**Compact device** (a hover says each in full)."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:60
+msgid ""
+"Choose its **Head part**: the CPU, the interface module of a remote station, "
+"the valve terminal. **New part…** beside it opens the part editor set for "
+"that kind, and the part you save is chosen when you come back."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:62
+msgid ""
+"Choose the PLC it belongs to (a remote station: the PLC it serves), or **New "
+"PLC**."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:63
+msgid ""
+"Choose **Add module…** on the free slot and pick a module; **How many** "
+"fills that many slots from there."
 msgstr ""
 
 #: src/how-to/plc-workspace.md:64
-msgid "Addresses"
-msgstr ""
-
-#: src/how-to/plc-workspace.md:66
 msgid ""
-"Right-click a module and choose **Re-address…**, or a configuration project "
-"for all its modules: the Preview tab lists each channel whose address moves, "
-"old and new, and **Apply** makes the change in one step. **Make manual "
-"addresses automatic…** drops the manual addresses that equal the derived "
-"ones, and **Freeze addresses…** on a configuration project keeps the address "
-"of every used or reserved channel as a manual one and pins each card's "
-"start, so that a later change of a card moves none; a spare channel keeps "
-"its automatic address. The configuration project's three commands are also "
-"in the **Addresses** menu at the top of the PLC panel and of the PLC grid. "
-"After **Apply** a toast says how many addresses were frozen or moved, and a "
-"manual address (typed, or frozen) carries the badge **manual** in the panel "
-"and a lock in the grid's Address cell."
+"Choose **Create**: the station and its modules are made in one step, drawn "
+"on no page yet."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:75 src/reference/window/dialogs.md:114
-msgid "Rack and slots"
-msgstr ""
-
-#: src/how-to/plc-workspace.md:77
+#: src/how-to/plc-workspace.md:65
 msgid ""
-"Right-click a station and choose **Rack…**. **Add module…** on a free slot "
-"adds modules; the arrows on a module's row move it, the bin empties its "
-"slot, **Replace…** gives it another part; type another slot into a module's "
-"Slot field to move it. A slot the module's part does not allow is refused, "
-"and the reason stays in the dialog."
+"Choose **Draw on this page** to draw the station and its modules side by "
+"side in slot order on the schematic page shown, or **Put it on a bus page** "
+"to draw its bus interface on the first bus-topology page."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:81
-msgid "The PLC grid"
-msgstr ""
-
-#: src/how-to/plc-workspace.md:83
+#: src/how-to/plc-workspace.md:68
 msgid ""
-"Each row of the grid is a channel. Type in a cell to change a channel's "
-"designation, address, symbol, state, target, comment, data type or signal "
-"range; the slot cell takes a number or `<rack>.<slot>`. Safety data is set "
-"with **Safety data…** and **Mode and safety…** (step 17)."
+"A station part placed straight from the device browser opens the same rack "
+"at once."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:86
+#: src/how-to/plc-workspace.md:70
+msgid "Change a rack"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:72
 msgid ""
-"Type in the grid's filter to narrow the rows: a word of a cell, or one of "
-"`spare`, `unplaced`, `unassigned`, `tbd`, `duplicate`, `safety`, "
-"`config:<name>` and `bus:<net>` (`bus:profibus-dp`). A click on a column's "
-"header sorts by it, a second click reverses the order."
+"Right-click the station (on the page, in the PLC panel) and choose "
+"**Rack…**, or choose **Rack** on the PLC tab."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:90
-msgid "Exchange with the PLC software"
+#: src/how-to/plc-workspace.md:73
+msgid ""
+"**Add module…** on a free slot adds modules; the arrows move a module up or "
+"down; the bin empties its slot; **Replace…** gives it another part; typing a "
+"number into its slot field moves it there."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:75
+msgid ""
+"A slot the module's part does not allow is refused, and the reason stays "
+"under the slots. When modules move, the line under the slots says their "
+"addresses moved with them."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:78
+msgid "Put a module into a station"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:80
+msgid ""
+"A module drawn on a page by itself (from the device browser or the black "
+"box) joins the project's only station, and its toast names the slot it got, "
+"with **Rack…**."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:82
+msgid ""
+"With two stations it joins the one drawn beside it on its page; on a page "
+"without one, a window asks which station takes it. Without any station, its "
+"toast offers **New station…**."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:84
+msgid ""
+"A module that waits is listed under **Modules without a station** in the PLC "
+"panel: drag its row onto the station's row, or right-click the station and "
+"choose **Attach modules without a station**."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:87
+msgid ""
+"Only a module goes into a rack: a device whose part has no PLC data is "
+"refused in words."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:89
+msgid "Wire a field device to a channel"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:91
+msgid ""
+"Draw the device (a sensor, a lamp, a coil) on the page beside the module's "
+"box."
 msgstr ""
 
 #: src/how-to/plc-workspace.md:92
 msgid ""
-"Choose **Export to PLC software** on the PLC tab (or **PLC ▸ Export to PLC "
-"software…**), pick the format and choose **Export**, then the file: the "
-"dialog names it for the format (`.aml`, `.xlsx` or `.xml`), and the document "
-"date starts as today's. Import the file in TIA Portal or CODESYS."
+"Choose **Draw ▸ Connect ▸ Wire** (`W`) and wire it to the module's pin: pin "
+"1 is channel 0."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:95
+#: src/how-to/plc-workspace.md:93
 msgid ""
-"Choose **Import from PLC software** on the PLC tab (or **PLC ▸ Import from "
-"PLC software…**) for the file the PLC software wrote back. Look through its "
-"tabs; each conflict shows the side Apply takes, and offers the file's value "
-"where it can be taken. Choose **Apply**."
+"Or drag a channel's row from the PLC panel onto the device's connection "
+"point: the device is attached to the module and the channel bound to it in "
+"one step, which one Undo takes back."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:96
+msgid "Addresses"
 msgstr ""
 
 #: src/how-to/plc-workspace.md:98
 msgid ""
-"After an import, the module starts, the symbols or the PLC data the PLC "
-"software owns are protected. Right-click the configuration project and "
-"choose **Unlock module starts** (or the other group) to edit them in the "
-"project."
+"A channel's address comes from its module's slot and the modules before it: "
+"the first input module of a station starts at I0.0, the first output module "
+"at Q0.0."
 msgstr ""
 
 #: src/how-to/plc-workspace.md:100
 msgid ""
-"Right-click the configuration project and choose **Import instrument list…** "
-"for a CSV or workbook of process tags and signal types: the Preview tab "
-"lists the spare channels it reserves and the tags left open. Choose "
-"**Apply**."
+"To give one channel another address, type it into its **Address** cell in "
+"the PLC grid; it keeps it, with the badge **manual** in the panel and a lock "
+"in the grid."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:103
-msgid "Settings"
-msgstr ""
-
-#: src/how-to/plc-workspace.md:105
+#: src/how-to/plc-workspace.md:102
 msgid ""
-"Right-click the configuration project and choose **Symbol policy…** for the "
-"template of the automatic symbol, the PLC tag table and whether symbols are "
-"strict IEC 61131-3 identifiers."
+"Right-click a module and choose **Re-address…** (or the PLC row for all its "
+"modules): the Preview tab lists each channel whose address moves, old and "
+"new; **Apply** makes the change in one step."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:107
+#: src/how-to/plc-workspace.md:104
 msgid ""
-"Right-click a module and choose **Safety data…** for its F-source and "
-"F-destination address and its F-watchdog time; right-click a channel and "
-"choose **Mode and safety…** for a multi-function port's mode and the "
-"channel's safety evaluation and requirement."
+"Right-click the PLC row and choose **Freeze addresses…** to keep every used "
+"or reserved channel's address when modules move later, or **Make manual "
+"addresses automatic…** to drop manual addresses that equal the automatic "
+"ones. The three are also under **Addresses** on the PLC tab."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:108
+msgid "The PLC grid and the symbols"
 msgstr ""
 
 #: src/how-to/plc-workspace.md:110
 msgid ""
-"Choose **Process-tag scheme** on the PLC tab for the pattern process tags "
-"follow, and **Addresses at terminals** to print a channel's address at the "
-"terminals on its path."
+"Choose **PLC grid** on the PLC tab (**PLC ▸ PLC grid**). Each row is a "
+"channel."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:111
+msgid ""
+"Click a cell and type: the designation, address, symbol, state, target, "
+"comment, data type or signal range. The slot cell takes a number or "
+"`<rack>.<slot>`."
 msgstr ""
 
 #: src/how-to/plc-workspace.md:113
 msgid ""
+"Type into the grid's filter to narrow the rows: a word of a cell, or one of "
+"`spare`, `unplaced`, `unassigned`, `tbd`, `duplicate`, `safety`, "
+"`config:<name>` and `bus:<net>` (`bus:profibus-dp`). A click on a column's "
+"header sorts by it."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:116
+msgid ""
+"To have EW write the symbols, right-click the PLC row and choose **Symbol "
+"policy…**: the template of the automatic symbol, the PLC tag table and "
+"whether symbols must be strict IEC 61131-3 names."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:119
+msgid "Give a bus device to a PLC"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:121
+msgid ""
+"On a bus-topology page, a schematic page or in the Bus panel, right-click a "
+"bus device that belongs to no PLC."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:122
+msgid ""
+"Choose **Add to** and the PLC, or **Add to a new PLC**: it becomes a station "
+"of that PLC and its rack opens."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:124
+msgid ""
+"A switch or a plug takes no part in a PLC; its menu says why. A station's "
+"menu says **PLC:** and its PLC's name."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:126
+msgid "Bus ports and nets"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:128
+msgid ""
+"A bus-topology page is the network view: each device stands as one box per "
+"bus interface (PROFINET X1, PROFIBUS DP), with a connection point per "
+"socket, and the bus lines run between the sockets. The device's power and "
+"I/O pins stay on the schematic pages."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:132
+msgid ""
+"Choose **Bus page** on the PLC tab: the new-page form opens with the type "
+"**Bus topology**."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:133
+msgid ""
+"Place a station or another bus device from the device browser (**Draw ▸ "
+"Place ▸ Device from part…**) with two clicks for its box: it stands there as "
+"a box per interface, and a station's rack opens."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:135
+msgid ""
+"A station drawn first on a schematic page gets its port box from **Place "
+"port DP** (or **Place port X1**) on its row in the PLC panel; **Ports not "
+"drawn yet** in the Bus panel lists every interface no page draws yet."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:137
+msgid ""
+"Draw the bus lines with **Draw ▸ Connect ▸ Wire**: the ports become one "
+"network, named for its bus, with the CPU's port as its controller or master."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:139
+msgid ""
+"Choose **Bus panel** on the PLC tab and switch it to its table. Type each "
+"node's address into its **Address** cell as the cell says: a PROFIBUS DP "
+"station address such as `3`, a PROFINET device name with its IP address such "
+"as `plc1 192.168.0.1`. The box prints it. An unmanaged switch passes the net "
+"through and takes none."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:142
+msgid ""
+"Select a bus line and choose **Cable** on the Draw tab: choose the cable "
+"(the ones made for that bus first), its length and the plug at each end with "
+"its termination, and **Apply**. The line prints the cable's tag; the cable "
+"and the plugs go into the parts list."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:146
+msgid ""
+"The starter parts hold a CPU with PROFINET and PROFIBUS DP, a remote I/O "
+"head, an unmanaged and a managed switch, a PROFINET device, PROFIBUS and "
+"Ethernet cables and their plugs. Your own devices with their ports are made "
+"in the part editor: see [Make your own PLC or bus part](own-parts.md)."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:150
+msgid "Exchange with the PLC software"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:152
+msgid ""
+"Choose **Export to PLC** on the PLC tab (**PLC ▸ Export to PLC software…**) "
+"and pick the format: **AutomationML AR APC 1.4.0** (or 1.2.0) carries the "
+"stations, their modules, addresses and symbols to TIA Portal; **TIA Portal "
+"PLC tags (XLSX)** carries the tag table; **PLCopen XML (CODESYS)** is for "
+"CODESYS. Choose **Export**, then the file."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:155
+msgid ""
+"Choose **Import from PLC** on the PLC tab (**PLC ▸ Import from PLC "
+"software…**) for the file the PLC software wrote back. Look through its "
+"tabs: each conflict shows the side **Apply** takes, and offers the file's "
+"value where it can be taken. Choose **Apply**."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:158
+msgid ""
+"After an import, what the PLC software owns (the module starts, the symbols "
+"or the PLC data) is protected: right-click the PLC row and choose **Unlock "
+"module starts** (or the other group) to edit it here again."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:160
+msgid ""
+"Right-click the PLC row and choose **Import instrument list…** for a list of "
+"process tags and signal types (CSV or workbook): the Preview tab lists the "
+"spare channels it reserves."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:163
+msgid "Settings"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:165
+msgid "**Process-tag scheme** on the PLC tab: the pattern process tags follow."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:166
+msgid ""
+"**Addresses at terminals** on the PLC tab: each channel's address printed at "
+"the terminals on its path."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:167
+msgid ""
+"Right-click a module and choose **Safety data…** for its F-addresses and "
+"F-watchdog time; right-click a channel and choose **Mode and safety…** for a "
+"multi-function port's mode and the channel's safety data."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:170
+msgid ""
 "The panels are described in the [panel "
-"reference](../reference/window/panels.md): PLC, PLC grid and Bus; the dialog "
-"in the [dialog reference](../reference/window/dialogs.md): Rack and slots "
-"and PLC import."
+"reference](../reference/window/panels.md) (PLC, PLC grid, Bus), and the "
+"dialogs in the [dialog reference](../reference/window/dialogs.md) (Rack and "
+"slots, PLC import)."
 msgstr ""
 
 #: src/how-to/own-parts.md:3
@@ -3419,190 +4732,306 @@ msgstr ""
 
 #: src/how-to/fluid-workspace.md:3
 msgid ""
-"The Fluid workspace shows a project's pneumatics beside its pages: the fluid "
-"navigator in the left column, the page in the middle, and the tube table and "
-"the medium table in the bottom dock."
+"This guide is where you look up one pneumatics job. To learn the jobs in "
+"order, follow the tutorial [A pneumatic "
+"circuit](../tutorials/pneumatic-circuit.md) first."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:8
+#: src/how-to/fluid-workspace.md:6
 msgid ""
-"Choose **Fluid power** in the workspace switch at the right of the tab row, "
-"or **Fluid workspace** at the end of the **Fluid** tab. **Schematic** in the "
-"switch goes back; a change you make to the layout is kept for the workspace. "
-"The **Fluid** tab holds a button for each fluid command: Fluid page, Tube, "
-"Fluid symbol, Valve terminal, Air supply, the media, the tube table and this "
-"guide."
+"EW draws pneumatic circuits on fluid pages with the ISO 1219 symbols, beside "
+"the electrical pages of the same project. It knows which medium each tube "
+"carries, which tube runs from which port to which, and which valve each "
+"solenoid belongs to, so the solenoid drawn on an electrical page and the "
+"valve on the fluid page are one device, and the tube list is made from the "
+"drawing."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:11
+msgid "The Fluid workspace shows the pneumatics beside the page:"
 msgstr ""
 
 #: src/how-to/fluid-workspace.md:13
-msgid "Valves and tubes"
+msgid ""
+"![The Fluid workspace: the Fluid panel, the fluid page, the tube and medium "
+"tables, the Fluid tab](images/fluid-workspace.png)"
 msgstr ""
 
 #: src/how-to/fluid-workspace.md:15
 msgid ""
-"The fluid navigator lists each valve terminal with its modules and valves, "
-"and every other device a tube ends at, each with its tubes. Select a tube's "
-"row to find it on the page. Its table mode (the Table toggle) lists the "
+"the **Fluid** tab of the command bar at the top, with a button for each "
+"fluid job;"
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:16
+msgid ""
+"the **Fluid panel** at the left: the valve terminals with their valves, "
+"every device a tube ends at with its tubes, and the media;"
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:19
+msgid "the fluid page in the middle;"
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:20
+msgid "the **Tube table** and the **Medium table** under the page."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:26
+msgid "Fluid page"
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:26
+msgid ""
+"A page for the circuit: the symbols are ISO 1219 and the Wire tool draws "
 "tubes."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:17
-msgid ""
-"Draw a tube with **Draw ▸ Wire** on a fluid page, or choose **Tube** on the "
-"Fluid tab to pick its line kind first (Pilot, Exhaust, Drain, Flexible). A "
-"symbol placed with a fluid port facing a free port is joined to it with a "
-"tube. Right-click a tube to change its line kind (**Line kind: Working**, "
-"**Line kind: Pilot** and the others) or its medium; a flexible tube is drawn "
-"as an arc."
+#: src/how-to/fluid-workspace.md:27
+msgid "Medium"
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:22
-msgid "Solenoids"
+#: src/how-to/fluid-workspace.md:27
+msgid ""
+"What the tubes carry, such as compressed air at 6 bar. It is defined at the "
+"air supply and reaches every tube the supply feeds through the valves."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:24
+#: src/how-to/fluid-workspace.md:28 src/reference/window/tools.md:148
+msgid "Tube"
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:28
 msgid ""
-"Right-click a solenoid valve on its fluid page and choose **Draw solenoid 14 "
-"on an electrical page…**: the electrical page shows with the coil's symbol "
-"on the pointer; click where it goes. It is the valve's own coil, not a "
-"device of its own. The valve's menu then reads **Go to solenoid 14 at** and "
-"the place, its Properties list each solenoid with where it is drawn and the "
-"PLC output that drives it, and the coil's Properties and menu name its valve "
-"(**Solenoid 14 of -201Q1**)."
+"A line between two ports, with its line kind (working, pilot, exhaust, "
+"drain, flexible), size and material."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:29
+msgid "Solenoid"
 msgstr ""
 
 #: src/how-to/fluid-workspace.md:29
 msgid ""
-"A coil placed on its own joins a valve when you type the valve's tag into "
-"the coil's **Tag**: the field asks whether to make it the valve's undrawn "
-"solenoid, or says what the valve has free when nothing fits."
+"The coil of a valve. It belongs to the valve and is drawn on an electrical "
+"page, where it is wired."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:32
-msgid "Valve terminals"
+#: src/how-to/fluid-workspace.md:30
+msgid "Valve terminal"
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:30
+msgid ""
+"A manifold of valve positions, drawn as its positions; a position holds a "
+"valve or a blanking plate."
 msgstr ""
 
 #: src/how-to/fluid-workspace.md:34
 msgid ""
-"To start a valve terminal, choose **Draw ▸ Device**, find **Valve terminal "
-"with bus node, 4 valve positions, 8 outputs** under **Valve terminals** (or "
-"type \"valve terminal\") and click once where its top-left corner goes. It "
-"is drawn as its positions: a supply end on the left, then one cell per valve "
-"position in a row, numbered in the sub-base along the bottom. An empty "
-"position is a dashed cell, a blanking plate a plate with both diagonals. It "
-"is a valve terminal because its part has valve positions: the fluid "
-"navigator lists it under **Valve terminals**."
+"Choose **Fluid power** in the workspace switch at the right of the tab row, "
+"or **Fluid workspace** on the Fluid tab."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:37
+msgid "Draw a circuit"
 msgstr ""
 
 #: src/how-to/fluid-workspace.md:39
 msgid ""
-"Click an empty cell, or right-click it and choose **Fill position 2…**: the "
-"device browser opens with the valves for a valve terminal only, and the "
-"valve you choose stands in that cell, at that position. A valve placed into "
-"a cell from **Symbol** or **Device** takes that cell's position; a valve of "
-"the terminal dragged onto another cell moves there, onto a held cell the two "
-"swap. The toast names the position. A valve with a coil of its own to wire "
-"(a stand-alone valve), a coil or a cylinder dropped into the box is not "
-"taken as a position: it stays a device of its own, and the toast says so. A "
-"valve's **Valve position** in Properties moves it to another position; a "
-"position another valve holds offers **Swap** in the toast. The supply plate "
-"**Valve terminal supply plate, ports 1, 3 and 5** placed into the box stands "
-"in the supply end: a tube to its port 1 feeds every valve of the terminal."
+"Choose **Fluid page** on the Fluid tab: the new-page form opens with the "
+"type **Fluid**."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:47
+#: src/how-to/fluid-workspace.md:40
 msgid ""
-"Right-click a held cell: **Replace at position 2…**, **Empty position 2** "
-"and **Blanking plate at position 2**. A valve's row offers **Set spare** or "
-"**Set used**, **Blank position** and **Plug port** for each working port "
-"that has no line; the terminal's row adds a valve or a blanking plate at "
-"each empty position (**Add valve at position**, **Blank position**). The "
-"rack dialog (**Rack…**) lists the terminal's positions as rows with "
-"**Fill…**, **Blanking plate** and **Empty**. A terminal drawn before this "
-"version as a free box keeps it: its box's menu offers **Draw as slots**, "
-"previewed, which redraws it as its positions and moves its valves on that "
-"page into their cells with their tubes; its Properties list the **Valve "
-"positions**. There are two kinds, and the terminal's menu says which: a "
-"**valve terminal with bus node** is a PLC station (the outputs that drive "
-"its solenoids are inside it, nothing is wired per solenoid); a **multipin "
-"valve terminal** (**Multipin valve terminal, 8 valve positions, 25-pin "
-"plug**) has no station: placed on an electrical page it is its plug, pins 1 "
-"to 16 and the common 25, wired by a cable to an output card. A valve's "
-"solenoid on a terminal is never drawn: its Properties say **driven by output "
-"Q0.0 of -201K1** or **pin 3 of the plug of -201K1**, and its menu has **Go "
-"to the output of solenoid 14** (the channel in the PLC list) or the way to "
-"its plug pin."
+"Choose **Air supply** on the Fluid tab for the supply point and its "
+"preparation (service unit, filter, regulator, lubricator), **Fluid symbol** "
+"for any ISO 1219 symbol, or **Draw ▸ Place ▸ Device from part…** for a "
+"valve, cylinder or flow control with its part. On a fluid page the symbol "
+"browser offers the fluid symbols and greys the rest."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:60
+#: src/how-to/fluid-workspace.md:43
 msgid ""
-"Right-click the valve terminal's box or row and choose **Generate "
-"overview…**; from the command search it acts on the selected terminal and "
-"says so while none is selected. The Preview tab lists which modules stand on "
-"which overview page, and the pages it adds where the frame is full; the tags "
-"that change with a page are listed below. Choose **Apply**. A new overview "
-"page is titled by the terminal, such as **Valve terminal -201A1**: its "
-"modules stand in a strip inside the frame, each valve position on top with "
-"the valve's part number, a blank position crossed. Run it again after adding "
-"a module: it refreshes the pages."
+"A symbol placed with a port facing a free port is joined to it with a tube; "
+"hold `Alt` as you click to place it without one. `R` before the click turns "
+"it."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:45
+msgid ""
+"Draw the tubes with **Draw ▸ Connect ▸ Wire**, or choose **Tube** on the "
+"Fluid tab to pick the line kind first."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:46
+msgid ""
+"Right-click a tube to change its line kind (**Line kind: Working**, **Line "
+"kind: Pilot** and the others) or its medium. A flexible tube is drawn as an "
+"arc."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:49
+msgid "The medium"
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:51
+msgid ""
+"Choose **New medium** on the Fluid tab (**Fluid ▸ New medium…**). Under "
+"**Start from** pick a usual medium, such as **Compressed air** (which fills "
+"the name and 6 bar), or type a name and the pressure in bar, and choose "
+"**Create**. Each field says under it what it changes."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:54
+msgid ""
+"Select the air supply and choose the medium in its **Medium** row in "
+"Properties, or right-click it and choose **Medium:** and the medium."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:56
+msgid ""
+"Every tube the supply feeds through the valves carries it; a device's "
+"Properties show the medium each port carries, and say where to set it when "
+"it carries none."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:58
+msgid ""
+"Select a medium's row in the Medium table and press `Ctrl+Shift+H` to "
+"highlight its zones on the page, in a colour with a hatch pattern."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:61
+msgid "The solenoid of a valve"
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:63
+msgid ""
+"Select a solenoid valve on its fluid page. Its Properties list each "
+"solenoid, such as **Solenoid 14**, with where it is drawn and the PLC output "
+"that drives it."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:65
+msgid ""
+"Click \"draw it…\" in that row, or right-click the valve and choose **Draw "
+"solenoid 14 on an electrical page…**: the electrical page shows with the "
+"coil on the pointer; click where it goes. The coil carries the valve's tag."
 msgstr ""
 
 #: src/how-to/fluid-workspace.md:67
-msgid "Tubes"
+msgid ""
+"Wire the coil to a PLC output. The valve's menu then reads **Go to solenoid "
+"14 at** and the place."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:69
+#: src/how-to/fluid-workspace.md:68
 msgid ""
-"The tube table has one row per tube. Type a length in millimetres into "
-"**Length** (or with its unit: `2 m`, `35 cm`; in Properties the row is "
-"**Tube length (mm)**) or a tube part into **Tube part**; **Source** then "
-"says the value is manual. Leave a cell empty to take the derived value "
-"again. A tube's **Tube part** in Properties offers the tube parts, such as "
-"the starter tubes PU 6 × 4, 8 × 6 and 10 × 8 mm."
+"A coil placed on its own joins a valve when you type the valve's tag into "
+"the coil's **Tag**: the field asks whether to make it the valve's undrawn "
+"solenoid."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:71
+msgid "Valve terminals"
 msgstr ""
 
 #: src/how-to/fluid-workspace.md:73
+msgid "There are two kinds, and the terminal's menu says which:"
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:75
 msgid ""
-"Choose **Fluid settings** on the Fluid tab for the default tube of every "
-"line (its outer and inner diameter in mm and its material) and to tag tubes "
-"by page and counter. A toast says what the default tube is now; it reaches "
-"the tubes drawn already. A tube is specified with its size and its material: "
-"without a material, the check names it."
+"a **valve terminal with bus node** is a PLC station on the bus: its valves "
+"are driven inside it, each by the output its position gives, and nothing is "
+"wired per solenoid;"
 msgstr ""
 
 #: src/how-to/fluid-workspace.md:77
-msgid "Media"
+msgid ""
+"a **multipin valve terminal** has a multipin plug: each solenoid is wired "
+"from a PLC output to a pin of the plug."
 msgstr ""
 
 #: src/how-to/fluid-workspace.md:79
 msgid ""
-"Choose **New medium** on the Fluid tab, or **New medium…** at the top of the "
-"Fluid panel beside **Fluid settings…**, pick a usual medium under **Start "
-"from** (such as **Compressed air**, which fills the name and 6 bar) or give "
-"the medium a name and its pressure in bar, and choose **Create**. Each field "
-"of this form and of **Fluid settings…** says under it what it changes."
+"Choose **Valve terminal** on the Fluid tab and choose the terminal, such as "
+"**Valve terminal with bus node, 4 valve positions, 8 outputs**; click once "
+"where its top-left corner goes. It is drawn as its positions: a supply end, "
+"then one numbered cell per position. An empty position is a dashed cell, a "
+"blanking plate a plate with both diagonals."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:83
+#: src/how-to/fluid-workspace.md:82
 msgid ""
-"Right-click a tube and choose **Medium:** with the medium's name: the tube's "
-"net and every net the medium reaches through the valves carry it. The fluid "
-"navigator counts the tubes of each medium. A tube's **Medium** in Properties "
-"shows the medium and where it is defined, and sets it too, on every tube "
-"selected; its list ends in **New medium…**, which makes one and gives it to "
-"the tubes. Its **Tube** row shows the tube it is made of (such as 6×4 mm PU) "
-"and where that comes from. The air supply's Properties show the medium it "
-"supplies, and set it there."
+"Click an empty cell, or right-click it and choose **Fill position 2…**: the "
+"device browser opens with valves; choose a valve for a valve terminal, and "
+"it stands in that cell with its output."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:88
+#: src/how-to/fluid-workspace.md:84
 msgid ""
-"Select the medium's row in the medium table and press `Ctrl+Shift+H` to "
-"highlight its zones on the page; the highlight is a colour with a hatch "
-"pattern, so it reads without colour too."
+"Right-click a held cell for **Replace at position 2…**, **Empty position 2** "
+"and **Blanking plate at position 2**. A valve dragged onto another cell "
+"moves there; onto a held cell the two swap. A valve's **Valve position** in "
+"Properties moves it too."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:91
+#: src/how-to/fluid-workspace.md:87
+msgid ""
+"A stand-alone valve, a coil or a cylinder dropped into the box is not taken "
+"as a position: it stays a device of its own, and the toast says so."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:89
+msgid ""
+"On a multipin terminal, right-click its row on an electrical page and choose "
+"**Draw the plug of -201K1 on this page…**: beside each pin stands the valve "
+"and solenoid it drives. Wire a pin to a PLC output, and the valve on the "
+"fluid page shows that output."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:92
+msgid ""
+"The rack dialog (**Rack…**) lists the terminal's positions as rows with "
+"**Fill…**, **Blanking plate** and **Empty**. **Generate overview…** on the "
+"terminal's menu makes the overview pages of its modules and valves, "
+"previewed."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:95
+msgid "Tubes and the tube list"
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:97
+msgid ""
+"Choose **Fluid settings** on the Fluid tab for the default tube of every "
+"line: its outer and inner diameter in mm and its material. A toast says what "
+"the default tube is now; it reaches the tubes drawn already."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:99
+msgid ""
+"Choose **Tube table** on the Fluid tab: one row per tube with its two ends, "
+"medium, line kind, size and material."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:100
+msgid ""
+"Type a length into **Length** (in mm, or with its unit: `2 m`, `35 cm`) or a "
+"tube part into **Tube part**; **Source** then says the value is manual. An "
+"empty cell goes back to the derived value."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:102
+msgid ""
+"To print the tube list, choose **Output ▸ Report block…** and the report "
+"**Tube list**."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:104
 msgid ""
 "The panels are described in the [panel "
 "reference](../reference/window/panels.md): Fluid, Tube table and Medium "
@@ -3942,10 +5371,6 @@ msgid ""
 "sheet. Open it with Draw ▸ Annotate ▸ Measure."
 msgstr ""
 
-#: src/reference/window/tools.md:50 src/reference/symbol-editor.md:172
-msgid "Symbol"
-msgstr ""
-
 #: src/reference/window/tools.md:52
 msgid ""
 "Places a symbol from the library. A symbol is a drawing without a part; the "
@@ -4141,10 +5566,6 @@ msgid ""
 "between its ends, straight or with one corner and never diagonal, on the "
 "page and in the PDF. The line takes no notice of what lies under it: it is "
 "no route yet. Route page or Route selection draws it."
-msgstr ""
-
-#: src/reference/window/tools.md:148
-msgid "Tube"
 msgstr ""
 
 #: src/reference/window/tools.md:150
@@ -4671,6 +6092,10 @@ msgid ""
 "with Project ▸ Set up merge driver."
 msgstr ""
 
+#: src/reference/window/dialogs.md:114
+msgid "Rack and slots"
+msgstr ""
+
 #: src/reference/window/dialogs.md:116
 msgid ""
 "Opened by **Rack…** on a station's row in the PLC navigator or on its symbol "
@@ -4686,45 +6111,49 @@ msgstr ""
 
 #: src/reference/window/dialogs.md:123
 msgid ""
-"**New station…** first asks what the station is (a PLC with its CPU, a "
-"remote I/O station, a valve terminal with a bus node, a compact device with "
-"channels of its own), then its head part from the parts that can be that "
-"(**New part…** opens the part editor and comes back with the new part), and "
-"the PLC it belongs to: one of the project's or a new one. **Create** makes "
-"the station and its modules, drawn on no page yet, in one undo step."
+"**New station…** first asks what the station is (PLC (CPU), Remote I/O, "
+"Valve terminal, Compact device; each says itself in full on hover), then its "
+"head part from the parts that can be that (**New part…** opens the part "
+"editor set up for that kind of station and comes back with the new part "
+"chosen), and the PLC it belongs to: one of the project's or a new one. "
+"**Create** makes the station and its modules, drawn on no page yet, in one "
+"undo step."
 msgstr ""
 
-#: src/reference/window/dialogs.md:128
+#: src/reference/window/dialogs.md:129
 msgid ""
 "**Add module…** on a free slot opens a picker of the module parts that may "
 "sit in that slot (the project's first, then those of the installed "
 "libraries, which are copied into the project with the module), with a field "
-"for how many fill the slots from there. On a module's row the arrows move it "
-"up and down, the bin empties the slot (a module drawn on no page is deleted, "
-"a drawn one leaves the rack and waits under Modules without a station), "
-"**Replace…** gives it another part and **Draw…** puts its symbol on the "
-"pointer when no page draws it. Type a slot into a module's Slot field and "
-"press `Enter` to move it, as a number or as rack and slot (`1.3`), or drag "
-"the module by its tag onto another slot's row. A move that changes addresses "
-"says so under the slots. A station whose part does not describe its modules "
-"(a bus device given to a PLC) says so above them."
+"for how many fill the slots from there, and **New part…** for a module part "
+"of your own, chosen when the editor saves it. On a module's row the arrows "
+"move it up and down, the bin empties the slot (a module drawn on no page is "
+"deleted, a drawn one leaves the rack and waits under Modules without a "
+"station), **Replace…** gives it another part and **Draw…** puts its symbol "
+"on the pointer when no page draws it. Type a slot into a module's Slot field "
+"and press `Enter` to move it, as a number or as rack and slot (`1.3`), or "
+"drag the module by its tag onto another slot's row. A move that changes "
+"addresses says so under the slots. A station whose part does not describe "
+"its modules (a bus device given to a PLC) says so above them."
 msgstr ""
 
-#: src/reference/window/dialogs.md:137
+#: src/reference/window/dialogs.md:138
 msgid ""
 "A slot the part does not allow, or more modules than the station takes, is "
 "refused, and the reason stays under the slots; the station's slot findings "
 "(EW-PLC-011) are listed there too, each with its icon and the word Error. "
-"Under a made station, **Draw on this page**, **Make the overview page** (a "
+"Under a made station, **Draw on this page** (the station's box and each "
+"module's not drawn yet, beside it in slot order, in rows under what the "
+"schematic page shown holds, one undo step), **Make the overview page** (a "
 "valve terminal) and **Put it on a bus page** do what comes next. **Close** "
 "or `Esc` closes the dialog."
 msgstr ""
 
-#: src/reference/window/dialogs.md:142
+#: src/reference/window/dialogs.md:144
 msgid "PLC import"
 msgstr ""
 
-#: src/reference/window/dialogs.md:144
+#: src/reference/window/dialogs.md:146
 msgid ""
 "**PLC ▸ Import from PLC software…** asks for an AutomationML file or a TIA "
 "Portal \"PLC Tags\" workbook and shows what it would change in the project's "
@@ -4942,10 +6371,6 @@ msgid ""
 "shows the page of its first wire with the cable's wires selected and opens "
 "the cable's form, and Go to its first wire. See [A terminal strip and a "
 "cable](../../tutorials/terminal-strip-and-cable.md)."
-msgstr ""
-
-#: src/reference/window/panels.md:102
-msgid "PLC"
 msgstr ""
 
 #: src/reference/window/panels.md:104
