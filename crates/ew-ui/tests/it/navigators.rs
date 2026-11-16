@@ -83,8 +83,8 @@ pub(crate) fn item_centre(h: &Harness<'_, App>, name: &str) -> Pos2 {
 
 /// NV5 in the window (FR-UI-007, D16; §6.5, §6.8): View ▸ Navigators ▸ Devices docks the pane and focuses it; its rows
 /// are tree items named `<label>, <role>[, <badges>]`; a click on -201U3 with 102 shown keeps 102, selects the device
-/// and shows the chips as buttons named `Open 201-E4` and `Open 203-B4`; Enter opens 201; a selection made on the
-/// canvas marks the representation's row while the focus stays on the canvas.
+/// and shows the chips as buttons named `Go to page 201, E4` and `Go to page 203, B4`; Enter opens 201; a selection
+/// made on the canvas marks the representation's row while the focus stays on the canvas.
 #[test]
 fn the_devices_pane_and_the_chip_line() {
     let tmp = Tmp::new();
@@ -130,10 +130,10 @@ fn the_devices_pane_and_the_chip_line() {
     assert_eq!(shell.selection().items.len(), 1);
     let chips: Vec<String> = shell.chips().iter().map(|c| c.text()).collect();
     assert_eq!(chips, ["201-E4", "203-B4"]);
-    assert!(h.query_by_label("Open 201-E4").is_some());
-    assert!(h.query_by_label("Open 203-B4").is_some());
+    assert!(h.query_by_label("Go to page 201, E4").is_some());
+    assert!(h.query_by_label("Go to page 203, B4").is_some());
     // The chips are doc 16a §6.24's pill jump chips, 20 px high (egui's button was the row height).
-    let chip = h.get_by_role_and_label(egui::Role::Button, "Open 201-E4").rect();
+    let chip = h.get_by_role_and_label(egui::Role::Button, "Go to page 201, E4").rect();
     assert!((chip.height() - 20.0).abs() < 0.5, "jump chip {chip:?}");
     let item = h
         .get_all_by_role(egui::Role::TreeItem)
@@ -156,7 +156,7 @@ fn the_devices_pane_and_the_chip_line() {
         json!({"kind": "devices", "keys": [key]}),
     );
     settle(&mut h);
-    h.get_by_label("Open 203-B4").click();
+    h.get_by_label("Go to page 203, B4").click();
     settle(&mut h);
     assert_eq!(h.state().shell().current_folio(), Some("203"));
     let rep = row_key(&h, NavKind::Devices, NavRole::Representation, "203-B4");

@@ -1401,7 +1401,7 @@ fn the_chip_line_in_light() {
             use egui_kittest::kittest::NodeT as _;
             n.accesskit_node()
                 .label()
-                .is_some_and(|l| l.starts_with("Open "))
+                .is_some_and(|l| l.starts_with("Go to page "))
                 .then(|| n.rect())
         }));
         failures.extend(record(

@@ -66,6 +66,16 @@ impl Chip {
             format!("{}-{}", self.folio, self.cell)
         }
     }
+
+    /// What the chip does, in words: "Go to page 1, A0", "Go to page 1" without a cell (the rc.2 persona run read
+    /// "1-A0" as cryptic and did not take it for a jump).
+    pub fn words(&self) -> String {
+        if self.cell.is_empty() {
+            crate::strings::format(crate::key!("chip-go-page"), &[&self.folio])
+        } else {
+            crate::strings::format(crate::key!("chip-go-page-cell"), &[&self.folio, &self.cell])
+        }
+    }
 }
 
 /// What a row on show carries for dragging (§6.6, §6.7).
@@ -249,6 +259,20 @@ impl ShellModel {
     /// Whether `kind` is the Pages navigator as built, not in table mode.
     pub(super) fn as_built_pages(&self, kind: NavKind) -> bool {
         kind == NavKind::Pages && self.pages_table.is_none()
+    }
+
+    /// The device the chips are of when the bus-topology page in front does not draw all of it yet: the chip line's
+    /// Put it here puts it on the page (`bus.put_station`, rc.2); `None` without chips or on any other page.
+    pub fn chip_put_here(&self) -> Option<Uuid> {
+        if self.chips.is_empty() {
+            return None;
+        }
+        let off = self.stations_off_page(None);
+        self.tools
+            .selection
+            .items
+            .iter()
+            .find_map(|e| off.iter().find(|(d, _)| *d == e.0).map(|(d, _)| *d))
     }
 
     /// The chips of the line "Not on this page" (§6.5).

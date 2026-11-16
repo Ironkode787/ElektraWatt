@@ -997,7 +997,8 @@ Selection is synchronised both ways (FR-UI-007; algorithm in §15.3):
 
 *As built.* Marking rows selects the drawables on the shown
 page, else the records, and never switches the page; the chip line above the canvas area lists at most 12 places (main
-first) as buttons named `Open <folio>-<cell>`, and a selection or page change clears it. Every open navigator follows a
+first) as buttons that read what they do, `Go to page <folio>, <cell>`, with Put it here beside them on a bus-topology
+page that does not draw the device yet (rc.2), and a selection or page change clears it. Every open navigator follows a
 foreign selection once (the deepest node per record, ancestors expanded, the cursor on the first), guarded by a
 selection generation; a page switch puts the Pages cursor on the current page.
 

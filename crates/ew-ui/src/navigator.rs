@@ -1563,8 +1563,8 @@ fn table_card(ui: &mut Ui, shell: &ShellModel, kind: NavKind, events: &mut Vec<E
 }
 
 /// The chip line "Not on this page" above the canvas (§6.5): the label in `type.small` `color.text.secondary`, then
-/// one jump chip (doc 16a §6.24) per chip, named `Open <folio>-<cell>`, that opens the page and selects the drawable
-/// there.
+/// one jump chip (doc 16a §6.24) per chip, reading what it does ("Go to page 1, A0"), that opens the page and selects
+/// the drawable there; on a bus page that does not draw the device yet, Put it here beside them (rc.2).
 pub(crate) fn chip_line(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let chips = shell.chips();
     if chips.is_empty() {
@@ -1578,14 +1578,22 @@ pub(crate) fn chip_line(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>
                 .color(t.text_secondary.color32()),
         );
         for c in chips {
-            let text = c.text();
-            let name = strings::format(key!("chip-name"), &[&text]);
-            let response = crate::components::jump_chip(ui, &text, &name);
+            let text = c.words();
+            let response = crate::components::jump_chip(ui, &text, &text);
             if response.clicked() {
                 events.push(Event::Action("page.goto", json!({ "folio": c.folio })));
                 events.push(Event::Action(
                     "select.set",
                     json!({ "ids": [c.record.to_string()] }),
+                ));
+            }
+        }
+        if let Some(device) = shell.chip_put_here() {
+            let put = strings::text(key!("chip-put-here"));
+            if crate::components::button(ui, crate::components::Kind::Secondary, put, true, 0.0).clicked() {
+                events.push(Event::Action(
+                    "bus.put_station",
+                    json!({ "station": device.to_string() }),
                 ));
             }
         }

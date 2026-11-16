@@ -1087,3 +1087,52 @@ fn a_station_row_dropped_on_the_bus_page_puts_it_there() {
     );
     h.state_mut().shell_mut().shutdown();
 }
+
+/// The rc.2 persona run took the chip "Not on this page: 1-A0" for a code, and it only jumped away. With the CPU drawn
+/// on page 101 and its PLC row selected on a bus page, the chip reads as the jump it is, and Put it here beside it puts
+/// the CPU on the bus page.
+#[test]
+fn the_chip_says_where_it_goes_and_puts_a_station_here() {
+    use ew_ui::ew_viewmodel::navigators::NavKind;
+    let tmp = Tmp::new();
+    let mut h = new_project(&tmp);
+    crate::plc_workspace::draw_black_box(&mut h, "EW-GEN-CPU-2", (10, 10));
+    dispatch(&mut h, "ui.dismiss", json!({}));
+    dispatch(
+        &mut h,
+        "page.new",
+        json!({"folio": "900", "type": "bus_topology", "title": "Field bus"}),
+    );
+    dispatch(&mut h, "page.goto", json!({"folio": "900"}));
+    settle(&mut h);
+    let (key, cpu) = h
+        .state()
+        .shell()
+        .shown_rows(NavKind::Plc)
+        .into_iter()
+        .find(|r| r.role == "station")
+        .map(|r| {
+            let id = r.key.rsplit("station:").next().unwrap_or_default().to_owned();
+            (r.key, id)
+        })
+        .expect("the CPU's row");
+    for (action, params) in [
+        ("navigator.row", json!({"kind": "plc", "key": key})),
+        ("navigator.select", json!({"kind": "plc", "keys": [key]})),
+    ] {
+        dispatch(&mut h, action, params);
+    }
+    settle(&mut h);
+    let words: Vec<String> = h.state().shell().chips().iter().map(|c| c.words()).collect();
+    assert!(
+        !words.is_empty() && words.iter().all(|w| w.starts_with("Go to page 101, ")),
+        "{words:?}"
+    );
+    h.get_by_label(&words[0]);
+    h.get_by_label("Put it here").click();
+    settle(&mut h);
+    two_corners(&mut h);
+    let cpu: Uuid = cpu.parse().expect("the station's ID");
+    assert_eq!(topology_boxes(&h, cpu), 2, "DP and X1");
+    h.state_mut().shell_mut().shutdown();
+}

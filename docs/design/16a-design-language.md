@@ -1428,8 +1428,9 @@ as a Secondary button; Escape closes.
 
 **The chip line** ("Not on this page:", WP-S2.06 part 1) above the canvas: the label in `type.small`
 `color.text.secondary`, then one **jump chip** per target: `radius.pill`, 20 px high, 1-px `color.border.default`,
-`space.icon` padding, a 12-px `file` icon and "<folio>-<cell>" in `type.small` `color.accent`, the hover overlay and
-the focus ring; named "Open <folio>-<cell>" as built.
+`space.icon` padding, a 12-px `file` icon and "Go to page <folio>, <cell>" in `type.small` `color.accent`, the hover
+overlay and the focus ring, named as it reads (rc.2: "1-A0" was taken for a code, not a jump). On a bus-topology page
+that does not draw the device yet, a Secondary button Put it here follows the chips.
 
 ### 6.25 The built widgets mapped
 
@@ -1449,7 +1450,7 @@ states, density and the keyboard and accessibility it keeps. The part column nam
 | History panel (`history.rs`, WP-S2.09 part 3) | History rows §6.24; empty state §6.17 | `color.history.undone`, `color.accent`, `size.row`, count and status badges | Done, current, undone, cursor (Selected), focused | Row height | `Group` "History"; each entry a `Group` named by label and state; the actions `history.row` and `history.undo_to` exist, but the window routes no Up, Down or Enter yet; Tab to the row buttons | 3 |
 | Show changes popup | Dialog frame §6.12 (small, non-modal) | `color.surface.raised`, `elevation.2`, `radius.lg` | — | List row height | Escape and Close | 3 |
 | Pick stack (`tools::pick_stack`, FT-500) and the hover outline | Canvas hover outline §7.1 on the stack's first entity; the walk moves the selection (§7.1) | `canvas.hover`, `canvas.selection` | Hover, selected | None | The repeated click walks the stack, Shift and Ctrl never walk; no node of its own | 5 |
-| Chip line "Not on this page" (`navigator.rs`, WP-S2.06 part 1) | Jump chip §6.24 | `radius.pill`, `color.border.default`, `color.accent` | Rest, hover, focused | None | Buttons "Open <folio>-<cell>" | 3 |
+| Chip line "Not on this page" (`navigator.rs`, WP-S2.06 part 1) | Jump chip §6.24 | `radius.pill`, `color.border.default`, `color.accent` | Rest, hover, focused | None | Buttons "Go to page <folio>, <cell>" | 3 |
 | Highlights and their name chips (WP-S2.06 part 2) | §4.6, §7.4, §7.5 (complete) | `canvas.highlight.1` to `.4`, `canvas.highlight.label` | — | None | View state only; no node | 5 |
 | Jobs pane (`jobs.rs`, WP-S2.09 part 1) | Table rows §6.7; progress §6.19; outcome badges; empty state §6.17 | `color.accent` (progress line), status badges | Running, done, cancelled, failed | Row height | `Group` "Jobs"; a running entry a `ProgressIndicator`; Cancel, Open | 3 (rows), 4 (badges, empty state) |
 | Toasts and the notifications log (`notifications.rs`) | §6.10 (complete; it moves the stack to the canvas's top right) | `elevation.2`, `radius.lg` | Action valid or not | None | Polite live; 8 s on the window's clock; the log never takes the focus | 4 |
