@@ -203,7 +203,7 @@ fn page_text(page: &results::RoutePageResult, plan: &RoutePlan) -> String {
     }
     for wire in &page.across_texts {
         out.push_str(&format!(
-            "  Routed across a text, as no route keeps clear of the texts: {wire}.\n"
+            "  Routed across a text, as keeping clear of it is a far longer way: {wire}.\n"
         ));
     }
     out

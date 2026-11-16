@@ -1008,10 +1008,16 @@ stateDiagram-v2
   free points to lead it, or draw it later with Edit route."; a commit then stores the
   wire without a route, or with the fixed bends and an L tail as the user's route when a bend was fixed. After a click
   that places a bend the HUD says "Bend placed: click a connection point to end the wire." *As built (M3 persona
-  re-test, [ADR-0033](../adr/0033-schematic-routing-model.md) amendment 1).* Where `route_one` finds none, the tool
-  takes `route_one_over_texts` (every hard rule but the texts, checked by the measures) and the HUD says "The route
-  crosses a text: no route keeps clear of the texts here."; Route page routes such a wire likewise and names it in its
-  card. While routing, the HUD says what a click at the point does: over a wire, a tee (Alt+Click a bend); over the
+  re-test, [ADR-0033](../adr/0033-schematic-routing-model.md) amendments 1 and 2).* `route_one` crosses a text where
+  no text-clear route exists or every one is a far longer way: the search finds the best route across a text
+  (entering a text costs `TEXT_COST`, 20 or ten steps, each step on it a step more) and takes it where the best
+  text-clear route is more than 8/5 of its length, so a way round of a few steps and a bend or two is still taken, a
+  way round a symbol group or the sheet is not. A route across a text keeps every other hard rule by the measures, else the texts block.
+  The HUD then says "The route crosses a text: keeping clear of it is a far longer way."; Route page routes such a
+  wire likewise, after the text-clear ones, and names it in its card. A device tag a route crosses moves off the wire
+  where its symbol has a free place (the scene's tag rule, which runs on every drawing of the page); a text that does
+  not move (a box's caption, a part text) is drawn under the line: the schematic renderer has no knock-out of texts
+  under wires (only the panel page's carriers are cut round their labels). While routing, the HUD says what a click at the point does: over a wire, a tee (Alt+Click a bend); over the
   start, nothing; elsewhere "Click a connection point to end, a free point for a bend". Over a junction that
   already joins three wires the HUD says "This junction already joins three wires: end on a wire to make a new
   junction.", since the junction is no end target.

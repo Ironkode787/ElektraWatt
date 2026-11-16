@@ -416,6 +416,7 @@ proptest::proptest! {
             wires: wires.iter().map(|&(a, b)| [a, b]).collect(),
             reserved: reserved.clone(),
             cross_cost: 0,
+            text_cost: None,
             mates: Vec::new(),
         };
         let routed = route(&rq);

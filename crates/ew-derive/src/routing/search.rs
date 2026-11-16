@@ -24,6 +24,10 @@
 //! there costs nothing (the bend was fixed to turn at), so the tie rule is otherwise the one of an end without a
 //! direction.
 //!
+//! **Texts at a cost** ([`RouteRequest::text_cost`], ADR-0033 amendment 2). With a text cost the texts block
+//! nothing: a move over a text costs [`STEP_COST`] more, and the move onto one from a node outside every text the text
+//! cost more, so a route crosses a text only where keeping clear of it is the far longer way.
+//!
 //! **The ends' own representations** ([`RouteRequest::own`]). The rectangles of the two ends' own
 //! representations (body, black-box outline, texts) block like the other obstacles, except along a CP end's escape
 //! corridor: the nodes from the end along its direction, the stub and every further node while it, or the move on
@@ -73,6 +77,11 @@ pub const CROSSING_COST: u32 = 12;
 
 /// The cost of a unit step beside a mate's route, one grid step away in the same heading, instead of [`STEP_COST`].
 pub const MATE_STEP_COST: u32 = 1;
+
+/// The cost of entering a text (ADR-0033 amendment 2), on top of the steps; each step on a text costs
+/// [`STEP_COST`] more. A request names it in [`RouteRequest::text_cost`]. Ten steps: it chooses where a route crosses
+/// a text; the page solve and the Wire tool take that route only where every text-clear route is far longer.
+pub const TEXT_COST: u32 = 20;
 
 /// A heading on the page (y down), in the rank order of the tie rule: right < down < left < up.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
@@ -171,6 +180,9 @@ pub struct RouteRequest {
     /// The extra cost of each right-angle crossing of one of [`wires`](Self::wires) ([`CROSSING_COST`]); 0:
     /// a crossing costs nothing more than its step.
     pub cross_cost: u32,
+    /// The cost of entering a text ([`TEXT_COST`] in a page solve), each step on a text costing [`STEP_COST`] more;
+    /// `None`: a text blocks as an obstacle does.
+    pub text_cost: Option<u32>,
     /// The segments of the routes of this route's mates, page nm, each from its first vertex to its
     /// second in its route's direction: a unit move one grid step beside one, within its extent and in its heading,
     /// costs [`MATE_STEP_COST`] instead of [`STEP_COST`]. Empty: no mate.
@@ -213,6 +225,10 @@ struct Space {
     mate_down: Vec<u8>,
     /// The extra cost of a crossing ([`RouteRequest::cross_cost`]).
     cross_cost: u32,
+    /// The cost of entering a text ([`RouteRequest::text_cost`]); `None` while texts block.
+    text_cost: Option<u32>,
+    /// The nodes strictly inside a text while texts cost ([`RouteRequest::text_cost`]).
+    text_node: Vec<bool>,
 }
 
 /// A mate beside a move in its forward heading (right or down).
@@ -239,7 +255,9 @@ impl Space {
             Heading::Left => ((p.0 - 1, p.1), &self.no_right),
             Heading::Up => ((p.0, p.1 - 1), &self.no_down),
         };
-        self.node(from).is_some_and(|n| bits[n] == 0)
+        // While texts cost, a move over a text is free to take.
+        let hard = if self.text_cost.is_some() { !OVER_TEXT } else { !0 };
+        self.node(from).is_some_and(|n| bits[n] & hard == 0)
     }
 
     /// The flags of the move from the index point `p` to its neighbour `q` (0 outside the bounds).
@@ -282,7 +300,16 @@ impl Space {
         } else {
             STEP_COST
         };
+        // A step on a text costs a step more, and the step into one from outside the text's cost.
+        let text = match self.text_cost {
+            Some(enter) if self.move_bits(p, (p.0 + m.step().0, p.1 + m.step().1)) & OVER_TEXT != 0 => {
+                let outside = self.node(p).is_some_and(|k| !self.text_node[k]);
+                STEP_COST.saturating_add(if outside { enter } else { 0 })
+            }
+            _ => 0,
+        };
         step.saturating_add(self.cross_cost.saturating_mul(u32::from(cross[n])))
+            .saturating_add(text)
     }
 
     fn node(&self, p: (i64, i64)) -> Option<usize> {
@@ -498,6 +525,8 @@ fn prepare(req: &RouteRequest) -> Option<Prepared> {
         mate_right: vec![0; nodes],
         mate_down: vec![0; nodes],
         cross_cost: req.cross_cost,
+        text_cost: req.text_cost,
+        text_node: Vec::new(),
     };
     // A node is blocked when its page point lies strictly inside an obstacle; a move is not taken when it runs
     // through the open inside of one (a text thinner than a grid step lies between two nodes).
@@ -532,9 +561,13 @@ fn prepare(req: &RouteRequest) -> Option<Prepared> {
     for o in &req.obstacles {
         mark(&mut space, o, &mut blocked, OVER_OBSTACLE);
     }
+    // Texts block, or while they cost (`text_cost`) mark the nodes inside them.
+    let mut text_node = vec![false; nodes];
     for o in &req.texts {
-        mark(&mut space, o, &mut blocked, OVER_TEXT);
+        let into = if req.text_cost.is_some() { &mut text_node } else { &mut blocked };
+        mark(&mut space, o, into, OVER_TEXT);
     }
+    space.text_node = text_node;
     // The ends' own representations block too, but for their escape corridors: from a CP end along its
     // direction, the stub and every further node while it, or the move on out of it, is inside one of the own
     // rectangles.
@@ -950,6 +983,7 @@ mod tests {
             wires: Vec::new(),
             reserved: Vec::new(),
             cross_cost: 0,
+            text_cost: None,
             mates: Vec::new(),
         }
     }
@@ -1141,6 +1175,7 @@ mod tests {
             wires: Vec::new(),
             reserved: Vec::new(),
             cross_cost: 0,
+            text_cost: None,
             mates: Vec::new(),
         };
         let r = auto_route(&request);
@@ -1186,6 +1221,7 @@ mod tests {
             wires: Vec::new(),
             reserved: Vec::new(),
             cross_cost: 0,
+            text_cost: None,
             mates: Vec::new(),
         };
         assert!(route(&edge).direct);

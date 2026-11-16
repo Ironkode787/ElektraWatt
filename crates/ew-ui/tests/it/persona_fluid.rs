@@ -1368,7 +1368,7 @@ fn r2c_a_tube_from_a_port_facing_another_valve_takes_a_route() {
     assert_eq!(routed, [true], "the tube is routed; the hint said {hint}");
     assert_eq!(
         hint,
-        json!("The route crosses a text: no route keeps clear of the texts here.")
+        json!("The route crosses a text: keeping clear of it is a far longer way.")
     );
     d.shell_mut().shutdown();
 }
@@ -1392,7 +1392,7 @@ fn r2c_route_page_routes_the_tube_across_a_text_and_says_so() {
     assert!(
         d.texts()
             .iter()
-            .any(|t| t.starts_with("Routed across a text, as no route keeps clear of the texts:")),
+            .any(|t| t.starts_with("Routed across a text, as keeping clear of it is a far longer way:")),
         "the card says what was given up"
     );
     d.input(&click(d.find("Apply").expect("the card's Apply")));

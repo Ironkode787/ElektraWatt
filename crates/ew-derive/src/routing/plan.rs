@@ -20,10 +20,14 @@
 //! not routed (its route would be the fourth arm, rule 7).
 //!
 //! **Areas.** The ends' bounding box grown by 4 grid steps, then by 16, then the whole drawing area (the sheet on a
-//! page without a frame grid), each clipped to it; the first area with a route wins.
+//! page without a frame grid), each clipped to it; the first area with a route that crosses no text wins, else the
+//! cheapest route across a text of all three.
 //!
-//! **Across the texts.** A job no route keeps clear of the texts for is routed across them (one through a text is
-//! better than none, the persona re-test); the plan lists it in `over_texts`.
+//! **Across the texts** (ADR-0033 amendment 2). Entering a text costs [`TEXT_COST`] and each step on it a step more;
+//! the best route across a text is taken where every text-clear route is more than 8/5 of its length (round a symbol
+//! group, round the sheet) or none exists.
+//! A route across a text must keep every other hard rule by the layout measures; where it does not, the job is
+//! routed with the texts as obstacles. The plan lists the routes across a text in `over_texts`.
 //!
 //! **Reasons.** A job left unrouted names the first rule its free route (against the fixed obstacles alone) breaks:
 //! the search is tried again without the other wires, then also without the texts, then also without the reserved
@@ -37,7 +41,7 @@ use ew_schema::Dir4;
 
 use super::measures::{measure, meet, overlap};
 use super::page::{PageGeometry, Point, Rect};
-use super::search::{CROSSING_COST, Heading, RouteEnd, RouteRequest, route};
+use super::search::{CROSSING_COST, Heading, RouteEnd, RouteRequest, TEXT_COST, route};
 
 /// Why a job of a solve is left unrouted (§5.6): the first rule its free route broke.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
@@ -198,10 +202,13 @@ fn request(
     };
     let mut obstacles: Vec<Rect> = Vec::new();
     let mut own: [Vec<Rect>; 2] = [Vec::new(), Vec::new()];
+    // A representation that draws a CP on a CP end's point (an interruption point drawn on a pin) is that end's own
+    // too: the wire leaves the pin through it, as through the pin's own symbol.
+    let on_end = |e: &OneEnd, rep: Uuid| e.dir.is_some() && page.cps.iter().any(|c| c.rep == rep && c.at == e.at);
     let place = |rep: Uuid, r: Rect, obstacles: &mut Vec<Rect>, own: &mut [Vec<Rect>; 2]| {
         let mut mine = false;
         for (k, e) in [a, b].into_iter().enumerate() {
-            if e.rep == Some(rep) {
+            if e.rep == Some(rep) || on_end(e, rep) {
                 own[k].push(r);
                 mine = true;
             }
@@ -268,8 +275,33 @@ fn request(
         wires: if relax.wires { Vec::new() } else { wires.to_vec() },
         reserved,
         cross_cost: CROSSING_COST,
+        text_cost: Some(TEXT_COST),
         mates: mates.to_vec(),
     }
+}
+
+/// Whether the polyline `line` runs through the open inside of one of the rectangles `texts`.
+fn through_any(texts: &[Rect], line: &[Point]) -> bool {
+    let meets = |lo: i64, hi: i64, rlo: i64, rhi: i64| {
+        if lo == hi {
+            rlo < lo && lo < rhi
+        } else {
+            lo < rhi && rlo < hi
+        }
+    };
+    segments(line).any(|[a, b]| {
+        texts.iter().any(|r| {
+            meets(a.0.min(b.0), a.0.max(b.0), r[0], r[2]) && meets(a.1.min(b.1), a.1.max(b.1), r[1], r[3])
+        })
+    })
+}
+
+/// Whether `route` runs through a text box of `page` with the router's clearance (grown by a quarter step, as a request
+/// grows it): a route across a text.
+pub fn crosses_text(page: &PageGeometry, route: &[Point]) -> bool {
+    let g = step(page);
+    let texts: Vec<Rect> = page.texts.iter().map(|t| grow(t.rect, g / 4)).collect();
+    through_any(&texts, route)
 }
 
 /// The route of `req` in the areas of §5.5 (4 and 16 grid steps around the ends, then the whole area), with its
@@ -286,13 +318,62 @@ fn search_areas(page: &PageGeometry, req: &RouteRequest) -> Option<(Vec<Point>, 
             (a.1.max(b.1) + m * g).min(w[3]),
         ]
     };
+    // A route across a text may be beaten by a text-clear one in a larger area.
+    let mut across: Option<(Vec<Point>, u32)> = None;
     for area in [around(4), around(16), w] {
         let r = route(&RouteRequest { area, ..req.clone() });
-        if !r.direct {
-            return Some((r.points, r.cost));
+        if r.direct {
+            continue;
+        }
+        if req.text_cost.is_none() || !through_any(&req.texts, &r.points) {
+            if across.as_ref().is_none_or(|(_, c)| r.cost <= *c) {
+                return Some((r.points, r.cost));
+            }
+            break;
+        }
+        if across.as_ref().is_none_or(|(_, c)| r.cost < *c) {
+            across = Some((r.points, r.cost));
         }
     }
-    None
+    across
+}
+
+/// How much longer, at the least, every text-clear route must be than a route across a text for the route across to
+/// be taken (ADR-0033 amendment 2): 8/5. A way round of a few steps and a bend or two stays; a way round a symbol
+/// group or the sheet does not. (A cost alone cannot tell them apart: a bend weighs four steps, so a short way round
+/// with two bends costs as much as a long one without.)
+const FAR: (i64, i64) = (8, 5);
+
+/// The length of a polyline, nm.
+fn length(line: &[Point]) -> i64 {
+    segments(line)
+        .map(|[a, b]| (b.0 - a.0).abs() + (b.1 - a.1).abs())
+        .sum()
+}
+
+/// [`search_areas`] with a route across a text taken only where every text-clear route is far longer ([`FAR`]) or
+/// none exists, and where it keeps every other hard rule on `drawn` as connection `id` ([`keeps_all_but_texts`]);
+/// else the route with the texts as obstacles.
+fn search_checked(
+    page: &PageGeometry,
+    req: &RouteRequest,
+    drawn: impl Fn() -> (PageGeometry, Uuid),
+) -> Option<(Vec<Point>, u32)> {
+    let found = search_areas(page, req)?;
+    if !crosses_text(page, &found.0) {
+        return Some(found);
+    }
+    let clear = search_areas(page, &RouteRequest { text_cost: None, ..req.clone() });
+    let far = clear
+        .as_ref()
+        .is_none_or(|(c, _)| length(c) * FAR.1 > length(&found.0) * FAR.0);
+    if far && {
+        let (drawn, id) = drawn();
+        keeps_all_but_texts(&drawn, id, &found.0)
+    } {
+        return Some(found);
+    }
+    clear
 }
 
 /// The segments of a polyline, without empty ones.
@@ -414,14 +495,16 @@ impl Solve<'_> {
         ))
     }
 
-    /// Routes `job` in `state`; whether it found a route.
-    fn route(&self, job: Uuid, state: &mut State) -> bool {
+    /// Routes `job` in `state`; whether it found a route. With `defer`, a route across a text is not taken yet: the
+    /// jobs that cross a text are routed after the others, so that a text-clear route keeps its way.
+    fn route(&self, job: Uuid, state: &mut State, defer: bool) -> bool {
         if self.four_arms(job, state) {
             return false;
         }
         let found = self
             .request(job, state, false, Relax::default())
-            .and_then(|req| search_areas(self.page, &req));
+            .and_then(|req| search_checked(self.page, &req, || (self.drawn(state), job)))
+            .filter(|(r, _)| !defer || !crosses_text(self.page, r));
         match found {
             Some(r) => {
                 state.routes.insert(job, r);
@@ -429,6 +512,18 @@ impl Solve<'_> {
             }
             None => false,
         }
+    }
+
+    /// The page as `state` draws it: the routes found so far stored on their connections.
+    fn drawn(&self, state: &State) -> PageGeometry {
+        let mut drawn = self.page.clone();
+        for c in &mut drawn.connections {
+            if let Some((route, _)) = state.routes.get(&c.id) {
+                c.polyline.clone_from(route);
+                c.routed = true;
+            }
+        }
+        drawn
     }
 
     /// The jobs of `state` left without a route, in routing order.
@@ -477,9 +572,9 @@ impl Solve<'_> {
             for j in &ripped {
                 state.routes.remove(j);
             }
-            self.route(f, &mut state);
+            self.route(f, &mut state, true);
             for j in ripped {
-                self.route(j, &mut state);
+                self.route(j, &mut state, true);
             }
         }
         state
@@ -673,7 +768,7 @@ pub fn route_page(page: &PageGeometry, jobs: &[Uuid]) -> RoutePlan {
     // The first pass, then at most two rounds, each kept only when it scores better.
     let mut state = State::default();
     for j in solve.order.clone() {
-        solve.route(j, &mut state);
+        solve.route(j, &mut state, true);
     }
     for _ in 0..2 {
         if solve.failed(&state).is_empty() {
@@ -686,35 +781,16 @@ pub fn route_page(page: &PageGeometry, jobs: &[Uuid]) -> RoutePlan {
             break;
         }
     }
-    // A job no route keeps clear of the texts for is routed across them, in routing order, against the routes so far.
-    let mut over_texts = Vec::new();
+    // The jobs left, in routing order, now across a text where that is their way.
     for j in solve.failed(&state) {
-        let relax = Relax {
-            texts: true,
-            ..Relax::default()
-        };
-        if solve.four_arms(j, &state) {
-            continue;
-        }
-        let Some(r) = solve
-            .request(j, &state, false, relax)
-            .and_then(|req| search_areas(solve.page, &req))
-        else {
-            continue;
-        };
-        let mut drawn = page.clone();
-        for c in &mut drawn.connections {
-            if let Some((route, _)) = state.routes.get(&c.id) {
-                c.polyline.clone_from(route);
-                c.routed = true;
-            }
-        }
-        if keeps_all_but_texts(&drawn, j, &r.0) {
-            state.routes.insert(j, r);
-            over_texts.push(j);
-        }
+        solve.route(j, &mut state, false);
     }
-    over_texts.sort_unstable();
+    let over_texts: Vec<Uuid> = state
+        .routes
+        .iter()
+        .filter(|(_, (r, _))| crosses_text(page, r))
+        .map(|(id, _)| *id)
+        .collect();
     let unrouted = solve
         .failed(&state)
         .into_iter()
@@ -731,8 +807,9 @@ pub fn route_page(page: &PageGeometry, jobs: &[Uuid]) -> RoutePlan {
 
 /// One route from `from` to `to` against `page` as drawn (the Wire tool's ghost): every routed
 /// connection a fixed wire, every other CP with its stub and every junction not at an end reserved, the ends'
-/// own representations' rectangles left along their escape corridors, the areas of §5.5; `arrive` the heading a
-/// free first end was arrived at with. `None` when no route keeps every hard rule.
+/// own representations' rectangles left along their escape corridors, the areas of §5.5, a text crossed at its cost
+/// (ADR-0033 amendment 2: [`crosses_text`] tells); `arrive` the heading a free first end was arrived at with. `None`
+/// when no route keeps every hard rule.
 pub fn route_one(
     page: &PageGeometry,
     from: OneEnd,
@@ -748,56 +825,39 @@ pub fn route_one(
         Relax::default(),
     );
     req.arrive = arrive;
-    search_areas(page, &req).map(|(points, _)| points)
-}
-
-/// [`route_one`] for a route that no strict search finds: the texts are no obstacles (the persona re-test: a tube from a
-/// valve's port between two stacked valves passes the valve's tag); every other rule holds. The Wire tool takes it, and
-/// says so, when [`route_one`] finds none.
-pub fn route_one_over_texts(
-    page: &PageGeometry,
-    from: OneEnd,
-    to: OneEnd,
-    arrive: Option<Heading>,
-) -> Option<Vec<Point>> {
-    let mut req = request(
-        page,
-        (&from, &to),
-        (&[], &[from.at, to.at]),
-        &routed_wires(page),
-        &[],
-        Relax {
-            texts: true,
-            ..Relax::default()
-        },
-    );
-    req.arrive = arrive;
-    let points = search_areas(page, &req).map(|(points, _)| points)?;
-    // The route as a connection between the ends' CPs, so that the measures judge it.
-    let cp_at = |e: &OneEnd| {
-        page.cps
-            .iter()
-            .find(|c| c.at == e.at && Some(c.rep) == e.rep)
-            .map(|c| c.id)
-    };
-    let (Some(a), Some(b)) = (cp_at(&from), cp_at(&to)) else {
-        return None;
-    };
-    let id = Uuid::nil();
-    let mut drawn = page.clone();
-    for c in &mut drawn.cps {
-        if c.id == a || c.id == b {
-            c.connections.push(id);
+    // The route as a connection between the ends' CPs or junctions, so that the measures judge it.
+    let drawn = || {
+        let id = Uuid::nil();
+        let end = |e: &OneEnd| {
+            page.cps
+                .iter()
+                .find(|c| c.at == e.at && Some(c.rep) == e.rep)
+                .map(|c| c.id)
+                .or_else(|| page.junctions.iter().find(|j| j.at == e.at).map(|j| j.id))
+                .unwrap_or_else(Uuid::nil)
+        };
+        let ends = [end(&from), end(&to)];
+        let mut drawn = page.clone();
+        for c in &mut drawn.cps {
+            if ends.contains(&c.id) {
+                c.connections.push(id);
+            }
         }
-    }
-    drawn.connections.push(super::DrawnConnection {
-        id,
-        ends: [a, b],
-        routed: true,
-        supply: None,
-        polyline: Vec::new(),
-    });
-    keeps_all_but_texts(&drawn, id, &points).then_some(points)
+        for j in &mut drawn.junctions {
+            if ends.contains(&j.id) {
+                j.connections.push(id);
+            }
+        }
+        drawn.connections.push(super::DrawnConnection {
+            id,
+            ends,
+            routed: true,
+            supply: None,
+            polyline: Vec::new(),
+        });
+        (drawn, id)
+    };
+    search_checked(page, &req, drawn).map(|(points, _)| points)
 }
 
 /// Whether `route` as the polyline of connection `id` of `page` breaks no hard rule but (d), a text: no touch, no
@@ -851,6 +911,8 @@ pub fn clear_one(
         Relax::default(),
     );
     req.arrive = arrive;
+    // The direct route through a terminal keeps clear of the texts as before.
+    req.text_cost = None;
     let g = step(&page);
     let (xs, ys) = (points.iter().map(|p| p.0), points.iter().map(|p| p.1));
     let (Some(x0), Some(x1), Some(y0), Some(y1)) = (xs.clone().min(), xs.max(), ys.clone().min(), ys.max())

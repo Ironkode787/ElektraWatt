@@ -108,6 +108,24 @@ The decision text above is unchanged; these entries refine it.
    every hard rule but rule (d), the texts, check it against the layout measures, take it and say so (the Wire tool's
    hint, Route page's card row, `RoutePlan::over_texts`; EW-CORE-070 reports the text it crosses). A route through a
    body, a connection point or another wire is still never drawn.
+2. **Crossing a text is a cost, not a prohibition** (2026-11-16, the rc.2 persona runs; decided by the coordinator
+   under the owner's delegation). A wire from a switch to the breaker beside it went round the switch's tag and over
+   the sheet (90 mm for a 42 mm way), and a bus line went round a whole station's box to keep clear of its three
+   caption lines: worse drawings than a line across a text. Decision 5 and amendment 1 are refined: a route may cross
+   a text also where every text-clear route is a far longer way. The search finds the best route across a text with
+   a cost for it (entering a text `TEXT_COST` = 20, ten steps, and each step on a text a step more), and takes it only
+   where the best text-clear route is more than 8/5 of its length (or there is none): a way round a text of a few
+   steps and a bend or two is still taken, a detour round a symbol group or the sheet is not. (A cost alone cannot
+   tell the two apart: a bend weighs four steps, so a short way round with two bends costs as much as a long one
+   without; the rc.2 switch-to-breaker wire is 1.7 times as long round its texts, the earlier play-test's L wire to a
+   power supply 1.27 times and its N wire 1.57 times, which stay round.) A route across a text keeps every other hard rule by the layout
+   measures, else the texts block for it; the page solve routes the jobs that cross a text after the text-clear ones,
+   so that a text-clear route keeps its way. Bodies, connection points and other wires stay hard. A device tag the
+   route crosses moves off the wire where its symbol has a free place (the scene's tag rule, on every drawing of the
+   page); a text that does not move is drawn under the line, which no renderer knocks out on a schematic page.
+   Golden A's routes are unchanged at this cost. In the same round, a symbol drawn with a connection point on an end's
+   point (an interruption point drawn on a pin) is that end's own for rule (c): the wire leaves the pin through it, as
+   through the pin's own symbol (the persona's 0 V wire stayed unrouted under such a point).
 
 ## Related
 

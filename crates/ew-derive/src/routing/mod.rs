@@ -32,12 +32,14 @@
 //! - **(c) Through a body.** A segment runs through a representation's body (or a black box's outline) other than
 //!   along its own ends' escapes: for a connection point the connection ends at, the ray from its point along its
 //!   leaving direction is that end's escape, and the part of a segment on it does not count inside the bodies of the
-//!   representation that draws that point. One item per (connection, representation), with every stretch inside.
+//!   representation that draws that point, nor of one that draws a connection point on the same point (an
+//!   interruption point drawn on the pin). One item per (connection, representation), with every stretch inside.
 //!   Only a representation that draws a connection point counts: a mark without one (a cable or wire marker, a
 //!   QET cross-section mark) is drawn across its wires on purpose.
 //! - **(d) Through a text.** A segment runs through a text box of a representation (a tag, a slot or pin text, a
 //!   cross-reference text; one box per line). No escape applies. One item per (connection, representation). A router
-//!   gives this rule up alone, and names it, where no route keeps them all (ADR-0033 amendment 1).
+//!   gives this rule up alone, and names it, where no route keeps them all (ADR-0033 amendment 1) or every route
+//!   that keeps it is a far longer way: crossing a text has a cost (amendment 2, [`TEXT_COST`]).
 //! - **(g) Four-way junction.** A junction has as many arms as there are distinct directions in which the
 //!   connections ending at it leave it (the direction of each polyline's first segment from its end at the
 //!   junction); four or more arms break the rule (IEC 61082-1's T junctions).
@@ -66,9 +68,9 @@ mod tests;
 pub use measures::{Bends, Crossing, FourWay, Measures, Overlap, Through, Touch, TouchedPoint, measure};
 pub use page::{Body, CpPoint, DrawnConnection, JunctionPoint, PageGeometry, Point, Rect, TextBox};
 pub use plan::{
-    OneEnd, RoutePlan, SUPPLY_ORDER, Unrouted, clear_one, route_one, route_one_over_texts, route_page,
+    OneEnd, RoutePlan, SUPPLY_ORDER, Unrouted, clear_one, crosses_text, route_one, route_page,
 };
 pub use search::{
-    BEND_COST, CROSSING_COST, Heading, MATE_STEP_COST, MAX_NODES, RouteEnd, RouteRequest, Routed, STEP_COST,
+    BEND_COST, CROSSING_COST, Heading, MATE_STEP_COST, MAX_NODES, RouteEnd, RouteRequest, Routed, STEP_COST, TEXT_COST,
     auto_route, clear, route, unrouted_line,
 };

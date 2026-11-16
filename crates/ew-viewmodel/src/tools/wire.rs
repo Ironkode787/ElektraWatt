@@ -43,7 +43,7 @@ use ew_api::geometry::Dir;
 use ew_api::output::Uuid;
 use ew_api::output::ew_dl::EntityRef;
 use ew_api::output::ew_dl::ew_units::Rect;
-use ew_api::routing::{OneEnd, RouteEnd, clear_one, heading, route_one, route_one_over_texts, unrouted_line};
+use ew_api::routing::{OneEnd, RouteEnd, clear_one, crosses_text, heading, route_one, unrouted_line};
 use serde_json::{Value, json};
 
 use super::{
@@ -925,16 +925,10 @@ impl WireTool {
         }
         let (a, b) = (one_end(from, from_dir, own[0]), one_end(t, to.dir(), own[1]));
         let routed = route_one(&cx.page.geometry, a, b, arrive.map(heading));
-        // Where no route keeps clear of the texts, one across them is better than a line through a body (the persona
-        // re-test); the hint says what was given up.
-        let (routed, over_text) = match routed {
-            Some(points) => (Some(points), false),
-            None => {
-                let across = route_one_over_texts(&cx.page.geometry, a, b, arrive.map(heading));
-                let over = across.is_some();
-                (across, over)
-            }
-        };
+        // A route across a text, where keeping clear of it is a far longer way (ADR-0033 amendment 2): the hint says so.
+        let over_text = routed
+            .as_ref()
+            .is_some_and(|points| crosses_text(&cx.page.geometry, points));
         let (points, direct) = match routed {
             Some(points) => (points, false),
             None if arrive.is_some() => (l_tail((from, from_dir, arrive), t, to.dir()), true),

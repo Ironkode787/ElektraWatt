@@ -429,7 +429,9 @@ fn through(
         for body in page.bodies.iter().filter(|b| with_cps.contains(&b.rep)) {
             let mut span = inside(a, b, body.rect);
             for &(rep, p, v) in &escapes {
-                if rep == body.rep {
+                // The escape passes the end's own symbol and one drawn on the same point (an interruption point on
+                // the pin).
+                if rep == body.rep || page.cps.iter().any(|q| q.rep == body.rep && q.at == p) {
                     span = span.and_then(|s| minus_escape(a, b, s, (p, v)));
                 }
             }

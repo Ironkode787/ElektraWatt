@@ -1214,7 +1214,7 @@ pub struct RoutePageResult {
     pub routed: Vec<String>,
     /// The wires left unrouted, with why.
     pub unrouted: Vec<RouteUnrouted>,
-    /// The routed wires whose route crosses a text, as no route keeps clear of the texts (ADR-0033 amendment 1), by
+    /// The routed wires whose route crosses a text, as keeping clear of them is a far longer way or no way at all (ADR-0033 amendments 1 and 2), by
     /// their ends.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub across_texts: Vec<String>,

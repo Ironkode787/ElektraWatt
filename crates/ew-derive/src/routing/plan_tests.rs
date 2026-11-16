@@ -315,7 +315,7 @@ fn a_job_whose_stub_a_text_crosses_is_routed_across_the_text_and_says_so() {
     // The pin text of the next pole lies over a motor pole's stub, between the CP and
     // its stub node. No strict route exists, whichever end the CP is; the text's own representation is the CP's. The
     // page solve routes it across the text and names it (the persona re-test: one through a text is better than none),
-    // and the Wire tool's strict search finds none, its search across the texts one.
+    // and the Wire tool's search finds the same route across the text (ADR-0033 amendment 2: a text has a cost).
     let mut p = page();
     add_job(
         &mut p,
@@ -339,9 +339,8 @@ fn a_job_whose_stub_a_text_crosses_is_routed_across_the_text_and_says_so() {
     let plan = route_page(&p, &[id(1)]);
     assert_eq!(plan.unrouted, vec![]);
     assert_eq!(plan.over_texts, vec![id(1)]);
-    assert_eq!(route_one(&p, ends(0), ends(1), None), None);
-    assert_eq!(route_one(&p, ends(1), ends(0), None), None);
-    assert!(route_one_over_texts(&p, ends(0), ends(1), None).is_some());
+    let one = route_one(&p, ends(0), ends(1), None).expect("a route across the text");
+    assert!(crosses_text(&p, &one), "{one:?}");
     // Without the text, the same wire is routed.
     p.texts.clear();
     assert_eq!(route_page(&p, &[id(1)]).unrouted, vec![]);
@@ -549,4 +548,208 @@ proptest::proptest! {
             }
         }
     }
+}
+
+/// A rectangle in units of 10 µm (the persona pages' measured boxes).
+fn um10(x0: i64, y0: i64, x1: i64, y1: i64) -> Rect {
+    [x0 * 10_000, y0 * 10_000, x1 * 10_000, y1 * 10_000]
+}
+
+/// The length of a polyline, nm.
+fn length(line: &[Point]) -> i64 {
+    line.windows(2)
+        .map(|w| (w[1].0 - w[0].0).abs() + (w[1].1 - w[0].1).abs())
+        .sum()
+}
+
+/// A page of the rc.2 persona runs: an A4 sheet at the QET 10 px grid with its frame's drawing area.
+fn qet_page() -> PageGeometry {
+    PageGeometry {
+        grid: (7_937_500, 3),
+        sheet: [0, 0, 275_166_667, 192_616_667],
+        drawing_area: Some([5_291_667, 5_291_667, 275_166_667, 174_625_000]),
+        ..PageGeometry::default()
+    }
+}
+
+#[test]
+fn a_text_is_crossed_rather_than_gone_round_by_a_far_longer_way_and_a_short_way_round_is_kept() {
+    // A U from (0, 0) down and back up to (20, 0) past a text at x = 9..11 that reaches down from y = -20 to `depth`:
+    // across it 22 mm, below it 24 + 2 × depth (ADR-0033 amendment 2: across only where the way round is more than
+    // three fifths as long again).
+    let case = |depth: i64| {
+        let mut p = page();
+        add_job(
+            &mut p,
+            1,
+            (10, mm(0, 0), Dir4::Down),
+            (11, mm(20, 0), Dir4::Down),
+            None,
+        );
+        p.texts.push(TextBox {
+            rep: id(2000),
+            rect: tenths(90, -200, 110, depth * 10),
+        });
+        route_page(&p, &[id(1)])
+    };
+    // A way round a few steps deeper (2 × 4 steps more) against the crossing (the text's cost and a step more per
+    // step on it): round.
+    let short = case(3);
+    assert_eq!(short.over_texts, Vec::<Uuid>::new());
+    assert_eq!(short.unrouted, vec![]);
+    // A way round 2 × 16 steps deeper: across.
+    let far = case(16);
+    assert_eq!(far.over_texts, vec![id(1)]);
+    assert_eq!(
+        far.routes,
+        vec![(id(1), vec![mm(0, 0), mm(0, 1), mm(20, 1), mm(20, 0)])]
+    );
+}
+
+/// The rc.2 persona run's switch -S1 and breaker -F1 side by side, the breaker to the switch's right, their tags and
+/// part texts between them: the wire from the switch's pin 2 (below) to the breaker's pin 1 (above) went left round
+/// the switch's tag and over the top, 90 mm for a 42 mm way. It crosses the switch's part text instead.
+#[test]
+fn the_wire_to_the_neighbour_is_the_short_one_across_a_text() {
+    let mut p = qet_page();
+    let (s, f) = (id(1001), id(1002));
+    p.bodies.push(Body {
+        rep: s,
+        rect: um10(3043, 3440, 3506, 4233),
+    });
+    p.bodies.push(Body {
+        rep: f,
+        rect: um10(6482, 3440, 7011, 4498),
+    });
+    for (rep, rect) in [
+        (s, um10(1824, 3592, 2910, 4060)),
+        (s, um10(3638, 3667, 5197, 3991)),
+        (s, um10(3241, 3440, 3347, 3692)),
+        (s, um10(3241, 3969, 3347, 4221)),
+        (f, um10(5274, 3724, 6350, 4192)),
+        (f, um10(7144, 3799, 8872, 4124)),
+        (f, um10(7144, 4130, 7567, 4454)),
+        (f, um10(6681, 3440, 6787, 3692)),
+        (f, um10(6681, 4234, 6787, 4486)),
+    ] {
+        p.texts.push(TextBox { rep, rect });
+    }
+    for (n, rep, at, dir, c) in [
+        (10, s, (31_750_000, 34_395_833), Dir4::Up, None),
+        (11, s, (31_750_000, 42_333_333), Dir4::Down, Some(1)),
+        (12, f, (66_145_833, 34_395_833), Dir4::Up, Some(1)),
+        (13, f, (66_145_833, 44_979_166), Dir4::Down, None),
+    ] {
+        p.cps.push(CpPoint {
+            id: id(n),
+            at,
+            dir: Some(dir),
+            rep,
+            connections: c.map(id).into_iter().collect(),
+        });
+    }
+    p.connections.push(DrawnConnection {
+        id: id(1),
+        ends: [id(11), id(12)],
+        polyline: vec![p.cps[1].at, p.cps[2].at],
+        ..DrawnConnection::default()
+    });
+    let end = |k: usize| OneEnd {
+        at: p.cps[k].at,
+        dir: Some(if k == 1 { Heading::Down } else { Heading::Up }),
+        rep: Some(p.cps[k].rep),
+    };
+    let one = route_one(&p, end(1), end(2), None).expect("a route");
+    let direct = (p.cps[2].at.0 - p.cps[1].at.0).abs() + (p.cps[2].at.1 - p.cps[1].at.1).abs();
+    assert!(length(&one) * 2 < direct * 3, "{one:?}");
+    assert!(crosses_text(&p, &one));
+    let plan = route_page(&p, &[id(1)]);
+    assert_eq!(plan.routes, vec![(id(1), one)]);
+    assert_eq!(plan.over_texts, vec![id(1)]);
+    let m = measure(&routed(&p, &plan));
+    assert!(m.through_bodies.is_empty() && m.touches.is_empty(), "{m:?}");
+}
+
+/// The rc.2 persona run's PROFIBUS page: the CPU and a remote station at the top of the sheet, each with its port on
+/// its box's top edge and three caption lines above-left of it, the remote's reaching up to a step under the frame:
+/// the bus line ran across, round the remote's box and into its port from the right. It is the short line across the
+/// remote's caption.
+#[test]
+fn the_bus_line_to_a_station_at_the_top_of_the_sheet_is_the_short_one() {
+    let mut p = qet_page();
+    let (cpu, rio) = (id(1001), id(1002));
+    for (rep, rect) in [
+        (cpu, um10(2646, 2117, 5292, 3704)),
+        (cpu, um10(2646, 2117, 7144, 5027)),
+        (rio, um10(15346, 2117, 17992, 3704)),
+        (rio, um10(15346, 2117, 19844, 5027)),
+    ] {
+        p.bodies.push(Body { rep, rect });
+    }
+    for (rep, rect) in [
+        (rio, um10(16474, 1582, 17198, 2051)),
+        (rio, um10(15576, 1208, 17198, 1532)),
+        (rio, um10(16394, 833, 17198, 1158)),
+        (rio, um10(17293, 2217, 17617, 2535)),
+        (cpu, um10(3774, 1582, 4498, 2051)),
+        (cpu, um10(2822, 1208, 4498, 1532)),
+        (cpu, um10(2712, 2183, 3213, 2435)),
+        (cpu, um10(3694, 833, 4498, 1158)),
+        (cpu, um10(4593, 2217, 4917, 2535)),
+    ] {
+        p.texts.push(TextBox { rep, rect });
+    }
+    for (n, rep, x) in [(10, cpu, 47_625_000), (11, rio, 174_625_000)] {
+        p.cps.push(CpPoint {
+            id: id(n),
+            at: (x, 21_166_667),
+            dir: Some(Dir4::Up),
+            rep,
+            connections: vec![id(1)],
+        });
+    }
+    p.connections.push(DrawnConnection {
+        id: id(1),
+        ends: [id(10), id(11)],
+        polyline: vec![p.cps[0].at, p.cps[1].at],
+        ..DrawnConnection::default()
+    });
+    let plan = route_page(&p, &[id(1)]);
+    assert_eq!(plan.unrouted, vec![]);
+    let (_, line) = &plan.routes[0];
+    let direct = p.cps[1].at.0 - p.cps[0].at.0;
+    assert!(length(line) * 4 < direct * 5, "{line:?}");
+    assert_eq!(line.len(), 4, "a U over the top: {line:?}");
+    let m = measure(&routed(&p, &plan));
+    assert!(m.through_bodies.is_empty() && m.touches.is_empty(), "{m:?}");
+}
+
+/// The rc.2 persona run's PLC page: an interruption point drawn on the CPU's M pin, which also has the 0 V wire to the
+/// first card's M. The point's body lay over the pin's way out, so Route selection left the 0 V wire unrouted ("no
+/// route keeps clear of the symbols"). A symbol drawn on an end's pin is that end's own: the wire leaves through it.
+#[test]
+fn a_wire_leaves_a_pin_through_an_interruption_point_drawn_on_it() {
+    let mut p = page();
+    add_job(
+        &mut p,
+        1,
+        (10, mm(0, 0), Dir4::Down),
+        (11, mm(20, 0), Dir4::Down),
+        None,
+    );
+    body(&mut p, 1010, mm(-4, -6), mm(4, 0));
+    body(&mut p, 1011, mm(16, -6), mm(24, 0));
+    // The interruption point on pin 10: its one CP on the pin, its arrow just below it.
+    p.cps.push(CpPoint {
+        id: id(20),
+        at: mm(0, 0),
+        dir: Some(Dir4::Right),
+        rep: id(1020),
+        connections: vec![id(2)],
+    });
+    body(&mut p, 1020, mm(-1, 0), mm(1, 1));
+    let plan = route_page(&p, &[id(1)]);
+    assert_eq!(plan.unrouted, vec![]);
+    let m = measure(&routed(&p, &plan));
+    assert!(m.through_bodies.is_empty(), "{m:?}");
 }

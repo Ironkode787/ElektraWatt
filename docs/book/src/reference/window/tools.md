@@ -130,9 +130,10 @@ Draws connections between connection points: click a start point, then the end p
 click in between. Open it with Draw ▸ Connect ▸ Wire. See [A first schematic page](../../tutorials/first-page.md).
 
 While you draw, the wire shows the route it will take. The route never runs through another connection point, along
-another wire, through a symbol or a text, over the frame's bands, or through a junction, and never makes a fourth
-arm of a junction. Where only a text stands in the way, the route crosses it and the hint says "The route crosses a
-text: no route keeps clear of the texts here." When no route exists at all the wire shows as a dashed right-angled
+another wire, through a symbol, over the frame's bands, or through a junction, and never makes a fourth arm of a
+junction. It keeps clear of texts too, unless the only way round them is far longer (round a group of symbols or
+the sheet) or there is none: then the route crosses the text and the hint says "The route crosses a text: keeping
+clear of it is a far longer way." A device tag on the wire then moves to a free place beside its symbol. When no route exists at all the wire shows as a dashed right-angled
 line and the hint says "No clear route: the wire stays a dashed line without a route. Click free points to lead it,
 or draw it later with Edit route." Ending it there stores an unrouted wire: it keeps its connection, but it is drawn
 dashed and the check reports it ("Wire … has no route: it is drawn as a dashed line.") until it has a route. Click
@@ -186,7 +187,7 @@ segment, the arrow keys move it, `Enter` stores it.
 Routes every unrouted wire of the page on show in one step. Open it with Draw ▸ Connect ▸ Route page. The Preview
 tab shows the plan first: "Route 3 wires on folio 101: 2 routed, 1 not routed.", and for each wire that no route
 keeps clear, why, such as "No route keeps clear of other wires: -101F1:2 → -101E55:L."; a wire routed across a text,
-as no route keeps clear of the texts, is named too. Apply draws the routes, and
+as keeping clear of the text is a far longer way, is named too. Apply draws the routes, and
 one Undo takes them back; the toast says "Routed 2 wires on folio 101." When every wire of the page has a route it
 says "Every wire on folio 101 has a route." instead. The router routes supply wires and long wires first, keeps the
 wires of a feed side by side in the order L1, L2, L3, N, PE where their ends allow it, and keeps every route clear as
