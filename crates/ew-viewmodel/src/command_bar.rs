@@ -1245,9 +1245,14 @@ pub fn hud(model: &ShellModel) -> HudModel {
     } else {
         prompt
     };
+    // The Tube tool's mode reads Tube, as its button (the rc.2 re-test read "Wire").
+    let (action, tool_label) = match actions::find("tool.fluid_line").filter(|_| tube) {
+        Some(a) => (a.id, strings::lookup(&a.label_key()).unwrap_or_default().to_owned()),
+        None => (action, tools::tool_label(name)),
+    };
     HudModel {
         tool: action,
-        tool_label: tools::tool_label(name),
+        tool_label,
         icon: actions::find(action).and_then(|a| a.icon).unwrap_or("pointer"),
         quick: if tube {
             QUICK_TOOLS.iter().copied().chain(["fluid.tube_kind"]).collect()

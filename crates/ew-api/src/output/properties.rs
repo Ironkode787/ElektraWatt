@@ -2038,17 +2038,20 @@ fn source_medium_row(q: &Q, cx: &SheetCx<'_>, device: Id<Device>) -> Option<Buil
     };
     let media = q.table::<Medium>();
     let options: Vec<String> = media.iter().map(|(id, _)| id.as_uuid().to_string()).collect();
-    let per = vec![(
-        medium.map(|m| Value::String(m.as_uuid().to_string())),
-        Provenance::Derived { via },
-    )];
+    // A medium given to this source at its own port is its own (the rc.2 re-test: the row said "derived" for the
+    // medium just chosen); one that reaches it from elsewhere is derived.
+    let own = def.is_some_and(|at| at.function == f && at.idx == idx);
+    let provenance = if own {
+        Provenance::Authored
+    } else {
+        Provenance::Derived { via }
+    };
+    let per = vec![(medium.map(|m| Value::String(m.as_uuid().to_string())), provenance)];
     let (value, provenance) = merge(cx, &FieldType::Text, per);
     let value = match value {
+        // As the list offered it: its name and its pressure ("Compressed air, 6 bar").
         RowValue::One { json, .. } => {
-            let text = medium
-                .and_then(|m| media.get(m))
-                .map(|m| neutral_or_first(&m.name))
-                .unwrap_or_default();
+            let text = medium.and_then(|m| media.get(m)).map(|m| medium_words(m)).unwrap_or_default();
             RowValue::One { json, text }
         }
         other => other,

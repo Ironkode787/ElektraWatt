@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-16T15:52:13+01:00\n"
+"POT-Creation-Date: 2026-11-16T16:03:51+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -545,7 +545,7 @@ msgstr ""
 #: src/tutorials/first-page.md:44 src/tutorials/terminal-strip-and-cable.md:49
 #: src/tutorials/reports-and-pdf.md:39 src/tutorials/import-qet.md:56
 #: src/tutorials/symbol-editor.md:42 src/tutorials/plc-station.md:73
-#: src/tutorials/bus-network.md:76 src/tutorials/pneumatic-circuit.md:102
+#: src/tutorials/bus-network.md:76 src/tutorials/pneumatic-circuit.md:103
 msgid "What you learnt"
 msgstr ""
 
@@ -666,7 +666,7 @@ msgstr ""
 #: src/tutorials/terminal-strip-and-cable.md:46
 #: src/tutorials/reports-and-pdf.md:36 src/tutorials/import-qet.md:53
 #: src/tutorials/symbol-editor.md:39 src/tutorials/plc-station.md:70
-#: src/tutorials/bus-network.md:73 src/tutorials/pneumatic-circuit.md:93
+#: src/tutorials/bus-network.md:73 src/tutorials/pneumatic-circuit.md:94
 msgid ""
 "Choose **File ▸ Save** (`Ctrl+S`). The title bar no longer marks the project "
 "as changed."
@@ -1526,12 +1526,12 @@ msgstr ""
 msgid ""
 "Click the supply point -2X1. In Properties, open the **Medium** row and "
 "choose **Compressed air** (or right-click \\-2X1 and choose **Medium:** "
-"Compressed air). Properties say what -2X1 is, \"Compressed-air supply point "
-"· pneumatic\", and its medium comes from its port 1. Every tube it feeds "
-"through the valve now carries compressed air."
+"Compressed air, 6 bar). Properties say what -2X1 is, \"Compressed-air supply "
+"point · pneumatic\", and its Medium row reads \"Compressed air, 6 bar\", its "
+"own medium. Every tube it feeds through the valve now carries compressed air."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:53
+#: src/tutorials/pneumatic-circuit.md:54
 msgid ""
 "Click the valve -2Q1. In Properties the row **Solenoid 14** says \"not "
 "drawn: draw it…\": click it (or right-click the valve and choose **Draw "
@@ -1541,7 +1541,7 @@ msgid ""
 "page 1.\""
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:57
+#: src/tutorials/pneumatic-circuit.md:58
 msgid ""
 "Choose **Draw ▸ Arrange ▸ Mirror top to bottom** (`Y`), so that the coil's "
 "A1 is at the bottom, and click near the top of page 1, a quarter from the "
@@ -1549,7 +1549,7 @@ msgid ""
 "is the valve's own solenoid, not a device of its own."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:60
+#: src/tutorials/pneumatic-circuit.md:61
 msgid ""
 "Click the **PLC** tab and choose **New station** (**PLC ▸ New station…**). "
 "Choose the head part **EW-GEN-CPU-1**, **Add module…** in slot 1 with "
@@ -1559,20 +1559,20 @@ msgid ""
 "in full."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:65
+#: src/tutorials/pneumatic-circuit.md:66
 msgid ""
 "Choose **Draw ▸ Connect ▸ Wire** (`W`), click A1 of the coil, then pin 1 at "
 "the top of -1A1-A1, the output Q0.0. Choose **Draw ▸ Select**. The solenoid "
 "is wired to the PLC output."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:68
+#: src/tutorials/pneumatic-circuit.md:69
 msgid ""
 "Click page 2 in the Pages navigator and click the valve -2Q1. Its row "
 "**Solenoid 14** now names the place where the coil is drawn, 1-A4."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:70
+#: src/tutorials/pneumatic-circuit.md:71
 msgid ""
 "Choose **Valve terminal** on the Fluid tab (**Fluid ▸ Valve terminal…**). "
 "The device browser opens at the valve terminals: choose **Valve terminal "
@@ -1584,7 +1584,7 @@ msgid ""
 "terminal."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:75
+#: src/tutorials/pneumatic-circuit.md:76
 msgid ""
 "Click the empty cell 1. The device browser opens with the valves made for a "
 "terminal; type `valve terminal` into its search and choose **Solenoid valve "
@@ -1592,7 +1592,7 @@ msgid ""
 "stands in cell 1 with its output, Q1.0."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:79
+#: src/tutorials/pneumatic-circuit.md:80
 msgid ""
 "Click the empty cell 2 and choose the same valve. The valve -2Q3 stands in "
 "cell 2 with Q1.2. Click the terminal: its row **Valve positions** reads \"1 "
@@ -1600,13 +1600,13 @@ msgid ""
 "blanking plate in the empty cells; a right click on a cell offers both."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:84
+#: src/tutorials/pneumatic-circuit.md:85
 msgid ""
 "![The fluid page: the circuit to the cylinder, and the valve terminal with "
 "two valves](images/pneumatic-circuit.png)"
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:86
+#: src/tutorials/pneumatic-circuit.md:87
 msgid ""
 "Choose **Fluid settings** on the Fluid tab (**Fluid ▸ Fluid settings…**). "
 "Type the default tube's outer diameter `6`, inner diameter `4`, choose the "
@@ -1615,7 +1615,7 @@ msgid ""
 "drawn already too.\""
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:90
+#: src/tutorials/pneumatic-circuit.md:91
 msgid ""
 "Choose **Tube table** on the Fluid tab (**Fluid ▸ Tube table**). The tube "
 "list opens under the page, one row per tube with its two ends, its medium "
@@ -1623,11 +1623,11 @@ msgid ""
 "until you type it."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:96
+#: src/tutorials/pneumatic-circuit.md:97
 msgid "Two kinds of valve"
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:98
+#: src/tutorials/pneumatic-circuit.md:99
 msgid ""
 "A stand-alone valve, such as -2Q1, has a coil of its own: you draw it on an "
 "electrical page and wire it to a PLC output. A valve on a valve terminal "
@@ -1636,35 +1636,35 @@ msgid ""
 "wired per solenoid."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:104
+#: src/tutorials/pneumatic-circuit.md:105
 msgid ""
 "A fluid page draws the circuit with ISO 1219 symbols; the Wire tool draws "
 "tubes there."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:105
+#: src/tutorials/pneumatic-circuit.md:106
 msgid ""
 "The medium is defined once, at the air supply, and every tube it reaches "
 "carries it."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:106
+#: src/tutorials/pneumatic-circuit.md:107
 msgid ""
 "A valve's solenoid is drawn on an electrical page from the valve, and the "
 "two know each other."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:107
+#: src/tutorials/pneumatic-circuit.md:108
 msgid "A valve terminal is drawn as its positions; a click on a cell fills it."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:108
+#: src/tutorials/pneumatic-circuit.md:109
 msgid ""
 "The tube table lists the tubes with their ends, medium and size; **Output ▸ "
 "Report block…** prints it as a tube list."
 msgstr ""
 
-#: src/tutorials/pneumatic-circuit.md:110
+#: src/tutorials/pneumatic-circuit.md:111
 msgid ""
 "To look up these jobs later, see [Work in the Fluid "
 "workspace](../how-to/fluid-workspace.md)."

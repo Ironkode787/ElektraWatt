@@ -47,8 +47,9 @@ on the fluid page: it belongs to the valve and stands on an electrical page, whe
    which fills the name and 6 bar, and choose **Create**.
    The toast says "Added the medium Compressed air."
 10. Click the supply point -2X1. In Properties, open the **Medium** row and choose **Compressed air** (or right-click
-    -2X1 and choose **Medium:** Compressed air).
-    Properties say what -2X1 is, "Compressed-air supply point · pneumatic", and its medium comes from its port 1.
+    -2X1 and choose **Medium:** Compressed air, 6 bar).
+    Properties say what -2X1 is, "Compressed-air supply point · pneumatic", and its Medium row reads "Compressed air,
+    6 bar", its own medium.
     Every tube it feeds through the valve now carries compressed air.
 11. Click the valve -2Q1. In Properties the row **Solenoid 14** says "not drawn: draw it…": click it (or right-click
     the valve and choose **Draw solenoid 14 on an electrical page…**). The window asks on which electrical page: page

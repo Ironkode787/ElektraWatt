@@ -1016,9 +1016,10 @@ fn r2f_new_medium_from_the_tubes_medium_and_the_supplys_medium() {
     let _ = d
         .shell_mut()
         .dispatch("select.set", &json!({ "ids": [supply.to_string()] }));
+    // As the list offers it, and its own (the rc.2 re-test: "derived" for the medium it was given).
     let (text, chip) = prop_row(&mut d, "device/derived.medium");
-    assert_eq!(text, "Compressed air");
-    assert!(chip.contains("medium defined at"), "{chip}");
+    assert_eq!(text, "Compressed air, 6 bar");
+    assert!(!chip.contains("derived"), "{chip}");
     d.shell_mut().shutdown();
 }
 
@@ -2718,6 +2719,43 @@ fn rc2_a_terminal_placed_at_the_frames_edge_stands_inside_it() {
     assert_eq!(c.len(), 8, "the multipin terminal's positions");
     let right = c.iter().map(|x| x.rect[2]).max().unwrap();
     assert!(right <= area[2], "inside the drawing area: {right} > {}", area[2]);
+    d.shell_mut().shutdown();
+}
+
+/// The rc.2 re-test (friction 2, 3): after choosing "Compressed air, 6 bar" the supply's Medium row read "Compressed
+/// air", marked derived, and the Tube button's mode read "Wire". The row shows the medium as the list offered it, as the
+/// supply's own; the mode reads Tube.
+#[test]
+fn rc2_the_medium_row_and_the_tube_mode_say_what_was_chosen() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    place_symbol(&mut d, "ew.iso.air-supply@qet10", (1300, 800));
+    let supply = device_drawn(&mut d, "ew.iso.air-supply");
+    let _ = d
+        .shell_mut()
+        .dispatch("select.set", &json!({ "ids": [supply.to_string()] }));
+    let edit = json!({"row": "device/derived.medium"});
+    assert_eq!(d.shell_mut().dispatch("props.edit", &edit), Outcome::Done);
+    assert_eq!(
+        choice_texts(&mut d).first().map(String::as_str),
+        Some("Compressed air, 6 bar")
+    );
+    assert_eq!(
+        d.shell_mut().dispatch("props.choose", &json!({"index": 0})),
+        Outcome::Done
+    );
+    let _ = d
+        .shell_mut()
+        .dispatch("select.set", &json!({ "ids": [supply.to_string()] }));
+    let (text, chip) = prop_row(&mut d, "device/derived.medium");
+    assert_eq!(text, "Compressed air, 6 bar");
+    assert!(!chip.contains("derived"), "its own: {chip}");
+    assert_eq!(
+        d.shell_mut().dispatch("tool.fluid_line", &json!({})),
+        Outcome::Done
+    );
+    let hud = ew_ui::ew_viewmodel::command_bar::hud(d.shell_mut());
+    assert_eq!(hud.tool_label, "Tube");
     d.shell_mut().shutdown();
 }
 

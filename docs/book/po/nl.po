@@ -683,7 +683,7 @@ msgstr ""
 "Kies **Bestand ▸ Opslaan** (`Ctrl+S`). De titelbalk markeert het project "
 "niet meer als gewijzigd, en de statusbalk zegt Opgeslagen."
 
-#: src/tutorials/first-page.md:44 src/tutorials/terminal-strip-and-cable.md:49 src/tutorials/reports-and-pdf.md:39 src/tutorials/import-qet.md:56 src/tutorials/symbol-editor.md:42 src/tutorials/plc-station.md:73 src/tutorials/bus-network.md:76 src/tutorials/pneumatic-circuit.md:102
+#: src/tutorials/first-page.md:44 src/tutorials/terminal-strip-and-cable.md:49 src/tutorials/reports-and-pdf.md:39 src/tutorials/import-qet.md:56 src/tutorials/symbol-editor.md:42 src/tutorials/plc-station.md:73 src/tutorials/bus-network.md:76 src/tutorials/pneumatic-circuit.md:103
 msgid "What you learnt"
 msgstr "Wat u hebt geleerd"
 
@@ -861,7 +861,7 @@ msgstr ""
 "van de transformator; de info's zeggen dat nog geen rapport de klemmenstrook "
 "of de kabel dekt."
 
-#: src/tutorials/terminal-strip-and-cable.md:46 src/tutorials/reports-and-pdf.md:36 src/tutorials/import-qet.md:53 src/tutorials/symbol-editor.md:39 src/tutorials/plc-station.md:70 src/tutorials/bus-network.md:73 src/tutorials/pneumatic-circuit.md:93
+#: src/tutorials/terminal-strip-and-cable.md:46 src/tutorials/reports-and-pdf.md:36 src/tutorials/import-qet.md:53 src/tutorials/symbol-editor.md:39 src/tutorials/plc-station.md:70 src/tutorials/bus-network.md:73 src/tutorials/pneumatic-circuit.md:94
 msgid ""
 "Choose **File ▸ Save** (`Ctrl+S`). The title bar no longer marks the project "
 "as changed."
@@ -2170,17 +2170,18 @@ msgstr ""
 msgid ""
 "Click the supply point -2X1. In Properties, open the **Medium** row and "
 "choose **Compressed air** (or right-click \\-2X1 and choose **Medium:** "
-"Compressed air). Properties say what -2X1 is, \"Compressed-air supply point "
-"· pneumatic\", and its medium comes from its port 1. Every tube it feeds "
-"through the valve now carries compressed air."
+"Compressed air, 6 bar). Properties say what -2X1 is, \"Compressed-air supply "
+"point · pneumatic\", and its Medium row reads \"Compressed air, 6 bar\", its "
+"own medium. Every tube it feeds through the valve now carries compressed air."
 msgstr ""
 "Klik op het aansluitpunt -2X1. Open in Eigenschappen de rij **Medium** en "
 "kies **Perslucht** (of klik met rechts op -2X1 en kies **Medium:** "
-"Perslucht). Eigenschappen zeggen wat -2X1 is, een persluchtaansluitpunt, "
-"pneumatisch, en dat zijn medium van zijn poort 1 komt. Elke slang die het "
-"via het ventiel voedt, voert nu perslucht."
+"Perslucht, 6 bar). Eigenschappen zeggen wat -2X1 is, een "
+"persluchtaansluitpunt, pneumatisch, en zijn rij Medium toont \"Perslucht, 6 "
+"bar\", zijn eigen medium. Elke slang die het via het ventiel voedt, voert nu "
+"perslucht."
 
-#: src/tutorials/pneumatic-circuit.md:53
+#: src/tutorials/pneumatic-circuit.md:54
 msgid ""
 "Click the valve -2Q1. In Properties the row **Solenoid 14** says \"not "
 "drawn: draw it…\": click it (or right-click the valve and choose **Draw "
@@ -2196,7 +2197,7 @@ msgstr ""
 "**Tekenen**. Pagina 1 verschijnt met de spoel aan de aanwijzer, en een "
 "notificatie zegt waar u moet klikken."
 
-#: src/tutorials/pneumatic-circuit.md:57
+#: src/tutorials/pneumatic-circuit.md:58
 msgid ""
 "Choose **Draw ▸ Arrange ▸ Mirror top to bottom** (`Y`), so that the coil's "
 "A1 is at the bottom, and click near the top of page 1, a quarter from the "
@@ -2208,7 +2209,7 @@ msgstr ""
 "**Tekenen ▸ Selecteren**. De spoel draagt het kenmerk van het ventiel, -2Q1: "
 "het is de eigen magneetspoel van het ventiel, geen apparaat op zich."
 
-#: src/tutorials/pneumatic-circuit.md:60
+#: src/tutorials/pneumatic-circuit.md:61
 msgid ""
 "Click the **PLC** tab and choose **New station** (**PLC ▸ New station…**). "
 "Choose the head part **EW-GEN-CPU-1**, **Add module…** in slot 1 with "
@@ -2224,7 +2225,7 @@ msgstr ""
 "-1A1-A1 staan onder de spoel. [Een PLC met zijn modules](plc-station.md) "
 "toont dit venster volledig."
 
-#: src/tutorials/pneumatic-circuit.md:65
+#: src/tutorials/pneumatic-circuit.md:66
 msgid ""
 "Choose **Draw ▸ Connect ▸ Wire** (`W`), click A1 of the coil, then pin 1 at "
 "the top of -1A1-A1, the output Q0.0. Choose **Draw ▸ Select**. The solenoid "
@@ -2234,7 +2235,7 @@ msgstr ""
 "op pen 1 bovenaan -1A1-A1, de uitgang Q0.0. Kies **Tekenen ▸ Selecteren**. "
 "De magneetspoel zit op de PLC-uitgang."
 
-#: src/tutorials/pneumatic-circuit.md:68
+#: src/tutorials/pneumatic-circuit.md:69
 msgid ""
 "Click page 2 in the Pages navigator and click the valve -2Q1. Its row "
 "**Solenoid 14** now names the place where the coil is drawn, 1-A4."
@@ -2242,7 +2243,7 @@ msgstr ""
 "Klik op pagina 2 in de navigator Pagina's en klik op het ventiel -2Q1. Zijn "
 "rij **Magneetspoel 14** noemt nu de plaats waar de spoel getekend is, 1-A4."
 
-#: src/tutorials/pneumatic-circuit.md:70
+#: src/tutorials/pneumatic-circuit.md:71
 #, fuzzy
 #| msgid ""
 #| "Choose **Valve terminal** on the Fluid tab (**Fluid ▸ Valve terminal…**). "
@@ -2269,7 +2270,7 @@ msgstr ""
 "getekend als zijn posities: de voedingskant links, dan vier lege cellen, "
 "genummerd 1 tot en met 4."
 
-#: src/tutorials/pneumatic-circuit.md:75
+#: src/tutorials/pneumatic-circuit.md:76
 #, fuzzy
 #| msgid ""
 #| "Click the empty cell 1. The device browser opens with valves; type `valve "
@@ -2287,7 +2288,7 @@ msgstr ""
 "spring return** (EW-GEN-VLV-3). Het ventiel -2Q2 staat in cel 1 met zijn "
 "uitgang, Q1.0."
 
-#: src/tutorials/pneumatic-circuit.md:79
+#: src/tutorials/pneumatic-circuit.md:80
 msgid ""
 "Click the empty cell 2 and choose the same valve. The valve -2Q3 stands in "
 "cell 2 with Q1.2. Click the terminal: its row **Valve positions** reads \"1 "
@@ -2299,7 +2300,7 @@ msgstr ""
 "-2Q2 op 1, -2Q3 op 2 en 3 en 4 leeg. De controle vraagt om een ventiel of "
 "een blindplaat in de lege cellen; een rechterklik op een cel biedt beide."
 
-#: src/tutorials/pneumatic-circuit.md:84
+#: src/tutorials/pneumatic-circuit.md:85
 msgid ""
 "![The fluid page: the circuit to the cylinder, and the valve terminal with "
 "two valves](images/pneumatic-circuit.png)"
@@ -2307,7 +2308,7 @@ msgstr ""
 "![De fluïdumpagina: het schema naar de cilinder, en het ventieleiland met "
 "twee ventielen](images/pneumatic-circuit.png)"
 
-#: src/tutorials/pneumatic-circuit.md:86
+#: src/tutorials/pneumatic-circuit.md:87
 msgid ""
 "Choose **Fluid settings** on the Fluid tab (**Fluid ▸ Fluid settings…**). "
 "Type the default tube's outer diameter `6`, inner diameter `4`, choose the "
@@ -2321,7 +2322,7 @@ msgstr ""
 "notificatie zegt dat de standaardslang nu 6 × 4 mm PU is en dat elke slang "
 "zonder eigen slang hem neemt, ook de slangen die al getekend zijn."
 
-#: src/tutorials/pneumatic-circuit.md:90
+#: src/tutorials/pneumatic-circuit.md:91
 msgid ""
 "Choose **Tube table** on the Fluid tab (**Fluid ▸ Tube table**). The tube "
 "list opens under the page, one row per tube with its two ends, its medium "
@@ -2333,11 +2334,11 @@ msgstr ""
 "einden, zijn medium (Perslucht), zijn leidingsoort en zijn maat, 6×4 PU. De "
 "lengte blijft leeg tot u hem typt."
 
-#: src/tutorials/pneumatic-circuit.md:96
+#: src/tutorials/pneumatic-circuit.md:97
 msgid "Two kinds of valve"
 msgstr "Twee soorten ventielen"
 
-#: src/tutorials/pneumatic-circuit.md:98
+#: src/tutorials/pneumatic-circuit.md:99
 msgid ""
 "A stand-alone valve, such as -2Q1, has a coil of its own: you draw it on an "
 "electrical page and wire it to a PLC output. A valve on a valve terminal "
@@ -2351,7 +2352,7 @@ msgstr ""
 "dat een PLC-station op de bus is: zijn uitgang volgt uit zijn positie, en "
 "per magneetspoel wordt niets bedraad."
 
-#: src/tutorials/pneumatic-circuit.md:104
+#: src/tutorials/pneumatic-circuit.md:105
 msgid ""
 "A fluid page draws the circuit with ISO 1219 symbols; the Wire tool draws "
 "tubes there."
@@ -2359,7 +2360,7 @@ msgstr ""
 "Een fluïdumpagina tekent het schema met symbolen volgens ISO 1219; het "
 "gereedschap Draad tekent daar slangen."
 
-#: src/tutorials/pneumatic-circuit.md:105
+#: src/tutorials/pneumatic-circuit.md:106
 msgid ""
 "The medium is defined once, at the air supply, and every tube it reaches "
 "carries it."
@@ -2367,7 +2368,7 @@ msgstr ""
 "Het medium wordt één keer vastgelegd, bij de persluchtvoeding, en elke slang "
 "die het bereikt voert het."
 
-#: src/tutorials/pneumatic-circuit.md:106
+#: src/tutorials/pneumatic-circuit.md:107
 msgid ""
 "A valve's solenoid is drawn on an electrical page from the valve, and the "
 "two know each other."
@@ -2375,13 +2376,13 @@ msgstr ""
 "De magneetspoel van een ventiel wordt vanuit het ventiel op een elektrische "
 "pagina getekend, en de twee kennen elkaar."
 
-#: src/tutorials/pneumatic-circuit.md:107
+#: src/tutorials/pneumatic-circuit.md:108
 msgid "A valve terminal is drawn as its positions; a click on a cell fills it."
 msgstr ""
 "Een ventieleiland wordt getekend als zijn posities; een klik op een cel vult "
 "hem."
 
-#: src/tutorials/pneumatic-circuit.md:108
+#: src/tutorials/pneumatic-circuit.md:109
 msgid ""
 "The tube table lists the tubes with their ends, medium and size; **Output ▸ "
 "Report block…** prints it as a tube list."
@@ -2389,7 +2390,7 @@ msgstr ""
 "De slangentabel toont de slangen met hun einden, medium en maat; **Uitvoer ▸ "
 "Rapportblok…** drukt hem af als slangenlijst."
 
-#: src/tutorials/pneumatic-circuit.md:110
+#: src/tutorials/pneumatic-circuit.md:111
 msgid ""
 "To look up these jobs later, see [Work in the Fluid "
 "workspace](../how-to/fluid-workspace.md)."

@@ -879,8 +879,7 @@ fn tutorial_a_pneumatic_circuit_runs_as_its_page_says() {
         lines_of(&medium, &["properties what", "row \"device/derived.medium\""]),
         [
             "properties what \"Compressed-air supply point · pneumatic\"",
-            "row \"device/derived.medium\" \"Medium\" \"Compressed air\" derived \"medium definition at -2X1:1\" \
-             actions edit",
+            "row \"device/derived.medium\" \"Medium\" \"Compressed air, 6 bar\" authored actions edit",
         ]
     );
     // Step 15: the valve names where its solenoid is drawn.
