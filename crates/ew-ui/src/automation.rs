@@ -224,8 +224,25 @@ pub(crate) fn rack(
             if terminal {
                 steps.insert(1, ("overview", key!("rack-next-overview")));
             }
+            // With several bus pages Put it on a bus page asks which; with one or none it goes there (or makes it).
+            let bus_pages = shell.bus_pages();
             for (step, label) in steps {
-                if components::button(ui, Kind::Secondary, strings::text(label), true, 0.0).clicked() {
+                let button = components::button(ui, Kind::Secondary, strings::text(label), true, 0.0);
+                if step == "bus" && bus_pages.len() > 1 {
+                    egui::Popup::menu(&button)
+                        .style(crate::menu::menu_style(&t))
+                        .show(|ui| {
+                            for (folio, title) in &bus_pages {
+                                if ui.button(format!("{folio} {title}").trim()).clicked() {
+                                    events.push(Event::Action(
+                                        "plc.rack_next",
+                                        json!({ "step": step, "folio": folio }),
+                                    ));
+                                    ui.close();
+                                }
+                            }
+                        });
+                } else if button.clicked() {
                     events.push(Event::Action("plc.rack_next", json!({ "step": step })));
                 }
             }

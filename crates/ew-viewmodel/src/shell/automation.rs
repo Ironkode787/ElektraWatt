@@ -255,6 +255,16 @@ impl ShellModel {
             .collect()
     }
 
+    /// The project's bus-topology pages: folio and title, in page order (the rack dialog's Put it on a bus page asks
+    /// which when there are several).
+    pub fn bus_pages(&self) -> Vec<(String, String)> {
+        self.page_rows()
+            .iter()
+            .filter(|r| r.kind == "bus_topology")
+            .map(|r| (r.folio.clone(), r.title.clone()))
+            .collect()
+    }
+
     /// The module part the open rack and slot editor adds: the one chosen, else the first offered.
     pub fn rack_part(&self) -> Option<ew_api::output::ModulePart> {
         let chosen = match self.dialog() {
@@ -875,13 +885,41 @@ impl ShellModel {
                 )]))
             }
             Ok(Some("bus")) => {
-                let Some(folio) = self
-                    .page_rows()
-                    .iter()
-                    .find(|r| r.kind == "bus_topology")
-                    .map(|r| r.folio.clone())
-                else {
-                    return self.rack_refuse(strings::text(key!("reason-rack-no-bus-page")).to_owned());
+                // The bus page named, else the only one; with none one is made, asking nothing; with several the
+                // window asks which (rc.2 persona run: the button ended in "make one with New page first").
+                let pages = self.bus_pages();
+                let folio = match string_param(p, "folio") {
+                    Ok(Some(f)) if pages.iter().any(|(x, _)| x == f) => f.to_owned(),
+                    Ok(Some(_)) => return failed(key!("error-bad-param"), &["folio"]),
+                    Err(e) => return e,
+                    Ok(None) => match pages.as_slice() {
+                        [(only, _)] => only.clone(),
+                        [] => {
+                            let (proposal, _) = self.new_page_proposal();
+                            let folio = if proposal.is_empty() {
+                                let labels = self.page_labels();
+                                (1u64..)
+                                    .map(|n| n.to_string())
+                                    .find(|n| !labels.iter().any(|l| l == n))
+                                    .unwrap_or_default()
+                            } else {
+                                proposal
+                            };
+                            let title = strings::text(key!("rack-bus-page-title"));
+                            let made = self.dispatch(
+                                "page.new",
+                                &json!({ "folio": folio, "type": "bus_topology", "title": title }),
+                            );
+                            if made != Outcome::Done {
+                                return self.rack_refuse(strings::text(key!("reason-rack-no-bus-page")).to_owned());
+                            }
+                            folio
+                        }
+                        _ => {
+                            return self
+                                .rack_refuse(strings::text(key!("reason-rack-which-bus-page")).to_owned());
+                        }
+                    },
                 };
                 self.dialog = None;
                 let opened = self.dispatch("page.goto", &json!({ "folio": folio }));

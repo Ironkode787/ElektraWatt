@@ -272,6 +272,46 @@ fn the_new_station_dialog_offers_a_device_on_the_bus() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// The rc.2 persona run: Put it on a bus page in a project without a bus-topology page makes one, asking nothing, and
+/// shows it with the station's port on the pointer; with two bus pages the button asks which, and the one chosen is
+/// shown.
+#[test]
+fn put_it_on_a_bus_page_makes_the_page_or_asks_which() {
+    let tmp = Tmp::new();
+    let mut h = new_project(&tmp);
+    draft_with(&mut h, 1);
+    support::menu_node(&h, "Create").click();
+    settle(&mut h);
+    let station = match h.state().shell().dialog() {
+        Some(Dialog::Rack { station: Some(s), .. }) => *s,
+        other => panic!("{other:?}"),
+    };
+    h.get_by_label("Put it on a bus page").click();
+    settle(&mut h);
+    let shown = |h: &egui_kittest::Harness<'static, ew_ui::app::App>| {
+        let shell = h.state().shell();
+        shell.page_rows().get(shell.page_index()).map(|r| (r.folio.clone(), r.kind.clone()))
+    };
+    let (made, kind) = shown(&h).expect("a page");
+    assert_eq!(kind, "bus_topology", "the bus page is made and shown");
+    assert!(h.state().shell().dialog().is_none(), "{:?}", h.state().shell().dialog());
+    dispatch(&mut h, "ui.dismiss", json!({}));
+    dispatch(
+        &mut h,
+        "page.new",
+        json!({"folio": "900", "type": "bus_topology", "title": "Field bus"}),
+    );
+    dispatch(&mut h, "plc.rack_editor", json!({"station": station.to_string()}));
+    settle(&mut h);
+    h.get_by_label("Put it on a bus page").click();
+    settle(&mut h);
+    support::menu_node(&h, &format!("{made} Bus"));
+    support::menu_node(&h, "900 Field bus").click();
+    settle(&mut h);
+    assert_eq!(shown(&h).map(|s| s.0).as_deref(), Some("900"));
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// The new-station dialog with the starter CPU as its head part and `modules` input modules in its rack, not made yet.
 fn draft_with(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>, modules: u64) {
     dispatch(h, "plc.new_station", json!({}));

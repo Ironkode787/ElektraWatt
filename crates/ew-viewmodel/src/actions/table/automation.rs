@@ -498,7 +498,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         |s, _| s.act_plc_rack_create(),
     )),
     with_params(
-        "step:text",
+        "step:text, folio?:text",
         hidden(act(
             "plc.rack_next",
             Command,
