@@ -133,7 +133,9 @@ fn the_devices_pane_and_the_chip_line() {
     assert!(h.query_by_label("Go to page 201, E4").is_some());
     assert!(h.query_by_label("Go to page 203, B4").is_some());
     // The chips are doc 16a §6.24's pill jump chips, 20 px high (egui's button was the row height).
-    let chip = h.get_by_role_and_label(egui::Role::Button, "Go to page 201, E4").rect();
+    let chip = h
+        .get_by_role_and_label(egui::Role::Button, "Go to page 201, E4")
+        .rect();
     assert!((chip.height() - 20.0).abs() < 0.5, "jump chip {chip:?}");
     let item = h
         .get_all_by_role(egui::Role::TreeItem)

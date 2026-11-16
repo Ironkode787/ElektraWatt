@@ -943,10 +943,7 @@ fn a_station_the_project_has_is_put_on_the_bus_page_not_made_again() {
     settle(&mut h);
     let (choices, chosen) = put_station_form(&h);
     assert_eq!(chosen, terminal.to_string(), "{choices:?}");
-    assert!(
-        !choices.iter().any(|(v, _)| *v == cpu.to_string()),
-        "{choices:?}"
-    );
+    assert!(!choices.iter().any(|(v, _)| *v == cpu.to_string()), "{choices:?}");
     h.state_mut().shell_mut().shutdown();
 }
 
@@ -992,9 +989,8 @@ fn a_bus_page_offers_to_put_a_station_on_it() {
     assert!(put.enabled, "{:?}", put.reason);
     let list = place_port_list(&h);
     assert!(
-        list.iter().any(|i| i.id == "bus.put_station"
-            && i.params["station"] == cpu.to_string()
-            && i.enabled),
+        list.iter()
+            .any(|i| i.id == "bus.put_station" && i.params["station"] == cpu.to_string() && i.enabled),
         "{list:?}"
     );
 
@@ -1151,7 +1147,10 @@ fn how_many_goes_back_to_one_and_the_bus_panel_comes_to_the_front() {
         other => panic!("{other:?}"),
     };
     draft_with(&mut h, 2);
-    assert_eq!(h.state().shell().station_draft().map(|d| d.modules.len()), Some(2));
+    assert_eq!(
+        h.state().shell().station_draft().map(|d| d.modules.len()),
+        Some(2)
+    );
     assert_eq!(count(&h), 1, "the new-station dialog");
     dispatch(&mut h, "ui.dismiss", json!({}));
     let station = made_station(&mut h, "cpu", "EW-GEN-CPU-1");
@@ -1166,11 +1165,19 @@ fn how_many_goes_back_to_one_and_the_bus_panel_comes_to_the_front() {
     dispatch(&mut h, "bus.panel", json!({}));
     dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
     settle(&mut h);
-    assert_ne!(h.state().shell().layout().shown_in_place_of(bus), Some(bus), "behind the PLC panel");
+    assert_ne!(
+        h.state().shell().layout().shown_in_place_of(bus),
+        Some(bus),
+        "behind the PLC panel"
+    );
     dispatch(&mut h, "bus.panel", json!({}));
     settle(&mut h);
     let shell = h.state().shell();
-    assert_eq!(shell.layout().shown_in_place_of(bus), Some(bus), "in front, not closed");
+    assert_eq!(
+        shell.layout().shown_in_place_of(bus),
+        Some(bus),
+        "in front, not closed"
+    );
     assert_eq!(
         shell.status_note(),
         Some("The Bus panel was open already: it is in front now.")

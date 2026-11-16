@@ -351,6 +351,23 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
     goto(&mut h, "203");
     checked.insert(check_form(&mut h, "fluid.valve_terminal", json!({})));
     dispatch(&mut h, "ui.dismiss", json!({}));
+    // Put a station on this page… on a bus page while a station with a bus interface is drawn on none (rc.2).
+    dispatch(&mut h, "plc.new_station", json!({}));
+    dispatch(
+        &mut h,
+        "plc.rack_set",
+        json!({"kind": "cpu", "head": "EW-GEN-CPU-2"}),
+    );
+    dispatch(&mut h, "plc.rack_create", json!({}));
+    dispatch(&mut h, "ui.dismiss", json!({}));
+    dispatch(
+        &mut h,
+        "page.new",
+        json!({"folio": "990", "type": "bus_topology", "title": "Bus"}),
+    );
+    goto(&mut h, "990");
+    checked.insert(check_form(&mut h, "bus.put_station", json!({})));
+    dispatch(&mut h, "ui.dismiss", json!({}));
     goto(&mut h, "902");
     for action in ["layout.enclosure_new", "layout.auto_fill_rail"] {
         checked.insert(check_form(&mut h, action, json!({})));
