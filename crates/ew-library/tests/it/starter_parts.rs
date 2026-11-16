@@ -1736,10 +1736,7 @@ fn the_door_lamps_are_found_by_colour() {
         .map(|h| h.description)
         .collect();
     for colour in ["red", "green", "yellow"] {
-        assert!(
-            found.iter().any(|d| d.contains(colour)),
-            "{colour}: {found:?}"
-        );
+        assert!(found.iter().any(|d| d.contains(colour)), "{colour}: {found:?}");
     }
 }
 

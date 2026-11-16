@@ -39,10 +39,7 @@ fn a_field_the_session_may_not_write_is_said_before_apply() {
         panic!("the form: {:?}", s.dialog())
     };
     let names: Vec<&str> = form.fields.iter().map(|f| f.name).collect();
-    assert!(
-        !names.contains(&"revision.current.author.name"),
-        "{names:?}"
-    );
+    assert!(!names.contains(&"revision.current.author.name"), "{names:?}");
     let foot = s.form_foot(&form).unwrap_or_default();
     assert!(
         foot.starts_with("Author is not in this form: a person names the revision's author at the window"),

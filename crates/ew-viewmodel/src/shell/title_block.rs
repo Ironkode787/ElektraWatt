@@ -252,15 +252,16 @@ impl ShellModel {
         }
         let (_, facts, _) = self.title_block_fields()?;
         let prints = |p: &str| facts.fields.iter().any(|(path, _)| path == p);
-        let checker = (prints("revision.current.checker.name") && facts.revision_checker.is_none()).then(|| {
-            strings::format(
-                key!("titleblock-note-checked"),
-                &[
-                    strings::text(key!("action-revision-approve")),
-                    strings::text(key!("menu-check")),
-                ],
-            )
-        });
+        let checker =
+            (prints("revision.current.checker.name") && facts.revision_checker.is_none()).then(|| {
+                strings::format(
+                    key!("titleblock-note-checked"),
+                    &[
+                        strings::text(key!("action-revision-approve")),
+                        strings::text(key!("menu-check")),
+                    ],
+                )
+            });
         // The author this session may not set, said before Apply rather than refused after a half-applied one.
         let author = (prints("revision.current.author.name")
             && facts.revision_author.is_none()
