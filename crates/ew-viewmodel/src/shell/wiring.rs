@@ -753,6 +753,11 @@ impl ShellModel {
         Some((*one, crate::tools::autoconnect::dedup(&c.polyline)))
     }
 
+    /// The wire whose handle has the keyboard's focus (`route.handle`), while one has.
+    pub(crate) fn handle_focus(&self) -> Option<EntityRef> {
+        self.tools.handle.map(|(w, _)| w)
+    }
+
     /// `route.handle {step}` (Tab +1, Shift+Tab −1, rc.3): the focus goes to the next or the previous handle of the
     /// one selected wire in the order of the wire, round at its ends; the first Tab takes the first, the first
     /// Shift+Tab the last. Refused without one wire selected.

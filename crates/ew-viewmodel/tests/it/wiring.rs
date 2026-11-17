@@ -949,12 +949,17 @@ fn tab_and_the_arrows_move_a_handle_of_the_selected_wire() {
             .collect()
     };
     assert!(hot(&s).is_empty(), "no handle has the focus yet");
-    assert!(s.tool_hint().contains("Tab"), "{}", s.tool_hint());
+    let prompt = |s: &ShellModel| ew_viewmodel::command_bar::hud(s).prompt;
+    assert_eq!(
+        prompt(&s),
+        "1 selected · Tab chooses a handle for the arrow keys · Del deletes"
+    );
     let mid = |s: &ShellModel, a: (i64, i64), b: (i64, i64)| sheet(s, (a.0 + (b.0 - a.0) / 2, a.1 + (b.1 - a.1) / 2));
     let p = wire.polyline.clone();
     // Tab: the first handle, the middle of the wire's first segment.
     key(&mut s, "tool.next_proposal");
     assert_eq!(hot(&s), [mid(&s, p[0], p[1])]);
+    assert!(prompt(&s).starts_with("The arrow keys move the handle"), "{}", prompt(&s));
     // Shift+Tab from the first goes round to the last: the middle of the last segment.
     key(&mut s, "layout.previous");
     let n = p.len();

@@ -1016,6 +1016,23 @@ pub fn hud(model: &ShellModel) -> HudModel {
                     ),
                     None => strings::format(key!("hud-layout-selected"), &[&selected.to_string(), &delete]),
                 }
+            } else if selected > 0
+                && let Some((wire, _)) = model.wire_handles()
+            {
+                // One wire selected (rc.3): how its handles are reached by keyboard, and with one in the focus, how
+                // it moves (Select's hint); a wire does not rotate.
+                if model.handle_focus().is_some_and(|w| w == wire) {
+                    hint()
+                } else {
+                    strings::format(
+                        key!("hud-wire-selected"),
+                        &[
+                            &selected.to_string(),
+                            &key_name(model, "tool.next_proposal"),
+                            &key_name(model, "edit.delete_selection"),
+                        ],
+                    )
+                }
             } else if selected > 0 {
                 strings::format(
                     key!("hud-selected"),

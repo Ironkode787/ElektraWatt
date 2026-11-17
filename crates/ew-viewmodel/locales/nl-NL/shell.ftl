@@ -875,6 +875,7 @@ hud-name = Gereedschap
 key-none = (geen toets)
 hud-stack = { $p0 } objecten overlappen hier · klik opnieuw om het volgende te selecteren
 hud-selected = { $p0 } geselecteerd · { $p2 } verwijdert · { $p1 } draait
+hud-wire-selected = { $p0 } geselecteerd · { $p1 } kiest een greep voor de pijltjestoetsen · { $p2 } verwijdert
 hud-keys-place = { $p0 } draait · { $p1 } variant · { $p2 } klaar
 hud-connect-on-move-on = { $p0 } Verbinden bij verplaatsen: aan
 hud-connect-on-move-off = { $p0 } Verbinden bij verplaatsen: uit
