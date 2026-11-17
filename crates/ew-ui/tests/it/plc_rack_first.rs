@@ -1104,3 +1104,46 @@ fn the_bus_panel_comes_to_the_front() {
     );
     h.state_mut().shell_mut().shutdown();
 }
+
+/// The rc.3 rack run: a new station's tags read -?A? and -?A?-A1 and nothing said why. Its To do says that a tag gets
+/// its number when it is drawn on a page, beside Draw on a page…, and the hover of a card with such a tag says the
+/// same with the button that draws it.
+#[test]
+fn a_new_stations_tag_says_where_its_number_comes_from() {
+    let tmp = Tmp::new();
+    let mut h = new_project(&tmp);
+    draft_with(&mut h, 1);
+    h.get_by_label("Create").click();
+    settle(&mut h);
+    let todo = h.state().shell().station_todo();
+    assert!(
+        todo.iter().any(|t| t
+            .text
+            .ends_with("A tag gets its number when it is drawn on a page.")),
+        "{todo:?}"
+    );
+    h.get_by_label("Draw on a page…");
+    let card = h
+        .get_all_by_role(egui::Role::Button)
+        .find(|n| {
+            n.accesskit_node()
+                .label()
+                .is_some_and(|l| l.starts_with("Slot 1, -?A?"))
+        })
+        .expect("the card of slot 1, whose tag is question marks")
+        .rect();
+    h.hover_at(card.center());
+    let start = h.ctx.input(|i| i.time);
+    let mut tip = false;
+    for i in 0..40 {
+        h.input_mut().time = Some(start + f64::from(i) * 0.05);
+        h.step();
+        tip |= h.get_all_by_role(egui::Role::Label).any(|n| {
+            n.accesskit_node()
+                .value()
+                .is_some_and(|v| v.contains("gets its number when it is drawn on a page: Draw on a page…"))
+        });
+    }
+    assert!(tip, "the hover says where the number comes from");
+    h.state_mut().shell_mut().shutdown();
+}

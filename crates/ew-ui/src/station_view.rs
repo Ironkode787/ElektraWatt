@@ -480,6 +480,12 @@ fn interact(
     if response.clicked() || response.secondary_clicked() {
         events.push(Event::Action("plc.rack_select", p.select()));
     }
+    // A tag of question marks (a module drawn on no page) says where its number comes from (the rc.3 rack run).
+    if p.device.is_some() && !p.drawn && p.tag.contains('?') {
+        let _ = response
+            .clone()
+            .on_hover_text(strings::format(key!("rack-tag-unnumbered"), &[&p.tag]));
+    }
     // F1 on a card or a cell: what the cards or a valve terminal's cells are.
     crate::help::offer_for(response, || {
         let thing = ew_viewmodel::help::station_thing(shell, tab);
