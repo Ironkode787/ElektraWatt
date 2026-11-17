@@ -468,7 +468,6 @@ impl ShellModel {
                 manufacturers,
                 error: None,
                 back: None,
-                back_rack: None,
             },
         )))
     }
