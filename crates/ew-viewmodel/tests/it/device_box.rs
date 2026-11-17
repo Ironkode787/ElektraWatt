@@ -402,11 +402,7 @@ fn a_starter_part_that_is_not_placed_opens_as_a_copy_of_one_s_own() {
     let names: Vec<String> = pins(&s).into_iter().map(|p| p.0).collect();
     assert_eq!(names, ["L", "N", "PE", "+", "+", "-", "-"]);
     let plus = device_box(&s).pin_table()[3].idx;
-    done(
-        &mut s,
-        "part.pin",
-        json!({"pin": plus, "side": "right", "at": 4}),
-    );
+    done(&mut s, "part.pin", json!({"pin": plus, "side": "right", "at": 4}));
     done(&mut s, "symbol.save", json!({}));
     let b = device_box(&s);
     assert!(!b.draft.new && b.draft.own, "saved as the person's own part");
@@ -470,10 +466,7 @@ fn the_device_browser_shows_a_box_part_with_its_pins() {
     done(&mut s, "symbol.close", json!({}));
     done(&mut s, "tool.place_part", json!({}));
     done(&mut s, "picker.filter", json!({"text": "ECP-8"}));
-    let preview = s
-        .picker()
-        .and_then(|p| p.preview.clone())
-        .expect("a picture");
+    let preview = s.picker().and_then(|p| p.preview.clone()).expect("a picture");
     let names: Vec<&str> = preview.cps.iter().map(|c| c.designation.as_str()).collect();
     assert_eq!(names, ["24V", "0V", "1", "2"]);
     assert_eq!(

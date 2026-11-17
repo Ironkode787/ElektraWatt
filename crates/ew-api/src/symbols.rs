@@ -763,7 +763,8 @@ impl SymbolDraft {
             let Some((name, body)) = g.as_object_mut().and_then(|o| o.iter_mut().next()) else {
                 return;
             };
-            let fields: &[(&str, &dyn Fn(&mut Value))] = match name.as_str() {
+            type Scaler<'a> = &'a dyn Fn(&mut Value);
+            let fields: &[(&str, Scaler<'_>)] = match name.as_str() {
                 "line" => &[("from", &pt), ("to", &pt)],
                 "polyline" | "polygon" => &[("points", &pts)],
                 "rect" => &[("rect", &pts), ("rx", &len), ("ry", &len), ("shadow", &len)],
