@@ -213,6 +213,50 @@ fn texts_markers_and_captions_are_drawn_in_the_labels_layer() {
     );
 }
 
+/// rc.3 (G5): a cable mark's tag and type line stand at the line's start (left of it) unless they would lie on
+/// another text there; then at the line's other end (right of it), whatever order the items come in.
+#[test]
+fn a_cable_marks_tag_keeps_clear_of_a_text_at_the_lines_start() {
+    let mark = |n: u128| {
+        let mut iv = item(
+            n,
+            json!({"wire_marker": {"connections": [], "at": [100_000_000, 60_000_000], "fields": ["csa"]}}),
+            "",
+            true,
+        );
+        iv.cable = Some(ew_derive::CableMark {
+            tag: "-1W1".to_owned(),
+            kind: "3G1.5".to_owned(),
+            cores: Vec::new(),
+        });
+        iv
+    };
+    // The leftmost point of the tag's text.
+    let tag_left = |v: &PageView| {
+        let l = page_display_list(v, Layer::Labels, bundled(), builtin());
+        l.list
+            .items
+            .iter()
+            .find_map(|i| match &i.kind {
+                ItemKind::Glyphs(run) if run.text == "-1W1" => run.bound_points().map(|p| p.x).min(),
+                _ => None,
+            })
+            .expect("the tag")
+    };
+    assert!(tag_left(&view(vec![mark(0x31)], Vec::new())) < Nm(100_000_000), "at the start");
+    // A text that ends where the type line would stand, listed after the mark.
+    let text = item(
+        0x32,
+        json!({"free_text": {"text": "CONTROL CIRCUIT", "at": [98_000_000, 63_000_000], "align": "right"}}),
+        "CONTROL CIRCUIT",
+        true,
+    );
+    assert!(
+        tag_left(&view(vec![mark(0x31), text], Vec::new())) > Nm(100_000_000),
+        "at the other end"
+    );
+}
+
 /// The order of the view's items does not change a display list, and a page without items draws what it drew
 /// before (no item in either layer).
 #[test]

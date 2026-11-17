@@ -344,6 +344,7 @@ impl Command for SetFields {
         if self.kind == KindName::Page {
             drop_left_surface_views(tx, &self.targets)?;
         }
+        follow_cable_marks(tx, std::slice::from_ref(self))?;
         Ok(Outcome::default())
     }
 }
@@ -991,8 +992,23 @@ impl Command for SetManyFields {
             .flat_map(|e| e.targets.iter().copied())
             .collect();
         drop_left_surface_views(tx, &pages.into_iter().collect::<Vec<_>>())?;
+        follow_cable_marks(tx, &self.edits)?;
         Ok(Outcome::default())
     }
+}
+
+/// The cable marks follow the connections whose kind `edits` set (a wire made a core or taken out of a cable, rc.3:
+/// [`crate::commands::cable_mark::follow_kinds`]).
+fn follow_cable_marks(tx: &mut TxBuilder<'_>, edits: &[SetFields]) -> Result<(), CmdError> {
+    let connections: Vec<ew_ids::Id<Connection>> = edits
+        .iter()
+        .filter(|e| e.kind == KindName::Connection && e.path.as_str() == "kind")
+        .flat_map(|e| e.targets.iter().map(|t| t.cast()))
+        .collect();
+    if connections.is_empty() {
+        return Ok(());
+    }
+    crate::commands::cable_mark::follow_kinds(tx, &connections)
 }
 
 /// Doc 03 §7: an assembly configuration covers the assembly device itself or its descendants, each named

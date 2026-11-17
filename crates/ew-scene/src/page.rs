@@ -150,7 +150,10 @@
 //!   [`CABLE_TAG_STYLE`] at the line's start, left of a horizontal line (aligned middle right) or above a vertical one
 //!   (aligned bottom centre), or at the marker's `tag_at` once moved; and under the tag its type line in
 //!   [`CABLE_KIND_STYLE`] (`CL110 3G1.5`), starting where the tag starts, or ending where it ends when it is the longer.
-//!   Every text is upright.
+//!   Where the tag or its type line would lie there on a symbol, a symbol's text, a strip tag, a free text, another
+//!   cable mark's texts or this mark's core names (rc.3), they stand at the line's other end instead: right of a
+//!   horizontal line beyond the core names (aligned middle left), below a vertical one (aligned top centre), the type
+//!   line starting where the tag starts; with neither place free, at the start. Every text is upright.
 //! - **Wire numbers** (FT-1692): a connection's [`ConnectionView::number`] prints once, at the midpoint of its
 //!   longest segment, in style `marker`, [`MARKER_GAP`] beside the wire as a marker's text stands (right of a
 //!   vertical segment, above a horizontal one) but without the marker's line; with a marker of its own it is that
@@ -696,6 +699,7 @@ pub fn page_display_list(
         fonts,
         styles,
         out: LayerList::default(),
+        kept_clear: Vec::new(),
     };
     match layer {
         Layer::Frame => b.frame(view),
@@ -819,6 +823,7 @@ pub fn symbol_preview_text(
         fonts,
         styles,
         out: LayerList::default(),
+        kept_clear: Vec::new(),
     };
     if text.visible {
         builder.text(&TextSpec {
@@ -839,6 +844,19 @@ pub(crate) struct Builder<'a> {
     pub(crate) fonts: &'a FontSet,
     styles: &'a TextStyleTable,
     pub(crate) out: LayerList,
+    /// The boxes of texts the page prints by itself that a cable mark's tag keeps clear of (rc.3): the strip tags
+    /// and the cable marks' tags and type lines (the symbols' texts are [`LayerList::slot_texts`]).
+    pub(crate) kept_clear: Vec<Rect>,
+}
+
+/// Where a cable mark's tag and type line stand ([`Builder::cable_tag_place`]).
+struct CablePlace {
+    tag_at: Pt2,
+    tag_align: Align,
+    tag_box: Rect,
+    kind_at: Pt2,
+    kind_align: Align,
+    kind_box: Option<Rect>,
 }
 
 impl<'a> Builder<'a> {
@@ -848,6 +866,7 @@ impl<'a> Builder<'a> {
             fonts,
             styles,
             out: LayerList::default(),
+        kept_clear: Vec::new(),
         }
     }
 
@@ -1706,7 +1725,7 @@ impl Builder<'_> {
             };
             let at = frame.origin + frame.orient.apply(pos) + up_by(angle, step);
             let (style_key, _) = symbol::slot_style_key(slot, self.styles);
-            self.text(&TextSpec {
+            let spec = TextSpec {
                 text: &tag.text,
                 at,
                 angle,
@@ -1715,7 +1734,10 @@ impl Builder<'_> {
                 entity: EntityRef(rep.id.as_uuid()),
                 link: None,
                 items: &[],
-            });
+            };
+            // A cable mark's tag keeps clear of it (rc.3).
+            self.kept_clear.extend(self.text_box(&spec, false));
+            self.text(&spec);
         }
     }
 
@@ -2415,6 +2437,18 @@ impl Builder<'_> {
         self.push(
             Item::path(Path::line(on_line(lo), on_line(hi)), Some(stroke.clone()), None).with_entity(entity),
         );
+        // What the tag and its type line keep clear of (rc.3): the texts printed so far, the symbols, and this mark's
+        // core names.
+        let mut clear: Vec<Rect> = self
+            .out
+            .slot_texts
+            .iter()
+            .map(|s| s.rect)
+            .chain(self.kept_clear.iter().copied())
+            .chain(symbol_bodies(view).into_iter().map(|(_, r)| r))
+            .collect();
+        // Where the core names end on the right: the tag at the line's end stands beyond them.
+        let mut names_end = Nm::ZERO;
         for (along, core) in &crossings {
             let p = on_line(*along);
             let tick = Path::line(
@@ -2424,45 +2458,80 @@ impl Builder<'_> {
             self.push(Item::path(tick, Some(stroke.clone()), None).with_entity(entity));
             // Beside its own wire, just past the stroke's upper end: right of a vertical wire above the line, above a
             // horizontal wire right of the line.
-            self.text(&cable_text(
+            let name = cable_text(
                 core,
                 Pt2::new(p.x + CABLE_TICK + CABLE_TEXT_GAP, p.y - CABLE_TEXT_GAP),
                 &Align::BottomLeft,
                 MARKER_STYLE,
                 entity,
-            ));
+            );
+            let name_box = self.text_box(&name, false);
+            names_end = names_end.max(name_box.map_or(Nm::ZERO, |b| b.max().x));
+            clear.extend(name_box);
+            self.text(&name);
         }
-        // The tag: left of the line's start across vertical wires, above it across horizontal ones; a moved tag where
-        // it was put. The type line under the tag, starting where the tag starts unless it is the longer, then ending
-        // where the tag ends, so that it never reaches the wires.
-        let start = on_line(lo);
-        let (tag_at, tag_align) = if horizontal {
-            (Pt2::new(start.x - MARKER_GAP, start.y), Align::MiddleRight)
+        // The tag: left of the line's start across vertical wires, above it across horizontal ones; where the tag or
+        // its type line would lie on another text or a symbol there, at the line's other end (right of it, below it);
+        // with neither free, at the start. A moved tag stands where it was put.
+        let (start, end) = (on_line(lo), on_line(hi));
+        let places = if horizontal {
+            [
+                (Pt2::new(start.x - MARKER_GAP, start.y), Align::MiddleRight),
+                (
+                    Pt2::new(end.x.max(names_end) + MARKER_GAP, end.y),
+                    Align::MiddleLeft,
+                ),
+            ]
         } else {
             // Above the line, with room for the type line between the tag and the line's start.
             let kind = cable_text(&mark.kind, start, &Align::BottomCentre, CABLE_KIND_STYLE, entity);
             let kind_h = self
                 .text_box(&kind, false)
                 .map_or(Nm::ZERO, |b| b.max().y - b.min().y + CABLE_TEXT_GAP);
-            (
-                Pt2::new(start.x, start.y - MARKER_GAP - kind_h),
-                Align::BottomCentre,
-            )
+            [
+                (
+                    Pt2::new(start.x, start.y - MARKER_GAP - kind_h),
+                    Align::BottomCentre,
+                ),
+                (Pt2::new(end.x, end.y + MARKER_GAP), Align::TopCentre),
+            ]
         };
-        let tag_at = m
-            .tag_at
-            .and_then(|d| {
-                Some(Pt2::new(
-                    Nm(m.at.x.0.checked_add(d.x.0)?),
-                    Nm(m.at.y.0.checked_add(d.y.0)?),
-                ))
-            })
-            .unwrap_or(tag_at);
-        let tag = cable_text(&mark.tag, tag_at, &tag_align, CABLE_TAG_STYLE, entity);
-        self.text(&tag);
-        let Some(tag_box) = self.text_box(&tag, false) else {
+        let moved = m.tag_at.and_then(|d| {
+            Some(Pt2::new(
+                Nm(m.at.x.0.checked_add(d.x.0)?),
+                Nm(m.at.y.0.checked_add(d.y.0)?),
+            ))
+        });
+        let free = |p: &CablePlace| {
+            !clear
+                .iter()
+                .any(|o| collides(p.tag_box, *o) || p.kind_box.is_some_and(|k| collides(k, *o)))
+        };
+        let chosen = match moved {
+            Some(at) => self.cable_tag_place(mark, entity, at, places[0].1.clone()),
+            None => {
+                let all: Vec<CablePlace> = places
+                    .iter()
+                    .filter_map(|(at, align)| self.cable_tag_place(mark, entity, *at, align.clone()))
+                    .collect();
+                let first = all.iter().position(free).unwrap_or(0);
+                all.into_iter().nth(first)
+            }
+        };
+        let Some(place) = chosen else {
             return;
         };
+        let (tag_at, tag_box) = (place.tag_at, place.tag_box);
+        self.text(&cable_text(&mark.tag, tag_at, &place.tag_align, CABLE_TAG_STYLE, entity));
+        self.text(&cable_text(
+            &mark.kind,
+            place.kind_at,
+            &place.kind_align,
+            CABLE_KIND_STYLE,
+            entity,
+        ));
+        self.kept_clear.push(tag_box);
+        self.kept_clear.extend(place.kind_box);
         // The tag is moved as a symbol's text is, in the frame of the marker's point.
         self.out.slot_texts.push(SlotTextBox {
             rep: entity.0,
@@ -2476,29 +2545,45 @@ impl Builder<'_> {
                 orient: Orient2::R0,
             },
         });
+    }
+
+    /// A cable mark's tag at `at` aligned `align` and its type line under it (module documentation, "Cable marks"):
+    /// the type line starts where the tag starts, or, beside a tag that ends towards the wires and is shorter than the
+    /// type line, ends where the tag ends, so that it never reaches the wires. `None` when the tag has no box.
+    fn cable_tag_place(
+        &self,
+        mark: &ew_derive::CableMark,
+        entity: EntityRef,
+        at: Pt2,
+        align: Align,
+    ) -> Option<CablePlace> {
+        let tag_box = self.text_box(
+            &cable_text(&mark.tag, at, &align, CABLE_TAG_STYLE, entity),
+            false,
+        )?;
         let below = tag_box.max().y + CABLE_TEXT_GAP;
-        let left = cable_text(
-            &mark.kind,
-            Pt2::new(tag_box.min().x, below),
-            &Align::TopLeft,
-            CABLE_KIND_STYLE,
-            entity,
-        );
-        let longer = self
-            .text_box(&left, false)
-            .is_some_and(|b| b.max().x > tag_box.max().x);
-        if longer {
-            let right = Pt2::new(tag_box.max().x, below);
-            self.text(&cable_text(
-                &mark.kind,
-                right,
-                &Align::TopRight,
-                CABLE_KIND_STYLE,
-                entity,
-            ));
+        let kind_box = |at: Pt2, align: &Align| {
+            self.text_box(
+                &cable_text(&mark.kind, at, align, CABLE_KIND_STYLE, entity),
+                false,
+            )
+        };
+        let left = Pt2::new(tag_box.min().x, below);
+        let left_box = kind_box(left, &Align::TopLeft);
+        let toward_wires = matches!(align, Align::MiddleRight | Align::BottomCentre);
+        let (kind_at, kind_align) = if toward_wires && left_box.is_some_and(|b| b.max().x > tag_box.max().x) {
+            (Pt2::new(tag_box.max().x, below), Align::TopRight)
         } else {
-            self.text(&left);
-        }
+            (left, Align::TopLeft)
+        };
+        Some(CablePlace {
+            tag_at: at,
+            tag_align: align,
+            tag_box,
+            kind_at,
+            kind_box: kind_box(kind_at, &kind_align),
+            kind_align,
+        })
     }
 
     /// The crossings of the connections `ids` drawn on the page with the line through `at` (horizontal or
@@ -2688,7 +2773,7 @@ impl Builder<'_> {
 
     /// The bounds of the layout boxes of `spec`'s lines as [`text_placed`](Builder::text_placed) would place
     /// them; `None` for an empty text. Reports nothing (an unknown style measures in the default style).
-    fn text_box(&self, spec: &TextSpec<'_>, first_line: bool) -> Option<Rect> {
+    pub(crate) fn text_box(&self, spec: &TextSpec<'_>, first_line: bool) -> Option<Rect> {
         if spec.text.is_empty() {
             return None;
         }

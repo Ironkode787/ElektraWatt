@@ -91,6 +91,60 @@ pub(crate) fn mark_cores(
     Ok(())
 }
 
+/// The marks follow the connections `connections` whose kind this transaction set (rc.3, `fields.set` and
+/// `fields.set_many`: Connect cores…, the Cable form on a cable that exists, Properties): a connection that left a cable
+/// leaves that cable's marks (a wire marker all of whose connections were cores of that cable), and a mark with no
+/// connection left goes; a connection that became a cable's core gets the cable's mark on its page, or joins the one
+/// there ([`mark_cores`]). A core that moves to another core of the same cable keeps its mark.
+pub(crate) fn follow_kinds(tx: &mut TxBuilder<'_>, connections: &[Id<Connection>]) -> Result<(), CmdError> {
+    let cable_of = |tx: &TxBuilder<'_>, kind: &ConnectionKind| match kind {
+        ConnectionKind::Core(k) => tx.get::<Conductor>(*k).map(|c| c.cable),
+        _ => None,
+    };
+    let base_kind = |tx: &TxBuilder<'_>, c: Id<Connection>| {
+        tx.base_row(&(ew_schema::Kind::Connection, c.cast()))
+            .and_then(|r| r.get::<Connection>().map(|c| c.kind.clone()))
+    };
+    let mut joined: BTreeMap<Id<Device>, Vec<Id<Connection>>> = BTreeMap::new();
+    for c in connections {
+        let before = base_kind(tx, *c).and_then(|k| cable_of(tx, &k));
+        let now = tx.get::<Connection>(*c).and_then(|x| cable_of(tx, &x.kind));
+        if before == now {
+            continue;
+        }
+        if let Some(left) = before {
+            for mark in tx.markers_of_connection(*c) {
+                let Some(m) = tx.get::<PageItem>(mark).and_then(|i| i.kind.wire_marker().cloned()) else {
+                    continue;
+                };
+                let of_cable = m
+                    .connections
+                    .iter()
+                    .all(|x| base_kind(tx, *x).and_then(|k| cable_of(tx, &k)) == Some(left));
+                if !of_cable {
+                    continue;
+                }
+                if m.connections.iter().all(|x| x == c) {
+                    tx.delete_many(&[(ew_schema::Kind::PageItem, mark.cast())])?;
+                } else {
+                    tx.update::<PageItem>(mark, |item| {
+                        if let PageItemKind::WireMarker(m) = &mut item.kind {
+                            m.connections.retain(|x| x != c);
+                        }
+                    })?;
+                }
+            }
+        }
+        if let Some(cable) = now {
+            joined.entry(cable).or_default().push(*c);
+        }
+    }
+    for (cable, wires) in joined {
+        mark_cores(tx, cable, &wires)?;
+    }
+    Ok(())
+}
+
 /// A mark's place: its point, its angle and the connections it crosses in the line's order.
 type Placement = (Pt2, Angle2, Vec<Id<Connection>>);
 

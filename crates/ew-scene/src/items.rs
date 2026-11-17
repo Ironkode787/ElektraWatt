@@ -184,6 +184,16 @@ impl Builder<'_> {
     /// [`Layer::Labels`](ew_dl::Layer::Labels): the free texts and the shown wire-marker groups by ID, then the
     /// structure-box captions by box ID.
     pub(crate) fn item_labels(&mut self, view: &PageView) {
+        // The free texts are what a cable mark's tag keeps clear of, wherever they come in the order (rc.3).
+        for iv in sorted_items(view) {
+            if let PageItemKind::FreeText(t) = &iv.item.kind {
+                let align = symbol::placed_align(&text_align(t.align.as_ref()), t.angle, Orient2::R0);
+                let entity = EntityRef(iv.item.id.as_uuid());
+                if let Some(b) = self.text_box(&free_text_spec(iv, t, &align, entity), false) {
+                    self.kept_clear.push(b);
+                }
+            }
+        }
         for iv in sorted_items(view) {
             let entity = EntityRef(iv.item.id.as_uuid());
             match &iv.item.kind {
@@ -222,18 +232,22 @@ impl Builder<'_> {
     }
 
     fn free_text(&mut self, iv: &ItemView, t: &FreeText, entity: EntityRef) {
-        let style = t.style.as_ref().map_or(DEFAULT_STYLE_KEY, |s| s.as_str());
-        let align = text_align(t.align.as_ref());
-        self.text(&TextSpec {
-            text: &iv.text,
-            at: t.at,
-            angle: symbol::upright_angle(t.angle),
-            align: &symbol::placed_align(&align, t.angle, Orient2::R0),
-            style_key: style,
-            entity,
-            link: None,
-            items: &[],
-        });
+        let align = symbol::placed_align(&text_align(t.align.as_ref()), t.angle, Orient2::R0);
+        self.text(&free_text_spec(iv, t, &align, entity));
+    }
+}
+
+/// A free text's text as it prints, aligned `align` (its alignment as placed).
+fn free_text_spec<'a>(iv: &'a ItemView, t: &'a FreeText, align: &'a Align, entity: EntityRef) -> TextSpec<'a> {
+    TextSpec {
+        text: &iv.text,
+        at: t.at,
+        angle: symbol::upright_angle(t.angle),
+        align,
+        style_key: t.style.as_ref().map_or(DEFAULT_STYLE_KEY, |s| s.as_str()),
+        entity,
+        link: None,
+        items: &[],
     }
 }
 

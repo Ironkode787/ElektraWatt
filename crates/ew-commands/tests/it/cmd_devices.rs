@@ -1079,6 +1079,57 @@ fn cable_part(item: u128, cores: &[&str]) -> LibCopy<ew_schema::Part> {
     c
 }
 
+/// rc.3 (G5): wires made a cable's cores by `fields.set_many` (Connect cores…) get the cable's mark on their page, as
+/// the Cable form's do; a wire set back to a plain wire leaves the mark, and the mark goes with its last core.
+#[test]
+fn a_wire_made_a_core_by_its_kind_gets_the_mark_and_leaves_it_again() {
+    let mm = |x: i64, y: i64| Pt2::new(ew_units::Nm(x * 1_000_000), ew_units::Nm(y * 1_000_000));
+    let routed = |n: u128, x: i64| {
+        let mut c = connection(id(n), Some(PAGE_102), cp(FN_102G1, 0), cp(FN_T1, 1));
+        c.route = vec![mm(x, 20), mm(x, 60)];
+        Record::Connection(c)
+    };
+    let model = golden_with(|r| {
+        r.push(routed(0x4121, 40));
+        r.push(routed(0x4122, 48));
+    });
+    let mut e = engine(model);
+    let cable: ew_ids::Id<Device> = primary(&e.execute(&cable_cmd(&["BN", "BU"])).unwrap());
+    let mut cores: Vec<(String, ew_ids::Id<Conductor>)> = e
+        .model()
+        .table::<Conductor>()
+        .iter()
+        .filter(|(_, c)| c.cable == cable)
+        .map(|(i, c)| (c.core.as_str().to_owned(), *i))
+        .collect();
+    cores.sort();
+    assert!(marks_on(&e, PAGE_102).is_empty(), "no wire, no mark");
+    let kind = |k: ConnectionKind| serde_json::to_value(k).unwrap();
+    let set = |e: &mut Engine, edits: Vec<(u128, serde_json::Value)>| {
+        let edits: Vec<_> = edits
+            .into_iter()
+            .map(|(w, v)| serde_json::json!({"kind": "connection", "targets": [id::<Connection>(w).to_string()], "path": "kind", "value": v}))
+            .collect();
+        e.execute(&AnyCommand {
+            name: "fields.set_many".into(),
+            params: serde_json::json!({ "edits": edits }),
+        })
+        .expect("fields.set_many");
+    };
+    set(
+        &mut e,
+        vec![
+            (0x4121, kind(ConnectionKind::Core(cores[0].1))),
+            (0x4122, kind(ConnectionKind::Core(cores[1].1))),
+        ],
+    );
+    assert_eq!(marks_on(&e, PAGE_102), [vec![id(0x4121), id(0x4122)]], "one mark over both");
+    set(&mut e, vec![(0x4121, kind(ConnectionKind::Wire))]);
+    assert_eq!(marks_on(&e, PAGE_102), [vec![id(0x4122)]], "the wire left the mark");
+    set(&mut e, vec![(0x4122, kind(ConnectionKind::Wire))]);
+    assert!(marks_on(&e, PAGE_102).is_empty(), "no core left, no mark");
+}
+
 /// rc.3 (G6): a part given to a cable that exists sets its cores from the part: a wire's core keeps its wire and takes
 /// the part's designation, cross-section and colour; the cores the cable lacks are added. A part with fewer cores than
 /// the cable has wires is refused and nothing changes.
