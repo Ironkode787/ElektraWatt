@@ -456,6 +456,7 @@ impl ShellModel {
         crate::properties::command_choices_in_words(&mut sheet);
         crate::properties::report_source_in_words(&mut sheet);
         crate::properties::values_in_words(&mut sheet);
+        self.made_from_in_words(&mut sheet);
         // FT-1554: the Part function row's kind in the window's language, as the navigators word it.
         for row in sheet
             .sections
@@ -507,6 +508,37 @@ impl ShellModel {
             }
         }
         sheet
+    }
+
+    /// The project's Made from template row by the template's name in the list (a persona run read a dash for a
+    /// project made from a template), else in words that it is no template of the list; the ID and the generation the
+    /// project records under it say nothing to a person and are left out.
+    fn made_from_in_words(&self, sheet: &mut PropertySheet) {
+        for section in sheet.sections.iter_mut().filter(|s| s.kind == "project") {
+            let Some(row) = section.rows.iter_mut().find(|r| r.path == "basic_project") else {
+                continue;
+            };
+            let RowValue::One { json, text } = &mut row.value else {
+                continue;
+            };
+            let Some(id) = json.get("id").and_then(Value::as_str).map(str::to_owned) else {
+                continue;
+            };
+            *text = self
+                .settings
+                .templates
+                .iter()
+                .find(|t| {
+                    ew_api::template_summary(std::path::Path::new(&t.dir))
+                        .is_ok_and(|s| s.id.to_string() == id)
+                })
+                .map_or_else(
+                    || strings::text(key!("props-template-not-listed")).to_owned(),
+                    |t| t.name.clone(),
+                );
+            row.ty = crate::properties::FieldType::Text;
+            section.rows.retain(|r| !r.path.starts_with("basic_project."));
+        }
     }
 
     /// A representation's position reads in millimetres, with its grid cell when the focused

@@ -153,8 +153,8 @@ fn templates_are_a_list_the_person_manages() {
         "{text}"
     );
     assert!(
-        text.contains("no pages"),
-        "the wizard's template has no pages: {text}"
+        text.contains("one empty page"),
+        "a project made from the wizard's template gets one empty page: {text}"
     );
     done(&mut shell, "templates.use", json!({"index": 1, "on": false}));
     assert_eq!(shell.settings().basic_project, None);
@@ -260,4 +260,44 @@ fn the_check_level_is_set_in_the_window_in_words() {
 /// The words of a parameter that has no such value.
 fn shell_bad_param(name: &str) -> String {
     ew_viewmodel::strings::format(ew_viewmodel::key!("error-bad-param"), &[name])
+}
+
+/// Project properties name the template a project was made from, by its name in the list (a persona run read a dash
+/// there), and say so in words for a template the list no longer holds; the ID and generation under it are not rows.
+#[test]
+fn project_properties_name_the_template_the_project_came_from() {
+    let tmp = Tmp::new("templates-made-from");
+    let mut shell = tmp.empty_shell(Mode::Gui);
+    let company = tmp.0.join("company.ew");
+    done(&mut shell, "tools.company_standard", json!({}));
+    done(&mut shell, "wizard.finish", json!({"dir": path(&company)}));
+    done(&mut shell, "wizard.cancel", json!({}));
+    done(&mut shell, "templates.open", json!({}));
+    done(&mut shell, "templates.rename", json!({"index": 1, "name": "Company style"}));
+    done(&mut shell, "ui.dismiss", json!({}));
+    new_project(&mut shell, &tmp.0, "job", 2, false);
+    done(&mut shell, "props.show", json!({"on": true}));
+    done(&mut shell, "props.project", json!({}));
+    let made_from = |shell: &ShellModel| {
+        let sheet = shell.properties().sheet().expect("the project's sheet");
+        let rows: Vec<_> = sheet.sections.iter().flat_map(|s| &s.rows).collect();
+        assert!(
+            !rows.iter().any(|r| r.path.starts_with("basic_project.")),
+            "no ID or generation rows"
+        );
+        rows.iter()
+            .find(|r| r.path == "basic_project")
+            .map(|r| ew_viewmodel::properties::value_text(r))
+            .expect("the Made from template row")
+    };
+    assert_eq!(made_from(&shell), "Company style");
+    // Taken out of the list, the project opened again: the row says so in words.
+    done(&mut shell, "file.close", json!({}));
+    done(&mut shell, "templates.open", json!({}));
+    done(&mut shell, "templates.remove", json!({"index": 1}));
+    done(&mut shell, "ui.dismiss", json!({}));
+    done(&mut shell, "file.open", json!({"dir": path(&tmp.0.join("job"))}));
+    done(&mut shell, "props.project", json!({}));
+    assert_eq!(made_from(&shell), "a template that is not in your list");
+    shell.shutdown();
 }

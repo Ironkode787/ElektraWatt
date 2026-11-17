@@ -7373,7 +7373,7 @@ template-check-level = check level "{ $p0 }"
 template-text-styles = its text styles
 template-sections = { $p0 } sections
 template-sections-one = 1 section
-template-no-pages = no pages
+template-no-pages = one empty page
 template-pages = { $p0 } pages
 template-pages-one = 1 page
 template-unreadable = Cannot be read now: { $p0 }
@@ -7542,3 +7542,4 @@ help-thing-panel-layout = Panel layout
 # New project, templates, the wizard, the people of a project and sections (rc.3 persona round)
 templates-name-taken = Another template is called "{ $p0 }" already: choose another name.
 new-project-folder-missing = That folder is not there: type a folder that is, or choose one with Browse….
+props-template-not-listed = a template that is not in your list

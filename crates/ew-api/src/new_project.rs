@@ -76,6 +76,8 @@ pub struct TemplateSummary {
     pub check_level: Option<String>,
     /// Whether the directory is a template (`Project.kind = Basic`), not a project.
     pub template: bool,
+    /// Its project ID, which a project made from it records as `basic_project.id`.
+    pub id: Uuid,
 }
 
 /// What the project directory `dir` would bring to a new project. It is only read (no lock, no journal).
@@ -86,6 +88,7 @@ pub struct TemplateSummary {
 pub fn template_summary(dir: &Path) -> Result<TemplateSummary, OpenError> {
     let ((project, records, lib, _assets), _) = read_records(dir)?;
     let template = project.kind == ProjectKind::Basic;
+    let id = project.id.as_uuid();
     let own_frames = project
         .settings
         .extra
@@ -124,6 +127,7 @@ pub fn template_summary(dir: &Path) -> Result<TemplateSummary, OpenError> {
         text_styles,
         check_level,
         template,
+        id,
     })
 }
 

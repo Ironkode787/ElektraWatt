@@ -7111,7 +7111,7 @@ template-check-level = controleniveau "{ $p0 }"
 template-text-styles = eigen tekststijlen
 template-sections = { $p0 } secties
 template-sections-one = 1 sectie
-template-no-pages = geen pagina's
+template-no-pages = één lege pagina
 template-pages = { $p0 } pagina's
 template-pages-one = 1 pagina
 template-unreadable = Kan nu niet worden gelezen: { $p0 }
@@ -7280,3 +7280,4 @@ help-thing-panel-layout = Paneellayout
 # Nieuw project, sjablonen, de wizard, de personen van een project en secties (rc.3-personaronde)
 templates-name-taken = Er is al een sjabloon dat "{ $p0 }" heet: kies een andere naam.
 new-project-folder-missing = Die map bestaat niet: typ een map die er is, of kies er een met Bladeren….
+props-template-not-listed = een sjabloon dat niet in uw lijst staat
