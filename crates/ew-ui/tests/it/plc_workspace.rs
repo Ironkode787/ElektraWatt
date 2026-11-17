@@ -1775,18 +1775,14 @@ fn two_stations_and_a_bus_are_built_from_nothing() {
         dispatch(&mut h, "tool.select", json!({}));
         settle(&mut h);
     }
-    // The Wire tool draws the bus line from one port's A to the other's.
-    let ends: Vec<(i64, i64)> = h
-        .state()
-        .shell()
-        .canvas()
-        .expect("the topology page")
-        .page()
+    // The Wire tool draws the bus line from one port's A to the other's (the canvas takes sheet points).
+    let page = h.state().shell().canvas().expect("the topology page").page();
+    let ends: Vec<(i64, i64)> = page
         .tables
         .cps
         .iter()
         .filter(|c| c.label.ends_with(":A"))
-        .map(|c| c.at)
+        .map(|c| page.snapper.page_to_sheet(c.at))
         .collect();
     let [a, b] = ends.as_slice() else {
         panic!("two DP ports: {ends:?}");

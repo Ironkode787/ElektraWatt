@@ -84,16 +84,17 @@ fn a_page_whose_devices_share_a_location_prints_their_tags_without_it() {
         );
     }
     locate(&mut s, &[a, b.clone()], "+CAB1");
+    // The title block of the frame names the page's location; the tags leave it out.
     let shown = texts(&s);
     assert!(
-        !shown.iter().any(|t| t.contains("+CAB1")),
+        !shown.iter().any(|t| t.contains("+CAB1-")),
         "the shared location is left out: {shown:?}"
     );
     // A device of another location: the page's devices no longer share one, so each tag says its own.
     locate(&mut s, &[b], "+CAB2");
     let shown = texts(&s);
     assert!(
-        shown.iter().any(|t| t.contains("+CAB1")) && shown.iter().any(|t| t.contains("+CAB2")),
+        shown.iter().any(|t| t.contains("+CAB1-")) && shown.iter().any(|t| t.contains("+CAB2-")),
         "{shown:?}"
     );
     s.shutdown();

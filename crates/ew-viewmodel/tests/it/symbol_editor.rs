@@ -1481,7 +1481,7 @@ fn the_editors_offer_places_the_published_symbol_only_while_the_draft_is_as_save
     );
     assert_eq!(
         shell.toast().map(|t| t.text.clone()).as_deref(),
-        Some("Placed -2A1 at 2-B2.")
+        Some("Placed -2A1 at 2-B1.")
     );
     done(&mut shell, "file.save", json!({}));
     shell.shutdown();

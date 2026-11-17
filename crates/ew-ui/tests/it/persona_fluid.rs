@@ -2802,7 +2802,12 @@ fn rc2_a_terminal_placed_at_the_frames_edge_stands_inside_it() {
     let c = cells(&mut d);
     assert_eq!(c.len(), 8, "the multipin terminal's positions");
     let right = c.iter().map(|x| x.rect[2]).max().unwrap();
-    assert!(right <= area[2], "inside the drawing area: {right} > {}", area[2]);
+    // To the nanometre the frame's page-to-sheet map rounds the drawing area's edge to.
+    assert!(
+        right <= area[2] + 1,
+        "inside the drawing area: {right} > {}",
+        area[2]
+    );
     d.shell_mut().shutdown();
 }
 

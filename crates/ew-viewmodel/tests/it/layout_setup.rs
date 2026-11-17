@@ -441,7 +441,9 @@ fn a_new_projects_panel_page_takes_the_fitting_scale() {
         a0 <= x0 && x1 <= a1 && b0 <= y0 && y1 <= b1,
         "the plate ({x0}, {y0})–({x1}, {y1}) inside the drawing area ({a0}, {b0})–({a1}, {b1})"
     );
-    // One undo step takes the view and the scale back.
+    // On the frame a new project's page prints on, the numbered view takes its legend beside the layout (its own undo
+    // step, as on every page with a frame); the next undo step takes the view and the scale back.
+    done(&mut s, "edit.undo", json!({}));
     done(&mut s, "edit.undo", json!({}));
     assert_eq!(row_text(&s, "page/scale"), "Absent", "drawn not to scale");
     assert!(s.panel_tables().is_none(), "no surface view");

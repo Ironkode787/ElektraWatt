@@ -7,7 +7,10 @@
 //!
 //! **The built-in basic project** holds the project record with the shipped defaults (the derivation profile of
 //! this release, the identifier set EN 81346-2:2009, ADR-0026, the text-style overrides of
-//! `ew_schema::NEW_PROJECT_TEXT_STYLES`, ADR-0032) and one empty page, folio 1, on the built-in frame. **A company
+//! `ew_schema::NEW_PROJECT_TEXT_STYLES`, ADR-0032) and one empty page, folio 1; a new project (kind Schematic) holds
+//! the shipped frames and title block and names them in its frame defaults ([`shipped_frames`]: the frame with the
+//! grid for drawn pages), so its page prints on the program's frame; a template (kind Basic) gets its frames from the
+//! wizard. **A company
 //! basic project** is any project directory of kind [`NewProjectKind::Basic`] (the
 //! company-standard wizard writes one): its records are copied with new identities, `v5(new project ID, source
 //! ID)` per record (doc 07 §2.8; library copies keep theirs, their IDs derive from library and item), and the
@@ -39,6 +42,7 @@ use ew_store::mem::{DirSync, MemVfs};
 use ew_store::{OpenError, Store, StoreOptions};
 use serde_json::Value;
 
+use crate::output::{COVER_FRAME, GRID_FRAME, NOGRID_FRAME, SHIPPED_FORMS};
 use crate::{Session, SessionOptions};
 
 /// Where a new project starts.
@@ -152,6 +156,53 @@ impl IdSource for ByRef<'_> {
     }
 }
 
+/// The `project.frames.set` parameters that put a project's pages on the shipped frames ([`SHIPPED_FORMS`]): the frame
+/// of key `default` for drawn pages, the cover frame for title pages, the frame without the grid for the table of
+/// contents and the section dividers (doc 03 §5.1); `None` when a shipped form does not parse.
+pub fn shipped_frames(default: &str) -> Option<Value> {
+    let id = |key: &str| {
+        SHIPPED_FORMS.iter().find_map(|text| {
+            let form: Value = serde_json::from_str(text).ok()?;
+            (form.pointer("/meta/key").and_then(Value::as_str) == Some(key))
+                .then(|| form.get("id").cloned())?
+        })
+    };
+    let (default, cover, nogrid) = (id(default)?, id(COVER_FRAME)?, id(NOGRID_FRAME)?);
+    Some(serde_json::json!({
+        "default": default,
+        "per_page_type": [
+            { "page_type": "title_page", "form": cover },
+            { "page_type": "table_of_contents", "form": nogrid },
+            { "page_type": "section_divider", "form": nogrid },
+        ],
+    }))
+}
+
+/// `model` with the shipped frames embedded and named in its frame defaults ([`shipped_frames`], the frame with the
+/// grid for drawn pages), through the commands a template's wizard runs.
+fn with_shipped_frames(model: Model) -> Result<Model, OpenError> {
+    let refused = |e: CmdError| OpenError::Format(format!("the shipped frames cannot be set: {e}"));
+    let copies: Vec<Value> = SHIPPED_FORMS
+        .iter()
+        .filter_map(|text| serde_json::from_str(text).ok())
+        .collect();
+    let frames = shipped_frames(GRID_FRAME)
+        .ok_or_else(|| OpenError::Format("a shipped frame does not parse".to_owned()))?;
+    let mut scratch = Session::new(model, SessionOptions::default());
+    for (name, params) in [
+        ("library.embed", serde_json::json!({ "copies": copies })),
+        ("project.frames.set", frames),
+    ] {
+        let cmd = AnyCommand {
+            name: name.into(),
+            params,
+        };
+        let preview = scratch.preview(&cmd).map_err(refused)?;
+        scratch.commit(preview).map_err(refused)?;
+    }
+    Ok(scratch.engine.model().clone())
+}
+
 fn kind_of(kind: NewProjectKind) -> ProjectKind {
     match kind {
         NewProjectKind::Schematic => ProjectKind::Schematic,
@@ -199,6 +250,9 @@ impl Session {
         // The basic project's assets (its company logo) come along unchanged: they are named by content.
         for asset in assets {
             model.put_asset(asset);
+        }
+        if let (ProjectTemplate::Builtin, NewProjectKind::Schematic) = (template, kind) {
+            model = with_shipped_frames(model)?;
         }
         if let ProjectTemplate::DirectoryWithoutPages(_) = template {
             let refused =

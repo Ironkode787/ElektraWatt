@@ -80,16 +80,21 @@ fn a_back_reference_clears_the_next_contacts_tag_and_its_own_designation() {
     let mut all = Vec::new();
     runs(&s.canvas().unwrap().page().list.items, &mut all);
     // The two contacts' texts (below 120 mm), left to right.
-    let at = |text: &str| -> Vec<Box4> {
+    let at = |text: &dyn Fn(&str) -> bool| -> Vec<Box4> {
         let mut v: Vec<Box4> = all
             .iter()
-            .filter(|(t, b)| t == text && b.1 > 120_000_000)
+            .filter(|(t, b)| text(t) && b.1 > 120_000_000)
             .map(|(_, b)| *b)
             .collect();
         v.sort_unstable();
         v
     };
-    let (backs, tags, ends) = (at("(101-D6)"), at("-101K1"), at("14"));
+    // The back reference names the coil's cell, "(101-D6)".
+    let (backs, tags, ends) = (
+        at(&|t| t.starts_with("(101-")),
+        at(&|t| t == "-101K1"),
+        at(&|t| t == "14"),
+    );
     assert_eq!((backs.len(), tags.len(), ends.len()), (2, 2, 2), "{all:?}");
     let (back, next_tag, own_end) = (backs[0], tags[1], ends[0]);
     let beside = back.1 < next_tag.3 && next_tag.1 < back.3;

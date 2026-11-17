@@ -35,8 +35,8 @@ use crate::key;
 use crate::strings;
 use crate::strings::Key;
 use crate::wizard_data::{
-    COLOUR_PROFILE_SAMPLE, COVER_FRAME, GOLDEN_REPORT_LAYOUT, GRID_FRAME, NOGRID_FRAME,
-    SHIPPED_COLOUR_PROFILES, SHIPPED_FORMS, SIZE_PROFILE_SAMPLE, TITLE_BLOCK,
+    COLOUR_PROFILE_SAMPLE, GOLDEN_REPORT_LAYOUT, GRID_FRAME, NOGRID_FRAME, SHIPPED_COLOUR_PROFILES,
+    SHIPPED_FORMS, SIZE_PROFILE_SAMPLE, TITLE_BLOCK,
 };
 
 /// The field of the check level, the one field the draft's script does not write (Create writes it in the window).
@@ -811,22 +811,7 @@ impl Draft {
             "qet-nogrid" => NOGRID_FRAME,
             _ => GRID_FRAME,
         };
-        let (default, cover, nogrid) = (
-            shipped_form_id(default)?,
-            shipped_form_id(COVER_FRAME)?,
-            shipped_form_id(NOGRID_FRAME)?,
-        );
-        Some((
-            "project.frames.set",
-            json!({
-                "default": default,
-                "per_page_type": [
-                    { "page_type": "title_page", "form": cover },
-                    { "page_type": "table_of_contents", "form": nogrid },
-                    { "page_type": "section_divider", "form": nogrid },
-                ],
-            }),
-        ))
+        Some(("project.frames.set", ew_api::shipped_frames(default)?))
     }
 
     /// The languages and formats command (`project.languages.set`).
@@ -1804,7 +1789,7 @@ mod tests {
         assert_eq!(frames["default"], shipped_form_id(GRID_FRAME).unwrap());
         assert_eq!(
             frames["per_page_type"][0]["form"],
-            shipped_form_id(COVER_FRAME).unwrap()
+            shipped_form_id(ew_api::output::COVER_FRAME).unwrap()
         );
         assert_eq!(
             cmds[6].1,
