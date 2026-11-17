@@ -357,8 +357,11 @@ fn box_with_three_pins(tmp: &Tmp) -> Driver {
     d
 }
 
-/// The device box's size in grid steps and its pins as (name, edge, steps along it).
-fn box_now(d: &mut Driver) -> ((i64, i64), Vec<(String, &'static str, i64)>) {
+/// A pin of the device box: its name, its edge and its steps along it.
+type PinPlace = (String, &'static str, i64);
+
+/// The device box's size in grid steps and its pins.
+fn box_now(d: &mut Driver) -> ((i64, i64), Vec<PinPlace>) {
     let b = d
         .shell_mut()
         .symbol_editor()
@@ -448,7 +451,7 @@ fn a_pin_is_added_and_dragged_onto_another_edge_of_the_box() {
 fn every_edge_of_the_box_sizes_it_and_the_pins_stay_where_they_stand() {
     let tmp = Tmp::new();
     let mut d = box_with_three_pins(&tmp);
-    let places = |pins: &[(String, &'static str, i64)]| -> Vec<(&'static str, i64)> {
+    let places = |pins: &[PinPlace]| -> Vec<(&'static str, i64)> {
         pins.iter().map(|p| (p.1, p.2)).collect()
     };
     let (size, before) = box_now(&mut d);
@@ -475,7 +478,10 @@ fn every_edge_of_the_box_sizes_it_and_the_pins_stay_where_they_stand() {
     // The top edge, half the box's height above the centre, dragged a step up a step right of the centre (pin 2
     // stands on the centre).
     let ((cx, cy), step) = geometry(&mut d);
-    d.input(&drag((cx + step, cy - 5 * step / 2), (cx + step, cy - 7 * step / 2)));
+    d.input(&drag(
+        (cx + step, cy - 5 * step / 2),
+        (cx + step, cy - 7 * step / 2),
+    ));
     let (size, higher) = box_now(&mut d);
     assert_eq!(size, (4, 6), "a step higher");
     assert_eq!(places(&higher), places(&narrow), "the pins keep their places");

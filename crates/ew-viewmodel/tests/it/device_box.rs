@@ -308,9 +308,16 @@ fn a_box_lands_on_the_grid_of_the_page_it_is_drawn_on() {
         assert_eq!(t.grid, grid);
         let b = t.reps.iter().find_map(|r| r.black_box.clone()).expect("the box");
         let g = ew_viewmodel::ew_api::symbols::units::Grid::new(grid.0 as u64, grid.1 as u64).unwrap();
-        let on_grid = |v: i64| g.snap_point(ew_viewmodel::ew_api::symbols::units::Nm(v)).map(|n| n.0) == Some(v);
+        let on_grid = |v: i64| {
+            g.snap_point(ew_viewmodel::ew_api::symbols::units::Nm(v))
+                .map(|n| n.0)
+                == Some(v)
+        };
         for (idx, p, _) in &b.cps {
-            assert!(on_grid(p.0) && on_grid(p.1), "page {number}: pin {idx} at {p:?} is off the grid");
+            assert!(
+                on_grid(p.0) && on_grid(p.1),
+                "page {number}: pin {idx} at {p:?} is off the grid"
+            );
         }
         // The top edge: the pins in the layout's order, each at least 4 mm from the corner and from the one before.
         let left = b.outline.iter().map(|p| p.0).min().unwrap();
@@ -321,13 +328,24 @@ fn a_box_lands_on_the_grid_of_the_page_it_is_drawn_on() {
             .map(|c| (c.1.0, c.0))
             .collect();
         top.sort_unstable();
-        assert_eq!(top.iter().map(|p| p.1).collect::<Vec<_>>(), [0, 1, 2], "page {number}");
+        assert_eq!(
+            top.iter().map(|p| p.1).collect::<Vec<_>>(),
+            [0, 1, 2],
+            "page {number}"
+        );
         let mut last = left;
         for (x, idx) in &top {
-            assert!(x - last >= 4_000_000, "page {number}: pin {idx} only {} nm on", x - last);
+            assert!(
+                x - last >= 4_000_000,
+                "page {number}: pin {idx} only {} nm on",
+                x - last
+            );
             last = *x;
         }
-        assert!(b.cps.iter().any(|c| c.0 == 3 && c.2 == Dir::Down), "page {number}");
+        assert!(
+            b.cps.iter().any(|c| c.0 == 3 && c.2 == Dir::Down),
+            "page {number}"
+        );
     }
 }
 

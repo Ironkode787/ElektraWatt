@@ -123,8 +123,16 @@ fn an_earth_connection_s_row_says_so() {
     let s = golden();
     let t = s.navigator_table(NavKind::Devices);
     let badges = |tag: &str| node(&t, NavRole::Device, tag).1.badges.clone();
-    assert!(badges("-XPE").iter().any(|b| b == ew_api::output::EARTH_CONNECTION));
-    assert!(!badges("-201U3").iter().any(|b| b == ew_api::output::EARTH_CONNECTION));
+    assert!(
+        badges("-XPE")
+            .iter()
+            .any(|b| b == ew_api::output::EARTH_CONNECTION)
+    );
+    assert!(
+        !badges("-201U3")
+            .iter()
+            .any(|b| b == ew_api::output::EARTH_CONNECTION)
+    );
 }
 
 #[test]

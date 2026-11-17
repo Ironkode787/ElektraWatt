@@ -367,7 +367,9 @@ fn core041_asks_no_part_of_an_earth_connection() {
     fx.func_of(0x1001, 0xE100, 0xE200, P1);
     fx.func_of(0x1002, 0xE101, 0xE201, P1);
     fx.func_of(0x1003, 0xE100, 0xE200, P1);
-    fx.push(json!({"$k": "function", "id": us(0x1004), "device": us(0x21003), "def": us(FNDEF), "role": "aux"}));
+    fx.push(
+        json!({"$k": "function", "id": us(0x1004), "device": us(0x21003), "def": us(FNDEF), "role": "aux"}),
+    );
     let f = findings_of(&fx.build(), "EW-CORE-041");
     let reported: Vec<_> = f.iter().flat_map(targets).collect();
     assert_eq!(reported, [(Kind::Device, uid(0x21003))], "{f:#?}");

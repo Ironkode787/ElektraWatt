@@ -210,7 +210,8 @@ pub(crate) fn ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_ident
         "{d}"
     );
     assert!(
-        rows.iter().any(|r| r.contains("-3W1") && r.ends_with(" badge \"warning\"")),
+        rows.iter()
+            .any(|r| r.contains("-3W1") && r.ends_with(" badge \"warning\"")),
         "{d}"
     );
     // The cursor of each walk step: the first, the second, the last, the first. The row count is not pinned: it
