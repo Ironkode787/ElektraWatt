@@ -92,6 +92,10 @@ mod table;
 mod palette;
 mod parts;
 mod projects;
+mod templates;
+pub use templates::{
+    CHECK_LEVELS, NewProjectDialog, StartLine, TemplateRow, TemplatesDialog, level_sentence, level_words,
+};
 mod properties;
 mod table_file;
 mod title_block;
@@ -327,12 +331,12 @@ pub enum Dialog {
     /// Discard the journal of an earlier session that ended with unsaved changes: the
     /// changes in it are lost.
     ConfirmJournalDiscard,
-    /// Apply the check scheme to the finished basic project: `project.checks.set` is `HumanOnly`, so a
-    /// person confirms it, with the scheme named and the note that it decides check outcomes.
-    ConfirmCheckScheme {
-        /// The scheme to apply (`release_scheme`).
-        scheme: String,
-    },
+    /// New project (`file.new` in the window): the name, the folder, what the project starts from and whether its
+    /// pages come along; Create or Cancel.
+    NewProject(Box<NewProjectDialog>),
+    /// Templates… (`templates.open`): the templates of the list with what each holds and the actions of the selected
+    /// one; Close.
+    Templates(Box<TemplatesDialog>),
     /// View, Workspace, Save layout as: a name typed by the user.
     SaveWorkspace {
         /// The text of the field.
@@ -496,8 +500,10 @@ pub struct HistoryMarker {
 pub enum Prompt {
     /// An existing project directory (Open).
     OpenFolder,
-    /// A new, empty directory (Save As, New project, the wizard's basic project).
+    /// A new, empty directory (Save As, the wizard's template).
     NewFolder,
+    /// A folder that new projects are made in (New project's Browse…).
+    Folder,
     /// A PDF file name (Export).
     SavePdf,
     /// An existing QElectroTech project file (Import).
@@ -1457,12 +1463,16 @@ impl ShellModel {
         self.banner = Some(text.to_owned());
     }
 
-    /// The window title: `<directory name> - ElektraWatt`, with `*` before it while the project is dirty.
+    /// The window title: `<directory name> - ElektraWatt` (an open template: `Template <name> - ElektraWatt`), with
+    /// `*` before it while the project is dirty.
     pub fn title(&self) -> String {
         match &self.project {
             None => strings::text(key!("window-title-start")).to_owned(),
             Some(p) => {
-                let title = strings::format(key!("window-title"), &[&p.name]);
+                let title = match self.editing_template() {
+                    Some(name) => strings::format(key!("window-title-template"), &[&name]),
+                    None => strings::format(key!("window-title"), &[&p.name]),
+                };
                 if p.session.is_dirty() {
                     format!("*{title}")
                 } else {
@@ -2045,7 +2055,10 @@ impl ShellModel {
             });
         }
         self.install_view();
-        self.settings.push_recent(&path_text);
+        // A template is no recent project.
+        if self.editing_template().is_none() {
+            self.settings.push_recent(&path_text);
+        }
         self.save_settings();
         // The gate's integrity findings, the release's warnings of opening and the offer of
         // an incomplete release.

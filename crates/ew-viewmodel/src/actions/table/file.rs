@@ -10,7 +10,7 @@ use super::super::*;
 
 pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     with_params(
-        "dir?:path, template?:path, discard?:bool",
+        "dir?:path, template?:path, pages?:bool, discard?:bool",
         act(
             "file.new",
             Command,

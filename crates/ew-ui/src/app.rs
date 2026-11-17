@@ -1015,6 +1015,56 @@ impl App {
             .show(ui, |ui| {
                 command_bar.show(ui, shell, &mut events, &mut self.symbol_editor_view)
             });
+        // An open template says so in a band across the window, under the command bar: it cannot be mistaken for a
+        // project (G1 of the rc.2 test). The band takes its own room, so it covers no drawing.
+        let template = (self.shell.first_run().is_none()
+            && self.shell.wizard().is_none()
+            && self.shell.symbol_editor().is_none())
+        .then(|| self.shell.editing_template())
+        .flatten();
+        if let Some(name) = template {
+            Panel::top("template-band")
+                .resizable(false)
+                .show_separator_line(false)
+                .frame(
+                    egui::Frame::NONE
+                        .fill(tokens.accent_subtle.color32())
+                        .inner_margin(egui::Margin::symmetric(
+                            crate::theme::margin_px(tokens.space_4),
+                            crate::theme::margin_px(tokens.space_2),
+                        )),
+                )
+                .show(ui, |ui| {
+                    ui.horizontal(|ui| {
+                        ui.set_min_height(tokens.size_control);
+                        let (r, _) =
+                            ui.allocate_exact_size(egui::Vec2::splat(tokens.icon_md), egui::Sense::hover());
+                        crate::icons::paint(
+                            ui.painter(),
+                            crate::icons::IconId::template,
+                            r,
+                            tokens.accent.color32(),
+                            tokens.icon_stroke,
+                        );
+                        ui.label(
+                            egui::RichText::new(strings::format(key!("template-band"), &[&name]))
+                                .font(crate::theme::font(&tokens.type_body_strong))
+                                .color(tokens.text_primary.color32()),
+                        );
+                        if crate::components::button(
+                            ui,
+                            crate::components::Kind::Secondary,
+                            strings::text(key!("template-band-close")),
+                            true,
+                            0.0,
+                        )
+                        .clicked()
+                        {
+                            events.push(Event::Action("file.close", Value::Null));
+                        }
+                    });
+                });
+        }
         // F6 reached the command bar: its active tab takes egui's keyboard focus.
         let bar_has_focus = self.shell.focus() == Some(Focus::CommandBar);
         if bar_has_focus && !self.bar_had_focus {

@@ -480,6 +480,12 @@ impl FormDialog {
         match (self.action, field) {
             ("pages.renumber", "start") => Some(strings::text(key!("form-renumber-start-note"))),
             ("cable.from_wires", "type") => Some(strings::text(key!("form-cable-type-note"))),
+            // What the chosen check level stops, in the words of the wizard's step.
+            ("project.check_level", "level") => self
+                .fields
+                .iter()
+                .find(|f| f.name == "level")
+                .and_then(|f| super::level_sentence(&f.value)),
             // What the chosen type is for (`form-page-type-note-<type>`, the persona run m3-p4 read of lists under Bus
             // topology), else, a list being no page type, where lists are made.
             ("page.new", "type") => Some(

@@ -11,9 +11,9 @@
 //! shipped EN 60204-1 and IEC 60445 profiles), the size profile, the numbering schemes and the
 //! cross-reference format (`project.settings.set`), the languages and printed formats (`project.languages.set`),
 //! the structure nodes, the sections, the report blocks of the golden layout (`report_block.create`, each
-//! with its form from the library) and the first revision. The check scheme is validated and kept in the draft, listed
-//! on the review step as "kept in the draft": its command, `project.checks.set`, is `HumanOnly` (ADR-0008
-//! amendment 3: it decides a check outcome), so a script, the wizard's included, cannot submit it. A field's
+//! with its form from the library) and the first revision. The check level is validated in the draft and written by
+//! Create in the window: its command, `project.checks.set`, is `HumanOnly` (ADR-0008 amendment 3: it decides a check
+//! outcome), so it is no model command of the draft's script, and a template a script makes keeps it out. A field's
 //! [`FieldMeta::written`] says which kind it is.
 //!
 //! **Defaults are the sample project's conventions.** The draft's defaults reproduce the settings of the CC0
@@ -39,8 +39,12 @@ use crate::wizard_data::{
     SHIPPED_COLOUR_PROFILES, SHIPPED_FORMS, SIZE_PROFILE_SAMPLE, TITLE_BLOCK,
 };
 
-/// The field of the check scheme, the one field `wizard.finish` keeps in the draft.
+/// The field of the check level, the one field the draft's script does not write (Create writes it in the window).
 pub const CHECK_SCHEME_FIELD: &str = "check_scheme";
+
+/// The `wizard.set` field of the last step's Use this template for new projects (`true` or `false`): a choice of the
+/// settings, not of the template, so no field of the draft.
+pub const USE_FOR_NEW_FIELD: &str = "use_for_new";
 
 /// The field of the company logo: the path of an SVG, PNG or JPEG file.
 pub const LOGO_FIELD: &str = "company_logo";
@@ -385,7 +389,7 @@ pub static FIELDS: &[FieldMeta] = &[
         Step::Reports,
         "check_scheme",
         key!("wizard-field-check-scheme"),
-        Choice(&["drafting", "pre-delivery", "full"]),
+        Choice(&crate::shell::CHECK_LEVELS),
         "pre-delivery",
         false,
     ),
@@ -1251,7 +1255,8 @@ impl Draft {
         out
     }
 
-    /// The reports step's example: each report with its page and what it lists, then what each check level finds.
+    /// The reports step's example: each report with its page and what it lists, then the chosen check level and what it
+    /// stops.
     fn reports_example(&self) -> Vec<String> {
         let mut out: Vec<String> = if self.get("report_blocks") == "golden" {
             GOLDEN_REPORT_LAYOUT
@@ -1270,13 +1275,14 @@ impl Draft {
             vec![strings::text(key!("wizard-example-reports-none")).to_owned()]
         };
         out.push(strings::text(key!("wizard-example-checks")).to_owned());
-        if let Some(FieldKind::Choice(levels)) = field_meta(CHECK_SCHEME_FIELD).map(|f| f.kind) {
-            out.extend(
-                levels
-                    .iter()
-                    .map(|level| strings::text(Key::run_time(&format!("wizard-check-{level}"))).to_owned()),
-            );
-        }
+        let level = self.get(CHECK_SCHEME_FIELD);
+        out.push(strings::format(
+            key!("wizard-example-check-level"),
+            &[
+                &crate::shell::level_words(level),
+                crate::shell::level_sentence(level).unwrap_or_default(),
+            ],
+        ));
         out
     }
 }
@@ -1301,10 +1307,10 @@ pub struct Wizard {
     preview: Option<Preview>,
     preview_rev: u64,
     pub(crate) error: Option<String>,
-    /// The basic project directory once `wizard.finish` wrote it; the wizard then stays on the review step.
+    /// The template directory once `wizard.finish` wrote it; the wizard then stays on the review step.
     pub(crate) finished: Option<PathBuf>,
-    /// Whether the confirmed `wizard.apply_check_scheme` wrote the check scheme into the finished project.
-    pub(crate) checks_written: bool,
+    /// Whether new projects start from the template once it is made (the last step's box, on at first).
+    pub(crate) use_for_new: bool,
 }
 
 /// The folio of the preview's cover page and of its sample page (the title page and folio 102 of the sample
@@ -1325,7 +1331,7 @@ impl Wizard {
             preview_rev: 0,
             error: None,
             finished: None,
-            checks_written: false,
+            use_for_new: true,
         }
     }
 
@@ -1334,21 +1340,18 @@ impl Wizard {
         self.finished.as_deref()
     }
 
-    /// Whether the check scheme can be applied now: the wizard has finished and the scheme is not written yet.
-    pub fn can_apply_check_scheme(&self) -> bool {
-        self.finished.is_some() && !self.checks_written
+    /// Whether new projects start from the template once it is made.
+    pub fn use_for_new(&self) -> bool {
+        self.use_for_new
     }
 
-    /// The review step's lines: [`Draft::review`], with the check scheme `written` once the confirmed
-    /// `wizard.apply_check_scheme` wrote it (`project.checks.set` is `HumanOnly`, so `wizard.finish` keeps it in
-    /// the draft and the review offers to apply it after finishing).
-    pub fn review(&self) -> Vec<ReviewLine> {
+    /// The review step's lines: [`Draft::review`], with the check level `written` when a `person` presses Create (the
+    /// window; `project.checks.set` is `HumanOnly`, so a script's template keeps it out).
+    pub fn review(&self, person: bool) -> Vec<ReviewLine> {
         let mut lines = self.draft.review();
-        if self.checks_written {
-            for line in &mut lines {
-                if line.key == CHECK_SCHEME_FIELD {
-                    line.written = true;
-                }
+        for line in &mut lines {
+            if line.key == CHECK_SCHEME_FIELD {
+                line.written = person;
             }
         }
         lines
@@ -1551,10 +1554,7 @@ mod tests {
         }
         if let Some(FieldKind::Choice(levels)) = field_meta(CHECK_SCHEME_FIELD).map(|f| f.kind) {
             for level in levels {
-                assert!(
-                    strings::lookup(&format!("wizard-check-{level}")).is_some(),
-                    "{level}"
-                );
+                assert!(crate::shell::level_sentence(level).is_some(), "{level}");
             }
         }
         let mut keys: Vec<&str> = FIELDS.iter().map(|f| f.key).collect();

@@ -843,7 +843,7 @@ fn a_fluid_line_sheet_shows_its_ends_in_words_and_its_route_under_advanced() {
     shell.shutdown();
 }
 
-/// In both languages: the check-scheme question names the scheme's word; a page's
+/// In both languages: a check level reads as its word; a page's
 /// grid factor is a length, never a nanometre count; a panel page's Label mode and Surface read in words; a size takes
 /// the language's decimal separator.
 #[test]
@@ -868,13 +868,7 @@ fn the_scheme_grid_factor_surface_view_and_sizes_read_in_words() {
     for language in ["en", "nl"] {
         done(&mut shell, "view.language", json!({ "value": language }));
         done(&mut shell, "select.set", json!({"ids": []}));
-        let question = ew_viewmodel::dialogs::spec(
-            &ew_viewmodel::shell::Dialog::ConfirmCheckScheme {
-                scheme: "pre-delivery".into(),
-            },
-            &shell,
-        )
-        .body;
+        let question = vec![ew_viewmodel::shell::level_words("pre-delivery")];
         got.push((rows(&shell), question, strings::decimal("268.4")));
     }
     let words = |v: &[&str]| v.iter().map(|s| (*s).to_owned()).collect::<Vec<String>>();
@@ -887,10 +881,7 @@ fn the_scheme_grid_factor_surface_view_and_sizes_read_in_words() {
                     "Surface: -UC1 plate",
                     "Label mode: Abbreviated"
                 ]),
-                words(&[
-                    "Apply the check level \"Pre-delivery\" to the company standard? It decides what the program \
-                     checks before a drawing set can be released."
-                ]),
+                words(&["Pre-delivery"]),
                 "268.4".to_owned()
             ),
             (
@@ -899,10 +890,7 @@ fn the_scheme_grid_factor_surface_view_and_sizes_read_in_words() {
                     "Vlak: -UC1 montageplaat",
                     "Labelmodus: Afgekort"
                 ]),
-                words(&[
-                    "Het controleniveau \"Vóór oplevering\" op de bedrijfsstandaard toepassen? Het bepaalt wat het \
-                     programma controleert voordat een tekeningenset kan worden vrijgegeven."
-                ]),
+                words(&["Vóór oplevering"]),
                 "268,4".to_owned()
             )
         ]

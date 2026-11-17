@@ -201,9 +201,8 @@ impl Session {
             model.put_asset(asset);
         }
         if let ProjectTemplate::DirectoryWithoutPages(_) = template {
-            let refused = |e: CmdError| {
-                OpenError::Format(format!("the pages of the template cannot be left out: {e}"))
-            };
+            let refused =
+                |e: CmdError| OpenError::Format(format!("the pages of the template cannot be left out: {e}"));
             let mut scratch = Session::new(model, SessionOptions::default());
             omit(&mut scratch, true, true).map_err(refused)?;
             let page = AnyCommand {

@@ -1435,13 +1435,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_image_file(p),
         ))),
     )),
-    placed(
-        place(
-            Group::Standards,
-            2,
-            CommandSize::Small,
-            Some(key!("bar-company-standard")),
-        ),
+    // The wizard makes a template for the company's drawings: the app menu's Project and Templates…' New template….
+    with_icon(
         "building-factory-2",
         act(
             "tools.company_standard",
@@ -1449,8 +1444,70 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             Menu::Project,
             &[],
             always,
-            None,
+            slot(Menu::Project),
             |s, _| s.act_wizard_open(),
+        ),
+    ),
+    // Project ▸ Templates: the list of templates, and the open project made a template.
+    placed(
+        place(
+            Group::Standards,
+            1,
+            CommandSize::Small,
+            Some(key!("bar-templates")),
+        ),
+        "template",
+        act(
+            "templates.open",
+            Command,
+            Menu::Project,
+            &[],
+            always,
+            None,
+            |s, _| s.act_templates_open(),
+        ),
+    ),
+    with_params(
+        "name?:text, folder?:text, pages?:bool, use?:bool",
+        placed(
+            place(
+                Group::Standards,
+                2,
+                CommandSize::Small,
+                Some(key!("bar-save-as-template")),
+            ),
+            "device-floppy",
+            act(
+                "project.save_as_template",
+                Command,
+                Menu::Project,
+                &[],
+                project_open,
+                None,
+                |s, p| s.act_save_as_template(p),
+            ),
+        ),
+    ),
+    // Project ▸ Setup ▸ Check level…: how strictly the drawings are checked before they go out.
+    with_params(
+        "level?:text",
+        placed(
+            place(
+                Group::Project,
+                4,
+                CommandSize::Small,
+                Some(key!("bar-check-level")),
+            ),
+            "circle-check",
+            act(
+                "project.check_level",
+                Command,
+                Menu::Project,
+                &[],
+                writable,
+                None,
+                |s, p| s.act_check_level(p),
+            ),
         ),
     ),
     // Tools ▸ Run checks.

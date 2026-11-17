@@ -330,6 +330,10 @@ impl RfdPlatform {
                     .add_filter("JSON", &["json"]),
                 DialogKind::Save,
             ),
+            Prompt::Folder => (
+                base.set_title(strings::text(key!("prompt-folder-title"))),
+                DialogKind::Folder,
+            ),
             Prompt::LibraryFolder => (
                 base.set_title(strings::text(key!("prompt-library-folder-title"))),
                 DialogKind::Folder,

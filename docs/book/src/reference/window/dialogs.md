@@ -8,8 +8,8 @@ dialogs:
 - the keyboard shortcuts: [Keyboard shortcuts](../../how-to/application-window.md#keyboard-shortcuts);
 - Save, Discard or Cancel before a change would be lost, and the recovery of unsaved changes:
   [Unsaved changes and recovery](../../how-to/application-window.md#unsaved-changes-and-recovery);
-- the check scheme the company standard wizard applies:
-  [Company standard wizard](../../how-to/application-window.md#company-standard-wizard);
+- New project, Templates, Save as template and Check level:
+  [Start a project and use templates](../../how-to/start-a-project.md);
 - the name of a saved layout: [Workspaces](../../how-to/application-window.md#workspaces);
 - the QElectroTech import: [Import a QElectroTech project](../../how-to/application-window.md#import-a-qelectrotech-project).
 

@@ -172,8 +172,8 @@ pub(crate) fn refusal_text(file: &str, refusal: &Refusal) -> String {
 }
 
 impl ShellModel {
-    /// The template of a new project: the `template` parameter (`builtin` or a directory), else the default basic
-    /// project of the settings when it still is a directory, else the built-in one.
+    /// The template of a new project: the `template` parameter (`builtin` or a directory), else the template the
+    /// settings use for new projects when it still is a directory, else the built-in one.
     fn template_dir(&self, p: &Map<String, Value>) -> Result<Option<PathBuf>, Outcome> {
         match string_param(p, "template")? {
             Some("builtin") => Ok(None),
@@ -185,17 +185,6 @@ impl ShellModel {
                 .map(PathBuf::from)
                 .filter(|d| d.is_dir())),
         }
-    }
-
-    /// The name of the template a new project would start from, for the start page: the default basic project's
-    /// directory name, or `None` for the built-in one.
-    pub fn default_template_name(&self) -> Option<String> {
-        self.settings
-            .basic_project
-            .as_deref()
-            .map(Path::new)
-            .filter(|d| d.is_dir())
-            .map(dir_name)
     }
 
     /// A new project goes into an empty or absent directory (doc 16: "a new, empty directory"): `Some` with the
@@ -279,6 +268,10 @@ impl ShellModel {
         }
     }
 
+    /// `file.new {dir?, template?, pages?}`: a new project in the free folder `dir` from `template` (`builtin`, the
+    /// empty project, or a template or project folder; absent, the template used for new projects). A template's
+    /// pages and the devices on them come along only with `pages`. Without `dir` the window opens the New project
+    /// dialog, whose Create gives all three.
     pub(crate) fn act_new(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.has_project()
             && let Some(outcome) = self.guard_unsaved("file.new", p)
@@ -289,18 +282,35 @@ impl ShellModel {
         let dir = match string_param(p, "dir") {
             Err(e) => return e,
             Ok(Some(dir)) => PathBuf::from(dir),
+            Ok(None) if self.mode == Mode::Gui => return self.open_new_project(flag(p, "discard")),
             Ok(None) => return self.need_path("file.new", Prompt::NewFolder, "dir", p),
         };
-        if let Some(outcome) = self.require_free_dir(&dir) {
+        let out = self.new_project_in(&dir, template.as_deref(), flag(p, "pages"));
+        // The dialog says why Create failed; it closes once the project is made.
+        match (&out, &mut self.dialog) {
+            (Outcome::Failed { message }, Some(Dialog::NewProject(d))) => {
+                d.error = Some(message.clone());
+                self.banner = None;
+            }
+            (Outcome::Done, Some(Dialog::NewProject(_))) => self.dialog = None,
+            _ => {}
+        }
+        out
+    }
+
+    /// Makes the project of [`ShellModel::act_new`] in `dir` and opens it.
+    fn new_project_in(&mut self, dir: &Path, template: Option<&Path>, pages: bool) -> Outcome {
+        if let Some(outcome) = self.require_free_dir(dir) {
             return outcome;
         }
         self.close_project();
-        let from = match &template {
-            Some(d) => ProjectTemplate::Directory(d),
+        let from = match template {
+            Some(d) if pages => ProjectTemplate::Directory(d),
+            Some(d) => ProjectTemplate::DirectoryWithoutPages(d),
             None => ProjectTemplate::Builtin,
         };
         match Session::new_project(from, NewProjectKind::Schematic, self.session_options()) {
-            Ok(session) => self.create_and_install(session, &dir, key!("error-new"), None),
+            Ok(session) => self.create_and_install(session, dir, key!("error-new"), None),
             Err(e) => {
                 let message = strings::format(key!("error-new"), &[strings::text(open_error_key(&e))]);
                 self.banner = Some(message.clone());

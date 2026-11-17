@@ -32,9 +32,6 @@ fn every_dialog(tmp: &Tmp) -> (ShellModel, Vec<Dialog>) {
         },
         Dialog::GotoPage { text: String::new() },
         Dialog::ConfirmJournalDiscard,
-        Dialog::ConfirmCheckScheme {
-            scheme: "full".into(),
-        },
         Dialog::SaveWorkspace { text: String::new() },
         Dialog::ConfirmPurge {
             files: vec!["a.svg".into()],
@@ -79,7 +76,9 @@ fn every_dialog(tmp: &Tmp) -> (ShellModel, Vec<Dialog>) {
             json!({})
         };
         let _ = shell.dispatch(meta.id, &params);
-        if let Some(d @ (Dialog::Form(_) | Dialog::Print(_))) = shell.dialog() {
+        if let Some(d @ (Dialog::Form(_) | Dialog::Print(_) | Dialog::NewProject(_) | Dialog::Templates(_))) =
+            shell.dialog()
+        {
             dialogs.push(d.clone());
         }
         back_to_rest(&mut shell);
@@ -161,17 +160,17 @@ fn cp1_every_dialog_has_one_primary_never_destructive_and_asks_with_a_question_m
     assert_eq!(quit.title, "Save changes to J-E-2416.ew before closing?");
     let labels: Vec<&str> = quit.buttons().iter().map(|b| b.label.as_str()).collect();
     assert_eq!(labels, ["Save", "Cancel", "Don't save"]);
-    let recovery = spec(&dialogs[9], &shell);
+    let recovery = spec(&dialogs[8], &shell);
     assert_eq!(recovery.title, "Recover unsaved changes?");
     let labels: Vec<&str> = recovery.buttons().iter().map(|b| b.label.as_str()).collect();
     assert_eq!(labels, ["Recover", "Open read-only", "Discard…"]);
-    let failed = spec(&dialogs[10], &shell);
+    let failed = spec(&dialogs[9], &shell);
     assert_eq!(
         failed.primary.label, "Open read-only",
         "after a failure the way out leads"
     );
     // Purge confirms a destructive step: Cancel is the Primary, Purge the danger button.
-    let purge = spec(&dialogs[8], &shell);
+    let purge = spec(&dialogs[7], &shell);
     assert!(purge.confirms_destruction());
     assert_eq!(purge.danger.as_ref().map(|b| b.label.as_str()), Some("Purge"));
     shell.shutdown();

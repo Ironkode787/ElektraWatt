@@ -2511,12 +2511,15 @@ mod tests {
         }
         // An `.ewz` opens through File ▸ Import…, not an entry of its own (FT-1708).
         assert!(!file.contains(&"file.open_ewz"), "no Open .ewz… in File");
-        // The imports and the company standard sit in the Project tab's menu.
+        // The imports and the templates sit in the Project tab's menu: Templates…, Save as template…, New template….
         let project = ids(Menu::Project);
-        assert!(
-            project.contains(&"tools.company_standard"),
-            "company standard in Project"
-        );
+        for id in [
+            "templates.open",
+            "project.save_as_template",
+            "tools.company_standard",
+        ] {
+            assert!(project.contains(&id), "{id} in Project");
+        }
         // One File ▸ Import… takes every file; the separate entries are in no menu (FT-1741).
         for id in [
             "file.import_qet",

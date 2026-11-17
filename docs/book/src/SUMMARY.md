@@ -19,6 +19,7 @@
 - [How-to guides](how-to/index.md)
   - [Install ElektraWatt](how-to/install.md)
   - [Use the application window](how-to/application-window.md)
+  - [Start a project and use templates](how-to/start-a-project.md)
   - [Draw a page from the text interface](how-to/text-interface.md)
   - [Use the command line on the golden project](how-to/headless-workflow.md)
   - [Define a supply potential](how-to/define-supply-potential.md)

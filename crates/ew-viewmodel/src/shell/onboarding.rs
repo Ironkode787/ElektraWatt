@@ -10,19 +10,16 @@
 
 use std::path::{Path, PathBuf};
 
-use ew_api::{AnyCommand, NewProjectKind, ProjectTemplate, Recovery, Session};
+use ew_api::{AnyCommand, NewProjectKind, ProjectTemplate, Session};
 use serde_json::{Map, Value, json};
 
-use super::{
-    Dialog, DocRequest, Mode, Outcome, Prompt, ShellModel, dir_name, failed, flag, open_error_key,
-    string_param,
-};
+use super::{DocRequest, Mode, Outcome, Prompt, ShellModel, dir_name, failed, open_error_key, string_param};
 use crate::first_run::{self, FirstRun, FirstRunStep, START_CHOICES};
 use crate::help;
 use crate::key;
 use crate::settings::{CANVAS_BACKENDS, DENSITIES, KEYMAPS, ORIGINS, THEMES};
 use crate::strings;
-use crate::wizard::{CHECK_SCHEME_FIELD, DRAFT_FILE, Draft, Step, Wizard, run_commands};
+use crate::wizard::{CHECK_SCHEME_FIELD, DRAFT_FILE, Draft, Step, USE_FOR_NEW_FIELD, Wizard, run_commands};
 
 /// The first-run flow, the start-up offer and the company-standard wizard of the shell.
 #[derive(Default)]
@@ -109,11 +106,15 @@ impl ShellModel {
                 self.settings.update_check =
                     bool_value(value).ok_or_else(|| failed(key!("error-bad-param"), &["value"]))?;
             }
+            // The template new projects start from; a folder not in the list joins it.
             "basic_project" => {
                 self.settings.basic_project = match value {
                     Value::Null => None,
                     Value::String(s) if s.is_empty() => None,
-                    Value::String(s) => Some(s.clone()),
+                    Value::String(s) => {
+                        self.settings.add_template(s, None);
+                        Some(s.clone())
+                    }
                     _ => return Err(failed(key!("error-bad-param"), &["value"])),
                 }
             }
@@ -438,6 +439,15 @@ impl ShellModel {
             }
             return Outcome::Done;
         }
+        // The last step's Use this template for new projects: a choice of the settings, not of the template.
+        if field == USE_FOR_NEW_FIELD {
+            match value.as_str() {
+                "true" => w.use_for_new = true,
+                "false" => w.use_for_new = false,
+                _ => return failed(key!("error-bad-param"), &["value"]),
+            }
+            return Outcome::Done;
+        }
         if w.finished.is_some() {
             return Outcome::refused(key!("reason-wizard-finished"));
         }
@@ -528,98 +538,33 @@ impl ShellModel {
             return outcome;
         }
         let name = dir_name(&dir);
+        let use_for_new = self.onboarding.wizard.as_ref().is_some_and(|w| w.use_for_new);
         match self.write_basic_project(&draft, &dir) {
             Ok(unstable) => {
                 self.warn_unreleased(unstable);
-                self.settings.basic_project = Some(dir.to_string_lossy().into_owned());
+                // The template joins the list; it is used for new projects only when the last step says so.
+                let dir_text = dir.to_string_lossy().into_owned();
+                self.settings.add_template(&dir_text, None);
+                if use_for_new {
+                    self.settings.basic_project = Some(dir_text);
+                }
                 self.save_settings();
                 if let Some(path) = self.draft_path() {
                     let _ = std::fs::remove_file(path);
                 }
-                // The wizard stays on the review step: the check scheme is applied after finishing, by a person
-                // (`wizard.apply_check_scheme`).
+                // The wizard stays on the review step, which lists what the template holds, until it is closed.
                 if let Some(w) = &mut self.onboarding.wizard {
                     w.finished = Some(dir.clone());
                     w.step = Step::Review;
                     w.error = None;
                 }
-                self.banner = Some(strings::format(key!("banner-wizard-done"), &[&name]));
-                Outcome::Done
-            }
-            Err(message) => {
-                if let Some(w) = &mut self.onboarding.wizard {
-                    w.error = Some(message.clone());
-                }
-                Outcome::Failed { message }
-            }
-        }
-    }
-
-    /// Applies the draft's check scheme to the finished basic project: `project.checks.set` is `HumanOnly`
-    /// (ADR-0008 amendment 3, it decides check outcomes), so only a person in the window applies it, after a
-    /// confirmation that names the scheme. The headless mode refuses it (the human-only reason in the transcript).
-    pub(crate) fn act_wizard_apply_check_scheme(&mut self, p: &Map<String, Value>) -> Outcome {
-        let Some((dir, scheme)) = self.onboarding.wizard.as_ref().and_then(|w| {
-            let dir = w.finished.clone()?;
-            Some((dir, w.draft.get(CHECK_SCHEME_FIELD).to_owned()))
-        }) else {
-            return Outcome::refused(key!("reason-wizard-not-finished"));
-        };
-        if !self
-            .onboarding
-            .wizard
-            .as_ref()
-            .is_some_and(Wizard::can_apply_check_scheme)
-        {
-            return Outcome::refused(key!("reason-check-scheme-written"));
-        }
-        if self.mode == Mode::Headless {
-            return Outcome::refused(key!("reason-human-only"));
-        }
-        if !flag(p, "confirm") {
-            return self.open_dialog(Dialog::ConfirmCheckScheme { scheme });
-        }
-        self.dialog = None;
-        let name = dir_name(&dir);
-        let written = self
-            .open_for_editing_with(&dir, Recovery::Keep)
-            .map_err(|e| strings::format(key!("error-wizard-write"), &[strings::text(open_error_key(&e))]))
-            .and_then(|(mut session, _report)| {
-                let cmd = AnyCommand {
-                    name: "project.checks.set".to_owned(),
-                    params: json!({ "release_scheme": scheme }),
-                };
-                let result = session
-                    .execute(&cmd)
-                    .map_err(|e| {
-                        strings::format(
-                            key!("wizard-error-command"),
-                            // In the window's language.
-                            &["project.checks.set", &super::tools::command_error_words(&e)],
-                        )
-                    })
-                    .and_then(|_| {
-                        session
-                            .save()
-                            .map(|_| ())
-                            .map_err(|_| strings::format(key!("error-wizard-write"), &[&name]))
-                    });
-                session.close();
-                result
-            });
-        match written {
-            Ok(()) => {
-                if let Some(w) = &mut self.onboarding.wizard {
-                    w.checks_written = true;
-                    w.error = None;
-                }
                 self.banner = Some(strings::format(
-                    key!("banner-check-scheme-applied"),
-                    // The scheme's word, as the question names it.
-                    &[
-                        strings::text(strings::Key::run_time(&format!("choice-check_scheme-{scheme}"))),
-                        &name,
-                    ],
+                    if use_for_new {
+                        key!("banner-wizard-done")
+                    } else {
+                        key!("banner-wizard-done-listed")
+                    },
+                    &[&name],
                 ));
                 Outcome::Done
             }
@@ -632,8 +577,10 @@ impl ShellModel {
         }
     }
 
-    /// Builds the basic project of `draft` from the built-in one through model commands and writes it to `dir`; whether
-    /// the manifest written is marked `unstable`.
+    /// Builds the template of `draft` from the built-in one through model commands and writes it to `dir`; whether
+    /// the manifest written is marked `unstable`. In the window the check level is part of it: `project.checks.set` is
+    /// `HumanOnly` (ADR-0008 amendment 3, it decides check outcomes), and a person pressing Create is that person; a
+    /// script's template keeps the draft's level out, as the command refuses it.
     fn write_basic_project(&self, draft: &Draft, dir: &Path) -> Result<bool, String> {
         let commands = draft.commands().map_err(|key| strings::text(key).to_owned())?;
         let mut session = Session::new_project(
@@ -643,6 +590,19 @@ impl ShellModel {
         )
         .map_err(|e| strings::format(key!("error-wizard-write"), &[strings::text(open_error_key(&e))]))?;
         run_commands(&mut session, "wizard", &commands)?;
+        if self.mode == Mode::Gui {
+            let cmd = AnyCommand {
+                name: "project.checks.set".to_owned(),
+                params: json!({ "release_scheme": draft.get(CHECK_SCHEME_FIELD) }),
+            };
+            session.execute(&cmd).map_err(|e| {
+                strings::format(
+                    key!("wizard-error-command"),
+                    // In the window's language.
+                    &["project.checks.set", &super::tools::command_error_words(&e)],
+                )
+            })?;
+        }
         session
             .create(dir, self.store_options())
             .map_err(|e| strings::format(key!("error-wizard-write"), &[strings::text(open_error_key(&e))]))?;

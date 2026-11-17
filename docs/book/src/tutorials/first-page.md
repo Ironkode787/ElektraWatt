@@ -9,12 +9,13 @@ about the circuit. At the end you have a saved project whose checks show no erro
 - ElektraWatt installed and started; see [Install ElektraWatt](../how-to/install.md).
 - An empty folder for the project, or a place where EW may create one.
 
-Nothing else: the project starts from EW's built-in basic project.
+Nothing else: choose **Empty project** in the New project dialog.
 
 ## Steps
 
-1. Choose **File ▸ New project…** (`Ctrl+N`) and pick an empty folder named `first-page.ew`.
-   EW creates the project from the basic project and shows its one empty page, folio 1, with its frame.
+1. Choose **File ▸ New project…** (`Ctrl+N`). Type the name `first-page.ew`, choose **Empty project** under
+   **Start from** and press **Create**.
+   EW creates the project and shows its one empty page, folio 1, with its frame.
 2. Choose **Draw ▸ Place ▸ Symbol…** (`I`). In the symbol picker, choose **transformer-1ph** and click near the top
    left of the page. Then choose **Draw ▸ Select** to put the tool away.
    The transformer -1T1 is on the page, with its primary pins 1U1 and 2U1 at the top and its secondary pins 1U2 and
@@ -43,7 +44,8 @@ Nothing else: the project starts from EW's built-in basic project.
 
 ## What you learnt
 
-- A project starts from a basic project; **File ▸ New project…** makes one in a folder of its own.
+- **File ▸ New project…** makes a project in a folder of its own, empty or from a template (see
+  [Start a project and use templates](../how-to/start-a-project.md)).
 - A symbol you place is a function of a device, and the device gets its tag (-1T1, -1E1) from the numbering scheme.
 - Wires join connection points; the wires that touch form a potential, which you name with Define potential….
 - The checks run while you draw. A warning tells you what is still open; the [rule reference](../reference/rules/index.md)

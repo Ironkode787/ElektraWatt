@@ -78,6 +78,7 @@ mod splitter;
 mod start_page;
 mod station_view;
 mod symbol_editor;
+mod templates;
 // The start-up offer after a crash.
 mod startup;
 mod status_bar;

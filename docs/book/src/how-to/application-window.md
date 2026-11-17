@@ -9,12 +9,13 @@ names work in the menu, in the command palette (`Ctrl+K`) and in a headless UI s
 
 With no project open the window shows the start page. It has no news feed and opens no connection.
 
-- **New project** makes a project in a new, empty directory from your company basic project, or from the built-in basic
-  project when you have none.
+- **New project** opens the New project dialog: the name, the folder, and what the project starts from (see
+  [Start a project and use templates](start-a-project.md)).
 - **Open...** opens a project directory; the recent projects are listed below it.
 - **Open sample project** opens the CC0 sample project read-only; use **Save as...** to make your own copy.
 - **Import QElectroTech project** reads a `.qet` file into a new project directory.
-- **Create company standard** starts the [company-standard wizard](#company-standard-wizard).
+- **Templates…** lists your templates, makes a new one and adds one somebody gave you (see
+  [Your templates](start-a-project.md#your-templates)).
 - **Tutorials and guides** lists the tutorials (lessons you follow step by step) and the how-to guides (how
   to do one job), as **Help ▸ Tutorials** and **Help ▸ Guides** do.
 - The quick switches set the language and the keymap preset. The privacy line says that this version has no update
@@ -25,12 +26,6 @@ With no project open the window shows the start page. It has no news feed and op
 With a project open the window shows the page list, the page view and the status bar. The page view shows the current
 page read-only. `Page Down` and `Page Up` move between pages, `Ctrl+G` goes to a folio, `Ctrl+Z` and `Ctrl+Shift+Z`
 undo and redo, `Ctrl+S` saves and `Ctrl+Shift+S` saves under a new name.
-
-## New project
-
-**File, New project** (`Ctrl+N`) asks for a new, empty directory and writes the project there at once. The project
-starts from the default basic project (a company basic project made by the wizard, or the built-in one) with new
-identities for every record.
 
 ## Sample project
 
@@ -81,16 +76,6 @@ On the first start the application asks for the language and what you come from 
 says what it does with your data (this version has no update check and sends no crash reports; **Privacy
 (PRIVACY.md)** opens the full statement), asks for the appearance (theme and scale), and then what to do first. Every
 step can be skipped. **Help, First-run setup** runs it again. Nothing in it makes a network connection.
-
-## Company-standard wizard
-
-The wizard collects the conventions of your company and writes a **basic project**, from which new projects start. It
-has ten steps: the company, the frame and title block, the colour profile, the size profile, identifiers and numbering,
-structure and sections, revisions, languages and formats, reports and checks, and a review. Each step says what it is
-and where you can change it later, and its **Result** shows what your choices make, such as the name of the third
-contactor on page 102; the **Example** beside it shows a cover page and a schematic page with your choices. Your
-choices are kept in the configuration directory until you finish, and the basic project is written to a directory you
-choose and becomes the default for **New project**.
 
 ## About
 

@@ -63,13 +63,6 @@ fn start_page(model: &ShellModel, lines: &mut Vec<String>) {
     let button = |key: Key<'_>| format!("  button \"{}\"", strings::text(key));
     lines.push(format!("start page \"{}\"", strings::text(key!("start-title"))));
     lines.push(button(key!("start-new")));
-    lines.push(format!(
-        "  label \"{}\"",
-        match model.default_template_name() {
-            Some(name) => strings::format(key!("start-template"), &[&name]),
-            None => strings::text(key!("start-template-builtin")).to_owned(),
-        }
-    ));
     lines.push(button(key!("start-open")));
     lines.push(format!("  label \"{}\"", strings::text(key!("start-recent"))));
     for (i, name) in model.recent_names().iter().enumerate() {
@@ -77,10 +70,7 @@ fn start_page(model: &ShellModel, lines: &mut Vec<String>) {
     }
     lines.push(button(key!("start-sample")));
     lines.push(button(key!("start-import-qet")));
-    lines.push(button(key!("start-company-standard")));
-    if model.default_template_name().is_some() {
-        lines.push(button(key!("start-edit-standard")));
-    }
+    lines.push(button(key!("start-templates")));
     lines.push(button(key!("start-tutorials")));
     let settings = model.settings();
     lines.push(format!(
@@ -187,7 +177,7 @@ fn wizard(model: &ShellModel, lines: &mut Vec<String>) {
     lines.push(format!("  label \"{}\"", strings::text(step.hint_key())));
     lines.push(format!("  label \"{}\"", strings::text(step.later_key())));
     if step == Step::Review {
-        for line in w.review() {
+        for line in w.review(model.mode() == crate::shell::Mode::Gui) {
             lines.push(format!(
                 "  review \"{}\": \"{}\" {}",
                 line.label,
@@ -195,6 +185,11 @@ fn wizard(model: &ShellModel, lines: &mut Vec<String>) {
                 if line.written { "written" } else { "kept" }
             ));
         }
+        lines.push(format!(
+            "  check \"{}\": {}",
+            strings::text(key!("wizard-use-for-new")),
+            if w.use_for_new() { "on" } else { "off" }
+        ));
     } else {
         for f in fields_of(step) {
             let label = strings::text(f.label_key);
@@ -234,13 +229,7 @@ fn wizard(model: &ShellModel, lines: &mut Vec<String>) {
         })
     ));
     if w.finished_dir().is_some() {
-        // The basic project is written; what is left is the confirmed check scheme, then Close.
-        if w.can_apply_check_scheme() {
-            lines.push(format!(
-                "  button \"{}\"",
-                strings::text(key!("wizard-apply-check-scheme"))
-            ));
-        }
+        // The template is written; what is left is Close.
         lines.push(format!("  button \"{}\"", strings::text(key!("wizard-close"))));
         return;
     }
@@ -2045,7 +2034,7 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
             }
             lines.push(format!("  pending {}", pending.action));
         }
-        Dialog::ConfirmCheckScheme { .. } | Dialog::ConfirmJournalDiscard => {
+        Dialog::ConfirmJournalDiscard => {
             for line in &spec.body {
                 lines.push(format!("  label \"{line}\""));
             }
@@ -2219,6 +2208,67 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
             }
             if let Some(e) = &form.error {
                 lines.push(format!("  error: {e}"));
+            }
+        }
+        // New project: the name, the folder, the lines of Start from with what each brings, the pages box where the
+        // chosen line has pages, and why Create cannot run.
+        Dialog::NewProject(d) => {
+            lines.push(format!(
+                "  field \"{}\": \"{}\"",
+                strings::text(key!("new-project-name")),
+                user(&d.name)
+            ));
+            lines.push(format!(
+                "  field \"{}\": \"{}\"",
+                strings::text(key!("new-project-folder")),
+                user(&d.folder)
+            ));
+            for (i, line) in d.starts.iter().enumerate() {
+                lines.push(format!(
+                    "  start {}{}{} \"{}\": \"{}\"",
+                    i + 1,
+                    if i == d.chosen { " (chosen)" } else { "" },
+                    if line.star { " (for new projects)" } else { "" },
+                    user(&line.name),
+                    user(&line.what)
+                ));
+            }
+            if d.start().pages > 0 {
+                lines.push(format!(
+                    "  check \"{}\": {}",
+                    user(&strings::format_count(
+                        crate::count_key!("new-project-copy-pages"),
+                        d.start().pages
+                    )),
+                    if d.pages { "on" } else { "off" }
+                ));
+            }
+            for e in d.problem().iter().chain(&d.error) {
+                lines.push(format!("  error: {e}"));
+            }
+        }
+        // Templates: each template with what it holds and whether new projects start from it, the selected one, and
+        // the line under the list.
+        Dialog::Templates(d) => {
+            if d.rows.is_empty() {
+                lines.push(format!("  label \"{}\"", strings::text(key!("templates-none"))));
+            }
+            for (i, row) in d.rows.iter().enumerate() {
+                lines.push(format!(
+                    "  template {}{}{} \"{}\": \"{}\"",
+                    i + 1,
+                    if i == d.selected { " (selected)" } else { "" },
+                    if row.star { " (for new projects)" } else { "" },
+                    user(&row.name),
+                    user(&row.what)
+                ));
+            }
+            let (row, list) = crate::dialogs::templates_actions(d);
+            for b in row.iter().chain(&list) {
+                lines.push(format!("  button \"{}\"", user(&b.label)));
+            }
+            if let Some(note) = &d.note {
+                lines.push(format!("  note \"{}\"", user(note)));
             }
         }
     }

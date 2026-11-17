@@ -246,6 +246,7 @@ impl Platform for VisualPlatform {
             Prompt::SaveEwz => Pick::Path(self.base.join("project.ewz")),
             Prompt::SaveSymbol => Pick::Path(self.base.join("symbol.json")),
             Prompt::LibraryFolder => Pick::Path(self.base.join("symbols.ewlib")),
+            Prompt::Folder => Pick::Path(self.base.clone()),
             Prompt::SavePlcExchange(extension) => Pick::Path(self.base.join(format!("plc.{extension}"))),
             Prompt::OpenQet
             | Prompt::OpenPartsTable

@@ -206,6 +206,8 @@ pub use ew_schema::FORMAT;
 pub use ew_schema::LabelFormat;
 /// The party roles of a revision's author and checker (doc 03 `Party`): `ew revision approve --as <role>` names one.
 pub use ew_schema::PartyRole;
+/// A project's kind: a schematic project, a template (`Basic`) or a macro project (FR-PRJ-026).
+pub use ew_schema::ProjectKind;
 /// The text styles the built-in basic project of a new project writes (ADR-0032 decision 3): the wizard's readable
 /// choice of "Pin numbers and markers".
 pub use ew_schema::new_project_text_styles;

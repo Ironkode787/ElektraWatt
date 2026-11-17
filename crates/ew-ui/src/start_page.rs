@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The start page (UX/UI doc 16 section 3.7): New project from the basic project (the
-//! default one first), Open, the recent projects, Open sample project, Import QElectroTech project, Create company
-//! standard, Tutorials, the quick switches for language and keymap, and the privacy line "This version has no
+//! The start page (UX/UI doc 16 section 3.7): New project (its dialog says what the project starts from), Open, the
+//! recent projects, Open sample project, Import QElectroTech project, Templates…, Tutorials, the quick switches for
+//! language and keymap, and the privacy line "This version has no
 //! update check" (nothing to change, so no button). Nothing on the page opens a connection (NFR-PRIV-01). It
 //! appears before any project is touched; no work that could take time runs before the first frame.
 
@@ -70,10 +70,6 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             if ui.button(strings::text(key!("start-new"))).clicked() {
                 action(events, "file.new", Value::Null);
             }
-            ui.weak(match shell.default_template_name() {
-                Some(name) => strings::format(key!("start-template"), &[&name]),
-                None => strings::text(key!("start-template-builtin")).to_owned(),
-            });
             ui.add_space(8.0);
             if ui.button(strings::text(key!("start-open"))).clicked() {
                 action(events, "file.open", Value::Null);
@@ -105,14 +101,8 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             if ui.button(strings::text(key!("start-import-qet"))).clicked() {
                 action(events, "file.import_qet", Value::Null);
             }
-            if ui.button(strings::text(key!("start-company-standard"))).clicked() {
-                action(events, "tools.company_standard", Value::Null);
-            }
-            if let Some(basic) = shell.settings().basic_project.clone()
-                && shell.default_template_name().is_some()
-                && ui.button(strings::text(key!("start-edit-standard"))).clicked()
-            {
-                action(events, "file.open", json!({ "dir": basic }));
+            if ui.button(strings::text(key!("start-templates"))).clicked() {
+                action(events, "templates.open", Value::Null);
             }
             // The tutorials and the how-to guides, as Help lists them (F5).
             ui.menu_button(strings::text(key!("start-tutorials")), |ui| {

@@ -5,8 +5,10 @@
 //!
 //! `version = 1`, `recent_projects` (at most [`MAX_RECENT`], most recent first, no duplicates), `ui_scale` (one
 //! of [`UI_SCALES`]) and, since part 2, the first-run answers and quick switches: `first_run_done`, `language`,
-//! `keymap`, `theme`, `density`, `comes_from`, `update_check` (an opt-in, off by default, NFR-PRIV-03), the default basic
-//! project `basic_project` (FR-PRJ-009), the active workspace `workspace` (FR-UI-002) and
+//! `keymap`, `theme`, `density`, `comes_from`, `update_check` (an opt-in, off by default, NFR-PRIV-03), the templates
+//! `[[templates]]` (each `dir` and `name`, FR-PRJ-009) with the one new projects start from, `basic_project` (the
+//! key of one template path before the list; such a file loads as a list of that one), the active workspace
+//! `workspace` (FR-UI-002) and
 //! the canvas renderer `canvas_backend` (`auto`, or `cpu` for View, Use the CPU renderer) and the
 //! author name `author_name` of the Waive prompt (written only once set), the DWG converter `dwg_converter` (written
 //! only once chosen) and the
@@ -95,8 +97,11 @@ pub struct Settings {
     pub comes_from: String,
     /// The update-check opt-in (off by default; this version has no update check, NFR-PRIV-03).
     pub update_check: bool,
-    /// The default basic project (a project directory), if the user made or chose one (FR-PRJ-009).
+    /// The template new projects start from (a project directory of [`Settings::templates`]), if the user chose one
+    /// (FR-PRJ-009).
     pub basic_project: Option<String>,
+    /// The templates the user keeps, in the order they were added (`[[templates]]`); never in the recent projects.
+    pub templates: Vec<TemplateEntry>,
     /// The active workspace (doc 16 section 2.6).
     pub workspace: String,
     /// The canvas renderer, one of [`CANVAS_BACKENDS`].
@@ -154,6 +159,7 @@ impl Default for Settings {
             comes_from: String::new(),
             update_check: false,
             basic_project: None,
+            templates: Vec::new(),
             workspace: DEFAULT_WORKSPACE.to_owned(),
             canvas_backend: CANVAS_BACKENDS[0].to_owned(),
             properties_collapsed: Vec::new(),
@@ -171,6 +177,30 @@ impl Default for Settings {
             symbols_recent: Vec::new(),
             extra: toml::Table::new(),
         }
+    }
+}
+
+/// One template of the Templates list: its folder and the name the list shows.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct TemplateEntry {
+    /// The project folder.
+    pub dir: String,
+    /// The name the list, the New project dialog and the band of an open template show.
+    pub name: String,
+}
+
+impl TemplateEntry {
+    /// The template of folder `dir` named `name`, else by its folder's own name.
+    pub fn new(dir: String, name: Option<String>) -> TemplateEntry {
+        let name = name
+            .map(|n| n.trim().to_owned())
+            .filter(|n| !n.is_empty())
+            .unwrap_or_else(|| {
+                Path::new(&dir)
+                    .file_name()
+                    .map_or_else(|| dir.clone(), |n| n.to_string_lossy().into_owned())
+            });
+        TemplateEntry { dir, name }
     }
 }
 
@@ -199,6 +229,36 @@ impl Settings {
     /// Removes `path` from the recent projects.
     pub fn remove_recent(&mut self, path: &str) {
         self.recent_projects.retain(|p| p != path);
+    }
+
+    /// Whether the folder `dir` is one of the templates.
+    pub fn is_template(&self, dir: &str) -> bool {
+        self.templates.iter().any(|t| t.dir == dir)
+    }
+
+    /// Adds the folder `dir` to the templates under `name` (else its folder's name), at the end of the list, unless
+    /// it is there already; it leaves the recent projects. Its index in the list.
+    pub fn add_template(&mut self, dir: &str, name: Option<String>) -> usize {
+        self.remove_recent(dir);
+        match self.templates.iter().position(|t| t.dir == dir) {
+            Some(i) => i,
+            None => {
+                self.templates.push(TemplateEntry::new(dir.to_owned(), name));
+                self.templates.len() - 1
+            }
+        }
+    }
+
+    /// Takes the template at `index` out of the list (its folder stays on the disk); new projects no longer start
+    /// from it.
+    pub fn remove_template(&mut self, index: usize) -> Option<TemplateEntry> {
+        (index < self.templates.len()).then(|| {
+            let entry = self.templates.remove(index);
+            if self.basic_project.as_deref() == Some(entry.dir.as_str()) {
+                self.basic_project = None;
+            }
+            entry
+        })
     }
 
     /// Adds or removes the favourite part `item` (`<library ID>/<item ID>`, D18); the list stays sorted. `true` when
@@ -322,6 +382,27 @@ impl Settings {
             _ => String::new(),
         };
         let basic_project = take_string(&mut table, "basic_project")?.filter(|v| !v.is_empty());
+        // `[[templates]]`: each a `dir` and a `name`; an entry without a folder is left out, one without a name
+        // takes its folder's.
+        let mut templates: Vec<TemplateEntry> = Vec::new();
+        match table.remove("templates") {
+            None => {}
+            Some(toml::Value::Array(items)) => {
+                for item in items {
+                    let toml::Value::Table(mut entry) = item else {
+                        return None;
+                    };
+                    let dir = take_string(&mut entry, "dir")?.filter(|d| !d.trim().is_empty());
+                    let name = take_string(&mut entry, "name")?;
+                    if let Some(dir) = dir
+                        && !templates.iter().any(|t| t.dir == dir)
+                    {
+                        templates.push(TemplateEntry::new(dir, name));
+                    }
+                }
+            }
+            Some(_) => return None,
+        }
         let author_name = take_string(&mut table, "author_name")?
             .map(|v| v.trim().to_owned())
             .filter(|v| !v.is_empty());
@@ -419,6 +500,7 @@ impl Settings {
             comes_from,
             update_check,
             basic_project,
+            templates,
             workspace,
             canvas_backend,
             properties_collapsed,
@@ -436,9 +518,17 @@ impl Settings {
             symbols_recent,
             extra: table,
         };
-        // The list is normalised on read: no duplicates, at most MAX_RECENT, first occurrence wins.
+        // The template of a file written before the list (one path) is a list of that one.
+        if let Some(dir) = settings.basic_project.clone() {
+            settings.add_template(&dir, None);
+        }
+        // The list is normalised on read: no duplicates, at most MAX_RECENT, first occurrence wins; a template is
+        // no recent project.
         for path in recent {
-            if !settings.recent_projects.contains(&path) && settings.recent_projects.len() < MAX_RECENT {
+            if !settings.recent_projects.contains(&path)
+                && !settings.is_template(&path)
+                && settings.recent_projects.len() < MAX_RECENT
+            {
                 settings.recent_projects.push(path);
             }
         }
@@ -534,6 +624,25 @@ impl Settings {
             None => {
                 table.remove("basic_project");
             }
+        }
+        // Written only once there is a template.
+        if self.templates.is_empty() {
+            table.remove("templates");
+        } else {
+            table.insert(
+                "templates".to_owned(),
+                toml::Value::Array(
+                    self.templates
+                        .iter()
+                        .map(|t| {
+                            let mut entry = toml::Table::new();
+                            entry.insert("dir".to_owned(), toml::Value::String(t.dir.clone()));
+                            entry.insert("name".to_owned(), toml::Value::String(t.name.clone()));
+                            toml::Value::Table(entry)
+                        })
+                        .collect(),
+                ),
+            );
         }
         match &self.author_name {
             Some(name) => {
@@ -1256,6 +1365,7 @@ mod tests {
             theme: "dark".to_owned(),
             comes_from: "qet".to_owned(),
             basic_project: Some("company.ew".to_owned()),
+            templates: vec![TemplateEntry::new("company.ew".to_owned(), None)],
             workspace: "Review".to_owned(),
             canvas_backend: "cpu".to_owned(),
             ..Settings::default()
@@ -1304,6 +1414,35 @@ mod tests {
             assert!(Settings::parse(text).is_none(), "{text}");
         }
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// A settings file of 0.3.0-rc.2 and before names one template path: it loads as a list of that one, still used for
+    /// new projects, and the template leaves the recent projects; a list round-trips with its names.
+    #[test]
+    fn one_template_path_becomes_a_list_of_one() {
+        let old = Settings::parse(
+            "basic_project = \"/w/company.ew\"\nrecent_projects = [\"/w/job.ew\", \"/w/company.ew\"]\n",
+        )
+        .unwrap();
+        assert_eq!(
+            old.templates,
+            [TemplateEntry {
+                dir: "/w/company.ew".to_owned(),
+                name: "company.ew".to_owned()
+            }]
+        );
+        assert_eq!(old.basic_project.as_deref(), Some("/w/company.ew"));
+        assert_eq!(old.recent_projects, ["/w/job.ew"]);
+        let mut s = old.clone();
+        s.add_template("/w/panel.ew", Some("Panel standard".to_owned()));
+        let back = Settings::parse(&s.to_toml()).unwrap();
+        assert_eq!(back.templates, s.templates);
+        assert_eq!(back.templates[1].name, "Panel standard");
+        // Taken out of the list, the template is no longer used for new projects.
+        let mut s = back;
+        s.remove_template(0);
+        assert_eq!(s.basic_project, None);
+        assert!(!s.is_template("/w/company.ew"));
     }
 
     #[test]

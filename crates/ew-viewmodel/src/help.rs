@@ -36,6 +36,8 @@ pub struct Anchor {
 }
 
 const WINDOW: &str = "how-to/application-window.md";
+/// The guide to starting a project and to templates.
+const PROJECTS: &str = "how-to/start-a-project.md";
 const PLC_GUIDE: &str = "how-to/plc-workspace.md";
 
 /// The anchors, in no particular order; `topic` is unique.
@@ -68,8 +70,18 @@ pub static ANCHORS: &[Anchor] = &[
     },
     Anchor {
         topic: "new-project",
-        page: WINDOW,
-        fragment: Cow::Borrowed("new-project"),
+        page: PROJECTS,
+        fragment: Cow::Borrowed("start-a-new-project"),
+    },
+    Anchor {
+        topic: "templates",
+        page: PROJECTS,
+        fragment: Cow::Borrowed("your-templates"),
+    },
+    Anchor {
+        topic: "check-level",
+        page: PROJECTS,
+        fragment: Cow::Borrowed("the-check-level"),
     },
     Anchor {
         topic: "sample-project",
@@ -113,8 +125,8 @@ pub static ANCHORS: &[Anchor] = &[
     },
     Anchor {
         topic: "company-standard-wizard",
-        page: WINDOW,
-        fragment: Cow::Borrowed("company-standard-wizard"),
+        page: PROJECTS,
+        fragment: Cow::Borrowed("make-a-template-for-your-companys-drawings"),
     },
     Anchor {
         topic: "tutorials",
@@ -238,7 +250,9 @@ pub fn heading_id(text: &str) -> String {
 /// page of its own.
 pub fn action_topic(action: &str) -> Option<&'static str> {
     Some(match action {
-        "file.new" => "new-project",
+        "file.new" | "new_project.set" | "new_project.browse" | "new_project.other" => "new-project",
+        a if a.starts_with("templates.") || a == "project.save_as_template" => "templates",
+        "project.check_level" => "check-level",
         "file.open_sample" => "sample-project",
         "file.import_qet" | "file.import" => "import-qet",
         "file.discard_journal" => "recovery",
@@ -330,7 +344,8 @@ pub fn dialog_topic(dialog: &Dialog) -> &'static str {
         Dialog::Shortcuts => "keyboard-shortcuts",
         Dialog::ConfirmDiscard { .. } => "unsaved-changes",
         Dialog::ConfirmJournalDiscard | Dialog::Recovery { .. } => "recovery",
-        Dialog::ConfirmCheckScheme { .. } => "company-standard-wizard",
+        Dialog::NewProject(_) => "new-project",
+        Dialog::Templates(_) => "templates",
         Dialog::SaveWorkspace { .. } => "workspaces",
         Dialog::GotoPage { .. } => "dialog-goto-page",
         Dialog::Form(_) => "dialog-form",
@@ -609,7 +624,12 @@ mod tests {
             Dialog::GotoPage { text: text() },
             Dialog::Notices,
             Dialog::ConfirmJournalDiscard,
-            Dialog::ConfirmCheckScheme { scheme: text() },
+            Dialog::Templates(Box::new(crate::shell::TemplatesDialog {
+                rows: Vec::new(),
+                selected: 0,
+                renaming: None,
+                note: None,
+            })),
             Dialog::SaveWorkspace { text: text() },
             Dialog::ConfirmPurge {
                 files: Vec::new(),

@@ -564,7 +564,7 @@ fn the_terminology_table_is_followed() {
         "messages = meldingen",
         "tag = kenmerk",
         "structure node = structuurknooppunt",
-        "basic project = basisproject",
+        "template = sjabloon",
         "title block = titelblok",
         "page = pagina",
         "cross-section = doorsnede",

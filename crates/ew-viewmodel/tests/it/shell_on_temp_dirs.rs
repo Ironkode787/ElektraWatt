@@ -94,13 +94,13 @@ fn a_new_project_starts_from_the_builtin_basic_project_and_is_saved_at_once() {
 }
 
 #[test]
-fn new_project_asks_for_a_directory_in_the_gui_and_guards_unsaved_changes() {
+fn new_project_opens_its_dialog_in_the_gui_and_guards_unsaved_changes() {
     let tmp = Tmp::new(STEM);
     let mut shell = tmp.gui();
     done(&mut shell, "file.new", json!({}));
-    let prompt = shell.take_prompt().expect("a directory prompt");
-    assert_eq!(prompt.action, "file.new");
-    assert_eq!(prompt.param, "dir");
+    assert!(matches!(shell.dialog(), Some(Dialog::NewProject(_))));
+    assert!(shell.take_prompt().is_none(), "the dialog asks, no folder prompt");
+    done(&mut shell, "ui.dismiss", json!({}));
     // A dirty project asks first.
     let first = tmp.0.join("a.ew");
     done(&mut shell, "file.new", json!({ "dir": path(&first) }));
@@ -1369,12 +1369,10 @@ fn the_wizard_writes_a_basic_project_that_new_projects_start_from() {
     );
     let basic = tmp.0.join("company.ew");
     done(&mut shell, "wizard.finish", json!({ "dir": path(&basic) }));
-    // The finished wizard stays on the review step until it is closed (the check scheme is applied after
-    // finishing, by a person); its fields are no longer edited.
+    // The finished wizard stays on the review step until it is closed; its fields are no longer edited.
     assert!(shell.banner().unwrap_or_default().contains("company.ew"));
     let w = shell.wizard().expect("the finished wizard stays open");
     assert_eq!(w.finished_dir(), Some(basic.as_path()));
-    assert!(w.can_apply_check_scheme());
     assert!(matches!(
         run(
             &mut shell,
@@ -1413,7 +1411,7 @@ fn the_wizard_writes_a_basic_project_that_new_projects_start_from() {
     assert!(revisions.contains("V0.1"), "{revisions}");
 
     // New project: the default basic project is the template, so the copy has its settings and its sections.
-    assert_eq!(shell.default_template_name().as_deref(), Some("company.ew"));
+    assert_eq!(shell.settings().templates[0].name, "company.ew");
     let new = tmp.0.join("job.ew");
     done(&mut shell, "file.new", json!({ "dir": path(&new) }));
     let text = std::fs::read_to_string(new.join("project.jsonl")).unwrap();
@@ -1864,7 +1862,7 @@ fn the_wizard_writes_the_logo_the_shipped_profile_and_the_report_blocks() {
         "no SVG image item is left for a renderer to skip"
     );
     // The review: every field is written but the check scheme.
-    let review = shell.wizard().unwrap().review();
+    let review = shell.wizard().unwrap().review(false);
     let kept: Vec<&str> = review.iter().filter(|l| !l.written).map(|l| l.key).collect();
     assert_eq!(kept, ["check_scheme"], "{review:?}");
     let logo_line = review.iter().find(|l| l.key == "company_logo").unwrap();
@@ -1934,10 +1932,11 @@ fn the_wizard_writes_the_logo_the_shipped_profile_and_the_report_blocks() {
     shell.shutdown();
 }
 
-/// The check scheme is applied after finishing by `wizard.apply_check_scheme`, a confirmed action that
-/// submits the `HumanOnly` command `project.checks.set`; the headless mode refuses it with the human-only reason.
+/// G2 of the rc.2 test: the check level is part of what Create makes in the window (a person pressing Create submits
+/// the `HumanOnly` `project.checks.set`), and the review lists it as written; a script's template keeps it out, and a
+/// script cannot set it later either.
 #[test]
-fn the_check_scheme_is_applied_after_finishing_by_a_person_only() {
+fn the_check_level_is_written_by_create_in_the_window_and_never_by_a_script() {
     let tmp = Tmp::new(STEM);
     let mut shell = tmp.shell();
     done(&mut shell, "tools.company_standard", json!({}));
@@ -1946,12 +1945,6 @@ fn the_check_scheme_is_applied_after_finishing_by_a_person_only() {
         "wizard.set",
         json!({"field": "check_scheme", "value": "full"}),
     );
-    assert_eq!(
-        run(&mut shell, "wizard.apply_check_scheme", json!({})),
-        Outcome::Refused {
-            reason_key: key!("reason-wizard-not-finished")
-        }
-    );
     let basic = tmp.0.join("company.ew");
     done(&mut shell, "wizard.finish", json!({ "dir": path(&basic) }));
     let review = shell.describe();
@@ -1959,21 +1952,20 @@ fn the_check_scheme_is_applied_after_finishing_by_a_person_only() {
         review.contains("review \"Check level\": \"Full\" kept"),
         "{review}"
     );
-    assert!(review.contains("button \"Apply the check level\""), "{review}");
-    for params in [json!({}), json!({"confirm": true})] {
-        assert_eq!(
-            run(&mut shell, "wizard.apply_check_scheme", params),
-            Outcome::Refused {
-                reason_key: key!("reason-human-only")
-            },
-            "the headless mode never applies it"
-        );
-    }
     let text = std::fs::read_to_string(basic.join("project.jsonl")).unwrap();
     assert!(!text.contains("\"checks\""), "{text}");
     done(&mut shell, "wizard.cancel", json!({}));
+    done(&mut shell, "file.new", json!({ "dir": path(&tmp.0.join("job.ew")) }));
+    assert!(
+        matches!(
+            run(&mut shell, "project.check_level", json!({"level": "full"})),
+            Outcome::Refused { .. } | Outcome::Failed { .. }
+        ),
+        "a script never sets the check level"
+    );
+    done(&mut shell, "file.close", json!({}));
 
-    // In the window: a confirmation that names the scheme, then the command as the person's.
+    // In the window: no question after Create, the level is in the template.
     let mut gui = tmp.gui();
     done(&mut gui, "tools.company_standard", json!({}));
     done(
@@ -1981,38 +1973,19 @@ fn the_check_scheme_is_applied_after_finishing_by_a_person_only() {
         "wizard.set",
         json!({"field": "check_scheme", "value": "full"}),
     );
+    done(&mut gui, "wizard.goto", json!({"step": 9}));
+    let before = gui.describe();
+    assert!(
+        before.contains("review \"Check level\": \"Full\" written"),
+        "{before}"
+    );
     let window = tmp.0.join("window.ew");
     done(&mut gui, "wizard.finish", json!({ "dir": path(&window) }));
-    done(&mut gui, "wizard.apply_check_scheme", json!({}));
-    assert_eq!(
-        gui.dialog(),
-        Some(&Dialog::ConfirmCheckScheme {
-            scheme: "full".into()
-        })
-    );
-    let dialog = gui.describe();
-    assert!(
-        dialog.contains("dialog \"Apply the check level?\"") && dialog.contains("\"Full\""),
-        "{dialog}"
-    );
-    done(&mut gui, "wizard.apply_check_scheme", json!({"confirm": true}));
-    assert_eq!(gui.dialog(), None);
+    assert_eq!(gui.dialog(), None, "nothing to confirm after Create");
     let text = std::fs::read_to_string(window.join("project.jsonl")).unwrap();
     assert!(
         text.contains("\"checks\":{\"release_scheme\":\"full\"}"),
         "{text}"
-    );
-    let review = gui.describe();
-    assert!(
-        review.contains("review \"Check level\": \"Full\" written"),
-        "{review}"
-    );
-    assert!(!review.contains("button \"Apply the check level\""), "{review}");
-    assert_eq!(
-        run(&mut gui, "wizard.apply_check_scheme", json!({"confirm": true})),
-        Outcome::Refused {
-            reason_key: key!("reason-check-scheme-written")
-        }
     );
     done(&mut gui, "wizard.cancel", json!({}));
     gui.shutdown();
@@ -2212,7 +2185,7 @@ fn f1_resolves_the_context_in_order() {
     done(&mut shell, "tools.company_standard", json!({}));
     assert_eq!(
         topic_of(&mut shell),
-        "how-to/application-window.html#company-standard-wizard"
+        "how-to/start-a-project.html#make-a-template-for-your-companys-drawings"
     );
     done(&mut shell, "wizard.cancel", json!({}));
     done(&mut shell, "help.first_run", json!({}));
@@ -2745,23 +2718,22 @@ fn describe_lists_the_start_page_the_wizard_and_the_project_view() {
     let start = shell.describe();
     for needle in [
         "button \"New project\"",
-        "label \"Template: the built-in basic project\"",
         "button \"Open sample project\"",
         "button \"Import QElectroTech project\"",
-        "button \"Create company standard\"",
+        "button \"Templates…\"",
         "button \"Tutorials and guides\"",
         "quick \"Language\": \"English\"",
         "item file.new \"New project…\" [Ctrl+N] enabled",
         "item file.discard_journal \"Discard unsaved changes of the earlier session…\" disabled: The project has no journal of an earlier session",
         "item help.documentation \"Documentation\" [F1] enabled",
-        "item tools.company_standard \"Company standard wizard…\" enabled",
+        "item tools.company_standard \"New template…\" enabled",
     ] {
         assert!(start.contains(needle), "{needle}\n{start}");
     }
     done(&mut shell, "tools.company_standard", json!({}));
     let wizard = shell.describe();
     assert!(
-        wizard.contains("wizard \"Company standard\": step 1 of 10 \"Company\" (#1)"),
+        wizard.contains("wizard \"Template for your company's drawings\": step 1 of 10 \"Company\" (#1)"),
         "{wizard}"
     );
     assert!(wizard.contains("field \"Company name\": \"-\""), "{wizard}");
@@ -2769,7 +2741,9 @@ fn describe_lists_the_start_page_the_wizard_and_the_project_view() {
     done(&mut shell, "wizard.goto", json!({"step": 9}));
     let review = shell.describe();
     assert!(
-        review.contains("wizard \"Company standard\": step 10 of 10 \"Review and create\" (#10)"),
+        review.contains(
+            "wizard \"Template for your company's drawings\": step 10 of 10 \"Review and create\" (#10)"
+        ),
         "{review}"
     );
     assert!(
@@ -2785,7 +2759,7 @@ fn describe_lists_the_start_page_the_wizard_and_the_project_view() {
         "{review}"
     );
     assert!(
-        review.contains("button \"Create the basic project…\""),
+        review.contains("button \"Create the template…\""),
         "{review}"
     );
     done(&mut shell, "wizard.cancel", json!({}));

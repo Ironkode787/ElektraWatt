@@ -206,7 +206,7 @@ fn a_held_image_over_the_limit_is_refused_by_its_hash_and_named_after_a_template
     done(
         &mut s,
         "file.new",
-        json!({"template": dir.to_string_lossy(), "dir": made.to_string_lossy()}),
+        json!({"template": dir.to_string_lossy(), "dir": made.to_string_lossy(), "pages": true}),
     );
     assert_eq!(
         s.banner(),

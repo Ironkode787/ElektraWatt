@@ -160,7 +160,8 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
         } => symbol_discard_spec(pending, model),
         // The quit and close prompt (doc 16a §6.12): Save, Cancel, and Don't save apart.
         Dialog::ConfirmDiscard { .. } => discard_spec(model),
-        Dialog::ConfirmCheckScheme { scheme } => check_scheme_spec(scheme),
+        Dialog::NewProject(d) => new_project_spec(d),
+        Dialog::Templates(_) => templates_spec(),
         Dialog::ConfirmJournalDiscard => journal_discard_spec(),
         Dialog::ConfirmPurge { files, .. } => purge_spec(files),
         // Choose (Enter, the active row) and Cancel; the list and the filters are the dialog's.
@@ -417,26 +418,88 @@ fn discard_spec(model: &ShellModel) -> DialogSpec {
     }
 }
 
-/// Applying check scheme `scheme`: Apply or Cancel.
-fn check_scheme_spec(scheme: &str) -> DialogSpec {
+/// New project: Create (the `file.new` of what the dialog holds; disabled with the reason while it cannot run) and
+/// Cancel.
+fn new_project_spec(d: &crate::shell::NewProjectDialog) -> DialogSpec {
     DialogSpec {
         secondary: vec![cancel()],
-        asks: true,
+        form: true,
         ..small(
-            strings::text(key!("confirm-check-scheme-title")).to_owned(),
-            // The scheme's word, as the wizard's choice shows it.
-            vec![strings::format(
-                key!("confirm-check-scheme-text"),
-                &[strings::text(Key::run_time(&format!(
-                    "choice-check_scheme-{scheme}"
-                )))],
-            )],
-            DialogButton::new(
-                key!("dialog-apply"),
-                DialogAnswer::Action("wizard.apply_check_scheme", json!({ "confirm": true })),
-            ),
+            strings::text(key!("new-project-title")).to_owned(),
+            Vec::new(),
+            DialogButton {
+                disabled: d.problem(),
+                ..DialogButton::new(
+                    key!("dialog-create"),
+                    DialogAnswer::Action("file.new", d.create_params()),
+                )
+            },
         )
     }
+}
+
+/// Templates: Close; the list and its actions are the dialog's own ([`templates_actions`]).
+fn templates_spec() -> DialogSpec {
+    DialogSpec {
+        form: true,
+        ..small(
+            strings::text(key!("templates-title")).to_owned(),
+            vec![strings::text(key!("templates-text")).to_owned()],
+            close(),
+        )
+    }
+}
+
+/// The actions of the Templates dialog: those of the selected template (Use for new projects or Do not use, Edit,
+/// Rename, Remove from the list), and those under the list (New template…, Add a folder…).
+pub fn templates_actions(d: &crate::shell::TemplatesDialog) -> (Vec<DialogButton>, Vec<DialogButton>) {
+    let row = d.selected_row().map(|row| {
+        let index = json!(d.selected + 1);
+        let act = |key: Key<'_>, action: &'static str, params: Value| {
+            DialogButton::new(key, DialogAnswer::Action(action, params))
+        };
+        vec![
+            if row.star {
+                act(
+                    key!("templates-do-not-use"),
+                    "templates.use",
+                    json!({ "index": index, "on": false }),
+                )
+            } else {
+                act(
+                    key!("templates-use"),
+                    "templates.use",
+                    json!({ "index": index, "on": true }),
+                )
+            },
+            act(
+                key!("templates-edit"),
+                "templates.edit",
+                json!({ "index": index }),
+            ),
+            act(
+                key!("templates-rename"),
+                "templates.rename",
+                json!({ "index": index }),
+            ),
+            act(
+                key!("templates-remove"),
+                "templates.remove",
+                json!({ "index": index }),
+            ),
+        ]
+    });
+    let list = vec![
+        DialogButton::new(
+            key!("templates-new"),
+            DialogAnswer::Action("tools.company_standard", Value::Null),
+        ),
+        DialogButton::new(
+            key!("templates-add"),
+            DialogAnswer::Action("templates.add", Value::Null),
+        ),
+    ];
+    (row.unwrap_or_default(), list)
 }
 
 /// Discarding the journal: Cancel the Primary, Discard apart.
@@ -953,6 +1016,8 @@ fn form_spec(form: &crate::shell::FormDialog, model: &ShellModel) -> DialogSpec 
                     .collect(),
                 "layout.enclosure_new" => model.enclosure_form_notes(),
                 "page.title_block" => model.title_block_notes(),
+                "project.check_level" => vec![strings::text(key!("check-level-purpose")).to_owned()],
+                "project.save_as_template" => vec![strings::text(key!("save-template-text")).to_owned()],
                 _ => Vec::new(),
             },
             DialogButton {

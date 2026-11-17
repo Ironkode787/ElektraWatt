@@ -128,6 +128,7 @@ pub fn show(
             | Dialog::PartEdit(_)
             | Dialog::Shortcuts
             | Dialog::Print(_)
+            | Dialog::NewProject(_)
     );
     // The print pre-dialog is `size.dialog.preview` wide, growing with the window; a creation form of fields stops
     // growing at its width at the main resolution.
@@ -135,6 +136,8 @@ pub fn show(
     let width = match d {
         Dialog::Print(_) => Some(crate::dialog::preview_width(&t, window)),
         Dialog::Form(_) => Some(crate::dialog::fields_form_width(&t, window)),
+        // New project's starts and the templates' list grow with the window.
+        Dialog::NewProject(_) | Dialog::Templates(_) => Some(crate::dialog::form_width(&t, window)),
         _ => None,
     };
     // Choose picks the list's active row, which the window keeps.
@@ -369,14 +372,22 @@ pub fn show(
             }
             submit |= form_fields(ui, shell, form, just_opened, primary_disabled, events);
         }
+        Dialog::NewProject(d) => submit |= crate::templates::new_project(ui, d, just_opened, events),
+        Dialog::Templates(d) => crate::templates::templates(ui, d, events),
         Dialog::PartChoose(c) => crate::part_dialog::chooser(ui, shell, c, just_opened, events),
         Dialog::PartEdit(e) => crate::part_dialog::editor(ui, e, just_opened, events),
         Dialog::Print(p) => crate::print_dialog::body(ui, shell, p, events),
-        Dialog::ConfirmDiscard { .. } | Dialog::ConfirmCheckScheme { .. } | Dialog::ConfirmJournalDiscard => {
-        }
+        Dialog::ConfirmDiscard { .. } | Dialog::ConfirmJournalDiscard => {}
     });
     let mut clicked = clicked.or(link_clicked);
     submit |= form_key && matches!(d, Dialog::Form(_));
+    // Enter in New project's fields presses Create, when it can be pressed.
+    if submit && matches!(d, Dialog::NewProject(_)) {
+        submit = false;
+        if spec.primary.disabled.is_none() {
+            clicked = clicked.or_else(|| Some(spec.primary.answer.clone()));
+        }
+    }
     // Enter in a revision dialog presses its Primary (Approve, Set author, Withdraw; Cancel in
     // Release, whose step is the destructive button), never a plain form submit.
     if submit

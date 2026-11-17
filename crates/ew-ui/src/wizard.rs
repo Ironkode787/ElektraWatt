@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The company-standard wizard screen (UX/UI doc 16 section 9.2, FR-PRJ-010): the steps on the left, each with a
+//! The template wizard screen (UX/UI doc 16 section 9.2, FR-PRJ-010): the steps on the left, each with a
 //! check once done; in the middle the step's title, what it is and whether it can be changed later, its fields and
 //! its Result, the worked example of what the fields make (live while a field is typed in), above a bar with Back
 //! and the step's one Primary button (doc 16a §6.2); on the right the Example, the cover page or a schematic page
@@ -15,7 +15,9 @@ use egui::{Align, Layout, Panel, RichText, TextEdit, Ui, Vec2};
 use ew_viewmodel::key;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
-use ew_viewmodel::wizard::{CHECK_SCHEME_FIELD, FieldKind, FieldMeta, Step, Wizard, fields_of};
+use ew_viewmodel::wizard::{
+    CHECK_SCHEME_FIELD, FieldKind, FieldMeta, Step, USE_FOR_NEW_FIELD, Wizard, fields_of,
+};
 use serde_json::{Value, json};
 
 use crate::app::Event;
@@ -67,15 +69,48 @@ fn text_field(ui: &mut Ui, events: &mut Vec<Event>, meta: &FieldMeta, value: &st
     }
 }
 
-/// A choice field: a radio group, one choice per line.
+/// A choice field: a radio group, one choice per line. The check level says what it is for and, under each level, what
+/// it stops (the words of Check level…).
 fn choice_field(ui: &mut Ui, events: &mut Vec<Event>, meta: &FieldMeta, choices: &[&str], value: &str) {
+    let t = components::tokens(ui);
+    let level = meta.key == CHECK_SCHEME_FIELD;
     ui.label(strings::text(meta.label_key));
+    if level {
+        secondary(ui, &t, strings::text(key!("check-level-purpose")));
+    }
     for choice in choices {
         let text = strings::text(strings::Key::run_time(&format!("choice-{}-{choice}", meta.key)));
         if ui.radio(*choice == value, text).clicked() && *choice != value {
             set(events, meta.key, choice);
         }
+        if level && let Some(sentence) = ew_viewmodel::shell::level_sentence(choice) {
+            under(ui, &t, sentence);
+        }
     }
+}
+
+/// A line in `type.small`, secondary, under the control above it and indented to its text, with no gap above it.
+fn under(ui: &mut Ui, t: &theme::Tokens, text: &str) {
+    ui.add_space(-ui.spacing().item_spacing.y);
+    ui.scope(|ui| {
+        ui.spacing_mut().interact_size.y = 0.0;
+        ui.horizontal(|ui| {
+            ui.add_space(t.space_6);
+            secondary(ui, t, text);
+        });
+    });
+}
+
+/// A line in `type.small`, secondary, wrapped.
+fn secondary(ui: &mut Ui, t: &theme::Tokens, text: &str) {
+    ui.add(
+        egui::Label::new(
+            RichText::new(text)
+                .font(theme::font(&t.type_small))
+                .color(t.text_secondary.color32()),
+        )
+        .wrap(),
+    );
 }
 
 /// The step's title, what it is, whether it can be changed later, then its fields and its Result (or, on the
@@ -113,20 +148,34 @@ fn step_form(ui: &mut Ui, wizard: &Wizard, events: &mut Vec<Event>) {
             .num_columns(3)
             .striped(true)
             .show(ui, |ui| {
-                for line in wizard.review() {
+                // The window is a person: Create writes the check level too (its command is HumanOnly).
+                for line in wizard.review(true) {
                     ui.label(line.label);
                     ui.label(line.value);
-                    // The check level is applied after finishing, by a person (its command is HumanOnly).
                     ui.weak(strings::text(if line.written {
                         key!("wizard-written")
                     } else if line.key == CHECK_SCHEME_FIELD {
-                        key!("wizard-kept-apply")
+                        key!("wizard-kept-script")
                     } else {
                         key!("wizard-kept")
                     }));
                     ui.end_row();
                 }
             });
+        // Whether new projects start from the template: a choice of the settings, on at first.
+        ui.add_space(t.space_5);
+        let mut on = wizard.use_for_new();
+        let enabled = wizard.finished_dir().is_none();
+        if ui
+            .add_enabled(
+                enabled,
+                egui::Checkbox::new(&mut on, strings::text(key!("wizard-use-for-new"))),
+            )
+            .changed()
+        {
+            set(events, USE_FOR_NEW_FIELD, if on { "true" } else { "false" });
+        }
+        under(ui, &t, strings::text(key!("wizard-use-for-new-note")));
         return;
     }
     let fields = |ui: &mut Ui, events: &mut Vec<Event>| {
@@ -185,8 +234,7 @@ fn step_form(ui: &mut Ui, wizard: &Wizard, events: &mut Vec<Event>) {
 }
 
 /// The bar at the foot of the step: Close and Start over as quiet buttons at the left, Back and the step's Primary
-/// (Next, or Create on the last step) at the right; once the basic project is written, Apply the check level and
-/// Close.
+/// (Next, or Create on the last step) at the right; once the template is written, Close.
 fn footer(ui: &mut Ui, wizard: &Wizard, events: &mut Vec<Event>) {
     let t = components::tokens(ui);
     let mut push = |action: &'static str| events.push(Event::Action(action, Value::Null));
@@ -210,21 +258,9 @@ fn footer(ui: &mut Ui, wizard: &Wizard, events: &mut Vec<Event>) {
         // Right to left: the rightmost button first.
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
             if wizard.finished_dir().is_some() {
-                let apply = wizard.can_apply_check_scheme();
-                if apply
-                    && components::button(
-                        ui,
-                        Kind::Primary,
-                        strings::text(key!("wizard-apply-check-scheme")),
-                        true,
-                        0.0,
-                    )
+                if components::button(ui, Kind::Primary, strings::text(key!("wizard-close")), true, 0.0)
                     .clicked()
                 {
-                    push("wizard.apply_check_scheme");
-                }
-                let kind = if apply { Kind::Secondary } else { Kind::Primary };
-                if components::button(ui, kind, strings::text(key!("wizard-close")), true, 0.0).clicked() {
                     push("wizard.cancel");
                 }
                 return;
