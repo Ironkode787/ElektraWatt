@@ -29,6 +29,12 @@
 //! A route across a text must keep every other hard rule by the layout measures; where it does not, the job is
 //! routed with the texts as obstacles. The plan lists the routes across a text in `over_texts`.
 //!
+//! **The half grid, last** (ADR-0033 amendment 3). Where the page's grid gives no route, or one more than 8/5 of the
+//! direct way between the ends, the same search runs on half the grid (bodies and frame grown by half a step, a free
+//! pin's half step reserved too, a step between the grid lines only between the ends); its route is taken where the
+//! whole grid's is more than 8/5 of it or there is none. A stub point that another pin's wire leaves through is that
+//! wire's, also where it is an end's own stub (two poles wired cross-over).
+//!
 //! **Reasons.** A job left unrouted names the first rule its free route (against the fixed obstacles alone) breaks:
 //! the search is tried again without the other wires, then also without the texts, then also without the reserved
 //! points, then also without the bodies and the frame; the first relaxation that finds a route names the rule. With
@@ -183,7 +189,10 @@ fn frame_rects(page: &PageGeometry, g: i64, ends: &[Point]) -> Vec<Rect> {
     ]
 }
 
-/// The request of a route from `a` to `b` on `page` against the `wires` and with the `mates`' segments.
+/// The request of a route from `a` to `b` on `page` against the `wires` and with the `mates`' segments; with `half`,
+/// on half the page's grid (ADR-0033 amendment 3): the bodies and the frame grown by half a step, a step between the
+/// page's grid lines only between the ends ([`RouteRequest::half_grid`]), the other connection points' stubs and the
+/// texts as on the whole grid.
 fn request(
     page: &PageGeometry,
     (a, b): (&OneEnd, &OneEnd),
@@ -191,9 +200,12 @@ fn request(
     wires: &[[Point; 2]],
     mates: &[[Point; 2]],
     relax: Relax,
+    half: bool,
 ) -> RouteRequest {
     let (skip_points, skip_at) = skip;
     let g = step(page);
+    // The growth of the bodies and the frame: one step of the grid searched.
+    let gb = if half { g / 2 } else { g };
     let stub = |e: &OneEnd| {
         e.dir.map_or(e.at, |d| {
             let v = d.step();
@@ -229,9 +241,9 @@ fn request(
             {
                 continue;
             }
-            place(body.rep, grow(body.rect, g), &mut obstacles, &mut own);
+            place(body.rep, grow(body.rect, gb), &mut obstacles, &mut own);
         }
-        obstacles.extend(frame_rects(page, g, &[a.at, stub(a), b.at, stub(b)]));
+        obstacles.extend(frame_rects(page, gb, &[a.at, stub(a), b.at, stub(b)]));
     }
     // Rule 4: every text blocks, the ends' own included, across a stub too; the escape corridors
     // pass bodies only.
@@ -242,8 +254,17 @@ fn request(
     };
     let mut reserved: Vec<Point> = Vec::new();
     // An end's own stub is the end's way out: another CP facing it two steps away (the stacked valves of the persona
-    // re-test, port 4 under port 5) has its stub on the same point, which reserves it for neither.
-    let own_stubs = [a, b].map(|e| e.dir.map(|_| stub(e)));
+    // re-test, port 4 under port 5) has its stub on the same point, which reserves it for neither. Unless that point
+    // has a wire of its own: then the point is the other wire's way out, and a corner there would meet it (two
+    // poles wired cross-over, ADR-0033 amendment 3); on the half grid each takes a half step instead.
+    // Two stubs are one point when they snap to one grid node (a CP may sit up to 1 nm off a rational grid).
+    let grid = ew_units::Grid::new(
+        u64::try_from(page.grid.0).unwrap_or(0),
+        u64::try_from(page.grid.1).unwrap_or(0),
+    )
+    .ok();
+    let node = |p: Point| grid.map(|gr| (gr.snap(ew_units::Nm(p.0)), gr.snap(ew_units::Nm(p.1))));
+    let own_stubs = [a, b].map(|e| e.dir.map(|_| node(stub(e))));
     if !relax.points {
         for cp in &page.cps {
             if skip_points.contains(&cp.id) || skip_at.contains(&cp.at) {
@@ -253,8 +274,13 @@ fn request(
             if let Some(d) = cp.dir.as_ref().and_then(heading) {
                 let v = d.step();
                 let at = (cp.at.0 + v.0 * g, cp.at.1 + v.1 * g);
-                if !own_stubs.contains(&Some(at)) {
+                if !own_stubs.contains(&Some(node(at))) || !cp.connections.is_empty() {
                     reserved.push(at);
+                }
+                // On the half grid, a free connection point's half step too: a wire passing right in front of a pin
+                // reads as joined to it.
+                if half && cp.connections.is_empty() {
+                    reserved.push((cp.at.0 + v.0 * g / 2, cp.at.1 + v.1 * g / 2));
                 }
             }
         }
@@ -269,7 +295,11 @@ fn request(
         to: RouteEnd { at: b.at, dir: b.dir },
         obstacles,
         texts,
-        grid: page.grid,
+        grid: if half {
+            (page.grid.0, page.grid.1.saturating_mul(2))
+        } else {
+            page.grid
+        },
         area: whole(page),
         arrive: None,
         own,
@@ -278,6 +308,7 @@ fn request(
         cross_cost: CROSSING_COST,
         text_cost: Some(TEXT_COST),
         mates: mates.to_vec(),
+        half_grid: half,
     }
 }
 
@@ -352,13 +383,37 @@ fn length(line: &[Point]) -> i64 {
         .sum()
 }
 
+/// The route of the request `make` builds, on the page's grid ([`search_grid`]), else on its half grid (ADR-0033
+/// amendment 3): the half grid is tried last, where the whole grid gives no route or one more than [`FAR`] of the
+/// direct way, and its route is taken where the whole grid's is more than [`FAR`] of it or there is none.
+fn search_checked(
+    page: &PageGeometry,
+    make: impl Fn(bool) -> Option<RouteRequest>,
+    drawn: impl Fn() -> (PageGeometry, Uuid),
+) -> Option<(Vec<Point>, u32)> {
+    let req = make(false)?;
+    let whole = search_grid(page, &req, &drawn);
+    let (a, b) = (req.from.at, req.to.at);
+    let direct = (a.0 - b.0).abs() + (a.1 - b.1).abs();
+    let far = |longer: &[Point], than: i64| length(longer) * FAR.1 > than * FAR.0;
+    if whole.as_ref().is_some_and(|(r, _)| !far(r, direct)) {
+        return whole;
+    }
+    let half = make(true).and_then(|req| search_grid(page, &req, &drawn));
+    match (whole, half) {
+        (Some(w), Some(h)) if !far(&w.0, length(&h.0)) => Some(w),
+        (w, None) => w,
+        (_, h) => h,
+    }
+}
+
 /// [`search_areas`] with a route across a text taken only where every text-clear route is far longer ([`FAR`]) or
 /// none exists, and where it keeps every other hard rule on `drawn` as connection `id` ([`keeps_all_but_texts`]);
 /// else the route with the texts as obstacles.
-fn search_checked(
+fn search_grid(
     page: &PageGeometry,
     req: &RouteRequest,
-    drawn: impl Fn() -> (PageGeometry, Uuid),
+    drawn: &impl Fn() -> (PageGeometry, Uuid),
 ) -> Option<(Vec<Point>, u32)> {
     let found = search_areas(page, req)?;
     if !crosses_text(page, &found.0) {
@@ -473,8 +528,16 @@ impl Solve<'_> {
         })
     }
 
-    /// The request of `job` against the fixed wires and the routes of `state` (none with `alone`).
-    fn request(&self, job: Uuid, state: &State, alone: bool, relax: Relax) -> Option<RouteRequest> {
+    /// The request of `job` against the fixed wires and the routes of `state` (none with `alone`), on the half grid
+    /// with `half`.
+    fn request(
+        &self,
+        job: Uuid,
+        state: &State,
+        alone: bool,
+        relax: Relax,
+        half: bool,
+    ) -> Option<RouteRequest> {
         let [a, b] = self.ends.get(&job)?;
         let mut wires = self.fixed.clone();
         if !alone {
@@ -499,6 +562,7 @@ impl Solve<'_> {
             &wires,
             &mates,
             relax,
+            half,
         ))
     }
 
@@ -508,10 +572,12 @@ impl Solve<'_> {
         if self.four_arms(job, state) {
             return false;
         }
-        let found = self
-            .request(job, state, false, Relax::default())
-            .and_then(|req| search_checked(self.page, &req, || (self.drawn(state), job)))
-            .filter(|(r, _)| !defer || !crosses_text(self.page, r));
+        let found = search_checked(
+            self.page,
+            |half| self.request(job, state, false, Relax::default(), half),
+            || (self.drawn(state), job),
+        )
+        .filter(|(r, _)| !defer || !crosses_text(self.page, r));
         match found {
             Some(r) => {
                 state.routes.insert(job, r);
@@ -558,7 +624,7 @@ impl Solve<'_> {
                 continue;
             }
             let free = self
-                .request(f, &state, true, Relax::default())
+                .request(f, &state, true, Relax::default(), false)
                 .and_then(|req| search_areas(self.page, &req));
             let Some((free, _)) = free else { continue };
             // The routed jobs the free route meets, and every routed job after the first of them in the order: they
@@ -629,7 +695,7 @@ impl Solve<'_> {
         ];
         for (relax, why) in tries {
             let found = self
-                .request(job, state, false, relax)
+                .request(job, state, false, relax, false)
                 .and_then(|req| search_areas(self.page, &req));
             if found.is_some() {
                 return why;
@@ -823,15 +889,20 @@ pub fn route_one(
     to: OneEnd,
     arrive: Option<Heading>,
 ) -> Option<Vec<Point>> {
-    let mut req = request(
-        page,
-        (&from, &to),
-        (&[], &[from.at, to.at]),
-        &routed_wires(page),
-        &[],
-        Relax::default(),
-    );
-    req.arrive = arrive;
+    let wires = routed_wires(page);
+    let make = |half| {
+        let mut req = request(
+            page,
+            (&from, &to),
+            (&[], &[from.at, to.at]),
+            &wires,
+            &[],
+            Relax::default(),
+            half,
+        );
+        req.arrive = arrive;
+        Some(req)
+    };
     // The route as a connection between the ends' CPs or junctions, so that the measures judge it.
     let drawn = || {
         let id = Uuid::nil();
@@ -864,7 +935,7 @@ pub fn route_one(
         });
         (drawn, id)
     };
-    search_checked(page, &req, drawn).map(|(points, _)| points)
+    search_checked(page, make, drawn).map(|(points, _)| points)
 }
 
 /// Whether `route` as the polyline of connection `id` of `page` breaks no hard rule but (d), a text: no touch, no
@@ -916,6 +987,7 @@ pub fn clear_one(
         &routed_wires(&page),
         &[],
         Relax::default(),
+        false,
     );
     req.arrive = arrive;
     // The direct route through a terminal keeps clear of the texts as before.

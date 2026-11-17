@@ -357,6 +357,12 @@ pub fn on_grid(grid: Grid, x: Nm) -> bool {
     grid.snap_point(x) == Some(x)
 }
 
+/// Whether a coordinate is a position of the half grid of `grid` (half its step): where a wire's corner may stand
+/// between close pins (ADR-0033 amendment 3). A grid of 1 nm has no half grid.
+pub fn on_half_grid(grid: Grid, x: Nm) -> bool {
+    on_grid(grid, x) || Grid::new(grid.num(), grid.den().saturating_mul(2)).is_ok_and(|h| on_grid(h, x))
+}
+
 /// Whether both coordinates of a point are grid positions.
 pub fn point_on_grid(grid: Grid, p: Pt2) -> bool {
     on_grid(grid, p.x) && on_grid(grid, p.y)
@@ -458,9 +464,10 @@ pub fn require_split_point(
 /// - an end at a CP that a representation on `page` draws must be exactly that CP's position (route
 ///   vertex 0 at endpoint `a`, the last vertex at endpoint `b`), and an end at a junction on `page` exactly the
 ///   junction's point (a route holds both ends);
-/// - every coordinate of every vertex lies on the page's connection grid, or equals that coordinate of
-///   a route end that meets its CP: a CP position can sit up to 1 nm off a rational grid (the rounding
-///   pitfall of `Grid::cell`), and the segment leaving it stays orthogonal;
+/// - every coordinate of every vertex lies on the page's connection grid or its half grid (a corner between close
+///   pins, ADR-0033 amendment 3), or equals that coordinate of a route end that meets its CP: a CP position can sit
+///   up to 1 nm off a rational grid (the rounding pitfall of `Grid::cell`), and the segment leaving it stays
+///   orthogonal;
 /// - every vertex lies within ±[`MAX_COORD`];
 /// - the route is tidy ([`route_defect`]): no vertex repeats the one before it, and no segment
 ///   runs over another one (a stretch of positive length shared on one line, a doubling back included).
@@ -563,8 +570,8 @@ pub fn require_route(
         exact.push(cp);
     }
     for (i, v) in route.iter().enumerate() {
-        let ok_x = on_grid(grid, v.x) || exact.iter().any(|c| c.x == v.x);
-        let ok_y = on_grid(grid, v.y) || exact.iter().any(|c| c.y == v.y);
+        let ok_x = on_half_grid(grid, v.x) || exact.iter().any(|c| c.x == v.x);
+        let ok_y = on_half_grid(grid, v.y) || exact.iter().any(|c| c.y == v.y);
         if !(ok_x && ok_y) {
             return tx.reject(text!(
                 "refusal-geometry-corner-onto-grid",

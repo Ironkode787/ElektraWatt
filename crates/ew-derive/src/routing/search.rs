@@ -13,7 +13,8 @@
 //! ([`RouteRequest::mates`], §5.4), no move back against the arriving heading (a U-turn would cost one bend
 //! only). A node whose page point lies strictly inside an obstacle rectangle is blocked, and a move that
 //! runs through the open inside of one is not taken (a text thinner than a grid step lies between two
-//! nodes); the two ends, their nearest grid nodes and their stub nodes are never blocked, nor the move from
+//! nodes); the two ends, their nearest grid nodes and their stub nodes are never blocked (but a stub node on another
+//! wire's vertex, below), nor the move from
 //! a CP end to its stub but by a text across it ([`RouteRequest::texts`]: 1 rule 4 has no exemption). The
 //! nodes of the [`RouteRequest::reserved`] points (the other CPs and their stubs) are blocked. A CP end
 //! (one with a leaving direction) first leaves one step along its direction (the stub) and is entered along the
@@ -39,7 +40,14 @@
 //! (`⌊num/den⌋ − 1` nm, so that a coordinate 1 nm off a rational grid still parts by a step) whose extent overlaps
 //! it with a positive length is not taken, and the node of every vertex of another connection (its ends and
 //! corners) is blocked, so a route crosses another wire only at a right angle through the inside of a segment. The
-//! moves of the ends' corridors are exempt (a second wire on a CP leaves along the same stub).
+//! moves of the ends' corridors are exempt (a second wire on a CP leaves along the same stub). An end's stub node
+//! on another wire's vertex stays blocked, but where that wire leaves the same end along the stub: two corners of
+//! different wires never meet in one point, and a corner never lies on another wire's end (ADR-0033 amendment 3).
+//!
+//! **The half grid** ([`RouteRequest::half_grid`]). A search on half the page's grid (amendment 3) takes a move
+//! along a track at an odd index, between the page's grid lines, only between the two ends (its track strictly
+//! between their coordinates across it, both its nodes within their bounding box), and prices it [`STEP_COST`]
+//! more, so that its route leaves the grid lines only for the stretch between close pins that needs it.
 //!
 //! **The tie rule** (NFR-REL-07). Among the paths of least cost the result is the least by (bends, length, move
 //! sequence), the move sequence being the whole list of unit moves from the first end to the second, each ranked
@@ -187,6 +195,10 @@ pub struct RouteRequest {
     /// second in its route's direction: a unit move one grid step beside one, within its extent and in its heading,
     /// costs [`MATE_STEP_COST`] instead of [`STEP_COST`]. Empty: no mate.
     pub mates: Vec<[(i64, i64); 2]>,
+    /// Whether `grid` is half the page's grid (ADR-0033 amendment 3): a unit move along a track at an odd index,
+    /// between the page's grid lines, is taken only between the two ends and costs [`STEP_COST`] more (module
+    /// documentation). `false`: every track alike.
+    pub half_grid: bool,
 }
 
 /// A route and how it was found.
@@ -229,6 +241,9 @@ struct Space {
     text_cost: Option<u32>,
     /// The nodes strictly inside a text while texts cost ([`RouteRequest::text_cost`]).
     text_node: Vec<bool>,
+    /// On a half-grid search ([`RouteRequest::half_grid`]), the index box of the two ends, `(lo, hi)`: a move along
+    /// a track at an odd index is taken only inside it, and costs a step more.
+    half: Option<((i64, i64), (i64, i64))>,
 }
 
 /// A mate beside a move in its forward heading (right or down).
@@ -257,7 +272,25 @@ impl Space {
         };
         // While texts cost, a move over a text is free to take.
         let hard = if self.text_cost.is_some() { !OVER_TEXT } else { !0 };
-        self.node(from).is_some_and(|n| bits[n] & hard == 0)
+        // On the half grid, a move between the page's grid lines only between the ends.
+        let between = self.half.is_none_or(|(lo, hi)| {
+            let q = (p.0 + m.step().0, p.1 + m.step().1);
+            let inside = |v: (i64, i64)| lo.0 <= v.0 && v.0 <= hi.0 && lo.1 <= v.1 && v.1 <= hi.1;
+            let (track, a, b) = if m.vertical() {
+                (p.0, lo.0, hi.0)
+            } else {
+                (p.1, lo.1, hi.1)
+            };
+            !Self::off_line(p, m) || (a < track && track < b && inside(p) && inside(q))
+        });
+        between && self.node(from).is_some_and(|n| bits[n] & hard == 0)
+    }
+
+    /// Whether the unit move `m` from the index point `p` runs along a track at an odd index: on a half-grid search,
+    /// between the page's grid lines.
+    fn off_line(p: (i64, i64), m: Heading) -> bool {
+        let track = if m.vertical() { p.0 } else { p.1 };
+        track % 2 != 0
     }
 
     /// The flags of the move from the index point `p` to its neighbour `q` (0 outside the bounds).
@@ -308,8 +341,14 @@ impl Space {
             }
             _ => 0,
         };
+        let half = if self.half.is_some() && Self::off_line(p, m) {
+            STEP_COST
+        } else {
+            0
+        };
         step.saturating_add(self.cross_cost.saturating_mul(u32::from(cross[n])))
             .saturating_add(text)
+            .saturating_add(half)
     }
 
     fn node(&self, p: (i64, i64)) -> Option<usize> {
@@ -527,6 +566,9 @@ fn prepare(req: &RouteRequest) -> Option<Prepared> {
         cross_cost: req.cross_cost,
         text_cost: req.text_cost,
         text_node: Vec::new(),
+        half: req
+            .half_grid
+            .then(|| ((s.0.min(t.0), s.1.min(t.1)), (s.0.max(t.0), s.1.max(t.1)))),
     };
     // A node is blocked when its page point lies strictly inside an obstacle; a move is not taken when it runs
     // through the open inside of one (a text thinner than a grid step lies between two nodes).
@@ -721,7 +763,23 @@ fn prepare(req: &RouteRequest) -> Option<Prepared> {
     for (n, b) in blocked.iter_mut().enumerate() {
         *b |= own[n];
     }
-    for p in [Some(s), Some(t), s1, t1].into_iter().flatten() {
+    // A stub node that holds a vertex of another wire stays blocked, but for a wire that leaves the same end along
+    // that stub: two corners of different wires in one point, or a corner on another wire's end, read as a joint
+    // (ADR-0033 amendment 3). So does a reserved one (another connection point's stub that the caller keeps).
+    let taken = |stub: (i64, i64), end: (i64, i64)| {
+        req.reserved.iter().any(|p| (idx(p.0), idx(p.1)) == stub)
+            || req.wires.iter().flat_map(|w| [w[0], w[1]]).any(|v| {
+                (idx(v.0), idx(v.1)) == stub
+                    && !req
+                        .wires
+                        .iter()
+                        .any(|w| (w[0] == end && w[1] == v) || (w[1] == end && w[0] == v))
+            })
+    };
+    let stubs = [(s1, from.at), (t1, to.at)]
+        .into_iter()
+        .filter_map(|(p, end)| p.filter(|&p| !taken(p, end)));
+    for p in [s, t].into_iter().chain(stubs) {
         if let Some(n) = space.node(p) {
             blocked[n] = false;
         }
@@ -989,6 +1047,7 @@ mod tests {
             cross_cost: 0,
             text_cost: None,
             mates: Vec::new(),
+            half_grid: false,
         }
     }
 
@@ -1181,6 +1240,7 @@ mod tests {
             cross_cost: 0,
             text_cost: None,
             mates: Vec::new(),
+            half_grid: false,
         };
         let r = auto_route(&request);
         assert_eq!(r.first(), Some(&a.at));
@@ -1227,6 +1287,7 @@ mod tests {
             cross_cost: 0,
             text_cost: None,
             mates: Vec::new(),
+            half_grid: false,
         };
         assert!(route(&edge).direct);
     }

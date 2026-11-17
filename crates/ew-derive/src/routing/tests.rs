@@ -418,6 +418,7 @@ proptest::proptest! {
             cross_cost: 0,
             text_cost: None,
             mates: Vec::new(),
+            half_grid: false,
         };
         let routed = route(&rq);
         if !routed.direct {

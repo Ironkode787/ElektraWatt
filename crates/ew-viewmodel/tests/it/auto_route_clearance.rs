@@ -495,15 +495,11 @@ fn a_click_inside_a_symbol_places_no_bend() {
     );
 }
 
-/// rc.3 (the owner's case): a two-pole breaker over another, two grid steps between the upper's bottom pins and the
-/// lower's top pins, wired cross-over (left above to right below and the other way round). Drawn, the second wire
-/// with a free point on the first wire's corner the way he drew it, and then rerouted, the page keeps every hard rule:
-/// no wire runs through a pin it does not join or along another wire. Reroute applies at once, in one undo step.
-#[test]
-fn two_breakers_wired_cross_over_keep_the_hard_rules_drawn_and_rerouted() {
+/// The owner's case (rc.3): a two-pole breaker over another, two grid steps between the upper's bottom pins and the
+/// lower's top pins, in a new project; the upper's bottom pins and the lower's top pins, each left to right.
+fn breakers_over_one_another(tmp: &Tmp) -> (ShellModel, Vec<TableCp>, Vec<TableCp>) {
     use ew_viewmodel::ew_api::geometry::Dir;
-    let tmp = Tmp::new("rc3-cross-over");
-    let mut s = new_project(&tmp);
+    let mut s = new_project(tmp);
     let place = |s: &mut ShellModel, k: (i64, i64)| {
         let before = tables(s).reps.clone();
         done(s, "place.pick", json!({"part": "EW-GEN-MCB-2", "template": 0}));
@@ -530,6 +526,63 @@ fn two_breakers_wired_cross_over_keep_the_hard_rules_drawn_and_rerouted() {
         2,
         "two grid steps apart"
     );
+    (s, bottom, top)
+}
+
+/// The two wires wired cross-over read as the owner asked (ADR-0033 amendment 3): every hard rule kept, one crossing
+/// between the two, no corner of one on a corner or an end of the other (it reads as a joint), and neither a detour
+/// (more than 8/5 of the way between its pins).
+#[track_caller]
+fn crossed_once(s: &ShellModel, wires: [ew_viewmodel::ew_api::output::Uuid; 2]) {
+    let page = s.canvas().unwrap().page();
+    let m = ew_viewmodel::ew_api::routing::measure(&page.geometry);
+    assert_eq!(m.hard(), 0, "{m:?}");
+    let crossings: Vec<_> = m
+        .crossings
+        .iter()
+        .filter(|c| wires.contains(&c.connections[0]) && wires.contains(&c.connections[1]))
+        .collect();
+    assert_eq!(crossings.len(), 1, "{:?}", m.crossings);
+    let line = |id| {
+        let c = page.tables.connections.iter().find(|c| c.id == id).expect("the wire");
+        assert!(c.stored_route, "routed");
+        c.polyline.clone()
+    };
+    let (a, b) = (line(wires[0]), line(wires[1]));
+    let corners = |l: &[(i64, i64)]| l[1..l.len() - 1].to_vec();
+    assert!(
+        corners(&a).iter().all(|p| !b.contains(p)) && corners(&b).iter().all(|p| !a.contains(p)),
+        "corners meet: {a:?} {b:?}"
+    );
+    for l in [&a, &b] {
+        let (first, last) = (l[0], l[l.len() - 1]);
+        let direct = (first.0 - last.0).abs() + (first.1 - last.1).abs();
+        let length: i64 = l.windows(2).map(|w| (w[0].0 - w[1].0).abs() + (w[0].1 - w[1].1).abs()).sum();
+        assert!(length * 5 <= direct * 8, "a detour: {l:?}");
+    }
+}
+
+/// rc.3 (the owner's case): the two breakers wired cross-over with two clicks per wire, as freshly drawn, cross once
+/// and run straight otherwise; Reroute on the page gives the same.
+#[test]
+fn two_breakers_wired_cross_over_cross_once_drawn_and_rerouted() {
+    let tmp = Tmp::new("rc3-cross-drawn");
+    let (mut s, bottom, top) = breakers_over_one_another(&tmp);
+    let first = wire(&mut s, bottom[1].at, top[0].at);
+    let second = wire(&mut s, top[1].at, bottom[0].at);
+    done(&mut s, "tool.select", json!({}));
+    crossed_once(&s, [first.id, second.id]);
+    done(&mut s, "route.reroute", json!({}));
+    crossed_once(&s, [first.id, second.id]);
+}
+
+/// rc.3 (the owner's case): the second wire drawn with a free point on the first wire's corner, the way he drew it,
+/// keeps every hard rule; Reroute on both mends the corners that meet there, in one undo step, and the two then cross
+/// once and run straight otherwise.
+#[test]
+fn two_breakers_wired_cross_over_keep_the_hard_rules_drawn_and_rerouted() {
+    let tmp = Tmp::new("rc3-cross-over");
+    let (mut s, bottom, top) = breakers_over_one_another(&tmp);
     let clean = |s: &ShellModel| {
         let m = ew_viewmodel::ew_api::routing::measure(&s.canvas().unwrap().page().geometry);
         assert!(
@@ -560,7 +613,7 @@ fn two_breakers_wired_cross_over_keep_the_hard_rules_drawn_and_rerouted() {
         .expect("the second wire")
         .clone();
     clean(&s);
-    // Reroute both: at most one undo step, the rules kept.
+    // Reroute both: one undo step, then one crossing.
     done(
         &mut s,
         "select.set",
@@ -568,6 +621,6 @@ fn two_breakers_wired_cross_over_keep_the_hard_rules_drawn_and_rerouted() {
     );
     let rev = s.revision();
     done(&mut s, "route.reroute", json!({}));
-    assert!(s.revision() == rev || s.revision() == rev.map(|r| r + 1));
-    clean(&s);
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one step");
+    crossed_once(&s, [first.id, second.id]);
 }

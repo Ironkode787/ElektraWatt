@@ -222,6 +222,7 @@ fn routed(a: (Pt2, Heading), b: (Pt2, Heading)) -> Vec<Pt2> {
         cross_cost: 0,
         text_cost: None,
         mates: Vec::new(),
+        half_grid: false,
     };
     auto_route(&req).into_iter().map(|(x, y)| pt(x, y)).collect()
 }

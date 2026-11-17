@@ -1224,7 +1224,10 @@ an end on a selected representation, or with nothing of the page selected every 
 again as if freshly drawn (`RouteScope::Selection`) and applied at once, the routes that change in one
 `connection.route_many` (one undo step), with no card; the toast says "3 wires rerouted." or "No better route found:
 the wires keep their routes.", each followed by the reasons of the wires left as they were. A route is edited by hand
-with the selected wire's round handles (Select's segment and bend drag, doc 16a §7.1). The layout measures are the check rules EW-CORE-067 to -070, -072 and -073 (doc 15 §4).
+with the selected wire's round handles (Select's segment and bend drag, doc 16a §7.1). *As built (rc.3, ADR-0033
+amendment 3).* The Wire tool and Reroute never put a corner on another wire's corner or end, and where the grid gives
+close pins no route or only one more than 8/5 of the direct way, they step on the half grid between the two ends:
+two two-pole devices wired cross-over, two grid steps apart, cross once between them. The layout measures are the check rules EW-CORE-067 to -070, -072 and -073 (doc 15 §4).
 
 ### 5.5 Physical wires behind junctions and IPs
 
@@ -1261,7 +1264,8 @@ autoconnect proposals, in the graphic, text and route-edit tools it suspends obj
 never leave the connection grid in any tool. All snapping works on grid indices, never on float equality
 (ADR-0005). The grid rule binds every origin, scripts, command logs and MCP included: a command
 rejects a position off the page's connection grid (`Page.grid`, ADR-0027) and a route with a point off the grid or
-an end that does not meet its CP. GUI tools snap before they issue the command, so they never meet the rejection.
+an end that does not meet its CP (a route's corner may stand half way between two grid lines, where the router steps
+between close pins: ADR-0033 amendment 3). GUI tools snap before they issue the command, so they never meet the rejection.
 
 *As built.* Picking is on the display list's entity
 rectangles, as in WP-S2.02's hover, until the spatial index: `page_spatial_index` with exact kurbo picking and the

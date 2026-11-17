@@ -126,6 +126,31 @@ The decision text above is unchanged; these entries refine it.
    Golden A's routes are unchanged at this cost. In the same round, a symbol drawn with a connection point on an end's
    point (an interruption point drawn on a pin) is that end's own for rule (c): the wire leaves the pin through it, as
    through the pin's own symbol (the persona's 0 V wire stayed unrouted under such a point).
+3. **Half steps between close pins; corners never meet** (2026-11-17, the owner's rc.2 test; decided by the
+   coordinator under the owner's delegation). A two-pole switch over a two-pole breaker, two grid steps between the
+   rows of pins, wired cross-over: Reroute gave one wire a detour round the switch, and its corner met the other
+   wire's corner in one point, which reads as a joint and is none. Two wires that change sides between two columns
+   cross once, and each needs a row of its own to step sideways on; on the whole grid this place has one row, which
+   is both wires' stub. Decision 5 is refined in three ways:
+   - **Corners never meet.** A route never puts a corner on another wire's corner or end, when it is drawn and when
+     it is rerouted, a hard rule like "never through a pin" (the search blocks every vertex of another wire, an end's
+     stub included, but where that wire leaves the same pin along the stub). Amendment 1's shared stub (a free
+     connection point facing an end two steps away) is still the end's own; a stub point that another connection
+     point's wire leaves through is that wire's. Reroute mends an older drawing with such a place. No check reports
+     it (the reference drawing would grow findings).
+   - **The half grid, last.** Where the whole grid gives no route, or one more than 8/5 of the direct way between the
+     ends (amendment 2's measure), the router searches half the page's grid: bodies and the frame grown by half a
+     step, the stubs of the other pins and the texts as before, a free pin's half step kept too (a wire passing right
+     in front of a pin reads as joined to it). A step between the page's grid lines is taken only between the two
+     ends (its track strictly between their coordinates, within their box) and costs a step more, so the route
+     leaves the grid lines only for the stretch that needs it. Its route is taken where the whole grid's is more than
+     8/5 of it or there is none. The owner's two wires then leave their pins by half a step, cross once between the
+     devices and run straight otherwise.
+   - **Commands accept a corner on the half grid** (`require_route`): a stored route's interior corner may lie on
+     the page's grid or half way between two of its lines. The format is unchanged (a route is a list of points);
+     an older build draws such a route as stored.
+
+   Golden A's routes are stored and not rerouted; its pictures and its routes are unchanged by this.
 
 ## Related
 
