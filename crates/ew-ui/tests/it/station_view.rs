@@ -337,6 +337,10 @@ fn what_is_wrong_is_said_at_the_place_with_its_fix() {
         "at the slot it was refused at"
     );
     h.get_by_label(&why);
+    assert!(
+        why.starts_with(&first.tag) && !why.contains("EW-PLC-011"),
+        "a sentence about the module, the rule's code left to the findings: {why}"
+    );
     assert_eq!(modules(&h, id)[0].slot, 1, "the module stays where it was");
     // In the catalogue the part is greyed for slot 3 (the free slot after a second module), with the reason.
     take(&mut h, "EW-GEN-DI-1");

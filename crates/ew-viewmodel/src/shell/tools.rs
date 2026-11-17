@@ -1599,16 +1599,16 @@ pub(crate) fn rejected_words(reason: &str, text: Option<&ew_api::Text>) -> Strin
     text.map_or_else(|| reason.to_owned(), words)
 }
 
-/// A prevent rule's refusal in the window's language, after its rule code: a finding of the
-/// commands' own by its key, a finding of the check catalogue by the rule's message rendered from its arguments, else
-/// the finding as it prints.
+/// A prevent rule's refusal in the window's language, as a sentence without the rule's code (the code belongs in the
+/// findings list and the help): a finding of the commands' own by its key, a finding of the check catalogue by the
+/// rule's message rendered from its arguments, else the finding as it prints.
 pub(crate) fn prevented_words(
     rule: &str,
     finding: &str,
     args: &[(&'static str, String)],
     text: Option<&ew_api::Text>,
 ) -> String {
-    let words = match (text, ew_api::checks::rule(rule)) {
+    match (text, ew_api::checks::rule(rule)) {
         (Some(t), _) => rejected_words(finding, Some(t)),
         (None, Some(r)) if !args.is_empty() => {
             let f = args.iter().fold(
@@ -1618,8 +1618,7 @@ pub(crate) fn prevented_words(
             ew_api::checks::messages::render(&f, strings::rule_language())
         }
         _ => finding.to_owned(),
-    };
-    format!("{rule}: {words}")
+    }
 }
 
 /// A command error that is neither an invalid parameter nor a command's refusal in the window's language, as
@@ -1650,7 +1649,7 @@ const COMMAND_ERROR_KEYS: &[&str] = &[
 
 /// The key and the arguments of a command error that is neither an invalid parameter nor a command's refusal:
 /// the command by its title, a history or internal error with its text, a prevent rule or a model
-/// error as it prints after its rule code. The match names every reason, so a new one does not build until it has its key.
+/// error in its words without its rule code. The match names every reason, so a new one does not build until it has its key.
 fn command_error_text(e: &CmdError) -> (Key<'static>, Vec<String>) {
     let title = |c: &str| strings::command_title(c).to_owned();
     match e {
@@ -1666,8 +1665,8 @@ fn command_error_text(e: &CmdError) -> (Key<'static>, Vec<String>) {
             }
         },
         CmdError::NeedsPreview { command } => (key!("error-command-needs-preview"), vec![title(command)]),
-        // A prevent rule's and the model's own words, after their rule code (`EW-CORE-052: …`), which the IP tool and
-        // the card read, in the window's language.
+        // A prevent rule's and the model's own words, without their rule code, which the IP tool and the card read,
+        // in the window's language.
         CmdError::Prevented {
             rule,
             finding,

@@ -216,11 +216,12 @@ pub(crate) fn model_error_text(
         ModelError::StaleBefore { .. } => text!("refusal-model-stale"),
         ModelError::DuplicateRecord { key } => text!("refusal-model-duplicate", name(*key)),
         ModelError::DuplicateUnknownRecord { kind, .. } => text!("refusal-model-duplicate-unknown", kind),
+        // The rule in words; its code stays in the error as it prints.
         ModelError::Invariant { id, keys, .. } => {
             let statement = invariant_text(id)?;
             match keys.first() {
-                Some(k) => text!("refusal-model-invariant", *id, statement, name(*k)),
-                None => text!("refusal-model-invariant-bare", *id, statement),
+                Some(k) => text!("refusal-model-invariant", statement, name(*k)),
+                None => text!("refusal-model-invariant-bare", statement),
             }
         }
         ModelError::RevNotIncreasing { .. }
@@ -614,7 +615,7 @@ mod tests {
             words,
             [
                 Some("a device cannot be removed: a device still names it"),
-                Some("EW-INV-017: revision labels are unique (a revision)"),
+                Some("this would break the rule that revision labels are unique (a revision)"),
                 None,
             ]
         );
@@ -644,7 +645,9 @@ mod tests {
                 assert_eq!(m.to_string(), printed);
                 assert_eq!(
                     text.map(|t| t.to_string()).as_deref(),
-                    Some("EW-INV-010: a device is at most one of a terminal, a strip and a cable (a device)")
+                    Some(
+                        "this would break the rule that a device is at most one of a terminal, a strip and a cable (a device)"
+                    )
                 );
             }
             other => panic!("{other:?}"),
