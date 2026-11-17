@@ -49,13 +49,10 @@ pub fn group_words(group: TextStyleGroup) -> &'static str {
     })
 }
 
-/// A typeface's name.
-pub fn face_words(face: &Typeface) -> &'static str {
-    strings::text(match face {
-        Typeface::Narrow => key!("text-styles-face-narrow"),
-        Typeface::Mono => key!("text-styles-face-mono"),
-        Typeface::Standard | Typeface::Unknown(_) => key!("text-styles-face-standard"),
-    })
+/// A typeface's name: the choice word of its member's word (`choice-narrow`), the standard face's for a face of a
+/// newer format.
+pub fn face_words(face: &Typeface) -> String {
+    strings::choice_text(face.word().unwrap_or("standard"))
 }
 
 /// A cap height in mm with at most two decimals, trailing zeros left out, as the UI language writes it (`1,8`).
@@ -311,7 +308,11 @@ impl ShellModel {
         let name = ew_api::checks::messages::text_style_name(&key, lang);
         let note = strings::format(
             key!("text-styles-note-set"),
-            &[&name, &height_text(cap_height(style.em)), face_words(&style.face)],
+            &[
+                &name,
+                &height_text(cap_height(style.em)),
+                &face_words(&style.face),
+            ],
         );
         self.commit_text_styles(&[style], note)
     }
@@ -373,7 +374,7 @@ impl ShellModel {
 }
 
 /// The faces of the page's typeface list, in order, with their names.
-pub fn faces() -> Vec<(Typeface, &'static str)> {
+pub fn faces() -> Vec<(Typeface, String)> {
     TYPEFACES.iter().map(|f| (f.clone(), face_words(f))).collect()
 }
 

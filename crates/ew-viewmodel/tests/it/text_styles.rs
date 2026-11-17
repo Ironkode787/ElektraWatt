@@ -53,7 +53,11 @@ fn a_text_too_small_to_read_opens_text_styles_where_it_is_mended() {
         label,
         "Wire marker prints 0.94 mm high, too small to read on paper (1.20 mm at least). Make it larger in Text styles."
     );
-    done(&mut shell, "navigator.open", json!({"kind": "messages", "key": key}));
+    done(
+        &mut shell,
+        "navigator.open",
+        json!({"kind": "messages", "key": key}),
+    );
     let Some(Dialog::TextStyles(d)) = shell.dialog() else {
         panic!("Text styles opens: {:?}", shell.dialog());
     };
@@ -65,7 +69,11 @@ fn a_text_too_small_to_read_opens_text_styles_where_it_is_mended() {
         "{marker}"
     );
 
-    done(&mut shell, "text_styles.set", json!({"style": "marker", "height": "2,5"}));
+    done(
+        &mut shell,
+        "text_styles.set",
+        json!({"style": "marker", "height": "2,5"}),
+    );
     let marker = row(&shell, "Wire marker");
     assert!(
         marker.contains(": 2.5 mm, Standard") && !marker.contains("too small"),
@@ -78,7 +86,10 @@ fn a_text_too_small_to_read_opens_text_styles_where_it_is_mended() {
     assert!(row(&shell, "Wire marker").contains("1.32 mm"));
     assert!(row(&shell, "Connection point").contains("1.32 mm"));
     done(&mut shell, "ui.dismiss", json!({}));
-    assert_eq!(findings(&mut shell, "EW-CORE-061"), Vec::<(String, String)>::new());
+    assert_eq!(
+        findings(&mut shell, "EW-CORE-061"),
+        Vec::<(String, String)>::new()
+    );
 }
 
 /// A typeface and bold change the drawing's texts: the device tags of the open page print in the narrow face, bold;

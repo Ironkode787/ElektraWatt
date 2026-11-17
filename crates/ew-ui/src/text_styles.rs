@@ -183,14 +183,17 @@ fn style_row(ui: &mut Ui, t: &theme::Tokens, row: &TextStyleRow, writable: bool,
 /// The typeface list of a row.
 fn face_combo(ui: &mut Ui, t: &theme::Tokens, row: &TextStyleRow, events: &mut Vec<Event>) {
     let list = faces();
-    let shown = list.iter().find(|(f, _)| *f == row.face).map_or("", |(_, w)| *w);
+    let shown = list
+        .iter()
+        .find(|(f, _)| *f == row.face)
+        .map_or("", |(_, w)| w.as_str());
     let combo = egui::ComboBox::from_id_salt(("text-style-face", &row.key))
         .selected_text(shown)
         .width(t.size_dialog_label * 0.9)
         .icon(components::combo_chevron)
         .show_ui(ui, |ui| {
             for (face, words) in &list {
-                if ui.selectable_label(*face == row.face, *words).clicked() && *face != row.face {
+                if ui.selectable_label(*face == row.face, words.as_str()).clicked() && *face != row.face {
                     events.push(Event::Action(
                         "text_styles.set",
                         json!({ "style": row.key, "face": face.word() }),

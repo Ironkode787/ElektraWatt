@@ -115,7 +115,8 @@ The owner's test of 0.3.0-rc.2 found the styles unreachable and their names unkn
 - **The face** is typed: `face` (`standard`, `narrow`, `mono`; an open enum, a newer value read as standard and kept),
   an additive member of an entry (ADR-0028 amendment 2). Italic stays untyped: no italic face is bundled.
 - **`terminal`** is a new built-in row, the terminal's number, at `tag.main`'s 13 px so that a project that sets
-  nothing prints as before (Golden A unchanged); the shipped terminal symbols name it in their tag slot. A new project
+  nothing prints as before (Golden A unchanged); the tag of a terminal symbol (its function `ew.fn.terminal…`) prints in
+  it, the default binding of `ew_schema::slot_default_style`, which the scene and EW-CORE-061 share. A new project
   writes it at a cap height of 1.8 mm (`NEW_PROJECT_TEXT_STYLES`), below the device tag's, beside `cp.small` and
   `marker` at 7 px; every style of a new project prints at least 1.2 mm high (decision 3 extended).
 - **A free text's own height** is the additive member `FreeText.height` (a cap height); its style is chosen by name in

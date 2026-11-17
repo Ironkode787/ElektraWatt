@@ -511,7 +511,7 @@ fn golden_a_d21_unbonded_x1032_is_one_pe_island() {
     assert!(
         islands[0]
             .message
-            .starts_with("+J-E-2416 holds 2 PE potentials: "),
+            .starts_with("+J-E-2416 has 2 protective-earth networks that do not meet: "),
         "{}",
         islands[0].message
     );

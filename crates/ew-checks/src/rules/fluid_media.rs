@@ -766,7 +766,8 @@ impl Rule for NoSupply {
                         format!("gallery {}", cp_text(q, *first)),
                         full_tag(q, d, "device"),
                         format!(
-                            "{vt}: no compressed air reaches its valves, because nothing feeds the terminal's supply. Draw \
+                            "{vt}: no compressed air reaches its valves, because nothing feeds the valve terminal's \
+                             supply. Draw \
                              the supply line to its supply port, or use Define medium at port there."
                         ),
                     )

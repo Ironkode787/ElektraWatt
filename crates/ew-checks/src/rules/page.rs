@@ -18,7 +18,7 @@ use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::natural_cmp;
 use ew_derive::ew_schema::{
     AnyId, Connection, Device, EffectiveStyle, Function, GraphicShape, Junction, Kind, Page, PageItem,
-    PageItemKind, Primitive, ReportBlock, ReportKind, ReportSource, Representation, SlotKind, StructureBox,
+    PageItemKind, Primitive, ReportBlock, ReportKind, ReportSource, Representation, StructureBox, SymbolDef,
     TextSlot,
 };
 use ew_derive::ew_units::Pt2;
@@ -565,16 +565,11 @@ fn printed_style<'a>(table: &[EffectiveStyle], key: Option<&'a str>) -> &'a str 
 }
 
 /// The style a symbol's text slot prints with: its own `style` when that is a style of `table`, else the style bound
-/// to its kind (doc 20 §17.5; the scene's `symbol::slot_style_key`).
-fn slot_style<'a>(table: &[EffectiveStyle], slot: &'a TextSlot) -> &'a str {
+/// to its kind (doc 20 §17.5; `ew_schema::slot_default_style`, the scene's binding too).
+fn slot_style<'a>(table: &[EffectiveStyle], def: &SymbolDef, slot: &'a TextSlot) -> &'a str {
     match slot.style.as_ref().map(|s| s.as_str()) {
         Some(k) if is_style(table, k) => k,
-        _ => match slot.kind {
-            SlotKind::Tag => "tag.main",
-            SlotKind::CpDesignation(_) => "cp.small",
-            SlotKind::Unknown(_) => DEFAULT_TEXT_STYLE,
-            _ => "data.small",
-        },
+        _ => ew_derive::ew_schema::slot_default_style(def, &slot.kind),
     }
 }
 
@@ -650,7 +645,7 @@ pub fn used_text_styles(q: &Q) -> BTreeSet<String> {
                 .and_then(|o| o.visible)
                 .unwrap_or_else(|| arrangement.map_or(slot.visible, |a| a.slots.contains(&idx)));
             if visible {
-                mark(Some(slot_style(&table, slot)));
+                mark(Some(slot_style(&table, def, slot)));
             }
         }
     }

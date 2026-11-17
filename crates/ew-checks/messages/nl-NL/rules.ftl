@@ -846,7 +846,7 @@ rule-ew-pot-009 = { $cp_shared ->
        *[no] . Teken er een draad naartoe, of klik er met rechts op en kies Markeren als niet gebruikt.
     }
     .title = Niet-aangesloten aansluitpunt
-    .hint = Open de melding: de pagina opent met het apparaat geselecteerd. Teken een draad naar de aansluiting, of klik er met rechts op en kies Markeren als niet gebruikt als hij bewust vrij blijft.
+    .hint = Open de melding: de pagina opent met het apparaat geselecteerd. Teken een draad naar het aansluitpunt, of klik er met rechts op en kies Markeren als niet gebruikt als het bewust vrij blijft.
 
 rule-ew-pot-011 = { $potential }: het is niet duidelijk welke draad { $place ->
         [junction] de aftakking { $at ->

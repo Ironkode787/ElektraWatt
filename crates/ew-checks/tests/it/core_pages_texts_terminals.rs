@@ -231,7 +231,10 @@ fn core061_reports_a_shown_wire_marker() {
         &json!({"overrides": {"csa": "2.5", "colour": ["BK"], "show_marker": true}}),
     );
     let f = findings_of(&fx.build(), "EW-CORE-061");
-    assert_eq!(texts(&f), [small_text("Connection point"), small_text("Wire marker")]);
+    assert_eq!(
+        texts(&f),
+        [small_text("Connection point"), small_text("Wire marker")]
+    );
     // Every other style of the table is at or above the minimum.
     let small: Vec<&str> = ew_derive::ew_schema::BUILTIN_TEXT_STYLES
         .iter()
@@ -286,7 +289,10 @@ fn core061_reads_the_project_text_styles() {
     // An out-of-range size in a file is ignored: the built-in 5 px row applies.
     let tiny = json!({"text_styles": {"cp.small": {"size": 100}, "marker": {"size": 100}}});
     let f = findings_of(&marker_fx(tiny).build(), "EW-CORE-061");
-    assert_eq!(texts(&f), [small_text("Connection point"), small_text("Wire marker")]);
+    assert_eq!(
+        texts(&f),
+        [small_text("Connection point"), small_text("Wire marker")]
+    );
 }
 
 /// A free text on P1 with the style `style` (none: the default).

@@ -197,7 +197,7 @@ pub fn lower(def: &SymbolDef, variant: Orient2) -> SymbolGeometry {
             angle: upright_angle(slot.rot),
             align: slot_align(def, slot, slot.rot, variant),
             style_key: slot.style.as_ref().map_or_else(
-                || default_style_key(&slot.kind).to_owned(),
+                || default_style_key(def, &slot.kind).to_owned(),
                 |s| s.as_str().to_owned(),
             ),
             max_width: slot.max_width,
@@ -526,27 +526,26 @@ fn align_of(h: i128, v: i128) -> Align {
     }
 }
 
-/// The text-style key of a slot: its own `style` member when it names a style of `styles` (the project's
+/// The text-style key of a slot of `def`: its own `style` member when it names a style of `styles` (the project's
 /// effective table, ADR-0032), else [`default_style_key`] of its kind. The second
 /// value is the unknown name when the slot's style is not in the table and the kind's style was used instead.
-pub fn slot_style_key<'a>(slot: &'a TextSlot, styles: &TextStyleTable) -> (&'a str, Option<&'a str>) {
+pub fn slot_style_key<'a>(
+    def: &SymbolDef,
+    slot: &'a TextSlot,
+    styles: &TextStyleTable,
+) -> (&'a str, Option<&'a str>) {
     match &slot.style {
         Some(name) if styles.get(name.as_str()).is_some() => (name.as_str(), None),
-        Some(name) => (default_style_key(&slot.kind), Some(name.as_str())),
-        None => (default_style_key(&slot.kind), None),
+        Some(name) => (default_style_key(def, &slot.kind), Some(name.as_str())),
+        None => (default_style_key(def, &slot.kind), None),
     }
 }
 
-/// The default text-style key bound to a slot kind (doc 20 §17.5): `tag.main` for tags, `cp.small` for CP
-/// designations, `data.small` for every other known kind, `text.normal` for unknown kinds. A placeholder for
-/// the project's bindings (FR-SYM-013).
-pub fn default_style_key(kind: &SlotKind) -> &'static str {
-    match kind {
-        SlotKind::Tag => "tag.main",
-        SlotKind::CpDesignation(_) => "cp.small",
-        SlotKind::Unknown(_) => DEFAULT_TEXT_STYLE,
-        _ => "data.small",
-    }
+/// The default text-style key bound to a slot kind of `def` (doc 20 §17.5; `ew_schema::slot_default_style`):
+/// `terminal` for a terminal symbol's tag, `tag.main` for other tags, `cp.small` for CP designations, `data.small`
+/// for every other known kind, `text.normal` for unknown kinds.
+pub fn default_style_key(def: &SymbolDef, kind: &SlotKind) -> &'static str {
+    ew_schema::slot_default_style(def, kind)
 }
 
 /// The anchor of `def` in its own frame (R0), snapped to `def.grid` (see the module documentation).

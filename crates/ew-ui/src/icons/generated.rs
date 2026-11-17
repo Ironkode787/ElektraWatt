@@ -9,7 +9,7 @@
 use super::Seg::{self, C, L, M, Q, Z};
 
 /// The number of icons in the table.
-pub const COUNT: usize = 142;
+pub const COUNT: usize = 143;
 
 /// One icon of the table, named by its key in `snake_case` (`ew_` for the project's own glyphs).
 #[allow(non_camel_case_types, missing_docs)]
@@ -107,6 +107,7 @@ pub enum IconId {
     layout_grid,
     layout_sidebar,
     layout_sidebar_right,
+    letter_case,
     link,
     list,
     list_check,
@@ -254,6 +255,7 @@ impl IconId {
         IconId::layout_grid,
         IconId::layout_sidebar,
         IconId::layout_sidebar_right,
+        IconId::letter_case,
         IconId::link,
         IconId::list,
         IconId::list_check,
@@ -401,6 +403,7 @@ pub const KEYS: [&str; COUNT] = [
     "layout-grid",
     "layout-sidebar",
     "layout-sidebar-right",
+    "letter-case",
     "link",
     "list",
     "list-check",
@@ -2051,6 +2054,23 @@ pub(super) static PATHS: [&[Seg]; COUNT] = [
         L(4.0, 6.0),
         M(15.0, 4.0),
         L(15.0, 20.0),
+    ],
+    // letter-case
+    &[
+        M(14.0, 15.5),
+        C(14.0, 17.433, 15.567, 19.0, 17.5, 19.0),
+        C(19.433, 19.0, 21.0, 17.433, 21.0, 15.5),
+        C(21.0, 13.567, 19.433, 12.0, 17.5, 12.0),
+        C(15.567, 12.0, 14.0, 13.567, 14.0, 15.5),
+        M(3.0, 19.0),
+        L(3.0, 8.5),
+        C(3.0, 6.567, 4.567, 5.0, 6.5, 5.0),
+        C(8.433, 5.0, 10.0, 6.567, 10.0, 8.5),
+        L(10.0, 19.0),
+        M(3.0, 13.0),
+        L(10.0, 13.0),
+        M(21.0, 12.0),
+        L(21.0, 19.0),
     ],
     // link
     &[

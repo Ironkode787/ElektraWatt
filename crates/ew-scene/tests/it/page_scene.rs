@@ -352,7 +352,7 @@ fn a_slot_style_replaces_the_style_of_the_slot_kind() {
     );
 }
 
-/// The project's effective table (ADR-0032) reaches the slot texts: an override of `tag.main` resizes the tag, and a
+/// The project's effective table (ADR-0032) reaches the slot texts: an override of `terminal` resizes a terminal's tag, and a
 /// slot naming a key the project extends the table with prints in that style without a note.
 #[test]
 fn the_callers_style_table_overrides_and_extends_the_slot_styles() {
@@ -363,7 +363,8 @@ fn the_callers_style_table_overrides_and_extends_the_slot_styles() {
         .map(|r| {
             (
                 r.key.clone(),
-                if r.key == "tag.main" { Nm(4_000_000) } else { r.em },
+                // `-X1` is a terminal: its tag prints in the terminal's number style (rc.3).
+                if r.key == "terminal" { Nm(4_000_000) } else { r.em },
                 r.weight,
                 r.family,
             )

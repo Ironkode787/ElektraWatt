@@ -97,7 +97,7 @@ Bundled icons (assets/icons/tabler/, WP-S2.17 D9)
 -------------------------------------------------
 
 Tabler Icons, version 3.50.0, licensed under the MIT License (LICENSES/MIT.txt). Only the outline SVG files the
-application uses are committed (96 files); `cargo xtask gen-icons` converts them into
+application uses are committed; `cargo xtask gen-icons` converts them into
 crates/ew-ui/src/icons/generated.rs.
 
   Copyright: Copyright (c) 2020-2026 Paweł Kuna

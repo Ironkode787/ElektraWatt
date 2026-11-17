@@ -341,8 +341,9 @@ fn core041_reports_a_device_without_part() {
     want.sort();
     assert_eq!(reported, want);
     assert!(
-        f[0].message
-            .ends_with("has no part, so the parts list cannot order it. Choose one in its Properties (Part).")
+        f[0].message.ends_with(
+            "has no part, so the parts list cannot order it. Choose one in its Properties (Part)."
+        )
     );
 }
 

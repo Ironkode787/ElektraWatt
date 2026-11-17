@@ -286,7 +286,8 @@ fn en_gb_renders_the_message_byte_for_byte_and_nl_nl_renders_dutch() {
         ("21", "-1A4 pin − (21st)", "-1A4 pen − (21e)"),
         ("3", "-1A4 pin − (3rd)", "-1A4 pen − (3e)"),
     ] {
-        let message = format!("{en} has no wire. Draw one to it, or right-click it and choose Mark not used.");
+        let message =
+            format!("{en} has no wire. Draw one to it, or right-click it and choose Mark not used.");
         let f = ew_checks::Finding::new(rule, [], "13", "-1A4:−#2", message.clone())
             .arg("cp", "-1A4:−#2")
             .arg("cp_shared", "yes")

@@ -213,7 +213,7 @@ fn a_connection_point_is_marked_not_used_from_the_page() {
     assert!(
         findings
             .iter()
-            .any(|(severity, message)| severity == "info" && message.contains("marked unused")),
+            .any(|(severity, message)| severity == "info" && message.contains("marked not used")),
         "{findings:?}"
     );
     h.state_mut().shell_mut().shutdown();

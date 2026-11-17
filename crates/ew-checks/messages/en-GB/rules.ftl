@@ -402,7 +402,7 @@ rule-ew-fl-009 = { $valve }: the coil takes { $voltage }, but { $feeds } feed it
 
 rule-ew-fl-010 = { $form ->
         [valve] { $device }: no compressed air reaches port { $port }. Draw the supply line to it, or use Define medium at port there.
-       *[gallery] { $device }: no compressed air reaches its valves, because nothing feeds the terminal's supply. Draw the supply line to its supply port, or use Define medium at port there.
+       *[gallery] { $device }: no compressed air reaches its valves, because nothing feeds the valve terminal's supply. Draw the supply line to its supply port, or use Define medium at port there.
     }
     .title = No supply
     .hint = Draw the line that brings the air from the supply to the port, or right-click the port and choose Define medium at port.
@@ -850,7 +850,7 @@ rule-ew-pot-009 = { $cp_shared ->
        *[no] . Draw one to it, or right-click it and choose Mark not used.
     }
     .title = Unconnected CP
-    .hint = Open the message: its page opens with the device selected. Draw a wire to the connection, or right-click it and choose Mark not used when it stays free on purpose.
+    .hint = Open the message: its page opens with the device selected. Draw a wire to the connection point, or right-click it and choose Mark not used when it stays free on purpose.
 
 rule-ew-pot-011 = { $potential }: it is unclear which wire feeds { $place ->
         [junction] the junction { $at ->

@@ -170,6 +170,27 @@ pub const BUILTIN_TEXT_STYLES: &[(&str, u16, TextWeight, TextStyleGroup)] = &[
     ("terminal", 13, TextWeight::Regular, TextStyleGroup::Terminals),
 ];
 
+/// The text style a slot of `def` that names none prints with (doc 20 §17.5), one place for the page scene and
+/// EW-CORE-061: the terminal's number (`terminal`) for the tag of a terminal symbol (its function `ew.fn.terminal…`),
+/// `tag.main` for any other tag, `cp.small` for a CP designation, `text.normal` for a kind of a newer format and
+/// `data.small` for every other kind.
+pub fn slot_default_style(def: &crate::SymbolDef, kind: &crate::SlotKind) -> &'static str {
+    use crate::SlotKind;
+    let terminal = def
+        .fndef
+        .extra
+        .get("key")
+        .and_then(Value::as_str)
+        .is_some_and(|k| k.starts_with("ew.fn.terminal"));
+    match kind {
+        SlotKind::Tag if terminal => "terminal",
+        SlotKind::Tag => "tag.main",
+        SlotKind::CpDesignation(_) => "cp.small",
+        SlotKind::Unknown(_) => "text.normal",
+        _ => "data.small",
+    }
+}
+
 /// The group of style `key`: its built-in row's; a style a project adds is the page's own.
 pub fn text_style_group(key: &str) -> TextStyleGroup {
     BUILTIN_TEXT_STYLES
@@ -593,8 +614,10 @@ mod tests {
         assert_eq!(ok["tag.main"].extra["family"], json!("x"));
         assert_eq!(ok["marker"].weight, Some(TextWeight::Regular));
         assert_eq!(ok["marker"].face, Some(Typeface::Mono));
-        let mut settings = ProjectSettings::default();
-        settings.text_styles = ok;
+        let settings = ProjectSettings {
+            text_styles: ok,
+            ..ProjectSettings::default()
+        };
         let marker = effective_text_styles(&settings)
             .into_iter()
             .find(|r| r.key.as_str() == "marker")

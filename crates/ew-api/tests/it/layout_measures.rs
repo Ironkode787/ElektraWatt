@@ -321,7 +321,9 @@ fn rk1_a_wire_through_a_connection_point_fires_ew_core_067() {
             "Wire -103K1:A2 → -103K3:A2 crosses -103K2:A1 without joining it, so on paper it looks connected. Reroute \
              it so that it passes beside."
                 .to_owned(),
-            "Draad -103K1:A2 → -103K3:A2 loopt door -103K2:A1, waarmee hij niet verbonden is.".to_owned(),
+            "Draad -103K1:A2 → -103K3:A2 kruist -103K2:A1 zonder ermee verbonden te zijn, dus op papier lijkt hij \
+             aangesloten. Routeer hem opnieuw zodat hij ernaast loopt."
+                .to_owned(),
             Warning
         )]
     );
@@ -357,7 +359,9 @@ fn rk1_a_wire_along_another_fires_ew_core_068() {
             "Wire -103K1:A2 → -103K4:A2 lies on top of -103K2:A2 → -103K3:A2 on page 103, so on paper the two cannot \
              be told apart. Reroute one of them."
                 .to_owned(),
-            "Draad -103K1:A2 → -103K4:A2 loopt over -103K2:A2 → -103K3:A2 op folio 103.".to_owned(),
+            "Draad -103K1:A2 → -103K4:A2 ligt over -103K2:A2 → -103K3:A2 op pagina 103, dus op papier zijn de twee \
+             niet uit elkaar te houden. Routeer een van beide opnieuw."
+                .to_owned(),
             Warning
         )]
     );

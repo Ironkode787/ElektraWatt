@@ -1546,7 +1546,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
                 CommandSize::Small,
                 Some(key!("bar-text-styles")),
             ),
-            "typography",
+            "letter-case",
             act(
                 "text_styles.open",
                 Command,

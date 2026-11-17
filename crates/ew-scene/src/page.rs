@@ -1594,7 +1594,7 @@ impl Builder<'_> {
                 let turned = ov.and_then(|o| o.angle).is_some();
                 let pos = ov.and_then(|o| o.pos).unwrap_or(slot.pos);
                 let rot = ov.and_then(|o| o.angle).unwrap_or(slot.rot);
-                let (style_key, unknown) = symbol::slot_style_key(slot, self.styles);
+                let (style_key, unknown) = symbol::slot_style_key(def, slot, self.styles);
                 texts.push(SlotText {
                     symbol: rep.symbol.as_uuid(),
                     value,
@@ -1724,7 +1724,7 @@ impl Builder<'_> {
                 None => bottom_align(&symbol::slot_align(def, slot, rot, frame.orient)),
             };
             let at = frame.origin + frame.orient.apply(pos) + up_by(angle, step);
-            let (style_key, _) = symbol::slot_style_key(slot, self.styles);
+            let (style_key, _) = symbol::slot_style_key(def, slot, self.styles);
             let spec = TextSpec {
                 text: &tag.text,
                 at,

@@ -2466,7 +2466,7 @@ fn tag_anchor(rep: &Representation, def: &SymbolDef, styles: &ew_text::TextStyle
             .and_then(|name| def.arrangements.iter().find(|a| a.name == *name))
             .map_or(slot.visible, |a| a.slots.contains(&index))
     });
-    let (style, _) = ew_scene::symbol::slot_style_key(slot, styles);
+    let (style, _) = ew_scene::symbol::slot_style_key(def, slot, styles);
     let em = styles.resolve(style).map_or(0, |t| t.size.0.max(0));
     let at = ew_derive::text_frame(rep, def).place(ov.and_then(|o| o.pos).unwrap_or(slot.pos))?;
     visible.then_some((at, em))

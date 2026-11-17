@@ -168,8 +168,9 @@ fn the_new_project_overrides_print_markers_and_pin_numbers_at_7_px() {
     assert!(core061(&s).is_empty());
 }
 
-/// TS-3 (FR-SYM-013's acceptance): `tag.main` at 4 mm changes every device tag on every page in one undo step; undo
-/// restores; a size of 100 nm is refused at `/text_styles/tag.main/size`.
+/// TS-3 (FR-SYM-013's acceptance): `tag.main` at 4 mm changes every device tag on every page in one undo step, and
+/// leaves the terminals' numbers, which print in `terminal` at the same built-in size (rc.3); undo restores; a size of
+/// 100 nm is refused at `/text_styles/tag.main/size`.
 #[test]
 fn a_tag_style_override_resizes_every_tag_in_one_undo_step() {
     let mut s = copy_of_golden(3);
@@ -179,7 +180,14 @@ fn a_tag_style_override_resizes_every_tag_in_one_undo_step() {
     assert_eq!(n(&before, 4_000_000), 0);
     commit_styles(&mut s, json!({"tag.main": {"size": 4_000_000}}));
     let after = run_sizes(&s);
-    assert_eq!((n(&after, PX13), n(&after, 4_000_000)), (0, tags));
+    assert!(n(&after, 4_000_000) > 0, "{after:?}");
+    assert_eq!(n(&after, PX13) + n(&after, 4_000_000), tags);
+    commit_styles(
+        &mut s,
+        json!({"tag.main": {"size": 4_000_000}, "terminal": {"size": 4_000_000}}),
+    );
+    assert_eq!((n(&run_sizes(&s), PX13), n(&run_sizes(&s), 4_000_000)), (0, tags));
+    s.undo(&Origin::Gui).unwrap();
     s.undo(&Origin::Gui).unwrap();
     assert_eq!(run_sizes(&s), before);
     match s.preview(&set_styles(json!({"tag.main": {"size": 100}}))) {

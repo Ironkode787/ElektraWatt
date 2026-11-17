@@ -106,7 +106,9 @@ fn no_part(tag: &str) -> Vec<String> {
     row([
         "Device without part",
         tag,
-        &format!("{tag} has no part, so the parts list cannot order it. Choose one in its Properties (Part)."),
+        &format!(
+            "{tag} has no part, so the parts list cannot order it. Choose one in its Properties (Part)."
+        ),
         "EW-CORE-041",
         "warning",
         "",
