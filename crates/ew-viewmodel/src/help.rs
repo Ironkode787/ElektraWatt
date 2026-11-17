@@ -22,9 +22,9 @@
 //! ([`property_sections`]), so no list is kept by hand.
 //!
 //! The anchors are checked against the book by the tests of this module: the page exists, it is in `SUMMARY.md`
-//! and has a heading whose id is the fragment (NFR-DOC-01); where the book is built (`target/book`), the built page
-//! holds the id. The reference pages are built, not committed, so an anchor into them is checked against the source
-//! the page is built from (the command index, the rule catalogue, [`property_sections`]).
+//! and has a heading whose id is the fragment (NFR-DOC-01), read from the sources alone, so that a stale local build
+//! of the book never fails them. The reference pages are built, not committed, so an anchor into them is checked
+//! against the source the page is built from (the command index, the rule catalogue, [`property_sections`]).
 
 use std::borrow::Cow;
 use std::collections::BTreeSet;
@@ -1135,8 +1135,6 @@ mod tests {
     use super::*;
 
     const BOOK_SRC: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/book/src");
-    /// The built guide (`mdbook build docs/book`, after `cargo xtask docs-gen`), where it has been built.
-    const BOOK_OUT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../target/book");
     /// The built directory of the command pages.
     const COMMANDS_DIR: &str = "reference/commands/";
 
@@ -1288,14 +1286,13 @@ mod tests {
     }
 
     /// Every target the window can open is in the guide: its page is in `SUMMARY.md` and holds the heading or anchor
-    /// (a built reference page: the source it is built from), and where the guide is built (`target/book`), the built
-    /// page holds the id.
+    /// (a built reference page: the source it is built from). It reads the sources, never `target/book`: a local build
+    /// of the guide older than the sources failed it (rc.3 review).
     #[test]
     fn every_help_target_is_in_the_guide() {
         let summary = std::fs::read_to_string(Path::new(BOOK_SRC).join("SUMMARY.md")).expect("SUMMARY.md");
         let commands = command_names();
         assert!(!commands.is_empty());
-        let built = Path::new(BOOK_OUT).join("index.html").is_file();
         for topic in every_topic() {
             let a = anchor(&topic).unwrap_or_else(|| panic!("{topic}: no anchor"));
             if a.page != "introduction.md" {
@@ -1303,22 +1300,6 @@ mod tests {
                     summary.contains(a.page.as_ref()),
                     "{} is not in SUMMARY.md",
                     a.page
-                );
-            }
-            if built {
-                let html = Path::new(BOOK_OUT).join(html_target(&a).split('#').next().unwrap_or_default());
-                let text = std::fs::read_to_string(&html).unwrap_or_else(|e| {
-                    panic!(
-                        "{topic}: {} is not in the built guide ({e}); build it again with `cargo xtask docs-gen` and \
-                         `mdbook build docs/book`",
-                        html.display()
-                    )
-                });
-                assert!(
-                    a.fragment.is_empty() || text.contains(&format!("id=\"{}\"", a.fragment)),
-                    "{topic}: the built {} has no id `{}`; build the guide again",
-                    a.page,
-                    a.fragment
                 );
             }
             // A built command page: the index always, a command's page when the index lists the command; neither
