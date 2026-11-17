@@ -13,6 +13,7 @@
 use crate::support;
 
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
@@ -23,6 +24,7 @@ use ew_ui::app::App;
 use ew_ui::canvas_chips::ChipKind;
 use ew_ui::ew_viewmodel::canvas::HOVER_SLOP_PT;
 use ew_ui::ew_viewmodel::canvas::chip::CHIP_OFFSET;
+use ew_ui::ew_viewmodel::ew_api::output::ew_dl::EntityRef;
 use ew_ui::ew_viewmodel::ew_api::output::ew_dl::ew_units::{Nm, Rect as SheetRect};
 use ew_ui::ew_viewmodel::highlight::SLOT_COLOURS;
 use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
@@ -98,6 +100,29 @@ fn rgb(img: &RgbaImage, x: i64, y: i64) -> [u8; 3] {
 
 /// The overlay the snapshot composites for the shown canvas with `hover` and `selected`.
 fn overlay_of(shell: &ShellModel, hover: Option<SheetRect>, selected: &[SheetRect]) -> overlay::Overlay {
+    overlay_with(shell, hover, selected, overlay::Bands::default())
+}
+
+/// The overlay the snapshot composites for the shown canvas with the hovered and the selected lines' bands.
+fn overlay_with_bands(
+    shell: &ShellModel,
+    hover: Option<&[(i64, i64)]>,
+    selected: &[Vec<(i64, i64)>],
+) -> overlay::Overlay {
+    let bands = overlay::Bands {
+        hover,
+        selected,
+        radius_pt: HOVER_SLOP_PT,
+    };
+    overlay_with(shell, None, &[], bands)
+}
+
+fn overlay_with(
+    shell: &ShellModel,
+    hover: Option<SheetRect>,
+    selected: &[SheetRect],
+    bands: overlay::Bands<'_>,
+) -> overlay::Overlay {
     let c = shell.canvas().unwrap();
     let view = View {
         centre: c.centre(),
@@ -120,6 +145,7 @@ fn overlay_of(shell: &ShellModel, hover: Option<SheetRect>, selected: &[SheetRec
         cursor: None,
         tool: &[],
         open_cps: overlay::OpenCps::default(),
+        bands,
     })
 }
 
@@ -346,14 +372,14 @@ fn the_overlay_snapshots_of_folio_101() {
 }
 
 /// FT-500, doc 16a §6.25: on folio 101, at a point of a wire's route where the pick stack holds more than
-/// one entity, the hover outline is drawn dashed in `canvas.hover` around the stack's first entity; a click selects
-/// it, a repeated click the next one, drawn in `canvas.selection`.
+/// one entity, the hover is the stack's first entity (the wire, drawn as its band: rc.3); a click selects it, a
+/// repeated click the next one, drawn in `canvas.selection`.
 #[test]
 fn the_pick_stacks_hover_outline_and_walk() {
     let tmp = Tmp::new();
     let mut shell = headless_101(&tmp);
     let c = shell.canvas().unwrap();
-    let page = c.page();
+    let page = Arc::clone(c.page());
     let reach = HOVER_SLOP_PT / c.points_per_nm();
     // The middle of the first wire segment whose pick stack holds two entities or more, off every link.
     let p = page
@@ -369,9 +395,9 @@ fn the_pick_stacks_hover_outline_and_walk() {
                 })
                 .collect::<Vec<_>>()
         })
-        .find(|p| c.link_at(*p).is_none() && pick_stack(page, &page.snapper, *p, reach).len() >= 2)
+        .find(|p| c.link_at(*p).is_none() && pick_stack(&page, &page.snapper, *p, reach).len() >= 2)
         .expect("a point where entities overlap");
-    let stack = pick_stack(page, &page.snapper, p, reach);
+    let stack = pick_stack(&page, &page.snapper, p, reach);
     let rect_of = |e| {
         page.entities
             .iter()
@@ -379,31 +405,21 @@ fn the_pick_stacks_hover_outline_and_walk() {
             .map(|(_, r)| *r)
             .expect("the entity's rectangle")
     };
-    let (first, second) = (rect_of(stack[0]), rect_of(stack[1]));
+    let plain = snapshot(&shell);
     done(&mut shell, "canvas.pointer", at(p));
     let c = shell.canvas().unwrap();
-    assert_eq!(
-        ew_ui::canvas::hover_rect(&shell, 0, c),
-        Some(first),
-        "the hover is the stack's first entity"
-    );
+    assert_eq!(c.hover().map(|h| h.0), Some(stack[0]), "the hover is the stack's first entity");
+    let line = ew_ui::canvas::hover_path(&shell, c).expect("a wire first, drawn as its band");
+    assert_eq!(ew_ui::canvas::hover_rect(&shell, 0, c), None);
     let image = snapshot(&shell);
-    let o = overlay_of(&shell, Some(first), &[]);
-    assert!(!o.hover.is_empty());
-    // Dashed: every dash in the accent; the dashes of the top edge 8 pixels apart (4 on, 4 off).
-    for d in &o.hover {
-        assert_eq!(rgb(&image, d.x0, d.y0), ACCENT, "a hover dash at {d:?}");
-    }
-    let top = o.hover.iter().map(|d| d.y0).min().unwrap();
-    let mut dashes: Vec<PxRect> = o
-        .hover
-        .iter()
-        .filter(|d| d.y0 == top && d.x1 - d.x0 > 1)
-        .copied()
-        .collect();
-    dashes.sort_by_key(|d| d.x0);
-    assert!(dashes.len() >= 2);
-    assert_eq!(dashes[1].x0 - dashes[0].x0, 8, "4 on, 4 off");
+    let o = overlay_with_bands(&shell, Some(&line), &[]);
+    assert!(!o.hover_band.is_empty());
+    assert!(
+        o.hover_band
+            .iter()
+            .any(|r| rgb(&image, r.x0, r.y0) != rgb(&plain, r.x0, r.y0)),
+        "the band tints the sheet"
+    );
     // A click selects the first, a repeated click the next (the walk as built).
     done(&mut shell, "canvas.press", at(p));
     done(&mut shell, "canvas.release", at(p));
@@ -411,19 +427,87 @@ fn the_pick_stacks_hover_outline_and_walk() {
     done(&mut shell, "canvas.press", at(p));
     done(&mut shell, "canvas.release", at(p));
     assert_eq!(shell.selection().items, vec![stack[1]]);
-    assert!(
-        shell.selected_rects(0).contains(&second),
-        "{:?}",
-        shell.selected_rects(0)
-    );
     let image = snapshot(&shell);
-    let o = overlay_of(&shell, None, &[second]);
-    let band = o.selected.iter().max_by_key(|r| r.x1 - r.x0).copied().unwrap();
-    assert_eq!(
-        rgb(&image, (band.x0 + band.x1) / 2, band.y0),
-        ACCENT,
-        "the walked selection"
-    );
+    let lines = shell.selected_paths(0);
+    let (x, y) = if lines.is_empty() {
+        let second = rect_of(stack[1]);
+        assert!(shell.selected_rects(0).contains(&second), "{:?}", shell.selected_rects(0));
+        let o = overlay_of(&shell, None, &[second]);
+        let band = o.selected.iter().max_by_key(|r| r.x1 - r.x0).copied().unwrap();
+        ((band.x0 + band.x1) / 2, band.y0)
+    } else {
+        // A wire: the solid edge of its band.
+        let o = overlay_with_bands(&shell, None, &lines);
+        let edge = o.selected_band_edge.first().copied().expect("the band's edge");
+        (edge.x0, edge.y0)
+    };
+    assert_eq!(rgb(&image, x, y), ACCENT, "the walked selection");
+    shell.shutdown();
+}
+
+
+#[test]
+fn a_wire_is_hovered_and_selected_along_its_line_not_over_its_box() {
+    let tmp = Tmp::new();
+    let mut shell = headless_101(&tmp);
+    let c = shell.canvas().unwrap();
+    let page = Arc::clone(c.page());
+    let reach = HOVER_SLOP_PT / c.points_per_nm();
+    let sheet = |p: (i64, i64)| page.snapper.page_to_sheet(p);
+    // A wire with a bend, a point on its longest segment, and the middle of the box round its ends, where nothing is
+    // under the pointer.
+    let (wire, on, inside) = page
+        .tables
+        .connections
+        .iter()
+        .filter(|t| t.polyline.len() >= 3)
+        .find_map(|t| {
+            let (a, b) = (sheet(t.polyline[0]), sheet(*t.polyline.last()?));
+            let inside = ((a.0 + b.0) / 2, (a.1 + b.1) / 2);
+            let w = t.polyline.windows(2).max_by_key(|w| (w[0].0 - w[1].0).abs() + (w[0].1 - w[1].1).abs())?;
+            let on = sheet(((w[0].0 + w[1].0) / 2, (w[0].1 + w[1].1) / 2));
+            let clear = pick_stack(&page, &page.snapper, inside, 3.0 * reach).is_empty();
+            let alone = pick_stack(&page, &page.snapper, on, reach) == [EntityRef(t.id)];
+            (clear && alone).then_some((EntityRef(t.id), on, inside))
+        })
+        .expect("a wire with a bend and an empty middle");
+    let plain = snapshot(&shell);
+    let px = |s: &ShellModel, p: (i64, i64)| {
+        let c = s.canvas().unwrap();
+        let view = View {
+            centre: c.centre(),
+            zoom: c.zoom(),
+            pane: c.native_pane(),
+            ppp: c.native_ppp(),
+        };
+        let (x, y) = view.settled_transform().to_screen((p.0 as f64, p.1 as f64));
+        (x.floor() as i64, y.floor() as i64)
+    };
+    // Beside the line, 2 pixels off it, across the segment.
+    let (ox, oy) = px(&shell, on);
+    let beside = [(ox + 2, oy + 2), (ox - 2, oy - 2)];
+    let mid = px(&shell, inside);
+    // In the box, away from the line: nothing answers.
+    done(&mut shell, "canvas.pointer", at(inside));
+    assert_eq!(shell.canvas().unwrap().hover(), None, "no hover inside the box");
+    // On the line: the wire, drawn as a band and not as a box.
+    done(&mut shell, "canvas.pointer", at(on));
+    let c = shell.canvas().unwrap();
+    assert_eq!(c.hover().map(|h| h.0), Some(wire));
+    assert_eq!(ew_ui::canvas::hover_rect(&shell, 0, c), None, "no box");
+    assert!(ew_ui::canvas::hover_path(&shell, c).is_some());
+    let hovered = snapshot(&shell);
+    assert!(beside.iter().any(|&(x, y)| rgb(&hovered, x, y) != rgb(&plain, x, y)), "the band");
+    assert_eq!(rgb(&hovered, mid.0, mid.1), rgb(&plain, mid.0, mid.1), "the box's middle");
+    // Selected: a band with its edge, no box either.
+    done(&mut shell, "canvas.press", at(on));
+    done(&mut shell, "canvas.release", at(on));
+    assert_eq!(shell.selection().items, vec![wire]);
+    assert!(shell.selected_rects(0).is_empty());
+    assert_eq!(shell.selected_paths(0).len(), 1);
+    let selected = snapshot(&shell);
+    assert!(beside.iter().any(|&(x, y)| rgb(&selected, x, y) != rgb(&plain, x, y)), "the band");
+    assert_eq!(rgb(&selected, mid.0, mid.1), rgb(&plain, mid.0, mid.1), "the box's middle");
     shell.shutdown();
 }
 

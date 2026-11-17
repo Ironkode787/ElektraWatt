@@ -182,7 +182,28 @@ impl ShellModel {
         })
     }
 
-    /// The rectangles of the selected entities drawn on group `group`'s page (the `selected` outline). A device or a
+    /// The drawn polylines (sheet nm) of the selected connections on group `group`'s page: a wire or a fluid line is
+    /// selected as a band along its path ([`Self::selected_rects`] leaves it out).
+    pub fn selected_paths(&self, group: usize) -> Vec<Vec<(i64, i64)>> {
+        let Some(c) = self.canvas_of(group) else {
+            return Vec::new();
+        };
+        let page = c.page();
+        page.tables
+            .connections
+            .iter()
+            .filter(|t| self.tools.selection.contains(EntityRef(t.id)))
+            .map(|t| {
+                t.polyline
+                    .iter()
+                    .map(|p| page.snapper.page_to_sheet(*p))
+                    .collect()
+            })
+            .collect()
+    }
+
+    /// The rectangles of the selected entities drawn on group `group`'s page (the `selected` outline), the
+    /// connections left out ([`Self::selected_paths`]). A device or a
     /// function selected by its tag (the command search, `select.set tag:`) is outlined where the page draws it, as
     /// Delete takes it (FT-1585: the status bar counted it and the page drew nothing).
     pub fn selected_rects(&self, group: usize) -> Vec<Rect> {
@@ -204,9 +225,10 @@ impl ShellModel {
             })
             .map(|r| EntityRef(r.id))
             .collect();
+        let line = |e: &EntityRef| page.tables.connections.iter().any(|t| t.id == e.0);
         page.entities
             .iter()
-            .filter(|(e, _)| selection.contains(*e) || by_tag.contains(e))
+            .filter(|(e, _)| (selection.contains(*e) || by_tag.contains(e)) && !line(e))
             .map(|(_, r)| *r)
             .collect()
     }

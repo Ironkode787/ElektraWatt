@@ -90,9 +90,9 @@ pub const MAX_UPLOAD_BYTES_PER_FRAME: usize = 2 * 1024 * 1024;
 pub(crate) const GROUPS: usize = 2;
 
 /// The hover outline of a canvas while the active tool shows the hover (§7.1): the hovered link's
-/// rectangle, else, while an entity is hovered, the rectangle of the first entity of the pick stack under the pointer
-/// (the one a click picks, FT-500; doc 16a §6.25), else the hovered entity's; none on a selected
-/// entity (doc 16a §7.1: the selection only). While the Join chooser is open, its active row's object instead (doc 16a
+/// rectangle, else the rectangle of the hovered entity, the first of the pick stack under the pointer (the one a click
+/// picks, FT-500; doc 16a §6.25); none on a selected entity (doc 16a §7.1: the selection only) and none on a line,
+/// which shows its band ([`hover_path`]). While the Join chooser is open, its active row's object instead (doc 16a
 /// §6.22).
 pub fn hover_rect(shell: &ShellModel, group: usize, c: &CanvasModel) -> Option<SheetRect> {
     if shell.chooser().is_some() {
@@ -110,16 +110,48 @@ pub fn hover_rect(shell: &ShellModel, group: usize, c: &CanvasModel) -> Option<S
     if let Some(l) = c.hovered_link() {
         return Some(l.rect);
     }
-    let (_, hovered) = c.hover()?;
-    let page = c.page();
-    let first = c.pointer().and_then(|p| {
-        ew_viewmodel::tools::pick_stack(page, &page.snapper, p, HOVER_SLOP_PT / c.points_per_nm())
-            .first()
-            .and_then(|e| page.entities.iter().find(|(id, _)| id == e))
-            .map(|(_, r)| *r)
-    });
-    let r = first.unwrap_or(hovered);
+    let (e, r) = c.hover()?;
+    if hovered_line(c, e).is_some() {
+        return None;
+    }
     (!shell.selected_rects(group).contains(&r)).then_some(r)
+}
+
+/// The hovered line's band (sheet nm), where [`hover_rect`] draws none: a wire or a fluid line under the pointer that is
+/// not selected, while the active tool shows the hover and no link or chooser row is hovered.
+pub fn hover_path(shell: &ShellModel, c: &CanvasModel) -> Option<Vec<(i64, i64)>> {
+    if shell.chooser().is_some() || !shell.tool().wants_hover() || c.hovered_link().is_some() {
+        return None;
+    }
+    let (e, _) = c.hover()?;
+    if shell.selection().contains(e) {
+        return None;
+    }
+    hovered_line(c, e)
+}
+
+/// The drawn polyline (sheet nm) of `e` when it is a connection of the page.
+fn hovered_line(
+    c: &CanvasModel,
+    e: ew_viewmodel::ew_api::output::ew_dl::EntityRef,
+) -> Option<Vec<(i64, i64)>> {
+    let page = c.page();
+    page.tables.connections.iter().find(|t| t.id == e.0).map(|t| {
+        t.polyline
+            .iter()
+            .map(|p| page.snapper.page_to_sheet(*p))
+            .collect()
+    })
+}
+
+/// The bands of the hovered line and the selected lines, half as wide as the reach a line answers to the pointer
+/// within ([`HOVER_SLOP_PT`]) on each side.
+fn bands<'a>(hover: Option<&'a [(i64, i64)]>, selected: &'a [Vec<(i64, i64)>]) -> overlay::Bands<'a> {
+    overlay::Bands {
+        hover,
+        selected,
+        radius_pt: HOVER_SLOP_PT,
+    }
 }
 
 /// The overlay colours of `t` (doc 16a §4.6): the canvas tokens; the page bounds in `color.border.default`, the
@@ -189,6 +221,8 @@ pub fn snapshot_image(shell: &ShellModel, group: usize) -> Result<(ew_render_cpu
     let selected = shell.selected_rects(group);
     let tool = crate::tool_view::marks_of(shell, group);
     let open = shell.open_cps(group);
+    let hover_line = hover_path(shell, canvas);
+    let selected_lines = shell.selected_paths(group);
     let (mut image, dpi) = render_view(
         canvas,
         &theme_of(shell),
@@ -201,6 +235,7 @@ pub fn snapshot_image(shell: &ShellModel, group: usize) -> Result<(ew_render_cpu
             points: &open,
             pitch_nm: cp_pitch(canvas),
         },
+        bands(hover_line.as_deref(), &selected_lines),
     )?;
     let view = view_of(canvas);
     // The wire-colour view, under the conflicts and the highlights as in the window.
@@ -756,6 +791,7 @@ pub fn preview_snapshot_image(shell: &ShellModel) -> Result<(ew_render_cpu::Rgba
         lp.target.at_nm,
         &[],
         OpenCps::default(),
+        overlay::Bands::default(),
     )
 }
 
@@ -785,6 +821,7 @@ fn render_view(
     cursor: Option<(i64, i64)>,
     tool: &[ew_render2d::overlay::ToolMark],
     open_cps: OpenCps<'_>,
+    bands: overlay::Bands<'_>,
 ) -> Result<(ew_render_cpu::RgbaImage, u32), String> {
     let view = view_of(canvas);
     let t = view.settled_transform();
@@ -837,6 +874,7 @@ fn render_view(
         cursor,
         tool,
         open_cps,
+        bands,
     });
     overlay::composite(&mut image, &o, theme);
     Ok((image, dpi))
@@ -1117,8 +1155,8 @@ impl Default for CanvasHost {
 /// the printed texts they kept clear of.
 type WireCodes = (Vec<(Rect, bool)>, Vec<Rect>);
 
-/// The overlay marks both backends share: the page bounds, the grid dots, the hover and selection outlines and the
-/// grid cursor (last, above everything).
+/// The overlay marks both backends share: the page bounds, the grid dots, the hover and selection outlines, the lines'
+/// bands, the tool's marks and round handles and the grid cursor (last, above everything).
 fn paint_marks(painter: &egui::Painter, origin: Pos2, ppp: f32, overlay: &Overlay, theme: &Theme) {
     let fill = |rects: &[PxRect], c: Color| {
         if rects.is_empty() {
@@ -1133,6 +1171,15 @@ fn paint_marks(painter: &egui::Painter, origin: Pos2, ppp: f32, overlay: &Overla
     fill(&overlay.border, theme.border);
     fill(&overlay.dots, theme.grid_dot);
     fill(&overlay.hover, theme.hover);
+    fill(
+        &overlay.hover_band,
+        overlay::with_alpha(theme.hover, overlay::HOVER_BAND_ALPHA),
+    );
+    fill(
+        &overlay.selected_band,
+        overlay::with_alpha(theme.selection, overlay::SELECTED_BAND_ALPHA),
+    );
+    fill(&overlay.selected_band_edge, theme.selection);
     fill(&overlay.selected, theme.selection);
     fill(&overlay.open_cps, theme.open_cp);
     if !overlay.tool.is_empty() {
@@ -1142,6 +1189,8 @@ fn paint_marks(painter: &egui::Painter, origin: Pos2, ppp: f32, overlay: &Overla
         }
         painter.add(mesh);
     }
+    fill(&overlay.grip_rings, theme.casing);
+    fill(&overlay.grips, theme.selection);
     fill(&overlay.markers, theme.snap);
     fill(&overlay.cursor, theme.cursor);
 }
@@ -1537,6 +1586,8 @@ impl CanvasHost {
         let selected = shell.selected_rects(group);
         let tool = crate::tool_view::marks_of(shell, group);
         let open = shell.open_cps(group);
+        let hover_line = hover_path(shell, canvas);
+        let selected_lines = shell.selected_paths(group);
         let overlay = overlay::build(&OverlayInput {
             transform,
             pane_px,
@@ -1553,6 +1604,7 @@ impl CanvasHost {
                 points: &open,
                 pitch_nm: cp_pitch(canvas),
             },
+            bands: bands(hover_line.as_deref(), &selected_lines),
         });
         match (&plan, gpu) {
             (Some(plan), _) => self.paint(ui, rect, ppp, group, plan, &overlay, &theme),
@@ -2498,6 +2550,7 @@ impl CanvasHost {
             cursor: lp.target.at_nm,
             tool: &[],
             open_cps: OpenCps::default(),
+            bands: overlay::Bands::default(),
         });
         crate::canvas_chips::paint_popup_frame(ui, rect, popup, &lp.target.folio, &lp.go);
         // A named, non-focusable image region for the popup, so that a screen reader can tell that it is open

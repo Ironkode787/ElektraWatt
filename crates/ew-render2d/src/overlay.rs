@@ -10,9 +10,11 @@
 //! the window and the snapshot agree pixel for pixel. No meaning is in colour alone: the hover is dashed, a
 //! selection solid, the keyboard grid cursor a crosshair with a gap at its centre, a snap marker a cross (grid), a
 //! ring (connection point) or a filled square (junction), a free connection point a small hollow square, a
-//! rubber band solid while it encloses and dashed while it touches. The paint order is the surround, the page bounds,
-//! the grid dots, the hover, the selection, the open markers of the free connection points, the tool's lines and
-//! ghosts, the snap markers and last the cursor. The tool overlay's text labels are not drawn here: the
+//! rubber band solid while it encloses and dashed while it touches. A line (a wire, a fluid line) is hovered and
+//! selected as a band along its path ([`Bands`]: the line thickened, round at its bends), the hover's filled lightly,
+//! the selection's stronger inside a solid edge; a selected line's handles are round ([`ToolMark::Grip`]). The paint
+//! order is the surround, the page bounds, the grid dots, the hover, the bands, the selection, the open markers of the
+//! free connection points, the tool's lines and ghosts, its round handles, the snap markers and last the cursor. The tool overlay's text labels are not drawn here: the
 //! window draws them as chips in its own font, and the headless snapshot leaves them out.
 //!
 //! **The scale rule**: every mark scales by the integer factor `s = max(1, ⌊ppp⌋)`
@@ -24,6 +26,8 @@
 //! The colours come from the caller's [`Theme`]: the window and the snapshot build it from the design language's
 //! canvas tokens (doc 16a §4.6); [`LIGHT`] and [`DARK`] hold the same values for callers without the token module.
 //! The sheet itself is white with its authored colours in every theme (FR-UI-043, doc 16 §11.2).
+
+use std::collections::BTreeMap;
 
 use ew_dl::Color;
 use ew_dl::ew_units::Rect;
@@ -233,7 +237,43 @@ pub enum ToolMark {
         /// Its shape.
         kind: MarkerKind,
     },
+    /// A round handle of a selected line, drawn above every other mark of the tool: an accent disc
+    /// [`GRIP_PT`] across with a light ring, [`HOT_GRIP_PT`] across while `hot` (under the pointer).
+    Grip {
+        /// Its centre.
+        at: (i64, i64),
+        /// Whether the pointer is on it.
+        hot: bool,
+    },
 }
+
+/// The bands of the lines on the page (a wire, a fluid line: whatever is drawn as a line between two ends): a hovered
+/// or selected line is shown as itself thickened by `radius_pt`, round at its bends and ends, never as the box
+/// around its ends.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Bands<'a> {
+    /// The hovered line's vertices (sheet nm).
+    pub hover: Option<&'a [(i64, i64)]>,
+    /// The selected lines' vertices (sheet nm).
+    pub selected: &'a [Vec<(i64, i64)>],
+    /// The band's half width in logical points (the reach the line answers to the pointer within).
+    pub radius_pt: f64,
+}
+
+/// The opacity of a hovered line's band in the hover colour (about 22 %).
+pub const HOVER_BAND_ALPHA: u8 = 56;
+
+/// The opacity of a selected line's band in the selection colour (about 28 %), inside its solid `s`-pixel edge.
+pub const SELECTED_BAND_ALPHA: u8 = 72;
+
+/// The diameter of a line's round handle in logical points.
+pub const GRIP_PT: f64 = 10.0;
+
+/// The diameter of the handle under the pointer in logical points.
+pub const HOT_GRIP_PT: f64 = 14.0;
+
+/// The width of a handle's light ring in logical points.
+pub const GRIP_RING_PT: f64 = 1.5;
 
 /// A page's connection grid on the sheet: grid point `(i, j)` of the page lies at
 /// `offset + scale × (i, j) × num_nm / den` (`scale = sheet_scale_ppb / 10⁹`).
@@ -280,6 +320,8 @@ pub struct OverlayInput<'a> {
     pub tool: &'a [ToolMark],
     /// The connection points without a connection, each marked open, and the pitch that gates them.
     pub open_cps: OpenCps<'a>,
+    /// The hovered and the selected lines, drawn as bands along them.
+    pub bands: Bands<'a>,
 }
 
 /// The connection points of the page that have no connection on it: each is drawn as a
@@ -327,6 +369,16 @@ pub struct Overlay {
     pub markers: Vec<PxRect>,
     /// The rims of the open markers of the free connection points, under the tool's lines.
     pub open_cps: Vec<PxRect>,
+    /// The hovered line's band, painted in the hover colour at [`HOVER_BAND_ALPHA`].
+    pub hover_band: Vec<PxRect>,
+    /// The selected lines' bands inside their edges, painted in the selection colour at [`SELECTED_BAND_ALPHA`].
+    pub selected_band: Vec<PxRect>,
+    /// The solid `s`-pixel edges of the selected lines' bands.
+    pub selected_band_edge: Vec<PxRect>,
+    /// The tool's round handles ([`ToolMark::Grip`]): their light rings, then their accent discs.
+    pub grip_rings: Vec<PxRect>,
+    /// The handles' accent discs.
+    pub grips: Vec<PxRect>,
 }
 
 /// The sheet's rectangle on screen: with a settled transform exactly the pixels of the full-sheet raster at its
@@ -548,6 +600,21 @@ pub fn build(input: &OverlayInput<'_>) -> Overlay {
     let width = s;
     let t = &input.transform;
     let screen = |p: (i64, i64)| t.to_screen((p.0 as f64, p.1 as f64));
+    let ppp = if input.ppp > 0.0 { input.ppp } else { 1.0 };
+    let on_screen = |line: &[(i64, i64)]| line.iter().map(|p| screen(*p)).collect::<Vec<_>>();
+    let radius = input.bands.radius_pt * ppp;
+    let hover_band = input
+        .bands
+        .hover
+        .map(|line| rects_of(&band_rows(&[on_screen(line)], radius, &pane)))
+        .unwrap_or_default();
+    let selected_lines: Vec<Vec<(f64, f64)>> = input.bands.selected.iter().map(|l| on_screen(l)).collect();
+    let outer = band_rows(&selected_lines, radius, &pane);
+    let inner = band_rows(&selected_lines, radius - s as f64, &pane);
+    let selected_band_edge = rects_of(&subtract_rows(&outer, &inner));
+    let selected_band = rects_of(&inner);
+    let mut grips = Vec::new();
+    let mut grip_rings = Vec::new();
     for mark in input.tool {
         let mut px = Vec::new();
         let token = match mark {
@@ -583,6 +650,15 @@ pub fn build(input: &OverlayInput<'_>) -> Overlay {
                 marker_px(screen(*at), *kind, s, &pane, &mut markers);
                 continue;
             }
+            ToolMark::Grip { at, hot } => {
+                let r = if *hot { HOT_GRIP_PT } else { GRIP_PT } * ppp / 2.0;
+                let centre = [vec![screen(*at)]];
+                let disc = band_rows(&centre, r, &pane);
+                let face = band_rows(&centre, r - GRIP_RING_PT * ppp, &pane);
+                grip_rings.extend(rects_of(&subtract_rows(&disc, &face)));
+                grips.extend(rects_of(&face));
+                continue;
+            }
         };
         tool.extend(px.into_iter().map(|r| (r, token)));
     }
@@ -601,7 +677,147 @@ pub fn build(input: &OverlayInput<'_>) -> Overlay {
         tool,
         markers,
         open_cps,
+        hover_band,
+        selected_band,
+        selected_band_edge,
+        grip_rings,
+        grips,
     }
+}
+
+/// Per row of the pane, the merged pixel runs `[x0, x1)` whose centres lie within `r` pixels of a segment of one of
+/// `lines` (screen points in physical pixels): the lines thickened by `r`, round at their bends and ends; a line of one
+/// point is a disc. Rows and runs are clipped to `pane`; a radius that is not positive gives none.
+fn band_rows(lines: &[Vec<(f64, f64)>], r: f64, pane: &PxRect) -> BTreeMap<i64, Vec<(i64, i64)>> {
+    let mut rows: BTreeMap<i64, Vec<(i64, i64)>> = BTreeMap::new();
+    if !(r.is_finite() && r > 0.0) {
+        return rows;
+    }
+    for line in lines {
+        let segments: Vec<((f64, f64), (f64, f64))> = match line.as_slice() {
+            [] => continue,
+            [p] => vec![(*p, *p)],
+            _ => line.windows(2).map(|w| (w[0], w[1])).collect(),
+        };
+        for (a, b) in segments {
+            if ![a.0, a.1, b.0, b.1].iter().all(|v| v.is_finite()) {
+                continue;
+            }
+            let y0 = ((a.1.min(b.1) - r).floor() as i64).max(pane.y0);
+            let y1 = ((a.1.max(b.1) + r).ceil() as i64).min(pane.y1);
+            for y in y0..y1 {
+                let Some((lo, hi)) = capsule_row(a, b, r, y as f64 + 0.5) else {
+                    continue;
+                };
+                let x0 = ((lo - 0.5).ceil() as i64).max(pane.x0);
+                let x1 = ((hi - 0.5).floor() as i64).saturating_add(1).min(pane.x1);
+                if x0 < x1 {
+                    rows.entry(y).or_default().push((x0, x1));
+                }
+            }
+        }
+    }
+    for runs in rows.values_mut() {
+        runs.sort_unstable();
+        let mut merged: Vec<(i64, i64)> = Vec::with_capacity(runs.len());
+        for &(x0, x1) in runs.iter() {
+            match merged.last_mut() {
+                Some(last) if x0 <= last.1 => last.1 = last.1.max(x1),
+                _ => merged.push((x0, x1)),
+            }
+        }
+        *runs = merged;
+    }
+    rows
+}
+
+/// The `x` range on the row `y = yc` of the points within `r` of the segment `a`–`b`: the union of the discs at its
+/// ends and of the strip along it (`0 ≤ along ≤ length`, `|across| ≤ r`, both linear in `x`), one interval since the
+/// shape is convex; `None` where the row misses it.
+fn capsule_row(a: (f64, f64), b: (f64, f64), r: f64, yc: f64) -> Option<(f64, f64)> {
+    let (mut lo, mut hi) = (f64::INFINITY, f64::NEG_INFINITY);
+    for c in [a, b] {
+        let dy = yc - c.1;
+        if dy.abs() <= r {
+            let w = (r * r - dy * dy).sqrt();
+            lo = lo.min(c.0 - w);
+            hi = hi.max(c.0 + w);
+        }
+    }
+    let (dx, dy) = (b.0 - a.0, b.1 - a.1);
+    let len = dx.hypot(dy);
+    if len > 0.0 {
+        let mut range = (f64::NEG_INFINITY, f64::INFINITY);
+        for (k, c0, min, max) in [
+            (dx / len, (-a.0 * dx + (yc - a.1) * dy) / len, 0.0, len),
+            (dy / len, (-a.0 * dy - (yc - a.1) * dx) / len, -r, r),
+        ] {
+            if k == 0.0 {
+                if c0 < min || c0 > max {
+                    range = (1.0, 0.0);
+                }
+            } else {
+                let (p, q) = ((min - c0) / k, (max - c0) / k);
+                range = (range.0.max(p.min(q)), range.1.min(p.max(q)));
+            }
+        }
+        if range.0 <= range.1 {
+            lo = lo.min(range.0);
+            hi = hi.max(range.1);
+        }
+    }
+    (lo <= hi).then_some((lo, hi))
+}
+
+/// The runs of `outer` that `inner` does not cover, row by row (both merged and sorted, as [`band_rows`] gives them).
+fn subtract_rows(
+    outer: &BTreeMap<i64, Vec<(i64, i64)>>,
+    inner: &BTreeMap<i64, Vec<(i64, i64)>>,
+) -> BTreeMap<i64, Vec<(i64, i64)>> {
+    let mut out = BTreeMap::new();
+    for (y, runs) in outer {
+        let holes = inner.get(y).map_or(&[][..], Vec::as_slice);
+        let mut left = Vec::new();
+        for &(x0, x1) in runs {
+            let mut from = x0;
+            for &(h0, h1) in holes.iter().filter(|(h0, h1)| *h1 > x0 && *h0 < x1) {
+                if h0 > from {
+                    left.push((from, h0));
+                }
+                from = from.max(h1);
+            }
+            if from < x1 {
+                left.push((from, x1));
+            }
+        }
+        if !left.is_empty() {
+            out.insert(*y, left);
+        }
+    }
+    out
+}
+
+/// The runs of `rows` as pixel rectangles, a run that continues the same run of the row above joined to it.
+fn rects_of(rows: &BTreeMap<i64, Vec<(i64, i64)>>) -> Vec<PxRect> {
+    let mut out: Vec<PxRect> = Vec::new();
+    let mut open: BTreeMap<(i64, i64), usize> = BTreeMap::new();
+    for (&y, runs) in rows {
+        let mut next = BTreeMap::new();
+        for &run in runs {
+            match open.get(&run) {
+                Some(&i) if out[i].y1 == y => {
+                    out[i].y1 = y + 1;
+                    next.insert(run, i);
+                }
+                _ => {
+                    next.insert(run, out.len());
+                    out.push(PxRect::new(run.0, y, run.1, y + 1));
+                }
+            }
+        }
+        open = next;
+    }
+    out
 }
 
 /// The rims of the open markers of `input.open_cps` at scale `s` (see [`OpenCps`]): a `4s + 1`-pixel square centred
@@ -845,6 +1061,15 @@ pub fn composite(image: &mut RgbaImage, overlay: &Overlay, theme: &Theme) {
     for &r in &overlay.hover {
         fill(image, r, theme.hover);
     }
+    for &r in &overlay.hover_band {
+        fill(image, r, with_alpha(theme.hover, HOVER_BAND_ALPHA));
+    }
+    for &r in &overlay.selected_band {
+        fill(image, r, with_alpha(theme.selection, SELECTED_BAND_ALPHA));
+    }
+    for &r in &overlay.selected_band_edge {
+        fill(image, r, theme.selection);
+    }
     for &r in &overlay.casing {
         fill(image, r, theme.casing);
     }
@@ -863,12 +1088,23 @@ pub fn composite(image: &mut RgbaImage, overlay: &Overlay, theme: &Theme) {
     for &(r, token) in &overlay.tool {
         fill(image, r, theme.token(token));
     }
+    for &r in &overlay.grip_rings {
+        fill(image, r, theme.casing);
+    }
+    for &r in &overlay.grips {
+        fill(image, r, theme.selection);
+    }
     for &r in &overlay.markers {
         fill(image, r, theme.snap);
     }
     for &r in &overlay.cursor {
         fill(image, r, theme.cursor);
     }
+}
+
+/// `c` at the opacity `a`.
+pub fn with_alpha(c: Color, a: u8) -> Color {
+    Color { a, ..c }
 }
 
 #[cfg(test)]
@@ -906,6 +1142,7 @@ mod tests {
             cursor: None,
             tool: &[],
             open_cps: OpenCps::default(),
+            bands: Bands::default(),
         }
     }
 

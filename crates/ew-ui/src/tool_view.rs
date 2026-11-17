@@ -65,6 +65,7 @@ pub fn marks(overlay: &Overlay, snapper: &tools::Snapper) -> Vec<ToolMark> {
                         tools::MarkerKind::Junction => MarkerKind::Junction,
                     },
                 },
+                OverlayItem::Grip { at, hot } => ToolMark::Grip { at: *at, hot: *hot },
                 OverlayItem::Paths { paths, transform } => ToolMark::Paths {
                     paths: tools::paths_on_sheet(paths, *transform, snapper),
                 },

@@ -217,7 +217,11 @@ fn a5_a_pointer_at_each_entity_centre_hovers_an_entity_no_larger_that_contains_i
     let area = |r: &ew_viewmodel::ew_api::output::ew_dl::ew_units::Rect| {
         i128::from(r.max().x.0 - r.min().x.0) * i128::from(r.max().y.0 - r.min().y.0)
     };
-    for (entity, r) in &entities {
+    // A wire answers only near its own line (rc.3): the centre of the box round its ends is no point of it, and a
+    // wire hovered at another entity's centre passes within the reach, whatever its box.
+    let tables = shell.canvas().unwrap().page().tables.clone();
+    let wire = |e: &ew_viewmodel::ew_api::output::ew_dl::EntityRef| tables.connections.iter().any(|c| c.id == e.0);
+    for (entity, r) in entities.iter().filter(|(e, _)| !wire(e)) {
         let (x, y) = rect_centre(*r);
         done(
             &mut shell,
@@ -229,6 +233,9 @@ fn a5_a_pointer_at_each_entity_centre_hovers_an_entity_no_larger_that_contains_i
             .unwrap()
             .hover()
             .unwrap_or_else(|| panic!("nothing hovered at the centre of {entity:?}"));
+        if wire(&got) {
+            continue;
+        }
         // The hovered rectangle contains the point (the 4-point slop aside: inside the rectangle itself) and is no
         // larger than the entity's own.
         let inside = hr.min().x.0 <= x && x <= hr.max().x.0 && hr.min().y.0 <= y && y <= hr.max().y.0;

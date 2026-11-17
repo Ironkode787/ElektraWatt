@@ -27,9 +27,10 @@
 //! inactive. **Pan** by `(dx, dy)` points moves the content with the pointer: the centre moves by
 //! `−d / points_per_nm`, rounded toward zero, then clamped.
 //!
-//! **Hover** (a placeholder until a spatial index): of the page's entity rectangles
-//! (`DisplayList::entity_bounds`, computed once per page content), those that contain the pointer when inflated by
-//! 4 points; the one with the smallest area wins, ties to the later in paint order.
+//! **Hover**: the first entity of the pick stack at the pointer ([`crate::tools::pick_stack`], what a click there
+//! picks): a connection whose drawn line passes within 4 points, an entity whose rectangle
+//! (`DisplayList::entity_bounds`, computed once per page content) inflated by 4 points contains the pointer, in the
+//! stack's order. A wire answers only near its own line, never over the box around its ends (rc.3).
 
 use std::sync::Arc;
 
@@ -856,13 +857,19 @@ impl CanvasModel {
     }
 
     /// The hover's pick at the pointer, found now ([`CanvasModel::hover`] is cleared by a press while the pointer
-    /// stands still).
+    /// stands still): the first of [`CanvasModel::pointer_stack`], what a click there picks, so a wire answers only
+    /// near its own line, never over the box around its ends; with its rectangle that holds the pointer, else its
+    /// first.
     pub fn pointer_entity(&self) -> Option<(EntityRef, Rect)> {
-        pick(
-            &self.page.entities,
-            self.pointer,
-            HOVER_SLOP_PT / self.points_per_nm(),
-        )
+        let e = *self.pointer_stack().first()?;
+        let rects: Vec<(EntityRef, Rect)> = self
+            .page
+            .entities
+            .iter()
+            .filter(|(x, _)| *x == e)
+            .copied()
+            .collect();
+        pick(&rects, self.pointer, HOVER_SLOP_PT / self.points_per_nm()).or_else(|| rects.first().copied())
     }
 
     /// Every entity a press at the pointer can pick, in the Select tool's pick order ([`crate::tools::pick_stack`]),

@@ -164,6 +164,14 @@ pub enum OverlayItem {
         /// Its shape.
         kind: MarkerKind,
     },
+    /// A round handle of the one selected line (a wire, a fluid line) on the middle of a segment or on a bend, where a
+    /// drag moves it; `hot` while a press at the pointer takes it (drawn larger).
+    Grip {
+        /// Its centre.
+        at: (i64, i64),
+        /// Whether a press at the pointer takes it.
+        hot: bool,
+    },
     /// Polylines in page nm relative to an origin, under an orientation (`0..=7`, A to H) and translated to an
     /// absolute page point: a symbol's outline while it floats. Drawn as dashed lines in the
     /// `ghost` token, composited by the headless snapshot like `Ghost`; [`paths_on_sheet`] gives the sheet points.

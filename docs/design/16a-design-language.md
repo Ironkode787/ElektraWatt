@@ -1512,6 +1512,12 @@ Selection: a 2s-px `canvas.selection` outline around the representation's bounds
 (as built, the mockup draws it so and wins), so it reads over black lines; handles are 8s-px squares at the corners, white fill, 1.5s-px accent stroke. Hover: a 1s-px dashed accent
 outline (4s on, 4s off). A selected object under the pointer shows the selection only.
 
+*As built (rc.3).* A line between two ends (a wire, a fluid line) is never outlined by the box round its ends: it
+answers to the pointer only within 4 points of its own path, and its hover and selection are a band along that path,
+4 points to each side and round at its bends. The hover's band is `canvas.hover` at 22 %; the selection's is
+`canvas.selection` at 28 % inside a solid 1s-px edge. The one selected line carries round handles, 10 points across
+(14 under the pointer): an accent disc with a white 1.5-point ring on the middle of every segment and on every bend.
+
 ### 7.2 Connection points, snap and the grid cursor
 
 CP rings 8s + 1 px in the accent on hover and while a wire tool is active; the snap target a crosshair with a 6-px gap;
