@@ -53,7 +53,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // Draw ▸ Place ▸ Terminal…: its own small form (strip, kind, part, how many, from which number, a new strip's tag;
     // FT-1695), then the Place tool floating the first terminal; a click lays the row. Terminals are placed this way only.
     keeps_banner(with_params(
-        "strip?:text, kind?:text, part?:text, count?:uint, from?:text, tag?:text",
+        "strip?:text, kind?:text, part?:text, count?:uint, from?:text, tag?:text, spacing?:uint",
         in_canvas(placed(
             place(Group::Place, 3, CommandSize::Small, Some(key!("bar-terminal"))),
             "ew-terminal-strip",
@@ -69,6 +69,20 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
                     |s, p| s.act_place_terminal(p),
                 ),
             ),
+        )),
+    )),
+    // Spacing… on two or more selected terminals of one row (rc.3): their own small form, in the terminals' menu and
+    // Edit.
+    keeps_banner(with_params(
+        "steps?:uint",
+        in_canvas(act(
+            "terminals.spacing",
+            Command,
+            Menu::Edit,
+            &[],
+            terminal_row,
+            slot(Menu::Edit),
+            |s, p| s.act_terminals_spacing(p),
         )),
     )),
     keeps_banner(with_params(

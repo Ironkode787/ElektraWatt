@@ -277,3 +277,63 @@ fn how_many_places_that_many_once_and_undo_takes_the_row_whole() {
     assert_eq!(terminals(&s), 4, "one Redo lays it again");
     s.shutdown();
 }
+
+/// rc.3: Terminal…'s Spacing lays the row that many grid steps apart; Spacing… on placed terminals of a row spaces
+/// them from the leftmost in one undo step, refuses a spacing out of range in words, and the project's next row takes
+/// the spacing.
+#[test]
+fn spacing_lays_a_terminal_row_apart_and_respaces_one_that_stands() {
+    let tmp = Tmp::new("terminal-spacing");
+    let mut s = common::new_project(&tmp);
+    let row = |s: &ShellModel| {
+        let page = s.canvas().unwrap().page();
+        let mut v: Vec<(EntityRef, i64)> = page
+            .tables
+            .reps
+            .iter()
+            .filter(|r| r.terminal)
+            .map(|r| (EntityRef(r.id), page.snapper.grid_index_of(r.pos.0)))
+            .collect();
+        v.sort_by_key(|(_, x)| *x);
+        v
+    };
+    let gaps = |v: &[(EntityRef, i64)]| v.windows(2).map(|w| w[1].1 - w[0].1).collect::<Vec<_>>();
+    done(
+        &mut s,
+        "tool.place_terminal",
+        json!({"strip": "new", "count": 3, "spacing": 3}),
+    );
+    done(&mut s, "nav.goto", json!({ "text": "101-D2" }));
+    done(&mut s, "canvas.activate", json!({"alt": true}));
+    let placed = row(&s);
+    assert_eq!(gaps(&placed), [3, 3], "three grid steps apart");
+    // Selected and spaced one step apart: the leftmost stays, one Undo takes it back.
+    let ids: Vec<String> = placed.iter().map(|(e, _)| e.0.to_string()).collect();
+    done(&mut s, "select.set", json!({ "ids": ids }));
+    done(&mut s, "terminals.spacing", json!({"steps": 1}));
+    let spaced = row(&s);
+    assert_eq!(gaps(&spaced), [1, 1]);
+    assert_eq!(spaced[0].1, placed[0].1, "the leftmost stays");
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(row(&s), placed, "one Undo");
+    done(&mut s, "edit.redo", json!({}));
+    // A spacing out of range is refused in words.
+    done(&mut s, "select.set", json!({ "ids": ids }));
+    assert!(matches!(
+        s.dispatch("terminals.spacing", &json!({"steps": 40})),
+        ew_viewmodel::shell::Outcome::Failed { .. }
+    ));
+    // The next row takes the project's spacing.
+    done(&mut s, "select.set", json!({ "ids": [] }));
+    done(&mut s, "tool.place_terminal", json!({"strip": "new", "count": 2}));
+    done(&mut s, "nav.goto", json!({ "text": "101-F2" }));
+    done(&mut s, "canvas.activate", json!({"alt": true}));
+    let all = row(&s);
+    let new: Vec<(EntityRef, i64)> = all
+        .iter()
+        .filter(|(e, _)| !placed.iter().any(|(p, _)| p == e))
+        .copied()
+        .collect();
+    assert_eq!(gaps(&new), [1], "remembered: {all:?}");
+    s.shutdown();
+}

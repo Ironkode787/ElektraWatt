@@ -770,6 +770,16 @@ fn fluid_symbol_page(m: &ShellModel) -> Result<(), Key<'static>> {
     })
 }
 
+/// An editable page with two or more terminals of one row selected (Spacing…).
+fn terminal_row(m: &ShellModel) -> Result<(), Key<'static>> {
+    editable_page(m)?;
+    if m.terminal_row_selected() {
+        Ok(())
+    } else {
+        Err(key!("reason-terminals-spacing"))
+    }
+}
+
 /// An editable page whose selection gives a bond its two ends: exactly one selected connection, a wire and no tube
 /// (Draw ▸ Bond). The headless form that names the two ends (`a` and `b`) needs only the editable page
 /// ([`enabled_with`]).

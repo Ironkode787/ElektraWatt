@@ -618,7 +618,13 @@ struct Project {
     /// The sections by number with their titles, once per revision: the Pages tree lists a section that holds no
     /// page yet (FT-1634).
     sections: Vec<(u16, String)>,
+    /// The spacing of the next terminal row in grid steps (Terminal…'s Spacing, Spacing… on placed terminals; rc.3),
+    /// remembered while the project is open.
+    terminal_spacing: u32,
 }
+
+/// The spacing of a terminal row in grid steps until the user sets another (as Golden A's 1X1 draws its terminals).
+const TERMINAL_SPACING_DEFAULT: u32 = 2;
 
 /// All state of the application shell.
 pub struct ShellModel {
@@ -2020,6 +2026,7 @@ impl ShellModel {
             labels,
             rows: Vec::new(),
             sections: Vec::new(),
+            terminal_spacing: TERMINAL_SPACING_DEFAULT,
         });
         // A project the start-up offer lists is no longer offered once it is open.
         self.opened_offered_project(dir);

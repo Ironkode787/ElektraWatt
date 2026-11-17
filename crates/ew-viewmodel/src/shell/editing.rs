@@ -54,6 +54,9 @@ const NO_PART: &str = "none";
 /// The most terminals one click of Terminal…'s Place lays in a row (FT-1695).
 const TERMINAL_ROW_MAX: u32 = 100;
 
+/// The widest spacing of a terminal row, in grid steps.
+const TERMINAL_SPACING_MAX: u32 = 8;
+
 /// The terminal designation of `p`: `terminal_designation`, else its old name `designation`.
 fn terminal_designation(p: &Map<String, Value>) -> Result<Option<&str>, Outcome> {
     match string_param(p, TERMINAL_DESIGNATION[0])? {
@@ -1171,12 +1174,19 @@ impl ShellModel {
             _ => 1,
         };
         let row = u32::try_from(row).unwrap_or(1).clamp(1, TERMINAL_ROW_MAX);
+        let spacing = p
+            .get("spacing")
+            .and_then(Value::as_u64)
+            .and_then(|s| u32::try_from(s).ok())
+            .unwrap_or(super::TERMINAL_SPACING_DEFAULT)
+            .clamp(1, TERMINAL_SPACING_MAX);
         self.activate_tool(Box::new(
             PlaceTool::new(shape, target)
                 .with_autoconnect(autoconnect)
                 .with_joinable(joinable)
                 .with_copies(copies)
-                .with_row(row),
+                .with_row(row)
+                .with_spacing(spacing),
         ));
         if let Some((part, template)) = slot {
             self.join_template_slot(part, template);
@@ -1727,7 +1737,8 @@ impl ShellModel {
     /// many and from which number (empty: the strip's next free one). Place then arms the Place tool with the first
     /// terminal floating; a click places the row, each terminal on the next free point two grid steps right of the one
     /// before (`place.pick`'s `count`), each with the part in the step that places it. Headless, the parameters left
-    /// out take the form's defaults.
+    /// out take the form's defaults. Spacing (`spacing`, grid steps, shown with their length) is how far apart the row's
+    /// terminals stand, remembered for the project's next row (rc.3).
     pub(crate) fn act_place_terminal(&mut self, p: &Map<String, Value>) -> Outcome {
         const ACTION: &str = "tool.place_terminal";
         let Some(cat) = self.catalogue() else {
@@ -1804,6 +1815,12 @@ impl ShellModel {
                     field("part", key!("form-terminal-part"), parts, proposal),
                     field("count", key!("form-terminal-count"), Vec::new(), "1".to_owned()),
                     field("from", key!("form-terminal-from"), Vec::new(), String::new()),
+                    field(
+                        "spacing",
+                        key!("form-terminal-spacing"),
+                        self.spacing_options(),
+                        self.terminal_spacing().to_string(),
+                    ),
                     // The tag a new strip gets, editable (another tag is the strip's own, frozen).
                     field(
                         "tag",
@@ -1882,6 +1899,10 @@ impl ShellModel {
                 );
             }
         };
+        let spacing = match self.spacing_param(&text("spacing")) {
+            Ok(s) => s,
+            Err(message) => return self.form_failed(ACTION, message),
+        };
         let from = text("from");
         // A row counts on from a number; a designation such as PE names one terminal.
         if count > 1 && !from.is_empty() && crate::tools::next_designation(&from).is_none() {
@@ -1907,6 +1928,10 @@ impl ShellModel {
         let mut params = Map::new();
         params.insert("strip".into(), Value::String(strip));
         params.insert("count".into(), Value::from(count));
+        params.insert("spacing".into(), Value::from(spacing));
+        if let Some(project) = &mut self.project {
+            project.terminal_spacing = spacing;
+        }
         if !from.is_empty() {
             params.insert(TERMINAL_DESIGNATION[0].into(), Value::String(from));
         }
@@ -1918,6 +1943,138 @@ impl ShellModel {
         };
         let out = self.arm(cat, pick, &params);
         self.form_done(ACTION, out)
+    }
+
+    /// The selected terminals of `tables` with their points, when they stand in one row (one `y`); else none.
+    fn selected_terminal_row(&self, tables: &PageTables) -> Vec<(EntityRef, (i64, i64))> {
+        let row: Vec<(EntityRef, (i64, i64))> = tables
+            .reps
+            .iter()
+            .filter(|r| r.terminal && self.tools.selection.contains(EntityRef(r.id)))
+            .map(|r| (EntityRef(r.id), r.pos))
+            .collect();
+        if row.iter().any(|(_, at)| at.1 != row[0].1.1) {
+            return Vec::new();
+        }
+        row
+    }
+
+    /// Whether two or more terminals of one row are selected on the page shown (Spacing…'s condition).
+    pub fn terminal_row_selected(&self) -> bool {
+        self.canvas()
+            .is_some_and(|c| self.selected_terminal_row(&c.page().tables).len() >= 2)
+    }
+
+    /// The spacing of the open project's next terminal row in grid steps.
+    pub(crate) fn terminal_spacing(&self) -> u32 {
+        self.project
+            .as_ref()
+            .map_or(super::TERMINAL_SPACING_DEFAULT, |p| p.terminal_spacing)
+    }
+
+    /// The Spacing field's choices: 1 to [`TERMINAL_SPACING_MAX`] grid steps, each with its length on the page shown
+    /// ("2 grid steps · 8 mm").
+    fn spacing_options(&self) -> Vec<(String, String)> {
+        let step_mm = self.canvas().map_or(0.0, |c| {
+            let (num, den) = c.page().tables.grid;
+            num as f64 / den.max(1) as f64 / 1e6
+        });
+        (1..=TERMINAL_SPACING_MAX)
+            .map(|k| {
+                let mm = format!("{:.1}", step_mm * f64::from(k));
+                let words = if k == 1 {
+                    strings::format(key!("terminal-spacing-one"), &[&mm])
+                } else {
+                    strings::format(key!("terminal-spacing-steps"), &[&k.to_string(), &mm])
+                };
+                (k.to_string(), words)
+            })
+            .collect()
+    }
+
+    /// The spacing `given` (grid steps; empty: the project's), refused in words outside 1 to
+    /// [`TERMINAL_SPACING_MAX`].
+    fn spacing_param(&self, given: &str) -> Result<u32, String> {
+        if given.is_empty() {
+            return Ok(self.terminal_spacing());
+        }
+        match given.parse::<u32>() {
+            Ok(n @ 1..=TERMINAL_SPACING_MAX) => Ok(n),
+            _ => Err(strings::format(
+                key!("error-terminal-spacing"),
+                &[given, &TERMINAL_SPACING_MAX.to_string()],
+            )),
+        }
+    }
+
+    /// `terminals.spacing {steps?}` (Spacing… on two or more selected terminals of one row; rc.3): the terminals spaced
+    /// `steps` grid steps apart from the leftmost, each moved as a move moves it (its wires' ends follow), in one undo
+    /// step; the spacing is the project's for its next row too. In the window without `steps` a small form asks it.
+    pub(crate) fn act_terminals_spacing(&mut self, p: &Map<String, Value>) -> Outcome {
+        const ACTION: &str = "terminals.spacing";
+        let Some(c) = self.canvas() else {
+            return Outcome::refused(key!("reason-no-page"));
+        };
+        let tables = Arc::clone(&c.page().tables);
+        let mut row = self.selected_terminal_row(&tables);
+        if row.len() < 2 {
+            return Outcome::refused(key!("reason-terminals-spacing"));
+        }
+        if p.is_empty() && self.mode == super::Mode::Gui {
+            let form = super::FormDialog {
+                action: ACTION,
+                title_key: key!("terminals-spacing-title"),
+                ok_key: key!("terminals-spacing-ok"),
+                fields: vec![super::FormField {
+                    name: "steps",
+                    label_key: key!("form-terminal-spacing"),
+                    choices: &super::choices::NONE,
+                    options: self.spacing_options(),
+                    value: self.terminal_spacing().to_string(),
+                }],
+                error: None,
+                table: None,
+            };
+            return self.open_dialog(super::Dialog::Form(form));
+        }
+        let given = match p.get("steps") {
+            Some(Value::String(s)) => s.trim().to_owned(),
+            Some(Value::Number(n)) => n.to_string(),
+            _ => String::new(),
+        };
+        let steps = match self.spacing_param(&given) {
+            Ok(s) => i64::from(s),
+            Err(message) => return self.form_failed(ACTION, message),
+        };
+        row.sort_by_key(|(_, at)| at.0);
+        let grid = crate::tools::wire::PageGridMap::new(tables.grid);
+        let first = grid.index(row[0].1.0);
+        let moves: Vec<(EntityRef, i64)> = row
+            .iter()
+            .zip(0..)
+            .map(|((e, at), i)| (*e, first + i * steps - grid.index(at.0)))
+            .filter(|(_, k)| *k != 0)
+            .collect();
+        // Those moving right from the right end, then those moving left from the left: none lands on another.
+        let order = moves
+            .iter()
+            .rev()
+            .filter(|(_, k)| *k > 0)
+            .chain(moves.iter().filter(|(_, k)| *k < 0));
+        let cursor = |s: &Self| s.project.as_ref().map(|p| p.session.history().cursor());
+        let start = cursor(self);
+        for (e, k) in order {
+            let cmd = crate::tools::move_keys::move_command(&tables, &[*e], (*k, 0));
+            let out = self.commit_from_host(cmd.as_ref());
+            if out != Outcome::Done {
+                return self.form_done(ACTION, out);
+            }
+        }
+        self.tools.row_steps = start.zip(cursor(self)).filter(|(a, b)| b > a);
+        if let Some(project) = &mut self.project {
+            project.terminal_spacing = u32::try_from(steps).unwrap_or(super::TERMINAL_SPACING_DEFAULT);
+        }
+        self.form_done(ACTION, Outcome::Done)
     }
 
     /// The part Terminal… proposes for a terminal of kind `kind` on strip `strip` (`None`: a new strip), by its copy ID:

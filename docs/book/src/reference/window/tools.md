@@ -16,7 +16,8 @@ selection). A right click selects the thing first; Shift+F10 or the menu key ope
   there is no Rotate or Mirror. On several selected wires: Make cable from the selection….
 - On a terminal: Add terminal (the strip's next number, of the terminal's kind and part, floating at the pointer),
   Choose part… and Edit strip, which opens the strip editor. On several selected terminals: Choose part…, for them
-  all. A strip's row in the Terminal strips navigator offers Add terminal (with the part of the strip's last terminal
+  all, and Spacing…, which spaces a row of them the grid steps you choose apart from the leftmost (their wires
+  follow, one undo step). A strip's row in the Terminal strips navigator offers Add terminal (with the part of the strip's last terminal
   of that kind), Choose part for its terminals without one, and Edit strip.
 - On a relay's coil: Add contact, one entry per free contact of the relay by name; it floats the contact's symbol for
   a click. On a contact: Go to coil.
@@ -68,11 +69,12 @@ browser. Open it with Draw ▸ Place ▸ Device from part…. See [Choose parts]
 
 Asks which strip (one of the project's, or a new strip with the tag it will take), which kind of terminal
 (feed-through, protective earth and the others of the page's library), which part, how many and from which number
-(empty: the strip's next free number). The Part list holds No part and the terminal parts of the project and the
+(empty: the strip's next free number), and the Spacing between the terminals in grid steps, each shown with its
+length ("2 grid steps · 8.0 mm"; the project's next row takes the spacing chosen last). The Part list holds No part and the terminal parts of the project and the
 installed libraries. It proposes the part of the strip's last terminal of that kind, and for a new strip the starter
 part of the kind (EW-GEN-TRM-1 for a feed-through terminal, EW-GEN-TRM-2 for a protective-earth terminal); another strip
 or kind proposes again, and a part you choose sets the kind it is drawn as. Place then floats the first terminal; one
-click lays the whole row, each terminal two grid steps right of the one before and each with the part, and the tool
+click lays the whole row, each terminal the Spacing right of the one before and each with the part, and the tool
 ends; one Undo takes the row back. Draw ▸ Place ▸ Terminal….
 
 ## Black box

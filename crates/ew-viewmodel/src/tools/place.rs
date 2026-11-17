@@ -139,6 +139,8 @@ pub struct PlaceTool {
     copies: Vec<Value>,
     /// How many terminals one click lays in a row (Terminal…'s count, FT-1695); 1 for every other placement.
     row: u32,
+    /// How many grid steps right of a terminal of its strip the next terminal lands (Terminal…'s Spacing, rc.3).
+    spacing: u32,
     /// Whether a commit was made and the host has not taken the rest of its row ([`Self::take_row_rest`]).
     row_due: bool,
 }
@@ -218,6 +220,7 @@ impl PlaceTool {
             base: None,
             copies: Vec::new(),
             row: 1,
+            spacing: 2,
             row_due: false,
         }
     }
@@ -225,6 +228,12 @@ impl PlaceTool {
     /// The tool laying `row` terminals with one click (FT-1695).
     pub fn with_row(mut self, row: u32) -> PlaceTool {
         self.row = row.max(1);
+        self
+    }
+
+    /// The tool stepping a terminal `spacing` grid steps right of one of its strip (at least 1; rc.3).
+    pub fn with_spacing(mut self, spacing: u32) -> PlaceTool {
+        self.spacing = spacing.max(1);
         self
     }
 
@@ -474,8 +483,9 @@ impl PlaceTool {
     }
 
     /// The insertion point of a placement at `at`: a new terminal on a page point
-    /// where a terminal of the same strip already sits moves to the right, two grid steps at a time, until the point
-    /// is free (Golden A's 1X1 draws its three terminals of one cell 20 QET px apart). A terminal of the same strip is
+    /// where a terminal of the same strip already sits moves to the right, [`Self::with_spacing`]'s grid steps at a
+    /// time (two unless set; Golden A's 1X1 draws its three terminals of one cell 20 QET px apart), until the point is
+    /// free. A terminal of the same strip is
     /// told by [`is_strip_terminal`] (its connection points print `<strip>:…`; autoconnect tells it the same way); every other target, and a terminal of another strip, stays at `at`.
     fn stacked_pos(&self, cx: &ToolCx<'_>, at: (i64, i64)) -> (i64, i64) {
         let PlaceTarget::Terminal { strip_tag, .. } = &self.target else {
@@ -496,7 +506,7 @@ impl PlaceTool {
             if !taken(pos) {
                 break;
             }
-            pos.0 = grid.coord(grid.index(pos.0) + 2);
+            pos.0 = grid.coord(grid.index(pos.0) + i64::from(self.spacing));
         }
         pos
     }

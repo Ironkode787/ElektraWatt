@@ -265,6 +265,20 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
     dispatch(&mut h, "messages.show", json!({ "on": false }));
     // New terminal strip…'s form opens by its own parameter (bare, the action makes a strip).
     checked.insert(check_form(&mut h, "strip.new", json!({ "dialog": true })));
+    // Spacing… with two terminals of one row selected (folio 101's 1X1).
+    goto(&mut h, "101");
+    let tables = &h.state().shell().canvas().expect("folio 101").page().tables;
+    let first = tables.reps.iter().find(|r| r.terminal).expect("a terminal");
+    let row: Vec<String> = tables
+        .reps
+        .iter()
+        .filter(|r| r.terminal && r.pos.1 == first.pos.1)
+        .take(2)
+        .map(|r| r.id.to_string())
+        .collect();
+    dispatch(&mut h, "select.set", json!({ "ids": row }));
+    checked.insert(check_form(&mut h, "terminals.spacing", json!({})));
+    dispatch(&mut h, "select.set", json!({ "ids": [] }));
     // Every form that opens here from no parameters (New page…, New section…, the renumber forms, New cable…): the
     // source's forms are walked, so a new plain form needs no line in this test.
     check_plain_forms(&mut h, &listed, &mut checked);

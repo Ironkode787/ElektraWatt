@@ -7039,3 +7039,13 @@ rack-channel-wired = Bedraad naar
 rack-channel-goto = Naar { $p0 }
 rack-put-blank = Blindplaat
 rack-draw-on-new-page = Op een nieuwe pagina tekenen
+
+# rc.3: the spacing of a terminal row.
+action-terminals-spacing = Tussenafstand…
+form-terminal-spacing = Tussenafstand
+terminal-spacing-one = 1 rasterstap · { $p0 } mm
+terminal-spacing-steps = { $p0 } rasterstappen · { $p1 } mm
+error-terminal-spacing = Tussenafstand { $p0 } is geen aantal rasterstappen van 1 tot { $p1 }.
+reason-terminals-spacing = Selecteer twee of meer klemmen van één rij
+terminals-spacing-title = Tussenafstand van klemmen
+terminals-spacing-ok = Verdelen

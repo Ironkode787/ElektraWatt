@@ -7301,3 +7301,13 @@ rack-channel-wired = Wired to
 rack-channel-goto = Go to { $p0 }
 rack-put-blank = Blanking plate
 rack-draw-on-new-page = Draw on a new page
+
+# rc.3: the spacing of a terminal row.
+action-terminals-spacing = Spacing…
+form-terminal-spacing = Spacing
+terminal-spacing-one = 1 grid step · { $p0 } mm
+terminal-spacing-steps = { $p0 } grid steps · { $p1 } mm
+error-terminal-spacing = Spacing { $p0 } is not a number of grid steps from 1 to { $p1 }.
+reason-terminals-spacing = Select two or more terminals of one row
+terminals-spacing-title = Terminal spacing
+terminals-spacing-ok = Space
