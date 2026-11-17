@@ -61,7 +61,7 @@ impl ValvePort {
     /// The side of a CP of role `role` on the FnDef `def`, a valve's (contact kind `valve`) or a supply plate's (filed
     /// under `ValveTerminal`); `None` for any other port.
     pub fn of(def: &FnDef, role: Option<&FluidPortRole>) -> Option<ValvePort> {
-        if def.contact_kind != ContactKind::Valve && def.category.0.as_str() != "ValveTerminal" {
+        if def.contact_kind != ContactKind::Valve && !crate::is_supply_def(def) {
             return None;
         }
         match role? {
@@ -164,9 +164,10 @@ pub struct GallerySegment {
 /// The slots are the terminal itself, then its children in position order, each followed by its own children in
 /// position order (a module and its valves). Per gallery, a slot whose part's fluid section has an entry for the gallery with
 /// `separates` closes the segment before it; a slot with a valve function joins that function's ports of the
-/// gallery's role; a slot whose entry has a `tap` joins its port of that designation; every other slot (a module
-/// without fluid data, the CPX block) is transparent. Empty segments are left out. Empty for a device that is no
-/// valve terminal ([`is_valve_terminal`]). Policy Memo.
+/// gallery's role; a slot whose entry has a `tap` joins its port of that designation; the terminal itself, without such
+/// an entry, joins the port of the gallery's role of its supply function ([`crate::is_supply_def`]: its own supply ports,
+/// rc.3); every other slot (a module without fluid data, the CPX block) is transparent. Empty segments are
+/// left out. Empty for a device that is no valve terminal ([`is_valve_terminal`]). Policy Memo.
 #[derive(Debug)]
 pub struct Galleries;
 
@@ -230,6 +231,24 @@ impl Query for Galleries {
                             .map(|c| EndpointKey::Cp(*f, c.idx))
                     }) {
                         segment.push(at);
+                    }
+                } else if s == key {
+                    let mut functions: Vec<Id<Function>> = q.idx().functions_of_device(*s).collect();
+                    functions.sort();
+                    let fndefs = q.fndefs();
+                    let supply = functions.into_iter().find(|f| {
+                        q.functions()
+                            .get(*f)
+                            .and_then(|f| fndefs.get(f.def))
+                            .is_some_and(|d| crate::is_supply_def(&d.item))
+                    });
+                    if let Some(f) = supply
+                        && let Some(cp) = q
+                            .get::<FunctionCps>(f)
+                            .iter()
+                            .find(|c| c.port_role.as_ref() == Some(&g))
+                    {
+                        segment.push(EndpointKey::Cp(f, cp.idx));
                     }
                 }
             }

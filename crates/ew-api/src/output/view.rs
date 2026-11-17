@@ -97,7 +97,7 @@ use std::sync::{Arc, OnceLock};
 
 use ew_derive::ew_ids::{self, Id, Uuid};
 use ew_derive::ew_mltext::MlText;
-use ew_derive::ew_units::Grid;
+use ew_derive::ew_units::{Grid, Nm};
 use ew_derive::{
     DisplayedTag, FunctionCps, GeneratedPage, MainRep, PageOrder, PageRef, PlcAddressText, Policy, Q, Query,
     RepAnchorCell, TbValue, TitleBlockValues, XrefTextOf, box_caption, connection_marker, connection_number,
@@ -652,7 +652,8 @@ pub fn page_valve_glyphs(q: &Q, page: Id<Page>) -> Vec<ValveGlyphsView> {
 
 /// The cells of the valve terminals drawn as their positions on a drawn page (doc 11 §3.2, rc.2): for each box
 /// representation with `slots`, in representation-ID order, its frame and per cell (`terminal_cells`) its number and
-/// what it holds (a valve not drawn on this page with its tag), and whether its supply plate stands on the page. A plain
+/// what it holds (a valve not drawn on this page with its tag and where it is drawn), whether its supply stands on the
+/// page, and the valves' ports that end on its sub-base with the gallery each joins (rc.3). A plain
 /// function of the tracked reads of `q`, like `page_valve_glyphs`.
 pub fn page_valve_cells(q: &Q, page: Id<Page>) -> Vec<ValveCellsView> {
     let reps = q.reps();
@@ -685,13 +686,35 @@ pub fn page_valve_cells(q: &Q, page: Id<Page>) -> Vec<ValveCellsView> {
         let Some(grid) = q.pages().get(page).map(|p| p.grid) else {
             continue;
         };
+        let frame = ew_derive::SlotFrame::new(grid, rep.pos, slots.pitch);
+        let (_, band, _) = frame.rows();
+        let mut taps: Vec<(Nm, usize)> = Vec::new();
         let cells = ew_derive::terminal_cells(q, terminal)
             .into_iter()
             .map(|c| {
                 let view = match c.slot {
+                    ew_derive::ValveSlot::Valve { device, .. } if drawn_here(device) => {
+                        // The ports that end on the sub-base, each joined to its gallery (rc.3).
+                        for f in ew_derive::valve_functions(q, device) {
+                            for cp in q.get::<ew_derive::FunctionCps>(f).iter() {
+                                let k = ew_derive::GALLERY_PORTS
+                                    .iter()
+                                    .position(|g| cp.port_role.as_ref() == Some(g));
+                                if let (Some(k), Some(at)) = (k, ew_derive::cp_point(q, f, cp.idx, page))
+                                    && at.y == band
+                                {
+                                    taps.push((at.x, k));
+                                }
+                            }
+                        }
+                        CellView::Valve {
+                            elsewhere: None,
+                            drawn_at: None,
+                        }
+                    }
                     ew_derive::ValveSlot::Valve { device, .. } => CellView::Valve {
-                        elsewhere: (!drawn_here(device))
-                            .then(|| super::properties::device_tag_text(q, device)),
+                        elsewhere: Some(super::properties::device_tag_text(q, device)),
+                        drawn_at: drawn_elsewhere(q, device),
                     },
                     ew_derive::ValveSlot::Blank { .. } => CellView::Blank,
                     ew_derive::ValveSlot::Empty => CellView::Empty,
@@ -706,12 +729,26 @@ pub fn page_valve_cells(q: &Q, page: Id<Page>) -> Vec<ValveCellsView> {
         });
         out.push(ValveCellsView {
             rep: rid,
-            frame: ew_derive::SlotFrame::new(grid, rep.pos, slots.pitch),
+            frame,
             cells,
             supply,
+            taps,
         });
     }
     out
+}
+
+/// Where a valve of a cell that is not drawn on the cell's page is drawn (rc.3): the place of its main symbol
+/// (`<folio>-<cell>`, the folio alone off the frame grid) and that symbol; `None` for a valve drawn nowhere.
+fn drawn_elsewhere(q: &Q, device: Id<Device>) -> Option<(String, Id<Representation>)> {
+    let rep = (*q.get::<ew_derive::MainRep>(device))?;
+    let r = q.reps().get(rep)?;
+    let folio = super::properties::folio_of(q, r.page)?;
+    let place = match q.get::<ew_derive::CellOf>((r.page, r.pos)).as_ref() {
+        Some(cell) => format!("{folio}-{cell}"),
+        None => folio,
+    };
+    Some((place, rep))
 }
 
 /// The texts beside the pins of the multipin valve terminals' plugs on a drawn page (rc.2): for each box

@@ -373,11 +373,124 @@ fn reps_on(
     reps
 }
 
-/// The symbols of a valve terminal's valves and its supply plate on the pages where the terminal is drawn as its
-/// positions, moved into their places (rc.2): each representation of a valve function of the valve holding cell `i`,
-/// on the box's page, to the cell's valve point, and the first representation of the supply plate (a child without a
-/// position whose part taps a gallery) to the supply end; their tubes follow as `rep.move` makes them follow. Nothing
-/// for a parent of no valve terminal or a terminal not drawn as its positions.
+/// Whether function `f` is on a valve terminal's supply FnDef ([`ew_derive::is_supply_def`]).
+fn is_supply_function(tx: &TxBuilder<'_>, f: Id<ew_schema::Function>) -> bool {
+    tx.get::<ew_schema::Function>(f)
+        .and_then(|f| tx.get::<LibCopy<FnDef>>(f.def))
+        .is_some_and(|d| ew_derive::is_supply_def(&d.item))
+}
+
+/// The supply of valve terminal `terminal` as the transaction holds it (`ew_derive::terminal_supply`): the terminal's
+/// own lowest-ID function on a supply FnDef, else of its children without a position in ID order, of the first supply
+/// plate (a child whose part taps a gallery) its lowest-ID function. `None` when it has neither.
+fn supply_of(tx: &TxBuilder<'_>, terminal: Id<Device>) -> Option<Id<ew_schema::Function>> {
+    let mut children: Vec<Id<Device>> = tx
+        .children_of(terminal)
+        .into_iter()
+        .filter(|c| tx.get::<Device>(*c).is_some_and(|d| d.position.is_none()))
+        .collect();
+    children.sort();
+    std::iter::once(terminal).chain(children).find_map(|d| {
+        let mut fns = tx.functions_of_device(d);
+        fns.sort();
+        let plate = d != terminal && tx.get::<Device>(d).is_some_and(|d| is_supply_plate(tx, &d));
+        fns.iter()
+            .copied()
+            .find(|f| d == terminal && is_supply_function(tx, *f))
+            .or_else(|| fns.first().copied().filter(|_| plate))
+    })
+}
+
+/// The symbol that draws a function on FnDef copy `def` in a valve terminal's box on `page` (rc.3): the lowest-ID
+/// embedded fluid symbol on the page's grid that draws `def`; `None` when the project embeds none (the window embeds
+/// it with the command that fills a position, `Session::cell_copies`).
+fn cell_symbol(tx: &TxBuilder<'_>, def: Id<FnDef>, page: Id<Page>) -> Option<Id<ew_schema::SymbolDef>> {
+    let grid = tx.get::<Page>(page)?.grid;
+    tx.iter::<LibCopy<ew_schema::SymbolDef>>()
+        .into_iter()
+        .find(|s| {
+            s.item.rep_type == ew_schema::RepType::Fluid
+                && s.item.grid == grid
+                && ew_ids::v5::lib_copy_id::<FnDef>(
+                    s.item.fndef.library.as_uuid(),
+                    s.item.fndef.item.as_uuid(),
+                ) == def
+        })
+        .map(|s| s.id)
+}
+
+/// A new upright representation of `function` with symbol copy `symbol` at `pos` on `page` (rc.3: a valve in its cell,
+/// the terminal's supply in its supply end), with the symbol's arrangement `arrangement` when it has one of that name;
+/// nothing when a point of it would leave the page's range.
+fn draw_in_box(
+    tx: &mut TxBuilder<'_>,
+    function: Id<ew_schema::Function>,
+    symbol: Id<ew_schema::SymbolDef>,
+    (page, pos): (Id<Page>, Pt2),
+    arrangement: Option<&str>,
+) -> Result<(), CmdError> {
+    let arrangement = arrangement.and_then(|a| {
+        tx.get::<LibCopy<ew_schema::SymbolDef>>(symbol)?
+            .item
+            .arrangements
+            .iter()
+            .find(|x| x.name.as_str() == a)
+            .map(|x| x.name.clone())
+    });
+    let record = Representation {
+        id: tx.mint(),
+        v: 1,
+        functions: vec![function],
+        page,
+        symbol,
+        variant: 0,
+        pos,
+        orient: Default::default(),
+        rep_type: ew_schema::RepType::Fluid,
+        pin_map: Default::default(),
+        text_slots: Default::default(),
+        arrangement,
+        anchor: None,
+        box_: None,
+        source_ref: None,
+        extra: Extra::new(),
+    };
+    if crate::geometry::rep_cps_checked(tx, &record).is_err() {
+        return Ok(());
+    }
+    tx.insert(record).map(|_| ())
+}
+
+/// The function of `device` that a valve in a cell is drawn by: its lowest-ID valve function.
+fn valve_function(tx: &TxBuilder<'_>, device: Id<Device>) -> Option<Id<ew_schema::Function>> {
+    let mut fns: Vec<_> = tx
+        .functions_of_device(device)
+        .into_iter()
+        .filter(|f| {
+            tx.get::<ew_schema::Function>(*f)
+                .and_then(|f| tx.get::<LibCopy<FnDef>>(f.def))
+                .is_some_and(|d| d.item.contact_kind == ew_schema::ContactKind::Valve)
+        })
+        .collect();
+    fns.sort();
+    fns.first().copied()
+}
+
+/// Whether function `f` is drawn on any page.
+fn drawn(tx: &TxBuilder<'_>, f: Id<ew_schema::Function>) -> bool {
+    !tx.reps_of_function(f).is_empty()
+}
+
+/// The symbols of a valve terminal's valves and its supply on the pages where the terminal is drawn as its positions
+/// (rc.2, rc.3): the valves' functions made first, as normaliser N-FL-1 makes them, so that a valve that has just taken
+/// a position is drawn in the same step. On each such page every representation of a valve function of the valve
+/// holding cell `i` moves to the cell's valve point, and the first representation of the supply to the supply end
+/// ([`supply_of`]: a supply plate's, or the terminal's own); their tubes follow as `rep.move` makes them follow. On the
+/// first such page (the lowest box ID), a valve drawn on no page gets its symbol in its cell, and the supply drawn on no
+/// page gets its symbol in the supply end; a terminal without a supply gets its own (a function on the embedded supply
+/// FnDef, `ew_derive::is_supply_def`), so that its ports 1, 3 and 5 take a tube there. A symbol is drawn only when the
+/// project embeds one for the page ([`cell_symbol`]). A valve drawn on another page stays there. Nothing for a parent of
+/// no valve terminal or a terminal not drawn as its positions.
 pub(crate) fn seat_reps(tx: &mut TxBuilder<'_>, parent: Id<Device>) -> Result<(), CmdError> {
     let Some(terminal) = terminal_of(tx, parent) else {
         return Ok(());
@@ -386,15 +499,58 @@ pub(crate) fn seat_reps(tx: &mut TxBuilder<'_>, parent: Id<Device>) -> Result<()
     if boxes.is_empty() {
         return Ok(());
     }
+    crate::normalise::Normaliser::run(&crate::normalise::ValveFunctions, tx)?;
     let cells = cells_in(tx, terminal);
-    let plates: Vec<Id<Device>> = tx
-        .children_of(terminal)
-        .into_iter()
-        .filter(|c| {
-            tx.get::<Device>(*c)
-                .is_some_and(|d| d.position.is_none() && is_supply_plate(tx, &d))
-        })
-        .collect();
+    if let Some((first, frame)) = boxes.first() {
+        for (i, (_, _, holder)) in cells.iter().enumerate() {
+            let Some(f) = holder
+                .filter(|h| is_valve_device(tx, *h))
+                .and_then(|v| valve_function(tx, v))
+                .filter(|f| !drawn(tx, *f))
+            else {
+                continue;
+            };
+            let Some(def) = tx.get::<ew_schema::Function>(f).map(|f| f.def) else {
+                continue;
+            };
+            if let Some(symbol) = cell_symbol(tx, def, first.page) {
+                let extent = tx
+                    .get::<LibCopy<ew_schema::SymbolDef>>(symbol)
+                    .and_then(|s| ew_derive::graphics_x_extent(&s.item));
+                draw_in_box(tx, f, symbol, (first.page, frame.valve_at(i, extent)), None)?;
+            }
+        }
+        let supply = match supply_of(tx, terminal) {
+            Some(f) => Some(f),
+            None => {
+                let def = tx
+                    .iter::<LibCopy<FnDef>>()
+                    .into_iter()
+                    .find(|d| ew_derive::is_supply_def(&d.item))
+                    .map(|d| d.id)
+                    .filter(|d| cell_symbol(tx, *d, first.page).is_some());
+                match def {
+                    Some(def) => Some(insert_function(tx, Some(terminal), def, FnRole::Aux)?),
+                    None => None,
+                }
+            }
+        };
+        if let Some(f) = supply.filter(|f| !drawn(tx, *f))
+            && let Some(def) = tx.get::<ew_schema::Function>(f).map(|f| f.def)
+            && let Some(symbol) = cell_symbol(tx, def, first.page)
+        {
+            // The terminal's own supply prints its ports, not the terminal's tag a second time.
+            let own = tx.get::<ew_schema::Function>(f).and_then(|f| f.device) == Some(terminal);
+            draw_in_box(
+                tx,
+                f,
+                symbol,
+                (first.page, frame.supply_at()),
+                own.then_some("ports"),
+            )?;
+        }
+    }
+    let supply = supply_of(tx, terminal);
     for (b, frame) in boxes {
         let mut targets: Vec<(Id<Representation>, Pt2)> = Vec::new();
         for (i, (_, _, holder)) in cells.iter().enumerate() {
@@ -408,9 +564,12 @@ pub(crate) fn seat_reps(tx: &mut TxBuilder<'_>, parent: Id<Device>) -> Result<()
                 targets.push((r.id, frame.valve_at(i, extent)));
             }
         }
-        if let Some(r) = plates
-            .iter()
-            .find_map(|p| reps_on(tx, *p, b.page, false).into_iter().next())
+        let mut reps: Vec<Id<Representation>> = supply.map(|f| tx.reps_of_function(f)).unwrap_or_default();
+        reps.sort();
+        if let Some(r) = reps
+            .into_iter()
+            .filter_map(|r| tx.get::<Representation>(r))
+            .find(|r| r.page == b.page && r.box_.is_none())
         {
             targets.push((r.id, frame.supply_at()));
         }
@@ -541,15 +700,19 @@ pub(crate) fn seat_on_terminal(
 /// cell per position (`BoxSpec.slots`, [`ew_derive::SlotFrame`]: the supply end, then the cells of the terminal's
 /// positions and of its modules' in order, each [`ew_derive::CELL_STEPS`] grid steps wide), turned upright, without box
 /// CPs or inner graphics; the symbols of the terminal's valves on that page move into their cells and its supply plate
-/// into the supply end, their tubes following ([`seat_reps`]). Refused, in words: a representation that draws no valve
-/// terminal, one that is no box or is drawn as its positions already, a terminal without valve positions, and a box CP
-/// with a connection. Previewed, one undo step. Outcome: the representation.
+/// into the supply end, their tubes following, and its valves and supply drawn on no page are drawn there
+/// ([`seat_reps`]; `copies` embeds the symbols first, as `part.assign` embeds). Refused, in words: a representation that
+/// draws no valve terminal, one that is no box or is drawn as its positions already, a terminal without valve positions,
+/// and a box CP with a connection. Previewed, one undo step. Outcome: the representation.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DrawSlots {
     /// The terminal's box.
     #[schemars(with = "UuidS")]
     pub rep: Id<Representation>,
+    /// The library documents to embed (`lib/` JSON form): the symbols of the valves and the supply (rc.3).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub copies: Vec<serde_json::Value>,
 }
 
 impl Command for DrawSlots {
@@ -560,6 +723,7 @@ impl Command for DrawSlots {
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        crate::commands::assign::embed_closure(Self::NAME, tx, &self.copies)?;
         let rep = tx.require::<Representation>(self.rep)?;
         let device = rep
             .functions
@@ -611,6 +775,50 @@ impl Command for DrawSlots {
         tx.put(next);
         seat_reps(tx, device)?;
         Ok(Outcome::primary((Kind::Representation, self.rep.cast())))
+    }
+}
+
+/// `valve_terminal.draw_valves` (`DrawValves`, doc 11 §3.2, rc.3): Draw its valves in the terminal. A valve terminal
+/// drawn as its positions whose valves were put on their positions without a symbol (from the rack, the PLC list, a
+/// project made before rc.3) has them drawn in their cells, and its supply in its supply end ([`seat_reps`]); `copies`
+/// embeds their symbols first, as `part.assign` embeds. A valve drawn on another page stays there. Refused, in words: a
+/// device that is no valve terminal, and a terminal drawn as its positions on no page. One undo step. Outcome: the
+/// terminal.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct DrawValves {
+    /// The valve terminal.
+    #[schemars(with = "UuidS")]
+    pub terminal: Id<Device>,
+    /// The library documents to embed (`lib/` JSON form): the symbols of the valves and the supply.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub copies: Vec<serde_json::Value>,
+}
+
+impl Command for DrawValves {
+    const NAME: &'static str = "valve_terminal.draw_valves";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        crate::commands::assign::embed_closure(Self::NAME, tx, &self.copies)?;
+        tx.require::<Device>(self.terminal)?;
+        if !is_terminal(tx, self.terminal) {
+            return tx.reject(text!(
+                "refusal-seat-not-terminal",
+                crate::words::device(tx, self.terminal)
+            ));
+        }
+        if slotted_boxes(tx, self.terminal).is_empty() {
+            return tx.reject(text!(
+                "refusal-draw-valves-not-drawn",
+                crate::words::device(tx, self.terminal)
+            ));
+        }
+        seat_reps(tx, self.terminal)?;
+        Ok(Outcome::primary((Kind::Device, self.terminal.cast())))
     }
 }
 
@@ -736,6 +944,8 @@ impl Command for AddValve {
         if let Some(def) = self.fndef.filter(|_| !from_part) {
             insert_function(tx, Some(id), def, FnRole::Main)?;
         }
+        // On a terminal drawn as its positions the valve stands in its cell (rc.3).
+        seat_reps(tx, self.module)?;
         Ok(Outcome::primary((Kind::Device, id.cast())))
     }
 }

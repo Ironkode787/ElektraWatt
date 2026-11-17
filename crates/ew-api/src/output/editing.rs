@@ -184,6 +184,9 @@ pub struct CataloguePart {
     /// Whether the part is a valve for a valve terminal (`ew_derive::fits_terminal`, no PLC section): the parts a
     /// terminal's empty position offers (rc.2).
     pub terminal_valve: bool,
+    /// Whether such a valve has a fluid symbol that fits a valve position's cell (rc.3): a position offers a valve
+    /// without one with the reason, and does not take it.
+    pub cell_symbol: bool,
     /// What the part is to a PLC ([`CataloguePlc`]): a station's head or a card; `None` for a part without a PLC
     /// section. The station view's catalogue lists the parts by it.
     pub plc: Option<CataloguePlc>,
@@ -466,6 +469,52 @@ fn starter_symbol(key: &str) -> Option<&'static LibCopy<SymbolDef>> {
     })
 }
 
+/// The fluid symbol that draws FnDef copy `def` in a valve terminal's box (rc.3: a valve in its cell, the terminal's
+/// supply in its supply end), on `grid` when one is given: the project's of the lowest ID (the one `seat_reps` draws
+/// with), else the starter's; with whether it is the starter's.
+fn box_symbol(
+    q: &Q,
+    def: Id<FnDef>,
+    grid: Option<ew_derive::ew_units::Grid>,
+) -> Option<(LibCopy<SymbolDef>, bool)> {
+    let draws = |s: &SymbolDef| {
+        s.rep_type == RepType::Fluid && grid.is_none_or(|g| s.grid == g) && fndef_copy(&s.fndef) == def
+    };
+    let held = q
+        .symbols()
+        .iter()
+        .filter(|(_, s)| draws(&s.item))
+        .min_by_key(|(id, _)| *id)
+        .map(|(_, s)| ((**s).clone(), false));
+    held.or_else(|| {
+        starter_docs().iter().find_map(|(_, _, d)| match d {
+            LibDocument::Symbol(c) if draws(&c.item) => Some((c.clone(), true)),
+            _ => None,
+        })
+    })
+}
+
+/// The FnDef copy of a part's valve function (rc.3): its first template entry on a FnDef of contact kind `valve`
+/// (embedded, else the starter's); `None` for a part without one.
+fn part_valve_def(q: &Q, part: &Part) -> Option<Id<FnDef>> {
+    part.function_template.iter().find_map(|t| {
+        fndef_of(q, &t.fndef)
+            .filter(|d| d.item.contact_kind == ContactKind::Valve)
+            .map(|d| d.id)
+    })
+}
+
+/// Whether a valve for a valve terminal of part `part` has a fluid symbol that fits a valve position's cell (rc.3,
+/// [`CataloguePart::cell_symbol`]): one that draws its valve FnDef ([`box_symbol`], on any grid) no wider than a cell
+/// ([`ew_derive::CELL_STEPS`] steps of its grid).
+fn fits_cell(q: &Q, part: &Part) -> bool {
+    let Some((symbol, _)) = part_valve_def(q, part).and_then(|d| box_symbol(q, d, None)) else {
+        return false;
+    };
+    let width = ew_derive::graphics_x_extent(&symbol.item).map(|(min, max)| max - min);
+    matches!((width, symbol.item.grid.at(ew_derive::CELL_STEPS)), (Some(w), Some(cell)) if w <= cell)
+}
+
 /// The starter FnDef copy with this copy ID.
 pub(super) fn starter_fndef(id: Id<FnDef>) -> Option<&'static LibCopy<FnDef>> {
     starter_docs().iter().find_map(|(_, _, d)| match d {
@@ -712,6 +761,7 @@ fn catalogue_part(
             Vec::new()
         },
         terminal_valve,
+        cell_symbol: terminal_valve && fits_cell(q, part),
         plc_bus: part.sections.plc.as_ref().is_none_or(|p| p.positions.is_none())
             && (part.sections.plc.is_some()
                 || part.sections.bus.as_ref().is_some_and(|b| !b.ports.is_empty())),
@@ -1642,6 +1692,107 @@ impl Session {
         starter_symbol(key)
             .map(|c| c.id.as_uuid())
             .or_else(|| self.installed_symbol(key).map(|c| c.id.as_uuid()))
+    }
+
+    /// The library documents (`lib/` JSON form) a valve terminal drawn as its positions needs to draw its valves and its
+    /// supply in its box (rc.3, `seat_reps`), for the commands that fill a position or draw the box to embed: for the
+    /// valve FnDef of every valve of the terminal of `device` (the terminal or one of its modules; `None` for a terminal
+    /// not made yet) and of every part of `parts` (a valve about to take a position), and for the terminal's supply (its
+    /// own, else the starter's supply FnDef, `ew_derive::is_supply_def`), on the grid of each page the terminal is drawn
+    /// as its positions on and of `page`: the starter fluid symbol that draws it and its FnDef, each when the project
+    /// embeds none ([`box_symbol`]). Empty when nothing is missing.
+    pub fn cell_copies(
+        &self,
+        device: Option<Uuid>,
+        parts: &[Uuid],
+        page: Option<Uuid>,
+    ) -> Vec<serde_json::Value> {
+        let q = self.query();
+        let terminal = device.map(Id::<Device>::from_uuid).and_then(|d| {
+            if ew_derive::is_fluid_terminal(&q, d) {
+                Some(d)
+            } else {
+                q.devices()
+                    .get(d)?
+                    .parent
+                    .filter(|p| ew_derive::is_fluid_terminal(&q, *p))
+            }
+        });
+        let mut grids: Vec<ew_derive::ew_units::Grid> = page
+            .and_then(|p| q.pages().get(Id::from_uuid(p)).map(|p| p.grid))
+            .into_iter()
+            .collect();
+        let mut defs: Vec<Id<FnDef>> = Vec::new();
+        let def_of = |f: Id<Function>| q.functions().get(f).map(|f| f.def);
+        if let Some(t) = terminal {
+            for f in q.idx().functions_of_device(t) {
+                for r in q.idx().reps_of_function(f) {
+                    if let Some(r) = q.reps().get(r)
+                        && r.box_.as_ref().is_some_and(|b| b.slots.is_some())
+                        && let Some(p) = q.pages().get(r.page)
+                        && !grids.contains(&p.grid)
+                    {
+                        grids.push(p.grid);
+                    }
+                }
+            }
+            for c in ew_derive::terminal_cells(&q, t) {
+                if let ew_derive::ValveSlot::Valve { device, .. } = c.slot {
+                    defs.extend(
+                        ew_derive::valve_functions(&q, device)
+                            .into_iter()
+                            .filter_map(def_of),
+                    );
+                }
+            }
+        }
+        for part in parts {
+            let item = q
+                .parts()
+                .get(Id::from_uuid(*part))
+                .map(|c| c.item.clone())
+                .or_else(|| {
+                    let r = self.library_part_ref(*part)?;
+                    match self.libraries().resolve(&r) {
+                        Ok(LibDocument::Part(c)) => Some(c.item),
+                        _ => None,
+                    }
+                });
+            defs.extend(item.and_then(|p| part_valve_def(&q, &p)));
+        }
+        let supply = terminal
+            .and_then(|t| ew_derive::terminal_supply(&q, t))
+            .and_then(def_of);
+        defs.extend(supply.or_else(|| {
+            starter_docs().iter().find_map(|(_, _, d)| match d {
+                LibDocument::Fndef(c) if ew_derive::is_supply_def(&c.item) => Some(c.id),
+                _ => None,
+            })
+        }));
+        defs.sort();
+        defs.dedup();
+        let mut out: Vec<serde_json::Value> = Vec::new();
+        let mut seen: BTreeSet<Uuid> = BTreeSet::new();
+        for def in defs {
+            for grid in &grids {
+                let Some((symbol, true)) = box_symbol(&q, def, Some(*grid)) else {
+                    continue;
+                };
+                if seen.insert(symbol.id.as_uuid())
+                    && let Ok(v) = serde_json::to_value(LibDocument::Symbol(symbol))
+                {
+                    out.push(v);
+                }
+                if !q.fndefs().contains(def)
+                    && seen.insert(def.as_uuid())
+                    && let Some(c) = starter_fndef(def)
+                    && let Ok(v) = serde_json::to_value(LibDocument::Fndef(c.clone()))
+                {
+                    out.push(v);
+                }
+            }
+        }
+        out
     }
 
     /// The interfaces of device `device`'s bus part (the first part use whose part has bus interfaces, normaliser

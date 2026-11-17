@@ -279,7 +279,7 @@ impl ShellModel {
     }
 
     /// The `command.run` parameters that set position `position` of valve module `module` to `occupancy`
-    /// (`valve.set_occupancy`), with the copies a library valve part needs.
+    /// (`valve.set_occupancy`), with the copies a library valve part needs and the symbols that draw it in its cell.
     pub fn occupancy_params(&self, module: Uuid, position: u32, occupancy: Value) -> Value {
         let mut params =
             json!({ "module": module.to_string(), "position": position, "occupancy": occupancy });
@@ -287,7 +287,7 @@ impl ShellModel {
             .as_str()
             .and_then(|p| p.parse::<Uuid>().ok());
         if let (Some(part), Some(session)) = (part, self.project_session()) {
-            let copies = session.module_part_copies(part);
+            let copies = valve_copies(session, module, part);
             if !copies.is_empty() {
                 params["copies"] = Value::Array(copies);
             }
@@ -432,6 +432,9 @@ impl ShellModel {
                 }
                 let valve = group == ew_api::output::PlcGroup::Valve;
                 let unfit = match tab.cursor {
+                    _ if valve && !p.cell_symbol => {
+                        Some(strings::text(key!("reason-valve-no-cell-symbol")).to_owned())
+                    }
                     Some(StationCursor::Slot { .. }) if valve => {
                         Some(strings::text(key!("rack-valve-on-slot")).to_owned())
                     }
@@ -602,6 +605,17 @@ impl ShellModel {
                 out.push(step(
                     strings::format(key!("rack-todo-fluid"), &[&name(&view.head)]),
                     Some(next(key!("rack-next-fluid"), "fluid")),
+                ));
+            }
+            // Drawn as its positions, with valves put on them without a symbol (rc.3).
+            if session.valves_to_draw(station) {
+                out.push(step(
+                    strings::format(key!("rack-todo-valves"), &[&name(&view.head)]),
+                    Some(TodoFix::Action {
+                        label: strings::text(key!("action-fluid-draw-valves")).to_owned(),
+                        action: "fluid.draw_valves",
+                        params: json!({ "terminal": station.to_string() }),
+                    }),
                 ));
             }
             if !session.overview_drawn(station) {
@@ -1017,6 +1031,13 @@ impl ShellModel {
         let number = |name: &str| p.get(name).and_then(Value::as_u64);
         // A valve for a terminal: a position's.
         if part.plc.is_none() && part.terminal_valve {
+            // A valve without a symbol that fits a cell would stand on its position undrawn (rc.3).
+            if !part.cell_symbol {
+                return self.rack_refuse(
+                    cursor,
+                    strings::text(key!("reason-valve-no-cell-symbol")).to_owned(),
+                );
+            }
             let station = or_return!(self.rack_station());
             let named = match number("position") {
                 Some(n) => Some((
@@ -1939,7 +1960,7 @@ impl ShellModel {
             "module": module.to_string(), "position": position,
             "occupancy": { "valve": { "state": "used", "part": part.to_string() } },
         });
-        let copies = session.module_part_copies(part);
+        let copies = valve_copies(session, module, part);
         if !copies.is_empty() {
             params["copies"] = Value::Array(copies);
         }
@@ -1953,6 +1974,8 @@ impl ShellModel {
         let valve = session.valve_at(module, position);
         let tag = valve.and_then(|v| session.device_tag(v)).unwrap_or_default();
         let module_tag = session.device_tag(module).unwrap_or_default();
+        // On a terminal drawn as its positions the valve stands in its cell already (rc.3).
+        let seated = session.drawn_as_positions(module);
         self.notify(
             strings::format(
                 key!("toast-valve-added"),
@@ -1960,7 +1983,7 @@ impl ShellModel {
             ),
             true,
         );
-        if let Some(valve) = valve.filter(|_| self.canvas().is_some()) {
+        if let Some(valve) = valve.filter(|_| self.canvas().is_some() && !seated) {
             let mut pick = Map::new();
             pick.insert("function".into(), Value::String(valve.to_string()));
             let _ = self.act_place_pick(&pick);
@@ -1989,7 +2012,37 @@ impl ShellModel {
     /// of `valve_terminal.draw_slots`, committed from it as one undo step.
     pub(crate) fn act_fluid_draw_slots(&mut self, p: &Map<String, Value>) -> Outcome {
         let rep = or_return!(self.record_param(p, "rep"));
-        self.preview_bulk("valve_terminal.draw_slots", json!({ "rep": rep.to_string() }))
+        let mut params = json!({ "rep": rep.to_string() });
+        // Its valves and its supply drawn on no page are drawn in it, with their symbols (rc.3).
+        if let (Some(session), Some(c)) = (self.project_session(), self.canvas()) {
+            let tables = &c.page().tables;
+            let terminal = tables.reps.iter().find(|r| r.id == rep).and_then(|r| r.device);
+            let copies = session.cell_copies(terminal, &[], Some(tables.page));
+            if !copies.is_empty() {
+                params["copies"] = Value::Array(copies);
+            }
+        }
+        self.preview_bulk("valve_terminal.draw_slots", params)
+    }
+
+    /// `fluid.draw_valves {terminal}` (rc.3): Draw its valves in the terminal: `valve_terminal.draw_valves` with the
+    /// symbols it needs, one undo step: the valves put on its positions without a symbol stand in its cells, and its
+    /// supply ports 1, 3 and 5 at its left end; a toast says so.
+    pub(crate) fn act_fluid_draw_valves(&mut self, p: &Map<String, Value>) -> Outcome {
+        let terminal = or_return!(self.record_param(p, "terminal"));
+        let Some(session) = self.project_session() else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let tag = session.device_tag(terminal).unwrap_or_default();
+        let params = draw_valves_params(session, terminal);
+        let out = self.run_logged("valve_terminal.draw_valves".to_owned(), params);
+        if out == Outcome::Done {
+            self.notify(
+                strings::format(key!("toast-terminal-valves-drawn"), &[&tag]),
+                true,
+            );
+        }
+        out
     }
 
     /// `fluid.cell_fill {terminal, module, position, replace?, part?}` (rc.2, F15): Fill position n… or Replace… on a
@@ -2836,4 +2889,33 @@ impl ShellModel {
         }
         out
     }
+}
+
+/// The copies a valve of part `part` about to take a position of module `module` needs (rc.3): the library part's
+/// closure ([`ew_api::Session::module_part_copies`]) and the symbols that draw it, and the terminal's supply, in its cell
+/// ([`ew_api::Session::cell_copies`]).
+fn valve_copies(session: &ew_api::Session, module: Uuid, part: Uuid) -> Vec<Value> {
+    let mut copies = session.module_part_copies(part);
+    extend_copies(&mut copies, session.cell_copies(Some(module), &[part], None));
+    copies
+}
+
+/// `copies` with the documents of `more` it does not hold yet (by ID): a command refuses a document named twice.
+pub(crate) fn extend_copies(copies: &mut Vec<Value>, more: Vec<Value>) {
+    for c in more {
+        if !copies.iter().any(|x| x["id"] == c["id"]) {
+            copies.push(c);
+        }
+    }
+}
+
+/// The parameters of `valve_terminal.draw_valves` for `terminal`, with the symbols it draws with (rc.3): its menu's
+/// Draw its valves in the terminal and EW-CORE-047's fix run it.
+pub(crate) fn draw_valves_params(session: &ew_api::Session, terminal: Uuid) -> Value {
+    let mut params = json!({ "terminal": terminal.to_string() });
+    let copies = session.cell_copies(Some(terminal), &[], None);
+    if !copies.is_empty() {
+        params["copies"] = Value::Array(copies);
+    }
+    params
 }

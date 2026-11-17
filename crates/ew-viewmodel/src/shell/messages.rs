@@ -698,7 +698,8 @@ impl ShellModel {
         };
         let rule = finding.rule.to_owned();
         let targets = finding.targets.len();
-        self.preview_fix(fix.command, fix.params, rule, targets)
+        let params = fix_params(&project.session, &fix);
+        self.preview_fix(fix.command, params, rule, targets)
     }
 
     /// The Fix all of the Messages row `key` (rc.2 persona run): a rule group whose findings all have a quick fix of
@@ -778,10 +779,10 @@ impl ShellModel {
             let Some(fix) = &f.fix else { continue };
             let cmd = AnyCommand {
                 name: fix.command.clone(),
-                params: fix.params.clone(),
+                params: fix_params(&project.session, fix),
             };
             if project.session.preview_with(&cmd, submit.clone()).is_ok() {
-                fixes.push(serde_json::json!({ "cmd": fix.command, "params": fix.params }));
+                fixes.push(serde_json::json!({ "cmd": fix.command, "params": cmd.params }));
             }
         }
         let left = found.len() - fixes.len();
@@ -1202,5 +1203,17 @@ mod tests {
         assert_eq!(toast(&shell), check_summary(c, None), "another table: no since");
         shell.shutdown();
         let _ = std::fs::remove_dir_all(&base);
+    }
+}
+
+/// A quick fix's parameters with the library documents its command draws with (rc.3): EW-CORE-047's Draw its valves in
+/// the terminal takes the symbols of the terminal's valves and its supply
+/// ([`super::automation::draw_valves_params`]); any other fix's are the rule's.
+fn fix_params(session: &ew_api::Session, fix: &ew_api::checks::QuickFix) -> Value {
+    match fix.params["terminal"].as_str().and_then(|t| t.parse().ok()) {
+        Some(terminal) if fix.command == "valve_terminal.draw_valves" => {
+            super::automation::draw_valves_params(session, terminal)
+        }
+        _ => fix.params.clone(),
     }
 }

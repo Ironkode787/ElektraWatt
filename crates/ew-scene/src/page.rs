@@ -416,6 +416,9 @@ pub enum CellView {
     Valve {
         /// The tag of a valve not drawn on this page.
         elsewhere: Option<String>,
+        /// Where such a valve is drawn (rc.3): the place its symbol stands at on another page (`3-B2`) and that
+        /// symbol, which the place links to; `None` for a valve drawn nowhere.
+        drawn_at: Option<(String, Id<Representation>)>,
     },
     /// A blanking plate, drawn as one: a plate with both diagonals.
     Blank,
@@ -440,7 +443,7 @@ pub struct PlugNoteView {
 }
 
 /// The cells of one valve terminal's box drawn as its positions (`BoxSpec.slots`): the sub-base along the bottom with
-/// each cell's number in it, the supply end on the left, and per cell what it holds.
+/// its galleries and each cell's number in it, the supply end on the left, and per cell what it holds.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ValveCellsView {
     /// The box representation.
@@ -451,6 +454,9 @@ pub struct ValveCellsView {
     pub cells: Vec<(u32, CellView)>,
     /// Whether a supply plate stands in the supply end; without, the end is drawn dashed.
     pub supply: bool,
+    /// The valves' ports that end on the sub-base (rc.3): each port's x on the page and the gallery it joins (its
+    /// index in `ew_derive::GALLERY_PORTS`).
+    pub taps: Vec<(Nm, usize)>,
 }
 
 /// The side of a representation a break mark closes (see [`BreakMarkView`]).
@@ -1259,11 +1265,13 @@ impl Builder<'_> {
         self.item_graphics(view);
     }
 
-    /// The cells of the valve terminals drawn as their positions (doc 11 §3.2, rc.2): the sub-base along the bottom of
-    /// the cells with each cell's number centred in it, a thin line between two cells above it, the line that closes
-    /// the supply end (dashed while no supply plate stands there), and per cell: nothing more for a valve whose symbol
-    /// stands in it, its tag for one drawn on another page, a plate with both diagonals for a blanking plate, a dashed
-    /// outline for an empty position. The box's outline is the black box's own.
+    /// The cells of the valve terminals drawn as their positions (doc 11 §3.2, rc.2, rc.3): the sub-base along the
+    /// bottom of the cells with its galleries (supply 1, exhausts 3 and 5) drawn through it, one row each, each valve
+    /// port that ends on it joined to its gallery by a line with a dot, and each cell's number centred under the
+    /// galleries; a thin line between two cells above it, the line that closes the supply end (dashed while no supply
+    /// stands there), and per cell: nothing more for a valve whose symbol stands in it, its tag for one drawn on no page or
+    /// on another page, with the place it is drawn at under it as a jump to it, a plate with both diagonals for a
+    /// blanking plate, a dashed outline for an empty position. The box's outline is the black box's own.
     fn valve_cells(&mut self, view: &PageView) {
         let stroke = wire_stroke(view.grid);
         let thin = Stroke {
@@ -1289,6 +1297,36 @@ impl Builder<'_> {
                 )
                 .with_entity(e),
             );
+            for k in 0..ew_derive::GALLERY_PORTS.len() {
+                let y = f.gallery_y(k);
+                self.push(
+                    Item::path(
+                        Path::polyline(&[Pt2::new(end, y), Pt2::new(right, y)]),
+                        Some(thin.clone()),
+                        None,
+                    )
+                    .with_entity(e),
+                );
+            }
+            for (x, k) in &v.taps {
+                let y = f.gallery_y(*k);
+                self.push(
+                    Item::path(
+                        Path::polyline(&[Pt2::new(*x, band), Pt2::new(*x, y)]),
+                        Some(thin.clone()),
+                        None,
+                    )
+                    .with_entity(e),
+                );
+                self.push(
+                    Item::path(
+                        Path::circle(Pt2::new(*x, y), JUNCTION_DOT_RADIUS),
+                        None,
+                        Some(Brush::BLACK),
+                    )
+                    .with_entity(e),
+                );
+            }
             let end_stroke = if v.supply {
                 stroke.clone()
             } else {
@@ -1304,6 +1342,8 @@ impl Builder<'_> {
             );
             // A quarter of a grid step: the margin of a plate or an empty outline inside its cell.
             let margin = Nm((band.0 - top.0) / 16);
+            // The numbers stand under the last gallery.
+            let last = f.gallery_y(ew_derive::GALLERY_PORTS.len() - 1);
             for (i, (number, cell)) in v.cells.iter().enumerate() {
                 let (l, r) = f.cell_x(i);
                 if i > 0 {
@@ -1320,7 +1360,7 @@ impl Builder<'_> {
                 let number = number.to_string();
                 self.text(&TextSpec {
                     text: &number,
-                    at: Pt2::new(cx, Nm(band.0 + (bottom.0 - band.0) / 2)),
+                    at: Pt2::new(cx, Nm(last.0 + (bottom.0 - last.0) / 2)),
                     angle: Angle2(0),
                     align: &Align::Centre,
                     style_key: VALVE_GLYPH_STYLE,
@@ -1333,17 +1373,35 @@ impl Builder<'_> {
                     Pt2::new(r - margin, band - margin),
                 );
                 match cell {
-                    CellView::Valve { elsewhere: None } => {}
-                    CellView::Valve { elsewhere: Some(tag) } => self.text(&TextSpec {
-                        text: tag,
-                        at: Pt2::new(cx, Nm(inner.min().y.0 + (inner.max().y.0 - inner.min().y.0) / 2)),
-                        angle: Angle2(0),
-                        align: &Align::Centre,
-                        style_key: VALVE_GLYPH_STYLE,
-                        entity: e,
-                        link: None,
-                        items: &[],
-                    }),
+                    CellView::Valve { elsewhere: None, .. } => {}
+                    CellView::Valve {
+                        elsewhere: Some(tag),
+                        drawn_at,
+                    } => {
+                        let mid = inner.min().y.0 + (inner.max().y.0 - inner.min().y.0) / 2;
+                        self.text(&TextSpec {
+                            text: tag,
+                            at: Pt2::new(cx, Nm(mid)),
+                            angle: Angle2(0),
+                            align: &Align::BottomCentre,
+                            style_key: VALVE_GLYPH_STYLE,
+                            entity: e,
+                            link: None,
+                            items: &[],
+                        });
+                        if let Some((place, rep)) = drawn_at {
+                            self.text(&TextSpec {
+                                text: &format!("({place})"),
+                                at: Pt2::new(cx, Nm(mid)),
+                                angle: Angle2(0),
+                                align: &Align::TopCentre,
+                                style_key: VALVE_GLYPH_STYLE,
+                                entity: e,
+                                link: Some(Link::Source(Destination::Representation(rep.as_uuid()))),
+                                items: &[],
+                            });
+                        }
+                    }
                     CellView::Blank => {
                         self.push(Item::path(Path::rect(inner), Some(stroke.clone()), None).with_entity(e));
                         for (a, c) in [

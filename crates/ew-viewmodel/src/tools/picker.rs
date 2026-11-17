@@ -766,6 +766,12 @@ impl Picker {
                     None
                 }
             }
+            // A valve for a position without a symbol that fits its cell (rc.3).
+            PickerRow::Part(p)
+                if self.cell.is_some() && self.catalogue.parts.get(p).is_some_and(|x| !x.cell_symbol) =>
+            {
+                Some(key!("reason-valve-no-cell-symbol"))
+            }
             // A part is disabled as the function choosing it places.
             PickerRow::Part(p) => self.disabled(PickerRow::PartFn(p, self.part_main(p)?)),
             PickerRow::Strip(_) | PickerRow::Blank => None,

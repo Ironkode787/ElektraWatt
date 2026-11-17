@@ -999,9 +999,17 @@ impl ShellModel {
                 .and_then(|t| u16::try_from(project.session.terminal_positions(t).len()).ok());
             // A multipin terminal's main function elsewhere is its plug: its pins down its two sides, one click.
             let pins = !fluid && terminal.is_some_and(|t| project.session.terminal_plug(t).is_some());
+            // Drawn as its positions, its valves and its supply stand in it with their symbols (rc.3).
+            let copies = match (slots, self.canvas()) {
+                (Some(_), Some(c)) => project
+                    .session
+                    .cell_copies(terminal, &[], Some(c.page().tables.page)),
+                _ => Vec::new(),
+            };
             self.tools.picker = None;
             self.activate_tool(Box::new(
                 BlackBoxTool::new(copy.to_string(), target)
+                    .with_copies(copies)
                     .with_slots(slots)
                     .with_pins(pins),
             ));
@@ -1075,6 +1083,12 @@ impl ShellModel {
             let slots = part_copy
                 .filter(|_| fluid)
                 .and_then(|p| self.project.as_ref()?.session.part_positions(p));
+            // Drawn as its positions, its supply ports stand in its left end (rc.3).
+            let mut copies = copies;
+            if let (Some(_), Some(project), Some(c)) = (slots, &self.project, self.canvas()) {
+                let cells = project.session.cell_copies(None, &[], Some(c.page().tables.page));
+                super::automation::extend_copies(&mut copies, cells);
+            }
             self.activate_tool(Box::new(
                 BlackBoxTool::new(copy.to_string(), target)
                     .with_copies(copies)

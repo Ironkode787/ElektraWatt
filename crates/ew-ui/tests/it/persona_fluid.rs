@@ -430,7 +430,7 @@ fn item3_a_tube_from_a_valve_inside_its_terminals_box_is_routed() {
     place_terminal(&mut d, (760, 300));
     add_valve(&mut d, 1);
     place_symbol(&mut d, "ew.iso.cylinder-double-acting@qet10", (900, 800));
-    let valve = device_drawn(&mut d, "ew.iso.valve");
+    let valve = device_drawn(&mut d, "ew.iso.valve-5-2");
     let cylinder = device_drawn(&mut d, "ew.iso.cylinder");
     let (a, b) = (port(&mut d, valve, "4"), port(&mut d, cylinder, "B"));
     draw_tube(&mut d, a, b);
@@ -474,7 +474,7 @@ fn unrouted_tube(d: &mut Driver) -> (String, (i64, i64)) {
     add_valve(d, 1);
     place_symbol(d, "ew.iso.cylinder-double-acting@qet10", (800, 850));
     let (valve, cylinder) = (
-        device_drawn(d, "ew.iso.valve"),
+        device_drawn(d, "ew.iso.valve-5-2"),
         device_drawn(d, "ew.iso.cylinder"),
     );
     let page = d.shell_mut().canvas().unwrap().page().tables.page.to_string();

@@ -164,6 +164,8 @@ commands! {
     assembly::LinkDevices,
     // A valve terminal's free box redrawn as its positions (rc.2)
     assembly::DrawSlots,
+    // Draw its valves in the terminal (rc.3)
+    assembly::DrawValves,
     fluid::SetValveOccupancy,
     fluid::ClosePort,
     fluid::EditMedium,

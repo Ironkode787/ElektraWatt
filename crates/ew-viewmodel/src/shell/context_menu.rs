@@ -277,8 +277,31 @@ impl ShellModel {
             [f] => Some(*f),
             _ => None,
         };
-        // A valve terminal's box: the cell under the pointer when it is drawn as its positions, else Draw as slots.
-        let slotted = self.terminal_box_entries(rep, at, out);
+        // A valve terminal's box: the cell under the pointer when it is drawn as its positions, else Draw as slots. The
+        // terminal's own supply in its supply end is the box's body (rc.3).
+        let own_box = rep
+            .black_box
+            .is_none()
+            .then(|| self.canvas())
+            .flatten()
+            .and_then(|c| {
+                c.page()
+                    .tables
+                    .reps
+                    .iter()
+                    .find(|r| {
+                        r.device.is_some()
+                            && r.device == rep.device
+                            && r.black_box
+                                .as_ref()
+                                .is_some_and(|b| b.valve_terminal && !b.cells.is_empty())
+                    })
+                    .cloned()
+            });
+        let slotted = match &own_box {
+            Some(b) => self.terminal_box_entries(b, None, out),
+            None => self.terminal_box_entries(rep, at, out),
+        };
         self.fluid_entries(thing.device, coil, !slotted, out);
     }
 
@@ -823,6 +846,15 @@ impl ShellModel {
         // line with a key that did nothing).
         if let Some(words) = self.terminal_kind_words(device) {
             out.extend(self.heading(words));
+        }
+        // Valves put on their positions without a symbol (from the rack, the PLC list, a project made before rc.3).
+        if session.valves_to_draw(device) {
+            let label = strings::text(key!("action-fluid-draw-valves")).to_owned();
+            out.extend(self.aimed(
+                "fluid.draw_valves",
+                json!({ "terminal": device.to_string() }),
+                label,
+            ));
         }
         self.device_medium_entries(session, device, out);
         // A multipin terminal's plug (rc.2), from any page: Go to the plug where it is drawn, else Draw the plug on an

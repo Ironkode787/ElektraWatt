@@ -1176,6 +1176,7 @@ fix-mark-cp-unused = Markeren als niet gebruikt
 fix-plc-take-out = Uit het rek halen
 fix-plc-bind-pins = De kanalen aan hun pinnen koppelen
 fix-blank-position = Blindplaat op ventielplaats { $position }
+fix-draw-valves = De ventielen in het ventieleiland tekenen
 
 # De woorden die een regel afdrukt waar een record geen eigen naam heeft (FT-912), per sleutel; WORD(…) in een patroon
 # drukt ze in het Nederlands af.

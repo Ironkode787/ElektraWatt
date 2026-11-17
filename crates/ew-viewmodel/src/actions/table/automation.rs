@@ -443,6 +443,22 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ))),
     ),
+    // Draw its valves in the terminal (rc.3): valves put on its positions without a symbol stand in its cells.
+    with_params(
+        "terminal:ref",
+        needs_parameters(hidden(with_aliases(
+            &[("terminal", ParamForm::Whole)],
+            act(
+                "fluid.draw_valves",
+                Command,
+                Menu::Project,
+                &[],
+                writable,
+                None,
+                |s, p| s.act_fluid_draw_valves(p),
+            ),
+        ))),
+    ),
     // A stand-alone valve's Draw solenoid 14 on this page… or on an electrical page… (rc.2, F11): the coil's symbol on the
     // pointer on the electrical page in front, `page` (a folio or `new`), else the page the window asks for.
     with_params(

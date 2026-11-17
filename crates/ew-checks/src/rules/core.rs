@@ -134,18 +134,51 @@ impl Rule for DeviceNotInSchematic {
                 "{tag} is not drawn on any page, so its tag shows ? where the page goes; the parts list still counts it"
             )
         };
-        vec![
-            Finding::new(
-                &DEVICE_NOT_IN_SCHEMATIC,
-                [Target::new(Kind::Device, device)],
-                "",
-                tag.clone(),
-                message,
-            )
-            .arg("device", tag)
-            .arg("part", if d.parts.is_empty() { "no" } else { "yes" }),
-        ]
+        let finding = Finding::new(
+            &DEVICE_NOT_IN_SCHEMATIC,
+            [Target::new(Kind::Device, device)],
+            "",
+            tag.clone(),
+            message,
+        )
+        .arg("device", tag)
+        .arg("part", if d.parts.is_empty() { "no" } else { "yes" });
+        // A valve on a valve terminal drawn as its positions (rc.3): Draw its valves in the terminal.
+        let finding = match drawn_terminal_of(q, device) {
+            Some(terminal) => finding.with_fix(QuickFix {
+                label: "Draw its valves in the terminal".to_owned(),
+                key: Some("fix-draw-valves"),
+                command: "valve_terminal.draw_valves".to_owned(),
+                params: serde_json::json!({ "terminal": terminal.to_string() }),
+            }),
+            None => finding,
+        };
+        vec![finding]
     }
+}
+
+/// The valve terminal that `device` sits on (its parent, or its parent's parent), when that terminal is drawn as its
+/// positions on a page (a representation of one of its functions is a box with `slots`); `None` otherwise.
+fn drawn_terminal_of(q: &Q, device: Id<Device>) -> Option<Id<Device>> {
+    let parent = q.devices().get(device)?.parent?;
+    let terminal = if ew_derive::is_fluid_terminal(q, parent) {
+        parent
+    } else {
+        q.devices()
+            .get(parent)?
+            .parent
+            .filter(|t| ew_derive::is_fluid_terminal(q, *t))?
+    };
+    let idx = q.idx();
+    idx.functions_of_device(terminal)
+        .any(|f| {
+            idx.reps_of_function(f).any(|r| {
+                q.reps()
+                    .get(r)
+                    .is_some_and(|r| r.box_.as_ref().is_some_and(|b| b.slots.is_some()))
+            })
+        })
+        .then_some(terminal)
 }
 
 /// EW-CORE-051 "Unpaired interruption point" (doc 15 §4.2): completeness, o r, error, project.

@@ -7,12 +7,13 @@
 //!
 //! The box (`BoxSpec.slots`) stands on the page grid: a supply end of [`END_STEPS`] grid steps on the left (where the
 //! terminal's supply ports 1, 3 and 5 are drawn), then one cell of `pitch` per valve position, left to right, all
-//! [`HEIGHT_STEPS`] high. A valve stands in its cell with its working ports 2 and 4 two steps below the top edge; its
-//! ports 1, 3 and 5 end on the sub-base, a band along the bottom two steps high, which the scene draws with the cell
-//! numbers in it (the galleries join those ports in the model, doc 11 §5.2).
+//! [`HEIGHT_STEPS`] high. A valve stands in its cell with its working ports 2 and 4 on the top edge, where a tube leaves
+//! upwards; its ports 1, 3 and 5 end on the sub-base, a band along the bottom four steps high, which the scene draws
+//! with the galleries through it ([`GALLERY_PORTS`], one row each, which join those ports in the model, doc 11 §5.2)
+//! and the cell numbers under them.
 
 use ew_ids::Id;
-use ew_schema::{ContactKind, Device, FnDef, Primitive, SymbolDef};
+use ew_schema::{ContactKind, Device, FluidPortRole, FnDef, Primitive, SymbolDef};
 use ew_units::{Grid, Nm, Pt2};
 
 use crate::{Q, ValveSlot, ValveSlots};
@@ -24,10 +25,17 @@ pub const CELL_STEPS: i64 = 11;
 pub const END_STEPS: i64 = 6;
 /// The height of the box, in grid steps.
 pub const HEIGHT_STEPS: i64 = 8;
-/// The row of a valve's insertion point (its working ports), in grid steps below the top edge.
-const VALVE_TOP: i64 = 2;
-/// The row of the sub-base's top edge, where a valve's ports 1, 3 and 5 end.
-pub const BAND_TOP: i64 = 6;
+/// The row of a valve's insertion point (its working ports), in grid steps below the top edge: on it.
+const VALVE_TOP: i64 = 0;
+/// The row of the sub-base's top edge, where a valve's ports 1, 3 and 5 end (a valve symbol is four steps high).
+pub const BAND_TOP: i64 = 4;
+/// The galleries the sub-base draws, one row each below its top edge (the first one step down): the supply 1 and the
+/// exhausts 3 and 5.
+pub const GALLERY_PORTS: [FluidPortRole; 3] = [
+    FluidPortRole::Supply1,
+    FluidPortRole::Exhaust3,
+    FluidPortRole::Exhaust5,
+];
 /// The row of the supply plate's insertion point: its ports end on the bottom edge.
 const SUPPLY_TOP: i64 = 3;
 
@@ -75,6 +83,12 @@ pub fn fits_terminal<'a>(defs: impl IntoIterator<Item = &'a FnDef>) -> bool {
         }
     }
     valve
+}
+
+/// Whether a FnDef is a valve terminal's supply (the supply plate's, filed under `ValveTerminal`): its ports 1, 3 and 5
+/// feed the galleries, on a supply plate or on the terminal itself (rc.3).
+pub fn is_supply_def(def: &FnDef) -> bool {
+    def.category.0.as_str() == "ValveTerminal"
 }
 
 /// [`fits_terminal`] of a device of the model.
@@ -185,6 +199,13 @@ impl SlotFrame {
         self.x(END_STEPS)
     }
 
+    /// The y of the row of gallery `k` of [`GALLERY_PORTS`], on the page.
+    pub fn gallery_y(&self, k: usize) -> Nm {
+        self.y(BAND_TOP
+            .saturating_add(1)
+            .saturating_add(i64::try_from(k).unwrap_or(0)))
+    }
+
     /// The cell of a box of `n` cells that the page point `p` lies in (0-based); `None` outside every cell.
     pub fn cell_at(&self, n: usize, p: Pt2) -> Option<usize> {
         let (top, _, bottom) = self.rows();
@@ -216,10 +237,13 @@ impl SlotFrame {
 
 /// The supply of a valve terminal drawn in its box's supply end: the lowest-ID function of the terminal, else of a
 /// child without a position, whose device's part taps a gallery and that has a fluid CP of the tap's designation (the
-/// supply plate's function). `None` when the terminal has no supply plate.
+/// supply plate's function), or, of the terminal, that is a supply ([`is_supply_def`]: its own supply ports, rc.3).
+/// `None` when the terminal has neither.
 pub fn terminal_supply(q: &Q, terminal: Id<Device>) -> Option<Id<ew_schema::Function>> {
     let devices = q.devices();
     let parts = q.parts();
+    let functions = q.functions();
+    let fndefs = q.fndefs();
     let mut candidates = vec![terminal];
     candidates.extend(
         crate::fluid::ordered_children(q, terminal)
@@ -245,6 +269,11 @@ pub fn terminal_supply(q: &Q, terminal: Id<Device>) -> Option<Id<ew_schema::Func
             q.get::<crate::FunctionCps>(*f)
                 .iter()
                 .any(|c| crate::is_fluid(&c.discipline) && taps.contains(&c.designation))
+                || d == terminal
+                    && functions
+                        .get(*f)
+                        .and_then(|f| fndefs.get(f.def))
+                        .is_some_and(|d| is_supply_def(&d.item))
         })
     })
 }

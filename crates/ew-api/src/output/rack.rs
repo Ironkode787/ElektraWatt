@@ -10,6 +10,7 @@
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_schema::LibDocument;
 use ew_derive::ew_schema::{ContactKind, Device, Function, Part, PlcRole};
+use ew_derive::ew_units::{Nm, Pt2};
 use ew_derive::{ModuleOrder, Q, Slot, ValveSlot, ValveSlots};
 
 use super::Uuid;
@@ -1331,6 +1332,82 @@ impl Session {
         (main.as_uuid() == function && ew_derive::is_fluid_terminal(&q, device)).then(|| device.as_uuid())
     }
 
+    /// Whether the valve terminal of `device` (the terminal itself, one of its modules or one of their valves) is drawn as
+    /// its positions on a page (rc.3): a valve that takes a position then stands in its cell by itself.
+    pub fn drawn_as_positions(&self, device: Uuid) -> bool {
+        let q = self.query();
+        let mut seen: Vec<Id<Device>> = Vec::new();
+        let mut at = Some(Id::<Device>::from_uuid(device));
+        while let Some(d) = at.filter(|d| !seen.contains(d)) {
+            if ew_derive::is_fluid_terminal(&q, d) {
+                return slotted(&q, d);
+            }
+            seen.push(d);
+            at = q.devices().get(d).and_then(|d| d.parent);
+        }
+        false
+    }
+
+    /// Whether Draw its valves in the terminal (`valve_terminal.draw_valves`, rc.3) has something to draw for valve
+    /// terminal `terminal`: it is drawn as its positions, and a valve on one of its positions, or its supply, is drawn on
+    /// no page, or it has no supply, or a valve stands off its cell on a page it is drawn as its positions on (drawn by
+    /// an earlier build, whose cells put the valves lower). Its menu, its view's To do and EW-CORE-047's fix offer it
+    /// then.
+    pub fn valves_to_draw(&self, terminal: Uuid) -> bool {
+        let q = self.query();
+        let t = Id::<Device>::from_uuid(terminal);
+        if !ew_derive::is_fluid_terminal(&q, t) || !slotted(&q, t) {
+            return false;
+        }
+        let undrawn = |f: Id<ew_derive::ew_schema::Function>| q.idx().reps_of_function(f).next().is_none();
+        let cells = ew_derive::terminal_cells(&q, t);
+        let valves: Vec<(usize, Vec<Id<ew_derive::ew_schema::Function>>)> = cells
+            .iter()
+            .enumerate()
+            .filter_map(|(i, c)| match c.slot {
+                ew_derive::ValveSlot::Valve { device, .. } => {
+                    Some((i, ew_derive::valve_functions(&q, device)))
+                }
+                _ => None,
+            })
+            .collect();
+        let supply = ew_derive::terminal_supply(&q, t);
+        if valves.iter().any(|(_, fns)| fns.iter().copied().all(undrawn)) || supply.is_none_or(undrawn) {
+            return true;
+        }
+        // A symbol on a box's page that stands off its place there.
+        let off = |f: Id<ew_derive::ew_schema::Function>, page, place: &dyn Fn(Option<(Nm, Nm)>) -> Pt2| {
+            q.idx().reps_of_function(f).any(|r| {
+                q.reps().get(r).is_some_and(|r| {
+                    let extent = q
+                        .symbols()
+                        .get(r.symbol)
+                        .and_then(|s| ew_derive::graphics_x_extent(&s.item));
+                    r.page == page && r.box_.is_none() && r.pos != place(extent)
+                })
+            })
+        };
+        q.idx().functions_of_device(t).any(|f| {
+            q.idx().reps_of_function(f).any(|r| {
+                let Some((r, slots)) = q
+                    .reps()
+                    .get(r)
+                    .and_then(|r| Some((r, r.box_.as_ref()?.slots.as_ref()?)))
+                else {
+                    return false;
+                };
+                let Some(grid) = q.pages().get(r.page).map(|p| p.grid) else {
+                    return false;
+                };
+                let frame = ew_derive::SlotFrame::new(grid, r.pos, slots.pitch);
+                valves.iter().any(|(i, fns)| {
+                    fns.iter()
+                        .any(|f| off(*f, r.page, &|extent| frame.valve_at(*i, extent)))
+                })
+            })
+        })
+    }
+
     /// The valve terminals of the project drawn on no fluid page yet (made as a station in the New station dialog, rc.2):
     /// each with its tag, in natural order of the tag.
     pub fn undrawn_fluid_terminals(&self) -> Vec<(Uuid, String)> {
@@ -1356,6 +1433,18 @@ impl Session {
         out.sort_by(|a, b| super::join::natural_cmp(&a.1, &b.1));
         out
     }
+}
+
+/// Whether valve terminal `terminal` is drawn as its positions on a page: a representation of one of its functions is a
+/// box with `slots`.
+fn slotted(q: &Q, terminal: Id<Device>) -> bool {
+    q.idx().functions_of_device(terminal).any(|f| {
+        q.idx().reps_of_function(f).any(|r| {
+            q.reps()
+                .get(r)
+                .is_some_and(|r| r.box_.as_ref().is_some_and(|b| b.slots.is_some()))
+        })
+    })
 }
 
 /// What a device row's fluid actions act on ([`Session::fluid_menu`]).
