@@ -489,12 +489,17 @@ fn pot013_cases() {
 // ---------------------------------------------------------------------------------------------------------
 // EW-POT-016
 
-/// A cable core of 1 mm² carried by the connection 0x2001 between -K4097 and -K4098, with the cross-section
-/// override `csa`.
-fn core_override(csa: &str) -> Model {
+/// A cable core carried by the connection 0x2001 between -K4097 and -K4098, with the cross-section override `csa`.
+/// The core states 1 mm² when `core_csa` is set; a core's stated cross-section wins over the wire's override, so
+/// an override that changes the value needs a core that states none.
+fn core_override(core_csa: bool, csa: &str) -> Model {
     let mut fx = Fx::base();
     fx.cable(0x6000, 1);
-    fx.push(json!({"$k": "conductor", "id": us(0x6101), "cable": us(0x6000), "core": "1", "csa": "1"}));
+    let mut core = json!({"$k": "conductor", "id": us(0x6101), "cable": us(0x6000), "core": "1"});
+    if core_csa {
+        core["csa"] = json!("1");
+    }
+    fx.push(core);
     fx.func(0x1001, P1);
     fx.func(0x1002, P1);
     fx.conn(
@@ -514,7 +519,7 @@ fn pot016_cases() {
         vec![
             Case::reports(
                 "an override equal to the value below it is reported",
-                core_override("1"),
+                core_override(true, "1"),
                 |c, f| {
                     assert_eq!(f.len(), 1, "case {c}: {f:#?}");
                     assert_eq!(f[0].code, "005016", "case {c}");
@@ -528,7 +533,7 @@ fn pot016_cases() {
                     );
                 },
             ),
-            Case::silent("an override that changes the value", core_override("2.5")),
+            Case::silent("an override that changes the value", core_override(false, "2.5")),
         ],
     );
 }
