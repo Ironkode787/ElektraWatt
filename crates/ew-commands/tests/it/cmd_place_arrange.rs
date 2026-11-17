@@ -93,6 +93,7 @@ fn slot(kind: SlotKind) -> TextSlot {
         max_width: None,
         style: None,
         fallback: None,
+        solenoid: None,
         extra: Extra::new(),
     }
 }

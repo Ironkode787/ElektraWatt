@@ -2177,6 +2177,9 @@ pub struct PlcAddressTexts {
     pub text: Option<String>,
     /// The function's own bound CPs that resolve, by CP index: `(idx, address text)`.
     pub pins: Vec<(u16, String)>,
+    /// A valve's address per solenoid, in solenoid order: `(designation, address text)`, the parts of `text` that a
+    /// symbol prints at each solenoid (a `plc_address` slot naming its `solenoid`); empty for any other function.
+    pub solenoids: Vec<(String, String)>,
 }
 
 /// `plc_address_text(function)`: the [`PlcAddressTexts`] of a function. A CP bound to several channels prints the
@@ -2206,35 +2209,36 @@ impl Query for PlcAddressText {
                 ChannelAddr::Excluded | ChannelAddr::Unresolved => None,
             }
         };
-        // (solenoid rank, function, CP index, text) of the bound CPs of `f` that `keep` admits
-        let collect =
-            |f: Id<Function>, keep: &dyn Fn(&crate::Cp) -> bool| -> Vec<(u8, Id<Function>, u16, String)> {
-                q.get::<crate::FunctionCps>(f)
-                    .iter()
-                    .filter(|cp| keep(cp))
-                    .filter_map(|cp| {
-                        let channel = bound.at_cp(f, cp.idx).next()?;
-                        let rank = match cp.designation.as_str() {
-                            "14" => 0,
-                            "12" => 1,
-                            _ => 2,
-                        };
-                        Some((rank, f, cp.idx, address(channel)?))
-                    })
-                    .collect()
-            };
+        // (solenoid rank, function, CP index, designation, text) of the bound CPs of `f` that `keep` admits
+        type Bound = (u8, Id<Function>, u16, String, String);
+        let collect = |f: Id<Function>, keep: &dyn Fn(&crate::Cp) -> bool| -> Vec<Bound> {
+            q.get::<crate::FunctionCps>(f)
+                .iter()
+                .filter(|cp| keep(cp))
+                .filter_map(|cp| {
+                    let channel = bound.at_cp(f, cp.idx).next()?;
+                    let rank = match cp.designation.as_str() {
+                        "14" => 0,
+                        "12" => 1,
+                        _ => 2,
+                    };
+                    Some((rank, f, cp.idx, cp.designation.clone(), address(channel)?))
+                })
+                .collect()
+        };
         let mut own = collect(*key, &|_| true);
         let pins = {
-            let mut p: Vec<(u16, String)> = own.iter().map(|(_, _, idx, t)| (*idx, t.clone())).collect();
+            let mut p: Vec<(u16, String)> = own.iter().map(|(_, _, idx, _, t)| (*idx, t.clone())).collect();
             p.sort();
             p
         };
+        // A valve's addresses are one per solenoid.
+        let valve = q
+            .fndefs()
+            .get(function.def)
+            .is_some_and(|d| d.item.contact_kind == ew_schema::ContactKind::Valve);
         if own.is_empty() {
-            let fluid = q
-                .fndefs()
-                .get(function.def)
-                .is_some_and(|d| d.item.contact_kind == ew_schema::ContactKind::Valve);
-            if let (true, Some(device)) = (fluid, function.device) {
+            if let (true, Some(device)) = (valve, function.device) {
                 let mut others: Vec<Id<Function>> =
                     q.idx().functions_of_device(device).filter(|f| f != key).collect();
                 others.sort();
@@ -2278,12 +2282,17 @@ impl Query for PlcAddressText {
                     _ => 2,
                 };
                 if let Some(text) = crate::wired_solenoid_channel(q, device, &s).and_then(address) {
-                    own.push((rank, *key, 0, text));
+                    own.push((rank, *key, 0, s.clone(), text));
                 }
             }
         }
         own.sort();
-        let mut texts: Vec<String> = own.into_iter().map(|(_, _, _, t)| t).collect();
+        let solenoids = if valve {
+            own.iter().map(|(_, _, _, d, t)| (d.clone(), t.clone())).collect()
+        } else {
+            Vec::new()
+        };
+        let mut texts: Vec<String> = own.into_iter().map(|(_, _, _, _, t)| t).collect();
         if texts.is_empty() {
             let targeted = q.get::<ChannelsByTarget>(());
             if let Some(targeting) = targeted.targets.get(key) {
@@ -2296,7 +2305,11 @@ impl Query for PlcAddressText {
             }
         }
         let text = (!texts.is_empty()).then(|| texts.join(" / "));
-        Arc::new(PlcAddressTexts { text, pins })
+        Arc::new(PlcAddressTexts {
+            text,
+            pins,
+            solenoids,
+        })
     }
 }
 

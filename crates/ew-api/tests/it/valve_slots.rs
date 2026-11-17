@@ -505,6 +505,80 @@ fn draw_box(s: &mut Session, page: Uuid, function: Uuid, kx: i64, ky: i64) -> Ve
     cps
 }
 
+/// The main function of device `d`.
+fn main_function(s: &Session, d: Uuid) -> Uuid {
+    let q = s.query();
+    q.get::<ew_derive::MainFunction>(Id::from_uuid(d))
+        .map(|f| f.as_uuid())
+        .expect("a main function")
+}
+
+/// A CPU with an output card drawn on page 101 and put in its rack, as the rack dialog and the window's placement make
+/// them: page 101 and the card.
+fn output_card_on_101(s: &mut Session) -> (Uuid, Uuid) {
+    // A CPU with an output card, as the rack dialog makes it.
+    let [cpu, dout] = ["EW-GEN-CPU-1", "EW-GEN-DO-1"].map(|n| library_part(s, n));
+    let mut copies: Vec<Value> = Vec::new();
+    for p in [cpu, dout] {
+        for d in s.module_part_copies(p) {
+            if !copies.contains(&d) {
+                copies.push(d);
+            }
+        }
+    }
+    let part = |p: Uuid| json!({"part": {"copy": p.to_string()}, "qty": "1"});
+    run(
+        s,
+        "plc.add_station",
+        json!({"part": part(cpu), "modules": [], "copies": copies}),
+    )
+    .expect("the station");
+    let page = s.page_tables("101").expect("page 101").page;
+    let station = {
+        let q = s.query();
+        q.devices()
+            .iter()
+            .find(|(_, d)| {
+                d.aspects.plc_station.is_some() && d.parts.iter().any(|u| u.part.copy.as_uuid() == cpu)
+            })
+            .map(|(id, _)| id.as_uuid())
+            .expect("the CPU")
+    };
+    // The output card drawn on page 101 and put in the CPU's rack, as the window's placement and Rack… make it.
+    let key = edition(s, "ew.gen.blackbox");
+    let symbol = s.starter_symbol_copy(&key).expect("the black box");
+    let grid = s
+        .query()
+        .pages()
+        .get(Id::from_uuid(page))
+        .map(|p| p.grid)
+        .expect("grid");
+    let at = |k: i64| grid.at(k).expect("a grid point").0;
+    let card_box: Vec<Value> = (0u16..10)
+        .zip(1i64..)
+        .map(|(idx, k)| json!({"idx": idx, "pos": [at(4 + k) - at(4), 0], "dir": "up"}))
+        .collect();
+    let (w, h) = (at(15) - at(4), at(24) - at(20));
+    let made = new_devices(s, |s| {
+        run(
+            s,
+            "box.black",
+            json!({"page": page.to_string(), "symbol": symbol.to_string(), "pos": [at(4), at(20)],
+            "box": {"outline": [[0, 0], [w, 0], [w, h], [0, h]], "cps": card_box},
+            "target": {"from_part": {"part": dout.to_string(), "template": 0, "letter": "A"}}}),
+        )
+        .expect("the card");
+    });
+    let card = made[0];
+    run(
+        s,
+        "assembly.attach",
+        json!({"parent": station.to_string(), "children": [{"device": card.to_string(), "position": 1}]}),
+    )
+    .expect("the card in the rack");
+    (page, card)
+}
+
 /// F15 follow-up: the multipin terminal's plug drawn on an electrical page says at each pin what it carries; a wire from
 /// a PLC output card to a pin makes that output the solenoid's (the valve's symbol prints it, EW-FL-002 is quiet for
 /// it), and emptying a position changes its pins' texts.
@@ -535,73 +609,9 @@ fn a_multipin_plug_says_its_pins_and_its_wired_outputs_drive_the_solenoids() {
         multi,
     )
     .expect("v2");
-    // A CPU with an output card, as the rack dialog makes it.
-    let [cpu, dout] = ["EW-GEN-CPU-1", "EW-GEN-DO-1"].map(|n| library_part(&s, n));
-    let mut copies: Vec<Value> = Vec::new();
-    for p in [cpu, dout] {
-        for d in s.module_part_copies(p) {
-            if !copies.contains(&d) {
-                copies.push(d);
-            }
-        }
-    }
-    let part = |p: Uuid| json!({"part": {"copy": p.to_string()}, "qty": "1"});
-    run(
-        &mut s,
-        "plc.add_station",
-        json!({"part": part(cpu), "modules": [], "copies": copies}),
-    )
-    .expect("the station");
-    let page = s.page_tables("101").expect("page 101").page;
-    let main = |s: &Session, d: Uuid| {
-        let q = s.query();
-        q.get::<ew_derive::MainFunction>(Id::from_uuid(d))
-            .map(|f| f.as_uuid())
-            .expect("a main function")
-    };
-    let station = {
-        let q = s.query();
-        q.devices()
-            .iter()
-            .find(|(_, d)| {
-                d.aspects.plc_station.is_some() && d.parts.iter().any(|u| u.part.copy.as_uuid() == cpu)
-            })
-            .map(|(id, _)| id.as_uuid())
-            .expect("the CPU")
-    };
-    // The output card drawn on page 101 and put in the CPU's rack, as the window's placement and Rack… make it.
-    let key = edition(&s, "ew.gen.blackbox");
-    let symbol = s.starter_symbol_copy(&key).expect("the black box");
-    let grid = s
-        .query()
-        .pages()
-        .get(Id::from_uuid(page))
-        .map(|p| p.grid)
-        .expect("grid");
-    let at = |k: i64| grid.at(k).expect("a grid point").0;
-    let card_box: Vec<Value> = (0u16..10)
-        .zip(1i64..)
-        .map(|(idx, k)| json!({"idx": idx, "pos": [at(4 + k) - at(4), 0], "dir": "up"}))
-        .collect();
-    let (w, h) = (at(15) - at(4), at(24) - at(20));
-    let made = new_devices(&mut s, |s| {
-        run(
-            s,
-            "box.black",
-            json!({"page": page.to_string(), "symbol": symbol.to_string(), "pos": [at(4), at(20)],
-            "box": {"outline": [[0, 0], [w, 0], [w, h], [0, h]], "cps": card_box},
-            "target": {"from_part": {"part": dout.to_string(), "template": 0, "letter": "A"}}}),
-        )
-        .expect("the card");
-    });
-    let card = made[0];
-    run(
-        &mut s,
-        "assembly.attach",
-        json!({"parent": station.to_string(), "children": [{"device": card.to_string(), "position": 1}]}),
-    )
-    .expect("the card in the rack");
-    let (card_fn, plug_fn) = (main(&s, card), main(&s, multi));
+    let (page, card) = output_card_on_101(&mut s);
+
+    let (card_fn, plug_fn) = (main_function(&s, card), main_function(&s, multi));
     let card_pins: Vec<(String, u16)> = (1u16..=8).map(|n| (n.to_string(), n - 1)).collect();
     let plug_pins = draw_box(&mut s, page, plug_fn, 4, 60);
     // Beside each pin what it carries: the valve's tag and solenoid, an empty position's number, the common.
@@ -974,4 +984,70 @@ fn rc3_a_project_made_before_draws_its_valves_in_the_terminal() {
         other => panic!("{other:?}"),
     }
     assert!(!s.valves_to_draw(vt), "nothing left to draw");
+}
+
+/// rc.3: a 5/3 valve's two addresses ("Q0.2 / Q0.3") touched its left square. A valve with two solenoids prints each
+/// solenoid's address at its own solenoid: in a multipin terminal whose plug pins of the 5/3 valve's solenoids 14 and
+/// 12 are wired to two outputs, the valve's place at its left solenoid prints the output of 14, the one at its right
+/// solenoid the output of 12, and no place prints both.
+#[test]
+fn a_valve_with_two_solenoids_prints_each_address_at_its_solenoid() {
+    let mut s = project(185);
+    run(
+        &mut s,
+        "page.create",
+        json!({"kind": "multi_line", "number": 101}),
+    )
+    .expect("the electrical page");
+    let multi = place_terminal_of(&mut s, "EW-GEN-VTP-1", (60_000_000, 60_000_000));
+    let c = cells(&s, multi);
+    let v = place_into(&mut s, "EW-GEN-VLV-53", "ew.iso.valve-5-3-cc", centre(&c[0]), multi).expect("the 5/3 valve");
+    let pin_of = |s: &Session, name: &str| match s.valve_solenoids(v).into_iter().find(|x| x.name == name) {
+        Some(ew_api::output::ValveSolenoid {
+            seat: Some(ew_api::output::SolenoidSeat::Multipin { pin, .. }),
+            ..
+        }) => pin,
+        other => panic!("solenoid {name} on a plug pin: {other:?}"),
+    };
+    let pins = [pin_of(&s, "14"), pin_of(&s, "12")];
+    let (page, card) = output_card_on_101(&mut s);
+    let (card_fn, plug_fn) = (main_function(&s, card), main_function(&s, multi));
+    let plug_pins = draw_box(&mut s, page, plug_fn, 4, 60);
+    let idx = |d: &str| plug_pins.iter().find(|(x, _)| x == d).map(|(_, i)| *i).expect("a pin");
+    for (output, pin) in [(0u16, &pins[0]), (1, &pins[1])] {
+        run(
+            &mut s,
+            "connection.draw",
+            json!({"page": page.to_string(),
+            "a": {"cp": {"function": card_fn.to_string(), "idx": output}},
+            "b": {"cp": {"function": plug_fn.to_string(), "idx": idx(pin)}}}),
+        )
+        .expect("the wire");
+    }
+    let rep = rep_of(&s, v);
+    let q = s.query();
+    let f = ew_derive::valve_functions(&q, Id::from_uuid(v))[0];
+    let texts = (*q.get::<ew_derive::PlcAddressText>(f)).clone();
+    let address = |d: &str| texts.solenoids.iter().find(|(x, _)| x == d).map(|(_, t)| t.clone()).expect(d);
+    let (a14, a12) = (address("14"), address("12"));
+    assert_ne!(a14, a12, "two outputs");
+    let symbol = q.symbols().get(Id::from_uuid(rep.symbol)).expect("the symbol").item.clone();
+    let slots = q.get::<ew_api::output::PageSlotsOf>(Id::from_uuid(fluid_page(&s)));
+    let printed: Vec<(Option<String>, i64, String)> = slots
+        .iter()
+        .find(|(r, _, _)| r.as_uuid() == rep.id)
+        .map(|(_, values, _)| values.clone())
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|v| {
+            let slot = &symbol.text_slots[usize::from(v.slot)];
+            (slot.kind == ew_schema::SlotKind::PlcAddress)
+                .then(|| (slot.solenoid.as_ref().map(|x| x.as_str().to_owned()), slot.pos.x.0, v.text))
+        })
+        .collect();
+    let at = |d: &str| printed.iter().find(|(x, _, _)| x.as_deref() == Some(d)).cloned().expect(d);
+    let (left, right) = (at("14"), at("12"));
+    assert_eq!((left.2.as_str(), right.2.as_str()), (a14.as_str(), a12.as_str()), "{printed:?}");
+    assert!(left.1 < right.1, "14 at the left solenoid, 12 at the right: {printed:?}");
+    assert_eq!(printed.len(), 2, "no place prints both: {printed:?}");
 }

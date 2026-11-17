@@ -733,6 +733,11 @@ pub struct TextSlot {
     /// What the slot prints when its own value is empty (doc 11 §3.1, WP-S1.20 D14); absent means nothing.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fallback: Option<SlotFallback>,
+    /// The solenoid (its designation, `14` or `12`) whose PLC address a `plc_address` slot prints, so that a valve
+    /// with two solenoids shows each address at its own solenoid (0.3.0); absent prints every solenoid's address.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub solenoid: Option<Ident>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

@@ -858,6 +858,7 @@ impl Mx<'_, '_> {
                     max_width: None,
                     style,
                     fallback: None,
+                    solenoid: None,
                     extra: BTreeMap::new(),
                 });
                 extra.len() - 1

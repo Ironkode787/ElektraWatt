@@ -1199,11 +1199,19 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &Representation, def: &SymbolDef) -> 
                 .as_ref()
                 .and_then(|f| f.bus_port.as_ref())
                 .and_then(ew_derive::bus_termination_text),
-            // The first drawn function's derived PLC address text.
-            SlotKind::PlcAddress => rep
-                .functions
-                .iter()
-                .find_map(|f| q.get::<PlcAddressText>(*f).text.clone()),
+            // The first drawn function's derived PLC address text; a slot at one solenoid of a valve, that solenoid's
+            // address alone.
+            SlotKind::PlcAddress => rep.functions.iter().find_map(|f| {
+                let texts = q.get::<PlcAddressText>(*f);
+                match &slot.solenoid {
+                    None => texts.text.clone(),
+                    Some(s) => texts
+                        .solenoids
+                        .iter()
+                        .find(|(d, _)| d == s.as_str())
+                        .map(|(_, t)| t.clone()),
+                }
+            }),
             _ => None,
         };
         if let Some(text) = text.filter(|t| !t.is_empty()) {

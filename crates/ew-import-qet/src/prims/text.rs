@@ -484,6 +484,7 @@ pub fn dynamic_text(node: Node<'_, '_>, ctx: &mut PrimCtx<'_>, out: &mut Parsed)
         max_width,
         style: style.filter(|_| ctx.instance_texts),
         fallback: None,
+        solenoid: None,
         extra,
     });
     Ok(())
@@ -539,6 +540,7 @@ pub fn input(node: Node<'_, '_>, ctx: &mut PrimCtx<'_>, out: &mut Parsed) -> Res
         max_width: None,
         style: style.filter(|_| ctx.instance_texts),
         fallback: None,
+        solenoid: None,
         extra,
     });
     Ok(())

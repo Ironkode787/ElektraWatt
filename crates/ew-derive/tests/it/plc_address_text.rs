@@ -137,8 +137,12 @@ fn pins(list: &[(u16, &str)]) -> Vec<(u16, String)> {
     list.iter().map(|(i, t)| (*i, (*t).to_owned())).collect()
 }
 
+fn solenoids(list: &[(&str, &str)]) -> Vec<(String, String)> {
+    list.iter().map(|(d, t)| ((*d).to_owned(), (*t).to_owned())).collect()
+}
+
 /// PT-3: a bistable valve prints its coil addresses in solenoid order 14, 12 joined by " / ", whatever the CP or
-/// channel order; each bound CP carries its own address.
+/// channel order; each bound CP carries its own address, and each solenoid its own for the symbol's place at it.
 #[test]
 fn a_bistable_valve_prints_its_coils_in_solenoid_order() {
     let m = fixture().build();
@@ -148,6 +152,7 @@ fn a_bistable_valve_prints_its_coils_in_solenoid_order() {
         PlcAddressTexts {
             text: Some("Q0.5 / Q0.4".to_owned()),
             pins: pins(&[(5, "Q0.4"), (6, "Q0.5")]),
+            solenoids: solenoids(&[("14", "Q0.5"), ("12", "Q0.4")]),
         }
     );
 }
@@ -163,6 +168,7 @@ fn a_fluid_function_prints_the_coils_of_its_device() {
         PlcAddressTexts {
             text: Some("Q0.2".to_owned()),
             pins: Vec::new(),
+            solenoids: solenoids(&[("14", "Q0.2")]),
         }
     );
     assert_eq!(
@@ -170,6 +176,7 @@ fn a_fluid_function_prints_the_coils_of_its_device() {
         PlcAddressTexts {
             text: Some("Q0.2".to_owned()),
             pins: pins(&[(0, "Q0.2")]),
+            solenoids: Vec::new(),
         }
     );
 }
@@ -185,6 +192,7 @@ fn excluded_open_and_unbound() {
         PlcAddressTexts {
             text: Some("TBD".to_owned()),
             pins: pins(&[(1, "TBD")]),
+            solenoids: Vec::new(),
         }
     );
     assert_eq!(texts(&q, F4), PlcAddressTexts::default());

@@ -3,8 +3,8 @@
   "id": "d7594be9-0072-5d19-b6fb-0142066c7bde",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "57b6975f-202b-5b7d-ba92-187ea98d6ca8",
-  "version": "0.2.0",
-  "sha256": "sha256:dfcc62246f7dfa7d1e68a59ffddae3c699d4da1cbed3912a5f42a87414039726",
+  "version": "0.3.0",
+  "sha256": "sha256:f3cc49ec9233c08b0f9c773fd9296ad29a836f5f954f987325d67499fd78db47",
   "meta": {
     "key": "ew.iso.valve-5-3-ec",
     "licence": "CC-BY-SA-4.0",
@@ -749,10 +749,21 @@
       "kind": "plc_address",
       "pos": [
         -6000000,
-        3000000
+        4000000
       ],
       "align": "bottom_left",
-      "visible": true
+      "visible": true,
+      "solenoid": "14"
+    },
+    {
+      "kind": "plc_address",
+      "pos": [
+        54000000,
+        4000000
+      ],
+      "align": "bottom_right",
+      "visible": true,
+      "solenoid": "12"
     }
   ],
   "arrangements": [
@@ -766,7 +777,8 @@
         4,
         5,
         6,
-        7
+        7,
+        8
       ]
     },
     {
@@ -784,7 +796,8 @@
         4,
         5,
         6,
-        7
+        7,
+        8
       ]
     }
   ],

@@ -260,7 +260,7 @@ extra_only!(
 
 impl HeapSize for TextSlot {
     fn heap_size(&self) -> usize {
-        self.style.heap_size() + self.extra.heap_size()
+        self.style.heap_size() + self.solenoid.heap_size() + self.extra.heap_size()
     }
 }
 

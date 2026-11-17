@@ -3,8 +3,8 @@
   "id": "6197855c-c663-56c4-b862-d3a580b09aaf",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "2a045907-d86b-5cb1-8606-6546a7a9470b",
-  "version": "0.2.0",
-  "sha256": "sha256:4d66b19df57dc090b5618265ac78be7d33be4929d5abbbb6d166d260dbe6a113",
+  "version": "0.3.0",
+  "sha256": "sha256:0d948c8abb5d6527f565aa318723d868c86b7ba63fa713224acf662f42f6ed02",
   "meta": {
     "key": "ew.iso.valve-5-2-sol-sol",
     "licence": "CC-BY-SA-4.0",
@@ -553,10 +553,21 @@
       "kind": "plc_address",
       "pos": [
         0,
-        3000000
+        4000000
       ],
       "align": "bottom_left",
-      "visible": true
+      "visible": true,
+      "solenoid": "14"
+    },
+    {
+      "kind": "plc_address",
+      "pos": [
+        30000000,
+        4000000
+      ],
+      "align": "bottom_left",
+      "visible": true,
+      "solenoid": "12"
     }
   ],
   "arrangements": [
@@ -570,7 +581,8 @@
         4,
         5,
         6,
-        7
+        7,
+        8
       ]
     },
     {
@@ -588,7 +600,8 @@
         4,
         5,
         6,
-        7
+        7,
+        8
       ]
     }
   ],

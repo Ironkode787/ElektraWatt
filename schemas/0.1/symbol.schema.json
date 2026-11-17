@@ -1297,6 +1297,17 @@
           "$ref": "#/$defs/Angle2",
           "description": "Rotation."
         },
+        "solenoid": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The solenoid (its designation, `14` or `12`) whose PLC address a `plc_address` slot prints, so that a valve\nwith two solenoids shows each address at its own solenoid (0.3.0); absent prints every solenoid's address."
+        },
         "style": {
           "anyOf": [
             {

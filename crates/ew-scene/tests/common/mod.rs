@@ -90,6 +90,7 @@ pub fn slot(kind: SlotKind, pos: Pt2, rot: Angle2, align: Align) -> TextSlot {
         max_width: None,
         style: None,
         fallback: None,
+        solenoid: None,
         extra: Extra::new(),
     }
 }

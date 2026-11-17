@@ -53,8 +53,10 @@ const VERSION: &str = "0.1.0";
 /// a terminal whose part had no bus interface), 0.13.0 since the signal lamps in red, green and yellow EW-GEN-LMP-2 to
 /// -4 were added (the rc.2 persona run: a cabinet door's basics), 0.14.0 since the generic cables of the common sizes
 /// EW-GEN-CBL-4 to -25 were added (rc.3: a cable part that matches the wires could not be chosen), 0.15.0 since the
-/// 5/3 valve for a valve terminal EW-GEN-VLV-53 was added (rc.3: a position is as wide as its valve needs).
-const LIBRARY_VERSION: &str = "0.15.0";
+/// 5/3 valve for a valve terminal EW-GEN-VLV-53 was added (rc.3: a position is as wide as its valve needs), 0.16.0
+/// since a valve with two solenoids prints each solenoid's address at its own solenoid (rc.3: the 5/3 valve's two
+/// addresses touched its square).
+const LIBRARY_VERSION: &str = "0.16.0";
 /// The parts whose content changed after 0.1.0, at their next patch version (the selector switch on a
 /// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y. The relay
 /// and the contactor template their contacts beside the coil. The CPU's bus section, after 0.2.0.

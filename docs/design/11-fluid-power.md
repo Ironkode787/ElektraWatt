@@ -355,7 +355,9 @@ per declared solenoid (FR-FLU-003). Assigning the part creates both through the 
 **Derived valve texts** (FR-FLU-005), all text slots of the fluid symbol ([07](07-symbols-parts-macros.md) §2.3):
 - **`PlcAddress`** prints the rendered address of every channel bound to a coil function of the representation's
   device, in solenoid order 14, 12 ("Q0.0 / Q0.1" for a bistable valve). At MVP only direct bindings count. At 1.0
-  wired coils are found by target tracking.
+  wired coils are found by target tracking. *As built (rc.3 of 0.3.0):* a slot that names a `solenoid` (`14`, `12`)
+  prints that solenoid's address alone; the shipped valves with two solenoids (5/2 bistable, the three 5/3 valves) have
+  one such slot above each solenoid, clear of the valve's squares, and a valve with one solenoid keeps its one slot.
 - **`FunctionText` with fallback to `ProcessTag`.** The slot prints the automatic function text (FR-DEV-011). If that
   is empty, it prints the tracked process tag (§3.3). Both are slot kinds of [07](07-symbols-parts-macros.md) §2.3; the
   fallback is a slot option `fallback: ProcessTag`, so reports keep the two values in separate columns (Open
