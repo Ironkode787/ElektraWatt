@@ -570,6 +570,26 @@ fn crossed_once(s: &ShellModel, wires: [ew_viewmodel::ew_api::output::Uuid; 2]) 
     }
 }
 
+/// The open findings of Run checks that say a wire runs through a connection point (EW-CORE-067) or along another wire
+/// (EW-CORE-068), as `rule subject`: the cross-over's wires must give none, drawn or rerouted.
+fn through_pins_or_along(s: &mut ShellModel) -> Vec<String> {
+    use ew_viewmodel::navigators::{NavKind, NavRole};
+    done(s, "messages.show", json!({"on": true}));
+    done(s, "messages.check", json!({}));
+    let t = s
+        .nav(NavKind::Messages)
+        .and_then(|n| n.table())
+        .cloned()
+        .expect("the Messages table");
+    t.nodes
+        .iter()
+        .filter(|n| {
+            n.role == NavRole::Finding && ["EW-CORE-067", "EW-CORE-068"].contains(&n.cells[1].as_str())
+        })
+        .map(|n| n.cells.join(" "))
+        .collect()
+}
+
 /// rc.3 (the owner's case): the two breakers wired cross-over with two clicks per wire, as freshly drawn, cross once
 /// and run straight otherwise; Reroute on the page gives the same.
 #[test]
@@ -580,8 +600,10 @@ fn two_breakers_wired_cross_over_cross_once_drawn_and_rerouted() {
     let second = wire(&mut s, top[1].at, bottom[0].at);
     done(&mut s, "tool.select", json!({}));
     crossed_once(&s, [first.id, second.id]);
+    assert_eq!(through_pins_or_along(&mut s), Vec::<String>::new(), "drawn");
     done(&mut s, "route.reroute", json!({}));
     crossed_once(&s, [first.id, second.id]);
+    assert_eq!(through_pins_or_along(&mut s), Vec::<String>::new(), "rerouted");
 }
 
 /// rc.3 (the owner's case): the second wire drawn with a free point on the first wire's corner, the way he drew it,
@@ -621,6 +643,7 @@ fn two_breakers_wired_cross_over_keep_the_hard_rules_drawn_and_rerouted() {
         .expect("the second wire")
         .clone();
     clean(&s);
+    assert_eq!(through_pins_or_along(&mut s), Vec::<String>::new(), "drawn");
     // Reroute both: one undo step, then one crossing.
     done(
         &mut s,
@@ -631,4 +654,5 @@ fn two_breakers_wired_cross_over_keep_the_hard_rules_drawn_and_rerouted() {
     done(&mut s, "route.reroute", json!({}));
     assert_eq!(s.revision(), rev.map(|r| r + 1), "one step");
     crossed_once(&s, [first.id, second.id]);
+    assert_eq!(through_pins_or_along(&mut s), Vec::<String>::new(), "rerouted");
 }
