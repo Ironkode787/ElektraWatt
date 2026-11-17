@@ -247,7 +247,7 @@ impl Session {
             }
         }
         // A cable part's cores from its section (rc.3), a section left as it was byte for byte; a new one without a
-        // description reads as the cable does ("CL110 3G1.5 · BN BU GNYE").
+        // description reads as the cable does ("3G1.5 · BN BU GNYE").
         if p.kind == ew_schema::PartKind::Cable
             && (draft.new || draft.cable != crate::part_cable::rows_of(&original.sections.cable_cores))
         {

@@ -529,10 +529,10 @@ pub fn group_marker(q: &Q, item: &PageItem) -> Option<GroupMarker> {
 /// builders draw it (`ew-scene`'s page documentation, "Cable marks").
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct CableMark {
-    /// The cable's tag as the marker's page prints it (`-101W2`).
+    /// The cable's tag as the marker's page prints it (`-W1`).
     pub tag: String,
     /// The type line under the tag: the cable part's type designation, then the size ([`cable_size_text`]) unless
-    /// the designation already holds it (`CL110 3G1.5`); the size alone without a part.
+    /// the designation already holds it (`TYPE 3G1.5`); the size alone without a part.
     pub kind: String,
     /// Each live connection with its core's designation (`BN`, `1`, `GNYE`), in list order.
     pub cores: Vec<(Id<Connection>, String)>,

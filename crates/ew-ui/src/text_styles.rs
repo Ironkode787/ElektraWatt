@@ -30,7 +30,7 @@ const MAX_SAMPLE: f32 = 44.0;
 /// A text a style prints, as its sample: what a person sees in that style on a drawing.
 fn sample(key: &str) -> &'static str {
     match key {
-        "tag.main" => "-101Q1",
+        "tag.main" => "-1Q1",
         "data.small" => "Motor 1.5 kW",
         "cp.small" => "13 14 A1",
         "pin" => "1 2 3",

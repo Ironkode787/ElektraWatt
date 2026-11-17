@@ -149,7 +149,7 @@
 //!   of a vertical wire above the line, above a horizontal wire right of the line; the cable's tag in style
 //!   [`CABLE_TAG_STYLE`] at the line's start, left of a horizontal line (aligned middle right) or above a vertical one
 //!   (aligned bottom centre), or at the marker's `tag_at` once moved; and under the tag its type line in
-//!   [`CABLE_KIND_STYLE`] (`CL110 3G1.5`), starting where the tag starts, or ending where it ends when it is the longer.
+//!   [`CABLE_KIND_STYLE`] (`TYPE 3G1.5`), starting where the tag starts, or ending where it ends when it is the longer.
 //!   Where the tag or its type line would lie there on a symbol, a symbol's text, a strip tag, a free text, another
 //!   cable mark's texts or this mark's core names (rc.3), they stand at the line's other end instead: right of a
 //!   horizontal line beyond the core names (aligned middle left), below a vertical one (aligned top centre), the type
