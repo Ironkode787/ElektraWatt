@@ -359,13 +359,20 @@ fn header(
             } else {
                 view.part.clone()
             };
-            ui.add(
-                egui::Label::new(small(t, part, t.text_secondary))
-                    .selectable(false)
-                    .truncate(),
-            );
+            // The part is cut where the PLC it belongs to begins (a narrow pane, side by side).
+            let plc = strings::format(key!("rack-belongs-to"), &[&view.plc]);
+            let plc_width = line(ui, &plc, &t.type_small, t.text_secondary, f32::INFINITY)
+                .size()
+                .x;
+            ui.scope(|ui| {
+                ui.set_max_width((ui.available_width() - plc_width - t.space_4).max(0.0));
+                ui.add(
+                    egui::Label::new(small(t, part, t.text_secondary))
+                        .selectable(false)
+                        .truncate(),
+                );
+            });
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                let plc = strings::format(key!("rack-belongs-to"), &[&view.plc]);
                 ui.add(egui::Label::new(small(t, plc, t.text_secondary)).selectable(false));
             });
         });
@@ -787,7 +794,9 @@ fn table(
         t.size_table_column * 1.25,
         t.size_table_column * 1.35,
     ];
-    let rest = (width - fixed.iter().sum::<f32>()).max(t.size_table_column * 2.0);
+    // The part takes the room the other columns leave; in a narrow pane (side by side) it is cut first, its text whole
+    // on hover.
+    let rest = (width - fixed.iter().sum::<f32>()).max(t.size_table_column * 0.5);
     let widths = fixed.map(|w| if w == 0.0 { rest } else { w });
     let cells = |row: Rect| -> [Rect; 6] {
         let mut x = row.left();
