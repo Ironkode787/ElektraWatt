@@ -24,7 +24,7 @@ ignore = []
 # The NFR-LIC-04 allowlist (shared by ADR-0023 and ADR-0024). Native Windows clipboard now reaches
 # clipboard-win/error-code under its existing graph-triggered BSL-1.0 admission. Not yet listed, by decision:
 # - LGPL-2.1: OCCT, allowed in ew-step-worker only; added as a per-crate exception with that work package.
-# - the osifont expression: only if ADR-0028 bundles that font.
+# - the osifont expression: ADR-0028 does not bundle that font (amendment 3: Routed Gothic, OFL-1.1, instead).
 # GPL-2.0-only, AGPL and non-OSI licences are never added.
 allow = [
   "MIT",

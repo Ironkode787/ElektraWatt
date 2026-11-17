@@ -235,7 +235,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     ),
     // The Text styles page's controls: a style's height, typeface and bold, Reset, Standard sizes.
     with_params(
-        "style:text, height?:text, face?:enum(standard|narrow|mono), bold?:bool",
+        "style:text, height?:text, face?:enum(standard|narrow|mono|technical_drawing), bold?:bool",
         hidden(act(
             "text_styles.set",
             Command,

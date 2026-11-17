@@ -99,15 +99,17 @@ fn drawing_name(family: &str, bold: bool) -> String {
     format!("drawing:{family}:{}", if bold { "bold" } else { "regular" })
 }
 
-/// The egui family that draws `face` as the drawings do, bold or not: the sample of a text style.
+/// The egui family that draws `face` as the drawings do, bold or not: the sample of a text style. A face without a bold
+/// cut draws regular, as the drawings print it.
 pub fn drawing_family(face: &ew_viewmodel::ew_api::Typeface, bold: bool) -> FontFamily {
     use ew_viewmodel::ew_api::Typeface;
     let family = match face {
         Typeface::Narrow => "Noto Sans Condensed",
         Typeface::Mono => "Noto Sans Mono",
+        Typeface::TechnicalDrawing => "Routed Gothic",
         Typeface::Standard | Typeface::Unknown(_) => "Noto Sans",
     };
-    FontFamily::Name(drawing_name(family, bold).into())
+    FontFamily::Name(drawing_name(family, bold && face.has_bold()).into())
 }
 
 /// Whether the UI's own text faces, Noto Sans Regular and SemiBold, both carry `c` in their character maps (the
@@ -157,6 +159,24 @@ mod tests {
             .chars()
             .collect();
         assert_eq!(name, "Noto Sans SemiBold");
+    }
+
+    /// The sample of every face the Text styles page offers, bold or not, has its family in the definitions (egui
+    /// panics on a family it does not know), and a face without a bold cut draws its regular face.
+    #[test]
+    fn every_offered_typeface_has_its_sample_family() {
+        use ew_viewmodel::ew_api::{TYPEFACES, Typeface};
+        let defs = definitions();
+        for face in TYPEFACES {
+            for bold in [false, true] {
+                let family = drawing_family(&face, bold);
+                assert!(defs.families.contains_key(&family), "{face:?} bold {bold}");
+            }
+        }
+        assert_eq!(
+            drawing_family(&Typeface::TechnicalDrawing, true),
+            drawing_family(&Typeface::TechnicalDrawing, false)
+        );
     }
 
     /// Every string of a JSON value, keys left out.

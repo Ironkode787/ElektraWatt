@@ -304,6 +304,28 @@ fn the_narrow_and_the_mono_face_print_capitals_as_high_as_the_default() {
     assert_eq!(thin, wide);
 }
 
+/// The technical-drawing face (ADR-0028 amendment 3): Routed Gothic in one weight, so a bold style of it prints with
+/// its regular face; its capitals are at most 1 % higher than the cap ratio 0.714 the heights are measured with, never
+/// lower; and what it lacks the symbol fallback draws.
+#[test]
+fn the_technical_face_has_one_weight_and_capitals_as_high_as_the_others() {
+    for weight in [Weight::Regular, Weight::Bold] {
+        let st = TextStyle {
+            family: Family::Technical,
+            weight,
+            ..style("text.normal")
+        };
+        let f = bundled().face_for(&st);
+        assert_eq!((f.family, f.weight), (Family::Technical, Weight::Regular));
+        assert_eq!(f.family_name, "Routed Gothic");
+        let cap = f64::from(f.metrics.cap_height) / f64::from(f.metrics.units_per_em);
+        assert!((0.714..0.714 * 1.01).contains(&cap), "cap ratio {cap}");
+        let shaped = bundled().shape("-X1:13 ∞", &st, None);
+        assert!(shaped.missing.is_empty(), "{:?}", shaped.missing);
+        assert!(shaped.faces.iter().any(|s| s.font == f.key));
+    }
+}
+
 #[test]
 fn font_set_rules() {
     let regular = bundled_sources().remove(0);

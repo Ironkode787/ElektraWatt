@@ -224,6 +224,7 @@ fn table_from_style_rows(rows: &[ew_schema::EffectiveStyle]) -> ew_text::TextSty
         let family = match s.face {
             ew_schema::Typeface::Narrow => ew_text::Family::Narrow,
             ew_schema::Typeface::Mono => ew_text::Family::Mono,
+            ew_schema::Typeface::TechnicalDrawing => ew_text::Family::Technical,
             ew_schema::Typeface::Standard | ew_schema::Typeface::Unknown(_) => ew_text::Family::Default,
         };
         (s.key.as_str(), s.em, weight, family)

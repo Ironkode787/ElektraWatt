@@ -6,8 +6,8 @@
 //!
 //! A project stores its text styles as **overrides** of the built-in table of doc 20 §17.5
 //! ([`BUILTIN_TEXT_STYLES`]): a JSON object keyed by style key, each value `{"size": <em height in nm>,
-//! "weight": "regular" | "bold", "face": "standard" | "narrow" | "mono"}` (weight and face optional; the face since
-//! 0.3.0, ADR-0028 amendment 2) plus unknown members kept verbatim. An absent or empty
+//! "weight": "regular" | "bold", "face": "standard" | "narrow" | "mono" | "technical_drawing"}` (weight and face optional; the
+//! face since 0.3.0, ADR-0028 amendments 2 and 3) plus unknown members kept verbatim. An absent or empty
 //! member means no overrides, so every file written before ADR-0032 renders as before; nothing writes the
 //! member into a file that lacks it. A key in both takes the override's size and, when given, its weight; a key
 //! only in the overrides extends the table ([`effective_text_styles`]).
@@ -69,23 +69,38 @@ pub enum Typeface {
     Narrow,
     /// Noto Sans Mono: every character as wide as the next, for columns of numbers and addresses.
     Mono,
+    /// Routed Gothic: the single-stroke lettering of technical drawings and engraved signs. It has no bold: a bold
+    /// style in it prints regular ([`Typeface::has_bold`]).
+    TechnicalDrawing,
     /// A face of a newer format, kept verbatim; the effective table reads it as [`Typeface::Standard`].
     #[serde(skip)]
     Unknown(Value),
 }
 
 /// The faces a person chooses from, in the order the Text styles page lists them.
-pub const TYPEFACES: [Typeface; 3] = [Typeface::Standard, Typeface::Narrow, Typeface::Mono];
+pub const TYPEFACES: [Typeface; 4] = [
+    Typeface::Standard,
+    Typeface::Narrow,
+    Typeface::Mono,
+    Typeface::TechnicalDrawing,
+];
 
 impl Typeface {
-    /// The member's word (`standard`, `narrow`, `mono`); `None` for a face of a newer format.
+    /// The member's word (`standard`, `narrow`, `mono`, `technical_drawing`); `None` for a face of a newer format.
     pub fn word(&self) -> Option<&'static str> {
         match self {
             Typeface::Standard => Some("standard"),
             Typeface::Narrow => Some("narrow"),
             Typeface::Mono => Some("mono"),
+            Typeface::TechnicalDrawing => Some("technical_drawing"),
             Typeface::Unknown(_) => None,
         }
+    }
+
+    /// Whether the face has a bold cut. Without one a bold style prints regular; the style keeps its weight, so it
+    /// is bold again in a face that has one.
+    pub fn has_bold(&self) -> bool {
+        !matches!(self, Typeface::TechnicalDrawing)
     }
 
     /// The face of `word` ([`Typeface::word`]).
@@ -201,7 +216,8 @@ pub fn text_style_group(key: &str) -> TextStyleGroup {
 
 /// The cap ratio of every bundled face, in thousandths: a capital letter is 0.714 of the em height (doc 20 §18.1; the
 /// `OS/2` cap height of Noto Sans, Noto Sans Condensed and Noto Sans Mono, 714 of 1000 units, which a test in `ew-text`
-/// keeps).
+/// keeps). Routed Gothic's is 736 of 1024 units (0.719): its capitals print at most 1 % higher, never lower, so a style
+/// that reads as readable here is.
 pub const CAP_RATIO_MILLI: i64 = 714;
 
 /// The smallest printed cap height that is readable on paper: 1.2 mm (doc 20 §18.1, U-31; EW-CORE-061 reports a style
@@ -456,7 +472,7 @@ pub fn check_text_styles(value: &Value) -> Result<BTreeMap<Ident, TextStyleSpec>
             return Err(err(
                 format!("{at}/face"),
                 format!(
-                    "the typeface {f} of the style {key} is unknown; typefaces are \"standard\", \"narrow\" and \"mono\""
+                    "the typeface {f} of the style {key} is unknown; typefaces are \"standard\", \"narrow\", \"mono\" and \"technical_drawing\""
                 ),
             ));
         }

@@ -987,6 +987,11 @@
           "const": "mono",
           "description": "Noto Sans Mono: every character as wide as the next, for columns of numbers and addresses.",
           "type": "string"
+        },
+        {
+          "const": "technical_drawing",
+          "description": "Routed Gothic: the single-stroke lettering of technical drawings and engraved signs. It has no bold: a bold\nstyle in it prints regular ([`Typeface::has_bold`]).",
+          "type": "string"
         }
       ]
     },

@@ -107,7 +107,8 @@ pub struct TextStyleRow {
     pub em: Nm,
     /// Its typeface.
     pub face: Typeface,
-    /// Whether it is bold.
+    /// Whether it prints bold: a bold style in a face without a bold cut prints regular (it stays bold in the file, so
+    /// it is bold again in a face that has one).
     pub bold: bool,
     /// The quiet note of a height under the readable minimum.
     pub small: Option<String>,
@@ -148,7 +149,7 @@ pub fn rows_of(styles: &[EffectiveStyle]) -> Vec<TextStyleRow> {
                 height: height_text(cap),
                 em: s.em,
                 face: s.face.clone(),
-                bold: s.is_bold(),
+                bold: s.is_bold() && s.face.has_bold(),
                 small: (cap < MIN_CAP_HEIGHT).then(|| {
                     strings::format(
                         key!("text-styles-small"),
@@ -268,8 +269,8 @@ impl ShellModel {
     }
 
     /// `text_styles.set {style, height?, face?, bold?}`: one style's height (a cap height in mm, `2.5` or `2,5`), its
-    /// typeface (`standard`, `narrow`, `mono`) and whether it is bold, in one step. A height that is no number, or one
-    /// outside what prints (0.36 mm to 35.7 mm), is refused in words.
+    /// typeface (`standard`, `narrow`, `mono`, `technical_drawing`) and whether it is bold, in one step. A height that is no
+    /// number, or one outside what prints (0.36 mm to 35.7 mm), is refused in words.
     pub(crate) fn act_text_styles_set(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(key) = or_return!(string_param(p, "style")).map(str::to_owned) else {
             return failed(key!("error-missing-param"), &["style"]);

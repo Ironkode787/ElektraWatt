@@ -108,6 +108,24 @@ entry records what is already built and in force.
      recommendation 2 asks for the expression to be verified with counsel first. The ISO 3098-style face waits for
      that decision.
 
+3. **A technical-drawing face instead of osifont** (2026-11-17, rc.3 of 0.3.0; replaces recommendation 2).
+   - **The face.** Routed Gothic Regular (Version 001.000, the file `dist/ttf/routed-gothic.ttf` of the upstream
+     repository `dse/routed-gothic` at its release tag v1.0.0), OFL-1.1 by the repository's licence file and the
+     font's own name table, bundled and pinned as recommendation 6 says; `NOTICE` records its source, hash and
+     copyright line. It is the single-stroke lettering of technical drawings and engraved signs. osifont is not
+     bundled, so no font licence outside the allowlist is needed.
+   - **The three added faces.** A text style chooses Standard (Noto Sans), Narrow (Noto Sans Condensed), Mono (Noto
+     Sans Mono) or Technical drawing (Routed Gothic); its role in `ew-text` is `Family::Technical`, its word in the
+     file `technical_drawing` (ADR-0032 amendment 1's `face`).
+   - **One weight.** Routed Gothic has no bold. With it chosen, the Text styles page turns the Bold toggle off and says
+     why; a bold style prints with its regular face, and keeps its weight, so it is bold again in a face that has one.
+     Its narrow and slanted cuts are not bundled: the narrow role is Noto Sans Condensed's.
+   - **Its capitals.** Its cap height is 736 of 1024 units (0.719), at most 1 % above the 0.714 the heights are
+     measured with, never below, so EW-CORE-061's minimum holds in it.
+   - **What it lacks.** It covers Latin-1 and most of Latin Extended-A; the symbol fallback draws "∞" and "Ω". A
+     character neither has (the euro sign, some Polish, Czech and Hungarian letters) prints as `.notdef` and is
+     reported as amendment 1 says.
+
 ## Consequences
 
 If the recommendation is accepted:

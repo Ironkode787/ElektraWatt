@@ -18,7 +18,7 @@ use skrifa::raw::TableProvider;
 
 /// A font family role. Text styles name a role, not a family name, so the project's font set decides the
 /// family (ADR-0028: Noto Sans for [`Family::Default`]; amendment 2: Noto Sans Condensed for [`Family::Narrow`] and
-/// Noto Sans Mono for [`Family::Mono`]).
+/// Noto Sans Mono for [`Family::Mono`]; amendment 3: Routed Gothic for [`Family::Technical`]).
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
 pub enum Family {
     /// The default drawing family.
@@ -28,6 +28,8 @@ pub enum Family {
     Narrow,
     /// The monospaced drawing family.
     Mono,
+    /// The technical-drawing family: the single-stroke lettering of technical drawings, in one weight.
+    Technical,
     /// The symbol fallback family (Noto Sans Math, ADR-0028 recommendation 3). A text style does not name
     /// it: [`FontSet::shape`] uses it only for the characters the style's own face lacks.
     Symbols,
@@ -427,6 +429,7 @@ pub(crate) const fn engine_family(family: Family) -> &'static str {
         Family::Default => "ew-default",
         Family::Narrow => "ew-narrow",
         Family::Mono => "ew-mono",
+        Family::Technical => "ew-technical",
         Family::Symbols => "ew-symbols",
     }
 }
@@ -511,6 +514,11 @@ pub const NOTO_SANS_MONO_BOLD_SHA256: [u8; 32] = [
     0x11, 0x00, 0x77, 0x2b, 0x2f, 0x79, 0xc1, 0x02, 0x40, 0x2a, 0x10, 0x11, 0xdf, 0x5e, 0x22, 0x26, 0x51,
     0x7d, 0x0f, 0x40, 0xac, 0x55, 0x3a, 0x25, 0xfb, 0x12, 0xfd, 0xba, 0xd8, 0xc1, 0x1b, 0x85,
 ];
+/// The SHA-256 of the bundled Routed Gothic file (`assets/fonts/RoutedGothic-Regular.ttf`), the technical-drawing face.
+pub const ROUTED_GOTHIC_REGULAR_SHA256: [u8; 32] = [
+    0x0b, 0xb6, 0x9e, 0x4a, 0x35, 0xbf, 0xfa, 0xe2, 0x21, 0xe5, 0x76, 0x95, 0x7b, 0x70, 0x73, 0x5e, 0x5e,
+    0xee, 0x81, 0x9d, 0x91, 0x41, 0x78, 0x1e, 0xb4, 0xcb, 0x79, 0x04, 0x2e, 0x8e, 0x4c, 0x33,
+];
 
 #[cfg(feature = "bundled-fonts")]
 const NOTO_SANS_REGULAR: &[u8] = include_bytes!("../../../assets/fonts/NotoSans-Regular.ttf");
@@ -526,10 +534,13 @@ const NOTO_SANS_CONDENSED_BOLD: &[u8] = include_bytes!("../../../assets/fonts/No
 const NOTO_SANS_MONO_REGULAR: &[u8] = include_bytes!("../../../assets/fonts/NotoSansMono-Regular.ttf");
 #[cfg(feature = "bundled-fonts")]
 const NOTO_SANS_MONO_BOLD: &[u8] = include_bytes!("../../../assets/fonts/NotoSansMono-Bold.ttf");
+#[cfg(feature = "bundled-fonts")]
+const ROUTED_GOTHIC_REGULAR: &[u8] = include_bytes!("../../../assets/fonts/RoutedGothic-Regular.ttf");
 
 /// The bundled sources: Noto Sans Regular and Bold as [`Family::Default`], Noto Sans Condensed Regular and Bold as
-/// [`Family::Narrow`], Noto Sans Mono Regular and Bold as [`Family::Mono`], and Noto Sans Math Regular as the
-/// [`Family::Symbols`] fallback, each pinned by hash.
+/// [`Family::Narrow`], Noto Sans Mono Regular and Bold as [`Family::Mono`], Routed Gothic Regular as
+/// [`Family::Technical`] (it has no bold: a bold style of it prints regular, [`FontSet::face_for`]), and Noto Sans Math
+/// Regular as the [`Family::Symbols`] fallback, each pinned by hash.
 #[cfg(feature = "bundled-fonts")]
 pub fn bundled_sources() -> Vec<FontSource> {
     vec![
@@ -547,6 +558,8 @@ pub fn bundled_sources() -> Vec<FontSource> {
             .pinned(NOTO_SANS_MONO_REGULAR_SHA256),
         FontSource::from_static(NOTO_SANS_MONO_BOLD, Family::Mono, Weight::Bold, false)
             .pinned(NOTO_SANS_MONO_BOLD_SHA256),
+        FontSource::from_static(ROUTED_GOTHIC_REGULAR, Family::Technical, Weight::Regular, false)
+            .pinned(ROUTED_GOTHIC_REGULAR_SHA256),
     ]
 }
 

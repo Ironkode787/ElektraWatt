@@ -131,12 +131,20 @@ fn style_row(ui: &mut Ui, t: &theme::Tokens, row: &TextStyleRow, writable: bool,
         ui.add_enabled_ui(writable, |ui| {
             face_combo(ui, t, row, events);
             height_field(ui, t, row, events);
-            let bold = ui
-                .add(egui::Button::selectable(
-                    row.bold,
-                    RichText::new(strings::text(key!("text-styles-bold-letter"))).strong(),
-                ))
+            // A face without a bold cut: the toggle is off and says why.
+            let has_bold = row.face.has_bold();
+            let mut bold = ui
+                .add_enabled(
+                    has_bold,
+                    egui::Button::selectable(
+                        row.bold,
+                        RichText::new(strings::text(key!("text-styles-bold-letter"))).strong(),
+                    ),
+                )
                 .tip(strings::text(key!("text-styles-bold")));
+            if !has_bold {
+                bold = bold.disabled_tip(strings::text(key!("text-styles-bold-none")));
+            }
             if bold.clicked() {
                 events.push(Event::Action(
                     "text_styles.set",

@@ -249,3 +249,49 @@ fn a_basic_project_is_copied_as_it_is() {
     );
     let _ = std::fs::remove_dir_all(&work);
 }
+
+fn run_fonts(items: &[Item], out: &mut Vec<ew_api::output::ew_dl::FontKey>) {
+    for item in items {
+        match &item.kind {
+            ItemKind::Glyphs(run) => out.push(run.font),
+            ItemKind::Group(g) => run_fonts(&g.items, out),
+            _ => {}
+        }
+    }
+}
+
+/// The technical-drawing face (ADR-0028 amendment 3): the device tags set to it, bold, print in Routed Gothic's one
+/// regular face in the scene the PDF writer draws, and the PDF embeds that face.
+#[test]
+fn a_style_in_the_technical_face_prints_and_exports_in_routed_gothic() {
+    let mut s = copy_of_golden(9);
+    let technical = ew_text::bundled()
+        .faces()
+        .find(|f| f.family == ew_text::Family::Technical)
+        .map(|f| f.key)
+        .unwrap();
+    let fonts = |s: &Session| {
+        let q = s.query();
+        let mut out = Vec::new();
+        for entry in &q.get::<ew_derive::PageOrder>(()).entries {
+            for (_, list) in &ew_api::output::page_scene(&q, entry).layers {
+                run_fonts(&list.items, &mut out);
+            }
+        }
+        out
+    };
+    assert!(!fonts(&s).contains(&technical));
+    commit_styles(
+        &mut s,
+        json!({"tag.main": {"size": PX13, "weight": "bold", "face": "technical_drawing"}}),
+    );
+    assert!(fonts(&s).contains(&technical));
+    let pdf = s
+        .export_pdf(&ew_api::output::ExportOptions::default())
+        .unwrap()
+        .bytes;
+    assert!(
+        pdf.windows(b"RoutedGothic".len()).any(|w| w == b"RoutedGothic"),
+        "the PDF embeds Routed Gothic"
+    );
+}

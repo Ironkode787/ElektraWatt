@@ -119,9 +119,9 @@ SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
 SPDX-License-Identifier = "CC0-1.0"
 
 # L14: bundled third-party fonts (Noto Sans Regular, SemiBold and Bold, Noto Sans Condensed Regular and Bold, Noto Sans
-# Mono Regular and Bold, Noto Sans Math Regular, OFL-1.1; ADR-0028), binary files. The fonts' own copyright lines come
-# first (Noto Sans and Noto Sans Condensed 2015, Noto Sans Math 2022, Noto Sans Mono 2022), then the collective
-# notice for the selection (NFR-LIC-10); provenance in NOTICE.
+# Mono Regular and Bold, Noto Sans Math Regular, Routed Gothic Regular, OFL-1.1; ADR-0028), binary files. The fonts' own
+# copyright lines come first (Noto Sans and Noto Sans Condensed 2015, Noto Sans Math 2022, Noto Sans Mono 2022, Routed
+# Gothic 2017), then the collective notice for the selection (NFR-LIC-10); provenance in NOTICE.
 [[annotations]]
 path = "assets/fonts/**"
 precedence = "aggregate"
@@ -129,6 +129,7 @@ SPDX-FileCopyrightText = [
   "Copyright 2015 Google Inc. All Rights Reserved.",
   "Copyright 2022 Google LLC. All Rights Reserved.",
   "Copyright 2022 The Noto Project Authors (https://github.com/notofonts/latin-greek-cyrillic)",
+  "Copyright (c) 2017, Darren Embry (http://webonastick.com/), with Reserved Font Name Routed Gothic.",
   "2026 The ElektraWatt contributors",
 ]
 SPDX-License-Identifier = "OFL-1.1"

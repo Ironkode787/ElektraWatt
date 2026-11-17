@@ -10,8 +10,8 @@ generated per release with cargo-about (about.toml, ci/third-party-notices.hbs).
 Bundled fonts (assets/fonts/, ADR-0028)
 ---------------------------------------
 
-Noto Sans, Noto Sans Condensed, Noto Sans Mono and Noto Sans Math are licensed under the SIL Open Font License,
-Version 1.1 (OFL-1.1); the licence text is LICENSES/OFL-1.1.txt. The files are unmodified copies of static unhinted
+Noto Sans, Noto Sans Condensed, Noto Sans Mono, Noto Sans Math and Routed Gothic are licensed under the SIL Open Font
+License, Version 1.1 (OFL-1.1); the licence text is LICENSES/OFL-1.1.txt. The files are unmodified copies of static unhinted
 TrueType files and are pinned by SHA-256 in crates/ew-text (ADR-0028 recommendation 6); Noto Sans SemiBold, a face of
 the user interface only (WP-S2.17), is pinned in crates/ew-ui. The Noto Sans and Noto Sans Condensed files are the
 instances of the upstream repository at the commit named in each Source URL (the repository publishes no release
@@ -19,7 +19,9 @@ tags). Noto Sans Mono and Noto Sans Math are not raw commit files: each is the f
 inside a notofonts release asset. Noto Sans Math is the symbol fallback face (ADR-0028 recommendation 3); Noto Sans
 Condensed and Noto Sans Mono are the narrow and the monospaced face a text style may choose (ADR-0028 amendment 2).
 Noto is a trademark of Google Inc. (font name table entry 7); the trademark line is reproduced here as the
-OFL-1.1 requires for redistributed copies (decision ID-51).
+OFL-1.1 requires for redistributed copies (decision ID-51). Routed Gothic is the technical-drawing face a text style
+may choose (ADR-0028 amendment 3): the file of the upstream repository's release tag v1.0.0, unmodified, under the
+name of its role here; "Routed Gothic" is its Reserved Font Name.
 
 assets/fonts/NotoSans-Regular.ttf
   Family:    Noto Sans Regular
@@ -83,6 +85,15 @@ assets/fonts/NotoSansMono-Bold.ttf
   Retrieved: 2026-11-17
   SHA-256:   1100772b2f79c102402a1011df5e2226517d0f40ac553a25fb12fdbad8c11b85
   Size:      387484 bytes
+
+assets/fonts/RoutedGothic-Regular.ttf
+  Family:    Routed Gothic Regular
+  Version:   Version 001.000
+  Copyright: Copyright (c) 2017, Darren Embry (http://webonastick.com/), with Reserved Font Name Routed Gothic.
+  Source:    https://raw.githubusercontent.com/dse/routed-gothic/15bcb19c9071d60055531ed18e9ab3d5b20ad335/dist/ttf/routed-gothic.ttf (tag v1.0.0; the same file as routed-gothic-ttf-v1.0.0/routed-gothic.ttf in the repository's download/routed-gothic-ttf-v1.0.0.zip, zip SHA-256 3ecffba109bf2619057815411253e5c6f47f82fedba38ade6c951e13a8b2ad5e); the licence is the repository's LICENSE.md and the font's name table entry 0, both OFL-1.1
+  Retrieved: 2026-11-17
+  SHA-256:   0bb69e4a35bffae221e576957b70735e5eee819d9141781eb4cb79042e8e4c33
+  Size:      57520 bytes
 
 assets/fonts/NotoSansMath-Regular.ttf
   Family:    Noto Sans Math Regular

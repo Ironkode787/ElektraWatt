@@ -114,6 +114,33 @@ fn a_typeface_and_bold_reach_the_open_page_and_reset_undoes_them() {
     assert_eq!(before, reset);
 }
 
+/// The technical-drawing face has no bold: a bold style in it shows and prints regular, and is bold again in the
+/// standard face; the open page shows the face at once.
+#[test]
+fn the_technical_drawing_face_prints_a_bold_style_regular() {
+    let tmp = Tmp::new("text-styles-technical");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let before = format!("{:?}", shell.page_content("101").unwrap().pages[0].content);
+    done(&mut shell, "text_styles.open", json!({}));
+    done(
+        &mut shell,
+        "text_styles.set",
+        json!({"style": "tag.main", "face": "technical_drawing", "bold": true}),
+    );
+    let tag = row(&shell, "Device tag");
+    assert!(tag.ends_with(": 2.46 mm, Technical drawing"), "{tag}");
+    assert_ne!(
+        before,
+        format!("{:?}", shell.page_content("101").unwrap().pages[0].content)
+    );
+    done(
+        &mut shell,
+        "text_styles.set",
+        json!({"style": "tag.main", "face": "standard"}),
+    );
+    assert!(row(&shell, "Device tag").ends_with(": 2.46 mm, Standard, bold"));
+}
+
 /// A height typed wrong is refused in words at the row, and nothing changes.
 #[test]
 fn a_height_that_is_no_height_is_refused_in_words() {

@@ -96,8 +96,10 @@ number beside a terminal in **Terminal number**, and so on. **Text styles…** (
 project's styles under what they print: Devices, Wires and cables, Terminals, Page, and Cover and sections. Each line
 says where the style prints and has:
 
-- **Typeface**: Standard, Narrow or Monospaced. The typefaces are part of the program, so a drawing looks the same on
-  every computer; the fonts installed on your computer are not offered.
+- **Typeface**: Standard (Noto Sans), Narrow (Noto Sans Condensed), Mono (Noto Sans Mono, every character equally
+  wide) or Technical drawing (Routed Gothic, the single-stroke lettering of technical drawings). The typefaces are
+  part of the program, so a drawing looks the same on every computer; the fonts installed on your computer are not
+  offered. Technical drawing has no bold: with it, **B** is off and the style prints regular.
 - **Height**: the height of a capital letter on paper, in millimetres, as drawing standards give a text's size. Type a
   value, or choose one of the standard heights 1.8, 2.5, 3.5, 5 and 7 mm beside it. A height under 1.2 mm is allowed,
   and the line says that it is too small to read on paper; Check project then warns about it too.
