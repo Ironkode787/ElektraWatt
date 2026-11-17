@@ -503,7 +503,7 @@ cross-reference links, Back and Forward, Go to page or cell and a keyboard grid 
 | Element | As built | Differs from the design by |
 |---|---|---|
 | Window | `elektrawatt [<project-dir>]`: eframe 0.37.0 on the wgpu renderer, 1280 × 800 at start; the title `<directory name> - ElektraWatt`, with `*` while unsaved | No toolbar (§3.3), no canvas tabs (§3.5) |
-| Menus | Drawn with egui on every OS from the toolkit-neutral registry of `ew-viewmodel`: File, Edit, Project, Page, Draw, Check, Output, View, Window, Help, each entry with its accelerator text; a disabled entry shows its reason as a tooltip, and an entry with a documentation topic ends its tooltip with "F1: learn more" | Ten menus (§3.2); muda on macOS and Windows is deferred |
+| Menus | Drawn with egui on every OS from the toolkit-neutral registry of `ew-viewmodel`: File, Edit, Project, Page, Draw, Check, Output, View, Window, Help, each entry with its accelerator text; a disabled entry shows its reason as a tooltip, and an entry with a documentation topic ends its tooltip with "F1: help" | Ten menus (§3.2); muda on macOS and Windows is deferred |
 | Start page | New project (its dialog, §3.7 as built 0.3.0), Open..., the recent projects (at most 10; an entry is dropped only when its path no longer exists; never a template), Open sample project (Golden A, read-only), Import QET project, Templates…, Tutorials (a fresh copy of the sample project in an empty directory), the language and keymap quick switches and the line "Update check: off" | The privacy line has no "change" link yet; one tutorial, not the tutorial pages of §13 |
 | New project | File ▸ New project (Ctrl+N), its dialog (§3.7), through `Session::new_project`: the built-in basic project (the shipped defaults, one empty folio 1) or a template or project folder, whose records are copied with new identities `v5(new project ID, source ID)`, its pages and devices only when asked (else one empty folio 1); the target is an empty or absent directory, checked before the open project closes | The project does not record which basic project it came from (`Project.basic_project`, FT-339) |
 | Project view | Docking with egui_tiles 0.18.0: the Schematic workspace with the panes that exist, the page list (printed folio labels; a click goes to the page) and the page view, in splits and tab groups the user rearranges; View ▸ Workspace saves, loads and resets named workspaces (§2.5, `ew.workspace/1`), saved one second after the last change and at shutdown | The page list is the page navigator (§5.2); the property grid, navigators and message panels of §2.6 join with their work packages; the splitter handles have no accessible name yet |
@@ -513,7 +513,7 @@ cross-reference links, Back and Forward, Go to page or cell and a keyboard grid 
 | Banner | One line for a read-only reason, the integrity findings of the open report, a leftover journal ([05](05-project-format-and-persistence.md) §8.3, as built) with File ▸ Discard leftover journal (a confirmation, then the editing open), or a missing file-dialog portal on Linux, with its own close button | The recovery dialog and the notification classes of §8.2 come with WP-S2.09 |
 | Palette | Ctrl+K or Ctrl+Shift+P: a case-insensitive substring search over the registry actions and the registered model commands, disabled entries last with their reason; model commands are listed but disabled until parameter forms exist | Ranking, aliases, prefixes and forms of §4.3 are WP-S2.08 |
 | Dialogs | About (version, renderer, privacy line, licence, repository, the engineering-verification disclaimer, the support status computed offline (before 1.0 the pre-release line only), the third-party notices), keyboard shortcuts, go to page (Ctrl+G), save workspace, the leftover-journal confirmation, and Save / Discard / Cancel when Close, Quit or Open meets unsaved changes; Open, Save As and Export PDF use the operating system's dialogs through rfd 0.17.2 (on Linux the XDG portal) | `PRIVACY.md` exists and About links it (the paragraph after this table); a pre-1.0 build shows "pre-release build" and no support-end banner (R5); §3.8's "Open in new window" is not offered |
-| Help | F1 resolves the context in §13's order as far as the shell has contexts (wizard, first run, palette, dialog, project view, start page, else the guide's home) and opens the topic's page of the user guide in the system browser (on Windows through `rundll32 url.dll,FileProtocolHandler`, no shell; R8); the anchors are tested against the book | No build bundles the built guide yet, so without one F1 shows a banner (R6); no property-row, finding or tool contexts yet |
+| Help | F1 resolves the context in §13's order (what is under the pointer, the focus, the selection, the tool, the screen) and opens the topic's page of the user guide in the system browser (on Windows through `rundll32 url.dll,FileProtocolHandler`, no shell; R8); the anchors are tested against the book and, where it is built, the built guide | Without an installed guide F1 shows a banner (R6) |
 | Onboarding | First run (§9.1) and the company-standard wizard (§9.2), as built in §9 | See §9 |
 | Keyboard | Routing: a focused text field, then the topmost popup or dialog, then the shell's shortcuts; Escape closes the topmost popup or dialog (the registry action `ui.dismiss`) and otherwise does nothing; on macOS `Ctrl` reads `Cmd` | No keymap files (§4.4, WP-S2.08); the quick switch stores the preset |
 | Fonts and scale | The bundled faces of `ew-text` (Noto Sans, with Noto Sans Math as the last fallback) are the only UI fonts; UI scale 1.0, 1.25, 1.5 or 2.0 through egui's zoom factor | Up to 300 % (§10.4) later |
@@ -1702,16 +1702,21 @@ renderer's final pass, applied to the screen only. Thumbnails, PNG export, PDF a
 
 - **Documentation** is an mdBook in the Diátaxis structure, versioned per release, translated through PO files and
   bundled offline with the application (NFR-DOC-01, NFR-I18N-07).
-- **F1** resolves the context in this order: focused property row → its schema field page; focused finding → rule
-  page (FR-CHK-015, NFR-DOC-02); active tool → tool page; focused panel or dialog → its page; otherwise the
-  documentation home (FR-UI-031).
+- **F1** never does nothing and answers for the most specific thing under the hand, in this order (FR-UI-031): what
+  the pointer rests on (a command's button or menu entry → its command's section; a property row → its row in the
+  properties reference; a list's row → its thing's section, a finding → its rule page, FR-CHK-015, NFR-DOC-02; a
+  thing on the page → its kind's section); else the keyboard focus (the cursor row of a list or of Properties); else
+  the selection; else the active tool → its tool section; else the screen (an open dialog first, the symbol editor, a
+  station's view, the page's kind, the project view, the start page). A thing without a section of its own opens its
+  kind's chapter, never the documentation home.
 - **Opening.** Bundled pages open in the system browser through a local `file://` URL, as a user action with no
   network traffic (NFR-PRIV-01). Links to the online version are labelled as external. Sandboxed Linux packages
   open them through the OpenURI portal (**verify**; Open question 4). *Exception:* the
   "Privacy (PRIVACY.md)" button of About and of the first-run privacy step opens the repository's web address of
   `PRIVACY.md` instead, because no build bundles the file yet; on failure a banner shows the address, and a build that bundles
   `PRIVACY.md` with the user guide replaces the web address by the local `file://` copy (§3.9).
-- **Tooltips** show the label, the shortcut in the active keymap, one line of description and "F1: learn more".
+- **Tooltips** show the label, the shortcut in the active keymap, one line of description and "F1: help"; while the
+  pointer rests on something with a topic, the status bar says what F1 opens there ("F1: Wires").
 - **Anchor registry.** Every registered tool, dialog and panel has a documentation anchor, and every rule's `docs`
   reference resolves in the bundled documentation; CI fails otherwise (NFR-DOC-01, NFR-DOC-02).
 - **Generated reference pages:** command catalogue, keymap sheets per preset, rule catalogue (NFR-DOC-06).
@@ -1734,6 +1739,20 @@ F1 resolves a topic for every `tool.` action, every dialog (an exhaustive match)
 the three window reference pages `reference/window/tools.md`, `dialogs.md` and `panels.md`, and a rule's `docs`
 reference `reference/rules/<id>`. In a Dutch window F1 opens `nl/<page>` when the Dutch guide holds that page, and the
 English page otherwise.
+
+*As built (rc.3 of 0.3.0).* The mapping lives in `ew_viewmodel::help`. Every action a menu or the bar shows has a
+topic: its own section, else the section of what it acts on (its family: `cable.` the cables', `view.` the page
+view's); only opening, saving, undo and the clipboard open the project view's. A thing on the page is classified by
+its record and, for a device, its natures (a terminal, a PLC card or station, a valve terminal, a valve, a bus device,
+else a device; an external interruption point is a supply point; a wire marker on cores only is a cable's mark; the
+one selected wire under the pointer is its route); its sections are on `reference/window/things.md`, the frame's
+where the pointer is on the sheet outside the frame's cells. The window names what is under the pointer each frame
+(`ew_ui::help`; of the frame's offers the smallest rectangle wins), hands it to the shell, and F1 asks for that
+topic; without one the shell resolves the focus, the selection, the tool and the screen. A row of Properties opens
+`reference/properties.md` at the key of the text that explains it (`field-help-<kind>-<path>`, else the shared
+`field-help-word-<member>`, else its kind's section); `cargo xtask docs-gen` writes that page from the same texts
+(`ew_viewmodel::help::property_sections`). A dialog's field has no anchor of its own: F1 there opens the dialog's
+section, and a form the section of its action (Check level…, Cable…).
 
 ---
 

@@ -1186,6 +1186,12 @@ impl TableDelegate for Delegate<'_> {
             .is_some_and(|p| self.area.contains(p) && p.y > body_top && rect.y_range().contains(p.y));
         if hovered {
             painter.rect_filled(rect, theme::SQUARE, t.state_hover.color32());
+            // F1 on the row: what its thing is (a terminal of the strip editor, a cable), else the list's section.
+            let (shell, kind, label) = (self.shell, self.kind, &self.table.nodes[row.node as usize].label);
+            crate::help::offer(ui, rect, || {
+                let under = ew_viewmodel::help::row_help(shell, kind, key, label);
+                (under.topic, under.subject)
+            });
         }
         painter.hline(
             rect.x_range(),

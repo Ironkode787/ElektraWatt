@@ -517,7 +517,8 @@ impl Thing {
 
 /// What `e` on `page` is ([`Thing`]); `pointer` when it is under the pointer, where the one selected wire is its route
 /// (its handles stand on it). A device by what it is (a terminal, a PLC card, a valve, …), a connection by its kind,
-/// a page item by its kind; an entity the page tables do not hold is the frame, or on a generated page the list.
+/// a page item by its kind; an entity the page tables do not hold is what the program draws itself: on a generated
+/// page the list, else a device (an assembly overview's).
 pub fn thing_at(
     model: &ShellModel,
     page: &CanvasPage,
@@ -584,15 +585,29 @@ pub fn thing_at(
         Some(EntityKind::StructureBox) => Thing::Box,
         Some(EntityKind::Placement | EntityKind::Carrier) => Thing::PanelLayout,
         Some(EntityKind::Block) => Thing::List,
-        None if model
-            .page_rows()
-            .iter()
-            .any(|r| r.folio == page.folio && r.generated) =>
-        {
-            Thing::List
-        }
-        None => Thing::Frame,
+        // What the program draws itself: a generated page's list, an overview's devices.
+        None if generated(model, page) => Thing::List,
+        None => Thing::Device,
     }
+}
+
+/// What the pointer at the sheet point `p` of `page` is where it is on no thing: on a generated page the list, on the
+/// sheet outside the frame's cells (its bands and the title block) the frame; `None` on the empty drawing area.
+fn off_things(model: &ShellModel, page: &CanvasPage, p: (i64, i64)) -> Option<Thing> {
+    if generated(model, page) {
+        return Some(Thing::List);
+    }
+    let on_sheet = (0..=page.sheet.0).contains(&p.0) && (0..=page.sheet.1).contains(&p.1);
+    let outside_cells = page.cells.as_ref().is_some_and(|c| c.cell_at(p).is_none());
+    (on_sheet && outside_cells).then_some(Thing::Frame)
+}
+
+/// Whether `page` is a generated page (a list the program writes).
+fn generated(model: &ShellModel, page: &CanvasPage) -> bool {
+    model
+        .page_rows()
+        .iter()
+        .any(|r| r.folio == page.folio && r.generated)
 }
 
 /// What the device `device` is, by its natures; `None` for an ID that names no device.
@@ -677,8 +692,9 @@ fn modal_topic(model: &ShellModel) -> Option<&'static str> {
 }
 
 /// What F1 opens for what is under the pointer, and the words the status bar says it with: what the window names
-/// there ([`HelpUnder`]), else the thing on the page on show under the pointer ([`thing_at`]); `None` over nothing,
-/// and over a page behind an open dialog, the symbol editor or a station's view.
+/// there ([`HelpUnder`]), else the thing on the page on show under the pointer ([`thing_at`]), the frame where the
+/// pointer is on its bands or its title block; `None` over the empty drawing area, and over a page behind an open
+/// dialog, the symbol editor or a station's view.
 pub fn pointer_topic(model: &ShellModel) -> Option<HelpUnder> {
     if let Some(under) = model.help_under() {
         return Some(under.clone());
@@ -686,12 +702,12 @@ pub fn pointer_topic(model: &ShellModel) -> Option<HelpUnder> {
     if modal_topic(model).is_some() || model.symbol_editor().is_some() || model.station_tab().is_some() {
         return None;
     }
-    let (page, e) = (0..2).find_map(|group| {
-        let canvas = model.canvas_of(group)?;
-        canvas.pointer()?;
-        Some((canvas.page(), canvas.pointer_entity()?.0))
-    })?;
-    let thing = thing_at(model, page, e, true);
+    let canvas = (0..2).find_map(|group| model.canvas_of(group).filter(|c| c.pointer().is_some()))?;
+    let page = canvas.page();
+    let thing = match canvas.pointer_entity() {
+        Some((e, _)) => thing_at(model, page, e, true),
+        None => off_things(model, page, canvas.pointer()?)?,
+    };
     Some(HelpUnder {
         topic: thing.topic().to_owned(),
         subject: thing.words().to_owned(),

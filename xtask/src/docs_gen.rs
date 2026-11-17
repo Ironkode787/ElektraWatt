@@ -1166,9 +1166,9 @@ fn properties_text(sheet: &Value) -> Result<String> {
     let mut out = format!(
         "# Properties\n\n{}\n\n\
          What each row of the Properties pane means, by the kind of thing it belongs to: the text the pointer resting on \
-         a row's name shows. `F1` on a row of Properties opens it here. A thing on a page shows the rows of several \
-         kinds: a symbol those of its device, its function and its representation (its placement on the page). The \
-         page is generated from the window's own texts.\n",
+         a row's name shows. `F1` on a row of Properties opens it here. A wire's rows are its connection's; a symbol \
+         shows the rows of its device, its function and its representation (where it is drawn on the page). The page \
+         is generated from the window's own texts.\n",
         header("the explanations of the rows of Properties")
     );
     for section in sheet["sections"]

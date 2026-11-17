@@ -1616,7 +1616,7 @@ pub struct ActionItem {
     pub reason: Option<String>,
     /// Whether the item shows a check mark (the current UI scale or workspace).
     pub checked: bool,
-    /// The documentation topic of the action ([`crate::help`]): its tooltip ends with "F1: learn more".
+    /// The documentation topic of the action ([`crate::help`]): its tooltip ends with "F1: help".
     pub topic: Option<&'static str>,
 }
 

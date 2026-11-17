@@ -97,6 +97,21 @@ fn f1_opens_the_section_of_the_thing_under_the_pointer() {
     shell.shutdown();
 }
 
+/// The pointer on the frame's title block, which holds no thing of the drawing, opens the frame's section.
+#[test]
+fn f1_on_the_frame_opens_the_frames_section() {
+    let tmp = Tmp::new("f1-frame");
+    let mut shell = tmp.shell_in(Mode::Gui, true, "102");
+    let (w, h) = shell.canvas().unwrap().page().sheet;
+    // The title block's band at the sheet's foot, below the frame's cells.
+    let title_block = (w / 2, h - 10_000_000);
+    let cells = shell.canvas().unwrap().page().cells.clone().expect("a frame");
+    assert!(cells.cell_at(title_block).is_none(), "the title block is outside the cells");
+    done(&mut shell, "canvas.pointer", at(title_block, json!({})));
+    assert_eq!(f1(&mut shell), "reference/window/things.html#the-frame-and-title-block");
+    shell.shutdown();
+}
+
 /// With the pointer on nothing, F1 answers for the selection, then the tool: a selected wire opens the wires' section.
 #[test]
 fn f1_without_a_pointer_opens_the_selection_then_the_tool() {
