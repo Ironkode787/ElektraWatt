@@ -895,7 +895,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         })),
     ),
     with_params(
-        "width?:mm, height?:mm",
+        "width?:mm, height?:mm, from_left?:bool, from_top?:bool",
         hidden(act(
             "part.box_size",
             View,

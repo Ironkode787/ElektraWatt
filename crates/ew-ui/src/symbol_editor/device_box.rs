@@ -4,7 +4,7 @@
 //! The device box on the symbol editor's screen (rc.3, doc 07 §2.5): on the left the pin table (name, what the pin
 //! carries, its edge; a row dragged onto another takes its place; Add pin), in the middle the box as a device of the
 //! part is drawn, on the right Properties of the selected pins or of the part and its box. A pin is dragged along
-//! its edge or onto another one, the box's right and bottom edges are dragged to size it; the page's keys act on the
+//! its edge or onto another one, any edge or corner of the box is dragged to size it; the page's keys act on the
 //! selected pins.
 
 use super::{EditorView, action, ask, bar_command, divider, label, panels, stacked};
@@ -28,8 +28,13 @@ pub(super) enum BoxGesture {
     None,
     /// Pin `0` dragged.
     Pin(u16),
-    /// The box's right edge, its bottom edge, or both (its corner) dragged.
-    Size { right: bool, bottom: bool },
+    /// An edge of the box, or the corner of two, dragged.
+    Size {
+        left: bool,
+        right: bool,
+        top: bool,
+        bottom: bool,
+    },
 }
 
 /// A pin row of the table being dragged to another place.
@@ -330,42 +335,73 @@ impl EditorView {
                 }
             }
         }
+        let pointer = response.interact_pointer_pos().or_else(|| response.hover_pos());
+        // While an edge is dragged, the box as the drag sizes it: the edge under the pointer, the pins on it going
+        // with it, the others where they stand (`BoxSteps::resize`, as the action will size it); `shift` is where
+        // its top-left corner has gone.
+        let mut shown = steps.clone();
+        let mut shift = (0, 0);
+        if let (
+            BoxGesture::Size {
+                left,
+                right,
+                top,
+                bottom,
+            },
+            Some(p),
+        ) = (self.box_gesture, pointer)
+        {
+            let k = (p - origin) / step;
+            let (kx, ky) = (k.x.round() as i64, k.y.round() as i64);
+            let w = if left {
+                steps.w - kx
+            } else if right {
+                kx
+            } else {
+                steps.w
+            };
+            let h = if top {
+                steps.h - ky
+            } else if bottom {
+                ky
+            } else {
+                steps.h
+            };
+            shown.resize(w, h, left, top);
+            shift = (
+                if left { steps.w - shown.w } else { 0 },
+                if top { steps.h - shown.h } else { 0 },
+            );
+        }
+        let at_shown = |kx: i64, ky: i64| at((kx + shift.0) as f32, (ky + shift.1) as f32);
         let pin_point = |side: &Dir4, k: i64| match side {
-            Dir4::Up => at(k as f32, 0.0),
-            Dir4::Down => at(k as f32, steps.h as f32),
-            Dir4::Left => at(0.0, k as f32),
-            _ => at(steps.w as f32, k as f32),
+            Dir4::Up => at_shown(k, 0),
+            Dir4::Down => at_shown(k, shown.h),
+            Dir4::Left => at_shown(0, k),
+            _ => at_shown(shown.w, k),
         };
+        let shown_at = |idx: u16, at: i64| shown.pins.iter().find(|p| p.0 == idx).map_or(at, |p| p.2);
         let outward = |side: &Dir4| match side {
             Dir4::Up => Vec2::new(0.0, -1.0),
             Dir4::Down => Vec2::new(0.0, 1.0),
             Dir4::Left => Vec2::new(-1.0, 0.0),
             _ => Vec2::new(1.0, 0.0),
         };
-        let pointer = response.interact_pointer_pos().or_else(|| response.hover_pos());
-        // The size a drag of the box's edges gives, and the place a dragged pin takes.
-        let dragged_size = match (self.box_gesture, pointer) {
-            (BoxGesture::Size { right, bottom }, Some(p)) => {
-                let k = (p - origin) / step;
-                Some((
-                    if right {
-                        (k.x.round() as i64).max(2)
-                    } else {
-                        steps.w
-                    },
-                    if bottom {
-                        (k.y.round() as i64).max(2)
-                    } else {
-                        steps.h
-                    },
-                ))
-            }
-            _ => None,
-        };
-        let (bw, bh) = dragged_size.unwrap_or((steps.w, steps.h));
-        let body = Rect::from_min_max(origin, at(bw as f32, bh as f32));
+        let body = Rect::from_min_max(at_shown(0, 0), at_shown(shown.w, shown.h));
         let ink = t.canvas_sheet_line.color32();
         painter.rect_stroke(body, 0.0, Stroke::new(2.0, ink), egui::StrokeKind::Middle);
+        // The handles that size the box, under the pins: the middle of each edge and each corner. The edges take the
+        // pointer anywhere along them.
+        if editable {
+            let (x, y) = (body.x_range(), body.y_range());
+            for hx in [x.min, x.center(), x.max] {
+                for hy in [y.min, y.center(), y.max] {
+                    if hx != x.center() || hy != y.center() {
+                        super::canvas::handle(&painter, &t, Pos2::new(hx, hy));
+                    }
+                }
+            }
+        }
         painter.text(
             body.center(),
             egui::Align2::CENTER_CENTER,
@@ -385,7 +421,7 @@ impl EditorView {
                     .map(|(_, idx)| idx)
             });
         for line in &table {
-            let p = pin_point(&line.side, line.at);
+            let p = pin_point(&line.side, shown_at(line.idx, line.at));
             let out = outward(&line.side);
             painter.line_segment([p, p + out * step], Stroke::new(1.5, ink));
             painter.circle_filled(p, 3.0, t.canvas_sheet.color32());
@@ -427,25 +463,26 @@ impl EditorView {
                 super::canvas::dashed_rect(&painter, frame, Stroke::new(1.0, t.canvas_selection.color32()));
             }
         }
-        // The handles that size the box: its right edge, its bottom edge and the corner between them. A pin under
-        // the pointer goes first; the edges take the pointer anywhere along them.
-        let handles = [
-            (Pos2::new(body.right(), body.center().y), true, false),
-            (Pos2::new(body.center().x, body.bottom()), false, true),
-            (body.right_bottom(), true, true),
-        ];
-        if editable {
-            for (p, ..) in handles {
-                super::canvas::handle(&painter, &t, p);
-            }
-        }
+        // A press on an edge, the corner of two first, sizes the box (a pin under the pointer goes before it).
         let edge_at = |p: Pos2| {
-            let near = |a: f32, b: f32| (a - b).abs() <= super::canvas::HANDLE;
-            let right =
-                near(p.x, body.right()) && p.y >= body.top() && p.y <= body.bottom() + super::canvas::HANDLE;
-            let bottom =
-                near(p.y, body.bottom()) && p.x >= body.left() && p.x <= body.right() + super::canvas::HANDLE;
-            (right || bottom).then_some((right, bottom))
+            let reach = super::canvas::HANDLE;
+            let near = |a: f32, b: f32| (a - b).abs() <= reach;
+            let along_x = p.x >= body.left() - reach && p.x <= body.right() + reach;
+            let along_y = p.y >= body.top() - reach && p.y <= body.bottom() + reach;
+            let gesture = BoxGesture::Size {
+                left: along_y && near(p.x, body.left()),
+                right: along_y && near(p.x, body.right()),
+                top: along_x && near(p.y, body.top()),
+                bottom: along_x && near(p.y, body.bottom()),
+            };
+            (gesture
+                != BoxGesture::Size {
+                    left: false,
+                    right: false,
+                    top: false,
+                    bottom: false,
+                })
+            .then_some(gesture)
         };
         painter.text(
             canvas.left_bottom() + Vec2::new(t.space_4, -t.space_3),
@@ -488,7 +525,7 @@ impl EditorView {
                     }
                     BoxGesture::Pin(idx)
                 }
-                (None, Some((right, bottom))) => BoxGesture::Size { right, bottom },
+                (None, Some(size)) => size,
                 (None, None) => BoxGesture::None,
             };
         }
@@ -522,11 +559,12 @@ impl EditorView {
                     );
                 }
             }
-            (BoxGesture::Size { .. }, Some(_)) if released => {
+            (BoxGesture::Size { left, top, .. }, Some(_)) if released => {
+                let mm = |k: i64| k as f64 * f64::from(STEP_MM);
                 action(
                     events,
                     "part.box_size",
-                    json!({ "width": bw as f64 * f64::from(STEP_MM), "height": bh as f64 * f64::from(STEP_MM) }),
+                    json!({ "width": mm(shown.w), "height": mm(shown.h), "from_left": left, "from_top": top }),
                 );
             }
             _ => {}

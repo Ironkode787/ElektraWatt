@@ -325,11 +325,8 @@ fn a_row_commits_once_and_save_takes_what_was_typed() {
     d.shell_mut().shutdown();
 }
 
-/// The device box through the window: Pins and box… in the part editor opens it on the part being made; Add pin puts
-/// a pin on the box; a pin dragged to the right edge stands there.
-#[test]
-fn a_pin_is_added_and_dragged_onto_another_edge_of_the_box() {
-    let tmp = Tmp::new();
+/// The device box of a new part DRV-1, opened by Pins and box… in the part editor, with three pins added by Add pin.
+fn box_with_three_pins(tmp: &Tmp) -> Driver {
     let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
     d.enable_accesskit();
     done(
@@ -353,6 +350,42 @@ fn a_pin_is_added_and_dragged_onto_another_edge_of_the_box() {
         d.find("Pins and box\u{2026}").expect("the part editor's button"),
     ));
     assert!(d.shell_mut().dialog().is_none(), "the part editor gave way");
+    for _ in 0..3 {
+        let add = d.labels().into_iter().find(|(l, _)| l == "Add pin").unwrap().1;
+        d.input(&click(add));
+    }
+    d
+}
+
+/// The device box's size in grid steps and its pins as (name, edge, steps along it).
+fn box_now(d: &mut Driver) -> ((i64, i64), Vec<(String, &'static str, i64)>) {
+    let b = d
+        .shell_mut()
+        .symbol_editor()
+        .unwrap()
+        .device_box()
+        .expect("the device box");
+    let steps = b.steps();
+    let pins = b
+        .pin_table()
+        .into_iter()
+        .map(|l| {
+            (
+                l.name,
+                ew_ui::ew_viewmodel::shell::symbol_editor::side_word(&l.side),
+                l.at,
+            )
+        })
+        .collect();
+    ((steps.w, steps.h), pins)
+}
+
+/// The device box through the window: Pins and box… in the part editor opens it on the part being made; Add pin puts
+/// a pin on the box; a pin dragged to the right edge stands there.
+#[test]
+fn a_pin_is_added_and_dragged_onto_another_edge_of_the_box() {
+    let tmp = Tmp::new();
+    let mut d = box_with_three_pins(&tmp);
     let pins = |d: &mut Driver| -> Vec<(String, &'static str)> {
         let b = d
             .shell_mut()
@@ -370,10 +403,6 @@ fn a_pin_is_added_and_dragged_onto_another_edge_of_the_box() {
             })
             .collect()
     };
-    for _ in 0..3 {
-        let add = d.labels().into_iter().find(|(l, _)| l == "Add pin").unwrap().1;
-        d.input(&click(add));
-    }
     assert_eq!(
         pins(&mut d),
         [
@@ -409,5 +438,46 @@ fn a_pin_is_added_and_dragged_onto_another_edge_of_the_box() {
         after.contains(&("3".to_owned(), "right")),
         "pin 3 went from the bottom edge to the right edge: {after:?}"
     );
+    d.shell_mut().shutdown();
+}
+
+/// Every edge of the device box sizes it: the left edge dragged out two steps widens the box to the left, the pins on
+/// the top and bottom edges staying where they stand (two steps further from the left corner); dragged in past them
+/// it stops one step before the first; the top edge dragged up a step makes the box a step higher.
+#[test]
+fn every_edge_of_the_box_sizes_it_and_the_pins_stay_where_they_stand() {
+    let tmp = Tmp::new();
+    let mut d = box_with_three_pins(&tmp);
+    let places = |pins: &[(String, &'static str, i64)]| -> Vec<(&'static str, i64)> {
+        pins.iter().map(|p| (p.1, p.2)).collect()
+    };
+    let (size, before) = box_now(&mut d);
+    assert_eq!(size, (4, 5));
+    assert_eq!(places(&before), [("top", 1), ("top", 2), ("bottom", 2)]);
+    // The box stands in the middle of its drawing; pin 3 in the middle of its bottom edge gives the grid step.
+    let geometry = |d: &mut Driver| {
+        let centre = d.find("Device box of DRV-1").expect("the box's drawing");
+        let pin = d.find("Pin 3").expect("pin 3 on the box");
+        (centre, (pin.1 - centre.1) * 2 / 5)
+    };
+    let ((cx, cy), step) = geometry(&mut d);
+    assert!(step > 0);
+    d.input(&drag((cx - 2 * step, cy), (cx - 4 * step, cy)));
+    let (size, wider) = box_now(&mut d);
+    assert_eq!(size, (6, 5), "two steps wider");
+    assert_eq!(places(&wider), [("top", 3), ("top", 4), ("bottom", 4)]);
+    // Dragged in to the far right, the left edge stops a step before the first top pin.
+    let ((cx, cy), step) = geometry(&mut d);
+    d.input(&drag((cx - 3 * step, cy), (cx + 4 * step, cy)));
+    let (size, narrow) = box_now(&mut d);
+    assert_eq!(size, (4, 5), "no narrower than the pins need");
+    assert_eq!(places(&narrow), [("top", 1), ("top", 2), ("bottom", 2)]);
+    // The top edge, half the box's height above the centre, dragged a step up a step right of the centre (pin 2
+    // stands on the centre).
+    let ((cx, cy), step) = geometry(&mut d);
+    d.input(&drag((cx + step, cy - 5 * step / 2), (cx + step, cy - 7 * step / 2)));
+    let (size, higher) = box_now(&mut d);
+    assert_eq!(size, (4, 6), "a step higher");
+    assert_eq!(places(&higher), places(&narrow), "the pins keep their places");
     d.shell_mut().shutdown();
 }

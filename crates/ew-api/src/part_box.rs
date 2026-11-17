@@ -169,6 +169,34 @@ pub fn steps(cps: &[u16], outputs: &[u16], layout: Option<&PartBox>, step: i64) 
 }
 
 impl BoxSteps {
+    /// Sizes the box `w` by `h` steps with the change of width made at its left edge when `from_left` (else at its
+    /// right) and of height at its top when `from_top` (else at its bottom): the pins on the edge that moves go with
+    /// it, the others stay where they stand, and the box stops where a pin would come nearer than one step to its
+    /// moving edge.
+    pub fn resize(&mut self, w: i64, h: i64, from_left: bool, from_top: bool) {
+        // The least and the most distance of the pins on the top and bottom edges (`true`) or the left and right ones.
+        let extent = |across: bool| {
+            let at = self.pins.iter().filter(|p| horizontal(&p.1) == across).map(|p| p.2);
+            (at.clone().min(), at.max())
+        };
+        let fit = |want: i64, now: i64, (lo, hi): (Option<i64>, Option<i64>), from_start: bool| {
+            let need = if from_start {
+                lo.map_or(0, |lo| now - lo + 1)
+            } else {
+                hi.map_or(0, |hi| hi + 1)
+            };
+            let length = want.max(need).max(2);
+            (length, if from_start { length - now } else { 0 })
+        };
+        let (w, dx) = fit(w, self.w, extent(true), from_left);
+        let (h, dy) = fit(h, self.h, extent(false), from_top);
+        for pin in &mut self.pins {
+            pin.2 += if horizontal(&pin.1) { dx } else { dy };
+        }
+        self.w = w;
+        self.h = h;
+    }
+
     /// The layout the part stores for the box, on a grid of `step` nanometres.
     pub fn layout(&self, step: i64) -> PartBox {
         PartBox {
@@ -415,19 +443,11 @@ impl PartDraft {
         true
     }
 
-    /// Sizes the box `width` by `height` nanometres, each rounded to the grid and no smaller than the pins need.
-    pub fn size_box(&mut self, width: i64, height: i64) {
+    /// Sizes the box `width` by `height` nanometres, each rounded to the grid, the width changed at the left edge when
+    /// `from_left` and the height at the top when `from_top` ([`BoxSteps::resize`]): no smaller than its pins need.
+    pub fn size_box(&mut self, width: i64, height: i64, from_left: bool, from_top: bool) {
         let whole = |nm: i64| ((nm as f64) / (EDIT_STEP as f64)).round() as i64;
-        self.relayout(|b| {
-            b.w = whole(width).max(2);
-            b.h = whole(height).max(2);
-            // A pin past the new edge comes inside it.
-            let (w, h) = (b.w, b.h);
-            for pin in &mut b.pins {
-                let length = if horizontal(&pin.1) { w } else { h };
-                pin.2 = pin.2.clamp(1, (length - 1).max(1));
-            }
-        });
+        self.relayout(|b| b.resize(whole(width), whole(height), from_left, from_top));
     }
 }
 

@@ -128,7 +128,8 @@ editor, and **Edit this device's box…** in the menu of a box placed on a page.
 - **The pin table**, on the left, lists the pins in the order they stand on the box, each with its name, the potential
   it carries and its edge. **Add pin** adds one; a row dragged onto another takes its place there.
 - **The drawing** shows the box as a device of the part is drawn. Drag a pin along its edge or onto another edge;
-  drag the box's right or bottom edge, or the corner between them, to size it. A click selects a pin, `Shift` and
+  drag any edge or corner of the box to size it: the pins on that edge go with it, the others stay where they are,
+  and the box gets no smaller than its pins need. A click selects a pin, `Shift` and
   `Ctrl` select more; the arrow keys move the selected pins one grid step along their edge and `Delete` removes them.
 - **Properties** shows the selected pin's **Name**, **Potential**, **Edge** and its place **Along the edge**; with no
   pin selected the part's number, manufacturer and description (typed here for a new part; **Part data…** opens the
@@ -206,7 +207,7 @@ The window and `.ewui` scripts share these actions:
 | `symbol.start` | optional `leave: true`: the start card, or back to the draft in hand |
 | `part.box` | optional `part` (a part number, or `id:<copy UUID>`), optional `new: true`: the device box editor |
 | `part.pin` | `add: true` with optional `name`; `remove`: a pin; or `pin` with `name`, `role`, `side` (`top`, `bottom`, `left`, `right`) and `at` in millimetres along the edge |
-| `part.box_size` | `width`, `height` in millimetres |
+| `part.box_size` | `width`, `height` in millimetres; `from_left: true` changes the width at the left edge and `from_top: true` the height at the top |
 | `part.box_select` | `pins`: a list of pin numbers or `"all"`; optional `mode` |
 | `part.redraw_boxes` | `part`: the boxes drawn of the part redrawn as it lays them out |
 | `symbol.place` | `x`, `y` on the current project page |

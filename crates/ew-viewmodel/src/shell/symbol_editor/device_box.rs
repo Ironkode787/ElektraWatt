@@ -604,8 +604,11 @@ impl ShellModel {
         }
     }
 
-    /// `part.box_size {width, height}` in millimetres: the box's size, no smaller than its pins need.
+    /// `part.box_size {width, height, from_left?, from_top?}` in millimetres: the box's size, no smaller than its pins
+    /// need; with `from_left` the width changes at the left edge and with `from_top` the height at the top, the pins on
+    /// the other edges staying where they stand.
     pub(crate) fn act_part_box_size(&mut self, p: &Map<String, Value>) -> Outcome {
+        let from = |name: &str| p.get(name) == Some(&Value::Bool(true));
         let side = |name: &str| p.get(name).and_then(Value::as_f64).filter(|v| *v > 0.0);
         let Some(b) = self.symbol_editor.as_mut().and_then(|e| e.device_box.as_mut()) else {
             return Outcome::refused(key!("reason-no-device-box"));
@@ -618,7 +621,8 @@ impl ShellModel {
         let now = b.steps();
         let nm = |v: Option<f64>, steps: i64| v.map_or(steps * EDIT_STEP, |mm| (mm * 1e6).round() as i64);
         let (w, h) = (nm(side("width"), now.w), nm(side("height"), now.h));
-        b.edit(|d| d.size_box(w, h));
+        let (left, top) = (from("from_left"), from("from_top"));
+        b.edit(|d| d.size_box(w, h, left, top));
         Outcome::Done
     }
 

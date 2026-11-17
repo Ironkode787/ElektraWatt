@@ -1148,7 +1148,8 @@ place and size are rows of Properties, and a connection point's function pin is 
 
 **The device box** (§2.5) is the editor's second kind of thing, on the same screen: the pin table on the left (name,
 potential, edge; a row dragged onto another takes its place; Add pin), the box as a device of the part is drawn in the
-middle (a pin dragged along its edge or onto another one, the right and bottom edges dragged to size it), and
+middle (a pin dragged along its edge or onto another one, any edge or corner dragged to size it: the pins on the
+edge that moves go with it, the others stay where they stand, and the edge stops one step before the nearest pin), and
 Properties of the selected pins or of the part. Its ways in: the start card, Pins and box… in the part editor, and
 Edit this device's box… on a placed box. Save saves the part (a new part, a part of the project in place, a part of
 My parts as its next version, a library's part as the project's own copy); where boxes of it are drawn already a
