@@ -250,7 +250,9 @@ const CATALOGUE_MIN: f32 = 280.0;
 /// The part of a station view's pane `full` that holds the rack and its lists: the pane without the catalogue, which
 /// takes a quarter of it at the right, within what its rows need and what a wide window gives.
 pub(crate) fn lists_rect(full: Rect) -> Rect {
-    let catalogue = (full.width() * 0.26).clamp(CATALOGUE_MIN, 460.0).min(full.width() * 0.5);
+    let catalogue = (full.width() * 0.26)
+        .clamp(CATALOGUE_MIN, 460.0)
+        .min(full.width() * 0.5);
     Rect::from_min_max(full.min, pos2(full.right() - catalogue, full.bottom()))
 }
 

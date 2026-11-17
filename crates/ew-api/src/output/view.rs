@@ -683,7 +683,7 @@ pub fn page_valve_cells(q: &Q, page: Id<Page>) -> Vec<ValveCellsView> {
         };
         // The page is read only where a box is drawn as its positions: a page record's change (a renumber) leaves the
         // symbol layers of the other pages alone. Each cell is as wide as its valve needs (rc.3).
-        let Some(frame) = ew_derive::box_frame(q, &rep) else {
+        let Some(frame) = ew_derive::box_frame(q, rep) else {
             continue;
         };
         let (_, band, _) = frame.rows();

@@ -2871,6 +2871,13 @@ impl ShellModel {
         let result = project.session.run_script(&log, &file);
         let committed = project.session.history().cursor() > before;
         self.count(|c| c.run_script += 1);
+        self.tools.refused_by = match &result {
+            Err(CmdLogError::Failed { error, .. } | CmdLogError::Refused { error, .. }) => match error {
+                ew_api::CmdError::Prevented { rule, .. } => Some(rule.to_string()),
+                _ => None,
+            },
+            _ => None,
+        };
         let outcome = match result {
             Ok(receipts) => {
                 if let Some(primary) = receipts.last().and_then(|r| r.outcome.primary) {

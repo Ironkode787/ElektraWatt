@@ -946,7 +946,9 @@ fn defs() -> Vec<Def> {
             tech: vec![("coil_voltage", q("24", "V"))],
             plc: None,
             mech: None,
-            sections: Some(json!({"fluid": {"solenoids": ["14", "12"], "coil": {"voltage": "24", "env": "dc"}}})),
+            sections: Some(
+                json!({"fluid": {"solenoids": ["14", "12"], "coil": {"voltage": "24", "env": "dc"}}}),
+            ),
             unit: None,
         },
         // The persona re-test placed the supply plate from Device and got an empty box with no connection point: its

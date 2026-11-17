@@ -857,8 +857,14 @@ fn rc3_a_5_3_valve_widens_its_position_and_the_cells_to_its_right_follow() {
     let last = fill(&mut s, vt, 3, true);
     for (k, v) in [first, last].into_iter().enumerate() {
         let x = 30_000_000 + 60_000_000 * i64::try_from(k).unwrap_or(0);
-        let cyl = place_into(&mut s, "EW-GEN-CYL-1", "ew.iso.cylinder-double-acting", (x, 30_000_000), vt)
-            .expect("a cylinder");
+        let cyl = place_into(
+            &mut s,
+            "EW-GEN-CYL-1",
+            "ew.iso.cylinder-double-acting",
+            (x, 30_000_000),
+            vt,
+        )
+        .expect("a cylinder");
         tube(&mut s, (v, "4"), (cyl, "A")).expect("a tube to port 4");
         tube(&mut s, (v, "2"), (cyl, "B")).expect("a tube to port 2");
     }
@@ -877,7 +883,12 @@ fn rc3_a_5_3_valve_widens_its_position_and_the_cells_to_its_right_follow() {
                 .find(|(d, _)| d == working)
                 .map(|(_, at)| *at)
                 .unwrap_or_else(|| panic!("port {working} of position {}", i + 1));
-            assert_eq!(y, c[i].rect[1], "port {working} of position {} on the top edge", i + 1);
+            assert_eq!(
+                y,
+                c[i].rect[1],
+                "port {working} of position {} on the top edge",
+                i + 1
+            );
             assert!(
                 c[i].rect[0] < x && x < c[i].rect[2],
                 "port {working} of position {} in its cell",

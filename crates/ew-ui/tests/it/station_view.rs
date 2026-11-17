@@ -227,7 +227,11 @@ fn a_valve_terminals_positions_are_filled_like_slots() {
             .unwrap_or_else(|| panic!("no entry {label}: {menu:?}"))
     };
     let (_, _, valves) = entry("Replace valve");
-    let checked: Vec<&str> = valves.iter().filter(|i| i.checked).map(|i| i.label.as_str()).collect();
+    let checked: Vec<&str> = valves
+        .iter()
+        .filter(|i| i.checked)
+        .map(|i| i.label.as_str())
+        .collect();
     assert_eq!(checked, [part], "its own valve is checked");
     assert!(entry("Empty the position").0);
     for greyed in ["Move valve left", "Draw valve on a page"] {

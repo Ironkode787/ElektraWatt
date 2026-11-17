@@ -647,7 +647,7 @@ impl ShellModel {
         }
         // A second source says what is in the way and the way out, not the rule's ID tie-break.
         let text = self
-            .second_source_words(message)
+            .second_source_words()
             .unwrap_or_else(|| strings::format(key!("notice-ip-not-placed"), &[message]));
         self.tools.notice = Some(text.clone());
         self.tools.notice_sticky = true;
@@ -659,8 +659,8 @@ impl ShellModel {
     /// on page 101. Press D for a target, or mark one source as the star.", with the key of `tool.ip_direction` as the
     /// window names it ([`second_source_text`]) and the first page in page order that
     /// holds a source of the ghost's name, by its folio as the Pages navigator shows it; `None` for another refusal.
-    fn second_source_words(&self, message: &str) -> Option<String> {
-        if !message.contains("EW-CORE-052:") {
+    fn second_source_words(&self) -> Option<String> {
+        if self.tools.refused_by.as_deref() != Some("EW-CORE-052") {
             return None;
         }
         let Some(crate::tools::Ghost::Ip { name, .. }) = self.tools.tool.ghost() else {

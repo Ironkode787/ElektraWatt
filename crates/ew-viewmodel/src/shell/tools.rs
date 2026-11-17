@@ -1199,6 +1199,10 @@ impl ShellModel {
                 }
             }
         };
+        self.tools.refused_by = match &result {
+            Err(CmdError::Prevented { rule, .. }) => Some(rule.to_string()),
+            _ => None,
+        };
         let outcome = match result {
             Ok(receipt) => {
                 self.tools.last_primary = receipt
@@ -1900,7 +1904,8 @@ mod ft779 {
         let nl = words();
         assert!(strings::set_locale("en"));
         assert_eq!(prevented.to_string(), format!("EW-CORE-052: {finding}"));
-        assert_eq!(en[0], format!("EW-CORE-052: {finding}"));
+        // The window reads the sentence; the code stays in the error as it prints and in the findings.
+        assert_eq!(en[0], finding);
         let release = strings::command_title("revision.release");
         assert_eq!(
             en[1],
@@ -1912,7 +1917,7 @@ mod ft779 {
         assert_eq!(en[2], "Nothing to undo");
         assert_eq!(
             nl[0],
-            "EW-CORE-052: onderbrekingspunt 0V: 2 bronpunten en geen sterbron; maak ze op één na tot doel, of markeer \
+            "onderbrekingspunt 0V: 2 bronpunten en geen sterbron; maak ze op één na tot doel, of markeer \
              er één als sterbron"
         );
         assert_eq!(nl[2], "Niets om ongedaan te maken");

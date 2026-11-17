@@ -1566,8 +1566,8 @@ pub fn station_tools(model: &ShellModel) -> Vec<(String, MenuEntry)> {
         .map(|meta| {
             let mut item = item_of(meta, model);
             let words = meta.id.replace(['.', '_'], "-");
-            let short = strings::lookup(&format!("bar-{words}"))
-                .map_or_else(|| item.label.clone(), str::to_owned);
+            let short =
+                strings::lookup(&format!("bar-{words}")).map_or_else(|| item.label.clone(), str::to_owned);
             if let Some(valve) = strings::lookup(&format!("valve-{words}")).filter(|_| on_valve) {
                 valve.clone_into(&mut item.label);
             }

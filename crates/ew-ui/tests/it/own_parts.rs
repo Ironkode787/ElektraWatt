@@ -589,9 +589,7 @@ fn a_module_part_nothing_draws_is_listed_greyed_with_what_to_do() {
     let next = json!({"dir": tmp.0.join("q.ew"), "template": "builtin"});
     assert_eq!(d.shell_mut().dispatch("file.new", &next), Outcome::Done);
     d.settle();
-    let held = records(&mut d)
-        .iter()
-        .any(|v| v["part_number"] == "DI-NP");
+    let held = records(&mut d).iter().any(|v| v["part_number"] == "DI-NP");
     assert!(!held, "the next project holds no copy of it");
     let s = d.shell_mut();
     assert_eq!(s.dispatch("plc.new_station", &json!({})), Outcome::Done);

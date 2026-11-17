@@ -134,6 +134,9 @@ pub(crate) struct ToolHost {
     /// Whether `notice` is a tool refusal that survives the gesture's dwell, moves and release: the next primary
     /// press, key press, page change or tool change clears it.
     pub notice_sticky: bool,
+    /// The rule of the prevent rule that refused the last commit (`EW-CORE-052`); `None` after any other end. The
+    /// refusal's words carry no code (the window reads sentences), so the IP tool reads the rule here.
+    pub refused_by: Option<String>,
     /// The sheet point of the press a sticky refusal answered: a pointer move to that same point (the window reports
     /// one after every press) and a dwell keep the notice while a tool is busy; a refused Enter sets
     /// `(i64::MIN, i64::MIN)`, which no pointer move matches.
@@ -275,6 +278,7 @@ impl ToolHost {
             junction_editor: None,
             notice: None,
             notice_sticky: false,
+            refused_by: None,
             notice_at: None,
             notice_basis: None,
             pasted: false,
