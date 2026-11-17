@@ -192,12 +192,12 @@ fn the_pane_lists_the_findings_and_enter_opens_ef08() {
         .map(str::to_owned)
         .unwrap();
     assert!(row.starts_with("  row level 3 finding \""), "{row}");
-    assert!(row.contains(" badge \"error\""), "{row}");
+    assert!(row.contains(" badge \"warning\""), "{row}");
     assert!(row.ends_with(" cursor"), "{row}");
     assert_eq!(
         line(&shell, "  detail rule "),
         format!(
-            "  detail rule \"EW-CORE-033\" title \"{}\" kind completeness severity error",
+            "  detail rule \"EW-CORE-033\" title \"{}\" kind completeness severity warning",
             ef08_title()
         )
     );

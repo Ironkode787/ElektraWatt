@@ -187,7 +187,7 @@ fn golden_a_lists_its_24_open_items() {
     want.push(row([
         "Missing length",
         "=P01+J-E-2416-3W1",
-        "=P01+J-E-2416-3W1 has no routed, manual or part length",
+        "=P01+J-E-2416-3W1 has no length yet: type it in its Properties, or route the cable in the layout",
         "EW-CORE-033",
         "error",
         "",

@@ -167,9 +167,9 @@ rule-ew-core-032 = ader { $core } { $form ->
     .title = Ader wijkt af van het artikel
     .hint = Gebruik de ader zoals het kabelartikel haar definieert, of kies het artikel dat deze ader heeft.
 
-rule-ew-core-033 = { WORD($cable) } heeft geen gerouteerde, handmatige of artikellengte
+rule-ew-core-033 = { WORD($cable) } heeft nog geen lengte: typ die in de eigenschappen, of routeer de kabel in de layout
     .title = Kabel zonder lengte
-    .hint = Voer een handmatige lengte in, routeer de kabel in de layout of wijs een artikel met een vaste lengte toe.
+    .hint = Typ de lengte in de eigenschappen van de kabel, routeer de kabel in de layout of kies een kabelartikel met een vaste lengte. Alleen in de controle voor oplevering is het een fout.
 
 rule-ew-core-034 = de externe verbinding { $connection } heeft geen kabel: { $count ->
         [one] draad { $wires } is

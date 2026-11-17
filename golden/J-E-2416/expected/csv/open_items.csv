@@ -22,4 +22,4 @@ data,Unplaced device,=P01+J-E-2416-F55,=P01+J-E-2416-F55 is not placed in the la
 data,Unplaced device,=P01+J-E-2416-S56,=P01+J-E-2416-S56 is not placed in the layout of +J-E-2416; place it on a rail or on the mounting plate,EW-LAY-001,error,
 data,Unconnected connection point,-102F2:13,-102F2:13 is not connected; connect it or mark it unused,EW-POT-009,warning,102
 data,Unconnected connection point,-102F2:14,-102F2:14 is not connected; connect it or mark it unused,EW-POT-009,warning,102
-data,Missing length,=P01+J-E-2416-3W1,"=P01+J-E-2416-3W1 has no routed, manual or part length",EW-CORE-033,error,
+data,Missing length,=P01+J-E-2416-3W1,"=P01+J-E-2416-3W1 has no length yet: type it in its Properties, or route the cable in the layout",EW-CORE-033,error,

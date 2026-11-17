@@ -58,7 +58,7 @@ pre-delivery: 42 errors, 58 warnings, 31 infos, 0 waived
 The first lines are the findings, for example:
 
 ```text
-error EW-CORE-033 003033 =P01+J-E-2416-3W1: =P01+J-E-2416-3W1 has no routed, manual or part length
+error EW-CORE-033 003033 =P01+J-E-2416-3W1: =P01+J-E-2416-3W1 has no length yet: type it in its Properties, or route the cable in the layout
 ```
 
 Each line gives the severity, the rule ID, the rule's six-digit code, the thing the finding is about and a message. The

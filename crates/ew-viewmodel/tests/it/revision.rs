@@ -865,7 +865,7 @@ fn the_revision_dialogs_list_the_findings_in_dutch() {
     done(&mut s, "revision.release", json!({}));
     let release = s.revision_list().to_vec();
     let first = [
-        "=P01+J-E-2416-3W1 heeft geen gerouteerde, handmatige of artikellengte",
+        "=P01+J-E-2416-3W1 heeft nog geen lengte: typ die in de eigenschappen, of routeer de kabel in de layout",
         "101.8: PE-draad 101.8 heeft 1,5 mm², minder dan de 2,5 mm² die nodig is voor de lijngeleiders van 2,5 mm² bij \
          1X1 (de dimensioneringstabel is niet getoetst aan de norm)",
     ];

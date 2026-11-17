@@ -31,7 +31,8 @@ fn core033_cases() {
             Case::reports("a cable without length", cable(None).build(), |c, f| {
                 assert_eq!(f.len(), 1, "case {c}: {f:#?}");
                 assert_eq!(f[0].code, "003033", "case {c}");
-                assert_eq!(f[0].severity, Severity::Error, "case {c}");
+                // A warning while the drawing grows (rc.3: a new cable started as an error).
+                assert_eq!(f[0].severity, Severity::Warning, "case {c}");
                 assert_eq!(f[0].discriminator, "", "case {c}");
                 assert_eq!(f[0].targets.len(), 1, "case {c}");
                 assert_eq!(
@@ -40,7 +41,7 @@ fn core033_cases() {
                     "case {c}"
                 );
                 assert!(
-                    f[0].message.ends_with("has no routed, manual or part length"),
+                    f[0].message.ends_with("has no length yet: type it in its Properties, or route the cable in the layout"),
                     "case {c}: {}",
                     f[0].message
                 );
@@ -49,6 +50,12 @@ fn core033_cases() {
             Case::silent("a cable with a part length", cable(Some("from_part")).build()),
             Case::silent("a model without cables", no_cables.build()),
         ],
+    );
+    // The check for delivery holds it an error.
+    let release = release_findings_of(&cable(None).build(), "EW-CORE-033");
+    assert_eq!(
+        release.iter().map(|f| f.severity).collect::<Vec<_>>(),
+        [Severity::Error]
     );
 }
 

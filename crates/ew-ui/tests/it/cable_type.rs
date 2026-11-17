@@ -145,7 +145,7 @@ fn a_new_part_of_kind_cable_has_the_cable_section() {
     d.shell_mut().shutdown();
 }
 
-/// G8: a cable made with a size typed has no part: its finding offers Choose a cable type…, whose part dialog lists the
+/// G8, G6: a cable made with a size typed has no part: its finding offers Choose a cable type…, whose part dialog lists the
 /// cable parts that fit first and the others after them, greyed, each saying why (here: no green-yellow core for the PE
 /// wire).
 #[test]
@@ -190,5 +190,22 @@ fn a_cable_without_a_part_offers_its_cable_types_the_misfits_greyed() {
         }
         other => panic!("no part dialog: {other:?}"),
     }
+    // G6: the cable has no length yet, a warning (not an error) whose offer opens its Length row to type it.
+    d.input(&key("escape"));
+    shown(&mut d);
+    let row = d
+        .shell_mut()
+        .nav(NavKind::Messages)
+        .and_then(|n| n.table())
+        .and_then(|t| t.nodes.iter().find(|n| n.cells.get(1).is_some_and(|c| c == "EW-CORE-033")).cloned())
+        .expect("the cable has no length");
+    assert_eq!(row.cells[0], "warning");
+    let offer = d.shell_mut().finding_offer(&row.key).expect("an offer");
+    assert_eq!(offer.label, "Type the length…");
+    assert_eq!(d.shell_mut().dispatch(offer.id, &offer.params), Outcome::Done);
+    assert_eq!(
+        d.shell_mut().properties().edit().map(|e| e.row.as_str()),
+        Some("device/cable.length")
+    );
     d.shell_mut().shutdown();
 }

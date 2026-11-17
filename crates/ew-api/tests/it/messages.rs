@@ -3,7 +3,8 @@
 
 //! The message panel's provider on Golden A (the `ew-api` half of acceptance check MS1): the finding
 //! rows equal `Session::check(online_scheme, Online)`'s findings in order, each under its severity and its rule; EF-08
-//! (EW-CORE-033 on -3W1) is an error row that opens the page of -3W1's first drawable with it selected; the keys are
+//! (EW-CORE-033 on -3W1) is a warning row (an error only for delivery, rc.3) that opens the page of -3W1's first
+//! drawable with it selected; the keys are
 //! stable across a revision that changes no finding; the online scheme is `drafting` while the project names none.
 
 use std::collections::BTreeSet;
@@ -159,15 +160,15 @@ fn the_rows_are_the_online_findings_under_their_severity_and_rule() {
 }
 
 #[test]
-fn ef08_is_an_error_row_that_opens_the_cable_on_its_page() {
+fn ef08_is_a_warning_row_that_opens_the_cable_on_its_page() {
     let s = golden();
     let t = s.navigator_table(NavKind::Messages);
     let row = findings(&t)
         .into_iter()
         .find(|n| n.cells[1] == "EW-CORE-033" && n.cells[3].ends_with("-3W1"))
         .expect("EF-08: EW-CORE-033 on -3W1");
-    assert!(row.key.starts_with("severity:error/rule:EW-CORE-033/finding:"));
-    assert_eq!(row.badges[0], "error");
+    assert!(row.key.starts_with("severity:warning/rule:EW-CORE-033/finding:"));
+    assert_eq!(row.badges[0], "warning");
     assert!(row.label.starts_with(&row.cells[3]), "{}", row.label);
     assert!(
         row.facets

@@ -16,7 +16,9 @@ use crate::finding::{Finding, Fingerprint, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};
 use crate::rules::term::full_tag;
 
-/// EW-CORE-033 "Cable without length" (doc 15 §4.2): completeness, o r, error, cable.
+/// EW-CORE-033 "Cable without length" (doc 15 §4.2): completeness, o r, warning (release: error), cable. A new cable
+/// has no length yet; that is an error only in the check for delivery (rc.3: it was an error from the moment a cable
+/// was made).
 pub const CABLE_WITHOUT_LENGTH: RuleMeta = RuleMeta {
     id: "EW-CORE-033",
     code: "003033",
@@ -24,8 +26,8 @@ pub const CABLE_WITHOUT_LENGTH: RuleMeta = RuleMeta {
     title: "Cable without length",
     kind: RuleKind::Completeness,
     modes: Modes::letters("or"),
-    severity: Severity::Error,
-    release_severity: None,
+    severity: Severity::Warning,
+    release_severity: Some(Severity::Error),
     scope: ScopeKind::Cable,
     supersedes: &[],
     release: Release::Mvp,
@@ -61,7 +63,7 @@ impl Rule for CableWithoutLength {
                 [Target::new(Kind::Device, cable)],
                 "",
                 tag.clone(),
-                format!("{tag} has no routed, manual or part length"),
+                format!("{tag} has no length yet: type it in its Properties, or route the cable in the layout"),
             )
             .arg("cable", tag),
         ]

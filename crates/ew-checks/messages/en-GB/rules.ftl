@@ -165,9 +165,9 @@ rule-ew-core-032 = core { $core } { $form ->
     .title = Core differs from the part
     .hint = Use the core as the cable part defines it, or choose the part that has this core.
 
-rule-ew-core-033 = { $cable } has no routed, manual or part length
+rule-ew-core-033 = { $cable } has no length yet: type it in its Properties, or route the cable in the layout
     .title = Cable without length
-    .hint = Enter a manual length, route the cable in the layout, or assign a part with a fixed length.
+    .hint = Type the length in the cable's Properties, route the cable in the layout, or choose a cable part with a fixed length. It is an error only in the check for delivery.
 
 rule-ew-core-034 = the external connection { $connection } has no cable: { $count ->
         [one] wire { $wires } is

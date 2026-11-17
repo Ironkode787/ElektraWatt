@@ -467,7 +467,7 @@ fn the_messages_rows_and_the_chip_read_in_dutch() {
     assert!(!rows.is_empty());
     assert_eq!(rows, expected);
     // One row as the Dutch reader sees it.
-    let cable = "=P01+J-E-2416-3W1 heeft geen gerouteerde, handmatige of artikellengte";
+    let cable = "=P01+J-E-2416-3W1 heeft nog geen lengte: typ die in de eigenschappen, of routeer de kabel in de layout";
     assert_eq!(rows.iter().filter(|r| *r == cable).count(), 1, "{rows:?}");
     // A message that names its subject after a word shows it once.
     let pe = "PE-draad 101.8 heeft 1,5 mm², minder dan de 2,5 mm² die nodig is voor de lijngeleiders van 2,5 mm² bij 1X1 \
