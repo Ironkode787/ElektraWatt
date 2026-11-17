@@ -7150,7 +7150,6 @@ wizard-kept-script = niet in het sjabloon: alleen een mens stelt het in, in het 
 wizard-example-check-level = { $p0 }: { $p1 }
 check-level-title = Controleniveau
 check-level-purpose = Voordat tekeningen de deur uitgaan, controleert het programma ze. Het controleniveau zegt hoe streng die controle is.
-check-level-drafting = Elke controle, dezelfde die u tijdens het tekenen ziet: even streng als Volledig.
 check-level-pre-delivery = Wat goed moet zijn voordat tekeningen de deur uitgaan, zoals een onderbrekingspunt zonder zijn partner op een andere pagina. Een paar netheidscontroles vallen weg, zoals een structuurcode met een scheidingsteken erin.
 check-level-full = Elke controle, ook de netheidscontroles, zoals een structuurcode met een scheidingsteken erin (=P.01).
 banner-check-level-set = Het controleniveau is nu "{ $p0 }".

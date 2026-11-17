@@ -7412,7 +7412,6 @@ wizard-kept-script = not in the template: only a person sets it, in the window
 wizard-example-check-level = { $p0 }: { $p1 }
 check-level-title = Check level
 check-level-purpose = Before drawings go out, the program checks them. The check level says how strict that check is.
-check-level-drafting = Every check, the same ones you see while you draw: as strict as Full.
 check-level-pre-delivery = What must be right before drawings go out, such as an interruption point without its partner on another page. A few tidiness checks are left out, such as a structure code with a separator in it.
 check-level-full = Every check, the tidiness checks too, such as a structure code with a separator in it (=P.01).
 banner-check-level-set = The check level is now "{ $p0 }".

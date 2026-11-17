@@ -30,8 +30,10 @@ use crate::key;
 use crate::settings::TemplateEntry;
 use crate::strings;
 
-/// The check levels a person chooses (the wizard's step and Check level…), from the least strict.
-pub const CHECK_LEVELS: [&str; 3] = ["drafting", "pre-delivery", "full"];
+/// The check levels a person chooses (the wizard's step and Check level…), from the least strict: only levels that
+/// check differently. `drafting`, the message panel's scheme, switches nothing off and so checks as `full` does; a
+/// project that names it keeps it, and Check level… shows it as Full.
+pub const CHECK_LEVELS: [&str; 2] = ["pre-delivery", "full"];
 
 /// The check level drawings are checked at before they go out when the project names none.
 pub const DEFAULT_CHECK_LEVEL: &str = "pre-delivery";
@@ -41,6 +43,17 @@ pub fn level_words(level: &str) -> String {
     strings::lookup(&format!("choice-check_scheme-{level}"))
         .unwrap_or(level)
         .to_owned()
+}
+
+/// The offered level ([`CHECK_LEVELS`]) a project's level shows as: itself, else the offered level whose scheme
+/// switches off the same rules (an older project's `drafting` shows as `full`), else the default.
+fn offered_level(level: &str) -> &'static str {
+    let off = |name: &str| ew_api::checks::scheme(name).map(|s| s.off);
+    CHECK_LEVELS
+        .iter()
+        .find(|l| **l == level || off(level).is_some_and(|o| off(l) == Some(o)))
+        .copied()
+        .unwrap_or(DEFAULT_CHECK_LEVEL)
 }
 
 /// What a check level stops, in one sentence (`check-level-<level>`); `None` for a level this build does not know.
@@ -766,7 +779,7 @@ impl ShellModel {
                             .iter()
                             .map(|l| ((*l).to_owned(), level_words(l)))
                             .collect(),
-                        value: release.unwrap_or_else(|| DEFAULT_CHECK_LEVEL.to_owned()),
+                        value: offered_level(release.as_deref().unwrap_or(DEFAULT_CHECK_LEVEL)).to_owned(),
                     }],
                     error: None,
                     table: None,
@@ -790,5 +803,28 @@ impl ShellModel {
             ));
         }
         self.form_done(CHECK_LEVEL, out)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Every level the window offers checks differently from the others (Drafting and Full checked the same), and a
+    /// project that names a level no longer offered shows as the one that checks as it does.
+    #[test]
+    fn the_offered_check_levels_check_differently() {
+        let off: Vec<_> = CHECK_LEVELS
+            .iter()
+            .map(|l| ew_api::checks::scheme(l).expect("a shipped scheme").off)
+            .collect();
+        for (i, a) in off.iter().enumerate() {
+            for (b, level) in off.iter().zip(CHECK_LEVELS).skip(i + 1) {
+                assert_ne!(a, b, "{} and {level} check the same", CHECK_LEVELS[i]);
+            }
+        }
+        assert_eq!(offered_level("drafting"), "full");
+        assert_eq!(offered_level("pre-delivery"), "pre-delivery");
+        assert_eq!(offered_level("strict-2031"), DEFAULT_CHECK_LEVEL);
     }
 }

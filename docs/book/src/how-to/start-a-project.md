@@ -120,10 +120,12 @@ Properties of a text or a device also say which style it prints in, with **Chang
 
 Before drawings go out, the program checks them. The check level says how strict that check is:
 
-- **Drafting**: every check, the same ones you see while you draw: as strict as **Full**.
 - **Pre-delivery**: what must be right before drawings go out, such as an interruption point without its partner on
   another page. A few tidiness checks are left out, such as a structure code with a separator in it.
 - **Full**: every check, the tidiness checks too.
+
+While you draw, the Messages panel shows every check whatever the level. A project made with an earlier version may
+have the level **Drafting**: it keeps working and checks as **Full** does, and **Check level…** shows it as Full.
 
 The wizard's step **Reports and checks** sets it for a template, and **Create the template…** writes it. In a project
 (or an open template), **Check level…** in the Project tab under **Setup** changes it. Only a person sets the check
