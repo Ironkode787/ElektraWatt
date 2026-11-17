@@ -6935,6 +6935,7 @@ symbol-start-box-new-line = Geef het een naam en een fabrikant, voeg de pennen t
 symbol-start-box-filter = Zoek een artikel op nummer of omschrijving
 symbol-start-box-none = Nog geen artikel van het project of van een bibliotheek wordt als kast getekend. Begin met een nieuw artikel.
 symbol-start-box-elsewhere = Een PLC-kaart of een busapparaat staat hier niet: zijn pennen komen van zijn kanalen of zijn poorten. Wijzig die in de artikeleditor.
+symbol-start-box-no-match = Geen artikel dat als kast wordt getekend komt overeen. Een PLC-kaart of een busapparaat staat hier niet: zijn pennen komen van zijn kanalen of zijn poorten.
 box-copy-new = Een eigen kopie van { $p0 }: het origineel blijft zoals het is. Opslaan bewaart de kopie in uw eigen bibliotheek.
 box-copy-fork = { $p0 } kunt u niet wijzigen: Opslaan maakt een eigen kopie in dit project, en de apparaten van dit artikel nemen die over.
 symbol-start-box-no-project = Open eerst een project: een artikel hoort bij een project.

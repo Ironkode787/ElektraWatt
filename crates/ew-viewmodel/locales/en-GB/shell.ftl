@@ -7197,6 +7197,7 @@ symbol-start-box-new-line = Name it and its manufacturer, add its pins, save.
 symbol-start-box-filter = Find a part by its number or description
 symbol-start-box-none = No part of the project or of a library is drawn as a box yet. Start with a new part.
 symbol-start-box-elsewhere = A PLC card or a bus device is not listed: its pins come from its channels or its ports. Change those in the part editor.
+symbol-start-box-no-match = No part drawn as a box matches. A PLC card or a bus device is not listed: its pins come from its channels or its ports.
 box-copy-new = A copy of your own of { $p0 }: the original stays as it is. Save keeps the copy in your own library.
 box-copy-fork = { $p0 } cannot be changed: Save makes a copy of your own in this project, and the devices of this part take it.
 symbol-start-box-no-project = Open a project first: a part belongs to a project.

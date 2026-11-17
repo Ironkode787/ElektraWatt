@@ -994,7 +994,9 @@ impl EditorView {
         events: &mut Vec<Event>,
     ) {
         let t = theme::current(ui.ctx());
-        let width = t.size_dialog_form.min(full.width() - 2.0 * t.space_6);
+        // A third of a wide window: the lists of parts and symbols use the room of 2560 points (rc.3).
+        let width = crate::dialog::grown(t.size_dialog_form, 1.0 / 3.0, full.width())
+            .min(full.width() - 2.0 * t.space_6);
         let card = Rect::from_min_size(
             Pos2::new(full.center().x - width / 2.0, full.top() + t.space_7),
             Vec2::new(width, full.height() - 2.0 * t.space_7),
@@ -1149,11 +1151,15 @@ impl EditorView {
             action(events, "part.box", json!({ "new": true }));
         }
         ui.add_space(t.space_2);
-        components::filter_field(
+        // Typed at once, as the symbols' list is.
+        let filter = components::filter_field(
             ui,
             &mut self.source_filter,
             label(key!("symbol-start-box-filter")),
         );
+        if !filter.has_focus() && self.source_filter.is_empty() && ui.memory(|m| m.focused().is_none()) {
+            filter.request_focus();
+        }
         let wanted = self.source_filter.to_lowercase();
         let parts = shell.box_parts();
         let rows: Vec<_> = parts
@@ -1165,6 +1171,8 @@ impl EditorView {
         // Why a part is missing, above the list, which takes the card's height.
         let note = if parts.is_empty() {
             key!("symbol-start-box-none")
+        } else if rows.is_empty() {
+            key!("symbol-start-box-no-match")
         } else {
             key!("symbol-start-box-elsewhere")
         };

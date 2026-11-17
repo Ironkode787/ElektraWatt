@@ -88,12 +88,9 @@ pub(super) fn list_row_sensing(
     crate::command_bar::state_overlay(ui, &t, &response, true, t.radius_sm);
     components::focus_ring(ui, &response, t.radius_sm);
     let left = rect.left() + t.size_tree_indent + t.space_2;
-    let detail_galley = painter.layout_no_wrap(
-        detail.to_owned(),
-        theme::font(&t.type_small),
-        t.text_secondary.color32(),
-    );
-    let room = rect.right() - t.space_3 - left - detail_galley.size().x - t.space_3;
+    // The name is what the row is: it takes its width first (up to most of the row), the detail gives way to it
+    // (rc.3: a part's number was cut for its description).
+    let width = rect.right() - t.space_3 - left;
     let mut job = egui::text::LayoutJob::simple_singleline(
         name.to_owned(),
         theme::font(&t.type_body),
@@ -103,9 +100,17 @@ pub(super) fn list_row_sensing(
             t.text_primary.color32()
         },
     );
-    job.wrap = egui::text::TextWrapping::truncate_at_width(room.max(t.size_row));
+    job.wrap = egui::text::TextWrapping::truncate_at_width((width * 0.6).max(t.size_row));
     let galley = painter.layout_job(job);
-    let cut = galley.elided;
+    let mut detail_job = egui::text::LayoutJob::simple_singleline(
+        detail.to_owned(),
+        theme::font(&t.type_small),
+        t.text_secondary.color32(),
+    );
+    detail_job.wrap =
+        egui::text::TextWrapping::truncate_at_width((width - galley.size().x - t.space_3).max(t.size_row));
+    let detail_galley = painter.layout_job(detail_job);
+    let cut = galley.elided || detail_galley.elided;
     painter.galley(
         egui::pos2(left, rect.center().y - galley.size().y / 2.0),
         galley,
@@ -119,7 +124,11 @@ pub(super) fn list_row_sensing(
         detail_galley,
         t.text_secondary.color32(),
     );
-    if cut { response.tip(name) } else { response }
+    if cut {
+        response.tip(format!("{name} \u{b7} {detail}"))
+    } else {
+        response
+    }
 }
 
 /// A sentence of the To do list: a warning mark and the text, wrapped; a click goes to the thing it is about.
