@@ -1152,7 +1152,7 @@ fix-mark-cp-unused = Mark not used
 fix-plc-take-out = Take it out of the rack
 fix-plc-bind-pins = Bind the channels to their pins
 fix-blank-position = Blanking plate on position { $position }
-fix-draw-valves = Draw its valves in the terminal
+fix-draw-valves = Draw its valves in the valve terminal
 
 # The words a rule prints where a record has no name of its own (FT-912): a pattern of another language wraps an
 # argument that may hold them in WORD(…), which prints that language's message of the same ID instead.

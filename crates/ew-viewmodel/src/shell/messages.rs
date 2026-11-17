@@ -1034,6 +1034,18 @@ pub(crate) fn check_tone(c: MessageCounts) -> NoteTone {
     }
 }
 
+/// A quick fix's parameters with the library documents its command draws with (rc.3): EW-CORE-047's Draw its valves in
+/// the terminal takes the symbols of the terminal's valves and its supply
+/// ([`super::automation::draw_valves_params`]); any other fix's are the rule's.
+fn fix_params(session: &ew_api::Session, fix: &ew_api::checks::QuickFix) -> Value {
+    match fix.params["terminal"].as_str().and_then(|t| t.parse().ok()) {
+        Some(terminal) if fix.command == "valve_terminal.draw_valves" => {
+            super::automation::draw_valves_params(session, terminal)
+        }
+        _ => fix.params.clone(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1203,17 +1215,5 @@ mod tests {
         assert_eq!(toast(&shell), check_summary(c, None), "another table: no since");
         shell.shutdown();
         let _ = std::fs::remove_dir_all(&base);
-    }
-}
-
-/// A quick fix's parameters with the library documents its command draws with (rc.3): EW-CORE-047's Draw its valves in
-/// the terminal takes the symbols of the terminal's valves and its supply
-/// ([`super::automation::draw_valves_params`]); any other fix's are the rule's.
-fn fix_params(session: &ew_api::Session, fix: &ew_api::checks::QuickFix) -> Value {
-    match fix.params["terminal"].as_str().and_then(|t| t.parse().ok()) {
-        Some(terminal) if fix.command == "valve_terminal.draw_valves" => {
-            super::automation::draw_valves_params(session, terminal)
-        }
-        _ => fix.params.clone(),
     }
 }

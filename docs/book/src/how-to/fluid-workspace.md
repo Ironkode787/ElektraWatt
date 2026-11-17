@@ -97,7 +97,7 @@ station on PROFIBUS DP", "Valve terminal · multipin, wired"):
    cell's top edge: draw the tubes to the cylinder from there. A valve put on a position in the terminal's rack or the
    PLC list stands in its cell the same way; a valve without a symbol that fits a cell is not offered, with the reason.
    A valve drawn on another page stays there, and its cell names the place, a link to it. In a project made before
-   that shows valves only by their tags, right-click the terminal and choose **Draw its valves in the terminal**.
+   that shows valves only by their tags, right-click the terminal and choose **Draw its valves in the valve terminal**.
 3. Right-click a held cell for **Replace at position 2…**, **Empty position 2** and **Blanking plate at position 2**
    (an empty cell's device browser lists **Blanking plate** first; the check's warning on an empty position offers it
    as its fix, and **Fix all** blanks every empty position at once);

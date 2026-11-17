@@ -146,7 +146,7 @@ impl Rule for DeviceNotInSchematic {
         // A valve on a valve terminal drawn as its positions (rc.3): Draw its valves in the terminal.
         let finding = match drawn_terminal_of(q, device) {
             Some(terminal) => finding.with_fix(QuickFix {
-                label: "Draw its valves in the terminal".to_owned(),
+                label: "Draw its valves in the valve terminal".to_owned(),
                 key: Some("fix-draw-valves"),
                 command: "valve_terminal.draw_valves".to_owned(),
                 params: serde_json::json!({ "terminal": terminal.to_string() }),
