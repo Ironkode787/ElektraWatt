@@ -1058,45 +1058,6 @@ fn cp6_the_fixture_dialogs_in_light() {
             WINDOW,
         );
         h.ctx.all_styles_mut(|s| s.visuals.text_cursor.blink = false);
-        let basic = tmp.0.join("company.ew");
-        assert_eq!(
-            h.state_mut()
-                .shell_mut()
-                .dispatch("tools.company_standard", &json!({})),
-            Outcome::Done
-        );
-        // The wizard's preview arrives from its worker: on show before the dialog opens over it.
-        support::wait_for_preview(&mut h);
-        for (action, params) in [
-            ("wizard.set", json!({"field": "check_scheme", "value": "full"})),
-            ("wizard.finish", json!({ "dir": basic.to_string_lossy() })),
-            ("wizard.apply_check_scheme", json!({})),
-        ] {
-            assert_eq!(
-                h.state_mut().shell_mut().dispatch(action, &params),
-                Outcome::Done,
-                "{action}"
-            );
-        }
-        assert_eq!(
-            h.state().shell().dialog(),
-            Some(&Dialog::ConfirmCheckScheme {
-                scheme: "full".into()
-            })
-        );
-        failures.extend(shoot_dialog(
-            &dev,
-            &mut h,
-            &recorder,
-            &format!("cp6-dialog-check-scheme-{theme}"),
-        ));
-        let _ = h.state_mut().shell_mut().dispatch("ui.dismiss", &json!(null));
-        let _ = h.state_mut().shell_mut().dispatch("wizard.cancel", &json!({}));
-        h.run_ok();
-        h.state_mut().shell_mut().shutdown();
-        drop(h);
-        drop(tmp);
-
         // The purge question: the first logo is unused once the project is re-opened (the undo history named it).
         let tmp = Tmp::new();
         let dir = tmp.golden("g.ew");

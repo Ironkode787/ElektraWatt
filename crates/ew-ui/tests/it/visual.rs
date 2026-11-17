@@ -507,8 +507,14 @@ fn dialogs_are_answered_and_an_export_ends_within_its_input() {
     let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
     d.enable_accesskit();
     d.settle();
-    // New project: the system's dialog is answered with `project`.
+    // New project: its dialog, named `project` in the run's folder, and Enter.
     d.input(&key("ctrl+n"));
+    d.shell_mut().dispatch(
+        "new_project.set",
+        &json!({"name": "project", "folder": tmp.0.to_string_lossy()}),
+    );
+    d.settle();
+    d.input(&key("enter"));
     let s = state(&mut d);
     assert_eq!(s["project"], "project", "{s}");
     assert!(tmp.0.join("project").is_dir());
@@ -1003,7 +1009,8 @@ fn the_wizard_shows_each_steps_result_by_clicks_and_keys_and_creates_the_standar
     // The window's widgets by their names; the step's texts (its Result) as `ui.describe` lists them.
     let shows = |d: &Driver, text: &str| d.labels().iter().any(|(l, _)| l.contains(text));
     let result = |d: &mut Driver, text: &str| d.shell_mut().describe().contains(&format!("example \"{text}"));
-    press(&mut d, "Create company standard");
+    press(&mut d, "Templates…");
+    press(&mut d, "New template…");
     assert!(d.shell_mut().wizard().is_some());
     assert!(shows(&d, "1. Company") && shows(&d, "10. Review and create"));
     assert!(result(&mut d, "Company: -"));
@@ -1064,13 +1071,14 @@ fn the_wizard_shows_each_steps_result_by_clicks_and_keys_and_creates_the_standar
     // The steps passed are done; the review creates the standard in a new folder.
     press(&mut d, "Next");
     assert!(d.shell_mut().wizard().unwrap().is_done(Step::Reports));
-    press(&mut d, "Create the basic project…");
+    press(&mut d, "Create the template…");
     let project = std::fs::read_to_string(tmp.0.join("project").join("project.jsonl")).unwrap();
     assert!(
         project.contains("Example Panels") && project.contains("ew.en60204-1-machine"),
         "{project}"
     );
-    assert!(shows(&d, "Apply the check level"), "{:?}", d.labels());
+    // The check level is in the template: Create in the window writes it (G2 of the rc.2 test).
+    assert!(project.contains("\"release_scheme\""), "{project}");
     d.shell_mut().shutdown();
 }
 

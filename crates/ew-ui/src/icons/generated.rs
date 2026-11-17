@@ -9,7 +9,7 @@
 use super::Seg::{self, C, L, M, Q, Z};
 
 /// The number of icons in the table.
-pub const COUNT: usize = 141;
+pub const COUNT: usize = 142;
 
 /// One icon of the table, named by its key in `snake_case` (`ew_` for the project's own glyphs).
 #[allow(non_camel_case_types, missing_docs)]
@@ -83,6 +83,7 @@ pub enum IconId {
     file_plus,
     file_settings,
     file_spreadsheet,
+    file_stack,
     file_type_pdf,
     files,
     filter,
@@ -229,6 +230,7 @@ impl IconId {
         IconId::file_plus,
         IconId::file_settings,
         IconId::file_spreadsheet,
+        IconId::file_stack,
         IconId::file_type_pdf,
         IconId::files,
         IconId::filter,
@@ -375,6 +377,7 @@ pub const KEYS: [&str; COUNT] = [
     "file-plus",
     "file-settings",
     "file-spreadsheet",
+    "file-stack",
     "file-type-pdf",
     "files",
     "filter",
@@ -1572,6 +1575,25 @@ pub(super) static PATHS: [&[Seg]; COUNT] = [
         L(16.0, 15.0),
         M(11.0, 11.0),
         L(11.0, 18.0),
+    ],
+    // file-stack
+    &[
+        M(14.0, 3.0),
+        L(14.0, 7.0),
+        C(14.0, 7.552, 14.448, 8.0, 15.0, 8.0),
+        L(19.0, 8.0),
+        M(5.0, 12.0),
+        L(5.0, 5.0),
+        C(5.0, 3.895, 5.895, 3.0, 7.0, 3.0),
+        L(14.0, 3.0),
+        L(19.0, 8.0),
+        L(19.0, 12.0),
+        M(5.0, 21.0),
+        L(19.0, 21.0),
+        M(5.0, 18.0),
+        L(19.0, 18.0),
+        M(5.0, 15.0),
+        L(19.0, 15.0),
     ],
     // file-type-pdf
     &[

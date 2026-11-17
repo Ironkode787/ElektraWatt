@@ -104,17 +104,22 @@ fn first_run(scale: f32) {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// The new-project flow of `shell_frame.rs`: the start page's New project, the folder dialog, the built-in page.
+/// The new-project flow of `shell_frame.rs`: the start page's New project, its dialog, the built-in page.
 fn new_project(scale: f32) {
     let tmp = Tmp::new();
-    let dir = tmp.0.join("first.ew");
-    let platform = Scripted::default();
-    platform.answers.borrow_mut().push_back(Pick::Path(dir));
     let shell = ShellModel::new(Mode::Gui, tmp.config_with_resources());
-    let mut h = harness_with(shell, platform, None);
+    let mut h = harness_with(shell, Scripted::default(), None);
     settle(&mut h);
     dutch_at(&mut h, scale);
     h.get_by_label(strings::text(key!("start-new"))).click();
+    step(&mut h);
+    // The New project dialog: the name and the folder, then Create.
+    h.state_mut().shell_mut().dispatch(
+        "new_project.set",
+        &serde_json::json!({"name": "first.ew", "folder": tmp.0.to_string_lossy()}),
+    );
+    step(&mut h);
+    h.get_by_label(strings::text(key!("dialog-create"))).click();
     step(&mut h);
     assert_eq!(h.state().shell().project_name(), Some("first.ew"));
     wait_for_page(&mut h);

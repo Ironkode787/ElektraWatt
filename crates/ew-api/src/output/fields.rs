@@ -660,31 +660,31 @@ const OTHER_COMMANDS: &[(&str, &str, &str, Option<&str>)] = &[
         "project",
         "settings.checks",
         "project.checks.set",
-        Some("the company-standard wizard's check-scheme step"),
+        Some("Check level… (Project ▸ Setup)"),
     ),
     (
         "project",
         "[ew.company]",
         "project.company.set",
-        Some("the company-standard wizard"),
+        Some("the template wizard (Project ▸ New template…)"),
     ),
     (
         "project",
         "settings.frames",
         "project.frames.set",
-        Some("the company-standard wizard"),
+        Some("the template wizard (Project ▸ New template…)"),
     ),
     (
         "project",
         "languages",
         "project.languages.set",
-        Some("the company-standard wizard"),
+        Some("the template wizard (Project ▸ New template…)"),
     ),
     (
         "project",
         "settings.formatting",
         "project.languages.set",
-        Some("the company-standard wizard"),
+        Some("the template wizard (Project ▸ New template…)"),
     ),
     // No menu edits the crossings setting yet (doc 16 §3.2: the Project menu's "Drawing" item needs that menu first), so
     // the reason names the command (note).

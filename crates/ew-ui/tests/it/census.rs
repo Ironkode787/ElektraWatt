@@ -268,7 +268,8 @@ enum DialogKind {
     GotoPage,
     Notices,
     ConfirmJournalDiscard,
-    ConfirmCheckScheme,
+    NewProject,
+    Templates,
     SaveWorkspace,
     Form,
     Recovery,
@@ -300,8 +301,9 @@ impl DialogKind {
             Self::ConfirmDiscard => Self::GotoPage,
             Self::GotoPage => Self::Notices,
             Self::Notices => Self::ConfirmJournalDiscard,
-            Self::ConfirmJournalDiscard => Self::ConfirmCheckScheme,
-            Self::ConfirmCheckScheme => Self::SaveWorkspace,
+            Self::ConfirmJournalDiscard => Self::NewProject,
+            Self::NewProject => Self::Templates,
+            Self::Templates => Self::SaveWorkspace,
             Self::SaveWorkspace => Self::Form,
             Self::Form => Self::Recovery,
             Self::Recovery => Self::ConfirmPurge,
@@ -338,7 +340,8 @@ fn kind(d: &Dialog) -> DialogKind {
         Dialog::GotoPage { .. } => DialogKind::GotoPage,
         Dialog::Notices => DialogKind::Notices,
         Dialog::ConfirmJournalDiscard => DialogKind::ConfirmJournalDiscard,
-        Dialog::ConfirmCheckScheme { .. } => DialogKind::ConfirmCheckScheme,
+        Dialog::NewProject(_) => DialogKind::NewProject,
+        Dialog::Templates(_) => DialogKind::Templates,
         Dialog::SaveWorkspace { .. } => DialogKind::SaveWorkspace,
         Dialog::Form(_) => DialogKind::Form,
         Dialog::Recovery { .. } => DialogKind::Recovery,
@@ -408,6 +411,8 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
         DialogKind::GotoPage => simple("nav.goto", json!({})),
         DialogKind::SaveWorkspace => simple("view.workspace_save", json!({})),
         DialogKind::Form => simple("page.new", json!({})),
+        DialogKind::NewProject => simple("file.new", json!({})),
+        DialogKind::Templates => simple("templates.open", json!({})),
         // Closing the view of a station not made yet, with its head chosen, asks.
         DialogKind::DiscardStation => {
             let mut h = simple("plc.new_station", json!({}));
@@ -465,28 +470,6 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
             h.run_ok();
             if kind == DialogKind::ConfirmJournalDiscard {
                 dispatch(&mut h, "file.discard_journal", json!({}));
-            }
-            h
-        }
-        DialogKind::ConfirmCheckScheme => {
-            let dir = tmp.golden("wizard.ew");
-            let mut shell = ShellModel::new(Mode::Gui, tmp.config_with_resources());
-            assert_eq!(
-                shell.dispatch("file.open", &json!({ "dir": dir.to_string_lossy() })),
-                Outcome::Done
-            );
-            let mut h = harness_with(shell, Scripted::default(), None);
-            h.set_size(egui::Vec2::new(1920.0, 1080.0));
-            h.run_ok();
-            dispatch(&mut h, "tools.company_standard", json!({}));
-            support::wait_for_preview(&mut h);
-            let basic = tmp.0.join("company.ew");
-            for (action, params) in [
-                ("wizard.set", json!({"field": "check_scheme", "value": "full"})),
-                ("wizard.finish", json!({ "dir": basic.to_string_lossy() })),
-                ("wizard.apply_check_scheme", json!({})),
-            ] {
-                dispatch(&mut h, action, params);
             }
             h
         }

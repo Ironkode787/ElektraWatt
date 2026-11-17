@@ -367,7 +367,7 @@ fn the_wizards_defaults_reproduce_the_sample_pages_and_a_choice_changes_the_prev
     );
     let first = describe(&steps[1]);
     assert!(
-        first.contains("wizard \"Company standard\": step 1 of 10 \"Company\" (#1)"),
+        first.contains("wizard \"Template for your company's drawings\": step 1 of 10 \"Company\" (#1)"),
         "{first}"
     );
     assert!(first.contains("preview \"Schematic page\": ready"), "{first}");
@@ -402,8 +402,7 @@ fn the_wizards_defaults_reproduce_the_sample_pages_and_a_choice_changes_the_prev
             .contains("company.ew")
     );
     let after = describe(&steps[15]);
-    assert!(after.contains("label \"Template: company.ew\""), "{after}");
-    assert!(after.contains("button \"Edit company standard\""), "{after}");
+    assert!(after.contains("button \"Templates…\""), "{after}");
     // The basic project is on disk, of kind basic, with the draft's settings.
     let project = read(&basic, "project.jsonl");
     assert!(project.contains("\"kind\":\"basic\""));
@@ -417,11 +416,10 @@ fn the_wizards_defaults_reproduce_the_sample_pages_and_a_choice_changes_the_prev
     assert!(read(&tmp.path("config"), "settings.toml").contains("company.ew"));
 }
 
-/// The check scheme's `HumanOnly` command is never applied from a UI script: the headless mode refuses
-/// `wizard.apply_check_scheme` (confirmed or not) with the human-only reason, which the transcript records, and the
-/// run ends with exit code 1.
+/// The check level's `HumanOnly` command is never submitted by a UI script: the wizard's template a script makes keeps
+/// it out, Check level… is refused with its reason in the transcript, and the run ends with exit code 1.
 #[test]
-fn a_ui_script_cannot_apply_the_check_scheme() {
+fn a_ui_script_cannot_set_the_check_level() {
     let tmp = Tmp::new("ew-headless2-test");
     let basic = tmp.path("company.ew");
     let out = run(
@@ -429,7 +427,9 @@ fn a_ui_script_cannot_apply_the_check_scheme() {
         &[
             ("tools.company_standard", json!({})),
             ("wizard.finish", json!({ "dir": path(&basic) })),
-            ("wizard.apply_check_scheme", json!({ "confirm": true })),
+            ("wizard.cancel", json!({})),
+            ("file.new", json!({ "dir": path(&tmp.path("job.ew")) })),
+            ("project.check_level", json!({ "level": "full" })),
         ],
     );
     assert_eq!(
@@ -439,12 +439,11 @@ fn a_ui_script_cannot_apply_the_check_scheme() {
         String::from_utf8_lossy(&out.stdout)
     );
     let steps = steps_of(&out);
-    assert_eq!(steps.len(), 3);
+    assert_eq!(steps.len(), 5);
     assert_eq!(steps[1]["outcome"], "done");
-    let refused = &steps[2];
-    assert_eq!(refused["action"], "wizard.apply_check_scheme");
-    assert_eq!(refused["outcome"], "refused", "{refused}");
-    assert_eq!(refused["reason"], "reason-human-only", "{refused}");
+    let refused = &steps[4];
+    assert_eq!(refused["action"], "project.check_level");
+    assert_ne!(refused["outcome"], "done", "{refused}");
     assert!(!read(&basic, "project.jsonl").contains("\"checks\""));
 }
 

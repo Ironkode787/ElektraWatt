@@ -79,16 +79,16 @@ en-GB = "Where a potential leaves one page and continues on another; pairs are f
 nl-NL = "Waar een potentiaal een pagina verlaat en op een andere doorloopt; paren worden op naam gevonden, als ster of keten."
 
 [[term]]
-ew = "Basic project"
+ew = "Template"
 eplan = ["Basic project"]
 qet = ["Template project"]
-actions = ["file.new", "tools.company_standard"]
+actions = ["file.new", "templates.open"]
 [term.labels]
-en-GB = "Basic project"
-nl-NL = "Basisproject"
+en-GB = "Template"
+nl-NL = "Sjabloon"
 [term.definition]
-en-GB = "The project a new project starts from: frames, settings and libraries; the company standard wizard writes one."
-nl-NL = "Het project waarmee een nieuw project begint: kaders, instellingen en bibliotheken; de bedrijfsstandaardwizard schrijft er een."
+en-GB = "How a new project starts: its frame and title block, check level, text styles and sections; its pages come along only when asked. New template… makes one."
+nl-NL = "Hoe een nieuw project begint: kader en titelblok, controleniveau, tekststijlen en secties; de pagina's komen alleen mee als u erom vraagt. Nieuw sjabloon… maakt er een."
 
 [[term]]
 ew = "Frame and title block"

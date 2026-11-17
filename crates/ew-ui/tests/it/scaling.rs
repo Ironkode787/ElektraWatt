@@ -82,20 +82,23 @@ fn on_golden(tmp: &Tmp, size: Size) -> Harness<'static, App> {
     h
 }
 
-/// New project: the start page's New project, the folder the system's chooser answers, the new project's page.
+/// New project: the start page's New project, its dialog, the new project's page.
 fn new_project(size: Size) {
     let tmp = Tmp::new();
-    let platform = Scripted::default();
-    platform
-        .answers
-        .borrow_mut()
-        .push_back(Pick::Path(tmp.0.join("first.ew")));
     let shell = ShellModel::new(Mode::Gui, tmp.config_with_resources());
-    let mut h = harness_with(shell, platform, None);
+    let mut h = harness_with(shell, Scripted::default(), None);
     settle(&mut h);
     apply(&mut h, size);
     step(&mut h);
     h.get_by_label(strings::text(key!("start-new"))).click();
+    step(&mut h);
+    // The New project dialog: the name and the folder, then Create.
+    h.state_mut().shell_mut().dispatch(
+        "new_project.set",
+        &serde_json::json!({"name": "first.ew", "folder": tmp.0.to_string_lossy()}),
+    );
+    step(&mut h);
+    h.get_by_label(strings::text(key!("dialog-create"))).click();
     step(&mut h);
     assert_eq!(h.state().shell().project_name(), Some("first.ew"));
     wait_for_page(&mut h);

@@ -51,11 +51,11 @@ are findings in the Messages pane. **In the window:** **Draw ▸ Connect ▸ Int
 
 ## Basic project
 
-**EW term:** [Basic project](../reference/glossary.md#basic-project)
+**EW term:** [Template](../reference/glossary.md#template)
 
-**The same:** a new project starts from a basic project that holds the company's frames, settings and structure.
-**What differs:** EW ships one basic project and the company standard wizard makes your own from it. **In the
-window:** **File ▸ New project…** and **Project ▸ Company standard wizard…**.
+**The same:** a new project starts from a template that holds the company's frames, settings and structure.
+**What differs:** a new project takes the template's pages only when you tick the box for them; the template wizard
+makes your own. **In the window:** **File ▸ New project…** and **Project ▸ New template…**.
 
 ## Form, Plot frame
 
@@ -64,7 +64,7 @@ window:** **File ▸ New project…** and **Project ▸ Company standard wizard�
 **The same:** the frame and title block print around every page, filled from the project's and the page's data.
 **What differs:** report pages and drawing pages take their frame from the project's frame settings by page type, and
 a title-block value is bound to the project, its revision or its page, not typed per page. **In the window:**
-**Project ▸ Company standard wizard…**.
+**Project ▸ New template…**.
 
 ## Message management
 

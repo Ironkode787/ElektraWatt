@@ -1456,7 +1456,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             CommandSize::Small,
             Some(key!("bar-templates")),
         ),
-        "template",
+        "file-stack",
         act(
             "templates.open",
             Command,

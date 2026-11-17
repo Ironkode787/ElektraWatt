@@ -1041,7 +1041,7 @@ impl App {
                             ui.allocate_exact_size(egui::Vec2::splat(tokens.icon_md), egui::Sense::hover());
                         crate::icons::paint(
                             ui.painter(),
-                            crate::icons::IconId::template,
+                            crate::icons::IconId::file_stack,
                             r,
                             tokens.accent.color32(),
                             tokens.icon_stroke,

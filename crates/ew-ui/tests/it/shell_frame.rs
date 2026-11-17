@@ -30,11 +30,10 @@ fn the_start_page_has_every_entry_of_doc_16_section_3_7() {
     settle(&mut h);
     for label in [
         "New project",
-        "Template: the built-in basic project",
         "Open…",
         "Open sample project",
         "Import QElectroTech project",
-        "Create company standard",
+        "Templates…",
         "Tutorials and guides",
         "Language",
         "Keymap",
@@ -45,10 +44,6 @@ fn the_start_page_has_every_entry_of_doc_16_section_3_7() {
     ] {
         assert!(h.query_by_label(label).is_some(), "{label}");
     }
-    assert!(
-        h.query_by_label("Edit company standard").is_none(),
-        "no company standard yet"
-    );
 }
 
 /// The quick switches stand centred in the page's column, as the buttons above them do, not at its left edge.
@@ -70,16 +65,23 @@ fn the_start_page_quick_switches_are_centred_in_its_column() {
 }
 
 #[test]
-fn new_project_asks_for_a_directory_and_opens_the_built_in_page() {
+fn new_project_opens_its_dialog_and_the_built_in_page() {
     let tmp = Tmp::new();
     let dir = tmp.0.join("first.ew");
     let platform = Scripted::default();
-    platform.answers.borrow_mut().push_back(Pick::Path(dir.clone()));
     let mut h = harness_with(gui_shell(&tmp), platform.clone(), None);
     settle(&mut h);
     h.get_by_label("New project").click();
     settle(&mut h);
-    assert_eq!(platform.asked.borrow().as_slice(), [Prompt::NewFolder]);
+    assert!(platform.asked.borrow().is_empty(), "the dialog asks, not a folder chooser");
+    assert!(h.query_by_label("Empty project").is_some());
+    h.state_mut().shell_mut().dispatch(
+        "new_project.set",
+        &serde_json::json!({"name": "first.ew", "folder": tmp.0.to_string_lossy()}),
+    );
+    settle(&mut h);
+    h.get_by_label("Create").click();
+    settle(&mut h);
     assert_eq!(h.state().shell().project_name(), Some("first.ew"));
     assert_eq!(h.state().shell().page_labels(), ["1"]);
     assert!(dir.join("manifest.json").is_file());
@@ -250,7 +252,9 @@ fn the_wizard_shows_a_preview_follows_a_typed_value_and_writes_the_basic_project
     platform.answers.borrow_mut().push_back(Pick::Path(basic.clone()));
     let mut h = harness_with(gui_shell(&tmp), platform.clone(), None);
     settle(&mut h);
-    h.get_by_label("Create company standard").click();
+    h.get_by_label("Templates…").click();
+    settle(&mut h);
+    h.get_by_label("New template…").click();
     settle(&mut h);
     assert!(h.state().shell().wizard().is_some());
     assert!(h.query_all_by_label("1. Company").count() >= 1);
@@ -302,15 +306,16 @@ fn the_wizard_shows_a_preview_follows_a_typed_value_and_writes_the_basic_project
     assert_eq!(h.state().shell().wizard().unwrap().preview_folio(), "1");
     wait_for_preview(&mut h);
 
-    // The review lists what is written and what stays in the draft; Create asks for the directory.
+    // The review lists what goes into the template, the check level too; Create asks for the directory and writes
+    // it, with no question after it (G2 of the rc.2 test).
     h.get_by_label("10. Review and create").click();
     settle(&mut h);
-    assert!(h.query_all_by_label("set after you create it").count() > 0);
-    assert!(h.query_all_by_label("in the standard").count() > 0);
+    assert!(h.query_all_by_label("in the template").count() > 0);
+    assert!(h.query_by_label("Use this template for new projects").is_some());
     // Controls of `size.control` (28 px) push the button under the fold of this window.
-    h.get_by_label("Create the basic project…").scroll_to_me();
+    h.get_by_label("Create the template…").scroll_to_me();
     settle(&mut h);
-    h.get_by_label("Create the basic project…").click();
+    h.get_by_label("Create the template…").click();
     settle(&mut h);
     assert_eq!(platform.asked.borrow().as_slice(), [Prompt::NewFolder]);
     let shell = h.state().shell();
@@ -319,32 +324,16 @@ fn the_wizard_shows_a_preview_follows_a_typed_value_and_writes_the_basic_project
         "{:?}",
         shell.banner()
     );
+    assert_eq!(shell.dialog(), None, "nothing to confirm after Create");
     assert!(
-        h.query_by_label_contains("The company standard was written to company.ew")
+        h.query_by_label_contains("The template was written to company.ew")
             .is_some()
     );
-    // The check scheme is applied after finishing, by a person, after a confirmation.
-    h.get_by_label("Apply the check level").scroll_to_me();
-    settle(&mut h);
-    h.get_by_label("Apply the check level").click();
-    settle(&mut h);
-    assert!(matches!(
-        h.state().shell().dialog(),
-        Some(Dialog::ConfirmCheckScheme { .. })
-    ));
-    assert!(
-        h.query_by_label_contains("decides what the program checks before")
-            .is_some()
-    );
-    h.get_by_label("Apply").click();
-    settle(&mut h);
     let text = std::fs::read_to_string(basic.join("project.jsonl")).unwrap();
     assert!(
         text.contains("\"checks\":{\"release_scheme\":\"pre-delivery\"}"),
         "{text}"
     );
-    assert!(h.query_all_by_label("set after you create it").count() == 0);
-    assert!(h.query_by_label("Apply the check level").is_none());
     h.get_by_label("Close").scroll_to_me();
     settle(&mut h);
     h.get_by_label("Close").click();
@@ -359,9 +348,8 @@ fn the_wizard_shows_a_preview_follows_a_typed_value_and_writes_the_basic_project
     assert!(text.contains("\"kind\":\"basic\""));
     assert!(text.contains("{page}-{letter}{counter}"));
     assert!(text.contains("eplan-style"));
-    // The start page now offers to edit it and says where new projects start.
-    assert!(h.query_by_label("Edit company standard").is_some());
-    assert!(h.query_by_label("Template: company.ew").is_some());
+    // New projects start from it: the New project dialog chooses it first.
+    assert!(shell.settings().is_template(&basic.to_string_lossy()));
 }
 
 #[test]
@@ -371,13 +359,13 @@ fn closing_the_wizard_keeps_the_draft_and_the_screen_returns_to_the_start_page()
     settle(&mut h);
     support::open_menu(&mut h, &["Project"]);
     settle(&mut h);
-    h.get_by_label("Company standard wizard…").click();
+    h.get_by_label("New template…").click();
     settle(&mut h);
     assert!(h.state().shell().wizard().is_some());
     h.get_by_label("Close").click();
     settle(&mut h);
     assert!(h.state().shell().wizard().is_none());
-    assert!(h.query_by_label("Create company standard").is_some());
+    assert!(h.query_by_label("Templates…").is_some());
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -522,7 +510,7 @@ fn f1_opens_the_page_of_the_context_in_the_system_browser() {
     settle(&mut h);
     let opened = platform.opened.borrow();
     assert!(
-        opened.last().is_some_and(|u| u.ends_with("#new-project")),
+        opened.last().is_some_and(|u| u.ends_with("#start-a-new-project")),
         "{opened:?}"
     );
 }

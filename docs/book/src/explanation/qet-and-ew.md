@@ -49,17 +49,17 @@ interruption point continues a potential by its name and is paired by EW; an unp
 
 ## Template project
 
-**EW term:** [Basic project](../reference/glossary.md#basic-project)
+**EW term:** [Template](../reference/glossary.md#template)
 
-**The same:** a new project starts from a template. **What differs:** the basic project also holds the company's
-check scheme and numbering, and the company standard wizard makes your own. **In the window:** **File ▸ New project…**.
+**The same:** a new project starts from a template. **What differs:** the template also holds the company's
+check level and numbering, and the template wizard makes your own. **In the window:** **File ▸ New project…**.
 
 ## Title-block template
 
 **EW term:** [Frame and title block](../reference/glossary.md#frame-and-title-block)
 
 **The same:** a template draws the title block and fills its fields. **What differs:** the fields are bound to the
-project, the revision and the page, so a value is set once. **In the window:** **Project ▸ Company standard wizard…**.
+project, the revision and the page, so a value is set once. **In the window:** **Project ▸ New template…**.
 
 ## Master/slave, Master, Slave
 

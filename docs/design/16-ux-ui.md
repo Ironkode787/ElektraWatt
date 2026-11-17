@@ -462,6 +462,21 @@ standard** (§9.2), Tutorials, quick switches for language and keymap, and one p
 change"; 0.1.0 has no update check). It contains no news feed and opens no connection (NFR-PRIV-01). It must appear within 1.5 s
 (NFR-PERF-02).
 
+*As built (0.3.0, G1 of the owner's rc.2 test).* The page has **New project**, which opens the New project
+dialog, and **Templates…** (also Project ▸ Templates): no line names a template under New project, and Create company
+standard and Edit company standard are gone. **New project** (`file.new`): the name, the folder (Browse…, and the
+line saying where the project is made), and Start from with one radio line per start, each saying in words what it
+brings (Empty project; each template, the one used for new projects marked and chosen first; Another project…); Also
+copy its pages and the devices on them appears where the chosen start has pages that hold something, off; Create is
+`file.new {dir, template, pages}` and is disabled with its reason while the name or folder is missing or taken.
+**Templates…** (`templates.*`): the list (name, what it holds, folder), the selected template's Use for new projects
+or Do not use, Edit, Rename (the list's name; the folder keeps its own) and Remove from the list (the folder stays,
+and the line under the list says so), then New template… (the wizard) and Add a folder…. **Save as template…**
+(`project.save_as_template`) is a form: name, folder, its pages and their devices (off), use for new projects (on).
+An open template (a folder of the list, or a project of kind basic) shows a band under the command bar, "You are
+editing the template …" with Close the template, the title bar says Template:, and it is never a recent project.
+The window says **template** everywhere; Dutch **sjabloon**.
+
 *As built.* The privacy line reads "This version has no update check ·
 change", whatever the stored `update_check` setting says (it stays, unused, until 1.0); "change" opens step 3 of the
 first run. The About dialog's line reads "This version has no update check and sends no crash reports."
@@ -489,8 +504,8 @@ cross-reference links, Back and Forward, Go to page or cell and a keyboard grid 
 |---|---|---|
 | Window | `elektrawatt [<project-dir>]`: eframe 0.37.0 on the wgpu renderer, 1280 × 800 at start; the title `<directory name> - ElektraWatt`, with `*` while unsaved | No toolbar (§3.3), no canvas tabs (§3.5) |
 | Menus | Drawn with egui on every OS from the toolkit-neutral registry of `ew-viewmodel`: File, Edit, Project, Page, Draw, Check, Output, View, Window, Help, each entry with its accelerator text; a disabled entry shows its reason as a tooltip, and an entry with a documentation topic ends its tooltip with "F1: learn more" | Ten menus (§3.2); muda on macOS and Windows is deferred |
-| Start page | New project (from the default basic project, else the built-in one), Open..., the recent projects (at most 10; an entry is dropped only when its path no longer exists), Open sample project (Golden A, read-only), Import QET project, Create company standard (Edit company standard once a default basic project is set), Tutorials (a fresh copy of the sample project in an empty directory), the language and keymap quick switches and the line "Update check: off" | The privacy line has no "change" link yet; one tutorial, not the tutorial pages of §13 |
-| New project | File ▸ New project (Ctrl+N) through `Session::new_project`: the built-in basic project (the shipped defaults, one empty folio 1) or a company basic project, whose records are copied with new identities `v5(new project ID, source ID)`; the target is an empty or absent directory, checked before the open project closes | The project does not record which basic project it came from (`Project.basic_project`, FT-339) |
+| Start page | New project (its dialog, §3.7 as built 0.3.0), Open..., the recent projects (at most 10; an entry is dropped only when its path no longer exists; never a template), Open sample project (Golden A, read-only), Import QET project, Templates…, Tutorials (a fresh copy of the sample project in an empty directory), the language and keymap quick switches and the line "Update check: off" | The privacy line has no "change" link yet; one tutorial, not the tutorial pages of §13 |
+| New project | File ▸ New project (Ctrl+N), its dialog (§3.7), through `Session::new_project`: the built-in basic project (the shipped defaults, one empty folio 1) or a template or project folder, whose records are copied with new identities `v5(new project ID, source ID)`, its pages and devices only when asked (else one empty folio 1); the target is an empty or absent directory, checked before the open project closes | The project does not record which basic project it came from (`Project.basic_project`, FT-339) |
 | Project view | Docking with egui_tiles 0.18.0: the Schematic workspace with the panes that exist, the page list (printed folio labels; a click goes to the page) and the page view, in splits and tab groups the user rearranges; View ▸ Workspace saves, loads and resets named workspaces (§2.5, `ew.workspace/1`), saved one second after the last change and at shutdown | The page list is the page navigator (§5.2); the property grid, navigators and message panels of §2.6 join with their work packages; the splitter handles have no accessible name yet |
 | Canvas | The current page read-only as a canvas on the CPU tile path: 256-pixel tiles of `ew-render-cpu` shown as egui textures, a coarse level first and the exact resolution once the view has been still for 150 ms. **Zoom** 5 % to 5000 % in √2 steps around the pointer (the wheel one step per line, a pinch continuously; Ctrl+Plus or Ctrl+Equals, Ctrl+Minus, Ctrl+0 for 100 %, Home to fit with 16-point margins; View ▸ Zoom in, Zoom out, Actual size, Fit page); a fitted view refits on resize until the first zoom or pan. **Pan** with the middle button, Space and drag, trackpad scroll or Ctrl+Arrow (View ▸ Pan, one eighth of the pane). **Overlays:** the page bounds on a grey surround, the page's connection grid as dots under the frame's page-to-sheet map (View ▸ Grid; the pitch doubles below 8 points), a dashed hover outline over the entity under the pointer; View ▸ Frame statistics shows the frame rate, the p99 of each phase, the pending tiles and the backend in the corner. The canvas is one AccessKit node (§10.1). The wizard's preview keeps the fitted raster | A click selects nothing and the hover outline is a placeholder over display-list boxes (WP-S2.03); tabs, a viewport per page and the link hover outline are as in §3.5 |
 | Canvas | **The GPU path**: `ew_render2d::gpu` draws the page with wgpu into an offscreen texture of the pane's size (4× MSAA, 1× where the adapter cannot), which egui shows as it shows a CPU tile; the page is prepared on a worker, and the previous revision of the same folio stands in while a new one prepares. **The switch rule** (as the pure function `gpu::choose`): the canvas is the CPU canvas when `--no-gpu` is given, when View ▸ Use the CPU renderer for the canvas is checked (the setting `canvas_backend`, `auto` by default or `cpu`; `settings.set` accepts it), when no wgpu render state exists (headless, kittest), or when the adapter is a software adapter other than DX12 WARP; otherwise it is the GPU canvas, WARP included. The status bar's backend field names the result (§3.6). **Failures end on the CPU canvas with one banner:** an initialisation failure shows "The GPU canvas could not start (...)" with the reason in the brackets; a device lost or uncaptured error (the GPU canvas records them instead of wgpu's default panic) switches the canvas to the CPU for the rest of the session with one banner. **A caveat:** the canvas shares one device with egui's own chrome (ADR-0014), so a real device loss also ends the window; the fallback helps for uncaptured errors only, and recovery from a lost device is WP-S2.11. A pane larger than the device's limits ends the GPU path for the session with the banner today; a per-frame CPU fallback is not built. **`--no-gpu`** gives the CPU canvas and asks for a software adapter for the window (none: the default adapter, with a banner). **No adapter at all:** the window cannot open, so `elektrawatt` writes one message to stderr naming `elektrawatt --headless`, `ew` and, on Linux, Mesa's llvmpipe or lavapipe, and exits with code 3 (the count honours `WGPU_BACKEND` while eframe's instance does not). **The UI scale** enlarges the chrome only; the canvas's display resolution is `D = zoom × 96 × ppp / ui_scale` dpi (`ppp` is egui's pixels per point, which includes the UI scale), so 100 % does not include the UI scale (§17 item 7). **A hidden page pane:** a page pane hidden behind another dock tab keeps its tiles within a quarter of the cache and frees its GPU targets. Parity with the CPU canvas is tested (translucent primitives are exact in paint order between instances and approximate inside one mesh); no timing is claimed (not measured, owner's rule) | The GPU canvas is a read-only viewer like the CPU one; the interactive gestures, tabs and per-page views are WP-S2.03 and WP-S2.04; the per-layer buffers and the tile-scene digest are WP-S2.04; mipmaps are deferred until a visual defect is reported; the Linux and macOS GUI look is an owner item |
@@ -1392,8 +1407,9 @@ to the cover page, which prints their tables (the schematic page draws no wire c
 choice seemed to change nothing); Frame and Numbering turn it to the schematic page. Choices are radio groups; a
 placeholder is an example value, never the label. The step list marks the steps passed with a check. A bar at the
 foot of the step holds Close and Start over as Subtle buttons at the left (their tooltips say the choices are kept,
-or put back) and Back (Secondary) and Next or Create the basic project… (Primary) at the right; after Create, Apply
-the check level (Primary) and Close. The check scheme is called the **check level** on the screen. The defaults are the sample project's conventions (numbering `{page}{letter}{counter}`, strips
+or put back) and Back (Secondary) and Next or Create the template… (Primary) at the right; after Create, Close.
+The review step ends with **Use this template for new projects** (on; `wizard.set {field: "use_for_new"}`): the
+template joins the list either way, and new projects start from it only when it is on. The check scheme is called the **check level** on the screen. The defaults are the sample project's conventions (numbering `{page}{letter}{counter}`, strips
 `{letter}{page}{counter}`, the colour profile "DBU/WH 24 V", the size profile "0.75/1.5", the QET-style
 cross-reference format, `=P01`, sections 1, 2 and 9); a numbering format must contain `{page}`, `{letter}` and
 `{counter}` until the numbering engine of WP-S1.11 (R2). **What the wizard writes**: `wizard.finish`
@@ -1413,24 +1429,25 @@ embeds its form. The table shows each field's state:
 | 6 Structure and sections | `structure.create_node`, `section.create` | — |
 | 7 Revisions | `revision.create` (the first revision) | — |
 | 8 Languages and formats | `project.languages.set`: the source and translation languages (`Project.languages`) and the date format and decimal separator (`settings.formatting`); the decimal separator prints in the tables of the generated pages when no output language is set | — |
-| 9 Reports and checks | report blocks: the golden layout through `report_block.create`, each call with `form_copies` (the form and the title block the form names, embedded from the library in the same transaction; a copy already held at the same version is reused, another version is refused; one undo step removes the block and its new copies): the table of contents on folio 2, the part list on 901, **one** terminal-diagram block on 903 (a basic project has no terminal strips and one block covers all of them, so 904 and 905 are absent), and 906 to 911 (cables, wires, PLC, potentials, device tags, revisions); a title that named a strip or a device uses `{n}` | the check scheme: **kept, "apply after finishing"**, until the review step's confirmed action (below) |
+| 9 Reports and checks | report blocks: the golden layout through `report_block.create`, each call with `form_copies` (the form and the title block the form names, embedded from the library in the same transaction; a copy already held at the same version is reused, another version is refused; one undo step removes the block and its new copies): the table of contents on folio 2, the part list on 901, **one** terminal-diagram block on 903 (a basic project has no terminal strips and one block covers all of them, so 904 and 905 are absent), and 906 to 911 (cables, wires, PLC, potentials, device tags, revisions); a title that named a strip or a device uses `{n}`; in the window the check level (`project.checks.set`, below) | a script's template: the check level, which no script sets |
 | 11 Review and create | the basic project directory; the default basic project in the user settings | — |
 
-**The check scheme is applied by a confirmed step, not by `wizard.finish`.** `project.checks.set` is the first
-registered `HumanOnly` command (Interactive; shipped schemes only, stored in `settings.extra.checks`; ADR-0008
-amendment 3 and decision log ID-443 stand, ID-546), because the scheme decides check outcomes and release. So
-`wizard.finish` writes everything else and the check scheme stays in the draft. After `wizard.finish` the wizard stays
-on the review step, whose row for the check scheme reads "set after you create it" and which offers the action
-**Apply the check level** (registry action `wizard.apply_check_scheme`). Its confirmation names the scheme; on Apply
-the GUI runs the `HumanOnly` `project.checks.set` and saves, and the row then reads `written`. Headless, the same
-action is refused with `reason-human-only` and the refusal is recorded in the transcript (doc 18 §3.17; two tests pin
-both outcomes); no new `ui.describe` word is needed. **The headless-reachable human path** is the CLI subcommand `ew
+**The check level is part of what Create makes in the window (0.3.0, G2 of the owner's rc.2 test).**
+`project.checks.set` is the first registered `HumanOnly` command (Interactive; shipped schemes only, stored in
+`settings.extra.checks`; ADR-0008 amendment 3 and decision log ID-443 stand, ID-546), because the level decides check
+outcomes and release. A person pressing Create in the window is that person: `wizard.finish` in the window runs it on
+the new template after the script of the other fields; a UI script's `wizard.finish` leaves it out, and the review
+row says so. The step where the level is chosen says what it is for ("Before drawings go out, the program checks
+them. The check level says how strict that check is.") and under each level what it stops; the same words are on
+**Check level…** (Project ▸ Setup, `project.check_level`), which sets it later in a project or an open template and
+which a script is refused like the command. The confirmation pop-up after Create (`wizard.apply_check_scheme`) is
+gone. **The headless-reachable human path** is the CLI subcommand `ew
 project checks set [<project-dir>] [--active <scheme>] [--release <scheme>]`, never a UI script: it asks for
 the scheme's name on the controlling terminal and writes only on an exact answer; without a terminal it exits 2 and
 has no flag that skips the question (FR-EXT-030, doc 17 §2.3).
 
-The review step lists every field with "in the standard" (`written` in `ui.describe`); every row reads so
-except the check scheme, which reads "set after you create it" (`kept`) until the confirmed step. The preview applies the same commands to the sample project, so the cover and
+The review step lists every field with "in the template" (`written` in `ui.describe`); in a UI script the check
+level reads `kept`. The preview applies the same commands to the sample project, so the cover and
 folio 102 show the notice, the ISO date format and the chosen frame (a test pins all three). A test checks that the
 settings commands of the defaults leave the sample project unchanged, and the build path of the golden project
 stays at 609 commands and 607 undo steps: moving its formatting into `project.languages.set` and `project.company.set`

@@ -47,18 +47,23 @@ fn on_golden(tmp: &Tmp) -> Harness<'static, App> {
     h
 }
 
-/// The new-project flow of `shell_frame.rs`: the start page's New project, the folder dialog, the built-in page.
+/// The new-project flow of `shell_frame.rs`: the start page's New project, its dialog, the built-in page.
 #[test]
 fn new_project_in_the_pseudo_locale() {
     let tmp = Tmp::new();
-    let dir = tmp.0.join("first.ew");
-    let platform = Scripted::default();
-    platform.answers.borrow_mut().push_back(Pick::Path(dir));
     let shell = ShellModel::new(Mode::Gui, tmp.config_with_resources());
-    let mut h = harness_with(shell, platform, None);
+    let mut h = harness_with(shell, Scripted::default(), None);
     assert!(strings::set_locale(strings::PSEUDO));
     step(&mut h);
     h.get_by_label(strings::text(key!("start-new"))).click();
+    step(&mut h);
+    // The New project dialog: the name and the folder, then Create.
+    h.state_mut().shell_mut().dispatch(
+        "new_project.set",
+        &serde_json::json!({"name": "first.ew", "folder": tmp.0.to_string_lossy()}),
+    );
+    step(&mut h);
+    h.get_by_label(strings::text(key!("dialog-create"))).click();
     step(&mut h);
     assert_eq!(h.state().shell().project_name(), Some("first.ew"));
     wait_for_page(&mut h);

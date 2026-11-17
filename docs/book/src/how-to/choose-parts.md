@@ -31,7 +31,7 @@ When you know the part before you draw, place the device from it, so that the de
 ## Read the parts list
 
 - **Output ▸ Open parts list** opens the parts-list page of the project, when it has one: a project made from a
-  template of the template wizard (**Templates… ▸ New template…**), and the sample project, have one.
+  template of the template wizard (**Project ▸ New template…**), and the sample project, have one.
 - **View ▸ Panels ▸ Navigators ▸ Parts in use** lists the parts the project uses with their devices, in any project.
 
 The part data comes from the library: [Edit part](../reference/window/dialogs.md#edit-part) changes the project's
