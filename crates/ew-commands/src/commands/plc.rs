@@ -1232,6 +1232,32 @@ impl AddModule {
     }
 }
 
+/// The letter of a new station of `part`, as a device placed from the part on a page takes it: the one the project's
+/// identifier set gives the part's category (K for a valve terminal's bus node under EN 81346-2:2009), else its main
+/// function's, else `A`.
+fn station_letter(tx: &TxBuilder<'_>, part: &ew_schema::Part) -> Result<Ident, CmdError> {
+    let q = ew_derive::Q::new(tx.base_model());
+    let letter = ew_rds::IdentifierSet::by_key(&q.profile().identifier_set).and_then(|set| {
+        let main = || {
+            let t = part.function_template.iter().find(|t| t.main)?;
+            let def = tx.get::<LibCopy<ew_schema::FnDef>>(ew_ids::v5::lib_copy_id(
+                t.fndef.library.as_uuid(),
+                t.fndef.item.as_uuid(),
+            ))?;
+            let (category, group, _) = &def.item.category;
+            set.mapping(category.as_str(), Some(group.as_str()))
+        };
+        part.category
+            .as_ref()
+            .and_then(|(category, group, _)| set.mapping(category.as_str(), Some(group.as_str())))
+            .or_else(main)
+            .map(|m| m.letter().as_str().to_owned())
+    });
+    let letter = letter.as_deref().unwrap_or("A");
+    Ident::from_input(letter)
+        .map_err(|e| CmdError::internal(format!("the letter {letter} is no identifier ({e:?})")))
+}
+
 /// One module of `plc.add_station`: its part, in the next slot.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -1243,8 +1269,8 @@ pub struct StationModule {
 /// `plc.add_station` (`AddStation`, F18 and F19 of the rc.1 test, doc 10 §2.3 "The rack comes first"): makes a station
 /// of a PLC with its modules, in one undo step.
 ///
-/// The station is a new device of `part`, drawn on no page yet (tag letter `A`, the online numbering gives it a
-/// counter), or the existing `device` (a bus device given to a PLC from where it stands). It gets `plc_station` in
+/// The station is a new device of `part`, drawn on no page yet (the tag letter a device placed from the part takes,
+/// else `A`; the online numbering gives it a counter), or the existing `device` (its tag kept) (a bus device given to a PLC from where it stands). It gets `plc_station` in
 /// `config_project`, or in a new configuration project `PLC<n>` when that is absent (the station its CPU when it is
 /// one). Its role is the one normaliser N0 gives its PLC section (valve terminal, head station or CPU) and, with a
 /// section that declares I/O, the station's own module (`plc_module {integrated}`); a device whose parts have no PLC
@@ -1304,16 +1330,12 @@ impl Command for AddStation {
                 {
                     return tx.reject(text!("refusal-plc-station-part", copy.item.part_number.as_str()));
                 }
+                let letter = station_letter(tx, &copy.item)?;
                 let id: Id<Device> = tx.mint();
                 tx.insert(Device {
                     id,
                     v: 1,
-                    tag: ew_schema::TagSpec::new(
-                        Ident::from_input("A").map_err(|e| {
-                            CmdError::internal(format!("the letter A is no identifier ({e:?})"))
-                        })?,
-                        None,
-                    ),
+                    tag: ew_schema::TagSpec::new(letter, None),
                     kind: None,
                     parent: None,
                     position: None,

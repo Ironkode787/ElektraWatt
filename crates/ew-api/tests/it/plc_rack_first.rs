@@ -244,6 +244,67 @@ fn a_new_station_is_made_with_its_modules_in_one_step() {
     assert!(s.world().model.content_eq(&before), "one step");
 }
 
+/// A new station's tag letter follows what its part is, as a device placed from the part on a page takes it: a valve
+/// terminal with a bus node K, a CPU A. A device that becomes a station keeps its tag.
+#[test]
+fn a_new_stations_letter_follows_its_part() {
+    let mut s = new_project(176);
+    // The letter the window places a device of the part with.
+    let folio = s.page_labels()[0].clone();
+    let placed = s
+        .place_catalogue(&folio)
+        .expect("the page's catalogue")
+        .parts
+        .into_iter()
+        .find(|p| p.part_number == "EW-GEN-VTM-1")
+        .and_then(|p| p.letter)
+        .expect("the terminal's letter");
+    assert_eq!(placed, "K");
+    let letter_of_new = |s: &mut Session, number: &str| {
+        let part = library_part(s, number);
+        let c = copies(s, &[part]);
+        let before: Vec<Uuid> = s.query().devices().iter().map(|(id, _)| id.as_uuid()).collect();
+        run(
+            s,
+            "plc.add_station",
+            json!({"part": {"part": {"copy": part.to_string()}, "qty": "1"}, "copies": c}),
+        )
+        .expect("the station");
+        let q = s.query();
+        q.devices()
+            .iter()
+            .find(|(id, d)| !before.contains(&id.as_uuid()) && d.aspects.plc_station.is_some())
+            .map(|(_, d)| d.tag.letter.as_str().to_owned())
+            .expect("the new station")
+    };
+    assert_eq!(letter_of_new(&mut s, "EW-GEN-VTM-1"), placed);
+    assert_eq!(letter_of_new(&mut s, "EW-GEN-CPU-1"), "A");
+    let pnd = library_part(&s, "EW-GEN-PND-1");
+    run(&mut s, "device.create", json!({"letter": "B", "counter": 7})).expect("a device");
+    let node = s
+        .query()
+        .devices()
+        .iter()
+        .find(|(_, d)| d.tag.counter == Some(7) && d.parts.is_empty())
+        .map(|(id, _)| id.as_uuid())
+        .expect("the device");
+    let c = copies(&s, &[pnd]);
+    run(
+        &mut s,
+        "fields.set",
+        json!({"kind": "device", "targets": [node.to_string()], "path": "parts",
+        "value": [{"part": {"copy": pnd.to_string()}, "qty": "1"}], "copies": c}),
+    )
+    .expect("its part");
+    run(&mut s, "plc.add_station", json!({"device": node.to_string()})).expect("a station");
+    let d = device(&s, node).expect("the device");
+    assert_eq!(
+        (d.tag.letter.as_str(), d.tag.counter),
+        ("B", Some(7)),
+        "its own tag"
+    );
+}
+
 /// F19: a bus device whose part says nothing of a PLC becomes a station of a PLC with an open rack: an I/O device that
 /// takes modules; a module part is refused as a station.
 #[test]
