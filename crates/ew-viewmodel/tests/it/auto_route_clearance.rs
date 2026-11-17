@@ -350,8 +350,9 @@ fn the_same_page_routes_the_same_wires() {
 }
 
 /// Without a clear route the ghost is the unrouted line, right-angled and never a diagonal, the hint says so,
-/// and the commit stores the wire unrouted, drawn on the page as the ghost showed it; with a fixed bend, the bends
-/// and an L tail are the user's route.
+/// and the commit stores the wire unrouted, drawn on the page as the ghost showed it; with a fixed bend from which no
+/// clear way leads on, the same: no L tail through the box is stored (rc.3: such a tail ran through a pin and along
+/// another wire).
 #[test]
 fn without_a_clear_route_the_wire_stays_unrouted_and_the_tool_says_so() {
     let tmp = Tmp::new("ft706-direct");
@@ -376,7 +377,7 @@ fn without_a_clear_route_the_wire_stays_unrouted_and_the_tool_says_so() {
     );
     hover(&mut p.s, p.l.at);
     let unrouted = "No clear route: the wire stays a dashed line without a route. Click free points to lead it, or \
-                    draw it later with Edit route.";
+                    route it later with Reroute.";
     assert_eq!(p.s.tool_hint(), unrouted);
     let (from, to) = (p.bottom[0].at, p.l.at);
     let ghost = p.s.wire_ghost_route().expect("the unrouted line");
@@ -408,7 +409,7 @@ fn without_a_clear_route_the_wire_stays_unrouted_and_the_tool_says_so() {
         "Click a connection point to end, a free point for a bend; Backspace removes the last bend; Esc cancels"
     );
     done(&mut p.s, "ui.dismiss", json!({}));
-    // A fixed bend in the box, then the same end: the bend and the L tail are stored as the user drew them.
+    // A fixed bend in the box, then the same end: no clear way from the start either, so the wire is stored unrouted.
     let before = tables(&p.s);
     click(&mut p.s, p.bottom[0].at, false);
     let bend = page_point(&p.s, (k.0, k.1 + 2));
@@ -421,7 +422,7 @@ fn without_a_clear_route_the_wire_stays_unrouted_and_the_tool_says_so() {
         .filter(|c| before.connections.iter().all(|o| o.id != c.id))
         .collect();
     assert_eq!(new.len(), 1);
-    assert!(new[0].stored_route, "the user's route");
+    assert!(!new[0].stored_route, "no route that breaks the rules");
     assert_eq!(new[0].polyline.first(), Some(&from));
     assert_eq!(new[0].polyline.last(), Some(&to));
 }
@@ -492,4 +493,74 @@ fn a_click_inside_a_symbol_places_no_bend() {
         "{:?}",
         new[0].polyline
     );
+}
+
+/// rc.3 (the owner's case): a two-pole breaker over another, two grid steps between the upper's bottom pins and the
+/// lower's top pins, wired cross-over (left above to right below and the other way round). Drawn, the second wire
+/// with a free point on the first wire's corner the way he drew it, and then rerouted, the page keeps every hard rule:
+/// no wire runs through a pin it does not join or along another wire. Reroute applies at once, in one undo step.
+#[test]
+fn two_breakers_wired_cross_over_keep_the_hard_rules_drawn_and_rerouted() {
+    use ew_viewmodel::ew_api::geometry::Dir;
+    let tmp = Tmp::new("rc3-cross-over");
+    let mut s = new_project(&tmp);
+    let place = |s: &mut ShellModel, k: (i64, i64)| {
+        let before = tables(s).reps.clone();
+        done(s, "place.pick", json!({"part": "EW-GEN-MCB-2", "template": 0}));
+        let p = page_point(s, k);
+        click(s, p, true);
+        done(s, "tool.select", json!({}));
+        new_rep(s, &before)
+    };
+    let pins = |s: &ShellModel, rep: &TableRep, dir: Dir| {
+        let mut v: Vec<TableCp> = cps_of(s, rep).into_iter().filter(|c| c.dir == Some(dir)).collect();
+        v.sort_by_key(|c| c.at.0);
+        v
+    };
+    let upper = place(&mut s, (40, 20));
+    let bottom = pins(&s, &upper, Dir::Down);
+    let height = index_of(&s, bottom[0].at).1 - index_of(&s, pins(&s, &upper, Dir::Up)[0].at).1;
+    let lower = place(&mut s, (40, 20 + height + 2));
+    let top = pins(&s, &lower, Dir::Up);
+    assert_eq!(index_of(&s, top[0].at).1 - index_of(&s, bottom[0].at).1, 2, "two grid steps apart");
+    let clean = |s: &ShellModel| {
+        let m = ew_viewmodel::ew_api::routing::measure(&s.canvas().unwrap().page().geometry);
+        assert!(
+            m.touches.is_empty() && m.overlaps.is_empty() && m.through_bodies.is_empty(),
+            "{:?} {:?} {:?}",
+            m.touches,
+            m.overlaps,
+            m.through_bodies
+        );
+    };
+    // The first wire, upper right pin to lower left pin.
+    let first = wire(&mut s, bottom[1].at, top[0].at);
+    clean(&s);
+    // The second, from the lower right pin, with a free point where the first wire turns below the upper right pin,
+    // to the upper left pin.
+    let before = tables(&s);
+    done(&mut s, "tool.wire", json!({}));
+    click(&mut s, top[1].at, false);
+    let k = index_of(&s, bottom[1].at);
+    let corner = page_point(&s, (k.0, k.1 + 1));
+    click(&mut s, corner, true);
+    click(&mut s, bottom[0].at, false);
+    done(&mut s, "tool.select", json!({}));
+    let second = tables(&s)
+        .connections
+        .iter()
+        .find(|c| before.connections.iter().all(|o| o.id != c.id))
+        .expect("the second wire")
+        .clone();
+    clean(&s);
+    // Reroute both: at most one undo step, the rules kept.
+    done(
+        &mut s,
+        "select.set",
+        json!({"ids": [first.id.to_string(), second.id.to_string()]}),
+    );
+    let rev = s.revision();
+    done(&mut s, "route.reroute", json!({}));
+    assert!(s.revision() == rev || s.revision() == rev.map(|r| r + 1));
+    clean(&s);
 }

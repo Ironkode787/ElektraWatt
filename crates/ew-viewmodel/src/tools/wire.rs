@@ -33,7 +33,10 @@
 //!
 //! The committed route is the fixed vertices joined with the router's route from the last fixed vertex to the end,
 //! exactly the ghost (the router never runs on replay); a free terminal in line between the last fixed vertex and the
-//! end is connected through on the direct route instead when nothing else is in its way (`through_route`). The connection kind is the page type's (doc 06 §2.2), given
+//! end is connected through on the direct route instead when nothing else is in its way (`through_route`). Where no
+//! route keeps the hard rules from the last fixed vertex, the wire is routed from its start as if drawn anew (its
+//! fixed bends dropped), and where none keeps them from there either it is stored unrouted: a route that runs through
+//! a pin or along another wire is never stored (rc.3). The connection kind is the page type's (doc 06 §2.2), given
 //! by the host ([`WireTool::with_kind`]): a wire on a multi-line page (`connection.draw`'s default, so no `kind` is
 //! sent), `overview` on single-line, overview and assembly-overview pages, a working fluid line (`{"fluid": {}}`) on a
 //! fluid page, a bus line (`{"bus": {}}`) on a bus-topology page; on the other page types the host refuses `tool.wire`.
@@ -738,8 +741,8 @@ fn route_end(at: (i64, i64), dir: Option<Dir>) -> RouteEnd {
     }
 }
 
-/// The user's tail from `from` (leaving along `from_dir`, or arrived at along `arrive`) to `to` (entered against
-/// `to_dir`), taken without a clear route after a fixed bend: the straight segment for aligned ends,
+/// The direct tail from `from` (leaving along `from_dir`, or arrived at along `arrive`) to `to` (entered against
+/// `to_dir`) that [`through_route`] tries: the straight segment for aligned ends,
 /// else one corner from the ends' own coordinates, the first leg along `from_dir`'s axis, else the last along
 /// `to_dir`'s, else across first; a first leg that would double back over `arrive` takes the other corner.
 fn l_tail(
@@ -898,8 +901,8 @@ impl WireTool {
     /// ends' own bodies left only along a CP's escape corridor (`own`: the start's while the tail starts at it, the
     /// end's). Before it, the direct route through a free terminal in line is taken when it qualifies
     /// ([`through_route`]). Without a clear route the tail is the right-angled line an unrouted connection is
-    /// drawn with ([`unrouted_line`], the page's own rule, so the ghost is what a click stores), or after a fixed
-    /// bend the user's L ([`l_tail`]).
+    /// drawn with ([`unrouted_line`], the page's own rule, so the ghost is what a click stores); after a fixed bend
+    /// [`WireTool::full_route`] then routes the wire from its start instead.
     fn tail(
         &mut self,
         cx: &ToolCx<'_>,
@@ -931,7 +934,6 @@ impl WireTool {
             .is_some_and(|points| crosses_text(&cx.page.geometry, points));
         let (points, direct) = match routed {
             Some(points) => (points, false),
-            None if arrive.is_some() => (l_tail((from, from_dir, arrive), t, to.dir()), true),
             None => (
                 unrouted_line(route_end(from, from_dir), route_end(t, to.dir())),
                 true,
@@ -965,6 +967,12 @@ impl WireTool {
         // obstacle like any other.
         let own = [start.rep().filter(|_| fixed.len() == 1), to.rep()];
         let tail = self.tail(cx, (last, from_dir, arrive), own, to);
+        // No clear way on from the last free point: the wire as if drawn anew from its start, its free points
+        // dropped, else unrouted (rc.3: the corner of the user's L had run through a pin and along another wire).
+        if self.direct && fixed.len() > 1 {
+            let start_at = fixed[0];
+            return clean(self.tail(cx, (start_at, start.dir(), None), [start.rep(), to.rep()], to));
+        }
         let mut pts: Vec<(i64, i64)> = fixed[..fixed.len() - 1].to_vec();
         pts.extend(tail);
         clean(pts)
@@ -1027,12 +1035,8 @@ impl WireTool {
             return None;
         };
         let end = end.as_ref().filter(|e| e.is_end() && !e.same_end(start))?;
-        // Without a clear route and without a fixed bend, the wire is stored unrouted.
-        let route: &[(i64, i64)] = if self.direct && self.bends() == 0 {
-            &[]
-        } else {
-            route
-        };
+        // Without a clear route, the wire is stored unrouted.
+        let route: &[(i64, i64)] = if self.direct { &[] } else { route };
         let draw = |a: Value, b: Value, route: &[(i64, i64)]| {
             let mut params = json!({
                 "a": a,
@@ -1254,8 +1258,8 @@ impl WireTool {
             label: String::new(),
         };
         let mut route = self.full_route(cx, &start, &fixed, &target);
-        if self.direct && fixed.len() == 1 {
-            // Without a clear route and without a fixed bend, the wire is stored unrouted.
+        if self.direct {
+            // Without a clear route, the wire is stored unrouted.
             route.clear();
         }
         let (name, direction) = match (named, name_of) {

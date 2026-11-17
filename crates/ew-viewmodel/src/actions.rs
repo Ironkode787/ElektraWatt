@@ -770,26 +770,6 @@ fn fluid_symbol_page(m: &ShellModel) -> Result<(), Key<'static>> {
     })
 }
 
-/// An editable page with a connection or a representation selected (Route selection).
-fn route_selection(m: &ShellModel) -> Result<(), Key<'static>> {
-    editable_page(m)?;
-    if m.route_selection_ids().is_empty() {
-        Err(key!("reason-route-selection"))
-    } else {
-        Ok(())
-    }
-}
-
-/// An editable page with exactly one connection selected (Edit ▸ Edit route; window check).
-fn one_connection(m: &ShellModel) -> Result<(), Key<'static>> {
-    editable_page(m)?;
-    if m.one_connection_selected() {
-        Ok(())
-    } else {
-        Err(key!("reason-one-connection"))
-    }
-}
-
 /// An editable page whose selection gives a bond its two ends: exactly one selected connection, a wire and no tube
 /// (Draw ▸ Bond). The headless form that names the two ends (`a` and `b`) needs only the editable page
 /// ([`enabled_with`]).

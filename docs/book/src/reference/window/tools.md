@@ -12,7 +12,7 @@ The page's menu is the quick way to what fits the thing under the pointer: its f
 come the general ones (Rotate, Mirror and Renumber devices… on a symbol; Cut, Copy, Paste, Delete, Properties of
 selection). A right click selects the thing first; Shift+F10 or the menu key opens the same menu for the selection.
 
-- On a wire: Edit route, Wire marker, Define potential…, Cable… and Print wire numbers; a wire does not turn, so
+- On a wire: Reroute, Wire marker, Define potential…, Cable… and Print wire numbers; a wire does not turn, so
   there is no Rotate or Mirror. On several selected wires: Make cable from the selection….
 - On a terminal: Add terminal (the strip's next number, of the terminal's kind and part, floating at the pointer),
   Choose part… and Edit strip, which opens the strip editor. On several selected terminals: Choose part…, for them
@@ -135,11 +135,12 @@ junction. It keeps clear of texts too, unless the only way round them is far lon
 the sheet) or there is none: then the route crosses the text and the hint says "The route crosses a text: keeping
 clear of it is a far longer way." A device tag on the wire then moves to a free place beside its symbol. When no route exists at all the wire shows as a dashed right-angled
 line and the hint says "No clear route: the wire stays a dashed line without a route. Click free points to lead it,
-or draw it later with Edit route." Ending it there stores an unrouted wire: it keeps its connection, but it is drawn
+or route it later with Reroute." Ending it there stores an unrouted wire: it keeps its connection, but it is drawn
 dashed and the check reports it ("Wire … has no route: it is drawn as a dashed line.") until it has a route. Click
 on empty points to place bends and the wire follows them ("Bend placed: click a connection point to end the wire.");
 a click inside a symbol places no bend and says so ("A bend cannot sit inside a symbol; click one of its connection
-points, or a free point outside it").
+points, or a free point outside it"). Where no clean way leads on from your last bend, the wire is routed from its
+start as if drawn anew, without your bends, or stays unrouted: a wire never runs through a pin or along another wire.
 The hint says what a click at the pointer does: on another wire it joins that wire with a tee (Alt+Click places a bend
 there instead), on the start point it does nothing. A junction
 that already joins three wires is not an end: the hint says "This junction already joins three wires: end on a wire
@@ -147,7 +148,7 @@ to make a new junction."
 
 An unrouted wire, from an import or a placement, is drawn as a dashed line between its ends, straight or with
 one corner and never diagonal, on the page and in the PDF. The line takes no notice of what lies under it: it is
-no route yet. Route page or Route selection draws it.
+no route yet. Route page or Reroute draws it.
 
 ## Tube
 
@@ -172,15 +173,23 @@ move without them. The key of Connect while moving turns it off, and on again, u
 hint of the move and the status bar show the key followed by "Connect on move: on" or "off". A move with the keyboard
 follows that setting.
 
-## Edit route
+## Change a wire's route by hand
 
-Changes the drawn route of a wire with the mouse. Select the wire: a handle shows on each of its segments and a
-dashed one on each bend. Drag a segment and it moves sideways; drag a bend and the corner moves. The wire stays
+Select the wire with Select: it shows as a band along its path, with a round handle in the middle of each segment and
+on each bend; the handle under the pointer grows and the pointer shows which way it moves. Drag a segment's handle
+(or the segment itself) and it moves sideways; drag a bend's handle and the corner moves. The wire stays
 right-angled and its ends stay on their connection points: a first or last segment that is dragged keeps a short
 stub at its end and jogs after it, so a straight wire dragged sideways goes round what was in its way. A dashed line
-shows the new route while you drag, and one undo takes the change back. A wire without a route, drawn dashed, takes
-its first route this way too. Draw ▸ Connect ▸ Edit route does the same from the keyboard: `Tab` chooses the
-segment, the arrow keys move it, `Enter` stores it.
+shows the new route while you drag, `Esc` puts it back, and one undo takes the change back. A wire without a route,
+drawn dashed, takes its first route this way too. Only the selected wire has handles: where wires lie over one
+another, click again on the same spot to select the next of them.
+
+## Reroute
+
+Routes the selected wires, and every wire with an end on a selected symbol, again, as if you had drawn them anew;
+with nothing selected, every wire of the page. It applies at once, in one undo step, and the toast says "3 wires
+rerouted." When no route is better it says "No better route found: the wires keep their routes.", followed by why
+for each wire that no route keeps clear. Open it with Draw ▸ Connect ▸ Reroute, or Reroute in a wire's menu.
 
 ## Route page
 
@@ -193,12 +202,6 @@ says "Every wire on folio 101 has a route." instead. The router routes supply wi
 wires of a feed side by side in the order L1, L2, L3, N, PE where their ends allow it, and keeps every route clear as
 the Wire tool does.
 A wire it cannot route stays unrouted; move a symbol to make room, or place its bends with the Wire tool.
-
-## Route selection
-
-Routes the selected wires, and every wire with an end on a selected symbol, again, routed or not; the other wires of
-the page stay as they are. Open it with Draw ▸ Connect ▸ Route selection. It shows its plan and applies it as Route
-page does.
 
 ## Interruption point
 

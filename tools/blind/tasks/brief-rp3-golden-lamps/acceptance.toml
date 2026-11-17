@@ -24,9 +24,9 @@ expect = ">= 1"
 [[item]]
 id = "A3"
 kind = "hard"
-what = "The tester let the program route the lamps' wires again (Route selection)."
+what = "The tester let the program route the lamps' wires again (Reroute)."
 how = "outcomes"
-actions = ["route.selection"]
+actions = ["route.reroute"]
 
 [[item]]
 id = "A4"

@@ -149,7 +149,7 @@ fn a_terminals_menu_adds_a_terminal_and_edits_its_strip() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1693: a right click on a wire offers Edit route, Wire marker, Define potential…, Cable… and Print wire numbers
+/// FT-1693: a right click on a wire offers Reroute, Wire marker, Define potential…, Cable… and Print wire numbers
 /// (which prints them); two wires selected offer Make cable from the selection…, which opens the cable's form.
 #[test]
 fn a_wires_menu_and_two_wires_make_a_cable() {
@@ -176,7 +176,7 @@ fn a_wires_menu_and_two_wires_make_a_cable() {
         .next()
         .expect("the canvas")
         .rect();
-    entry(&h, first, "Edit route");
+    entry(&h, first, "Reroute");
     for label in ["Rotate", "Mirror", "Renumber devices"] {
         assert!(
             h.query_all_by_label_contains(label)
@@ -188,7 +188,7 @@ fn a_wires_menu_and_two_wires_make_a_cable() {
         &h,
         first,
         &[
-            "Edit route",
+            "Reroute",
             "Wire marker",
             "Define potential",
             "Cable…",

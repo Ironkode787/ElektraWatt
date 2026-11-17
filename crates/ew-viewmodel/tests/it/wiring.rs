@@ -16,6 +16,7 @@ use common::{
 };
 use ew_viewmodel::ew_api::output::{PageTables, TableConnection, TableCp, TableEnd};
 use ew_viewmodel::shell::ShellModel;
+use ew_viewmodel::tools::route_edit::GripMove;
 use ew_viewmodel::tools::{MarkerKind, OverlayItem};
 use serde_json::{Value, json};
 
@@ -790,10 +791,9 @@ fn route_page_previews_the_plan_and_applies_it_in_one_step() {
     );
 }
 
-/// A Route selection plan whose routes are the ones drawn opens no card and says
-/// so, in en-GB and nl-NL.
+/// Reroute whose plan keeps the routes drawn commits nothing and says so, in en-GB and nl-NL.
 #[test]
-fn route_selection_with_a_plan_that_changes_nothing_opens_no_card() {
+fn reroute_with_a_plan_that_changes_nothing_says_so() {
     let tmp = Tmp::new("f2");
     let mut s = actual_size(&tmp, "103");
     coils_and_wires(&mut s, &[(55, 20), (55, 29)], &[("-103K1:A2", "-103K2:A1", &[])]);
@@ -817,18 +817,18 @@ fn route_selection_with_a_plan_that_changes_nothing_opens_no_card() {
     done(&mut s, "canvas.press", at(mid, json!({})));
     done(&mut s, "canvas.release", at(mid, json!({})));
     let rev = s.revision();
-    done(&mut s, "route.selection", json!({}));
+    done(&mut s, "route.reroute", json!({}));
     assert_eq!(describe_line(&s, "card "), None, "no card");
     assert_eq!(s.revision(), rev, "nothing committed");
     assert_eq!(
         s.toast().map(|t| t.text.as_str()),
-        Some("Nothing to change: the selected wires keep their routes.")
+        Some("No better route found: the wires keep their routes.")
     );
     done(&mut s, "view.language", json!({"value": "nl"}));
-    done(&mut s, "route.selection", json!({}));
+    done(&mut s, "route.reroute", json!({}));
     assert_eq!(
         s.toast().map(|t| t.text.as_str()),
-        Some("Niets te wijzigen: de geselecteerde draden houden hun routes.")
+        Some("Geen betere route gevonden: de draden houden hun route.")
     );
 }
 
@@ -845,10 +845,10 @@ fn done_outcome(s: &mut ShellModel, action: &str) -> String {
     }
 }
 
-/// Route selection with one routed wire selected routes it again, in the card's one step; the
-/// page's other wires keep their routes.
+/// Reroute with one routed wire selected routes it again as if freshly drawn, at once and in one undo step, and
+/// says so; the page's other wires keep their routes.
 #[test]
-fn route_selection_re_routes_a_selected_wire_and_nothing_else() {
+fn reroute_routes_a_selected_wire_again_and_nothing_else() {
     let tmp = Tmp::new("rw2");
     let mut s = actual_size(&tmp, "103");
     coils_and_wires(
@@ -873,22 +873,11 @@ fn route_selection_re_routes_a_selected_wire_and_nothing_else() {
     );
     done(&mut s, "canvas.press", at(mid, json!({})));
     done(&mut s, "canvas.release", at(mid, json!({})));
-    done(&mut s, "route.selection", json!({}));
-    assert_eq!(
-        card_line(&s),
-        "card ready \"connection.route_many\" targets 1 changes 1 tags 0 xrefs 0 route \"Route 1 wire on folio 103: 1 \
-         routed, 0 not routed.\""
-    );
-    // The card's title names the button.
-    let card = s.properties().card().expect("the card").command().to_owned();
-    assert_eq!(card, "Route selection");
-    done(&mut s, "view.language", json!({"value": "nl"}));
-    assert_eq!(
-        s.properties().card().expect("the card").command(),
-        "Selectie routeren"
-    );
-    done(&mut s, "view.language", json!({"value": "en"}));
-    done(&mut s, "preview.apply", json!({}));
+    let rev = s.revision();
+    done(&mut s, "route.reroute", json!({}));
+    assert_eq!(describe_line(&s, "card "), None, "no card");
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one step");
+    assert_eq!(s.toast().map(|t| t.text.as_str()), Some("1 wire rerouted."));
     let after = tables(&s);
     let now = after
         .connections
@@ -904,29 +893,36 @@ fn route_selection_re_routes_a_selected_wire_and_nothing_else() {
             .collect()
     };
     assert_eq!(others(&after), others(&before), "nothing else changes");
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(tables(&s).connections, before.connections, "one undo takes it back");
 }
 
-/// Route selection needs a selected wire or symbol; with nothing selected it is refused,
-/// whatever the page holds unrouted.
+/// Reroute with nothing selected routes the page's wires, the unrouted one included.
 #[test]
-fn route_selection_needs_a_selection() {
+fn reroute_with_nothing_selected_takes_the_page() {
     let tmp = Tmp::new("rt6");
     let mut s = actual_size(&tmp, "103");
     coils_and_wires(&mut s, &[(55, 20), (55, 29)], &[("-103K1:A2", "-103K2:A1", &[])]);
     done(&mut s, "ui.dismiss", json!({}));
-    assert_eq!(
-        s.dispatch("route.selection", &json!({})),
-        ew_viewmodel::shell::Outcome::Refused {
-            reason_key: ew_viewmodel::key!("reason-route-selection")
-        }
-    );
+    assert!(s.selection().is_empty());
+    let routed = |s: &ShellModel| {
+        let t = tables(s);
+        t.connections
+            .iter()
+            .find(|c| end_label(&t, &c.a) == "-103K1:A2")
+            .expect("the wire")
+            .stored_route
+    };
+    assert!(!routed(&s));
+    done(&mut s, "route.reroute", json!({}));
+    assert!(routed(&s), "routed");
 }
 
 // ---------------------------------------------------------------------------------------------------------------
 // Route edit and the split on insert (WR5)
 
 #[test]
-fn a_route_given_by_the_route_editor_and_a_contact_inserted_split_the_wire() {
+fn a_stored_route_and_a_contact_inserted_split_the_wire() {
     let tmp = Tmp::new("split");
     let mut s = actual_size(&tmp, "101");
     // W13: from J1 to E55:L, routed by Golden A's route tool.
@@ -958,11 +954,13 @@ fn a_route_given_by_the_route_editor_and_a_contact_inserted_split_the_wire() {
             "kind": "connection", "targets": [w13.id.to_string()], "path": "overrides.csa", "value": "1.5"
         }}),
     );
-    done(&mut s, "select.set", json!({"ids": [w13.id.to_string()]}));
-    done(&mut s, "tool.route_edit", json!({}));
-    assert_eq!(s.tool().name(), "route_edit");
-    // Enter without a move stores the drawn polyline as the wire's route.
-    done(&mut s, "canvas.activate", json!({}));
+    // The drawn polyline stored as the wire's route.
+    let route: Vec<Value> = drawn.iter().map(|p| json!([p.0, p.1])).collect();
+    done(
+        &mut s,
+        "command.run",
+        json!({"cmd": "connection.route", "params": {"connection": w13.id.to_string(), "route": route}}),
+    );
     let routed = tables(&s)
         .connections
         .iter()
@@ -1073,6 +1071,30 @@ fn route_edit_drags_a_middle_segment_of_a_selected_connection() {
     done(&mut s, "select.set", json!({"ids": [w.id.to_string()]}));
     let on = sheet(&s, ((pts[0].0 + pts[2].0) / 2, row));
     let down = sheet(&s, ((pts[0].0 + pts[2].0) / 2, sn.page_of_index(10)));
+    // rc.3: the selected wire shows a round handle on each segment and bend; the one under the pointer is hot, and
+    // the pointer says the middle segment moves up and down.
+    done(&mut s, "canvas.pointer", at(on, json!({})));
+    let grips: Vec<bool> = s
+        .tool_overlay()
+        .items
+        .iter()
+        .filter_map(|i| match i {
+            OverlayItem::Grip { hot, .. } => Some(*hot),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(grips.len(), 5, "three segments and two bends: {grips:?}");
+    assert_eq!(grips.iter().filter(|h| **h).count(), 1, "one hot handle");
+    assert_eq!(s.grip_under_pointer(), Some(GripMove::UpDown));
+    // Escape during a drag puts the wire back.
+    let rev = s.revision();
+    done(&mut s, "canvas.press", at(on, json!({})));
+    done(&mut s, "canvas.pointer", at(down, json!({})));
+    assert_eq!(s.tool().state(), "dragging");
+    done(&mut s, "ui.dismiss", json!({}));
+    done(&mut s, "canvas.release", at(down, json!({})));
+    assert_eq!(s.revision(), rev, "Escape keeps the route");
+    done(&mut s, "select.set", json!({"ids": [w.id.to_string()]}));
     done(&mut s, "canvas.press", at(on, json!({})));
     done(&mut s, "canvas.pointer", at(down, json!({})));
     assert_eq!(s.tool().state(), "dragging");
@@ -1339,8 +1361,7 @@ fn the_rubber_band_of_a_move_is_the_route_rep_move_stores() {
     assert_eq!(band, stored);
 }
 
-/// Window check, items 7 and 3: Edit ▸ Junction sequence… and Edit ▸ Edit route are disabled with the reason naming what
-/// to select; an undo drops the tool's marks (overlay and preview) of the revision it leaves.
+/// Window check, items 7 and 3: Edit ▸ Junction sequence… is disabled with the reason naming what to select; an undo drops the tool's marks (overlay and preview) of the revision it leaves.
 #[test]
 fn junction_and_route_entries_name_what_to_select_and_undo_drops_the_marks() {
     let tmp = Tmp::new("window");
@@ -1356,7 +1377,6 @@ fn junction_and_route_entries_name_what_to_select_and_undo_drops_the_marks() {
         text.contains("item junction.open \"Junction sequence…\" disabled: Select exactly one junction"),
         "{text}"
     );
-    assert!(text.contains("item tool.route_edit \"Edit route\" disabled: Select exactly one connection"));
     let w = tables(&s).connections[0].id;
     done(&mut s, "select.set", json!({"ids": [w.to_string()]}));
     assert_eq!(refused(&mut s, "junction.open", json!({})), "reason-one-junction");

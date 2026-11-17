@@ -765,9 +765,9 @@ fn every_tool_cancels_with_escape_and_changes_nothing() {
     let mut h = on_golden(&tmp, "tools.ew");
     let mut started = BTreeSet::new();
     let mut problems = Vec::new();
-    // `<rep>`, `<wire>` and `<device>` stand for the first representation and connection of the page on show and the
-    // first device the panel page has not placed.
-    let rows: [ToolRow<'_>; 16] = [
+    // `<rep>` and `<device>` stand for the first representation of the page on show and the first device the panel
+    // page has not placed.
+    let rows: [ToolRow<'_>; 15] = [
         ("101", "wire", vec![("tool.wire", json!({}))]),
         ("101", "ip", vec![("tool.ip", json!({}))]),
         ("101", "text", vec![("tool.text", json!({}))]),
@@ -776,14 +776,6 @@ fn every_tool_cancels_with_escape_and_changes_nothing() {
         ("101", "structure_box", vec![("tool.structure_box", json!({}))]),
         ("101", "measure", vec![("tool.measure", json!({}))]),
         ("101", "image", vec![("tool.image", json!({}))]),
-        (
-            "101",
-            "route_edit",
-            vec![
-                ("select.set", json!({"ids": ["<wire>"]})),
-                ("tool.route_edit", json!({})),
-            ],
-        ),
         (
             "101",
             "place",
@@ -832,7 +824,6 @@ fn every_tool_cancels_with_escape_and_changes_nothing() {
         let tables = &shell.canvas().expect("a page").page().tables;
         let fill = [
             ("<rep>", tables.reps.first().map(|r| r.id.to_string())),
-            ("<wire>", tables.connections.first().map(|c| c.id.to_string())),
             (
                 "<device>",
                 shell

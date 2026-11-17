@@ -1521,6 +1521,17 @@ impl CanvasHost {
         {
             ui.ctx().set_cursor_icon(egui::CursorIcon::Grab);
         }
+        // A handle of the selected wire: the pointer says which way a drag moves it.
+        if response.hovered()
+            && let Some(way) = shell.grip_under_pointer()
+        {
+            use ew_viewmodel::tools::route_edit::GripMove;
+            ui.ctx().set_cursor_icon(match way {
+                GripMove::UpDown => egui::CursorIcon::ResizeVertical,
+                GripMove::Sideways => egui::CursorIcon::ResizeHorizontal,
+                GripMove::Free => egui::CursorIcon::Move,
+            });
+        }
         // Doc 16a §7.2, §6.18: the connection point under the pointer names its printed label,
         // its kind and its potential in a tooltip in the inverse style.
         // The link preview popup and a hover tooltip never show at once; while the popup shows, the

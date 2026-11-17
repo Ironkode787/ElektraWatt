@@ -79,7 +79,7 @@ impl ShellModel {
             }
             if kinds.len() == 1 {
                 for id in [
-                    "tool.route_edit",
+                    "route.reroute",
                     "tool.marker",
                     "potential.draw",
                     "cable.from_wires",

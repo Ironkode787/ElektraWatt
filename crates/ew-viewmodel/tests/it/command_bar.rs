@@ -450,21 +450,21 @@ fn arming_place_names_the_tool_the_target_and_its_keys() {
     s.shutdown();
 }
 
-/// The Draw tab's Renumber reads "Renumber devices", and Edit route stands in the Connect group beside
-/// Wire.
+/// The Draw tab's Renumber reads "Renumber devices", and Reroute stands in the Connect group beside Wire (rc.3:
+/// where Edit route stood).
 #[test]
-fn the_draw_tab_names_renumber_devices_and_offers_edit_route_beside_wire() {
+fn the_draw_tab_names_renumber_devices_and_offers_reroute_beside_wire() {
     let ids: Vec<&str> = command_bar::placed_in(Group::Connect)
         .iter()
         .map(|m| m.id)
         .collect();
-    assert_eq!(ids[..2], ["tool.wire", "tool.route_edit"]);
+    assert_eq!(ids[..2], ["tool.wire", "route.reroute"]);
     let tmp = Tmp::new("id1497-10");
     let mut s = tmp.shell_in(Mode::Headless, true, "101");
     let renumber = command_bar::action_button(&s, "devices.renumber").unwrap();
     assert_eq!(renumber.bar_label, "Renumber devices");
-    let route = command_bar::action_button(&s, "tool.route_edit").unwrap();
-    assert_eq!(route.bar_label, "Edit route");
+    let route = command_bar::action_button(&s, "route.reroute").unwrap();
+    assert_eq!(route.bar_label, "Reroute");
     s.shutdown();
 }
 

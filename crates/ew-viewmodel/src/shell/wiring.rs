@@ -20,7 +20,7 @@ use super::{Outcome, ShellModel, failed, flag, string_param};
 use crate::key;
 use crate::strings;
 use crate::strings::Key;
-use crate::tools::{CanvasEvent, EntityKind, JunctionEditor, RouteEditTool, Tool, WireTool, selection_kinds};
+use crate::tools::{CanvasEvent, EntityKind, JunctionEditor, Tool, WireTool, selection_kinds};
 
 impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
@@ -50,6 +50,28 @@ impl ShellModel {
             let kinds = selection_kinds(&self.tools.selection, &c.page().tables);
             matches!(kinds.as_slice(), [(_, EntityKind::Connection)])
         })
+    }
+
+    /// Which way the handle under the pointer moves, while Select is idle and a press there would drag a segment or a
+    /// bend of the selected line (the window's pointer shape over it); `None` elsewhere.
+    pub fn grip_under_pointer(&self) -> Option<crate::tools::route_edit::GripMove> {
+        if self.tools.tool.name() != "select" || self.tools.tool.state() != "idle" {
+            return None;
+        }
+        let c = self.canvas()?;
+        let at = c.pointer()?;
+        let page = c.page();
+        let cx = crate::tools::ToolCx {
+            page,
+            points_per_nm: c.points_per_nm(),
+            pane: c.pane(),
+            snapper: &page.snapper,
+            selection: &self.tools.selection,
+            layout: self.tools.layout_options,
+            connect_on_move: self.tools.connect_on_move,
+        };
+        crate::tools::route_edit::press_part(&cx, at)
+            .map(|(_, line, part)| crate::tools::route_edit::grip_move(&line, part))
     }
 
     /// Whether a fluid line is selected on the page shown.
@@ -177,39 +199,6 @@ impl ShellModel {
             }
             Err(reason_key) => Outcome::Refused { reason_key },
         }
-    }
-
-    /// `tool.route_edit` (§8.4): the keyboard route editor of exactly one selected connection.
-    pub(crate) fn act_route_edit(&mut self) -> Outcome {
-        let Some(c) = self.canvas() else {
-            return Outcome::refused(key!("reason-no-page"));
-        };
-        let tables = Arc::clone(&c.page().tables);
-        let cursor = c.cursor();
-        let connections: Vec<EntityRef> = selection_kinds(&self.tools.selection, &tables)
-            .into_iter()
-            .filter(|(_, k)| *k == EntityKind::Connection)
-            .map(|(e, _)| e)
-            .collect();
-        let [one] = connections.as_slice() else {
-            return Outcome::refused(key!("reason-one-connection"));
-        };
-        let Some(row) = tables.connections.iter().find(|x| x.id == one.0) else {
-            return Outcome::refused(key!("reason-one-connection"));
-        };
-        let tool = RouteEditTool::new(row, cursor);
-        self.activate_tool(Box::new(tool));
-        let overlay = self
-            .with_tool_cx(|t, cx| {
-                t.as_any_mut()
-                    .and_then(|a| a.downcast_mut::<RouteEditTool>())
-                    .map(|r| r.overlay(cx))
-            })
-            .flatten();
-        if let Some(o) = overlay {
-            self.tools.overlay = o;
-        }
-        Outcome::Done
     }
 
     /// The live region of the Wire tool while it routes (§8.2): `Wire: routing from <label>. …`.
@@ -652,24 +641,65 @@ impl ShellModel {
     }
 
     // -----------------------------------------------------------------------------------------------------------
-    // Route page and Route selection
+    // Route page and Reroute
 
     /// `route.page`: the plan of the page's unrouted connections in the preview card.
     pub(crate) fn act_route_page(&mut self) -> Outcome {
         self.route_card(ew_api::routing::RouteScope::Page)
     }
 
-    /// `route.selection`: the plan of the selected connections and of every connection with an end on a
-    /// selected representation, routed ones routed again, in the preview card.
-    pub(crate) fn act_route_selection(&mut self) -> Outcome {
-        if self.canvas().is_none() {
+    /// `route.reroute` (Reroute, rc.3): the selected connections, and every connection with an end on a selected
+    /// representation, routed again as if freshly drawn; with nothing of the page selected, every connection of the
+    /// page. Applied at once as one `connection.route_many` (one undo step) with only the routes that change; a toast
+    /// says how many wires it rerouted, or that it found no better route and why.
+    pub(crate) fn act_route_reroute(&mut self) -> Outcome {
+        let Some(c) = self.canvas() else {
             return Outcome::refused(key!("reason-no-page"));
-        }
-        let ids = self.route_selection_ids();
+        };
+        let tables = Arc::clone(&c.page().tables);
+        let mut ids = self.route_selection_ids();
         if ids.is_empty() {
-            return Outcome::refused(key!("reason-route-selection"));
+            ids = tables.connections.iter().map(|t| t.id).collect();
         }
-        self.route_card(ew_api::routing::RouteScope::Selection(ids))
+        let Some(folio) = self.current_folio().map(str::to_owned) else {
+            return Outcome::refused(key!("reason-no-page"));
+        };
+        let Some(session) = self.project.as_ref().map(|p| &p.session) else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let Some(mut plan) = session.route_plan(&folio, &ew_api::routing::RouteScope::Selection(ids)) else {
+            return Outcome::refused(key!("reason-no-page"));
+        };
+        let rows = route_rows(session, &folio, &plan);
+        // Only the routes that change: a wire whose new route is the one it has keeps it.
+        plan.routes.retain(|(id, route)| {
+            !tables
+                .connections
+                .iter()
+                .any(|t| t.id == *id && t.stored_route && t.polyline == *route)
+        });
+        let Some(params) = ew_api::routing::route_many_params(&plan) else {
+            let lead = strings::text(key!("toast-reroute-none")).to_owned();
+            let text = std::iter::once(lead).chain(rows).collect::<Vec<_>>().join(" ");
+            self.notify(text, false);
+            return Outcome::Done;
+        };
+        let out = self.run_commit(&ew_api::AnyCommand {
+            name: "connection.route_many".into(),
+            params,
+        });
+        if out != Outcome::Done {
+            return out;
+        }
+        let n = plan.routes.len();
+        let lead = if n == 1 {
+            strings::text(key!("toast-reroute-one")).to_owned()
+        } else {
+            strings::format(key!("toast-reroute"), &[&n.to_string()])
+        };
+        let text = std::iter::once(lead).chain(rows).collect::<Vec<_>>().join(" ");
+        self.notify(text, true);
+        Outcome::Done
     }
 
     /// The routes an open Route page or Route selection card plans on the page of canvas `group`, in sheet nm, while
@@ -709,7 +739,7 @@ impl ShellModel {
             .collect()
     }
 
-    /// The selected connections and representations of the focused page, which Route selection routes (it needs one).
+    /// The selected connections and representations of the focused page, which Reroute routes.
     pub(crate) fn route_selection_ids(&self) -> Vec<ew_api::output::Uuid> {
         self.canvas().map_or_else(Vec::new, |c| {
             selection_kinds(&self.tools.selection, &c.page().tables)
@@ -724,7 +754,7 @@ impl ShellModel {
     /// per connection left unrouted, with its reason; Apply commits the plan's one `connection.route_many`. A solve with
     /// nothing to route says so in a toast and opens no card; one that routes nothing fails with its lead.
     fn route_card(&mut self, scope: ew_api::routing::RouteScope) -> Outcome {
-        use ew_api::routing::{Unrouted, route_many_params};
+        use ew_api::routing::route_many_params;
         let Some(folio) = self.current_folio().map(str::to_owned) else {
             return Outcome::refused(key!("reason-no-page"));
         };
@@ -753,33 +783,7 @@ impl ShellModel {
                 &plan.unrouted.len().to_string(),
             ],
         );
-        let rows = plan
-            .unrouted
-            .iter()
-            .map(|(id, reason)| {
-                // The connection's ends in the window's language (FT-1600).
-                let wire = session
-                    .connection_words(&folio, *id)
-                    .map(|t| super::tools::rejected_words("", Some(&t)))
-                    .unwrap_or_default();
-                let key = match reason {
-                    Unrouted::Wires => key!("route-reason-wires"),
-                    Unrouted::Symbols => key!("route-reason-symbols"),
-                    Unrouted::Texts => key!("route-reason-texts"),
-                    Unrouted::Points => key!("route-reason-points"),
-                    Unrouted::FourArms => key!("route-reason-four-way"),
-                };
-                strings::format(key, &[&wire])
-            })
-            // A route across a text says what was given up (the persona re-test).
-            .chain(plan.over_texts.iter().map(|id| {
-                let wire = session
-                    .connection_words(&folio, *id)
-                    .map(|t| super::tools::rejected_words("", Some(&t)))
-                    .unwrap_or_default();
-                strings::format(key!("route-over-text"), &[&wire])
-            }))
-            .collect::<Vec<String>>();
+        let rows = route_rows(session, &folio, &plan);
         // Where the plan routes nothing new, no card opens: the message then says why each wire stays unrouted, as
         // the card would. (It gave the counts alone, "0 routed, 2 not routed", and no wire to look at.)
         let with_reasons = |lead: String| Outcome::Failed {
@@ -817,7 +821,6 @@ impl ShellModel {
                 rows,
                 page,
                 routed: plan.routes.len(),
-                selection: matches!(scope, ew_api::routing::RouteScope::Selection(_)),
             },
         )
     }
@@ -843,4 +846,36 @@ impl ShellModel {
         }
         out
     }
+}
+
+/// One sentence per wire a plan leaves unrouted, with its reason, and per wire it routes across a text, each naming
+/// the wire by its ends in words (FT-1600).
+fn route_rows(session: &ew_api::Session, folio: &str, plan: &ew_api::routing::RoutePlan) -> Vec<String> {
+    use ew_api::routing::Unrouted;
+    plan.unrouted
+        .iter()
+        .map(|(id, reason)| {
+            // The connection's ends in the window's language (FT-1600).
+            let wire = session
+                .connection_words(folio, *id)
+                .map(|t| super::tools::rejected_words("", Some(&t)))
+                .unwrap_or_default();
+            let key = match reason {
+                Unrouted::Wires => key!("route-reason-wires"),
+                Unrouted::Symbols => key!("route-reason-symbols"),
+                Unrouted::Texts => key!("route-reason-texts"),
+                Unrouted::Points => key!("route-reason-points"),
+                Unrouted::FourArms => key!("route-reason-four-way"),
+            };
+            strings::format(key, &[&wire])
+        })
+        // A route across a text says what was given up (the persona re-test).
+        .chain(plan.over_texts.iter().map(|id| {
+            let wire = session
+                .connection_words(folio, *id)
+                .map(|t| super::tools::rejected_words("", Some(&t)))
+                .unwrap_or_default();
+            strings::format(key!("route-over-text"), &[&wire])
+        }))
+        .collect()
 }

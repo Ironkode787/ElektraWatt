@@ -65,7 +65,7 @@ use ew_api::output::ew_dl::{Destination, EntityRef};
 
 use super::black_box;
 use super::move_keys::{move_command, move_overlay, moved_set, readout, release_command, steps_between};
-use super::route_edit::{RoutePart, moved_part, part_at, part_overlay, part_steps, route_command};
+use super::route_edit::{RoutePart, moved_part, part_overlay, part_steps, press_part, route_command};
 use super::transform::{selected_movable, selected_reps, transform_command};
 use super::wire::PageGridMap;
 use super::{
@@ -1162,11 +1162,7 @@ impl SelectTool {
         }
         // A segment or a bend of a selected connection, but not inside a representation's rectangle: there a drag
         // moves the representation (FT-500), as it did before every segment could be dragged.
-        let stack = cx.pick_stack(at);
-        let in_rep = stack
-            .iter()
-            .any(|e| entity_kind(&cx.page.tables, *e) == Some(EntityKind::Rep));
-        if !in_rep && let Some((connection, line, part)) = part_at(cx, at) {
+        if let Some((connection, line, part)) = press_part(cx, at) {
             self.origin = (cx.selection.generation, cx.page.rev);
             self.state = State::Segment {
                 connection,
@@ -1178,6 +1174,7 @@ impl SelectTool {
             };
             return ToolOutput::None;
         }
+        let stack = cx.pick_stack(at);
         if let Some(&entity) = stack.first() {
             let tables = &cx.page.tables;
             let movable = |e: EntityRef| {

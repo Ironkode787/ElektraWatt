@@ -429,19 +429,24 @@ fn the_pick_stacks_hover_outline_and_walk() {
     assert_eq!(shell.selection().items, vec![stack[1]]);
     let image = snapshot(&shell);
     let lines = shell.selected_paths(0);
-    let (x, y) = if lines.is_empty() {
+    if lines.is_empty() {
         let second = rect_of(stack[1]);
         assert!(shell.selected_rects(0).contains(&second), "{:?}", shell.selected_rects(0));
         let o = overlay_of(&shell, None, &[second]);
         let band = o.selected.iter().max_by_key(|r| r.x1 - r.x0).copied().unwrap();
-        ((band.x0 + band.x1) / 2, band.y0)
+        assert_eq!(
+            rgb(&image, (band.x0 + band.x1) / 2, band.y0),
+            ACCENT,
+            "the walked selection"
+        );
     } else {
-        // A wire: the solid edge of its band.
+        // A wire: the solid edge of its band (its round handles cover some of it).
         let o = overlay_with_bands(&shell, None, &lines);
-        let edge = o.selected_band_edge.first().copied().expect("the band's edge");
-        (edge.x0, edge.y0)
-    };
-    assert_eq!(rgb(&image, x, y), ACCENT, "the walked selection");
+        assert!(
+            o.selected_band_edge.iter().any(|r| rgb(&image, r.x0, r.y0) == ACCENT),
+            "the walked selection"
+        );
+    }
     shell.shutdown();
 }
 

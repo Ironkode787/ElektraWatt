@@ -27,8 +27,8 @@
 //! ([`transform`]) and change symbol ([`ExchangeTool`]).
 //!
 //! It also holds wiring: the Wire tool ([`WireTool`]) with the router of `ew_api::routing`, the
-//! autoconnect proposals of a floating or dragged symbol ([`autoconnect`]), route edit (Select's segment drag and
-//! [`RouteEditTool`]) and the junction sequence editor ([`JunctionEditor`]); a tool's route reaches the transcript
+//! autoconnect proposals of a floating or dragged symbol ([`autoconnect`]), route edit (Select's segment and bend
+//! drag, [`route_edit`]) and the junction sequence editor ([`JunctionEditor`]); a tool's route reaches the transcript
 //! through [`Tool::route_info`].
 //!
 //! It also holds interruption points and black boxes: the IP tool ([`IpTool`]) with its naming and
@@ -99,7 +99,6 @@ pub use picker::{
 pub(crate) use picker::{filter_tokens, part_texts, tokens_hit};
 pub use place::{ORIENT_NAMES, PlaceTarget, PlaceTool, inside_polygon, next_designation};
 pub use rail_draw::{DrawCard, DrawPart, RailDrawTool};
-pub use route_edit::RouteEditTool;
 pub use structure_box::StructureBoxTool;
 pub use text::{BINDABLE, TextEditTool, TextTool};
 pub use wire::{WireTarget, WireTool};

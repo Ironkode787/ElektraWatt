@@ -10,7 +10,7 @@ requires = [
     "part: EW-GEN-LMP-1",
     "action: tool.move",
     "action: tool.wire",
-    "action: route.selection",
+    "action: route.reroute",
     "action: messages.check",
     "action: file.export_pdf",
 ]

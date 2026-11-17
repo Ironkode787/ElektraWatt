@@ -887,7 +887,7 @@ fn a_right_click_on_the_page_cancels_the_active_tool() {
     d.shell_mut().shutdown();
 }
 
-/// The owner's hands-on test of 0.1.0: Edit route should work with the mouse, by dots on the sections of a wire that
+/// The owner's hands-on test of 0.1.0: a route should be edited with the mouse, by dots on the sections of a wire that
 /// are dragged. A selected wire shows a handle on each segment and bend, and a drag on a straight wire's line moves
 /// it sideways: the ends stay on their connection points, a stub leaves each, the route stays right-angled, and one
 /// undo takes it back.

@@ -345,13 +345,12 @@ impl ShellModel {
         // A page or tab change ends the gesture a sticky refusal belonged to.
         self.tools.notice = None;
         self.tools.notice_sticky = false;
-        // An editing tool (Wire, Edit route, Place, Change symbol, and the part-4b Text, Text edit, Graphic, Wire
+        // An editing tool (Wire, Place, Change symbol, and the part-4b Text, Text edit, Graphic, Wire
         // marker, Structure box and part-5 Image tools) works on one page: a page or tab
         // change ends it and Select takes over. The selection survives.
         if matches!(
             self.tools.tool.name(),
             "wire"
-                | "route_edit"
                 | "place"
                 | "exchange"
                 | "paste"
@@ -1445,11 +1444,11 @@ impl ShellModel {
             self.tools.notice_at = None;
             return self.act_props_focus();
         }
-        // The keyboard route editor commits without a grid cursor (its segment stays where it is), and so does the paste
-        // tool (its ghost stays where duplicate or the pointer put it), and so does the Wire marker typing over the
+        // The paste tool commits without a grid cursor (its ghost stays where duplicate or the pointer put it), and so
+        // does the Wire marker typing over the
         // wires a dragged line crossed (FT-1684: Enter placed nothing after a drag by the pointer).
         let marker_typing = self.tools.tool.name() == "marker" && self.tools.tool.state() == "typing";
-        if (marker_typing || matches!(self.tools.tool.name(), "route_edit" | "paste" | "layout_place"))
+        if (marker_typing || matches!(self.tools.tool.name(), "paste" | "layout_place"))
             && self.canvas().and_then(CanvasModel::cursor).is_none()
         {
             return self.send_tool(&CanvasEvent::Activate);

@@ -21,7 +21,7 @@ use serde_json::{Map, Value, json};
 
 use super::canvas_actions::point_mm;
 use super::{Outcome, ShellModel, failed, flag, string_param};
-use crate::canvas::CanvasPage;
+use crate::canvas::{CanvasModel, CanvasPage};
 use crate::key;
 use crate::strings;
 use crate::strings::Key;
@@ -933,13 +933,14 @@ impl ShellModel {
     /// grips overlay the host set is cleared (the end of every dispatch).
     pub(super) fn sync_box_grips(&mut self) {
         let idle = self.tools.tool.name() == "select" && self.tools.tool.state() == "idle";
+        let pointer = self.canvas().and_then(CanvasModel::pointer);
         let want = if idle {
             self.with_tool(|_, cx| {
                 selected_black_box(cx)
                     .map(|r| black_box::grips_overlay(cx, r))
                     .or_else(|| {
                         crate::tools::route_edit::selected_connection(cx)
-                            .map(|c| crate::tools::route_edit::handles_overlay(cx, c))
+                            .map(|c| crate::tools::route_edit::handles_overlay(cx, c, pointer))
                     })
                     .or_else(|| crate::tools::block_grips(cx))
                     .or_else(|| crate::tools::label_grip(cx))

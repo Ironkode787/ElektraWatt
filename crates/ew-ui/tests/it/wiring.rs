@@ -217,17 +217,17 @@ fn drag(h: &mut Harness<'_, App>, a: egui::Pos2, b: egui::Pos2, n: usize) {
     settle(h);
 }
 
-/// Window check, item 1: a page change ends Edit route (an editing tool works on one page); Select takes over and the
-/// strip says so. The selection survives the page change.
+/// Window check, item 1: a page change ends the Wire tool (an editing tool works on one page); Select takes over and
+/// the strip says so. The selection survives the page change.
 #[test]
-fn a_page_change_ends_edit_route_and_select_takes_over() {
+fn a_page_change_ends_the_wire_tool_and_select_takes_over() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "103");
     let w = connections(&h)[0].id;
     dispatch(&mut h, "select.set", json!({"ids": [w.to_string()]}));
-    dispatch(&mut h, "tool.route_edit", json!({}));
+    dispatch(&mut h, "tool.wire", json!({}));
     settle(&mut h);
-    assert_eq!(h.state().shell().tool().name(), "route_edit");
+    assert_eq!(h.state().shell().tool().name(), "wire");
     dispatch(&mut h, "page.goto", json!({"folio": "101"}));
     settle(&mut h);
     wait_for_page(&mut h);

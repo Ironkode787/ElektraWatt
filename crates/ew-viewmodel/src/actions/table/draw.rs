@@ -775,23 +775,23 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, p| s.act_tool_connect_on_move(p),
     )))),
-    // Edit route on the Draw tab's Connect group, beside Wire (the polyline: Wire has the route icon).
-    keeps_banner(in_canvas(placed(
+    // Reroute on the Draw tab's Connect group, beside Wire, where Edit route stood (rc.3): the selected wires routed
+    // again as if freshly drawn, at once; with nothing selected, the page's wires. It replaces Edit route and Route
+    // selection. Its icon is the polyline's (Wire has the route icon).
+    keeps_banner(placed(
         place(Group::Connect, 2, CommandSize::Small, None),
         "ew-shape-polyline",
         act(
-            "tool.route_edit",
+            "route.reroute",
             Command,
             Menu::Draw,
             &[],
-            one_connection,
+            editable_page,
             grp(Group::Connect),
-            |s, _| s.act_route_edit(),
+            |s, _| s.act_route_reroute(),
         ),
-    ))),
-    // Route page and Route selection after Edit route, previewed (no default key); after Interruption,
-    // so the two stack in one column of their own. Each its own icon, neither the generated badge's
-    // (C1): the page as a whole, and a pull on the selected wires.
+    )),
+    // Route page after Interruption, previewed (no default key), in a column of its own: the page as a whole.
     keeps_banner(placed(
         place(Group::Connect, 7, CommandSize::Small, None),
         "file-settings",
@@ -803,19 +803,6 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             editable_page,
             grp(Group::Connect),
             |s, _| s.act_route_page(),
-        ),
-    )),
-    keeps_banner(placed(
-        place(Group::Connect, 8, CommandSize::Small, None),
-        "magnet",
-        act(
-            "route.selection",
-            Command,
-            Menu::Draw,
-            &[],
-            route_selection,
-            grp(Group::Connect),
-            |s, _| s.act_route_selection(),
         ),
     )),
     keeps_banner(in_canvas(act(

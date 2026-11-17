@@ -5,22 +5,18 @@
 //! steps, or a bend moved in both directions, the neighbours stretching, committed as `connection.route`.
 //!
 //! **Pointer** (Select's `dragging (segment)` rows, [`SelectTool`](super::SelectTool)): while one connection is
-//! selected, Select shows a handle on every segment and every bend of its line ([`handles_overlay`]). A press on a
-//! segment of a *selected* connection drags it: a horizontal segment moves vertically and a vertical one
-//! horizontally. A press on a bend drags the corner, which moves its two segments. The readout shows the offset;
-//! the release commits, Escape cancels.
-//!
-//! **Keyboard** ([`RouteEditTool`], `tool.route_edit` on one selected connection): Tab cycles the segments,
-//! the grid cursor's row or column is the segment's new position, Enter commits. On a route-less connection the
-//! first edit starts from its drawn polyline, so the commit stores it with the moved segment; Enter without a move
-//! stores the drawn polyline as it is.
+//! selected, Select shows a round handle on every segment and every bend of its line ([`handles_overlay`]), the one
+//! a press would take larger. A press on a segment of a *selected* connection drags it: a horizontal segment moves
+//! vertically and a vertical one horizontally. A press on a bend drags the corner, which moves its two segments. The
+//! readout shows the offset; the release commits (one undo step), Escape cancels. On a route-less connection the drag
+//! starts from its drawn polyline. The keyboard route editor (Edit route) is gone since rc.3: Reroute
+//! (`route.reroute`) routes selected wires anew, and the keyboard move does the rest.
 //!
 //! **The ends stay.** The route's ends are on their connection points and never move. A first or last segment that
 //! is moved keeps a stub of one grid step at its end (none when the segment is no longer than a step) and jogs
 //! after it, so a straight wire dragged sideways becomes a bracket round what was in its way. (Until M2.5-Fix only
 //! the segments between the first and the last could be moved, so a straight wire and an L had nothing to drag.)
 
-use crate::key;
 use ew_api::AnyCommand;
 use ew_api::output::TableConnection;
 use ew_api::output::ew_dl::EntityRef;
@@ -29,9 +25,7 @@ use serde_json::json;
 use super::autoconnect::dedup;
 use super::move_keys::readout;
 use super::wire::PageGridMap;
-use super::{
-    Anchor, CanvasEvent, Overlay, OverlayItem, Style, Token, Tool, ToolCx, ToolKey, ToolOutput, rect_of,
-};
+use super::{Anchor, Overlay, OverlayItem, Style, Token, ToolCx};
 
 /// What of a route a drag moves: the segment from vertex `n` to the next, or the bend at the interior vertex `n`.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -216,6 +210,38 @@ pub fn part_at(cx: &ToolCx<'_>, at: (i64, i64)) -> Option<PartRef> {
     bend.or(segment).map(|(_, s)| s)
 }
 
+/// The part of a selected connection a press at the sheet point `at` takes ([`part_at`]), but none inside a
+/// representation's rectangle, where a drag moves the representation (FT-500): Select's press, and the handle the
+/// window marks under the pointer.
+pub fn press_part(cx: &ToolCx<'_>, at: (i64, i64)) -> Option<PartRef> {
+    let in_rep = cx
+        .pick_stack(at)
+        .iter()
+        .any(|e| super::entity_kind(&cx.page.tables, *e) == Some(super::EntityKind::Rep));
+    if in_rep { None } else { part_at(cx, at) }
+}
+
+/// Which way a handle of `part` of `line` moves: a horizontal segment's up and down, a vertical one's sideways, a
+/// bend's both ways (the pointer's shape over it).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum GripMove {
+    /// Up and down (a horizontal segment).
+    UpDown,
+    /// Sideways (a vertical segment).
+    Sideways,
+    /// Both ways (a bend).
+    Free,
+}
+
+/// The way `part` of `line` moves ([`GripMove`]).
+pub fn grip_move(line: &[(i64, i64)], part: RoutePart) -> GripMove {
+    match part {
+        RoutePart::Segment(seg) if horizontal(line, seg) => GripMove::UpDown,
+        RoutePart::Segment(_) => GripMove::Sideways,
+        RoutePart::Bend(_) => GripMove::Free,
+    }
+}
+
 /// The steps of a drag of `part` from the sheet point `from` to `to`: for a segment the step across it only.
 pub fn part_steps(
     cx: &ToolCx<'_>,
@@ -230,18 +256,6 @@ pub fn part_steps(
         RoutePart::Segment(_) => (kx, 0),
         RoutePart::Bend(_) => (kx, ky),
     }
-}
-
-/// The steps of a segment drag from the sheet point `from` to `to`: the perpendicular axis only.
-pub fn segment_steps(
-    cx: &ToolCx<'_>,
-    line: &[(i64, i64)],
-    seg: usize,
-    from: (i64, i64),
-    to: (i64, i64),
-) -> i64 {
-    let (kx, ky) = part_steps(cx, line, RoutePart::Segment(seg), from, to);
-    kx + ky
 }
 
 /// The overlay of `part` moved by `steps`: the new route dashed and the readout at the part.
@@ -264,38 +278,34 @@ pub fn part_overlay(cx: &ToolCx<'_>, line: &[(i64, i64)], part: RoutePart, steps
     Overlay::new(items)
 }
 
-/// The overlay of a segment moved by `k` steps: the new route dashed and the readout at the segment.
-pub fn segment_overlay(cx: &ToolCx<'_>, line: &[(i64, i64)], seg: usize, k: i64) -> Overlay {
-    let steps = if horizontal(line, seg) { (0, k) } else { (k, 0) };
-    part_overlay(cx, line, RoutePart::Segment(seg), steps)
-}
-
-/// The handles of a selected connection's line: a solid square on the middle of every segment that moves and a dashed
-/// square on every bend, 3 points across each half, as the grips of a selected black box (shapes, not colour, tell
-/// them apart; NFR-A11Y-03). They show where a drag takes hold; a press anywhere on a segment drags it too.
-pub fn handles_overlay(cx: &ToolCx<'_>, c: &TableConnection) -> Overlay {
+/// The handles of a selected connection's line: a round handle ([`OverlayItem::Grip`]) on the middle of every
+/// segment that moves and on every bend, the one a press at `pointer` takes ([`press_part`]) hot. They show where a
+/// drag takes hold; a press anywhere on a segment drags it too.
+pub fn handles_overlay(cx: &ToolCx<'_>, c: &TableConnection, pointer: Option<(i64, i64)>) -> Overlay {
     let line = dedup(&c.polyline);
-    let r = cx.nm_of_points(3.0).round() as i64;
-    let square = |p: (i64, i64), style: Style| OverlayItem::Rect {
-        r: rect_of((p.0 - r, p.1 - r), (p.0 + r, p.1 + r)),
-        style,
-    };
+    let hot = pointer
+        .and_then(|p| press_part(cx, p))
+        .filter(|(id, _, _)| id.0 == c.id)
+        .map(|(_, _, part)| part);
     let sheet = |p: (i64, i64)| cx.snapper.page_to_sheet(p);
     let mut items: Vec<OverlayItem> = movable_segments(&line)
         .into_iter()
         .map(|i| {
             let (a, b) = (sheet(line[i]), sheet(line[i + 1]));
-            square(
-                (a.0 + (b.0 - a.0) / 2, a.1 + (b.1 - a.1) / 2),
-                Style::solid(Token::Ghost),
-            )
+            OverlayItem::Grip {
+                at: (a.0 + (b.0 - a.0) / 2, a.1 + (b.1 - a.1) / 2),
+                hot: hot == Some(RoutePart::Segment(i)),
+            }
         })
         .collect();
     let unit = PageGridMap::new((1, 1));
     items.extend(
         (1..line.len().saturating_sub(1))
             .filter(|i| moved_bend(&line, *i, (0, 0), unit).is_some())
-            .map(|i| square(sheet(line[i]), Style::dashed(Token::Ghost))),
+            .map(|i| OverlayItem::Grip {
+                at: sheet(line[i]),
+                hot: hot == Some(RoutePart::Bend(i)),
+            }),
     );
     Overlay::new(items)
 }
@@ -317,125 +327,6 @@ pub fn route_command(connection: EntityRef, route: &[(i64, i64)]) -> Box<AnyComm
             "route": route.iter().map(|p| vec![p.0, p.1]).collect::<Vec<_>>(),
         }),
     })
-}
-
-/// The keyboard route editor (`tool.route_edit`): see the module documentation.
-#[derive(Clone, Debug)]
-pub struct RouteEditTool {
-    connection: EntityRef,
-    line: Vec<(i64, i64)>,
-    stored: bool,
-    /// The movable segments and the index of the current one.
-    segments: Vec<usize>,
-    current: usize,
-    /// The grid cursor when the tool was armed or the segment changed, and the steps since.
-    from: Option<(i64, i64)>,
-    steps: i64,
-}
-
-impl RouteEditTool {
-    /// The editor of connection row `c` (its drawn polyline; `stored` whether it has a stored route), the grid cursor
-    /// at `cursor`.
-    pub fn new(c: &TableConnection, cursor: Option<(i64, i64)>) -> RouteEditTool {
-        let line = dedup(&c.polyline);
-        RouteEditTool {
-            connection: EntityRef(c.id),
-            segments: movable_segments(&line),
-            line,
-            stored: c.stored_route,
-            current: 0,
-            from: cursor,
-            steps: 0,
-        }
-    }
-
-    /// The connection it edits.
-    pub fn connection(&self) -> EntityRef {
-        self.connection
-    }
-
-    /// The current segment's index in the polyline, if it has a movable segment.
-    pub fn segment(&self) -> Option<usize> {
-        self.segments.get(self.current).copied()
-    }
-
-    /// The route the editor would commit.
-    pub fn route(&self, cx: &ToolCx<'_>) -> Vec<(i64, i64)> {
-        let grid = PageGridMap::new(cx.page.tables.grid);
-        self.segment()
-            .and_then(|s| moved_route(&self.line, s, self.steps, grid))
-            .unwrap_or_else(|| self.line.clone())
-    }
-
-    /// The overlay: the route with the current segment moved, or the drawn polyline.
-    pub fn overlay(&self, cx: &ToolCx<'_>) -> Overlay {
-        match self.segment() {
-            Some(s) => segment_overlay(cx, &self.line, s, self.steps),
-            None => Overlay::new(vec![OverlayItem::Polyline {
-                points: self.line.iter().map(|p| cx.snapper.page_to_sheet(*p)).collect(),
-                style: Style::dashed(Token::Ghost),
-            }]),
-        }
-    }
-
-    /// The command of Enter or a dwell: the moved route; the drawn polyline of a route-less connection unmoved;
-    /// `None` for a stored route unmoved.
-    fn command(&self, cx: &ToolCx<'_>) -> Option<Box<AnyCommand>> {
-        if self.steps == 0 && self.stored {
-            return None;
-        }
-        Some(route_command(self.connection, &self.route(cx)))
-    }
-}
-
-impl Tool for RouteEditTool {
-    fn name(&self) -> &'static str {
-        "route_edit"
-    }
-
-    fn state(&self) -> &'static str {
-        "armed"
-    }
-
-    fn on_event(&mut self, ev: &CanvasEvent, cx: &ToolCx<'_>) -> ToolOutput {
-        match ev {
-            CanvasEvent::CursorMove { at } => {
-                let from = *self.from.get_or_insert(*at);
-                if let Some(s) = self.segment() {
-                    self.steps = segment_steps(cx, &self.line, s, from, *at);
-                }
-                ToolOutput::Transient(self.overlay(cx))
-            }
-            CanvasEvent::Key(ToolKey::NextProposal) => {
-                if !self.segments.is_empty() {
-                    self.current = (self.current + 1) % self.segments.len();
-                    self.steps = 0;
-                    self.from = None;
-                }
-                ToolOutput::Transient(self.overlay(cx))
-            }
-            CanvasEvent::Dwell { ms } if *ms >= super::PREVIEW_DWELL_MS => match self.command(cx) {
-                Some(cmd) => ToolOutput::Preview(cmd),
-                None => ToolOutput::None,
-            },
-            CanvasEvent::Activate => match self.command(cx) {
-                Some(cmd) => ToolOutput::Commit(cmd),
-                None => ToolOutput::Cancel,
-            },
-            _ => ToolOutput::None,
-        }
-    }
-
-    fn status_hint(&self) -> super::Hint {
-        super::Hint::new(
-            key!("hint-route-edit"),
-            &["tool.next_proposal", super::ENTER, super::ESCAPE],
-        )
-    }
-
-    fn as_any_mut(&mut self) -> Option<&mut dyn std::any::Any> {
-        Some(self)
-    }
 }
 
 #[cfg(test)]

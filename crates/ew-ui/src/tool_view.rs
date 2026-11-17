@@ -77,7 +77,7 @@ pub fn marks(overlay: &Overlay, snapper: &tools::Snapper) -> Vec<ToolMark> {
 }
 
 /// The marks the canvas of `group` shows: the active tool's overlay on the focused group only, and the routes an open
-/// Route page or Route selection card plans, solid in the ghost token over the dashed lines they replace.
+/// Route page card plans, solid in the ghost token over the dashed lines they replace.
 pub fn marks_of(shell: &ShellModel, group: usize) -> Vec<ToolMark> {
     let mut out = if shell.area().map(|a| a.focused) == Some(group)
         && let Some(c) = shell.canvas_of(group)

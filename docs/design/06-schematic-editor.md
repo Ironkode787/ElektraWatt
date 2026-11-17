@@ -543,7 +543,7 @@ end's, else horizontal first. It takes no notice of what lies under it and is no
 the thinnest pen, and the Wire tool's ghost and the router's own result for a request without a route are the same
 line (`ew_derive::routing::unrouted_line`). The
 commands still never route: the router, now `ew_derive::routing` reached through `ew_api::routing`, runs in
-the tools and in Route page and Route selection, which store their plan with `connection.route_many`; autoconnect
+the tools and in Route page and Reroute, which store their plan with `connection.route_many`; autoconnect
 hints store their straight run; `rep.move` takes the routes the Select tool re-solved (FT-18). A new row 18,
 *interruption-point form*, gives an interruption point drawn with EW's IP symbol the arrow form of its direction
 (WP-S2.19 specification D16).
@@ -1005,8 +1005,10 @@ stateDiagram-v2
 - *As built.* The ghost is `route_one`'s route; the passes
   and the turned IP end are gone. Without a clear route the ghost is the dashed right-angled line of an unrouted
   wire, the line the page then draws, and the HUD says "No clear route: the wire stays a dashed line without a route. Click
-  free points to lead it, or draw it later with Edit route."; a commit then stores the
-  wire without a route, or with the fixed bends and an L tail as the user's route when a bend was fixed. After a click
+  free points to lead it, or route it later with Reroute."; a commit then stores the
+  wire without a route. *As built (rc.3).* After a fixed bend from which no clear route leads on, the wire is routed
+  from its start as if drawn anew (its fixed bends dropped), else stored unrouted: the L tail the user's bend forced
+  could run through a pin and along another wire, which the checks report as errors. After a click
   that places a bend the HUD says "Bend placed: click a connection point to end the wire." *As built (M3 persona
   re-test, [ADR-0033](../adr/0033-schematic-routing-model.md) amendments 1 and 2).* `route_one` crosses a text where
   no text-clear route exists or every one is a far longer way: the search finds the best route across a text
@@ -1211,13 +1213,18 @@ moved page geometry (the moved representations' bodies, CPs and texts displaced 
 followed route along its rubber band) and routes again every connection with a moved end that is unrouted, breaks a
 hard rule there or bends more than before; it commits them as `rep.move`'s `routes`, applied after the follow as
 `connection.route_many` applies its entries, in the move's one undo step; a connection the router finds no clear route
-for keeps the followed route. **Route page** (`route.page`) and **Route selection** (`route.selection`) sit in the Draw
-tab's Connect group after Edit route and Interruption, stacked in one column of their own, with no default
-key; each opens the plan in the Preview tab ("Route 3 wires on
+for keeps the followed route. **Route page** (`route.page`) sits in the Draw
+tab's Connect group after Interruption, with no default key; it opens the plan in the Preview tab ("Route 3 wires on
 folio 101: 2 routed, 1 not routed.", one row per wire left unrouted with its reason) and draws the planned routes
 on the canvas as its ghost, solid in the ghost colour over the dashed lines, until Apply or Cancel; Apply commits one
 `connection.route_many` with the toast "Routed 2 wires on folio 101."; a page with nothing to route says "Every wire on
-folio 101 has a route." The layout measures are the check rules EW-CORE-067 to -070, -072 and -073 (doc 15 §4).
+folio 101 has a route." *As built (rc.3).* **Reroute** (`route.reroute`) stands beside Wire where Edit route stood and
+replaces Edit route (the keyboard route editor) and Route selection: the selected connections and every connection with
+an end on a selected representation, or with nothing of the page selected every connection of the page, are routed
+again as if freshly drawn (`RouteScope::Selection`) and applied at once, the routes that change in one
+`connection.route_many` (one undo step), with no card; the toast says "3 wires rerouted." or "No better route found:
+the wires keep their routes.", each followed by the reasons of the wires left as they were. A route is edited by hand
+with the selected wire's round handles (Select's segment and bend drag, doc 16a §7.1). The layout measures are the check rules EW-CORE-067 to -070, -072 and -073 (doc 15 §4).
 
 ### 5.5 Physical wires behind junctions and IPs
 
@@ -1376,7 +1383,7 @@ KiCad.
 
 *As built.* The EW preset now binds, in the canvas context, I (Insert ▸ Symbol, the picker), Shift+I (Insert ▸ Device from part), M (keyboard move: the arrow keys move by grid steps, Enter commits, Escape cancels), R and Shift+R, X and Y, V and Shift+V (on the Place ghost and on a selection), Delete (the selection; a pending move is cancelled first), Shift+Enter (finish the active tool, also a double click) and E or Alt+Enter (Properties of selection: the focus moves to the property grid); the picker takes Up, Down, Home, End and Enter itself. In the property grid's context the registry binds F2 (edit the row), Shift+F10 (the row menu; egui reports no Menu key), Shift+Enter (the multi-language editor) and Ctrl+Enter (apply the preview card), and the pane itself takes the arrows, Home, End, Enter, Space (toggle a checkbox) and the keys that start an edit; Escape stays the global dismiss. A chord is unique within its shell context, so Shift+Enter means "finish" on the canvas and "multi-language editor" in the grid. Edit ▸ Change symbol has no default key. W, P, B, T, L and Shift+W follow with WP-S2.04's later parts; Ctrl+F and Ctrl+H with WP-S2.05 part 2; the KiCad-like preset with WP-S2.08.
 
-*As built.* The canvas context adds W (Insert ▸ Connection, the Wire tool; with it `]` and `[` move the grid cursor between connection points, Enter or a click fixes a bend or ends the wire, Backspace removes the last bend, Escape cancels), Tab (the next autoconnect proposal of the Place ghost), C (connect on move: turns it off or on for the session), Ctrl+Enter (a click with Alt held at the grid cursor, `canvas.activate_alt`: a placement without proposals) and Enter on exactly one selected junction (Edit ▸ Junction sequence…; in its popup Alt+Up and Alt+Down move the focused member and R cycles a bevel's orientation). Edit ▸ Edit route and Edit ▸ Junction sequence… are disabled until exactly one connection or junction is selected. Edit ▸ Find… (Ctrl+F) and Edit ▸ Find and replace… (Ctrl+H) are global; in the find pane Enter searches, Up, Down, Home and End move the result cursor, Enter on a result jumps, Tab moves between the fields, and Ctrl+Enter replaces (or applies the open card). Ctrl+Enter is thus bound in three contexts, canvas, property grid and find, each unique within its own. macOS keeps Ctrl+H until the per-platform keymap gives it ⌥⌘F. P, B, T, L and Shift+W follow with WP-S2.04's later parts.
+*As built.* The canvas context adds W (Insert ▸ Connection, the Wire tool; with it `]` and `[` move the grid cursor between connection points, Enter or a click fixes a bend or ends the wire, Backspace removes the last bend, Escape cancels), Tab (the next autoconnect proposal of the Place ghost), C (connect on move: turns it off or on for the session), Ctrl+Enter (a click with Alt held at the grid cursor, `canvas.activate_alt`: a placement without proposals) and Enter on exactly one selected junction (Edit ▸ Junction sequence…; in its popup Alt+Up and Alt+Down move the focused member and R cycles a bevel's orientation). Edit ▸ Junction sequence… is disabled until exactly one junction is selected. Edit ▸ Find… (Ctrl+F) and Edit ▸ Find and replace… (Ctrl+H) are global; in the find pane Enter searches, Up, Down, Home and End move the result cursor, Enter on a result jumps, Tab moves between the fields, and Ctrl+Enter replaces (or applies the open card). Ctrl+Enter is thus bound in three contexts, canvas, property grid and find, each unique within its own. macOS keeps Ctrl+H until the per-platform keymap gives it ⌥⌘F. P, B, T, L and Shift+W follow with WP-S2.04's later parts.
 
 **Accessibility.** Every tool is operable from the keyboard (NFR-A11Y-01). The selected object is announced as a live
 region ("-102G1, power supply 24 V DC, 7 connection points, 9 wires"; FR-UI-026, NFR-A11Y-02), and the navigators
@@ -1560,7 +1567,7 @@ interactions:
 | Symbol placement with variants A–H, representation types, part-first placement | ● | | | |
 | Autoconnect assistant with two-stage ghosts; split on insert | ● | | | |
 | Explicit connections, orthogonal auto-route, route editing, crossings or hops | ● | | | |
-| Page router: Route page and Route selection, re-solve and connect on move, the unrouted dashed line, the layout rules | ● | | | |
+| Page router: Route page and Reroute, re-solve and connect on move, the unrouted dashed line, the layout rules | ● | | | |
 | Junctions with style, wiring and sequence editor | ● | | | |
 | Interruption points (star, chain, matrix, external), continue on page, arrange | ● | | | |
 | Xref formats and presets; main/aux and same-function xrefs; contact images | ● | | | |

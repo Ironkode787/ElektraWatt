@@ -273,7 +273,7 @@ pub enum CardOrigin {
     /// A table round trip's file read against a navigator's table (`navigator.import_table`): the card in the Preview tab with the counts and the per-cell list; Apply commits the import's one
     /// `fields.set_many`.
     TableImport(Box<TableImportCard>),
-    /// Route page and Route selection (`route.page`, `route.selection`): the card in the Preview tab with the plan's
+    /// Route page (`route.page`): the card in the Preview tab with the plan's
     /// lead line and one row per connection left unrouted; Apply commits the plan's `connection.route_many`.
     Route {
         /// "Route 3 wires on folio 101: 2 routed, 1 not routed." (§12a).
@@ -284,8 +284,6 @@ pub enum CardOrigin {
         page: String,
         /// How many wires the plan routes.
         routed: usize,
-        /// Whether Route selection opened it (else Route page): the card's title follows the button.
-        selection: bool,
     },
 }
 
@@ -520,10 +518,9 @@ pub struct Card {
 
 impl Card {
     /// What the card's title names (`Preview: <it>`): the command's title, but for a route card the button that opened
-    /// it, "Route page" or "Route selection" (the window check's C3).
+    /// it, "Route page" (the window check's C3).
     pub fn command(&self) -> &str {
         match &self.origin {
-            CardOrigin::Route { selection: true, .. } => strings::text(key!("action-route-selection")),
             CardOrigin::Route { .. } => strings::text(key!("action-route-page")),
             _ => strings::command_title(&self.preview.name),
         }
