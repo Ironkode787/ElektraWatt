@@ -159,14 +159,21 @@ pub(crate) fn chooser(
                             events.push(Event::Action("part.favourite", json!({ "index": i + 1 })));
                         }
                         let mut job = egui::text::LayoutJob::default();
+                        // A cable part that does not fit the cable is greyed, its reason among the badges (rc.3).
+                        let misfit = c.misfits.get(i).cloned().flatten();
+                        let (primary, secondary) = if misfit.is_some() {
+                            (t.text_tertiary, t.text_tertiary)
+                        } else {
+                            (t.text_primary, t.text_secondary)
+                        };
                         let strong = egui::TextFormat {
                             font_id: theme::font(&t.type_body_strong),
-                            color: t.text_primary.color32(),
+                            color: primary.color32(),
                             ..Default::default()
                         };
                         let plain = egui::TextFormat {
                             font_id: theme::font(&t.type_body),
-                            color: t.text_secondary.color32(),
+                            color: secondary.color32(),
                             ..Default::default()
                         };
                         let small = egui::TextFormat {
@@ -178,6 +185,7 @@ pub(crate) fn chooser(
                         // number, the manufacturer and the badges leave (its whole text in the row's tooltip).
                         let mut badges = vec![PartChooser::source(o)];
                         badges.extend(c.badge(o));
+                        badges.extend(misfit);
                         let badge_text = format!("  {}", badges.join(" \u{b7} "));
                         let maker = format!("  {}  ", o.manufacturer);
                         let width = |text: &str, f: &egui::TextFormat| {
@@ -377,13 +385,14 @@ fn labelled_field(
 }
 
 /// The identity fields and the technical data of a draft, each field's message under it; `true` when Enter was
-/// pressed in a field.
+/// pressed in a field. A new cable type's small form (rc.3) shows its maker, its type and its part number only.
 fn identity(
     ui: &mut Ui,
-    d: &ew_viewmodel::ew_api::PartDraft,
+    e: &PartEditor,
     just_opened: bool,
     events: &mut Vec<Event>,
 ) -> bool {
+    let d = &e.draft;
     let t = theme::current(ui.ctx());
     let mut save = false;
     if let Some(symbol) = &d.drawn_with {
@@ -396,8 +405,18 @@ fn identity(
             ui.label(RichText::new(symbol).color(t.text_secondary.color32()));
         });
     }
-    for (i, f) in ew_viewmodel::ew_api::DRAFT_FIELDS.iter().enumerate() {
-        let label = strings::text(strings::Key::run_time(&format!("part-field-{f}")));
+    let small = ["manufacturer", "type_designation", "part_number"];
+    let fields: Vec<&str> = if e.cable_type {
+        small.to_vec()
+    } else {
+        ew_viewmodel::ew_api::DRAFT_FIELDS.to_vec()
+    };
+    for (i, f) in fields.iter().enumerate() {
+        let label = if e.cable_type && *f == "type_designation" {
+            strings::text(key!("part-cable-series"))
+        } else {
+            strings::text(strings::Key::run_time(&format!("part-field-{f}")))
+        };
         if *f == "kind" {
             kind_field(ui, label, d.text(f), events);
         } else {
@@ -412,9 +431,14 @@ fn identity(
             );
         }
     }
+    if e.cable_type {
+        return save;
+    }
     ui.add_space(t.space_3);
     ui.label(RichText::new(strings::text(key!("part-field-tech"))).font(theme::font(&t.type_body_strong)));
-    for (k, v) in &d.tech {
+    // A cable's outer diameter is a row of its cable section.
+    let cable = d.text("kind") == "cable";
+    for (k, v) in d.tech.iter().filter(|(k, _)| !(cable && k == "outer_diameter")) {
         let field = format!("tech:{k}");
         // The key in words ("rated_current" reads "Rated current"); the field keeps the raw key.
         let label = strings::field_label("part", &format!("tech_data.{k}"));
@@ -577,15 +601,21 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
         area = area.vertical_scroll_offset(0.0);
     }
     area.show(ui, |ui| {
+        // A cable part of one's own (New cable type…, rc.3): its identity, then the cable section; a cable has no
+        // pins, PLC role, bus interface or size.
+        if (d.new || d.own) && d.text("kind") == "cable" {
+            save |= identity(ui, e, just_opened, events);
+            ui.add_space(t.space_3);
+            save |= cable_section(ui, d, events);
+        } else if (d.new || d.own) && ui.available_width() >= 2.0 * (t.size_dialog_label + t.size_control * 6.0) {
         // A new part's form is long: at the main resolution its identity and its PLC section stand side by side,
         // the bus interfaces below them across the dialog.
-        if (d.new || d.own) && ui.available_width() >= 2.0 * (t.size_dialog_label + t.size_control * 6.0) {
             let mut left_save = false;
             let mut right_save = false;
             let mut left_events = Vec::new();
             let mut right_events = Vec::new();
             ui.columns(2, |cols| {
-                left_save = identity(&mut cols[0], d, just_opened, &mut left_events);
+                left_save = identity(&mut cols[0], e, just_opened, &mut left_events);
                 right_save = plc_section(&mut cols[1], d, &mut right_events);
                 cols[1].add_space(t.space_4);
                 pins_section(&mut cols[1], d, &mut right_events);
@@ -597,7 +627,7 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
             bus_section(ui, d, events);
             save |= size_section(ui, d, events);
         } else {
-            save |= identity(ui, d, just_opened, events);
+            save |= identity(ui, e, just_opened, events);
             ui.add_space(t.space_3);
             pins_section(ui, d, events);
             if d.new || d.own || !d.bus.is_empty() {
@@ -933,6 +963,122 @@ fn plc_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
         if m == "slots" {
             note(ui, strings::text(key!("part-plc-slots-hint")));
         }
+    }
+    save
+}
+
+/// The cable section of a cable part (rc.3, New cable type…): the number of cores, the cross-section, with or without
+/// a protective conductor, how the cores are marked (with the own marking a row of core and colour per core), shielded
+/// or not and the outer diameter, each field's message under it, and the cable as it will read. `true` when Enter was
+/// pressed in a field.
+fn cable_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Vec<Event>) -> bool {
+    let t = theme::current(ui.ctx());
+    let mut save = false;
+    ui.label(RichText::new(strings::text(key!("part-section-cable"))).font(theme::font(&t.type_body_strong)));
+    let label = |m: &str| strings::text(strings::Key::run_time(&format!("part-cable-{m}"))).to_owned();
+    let message = |ui: &mut Ui, field: &str| {
+        if let Some(msg) = d.message(field) {
+            ui.colored_label(
+                t.error.color32(),
+                ew_viewmodel::shell::part_dialog::message_text(strings::Key::run_time(msg.key), &msg.args),
+            );
+        }
+    };
+    let send = |events: &mut Vec<Event>, field: &str, value: String| {
+        events.push(Event::Action(
+            "part.field",
+            json!({ "field": field, "value": value }),
+        ));
+    };
+    for m in ["cores", "csa"] {
+        let field = format!("cable.{m}");
+        save |= labelled_field(ui, &label(m), d.text(&field), false, |text| send(events, &field, text));
+        message(ui, &field);
+    }
+    let toggle = |ui: &mut Ui, m: &str, events: &mut Vec<Event>| {
+        let field = format!("cable.{m}");
+        let mut on = d.text(&field) == "true";
+        ui.horizontal(|ui| {
+            ui.add_space(t.size_dialog_label + t.space_3);
+            if ui.checkbox(&mut on, label(m)).changed() {
+                send(events, &field, on.to_string());
+            }
+        });
+        message(ui, &field);
+    };
+    toggle(ui, "pe", events);
+    let markings: Vec<String> = ew_viewmodel::ew_api::CABLE_MARKINGS
+        .iter()
+        .map(|m| (*m).to_owned())
+        .collect();
+    labelled_combo(
+        ui,
+        "cable.marking",
+        &label("marking"),
+        d.text("cable.marking"),
+        &markings,
+        |m| strings::text(strings::Key::run_time(&format!("part-cable-marking-{m}"))).to_owned(),
+        events,
+    );
+    // The own marking: one row per core, its designation and its colour.
+    if d.text("cable.marking") == "own" {
+        ui.horizontal(|ui| {
+            ui.add_space(t.size_dialog_label + t.space_3);
+            let width = (ui.available_width() - t.space_3) / 2.0;
+            for m in ["core", "colour"] {
+                ui.add_sized(
+                    vec2(width, t.size_row),
+                    egui::Label::new(
+                        RichText::new(label(m))
+                            .font(theme::font(&t.type_small))
+                            .color(t.text_secondary.color32()),
+                    ),
+                );
+            }
+        });
+        for (i, (core, colour)) in d.cable.table.iter().enumerate() {
+            ui.push_id(("cable-core", i), |ui| {
+                ui.horizontal(|ui| {
+                    ui.add_space(t.size_dialog_label + t.space_3);
+                    let width = (ui.available_width() - t.space_3) / 2.0;
+                    for (m, value) in [("core", core), ("colour", colour)] {
+                        let field = format!("cable.{m}.{i}");
+                        let name = strings::format(key!("part-cable-row"), &[&label(m), &(i + 1).to_string()]);
+                        let mut text = value.clone();
+                        let edit = ui
+                            .add(TextEdit::singleline(&mut text).desired_width(width).hint_text(label(m)));
+                        edit.widget_info(|| named_edit(value, &text, &name));
+                        save |= edit.lost_focus() && ui.input(|i| i.key_pressed(Key::Enter));
+                        if text != *value {
+                            send(events, &field, text);
+                        }
+                    }
+                });
+                message(ui, &format!("cable.core.{i}"));
+                message(ui, &format!("cable.colour.{i}"));
+            });
+        }
+    }
+    toggle(ui, "shield", events);
+    save |= labelled_field(ui, &label("diameter"), d.text("cable.diameter"), false, |text| {
+        send(events, "cable.diameter", text);
+    });
+    message(ui, "cable.diameter");
+    if let Some(reads) = d.cable.preview() {
+        ui.add_space(t.space_2);
+        ui.horizontal(|ui| {
+            ui.spacing_mut().item_spacing.x = 0.0;
+            ui.allocate_ui_with_layout(
+                vec2(t.size_dialog_label, t.size_row),
+                egui::Layout::left_to_right(egui::Align::Center),
+                |ui| {
+                    ui.set_min_size(vec2(t.size_dialog_label, t.size_row));
+                    ui.label(strings::text(key!("part-cable-reads")));
+                },
+            );
+            ui.add_space(t.space_3);
+            ui.label(RichText::new(reads).font(theme::font(&t.type_body_strong)));
+        });
     }
     save
 }

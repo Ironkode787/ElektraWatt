@@ -318,8 +318,8 @@ fn core037_reports_a_shield_connected_at_neither_end() {
 // ---------------------------------------------------------------------------------------------------------
 // Devices and parts
 
-/// EW-CORE-041: a device with functions and no part is a warning; a device with a part, a strip, a cable and a
-/// device without functions are not reported.
+/// EW-CORE-041: a device with functions and no part is a warning, and so is a cable without a cable part (rc.3: its
+/// type is what is ordered); a device with a part, a strip and a device without functions are not reported.
 #[test]
 fn core041_reports_a_device_without_part() {
     let mut fx = Fx::base();
@@ -331,11 +331,15 @@ fn core041_reports_a_device_without_part() {
     fx.strip(0x104, 1);
     fx.cable(0x6000, 1);
     let f = findings_of(&fx.build(), "EW-CORE-041");
-    assert_eq!(f.len(), 1, "{f:#?}");
+    assert_eq!(f.len(), 2, "{f:#?}");
     assert_eq!(f[0].code, "102041");
     assert_eq!(f[0].severity, Severity::Warning);
     assert_eq!(f[0].discriminator, "");
-    assert_eq!(targets(&f[0]), [(Kind::Device, uid(0x21001))]);
+    let mut reported: Vec<_> = f.iter().flat_map(targets).collect();
+    reported.sort();
+    let mut want = [(Kind::Device, uid(0x21001)), (Kind::Device, uid(0x6000))];
+    want.sort();
+    assert_eq!(reported, want);
     assert!(
         f[0].message
             .ends_with("has no part; assign one, or mark it as supplied by others")

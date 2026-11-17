@@ -2654,6 +2654,14 @@ impl ShellModel {
             self.dialog = Some(stashed);
             return Outcome::Done;
         }
+        // Escape and Cancel in New cable type… return to the Cable form it was chosen in (rc.3).
+        if let Some(Dialog::PartEdit(e)) = &mut self.dialog
+            && let Some(form) = e.cable_form.take()
+        {
+            self.dialog_gen += 1;
+            self.dialog = Some(Dialog::Form(*form));
+            return Outcome::Done;
+        }
         // Escape in a parameter form returns to the palette's list.
         if self.close_palette_form() {
             return Outcome::Done;

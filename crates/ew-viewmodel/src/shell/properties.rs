@@ -861,6 +861,15 @@ impl ShellModel {
 
     /// `props.edit`: opens the editor of `row` (else the focused row) with its value's text.
     pub(crate) fn act_props_edit(&mut self, p: &Map<String, Value>) -> Outcome {
+        // With `record` (its ID: a finding's Type the length…, rc.3) the sheet shows that record first.
+        if let Some(record) = or_return!(string_param(p, "record")) {
+            let out = self.act_select_set(&Map::from_iter([("ids".to_owned(), json!([record]))]));
+            if out != Outcome::Done {
+                return out;
+            }
+            self.sync_properties();
+            self.focus = Some(Focus::Properties);
+        }
         let key = or_return!(self.props_row_param(p));
         // A derived row edits its authored partner: Enter or F2 is its Override (§6.4).
         let overrides = self.props_find(&key).is_some_and(|(_, r)| {

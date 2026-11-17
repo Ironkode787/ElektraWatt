@@ -468,6 +468,8 @@ impl ShellModel {
                 manufacturers,
                 error: None,
                 back: None,
+                cable_type: false,
+                cable_form: None,
             },
         )))
     }

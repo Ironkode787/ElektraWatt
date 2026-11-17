@@ -24,6 +24,7 @@ mod typed;
 
 pub use bus_cable::{BusCableForm, BusLineEnd, BusPartOffer, PlugChoice};
 pub use cable_form::{CableForm, CableRefused, TypeCore};
+pub(crate) use cable_form::{numbered_cores, written_cores};
 pub use clipboard::{
     CopiedFragment, CopyError, FRAGMENT_HEADER, FragmentError, ParsedFragment, parse_fragment,
     parse_fragment_with,

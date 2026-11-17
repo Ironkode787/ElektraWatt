@@ -183,6 +183,29 @@ impl ShellModel {
     }
 
     /// The item of action `id` aimed by `params`, labelled `label`, enabled as the action is with them.
+    /// What a finding asks the person to do, where the window can take him there (rc.3): a cable without a part,
+    /// Choose a cable type… (its part dialog); a cable without a length, Type the length… (its Length row). The
+    /// finding row's right-click menu and its detail offer it; `None` for any other row.
+    pub fn finding_offer(&self, key: &str) -> Option<ActionItem> {
+        let node = self.nav(NavKind::Messages)?.table()?.nodes.iter().find(|n| n.key == key)?;
+        let rule = crate::navigators::messages::rule_of(node)?;
+        let record = node.records.first()?.to_string();
+        let cable = self.project_session()?.cables().iter().any(|(c, _, _)| c.to_string() == record);
+        match rule.as_str() {
+            "EW-CORE-041" if cable => self.aimed(
+                "part.choose",
+                json!({ "cable": record }),
+                strings::text(key!("messages-offer-cable-type")).to_owned(),
+            ),
+            "EW-CORE-033" => self.aimed(
+                "props.edit",
+                json!({ "row": "device/cable.length", "record": record }),
+                strings::text(key!("messages-offer-length")).to_owned(),
+            ),
+            _ => None,
+        }
+    }
+
     fn aimed(&self, id: &str, params: Value, label: String) -> Option<ActionItem> {
         let meta = actions::find(id)?;
         let mut i = actions::item_of(meta, self);
@@ -614,6 +637,7 @@ impl ShellModel {
             (NavKind::Messages, NavRole::Finding, _) => {
                 let key = json!({ "key": node.key });
                 let has = |badge: &str| node.badges.iter().any(|b| b == badge);
+                out.extend(self.finding_offer(&node.key));
                 if has("fix") {
                     let label = strings::text(key!("messages-fix-button")).to_owned();
                     out.extend(self.aimed("messages.fix", key.clone(), label));

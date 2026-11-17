@@ -91,8 +91,17 @@ fn written_type(text: &str) -> Option<(usize, bool, Dec3)> {
     ((1..=99).contains(&count) && csa > Dec3(0) && (count > 1 || !pe)).then_some((count, pe, csa))
 }
 
+/// The colour codes of a core named by its colour (`GNYE` is green and yellow).
+fn colour_of(code: &str) -> Vec<String> {
+    if code == "GNYE" {
+        vec!["GN".to_owned(), "YE".to_owned()]
+    } else {
+        vec![code.to_owned()]
+    }
+}
+
 /// The cores of a written type (module documentation).
-fn written_cores(count: usize, pe: bool, csa: Dec3) -> Vec<TypeCore> {
+pub(crate) fn written_cores(count: usize, pe: bool, csa: Dec3) -> Vec<TypeCore> {
     let coloured: &[&str] = match (count, pe) {
         (2, false) => &["BN", "BU"],
         (3, false) => &["BN", "BK", "GY"],
@@ -103,25 +112,24 @@ fn written_cores(count: usize, pe: bool, csa: Dec3) -> Vec<TypeCore> {
         (5, true) => &["BN", "BK", "GY", "BU", "GNYE"],
         _ => &[],
     };
-    let csa = Some(csa.to_string());
-    let colour_of = |code: &str| {
-        if code == "GNYE" {
-            vec!["GN".to_owned(), "YE".to_owned()]
-        } else {
-            vec![code.to_owned()]
-        }
-    };
-    if !coloured.is_empty() {
-        return coloured
-            .iter()
-            .map(|c| TypeCore {
-                core: (*c).to_owned(),
-                colour: colour_of(c),
-                csa: csa.clone(),
-            })
-            .collect();
+    if coloured.is_empty() {
+        return numbered_cores(count, pe, csa);
     }
-    let numbered = count - usize::from(pe);
+    coloured
+        .iter()
+        .map(|c| TypeCore {
+            core: (*c).to_owned(),
+            colour: colour_of(c),
+            csa: Some(csa.to_string()),
+        })
+        .collect()
+}
+
+/// `count` numbered black cores, the last green-yellow with a protective conductor (`pe`), each of cross-section
+/// `csa`: a control cable's cores, and a written type's beyond five.
+pub(crate) fn numbered_cores(count: usize, pe: bool, csa: Dec3) -> Vec<TypeCore> {
+    let csa = Some(csa.to_string());
+    let numbered = count.saturating_sub(usize::from(pe));
     let mut cores: Vec<TypeCore> = (1..=numbered)
         .map(|n| TypeCore {
             core: n.to_string(),
@@ -275,6 +283,32 @@ impl Session {
         fit.into_iter()
             .map(|(_, _, _, number, words)| (number, words))
             .collect()
+    }
+
+    /// Why the part `pick` does not fit the cable `cable` (rc.3, the cable's part dialog shows it greyed with this):
+    /// fewer cores (shields left out) than the cable has wires (`part-misfit-cores`: the part's cores, the wires), or no
+    /// green-yellow core where a wire's potential says PE (`part-misfit-pe`); `None` when it fits, for a part that is
+    /// no cable part with cores, and for a record that is no cable.
+    pub fn cable_part_misfit(&self, cable: Uuid, pick: &crate::PartPick) -> Option<CableRefused> {
+        let part = self.offer_part(pick)?;
+        let cores: Vec<_> = part.sections.cable_cores.iter().filter(|c| !c.shield).collect();
+        if cores.is_empty() {
+            return None;
+        }
+        let wires: Vec<Uuid> = self.cable_wires(cable).into_iter().map(|(w, _)| w).collect();
+        if cores.len() < wires.len() {
+            return Some(CableRefused {
+                key: ew_commands::text_key!("part-misfit-cores"),
+                args: vec![cores.len().to_string(), wires.len().to_string()],
+            });
+        }
+        let green_yellow = cores.iter().any(|c| {
+            serde_json::to_value(&c.colour).ok() == Some(json!(["GN", "YE"]))
+        });
+        (!green_yellow && self.wires_say_pe(&wires)).then(|| CableRefused {
+            key: ew_commands::text_key!("part-misfit-pe"),
+            args: Vec::new(),
+        })
     }
 
     /// Whether the potential of one of the wires `wires` says PE.

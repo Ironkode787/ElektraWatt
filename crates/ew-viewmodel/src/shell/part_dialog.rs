@@ -50,6 +50,8 @@ pub struct PartChooser {
     pub query: PartOfferQuery,
     /// The offers of the query.
     pub offers: Vec<PartOffer>,
+    /// Why each offer does not fit a cable, in the offers' order; `None` where it fits (rc.3).
+    pub misfits: Vec<Option<String>>,
     /// The active row (0-based).
     pub cursor: usize,
 }
@@ -113,11 +115,18 @@ pub struct PartEditor {
     pub error: Option<String>,
     /// The part dialog that New part… was chosen in: Save opens it again on the new part.
     pub back: Option<Box<PartChooser>>,
+    /// New cable type… (rc.3): the small form of a new cable part (its maker, type and number, then the cable section).
+    pub cable_type: bool,
+    /// The Cable form New cable type… was chosen in: Save opens it again with the new type chosen.
+    pub cable_form: Option<Box<super::FormDialog>>,
 }
 
 impl PartEditor {
-    /// The title (`Edit part 5SY4204-7 (Siemens)`, `New part`).
+    /// The title (`Edit part 5SY4204-7 (Siemens)`, `New part`, `New cable type`).
     pub fn title(&self) -> String {
+        if self.cable_type {
+            return strings::text(key!("dialog-cable-type-new-title")).to_owned();
+        }
         if self.draft.new {
             return strings::text(key!("dialog-part-new-title")).to_owned();
         }
@@ -132,6 +141,10 @@ pub fn field_label(field: &str) -> String {
     }
     if let Some(member) = field.strip_prefix("plc.") {
         return strings::text(Key::run_time(&format!("part-plc-{member}"))).to_owned();
+    }
+    if let Some(member) = field.strip_prefix("cable.") {
+        let member = member.split('.').next().unwrap_or_default();
+        return strings::text(Key::run_time(&format!("part-cable-{member}"))).to_owned();
     }
     if let Some((_, member)) = field.strip_prefix("bus.").and_then(|r| r.split_once('.')) {
         return strings::text(Key::run_time(&format!("part-bus-{member}"))).to_owned();
@@ -442,6 +455,26 @@ impl ShellModel {
                 c.offers
                     .retain(|o| !LAYOUT_KIND_WORDS.contains(&o.kind.as_str()) || allowed.contains(&o.kind));
             }
+            // A cable's parts that do not fit it come after those that do, each with the reason (rc.3: greyed, not
+            // hidden).
+            let cable = match &c.target {
+                PartTarget::Devices { devices, .. } if devices.len() == 1 => devices
+                    .first()
+                    .copied()
+                    .filter(|d| project.session.cables().iter().any(|(c, _, _)| c == d)),
+                _ => None,
+            };
+            let mut rows: Vec<(Option<String>, PartOffer)> = std::mem::take(&mut c.offers)
+                .into_iter()
+                .map(|o| {
+                    let why = cable
+                        .and_then(|cable| project.session.cable_part_misfit(cable, &o.pick))
+                        .map(|r| message_text(Key::run_time(r.key), &r.args));
+                    (why, o)
+                })
+                .collect();
+            rows.sort_by_key(|(why, _)| why.is_some());
+            (c.misfits, c.offers) = rows.into_iter().unzip();
             c.cursor = c.cursor.min(c.offers.len().saturating_sub(1));
         }
     }
@@ -505,6 +538,27 @@ impl ShellModel {
     /// `part.choose {target?, use?, add?, strip?}` (§9.4): opens the part dialog for its target; `strip` (its ID), for
     /// the strip's terminals without a part.
     pub(crate) fn act_part_choose(&mut self, p: &Map<String, Value>) -> Outcome {
+        // A cable by its ID (Choose a cable type… on its finding, rc.3): its cable parts, those that fit first.
+        if let Some(cable) = or_return!(string_param(p, "cable")) {
+            let Some(cable) = cable
+                .parse::<Uuid>()
+                .ok()
+                .filter(|c| self.project_session().is_some_and(|s| s.cables().iter().any(|(x, _, _)| x == c)))
+            else {
+                return failed(key!("error-bad-param"), &["cable"]);
+            };
+            let tag = self.tag_of(cable);
+            return self.open_part_chooser(Target {
+                text: tag.clone(),
+                target: PartTarget::Devices {
+                    devices: vec![cable],
+                    mode: AssignMode::ReplaceAll,
+                },
+                tag: Some(tag),
+                function: None,
+                kinds: vec!["cable".to_owned()],
+            });
+        }
         if let Some(strip) = or_return!(string_param(p, "strip")) {
             return match self.strip_terminals_target(strip) {
                 Ok(t) => self.open_part_chooser(t),
@@ -570,6 +624,7 @@ impl ShellModel {
                 ..PartOfferQuery::default()
             },
             offers: Vec::new(),
+            misfits: Vec::new(),
             cursor: 0,
         };
         let out = self.open_dialog(Dialog::PartChoose(Box::new(chooser)));
@@ -787,6 +842,8 @@ impl ShellModel {
             manufacturers,
             error: None,
             back: None,
+            cable_type: false,
+            cable_form: None,
         })))
     }
 
@@ -823,6 +880,13 @@ impl ShellModel {
         if let Some(word) = &plc {
             plc_preset(&project.session, &mut draft, word);
         }
+        // New cable type… (rc.3): a cable part, sold by the metre, in the small form.
+        let cable_type = flag(p, "cable");
+        if cable_type {
+            for (field, value) in [("kind", "cable"), ("unit", "m")] {
+                let _ = project.session.set_draft_field(&mut draft, field, value);
+            }
+        }
         let manufacturers = project.session.part_manufacturers();
         // The device browser gives way to the editor; it lists the new part when it opens again. From the symbol
         // editor, its view is left with its draft kept (as Close editor does): the part is the project's.
@@ -832,11 +896,13 @@ impl ShellModel {
         {
             editor.shown = false;
         }
-        let back = match self.dialog.take() {
-            Some(Dialog::PartChoose(c)) => Some(c),
+        // From the Cable form (its New cable type…), Save returns to it with the new type chosen.
+        let (back, cable_form) = match self.dialog.take() {
+            Some(Dialog::PartChoose(c)) => (Some(c), None),
+            Some(Dialog::Form(f)) if cable_type && super::cables::chooses_cable_type(&f) => (None, Some(Box::new(f))),
             other => {
                 self.dialog = other;
-                None
+                (None, None)
             }
         };
         let out = self.open_dialog(Dialog::PartEdit(Box::new(PartEditor {
@@ -845,9 +911,12 @@ impl ShellModel {
             manufacturers,
             error: None,
             back: None,
+            cable_type,
+            cable_form: None,
         })));
         if let Some(Dialog::PartEdit(e)) = &mut self.dialog {
             e.back = back;
+            e.cable_form = cable_form;
         }
         out
     }
@@ -908,10 +977,12 @@ impl ShellModel {
         }
     }
 
-    /// `part.save` (Enter): opens the `part` card of `part.edit_copy` (D20); a field that does not parse refuses.
-    pub(crate) fn act_part_save(&mut self) -> Outcome {
+    /// `part.save {another?}` (Enter): opens the `part` card of `part.edit_copy` (D20); a field that does not parse
+    /// refuses. A new part is saved at once; with `another` (a new cable type's Save and add another size) the form
+    /// stays open on the next size of the series.
+    pub(crate) fn act_part_save(&mut self, p: &Map<String, Value>) -> Outcome {
         if matches!(&self.dialog, Some(Dialog::PartEdit(e)) if e.draft.new) {
-            return self.part_save_new();
+            return self.part_save_new(flag(p, "another"));
         }
         if matches!(&self.dialog, Some(Dialog::PartEdit(e)) if e.draft.own && e.draft.fork) {
             return self.part_save_own_library();
@@ -1011,8 +1082,10 @@ impl ShellModel {
 
     /// Save of a new part (FT-1766): the part goes into My parts and the project, or into the project alone
     /// (`Session::new_part_command`), in one undo step; a field that does not parse refuses at its field. From the
-    /// part dialog, the dialog opens again on the new part.
-    fn part_save_new(&mut self) -> Outcome {
+    /// part dialog, the dialog opens again on the new part; from the Cable form, the form with the new cable type
+    /// chosen. With `another` the editor opens again on a new part like this one but for its part number and its
+    /// cross-section, the next size of a series (rc.3).
+    fn part_save_new(&mut self, another: bool) -> Outcome {
         let Some(Dialog::PartEdit(mut editor)) = self.dialog.take() else {
             return Outcome::refused(key!("reason-no-part-editor"));
         };
@@ -1049,6 +1122,13 @@ impl ShellModel {
             None => strings::format(key!("toast-part-new"), &[&number]),
         };
         self.notify(toast, true);
+        if another {
+            return self.part_new_like(*editor);
+        }
+        if let Some(form) = editor.cable_form.take() {
+            self.cable_type_made(*form, &number);
+            return Outcome::Done;
+        }
         if let Some(mut chooser) = editor.back.take() {
             chooser.query.text = number.clone();
             chooser.cursor = 0;
@@ -1061,6 +1141,32 @@ impl ShellModel {
             let head = serde_json::Map::from_iter([("head".to_owned(), serde_json::Value::String(number))]);
             let _ = self.act_plc_rack_set(&head);
         }
+        Outcome::Done
+    }
+}
+
+impl ShellModel {
+    /// The editor of `saved` open again on a new part that keeps everything but the part number and the cross-section
+    /// (Save and add another size, rc.3): its own item ID, the form's way back kept.
+    fn part_new_like(&mut self, saved: PartEditor) -> Outcome {
+        let Some(project) = &self.project else {
+            return Outcome::Done;
+        };
+        let mut draft = saved.draft.clone();
+        draft.copy = match project.session.new_part_draft() {
+            Ok(d) => d.copy,
+            Err(e) => return draft_refusal(e),
+        };
+        // Both empty until typed; Save says what is missing, not the form as it opens.
+        for field in ["part_number", "cable.csa"] {
+            let _ = project.session.set_draft_field(&mut draft, field, "");
+        }
+        draft.messages.clear();
+        self.dialog = Some(Dialog::PartEdit(Box::new(PartEditor {
+            draft,
+            error: None,
+            ..saved
+        })));
         Outcome::Done
     }
 }

@@ -281,7 +281,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ))),
     )),
     keeps_banner(with_params(
-        "row?:text",
+        "row?:text, record?:text",
         hidden(in_properties(act(
             "props.edit",
             View,
@@ -751,7 +751,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     ),
     // The part selection dialog and the part editor.
     with_params(
-        "target?:enum(parts|bridge_part|accessory_part), use?:uint, add?:bool, strip?:text",
+        "target?:enum(parts|bridge_part|accessory_part), use?:uint, add?:bool, strip?:text, cable?:text",
         act(
             "part.choose",
             View,
@@ -811,7 +811,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     ),
     with_params(
-        "symbol?:text, from?:text, plc?:text",
+        "symbol?:text, from?:text, plc?:text, cable?:bool",
         act(
             "part.new",
             View,
@@ -905,15 +905,18 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_part_redraw_boxes(p),
         )),
     ),
-    hidden(act(
-        "part.save",
-        Command,
-        Menu::Edit,
-        &[],
-        part_editor_open,
-        None,
-        |s, _| s.act_part_save(),
-    )),
+    with_params(
+        "another?:bool",
+        hidden(act(
+            "part.save",
+            Command,
+            Menu::Edit,
+            &[],
+            part_editor_open,
+            None,
+            |s, p| s.act_part_save(p),
+        )),
+    ),
     with_params(
         "choice:enum(adapt|update)",
         hidden(act(

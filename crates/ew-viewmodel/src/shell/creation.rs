@@ -669,6 +669,15 @@ impl ShellModel {
 
     /// Sets the text of field `name` of the open creation dialog (a keystroke or a choice) and clears the last refusal.
     pub fn set_form_field(&mut self, name: &str, value: &str) {
+        // New cable type…, the last entry of a Cable form's list of types, opens its small form (rc.3); Save comes
+        // back with the new type chosen.
+        if name == "part"
+            && value == super::cables::NEW_CABLE_TYPE
+            && matches!(&self.dialog, Some(Dialog::Form(f)) if super::cables::chooses_cable_type(f))
+        {
+            let _ = self.act_part_new(&Map::from_iter([("cable".to_owned(), Value::Bool(true))]));
+            return;
+        }
         let cable_rows = (["type", "part"].contains(&name)
             && matches!(&self.dialog, Some(Dialog::Form(f)) if f.action == "cable.from_wires"))
         .then(|| self.cable_row_wires());

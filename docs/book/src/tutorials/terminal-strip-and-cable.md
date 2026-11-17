@@ -45,8 +45,10 @@ cable in the Cables navigator. At the end you have a saved project whose checks 
    The Terminal strips navigator shows the strip -1X1 as a table: terminal 1 on 24VAC, with -1E2:X1 on side 1 and
    the field wire to -1E3:X1 via -1W1 BN on side 2; terminal 2 on 0VAC, with -1E2:X2 and -1E3:X2 via -1W1 BU.
 9. Choose **Check ▸ Run checks** (`F7`).
-   The toast says "Check: 0 errors, 8 warnings, 2 infos". The warnings are the devices that have no part yet and the
-   transformer's open primary pins; the infos say that no report covers the strip or the cable yet.
+   The toast says "Check: 0 errors, 9 warnings, 2 infos". The warnings are the devices and the cable that have no
+   part yet and the transformer's open primary pins; the infos say that no report covers the strip or the cable yet.
+   The cable's warning offers **Choose a cable type…**: its part dialog lists the cable parts that fit first, and the
+   others greyed with the reason.
 10. Choose **File ▸ Save** (`Ctrl+S`).
     The title bar no longer marks the project as changed.
 
@@ -58,6 +60,11 @@ cable in the Cables navigator. At the end you have a saved project whose checks 
   (`3G1.5`, `4X0.75`, or a cable part's number) gives the cores, and each wire's core can be changed before Apply.
   The same command on a cable's wire opens that cable, to add a wire or take one out. A cable without a drawn cable
   line takes its page number from its first core.
+- **New cable type…**, the last entry of the form's **Cable type** list, makes a cable part of your own in a small
+  form: the maker, the type, the part number, the cores and their cross-section, with or without green-yellow, the
+  cores' colours (HD 308), numbers or your own, a shield and the outer diameter. It reads the cable as it will show
+  (`3G1.5 · BN BU GNYE`); **Save and add another size** keeps all but the part number and the size, and Save comes
+  back to the Cable form with the new type chosen. A part of kind Cable shows the same section in the part editor.
 - A cable's mark is drawn as panel builders draw it: one line across the cable's wires, a stroke on each core with its
   number or colour beside it, and the cable's tag with its type and size (`3G1.5`: three cores with green-yellow,
   `4X0.75`: four without). A cable whose wires run over several pages gets a mark on each.

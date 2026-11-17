@@ -117,6 +117,7 @@ impl Session {
             own: false,
             users: 0,
             plc: crate::part_plc::PlcRows::new_part(),
+            cable: crate::part_cable::CableRows::new_cable(),
             drawn_with: None,
             fndef: None,
             manufacturer: (original.manufacturer.clone(), Vec::new()),
@@ -243,6 +244,21 @@ impl Session {
                 && let Ok(LibDocument::Fndef(def)) = self.libraries().resolve(r)
             {
                 p.category = Some(def.item.category.clone());
+            }
+        }
+        // A cable part's cores from its section (rc.3), a section left as it was byte for byte; a new one without a
+        // description reads as the cable does ("CL110 3G1.5 · BN BU GNYE").
+        if p.kind == ew_schema::PartKind::Cable
+            && (draft.new || draft.cable != crate::part_cable::rows_of(&original.sections.cable_cores))
+        {
+            p.sections.cable_cores = self.cable_cores(&draft.cable).map_err(PartDraftError::Field)?;
+            if draft.new
+                && draft.text("description").trim().is_empty()
+                && let Some(reads) = draft.cable.preview()
+            {
+                let series = draft.text("type_designation").trim();
+                p.description
+                    .set_neutral(format!("{series} {reads}").trim());
             }
         }
         let first_port = p.sections.bus.as_ref().and_then(|b| b.ports.first());
@@ -474,6 +490,7 @@ impl Session {
         draft.tech = held.tech.clone();
         draft.bus = held.bus.clone();
         draft.plc = held.plc.clone();
+        draft.cable = held.cable.clone();
         draft.pins = held.pins.clone();
         draft.box_ = held.box_.clone();
         draft.outputs = held.outputs.clone();

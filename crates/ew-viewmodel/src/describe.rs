@@ -1949,6 +1949,19 @@ fn part_edit_lines(e: &crate::shell::part_dialog::PartEditor, lines: &mut Vec<St
             .collect();
         lines.push(format!("  plc {}", cells.join(" ")));
     }
+    if d.text("kind") == "cable" {
+        let cells: Vec<String> = ew_api::CABLE_MEMBERS
+            .iter()
+            .map(|m| format!("{m} \"{}\"", user(d.text(&format!("cable.{m}")))))
+            .collect();
+        lines.push(format!("  cable {}", cells.join(" ")));
+        for (core, colour) in &d.cable.table {
+            lines.push(format!("  core \"{}\" \"{}\"", user(core), user(colour)));
+        }
+        if let Some(reads) = d.cable.preview() {
+            lines.push(format!("  reads \"{}\"", user(&reads)));
+        }
+    }
     let none = || strings::text(key!("part-none")).to_owned();
     let functions = if d.functions.is_empty() {
         none()

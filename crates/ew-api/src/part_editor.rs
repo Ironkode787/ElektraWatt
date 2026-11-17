@@ -226,6 +226,8 @@ pub struct PartDraft {
     pub to_library: bool,
     /// The PLC section of a new part (doc 10 §2.6) as its form's texts; no role: none.
     pub plc: crate::part_plc::PlcRows,
+    /// The cable section (rc.3): a cable part's cores as its form's texts, edited where the PLC section is.
+    pub cable: crate::part_cable::CableRows,
     /// The name of the symbol a new part made from the symbol editor is drawn with ("Make a part for this symbol…").
     pub drawn_with: Option<String>,
     /// That symbol's function definition, the new part's main template entry.
@@ -464,6 +466,14 @@ impl PartDraft {
         }
         if let Some(m) = crate::part_plc::plc_field(field) {
             return self.plc.text(m);
+        }
+        if let Some((m, row)) = crate::part_cable::cable_field(field) {
+            return match (m, row) {
+                ("diameter", _) => self.text("tech:outer_diameter"),
+                ("core", Some(i)) => self.cable.table.get(i).map_or("", |r| r.0.as_str()),
+                ("colour", Some(i)) => self.cable.table.get(i).map_or("", |r| r.1.as_str()),
+                _ => self.cable.text(m),
+            };
         }
         if let Some((row, m)) = bus_field(field) {
             return self.bus.get(row).map_or("", |r| r.text(m));
@@ -802,6 +812,7 @@ impl Session {
                 .as_ref()
                 .map(crate::part_plc::rows_of)
                 .unwrap_or_else(crate::part_plc::PlcRows::new_part),
+            cable: crate::part_cable::rows_of(&p.sections.cable_cores),
             drawn_with: None,
             fndef: None,
             manufacturer: (p.manufacturer.clone(), Vec::new()),
@@ -865,6 +876,31 @@ impl Session {
                 .messages
                 .retain(|x| crate::part_plc::plc_field(&x.field).is_none());
             draft.messages.extend(crate::part_plc::check_plc(&draft.plc));
+            return match draft.message(field) {
+                Some(m) => Err(PartDraftError::Field(m.clone())),
+                None => Ok(()),
+            };
+        }
+        if let Some(f) = crate::part_cable::cable_field(field) {
+            if !draft.new && !draft.own {
+                return Err(PartDraftError::Refused(ew_commands::text_key!(
+                    "error-part-field"
+                )));
+            }
+            let found = self.set_cable_field(&mut draft.cable, &mut draft.tech, f, text);
+            draft
+                .messages
+                .retain(|x| crate::part_cable::cable_field(&x.field).is_none() && x.field != "tech:outer_diameter");
+            draft.messages.extend(found);
+            if f.0 == "diameter"
+                && !text.trim().is_empty()
+                && let Err(m) = self.tech_value("outer_diameter", draft.text("tech:outer_diameter"))
+            {
+                draft.messages.push(DraftMessage {
+                    field: field.to_owned(),
+                    ..m
+                });
+            }
             return match draft.message(field) {
                 Some(m) => Err(PartDraftError::Field(m.clone())),
                 None => Ok(()),

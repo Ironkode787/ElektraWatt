@@ -39,6 +39,23 @@ const NEW: &str = "cable.new";
 /// The action of Connect cores….
 const CONNECT: &str = "cable.connect_cores";
 
+/// The value of New cable type…, the last entry of a Cable form's list of cable types (rc.3): it opens the small form of
+/// a new cable part, never names a part (a part number has no angle brackets).
+pub const NEW_CABLE_TYPE: &str = "<new cable type>";
+
+/// Whether `form` is a Cable form whose list of cable types ends in New cable type… (Cable… from wires, New cable…).
+pub(super) fn chooses_cable_type(form: &FormDialog) -> bool {
+    [NEW, FROM_WIRES].contains(&form.action) && form.fields.iter().any(|f| f.name == "part")
+}
+
+/// The list entry of New cable type….
+fn new_type_entry() -> (String, String) {
+    (
+        NEW_CABLE_TYPE.to_owned(),
+        strings::text(key!("form-cable-type-new")).to_owned(),
+    )
+}
+
 /// The trimmed, non-empty text parameter `name`.
 fn given(p: &Map<String, Value>, name: &str) -> Option<String> {
     p.get(name)
@@ -94,17 +111,7 @@ impl ShellModel {
                     self.form_failed(NEW, message)
                 }
                 Mode::Gui => {
-                    let options = offers
-                        .iter()
-                        .map(|o| {
-                            let words = if o.description.is_empty() {
-                                o.number.clone()
-                            } else {
-                                format!("{} \u{b7} {}", o.number, o.description)
-                            };
-                            (o.part.to_string(), words)
-                        })
-                        .collect();
+                    let options = new_cable_options(&project.session);
                     let form = Self::cable_form(
                         NEW,
                         key!("cable-new-title"),
@@ -429,13 +436,13 @@ impl ShellModel {
                     let mut fields = Vec::new();
                     let mut type_text = form.type_text.clone();
                     if form.cable.is_none() {
-                        let parts = project.session.cable_parts_for(&wires, &form.type_text);
-                        let mut options = vec![(
-                            String::new(),
-                            strings::text(key!("form-cable-no-part")).to_owned(),
-                        )];
-                        options.extend(parts);
-                        let value = options.get(1).map(|o| o.0.clone()).unwrap_or_default();
+                        let options = from_wires_options(&project.session, &wires, &form.type_text);
+                        // The best part that fits, else no part (never New cable type…, the list's last entry).
+                        let value = options
+                            .get(1)
+                            .map(|o| o.0.clone())
+                            .filter(|v| v != NEW_CABLE_TYPE)
+                            .unwrap_or_default();
                         if !value.is_empty() {
                             type_text.clone_from(&value);
                         }
@@ -577,6 +584,78 @@ impl ShellModel {
             self.dialog = None;
         }
         Outcome::Done
+    }
+}
+
+/// New cable…'s list: the cable parts by their number and description, then New cable type….
+fn new_cable_options(session: &ew_api::Session) -> Vec<(String, String)> {
+    session
+        .layout_part_offers("cable")
+        .iter()
+        .map(|o| {
+            let words = if o.description.is_empty() {
+                o.number.clone()
+            } else {
+                format!("{} \u{b7} {}", o.number, o.description)
+            };
+            (o.part.to_string(), words)
+        })
+        .chain([new_type_entry()])
+        .collect()
+}
+
+/// Cable…'s list of cable types for the wires `wires` and the size `proposed`: no part (the size typed), the cable
+/// parts that fit, best first, then New cable type….
+fn from_wires_options(session: &ew_api::Session, wires: &[Uuid], proposed: &str) -> Vec<(String, String)> {
+    std::iter::once((
+        String::new(),
+        strings::text(key!("form-cable-no-part")).to_owned(),
+    ))
+    .chain(session.cable_parts_for(wires, proposed))
+    .chain([new_type_entry()])
+    .collect()
+}
+
+impl ShellModel {
+    /// Back in the Cable form `form` after New cable type… saved the cable part `number` (rc.3): the form's list again,
+    /// the new type in it and chosen (in Cable… from wires also as the type, its cores proposed again).
+    pub(super) fn cable_type_made(&mut self, mut form: FormDialog, number: &str) {
+        let Some(project) = &self.project else {
+            return;
+        };
+        let (mut options, value) = if form.action == NEW {
+            let offers = project.session.layout_part_offers("cable");
+            let value = offers
+                .iter()
+                .find(|o| o.number == number)
+                .map(|o| o.part.to_string());
+            (new_cable_options(&project.session), value)
+        } else {
+            let wires = self.selected_wires();
+            let size = form
+                .fields
+                .iter()
+                .find(|f| f.name == "type")
+                .map(|f| f.value.clone())
+                .unwrap_or_default();
+            (
+                from_wires_options(&project.session, &wires, &size),
+                Some(number.to_owned()),
+            )
+        };
+        let Some(value) = value else {
+            self.dialog = Some(Dialog::Form(form));
+            return;
+        };
+        // A type that does not fit the wires is listed all the same: it is the one just made.
+        if !options.iter().any(|(v, _)| *v == value) {
+            options.insert(options.len() - 1, (value.clone(), number.to_owned()));
+        }
+        if let Some(f) = form.fields.iter_mut().find(|f| f.name == "part") {
+            f.options = options;
+        }
+        self.dialog = Some(Dialog::Form(form));
+        self.set_form_field("part", &value);
     }
 }
 

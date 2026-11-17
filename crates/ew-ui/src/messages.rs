@@ -480,6 +480,15 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         )
         .wrap(),
     );
+    // Where the finding asks for a step the window can take the person to (Choose a cable type…, rc.3).
+    if let Some(offer) = shell
+        .nav_cursor(ew_viewmodel::navigators::NavKind::Messages)
+        .and_then(|k| shell.finding_offer(&k))
+        .filter(|_| !d.waived)
+        && components::button(ui, Kind::Secondary, &offer.label, enabled && offer.enabled, 0.0).clicked()
+    {
+        events.push(Event::Action(offer.id, offer.params.clone()));
+    }
     if let (Some(fix), false) = (&d.fix, d.waived) {
         ui.horizontal(|ui| {
             ui.spacing_mut().item_spacing.x = t.space_3;

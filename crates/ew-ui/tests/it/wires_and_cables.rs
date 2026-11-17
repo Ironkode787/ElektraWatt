@@ -123,7 +123,7 @@ pub(crate) fn two_wires(d: &mut Driver) -> impl Fn((i64, i64)) -> (i64, i64) + u
 }
 
 /// [`two_wires`] with the points named `names`, left to right.
-fn two_named_wires(d: &mut Driver, names: [&str; 2]) -> impl Fn((i64, i64)) -> (i64, i64) + use<> {
+pub(crate) fn two_named_wires(d: &mut Driver, names: [&str; 2]) -> impl Fn((i64, i64)) -> (i64, i64) + use<> {
     for x in [900, 1000] {
         place_relay(d, (x, 620));
     }
@@ -413,7 +413,7 @@ fn the_marker_fields_hold_in_every_order_of_use() {
 
 /// The window pixel a quarter along the longest segment of the `i`-th wire of the page (clear of a cable's mark, which
 /// stands in the middle).
-fn on_wire(d: &mut Driver, pixel: &impl Fn((i64, i64)) -> (i64, i64), i: usize) -> (i64, i64) {
+pub(crate) fn on_wire(d: &mut Driver, pixel: &impl Fn((i64, i64)) -> (i64, i64), i: usize) -> (i64, i64) {
     let t = tables(d);
     let (p, q) = t.connections[i]
         .polyline
@@ -458,7 +458,7 @@ fn ft1688_a_wire_of_an_l1_potential_takes_the_phases_cross_section() {
 }
 
 /// Selects the page's two wires by the pointer: a click on the first, a Shift+click on the second.
-fn select_both(d: &mut Driver, pixel: &impl Fn((i64, i64)) -> (i64, i64)) {
+pub(crate) fn select_both(d: &mut Driver, pixel: &impl Fn((i64, i64)) -> (i64, i64)) {
     for (i, mods) in [(0, Modifiers::NONE), (1, Modifiers::SHIFT)] {
         let at = on_wire(d, pixel, i);
         d.input(&Input::Hover { at });

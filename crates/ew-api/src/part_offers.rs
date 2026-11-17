@@ -546,22 +546,30 @@ impl Session {
         rows.into_iter().map(|(_, o)| o).collect()
     }
 
-    /// The names of the functions a part's template declares (the dialog's detail line), in template order: each
-    /// entry in words, as the Properties grid's Part function row reads it ("NO contact 13-14", "Coil A1-A2"), else
-    /// its FnDef's key; an entry whose FnDef does not resolve has no name and is left out (FT-819: the line printed
-    /// "functions ew.fn.mcb-1pn", or an item ID).
-    pub fn part_offer_functions(&self, pick: &PartPick) -> Vec<String> {
-        let q = self.query();
-        let part = match pick {
-            PartPick::Held(copy) => q.parts().get(Id::from_uuid(*copy)).map(|c| c.item.clone()),
+    /// The part an offer picks: the held copy's item, else the library's.
+    pub(crate) fn offer_part(&self, pick: &PartPick) -> Option<Part> {
+        match pick {
+            PartPick::Held(copy) => self
+                .query()
+                .parts()
+                .get(Id::from_uuid(*copy))
+                .map(|c| c.item.clone()),
             PartPick::Library { library, item } => {
                 match self.libraries().resolve(&lib_ref(*library, *item)) {
                     Ok(LibDocument::Part(c)) => Some(c.item),
                     _ => None,
                 }
             }
-        };
-        part.map(|p| {
+        }
+    }
+
+    /// The names of the functions a part's template declares (the dialog's detail line), in template order: each
+    /// entry in words, as the Properties grid's Part function row reads it ("NO contact 13-14", "Coil A1-A2"), else
+    /// its FnDef's key; an entry whose FnDef does not resolve has no name and is left out (FT-819: the line printed
+    /// "functions ew.fn.mcb-1pn", or an item ID).
+    pub fn part_offer_functions(&self, pick: &PartPick) -> Vec<String> {
+        let q = self.query();
+        self.offer_part(pick).map(|p| {
             let pattern: Vec<u16> = p.cp_pattern.iter().map(|c| c.idx).collect();
             p.function_template
                 .iter()
