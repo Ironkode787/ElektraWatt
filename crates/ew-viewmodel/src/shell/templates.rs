@@ -556,8 +556,22 @@ impl ShellModel {
             }
             return Outcome::Done;
         };
-        if name.is_empty() {
-            let message = strings::text(key!("templates-need-name")).to_owned();
+        // The name unchanged: the field closes, nothing to say.
+        if name == t.name {
+            if let Some(Dialog::Templates(d)) = &mut self.dialog {
+                d.renaming = None;
+            }
+            return Outcome::Done;
+        }
+        // Two templates of one name could not be told apart in New project's list.
+        let why = if name.is_empty() {
+            Some(strings::text(key!("templates-need-name")).to_owned())
+        } else if self.settings.templates.iter().any(|o| o.name.trim() == name) {
+            Some(strings::format(key!("templates-name-taken"), &[name]))
+        } else {
+            None
+        };
+        if let Some(message) = why {
             if let Some(Dialog::Templates(d)) = &mut self.dialog {
                 d.note = Some(message.clone());
             }

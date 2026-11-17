@@ -258,17 +258,27 @@ pub(crate) fn templates(ui: &mut Ui, d: &TemplatesDialog, events: &mut Vec<Event
                                 .font(theme::font(&t.type_small))
                                 .color(t.text_tertiary.color32()),
                         );
+                        // The selected template's actions stand in its own row, so they read as its (a persona run
+                        // could not tell which template the buttons under the list acted on).
+                        if selected && !row_actions.is_empty() {
+                            ui.add_space(t.space_1);
+                            buttons(ui, &t, &row_actions, events);
+                        }
                     })
-                    .response
-                    .interact(egui::Sense::click());
-                if response.clicked() && !selected {
+                    .response;
+                // Only another row takes a click: over the selected one a click would land on the frame, not on its
+                // name field or its buttons (the persona run's Save name did nothing).
+                let response = if selected {
+                    response
+                } else {
+                    response.interact(egui::Sense::click())
+                };
+                response.widget_info(|| egui::WidgetInfo::selected(egui::Role::ListItem, true, selected, &row.name));
+                if response.clicked() {
                     events.push(Event::Action("templates.select", json!({ "index": i + 1 })));
                 }
             }
         });
-    if !row_actions.is_empty() {
-        buttons(ui, &t, &row_actions, events);
-    }
     if let Some(note) = &d.note {
         small(ui, &t, note);
     }
@@ -276,7 +286,8 @@ pub(crate) fn templates(ui: &mut Ui, d: &TemplatesDialog, events: &mut Vec<Event
     buttons(ui, &t, &list_actions, events);
 }
 
-/// The selected template's name as a field: Enter or Save name renames it (`templates.rename`), Escape leaves it.
+/// The selected template's name as a field: Enter, Save name or leaving the field renames it (`templates.rename`),
+/// Escape leaves it.
 fn rename_field(ui: &mut Ui, t: &theme::Tokens, i: usize, name: &str, events: &mut Vec<Event>) {
     let id = egui::Id::unique(("template-rename", i));
     let mut text = ui
@@ -287,11 +298,14 @@ fn rename_field(ui: &mut Ui, t: &theme::Tokens, i: usize, name: &str, events: &m
             .desired_width(t.size_text_measure.min(ui.available_width() * 0.5))
             .min_size(egui::vec2(0.0, t.size_control)),
     );
+    let label = strings::text(key!("form-template-name"));
+    ui.ctx().accesskit_node_builder(edit.id, |n| n.set_label(label));
     if !edit.has_focus() && !edit.lost_focus() && ui.data(|d| d.get_temp::<String>(id)).is_none() {
         edit.request_focus();
     }
     ui.data_mut(|d| d.insert_temp(id, text.clone()));
-    let enter = edit.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
+    // Enter, Tab or a click elsewhere: the name typed is kept; Escape leaves it as it was.
+    let left = edit.lost_focus() && !ui.input(|i| i.key_pressed(egui::Key::Escape));
     let save = components::button(
         ui,
         Kind::Primary,
@@ -300,7 +314,7 @@ fn rename_field(ui: &mut Ui, t: &theme::Tokens, i: usize, name: &str, events: &m
         0.0,
     )
     .clicked();
-    if enter || save {
+    if left || save {
         ui.data_mut(|d| d.remove::<String>(id));
         events.push(Event::Action(
             "templates.rename",

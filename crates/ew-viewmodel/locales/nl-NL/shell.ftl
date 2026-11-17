@@ -7276,3 +7276,6 @@ help-thing-box = Kaders
 help-thing-frame = Kader en titelblok
 help-thing-list = Lijsten op een pagina
 help-thing-panel-layout = Paneellayout
+
+# Nieuw project, sjablonen, de wizard, de personen van een project en secties (rc.3-personaronde)
+templates-name-taken = Er is al een sjabloon dat "{ $p0 }" heet: kies een andere naam.

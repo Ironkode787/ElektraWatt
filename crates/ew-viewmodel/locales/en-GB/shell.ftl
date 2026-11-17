@@ -7538,3 +7538,6 @@ help-thing-box = Boxes
 help-thing-frame = The frame and title block
 help-thing-list = Lists on a page
 help-thing-panel-layout = Panel layout
+
+# New project, templates, the wizard, the people of a project and sections (rc.3 persona round)
+templates-name-taken = Another template is called "{ $p0 }" already: choose another name.
