@@ -954,12 +954,18 @@ fn tab_and_the_arrows_move_a_handle_of_the_selected_wire() {
         prompt(&s),
         "1 selected · Tab chooses a handle for the arrow keys · Del deletes"
     );
-    let mid = |s: &ShellModel, a: (i64, i64), b: (i64, i64)| sheet(s, (a.0 + (b.0 - a.0) / 2, a.1 + (b.1 - a.1) / 2));
+    let mid = |s: &ShellModel, a: (i64, i64), b: (i64, i64)| {
+        sheet(s, (a.0 + (b.0 - a.0) / 2, a.1 + (b.1 - a.1) / 2))
+    };
     let p = wire.polyline.clone();
     // Tab: the first handle, the middle of the wire's first segment.
     key(&mut s, "tool.next_proposal");
     assert_eq!(hot(&s), [mid(&s, p[0], p[1])]);
-    assert!(prompt(&s).starts_with("The arrow keys move the handle"), "{}", prompt(&s));
+    assert!(
+        prompt(&s).starts_with("The arrow keys move the handle"),
+        "{}",
+        prompt(&s)
+    );
     // Shift+Tab from the first goes round to the last: the middle of the last segment.
     key(&mut s, "layout.previous");
     let n = p.len();
@@ -989,11 +995,18 @@ fn tab_and_the_arrows_move_a_handle_of_the_selected_wire() {
     // Esc gives the focus back to the wire, which stays selected; the arrows move the grid cursor again.
     done(&mut s, "ui.dismiss", json!({}));
     assert!(hot(&s).is_empty());
-    assert!(s.selection().contains(ew_viewmodel::ew_api::output::ew_dl::EntityRef(wire.id)));
+    assert!(
+        s.selection()
+            .contains(ew_viewmodel::ew_api::output::ew_dl::EntityRef(wire.id))
+    );
     assert_eq!(s.shortcut_action("cursor.right").0, "cursor.right");
     done(&mut s, "edit.undo", json!({}));
     assert_eq!(
-        tables(&s).connections.iter().find(|c| c.id == wire.id).map(|c| c.polyline.clone()),
+        tables(&s)
+            .connections
+            .iter()
+            .find(|c| c.id == wire.id)
+            .map(|c| c.polyline.clone()),
         Some(wire.polyline.clone()),
         "one undo takes it back"
     );

@@ -544,7 +544,12 @@ fn crossed_once(s: &ShellModel, wires: [ew_viewmodel::ew_api::output::Uuid; 2]) 
         .collect();
     assert_eq!(crossings.len(), 1, "{:?}", m.crossings);
     let line = |id| {
-        let c = page.tables.connections.iter().find(|c| c.id == id).expect("the wire");
+        let c = page
+            .tables
+            .connections
+            .iter()
+            .find(|c| c.id == id)
+            .expect("the wire");
         assert!(c.stored_route, "routed");
         c.polyline.clone()
     };
@@ -557,7 +562,10 @@ fn crossed_once(s: &ShellModel, wires: [ew_viewmodel::ew_api::output::Uuid; 2]) 
     for l in [&a, &b] {
         let (first, last) = (l[0], l[l.len() - 1]);
         let direct = (first.0 - last.0).abs() + (first.1 - last.1).abs();
-        let length: i64 = l.windows(2).map(|w| (w[0].0 - w[1].0).abs() + (w[0].1 - w[1].1).abs()).sum();
+        let length: i64 = l
+            .windows(2)
+            .map(|w| (w[0].0 - w[1].0).abs() + (w[0].1 - w[1].1).abs())
+            .sum();
         assert!(length * 5 <= direct * 8, "a detour: {l:?}");
     }
 }
