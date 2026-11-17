@@ -1650,7 +1650,7 @@ impl ShellModel {
             ),
             crate::properties::EditRoute::FieldsSet { kind, path } => {
                 let mut params = json!({ "kind": kind, "targets": targets, "path": path, "value": new });
-                // A part a system library holds and the project does not (a tube part): embedded with the edit.
+                // A part a library holds and the project does not (a tube part): embedded with the edit.
                 let copies = new
                     .get("copy")
                     .and_then(Value::as_str)
@@ -1667,7 +1667,7 @@ impl ShellModel {
                 (String::new(), Value::Null)
             }
         };
-        // A Parts row that chooses a system library's part the project does not hold assigns it with
+        // A Parts row that chooses a library's part the project does not hold assigns it with
         // `part.assign`, which embeds the part with its closure in the same transaction.
         let (name, params) = match self
             .project

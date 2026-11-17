@@ -601,14 +601,15 @@ impl Session {
         })
     }
 
-    /// The parts of the system libraries (the compiled-in generic starter parts, and any installed system
-    /// library), as library documents with copy metadata, in library then item ID order. The picker and the Parts row
-    /// list those the project does not hold after its embedded copies.
+    /// The parts of the libraries (the compiled-in generic starter parts, any installed system library, the company
+    /// libraries and the person's own, My parts), as library documents with copy metadata, in library then item ID
+    /// order. Every place that offers parts (the device browser, a station's catalogue, the Cable form's type list, the
+    /// Parts row) lists those the project does not hold after its embedded copies: a part a person made in one project
+    /// is offered in the next (rc.3).
     pub fn library_parts(&self) -> Vec<LibCopy<Part>> {
         let reg = self.libraries();
         reg.libraries()
             .into_iter()
-            .filter(|l| l.tier == library::Tier::System)
             .flat_map(|l| reg.documents(l.id, Kind::Part))
             .filter_map(|d| match d {
                 LibDocument::Part(c) => Some(c),
@@ -639,7 +640,7 @@ impl Session {
         }
     }
 
-    /// The reference to the library part whose copy would have ID `copy`, if a system library holds one
+    /// The reference to the library part whose copy would have ID `copy`, if a library holds one
     /// ([`Session::library_parts`]).
     pub fn library_part_ref(&self, copy: Uuid) -> Option<LibRef> {
         self.library_parts()
@@ -654,7 +655,7 @@ impl Session {
     }
 
     /// The Parts row's edit as `part.assign`: when the new part uses `value` (`[{part: {copy}, qty}]`, the
-    /// row's value) are exactly one use whose copy the project does not hold and a system library holds
+    /// row's value) are exactly one use whose copy the project does not hold and a library holds
     /// ([`Session::library_part_ref`]), the command that embeds the part with its closure and makes it the devices'
     /// only part use (`replace_all`, the use's quantity) in one transaction; `None` otherwise (the row's own
     /// `fields.set`). A list that names a library part beside other uses stays `fields.set`, which refuses the copy the

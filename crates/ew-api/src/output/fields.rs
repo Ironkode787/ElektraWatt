@@ -1362,7 +1362,7 @@ pub(crate) trait ParseCx {
     fn company_codes(&self) -> Vec<(String, String)>;
     /// The part copies.
     fn part_copies(&self) -> Vec<PartCopyText>;
-    /// The system libraries' parts the project does not hold, which a Parts row may choose; their `id`
+    /// The libraries' parts the project does not hold, which a Parts row may choose; their `id`
     /// is the copy ID choosing one gives. Empty by default.
     fn library_parts(&self) -> Vec<PartCopyText> {
         Vec::new()
@@ -1996,7 +1996,7 @@ pub(crate) fn choices(cx: &dyn ParseCx, ty: &FieldType, member: &str, filter: &s
     all.into_iter().filter(keep).collect()
 }
 
-/// The project's part copies and the system libraries' parts the project does not hold as options,
+/// The project's part copies and the libraries' parts the project does not hold as options,
 /// `<part number> (<manufacturer>)`, each writing `value(id)`; in the place chooser's one order, (maker, part number,
 /// copy), embedded and library parts alike, so that embedding a part does not move it (item 4).
 fn part_choices(cx: &dyn ParseCx, value: impl Fn(&str) -> Value) -> Vec<FieldChoice> {

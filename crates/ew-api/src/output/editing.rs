@@ -55,10 +55,10 @@ pub const OUTLINE_TOLERANCE_NM: f64 = 50_000.0;
 pub struct PlaceCatalogue {
     /// Embedded symbols and available library symbols on the page's stored grid, in key/address order.
     pub symbols: Vec<CatalogueSymbol>,
-    /// The embedded part copies, then the system libraries' parts with a function template the project does not hold,
+    /// The embedded part copies, then the libraries' parts with a function template the project does not hold,
     /// each group by manufacturer, then part number, then copy ID.
     pub parts: Vec<CataloguePart>,
-    /// The system libraries' PLC parts without a function template, which `parts` does not offer (nothing draws them):
+    /// The libraries' PLC parts without a function template, which `parts` does not offer (nothing draws them):
     /// the station view lists them greyed with what to do.
     pub plc_without_functions: Vec<CataloguePart>,
     /// Every terminal strip of the project, by its tag as the page prints it: the strip chooser of a
@@ -149,7 +149,7 @@ pub fn page_type_takes(page_type: &str, rep_type: &str) -> bool {
     }
 }
 
-/// A part row of the place catalogue: an embedded part copy with a function template, or a system library's part the
+/// A part row of the place catalogue: an embedded part copy with a function template, or a library's part the
 /// project does not hold yet, which choosing embeds.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct CataloguePart {
@@ -959,7 +959,7 @@ impl Session {
     /// Rows are ordered by key/address. `letter` is the identifier set's letter for the FnDef's category;
     /// `black_box` identifies the built-in resizable placeholder, `terminal` its terminal category, `allowed` whether
     /// the page's type allows the symbol's representation type (`allowed_rep_types`). `parts` lists every embedded
-    /// part copy, with or without a function template, then every part of the system libraries with a function
+    /// part copy, with or without a function template, then every part of the libraries with a function
     /// template the project does not hold (the project's own copies first; their PLC parts without one go to
     /// `plc_without_functions`), each group by
     /// manufacturer name, part number, copy ID; a template function's `symbol` is the key of the first
@@ -1058,7 +1058,7 @@ impl Session {
                 .then_with(|| b.copy.is_some().cmp(&a.copy.is_some()))
         });
         // One order for the chooser, (maker, part number, copy), within the embedded copies and
-        // within the system libraries' parts the project does not hold, the embedded ones first.
+        // within the libraries' parts the project does not hold, the embedded ones first.
         // An embedded part's maker is named from its own maker field as the Parts row names it
         // (`ew_derive::manufacturer_name`); a library part's, which the project does not hold, from its library
         // ([`Session::library_manufacturer`]).
@@ -1072,7 +1072,7 @@ impl Session {
                 });
             }
         }
-        // The system libraries' parts the project does not hold.
+        // The libraries' parts the project does not hold.
         for c in self.library_parts() {
             if q.parts().contains(c.id)
                 || (c.item.function_template.is_empty() && c.item.sections.plc.is_none())
@@ -1173,7 +1173,7 @@ impl Session {
     /// (the reference's `key` member, else the FnDef copy ID as lower-case UUID text), and nothing is to be
     /// embedded.
     ///
-    /// `part` may name a system library's part the project does not hold (a catalogue row with `library`):
+    /// `part` may name a library's part the project does not hold (a catalogue row with `library`):
     /// its closure (the part, its template FnDefs, its manufacturer; [`Session::embed_command`]'s reference
     /// form) follows in the same parameters; a closure that does not resolve is `Err` with the library's
     /// message. The picker sends the `copies` with the placement itself (`device.place` or `box.black`,

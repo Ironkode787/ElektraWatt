@@ -382,7 +382,7 @@ pub(crate) fn json_at<'v>(root: &'v Value, path: &str) -> Option<&'v Value> {
 pub(crate) struct SheetCx<'q> {
     q: &'q Q,
     source: Option<String>,
-    /// The system libraries' parts the project does not hold, listed after its copies (the Parts row).
+    /// The libraries' parts the project does not hold, listed after its copies (the Parts row).
     library: Vec<super::fields::PartCopyText>,
 }
 
@@ -396,7 +396,7 @@ impl<'q> SheetCx<'q> {
         }
     }
 
-    /// The context with the system libraries' parts that `q` does not hold among the part copies.
+    /// The context with the libraries' parts that `q` does not hold among the part copies.
     fn with_library_parts(mut self, session: &crate::Session) -> SheetCx<'q> {
         self.library = session
             .library_parts()

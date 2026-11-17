@@ -831,3 +831,124 @@ fn a_starter_part_is_copied_as_a_part_of_ones_own() {
         .expect("the copy");
     assert_eq!(part["sections"]["bus"]["ports"][0]["ports"], json!(5));
 }
+
+/// rc.3: a part a person made in one project is there in the next, wherever parts are offered. The first project makes
+/// an input card in the part editor and a cable type (both into My parts); the next project, in the same person's
+/// folders, holds neither, and yet the device browser lists the card, the station view's catalogue offers it for the
+/// CPU's rack, the Cable form's type list offers the cable type, and the part dialog of a cable without a part lists
+/// it.
+#[test]
+fn a_part_made_in_one_project_is_offered_in_the_next() {
+    use crate::wires_and_cables::{select_both, two_wires};
+    use ew_ui::ew_viewmodel::navigators::NavKind;
+    let tmp = Tmp::new();
+    let mut first = new_project(&tmp);
+    make_card(&mut first, "DI8-OWN", "");
+    let s = first.shell_mut();
+    assert_eq!(s.dispatch("part.new", &json!({})), Outcome::Done);
+    for (field, value) in [
+        ("kind", "cable"),
+        ("manufacturer", "Acme"),
+        ("part_number", "CTRL-OWN"),
+        ("cable.cores", "3"),
+        ("cable.csa", "1.5"),
+    ] {
+        let set = s.dispatch("part.field", &json!({"field": field, "value": value}));
+        assert_eq!(set, Outcome::Done, "{field}");
+    }
+    assert_eq!(s.dispatch("part.save", &json!({})), Outcome::Done);
+    assert!(s.dialog().is_none(), "saved: {:?}", s.dialog());
+    assert_eq!(s.dispatch("file.save", &json!({})), Outcome::Done);
+    s.shutdown();
+    drop(first);
+
+    let tiers = LibraryTiers::under(&tmp.0.join("data"), &tmp.0.join("cache"), Vec::new(), Vec::new());
+    let mut d = Driver::in_folder(tmp.config().with_libraries(Some(tiers)), None, tmp.0.clone()).unwrap();
+    d.enable_accesskit();
+    let next = json!({"dir": tmp.0.join("q.ew"), "template": "builtin"});
+    assert_eq!(d.shell_mut().dispatch("file.new", &next), Outcome::Done);
+    d.settle();
+    let mine = |v: &Value| v["part_number"] == "DI8-OWN" || v["part_number"] == "CTRL-OWN";
+    assert!(
+        !records(&mut d).iter().any(mine),
+        "the next project holds neither"
+    );
+
+    // The device browser.
+    d.input(&key("Shift+I"));
+    d.settle();
+    let browser = d.shell_mut().picker().expect("the device browser");
+    assert!(
+        browser.catalogue.parts.iter().any(|p| p.part_number == "DI8-OWN"),
+        "the device browser lists the card"
+    );
+    d.input(&key("Escape"));
+    d.settle();
+
+    // The Cable form's type list.
+    let pixel = two_wires(&mut d);
+    select_both(&mut d, &pixel);
+    d.input(&click(d.find("Cable").expect("Cable on the Draw tab")));
+    d.settle();
+    match d.shell_mut().dialog() {
+        Some(Dialog::Form(f)) => assert!(
+            f.fields[0].options.iter().any(|o| o.0 == "CTRL-OWN"),
+            "the Cable form offers the cable type: {:?}",
+            f.fields[0].options
+        ),
+        other => panic!("not the Cable form: {other:?}"),
+    }
+
+    // The part dialog of a cable without a part.
+    d.shell_mut().set_form_field("part", "");
+    d.shell_mut().set_form_field("type", "2X1.5");
+    d.settle();
+    d.input(&click(d.find("Apply").expect("Apply")));
+    d.settle();
+    assert_eq!(
+        d.shell_mut().dispatch("messages.show", &json!({"on": true})),
+        Outcome::Done
+    );
+    d.settle();
+    let row = d
+        .shell_mut()
+        .nav(NavKind::Messages)
+        .and_then(|n| n.table())
+        .and_then(|t| {
+            t.nodes
+                .iter()
+                .find(|n| n.cells.get(1).is_some_and(|c| c == "EW-CORE-041"))
+                .cloned()
+        })
+        .expect("the cable has no part");
+    let offer = d.shell_mut().finding_offer(&row.key).expect("an offer");
+    assert_eq!(d.shell_mut().dispatch(offer.id, &offer.params), Outcome::Done);
+    match d.shell_mut().dialog() {
+        Some(Dialog::PartChoose(c)) => assert!(
+            c.offers.iter().any(|o| o.part_number == "CTRL-OWN"),
+            "the part dialog lists the cable type"
+        ),
+        other => panic!("no part dialog: {other:?}"),
+    }
+    d.input(&key("Escape"));
+    d.settle();
+
+    // The station view's catalogue.
+    let s = d.shell_mut();
+    assert_eq!(s.dispatch("plc.new_station", &json!({})), Outcome::Done);
+    assert_eq!(
+        s.dispatch("plc.rack_add", &json!({"part": "EW-GEN-CPU-1"})),
+        Outcome::Done
+    );
+    let card = s.station_catalogue().into_iter().find(|p| p.number == "DI8-OWN");
+    assert!(
+        card.as_ref().is_some_and(|c| c.unfit.is_none()),
+        "the station's catalogue offers the card: {card:?}"
+    );
+    assert_eq!(
+        s.dispatch("plc.rack_add", &json!({"part": "DI8-OWN"})),
+        Outcome::Done,
+        "taking it"
+    );
+    d.shell_mut().shutdown();
+}

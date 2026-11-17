@@ -1000,7 +1000,7 @@ impl Session {
             .map(|c| (c.position, position_of(&q, &c.slot)))
             .collect()
     }
-    /// The valve part a module's position takes from the system libraries while the project has no valve to copy (the
+    /// The valve part a module's position takes from the libraries while the project has no valve to copy (the
     /// persona round: Add valve stayed greyed on a new project): of the libraries' parts that name solenoids, carry no
     /// PLC section and no CP pattern (a valve whose coil is internal, as a valve terminal drives it) and whose solenoids
     /// the module's solenoid-position map names, the first by part number; `None` without one.

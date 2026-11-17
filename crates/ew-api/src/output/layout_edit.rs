@@ -9,7 +9,7 @@
 //! terminal's Group row. Never `fields.set`: each row writes through the command that checks it (D12).
 //!
 //! Besides, the data the window's set-up dialogs offer (part 4, §8): the layout parts of a kind (the project's copies,
-//! then the system libraries' parts with the `copies` that embed them) and the project's locations.
+//! then the libraries' parts with the `copies` that embed them) and the project's locations.
 //!
 //! Every row is `derived.<name>` of its kind; an editable one carries [`EditRoute::Command`] with its command's name.
 //! Lengths are millimetres as the project prints them (its decimal separator), the unit as a suffix.
@@ -82,7 +82,7 @@ pub(crate) const LAYOUT_KINDS: [Kind; 5] = [
     Kind::LayoutSpace,
 ];
 
-/// One part a set-up dialog or a drawing tool offers (part 4): a project copy, or a system library's part with the
+/// One part a set-up dialog or a drawing tool offers (part 4): a project copy, or a library's part with the
 /// `copies` that embed it and its closure (the enclosure part's plate part too).
 #[derive(Clone, PartialEq, Debug)]
 pub struct LayoutPartOffer {
@@ -1404,7 +1404,7 @@ impl Session {
     }
 
     /// The layout parts of `kind` (`enclosure`, `rail` or `duct`) a set-up dialog or a drawing tool offers: the project's copies
-    /// of that kind by part number, then the system libraries' parts of that kind the project does not hold, each with
+    /// of that kind by part number, then the libraries' parts of that kind the project does not hold, each with
     /// the `copies` that embed it and its closure; an enclosure part's plate part and its closure come along. For
     /// `enclosure` only parts with an enclosure section; for `rail` only parts with a rail section; for `cable` (New
     /// cable…) only parts with cable cores; for `plug` (a bus line's Cable…) the accessories with a bus interface;

@@ -43,7 +43,7 @@ pub struct DrawCard {
     pub size: Option<(String, String)>,
 }
 
-/// The part a draw tool draws with (the tool option): a project copy, or a system library's part with the `copies`
+/// The part a draw tool draws with (the tool option): a project copy, or a library's part with the `copies`
 /// that embed it (`layout.carrier.add`'s `copies`, D7).
 #[derive(Clone, PartialEq, Debug)]
 pub struct DrawPart {
