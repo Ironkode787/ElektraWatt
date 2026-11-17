@@ -133,7 +133,8 @@ take, or, for a part not yet in the project, a new part in your own library. The
 - **The drawing** shows the box as a device of the part is drawn. Drag a pin along its edge or onto another edge;
   drag any edge or corner of the box to size it: the pins on that edge go with it, the others stay where they are,
   and the box gets no smaller than its pins need. A click selects a pin, `Shift` and
-  `Ctrl` select more; the arrow keys move the selected pins one grid step along their edge and `Delete` removes them.
+  `Ctrl` select more; the arrow keys move the selected pins one grid step along their edge and `Delete` removes them;
+  `Ctrl+C` and `Ctrl+V` copy them and paste pins of the same names, each last on its edge.
 - **Properties** shows the selected pin's **Name**, **Potential**, **Edge** and its place **Along the edge**; with no
   pin selected the part's number, manufacturer and description (typed here for a new part; **Part data…** opens the
   part editor for the rest) and the box's width and height.

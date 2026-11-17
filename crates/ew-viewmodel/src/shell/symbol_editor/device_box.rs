@@ -833,9 +833,59 @@ impl ShellModel {
                     Ok(())
                 }
             }
-            // The clipboard and the drawing tools are the symbol's: on a box they do nothing.
-            "copy" | "cut" | "paste" | "duplicate" | "tool" | "grid" | "variant" | "align" | "grip"
-            | "move" => Ok(()),
+            // The clipboard holds pins: their names, what they carry and their edges; a pasted pin stands last on its
+            // edge, and the pasted pins are selected.
+            "copy" | "cut" | "duplicate" | "paste" if b.draft.pins_from().is_some() => {
+                Err(b.pins_from().unwrap_or_default())
+            }
+            "copy" | "cut" | "duplicate" | "paste" => {
+                let pins: Vec<(String, String, Dir4)> = b
+                    .pin_table()
+                    .into_iter()
+                    .filter(|l| b.selection.contains(&l.idx))
+                    .map(|l| {
+                        let role = b.draft.pins.iter().find(|p| p.idx == l.idx).map(|p| p.role.clone());
+                        (l.name, role.unwrap_or_default(), l.side)
+                    })
+                    .collect();
+                let paste = match action {
+                    "paste" => self.symbol_clipboard.1.clone(),
+                    "duplicate" => pins.clone(),
+                    _ => Vec::new(),
+                };
+                if action == "paste" && paste.is_empty() {
+                    Err(words(key!("symbol-nothing-copied")))
+                } else if action != "paste" && pins.is_empty() {
+                    Err(words(key!("reason-nothing-selected")))
+                } else {
+                    if matches!(action, "copy" | "cut") {
+                        self.symbol_clipboard = super::Clipboard::of_pins(pins);
+                        let gui = self.mode == crate::shell::Mode::Gui;
+                        self.clip.set(self.symbol_clipboard.text(), None, 0, gui);
+                    }
+                    let gone = if action == "cut" { b.selection.clone() } else { Vec::new() };
+                    let added = b.edit(|d| {
+                        for idx in gone {
+                            d.remove_pin(idx);
+                        }
+                        paste
+                            .iter()
+                            .map(|(name, role, side)| {
+                                let idx = d.add_pin(Some(name));
+                                let _ = d.set_pin(idx, None, Some(role));
+                                d.move_pin(idx, side.clone(), None);
+                                idx
+                            })
+                            .collect::<Vec<u16>>()
+                    });
+                    if !added.is_empty() {
+                        b.selection = added;
+                    }
+                    Ok(())
+                }
+            }
+            // The drawing tools are the symbol's: on a box they do nothing.
+            "tool" | "grid" | "variant" | "align" | "grip" | "move" => Ok(()),
             _ => return None,
         };
         if let (Err(message), Some(b)) = (

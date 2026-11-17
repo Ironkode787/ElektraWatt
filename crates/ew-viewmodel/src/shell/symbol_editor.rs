@@ -1002,10 +1002,14 @@ impl ShellModel {
             "move" => editor.move_selection(p, false)?,
             "nudge" => editor.move_selection(p, true)?,
             "delete" => editor.delete_selection()?,
-            "copy" => self.symbol_clipboard = editor.copied()?,
-            "cut" => {
+            "copy" | "cut" => {
                 self.symbol_clipboard = editor.copied()?;
-                editor.delete_selection()?;
+                if action == "cut" {
+                    editor.delete_selection()?;
+                }
+                // On the system clipboard too: the platform turns Ctrl+V into a paste only when it holds a text.
+                let gui = self.mode == Mode::Gui;
+                self.clip.set(self.symbol_clipboard.text(), None, 0, gui);
             }
             // What was pasted is what the next paste copies, so each paste lands a step further.
             "paste" => {

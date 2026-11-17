@@ -175,6 +175,53 @@ fn a_drag_moves_the_selection_and_a_handle_reshapes_a_shape() {
     d.shell_mut().shutdown();
 }
 
+/// Ctrl+C and Ctrl+V through the window copy and paste what is selected, after a row of the outline was clicked
+/// too: a shape, a text and a connection point; in a device box, a pin.
+#[test]
+fn ctrl_c_and_ctrl_v_copy_and_paste_shapes_texts_points_and_pins() {
+    let tmp = Tmp::new();
+    let (mut d, _) = two_squares(&tmp);
+    let count = |d: &mut Driver| {
+        let e = d.shell_mut().symbol_editor().unwrap();
+        (e.draft.symbol.graphics.len(), e.draft.symbol.cps.len())
+    };
+    d.input(&Input::Wait { ms: 100 });
+    d.input(&click(d.find("Rectangle 2").expect("the outline's row")));
+    d.input(&key("ctrl+c"));
+    d.input(&key("ctrl+v"));
+    assert_eq!(count(&mut d), (3, 0));
+    assert_eq!(selection(&mut d), ["graphic:2"], "the pasted square is selected");
+    done(
+        &mut d,
+        "symbol.cp",
+        json!({"x": 0, "y": -4, "designation": "1", "direction": "up"}),
+    );
+    done(
+        &mut d,
+        "symbol.draw",
+        json!({"tool": "text", "x": 0, "y": 4, "text": "P"}),
+    );
+    done(&mut d, "symbol.select", json!({"items": ["cp:0", "graphic:3"]}));
+    d.input(&key("ctrl+c"));
+    d.input(&key("ctrl+v"));
+    assert_eq!(count(&mut d), (5, 2), "the text and the point pasted");
+    d.shell_mut().shutdown();
+
+    let tmp = Tmp::new();
+    let mut d = box_with_three_pins(&tmp);
+    done(&mut d, "part.box_select", json!({"pins": [0]}));
+    let first = box_now(&mut d).1[0].clone();
+    d.input(&key("ctrl+c"));
+    d.input(&key("ctrl+v"));
+    let pins = box_now(&mut d).1;
+    assert_eq!(pins.len(), 4);
+    assert!(
+        pins.iter().filter(|p| p.0 == first.0 && p.1 == first.1).count() == 2,
+        "a pin of the same name on the same edge: {pins:?}"
+    );
+    d.shell_mut().shutdown();
+}
+
 /// With nothing in hand the editor shows the ways in; New symbol opens the drawing with its outline and Properties.
 #[test]
 fn the_start_card_leads_to_a_new_symbol() {

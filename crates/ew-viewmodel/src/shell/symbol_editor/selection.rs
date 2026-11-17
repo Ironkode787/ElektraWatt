@@ -7,6 +7,7 @@
 
 use super::{SymbolEditor, damaged, edit_error, nm, text, words};
 use crate::{key, strings};
+use ew_api::part_box::Dir4;
 use ew_api::symbols::SymbolDraft;
 use serde_json::{Map, Value, json};
 
@@ -218,14 +219,30 @@ fn move_grip(v: &mut Value, grip: usize, to: [i64; 2]) -> bool {
     true
 }
 
-/// What Copy and Cut hold: each item's value with its kind, and for a connection point the function pin it draws.
+/// What Copy and Cut hold: each item's value with its kind, and for a connection point the function pin it draws;
+/// or, in a device box, the pins (name, potential, edge).
 #[derive(Clone, Debug, Default)]
-pub struct Clipboard(Vec<(Item, Value, Option<Value>)>);
+pub struct Clipboard(Vec<(Item, Value, Option<Value>)>, pub(super) Vec<(String, String, Dir4)>);
 
 impl Clipboard {
     /// Whether nothing was copied yet.
     pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
+        self.0.is_empty() && self.1.is_empty()
+    }
+
+    /// The pins of a device box copied.
+    pub(super) fn of_pins(pins: Vec<(String, String, Dir4)>) -> Clipboard {
+        Clipboard(Vec::new(), pins)
+    }
+
+    /// What the system clipboard takes of it: the things copied as the symbol's file writes them, or the pins' names,
+    /// one a line.
+    pub(super) fn text(&self) -> String {
+        if self.0.is_empty() {
+            return self.1.iter().map(|p| format!("{}\n", p.0)).collect();
+        }
+        let things: Vec<&Value> = self.0.iter().map(|(_, v, _)| v).collect();
+        serde_json::to_string_pretty(&things).unwrap_or_default()
     }
 }
 
@@ -427,6 +444,7 @@ impl SymbolEditor {
                     Some((item, v, pin))
                 })
                 .collect(),
+            Vec::new(),
         ))
     }
 
@@ -434,7 +452,7 @@ impl SymbolEditor {
     /// where they were copied (so a connection point stays on its grid), and selected. A connection point takes the
     /// next free number and, in a draft that owns its function, a function pin of its own with the copied one's name.
     pub(super) fn paste(&mut self, clip: &Clipboard) -> Result<(), String> {
-        if clip.is_empty() {
+        if clip.0.is_empty() {
             return Err(words(key!("symbol-nothing-copied")));
         }
         let step = self.draft.symbol.grid.at(1).map_or(4_000_000, |n| n.0);
