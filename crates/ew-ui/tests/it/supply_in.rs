@@ -262,6 +262,18 @@ fn supply_points_that_stand_together_print_their_place_once() {
     d.settle();
     let texts = crate::own_parts::page_texts(&mut d);
     assert!(texts.iter().any(|t| t.starts_with("+MCC1")), "{texts:?}");
+    // An empty place is refused in the window's language (rc.3 review: it was English in a Dutch window).
+    assert!(ew_ui::ew_viewmodel::strings::set_locale("nl"));
+    let refused = d
+        .shell_mut()
+        .dispatch("props.set", &json!({"row": row, "value": " "}));
+    assert!(ew_ui::ew_viewmodel::strings::set_locale("en"));
+    assert_eq!(
+        refused,
+        Outcome::Failed {
+            message: "Typ waar de voeding vandaan komt.".to_owned()
+        }
+    );
     // Marked alone from the place of the points under it, it joins their group: the place is printed once again.
     assert_eq!(
         d.shell_mut()

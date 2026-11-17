@@ -1010,10 +1010,14 @@ impl Session {
             // the point and the points of its group to it (a new place is made).
             ("function", "supply_place" | "supply_device") => {
                 let Some((place, device)) = self.supply_source(&[edit.target]) else {
-                    return invalid("The point has no supply mark.");
+                    return Err(LayoutEditError::Refused(ew_commands::text_key!(
+                        "props-supply-no-mark"
+                    )));
                 };
                 if text.is_empty() {
-                    return invalid("Type where the supply comes from.");
+                    return Err(LayoutEditError::Refused(ew_commands::text_key!(
+                        "props-supply-empty"
+                    )));
                 }
                 let (location, device) = if name == "supply_place" {
                     (text.to_owned(), device)
