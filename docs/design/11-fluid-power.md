@@ -469,9 +469,14 @@ box (`Session::cell_copies`). A valve drawn on another page stays there; its cel
 symbol (`(202-B3)`), a jump to it. A project made before: `valve_terminal.draw_valves {terminal, copies?}` (Draw its
 valves in the terminal: the terminal's menu, its station view's To do, and the quick fix of EW-CORE-047 for a valve of
 a terminal drawn as its positions) draws what is missing and moves valves an earlier build seated lower;
-`valve_terminal.draw_slots` takes `copies` too. A valve for a terminal whose valve FnDef has no fluid symbol at most a
-cell wide (`CataloguePart::cell_symbol`; a 5/3 valve's is 15 steps) is listed by the station view and the cell's
-browser with the reason, and not put on a position. Not built: a terminal
+`valve_terminal.draw_slots` takes `copies` too. A position is as wide as its valve needs: a cell is the pitch wide, and
+a valve whose symbol on the box's page is wider (a 5/3 valve, fifteen steps) takes its width and a step to spare
+(`SlotFrame::with_cells`, `ew_derive::box_frame`); `seat_reps` gives the box the outline of those cells, its corner kept,
+so it grows to the right, and the valves of the cells to its right move with their tubes; the sub-base and the cell
+numbers follow. A terminal drawn before keeps its place. The starter parts hold a 5/3 valve for a terminal,
+EW-GEN-VLV-53 (closed centre, solenoids 14 and 12). Only a valve for a terminal whose valve FnDef has no fluid symbol
+(`CataloguePart::cell_symbol`) is listed by the station view and the cell's browser with the reason, and not put on a
+position. Not built: a terminal
 part with several sizes whose count is asked when it is made (it needs a device-level position count that the channel
 instantiation honours, which an older build would not: not additive).
 

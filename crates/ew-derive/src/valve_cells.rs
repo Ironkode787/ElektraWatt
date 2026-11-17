@@ -125,14 +125,16 @@ pub fn graphics_x_extent(symbol: &SymbolDef) -> Option<(Nm, Nm)> {
     Some((Nm(*xs.iter().min()?), Nm(*xs.iter().max()?)))
 }
 
-/// The geometry of a slotted box on its page: the grid, the grid indices of its top-left corner, and the cell width in
-/// grid steps.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+/// The geometry of a slotted box on its page: the grid, the grid indices of its top-left corner, the cell width in
+/// grid steps, and the width of each cell that needs more (rc.3: a 5/3 valve).
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct SlotFrame {
     grid: Grid,
     x0: i64,
     y0: i64,
     cell: i64,
+    /// The width of cell `i` in grid steps, at least `cell`; a cell after the last is `cell` wide.
+    widths: Vec<i64>,
 }
 
 impl SlotFrame {
@@ -145,7 +147,33 @@ impl SlotFrame {
             x0: grid.snap(pos.x),
             y0: grid.snap(pos.y),
             cell,
+            widths: Vec::new(),
         }
+    }
+
+    /// The frame with each cell as wide as the valve drawn in it needs (rc.3): `extents[i]` is the graphics extent of
+    /// the widest symbol in cell `i` ([`graphics_x_extent`]; `None`: nothing drawn there). A cell is the pitch wide,
+    /// and a valve wider than that (a 5/3 valve, fifteen steps) takes its own width and a step to spare; the cells to
+    /// its right move with it, and the box grows to the right.
+    pub fn with_cells(mut self, extents: &[Option<(Nm, Nm)>]) -> SlotFrame {
+        let pitch = self.grid.at(self.cell).unwrap_or(Nm(0));
+        self.widths = extents
+            .iter()
+            .map(|e| match e {
+                Some((min, max)) if *max - *min > pitch => {
+                    let w = *max - *min;
+                    let steps = self.grid.snap(w);
+                    let steps = if self.grid.at(steps).is_some_and(|at| at < w) {
+                        steps.saturating_add(1)
+                    } else {
+                        steps
+                    };
+                    steps.saturating_add(1).max(self.cell)
+                }
+                _ => self.cell,
+            })
+            .collect();
+        self
     }
 
     /// The cell width of a new box on grid `grid`: [`CELL_STEPS`] grid steps.
@@ -166,9 +194,15 @@ impl SlotFrame {
         Pt2::new(self.x(0), self.y(0))
     }
 
-    /// The grid column of the left edge of cell `i` (0-based), relative to the box.
+    /// The grid column of the left edge of cell `i` (0-based), relative to the box: the supply end, then the cells
+    /// before it.
     fn col(&self, i: usize) -> i64 {
-        END_STEPS.saturating_add(self.cell.saturating_mul(i64::try_from(i).unwrap_or(i64::MAX / 2)))
+        let known = i.min(self.widths.len());
+        let wide: i64 = self.widths[..known].iter().fold(0, |a, w| a.saturating_add(*w));
+        let rest = i64::try_from(i - known).unwrap_or(i64::MAX / 2);
+        END_STEPS
+            .saturating_add(wide)
+            .saturating_add(self.cell.saturating_mul(rest))
     }
 
     /// The outline of a box of `n` cells, relative to its top-left corner (clockwise from it).
@@ -233,6 +267,38 @@ impl SlotFrame {
     pub fn supply_at(&self) -> Pt2 {
         Pt2::new(self.x(0), self.y(SUPPLY_TOP))
     }
+}
+
+/// The frame of box representation `rep` of a valve terminal drawn as its positions (`BoxSpec.slots`) on its page,
+/// each cell as wide as the valve drawn in it there needs ([`SlotFrame::with_cells`]: the widest symbol of the cell's
+/// valve on the box's page); `None` for a representation that is no such box or a page that is gone.
+pub fn box_frame(q: &Q, rep: &ew_schema::Representation) -> Option<SlotFrame> {
+    let slots = rep.box_.as_ref()?.slots.as_ref()?;
+    let grid = q.pages().get(rep.page)?.grid;
+    let terminal = rep
+        .functions
+        .first()
+        .and_then(|f| q.functions().get(*f))
+        .and_then(|f| f.device);
+    let frame = SlotFrame::new(grid, rep.pos, slots.pitch);
+    let Some(terminal) = terminal else {
+        return Some(frame);
+    };
+    let (reps, symbols) = (q.reps(), q.symbols());
+    let extents: Vec<Option<(Nm, Nm)>> = terminal_cells(q, terminal)
+        .iter()
+        .map(|c| match c.slot {
+            ValveSlot::Valve { device, .. } => crate::fluid::valve_functions(q, device)
+                .into_iter()
+                .flat_map(|f| q.idx().reps_of_function(f).collect::<Vec<_>>())
+                .filter_map(|r| reps.get(r))
+                .filter(|r| r.page == rep.page && r.box_.is_none())
+                .filter_map(|r| graphics_x_extent(&symbols.get(r.symbol)?.item))
+                .max_by_key(|(min, max)| *max - *min),
+            _ => None,
+        })
+        .collect();
+    Some(frame.with_cells(&extents))
 }
 
 /// The supply of a valve terminal drawn in its box's supply end: the lowest-ID function of the terminal, else of a

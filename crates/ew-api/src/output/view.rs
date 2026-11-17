@@ -670,9 +670,9 @@ pub fn page_valve_cells(q: &Q, page: Id<Page>) -> Vec<ValveCellsView> {
     let mut out = Vec::new();
     for rid in ids {
         let Some(rep) = reps.get(rid) else { continue };
-        let Some(slots) = rep.box_.as_ref().and_then(|b| b.slots.as_ref()) else {
+        if rep.box_.as_ref().and_then(|b| b.slots.as_ref()).is_none() {
             continue;
-        };
+        }
         let Some(terminal) = rep
             .functions
             .first()
@@ -682,11 +682,10 @@ pub fn page_valve_cells(q: &Q, page: Id<Page>) -> Vec<ValveCellsView> {
             continue;
         };
         // The page is read only where a box is drawn as its positions: a page record's change (a renumber) leaves the
-        // symbol layers of the other pages alone.
-        let Some(grid) = q.pages().get(page).map(|p| p.grid) else {
+        // symbol layers of the other pages alone. Each cell is as wide as its valve needs (rc.3).
+        let Some(frame) = ew_derive::box_frame(q, &rep) else {
             continue;
         };
-        let frame = ew_derive::SlotFrame::new(grid, rep.pos, slots.pitch);
         let (_, band, _) = frame.rows();
         let mut taps: Vec<(Nm, usize)> = Vec::new();
         let cells = ew_derive::terminal_cells(q, terminal)

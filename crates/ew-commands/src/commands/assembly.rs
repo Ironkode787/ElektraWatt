@@ -292,7 +292,9 @@ fn cells_in(tx: &TxBuilder<'_>, terminal: Id<Device>) -> Vec<CellIn> {
     out
 }
 
-/// The slotted boxes of valve terminal `terminal` (`BoxSpec.slots`): each representation with its frame on its page.
+/// The slotted boxes of valve terminal `terminal` (`BoxSpec.slots`): each representation with its frame on its page,
+/// each cell as wide as the valve drawn in it on that page needs (`ew_derive::box_frame`, as the transaction holds
+/// it).
 fn slotted_boxes(
     tx: &TxBuilder<'_>,
     terminal: Id<Device>,
@@ -304,12 +306,26 @@ fn slotted_boxes(
         .collect();
     reps.sort();
     reps.dedup();
+    let cells = cells_in(tx, terminal);
     reps.into_iter()
         .filter_map(|r| tx.get::<Representation>(r))
         .filter_map(|r| {
             let slots = r.box_.as_ref()?.slots.as_ref()?;
             let grid = tx.get::<Page>(r.page)?.grid;
-            let frame = ew_derive::SlotFrame::new(grid, r.pos, slots.pitch);
+            let extents: Vec<Option<(Nm, Nm)>> = cells
+                .iter()
+                .map(|(_, _, holder)| {
+                    let valve = holder.filter(|h| is_valve_device(tx, *h))?;
+                    reps_on(tx, valve, r.page, true)
+                        .iter()
+                        .filter_map(|v| {
+                            let s = tx.get::<LibCopy<ew_schema::SymbolDef>>(v.symbol)?;
+                            ew_derive::graphics_x_extent(&s.item)
+                        })
+                        .max_by_key(|(min, max)| *max - *min)
+                })
+                .collect();
+            let frame = ew_derive::SlotFrame::new(grid, r.pos, slots.pitch).with_cells(&extents);
             Some((r, frame))
         })
         .collect()
@@ -487,7 +503,8 @@ fn drawn(tx: &TxBuilder<'_>, f: Id<ew_schema::Function>) -> bool {
 /// holding cell `i` moves to the cell's valve point, and the first representation of the supply to the supply end
 /// ([`supply_of`]: a supply plate's, or the terminal's own); their tubes follow as `rep.move` makes them follow. On the
 /// first such page (the lowest box ID), a valve drawn on no page gets its symbol in its cell, and the supply drawn on no
-/// page gets its symbol in the supply end; a terminal without a supply gets its own (a function on the embedded supply
+/// page gets its symbol in the supply end; then each box takes the cell widths its valves need there
+/// (`ew_derive::SlotFrame::with_cells`: a valve wider than a cell widens its own), its outline growing to the right; a terminal without a supply gets its own (a function on the embedded supply
 /// FnDef, `ew_derive::is_supply_def`), so that its ports 1, 3 and 5 take a tube there. A symbol is drawn only when the
 /// project embeds one for the page ([`cell_symbol`]). A valve drawn on another page stays there. Nothing for a parent of
 /// no valve terminal or a terminal not drawn as its positions.
@@ -551,7 +568,17 @@ pub(crate) fn seat_reps(tx: &mut TxBuilder<'_>, parent: Id<Device>) -> Result<()
         }
     }
     let supply = supply_of(tx, terminal);
-    for (b, frame) in boxes {
+    // With the valves drawn, each cell is as wide as its valve needs (rc.3: a 5/3 valve): the box keeps its corner and
+    // grows or shrinks to the right, and the valves of the cells to its right move with their tubes.
+    for (b, frame) in slotted_boxes(tx, terminal) {
+        let outline = frame.outline(cells.len());
+        if b.box_.as_ref().is_some_and(|x| x.outline != outline) {
+            tx.update::<Representation>(b.id, |r| {
+                if let Some(x) = r.box_.as_mut() {
+                    x.outline = outline;
+                }
+            })?;
+        }
         let mut targets: Vec<(Id<Representation>, Pt2)> = Vec::new();
         for (i, (_, _, holder)) in cells.iter().enumerate() {
             let Some(valve) = holder.filter(|h| is_valve_device(tx, *h)) else {
@@ -698,7 +725,8 @@ pub(crate) fn seat_on_terminal(
 ///
 /// The box representation `rep` keeps its ID, page and insertion point (its top-left corner) and becomes a box with one
 /// cell per position (`BoxSpec.slots`, [`ew_derive::SlotFrame`]: the supply end, then the cells of the terminal's
-/// positions and of its modules' in order, each [`ew_derive::CELL_STEPS`] grid steps wide), turned upright, without box
+/// positions and of its modules' in order, each [`ew_derive::CELL_STEPS`] grid steps wide or as wide as its valve
+/// needs), turned upright, without box
 /// CPs or inner graphics; the symbols of the terminal's valves on that page move into their cells and its supply plate
 /// into the supply end, their tubes following, and its valves and supply drawn on no page are drawn there
 /// ([`seat_reps`]; `copies` embeds the symbols first, as `part.assign` embeds). Refused, in words: a representation that

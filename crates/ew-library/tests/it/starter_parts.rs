@@ -52,8 +52,9 @@ const VERSION: &str = "0.1.0";
 /// terminal with a PROFINET bus node EW-GEN-VTM-2 was added (the rc.2 persona run: Put it on a bus page did nothing for
 /// a terminal whose part had no bus interface), 0.13.0 since the signal lamps in red, green and yellow EW-GEN-LMP-2 to
 /// -4 were added (the rc.2 persona run: a cabinet door's basics), 0.14.0 since the generic cables of the common sizes
-/// EW-GEN-CBL-4 to -25 were added (rc.3: a cable part that matches the wires could not be chosen).
-const LIBRARY_VERSION: &str = "0.14.0";
+/// EW-GEN-CBL-4 to -25 were added (rc.3: a cable part that matches the wires could not be chosen), 0.15.0 since the
+/// 5/3 valve for a valve terminal EW-GEN-VLV-53 was added (rc.3: a position is as wide as its valve needs).
+const LIBRARY_VERSION: &str = "0.15.0";
 /// The parts whose content changed after 0.1.0, at their next patch version (the selector switch on a
 /// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y. The relay
 /// and the contactor template their contacts beside the coil. The CPU's bus section, after 0.2.0.
@@ -928,6 +929,26 @@ fn defs() -> Vec<Def> {
             sections: Some(json!({"fluid": {"solenoids": ["14"], "coil": {"voltage": "24", "env": "dc"}}})),
             unit: None,
         },
+        // rc.3: a 5/3 valve on a valve terminal is everyday pneumatics. Its solenoids 14 and 12 are internal coils the
+        // terminal's outputs drive; its symbol is wider than a cell, so its position takes the room it needs. Numbered
+        // 53 for 5/3, so that the 5/2 EW-GEN-VLV-3 stays the first a valve position offers.
+        Def {
+            number: "EW-GEN-VLV-53",
+            kind: None,
+            description: "Solenoid valve 5/3 for a valve terminal, closed centre",
+            cps: Vec::new(),
+            template: vec![
+                ("ew.fn.valve-5-3-cc", true, Vec::new()),
+                ("ew.fn.valve-solenoid", false, Vec::new()),
+                ("ew.fn.valve-solenoid", false, Vec::new()),
+            ],
+            contacts: Vec::new(),
+            tech: vec![("coil_voltage", q("24", "V"))],
+            plc: None,
+            mech: None,
+            sections: Some(json!({"fluid": {"solenoids": ["14", "12"], "coil": {"voltage": "24", "env": "dc"}}})),
+            unit: None,
+        },
         // The persona re-test placed the supply plate from Device and got an empty box with no connection point: its
         // main function is the supply plate's (ports 1, 3 and 5, the symbol ew.iso.valve-supply-plate); the overview
         // draws it by that function as it draws the valves.
@@ -1776,7 +1797,8 @@ fn every_generic_part_is_usable() {
                 assert!(p.cp_pattern.iter().any(|cp| cp.idx == *i), "{n}: CP {i}");
             }
             // An entry of an FnDef that the template names more than once lists one pattern CP per FnDef
-            // CP, so that the derivation pairs them by position and each function keeps the FnDef's CP indices.
+            // CP, so that the derivation pairs them by position and each function keeps the FnDef's CP indices. An
+            // internal solenoid has no pattern CP: N-FL-1 gives the k-th the name of solenoid k (EW-GEN-VLV-53).
             let same = p
                 .function_template
                 .iter()
@@ -1789,7 +1811,8 @@ fn every_generic_part_is_usable() {
                 else {
                     panic!("{key} is not a FnDef")
                 };
-                assert_eq!(t.cps.len(), def.item.cps.len(), "{n}: an entry of {key}");
+                let physical = def.item.cps.iter().filter(|c| c.physical).count();
+                assert_eq!(t.cps.len(), physical, "{n}: an entry of {key}");
                 assert!(!t.main, "{n}: a repeated entry is an auxiliary function");
             }
         }

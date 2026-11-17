@@ -1298,7 +1298,7 @@ impl Builder<'_> {
             ..stroke.clone()
         };
         for v in &view.valve_cells {
-            let f = v.frame;
+            let f = &v.frame;
             let n = v.cells.len();
             if n == 0 {
                 continue;

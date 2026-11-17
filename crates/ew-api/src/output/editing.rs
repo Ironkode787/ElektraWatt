@@ -187,8 +187,8 @@ pub struct CataloguePart {
     /// Whether the part is a valve for a valve terminal (`ew_derive::fits_terminal`, no PLC section): the parts a
     /// terminal's empty position offers (rc.2).
     pub terminal_valve: bool,
-    /// Whether such a valve has a fluid symbol that fits a valve position's cell (rc.3): a position offers a valve
-    /// without one with the reason, and does not take it.
+    /// Whether such a valve has a fluid symbol to stand in a valve position's cell, of any width (rc.3): a position
+    /// offers a valve without one with the reason, and does not take it.
     pub cell_symbol: bool,
     /// What the part is to a PLC ([`CataloguePlc`]): a station's head or a card; `None` for a part without a PLC
     /// section. The station view's catalogue lists the parts by it.
@@ -507,15 +507,13 @@ fn part_valve_def(q: &Q, part: &Part) -> Option<Id<FnDef>> {
     })
 }
 
-/// Whether a valve for a valve terminal of part `part` has a fluid symbol that fits a valve position's cell (rc.3,
-/// [`CataloguePart::cell_symbol`]): one that draws its valve FnDef ([`box_symbol`], on any grid) no wider than a cell
-/// ([`ew_derive::CELL_STEPS`] steps of its grid).
+/// Whether a valve for a valve terminal of part `part` has a fluid symbol to stand in a valve position's cell (rc.3,
+/// [`CataloguePart::cell_symbol`]): one that draws its valve FnDef with graphics ([`box_symbol`], on any grid); a
+/// symbol wider than a cell widens its cell (`ew_derive::SlotFrame::with_cells`).
 fn fits_cell(q: &Q, part: &Part) -> bool {
-    let Some((symbol, _)) = part_valve_def(q, part).and_then(|d| box_symbol(q, d, None)) else {
-        return false;
-    };
-    let width = ew_derive::graphics_x_extent(&symbol.item).map(|(min, max)| max - min);
-    matches!((width, symbol.item.grid.at(ew_derive::CELL_STEPS)), (Some(w), Some(cell)) if w <= cell)
+    part_valve_def(q, part)
+        .and_then(|d| box_symbol(q, d, None))
+        .is_some_and(|(symbol, _)| ew_derive::graphics_x_extent(&symbol.item).is_some())
 }
 
 /// The starter FnDef copy with this copy ID.
@@ -2202,16 +2200,13 @@ pub struct SlotCell {
     pub blank: bool,
 }
 
-/// The cells and the supply end of valve terminal `terminal`'s box at `pos` drawn as its positions, `pitch` per cell, on a
-/// page of grid `grid` ([`TableBox::cells`]).
+/// The cells and the supply end of valve terminal `terminal`'s box drawn as its positions in `frame`
+/// ([`TableBox::cells`]; `ew_derive::box_frame`: each cell as wide as its valve needs).
 fn table_cells(
     q: &ew_derive::Q,
     terminal: Id<Device>,
-    grid: ew_derive::ew_units::Grid,
-    pos: Pt2,
-    pitch: ew_derive::ew_units::Nm,
+    frame: &ew_derive::SlotFrame,
 ) -> (Vec<SlotCell>, Option<[i64; 4]>) {
-    let frame = ew_derive::SlotFrame::new(grid, pos, pitch);
     let (top, _, bottom) = frame.rows();
     let cells = ew_derive::terminal_cells(q, terminal)
         .into_iter()
@@ -2588,12 +2583,11 @@ impl Session {
                 }
             });
             let black_box = black_box.map(|mut b| {
-                if let (Some(slots), Some(terminal), Some(page)) = (
-                    rep.box_.as_ref().and_then(|x| x.slots.as_ref()),
+                if let (Some(frame), Some(terminal)) = (
+                    ew_derive::box_frame(&q, &rep),
                     first.as_ref().and_then(|f| f.device),
-                    q.pages().get(page_id),
                 ) {
-                    (b.cells, b.supply_end) = table_cells(&q, terminal, page.grid, rep.pos, slots.pitch);
+                    (b.cells, b.supply_end) = table_cells(&q, terminal, &frame);
                 }
                 b
             });

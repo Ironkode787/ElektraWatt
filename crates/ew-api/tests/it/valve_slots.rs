@@ -711,7 +711,12 @@ fn place_drawn_terminal(s: &mut Session, at: (i64, i64)) -> Uuid {
 /// Position `position` of `terminal` filled with the starter valve for a terminal, as the rack fills it
 /// (`valve.set_occupancy`); with `symbols`, the symbols that draw it in its cell go with it, as the window sends them.
 fn fill(s: &mut Session, terminal: Uuid, position: u32, symbols: bool) -> Uuid {
-    let part = library_part(s, "EW-GEN-VLV-3");
+    fill_with(s, terminal, position, "EW-GEN-VLV-3", symbols)
+}
+
+/// [`fill`] with the valve part numbered `number`.
+fn fill_with(s: &mut Session, terminal: Uuid, position: u32, number: &str, symbols: bool) -> Uuid {
+    let part = library_part(s, number);
     let mut copies = s.module_part_copies(part);
     if symbols {
         copies = merged(copies, s.cell_copies(Some(terminal), &[part], None));
@@ -826,6 +831,75 @@ fn rc3_a_position_filled_from_the_rack_shows_its_valve_and_its_ports_take_tubes(
     )
     .expect("emptied");
     assert!(!tables(&s).reps.iter().any(|r| r.device == Some(v)));
+}
+
+/// rc.3: a 5/3 valve is wider than a cell. Put between two 5/2 valves whose ports 2 and 4 take tubes, its position is
+/// as wide as it needs: the box keeps its corner and grows to the right, the valve and the cells to its right move,
+/// each valve stands in its own cell with ports 2 and 4 on the top edge, and the tubes still end at their ports.
+#[test]
+fn rc3_a_5_3_valve_widens_its_position_and_the_cells_to_its_right_follow() {
+    let mut s = project(193);
+    let vt = place_drawn_terminal(&mut s, (60_000_000, 80_000_000));
+    let box_at = |s: &Session| {
+        tables(s)
+            .reps
+            .iter()
+            .find(|r| r.device == Some(vt) && r.black_box.is_some())
+            .map(|r| r.pos)
+            .expect("the box")
+    };
+    let corner = box_at(&s);
+    let pitch = {
+        let c = cells(&s, vt);
+        c[0].rect[2] - c[0].rect[0]
+    };
+    let first = fill(&mut s, vt, 1, true);
+    let last = fill(&mut s, vt, 3, true);
+    for (k, v) in [first, last].into_iter().enumerate() {
+        let x = 30_000_000 + 60_000_000 * i64::try_from(k).unwrap_or(0);
+        let cyl = place_into(&mut s, "EW-GEN-CYL-1", "ew.iso.cylinder-double-acting", (x, 30_000_000), vt)
+            .expect("a cylinder");
+        tube(&mut s, (v, "4"), (cyl, "A")).expect("a tube to port 4");
+        tube(&mut s, (v, "2"), (cyl, "B")).expect("a tube to port 2");
+    }
+    let wide = fill_with(&mut s, vt, 2, "EW-GEN-VLV-53", true);
+    let c = cells(&s, vt);
+    assert_eq!(box_at(&s), corner, "the box keeps its corner");
+    assert!(c[1].rect[2] - c[1].rect[0] > pitch, "position 2 is wider: {c:?}");
+    assert_eq!(c[0].rect[2] - c[0].rect[0], pitch, "position 1 keeps its width");
+    assert_eq!(c[2].rect[2] - c[2].rect[0], pitch, "position 3 keeps its width");
+    assert_eq!(c[2].rect[0], c[1].rect[2], "position 3 follows position 2");
+    for (i, v) in [first, wide, last].into_iter().enumerate() {
+        let p = ports(&s, v);
+        for working in ["2", "4"] {
+            let (x, y) = p
+                .iter()
+                .find(|(d, _)| d == working)
+                .map(|(_, at)| *at)
+                .unwrap_or_else(|| panic!("port {working} of position {}", i + 1));
+            assert_eq!(y, c[i].rect[1], "port {working} of position {} on the top edge", i + 1);
+            assert!(
+                c[i].rect[0] < x && x < c[i].rect[2],
+                "port {working} of position {} in its cell",
+                i + 1
+            );
+        }
+    }
+    // The tubes of the valve that moved end at its ports.
+    let t = tables(&s);
+    let moved: Vec<(i64, i64)> = ports(&s, last).into_iter().map(|(_, at)| at).collect();
+    let tubes: Vec<_> = t
+        .connections
+        .iter()
+        .filter(|w| {
+            w.polyline
+                .first()
+                .into_iter()
+                .chain(w.polyline.last())
+                .any(|p| moved.contains(p))
+        })
+        .collect();
+    assert_eq!(tubes.len(), 2, "both tubes of position 3 end at its ports");
 }
 
 /// G16 (rc.3), a project made before: valves put on the positions without a symbol stand as tags, each reported "not

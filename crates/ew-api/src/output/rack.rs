@@ -1409,17 +1409,13 @@ impl Session {
         };
         q.idx().functions_of_device(t).any(|f| {
             q.idx().reps_of_function(f).any(|r| {
-                let Some((r, slots)) = q
+                let Some((r, frame)) = q
                     .reps()
                     .get(r)
-                    .and_then(|r| Some((r, r.box_.as_ref()?.slots.as_ref()?)))
+                    .and_then(|r| Some((r, ew_derive::box_frame(&q, r)?)))
                 else {
                     return false;
                 };
-                let Some(grid) = q.pages().get(r.page).map(|p| p.grid) else {
-                    return false;
-                };
-                let frame = ew_derive::SlotFrame::new(grid, r.pos, slots.pitch);
                 valves.iter().any(|(i, fns)| {
                     fns.iter()
                         .any(|f| off(*f, r.page, &|extent| frame.valve_at(*i, extent)))
