@@ -290,8 +290,14 @@ pub fn text_style_size_ok(size: Nm) -> bool {
     (TEXT_STYLE_MIN_SIZE..=TEXT_STYLE_MAX_SIZE).contains(&size)
 }
 
+/// The built-in styles that print as another style of the project when the project sets that one and not them, as
+/// `(style, the style it follows)`: `terminal` came out of `tag.main` (ADR-0032 amendment 1), so a project made
+/// before it that sets the device tag's size prints its terminal numbers at that size as it did.
+const FOLLOWS: &[(&str, &str)] = &[("terminal", "tag.main")];
+
 /// The effective text-style table of `settings` (ADR-0032 decision 1): the rows of [`BUILTIN_TEXT_STYLES`] in their
-/// order, each with its override applied, then the extending keys in key order.
+/// order, each with its override applied, then the extending keys in key order. A style of [`FOLLOWS`] without an
+/// override of its own takes the style it follows when that one has an override (`terminal` prints as `tag.main`).
 ///
 /// An override whose size lies outside [`TEXT_STYLE_MIN_SIZE`] … [`TEXT_STYLE_MAX_SIZE`] (a hand-edited file;
 /// `project.settings.set` refuses it) is ignored: the built-in row stays, and an extending key is not added. A
@@ -328,6 +334,18 @@ pub fn effective_text_styles(settings: &ProjectSettings) -> Vec<EffectiveStyle> 
             )
         })
         .collect();
+    let set = |key: &str| overrides.get(key).is_some_and(|s| text_style_size_ok(s.size));
+    for (style, follows) in FOLLOWS
+        .iter()
+        .filter(|(style, follows)| !set(style) && set(follows))
+    {
+        let parent = rows.iter().find(|r| r.key.as_str() == *follows).cloned();
+        if let (Some(parent), Some(row)) = (parent, rows.iter_mut().find(|r| r.key.as_str() == *style)) {
+            row.em = parent.em;
+            row.weight = parent.weight;
+            row.face = parent.face;
+        }
+    }
     for (key, spec) in overrides {
         if text_style_size_ok(spec.size) && !BUILTIN_TEXT_STYLES.iter().any(|(k, ..)| *k == key.as_str()) {
             rows.push(EffectiveStyle {
@@ -365,7 +383,8 @@ pub fn standard_text_style(key: &str) -> Option<EffectiveStyle> {
 
 /// The entry of `ProjectSettings.text_styles` that makes `key` print as `style`: `None` when the built-in row already
 /// does and `kept` (the entry before) holds no unknown members, else the size and, where they differ from the
-/// built-in row, the weight and the typeface, with the unknown members of `kept`.
+/// built-in row, the weight and the typeface, with the unknown members of `kept`. A style of [`FOLLOWS`] always gets
+/// its entry, so that it keeps what it was given when the style it follows has an override.
 pub fn text_style_entry(
     key: &str,
     style: &EffectiveStyle,
@@ -373,7 +392,8 @@ pub fn text_style_entry(
 ) -> Option<TextStyleSpec> {
     let base = builtin_text_style(key);
     let extra = kept.map(|k| k.extra.clone()).unwrap_or_default();
-    if extra.is_empty() && base.as_ref() == Some(style) {
+    let follows = FOLLOWS.iter().any(|(k, _)| *k == key);
+    if extra.is_empty() && !follows && base.as_ref() == Some(style) {
         return None;
     }
     let base_weight = base.as_ref().map_or(TextWeight::Regular, |b| b.weight.clone());
@@ -520,6 +540,37 @@ mod tests {
         let plain = ProjectSettings::default();
         assert_eq!(em(&plain, "terminal"), em(&plain, "tag.main"));
         assert_eq!(cap_height(em(&settings, "terminal")), Nm(1_800_000));
+    }
+
+    /// rc.3 review: a project made before the `terminal` style that sets the device tag's size prints its terminal
+    /// numbers at that size, its weight and face; a terminal style of its own (a new project's) wins.
+    #[test]
+    fn the_terminal_style_follows_the_device_tag_of_a_project_that_sets_only_it() {
+        let settings = |v: Value| ProjectSettings {
+            text_styles: check_text_styles(&v).unwrap(),
+            ..ProjectSettings::default()
+        };
+        let row = |s: &ProjectSettings, k: &str| {
+            effective_text_styles(s)
+                .into_iter()
+                .find(|r| r.key.as_str() == k)
+                .unwrap()
+        };
+        let old = settings(json!({"tag.main": {"size": 4_000_000, "weight": "bold", "face": "narrow"}}));
+        let terminal = row(&old, "terminal");
+        assert_eq!(
+            (terminal.em, terminal.weight, terminal.face),
+            (Nm(4_000_000), TextWeight::Bold, Typeface::Narrow)
+        );
+        let own = settings(json!({"tag.main": {"size": 4_000_000}, "terminal": {"size": 2_521_009}}));
+        assert_eq!(row(&own, "terminal").em, Nm(2_521_009));
+        assert_eq!(row(&ProjectSettings::default(), "terminal").em, qet_px_em(13));
+        // Set back to its built-in row, the terminal style keeps an entry, so it does not follow the device tag again.
+        let base = builtin_text_style("terminal").unwrap();
+        assert_eq!(
+            text_style_entry("terminal", &base, None).map(|e| e.size),
+            Some(qet_px_em(13))
+        );
     }
 
     #[test]
