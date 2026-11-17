@@ -73,7 +73,10 @@ fn new_project_opens_its_dialog_and_the_built_in_page() {
     settle(&mut h);
     h.get_by_label("New project").click();
     settle(&mut h);
-    assert!(platform.asked.borrow().is_empty(), "the dialog asks, not a folder chooser");
+    assert!(
+        platform.asked.borrow().is_empty(),
+        "the dialog asks, not a folder chooser"
+    );
     assert!(h.query_by_label("Empty project").is_some());
     h.state_mut().shell_mut().dispatch(
         "new_project.set",

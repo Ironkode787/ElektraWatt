@@ -18,7 +18,7 @@ use std::time::Duration;
 use egui::{Modifiers, MouseWheelSource, MouseWheelUnit, TouchPhase, Vec2};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
-use ew_ui::app::{App, Pick};
+use ew_ui::app::App;
 use ew_ui::ew_viewmodel::settings::Settings;
 use ew_ui::ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellModel};
 use ew_ui::ew_viewmodel::{key, strings};

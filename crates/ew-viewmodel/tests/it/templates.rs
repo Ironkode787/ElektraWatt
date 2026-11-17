@@ -61,17 +61,25 @@ fn a_template_with_pages_gives_a_project_without_them_unless_ticked() {
         text.contains("start 2 (chosen) (for new projects) \"old.ew\""),
         "the template for new projects is chosen: {text}"
     );
-    assert!(text.contains("start 1 \"Empty project\": \"One empty page"), "{text}");
+    assert!(
+        text.contains("start 1 \"Empty project\": \"One empty page"),
+        "{text}"
+    );
     assert!(text.contains("pages"), "the template says it has pages: {text}");
     assert!(
-        text.lines().any(|l| l.contains("check \"Also copy its") && l.ends_with(": off")),
+        text.lines()
+            .any(|l| l.contains("check \"Also copy its") && l.ends_with(": off")),
         "the pages box is offered and off: {text}"
     );
     done(&mut shell, "ui.dismiss", json!({}));
 
     let drawn = |shell: &ShellModel| shell.page_labels().iter().any(|l| l == "102");
     new_project(&mut shell, &tmp.0, "without", 2, false);
-    assert!(!drawn(&shell), "no page of the template: {:?}", shell.page_labels());
+    assert!(
+        !drawn(&shell),
+        "no page of the template: {:?}",
+        shell.page_labels()
+    );
     assert_eq!(shell.page_labels().first().map(String::as_str), Some("1"));
     done(&mut shell, "file.close", json!({}));
 
@@ -124,7 +132,9 @@ fn templates_are_a_list_the_person_manages() {
     done(&mut shell, "tools.company_standard", json!({}));
     done(&mut shell, "wizard.goto", json!({"step": 9}));
     assert!(
-        shell.describe().contains("check \"Use this template for new projects\": on"),
+        shell
+            .describe()
+            .contains("check \"Use this template for new projects\": on"),
         "the last step's box is on"
     );
     done(&mut shell, "wizard.finish", json!({"dir": path(&company)}));
@@ -137,13 +147,22 @@ fn templates_are_a_list_the_person_manages() {
     done(&mut shell, "templates.open", json!({}));
     let text = shell.describe();
     assert!(
-        text.contains("template 1 (selected) (for new projects) \"company.ew\": \"Its own frame and title block"),
+        text.contains(
+            "template 1 (selected) (for new projects) \"company.ew\": \"Its own frame and title block"
+        ),
         "{text}"
     );
-    assert!(text.contains("no pages"), "the wizard's template has no pages: {text}");
+    assert!(
+        text.contains("no pages"),
+        "the wizard's template has no pages: {text}"
+    );
     done(&mut shell, "templates.use", json!({"index": 1, "on": false}));
     assert_eq!(shell.settings().basic_project, None);
-    done(&mut shell, "templates.rename", json!({"index": 1, "name": "Panels"}));
+    done(
+        &mut shell,
+        "templates.rename",
+        json!({"index": 1, "name": "Panels"}),
+    );
     assert!(shell.describe().contains("template 1 (selected) \"Panels\""));
     done(&mut shell, "ui.dismiss", json!({}));
 
@@ -174,7 +193,11 @@ fn templates_are_a_list_the_person_manages() {
     done(&mut shell, "templates.open", json!({}));
     done(&mut shell, "templates.edit", json!({"index": 2}));
     assert_eq!(shell.editing_template().as_deref(), Some("Cabinet standard"));
-    assert!(shell.title().contains("Template: Cabinet standard"), "{}", shell.title());
+    assert!(
+        shell.title().contains("Template: Cabinet standard"),
+        "{}",
+        shell.title()
+    );
     assert!(
         !shell.settings().recent_projects.contains(&path(&cabinet)),
         "a template is no recent project"
@@ -184,11 +207,15 @@ fn templates_are_a_list_the_person_manages() {
     // P5: removed from the list, the folder stays.
     done(&mut shell, "templates.open", json!({}));
     done(&mut shell, "templates.remove", json!({"index": 1}));
-    assert!(company.join("manifest.json").is_file(), "the folder stays on the disk");
+    assert!(
+        company.join("manifest.json").is_file(),
+        "the folder stays on the disk"
+    );
     let text = shell.describe();
     assert!(text.contains("Its folder stays on the disk"), "{text}");
     assert!(
-        text.contains("template 1 (selected) (for new projects) \"Cabinet standard\"") && !text.contains("template 2"),
+        text.contains("template 1 (selected) (for new projects) \"Cabinet standard\"")
+            && !text.contains("template 2"),
         "{text}"
     );
     shell.shutdown();
@@ -211,7 +238,9 @@ fn the_check_level_is_set_in_the_window_in_words() {
         panic!("the form")
     };
     assert!(
-        shell.form_note(form, "level").is_some_and(|n| n.contains("interruption point")),
+        shell
+            .form_note(form, "level")
+            .is_some_and(|n| n.contains("interruption point")),
         "what the chosen level stops"
     );
     done(&mut shell, "ui.dismiss", json!({}));
@@ -232,4 +261,3 @@ fn the_check_level_is_set_in_the_window_in_words() {
 fn shell_bad_param(name: &str) -> String {
     ew_viewmodel::strings::format(ew_viewmodel::key!("error-bad-param"), &[name])
 }
-

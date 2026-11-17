@@ -1955,7 +1955,11 @@ fn the_check_level_is_written_by_create_in_the_window_and_never_by_a_script() {
     let text = std::fs::read_to_string(basic.join("project.jsonl")).unwrap();
     assert!(!text.contains("\"checks\""), "{text}");
     done(&mut shell, "wizard.cancel", json!({}));
-    done(&mut shell, "file.new", json!({ "dir": path(&tmp.0.join("job.ew")) }));
+    done(
+        &mut shell,
+        "file.new",
+        json!({ "dir": path(&tmp.0.join("job.ew")) }),
+    );
     assert!(
         matches!(
             run(&mut shell, "project.check_level", json!({"level": "full"})),
@@ -2758,10 +2762,7 @@ fn describe_lists_the_start_page_the_wizard_and_the_project_view() {
         review.contains("review \"Check level\": \"Pre-delivery\" kept"),
         "{review}"
     );
-    assert!(
-        review.contains("button \"Create the template…\""),
-        "{review}"
-    );
+    assert!(review.contains("button \"Create the template…\""), "{review}");
     done(&mut shell, "wizard.cancel", json!({}));
     done(
         &mut shell,

@@ -836,8 +836,8 @@ fn around(rects: impl IntoIterator<Item = egui::Rect>, margin: f32) -> egui::Rec
 
 /// CP6: every dialog of the shell one by one that Golden A opens with one action, each cropped to the dialog's
 /// frame with its shadow, light Comfortable, gated. Not here: the quit prompt (`part4-dialog-toast-*`)
-/// and the four dialogs that need a fixture (the recovery dialog, the question of discarding its journal, the
-/// check-scheme question and the purge question), gated by [`cp6_the_fixture_dialogs_in_light`]. Two shards that run
+/// and the three dialogs that need a fixture (the recovery dialog, the question of discarding its journal and the
+/// purge question), gated by [`cp6_the_fixture_dialogs_in_light`]. Two shards that run
 /// side by side, each in a window of its own.
 fn cp6_every_dialog(k: usize, of: usize) {
     let dev = device();
@@ -974,11 +974,10 @@ fn pin_journal_times(dir: &std::path::Path, t: u64) {
     }
 }
 
-/// CP6: the four dialogs that need a fixture, each cropped to the dialog's frame with its shadow, light
+/// CP6: the three dialogs that need a fixture, each cropped to the dialog's frame with its shadow, light
 /// Comfortable, gated: the recovery dialog (an earlier session's journal on a copy of Golden A, its last change
 /// pinned to 2026-10-28 12:00 UTC and the dialog's clock to two hours later), the question of discarding that journal
-/// (Discard… of the recovery dialog), the check-scheme question (Apply the check level of the finished
-/// company-standard wizard) and the purge question (a copy of Golden A whose first new logo was replaced and saved,
+/// (Discard… of the recovery dialog) and the purge question (a copy of Golden A whose first new logo was replaced and saved,
 /// re-opened).
 #[test]
 fn cp6_the_fixture_dialogs_in_light() {
@@ -1044,20 +1043,6 @@ fn cp6_the_fixture_dialogs_in_light() {
         drop(h);
         drop(tmp);
 
-        // The check-scheme question.
-        let tmp = Tmp::new();
-        let dir = tmp.golden("g.ew");
-        // The wizard previews its draft on the sample project of the resources.
-        let (mut h, recorder) = window_on(
-            tmp.config_with_resources(),
-            dir,
-            theme,
-            "comfortable",
-            1.0,
-            true,
-            WINDOW,
-        );
-        h.ctx.all_styles_mut(|s| s.visuals.text_cursor.blink = false);
         // The purge question: the first logo is unused once the project is re-opened (the undo history named it).
         let tmp = Tmp::new();
         let dir = tmp.golden("g.ew");

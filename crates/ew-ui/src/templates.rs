@@ -66,7 +66,6 @@ fn row(ui: &mut Ui, t: &theme::Tokens, label: &str, field: impl FnOnce(&mut Ui, 
 /// Create (`submit`). `focus`: it takes the keyboard focus.
 fn text_field(
     ui: &mut Ui,
-    t: &theme::Tokens,
     value: &str,
     param: &str,
     width: f32,
@@ -74,6 +73,7 @@ fn text_field(
     focus: bool,
     events: &mut Vec<Event>,
 ) -> bool {
+    let t = components::tokens(ui);
     let mut text = value.to_owned();
     let edit = ui
         .add(
@@ -120,7 +120,7 @@ pub(crate) fn new_project(
                 .x
         }) + 2.0 * ui.spacing().button_padding.x;
         let width = (ui.available_width() - button - t.space_3).max(0.0);
-        submit |= text_field(ui, &t, &d.folder, "folder", width, label, false, events);
+        submit |= text_field(ui, &d.folder, "folder", width, label, false, events);
         ui.add_space(t.space_3);
         if components::button(ui, Kind::Secondary, browse, true, 0.0).clicked() {
             events.push(Event::Action("new_project.browse", Value::Null));
