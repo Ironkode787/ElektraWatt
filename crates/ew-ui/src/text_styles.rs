@@ -59,8 +59,11 @@ pub(crate) fn text_styles(
     let t = components::tokens(ui);
     let rows = shell.text_style_rows();
     let writable = shell.is_writable();
+    // The table takes the room the window has: at 2560 × 1440 it shows more rows, not a strip beside empty space.
+    let room = ui.ctx().content_rect().height() * 0.62;
     egui::ScrollArea::vertical()
-        .max_height(ui.ctx().content_rect().height() * 0.62)
+        .max_height(room)
+        .min_scrolled_height(room)
         .auto_shrink([false, true])
         .show(ui, |ui| {
             for group in GROUPS {
