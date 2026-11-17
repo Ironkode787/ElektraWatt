@@ -2194,7 +2194,6 @@ action-wizard-reset = Wizard: start over
 action-wizard-cancel = Wizard: close
 action-wizard-finish = Wizard: create the template
 reason-wizard-finished = The template is written; close the wizard to start another one
-reason-wizard-not-finished = Create the basic project first
 reason-human-only = Only a person applies this, in the window: it decides what the checks report
 reason-human-only-history = Only a person undoes or redoes this step, in the window: it holds a human-only command that decides what the checks report
 wizard-close = Close

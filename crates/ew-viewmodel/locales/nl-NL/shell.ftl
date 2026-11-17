@@ -2129,7 +2129,6 @@ action-wizard-reset = Wizard: opnieuw beginnen
 action-wizard-cancel = Wizard: sluiten
 action-wizard-finish = Wizard: het sjabloon maken
 reason-wizard-finished = Het sjabloon is geschreven; sluit de wizard om er nog een te beginnen
-reason-wizard-not-finished = Maak eerst het basisproject
 reason-human-only = Alleen een persoon past dit toe, in het venster: het bepaalt wat de controles melden
 reason-human-only-history = Alleen een persoon maakt deze stap ongedaan of opnieuw, in het venster: hij bevat een opdracht voor alleen personen die bepaalt wat de controles melden
 wizard-close = Sluiten
