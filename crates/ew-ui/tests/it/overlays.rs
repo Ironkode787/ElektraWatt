@@ -408,7 +408,11 @@ fn the_pick_stacks_hover_outline_and_walk() {
     let plain = snapshot(&shell);
     done(&mut shell, "canvas.pointer", at(p));
     let c = shell.canvas().unwrap();
-    assert_eq!(c.hover().map(|h| h.0), Some(stack[0]), "the hover is the stack's first entity");
+    assert_eq!(
+        c.hover().map(|h| h.0),
+        Some(stack[0]),
+        "the hover is the stack's first entity"
+    );
     let line = ew_ui::canvas::hover_path(&shell, c).expect("a wire first, drawn as its band");
     assert_eq!(ew_ui::canvas::hover_rect(&shell, 0, c), None);
     let image = snapshot(&shell);
@@ -431,7 +435,11 @@ fn the_pick_stacks_hover_outline_and_walk() {
     let lines = shell.selected_paths(0);
     if lines.is_empty() {
         let second = rect_of(stack[1]);
-        assert!(shell.selected_rects(0).contains(&second), "{:?}", shell.selected_rects(0));
+        assert!(
+            shell.selected_rects(0).contains(&second),
+            "{:?}",
+            shell.selected_rects(0)
+        );
         let o = overlay_of(&shell, None, &[second]);
         let band = o.selected.iter().max_by_key(|r| r.x1 - r.x0).copied().unwrap();
         assert_eq!(
@@ -443,13 +451,14 @@ fn the_pick_stacks_hover_outline_and_walk() {
         // A wire: the solid edge of its band (its round handles cover some of it).
         let o = overlay_with_bands(&shell, None, &lines);
         assert!(
-            o.selected_band_edge.iter().any(|r| rgb(&image, r.x0, r.y0) == ACCENT),
+            o.selected_band_edge
+                .iter()
+                .any(|r| rgb(&image, r.x0, r.y0) == ACCENT),
             "the walked selection"
         );
     }
     shell.shutdown();
 }
-
 
 #[test]
 fn a_wire_is_hovered_and_selected_along_its_line_not_over_its_box() {
@@ -469,7 +478,10 @@ fn a_wire_is_hovered_and_selected_along_its_line_not_over_its_box() {
         .find_map(|t| {
             let (a, b) = (sheet(t.polyline[0]), sheet(*t.polyline.last()?));
             let inside = ((a.0 + b.0) / 2, (a.1 + b.1) / 2);
-            let w = t.polyline.windows(2).max_by_key(|w| (w[0].0 - w[1].0).abs() + (w[0].1 - w[1].1).abs())?;
+            let w = t
+                .polyline
+                .windows(2)
+                .max_by_key(|w| (w[0].0 - w[1].0).abs() + (w[0].1 - w[1].1).abs())?;
             let on = sheet(((w[0].0 + w[1].0) / 2, (w[0].1 + w[1].1) / 2));
             let clear = pick_stack(&page, &page.snapper, inside, 3.0 * reach).is_empty();
             let alone = pick_stack(&page, &page.snapper, on, reach) == [EntityRef(t.id)];
@@ -502,8 +514,17 @@ fn a_wire_is_hovered_and_selected_along_its_line_not_over_its_box() {
     assert_eq!(ew_ui::canvas::hover_rect(&shell, 0, c), None, "no box");
     assert!(ew_ui::canvas::hover_path(&shell, c).is_some());
     let hovered = snapshot(&shell);
-    assert!(beside.iter().any(|&(x, y)| rgb(&hovered, x, y) != rgb(&plain, x, y)), "the band");
-    assert_eq!(rgb(&hovered, mid.0, mid.1), rgb(&plain, mid.0, mid.1), "the box's middle");
+    assert!(
+        beside
+            .iter()
+            .any(|&(x, y)| rgb(&hovered, x, y) != rgb(&plain, x, y)),
+        "the band"
+    );
+    assert_eq!(
+        rgb(&hovered, mid.0, mid.1),
+        rgb(&plain, mid.0, mid.1),
+        "the box's middle"
+    );
     // Selected: a band with its edge, no box either.
     done(&mut shell, "canvas.press", at(on));
     done(&mut shell, "canvas.release", at(on));
@@ -511,8 +532,17 @@ fn a_wire_is_hovered_and_selected_along_its_line_not_over_its_box() {
     assert!(shell.selected_rects(0).is_empty());
     assert_eq!(shell.selected_paths(0).len(), 1);
     let selected = snapshot(&shell);
-    assert!(beside.iter().any(|&(x, y)| rgb(&selected, x, y) != rgb(&plain, x, y)), "the band");
-    assert_eq!(rgb(&selected, mid.0, mid.1), rgb(&plain, mid.0, mid.1), "the box's middle");
+    assert!(
+        beside
+            .iter()
+            .any(|&(x, y)| rgb(&selected, x, y) != rgb(&plain, x, y)),
+        "the band"
+    );
+    assert_eq!(
+        rgb(&selected, mid.0, mid.1),
+        rgb(&plain, mid.0, mid.1),
+        "the box's middle"
+    );
     shell.shutdown();
 }
 

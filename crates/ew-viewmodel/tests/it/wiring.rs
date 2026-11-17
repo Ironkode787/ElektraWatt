@@ -894,7 +894,11 @@ fn reroute_routes_a_selected_wire_again_and_nothing_else() {
     };
     assert_eq!(others(&after), others(&before), "nothing else changes");
     done(&mut s, "edit.undo", json!({}));
-    assert_eq!(tables(&s).connections, before.connections, "one undo takes it back");
+    assert_eq!(
+        tables(&s).connections,
+        before.connections,
+        "one undo takes it back"
+    );
 }
 
 /// Reroute with nothing selected routes the page's wires, the unrouted one included.

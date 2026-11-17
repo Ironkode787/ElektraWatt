@@ -220,7 +220,8 @@ fn a5_a_pointer_at_each_entity_centre_hovers_an_entity_no_larger_that_contains_i
     // A wire answers only near its own line (rc.3): the centre of the box round its ends is no point of it, and a
     // wire hovered at another entity's centre passes within the reach, whatever its box.
     let tables = shell.canvas().unwrap().page().tables.clone();
-    let wire = |e: &ew_viewmodel::ew_api::output::ew_dl::EntityRef| tables.connections.iter().any(|c| c.id == e.0);
+    let wire =
+        |e: &ew_viewmodel::ew_api::output::ew_dl::EntityRef| tables.connections.iter().any(|c| c.id == e.0);
     for (entity, r) in entities.iter().filter(|(e, _)| !wire(e)) {
         let (x, y) = rect_centre(*r);
         done(

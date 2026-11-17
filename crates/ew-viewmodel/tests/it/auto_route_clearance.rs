@@ -513,7 +513,10 @@ fn two_breakers_wired_cross_over_keep_the_hard_rules_drawn_and_rerouted() {
         new_rep(s, &before)
     };
     let pins = |s: &ShellModel, rep: &TableRep, dir: Dir| {
-        let mut v: Vec<TableCp> = cps_of(s, rep).into_iter().filter(|c| c.dir == Some(dir)).collect();
+        let mut v: Vec<TableCp> = cps_of(s, rep)
+            .into_iter()
+            .filter(|c| c.dir == Some(dir))
+            .collect();
         v.sort_by_key(|c| c.at.0);
         v
     };
@@ -522,7 +525,11 @@ fn two_breakers_wired_cross_over_keep_the_hard_rules_drawn_and_rerouted() {
     let height = index_of(&s, bottom[0].at).1 - index_of(&s, pins(&s, &upper, Dir::Up)[0].at).1;
     let lower = place(&mut s, (40, 20 + height + 2));
     let top = pins(&s, &lower, Dir::Up);
-    assert_eq!(index_of(&s, top[0].at).1 - index_of(&s, bottom[0].at).1, 2, "two grid steps apart");
+    assert_eq!(
+        index_of(&s, top[0].at).1 - index_of(&s, bottom[0].at).1,
+        2,
+        "two grid steps apart"
+    );
     let clean = |s: &ShellModel| {
         let m = ew_viewmodel::ew_api::routing::measure(&s.canvas().unwrap().page().geometry);
         assert!(
