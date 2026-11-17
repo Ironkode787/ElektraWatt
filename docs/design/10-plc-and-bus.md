@@ -1747,7 +1747,9 @@ gone (deleted, its making undone) closes. The view shows, from `Session::rack_vi
   without an overview page;
 - **the catalogue** at the right: the place catalogue's parts (`CataloguePart::plc`, the device browser's list and
   its filter matching) that fit the station, by group (`PlcGroup`), the parts that do not fit where the cursor stands
-  greyed with the reason; New part… at its foot.
+  greyed with the reason; New part… at its foot. A library PLC part without a function template, which the place
+  catalogue does not offer because nothing draws it (`PlaceCatalogue::plc_without_functions`), is listed greyed too,
+  with what to do in the part editor (a pin pattern or supply pins give it its box); taking it is refused in those words.
 
 Side by side, a view in the group without the focus shows the same (`ShellModel::station_shown_of`, one kept per group)
 but the view's bar, which acts on the window's selection, and leaves out the catalogue where its pane is too narrow for

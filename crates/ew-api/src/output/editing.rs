@@ -58,6 +58,9 @@ pub struct PlaceCatalogue {
     /// The embedded part copies, then the system libraries' parts with a function template the project does not hold,
     /// each group by manufacturer, then part number, then copy ID.
     pub parts: Vec<CataloguePart>,
+    /// The system libraries' PLC parts without a function template, which `parts` does not offer (nothing draws them):
+    /// the station view lists them greyed with what to do.
+    pub plc_without_functions: Vec<CataloguePart>,
     /// Every terminal strip of the project, by its tag as the page prints it: the strip chooser of a
     /// terminal placement (§7.1).
     pub strips: Vec<CatalogueStrip>,
@@ -592,10 +595,10 @@ fn kind_group(part: &Part) -> Option<&'static str> {
     })
 }
 
-/// The catalogue row of part `part` with copy ID `copy` (the manufacturer left empty); for a library part without a
-/// function template `None` (a held copy without one is a row without functions, placed with a symbol the
-/// user chooses). `library` names a library part the project does not hold: its template FnDefs that the project
-/// does not embed are read from the starter.
+/// The catalogue row of part `part` with copy ID `copy` (the manufacturer left empty); a part without a function
+/// template is a row without functions (a held copy is placed with a symbol the user chooses; a library part is not
+/// offered, [`Session::place_catalogue`]). `library` names a library part the project does not hold: its template
+/// FnDefs that the project does not embed are read from the starter.
 fn catalogue_part(
     q: &Q,
     set: Option<&IdentifierSet>,
@@ -605,9 +608,6 @@ fn catalogue_part(
     library: Option<(Uuid, Uuid)>,
     page: &Page,
 ) -> Option<CataloguePart> {
-    if part.function_template.is_empty() && library.is_some() {
-        return None;
-    }
     let mut main_category = None;
     let functions = part
         .function_template
@@ -962,7 +962,8 @@ impl Session {
     /// `black_box` identifies the built-in resizable placeholder, `terminal` its terminal category, `allowed` whether
     /// the page's type allows the symbol's representation type (`allowed_rep_types`). `parts` lists every embedded
     /// part copy, with or without a function template, then every part of the system libraries with a function
-    /// template the project does not hold (the project's own copies first), each group by
+    /// template the project does not hold (the project's own copies first; their PLC parts without one go to
+    /// `plc_without_functions`), each group by
     /// manufacturer name, part number, copy ID; a template function's `symbol` is the key of the first
     /// allowed symbol row that draws its FnDef.
     pub fn place_catalogue(&self, folio: &str) -> Option<PlaceCatalogue> {
@@ -1064,6 +1065,7 @@ impl Session {
         // (`ew_derive::manufacturer_name`); a library part's, which the project does not hold, from its library
         // ([`Session::library_manufacturer`]).
         let mut parts: Vec<CataloguePart> = Vec::new();
+        let mut without_functions: Vec<CataloguePart> = Vec::new();
         for (id, copy) in q.parts().iter() {
             if let Some(row) = catalogue_part(&q, set, &rows, id.as_uuid(), &copy.item, None, &page) {
                 parts.push(CataloguePart {
@@ -1074,7 +1076,9 @@ impl Session {
         }
         // The system libraries' parts the project does not hold.
         for c in self.library_parts() {
-            if q.parts().contains(c.id) {
+            if q.parts().contains(c.id)
+                || (c.item.function_template.is_empty() && c.item.sections.plc.is_none())
+            {
                 continue;
             }
             let manufacturer = self.library_manufacturer(&c.item.manufacturer);
@@ -1086,12 +1090,20 @@ impl Session {
                 .find(|l| l.id == c.library_id.as_uuid())
                 .map(|l| l.name.clone())
                 .unwrap_or_default();
-            if let Some(row) = catalogue_part(&q, set, &rows, c.id.as_uuid(), &c.item, source, &page) {
-                parts.push(CataloguePart {
-                    manufacturer,
-                    library_name,
-                    ..row
-                });
+            let Some(row) = catalogue_part(&q, set, &rows, c.id.as_uuid(), &c.item, source, &page) else {
+                continue;
+            };
+            let row = CataloguePart {
+                manufacturer,
+                library_name,
+                ..row
+            };
+            // A library part without a function template has nothing to draw it with: it is not offered, and a PLC
+            // part of those is kept apart, so that the station view says why it is not.
+            if !c.item.function_template.is_empty() {
+                parts.push(row);
+            } else if row.plc.is_some() {
+                without_functions.push(row);
             }
         }
         // The project's own copies first, then the libraries' parts, each in that order.
@@ -1106,6 +1118,7 @@ impl Session {
         Some(PlaceCatalogue {
             symbols: rows.into_iter().map(|(r, _)| r).collect(),
             parts,
+            plc_without_functions: without_functions,
             strips: strips_of(&q, page_id),
         })
     }

@@ -425,10 +425,13 @@ impl ShellModel {
         // A station whose part takes no modules has no slot, free or taken (a valve terminal of valve positions alone).
         let no_slots = view.as_ref().is_some_and(|v| v.rows.is_empty());
         let tokens = crate::tools::filter_tokens(&tab.filter);
+        // A library PLC part that nothing draws is listed too, greyed with what to do (not left out silently).
         let mut out: Vec<(bool, StationPart)> = cat
             .parts
             .iter()
-            .filter_map(|p| {
+            .map(|p| (p, false))
+            .chain(cat.plc_without_functions.iter().map(|p| (p, true)))
+            .filter_map(|(p, undrawable)| {
                 let (group, gives, allowed) = match (&p.plc, heads) {
                     (Some(plc), Some(kind)) if plc.heads.contains(&kind) => {
                         (plc.group, plc.gives.as_str(), &[][..])
@@ -449,6 +452,7 @@ impl ShellModel {
                 }
                 let valve = group == ew_api::output::PlcGroup::Valve;
                 let unfit = match tab.cursor {
+                    _ if undrawable => Some(strings::text(key!("rack-part-no-functions")).to_owned()),
                     _ if valve && !p.cell_symbol => {
                         Some(strings::text(key!("reason-valve-no-cell-symbol")).to_owned())
                     }
@@ -822,14 +826,20 @@ impl ShellModel {
             None => return Err(failed(key!("error-missing-param"), &[name])),
         };
         let id = text.parse::<Uuid>().ok();
-        self.catalogue()
-            .and_then(|c| {
-                c.parts
-                    .iter()
-                    .find(|m| Some(m.copy) == id || m.part_number == text)
-                    .cloned()
-            })
-            .ok_or_else(|| failed(key!("error-bad-param"), &[name]))
+        let named = |m: &&ew_api::output::CataloguePart| Some(m.copy) == id || m.part_number == text;
+        let Some(cat) = self.catalogue() else {
+            return Err(failed(key!("error-bad-param"), &[name]));
+        };
+        if let Some(m) = cat.parts.iter().find(named) {
+            return Ok(m.clone());
+        }
+        // A part nothing draws is listed greyed: taken, it is refused with what to do.
+        if cat.plc_without_functions.iter().any(|m| named(&m)) {
+            let cursor = self.station_tab().and_then(|t| t.cursor);
+            let why = strings::text(key!("rack-part-no-functions")).to_owned();
+            return Err(self.rack_refuse(cursor, why));
+        }
+        Err(failed(key!("error-bad-param"), &[name]))
     }
 
     /// `plc.rack_set {kind?, head?, config?, filter?}`: a new station's choices (what it is, its head part, its PLC: an
