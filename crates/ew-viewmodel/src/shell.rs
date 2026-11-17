@@ -778,10 +778,11 @@ pub struct ShellModel {
         u64,
         std::collections::BTreeMap<ew_api::output::Uuid, Option<ew_api::output::RackView>>,
     )>,
-    /// What the station view on show draws ([`automation::StationShown`]), kept for the state it was made for.
+    /// What the station views on show draw ([`automation::StationShown`]), kept for the state each was made for: one
+    /// per group of tabs.
     #[allow(clippy::type_complexity)]
     station_cache:
-        std::cell::RefCell<Option<(automation::StationKey, std::sync::Arc<automation::StationShown>)>>,
+        std::cell::RefCell<Vec<(automation::StationKey, std::sync::Arc<automation::StationShown>)>>,
     /// The station a module was last given to (a rack opened, a module attached): the default of the station chooser.
     last_station: Option<ew_api::output::Uuid>,
     /// The wires whose reasoned potential was declined in this session: it is not offered again.
@@ -1221,7 +1222,7 @@ impl ShellModel {
             potential_at: None,
             offer_cache: std::cell::RefCell::new(None),
             rack_cache: std::cell::RefCell::default(),
-            station_cache: std::cell::RefCell::new(None),
+            station_cache: std::cell::RefCell::new(Vec::new()),
             last_station: None,
             declined_offers: std::collections::BTreeSet::new(),
             wire_colours: wire_colours::WireColourState::default(),

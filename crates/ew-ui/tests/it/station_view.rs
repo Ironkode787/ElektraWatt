@@ -391,6 +391,46 @@ fn what_is_wrong_is_said_at_the_place_with_its_fix() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// Side by side: a station's view in the group without the focus shows what it shows with the focus (its table, the
+/// channels of the module under its cursor and To do), not its rack alone; a click in it gives it the focus.
+#[test]
+fn a_station_view_beside_the_focused_page_shows_its_lists() {
+    let tmp = Tmp::new();
+    let (mut h, id) = rack_with(&tmp, &["EW-GEN-DI-1"]);
+    let module = modules(&h, id)[0].clone();
+    click(&mut h, &format!("Slot 1, {}", module.tag));
+    dispatch(&mut h, "view.side_by_side", json!({}));
+    settle(&mut h);
+    assert!(
+        h.state().shell().station_tab().is_none(),
+        "the page beside it has the focus"
+    );
+    let row = h
+        .query_all_by_label(&format!("Slot 1, {}", module.tag))
+        .find(|n| n.accesskit_node().role() == egui::accesskit::Role::Row)
+        .expect("its table")
+        .rect()
+        .center();
+    h.get_by_label(&format!("Channels of {}", module.tag));
+    h.get_by_label("To do");
+    assert!(
+        h.query_all_by_label_contains("Drawn on no page yet").count() >= 1,
+        "its To do list"
+    );
+    h.input_mut().events.push(egui::Event::PointerMoved(row));
+    for pressed in [true, false] {
+        h.input_mut().events.push(egui::Event::PointerButton {
+            pos: row,
+            button: egui::PointerButton::Primary,
+            pressed,
+            modifiers: egui::Modifiers::NONE,
+        });
+    }
+    settle(&mut h);
+    assert_eq!(station_of(&h), id, "a click in it gives it the focus");
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// A new station's view is closed only after a question once something is chosen, because nothing of it is written
 /// before Create: Cancel keeps it, Close without making it closes the tab and leaves the project as it was.
 #[test]

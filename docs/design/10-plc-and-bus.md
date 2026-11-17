@@ -1747,6 +1747,10 @@ gone (deleted, its making undone) closes. The view shows, from `Session::rack_vi
   its filter matching) that fit the station, by group (`PlcGroup`), the parts that do not fit where the cursor stands
   greyed with the reason; New part… at its foot.
 
+Side by side, a view in the group without the focus shows the same (`ShellModel::station_shown_of`, one kept per group)
+but the view's bar, which acts on the window's selection, and leaves out the catalogue where its pane is too narrow for
+the table's columns and the catalogue both; what is done in it gives it the focus.
+
 **The cursor** (`StationCursor`: the head, a slot, a valve position) is set by a click on a card or a row or by the
 arrow keys (`plc.rack_select`), and the device under it is the window's selection: Properties shows it, and the
 view's own bar above the rack acts on it (`plc.module_replace`, `plc.module_remove`, `plc.module_draw`,

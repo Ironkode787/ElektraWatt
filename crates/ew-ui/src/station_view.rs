@@ -244,15 +244,24 @@ fn section(ui: &mut Ui, t: &Tokens, title: &str) {
     ui.add_space(t.space_2);
 }
 
+/// The catalogue's narrowest width.
+const CATALOGUE_MIN: f32 = 280.0;
+
 /// The part of a station view's pane `full` that holds the rack and its lists: the pane without the catalogue, which
 /// takes a quarter of it at the right, within what its rows need and what a wide window gives.
 pub(crate) fn lists_rect(full: Rect) -> Rect {
-    let catalogue = (full.width() * 0.26).clamp(280.0, 460.0).min(full.width() * 0.5);
+    let catalogue = (full.width() * 0.26).clamp(CATALOGUE_MIN, 460.0).min(full.width() * 0.5);
     Rect::from_min_max(full.min, pos2(full.right() - catalogue, full.bottom()))
 }
 
+/// The narrowest pane that holds both the lists (the table's columns) and the catalogue at its narrowest.
+fn wide_enough(t: &Tokens) -> f32 {
+    7.1 * t.size_table_column + CATALOGUE_MIN + 4.0 * t.space_5
+}
+
 /// The view of the station of `tab` in the pane `ui`; `place` is the tab's group and index, `focused` whether it is
-/// the focused group's tab (the view's own lists are the focused tab's). What the person does goes to `events`.
+/// the focused group's tab (its bar acts on the window's selection, so only the focused view has one). What the
+/// person does goes to `events`.
 pub(crate) fn show(
     ui: &mut Ui,
     shell: &ShellModel,
@@ -265,30 +274,24 @@ pub(crate) fn show(
     let full = ui.available_rect_before_wrap();
     ui.painter().rect_filled(full, 0.0, t.surface_panel.color32());
     ui.allocate_rect(full, Sense::hover());
-    // The focused tab's view is made once per state; a view in the other group shows its rack alone.
-    let shown = shell.station_shown().filter(|_| focused);
-    let Some(view) = shown
-        .as_ref()
-        .map(|s| s.rack.clone())
-        .or_else(|| shell.rack_of(tab))
-    else {
+    // Each view is made once per state; a view in the group without the focus shows its lists too.
+    let Some(shown) = shell.station_shown_of(tab) else {
         return;
     };
-    let shown = shown.as_deref();
+    let view = &shown.rack;
+    let shown = Some(&*shown);
     let mut out = Vec::new();
-    let all = places(&view, tab.draft.is_some());
-    let left = lists_rect(full);
-    let right = Rect::from_min_max(pos2(left.right(), full.top()), full.max);
-    ui.painter().line_segment(
-        [right.left_top(), right.left_bottom()],
-        theme::stroke(t.border_width, t.border_subtle),
-    );
+    let all = places(view, tab.draft.is_some());
+    // Side by side, the view without the focus leaves out its catalogue where the room is short: a click in it gives
+    // it the focus, and the catalogue with it.
+    let with_catalogue = focused || full.width() >= wide_enough(&t);
+    let left = if with_catalogue { lists_rect(full) } else { full };
     ui.scope_builder(UiBuilder::new().max_rect(left.shrink(t.space_5)), |ui| {
         ui.set_clip_rect(left);
-        header(ui, &t, shell, tab, &view, &mut out);
+        header(ui, &t, shell, tab, view, &mut out);
         ui.add_space(t.space_2);
-        // The focused view's commands on the module under its cursor.
-        if shown.is_some() {
+        // The focused view's commands on the module under its cursor, which is the window's selection.
+        if focused {
             tools(ui, &t, shell, &mut out);
         }
         ui.add_space(t.space_2);
@@ -303,10 +306,17 @@ pub(crate) fn show(
                 ui.add_space(t.space_5);
             });
     });
-    ui.scope_builder(UiBuilder::new().max_rect(right.shrink(t.space_5)), |ui| {
-        ui.set_clip_rect(right);
-        catalogue(ui, &t, shown, tab, &mut out);
-    });
+    if with_catalogue {
+        let right = Rect::from_min_max(pos2(left.right(), full.top()), full.max);
+        ui.painter().line_segment(
+            [right.left_top(), right.left_bottom()],
+            theme::stroke(t.border_width, t.border_subtle),
+        );
+        ui.scope_builder(UiBuilder::new().max_rect(right.shrink(t.space_5)), |ui| {
+            ui.set_clip_rect(right);
+            catalogue(ui, &t, shown, tab, &mut out);
+        });
+    }
     // A view in the group that is not focused takes the focus with what is done in it.
     if !out.is_empty() && !focused {
         events.push(Event::Action(

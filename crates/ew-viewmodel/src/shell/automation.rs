@@ -247,25 +247,33 @@ impl ShellModel {
     /// what is left to do, made once for the revision, the language and the view's state (the window reads it every
     /// frame).
     pub fn station_shown(&self) -> Option<std::sync::Arc<StationShown>> {
-        let tab = self.station_tab()?;
+        self.station_shown_of(self.station_tab()?)
+    }
+
+    /// [`ShellModel::station_shown`] for the station view of `tab`, which may stand in the group without the focus
+    /// (side by side, it shows its lists too). The views of both groups are kept, so that neither is made every frame.
+    pub fn station_shown_of(&self, tab: &StationTab) -> Option<std::sync::Arc<StationShown>> {
         let key: StationKey = (
             self.revision()?,
             strings::generation(),
             self.tools.catalogue.as_ref().map(|(k, _)| k.clone()),
             tab.clone(),
         );
-        if let Some((k, shown)) = &*self.station_cache.borrow()
-            && *k == key
-        {
+        if let Some((_, shown)) = self.station_cache.borrow().iter().find(|(k, _)| *k == key) {
             return Some(std::sync::Arc::clone(shown));
         }
         let shown = std::sync::Arc::new(StationShown {
             rack: self.rack_of(tab)?,
-            catalogue: self.station_catalogue(),
-            channels: self.station_channels(),
-            todo: self.station_todo(),
+            catalogue: self.catalogue_of(tab),
+            channels: self.channels_of(tab),
+            todo: self.todo_of(tab),
         });
-        *self.station_cache.borrow_mut() = Some((key, std::sync::Arc::clone(&shown)));
+        let mut cache = self.station_cache.borrow_mut();
+        // One view per group of tabs: the oldest goes.
+        if cache.len() >= 2 {
+            cache.remove(0);
+        }
+        cache.push((key, std::sync::Arc::clone(&shown)));
         Some(shown)
     }
 
@@ -397,7 +405,14 @@ impl ShellModel {
     /// stands first. A station not made yet without a head part lists the parts that can head a station of its
     /// kind, then the cards; a valve terminal lists the valves for a terminal beside the cards.
     pub fn station_catalogue(&self) -> Vec<StationPart> {
-        let (Some(tab), Some((_, cat))) = (self.station_tab(), self.tools.catalogue.as_ref()) else {
+        self.station_tab()
+            .map(|tab| self.catalogue_of(tab))
+            .unwrap_or_default()
+    }
+
+    /// [`ShellModel::station_catalogue`] of the station view of `tab`.
+    fn catalogue_of(&self, tab: &StationTab) -> Vec<StationPart> {
+        let Some((_, cat)) = self.tools.catalogue.as_ref() else {
             return Vec::new();
         };
         let view = self.rack_of(tab);
@@ -474,7 +489,11 @@ impl ShellModel {
     /// The device under the cursor of the station view on show: the station itself, the card in a slot, the valve
     /// or blanking plate on a position; `None` on a free place, for a station not made yet and without a cursor.
     pub fn station_device(&self) -> Option<Uuid> {
-        let tab = self.station_tab()?;
+        self.device_of(self.station_tab()?)
+    }
+
+    /// [`ShellModel::station_device`] of the station view of `tab`.
+    fn device_of(&self, tab: &StationTab) -> Option<Uuid> {
         tab.draft.is_none().then_some(())?;
         let view = self.rack_of(tab)?;
         match tab.cursor? {
@@ -497,7 +516,14 @@ impl ShellModel {
 
     /// The channels of the card under the cursor, in channel-number order (`Session::module_channels`).
     pub fn station_channels(&self) -> Vec<ew_api::output::RackChannel> {
-        match (self.project_session(), self.station_device()) {
+        self.station_tab()
+            .map(|tab| self.channels_of(tab))
+            .unwrap_or_default()
+    }
+
+    /// [`ShellModel::station_channels`] of the station view of `tab`.
+    fn channels_of(&self, tab: &StationTab) -> Vec<ew_api::output::RackChannel> {
+        match (self.project_session(), self.device_of(tab)) {
             (Some(s), Some(card)) => s.module_channels(card),
             _ => Vec::new(),
         }
@@ -507,7 +533,14 @@ impl ShellModel {
     /// without a part, the cards drawn on no page, a station on no bus page, a valve terminal on no fluid page; for a
     /// station not made yet, what Create still needs.
     pub fn station_todo(&self) -> Vec<StationTodo> {
-        let (Some(tab), Some(session)) = (self.station_tab(), self.project_session()) else {
+        self.station_tab()
+            .map(|tab| self.todo_of(tab))
+            .unwrap_or_default()
+    }
+
+    /// [`ShellModel::station_todo`] of the station view of `tab`.
+    fn todo_of(&self, tab: &StationTab) -> Vec<StationTodo> {
+        let Some(session) = self.project_session() else {
             return Vec::new();
         };
         let Some(view) = self.rack_of(tab) else {
