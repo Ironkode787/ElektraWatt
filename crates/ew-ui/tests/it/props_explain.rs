@@ -106,7 +106,7 @@ fn a_rows_tooltip_explains_it() {
         h.step();
         shown |= h
             .get_all_by_role(egui::Role::Label)
-            .any(|n| n.accesskit_node().value().as_deref() == Some(help));
+            .any(|n| n.accesskit_node().value().is_some_and(|v| v.starts_with(help)));
     }
     assert!(shown, "the tooltip: {help}");
     h.state_mut().shell_mut().shutdown();

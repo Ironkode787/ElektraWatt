@@ -714,12 +714,12 @@ msgstr ""
 #: src/tutorials/first-page.md:49
 msgid ""
 "The checks run while you draw. A warning tells you what is still open; the "
-"[rule reference](../reference/rules/index.md) explains each rule, and **Help "
-"▸ Documentation** on a finding opens its rule's page."
+"[rule reference](../reference/rules/index.md) explains each rule, and `F1` on "
+"a finding opens its rule's page."
 msgstr ""
 "De controles lopen terwijl u tekent. Een waarschuwing zegt wat er nog open "
 "staat; de [regelnaslag](../reference/rules/index.md) legt elke regel uit, en "
-"**Help ▸ Documentatie** op een bevinding opent de pagina van de regel."
+"`F1` op een bevinding opent de pagina van de regel."
 
 #: src/tutorials/terminal-strip-and-cable.md:3
 msgid ""

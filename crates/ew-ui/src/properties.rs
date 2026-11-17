@@ -1029,11 +1029,13 @@ impl PropertiesPane {
             galley,
             t.text_secondary.color32(),
         );
-        // The tooltip explains the row (FT-1648), after the whole label when the label is cut.
+        // The tooltip explains the row (FT-1648), after the whole label when the label is cut; an explanation ends with
+        // how to open the row's place in the guide.
+        let more = strings::text(key!("tooltip-learn-more"));
         let tip = match (elided, p.help) {
-            (true, Some(help)) => Some(format!("{}\n{help}", p.label)),
+            (true, Some(help)) => Some(format!("{}\n{help}\n{more}", p.label)),
             (true, None) => Some(p.label.to_owned()),
-            (false, help) => help.map(str::to_owned),
+            (false, help) => help.map(|help| format!("{help}\n{more}")),
         };
         let label_button = match tip {
             Some(tip) => label_button.tip(&tip),
