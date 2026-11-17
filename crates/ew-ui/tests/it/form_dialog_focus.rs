@@ -282,6 +282,8 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
     // Every form that opens here from no parameters (New page…, New section…, the renumber forms, New cable…): the
     // source's forms are walked, so a new plain form needs no line in this test.
     check_plain_forms(&mut h, &listed, &mut checked);
+    // Edit section… of Golden A's first section.
+    checked.insert(check_form(&mut h, "section.edit", json!({ "number": 1 })));
     // Connect cores… and Cable… with a wire of the page selected.
     goto(&mut h, "102");
     let wire = h

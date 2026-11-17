@@ -273,7 +273,11 @@ fn project_properties_name_the_template_the_project_came_from() {
     done(&mut shell, "wizard.finish", json!({"dir": path(&company)}));
     done(&mut shell, "wizard.cancel", json!({}));
     done(&mut shell, "templates.open", json!({}));
-    done(&mut shell, "templates.rename", json!({"index": 1, "name": "Company style"}));
+    done(
+        &mut shell,
+        "templates.rename",
+        json!({"index": 1, "name": "Company style"}),
+    );
     done(&mut shell, "ui.dismiss", json!({}));
     new_project(&mut shell, &tmp.0, "job", 2, false);
     done(&mut shell, "props.show", json!({"on": true}));

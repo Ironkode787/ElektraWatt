@@ -390,7 +390,8 @@ fn the_project_shows_what_a_drafter_fills_first_under_main() {
         "project/master.project_ref",
         "project/master.drawing_id",
         "project/master.description",
-        "project/parties",
+        "project/people.customer",
+        "project/people.author",
         "project/master.created",
     ];
     let first: Vec<&str> = main.iter().copied().filter(|k| want.contains(k)).collect();

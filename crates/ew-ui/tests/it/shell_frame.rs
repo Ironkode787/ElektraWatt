@@ -320,10 +320,7 @@ fn the_wizard_shows_a_preview_follows_a_typed_value_and_writes_the_basic_project
     settle(&mut h);
     h.get_by_label("Choose another folder…").click();
     settle(&mut h);
-    assert!(
-        h.query_by_label_contains(&basic.to_string_lossy())
-            .is_some()
-    );
+    assert!(h.query_by_label_contains(&basic.to_string_lossy()).is_some());
     // Controls of `size.control` (28 px) push the button under the fold of this window.
     h.get_by_label("Create the template").scroll_to_me();
     settle(&mut h);

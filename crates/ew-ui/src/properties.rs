@@ -1790,6 +1790,8 @@ fn project_sections(ui: &mut Ui, shell: &ShellModel, sheet: &PropertySheet, even
         .inner_margin(egui::Margin::symmetric(crate::theme::margin_px(t.space_4), 0))
         .show(ui, |ui| {
             ui.horizontal_wrapped(|ui| {
+                // A link stays whole and moves to the next line, rather than breaking across two.
+                ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
                 ui.label(small(strings::text(key!("props-sections")), t.text_secondary));
                 for (number, title) in shell.project_sections() {
                     let label = format!("{number} {title}");

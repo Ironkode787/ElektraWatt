@@ -1457,7 +1457,12 @@ fn the_wizard_makes_a_template_in_a_folder_of_its_own() {
         );
         done(&mut shell, "wizard.cancel", json!({}));
     }
-    let names: Vec<_> = shell.settings().templates.iter().map(|t| t.name.clone()).collect();
+    let names: Vec<_> = shell
+        .settings()
+        .templates
+        .iter()
+        .map(|t| t.name.clone())
+        .collect();
     assert_eq!(names, ["Example Panels", "Example Panels 2"]);
     // Choose another folder…: the template's own folder is made there.
     done(&mut shell, "tools.company_standard", json!({}));

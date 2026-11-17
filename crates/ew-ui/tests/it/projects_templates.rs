@@ -38,7 +38,8 @@ fn a_template_renamed_in_its_list_keeps_the_name_everywhere() {
     h.get_by_label("Templates…").click();
     settle(&mut h);
     // The second row selected, its Rename, a new name typed, Save name.
-    h.get_by_role_and_label(egui::Role::ListItem, "Second job").click();
+    h.get_by_role_and_label(egui::Role::ListItem, "Second job")
+        .click();
     settle(&mut h);
     h.get_by_label("Rename").click();
     settle(&mut h);
@@ -49,7 +50,8 @@ fn a_template_renamed_in_its_list_keeps_the_name_everywhere() {
     h.get_by_label("Save name").click();
     settle(&mut h);
     assert!(
-        h.query_by_role_and_label(egui::Role::ListItem, "Spare starter").is_some(),
+        h.query_by_role_and_label(egui::Role::ListItem, "Spare starter")
+            .is_some(),
         "the list shows the new name"
     );
     assert!(h.query_all_by_label("Second job").next().is_none());
@@ -81,7 +83,11 @@ fn a_template_renamed_in_its_list_keeps_the_name_everywhere() {
     let Some(Dialog::NewProject(d)) = again.dialog() else {
         panic!("{:?}", again.dialog())
     };
-    assert!(d.starts.iter().any(|l| l.name == "Spare starter"), "{:?}", d.starts);
+    assert!(
+        d.starts.iter().any(|l| l.name == "Spare starter"),
+        "{:?}",
+        d.starts
+    );
 }
 
 /// The wizard's step of wire sizes is named by what it sets, and an installation without example pages shows no
@@ -228,7 +234,10 @@ fn a_running_projects_sections_are_made_renamed_and_ranged() {
     let ew_ui::ew_viewmodel::shell::Outcome::Failed { message } = refused else {
         panic!("{refused:?}")
     };
-    assert!(message.starts_with("The project has no section 3 yet: make it with New section…"), "{message}");
+    assert!(
+        message.starts_with("The project has no section 3 yet: make it with New section…"),
+        "{message}"
+    );
     assert!(!message.contains("section:"), "{message}");
     crate::support::done(
         &mut shell,
@@ -270,10 +279,7 @@ fn a_running_projects_sections_are_made_renamed_and_ranged() {
     };
     let _ = apply(&mut h, "Cabinet layout", "350", "320");
     settle(&mut h);
-    assert!(
-        h.query_by_label_contains("comes after the last")
-            .is_some()
-    );
+    assert!(h.query_by_label_contains("comes after the last").is_some());
     assert_eq!(
         apply(&mut h, "Cabinet layout", "300", "349"),
         ew_ui::ew_viewmodel::shell::Outcome::Done

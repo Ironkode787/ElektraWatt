@@ -1155,6 +1155,9 @@ fn the_label_column_gives_way_to_no_count_and_no_prose() {
         settle(&mut h);
         dispatch(&mut h, "props.project", json!({}));
         settle(&mut h);
+        // The list of parties waits under the closed More; the filter shows its rows.
+        dispatch(&mut h, "props.filter", json!({ "text": "pers" }));
+        settle(&mut h);
         settle(&mut h);
         let line = ew_ui::theme::current(&h.ctx).size_control_inline;
         for (label, two) in [("Persoonsgegevens", false), ("Personen en organisaties", wraps)] {

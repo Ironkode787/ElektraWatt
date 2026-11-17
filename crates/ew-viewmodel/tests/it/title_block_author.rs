@@ -74,7 +74,11 @@ fn the_designer_is_a_plain_row_that_the_author_cell_prints() {
     );
     done(&mut s, "wizard.cancel", json!({}));
     let job = tmp.0.join("job.ew");
-    done(&mut s, "file.new", json!({ "dir": job.to_string_lossy(), "template": company.to_string_lossy() }));
+    done(
+        &mut s,
+        "file.new",
+        json!({ "dir": job.to_string_lossy(), "template": company.to_string_lossy() }),
+    );
     done(&mut s, "props.show", json!({"on": true}));
     done(&mut s, "props.project", json!({}));
     let labels = |s: &ShellModel| -> Vec<String> {
@@ -94,7 +98,10 @@ fn the_designer_is_a_plain_row_that_the_author_cell_prints() {
     for person in ["Designer", "Checker", "Customer", "End user"] {
         assert!(main.iter().any(|l| l == person), "{person}: {main:?}");
     }
-    assert!(!main.iter().any(|l| l == "Parties"), "the raw list waits under More: {main:?}");
+    assert!(
+        !main.iter().any(|l| l == "Parties"),
+        "the raw list waits under More: {main:?}"
+    );
     done(
         &mut s,
         "props.set",
@@ -110,7 +117,9 @@ fn the_designer_is_a_plain_row_that_the_author_cell_prints() {
         .find(|f| f.name == "revision.current.author.name")
         .expect("Author, for a person at the window");
     assert_eq!(author.value, "A. Designer", "the Author cell prints the designer");
-    let note = s.form_note(&form, "revision.current.author.name").unwrap_or_default();
+    let note = s
+        .form_note(&form, "revision.current.author.name")
+        .unwrap_or_default();
     assert!(note.contains("Prints in the cell \"Author\""), "{note}");
     let note = s.form_note(&form, "project.reference").unwrap_or_default();
     assert!(note.contains("Prints in the cell \"Project\""), "{note}");
