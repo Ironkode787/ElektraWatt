@@ -465,9 +465,11 @@ re-ordering would re-hash every existing copy. The members typed in this step:
 pins no place). A part whose main function is a black box is drawn as a box with its pins on the edges. Its pins are
 its `cp_pattern`, which a person adds to, removes from and renames in the part editor and on the symbol editor's
 screen (§5); `box` says where they stand: the box's size, and for each pin its edge and its distance along it. Placing
-the part then draws that box with one click (`box.black`): sizes and distances are read onto the page's connection
-grid in whole steps, every pin at least one step from the corners and from its neighbours, the box widened where the
-pins need it (`ew_api::part_box::steps`); a pin the layout does not list stands on the bottom edge after the others. A
+the part then draws that box with one click (`box.black`): the layout is read onto the page's connection grid in its
+order and on its sides, each distance (corner to pin, pin to pin, pin to corner) taken up to whole steps of that grid,
+so a box laid out on 4 mm comes out no tighter on a page of another grid and its pins stand on that page's grid points;
+every pin at least one step from the corners and from its neighbours, the box widened where the pins need it
+(`ew_api::part_box::steps`); a pin the layout does not list stands on the bottom edge after the others. A
 part without `box` is drawn as before, by two clicks, the first half of its pins on top and the rest below. The
 placed box is the page's: its edges and pins are still dragged there (`box.reshape`), and a later change of the
 part's layout asks before it redraws. `box` is an optional member without cascade semantics (ADR-0011 amendment 6):

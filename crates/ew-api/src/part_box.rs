@@ -10,9 +10,9 @@
 //! symbol of its own keeps its pins: they come from its channels, its ports or its symbol ([`PinsFrom`]).
 //!
 //! **The layout** ([`ew_schema::PartBox`], `Part.box`) is the box's size and, for each pin, the edge it stands on
-//! and its distance along that edge. [`steps`] reads it onto a connection grid: sizes and distances rounded to whole
-//! grid steps, every pin at least one step from the corners and from its neighbours, the box widened where the pins
-//! need it. A part without a layout is laid out as the black box tool always did ([`split`], [`spread`]): the first
+//! and its distance along that edge. [`steps`] reads it onto a connection grid: distances taken up to whole grid
+//! steps, every pin at least one step from the corners and from its neighbours, the box widened where the pins need
+//! it. A part without a layout is laid out as the black box tool always did ([`split`], [`spread`]): the first
 //! half of the pins on top, the rest below, a source's outputs below.
 
 use ew_commands::commands::ReshapeBox;
@@ -99,10 +99,10 @@ fn horizontal(side: &Dir4) -> bool {
 }
 
 /// The device box of the pins `cps` (in the pattern's order) on a connection grid of `step` nanometres: with
-/// `layout` each listed pin on its edge at its distance, rounded to whole steps, at least one step from the corners
-/// and from the pin before it, the box as large as the layout says and as its pins need; a pin the layout does not
-/// list on the bottom edge after the others. Without a layout, [`split`] and [`spread`] on a box as wide as its
-/// longer row needs.
+/// `layout` each listed pin on its edge in the layout's order, each distance (from the corner to the first pin, from
+/// pin to pin, from the last pin to the far corner) taken up to whole steps and at least one, so that a layout drawn
+/// on another grid keeps its order and sides and comes out no tighter; a pin the layout does not list on the bottom
+/// edge after the others. Without a layout, [`split`] and [`spread`] on a box as wide as its longer row needs.
 pub fn steps(cps: &[u16], outputs: &[u16], layout: Option<&PartBox>, step: i64) -> BoxSteps {
     let step = step.max(1);
     let count = |n: usize| i64::try_from(n).unwrap_or(i64::MAX / 4);
@@ -127,7 +127,11 @@ pub fn steps(cps: &[u16], outputs: &[u16], layout: Option<&PartBox>, step: i64) 
             pins,
         };
     };
-    let whole = |nm: Nm| ((nm.0 as f64) / (step as f64)).round() as i64;
+    // A distance in whole steps, taken up to the next step: a layout drawn on another grid comes out no tighter.
+    let up = |nm: i64| -> i64 {
+        let nm = i128::from(nm.max(0));
+        i64::try_from((nm + i128::from(step) - 1) / i128::from(step)).unwrap_or(i64::MAX / 4)
+    };
     let mut sides: [Vec<(u16, i64)>; 4] = Default::default();
     let slot = |side: &Dir4| match side {
         Dir4::Up => 0,
@@ -139,26 +143,33 @@ pub fn steps(cps: &[u16], outputs: &[u16], layout: Option<&PartBox>, step: i64) 
     for pin in layout.pins.iter().filter(|p| cps.contains(&p.idx)) {
         if !listed.contains(&pin.idx) {
             listed.push(pin.idx);
-            sides[slot(&pin.side)].push((pin.idx, whole(pin.at)));
+            sides[slot(&pin.side)].push((pin.idx, pin.at.0));
         }
     }
-    // Along each edge in the order of their distances, each at least one step after the one before.
-    for side in &mut sides {
+    // Along each edge in the order of their distances, each the distance from the one before (from the corner for
+    // the first) in whole steps after it, at least one; then the edge's length past the last pin, at least a step.
+    let edge = |length: Nm, side: &mut Vec<(u16, i64)>| -> i64 {
         side.sort_by_key(|(_, at)| *at);
-        let mut last = 0;
+        let (mut last_nm, mut last) = (0_i64, 0_i64);
         for (_, at) in side.iter_mut() {
-            *at = (*at).max(last + 1);
-            last = *at;
+            let k = last.saturating_add(up(at.saturating_sub(last_nm)).max(1));
+            last_nm = *at;
+            *at = k;
+            last = k;
         }
-    }
+        last.saturating_add(up(length.0.saturating_sub(last_nm)).max(1))
+    };
+    let [top, bottom, left, right] = &mut sides;
+    let w = edge(layout.width, top).max(edge(layout.width, bottom));
+    let h = edge(layout.height, left).max(edge(layout.height, right));
     for idx in cps.iter().filter(|c| !listed.contains(c)) {
         let last = sides[1].last().map_or(0, |(_, at)| *at);
         sides[1].push((*idx, last + 1));
     }
     let need =
         |a: &[(u16, i64)], b: &[(u16, i64)]| a.iter().chain(b).map(|(_, at)| at + 1).max().unwrap_or(0);
-    let w = whole(layout.width).max(need(&sides[0], &sides[1])).max(2);
-    let h = whole(layout.height).max(need(&sides[2], &sides[3])).max(2);
+    let w = w.max(need(&sides[0], &sides[1])).max(2);
+    let h = h.max(need(&sides[2], &sides[3])).max(2);
     let dirs = [Dir4::Up, Dir4::Down, Dir4::Left, Dir4::Right];
     let pins = sides
         .iter()

@@ -263,6 +263,74 @@ fn a_new_part_s_box_is_saved_and_a_drawn_box_is_redrawn_on_request() {
     assert_eq!(top(&s).len(), 2);
 }
 
+/// A box laid out on the 4 mm grid is drawn on a page of the 4 mm grid and on one of the QET grid with its pins on
+/// that page's grid points, in the layout's order and on its sides, every distance at least as long as the layout's:
+/// the QET grid's 2.65 mm steps take a 4 mm distance up to two of them, so the box comes out no tighter and wires meet
+/// its pins. Each is clicked at the page's corner, outside the frame's drawing area, so the box is moved inside it
+/// first.
+#[test]
+fn a_box_lands_on_the_grid_of_the_page_it_is_drawn_on() {
+    let tmp = Tmp::new("device-box-grids");
+    let mut s = new_project(&tmp);
+    done(&mut s, "part.box", json!({"new": true}));
+    for (key, value) in [("part_number", "PSU-5"), ("manufacturer", "Example")] {
+        done(&mut s, "symbol.prop", json!({"key": key, "value": value}));
+    }
+    for name in ["L", "N", "PE", "+"] {
+        done(&mut s, "part.pin", json!({"add": true, "name": name}));
+    }
+    done(&mut s, "part.box_size", json!({"width": 16, "height": 12}));
+    for (pin, side, at) in [(0, "top", 4), (1, "top", 8), (2, "top", 12), (3, "bottom", 8)] {
+        done(&mut s, "part.pin", json!({"pin": pin, "side": side, "at": at}));
+    }
+    done(&mut s, "symbol.save", json!({}));
+    let copy = device_box(&s).draft.copy;
+    done(&mut s, "symbol.close", json!({}));
+    for (number, grid) in [(150, (4_000_000, 1)), (160, (7_937_500, 3))] {
+        done(
+            &mut s,
+            "command.run",
+            json!({"cmd": "page.create", "params": {
+                "number": number, "title": "Boxes", "kind": "multi_line", "grid": {"num": grid.0, "den": grid.1},
+            }}),
+        );
+        done(&mut s, "page.goto", json!({"folio": number.to_string()}));
+        done(&mut s, "view.zoom_actual", json!({}));
+        done(
+            &mut s,
+            "tool.black_box",
+            json!({"part": copy.to_string(), "template": 0}),
+        );
+        let at = grid_point(&s, (1, 1));
+        cursor(&mut s, at);
+        done(&mut s, "canvas.activate", json!({}));
+        let t = tables(&s);
+        assert_eq!(t.grid, grid);
+        let b = t.reps.iter().find_map(|r| r.black_box.clone()).expect("the box");
+        let g = ew_viewmodel::ew_api::symbols::units::Grid::new(grid.0 as u64, grid.1 as u64).unwrap();
+        let on_grid = |v: i64| g.snap_point(ew_viewmodel::ew_api::symbols::units::Nm(v)).map(|n| n.0) == Some(v);
+        for (idx, p, _) in &b.cps {
+            assert!(on_grid(p.0) && on_grid(p.1), "page {number}: pin {idx} at {p:?} is off the grid");
+        }
+        // The top edge: the pins in the layout's order, each at least 4 mm from the corner and from the one before.
+        let left = b.outline.iter().map(|p| p.0).min().unwrap();
+        let mut top: Vec<(i64, u16)> = b
+            .cps
+            .iter()
+            .filter(|c| c.2 == Dir::Up)
+            .map(|c| (c.1.0, c.0))
+            .collect();
+        top.sort_unstable();
+        assert_eq!(top.iter().map(|p| p.1).collect::<Vec<_>>(), [0, 1, 2], "page {number}");
+        let mut last = left;
+        for (x, idx) in &top {
+            assert!(x - last >= 4_000_000, "page {number}: pin {idx} only {} nm on", x - last);
+            last = *x;
+        }
+        assert!(b.cps.iter().any(|c| c.0 == 3 && c.2 == Dir::Down), "page {number}");
+    }
+}
+
 /// A PLC card's pins come from its channels: the box shows, and a change of its pins is refused with the sentence
 /// that says where they come from.
 #[test]

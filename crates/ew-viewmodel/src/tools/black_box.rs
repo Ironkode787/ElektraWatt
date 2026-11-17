@@ -376,18 +376,30 @@ impl BlackBoxTool {
 
     /// The box one click places at the armed point: its layout, and the cell width of a terminal drawn as its positions.
     /// A box that would leave the frame's drawing area is moved inside it by whole grid steps where it fits (the rc.2
-    /// re-test: a terminal ran past the frame's edge, its positions cut off).
+    /// re-test: a terminal ran past the frame's edge, its positions cut off), and laid out afresh there: on a grid whose
+    /// step is no whole number of nanometres (the QET grid) the same layout at another corner has its points a
+    /// nanometre apart, and a moved one would leave its pins off the grid.
     fn one_click_box(&self, cx: &ToolCx<'_>) -> Option<(BoxLayout, Option<i64>)> {
         let State::Armed { at: Some(at) } = &self.state else {
             return None;
         };
         let grid = PageGridMap::new(cx.page.tables.grid);
-        let ((pos, outline, cps), pitch) = match self.slots {
+        let ((pos, outline, cps), pitch) = self.box_at(cx, grid, *at)?;
+        match fit_in_area(super::ip::drawing_area(cx.page), grid, pos, &outline) {
+            Ok(inside) if inside != pos => self.box_at(cx, grid, inside),
+            _ => Some(((pos, outline, cps), pitch)),
+        }
+    }
+
+    /// The box one click places with its top-left corner at the grid point nearest `at`, and the cell width of a
+    /// terminal drawn as its positions.
+    fn box_at(&self, cx: &ToolCx<'_>, grid: PageGridMap, at: (i64, i64)) -> Option<(BoxLayout, Option<i64>)> {
+        Some(match self.slots {
             Some(n) => {
-                let (pos, outline, pitch) = ew_api::geometry::slot_box(cx.page.tables.grid, *at, n)?;
+                let (pos, outline, pitch) = ew_api::geometry::slot_box(cx.page.tables.grid, at, n)?;
                 ((pos, outline, Vec::new()), Some(pitch))
             }
-            None if self.pins => (pin_layout(grid, *at, self.cps())?, None),
+            None if self.pins => (pin_layout(grid, at, self.cps())?, None),
             // A part with a device box: the box as the part lays it out, its top-left corner at the pointer.
             None => {
                 use ew_api::part_box::Dir4;
@@ -395,7 +407,7 @@ impl BlackBoxTool {
                 let pins: Vec<u16> = self.cps().iter().map(|c| c.0).collect();
                 let (pos, outline, cps) =
                     ew_api::part_box::steps(&pins, self.outputs(), Some(layout), grid.step().max(1))
-                        .on_grid(cx.page.tables.grid, *at)?;
+                        .on_grid(cx.page.tables.grid, at)?;
                 let cps = cps
                     .into_iter()
                     .map(|(idx, p, dir)| {
@@ -410,9 +422,7 @@ impl BlackBoxTool {
                     .collect();
                 ((pos, outline, cps), None)
             }
-        };
-        let pos = fit_in_area(super::ip::drawing_area(cx.page), grid, pos, &outline).unwrap_or(pos);
-        Some(((pos, outline, cps), pitch))
+        })
     }
 
     /// The tool drawing boxes of representation type `rep_type` (`topology` on a bus-topology page).
