@@ -1446,6 +1446,18 @@ project checks set [<project-dir>] [--active <scheme>] [--release <scheme>]`, ne
 the scheme's name on the controlling terminal and writes only on an exact answer; without a terminal it exits 2 and
 has no flag that skips the question (FR-EXT-030, doc 17 §2.3).
 
+*As built (rc.3 of 0.3.0): text styles.* The wizard no longer asks for text sizes: a template starts with the readable
+styles of a new project, and its review step points at **Text styles…** (Project ▸ Setup, `text_styles.open`), a form
+dialog that grows with the window as the print dialog does. It lists the project's styles grouped by what they print
+(Devices, Wires and cables, Terminals, Page, Cover and sections), each by its name and where it prints, with its
+typeface (a list of the bundled faces; system fonts are not offered, and a line under the table says why), its height
+as the printed height of a capital in mm (a field and a list of the standard heights), bold, a sample in its face in
+proportion to the others, a quiet note under a height below 1.2 mm in EW-CORE-061's words, and Reset; Standard sizes
+and Reset all stand beside Close. Each change is one undo step on the open page. A finding without a place on a page
+opens where it is mended: EW-CORE-061 Text styles at its style, a finding of the project record Project properties,
+any other the records in Properties; a finding of no record shows its rule's hint in the banner
+([ADR-0032](../adr/0032-per-project-text-styles.md) amendment 1).
+
 The review step lists every field with "in the template" (`written` in `ui.describe`); in a UI script the check
 level reads `kept`. The preview applies the same commands to the sample project, so the cover and
 folio 102 show the notice, the ISO date format and the chosen frame (a test pins all three). A test checks that the

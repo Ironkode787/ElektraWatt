@@ -1221,7 +1221,9 @@ column rounds that value times 0.986282578 to 0.01 mm.
 | `cp.small` | 5 | 3.75 | 3.70 | 1.30 | MCB and switch pin numbers, "DP" |
 | `marker` | 5 | 3.75 | 3.70 | 1.30 | wire- and cable-marker texts |
 
-*As built ([ADR-0032](../adr/0032-per-project-text-styles.md)).* The table above is the built-in base every project's `text_styles` overrides apply to (in `ew-schema` as `BUILTIN_TEXT_STYLES`). Golden A and Golden C write no overrides and keep `cp.small` and `marker` at 5 px (EF-12 still reports its two EW-CORE-061 findings); a new project overrides both to 7 px (1.85 mm em, 1.32 mm cap height).
+*As built ([ADR-0032](../adr/0032-per-project-text-styles.md)).* The table above is the built-in base every project's `text_styles` overrides apply to (in `ew-schema` as `BUILTIN_TEXT_STYLES`). Golden A and Golden C write no overrides and keep `cp.small` and `marker` at 5 px (EF-12 still reports its two EW-CORE-061 findings); a new project overrides both to 7 px (1.85 mm em, 1.32 mm cap height). Since 0.3.0 the base has a fifteenth row,
+`terminal` (the terminal's number), at `tag.main`'s 13 px, so a project that sets nothing prints as before; a new
+project sets it to a 1.8 mm cap height ([ADR-0032](../adr/0032-per-project-text-styles.md) amendment 1).
 
 **Fonts.** The fixture pins the bundled default family (Noto Sans Regular and Bold, OFL-1.1, ▲U-29, ADR-0028).
 **Tahoma is never bundled, embedded or required**: CI machines have no Tahoma, and AC-13 fails if any embedded font is

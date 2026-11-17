@@ -93,6 +93,21 @@ entry records what is already built and in force.
      `.notdef` glyph and keeps its 63 link annotations; the nine "∞" cross-reference texts and "0V ⇄ PE" print with
      real glyphs, so the first PNG approval can proceed.
 
+2. **A narrow and a monospaced face, chosen per text style** (2026-11-17, rc.3 of 0.3.0; the owner's test asked for
+   typefaces a person can choose).
+   - **The faces.** Noto Sans Condensed Regular and Bold (Version 2.003, the notofonts/notosans instances at the
+     commit of Noto Sans) and Noto Sans Mono Regular and Bold (Version 2.014, the notofonts release asset
+     `NotoSansMono-v2.014.zip`), all OFL-1.1, bundled and pinned as recommendation 6 says; `NOTICE` records their
+     sources, hashes and copyright lines. Every face has the cap ratio 0.714 of Noto Sans, so a style's height means
+     the same in each. Their roles in `ew-text` are `Family::Narrow` and `Family::Mono`; Noto Sans Math stays the
+     fallback of every role.
+   - **Per text style.** A text style names its face (`face`, ADR-0032 amendment 1); the screen, the PDF, SVG and PNG
+     renderers take every face from the one bundled set. System fonts stay out (recommendation 5 is not built): the
+     Text styles page says so.
+   - **osifont is still not bundled.** Its licence (GPL with a font exception) is not on the allowlist, and
+     recommendation 2 asks for the expression to be verified with counsel first. The ISO 3098-style face waits for
+     that decision.
+
 ## Consequences
 
 If the recommendation is accepted:

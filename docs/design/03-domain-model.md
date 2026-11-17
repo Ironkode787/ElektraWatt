@@ -705,6 +705,9 @@ Text styles ([ADR-0032](../adr/0032-per-project-text-styles.md)) are shaped
 as `ProjectSettings.text_styles`, overrides of the built-in table keyed by style key (`size` as em height in nm, an
 optional `weight`); an absent member means the built-in table; new projects write `cp.small` and `marker` at 7 px.
 *As built:* the member is typed in `ew-schema` (`TextStyleSpec`, `BUILTIN_TEXT_STYLES`, `effective_text_styles`); an override whose size lies outside 0.5 … 50 mm is ignored on reading and a weight of a newer format reads as absent.
+Since 0.3.0 an entry may name its bundled typeface (`face`: `standard`, `narrow`, `mono`; a newer value reads as
+standard and is kept), and a free text may carry its own cap height (`FreeText.height`)
+([ADR-0032](../adr/0032-per-project-text-styles.md) amendment 1).
 
 ---
 

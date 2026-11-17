@@ -58,6 +58,9 @@ and a review. Each step says what it is and where you can change it later, and i
 make, such as the name of the third contactor on page 102; the **Example** beside it shows a cover page and a schematic
 page with your choices. Your choices are kept until you finish.
 
+A new template's texts print readably: no style is lower than 1.2 mm. Their heights and typefaces are on
+**Text styles…** in the template (see [Text styles](#text-styles)).
+
 The last step lists every choice. **Use this template for new projects** is ticked: the New project dialog then
 chooses this template first. Untick it to keep the template in the list without using it yet. **Create the
 template…** asks for a new, empty folder and writes the template there, the check level included.
@@ -85,6 +88,33 @@ among the recent projects.
 In **Templates…** choose the template and press **Do not use**: new projects start empty unless you choose a
 template in the New project dialog. **Remove from the list** also takes it out of the list; the folder stays on the
 disk.
+
+## Text styles
+
+Every text on a drawing prints in a text style: device tags in **Device tag**, wire numbers in **Wire marker**, the
+number beside a terminal in **Terminal number**, and so on. **Text styles…** (Project tab, under **Setup**) lists the
+project's styles under what they print: Devices, Wires and cables, Terminals, Page, and Cover and sections. Each line
+says where the style prints and has:
+
+- **Typeface**: Standard, Narrow or Monospaced. The typefaces are part of the program, so a drawing looks the same on
+  every computer; the fonts installed on your computer are not offered.
+- **Height**: the height of a capital letter on paper, in millimetres, as drawing standards give a text's size. Type a
+  value, or choose one of the standard heights 1.8, 2.5, 3.5, 5 and 7 mm beside it. A height under 1.2 mm is allowed,
+  and the line says that it is too small to read on paper; Check project then warns about it too.
+- **B**: bold.
+- A sample in the style, in proportion to the others, and **Reset**, which brings the style back to what a new
+  project has.
+
+A change shows on the open page at once and is one step of **Undo**. **Standard sizes** gives every style the height a
+new project has and keeps typefaces and bold; **Reset all** brings back every style. A new project, and every template
+the wizard makes, starts readable; the styles are the project's, and a template carries its own to the projects made
+from it.
+
+The warning "Wire marker prints 0.94 mm high, too small to read on paper" opens **Text styles** at that style when you
+open it in Messages (double-click, or Enter); **Set to 1.2 mm** on the message mends it in one step.
+
+A free text has its own **Style** in its Properties, chosen by name, and its own **Height** for that one text. The
+Properties of a text or a device also say which style it prints in, with **Change styles…** beside it.
 
 ## The check level
 

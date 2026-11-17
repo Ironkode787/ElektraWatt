@@ -102,6 +102,30 @@ reverse it)
   acceptance renders an override through every text source and asserts that only the project-less callers name
   `builtin()`.
 
+## Amendment 1 (0.3.0, rc.3): the window edits the table; faces; the terminal's number
+
+The owner's test of 0.3.0-rc.2 found the styles unreachable and their names unknown to a person. As built:
+
+- **Text styles…** (Project ▸ Setup, `text_styles.open`; FT-669 closed) lists the effective table grouped by what
+  each style prints (`ew_schema::TextStyleGroup`, a column of `BUILTIN_TEXT_STYLES`), by names a person knows (the
+  rule messages' `word-style-<key>`, which EW-CORE-061 prints too), never by key. A height is shown and typed as the
+  printed **cap height** (`ew_schema::cap_height`, em × 0.714; `em_for_cap` the inverse), the size ISO 3098 names.
+  `text_styles.set`, `.reset` and `.standard` each write the whole member through `project.settings.set`: one undo
+  step. An entry holds only what differs from the built-in row (`text_style_entry`); unknown members stay.
+- **The face** is typed: `face` (`standard`, `narrow`, `mono`; an open enum, a newer value read as standard and kept),
+  an additive member of an entry (ADR-0028 amendment 2). Italic stays untyped: no italic face is bundled.
+- **`terminal`** is a new built-in row, the terminal's number, at `tag.main`'s 13 px so that a project that sets
+  nothing prints as before (Golden A unchanged); the shipped terminal symbols name it in their tag slot. A new project
+  writes it at a cap height of 1.8 mm (`NEW_PROJECT_TEXT_STYLES`), below the device tag's, beside `cp.small` and
+  `marker` at 7 px; every style of a new project prints at least 1.2 mm high (decision 3 extended).
+- **A free text's own height** is the additive member `FreeText.height` (a cap height); its style is chosen by name in
+  its Properties.
+- **The wizard's choice is gone** (the Consequences' "wizard's choice"): a template always starts with the new
+  project's styles, so no project is born with a warning about its own styles. NFR-UX-08's comparison with Golden A
+  leaves `settings.text_styles` out.
+- **EW-CORE-061** names the style, says what to do, offers Set to 1.2 mm, and opening it opens Text styles at the
+  style.
+
 ## Sources
 
 - Requirements: FR-SYM-013, FR-PRJ-009; checks: EW-CORE-061, EW-CORE-063, EW-CORE-007.
