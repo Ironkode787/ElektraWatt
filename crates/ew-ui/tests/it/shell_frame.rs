@@ -250,9 +250,10 @@ fn the_first_run_step_sits_in_one_reading_column() {
 #[test]
 fn the_wizard_shows_a_preview_follows_a_typed_value_and_writes_the_basic_project() {
     let tmp = Tmp::new();
-    let basic = tmp.0.join("company.ew");
+    // Choose another folder… answers with the test's folder: the template's own folder is made in it.
+    let basic = tmp.0.join("Company template");
     let platform = Scripted::default();
-    platform.answers.borrow_mut().push_back(Pick::Path(basic.clone()));
+    platform.answers.borrow_mut().push_back(Pick::Path(tmp.0.clone()));
     let mut h = harness_with(gui_shell(&tmp), platform.clone(), None);
     settle(&mut h);
     h.get_by_label("Templates…").click();
@@ -309,18 +310,26 @@ fn the_wizard_shows_a_preview_follows_a_typed_value_and_writes_the_basic_project
     assert_eq!(h.state().shell().wizard().unwrap().preview_folio(), "1");
     wait_for_preview(&mut h);
 
-    // The review lists what goes into the template, the check level too; Create asks for the directory and writes
-    // it, with no question after it (G2 of the rc.2 test).
+    // The review lists what goes into the template, the check level too, and where Create makes it; Choose another
+    // folder… puts it elsewhere, and Create writes it with no question after it (G2 of the rc.2 test).
     h.get_by_label("10. Review and create").click();
     settle(&mut h);
     assert!(h.query_all_by_label("in the template").count() > 0);
     assert!(h.query_by_label("Use this template for new projects").is_some());
+    h.get_by_label("Choose another folder…").scroll_to_me();
+    settle(&mut h);
+    h.get_by_label("Choose another folder…").click();
+    settle(&mut h);
+    assert!(
+        h.query_by_label_contains(&basic.to_string_lossy())
+            .is_some()
+    );
     // Controls of `size.control` (28 px) push the button under the fold of this window.
-    h.get_by_label("Create the template…").scroll_to_me();
+    h.get_by_label("Create the template").scroll_to_me();
     settle(&mut h);
-    h.get_by_label("Create the template…").click();
+    h.get_by_label("Create the template").click();
     settle(&mut h);
-    assert_eq!(platform.asked.borrow().as_slice(), [Prompt::NewFolder]);
+    assert_eq!(platform.asked.borrow().as_slice(), [Prompt::Folder]);
     let shell = h.state().shell();
     assert!(
         shell.wizard().is_some_and(|w| w.finished_dir().is_some()),
@@ -329,7 +338,7 @@ fn the_wizard_shows_a_preview_follows_a_typed_value_and_writes_the_basic_project
     );
     assert_eq!(shell.dialog(), None, "nothing to confirm after Create");
     assert!(
-        h.query_by_label_contains("The template was written to company.ew")
+        h.query_by_label_contains("The template was written to Company template")
             .is_some()
     );
     let text = std::fs::read_to_string(basic.join("project.jsonl")).unwrap();

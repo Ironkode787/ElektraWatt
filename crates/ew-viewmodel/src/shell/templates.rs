@@ -143,14 +143,17 @@ pub struct NewProjectDialog {
 
 /// Whether `name` can be a folder's name on every system the program runs on: not empty, none of `\ / : * ? " < > |`
 /// or a control character, not `.` or `..`, and no point or space at its end.
-fn folder_name_ok(name: &str) -> bool {
-    !name.is_empty()
-        && !name.chars().any(|c| c.is_control() || r#"\/:*?"<>|"#.contains(c))
-        && !name.ends_with(['.', ' '])
+pub(super) fn folder_name_ok(name: &str) -> bool {
+    !name.is_empty() && name.chars().all(folder_char_ok) && !name.ends_with(['.', ' '])
+}
+
+/// Whether a folder's name may hold `c`: none of `\ / : * ? " < > |` and no control character.
+pub(super) fn folder_char_ok(c: char) -> bool {
+    !c.is_control() && !r#"\/:*?"<>|"#.contains(c)
 }
 
 /// Whether `dir` holds anything (a folder of that name is there and not empty, or a file is).
-fn taken(dir: &Path) -> bool {
+pub(super) fn taken(dir: &Path) -> bool {
     match std::fs::read_dir(dir) {
         Ok(mut entries) => entries.next().is_some(),
         Err(_) => dir.exists(),
@@ -306,6 +309,12 @@ const SAVE_AS_TEMPLATE: &str = "project.save_as_template";
 const CHECK_LEVEL: &str = "project.check_level";
 
 impl ShellModel {
+    /// The user's templates folder, `Templates` in the projects folder: where Save as template… and the wizard make
+    /// a template's folder unless the person chooses another.
+    pub(super) fn templates_dir(&self) -> Option<PathBuf> {
+        self.config.projects_dir.as_ref().map(|d| d.join("Templates"))
+    }
+
     // -----------------------------------------------------------------------------------------------------------
     // New project
 
@@ -669,10 +678,8 @@ impl ShellModel {
             return Outcome::refused(key!("reason-no-project"));
         };
         let default_folder = self
-            .config
-            .projects_dir
-            .as_ref()
-            .map(|d| d.join("Templates").to_string_lossy().into_owned())
+            .templates_dir()
+            .map(|d| d.to_string_lossy().into_owned())
             .unwrap_or_default();
         let in_form = self.in_form_of(SAVE_AS_TEMPLATE);
         let name = or_return!(string_param(p, "name")).map(str::trim).unwrap_or("");

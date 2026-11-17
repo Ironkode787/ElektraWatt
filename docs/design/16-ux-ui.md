@@ -1408,12 +1408,20 @@ to the cover page, which prints their tables (the schematic page draws no wire c
 choice seemed to change nothing); Frame and Numbering turn it to the schematic page. Choices are radio groups; a
 placeholder is an example value, never the label. The step list marks the steps passed with a check. A bar at the
 foot of the step holds Close and Start over as Subtle buttons at the left (their tooltips say the choices are kept,
-or put back) and Back (Secondary) and Next or Create the template… (Primary) at the right; after Create, Close.
+or put back) and Back (Secondary) and Next or Create the template (Primary) at the right; after Create, Close. Close
+with answers in the wizard asks in the bar first (rc.3 persona round): Close keeps the draft for the next time, Back
+to the wizard stays, Close and drop my answers deletes the draft (`wizard.cancel {answer: keep|discard|stay}`; a
+script, a finished wizard and one without answers close at once, the draft kept).
 The review step ends with **Use this template for new projects** (on; `wizard.set {field: "use_for_new"}`): the
 template joins the list either way, and new projects start from it only when it is on. The check scheme is called the **check level** on the screen. The defaults are the sample project's conventions (numbering `{page}{letter}{counter}`, strips
 `{letter}{page}{counter}`, the colour profile "DBU/WH 24 V", the size profile "0.75/1.5", the QET-style
 cross-reference format, `=P01`, sections 1, 2 and 9); a numbering format must contain `{page}`, `{letter}` and
-`{counter}` until the numbering engine of WP-S1.11 (R2). **What the wizard writes**: `wizard.finish`
+`{counter}` until the numbering engine of WP-S1.11 (R2). **Where it is made:** the review step says where Create makes the
+template: a folder named after it (the company's name, else "Company template") in the user's templates folder
+(`Templates` in the projects folder, as Save as template… uses), with " 2", " 3" … after the name when a folder of that
+name holds something, so a full folder is never a dead end; **Choose another folder…** (`wizard.folder`) puts that
+folder in another one. `wizard.finish` without `dir` makes it there; without a projects folder a script names `dir`
+and the window asks for one. **What the wizard writes**: `wizard.finish {dir}`
 needs an empty or absent directory and builds a basic project from the built-in one through registered
 commands only, in one script. The wizard uses four commands of its own (`project.company.set`, `project.frames.set`, `project.languages.set` and
 `project.checks.set`; the catalogue has 42 commands, no new record kind and no schema change), so every field has a

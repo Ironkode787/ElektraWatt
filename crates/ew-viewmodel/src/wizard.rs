@@ -1315,6 +1315,11 @@ pub struct Wizard {
     pub(crate) finished: Option<PathBuf>,
     /// Whether new projects start from the template once it is made (the last step's box, on at first).
     pub(crate) use_for_new: bool,
+    /// The folder the template's own folder is made in, when Choose another folder… chose one; else the user's
+    /// templates folder.
+    pub(crate) folder: Option<PathBuf>,
+    /// Whether Close asks what becomes of the answers (the window, a wizard with answers in it).
+    pub(crate) closing: bool,
 }
 
 /// The folio of the preview's cover page and of its sample page (the title page and folio 102 of the sample
@@ -1336,7 +1341,19 @@ impl Wizard {
             error: None,
             finished: None,
             use_for_new: true,
+            folder: None,
+            closing: false,
         }
+    }
+
+    /// Whether Close asks what becomes of the answers: the bar then says they are kept and offers to drop them.
+    pub fn closing(&self) -> bool {
+        self.closing
+    }
+
+    /// Whether the person has answered anything: a draft that is not the defaults.
+    pub fn has_answers(&self) -> bool {
+        self.draft != Draft::default()
     }
 
     /// The basic project directory once the wizard has finished.

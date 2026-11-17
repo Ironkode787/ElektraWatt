@@ -190,6 +190,13 @@ fn wizard(model: &ShellModel, lines: &mut Vec<String>) {
             strings::text(key!("wizard-use-for-new")),
             if w.use_for_new() { "on" } else { "off" }
         ));
+        if let (Some(target), None) = (model.wizard_target(), w.finished_dir()) {
+            lines.push(format!(
+                "  label \"{}\"",
+                strings::format(key!("wizard-made-in"), &[&target.to_string_lossy()])
+            ));
+            lines.push(format!("  button \"{}\"", strings::text(key!("wizard-choose-folder"))));
+        }
     } else {
         for f in fields_of(step) {
             let label = strings::text(f.label_key);
@@ -231,6 +238,18 @@ fn wizard(model: &ShellModel, lines: &mut Vec<String>) {
     if w.finished_dir().is_some() {
         // The template is written; what is left is Close.
         lines.push(format!("  button \"{}\"", strings::text(key!("wizard-close"))));
+        return;
+    }
+    // Close with answers in it asks what becomes of them.
+    if w.closing() {
+        lines.push(format!("  label \"{}\"", strings::text(key!("wizard-closing"))));
+        for key in [
+            key!("wizard-cancel"),
+            key!("wizard-closing-stay"),
+            key!("wizard-closing-discard"),
+        ] {
+            lines.push(format!("  button \"{}\"", strings::text(key)));
+        }
         return;
     }
     if step != Step::Company {

@@ -166,3 +166,48 @@ fn new_project_says_why_create_waits_and_keeps_what_was_typed() {
     assert!(reason(&h, "A folder of that name is there already"));
     h.state_mut().shell_mut().shutdown();
 }
+
+/// Close with answers in the wizard asks before it goes (a persona run lost ten steps of answers without a word):
+/// Back to the wizard stays, Close keeps the answers for the next time, and Close and drop my answers drops them.
+#[test]
+fn closing_the_wizard_with_answers_asks_and_keeps_them() {
+    let tmp = Tmp::new();
+    let draft = tmp.0.join("config").join("wizard-draft.json");
+    let mut h = harness_with(gui_shell(&tmp), Scripted::default(), None);
+    settle(&mut h);
+    let open_with_answer = |h: &mut egui_kittest::Harness<'_, ew_ui::app::App>| {
+        crate::support::dispatch(h, "tools.company_standard", json!({}));
+        crate::support::dispatch(
+            h,
+            "wizard.set",
+            json!({"field": "company_name", "value": "Example Panels"}),
+        );
+        settle(h);
+    };
+    open_with_answer(&mut h);
+    h.get_by_label("Close").click();
+    settle(&mut h);
+    assert!(h.state().shell().wizard().is_some(), "Close asks first");
+    assert!(h.query_by_label_contains("Your answers are kept").is_some());
+    h.get_by_label("Back to the wizard").click();
+    settle(&mut h);
+    assert!(h.state().shell().wizard().is_some_and(|w| !w.closing()));
+    h.get_by_label("Close").click();
+    settle(&mut h);
+    h.get_by_label("Close").click();
+    settle(&mut h);
+    assert!(h.state().shell().wizard().is_none());
+    assert!(draft.is_file(), "the answers are kept");
+    crate::support::dispatch(&mut h, "tools.company_standard", json!({}));
+    settle(&mut h);
+    assert_eq!(
+        h.state().shell().wizard().unwrap().draft().get("company_name"),
+        "Example Panels"
+    );
+    h.get_by_label("Close").click();
+    settle(&mut h);
+    h.get_by_label("Close and drop my answers").click();
+    settle(&mut h);
+    assert!(h.state().shell().wizard().is_none());
+    assert!(!draft.exists(), "the answers are dropped");
+}

@@ -1435,16 +1435,47 @@ fn the_wizard_writes_a_basic_project_that_new_projects_start_from() {
     shell.shutdown();
 }
 
+/// Create without a folder makes the template in a folder of its own, named after it, in the user's templates folder;
+/// a second template of that name gets a number rather than a refusal (a persona run's Create met a full folder);
+/// Choose another folder… moves it; without a projects folder a script needs the folder and the window asks for it.
 #[test]
-fn the_wizard_needs_a_directory_parameter_in_a_script_and_a_prompt_in_the_gui() {
+fn the_wizard_makes_a_template_in_a_folder_of_its_own() {
     let tmp = Tmp::new(STEM);
+    let templates = tmp.0.join("config").join("projects").join("Templates");
     let mut shell = tmp.shell();
+    for expected in ["Example Panels", "Example Panels 2"] {
+        done(&mut shell, "tools.company_standard", json!({}));
+        done(
+            &mut shell,
+            "wizard.set",
+            json!({"field": "company_name", "value": "Example Panels"}),
+        );
+        done(&mut shell, "wizard.finish", json!({}));
+        assert_eq!(
+            shell.wizard().unwrap().finished_dir(),
+            Some(templates.join(expected).as_path())
+        );
+        done(&mut shell, "wizard.cancel", json!({}));
+    }
+    let names: Vec<_> = shell.settings().templates.iter().map(|t| t.name.clone()).collect();
+    assert_eq!(names, ["Example Panels", "Example Panels 2"]);
+    // Choose another folder…: the template's own folder is made there.
     done(&mut shell, "tools.company_standard", json!({}));
+    done(&mut shell, "wizard.folder", json!({"folder": path(&tmp.0)}));
+    assert_eq!(shell.wizard_target(), Some(tmp.0.join("Company template")));
+    done(&mut shell, "wizard.cancel", json!({}));
+    // No projects folder: a script names the folder, the window asks.
+    let bare = ShellConfig {
+        projects_dir: None,
+        ..tmp.config()
+    };
+    let mut script = ShellModel::new(Mode::Headless, bare.clone());
+    done(&mut script, "tools.company_standard", json!({}));
     assert!(matches!(
-        run(&mut shell, "wizard.finish", json!({})),
+        run(&mut script, "wizard.finish", json!({})),
         Outcome::Failed { .. }
     ));
-    let mut gui = tmp.gui();
+    let mut gui = ShellModel::new(Mode::Gui, bare);
     done(&mut gui, "tools.company_standard", json!({}));
     done(&mut gui, "wizard.finish", json!({}));
     assert_eq!(gui.take_prompt().unwrap().action, "wizard.finish");
@@ -2745,7 +2776,8 @@ fn describe_lists_the_start_page_the_wizard_and_the_project_view() {
         review.contains("review \"Check level\": \"Pre-delivery\" kept"),
         "{review}"
     );
-    assert!(review.contains("button \"Create the template…\""), "{review}");
+    assert!(review.contains("button \"Create the template\""), "{review}");
+    assert!(review.contains("button \"Choose another folder…\""), "{review}");
     done(&mut shell, "wizard.cancel", json!({}));
     done(
         &mut shell,

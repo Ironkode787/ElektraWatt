@@ -102,15 +102,30 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_wizard_reset(),
     )),
-    hidden(act(
-        "wizard.cancel",
-        View,
-        Menu::Project,
-        &[],
-        wizard_open,
-        None,
-        |s, _| s.act_wizard_cancel(),
-    )),
+    with_params(
+        "answer?:enum(keep|discard|stay)",
+        hidden(act(
+            "wizard.cancel",
+            View,
+            Menu::Project,
+            &[],
+            wizard_open,
+            None,
+            |s, p| s.act_wizard_cancel(p),
+        )),
+    ),
+    with_params(
+        "folder?:path",
+        hidden(act(
+            "wizard.folder",
+            View,
+            Menu::Project,
+            &[],
+            wizard_open,
+            None,
+            |s, p| s.act_wizard_folder(p),
+        )),
+    ),
     with_params(
         "dir?:path",
         hidden(act(

@@ -1071,8 +1071,10 @@ fn the_wizard_shows_each_steps_result_by_clicks_and_keys_and_creates_the_standar
     // The steps passed are done; the review creates the standard in a new folder.
     press(&mut d, "Next");
     assert!(d.shell_mut().wizard().unwrap().is_done(Step::Reports));
-    press(&mut d, "Create the template…");
-    let project = std::fs::read_to_string(tmp.0.join("project").join("project.jsonl")).unwrap();
+    press(&mut d, "Create the template");
+    // In a folder of its own, named after the template, in the templates folder.
+    let made = tmp.0.join("config/projects/Templates/Example Panels");
+    let project = std::fs::read_to_string(made.join("project.jsonl")).unwrap();
     assert!(
         project.contains("Example Panels") && project.contains("ew.en60204-1-machine"),
         "{project}"

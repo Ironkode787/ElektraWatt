@@ -502,10 +502,89 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// Closes the wizard; the draft stays for the next time.
-    pub(crate) fn act_wizard_cancel(&mut self) -> Outcome {
-        self.persist_draft();
+    /// `wizard.cancel {answer?}`: Close. In the window a wizard with answers in it first asks (the bar says the answers
+    /// are kept and offers to drop them): `answer` `keep` closes and keeps the draft for the next time, `discard`
+    /// closes and drops it, `stay` goes back to the wizard. A script, a finished wizard and one without answers close
+    /// at once, the draft kept.
+    pub(crate) fn act_wizard_cancel(&mut self, p: &Map<String, Value>) -> Outcome {
+        let answer = match string_param(p, "answer") {
+            Err(e) => return e,
+            Ok(a) => a,
+        };
+        let Some(w) = &mut self.onboarding.wizard else {
+            return Outcome::refused(key!("reason-no-wizard"));
+        };
+        let ask = self.mode == Mode::Gui && w.finished.is_none() && w.has_answers();
+        match answer {
+            None if ask => {
+                w.closing = true;
+                return Outcome::Done;
+            }
+            None | Some("keep") => self.persist_draft(),
+            Some("discard") => {
+                if let Some(path) = self.draft_path() {
+                    let _ = std::fs::remove_file(path);
+                }
+            }
+            Some("stay") => {
+                w.closing = false;
+                return Outcome::Done;
+            }
+            Some(_) => return failed(key!("error-bad-param"), &["answer"]),
+        }
         self.onboarding.wizard = None;
+        Outcome::Done
+    }
+
+    /// Where Create makes the template now: a folder named after the template (its company's name, else a name in
+    /// words) in the folder chosen with Choose another folder…, else in the user's templates folder, with a number
+    /// after the name when a folder of that name holds something already, so a full folder is never a dead end.
+    /// `None` without a wizard, or without a folder chosen and a projects folder.
+    pub fn wizard_target(&self) -> Option<PathBuf> {
+        let w = self.onboarding.wizard.as_ref()?;
+        let parent = w.folder.clone().or_else(|| self.templates_dir())?;
+        // A character no folder name may hold becomes a dash.
+        let typed: String = w
+            .draft
+            .get("company_name")
+            .trim()
+            .chars()
+            .map(|c| {
+                if super::templates::folder_char_ok(c) {
+                    c
+                } else {
+                    '-'
+                }
+            })
+            .collect();
+        let typed = typed.trim_end_matches(['.', ' ']);
+        let base = if super::templates::folder_name_ok(typed) {
+            typed.to_owned()
+        } else {
+            strings::text(key!("wizard-template-default-name")).to_owned()
+        };
+        (1..)
+            .map(|n| match n {
+                1 => parent.join(&base),
+                n => parent.join(format!("{base} {n}")),
+            })
+            .find(|dir| !super::templates::taken(dir))
+    }
+
+    /// `wizard.folder {folder?}`: Choose another folder… on the review step, the folder the template's own folder is
+    /// made in; without `folder` the window asks for one, and a chooser that comes back with nothing changes nothing.
+    pub(crate) fn act_wizard_folder(&mut self, p: &Map<String, Value>) -> Outcome {
+        let folder = match string_param(p, "folder") {
+            Err(e) => return e,
+            Ok(None) => return self.need_path("wizard.folder", Prompt::Folder, "folder", p),
+            Ok(Some(f)) => f.trim().to_owned(),
+        };
+        let Some(w) = &mut self.onboarding.wizard else {
+            return Outcome::refused(key!("reason-no-wizard"));
+        };
+        if !folder.is_empty() {
+            w.folder = Some(PathBuf::from(folder));
+        }
         Outcome::Done
     }
 
@@ -524,7 +603,10 @@ impl ShellModel {
         let dir = match string_param(p, "dir") {
             Err(e) => return e,
             Ok(Some(dir)) => PathBuf::from(dir),
-            Ok(None) => return self.need_path("wizard.finish", Prompt::NewFolder, "dir", p),
+            Ok(None) => match self.wizard_target() {
+                Some(dir) => dir,
+                None => return self.need_path("wizard.finish", Prompt::NewFolder, "dir", p),
+            },
         };
         if let Some(outcome) = self.require_free_dir(&dir) {
             if let Some(w) = &mut self.onboarding.wizard {

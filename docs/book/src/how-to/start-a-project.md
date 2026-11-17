@@ -58,14 +58,17 @@ takes a template somebody gave you (any project folder).
 wire cross-sections, identifiers and numbering, structure and sections, revisions, languages and formats, reports and checks,
 and a review. Each step says what it is and where you can change it later, and its **Result** shows what your choices
 make, such as the name of the third contactor on page 102; the **Example** beside it shows a cover page and a schematic
-page with your choices. Your choices are kept until you finish.
+page with your choices. Your choices are kept until you finish: **Close** asks first, and keeps them unless you
+choose **Close and drop my answers**; **New template…** then opens the wizard where you left off.
 
 A new template's texts print readably: no style is lower than 1.2 mm. Their heights and typefaces are on
 **Text styles…** in the template (see [Text styles](#text-styles)).
 
 The last step lists every choice. **Use this template for new projects** is ticked: the New project dialog then
-chooses this template first. Untick it to keep the template in the list without using it yet. **Create the
-template…** asks for a new, empty folder and writes the template there, the check level included.
+chooses this template first. Untick it to keep the template in the list without using it yet. The line under it says
+where the template is made: a folder named after it in your templates folder (`Templates` in your projects folder),
+with a number after the name when that folder is taken. **Choose another folder…** puts it in another folder. **Create
+the template** writes it there, the check level included.
 
 ## Make a template of a project
 
@@ -131,6 +134,6 @@ Before drawings go out, the program checks them. The check level says how strict
 While you draw, the Messages panel shows every check whatever the level. A project made with an earlier version may
 have the level **Drafting**: it keeps working and checks as **Full** does, and **Check level…** shows it as Full.
 
-The wizard's step **Reports and checks** sets it for a template, and **Create the template…** writes it. In a project
+The wizard's step **Reports and checks** sets it for a template, and **Create the template** writes it. In a project
 (or an open template), **Check level…** in the Project tab under **Setup** changes it. Only a person sets the check
 level, in the window: a script or the command line cannot.

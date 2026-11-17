@@ -115,7 +115,7 @@ fn secondary(ui: &mut Ui, t: &theme::Tokens, text: &str) {
 
 /// The step's title, what it is, whether it can be changed later, then its fields and its Result (or, on the
 /// review step, every field with its value).
-fn step_form(ui: &mut Ui, wizard: &Wizard, events: &mut Vec<Event>) {
+fn step_form(ui: &mut Ui, wizard: &Wizard, target: Option<&std::path::Path>, events: &mut Vec<Event>) {
     let t = components::tokens(ui);
     let step = wizard.step();
     // The Result beside the fields where two reading measures fit, else under them; the step's texts as wide as
@@ -151,7 +151,11 @@ fn step_form(ui: &mut Ui, wizard: &Wizard, events: &mut Vec<Event>) {
             .show(ui, |ui| {
                 // The window is a person: Create writes the check level too (its command is HumanOnly).
                 for line in wizard.review(true) {
-                    ui.label(line.sentence());
+                    // A long line (the sections) wraps in the step's measure rather than running off the page.
+                    ui.scope(|ui| {
+                        ui.set_max_width(width);
+                        ui.add(egui::Label::new(line.sentence()).wrap());
+                    });
                     ui.weak(strings::text(if line.written {
                         key!("wizard-written")
                     } else if line.key == CHECK_SCHEME_FIELD {
@@ -176,6 +180,28 @@ fn step_form(ui: &mut Ui, wizard: &Wizard, events: &mut Vec<Event>) {
             set(events, USE_FOR_NEW_FIELD, if on { "true" } else { "false" });
         }
         under(ui, &t, strings::text(key!("wizard-use-for-new-note")));
+        // Where Create makes the template, and the way to put it elsewhere (a persona run's Create met a full folder
+        // with no way on).
+        if let (Some(target), None) = (target, wizard.finished_dir()) {
+            ui.add_space(t.space_5);
+            ui.horizontal_wrapped(|ui| {
+                ui.label(strings::format(
+                    key!("wizard-made-in"),
+                    &[&target.to_string_lossy()],
+                ));
+                if components::button(
+                    ui,
+                    Kind::Secondary,
+                    strings::text(key!("wizard-choose-folder")),
+                    true,
+                    0.0,
+                )
+                .clicked()
+                {
+                    events.push(Event::Action("wizard.folder", Value::Null));
+                }
+            });
+        }
         return;
     }
     let fields = |ui: &mut Ui, events: &mut Vec<Event>| {
@@ -237,8 +263,27 @@ fn step_form(ui: &mut Ui, wizard: &Wizard, events: &mut Vec<Event>) {
 /// (Next, or Create on the last step) at the right; once the template is written, Close.
 fn footer(ui: &mut Ui, wizard: &Wizard, events: &mut Vec<Event>) {
     let t = components::tokens(ui);
-    let mut push = |action: &'static str| events.push(Event::Action(action, Value::Null));
     let size = Vec2::new(ui.available_width(), t.size_control);
+    // Close with answers in the wizard asks first: they are kept, or dropped, or the person goes back.
+    if wizard.closing() {
+        ui.allocate_ui_with_layout(size, Layout::left_to_right(Align::Center), |ui| {
+            ui.spacing_mut().item_spacing.x = t.space_3;
+            ui.label(strings::text(key!("wizard-closing")));
+            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                for (kind, label, answer) in [
+                    (Kind::Primary, key!("wizard-cancel"), "keep"),
+                    (Kind::Secondary, key!("wizard-closing-stay"), "stay"),
+                    (Kind::Danger, key!("wizard-closing-discard"), "discard"),
+                ] {
+                    if components::button(ui, kind, strings::text(label), true, 0.0).clicked() {
+                        events.push(Event::Action("wizard.cancel", json!({ "answer": answer })));
+                    }
+                }
+            });
+        });
+        return;
+    }
+    let mut push = |action: &'static str| events.push(Event::Action(action, Value::Null));
     ui.allocate_ui_with_layout(size, Layout::left_to_right(Align::Center), |ui| {
         ui.spacing_mut().item_spacing.x = t.space_3;
         if wizard.finished_dir().is_none() {
@@ -364,7 +409,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, preview: &mut PageView, events: &mu
             .auto_shrink([false, false])
             .show(ui, |ui| {
                 ui.add_space(t.space_3);
-                step_form(ui, wizard, events);
+                step_form(ui, wizard, shell.wizard_target().as_deref(), events);
                 ui.add_space(t.space_4);
             });
     });
