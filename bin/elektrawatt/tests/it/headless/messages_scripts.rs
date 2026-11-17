@@ -170,9 +170,9 @@ pub(crate) fn ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_ident
             // F8 from the last wraps to the first.
             ("messages.next", json!({})),
             ("ui.describe", json!({})),
-            // EF-08 under the cursor, the tab elsewhere, Enter. The filter hides the first finding (EF-03 on the DP
-            // port), which leaves the cursor on its group: F8 puts it on EF-08.
-            ("navigator.filter", json!({"kind": "messages", "text": "-3W1"})),
+            // EF-08 under the cursor, the tab elsewhere, Enter. The filter (EF-08's word "length") hides the first
+            // finding (EF-03 on the DP port), which leaves the cursor on its group: F8 puts it on EF-08.
+            ("navigator.filter", json!({"kind": "messages", "text": "length"})),
             ("messages.next", json!({})),
             ("page.goto", json!({"folio": "1"})),
             ("navigator.open", json!({"kind": "messages"})),
@@ -193,24 +193,24 @@ pub(crate) fn ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_ident
         ),
         "{d}"
     );
-    // Golden A's drafting findings (doc 20 §18.1): EF-08 and the EW-POT errors EF-01 (T55, S56) and EF-06 (W6,
+    // Golden A's drafting findings (doc 20 §18.1): the EW-POT errors EF-01 (T55, S56) and EF-06 (W6,
     // 101.8), the 28 EW-PLC-012 coil bindings of EF-02; the warnings EF-09, EF-10 and EF-11, two
     // each; the ten EW-NUM-001 infos; the TBD DP station address EF-03 (EW-BUS-001, an error) and
-    // EF-16 (EW-BUS-004, an info); EF-05's five EW-LAY-001 findings (warnings online).
+    // EF-16 (EW-BUS-004, an info); EF-05's five EW-LAY-001 findings and EF-08 (warnings online).
     assert_eq!(
         line(d, "  messages scheme "),
-        "  messages scheme \"Drafting\" errors 33 warnings 67 infos 51 waived 0 pending 0"
+        "  messages scheme \"Drafting\" errors 32 warnings 68 infos 51 waived 0 pending 0"
     );
     let rows = finding_rows(d);
     // Golden A's findings in their groups: a lower bound, not a total (CONTRIBUTING: no pinned totals).
     assert!(rows.len() >= 35, "{d}");
-    // Folio 3's two errors lead: EF-03 on the DP port, then EF-08 on -3W1.
+    // Folio 3's error leads: EF-03 on the DP port; EF-08 on -3W1 is a warning while the drawing grows (rc.3).
     assert!(
         rows[0].contains("-201U1:DP") && rows[0].ends_with(" badge \"error\""),
         "{d}"
     );
     assert!(
-        rows[1].contains("-3W1") && rows[1].ends_with(" badge \"error\""),
+        rows.iter().any(|r| r.contains("-3W1") && r.ends_with(" badge \"warning\"")),
         "{d}"
     );
     // The cursor of each walk step: the first, the second, the last, the first. The row count is not pinned: it
@@ -242,13 +242,12 @@ pub(crate) fn ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_ident
     assert_eq!(lines[17]["state"]["page"], "3");
     let d = describe(&lines[18]);
     let rows = finding_rows(d);
-    // The filter's tokens `3`, `w` and `1` are also prefixes of tokens of other rows, so the count is not pinned:
-    // the cursor is on -3W1.
+    // The count of the rows the filter keeps is not pinned: the cursor is on -3W1.
     let at: Vec<&&str> = rows.iter().filter(|r| r.ends_with(" cursor")).collect();
     assert!(at.len() == 1 && at[0].contains("-3W1"), "{d}");
     assert_eq!(
         line(d, "  detail rule "),
-        "  detail rule \"EW-CORE-033\" title \"Cable without length\" kind completeness severity error"
+        "  detail rule \"EW-CORE-033\" title \"Cable without length\" kind completeness severity warning"
     );
     assert_eq!(
         line(d, "properties "),
@@ -289,7 +288,7 @@ pub(crate) fn ms2_messages_check_ends_pending_byte_identical_twice_and_replays_c
     let d = describe(&lines[10]);
     assert_eq!(
         line(d, "  messages scheme "),
-        "  messages scheme \"Drafting\" errors 33 warnings 59 infos 51 waived 0 pending 9",
+        "  messages scheme \"Drafting\" errors 32 warnings 60 infos 51 waived 0 pending 9",
         "errors unchanged, pending 9 (four of EF-05's EW-LAY-001 warnings name devices drawn on 101)"
     );
     let rows = finding_rows(d);
@@ -299,7 +298,7 @@ pub(crate) fn ms2_messages_check_ends_pending_byte_identical_twice_and_replays_c
     let d = describe(&lines[12]);
     assert_eq!(
         line(d, "  messages scheme "),
-        "  messages scheme \"Drafting\" errors 34 warnings 67 infos 51 waived 0 pending 0",
+        "  messages scheme \"Drafting\" errors 33 warnings 68 infos 51 waived 0 pending 0",
         "Run checks makes it an error"
     );
     let rows = finding_rows(d);
@@ -362,6 +361,6 @@ pub(crate) fn ms3_messages_fix_with_apply_is_byte_identical_twice_and_replays_ca
     // Folio 102 is the edited page: EF-09's two completeness warnings on it (-102F2:13, :14) are pending (§7.2).
     assert_eq!(
         line(d, "  messages scheme "),
-        "  messages scheme \"Drafting\" errors 33 warnings 65 infos 51 waived 0 pending 2"
+        "  messages scheme \"Drafting\" errors 32 warnings 66 infos 51 waived 0 pending 2"
     );
 }
