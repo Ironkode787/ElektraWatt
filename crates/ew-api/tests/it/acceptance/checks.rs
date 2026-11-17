@@ -4381,7 +4381,7 @@ fn d21(c: &Ctx) -> Outcome {
     });
     let islands = open_findings(&s, "EW-POT-008");
     match islands.as_slice() {
-        [f] if f.subject == "+J-E-2416" && f.message.starts_with("+J-E-2416 holds 2 PE potentials: ") => {
+        [f] if f.subject == "+J-E-2416" && f.message.starts_with("+J-E-2416 has 2 protective-earth networks that do not meet: ") => {
             pass(format!(
                 "Golden A is clean (1X1:PE and -X1032 share one PE potential); clearing rail_bonded on -X1032 makes EW-POT-008 report one warning: \"{}\"",
                 f.message
