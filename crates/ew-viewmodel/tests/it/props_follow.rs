@@ -191,7 +191,8 @@ fn the_project_sheet_reads_in_words_and_a_filter_keeps_the_parents() {
         (
             sheet.header.title.clone(),
             [
-                value("Parties"),
+                // A person of the project reads as a plain name (the list of parties waits under More).
+                value("Engineer"),
                 value("Neutral"),
                 value("Colour profile"),
                 value("Numbering"),
@@ -202,7 +203,7 @@ fn the_project_sheet_reads_in_words_and_a_filter_keeps_the_parents() {
         values(&s),
         (
             "Project".to_owned(),
-            ["4 items", "yes", "DBU/WH 24 V", "page-based"].map(str::to_owned)
+            ["<engineer>", "yes", "DBU/WH 24 V", "page-based"].map(str::to_owned)
         )
     );
     let party = |n: u8| {

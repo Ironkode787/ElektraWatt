@@ -20,6 +20,9 @@ pub struct TitleBlockFacts {
     /// each once, with the text the page prints for it now (empty when it has no value; a date in the project's date
     /// format).
     pub fields: Vec<(String, String)>,
+    /// The label of the first labelled cell that prints each path (`project.reference` → `Project:`), in the project's
+    /// neutral text: where a person finds a field's value on the sheet.
+    pub cells: Vec<(String, String)>,
     /// The project record's ID.
     pub project: Uuid,
     /// Whether the page overrides the project's description with its own.
@@ -74,11 +77,23 @@ impl Session {
         let key = PageRef::Drawn(id);
         let mut paths = Vec::new();
         let mut fixed_texts = false;
+        let mut cells: Vec<(String, String)> = Vec::new();
         if let Some(frame) = q.get::<PageFrameOf>(key).as_ref() {
             let forms = std::iter::once(&frame.form).chain(frame.title_block.as_ref());
             for cell in forms.flat_map(|f| f.cells.iter()) {
                 if let Some(template) = &cell.value {
-                    placeholder_paths(template, &mut paths);
+                    let mut own = Vec::new();
+                    placeholder_paths(template, &mut own);
+                    let label = cell.label.as_ref().map(neutral).unwrap_or_default();
+                    let label = label.trim().trim_end_matches(':').trim();
+                    for path in own {
+                        if !label.is_empty() && !cells.iter().any(|(p, _)| *p == path) {
+                            cells.push((path.clone(), label.to_owned()));
+                        }
+                        if !paths.contains(&path) {
+                            paths.push(path);
+                        }
+                    }
                     fixed_texts |= !template.contains('{') && !template.trim().is_empty();
                 }
             }
@@ -106,6 +121,7 @@ impl Session {
         let project = q.project();
         Some(TitleBlockFacts {
             fields,
+            cells,
             project: project.id.as_uuid(),
             description_overridden: record
                 .description_override

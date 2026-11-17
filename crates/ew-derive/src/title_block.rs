@@ -117,6 +117,14 @@ impl Query for TitleBlockValues {
         party_scope(&mut out, project);
         page_scope(&mut out, q, project, *key);
         revision_scope(&mut out, q, project);
+        // While no revision names its author, the Author cell prints the project's designer (the party of the role
+        // author): a person names the designer in Project properties, and only a person at the window makes that
+        // party a revision's author (a persona run found no way to fill the cell).
+        if !out.0.contains_key(AUTHOR_PATH)
+            && let Some(designer) = party_of(project, &PartyRole::Author)
+        {
+            out.ml(AUTHOR_PATH, &designer.name);
+        }
 
         let wanted = &q.profile().title_block.paths;
         let values = out
@@ -419,6 +427,9 @@ fn live_revisions(q: &Q) -> Vec<RevisionView<'_>> {
         .collect()
 }
 
+/// The path of the current revision's author's name, which prints the project's designer while no revision names one.
+const AUTHOR_PATH: &str = "revision.current.author.name";
+
 fn revision_scope(out: &mut Out, q: &Q, project: &Project) {
     let revisions = live_revisions(q);
     let Some(current) = revisions.iter().max_by_key(|r| r.order_key()) else {
@@ -433,7 +444,7 @@ fn revision_scope(out: &mut Out, q: &Q, project: &Project) {
         out.date("revision.current.date", d);
     }
     for (path, role) in [
-        ("revision.current.author.name", &rev.author),
+        (AUTHOR_PATH, &rev.author),
         ("revision.current.checker.name", &rev.checker),
     ] {
         if let Some(party) = role.as_ref().and_then(|r| party_of(project, r)) {

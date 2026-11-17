@@ -14,6 +14,7 @@ use serde_json::{Map, Value, json};
 
 use super::{Dialog, FormDialog, FormField, Outcome, ShellModel, string_param};
 use crate::key;
+use crate::properties::{PropRow, PropertySheet, RowAction, RowValue};
 use crate::strings::{self, Key};
 
 /// The form's action.
@@ -110,7 +111,7 @@ const FIELDS: &[(&str, Key<'static>, Source)] = &[
     ),
     (
         "party.author.name",
-        key!("choice-author"),
+        key!("props-designer"),
         Source::Party("author"),
     ),
     (
@@ -139,6 +140,110 @@ const FIELDS: &[(&str, Key<'static>, Source)] = &[
         Source::RevisionChecker,
     ),
 ];
+
+/// Gives the first party of `role` (its serde word) the name `text`; a party of that role is added for a new name.
+fn name_party(parties: &mut Vec<Value>, role: &str, text: String) {
+    match parties.iter_mut().find(|party| party["role"] == role) {
+        Some(party) => party["name"] = Value::String(text),
+        None if text.is_empty() => {}
+        None => parties.push(json!({"role": role, "name": text})),
+    }
+}
+
+/// The people of a project the title block can print, in the order of [`FIELDS`]: each party role (its serde word) with
+/// its label (Designer, Checker, Customer…).
+fn people() -> impl Iterator<Item = (&'static str, Key<'static>)> {
+    FIELDS.iter().filter_map(|(_, label, source)| match source {
+        Source::Party(role) => Some((*role, *label)),
+        _ => None,
+    })
+}
+
+/// The row key of a person of the project's Properties (`project/people.<role>`).
+const PEOPLE: &str = "project/people.";
+
+impl ShellModel {
+    /// The project's sheet gets one plain row per person the title block can print (Designer, Checker, Customer…) at
+    /// the head of Main, typed as a name; the list of parties, with addresses and personal data, waits under More (a
+    /// persona run met a raw JSON box when it looked for its designer).
+    pub(super) fn people_in_rows(sheet: &mut PropertySheet) {
+        for section in sheet.sections.iter_mut().filter(|s| s.kind == "project") {
+            let Some(list) = section.rows.iter().find(|r| r.path == "parties").cloned() else {
+                continue;
+            };
+            let parties = match &list.value {
+                RowValue::One { json, .. } => json.as_array().cloned().unwrap_or_default(),
+                _ => Vec::new(),
+            };
+            let at = section.rows.iter().position(|r| r.path == "parties").unwrap_or(0);
+            let rows: Vec<PropRow> = people()
+                .map(|(role, _)| {
+                    let name = parties
+                        .iter()
+                        .find(|p| p["role"] == role)
+                        .map(|p| match &p["name"] {
+                            Value::String(s) => s.clone(),
+                            Value::Object(m) => {
+                                m.values().find_map(Value::as_str).unwrap_or_default().to_owned()
+                            }
+                            _ => String::new(),
+                        })
+                        .unwrap_or_default();
+                    PropRow {
+                        key: format!("{PEOPLE}{role}"),
+                        path: format!("people.{role}"),
+                        depth: 0,
+                        ty: crate::properties::FieldType::Text,
+                        value: RowValue::One {
+                            json: Value::String(name.clone()),
+                            text: name,
+                        },
+                        actions: vec![RowAction::Edit],
+                        identifier: false,
+                        source: None,
+                        ..list.clone()
+                    }
+                })
+                .collect();
+            section.rows.splice(at..at, rows);
+        }
+    }
+
+    /// The label of a person's row ([`ShellModel::people_in_rows`]); `None` for another row.
+    pub fn person_label(key: &str) -> Option<&'static str> {
+        let role = key.strip_prefix(PEOPLE)?;
+        people()
+            .find(|(r, _)| *r == role)
+            .map(|(_, label)| strings::text(label))
+    }
+
+    /// A name typed into a person's row: the party of that role named so, in one `fields.set` of the parties.
+    pub(super) fn commit_person(&mut self, key: &str, text: &str) -> Option<Outcome> {
+        let role = key.strip_prefix(PEOPLE)?;
+        let project = self.project.as_ref()?;
+        let q = project.session.query();
+        let record = q.project();
+        let mut parties = serde_json::to_value(&record.parties)
+            .ok()
+            .and_then(|v| v.as_array().cloned())
+            .unwrap_or_default();
+        let id = record.id.as_uuid().to_string();
+        name_party(&mut parties, role, text.trim().to_owned());
+        let cmd = AnyCommand {
+            name: "fields.set".to_owned(),
+            params: json!({"kind": "project", "targets": [id], "path": "parties", "value": parties}),
+        };
+        let out = self.run_commit(&cmd);
+        match &out {
+            Outcome::Failed { message } => self.props.set_error(key.to_owned(), message.clone()),
+            _ => {
+                self.props.edit = None;
+                self.props.error = None;
+            }
+        }
+        Some(out)
+    }
+}
 
 /// One edit of `fields.set_many`.
 fn edit(kind: &str, target: &str, path: &str, value: Value) -> Value {
@@ -227,19 +332,31 @@ impl ShellModel {
         if let Some(note) = form.note(field) {
             return Some(note.to_owned());
         }
-        if form.action != TITLE_BLOCK || field != "revision.current.label" {
+        if form.action != TITLE_BLOCK {
             return None;
         }
         let (_, facts, _) = self.title_block_fields()?;
-        let next = facts.revision_next?;
-        Some(strings::format(
-            key!("titleblock-revision-note"),
-            &[
-                &next,
-                strings::text(key!("action-props-project")),
-                strings::text(key!("field-word-revision-label")),
-            ],
-        ))
+        // Which cell of the sheet prints the field (a persona run could not tell which field fed which cell).
+        let cell = facts
+            .cells
+            .iter()
+            .find(|(p, _)| p == field)
+            .map(|(_, label)| strings::format(key!("titleblock-prints-in"), &[label]));
+        let revision = (field == "revision.current.label")
+            .then_some(facts.revision_next)
+            .flatten()
+            .map(|next| {
+                strings::format(
+                    key!("titleblock-revision-note"),
+                    &[
+                        &next,
+                        strings::text(key!("action-props-project")),
+                        strings::text(key!("field-word-revision-label")),
+                    ],
+                )
+            });
+        let notes: Vec<String> = cell.into_iter().chain(revision).collect();
+        (!notes.is_empty()).then(|| notes.join(" "))
     }
 
     /// The line at the foot of the open form `form`, under its last field: the Title block fields form's word on
@@ -302,13 +419,7 @@ impl ShellModel {
         let mut edits = Vec::new();
         let mut new_revision = None;
         let mut new_author = None;
-        // The name of the first party of `role`; a party of that role is added for a new name.
-        let mut name_party =
-            |role: &str, text: String| match parties.iter_mut().find(|party| party["role"] == role) {
-                Some(party) => party["name"] = Value::String(text),
-                None if text.is_empty() => {}
-                None => parties.push(json!({"role": role, "name": text})),
-            };
+        let mut name_party = |role: &str, text: String| name_party(&mut parties, role, text);
         for f in &fields {
             let text = match string_param(p, f.name) {
                 Err(e) => return e,

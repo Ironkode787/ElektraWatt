@@ -861,7 +861,8 @@ const PRIMARY: &[(&str, &[&str])] = &[
             "master.project_ref",
             "master.drawing_id",
             "master.description",
-            "parties",
+            // The people the title block prints, one plain row each (`ShellModel::people_in_rows`).
+            "people",
             "master.created",
         ],
     ),
@@ -874,6 +875,8 @@ const PRIMARY: &[(&str, &[&str])] = &[
 /// data, not words) is one too.
 const MORE: &[(&str, &[&str])] = &[
     ("device", &["kind", "tag", "parent", "position", "structure"]),
+    // The parties with their addresses and personal data; their names are the people rows of Main.
+    ("project", &["parties"]),
     (
         "function",
         &["kind", "def", "device", "role", "template_entry", "cp_overrides"],
@@ -1117,6 +1120,10 @@ impl LabelPath for PropRow {
 
 /// The English label of a row (`Function text`, `Cross-section`).
 pub fn row_label(section: &SheetSection, row: &PropRow) -> String {
+    // A person of the project by the role's word (Designer, Checker).
+    if let Some(label) = crate::shell::ShellModel::person_label(&row.key) {
+        return label.to_owned();
+    }
     // A valve's solenoid row is named by its solenoid ("Solenoid 14"), not by its position in the list.
     if row.key.starts_with("device/derived.solenoid[")
         && let RowValue::One { json, .. } = &row.value

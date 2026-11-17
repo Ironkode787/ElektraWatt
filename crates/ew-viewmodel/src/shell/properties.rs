@@ -457,6 +457,7 @@ impl ShellModel {
         crate::properties::report_source_in_words(&mut sheet);
         crate::properties::values_in_words(&mut sheet);
         self.made_from_in_words(&mut sheet);
+        Self::people_in_rows(&mut sheet);
         // FT-1554: the Part function row's kind in the window's language, as the navigators word it.
         for row in sheet
             .sections
@@ -1252,6 +1253,10 @@ impl ShellModel {
         let Some((section, row)) = self.props_find(key) else {
             return failed(key!("error-no-row"), &[key]);
         };
+        // A person of the project (Designer, Checker…) names the party of that role.
+        if let Some(out) = self.commit_person(&row.key, text) {
+            return out;
+        }
         // A terminal's Group row compiles through `Session::strip_edit` (D8).
         if row.key == GROUP_ROW {
             return self.commit_group_label(&section, &row, text);
