@@ -410,9 +410,9 @@ impl ShellModel {
         text
     }
 
-    /// Arms the black box tool with the box of positions of valve terminal `terminal`, a PLC station that has no main
-    /// function yet (made in the New station dialog, rc.2): one click draws it as its positions, its main function the
-    /// box's.
+    /// Arms the black box tool with the box of positions of valve terminal `terminal`, a PLC station whose main
+    /// function is no box (made in the New station dialog, rc.2): one click draws it as its positions, its main function
+    /// the box's, or another function beside its bus port when that is put on a bus page first (rc.3).
     pub(super) fn arm_terminal_box(&mut self, terminal: Uuid) -> Outcome {
         let Some(cat) = self.catalogue() else {
             return Outcome::refused(key!("reason-no-catalogue"));
@@ -442,6 +442,7 @@ impl ShellModel {
         let count = u16::try_from(session.terminal_positions(terminal).len()).ok();
         let target = BoxTarget::Device {
             device: terminal.to_string(),
+            main: session.main_function(terminal).is_none(),
         };
         self.tools.picker = None;
         self.activate_tool(Box::new(

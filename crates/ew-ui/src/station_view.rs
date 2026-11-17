@@ -964,8 +964,8 @@ fn choose_part(ui: &mut Ui, shell: &ShellModel, p: &Place, events: &mut Vec<Even
         });
 }
 
-/// The pages a Draw on a page… `button` offers: the schematic pages by folio and title, then New page…; the one chosen
-/// sends `pick` with its folio (`new` for a new page).
+/// The pages a Draw on a page… `button` offers (the schematic pages, or a valve terminal's fluid pages) by folio and
+/// title, then New page…; the one chosen sends `pick` with its folio (`new` for a new page).
 fn page_menu(
     t: &Tokens,
     button: &Response,
@@ -1122,6 +1122,7 @@ fn todo(ui: &mut Ui, t: &Tokens, shell: &ShellModel, shown: Option<&StationShown
     }
     let pages = shell.schematic_pages();
     let bus_pages = shell.bus_pages();
+    let fluid_pages = shell.fluid_pages();
     for item in items {
         ui.horizontal_wrapped(|ui| {
             let (rect, _) = ui.allocate_exact_size(vec2(t.icon_sm, t.icon_sm), Sense::hover());
@@ -1210,6 +1211,24 @@ fn todo(ui: &mut Ui, t: &Tokens, shell: &ShellModel, shown: Option<&StationShown
                             });
                     } else if button.clicked() {
                         events.push(Event::Action("plc.rack_next", json!({ "step": "bus" })));
+                    }
+                }
+                Some(TodoFix::FluidPage) => {
+                    let label = strings::text(key!("rack-next-fluid"));
+                    let button = components::button(ui, Kind::Secondary, label, true, 0.0);
+                    // With several fluid pages it asks which (or a new one); with one or none it goes there (or makes it).
+                    if fluid_pages.len() > 1 {
+                        page_menu(
+                            t,
+                            &button,
+                            &fluid_pages,
+                            |folio| {
+                                Event::Action("plc.rack_next", json!({ "step": "fluid", "folio": folio }))
+                            },
+                            events,
+                        );
+                    } else if button.clicked() {
+                        events.push(Event::Action("plc.rack_next", json!({ "step": "fluid" })));
                     }
                 }
                 None => {}

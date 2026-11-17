@@ -1425,7 +1425,8 @@ impl Session {
     }
 
     /// The valve terminals of the project drawn on no fluid page yet (made as a station in the New station dialog, rc.2):
-    /// each with its tag, in natural order of the tag.
+    /// each with its tag, in natural order of the tag. A terminal put on a bus page first has its bus port as its main
+    /// function and its positions as another (rc.3): any of its functions drawn on a fluid page counts.
     pub fn undrawn_fluid_terminals(&self) -> Vec<(Uuid, String)> {
         let q = self.query();
         let (reps, pages) = (q.reps(), q.pages());
@@ -1435,8 +1436,7 @@ impl Session {
             .map(|(id, _)| id)
             .filter(|d| ew_derive::is_fluid_terminal(&q, *d))
             .filter(|d| {
-                let main = *q.get::<ew_derive::MainFunction>(*d);
-                !main.is_some_and(|f| {
+                !q.idx().functions_of_device(*d).any(|f| {
                     q.idx().reps_of_function(f).any(|r| {
                         reps.get(r)
                             .and_then(|r| pages.get(r.page))

@@ -217,6 +217,8 @@ pub enum TodoFix {
     DrawOn,
     /// Put it on a bus page: the bus pages when there are several.
     BusPage,
+    /// Draw on a fluid page…: the fluid pages and New page… when there are several (rc.3).
+    FluidPage,
 }
 
 impl ShellModel {
@@ -393,9 +395,19 @@ impl ShellModel {
     /// The project's bus-topology pages: folio and title, in page order (Put it on a bus page asks which when there
     /// are several).
     pub fn bus_pages(&self) -> Vec<(String, String)> {
+        self.pages_of_kind("bus_topology")
+    }
+
+    /// The project's fluid pages: folio and title, in page order (a valve terminal's Draw on a fluid page… asks which
+    /// when there are several, rc.3).
+    pub fn fluid_pages(&self) -> Vec<(String, String)> {
+        self.pages_of_kind("fluid")
+    }
+
+    fn pages_of_kind(&self, kind: &str) -> Vec<(String, String)> {
         self.page_rows()
             .iter()
-            .filter(|r| r.kind == "bus_topology")
+            .filter(|r| r.kind == kind)
             .map(|r| (r.folio.clone(), r.title.clone()))
             .collect()
     }
@@ -646,7 +658,7 @@ impl ShellModel {
             {
                 out.push(step(
                     strings::format(key!("rack-todo-fluid"), &[&name(&view.head)]),
-                    Some(next(key!("rack-next-fluid"), "fluid")),
+                    Some(TodoFix::FluidPage),
                 ));
             }
             // Drawn as its positions, with valves put on them without a symbol (rc.3).
@@ -1687,16 +1699,47 @@ impl ShellModel {
 
     /// `plc.rack_next {step, folio?}`: what is left to do for the station on show, from its To do list: `draw` draws
     /// the station and its cards not drawn yet on a schematic page ([`ShellModel::draw_from_rack`]); `fluid` draws a
-    /// valve terminal on a fluid page (`fluid.draw_terminal`); `overview` makes a valve terminal's overview pages
+    /// valve terminal on the fluid page `folio` names, or on a new one (`new`), else as `fluid.draw_terminal` chooses
+    /// its page; `overview` makes a valve terminal's overview pages
     /// (`fluid.generate_overview`, previewed); `bus` opens a bus-topology page and puts the station's interfaces not
     /// drawn there on the pointer.
     pub(crate) fn act_plc_rack_next(&mut self, p: &Map<String, Value>) -> Outcome {
         let station = or_return!(self.rack_station());
         let cursor = self.station_tab().and_then(|t| t.cursor);
         match string_param(p, "step") {
-            // A valve terminal on a fluid page: drawn as its positions there (rc.2).
+            // A valve terminal on a fluid page: drawn as its positions there (rc.2), on the fluid page named (`new`: a
+            // new one), else the nearest one, else on one made then (rc.3). A failure is said under the rack.
             Ok(Some("fluid")) => {
-                self.dispatch("fluid.draw_terminal", &json!({ "terminal": station.to_string() }))
+                let opened = match string_param(p, "folio") {
+                    Ok(Some("new")) => match self.new_fluid_page() {
+                        folio if folio.is_empty() => failed(key!("reason-fluid-page-not-made"), &[]),
+                        folio => self.dispatch("page.goto", &json!({ "folio": folio })),
+                    },
+                    Ok(Some(f)) if self.fluid_pages().iter().any(|(x, _)| x == f) => {
+                        self.dispatch("page.goto", &json!({ "folio": f }))
+                    }
+                    Ok(Some(_)) => return failed(key!("error-bad-param"), &["folio"]),
+                    Ok(None) => Outcome::Done,
+                    Err(e) => return e,
+                };
+                let out = match opened {
+                    Outcome::Done => {
+                        self.dispatch("fluid.draw_terminal", &json!({ "terminal": station.to_string() }))
+                    }
+                    other => other,
+                };
+                let why = match out {
+                    Outcome::Done => return Outcome::Done,
+                    Outcome::Failed { message } => message,
+                    Outcome::Refused { reason_key } => strings::text(reason_key).to_owned(),
+                };
+                if self.station_tab().is_none() {
+                    let _ = self.open_station(StationTab {
+                        station: Some(station),
+                        ..StationTab::default()
+                    });
+                }
+                self.rack_refuse(cursor, why)
             }
             // The station and its cards not drawn yet, in a row in slot order, one undo step (rc.2).
             Ok(Some("draw")) => self.draw_from_rack(station, None, p),
@@ -2277,29 +2320,40 @@ impl ShellModel {
     }
 
     /// `fluid.draw_terminal {terminal}` (rc.2): a valve terminal made as a station (its valves in its rack) drawn on a
-    /// fluid page: the fluid page shown, else the nearest one, with its box of positions on the pointer, its valves in
-    /// their cells, so that a click places it; a toast says which and where. Refused in words for a device that is no
-    /// valve terminal or without a fluid page.
+    /// fluid page: the fluid page shown, else the nearest one, else one made there and then ([`Self::fluid_page_here`]),
+    /// with its box of positions on the pointer, its valves in their cells, so that a click places it; a toast says which
+    /// and where. A failure is said in words, also from a button that bypasses the bar's greying (rc.3: the station's
+    /// To do and the Valve terminal dialog's Create did nothing and said nothing).
     pub(crate) fn act_fluid_draw_terminal(&mut self, p: &Map<String, Value>) -> Outcome {
         let terminal = or_return!(self.record_param(p, "terminal"));
         let Some(session) = self.project_session() else {
             return Outcome::refused(key!("reason-no-project"));
         };
         if session.terminal_kind(terminal).is_none() {
-            return Outcome::refused(key!("reason-not-valve-terminal"));
+            return failed(key!("reason-not-valve-terminal"), &[]);
         }
-        let main = session.main_function(terminal).map(|(f, _)| f);
+        // Its box drawn elsewhere (a schematic page) is drawn again; a terminal made in the New station dialog has no
+        // main function yet, and one put on a bus page first has its bus port as that: a new box is drawn then.
+        let main = session
+            .main_function(terminal)
+            .map(|(f, _)| f)
+            .filter(|f| session.is_black_box_function(*f));
         let tag = session.device_tag(terminal).unwrap_or_default();
-        let out = match main {
-            Some(main) => self.arm_on_page(main, "fluid", key!("reason-no-fluid-page-terminal")),
-            // Made in the New station dialog, it has no main function yet: its box gives it one.
-            None => match self.show_page_of_kind("fluid", key!("reason-no-fluid-page-terminal")) {
-                Outcome::Done => self.arm_terminal_box(terminal),
-                other => other,
+        let out = match self.fluid_page_here() {
+            Outcome::Done => match main {
+                Some(main) => {
+                    let mut pick = Map::new();
+                    pick.insert("function".into(), Value::String(main.to_string()));
+                    self.act_place_pick(&pick)
+                }
+                None => self.arm_terminal_box(terminal),
             },
+            other => other,
         };
-        if out != Outcome::Done {
-            return out;
+        match out {
+            Outcome::Done => {}
+            Outcome::Refused { reason_key } => return failed(reason_key, &[]),
+            failure @ Outcome::Failed { .. } => return failure,
         }
         let folio = self.current_folio().unwrap_or_default().to_owned();
         self.notify(
@@ -2309,17 +2363,38 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// Arms the placement of `function` on the page shown when it is of kind `kind` (`multi_line`, `fluid`), else on the
-    /// nearest such page before it (a project's electrical pages usually come before its fluid pages), else after it;
-    /// refused with `none` without one.
-    fn arm_on_page(&mut self, function: Uuid, kind: &str, none: Key<'static>) -> Outcome {
-        let out = self.show_page_of_kind(kind, none);
-        if out != Outcome::Done {
-            return out;
+    /// The fluid page a fluid command works on (rc.3): the page shown when it is one, else the nearest
+    /// ([`Self::show_page_of_kind`]), else a new one made there and then, asking nothing, as the station's Put it on a
+    /// bus page makes its page; a toast names the page made.
+    pub(crate) fn fluid_page_here(&mut self) -> Outcome {
+        if self.page_rows().iter().any(|r| r.kind == "fluid") {
+            return self.show_page_of_kind("fluid", key!("reason-no-fluid-page-terminal"));
         }
-        let mut pick = Map::new();
-        pick.insert("function".into(), Value::String(function.to_string()));
-        self.act_place_pick(&pick)
+        let folio = self.new_fluid_page();
+        if folio.is_empty() {
+            return failed(key!("reason-fluid-page-not-made"), &[]);
+        }
+        let out = self.dispatch("page.goto", &json!({ "folio": folio }));
+        if out == Outcome::Done {
+            self.sync_tool_context();
+            self.notify(strings::format(key!("toast-fluid-page-made"), &[&folio]), false);
+        }
+        out
+    }
+
+    /// Makes a fluid page with the next free folio, asking nothing; its folio, empty when it could not be made.
+    fn new_fluid_page(&mut self) -> String {
+        let folio = self.free_folio();
+        let title = strings::text(key!("fluid-page-title"));
+        let made = self.dispatch(
+            "page.new",
+            &json!({ "folio": folio, "type": "fluid", "title": title }),
+        );
+        if made == Outcome::Done {
+            folio
+        } else {
+            String::new()
+        }
     }
 
     /// [`Self::electrical_page_for`] for `target` (a solenoid's coil, or a multipin terminal: what the form names in

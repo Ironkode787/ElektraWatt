@@ -83,11 +83,13 @@ pub enum BoxTarget {
         /// Its CPs: (function CP index, designation).
         cps: Vec<(u16, String)>,
     },
-    /// The main function of a device that has none yet (`join_device`): a valve terminal made as a PLC station, drawn
-    /// first on a fluid page as its positions (rc.2).
+    /// A new function of a device (`join_device`): a valve terminal made as a PLC station, drawn first on a fluid page
+    /// as its positions (rc.2); its main function, or another when its bus port drawn on a bus page is that (rc.3).
     Device {
         /// The device's ID text.
         device: String,
+        /// Whether the box is the device's main function.
+        main: bool,
     },
     /// The interfaces of a device on a bus-topology page, a box each (`bus.place_ports`, doc 10 §2.7).
     Ports {
@@ -539,7 +541,10 @@ impl BlackBoxTool {
                 ..
             } => json!({"from_part": {"part": part, "template": template, "letter": letter}}),
             BoxTarget::Function { function, .. } => json!({"existing_function": {"function": function}}),
-            BoxTarget::Device { device } => json!({"join_device": {"device": device, "role": "main"}}),
+            BoxTarget::Device { device, main } => {
+                let role = if *main { "main" } else { "aux" };
+                json!({"join_device": {"device": device, "role": role}})
+            }
             BoxTarget::Ports { .. } => return None,
         };
         let mut b = json!({

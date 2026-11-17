@@ -2216,6 +2216,123 @@ fn rc2_a_terminal_made_as_a_station_is_drawn_on_the_fluid_page() {
     d.shell_mut().shutdown();
 }
 
+/// A valve terminal with a PROFINET node made in the PLC station view with `valves` valves; its device.
+fn profinet_terminal(d: &mut Driver, valves: usize) -> Uuid {
+    let _ = d.shell_mut().dispatch("plc.new_station", &json!({}));
+    let set = json!({"head": "EW-GEN-VTM-2"});
+    assert_eq!(d.shell_mut().dispatch("plc.rack_set", &set), Outcome::Done);
+    assert_eq!(
+        d.shell_mut().dispatch("plc.rack_create", &json!({})),
+        Outcome::Done
+    );
+    for _ in 0..valves {
+        let add = json!({"part": "EW-GEN-VLV-3"});
+        assert_eq!(d.shell_mut().dispatch("plc.rack_add", &add), Outcome::Done);
+    }
+    d.shell_mut()
+        .station_tab()
+        .and_then(|t| t.station)
+        .expect("the station's view")
+}
+
+/// Whether the To do list of the station view on show still asks for the terminal on a fluid page.
+fn asks_for_fluid_page(d: &mut Driver) -> bool {
+    use ew_ui::ew_viewmodel::shell::automation::TodoFix;
+    d.shell_mut()
+        .station_todo()
+        .iter()
+        .any(|t| t.fix == Some(TodoFix::FluidPage))
+}
+
+/// The rc.3 cabinet run (blocker): a valve terminal with a bus node, put on the bus page first, never reached the
+/// pneumatic page: the Valve terminal dialog's Create and the station's Draw on a fluid page… did nothing and said
+/// nothing (its bus port had become its main function). Create puts its box on the pointer; a click draws it with its
+/// valves in their cells, and its To do no longer asks for it.
+#[test]
+fn rc3_a_terminal_on_a_bus_page_first_is_drawn_on_the_fluid_page() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    let station = profinet_terminal(&mut d, 2);
+    let bus = json!({"step": "bus"});
+    assert_eq!(d.shell_mut().dispatch("plc.rack_next", &bus), Outcome::Done);
+    click_at(&mut d, (760, 300));
+    d.input(&key("escape"));
+    d.settle();
+    let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "201"}));
+    // Fluid ▸ Valve terminal: Draw … here, then Create.
+    assert_eq!(
+        d.shell_mut().dispatch("fluid.valve_terminal", &json!({})),
+        Outcome::Done
+    );
+    d.input(&Input::Hover { at: (1000, 600) });
+    d.settle();
+    d.input(&click(d.find("Create").expect("the dialog's Create")));
+    d.settle();
+    assert_eq!(d.shell_mut().tool().name(), "black_box", "its box on the pointer");
+    click_at(&mut d, (760, 400));
+    d.input(&key("escape"));
+    d.settle();
+    let c = cells_of(&mut d, station);
+    assert_eq!(c.len(), 4, "drawn as its positions");
+    assert!(
+        c[0].holder.is_some() && c[1].holder.is_some(),
+        "its valves in their cells: {c:?}"
+    );
+    let rack = json!({"station": station.to_string()});
+    assert_eq!(d.shell_mut().dispatch("plc.rack_editor", &rack), Outcome::Done);
+    assert!(!asks_for_fluid_page(&mut d), "drawn on a fluid page");
+    d.shell_mut().shutdown();
+}
+
+/// The rc.3 rack run: in a project without a fluid page the station's Draw on a fluid page… did nothing and said
+/// nothing. It makes a fluid page there and then, says so, and puts the terminal's box on the pointer there.
+#[test]
+fn rc3_draw_on_a_fluid_page_makes_one_when_there_is_none() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    let station = profinet_terminal(&mut d, 1);
+    d.input(&Input::Hover { at: (1000, 600) });
+    d.settle();
+    d.input(&click(
+        d.find("Draw on a fluid page…").expect("the To do's button"),
+    ));
+    d.settle();
+    let kind = {
+        let s = d.shell_mut();
+        s.page_rows().get(s.page_index()).map(|r| r.kind.clone())
+    };
+    assert_eq!(kind.as_deref(), Some("fluid"), "a fluid page made and shown");
+    assert_eq!(d.shell_mut().tool().name(), "black_box");
+    click_at(&mut d, (760, 400));
+    assert_eq!(cells_of(&mut d, station).len(), 4, "drawn there");
+    d.shell_mut().shutdown();
+}
+
+/// rc.3: with several fluid pages the station's Draw on a fluid page… asks which, as Draw on a page… does, and draws on
+/// the one chosen.
+#[test]
+fn rc3_draw_on_a_fluid_page_asks_which_of_several() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    let page = json!({"folio": "202", "type": "fluid", "title": "Eject"});
+    assert_eq!(d.shell_mut().dispatch("page.new", &page), Outcome::Done);
+    let station = profinet_terminal(&mut d, 1);
+    d.input(&Input::Hover { at: (1000, 600) });
+    d.settle();
+    d.input(&click(
+        d.find("Draw on a fluid page…").expect("the To do's button"),
+    ));
+    d.settle();
+    assert!(d.find("201 Clamp pneumatics").is_some(), "the first page offered");
+    assert!(d.find("New page…").is_some(), "a new page offered");
+    d.input(&click(d.find("202 Eject").expect("the second page offered")));
+    d.settle();
+    assert_eq!(d.shell_mut().current_folio(), Some("202"));
+    click_at(&mut d, (760, 400));
+    assert_eq!(cells_of(&mut d, station).len(), 4, "drawn there");
+    d.shell_mut().shutdown();
+}
+
 /// rc.3 (G16): valves put on a valve terminal's positions in its station view stood in its cells as tags only, with no
 /// port a tube could reach. All four positions are filled, as on the owner's terminal. Drawn on the fluid page from the view's Draw on a fluid page…, each valve stands in its cell
 /// as its symbol, its working ports 2 and 4 on the cell's top edge, and the terminal's own supply ports 1, 3 and 5 in
