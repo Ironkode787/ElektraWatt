@@ -233,7 +233,21 @@ impl Builder<'_> {
 
     fn free_text(&mut self, iv: &ItemView, t: &FreeText, entity: EntityRef) {
         let align = symbol::placed_align(&text_align(t.align.as_ref()), t.angle, Orient2::R0);
-        self.text(&free_text_spec(iv, t, &align, entity));
+        let spec = free_text_spec(iv, t, &align, entity);
+        // The text's own height, where it has one the text styles allow: its style in that size.
+        match t
+            .height
+            .map(ew_schema::em_for_cap)
+            .filter(|em| ew_schema::text_style_size_ok(*em))
+        {
+            Some(em) => {
+                let mut own = self.style(spec.style_key, entity);
+                own.size = em;
+                let shaped = self.fonts.shape(&iv.text, &own, None);
+                self.text_shaped(&spec, &own, &shaped);
+            }
+            None => self.text(&spec),
+        }
     }
 }
 

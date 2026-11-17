@@ -143,6 +143,7 @@ fn missing(u: &Underlay, fonts: &ew_text::FontSet, styles: &ew_text::TextStyleTa
         at: u.rect.0.min() + Pt2::new(Nm(3_000_000), Nm(6_000_000)),
         angle: ew_units::Angle2(0),
         style: None,
+        height: None,
         align: None,
         extra: Default::default(),
     });

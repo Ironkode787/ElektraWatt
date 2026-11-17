@@ -121,9 +121,12 @@ pub fn has_options(ty: &FieldType) -> bool {
 /// The page's connection grid row, whose editor lists the grids in words.
 pub(crate) const GRID_ROW: &str = "page/grid";
 
-/// Whether editing `row` opens a choice list ([`has_options`], the connection grid's words).
+/// A free text's style row, whose editor lists the project's text styles by their names (the Text styles page's).
+pub(crate) const STYLE_ROW: &str = "page_item/kind.free_text.style";
+
+/// Whether editing `row` opens a choice list ([`has_options`], the connection grid's words, a text's styles).
 pub fn opens_choices(row: &PropRow) -> bool {
-    has_options(&row.ty) || row.key == GRID_ROW
+    has_options(&row.ty) || row.key == GRID_ROW || row.key == STYLE_ROW
 }
 
 /// How an editable row's value is chosen, which its cell shows (the owner's test of 0.3.0-rc.1: a drop-down row
@@ -1383,6 +1386,22 @@ pub fn item_default(ty: &FieldType) -> Value {
         ),
         FieldType::List(_) => Value::Array(Vec::new()),
         _ => Value::Null,
+    }
+}
+
+/// Writes a free text's Style row in words: the style's name as the Text styles page lists it ("Device tag"), the
+/// default style's name for a text without one. Its JSON value is unchanged.
+pub fn style_in_words(sheet: &mut PropertySheet) {
+    for row in sheet
+        .sections
+        .iter_mut()
+        .flat_map(|s| s.rows.iter_mut())
+        .filter(|r| r.key == STYLE_ROW)
+    {
+        if let RowValue::One { json, text } = &mut row.value {
+            let key = json.as_str().unwrap_or(ew_api::output::DEFAULT_STYLE_KEY);
+            *text = ew_api::checks::messages::text_style_name(key, strings::rule_language());
+        }
     }
 }
 

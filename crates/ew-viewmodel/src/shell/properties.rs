@@ -95,7 +95,7 @@ const PRINTED_LABEL_ROW: &str = "device/derived.printed_label";
 /// The key of a device's Tag row.
 const TAG_ROW: &str = "device/derived.tag";
 // A page's Connection grid row, a choice of the grids New page offers, in their words.
-use crate::properties::GRID_ROW;
+use crate::properties::{GRID_ROW, STYLE_ROW};
 
 /// The choices of the Connection grid row: each grid of `PAGE_GRIDS` in its words, with its value.
 fn grid_choices() -> Vec<(String, Value)> {
@@ -450,6 +450,7 @@ impl ShellModel {
         let mut sheet = p.session.property_sheet(&uuids);
         sheet.read_only = self.read_only_reason().map(str::to_owned);
         crate::properties::grid_in_words(&mut sheet);
+        crate::properties::style_in_words(&mut sheet);
         crate::properties::ends_in_words(&mut sheet, |id| p.session.selection_words(id));
         crate::properties::enums_in_words(&mut sheet);
         crate::properties::command_choices_in_words(&mut sheet);
@@ -910,7 +911,9 @@ impl ShellModel {
                     }
                 }
                 // The Connection grid is edited in its words ("4 mm"), as its choices show it.
-                (RowValue::One { text, .. }, None) if row.key == GRID_ROW => text.clone(),
+                (RowValue::One { text, .. }, None) if row.key == GRID_ROW || row.key == STYLE_ROW => {
+                    text.clone()
+                }
                 // A JSON value shown in words (a scale's `1:10`, a length's `12.5 m`) is edited in
                 // those words, which its parser reads back.
                 (RowValue::One { json, text }, None)
@@ -963,6 +966,15 @@ impl ShellModel {
                 grid_choices()
                     .into_iter()
                     .filter(|(text, _)| text.to_lowercase().contains(&f))
+                    .collect()
+            }
+            // A text's style by its name; choosing one commits the style's key.
+            _ if row.key == STYLE_ROW => {
+                let f = filter.to_lowercase();
+                self.text_style_rows()
+                    .into_iter()
+                    .filter(|r| r.name.to_lowercase().contains(&f))
+                    .map(|r| (r.name, Value::String(r.key)))
                     .collect()
             }
             // An address profile by its name, its reference as the secondary line; choosing one commits the
@@ -1211,6 +1223,16 @@ impl ShellModel {
         // A terminal's Group row compiles through `Session::strip_edit` (D8).
         if row.key == GROUP_ROW {
             return self.commit_group_label(&section, &row, text);
+        }
+        // A style typed by its name is that style.
+        if row.key == STYLE_ROW
+            && let Some(style) = self
+                .text_style_rows()
+                .into_iter()
+                .find(|r| r.name.eq_ignore_ascii_case(text.trim()))
+        {
+            self.props.choices = None;
+            return self.commit_value(key, Value::String(style.key), text.to_owned(), Vec::new());
         }
         // A Connection grid typed in its words is that grid.
         if row.key == GRID_ROW

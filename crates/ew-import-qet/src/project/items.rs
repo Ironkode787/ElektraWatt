@@ -285,6 +285,7 @@ pub(crate) fn free_text(
         at,
         angle: Angle2(angle.0.rem_euclid(360_000)),
         style,
+        height: None,
         align: (align != TextAlign::Left).then_some(align),
         extra: Default::default(),
     })

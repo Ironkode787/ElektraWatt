@@ -302,6 +302,7 @@ pub fn style_spec(key: &str) -> Option<TextStyleSpec> {
     Some(TextStyleSpec {
         size,
         weight: bold.then_some(TextWeight::Bold),
+        face: None,
         extra: Extra::new(),
     })
 }

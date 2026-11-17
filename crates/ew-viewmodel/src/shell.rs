@@ -93,6 +93,7 @@ mod palette;
 mod parts;
 mod projects;
 mod templates;
+pub mod text_styles;
 pub use templates::{
     CHECK_LEVELS, NewProjectDialog, StartLine, TemplateRow, TemplatesDialog, level_sentence, level_words,
 };
@@ -337,6 +338,9 @@ pub enum Dialog {
     /// Templates… (`templates.open`): the templates of the list with what each holds and the actions of the selected
     /// one; Close.
     Templates(Box<TemplatesDialog>),
+    /// Project ▸ Text styles… (`text_styles.open`): the project's text styles by what they print, each with its height,
+    /// typeface, bold and a sample; Standard sizes, Reset all, Close.
+    TextStyles(Box<text_styles::TextStylesDialog>),
     /// View, Workspace, Save layout as: a name typed by the user.
     SaveWorkspace {
         /// The text of the field.

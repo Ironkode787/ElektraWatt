@@ -397,6 +397,7 @@ fn free_text_of(t: &FreeTextParam) -> FreeText {
         at: t.at,
         angle: t.angle,
         style: t.style.clone(),
+        height: None,
         align: t.align.map(|a| match a {
             AlignParam::Left => TextAlign::Left,
             AlignParam::Centre => TextAlign::Centre,

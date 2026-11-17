@@ -110,6 +110,8 @@ pub use editing::{
 /// shell names its types (`DisplayList`, `EntityRef`, `Rect`) without a workspace edge to `ew-dl`
 /// (architecture §3 rule 7).
 pub use ew_dl;
+/// The style a text without one prints with (`text.normal`): a free text's Style row names it.
+pub use ew_text::DEFAULT_STYLE_KEY;
 // A valve port's side of EW-FL-012, which the page tables and symbol shapes carry for autoconnect.
 pub use ew_derive::ValvePort;
 pub use ew_export::{DxfFile, DxfLayers, Parallelism, PdfDate, PdfReport, SvgFile, svg_file_name};

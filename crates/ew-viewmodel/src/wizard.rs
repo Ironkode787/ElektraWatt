@@ -255,16 +255,6 @@ pub static FIELDS: &[FieldMeta] = &[
         "qet-grid",
         true,
     ),
-    // The readable text styles of a new project (ADR-0032 decision 3), or the base table the sample
-    // project prints.
-    field(
-        Step::Frame,
-        "text_styles",
-        key!("wizard-field-text-styles"),
-        Choice(&["readable", "sample"]),
-        "readable",
-        true,
-    ),
     field(
         Step::Colour,
         "colour",
@@ -919,17 +909,13 @@ impl Draft {
         if let Some(v) = self.xref_value() {
             out.push(set("xref_format", v));
         }
-        out.push(set("text_styles", self.text_styles_value()));
+        // A template starts with the readable text styles of a new project (ADR-0032 decision 3): no project made
+        // from it is born with a warning about its own styles. Text styles… changes them in the template.
+        out.push(set(
+            "text_styles",
+            serde_json::to_value(ew_api::new_project_text_styles()).unwrap_or(Value::Null),
+        ));
         out
-    }
-
-    /// The text styles: the built-in basic project's readable ones, or none (`null` removes the
-    /// member), so that the base table prints as in the sample project.
-    fn text_styles_value(&self) -> Value {
-        match self.get("text_styles") {
-            "sample" => Value::Null,
-            _ => serde_json::to_value(ew_api::new_project_text_styles()).unwrap_or(Value::Null),
-        }
     }
 
     /// Every command that builds the basic project from the built-in one: the embedding of the shipped forms, the
@@ -1076,10 +1062,7 @@ impl Draft {
                 f(key!("wizard-example-notice"), &[&shown("company_notice")]),
                 f(key!("wizard-example-logo"), &[&shown(LOGO_FIELD)]),
             ],
-            Step::Frame => vec![
-                f(key!("wizard-example-frame"), &[&shown("frame")]),
-                f(key!("wizard-example-text-styles"), &[&shown("text_styles")]),
-            ],
+            Step::Frame => vec![f(key!("wizard-example-frame"), &[&shown("frame")])],
             Step::Colour => self.colour_example(),
             Step::Size => match self.get("size") {
                 "default" => vec![strings::text(key!("wizard-example-size-none")).to_owned()],

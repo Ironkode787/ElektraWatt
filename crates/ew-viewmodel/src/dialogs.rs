@@ -162,6 +162,7 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
         Dialog::ConfirmDiscard { .. } => discard_spec(model),
         Dialog::NewProject(d) => new_project_spec(d),
         Dialog::Templates(_) => templates_spec(),
+        Dialog::TextStyles(_) => text_styles_spec(model),
         Dialog::ConfirmJournalDiscard => journal_discard_spec(),
         Dialog::ConfirmPurge { files, .. } => purge_spec(files),
         // Choose (Enter, the active row) and Cancel; the list and the filters are the dialog's.
@@ -434,6 +435,27 @@ fn new_project_spec(d: &crate::shell::NewProjectDialog) -> DialogSpec {
                     DialogAnswer::Action("file.new", d.create_params()),
                 )
             },
+        )
+    }
+}
+
+/// Text styles: Standard sizes and Reset all beside Close; the table is the dialog's own.
+fn text_styles_spec(model: &ShellModel) -> DialogSpec {
+    let writable = model.is_writable();
+    let act = |key: Key<'_>, action: &'static str| DialogButton {
+        disabled: (!writable).then(|| strings::text(key!("reason-read-only")).to_owned()),
+        ..DialogButton::new(key, DialogAnswer::Action(action, json!({})))
+    };
+    DialogSpec {
+        form: true,
+        secondary: vec![
+            act(key!("text-styles-standard"), "text_styles.standard"),
+            act(key!("text-styles-reset-all"), "text_styles.reset"),
+        ],
+        ..small(
+            strings::text(key!("text-styles-title")).to_owned(),
+            vec![strings::text(key!("text-styles-text")).to_owned()],
+            close(),
         )
     }
 }

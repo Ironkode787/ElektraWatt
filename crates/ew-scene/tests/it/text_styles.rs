@@ -11,7 +11,7 @@ use ew_text::{Weight, builtin, builtin_rows};
 fn the_builtin_table_of_ew_text_equals_the_schema_table() {
     let schema: Vec<(&str, u16, bool)> = BUILTIN_TEXT_STYLES
         .iter()
-        .map(|(k, px, w)| (*k, *px, *w == TextWeight::Bold))
+        .map(|(k, px, w, _)| (*k, *px, *w == TextWeight::Bold))
         .collect();
     let text: Vec<(&str, u16, bool)> = builtin_rows()
         .iter()
@@ -19,7 +19,7 @@ fn the_builtin_table_of_ew_text_equals_the_schema_table() {
         .collect();
     assert_eq!(text, schema);
     assert_eq!(builtin().rows().len(), BUILTIN_TEXT_STYLES.len());
-    for ((key, px, _), row) in BUILTIN_TEXT_STYLES.iter().zip(builtin().rows()) {
+    for ((key, px, ..), row) in BUILTIN_TEXT_STYLES.iter().zip(builtin().rows()) {
         assert_eq!((row.key.as_str(), row.em), (*key, qet_px_em(*px)));
     }
 }

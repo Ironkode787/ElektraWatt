@@ -258,9 +258,9 @@ rule-ew-core-053 = { $item }: { $form ->
     .title = Ongeldige cel voor de kruisverwijzing
     .hint = Herstel het standaardbeleid voor ankers, of verplaats het anker naar een cel die de grafiek bevat.
 
-rule-ew-core-061 = tekststijl { $style } drukt af met een hoofdletterhoogte van { DECIMAL($height) } mm, onder het minimum van { DECIMAL($minimum) } mm
+rule-ew-core-061 = { WORD($name) } drukt { DECIMAL($height) } mm hoog af, te klein om op papier te lezen (minstens { DECIMAL($minimum) } mm). Maak het groter in Tekststijlen.
     .title = Tekst onder de minimale hoogte
-    .hint = Vergroot de tekststijl of geef de teksten een stijl die minstens op de minimale hoogte afdrukt.
+    .hint = Open de melding: Tekststijlen opent bij de stijl. Maak hem daar minstens 1,2 mm hoog, of kies Op 1,2 mm zetten.
 
 rule-ew-core-063 = een tekst op folio { $page } heeft de grootte { $style }, die geen tekststijl vastlegt; geef de tekst een tekststijl
     .title = Tekstgrootte zonder tekststijl
@@ -1177,6 +1177,7 @@ fix-plc-take-out = Uit het rek halen
 fix-plc-bind-pins = De kanalen aan hun pinnen koppelen
 fix-blank-position = Blindplaat op ventielplaats { $position }
 fix-draw-valves = De ventielen in het ventieleiland tekenen
+fix-text-style-minimum = Op 1,2 mm zetten
 
 # De woorden die een regel afdrukt waar een record geen eigen naam heeft (FT-912), per sleutel; WORD(…) in een patroon
 # drukt ze in het Nederlands af.
@@ -1221,6 +1222,24 @@ word-an-f-module = een F-module
 word-the-sensor = de sensor
 word-the-cable = de kabel
 word-the-device = het apparaat
+word-style-tag-main = Apparaatkenmerk
+word-style-data-small = Apparaatgegevens
+word-style-cp-small = Aansluitpunt
+word-style-pin = Stekkerpen
+word-style-xref-device = Kruisverwijzing
+word-style-marker = Adermarkering
+word-style-terminal = Klemnummer
+word-style-text-normal = Normale tekst
+word-style-field-label = Middelgrote tekst
+word-style-box-title = Kadertitel
+word-style-cover-table = Tabeltitel
+word-style-cover-title = Titel van het voorblad
+word-style-cover-subtitle = Ondertitel van het voorblad
+word-style-section-id = Sectienummer
+word-style-section-subtitle = Sectietitel
+word-style-imported = Geïmporteerde tekst van { $size } pt
+word-style-imported-bold = Geïmporteerde vette tekst van { $size } pt
+word-style-own = Een tekststijl van dit project
 
 rule-ew-imp-251 =
     .title = Tekening zonder eenheid, in de gekozen eenheid gelezen

@@ -174,6 +174,40 @@ fn word(lang: &str, value: &str) -> Option<String> {
     errors.is_empty().then(|| text.into_owned())
 }
 
+/// The name of text style `key` in `lang` (falling back to en-GB), as the Text styles page lists it and EW-CORE-061
+/// names it: a built-in style by its message `word-style-<key>` (`word-style-tag-main`, "Device tag"), a style a
+/// QElectroTech import made (`qet.<size>[.b][.i]`) as imported text of its point size, any other style a project
+/// adds as a text style of this project. Never the key itself.
+pub fn text_style_name(key: &str, lang: &str) -> String {
+    let mut args = FluentArgs::new();
+    let id = if let Some(rest) = key.strip_prefix("qet.") {
+        let rest = rest.strip_suffix(".i").unwrap_or(rest);
+        let (size, bold) = rest.strip_suffix(".b").map_or((rest, false), |s| (s, true));
+        args.set("size", size.to_owned());
+        if bold {
+            "word-style-imported-bold".to_owned()
+        } else {
+            "word-style-imported".to_owned()
+        }
+    } else {
+        let id = format!("word-style-{}", key.replace('.', "-"));
+        match bundle(DEFAULT_LANGUAGE).is_some_and(|b| b.has_message(&id)) {
+            true => id,
+            false => "word-style-own".to_owned(),
+        }
+    };
+    let lookup = |tag: &str| -> Option<String> {
+        let b = bundle(tag)?;
+        let pattern = b.get_message(&id)?.value()?;
+        let mut errors = Vec::new();
+        let text = b.format_pattern(pattern, Some(&args), &mut errors);
+        errors.is_empty().then(|| text.into_owned())
+    };
+    lookup(lang)
+        .or_else(|| lookup(DEFAULT_LANGUAGE))
+        .unwrap_or_default()
+}
+
 /// The arguments of a finding as Fluent arguments (every value a string, but [`NUMBER_ARGS`] as numbers).
 fn fluent_args(f: &Finding) -> FluentArgs<'_> {
     let mut args = FluentArgs::with_capacity(f.args.len());

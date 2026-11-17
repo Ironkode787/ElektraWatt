@@ -54,7 +54,7 @@ impl StyleDef {
     }
 }
 
-/// One row of a [`TextStyleTable`]: a key, an em height and a weight.
+/// One row of a [`TextStyleTable`]: a key, an em height, a weight and a family role.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct StyleRow {
     /// The style key (`text.normal`).
@@ -63,13 +63,15 @@ pub struct StyleRow {
     pub em: Nm,
     /// The weight.
     pub weight: Weight,
+    /// The family role (the style's typeface).
+    pub family: Family,
 }
 
 impl StyleRow {
-    /// The text style: default family, this em height and weight, upright.
+    /// The text style: this family, em height and weight, upright.
     pub fn text_style(&self) -> TextStyle {
         TextStyle {
-            family: Family::Default,
+            family: self.family,
             size: self.em,
             weight: self.weight,
             italic: false,
@@ -155,10 +157,17 @@ const ROWS: &[StyleDef] = &[
         qet_px: 5,
         weight: Weight::Regular,
     },
+    // The terminal's number, out of `tag.main` at its size (ADR-0032 amendment).
+    StyleDef {
+        key: "terminal",
+        qet_px: 13,
+        weight: Weight::Regular,
+    },
 ];
 
-static BUILTIN: LazyLock<TextStyleTable> =
-    LazyLock::new(|| TextStyleTable::from_rows(ROWS.iter().map(|r| (r.key, r.em(), r.weight))));
+static BUILTIN: LazyLock<TextStyleTable> = LazyLock::new(|| {
+    TextStyleTable::from_rows(ROWS.iter().map(|r| (r.key, r.em(), r.weight, Family::Default)))
+});
 
 /// The rows of the built-in table in QET pixels, in table order (doc 20 §17.5).
 pub fn builtin_rows() -> &'static [StyleDef] {
@@ -181,22 +190,30 @@ pub fn builtin() -> &'static TextStyleTable {
 }
 
 impl TextStyleTable {
-    /// A table of `(key, em height, weight)` rows in the given order; a repeated key keeps its first row.
+    /// A table of `(key, em height, weight, family)` rows in the given order; a repeated key keeps its first row.
     ///
     /// ```
-    /// use ew_text::{TextStyleTable, Weight};
+    /// use ew_text::{Family, TextStyleTable, Weight};
     /// use ew_units::Nm;
     ///
-    /// let table = TextStyleTable::from_rows([("marker", Nm(1_852_083), Weight::Regular)]);
+    /// let table = TextStyleTable::from_rows([("marker", Nm(1_852_083), Weight::Regular, Family::Mono)]);
     /// assert_eq!(table.resolve("marker").unwrap().size, Nm(1_852_083));
+    /// assert_eq!(table.resolve("marker").unwrap().family, Family::Mono);
     /// assert!(table.resolve("text.normal").is_none());
     /// ```
-    pub fn from_rows<K: Into<String>>(rows: impl IntoIterator<Item = (K, Nm, Weight)>) -> TextStyleTable {
+    pub fn from_rows<K: Into<String>>(
+        rows: impl IntoIterator<Item = (K, Nm, Weight, Family)>,
+    ) -> TextStyleTable {
         let mut out: Vec<StyleRow> = Vec::new();
-        for (key, em, weight) in rows {
+        for (key, em, weight, family) in rows {
             let key = key.into();
             if !out.iter().any(|r| r.key == key) {
-                out.push(StyleRow { key, em, weight });
+                out.push(StyleRow {
+                    key,
+                    em,
+                    weight,
+                    family,
+                });
             }
         }
         TextStyleTable { rows: out }
@@ -222,7 +239,7 @@ impl TextStyleTable {
 mod tests {
     use super::*;
 
-    const KEYS: [&str; 14] = [
+    const KEYS: [&str; 15] = [
         "cover.title",
         "section.id",
         "section.subtitle",
@@ -237,20 +254,22 @@ mod tests {
         "xref.device",
         "cp.small",
         "marker",
+        "terminal",
     ];
-    const NATIVE_MILLI_PT: [u32; 14] = [
-        36000, 27750, 21750, 20250, 15750, 12000, 9750, 9000, 8250, 6750, 6000, 5250, 3750, 3750,
+    // The last row, `terminal`, is not of doc 20 §17.5: it came out of `tag.main` and keeps its size.
+    const NATIVE_MILLI_PT: [u32; 15] = [
+        36000, 27750, 21750, 20250, 15750, 12000, 9750, 9000, 8250, 6750, 6000, 5250, 3750, 3750, 9750,
     ];
-    const EM_NM: [i64; 14] = [
+    const EM_NM: [i64; 15] = [
         12_700_000, 9_789_583, 7_672_917, 7_143_750, 5_556_250, 4_233_333, 3_439_583, 3_175_000, 2_910_417,
-        2_381_250, 2_116_667, 1_852_083, 1_322_917, 1_322_917,
+        2_381_250, 2_116_667, 1_852_083, 1_322_917, 1_322_917, 3_439_583,
     ];
-    const PRINTED_MILLI_PT: [i128; 14] = [
-        35510, 27370, 21450, 19970, 15530, 11840, 9620, 8880, 8140, 6660, 5920, 5180, 3700, 3700,
+    const PRINTED_MILLI_PT: [i128; 15] = [
+        35510, 27370, 21450, 19970, 15530, 11840, 9620, 8880, 8140, 6660, 5920, 5180, 3700, 3700, 9620,
     ];
-    const PRINTED_EM_NM: [i128; 14] = [
+    const PRINTED_EM_NM: [i128; 15] = [
         12_530_000, 9_660_000, 7_570_000, 7_050_000, 5_480_000, 4_180_000, 3_390_000, 3_130_000, 2_870_000,
-        2_350_000, 2_090_000, 1_830_000, 1_300_000, 1_300_000,
+        2_350_000, 2_090_000, 1_830_000, 1_300_000, 1_300_000, 3_390_000,
     ];
     const PRINT_FACTOR: i128 = 986_282_578;
 
@@ -280,6 +299,7 @@ mod tests {
             .iter()
             .map(|r| (r.key.as_str(), r.em, r.weight))
             .collect();
+        assert!(builtin().rows().iter().all(|r| r.family == Family::Default));
         let defs: Vec<(&str, Nm, Weight)> = rows.iter().map(|r| (r.key, r.em(), r.weight)).collect();
         assert_eq!(table, defs);
         assert!(builtin().get(DEFAULT_STYLE_KEY).is_some());

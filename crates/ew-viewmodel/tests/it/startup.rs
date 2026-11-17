@@ -413,7 +413,7 @@ fn the_files_of_the_configuration_directory_are_user_only() {
     done(
         &mut shell,
         "wizard.set",
-        json!({"field": "text_styles", "value": "readable"}),
+        json!({"field": "company_name", "value": "Example"}),
     );
     fn files(d: &Path, base: &Path, out: &mut Vec<(String, PathBuf)>) {
         for e in std::fs::read_dir(d).unwrap().flatten() {
@@ -477,7 +477,7 @@ fn each_writer_makes_the_configuration_directory_user_only() {
             done(
                 shell,
                 "wizard.set",
-                json!({"field": "text_styles", "value": "readable"}),
+                json!({"field": "company_name", "value": "Example"}),
             );
         }),
     ];

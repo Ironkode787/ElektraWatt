@@ -256,6 +256,54 @@ fn metrics_of_the_default_face() {
     assert_eq!(m.cap_height, Nm(2_266_950));
 }
 
+/// The faces a text style chooses (ADR-0028 amendment 2): each family in both weights, each with the cap ratio 0.714
+/// that `ew_schema::cap_height` and EW-CORE-061 measure with, and a narrow face that is narrower and a mono face whose
+/// characters are equally wide.
+#[test]
+fn the_narrow_and_the_mono_face_print_capitals_as_high_as_the_default() {
+    for (family, name) in [
+        (Family::Default, "Noto Sans"),
+        (Family::Narrow, "Noto Sans Condensed"),
+        (Family::Mono, "Noto Sans Mono"),
+    ] {
+        for weight in [Weight::Regular, Weight::Bold] {
+            let st = TextStyle {
+                family,
+                weight,
+                ..style("text.normal")
+            };
+            let f = bundled().face_for(&st);
+            assert_eq!((f.family, f.weight), (family, weight), "{name}");
+            assert_eq!(f.family_name, name);
+            assert_eq!(
+                (f.metrics.units_per_em, f.metrics.cap_height),
+                (1000, 714),
+                "{name}"
+            );
+            assert!(
+                bundled().shape("-X1:13 ∞", &st, None).missing.is_empty(),
+                "{name}"
+            );
+        }
+    }
+    let width = |family| {
+        let st = TextStyle {
+            family,
+            ..style("text.normal")
+        };
+        (
+            bundled().shape("Motor 1", &st, None).advance(),
+            bundled().shape("iiii", &st, None).advance(),
+            bundled().shape("MMMM", &st, None).advance(),
+        )
+    };
+    let (default, _, _) = width(Family::Default);
+    let (narrow, _, _) = width(Family::Narrow);
+    let (_, thin, wide) = width(Family::Mono);
+    assert!(narrow < default);
+    assert_eq!(thin, wide);
+}
+
 #[test]
 fn font_set_rules() {
     let regular = bundled_sources().remove(0);

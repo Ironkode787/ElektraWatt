@@ -233,6 +233,40 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_templates_add(p),
         )),
     ),
+    // The Text styles page's controls: a style's height, typeface and bold, Reset, Standard sizes.
+    with_params(
+        "style:text, height?:text, face?:enum(standard|narrow|mono), bold?:bool",
+        hidden(act(
+            "text_styles.set",
+            Command,
+            Menu::Project,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_text_styles_set(p),
+        )),
+    ),
+    with_params(
+        "style?:text",
+        hidden(act(
+            "text_styles.reset",
+            Command,
+            Menu::Project,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_text_styles_reset(p),
+        )),
+    ),
+    hidden(act(
+        "text_styles.standard",
+        Command,
+        Menu::Project,
+        &[],
+        writable,
+        None,
+        |s, _| s.act_text_styles_standard(),
+    )),
     // The property grid's own controls (spec §6.10): the window and the headless mode dispatch them.
     keeps_banner(with_params(
         "ids?:list(ref), refs?:list(ref)",

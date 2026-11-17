@@ -357,7 +357,7 @@ fn a_slot_style_replaces_the_style_of_the_slot_kind() {
 #[test]
 fn the_callers_style_table_overrides_and_extends_the_slot_styles() {
     let mut v = view();
-    let mut rows: Vec<(String, Nm, ew_text::Weight)> = builtin()
+    let mut rows: Vec<(String, Nm, ew_text::Weight, ew_text::Family)> = builtin()
         .rows()
         .iter()
         .map(|r| {
@@ -365,10 +365,16 @@ fn the_callers_style_table_overrides_and_extends_the_slot_styles() {
                 r.key.clone(),
                 if r.key == "tag.main" { Nm(4_000_000) } else { r.em },
                 r.weight,
+                r.family,
             )
         })
         .collect();
-    rows.push(("note.big".to_owned(), Nm(6_000_000), ew_text::Weight::Regular));
+    rows.push((
+        "note.big".to_owned(),
+        Nm(6_000_000),
+        ew_text::Weight::Regular,
+        ew_text::Family::Default,
+    ));
     let table = ew_text::TextStyleTable::from_rows(rows);
     let size_in = |v: &PageView, table: &ew_text::TextStyleTable| {
         page_display_list(v, Layer::Labels, bundled(), table)

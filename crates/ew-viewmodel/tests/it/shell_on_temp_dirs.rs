@@ -1552,10 +1552,10 @@ fn every_choice_of_the_wizard_is_accepted_by_the_commands() {
 }
 
 #[test]
-fn the_default_draft_reproduces_the_sample_projects_folio_102() {
-    // NFR-UX-08 in miniature: the defaults of the wizard with the pilot's text sizes ("As in the sample project")
-    // are the sample project's conventions, so the settings commands of the draft change nothing, and
-    // the preview page is the sample's own page.
+fn the_draft_preview_shows_readable_texts_and_the_current_choices() {
+    // NFR-UX-08 in miniature: the preview is the sample project's folio 102 under the draft's settings. A template
+    // always starts with the readable text styles of a new project (rc.3), so the preview differs from the sample's
+    // page, whose pin numbers and wire markers print as QElectroTech's small ones.
     let tmp = Tmp::new(STEM);
     let mut shell = tmp.shell();
     done(&mut shell, "file.open_sample", json!({}));
@@ -1574,23 +1574,6 @@ fn the_default_draft_reproduces_the_sample_projects_folio_102() {
         ),
         "the readable text styles of a new project reach the page"
     );
-    done(
-        &mut shell,
-        "wizard.set",
-        json!({"field": "text_styles", "value": "sample"}),
-    );
-    let preview = shell.wizard_preview_content().expect("the preview");
-    assert_eq!(
-        format!(
-            "{:?}",
-            preview.pages.iter().map(|p| &p.content).collect::<Vec<_>>()
-        ),
-        format!(
-            "{:?}",
-            sample.pages.iter().map(|p| &p.content).collect::<Vec<_>>()
-        ),
-        "the default draft leaves folio 102 as the sample has it"
-    );
     // A different numbering format changes the page: the preview shows the current choices.
     done(
         &mut shell,
@@ -1605,7 +1588,7 @@ fn the_default_draft_reproduces_the_sample_projects_folio_102() {
         ),
         format!(
             "{:?}",
-            sample.pages.iter().map(|p| &p.content).collect::<Vec<_>>()
+            readable.pages.iter().map(|p| &p.content).collect::<Vec<_>>()
         ),
         "the numbering format reaches the device tags on the page"
     );

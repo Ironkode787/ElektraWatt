@@ -6,7 +6,8 @@
 //! - [`FontSet`]: bundled or project-embedded font files only, never system fonts (NFR-REL-11). Each face
 //!   is identified by [`FontKey`](ew_dl::FontKey) `{ sha256, face_index }`, so exports name fonts by hash
 //!   (doc 09 §4.3 rule 5). With the default feature `bundled-fonts`, [`bundled()`] holds Noto Sans Regular
-//!   and Bold and, as the symbol fallback, Noto Sans Math Regular (ADR-0028, OFL-1.1; provenance in
+//!   and Bold, Noto Sans Condensed and Noto Sans Mono in the same two weights (the faces a text style chooses,
+//!   ADR-0028 amendment 2) and, as the symbol fallback, Noto Sans Math Regular (ADR-0028, OFL-1.1; provenance in
 //!   `NOTICE`), compiled in with `include_bytes!` and checked against [`NOTO_SANS_REGULAR_SHA256`],
 //!   [`NOTO_SANS_BOLD_SHA256`] and [`NOTO_SANS_MATH_REGULAR_SHA256`] when the set is first built: font
 //!   versions are pinned (ADR-0028 recommendation 6, NFR-REL-17), so a different file is an error.
@@ -77,7 +78,11 @@ mod shape;
 mod style;
 
 pub use fonts::{FaceInfo, FaceMetrics, Family, FontError, FontSet, FontSource, Weight, hex};
-pub use fonts::{NOTO_SANS_BOLD_SHA256, NOTO_SANS_MATH_REGULAR_SHA256, NOTO_SANS_REGULAR_SHA256};
+pub use fonts::{
+    NOTO_SANS_BOLD_SHA256, NOTO_SANS_CONDENSED_BOLD_SHA256, NOTO_SANS_CONDENSED_SHA256,
+    NOTO_SANS_MATH_REGULAR_SHA256, NOTO_SANS_MONO_BOLD_SHA256, NOTO_SANS_MONO_REGULAR_SHA256,
+    NOTO_SANS_REGULAR_SHA256,
+};
 #[cfg(feature = "bundled-fonts")]
 pub use fonts::{bundled, bundled_sources};
 pub use shape::{FaceSpan, LineSpan, Shaped, TextStyle, VerticalMetrics, units_to_nm};

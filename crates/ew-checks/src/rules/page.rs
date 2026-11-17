@@ -28,7 +28,7 @@ use ew_derive::{
 };
 
 use crate::engine::touched_ids;
-use crate::finding::{Finding, Severity, Target};
+use crate::finding::{Finding, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};
 use crate::rules::term::full_tag;
 
@@ -453,12 +453,6 @@ fn is_style(table: &[EffectiveStyle], key: &str) -> bool {
     table.iter().any(|s| s.key.as_str() == key)
 }
 
-/// The cap ratio of the default face, in thousandths (doc 20 §18.1: 0.714 ▲).
-const CAP_RATIO_MILLI: i64 = 714;
-
-/// The minimum printed cap height, in nm (doc 20 §18.1: 1.2 mm ▲U-31; the scheme parameter's shipped value).
-pub const MIN_CAP_HEIGHT_NM: i64 = 1_200_000;
-
 /// A length in nm printed in millimetres with two decimals, rounded half up.
 fn mm2(nm: i64) -> String {
     let hundredths = (nm + 5_000) / 10_000;
@@ -482,10 +476,12 @@ pub const TEXT_BELOW_MINIMUM: RuleMeta = RuleMeta {
 };
 
 /// EW-CORE-061: a text style the project prints with ([`used_text_styles`]) whose cap height (the ISO 3098 nominal
-/// size: the em height of the project's effective text-style table, `ew_derive::text_styles`, times the face's cap
-/// ratio 0.714) is below the minimum of 1.2 mm (FR-CHK-023, FR-CHK-051; D-31, EF-12; ADR-0032 decision 5). One
-/// finding per text style, not per text (FR-CHK-051): no target, discriminator the style's key. A style no text of
-/// the project prints with is not reported. On Golden A (no overrides: the built-in table) exactly `cp.small` and
+/// size: the em height of the project's effective text-style table, `ew_derive::text_styles`, times the faces' cap
+/// ratio 0.714, `ew_schema::cap_height`) is below the minimum of 1.2 mm (FR-CHK-023, FR-CHK-051; D-31, EF-12;
+/// ADR-0032 decision 5). One finding per text style, not per text (FR-CHK-051): no target, discriminator the style's
+/// key, subject the style's name as the Text styles page lists it (`messages::text_style_name`), and the fix Set to
+/// 1.2 mm, which sets the style's cap height to the minimum and keeps every other style. A style no text of the
+/// project prints with is not reported. On Golden A (no overrides: the built-in table) exactly `cp.small` and
 /// `marker` (0.94 mm); a new project overrides both to 7 QET px (1.32 mm), so its markers and pin numbers pass.
 #[derive(Clone, Copy, Debug)]
 pub struct TextBelowMinimum;
@@ -499,34 +495,57 @@ impl Rule for TextBelowMinimum {
         if *scope != Scope::Project {
             return Vec::new();
         }
+        use ew_derive::ew_schema::{MIN_CAP_HEIGHT, cap_height, em_for_cap, text_style_entry};
         let table = text_styles(q);
-        let small: Vec<(&str, i64)> = table
+        let small: Vec<&EffectiveStyle> = table
             .iter()
-            .map(|s| (s.key.as_str(), s.em.0 * CAP_RATIO_MILLI / 1000))
-            .filter(|(_, cap)| *cap < MIN_CAP_HEIGHT_NM)
+            .filter(|s| cap_height(s.em) < MIN_CAP_HEIGHT)
             .collect();
         if small.is_empty() {
             return Vec::new();
         }
         let used = used_text_styles(q);
+        let overrides = &q.project().settings.text_styles;
         small
             .into_iter()
-            .filter(|(key, _)| used.contains(*key))
-            .map(|(key, cap)| {
+            .filter(|s| used.contains(s.key.as_str()))
+            .map(|s| {
+                let key = s.key.as_str();
+                let name = crate::messages::text_style_name(key, crate::messages::DEFAULT_LANGUAGE);
+                let (height, minimum) = (mm2(cap_height(s.em).0), mm2(MIN_CAP_HEIGHT.0));
+                // Set to 1.2 mm: this style at the minimum, every other entry as it is.
+                let mut value = overrides.clone();
+                let raised = EffectiveStyle {
+                    em: em_for_cap(MIN_CAP_HEIGHT),
+                    ..s.clone()
+                };
+                match text_style_entry(key, &raised, overrides.get(key)) {
+                    Some(entry) => {
+                        value.insert(s.key.clone(), entry);
+                    }
+                    None => {
+                        value.remove(key);
+                    }
+                }
                 Finding::new(
                     &TEXT_BELOW_MINIMUM,
                     [],
                     key,
-                    key,
+                    &name,
                     format!(
-                        "text style {key} prints with a cap height of {} mm, below the minimum of {} mm",
-                        mm2(cap),
-                        mm2(MIN_CAP_HEIGHT_NM)
+                        "{name} prints {height} mm high, too small to read on paper ({minimum} mm at least). \
+                         Make it larger in Text styles."
                     ),
                 )
-                .arg("style", key)
-                .arg("height", mm2(cap))
-                .arg("minimum", mm2(MIN_CAP_HEIGHT_NM))
+                .arg("name", name.clone())
+                .arg("height", height)
+                .arg("minimum", minimum)
+                .with_fix(QuickFix {
+                    label: "Set to 1.2 mm".to_owned(),
+                    key: Some("fix-text-style-minimum"),
+                    command: "project.settings.set".to_owned(),
+                    params: serde_json::json!({ "member": "text_styles", "value": value }),
+                })
             })
             .collect()
     }

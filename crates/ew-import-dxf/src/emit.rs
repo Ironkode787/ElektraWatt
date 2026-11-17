@@ -543,7 +543,7 @@ fn style_of(cap: f64) -> Option<Ident> {
     let em = cap / CAP_PER_EM;
     let best = BUILTIN_TEXT_STYLES
         .iter()
-        .map(|(key, px, _)| (*key, qet_px_em(*px).0 as f64))
+        .map(|(key, px, ..)| (*key, qet_px_em(*px).0 as f64))
         .filter(|(_, e)| *e > 0.0)
         .min_by(|a, b| {
             // Nearest by ratio: the larger of `em / e` and `e / em` is 1 at equal sizes and grows as they part, in the
@@ -715,6 +715,7 @@ impl Emit {
                     at: self.pt(*at)?,
                     angle: angle2(*angle),
                     style: style_of(cap),
+                    height: None,
                     align: match align {
                         HAlign::Left => None,
                         HAlign::Centre => Some(TextAlign::Centre),

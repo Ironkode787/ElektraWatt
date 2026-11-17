@@ -676,12 +676,29 @@ impl ShellModel {
         let Some(fp) = messages::fingerprint_of(&key).map(str::to_owned) else {
             return Outcome::refused(key!("reason-no-fix"));
         };
-        let migration = self.messages_shows_migration();
+        if self.project.is_none() {
+            return Outcome::refused(key!("reason-no-project"));
+        }
+        let Some(finding) = self.finding_of(&fp) else {
+            return Outcome::refused(key!("reason-no-fix"));
+        };
+        let Some(fix) = finding.fix.clone() else {
+            return Outcome::refused(key!("reason-no-fix"));
+        };
         let Some(project) = &self.project else {
             return Outcome::refused(key!("reason-no-project"));
         };
-        // A row of the migration report is found in the run that lists it.
-        let report = if migration {
+        let rule = finding.rule.to_owned();
+        let targets = finding.targets.len();
+        let params = fix_params(&project.session, &fix);
+        self.preview_fix(fix.command, params, rule, targets)
+    }
+
+    /// The finding of fingerprint `fp` in the run the Messages pane lists (the migration report's, or the online
+    /// check's).
+    fn finding_of(&self, fp: &str) -> Option<ew_api::checks::Finding> {
+        let project = self.project.as_ref()?;
+        let report = if self.messages_shows_migration() {
             project
                 .session
                 .check(&ew_api::checks::MIGRATION, CheckMode::Release)
@@ -690,16 +707,50 @@ impl ShellModel {
                 .session
                 .check(project.session.online_scheme(), CheckMode::Online)
         };
-        let Some(finding) = report.findings.iter().find(|f| f.fingerprint.to_string() == fp) else {
-            return Outcome::refused(key!("reason-no-fix"));
+        report
+            .findings
+            .iter()
+            .find(|f| f.fingerprint.to_string() == fp)
+            .cloned()
+    }
+
+    /// Opening a finding (`navigator.open` on a Messages row: a double click, Enter) that has no place on a page opens
+    /// where it is mended (the owner's test of rc.2): a text style's finding (EW-CORE-061) the Text styles page at that
+    /// style; a finding of the project record Project properties; a finding of other records those records, selected,
+    /// in Properties (a device drawn on no page, a cable without a part, a location). A finding of no record at all
+    /// says what to do in a banner, its rule's hint.
+    pub(super) fn open_finding_elsewhere(&mut self, key: &str) -> Outcome {
+        let Some(finding) = messages::fingerprint_of(key).and_then(|fp| self.finding_of(fp)) else {
+            return Outcome::Done;
         };
-        let Some(fix) = finding.fix.clone() else {
-            return Outcome::refused(key!("reason-no-fix"));
-        };
-        let rule = finding.rule.to_owned();
-        let targets = finding.targets.len();
-        let params = fix_params(&project.session, &fix);
-        self.preview_fix(fix.command, params, rule, targets)
+        if finding.rule == ew_api::checks::rules::page::TEXT_BELOW_MINIMUM.id {
+            return self.act_text_styles_open(&Map::from_iter([(
+                "style".to_owned(),
+                Value::String(finding.discriminator.clone()),
+            )]));
+        }
+        let project = self
+            .project
+            .as_ref()
+            .map(|p| p.session.query().project().id.as_uuid());
+        if finding.targets.iter().any(|t| Some(t.id.as_uuid()) == project) {
+            return self.act_props_project();
+        }
+        if !finding.targets.is_empty() {
+            let ids: Vec<Value> = finding
+                .targets
+                .iter()
+                .map(|t| Value::String(t.id.as_uuid().to_string()))
+                .collect();
+            if self.act_select_set(&Map::from_iter([("ids".to_owned(), Value::Array(ids))])) == Outcome::Done
+            {
+                return self.act_props_focus();
+            }
+        }
+        if let Some(hint) = ew_api::checks::messages::hint(finding.rule, strings::rule_language()) {
+            self.banner = Some(hint);
+        }
+        Outcome::Done
     }
 
     /// The Fix all of the Messages row `key` (rc.2 persona run): a rule group whose findings all have a quick fix of

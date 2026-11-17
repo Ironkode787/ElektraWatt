@@ -84,6 +84,11 @@ pub static ANCHORS: &[Anchor] = &[
         fragment: Cow::Borrowed("the-check-level"),
     },
     Anchor {
+        topic: "text-styles",
+        page: PROJECTS,
+        fragment: Cow::Borrowed("text-styles"),
+    },
+    Anchor {
         topic: "sample-project",
         page: WINDOW,
         fragment: Cow::Borrowed("sample-project"),
@@ -253,6 +258,7 @@ pub fn action_topic(action: &str) -> Option<&'static str> {
         "file.new" | "new_project.set" | "new_project.browse" | "new_project.other" => "new-project",
         a if a.starts_with("templates.") || a == "project.save_as_template" => "templates",
         "project.check_level" => "check-level",
+        a if a.starts_with("text_styles.") => "text-styles",
         "file.open_sample" => "sample-project",
         "file.import_qet" | "file.import" => "import-qet",
         "file.discard_journal" => "recovery",
@@ -346,6 +352,7 @@ pub fn dialog_topic(dialog: &Dialog) -> &'static str {
         Dialog::ConfirmJournalDiscard | Dialog::Recovery { .. } => "recovery",
         Dialog::NewProject(_) => "new-project",
         Dialog::Templates(_) => "templates",
+        Dialog::TextStyles(_) => "text-styles",
         Dialog::SaveWorkspace { .. } => "workspaces",
         Dialog::GotoPage { .. } => "dialog-goto-page",
         Dialog::Form(_) => "dialog-form",

@@ -158,11 +158,13 @@ fn core025_a_settled_toc_reports_nothing() {
 // ---------------------------------------------------------------------------------------------------------
 // Texts and graphics: EW-CORE-061, -063, -071
 
-/// The message of EW-CORE-061 for a style of 0.94 mm.
-fn small_text(key: &str) -> (String, String) {
+/// The subject and message of EW-CORE-061 for a style of 0.94 mm named `name` (the name the Text styles page lists).
+fn small_text(name: &str) -> (String, String) {
     (
-        key.to_owned(),
-        format!("text style {key} prints with a cap height of 0.94 mm, below the minimum of 1.20 mm"),
+        name.to_owned(),
+        format!(
+            "{name} prints 0.94 mm high, too small to read on paper (1.20 mm at least). Make it larger in Text styles."
+        ),
     )
 }
 
@@ -204,7 +206,7 @@ fn core061_reports_nothing_without_drawn_texts() {
 #[test]
 fn core061_reports_a_drawn_cp_label_style_once() {
     let f = findings_of(&slots_fx(cp_slots(true)).build(), "EW-CORE-061");
-    assert_eq!(texts(&f), [small_text("cp.small")]);
+    assert_eq!(texts(&f), [small_text("Connection point")]);
     assert_eq!(f[0].code, "104061");
     assert_eq!(f[0].severity, Severity::Warning);
     assert_eq!(f[0].discriminator, "cp.small");
@@ -229,14 +231,14 @@ fn core061_reports_a_shown_wire_marker() {
         &json!({"overrides": {"csa": "2.5", "colour": ["BK"], "show_marker": true}}),
     );
     let f = findings_of(&fx.build(), "EW-CORE-061");
-    assert_eq!(texts(&f), [small_text("cp.small"), small_text("marker")]);
+    assert_eq!(texts(&f), [small_text("Connection point"), small_text("Wire marker")]);
     // Every other style of the table is at or above the minimum.
     let small: Vec<&str> = ew_derive::ew_schema::BUILTIN_TEXT_STYLES
         .iter()
-        .map(|(k, _, _)| *k)
+        .map(|(k, ..)| *k)
         .filter(|k| !["cp.small", "marker"].contains(k))
         .collect();
-    assert!(small.iter().all(|k| f.iter().all(|x| x.subject != *k)));
+    assert!(small.iter().all(|k| f.iter().all(|x| x.discriminator != *k)));
 }
 
 /// A shown wire marker and the CP labels of [`core061_reports_a_shown_wire_marker`] under the project settings
@@ -264,7 +266,14 @@ fn core061_reads_the_project_text_styles() {
     // One of the two overridden: only the other is reported.
     let half = json!({"text_styles": {"marker": {"size": 1_852_083}}});
     let f = findings_of(&marker_fx(half).build(), "EW-CORE-061");
-    assert_eq!(texts(&f), [small_text("cp.small")]);
+    assert_eq!(texts(&f), [small_text("Connection point")]);
+    // Set to 1.2 mm raises the style to the minimum and keeps the other entry.
+    let fix = f[0].fix.as_ref().expect("a fix");
+    assert_eq!(fix.command, "project.settings.set");
+    assert_eq!(
+        fix.params,
+        json!({"member": "text_styles", "value": {"cp.small": {"size": 1_680_673}, "marker": {"size": 1_852_083}}})
+    );
     // A tag style shrunk below the minimum: 1.5 mm em is a 1.07 mm cap height.
     let mut fx = slots_fx(json!([
         {"kind": "tag", "pos": [0, 0], "align": "middle_left", "visible": true},
@@ -272,12 +281,12 @@ fn core061_reads_the_project_text_styles() {
     fx.settings = json!({"text_styles": {"tag.main": {"size": 1_500_000}}});
     let f = findings_of(&fx.build(), "EW-CORE-061");
     assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].subject, "tag.main");
-    assert!(f[0].message.contains("cap height of 1.07 mm"), "{}", f[0].message);
+    assert_eq!(f[0].subject, "Device tag");
+    assert!(f[0].message.contains("prints 1.07 mm high"), "{}", f[0].message);
     // An out-of-range size in a file is ignored: the built-in 5 px row applies.
     let tiny = json!({"text_styles": {"cp.small": {"size": 100}, "marker": {"size": 100}}});
     let f = findings_of(&marker_fx(tiny).build(), "EW-CORE-061");
-    assert_eq!(texts(&f), [small_text("cp.small"), small_text("marker")]);
+    assert_eq!(texts(&f), [small_text("Connection point"), small_text("Wire marker")]);
 }
 
 /// A free text on P1 with the style `style` (none: the default).
@@ -323,7 +332,7 @@ fn core063_accepts_a_project_extended_style() {
     fx.settings = json!({"text_styles": {"note.tiny": {"size": 1_000_000}}});
     let f = findings_of(&fx.build(), "EW-CORE-061");
     assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].subject, "note.tiny");
+    assert_eq!(f[0].subject, "A text style of this project");
 }
 
 /// A line on P1 from the connection point of function 0x1001 (CP 0 at `(0, 0x1001 mm)`) to `b`, offset by `dy` nm.

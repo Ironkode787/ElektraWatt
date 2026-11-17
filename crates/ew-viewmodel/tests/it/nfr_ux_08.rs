@@ -1,10 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! NFR-UX-08 (SC-8): the company-standard wizard with the pilot's choices (its defaults, and "As in the
-//! sample project" for the text sizes, D11) writes a basic project; a project made from it with `file.new` carries the
-//! effective conventions of the sample project (Golden A), member by member, except the members of [`EXCLUDED`]. With
-//! "Readable (new projects)", the default, the project carries the built-in basic project's text styles.
+//! NFR-UX-08 (SC-8): the company-standard wizard with the pilot's choices (its defaults) writes a basic project; a
+//! project made from it with `file.new` carries the effective conventions of the sample project (Golden A), member by
+//! member, except the members of [`EXCLUDED`]; its text styles are the readable ones of a new project.
 
 use crate::common;
 
@@ -32,6 +31,10 @@ const EXCLUDED: &[(&str, &str)] = &[
     (
         "the title-block cell mapping",
         "FT-365: no command maps a form's cells yet",
+    ),
+    (
+        "settings.text_styles",
+        "a template starts with readable text styles, the sample project keeps QElectroTech's small ones (rc.3)",
     ),
 ];
 
@@ -83,7 +86,6 @@ fn conventions(dir: &Path, page_types: &BTreeSet<String>) -> Vec<(String, Value)
         "xref_format",
         "colour_profile",
         "size_profile",
-        "text_styles",
         "formatting",
         "revision_format",
         "check_scheme",
@@ -155,18 +157,13 @@ fn conventions(dir: &Path, page_types: &BTreeSet<String>) -> Vec<(String, Value)
     out
 }
 
-/// A project made with `file.new` from the basic project the wizard writes with `text_styles` = `choice`.
+/// A project made with `file.new` from the basic project the wizard writes with its defaults, in folders named `choice`.
 fn new_project(tmp: &Tmp, choice: &str) -> PathBuf {
     let mut shell = ShellModel::new(
         Mode::Headless,
         ShellConfig::in_dir(&tmp.0.join(format!("config-{choice}")), "0.0.0-test"),
     );
     done(&mut shell, "tools.company_standard", json!({}));
-    done(
-        &mut shell,
-        "wizard.set",
-        json!({"field": "text_styles", "value": choice}),
-    );
     let basic = tmp.0.join(format!("company-{choice}.ew"));
     done(
         &mut shell,
@@ -199,9 +196,10 @@ fn golden_from_the_basic_project() {
     assert_eq!(differ, Vec::<String>::new(), "excluded: {EXCLUDED:?}");
 }
 
-/// SC-8: with "Readable (new projects)", the default, the project carries the built-in basic project's text styles.
+/// SC-8: a project made from a template the wizard wrote carries the readable text styles of a new project: no style of
+/// it prints under the readable minimum.
 #[test]
-fn the_readable_choice_carries_the_built_in_text_styles() {
+fn a_template_of_the_wizard_carries_the_readable_text_styles() {
     let tmp = Tmp::new("nfr-ux-08-readable");
     let new = new_project(&tmp, "readable");
     let project = &records(&new, &["project.jsonl"])[0];

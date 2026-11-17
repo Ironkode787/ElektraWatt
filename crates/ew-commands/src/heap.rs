@@ -675,7 +675,11 @@ impl HeapSize for ew_schema::TextStyleSpec {
             Some(ew_schema::TextWeight::Unknown(v)) => v.heap_size(),
             _ => 0,
         };
-        weight + self.extra.heap_size()
+        let face = match &self.face {
+            Some(ew_schema::Typeface::Unknown(v)) => v.heap_size(),
+            _ => 0,
+        };
+        weight + face + self.extra.heap_size()
     }
 }
 

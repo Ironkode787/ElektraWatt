@@ -10,13 +10,14 @@ generated per release with cargo-about (about.toml, ci/third-party-notices.hbs).
 Bundled fonts (assets/fonts/, ADR-0028)
 ---------------------------------------
 
-Noto Sans and Noto Sans Math are licensed under the SIL Open Font License, Version 1.1 (OFL-1.1); the
-licence text is LICENSES/OFL-1.1.txt. The files are unmodified copies of static unhinted TrueType files and
-are pinned by SHA-256 in crates/ew-text (ADR-0028 recommendation 6); Noto Sans SemiBold, a face of the user
-interface only (WP-S2.17), is pinned in crates/ew-ui. The three Noto Sans files are the instances of the upstream repository at the commit named in each Source URL (the repository publishes no
-release tags). Noto Sans Math is not a raw commit file: it is the file at the path named under "Source"
-inside the notofonts release asset NotoSansMath-v3.000.zip. Noto Sans Math is the symbol fallback face
-(ADR-0028 recommendation 3).
+Noto Sans, Noto Sans Condensed, Noto Sans Mono and Noto Sans Math are licensed under the SIL Open Font License,
+Version 1.1 (OFL-1.1); the licence text is LICENSES/OFL-1.1.txt. The files are unmodified copies of static unhinted
+TrueType files and are pinned by SHA-256 in crates/ew-text (ADR-0028 recommendation 6); Noto Sans SemiBold, a face of
+the user interface only (WP-S2.17), is pinned in crates/ew-ui. The Noto Sans and Noto Sans Condensed files are the
+instances of the upstream repository at the commit named in each Source URL (the repository publishes no release
+tags). Noto Sans Mono and Noto Sans Math are not raw commit files: each is the file at the path named under "Source"
+inside a notofonts release asset. Noto Sans Math is the symbol fallback face (ADR-0028 recommendation 3); Noto Sans
+Condensed and Noto Sans Mono are the narrow and the monospaced face a text style may choose (ADR-0028 amendment 2).
 Noto is a trademark of Google Inc. (font name table entry 7); the trademark line is reproduced here as the
 OFL-1.1 requires for redistributed copies (decision ID-51).
 
@@ -46,6 +47,42 @@ assets/fonts/NotoSans-SemiBold.ttf
   Retrieved: 2026-10-28
   SHA-256:   854409525d63d9f716d9ae3545a944e4b2af11abbee744e4f2b4a819eb386482
   Size:      348812 bytes
+
+assets/fonts/NotoSans-Condensed.ttf
+  Family:    Noto Sans Condensed Regular
+  Version:   Version 2.003
+  Copyright: Copyright 2015 Google Inc. All Rights Reserved.
+  Source:    https://raw.githubusercontent.com/notofonts/notosans/f10dc31fb679345cf9ab0cc4fdca061d03a78b82/fonts/ttf/unhinted/instance_ttf/NotoSans-Condensed.ttf
+  Retrieved: 2026-11-17
+  SHA-256:   d84571ad333ac475182f227fc3af6315f281b7585b0ce27b6f0d996f541cbdc1
+  Size:      343420 bytes
+
+assets/fonts/NotoSans-CondensedBold.ttf
+  Family:    Noto Sans Condensed Bold
+  Version:   Version 2.003
+  Copyright: Copyright 2015 Google Inc. All Rights Reserved.
+  Source:    https://raw.githubusercontent.com/notofonts/notosans/f10dc31fb679345cf9ab0cc4fdca061d03a78b82/fonts/ttf/unhinted/instance_ttf/NotoSans-CondensedBold.ttf
+  Retrieved: 2026-11-17
+  SHA-256:   374ebe8989e95f5899bb82d9ca11089b35e1c6390979d2fdc4a28b57cfa8c139
+  Size:      343864 bytes
+
+assets/fonts/NotoSansMono-Regular.ttf
+  Family:    Noto Sans Mono Regular
+  Version:   Version 2.014
+  Copyright: Copyright 2022 The Noto Project Authors (https://github.com/notofonts/latin-greek-cyrillic)
+  Source:    https://github.com/notofonts/latin-greek-cyrillic/releases/download/NotoSansMono-v2.014/NotoSansMono-v2.014.zip (release asset published 2023-09-30, repository commit 9b7310b8f99fcd2583c49606e6aefca13a391350, zip SHA-256 090cf6c5e03f337a755630ca888b1fef463e64ae7b33ee134e9309c05f978732), file NotoSansMono/unhinted/ttf/NotoSansMono-Regular.ttf inside the zip
+  Retrieved: 2026-11-17
+  SHA-256:   87f8ce0522a6c99b743ee5fc75b4073cfdd575639119672828b7b9944b65b4f4
+  Size:      388660 bytes
+
+assets/fonts/NotoSansMono-Bold.ttf
+  Family:    Noto Sans Mono Bold
+  Version:   Version 2.014
+  Copyright: Copyright 2022 The Noto Project Authors (https://github.com/notofonts/latin-greek-cyrillic)
+  Source:    the release asset of NotoSansMono-Regular.ttf above, file NotoSansMono/unhinted/ttf/NotoSansMono-Bold.ttf inside the zip
+  Retrieved: 2026-11-17
+  SHA-256:   1100772b2f79c102402a1011df5e2226517d0f40ac553a25fb12fdbad8c11b85
+  Size:      387484 bytes
 
 assets/fonts/NotoSansMath-Regular.ttf
   Family:    Noto Sans Math Regular

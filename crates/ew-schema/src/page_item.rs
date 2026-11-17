@@ -301,6 +301,11 @@ pub struct FreeText {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<IdentS>")]
     pub style: Option<Ident>,
+    /// This text's own height: the printed height of a capital letter (`crate::cap_height`), in place of its style's;
+    /// absent: the style's (since 0.3.0; an older build prints the style's height).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub height: Option<Nm>,
     /// The horizontal alignment at `at`; absent: left.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub align: Option<TextAlign>,

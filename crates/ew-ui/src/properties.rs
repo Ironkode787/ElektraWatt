@@ -216,6 +216,7 @@ impl PropertiesPane {
                 sheet,
                 shell.editing_folio().as_deref(),
                 shell.supply_in_item(),
+                shell.text_style_link(),
                 events,
             );
             // Doc 16a §6.8: "Filter properties" under the header while the open categories hold more than
@@ -536,6 +537,7 @@ impl PropertiesPane {
         sheet: &PropertySheet,
         editing: Option<&str>,
         link: Option<ew_viewmodel::actions::ActionItem>,
+        style: Option<ew_viewmodel::actions::ActionItem>,
         events: &mut Vec<Event>,
     ) {
         let t = crate::theme::current(ui.ctx());
@@ -586,7 +588,14 @@ impl PropertiesPane {
         egui::Frame::new()
             .inner_margin(egui::Margin::symmetric(crate::theme::margin_px(t.space_4), 0))
             .show(ui, |ui| {
-                Self::header_lines(ui, sheet, &groups, compact, link.as_ref(), events)
+                Self::header_lines(
+                    ui,
+                    sheet,
+                    &groups,
+                    compact,
+                    [link.as_ref(), style.as_ref()],
+                    events,
+                )
             });
         ui.separator();
     }
@@ -598,7 +607,7 @@ impl PropertiesPane {
         sheet: &PropertySheet,
         groups: &[(&str, Vec<(&str, &str)>)],
         compact: bool,
-        link: Option<&ew_viewmodel::actions::ActionItem>,
+        links: [Option<&ew_viewmodel::actions::ActionItem>; 2],
         events: &mut Vec<Event>,
     ) {
         let t = crate::theme::current(ui.ctx());
@@ -654,8 +663,13 @@ impl PropertiesPane {
                 events.push(Event::Action("page.title_block", json!({})));
             }
         }
-        // An interruption point's sheet links Supply comes in here…, or Remove the supply mark (FT-1699).
-        if let Some(item) = link.filter(|i| sheet.read_only.is_none() && i.enabled) {
+        // An interruption point's sheet links Supply comes in here…, or Remove the supply mark (FT-1699); a text's
+        // and a device's sheet name their text style and open Text styles at it.
+        for item in links
+            .into_iter()
+            .flatten()
+            .filter(|i| sheet.read_only.is_none() && i.enabled)
+        {
             let link = egui::Link::new(
                 RichText::new(&item.label)
                     .font(crate::theme::font(&t.type_small))

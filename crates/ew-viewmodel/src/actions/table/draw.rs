@@ -1536,6 +1536,28 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
+    // Project ▸ Setup ▸ Text styles…: the heights, typefaces and bold of the project's texts.
+    with_params(
+        "style?:text",
+        placed(
+            place(
+                Group::Project,
+                5,
+                CommandSize::Small,
+                Some(key!("bar-text-styles")),
+            ),
+            "typography",
+            act(
+                "text_styles.open",
+                Command,
+                Menu::Project,
+                &[],
+                project_open,
+                None,
+                |s, p| s.act_text_styles_open(p),
+            ),
+        ),
+    ),
     // Tools ▸ Run checks.
     placed(
         place(Group::Run, 1, CommandSize::Large, Some(key!("bar-check-project"))),

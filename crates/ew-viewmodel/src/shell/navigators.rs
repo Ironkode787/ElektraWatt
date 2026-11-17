@@ -1406,11 +1406,11 @@ impl ShellModel {
             return self.act_place_pick(&q);
         }
         let Some(open) = node.open.clone() else {
-            // A finding with no page to open (a project-wide one, such as EW-CORE-061 or EW-RDS-002) is a leaf: the
-            // cursor goes to it and nothing opens.
+            // A finding with no page to open (a project-wide one, such as EW-CORE-061 or EW-RDS-002, or a device drawn
+            // on no page) opens where it is mended.
             if node.role == ew_api::output::NavRole::Finding {
                 self.set_cursor(kind, &key);
-                return Outcome::Done;
+                return self.open_finding_elsewhere(&key);
             }
             let mut q = Map::new();
             q.insert("kind".into(), Value::from(kind.word()));

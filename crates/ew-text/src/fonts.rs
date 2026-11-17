@@ -17,12 +17,17 @@ use skrifa::instance::{LocationRef, Size};
 use skrifa::raw::TableProvider;
 
 /// A font family role. Text styles name a role, not a family name, so the project's font set decides the
-/// family (ADR-0028: Noto Sans for [`Family::Default`]).
+/// family (ADR-0028: Noto Sans for [`Family::Default`]; amendment 2: Noto Sans Condensed for [`Family::Narrow`] and
+/// Noto Sans Mono for [`Family::Mono`]).
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
 pub enum Family {
     /// The default drawing family.
     #[default]
     Default,
+    /// The narrow drawing family, for long texts in tight places.
+    Narrow,
+    /// The monospaced drawing family.
+    Mono,
     /// The symbol fallback family (Noto Sans Math, ADR-0028 recommendation 3). A text style does not name
     /// it: [`FontSet::shape`] uses it only for the characters the style's own face lacks.
     Symbols,
@@ -81,7 +86,8 @@ pub struct FaceInfo {
     pub weight: Weight,
     /// Whether it is the italic face.
     pub italic: bool,
-    /// The family name from the font's name table (typographic family, else family).
+    /// The family name from the font's name table (family, else typographic family: the family name ID 1 tells
+    /// Noto Sans Condensed from Noto Sans, which share their typographic family).
     pub family_name: String,
     /// The version string from the font's name table (name ID 5).
     pub version: String,
@@ -419,6 +425,8 @@ impl FontSet {
 pub(crate) const fn engine_family(family: Family) -> &'static str {
     match family {
         Family::Default => "ew-default",
+        Family::Narrow => "ew-narrow",
+        Family::Mono => "ew-mono",
         Family::Symbols => "ew-symbols",
     }
 }
@@ -435,8 +443,8 @@ fn name_string(font: &skrifa::FontRef<'_>, id: skrifa::raw::types::NameId) -> Op
 }
 
 fn family_name(font: &skrifa::FontRef<'_>) -> Option<String> {
-    name_string(font, skrifa::raw::types::NameId::TYPOGRAPHIC_FAMILY_NAME)
-        .or_else(|| name_string(font, skrifa::raw::types::NameId::FAMILY_NAME))
+    name_string(font, skrifa::raw::types::NameId::FAMILY_NAME)
+        .or_else(|| name_string(font, skrifa::raw::types::NameId::TYPOGRAPHIC_FAMILY_NAME))
 }
 
 /// The unscaled metrics of a face. skrifa reports font units as `f32` at [`Size::unscaled`]; for the
@@ -482,15 +490,46 @@ pub const NOTO_SANS_MATH_REGULAR_SHA256: [u8; 32] = [
     0xc0, 0x4f, 0xfe, 0x6d, 0xb1, 0xb9, 0xeb, 0x9e, 0x20, 0x9c, 0x8c, 0x3d, 0x97, 0xb4, 0xaa,
 ];
 
+/// The SHA-256 of the bundled Noto Sans Condensed file (`assets/fonts/NotoSans-Condensed.ttf`), the narrow face.
+pub const NOTO_SANS_CONDENSED_SHA256: [u8; 32] = [
+    0xd8, 0x45, 0x71, 0xad, 0x33, 0x3a, 0xc4, 0x75, 0x18, 0x2f, 0x22, 0x7f, 0xc3, 0xaf, 0x63, 0x15, 0xf2,
+    0x81, 0xb7, 0x58, 0x5b, 0x0c, 0xe2, 0x7b, 0x6f, 0x0d, 0x99, 0x6f, 0x54, 0x1c, 0xbd, 0xc1,
+];
+/// The SHA-256 of the bundled Noto Sans Condensed Bold file (`assets/fonts/NotoSans-CondensedBold.ttf`).
+pub const NOTO_SANS_CONDENSED_BOLD_SHA256: [u8; 32] = [
+    0x37, 0x4e, 0xbe, 0x89, 0x89, 0xe9, 0x5f, 0x58, 0x99, 0xbb, 0x82, 0xd9, 0xca, 0x11, 0x08, 0x9b, 0x35,
+    0xe1, 0xc6, 0x39, 0x09, 0x79, 0xd2, 0xfd, 0xc4, 0xa2, 0x8b, 0x57, 0xcf, 0xa8, 0xc1, 0x39,
+];
+/// The SHA-256 of the bundled Noto Sans Mono Regular file (`assets/fonts/NotoSansMono-Regular.ttf`), the monospaced
+/// face.
+pub const NOTO_SANS_MONO_REGULAR_SHA256: [u8; 32] = [
+    0x87, 0xf8, 0xce, 0x05, 0x22, 0xa6, 0xc9, 0x9b, 0x74, 0x3e, 0xe5, 0xfc, 0x75, 0xb4, 0x07, 0x3c, 0xfd,
+    0xd5, 0x75, 0x63, 0x91, 0x19, 0x67, 0x28, 0x28, 0xb7, 0xb9, 0x94, 0x4b, 0x65, 0xb4, 0xf4,
+];
+/// The SHA-256 of the bundled Noto Sans Mono Bold file (`assets/fonts/NotoSansMono-Bold.ttf`).
+pub const NOTO_SANS_MONO_BOLD_SHA256: [u8; 32] = [
+    0x11, 0x00, 0x77, 0x2b, 0x2f, 0x79, 0xc1, 0x02, 0x40, 0x2a, 0x10, 0x11, 0xdf, 0x5e, 0x22, 0x26, 0x51,
+    0x7d, 0x0f, 0x40, 0xac, 0x55, 0x3a, 0x25, 0xfb, 0x12, 0xfd, 0xba, 0xd8, 0xc1, 0x1b, 0x85,
+];
+
 #[cfg(feature = "bundled-fonts")]
 const NOTO_SANS_REGULAR: &[u8] = include_bytes!("../../../assets/fonts/NotoSans-Regular.ttf");
 #[cfg(feature = "bundled-fonts")]
 const NOTO_SANS_BOLD: &[u8] = include_bytes!("../../../assets/fonts/NotoSans-Bold.ttf");
 #[cfg(feature = "bundled-fonts")]
 const NOTO_SANS_MATH_REGULAR: &[u8] = include_bytes!("../../../assets/fonts/NotoSansMath-Regular.ttf");
+#[cfg(feature = "bundled-fonts")]
+const NOTO_SANS_CONDENSED: &[u8] = include_bytes!("../../../assets/fonts/NotoSans-Condensed.ttf");
+#[cfg(feature = "bundled-fonts")]
+const NOTO_SANS_CONDENSED_BOLD: &[u8] = include_bytes!("../../../assets/fonts/NotoSans-CondensedBold.ttf");
+#[cfg(feature = "bundled-fonts")]
+const NOTO_SANS_MONO_REGULAR: &[u8] = include_bytes!("../../../assets/fonts/NotoSansMono-Regular.ttf");
+#[cfg(feature = "bundled-fonts")]
+const NOTO_SANS_MONO_BOLD: &[u8] = include_bytes!("../../../assets/fonts/NotoSansMono-Bold.ttf");
 
-/// The bundled sources: Noto Sans Regular and Bold as [`Family::Default`], and Noto Sans Math Regular as
-/// the [`Family::Symbols`] fallback, each pinned by hash.
+/// The bundled sources: Noto Sans Regular and Bold as [`Family::Default`], Noto Sans Condensed Regular and Bold as
+/// [`Family::Narrow`], Noto Sans Mono Regular and Bold as [`Family::Mono`], and Noto Sans Math Regular as the
+/// [`Family::Symbols`] fallback, each pinned by hash.
 #[cfg(feature = "bundled-fonts")]
 pub fn bundled_sources() -> Vec<FontSource> {
     vec![
@@ -500,6 +539,14 @@ pub fn bundled_sources() -> Vec<FontSource> {
             .pinned(NOTO_SANS_BOLD_SHA256),
         FontSource::from_static(NOTO_SANS_MATH_REGULAR, Family::Symbols, Weight::Regular, false)
             .pinned(NOTO_SANS_MATH_REGULAR_SHA256),
+        FontSource::from_static(NOTO_SANS_CONDENSED, Family::Narrow, Weight::Regular, false)
+            .pinned(NOTO_SANS_CONDENSED_SHA256),
+        FontSource::from_static(NOTO_SANS_CONDENSED_BOLD, Family::Narrow, Weight::Bold, false)
+            .pinned(NOTO_SANS_CONDENSED_BOLD_SHA256),
+        FontSource::from_static(NOTO_SANS_MONO_REGULAR, Family::Mono, Weight::Regular, false)
+            .pinned(NOTO_SANS_MONO_REGULAR_SHA256),
+        FontSource::from_static(NOTO_SANS_MONO_BOLD, Family::Mono, Weight::Bold, false)
+            .pinned(NOTO_SANS_MONO_BOLD_SHA256),
     ]
 }
 

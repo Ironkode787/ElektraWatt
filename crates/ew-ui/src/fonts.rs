@@ -82,7 +82,32 @@ pub fn definitions() -> FontDefinitions {
     semibold.extend(order);
     defs.families
         .insert(FontFamily::Name(SEMIBOLD_FAMILY.into()), semibold);
+    // Every drawing face as a family of its own, for the Text styles page's samples: the face the page prints with,
+    // then Noto Sans Math for what it lacks.
+    for face in faces.iter().filter(|f| !f.family.contains("Math")) {
+        let name = drawing_name(&face.family, face.weight >= 600.0);
+        defs.font_data.insert(name.clone(), Arc::new(face.data.clone()));
+        let mut list = vec![name.clone()];
+        list.extend(symbols.map(|_| SYMBOLS.to_owned()));
+        defs.families.insert(FontFamily::Name(name.into()), list);
+    }
     defs
+}
+
+/// The name of a drawing face's family in the font definitions.
+fn drawing_name(family: &str, bold: bool) -> String {
+    format!("drawing:{family}:{}", if bold { "bold" } else { "regular" })
+}
+
+/// The egui family that draws `face` as the drawings do, bold or not: the sample of a text style.
+pub fn drawing_family(face: &ew_viewmodel::ew_api::Typeface, bold: bool) -> FontFamily {
+    use ew_viewmodel::ew_api::Typeface;
+    let family = match face {
+        Typeface::Narrow => "Noto Sans Condensed",
+        Typeface::Mono => "Noto Sans Mono",
+        Typeface::Standard | Typeface::Unknown(_) => "Noto Sans",
+    };
+    FontFamily::Name(drawing_name(family, bold).into())
 }
 
 /// Whether the UI's own text faces, Noto Sans Regular and SemiBold, both carry `c` in their character maps (the

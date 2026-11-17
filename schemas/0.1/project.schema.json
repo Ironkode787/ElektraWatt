@@ -797,8 +797,19 @@
     },
     "TextStyleSpec": {
       "additionalProperties": true,
-      "description": "One entry of `ProjectSettings.text_styles`: an override of a built-in style or a new style (ADR-0032).\n\nFamily, italic and alignment are not typed (the bundled face is the only family at MVP, ADR-0028; alignment\nbelongs to the slot) and stay in `extra`.",
+      "description": "One entry of `ProjectSettings.text_styles`: an override of a built-in style or a new style (ADR-0032).\n\nItalic and alignment are not typed (no italic face is bundled, ADR-0028; alignment belongs to the slot) and stay in\n`extra`.",
       "properties": {
+        "face": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Typeface"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The typeface; absent is [`Typeface::Standard`], so a file without it prints as before."
+        },
         "size": {
           "$ref": "#/$defs/Nm",
           "description": "The em height in nm, 500,000 … 50,000,000 (0.5 mm … 50 mm)."
@@ -958,6 +969,26 @@
         }
       },
       "type": "object"
+    },
+    "Typeface": {
+      "description": "The bundled typeface of a text style (ADR-0028 amendment 2): every face is compiled into the program, so a drawing\nlooks the same on every machine; system fonts are never used.",
+      "oneOf": [
+        {
+          "const": "standard",
+          "description": "Noto Sans, the default drawing face.",
+          "type": "string"
+        },
+        {
+          "const": "narrow",
+          "description": "Noto Sans Condensed: narrower letters for long texts in tight places.",
+          "type": "string"
+        },
+        {
+          "const": "mono",
+          "description": "Noto Sans Mono: every character as wide as the next, for columns of numbers and addresses.",
+          "type": "string"
+        }
+      ]
     },
     "Unit": {
       "description": "The units of doc 03 §3.2 and the order units of FR-PRT-026. Persisted as the unit symbol in ASCII\n(`\"mm2\"`, `\"degC\"`), so files stay greppable; rendering uses the typographic symbol.",

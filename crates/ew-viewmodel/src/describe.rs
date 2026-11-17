@@ -2284,6 +2284,29 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
                 lines.push(format!("  note \"{}\"", user(note)));
             }
         }
+        // Text styles: each style by its group and name with its height, typeface, bold and the note of a small one;
+        // the style it opened at, and the line after a change.
+        Dialog::TextStyles(d) => {
+            for row in model.text_style_rows() {
+                lines.push(format!(
+                    "  style \"{}\"{} {}: {} mm, {}{}{}",
+                    user(&row.name),
+                    if d.focus.as_deref() == Some(row.key.as_str()) {
+                        " (opened at)"
+                    } else {
+                        ""
+                    },
+                    crate::shell::text_styles::group_words(row.group),
+                    row.height,
+                    crate::shell::text_styles::face_words(&row.face),
+                    if row.bold { ", bold" } else { "" },
+                    row.small.as_ref().map(|s| format!(" ({s})")).unwrap_or_default(),
+                ));
+            }
+            if let Some(note) = &d.note {
+                lines.push(format!("  note \"{}\"", user(note)));
+            }
+        }
     }
     for b in spec.buttons() {
         match &b.disabled {

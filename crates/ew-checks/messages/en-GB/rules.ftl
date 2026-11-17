@@ -256,9 +256,9 @@ rule-ew-core-053 = { $item }: { $form ->
     .title = Cross-reference cell invalid
     .hint = Restore the default anchor policy, or move the anchor into a cell that holds the graphics.
 
-rule-ew-core-061 = text style { $style } prints with a cap height of { $height } mm, below the minimum of { $minimum } mm
+rule-ew-core-061 = { $name } prints { $height } mm high, too small to read on paper ({ $minimum } mm at least). Make it larger in Text styles.
     .title = Text below minimum height
-    .hint = Enlarge the text style, or change the texts to a style that prints at least at the minimum height.
+    .hint = Open the message: Text styles opens at the style. Make it at least 1.2 mm high there, or press Set to 1.2 mm.
 
 rule-ew-core-063 = a text on folio { $page } has the size { $style }, which no text style binds; give it a text style
     .title = Unstyled text size
@@ -1153,6 +1153,7 @@ fix-plc-take-out = Take it out of the rack
 fix-plc-bind-pins = Bind the channels to their pins
 fix-blank-position = Blanking plate on position { $position }
 fix-draw-valves = Draw its valves in the valve terminal
+fix-text-style-minimum = Set to 1.2 mm
 
 # The words a rule prints where a record has no name of its own (FT-912): a pattern of another language wraps an
 # argument that may hold them in WORD(…), which prints that language's message of the same ID instead.
@@ -1197,6 +1198,25 @@ word-an-f-module = an F-module
 word-the-sensor = the sensor
 word-the-cable = the cable
 word-the-device = the device
+# The text styles by the names the Text styles page lists them under (`messages::text_style_name`).
+word-style-tag-main = Device tag
+word-style-data-small = Device details
+word-style-cp-small = Connection point
+word-style-pin = Plug pin
+word-style-xref-device = Cross-reference
+word-style-marker = Wire marker
+word-style-terminal = Terminal number
+word-style-text-normal = Normal text
+word-style-field-label = Medium text
+word-style-box-title = Box title
+word-style-cover-table = Table title
+word-style-cover-title = Cover title
+word-style-cover-subtitle = Cover subtitle
+word-style-section-id = Section number
+word-style-section-subtitle = Section title
+word-style-imported = Imported text of { $size } pt
+word-style-imported-bold = Imported bold text of { $size } pt
+word-style-own = A text style of this project
 
 rule-ew-imp-251 =
     .title = Drawing without a unit, read in the chosen unit

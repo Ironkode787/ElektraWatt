@@ -210,9 +210,6 @@ pub use ew_schema::LabelFormat;
 pub use ew_schema::PartyRole;
 /// A project's kind: a schematic project, a template (`Basic`) or a macro project (FR-PRJ-026).
 pub use ew_schema::ProjectKind;
-/// The text styles the built-in basic project of a new project writes (ADR-0032 decision 3): the wizard's readable
-/// choice of "Pin numbers and markers".
-pub use ew_schema::new_project_text_styles;
 /// Assets (doc 05 §13.3): the reference a record stores, the sniffer and the base64 form of command parameters.
 pub use ew_schema::{
     AssetError, AssetFormat, AssetRef, MAX_LOGO_BYTES, Sha256, SvgHazard, base64_encode, pixel_limit,
@@ -220,6 +217,13 @@ pub use ew_schema::{
 };
 /// The conflict records a merge leaves (doc 05 §11.2): `ew merge resolve` selects them by kind and member.
 pub use ew_schema::{Conflict, ConflictBody, FILE_CONFLICT_KIND};
+/// The text styles (ADR-0032): what a new project starts with, the effective table, the faces, the groups and the
+/// cap height the Text styles page shows and edits.
+pub use ew_schema::{
+    EffectiveStyle, MIN_CAP_HEIGHT, TEXT_STYLE_MAX_SIZE, TEXT_STYLE_MIN_SIZE, TYPEFACES, TextStyleGroup,
+    TextStyleSpec, TextWeight, Typeface, cap_height, effective_text_styles, em_for_cap,
+    new_project_text_styles, standard_text_style, text_style_entry, text_style_group,
+};
 /// The read-only SQL projection (`ew sql`, the acceptance SQL, ADR-0017): views, sandbox, results.
 pub use ew_sqlview as sql;
 /// The three-way merge of one project file that `ew merge-driver` runs, with the reader's limits, the

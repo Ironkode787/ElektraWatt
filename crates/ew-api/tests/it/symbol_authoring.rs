@@ -310,6 +310,7 @@ fn preview_uses_the_page_text_style_in_every_variant() {
                 row.em
             },
             row.weight,
+            row.family,
         )
     }));
     for variant in 0..8 {
