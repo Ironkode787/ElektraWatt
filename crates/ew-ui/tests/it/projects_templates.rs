@@ -83,3 +83,26 @@ fn a_template_renamed_in_its_list_keeps_the_name_everywhere() {
     };
     assert!(d.starts.iter().any(|l| l.name == "Spare starter"), "{:?}", d.starts);
 }
+
+/// The wizard's step of wire sizes is named by what it sets, and an installation without example pages shows no
+/// Example column that only says it has none.
+#[test]
+fn the_wizard_names_its_wire_step_and_shows_no_empty_example() {
+    let tmp = Tmp::new();
+    for (shell, example) in [
+        (ShellModel::new(Mode::Gui, tmp.config()), false),
+        (gui_shell(&tmp), true),
+    ] {
+        let mut h = harness_with(shell, Scripted::default(), None);
+        settle(&mut h);
+        crate::support::dispatch(&mut h, "tools.company_standard", json!({}));
+        settle(&mut h);
+        assert!(h.query_by_label("4. Wire cross-sections").is_some());
+        assert_eq!(h.query_by_label("Cover page").is_some(), example);
+        assert!(
+            h.query_by_label_contains("do not come with this installation")
+                .is_none()
+        );
+        crate::support::dispatch(&mut h, "wizard.cancel", json!({}));
+    }
+}

@@ -1376,7 +1376,7 @@ sample project, rendered with the current choices on a fork by `ew-render-cpu`.
 | 1 Company | panel-builder name, logo (SVG; PNG accepted with a warning that it prints rasterised, D-07), the company's own notice text for the title-block notice cell | `Party{role: PanelBuilder}`, content-addressed asset | — | the pilot panel builder's logo and notice (kept in the pilot's private basic project, never in the public sample) |
 | 2 Frame and title block | shipped frame and title-block form; mapping of cells to bound fields (descriptions, drawing id, revision, =/+, parties by role, page, Prev/Next, dates); unmapped cells listed | `FormDef` copies, `FrameDefaults` | QET-compatible A4 landscape, 17 columns 0–16, rows A–H | the reproduced title block (±0.2 mm) |
 | 3 Colour profile | start from a shipped profile ("EN 60204-1 machine" or "IEC 60445 installation", [08](08-connections-terminals-cables.md) §4.3) or a company convention; rows voltage class × function → IEC 60757 code and name; a mandatory "basis" text | `ColourProfile` (D-37) | the sample project's convention, "DBU/WH 24 V" (not EN 60204-1 machine, the reason is under the as-built table) | "DBU/WH 24 V", 15 rows, basis "company convention; codes per IEC 60757, DBU is a company code" |
-| 4 Size profile | csa per circuit class; PE rule; the cover note toggle | `SizeProfile` | control 0.75 mm², mains 1.5 mm² | as default |
+| 4 Wire cross-sections | csa per circuit class; PE rule; the cover note toggle | `SizeProfile` | control 0.75 mm², mains 1.5 mm² | as default |
 | 5 Identifiers and numbering | identifier set; device, strip and child schemes; order; wire numbering; xref format; IP pairing | `ProjectSettings` | EN 81346-2:2009 letters (ADR-0026); page-based `{page}{letter}{counter}` (tokens of [03](03-domain-model.md) §8.2) | strips `{letter}{page}{counter}` (-X1031); xref `{page}-{row}{column}` (102-A1); wire numbers `{page}.{counter}`, not printed |
 | 6 Structure and sections | function and location templates, aspect signs, sections with folio ranges and dividers | `StructureNode` templates, `Section` | `=`, `+`, `-` | =P01; sections 1 (100–199), 2 (200–299), 9 (900–999) |
 | 7 Revisions | label format, first label | revision settings | "V{major}.{minor}", V1.0 | four-eyes release is always on (D-34) |
@@ -1393,8 +1393,8 @@ shipped defaults plus the pilot's basic project made with this wizard.
 *As built.* Ten steps, numbered 1 to 10 on the screen (the table's step 10 is 1.0, so Review and create shows
 as 10), each with its fields validated as typed; the draft `ew.wizard-draft/1` lives in the configuration directory until
 the wizard finishes; the right column, **Example**, renders the cover page and a schematic page (folio 102 of the
-sample project) with the current choices on a fork, and never names the sample project: without it, one sentence
-says the example pages do not come with the installation. **Each step explains itself (FT-1629 to FT-1633):** under
+sample project) with the current choices on a fork, and never names the sample project: without it, the column is
+left out rather than saying it has nothing to show. **Each step explains itself (FT-1629 to FT-1633):** under
 its title one or two sentences say what it is and what the choice changes, and a quieter line says whether and where
 it can be changed later (Project ▸ Setup ▸ Project properties for the colour and size profiles, the numbering and
 the cross-reference format; Structure node… and Report block… in a project; the wizard again for the rest). Under
@@ -1425,7 +1425,7 @@ embeds its form. The table shows each field's state:
 | 1 Company | `project.company.set`: the panel builder's name (the first `Party` with the role panel builder, else a new one), the notice text (kept in `Project.extra["ew.company"].notice`, which the provisional `title_block` member already reads) and `personal_data` (true by default, NFR-PRIV-06; nothing reads it yet); only non-empty members are sent, so a typed notice alone leaves the name alone. **The logo:** the `logo` member takes the base64 of an SVG, PNG or JPEG file and writes `ew.company.logo = {sha256, format, size}`, the bytes going to the project's asset store (doc 05 §13.3); the file is at most `MAX_LOGO_BYTES` = 512 KiB, checked from the file size before it is read and again after, and an empty value removes the logo; a raster logo gets the notice that it prints rasterised (D-07) | — |
 | 2 Frame and title block | `project.frames.set`: the default form and the per-page-type forms, chosen among the four shipped forms (frame, cover, divider; compiled in from `content/forms` and embedded as copies), merged into `settings.extra.frames`; `per_page_type` is always written, `[]` when empty; a page without a form of its own takes the frame defaults | the mapping of cells to bound fields (FT-365: a command that forks a form copy, so that the mapping can be edited) |
 | 3 Colour profile | `project.settings.set`: the chosen shipped profile, "EN 60204-1 machine" or "IEC 60445 installation" (our own tables from doc 08 §4.3, shipped with `verified: false` and the project's basis note), or the sample project's convention "DBU/WH 24 V" | — |
-| 4 Size profile | `project.settings.set` | — |
+| 4 Wire cross-sections | `project.settings.set` | — |
 | 5 Identifiers and numbering | `project.settings.set` (the numbering schemes and the cross-reference format) | — |
 | 6 Structure and sections | `structure.create_node`, `section.create` | — |
 | 7 Revisions | `revision.create` (the first revision) | — |

@@ -1034,7 +1034,7 @@ fn the_wizard_shows_each_steps_result_by_clicks_and_keys_and_creates_the_standar
             "24 VDC: Positive dark blue, Signal dark blue, 0V white",
         ),
         (
-            "4. Size profile",
+            "4. Wire cross-sections",
             "A control wire is 0.75 mm² and a mains wire 1.5 mm²",
         ),
         (

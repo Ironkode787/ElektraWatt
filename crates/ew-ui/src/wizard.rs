@@ -323,31 +323,36 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, preview: &mut PageView, events: &mu
     // shows a larger page.
     let form = 2.0 * t.size_text_measure + t.space_6 + 2.0 * t.space_4;
     let example = (ui.available_width() - form).clamp(440.0, 900.0);
-    Panel::right("wizard-preview")
-        .resizable(true)
-        .default_size(example)
-        .show(ui, |ui| {
-            ui.add_space(t.space_3);
-            ui.label(
-                RichText::new(strings::text(key!("wizard-preview-title"))).font(theme::font(&t.type_title)),
-            );
-            ui.horizontal(|ui| {
-                for (cover, key) in [
-                    (true, key!("wizard-preview-cover")),
-                    (false, key!("wizard-preview-page")),
-                ] {
-                    let selected = wizard.preview_is_cover() == cover;
-                    if ui.selectable_label(selected, strings::text(key)).clicked() && !selected {
-                        set(events, "preview", if cover { "cover" } else { "page" });
+    // An installation without the sample project has no example pages: no Example column, rather than a column
+    // that only says so (the Result under each step still shows what the choices make).
+    if shell.has_sample() {
+        Panel::right("wizard-preview")
+            .resizable(true)
+            .default_size(example)
+            .show(ui, |ui| {
+                ui.add_space(t.space_3);
+                ui.label(
+                    RichText::new(strings::text(key!("wizard-preview-title")))
+                        .font(theme::font(&t.type_title)),
+                );
+                ui.horizontal(|ui| {
+                    for (cover, key) in [
+                        (true, key!("wizard-preview-cover")),
+                        (false, key!("wizard-preview-page")),
+                    ] {
+                        let selected = wizard.preview_is_cover() == cover;
+                        if ui.selectable_label(selected, strings::text(key)).clicked() && !selected {
+                            set(events, "preview", if cover { "cover" } else { "page" });
+                        }
                     }
-                }
+                });
+                ui.separator();
+                let folio = wizard.preview_folio();
+                preview.show_source(ui, wizard.preview_rev(), folio, &|_| {
+                    shell.wizard_preview_content()
+                });
             });
-            ui.separator();
-            let folio = wizard.preview_folio();
-            preview.show_source(ui, wizard.preview_rev(), folio, &|_| {
-                shell.wizard_preview_content()
-            });
-        });
+    }
     Panel::bottom("wizard-bar").show(ui, |ui| {
         ui.add_space(t.space_3);
         footer(ui, wizard, events);

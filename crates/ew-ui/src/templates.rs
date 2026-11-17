@@ -273,7 +273,9 @@ pub(crate) fn templates(ui: &mut Ui, d: &TemplatesDialog, events: &mut Vec<Event
                 } else {
                     response.interact(egui::Sense::click())
                 };
-                response.widget_info(|| egui::WidgetInfo::selected(egui::Role::ListItem, true, selected, &row.name));
+                response.widget_info(|| {
+                    egui::WidgetInfo::selected(egui::Role::ListItem, true, selected, &row.name)
+                });
                 if response.clicked() {
                     events.push(Event::Action("templates.select", json!({ "index": i + 1 })));
                 }
