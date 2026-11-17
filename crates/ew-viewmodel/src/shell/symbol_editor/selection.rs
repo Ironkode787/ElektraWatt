@@ -222,7 +222,10 @@ fn move_grip(v: &mut Value, grip: usize, to: [i64; 2]) -> bool {
 /// What Copy and Cut hold: each item's value with its kind, and for a connection point the function pin it draws;
 /// or, in a device box, the pins (name, potential, edge).
 #[derive(Clone, Debug, Default)]
-pub struct Clipboard(Vec<(Item, Value, Option<Value>)>, pub(super) Vec<(String, String, Dir4)>);
+pub struct Clipboard(
+    Vec<(Item, Value, Option<Value>)>,
+    pub(super) Vec<(String, String, Dir4)>,
+);
 
 impl Clipboard {
     /// Whether nothing was copied yet.

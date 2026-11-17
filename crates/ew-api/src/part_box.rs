@@ -594,7 +594,10 @@ impl Session {
             .iter()
             .map(|(id, c)| {
                 let copy = id.as_uuid();
-                (crate::PartPick::Held(copy), self.draft_of(&q, (**c).clone(), copy))
+                (
+                    crate::PartPick::Held(copy),
+                    self.draft_of(&q, (**c).clone(), copy),
+                )
             })
             .collect();
         let registry = self.libraries();
@@ -606,7 +609,10 @@ impl Session {
                 let (library, item) = (c.library_id.as_uuid(), c.item_id.as_uuid());
                 let held: Id<Part> = ew_derive::ew_ids::v5::lib_copy_id(library, item);
                 if q.parts().get(held).is_none() {
-                    out.push((crate::PartPick::Library { library, item }, self.unheld_draft(&q, c)));
+                    out.push((
+                        crate::PartPick::Library { library, item },
+                        self.unheld_draft(&q, c),
+                    ));
                 }
             }
         }

@@ -11,9 +11,9 @@ use super::{Outline, OutlineGroup, RowValue, Sheet, SheetRow, SymbolEditor, Todo
 use crate::notifications::{NoteAction, NoteTone, Validity};
 use crate::shell::{Dialog, Outcome, ShellModel};
 use crate::{key, strings};
+use ew_api::output::Uuid;
 use ew_api::part_box::{BoxSteps, Dir4, EDIT_STEP, PinsFrom};
 use ew_api::{PartDraft, PartDraftError};
-use ew_api::output::Uuid;
 use serde_json::{Map, Value, json};
 
 /// The edges of a box in the order the pin table lists them, each with the word an action names it by.
@@ -483,7 +483,11 @@ impl ShellModel {
     /// copies: the project's copy when it holds one; a part of the person's own library is brought into the project
     /// first (one undo step), so Save makes its next version; any other part is copied into a new part of his own,
     /// the original staying as it is.
-    fn library_box_draft(&mut self, library: Uuid, item: Uuid) -> Result<(PartDraft, Option<String>), Outcome> {
+    fn library_box_draft(
+        &mut self,
+        library: Uuid,
+        item: Uuid,
+    ) -> Result<(PartDraft, Option<String>), Outcome> {
         let target = || Outcome::refused(key!("reason-part-edit-target"));
         let project = self
             .project
@@ -506,7 +510,11 @@ impl ShellModel {
             return Err(out);
         }
         let project = self.project.as_ref().ok_or_else(target)?;
-        project.session.part_draft(d.copy).map(|d| (d, None)).map_err(|_| target())
+        project
+            .session
+            .part_draft(d.copy)
+            .map(|d| (d, None))
+            .map_err(|_| target())
     }
 
     /// `part.box_details` (Part data… in the device box editor): the part editor on the box's draft, with its pins
@@ -597,7 +605,9 @@ impl ShellModel {
             })
             .collect();
         out.sort_by_key(|a| (!a.0, a.2.to_lowercase()));
-        out.into_iter().map(|(_, part, number, detail)| (part, number, detail)).collect()
+        out.into_iter()
+            .map(|(_, part, number, detail)| (part, number, detail))
+            .collect()
     }
 
     /// `part.pin {add?, name?, remove?, pin?, role?, side?, at?, before?}`: the pins of the part being edited. `add`
@@ -844,7 +854,12 @@ impl ShellModel {
                     .into_iter()
                     .filter(|l| b.selection.contains(&l.idx))
                     .map(|l| {
-                        let role = b.draft.pins.iter().find(|p| p.idx == l.idx).map(|p| p.role.clone());
+                        let role = b
+                            .draft
+                            .pins
+                            .iter()
+                            .find(|p| p.idx == l.idx)
+                            .map(|p| p.role.clone());
                         (l.name, role.unwrap_or_default(), l.side)
                     })
                     .collect();
@@ -863,7 +878,11 @@ impl ShellModel {
                         let gui = self.mode == crate::shell::Mode::Gui;
                         self.clip.set(self.symbol_clipboard.text(), None, 0, gui);
                     }
-                    let gone = if action == "cut" { b.selection.clone() } else { Vec::new() };
+                    let gone = if action == "cut" {
+                        b.selection.clone()
+                    } else {
+                        Vec::new()
+                    };
                     let added = b.edit(|d| {
                         for idx in gone {
                             d.remove_pin(idx);
