@@ -377,7 +377,7 @@ impl ShellModel {
         let Some(copy) = row.copy.or_else(|| session.starter_symbol_copy(&row.key)) else {
             return Outcome::refused(key!("reason-unknown-symbol"));
         };
-        let copies = match session.symbol_embed(&row.key) {
+        let mut copies = match session.symbol_embed(&row.key) {
             Ok(params) => params.map(copies_of).unwrap_or_default(),
             Err(error) => {
                 return Outcome::Failed {
@@ -385,6 +385,11 @@ impl ShellModel {
                 };
             }
         };
+        // Its valves and its supply stand in it with their symbols (rc.3).
+        if let Some(c) = self.canvas() {
+            let cells = session.cell_copies(Some(terminal), &[], Some(c.page().tables.page));
+            super::automation::extend_copies(&mut copies, cells);
+        }
         let count = u16::try_from(session.terminal_positions(terminal).len()).ok();
         let target = BoxTarget::Device {
             device: terminal.to_string(),

@@ -87,11 +87,17 @@ station on PROFIBUS DP", "Valve terminal · multipin, wired"):
 1. Choose **Valve terminal** on the Fluid tab and choose the terminal, such as **Valve terminal with PROFIBUS DP bus
    node, 4 valve positions, 8 outputs**; click once where its top-left corner goes. It is drawn as its positions: a supply end, then
    one numbered cell per position. An empty position is a dashed cell, a blanking plate a plate with both diagonals.
+   The supply end holds the terminal's supply port 1 and exhaust ports 3 and 5 on its bottom edge: draw the air to
+   port 1 there. The sub-base under the cells shows the supply and exhaust galleries that join every valve.
    The toast names the terminal and its positions; a click onto another box is refused.
    A terminal made first as a PLC station (**PLC ▸ New station…**) comes first: **Valve terminal** offers
    **Draw -104A1 here** for it, its rack dialog **Draw on a fluid page…**, and its valves stand in their cells.
 2. Click an empty cell, or right-click it and choose **Fill position 2…**: the device browser opens with valves; choose
-   a valve for a valve terminal, and it stands in that cell with its output.
+   a valve for a valve terminal, and it stands in that cell with its output. Its working ports 4 and 2 stand on the
+   cell's top edge: draw the tubes to the cylinder from there. A valve put on a position in the terminal's rack or the
+   PLC list stands in its cell the same way; a valve without a symbol that fits a cell is not offered, with the reason.
+   A valve drawn on another page stays there, and its cell names the place, a link to it. In a project made before
+   that shows valves only by their tags, right-click the terminal and choose **Draw its valves in the terminal**.
 3. Right-click a held cell for **Replace at position 2…**, **Empty position 2** and **Blanking plate at position 2**
    (an empty cell's device browser lists **Blanking plate** first; the check's warning on an empty position offers it
    as its fix, and **Fix all** blanks every empty position at once);

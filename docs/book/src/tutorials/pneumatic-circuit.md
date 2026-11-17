@@ -70,29 +70,46 @@ on the fluid page: it belongs to the valve and stands on an electrical page, whe
     Its row **Solenoid 14** now names the place where the coil is drawn, 1-A4.
 16. Choose **Valve terminal** on the Fluid tab (**Fluid ▸ Valve terminal…**). The device browser opens at the valve
     terminals: choose **Valve terminal with PROFIBUS DP bus node, 4 valve positions, 8 outputs** (EW-GEN-VTM-1) and
-    click once near the top left of the page. Its rack opens in a tab beside the page's; press `Esc` to go back to
-    the page, then choose **Draw ▸ Select**.
-    The valve terminal -2K1 is drawn as its positions: the supply end at the left, then four empty cells numbered 1
-    to 4. The toast says "Placed -2K1 at 2-…: 4 positions, all empty."; one click places one terminal.
+    click once at the left of the page, below the middle. Its rack opens in a tab beside the page's; press `Esc` to go
+    back to the page, then choose **Draw ▸ Select**.
+    The valve terminal -2K1 is drawn as its positions: the supply end at the left with the terminal's supply port 1
+    and exhaust ports 3 and 5 on its bottom edge, then four empty cells numbered 1 to 4 on the sub-base, where the
+    supply and exhaust galleries run through every position. The toast says "Placed -2K1 at 2-…: 4 positions, all
+    empty."; one click places one terminal.
 17. Click the empty cell 1. The device browser opens with the valves made for a terminal; type `valve terminal` into
     its search and choose
     **Solenoid valve 5/2 for a valve terminal, spring return** (EW-GEN-VLV-3).
-    The valve -2Q2 stands in cell 1 with its output, Q1.0.
+    The valve -2Q2 stands in cell 1 with its output, Q1.0: its working ports 4 and 2 on the top edge of the cell, its
+    ports 5, 1 and 3 joined to the galleries below it.
 18. Click the empty cell 2 and choose the same valve.
     The valve -2Q3 stands in cell 2 with Q1.2. Click the terminal: its row **Valve positions** reads "1 -2Q2 · 2 -2Q3
     · 3 empty · 4 empty". The check asks for a valve or a blanking plate in the empty cells; a right click on a cell
-    offers both.
+    offers both. A valve put on a position another way, in the terminal's rack or its row in the PLC list, stands in
+    its cell the same way.
+19. Choose **Draw ▸ Place ▸ Symbol…**, choose **air-supply**, then **Draw ▸ Arrange ▸ Mirror top to bottom** (`Y`),
+    so that its port 1 points up, and click under the left end of the terminal. Choose **Draw ▸ Select**.
+    The supply point -2X2 stands under the terminal, joined by a tube to its supply port 1: the toast says "Placed
+    -2X2 and connected 1 tube".
+20. Click -2X2. In Properties, open the **Medium** row and choose **Compressed air**.
+    The air reaches the terminal's supply gallery, and through it port 1 of every valve on the terminal.
+21. Choose **Draw ▸ Place ▸ Device from part…**, choose **Cylinder double-acting, bore 32 mm, stroke 100 mm**
+    (EW-GEN-CYL-1) and click above the terminal, to the right of -2Q2. Choose **Draw ▸ Select**.
+    The cylinder -2M2 is on the page.
+22. Choose **Draw ▸ Connect ▸ Wire** (`W`) and draw two tubes: 4 of -2Q2 to A of -2M2, and 2 of -2Q2 to B of -2M2.
+    Choose **Draw ▸ Select**.
+    The tubes leave the valve's working ports upwards. Click -2M2: its rows **Port A** and **Port B** read
+    "Compressed air, 6 bar", the air that comes from -2X2 through the terminal and the valve.
 
-    ![The fluid page: the circuit to the cylinder, and the valve terminal with two valves](images/pneumatic-circuit.png)
+    ![The fluid page: the circuit to the cylinder, and the valve terminal with two valves, its supply and a cylinder](images/pneumatic-circuit.png)
 
-19. Choose **Fluid settings** on the Fluid tab (**Fluid ▸ Fluid settings…**). Type the default tube's outer diameter
+23. Choose **Fluid settings** on the Fluid tab (**Fluid ▸ Fluid settings…**). Type the default tube's outer diameter
     `6`, inner diameter `4`, choose the material **PU**, and confirm.
     The toast says "The default tube is 6 × 4 mm PU (polyurethane) now: every tube without one of its own takes it,
     the tubes drawn already too."
-20. Choose **Tube table** on the Fluid tab (**Fluid ▸ Tube table**).
+24. Choose **Tube table** on the Fluid tab (**Fluid ▸ Tube table**).
     The tube list opens under the page, one row per tube with its two ends, its medium (Compressed air), its line kind
     and its size, 6×4 PU. The length stays empty until you type it.
-21. Choose **File ▸ Save** (`Ctrl+S`).
+25. Choose **File ▸ Save** (`Ctrl+S`).
     The title bar no longer marks the project as changed.
 
 ## Two kinds of valve
@@ -106,7 +123,8 @@ station on the bus: its output is given by its position, and nothing is wired pe
 - A fluid page draws the circuit with ISO 1219 symbols; the Wire tool draws tubes there.
 - The medium is defined once, at the air supply, and every tube it reaches carries it.
 - A valve's solenoid is drawn on an electrical page from the valve, and the two know each other.
-- A valve terminal is drawn as its positions; a click on a cell fills it.
+- A valve terminal is drawn as its positions; a click on a cell fills it, and its valve stands there with ports a
+  tube reaches. The terminal's own supply port 1 feeds every valve on it.
 - The tube table lists the tubes with their ends, medium and size; **Output ▸ Report block…** prints it as a tube list.
 
 To look up these jobs later, see [Work in the Fluid workspace](../how-to/fluid-workspace.md).

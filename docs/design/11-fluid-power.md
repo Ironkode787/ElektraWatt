@@ -429,7 +429,7 @@ flowchart TB
 *As built (rc.2, F15).* On a fluid page a valve terminal is drawn **as its positions**: a black box whose
 `BoxSpec.slots {pitch}` (an optional member, additive in format 0.1) marks it, laid out by `ew_derive::SlotFrame` on the
 page grid: a supply end of six grid steps, then one cell of `pitch` (eleven grid steps, a 5/2 valve of the 12 mm module
-with a step to spare) per position in a row, eight steps high, the sub-base the bottom two with each cell's number in
+with a step to spare) per position in a row, eight steps high, the sub-base the bottom four (two before rc.3) with each cell's number in
 it. A row reads best with upright valves whose working ports 2 and 4 leave the box upwards while ports 1, 3 and 5 end
 on the sub-base (the galleries join them, §5.2; the terminal itself is the first gallery slot, so a terminal part that
 taps a gallery feeds it). The cells are the terminal's positions, then its modules' (`terminal_cells`); their content is
@@ -452,7 +452,26 @@ own. The browser an empty cell opens lists the valves made for a terminal alone 
 the first chosen. The box's menu lists, on a cell, that position, and on its body every position, each under a heading
 ("Position 2: empty") with Fill…, Replace…, Empty and Blanking plate; the terminal's kind is a heading too. A page drawn
 before stays as it is: `valve_terminal.draw_slots {rep}` (Draw as slots, previewed) redraws a free
-box as its positions. A box drawn as its positions is not reshaped (`box.reshape` refuses it). Not built: a terminal
+box as its positions. A box drawn as its positions is not reshaped (`box.reshape` refuses it).
+
+*As built (rc.3, G16).* A filled position shows its valve however it was filled. A valve stands in its cell with its
+working ports 2 and 4 on the cell's top edge, where a tube leaves upwards; the sub-base is four grid steps high and
+draws the galleries 1, 3 and 5 as lines through every position (`ew_derive::GALLERY_PORTS`), each valve port that ends
+on it joined to its own gallery with a dot, the cell numbers under them. `seat_reps` makes the valves' functions first
+(as N-FL-1 makes them), then draws, on the terminal's first box drawn as its positions, every valve drawn on no page in
+its cell and the terminal's supply in the supply end: a terminal without a supply plate gets a supply function of its
+own (an auxiliary function on the supply FnDef, `ew_derive::is_supply_def`, drawn with the symbol's `ports`
+arrangement, so the tag is printed once), whose ports 1, 3 and 5 feed the galleries (`galleries`, `terminal_supply`)
+and take a tube; EW-FL-010 then points at a port that exists. `valve.add` seats as the other position commands do;
+emptying a position deletes the valve with its symbols. A symbol is drawn only when the project embeds one for the
+page's grid (`cell_symbol`): the window sends the starter symbols with every command that fills a position or draws the
+box (`Session::cell_copies`). A valve drawn on another page stays there; its cell prints its tag and the place of its
+symbol (`(202-B3)`), a jump to it. A project made before: `valve_terminal.draw_valves {terminal, copies?}` (Draw its
+valves in the terminal: the terminal's menu, its station view's To do, and the quick fix of EW-CORE-047 for a valve of
+a terminal drawn as its positions) draws what is missing and moves valves an earlier build seated lower;
+`valve_terminal.draw_slots` takes `copies` too. A valve for a terminal whose valve FnDef has no fluid symbol at most a
+cell wide (`CataloguePart::cell_symbol`; a 5/3 valve's is 15 steps) is listed by the station view and the cell's
+browser with the reason, and not put on a position. Not built: a terminal
 part with several sizes whose count is asked when it is made (it needs a device-level position count that the channel
 instantiation honours, which an older build would not: not additive).
 

@@ -670,3 +670,223 @@ fn a_multipin_plug_says_its_pins_and_its_wired_outputs_drive_the_solenoids() {
     };
     assert!(notes.contains(&"2 · 14".to_owned()), "{notes:?}");
 }
+
+/// `copies` with the documents of `more` it does not hold yet, as the window merges them.
+fn merged(mut copies: Vec<Value>, more: Vec<Value>) -> Vec<Value> {
+    for c in more {
+        if !copies.iter().any(|x| x["id"] == c["id"]) {
+            copies.push(c);
+        }
+    }
+    copies
+}
+
+/// The starter terminal drawn as its positions near `at` as the window draws it, with the symbols of its supply; its ID.
+fn place_drawn_terminal(s: &mut Session, at: (i64, i64)) -> Uuid {
+    let part = library_part(s, "EW-GEN-VTM-1");
+    let key = edition(s, "ew.gen.blackbox");
+    let page = fluid_page(s);
+    let copies = s
+        .starter_embed_part(part, &key)
+        .expect("closure")
+        .map(|c| c["copies"].as_array().cloned().unwrap_or_default())
+        .unwrap_or_default();
+    let copies = merged(copies, s.cell_copies(None, &[], Some(page)));
+    let symbol = s.starter_symbol_copy(&key).expect("the black box");
+    let count = s.part_positions(part).expect("the terminal's positions");
+    let (pos, b) = s.slot_box(page, at, count).expect("a box");
+    let made = new_devices(s, |s| {
+        run(
+            s,
+            "box.black",
+            json!({"page": page.to_string(), "symbol": symbol.to_string(), "pos": [pos.0, pos.1], "box": b,
+            "target": {"from_part": {"part": part.to_string(), "template": 0, "letter": "K"}},
+            "copies": copies}),
+        )
+        .expect("the terminal");
+    });
+    made[0]
+}
+
+/// Position `position` of `terminal` filled with the starter valve for a terminal, as the rack fills it
+/// (`valve.set_occupancy`); with `symbols`, the symbols that draw it in its cell go with it, as the window sends them.
+fn fill(s: &mut Session, terminal: Uuid, position: u32, symbols: bool) -> Uuid {
+    let part = library_part(s, "EW-GEN-VLV-3");
+    let mut copies = s.module_part_copies(part);
+    if symbols {
+        copies = merged(copies, s.cell_copies(Some(terminal), &[part], None));
+    }
+    run(
+        s,
+        "valve.set_occupancy",
+        json!({"module": terminal.to_string(), "position": position,
+        "occupancy": {"valve": {"state": "used", "part": part.to_string()}}, "copies": copies}),
+    )
+    .expect("filled");
+    cells(s, terminal)[position as usize - 1]
+        .holder
+        .expect("the valve")
+}
+
+/// The ports of `device`'s symbols on page 201 (no box): designation and point.
+fn ports(s: &Session, device: Uuid) -> Vec<(String, (i64, i64))> {
+    let t = tables(s);
+    t.cps
+        .iter()
+        .filter(|c| {
+            t.reps
+                .iter()
+                .any(|r| r.id == c.rep && r.device == Some(device) && r.black_box.is_none())
+        })
+        .map(|c| (c.label.rsplit(':').next().unwrap_or_default().to_owned(), c.at))
+        .collect()
+}
+
+/// A tube from port `a` of `x` to port `b` of `y` on page 201.
+fn tube(s: &mut Session, (x, a): (Uuid, &str), (y, b): (Uuid, &str)) -> Result<(), String> {
+    let t = tables(s);
+    let end = |dev: Uuid, d: &str| {
+        let cp = t
+            .cps
+            .iter()
+            .find(|c| {
+                c.label.rsplit(':').next() == Some(d)
+                    && t.reps.iter().any(|r| r.id == c.rep && r.device == Some(dev))
+            })
+            .unwrap_or_else(|| panic!("no port {d}"));
+        json!({"cp": {"function": cp.function.to_string(), "idx": cp.idx}})
+    };
+    let page = fluid_page(s);
+    run(
+        s,
+        "connection.draw",
+        json!({"page": page.to_string(), "kind": {"fluid": {}}, "a": end(x, a), "b": end(y, b)}),
+    )
+}
+
+/// The open findings of rule `rule` on `device`.
+fn findings(s: &Session, rule: &str, device: Uuid) -> Vec<ew_api::checks::Finding> {
+    s.check(s.online_scheme(), ew_api::checks::CheckMode::Online)
+        .findings
+        .into_iter()
+        .filter(|f| f.rule == rule && f.is_open() && f.targets.iter().any(|t| t.id.as_uuid() == device))
+        .collect()
+}
+
+/// G16 (rc.3): a position filled from the rack stood as a tag in its cell, without a port. Now the valve stands in its
+/// cell as its symbol, its working ports 2 and 4 on the cell's top edge, and tubes reach them from a cylinder; the
+/// terminal's supply ports 1, 3 and 5 stand in its left end, where a tube from the air supply quiets EW-FL-010; emptying
+/// the position takes the symbol away.
+#[test]
+fn rc3_a_position_filled_from_the_rack_shows_its_valve_and_its_ports_take_tubes() {
+    let mut s = project(191);
+    let vt = place_drawn_terminal(&mut s, (60_000_000, 80_000_000));
+    let v = fill(&mut s, vt, 2, true);
+    let c = cells(&s, vt);
+    let r = rep_of(&s, v);
+    assert!(
+        c[1].rect[0] < r.pos.0 && r.pos.0 < c[1].rect[2],
+        "its symbol stands in cell 2"
+    );
+    let p = ports(&s, v);
+    for working in ["2", "4"] {
+        let at = p.iter().find(|(d, _)| d == working).map(|(_, at)| at.1);
+        assert_eq!(at, Some(c[1].rect[1]), "port {working} on the top edge");
+    }
+    let cyl = place_into(
+        &mut s,
+        "EW-GEN-CYL-1",
+        "ew.iso.cylinder-double-acting",
+        (60_000_000, 30_000_000),
+        vt,
+    )
+    .expect("the cylinder");
+    tube(&mut s, (v, "4"), (cyl, "A")).expect("a tube to port 4");
+    tube(&mut s, (v, "2"), (cyl, "B")).expect("a tube to port 2");
+    // The terminal's own supply in its left end.
+    let mut supply: Vec<String> = ports(&s, vt).into_iter().map(|(d, _)| d).collect();
+    supply.sort();
+    assert_eq!(supply, ["1", "3", "5"]);
+    assert_eq!(findings(&s, "EW-FL-010", vt).len(), 1, "no air yet");
+    let air = place_into(
+        &mut s,
+        "EW-GEN-AIR-1",
+        "ew.iso.air-supply",
+        (20_000_000, 150_000_000),
+        vt,
+    )
+    .expect("the air supply");
+    tube(&mut s, (air, "1"), (vt, "1")).expect("a tube to the supply port");
+    assert!(findings(&s, "EW-FL-010", vt).is_empty(), "air reaches gallery 1");
+    // Emptied, the position holds no symbol.
+    run(
+        &mut s,
+        "valve.set_occupancy",
+        json!({"module": vt.to_string(), "position": 2, "occupancy": "empty"}),
+    )
+    .expect("emptied");
+    assert!(!tables(&s).reps.iter().any(|r| r.device == Some(v)));
+}
+
+/// G16 (rc.3), a project made before: valves put on the positions without a symbol stand as tags, each reported "not
+/// drawn on any page" with the fix Draw its valves in the terminal. The fix draws them in their cells and the
+/// terminal's supply in its left end; a valve drawn on another page on purpose stays there, and its cell names the
+/// place it is drawn at, linked to it.
+#[test]
+fn rc3_a_project_made_before_draws_its_valves_in_the_terminal() {
+    let mut s = project(192);
+    let vt = place_terminal(&mut s, (60_000_000, 80_000_000));
+    let (a, b) = (fill(&mut s, vt, 1, false), fill(&mut s, vt, 2, false));
+    let not_drawn = findings(&s, "EW-CORE-047", a);
+    let fix = not_drawn
+        .first()
+        .and_then(|f| f.fix.clone())
+        .expect("a quick fix");
+    assert_eq!(fix.command, "valve_terminal.draw_valves");
+    assert!(s.valves_to_draw(vt));
+    // Valve b drawn on page 202 on purpose.
+    run(&mut s, "page.create", json!({"kind": "fluid", "number": 202})).expect("page 202");
+    let page202 = s.page_tables("202").expect("page 202").page;
+    let key = edition(&s, "ew.iso.valve-5-2-sol-spring");
+    let embed = s.starter_embed(&key).unwrap_or(json!({"copies": []}));
+    let symbol = s.starter_symbol_copy(&key).expect("the valve symbol");
+    let function = ew_derive::valve_functions(&s.query(), Id::from_uuid(b))[0];
+    let at = s
+        .slot_box(page202, (40_000_000, 40_000_000), 1)
+        .expect("a point")
+        .0;
+    run(
+        &mut s,
+        "device.place",
+        json!({"page": page202.to_string(), "symbol": symbol.to_string(), "pos": [at.0, at.1],
+        "target": {"existing_function": {"function": function.as_uuid().to_string()}}, "copies": embed["copies"]}),
+    )
+    .expect("b on page 202");
+    let mut params = fix.params.clone();
+    params["copies"] = Value::Array(s.cell_copies(Some(vt), &[], None));
+    run(&mut s, "valve_terminal.draw_valves", params).expect("drawn");
+    let c = cells(&s, vt);
+    let r = rep_of(&s, a);
+    assert!(c[0].rect[0] < r.pos.0 && r.pos.0 < c[0].rect[2], "a in its cell");
+    assert!(findings(&s, "EW-CORE-047", a).is_empty());
+    assert!(
+        !tables(&s).reps.iter().any(|r| r.device == Some(b)),
+        "b stays on page 202"
+    );
+    let mut supply: Vec<String> = ports(&s, vt).into_iter().map(|(d, _)| d).collect();
+    supply.sort();
+    assert_eq!(supply, ["1", "3", "5"]);
+    let q = s.query();
+    let views = ew_api::output::page_valve_cells(&q, Id::from_uuid(fluid_page(&s)));
+    match &views[0].cells[1].1 {
+        ew_scene::page::CellView::Valve {
+            elsewhere: Some(_),
+            drawn_at: Some((place, rep)),
+        } => {
+            assert!(place.starts_with("202"), "{place}");
+            assert_eq!(q.reps().get(*rep).map(|r| r.page.as_uuid()), Some(page202));
+        }
+        other => panic!("{other:?}"),
+    }
+    assert!(!s.valves_to_draw(vt), "nothing left to draw");
+}

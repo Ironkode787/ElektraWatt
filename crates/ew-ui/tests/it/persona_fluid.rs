@@ -2216,6 +2216,95 @@ fn rc2_a_terminal_made_as_a_station_is_drawn_on_the_fluid_page() {
     d.shell_mut().shutdown();
 }
 
+/// rc.3 (G16): valves put on a valve terminal's positions in its station view stood in its cells as tags only, with no
+/// port a tube could reach. Drawn on the fluid page from the view's Draw on a fluid page…, each valve stands in its cell
+/// as its symbol, its working ports 2 and 4 on the cell's top edge, and the terminal's own supply ports 1, 3 and 5 in
+/// its left end; a tube joins port 4 of a valve to a cylinder, and the view's positions name the page.
+#[test]
+fn rc3_valves_filled_in_the_station_view_stand_in_their_cells_with_ports() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    let _ = d.shell_mut().dispatch("plc.new_station", &json!({}));
+    let set = json!({"head": "EW-GEN-VTM-1"});
+    assert_eq!(d.shell_mut().dispatch("plc.rack_set", &set), Outcome::Done);
+    assert_eq!(
+        d.shell_mut().dispatch("plc.rack_create", &json!({})),
+        Outcome::Done
+    );
+    let station = d
+        .shell_mut()
+        .station_tab()
+        .and_then(|t| t.station)
+        .expect("the station's view");
+    for _ in 0..2 {
+        let add = json!({"part": "EW-GEN-VLV-3"});
+        assert_eq!(d.shell_mut().dispatch("plc.rack_add", &add), Outcome::Done);
+    }
+    let fluid = json!({"step": "fluid"});
+    assert_eq!(d.shell_mut().dispatch("plc.rack_next", &fluid), Outcome::Done);
+    assert_eq!(d.shell_mut().tool().name(), "black_box");
+    click_at(&mut d, (760, 400));
+    d.input(&key("escape"));
+    d.settle();
+    let c = cells_of(&mut d, station);
+    assert_eq!(c.len(), 4, "drawn as its positions");
+    let tables = std::sync::Arc::clone(&d.shell_mut().canvas().unwrap().page().tables);
+    let ports_of = |device: Uuid| -> Vec<(String, (i64, i64))> {
+        tables
+            .cps
+            .iter()
+            .filter(|p| {
+                tables
+                    .reps
+                    .iter()
+                    .any(|r| r.id == p.rep && r.device == Some(device) && r.black_box.is_none())
+            })
+            .map(|p| (p.label.rsplit(':').next().unwrap_or_default().to_owned(), p.at))
+            .collect()
+    };
+    let mut valves = Vec::new();
+    for cell in &c[..2] {
+        let valve = cell.holder.expect("a valve on the position");
+        let symbol = tables
+            .reps
+            .iter()
+            .find(|r| r.device == Some(valve))
+            .expect("the valve's symbol on the page");
+        assert!(
+            cell.rect[0] < symbol.pos.0 && symbol.pos.0 < cell.rect[2],
+            "in its cell"
+        );
+        let ports = ports_of(valve);
+        for working in ["2", "4"] {
+            let at = ports.iter().find(|(d, _)| d == working).map(|(_, at)| *at);
+            assert_eq!(
+                at.map(|a| a.1),
+                Some(cell.rect[1]),
+                "port {working} on the top edge"
+            );
+        }
+        valves.push(valve);
+    }
+    let mut supply: Vec<String> = ports_of(station).into_iter().map(|(d, _)| d).collect();
+    supply.sort();
+    assert_eq!(supply, ["1", "3", "5"], "the terminal's supply ports");
+    // A tube from port 4 of the first valve to a cylinder above the terminal.
+    place_symbol(&mut d, "ew.iso.cylinder-double-acting@qet10", (900, 250));
+    let cylinder = device_drawn(&mut d, "ew.iso.cylinder");
+    let (a, b) = (port(&mut d, valves[0], "4"), port(&mut d, cylinder, "A"));
+    draw_tube(&mut d, a, b);
+    assert_eq!(tubes(&mut d), 1, "the tube");
+    let view = d.shell_mut().rack_view(station).expect("the station's view");
+    let pages: Vec<Option<String>> = view
+        .cells
+        .iter()
+        .filter(|c| c.at.holder.is_some())
+        .map(|c| c.at.page.clone())
+        .collect();
+    assert_eq!(pages, [Some("201".to_owned()), Some("201".to_owned())]);
+    d.shell_mut().shutdown();
+}
+
 /// The owner's order (rc.2): the valve terminal made as a station and drawn on the schematic page first, then on the
 /// fluid page from its rack dialog: there too it is drawn as its positions, another drawing of the same terminal.
 #[test]
