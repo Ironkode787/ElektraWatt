@@ -1999,15 +1999,7 @@ impl ShellModel {
             num as f64 / den.max(1) as f64 / 1e6
         });
         (1..=TERMINAL_SPACING_MAX)
-            .map(|k| {
-                let mm = format!("{:.1}", step_mm * f64::from(k));
-                let words = if k == 1 {
-                    strings::format(key!("terminal-spacing-one"), &[&mm])
-                } else {
-                    strings::format(key!("terminal-spacing-steps"), &[&k.to_string(), &mm])
-                };
-                (k.to_string(), words)
-            })
+            .map(|k| (k.to_string(), spacing_words(k, step_mm)))
             .collect()
     }
 
@@ -2974,10 +2966,37 @@ fn copies_of(params: Value) -> Vec<Value> {
     }
 }
 
+/// A spacing of `k` grid steps of `step_mm` millimetres in words, the length with the window's decimal sign as a
+/// text style's height is ("2 grid steps · 8.0 mm", "8,0 mm" in Dutch).
+fn spacing_words(k: u32, step_mm: f64) -> String {
+    let mm = strings::decimal(&format!("{:.1}", step_mm * f64::from(k)));
+    if k == 1 {
+        strings::format(key!("terminal-spacing-one"), &[&mm])
+    } else {
+        strings::format(key!("terminal-spacing-steps"), &[&k.to_string(), &mm])
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::text_with_key;
-    use crate::key;
+    use super::{spacing_words, text_with_key};
+    use crate::{key, strings};
+
+    /// rc.3 review: the Spacing field's lengths take the window's decimal sign.
+    #[test]
+    fn a_spacing_reads_with_the_windows_decimal_sign() {
+        assert_eq!(spacing_words(2, 4.0), "2 grid steps · 8.0 mm");
+        assert!(strings::set_locale("nl"));
+        let dutch = (spacing_words(1, 4.0), spacing_words(2, 4.0));
+        assert!(strings::set_locale("en"));
+        assert_eq!(
+            dutch,
+            (
+                "1 rasterstap · 4,0 mm".to_owned(),
+                "2 rasterstappen · 8,0 mm".to_owned()
+            )
+        );
+    }
 
     /// FT-896: the two black-box refusals name the key from the keymap, or leave the parenthesis out when the action
     /// has no key.
