@@ -356,6 +356,9 @@ static PAGE_NEW: Spec = Spec {
 };
 
 /// New section's form (`section.new`), its number and folio range proposed.
+/// The action of Edit section…'s form.
+const SECTION_EDIT: &str = "section.edit";
+
 static SECTION_NEW: Spec = Spec {
     action: "section.new",
     title_key: key!("new-section-title"),
@@ -1161,6 +1164,99 @@ impl ShellModel {
             );
         }
         self.form_done(SECTION_NEW.action, out)
+    }
+
+    /// The project's sections by number with their titles, for the links of the project's Properties.
+    pub fn project_sections(&self) -> &[(u16, String)] {
+        self.project.as_ref().map_or(&[], |p| p.sections.as_slice())
+    }
+
+    /// `section.edit {number, title?, first?, last?}` (Edit section… on a section of the Pages list, a section's link in
+    /// Project properties): the section's title and folio range in one step, so a section of a running project is
+    /// renamed and given its range there, not only in the template. Without a title or a range the window opens the
+    /// form with the section's own; a range is whole numbers, the first not after the last.
+    pub(crate) fn act_section_edit(&mut self, p: &Map<String, Value>) -> Outcome {
+        let mut v = Vec::new();
+        for name in ["number", "title", "first", "last"] {
+            match text_param(p, name) {
+                Ok(t) => v.push(t),
+                Err(e) => return e,
+            }
+        }
+        let [number, title, first, last] = <[String; 4]>::try_from(v).expect("four fields");
+        let Some(project) = &self.project else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let q = project.session.query();
+        let found = number.parse::<u16>().ok().and_then(|n| {
+            q.sections()
+                .iter()
+                .find(|(_, s)| s.number == n)
+                .map(|(id, s)| (id.as_uuid().to_string(), s.folio_range))
+        });
+        let shown = project
+            .sections
+            .iter()
+            .find(|(n, _)| n.to_string() == number)
+            .map(|(_, t)| t.clone())
+            .unwrap_or_default();
+        let Some((id, (from, to))) = found else {
+            let message = strings::format(key!("error-section-missing"), &[&number]);
+            return self.form_failed(SECTION_EDIT, message);
+        };
+        let in_form = self.in_form_of(SECTION_EDIT);
+        if !in_form && title.is_empty() && first.is_empty() && last.is_empty() {
+            if self.mode != Mode::Gui {
+                return failed(key!("error-missing-param"), &["title"]);
+            }
+            let field = |name: &'static str, label_key, value: String| FormField {
+                name,
+                label_key,
+                choices: &super::choices::NONE,
+                options: Vec::new(),
+                value,
+            };
+            return self.open_dialog(Dialog::Form(FormDialog {
+                action: SECTION_EDIT,
+                title_key: key!("edit-section-title"),
+                ok_key: key!("dialog-apply"),
+                fields: vec![
+                    field("number", key!("form-section"), number),
+                    field("title", key!("form-title"), shown),
+                    field("first", key!("form-section-first"), from.to_string()),
+                    field("last", key!("form-section-last"), to.to_string()),
+                ],
+                error: None,
+                table: None,
+            }));
+        }
+        let whole = |name: &str, text: &str, kept: u32| {
+            if text.is_empty() {
+                return Ok(kept);
+            }
+            text.parse::<u32>()
+                .map_err(|_| strings::format(key!("error-section-whole-number"), &[name, text]))
+        };
+        let range = whole("first", &first, from).and_then(|a| Ok((a, whole("last", &last, to)?)));
+        let (a, b) = match range {
+            Ok((a, b)) if a <= b => (a, b),
+            Ok((a, b)) => {
+                let message = strings::format(key!("error-section-range"), &[&a.to_string(), &b.to_string()]);
+                return self.form_failed(SECTION_EDIT, message);
+            }
+            Err(message) => return self.form_failed(SECTION_EDIT, message),
+        };
+        let edit = |path: &str, value: Value| json!({"kind": "section", "targets": [id], "path": path, "value": value});
+        let mut edits = vec![edit("folio_range", json!([a, b]))];
+        if !title.is_empty() || in_form {
+            edits.push(edit("title", Value::String(title)));
+        }
+        let cmd = ew_api::AnyCommand {
+            name: "fields.set_many".to_owned(),
+            params: json!({ "edits": edits }),
+        };
+        let out = self.run_commit(&cmd);
+        self.form_done(SECTION_EDIT, out)
     }
 
     /// The parent the New structure node dialog proposes for a node of aspect `kind`: the

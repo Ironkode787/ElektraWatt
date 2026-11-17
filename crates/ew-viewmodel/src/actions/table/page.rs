@@ -61,6 +61,19 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             }),
         ),
     ),
+    // Edit section… (the Pages list's section row, Project properties): a section's title and folio range.
+    with_params(
+        "number:uint, title?:text, first?:uint, last?:uint",
+        hidden(act(
+            "section.edit",
+            Command,
+            Menu::Page,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_section_edit(p),
+        )),
+    ),
     // Page, Renumber pages…
     with_params(
         "section?:text, start?:uint, step?:uint, keep_gaps?:bool",

@@ -211,3 +211,85 @@ fn closing_the_wizard_with_answers_asks_and_keeps_them() {
     assert!(h.state().shell().wizard().is_none());
     assert!(!draft.exists(), "the answers are dropped");
 }
+
+/// Sections of a running project, as a persona run needed them: a page put in a section that is not there is refused
+/// with a sentence that says how to make it; New section… makes it; its row in the Pages list and its link in Project
+/// properties open Edit section…, which renames it and changes its folio range in one step.
+#[test]
+fn a_running_projects_sections_are_made_renamed_and_ranged() {
+    let tmp = Tmp::new();
+    let mut shell = gui_shell(&tmp);
+    let dir = tmp.0.join("job").to_string_lossy().into_owned();
+    crate::support::done(&mut shell, "file.new", json!({"dir": dir, "template": "builtin"}));
+    let refused = shell.dispatch(
+        "page.new",
+        &json!({"folio": "301", "type": "multi_line", "section": "3"}),
+    );
+    let ew_ui::ew_viewmodel::shell::Outcome::Failed { message } = refused else {
+        panic!("{refused:?}")
+    };
+    assert!(message.starts_with("The project has no section 3 yet: make it with New section…"), "{message}");
+    assert!(!message.contains("section:"), "{message}");
+    crate::support::done(
+        &mut shell,
+        "section.new",
+        json!({"number": "3", "title": "Cabinet", "first": "300", "last": "399"}),
+    );
+    let mut h = harness_with(shell, Scripted::default(), None);
+    settle(&mut h);
+    // The Pages list's section row: its menu edits it.
+    h.get_by_label("Section 3 - Cabinet, section").click_secondary();
+    settle(&mut h);
+    h.get_by_label("Edit section…").click();
+    settle(&mut h);
+    let fields = |h: &egui_kittest::Harness<'_, ew_ui::app::App>| match h.state().shell().dialog() {
+        Some(Dialog::Form(f)) => {
+            assert_eq!(f.action, "section.edit");
+            f.fields
+                .iter()
+                .map(|x| (x.name, x.value.clone()))
+                .collect::<Vec<_>>()
+        }
+        other => panic!("{other:?}"),
+    };
+    assert_eq!(
+        fields(&h),
+        [
+            ("number", "3".to_owned()),
+            ("title", "Cabinet".to_owned()),
+            ("first", "300".to_owned()),
+            ("last", "399".to_owned())
+        ]
+    );
+    // A range that runs backwards is refused in words; a good one is applied with the new title.
+    let apply = |h: &mut egui_kittest::Harness<'_, ew_ui::app::App>, title: &str, first: &str, last: &str| {
+        h.state_mut().shell_mut().dispatch(
+            "section.edit",
+            &json!({"number": "3", "title": title, "first": first, "last": last}),
+        )
+    };
+    let _ = apply(&mut h, "Cabinet layout", "350", "320");
+    settle(&mut h);
+    assert!(
+        h.query_by_label_contains("comes after the last")
+            .is_some()
+    );
+    assert_eq!(
+        apply(&mut h, "Cabinet layout", "300", "349"),
+        ew_ui::ew_viewmodel::shell::Outcome::Done
+    );
+    settle(&mut h);
+    assert!(h.state().shell().dialog().is_none());
+    assert_eq!(
+        h.state().shell().project_sections(),
+        [(3, "Cabinet layout".to_owned())]
+    );
+    // Project properties link the section, and its Edit section… shows the new range.
+    crate::support::dispatch(&mut h, "props.show", json!({"on": true}));
+    crate::support::dispatch(&mut h, "props.project", json!({}));
+    settle(&mut h);
+    h.get_by_label("3 Cabinet layout").click();
+    settle(&mut h);
+    assert!(fields(&h).contains(&("last", "349".to_owned())));
+    h.state_mut().shell_mut().shutdown();
+}

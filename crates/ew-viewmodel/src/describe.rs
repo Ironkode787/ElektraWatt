@@ -195,7 +195,10 @@ fn wizard(model: &ShellModel, lines: &mut Vec<String>) {
                 "  label \"{}\"",
                 strings::format(key!("wizard-made-in"), &[&target.to_string_lossy()])
             ));
-            lines.push(format!("  button \"{}\"", strings::text(key!("wizard-choose-folder"))));
+            lines.push(format!(
+                "  button \"{}\"",
+                strings::text(key!("wizard-choose-folder"))
+            ));
         }
     } else {
         for f in fields_of(step) {

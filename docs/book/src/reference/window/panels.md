@@ -77,7 +77,8 @@ offers on the page, listed below for each navigator.
 
 The pages in folio order, flat, by section or by structure.
 
-The two buttons beside the filter make a page and a section; a right click on a section offers the same. A right click
+The two buttons beside the filter make a page and a section; a right click on a section offers the same, and Edit
+section… changes that section's title and folio range (Project properties link each section to it as well). A right click
 on a page opens it and offers Open page in a new tab, Title block fields…, Page properties, New page… and Delete page.
 A section is a range of folios with a title, such as 100 to 199: New section proposes the next number and the next
 hundred, and the tree lists the section at once, still empty. With a section chosen in the tree, New page proposes its

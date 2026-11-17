@@ -784,11 +784,25 @@ pub fn pages_tree_menu(model: &ShellModel, row: &crate::shell::ShownRow) -> Vec<
         model.page_row_fits(&row.key, &mut items);
         return items;
     }
-    ["page.new", "section.new"]
+    let mut items: Vec<ActionItem> = ["page.new", "section.new"]
         .into_iter()
         .filter_map(actions::find)
         .map(|meta| actions::item_of(meta, model))
-        .collect()
+        .collect();
+    // A section's row (`s:<n>`, the last part of its key in every mode) also edits that section: its title and range.
+    if let Some(number) = row
+        .key
+        .rsplit('/')
+        .next()
+        .and_then(|k| k.strip_prefix("s:"))
+        .and_then(|n| n.parse::<u16>().ok())
+        && let Some(meta) = actions::find("section.edit")
+    {
+        let mut item = actions::item_of(meta, model);
+        item.params = serde_json::json!({ "number": number });
+        items.push(item);
+    }
+    items
 }
 
 /// The canvas context menu's entry for the connection point `cp` (its ID) under the pointer (FT-1649): "Mark -102F2:13

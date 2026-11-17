@@ -219,6 +219,7 @@ impl PropertiesPane {
                 shell.text_style_link(),
                 events,
             );
+            project_sections(ui, shell, sheet, events);
             // Doc 16a §6.8: "Filter properties" under the header while the open categories hold more than
             // twelve rows.
             let filter = shell.properties_filter().to_owned();
@@ -1772,6 +1773,44 @@ pub(crate) fn choices_placement(
 }
 
 /// Whether `row` is a link the grid follows: a device link with a value.
+/// The project's sheet: its sections, each a link to Edit section… (its title and folio range), and New section…, so
+/// a running project's sections are changed where its properties are, not only in the template (a persona run found
+/// them only in the wizard).
+fn project_sections(ui: &mut Ui, shell: &ShellModel, sheet: &PropertySheet, events: &mut Vec<Event>) {
+    if sheet.read_only.is_some() || sheet.header.kinds.as_slice() != [("project".to_owned(), 1)] {
+        return;
+    }
+    let t = crate::theme::current(ui.ctx());
+    let small = |s: &str, colour: crate::theme::Rgba| {
+        RichText::new(s)
+            .font(crate::theme::font(&t.type_small))
+            .color(colour.color32())
+    };
+    egui::Frame::new()
+        .inner_margin(egui::Margin::symmetric(crate::theme::margin_px(t.space_4), 0))
+        .show(ui, |ui| {
+            ui.horizontal_wrapped(|ui| {
+                ui.label(small(strings::text(key!("props-sections")), t.text_secondary));
+                for (number, title) in shell.project_sections() {
+                    let label = format!("{number} {title}");
+                    if ui.add(egui::Link::new(small(&label, t.accent))).clicked() {
+                        events.push(Event::Action("section.edit", json!({ "number": number })));
+                    }
+                }
+                if ui
+                    .add(egui::Link::new(small(
+                        strings::text(key!("action-section-new")),
+                        t.accent,
+                    )))
+                    .clicked()
+                {
+                    events.push(Event::Action("section.new", serde_json::Value::Null));
+                }
+            });
+        });
+    ui.separator();
+}
+
 /// A sheet of one device with a part: the link Part details (F22), whose hover shows the part's card and whose click
 /// keeps it open under the header until clicked again.
 fn part_details(ui: &mut Ui, shell: &ShellModel, sheet: &PropertySheet, events: &mut Vec<Event>) {
