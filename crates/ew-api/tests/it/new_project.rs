@@ -929,3 +929,47 @@ fn the_wire_numbers_member_is_additive() {
     );
     s.close();
 }
+
+/// A new project from a template without its pages (the New project dialog's default): the template's sections,
+/// structure and settings come along, its pages and devices do not, and the project starts with one empty page; the
+/// summary names what the template would bring.
+#[test]
+fn a_project_from_a_template_without_its_pages_starts_with_one_empty_page() {
+    let golden = open_golden();
+    let before = kind_counts(&golden);
+    let summary = ew_api::template_summary(Path::new(GOLDEN_A)).unwrap();
+    assert!(summary.pages > 0 && summary.devices > 0, "{summary:?}");
+    assert_eq!(Some(&summary.sections), before.get("section"), "{summary:?}");
+    assert!(!summary.template, "Golden A is a project, not a template");
+
+    let copy = Session::new_project(
+        ProjectTemplate::DirectoryWithoutPages(Path::new(GOLDEN_A)),
+        NewProjectKind::Schematic,
+        options(18),
+    )
+    .unwrap();
+    let counts = kind_counts(&copy);
+    assert_eq!(counts.get("page"), Some(&1), "one drawn page");
+    assert_eq!(
+        copy.page_labels().first().map(String::as_str),
+        Some("1"),
+        "folio 1, before the template's dividers and report pages"
+    );
+    for kind in ["device", "representation", "conductor"] {
+        assert_eq!(counts.get(kind), None, "no {kind} is copied");
+    }
+    for kind in ["section", "structure_node"] {
+        assert_eq!(counts.get(kind), before.get(kind), "every {kind} is kept");
+    }
+    assert!(!copy.is_dirty(), "a new project starts unchanged");
+    assert!(!copy.history().can_undo(), "nothing to undo");
+    // Written as a template, the copy brings no page: its one page is empty.
+    let work = temp("without-pages");
+    let dir = work.join("t.ew");
+    copy.save_as_basic(&dir, false, false, store(&work.join("state")))
+        .unwrap();
+    let summary = ew_api::template_summary(&dir).unwrap();
+    assert_eq!((summary.pages, summary.devices), (0, 0), "{summary:?}");
+    assert!(summary.template);
+    let _ = std::fs::remove_dir_all(&work);
+}

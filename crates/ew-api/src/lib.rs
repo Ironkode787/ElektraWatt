@@ -236,7 +236,7 @@ pub use ew_store::{
 /// (doc 05 §12).
 pub use ew_store::{archive, cloud, ewz, external, git, zip};
 pub use external_change::{DiskPoll, ExternalApplied, ExternalError};
-pub use new_project::{NewProjectKind, ProjectTemplate, SaveAsBasicError};
+pub use new_project::{NewProjectKind, ProjectTemplate, SaveAsBasicError, TemplateSummary, template_summary};
 pub use release::{Approval, ApproveError, FOUR_EYES_RULE, Gate, GateError, role_name};
 pub use release_run::{
     ArchiveOpenError, Discarded, IncompleteRelease, OpenedArchive, ReleaseContext, ReleaseError,

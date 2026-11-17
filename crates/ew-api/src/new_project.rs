@@ -48,6 +48,79 @@ pub enum ProjectTemplate<'a> {
     Builtin,
     /// A company basic project: a project directory, which is only read (no lock, no journal).
     Directory(&'a Path),
+    /// A project directory without its pages and its devices (what the pages own and the wiring and panel layout of
+    /// the devices go with them, as [`Session::save_as_basic`] leaves them out); the new project starts with one
+    /// empty page, folio 1.
+    DirectoryWithoutPages(&'a Path),
+}
+
+/// What a template directory brings to a new project, as the New project dialog names it
+/// ([`template_summary`]).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct TemplateSummary {
+    /// The pages that hold something (a symbol, a wire, a text, a box); an empty page is not counted.
+    pub pages: usize,
+    /// The devices.
+    pub devices: usize,
+    /// The sections.
+    pub sections: usize,
+    /// Whether it sets its own frames and title blocks (the frame defaults of the project settings).
+    pub own_frames: bool,
+    /// Whether it sets text styles of its own.
+    pub text_styles: bool,
+    /// The check level drawings must pass before they go out (`release_scheme`), when it names one.
+    pub check_level: Option<String>,
+    /// Whether the directory is a template (`Project.kind = Basic`), not a project.
+    pub template: bool,
+}
+
+/// What the project directory `dir` would bring to a new project. It is only read (no lock, no journal).
+///
+/// # Errors
+///
+/// [`OpenError`] when the directory cannot be read as a project, as [`Session::new_project`] reads it.
+pub fn template_summary(dir: &Path) -> Result<TemplateSummary, OpenError> {
+    let ((project, records, lib, _assets), _) = read_records(dir)?;
+    let template = project.kind == ProjectKind::Basic;
+    let own_frames = project
+        .settings
+        .extra
+        .contains_key(ew_commands::commands::FRAMES_MEMBER);
+    let text_styles = !project.settings.text_styles.is_empty();
+    let check_level = project
+        .settings
+        .extra
+        .get(ew_commands::commands::CHECKS_MEMBER)
+        .and_then(|c| c.get("release_scheme"))
+        .and_then(Value::as_str)
+        .map(str::to_owned);
+    let model = Model::from_records(project, records, lib).map_err(|error| OpenError::Model {
+        error,
+        findings: Vec::new(),
+    })?;
+    let session = Session::new(model, SessionOptions::default());
+    let q = session.query();
+    let idx = q.idx();
+    let pages = q
+        .pages()
+        .ids()
+        .filter(|&page| {
+            idx.reps_by_page(page).next().is_some()
+                || idx.connections_by_page(page).next().is_some()
+                || idx.junctions_by_page(page).next().is_some()
+                || idx.page_items_by_page(page).next().is_some()
+                || idx.structure_boxes_by_page(page).next().is_some()
+        })
+        .count();
+    Ok(TemplateSummary {
+        pages,
+        devices: q.devices().len(),
+        sections: q.sections().len(),
+        own_frames,
+        text_styles,
+        check_level,
+        template,
+    })
 }
 
 /// What kind of project [`Session::new_project`] makes.
@@ -110,7 +183,9 @@ impl Session {
                 let (project, records, lib) = builtin(id, kind);
                 (project, records, lib, Vec::new())
             }
-            ProjectTemplate::Directory(dir) => from_directory(dir, id, kind)?,
+            ProjectTemplate::Directory(dir) | ProjectTemplate::DirectoryWithoutPages(dir) => {
+                from_directory(dir, id, kind)?
+            }
         };
         // A new project is created on the session's date (a basic project's own date is not this project's).
         let mut project = project;
@@ -124,6 +199,19 @@ impl Session {
         // The basic project's assets (its company logo) come along unchanged: they are named by content.
         for asset in assets {
             model.put_asset(asset);
+        }
+        if let ProjectTemplate::DirectoryWithoutPages(_) = template {
+            let refused = |e: CmdError| {
+                OpenError::Format(format!("the pages of the template cannot be left out: {e}"))
+            };
+            let mut scratch = Session::new(model, SessionOptions::default());
+            omit(&mut scratch, true, true).map_err(refused)?;
+            let page = AnyCommand {
+                name: "page.create".into(),
+                params: serde_json::json!({ "number": 1 }),
+            };
+            scratch.execute(&page).map_err(refused)?;
+            model = scratch.engine.model().clone();
         }
         Ok(Session::new(model, options))
     }
@@ -152,72 +240,7 @@ impl Session {
         store: StoreOptions,
     ) -> Result<(), SaveAsBasicError> {
         let mut scratch = Session::new(self.engine.model().clone(), SessionOptions::default());
-        if omit_devices {
-            // The panel layout goes with the devices: the placements, then the enclosures with their
-            // surfaces and carriers (an enclosure keeps its device, `enclosure.device` forbid); the layout spaces
-            // belong to the kept structure and stay.
-            let (placements, enclosures) = {
-                let q = scratch.query();
-                (
-                    q.table::<ew_schema::Placement>().ids().collect::<Vec<_>>(),
-                    q.table::<ew_schema::Enclosure>().ids().collect::<Vec<_>>(),
-                )
-            };
-            let layout = placements
-                .into_iter()
-                .map(|p| ("layout.remove", serde_json::json!({ "placement": p })))
-                .chain(
-                    enclosures
-                        .into_iter()
-                        .map(|e| ("layout.enclosure.delete", serde_json::json!({ "enclosure": e }))),
-                );
-            for (name, params) in layout {
-                let cmd = AnyCommand {
-                    name: name.into(),
-                    params,
-                };
-                match scratch.execute(&cmd) {
-                    Err(CmdError::NeedsPreview { .. }) => {
-                        let preview = scratch.preview(&cmd).map_err(SaveAsBasicError::Omit)?;
-                        scratch.commit(preview).map_err(SaveAsBasicError::Omit)?;
-                    }
-                    other => {
-                        other.map_err(SaveAsBasicError::Omit)?;
-                    }
-                }
-            }
-        }
-        let targets: Vec<Value> = {
-            let q = scratch.query();
-            let mut targets = Vec::new();
-            let mut add = |kind: &str, ids: Vec<Uuid>| {
-                targets.extend(
-                    ids.into_iter()
-                        .map(|id| serde_json::json!({"kind": kind, "id": id.hyphenated().to_string()})),
-                );
-            };
-            if omit_devices {
-                add("device", q.devices().ids().map(|i| i.as_uuid()).collect());
-                add("function", q.functions().ids().map(|i| i.as_uuid()).collect());
-                add("representation", q.reps().ids().map(|i| i.as_uuid()).collect());
-                add("connection", q.connections().ids().map(|i| i.as_uuid()).collect());
-                add("junction", q.junctions().ids().map(|i| i.as_uuid()).collect());
-                add("conductor", q.conductors().ids().map(|i| i.as_uuid()).collect());
-                add("bond", q.bonds().ids().map(|i| i.as_uuid()).collect());
-            }
-            if omit_pages {
-                add("page", q.pages().ids().map(|i| i.as_uuid()).collect());
-            }
-            targets
-        };
-        if !targets.is_empty() {
-            let delete = AnyCommand {
-                name: "edit.delete".into(),
-                params: serde_json::json!({ "targets": targets }),
-            };
-            let preview = scratch.preview(&delete).map_err(SaveAsBasicError::Omit)?;
-            scratch.commit(preview).map_err(SaveAsBasicError::Omit)?;
-        }
+        omit(&mut scratch, omit_pages, omit_devices).map_err(SaveAsBasicError::Omit)?;
         // The scratch model as files in memory, read back as a template: the copy of a directory, exactly.
         let mem = Arc::new(MemVfs::new(DirSync::Implicit));
         let mut in_memory = store.clone();
@@ -245,6 +268,80 @@ impl Session {
             .close();
         Ok(())
     }
+}
+
+/// Leaves out of `scratch` every page (and what the pages own) when `omit_pages`, and every device, function,
+/// representation and connection, the junctions, conductors and bonds of the wiring and the panel layout's placements
+/// and enclosures when `omit_devices` ([`Session::save_as_basic`]), through `edit.delete`, so the delete policies
+/// decide what goes along.
+fn omit(scratch: &mut Session, omit_pages: bool, omit_devices: bool) -> Result<(), CmdError> {
+    if omit_devices {
+        // The panel layout goes with the devices: the placements, then the enclosures with their
+        // surfaces and carriers (an enclosure keeps its device, `enclosure.device` forbid); the layout spaces
+        // belong to the kept structure and stay.
+        let (placements, enclosures) = {
+            let q = scratch.query();
+            (
+                q.table::<ew_schema::Placement>().ids().collect::<Vec<_>>(),
+                q.table::<ew_schema::Enclosure>().ids().collect::<Vec<_>>(),
+            )
+        };
+        let layout = placements
+            .into_iter()
+            .map(|p| ("layout.remove", serde_json::json!({ "placement": p })))
+            .chain(
+                enclosures
+                    .into_iter()
+                    .map(|e| ("layout.enclosure.delete", serde_json::json!({ "enclosure": e }))),
+            );
+        for (name, params) in layout {
+            let cmd = AnyCommand {
+                name: name.into(),
+                params,
+            };
+            match scratch.execute(&cmd) {
+                Err(CmdError::NeedsPreview { .. }) => {
+                    let preview = scratch.preview(&cmd)?;
+                    scratch.commit(preview)?;
+                }
+                other => {
+                    other?;
+                }
+            }
+        }
+    }
+    let targets: Vec<Value> = {
+        let q = scratch.query();
+        let mut targets = Vec::new();
+        let mut add = |kind: &str, ids: Vec<Uuid>| {
+            targets.extend(
+                ids.into_iter()
+                    .map(|id| serde_json::json!({"kind": kind, "id": id.hyphenated().to_string()})),
+            );
+        };
+        if omit_devices {
+            add("device", q.devices().ids().map(|i| i.as_uuid()).collect());
+            add("function", q.functions().ids().map(|i| i.as_uuid()).collect());
+            add("representation", q.reps().ids().map(|i| i.as_uuid()).collect());
+            add("connection", q.connections().ids().map(|i| i.as_uuid()).collect());
+            add("junction", q.junctions().ids().map(|i| i.as_uuid()).collect());
+            add("conductor", q.conductors().ids().map(|i| i.as_uuid()).collect());
+            add("bond", q.bonds().ids().map(|i| i.as_uuid()).collect());
+        }
+        if omit_pages {
+            add("page", q.pages().ids().map(|i| i.as_uuid()).collect());
+        }
+        targets
+    };
+    if !targets.is_empty() {
+        let delete = AnyCommand {
+            name: "edit.delete".into(),
+            params: serde_json::json!({ "targets": targets }),
+        };
+        let preview = scratch.preview(&delete)?;
+        scratch.commit(preview)?;
+    }
+    Ok(())
 }
 
 /// Why [`Session::save_as_basic`] wrote nothing.
