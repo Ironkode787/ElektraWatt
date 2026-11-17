@@ -103,7 +103,6 @@ pub(crate) fn new_project(
     row(ui, &t, strings::text(key!("new-project-name")), |ui, label| {
         submit |= text_field(
             ui,
-            &t,
             &d.name,
             "name",
             ui.available_width(),
