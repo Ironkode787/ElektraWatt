@@ -742,9 +742,10 @@ impl Picker {
         match row {
             PickerRow::Symbol(i) => {
                 let s = self.catalogue.symbols.get(i)?;
-                // A black-box row arms the black box tool.
+                // A black-box row arms the black box tool; a symbol of another connection grid is placed as its copy
+                // on the page's grid (`grid_note`).
                 if s.grid_mismatch.is_some() {
-                    Some(key!("reason-symbol-grid"))
+                    None
                 } else if !s.allowed {
                     Some(key!("reason-rep-type-not-allowed"))
                 } else if self.mode != PickerMode::Exchange
@@ -778,15 +779,23 @@ impl Picker {
         }
     }
 
-    /// The words of the reason a row is disabled; `None` for an enabled row. A symbol on another connection grid
-    /// names both grids as the status bar does.
+    /// What Place does with a symbol on another connection grid than the page's, both grids named as the status bar
+    /// names them; `None` for any other row.
+    pub fn grid_note(&self, row: PickerRow) -> Option<String> {
+        let PickerRow::Symbol(i) = row else {
+            return None;
+        };
+        let [symbol, page] = self.catalogue.symbols.get(i)?.grid_mismatch?;
+        let words = |(num, den): (u64, u64)| crate::status::grid_words(num as i64, den as i64);
+        Some(crate::strings::format(
+            key!("picker-symbol-other-grid"),
+            &[&words(symbol), &words(page)],
+        ))
+    }
+
+    /// The words of the reason a row is disabled; `None` for an enabled row.
     pub fn disabled_words(&self, row: PickerRow) -> Option<String> {
         let reason = self.disabled(row)?;
-        if let PickerRow::Symbol(i) = row
-            && let Some(grids) = self.catalogue.symbols.get(i).and_then(|s| s.grid_mismatch)
-        {
-            return Some(grid_words(grids));
-        }
         // A symbol the page's type does not take names the page types that do, as New page lists them.
         if reason == key!("reason-rep-type-not-allowed")
             && let PickerRow::Symbol(i) = row

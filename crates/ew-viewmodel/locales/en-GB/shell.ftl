@@ -6294,6 +6294,7 @@ action-symbol-role = Set the potential role of a symbol connection point
 symbol-cp-unknown = This symbol has no connection point { $p0 }.
 symbol-role-assigned = An assigned function definition keeps its roles. Change them in a function definition of the symbol's own.
 reason-symbol-grid = This symbol is drawn on the { $p0 } connection grid, and this page uses { $p1 }. Place it on a page with its grid.
+picker-symbol-other-grid = This symbol is drawn on the { $p0 } connection grid, and this page uses { $p1 }. Place puts it here with its connection points on this page's grid.
 route-folio = folio { $p0 }
 route-preview-lead = Route { $p0 } wires on { $p1 }: { $p2 } routed, { $p3 } not routed.
 route-preview-lead-one = Route 1 wire on { $p1 }: { $p2 } routed, { $p3 } not routed.

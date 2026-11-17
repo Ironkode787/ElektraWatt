@@ -735,6 +735,96 @@ impl SymbolDraft {
         out
     }
 
+    /// The draft drawn for a page of the connection grid `grid` (a symbol placed on a page of another grid): every
+    /// length scaled by the ratio of the two grids' steps, every connection point on the grid point of its own
+    /// index, so the page's wires meet it; the key gets the grid's suffix (`@qet10` for the QET grid, as the starter
+    /// library's QET edition). Strokes keep their pens.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Input`] when the scaled drawing is no symbol (a length out of range).
+    pub fn on_grid(&self, grid: units::Grid) -> Result<SymbolDraft, Error> {
+        let from = self.symbol.grid;
+        let (num, den) = (
+            i128::from(grid.num()) * i128::from(from.den()),
+            i128::from(grid.den()) * i128::from(from.num()),
+        );
+        // `v · num / den`, rounded half away from zero.
+        let len = |v: &mut Value| {
+            if let Some(x) = v.as_i64() {
+                let n = i128::from(x) * num;
+                let q = (2 * n.abs() + den) / (2 * den);
+                *v = json!(i64::try_from(if n < 0 { -q } else { q }).unwrap_or(x));
+            }
+        };
+        let pt = |v: &mut Value| v.as_array_mut().into_iter().flatten().for_each(len);
+        let pts = |v: &mut Value| v.as_array_mut().into_iter().flatten().for_each(pt);
+        let primitive = |g: &mut Value| {
+            let Some((name, body)) = g.as_object_mut().and_then(|o| o.iter_mut().next()) else {
+                return;
+            };
+            let fields: &[(&str, &dyn Fn(&mut Value))] = match name.as_str() {
+                "line" => &[("from", &pt), ("to", &pt)],
+                "polyline" | "polygon" => &[("points", &pts)],
+                "rect" => &[("rect", &pts), ("rx", &len), ("ry", &len), ("shadow", &len)],
+                "circle" => &[("centre", &pt), ("r", &len)],
+                "ellipse" | "arc" | "image" => &[("rect", &pts)],
+                "text" => &[("pos", &pt)],
+                _ => &[],
+            };
+            for (field, f) in fields {
+                if let Some(v) = body.get_mut(*field) {
+                    f(v);
+                }
+            }
+        };
+        // A connection point keeps its grid index: it stands where the page's grid has that point.
+        let cp = |c: &mut Value| {
+            for x in c
+                .get_mut("pos")
+                .and_then(Value::as_array_mut)
+                .into_iter()
+                .flatten()
+            {
+                let k = from.snap(units::Nm(x.as_i64().unwrap_or(0)));
+                *x = json!(grid.at(k).map_or(0, |n| n.0));
+            }
+        };
+        let each = |list: Option<&mut Value>, f: &dyn Fn(&mut Value)| {
+            list.and_then(Value::as_array_mut)
+                .into_iter()
+                .flatten()
+                .for_each(f);
+        };
+        let mut doc = serde_json::to_value(&self.symbol).map_err(|e| Error::Input(e.to_string()))?;
+        each(doc.get_mut("graphics"), &primitive);
+        each(doc.get_mut("cps"), &cp);
+        each(doc.get_mut("text_slots"), &|s: &mut Value| {
+            s.get_mut("pos").map(pt);
+            s.get_mut("max_width").map(len);
+        });
+        each(doc.get_mut("link_points"), &|p: &mut Value| {
+            p.get_mut("pos").map(pt);
+        });
+        each(doc.get_mut("extra_variants"), &|v: &mut Value| {
+            each(v.get_mut("graphics"), &primitive);
+            each(v.get_mut("cps"), &cp);
+        });
+        if let Some(named) = doc.get_mut("anchor").and_then(|a| a.get_mut("named")) {
+            pt(named);
+        }
+        doc["grid"] = json!(grid);
+        let mut out = self.clone();
+        out.symbol = serde_json::from_value(doc).map_err(|e| Error::Input(e.to_string()))?;
+        let suffix = if grid == units::Grid::QET_10PX {
+            "@qet10".to_owned()
+        } else {
+            format!("@grid-{}-{}", grid.num(), grid.den())
+        };
+        out.key = format!("{}{suffix}", self.key);
+        Ok(out)
+    }
+
     /// Preview uses exactly the placement renderer's variant transforms. Refuses unsafe bounds.
     ///
     /// # Errors

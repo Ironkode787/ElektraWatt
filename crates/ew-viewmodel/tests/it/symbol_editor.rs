@@ -1213,10 +1213,11 @@ fn the_symbol_file_picker_offers_every_extension_an_importer_reads() {
     assert!(FILE_EXTENSIONS.contains(&"json"));
 }
 
-/// SM25b m3 (ruled): on a QET-grid page the Insert symbol picker lists a published 4 mm symbol greyed, with both grids
-/// in words, and choosing it is refused in those words.
+/// On a QET-grid page the Insert symbol picker lists a published 4 mm symbol with both grids in words and what Place
+/// does: it is placed on the page in front as its copy drawn on the page's grid, every connection point on a grid
+/// point of the page, so wires meet it (rc.3; it was refused before, with a new page as the only way).
 #[test]
-fn the_picker_greys_a_published_symbol_on_another_grid_with_its_reason() {
+fn a_symbol_on_another_grid_is_placed_on_the_page_in_front_on_its_grid() {
     use ew_viewmodel::strings;
     use ew_viewmodel::tools::PickerRow;
     let tmp = Tmp::new("symbol-picker-grid");
@@ -1228,6 +1229,12 @@ fn the_picker_greys_a_published_symbol_on_another_grid_with_its_reason() {
     );
     assert_eq!(shell.canvas().unwrap().page().snapper.grid(), (7_937_500, 3));
     drawn(&mut shell, "example.grid-block", "Grid block");
+    // A second point two 4 mm steps on: 8 mm is no point of the QET grid.
+    done(
+        &mut shell,
+        "symbol.cp",
+        json!({"x": 8, "y": 0, "designation": "2"}),
+    );
     done(
         &mut shell,
         "symbol.save",
@@ -1244,42 +1251,45 @@ fn the_picker_greys_a_published_symbol_on_another_grid_with_its_reason() {
         .expect("the published symbol is listed");
     let row = PickerRow::Symbol(i);
     assert!(picker.rows.contains(&row));
-    // Both grids named as the status bar, New page and Properties name them.
-    let words = "This symbol is drawn on the 4 mm connection grid, and this page uses QET 10 px. Place it on a page \
-                 with its grid.";
-    assert_eq!(picker.disabled_words(row).as_deref(), Some(words));
+    // Both grids named as the status bar, New page and Properties name them, and what Place does.
+    let words = "This symbol is drawn on the 4 mm connection grid, and this page uses QET 10 px. Place puts it here \
+                 with its connection points on this page's grid.";
+    assert_eq!(picker.disabled_words(row), None, "the row can be placed");
+    assert_eq!(picker.grid_note(row).as_deref(), Some(words));
     assert!(strings::set_locale("nl"));
-    let dutch = shell.picker().unwrap().disabled_words(row);
+    let dutch = shell.picker().unwrap().grid_note(row);
     assert!(strings::set_locale("en"));
     assert_eq!(
         dutch.as_deref(),
         Some(
-            "Dit symbool is getekend op het verbindingsraster 4 mm, en deze pagina gebruikt QET 10 px. Plaats het op \
-             een pagina met zijn raster."
+            "Dit symbool is getekend op het verbindingsraster 4 mm, en deze pagina gebruikt QET 10 px. Plaatsen zet \
+             het hier neer met zijn aansluitpunten op het raster van deze pagina."
         )
     );
     let key = shell.picker().unwrap().catalogue.symbols[i].key.clone();
     done(&mut shell, "ui.dismiss", json!({}));
-    assert_eq!(failed(&mut shell, "place.pick", json!({"symbol": key})), words);
-    // Placed on a page of its grid it is embedded; back on the QET-grid page the embedded copy is greyed the same way.
-    done(&mut shell, "symbol.new", json!({}));
-    done(&mut shell, "symbol.scratch", json!({}));
     done(&mut shell, "place.pick", json!({"symbol": key}));
     done(&mut shell, "cursor.set", json!({"x_mm": 100, "y_mm": 100}));
     done(&mut shell, "canvas.activate", json!({}));
     done(&mut shell, "ui.dismiss", json!({}));
-    done(&mut shell, "nav.goto", json!({"text": "1"}));
-    done(&mut shell, "tool.place", json!({}));
-    let picker = shell.picker().unwrap();
-    let embedded: Vec<Option<String>> = picker
-        .catalogue
-        .symbols
-        .iter()
-        .enumerate()
-        .filter(|(_, s)| s.copy.is_some() && s.name.starts_with("Grid block"))
-        .map(|(i, _)| picker.disabled_words(PickerRow::Symbol(i)))
-        .collect();
-    assert_eq!(embedded, [Some(words.to_owned())]);
+    let tables = std::sync::Arc::clone(&shell.canvas().unwrap().page().tables);
+    assert_eq!(tables.grid, (7_937_500, 3), "on the page in front");
+    let grid = ew_viewmodel::ew_api::symbols::units::Grid::QET_10PX;
+    // A point of the QET grid is a third of a nanometre off a whole one: a placed point is the sum of two of them, as
+    // with the starter library's QET edition, so within a nanometre of the grid (8 mm is no point of it).
+    let on_grid = |v: i64| {
+        let n = ew_viewmodel::ew_api::symbols::units::Nm(v);
+        grid.at(grid.snap(n)).is_some_and(|g| (g.0 - v).abs() <= 1)
+    };
+    assert_eq!(tables.cps.len(), 2, "the symbol is placed with its two points");
+    for cp in &tables.cps {
+        assert!(
+            on_grid(cp.at.0) && on_grid(cp.at.1),
+            "{} at {:?} is off the page's grid",
+            cp.label,
+            cp.at
+        );
+    }
     shell.shutdown();
 }
 

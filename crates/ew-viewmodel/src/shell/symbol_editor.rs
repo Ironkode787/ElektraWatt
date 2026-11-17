@@ -1888,11 +1888,102 @@ impl ShellModel {
                 .check_function(project.session.libraries())
                 .map_err(symbol_error)?;
         }
+        let (docs, symbol) = self.placed_copies(&mut draft, "test")?;
+        let page = self
+            .current_page()
+            .ok_or_else(|| strings::text(key!("reason-no-page")).to_owned())?;
+        let canvas = self
+            .canvas()
+            .ok_or_else(|| strings::text(key!("reason-no-page")).to_owned())?;
+        let snapper = &canvas.page().snapper;
+        let (num, den) = snapper.grid();
+        if (num, den) != (draft.symbol.grid.num() as i64, draft.symbol.grid.den() as i64) {
+            // The picker's words, both grids named; the editor then offers Place on a new page
+            // with its grid.
+            let words = crate::tools::grid_words([
+                (draft.symbol.grid.num(), draft.symbol.grid.den()),
+                (num.unsigned_abs(), den.unsigned_abs()),
+            ]);
+            if let Some(editor) = &mut self.symbol_editor {
+                editor.offer_new_page = true;
+            }
+            return Err(words);
+        }
+        let pos = snapper
+            .snap_grid(snapper.page_to_sheet((nm(p, "x")?, nm(p, "y")?)))
+            .page_nm;
+        let orient = ["r0", "r90", "r180", "r270", "m0", "m90", "m180", "m270"][usize::from(variant)];
+        let params = json!({"cmd":"device.place","params":{"page":page.uuid_text(),"symbol":symbol,"copies":docs,
+            "pos":[pos.0,pos.1],"orient":orient,"target":{"new_device":{"letter":"U"}}}});
+        match self.act_command_run(params.as_object().ok_or_else(damaged)?) {
+            Outcome::Done => {}
+            Outcome::Failed { message } => return Err(message),
+            Outcome::Refused { reason_key } => return Err(strings::text(reason_key).into()),
+        }
+        Ok(())
+    }
+
+    /// The symbol of a catalogue row (`source`: a starter key, a library address or a project copy) on another
+    /// connection grid than the page's, as its copy drawn on the page's grid `grid` ([`SymbolDraft::on_grid`]), which
+    /// the project then holds: its copy ID, for `place.pick`. The same symbol on the same grid is the same copy.
+    pub(super) fn symbol_on_page_grid(
+        &mut self,
+        source: &str,
+        (num, den): (u64, u64),
+    ) -> Result<String, String> {
+        let project = self
+            .project
+            .as_ref()
+            .ok_or_else(|| strings::text(key!("reason-no-project")).to_owned())?;
+        let grid = symbols::units::Grid::new(num, den).map_err(|e| e.to_string())?;
+        let held = project
+            .session
+            .symbol_draft(source, "user.symbol")
+            .map_err(symbol_error)?;
+        let mut draft = held.on_grid(grid).map_err(symbol_error)?;
+        draft.key = key_of_name(&name_words(&draft.symbol.name));
+        let (docs, symbol) = self.placed_copies(&mut draft, "grid")?;
+        let project = self
+            .project
+            .as_ref()
+            .ok_or_else(|| strings::text(key!("reason-no-project")).to_owned())?;
+        let q = project.session.query();
+        let lacking: Vec<Value> = docs
+            .iter()
+            .filter(|d| match d {
+                symbols::schema::LibDocument::Symbol(s) => !q.symbols().contains(s.id),
+                symbols::schema::LibDocument::Fndef(f) => q.fndefs().get(f.id).is_none(),
+                _ => true,
+            })
+            .filter_map(|d| serde_json::to_value(d).ok())
+            .collect();
+        drop(q);
+        if !lacking.is_empty() {
+            let command = ew_api::AnyCommand {
+                name: "library.embed".to_owned(),
+                params: json!({ "copies": lacking }),
+            };
+            match self.run_commit(&command) {
+                Outcome::Done => {}
+                Outcome::Failed { message } => return Err(message),
+                Outcome::Refused { reason_key } => return Err(strings::text(reason_key).into()),
+            }
+        }
+        Ok(symbol.to_string())
+    }
+
+    /// The library documents a placement of `draft` embeds and its symbol's copy ID: the draft under a key its
+    /// content derives (`<key>.<tag>.<suffix>`), with item IDs from that key, and the function it names.
+    fn placed_copies(
+        &self,
+        draft: &mut SymbolDraft,
+        tag: &str,
+    ) -> Result<(Vec<symbols::schema::LibDocument>, ew_api::output::Uuid), String> {
         // Each content placed embeds its own copies, after a draft edit, a reopen or a trimmed history too: the
         // suffix is derived from the content.
-        let suffix = content_suffix(&draft);
+        let suffix = content_suffix(draft);
         draft.key = format!(
-            "{}.test.{suffix}",
+            "{}.{tag}.{suffix}",
             draft.key.chars().take(100).collect::<String>()
         );
         // The same content placed again is the same copy (re-review part 4): its item IDs come from its key,
@@ -1931,37 +2022,6 @@ impl ShellModel {
                 _ => None,
             })
             .ok_or_else(damaged)?;
-        let page = self
-            .current_page()
-            .ok_or_else(|| strings::text(key!("reason-no-page")).to_owned())?;
-        let canvas = self
-            .canvas()
-            .ok_or_else(|| strings::text(key!("reason-no-page")).to_owned())?;
-        let snapper = &canvas.page().snapper;
-        let (num, den) = snapper.grid();
-        if (num, den) != (draft.symbol.grid.num() as i64, draft.symbol.grid.den() as i64) {
-            // The picker's words, both grids named; the editor then offers Place on a new page
-            // with its grid.
-            let words = crate::tools::grid_words([
-                (draft.symbol.grid.num(), draft.symbol.grid.den()),
-                (num.unsigned_abs(), den.unsigned_abs()),
-            ]);
-            if let Some(editor) = &mut self.symbol_editor {
-                editor.offer_new_page = true;
-            }
-            return Err(words);
-        }
-        let pos = snapper
-            .snap_grid(snapper.page_to_sheet((nm(p, "x")?, nm(p, "y")?)))
-            .page_nm;
-        let orient = ["r0", "r90", "r180", "r270", "m0", "m90", "m180", "m270"][usize::from(variant)];
-        let params = json!({"cmd":"device.place","params":{"page":page.uuid_text(),"symbol":symbol,"copies":docs,
-            "pos":[pos.0,pos.1],"orient":orient,"target":{"new_device":{"letter":"U"}}}});
-        match self.act_command_run(params.as_object().ok_or_else(damaged)?) {
-            Outcome::Done => {}
-            Outcome::Failed { message } => return Err(message),
-            Outcome::Refused { reason_key } => return Err(strings::text(reason_key).into()),
-        }
-        Ok(())
+        Ok((docs, symbol.as_uuid()))
     }
 }

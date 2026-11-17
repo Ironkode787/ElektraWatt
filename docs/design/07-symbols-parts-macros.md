@@ -1162,11 +1162,15 @@ which Save keeps in My parts; a part of My parts that the project does not hold 
 My parts as its next version, a library's part as the project's own copy); where boxes of it are drawn already a
 message says how many and offers Redraw them (`part.redraw_boxes`: one `box.redraw` of every
 box, one undo step, all or none).
-*As built.* A page on another connection
-grid refuses the placement, naming both grids as the status bar does ("4 mm", "QET 10 px"), and offers a new page with
-the symbol's grid: **Place on a new page with its grid** places the published symbol there at 40/40 mm and selects
-it, from the Insert symbol picker's greyed row (`picker.new_page`) and from the editor while its draft is saved to a
-library and unchanged (`symbol.new_page`); for any other draft the editor offers Test on a new page. Each is one undo
+*As built.* In the Insert symbol picker a symbol of another connection grid says so, naming both grids as the
+status bar does ("4 mm", "QET 10 px"), and its Place puts it on the page in front (rc.3): the project gets the
+symbol's copy drawn on the page's grid (`SymbolDraft::on_grid`: every length scaled by the ratio of the grid steps,
+every connection point on the page grid's point of its own index, as the starter library's QET edition), embedded
+once (`library.embed`), and the place tool is armed with it. The editor's test placement on such a page is refused
+in the same words and offers a new page with the symbol's grid: **Place on a new page with its grid** places the
+published symbol there at 40/40 mm and selects it, from the editor while its draft is saved to a library and
+unchanged (`symbol.new_page`) and as the picker's second choice (`picker.new_page`); for any other draft the editor
+offers Test on a new page. Each is one undo
 step for the page and one for the placement. New page (`page.new`) has a Connection grid, "4 mm" or "QET 10 px",
 the current page's by default; on a page whose grid is neither (an imported one) the field is empty and the new page
 still takes the current page's grid. A page's grid changes only while the page is empty. "Fork from QET import" is Fork existing symbol in the Library panel, over project copies and installed

@@ -789,16 +789,12 @@ fn detail(ui: &mut Ui, t: &Tokens, shell: &ShellModel, picker: &Picker, events: 
     if let Some(reason) = &reason {
         line(ui, reason, &t.type_small, t.text_secondary);
     }
-    ui.add_space(t.space_2);
-    // A symbol on another connection grid: the way out.
-    if matches!(row, PickerRow::Symbol(k) if picker.catalogue.symbols[k].grid_mismatch.is_some()) {
-        let new_page = strings::text(key!("action-picker-new-page"));
-        if components::button(ui, Kind::Secondary, new_page, true, 0.0).clicked() {
-            events.push(Event::Action("picker.new_page", json!({})));
-        }
-        edit_buttons(ui, t, shell, picker, row, events);
-        return;
+    // A symbol on another connection grid: Place puts it here on the page's grid, and says so.
+    let grid_note = picker.grid_note(row);
+    if let Some(note) = &grid_note {
+        line(ui, note, &t.type_small, t.text_secondary);
     }
+    ui.add_space(t.space_2);
     let place = match (picker.mode, row) {
         (PickerMode::Exchange, _) => strings::text(key!("picker-title-exchange")),
         (_, PickerRow::Part(p)) if picker.part_main(p).is_none() => strings::text(key!("picker-part-symbol")),
@@ -817,6 +813,14 @@ fn detail(ui: &mut Ui, t: &Tokens, shell: &ShellModel, picker: &Picker, events: 
     };
     if button.clicked() {
         events.push(Event::Action("picker.choose", json!({})));
+    }
+    // The second choice: a new page with the symbol's own grid.
+    if grid_note.is_some() {
+        ui.add_space(t.space_2);
+        let new_page = strings::text(key!("action-picker-new-page"));
+        if components::button(ui, Kind::Secondary, new_page, true, 0.0).clicked() {
+            events.push(Event::Action("picker.new_page", json!({})));
+        }
     }
     edit_buttons(ui, t, shell, picker, row, events);
 }

@@ -963,8 +963,19 @@ impl ShellModel {
             }
         };
         let row = cat.symbols[row_index].clone();
-        // SM25b m3: a symbol on another connection grid says so, with both grids.
+        // A symbol on another connection grid is placed here as its copy drawn on the page's grid (rc.3), which the
+        // project keeps; a symbol a part draws keeps the refusal with both grids named.
         if let Some(grids) = row.grid_mismatch {
+            if let Pick::Symbol(_) = &pick {
+                return match self.symbol_on_page_grid(&row.key, grids[1]) {
+                    Ok(copy) => {
+                        let mut again = p.clone();
+                        again.insert("symbol".to_owned(), json!(copy));
+                        self.act_place_pick(&again)
+                    }
+                    Err(message) => Outcome::Failed { message },
+                };
+            }
             return Outcome::Failed {
                 message: crate::tools::grid_words(grids),
             };
@@ -1418,12 +1429,6 @@ impl ShellModel {
             return Outcome::refused(key!("reason-no-picker-row"));
         };
         if let Some(reason_key) = picker.disabled(row) {
-            // SM25b m3: the grids' reason names both grids.
-            if reason_key == key!("reason-symbol-grid") {
-                return Outcome::Failed {
-                    message: picker.disabled_words(row).unwrap_or_default(),
-                };
-            }
             return Outcome::Refused { reason_key };
         }
         let (mode, cat, pending) = (picker.mode, Arc::clone(&picker.catalogue), picker.pending.clone());
