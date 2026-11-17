@@ -144,6 +144,51 @@ fn step_form(ui: &mut Ui, wizard: &Wizard, target: Option<&std::path::Path>, eve
     });
     ui.add_space(t.space_5);
     if step == Step::Review {
+        // Where Create makes the template, and the way to put it elsewhere (a persona run's Create met a full folder
+        // with no way on).
+        if let (Some(target), None) = (target, wizard.finished_dir()) {
+            ui.scope(|ui| {
+                ui.set_max_width(width);
+                ui.add(
+                    egui::Label::new(strings::format(
+                        key!("wizard-made-in"),
+                        &[&target.to_string_lossy()],
+                    ))
+                    .wrap(),
+                );
+                if components::button(
+                    ui,
+                    Kind::Secondary,
+                    strings::text(key!("wizard-choose-folder")),
+                    true,
+                    0.0,
+                )
+                .clicked()
+                {
+                    events.push(Event::Action("wizard.folder", Value::Null));
+                }
+            });
+            ui.add_space(t.space_5);
+        }
+        let kept = [
+            key!("wizard-written"),
+            key!("wizard-kept"),
+            key!("wizard-kept-script"),
+        ]
+        .into_iter()
+        .map(|k| {
+            ui.fonts_mut(|f| {
+                f.layout_no_wrap(
+                    strings::text(k).to_owned(),
+                    theme::font(&t.type_body),
+                    theme::NONE,
+                )
+                .size()
+                .x
+            })
+        })
+        .fold(0.0_f32, f32::max);
+        let sentence = (width.min(ui.available_width()) - kept - t.space_6).max(measure / 2.0);
         egui::Grid::new("wizard-review")
             .num_columns(2)
             .spacing(Vec2::new(t.space_6, ui.spacing().item_spacing.y))
@@ -151,9 +196,10 @@ fn step_form(ui: &mut Ui, wizard: &Wizard, target: Option<&std::path::Path>, eve
             .show(ui, |ui| {
                 // The window is a person: Create writes the check level too (its command is HumanOnly).
                 for line in wizard.review(true) {
-                    // A long line (the sections) wraps in the step's measure rather than running off the page.
+                    // A long line (the sections) wraps in the step's measure, beside the column that says where it
+                    // goes, rather than running off the page.
                     ui.scope(|ui| {
-                        ui.set_max_width(width);
+                        ui.set_max_width(sentence);
                         ui.add(egui::Label::new(line.sentence()).wrap());
                     });
                     ui.weak(strings::text(if line.written {
@@ -180,28 +226,6 @@ fn step_form(ui: &mut Ui, wizard: &Wizard, target: Option<&std::path::Path>, eve
             set(events, USE_FOR_NEW_FIELD, if on { "true" } else { "false" });
         }
         under(ui, &t, strings::text(key!("wizard-use-for-new-note")));
-        // Where Create makes the template, and the way to put it elsewhere (a persona run's Create met a full folder
-        // with no way on).
-        if let (Some(target), None) = (target, wizard.finished_dir()) {
-            ui.add_space(t.space_5);
-            ui.horizontal_wrapped(|ui| {
-                ui.label(strings::format(
-                    key!("wizard-made-in"),
-                    &[&target.to_string_lossy()],
-                ));
-                if components::button(
-                    ui,
-                    Kind::Secondary,
-                    strings::text(key!("wizard-choose-folder")),
-                    true,
-                    0.0,
-                )
-                .clicked()
-                {
-                    events.push(Event::Action("wizard.folder", Value::Null));
-                }
-            });
-        }
         return;
     }
     let fields = |ui: &mut Ui, events: &mut Vec<Event>| {

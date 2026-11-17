@@ -1221,10 +1221,10 @@ impl ShellModel {
                 title_key: key!("edit-section-title"),
                 ok_key: key!("dialog-apply"),
                 fields: vec![
-                    field("number", key!("form-section"), number),
                     field("title", key!("form-title"), shown),
                     field("first", key!("form-section-first"), from.to_string()),
                     field("last", key!("form-section-last"), to.to_string()),
+                    field("number", key!("form-section"), number),
                 ],
                 error: None,
                 table: None,

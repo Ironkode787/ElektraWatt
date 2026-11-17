@@ -255,10 +255,10 @@ fn a_running_projects_sections_are_made_renamed_and_ranged() {
     assert_eq!(
         fields(&h),
         [
-            ("number", "3".to_owned()),
             ("title", "Cabinet".to_owned()),
             ("first", "300".to_owned()),
-            ("last", "399".to_owned())
+            ("last", "399".to_owned()),
+            ("number", "3".to_owned())
         ]
     );
     // A range that runs backwards is refused in words; a good one is applied with the new title.
