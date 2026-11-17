@@ -437,12 +437,21 @@ fn run_cmd(session: &mut Session, name: &str, params: serde_json::Value) {
 }
 
 /// A drawn page without a form of its own takes the frame of the frame defaults (doc 03 §5.1) in the page
-/// output, as in the cell grid; without frame defaults it keeps the no-grid frame.
+/// output, as in the cell grid; without frame defaults it keeps the no-grid frame. A new empty project, which holds no
+/// form, prints its page on the built-in frame: the shipped frame with the grid, whose cells its cell grid has, and the
+/// title block (a person saw an empty sheet).
 #[test]
 fn a_page_without_a_form_takes_the_frame_defaults_in_the_page_output() {
     let mut session =
         Session::new_project(ProjectTemplate::Builtin, NewProjectKind::Basic, options(3)).unwrap();
-    assert_eq!(frame_of_folio_1(&session), (None, None), "no form in the project");
+    assert_eq!(
+        frame_of_folio_1(&session),
+        (
+            Some("ew.frame.qet-a4-landscape-grid".to_owned()),
+            Some("ew.titleblock.qet-a4".to_owned())
+        ),
+        "no form in the project: the built-in frame"
+    );
     let (grid, cover) = (
         shipped_id("ew.frame.qet-a4-landscape-grid"),
         shipped_id("ew.frame.qet-a4-landscape-cover"),

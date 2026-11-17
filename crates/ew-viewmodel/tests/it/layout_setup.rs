@@ -502,10 +502,11 @@ fn an_empty_layout_page_names_its_first_step_and_plate_chooses_a_plate() {
     s.shutdown();
 }
 
-/// The centred datum of the starter's plate on a new project's panel page at 1:5: the default frame's
-/// drawing-area centre (140.229167, 89.958333 mm) less the 600 × 800 mm enclosure's centre in the plate's frame
-/// (offset 40 mm) at 1:5 (52 mm) in x, plus it (72 mm) in y.
-const NEW_PROJECT_DATUM: &str = "88.229167, 161.958333 mm";
+/// The centred datum of the starter's plate on a new project's panel page at 1:5: the built-in frame's drawing-area
+/// centre in page coordinates (131.530115, 82.284722 mm; the page prints on the shipped frame with the grid, whose
+/// page-to-sheet map scales and shifts it) less the 600 × 800 mm enclosure's centre in the plate's frame (offset 40 mm)
+/// at 1:5 (52 mm) in x, plus it (72 mm) in y.
+const NEW_PROJECT_DATUM: &str = "79.530115, 154.284722 mm";
 
 /// PS-1's fitting scale of the new plate on folio 950.
 const PS1_SCALE: &str = "1:10";

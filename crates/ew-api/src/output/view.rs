@@ -30,8 +30,10 @@
 //!   resolved by `ew_derive::frame_form_of` like the cell grid: the entry of the page's type, else `default`), else the
 //!   no-grid frame [`NOGRID_FRAME`] (the form of the project library with that key); a generated page's
 //!   `GeneratedPage::form`, else the no-grid frame; a divider the frame defaults' `section_divider` entry, else the
-//!   no-grid frame. A frame-defaults form the project does not hold falls through to the next rule. The
-//!   title block by `FormDef.title_block`.
+//!   no-grid frame. A frame-defaults form the project does not hold falls through to the next rule. A project that
+//!   holds no no-grid frame (a new empty project) prints on the built-in frame: the shipped forms
+//!   ([`SHIPPED_FORMS`]), with the grid on a drawn page, without it elsewhere. The title block by
+//!   `FormDef.title_block`.
 //! - **Bindings**: every `title_block(page)` value, the project's date format, no display language (neutral).
 //! - **Report tables**: a generated page's rows are the `GeneratedPage::rows` range of
 //!   `report_rows(block)`, each cell printed by `ew_reports::render::render` for that page (neutral language,
@@ -139,6 +141,71 @@ fn bus_cable_text(q: &Q, c: &ew_schema::Connection) -> Option<String> {
 
 /// The key of the frame form of dividers, and of pages without a form.
 pub const NOGRID_FRAME: &str = "ew.frame.qet-a4-landscape-nogrid";
+/// The key of the shipped frame with the column and row grid.
+pub const GRID_FRAME: &str = "ew.frame.qet-a4-landscape-grid";
+/// The key of the shipped cover frame.
+pub const COVER_FRAME: &str = "ew.frame.qet-a4-landscape-cover";
+/// The key of the shipped title block, which the shipped frames name.
+pub const TITLE_BLOCK: &str = "ew.titleblock.qet-a4";
+
+/// The shipped frame and title-block forms of `content/forms` (the QElectroTech-compatible A4 landscape frames with
+/// and without the grid, the cover frame, and the title block they name), in the `lib/` JSON form that
+/// `library.embed` takes. The wizard embeds them into a template; a page of a project that holds no frame prints
+/// on them ([`PageFrameOf`]).
+pub const SHIPPED_FORMS: [&str; 4] = [
+    include_str!("../../../../content/forms/ew.frame.qet-a4-landscape-cover.json"),
+    include_str!("../../../../content/forms/ew.frame.qet-a4-landscape-grid.json"),
+    include_str!("../../../../content/forms/ew.frame.qet-a4-landscape-nogrid.json"),
+    include_str!("../../../../content/forms/ew.titleblock.qet-a4.json"),
+];
+
+/// [`SHIPPED_FORMS`], parsed once.
+fn shipped_forms() -> &'static [LibCopy<FormDef>] {
+    static FORMS: OnceLock<Vec<LibCopy<FormDef>>> = OnceLock::new();
+    FORMS.get_or_init(|| {
+        SHIPPED_FORMS
+            .iter()
+            .filter_map(|json| match LibDocument::from_json(json).ok()? {
+                LibDocument::Form(copy) => Some(copy),
+                _ => None,
+            })
+            .collect()
+    })
+}
+
+/// The shipped form a drawn page of type `kind` without a frame prints on, `None` for a page that is not drawn: the
+/// frame with the grid, whose cells are [`ew_derive::default_frame_grid`]; the one without the grid on a title page,
+/// a table of contents, a divider and a generated page, which have no cells.
+fn builtin_frame_form(kind: Option<&PageType>) -> Option<&'static LibCopy<FormDef>> {
+    let key = match kind {
+        Some(PageType::TitlePage | PageType::TableOfContents | PageType::SectionDivider) | None => {
+            NOGRID_FRAME
+        }
+        Some(_) => GRID_FRAME,
+    };
+    shipped_forms()
+        .iter()
+        .find(|f| f.item.meta.key.as_ref().is_some_and(|k| k.as_str() == key))
+}
+
+/// The built-in frame of a page of a project that holds no frame for it (a new empty project's page,
+/// [`builtin_frame_form`]), with its title block.
+fn builtin_frame(key: &PageRef, q: &Q) -> Option<FrameForms> {
+    let kind = match *key {
+        PageRef::Drawn(p) => Some(q.pages().get(p)?.kind.clone()),
+        PageRef::Generated { .. } | PageRef::Divider(_) => None,
+    };
+    let form = builtin_frame_form(kind.as_ref())?;
+    let shipped = shipped_forms();
+    Some(FrameForms {
+        title_block: form
+            .item
+            .title_block
+            .and_then(|id| shipped.iter().find(|f| f.id == id))
+            .map(|f| Arc::new(f.item.clone())),
+        form: Arc::new(form.item.clone()),
+    })
+}
 
 /// The built-in generic symbols the page view draws without a record naming them.
 #[derive(Clone, Debug)]
@@ -246,7 +313,8 @@ fn form_by_key(q: &Q, key: &str) -> Option<Arc<FormDef>> {
 }
 
 /// `page_frame(page)`: the frame form of a page of the page order and its title block (see the module
-/// documentation); `None` when the page has no form and the project library holds no no-grid frame.
+/// documentation); a page without a form in a project whose library holds no no-grid frame prints on the built-in
+/// frame (`builtin_frame`), so a new empty project's page has its frame and title block.
 #[derive(Debug)]
 pub struct PageFrameOf;
 
@@ -276,7 +344,8 @@ impl Query for PageFrameOf {
             .map(|form| FrameForms {
                 title_block: form.title_block.and_then(|id| self::form(q, id)),
                 form,
-            });
+            })
+            .or_else(|| builtin_frame(key, q));
         Arc::new(frame)
     }
 }
@@ -287,6 +356,7 @@ pub(crate) fn new_page_map(q: &Q, kind: &PageType) -> ew_scene::forms::SheetMap 
     frame_form_of(q, None, kind, true)
         .and_then(|id| form(q, id))
         .or_else(|| form_by_key(q, NOGRID_FRAME))
+        .or_else(|| builtin_frame_form(Some(kind)).map(|f| Arc::new(f.item.clone())))
         .map_or(ew_scene::forms::SheetMap::IDENTITY, |f| {
             ew_scene::forms::SheetMap::of(&f)
         })

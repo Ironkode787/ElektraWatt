@@ -190,8 +190,9 @@ pub use table_io::{
 pub use title_block_fields::TitleBlockFacts;
 pub use underlay::{UNDERLAY_IMPORTER, UnderlaySource, underlay_cache_dir};
 pub use view::{
-    FrameForms, NOGRID_FRAME, PageConnectionsOf, PageEmbeddedOf, PageFrameOf, PageSlotsOf, PageTableOf,
-    page_destination, page_items, page_plug_notes, page_uuid, page_valve_cells, page_valve_glyphs,
+    COVER_FRAME, FrameForms, GRID_FRAME, NOGRID_FRAME, PageConnectionsOf, PageEmbeddedOf, PageFrameOf,
+    PageSlotsOf, PageTableOf, SHIPPED_FORMS, TITLE_BLOCK, page_destination, page_items, page_plug_notes,
+    page_uuid, page_valve_cells, page_valve_glyphs,
 };
 
 pub(crate) use panel::{PageSurfaceView, ShapedText};

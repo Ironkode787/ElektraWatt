@@ -18,23 +18,10 @@ pub const COLOUR_PROFILE_SAMPLE: &str =
 /// The size profile "0.75/1.5": control circuits 0.75 mm2, mains circuits 1.5 mm2.
 pub const SIZE_PROFILE_SAMPLE: &str = include_str!("../../../content/profiles/size/company.0.75-1.5.json");
 
-/// The shipped frame and title-block forms of `content/forms` (the QElectroTech-compatible A4 landscape frames with
-/// and without the grid, the cover frame, and the title block they name), in the `lib/` JSON form that
-/// `library.embed` takes. The wizard embeds them into the basic project and names them in its frame defaults (doc
-/// 16 section 9.2, step 2); the sample project holds the same copies.
-pub const SHIPPED_FORMS: [&str; 4] = [
-    include_str!("../../../content/forms/ew.frame.qet-a4-landscape-cover.json"),
-    include_str!("../../../content/forms/ew.frame.qet-a4-landscape-grid.json"),
-    include_str!("../../../content/forms/ew.frame.qet-a4-landscape-nogrid.json"),
-    include_str!("../../../content/forms/ew.titleblock.qet-a4.json"),
-];
-
-/// The key of the shipped cover frame.
-pub const COVER_FRAME: &str = "ew.frame.qet-a4-landscape-cover";
-/// The key of the shipped frame with the column and row grid.
-pub const GRID_FRAME: &str = "ew.frame.qet-a4-landscape-grid";
-/// The key of the shipped frame without the grid.
-pub const NOGRID_FRAME: &str = "ew.frame.qet-a4-landscape-nogrid";
+/// The shipped frame and title-block forms and their keys (one place: `ew_api::output`). The wizard embeds them into
+/// the basic project and names them in its frame defaults (doc 16 section 9.2, step 2); the sample project holds the
+/// same copies.
+pub use ew_api::output::{COVER_FRAME, GRID_FRAME, NOGRID_FRAME, SHIPPED_FORMS, TITLE_BLOCK};
 
 /// The shipped colour profiles of `content/profiles/colour` (doc 16 section 9.2, step 3), by the choice of
 /// the `colour` field: "EN 60204-1 machine" and "IEC 60445 installation". Each is a value of the settings member
@@ -50,9 +37,6 @@ pub const SHIPPED_COLOUR_PROFILES: [(&str, &str); 2] = [
         include_str!("../../../content/profiles/colour/ew.colour.iec60445-installation.json"),
     ),
 ];
-
-/// The key of the shipped title block, which the frames name (the closure of a frame form).
-pub const TITLE_BLOCK: &str = "ew.titleblock.qet-a4";
 
 /// The golden layout of the report blocks (doc 16 section 9.2, step 9): report kind, first folio and page
 /// title. The sample project's blocks are these, on the shipped frame without the grid; its three terminal-diagram
