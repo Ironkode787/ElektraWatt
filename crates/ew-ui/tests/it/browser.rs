@@ -259,3 +259,63 @@ fn the_device_browsers_rows_stay_in_place_once_a_part_is_used() {
     assert_eq!(again, tree, "and the tree");
     d.shell_mut().shutdown();
 }
+
+/// The rc.3 rack run: once a part was in the project the browser showed Edit part… above Place and pushed Place down,
+/// so a click on Place's remembered spot hit Edit part…. Place stands in one place for every part: a part of the
+/// project with its Edit part…, one from the library without, and one with a longer card.
+#[test]
+fn place_stands_in_one_place_for_every_part() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    let page = json!({"folio": "201", "type": "fluid", "title": "Pneumatics"});
+    assert_eq!(d.shell_mut().dispatch("page.new", &page), Outcome::Done);
+    let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "201"}));
+    d.settle();
+    let open = |d: &mut Driver| {
+        d.input(&click(d.find("Device").unwrap()));
+        d.settle();
+        d.input(&typed("cylinder"));
+        d.settle();
+    };
+    // The browser's Place, right of the bar's group of that name.
+    let place = |d: &Driver| {
+        d.labels()
+            .into_iter()
+            .filter(|(l, _)| l == "Place")
+            .map(|(_, at)| at)
+            .max_by_key(|at| at.0)
+    };
+    let cylinder = "Cylinder double-acting, bore 32 mm, stroke 100 mm";
+    open(&mut d);
+    d.input(&click(starting_with(&d, cylinder)));
+    d.settle();
+    let from_library = place(&d).expect("Place");
+    assert!(d.find("Edit part…").is_none(), "a library part: no Edit part…");
+    d.input(&click(from_library));
+    d.settle();
+    d.input(&Input::Hover { at: (900, 500) });
+    d.settle();
+    d.input(&click((900, 500)));
+    d.settle();
+    assert!(
+        d.shell_mut()
+            .toast()
+            .is_some_and(|t| t.text.starts_with("Placed")),
+        "placed"
+    );
+    d.input(&Input::Key {
+        key: Some(egui::Key::Escape),
+        mods: Modifiers::NONE,
+        repeat: 1,
+    });
+    d.settle();
+    open(&mut d);
+    d.input(&click(starting_with(&d, cylinder)));
+    d.settle();
+    assert!(d.find("Edit part…").is_some(), "a part of the project");
+    assert_eq!(place(&d), Some(from_library));
+    d.input(&click(starting_with(&d, "Rodless cylinder")));
+    d.settle();
+    assert_eq!(place(&d), Some(from_library));
+    d.shell_mut().shutdown();
+}

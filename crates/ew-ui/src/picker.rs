@@ -741,6 +741,38 @@ fn detail(ui: &mut Ui, t: &Tokens, shell: &ShellModel, picker: &Picker, events: 
     response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Image, true, &label));
     picture(ui, t, rect, picker.preview.as_deref());
     ui.spacing_mut().item_spacing.y = t.space_2;
+    // The primary button stands right under the picture, in one place for every row (the rc.3 rack run clicked the
+    // remembered spot of Place and hit the Edit part… a part in the project shows above it).
+    ui.add_space(t.space_2);
+    let reason = picker.disabled_words(row);
+    // A symbol on another connection grid: Place puts it here on the page's grid, and says so below.
+    let grid_note = picker.grid_note(row);
+    let place = match (picker.mode, row) {
+        (PickerMode::Exchange, _) => strings::text(key!("picker-title-exchange")),
+        (_, PickerRow::Part(p)) if picker.part_main(p).is_none() => strings::text(key!("picker-part-symbol")),
+        _ => strings::text(key!("tool-place")),
+    };
+    let button = components::button(
+        ui,
+        Kind::Primary,
+        place,
+        reason.is_none(),
+        t.size_button_min_width,
+    );
+    let button = match &reason {
+        Some(r) => button.disabled_tip(r.as_str()),
+        None => button,
+    };
+    if button.clicked() {
+        events.push(Event::Action("picker.choose", json!({})));
+    }
+    // The second choice: a new page with the symbol's own grid.
+    if grid_note.is_some() {
+        let new_page = strings::text(key!("action-picker-new-page"));
+        if components::button(ui, Kind::Secondary, new_page, true, 0.0).clicked() {
+            events.push(Event::Action("picker.new_page", json!({})));
+        }
+    }
     let line = |ui: &mut Ui, text: &str, font: &theme::TypeToken, colour: theme::Rgba| {
         if !text.is_empty() {
             ui.add(
@@ -785,42 +817,11 @@ fn detail(ui: &mut Ui, t: &Tokens, shell: &ShellModel, picker: &Picker, events: 
     if let Some(view) = &picker.card {
         crate::part_card::body(ui, t, view, false, events);
     }
-    let reason = picker.disabled_words(row);
     if let Some(reason) = &reason {
         line(ui, reason, &t.type_small, t.text_secondary);
     }
-    // A symbol on another connection grid: Place puts it here on the page's grid, and says so.
-    let grid_note = picker.grid_note(row);
     if let Some(note) = &grid_note {
         line(ui, note, &t.type_small, t.text_secondary);
-    }
-    ui.add_space(t.space_2);
-    let place = match (picker.mode, row) {
-        (PickerMode::Exchange, _) => strings::text(key!("picker-title-exchange")),
-        (_, PickerRow::Part(p)) if picker.part_main(p).is_none() => strings::text(key!("picker-part-symbol")),
-        _ => strings::text(key!("tool-place")),
-    };
-    let button = components::button(
-        ui,
-        Kind::Primary,
-        place,
-        reason.is_none(),
-        t.size_button_min_width,
-    );
-    let button = match &reason {
-        Some(r) => button.disabled_tip(r.as_str()),
-        None => button,
-    };
-    if button.clicked() {
-        events.push(Event::Action("picker.choose", json!({})));
-    }
-    // The second choice: a new page with the symbol's own grid.
-    if grid_note.is_some() {
-        ui.add_space(t.space_2);
-        let new_page = strings::text(key!("action-picker-new-page"));
-        if components::button(ui, Kind::Secondary, new_page, true, 0.0).clicked() {
-            events.push(Event::Action("picker.new_page", json!({})));
-        }
     }
     edit_buttons(ui, t, shell, picker, row, events);
 }
