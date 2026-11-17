@@ -5,7 +5,7 @@
 {"note":"patience 9 flow 9 The grid cursor moved."}
 {"do":[{"action":"canvas.activate","params":{"alt":true}}],"expect":["canvas.activate done"]}
 {"note":"patience 9 flow 9 The first contactor is placed."}
-{"look":{"page":""},"expect":["rep \"-101K1\" cell \"101-C3\"","reps 1 connections 0 junctions 0"]}
+{"look":{"page":""},"expect":["rep \"-101K1\" cell \"101-B3\"","reps 1 connections 0 junctions 0"]}
 {"do":[{"action":"cursor.set","params":{"x_mm":127,"y_mm":47.625}},{"action":"canvas.activate","params":{"alt":true}}],"expect":["canvas.activate done"]}
 {"note":"patience 9 flow 8 The second contactor is placed."}
 {"do":[{"action":"edit.redo"},{"action":"ui.dismiss"}],"expect":["edit.redo refused reason-nothing-to-redo","skipped"]}
@@ -13,7 +13,7 @@
 {"do":[{"action":"help.tutorials"}],"expect":["harness: help.tutorials is not available to the drafter"]}
 {"note":"patience 8 flow 7 The harness refuses the tutorials, which would reach the sample."}
 {"friction":["--severity","annoying","--category","discoverability","--wanted","open the tutorials","--expected","a list of tutorials","--saw","the harness refused the step"],"expect":["friction 1 logged"]}
-{"look":{"page":"101"},"expect":["page \"101\" \"Selftest\" reps 2 connections 0 junctions 0","rep \"-101K2\" cell \"101-C7\""]}
+{"look":{"page":"101"},"expect":["page \"101\" \"Selftest\" reps 2 connections 0 junctions 0","rep \"-101K2\" cell \"101-B7\""]}
 {"look":{"sections":["canvas"]},"expect":["canvas"]}
 {"look":{"sections":["canvas"],"diff":true},"expect":["no change"]}
 {"do":[{"action":"view.zoom_in"},{"action":"view.zoom_out"},{"action":"view.fit_page"},{"action":"view.pan_left"},{"action":"view.pan_right"},{"action":"view.pan_up"},{"action":"view.pan_down"},{"action":"view.grid"},{"action":"view.grid"}],"expect":["view.grid done"]}
