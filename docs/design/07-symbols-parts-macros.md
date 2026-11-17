@@ -1155,7 +1155,8 @@ edge that moves go with it, the others stay where they stand, and the edge stops
 Properties of the selected pins or of the part. Its ways in: the start card, Pins and box… in the part editor, and
 Edit this device's box… on a placed box. Save saves the part (a new part, a part of the project in place, a part of
 My parts as its next version, a library's part as the project's own copy); where boxes of it are drawn already a
-message says how many and offers Redraw them (`part.redraw_boxes`, one `box.reshape` per box).
+message says how many and offers Redraw them (`part.redraw_boxes`: one `box.redraw` of every
+box, one undo step, all or none).
 *As built.* A page on another connection
 grid refuses the placement, naming both grids as the status bar does ("4 mm", "QET 10 px"), and offers a new page with
 the symbol's grid: **Place on a new page with its grid** places the published symbol there at 40/40 mm and selects

@@ -91,6 +91,7 @@ command-bus-place_ports = Buspoorten van een apparaat tekenen
 command-bus-cable-set = Kabel en stekkers van een buslijn instellen
 command-box-black = Black box tekenen
 command-box-reshape = Kader van vorm veranderen
+command-box-redraw = Kasten opnieuw tekenen
 command-box-structure = Structuurkader tekenen
 command-cable-create = Kabel maken
 command-check-unwaive = Vrijstelling opheffen
@@ -1370,6 +1371,7 @@ refusal-assembly-own-child = een apparaat kan niet zijn eigen kind zijn
 refusal-device-link-itself = een apparaat kan niet naar zichzelf koppelen
 # box.reshape.
 refusal-box-reshape-no-box = de representatie heeft geen box; alleen een black box die met een omtrek is getekend kan van vorm veranderen
+refusal-box-redraw-none = noem ten minste één kast om opnieuw te tekenen
 refusal-box-reshape-slots = een ventieleiland dat als posities is getekend, krijgt zijn maat van die posities; verplaats het kader in plaats daarvan
 refusal-box-reshape-out-of-range = de box ligt buiten het tekenbereik; geef hem een vorm dichter bij de oorsprong van de pagina
 refusal-box-reshape-cp-connected = aansluitpunt { $p0 } van de box is op deze pagina verbonden en de nieuwe aansluitpunten laten het weg; houd het in `cps`

@@ -230,6 +230,16 @@ fn a_new_part_s_box_is_saved_and_a_drawn_box_is_redrawn_on_request() {
     cursor(&mut s, at);
     done(&mut s, "canvas.activate", json!({}));
     done(&mut s, "ui.dismiss", json!({}));
+    // A second box of the part beside it.
+    done(
+        &mut s,
+        "place.pick",
+        json!({"part": copy.to_string(), "template": 0}),
+    );
+    let beside = grid_point(&s, (40, 10));
+    cursor(&mut s, beside);
+    done(&mut s, "canvas.activate", json!({}));
+    done(&mut s, "ui.dismiss", json!({}));
     let top = |s: &ShellModel| -> Vec<i64> {
         let t = tables(s);
         let b = t.reps.iter().find_map(|r| r.black_box.clone()).expect("the box");
@@ -239,28 +249,45 @@ fn a_new_part_s_box_is_saved_and_a_drawn_box_is_redrawn_on_request() {
             .map(|c| (c.1.0 - at.0) / 4_000_000)
             .collect()
     };
+    // The pin that stands first on the top edge of each box drawn of the part.
+    let firsts = |s: &ShellModel| -> Vec<Option<u16>> {
+        tables(s)
+            .reps
+            .iter()
+            .filter_map(|r| r.black_box.clone())
+            .map(|b| {
+                b.cps
+                    .iter()
+                    .filter(|c| c.2 == Dir::Up)
+                    .min_by_key(|c| c.1.0)
+                    .map(|c| c.0)
+            })
+            .collect()
+    };
     let before = top(&s);
     assert_eq!(before.len(), 2);
+    assert_eq!(firsts(&s), [Some(0), Some(0)], "two boxes, L first");
     // Back to the box: the two top pins change places, saved; the drawn box is offered, and redrawn on request.
     done(&mut s, "symbol.new", json!({}));
     done(&mut s, "part.pin", json!({"pin": 0, "side": "top"}));
     done(&mut s, "symbol.save", json!({}));
     assert_eq!(
         crate::common::toast(&s),
-        "Saved the device box of PSU-24. Boxes of it that are drawn the old way: 1."
+        "Saved the device box of PSU-24. Boxes of it that are drawn the old way: 2."
     );
     done(&mut s, "symbol.close", json!({}));
+    // Redraw them: both boxes in one undo step (rc.3 review: one step per box before).
+    let rev = s.revision();
     done(&mut s, "part.redraw_boxes", json!({"part": format!("id:{copy}")}));
-    let t = tables(&s);
-    let b = t.reps.iter().find_map(|r| r.black_box.clone()).expect("the box");
-    let first_top = b
-        .cps
-        .iter()
-        .filter(|c| c.2 == Dir::Up)
-        .min_by_key(|c| c.1.0)
-        .map(|c| c.0);
-    assert_eq!(first_top, Some(1), "N stands first on the top edge now");
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one step");
+    assert_eq!(
+        firsts(&s),
+        [Some(1), Some(1)],
+        "N stands first on the top edge of both now"
+    );
     assert_eq!(top(&s).len(), 2);
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(firsts(&s), [Some(0), Some(0)], "one Undo takes back both");
 }
 
 /// A box laid out on the 4 mm grid is drawn on a page of the 4 mm grid and on one of the QET grid with its pins on

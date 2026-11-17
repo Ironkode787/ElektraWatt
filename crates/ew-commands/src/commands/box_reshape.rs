@@ -352,6 +352,40 @@ impl Command for ReshapeBox {
     }
 }
 
+/// `box.redraw` (`RedrawBoxes`, rc.3: Redraw them, after a part's device box changed): several black boxes reshaped as
+/// `box.reshape` reshapes each, in turn on one transaction, so they are one preview and one undo step, all or none.
+/// Rejected: no box; a box that `box.reshape` refuses (the whole step, in that command's words). Interactive. Outcome:
+/// the last box's representation.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct RedrawBoxes {
+    /// The boxes, each as `box.reshape` takes it.
+    pub boxes: Vec<ReshapeBox>,
+}
+
+impl Command for RedrawBoxes {
+    const NAME: &'static str = "box.redraw";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        if self.boxes.is_empty() {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/boxes",
+                text!("refusal-box-redraw-none"),
+            ));
+        }
+        let mut last = Outcome::default();
+        for b in &self.boxes {
+            last = b.run(tx)?;
+        }
+        Ok(last)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

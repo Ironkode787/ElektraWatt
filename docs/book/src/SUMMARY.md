@@ -43,6 +43,7 @@
     - [`assembly.attach`](reference/commands/assembly.attach.md)
     - [`bond.create`](reference/commands/bond.create.md)
     - [`box.black`](reference/commands/box.black.md)
+    - [`box.redraw`](reference/commands/box.redraw.md)
     - [`box.reshape`](reference/commands/box.reshape.md)
     - [`box.structure`](reference/commands/box.structure.md)
     - [`bus.cable.set`](reference/commands/bus.cable.set.md)

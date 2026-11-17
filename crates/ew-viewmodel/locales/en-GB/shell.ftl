@@ -43,6 +43,7 @@ command-bus-place_ports = Draw a device's bus ports
 command-bus-cable-set = Set the cable and plugs of a bus line
 command-box-black = Draw black box
 command-box-reshape = Reshape box
+command-box-redraw = Redraw boxes
 command-box-structure = Draw structure box
 command-cable-create = Create cable
 command-check-unwaive = Remove waiver
@@ -1422,6 +1423,7 @@ refusal-assembly-own-child = a device cannot be its own child
 refusal-device-link-itself = a device cannot link to itself
 # box.reshape.
 refusal-box-reshape-no-box = the representation has no box; only a black box drawn with an outline can be reshaped
+refusal-box-redraw-none = name at least one box to redraw
 refusal-box-reshape-slots = a valve terminal drawn as its positions takes its size from them; move the box instead
 refusal-box-reshape-out-of-range = the box lies outside the drawable range; reshape it nearer the page origin
 refusal-box-reshape-cp-connected = box connection point { $p0 } is connected on this page and the new connection points leave it out; keep it in `cps`

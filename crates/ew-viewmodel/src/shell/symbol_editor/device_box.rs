@@ -924,7 +924,7 @@ impl ShellModel {
     }
 
     /// `part.redraw_boxes {part}`: every box drawn of a device of the part redrawn as the part's layout says, where
-    /// it stands; its wires follow their pins. One undo step per box.
+    /// it stands; its wires follow their pins. One undo step for all of them (`box.redraw`), all or none.
     pub(crate) fn act_part_redraw_boxes(&mut self, p: &Map<String, Value>) -> Outcome {
         let copy = match self.part_edit_copy(p) {
             Ok(Some(c)) => c,
@@ -934,14 +934,19 @@ impl ShellModel {
         let Some(project) = &self.project else {
             return Outcome::refused(key!("reason-no-project"));
         };
-        let commands: Vec<_> = project
+        let boxes: Vec<Value> = project
             .session
             .boxes_of_part(copy)
             .into_iter()
             .filter_map(|rep| project.session.redraw_box_command(copy, rep))
+            .map(|c| c.params)
             .collect();
-        let count = commands.len();
-        for command in commands {
+        let count = boxes.len();
+        if count > 0 {
+            let command = ew_api::AnyCommand {
+                name: "box.redraw".to_owned(),
+                params: json!({ "boxes": boxes }),
+            };
             let out = self.run_commit(&command);
             if out != Outcome::Done {
                 return out;

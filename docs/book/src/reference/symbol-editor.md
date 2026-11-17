@@ -209,7 +209,7 @@ The window and `.ewui` scripts share these actions:
 | `part.pin` | `add: true` with optional `name`; `remove`: a pin; or `pin` with `name`, `role`, `side` (`top`, `bottom`, `left`, `right`) and `at` in millimetres along the edge |
 | `part.box_size` | `width`, `height` in millimetres; `from_left: true` changes the width at the left edge and `from_top: true` the height at the top |
 | `part.box_select` | `pins`: a list of pin numbers or `"all"`; optional `mode` |
-| `part.redraw_boxes` | `part`: the boxes drawn of the part redrawn as it lays them out |
+| `part.redraw_boxes` | `part`: the boxes drawn of the part redrawn as it lays them out, in one undo step |
 | `symbol.place` | `x`, `y` on the current project page |
 | `symbol.scratch` | none; creates a test page in the current project |
 | `symbol.close` | optional `discard: true` |
