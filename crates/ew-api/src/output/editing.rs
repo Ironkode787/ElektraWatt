@@ -996,7 +996,6 @@ impl Session {
             }
             let mut row = symbol_row(&q, set, &page, key, Some(id.as_uuid()), &copy.item);
             if other_grid {
-                row.allowed = false;
                 row.grid_mismatch = Some([
                     (copy.item.grid.num(), copy.item.grid.den()),
                     (page.grid.num(), page.grid.den()),
@@ -1027,9 +1026,9 @@ impl Session {
                 }
                 let address = format!("library:{}:{}", copy.library_id, copy.item_id);
                 let mut row = symbol_row(&q, set, &page, address, None, &copy.item);
-                // SM25b m3 (ruled): a published symbol the page's grid cannot take is listed, greyed with its reason.
+                // A published symbol of another grid is listed with both grids; Place puts its copy drawn on the page's
+                // grid there (rc.3). Whether the page's type takes it stays `allowed`.
                 if copy.item.grid != page.grid {
-                    row.allowed = false;
                     row.grid_mismatch = Some([
                         (copy.item.grid.num(), copy.item.grid.den()),
                         (page.grid.num(), page.grid.den()),

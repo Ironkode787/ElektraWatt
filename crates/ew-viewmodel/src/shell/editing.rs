@@ -1024,6 +1024,9 @@ impl ShellModel {
             }
         };
         let row = cat.symbols[row_index].clone();
+        if !row.allowed {
+            return Outcome::refused(key!("reason-rep-type-not-allowed"));
+        }
         // A symbol on another connection grid is placed here as its copy drawn on the page's grid (rc.3), which the
         // project keeps; a symbol a part draws keeps the refusal with both grids named.
         if let Some(grids) = row.grid_mismatch {
@@ -1040,9 +1043,6 @@ impl ShellModel {
             return Outcome::Failed {
                 message: crate::tools::grid_words(grids),
             };
-        }
-        if !row.allowed {
-            return Outcome::refused(key!("reason-rep-type-not-allowed"));
         }
         // A black box (a black-box symbol, or a template function that is one) arms the black box tool;
         // `tool.black_box` arms nothing else.
@@ -1490,6 +1490,12 @@ impl ShellModel {
             return Outcome::refused(key!("reason-no-picker-row"));
         };
         if let Some(reason_key) = picker.disabled(row) {
+            // SM25b m3: the grids' reason names both grids.
+            if reason_key == key!("reason-symbol-grid") {
+                return Outcome::Failed {
+                    message: picker.disabled_words(row).unwrap_or_default(),
+                };
+            }
             return Outcome::Refused { reason_key };
         }
         let (mode, cat, pending) = (picker.mode, Arc::clone(&picker.catalogue), picker.pending.clone());
