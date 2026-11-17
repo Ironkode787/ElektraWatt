@@ -299,7 +299,7 @@ rule-ew-core-069 = { $line ->
        *[device] { WORD($device) }
     }.
     .title = Draad door een symbool
-    .hint = Routeer de draad opnieuw met Selectie routeren, of verplaats het symbool uit de weg.
+    .hint = Selecteer de draad en gebruik Opnieuw routeren, of verplaats het symbool uit de weg.
 
 rule-ew-core-070 = { $line ->
         [tube] Slang
@@ -311,7 +311,7 @@ rule-ew-core-070 = { $line ->
        *[symbol] de tekst "{ $text }" van { WORD($device) }
     }.
     .title = Draad door een tekst
-    .hint = Routeer de draad opnieuw met Selectie routeren, of verplaats de tekst.
+    .hint = Selecteer de draad en gebruik Opnieuw routeren, of verplaats de tekst.
 
 rule-ew-core-071 = een grafische lijn eindigt op { $cp }, wat elektrisch niets verbindt; teken in plaats daarvan een verbinding
     .title = Grafische lijn op een aansluitpunt
@@ -329,7 +329,7 @@ rule-ew-core-073 = { $line ->
        *[wire] Draad { WORD($wire) } heeft geen route: hij is als gestreepte lijn getekend.
     }
     .title = Draad zonder route
-    .hint = Gebruik Pagina routeren; waar die geen vrije weg vindt, teken de route met Route bewerken of verplaats de symbolen.
+    .hint = Gebruik Pagina routeren; waar die geen vrije weg vindt, versleep de grepen van de draad of verplaats de symbolen.
 
 rule-ew-core-081 = vrijstelling { $waiver } voor { $rule } { $form ->
         [not-evaluated] is niet beoordeeld: de regel liep niet in schema { $scheme } ({ $mode ->

@@ -17,7 +17,7 @@ Place a contactor between two terminals and draw a straight wire from one termin
 
 ## How to fix
 
-Select the wire and use Route selection, or move the symbol out of the wire's way. There is no quick fix.
+Select the wire and use Reroute, or move the symbol out of the wire's way. There is no quick fix.
 
 ## Waiving
 

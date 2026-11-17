@@ -297,7 +297,7 @@ rule-ew-core-069 = { $line ->
        *[device] { $device }
     }.
     .title = Wire through a symbol
-    .hint = Route the wire again with Route selection, or move the symbol out of its way.
+    .hint = Select the wire and use Reroute, or move the symbol out of its way.
 
 rule-ew-core-070 = { $line ->
         [tube] Tube
@@ -309,7 +309,7 @@ rule-ew-core-070 = { $line ->
        *[symbol] the text "{ $text }" of { $device }
     }.
     .title = Wire through a text
-    .hint = Route the wire again with Route selection, or move the text.
+    .hint = Select the wire and use Reroute, or move the text.
 
 rule-ew-core-071 = a graphic line ends on { $cp }, which joins nothing electrically; draw a connection instead
     .title = Graphic line on a CP
@@ -327,7 +327,7 @@ rule-ew-core-073 = { $line ->
        *[wire] Wire
     } { $wire } has no route: it is drawn as a dashed line.
     .title = Unrouted wire
-    .hint = Run Route page; where it finds no clear way, draw the route with Edit route or move the symbols.
+    .hint = Run Route page; where it finds no clear way, drag the wire's handles or move the symbols.
 
 rule-ew-core-081 = waiver { $waiver } for { $rule } { $form ->
         [not-evaluated] was not evaluated: the rule did not run in scheme { $scheme } ({ $mode } mode)

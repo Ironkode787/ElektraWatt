@@ -18,7 +18,7 @@ Draw a wire whose route runs horizontally through a coil's tag.
 
 ## How to fix
 
-Select the wire and use Route selection, or move the text. There is no quick fix.
+Select the wire and use Reroute, or move the text. There is no quick fix.
 
 ## Waiving
 
