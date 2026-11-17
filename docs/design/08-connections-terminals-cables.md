@@ -1125,7 +1125,7 @@ cable rows and in the bus cable list (FR-BUS-008).
 
 | Source | Release | Rule |
 |---|---|---|
-| Manual, FromPart, Missing | MVP | Missing is an error and blocks release (EW-CORE-033, FR-CHK-033) |
+| Manual, FromPart, Missing | MVP | Missing is a warning while the drawing grows and an error that blocks release in the check for delivery (EW-CORE-033, FR-CHK-033; rc.3) |
 | Routed | 1.0 | a committed computation from `RouteWires`; stale once its input hash changes (EW-LAY-011, FR-CBL-010) |
 | Estimated | 1.0 | from footprints and duct paths, flagged (FR-LAY-053) |
 
@@ -1195,7 +1195,7 @@ p = prevent and r = release.
 | EW-TERM-005 | `rail_bonded` set on a terminal without any PE CP | FR-TRM-017 | o | error | 0 |
 | EW-CORE-031 | Core colour not an IEC 60757 or profile code; a prevent rule, so only a lenient import stores a foreign code such as "BR", with the quick fix "use BN" | FR-CHK-032 | p o r | error | 0 (C: MF-11) |
 | EW-CORE-032 | Core differs from the cable part's core definition | FR-CHK-032 | o r | warning | 0 |
-| EW-CORE-033 | Cable without length (blocks release) | FR-CHK-033 | o r | error | EF-08: -3W1 |
+| EW-CORE-033 | Cable without length (blocks release) | FR-CHK-033 | o r | warning (release: error) | EF-08: -3W1 |
 | EW-CORE-034 | External connection without a cable | FR-CHK-033 | o r | warning | EF-07: +J-E-206 → 1X1 |
 | EW-CORE-035 | Pre-assembled core on a pin other than the part's pin map | FR-CHK-056 | o r | warning | 0 |
 | EW-CORE-036 | Core assigned to two wires, or more assignments than cores (invariant CI-05) | FR-CBL-003, FR-CBL-011 | p o | error | 0 |

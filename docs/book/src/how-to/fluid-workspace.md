@@ -91,7 +91,7 @@ station on PROFIBUS DP", "Valve terminal · multipin, wired"):
    port 1 there. The sub-base under the cells shows the supply and exhaust galleries that join every valve.
    The toast names the terminal and its positions; a click onto another box is refused.
    A terminal made first as a PLC station (**PLC ▸ New station…**) comes first: **Valve terminal** offers
-   **Draw -104A1 here** for it, its rack dialog **Draw on a fluid page…**, and its valves stand in their cells.
+   **Draw -104A1 here** for it, its rack's tab **Draw on a fluid page…**, and its valves stand in their cells.
 2. Click an empty cell, or right-click it and choose **Fill position 2…**: the device browser opens with valves; choose
    a valve for a valve terminal, and it stands in that cell with its output. Its working ports 4 and 2 stand on the
    cell's top edge: draw the tubes to the cylinder from there. A valve put on a position in the terminal's rack or the
@@ -114,7 +114,9 @@ station on PROFIBUS DP", "Valve terminal · multipin, wired"):
    page, and that page shows with the plug on the pointer; click once where it goes. With an electrical page in
    front it is drawn there. Its pins stand down both sides, and beside each pin stands the valve
    and solenoid it drives. Wire a pin to a PLC output, and the valve on the fluid page shows that output.
-6. The rack dialog (**Rack…**) lists the terminal's positions as rows with **Fill…**, **Blanking plate** and **Empty**.
+6. The terminal's rack (**Rack…**, a tab beside the page tabs) shows its positions as places like slots: select one
+   and double-click a valve in the catalogue; its right-click menu offers **Replace valve**, **Empty the position** and
+   **Blanking plate**.
    **Generate overview…** on the terminal's menu makes the overview pages of its modules and valves, previewed.
 
 ## Tubes and the tube list
