@@ -702,10 +702,11 @@ impl ShellModel {
                 .map_or((false, false), |c| (c.at.holder.is_some(), c.at.page.is_some())),
             None => (false, false),
         };
-        if taken {
-            Ok(drawn)
-        } else {
-            Err(key!("reason-rack-no-module"))
+        match (taken, tab.cursor) {
+            (true, _) => Ok(drawn),
+            // A free slot or an empty position under the cursor: it takes a part from the catalogue.
+            (false, Some(_)) => Err(key!("reason-rack-free")),
+            (false, None) => Err(key!("reason-rack-no-module")),
         }
     }
 

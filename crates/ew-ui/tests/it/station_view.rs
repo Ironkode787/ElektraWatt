@@ -213,6 +213,27 @@ fn a_valve_terminals_positions_are_filled_like_slots() {
         first.holder,
         "the valve is selected"
     );
+    // Its right click speaks of the valve: Replace lists the valves with its own checked, and what a position does not
+    // take (a move, a drawing of its own) is greyed with the reason.
+    use ew_ui::ew_viewmodel::actions::MenuEntry;
+    let menu = ew_ui::ew_viewmodel::actions::station_tools(h.state().shell());
+    let entry = |label: &str| {
+        menu.iter()
+            .find_map(|(_, e)| match e {
+                MenuEntry::Item(i) if i.label == label => Some((i.enabled, i.reason.clone(), Vec::new())),
+                MenuEntry::Submenu { label: l, items, .. } if l == label => Some((true, None, items.clone())),
+                _ => None,
+            })
+            .unwrap_or_else(|| panic!("no entry {label}: {menu:?}"))
+    };
+    let (_, _, valves) = entry("Replace valve");
+    let checked: Vec<&str> = valves.iter().filter(|i| i.checked).map(|i| i.label.as_str()).collect();
+    assert_eq!(checked, [part], "its own valve is checked");
+    assert!(entry("Empty the position").0);
+    for greyed in ["Move valve left", "Draw valve on a page"] {
+        let (enabled, reason, _) = entry(greyed);
+        assert!(!enabled && reason.is_some(), "{greyed} is greyed with its reason");
+    }
     click(&mut h, "Empty position 2");
     h.get_by_label("Blanking plate").click();
     settle(&mut h);

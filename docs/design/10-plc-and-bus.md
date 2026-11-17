@@ -1759,7 +1759,10 @@ the table's columns and the catalogue both; what is done in it gives it the focu
 arrow keys (`plc.rack_select`), and the device under it is the window's selection: Properties shows it, and the
 view's own bar above the rack acts on it (`plc.module_replace`, `plc.module_remove`, `plc.module_draw`,
 `plc.module_goto`, `plc.module_left`, `plc.module_right`, each `plc.rack_slot`'s operation or `nav.show`; declared
-actions of the view's own controls); a right click gives the same commands, Delete empties the slot. They
+actions of the view's own controls); a right click gives the same commands, drawn as the window's other menus (Replace
+and Draw on a page a list beside their entry, the part the module has checked), Delete empties the slot. On a valve
+position they speak of the valve (Replace valve, Empty the position), and a move or a drawing of its own, which a
+position does not take, is greyed with the reason; on a free place each says to take a part from the catalogue. They
 are no buttons of the PLC tab: with six more the tab folds at 1920 × 1080 in Dutch and in the long-text locale (doc
 16a §5.3, law 3). On a free place the station is selected. A double click on a catalogue part puts
 it into the cursor's free slot, else the first free one, a drag onto the place it is let go over, onto a module

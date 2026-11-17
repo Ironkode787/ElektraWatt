@@ -7233,7 +7233,16 @@ bar-plc-module-draw = Draw on page
 bar-plc-module-goto = Go to page
 bar-plc-module-left = Move left
 bar-plc-module-right = Move right
+# The same commands on a valve position of a valve terminal (a right click on a position): the valve's words.
+valve-plc-module-replace = Replace valve
+valve-plc-module-remove = Empty the position
+valve-plc-module-draw = Draw valve on a page
+valve-plc-module-goto = Go to the valve's page
+valve-plc-module-left = Move valve left
+valve-plc-module-right = Move valve right
+reason-rack-valve-draw = A valve is drawn in its terminal's cell on a fluid page: Draw on a fluid page… in To do draws the terminal with its valves
 reason-rack-no-module = Select a module in the rack first
+reason-rack-free = Nothing stands here yet: double-click a part in the catalogue to put it here
 reason-rack-drawn = It is drawn on a page already: Go to page shows it
 reason-rack-head = The station's head stays in its place: delete the station in the PLC list to take it out
 reason-rack-position = A valve position is filled, given a blanking plate or emptied: it takes no other change

@@ -523,21 +523,13 @@ fn interact(
 }
 
 /// The menu of the module under the cursor (a right click): the view's commands on it, Replace and Draw on a page
-/// with their choices.
+/// with their choices, drawn as every menu of the window is (its labels in one column, a submenu beside its entry).
 fn menu(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
-    for (_, entry) in ew_viewmodel::actions::station_tools(shell) {
-        match entry {
-            MenuEntry::Item(item) => crate::menu::item(ui, &item, events),
-            MenuEntry::Submenu { label, items, .. } => {
-                ui.menu_button(label, |ui| {
-                    for item in &items {
-                        crate::menu::item(ui, item, events);
-                    }
-                });
-            }
-            _ => {}
-        }
-    }
+    let entries: Vec<MenuEntry> = ew_viewmodel::actions::station_tools(shell)
+        .into_iter()
+        .map(|(_, entry)| entry)
+        .collect();
+    crate::menu::entries(ui, &entries, true, events);
 }
 
 /// The view's own bar above its rack: the commands on the module under the cursor (Replace, Remove, Draw on page, Go

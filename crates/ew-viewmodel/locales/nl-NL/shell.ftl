@@ -6971,7 +6971,16 @@ bar-plc-module-draw = Op pagina tekenen
 bar-plc-module-goto = Naar pagina
 bar-plc-module-left = Naar links
 bar-plc-module-right = Naar rechts
+# Dezelfde opdrachten op een ventielplaats van een ventieleiland (rechtsklik op een plaats): de woorden van het ventiel.
+valve-plc-module-replace = Ventiel vervangen
+valve-plc-module-remove = Plaats leegmaken
+valve-plc-module-draw = Ventiel op een pagina tekenen
+valve-plc-module-goto = Naar de pagina van het ventiel
+valve-plc-module-left = Ventiel naar links
+valve-plc-module-right = Ventiel naar rechts
+reason-rack-valve-draw = Een ventiel wordt in de cel van zijn ventieleiland op een fluïdumpagina getekend: Op een fluïdumpagina tekenen… bij Te doen tekent het eiland met zijn ventielen
 reason-rack-no-module = Kies eerst een module in het rek
+reason-rack-free = Hier staat nog niets: dubbelklik op een artikel in de catalogus om het hier te plaatsen
 reason-rack-drawn = Het is al op een pagina getekend: Naar pagina toont het
 reason-rack-head = De kop van het station blijft op zijn plaats: verwijder het station in de PLC-lijst om het weg te halen
 reason-rack-position = Een ventielplaats wordt gevuld, van een blindplaat voorzien of leeggemaakt: iets anders kan er niet mee

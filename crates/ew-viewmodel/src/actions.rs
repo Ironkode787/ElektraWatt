@@ -381,8 +381,26 @@ fn station_module_undrawn(m: &ShellModel) -> Result<(), Key<'static>> {
     match m.station_taken()? {
         _ if m.station_draft().is_some() => Err(key!("reason-rack-draft")),
         true => Err(key!("reason-rack-drawn")),
+        false if on_valve_position(m) => Err(key!("reason-rack-valve-draw")),
         false => Ok(()),
     }
+}
+
+/// Whether the cursor of a station's view stands on a valve terminal's position.
+fn on_valve_position(m: &ShellModel) -> bool {
+    m.station_tab()
+        .and_then(|t| t.cursor)
+        .is_some_and(|c| matches!(c, crate::area::StationCursor::Position { .. }))
+}
+
+/// [`station_module`], and the cursor stands on a slot, not on a valve position, which takes no move (Move left,
+/// Move right).
+fn station_module_slot(m: &ShellModel) -> Result<(), Key<'static>> {
+    station_module(m)?;
+    if on_valve_position(m) {
+        return Err(key!("reason-rack-position"));
+    }
+    Ok(())
 }
 
 /// The cursor of a station's view stands on a module that is drawn on a page (Go to page).
@@ -1539,26 +1557,37 @@ pub fn find(id: &ActionId) -> Option<&'static ActionMeta> {
 /// A command that takes a part (Replace) is a submenu of the parts that fit, one that takes a folio (Draw on a page)
 /// of the schematic pages. The view's bar and a right click on a card show them.
 pub fn station_tools(model: &ShellModel) -> Vec<(String, MenuEntry)> {
+    // On a valve terminal's position the entries speak of the valve (`valve-plc-module-…`).
+    let on_valve = on_valve_position(model);
     ACTIONS
         .iter()
         // The view's own controls; a module's settings (Safety data…) are its row's menu.
         .filter(|a| a.hidden && a.id.starts_with("plc.module_"))
         .map(|meta| {
-            let item = item_of(meta, model);
-            let short = strings::lookup(&format!("bar-{}", meta.id.replace(['.', '_'], "-")))
+            let mut item = item_of(meta, model);
+            let words = meta.id.replace(['.', '_'], "-");
+            let short = strings::lookup(&format!("bar-{words}"))
                 .map_or_else(|| item.label.clone(), str::to_owned);
+            if let Some(valve) = strings::lookup(&format!("valve-{words}")).filter(|_| on_valve) {
+                valve.clone_into(&mut item.label);
+            }
             let choices = match meta.params.split(':').next() {
                 Some("part") => Some(Submenu::ModuleParts),
                 Some("folio") => Some(Submenu::ModulePages),
                 _ => None,
             };
+            // A list of choices opens beside its entry, which says so by its arrow, not by an ellipsis; one that cannot
+            // run is a greyed entry with its reason, not a list of greyed choices.
+            if choices.is_some() {
+                item.label = item.label.trim_end_matches('…').to_owned();
+            }
             let entry = match choices {
-                Some(submenu) => MenuEntry::Submenu {
+                Some(submenu) if item.enabled => MenuEntry::Submenu {
                     submenu,
                     label: item.label.clone(),
                     items: submenu_items(submenu, &[meta], model),
                 },
-                None => MenuEntry::Item(item),
+                _ => MenuEntry::Item(item),
             };
             (short, entry)
         })
@@ -1982,18 +2011,29 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
             }
             items
         }
-        // The parts that fit where the station view's cursor stands, each by number, description and what it gives.
-        Submenu::ModuleParts => target_items(
-            meta,
-            model,
-            model
-                .station_catalogue()
-                .into_iter()
-                .filter(|p| p.unfit.is_none())
-                .map(|p| (p.words(), json!({ "part": p.copy.to_string() })))
-                .collect(),
-            key!("rack-no-part-fits"),
-        ),
+        // The parts that fit where the station view's cursor stands, each by number, description and what it gives; the
+        // part it has already is checked.
+        Submenu::ModuleParts => {
+            let current = model
+                .station_device()
+                .and_then(|d| model.device_part(d))
+                .map(|c| json!(c.to_string()));
+            let mut items = target_items(
+                meta,
+                model,
+                model
+                    .station_catalogue()
+                    .into_iter()
+                    .filter(|p| p.unfit.is_none())
+                    .map(|p| (p.words(), json!({ "part": p.copy.to_string() })))
+                    .collect(),
+                key!("rack-no-part-fits"),
+            );
+            for item in &mut items {
+                item.checked = current.is_some() && item.params.get("part") == current.as_ref();
+            }
+            items
+        }
         // The schematic pages by folio and title, then New page….
         Submenu::ModulePages => target_items(
             meta,

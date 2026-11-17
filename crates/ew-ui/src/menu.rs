@@ -117,7 +117,7 @@ fn blank_column(ui: &Ui) -> egui::Atom<'static> {
 
 /// The entries of a menu: items, separators, submenus and the command-bar groups shown as submenus. The items show
 /// their actions' icons when `icons` (all but View ▸ Show's switches).
-fn entries(ui: &mut Ui, list: &[MenuEntry], icons: bool, events: &mut Vec<Event>) {
+pub(crate) fn entries(ui: &mut Ui, list: &[MenuEntry], icons: bool, events: &mut Vec<Event>) {
     for entry in list {
         match entry {
             MenuEntry::Separator => {
