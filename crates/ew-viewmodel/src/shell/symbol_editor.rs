@@ -790,7 +790,13 @@ impl ShellModel {
     /// Discard draft): with unsaved changes it asks Save symbol, Discard or Cancel in the house dialog first, the
     /// action then running with `discard`; otherwise the action runs at once.
     pub fn ask_symbol_discard(&mut self, action: &'static str, params: Value) -> Outcome {
-        if self.symbol_editor.as_ref().is_some_and(SymbolEditor::dirty) {
+        // While a device box is edited the action is the box's: only its own changes are asked about (a symbol draft
+        // under it stays in hand).
+        let unsaved = self.symbol_editor.as_ref().is_some_and(|e| match e.device_box() {
+            Some(b) => b.dirty(),
+            None => e.dirty(),
+        });
+        if unsaved {
             return self.open_dialog(super::Dialog::ConfirmDiscard {
                 pending: super::Pending { action, params },
                 symbol: true,

@@ -270,15 +270,25 @@ fn sheet_row(ui: &mut Ui, r: &SheetRow, label_w: f32, owner: &str) -> Option<Val
                     }
                     // A value that differs is typed over for all.
                     None => {
-                        let mut text = String::new();
-                        ui.scope(|ui| {
-                            ui.visuals_mut().weak_text_color = Some(t.text_tertiary.color32());
-                            if committed_text(ui, ("sheet", r.key), &name, None, &mut text, width, false)
+                        let id = ui.make_persistent_id(("sheet-varies", r.key));
+                        let mut text = ui.data(|d| d.get_temp::<String>(id)).unwrap_or_default();
+                        let field = ui.add(
+                            egui::TextEdit::singleline(&mut text)
+                                .desired_width(4.0 * t.size_row)
+                                .hint_text(varies()),
+                        );
+                        field.widget_info(|| {
+                            egui::WidgetInfo::labeled(egui::Role::TextInput, ui.is_enabled(), &name)
+                        });
+                        if field.lost_focus() {
+                            if !cancelled(ui)
                                 && let Ok(n) = text.trim().replace(',', ".").parse::<f64>()
                             {
                                 out = Some(json!(n));
                             }
-                        });
+                            text.clear();
+                        }
+                        ui.data_mut(|d| d.insert_temp(id, text));
                     }
                 }
             }

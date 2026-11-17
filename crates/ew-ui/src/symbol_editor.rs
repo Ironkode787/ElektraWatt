@@ -89,8 +89,9 @@ pub(crate) struct EditorView {
     json_error: bool,
     start_page: StartPage,
     source_filter: String,
-    /// The top of the drawing in the last frame: the toasts stand below it (FT-1714).
-    pub(crate) header_bottom: Option<f32>,
+    /// The drawing's top right corner in the last frame: the toasts stand under it, on the drawing, never over
+    /// Properties (FT-1714).
+    pub(crate) toast_corner: Option<Pos2>,
 }
 
 /// The height of the editor's command row: the main window's.
@@ -203,7 +204,7 @@ impl EditorView {
                     .filter_map(|p| p.designation.as_str().parse::<u32>().ok())
                     .max();
                 self.designation = last
-                    .map_or(editor.draft.symbol.cps.len() as u32, |n| n)
+                    .unwrap_or(editor.draft.symbol.cps.len() as u32)
                     .saturating_add(1)
                     .to_string();
             }
@@ -422,7 +423,7 @@ impl EditorView {
         let full = ui.max_rect();
         ui.allocate_rect(full, Sense::hover());
         if editor.start && editor.device_box().is_none() {
-            self.header_bottom = Some(full.top());
+            self.toast_corner = Some(full.right_top());
             self.start_card(ui, full, shell, editor, events);
             return;
         }
@@ -549,7 +550,7 @@ impl EditorView {
             );
             top = banner.response.rect.bottom();
         }
-        self.header_bottom = Some(top);
+        self.toast_corner = Some(Pos2::new(rect.right(), top));
         // The symbol turned and mirrored, under the drawing.
         let strip_h = 3.0 * t.size_row;
         let caption_h = t.size_row;
@@ -619,8 +620,8 @@ impl EditorView {
         let height = (ui.available_height() - t.space_1).max(t.size_row);
         ui.horizontal(|ui| {
             ui.spacing_mut().item_spacing.x = t.space_2;
-            let width =
-                ((ui.available_width() - 7.0 * t.space_2) / 8.0).clamp(t.size_control, 5.0 * t.size_row);
+            // The eight cells share the strip's width, so a wider window shows them larger.
+            let width = ((ui.available_width() - 7.0 * t.space_2) / 8.0).max(t.size_control);
             for variant in 0..8u8 {
                 let (r, response) = ui.allocate_exact_size(Vec2::new(width, height), Sense::click());
                 // A preview is named by the symbol, its variant and its pins (doc 07 §5).

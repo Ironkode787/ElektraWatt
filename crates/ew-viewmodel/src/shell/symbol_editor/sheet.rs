@@ -324,7 +324,8 @@ impl SymbolEditor {
             Item::Cp(i) => s
                 .cps
                 .iter()
-                .nth(i)
+                .as_slice()
+                .get(i)
                 .map_or_else(String::new, |cp| self.cp_name(cp)),
             Item::Slot(i) => s
                 .text_slots
@@ -477,7 +478,7 @@ impl SymbolEditor {
                 item: Item::of_pointer(&i.path).or_else(|| {
                     // An issue of a function pin is shown at the connection point that draws it.
                     let pin = i.path.strip_prefix("/function/cps/")?.parse::<usize>().ok()?;
-                    let idx = self.draft.function.cps.iter().nth(pin)?.idx;
+                    let idx = self.draft.function.cps.iter().as_slice().get(pin)?.idx;
                     s.cps.iter().position(|c| c.fn_cp == idx).map(Item::Cp)
                 }),
             })
@@ -527,7 +528,8 @@ impl SymbolEditor {
                 .symbol
                 .cps
                 .iter()
-                .nth(i)
+                .as_slice()
+                .get(i)
                 .map(|cp| {
                     self.draft
                         .function
@@ -603,7 +605,7 @@ impl SymbolEditor {
         let mut rows = Vec::new();
         match item {
             Item::Cp(i) => {
-                let Some(cp) = self.draft.symbol.cps.iter().nth(i) else {
+                let Some(cp) = self.draft.symbol.cps.iter().as_slice().get(i) else {
                     return rows;
                 };
                 let pin = self.draft.function.cps.get(&cp.fn_cp);
@@ -1191,7 +1193,15 @@ impl ShellModel {
                 for item in items {
                     let Item::Cp(i) = item else { return Err(refused()) };
                     let editor = self.symbol_editor.as_ref().ok_or_else(refused)?;
-                    let idx = editor.draft.symbol.cps.iter().nth(*i).ok_or_else(refused)?.idx;
+                    let idx = editor
+                        .draft
+                        .symbol
+                        .cps
+                        .iter()
+                        .as_slice()
+                        .get(*i)
+                        .ok_or_else(refused)?
+                        .idx;
                     let params = if key == "pin" {
                         let pin = value.as_str().and_then(|s| s.parse::<u16>().ok());
                         json!({ "cp": idx, "fn_cp": pin.ok_or_else(refused)? })

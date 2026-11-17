@@ -511,7 +511,7 @@ impl ShellModel {
                 })
             })
             .collect();
-        out.sort_by(|a, b| a.1.to_lowercase().cmp(&b.1.to_lowercase()));
+        out.sort_by_key(|a| a.1.to_lowercase());
         out
     }
 

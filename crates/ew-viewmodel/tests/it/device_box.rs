@@ -53,7 +53,10 @@ fn a_library_part_s_box_gets_a_pin_and_a_layout_and_is_placed_that_way() {
     let before = pins(&s);
     assert_eq!(before.len(), 10);
     assert_eq!(before.iter().filter(|p| p.1 == "top").count(), 5);
-    assert!(device_box(&s).pins_from().is_none(), "the pins are the person's to change");
+    assert!(
+        device_box(&s).pins_from().is_none(),
+        "the pins are the person's to change"
+    );
     done(&mut s, "part.pin", json!({"add": true, "name": "Out5"}));
     done(&mut s, "part.box_size", json!({"width": 28, "height": 16}));
     let table = device_box(&s).pin_table();
@@ -65,7 +68,10 @@ fn a_library_part_s_box_gets_a_pin_and_a_layout_and_is_placed_that_way() {
             .unwrap_or_else(|| panic!("{name}: {table:?}"))
             .idx
     };
-    for (k, (name, nth)) in [("24VDC", 0), ("24VDC", 1), ("GND", 0), ("GND", 1)].into_iter().enumerate() {
+    for (k, (name, nth)) in [("24VDC", 0), ("24VDC", 1), ("GND", 0), ("GND", 1)]
+        .into_iter()
+        .enumerate()
+    {
         done(
             &mut s,
             "part.pin",
@@ -79,8 +85,16 @@ fn a_library_part_s_box_gets_a_pin_and_a_layout_and_is_placed_that_way() {
             json!({"pin": idx(name, 0), "side": "bottom", "at": 4 * (k + 1)}),
         );
     }
-    done(&mut s, "part.pin", json!({"pin": idx("13", 0), "side": "right", "at": 4}));
-    done(&mut s, "part.pin", json!({"pin": idx("14", 0), "side": "right", "at": 8}));
+    done(
+        &mut s,
+        "part.pin",
+        json!({"pin": idx("13", 0), "side": "right", "at": 4}),
+    );
+    done(
+        &mut s,
+        "part.pin",
+        json!({"pin": idx("14", 0), "side": "right", "at": 8}),
+    );
     let laid_out = pins(&s);
     assert_eq!(
         laid_out
@@ -91,7 +105,11 @@ fn a_library_part_s_box_gets_a_pin_and_a_layout_and_is_placed_that_way() {
         [("Out1", 4), ("Out2", 8), ("Out3", 12), ("Out4", 16), ("Out5", 20)]
     );
     assert_eq!(
-        laid_out.iter().filter(|p| p.1 == "right").map(|p| p.0.as_str()).collect::<Vec<_>>(),
+        laid_out
+            .iter()
+            .filter(|p| p.1 == "right")
+            .map(|p| p.0.as_str())
+            .collect::<Vec<_>>(),
         ["13", "14"]
     );
     // One step back and forth in the box's own history.
@@ -105,7 +123,10 @@ fn a_library_part_s_box_gets_a_pin_and_a_layout_and_is_placed_that_way() {
     assert!(!b.dirty(), "saved");
     assert_eq!(pins(&s), laid_out, "the saved part reads back as it was laid out");
     let copy = b.draft.copy;
-    assert!(!b.draft.fork, "the project has its own copy of the library's part now");
+    assert!(
+        !b.draft.fork,
+        "the project has its own copy of the library's part now"
+    );
     // Closing the box returns to the project, where it was opened from.
     done(&mut s, "symbol.close", json!({}));
     assert!(s.symbol_editor().is_none());
@@ -144,7 +165,12 @@ fn a_library_part_s_box_gets_a_pin_and_a_layout_and_is_placed_that_way() {
         .map(|c| (c.1.0 - at.0) / step)
         .collect();
     assert_eq!(bottom, [1, 2, 3, 4, 5], "the five outputs along the bottom edge");
-    assert!(b.cps.iter().filter(|c| c.2 == Dir::Down).all(|c| c.1.1 == at.1 + 4 * step));
+    assert!(
+        b.cps
+            .iter()
+            .filter(|c| c.2 == Dir::Down)
+            .all(|c| c.1.1 == at.1 + 4 * step)
+    );
     assert_eq!(b.cps.iter().filter(|c| c.2 == Dir::Right).count(), 2);
     let labels: Vec<&str> = t
         .cps
@@ -152,7 +178,10 @@ fn a_library_part_s_box_gets_a_pin_and_a_layout_and_is_placed_that_way() {
         .filter(|c| c.rep == rep.id)
         .filter_map(|c| c.label.split_once(':').map(|(_, d)| d))
         .collect();
-    assert!(labels.contains(&"Out5"), "the new pin is a connection point of the device: {labels:?}");
+    assert!(
+        labels.contains(&"Out5"),
+        "the new pin is a connection point of the device: {labels:?}"
+    );
 }
 
 /// A part of one's own made on the screen: named, given pins, saved to the project; a drawn box of it is redrawn when
@@ -168,8 +197,16 @@ fn a_new_part_s_box_is_saved_and_a_drawn_box_is_redrawn_on_request() {
         failed(&mut s, "symbol.save", json!({})),
         "Symbol editor: Give the part a part number."
     );
-    done(&mut s, "symbol.prop", json!({"key": "part_number", "value": "PSU-24"}));
-    done(&mut s, "symbol.prop", json!({"key": "manufacturer", "value": "Example"}));
+    done(
+        &mut s,
+        "symbol.prop",
+        json!({"key": "part_number", "value": "PSU-24"}),
+    );
+    done(
+        &mut s,
+        "symbol.prop",
+        json!({"key": "manufacturer", "value": "Example"}),
+    );
     for name in ["L", "N", "+", "-"] {
         done(&mut s, "part.pin", json!({"add": true, "name": name}));
     }
@@ -216,7 +253,12 @@ fn a_new_part_s_box_is_saved_and_a_drawn_box_is_redrawn_on_request() {
     done(&mut s, "part.redraw_boxes", json!({"part": format!("id:{copy}")}));
     let t = tables(&s);
     let b = t.reps.iter().find_map(|r| r.black_box.clone()).expect("the box");
-    let first_top = b.cps.iter().filter(|c| c.2 == Dir::Up).min_by_key(|c| c.1.0).map(|c| c.0);
+    let first_top = b
+        .cps
+        .iter()
+        .filter(|c| c.2 == Dir::Up)
+        .min_by_key(|c| c.1.0)
+        .map(|c| c.0);
     assert_eq!(first_top, Some(1), "N stands first on the top edge now");
     assert_eq!(top(&s).len(), 2);
 }
@@ -228,8 +270,16 @@ fn a_plc_card_s_pins_are_not_edited_on_the_box() {
     let tmp = Tmp::new("device-box-plc");
     let mut s = new_project(&tmp);
     done(&mut s, "part.new", json!({"plc": "module"}));
-    done(&mut s, "part.field", json!({"field": "manufacturer", "value": "Example"}));
-    done(&mut s, "part.field", json!({"field": "part_number", "value": "DI-8"}));
+    done(
+        &mut s,
+        "part.field",
+        json!({"field": "manufacturer", "value": "Example"}),
+    );
+    done(
+        &mut s,
+        "part.field",
+        json!({"field": "part_number", "value": "DI-8"}),
+    );
     done(&mut s, "part.box", json!({}));
     assert!(s.dialog().is_none(), "the part editor gave way to the box");
     let why = device_box(&s).pins_from().expect("the sentence");

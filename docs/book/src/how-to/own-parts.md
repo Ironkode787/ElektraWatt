@@ -91,7 +91,7 @@ the edges. The part says which pins it has and where they stand.
 18. Choose **Pins and box…**. The device box opens on the symbol editor's screen: drag each pin along its edge or onto
     another edge, drag the box's right or bottom edge to size it, and choose **Save**
     ([The device box](../reference/symbol-editor.md#the-device-box)).
-19. **Draw ▸ Device** then places the part's box with one click, laid out as you drew it. On the page the box's
+19. **Draw ▸ Place ▸ Device from part…** then places the part's box with one click, laid out as you drew it. On the page the box's
     edges and pins can still be dragged.
 20. To change the box of a device already drawn, choose **Edit this device's box…** in its menu. A library's part
     becomes the project's own copy when you save, and the devices that used it follow. The message of the save says

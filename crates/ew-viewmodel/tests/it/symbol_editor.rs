@@ -2012,15 +2012,31 @@ fn take_off_unlocks_a_ready_made_function_and_keeps_its_pins() {
 /// A draft with a rectangle, a line to a connection point, and the point: the things the selection tests act on.
 fn with_things(tmp: &Tmp) -> ShellModel {
     let mut shell = tmp.empty_shell(Mode::Headless);
-    done(&mut shell, "symbol.new", json!({"key":"example.select","name":"Select"}));
+    done(
+        &mut shell,
+        "symbol.new",
+        json!({"key":"example.select","name":"Select"}),
+    );
     done(
         &mut shell,
         "symbol.draw",
         json!({"tool":"rectangle","x":4,"y":0,"x2":12,"y2":8}),
     );
-    done(&mut shell, "symbol.draw", json!({"tool":"line","x":0,"y":4,"x2":4,"y2":4}));
-    done(&mut shell, "symbol.cp", json!({"x":0,"y":4,"designation":"1","direction":"left"}));
-    done(&mut shell, "symbol.slot", json!({"kind":{"cp_designation":1},"x":1,"y":2}));
+    done(
+        &mut shell,
+        "symbol.draw",
+        json!({"tool":"line","x":0,"y":4,"x2":4,"y2":4}),
+    );
+    done(
+        &mut shell,
+        "symbol.cp",
+        json!({"x":0,"y":4,"designation":"1","direction":"left"}),
+    );
+    done(
+        &mut shell,
+        "symbol.slot",
+        json!({"kind":{"cp_designation":1},"x":1,"y":2}),
+    );
     shell
 }
 
@@ -2051,23 +2067,52 @@ fn the_selection_is_moved_copied_and_deleted_as_on_a_page() {
     assert_eq!(selection(&shell), ["cp:0", "slot:0", "graphic:0", "graphic:1"]);
     // With a connection point selected an arrow moves everything one step of the connection grid.
     done(&mut shell, "symbol.nudge", json!({"dx": 1}));
-    assert_eq!(graphics(&shell)[0]["rect"]["rect"], json!([[8_000_000, 0], [16_000_000, 8_000_000]]));
-    let cp = shell.symbol_editor().unwrap().draft.symbol.cps.iter().next().unwrap().pos;
+    assert_eq!(
+        graphics(&shell)[0]["rect"]["rect"],
+        json!([[8_000_000, 0], [16_000_000, 8_000_000]])
+    );
+    let cp = shell
+        .symbol_editor()
+        .unwrap()
+        .draft
+        .symbol
+        .cps
+        .iter()
+        .next()
+        .unwrap()
+        .pos;
     assert_eq!((cp.x.0, cp.y.0), (4_000_000, 4_000_000));
     done(&mut shell, "symbol.undo", json!({}));
-    assert_eq!(graphics(&shell)[0]["rect"]["rect"], json!([[4_000_000, 0], [12_000_000, 8_000_000]]));
+    assert_eq!(
+        graphics(&shell)[0]["rect"]["rect"],
+        json!([[4_000_000, 0], [12_000_000, 8_000_000]])
+    );
     assert_eq!(selection(&shell).len(), 4, "the selection outlives an undo");
     // A shape alone moves by the drawing grid's step, which the person chooses.
     done(&mut shell, "symbol.select", json!({"items": ["graphic:0"]}));
     done(&mut shell, "symbol.nudge", json!({"dy": -1}));
-    assert_eq!(graphics(&shell)[0]["rect"]["rect"][0], json!([4_000_000, -500_000]));
+    assert_eq!(
+        graphics(&shell)[0]["rect"]["rect"][0],
+        json!([4_000_000, -500_000])
+    );
     done(&mut shell, "symbol.grid", json!({"step": 2}));
     done(&mut shell, "symbol.nudge", json!({"dy": 1}));
-    assert_eq!(graphics(&shell)[0]["rect"]["rect"][0], json!([4_000_000, 1_500_000]));
+    assert_eq!(
+        graphics(&shell)[0]["rect"]["rect"][0],
+        json!([4_000_000, 1_500_000])
+    );
     // Shift adds, Ctrl toggles.
-    done(&mut shell, "symbol.select", json!({"items": ["graphic:1"], "mode": "add"}));
+    done(
+        &mut shell,
+        "symbol.select",
+        json!({"items": ["graphic:1"], "mode": "add"}),
+    );
     assert_eq!(selection(&shell), ["graphic:0", "graphic:1"]);
-    done(&mut shell, "symbol.select", json!({"items": ["graphic:0"], "mode": "toggle"}));
+    done(
+        &mut shell,
+        "symbol.select",
+        json!({"items": ["graphic:0"], "mode": "toggle"}),
+    );
     assert_eq!(selection(&shell), ["graphic:1"]);
     // Duplicate: a copy one connection-grid step right and down, selected.
     done(&mut shell, "symbol.duplicate", json!({}));
@@ -2078,10 +2123,17 @@ fn the_selection_is_moved_copied_and_deleted_as_on_a_page() {
     done(&mut shell, "symbol.copy", json!({}));
     done(&mut shell, "symbol.paste", json!({}));
     done(&mut shell, "symbol.paste", json!({}));
-    assert_eq!(graphics(&shell)[4]["line"]["from"], json!([12_000_000, 16_000_000]));
+    assert_eq!(
+        graphics(&shell)[4]["line"]["from"],
+        json!([12_000_000, 16_000_000])
+    );
     done(&mut shell, "symbol.cut", json!({}));
     assert_eq!(graphics(&shell).as_array().unwrap().len(), 4);
-    done(&mut shell, "symbol.select", json!({"items": ["graphic:2", "graphic:3"]}));
+    done(
+        &mut shell,
+        "symbol.select",
+        json!({"items": ["graphic:2", "graphic:3"]}),
+    );
     done(&mut shell, "symbol.delete", json!({}));
     assert_eq!(graphics(&shell).as_array().unwrap().len(), 2);
     assert!(selection(&shell).is_empty());
@@ -2111,7 +2163,10 @@ fn a_connection_point_is_deleted_and_copied_with_its_pin() {
     done(&mut shell, "symbol.delete", json!({}));
     let draft = &shell.symbol_editor().unwrap().draft;
     assert_eq!((draft.symbol.cps.len(), draft.function.cps.len()), (1, 1));
-    assert!(draft.symbol.text_slots.is_empty(), "the number's text went with its point");
+    assert!(
+        draft.symbol.text_slots.is_empty(),
+        "the number's text went with its point"
+    );
     assert!(draft.validate().is_empty(), "{:?}", draft.validate());
     shell.shutdown();
 }
@@ -2124,7 +2179,11 @@ fn the_rows_of_properties_follow_the_selection_and_set_every_selected_thing() {
     use ew_viewmodel::shell::symbol_editor::RowValue;
     let tmp = Tmp::new("symbol-sheet");
     let mut shell = with_things(&tmp);
-    done(&mut shell, "symbol.cp", json!({"x":0,"y":8,"designation":"2","direction":"left"}));
+    done(
+        &mut shell,
+        "symbol.cp",
+        json!({"x":0,"y":8,"designation":"2","direction":"left"}),
+    );
     done(&mut shell, "symbol.select", json!({"items": []}));
     let sheet = shell.symbol_sheet().unwrap();
     assert_eq!(sheet.title, "Select");
@@ -2136,11 +2195,18 @@ fn the_rows_of_properties_follow_the_selection_and_set_every_selected_thing() {
         "a new symbol is a device box: {what:?}"
     );
     // What it is, chosen in trade words, sets what the program does with the symbol and where it is listed.
-    done(&mut shell, "symbol.prop", json!({"key": "what", "value": "contact-no"}));
+    done(
+        &mut shell,
+        "symbol.prop",
+        json!({"key": "what", "value": "contact-no"}),
+    );
     let function = serde_json::to_value(&shell.symbol_editor().unwrap().draft.function).unwrap();
     assert_eq!(function["contact_kind"], "no");
     assert_eq!(function["category"][0], "Relay");
-    assert_eq!(shell.symbol_editor().unwrap().outline().what, "Normally open contact \u{b7} Electrical");
+    assert_eq!(
+        shell.symbol_editor().unwrap().outline().what,
+        "Normally open contact \u{b7} Electrical"
+    );
     // Two connection points: the rows they share; a value that differs is not shown as either's.
     done(&mut shell, "symbol.select", json!({"items": ["cp:0", "cp:1"]}));
     let sheet = shell.symbol_sheet().unwrap();
@@ -2148,9 +2214,18 @@ fn the_rows_of_properties_follow_the_selection_and_set_every_selected_thing() {
     let y = sheet.rows.iter().find(|r| r.key == "y").unwrap();
     assert_eq!(y.value, RowValue::Mm(None), "4 and 8 mm");
     done(&mut shell, "symbol.prop", json!({"key": "dir", "value": "up"}));
-    done(&mut shell, "symbol.prop", json!({"key": "role", "value": "l_plus"}));
+    done(
+        &mut shell,
+        "symbol.prop",
+        json!({"key": "role", "value": "l_plus"}),
+    );
     let draft = &shell.symbol_editor().unwrap().draft;
-    let dirs: Vec<_> = draft.symbol.cps.iter().map(|c| serde_json::to_value(&c.dir).unwrap()).collect();
+    let dirs: Vec<_> = draft
+        .symbol
+        .cps
+        .iter()
+        .map(|c| serde_json::to_value(&c.dir).unwrap())
+        .collect();
     assert_eq!(dirs, [json!("up"), json!("up")]);
     let roles: Vec<_> = draft
         .function
@@ -2163,7 +2238,11 @@ fn the_rows_of_properties_follow_the_selection_and_set_every_selected_thing() {
     let outline = shell.symbol_editor().unwrap().outline();
     let points = &outline.groups[0];
     assert_eq!(
-        points.rows.iter().map(|r| (r.label.as_str(), r.detail.as_str())).collect::<Vec<_>>(),
+        points
+            .rows
+            .iter()
+            .map(|r| (r.label.as_str(), r.detail.as_str()))
+            .collect::<Vec<_>>(),
         [("1", "L+"), ("2", "L+")]
     );
     assert!(outline.todo.is_empty(), "ready to save: {:?}", outline.todo);
@@ -2171,16 +2250,26 @@ fn the_rows_of_properties_follow_the_selection_and_set_every_selected_thing() {
     done(&mut shell, "symbol.select", json!({"items": ["graphic:0"]}));
     done(&mut shell, "symbol.prop", json!({"key": "w", "value": 10}));
     done(&mut shell, "symbol.prop", json!({"key": "x", "value": 6}));
-    assert_eq!(graphics(&shell)[0]["rect"]["rect"], json!([[6_000_000, 0], [16_000_000, 8_000_000]]));
+    assert_eq!(
+        graphics(&shell)[0]["rect"]["rect"],
+        json!([[6_000_000, 0], [16_000_000, 8_000_000]])
+    );
     done(&mut shell, "symbol.grip", json!({"grip": 2, "x": 20, "y": 12}));
-    assert_eq!(graphics(&shell)[0]["rect"]["rect"], json!([[6_000_000, 0], [20_000_000, 12_000_000]]));
+    assert_eq!(
+        graphics(&shell)[0]["rect"]["rect"],
+        json!([[6_000_000, 0], [20_000_000, 12_000_000]])
+    );
     // A value a row does not take is refused in words.
     assert_eq!(
         failed(&mut shell, "symbol.prop", json!({"key": "w", "value": -1})),
         "Symbol editor: That value does not fit this row, so nothing was changed."
     );
     // Line up: the line's left end comes to the rectangle's left edge.
-    done(&mut shell, "symbol.select", json!({"items": ["graphic:0", "graphic:1"]}));
+    done(
+        &mut shell,
+        "symbol.select",
+        json!({"items": ["graphic:0", "graphic:1"]}),
+    );
     done(&mut shell, "symbol.align", json!({"to": "right"}));
     assert_eq!(graphics(&shell)[1]["line"]["to"], json!([20_000_000, 4_000_000]));
     // An issue is one thing to do, with the thing it is about.
@@ -2201,12 +2290,19 @@ fn the_start_card_shows_with_nothing_in_hand() {
     done(&mut shell, "symbol.new", json!({}));
     assert!(shell.symbol_editor().unwrap().start);
     done(&mut shell, "symbol.start", json!({"leave": true}));
-    assert!(shell.symbol_editor().is_none(), "nothing in hand: the editor closes");
+    assert!(
+        shell.symbol_editor().is_none(),
+        "nothing in hand: the editor closes"
+    );
     done(&mut shell, "symbol.start", json!({}));
     done(&mut shell, "symbol.new", json!({"discard": true}));
     let editor = shell.symbol_editor().unwrap();
     assert!(!editor.start, "New symbol opens the drawing");
-    done(&mut shell, "symbol.draw", json!({"tool":"line","x":0,"y":0,"x2":8,"y2":0}));
+    done(
+        &mut shell,
+        "symbol.draw",
+        json!({"tool":"line","x":0,"y":0,"x2":8,"y2":0}),
+    );
     done(&mut shell, "symbol.start", json!({}));
     assert!(shell.symbol_editor().unwrap().start);
     done(&mut shell, "symbol.start", json!({"leave": true}));

@@ -296,7 +296,7 @@ impl EditorView {
             );
             top = banner.response.rect.bottom();
         }
-        self.header_bottom = Some(top);
+        self.toast_corner = Some(Pos2::new(rect.right(), top));
         let canvas = Rect::from_min_max(Pos2::new(rect.left(), top), rect.max);
         let response = ui.interact(canvas, ui.scope_id().with("box-canvas"), Sense::click_and_drag());
         let name = strings::format(key!("box-canvas"), &[&b.title()]);
@@ -417,6 +417,10 @@ impl EditorView {
                 Dir4::Unknown(_) => {}
             }
             let frame = Rect::from_center_size(p, Vec2::splat(2.0 * reach));
+            let pin_name = strings::format(key!("box-pin-title"), &[&line.name]);
+            let chosen = b.selection.contains(&line.idx);
+            ui.interact(frame, response.id.with(("pin", line.idx)), Sense::hover())
+                .widget_info(|| egui::WidgetInfo::selected(egui::Role::ListItem, true, chosen, &pin_name));
             if b.selection.contains(&line.idx) {
                 super::canvas::selection_outline(&painter, &t, frame, false);
             } else if hovered == Some(line.idx) {

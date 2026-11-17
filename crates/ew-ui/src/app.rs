@@ -1209,8 +1209,9 @@ impl App {
             anchor.y = anchor.y.max(banner.bottom() + tokens.space_4);
         }
         // In the symbol editor, the toasts stand on its canvas, under the header row with Close editor (FT-1714).
-        if let Some(header) = self.symbol_editor_view.header_bottom {
-            anchor.y = anchor.y.max(header + tokens.space_4);
+        if let Some(corner) = self.symbol_editor_view.toast_corner {
+            anchor.y = anchor.y.max(corner.y + tokens.space_4);
+            anchor.x = anchor.x.min(corner.x - tokens.space_4);
         }
         // Doc 16a §6.10: while a tool works where the toasts stand, they move to the canvas's bottom right.
         self.toasts_low = crate::notifications::toasts_low(

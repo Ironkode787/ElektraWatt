@@ -1202,7 +1202,8 @@ fn the_symbol_editors_refusal_answers_above_the_drawing_and_in_to_do() {
     assert_eq!(shell.banner(), None);
     assert_eq!(h.query_all_by_label_contains(text).count(), 2);
     // The sentence in To do goes to the thing it is about.
-    h.get_by_role_and_label(egui::accesskit::Role::Button, text).click();
+    h.get_by_role_and_label(egui::accesskit::Role::Button, text)
+        .click();
     h.run_ok();
     let selected: Vec<String> = h
         .state()
