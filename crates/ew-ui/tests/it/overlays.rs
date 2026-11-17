@@ -260,9 +260,9 @@ fn a_short_tag_is_a_crowded_tile() {
     assert_eq!(crowded_tile(&scattered, w), None);
 }
 
-/// OV5 and OV6: folio 101 with a selection (the snapshot probed: the 2-pixel outline in `canvas.selection`, the white
-/// casing on both sides, four 8-pixel handles with an accent rim and a white face), then with four highlights, a
-/// measurement and a Place ghost; each snapshot equal across two runs and to its blessed image.
+/// OV5 and OV6: folio 101 with a selection (the snapshot probed: the 2-pixel outline in `canvas.selection` and the
+/// white casing on both sides, as the window paints it, no corner handles), then with four highlights, a measurement
+/// and a Place ghost; each snapshot equal across two runs and to its blessed image.
 #[test]
 fn the_overlay_snapshots_of_folio_101() {
     let tmp = Tmp::new();
@@ -281,12 +281,6 @@ fn the_overlay_snapshots_of_folio_101() {
     let image = snapshot(&shell);
     assert_eq!(image.pixels, snapshot(&shell).pixels, "stable");
     let o = overlay_of(&shell, None, &selected);
-    assert_eq!(o.handles.len(), 4);
-    for h in &o.handles {
-        assert_eq!((h.x1 - h.x0, h.y1 - h.y0), (8, 8), "an 8-pixel handle");
-        assert_eq!(rgb(&image, h.x0, h.y0), ACCENT, "the handle's rim");
-        assert_eq!(rgb(&image, h.x0 + 3, h.y0 + 3), WHITE, "the handle's face");
-    }
     // The top band's middle: 2 pixels of accent with white above and below.
     let top = o
         .selected

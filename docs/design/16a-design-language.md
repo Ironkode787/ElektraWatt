@@ -1512,8 +1512,13 @@ display list), and keep 3:1 on the white sheet.
 ### 7.1 Selection, hover and handles
 
 Selection: a 2s-px `canvas.selection` outline around the representation's bounds with a 1s-px white casing on both sides of it
-(as built, the mockup draws it so and wins), so it reads over black lines; handles are 8s-px squares at the corners, white fill, 1.5s-px accent stroke. Hover: a 1s-px dashed accent
+(as built, the mockup draws it so and wins), so it reads over black lines. Hover: a 1s-px dashed accent
 outline (4s on, 4s off). A selected object under the pointer shows the selection only.
+
+*As built (rc.3).* The window and the offscreen snapshot paint one list of marks (`ew_render2d::overlay::marks`): the
+window had left out the casing, which the snapshot painted. A symbol's selection has no corner handles: a symbol is
+not resized by its corners, and a square that cannot be dragged promises what the page does not do (the mockup's
+squares are dropped). What can be dragged shows its own handle: a black box's grips, a selected wire's round handles.
 
 *As built (rc.3).* A line between two ends (a wire, a fluid line) is never outlined by the box round its ends: it
 answers to the pointer only within 4 points of its own path, and its hover and selection are a band along that path,

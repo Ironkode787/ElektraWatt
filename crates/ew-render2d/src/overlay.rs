@@ -20,8 +20,8 @@
 //! **The scale rule**: every mark scales by the integer factor `s = max(1, ⌊ppp⌋)`
 //! ([`mark_scale`]): lines are `s` pixels wide with dashes of `4s` on and `4s` off, the grid cross and the junction
 //! square are `6s + 1` pixels, the CP ring `8s + 1`, the hover outline `s`, the selection outline `2s` with an
-//! `s`-pixel white casing on both sides and `8s`-pixel corner handles (white with an accent rim), and the grid cursor's
-//! arms `s` wide from `2s` to `8s` off its centre. At ppp 1 every mark keeps its size.
+//! `s`-pixel white casing on both sides (no corner handles: a symbol is not resized by its corners, rc.3), and the
+//! grid cursor's arms `s` wide from `2s` to `8s` off its centre. At ppp 1 every mark keeps its size.
 //!
 //! The colours come from the caller's [`Theme`]: the window and the snapshot build it from the design language's
 //! canvas tokens (doc 16a §4.6); [`LIGHT`] and [`DARK`] hold the same values for callers without the token module.
@@ -125,9 +125,6 @@ pub const HOVER_DASH_PX: i64 = 4;
 
 /// The dash of a tool line at scale 1: this many pixels on, as many off (`4s` at scale `s`).
 pub const TOOL_DASH_PX: i64 = 4;
-
-/// The side of a selection handle at scale 1 (doc 16a §7.1: `8s`).
-pub const HANDLE_PX: i64 = 8;
 
 /// The smallest step of the connection grid on screen, in logical points, at which the open markers of the free
 /// connection points are drawn: 4 points, so that they show at the fit zoom of an A3 or A4 page in a usual
@@ -357,10 +354,6 @@ pub struct Overlay {
     pub selected: Vec<PxRect>,
     /// The white casing of the selection outlines: an `s`-pixel band on each side of the outline (doc 16a §7.1).
     pub casing: Vec<PxRect>,
-    /// The selection handles' rims: an `8s`-pixel square on each corner of each outline, in the selection colour.
-    pub handles: Vec<PxRect>,
-    /// The handles' white faces, inside their rims.
-    pub handle_faces: Vec<PxRect>,
     /// The four arms of the grid cursor's crosshair.
     pub cursor: Vec<PxRect>,
     /// The tool's lines, rectangles and ghosts, each pixel run with its colour token, in the tool's order.
@@ -431,9 +424,8 @@ fn dashed(r: PxRect, s: i64, pane: &PxRect, out: &mut Vec<PxRect>) {
     }
 }
 
-/// The selection of the outline rectangle `r` at scale `s` (doc 16a §7.1 and the mockup): the `2s` band just
-/// inside its edges, an `s`-pixel white casing outside and inside that band, and an `8s`-pixel handle centred on each
-/// corner of the band's centre line, a rim in the selection colour (`⌈1.5 s⌉` pixels) around a white face.
+/// The selection of the outline rectangle `r` at scale `s` (doc 16a §7.1): the `2s` band just inside its edges and
+/// an `s`-pixel white casing outside and inside that band, so that it reads over black lines.
 fn selection(r: PxRect, s: i64, pane: &PxRect, o: &mut Overlay) {
     solid(r, 2 * s, pane, &mut o.selected);
     solid(
@@ -445,22 +437,6 @@ fn selection(r: PxRect, s: i64, pane: &PxRect, o: &mut Overlay) {
     let inner = PxRect::new(r.x0 + 2 * s, r.y0 + 2 * s, r.x1 - 2 * s, r.y1 - 2 * s);
     if inner.x1 - inner.x0 > 2 * s && inner.y1 - inner.y0 > 2 * s {
         solid(inner, s, pane, &mut o.casing);
-    }
-    let half = HANDLE_PX * s / 2;
-    let rim = (3 * s + 1) / 2;
-    for (cx, cy) in [
-        (r.x0 + s, r.y0 + s),
-        (r.x1 - s, r.y0 + s),
-        (r.x0 + s, r.y1 - s),
-        (r.x1 - s, r.y1 - s),
-    ] {
-        let h = PxRect::new(cx - half, cy - half, cx + half, cy + half);
-        push_clipped(&mut o.handles, h, pane);
-        push_clipped(
-            &mut o.handle_faces,
-            PxRect::new(h.x0 + rim, h.y0 + rim, h.x1 - rim, h.y1 - rim),
-            pane,
-        );
     }
 }
 
@@ -671,8 +647,6 @@ pub fn build(input: &OverlayInput<'_>) -> Overlay {
         hover,
         selected: sel.selected,
         casing: sel.casing,
-        handles: sel.handles,
-        handle_faces: sel.handle_faces,
         cursor,
         tool,
         markers,
@@ -1045,60 +1019,42 @@ pub fn fill(image: &mut RgbaImage, r: PxRect, c: Color) {
     }
 }
 
-/// Composites the overlays into a snapshot of the pane, in paint order: surround, page bounds, grid dots, hover,
-/// the selection (casing, outline, the handles' rims, then their faces), the open markers of the free connection
-/// points, the tool's lines and ghosts, its snap markers, and last the grid cursor's crosshair.
+/// The marks of the overlays over the sheet, each pixel rectangle with its colour, in paint order: page bounds, grid
+/// dots, hover, the lines' bands, the selection (casing, then outline), the open markers of the free connection
+/// points, the tool's lines and ghosts, its round handles, its snap markers, and last the grid cursor's crosshair. The
+/// window and the snapshot both paint this one list, so what one shows the other shows (rc.3: the window had left out
+/// the selection's casing).
+pub fn marks<'a>(overlay: &'a Overlay, theme: &'a Theme) -> impl Iterator<Item = (PxRect, Color)> + 'a {
+    let each = |rects: &'a [PxRect], c: Color| rects.iter().map(move |&r| (r, c));
+    each(&overlay.border, theme.border)
+        .chain(each(&overlay.dots, theme.grid_dot))
+        .chain(each(&overlay.hover, theme.hover))
+        .chain(each(
+            &overlay.hover_band,
+            with_alpha(theme.hover, HOVER_BAND_ALPHA),
+        ))
+        .chain(each(
+            &overlay.selected_band,
+            with_alpha(theme.selection, SELECTED_BAND_ALPHA),
+        ))
+        .chain(each(&overlay.selected_band_edge, theme.selection))
+        .chain(each(&overlay.casing, theme.casing))
+        .chain(each(&overlay.selected, theme.selection))
+        .chain(each(&overlay.open_cps, theme.open_cp))
+        .chain(overlay.tool.iter().map(|&(r, token)| (r, theme.token(token))))
+        .chain(each(&overlay.grip_rings, theme.casing))
+        .chain(each(&overlay.grips, theme.selection))
+        .chain(each(&overlay.markers, theme.snap))
+        .chain(each(&overlay.cursor, theme.cursor))
+}
+
+/// Composites the overlays into a snapshot of the pane: the surround, then [`marks`].
 pub fn composite(image: &mut RgbaImage, overlay: &Overlay, theme: &Theme) {
     for &r in &overlay.surround {
         fill(image, r, theme.surround);
     }
-    for &r in &overlay.border {
-        fill(image, r, theme.border);
-    }
-    for &r in &overlay.dots {
-        fill(image, r, theme.grid_dot);
-    }
-    for &r in &overlay.hover {
-        fill(image, r, theme.hover);
-    }
-    for &r in &overlay.hover_band {
-        fill(image, r, with_alpha(theme.hover, HOVER_BAND_ALPHA));
-    }
-    for &r in &overlay.selected_band {
-        fill(image, r, with_alpha(theme.selection, SELECTED_BAND_ALPHA));
-    }
-    for &r in &overlay.selected_band_edge {
-        fill(image, r, theme.selection);
-    }
-    for &r in &overlay.casing {
-        fill(image, r, theme.casing);
-    }
-    for &r in &overlay.selected {
-        fill(image, r, theme.selection);
-    }
-    for &r in &overlay.handles {
-        fill(image, r, theme.selection);
-    }
-    for &r in &overlay.handle_faces {
-        fill(image, r, theme.casing);
-    }
-    for &r in &overlay.open_cps {
-        fill(image, r, theme.open_cp);
-    }
-    for &(r, token) in &overlay.tool {
-        fill(image, r, theme.token(token));
-    }
-    for &r in &overlay.grip_rings {
-        fill(image, r, theme.casing);
-    }
-    for &r in &overlay.grips {
-        fill(image, r, theme.selection);
-    }
-    for &r in &overlay.markers {
-        fill(image, r, theme.snap);
-    }
-    for &r in &overlay.cursor {
-        fill(image, r, theme.cursor);
+    for (r, c) in marks(overlay, theme) {
+        fill(image, r, c);
     }
 }
 
@@ -1789,10 +1745,9 @@ mod tests {
     }
 
     /// OV6 (model and pixels): at ppp 1 the selection is a 2-pixel outline in the selection colour with a 1-pixel
-    /// white casing on both sides and four 8-pixel handles on its corners, white with a selection-coloured rim; at ppp
-    /// 2 everything doubles.
+    /// white casing on both sides; at ppp 2 everything doubles.
     #[test]
-    fn the_selection_has_a_casing_and_four_8_pixel_handles() {
+    fn the_selection_has_a_casing_on_both_sides() {
         let r = Rect::from_points(
             Pt2::new(Nm::from_mm(140), Nm::from_mm(100)),
             Pt2::new(Nm::from_mm(160), Nm::from_mm(110)),
@@ -1812,19 +1767,6 @@ mod tests {
                 outline.iter().map(|p| p.0).max().unwrap() + 1,
                 outline.iter().map(|p| p.1).max().unwrap() + 1,
             );
-            assert_eq!(o.handles.len(), 4);
-            assert_eq!(o.handle_faces.len(), 4);
-            for h in &o.handles {
-                assert_eq!(
-                    (h.x1 - h.x0, h.y1 - h.y0),
-                    (8 * s, 8 * s),
-                    "an 8s handle at ppp {ppp}"
-                );
-                // Centred on a corner of the outline's centre line.
-                let (cx, cy) = ((h.x0 + h.x1) / 2, (h.y0 + h.y1) / 2);
-                assert!(cx == x0 + s || cx == x1 - s, "{h:?}");
-                assert!(cy == y0 + s || cy == y1 - s, "{h:?}");
-            }
             let casing = pixels(&o.casing);
             let mid = (x0 + x1) / 2;
             // Above the outline, the outline (2s), below it (inside).
@@ -1853,13 +1795,9 @@ mod tests {
             assert_eq!(at(mid, y0 + 2 * s - 1), blue);
             assert_eq!(at(mid, y0 - 1), white, "outer casing");
             assert_eq!(at(mid, y0 + 2 * s), white, "inner casing");
-            let h = o.handles[0];
-            assert_eq!(at(h.x0, h.y0), blue, "the handle's rim");
-            assert_eq!(
-                at((h.x0 + h.x1) / 2, (h.y0 + h.y1) / 2),
-                white,
-                "the handle's face"
-            );
+            // No corner handle: the corner is the outline's.
+            assert_eq!(at(x0, y0), blue, "the outline's corner");
+            assert_eq!(at(x1 - 1, y1 - 1), blue, "the outline's corner");
         }
     }
 }

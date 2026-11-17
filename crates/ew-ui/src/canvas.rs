@@ -1158,41 +1158,14 @@ type WireCodes = (Vec<(Rect, bool)>, Vec<Rect>);
 /// The overlay marks both backends share: the page bounds, the grid dots, the hover and selection outlines, the lines'
 /// bands, the tool's marks and round handles and the grid cursor (last, above everything).
 fn paint_marks(painter: &egui::Painter, origin: Pos2, ppp: f32, overlay: &Overlay, theme: &Theme) {
-    let fill = |rects: &[PxRect], c: Color| {
-        if rects.is_empty() {
-            return;
-        }
-        let mut mesh = Mesh::default();
-        for &r in rects {
-            mesh.add_colored_rect(to_points(origin, ppp, r), color32(c));
-        }
-        painter.add(mesh);
-    };
-    fill(&overlay.border, theme.border);
-    fill(&overlay.dots, theme.grid_dot);
-    fill(&overlay.hover, theme.hover);
-    fill(
-        &overlay.hover_band,
-        overlay::with_alpha(theme.hover, overlay::HOVER_BAND_ALPHA),
-    );
-    fill(
-        &overlay.selected_band,
-        overlay::with_alpha(theme.selection, overlay::SELECTED_BAND_ALPHA),
-    );
-    fill(&overlay.selected_band_edge, theme.selection);
-    fill(&overlay.selected, theme.selection);
-    fill(&overlay.open_cps, theme.open_cp);
-    if !overlay.tool.is_empty() {
-        let mut mesh = Mesh::default();
-        for &(r, token) in &overlay.tool {
-            mesh.add_colored_rect(to_points(origin, ppp, r), color32(theme.token(token)));
-        }
+    // The snapshot's own list (`overlay::marks`), in its order, in one mesh.
+    let mut mesh = Mesh::default();
+    for (r, c) in overlay::marks(overlay, theme) {
+        mesh.add_colored_rect(to_points(origin, ppp, r), color32(c));
+    }
+    if !mesh.is_empty() {
         painter.add(mesh);
     }
-    fill(&overlay.grip_rings, theme.casing);
-    fill(&overlay.grips, theme.selection);
-    fill(&overlay.markers, theme.snap);
-    fill(&overlay.cursor, theme.cursor);
 }
 
 /// The physical-pixel rectangle `r` of a pane at `origin` (points) as an egui rectangle in points.
