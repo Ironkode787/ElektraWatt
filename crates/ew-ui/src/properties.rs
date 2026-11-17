@@ -226,7 +226,6 @@ impl PropertiesPane {
             if shell.properties_filter_shown() {
                 self.filter_field(ui, shell, events);
             }
-            part_details(ui, shell, sheet, events);
             if sheet.sections.is_empty() {
                 let text = if sheet.missing > 0 && sheet.header.items == 0 {
                     strings::text(key!("props-gone-title")).to_owned()
@@ -298,6 +297,8 @@ impl PropertiesPane {
             egui::ScrollArea::vertical()
                 .auto_shrink([false, false])
                 .show(ui, |ui| {
+                    // Part details scrolls with the rows: a card open under the header left them no room (rc.3).
+                    part_details(ui, shell, sheet, events);
                     // Rows of `size.row`, as the trees beside them have: no gap between rows (the grid stood at
                     // 32 points a row where the navigators stand at 28, FT-1656).
                     ui.spacing_mut().item_spacing.y = 0.0;

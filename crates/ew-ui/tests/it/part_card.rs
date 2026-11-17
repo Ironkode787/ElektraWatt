@@ -73,8 +73,36 @@ fn the_device_browser_shows_a_parts_data_and_a_placed_device_links_them() {
         Outcome::Done
     );
     d.input(&Input::Wait { ms: 100 });
+    let link = d
+        .labels()
+        .into_iter()
+        .find(|(l, _)| l == "Part details")
+        .expect("the device's Properties link Part details")
+        .1;
+    // Opened, the card scrolls with the rows under it: the wheel over it brings up what stood below (rc.3: the
+    // panel did not scroll and cut off its foot).
+    d.input(&Input::Click {
+        at: link,
+        button: egui::PointerButton::Primary,
+        mods: egui::Modifiers::NONE,
+    });
+    d.input(&Input::Wait { ms: 100 });
+    let tag_row = |d: &mut ew_ui::visual::Driver| {
+        d.labels()
+            .into_iter()
+            .find(|(l, _)| l == "Part details")
+            .map(|(_, at)| at.1)
+    };
+    let before = tag_row(&mut d).expect("the link");
+    d.input(&Input::Scroll {
+        at: (link.0, link.1 + 200),
+        dx: 0,
+        dy: 6,
+        mods: egui::Modifiers::NONE,
+    });
+    d.input(&Input::Wait { ms: 300 });
     assert!(
-        d.labels().iter().any(|(l, _)| l == "Part details"),
-        "the device's Properties link Part details"
+        tag_row(&mut d).is_none_or(|after| after < before),
+        "the panel scrolled"
     );
 }

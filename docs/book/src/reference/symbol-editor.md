@@ -144,8 +144,10 @@ take, or, for a part not yet in the project, a new part in your own library. The
 **Save** saves the part: a new part into your parts library and the project, a part of your own in place, and a
 library's part as the project's own copy, which the devices that used it follow. From then on
 **Draw ▸ Place ▸ Device from part…** places the part's box with one click, laid out as you drew it; on the page its edges and pins can still be dragged.
-Where boxes of the part are drawn already, the message of the save says how many and offers **Redraw them**. **Test
-on a page** saves the box and arms the Device tool with the part.
+Where boxes of the part are drawn already, the message of the save says how many and offers **Redraw them**, here or
+back on the page; the message then says how many were redrawn. **Test on a page** saves the box and arms the Device
+tool with the part. **Close box** returns where you opened the box: the page, or the editor's ways in, where a symbol
+you were drawing waits to be continued.
 
 A PLC card takes its pins from its channels, a bus device its box on a bus page from its interfaces and ports, and a
 part drawn with a symbol its connections from that symbol: the editor shows such a part's box and says where its pins

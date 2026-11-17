@@ -375,6 +375,11 @@ impl NotificationLog {
         self.visible.clear();
     }
 
+    /// Takes the toasts up to `serial` off the screen (the log keeps them).
+    pub(crate) fn clear_visible_to(&mut self, serial: u64) {
+        self.visible.retain(|s| *s > serial);
+    }
+
     /// Whether the log popup is open.
     pub fn popup_open(&self) -> bool {
         self.popup

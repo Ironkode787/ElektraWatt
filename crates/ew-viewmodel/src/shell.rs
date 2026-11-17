@@ -1630,7 +1630,15 @@ impl ShellModel {
             });
             log.len() - 1
         });
+        let page_toasts = self.symbol_editor().is_none().then(|| self.notes.newest_serial());
         let outcome = self.dispatch_unlogged(action, params);
+        // The page's toasts leave the screen when the symbol editor takes the window (rc.3): they speak of the page,
+        // and their Undo would act there; the log keeps them.
+        if let Some(last) = page_toasts
+            && self.symbol_editor().is_some()
+        {
+            self.notes.clear_visible_to(last);
+        }
         // A state banner follows its state, and the UI language.
         self.refresh_state_banner();
         // The browser's picture follows its current row.

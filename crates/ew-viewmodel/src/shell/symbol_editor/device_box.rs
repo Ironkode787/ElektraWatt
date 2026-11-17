@@ -550,13 +550,13 @@ impl ShellModel {
         )))
     }
 
-    /// After the box is closed: back to the project when it was opened from there, else to what the editor held (a
-    /// symbol draft, or the ways in).
+    /// After the box is closed: back where it was opened from, the project or the editor's ways in (which offer the
+    /// symbol draft in hand to continue; rc.3: Close box landed in that draft, as if it had been opened again).
     fn leave_box(&mut self, from_project: bool) {
         let Some(editor) = &mut self.symbol_editor else {
             return;
         };
-        editor.start = !editor.in_hand();
+        editor.start = true;
         if from_project {
             editor.shown = false;
             if !editor.in_hand() {
@@ -1076,7 +1076,13 @@ impl ShellModel {
                 )),
             );
         } else {
-            self.notify_toned(strings::format(key!("box-saved"), &[&number]), NoteTone::Success);
+            // A later Save, or Redraw them, says what is true then: its toast takes this one's place.
+            self.notes.push_toned(
+                strings::format(key!("box-saved"), &[&number]),
+                "part",
+                None,
+                Some(NoteTone::Success),
+            );
         }
         Ok(())
     }
@@ -1110,9 +1116,11 @@ impl ShellModel {
                 return out;
             }
         }
-        self.notify_toned(
+        self.notes.push_toned(
             strings::format(key!("box-redrawn"), &[&count.to_string()]),
-            NoteTone::Success,
+            "part",
+            None,
+            Some(NoteTone::Success),
         );
         Outcome::Done
     }

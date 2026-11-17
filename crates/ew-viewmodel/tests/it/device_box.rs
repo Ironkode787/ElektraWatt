@@ -453,6 +453,30 @@ fn a_placed_starter_part_s_box_says_save_makes_a_copy() {
     assert_eq!(pins(&s).len(), 7);
 }
 
+/// Close box returns where the box was opened from: the editor's ways in, which offer the symbol draft in hand to
+/// continue, not that draft as if it had been opened again.
+#[test]
+fn close_box_returns_to_the_ways_in_it_was_opened_from() {
+    let tmp = Tmp::new("device-box-close");
+    let mut s = new_project(&tmp);
+    done(
+        &mut s,
+        "symbol.new",
+        json!({"key": "example.lamp", "name": "Lamp"}),
+    );
+    done(
+        &mut s,
+        "symbol.draw",
+        json!({"tool": "rectangle", "x": -2, "y": -2, "x2": 2, "y2": 2}),
+    );
+    done(&mut s, "symbol.start", json!({}));
+    done(&mut s, "part.box", json!({"new": true}));
+    done(&mut s, "symbol.close", json!({}));
+    let editor = s.symbol_editor().expect("the editor stays");
+    assert!(editor.device_box().is_none() && editor.start, "the ways in");
+    assert!(editor.in_hand(), "the lamp waits to be continued");
+}
+
 /// A PLC card's pins come from its channels: the box shows, and a change of its pins is refused with the sentence
 /// that says where they come from.
 #[test]

@@ -555,3 +555,37 @@ fn every_edge_of_the_box_sizes_it_and_the_pins_stay_where_they_stand() {
     assert_eq!(places(&higher), places(&narrow), "the pins keep their places");
     d.shell_mut().shutdown();
 }
+
+/// Redraw them in the toast that a Save of a drawn part's box shows, clicked inside the editor: the boxes are redrawn
+/// and the toast says so (it did nothing visible there).
+#[test]
+fn redraw_them_inside_the_editor_redraws_and_says_so() {
+    let tmp = Tmp::new();
+    let mut d = box_with_three_pins(&tmp);
+    done(&mut d, "symbol.save", json!({}));
+    // A box of the part on the page, then back in its box: two pins change places and the box is saved.
+    done(&mut d, "symbol.scratch", json!({}));
+    done(&mut d, "cursor.set", json!({"x_mm": 100, "y_mm": 100}));
+    done(&mut d, "canvas.activate", json!({}));
+    done(&mut d, "ui.dismiss", json!({}));
+    done(&mut d, "symbol.new", json!({}));
+    done(&mut d, "part.pin", json!({"pin": 0, "side": "right", "at": 4}));
+    done(&mut d, "symbol.save", json!({}));
+    d.input(&Input::Wait { ms: 100 });
+    assert!(
+        d.find("Back to the editor").is_none(),
+        "the page's toast left when the editor took the window"
+    );
+    let redraw = d.find("Redraw them").expect("the toast's Redraw them");
+    d.input(&click(redraw));
+    d.input(&Input::Wait { ms: 100 });
+    assert!(d.find("Redraw them").is_none(), "the toast is spent");
+    assert!(
+        d.texts()
+            .iter()
+            .any(|t| t == "1 as their part lays them out now, their wires with them."),
+        "{:?}",
+        d.texts()
+    );
+    d.shell_mut().shutdown();
+}

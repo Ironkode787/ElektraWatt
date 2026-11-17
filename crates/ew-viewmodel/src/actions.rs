@@ -842,7 +842,16 @@ pub fn enabled_with(
             || (meta.kind == ActionKind::Command
                 && !meta.id.starts_with("symbol.")
                 && !meta.id.starts_with("file.")
-                && !matches!(meta.id, "edit.undo" | "edit.redo" | "page.new" | "app.quit"))
+                && !matches!(
+                    meta.id,
+                    // A toast's action, and Redraw them, which the device box's Save offers in one (rc.3).
+                    "edit.undo"
+                        | "edit.redo"
+                        | "page.new"
+                        | "app.quit"
+                        | "notifications.run"
+                        | "part.redraw_boxes"
+                ))
         {
             return Err(key!("symbol-editor-active"));
         }
