@@ -200,14 +200,18 @@ alignment is chosen so the text keeps its side of the symbol and of its connecti
 that a quarter turn brings above it stands centred above; the table for all eight variants is in
 [07](07-symbols-parts-macros.md) §4.1). A device tag the page would put on a wire or another text is never turned to
 make room: it moves, upright, to the other side of its symbol, above or below what is in its way, or centred above or
-below its symbol, and stays where it is when none of these is free.
+below its symbol, and stays where it is when none of these is free. It never moves onto its own symbol; where a symbol
+turned by a half turn and a neighbour's tag or body meet, the tag moves off the body and takes no place on a body
+(rc.3).
 
 *As built (0.3).* With one symbol (or black box) selected, each of its texts can be grabbed (the pointer shows a grab
-hand over it) and dragged alone: the anchor snaps to the fine grid (Alt: free), the Rotate key turns the text a quarter
+hand over it) and dragged alone; the tag of a symbol that is not selected is grabbed the same way, the tag under the
+pointer winning over a symbol's body (rc.3), and a click on it selects its symbol: the anchor snaps to the fine grid (Alt: free), the Rotate key turns the text a quarter
 counter-clockwise while it is dragged, and the drop commits `rep.text_set {rep, slot, pos?, angle?, visible?}`, the
 representation's `SlotOverride` in symbol coordinates (one undo step). Hide text in the menu over a text sets
-`visible: false`; Reset text positions in the symbol's menu (`rep.texts_reset {reps}`) removes the positions and angles of
-its overrides and keeps a hidden text hidden.
+`visible: false`; Put the text back, in the menu over a text (greyed with its reason while the texts stand where the
+symbol puts them) and in the symbol's menu (`rep.texts_reset {reps}`), removes the positions and angles of its overrides
+and keeps a hidden text hidden.
 
 ### 2.6 Devices, functions, main and auxiliary
 

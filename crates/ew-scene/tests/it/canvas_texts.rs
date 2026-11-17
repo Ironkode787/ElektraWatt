@@ -390,6 +390,104 @@ fn a_tag_does_not_sit_on_a_wire() {
     assert!(tag.min().x.0 < g(44) && g(44) < tag.max().x.0, "{tag:?}");
 }
 
+/// The rc.3 rack run: a tag that had to move took a place on a symbol (a valve's tag on its own valve, a turned
+/// cylinder's tag on its neighbour's rod). The valve's tag that the wire would run through moves, but not onto its own
+/// valve; where a symbol turned by a half turn and another symbol's tag or body meet, the tag moves off the body.
+#[test]
+fn a_tag_that_moves_lands_on_no_symbol() {
+    let (coil, valve) = (symbol(COIL), symbol(VALVE));
+    let k = |n: u128, x: i64, y: i64| RepView {
+        rep: rep(n, coil.id, x, y, json!({})),
+        symbol: Some(coil.def.clone()),
+        slots: Vec::new(),
+        terminals: Vec::new(),
+        pins: Vec::new(),
+    };
+    let m = RepView {
+        rep: rep(0x33, valve.id, 44, 30, json!({})),
+        symbol: Some(valve.def.clone()),
+        slots: vec![value(slot(&valve, &SlotKind::Tag), "-101M1")],
+        terminals: Vec::new(),
+        pins: Vec::new(),
+    };
+    let body = |def: &SymbolDef, x: i64, y: i64| {
+        let b = ew_scene::symbol::lower(def, ew_units::Orient2::R0).bounds;
+        Rect::from_points(
+            Pt2::new(b.min().x + ew_units::Nm(g(x)), b.min().y + ew_units::Nm(g(y))),
+            Pt2::new(b.max().x + ew_units::Nm(g(x)), b.max().y + ew_units::Nm(g(y))),
+        )
+    };
+    let wired = view(
+        vec![k(0x31, 40, 10), k(0x32, 40, 50), m],
+        vec![routed(0x41, (0x1031, 1), (0x1032, 0), &[(40, 30)])],
+    );
+    let r = runs(&wired);
+    let tag = run(&r, 0x33, "-101M1").rect;
+    assert!(
+        !overlap(tag, body(&valve.def, 44, 30)),
+        "not on its own valve: {tag:?}"
+    );
+    // Turned by a half turn, its tag goes to its place for that turn; a coil standing there sends it elsewhere.
+    let turned = RepView {
+        rep: rep(0x35, valve.id, 44, 30, json!({"orient": "r180"})),
+        symbol: Some(valve.def.clone()),
+        slots: vec![value(slot(&valve, &SlotKind::Tag), "-101M2")],
+        terminals: Vec::new(),
+        pins: Vec::new(),
+    };
+    let alone = run(&runs(&view(vec![turned.clone()], Vec::new())), 0x35, "-101M2").rect;
+    let on = (
+        (alone.min().x.0 + alone.max().x.0) / 2 * 3 / 7_937_500,
+        (alone.min().y.0 + alone.max().y.0) / 2 * 3 / 7_937_500,
+    );
+    let r = runs(&view(vec![k(0x31, on.0, on.1), turned], Vec::new()));
+    let tag = run(&r, 0x35, "-101M2").rect;
+    assert!(
+        !overlap(tag, body(&coil.def, on.0, on.1)),
+        "the turned valve's tag is not on the coil: {tag:?}"
+    );
+    // A coil turned by a half turn whose body comes to lie on the valve's tag sends the tag off it.
+    let plain = RepView {
+        rep: rep(0x36, valve.id, 44, 30, json!({})),
+        symbol: Some(valve.def.clone()),
+        slots: vec![value(slot(&valve, &SlotKind::Tag), "-101M3")],
+        terminals: Vec::new(),
+        pins: Vec::new(),
+    };
+    let alone = run(&runs(&view(vec![plain.clone()], Vec::new())), 0x36, "-101M3").rect;
+    // The coil's turned body centred on the tag.
+    let b = ew_scene::symbol::lower(&coil.def, ew_units::Orient2::R180).bounds;
+    let grid = |nm: i64| (nm * 3 + 7_937_500 / 2).div_euclid(7_937_500);
+    let on = (
+        grid((alone.min().x.0 + alone.max().x.0 - b.min().x.0 - b.max().x.0) / 2),
+        grid((alone.min().y.0 + alone.max().y.0 - b.min().y.0 - b.max().y.0) / 2),
+    );
+    let half = RepView {
+        rep: rep(0x37, coil.id, on.0, on.1, json!({"orient": "r180"})),
+        ..k(0x37, on.0, on.1)
+    };
+    let turned_body = Rect::from_points(
+        Pt2::new(
+            b.min().x + ew_units::Nm(g(on.0)),
+            b.min().y + ew_units::Nm(g(on.1)),
+        ),
+        Pt2::new(
+            b.max().x + ew_units::Nm(g(on.0)),
+            b.max().y + ew_units::Nm(g(on.1)),
+        ),
+    );
+    assert!(
+        overlap(alone, turned_body),
+        "the case: the turned coil lies on the tag"
+    );
+    let r = runs(&view(vec![plain, half], Vec::new()));
+    let tag = run(&r, 0x36, "-101M3").rect;
+    assert!(
+        !overlap(tag, turned_body),
+        "the tag moved off the turned coil: {tag:?}"
+    );
+}
+
 /// The labels layer reports each tag's anchor where it prints, after the tag rule. The valve's
 /// tag that the wire would run through moves off it (here above its valve, upright), and the reported anchor stands
 /// on the moved text's rectangle; the coils print no tag and report none, and no other layer reports tags. Golden A's

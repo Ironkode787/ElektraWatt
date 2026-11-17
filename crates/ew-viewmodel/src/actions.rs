@@ -662,7 +662,7 @@ fn one_rep_selected(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-/// Reset text positions: a selected symbol has a text moved or turned.
+/// Put the text back: a selected symbol has a text moved or turned.
 fn texts_moved(m: &ShellModel) -> Result<(), Key<'static>> {
     writable_page(m)?;
     if m.selected_reps_with_moved_texts().is_empty() {

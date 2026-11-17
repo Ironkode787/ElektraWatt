@@ -626,7 +626,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_rep_hide_text(p),
         ))),
     ),
-    // Reset text positions in the canvas context menu over a symbol whose texts were moved or turned.
+    // Put the text back in the canvas context menu over a text, and over a symbol whose texts were moved or turned.
     hidden(in_canvas(act(
         "rep.reset_texts",
         Command,

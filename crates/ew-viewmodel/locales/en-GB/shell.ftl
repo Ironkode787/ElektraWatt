@@ -6943,7 +6943,7 @@ field-help-word-label-at = Where the device's label was dragged to on its layout
 
 # A symbol's text moved on its own (doc 06 §2.5).
 action-rep-hide-text = Hide text
-action-rep-reset-texts = Reset text positions
+action-rep-reset-texts = Put the text back
 command-rep-text_set = Move a symbol's text
 command-rep-texts_reset = Reset text positions
 reason-text-one-symbol = Select one symbol

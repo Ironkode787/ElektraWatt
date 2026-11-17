@@ -4,7 +4,7 @@
 //! A symbol's text moved on its own on a schematic page (doc 06 §2.5; a known limit of the first 0.3.0 candidate: a
 //! text could not be moved without its symbol), through the shell on a temporary copy of Golden A: with the symbol
 //! selected its tag drags alone on the fine grid, the Rotate key turns it while it is dragged, Undo takes the move
-//! back, its menu hides a text, and Reset text positions puts the texts back.
+//! back, its menu hides a text, and Put the text back puts the texts back.
 
 use crate::common;
 
@@ -88,7 +88,7 @@ fn a_selected_symbols_text_drags_alone_turns_hides_and_goes_back() {
         Some((tag.at, false))
     );
     done(&mut shell, "edit.redo", json!({}));
-    // The menu over the text hides it; Reset text positions puts the moved one back.
+    // The menu over the text hides it; Put the text back puts the moved one back.
     let over = middle(&shell, &slot(&shell, tag.slot).unwrap());
     done(&mut shell, "canvas.pointer", at(over, json!({})));
     let menu = canvas_menu(&shell, MenuSpot::Object, None);
@@ -99,7 +99,7 @@ fn a_selected_symbols_text_drags_alone_turns_hides_and_goes_back() {
     assert_eq!(hide.params, json!({"slot": tag.slot}));
     assert!(
         menu.iter().any(|i| i.id == "rep.reset_texts"),
-        "Reset text positions"
+        "Put the text back"
     );
     done(&mut shell, "rep.reset_texts", json!({}));
     assert_eq!(
@@ -108,5 +108,66 @@ fn a_selected_symbols_text_drags_alone_turns_hides_and_goes_back() {
     );
     done(&mut shell, "rep.hide_text", json!({"slot": tag.slot}));
     assert!(slot(&shell, tag.slot).is_none(), "the hidden text prints no more");
+    shell.shutdown();
+}
+
+/// The rc.3 rack run: dragging at a tag of a symbol that was not selected grabbed the symbol under it, and the menu
+/// over a text offered only Hide text. The tag under the pointer wins over a symbol's body: it drags alone, its symbol
+/// stays; a click on it selects its symbol, whose menu over the text offers Put the text back, greyed with its reason
+/// while the texts stand where the symbol puts them.
+#[test]
+fn a_tag_drags_alone_without_its_symbol_selected_and_its_menu_puts_it_back() {
+    let tmp = Tmp::new("symbol-text-drag-unselected");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let page = shell.canvas().unwrap().page().clone();
+    // A symbol's tag: the text at its tag's anchor.
+    let is_tag = |r: &ew_viewmodel::ew_api::output::TableRep, t: &SlotTextBox| {
+        t.rep == r.id && r.tag_at.is_some_and(|a| a.0 == t.at.x.0)
+    };
+    let rep = page
+        .tables
+        .reps
+        .iter()
+        .find(|r| r.device.is_some() && r.black_box.is_none() && page.texts.iter().any(|t| is_tag(r, t)))
+        .expect("a symbol with a tag")
+        .clone();
+    let tag = *page.texts.iter().find(|t| is_tag(&rep, t)).unwrap();
+    let r = tag.rect;
+    let grab = page
+        .snapper
+        .page_to_sheet(((r.min().x.0 + r.max().x.0) / 2, (r.min().y.0 + r.max().y.0) / 2));
+    // A click on the tag selects its symbol; its menu over the tag offers Put the text back, greyed.
+    done(&mut shell, "canvas.press", at(grab, json!({})));
+    done(&mut shell, "canvas.release", at(grab, json!({})));
+    assert_eq!(shell.selected_rep_texts().map(|(r, _)| r), Some(rep.id));
+    done(&mut shell, "canvas.pointer", at(grab, json!({})));
+    let back = canvas_menu(&shell, MenuSpot::Object, None)
+        .into_iter()
+        .find(|i| i.id == "rep.reset_texts")
+        .expect("Put the text back over the text");
+    assert!(!back.enabled);
+    assert_eq!(
+        back.reason.as_deref(),
+        Some("The symbol's texts stand where the symbol puts them")
+    );
+    // Nothing selected: a drag at the tag moves the tag alone.
+    done(&mut shell, "select.set", json!({"ids": []}));
+    let to = (grab.0 + 10 * MM, grab.1 + 5 * MM);
+    done(&mut shell, "canvas.press", at(grab, json!({})));
+    done(&mut shell, "canvas.pointer", at(to, json!({})));
+    assert_eq!(shell.tool().state(), "dragging");
+    done(&mut shell, "canvas.release", at(to, json!({})));
+    let now = shell.canvas().unwrap().page().clone();
+    let moved = now
+        .texts
+        .iter()
+        .find(|t| t.rep == rep.id && t.slot == tag.slot)
+        .expect("the text still prints");
+    assert!(
+        moved.moved && moved.at.x.0 > tag.at.x.0 + 8 * MM,
+        "the text moved alone"
+    );
+    let after = now.tables.reps.iter().find(|r| r.id == rep.id).unwrap();
+    assert_eq!(after.pos, rep.pos, "its symbol stayed");
     shell.shutdown();
 }

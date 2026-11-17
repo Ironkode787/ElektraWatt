@@ -179,7 +179,9 @@ struct TextPress {
 }
 
 /// The text of the one selected representation under the sheet point `at`, the last printed first; with no
-/// representation selected, the tag of the one selected page item (a cable mark's, rc.3).
+/// representation selected, the tag of the one selected page item (a cable mark's, rc.3). Else the tag under the
+/// point of a symbol or an item that is not one of several selected (rc.3: a drag at a tag moved its symbol, or the
+/// symbol under it, so the tag under the pointer wins over a symbol's body); several selected move together.
 pub(crate) fn text_under(cx: &ToolCx<'_>, at: (i64, i64)) -> Option<ew_api::output::SlotTextBox> {
     let reps = selected_reps(cx.selection, cx.page);
     let items: Vec<EntityRef> = super::selection_kinds(cx.selection, &cx.page.tables)
@@ -187,16 +189,36 @@ pub(crate) fn text_under(cx: &ToolCx<'_>, at: (i64, i64)) -> Option<ew_api::outp
         .filter(|(_, k)| *k == super::EntityKind::Item)
         .map(|(e, _)| e)
         .collect();
-    let one = match (reps.as_slice(), items.as_slice()) {
-        ([rep], _) | ([], [rep]) => *rep,
-        _ => return None,
-    };
     let p = cx.snapper.sheet_to_page(at);
-    cx.page.texts.iter().rev().copied().find(|t| {
-        t.rep == one.0
-            && (t.rect.min().x.0..=t.rect.max().x.0).contains(&p.0)
+    let under = |t: &ew_api::output::SlotTextBox| {
+        (t.rect.min().x.0..=t.rect.max().x.0).contains(&p.0)
             && (t.rect.min().y.0..=t.rect.max().y.0).contains(&p.1)
-    })
+    };
+    if let ([one], _) | ([], [one]) = (reps.as_slice(), items.as_slice())
+        && let Some(t) = cx.page.texts.iter().rev().find(|t| t.rep == one.0 && under(t))
+    {
+        return Some(*t);
+    }
+    // A link under the point (a cross-reference) is followed by a click, as before.
+    if cx.link_at(at).is_some() {
+        return None;
+    }
+    // A symbol's tag (the text at its tag's anchor); its other texts (a pin's designation by its body) leave a drag to
+    // the symbol, as before.
+    let tag = |t: &ew_api::output::SlotTextBox| {
+        cx.page
+            .tables
+            .reps
+            .iter()
+            .any(|r| r.id == t.rep && r.tag_at.is_some_and(|a| a.0 == t.at.x.0))
+            || cx.page.tables.items.iter().any(|i| i.id == t.rep)
+    };
+    cx.page
+        .texts
+        .iter()
+        .rev()
+        .copied()
+        .find(|t| under(t) && tag(t) && !cx.selection.items.contains(&EntityRef(t.rep)))
 }
 
 /// `r` turned by `turns` quarters counter-clockwise on the sheet about `c`, page nm.

@@ -6681,7 +6681,7 @@ field-help-word-label-at = Waar het label van het apparaat op zijn layoutpagina'
 
 # Een tekst van een symbool apart verplaatst (doc 06 §2.5).
 action-rep-hide-text = Tekst verbergen
-action-rep-reset-texts = Tekstposities herstellen
+action-rep-reset-texts = Tekst terugzetten
 command-rep-text_set = Tekst van een symbool verplaatsen
 command-rep-texts_reset = Tekstposities herstellen
 reason-text-one-symbol = Selecteer één symbool

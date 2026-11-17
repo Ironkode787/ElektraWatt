@@ -835,8 +835,21 @@ fn r2a_a_valve_placed_inside_a_valve_terminals_box_is_its_valve() {
     );
     let _ = d.shell_mut().dispatch("tool.select", &json!({}));
     let to = cell_px(&mut d, 1);
+    // Grabbed by its body (its tag at the placing point would be dragged alone, rc.3).
+    let body = d
+        .shell_mut()
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .reps
+        .iter()
+        .find(|r| r.device == Some(loose))
+        .map(|r| r.body)
+        .unwrap();
+    let from = page_pixel(&mut d, ((body[0] + body[2]) / 2, (body[1] + body[3]) / 2));
     d.input(&Input::Drag {
-        from: (1000, 800),
+        from,
         to,
         button: PointerButton::Primary,
         mods: Modifiers::NONE,

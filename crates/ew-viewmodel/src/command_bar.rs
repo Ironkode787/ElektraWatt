@@ -752,15 +752,18 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -
             items.extend(variants.iter().filter(|v| v.id != b.id).cloned());
         }
     }
-    // Over a text of the one selected symbol, Hide text; over a symbol with a moved text, Reset text positions.
-    if let Some(slot) = model.text_under_pointer()
+    // Over a text of the one selected symbol, Hide text and Put the text back (greyed with its reason while the texts
+    // stand where the symbol puts them, rc.3: the menu offered only Hide text); over a symbol with a moved text, Put
+    // the text back.
+    let over_text = model.text_under_pointer();
+    if let Some(slot) = over_text
         && let Some(meta) = actions::find("rep.hide_text")
     {
         let mut hide = actions::item_of(meta, model);
         hide.params = serde_json::json!({ "slot": slot });
         items.push(hide);
     }
-    if !model.selected_reps_with_moved_texts().is_empty() {
+    if over_text.is_some() || !model.selected_reps_with_moved_texts().is_empty() {
         items.extend(item("rep.reset_texts"));
     }
     for id in [

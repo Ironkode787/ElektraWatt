@@ -586,7 +586,7 @@ impl ShellModel {
         })
     }
 
-    /// `rep.reset_texts` (Reset text positions in the canvas context menu over a symbol): `rep.texts_reset` of the
+    /// `rep.reset_texts` (Put the text back in the canvas context menu over a text or a symbol): `rep.texts_reset` of the
     /// selected symbols whose texts were moved or turned.
     pub(crate) fn act_rep_reset_texts(&mut self) -> Outcome {
         let reps = self.selected_reps_with_moved_texts();

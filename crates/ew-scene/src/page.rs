@@ -118,11 +118,15 @@
 //! - **Device tags**. A device tag of a symbol that is no black box, without a position or angle override
 //!   and printing horizontally, moves when a wire runs through it, or when it collides (as in rule 2 above) with a
 //!   fixed text of another representation (a black-box caption, a CP designation, a pin text) or with the tag of a
-//!   representation printed before it. It stays upright (never turned) and takes the first free place of:
+//!   representation printed before it, or when it stands on another representation's symbol body where either symbol
+//!   is turned by a half turn (rc.3). It stays upright (never turned) and takes the first free place of:
 //!   mirrored about the symbol's vertical axis; raised above what is in its way;
-//!   dropped below it; centred above its symbol ([`SLOT_TEXT_GAP`] above its bounds); centred below it. A place is free when no wire runs through it, it overlaps no other text of its own symbol and
-//!   collides with no text or pin text of another representation (a movable tag printed later yields in its own
-//!   turn). A raise or drop goes [`SLOT_TEXT_GAP`] past the texts and horizontal wires in the way, at most three
+//!   dropped below it; centred above its symbol ([`SLOT_TEXT_GAP`] above its bounds); centred below it. A place is
+//!   free when no wire runs through it, it overlaps no other text of its own symbol, collides with no text or pin text
+//!   of another representation (a movable tag printed later yields in its own turn), and overlaps neither its own
+//!   symbol's body nor the body of a symbol turned by a half turn (any body, for a tag of such a symbol; a black
+//!   box drawn with its own outline by that outline; rc.3: tags hopped onto symbols). A raise or drop goes
+//!   [`SLOT_TEXT_GAP`] past the texts, those bodies and horizontal wires in the way, at most three
 //!   times, and stays within one tag height of the symbol's top or bottom. Without a free place the
 //!   tag stays (at two grid steps' spacing the neighbours leave none).
 //! - **Pin texts**. A black box prints each [`RepView::pins`] entry whose index is one of its box CPs
@@ -1912,11 +1916,13 @@ impl Builder<'_> {
 
     /// The tag rule (module documentation, "Device tags"): a movable device tag that a wire runs through, or
     /// that collides with a fixed text of another representation (a black box's caption or pin text, a CP
-    /// designation) or with the tag of a representation printed before it, stays upright and takes the first free place
-    /// of: mirrored to the other side; raised above
-    /// what is in its way; dropped below it; centred above its symbol; centred below it. A place is free when no wire runs through it, it overlaps no other text
-    /// of its own symbol and collides with no other representation's text or pin text (a movable tag printed later
-    /// does not count: it yields in its turn). A raise or drop goes [`SLOT_TEXT_GAP`] past the texts and horizontal
+    /// designation) or with the tag of a representation printed before it, or that stands on another symbol's body
+    /// where either symbol is turned by a half turn, stays upright and takes the first free place of: mirrored to the
+    /// other side; raised above what is in its way; dropped below it; centred above its symbol; centred below it. A
+    /// place is free when no wire runs through it, it overlaps no other text of its own symbol, collides with no other
+    /// representation's text or pin text (a movable tag printed later yields in its turn) and overlaps neither its own
+    /// symbol's body nor a body the half-turn rule names. A raise or drop goes [`SLOT_TEXT_GAP`] past the texts, those
+    /// bodies and horizontal
     /// wires in the way, at most [`SLOT_TEXT_DROPS`] times, and keeps within one tag height of its symbol's top or
     /// bottom; another wire in the way ends it. Without a free place the tag stays.
     /// A centred device tag whose anchor is inside its own symbol's body but whose text runs out across the body's
@@ -1970,6 +1976,12 @@ impl Builder<'_> {
             return;
         }
         let wires = page_wires(view);
+        let bodies = tag_bodies(view);
+        let turned = |e: EntityRef| {
+            view.reps
+                .iter()
+                .any(|r| EntityRef(r.rep.id.as_uuid()) == e && r.rep.orient == Orient2::R180)
+        };
         let mut boxes: Vec<Option<Rect>> = texts
             .iter()
             .map(|t| self.text_box(&t.spec(false), t.xref))
@@ -1993,22 +2005,44 @@ impl Builder<'_> {
                     && (texts[k].caption.is_some() || texts[k].designation || (texts[k].tag && k < i))
                     && b.is_some_and(|b| collides(own, b))
             }) || pins.iter().any(|(e, b)| *e != entity && collides(own, *b))
-                || wires.iter().any(|w| wire_through(own, *w));
+                || wires.iter().any(|w| wire_through(own, *w))
+                // A tag on another symbol's body where either is turned by a half turn (rc.3: a cylinder turned so
+                // put its tag on its neighbour's rod, or its body on its neighbour's tag).
+                || bodies
+                    .iter()
+                    .any(|(e, b)| *e != entity && (turned(entity) || turned(*e)) && overlaps(own, *b));
             if !yields {
                 continue;
             }
-            // A movable tag printed later yields to this one in its turn.
+            // What is in the way of a raise or a drop: a movable tag printed later yields to this one in its turn; the
+            // bodies of the symbols turned by a half turn, and all of them for a tag of such a symbol (rc.3: a turned
+            // cylinder and its neighbour's rod).
+            let near: Vec<(EntityRef, Rect)> = bodies
+                .iter()
+                .filter(|(e, _)| turned(entity) || turned(*e))
+                .copied()
+                .collect();
             let in_way = |b: Rect, boxes: &[Option<Rect>]| {
-                in_the_way(
+                with_bodies(
+                    in_the_way(
+                        b,
+                        entity,
+                        (boxes, &entities),
+                        |k| k == i || (k > i && movable[k]),
+                        pins,
+                        &wires,
+                    ),
                     b,
                     entity,
-                    (boxes, &entities),
-                    |k| k == i || (k > i && movable[k]),
-                    pins,
-                    &wires,
+                    &near,
                 )
             };
-            let free = |b: Rect, boxes: &[Option<Rect>]| in_way(b, boxes).is_some_and(|v| v.is_empty());
+            // A place is free of what is in the way and of its own symbol's body (rc.3: a valve's tag dropped onto its
+            // valve).
+            let own_body = bodies.iter().find(|(e, _)| *e == entity).map(|(_, r)| *r);
+            let free = |b: Rect, boxes: &[Option<Rect>]| {
+                in_way(b, boxes).is_some_and(|v| v.is_empty()) && !own_body.is_some_and(|o| overlaps(b, o))
+            };
             let Some(rv) = view.reps.iter().find(|r| EntityRef(r.rep.id.as_uuid()) == entity) else {
                 continue;
             };
@@ -3227,9 +3261,40 @@ fn symbol_bodies(view: &PageView) -> Vec<(EntityRef, Rect)> {
         .collect()
 }
 
+/// The bodies the tag rule keeps its tags off (rc.3): [`symbol_bodies`], a black box drawn with its own outline (a
+/// valve terminal's box of positions) by that outline.
+fn tag_bodies(view: &PageView) -> Vec<(EntityRef, Rect)> {
+    let mut bodies = symbol_bodies(view);
+    for (e, r) in &mut bodies {
+        let Some(rv) = view.reps.iter().find(|rv| EntityRef(rv.rep.id.as_uuid()) == *e) else {
+            continue;
+        };
+        let Some(b) = rv.rep.box_.as_ref().filter(|b| b.outline.len() > 2) else {
+            continue;
+        };
+        let pos = rv.rep.pos;
+        let points: Vec<Pt2> = b
+            .outline
+            .iter()
+            .map(|p| {
+                let q = rv.rep.orient.apply(*p);
+                Pt2::new(pos.x + q.x, pos.y + q.y)
+            })
+            .collect();
+        let (lo, hi) = points.iter().fold((points[0], points[0]), |(lo, hi), p| {
+            (
+                Pt2::new(lo.x.min(p.x), lo.y.min(p.y)),
+                Pt2::new(hi.x.max(p.x), hi.y.max(p.y)),
+            )
+        });
+        *r = Rect::from_points(lo, hi);
+    }
+    bodies
+}
+
 /// [`in_the_way`]'s answer for a place `b` of a text of `entity`, with the vertical extent of each other
-/// representation's symbol body (`bodies`) that the place overlaps added: the rise's free test. Never the
-/// text's own symbol's body; only the rise reads it, not the captions or the tags.
+/// representation's symbol body (`bodies`) that the place overlaps added: the free test of the cross-reference texts'
+/// rise and of the device tags. Never the text's own symbol's body; not the captions.
 fn with_bodies(
     in_way: Option<Vec<(Nm, Nm)>>,
     b: Rect,
