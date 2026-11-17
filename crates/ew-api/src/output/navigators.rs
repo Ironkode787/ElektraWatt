@@ -1415,6 +1415,10 @@ fn device_node(
     if dev.state == DeviceState::Spare {
         badges.push("spare".to_owned());
     }
+    // An earth or ground symbol's device says what it is: a connection to earth, not a device to buy.
+    if ew_derive::layout::is_earth_connection(q, dev) {
+        badges.push(EARTH_CONNECTION.to_owned());
+    }
     facets.push(("state".to_owned(), state_word(&dev.state).to_owned()));
     if !row.part.is_empty() {
         facets.push(("part".to_owned(), row.part.to_lowercase()));
@@ -1795,6 +1799,10 @@ fn strips(q: &Q) -> Vec<Id<Device>> {
 /// The badge of a device row whose device no page draws (F17 of the rc.1 test: its tag shows `?` where the page goes,
 /// and nothing said why); the window explains it on hover.
 pub const NOT_DRAWN: &str = "not drawn";
+
+/// The badge of a device row whose device is an earth connection (`ew_derive::layout::is_earth_connection`): drawn
+/// with earth or ground symbols only and given no part, so no part is asked of it (rc.3).
+pub const EARTH_CONNECTION: &str = "earth connection";
 
 /// The badge of a Messages rule group every finding of which has a quick fix of one kind: its Fix all.
 pub const FIX_ALL: &str = "fix all";

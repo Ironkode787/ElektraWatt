@@ -16,8 +16,8 @@ use ew_ids::Id;
 use ew_mltext::{NaturalKey, natural_key};
 use ew_rds::Aspect;
 use ew_schema::{
-    Carrier, CarrierKind, CarrierParams, CarrierRef, Device, Enclosure, LayoutSpace, LibCopy, MechData,
-    MountKind, MountingSurface, Page, Part, PartRef, Placement, StructureNode,
+    Carrier, CarrierKind, CarrierParams, CarrierRef, CategoryKey, Device, Enclosure, LayoutSpace, LibCopy,
+    MechData, MountKind, MountingSurface, Page, Part, PartRef, Placement, StructureNode,
 };
 use ew_units::{Nm, Pt2, Rect};
 
@@ -32,8 +32,29 @@ use crate::tag::DeviceTag;
 /// The side of the unknown footprint (D5): a 20 × 20 mm square about the pose.
 pub const UNKNOWN_SIDE: i64 = 20_000_000;
 
-/// The FnDef category of an integral PE point (D8 case 8): `EarthingBar/ProtectiveEarth/Point` (`ew.fn.pe`).
-const PE_POINT: [&str; 3] = ["EarthingBar", "ProtectiveEarth", "Point"];
+/// Whether a FnDef category is an earth point, a symbol that stands for a connection to earth: `EarthingBar / <kind>
+/// / Point`, protective earth (`ew.fn.pe`), functional earth (`ew.fn.fe`) and any other kind of the family (signal
+/// ground, chassis, equipotential bonding).
+pub fn is_earth_point(category: &CategoryKey) -> bool {
+    let (a, _, c) = category;
+    a.as_str() == "EarthingBar" && c.as_str() == "Point"
+}
+
+/// Whether a device is an earth connection (D8 case 8): it has functions, every one drawn with an earth point
+/// ([`is_earth_point`]), and no part use. Nothing of it is bought or mounted on its own: EW-CORE-041 asks no part of
+/// it and the layout exempts it, and the Devices list says what it is. A person who gives it a part makes it a
+/// device like any other.
+pub fn is_earth_connection(q: &Q, device: &Device) -> bool {
+    let (fns, fndefs) = (q.functions(), q.fndefs());
+    let mut functions = q.idx().functions_of_device(device.id).peekable();
+    device.parts.is_empty()
+        && functions.peek().is_some()
+        && functions.all(|f| {
+            fns.get(f)
+                .and_then(|f| fndefs.get(f.def))
+                .is_some_and(|d| is_earth_point(&d.item.category))
+        })
+}
 
 // ---------------------------------------------------------------------------------------------------------
 // Shared reads
@@ -119,8 +140,8 @@ pub enum Exempt {
     NoFunctions,
     /// Case 6: every part use mounts on its parent or not at all (the valves, the DP plug -3X1).
     WithParent,
-    /// Case 8: no part use and every function an integral PE point (FnDef category `EarthingBar/ProtectiveEarth/
-    /// Point`): -XPE.
+    /// Case 8: an earth connection ([`is_earth_connection`]: no part use and every function an earth point, FnDef
+    /// category `EarthingBar/<kind>/Point`): -XPE.
     PePoint,
 }
 
@@ -172,7 +193,7 @@ impl Mountability {
 ///    primary part;
 /// 6. part uses that are all `on_parent` or `none`: exempt;
 /// 7. part uses without a mount kind: mountable, unknown footprint;
-/// 8. no part use and every function's FnDef category the PE point: exempt as an integral PE point;
+/// 8. an earth connection (no part use and every function an earth point, [`is_earth_connection`]): exempt;
 /// 9. otherwise (no part): mountable, unknown footprint.
 ///
 /// Assembly children are not exempt by being children: the valve terminal's members are placed or reported in their
@@ -255,14 +276,7 @@ fn mountability_of_kind(q: &Q, dev: Id<Device>, device: &Device) -> Mountability
         };
     }
     // 8
-    let (fns, fndefs) = (q.functions(), q.fndefs());
-    let pe_point = functions.iter().all(|f| {
-        fns.get(*f).and_then(|f| fndefs.get(f.def)).is_some_and(|d| {
-            let (a, b, c) = &d.item.category;
-            [a.as_str(), b.as_str(), c.as_str()] == PE_POINT
-        })
-    });
-    if pe_point {
+    if is_earth_connection(q, device) {
         return Mountability::Exempt(Exempt::PePoint);
     }
     // 9

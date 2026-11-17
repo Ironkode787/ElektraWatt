@@ -1908,8 +1908,8 @@ where one needs Shift.
 1. **Open the sample.** Start page ▸ Open sample project. Golden A is S class, so folio 1 is interactive within
    0.5 s. The page navigator shows 36 pages; the 23 generated ones (2, 2.1, 100, 200, 900, 901, 901.1 and
    903 … 911) carry the generated badge ([20](20-golden-project.md) §5).
-2. **Messages.** The status bar reads "E 42 W 32 I 28" and the panel lists one waived finding (EF-19, waiver W-1 on
-   -XPE). F8 jumps to EF-01, EW-POT-013 on T55 at folio 101; F1 opens the rule page; "Waive…" needs a reason.
+2. **Messages.** The status bar reads "E 42 W 32 I 28"; the panel lists no waived finding (EF-19's -XPE is an earth
+   connection, asked no part since rc.3). F8 jumps to EF-01, EW-POT-013 on T55 at folio 101; F1 opens the rule page; "Waive…" needs a reason.
 3. **Provenance.** Selecting W29 on folio 102 shows "0.75 mm² · potential 24VDC-1 · size profile '0.75/1.5' · class
    control" and the colour "DBU · colour profile 'DBU/WH 24 V'" (AC-28); W20 shows "1.5 mm² · override (CDP) · derived would be 0.75 mm²"; S51 shows its frozen tag and the
    rule value -101S1 (FR-NUM-010).

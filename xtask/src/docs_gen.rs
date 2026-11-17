@@ -1938,6 +1938,11 @@ fn rule_page_text(r: &Rule, notes: &str, findings: &[&GoldenFinding]) -> String 
             .filter(|s| !s.is_empty())
             .map(|s| format!("`{s}`"))
             .collect();
+        // A row of no finding says why there is none in its targets cell.
+        if f.count == "0" {
+            let _ = writeln!(golden, "- {}: no finding ({}).", f.ef, cell(&f.targets));
+            continue;
+        }
         let state = if f.severity == "waived" {
             " waived".to_owned()
         } else {

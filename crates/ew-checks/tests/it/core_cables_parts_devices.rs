@@ -347,6 +347,32 @@ fn core041_reports_a_device_without_part() {
     );
 }
 
+/// EW-CORE-041 asks no part of an earth connection: a device drawn only with earth symbols, protective and functional
+/// earth alike, and given no part. A device with an earth symbol and another function is asked as before.
+#[test]
+fn core041_asks_no_part_of_an_earth_connection() {
+    let mut fx = Fx::base();
+    for (def, sym, kind) in [
+        (0xE100, 0xE200, "ProtectiveEarth"),
+        (0xE101, 0xE201, "FunctionalEarth"),
+    ] {
+        fx.fndef_with(
+            def,
+            sym,
+            &[(0, "PE", Value::Null)],
+            &json!([]),
+            &json!({"category": ["EarthingBar", kind, "Point"], "contact_kind": "terminal"}),
+        );
+    }
+    fx.func_of(0x1001, 0xE100, 0xE200, P1);
+    fx.func_of(0x1002, 0xE101, 0xE201, P1);
+    fx.func_of(0x1003, 0xE100, 0xE200, P1);
+    fx.push(json!({"$k": "function", "id": us(0x1004), "device": us(0x21003), "def": us(FNDEF), "role": "aux"}));
+    let f = findings_of(&fx.build(), "EW-CORE-041");
+    let reported: Vec<_> = f.iter().flat_map(targets).collect();
+    assert_eq!(reported, [(Kind::Device, uid(0x21003))], "{f:#?}");
+}
+
 /// EW-CORE-042: a part copy without description or manufacturer is a warning; a complete one is not.
 #[test]
 fn core042_reports_incomplete_part_data() {

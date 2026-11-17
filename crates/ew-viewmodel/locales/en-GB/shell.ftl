@@ -2536,6 +2536,7 @@ nav-badge-not-terminated = not terminated
 nav-badge-master = master
 nav-badge-passes-through = passes the net through
 nav-badge-not-drawn = not drawn
+nav-badge-earth-connection = earth connection
 messages-group-error = Errors
 messages-group-warning = Warnings
 messages-group-info = Infos

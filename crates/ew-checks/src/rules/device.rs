@@ -67,7 +67,8 @@ pub const DEVICE_WITHOUT_PART: RuleMeta = RuleMeta {
 /// is not placed is EW-LAY-001's. The exemption of a device "supplied by others" (`supply_scope =
 /// by_others`, FR-DEV-037) waits for the attribute (FT-209): until it exists the rule fires for
 /// such devices too. Left out: a strip (its terminals carry the parts), a PLC configuration device and a device without
-/// functions that is no cable (nothing is drawn or wired, so nothing is ordered). A cable without a cable part is
+/// functions that is no cable (nothing is drawn or wired, so nothing is ordered), and an earth connection, a device
+/// drawn only with earth or ground symbols and given no part (rc.3). A cable without a cable part is
 /// reported (rc.3): its type is what is ordered. One finding per device: target the device, no
 /// discriminator, so the fingerprint holds only the device's ID (doc 15 §10.1: waiver W-1 survives a renumber).
 #[derive(Clone, Copy, Debug)]
@@ -100,13 +101,15 @@ impl Rule for DeviceWithoutPart {
 }
 
 /// Whether EW-CORE-041 reports `device`: a device without a part use that is no strip and is a cable (its cable type,
-/// rc.3: the window offers Choose a cable type… on the finding) or has functions. The parts list leaves it out; the
-/// window says how many there are when it shows the list.
+/// rc.3: the window offers Choose a cable type… on the finding) or has functions, and is no earth connection (an
+/// earth or ground symbol stands for a connection to earth, nothing to buy: `ew_derive::layout::is_earth_connection`).
+/// The parts list leaves it out; the window says how many there are when it shows the list.
 pub fn lacks_part(q: &Q, device: Id<Device>) -> bool {
     q.devices().get(device).is_some_and(|d| {
         d.parts.is_empty()
             && d.aspects.strip.is_none()
             && (d.aspects.cable.is_some() || q.idx().functions_of_device(device).next().is_some())
+            && !ew_derive::layout::is_earth_connection(q, d)
     })
 }
 

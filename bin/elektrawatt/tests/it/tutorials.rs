@@ -535,7 +535,7 @@ fn tutorial_4_reports_and_pdf_runs_as_its_page_says() {
         [
             "toast \"The tutorial's practice project is under Tutorials in your projects folder.\" show_folder",
             "toast \"Added the report block Parts list from folio 912.\" undo",
-            "toast \"11 devices have no part and are not in the parts list. Select them, then Edit ▸ Choose part… \
+            "toast \"10 devices have no part and are not in the parts list. Select them, then Edit ▸ Choose part… \
              gives them one.\" select_unlisted"
         ]
     );

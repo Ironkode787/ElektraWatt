@@ -1,7 +1,10 @@
 ## What it checks
 
 A device without a part. Left out: a strip (its terminals carry the parts), a cable (its length and core rules report
-a missing cable part), a PLC configuration device and a device without functions. One finding per device; its
+a missing cable part), a PLC configuration device, a device without functions, and an earth connection: a device
+drawn only with earth or ground symbols (protective earth, functional earth) and given no part, which stands for a
+connection to earth, not for something to buy. Its row in the Devices list says "earth connection". One finding per
+device; its
 fingerprint holds only the device, so a waiver survives a renumber. A device supplied by others is still reported,
 because the attribute that would exempt it is not built yet.
 
@@ -24,4 +27,4 @@ own; see the how-to on choosing parts. There is no quick fix.
 
 ## Waiving
 
-Waive it for a device that others supply, until EW can mark it so; Golden A's -XPE is waived this way.
+Waive it for a device that others supply, until EW can mark it so.

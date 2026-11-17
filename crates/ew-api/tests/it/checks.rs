@@ -525,9 +525,9 @@ fn golden_a_d21_unbonded_x1032_is_one_pe_island() {
 /// nothing for EW-CORE-008, -031, -032, -036, -042, -044, -045 and -048; the online-only EW-CORE-037 reports nothing
 /// in the drafting scheme.
 ///
-/// EW-CORE-041 also reports two known deviations from EF-04 until their packages land: -XPE (EF-19, open in Golden A
-/// itself, which holds no waiver; the copy with W-1 in `check_messages_waivers.rs` waives it) and the process valves -203Q1 to -203Q8 (supplied by others, exempt once
-/// `supply_scope` exists, FT-209).
+/// EW-CORE-041 also reports a known deviation from EF-04 until its package lands: the process valves -203Q1 to -203Q8
+/// (supplied by others, exempt once `supply_scope` exists, FT-209). -XPE (EF-19) is an earth connection and asked no
+/// part (rc.3).
 #[test]
 fn golden_a_ew_core_part3_reports_the_ef_rows() {
     let batch = golden_common::batch();
@@ -557,7 +557,7 @@ fn golden_a_ew_core_part3_reports_the_ef_rows() {
             ("error", "TBD Wiring duct 40×60"),
         ])
     );
-    let mut ef04: Vec<(&str, String)> = ["S56", "E56", "XPE"]
+    let mut ef04: Vec<(&str, String)> = ["S56", "E56"]
         .iter()
         .map(|t| ("warning", format!("=P01+J-E-2416-{t}")))
         .collect();

@@ -116,6 +116,17 @@ fn ew_reports_count(s: &Session) -> usize {
         .count()
 }
 
+/// The Devices row of an earth connection (-XPE, drawn with the protective earth symbol and given no part) says what it
+/// is; a device with a part does not.
+#[test]
+fn an_earth_connection_s_row_says_so() {
+    let s = golden();
+    let t = s.navigator_table(NavKind::Devices);
+    let badges = |tag: &str| node(&t, NavRole::Device, tag).1.badges.clone();
+    assert!(badges("-XPE").iter().any(|b| b == ew_api::output::EARTH_CONNECTION));
+    assert!(!badges("-201U3").iter().any(|b| b == ew_api::output::EARTH_CONNECTION));
+}
+
 #[test]
 fn the_201u3_row_has_its_two_representations_and_the_index_finds_them() {
     let s = golden();

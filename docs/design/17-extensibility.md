@@ -1285,7 +1285,7 @@ with ew.open("golden/J-E-2416.ew") as s:                       # read-only by de
     print(s.query("device_tag", s.find("-101F1")[0])["full"])  # =P01+J-E-2416-101F1
     for row in s.sql("SELECT tag FROM api_v1_device WHERE has_part = 0 AND structure_location = '+J-E-2416' "
                      "ORDER BY tag COLLATE ew_natural"):
-        print(row["tag"])     # -XPE (waived, EF-19), E56, S56 (EF-04); field devices -203Q1 … -203Q8 are in +FIELD
+        print(row["tag"])     # -XPE (an earth connection, no finding), E56, S56 (EF-04); field devices -203Q1 … -203Q8 are in +FIELD
     s.export("pdf", out="out/J-E-2416.pdf")                     # golden PDF digest (FR-EXT-022)
 
 with ew.open("work.ew", writable=True, trust="current") as s:

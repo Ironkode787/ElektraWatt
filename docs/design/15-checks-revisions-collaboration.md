@@ -660,7 +660,7 @@ cross-file reconciliation after merges is FR-COL-016 (1.0).
 | EW-CORE-035 | Core on the wrong pin | A pre-assembled cable core on a pin other than the part's pin map | conflict | o r | warning | cable | MVP | FR-CHK-056 | D-17 | 08 §8.1 |
 | EW-CORE-036 | Core assigned twice | A core assigned to two wires, or more assignments than cores (prevent class of invariant CI-05) | conflict | p o | error | cable | MVP | FR-CBL-003, FR-CBL-011 | — | 08 §8.1 |
 | EW-CORE-037 | Shield not connected | A shield connected at neither end | completeness | o | warning | cable | MVP | FR-CBL-007 | — | 08 §8.1 |
-| EW-CORE-041 | Device without part | Device without part assignment, unless the device is marked "supplied by others" (`supply_scope = by_others`, FR-DEV-037; the attribute is intended and not yet built, so the rule fires for such devices until then; FT-209). A cable without a cable part is reported too (rc.3), and the window offers Choose a cable type… on its finding | completeness | o r | warning | device | MVP | FR-CHK-024 | D-04; EF-04, EF-19 (waived) | 15 |
+| EW-CORE-041 | Device without part | Device without part assignment, unless the device is marked "supplied by others" (`supply_scope = by_others`, FR-DEV-037; the attribute is intended and not yet built, so the rule fires for such devices until then; FT-209). A cable without a cable part is reported too (rc.3), and the window offers Choose a cable type… on its finding. An earth connection is not (rc.3): a device drawn only with earth or ground symbols (`EarthingBar / <kind> / Point`) and given no part, which the Devices list marks "earth connection" | completeness | o r | warning | device | MVP | FR-CHK-024 | D-04; EF-04, EF-19 (none since rc.3) | 15 |
 | EW-CORE-042 | Incomplete part data | A part copy with empty description, missing manufacturer or no CP pattern. *As built:* the description and the manufacturer only: a part without a CP pattern is no defect (Golden A's CPX modules, black boxes, carry none, and doc 20 §18.1 expects no finding) | completeness | o r | warning | device | MVP | FR-CHK-024 | D-04 | 15 |
 | EW-CORE-043 | Placeholder part | A `Tbd` part | completeness | o r | warning/error | device | MVP | FR-CHK-034 | D-04; EF-17 | 15 |
 | EW-CORE-044 | Open `Tbd` value | Another typed `Tbd` value in a mandatory field; superseded by EW-BUS-001 for bus addresses and by EW-PLC-015 for module starts and channel addresses | completeness | o r | info/error | device | MVP | FR-CHK-034 | D-15 | 15 |
@@ -1582,13 +1582,14 @@ All outputs follow NFR-REL-07: no wall-clock times, sorted rows and stable IDs.
 | EF-16 | EW-BUS-004 | 111004 | info | 1 | D-15 |
 | EF-17 | EW-CORE-043 | 102043 | error (release) | 4 | D-04 |
 | EF-18 | EW-RDS-003 | 017003 | warning | 1 (T55) | D-03 |
-| EF-19 | EW-CORE-041 | 102041 | waived (W-1) | 1 (-XPE) | — |
+| EF-19 | EW-CORE-041 | 102041 | none since rc.3 (-XPE is an earth connection); before it waived (W-1) | 0 | — |
 | EF-20 … 22 (1.0) | EW-FL-010, EW-FL-007, EW-PLC-013 (supersedes EF-10) | 120010, 120007, 110013 | warning | 1, 16, 2 | D-28, D-16 |
 | EF-23 … 25 (1.0) | EW-POT-007, EW-POT-018 with EW-PLC-014, EW-CORE-065 | 005007, 005018 / 110014, 104065 | — | 0 | D-21, D-25, D-35 |
 
 Waiver W-1 targets the fingerprint of EW-CORE-041 on -XPE, with the reason "PE stud is part of NSYPMM107". In Golden
 B, step B1 renumbers -XPE to -101X2. The fingerprint holds only the device UUID, so W-1 still matches and the waived
-count stays 1.
+count stays 1. *As built (rc.3):* -XPE is an earth connection and asked no part, so EF-19 holds no finding and W-1
+is not recorded; the waiver tests waive -203Q1's EW-CORE-041 finding instead (a valve supplied by others).
 
 ### 10.2 Golden C: the migration report as a check run
 

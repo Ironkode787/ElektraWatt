@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! On Golden A: the Fluent messages, waiver recording with W-1 and the built-pack subset
-//! of AC-21 against `tests/expected/findings_mvp.csv`.
+//! On Golden A: the Fluent messages, waiver recording and the built-pack subset of AC-21 against
+//! `tests/expected/findings_mvp.csv`.
 //!
-//! W-1 lives in a fixture built from a **copy** of the checked-in Golden A (`golden/J-E-2416.ew`): the test opens the
-//! copy, records W-1 with `check.waive` from the GUI origin, saves (the store writes `waivers.jsonl`) and reopens it.
-//! Nothing under `golden/` changes.
+//! The waiver lives in a fixture built from a **copy** of the checked-in Golden A (`golden/J-E-2416.ew`): the test opens
+//! the copy, records the waiver with `check.waive` from the GUI origin, saves (the store writes `waivers.jsonl`) and
+//! reopens it. Nothing under `golden/` changes.
 
 use crate::golden_common;
 
@@ -44,8 +44,13 @@ const KNOWN_EXCESS: [(&str, &str, &str); 8] = [
     ("EW-CORE-041", "=P01+FIELD-203Q8", "FT-638 (FT-209 supply_scope)"),
 ];
 
-/// W-1's reason (doc 20 §18.1 EF-19).
-const W1_REASON: &str = "PE stud is part of NSYPMM107";
+/// The reason of the waiver the fixture records on -203Q1's EW-CORE-041 finding. Doc 20 §18.1's W-1 waived -XPE's; since
+/// rc.3 -XPE, an earth connection, is asked no part (EF-19 holds no finding), so the fixture waives a valve supplied by
+/// others.
+const WAIVER_REASON: &str = "Supplied with the process plant";
+
+/// The subject of the finding the fixture waives.
+const WAIVED: &str = "=P01+FIELD-203Q1";
 
 // ---------------------------------------------------------------------------------------------------------
 // The expected file
@@ -122,7 +127,7 @@ fn pack_of(rule: &str) -> String {
     )
 }
 
-/// The file states the totals of doc 20 §18.1 (42 errors, 32 warnings, 31 infos, 1 waived); every pending row is of
+/// The file states the totals of doc 20 §18.1 (42 errors, 32 warnings, 31 infos, none waived); every pending row is of
 /// another pack and names its package, every other row lists its subjects, one per finding.
 #[test]
 fn findings_mvp_csv_holds_doc20_section_18_1() {
@@ -130,7 +135,7 @@ fn findings_mvp_csv_holds_doc20_section_18_1() {
     let total = |sev: &str| -> usize { rows.iter().filter(|r| r.severity == sev).map(|r| r.count).sum() };
     assert_eq!(
         (total("error"), total("warning"), total("info"), total("waived")),
-        (42, 32, 31, 1)
+        (42, 32, 31, 0)
     );
     let efs: Vec<&str> = rows.iter().map(|r| r.ef.as_str()).collect();
     let want: Vec<String> = (1..=19).map(|n| format!("EF-{n:02}")).collect();
@@ -152,7 +157,7 @@ fn findings_mvp_csv_holds_doc20_section_18_1() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// The W-1 fixture
+// The waiver fixture
 
 fn open(dir: &Path, state: &Path) -> Session {
     let mut options = StoreOptions::new("wp-s1-16-part5");
@@ -162,14 +167,14 @@ fn open(dir: &Path, state: &Path) -> Session {
     session
 }
 
-/// The open EW-CORE-041 finding on -XPE (EF-19's finding before W-1).
-fn xpe(report: &CheckReport) -> Finding {
+/// The EW-CORE-041 finding on -203Q1, the one the fixture waives.
+fn waived(report: &CheckReport) -> Finding {
     report
         .findings
         .iter()
-        .find(|f| f.rule == "EW-CORE-041" && f.subject == "=P01+J-E-2416-XPE")
+        .find(|f| f.rule == "EW-CORE-041" && f.subject == WAIVED)
         .cloned()
-        .unwrap_or_else(|| panic!("EW-CORE-041 on -XPE: {:#?}", report.findings))
+        .unwrap_or_else(|| panic!("EW-CORE-041 on {WAIVED}: {:#?}", report.findings))
 }
 
 fn waive(fingerprint: &str) -> AnyCommand {
@@ -177,22 +182,22 @@ fn waive(fingerprint: &str) -> AnyCommand {
         name: "check.waive".into(),
         params: serde_json::json!({
             "rule": "EW-CORE-041", "fingerprint": fingerprint,
-            "reason": {"en-GB": W1_REASON}, "author": "engineer", "date": "2025-04-14"
+            "reason": {"en-GB": WAIVER_REASON}, "author": "engineer", "date": "2025-04-14"
         }),
     }
 }
 
-/// A copy of Golden A with W-1 recorded and saved, and the directory it lives in (removed by the caller).
-fn golden_a_with_w1(tag: &str) -> (PathBuf, PathBuf) {
+/// A copy of Golden A with the waiver recorded and saved, and the directory it lives in (removed by the caller).
+fn golden_a_with_waiver(tag: &str) -> (PathBuf, PathBuf) {
     let copy = ew_testdir::fresh_dir(&format!("ew-part5-{tag}"));
     let state = ew_testdir::fresh_dir(&format!("ew-part5-{tag}-state"));
     ew_testdir::copy_dir(&golden_common::repo().join("golden/J-E-2416.ew"), &copy);
     let mut s = open(&copy, &state);
-    let fp = xpe(&s.check(&PRE_DELIVERY, CheckMode::Release))
+    let fp = waived(&s.check(&PRE_DELIVERY, CheckMode::Release))
         .fingerprint
         .to_string();
     s.execute_with(&waive(&fp), Submit::from(Origin::Gui))
-        .expect("W-1 commits from the GUI");
+        .expect("the waiver commits from the GUI");
     s.save().expect("the copy saves");
     s.close();
     assert!(
@@ -202,26 +207,26 @@ fn golden_a_with_w1(tag: &str) -> (PathBuf, PathBuf) {
     (copy, state)
 }
 
-/// P5-3: on a copy of Golden A, `check.waive` records W-1 with its reason; after a save and a reopen the EW-CORE-041
-/// finding on -XPE is waived by it (EF-19): one waived, one warning fewer, nothing else changed; a script cannot
+/// P5-3: on a copy of Golden A, `check.waive` records a waiver with its reason; after a save and a reopen the
+/// EW-CORE-041 finding on -203Q1 is waived by it: one waived, one warning fewer, nothing else changed; a script cannot
 /// waive (`HumanOnly`); `check.unwaive` brings the warning back.
 #[test]
-fn w1_waives_ef19_through_the_file_and_only_a_human_can_waive() {
+fn a_waiver_waives_through_the_file_and_only_a_human_can_waive() {
     let batch = golden_common::batch();
     let plain = golden_common::session(&batch).check(&PRE_DELIVERY, CheckMode::Release);
-    let (copy, state) = golden_a_with_w1("w1");
+    let (copy, state) = golden_a_with_waiver("w1");
     let text = std::fs::read_to_string(copy.join("waivers.jsonl")).expect("waivers.jsonl");
     assert_eq!(text.lines().count(), 1, "{text}");
     assert!(
-        text.contains(W1_REASON) && text.contains("\"rule\":\"EW-CORE-041\""),
+        text.contains(WAIVER_REASON) && text.contains("\"rule\":\"EW-CORE-041\""),
         "{text}"
     );
 
     let mut s = open(&copy, &state);
     let report = s.check(&PRE_DELIVERY, CheckMode::Release);
-    let w = xpe(&report);
+    let w = waived(&report);
     let FindingState::Waived { waiver } = &w.state else {
-        panic!("-XPE is not waived: {w:#?}");
+        panic!("{WAIVED} is not waived: {w:#?}");
     };
     assert_eq!(report.counts.waived, 1);
     assert_eq!(report.counts.warnings + 1, plain.counts.warnings);
@@ -231,7 +236,7 @@ fn w1_waives_ef19_through_the_file_and_only_a_human_can_waive() {
     );
     assert!(
         !report.findings.iter().any(|f| f.rule == "EW-CORE-081"),
-        "W-1 matches its finding"
+        "the waiver matches its finding"
     );
     assert!(
         checks::report::to_text(&report).contains(&format!("[waived: {waiver}]")),
@@ -264,25 +269,22 @@ fn w1_waives_ef19_through_the_file_and_only_a_human_can_waive() {
     s.execute_with(&unwaive, Submit::from(Origin::Gui))
         .expect("the GUI unwaives");
     let after = s.check(&PRE_DELIVERY, CheckMode::Release);
-    assert!(xpe(&after).is_open());
+    assert!(waived(&after).is_open());
     assert_eq!(after.counts, plain.counts);
     s.close();
     let _ = std::fs::remove_dir_all(&copy);
     let _ = std::fs::remove_dir_all(&state);
 }
 
-/// P5-4 / D10 (AC-21, built-pack subset): `ew check --scheme pre-delivery` on the W-1 copy of Golden A reports, for the
+/// P5-4 / D10 (AC-21, built-pack subset): `ew check --scheme pre-delivery` on Golden A reports, for the
 /// packs EW-CORE, EW-IEC81346, EW-TERM, EW-POT (EW-CORE-083 and -084 included), EW-PLC (PA-8) and EW-BUS
 /// (part 4, BU-6), exactly the rows of
-/// `findings_mvp.csv` that are not pending, plus the known excess of FT-638; the pending rows name their packages.
+/// `findings_mvp.csv` that are not pending, plus the known excess of FT-638; the pending rows name their packages. A
+/// row of no finding (EF-19 since rc.3: -XPE is an earth connection, W-1 is not needed) expects none.
 #[test]
 fn ac21_four_pack_subset_equals_findings_mvp_csv() {
-    let (copy, state) = golden_a_with_w1("ac21");
-    let s = open(&copy, &state);
-    let report = s.check(&PRE_DELIVERY, CheckMode::Release);
-    s.close();
-    let _ = std::fs::remove_dir_all(&copy);
-    let _ = std::fs::remove_dir_all(&state);
+    let batch = golden_common::batch();
+    let report = golden_common::session(&batch).check(&PRE_DELIVERY, CheckMode::Release);
 
     // What the report holds of the four packs, as (rule, severity or "waived") → subjects.
     let mut got: BTreeMap<(String, String), Vec<String>> = BTreeMap::new();
@@ -310,6 +312,9 @@ fn ac21_four_pack_subset_equals_findings_mvp_csv() {
     let mut want: BTreeMap<(String, String), Vec<String>> = BTreeMap::new();
     let mut pending = Vec::new();
     for r in expected_rows() {
+        if r.count == 0 {
+            continue;
+        }
         if r.pending.is_empty() {
             let mut subjects = r.subjects.clone();
             subjects.sort();

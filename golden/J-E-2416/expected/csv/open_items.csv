@@ -14,7 +14,6 @@ data,Device without part,=P01+FIELD-203Q7,"=P01+FIELD-203Q7 has no part, so the 
 data,Device without part,=P01+FIELD-203Q8,"=P01+FIELD-203Q8 has no part, so the parts list cannot order it. Choose one in its Properties (Part).",EW-CORE-041,warning,
 data,Device without part,=P01+J-E-2416-E56,"=P01+J-E-2416-E56 has no part, so the parts list cannot order it. Choose one in its Properties (Part).",EW-CORE-041,warning,
 data,Device without part,=P01+J-E-2416-S56,"=P01+J-E-2416-S56 has no part, so the parts list cannot order it. Choose one in its Properties (Part).",EW-CORE-041,warning,
-data,Device without part,=P01+J-E-2416-XPE,"=P01+J-E-2416-XPE has no part, so the parts list cannot order it. Choose one in its Properties (Part).",EW-CORE-041,warning,
 data,Unplaced device,=P01+J-E-2416-201U9,=P01+J-E-2416-201U9 is not placed in the layout of +J-E-2416; place it on a rail or on the mounting plate,EW-LAY-001,error,
 data,Unplaced device,=P01+J-E-2416-E55,=P01+J-E-2416-E55 is not placed in the layout of +J-E-2416; place it on a rail or on the mounting plate,EW-LAY-001,error,
 data,Unplaced device,=P01+J-E-2416-E56,=P01+J-E-2416-E56 is not placed in the layout of +J-E-2416; place it on a rail or on the mounting plate,EW-LAY-001,error,

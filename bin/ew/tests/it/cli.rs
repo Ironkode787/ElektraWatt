@@ -2593,52 +2593,17 @@ fn csv_fields(line: &str) -> Vec<String> {
     out
 }
 
-/// A copy of Golden A with W-1 (doc 20 §18.1 EF-19: the EW-CORE-041 finding on -XPE waived) recorded from the GUI
-/// origin and saved, as the `ew-api` fixture `golden_a_with_w1` makes it.
-fn golden_a_with_w1(t: &Tmp) -> PathBuf {
-    use ew_api::checks::{CheckMode, PRE_DELIVERY};
-    let copy = golden_copy(t);
-    let mut store = ew_api::StoreOptions::new("cl-6");
-    store.state_dir = Some(t.0.join("w1-state"));
-    let (mut s, _) = ew_api::Session::open(
-        &copy,
-        store,
-        ew_api::SessionOptions::default(),
-        ew_api::Recovery::Keep,
-    )
-    .unwrap();
-    let fingerprint = s
-        .check(&PRE_DELIVERY, CheckMode::Release)
-        .findings
-        .iter()
-        .find(|f| f.rule == "EW-CORE-041" && f.subject == "=P01+J-E-2416-XPE")
-        .expect("EW-CORE-041 on -XPE")
-        .fingerprint
-        .to_string();
-    let waive = ew_api::AnyCommand {
-        name: "check.waive".into(),
-        params: serde_json::json!({
-            "rule": "EW-CORE-041", "fingerprint": fingerprint,
-            "reason": {"en-GB": "PE stud is part of NSYPMM107"}, "author": "engineer", "date": "2025-04-14"
-        }),
-    };
-    s.execute_with(&waive, ew_api::Submit::from(ew_api::Origin::Gui))
-        .expect("W-1 commits from the GUI");
-    s.save().expect("the copy saves");
-    s.close();
-    copy
-}
-
-/// CL-6 (AC-21 through the CLI): on Golden A's copy with W-1, `ew check --scheme pre-delivery --json` exits 1, and its
+/// CL-6 (AC-21 through the CLI): on a copy of Golden A, `ew check --scheme pre-delivery --json` exits 1, and its
 /// findings of the built packs equal the rows of `findings_mvp.csv` that are not pending, with FT-638's known
 /// excess, as the `ew-api` test asserts on the library. The pending rows are listed by package; each names a rule no
 /// pack of this build reports. When the last pending package lands, every row is compared (doc 20 §18.1's 42 errors,
-/// 32 warnings, 31 infos and 1 waived) and the pending list is empty.
+/// 32 warnings and 31 infos) and the pending list is empty. A row of no finding (EF-19 since rc.3: -XPE is an earth
+/// connection, W-1 is not needed) expects none.
 #[test]
 fn ac21_through_the_cli_equals_findings_mvp_csv_for_the_built_packs() {
     type Groups = std::collections::BTreeMap<(String, String), Vec<String>>;
     let t = Tmp::new("ew-cli-test");
-    let copy = golden_a_with_w1(&t);
+    let copy = golden_copy(&t);
     let o = ew_isolated(
         &t.0.join("home"),
         &[
@@ -2710,6 +2675,9 @@ fn ac21_through_the_cli_equals_findings_mvp_csv_for_the_built_packs() {
     for line in lines {
         let f = csv_fields(line);
         assert_eq!(f.len(), 8, "{line}");
+        if f[3] == "0" {
+            continue;
+        }
         if f[7].is_empty() {
             let mut subjects: Vec<String> = f[4]
                 .split("; ")

@@ -14,7 +14,8 @@
 //! - "Order: the category's index in `OPEN_ITEM_RULES`, then `natural_key(subject)`, then the fingerprint".
 //! - On the golden file: "Bless `open_items.csv` with the 24 rows Golden A derives as checked in ... OI-1's
 //!   test asserts the 24 rows whole, in that order, and that EW-PLC-012 and EW-POT-013 are absent. OI-2's
-//!   waiver case uses a fixture copy with W-1 recorded and asserts that exactly the -XPE row leaves."
+//!   waiver case uses a fixture copy with W-1 recorded and asserts that exactly the -XPE row leaves." Since rc.3
+//!   -XPE, an earth connection, is asked no part: its row is gone, and the waiver case waives -203Q1's row.
 
 use std::collections::BTreeSet;
 
@@ -141,10 +142,10 @@ fn placeholder(what: &str, users: &str) -> Vec<String> {
     ])
 }
 
-/// The 24 rows Golden A derives as checked in, whole and in order. -XPE is open
-/// (W-1 lives in a test copy only) and the eight FIELD-203Q valves have no part until FT-209 (FT-638).
+/// The rows Golden A derives as checked in, whole and in order. -XPE, an earth connection, is asked no part (rc.3);
+/// the eight FIELD-203Q valves have no part until FT-209 (FT-638).
 #[test]
-fn golden_a_lists_its_24_open_items() {
+fn golden_a_lists_its_open_items() {
     let s = common::golden_session();
     let q = s.query();
     let set = kind_rows(&q);
@@ -178,7 +179,7 @@ fn golden_a_lists_its_24_open_items() {
     for n in 1..=8 {
         want.push(no_part(&format!("=P01+FIELD-203Q{n}")));
     }
-    for t in ["E56", "S56", "XPE"] {
+    for t in ["E56", "S56"] {
         want.push(no_part(&format!("=P01+J-E-2416-{t}")));
     }
     for t in ["201U9", "E55", "E56", "F55", "S56"] {
@@ -236,30 +237,30 @@ fn a_tbd_channel_address_is_listed_once() {
     assert_eq!(row_keys(&set), checked_keys(&s));
 }
 
-/// With W-1 recorded on -XPE's EW-CORE-041 finding exactly the -XPE row leaves.
+/// With a waiver recorded on -203Q1's EW-CORE-041 finding exactly the -203Q1 row leaves.
 #[test]
-fn the_waived_xpe_row_leaves() {
+fn the_waived_row_leaves() {
     let mut s = common::golden_session();
     let before = {
         let q = s.query();
         texts(&q, &kind_rows(&q))
     };
-    let xpe = s
+    let valve = s
         .check(&PRE_DELIVERY, CheckMode::Release)
         .findings
         .into_iter()
-        .find(|f| f.rule == "EW-CORE-041" && f.subject == "=P01+J-E-2416-XPE")
-        .expect("-XPE's open finding");
+        .find(|f| f.rule == "EW-CORE-041" && f.subject == "=P01+FIELD-203Q1")
+        .expect("-203Q1's open finding");
     gui(
         &mut s,
         "check.waive",
-        json!({"rule": "EW-CORE-041", "fingerprint": xpe.fingerprint.to_string(),
-               "reason": {"en-GB": "PE stud is part of NSYPMM107"}, "author": "engineer", "date": "2025-04-14"}),
+        json!({"rule": "EW-CORE-041", "fingerprint": valve.fingerprint.to_string(),
+               "reason": {"en-GB": "Supplied with the process plant"}, "author": "engineer", "date": "2025-04-14"}),
     );
     let q = s.query();
     let set = kind_rows(&q);
     let mut want = before;
-    want.retain(|r| r[1] != "=P01+J-E-2416-XPE");
+    want.retain(|r| r[1] != "=P01+FIELD-203Q1");
     assert_eq!(texts(&q, &set), want);
     assert_eq!(row_keys(&set), checked_keys(&s));
 }

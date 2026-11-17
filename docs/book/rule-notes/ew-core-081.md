@@ -14,7 +14,8 @@ No standard: a project-hygiene rule.
 
 ## Example
 
-In a copy of Golden A, assign a part to -XPE: its waiver W-1 then matches nothing.
+In a copy of Golden A, waive the finding "has no part" of -203Q1, then assign it a part: the waiver then matches
+nothing.
 
 ## How to fix
 

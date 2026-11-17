@@ -433,7 +433,7 @@ Representation cells are the anchor cells; the cross-reference cells that must m
 | 6 | S56 (frozen) | Door switch, contact in N (D-13) | none ▲U-13 | 13, 14 ▲ | 101-D14 | door (A-R) |
 | 7 | E56 (frozen) | Cabinet lamp | none ▲U-13 | X1, X2 ▲ | 101-E14 | door (A-R) |
 | 8 | 1X1 (frozen) | Incoming supply strip | terminals UK 5 N ×2, USLKG 5 ×1 ▲U-17 | terminals 1, 2, PE; field and internal side | 101-D2 | 902 |
-| 9 | -XPE ▲U-34 | Main PE point (plate PE stud), drawn as earth symbol without tag | none (waiver W-1) | PE | 101-D5 | — |
+| 9 | -XPE ▲U-34 | Main PE point (plate PE stud), drawn as earth symbol without tag | none (an earth connection, asked no part since rc.3; before it waiver W-1) | PE | 101-D5 | — |
 | 10 | -102G1 | PSU 1 AC / 24 V DC, 20 A | Phoenix Contact 2904602 | L, N, PE, +#1, +#2, −#1, −#2 | 102-B6 | 902 |
 | 11 | -102F1 | MCB 1P B16 in +24 V | Schneider Electric A9F78116 | 1 (alias L1), 2 (alias T1) | 102-C7 | 902 |
 | 12 | -102F2 | Electronic load distribution, 4 × 6 A | Murrelektronik MICO 4.10 ▲U-15 | 24VDC#1, #2, GND#1, #2, 13, 14, Out1 … Out4 | 102-E7 | 902 |
@@ -1264,9 +1264,9 @@ EW-PLC-012 with map H1 ▲U-23. A more specific rule supersedes a generic one fo
 | EF-16 | EW-BUS-004 segment end termination unknown (FR-BUS-016) | info | external end at JE-N1000-03 | 1 | D-15 |
 | EF-17 | EW-CORE-043 placeholder part (FR-CHK-034) | error (release) | TBD bridge, end bracket, rail, duct | 4 | D-04 |
 | EF-18 | EW-RDS-003 letter code vs function category (FR-CHK-026) | warning ▲U-37 | T55 (T for a temperature switch) | 1 | D-03 |
-| EF-19 | EW-CORE-041 on -XPE, waived (waiver W-1 "PE stud is part of NSYPMM107") | waived | -XPE | 1 | — |
+| EF-19 | EW-CORE-041 on -XPE: none since rc.3. -XPE is drawn with the protective earth symbol and has no part: an earth connection, asked no part (U-34 answered), so waiver W-1 ("PE stud is part of NSYPMM107") is not needed | — | -XPE | 0 | — |
 
-Totals: **42 errors, 32 warnings, 31 infos, 1 waived** (EF-15 counts 10). Every other rule of the MVP packs reports nothing on Golden
+Totals: **42 errors, 32 warnings, 31 infos** (EF-15 counts 10; until rc.3 also 1 waived, EF-19). Every other rule of the MVP packs reports nothing on Golden
 A: in particular FR-CHK-016 (designations), FR-CHK-017 (22 pairs, 4 external points), FR-CHK-022 (generated
 overview), FR-CHK-028 (one bond), FR-CHK-032 (BN), FR-CHK-035 (3-B2) and FR-CHK-038 (sub-pages, no collision).
 `ew check --scheme pre-delivery` exits 1 (FR-EXT-002).
@@ -1294,7 +1294,7 @@ EF-14 are no longer pending: EW-FL-001 and EW-FL-004 report their 20 subjects ea
 *As built (FT-1728).* The shipped schemes run the rules of release 1.0 that are built, so a pre-delivery run of
 Golden A reports §18.1 with this section's rows: EF-20, EF-21 and EF-22 are in
 `crates/ew-api/tests/expected/findings_1_0.csv`, EF-22 takes EF-10's place, and the totals are 42 errors, 58
-warnings and 31 infos before the waiver of W-1 (`ew-api` test `ac21_four_pack_subset_equals_findings_mvp_csv`).
+warnings and 31 infos (`ew-api` test `ac21_four_pack_subset_equals_findings_mvp_csv`).
 
 *As built (WP-S1.25).* EF-20 and EF-21 are found with the EW-FL 1.0 rules in a pre-delivery run (`ew-api` test `fluid_media::golden_a_reports_ef_20_and_ef_21_with_the_1_0_rules`): EW-FL-010 once on
 -201U1, EW-FL-007 on F1 to F16; EW-FL-005, -006, -009 and -012 report nothing, and EW-FL-008 and -014, switched on,
@@ -1475,7 +1475,7 @@ Commands run on `golden/J-E-2416.ew` unless stated. "Exact" means the comparison
 | AC-18 | Golden B: step B1 previews exactly the 10 tag changes of §2.2 and step B2 exactly the 2 tag and 14 xref changes; after each commit no orphan, identical topology and pairing; each undo restores the previous bytes | FR-NUM-008, FR-PAG-007 | M1 (CLI), M2 (GUI) |
 | AC-19 | Golden B′: the identifier-set switch previews the classes of §2.2 B′ and undoes cleanly | FR-NUM-014 | M2 |
 | AC-20 | D-01 replay: renumbering folio 3 → 4 updates -3W1/-3X1 to -4W1/-4X1 and "3-B2" to "4-B2" in every output, writes only that page's file, and undo restores all | FR-PAG-007, FR-NUM-001 | M1 |
-| AC-21 | `ew check --scheme pre-delivery` reports exactly `findings_mvp.csv` (§18.1: 42 errors, 32 warnings, 31 infos, 1 waived) and exits 1 | FR-CHK-042, FR-EXT-002 | M2 |
+| AC-21 | `ew check --scheme pre-delivery` reports exactly `findings_mvp.csv` (§18.1: 42 errors, 32 warnings, 31 infos) and exits 1 | FR-CHK-042, FR-EXT-002 | M2 |
 | AC-22 | With the 1.0 packs the findings equal §18.1 plus §18.2 (EF-22 superseding EF-10) | FR-CHK-005 | 1.0 |
 | AC-23 | Release of V2.0 is refused on Golden A with exactly the blockers of §18.3 and succeeds on Golden A-R after the runner's `ew revision approve --as <checker>` (§2.4), writing a verified as-built archive | FR-REV-005 … FR-REV-008 | MVP |
 | AC-24 | Every regression test of §19 passes at or after its gate | SC-2 | per row |
@@ -1606,7 +1606,7 @@ builder's commands): a new family would re-bless it for no finding.
 | U-31 | Minimum text height | 1.2 mm cap height | EF-12 | PQ-36 |
 | U-32 | Technical-data format | "C10", "C4", "B16", "20 A", "40 A", "6 A", "15 °C"; "C10" = characteristic + rated current | §3.4 | PQ-36 |
 | U-33 | Wire-number format | `{page}.{counter}`, not printed | §8.1 | PQ-22 |
-| U-34 | -XPE, -UC1 identity and numbering | frozen tags -XPE (letter X), -UC1 (letter U) and -UC1-plate (the mounting plate, child of -UC1); -XPE without own part (waiver) | §2.1, §4.4, §6 | PQ-36 |
+| U-34 | -XPE, -UC1 identity and numbering | frozen tags -XPE (letter X), -UC1 (letter U) and -UC1-plate (the mounting plate, child of -UC1); -XPE without own part (an earth connection since rc.3; before it a waiver) | §2.1, §4.4, §6 | PQ-36 |
 | U-35 | Cover basis text | "IEC60757 / EN60204-1" kept, profile basis shown in metadata | D-37 | PQ-05 |
 | U-36 | Spare valves fitted or blanked | valves fitted (28 × 571334) | §14 | PQ-14 |
 | U-37 | Letter mapping of the shipped 2009 set (`verified = false`) | T55 reported; accepted: S for S51 and S56, U for the valve-terminal assembly and modules -201U1 … -201U9 and -202U1 … -202U3, Q for the valves (QM as an accepted alternative) | EF-18 | PQ-08 |
@@ -1736,7 +1736,8 @@ The eleven rows this document proposed are in the catalogues:
 5. **-XPE and -UC1 numbering.** Neither fits the page-based or strip rule, and freezing them would change
    FR-CHK-025's seven frozen tags. *Recommendation:* per-device-class numbering rules in the pilot's basic project
    (as [domain model](03-domain-model.md) OQ 8 recommends for strips), with -XPE's missing part handled by waiver
-   W-1 until U-34 (PQ-36) is answered.
+   W-1 until U-34 (PQ-36) is answered. *As built (rc.3):* an earth or ground symbol given no part is an earth
+   connection and asked no part, so -XPE needs no waiver.
 6. **FR-CHK-031 on vendor cable cores.** The rule as written reports the BU cores of the Festo cables on 0V
    (EF-11). *Recommendation:* keep reporting at warning and allow a waiver per cable part, as
    [15](15-checks-revisions-collaboration.md) open question 6 also recommends (no exemption for part-defined core

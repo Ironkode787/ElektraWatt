@@ -17,4 +17,4 @@ EF-15,EW-NUM-001,info,10,=P01+J-E-2416-1X1; =P01+J-E-2416-E55; =P01+J-E-2416-E56
 EF-16,EW-BUS-004,info,1,external end DP (+J-E-206 / JE-N1000-03),external end at JE-N1000-03,D-15,
 EF-17,EW-CORE-043,error,4,TBD DIN rail TS 35; TBD End bracket; TBD Plug-in bridge; TBD Wiring duct 40×60,"TBD bridge, end bracket, rail, duct",D-04,
 EF-18,EW-RDS-003,warning,1,=P01+J-E-2416-T55,T55 (T for a temperature switch),D-03,
-EF-19,EW-CORE-041,waived,1,=P01+J-E-2416-XPE,-XPE (waiver W-1),,
+EF-19,EW-CORE-041,none,0,,"-XPE, an earth connection: asked no part since rc.3, so waiver W-1 is not needed",,

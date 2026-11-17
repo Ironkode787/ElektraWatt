@@ -386,6 +386,7 @@ fn every_navigator_column_and_badge_reads_in_both_locales() {
                 .replace(" [unplaced]", " [niet geplaatst]")
                 .replace(" [not drawn]", " [niet getekend]")
                 .replace(" [frozen]", " [vastgezet]")
+                .replace(" [earth connection]", " [aardverbinding]")
         })
         .collect();
     assert!(

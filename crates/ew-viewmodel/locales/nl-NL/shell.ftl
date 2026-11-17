@@ -2459,6 +2459,7 @@ nav-badge-not-terminated = niet afgesloten
 nav-badge-master = master
 nav-badge-passes-through = geeft het net door
 nav-badge-not-drawn = niet getekend
+nav-badge-earth-connection = aardverbinding
 messages-group-error = Fouten
 messages-group-warning = Waarschuwingen
 messages-group-info = Info
