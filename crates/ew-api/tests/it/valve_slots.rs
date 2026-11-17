@@ -788,36 +788,61 @@ fn findings(s: &Session, rule: &str, device: Uuid) -> Vec<ew_api::checks::Findin
         .collect()
 }
 
-/// G16 (rc.3): a position filled from the rack stood as a tag in its cell, without a port. Now the valve stands in its
-/// cell as its symbol, its working ports 2 and 4 on the cell's top edge, and tubes reach them from a cylinder; the
-/// terminal's supply ports 1, 3 and 5 stand in its left end, where a tube from the air supply quiets EW-FL-010; emptying
-/// the position takes the symbol away.
+/// G16 (rc.3): a position filled from the rack stood as a tag in its cell, without a port. Now each valve stands in its
+/// cell as its symbol, its working ports 2 and 4 on the cell's top edge, and tubes reach them from a cylinder: all four
+/// positions filled (the owner's terminal held four valves), four valves in four cells, each with its own cylinder.
+/// The terminal's supply ports 1, 3 and 5 stand in its left end, where a tube from the air supply quiets EW-FL-010;
+/// emptying a position takes its symbol away.
 #[test]
 fn rc3_a_position_filled_from_the_rack_shows_its_valve_and_its_ports_take_tubes() {
     let mut s = project(191);
     let vt = place_drawn_terminal(&mut s, (60_000_000, 80_000_000));
-    let v = fill(&mut s, vt, 2, true);
+    let valves: Vec<Uuid> = (1..=4).map(|n| fill(&mut s, vt, n, true)).collect();
     let c = cells(&s, vt);
-    let r = rep_of(&s, v);
-    assert!(
-        c[1].rect[0] < r.pos.0 && r.pos.0 < c[1].rect[2],
-        "its symbol stands in cell 2"
-    );
-    let p = ports(&s, v);
-    for working in ["2", "4"] {
-        let at = p.iter().find(|(d, _)| d == working).map(|(_, at)| at.1);
-        assert_eq!(at, Some(c[1].rect[1]), "port {working} on the top edge");
+    assert_eq!(c.len(), 4, "the starter terminal's four positions");
+    for (i, v) in valves.iter().enumerate() {
+        let n = i + 1;
+        assert_eq!(c[i].holder, Some(*v), "valve {n} on position {n}");
+        let r = rep_of(&s, *v);
+        assert!(
+            c[i].rect[0] < r.pos.0 && r.pos.0 < c[i].rect[2],
+            "valve {n} stands in cell {n}"
+        );
+        let p = ports(&s, *v);
+        for working in ["2", "4"] {
+            let at = p.iter().find(|(d, _)| d == working).map(|(_, at)| *at);
+            assert_eq!(
+                at.map(|a| a.1),
+                Some(c[i].rect[1]),
+                "valve {n}: port {working} on the top edge"
+            );
+            let x = at.map_or(0, |a| a.0);
+            assert!(
+                c[i].rect[0] < x && x < c[i].rect[2],
+                "valve {n}: port {working} in its cell"
+            );
+        }
     }
-    let cyl = place_into(
-        &mut s,
-        "EW-GEN-CYL-1",
-        "ew.iso.cylinder-double-acting",
-        (60_000_000, 30_000_000),
-        vt,
-    )
-    .expect("the cylinder");
-    tube(&mut s, (v, "4"), (cyl, "A")).expect("a tube to port 4");
-    tube(&mut s, (v, "2"), (cyl, "B")).expect("a tube to port 2");
+    // A cylinder above each valve, its two ports tubed to the valve's 4 and 2.
+    for (i, v) in valves.iter().enumerate() {
+        let cyl = place_into(
+            &mut s,
+            "EW-GEN-CYL-1",
+            "ew.iso.cylinder-double-acting",
+            (centre(&c[i]).0, 30_000_000),
+            vt,
+        )
+        .expect("the cylinder");
+        tube(&mut s, (*v, "4"), (cyl, "A")).expect("a tube to port 4");
+        tube(&mut s, (*v, "2"), (cyl, "B")).expect("a tube to port 2");
+    }
+    let tubes = tables(&s)
+        .connections
+        .iter()
+        .filter(|c| c.kind == "fluid")
+        .count();
+    assert_eq!(tubes, 2 * valves.len(), "every working port takes its tube");
+    let v = valves[1];
     // The terminal's own supply in its left end.
     let mut supply: Vec<String> = ports(&s, vt).into_iter().map(|(d, _)| d).collect();
     supply.sort();

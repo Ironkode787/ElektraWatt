@@ -2217,7 +2217,7 @@ fn rc2_a_terminal_made_as_a_station_is_drawn_on_the_fluid_page() {
 }
 
 /// rc.3 (G16): valves put on a valve terminal's positions in its station view stood in its cells as tags only, with no
-/// port a tube could reach. Drawn on the fluid page from the view's Draw on a fluid page…, each valve stands in its cell
+/// port a tube could reach. All four positions are filled, as on the owner's terminal. Drawn on the fluid page from the view's Draw on a fluid page…, each valve stands in its cell
 /// as its symbol, its working ports 2 and 4 on the cell's top edge, and the terminal's own supply ports 1, 3 and 5 in
 /// its left end; a tube joins port 4 of a valve to a cylinder, and the view's positions name the page.
 #[test]
@@ -2236,7 +2236,7 @@ fn rc3_valves_filled_in_the_station_view_stand_in_their_cells_with_ports() {
         .station_tab()
         .and_then(|t| t.station)
         .expect("the station's view");
-    for _ in 0..2 {
+    for _ in 0..4 {
         let add = json!({"part": "EW-GEN-VLV-3"});
         assert_eq!(d.shell_mut().dispatch("plc.rack_add", &add), Outcome::Done);
     }
@@ -2263,7 +2263,7 @@ fn rc3_valves_filled_in_the_station_view_stand_in_their_cells_with_ports() {
             .collect()
     };
     let mut valves = Vec::new();
-    for cell in &c[..2] {
+    for cell in &c {
         let valve = cell.holder.expect("a valve on the position");
         let symbol = tables
             .reps
@@ -2301,7 +2301,11 @@ fn rc3_valves_filled_in_the_station_view_stand_in_their_cells_with_ports() {
         .filter(|c| c.at.holder.is_some())
         .map(|c| c.at.page.clone())
         .collect();
-    assert_eq!(pages, [Some("201".to_owned()), Some("201".to_owned())]);
+    assert_eq!(
+        pages,
+        vec![Some("201".to_owned()); 4],
+        "four valves, each drawn in its cell"
+    );
     d.shell_mut().shutdown();
 }
 
