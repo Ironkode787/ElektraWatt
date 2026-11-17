@@ -1334,8 +1334,8 @@ mod tests {
     use ew_viewmodel::ew_api::symbols::SymbolDraft;
     use ew_viewmodel::shell::symbol_editor::Item;
 
-    /// A click on a text's glyphs, drawn before the rectangle around it, picks the text, the smaller item; a click
-    /// inside the rectangle elsewhere picks the rectangle; a connection point on the rectangle's edge comes first.
+    /// A click on a text's glyphs, drawn before the rectangle around it, picks the text, the smaller item; a click on
+    /// the line of the rectangle, which is not filled, picks it, a click inside it elsewhere nothing.
     #[test]
     fn a_click_picks_the_smallest_item_under_the_pointer() {
         let styles = ew_viewmodel::ew_api::output::new_project_text_style_table();
@@ -1352,10 +1352,12 @@ mod tests {
         // On the glyphs, away from the text's anchor point by more than the slop.
         let on_glyphs = Vec2::new(text[2] - 0.2, 10.0);
         assert_eq!(bounds.pick(on_glyphs, 0.1, 1.0), Some(Item::Graphic(0)));
+        // The rectangle is not filled: it is picked on its line, not inside it.
         assert_eq!(
-            bounds.pick(Vec2::new(3.0, 17.0), 0.1, 1.0),
+            bounds.pick(Vec2::new(0.05, 17.0), 0.1, 1.0),
             Some(Item::Graphic(1))
         );
+        assert_eq!(bounds.pick(Vec2::new(3.0, 17.0), 0.1, 1.0), None);
         assert_eq!(bounds.pick(Vec2::new(30.0, 30.0), 0.1, 1.0), None);
     }
 

@@ -53,8 +53,9 @@ fn graphics(d: &mut Driver) -> Value {
     serde_json::to_value(&d.shell_mut().symbol_editor().unwrap().draft.symbol.graphics).unwrap()
 }
 
-/// The editor on a draft with two small squares, one around the origin and one right of it, nothing selected; the
-/// drawing's centre is the symbol's origin (an empty draft is fitted around it).
+/// The editor on a draft with two small squares, a filled one around the origin (taken by its face) and one right of
+/// it that is not filled (taken by its line), nothing selected; the drawing's centre is the symbol's origin (an empty
+/// draft is fitted around it).
 fn two_squares(tmp: &Tmp) -> (Driver, (i64, i64)) {
     let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
     d.enable_accesskit();
@@ -69,6 +70,8 @@ fn two_squares(tmp: &Tmp) -> (Driver, (i64, i64)) {
         "symbol.draw",
         json!({"tool": "rectangle", "x": -2, "y": -2, "x2": 2, "y2": 2}),
     );
+    done(&mut d, "symbol.select", json!({"items": ["graphic:0"]}));
+    done(&mut d, "symbol.prop", json!({"key": "fill", "value": true}));
     done(
         &mut d,
         "symbol.draw",
@@ -172,6 +175,25 @@ fn a_drag_moves_the_selection_and_a_handle_reshapes_a_shape() {
         moved,
         "the whole shape moved"
     );
+    d.shell_mut().shutdown();
+}
+
+/// A shape that is not filled is taken by its line, as on a page: a drag that starts inside it is a selection rectangle
+/// and leaves it where it is, and a rectangle dragged to the left takes it where it touches its line.
+#[test]
+fn a_drag_inside_a_shape_that_is_not_filled_is_a_selection_rectangle() {
+    let tmp = Tmp::new();
+    let (mut d, (cx, cy)) = two_squares(&tmp);
+    done(&mut d, "symbol.select", json!({"items": ["graphic:0"]}));
+    done(&mut d, "symbol.prop", json!({"key": "fill", "value": false}));
+    done(&mut d, "symbol.select", json!({"items": []}));
+    let before = graphics(&mut d);
+    d.input(&click((cx, cy)));
+    assert!(selection(&mut d).is_empty(), "a click inside takes nothing");
+    // From inside the square down and to the left, over its bottom line.
+    d.input(&drag((cx, cy), (cx - 10, cy + 150)));
+    assert_eq!(graphics(&mut d), before, "the square stays where it is");
+    assert_eq!(selection(&mut d), ["graphic:0"], "the band touched its line");
     d.shell_mut().shutdown();
 }
 

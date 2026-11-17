@@ -37,6 +37,8 @@ With a symbol in hand the screen is built as the main window is:
 What you know from a page works on the drawing. With **Select**: a click selects a thing, `Shift` adds and `Ctrl`
 toggles; a rectangle dragged from empty paper selects the things inside it when dragged to the right and the things it
 touches when dragged to the left; `Ctrl+A` selects everything; a click on empty paper or `Esc` clears the selection.
+A shape that is not filled is taken by its line, a filled one by its face: a click or a drag inside an empty box is on
+empty paper.
 A drag on a thing moves the selection, with an outline of where it lands; the arrow keys move it one grid step. A
 connection point moves on the connection grid, and so does a selection that holds one; anything else moves by the
 drawing grid's step. `Delete` removes the selection (a connection point with the text that writes its number),

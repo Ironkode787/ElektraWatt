@@ -3,7 +3,8 @@
 
 //! The symbol editor's drawing. What a person learned on a page works here (rc.3): a click selects, Shift adds and
 //! Ctrl toggles; a drag from empty paper is a selection rectangle, to the right the things inside it, to the left
-//! those it touches; a drag on a thing moves the selection by the grid step, with a ghost of where it lands; a
+//! those it touches (a shape that is not filled is touched and grabbed by its line, a filled one by its face); a drag
+//! on a thing moves the selection by the grid step, with a ghost of where it lands; a
 //! selected shape's handles drag its ends and corners. The selection's highlight and handles are the page's (doc 16a
 //! §7.1). The drawing tools draw by a drag or by clicks, each on the drawing grid; a connection point lands on the
 //! connection grid.
@@ -362,17 +363,20 @@ impl EditorView {
                         dashed_rect(&painter, band, stroke);
                     }
                     if released {
+                        // A shape that is not filled is touched where the band meets its line.
+                        let (a, b) = (view.mm(band.min), view.mm(band.max));
+                        let band_mm = [a.x, a.y, b.x, b.y];
                         let taken: Vec<Item> = editor
                             .items()
                             .into_iter()
                             .filter(|item| {
-                                bounds.of_item(*item, 0.0).map(|b| view.rect(b)).is_some_and(|r| {
-                                    if inside {
-                                        band.contains_rect(r)
-                                    } else {
-                                        band.intersects(r)
-                                    }
-                                })
+                                if inside {
+                                    bounds
+                                        .of_item(*item, 0.0)
+                                        .is_some_and(|r| band.contains_rect(view.rect(r)))
+                                } else {
+                                    bounds.touched(*item, band_mm)
+                                }
                             })
                             .collect();
                         select(events, taken, if add { "add" } else { "replace" });

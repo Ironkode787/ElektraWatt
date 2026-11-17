@@ -195,6 +195,97 @@ struct Place {
     point: bool,
     /// Whether a click on the drawing can take it (a text field that is not shown cannot).
     shown: bool,
+    /// The outline of a shape that is not filled, as segments in millimetres: a click and a band that touches meet
+    /// its line, not its face; `None` for a thing met by its face.
+    edges: Option<Vec<[Vec2; 2]>>,
+}
+
+/// The outline of graphic `g` as segments in millimetres: what a click or a band that touches meets of a shape that
+/// is not filled. `None` for a filled shape, a text or a picture, which are met by their face.
+fn edges(g: &symbols::schema::Primitive) -> Option<Vec<[Vec2; 2]>> {
+    use symbols::schema::Primitive as P;
+    let path = |points: Vec<Vec2>, closed: bool| {
+        let mut out: Vec<[Vec2; 2]> = points.windows(2).map(|w| [w[0], w[1]]).collect();
+        if closed && let (Some(first), Some(last)) = (points.first(), points.last()) {
+            out.push([*last, *first]);
+        }
+        out
+    };
+    // An ellipse in the rectangle `r` from angle `start` over `sweep` (degrees, counter-clockwise), in 48 steps.
+    let ellipse = |r: symbols::units::Rect, start: f32, sweep: f32| {
+        let (a, b) = (mm(r.min()), mm(r.max()));
+        let (c, radius) = ((a + b) / 2.0, (b - a) / 2.0);
+        let points = (0..=48)
+            .map(|k| {
+                let angle = (start + sweep * k as f32 / 48.0).to_radians();
+                c + Vec2::new(radius.x * angle.cos(), -radius.y * angle.sin())
+            })
+            .collect();
+        path(points, false)
+    };
+    let pts = |points: &[symbols::units::Pt2]| points.iter().map(|p| mm(*p)).collect::<Vec<_>>();
+    match g {
+        P::Line(l) => Some(vec![[mm(l.from), mm(l.to)]]),
+        P::Polyline(l) => Some(path(pts(&l.points), false)),
+        P::Polygon(p) if p.fill.is_none() => Some(path(pts(&p.points), p.closed)),
+        P::Rect(r) if r.fill.is_none() => {
+            let (a, b) = (mm(r.rect.0.min()), mm(r.rect.0.max()));
+            let corners = vec![a, Vec2::new(b.x, a.y), b, Vec2::new(a.x, b.y)];
+            Some(path(corners, true))
+        }
+        P::Circle(c) if c.fill.is_none() => {
+            let (centre, r) = (mm(c.centre), c.r.0 as f32 / 1e6);
+            let points = (0..=48)
+                .map(|k| {
+                    let angle = std::f32::consts::TAU * k as f32 / 48.0;
+                    centre + Vec2::new(r * angle.cos(), r * angle.sin())
+                })
+                .collect();
+            Some(path(points, false))
+        }
+        P::Ellipse(e) if e.fill.is_none() => Some(ellipse(e.rect.0, 0.0, 360.0)),
+        P::Arc(a) => Some(ellipse(
+            a.rect.0,
+            a.start.0 as f32 / 1000.0,
+            a.sweep.0 as f32 / 1000.0,
+        )),
+        _ => None,
+    }
+}
+
+/// The distance from `p` to the segment `s`.
+fn distance(p: Vec2, s: [Vec2; 2]) -> f32 {
+    let d = s[1] - s[0];
+    let k = if d.length_sq() > 0.0 {
+        ((p - s[0]).dot(d) / d.length_sq()).clamp(0.0, 1.0)
+    } else {
+        0.0
+    };
+    (s[0] + d * k - p).length()
+}
+
+/// Whether the segment `s` meets the rectangle `r` ([x0, y0, x1, y1]): the part of it inside the rectangle, clipped
+/// against each side in turn, is not empty.
+fn meets(s: [Vec2; 2], r: [f32; 4]) -> bool {
+    let d = s[1] - s[0];
+    let (mut low, mut high) = (0.0_f32, 1.0_f32);
+    for (p, q) in [
+        (-d.x, s[0].x - r[0]),
+        (d.x, r[2] - s[0].x),
+        (-d.y, s[0].y - r[1]),
+        (d.y, r[3] - s[0].y),
+    ] {
+        if p == 0.0 {
+            if q < 0.0 {
+                return false;
+            }
+        } else if p < 0.0 {
+            low = low.max(q / p);
+        } else {
+            high = high.min(q / p);
+        }
+    }
+    low <= high
 }
 
 /// Where each thing of a draft lies in millimetres, read once per change of the draft: a text's glyphs need the
@@ -210,6 +301,7 @@ impl Bounds {
             b: [p.x, p.y, p.x, p.y],
             point: true,
             shown: true,
+            edges: None,
         };
         let mut out: Vec<Place> = s
             .cps
@@ -232,17 +324,34 @@ impl Bounds {
                 b: slot_bounds(draft, i, styles)?,
                 point: false,
                 shown: slot.visible,
+                edges: None,
             })
         }));
-        out.extend((0..s.graphics.len()).filter_map(|i| {
+        out.extend(s.graphics.iter().enumerate().filter_map(|(i, g)| {
             Some(Place {
                 item: Item::Graphic(i),
                 b: graphic_bounds(draft, i, styles)?,
                 point: false,
                 shown: true,
+                edges: edges(g),
             })
         }));
         Bounds(out)
+    }
+
+    /// Whether a band that takes what it touches (`band` in millimetres, [x0, y0, x1, y1]) takes `item`: a shape that
+    /// is not filled when the band meets its line, anything else when it meets its bounds.
+    pub(super) fn touched(&self, item: Item, band: [f32; 4]) -> bool {
+        let Some(place) = self.0.iter().find(|p| p.item == item) else {
+            return false;
+        };
+        match &place.edges {
+            Some(edges) => edges.iter().any(|s| meets(*s, band)),
+            None => {
+                let b = place.b;
+                b[0] <= band[2] && band[0] <= b[2] && b[1] <= band[3] && band[1] <= b[3]
+            }
+        }
     }
 
     /// The bounds of `item`: a point's the square of half-side `reach` around it.
@@ -258,8 +367,9 @@ impl Bounds {
 
     /// The thing under `p` for the Select tool: the nearest connection point, link point or cross-reference point
     /// within `reach` (they lie on the lines that lead to them, so they come first), else the topmost text field on
-    /// show whose text holds `p`, else the smallest shape whose bounds (widened by `slop`) hold it, so a text is
-    /// picked before the rectangle behind it; of equally small ones the topmost.
+    /// show whose text holds `p`, else the smallest shape that `p` meets (within `slop` of the line of a shape that is
+    /// not filled, inside the widened bounds of a filled one), so a text is picked before the rectangle behind it; of
+    /// equally small ones the topmost.
     pub(super) fn pick(&self, p: Vec2, slop: f32, reach: f32) -> Option<Item> {
         let holds = |b: [f32; 4]| {
             p.x >= b[0] - slop && p.y >= b[1] - slop && p.x <= b[2] + slop && p.y <= b[3] + slop
@@ -281,8 +391,12 @@ impl Bounds {
         {
             return Some(place.item);
         }
+        let meets = |place: &Place| match &place.edges {
+            Some(edges) => edges.iter().any(|s| distance(p, *s) <= slop),
+            None => holds(place.b),
+        };
         texts
-            .filter(|place| matches!(place.item, Item::Graphic(_)) && holds(place.b))
+            .filter(|place| matches!(place.item, Item::Graphic(_)) && meets(place))
             .map(|place| ((place.b[2] - place.b[0]) * (place.b[3] - place.b[1]), place.item))
             .min_by(|a, b| a.0.total_cmp(&b.0))
             .map(|(_, item)| item)

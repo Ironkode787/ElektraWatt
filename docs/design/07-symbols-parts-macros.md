@@ -1134,7 +1134,8 @@ a protective device, a lamp, a terminal) and sets the function type and the cate
 **What a person learned on a page works on the drawing.** The selection is the view-model's (`SymbolEditor.selection`),
 so the outline, the drawing and Properties show the same things: a click selects, Shift adds, Ctrl toggles, a
 rectangle dragged from empty paper takes what lies inside it (to the right) or what it touches (to the left), and
-Ctrl+A takes everything. The page's own keys act on it whenever no field is typed into, through the keymap
+Ctrl+A takes everything. A shape that is not filled is met by its line (a click within a few points of it, a
+rectangle that crosses it), a filled one, a text or a picture by its face: inside an empty box is empty paper. The page's own keys act on it whenever no field is typed into, through the keymap
 (`EDIT_KEYS`): the arrows move it one grid step (the connection grid's with a connection point selected), Delete
 removes it (a connection point with its number's text and its pin), Ctrl+C, Ctrl+X, Ctrl+V and Ctrl+D copy, cut, paste
 and duplicate, Escape ends a gesture, then returns to Select, then clears the selection, and Ctrl+Z and Ctrl+Y step the
