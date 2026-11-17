@@ -256,15 +256,12 @@ primitives/pins per symbol; archive names, CRCs, decompression ratio and XML dep
 | Manufacturer part | Purchased-product information such as article number, manufacturer and technical ratings; assigned to a project device separately. |
 | Placed device/function | Device tag, function text, chosen part and embedded copies of the symbol/function definitions. |
 
-## Function type and ready-made functions
+## The function types
 
-A new drawing starts with a generic black-box function. In **Function and connection points**, under **Function**,
-**Discipline** says what the symbol is drawn for: electrical, pneumatic, vacuum, hydraulic or bus. Its connection
-points take it, a new point too, and its device is called by it in Properties ("pneumatic"); one point can differ, set
-under **Connection points**. The **Function type** says what the symbol is to the program; it decides which connection
-points the symbol has and how its device is listed and checked, and its list follows the discipline: a valve for a
-fluid symbol, a contact or a coil for an electrical one, a port for a bus one, a black box for each. Each choice says
-what it is for when you point at it, and the chosen one's meaning stands under the list:
+What **What it is** chooses is one of these function types (the row **Function type** under **More** shows it).
+The type decides which connection points the symbol has and how its device is listed and checked; which types are
+offered follows the symbol's discipline: a valve for a fluid symbol, a contact or a coil for an electrical one, a
+port for a bus one, a black box for each.
 
 | Function type | For |
 |---|---|
@@ -277,10 +274,6 @@ what it is for when you point at it, and the chosen one's meaning stands under t
 | Bus port | A port such as PROFINET or PROFIBUS; its device joins a bus net. |
 | Valve | A fluid power valve; its ports carry air or oil, and it can sit on a valve terminal. |
 
-Set each pin's potential role and flags there. **Ready-made function** offers the library's functions: one that fits
-brings its function type and connection points, so you do not enter them yourself; choose it and **Use this
-function**. While it is used the function type is locked; **Take off** unlocks it and keeps the connection points.
-Internal connections and less common fields are available through **Advanced document**.
 Typing `FE` as a designation changes the printed label; select the FE potential role to give it electrical meaning.
 Text slots obtain tags, technical data and function text from the placed device; the editor shows sample values.
 Library publication does not update already placed copies. The EPLAN importer does not create complete manufacturer
