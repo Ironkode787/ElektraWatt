@@ -134,6 +134,9 @@ pub struct NewProjectDialog {
     pub pages: bool,
     /// The unsaved changes of the open project were answered with Don't save.
     discard: bool,
+    /// The user's projects folder: a folder typed without its whole path is read from it, and it need not be there
+    /// yet (Create makes it).
+    projects: Option<PathBuf>,
     /// Why the last Create failed.
     pub error: Option<String>,
 }
@@ -160,9 +163,22 @@ impl NewProjectDialog {
         &self.starts[self.chosen.min(self.starts.len() - 1)]
     }
 
+    /// The folder typed, read from the projects folder when it is not a whole path; `None` when it is not whole and
+    /// there is no projects folder.
+    fn folder_path(&self) -> Option<PathBuf> {
+        let folder = Path::new(self.folder.trim());
+        if folder.is_absolute() {
+            Some(folder.to_path_buf())
+        } else {
+            self.projects.as_ref().map(|p| p.join(folder))
+        }
+    }
+
     /// The folder the project is made in: the folder and the name.
     pub fn target(&self) -> PathBuf {
-        Path::new(self.folder.trim()).join(self.name.trim())
+        self.folder_path()
+            .unwrap_or_else(|| PathBuf::from(self.folder.trim()))
+            .join(self.name.trim())
     }
 
     /// Whether the chosen line has pages to copy and Also copy its pages is ticked.
@@ -180,8 +196,13 @@ impl NewProjectDialog {
             key!("new-project-bad-name")
         } else if folder.is_empty() {
             key!("new-project-need-folder")
-        } else if !Path::new(folder).is_absolute() {
+        } else if self.folder_path().is_none() {
             key!("new-project-folder-whole")
+        } else if self
+            .folder_path()
+            .is_some_and(|f| !f.is_dir() && self.projects.as_ref() != Some(&f))
+        {
+            key!("new-project-folder-missing")
         } else if self.start().other && self.start().dir.is_none() {
             key!("new-project-need-other")
         } else if !self.start().ok {
@@ -355,6 +376,7 @@ impl ShellModel {
             chosen,
             pages: false,
             discard,
+            projects: self.config.projects_dir.clone(),
             error: None,
         })))
     }
@@ -406,10 +428,13 @@ impl ShellModel {
         match or_return!(string_param(p, "folder")) {
             None => self.need_path("new_project.browse", Prompt::Folder, "folder", p),
             Some(folder) => {
-                let folder = folder.to_owned();
+                let folder = folder.trim().to_owned();
                 let d = or_return!(self.new_project_dialog());
-                d.folder = folder;
-                d.error = None;
+                // A chooser that comes back with nothing leaves the field as it was, what was typed too.
+                if !folder.is_empty() {
+                    d.folder = folder;
+                    d.error = None;
+                }
                 Outcome::Done
             }
         }

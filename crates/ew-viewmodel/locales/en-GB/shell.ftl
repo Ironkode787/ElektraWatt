@@ -7541,3 +7541,4 @@ help-thing-panel-layout = Panel layout
 
 # New project, templates, the wizard, the people of a project and sections (rc.3 persona round)
 templates-name-taken = Another template is called "{ $p0 }" already: choose another name.
+new-project-folder-missing = That folder is not there: type a folder that is, or choose one with Browse….

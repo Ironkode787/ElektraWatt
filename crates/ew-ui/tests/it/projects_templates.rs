@@ -106,3 +106,63 @@ fn the_wizard_names_its_wire_step_and_shows_no_empty_example() {
         crate::support::dispatch(&mut h, "wizard.cancel", json!({}));
     }
 }
+
+/// New project as a first-timer met it: Browse… that comes back with nothing leaves what was typed; Create's reason
+/// stands over it for each thing missing or wrong; a folder typed without its whole path is read from the projects
+/// folder; and the dialog's rows stay where they were drawn while it is filled in.
+#[test]
+fn new_project_says_why_create_waits_and_keeps_what_was_typed() {
+    use ew_ui::app::Pick;
+    let tmp = Tmp::new();
+    let platform = Scripted::default();
+    let mut h = harness_with(gui_shell(&tmp), platform.clone(), None);
+    settle(&mut h);
+    h.get_by_label("New project").click();
+    settle(&mut h);
+    let browse = h.get_by_label("Browse…").rect();
+    let set = |h: &mut egui_kittest::Harness<'_, ew_ui::app::App>, params| {
+        crate::support::dispatch(h, "new_project.set", params);
+        settle(h);
+    };
+    let reason = |h: &egui_kittest::Harness<'_, ew_ui::app::App>, text: &str| {
+        h.query_by_label_contains(text).is_some()
+    };
+    // No folder: Create waits and says why; the rows did not move for the line.
+    set(&mut h, json!({"folder": ""}));
+    assert!(reason(&h, "Choose the folder the project is made in"));
+    assert!(h.get_by_label("Create").accesskit_node().is_disabled());
+    assert_eq!(h.get_by_label("Browse…").rect(), browse, "the rows stay put");
+    // No name.
+    set(&mut h, json!({"folder": "pumpstation", "name": ""}));
+    assert!(reason(&h, "Type a name for the project."));
+    // Browse… that comes back with nothing keeps the folder typed.
+    platform
+        .answers
+        .borrow_mut()
+        .push_back(Pick::Path(std::path::PathBuf::new()));
+    set(&mut h, json!({"name": "Pump station"}));
+    h.get_by_label("Browse…").click();
+    settle(&mut h);
+    let Some(Dialog::NewProject(d)) = h.state().shell().dialog() else {
+        panic!("the dialog stays open")
+    };
+    assert_eq!(d.folder, "pumpstation");
+    // A folder typed without its whole path is read from the projects folder; one that is not there is refused.
+    assert!(reason(&h, "That folder is not there"));
+    let projects = tmp.0.join("config").join("projects");
+    std::fs::create_dir_all(projects.join("pumpstation")).unwrap();
+    set(&mut h, json!({"name": "Pump station"}));
+    let target = projects.join("pumpstation").join("Pump station");
+    assert!(reason(&h, &target.to_string_lossy()), "the line says where");
+    assert!(!h.get_by_label("Create").accesskit_node().is_disabled());
+    assert_eq!(h.get_by_label("Browse…").rect(), browse, "the rows stay put");
+    h.get_by_label("Create").click();
+    settle(&mut h);
+    assert!(target.join("manifest.json").is_file());
+    // A project of that name there already.
+    crate::support::dispatch(&mut h, "file.new", json!({"discard": true}));
+    settle(&mut h);
+    set(&mut h, json!({"folder": "pumpstation", "name": "Pump station"}));
+    assert!(reason(&h, "A folder of that name is there already"));
+    h.state_mut().shell_mut().shutdown();
+}

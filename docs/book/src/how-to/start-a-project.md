@@ -8,7 +8,8 @@ template, change it and stop using it. The words in **bold** are the words of th
 1. On the start page press **New project**, or press `Ctrl+N` (**File ▸ New project…**). The **New project** dialog
    opens.
 2. Type the project's **Name**. Under it, **Folder** is where the project's folder is made; **Browse…** chooses
-   another one. The line under the folder says where the project will be.
+   another one. A folder typed without its whole path, such as `Pumps`, is a folder in your projects folder. The line
+   under the folder says where the project will be.
 3. Under **Start from**, choose what the project starts with. Each line says in words what it brings:
    - **Empty project**: one empty page, with the program's frame and title block and its settings.
    - Each of your templates, with its frame and title block, its check level, its text styles and its sections. The
@@ -17,8 +18,8 @@ template, change it and stop using it. The words in **bold** are the words of th
 4. A template or a project that has pages shows the box **Also copy its pages and the devices on them**. It is off:
    without it the new project starts with one empty page and none of the old pages or devices. Tick it only when you
    want those pages, for example to start from a standard cabinet.
-5. Press **Create**. The project is made and opens. While something is missing (a name, a folder, a folder of that name
-   is there already) **Create** says why when you point at it.
+5. Press **Create**. The project is made and opens. While something is missing or wrong (no name, a folder that is not
+   there, a project of that name there already) the line over **Create** says what.
 
 Nothing comes into the new project that the dialog did not name.
 
@@ -44,7 +45,8 @@ template's name, what it holds and its folder. Click a template to choose it, th
 - **Use for new projects** marks it for the New project dialog; **Do not use** takes the mark off, so new projects
   start empty unless you choose a template.
 - **Edit** opens the template to change it (see [Change a template](#change-a-template)).
-- **Rename** changes the name the list shows. The folder keeps its own name.
+- **Rename** changes the name the list shows and New project offers: type the name and press **Save name** or
+  `Enter`. The folder keeps its own name. A name another template has is refused.
 - **Remove from the list** takes it out of the list. Its folder stays on the disk; **Add a folder…** brings it back.
 
 Under the list, **New template…** makes a template for your company's drawings with the wizard, and **Add a folder…**
@@ -53,7 +55,7 @@ takes a template somebody gave you (any project folder).
 ## Make a template for your company's drawings
 
 **New template…** opens the wizard. It has ten steps: the company, the frame and title block, the colour profile, the
-size profile, identifiers and numbering, structure and sections, revisions, languages and formats, reports and checks,
+wire cross-sections, identifiers and numbering, structure and sections, revisions, languages and formats, reports and checks,
 and a review. Each step says what it is and where you can change it later, and its **Result** shows what your choices
 make, such as the name of the third contactor on page 102; the **Example** beside it shows a cover page and a schematic
 page with your choices. Your choices are kept until you finish.

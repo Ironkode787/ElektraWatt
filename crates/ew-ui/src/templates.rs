@@ -125,14 +125,14 @@ pub(crate) fn new_project(
             events.push(Event::Action("new_project.browse", Value::Null));
         }
     });
-    if !d.name.trim().is_empty() && !d.folder.trim().is_empty() {
-        under(
-            ui,
-            &t,
-            t.size_dialog_label + t.space_3,
-            &strings::format(key!("new-project-made-in"), &[&d.target().to_string_lossy()]),
-        );
-    }
+    // Where the project is made, once there is a name and a folder; the line keeps its room before, so the rows under
+    // it do not move when it appears.
+    let made_in = if d.name.trim().is_empty() || d.folder.trim().is_empty() {
+        " ".to_owned()
+    } else {
+        strings::format(key!("new-project-made-in"), &[&d.target().to_string_lossy()])
+    };
+    under(ui, &t, t.size_dialog_label + t.space_3, &made_in);
     ui.add_space(t.space_2);
     ui.label(
         RichText::new(strings::text(key!("new-project-start-from")))
@@ -185,9 +185,17 @@ pub(crate) fn new_project(
         }
         under(ui, &t, t.space_6, strings::text(key!("new-project-pages-note")));
     }
-    if let Some(error) = &d.error {
-        ui.colored_label(t.error.color32(), error);
-    }
+    // Why Create cannot run, or why the last Create failed, over Create: a disabled button said it only on hover. The
+    // line keeps its room while there is nothing to say, so the dialog does not move when one appears.
+    let (reason, colour) = match (&d.error, d.problem()) {
+        (Some(error), _) => (error.clone(), t.error),
+        (None, Some(problem)) => (problem, t.text_secondary),
+        (None, None) => (" ".to_owned(), t.text_secondary),
+    };
+    ui.add_space(t.space_2);
+    ui.with_layout(egui::Layout::top_down(egui::Align::Max), |ui| {
+        ui.add(egui::Label::new(RichText::new(reason).color(colour.color32())).wrap());
+    });
     submit
 }
 

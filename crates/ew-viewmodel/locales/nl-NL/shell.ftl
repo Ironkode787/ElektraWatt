@@ -7279,3 +7279,4 @@ help-thing-panel-layout = Paneellayout
 
 # Nieuw project, sjablonen, de wizard, de personen van een project en secties (rc.3-personaronde)
 templates-name-taken = Er is al een sjabloon dat "{ $p0 }" heet: kies een andere naam.
+new-project-folder-missing = Die map bestaat niet: typ een map die er is, of kies er een met Bladeren….
