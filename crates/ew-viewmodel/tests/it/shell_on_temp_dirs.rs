@@ -2738,7 +2738,7 @@ fn describe_lists_the_start_page_the_wizard_and_the_project_view() {
         "{review}"
     );
     assert!(
-        review.contains("review \"Company name\": \"-\" written"),
+        review.contains("review \"Company name\": \"none\" written"),
         "{review}"
     );
     assert!(

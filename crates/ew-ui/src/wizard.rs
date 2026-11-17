@@ -145,13 +145,13 @@ fn step_form(ui: &mut Ui, wizard: &Wizard, events: &mut Vec<Event>) {
     ui.add_space(t.space_5);
     if step == Step::Review {
         egui::Grid::new("wizard-review")
-            .num_columns(3)
+            .num_columns(2)
+            .spacing(Vec2::new(t.space_6, ui.spacing().item_spacing.y))
             .striped(true)
             .show(ui, |ui| {
                 // The window is a person: Create writes the check level too (its command is HumanOnly).
                 for line in wizard.review(true) {
-                    ui.label(line.label);
-                    ui.label(line.value);
+                    ui.label(line.sentence());
                     ui.weak(strings::text(if line.written {
                         key!("wizard-written")
                     } else if line.key == CHECK_SCHEME_FIELD {

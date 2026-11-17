@@ -187,7 +187,11 @@ impl BoxSteps {
     pub fn resize(&mut self, w: i64, h: i64, from_left: bool, from_top: bool) {
         // The least and the most distance of the pins on the top and bottom edges (`true`) or the left and right ones.
         let extent = |across: bool| {
-            let at = self.pins.iter().filter(|p| horizontal(&p.1) == across).map(|p| p.2);
+            let at = self
+                .pins
+                .iter()
+                .filter(|p| horizontal(&p.1) == across)
+                .map(|p| p.2);
             (at.clone().min(), at.max())
         };
         let fit = |want: i64, now: i64, (lo, hi): (Option<i64>, Option<i64>), from_start: bool| {

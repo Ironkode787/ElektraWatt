@@ -980,10 +980,46 @@ impl Draft {
                 step: f.step,
                 key: f.key,
                 label: strings::text(f.label_key).to_owned(),
-                value: self.display_value(f),
+                value: self.review_value(f),
                 written: f.written,
             })
             .collect()
+    }
+
+    /// The value as the review says it, in words: the label of a choice, "none" for an empty field, a numbering format
+    /// with the tag it gives, the sections by number, title and pages; otherwise as [`Draft::display_value`] shows it.
+    fn review_value(&self, f: &FieldMeta) -> String {
+        let v = self.get(f.key);
+        let example = |letter: &str, counter: &str| {
+            let tag = fill(v, &[("page", "102"), ("letter", letter), ("counter", counter)]);
+            strings::format(key!("wizard-review-as-in"), &[v, &format!("-{tag}")])
+        };
+        match f.key {
+            _ if v.trim().is_empty() && !matches!(f.kind, FieldKind::Choice(_)) => {
+                strings::text(key!("wizard-review-none")).to_owned()
+            }
+            "device_format" => example("K", "3"),
+            "strip_format" => example("X", "1"),
+            "sections" => match parse_sections(v) {
+                Ok(sections) => sections
+                    .iter()
+                    .map(|s| {
+                        strings::format(
+                            key!("wizard-example-section"),
+                            &[
+                                &s.number.to_string(),
+                                &s.title,
+                                &s.first.to_string(),
+                                &s.last.to_string(),
+                            ],
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join("; "),
+                Err(_) => self.display_value(f),
+            },
+            _ => self.display_value(f),
+        }
     }
 
     /// The value as the review shows it: the label of a choice, the text otherwise, "-" when empty; the logo by its
@@ -1499,6 +1535,13 @@ pub struct ReviewLine {
     pub value: String,
     /// Whether the value is written to the basic project today.
     pub written: bool,
+}
+
+impl ReviewLine {
+    /// The line as the review step shows it: what was chosen, in words ("Decimal separator: Point, as in 0.75").
+    pub fn sentence(&self) -> String {
+        strings::format(key!("wizard-review-line"), &[&self.label, &self.value])
+    }
 }
 
 #[cfg(test)]
@@ -2057,6 +2100,33 @@ mod tests {
         }
         assert!(by(strings::text(key!("wizard-field-company-name"))).written);
         assert!(!by(strings::text(key!("wizard-field-check-scheme"))).written);
-        assert_eq!(by(strings::text(key!("wizard-field-company-name"))).value, "-");
+        assert_eq!(by(strings::text(key!("wizard-field-company-name"))).value, "none");
+    }
+
+    /// Every line of the review says what was chosen in words: a choice by its label, an empty field as "none", a
+    /// numbering format with the tag it gives, the sections by number, title and pages; none is a bare sample.
+    #[test]
+    fn the_review_lines_read_as_sentences() {
+        let review = Draft::default().review();
+        let line = |key: &str| review.iter().find(|l| l.key == key).unwrap().sentence();
+        assert_eq!(line("decimal"), "Decimal separator: Point, as in 0.75");
+        assert_eq!(
+            line("date_format"),
+            "Date format: Day-month-year, as in 14-03-2026"
+        );
+        assert_eq!(line("location_node"), "Location node (+): none");
+        assert_eq!(
+            line("device_format"),
+            "Device numbering format: {page}{letter}{counter}, as in -102K3"
+        );
+        assert_eq!(
+            line("sections"),
+            "Sections: Section 1, Wiring Definition: pages 100 to 199; Section 2, Pneumatics: pages 200 to 299; \
+             Section 9, Nomenclature: pages 900 to 999"
+        );
+        for l in &review {
+            assert_ne!(l.value, "-", "{}", l.key);
+            assert!(l.sentence().starts_with(&format!("{}: ", l.label)), "{}", l.key);
+        }
     }
 }
