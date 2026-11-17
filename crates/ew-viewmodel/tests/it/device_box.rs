@@ -453,6 +453,36 @@ fn a_placed_starter_part_s_box_says_save_makes_a_copy() {
     assert_eq!(pins(&s).len(), 7);
 }
 
+/// The device browser's picture of a part drawn as a box is its box with its pins as the part lays them out (it was
+/// the bare frame every box shares).
+#[test]
+fn the_device_browser_shows_a_box_part_with_its_pins() {
+    let tmp = Tmp::new("device-box-preview");
+    let mut s = new_project(&tmp);
+    done(&mut s, "part.box", json!({"new": true}));
+    for (key, value) in [("part_number", "ECP-8"), ("manufacturer", "Example")] {
+        done(&mut s, "symbol.prop", json!({"key": key, "value": value}));
+    }
+    for name in ["24V", "0V", "1", "2"] {
+        done(&mut s, "part.pin", json!({"add": true, "name": name}));
+    }
+    done(&mut s, "symbol.save", json!({}));
+    done(&mut s, "symbol.close", json!({}));
+    done(&mut s, "tool.place_part", json!({}));
+    done(&mut s, "picker.filter", json!({"text": "ECP-8"}));
+    let preview = s
+        .picker()
+        .and_then(|p| p.preview.clone())
+        .expect("a picture");
+    let names: Vec<&str> = preview.cps.iter().map(|c| c.designation.as_str()).collect();
+    assert_eq!(names, ["24V", "0V", "1", "2"]);
+    assert_eq!(
+        preview.outline.len(),
+        1 + names.len(),
+        "the box and a lead per pin"
+    );
+}
+
 /// Close box returns where the box was opened from: the editor's ways in, which offer the symbol draft in hand to
 /// continue, not that draft as if it had been opened again.
 #[test]

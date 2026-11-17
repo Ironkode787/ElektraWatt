@@ -53,7 +53,8 @@ centre and a point on its circumference, arcs and ellipses opposite corners of t
 a click per corner and a double-click on the last. **Text**: click where the text goes, type it and press Enter
 (`Shift+Enter` starts a new line). What a tool drew is selected, so its rows in Properties take exact numbers, an
 arc's angles, a shape's **Fill shape** or a text's **Text style**. **Connection point** places a point on the
-connection grid; the card at the drawing's top left holds its designation, which counts on, and its direction.
+connection grid; the card at the drawing's top left holds its designation, which counts on, and its direction:
+**Along its lead**, the first, faces the way the line it ends points, so a wire carries straight on from it.
 **Text field** places a text the page fills in: the device's tag, its function text, its technical data, its
 cross-reference, or the number of a connection point. `Esc` ends a half-drawn shape, then returns to **Select**.
 
@@ -71,7 +72,8 @@ typed: it shows under **To do** and blocks the save.
 ## What the symbol is
 
 **What it is** asks what the symbol stands for, in a panel builder's words: a device box, a normally open contact, a
-coil, a protective device, an indicator light, a terminal. It decides how the program lists and checks the symbol's
+coil, a protective device, a pressure, position or temperature switch, an indicator light, a heater, a terminal. It
+decides how the program lists and checks the symbol's
 device (a contact is listed with its coil, a terminal in the terminal diagram) and where the browsers list the symbol,
 which **Listed under** changes on its own. **Discipline** says what the symbol is drawn for (electrical, pneumatic,
 vacuum, hydraulic or bus); one connection point can differ, under **More** in its rows.
@@ -193,7 +195,7 @@ The window and `.ewui` scripts share these actions:
 | `symbol.fork` | `source`: embedded copy UUID, `library:<library UUID>:<item UUID>`, or legacy key; new `key` |
 | `symbol.draw` | `tool`, `x`, `y`, optional `x2`, `y2`, `text`, arc `start`/`sweep` in whole degrees |
 | `symbol.path` | `points` as millimetre pairs, optional `closed` for a polygon |
-| `symbol.cp` | `x`, `y`, optional `idx`, `fn_cp`, `designation`, `direction` |
+| `symbol.cp` | `x`, `y`, optional `idx`, `fn_cp`, `designation`, `direction` (`up`, `right`, `down`, `left`, or `lead`: along the lead that ends there) |
 | `symbol.map_cp` | drawing `cp`, target function `fn_cp`; an occupied compatible pin swaps |
 | `symbol.role` | drawing `cp` and the potential `role` of its function pin (`l1` … `undefined`; `none` clears it) |
 | `symbol.slot` | `kind`, `x`, `y`; e.g. `"tag"` or `{"cp_designation":1}` |

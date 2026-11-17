@@ -187,7 +187,7 @@ impl EditorView {
                 generation: Some(editor.generation),
                 zoom: 8.0,
                 seen_tool: editor.tool,
-                direction: 3,
+                direction: 0,
                 ..Default::default()
             };
         }
@@ -713,11 +713,18 @@ impl EditorView {
                         match editor.tool {
                             "cp" => {
                                 field(ui, "symbol-designation", &mut self.designation, 3.0 * t.size_row);
-                                let words = ["symbol-up", "symbol-right", "symbol-down", "symbol-left"];
+                                // The first follows the lead the point ends (rc.3: a point always faced left).
+                                let words = [
+                                    "symbol-direction-lead",
+                                    "symbol-up",
+                                    "symbol-right",
+                                    "symbol-down",
+                                    "symbol-left",
+                                ];
                                 let caption = ui.label(label(key!("symbol-direction")));
                                 egui::ComboBox::from_id_salt("symbol-cp-direction")
                                     .selected_text(label(strings::Key::run_time(
-                                        words[self.direction.min(3)],
+                                        words[self.direction.min(4)],
                                     )))
                                     .show_ui(ui, |ui| {
                                         for (i, k) in words.iter().enumerate() {

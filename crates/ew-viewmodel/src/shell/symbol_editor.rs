@@ -384,25 +384,56 @@ impl SymbolEditor {
     }
 }
 
+/// The direction a wire leaves a connection point at `pos` (nm) in: the way the line or path that ends nearest it,
+/// within half a connection-grid step, points out of its other end (`up`, `right`, `down`, `left`); `None` where no
+/// lead ends there.
+fn lead_direction(draft: &SymbolDraft, [x, y]: [i64; 2]) -> Option<&'static str> {
+    use symbols::schema::Primitive;
+    let reach = draft.symbol.grid.at(1).map_or(2_000_000, |n| n.0 / 2);
+    let xy = |p: &symbols::units::Pt2| (p.x.0, p.y.0);
+    let ends = draft.symbol.graphics.iter().flat_map(|g| match g {
+        Primitive::Line(l) => vec![(xy(&l.to), xy(&l.from)), (xy(&l.from), xy(&l.to))],
+        Primitive::Polyline(l) if l.points.len() >= 2 => {
+            let n = l.points.len();
+            vec![
+                (xy(&l.points[n - 1]), xy(&l.points[n - 2])),
+                (xy(&l.points[0]), xy(&l.points[1])),
+            ]
+        }
+        _ => Vec::new(),
+    });
+    let (end, other) = ends
+        .map(|(end, other)| ((end.0 - x).abs().max((end.1 - y).abs()), end, other))
+        .filter(|(d, ..)| *d <= reach)
+        .min_by_key(|(d, ..)| *d)
+        .map(|(_, end, other)| (end, other))?;
+    let (dx, dy) = (end.0 - other.0, end.1 - other.1);
+    Some(if dx.abs() >= dy.abs() {
+        if dx >= 0 { "right" } else { "left" }
+    } else if dy > 0 {
+        "down"
+    } else {
+        "up"
+    })
+}
+
 /// The name of `draft`'s symbol in the window's language.
 pub fn display_name(draft: &SymbolDraft) -> String {
     name_words(&draft.symbol.name)
 }
 
 impl SymbolSource {
-    /// The symbol as a list names it: its name, and where it is from (its library, or "Project copy"), with "QET" for
-    /// one on QElectroTech's grid.
+    /// The symbol as a list names it: its name with its connection grid ("Lamp (4 mm grid)"), and where it is from
+    /// (its library, or "Project copy").
     pub fn words(&self) -> (String, String) {
         let from = self
             .library
             .clone()
             .unwrap_or_else(|| words(key!("symbol-project-copy")));
-        let from = if self.grid == symbols::units::Grid::QET_10PX {
-            strings::format(key!("symbol-source-qet-grid"), &[&from])
-        } else {
-            from
-        };
-        (name_words(&self.name), from)
+        // The name says its grid: the starter library holds most symbols on both (rc.3: two rows read "Lamp").
+        let grid = crate::status::grid_words(self.grid.num() as i64, self.grid.den() as i64);
+        let name = strings::format(key!("symbol-source-grid"), &[&name_words(&self.name), &grid]);
+        (name, from)
     }
 }
 
@@ -1652,10 +1683,18 @@ impl ShellModel {
         if let Some(mapping) = p.get("fn_cp") {
             cp["fn_cp"] = mapping.clone();
         }
-        if !text(p, "direction").is_empty() {
-            cp["dir"] = json!(text(p, "direction"));
+        let pos = [nm(p, "x")?, nm(p, "y")?];
+        match text(p, "direction") {
+            "" => {}
+            // `lead`: the way the lead it ends points, so a wire carries on from it (rc.3); left where it ends none.
+            "lead" => {
+                if let Some(dir) = lead_direction(&editor.draft, pos) {
+                    cp["dir"] = json!(dir);
+                }
+            }
+            word => cp["dir"] = json!(word),
         }
-        cp["pos"] = json!([nm(p, "x")?, nm(p, "y")?]);
+        cp["pos"] = json!(pos);
         let fn_cp = cp["fn_cp"]
             .as_u64()
             .ok_or_else(|| words(key!("symbol-function-pin-invalid")))?;

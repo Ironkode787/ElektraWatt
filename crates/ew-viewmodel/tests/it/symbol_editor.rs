@@ -2217,6 +2217,19 @@ fn the_rows_of_properties_follow_the_selection_and_set_every_selected_thing() {
         shell.symbol_editor().unwrap().outline().what,
         "Normally open contact \u{b7} Electrical"
     );
+    // A pressure switch is one of the kinds a panel builder draws (rc.3): a contact, listed with the sensors.
+    done(
+        &mut shell,
+        "symbol.prop",
+        json!({"key": "what", "value": "pressure-switch"}),
+    );
+    let function = serde_json::to_value(&shell.symbol_editor().unwrap().draft.function).unwrap();
+    assert_eq!(function["contact_kind"], "no");
+    assert_eq!(function["category"][0], "SensingPressure");
+    assert_eq!(
+        shell.symbol_editor().unwrap().outline().what,
+        "Pressure switch or sensor \u{b7} Electrical"
+    );
     // Two connection points: the rows they share; a value that differs is not shown as either's.
     done(&mut shell, "symbol.select", json!({"items": ["cp:0", "cp:1"]}));
     let sheet = shell.symbol_sheet().unwrap();
@@ -2319,4 +2332,66 @@ fn the_start_card_shows_with_nothing_in_hand() {
     let editor = shell.symbol_editor().unwrap();
     assert!(!editor.start && editor.in_hand(), "back to the draft in hand");
     shell.shutdown();
+}
+
+/// A connection point put on the end of a lead faces the way the lead points out of the symbol (Along its lead, the
+/// tool's first direction), so a wire carries straight on from it; one where no lead ends keeps the default.
+#[test]
+fn a_connection_point_on_a_lead_faces_along_it() {
+    let tmp = Tmp::new("symbol-cp-lead");
+    let mut shell = tmp.empty_shell(Mode::Headless);
+    done(
+        &mut shell,
+        "symbol.new",
+        json!({"key": "example.pressure", "name": "Pressure switch"}),
+    );
+    for (y, y2) in [(-4, -12), (4, 12)] {
+        done(
+            &mut shell,
+            "symbol.draw",
+            json!({"tool": "line", "x": 0, "y": y, "x2": 0, "y2": y2}),
+        );
+    }
+    for (y, designation) in [(-12, "1"), (12, "2")] {
+        done(
+            &mut shell,
+            "symbol.cp",
+            json!({"x": 0, "y": y, "designation": designation, "direction": "lead"}),
+        );
+    }
+    done(
+        &mut shell,
+        "symbol.cp",
+        json!({"x": 20, "y": 0, "designation": "3", "direction": "lead"}),
+    );
+    let dirs: Vec<String> = shell
+        .symbol_editor()
+        .unwrap()
+        .draft
+        .symbol
+        .cps
+        .iter()
+        .map(|c| serde_json::to_value(&c.dir).unwrap().as_str().unwrap().to_owned())
+        .collect();
+    assert_eq!(dirs, ["up", "down", "left"]);
+}
+
+/// Copy a library symbol… lists the starter library's symbols on both grids: each name says its grid, so the two
+/// lamps are told apart ("Lamp (4 mm grid)", "Lamp (QET 10 px grid)").
+#[test]
+fn the_symbols_to_copy_name_their_grid() {
+    let tmp = Tmp::new("symbol-sources-grid");
+    let mut shell = tmp.empty_shell(Mode::Headless);
+    done(&mut shell, "symbol.new", json!({}));
+    let mut lamps: Vec<String> = shell
+        .symbol_editor()
+        .unwrap()
+        .sources
+        .iter()
+        .map(|s| s.words().0)
+        .filter(|name| name.starts_with("Lamp ("))
+        .collect();
+    lamps.sort();
+    lamps.dedup();
+    assert_eq!(lamps, ["Lamp (4 mm grid)", "Lamp (QET 10 px grid)"]);
 }

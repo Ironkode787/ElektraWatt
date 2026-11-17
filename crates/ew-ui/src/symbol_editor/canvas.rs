@@ -499,7 +499,7 @@ impl EditorView {
             let p = on_step(pointer);
             match tool {
                 "cp" => {
-                    let direction = ["up", "right", "down", "left"][self.direction.min(3)];
+                    let direction = ["lead", "up", "right", "down", "left"][self.direction.min(4)];
                     action(
                         events,
                         "symbol.cp",

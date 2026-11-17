@@ -126,7 +126,7 @@ pub struct Outline {
 /// What a symbol is, as the What it is list offers it: its word, the disciplines it is offered for (`e` electrical,
 /// `f` fluid power, `b` bus), the function type it sets and the first level of the category the browsers list it under.
 /// The first is what a new symbol is.
-pub const WHAT: [(&str, &str, &str, &str); 17] = [
+pub const WHAT: [(&str, &str, &str, &str); 24] = [
     ("box", "efb", "black_box", "Assembly"),
     ("contact-no", "e", "no", "Relay"),
     ("contact-nc", "e", "nc", "Relay"),
@@ -135,14 +135,21 @@ pub const WHAT: [(&str, &str, &str, &str); 17] = [
     ("protection", "e", "pole", "ProtectionOvercurrent"),
     ("switch", "e", "pole", "SwitchingMain"),
     ("pushbutton", "e", "no", "ManualCommand"),
+    ("pressure-switch", "e", "no", "SensingPressure"),
+    ("position-switch", "e", "no", "SensingPosition"),
+    ("temperature-switch", "e", "nc", "SensingTemperature"),
     ("lamp", "e", "pole", "IndicatorLight"),
     ("motor", "e", "pole", "MotorRotary"),
+    ("heater", "e", "pole", "Heating"),
+    ("transformer", "e", "pole", "TransformerAcAc"),
     ("supply", "e", "black_box", "PowerSupplyAcDc"),
     ("terminal", "e", "terminal", "Terminal"),
     ("plc", "e", "plc_io", "Controller"),
     ("valve", "f", "valve", "ValveDirectional"),
     ("cylinder", "f", "pole", "CylinderFluid"),
     ("air", "f", "pole", "AirPreparation"),
+    ("fluid-sensor", "f", "pole", "FluidSensor"),
+    ("flow", "f", "pole", "FlowControl"),
     ("bus-port", "b", "bus_port", "Controller"),
 ];
 

@@ -44,6 +44,55 @@ enum Pick {
     Join(super::join::JoinPick, usize),
 }
 
+/// The browser's picture of a part's function drawn as a box: the box on the 4 mm grid as the part lays it out (else
+/// as the black box tool lays one out), each pin with a step of lead; `None` when it does not fit the grid.
+fn box_shape(f: &ew_api::output::CatalogueTemplateFn) -> Option<SymbolShape> {
+    use ew_api::part_box::{Dir4, EDIT_STEP, steps};
+    use ew_api::symbols::units::Grid;
+    let pins: Vec<u16> = f.cps.iter().map(|c| c.0).collect();
+    let (_, mut corners, cps) =
+        steps(&pins, &f.outputs, f.layout.as_ref(), EDIT_STEP).on_page(Grid::MM4, (0, 0))?;
+    let (w, h) = corners.get(2).copied()?;
+    corners.push((0, 0));
+    let mut outline = vec![corners];
+    let mut shape_cps = Vec::new();
+    for (idx, at, side) in cps {
+        let (dir, lead) = match side {
+            Dir4::Up => (ew_api::geometry::Dir::Up, (0, -EDIT_STEP)),
+            Dir4::Down => (ew_api::geometry::Dir::Down, (0, EDIT_STEP)),
+            Dir4::Left => (ew_api::geometry::Dir::Left, (-EDIT_STEP, 0)),
+            _ => (ew_api::geometry::Dir::Right, (EDIT_STEP, 0)),
+        };
+        let end = (at.0 + lead.0, at.1 + lead.1);
+        outline.push(vec![at, end]);
+        let designation = f
+            .cps
+            .iter()
+            .find(|c| c.0 == idx)
+            .map(|c| c.1.clone())
+            .unwrap_or_default();
+        shape_cps.push(ew_api::output::ShapeCp {
+            symbol_cp: idx,
+            fn_cp: idx,
+            at: end,
+            dir,
+            designation,
+            fluid: false,
+            valve_port: None,
+        });
+    }
+    Some(SymbolShape {
+        copy: Uuid::nil(),
+        key: String::new(),
+        cps: shape_cps,
+        body: [0, 0, w, h],
+        outline,
+        rep_type: "multi_line".to_owned(),
+        fndef: Uuid::nil(),
+        valve: false,
+    })
+}
+
 /// The names of a terminal's designation in `place.pick` and `picker.choose`: `terminal_designation`, and
 /// `designation`, its old name (the old name invited a device tag).
 const TERMINAL_DESIGNATION: [&str; 2] = ["terminal_designation", "designation"];
@@ -667,9 +716,21 @@ impl ShellModel {
             }
             _ => None,
         };
-        let shape = symbol.and_then(|(key, copy)| {
-            let copy = copy.or_else(|| self.project.as_ref()?.session.starter_symbol_copy(&key))?;
-            self.cached_shape(copy.to_string(), |s| s.symbol_shape(copy))
+        // A part drawn as a box shows its box with its pins as it lays them out, not the frame every box shares (rc.3).
+        let boxed = match picker.rows.get(picker.row) {
+            Some(PickerRow::Part(p)) => picker.part_main(*p).map(|k| (*p, k)),
+            Some(PickerRow::PartFn(p, k)) => Some((*p, *k)),
+            _ => None,
+        }
+        .and_then(|(p, k)| picker.catalogue.parts.get(p)?.functions.get(k))
+        .filter(|f| f.black_box || f.layout.is_some())
+        .and_then(box_shape)
+        .map(Arc::new);
+        let shape = boxed.or_else(|| {
+            symbol.and_then(|(key, copy)| {
+                let copy = copy.or_else(|| self.project.as_ref()?.session.starter_symbol_copy(&key))?;
+                self.cached_shape(copy.to_string(), |s| s.symbol_shape(copy))
+            })
         });
         let card = match (part, &self.tools.picker) {
             (Some(copy), Some(p)) if p.card.as_ref().is_some_and(|c| c.card.part == copy) => p.card.clone(),
