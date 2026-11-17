@@ -150,9 +150,9 @@ pub enum Submenu {
     RackEditor,
     /// PLC, Station, Attach cards: one item per station that takes cards.
     AttachCards,
-    /// PLC, Module, Replace: one item per part of the station view's catalogue that fits where the cursor stands.
+    /// A station's view, Replace: one item per part of the view's catalogue that fits where the cursor stands.
     ModuleParts,
-    /// PLC, Module, Draw on a page: one item per schematic page, then New page.
+    /// A station's view, Draw on a page: one item per schematic page, then a new page.
     ModulePages,
     /// PLC, Addresses: the addressing commands of each configuration project
     /// ([`ShellModel::plc_addressing_items`]).
@@ -1543,23 +1543,34 @@ pub fn find(id: &ActionId) -> Option<&'static ActionMeta> {
     ACTIONS.iter().find(|a| a.id == id)
 }
 
-/// The menu of the module under a station view's cursor (a right click on it): the PLC tab's Module commands in bar
-/// order, those with choices (Replace, Draw on a page) as submenus of them.
-pub fn station_menu(model: &ShellModel) -> Vec<MenuEntry> {
-    let mut metas: Vec<&ActionMeta> = ACTIONS
+/// The commands on the module under a station view's cursor, in registry order (the view's own actions
+/// `plc.module_*`): each
+/// with its short label for the view's own bar (`bar-plc-module-…`, else its registry label) and as a menu entry.
+/// A command that takes a part (Replace) is a submenu of the parts that fit, one that takes a folio (Draw on a page)
+/// of the schematic pages. The view's bar and a right click on a card show them.
+pub fn station_tools(model: &ShellModel) -> Vec<(String, MenuEntry)> {
+    ACTIONS
         .iter()
-        .filter(|a| a.placement.is_some_and(|p| p.group == crate::command_bar::Group::Module))
-        .collect();
-    metas.sort_by_key(|a| a.placement.map(|p| p.order));
-    metas
-        .into_iter()
-        .map(|meta| match meta.menu.and_then(|s| s.submenu) {
-            Some(submenu) => MenuEntry::Submenu {
-                submenu,
-                label: strings::text(submenu.label_key()).to_owned(),
-                items: submenu_items(submenu, &[meta], model),
-            },
-            None => MenuEntry::Item(item_of(meta, model)),
+        // The view's own controls; a module's settings (Safety data…) are its row's menu.
+        .filter(|a| a.hidden && a.id.starts_with("plc.module_"))
+        .map(|meta| {
+            let item = item_of(meta, model);
+            let short = strings::lookup(&format!("bar-{}", meta.id.replace(['.', '_'], "-")))
+                .map_or_else(|| item.label.clone(), str::to_owned);
+            let choices = match meta.params.split(':').next() {
+                Some("part") => Some(Submenu::ModuleParts),
+                Some("folio") => Some(Submenu::ModulePages),
+                _ => None,
+            };
+            let entry = match choices {
+                Some(submenu) => MenuEntry::Submenu {
+                    submenu,
+                    label: item.label.clone(),
+                    items: submenu_items(submenu, &[meta], model),
+                },
+                None => MenuEntry::Item(item),
+            };
+            (short, entry)
         })
         .collect()
 }

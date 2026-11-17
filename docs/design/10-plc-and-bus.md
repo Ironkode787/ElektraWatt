@@ -1748,10 +1748,12 @@ gone (deleted, its making undone) closes. The view shows, from `Session::rack_vi
   greyed with the reason; New part… at its foot.
 
 **The cursor** (`StationCursor`: the head, a slot, a valve position) is set by a click on a card or a row or by the
-arrow keys (`plc.rack_select`), and the device under it is the window's selection: Properties shows it, and the PLC
-tab's Module group acts on it (`plc.module_replace`, `plc.module_remove`, `plc.module_draw`, `plc.module_goto`,
-`plc.module_left`, `plc.module_right`, each `plc.rack_slot`'s operation or `nav.show`); a right click gives the same
-commands, Delete empties the slot. On a free place the station is selected. A double click on a catalogue part puts
+arrow keys (`plc.rack_select`), and the device under it is the window's selection: Properties shows it, and the
+view's own bar above the rack acts on it (`plc.module_replace`, `plc.module_remove`, `plc.module_draw`,
+`plc.module_goto`, `plc.module_left`, `plc.module_right`, each `plc.rack_slot`'s operation or `nav.show`; declared
+actions of the view's own controls); a right click gives the same commands, Delete empties the slot. They
+are no buttons of the PLC tab: with six more the tab folds at 1920 × 1080 in Dutch and in the long-text locale (doc
+16a §5.3, law 3). On a free place the station is selected. A double click on a catalogue part puts
 it into the cursor's free slot, else the first free one, a drag onto the place it is let go over, onto a module
 replacing its part (`plc.rack_add`); a card dragged to a free slot moves there and onto another module changes places
 with it (`plc.rack_move`: `fields.set plc_module.slot`, `fields.set_many`, or `assembly.attach` for two modules

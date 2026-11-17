@@ -344,9 +344,16 @@ pub(crate) fn new_project_with_cpu(tmp: &Tmp) -> egui_kittest::Harness<'static, 
     settle(&mut h);
     draw_black_box(&mut h, "EW-GEN-CPU-1", (10, 10));
     // A station placed directly opens its view in a tab beside the page, so that it is filled there.
-    let tabs = &h.state().shell().area().expect("the canvas area").focused_group().tabs;
+    let tabs = &h
+        .state()
+        .shell()
+        .area()
+        .expect("the canvas area")
+        .focused_group()
+        .tabs;
     assert!(
-        tabs.iter().any(|t| t.station.as_ref().is_some_and(|s| s.station.is_some())),
+        tabs.iter()
+            .any(|t| t.station.as_ref().is_some_and(|s| s.station.is_some())),
         "the CPU's view is a tab beside the page"
     );
     dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
@@ -355,7 +362,9 @@ pub(crate) fn new_project_with_cpu(tmp: &Tmp) -> egui_kittest::Harness<'static, 
 }
 
 /// The station whose view is on show.
-pub(crate) fn station_of(h: &egui_kittest::Harness<'static, ew_ui::app::App>) -> ew_ui::ew_viewmodel::ew_api::output::Uuid {
+pub(crate) fn station_of(
+    h: &egui_kittest::Harness<'static, ew_ui::app::App>,
+) -> ew_ui::ew_viewmodel::ew_api::output::Uuid {
     h.state()
         .shell()
         .station_tab()
@@ -396,7 +405,11 @@ pub(crate) fn take(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>, numb
 }
 
 /// A drag with the primary button from `from` to `to`, in steps.
-pub(crate) fn drag(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>, from: egui::Pos2, to: egui::Pos2) {
+pub(crate) fn drag(
+    h: &mut egui_kittest::Harness<'static, ew_ui::app::App>,
+    from: egui::Pos2,
+    to: egui::Pos2,
+) {
     h.input_mut().events.push(egui::Event::PointerMoved(from));
     h.run_ok();
     h.input_mut().events.push(egui::Event::PointerButton {
@@ -472,7 +485,10 @@ fn modules_are_added_in_the_station_view() {
         .map(|r| (r.slot, r.part.as_str(), r.gives.as_str(), r.addresses.as_str()))
         .collect();
     let part = "EW-GEN-DO-1 · PLC digital output card, 8 channels";
-    assert_eq!(modules, [(1, part, "8 DO", "Q0.0–Q0.7"), (2, part, "8 DO", "Q1.0–Q1.7")]);
+    assert_eq!(
+        modules,
+        [(1, part, "8 DO", "Q0.0–Q0.7"), (2, part, "8 DO", "Q1.0–Q1.7")]
+    );
     // What the rows say stands on the screen: the part in words, what it gives, its addresses.
     assert_eq!(h.query_all_by_label(part).count(), 2, "the part of each module");
     for text in ["8 DO", "Q0.0–Q0.7", "Q1.0–Q1.7"] {
@@ -536,7 +552,10 @@ fn a_long_station_stays_usable_and_a_taken_slot_is_refused() {
     let window = h.ctx.content_rect();
     for label in ["Catalogue", "New part…", "Drawn on"] {
         let rect = h.get_all_by_label(label).next().expect(label).rect();
-        assert!(window.contains_rect(rect), "{label} {rect:?} is out of the window {window:?}");
+        assert!(
+            window.contains_rect(rect),
+            "{label} {rect:?} is out of the window {window:?}"
+        );
     }
     let refused = h
         .state_mut()
@@ -588,7 +607,11 @@ fn the_valve_terminal_shows_its_positions_beside_its_order_codes() {
     // Each sub-base lists its valve positions as rows (rc.2).
     assert!(h.query_all_by_label_contains("Position 1").count() >= 7);
     let shown = h.state().shell().station_shown().expect("the view");
-    assert!(shown.todo.iter().all(|t| !t.error), "no finding of the slot rule: {:?}", shown.todo);
+    assert!(
+        shown.todo.iter().all(|t| !t.error),
+        "no finding of the slot rule: {:?}",
+        shown.todo
+    );
     h.state_mut().shell_mut().shutdown();
 }
 
@@ -1485,7 +1508,11 @@ fn a_module_is_dragged_to_another_slot_in_the_station_view() {
     let slot_of = |h: &egui_kittest::Harness<'static, ew_ui::app::App>, tag: &str| {
         rows(h).iter().find(|r| r.tag == tag).map(|r| r.slot)
     };
-    assert_eq!(slot_of(&h, &tag), Some(target), "moved onto the slot it was dropped on");
+    assert_eq!(
+        slot_of(&h, &tag),
+        Some(target),
+        "moved onto the slot it was dropped on"
+    );
     // One undo step puts it back.
     dispatch(&mut h, "edit.undo", json!({}));
     settle(&mut h);

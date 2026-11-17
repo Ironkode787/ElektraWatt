@@ -83,8 +83,14 @@ fn a_station_is_made_as_a_rack_and_filled() {
         .expect("New station…")
         .click();
     settle(&mut h);
-    assert!(h.state().shell().dialog().is_none(), "no dialog lies over the window");
-    assert!(h.state().shell().station_draft().is_some(), "the new station's view");
+    assert!(
+        h.state().shell().dialog().is_none(),
+        "no dialog lies over the window"
+    );
+    assert!(
+        h.state().shell().station_draft().is_some(),
+        "the new station's view"
+    );
     // Nothing is written before Create.
     let revision = h.state().shell().revision();
     take(&mut h, "EW-GEN-CPU-1");
@@ -269,7 +275,10 @@ fn the_new_station_view_offers_a_device_on_the_bus() {
     h.get_by_label(&format!("Use {tag}, which is on the bus")).click();
     settle(&mut h);
     assert_eq!(station_of(&h), device);
-    assert!(h.state().shell().station_draft().is_none(), "made: no draft is left");
+    assert!(
+        h.state().shell().station_draft().is_none(),
+        "made: no draft is left"
+    );
     h.state_mut().shell_mut().shutdown();
 }
 
@@ -295,7 +304,10 @@ fn put_it_on_a_bus_page_makes_the_page_or_asks_which() {
     };
     let (made, kind) = shown(&h).expect("a page");
     assert_eq!(kind, "bus_topology", "the bus page is made and shown");
-    assert!(h.state().shell().station_tab().is_none(), "the page is on show, the view's tab beside it");
+    assert!(
+        h.state().shell().station_tab().is_none(),
+        "the page is on show, the view's tab beside it"
+    );
     dispatch(&mut h, "ui.dismiss", json!({}));
     dispatch(
         &mut h,
@@ -617,7 +629,11 @@ fn modules_drawn_from_the_rack_are_bound_to_their_pins() {
         .filter_map(|r| r.module)
         .collect();
     // The second module's own Draw on a page…, then the To do list's for the rest.
-    dispatch(&mut h, "plc.rack_slot", json!({"slot": 2, "op": "draw", "folio": "101"}));
+    dispatch(
+        &mut h,
+        "plc.rack_slot",
+        json!({"slot": 2, "op": "draw", "folio": "101"}),
+    );
     settle(&mut h);
     assert!(h.state().shell().station_tab().is_none(), "page 101 is on show");
     assert!(topology_boxes(&h, modules[1]) == 1, "the module's box");
@@ -733,7 +749,11 @@ fn new_part_from_the_rack_starts_as_what_was_asked() {
         .expect("back with a head part");
     let rack = h.state().shell().shown_rack().expect("the draft's rack");
     assert_eq!(rack.head.module, Some(head));
-    assert!(rack.head.part.starts_with("RIO-9"), "the new part is the head: {}", rack.head.part);
+    assert!(
+        rack.head.part.starts_with("RIO-9"),
+        "the new part is the head: {}",
+        rack.head.part
+    );
 
     // With its head chosen the view lists modules, and New part… starts a module part.
     h.get_by_label("New part…").click();
@@ -768,7 +788,10 @@ fn the_new_station_view_fits_at_1920() {
     let window = h.ctx.content_rect();
     for label in ["Create", "New part…", "Catalogue"] {
         let rect = h.get_by_label(label).rect();
-        assert!(window.contains_rect(rect), "{label} {rect:?} is out of the window {window:?}");
+        assert!(
+            window.contains_rect(rect),
+            "{label} {rect:?} is out of the window {window:?}"
+        );
     }
     h.state_mut().shell_mut().shutdown();
 }

@@ -464,7 +464,10 @@ fn rack_add(d: &mut Driver, station: &str, number: &str, slot: u64) {
         .dispatch("plc.rack_editor", &json!({"station": format!("tag:{station}")}));
     assert_eq!(open, Outcome::Done);
     assert!(
-        d.shell_mut().station_catalogue().iter().any(|p| p.number == number),
+        d.shell_mut()
+            .station_catalogue()
+            .iter()
+            .any(|p| p.number == number),
         "the station's catalogue offers {number}"
     );
     assert_eq!(

@@ -192,7 +192,9 @@ fn device_row(q: &Q, device: Id<Device>) -> RackRow {
     let described = ew_derive::module_part(q, device);
     let first = || {
         let d = q.devices().get(device)?;
-        q.parts().get(d.parts.first()?.part.copy).map(|c| part_text(&c.item))
+        q.parts()
+            .get(d.parts.first()?.part.copy)
+            .map(|c| part_text(&c.item))
     };
     let page = drawn_folio(q, device);
     RackRow {
@@ -207,7 +209,10 @@ fn device_row(q: &Q, device: Id<Device>) -> RackRow {
             .as_ref()
             .and_then(|(copy, _)| super::editing::catalogue_plc(&copy.item))
             .map(|p| p.group),
-        gives: described.as_ref().map(|(_, plc)| gives_text(plc)).unwrap_or_default(),
+        gives: described
+            .as_ref()
+            .map(|(_, plc)| gives_text(plc))
+            .unwrap_or_default(),
         addresses: address_range(q, device),
         drawn: q.get::<ew_derive::MainRep>(device).as_ref().is_some(),
         page,
@@ -251,7 +256,11 @@ fn position_of(q: &Q, slot: &ValveSlot) -> RackPosition {
             part: q
                 .devices()
                 .get(*device)
-                .and_then(|d| q.parts().get(d.parts.first()?.part.copy).map(|c| part_text(&c.item)))
+                .and_then(|d| {
+                    q.parts()
+                        .get(d.parts.first()?.part.copy)
+                        .map(|c| part_text(&c.item))
+                })
                 .unwrap_or_default(),
             page: drawn_folio(q, *device),
             ..empty

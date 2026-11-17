@@ -477,7 +477,10 @@ impl ShellModel {
         match tab.cursor? {
             StationCursor::Head => tab.station,
             StationCursor::Slot { rack, slot } => {
-                view.rows.iter().find(|r| r.rack == rack && r.slot == slot)?.module
+                view.rows
+                    .iter()
+                    .find(|r| r.rack == rack && r.slot == slot)?
+                    .module
             }
             StationCursor::Position { module, position } => {
                 view.cells
@@ -542,7 +545,11 @@ impl ShellModel {
                 }),
             });
         }
-        for r in view.rows.iter().filter(|r| r.module.is_some() && r.part.is_empty()) {
+        for r in view
+            .rows
+            .iter()
+            .filter(|r| r.module.is_some() && r.part.is_empty())
+        {
             out.push(step(
                 strings::format(key!("rack-todo-no-part"), &[&r.tag]),
                 Some(TodoFix::ChoosePart {
@@ -587,7 +594,11 @@ impl ShellModel {
                 action: "plc.rack_next",
                 params: json!({ "step": name }),
             };
-            if session.undrawn_fluid_terminals().iter().any(|(t, _)| *t == station) {
+            if session
+                .undrawn_fluid_terminals()
+                .iter()
+                .any(|(t, _)| *t == station)
+            {
                 out.push(step(
                     strings::format(key!("rack-todo-fluid"), &[&name(&view.head)]),
                     Some(next(key!("rack-next-fluid"), "fluid")),
@@ -861,7 +872,9 @@ impl ShellModel {
         tab.cursor = place;
         // The view has the keys from here on: the arrows walk its places, Delete empties one.
         self.focus = self.area.as_ref().map(|a| super::Focus::Canvas(a.focused));
-        let station = self.station_tab().and_then(|t| t.station.filter(|_| t.draft.is_none()));
+        let station = self
+            .station_tab()
+            .and_then(|t| t.station.filter(|_| t.draft.is_none()));
         let items = self
             .station_device()
             .or(station)
@@ -895,7 +908,9 @@ impl ShellModel {
                 .and_then(|c| places.iter().position(|x| *x == c));
             let last = places.len().saturating_sub(1);
             let to = match at {
-                Some(i) => i.saturating_add_signed(isize::try_from(step).unwrap_or(0)).min(last),
+                Some(i) => i
+                    .saturating_add_signed(isize::try_from(step).unwrap_or(0))
+                    .min(last),
                 None => 0,
             };
             places[to]
@@ -1095,7 +1110,12 @@ impl ShellModel {
                 Some(StationCursor::Slot { rack, slot }) if free(rack, slot) => Some((rack, slot)),
                 _ => None,
             })
-            .or_else(|| view.rows.iter().find(|r| r.module.is_none()).map(|r| (r.rack, r.slot)));
+            .or_else(|| {
+                view.rows
+                    .iter()
+                    .find(|r| r.module.is_none())
+                    .map(|r| (r.rack, r.slot))
+            });
         let Some((rack, slot)) = at else {
             return self.rack_refuse(cursor, strings::text(key!("rack-full")).to_owned());
         };
@@ -1620,8 +1640,7 @@ impl ShellModel {
                     )
                 });
                 if !bus {
-                    return self
-                        .rack_refuse(cursor, strings::format(key!("rack-no-bus-interface"), &[&tag]));
+                    return self.rack_refuse(cursor, strings::format(key!("rack-no-bus-interface"), &[&tag]));
                 }
                 let pages = self.bus_pages();
                 let folio = match string_param(p, "folio") {
@@ -1806,7 +1825,10 @@ impl ShellModel {
             lines.push(format!("  note \"{n}\""));
         }
         if let Some((at, e)) = &tab.error {
-            let at = at.as_ref().map(|c| format!(" at {}", place(c))).unwrap_or_default();
+            let at = at
+                .as_ref()
+                .map(|c| format!(" at {}", place(c)))
+                .unwrap_or_default();
             lines.push(format!("  error{at} \"{e}\""));
         }
         lines

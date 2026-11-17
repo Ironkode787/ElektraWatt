@@ -37,7 +37,7 @@ The PLC workspace shows the PLC side beside the page:
 | add a CPU in the device view | choose **New station** on the PLC tab and double-click its head part in the catalogue |
 | open the device view of a station | choose **Rack** on the PLC tab, or double-click the station in the PLC panel: its rack opens in a tab |
 | plug modules into the rack from the catalogue | double-click a module in the rack's **Catalogue**, or drag it onto a slot |
-| move a module to another slot | drag its card to the slot, or choose **Move left** or **Move right** on the PLC tab |
+| move a module to another slot | drag its card to the slot, or choose **Move left** or **Move right** above the rack |
 | read the I/O addresses in the device overview | read the **Addresses** column of the station's rack, or the PLC grid |
 | change a start address | type the address in the PLC grid, or choose **Re-address…** |
 | type the PLC tags | type each channel's **Symbol** in the PLC grid |
@@ -63,7 +63,7 @@ The exchange of the hardware and the tags with the PLC software is at the end of
    valve terminal. **New part…** under the catalogue opens the part editor set for that kind, and the part you save
    is the head when you come back.
 4. Double-click each module in the catalogue: it goes into the next free slot. A click on a card selects it:
-   **Remove**, **Move left** and **Move right** on the PLC tab change the rack before it is made.
+   **Remove**, **Move left** and **Move right** above the rack change it before it is made.
 5. Choose **Create**: the station and its modules are made in one step, drawn on no page yet. Nothing is written
    before; closing the tab before Create asks first.
 6. **To do** under the table says what is left. **Draw on a page…** draws the station and its modules side by side
@@ -80,6 +80,7 @@ double-click the station in the PLC panel. Its rack opens in a tab beside the pa
 
 ![A station's rack in its tab: the cards, the table, the channels of the selected module, To do, and the catalogue](images/plc-rack.png)
 
+- **The buttons above the rack** act on the selected module.
 - **The rack, drawn**: one card per place, the head first, then each slot. A card says what the module gives (8 DI),
   its tag, its part number and the page it is drawn on; a free slot is an outline with a plus.
 - **The table** under it lists the same places: slot, module, part (number and description), what it gives, its
@@ -94,7 +95,7 @@ double-click the station in the PLC panel. Its rack opens in a tab beside the pa
 To change it:
 
 1. Click a card or a row: the module is selected as a click on a page selects a device. Properties shows it, and the
-   **PLC** tab's buttons act on it: **Replace** (the parts that fit its slot), **Remove**, **Draw on page**, **Go to
+   buttons above the rack act on it: **Replace** (the parts that fit its slot), **Remove**, **Draw on page**, **Go to
    page**, **Move left** and **Move right**. A right click gives the same commands. `Delete` empties the slot, and
    the arrow keys go from slot to slot.
 2. Double-click a part in the catalogue to put it into the selected free slot, else into the first free one; or drag

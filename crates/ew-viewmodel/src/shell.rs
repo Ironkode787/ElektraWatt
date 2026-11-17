@@ -764,7 +764,8 @@ pub struct ShellModel {
     )>,
     /// What the station view on show draws ([`automation::StationShown`]), kept for the state it was made for.
     #[allow(clippy::type_complexity)]
-    station_cache: std::cell::RefCell<Option<(automation::StationKey, std::sync::Arc<automation::StationShown>)>>,
+    station_cache:
+        std::cell::RefCell<Option<(automation::StationKey, std::sync::Arc<automation::StationShown>)>>,
     /// The station a module was last given to (a rack opened, a module attached): the default of the station chooser.
     last_station: Option<ew_api::output::Uuid>,
     /// The wires whose reasoned potential was declined in this session: it is not offered again.

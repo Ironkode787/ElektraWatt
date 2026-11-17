@@ -7,7 +7,7 @@
 //! the place, in a sentence, with its fix. Building a rack and dragging its modules are in `plc_workspace.rs`, a
 //! station not made yet in `plc_rack_first.rs`.
 
-use crate::plc_workspace::{at, drag, new_project_with_cpu, station_of, take};
+use crate::plc_workspace::{at, new_project_with_cpu, station_of, take};
 use crate::support::{self, Tmp, dispatch, settle};
 
 use egui_kittest::kittest::{NodeT as _, Queryable};
@@ -67,8 +67,6 @@ fn rack_with(tmp: &Tmp, modules: &[&str]) -> (Window, Uuid) {
     for number in modules {
         take(&mut h, number);
     }
-    dispatch(&mut h, "view.command_tab", json!({"tab": "plc"}));
-    settle(&mut h);
     (h, id)
 }
 
@@ -90,7 +88,13 @@ fn a_module_is_replaced_removed_and_moved_from_the_bar_and_the_keys() {
     assert_eq!(before[1].addresses, "I1.0–I1.7");
     click(&mut h, &format!("Slot 1, {}", before[0].tag));
     assert_eq!(h.state().shell().station_device(), before[0].module);
-    let sheet = h.state().shell().properties().sheet().cloned().expect("Properties");
+    let sheet = h
+        .state()
+        .shell()
+        .properties()
+        .sheet()
+        .cloned()
+        .expect("Properties");
     assert!(
         sheet
             .sections
@@ -99,13 +103,16 @@ fn a_module_is_replaced_removed_and_moved_from_the_bar_and_the_keys() {
         "Properties shows the module"
     );
     // Replace: the parts that fit the slot; the output card takes the input card's place.
-    support::bar_button(&h, "Replace").click();
+    support::menu_node(&h, "Replace").click();
     settle(&mut h);
     support::menu_node(&h, "EW-GEN-DO-1 · PLC digital output card, 8 channels · 8 DO").click();
     settle(&mut h);
     let replaced = modules(&h, id);
     assert_eq!(replaced[0].module, before[0].module, "the same module");
-    assert_eq!(replaced[0].part, "EW-GEN-DO-1 · PLC digital output card, 8 channels");
+    assert_eq!(
+        replaced[0].part,
+        "EW-GEN-DO-1 · PLC digital output card, 8 channels"
+    );
     assert_eq!(
         (replaced[0].addresses.as_str(), replaced[1].addresses.as_str()),
         ("Q0.0–Q0.7", "I0.0–I0.7"),
@@ -124,7 +131,7 @@ fn a_module_is_replaced_removed_and_moved_from_the_bar_and_the_keys() {
     assert_eq!(modules(&h, id).len(), 2, "one Undo brings it back");
     // Move right: the module in slot 1 changes places with the one in slot 2.
     click(&mut h, &format!("Slot 1, {}", replaced[0].tag));
-    support::bar_button(&h, "Move right").click();
+    support::menu_node(&h, "Move right").click();
     settle(&mut h);
     let moved = modules(&h, id);
     assert_eq!(
@@ -132,7 +139,11 @@ fn a_module_is_replaced_removed_and_moved_from_the_bar_and_the_keys() {
         (before[1].module, before[0].module),
         "the two changed places"
     );
-    assert_eq!(h.state().shell().station_device(), before[0].module, "the cursor went with it");
+    assert_eq!(
+        h.state().shell().station_device(),
+        before[0].module,
+        "the cursor went with it"
+    );
     // A right click on a card gives the Module commands.
     let card = at(&h, &format!("Slot 1, {}", moved[0].tag));
     h.input_mut().events.push(egui::Event::PointerMoved(card));
@@ -193,7 +204,11 @@ fn a_valve_terminals_positions_are_filled_like_slots() {
         .filter(|n| n.accesskit_node().role() == egui::accesskit::Role::Label)
         .count();
     assert_eq!(in_table, 1, "its row says the part in words");
-    assert_eq!(h.state().shell().station_device(), first.holder, "the valve is selected");
+    assert_eq!(
+        h.state().shell().station_device(),
+        first.holder,
+        "the valve is selected"
+    );
     click(&mut h, "Empty position 2");
     h.get_by_label("Blanking plate").click();
     settle(&mut h);
@@ -214,7 +229,7 @@ fn a_module_leads_to_the_page_it_is_drawn_on() {
     let (mut h, id) = rack_with(&tmp, &["EW-GEN-DI-1"]);
     let module = modules(&h, id)[0].clone();
     assert!(!module.drawn);
-    let to_go = support::bar_button(&h, "Go to page");
+    let to_go = support::menu_node(&h, "Go to page");
     assert!(to_go.accesskit_node().is_disabled(), "nowhere to go yet");
     click(&mut h, &format!("Draw on a page… {}", module.tag));
     support::menu_node(&h, "101 Control").click();
@@ -256,8 +271,7 @@ fn a_module_leads_to_the_page_it_is_drawn_on() {
     // The link in its row goes to the page.
     let link = h
         .query_all_by_label("Page 101")
-        .filter(|n| n.accesskit_node().role() == egui::accesskit::Role::Link)
-        .last()
+        .rfind(|n| n.accesskit_node().role() == egui::accesskit::Role::Link)
         .expect("the module's page link")
         .rect()
         .center();
@@ -276,7 +290,7 @@ fn a_module_leads_to_the_page_it_is_drawn_on() {
     dispatch(&mut h, "plc.rack_editor", json!({"station": id.to_string()}));
     settle(&mut h);
     click(&mut h, &format!("Slot 1, {}", drawn.tag));
-    support::bar_button(&h, "Go to page").click();
+    support::menu_node(&h, "Go to page").click();
     settle(&mut h);
     assert!(on_page(&h), "Go to page goes to page 101");
     h.state_mut().shell_mut().shutdown();
@@ -329,14 +343,21 @@ fn what_is_wrong_is_said_at_the_place_with_its_fix() {
     dispatch(&mut h, "plc.rack_select", json!({"slot": 3}));
     settle(&mut h);
     let shown = h.state().shell().station_shown().expect("the view");
-    let own = shown.catalogue.iter().find(|p| p.number == "DI-12").expect("DI-12");
+    let own = shown
+        .catalogue
+        .iter()
+        .find(|p| p.number == "DI-12")
+        .expect("DI-12");
     assert_eq!(
         own.unfit.as_deref(),
         Some("Not allowed in slot 3: it goes into slot 1, 2")
     );
     // Not drawn: said in To do, with the fix.
     assert!(
-        shown.todo.iter().any(|t| t.text.starts_with("Drawn on no page yet")),
+        shown
+            .todo
+            .iter()
+            .any(|t| t.text.starts_with("Drawn on no page yet")),
         "{:?}",
         shown.todo
     );
@@ -382,7 +403,10 @@ fn closing_a_station_not_made_yet_asks() {
     assert_eq!(h.state().shell().dialog(), Some(&Dialog::DiscardStation));
     support::menu_node(&h, "Cancel").click();
     settle(&mut h);
-    assert!(h.state().shell().station_draft().is_some(), "Cancel keeps the view");
+    assert!(
+        h.state().shell().station_draft().is_some(),
+        "Cancel keeps the view"
+    );
     dispatch(&mut h, "tab.close", json!({}));
     settle(&mut h);
     support::menu_node(&h, "Close without making it").click();

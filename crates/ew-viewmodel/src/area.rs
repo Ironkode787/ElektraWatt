@@ -270,7 +270,10 @@ impl CanvasArea {
             return;
         }
         let page = |i: &usize| g.tabs[*i].station.is_none();
-        let at = (0..g.active).rev().find(page).or_else(|| (g.active..g.tabs.len()).find(page));
+        let at = (0..g.active)
+            .rev()
+            .find(page)
+            .or_else(|| (g.active..g.tabs.len()).find(page));
         match at {
             Some(i) => self.groups[group].active = i,
             None => {

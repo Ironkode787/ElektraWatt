@@ -138,8 +138,8 @@ fn the_fluid_buttons_need_a_fluid_page_and_say_so() {
 }
 
 /// The PLC tab's menu buttons list their targets: Rack lists the stations, and a choice opens that station's view in a
-/// tab beside the page; without a station the button is greyed with the reason. The tab's Module commands act on the
-/// module under the view's cursor: greyed with the reason until the cursor stands on one.
+/// tab beside the page; without a station the button is greyed with the reason. The view's commands act on the
+/// module under its cursor: refused with the reason until the cursor stands on one.
 #[test]
 fn the_rack_button_lists_the_stations() {
     let tmp = Tmp::new("tabs-rack");
@@ -169,17 +169,19 @@ fn the_rack_button_lists_the_stations() {
     assert_eq!(tabs, 2, "beside the page's tab");
     // The view opens with the station selected, its cursor on the head, which stays where it is.
     let station = s.station_tab().and_then(|t| t.station).expect("the station");
-    assert_eq!(s.selection().items, vec![ew_viewmodel::ew_api::output::ew_dl::EntityRef(station)]);
-    let remove = button(&s, Tab::Plc, "plc.module_remove");
-    assert!(!remove.enabled);
     assert_eq!(
-        remove.reason.as_deref(),
-        Some(strings::text(ew_viewmodel::key!("reason-rack-head")))
+        s.selection().items,
+        vec![ew_viewmodel::ew_api::output::ew_dl::EntityRef(station)]
     );
+    let remove = ew_viewmodel::actions::find("plc.module_remove").expect("Remove module");
+    assert_eq!((remove.enabled)(&s), Err(ew_viewmodel::key!("reason-rack-head")));
     done(&mut s, "plc.rack_select", json!({"slot": 1}));
-    assert!(button(&s, Tab::Plc, "plc.module_remove").enabled);
+    assert_eq!((remove.enabled)(&s), Ok(()));
     // The module is the window's selection, as a click on a page selects a device.
     let module = s.station_device().expect("the module in slot 1");
-    assert_eq!(s.selection().items, vec![ew_viewmodel::ew_api::output::ew_dl::EntityRef(module)]);
+    assert_eq!(
+        s.selection().items,
+        vec![ew_viewmodel::ew_api::output::ew_dl::EntityRef(module)]
+    );
     s.shutdown();
 }

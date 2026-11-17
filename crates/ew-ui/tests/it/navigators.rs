@@ -690,6 +690,10 @@ fn a_channel_row_dragged_onto_a_connection_point_binds_it() {
         dispatch(&mut h, "canvas.activate", json!({}));
         cursor_k(&mut h, b);
         dispatch(&mut h, "canvas.activate", json!({}));
+        // The CPU's view opens when it is placed; Escape goes back to the page.
+        if h.state().shell().station_tab().is_some() {
+            dispatch(&mut h, "ui.dismiss", json!({}));
+        }
         dispatch(&mut h, "tool.select", json!({}));
     }
     dispatch(&mut h, "tool.place", json!({}));

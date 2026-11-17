@@ -81,7 +81,9 @@ impl Place {
         };
         match (self.cursor, self.taken) {
             (StationCursor::Head, _) => strings::format(key!("rack-place-head"), &[what]),
-            (StationCursor::Slot { .. }, true) => strings::format(key!("rack-place-slot"), &[&self.slot, what]),
+            (StationCursor::Slot { .. }, true) => {
+                strings::format(key!("rack-place-slot"), &[&self.slot, what])
+            }
             (StationCursor::Slot { .. }, false) => strings::format(key!("rack-free-slot"), &[&self.slot]),
             (StationCursor::Position { .. }, true) => {
                 strings::format(key!("rack-place-position"), &[&self.number, what])
@@ -180,8 +182,15 @@ fn places(view: &RackView, draft: bool) -> Vec<Place> {
 }
 
 /// One line of text cut with an ellipsis at `width`.
-fn line(ui: &Ui, text: &str, font: &TypeToken, colour: theme::Rgba, width: f32) -> std::sync::Arc<egui::Galley> {
-    let mut job = egui::text::LayoutJob::simple_singleline(text.to_owned(), theme::font(font), colour.color32());
+fn line(
+    ui: &Ui,
+    text: &str,
+    font: &TypeToken,
+    colour: theme::Rgba,
+    width: f32,
+) -> std::sync::Arc<egui::Galley> {
+    let mut job =
+        egui::text::LayoutJob::simple_singleline(text.to_owned(), theme::font(font), colour.color32());
     job.wrap = egui::text::TextWrapping {
         max_width: width.max(0.0),
         max_rows: 1,
@@ -200,7 +209,9 @@ fn small_strong(t: &Tokens) -> TypeToken {
 }
 
 fn small(t: &Tokens, text: impl Into<String>, colour: theme::Rgba) -> RichText {
-    RichText::new(text).font(theme::font(&t.type_small)).color(colour.color32())
+    RichText::new(text)
+        .font(theme::font(&t.type_small))
+        .color(colour.color32())
 }
 
 /// The content of a table cell, from the cell's left, centred in its height. The cell lies inside its row, which is
@@ -256,7 +267,11 @@ pub(crate) fn show(
     ui.allocate_rect(full, Sense::hover());
     // The focused tab's view is made once per state; a view in the other group shows its rack alone.
     let shown = shell.station_shown().filter(|_| focused);
-    let Some(view) = shown.as_ref().map(|s| s.rack.clone()).or_else(|| shell.rack_of(tab)) else {
+    let Some(view) = shown
+        .as_ref()
+        .map(|s| s.rack.clone())
+        .or_else(|| shell.rack_of(tab))
+    else {
         return;
     };
     let shown = shown.as_deref();
@@ -271,7 +286,12 @@ pub(crate) fn show(
     ui.scope_builder(UiBuilder::new().max_rect(left.shrink(t.space_5)), |ui| {
         ui.set_clip_rect(left);
         header(ui, &t, shell, tab, &view, &mut out);
-        ui.add_space(t.space_4);
+        ui.add_space(t.space_2);
+        // The focused view's commands on the module under its cursor.
+        if shown.is_some() {
+            tools(ui, &t, shell, &mut out);
+        }
+        ui.add_space(t.space_2);
         rack(ui, &t, shell, tab, &all, &mut out);
         ScrollArea::vertical()
             .id_salt("station-lists")
@@ -329,7 +349,11 @@ fn header(
             } else {
                 view.part.clone()
             };
-            ui.add(egui::Label::new(small(t, part, t.text_secondary)).selectable(false).truncate());
+            ui.add(
+                egui::Label::new(small(t, part, t.text_secondary))
+                    .selectable(false)
+                    .truncate(),
+            );
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 let plc = strings::format(key!("rack-belongs-to"), &[&view.plc]);
                 ui.add(egui::Label::new(small(t, plc, t.text_secondary)).selectable(false));
@@ -366,7 +390,8 @@ fn header(
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             // Create is the view's one filled button; without a head it says what it waits for.
             let ready = draft.head.is_some();
-            let create = components::button(ui, Kind::Primary, strings::text(key!("rack-create")), ready, 0.0);
+            let create =
+                components::button(ui, Kind::Primary, strings::text(key!("rack-create")), ready, 0.0);
             if !ready {
                 create.disabled_tip(strings::text(key!("rack-choose-head")));
             } else if create.clicked() {
@@ -376,7 +401,9 @@ fn header(
     });
     ui.add_space(t.space_2);
     ui.horizontal_wrapped(|ui| {
-        ui.add(egui::Label::new(small(t, strings::text(key!("rack-kind")), t.text_secondary)).selectable(false));
+        ui.add(
+            egui::Label::new(small(t, strings::text(key!("rack-kind")), t.text_secondary)).selectable(false),
+        );
         for k in StationKind::ALL {
             let choice = ui
                 .selectable_label(draft.kind == k, strings::text(k.text_key()))
@@ -387,7 +414,9 @@ fn header(
         }
     });
     ui.horizontal_wrapped(|ui| {
-        ui.add(egui::Label::new(small(t, strings::text(key!("rack-plc")), t.text_secondary)).selectable(false));
+        ui.add(
+            egui::Label::new(small(t, strings::text(key!("rack-plc")), t.text_secondary)).selectable(false),
+        );
         for (id, name) in &shell.plc_config_projects() {
             if ui.selectable_label(draft.config == Some(*id), name).clicked() {
                 events.push(Event::Action("plc.rack_set", json!({ "config": id.to_string() })));
@@ -439,7 +468,9 @@ fn interact(
     {
         egui::DragAndDrop::set_payload(ui.ctx(), ModuleDrag(device));
     }
-    let moved = response.dnd_hover_payload::<ModuleDrag>().filter(|m| Some(m.0) != p.device);
+    let moved = response
+        .dnd_hover_payload::<ModuleDrag>()
+        .filter(|m| Some(m.0) != p.device);
     let part = response.dnd_hover_payload::<PartDrag>();
     let takes_module = matches!(p.cursor, StationCursor::Slot { .. });
     if (moved.is_some() && takes_module) || part.is_some() {
@@ -464,9 +495,10 @@ fn interact(
         events.push(match (p.cursor, p.taken) {
             // A station not made yet takes a part where it belongs: a head as its head, a module after its modules.
             _ if tab.draft.is_some() => Event::Action("plc.rack_add", json!({ "part": part })),
-            (StationCursor::Slot { rack, slot }, false) => {
-                Event::Action("plc.rack_add", json!({ "part": part, "slot": slot, "rack": rack }))
-            }
+            (StationCursor::Slot { rack, slot }, false) => Event::Action(
+                "plc.rack_add",
+                json!({ "part": part, "slot": slot, "rack": rack }),
+            ),
             (StationCursor::Slot { rack, slot }, true) => Event::Action(
                 "plc.rack_slot",
                 json!({ "op": "replace", "part": part, "slot": slot, "rack": rack }),
@@ -480,10 +512,10 @@ fn interact(
     }
 }
 
-/// The menu of the module under the cursor: the PLC tab's Module commands, Replace and Draw on a page with their
-/// choices.
+/// The menu of the module under the cursor (a right click): the view's commands on it, Replace and Draw on a page
+/// with their choices.
 fn menu(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
-    for entry in ew_viewmodel::actions::station_menu(shell) {
+    for (_, entry) in ew_viewmodel::actions::station_tools(shell) {
         match entry {
             MenuEntry::Item(item) => crate::menu::item(ui, &item, events),
             MenuEntry::Submenu { label, items, .. } => {
@@ -496,6 +528,67 @@ fn menu(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             _ => {}
         }
     }
+}
+
+/// The view's own bar above its rack: the commands on the module under the cursor (Replace, Remove, Draw on page, Go
+/// to page, Move left, Move right), each a quiet button that says why when it cannot run; those with choices open
+/// their list. They are the commands of a right click on a card.
+fn tools(ui: &mut Ui, t: &Tokens, shell: &ShellModel, events: &mut Vec<Event>) {
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing.x = t.space_2;
+        for (short, entry) in ew_viewmodel::actions::station_tools(shell) {
+            match entry {
+                MenuEntry::Item(item) => {
+                    let button = components::button(ui, Kind::Subtle, &short, item.enabled, 0.0);
+                    match &item.reason {
+                        Some(why) if !item.enabled => {
+                            button.disabled_tip(why.clone());
+                        }
+                        _ if button.clicked() => events.push(Event::Action(item.id, item.params.clone())),
+                        _ => {}
+                    }
+                }
+                MenuEntry::Submenu { items, .. } => {
+                    // A list with nothing to choose greys its button with the reason.
+                    let reason = match items.first() {
+                        Some(first) if items.iter().all(|i| !i.enabled) => first.reason.clone(),
+                        _ => None,
+                    };
+                    let button = components::button(ui, Kind::Subtle, &short, reason.is_none(), 0.0);
+                    match reason {
+                        Some(why) => {
+                            button.disabled_tip(why);
+                        }
+                        None => {
+                            egui::Popup::menu(&button)
+                                .style(crate::menu::menu_style(t))
+                                .show(|ui| {
+                                    for item in &items {
+                                        crate::menu::item(ui, item, events);
+                                    }
+                                });
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    });
+}
+
+/// The parts the module under the cursor can take (Replace's choices), as menu items.
+fn replace_items(shell: &ShellModel) -> Vec<ew_viewmodel::actions::ActionItem> {
+    ew_viewmodel::actions::station_tools(shell)
+        .into_iter()
+        .find_map(|(_, entry)| match entry {
+            MenuEntry::Submenu {
+                submenu: ew_viewmodel::actions::Submenu::ModuleParts,
+                items,
+                ..
+            } => Some(items),
+            _ => None,
+        })
+        .unwrap_or_default()
 }
 
 /// The rack, drawn: one card per place, left to right, scrolling sideways when the station is long; under it the note
@@ -531,7 +624,13 @@ fn rack(
     if let Some((_, why)) = &tab.error {
         ui.horizontal_wrapped(|ui| {
             let (rect, _) = ui.allocate_exact_size(vec2(t.icon_sm, t.icon_sm), Sense::hover());
-            icons::paint(ui.painter(), IconId::circle_x, rect, t.error.color32(), t.icon_stroke);
+            icons::paint(
+                ui.painter(),
+                IconId::circle_x,
+                rect,
+                t.error.color32(),
+                t.icon_stroke,
+            );
             ui.add(egui::Label::new(small(t, why.clone(), t.error)).selectable(false));
         });
     }
@@ -577,7 +676,12 @@ fn card(
         (false, false) => (t.border_width, t.border_default),
     };
     if p.taken || selected || refused {
-        painter.rect_stroke(inner, radius, theme::stroke(width, colour), egui::StrokeKind::Inside);
+        painter.rect_stroke(
+            inner,
+            radius,
+            theme::stroke(width, colour),
+            egui::StrokeKind::Inside,
+        );
     } else {
         // A free place is an outline of dashes: it takes a part.
         let corners = [
@@ -600,7 +704,11 @@ fn card(
     let at = |row: f32| pos2(rect.left() + pad, rect.top() + pad + row * step);
     let put = |row: f32, text: &str, font: &TypeToken, colour: theme::Rgba| {
         if !text.is_empty() {
-            painter.galley(at(row), line(ui, text, font, colour, text_width), colour.color32());
+            painter.galley(
+                at(row),
+                line(ui, text, font, colour, text_width),
+                colour.color32(),
+            );
         }
     };
     // The corner says which place it is: the slot's number, Position n of a valve terminal, Head for the station
@@ -612,7 +720,13 @@ fn card(
     put(0.0, corner, &t.type_caption, t.text_tertiary);
     if !p.taken {
         let plus = Rect::from_center_size(rect.center(), vec2(t.icon_md, t.icon_md));
-        icons::paint(painter, IconId::plus, plus, t.text_tertiary.color32(), t.icon_stroke);
+        icons::paint(
+            painter,
+            IconId::plus,
+            plus,
+            t.text_tertiary.color32(),
+            t.icon_stroke,
+        );
     } else {
         put(1.0, &p.word, &t.type_body_strong, t.text_primary);
         put(2.0, &p.tag, &t.type_small, t.text_primary);
@@ -716,7 +830,8 @@ fn table(
                 pos2(row.left(), row.top() + t.space_2),
                 pos2(row.left() + 2.0, row.bottom() - t.space_2),
             );
-            ui.painter().rect_filled(bar, theme::radius(t.radius_mark), t.accent.color32());
+            ui.painter()
+                .rect_filled(bar, theme::radius(t.radius_mark), t.accent.color32());
         } else if response.hovered() {
             ui.painter().rect_filled(row, 0.0, t.state_hover.color32());
         }
@@ -727,7 +842,13 @@ fn table(
         let [slot, module, part, gives, addresses, drawn] = cells(row);
         let text = |ui: &mut Ui, cell: Rect, text: &str, colour: theme::Rgba| {
             if !text.is_empty() {
-                put_left(ui, cell, egui::Label::new(small(t, text, colour)).selectable(false).truncate());
+                put_left(
+                    ui,
+                    cell,
+                    egui::Label::new(small(t, text, colour))
+                        .selectable(false)
+                        .truncate(),
+                );
             }
         };
         text(ui, slot, &p.slot, t.text_secondary);
@@ -743,7 +864,12 @@ fn table(
         }
         if p.tag.is_empty() && tab.draft.is_some() {
             // A station not made yet has no tags: its modules are new.
-            text(ui, module, strings::text(key!("rack-new-module")), t.text_tertiary);
+            text(
+                ui,
+                module,
+                strings::text(key!("rack-new-module")),
+                t.text_tertiary,
+            );
         } else {
             text(ui, module, &p.tag, t.text_primary);
         }
@@ -779,12 +905,18 @@ fn table(
                     let draw = ui.add(egui::Link::new(small(t, label, t.accent)));
                     let draw_name = format!("{label} {}", p.tag);
                     draw.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Link, true, &draw_name));
-                    page_menu(t, &draw, &pages, |folio| {
-                        let mut at = p.select();
-                        at["op"] = json!("draw");
-                        at["folio"] = json!(folio);
-                        Event::Action("plc.rack_slot", at)
-                    }, events);
+                    page_menu(
+                        t,
+                        &draw,
+                        &pages,
+                        |folio| {
+                            let mut at = p.select();
+                            at["op"] = json!("draw");
+                            at["folio"] = json!(folio);
+                            Event::Action("plc.rack_slot", at)
+                        },
+                        events,
+                    );
                 }
             });
         });
@@ -805,17 +937,8 @@ fn choose_part(ui: &mut Ui, shell: &ShellModel, p: &Place, events: &mut Vec<Even
     egui::Popup::menu(&button)
         .style(crate::menu::menu_style(&t))
         .show(|ui| {
-            for entry in ew_viewmodel::actions::station_menu(shell) {
-                if let MenuEntry::Submenu {
-                    submenu: ew_viewmodel::actions::Submenu::ModuleParts,
-                    items,
-                    ..
-                } = entry
-                {
-                    for item in &items {
-                        crate::menu::item(ui, item, events);
-                    }
-                }
+            for item in &replace_items(shell) {
+                crate::menu::item(ui, item, events);
             }
         });
 }
@@ -862,12 +985,18 @@ fn channels(
     if tab.draft.is_some() {
         return;
     }
-    let under = all.iter().find(|p| tab.cursor == Some(p.cursor) && p.device.is_some());
+    let under = all
+        .iter()
+        .find(|p| tab.cursor == Some(p.cursor) && p.device.is_some());
     let Some(p) = under else {
         section(ui, t, strings::text(key!("rack-channels")));
         ui.add(
-            egui::Label::new(small(t, strings::text(key!("rack-channels-select")), t.text_tertiary))
-                .selectable(false),
+            egui::Label::new(small(
+                t,
+                strings::text(key!("rack-channels-select")),
+                t.text_tertiary,
+            ))
+            .selectable(false),
         );
         return;
     };
@@ -920,7 +1049,13 @@ fn channels(
         let [number, address, symbol, wired] = cells(row);
         let mut text = |cell: Rect, text: String, colour: theme::Rgba| {
             if !text.is_empty() {
-                put_left(ui, cell, egui::Label::new(small(t, text, colour)).selectable(false).truncate());
+                put_left(
+                    ui,
+                    cell,
+                    egui::Label::new(small(t, text, colour))
+                        .selectable(false)
+                        .truncate(),
+                );
             }
         };
         text(number, c.number.to_string(), t.text_secondary);
@@ -943,20 +1078,20 @@ fn channels(
 
 /// To do: each finding of the slot rule with the error icon and word, each step that is left, in a sentence, with its
 /// fix beside it; a station with nothing left says so.
-fn todo(
-    ui: &mut Ui,
-    t: &Tokens,
-    shell: &ShellModel,
-    shown: Option<&StationShown>,
-    events: &mut Vec<Event>,
-) {
+fn todo(ui: &mut Ui, t: &Tokens, shell: &ShellModel, shown: Option<&StationShown>, events: &mut Vec<Event>) {
     let Some(shown) = shown else { return };
     section(ui, t, strings::text(key!("rack-todo")));
     let items = &shown.todo;
     if items.is_empty() {
         ui.horizontal(|ui| {
             let (rect, _) = ui.allocate_exact_size(vec2(t.icon_sm, t.icon_sm), Sense::hover());
-            icons::paint(ui.painter(), IconId::circle_check, rect, t.success.color32(), t.icon_stroke);
+            icons::paint(
+                ui.painter(),
+                IconId::circle_check,
+                rect,
+                t.success.color32(),
+                t.icon_stroke,
+            );
             ui.add(
                 egui::Label::new(small(t, strings::text(key!("rack-todo-none")), t.text_secondary))
                     .selectable(false),
@@ -970,7 +1105,13 @@ fn todo(
         ui.horizontal_wrapped(|ui| {
             let (rect, _) = ui.allocate_exact_size(vec2(t.icon_sm, t.icon_sm), Sense::hover());
             if item.error {
-                icons::paint(ui.painter(), IconId::circle_x, rect, t.error.color32(), t.icon_stroke);
+                icons::paint(
+                    ui.painter(),
+                    IconId::circle_x,
+                    rect,
+                    t.error.color32(),
+                    t.icon_stroke,
+                );
                 ui.add(
                     egui::Label::new(
                         RichText::new(strings::text(key!("severity-error")))
@@ -980,11 +1121,21 @@ fn todo(
                     .selectable(false),
                 );
             } else {
-                icons::paint(ui.painter(), IconId::circle_dot, rect, t.text_tertiary.color32(), t.icon_stroke);
+                icons::paint(
+                    ui.painter(),
+                    IconId::circle_dot,
+                    rect,
+                    t.text_tertiary.color32(),
+                    t.icon_stroke,
+                );
             }
             ui.add(egui::Label::new(small(t, item.text.clone(), t.text_primary)).selectable(false));
             match &item.fix {
-                Some(TodoFix::Action { label, action, params }) => {
+                Some(TodoFix::Action {
+                    label,
+                    action,
+                    params,
+                }) => {
                     if components::button(ui, Kind::Secondary, label, true, 0.0).clicked() {
                         events.push(Event::Action(action, params.clone()));
                     }
@@ -993,31 +1144,29 @@ fn todo(
                     let label = strings::text(key!("rack-choose-part"));
                     let button = components::button(ui, Kind::Secondary, label, true, 0.0);
                     if button.clicked() {
-                        events.push(Event::Action("plc.rack_select", json!({ "slot": slot, "rack": rack })));
+                        events.push(Event::Action(
+                            "plc.rack_select",
+                            json!({ "slot": slot, "rack": rack }),
+                        ));
                     }
                     egui::Popup::menu(&button)
                         .style(crate::menu::menu_style(t))
                         .show(|ui| {
-                            for entry in ew_viewmodel::actions::station_menu(shell) {
-                                if let MenuEntry::Submenu {
-                                    submenu: ew_viewmodel::actions::Submenu::ModuleParts,
-                                    items,
-                                    ..
-                                } = entry
-                                {
-                                    for item in &items {
-                                        crate::menu::item(ui, item, events);
-                                    }
-                                }
+                            for item in &replace_items(shell) {
+                                crate::menu::item(ui, item, events);
                             }
                         });
                 }
                 Some(TodoFix::DrawOn) => {
                     let label = strings::text(key!("rack-draw-on-page"));
                     let button = components::button(ui, Kind::Secondary, label, true, 0.0);
-                    page_menu(t, &button, &pages, |folio| {
-                        Event::Action("plc.rack_next", json!({ "step": "draw", "folio": folio }))
-                    }, events);
+                    page_menu(
+                        t,
+                        &button,
+                        &pages,
+                        |folio| Event::Action("plc.rack_next", json!({ "step": "draw", "folio": folio })),
+                        events,
+                    );
                 }
                 Some(TodoFix::BusPage) => {
                     let label = strings::text(key!("rack-next-bus"));
@@ -1092,7 +1241,11 @@ fn catalogue(
     } else {
         key!("rack-catalogue-hint")
     };
-    ui.add(egui::Label::new(small(t, strings::text(hint), t.text_tertiary)).selectable(false).wrap());
+    ui.add(
+        egui::Label::new(small(t, strings::text(hint), t.text_tertiary))
+            .selectable(false)
+            .wrap(),
+    );
     ui.add_space(t.space_3);
     let parts = shown.map_or(&[][..], |s| s.catalogue.as_slice());
     let foot = t.size_control + 2.0 * t.space_3;
@@ -1110,7 +1263,11 @@ fn catalogue(
                 } else {
                     key!("rack-catalogue-empty")
                 };
-                ui.add(egui::Label::new(small(t, strings::text(none), t.text_secondary)).selectable(false).wrap());
+                ui.add(
+                    egui::Label::new(small(t, strings::text(none), t.text_secondary))
+                        .selectable(false)
+                        .wrap(),
+                );
             }
             let mut group = None;
             for p in parts {
@@ -1133,12 +1290,27 @@ fn catalogue(
         .filter(|d| d.head.is_none())
         .map_or("module", |d| d.kind.word());
     ui.horizontal(|ui| {
-        if components::button(ui, Kind::Secondary, strings::text(key!("rack-new-part")), true, 0.0).clicked() {
+        if components::button(
+            ui,
+            Kind::Secondary,
+            strings::text(key!("rack-new-part")),
+            true,
+            0.0,
+        )
+        .clicked()
+        {
             events.push(Event::Action("part.new", json!({ "plc": kind })));
         }
         // A valve position that holds no valve is closed with a blanking plate: no part of the catalogue.
         if matches!(tab.cursor, Some(StationCursor::Position { .. }))
-            && components::button(ui, Kind::Secondary, strings::text(key!("rack-put-blank")), true, 0.0).clicked()
+            && components::button(
+                ui,
+                Kind::Secondary,
+                strings::text(key!("rack-put-blank")),
+                true,
+                0.0,
+            )
+            .clicked()
         {
             events.push(Event::Action("plc.rack_slot", json!({ "op": "blank" })));
         }
@@ -1180,19 +1352,29 @@ fn part_row(ui: &mut Ui, t: &Tokens, p: &StationPart, events: &mut Vec<Event>) {
         primary.color32(),
     );
     painter.galley(
-        pos2(rect.right() - pad - gives_width, rect.top() + half - gives.size().y),
+        pos2(
+            rect.right() - pad - gives_width,
+            rect.top() + half - gives.size().y,
+        ),
         gives,
         secondary.color32(),
     );
     if !p.description.is_empty() {
         let number = line(ui, &p.number, &t.type_caption, secondary, width - 2.0 * pad);
-        painter.galley(pos2(rect.left() + pad, rect.top() + half), number, secondary.color32());
+        painter.galley(
+            pos2(rect.left() + pad, rect.top() + half),
+            number,
+            secondary.color32(),
+        );
     }
     if let Some(why) = &p.unfit {
         response.clone().tip(why.clone());
     }
     if response.double_clicked() {
-        events.push(Event::Action("plc.rack_add", json!({ "part": p.copy.to_string() })));
+        events.push(Event::Action(
+            "plc.rack_add",
+            json!({ "part": p.copy.to_string() }),
+        ));
     }
     if response.drag_started() {
         egui::DragAndDrop::set_payload(ui.ctx(), PartDrag(p.copy));

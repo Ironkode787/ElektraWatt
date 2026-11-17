@@ -275,13 +275,19 @@ pub fn trade_of(key: &str) -> Option<Trade> {
 
 /// The typed tokens of a filter text, case-folded: the browser's filter and the station view's catalogue filter.
 pub(crate) fn filter_tokens(filter: &str) -> Vec<String> {
-    filter.to_lowercase().split_whitespace().map(str::to_owned).collect()
+    filter
+        .to_lowercase()
+        .split_whitespace()
+        .map(str::to_owned)
+        .collect()
 }
 
 /// Whether every token is a case-folded substring of one of `texts` ("relay" found the generic relay only by its key).
 pub(crate) fn tokens_hit(tokens: &[String], texts: &[&str]) -> bool {
     let texts: Vec<String> = texts.iter().map(|t| t.to_lowercase()).collect();
-    tokens.iter().all(|tok| texts.iter().any(|t| t.contains(tok.as_str())))
+    tokens
+        .iter()
+        .all(|tok| texts.iter().any(|t| t.contains(tok.as_str())))
 }
 
 /// The texts a part is found by: its part number, its manufacturer and its words (its description in every language

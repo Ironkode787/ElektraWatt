@@ -712,11 +712,7 @@ fn catalogue_part(
             Vec::new()
         },
         terminal_valve,
-        plc_bus: part
-            .sections
-            .plc
-            .as_ref()
-            .is_none_or(|p| p.positions.is_none())
+        plc_bus: part.sections.plc.as_ref().is_none_or(|p| p.positions.is_none())
             && (part.sections.plc.is_some()
                 || part.sections.bus.as_ref().is_some_and(|b| !b.ports.is_empty())),
         plc: catalogue_plc(part),
