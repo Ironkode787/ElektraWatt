@@ -422,6 +422,8 @@ impl ShellModel {
             .filter(|d| d.head.is_none() || tab.cursor == Some(StationCursor::Head))
             .map(|d| d.kind.word());
         let terminal = view.as_ref().is_some_and(|v| !v.cells.is_empty());
+        // A station whose part takes no modules has no slot, free or taken (a valve terminal of valve positions alone).
+        let no_slots = view.as_ref().is_some_and(|v| v.rows.is_empty());
         let tokens = crate::tools::filter_tokens(&tab.filter);
         let mut out: Vec<(bool, StationPart)> = cat
             .parts
@@ -452,6 +454,9 @@ impl ShellModel {
                     }
                     Some(StationCursor::Slot { .. }) if valve => {
                         Some(strings::text(key!("rack-valve-on-slot")).to_owned())
+                    }
+                    _ if !valve && heads.is_none() && no_slots => {
+                        Some(strings::text(key!("rack-takes-no-modules")).to_owned())
                     }
                     Some(StationCursor::Position { .. }) if !valve && heads.is_none() => {
                         Some(strings::text(key!("rack-module-on-position")).to_owned())
@@ -1171,7 +1176,12 @@ impl ShellModel {
                     .map(|r| (r.rack, r.slot))
             });
         let Some((rack, slot)) = at else {
-            return self.rack_refuse(cursor, strings::text(key!("rack-full")).to_owned());
+            let why = if view.rows.is_empty() {
+                key!("rack-takes-no-modules")
+            } else {
+                key!("rack-full")
+            };
+            return self.rack_refuse(cursor, strings::text(why).to_owned());
         };
         let place = StationCursor::Slot { rack, slot };
         if !free(rack, slot) {

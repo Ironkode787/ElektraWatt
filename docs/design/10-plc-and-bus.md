@@ -1733,7 +1733,9 @@ gone (deleted, its making undone) closes. The view shows, from `Session::rack_vi
 - **the rack drawn**, one card per place left to right: the head (`RackView::head`, the station itself; a station
   that is its own module has no second row), each slot with its module (what it gives, its tag, its part number, the
   folio it is drawn on or "not drawn") or free as an outline, and a valve terminal's positions (`RackView::cells`,
-  `terminal_cells`), a valve with its part;
+  `terminal_cells`), a valve with its part. Free slots stand only as far as the station's part takes modules: a part
+  whose limits say no module, or a valve terminal whose part maps its valve positions and names no module limit, has
+  no slot, its positions follow the head, and the catalogue greys the cards with "This station takes no modules";
 - **the same places as a table**: slot, module, part (number and description; the part that describes the module for
   the PLC, else its first part; a module without a part says No part with Choose part…), gives, addresses, drawn on
   (a link to the page, else Draw on a page…);

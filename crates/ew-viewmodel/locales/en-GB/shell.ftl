@@ -7243,6 +7243,7 @@ rack-part-not-in-slot = Not allowed in slot { $p0 }: it goes into slot { $p1 }
 rack-part-no-module = { $p0 } is a station's head, not a module: a slot takes a module
 rack-no-free-position = Every valve position of { $p0 } is filled: empty one first
 rack-full = Every slot of the station is taken: take a module out first
+rack-takes-no-modules = This station takes no modules: its part has no slots for them
 rack-todo = To do
 rack-todo-none = Nothing to do: the slots meet the station's rules and every module is drawn.
 rack-todo-create = Create makes the station with these modules. Nothing is written before.

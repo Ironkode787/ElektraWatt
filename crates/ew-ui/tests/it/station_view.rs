@@ -178,6 +178,10 @@ fn a_valve_terminals_positions_are_filled_like_slots() {
     let cells = |h: &Window| h.state().shell().rack_view(id).expect("the terminal").cells;
     assert_eq!(cells(&h).len(), 4, "four positions");
     assert!(cells(&h).iter().all(|c| c.at.holder.is_none()), "all empty");
+    // Its part takes no modules: no free slot stands between its head and its positions.
+    let rack = h.state().shell().rack_view(id).expect("the terminal");
+    assert!(rack.rows.is_empty(), "no slot: {:?}", rack.rows);
+    assert!(h.query_by_label("Free slot 2").is_none());
     click(&mut h, "Empty position 1");
     let shown = h.state().shell().station_shown().expect("the view");
     let card = shown
@@ -187,7 +191,7 @@ fn a_valve_terminals_positions_are_filled_like_slots() {
         .expect("the input card in the catalogue");
     assert_eq!(
         card.unfit.as_deref(),
-        Some("A module goes into a slot, not onto a valve position")
+        Some("This station takes no modules: its part has no slots for them")
     );
     take(&mut h, "EW-GEN-VLV-3");
     let first = cells(&h)[0].at.clone();

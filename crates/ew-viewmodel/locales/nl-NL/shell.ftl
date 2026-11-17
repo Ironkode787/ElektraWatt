@@ -6981,6 +6981,7 @@ rack-part-not-in-slot = Niet toegestaan in slot { $p0 }: het hoort in slot { $p1
 rack-part-no-module = { $p0 } is de kop van een station, geen module: in een slot hoort een module
 rack-no-free-position = Elke ventielplaats van { $p0 } is gevuld: maak er eerst een leeg
 rack-full = Elk slot van het station is bezet: haal eerst een module weg
+rack-takes-no-modules = Dit station neemt geen modules op: zijn artikel heeft er geen slots voor
 rack-todo = Te doen
 rack-todo-none = Niets te doen: de slots voldoen aan de regels van het station en elke module is getekend.
 rack-todo-create = Maken maakt het station met deze modules. Daarvoor wordt niets geschreven.

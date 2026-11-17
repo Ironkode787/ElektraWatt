@@ -113,7 +113,8 @@ pub struct RackView {
     /// The slots: the occupied ones in slot order (the station itself, where it is its own module, is the head and
     /// has no row), then the free ones: in a station whose modules have rack positions,
     /// the free slots of rack 0 up to the station's limit (else one after the last); in a station of positional modules,
-    /// the one slot after them (a module added there follows the others, as its position ranks it).
+    /// the one slot after them (a module added there follows the others, as its position ranks it); none where the
+    /// station's part takes no modules (its limits say none, or it is a valve terminal of valve positions alone).
     pub rows: Vec<RackRow>,
     /// Whether the station's modules have rack positions (a free slot is then added as `rack.slot`).
     pub racked: bool,
@@ -222,6 +223,16 @@ fn device_row(q: &Q, device: Id<Device>) -> RackRow {
     }
 }
 
+/// Whether a station of a part with PLC section `plc` takes modules, so that its rack has free slots: not where its
+/// limits say none, nor a valve terminal whose valve positions are its own (the part maps solenoids to positions) and
+/// whose limits name no modules beside them.
+fn takes_modules(plc: &ew_derive::ew_schema::PlcSection) -> bool {
+    match plc.limits.as_ref().and_then(|l| l.max_modules) {
+        Some(most) => most > 0,
+        None => plc.positions.is_none(),
+    }
+}
+
 /// The row of free slot `slot` of rack 0.
 fn free_row(slot: u32, positional: bool) -> RackRow {
     RackRow {
@@ -310,12 +321,13 @@ impl Session {
             .and_then(|(_, plc)| plc.limits.as_ref())
             .and_then(|l| l.max_modules);
         // The free slots: of rack 0 up to the limit (else one after the last) where the modules have rack positions,
-        // else the one after the positional modules.
+        // else the one after the positional modules; none where the station's part takes no modules.
         let racked = rows.iter().any(|r| !r.positional);
         let used: std::collections::BTreeSet<u32> =
             rows.iter().filter(|r| r.rack == 0).map(|r| r.slot).collect();
         let last = used.iter().max().copied().unwrap_or(0);
         let upto = match max_modules {
+            _ if !section.as_ref().is_none_or(|(_, plc)| takes_modules(plc)) => 0,
             Some(m) if racked => u32::from(m).max(last),
             _ => last + 1,
         };
@@ -409,7 +421,15 @@ impl Session {
             .and_then(|p| p.sections.plc.as_ref()?.limits.as_ref()?.max_modules);
         let mut rows: Vec<RackRow> = (1u32..).zip(modules).map(|(slot, m)| row_of(slot, *m)).collect();
         let n = u32::try_from(modules.len()).unwrap_or(u32::MAX);
-        let upto = max_modules.map_or(n.saturating_add(1), |m| u32::from(m).max(n));
+        let takes = head_part
+            .as_ref()
+            .and_then(|p| p.sections.plc.as_ref())
+            .is_none_or(takes_modules);
+        let upto = match max_modules {
+            _ if !takes => n,
+            Some(m) => u32::from(m).max(n),
+            None => n.saturating_add(1),
+        };
         for slot in n.saturating_add(1)..=upto {
             rows.push(free_row(slot, true));
         }
