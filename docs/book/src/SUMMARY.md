@@ -159,6 +159,7 @@
     - [`valve.add`](reference/commands/valve.add.md)
     - [`valve.set_occupancy`](reference/commands/valve.set_occupancy.md)
     - [`valve_terminal.draw_slots`](reference/commands/valve_terminal.draw_slots.md)
+    - [`valve_terminal.draw_valves`](reference/commands/valve_terminal.draw_valves.md)
     - [`valve_terminal.generate_overview`](reference/commands/valve_terminal.generate_overview.md)
   - [Rule reference](reference/rules/index.md)
     - [EW-BUS](reference/rules/ew-bus.md)
