@@ -137,7 +137,8 @@ impl CableRows {
             .map(|c| (c.core, c.colour.concat()))
             .chain((1..=MAX_CORES).map(|k| (k.to_string(), String::new())));
         while self.table.len() < n {
-            let Some(row) = free.find(|(core, _)| !self.table.iter().any(|r| r.0.trim().eq_ignore_ascii_case(core)))
+            let Some(row) =
+                free.find(|(core, _)| !self.table.iter().any(|r| r.0.trim().eq_ignore_ascii_case(core)))
             else {
                 break;
             };
@@ -189,10 +190,7 @@ pub(crate) fn cable_field(field: &str) -> Option<(&'static str, Option<usize>)> 
         let m = ["core", "colour"].into_iter().find(|x| *x == m)?;
         return Some((m, Some(row.parse().ok()?)));
     }
-    CABLE_MEMBERS
-        .into_iter()
-        .find(|x| *x == rest)
-        .map(|m| (m, None))
+    CABLE_MEMBERS.into_iter().find(|x| *x == rest).map(|m| (m, None))
 }
 
 /// The cable section of a held part's cores (`cable_cores`): the count and the common cross-section of its cores, a
@@ -238,7 +236,8 @@ pub(crate) fn rows_of(cores: &[CableCore]) -> CableRows {
     let same_size = csas.len() == plain.len() && csas.iter().all(|c| Some(c) == csas.first());
     if same_size
         && let Some(m) = ["hd308", "numbers"].into_iter().find(|m| {
-            let made: Vec<(String, Vec<String>)> = rows.cores_of(m).into_iter().map(|c| (c.core, c.colour)).collect();
+            let made: Vec<(String, Vec<String>)> =
+                rows.cores_of(m).into_iter().map(|c| (c.core, c.colour)).collect();
             made == held
         })
     {
@@ -330,7 +329,9 @@ impl Session {
         if rows.marking == "own" {
             for (i, (core, colour)) in rows.table.iter().enumerate() {
                 let core = core.trim();
-                let twice = rows.table[..i].iter().any(|(c, _)| c.trim().eq_ignore_ascii_case(core));
+                let twice = rows.table[..i]
+                    .iter()
+                    .any(|(c, _)| c.trim().eq_ignore_ascii_case(core));
                 if core.is_empty() || ew_mltext::Ident::from_input(core).is_err() || twice {
                     out.push(message(
                         &format!("cable.core.{i}"),
@@ -367,7 +368,10 @@ impl Session {
                 // An own colour in the project's codes (a profile's colour name is its code).
                 let colour = if own {
                     let typed = rows.table.get(i).map_or("", |r| r.1.as_str());
-                    self.typed_colours(typed).ok().and_then(|mut t| t.pop()).unwrap_or_default()
+                    self.typed_colours(typed)
+                        .ok()
+                        .and_then(|mut t| t.pop())
+                        .unwrap_or_default()
                 } else {
                     c.colour
                 };
@@ -383,8 +387,13 @@ impl Session {
         if rows.shield {
             cores.push(json!({ "core": "SHIELD", "shield": true }));
         }
-        serde_json::from_value(Value::Array(cores))
-            .map_err(|e| message("cable.cores", ew_commands::text_key!("error-part-value"), &[&e.to_string()]))
+        serde_json::from_value(Value::Array(cores)).map_err(|e| {
+            message(
+                "cable.cores",
+                ew_commands::text_key!("error-part-value"),
+                &[&e.to_string()],
+            )
+        })
     }
 }
 

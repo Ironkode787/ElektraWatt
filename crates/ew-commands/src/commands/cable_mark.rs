@@ -114,7 +114,10 @@ pub(crate) fn follow_kinds(tx: &mut TxBuilder<'_>, connections: &[Id<Connection>
         }
         if let Some(left) = before {
             for mark in tx.markers_of_connection(*c) {
-                let Some(m) = tx.get::<PageItem>(mark).and_then(|i| i.kind.wire_marker().cloned()) else {
+                let Some(m) = tx
+                    .get::<PageItem>(mark)
+                    .and_then(|i| i.kind.wire_marker().cloned())
+                else {
                     continue;
                 };
                 let of_cable = m

@@ -540,11 +540,10 @@ impl ShellModel {
     pub(crate) fn act_part_choose(&mut self, p: &Map<String, Value>) -> Outcome {
         // A cable by its ID (Choose a cable type… on its finding, rc.3): its cable parts, those that fit first.
         if let Some(cable) = or_return!(string_param(p, "cable")) {
-            let Some(cable) = cable
-                .parse::<Uuid>()
-                .ok()
-                .filter(|c| self.project_session().is_some_and(|s| s.cables().iter().any(|(x, _, _)| x == c)))
-            else {
+            let Some(cable) = cable.parse::<Uuid>().ok().filter(|c| {
+                self.project_session()
+                    .is_some_and(|s| s.cables().iter().any(|(x, _, _)| x == c))
+            }) else {
                 return failed(key!("error-bad-param"), &["cable"]);
             };
             let tag = self.tag_of(cable);
@@ -899,7 +898,9 @@ impl ShellModel {
         // From the Cable form (its New cable type…), Save returns to it with the new type chosen.
         let (back, cable_form) = match self.dialog.take() {
             Some(Dialog::PartChoose(c)) => (Some(c), None),
-            Some(Dialog::Form(f)) if cable_type && super::cables::chooses_cable_type(&f) => (None, Some(Box::new(f))),
+            Some(Dialog::Form(f)) if cable_type && super::cables::chooses_cable_type(&f) => {
+                (None, Some(Box::new(f)))
+            }
             other => {
                 self.dialog = other;
                 (None, None)

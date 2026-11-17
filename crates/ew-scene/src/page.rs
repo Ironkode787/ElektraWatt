@@ -866,7 +866,7 @@ impl<'a> Builder<'a> {
             fonts,
             styles,
             out: LayerList::default(),
-        kept_clear: Vec::new(),
+            kept_clear: Vec::new(),
         }
     }
 
@@ -2522,7 +2522,13 @@ impl Builder<'_> {
             return;
         };
         let (tag_at, tag_box) = (place.tag_at, place.tag_box);
-        self.text(&cable_text(&mark.tag, tag_at, &place.tag_align, CABLE_TAG_STYLE, entity));
+        self.text(&cable_text(
+            &mark.tag,
+            tag_at,
+            &place.tag_align,
+            CABLE_TAG_STYLE,
+            entity,
+        ));
         self.text(&cable_text(
             &mark.kind,
             place.kind_at,
@@ -2557,10 +2563,7 @@ impl Builder<'_> {
         at: Pt2,
         align: Align,
     ) -> Option<CablePlace> {
-        let tag_box = self.text_box(
-            &cable_text(&mark.tag, at, &align, CABLE_TAG_STYLE, entity),
-            false,
-        )?;
+        let tag_box = self.text_box(&cable_text(&mark.tag, at, &align, CABLE_TAG_STYLE, entity), false)?;
         let below = tag_box.max().y + CABLE_TEXT_GAP;
         let kind_box = |at: Pt2, align: &Align| {
             self.text_box(

@@ -238,7 +238,12 @@ impl Builder<'_> {
 }
 
 /// A free text's text as it prints, aligned `align` (its alignment as placed).
-fn free_text_spec<'a>(iv: &'a ItemView, t: &'a FreeText, align: &'a Align, entity: EntityRef) -> TextSpec<'a> {
+fn free_text_spec<'a>(
+    iv: &'a ItemView,
+    t: &'a FreeText,
+    align: &'a Align,
+    entity: EntityRef,
+) -> TextSpec<'a> {
     TextSpec {
         text: &iv.text,
         at: t.at,

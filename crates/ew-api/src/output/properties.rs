@@ -2867,7 +2867,9 @@ impl Session {
                     let mut places: Vec<String> = q
                         .structure_nodes()
                         .iter()
-                        .filter(|(_, n)| n.aspect == ew_schema::Open::Known(ew_derive::ew_rds::Aspect::Location))
+                        .filter(|(_, n)| {
+                            n.aspect == ew_schema::Open::Known(ew_derive::ew_rds::Aspect::Location)
+                        })
                         .map(|(_, n)| n.code.as_str().to_owned())
                         .collect();
                     places.sort_by(|a, b| ew_mltext::natural_cmp(a, b));

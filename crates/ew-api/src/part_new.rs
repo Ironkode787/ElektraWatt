@@ -257,8 +257,7 @@ impl Session {
                 && let Some(reads) = draft.cable.preview()
             {
                 let series = draft.text("type_designation").trim();
-                p.description
-                    .set_neutral(format!("{series} {reads}").trim());
+                p.description.set_neutral(format!("{series} {reads}").trim());
             }
         }
         let first_port = p.sections.bus.as_ref().and_then(|b| b.ports.first());

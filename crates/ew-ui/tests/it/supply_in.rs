@@ -207,7 +207,10 @@ fn supply_points_that_stand_together_print_their_place_once() {
         .collect();
     assert_eq!(ips.len(), 3, "three points");
     let shell = d.shell_mut();
-    assert_eq!(shell.dispatch("select.set", &json!({ "ids": ips })), Outcome::Done);
+    assert_eq!(
+        shell.dispatch("select.set", &json!({ "ids": ips })),
+        Outcome::Done
+    );
     assert_eq!(
         shell.dispatch("ip.supply_in", &json!({"location": "Supply", "device": "-X0"})),
         Outcome::Done
@@ -239,14 +242,20 @@ fn supply_points_that_stand_together_print_their_place_once() {
     menu(&mut d, top, "Take out of its group");
     assert_eq!(printed(&mut d), 2, "the point taken out prints its own");
     // Its Properties: where it comes from, changed in the row.
-    let sheet = d.shell_mut().properties().sheet().expect("the point's properties").clone();
+    let sheet = d
+        .shell_mut()
+        .properties()
+        .sheet()
+        .expect("the point's properties")
+        .clone();
     let row = "function/derived.supply_place";
     match find_row(&sheet, row).map(|(_, r)| r.value.clone()) {
         Some(RowValue::One { text, .. }) => assert_eq!(text, "Supply"),
         other => panic!("{row}: {other:?}"),
     }
     assert_eq!(
-        d.shell_mut().dispatch("props.set", &json!({"row": row, "value": "MCC1"})),
+        d.shell_mut()
+            .dispatch("props.set", &json!({"row": row, "value": "MCC1"})),
         Outcome::Done
     );
     d.input(&Input::Hover { at: (4, 4) });
@@ -255,7 +264,8 @@ fn supply_points_that_stand_together_print_their_place_once() {
     assert!(texts.iter().any(|t| t.starts_with("+MCC1")), "{texts:?}");
     // Marked alone from the place of the points under it, it joins their group: the place is printed once again.
     assert_eq!(
-        d.shell_mut().dispatch("ip.supply_in", &json!({"location": "Supply", "device": "-X0"})),
+        d.shell_mut()
+            .dispatch("ip.supply_in", &json!({"location": "Supply", "device": "-X0"})),
         Outcome::Done
     );
     d.input(&Input::Hover { at: (4, 4) });

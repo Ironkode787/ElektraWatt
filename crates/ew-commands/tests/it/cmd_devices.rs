@@ -1123,9 +1123,17 @@ fn a_wire_made_a_core_by_its_kind_gets_the_mark_and_leaves_it_again() {
             (0x4122, kind(ConnectionKind::Core(cores[1].1))),
         ],
     );
-    assert_eq!(marks_on(&e, PAGE_102), [vec![id(0x4121), id(0x4122)]], "one mark over both");
+    assert_eq!(
+        marks_on(&e, PAGE_102),
+        [vec![id(0x4121), id(0x4122)]],
+        "one mark over both"
+    );
     set(&mut e, vec![(0x4121, kind(ConnectionKind::Wire))]);
-    assert_eq!(marks_on(&e, PAGE_102), [vec![id(0x4122)]], "the wire left the mark");
+    assert_eq!(
+        marks_on(&e, PAGE_102),
+        [vec![id(0x4122)]],
+        "the wire left the mark"
+    );
     set(&mut e, vec![(0x4122, kind(ConnectionKind::Wire))]);
     assert!(marks_on(&e, PAGE_102).is_empty(), "no core left, no mark");
 }

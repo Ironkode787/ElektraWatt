@@ -63,7 +63,9 @@ impl Rule for CableWithoutLength {
                 [Target::new(Kind::Device, cable)],
                 "",
                 tag.clone(),
-                format!("{tag} has no length yet: type it in its Properties, or route the cable in the layout"),
+                format!(
+                    "{tag} has no length yet: type it in its Properties, or route the cable in the layout"
+                ),
             )
             .arg("cable", tag),
         ]

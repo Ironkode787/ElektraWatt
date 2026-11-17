@@ -188,10 +188,19 @@ impl ShellModel {
     /// Choose a cable type… (its part dialog); a cable without a length, Type the length… (its Length row). The
     /// finding row's right-click menu and its detail offer it; `None` for any other row.
     pub fn finding_offer(&self, key: &str) -> Option<ActionItem> {
-        let node = self.nav(NavKind::Messages)?.table()?.nodes.iter().find(|n| n.key == key)?;
+        let node = self
+            .nav(NavKind::Messages)?
+            .table()?
+            .nodes
+            .iter()
+            .find(|n| n.key == key)?;
         let rule = crate::navigators::messages::rule_of(node)?;
         let record = node.records.first()?.to_string();
-        let cable = self.project_session()?.cables().iter().any(|(c, _, _)| c.to_string() == record);
+        let cable = self
+            .project_session()?
+            .cables()
+            .iter()
+            .any(|(c, _, _)| c.to_string() == record);
         match rule.as_str() {
             "EW-CORE-041" if cable => self.aimed(
                 "part.choose",

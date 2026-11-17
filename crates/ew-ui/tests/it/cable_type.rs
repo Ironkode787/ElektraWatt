@@ -11,7 +11,9 @@ use ew_ui::visual::{Driver, Input};
 
 /// Clicks the field named `label`, selects its text and types `text`.
 fn fill(d: &mut Driver, label: &str, text: &str) {
-    d.input(&click(d.find(label).unwrap_or_else(|| panic!("no field {label:?}"))));
+    d.input(&click(
+        d.find(label).unwrap_or_else(|| panic!("no field {label:?}")),
+    ));
     d.input(&key("ctrl+a"));
     d.input(&Input::Type {
         text: text.to_owned(),
@@ -66,8 +68,10 @@ fn a_cable_type_is_made_in_the_cable_form_and_chosen_there() {
     fill(&mut d, "Part number", "CTRL-4G1.5");
     fill(&mut d, "Number of cores", "4");
     assert_eq!(
-        d.shell_mut()
-            .dispatch("part.field", &serde_json::json!({"field": "cable.marking", "value": "numbers"})),
+        d.shell_mut().dispatch(
+            "part.field",
+            &serde_json::json!({"field": "cable.marking", "value": "numbers"})
+        ),
         Outcome::Done
     );
     shown(&mut d);
@@ -84,7 +88,13 @@ fn a_cable_type_is_made_in_the_cable_form_and_chosen_there() {
         Some(Dialog::PartEdit(e)) => {
             let t = |f: &str| e.draft.text(f).to_owned();
             assert_eq!(
-                [t("manufacturer"), t("type_designation"), t("part_number"), t("cable.cores"), t("cable.csa")],
+                [
+                    t("manufacturer"),
+                    t("type_designation"),
+                    t("part_number"),
+                    t("cable.cores"),
+                    t("cable.csa")
+                ],
                 ["Generic", "CTRL", "", "4", ""].map(str::to_owned)
             );
         }
@@ -134,8 +144,10 @@ fn a_new_part_of_kind_cable_has_the_cable_section() {
     shown(&mut d);
     assert!(d.find("Number of cores").is_none(), "a device part has none");
     assert_eq!(
-        d.shell_mut()
-            .dispatch("part.field", &serde_json::json!({"field": "kind", "value": "cable"})),
+        d.shell_mut().dispatch(
+            "part.field",
+            &serde_json::json!({"field": "kind", "value": "cable"})
+        ),
         Outcome::Done
     );
     shown(&mut d);
@@ -164,7 +176,8 @@ fn a_cable_without_a_part_offers_its_cable_types_the_misfits_greyed() {
     shown(&mut d);
     assert!(d.shell_mut().dialog().is_none(), "applied");
     assert_eq!(
-        d.shell_mut().dispatch("messages.show", &serde_json::json!({"on": true})),
+        d.shell_mut()
+            .dispatch("messages.show", &serde_json::json!({"on": true})),
         Outcome::Done
     );
     shown(&mut d);
@@ -172,7 +185,12 @@ fn a_cable_without_a_part_offers_its_cable_types_the_misfits_greyed() {
         .shell_mut()
         .nav(NavKind::Messages)
         .and_then(|n| n.table())
-        .and_then(|t| t.nodes.iter().find(|n| n.cells.get(1).is_some_and(|c| c == "EW-CORE-041")).cloned())
+        .and_then(|t| {
+            t.nodes
+                .iter()
+                .find(|n| n.cells.get(1).is_some_and(|c| c == "EW-CORE-041"))
+                .cloned()
+        })
         .expect("the cable has no part");
     let offer = d.shell_mut().finding_offer(&row.key).expect("an offer");
     assert_eq!(offer.label, "Choose a cable type…");
@@ -180,9 +198,16 @@ fn a_cable_without_a_part_offers_its_cable_types_the_misfits_greyed() {
     match d.shell_mut().dialog() {
         Some(Dialog::PartChoose(c)) => {
             assert!(c.offers.iter().all(|o| o.kind == "cable"), "cable parts only");
-            let first_misfit = c.misfits.iter().position(Option::is_some).expect("a cable that does not fit");
+            let first_misfit = c
+                .misfits
+                .iter()
+                .position(Option::is_some)
+                .expect("a cable that does not fit");
             assert!(first_misfit > 0, "those that fit come first");
-            assert!(c.misfits[first_misfit..].iter().all(Option::is_some), "then the others");
+            assert!(
+                c.misfits[first_misfit..].iter().all(Option::is_some),
+                "then the others"
+            );
             assert_eq!(
                 c.misfits[first_misfit].as_deref(),
                 Some("no protective conductor for its PE wire")
@@ -197,7 +222,12 @@ fn a_cable_without_a_part_offers_its_cable_types_the_misfits_greyed() {
         .shell_mut()
         .nav(NavKind::Messages)
         .and_then(|n| n.table())
-        .and_then(|t| t.nodes.iter().find(|n| n.cells.get(1).is_some_and(|c| c == "EW-CORE-033")).cloned())
+        .and_then(|t| {
+            t.nodes
+                .iter()
+                .find(|n| n.cells.get(1).is_some_and(|c| c == "EW-CORE-033"))
+                .cloned()
+        })
         .expect("the cable has no length");
     assert_eq!(row.cells[0], "warning");
     let offer = d.shell_mut().finding_offer(&row.key).expect("an offer");

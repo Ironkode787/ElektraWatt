@@ -41,7 +41,9 @@ fn core033_cases() {
                     "case {c}"
                 );
                 assert!(
-                    f[0].message.ends_with("has no length yet: type it in its Properties, or route the cable in the layout"),
+                    f[0].message.ends_with(
+                        "has no length yet: type it in its Properties, or route the cable in the layout"
+                    ),
                     "case {c}: {}",
                     f[0].message
                 );

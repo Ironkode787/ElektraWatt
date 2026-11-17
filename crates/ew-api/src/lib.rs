@@ -142,11 +142,11 @@ pub use cmdlog::{CmdLog, CmdLogError, SCHEMA as CMDLOG_SCHEMA};
 pub use ew_commands::commands::{ChangeClass, FieldChange, classify_update};
 pub use library_ops::{ApiError, AssignMode, CopyState, CpMap, VersionConflict, unreadable_profiles};
 pub use macros::{InsertAt, MacroConflict, MacroError, MacroScope, MacroSpec, MacroValues, SavedMacro};
+pub use part_cable::{CABLE_MARKINGS, CABLE_MEMBERS, CableRows};
 pub use part_editor::{
     BUS_MEMBERS, BusRow, DRAFT_FIELDS, MAX_PORTS, PART_KINDS, PartDraft, PartDraftError, SIZE_FIELDS,
     bus_words, mount_words, role_words,
 };
-pub use part_cable::{CABLE_MARKINGS, CABLE_MEMBERS, CableRows};
 pub use part_new::NewPart;
 pub use part_offers::{Fit, OfferView, PartOffer, PartOfferQuery, PartPick, PartTarget};
 pub use part_plc::{MAX_CHANNELS, PLC_MEMBERS, PlcRows, channel_kind_words, plc_role_words};

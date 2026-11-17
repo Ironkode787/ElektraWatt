@@ -569,35 +569,36 @@ impl Session {
     /// "functions ew.fn.mcb-1pn", or an item ID).
     pub fn part_offer_functions(&self, pick: &PartPick) -> Vec<String> {
         let q = self.query();
-        self.offer_part(pick).map(|p| {
-            let pattern: Vec<u16> = p.cp_pattern.iter().map(|c| c.idx).collect();
-            p.function_template
-                .iter()
-                .filter_map(|t| {
-                    let def = self.template_fndef(&q, &t.fndef)?;
-                    let def_cps: Vec<u16> = def.cps.iter().map(|c| c.idx).collect();
-                    // The entry's CP designations, else the FnDef's, as the place catalogue reads them.
-                    let mut cps: Vec<String> = t
-                        .function_cps(&pattern, &def_cps)
-                        .iter()
-                        .filter_map(|c| p.cp_pattern.iter().find(|x| x.idx == c.pattern))
-                        .map(|c| c.designation.as_str().to_owned())
-                        .collect();
-                    if cps.is_empty() {
-                        let mut own: Vec<(u16, String)> = def
-                            .cps
+        self.offer_part(pick)
+            .map(|p| {
+                let pattern: Vec<u16> = p.cp_pattern.iter().map(|c| c.idx).collect();
+                p.function_template
+                    .iter()
+                    .filter_map(|t| {
+                        let def = self.template_fndef(&q, &t.fndef)?;
+                        let def_cps: Vec<u16> = def.cps.iter().map(|c| c.idx).collect();
+                        // The entry's CP designations, else the FnDef's, as the place catalogue reads them.
+                        let mut cps: Vec<String> = t
+                            .function_cps(&pattern, &def_cps)
                             .iter()
-                            .map(|c| (c.idx, c.designation.as_str().to_owned()))
+                            .filter_map(|c| p.cp_pattern.iter().find(|x| x.idx == c.pattern))
+                            .map(|c| c.designation.as_str().to_owned())
                             .collect();
-                        own.sort();
-                        cps = own.into_iter().map(|(_, d)| d).collect();
-                    }
-                    crate::output::navigators::kind_text(&def, &cps)
-                        .or_else(|| def.meta.key.map(|k| k.as_str().to_owned()))
-                })
-                .collect()
-        })
-        .unwrap_or_default()
+                        if cps.is_empty() {
+                            let mut own: Vec<(u16, String)> = def
+                                .cps
+                                .iter()
+                                .map(|c| (c.idx, c.designation.as_str().to_owned()))
+                                .collect();
+                            own.sort();
+                            cps = own.into_iter().map(|(_, d)| d).collect();
+                        }
+                        crate::output::navigators::kind_text(&def, &cps)
+                            .or_else(|| def.meta.key.map(|k| k.as_str().to_owned()))
+                    })
+                    .collect()
+            })
+            .unwrap_or_default()
     }
 
     /// The one command of a choice (D16): for devices `part.assign` in the target's mode (a held copy without

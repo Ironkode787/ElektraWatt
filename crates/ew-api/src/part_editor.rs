@@ -888,9 +888,9 @@ impl Session {
                 )));
             }
             let found = self.set_cable_field(&mut draft.cable, &mut draft.tech, f, text);
-            draft
-                .messages
-                .retain(|x| crate::part_cable::cable_field(&x.field).is_none() && x.field != "tech:outer_diameter");
+            draft.messages.retain(|x| {
+                crate::part_cable::cable_field(&x.field).is_none() && x.field != "tech:outer_diameter"
+            });
             draft.messages.extend(found);
             if f.0 == "diameter"
                 && !text.trim().is_empty()

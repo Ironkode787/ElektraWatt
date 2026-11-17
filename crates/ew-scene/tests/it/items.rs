@@ -243,7 +243,10 @@ fn a_cable_marks_tag_keeps_clear_of_a_text_at_the_lines_start() {
             })
             .expect("the tag")
     };
-    assert!(tag_left(&view(vec![mark(0x31)], Vec::new())) < Nm(100_000_000), "at the start");
+    assert!(
+        tag_left(&view(vec![mark(0x31)], Vec::new())) < Nm(100_000_000),
+        "at the start"
+    );
     // A text that ends where the type line would stand, listed after the mark.
     let text = item(
         0x32,

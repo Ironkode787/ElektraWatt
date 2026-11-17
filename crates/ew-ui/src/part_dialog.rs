@@ -386,12 +386,7 @@ fn labelled_field(
 
 /// The identity fields and the technical data of a draft, each field's message under it; `true` when Enter was
 /// pressed in a field. A new cable type's small form (rc.3) shows its maker, its type and its part number only.
-fn identity(
-    ui: &mut Ui,
-    e: &PartEditor,
-    just_opened: bool,
-    events: &mut Vec<Event>,
-) -> bool {
+fn identity(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mut Vec<Event>) -> bool {
     let d = &e.draft;
     let t = theme::current(ui.ctx());
     let mut save = false;
@@ -607,9 +602,11 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
             save |= identity(ui, e, just_opened, events);
             ui.add_space(t.space_3);
             save |= cable_section(ui, d, events);
-        } else if (d.new || d.own) && ui.available_width() >= 2.0 * (t.size_dialog_label + t.size_control * 6.0) {
-        // A new part's form is long: at the main resolution its identity and its PLC section stand side by side,
-        // the bus interfaces below them across the dialog.
+        } else if (d.new || d.own)
+            && ui.available_width() >= 2.0 * (t.size_dialog_label + t.size_control * 6.0)
+        {
+            // A new part's form is long: at the main resolution its identity and its PLC section stand side by side,
+            // the bus interfaces below them across the dialog.
             let mut left_save = false;
             let mut right_save = false;
             let mut left_events = Vec::new();
@@ -992,7 +989,9 @@ fn cable_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut 
     };
     for m in ["cores", "csa"] {
         let field = format!("cable.{m}");
-        save |= labelled_field(ui, &label(m), d.text(&field), false, |text| send(events, &field, text));
+        save |= labelled_field(ui, &label(m), d.text(&field), false, |text| {
+            send(events, &field, text)
+        });
         message(ui, &field);
     }
     let toggle = |ui: &mut Ui, m: &str, events: &mut Vec<Event>| {
@@ -1043,10 +1042,14 @@ fn cable_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut 
                     let width = (ui.available_width() - t.space_3) / 2.0;
                     for (m, value) in [("core", core), ("colour", colour)] {
                         let field = format!("cable.{m}.{i}");
-                        let name = strings::format(key!("part-cable-row"), &[&label(m), &(i + 1).to_string()]);
+                        let name =
+                            strings::format(key!("part-cable-row"), &[&label(m), &(i + 1).to_string()]);
                         let mut text = value.clone();
-                        let edit = ui
-                            .add(TextEdit::singleline(&mut text).desired_width(width).hint_text(label(m)));
+                        let edit = ui.add(
+                            TextEdit::singleline(&mut text)
+                                .desired_width(width)
+                                .hint_text(label(m)),
+                        );
                         edit.widget_info(|| named_edit(value, &text, &name));
                         save |= edit.lost_focus() && ui.input(|i| i.key_pressed(Key::Enter));
                         if text != *value {

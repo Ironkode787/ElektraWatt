@@ -302,9 +302,9 @@ impl Session {
                 args: vec![cores.len().to_string(), wires.len().to_string()],
             });
         }
-        let green_yellow = cores.iter().any(|c| {
-            serde_json::to_value(&c.colour).ok() == Some(json!(["GN", "YE"]))
-        });
+        let green_yellow = cores
+            .iter()
+            .any(|c| serde_json::to_value(&c.colour).ok() == Some(json!(["GN", "YE"])));
         (!green_yellow && self.wires_say_pe(&wires)).then(|| CableRefused {
             key: ew_commands::text_key!("part-misfit-pe"),
             args: Vec::new(),
