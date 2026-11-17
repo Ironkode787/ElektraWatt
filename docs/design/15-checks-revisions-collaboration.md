@@ -973,7 +973,7 @@ On Golden A at MVP, EW-REL-002 and EW-REL-004 report nothing; EW-REL-001 reports
 | Scheme | Purpose | Content | Rel |
 |---|---|---|---|
 | `drafting` | Default `active_scheme` while editing | All loaded packs online; completeness rules pending on the page being edited ([06](06-schematic-editor.md) §3.10); hygiene rules on, EW-RDS-002 included | MVP |
-| `pre-delivery` | Default `release_scheme`; `ew check --scheme pre-delivery` | Every enabled rule whose modes include release, at release severity; EW-REL evaluated by the gate only (§3.2); EW-RDS-002, EW-CORE-055, EW-FL-008, EW-FL-014 off. The release blockers of §4.8 are errors here | MVP |
+| `pre-delivery` | Default `release_scheme`; `ew check --scheme pre-delivery` | Every enabled rule whose modes include release, at release severity; EW-REL evaluated by the gate only (§3.2); EW-RDS-002, EW-FL-008, EW-FL-014 off (EW-CORE-055 joins them when it is built, 1.0). The release blockers of §4.8 are errors here | MVP |
 | `migration` | Lenient check run that forms an import's migration report (FR-IMP-003) | `extends = "pre-delivery"` at its severities, run in lenient mode, so prevent violations become findings of their rules; plus the import run's EW-IMP findings (§4.10) | MVP |
 | `full` | Audits and acceptance of hygiene rules | Everything, including off-by-default rules (FR-CHK-027's acceptance runs here) | MVP |
 | `manufacturing` | Pre-flight of `.ewpp` and machine exports | `extends = "pre-delivery"` plus EW-MFG (FR-CHK-058). On Golden A its expectation is the pre-delivery findings (including EW-CORE-033 on -3W1) plus 31 × EW-MFG-001, 4 × EW-MFG-008 and 1 × EW-MFG-010; on Golden A-R the only manufacturing finding is EW-MFG-010 | 1.0 |

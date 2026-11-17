@@ -90,10 +90,10 @@ pub const DRAFTING: Scheme = Scheme {
 };
 
 /// The rules `pre-delivery` switches off and `migration` keeps off.
-const PRE_DELIVERY_OFF: [&str; 4] = ["EW-RDS-002", "EW-CORE-055", "EW-FL-008", "EW-FL-014"];
+const PRE_DELIVERY_OFF: [&str; 3] = ["EW-RDS-002", "EW-FL-008", "EW-FL-014"];
 
 /// `pre-delivery`: the default release scheme; every rule whose modes include release (or prevent) at
-/// release severity, with EW-RDS-002, EW-CORE-055, EW-FL-008 and EW-FL-014 off, and the import findings (EW-IMP, the
+/// release severity, with EW-RDS-002, EW-FL-008 and EW-FL-014 off, and the import findings (EW-IMP, the
 /// migration report's) off. EW-REL runs in the gate only.
 pub const PRE_DELIVERY: Scheme = Scheme {
     name: "pre-delivery",
@@ -102,7 +102,6 @@ pub const PRE_DELIVERY: Scheme = Scheme {
         PRE_DELIVERY_OFF[0],
         PRE_DELIVERY_OFF[1],
         PRE_DELIVERY_OFF[2],
-        PRE_DELIVERY_OFF[3],
         "EW-IMP-001",
         "EW-IMP-002",
         "EW-IMP-003",
@@ -201,6 +200,17 @@ mod tests {
     use super::*;
     use crate::rule::Release;
     use crate::rules::core::{DESCRIPTION_LINT, TITLE_BLOCK_OVERRIDE};
+
+    /// A scheme switches off only rules that exist: an ID that names no rule switches nothing off and hides a typing
+    /// error (the pre-delivery level named EW-CORE-055, a rule not built).
+    #[test]
+    fn every_rule_a_scheme_switches_off_exists() {
+        for s in SCHEMES {
+            for id in s.off {
+                assert!(crate::registry::rule(id).is_some(), "{}: {id} is no rule", s.name);
+            }
+        }
+    }
 
     #[test]
     fn a_shipped_scheme_runs_a_rule_of_either_release() {
