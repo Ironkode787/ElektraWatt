@@ -108,7 +108,7 @@ fn a10_home_fits_and_ctrl_arrow_right_moves_the_view() {
     settle(&mut h);
     assert_eq!(zoom(&h), fit);
     assert!(h.state().shell().canvas().unwrap().is_fitted());
-    // Centred both ways: the tool HUD stands under the canvas, so a fit keeps no band clear (16a §5.5).
+    // Centred both ways: a fit keeps no band clear for the tool HUD, which floats over the canvas (16a §5.5).
     assert_eq!(centre(&h), (148_500_000, 105_000_000));
     h.state_mut().shell_mut().shutdown();
 }

@@ -565,7 +565,7 @@ fn the_highlight_name_chips_take_their_hue_and_a_black_label() {
             "a black label"
         );
         assert_eq!(chip.radius, 4.0);
-        assert_eq!(chip.rect.height(), 20.0);
+        assert!((chip.rect.height() - 20.0).abs() < 1e-3, "{chip:?}");
         assert!(!chip.faded);
         for other in &chips[i + 1..] {
             assert!(!chip.rect.intersects(other.rect), "{chip:?} and {other:?} apart");

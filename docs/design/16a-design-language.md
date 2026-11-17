@@ -728,8 +728,8 @@ Show · On"). Frame statistics is still drawn with its icon where its siblings s
 - **The canvas**: the white sheet with `elevation.1`, centred on `canvas.surround` at up to 92 % of the canvas
   width; overlays per §7.
 - **The tool HUD** is always shown: a pill (`radius.pill`, opaque `color.surface.inverse`, `elevation.2`, 4-px
-  padding) centred in a strip of its own under the canvas (the pill with `space.2` above and below it, on
-  `canvas.surround`), so it never lies over the drawing. It holds the active tool as a 28-px pill button with
+  padding) centred in the band at the canvas's foot (the pill with `space.2` above and below it), floating over
+  the canvas with nothing behind it but its own pill, so the drawing shows up to its edge. It holds the active tool as a 28-px pill button with
   `icon.sm` and its name (`color.accent` fill, `color.text.on_accent`, SemiBold), three quick tools as 28-px icon
   pills (Wire, Symbol, Text), a 1 × 16 px divider and the **prompt** in `type.small` at 80 % opacity: the selection
   and its keys with Select ("1 selected · Del deletes · R rotates"), the tool's target and keys otherwise
@@ -737,7 +737,10 @@ Show · On"). Frame statistics is still drawn with its icon where its siblings s
   buttons can be reached. (Until M2.5-Fix it floated over the sheet's foot. First it moved under the tab bar while
   the pointer was within 48 px of it, which put its own buttons out of reach: the owner's hands-on test, FT-1639.
   Staying put, it then covered the title block, or the drawing itself once a lower pane shortened the canvas; a
-  strip of its own ends both, FT-1656.) After a Wire click that placed a bend instead of ending on a
+  strip of its own ended both, FT-1656; the owner's test of 0.3.0-rc.2 then found the strip's band lying across the
+  drawing, so since rc.3 it floats again, staying put, and a fit leaves the sheet's margin under it.) Its buttons
+  show the hover and the press as a light overlay of `color.text.on_inverse` (14 %, 26 %) on the dark pill, where
+  `color.state.hover` does not show, and a quick tool that is the active tool is filled at 26 %. After a Wire click that placed a bend instead of ending on a
   connection point its prompt is "Bend placed: click a connection point to end the wire." It is the floating tool window of the
   owner's reference, reduced to what the running tool needs; the hint strip under the menu is removed.
 - **The zoom control**: at the canvas's bottom right (`space.4` from the right, `space.5` from the bottom), a

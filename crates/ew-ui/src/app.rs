@@ -1119,28 +1119,14 @@ impl App {
                     PaneKind::History => crate::history::show(ui, shell, &mut events),
                     PaneKind::Glossary => crate::glossary::show(ui, shell, &mut events),
                     PaneKind::PageView => {
-                        // The canvas takes the pane above the HUD's strip (doc 16a §5.5): the zoom control and the
-                        // tool options stand on the canvas, the HUD under it, never over the drawing.
+                        // The canvas takes the whole pane (doc 16a §5.5): the HUD, the zoom control and the tool
+                        // options float over it, each its own rounded shape with a shadow and nothing behind it
+                        // (rc.3: a strip under the HUD cut the drawing off). A station's view takes the whole pane too;
+                        // the HUD, the zoom control and the tool options stay away from it (below).
                         let full = ui.max_rect();
-                        // A station's view is no canvas: it takes the whole pane, without the HUD, the zoom control
-                        // and the tool options.
-                        let station = shell.station_tab().is_some();
-                        let strip = if station {
-                            0.0
-                        } else {
-                            crate::hud::strip_height(&tokens)
-                        };
-                        let split = (full.bottom() - strip).max(full.top());
-                        let above = egui::Rect::from_min_max(full.min, egui::pos2(full.right(), split));
-                        page_pane = Some(above);
+                        let split = (full.bottom() - crate::hud::strip_height(&tokens)).max(full.top());
+                        page_pane = Some(full);
                         hud_strip = Some(egui::Rect::from_min_max(egui::pos2(full.left(), split), full.max));
-                        ui.painter().rect_filled(
-                            egui::Rect::from_min_max(egui::pos2(full.left(), split), full.max),
-                            0.0,
-                            tokens.canvas_surround.color32(),
-                        );
-                        let mut ui = ui.new_child(egui::UiBuilder::new().max_rect(above));
-                        let ui = &mut ui;
                         canvas_area.show(ui, shell, canvas, &mut events);
                         *area_splitters = canvas_area.splitter_count(shell);
                         canvas_shown = true;

@@ -195,11 +195,11 @@ fn the_command_surface_from_the_keyboard() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// Doc 16a §5.5: the HUD stands in a strip of its own under the canvas, so no view puts the drawing under it: after
-/// a fit on Golden A 101 at 1920 by 1080 the sheet lies whole in the canvas, and the canvas ends where the HUD's
-/// strip begins.
+/// Doc 16a §5.5 as rc.3 builds it: the HUD floats over the canvas, nothing but its own pill behind it, so the drawing
+/// shows up to its edge: on Golden A 101 at 1920 by 1080 the canvas runs under the HUD to the page view's foot; after a
+/// fit the sheet lies whole in the canvas.
 #[test]
-fn the_canvas_ends_above_the_hud() {
+fn the_hud_floats_over_the_canvas() {
     for density in ["comfortable", "compact"] {
         let tmp = Tmp::new();
         let mut h = window(&tmp, density);
@@ -212,8 +212,8 @@ fn the_canvas_ends_above_the_hud() {
         let canvas = h.state().shell().canvas_of(0).unwrap();
         assert!(canvas.is_fitted(), "{density}");
         assert!(
-            pane.bottom() <= hud.top(),
-            "{density}: the canvas {pane:?} ends above the HUD {hud:?}"
+            pane.contains_rect(hud),
+            "{density}: the canvas {pane:?} runs under the HUD {hud:?}"
         );
         let (w, ht) = canvas.sheet();
         let host = h.state_mut().canvas_host();
@@ -222,11 +222,6 @@ fn the_canvas_ends_above_the_hud() {
             host.drawn_screen_of(0, (w, ht)).unwrap(),
         );
         let sheet = Rect::from_two_pos(a, b);
-        assert!(
-            !sheet.intersects(hud),
-            "{density}: the sheet {sheet:?} under the HUD {hud:?}"
-        );
-        assert!(sheet.bottom() < hud.top(), "{density}: {sheet:?} above {hud:?}");
         assert!(pane.contains_rect(sheet), "{density}: {sheet:?} in {pane:?}");
     }
 }
@@ -307,10 +302,10 @@ fn the_geometry_at_1920_by_1080_in_both_densities() {
             );
         }
         assert!(close(hud.height(), 36.0), "{density}: the HUD {hud:?}");
-        // In its strip under the canvas, 4 points below the canvas's foot.
+        // Over the canvas's foot, 4 points above it.
         assert!(
-            close(hud.top() - pane.bottom(), 4.0),
-            "{density}: {hud:?} under {pane:?}"
+            close(pane.bottom() - hud.bottom(), 4.0),
+            "{density}: {hud:?} over {pane:?}"
         );
         assert!(
             close(hud.center().x, pane.center().x),

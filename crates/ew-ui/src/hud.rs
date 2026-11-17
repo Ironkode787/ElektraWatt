@@ -2,12 +2,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The tool HUD and the zoom control of the page view (doc 16a §5.5), from
-//! `ew_viewmodel::command_bar::hud`. The HUD is a pill centred in a strip of its own under the canvas
+//! `ew_viewmodel::command_bar::hud`. The HUD is a pill centred in the band at the foot of the page view
 //! ([`strip_height`]): the active tool as an accent pill, the three quick tools (Wire, Symbol, Text), a divider and
 //! the prompt (the selection and its keys, the pick stack under the pointer, or the tool's target and keys). It
-//! never takes the keyboard focus, it stays where it is, so its buttons can be reached, and it never lies over the
-//! drawing (it floated over the sheet's foot: first it moved away from the pointer, which put its buttons out of
-//! reach, FT-1639; then, staying put, it covered the title block, FT-1656).
+//! never takes the keyboard focus and it stays where it is, so its buttons can be reached (moving away from the
+//! pointer put them out of reach, FT-1639). It floats over the canvas: its own rounded shape with a shadow and
+//! nothing behind it, the drawing visible to its edge (rc.3: the strip of its own that FT-1656 gave it, so that it
+//! did not cover the title block, cut the drawing off instead; the page pans under it). Its buttons show the
+//! hover and the press in a light overlay on the dark surface, and a quick tool that is the active tool shows it is
+//! on.
 //! The zoom control is a column of three icon buttons at the bottom right. The HUD replaces the tool strip under the
 //! menu bar; the fields of the IP, Text, Wire marker and Structure box tools moved into the "Tool options" card at the
 //! page view's top left (`app.rs`).
@@ -40,7 +43,8 @@ fn small_strong(t: &Tokens) -> TypeToken {
     }
 }
 
-/// The height of the strip under the canvas that holds the HUD: the pill with `space.2` above and below it.
+/// The height of the band at the foot of the page view that holds the HUD: the pill with `space.2` above and below
+/// it.
 pub(crate) fn strip_height(t: &Tokens) -> f32 {
     t.size_control + 4.0 * t.space_2
 }
@@ -51,7 +55,7 @@ pub(crate) fn hud_rect(t: &Tokens, strip: Rect, width: f32) -> Rect {
     Rect::from_center_size(strip.center(), vec2(width, height))
 }
 
-/// Paints the HUD of `shell` in its strip `pane` under the canvas and returns its rectangle.
+/// Paints the HUD of `shell` in its band `pane` over the canvas's foot and returns its rectangle.
 pub(crate) fn show(ctx: &egui::Context, shell: &ShellModel, pane: Rect, events: &mut Vec<Event>) -> Rect {
     let t = theme::current(ctx);
     let mut h = hud(shell);
@@ -144,6 +148,7 @@ pub(crate) fn show(ctx: &egui::Context, shell: &ShellModel, pane: Rect, events: 
                     );
                     ui.painter()
                         .rect_filled(r, theme::radius(t.radius_pill), t.accent.color32());
+                    inverse_overlay(ui, &t, &response, tool_enabled, t.text_on_accent);
                     let icon = Rect::from_min_size(
                         pos2(r.left() + t.space_3, cy - t.icon_sm / 2.0),
                         Vec2::splat(t.icon_sm),
@@ -171,7 +176,7 @@ pub(crate) fn show(ctx: &egui::Context, shell: &ShellModel, pane: Rect, events: 
                         let Some(b) = action_button(shell, id) else {
                             continue;
                         };
-                        quick_button(ui, &t, &b, r, events);
+                        quick_button(ui, &t, &b, r, id == h.tool, events);
                     }
                     // The divider and the prompt.
                     x += t.space_1;
@@ -265,8 +270,32 @@ fn prompt_galley(
     ui.fonts_mut(|f| f.layout_job(job))
 }
 
-/// A quick tool of the HUD: a 28-px icon pill named by its label.
-fn quick_button(ui: &Ui, t: &Tokens, b: &CommandButton, r: Rect, events: &mut Vec<Event>) {
+/// The opacity of the hover overlay on the HUD's dark surface, and of the press and of an active quick tool.
+const INVERSE_HOVER: f32 = 0.14;
+const INVERSE_PRESSED: f32 = 0.26;
+
+/// The hover and press overlay of a HUD button on its dark (or accent) surface: `ink`, the text colour there, at
+/// [`INVERSE_HOVER`] or [`INVERSE_PRESSED`] (the command bar's overlay is a dark tint and does not show there).
+fn inverse_overlay(ui: &Ui, t: &Tokens, response: &egui::Response, enabled: bool, ink: theme::Rgba) {
+    if !enabled {
+        return;
+    }
+    let opacity = if response.is_pointer_button_down_on() {
+        INVERSE_PRESSED
+    } else if response.hovered() {
+        INVERSE_HOVER
+    } else {
+        return;
+    };
+    ui.painter().rect_filled(
+        response.rect,
+        theme::radius(t.radius_pill),
+        ink.color32().gamma_multiply(opacity),
+    );
+}
+
+/// A quick tool of the HUD: a 28-px icon pill named by its label; `on` while it is the active tool.
+fn quick_button(ui: &Ui, t: &Tokens, b: &CommandButton, r: Rect, on: bool, events: &mut Vec<Event>) {
     let response = button_response(
         ui,
         Id::unique(("hud-quick", b.id)),
@@ -275,11 +304,18 @@ fn quick_button(ui: &Ui, t: &Tokens, b: &CommandButton, r: Rect, events: &mut Ve
             name: &b.label,
             shortcut: &b.shortcut,
             enabled: b.enabled,
-            checked: None,
+            checked: Some(on),
             sense: Sense::CLICK,
         },
     );
-    state_overlay(ui, t, &response, b.enabled, t.radius_pill);
+    if on {
+        ui.painter().rect_filled(
+            r,
+            theme::radius(t.radius_pill),
+            t.text_on_inverse.color32().gamma_multiply(INVERSE_PRESSED),
+        );
+    }
+    inverse_overlay(ui, t, &response, b.enabled, t.text_on_inverse);
     let colour = if b.enabled {
         t.text_on_inverse.color32()
     } else {

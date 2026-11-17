@@ -95,6 +95,28 @@ fn place_relay(d: &mut Driver, at: (i64, i64)) {
     d.settle();
 }
 
+/// The window pixel of the middle of the symbol placed at the window pixel `at` (the entity rectangle nearest the
+/// sheet point there): a click on its body selects it at any zoom.
+fn body_at(d: &mut Driver, at: (i64, i64)) -> (i64, i64) {
+    let pixel = pixel_map(d);
+    d.input(&Input::Hover { at });
+    d.settle();
+    let p = state(d)["canvas"]["pointer_nm"].clone();
+    let p = (p[0].as_i64().unwrap(), p[1].as_i64().unwrap());
+    let c = d.shell_mut().canvas().unwrap();
+    let r = c
+        .page()
+        .entities
+        .iter()
+        .map(|(_, r)| *r)
+        .min_by_key(|r| {
+            let m = ((r.min().x.0 + r.max().x.0) / 2, (r.min().y.0 + r.max().y.0) / 2);
+            (m.0 - p.0).abs() + (m.1 - p.1).abs()
+        })
+        .expect("a symbol");
+    pixel(((r.min().x.0 + r.max().x.0) / 2, (r.min().y.0 + r.max().y.0) / 2))
+}
+
 /// The window pixel of a sheet point, from two pointer positions the canvas reports.
 pub(crate) fn pixel_map(d: &mut Driver) -> impl Fn((i64, i64)) -> (i64, i64) + use<> {
     let probe = |d: &mut Driver, at: (i64, i64)| {
@@ -232,7 +254,8 @@ fn ft1658_deleting_a_relays_one_symbol_leaves_no_empty_relay() {
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     place_relay(&mut d, (900, 450));
-    d.input(&click((900, 450)));
+    let coil = body_at(&mut d, (900, 450));
+    d.input(&click(coil));
     d.settle();
     d.input(&key("delete"));
     d.settle();
@@ -249,7 +272,8 @@ fn ft1658_the_fix_badge_of_a_duplicate_tag_renumbers_the_other_device() {
     place_relay(&mut d, (900, 450));
     place_relay(&mut d, (1100, 450));
     // The second relay renamed to the first one's tag in Properties.
-    d.input(&click((1100, 450)));
+    let coil = body_at(&mut d, (1100, 450));
+    d.input(&click(coil));
     d.settle();
     d.input(&click(d.find("-1K2").unwrap()));
     d.settle();
