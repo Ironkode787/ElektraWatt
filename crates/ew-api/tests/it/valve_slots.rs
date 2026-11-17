@@ -1001,7 +1001,14 @@ fn a_valve_with_two_solenoids_prints_each_address_at_its_solenoid() {
     .expect("the electrical page");
     let multi = place_terminal_of(&mut s, "EW-GEN-VTP-1", (60_000_000, 60_000_000));
     let c = cells(&s, multi);
-    let v = place_into(&mut s, "EW-GEN-VLV-53", "ew.iso.valve-5-3-cc", centre(&c[0]), multi).expect("the 5/3 valve");
+    let v = place_into(
+        &mut s,
+        "EW-GEN-VLV-53",
+        "ew.iso.valve-5-3-cc",
+        centre(&c[0]),
+        multi,
+    )
+    .expect("the 5/3 valve");
     let pin_of = |s: &Session, name: &str| match s.valve_solenoids(v).into_iter().find(|x| x.name == name) {
         Some(ew_api::output::ValveSolenoid {
             seat: Some(ew_api::output::SolenoidSeat::Multipin { pin, .. }),
@@ -1013,7 +1020,13 @@ fn a_valve_with_two_solenoids_prints_each_address_at_its_solenoid() {
     let (page, card) = output_card_on_101(&mut s);
     let (card_fn, plug_fn) = (main_function(&s, card), main_function(&s, multi));
     let plug_pins = draw_box(&mut s, page, plug_fn, 4, 60);
-    let idx = |d: &str| plug_pins.iter().find(|(x, _)| x == d).map(|(_, i)| *i).expect("a pin");
+    let idx = |d: &str| {
+        plug_pins
+            .iter()
+            .find(|(x, _)| x == d)
+            .map(|(_, i)| *i)
+            .expect("a pin")
+    };
     for (output, pin) in [(0u16, &pins[0]), (1, &pins[1])] {
         run(
             &mut s,
@@ -1028,10 +1041,22 @@ fn a_valve_with_two_solenoids_prints_each_address_at_its_solenoid() {
     let q = s.query();
     let f = ew_derive::valve_functions(&q, Id::from_uuid(v))[0];
     let texts = (*q.get::<ew_derive::PlcAddressText>(f)).clone();
-    let address = |d: &str| texts.solenoids.iter().find(|(x, _)| x == d).map(|(_, t)| t.clone()).expect(d);
+    let address = |d: &str| {
+        texts
+            .solenoids
+            .iter()
+            .find(|(x, _)| x == d)
+            .map(|(_, t)| t.clone())
+            .expect(d)
+    };
     let (a14, a12) = (address("14"), address("12"));
     assert_ne!(a14, a12, "two outputs");
-    let symbol = q.symbols().get(Id::from_uuid(rep.symbol)).expect("the symbol").item.clone();
+    let symbol = q
+        .symbols()
+        .get(Id::from_uuid(rep.symbol))
+        .expect("the symbol")
+        .item
+        .clone();
     let slots = q.get::<ew_api::output::PageSlotsOf>(Id::from_uuid(fluid_page(&s)));
     let printed: Vec<(Option<String>, i64, String)> = slots
         .iter()
@@ -1041,13 +1066,31 @@ fn a_valve_with_two_solenoids_prints_each_address_at_its_solenoid() {
         .into_iter()
         .filter_map(|v| {
             let slot = &symbol.text_slots[usize::from(v.slot)];
-            (slot.kind == ew_schema::SlotKind::PlcAddress)
-                .then(|| (slot.solenoid.as_ref().map(|x| x.as_str().to_owned()), slot.pos.x.0, v.text))
+            (slot.kind == ew_schema::SlotKind::PlcAddress).then(|| {
+                (
+                    slot.solenoid.as_ref().map(|x| x.as_str().to_owned()),
+                    slot.pos.x.0,
+                    v.text,
+                )
+            })
         })
         .collect();
-    let at = |d: &str| printed.iter().find(|(x, _, _)| x.as_deref() == Some(d)).cloned().expect(d);
+    let at = |d: &str| {
+        printed
+            .iter()
+            .find(|(x, _, _)| x.as_deref() == Some(d))
+            .cloned()
+            .expect(d)
+    };
     let (left, right) = (at("14"), at("12"));
-    assert_eq!((left.2.as_str(), right.2.as_str()), (a14.as_str(), a12.as_str()), "{printed:?}");
-    assert!(left.1 < right.1, "14 at the left solenoid, 12 at the right: {printed:?}");
+    assert_eq!(
+        (left.2.as_str(), right.2.as_str()),
+        (a14.as_str(), a12.as_str()),
+        "{printed:?}"
+    );
+    assert!(
+        left.1 < right.1,
+        "14 at the left solenoid, 12 at the right: {printed:?}"
+    );
     assert_eq!(printed.len(), 2, "no place prints both: {printed:?}");
 }

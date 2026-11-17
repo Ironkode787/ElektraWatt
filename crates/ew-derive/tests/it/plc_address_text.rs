@@ -138,7 +138,9 @@ fn pins(list: &[(u16, &str)]) -> Vec<(u16, String)> {
 }
 
 fn solenoids(list: &[(&str, &str)]) -> Vec<(String, String)> {
-    list.iter().map(|(d, t)| ((*d).to_owned(), (*t).to_owned())).collect()
+    list.iter()
+        .map(|(d, t)| ((*d).to_owned(), (*t).to_owned()))
+        .collect()
 }
 
 /// PT-3: a bistable valve prints its coil addresses in solenoid order 14, 12 joined by " / ", whatever the CP or
