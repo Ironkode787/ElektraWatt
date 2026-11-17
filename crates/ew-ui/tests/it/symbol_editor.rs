@@ -451,9 +451,8 @@ fn a_pin_is_added_and_dragged_onto_another_edge_of_the_box() {
 fn every_edge_of_the_box_sizes_it_and_the_pins_stay_where_they_stand() {
     let tmp = Tmp::new();
     let mut d = box_with_three_pins(&tmp);
-    let places = |pins: &[PinPlace]| -> Vec<(&'static str, i64)> {
-        pins.iter().map(|p| (p.1, p.2)).collect()
-    };
+    let places =
+        |pins: &[PinPlace]| -> Vec<(&'static str, i64)> { pins.iter().map(|p| (p.1, p.2)).collect() };
     let (size, before) = box_now(&mut d);
     assert_eq!(size, (4, 5));
     assert_eq!(places(&before), [("top", 1), ("top", 2), ("bottom", 2)]);
