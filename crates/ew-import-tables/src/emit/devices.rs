@@ -551,6 +551,7 @@ pub(crate) fn emit_functions(cx: &mut Cx<'_>, table: Option<&Table>) {
                     star_source: false,
                     sort: None,
                     external,
+                    group: None,
                     extra: Default::default(),
                 });
             }

@@ -357,6 +357,15 @@
           ],
           "description": "An external connection point's target (FR-XRF-012)."
         },
+        "group": {
+          "description": "The group of an external point (rc.3): the points of one external reference with the same group stand together\non their page and print where they come from once, at the last of them (the lowest, then the rightmost); none:\nthe point prints it itself. A drawing made before has none and prints as it did.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "name": {
           "$ref": "#/$defs/Ident",
           "description": "The pairing name (\"L-1\")."

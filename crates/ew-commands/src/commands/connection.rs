@@ -814,6 +814,7 @@ impl Command for PlaceIp {
             star_source: self.star_source,
             sort: self.sort,
             external: self.external,
+            group: None,
             extra: Extra::new(),
         };
         let function = new_ip(
@@ -901,6 +902,7 @@ impl Command for ContinueIp {
             star_source: false,
             sort: spec.sort,
             external: None,
+            group: None,
             extra: Extra::new(),
         };
         let function = new_ip(
@@ -1262,6 +1264,7 @@ impl Command for DrawToIp {
             star_source: self.ip.star_source,
             sort: self.ip.sort,
             external: self.ip.external,
+            group: None,
             extra: Extra::new(),
         };
         let function = new_ip(

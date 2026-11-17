@@ -921,6 +921,24 @@ impl Session {
         Some((location, x.device.as_str().to_owned()))
     }
 
+    /// The other points of the group of the marked supply point `point` (rc.3, `IpSpec::group`): the points of its
+    /// place with its group, in ID order; empty for a point in no group.
+    pub fn supply_group(&self, point: Uuid) -> Vec<Uuid> {
+        let q = self.query();
+        let spec = |f: &ew_schema::Function| match &f.kind {
+            ew_schema::FunctionKind::Ip(ip) => ip.external.zip(ip.group),
+            _ => None,
+        };
+        let Some(mine) = q.functions().get(Id::from_uuid(point)).and_then(|f| spec(f)) else {
+            return Vec::new();
+        };
+        q.functions()
+            .iter()
+            .filter(|(id, f)| id.as_uuid() != point && spec(f) == Some(mine))
+            .map(|(id, _)| id.as_uuid())
+            .collect()
+    }
+
     // Qualified addresses distinguish a library master from an older project copy with the same key.
     pub(crate) fn installed_symbol(&self, address: &str) -> Option<LibCopy<SymbolDef>> {
         self.libraries()

@@ -657,6 +657,11 @@ pub struct IpSpec {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<UuidS>")]
     pub external: Option<Id<ExternalRef>>,
+    /// The group of an external point (rc.3): the points of one external reference with the same group stand together
+    /// on their page and print where they come from once, at the last of them (the lowest, then the rightmost); none:
+    /// the point prints it itself. A drawing made before has none and prints as it did.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group: Option<u32>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

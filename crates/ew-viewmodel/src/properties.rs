@@ -837,7 +837,15 @@ const PRIMARY: &[(&str, &[&str])] = &[
         ],
     ),
     // A bus port's address: the device name and IP, the station address (a persona run looked for them).
-    ("function", &["bus_port.address"]),
+    // A marked supply point's place and device (rc.3, G7: "the comes from cannot be changed in the properties").
+    (
+        "function",
+        &[
+            "bus_port.address",
+            "derived.supply_place",
+            "derived.supply_device",
+        ],
+    ),
     // A wire's and an interruption point's potential: its name, the kind of signal and the voltage (FT-1651).
     ("potential_def", &["name", "ptype", "voltage"]),
     // What a drafter fills first and the title block prints (rc.2 persona run: a long flat list, the drawing number

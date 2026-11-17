@@ -1497,6 +1497,7 @@ fn map_reports(
                     star_source: false,
                     sort: sort_of.get(&i).copied(),
                     external: None,
+                    group: None,
                     extra: BTreeMap::new(),
                 }),
                 cps,

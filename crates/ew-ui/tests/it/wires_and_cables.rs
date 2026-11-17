@@ -79,7 +79,7 @@ pub(crate) fn tables(d: &mut Driver) -> std::sync::Arc<ew_ui::ew_viewmodel::ew_a
 }
 
 /// Clicks the widget named `label`, selects its text, types `text` and presses Enter.
-fn fill(d: &mut Driver, label: &str, text: &str) {
+pub(crate) fn fill(d: &mut Driver, label: &str, text: &str) {
     d.input(&click(
         d.find(label).unwrap_or_else(|| panic!("no widget {label:?}")),
     ));

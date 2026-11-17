@@ -7171,3 +7171,7 @@ part-misfit-cores = { $p0 } aders, te weinig voor zijn { $p1 } draden
 part-misfit-pe = geen beschermingsleiding voor zijn PE-draad
 messages-offer-cable-type = Kies een kabeltype…
 messages-offer-length = Typ de lengte…
+refusal-supply-group-unmarked = { $p0 } heeft geen voedingsmarkering; alleen gemarkeerde voedingspunten staan in een groep
+refusal-supply-group-places = de punten komen van verschillende plekken; alleen punten die van één plek komen staan in een groep
+supply-group-join = Deze voedingspunten groeperen
+supply-group-leave = Uit de groep halen

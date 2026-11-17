@@ -268,6 +268,7 @@ pub fn ip_function(function_id: Id<Function>, name: &str, direction: IpDirection
             star_source: false,
             sort: None,
             external: None,
+            group: None,
             extra: Extra::new(),
         }),
         cp_overrides: Default::default(),

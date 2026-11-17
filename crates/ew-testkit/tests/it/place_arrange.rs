@@ -907,6 +907,7 @@ fn the_new_dsl_verbs_send_the_parameters_of_their_commands() {
             star_source: true,
             sort: Some(2),
             external: None,
+            group: None,
             extra: Extra::new(),
         },
     };

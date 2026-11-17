@@ -69,6 +69,24 @@ impl ShellModel {
         Some(item)
     }
 
+    /// For selected supply points that all have the mark (rc.3, G7): Take out of its group where one of them stands in
+    /// a group, else, for two or more, Group these supply points; `None` otherwise (the right-click menu's entry after
+    /// [`Self::supply_remove_item`]).
+    pub fn supply_group_item(&self) -> Option<ActionItem> {
+        let (points, marked) = self.selected_supply_points()?;
+        let session = self.project_session().filter(|_| marked)?;
+        let grouped = points.iter().any(|p| !session.supply_group(*p).is_empty());
+        let mut item = self.menu_item(SUPPLY_IN)?;
+        let (label, join) = match (grouped, points.len()) {
+            (true, _) => (key!("supply-group-leave"), false),
+            (false, n) if n > 1 => (key!("supply-group-join"), true),
+            _ => return None,
+        };
+        item.label = strings::text(label).to_owned();
+        item.params = json!({ "group": join });
+        Some(item)
+    }
+
     /// The form's proposals: where the project supply's origin is, when it names one, else a location named after
     /// the supply; and the device there, the origin's, else the feeder's terminal strip.
     fn supply_in_proposal(&self) -> (String, String) {
@@ -115,6 +133,17 @@ impl ShellModel {
             return Outcome::refused(key!("reason-supply-in-select"));
         };
         let remove = flag(p, "remove");
+        // Group these supply points, or take them out of their group (rc.3).
+        if let Some(join) = p.get("group").and_then(Value::as_bool) {
+            let cmd = AnyCommand {
+                name: SUPPLY_IN.into(),
+                params: json!({
+                    "points": points.iter().map(Uuid::to_string).collect::<Vec<_>>(),
+                    "group": join,
+                }),
+            };
+            return self.commit_from_host(&cmd);
+        }
         let given = |name: &str| {
             p.get(name)
                 .and_then(Value::as_str)

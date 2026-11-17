@@ -53,7 +53,9 @@
 //!   record (drawn pages, section dividers and the base page of each report block, such as the table of
 //!   contents) but not the continuation pages the report engine generates ("2.1"), as QET numbers its folios.
 //! - **External** (FR-XRF-012): "{location} / {device}" of the `ExternalRef` ("+J-E-206 / JE-N1000-03"),
-//!   preceded by the other project's name and a space when it names one; no link.
+//!   preceded by the other project's name and a space when it names one; no link. Points of one reference in one
+//!   group (`IpSpec::group`, rc.3) print it once, at the group's last point on the page (the lowest, then the
+//!   rightmost); the others print nothing.
 //!
 //! Every shown item is an [`XrefLink`]: its byte range in the text and the target representation, which
 //! the page output turns into a link annotation to the target's named destination (FR-XRF-019).
@@ -700,9 +702,14 @@ impl Query for XrefTextOf {
         let targets = &relation.targets;
         let (rendered, shown) = match &relation.kind {
             XrefKind::None | XrefKind::InOwnBox => (Rendered::default(), Vec::new()),
+            // A group of points prints where it comes from once, at its last point (rc.3).
             XrefKind::External(e) => (
                 Rendered {
-                    text: external_text(q, *e),
+                    text: if grouped_before_last(q, *key, *e) {
+                        String::new()
+                    } else {
+                        external_text(q, *e)
+                    },
                     items: Vec::new(),
                 },
                 Vec::new(),
@@ -887,6 +894,31 @@ fn contact_rows(cx: &TextCx<'_>, targets: &[XrefTarget]) -> XrefText {
         });
     }
     out
+}
+
+/// Whether the external point drawn by `rep` stands in a group (`IpSpec::group`) of points of the reference `e` on its
+/// page and another of them is drawn after it (lower, then further right): the group prints its place at its last
+/// point only (rc.3).
+fn grouped_before_last(q: &Q, rep: Id<Representation>, e: Id<ExternalRef>) -> bool {
+    let group_of = |r: &Representation| {
+        let f = q.functions().get(*r.functions.first()?)?;
+        match &f.kind {
+            FunctionKind::Ip(ip) if ip.external == Some(e) => ip.group,
+            _ => None,
+        }
+    };
+    let Some(me) = q.reps().get(rep) else {
+        return false;
+    };
+    let Some(group) = group_of(me) else {
+        return false;
+    };
+    q.reps().iter().any(|(id, r)| {
+        id != rep
+            && r.page == me.page
+            && group_of(r) == Some(group)
+            && (r.pos.y, r.pos.x) > (me.pos.y, me.pos.x)
+    })
 }
 
 /// The printed external target: "+J-E-206 / JE-N1000-03" (FR-XRF-012).

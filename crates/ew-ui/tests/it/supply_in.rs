@@ -178,3 +178,88 @@ fn supply_comes_in_here_marks_the_points_and_their_findings_go() {
     );
     d.shell_mut().shutdown();
 }
+
+/// rc.3 (G7): three supply points one under the other (L1, N, PE), marked at once, print where they come from once,
+/// under the last of them; the right-click menu takes one out of the group (it prints its own again); Properties of a
+/// marked point have its place in a row, and a place typed there moves the point to it.
+#[test]
+fn supply_points_that_stand_together_print_their_place_once() {
+    use ew_ui::ew_viewmodel::properties::{RowValue, find_row};
+    use ew_ui::ew_viewmodel::shell::Outcome;
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    d.input(&click(d.find("Interruption").unwrap()));
+    d.settle();
+    for (name, y) in [("L1", 400), ("N", 460), ("PE", 520)] {
+        crate::wires_and_cables::fill(&mut d, "Interruption point name", name);
+        d.input(&Input::Hover { at: (900, y) });
+        d.settle();
+        d.input(&click((900, y)));
+        d.settle();
+    }
+    d.input(&key("escape"));
+    d.settle();
+    let ips: Vec<String> = tables(&mut d)
+        .reps
+        .iter()
+        .filter(|r| r.ip.is_some())
+        .map(|r| r.id.to_string())
+        .collect();
+    assert_eq!(ips.len(), 3, "three points");
+    let shell = d.shell_mut();
+    assert_eq!(shell.dispatch("select.set", &json!({ "ids": ips })), Outcome::Done);
+    assert_eq!(
+        shell.dispatch("ip.supply_in", &json!({"location": "Supply", "device": "-X0"})),
+        Outcome::Done
+    );
+    d.input(&Input::Hover { at: (4, 4) });
+    d.settle();
+    let printed = |d: &mut Driver| {
+        crate::own_parts::page_texts(d)
+            .iter()
+            .filter(|t| t.contains("-X0"))
+            .count()
+    };
+    assert_eq!(printed(&mut d), 1, "the group prints its place once");
+    // The first point alone, by its right-click menu: out of its group, it prints its place itself.
+    let pixel = pixel_map(&mut d);
+    let at = points(&mut d, &pixel);
+    let first = tables(&mut d)
+        .reps
+        .iter()
+        .filter(|r| r.ip.is_some())
+        .min_by_key(|r| (r.pos.1, r.pos.0))
+        .map(|r| r.id.to_string())
+        .unwrap();
+    assert_eq!(
+        d.shell_mut().dispatch("select.set", &json!({ "ids": [first] })),
+        Outcome::Done
+    );
+    let top = *at.iter().min_by_key(|p| p.1).unwrap();
+    menu(&mut d, top, "Take out of its group");
+    assert_eq!(printed(&mut d), 2, "the point taken out prints its own");
+    // Its Properties: where it comes from, changed in the row.
+    let sheet = d.shell_mut().properties().sheet().expect("the point's properties").clone();
+    let row = "function/derived.supply_place";
+    match find_row(&sheet, row).map(|(_, r)| r.value.clone()) {
+        Some(RowValue::One { text, .. }) => assert_eq!(text, "Supply"),
+        other => panic!("{row}: {other:?}"),
+    }
+    assert_eq!(
+        d.shell_mut().dispatch("props.set", &json!({"row": row, "value": "MCC1"})),
+        Outcome::Done
+    );
+    d.input(&Input::Hover { at: (4, 4) });
+    d.settle();
+    let texts = crate::own_parts::page_texts(&mut d);
+    assert!(texts.iter().any(|t| t.starts_with("+MCC1")), "{texts:?}");
+    // Marked alone from the place of the points under it, it joins their group: the place is printed once again.
+    assert_eq!(
+        d.shell_mut().dispatch("ip.supply_in", &json!({"location": "Supply", "device": "-X0"})),
+        Outcome::Done
+    );
+    d.input(&Input::Hover { at: (4, 4) });
+    d.settle();
+    assert_eq!(printed(&mut d), 1, "it joined the group under it");
+    d.shell_mut().shutdown();
+}

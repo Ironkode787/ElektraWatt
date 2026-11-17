@@ -980,7 +980,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     )),
     // FT-1699: Supply comes in here… on the selected interruption points (their right-click menu and Properties).
     keeps_banner(with_params(
-        "location?:text, device?:text, remove?:bool",
+        "location?:text, device?:text, remove?:bool, group?:bool",
         in_canvas(act(
             "ip.supply_in",
             Command,

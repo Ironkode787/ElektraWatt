@@ -10,7 +10,7 @@ use ew_rds::Aspect;
 use ew_schema::{
     ContinuationPolicy, EmbedSpec, EmptyPolicy, ExternalRef, Extra, FormDef, Function, FunctionKind,
     GroupSpec, Kind, LibCopy, LibDocument, ManualSelection, Open, Page, ReportBlock, ReportColumn,
-    ReportSource, Section, Set, SortKey, StructureNode,
+    ReportSource, Representation, Section, Set, SortKey, StructureNode,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -419,7 +419,13 @@ impl Command for CreateExternalRef {
 /// their external reference instead (the node and the reference stay). Nothing is stored that the format did not
 /// hold: an external point is `ip.external` naming an `ExternalRef` (doc 03 §6, FR-XRF-012). Rejected: a target that
 /// is no interruption point; a starred point (an external point takes no star); `location` or `device` missing
-/// without `remove`. Outcome: the reference (none with `remove`).
+/// without `remove` or `group`. Outcome: the reference (none with `remove`).
+///
+/// **Groups** (rc.3, `IpSpec::group`): points that stand together print where they come from once. Several points
+/// marked at once become one group; one point marked joins the group of a marked point of the same reference in its
+/// column on its page at most 20 mm above or below it (with that point a new group when it has none).
+/// With `group` and no place: `true` makes the points one group (all marked, from one place, else refused in words),
+/// `false` takes them out of their group.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct MarkSupplyIn {
@@ -437,6 +443,9 @@ pub struct MarkSupplyIn {
     /// Takes the mark off the points.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub remove: bool,
+    /// Without a place: groups the points (`true`) or takes them out of their group (`false`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group: Option<bool>,
 }
 
 impl Command for MarkSupplyIn {
@@ -475,10 +484,14 @@ impl Command for MarkSupplyIn {
                 tx.update::<Function>(*p, |f| {
                     if let FunctionKind::Ip(ip) = &mut f.kind {
                         ip.external = None;
+                        ip.group = None;
                     }
                 })?;
             }
             return Ok(Outcome::default());
+        }
+        if let (Some(join), None) = (self.group, &self.location) {
+            return group_points(tx, &self.points, join);
         }
         let (Some(code), Some(device)) = (&self.location, &self.device) else {
             let path = if self.location.is_none() {
@@ -543,10 +556,34 @@ impl Command for MarkSupplyIn {
         };
         for p in &self.points {
             tx.update::<Function>(*p, |f| {
-                if let FunctionKind::Ip(ip) = &mut f.kind {
+                // A point that moves to another place leaves its group; one marked again keeps it.
+                if let FunctionKind::Ip(ip) = &mut f.kind
+                    && ip.external != Some(external)
+                {
                     ip.external = Some(external);
+                    ip.group = None;
                 }
             })?;
+        }
+        // Several points marked at once are one group (unless they are one already); one point joins the group of a
+        // point of the same place that stands with it.
+        let groups: std::collections::BTreeSet<Option<u32>> = self
+            .points
+            .iter()
+            .map(|p| supply_of(tx, *p).and_then(|(_, g)| g))
+            .collect();
+        let one_group = groups.len() == 1 && groups.iter().all(Option::is_some);
+        let group = match self.points.as_slice() {
+            _ if one_group => None,
+            [one] => match neighbour(tx, *one, external) {
+                Some((_, Some(g))) => Some((vec![*one], g)),
+                Some((other, None)) => Some((vec![*one, other], next_group(tx))),
+                None => None,
+            },
+            many => Some((many.to_vec(), next_group(tx))),
+        };
+        if let Some((points, g)) = group {
+            set_group(tx, &points, Some(g))?;
         }
         let mut project = (*tx.project()).clone();
         if let Some(supply) = project.supply.as_mut()
@@ -565,4 +602,96 @@ impl Command for MarkSupplyIn {
         }
         Ok(Outcome::primary((Kind::ExternalRef, external.cast())))
     }
+}
+
+/// How far above or below a point another point of its group may stand: 20 mm, the spacing of a column of supply
+/// points drawn one under the other (the window places them about 16 mm apart, an imported drawing 4 mm).
+const GROUP_REACH: i64 = 20_000_000;
+
+/// The external point `p` (its interruption point's function): its reference and group.
+fn supply_of(tx: &TxBuilder<'_>, p: Id<Function>) -> Option<(Id<ExternalRef>, Option<u32>)> {
+    match &tx.get::<Function>(p)?.kind {
+        FunctionKind::Ip(ip) => Some((ip.external?, ip.group)),
+        _ => None,
+    }
+}
+
+/// The first representation of the function `f`: its page and point.
+fn drawn_at(tx: &TxBuilder<'_>, f: Id<Function>) -> Option<(Id<Page>, ew_units::Pt2)> {
+    tx.iter::<Representation>()
+        .iter()
+        .filter(|r| r.functions.contains(&f))
+        .map(|r| (r.page, r.pos))
+        .min_by_key(|(_, at)| (at.y, at.x))
+}
+
+/// The nearest point of the reference `external` in the column of the point `p` on its page, at most
+/// [`GROUP_REACH`] above or below it, with its group.
+fn neighbour(
+    tx: &TxBuilder<'_>,
+    p: Id<Function>,
+    external: Id<ExternalRef>,
+) -> Option<(Id<Function>, Option<u32>)> {
+    let (page, at) = drawn_at(tx, p)?;
+    tx.iter::<Function>()
+        .iter()
+        .filter(|f| f.id != p)
+        .filter_map(|f| {
+            let (x, group) = supply_of(tx, f.id)?;
+            let (other_page, other) = drawn_at(tx, f.id)?;
+            let dy = (other.y.0 - at.y.0).abs();
+            (x == external && other_page == page && other.x == at.x && dy <= GROUP_REACH)
+                .then_some((dy, f.id, group))
+        })
+        .min_by_key(|(dy, id, _)| (*dy, *id))
+        .map(|(_, id, group)| (id, group))
+}
+
+/// A group number no point has yet.
+fn next_group(tx: &TxBuilder<'_>) -> u32 {
+    tx.iter::<Function>()
+        .iter()
+        .filter_map(|f| match &f.kind {
+            FunctionKind::Ip(ip) => ip.group,
+            _ => None,
+        })
+        .max()
+        .map_or(1, |g| g.saturating_add(1))
+}
+
+/// Sets the group of the points `points`.
+fn set_group(tx: &mut TxBuilder<'_>, points: &[Id<Function>], group: Option<u32>) -> Result<(), CmdError> {
+    for p in points {
+        tx.update::<Function>(*p, |f| {
+            if let FunctionKind::Ip(ip) = &mut f.kind {
+                ip.group = group;
+            }
+        })?;
+    }
+    Ok(())
+}
+
+/// `ip.supply_in {group}` without a place (see [`MarkSupplyIn`]): `join` makes the marked points of one place one
+/// group, else they leave their groups. A point without the mark, or points from two places, are refused in words.
+fn group_points(tx: &mut TxBuilder<'_>, points: &[Id<Function>], join: bool) -> Result<Outcome, CmdError> {
+    if !join {
+        set_group(tx, points, None)?;
+        return Ok(Outcome::default());
+    }
+    let mut places = std::collections::BTreeSet::new();
+    for p in points {
+        let Some((x, _)) = supply_of(tx, *p) else {
+            return tx.reject(text!(
+                "refusal-supply-group-unmarked",
+                crate::words::interruption_point(tx, *p)
+            ));
+        };
+        places.insert(x);
+    }
+    if places.len() > 1 {
+        return tx.reject(text!("refusal-supply-group-places"));
+    }
+    let g = next_group(tx);
+    set_group(tx, points, Some(g))?;
+    Ok(Outcome::default())
 }

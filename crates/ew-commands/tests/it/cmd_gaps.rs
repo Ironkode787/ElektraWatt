@@ -297,6 +297,7 @@ fn ip_supply_in_marks_the_points_with_one_external_reference() {
         location: Some(ident("Supply")),
         device: Some(ident("-X0")),
         remove: false,
+        group: None,
     };
     let r = e
         .execute(&mark(vec![FN_IP_101, FN_IP_102]))
@@ -317,6 +318,7 @@ fn ip_supply_in_marks_the_points_with_one_external_reference() {
         location: None,
         device: None,
         remove: true,
+        group: None,
     };
     e.execute(&off).expect("remove");
     assert_eq!(external_of(&e, FN_IP_101), None);

@@ -7433,3 +7433,7 @@ part-misfit-cores = { $p0 } cores, too few for its { $p1 } wires
 part-misfit-pe = no protective conductor for its PE wire
 messages-offer-cable-type = Choose a cable type…
 messages-offer-length = Type the length…
+refusal-supply-group-unmarked = { $p0 } has no supply mark; only marked supply points stand in a group
+refusal-supply-group-places = the points come from different places; only points that come from one place stand in a group
+supply-group-join = Group these supply points
+supply-group-leave = Take out of its group

@@ -2858,7 +2858,43 @@ impl Session {
                 if ends.iter().any(Vec::is_empty) {
                     return Vec::new();
                 }
-                vec![potential_row(q, cx, "function", &ends)]
+                let mut out = vec![potential_row(q, cx, "function", &ends)];
+                // A marked supply point (rc.3): where it comes from, the place and the device there, each changed in
+                // its row (`ip.supply_in`, its group with it).
+                if let [one] = targets
+                    && let Some((place, device)) = self.supply_source(&[*one])
+                {
+                    let mut places: Vec<String> = q
+                        .structure_nodes()
+                        .iter()
+                        .filter(|(_, n)| n.aspect == ew_schema::Open::Known(ew_derive::ew_rds::Aspect::Location))
+                        .map(|(_, n)| n.code.as_str().to_owned())
+                        .collect();
+                    places.sort_by(|a, b| ew_mltext::natural_cmp(a, b));
+                    places.dedup();
+                    for (name, text, ty) in [
+                        ("supply_place", place, FieldType::Enum { options: places }),
+                        ("supply_device", device, FieldType::Text),
+                    ] {
+                        let route = EditRoute::Command {
+                            command: "ip.supply_in".to_owned(),
+                        };
+                        out.push(derived(
+                            "function",
+                            name,
+                            Some((&format!("derived.{name}"), route, false)),
+                            Category::Structure,
+                            ty,
+                            RowValue::One {
+                                json: Value::String(text.clone()),
+                                text,
+                            },
+                            Provenance::Authored,
+                            vec![RowAction::Edit],
+                        ));
+                    }
+                }
+                out
             }
             _ => Vec::new(),
         }

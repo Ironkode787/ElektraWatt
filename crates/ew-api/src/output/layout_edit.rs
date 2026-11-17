@@ -1006,6 +1006,34 @@ impl Session {
             })
         };
         match (edit.kind.as_str(), name) {
+            // Where a marked supply point comes from (rc.3, G7): the place or the device there typed in its row moves
+            // the point and the points of its group to it (a new place is made).
+            ("function", "supply_place" | "supply_device") => {
+                let Some((place, device)) = self.supply_source(&[edit.target]) else {
+                    return invalid("The point has no supply mark.");
+                };
+                if text.is_empty() {
+                    return invalid("Type where the supply comes from.");
+                }
+                let (location, device) = if name == "supply_place" {
+                    (text.to_owned(), device)
+                } else {
+                    (place, text.to_owned())
+                };
+                let mut points: Vec<Uuid> = std::iter::once(edit.target)
+                    .chain(edit.others.iter().copied())
+                    .collect();
+                for p in self.supply_group(edit.target) {
+                    if !points.contains(&p) {
+                        points.push(p);
+                    }
+                }
+                let points: Vec<String> = points.iter().map(Uuid::to_string).collect();
+                command(
+                    "ip.supply_in",
+                    json!({"points": points, "location": location, "device": device}),
+                )
+            }
             // A configuration project's address profile, chosen among the profiles at hand; the
             // command refuses a text that names none.
             ("plc_config_project", "profile") => command(
