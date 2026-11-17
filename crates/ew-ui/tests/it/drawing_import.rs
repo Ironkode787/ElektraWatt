@@ -20,7 +20,9 @@ const PLAN: &str = "0\nSECTION\n2\nENTITIES\n0\nLWPOLYLINE\n8\n0\n90\n4\n70\n1\n
 10\n120\n20\n70\n10\n20\n20\n70\n0\nENDSEC\n0\nEOF\n";
 
 /// FT-1753: a drawing import runs as a job of the Jobs pane, off the window's thread: held at its start, it is listed
-/// as running, and its Cancel ends it with nothing imported and the cancel said in words.
+/// as running, and its Cancel ends it with nothing imported and the cancel said in words. The test waits until the job
+/// stands at its gate before it cancels and releases (a release before the job arrived left it held for good on a
+/// loaded machine), then for the job's own end: no clock is in it.
 #[test]
 fn a_drawing_import_runs_as_a_job_with_cancel() {
     let tmp = Tmp::new();
@@ -48,9 +50,11 @@ fn a_drawing_import_runs_as_a_job_with_cancel() {
         .map(|e| e.kind.word().to_owned())
         .collect();
     assert_eq!(running, ["import"], "the window answers while the job runs");
+    gate.wait_reached("drawing");
     support::dispatch(&mut h, "jobs.cancel", json!({}));
     gate.release();
-    finish_jobs(&mut h);
+    h.state_mut().shell_mut().wait_jobs();
+    settle(&mut h);
     assert_eq!(h.state().shell().page_rows().len(), pages, "nothing imported");
     let toast = h
         .state()

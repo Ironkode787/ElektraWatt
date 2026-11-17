@@ -119,19 +119,19 @@ pub fn settle(harness: &mut Harness<'_, App>) {
     assert_accessible(harness);
 }
 
-/// Runs frames (bounded) until no job runs: an import reads its file in a job and goes on in a later frame
-/// (FT-1753, FT-1763).
+/// Runs frames until no job runs, waiting for each running job's own end between them: an import reads its file in a
+/// job and goes on in a later frame (FT-1753, FT-1763). No clock: a loaded machine ends the job later, never not.
 #[track_caller]
 pub fn finish_jobs(harness: &mut Harness<'_, App>) {
-    for _ in 0..500 {
+    for _ in 0..50 {
         harness.run_ok();
         if harness.state().shell().jobs().running() == 0 {
             harness.run_ok();
             return;
         }
-        std::thread::sleep(std::time::Duration::from_millis(20));
+        harness.state_mut().shell_mut().wait_jobs();
     }
-    panic!("the job did not end");
+    panic!("a job is still running after 50 frames that each waited for it");
 }
 
 /// Waits (bounded) for the render worker's image of the page on show.
