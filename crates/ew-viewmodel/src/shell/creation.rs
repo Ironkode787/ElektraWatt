@@ -1466,12 +1466,17 @@ impl ShellModel {
     /// `fluid.valve_terminal {terminal?}` (Fluid ▸ Valve terminal…, rc.2): on a fluid page a valve terminal of the project
     /// that is drawn on no fluid page yet (made as a station first) comes first: the form offers "Draw -104A1 here" for
     /// each, then "A new terminal…". `terminal` a terminal draws it here (`fluid.draw_terminal`); `new`, or no such
-    /// terminal, opens the device browser at the valve terminals.
+    /// terminal, opens the device browser at the valve terminals. From another page it works on the nearest fluid page,
+    /// else on one made then ([`ShellModel::fluid_page_here`], rc.3).
     pub(crate) fn act_fluid_valve_terminal(&mut self, p: &Map<String, Value>) -> Outcome {
         let terminal = match text_param(p, "terminal") {
             Ok(t) => t,
             Err(e) => return e,
         };
+        let here = self.fluid_page_here();
+        if here != Outcome::Done {
+            return here;
+        }
         let undrawn = self
             .project_session()
             .map(ew_api::Session::undrawn_fluid_terminals)

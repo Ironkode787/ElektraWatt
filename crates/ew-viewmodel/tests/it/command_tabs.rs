@@ -111,29 +111,46 @@ fn the_workspace_switch_shows_the_active_workspace() {
     s.shutdown();
 }
 
-/// A Fluid tab button that needs a fluid page is greyed elsewhere with its reason in words, and works on one.
+/// The rc.3 rack run: Valve terminal and Air supply were greyed on a page that is no fluid page and did not say why.
+/// The Fluid tab's place buttons work from any page: on a project without a fluid page Air supply makes one, says so
+/// and opens the device browser there; from another page they go to the fluid page. The Tube, a tool of the page in
+/// front, is greyed elsewhere with the fluid page as its reason.
 #[test]
-fn the_fluid_buttons_need_a_fluid_page_and_say_so() {
+fn the_fluid_buttons_find_or_make_their_fluid_page() {
     let tmp = Tmp::new("tabs-fluid");
     let mut s = new_project(&tmp);
-    let symbol = button(&s, Tab::Fluid, "fluid.symbol");
-    assert!(!symbol.enabled);
-    assert_eq!(
-        symbol.reason.as_deref(),
-        Some(strings::text(ew_viewmodel::key!("reason-fluid-page-symbols")))
-    );
-    assert!(!button(&s, Tab::Fluid, "tool.fluid_line").enabled);
-    done(&mut s, "page.new", json!({"folio": "201", "type": "fluid"}));
-    for id in [
-        "fluid.symbol",
-        "fluid.air_supply",
-        "fluid.valve_terminal",
-        "tool.fluid_line",
-    ] {
+    for id in ["fluid.symbol", "fluid.air_supply", "fluid.valve_terminal"] {
         assert!(button(&s, Tab::Fluid, id).enabled, "{id}");
     }
+    let tube = button(&s, Tab::Fluid, "tool.fluid_line");
+    assert!(!tube.enabled);
+    assert_eq!(
+        tube.reason.as_deref(),
+        Some(strings::text(ew_viewmodel::key!("reason-not-fluid-page")))
+    );
+    let first = s.current_folio().map(str::to_owned);
     done(&mut s, "fluid.air_supply", json!({}));
+    let made = s.current_folio().map(str::to_owned);
+    assert_ne!(made, first, "a fluid page made and shown");
+    assert_eq!(
+        s.page_rows().get(s.page_index()).map(|r| r.kind.as_str()),
+        Some("fluid")
+    );
     assert!(s.picker().is_some(), "the device browser is open");
+    let toast = s.toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert!(toast.starts_with("Fluid page"), "{toast}");
+    assert!(button(&s, Tab::Fluid, "tool.fluid_line").enabled);
+    // From another page Fluid symbol goes back to it, making no second one.
+    done(&mut s, "ui.dismiss", json!({}));
+    done(
+        &mut s,
+        "page.goto",
+        json!({"folio": first.clone().unwrap_or_default()}),
+    );
+    let pages = s.page_rows().len();
+    done(&mut s, "fluid.symbol", json!({}));
+    assert_eq!(s.current_folio().map(str::to_owned), made);
+    assert_eq!(s.page_rows().len(), pages, "no second fluid page");
     s.shutdown();
 }
 

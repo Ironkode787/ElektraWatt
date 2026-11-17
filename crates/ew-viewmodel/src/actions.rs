@@ -771,21 +771,14 @@ fn put_station_page(m: &ShellModel) -> Result<(), Key<'static>> {
     Ok(())
 }
 
-/// An editable fluid page (Draw ▸ Fluid line…).
+/// An editable fluid page (Draw ▸ Fluid line…); elsewhere (another page, a station's view) the reason names the
+/// fluid page (rc.3: in a station's view the Tube's hover spoke of symbols on drawn pages).
 fn fluid_page(m: &ShellModel) -> Result<(), Key<'static>> {
-    editable_page(m)?;
+    writable(m)?;
     match m.wire_kind() {
-        Ok(Some("fluid")) => Ok(()),
+        Ok(Some("fluid")) => editable_page(m),
         _ => Err(key!("reason-not-fluid-page")),
     }
-}
-
-/// An editable fluid page for the Fluid tab's symbol and device browsers, else why not in their words.
-fn fluid_symbol_page(m: &ShellModel) -> Result<(), Key<'static>> {
-    fluid_page(m).map_err(|reason| match reason {
-        key if key == key!("reason-not-fluid-page") => key!("reason-fluid-page-symbols"),
-        other => other,
-    })
 }
 
 /// An editable page with two or more terminals of one row selected (Spacing…).

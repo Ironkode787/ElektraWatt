@@ -6614,7 +6614,6 @@ action-fluid-guide = Handleiding fluïdtechniek
 reason-no-station = Nog geen PLC-station: plaats eerst een CPU of een kopstation
 reason-no-config-project = Nog geen PLC-configuratie: die komt met het eerste PLC-station
 reason-no-undrawn-port = Elke poort van de busapparaten is al getekend
-reason-fluid-page-symbols = Fluïdumsymbolen worden op een fluïdumpagina geplaatst: open er een, of maak er een met Nieuwe fluïdumpagina…
 commandbar-workspaces = Werkruimte
 submenu-plc-addressing = Adressering
 submenu-guides = Handleidingen

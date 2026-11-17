@@ -79,6 +79,15 @@ impl ShellModel {
         self.act_page_new(&params(json!({ "type": kind })))
     }
 
+    /// The Fluid tab's device browser at `category` (`AirPreparation`), on a fluid page: the one shown, else the nearest,
+    /// else one made then ([`ShellModel::fluid_page_here`], rc.3).
+    pub(crate) fn act_fluid_picker(&mut self, category: &str) -> Outcome {
+        match self.fluid_page_here() {
+            Outcome::Done => self.act_discipline_picker(PickerMode::Parts, category),
+            other => other,
+        }
+    }
+
     /// The browser of `mode` opened at the function category `category` (`AirPreparation`).
     pub(crate) fn act_discipline_picker(&mut self, mode: PickerMode, category: &str) -> Outcome {
         let out = self.act_open_picker(mode);

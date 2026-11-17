@@ -91,7 +91,9 @@ station on PROFIBUS DP", "Valve terminal · multipin, wired"):
    port 1 there. The sub-base under the cells shows the supply and exhaust galleries that join every valve.
    The toast names the terminal and its positions; a click onto another box is refused.
    A terminal made first as a PLC station (**PLC ▸ New station…**) comes first: **Valve terminal** offers
-   **Draw -104A1 here** for it, its rack's tab **Draw on a fluid page…**, and its valves stand in their cells.
+   **Draw -104A1 here** for it, its rack's tab **Draw on a fluid page…**, and its valves stand in their cells. With
+   several fluid pages **Draw on a fluid page…** asks which; without one it makes one. **Valve terminal**, **Air
+   supply** and **Fluid symbol** work from any page in the same way: they go to the nearest fluid page, or make one.
 2. Click an empty cell, or right-click it and choose **Fill position 2…**: the device browser opens with valves; choose
    a valve for a valve terminal, and it stands in that cell with its output. Its working ports 4 and 2 stand on the
    cell's top edge: draw the tubes to the cylinder from there. A valve put on a position in the terminal's rack or the

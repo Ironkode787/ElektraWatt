@@ -96,7 +96,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     ),
     // Fluid ▸ Place: the device browser at the pneumatic parts, at the valve terminals, and at the air supply and its
     // preparation, so that what is placed has its part (rc.2: the air supply placed from the symbols had none); a bare
-    // symbol stays Draw ▸ Symbol's.
+    // symbol stays Draw ▸ Symbol's. From any page they work on a fluid page: the nearest, else one made then (rc.3:
+    // greyed elsewhere, they did not say why).
     keeps_banner(placed(
         place(
             Group::FluidPlace,
@@ -110,9 +111,9 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             Command,
             Menu::Fluid,
             &[],
-            fluid_symbol_page,
+            writable,
             None,
-            |s, _| s.act_discipline_picker(crate::tools::PickerMode::Parts, "pneumatics"),
+            |s, _| s.act_fluid_picker("pneumatics"),
         ),
     )),
     // A valve terminal of the project drawn on no fluid page yet comes first (rc.2): Draw -104A1 here, or a new one.
@@ -126,7 +127,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
                 Command,
                 Menu::Fluid,
                 &[],
-                fluid_symbol_page,
+                writable,
                 None,
                 |s, p| s.act_fluid_valve_terminal(p),
             ),
@@ -140,9 +141,9 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             Command,
             Menu::Fluid,
             &[],
-            fluid_symbol_page,
+            writable,
             None,
-            |s, _| s.act_discipline_picker(crate::tools::PickerMode::Parts, "AirPreparation"),
+            |s, _| s.act_fluid_picker("AirPreparation"),
         ),
     )),
     // Fluid ▸ Media: the medium table (New medium… and Fluid settings… are declared in `automation`).

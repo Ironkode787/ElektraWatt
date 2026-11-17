@@ -6876,7 +6876,6 @@ action-fluid-guide = Fluid power guide
 reason-no-station = No PLC station yet: place a CPU or a head station first
 reason-no-config-project = No PLC configuration yet: it comes with the first PLC station
 reason-no-undrawn-port = Every port of the bus devices is drawn already
-reason-fluid-page-symbols = Fluid symbols are placed on a fluid page: open one, or make one with New fluid page…
 commandbar-workspaces = Workspace
 submenu-plc-addressing = Addressing
 submenu-guides = Guides
