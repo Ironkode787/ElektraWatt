@@ -422,6 +422,15 @@ impl EditorView {
         let t = theme::current(ui.ctx());
         let full = ui.max_rect();
         ui.allocate_rect(full, Sense::hover());
+        // F1 on a part of the screen (the start card, the outline, the drawing, Properties, the device box): its
+        // section of the editor's page.
+        let help = |ui: &Ui, rect: Rect, drawing: bool| {
+            crate::help::offer(ui, rect, || {
+                let topic = ew_viewmodel::help::symbol_editor_part(editor, drawing);
+                (topic.to_owned(), strings::text(key!("symbol-title")).to_owned())
+            });
+        };
+        help(ui, full, false);
         if editor.start && editor.device_box().is_none() {
             self.toast_corner = Some(full.right_top());
             self.start_card(ui, full, shell, editor, events);
@@ -440,6 +449,7 @@ impl EditorView {
         for panel in [left, right] {
             ui.painter().rect_filled(panel, 0.0, t.surface_panel.color32());
         }
+        help(ui, centre, true);
         for x in [left.right(), right.left()] {
             ui.painter().line_segment(
                 [Pos2::new(x, full.top()), Pos2::new(x, full.bottom())],

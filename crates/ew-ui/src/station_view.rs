@@ -480,6 +480,11 @@ fn interact(
     if response.clicked() || response.secondary_clicked() {
         events.push(Event::Action("plc.rack_select", p.select()));
     }
+    // F1 on a card or a cell: what the cards or a valve terminal's cells are.
+    crate::help::offer_for(response, || {
+        let thing = ew_viewmodel::help::station_thing(shell, tab);
+        (thing.topic().to_owned(), thing.words().to_owned())
+    });
     response.context_menu(|ui| menu(ui, shell, events));
     // A module is dragged by its card or its row; a station not made yet orders its modules with Move left and right.
     if let (Some(device), StationCursor::Slot { .. }) = (p.device, p.cursor)
@@ -551,6 +556,9 @@ fn tools(ui: &mut Ui, t: &Tokens, shell: &ShellModel, events: &mut Vec<Event>) {
             match entry {
                 MenuEntry::Item(item) => {
                     let button = components::button(ui, Kind::Subtle, &short, item.enabled, 0.0);
+                    if let Some(topic) = item.topic {
+                        crate::help::offer_for(&button, || (topic.to_owned(), short.clone()));
+                    }
                     match &item.reason {
                         Some(why) if !item.enabled => {
                             button.disabled_tip(why.clone());

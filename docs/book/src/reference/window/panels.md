@@ -2,15 +2,19 @@
 
 The window's panes sit around the page view: the navigators on the left, the property grid on the right, and the
 find pane, the jobs, the preview, the history and the glossary in the bottom dock. View ▸ Panels shows and hides them.
-Help ▸ Documentation in a focused pane opens its section here. The keys of each pane are on the
+`F1` over a pane's header or in a focused pane opens its section here. The keys of each pane are on the
 [keymap](../keymaps.md) page.
 
 ## Panes
 
 ### Page view
 
-The canvas: the open pages as tabs, one or two groups side by side. The tools of the Draw tab act on it; see
-[Tools](tools.md).
+The canvas: the open pages as tabs, one or two groups side by side (**View ▸ Side by side**). The tools of the Draw
+tab act on it; see [Tools](tools.md), and what a page holds, [Things on a page](things.md). **Zoom in**, **Zoom
+out**, **Fit page** and **Grid** are in the View menu; the mouse wheel zooms (or scrolls, as the View menu sets).
+**Follow cross-reference** goes to the place a cross-reference names, **Back** and **Forward** go through the places
+you came from, and **Highlight** (`Ctrl+Shift+H`) marks the thing of a list's row on the pages until **Clear
+highlights**.
 
 ### Properties
 
@@ -195,5 +199,5 @@ The installed libraries and the project's library copies with their state.
 ### Messages
 
 The findings of the project's checks, by severity and rule. Check ▸ Next finding and Check ▸ Previous finding walk
-them; Help ▸ Documentation on a finding opens its rule's page in the [rule reference](../rules/index.md). Open it with
+them; `F1` on a finding opens its rule's page in the [rule reference](../rules/index.md). Open it with
 Check ▸ Messages.

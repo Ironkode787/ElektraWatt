@@ -49,4 +49,4 @@ Nothing else: choose **Empty project** in the New project dialog.
 - A symbol you place is a function of a device, and the device gets its tag (-1T1, -1E1) from the numbering scheme.
 - Wires join connection points; the wires that touch form a potential, which you name with Define potential….
 - The checks run while you draw. A warning tells you what is still open; the [rule reference](../reference/rules/index.md)
-  explains each rule, and **Help ▸ Documentation** on a finding opens its rule's page.
+  explains each rule, and `F1` on a finding opens its rule's page.

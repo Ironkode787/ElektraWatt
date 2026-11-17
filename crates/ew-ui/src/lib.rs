@@ -41,6 +41,8 @@ pub mod fonts;
 pub mod glossary;
 pub mod gpu;
 pub mod headless;
+// What the window names under the pointer for F1.
+mod help;
 mod history;
 mod hud;
 pub mod icons;

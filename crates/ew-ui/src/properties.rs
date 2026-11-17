@@ -26,9 +26,9 @@
 use egui::{Key, Modifiers, RichText, Sense, TextEdit, Ui, Vec2};
 use ew_viewmodel::key;
 use ew_viewmodel::properties::{
-    ChoiceKind, EditRoute, FieldType, Popup, PropRow, PropertySheet, Provenance, RowAction, RowValue,
-    SheetSection, ValueChooser, advanced_count, chip_text, chip_word, filtered, group_key, groups, is_header,
-    read_only_reason, row_label, value_text,
+    ChoiceKind, EditRoute, FieldType, LabelPath as _, Popup, PropRow, PropertySheet, Provenance, RowAction,
+    RowValue, SheetSection, ValueChooser, advanced_count, chip_text, chip_word, filtered, group_key, groups,
+    is_header, read_only_reason, row_label, value_text,
 };
 use ew_viewmodel::shell::{Focus, ShellModel};
 use ew_viewmodel::strings;
@@ -820,6 +820,13 @@ impl PropertiesPane {
         if selected {
             Self::paint_cursor(ui, &t, rect);
         }
+        // F1 on the row: its place in the properties reference.
+        crate::help::offer(ui, rect, || {
+            (
+                ew_viewmodel::help::property_topic(&section.kind, &row.path_for_label()),
+                label.clone(),
+            )
+        });
         // Tertiary parts on `color.accent.subtle` are drawn in `color.text.secondary` (§4.15).
         let tertiary = if selected {
             t.text_secondary

@@ -349,7 +349,7 @@ fn the_page_lint_names_the_windows_words_for_each_step() {
         ("file.save".to_owned(), json!({})),
     ];
     let good = "1. Choose **File ▸ New project…** (`Ctrl+N`).\n2. Click, then choose **File ▸ Save**.\n\n\
-                Later, **Help ▸ Documentation** helps.\n";
+                Later, **Help ▸ What is this?** helps.\n";
     assert_eq!(lint("p.md", good, Some(&script), &items), Vec::<String>::new());
     let bad = "1. Choose **File ▸ New Project…** (`Ctrl+M`).\n2. Choose\n   **File ▸ Save**.\n\n\
                Later, **Help ▸ Manual** helps.\n";

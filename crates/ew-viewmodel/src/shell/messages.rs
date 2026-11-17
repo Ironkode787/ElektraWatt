@@ -15,7 +15,7 @@ use ew_api::output::{NavKind, NavTable};
 use ew_api::{AnyCommand, Submit};
 use serde_json::{Map, Value};
 
-use super::navigation::{Focus, bump};
+use super::navigation::bump;
 use super::{Dialog, FormDialog, FormField, Mode, Outcome, ShellModel, failed, string_param};
 use crate::canvas::PageId;
 use crate::key;
@@ -481,17 +481,6 @@ impl ShellModel {
             self.notes.dismiss(serial);
             self.messages.check_toast = None;
         }
-    }
-
-    /// F1 in the Messages pane with the cursor on a finding or rule row: the rule's page of the book (§7.3).
-    pub(super) fn messages_help_target(&self) -> Option<String> {
-        if self.focus != Some(Focus::Navigator(NavKind::Messages)) {
-            return None;
-        }
-        let nav = self.navs.get(&NavKind::Messages)?;
-        let key = nav.cursor_key()?;
-        let (_, node) = nav.node_of(&key)?;
-        crate::help::rule_target(&messages::rule_of(node)?)
     }
 
     // -----------------------------------------------------------------------------------------------------------

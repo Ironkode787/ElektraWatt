@@ -2167,7 +2167,7 @@ action-view-workspace-load = Load workspace
 action-view-workspace-save = Save layout as…
 action-view-workspace-reset = Reset layout
 action-tools-company-standard = New template…
-action-help-documentation = Documentation
+action-help-documentation = What is this?
 action-help-tutorials = Tutorials
 # FT-1458: Help ▸ Tutorials, one entry per tutorial of the guide, by its page's title.
 submenu-tutorials = Tutorials
@@ -2204,7 +2204,7 @@ reason-no-damaged-copy-update = The open project has no damaged library copy tha
 reason-no-wizard = The template wizard is not open
 reason-no-first-run = The first-run setup is not open
 readonly-sample = the sample project
-tooltip-learn-more = F1: learn more
+tooltip-learn-more = F1: help
 
 # Part 2: banners and errors.
 banner-sample = This is the sample project. It is open read-only; Save as makes a copy of your own.
@@ -7511,3 +7511,25 @@ text-styles-note-standard = Every height is a new project's again; the typefaces
 error-text-style-unknown = The project has no text style "{ $p0 }".
 error-text-style-height = "{ $p0 }" is not a height: type a number of millimetres, such as 2.5.
 error-text-style-height-range = A height lies between { $p0 } mm and { $p1 } mm.
+
+# rc.3: F1 opens the help for what is under the hand; the status bar says what it opens.
+status-help = F1: { $p0 }
+help-thing-device = Devices and symbols
+help-thing-wire = Wires
+help-thing-wire-route = A wire's route
+help-thing-cable = Cables and their marks
+help-thing-terminal = Terminals and terminal strips
+help-thing-ip = Interruption points
+help-thing-supply = Supply points
+help-thing-plc = PLC cards and stations
+help-thing-bus = Bus devices
+help-thing-valve = Valves and cylinders
+help-thing-valve-terminal = Valve terminals
+help-thing-tube = Tubes
+help-thing-text = Texts
+help-thing-wire-marker = Wire markers
+help-thing-graphic = Graphics and images
+help-thing-box = Boxes
+help-thing-frame = The frame and title block
+help-thing-list = Lists on a page
+help-thing-panel-layout = Panel layout

@@ -1361,9 +1361,14 @@ impl App {
         if self.shell.dialog().is_none() {
             crate::startup::show(&ctx, &self.shell, &mut events);
         }
-        // F1 resolves the context (a hovered menu item has taken the key already).
+        // What the window names under the pointer goes to the shell, where the status bar says what F1 opens. F1
+        // opens it, else the thing on the page under the pointer, else the context (the focus, the selection, the
+        // tool, the screen).
+        self.shell.set_help_under(crate::help::take(&ctx));
         if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::F1)) {
-            events.push(Event::Action("help.documentation", Value::Null));
+            let params = ew_viewmodel::help::pointer_topic(&self.shell)
+                .map_or(Value::Null, |under| serde_json::json!({ "topic": under.topic }));
+            events.push(Event::Action("help.documentation", params));
         }
 
         if canvas_shown {

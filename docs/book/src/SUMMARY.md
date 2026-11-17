@@ -36,6 +36,8 @@
   - [Tools](reference/window/tools.md)
   - [Dialogs](reference/window/dialogs.md)
   - [Panels](reference/window/panels.md)
+  - [Things on a page](reference/window/things.md)
+  - [Properties](reference/properties.md)
   - [Symbol editor and automated authoring](reference/symbol-editor.md)
   - [Command reference](reference/commands/index.md)
     - [`assembly.attach`](reference/commands/assembly.attach.md)

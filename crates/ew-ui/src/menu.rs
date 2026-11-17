@@ -6,15 +6,14 @@
 //! the tabs' menus with their groups, Window and Help, generated from the action registry by
 //! `ew_viewmodel::actions::menu_model`. Each entry shows its accelerator, is greyed when disabled and gives its
 //! reason as the tooltip; a click is an [`Event::Action`]. Rows follow doc 16a §6.13. An enabled entry with a documentation topic ends its
-//! tooltip with "F1: learn more", and F1 while the pointer is on it opens that topic (FR-UI-031).
+//! tooltip with "F1: help", and F1 while the pointer is on it opens that topic (FR-UI-031; `crate::help`).
 
-use egui::{Button, Key, Modifiers, Ui};
+use egui::{Button, Ui};
 use ew_viewmodel::actions::{ActionItem, MenuEntry, menu_model};
 use ew_viewmodel::command_bar::Group;
 use ew_viewmodel::key;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
-use serde_json::json;
 
 use crate::app::Event;
 use crate::components::Tip as _;
@@ -97,11 +96,8 @@ fn item_in(ui: &mut Ui, item: &ActionItem, icons: bool, events: &mut Vec<Event>)
     } else if item.topic.is_some() {
         response = response.tip(strings::text(key!("tooltip-learn-more")));
     }
-    if let Some(topic) = item.topic
-        && response.contains_pointer()
-        && ui.ctx().input_mut(|i| i.consume_key(Modifiers::NONE, Key::F1))
-    {
-        events.push(Event::Action("help.documentation", json!({ "topic": topic })));
+    if let Some(topic) = item.topic {
+        crate::help::offer_for(&response, || (topic.to_owned(), item.label.clone()));
     }
     if response.clicked() {
         events.push(Event::Action(item.id, item.params.clone()));

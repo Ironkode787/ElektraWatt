@@ -1,6 +1,6 @@
 # Dialogs
 
-A dialog asks for a decision or a few values and closes when you answer. Help ▸ Documentation in an open dialog opens
+A dialog asks for a decision or a few values and closes when you answer. `F1` in an open dialog opens
 its section, here or in [Use the application window](../../how-to/application-window.md), which describes these
 dialogs:
 
@@ -36,6 +36,14 @@ open revision without an author takes the name typed as its author's (Set revisi
 field only once the revision names its checker, who is set when it is approved, and the form says so. A text the
 title block's form holds itself (the fixed texts of an imported QElectroTech template) is not a field, and the form
 says so under its fields.
+
+## Revisions
+
+The revision dialogs of **Check ▸ Revision**. A revision is one issue of the drawing set. **Set revision author…**
+names who drew it, **Approve revision…** is the checker's sign-off of the saved project, and **Release revision…**
+issues it: the release gate first runs the checks of the project's check level on the saved project and lists what
+blocks the release. **Withdraw revision…** takes a released revision back, with a reason. **Settle the incomplete
+release…** completes or discards a release that stopped half way.
 
 ## Purge unused images
 

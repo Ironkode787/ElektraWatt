@@ -25,12 +25,14 @@ These pages are generated from the code by `cargo xtask docs-gen` and checked in
 
 ## The window
 
-What each part of the desktop application's window does and how to open it. Help ▸ Documentation opens the section of
-the tool, dialog or pane you are in.
+What each part of the desktop application's window does and how to open it. `F1` opens the section of
+what is under the pointer, or of the tool, dialog or pane you are in.
 
 - [Tools](window/tools.md): every tool of the Draw tab.
 - [Dialogs](window/dialogs.md): every dialog.
 - [Panels](window/panels.md): every pane and navigator, the strip editor and the table mode.
+- [Things on a page](window/things.md): every kind of thing a page holds, how to make and change it.
+- [Properties](properties.md): what each row of Properties means.
 
 ## Command-line program
 

@@ -674,6 +674,8 @@ pub struct ShellModel {
     window_request: Option<PathBuf>,
     /// The target of the last documentation request, kept for `ui.describe`.
     last_help: Option<String>,
+    /// What the window names under the pointer in its last frame (`crate::help::pointer_topic`).
+    help_under: Option<crate::help::HelpUnder>,
     /// A note the status bar's state field shows instead of "Ready" while the project it was made for is open at the
     /// revision it was made at: its text, the project's epoch and revision.
     status_note: Option<(String, Option<u64>, Option<u64>)>,
@@ -1164,6 +1166,7 @@ impl ShellModel {
             doc_request: None,
             window_request: None,
             last_help: None,
+            help_under: None,
             status_note: None,
             area: None,
             navigator: PageNavigator::new(),
@@ -1450,6 +1453,18 @@ impl ShellModel {
     /// The target of the last documentation request (`how-to/application-window.html#start-page`).
     pub fn last_help(&self) -> Option<&str> {
         self.last_help.as_deref()
+    }
+
+    /// What the window names under the pointer (a button, a menu item, a row, a part of a screen), set by the window
+    /// every frame: F1's first answer and the status bar's "F1: …" (`crate::help::pointer_topic`).
+    pub fn help_under(&self) -> Option<&crate::help::HelpUnder> {
+        self.help_under.as_ref()
+    }
+
+    /// Sets what the window names under the pointer, `None` over nothing it names (every frame; a view state, no
+    /// action).
+    pub fn set_help_under(&mut self, under: Option<crate::help::HelpUnder>) {
+        self.help_under = under;
     }
 
     /// The banner, if one is showing: a message, else the banner of a state that holds (saves held by a change on disk,

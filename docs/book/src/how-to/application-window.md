@@ -53,11 +53,44 @@ Disabled entries are listed last with the reason. `Escape` closes it.
 
 ## Keyboard shortcuts
 
-**Help, Keyboard shortcuts** lists the bindings of the EW preset. `F1` opens this guide at the page of what has the
-focus: an open dialog, the palette, the wizard, the project view or the start page. On the PLC, Bus and Fluid panels,
-the PLC and Fluid tabs, a bus-topology, fluid or panel layout page and in the part editor it opens the guide of that
-job; the **?** in those panels' headers and the tabs' **Guide** do the same. Over a menu item with a shortcut
-the tooltip ends with "F1: learn more"; `F1` while the pointer is on the item opens the page of that item.
+**Help, Keyboard shortcuts** lists the bindings of the EW preset. `F1` opens the guide at what is under the pointer
+([below](#help-for-what-is-under-the-pointer)).
+
+## Help for what is under the pointer
+
+Point at something and press `F1`: the guide opens at the page about it. It answers for the most specific thing under
+the hand:
+
+1. what the pointer rests on: a button of the command bar or a menu entry (the page of its command), a row of
+   Properties (what that row means, in [Properties](../reference/properties.md)), a row of a list (what its thing
+   is; a finding its rule's page), a card of a station's view, a part of the symbol editor, or a thing on the page by
+   what it is: a contactor's coil the devices', a wire the wires', a cable's mark the cables' section of
+   [Things on a page](../reference/window/things.md);
+2. else what has the keys: the row of a list or of Properties the cursor is on;
+3. else what is selected on the page;
+4. else the active tool;
+5. else the screen: an open dialog or wizard (those come first), the symbol editor, a station's view, the guide of
+   the page's kind (a fluid, bus-topology or panel layout page), the project view or the start page.
+
+While the pointer rests on something, the status bar says what `F1` opens there, such as "F1: Wires", and a button's
+or a menu entry's tooltip ends with "F1: help". **Help ▸ What is this?** opens the page of what has the keys, is
+selected or is in front, as `F1` does with the pointer on nothing. The **?** in the PLC, Bus and Fluid panels' headers
+and the tabs' **Guide** open the guide of that job. The guide opens in your browser from the copy installed with the
+program; in a Dutch window it opens the Dutch page where the guide has one.
+
+## Appearance
+
+The **View** menu sets how the window looks and behaves: **Theme**, **Density**, **UI scale**, **Minimum text
+size**, **Reduce motion**, **Show tips**, **Language**, **Wire colours**, **Mouse wheel scrolls** (instead of
+zooming), **Collapse command bar** and the **Bottom dock**. **Use the CPU renderer for the canvas** draws the page
+without the graphics card where its driver gives trouble, and **Frame statistics** shows how fast the window draws.
+The settings are kept for the next start.
+
+## Notifications
+
+What a command did, such as "Cable -1W1 made from 2 wires", shows as a toast at the window's corner for a few
+seconds; a pointer resting on it keeps it, and its button undoes the change where it can be undone. **Notifications**
+in the status bar opens the log of every toast of this session.
 
 ## Workspaces
 

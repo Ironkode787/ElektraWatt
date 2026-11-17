@@ -1,8 +1,8 @@
 # Tools
 
 A tool decides what a click on the page does. One tool is active at a time; Select is active when no other is. The
-Draw tab of the command bar holds the tools, and each is in the Draw menu at the path given below. Help ▸
-Documentation with a tool active opens its section here.
+Draw tab of the command bar holds the tools, and each is in the Draw menu at the path given below. `F1`
+with a tool active, or over its button, opens its section here.
 
 The keys of every tool are on the [keymap](../keymaps.md) page, for each keymap preset. A tool's own keys work only
 while it is active. `Esc` or a right click on the page cancels what the active tool is doing, one step at a time,

@@ -14,6 +14,8 @@
 //!   (`docs/book/rule-notes/`) and its findings in Golden A (`crates/ew-api/tests/expected/findings_mvp.csv`); a
 //!   rule without notes, or notes that miss a section or cite a standard in another form, fail;
 //! - `keymap-sheet.json` of `ew-viewmodel` gives `reference/keymaps.md`;
+//! - `properties.json` of `ew-viewmodel`, the texts that explain the rows of Properties, gives `reference/properties.md`,
+//!   the page F1 on a row of Properties opens at the row's anchor;
 //! - `cli.json` of `ew` with its result schemas (`results/`) gives one page per first path word under
 //!   `reference/cli/`; `queries.json` of `ew-api` gives `reference/queries.md`; `api_v1.json` of `ew-sqlview` gives
 //!   `reference/api-v1.md`.
@@ -59,6 +61,11 @@ const GLOSSARY_PAGE: &str = "reference/glossary.md";
 const KEYMAP_SHEET: &str = "target/reference/keymap-sheet.json";
 /// The generated keymap page, relative to [`BOOK_SRC`].
 const KEYMAPS_PAGE: &str = "reference/keymaps.md";
+/// The properties reference of `ew-viewmodel` (`ew_viewmodel::help::property_sections`), written by that crate's
+/// `help_reference` test.
+const PROPERTIES_SHEET: &str = "target/reference/properties.json";
+/// The generated properties reference, relative to [`BOOK_SRC`].
+const PROPERTIES_PAGE: &str = "reference/properties.md";
 /// The book's Markdown sources, relative to the workspace root.
 const BOOK_SRC: &str = "docs/book/src";
 /// Generated command pages, relative to [`BOOK_SRC`].
@@ -91,7 +98,13 @@ const RELEASE_NOTES_DIR: &str = "reference/release-notes";
 /// below the line that links their index page.
 const GENERATED_DIRS: [&str; 5] = [COMMANDS_DIR, RULES_DIR, CLI_DIR, FORMAT_DIR, RELEASE_NOTES_DIR];
 /// The generated single pages outside [`GENERATED_DIRS`].
-const GENERATED_PAGES: [&str; 4] = [GLOSSARY_PAGE, KEYMAPS_PAGE, QUERIES_PAGE, API_V1_PAGE];
+const GENERATED_PAGES: [&str; 5] = [
+    GLOSSARY_PAGE,
+    KEYMAPS_PAGE,
+    PROPERTIES_PAGE,
+    QUERIES_PAGE,
+    API_V1_PAGE,
+];
 /// The book's table of contents, relative to [`BOOK_SRC`].
 const SUMMARY: &str = "SUMMARY.md";
 /// Where repository files are linked from the book (not relative: the built book holds no design documents).
@@ -335,6 +348,10 @@ fn generate(root: &Path) -> Result<Generated> {
     files.insert(
         KEYMAPS_PAGE.to_owned(),
         keymaps_text(&read_json(root, KEYMAP_SHEET)?)?,
+    );
+    files.insert(
+        PROPERTIES_PAGE.to_owned(),
+        properties_text(&read_json(root, PROPERTIES_SHEET)?)?,
     );
     let results = result_schemas(root)?;
     let cli = cli_pages(&read_json(root, CLI_SNAPSHOT)?, &results, &mut files)?;
@@ -1140,6 +1157,45 @@ fn keymaps_text(sheet: &Value) -> Result<String> {
         names.join(" | "),
         "---|".repeat(names.len()),
     ))
+}
+
+/// The properties reference: one section per kind of record, one heading per row of Properties with the text that
+/// explains it (its tooltip in the window), each with the anchor F1 on the row opens; then the rows that several kinds
+/// share.
+fn properties_text(sheet: &Value) -> Result<String> {
+    let mut out = format!(
+        "# Properties\n\n{}\n\n\
+         What each row of the Properties pane means, by the kind of thing it belongs to: the text the pointer resting on \
+         a row's name shows. `F1` on a row of Properties opens it here. A thing on a page shows the rows of several \
+         kinds: a symbol those of its device, its function and its representation (its placement on the page). The \
+         page is generated from the window's own texts.\n",
+        header("the explanations of the rows of Properties")
+    );
+    for section in sheet["sections"]
+        .as_array()
+        .context("the properties sheet has no sections")?
+    {
+        let title = match section["title"].as_str().unwrap_or_default() {
+            "" => "Rows of several kinds",
+            title => title,
+        };
+        let _ = write!(
+            out,
+            "\n## {} {{#{}}}\n",
+            clean(title),
+            section["anchor"].as_str().unwrap_or_default()
+        );
+        for row in section["rows"].as_array().context("a section has no rows")? {
+            let _ = write!(
+                out,
+                "\n### {} {{#{}}}\n\n{}\n",
+                clean(row["label"].as_str().unwrap_or_default()),
+                row["anchor"].as_str().unwrap_or_default(),
+                clean(row["help"].as_str().unwrap_or_default())
+            );
+        }
+    }
+    Ok(out)
 }
 
 // ---------------------------------------------------------------------------------------------------------------

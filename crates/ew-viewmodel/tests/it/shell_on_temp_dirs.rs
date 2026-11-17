@@ -2712,7 +2712,7 @@ fn describe_lists_the_start_page_the_wizard_and_the_project_view() {
         "quick \"Language\": \"English\"",
         "item file.new \"New project…\" [Ctrl+N] enabled",
         "item file.discard_journal \"Discard unsaved changes of the earlier session…\" disabled: The project has no journal of an earlier session",
-        "item help.documentation \"Documentation\" [F1] enabled",
+        "item help.documentation \"What is this?\" [F1] enabled",
         "item tools.company_standard \"New template…\" enabled",
     ] {
         assert!(start.contains(needle), "{needle}\n{start}");

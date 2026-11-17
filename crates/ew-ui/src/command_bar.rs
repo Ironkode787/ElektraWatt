@@ -310,8 +310,8 @@ fn layout_row(ui: &Ui, t: &Tokens, model: &CommandBarModel, row: Rect) -> RowLay
 /// The tooltip of a command: its full label and its shortcut, or the reason it cannot run. A label of more lines (a
 /// name, then how the command works) takes the shortcut on its first line.
 fn tooltip(b: &CommandButton) -> String {
-    match (&b.reason, b.shortcut.is_empty()) {
-        (Some(reason), _) if !b.enabled => format!("{}: {reason}", b.label),
+    let tip = match (&b.reason, b.shortcut.is_empty()) {
+        (Some(reason), _) if !b.enabled => return format!("{}: {reason}", b.label),
         (_, true) => b.label.clone(),
         (_, false) => {
             let (name, rest) = b.label.split_once('\n').unwrap_or((&b.label, ""));
@@ -322,6 +322,19 @@ fn tooltip(b: &CommandButton) -> String {
                 format!("{line}\n{rest}")
             }
         }
+    };
+    // A command with a page in the guide ends its tooltip with how to open it, as a menu item does.
+    if b.topic.is_some() {
+        format!("{tip}\n{}", strings::text(key!("tooltip-learn-more")))
+    } else {
+        tip
+    }
+}
+
+/// Offers the page of the command `b` for F1 while the pointer is on its button.
+fn offer_help(response: &Response, b: &CommandButton) {
+    if let Some(topic) = b.topic {
+        crate::help::offer_for(response, || (topic.to_owned(), b.bar_label.clone()));
     }
 }
 
@@ -425,6 +438,7 @@ fn command_button(ui: &Ui, t: &Tokens, b: &CommandButton, rect: Rect) -> (Respon
         },
     )
     .tip(tooltip(b));
+    offer_help(&response, b);
     let chevron = split.then(|| {
         let r = Rect::from_min_max(pos2(main_rect.right(), rect.top()), rect.max);
         let name = format!("{} {}", b.bar_label, strings::text(key!("commandbar-variants")));
@@ -831,6 +845,7 @@ impl CommandBarHost {
                 },
             )
             .tip(tooltip(b));
+            offer_help(&response, b);
             state_overlay(ui, t, &response, b.enabled, t.radius_sm);
             let colour = if b.enabled {
                 t.text_secondary
@@ -1166,6 +1181,7 @@ fn next_step(ui: &Ui, t: &Tokens, b: &CommandButton, rect: Rect, labelled: bool,
         },
     )
     .tip(tooltip(b));
+    offer_help(&response, b);
     let (fill, text) = if !b.enabled {
         (t.border_subtle, t.text_disabled)
     } else if response.hovered() {

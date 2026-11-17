@@ -325,6 +325,8 @@ pub fn fields(model: &ShellModel, hide_job: bool) -> Vec<String> {
 pub enum StatusKind {
     /// The state at the left: `Ready`.
     State,
+    /// What F1 opens for what the pointer rests on ("F1: Wires"), while it rests on something.
+    Help,
     /// A card in the Preview tab that waits for Apply: "1 change waits for Apply"; a click brings the Preview forward.
     Waiting,
     /// The findings of the open Messages pane, when any count is not zero; a click opens Messages.
@@ -354,6 +356,7 @@ impl StatusKind {
     pub fn word(self) -> &'static str {
         match self {
             StatusKind::State => "state",
+            StatusKind::Help => "help",
             StatusKind::Waiting => "waiting",
             StatusKind::Findings => "findings",
             StatusKind::Job => "job",
@@ -475,13 +478,23 @@ pub fn bar(model: &ShellModel, hide_job: bool) -> Vec<StatusField> {
         tone,
         tip: String::new(),
     };
+    // What F1 opens for what the pointer rests on, after the state.
+    let help = crate::help::pointer_topic(model).map(|under| {
+        field(
+            StatusKind::Help,
+            strings::format(key!("status-help"), &[&under.subject]),
+            Tone::Muted,
+        )
+    });
     if let Some(editor) = model.symbol_editor() {
-        return vec![
-            field(
-                StatusKind::State,
-                strings::text(crate::key!("symbol-title")).into(),
-                Tone::Normal,
-            ),
+        return [field(
+            StatusKind::State,
+            strings::text(crate::key!("symbol-title")).into(),
+            Tone::Normal,
+        )]
+        .into_iter()
+        .chain(help)
+        .chain([
             field(
                 StatusKind::Grid,
                 grid_words(
@@ -502,13 +515,15 @@ pub fn bar(model: &ShellModel, hide_job: bool) -> Vec<StatusField> {
                     Tone::Normal
                 },
             ),
-        ];
+        ])
+        .collect();
     }
     // A note the shell made for the open project stands in the state's place.
     let state = model
         .status_note()
         .unwrap_or_else(|| strings::text(key!("status-ready")));
     let mut out = vec![field(StatusKind::State, state.to_owned(), Tone::Normal)];
+    out.extend(help);
     if model.project_name().is_some() {
         if let Some(text) = waiting_text(model) {
             out.push(StatusField {

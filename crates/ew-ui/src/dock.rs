@@ -362,6 +362,7 @@ impl Dock {
                     close: PaneKind::BOTTOM.contains(pane),
                     guide: Some(ew_viewmodel::help::pane_topic(*pane))
                         .filter(|topic| topic.starts_with("guide-")),
+                    topic: ew_viewmodel::help::pane_topic(*pane),
                 },
             );
         }
@@ -714,6 +715,8 @@ struct Header {
     close: bool,
     /// The help topic of the pane's guide, which a small "?" in the header opens (the PLC, Bus and Fluid panels, F5).
     guide: Option<&'static str>,
+    /// The pane's help topic: what F1 opens over its header.
+    topic: &'static str,
 }
 
 /// A dock tab's horizontal padding and its underline's inset (doc 16a §5.7: 10 px).
@@ -787,6 +790,7 @@ impl DockBehavior<'_> {
         );
         let name = header.title.clone();
         response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
+        crate::help::offer_for(&response, || (header.topic.to_owned(), header.title.clone()));
         let text = if t.type_label.upper {
             header.title.to_uppercase()
         } else {

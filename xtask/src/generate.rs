@@ -35,6 +35,11 @@ const REFERENCE: &[(&str, &[&str])] = &[
     ("ew-checks", &["--test", "it", "catalogue::"]),
     // keymap-sheet.json
     ("ew-viewmodel", &["--test", "it", "keymaps::the_keymap_sheet"]),
+    // properties.json
+    (
+        "ew-viewmodel",
+        &["--test", "it", "help_reference::the_properties_reference"],
+    ),
     // actions.txt: the persona harness's action list
     ACTIONS_TEST,
     // cli.json

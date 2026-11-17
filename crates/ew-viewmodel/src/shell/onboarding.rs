@@ -230,14 +230,9 @@ impl ShellModel {
             Err(e) => return e,
             Ok(Some(t)) if help::anchor(t).is_some() => t.to_owned(),
             Ok(Some(_)) => return failed(key!("error-bad-param"), &["topic"]),
-            // F1 on a finding or rule row of the Messages pane opens the rule's page (§7.3).
-            Ok(None) => match self.messages_help_target() {
-                Some(target) => {
-                    self.request_doc_target(target);
-                    return Outcome::Done;
-                }
-                None => help::context_topic(self).to_owned(),
-            },
+            // F1 with the pointer on nothing the window names, and Help ▸ What is this?: the focus, the selection,
+            // the tool, the screen (a finding's row of the Messages pane its rule's page, §7.3).
+            Ok(None) => help::context_topic(self),
         };
         self.request_doc(&topic);
         Outcome::Done

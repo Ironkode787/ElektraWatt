@@ -1144,6 +1144,11 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
     );
     // A pointer's convenience only: the row's node for a screen reader and the keyboard is its name.
     ui.ctx().accesskit_node_builder(gap.id, |n| n.set_hidden());
+    // F1 on the row: what its thing is, a finding's rule, else the list's section.
+    crate::help::offer(ui, gap_rect, || {
+        let under = ew_viewmodel::help::row_help(shell, kind, &row.key, &row.label);
+        (under.topic, under.subject)
+    });
     let (glyph_clicked, response) = ui
         .horizontal(|ui| {
             // The row's `space.4` padding (doc 16a §6.6), then 20 px of indent per level.

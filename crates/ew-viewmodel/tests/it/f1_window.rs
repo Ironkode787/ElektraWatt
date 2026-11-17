@@ -25,7 +25,8 @@ fn f1_opens_the_section_of_the_focused_pane() {
         "ui.focus",
         json!({"area": "navigator", "kind": "devices"}),
     );
-    assert_eq!(f1(&mut shell), "reference/window/panels.html#devices");
+    // The cursor row is a device: what devices are.
+    assert_eq!(f1(&mut shell), "reference/window/things.html#devices-and-symbols");
     done(&mut shell, "navigator.table", json!({"kind": "devices"}));
     assert_eq!(f1(&mut shell), "reference/window/panels.html#table-mode");
     // FR-UI-031: F1 with the strip editor focused opens its page.
@@ -65,7 +66,8 @@ fn f1_in_a_dialog_opens_its_section() {
     assert_eq!(f1(&mut shell), "reference/window/dialogs.html#go-to-page-or-cell");
     done(&mut shell, "ui.dismiss", json!({}));
     done(&mut shell, "page.new", json!({}));
-    assert_eq!(f1(&mut shell), "reference/window/dialogs.html#form-dialogs");
+    // A form opens the section of what its action makes: New page… the pages'.
+    assert_eq!(f1(&mut shell), "reference/window/panels.html#pages");
     shell.shutdown();
 }
 

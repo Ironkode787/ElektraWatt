@@ -576,6 +576,14 @@ pub fn field_help(kind: &str, path: &str) -> Option<&'static str> {
     field_help_keys(kind, path).iter().find_map(|k| lookup(k))
 }
 
+/// The key of the text [`field_help`] explains the field `path` of `kind` with (every key has its source-language
+/// text): the anchor of the row on the properties reference (`crate::help::property_topic`).
+pub fn field_help_key(kind: &str, path: &str) -> Option<String> {
+    field_help_keys(kind, path)
+        .into_iter()
+        .find(|k| source_text(k).is_some())
+}
+
 /// The explanation of the field `path` of `kind` in every shipped language, en-GB first, each as [`field_help`] picks
 /// it in that language.
 pub fn field_helps(kind: &str, path: &str) -> Vec<&'static str> {
