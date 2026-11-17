@@ -162,6 +162,10 @@ pub(crate) struct ToolHost {
     pub drew_existing: bool,
     /// The grips overlay of a selected black box the host set last: cleared while the overlay is it.
     pub grips: Option<Overlay>,
+    /// The handle of the selected wire that has the keyboard's focus (Tab): the wire and the handle's place in
+    /// [`route_edit::handle_parts`](super::route_edit::handle_parts); cleared when the wire is no longer the one
+    /// selected with Select at rest.
+    pub handle: Option<(EntityRef, usize)>,
     /// Whether the active tool got a primary press whose release has not come yet.
     pub press_held: bool,
     /// Whether the next primary release is dropped: the (group, tab, page) the tool works on changed while a press was
@@ -281,6 +285,7 @@ impl ToolHost {
             put_station_part: None,
             drew_existing: false,
             grips: None,
+            handle: None,
             press_held: false,
             drop_release: false,
             result_note: None,

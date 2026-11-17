@@ -805,6 +805,32 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_route_reroute(),
         ),
     )),
+    // The selected wire's handles by keyboard (rc.3): Tab and Shift+Tab (`ShellModel::shortcut_action` maps them while
+    // one wire is selected) give a handle the focus, the arrows move it.
+    with_params(
+        "step?:int",
+        hidden(in_canvas(act(
+            "route.handle",
+            View,
+            Menu::Edit,
+            &[],
+            editable_page,
+            None,
+            |s, p| s.act_route_handle(p),
+        ))),
+    ),
+    with_params(
+        "dx?:int, dy?:int",
+        hidden(in_canvas(act(
+            "route.handle_move",
+            Command,
+            Menu::Edit,
+            &[],
+            editable_page,
+            None,
+            |s, p| s.act_route_handle_move(p),
+        ))),
+    ),
     // Route page after Interruption, previewed (no default key), in a column of its own: the page as a whole.
     keeps_banner(placed(
         place(Group::Connect, 7, CommandSize::Small, None),

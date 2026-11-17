@@ -10,7 +10,11 @@
 //! vertically and a vertical one horizontally. A press on a bend drags the corner, which moves its two segments. The
 //! readout shows the offset; the release commits (one undo step), Escape cancels. On a route-less connection the drag
 //! starts from its drawn polyline. The keyboard route editor (Edit route) is gone since rc.3: Reroute
-//! (`route.reroute`) routes selected wires anew, and the keyboard move does the rest.
+//! (`route.reroute`) routes selected wires anew.
+//!
+//! **Keyboard** (rc.3): with one wire selected, Tab and Shift+Tab give a handle the focus in the order of the wire
+//! (`route.handle`, [`handle_parts`]); it shows as the one under the pointer does. The arrow keys move it one grid
+//! step (`route.handle_move`), one undo step each; Esc gives the focus back to the wire.
 //!
 //! **The ends stay.** The route's ends are on their connection points and never move. A first or last segment that
 //! is moved keeps a stub of one grid step at its end (none when the segment is no longer than a step) and jogs
@@ -278,35 +282,60 @@ pub fn part_overlay(cx: &ToolCx<'_>, line: &[(i64, i64)], part: RoutePart, steps
     Overlay::new(items)
 }
 
+/// The handles of `line` in the order of the wire from its first end: the middle of every segment that moves and
+/// every bend between them. Tab and Shift+Tab go through them in this order.
+pub fn handle_parts(line: &[(i64, i64)]) -> Vec<RoutePart> {
+    let segments = movable_segments(line);
+    let unit = PageGridMap::new((1, 1));
+    let mut out = Vec::new();
+    for i in 0..line.len().saturating_sub(1) {
+        if i > 0 && moved_bend(line, i, (0, 0), unit).is_some() {
+            out.push(RoutePart::Bend(i));
+        }
+        if segments.contains(&i) {
+            out.push(RoutePart::Segment(i));
+        }
+    }
+    out
+}
+
+/// Where the handle of `part` of `line` stands, page nm: a segment's middle or the bend.
+pub fn handle_at(line: &[(i64, i64)], part: RoutePart) -> Option<(i64, i64)> {
+    match part {
+        RoutePart::Segment(i) => {
+            let (a, b) = (*line.get(i)?, *line.get(i + 1)?);
+            Some((a.0 + (b.0 - a.0) / 2, a.1 + (b.1 - a.1) / 2))
+        }
+        RoutePart::Bend(i) => line.get(i).copied(),
+    }
+}
+
 /// The handles of a selected connection's line: a round handle ([`OverlayItem::Grip`]) on the middle of every
-/// segment that moves and on every bend, the one a press at `pointer` takes ([`press_part`]) hot. They show where a
-/// drag takes hold; a press anywhere on a segment drags it too.
-pub fn handles_overlay(cx: &ToolCx<'_>, c: &TableConnection, pointer: Option<(i64, i64)>) -> Overlay {
+/// segment that moves and on every bend ([`handle_parts`]), hot the one a press at `pointer` takes ([`press_part`])
+/// and the one at `focus` in [`handle_parts`]' order (the keyboard's, Tab). They show where a drag takes hold; a press
+/// anywhere on a segment drags it too.
+pub fn handles_overlay(
+    cx: &ToolCx<'_>,
+    c: &TableConnection,
+    pointer: Option<(i64, i64)>,
+    focus: Option<usize>,
+) -> Overlay {
     let line = dedup(&c.polyline);
     let hot = pointer
         .and_then(|p| press_part(cx, p))
         .filter(|(id, _, _)| id.0 == c.id)
         .map(|(_, _, part)| part);
-    let sheet = |p: (i64, i64)| cx.snapper.page_to_sheet(p);
-    let mut items: Vec<OverlayItem> = movable_segments(&line)
-        .into_iter()
-        .map(|i| {
-            let (a, b) = (sheet(line[i]), sheet(line[i + 1]));
-            OverlayItem::Grip {
-                at: (a.0 + (b.0 - a.0) / 2, a.1 + (b.1 - a.1) / 2),
-                hot: hot == Some(RoutePart::Segment(i)),
-            }
+    let parts = handle_parts(&line);
+    let focused = focus.and_then(|k| parts.get(k).copied());
+    let items = parts
+        .iter()
+        .filter_map(|&part| {
+            Some(OverlayItem::Grip {
+                at: cx.snapper.page_to_sheet(handle_at(&line, part)?),
+                hot: hot == Some(part) || focused == Some(part),
+            })
         })
         .collect();
-    let unit = PageGridMap::new((1, 1));
-    items.extend(
-        (1..line.len().saturating_sub(1))
-            .filter(|i| moved_bend(&line, *i, (0, 0), unit).is_some())
-            .map(|i| OverlayItem::Grip {
-                at: sheet(line[i]),
-                hot: hot == Some(RoutePart::Bend(i)),
-            }),
-    );
     Overlay::new(items)
 }
 

@@ -2742,6 +2742,11 @@ impl ShellModel {
         {
             return self.dispatch("messages.show", &serde_json::json!({ "on": false }));
         }
+        // Escape with a handle of the selected wire in the keyboard's focus gives the focus back to the wire, which
+        // stays selected (rc.3).
+        if self.tools.handle.take().is_some() {
+            return Outcome::Done;
+        }
         self.dismiss_tool()
     }
 

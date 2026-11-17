@@ -901,6 +901,99 @@ fn reroute_routes_a_selected_wire_again_and_nothing_else() {
     );
 }
 
+/// The selected wire's handles by keyboard (rc.3): Tab gives the first handle the focus and it shows as hot, an
+/// arrow moves it one grid step in one undo step and the focus stays on it, Shift+Tab goes back round to the last,
+/// and Esc gives the focus back to the wire, which stays selected.
+#[test]
+fn tab_and_the_arrows_move_a_handle_of_the_selected_wire() {
+    let tmp = Tmp::new("rh1");
+    let mut s = actual_size(&tmp, "103");
+    coils_and_wires(
+        &mut s,
+        &[(55, 20), (65, 20)],
+        &[(
+            "-103K1:A2",
+            "-103K2:A2",
+            &[(55, 24), (55, 31), (60, 31), (60, 26), (65, 26), (65, 24)],
+        )],
+    );
+    let t = tables(&s);
+    let wire = t
+        .connections
+        .iter()
+        .find(|c| end_label(&t, &c.a) == "-103K1:A2")
+        .expect("the wire")
+        .clone();
+    let mid = sheet(
+        &s,
+        (wire.polyline[1].0, (wire.polyline[1].1 + wire.polyline[2].1) / 2),
+    );
+    done(&mut s, "canvas.press", at(mid, json!({})));
+    done(&mut s, "canvas.release", at(mid, json!({})));
+    // The pointer away from the wire, so that only the keyboard's handle is hot.
+    let away = sheet(&s, grid_point(&s, (20, 10)));
+    done(&mut s, "canvas.pointer", at(away, json!({})));
+    let key = |s: &mut ShellModel, action: &'static str| {
+        let (a, p) = s.shortcut_action(action);
+        assert!(a.starts_with("route.handle"), "{action} → {a}");
+        done(s, a, p);
+    };
+    let hot = |s: &ShellModel| -> Vec<(i64, i64)> {
+        s.tool_overlay()
+            .items
+            .iter()
+            .filter_map(|i| match i {
+                OverlayItem::Grip { at, hot: true } => Some(*at),
+                _ => None,
+            })
+            .collect()
+    };
+    assert!(hot(&s).is_empty(), "no handle has the focus yet");
+    assert!(s.tool_hint().contains("Tab"), "{}", s.tool_hint());
+    let mid = |s: &ShellModel, a: (i64, i64), b: (i64, i64)| sheet(s, (a.0 + (b.0 - a.0) / 2, a.1 + (b.1 - a.1) / 2));
+    let p = wire.polyline.clone();
+    // Tab: the first handle, the middle of the wire's first segment.
+    key(&mut s, "tool.next_proposal");
+    assert_eq!(hot(&s), [mid(&s, p[0], p[1])]);
+    // Shift+Tab from the first goes round to the last: the middle of the last segment.
+    key(&mut s, "layout.previous");
+    let n = p.len();
+    assert_eq!(hot(&s), [mid(&s, p[n - 2], p[n - 1])]);
+    // Tab round to the first, then the bend after it, then the second segment; Down moves it a step, one undo step,
+    // and the focus stays on it.
+    key(&mut s, "tool.next_proposal");
+    key(&mut s, "tool.next_proposal");
+    assert_eq!(hot(&s), [sheet(&s, p[1])]);
+    key(&mut s, "tool.next_proposal");
+    let rev = s.revision();
+    key(&mut s, "cursor.down");
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one step");
+    let moved = tables(&s)
+        .connections
+        .iter()
+        .find(|c| c.id == wire.id)
+        .expect("the wire")
+        .polyline
+        .clone();
+    assert_eq!(
+        (moved[1], moved[2]),
+        (grid_point(&s, (55, 32)), grid_point(&s, (60, 32))),
+        "{moved:?}"
+    );
+    assert_eq!(hot(&s), [mid(&s, moved[1], moved[2])]);
+    // Esc gives the focus back to the wire, which stays selected; the arrows move the grid cursor again.
+    done(&mut s, "ui.dismiss", json!({}));
+    assert!(hot(&s).is_empty());
+    assert!(s.selection().contains(ew_viewmodel::ew_api::output::ew_dl::EntityRef(wire.id)));
+    assert_eq!(s.shortcut_action("cursor.right").0, "cursor.right");
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(
+        tables(&s).connections.iter().find(|c| c.id == wire.id).map(|c| c.polyline.clone()),
+        Some(wire.polyline.clone()),
+        "one undo takes it back"
+    );
+}
+
 /// Reroute with nothing selected routes the page's wires, the unrouted one included.
 #[test]
 fn reroute_with_nothing_selected_takes_the_page() {

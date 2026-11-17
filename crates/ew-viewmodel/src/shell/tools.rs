@@ -142,6 +142,20 @@ impl ShellModel {
         {
             return strings::text(key!("hint-select-legend")).to_owned();
         }
+        // With one wire selected, Select says how to reach its handles; with one in the keyboard's focus, how to move
+        // it (rc.3).
+        if hint == crate::tools::Hint::plain(key!("hint-select"))
+            && let Some((wire, _)) = self.wire_handles()
+        {
+            return self.hint_text(if self.tools.handle.is_some_and(|(w, _)| w == wire) {
+                crate::tools::Hint::new(
+                    key!("hint-select-handle"),
+                    &["tool.next_proposal", crate::tools::ESCAPE],
+                )
+            } else {
+                crate::tools::Hint::new(key!("hint-select-wire"), &["tool.next_proposal"])
+            });
+        }
         self.hint_text(hint)
     }
 

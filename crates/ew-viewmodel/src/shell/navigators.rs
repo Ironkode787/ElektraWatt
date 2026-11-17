@@ -333,6 +333,22 @@ impl ShellModel {
                 _ => {}
             }
         }
+        // With one wire selected on a drawing page, Tab and Shift+Tab go from handle to handle, and the arrows move the
+        // handle that has the focus (rc.3).
+        if self.focused_navigator().is_none()
+            && let Some((wire, _)) = self.wire_handles()
+        {
+            let focused = self.tools.handle.is_some_and(|(w, _)| w == wire);
+            match action {
+                "tool.next_proposal" => return ("route.handle", json!({ "step": 1 })),
+                "layout.previous" => return ("route.handle", json!({ "step": -1 })),
+                "cursor.left" if focused => return ("route.handle_move", json!({ "dx": -1 })),
+                "cursor.right" if focused => return ("route.handle_move", json!({ "dx": 1 })),
+                "cursor.up" if focused => return ("route.handle_move", json!({ "dy": -1 })),
+                "cursor.down" if focused => return ("route.handle_move", json!({ "dy": 1 })),
+                _ => {}
+            }
+        }
         match action {
             "pages.move_up" if strips => ("strip.move", json!({ "step": -1 })),
             "pages.move_down" if strips => ("strip.move", json!({ "step": 1 })),

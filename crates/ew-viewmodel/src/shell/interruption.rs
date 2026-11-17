@@ -934,13 +934,18 @@ impl ShellModel {
     pub(super) fn sync_box_grips(&mut self) {
         let idle = self.tools.tool.name() == "select" && self.tools.tool.state() == "idle";
         let pointer = self.canvas().and_then(CanvasModel::pointer);
+        // The keyboard's handle belongs to the wire selected with Select at rest.
+        if self.wire_handles().map(|(c, _)| c) != self.tools.handle.map(|(c, _)| c) {
+            self.tools.handle = None;
+        }
+        let focus = self.tools.handle.map(|(_, k)| k);
         let want = if idle {
             self.with_tool(|_, cx| {
                 selected_black_box(cx)
                     .map(|r| black_box::grips_overlay(cx, r))
                     .or_else(|| {
                         crate::tools::route_edit::selected_connection(cx)
-                            .map(|c| crate::tools::route_edit::handles_overlay(cx, c, pointer))
+                            .map(|c| crate::tools::route_edit::handles_overlay(cx, c, pointer, focus))
                     })
                     .or_else(|| crate::tools::block_grips(cx))
                     .or_else(|| crate::tools::label_grip(cx))

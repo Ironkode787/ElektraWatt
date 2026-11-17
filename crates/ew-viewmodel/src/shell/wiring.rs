@@ -739,6 +739,89 @@ impl ShellModel {
             .collect()
     }
 
+    /// The wire whose handles the keyboard reaches: with Select at rest, the one connection selected on the focused
+    /// page, and its line.
+    pub(crate) fn wire_handles(&self) -> Option<(EntityRef, Vec<(i64, i64)>)> {
+        if self.tools.tool.name() != "select" || self.tools.tool.state() != "idle" {
+            return None;
+        }
+        let page = self.canvas()?.page();
+        let [one] = self.tools.selection.items.as_slice() else {
+            return None;
+        };
+        let c = page.tables.connections.iter().find(|c| c.id == one.0)?;
+        Some((*one, crate::tools::autoconnect::dedup(&c.polyline)))
+    }
+
+    /// `route.handle {step}` (Tab +1, Shift+Tab −1, rc.3): the focus goes to the next or the previous handle of the
+    /// one selected wire in the order of the wire, round at its ends; the first Tab takes the first, the first
+    /// Shift+Tab the last. Refused without one wire selected.
+    pub(crate) fn act_route_handle(&mut self, p: &Map<String, Value>) -> Outcome {
+        let step = p.get("step").and_then(Value::as_i64).unwrap_or(1);
+        let Some((wire, line)) = self.wire_handles() else {
+            return Outcome::refused(key!("reason-route-handle"));
+        };
+        let n = i64::try_from(crate::tools::route_edit::handle_parts(&line).len()).unwrap_or(0);
+        if n == 0 {
+            return Outcome::refused(key!("reason-route-handle"));
+        }
+        let next = match self.tools.handle {
+            Some((w, k)) if w == wire => i64::try_from(k).unwrap_or(0) + step.signum(),
+            _ if step < 0 => n - 1,
+            _ => 0,
+        };
+        self.tools.handle = Some((wire, usize::try_from(next.rem_euclid(n)).unwrap_or(0)));
+        Outcome::Done
+    }
+
+    /// `route.handle_move {dx, dy}` (the arrow keys while a handle has the focus, rc.3): the focused handle moved by
+    /// grid steps as a drag moves it (a segment across itself, a bend both ways), committed as `connection.route` in
+    /// one undo step; the focus stays on the moved handle. Refused without a focused handle.
+    pub(crate) fn act_route_handle_move(&mut self, p: &Map<String, Value>) -> Outcome {
+        use crate::tools::route_edit::{
+            GripMove, grip_move, handle_at, handle_parts, moved_part, route_command,
+        };
+        use crate::tools::wire::PageGridMap;
+        let (dx, dy) = (
+            p.get("dx").and_then(Value::as_i64).unwrap_or(0),
+            p.get("dy").and_then(Value::as_i64).unwrap_or(0),
+        );
+        let (Some((wire, line)), Some((focused, k))) = (self.wire_handles(), self.tools.handle) else {
+            return Outcome::refused(key!("reason-route-handle-move"));
+        };
+        let parts = handle_parts(&line);
+        let (Some(&part), true) = (parts.get(k), focused == wire) else {
+            return Outcome::refused(key!("reason-route-handle-move"));
+        };
+        let Some(grid) = self.canvas().map(|c| PageGridMap::new(c.page().tables.grid)) else {
+            return Outcome::refused(key!("reason-no-page"));
+        };
+        // A segment moves across itself only: a step along it moves nothing.
+        let steps = match grip_move(&line, part) {
+            GripMove::UpDown => (0, dy),
+            GripMove::Sideways => (dx, 0),
+            GripMove::Free => (dx, dy),
+        };
+        let moved = moved_part(&line, part, steps, grid).filter(|m| *m != line);
+        let (Some(moved), Some(at)) = (moved, handle_at(&line, part)) else {
+            return Outcome::Done;
+        };
+        let out = self.commit_from_host(route_command(wire, &moved).as_ref());
+        if out == Outcome::Done {
+            // The focus follows the handle: the one nearest to where it went.
+            let want = (at.0 + steps.0 * grid.step(), at.1 + steps.1 * grid.step());
+            let line = self.wire_handles().map_or(moved, |(_, l)| l);
+            let near = handle_parts(&line)
+                .iter()
+                .enumerate()
+                .filter_map(|(i, &q)| handle_at(&line, q).map(|h| (i, h)))
+                .min_by_key(|(_, h)| (h.0 - want.0).abs() + (h.1 - want.1).abs())
+                .map(|(i, _)| i);
+            self.tools.handle = near.map(|i| (wire, i));
+        }
+        out
+    }
+
     /// The selected connections and representations of the focused page, which Reroute routes.
     pub(crate) fn route_selection_ids(&self) -> Vec<ew_api::output::Uuid> {
         self.canvas().map_or_else(Vec::new, |c| {
@@ -795,23 +878,6 @@ impl ShellModel {
         let Some(params) = route_many_params(&plan) else {
             return with_reasons(lead);
         };
-        // A plan whose routes are the ones drawn changes nothing, so it opens no card.
-        let unchanged = self.canvas().is_some_and(|c| {
-            plan.routes.iter().all(|(id, route)| {
-                c.page()
-                    .tables
-                    .connections
-                    .iter()
-                    .any(|t| t.id == *id && t.stored_route && t.polyline == *route)
-            })
-        });
-        if unchanged {
-            if !plan.unrouted.is_empty() {
-                return with_reasons(lead);
-            }
-            self.notify(strings::format(key!("toast-route-unchanged"), &[]), false);
-            return Outcome::Done;
-        }
         self.preview_host_card_as(
             "connection.route_many",
             params,

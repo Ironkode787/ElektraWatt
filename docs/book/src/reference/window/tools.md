@@ -186,6 +186,14 @@ shows the new route while you drag, `Esc` puts it back, and one undo takes the c
 drawn dashed, takes its first route this way too. Only the selected wire has handles: where wires lie over one
 another, click again on the same spot to select the next of them.
 
+With the keyboard: select the wire, then `Tab` gives its first handle the focus and the handle shows as the one under
+the pointer does; `Tab` and `Shift+Tab` go from handle to handle along the wire. The arrow keys move the handle one
+grid step, each step one undo step, and `Esc` gives the focus back to the wire.
+
+When it draws or reroutes a wire, the router never puts a corner of one wire on a corner or an end of another: it
+reads as a joint. Between pins that stand close, such as two two-pole devices wired cross-over a few grid steps
+apart, a wire may step half a grid step to cross the other once instead of going round.
+
 ## Reroute
 
 Routes the selected wires, and every wire with an end on a selected symbol, again, as if you had drawn them anew;
