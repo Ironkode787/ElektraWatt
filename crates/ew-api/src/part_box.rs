@@ -287,6 +287,12 @@ impl PartDraft {
         }
     }
 
+    /// Whether a device of the part is drawn as a box with pins that are edited here: pins of its own, or a black box
+    /// for its main function.
+    pub fn drawn_as_box(&self) -> bool {
+        self.pins_from().is_none() && (self.box_part || !self.pins.is_empty())
+    }
+
     /// The place of the part's main function in its template (`place.pick`'s `template`): the entry a box is drawn
     /// from.
     pub fn main_entry(&self) -> u16 {
@@ -576,6 +582,36 @@ impl Session {
     /// The part copies the project holds.
     pub fn held_part_copies(&self) -> Vec<Uuid> {
         self.query().parts().iter().map(|(id, _)| id.as_uuid()).collect()
+    }
+
+    /// Every part drawn as a box with pins of its own ([`PartDraft::drawn_as_box`]): those the project holds, then
+    /// those of every installed library that it does not hold, each with its draft (without the names of its
+    /// functions).
+    pub fn box_parts(&self) -> Vec<(crate::PartPick, PartDraft)> {
+        let q = self.query();
+        let mut out: Vec<(crate::PartPick, PartDraft)> = q
+            .parts()
+            .iter()
+            .map(|(id, c)| {
+                let copy = id.as_uuid();
+                (crate::PartPick::Held(copy), self.draft_of(&q, (**c).clone(), copy))
+            })
+            .collect();
+        let registry = self.libraries();
+        for library in registry.libraries() {
+            for doc in registry.documents(library.id, ew_schema::Kind::Part) {
+                let ew_schema::LibDocument::Part(c) = doc else {
+                    continue;
+                };
+                let (library, item) = (c.library_id.as_uuid(), c.item_id.as_uuid());
+                let held: Id<Part> = ew_derive::ew_ids::v5::lib_copy_id(library, item);
+                if q.parts().get(held).is_none() {
+                    out.push((crate::PartPick::Library { library, item }, self.unheld_draft(&q, c)));
+                }
+            }
+        }
+        out.retain(|(_, d)| d.drawn_as_box());
+        out
     }
 
     /// The boxes drawn of devices that use the part copy `copy`, each the drawing of a function the part's main

@@ -281,8 +281,13 @@ impl EditorView {
     pub(super) fn box_drawing(&mut self, ui: &mut Ui, rect: Rect, b: &DeviceBox, events: &mut Vec<Event>) {
         let t = theme::current(ui.ctx());
         let mut top = rect.top();
-        // Why the last action did nothing, and where the pins come from when they are not edited here.
-        for (text, error) in [(b.error.clone(), true), (b.pins_from(), false)] {
+        // Why the last action did nothing, where the pins come from when they are not edited here, and what Save makes
+        // of a part that is not the person's own.
+        for (text, error) in [
+            (b.error.clone(), true),
+            (b.pins_from(), false),
+            (b.copy_line(), false),
+        ] {
             let Some(text) = text else { continue };
             let banner = ui.scope_builder(
                 UiBuilder::new().max_rect(Rect::from_min_max(Pos2::new(rect.left(), top), rect.max)),

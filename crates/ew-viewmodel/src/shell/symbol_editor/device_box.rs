@@ -13,6 +13,7 @@ use crate::shell::{Dialog, Outcome, ShellModel};
 use crate::{key, strings};
 use ew_api::part_box::{BoxSteps, Dir4, EDIT_STEP, PinsFrom};
 use ew_api::{PartDraft, PartDraftError};
+use ew_api::output::Uuid;
 use serde_json::{Map, Value, json};
 
 /// The edges of a box in the order the pin table lists them, each with the word an action names it by.
@@ -69,6 +70,9 @@ pub struct DeviceBox {
     /// Whether the box was opened from the project (a placed box, the part editor): closing it returns there, not to
     /// the editor's ways in.
     from_project: bool,
+    /// The part number of the part a new part's draft copies (the start card's part of a library that the project
+    /// does not hold): the line over the box says that Save keeps a copy of the person's own.
+    copy_of: Option<String>,
 }
 
 impl DeviceBox {
@@ -82,7 +86,19 @@ impl DeviceBox {
             revision: 0,
             error: None,
             from_project: false,
+            copy_of: None,
         }
+    }
+
+    /// What Save makes of a part that is not the person's own, in a line over the box: a copy of his own, the
+    /// original staying as it is.
+    pub fn copy_line(&self) -> Option<String> {
+        let d = &self.draft;
+        if let Some(from) = &self.copy_of {
+            return Some(strings::format(key!("box-copy-new"), &[from]));
+        }
+        (!d.new && !d.own)
+            .then(|| strings::format(key!("box-copy-fork"), &[d.library.as_deref().unwrap_or_default()]))
     }
 
     /// Whether the box has changes that are not saved.
@@ -391,10 +407,31 @@ impl ShellModel {
                 message: words(key!("box-unsaved")),
             };
         }
+        // A part of a library (`library:<library>:<item>`, the start card's), which the project need not hold.
+        let library = p
+            .get("part")
+            .and_then(Value::as_str)
+            .and_then(|s| s.strip_prefix("library:"))
+            .map(|rest| {
+                let (l, i) = rest.split_once(':')?;
+                Some((l.parse::<Uuid>().ok()?, i.parse::<Uuid>().ok()?))
+            });
+        let mut copy_of = None;
         let draft = if let Some(Dialog::PartEdit(editor)) = &self.dialog {
             let draft = editor.draft.clone();
             self.dialog = None;
             draft
+        } else if let Some(at) = library {
+            let Some((library, item)) = at else {
+                return crate::shell::failed(key!("error-bad-param"), &["part"]);
+            };
+            match self.library_box_draft(library, item) {
+                Ok((d, from)) => {
+                    copy_of = from;
+                    d
+                }
+                Err(out) => return out,
+            }
         } else {
             let Some(project) = &self.project else {
                 return Outcome::refused(key!("reason-no-project"));
@@ -435,10 +472,41 @@ impl ShellModel {
             editor.start = false;
             editor.device_box = Some(DeviceBox {
                 from_project,
+                copy_of,
                 ..DeviceBox::new(draft)
             });
         }
         Outcome::Done
+    }
+
+    /// The draft the device box of library `library`'s part `item` opens on, and the library a new part's draft
+    /// copies: the project's copy when it holds one; a part of the person's own library is brought into the project
+    /// first (one undo step), so Save makes its next version; any other part is copied into a new part of his own,
+    /// the original staying as it is.
+    fn library_box_draft(&mut self, library: Uuid, item: Uuid) -> Result<(PartDraft, Option<String>), Outcome> {
+        let target = || Outcome::refused(key!("reason-part-edit-target"));
+        let project = self
+            .project
+            .as_ref()
+            .ok_or_else(|| Outcome::refused(key!("reason-no-project")))?;
+        let session = &project.session;
+        let d = session.library_part_draft(library, item).map_err(|_| target())?;
+        if session.part_draft(d.copy).is_ok() {
+            return Ok((d, None));
+        }
+        if !d.own {
+            let copy = session.new_part_draft_copying(&d).map_err(|e| Outcome::Failed {
+                message: draft_words(e),
+            })?;
+            return Ok((copy, Some(d.text("part_number").to_owned())));
+        }
+        let embed = session.library_part_embed(library, item).map_err(|_| target())?;
+        let out = self.run_commit(&embed);
+        if out != Outcome::Done {
+            return Err(out);
+        }
+        let project = self.project.as_ref().ok_or_else(target)?;
+        project.session.part_draft(d.copy).map(|d| (d, None)).map_err(|_| target())
     }
 
     /// `part.box_details` (Part data… in the device box editor): the part editor on the box's draft, with its pins
@@ -489,31 +557,47 @@ impl ShellModel {
         }
     }
 
-    /// The project's parts that are drawn as a box with pins of their own, for the start card's Device box for a
-    /// part…: each as (what `part.box` takes, its part number, its manufacturer and description).
+    /// The parts drawn as a box with pins of their own, for the start card's Device box for a part…, as the editor
+    /// read them when it opened or its start card was shown last: each as (what `part.box` takes, its part number,
+    /// its manufacturer, description and where it is from).
     pub fn box_parts(&self) -> Vec<(String, String, String)> {
+        self.symbol_editor
+            .as_ref()
+            .map(|e| e.box_sources.clone())
+            .unwrap_or_default()
+    }
+
+    /// Reads [`ShellModel::box_parts`]: the project's parts and every installed library's, the project's first.
+    pub(super) fn read_box_parts(&self) -> Vec<(String, String, String)> {
         let Some(project) = &self.project else {
             return Vec::new();
         };
-        let session = &project.session;
-        let mut out: Vec<(String, String, String)> = session
-            .held_part_copies()
+        let mut out: Vec<(bool, String, String, String)> = project
+            .session
+            .box_parts()
             .into_iter()
-            .filter_map(|copy| {
-                let d = session.part_draft(copy).ok()?;
-                (d.pins_from().is_none() && (d.box_part || !d.pins.is_empty())).then(|| {
-                    let detail = [d.text("manufacturer"), d.text("description")]
-                        .iter()
-                        .map(|s| s.trim())
-                        .filter(|s| !s.is_empty())
-                        .collect::<Vec<_>>()
-                        .join(" \u{b7} ");
-                    (format!("id:{copy}"), d.text("part_number").to_owned(), detail)
-                })
+            .map(|(pick, d)| {
+                let from = d
+                    .library
+                    .clone()
+                    .unwrap_or_else(|| words(key!("picker-group-project")));
+                let detail = [d.text("manufacturer"), d.text("description"), &from]
+                    .iter()
+                    .map(|s| s.trim())
+                    .filter(|s| !s.is_empty())
+                    .collect::<Vec<_>>()
+                    .join(" \u{b7} ");
+                let (held, part) = match pick {
+                    ew_api::PartPick::Held(copy) => (true, format!("id:{copy}")),
+                    ew_api::PartPick::Library { library, item } => {
+                        (false, format!("library:{library}:{item}"))
+                    }
+                };
+                (held, part, d.text("part_number").to_owned(), detail)
             })
             .collect();
-        out.sort_by_key(|a| a.1.to_lowercase());
-        out
+        out.sort_by_key(|a| (!a.0, a.2.to_lowercase()));
+        out.into_iter().map(|(_, part, number, detail)| (part, number, detail)).collect()
     }
 
     /// `part.pin {add?, name?, remove?, pin?, role?, side?, at?, before?}`: the pins of the part being edited. `add`
@@ -905,6 +989,11 @@ impl ShellModel {
             };
         }
         self.refresh_rows();
+        // The start card lists the part as it is saved now.
+        let parts = self.read_box_parts();
+        if let Some(editor) = &mut self.symbol_editor {
+            editor.box_sources = parts;
+        }
         if drawn > 0 {
             self.notes.push(
                 strings::format(key!("box-saved-redraw"), &[&number, &drawn.to_string()]),

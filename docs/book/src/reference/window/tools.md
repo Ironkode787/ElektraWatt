@@ -63,7 +63,8 @@ See [A first schematic page](../../tutorials/first-page.md).
 Places a device from a part of the library, so that the device has its part from the start. A device is a part of
 the catalogue with its functions. The browser lists one row per part; a part with several functions opens to them
 with its arrow (or Right). Edit symbol and Copy and edit act on the symbol of the chosen row, as in the symbol
-browser. Open it with Draw ▸ Place ▸ Device from part…. See [Choose parts](../../how-to/choose-parts.md).
+browser; a part drawn as a box offers **Pins and box…** instead, which opens its device box in the symbol editor (a
+copy of your own for a part you cannot change). Open it with Draw ▸ Place ▸ Device from part…. See [Choose parts](../../how-to/choose-parts.md).
 
 ## Terminal
 

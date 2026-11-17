@@ -1155,6 +1155,20 @@ impl EditorView {
                 number.to_lowercase().contains(&wanted) || detail.to_lowercase().contains(&wanted)
             })
             .collect();
+        // Why a part is missing, above the list, which takes the card's height.
+        let note = if parts.is_empty() {
+            key!("symbol-start-box-none")
+        } else {
+            key!("symbol-start-box-elsewhere")
+        };
+        ui.add(
+            egui::Label::new(
+                egui::RichText::new(label(note))
+                    .font(theme::font(&t.type_small))
+                    .color(t.text_secondary.color32()),
+            )
+            .wrap(),
+        );
         ui.spacing_mut().scroll.floating = false;
         egui::ScrollArea::vertical()
             .id_salt("symbol-start-parts")
@@ -1166,15 +1180,6 @@ impl EditorView {
                     }
                 }
             });
-        if parts.is_empty() {
-            ui.add(
-                egui::Label::new(
-                    egui::RichText::new(label(key!("symbol-start-box-none")))
-                        .color(t.text_secondary.color32()),
-                )
-                .wrap(),
-            );
-        }
     }
 
     /// The library's symbols, to copy one: the original stays as it is.

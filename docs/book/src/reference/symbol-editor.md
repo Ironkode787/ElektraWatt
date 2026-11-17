@@ -122,8 +122,11 @@ after saving.
 
 A device that is a box with pins (a circuit protector, a power supply, a drive, a gateway) needs no drawing: its part
 says which pins it has and where they stand on its box. The editor edits that box on the same screen. Its ways in are
-**Device box for a part…** on the start card (a part of the project, or a new part), **Pins and box…** in the part
-editor, and **Edit this device's box…** in the menu of a box placed on a page.
+**Device box for a part…** on the start card (every part drawn as a box, of the project and of the libraries,
+placed or not, or a new part), **Pins and box…** in the part editor and under such a part in the device browser, and
+**Edit this device's box…** in the menu of a box placed on a page. A part you cannot change (a starter or sample part)
+opens as a copy of your own, and a line over the box says what Save makes: the project's own copy, which its devices
+take, or, for a part not yet in the project, a new part in your own library. The original stays as it is.
 
 - **The pin table**, on the left, lists the pins in the order they stand on the box, each with its name, the potential
   it carries and its edge. **Add pin** adds one; a row dragged onto another takes its place there.

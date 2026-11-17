@@ -1152,8 +1152,12 @@ place and size are rows of Properties, and a connection point's function pin is 
 potential, edge; a row dragged onto another takes its place; Add pin), the box as a device of the part is drawn in the
 middle (a pin dragged along its edge or onto another one, any edge or corner dragged to size it: the pins on the
 edge that moves go with it, the others stay where they stand, and the edge stops one step before the nearest pin), and
-Properties of the selected pins or of the part. Its ways in: the start card, Pins and box… in the part editor, and
-Edit this device's box… on a placed box. Save saves the part (a new part, a part of the project in place, a part of
+Properties of the selected pins or of the part. Its ways in: the start card (every part drawn as a box, the
+project's and every installed library's, placed or not), Pins and box… in the part editor and under a box part in the
+device browser, and Edit this device's box… on a placed box. A part that is not the person's own says in a line over
+the box what Save makes of it: a library's part the project holds becomes the project's own copy, which its devices
+take; one it does not hold opens as a new part copied from it (same number, manufacturer, pins and box, editable),
+which Save keeps in My parts; a part of My parts that the project does not hold is embedded first. Save saves the part (a new part, a part of the project in place, a part of
 My parts as its next version, a library's part as the project's own copy); where boxes of it are drawn already a
 message says how many and offers Redraw them (`part.redraw_boxes`: one `box.redraw` of every
 box, one undo step, all or none).

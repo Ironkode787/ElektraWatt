@@ -376,6 +376,83 @@ fn a_box_lands_on_the_grid_of_the_page_it_is_drawn_on() {
     }
 }
 
+/// The owner's case: a starter part drawn as a box that the project does not hold (the power supply) is listed on the
+/// start card's Device box for a part…; choosing it opens a copy of the person's own with all its pins where a device
+/// of it is drawn, a line saying so; a pin moved and the copy saved, the project holds it as his own part.
+#[test]
+fn a_starter_part_that_is_not_placed_opens_as_a_copy_of_one_s_own() {
+    let tmp = Tmp::new("device-box-starter-copy");
+    let mut s = new_project(&tmp);
+    done(&mut s, "symbol.start", json!({}));
+    let (part, _, detail) = s
+        .box_parts()
+        .into_iter()
+        .find(|(_, number, _)| number == "EW-GEN-PSU-1")
+        .expect("the starter power supply is listed");
+    assert!(detail.contains("ElektraWatt starter parts"), "{detail}");
+    done(&mut s, "part.box", json!({ "part": part }));
+    let b = device_box(&s);
+    assert!(b.draft.new, "a new part of the person's own");
+    assert!(
+        b.copy_line()
+            .is_some_and(|l| l.starts_with("A copy of your own of EW-GEN-PSU-1")),
+        "{:?}",
+        b.copy_line()
+    );
+    let names: Vec<String> = pins(&s).into_iter().map(|p| p.0).collect();
+    assert_eq!(names, ["L", "N", "PE", "+", "+", "-", "-"]);
+    let plus = device_box(&s).pin_table()[3].idx;
+    done(
+        &mut s,
+        "part.pin",
+        json!({"pin": plus, "side": "right", "at": 4}),
+    );
+    done(&mut s, "symbol.save", json!({}));
+    let b = device_box(&s);
+    assert!(!b.draft.new && b.draft.own, "saved as the person's own part");
+    assert_eq!(b.copy_line(), None);
+    assert!(pins(&s).contains(&("+".to_owned(), "right", 4)));
+}
+
+/// A starter part placed on a page: its box, opened from the start card, says that the starter library cannot be
+/// changed and that Save makes a copy of the person's own in the project, which its devices take.
+#[test]
+fn a_placed_starter_part_s_box_says_save_makes_a_copy() {
+    let tmp = Tmp::new("device-box-starter-placed");
+    let mut s = new_project(&tmp);
+    page_150(&mut s);
+    done(
+        &mut s,
+        "place.pick",
+        json!({"part": "EW-GEN-PSU-1", "template": 0}),
+    );
+    // A part without a layout: its box is drawn by two clicks.
+    for corner in [(10, 10), (30, 30)] {
+        let at = grid_point(&s, corner);
+        cursor(&mut s, at);
+        done(&mut s, "canvas.activate", json!({}));
+    }
+    done(&mut s, "ui.dismiss", json!({}));
+    assert!(
+        tables(&s).reps.iter().any(|r| r.black_box.is_some()),
+        "the box is drawn"
+    );
+    done(&mut s, "symbol.start", json!({}));
+    let (part, _, _) = s
+        .box_parts()
+        .into_iter()
+        .find(|(_, number, _)| number == "EW-GEN-PSU-1")
+        .expect("the placed power supply is listed");
+    assert!(part.starts_with("id:"), "the project holds it: {part}");
+    done(&mut s, "part.box", json!({ "part": part }));
+    let line = device_box(&s).copy_line().expect("the copy line");
+    assert!(
+        line.starts_with("ElektraWatt starter parts cannot be changed: Save makes a copy of your own"),
+        "{line}"
+    );
+    assert_eq!(pins(&s).len(), 7);
+}
+
 /// A PLC card's pins come from its channels: the box shows, and a change of its pins is refused with the sentence
 /// that says where they come from.
 #[test]

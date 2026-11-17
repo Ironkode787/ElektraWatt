@@ -484,6 +484,16 @@ impl Session {
         let held = self
             .part_draft(copy)
             .map_err(|_| PartDraftError::Refused(ew_commands::text_key!("reason-part-edit-target")))?;
+        self.new_part_draft_copying(&held)
+    }
+
+    /// [`Session::new_part_draft_from`] over the draft `held` of a part (a held copy's, or a library part's that the
+    /// project does not hold, [`Session::library_part_draft`]).
+    ///
+    /// # Errors
+    ///
+    /// As [`Session::new_part_draft`].
+    pub fn new_part_draft_copying(&self, held: &PartDraft) -> Result<PartDraft, PartDraftError> {
         let mut draft = self.new_part_draft()?;
         draft.fields = held.fields.clone();
         draft.tech = held.tech.clone();

@@ -181,6 +181,8 @@ pub struct SymbolEditor {
     pub sources: Vec<SymbolSource>,
     /// Installed function definitions, read when the editor opens.
     pub functions: Vec<SymbolFunctionChoice>,
+    /// The parts drawn as a box, read with the symbols ([`ShellModel::box_parts`]).
+    box_sources: Vec<(String, String, String)>,
     /// The discipline chosen last, which a symbol without connection points is drawn for.
     chosen_discipline: Option<&'static str>,
     /// What is selected in the drawing, in the order it was selected: the outline's rows, the drawing and Properties
@@ -266,6 +268,7 @@ impl SymbolEditor {
             candidates: Vec::new(),
             sources: Vec::new(),
             functions: Vec::new(),
+            box_sources: Vec::new(),
             chosen_discipline: None,
             selection: Vec::new(),
             grid: 0,
@@ -1194,6 +1197,7 @@ impl ShellModel {
     /// definitions sorted by key.
     fn symbol_editor_sources(&self, editor: &mut SymbolEditor) -> Result<(), String> {
         let fallback;
+        editor.box_sources = self.read_box_parts();
         let registry = if let Some(project) = &self.project {
             for (id, s) in project.session.query().symbols().iter() {
                 editor.sources.push(SymbolSource {

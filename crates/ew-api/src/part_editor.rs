@@ -716,6 +716,58 @@ impl Session {
             .get(Id::from_uuid(copy))
             .ok_or(crate::ApiError::NotHeld(copy))?)
         .clone();
+        let mut draft = self.draft_of(&q, c, copy);
+        draft.functions = self.part_offer_functions(&PartPick::Held(copy));
+        Ok(draft)
+    }
+
+    /// The draft of part `item` of library `library` (the symbol editor's Device box for a part…, which lists the
+    /// parts the project does not hold too): the project's copy's ([`Session::part_draft`]) when it holds one, else
+    /// the library's document read as a copy of it would be, used by no device.
+    ///
+    /// # Errors
+    ///
+    /// [`crate::ApiError::NotHeld`] when no installed library holds that part.
+    pub fn library_part_draft(&self, library: Uuid, item: Uuid) -> Result<PartDraft, crate::ApiError> {
+        let copy = ew_derive::ew_ids::v5::lib_copy_id::<Part>(library, item).as_uuid();
+        if self.query().parts().get(Id::from_uuid(copy)).is_some() {
+            return self.part_draft(copy);
+        }
+        let Ok(LibDocument::Part(c)) = self.libraries().resolve(&lib_ref(library, item)) else {
+            return Err(crate::ApiError::NotHeld(copy));
+        };
+        let mut draft = self.unheld_draft(&self.query(), c);
+        draft.functions = self.part_offer_functions(&PartPick::Library { library, item });
+        Ok(draft)
+    }
+
+    /// The `library.embed` that makes the project hold library `library`'s part `item` (a part of the person's own
+    /// library that its device box is opened for: Save then makes its next version).
+    ///
+    /// # Errors
+    ///
+    /// As [`Session::embed_command`].
+    pub fn library_part_embed(&self, library: Uuid, item: Uuid) -> Result<AnyCommand, crate::ApiError> {
+        self.embed_command(&[lib_ref(library, item)])
+    }
+
+    /// The draft of a library's part `c` that the project does not hold, without the names of its functions; a
+    /// manufacturer the project does not hold either is named by its library's record.
+    pub(crate) fn unheld_draft(&self, q: &Q, c: LibCopy<Part>) -> PartDraft {
+        let copy = ew_derive::ew_ids::v5::lib_copy_id::<Part>(c.library_id.as_uuid(), c.item_id.as_uuid());
+        let maker = c.item.manufacturer.clone();
+        let mut draft = self.draft_of(q, c, copy.as_uuid());
+        if draft.text("manufacturer").is_empty()
+            && let Ok(LibDocument::Manufacturer(m)) = self.libraries().resolve(&maker)
+            && let Some(slot) = draft.fields.iter_mut().find(|(f, _)| *f == "manufacturer")
+        {
+            slot.1 = text_of(&m.item.name);
+        }
+        draft
+    }
+
+    /// The draft of the part copy `c` under the copy ID `copy`, without the names of its functions.
+    pub(crate) fn draft_of(&self, q: &Q, c: LibCopy<Part>, copy: Uuid) -> PartDraft {
         let project = q.project().id.as_uuid();
         let lib = c.library_id.as_uuid();
         let p = &c.item;
@@ -734,7 +786,7 @@ impl Session {
                 .map_or_else(|| lib.to_string(), |l| l.name)
         });
         let fields = vec![
-            ("manufacturer", ew_derive::manufacturer_name(&q, &p.manufacturer)),
+            ("manufacturer", ew_derive::manufacturer_name(q, &p.manufacturer)),
             ("part_number", p.part_number.as_str().to_owned()),
             ("type_designation", opt_text(p.type_designation.as_ref())),
             ("order_number", opt_text(p.order_number.as_ref())),
@@ -773,7 +825,7 @@ impl Session {
                         _ => None,
                     })
             });
-        Ok(PartDraft {
+        PartDraft {
             copy,
             fields,
             tech,
@@ -788,7 +840,7 @@ impl Session {
                 .count(),
             library,
             version: c.version.clone(),
-            functions: self.part_offer_functions(&PartPick::Held(copy)),
+            functions: Vec::new(),
             pins: crate::part_box::pin_rows(p),
             box_: p.box_.clone(),
             outputs: main_def
@@ -817,7 +869,7 @@ impl Session {
             fndef: None,
             manufacturer: (p.manufacturer.clone(), Vec::new()),
             original: c.item,
-        })
+        }
     }
 
     /// The manufacturer named `name`: a held copy (no documents), else a catalogue manufacturer with the documents

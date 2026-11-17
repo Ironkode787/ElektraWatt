@@ -835,6 +835,24 @@ fn edit_buttons(
     if picker.part.is_some() || picker.mode == PickerMode::Strip || picker.row_symbol(row).is_none() {
         return;
     }
+    // A part drawn as a box: its pins and where they stand are the part's, edited in its device box (a copy of the
+    // person's own for a part he cannot change), not in the frame symbol every box shares.
+    if let PickerRow::Part(p) | PickerRow::PartFn(p, _) = row
+        && let Some(part) = picker.catalogue.parts.get(p)
+        && picker
+            .part_main(p)
+            .is_some_and(|k| part.functions[k].black_box)
+    {
+        let target = match part.library {
+            Some((library, item)) => format!("library:{library}:{item}"),
+            None => format!("id:{}", part.copy),
+        };
+        ui.add_space(t.space_2);
+        if components::button(ui, Kind::Secondary, strings::text(key!("part-pins-and-box")), true, 0.0).clicked() {
+            events.push(Event::Action("part.box", json!({ "part": target })));
+        }
+        return;
+    }
     let refusal = shell.symbol_edit_refusal();
     ui.add_space(t.space_2);
     ui.horizontal_wrapped(|ui| {

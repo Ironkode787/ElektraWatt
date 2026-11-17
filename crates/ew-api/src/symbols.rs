@@ -584,10 +584,11 @@ impl SymbolDraft {
                 }
             }
         }
+        // `ew.note` is a note the shipped content carries for its readers (the black-box frame's): not unknown.
         for (path, extra) in members {
             for name in extra
                 .keys()
-                .filter(|k| !k.starts_with("qet.") && k.as_str() != "source_ref")
+                .filter(|k| !k.starts_with("qet.") && !matches!(k.as_str(), "source_ref" | "ew.note"))
             {
                 let escaped = name.replace('~', "~0").replace('/', "~1");
                 issue("symbol-unknown-member", format!("{path}/{escaped}"), name.clone());
