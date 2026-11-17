@@ -50,7 +50,10 @@ fn f1_opens_the_page_of_what_the_pointer_rests_on() {
     h.hover_at(at);
     settle(&mut h);
     settle(&mut h);
-    assert!(h.query_by_label("F1: Wires").is_some(), "the status bar names the wire's section");
+    assert!(
+        h.query_by_label("F1: Wires").is_some(),
+        "the status bar names the wire's section"
+    );
     h.key_press(Key::F1);
     settle(&mut h);
     assert_eq!(opened(&h), "reference/window/things.html#wires");

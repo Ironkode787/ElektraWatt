@@ -37,7 +37,10 @@ fn a_wire(shell: &ShellModel) -> ((i64, i64), String) {
         .find(|c| c.kind == "wire" && c.line_kind.is_none() && c.polyline.len() >= 2)
         .expect("a wire on the page");
     let (a, b) = (wire.polyline[0], wire.polyline[1]);
-    ((a.0 + (b.0 - a.0) / 2, a.1 + (b.1 - a.1) / 2), wire.id.to_string())
+    (
+        (a.0 + (b.0 - a.0) / 2, a.1 + (b.1 - a.1) / 2),
+        wire.id.to_string(),
+    )
 }
 
 #[test]
@@ -50,7 +53,10 @@ fn f1_opens_the_section_of_the_thing_under_the_pointer() {
     assert_eq!(under.subject, "Wires");
     // The status bar says what F1 opens there.
     let fields = status::bar(&shell, false);
-    let help_field = fields.iter().find(|f| f.kind == StatusKind::Help).expect("the F1 field");
+    let help_field = fields
+        .iter()
+        .find(|f| f.kind == StatusKind::Help)
+        .expect("the F1 field");
     assert_eq!(help_field.text, "F1: Wires");
     assert_eq!(f1(&mut shell), "reference/window/things.html#wires");
     // The selected wire under the pointer: its handles change its route.
@@ -106,9 +112,15 @@ fn f1_on_the_frame_opens_the_frames_section() {
     // The title block's band at the sheet's foot, below the frame's cells.
     let title_block = (w / 2, h - 10_000_000);
     let cells = shell.canvas().unwrap().page().cells.clone().expect("a frame");
-    assert!(cells.cell_at(title_block).is_none(), "the title block is outside the cells");
+    assert!(
+        cells.cell_at(title_block).is_none(),
+        "the title block is outside the cells"
+    );
     done(&mut shell, "canvas.pointer", at(title_block, json!({})));
-    assert_eq!(f1(&mut shell), "reference/window/things.html#the-frame-and-title-block");
+    assert_eq!(
+        f1(&mut shell),
+        "reference/window/things.html#the-frame-and-title-block"
+    );
     shell.shutdown();
 }
 
@@ -136,10 +148,7 @@ fn f1_on_a_row_of_properties_opens_its_anchor() {
     done(&mut shell, "props.show", json!({"on": true}));
     done(&mut shell, "ui.focus", json!({"area": "properties"}));
     done(&mut shell, "props.row", json!({"to": "device/process_tag"}));
-    assert_eq!(
-        f1(&mut shell),
-        "reference/properties.html#device-process-tag"
-    );
+    assert_eq!(f1(&mut shell), "reference/properties.html#device-process-tag");
     shell.shutdown();
 }
 

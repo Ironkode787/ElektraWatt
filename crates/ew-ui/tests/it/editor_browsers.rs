@@ -89,7 +89,7 @@ fn the_symbol_editor_s_tools_say_what_they_do_and_how() {
     assert!(
         texts
             .iter()
-            .any(|t| t.starts_with("Line (") && t.ends_with("\nDrag, or click two points")),
+            .any(|t| t.starts_with("Line (") && t.contains("\nDrag, or click two points\n")),
         "{texts:?}"
     );
     d.shell_mut().shutdown();

@@ -1576,7 +1576,8 @@ fn the_save_tooltip_in_light() {
         h.run_ok();
         let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
         // The tooltip's fill beside its text is the inverse surface: dark in light.
-        let label = node_rect(&h, "Save (Ctrl+S)").expect("the tooltip's text");
+        // Its text ends with how to open the command's page.
+        let label = node_rect(&h, "Save (Ctrl+S)\nF1: help").expect("the tooltip's text");
         let fill = luma(&image, (label.left() - 4.0) as u32, label.center().y as u32);
         assert!(fill < 80.0, "light: the tooltip's fill is dark ({fill})");
         let region =
