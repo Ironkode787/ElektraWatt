@@ -186,9 +186,9 @@ rule-ew-core-037 = afscherming { $core } is aan geen van beide einden aangeslote
     .title = Afscherming niet aangesloten
     .hint = Sluit de afscherming aan op een aardingspunt, of markeer haar als bewust niet aangesloten.
 
-rule-ew-core-041 = { WORD($device) } heeft geen artikel; wijs er een toe of markeer het als geleverd door derden
+rule-ew-core-041 = { WORD($device) } heeft geen artikel, dus de stuklijst kan het niet bestellen. Kies er een in zijn eigenschappen (Artikel).
     .title = Apparaat zonder artikel
-    .hint = Wijs een artikel uit de bibliotheek toe of markeer het apparaat als geleverd door derden.
+    .hint = Open de melding: de eigenschappen van het apparaat openen. Kies daar zijn artikel (Artikel), uit de bibliotheek of een eigen artikel.
 
 rule-ew-core-042 = artikel { $part } van { WORD($device) } heeft geen { $missing ->
         [description] omschrijving
@@ -223,12 +223,12 @@ rule-ew-core-045 = { WORD($device) } gebruikt { $need_no } maakcontacten, { $nee
     .title = Meer hulpcontacten dan het artikel heeft
     .hint = Verwijder contacten uit de tekening, of kies een artikel met genoeg hoofd- en hulpcontacten.
 
-rule-ew-core-047 = { WORD($device) } is op geen pagina getekend, daarom toont het kenmerk ? waar de pagina hoort{ $part ->
-        [yes] ; de stuklijst telt het nog mee
+rule-ew-core-047 = { WORD($device) } is op geen pagina getekend, daarom toont het kenmerk ? waar het paginanummer hoort{ $part ->
+        [yes] , en de stuklijst telt het nog mee
        *[no] {""}
-    }
+    }. Teken het op een pagina, of verwijder het als het niet nodig is.
     .title = Apparaat niet getekend
-    .hint = Teken het apparaat op een pagina van het schema, of verwijder het.
+    .hint = Open de melding: de eigenschappen van het apparaat openen. Plaats het vanuit de lijst Apparaten op een pagina (sleep het op de pagina), of verwijder het.
 
 rule-ew-core-048 = { WORD($device) } wordt { $form ->
         [covered-twice] gedekt door { $count } bestelcodes van { WORD($assembly) }; zijn artikelen zouden { $count } keer worden afgedrukt
@@ -276,20 +276,20 @@ rule-ew-core-065 = omschrijving "{ $text }" van artikel { $part }{ $form ->
 rule-ew-core-067 = { $line ->
         [tube] Slang
        *[wire] Draad
-    } { WORD($wire) } loopt door { $point ->
+    } { WORD($wire) } kruist { $point ->
         [junction] de aftakking in { $pin }
         [junction-off-grid] een aftakking
        *[cp] { $pin }
-    }, waarmee hij niet verbonden is.
+    } zonder ermee verbonden te zijn, dus op papier lijkt hij aangesloten. Routeer hem opnieuw zodat hij ernaast loopt.
     .title = Draad door een aansluitpunt
-    .hint = Routeer de draad opnieuw met Selectie routeren, of wijzig zijn route met Route bewerken zodat hij vrij blijft van het punt.
+    .hint = Open de melding: de draad is geselecteerd op zijn pagina. Kies Opnieuw routeren, of sleep zijn ronde grepen zodat hij vrij blijft van het punt.
 
 rule-ew-core-068 = { $line ->
         [tube] Slang
        *[wire] Draad
-    } { WORD($wire) } loopt over { WORD($other) } op folio { $page }.
+    } { WORD($wire) } ligt over { WORD($other) } op pagina { $page }, dus op papier zijn de twee niet uit elkaar te houden. Routeer een van beide opnieuw.
     .title = Draad over een andere draad
-    .hint = Routeer een van de draden opnieuw met Selectie routeren, zodat elke draad een eigen lijn heeft.
+    .hint = Open de melding: beide draden zijn geselecteerd op hun pagina. Kies Opnieuw routeren, of sleep de grepen van één draad, zodat elke draad een eigen lijn heeft.
 
 rule-ew-core-069 = { $line ->
         [tube] Slang
@@ -404,11 +404,11 @@ rule-ew-fl-009 = { WORD($valve) }: de spoel neemt { $voltage }, maar { $feeds_nl
     .hint = Kies een ventiel waarvan de spoel de spanning van zijn voeding neemt, of voed haar uit een potentiaal van die spanning.
 
 rule-ew-fl-010 = { $form ->
-        [valve] { WORD($device) }: er komt geen lucht op poort { $port }; teken de voedingsleiding erheen, of definieer daar een medium
-       *[gallery] { WORD($device) }: er komt geen lucht in verdeelkanaal 1, de gemeenschappelijke voeding van de ventielen; teken de voedingsleiding naar de voedingspoort, of definieer daar een medium
+        [valve] { WORD($device) }: er komt geen perslucht op poort { $port }. Teken de voedingsleiding erheen, of kies daar Medium aan poort definiëren.
+       *[gallery] { WORD($device) }: er komt geen perslucht bij de ventielen, omdat er niets op de voeding van het ventieleiland is aangesloten. Teken de voedingsleiding naar de voedingspoort, of kies daar Medium aan poort definiëren.
     }
     .title = Geen voeding
-    .hint = Definieer een medium aan de voedingspoort, of teken de leiding die het aanvoert.
+    .hint = Teken de leiding die de lucht van de voeding naar de poort brengt, of klik met rechts op de poort en kies Medium aan poort definiëren.
 
 rule-ew-fl-011 = { WORD($valve) } stuurt { $target } aan, maar de leidingen van zijn werkpoorten bereiken { WORD($device) }
     .title = Aangestuurd apparaat wijkt af
@@ -833,20 +833,20 @@ rule-ew-pot-008 = { $form ->
        *[island] { $location ->
             [main] de hoofdlocatie
            *[node] { WORD($node) }
-        } heeft { $count } PE-potentialen: { $potentials }; verbind ze via een met de rail verbonden klem of een PE-draad
+        } heeft { $count } aardingsnetten (PE) die elkaar niet raken: { $potentials }. Verbind ze: zet hun PE-klemmen op één geaarde rail, of teken een PE-draad ertussen.
     }
     .title = PE-eiland
-    .hint = Verbind de PE-potentialen van de locatie, bijvoorbeeld via de railverbinding van de klemmen.
+    .hint = Alle PE op één plaats moet één net zijn: zet de PE-klemmen van de locatie op één geaarde rail, of teken van elk net een PE-draad naar de PE-rail.
 
 rule-ew-pot-009 = { $cp_shared ->
         [yes] { $cp_tag } pen { $cp_pin } ({ $cp_nth }e)
        *[no] { $cp }
-    } is niet aangesloten{ $unused ->
-        [yes] {" "}(gemarkeerd als ongebruikt)
-       *[no] ; sluit het aan of markeer het als ongebruikt
+    } heeft geen draad{ $unused ->
+        [yes] {" "}(gemarkeerd als niet gebruikt)
+       *[no] . Teken er een draad naartoe, of klik er met rechts op en kies Markeren als niet gebruikt.
     }
     .title = Niet-aangesloten aansluitpunt
-    .hint = Sluit het aansluitpunt aan of markeer het als ongebruikt.
+    .hint = Open de melding: de pagina opent met het apparaat geselecteerd. Teken een draad naar de aansluiting, of klik er met rechts op en kies Markeren als niet gebruikt als hij bewust vrij blijft.
 
 rule-ew-pot-011 = { $potential }: het is niet duidelijk welke draad { $place ->
         [junction] de aftakking { $at ->

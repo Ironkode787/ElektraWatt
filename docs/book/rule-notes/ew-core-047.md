@@ -20,7 +20,8 @@ In a new project, place a device and delete its only symbol while the device kee
 
 ## How to fix
 
-Place the device from the device navigator, or delete it there. There is no quick fix.
+Open the message: the device's Properties open. Place the device from the Devices list (drag it onto a page), or delete
+it there when it is not needed. There is no quick fix.
 
 ## Waiving
 

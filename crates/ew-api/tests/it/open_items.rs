@@ -106,7 +106,7 @@ fn no_part(tag: &str) -> Vec<String> {
     row([
         "Device without part",
         tag,
-        &format!("{tag} has no part; assign one, or mark it as supplied by others"),
+        &format!("{tag} has no part, so the parts list cannot order it. Choose one in its Properties (Part)."),
         "EW-CORE-041",
         "warning",
         "",
@@ -150,7 +150,7 @@ fn golden_a_lists_its_24_open_items() {
         row([
             "Unconnected connection point",
             cp,
-            &format!("{cp} is not connected; connect it or mark it unused"),
+            &format!("{cp} has no wire. Draw one to it, or right-click it and choose Mark not used."),
             "EW-POT-009",
             "warning",
             "102",

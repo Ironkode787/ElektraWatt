@@ -596,7 +596,7 @@ fn golden_a_part4_reports_the_ef_rows() {
     let report = s.check(&PRE_DELIVERY, CheckMode::Release);
     assert_eq!(
         subjects(&report, "EW-CORE-061"),
-        expected(&[("warning", "cp.small"), ("warning", "marker")])
+        expected(&[("warning", "Connection point"), ("warning", "Wire marker")])
     );
     assert_eq!(
         subjects(&report, "EW-RDS-003"),

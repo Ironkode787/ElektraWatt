@@ -1,8 +1,8 @@
 ## What it checks
 
-A valve terminal whose gallery-1 segment, or a valve outside a terminal whose port 1, carries no medium and reaches
-nothing outside the terminal (outside the valve). One finding per segment or port. A valve that is not fitted is
-skipped.
+A valve terminal, or a valve outside a terminal, that no compressed air reaches: nothing is drawn to the terminal's
+supply (its gallery 1, the channel that feeds all its valves) or to the valve's port 1, and no medium is set there. One
+finding per terminal or port. A valve that is not fitted is skipped.
 
 ## Why
 
@@ -18,7 +18,8 @@ On Golden A, gallery 1 of the valve terminal -201U1 is fed by nothing.
 
 ## How to fix
 
-Define a medium at a supply port, or draw the supply line. There is no quick fix.
+Draw the line that brings the air from the supply to the supply port, or right-click the port and choose Define medium
+at port. There is no quick fix.
 
 ## Waiving
 

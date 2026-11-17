@@ -765,7 +765,10 @@ impl Rule for NoSupply {
                         [Target::new(Kind::Device, d)],
                         format!("gallery {}", cp_text(q, *first)),
                         full_tag(q, d, "device"),
-                        format!("{vt}: no air reaches gallery 1, the common supply of its valves; draw the supply line to its supply port, or define a medium there"),
+                        format!(
+                            "{vt}: no compressed air reaches its valves, because nothing feeds the terminal's supply. Draw \
+                             the supply line to its supply port, or use Define medium at port there."
+                        ),
                     )
                     .arg("form", "gallery")
                     .arg("device", vt),
@@ -799,7 +802,8 @@ impl Rule for NoSupply {
                         format!("port {}", cp.designation),
                         full_tag(q, d, "device"),
                         format!(
-                            "{valve}: no air reaches port {}; draw the supply line to it, or define a medium there",
+                            "{valve}: no compressed air reaches port {}. Draw the supply line to it, or use Define medium \
+                             at port there.",
                             cp.designation
                         ),
                     )

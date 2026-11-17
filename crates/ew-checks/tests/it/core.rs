@@ -88,7 +88,7 @@ fn core047_reports_a_device_whose_functions_are_not_drawn() {
     );
     assert!(
         f[0].message
-            .ends_with("is not drawn on any page, so its tag shows ? where the page goes"),
+            .ends_with("is not drawn on any page, so its tag shows ? where the page number belongs. Draw it on a page, or delete it if it is not needed."),
         "{}",
         f[0].message
     );

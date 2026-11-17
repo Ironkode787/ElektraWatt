@@ -4399,7 +4399,7 @@ fn d31(c: &Ctx) -> Outcome {
     match golden_ef(
         c,
         "EW-CORE-061",
-        &["warning cp.small", "warning marker"],
+        &["warning Connection point", "warning Wire marker"],
         "EW-CORE-061 reports the styles cp.small and marker (EF-12)",
     ) {
         Ok(why) => pass(why),

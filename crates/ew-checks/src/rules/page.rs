@@ -1010,7 +1010,7 @@ pub enum PassedPoint<'a> {
     },
 }
 
-/// EW-CORE-067: `wire` runs through `point`, which it does not join (measure (a)). Targets the wire and the point's
+/// EW-CORE-067: `wire` crosses `point` without joining it (measure (a)). Targets the wire and the point's
 /// function or junction; discriminator the CP index (`cp 2`) or `junction`.
 pub fn wire_through_cp(page: Id<Page>, wire: LayoutWire<'_>, point: PassedPoint<'_>) -> Finding {
     let (target, discriminator, kind, pin, named) = match point {
@@ -1042,7 +1042,8 @@ pub fn wire_through_cp(page: Id<Page>, wire: LayoutWire<'_>, point: PassedPoint<
         discriminator,
         wire.words,
         format!(
-            "{} {} runs through {named}, which it does not join.",
+            "{} {} crosses {named} without joining it, so on paper it looks connected. Reroute it so that it passes \
+             beside.",
             wire.noun(),
             wire.words
         ),
@@ -1062,7 +1063,7 @@ pub fn wire_along_wire(page: Id<Page>, folio: &str, wire: LayoutWire<'_>, other:
         "",
         wire.words,
         format!(
-            "{} {} runs along {} on folio {folio}.",
+            "{} {} lies on top of {} on page {folio}, so on paper the two cannot be told apart. Reroute one of them.",
             wire.noun(),
             wire.words,
             other.words

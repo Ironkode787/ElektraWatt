@@ -19,8 +19,8 @@ Route a wire straight across a page so that it runs over the lower pin of a coil
 
 ## How to fix
 
-Select the wire and use Route selection, or change its route with Edit route so that it keeps clear of the point.
-There is no quick fix.
+Open the message: the wire is selected on its page. Press Reroute, or drag the wire's round handles so that it keeps
+clear of the point. There is no quick fix.
 
 ## Waiving
 

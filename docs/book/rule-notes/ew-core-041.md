@@ -19,7 +19,8 @@ On Golden A, S56 and E56 have no part.
 
 ## How to fix
 
-Choose the part on the Parts row of the property grid; see the how-to on choosing parts. There is no quick fix.
+Open the message: the device's Properties open. Choose its part on the Part row, from the library or a part of your
+own; see the how-to on choosing parts. There is no quick fix.
 
 ## Waiving
 

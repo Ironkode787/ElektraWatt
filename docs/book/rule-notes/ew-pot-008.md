@@ -1,8 +1,8 @@
 ## What it checks
 
-Two halves. More than one PE potential in one location: one finding per location, naming the potentials. And a
-terminal with rail bonding that has no location, in a project with two or more own locations; with at most one
-location, such a terminal belongs to the main location and joins its PE rail.
+Two halves. Protective-earth (PE) networks in one location that do not meet: one finding per location, naming the
+networks. And a terminal joined to the PE rail that has no location, in a project with two or more own locations; with
+at most one location, such a terminal belongs to the main location and joins its PE rail.
 
 ## Why
 
@@ -20,7 +20,8 @@ location +J-E-2416 then holds two PE potentials.
 
 ## How to fix
 
-Rail bonding is on the terminal's row in the strip editor. There is no quick fix.
+Put the PE terminals of the location on one bonded rail (Rail bonding is on the terminal's row in the strip editor), or
+draw a PE wire from each network to the PE rail. There is no quick fix.
 
 ## Waiving
 

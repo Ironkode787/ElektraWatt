@@ -184,9 +184,9 @@ rule-ew-core-037 = shield { $core } is connected at neither end; connect it at o
     .title = Shield not connected
     .hint = Connect the shield to an earthing point, or mark it as not connected on purpose.
 
-rule-ew-core-041 = { $device } has no part; assign one, or mark it as supplied by others
+rule-ew-core-041 = { $device } has no part, so the parts list cannot order it. Choose one in its Properties (Part).
     .title = Device without part
-    .hint = Assign a part from the library, or mark the device as supplied by others.
+    .hint = Open the message: the device's Properties open. Choose its part there (Part), from the library or a part of your own.
 
 rule-ew-core-042 = part { $part } of { $device } has no { $missing ->
         [description] description
@@ -221,12 +221,12 @@ rule-ew-core-045 = { $device } uses { $need_no } NO, { $need_nc } NC, { $need_co
     .title = Auxiliary contacts exceed the part
     .hint = Remove contacts from the drawing, or choose a part with enough main and auxiliary contacts.
 
-rule-ew-core-047 = { $device } is not drawn on any page, so its tag shows ? where the page goes{ $part ->
-        [yes] ; the parts list still counts it
+rule-ew-core-047 = { $device } is not drawn on any page, so its tag shows ? where the page number belongs{ $part ->
+        [yes] , and the parts list still counts it
        *[no] {""}
-    }
+    }. Draw it on a page, or delete it if it is not needed.
     .title = Device not drawn
-    .hint = Draw the device on a page of the schematic, or delete it.
+    .hint = Open the message: the device's Properties open. Place it on a page from the Devices list (drag it onto the page), or delete it.
 
 rule-ew-core-048 = { $device } is covered by { $form ->
         [covered-twice] { $count } order codes of { $assembly }; its parts would print { $count } times
@@ -274,20 +274,20 @@ rule-ew-core-065 = description "{ $text }" of part { $part }{ $form ->
 rule-ew-core-067 = { $line ->
         [tube] Tube
        *[wire] Wire
-    } { $wire } runs through { $point ->
+    } { $wire } crosses { $point ->
         [junction] the junction in { $pin }
         [junction-off-grid] a junction
        *[cp] { $pin }
-    }, which it does not join.
+    } without joining it, so on paper it looks connected. Reroute it so that it passes beside.
     .title = Wire through a connection point
-    .hint = Route the wire again with Route selection, or change its route with Edit route so that it keeps clear of the point.
+    .hint = Open the message: the wire is selected on its page. Press Reroute, or drag its round handles so that it keeps clear of the point.
 
 rule-ew-core-068 = { $line ->
         [tube] Tube
        *[wire] Wire
-    } { $wire } runs along { $other } on folio { $page }.
+    } { $wire } lies on top of { $other } on page { $page }, so on paper the two cannot be told apart. Reroute one of them.
     .title = Wire along another wire
-    .hint = Route one of the wires again with Route selection, so that each runs on a line of its own.
+    .hint = Open the message: both wires are selected on their page. Press Reroute, or drag one wire's handles, so that each runs on a line of its own.
 
 rule-ew-core-069 = { $line ->
         [tube] Tube
@@ -401,11 +401,11 @@ rule-ew-fl-009 = { $valve }: the coil takes { $voltage }, but { $feeds } feed it
     .hint = Choose a valve whose coil takes the voltage of its supply, or feed it from a potential of that voltage.
 
 rule-ew-fl-010 = { $form ->
-        [valve] { $device }: no air reaches port { $port }; draw the supply line to it, or define a medium there
-       *[gallery] { $device }: no air reaches gallery 1, the common supply of its valves; draw the supply line to its supply port, or define a medium there
+        [valve] { $device }: no compressed air reaches port { $port }. Draw the supply line to it, or use Define medium at port there.
+       *[gallery] { $device }: no compressed air reaches its valves, because nothing feeds the terminal's supply. Draw the supply line to its supply port, or use Define medium at port there.
     }
     .title = No supply
-    .hint = Define a medium at the supply port, or draw the line that brings it.
+    .hint = Draw the line that brings the air from the supply to the port, or right-click the port and choose Define medium at port.
 
 rule-ew-fl-011 = { $valve } drives { $target }, but its working-port lines reach { $device }
     .title = Drives target mismatch
@@ -832,10 +832,10 @@ rule-ew-pot-008 = { $form ->
        *[island] { $location ->
             [main] the main location
            *[node] { $node }
-        } holds { $count } PE potentials: { $potentials }; join them through a bonded rail or a PE wire
+        } has { $count } protective-earth networks that do not meet: { $potentials }. Connect them: put their PE terminals on one bonded rail, or draw a PE wire between them.
     }
     .title = PE island
-    .hint = Connect the PE potentials of the location, for example through the rail bonding of the terminals.
+    .hint = Every PE in one place must be one network: put the PE terminals of the location on one bonded rail, or draw a PE wire from each network to the PE rail.
 
 rule-ew-pot-009 = { $cp_shared ->
         [yes] { $cp_tag } pin { $cp_pin } ({ NUMBER($cp_nth, type: "ordinal") ->
@@ -845,12 +845,12 @@ rule-ew-pot-009 = { $cp_shared ->
            *[other] { $cp_nth }th
         })
        *[no] { $cp }
-    } is not connected{ $unused ->
-        [yes] {" "}(marked unused)
-       *[no] ; connect it or mark it unused
+    } has no wire{ $unused ->
+        [yes] {" "}(marked not used)
+       *[no] . Draw one to it, or right-click it and choose Mark not used.
     }
     .title = Unconnected CP
-    .hint = Connect the connection point, or mark it unused.
+    .hint = Open the message: its page opens with the device selected. Draw a wire to the connection, or right-click it and choose Mark not used when it stays free on purpose.
 
 rule-ew-pot-011 = { $potential }: it is unclear which wire feeds { $place ->
         [junction] the junction { $at ->

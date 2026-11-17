@@ -1492,7 +1492,8 @@ fn pe_islands(q: &Q) -> Vec<Finding> {
                 discriminator,
                 text.clone(),
                 format!(
-                    "{text} holds {} PE potentials: {}; join them through a bonded rail or a PE wire",
+                    "{text} has {} protective-earth networks that do not meet: {}. Connect them: put their PE terminals \
+                     on one bonded rail, or draw a PE wire between them.",
                     names.len(),
                     names.join(", ")
                 ),
@@ -1602,9 +1603,12 @@ impl Rule for UnconnectedCp {
                         c.idx.to_string(),
                         label.clone(),
                         if c.unused {
-                            format!("{} is not connected (marked unused)", pin.sentence)
+                            format!("{} has no wire (marked not used)", pin.sentence)
                         } else {
-                            format!("{} is not connected; connect it or mark it unused", pin.sentence)
+                            format!(
+                                "{} has no wire. Draw one to it, or right-click it and choose Mark not used.",
+                                pin.sentence
+                            )
                         },
                     ))
                     .arg("cp", label)

@@ -241,7 +241,8 @@ fn deleting_the_last_representation_deletes_the_device_and_one_undo_restores_bot
     assert_eq!(found.len(), 1, "{found:?}");
     assert!(
         found[0].ends_with(
-            "is not drawn on any page, so its tag shows ? where the page goes; the parts list still counts it"
+            "is not drawn on any page, so its tag shows ? where the page number belongs, and the parts list still \
+             counts it. Draw it on a page, or delete it if it is not needed."
         ),
         "{found:?}"
     );

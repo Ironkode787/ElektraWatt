@@ -23,8 +23,10 @@ const PX5: i64 = 1_322_917;
 const PX7: i64 = 1_852_083;
 const PX13: i64 = 3_439_583;
 
-/// The text the built-in basic project writes into `project.jsonl` (ADR-0032 decision 1's example).
-const NEW_PROJECT_MEMBER: &str = r#""text_styles":{"cp.small":{"size":1852083},"marker":{"size":1852083}}"#;
+/// The text the built-in basic project writes into `project.jsonl` (ADR-0032 decision 1's example; the terminal's number
+/// at a cap height of 1.8 mm since rc.3).
+const NEW_PROJECT_MEMBER: &str =
+    r#""text_styles":{"cp.small":{"size":1852083},"marker":{"size":1852083},"terminal":{"size":2521009}}"#;
 
 fn temp(tag: &str) -> PathBuf {
     ew_testdir::fresh_dir(&format!("ew-api-textstyles-{tag}"))
@@ -123,7 +125,7 @@ fn golden_a_has_no_member_and_keeps_its_two_findings() {
 
 /// TS-2: a new project's `project.jsonl` holds exactly the two overrides, and they round-trip.
 #[test]
-fn a_new_project_writes_the_two_overrides() {
+fn a_new_project_writes_its_overrides() {
     let work = temp("ts2");
     let mut s = new_basic(1);
     let styles = ew_derive::text_styles(&s.query());

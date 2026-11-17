@@ -325,7 +325,8 @@ fn pot008_pe_cases() {
                     assert_eq!(f[0].discriminator, "island", "case {c}");
                     assert_eq!(
                         f[0].message,
-                        "+A holds 2 PE potentials: PE1, PE2; join them through a bonded rail or a PE wire",
+                        "+A has 2 protective-earth networks that do not meet: PE1, PE2. Connect them: put their PE \
+                         terminals on one bonded rail, or draw a PE wire between them.",
                         "case {c}"
                     );
                     assert_eq!(
@@ -384,7 +385,8 @@ fn pot009_cases() {
                     assert_eq!(warning.severity, Severity::Warning, "case {c}");
                     assert_eq!(warning.discriminator, "1", "case {c}");
                     assert_eq!(
-                        warning.message, "-1K4097:2 is not connected; connect it or mark it unused",
+                        warning.message,
+                        "-1K4097:2 has no wire. Draw one to it, or right-click it and choose Mark not used.",
                         "case {c}"
                     );
                     let info = f
@@ -393,7 +395,7 @@ fn pot009_cases() {
                     let info = info.unwrap_or_else(|| panic!("case {c}: the unused CP of -K4098"));
                     assert_eq!(info.severity, Severity::Info, "case {c}");
                     assert!(
-                        info.message.contains("marked unused"),
+                        info.message.contains("marked not used"),
                         "case {c}: {}",
                         info.message
                     );

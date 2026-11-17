@@ -260,13 +260,13 @@ fn en_gb_renders_the_message_byte_for_byte_and_nl_nl_renders_dutch() {
     for (unused, en, nl) in [
         (
             "no",
-            "-K1:13 is not connected; connect it or mark it unused",
-            "-K1:13 is niet aangesloten; sluit het aan of markeer het als ongebruikt",
+            "-K1:13 has no wire. Draw one to it, or right-click it and choose Mark not used.",
+            "-K1:13 heeft geen draad. Teken er een draad naartoe, of klik er met rechts op en kies Markeren als niet gebruikt.",
         ),
         (
             "yes",
-            "-K1:13 is not connected (marked unused)",
-            "-K1:13 is niet aangesloten (gemarkeerd als ongebruikt)",
+            "-K1:13 has no wire (marked not used)",
+            "-K1:13 heeft geen draad (gemarkeerd als niet gebruikt)",
         ),
     ] {
         let f = ew_checks::Finding::new(rule, [], "13", "-K1:13", en)
@@ -286,7 +286,7 @@ fn en_gb_renders_the_message_byte_for_byte_and_nl_nl_renders_dutch() {
         ("21", "-1A4 pin − (21st)", "-1A4 pen − (21e)"),
         ("3", "-1A4 pin − (3rd)", "-1A4 pen − (3e)"),
     ] {
-        let message = format!("{en} is not connected; connect it or mark it unused");
+        let message = format!("{en} has no wire. Draw one to it, or right-click it and choose Mark not used.");
         let f = ew_checks::Finding::new(rule, [], "13", "-1A4:−#2", message.clone())
             .arg("cp", "-1A4:−#2")
             .arg("cp_shared", "yes")
@@ -296,7 +296,7 @@ fn en_gb_renders_the_message_byte_for_byte_and_nl_nl_renders_dutch() {
             .arg("unused", "no");
         assert_eq!(format(&f, DEFAULT_LANGUAGE).as_deref(), Some(message.as_str()));
         let dutch = render(&f, "nl-NL");
-        assert!(dutch.starts_with(&format!("{nl} is niet aangesloten")), "{dutch}");
+        assert!(dutch.starts_with(&format!("{nl} heeft geen draad")), "{dutch}");
         assert!(!dutch.contains('#'), "{dutch}");
     }
     // A missing argument is an error in the pattern: the en-GB message is kept.

@@ -92,7 +92,7 @@ impl Rule for DeviceWithoutPart {
                 [Target::new(Kind::Device, device)],
                 "",
                 tag.clone(),
-                format!("{tag} has no part; assign one, or mark it as supplied by others"),
+                format!("{tag} has no part, so the parts list cannot order it. Choose one in its Properties (Part)."),
             )
             .arg("device", tag),
         ]

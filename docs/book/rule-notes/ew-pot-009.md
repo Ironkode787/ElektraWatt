@@ -1,9 +1,9 @@
 ## What it checks
 
-An electrical connection point of a placed function with no connection. Left out: interruption points, terminal
-connection points, unplaced functions, non-physical and optional connection points, and connection points of another
-discipline (fluid ports are EW-FL-001's). A connection point joined by a bridge, a rail or a declared link counts as
-connected. A point marked unused is reported at info. Each function is checked on the first page it is drawn on.
+A connection of a placed device that has no wire. Left out: interruption points, terminal connection points, unplaced
+functions, non-physical and optional connection points, and connection points of another discipline (fluid ports are
+EW-FL-001's). A connection joined by a bridge, a rail or a declared link counts as connected. A connection marked not
+used is reported at info. Each function is checked on the first page it is drawn on.
 
 ## Why
 
@@ -20,7 +20,8 @@ Golden A's -102F2:13 and :14, the signal contact of the electronic breaker, are 
 
 ## How to fix
 
-The unused mark is on the connection point's row in the property grid. There is no quick fix.
+Open the message: its page opens with the device selected. Draw a wire to the connection, or right-click it and choose
+Mark not used when it stays free on purpose. There is no quick fix.
 
 ## Waiving
 

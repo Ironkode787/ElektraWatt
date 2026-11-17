@@ -40,6 +40,17 @@
           ],
           "description": "The bound property (`project.description`, `page.folio`, …); absent: the text is printed."
         },
+        "height": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "This text's own height: the printed height of a capital letter (`crate::cap_height`), in place of its style's;\nabsent: the style's (since 0.3.0; an older build prints the style's height)."
+        },
         "style": {
           "anyOf": [
             {
