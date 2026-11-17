@@ -822,7 +822,11 @@ impl ShellModel {
                 params: fix_params(&project.session, fix),
             };
             if project.session.preview_with(&cmd, submit.clone()).is_ok() {
-                fixes.push(serde_json::json!({ "cmd": fix.command, "params": cmd.params }));
+                // A fix that is itself several (a valve's open ports plugged, rc.3) joins as its parts.
+                match cmd.params.get("fixes").and_then(Value::as_array) {
+                    Some(parts) if fix.command == "check.fix_all" => fixes.extend(parts.iter().cloned()),
+                    _ => fixes.push(serde_json::json!({ "cmd": fix.command, "params": cmd.params })),
+                }
             }
         }
         let left = found.len() - fixes.len();

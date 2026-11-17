@@ -1177,6 +1177,7 @@ fix-plc-take-out = Uit het rek halen
 fix-plc-bind-pins = De kanalen aan hun pinnen koppelen
 fix-blank-position = Blindplaat op ventielplaats { $position }
 fix-draw-valves = De ventielen in het ventieleiland tekenen
+fix-plug-open-ports = Blindstoppen op de open poorten zetten
 fix-text-style-minimum = Op 1,2 mm zetten
 
 # De woorden die een regel afdrukt waar een record geen eigen naam heeft (FT-912), per sleutel; WORD(…) in een patroon

@@ -502,6 +502,21 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
+    // Plug ports beside the Tube (rc.3): the open working ports of the selected valves plugged in one step, greyed in
+    // words while no selected valve has one; EW-FL-001's fix does the same.
+    placed(
+        place(Group::Tubes, 3, CommandSize::Small, Some(key!("bar-plug-ports"))),
+        "circle-dot",
+        act(
+            "fluid.plug_ports",
+            Command,
+            Menu::Fluid,
+            &[],
+            open_ports_selected,
+            None,
+            |s, _| s.act_fluid_plug_ports(),
+        ),
+    ),
     // Go to a thing by its drawing (rc.2): a valve's solenoid and the coil's valve, the symbol selected and named.
     with_params(
         "record:text, words?:text",

@@ -93,7 +93,7 @@ pub const WORKING_PORT_OPEN: RuleMeta = RuleMeta {
 /// EW-FL-001 (FR-FLU-018): per placed valve function (a function on a FnDef of contact kind `valve`
 /// with a representation) of a valve not in state `not_fitted`, its working ports (`working2`, `working4`) whose fluid
 /// net has no other member and that carry no closure (`fluid.port.close`): one finding listing them, target the
-/// function.
+/// function, its fix plugging them all in one step (`check.fix_all` of their `fluid.port.close`).
 #[derive(Clone, Copy, Debug)]
 pub struct WorkingPortOpen;
 
@@ -117,10 +117,22 @@ impl Rule for WorkingPortOpen {
             if q.idx().reps_of_function(f).next().is_none() {
                 continue;
             }
-            let open: Vec<String> = ew_derive::open_working_ports(q, f)
-                .into_iter()
-                .map(|(_, designation)| designation)
+            let ports = ew_derive::open_working_ports(q, f);
+            let open: Vec<String> = ports.iter().map(|(_, designation)| designation.clone()).collect();
+            // The rc.3 rack run plugged them one by one from a menu it found by chance: the fix plugs them all.
+            let plugs: Vec<serde_json::Value> = ports
+                .iter()
+                .map(|(idx, _)| {
+                    serde_json::json!({ "cmd": "fluid.port.close", "params": {
+                        "function": f.to_string(), "idx": idx, "closure": { "kind": "plug" } } })
+                })
                 .collect();
+            let fix = QuickFix {
+                label: "Plug the open ports".to_owned(),
+                key: Some("fix-plug-open-ports"),
+                command: "check.fix_all".to_owned(),
+                params: serde_json::json!({ "fixes": plugs }),
+            };
             let valve = tag(q, d);
             let finding = match open.as_slice() {
                 [] => continue,
@@ -147,7 +159,7 @@ impl Rule for WorkingPortOpen {
                 .arg("ports", and_list(ports, "and"))
                 .arg("ports_nl", and_list(ports, "en")),
             };
-            out.push(finding.arg("valve", valve));
+            out.push(finding.arg("valve", valve).with_fix(fix));
         }
         out
     }

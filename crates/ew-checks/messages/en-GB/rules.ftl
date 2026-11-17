@@ -1153,6 +1153,7 @@ fix-plc-take-out = Take it out of the rack
 fix-plc-bind-pins = Bind the channels to their pins
 fix-blank-position = Blanking plate on position { $position }
 fix-draw-valves = Draw its valves in the valve terminal
+fix-plug-open-ports = Plug the open ports
 fix-text-style-minimum = Set to 1.2 mm
 
 # The words a rule prints where a record has no name of its own (FT-912): a pattern of another language wraps an

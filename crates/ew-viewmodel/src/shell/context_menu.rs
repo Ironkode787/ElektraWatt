@@ -961,11 +961,20 @@ impl ShellModel {
                 } else {
                     (key!("canvas-valve-spare"), spare)
                 };
-                out.extend(self.aimed(
-                    "command.run",
-                    occupancy(*module, *position, &change),
-                    strings::text(word).to_owned(),
-                ));
+                let mut run = occupancy(*module, *position, &change);
+                // A valve set spare has its open working ports plugged in the same step, so it asks for nothing (the
+                // rc.3 rack run set two valves spare to quiet their open ports and they still warned).
+                if state != "spare" && !menu.open_ports.is_empty() {
+                    let fixes: Vec<Value> = std::iter::once(run)
+                        .chain(
+                            menu.open_ports
+                                .iter()
+                                .map(|(f, idx, _)| super::automation::plug_fix(*f, *idx)),
+                        )
+                        .collect();
+                    run = json!({ "cmd": "check.fix_all", "params": { "fixes": fixes } });
+                }
+                out.extend(self.aimed("command.run", run, strings::text(word).to_owned()));
                 let label = strings::format(key!("canvas-valve-blank"), &[&position.to_string()]);
                 out.extend(self.aimed(
                     "command.run",
@@ -976,9 +985,7 @@ impl ShellModel {
         }
         for (function, idx, designation) in &menu.open_ports {
             let label = strings::format(key!("canvas-port-plug"), &[designation]);
-            let params = json!({ "cmd": "fluid.port.close", "params": {
-                "function": function.to_string(), "idx": idx, "closure": { "kind": "plug" } } });
-            out.extend(self.aimed("command.run", params, label));
+            out.extend(self.aimed("command.run", super::automation::plug_fix(*function, *idx), label));
         }
     }
 

@@ -2304,6 +2304,47 @@ impl ShellModel {
         Outcome::Done
     }
 
+    /// `fluid.plug_ports` (Fluid ▸ Plug ports, rc.3: the rack run found Plug port only by right-clicking one port at a
+    /// time): the open working ports of the selected valves plugged, one undo step; a toast says whose.
+    pub(crate) fn act_fluid_plug_ports(&mut self) -> Outcome {
+        let (fixes, tags) = match self.selected_open_ports() {
+            Ok(found) => found,
+            Err(reason) => return failed(reason, &[]),
+        };
+        let cmd = ew_api::AnyCommand {
+            name: "check.fix_all".into(),
+            params: json!({ "fixes": fixes }),
+        };
+        let out = self.run_commit(&cmd);
+        if out == Outcome::Done {
+            self.notify(
+                strings::format(key!("toast-ports-plugged"), &[&tags.join(", ")]),
+                true,
+            );
+        }
+        out
+    }
+
+    /// The open working ports of the selected valves as plugs ([`plug_fix`]) and the valves' tags; else why not, in
+    /// words.
+    pub(crate) fn selected_open_ports(&self) -> Result<(Vec<Value>, Vec<String>), Key<'static>> {
+        let session = self.project_session().ok_or(key!("reason-no-project"))?;
+        let (mut plugs, mut tags) = (Vec::new(), Vec::new());
+        for device in self.selected_devices() {
+            let Ok(id) = device.parse::<Uuid>() else { continue };
+            let open = session.fluid_menu(id).open_ports;
+            if open.is_empty() {
+                continue;
+            }
+            tags.push(session.device_tag(id).unwrap_or_default());
+            plugs.extend(open.iter().map(|(f, idx, _)| plug_fix(*f, *idx)));
+        }
+        if plugs.is_empty() {
+            return Err(key!("reason-plug-ports-select"));
+        }
+        Ok((plugs, tags))
+    }
+
     /// The multipin valve terminal the selection is; else the reason in words: select one, or the selected device is
     /// none.
     pub(crate) fn selected_multipin_terminal(&self) -> Result<Uuid, Key<'static>> {
@@ -3027,6 +3068,12 @@ fn valve_copies(session: &ew_api::Session, module: Uuid, part: Uuid) -> Vec<Valu
     let mut copies = session.module_part_copies(part);
     extend_copies(&mut copies, session.cell_copies(Some(module), &[part], None));
     copies
+}
+
+/// The plug of port `idx` of fluid function `function`: a `fluid.port.close` as `command.run` and `check.fix_all` take it.
+pub(crate) fn plug_fix(function: Uuid, idx: u16) -> Value {
+    json!({ "cmd": "fluid.port.close", "params": {
+        "function": function.to_string(), "idx": idx, "closure": { "kind": "plug" } } })
 }
 
 /// `copies` with the documents of `more` it does not hold yet (by ID): a command refuses a document named twice.

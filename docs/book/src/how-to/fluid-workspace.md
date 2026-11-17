@@ -107,7 +107,9 @@ station on PROFIBUS DP", "Valve terminal · multipin, wired"):
    as its fix, and **Fix all** blanks every empty position at once);
    right-click the terminal's body for every position, each under a heading such as **Position 2: empty**.
    A valve dragged onto another cell moves there; onto a held cell the two swap. A valve's **Valve position** in
-   Properties moves it too.
+   Properties moves it too. A valve whose working ports 2 and 4 lead nowhere is plugged with **Plug ports** on the
+   Fluid tab (the selected valves), with the check's fix **Plug the open ports**, or one port at a time from its menu;
+   **Set spare** on a valve's menu plugs its open ports with it.
 4. A valve for a valve terminal dropped onto a cell takes that position on either kind of terminal, and the toast
    says which. A stand-alone valve, a coil or a cylinder dropped into the box is not taken as a position: it stays a
    device of its own, and the toast says so.

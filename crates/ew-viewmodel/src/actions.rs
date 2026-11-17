@@ -417,6 +417,12 @@ fn multipin_terminal_selected(m: &ShellModel) -> Result<(), Key<'static>> {
     m.selected_multipin_terminal().map(|_| ())
 }
 
+/// The project can be written and a selected valve has open working ports (Plug ports, rc.3).
+fn open_ports_selected(m: &ShellModel) -> Result<(), Key<'static>> {
+    writable(m)?;
+    m.selected_open_ports().map(|_| ())
+}
+
 /// The project can be written and has an open revision (Approve, Release, Set author).
 fn open_revision(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
