@@ -1599,11 +1599,8 @@ impl ShellModel {
             label: crate::properties::row_label(section, row),
         };
         let out = self.run_edit(pending, false);
-        if out == Outcome::Done
-            && numbered_view
-            && matches!(self.legend_offer(), ew_api::output::LegendOffer::At(_))
-        {
-            let _ = self.act_page_add_legend();
+        if out == Outcome::Done && numbered_view {
+            self.add_view_legend();
         }
         out
     }
@@ -1665,11 +1662,8 @@ impl ShellModel {
             label: crate::properties::row_label(section, row),
         };
         let out = self.run_edit(pending, false);
-        if out == Outcome::Done
-            && numbered_view
-            && matches!(self.legend_offer(), ew_api::output::LegendOffer::At(_))
-        {
-            let _ = self.act_page_add_legend();
+        if out == Outcome::Done && numbered_view {
+            self.add_view_legend();
         }
         out
     }

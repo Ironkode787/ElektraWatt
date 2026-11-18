@@ -1010,6 +1010,13 @@ impl Session {
         result
     }
 
+    /// Folds the newest undo step into the one below it, so that one undo takes both back (a layout view's legend
+    /// with the act that made the view, as the save's edited date with its edit); `false` when there are not two
+    /// applied steps on top.
+    pub fn fold_last_step(&mut self) -> bool {
+        self.engine.fold_last_step()
+    }
+
     /// The undo stack.
     pub fn history(&self) -> &History {
         self.engine.history()

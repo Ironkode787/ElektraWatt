@@ -441,14 +441,26 @@ fn a_new_projects_panel_page_takes_the_fitting_scale() {
         a0 <= x0 && x1 <= a1 && b0 <= y0 && y1 <= b1,
         "the plate ({x0}, {y0})–({x1}, {y1}) inside the drawing area ({a0}, {b0})–({a1}, {b1})"
     );
-    // On the frame a new project's page prints on, the numbered view takes its legend beside the layout (its own undo
-    // step, as on every page with a frame); the next undo step takes the view and the scale back.
-    done(&mut s, "edit.undo", json!({}));
+    // On the frame a new project's page prints on, the numbered view takes its legend beside the layout, in the
+    // view's undo step (rc.3: it was a step of its own after it): one undo takes the legend, the view and the scale
+    // back, one redo brings them again.
+    assert_eq!(
+        s.legend_offer(),
+        ew_viewmodel::ew_api::output::LegendOffer::Exists
+    );
     done(&mut s, "edit.undo", json!({}));
     assert_eq!(row_text(&s, "page/scale"), "Absent", "drawn not to scale");
     assert!(s.panel_tables().is_none(), "no surface view");
+    assert_eq!(
+        s.legend_offer(),
+        ew_viewmodel::ew_api::output::LegendOffer::NoLayout
+    );
     assert_ne!(s.revision(), rev);
     done(&mut s, "edit.redo", json!({}));
+    assert_eq!(
+        s.legend_offer(),
+        ew_viewmodel::ew_api::output::LegendOffer::Exists
+    );
     // A scale chosen by hand is kept by the next Surface edit.
     done(&mut s, "props.set", json!({"row": "page/scale", "value": "1:20"}));
     done(

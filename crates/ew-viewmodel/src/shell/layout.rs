@@ -706,6 +706,21 @@ impl ShellModel {
         out
     }
 
+    /// The legend a new layout view that shows item numbers gets (F21), when the page has room for it: in the undo step
+    /// of the act that made the view, so that one undo takes back both (rc.3: it was a step of its own after it).
+    pub(super) fn add_view_legend(&mut self) {
+        if !matches!(self.legend_offer(), ew_api::output::LegendOffer::At(_)) {
+            return;
+        }
+        let rev = self.revision();
+        if self.act_page_add_legend() == Outcome::Done
+            && self.revision() != rev
+            && let Some(p) = &mut self.project
+        {
+            p.session.fold_last_step();
+        }
+    }
+
     /// `layout.options {mode?, grid?}` (the tool options card's segmented controls): the sticky mode (`free`, `push`,
     /// `swap`) and the grid step (`5`, `1` mm).
     pub(crate) fn act_layout_options(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -1195,12 +1210,10 @@ impl ShellModel {
         out
     }
 
-    /// A layout page that shows its items by number gets the legend that lists them (F21).
+    /// A layout page that shows its items by number gets the legend that lists them (F21), in the act's undo step.
     fn add_numbered_legend(&mut self) {
-        if self.panel_view_shows_numbers()
-            && matches!(self.legend_offer(), ew_api::output::LegendOffer::At(_))
-        {
-            let _ = self.act_page_add_legend();
+        if self.panel_view_shows_numbers() {
+            self.add_view_legend();
         }
     }
 
