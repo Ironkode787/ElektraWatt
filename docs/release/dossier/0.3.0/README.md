@@ -27,12 +27,18 @@ Decided by the owner on the first candidate: every one of his 29 points is answe
 development loop is made shorter as the work goes (tests that fail easily, build time), with a measurement of the
 lanes' time after each round; the persona re-test before the second candidate leaves the complete-cabinet job out.
 
+Decided by the owner on the second candidate: three screens are designed anew (starting a project and templates, the
+symbol editor, the PLC rack); a lane finishes its whole brief and carries on when its context is summarised, with no
+stop for size; after the lanes one review of the whole round, a fix lane if it needs one, and a persona round that has
+the complete-cabinet job in it.
+
 ## 2. The candidates
 
 | Candidate | Cut from | Checklist | State |
 |---|---|---|---|
 | `v0.3.0-rc.1` | `release/0.3`, the commit the tag names | [`checklist-rc.1.md`](checklist-rc.1.md) | Cut on 2026-11-16; its release build passed (run 11 of `release.yml`). **Tested by the owner by hand: not passed.** He found 29 points (the plan's log lists them as F1 to F29); no go |
-| `v0.3.0-rc.2` | `release/0.3`, the commit the tag names | [`checklist-rc.2.md`](checklist-rc.2.md) | Cut on 2026-11-16; its release build passed (run 12 of `release.yml`: verify, the guide, the Linux and the Windows package, the sums, the draft); waits for the owner's hands-on test |
+| `v0.3.0-rc.2` | `release/0.3`, the commit the tag names | [`checklist-rc.2.md`](checklist-rc.2.md) | Cut on 2026-11-16; its release build passed (run 12 of `release.yml`). **Tested by the owner by hand: not passed.** He wrote sixteen points (the plan's log lists them as G1 to G16), three of them asking for a screen to be designed anew; no go |
+| `v0.3.0-rc.3` | `release/0.3`, the commit the tag names | [`checklist-rc.3.md`](checklist-rc.3.md) | Cut on 2026-11-18; waits for its release build and for the owner's hands-on test |
 
 Before the first cut, on the tip that the release branch starts from: eight reviews by area and one of the whole
 milestone, each with its fix lane; a persona round of three picture-led runs on a new project, two re-tests, two
@@ -47,6 +53,14 @@ lanes (the log's entries from "The owner's test of the first candidate" on). On 
 workspace (7,417 of 7,417 tests) and the deep run with the private corpus (18 of 18) passed. The release branch
 was moved forward to the working branch's tip: the fixes are too many to carry one by one, and every one of them
 is a fix for the candidate.
+
+Before the third cut: thirteen lanes for the owner's sixteen points (three of them redesigns: the symbol editor with a
+part's device box, a station's rack as a view in a tab, New project with a list of templates), one review of the whole
+round (no major finding; ten small fixes), a persona round of five runs with a complete cabinet among them, seven fix
+lanes from it, two re-tests, and one panic found by the second cabinet run and mended (the log's entries from "The
+owner's test of the second candidate" on). On the candidate's tree the whole workspace (7,522 of 7,522 tests) and
+the deep run with the private corpus (18 of 18) passed. The release branch was moved forward to the working
+branch's tip again, for the same reason.
 
 ## 3. Known when the candidates were cut
 
@@ -82,6 +96,28 @@ With the second candidate:
   command before a release, not with every change.
 - The Windows program's main thread has a stack of 8 MiB: on the merged tip an offscreen run died of a stack
   overflow in about one run in three, which the recorded self-test showed.
+
+With the third candidate:
+
+- The window says one word, "template", for what it called a company standard and a basic project; a template's
+  pages come into a new project only when the person ticks that.
+- A text style chooses among typefaces that come with the program (four), not among a computer's fonts, so that a
+  drawing looks the same everywhere. No font under a GPL-only licence is bundled; the technical one is Routed Gothic.
+- Reroute replaces Edit route and Route selection and applies at once; a selected wire has handles. The router may
+  step half a grid step between close pins, and corners of different wires never meet (ADR-0033 amendment 3).
+- A wire in a cable has its core's cross-section and colour, whatever the wire itself said; a marker over a
+  cable's cores draws as the cable's mark.
+- Supply points are grouped by a stored group; drawings made before print each point's place as they did.
+- An earth symbol without a part is an earth connection and asks for no part; Golden A lost one finding by it.
+- The check level offers Pre-delivery and Full only; Drafting checked the same as Full.
+- A cable without a length is a warning until the check for delivery.
+- Terminal numbers have a style of their own; a project that set the device tag's size keeps its terminal numbers.
+- Connecting on placement never joins a contact to a PLC output or two different conductors.
+- A turned or mirrored symbol turns about the middle of its body.
+- The persona round was not repeated after the last five fixes and the mended panic: the whole workspace and the
+  deep run passed on that tree, and the owner's test is the gate.
+- Open, put to the owner twice and not answered: pin texts on the top and bottom edges of a drawn box stand
+  vertical.
 
 Only a real desktop shows three things (the checklist's RC-05): the installers, a printer, a screen reader. The
 owner's test says whether an open row holds the release.
