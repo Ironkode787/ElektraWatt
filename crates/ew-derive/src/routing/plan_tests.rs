@@ -868,7 +868,10 @@ fn a_step_of_one_nm_is_no_stretch_no_bend_and_no_arm() {
         supply: None,
         polyline: vec![far, from.at],
     });
-    assert_eq!(route_page(&q, &[id(4)]).unrouted, vec![(id(4), Unrouted::FourArms)]);
+    assert_eq!(
+        route_page(&q, &[id(4)]).unrouted,
+        vec![(id(4), Unrouted::FourArms)]
+    );
 }
 
 /// A reroute starts from the drawing: a wire that is drawn as well as the router would draw it keeps its route, also
@@ -911,7 +914,10 @@ fn a_reroute_keeps_a_wire_that_is_well_drawn_and_mends_a_loop() {
         c.routed = false;
     }
     let fresh = route_page(&p, &[id(1), id(2)]);
-    assert_eq!(fresh.routes[0], (id(1), vec![mm(0, 0), mm(9, 0), mm(9, 6), mm(10, 6)]));
+    assert_eq!(
+        fresh.routes[0],
+        (id(1), vec![mm(0, 0), mm(9, 0), mm(9, 6), mm(10, 6)])
+    );
 }
 
 /// A straight wire between two pins on one grid line whose numbers differ by 1 nm keeps its ends' own numbers: the
@@ -927,7 +933,11 @@ fn a_route_ends_on_its_pins_own_numbers() {
     let (pin, first) = (p.cps[0].at, p.cps[1].at);
     let plan = route_page(&p, &[id(1)]);
     let (_, line) = &plan.routes[0];
-    assert_eq!((line.first(), line.last()), (Some(&pin), Some(&first)), "{line:?}");
+    assert_eq!(
+        (line.first(), line.last()),
+        (Some(&pin), Some(&first)),
+        "{line:?}"
+    );
     assert!(
         line.windows(2).all(|w| w[0].0 == w[1].0 || w[0].1 == w[1].1),
         "{line:?}"

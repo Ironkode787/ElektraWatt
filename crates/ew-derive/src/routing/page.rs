@@ -93,11 +93,7 @@ impl PageGeometry {
     /// The page's grid where its positions are rounded numbers (a step that is not a whole number of nm); `None` on a
     /// grid of whole nm and for an unusable grid, where nothing settles.
     fn settling_grid(&self) -> Option<Grid> {
-        let grid = Grid::new(
-            u64::try_from(self.grid.0).ok()?,
-            u64::try_from(self.grid.1).ok()?,
-        )
-        .ok()?;
+        let grid = Grid::new(u64::try_from(self.grid.0).ok()?, u64::try_from(self.grid.1).ok()?).ok()?;
         (grid.den() > 1).then_some(grid)
     }
 }

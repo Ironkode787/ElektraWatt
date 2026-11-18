@@ -66,8 +66,14 @@ fn pins(s: &ShellModel, rep: &TableRep) -> (TableCp, TableCp) {
 fn wire(s: &mut ShellModel, a: (i64, i64), b: (i64, i64)) {
     let n = tables(s).connections.len();
     done(s, "tool.wire", json!({}));
-    assert!(click(s, a, false) && click(s, b, false), "the wire {a:?} to {b:?}");
-    assert!(tables(s).connections.len() > n, "the wire {a:?} to {b:?} is drawn");
+    assert!(
+        click(s, a, false) && click(s, b, false),
+        "the wire {a:?} to {b:?}"
+    );
+    assert!(
+        tables(s).connections.len() > n,
+        "the wire {a:?} to {b:?} is drawn"
+    );
 }
 
 /// The row a rail runs on: the y of the longest level stretch of the wire that ends at `end`.
@@ -122,9 +128,9 @@ fn a_full_page_is_no_worse_after_reroute() {
         })
         .collect();
     // The columns: each device's lower pin to the upper pin of the one below.
-    for c in 0..14 {
-        for r in 0..3 {
-            let (a, b) = (pins(&s, &rows[r][c]).1.at, pins(&s, &rows[r + 1][c]).0.at);
+    for pair in rows.windows(2) {
+        for (upper, lower) in pair[0].iter().zip(&pair[1]) {
+            let (a, b) = (pins(&s, upper).1.at, pins(&s, lower).0.at);
             wire(&mut s, a, b);
         }
     }
@@ -144,8 +150,8 @@ fn a_full_page_is_no_worse_after_reroute() {
     }
     // A branch from each pushbutton to the contact of the next column, and a link from every third breaker to the
     // lamp four columns on.
-    for c in 0..13 {
-        let (a, b) = (pins(&s, &rows[1][c]).1.at, pins(&s, &rows[2][c + 1]).0.at);
+    for (button, contact) in rows[1].iter().zip(rows[2].iter().skip(1)) {
+        let (a, b) = (pins(&s, button).1.at, pins(&s, contact).0.at);
         wire(&mut s, a, b);
     }
     for c in (0..10).step_by(3) {
@@ -162,7 +168,11 @@ fn a_full_page_is_no_worse_after_reroute() {
     let (rerouted, unrouted) = layout(&s);
     assert_eq!(unrouted, 0, "every wire keeps a route");
     assert_eq!(
-        (rerouted.touches.len(), rerouted.overlaps.len(), rerouted.through_bodies.len()),
+        (
+            rerouted.touches.len(),
+            rerouted.overlaps.len(),
+            rerouted.through_bodies.len()
+        ),
         (0, 0, 0),
         "no wire on a pin, on another wire or through a symbol: {rerouted:?}"
     );

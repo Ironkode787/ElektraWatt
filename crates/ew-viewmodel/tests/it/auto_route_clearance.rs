@@ -607,8 +607,9 @@ fn two_breakers_wired_cross_over_cross_once_drawn_and_rerouted() {
 }
 
 /// rc.3 (the owner's case): the second wire drawn with a free point on the first wire's corner, the way he drew it,
-/// keeps every hard rule; Reroute on both mends the corners that meet there, in one undo step, and the two then cross
-/// once and run straight otherwise.
+/// keeps every hard rule; Reroute on both, in at most one undo step, leaves them crossing once and running straight
+/// otherwise, with no more bends than drawn (rc.5: a reroute starts from the drawing and keeps it where routing the
+/// two from nothing gives more corners, as it did here).
 #[test]
 fn two_breakers_wired_cross_over_keep_the_hard_rules_drawn_and_rerouted() {
     let tmp = Tmp::new("rc3-cross-over");
@@ -644,15 +645,18 @@ fn two_breakers_wired_cross_over_keep_the_hard_rules_drawn_and_rerouted() {
         .clone();
     clean(&s);
     assert_eq!(through_pins_or_along(&mut s), Vec::<String>::new(), "drawn");
-    // Reroute both: one undo step, then one crossing.
+    // Reroute both: at most one undo step, then one crossing.
     done(
         &mut s,
         "select.set",
         json!({"ids": [first.id.to_string(), second.id.to_string()]}),
     );
     let rev = s.revision();
+    let bends = |s: &ShellModel| ew_viewmodel::ew_api::routing::measure(&s.canvas().unwrap().page().geometry).bend_total();
+    let drawn = bends(&s);
     done(&mut s, "route.reroute", json!({}));
-    assert_eq!(s.revision(), rev.map(|r| r + 1), "one step");
+    assert!(s.revision() <= rev.map(|r| r + 1), "at most one step");
+    assert!(bends(&s) <= drawn, "no more bends than drawn");
     crossed_once(&s, [first.id, second.id]);
     assert_eq!(through_pins_or_along(&mut s), Vec::<String>::new(), "rerouted");
 }

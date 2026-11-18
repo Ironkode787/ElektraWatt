@@ -474,6 +474,34 @@ fn runs(line: &[Point]) -> Vec<[Point; 2]> {
     out
 }
 
+/// Whether a corner of the route `a` stands on the wire `b` (on a corner, an end or a straight stretch of it): the
+/// two would read as joined there. Not where both leave one pin or junction and the corner is `a`'s first from it
+/// (two wires on one pin share its stub and may turn where it ends).
+fn corners_meet(a: &[Point], b: &[Point]) -> bool {
+    let (ra, rb) = (runs(a), runs(b));
+    let (Some(a0), Some(a1), Some(b0), Some(b1)) = (
+        ra.first().map(|s| s[0]),
+        ra.last().map(|s| s[1]),
+        rb.first().map(|s| s[0]),
+        rb.last().map(|s| s[1]),
+    ) else {
+        return false;
+    };
+    let within = |v: i64, p: i64, q: i64| p.min(q) <= v && v <= p.max(q);
+    let on_b = |p: Point| {
+        rb.iter().any(|s| {
+            (s[0].0 == s[1].0 && p.0 == s[0].0 && within(p.1, s[0].1, s[1].1))
+                || (s[0].1 == s[1].1 && p.1 == s[0].1 && within(p.0, s[0].0, s[1].0))
+        })
+    };
+    let shared = |end: Point| end == b0 || end == b1;
+    ra.windows(2).enumerate().any(|(k, w)| {
+        let corner = w[0][1];
+        let stub = (k == 0 && shared(a0)) || (k + 2 == ra.len() && shared(a1));
+        !stub && on_b(corner)
+    })
+}
+
 /// The directions in which the polylines of `lines` leave the point `j` (reduced to unit steps).
 fn arms(j: Point, lines: &[&[Point]]) -> BTreeSet<(i64, i64)> {
     let mut out = BTreeSet::new();
@@ -696,7 +724,8 @@ impl Solve<'_> {
                 match found {
                     Some(new)
                         if new.0 != old.0
-                            && (bad.contains(&j) || self.cost(j, &new.0, &state) < self.cost(j, &old.0, &state)) =>
+                            && (bad.contains(&j)
+                                || self.cost(j, &new.0, &state) < self.cost(j, &old.0, &state)) =>
                     {
                         state.routes.insert(j, new);
                         changed = true;
@@ -750,18 +779,29 @@ impl Solve<'_> {
             + u64::from(TEXT_COST) * (texts as u64)
     }
 
-    /// The jobs of `state` whose route breaks a hard rule but (d), a text, by the layout measures: it touches a
-    /// point it does not end at, lies on another wire or runs through a body.
+    /// The jobs of `state` whose route breaks a hard rule but (d), a text: by the layout measures it touches a
+    /// point it does not end at, lies on another wire or runs through a body; or one of its corners stands on
+    /// another wire's corner or end (ADR-0033 amendment 3, which no measure reports).
     fn bad(&self, state: &State) -> BTreeSet<Uuid> {
         let mut drawn = self.drawn(state);
         drawn.connections.retain(|c| c.routed);
         let m = measure(&drawn);
+        let lines = || {
+            let fixed = self.fixed_lines.iter().map(|l| (None, *l));
+            fixed.chain(state.routes.iter().map(|(id, (r, _))| (Some(*id), r.as_slice())))
+        };
+        let meeting = state
+            .routes
+            .iter()
+            .filter(|(id, (r, _))| lines().any(|(other, l)| other != Some(**id) && corners_meet(r, l)))
+            .map(|(id, _)| *id);
         m.touches
             .iter()
             .map(|t| t.connection)
             .chain(m.overlaps.iter().flat_map(|o| o.connections))
             .chain(m.through_bodies.iter().map(|t| t.connection))
             .filter(|id| state.routes.contains_key(id))
+            .chain(meeting)
             .collect()
     }
 
@@ -967,10 +1007,7 @@ pub fn route_page(page: &PageGeometry, jobs: &[Uuid]) -> RoutePlan {
         .filter(|c| c.routed && !jobs.contains(&c.id))
         .collect();
     fixed_conns.sort_by_key(|c| c.id);
-    let fixed: Vec<[Point; 2]> = fixed_conns
-        .iter()
-        .flat_map(|c| runs(&c.polyline))
-        .collect();
+    let fixed: Vec<[Point; 2]> = fixed_conns.iter().flat_map(|c| runs(&c.polyline)).collect();
     let fixed_lines: Vec<&[Point]> = fixed_conns.iter().map(|c| c.polyline.as_slice()).collect();
     // §5.3: class, span (falling, or rising with `short_first`), mates together, ties by the ends' points and the ID.
     let supply = |id: &Uuid| {
@@ -1193,10 +1230,7 @@ fn keeps_all_but_texts(page: &PageGeometry, id: Uuid, route: &[Point]) -> bool {
 fn routed_wires(page: &PageGeometry) -> Vec<[Point; 2]> {
     let mut lines: Vec<&super::DrawnConnection> = page.connections.iter().filter(|c| c.routed).collect();
     lines.sort_by_key(|c| c.id);
-    lines
-        .iter()
-        .flat_map(|c| runs(&c.polyline))
-        .collect()
+    lines.iter().flat_map(|c| runs(&c.polyline)).collect()
 }
 
 /// Whether `points` is a route [`route_one`] could take from `from` to `to` on `page` (`search::clear` on its
