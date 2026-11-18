@@ -69,6 +69,14 @@ answers is deleted with a line in its report.
 - FT-1776 `xtask`: The linter as the test build's wrapper, so that one compile serves the lint and the tests.
 - FT-1777 `ew-viewmodel`: Split the view-model crate: it sets the edit cycle (10 to 15 seconds of its compile on every change to it).
 
+## M4
+
+Asked for by the owner at his test of 0.3.0's fourth candidate, for the next milestone. Each starts with a design
+from the user's side (who changes it, when, what he sees while he does it) before anything is built.
+
+- FT-1814 `ew-api, ew-viewmodel, ew-ui, ew-scene`: The title block cannot be changed in the window: its layout, extra fields of the person's own, and pages that have their own title block (a cover page, a divider). Design first: an editor for a title block that a person who has never seen a form editor can use, what a template carries of it, and how a running project takes a changed one.
+- FT-1815 `ew-api, ew-viewmodel, ew-ui, ew-scene`: The frame's rulers (the numbers along the top, the letters along the left) cannot be changed: how many columns and rows a page has, numbers or letters on either side, where counting starts. Design first, together with FT-1814: cross-references and the page's grid depend on the columns and rows.
+
 ## Later
 
 New development and polish for M3 and after, not scheduled: [backlog-later.md](backlog-later.md).
