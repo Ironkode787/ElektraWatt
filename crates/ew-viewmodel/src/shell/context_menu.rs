@@ -557,6 +557,9 @@ impl ShellModel {
         match (kind, node.role, node.records.first().copied()) {
             (NavKind::Devices, NavRole::Device, Some(device))
             | (NavKind::Plc | NavKind::PlcGrid, NavRole::Station | NavRole::Module, Some(device)) => {
+                if kind != NavKind::Devices {
+                    self.place_here_entry(device, &mut out);
+                }
                 self.go_to(kind, Some(node), &mut out);
                 self.device_entries(&self.row_device(device, node), &mut out);
                 out.extend(self.menu_item("props.focus"));
@@ -594,6 +597,10 @@ impl ShellModel {
                 self.config_entries(cfg, &mut out);
             }
             (NavKind::Plc | NavKind::PlcGrid, NavRole::Channel, channel) => {
+                // A channel's card, not drawn yet.
+                if let Some(card) = node.records.get(1) {
+                    self.place_here_entry(*card, &mut out);
+                }
                 self.go_to(kind, Some(node), &mut out);
                 out.extend(self.menu_item("props.focus"));
                 if let Some(channel) = channel {
@@ -738,6 +745,26 @@ impl ShellModel {
             let params = json!({ "cmd": name, "params": scope });
             out.extend(self.aimed("plc.preview", params, label));
         }
+    }
+
+    /// Place here on a PLC part a side of which no page draws yet (rc.5, H13): first in its row's menu, greyed with the
+    /// page to open while the page on show takes no side of it; none for a part drawn on every page it belongs on.
+    fn place_here_entry(&self, device: Uuid, out: &mut Vec<ActionItem>) {
+        let Some(fits) = self.place_here(device) else {
+            return;
+        };
+        let label = strings::text(key!("action-plc-module-place")).to_owned();
+        let params = json!({ "device": device.to_string() });
+        // The row's part, not the one under a station view's cursor, decides.
+        let state = match fits {
+            Ok(_) if !self.is_writable() => Err(key!("reason-read-only")),
+            other => other.map(|_| ()),
+        };
+        out.extend(self.aimed("plc.module_place", params, label).map(|mut i| {
+            i.enabled = state.is_ok();
+            i.reason = state.err().map(|k| strings::text(k).to_owned());
+            i
+        }));
     }
 
     /// A waiting card's own entries: Attach to `<station>` for each station that takes cards, so that a card listed

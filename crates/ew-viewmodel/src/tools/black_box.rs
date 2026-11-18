@@ -93,6 +93,18 @@ pub enum BoxTarget {
         /// Whether the box is the device's main function.
         main: bool,
     },
+    /// A station or one of its modules drawn on an electrical page by its box (`plc.draw_station` of the one box,
+    /// rc.5): Place here on a PLC part that no electrical page draws, made with or without functions.
+    Station {
+        /// The station's ID text.
+        station: String,
+        /// The device's ID text: the station or a module of it.
+        device: String,
+        /// What the label names: the device's tag.
+        label: String,
+        /// The CPs of its part's black-box entry: (function CP index, designation).
+        cps: Vec<(u16, String)>,
+    },
     /// The interfaces of a device on a bus-topology page, a box each (`bus.place_ports`, doc 10 §2.7).
     Ports {
         /// The command's `target`: `{"device": {"device": id}}` or `{"from_part": {"part": id, "letter": l}}`.
@@ -467,7 +479,9 @@ impl BlackBoxTool {
 
     fn cps(&self) -> &[(u16, String)] {
         match &self.target {
-            BoxTarget::Part { cps, .. } | BoxTarget::Function { cps, .. } => cps,
+            BoxTarget::Part { cps, .. }
+            | BoxTarget::Function { cps, .. }
+            | BoxTarget::Station { cps, .. } => cps,
             BoxTarget::Ports { interfaces, .. } => interfaces.first().map_or(&[], |i| i.sockets.as_slice()),
             BoxTarget::NewDevice { .. } | BoxTarget::Device { .. } => &[],
         }
@@ -480,6 +494,7 @@ impl BlackBoxTool {
             BoxTarget::NewDevice { .. }
             | BoxTarget::Ports { .. }
             | BoxTarget::Function { .. }
+            | BoxTarget::Station { .. }
             | BoxTarget::Device { .. } => &[],
         }
     }
@@ -489,7 +504,7 @@ impl BlackBoxTool {
         match &self.target {
             BoxTarget::NewDevice { letter } => crate::strings::format(key!("place-target-new"), &[letter]),
             BoxTarget::Part { number, .. } => crate::strings::format(key!("place-target-part"), &[number]),
-            BoxTarget::Ports { label, .. } => label.clone(),
+            BoxTarget::Ports { label, .. } | BoxTarget::Station { label, .. } => label.clone(),
             BoxTarget::Function { .. } | BoxTarget::Device { .. } => {
                 crate::strings::text(key!("place-target-function")).to_owned()
             }
@@ -567,6 +582,7 @@ impl BlackBoxTool {
                 json!({"join_device": {"device": device, "role": role}})
             }
             BoxTarget::Ports { .. } => return None,
+            BoxTarget::Station { .. } => Value::Null,
         };
         let mut b = json!({
             "outline": outline.iter().map(|p| vec![p.0, p.1]).collect::<Vec<_>>(),
@@ -576,6 +592,22 @@ impl BlackBoxTool {
         }
         if !cps.is_empty() {
             b["cps"] = Value::Array(cps.iter().map(|(i, p, d)| cp_json(*i, *p, *d)).collect());
+        }
+        // A station's device: the station draws it, with or without its functions made yet.
+        if let BoxTarget::Station { station, device, .. } = &self.target {
+            let mut params = json!({
+                "station": station,
+                "page": cx.page.tables.page.to_string(),
+                "symbol": self.symbol,
+                "boxes": [{ "device": device, "pos": [pos.0, pos.1], "box": b }],
+            });
+            if !self.copies.is_empty() {
+                params["copies"] = Value::Array(self.copies.clone());
+            }
+            return Some(Box::new(AnyCommand {
+                name: "plc.draw_station".into(),
+                params,
+            }));
         }
         let mut params = json!({
             "page": cx.page.tables.page.to_string(),

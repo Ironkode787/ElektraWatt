@@ -6582,6 +6582,12 @@ rack-rename-station = Kenmerk { $p0 }: klik om het te wijzigen
 rack-rename-module = Het kenmerk van { $p0 } wijzigen
 rack-rename-tip = Klik om het kenmerk te wijzigen (F2)
 rack-rename-field = Kenmerk van { $p0 }
+# rc.5 (H13): Hier plaatsen op een PLC-onderdeel waarvan een kant nog op geen pagina staat.
+reason-place-electrical = Open een elektrische pagina: daar wordt het kader geplaatst
+reason-place-bus = Open een buspagina: daar worden de buspoorten geplaatst
+reason-place-fluid = Open een fluïdumpagina: daar worden de ventielen op hun posities geplaatst
+reason-place-drawn = Het staat al op elke pagina waar het hoort
+reason-place-no-box = Het artikel heeft geen kader om te tekenen: geef het zijn aansluitingen in de artikeleditor
 rack-rename-taken = { $p0 } is al het kenmerk van een ander apparaat: typ een ander kenmerk, of Escape om dit te houden.
 rack-rename-apply = { $p0 } wijzigt meer kenmerken dan dit: Toepassen in Eigenschappen voert de wijziging uit, Annuleren laat haar.
 valve-terminal-title = Ventieleiland
@@ -7054,12 +7060,14 @@ action-plc-module-replace = Module vervangen…
 action-plc-module-remove = Module verwijderen
 action-plc-module-draw = Module op een pagina tekenen…
 action-plc-module-goto = Naar de pagina van de module
+action-plc-module-place = Hier plaatsen
 action-plc-module-left = Module naar links
 action-plc-module-right = Module naar rechts
 bar-plc-module-replace = Vervangen
 bar-plc-module-remove = Verwijderen
 bar-plc-module-draw = Op pagina tekenen
 bar-plc-module-goto = Naar pagina
+bar-plc-module-place = Hier plaatsen
 bar-plc-module-left = Naar links
 bar-plc-module-right = Naar rechts
 # Dezelfde opdrachten op een ventielplaats van een ventieleiland (rechtsklik op een plaats): de woorden van het ventiel.

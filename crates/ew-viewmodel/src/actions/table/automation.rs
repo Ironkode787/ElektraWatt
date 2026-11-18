@@ -105,6 +105,23 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_plc_module(p, "draw"),
         )),
     ),
+    // Place here (rc.5, H13): the part's box, bus ports or positions on the pointer on the page the view stands on; a
+    // PLC navigator's row names its part.
+    with_params(
+        "device?:ref",
+        hidden(with_aliases(
+            &[("device", ParamForm::Whole)],
+            act(
+                "plc.module_place",
+                Command,
+                Menu::Plc,
+                &[],
+                station_module_placeable,
+                None,
+                |s, p| s.act_plc_module_place(p),
+            ),
+        )),
+    ),
     hidden(act(
         "plc.module_goto",
         View,

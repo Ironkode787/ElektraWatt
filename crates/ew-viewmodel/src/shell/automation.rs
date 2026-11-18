@@ -1882,6 +1882,115 @@ impl ShellModel {
         }
     }
 
+    /// Place here on PLC part `device` (rc.5, H13): the side of it the page on show takes and no page of that kind
+    /// draws yet, `draw` (its box on an electrical page), `bus` (its bus ports on a bus page) or `fluid` (a valve
+    /// terminal's positions on a fluid page); else, for a side not drawn yet, why not in words: the page to open.
+    /// `None` when every side of it is drawn, or for a device that is no PLC station's.
+    pub fn place_here(&self, device: Uuid) -> Option<Result<&'static str, Key<'static>>> {
+        let session = self.project_session()?;
+        let station = session.plc_station_of(device)?;
+        let electrical = session.off_electrical_pages(station).contains(&device);
+        let bus = device == station
+            && session.has_bus_interfaces(station)
+            && !self
+                .bus_pages()
+                .iter()
+                .any(|(folio, _)| session.undrawn_interfaces(station, folio).is_empty());
+        let fluid = device == station
+            && session
+                .undrawn_fluid_terminals()
+                .iter()
+                .any(|(t, _)| *t == station);
+        let kind = self.page_rows().get(self.page_index()).map(|r| r.kind.as_str());
+        Some(match kind {
+            Some("multi_line" | "single_line") if electrical => Ok("draw"),
+            Some("bus_topology") if bus => Ok("bus"),
+            Some("fluid") if fluid => Ok("fluid"),
+            _ if electrical => Err(key!("reason-place-electrical")),
+            _ if bus => Err(key!("reason-place-bus")),
+            _ if fluid => Err(key!("reason-place-fluid")),
+            _ => return None,
+        })
+    }
+
+    /// `plc.module_place {device?}` (rc.5, H13): Place here on a PLC part (`device`; absent, the device under the
+    /// station view's cursor) that the page on show takes ([`ShellModel::place_here`]): its box on the pointer on an
+    /// electrical page, as after choosing it in the device browser; its bus ports on a bus page; a valve terminal's
+    /// positions on a fluid page. From the station view the page the view stands on is shown first. Refused in words
+    /// where that page does not take it.
+    pub(crate) fn act_plc_module_place(&mut self, p: &Map<String, Value>) -> Outcome {
+        let device = match p.get("device") {
+            Some(_) => or_return!(self.record_param(p, "device")),
+            None => match self.station_device() {
+                Some(device) => device,
+                None => return Outcome::refused(key!("reason-rack-no-module")),
+            },
+        };
+        let step = match self.place_here(device) {
+            Some(Ok(step)) => step,
+            Some(Err(reason)) => return Outcome::refused(reason),
+            None => return Outcome::refused(key!("reason-place-drawn")),
+        };
+        if self.station_tab().is_some() {
+            let folio = self.current_folio().unwrap_or_default().to_owned();
+            let shown = self.dispatch("page.goto", &json!({ "folio": folio }));
+            if shown != Outcome::Done {
+                return shown;
+            }
+        }
+        match step {
+            "bus" => self.put_station_here(device),
+            "fluid" => self.act_fluid_draw_terminal(&Map::from_iter([(
+                "terminal".to_owned(),
+                Value::String(device.to_string()),
+            )])),
+            _ => self.arm_station_box(device),
+        }
+    }
+
+    /// The box of PLC part `device` on the pointer on the electrical page shown, as its part's black-box entry lays
+    /// its pins (the station view's Draw on a page… lays it out the same way); one click draws it with
+    /// `plc.draw_station`, which makes its functions when it has none.
+    fn arm_station_box(&mut self, device: Uuid) -> Outcome {
+        let page = self.page_rows().get(self.page_index()).map(|r| r.id);
+        let Some(session) = self.project_session() else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let (Some(station), Some(part), Some(page)) =
+            (session.plc_station_of(device), session.device_part(device), page)
+        else {
+            return Outcome::refused(key!("reason-place-no-box"));
+        };
+        let label = session.device_tag(device).unwrap_or_default();
+        let Some(params) = session.station_draw_params(station, page) else {
+            return Outcome::refused(key!("reason-rack-no-frame"));
+        };
+        let Some(cat) = self.catalogue() else {
+            return Outcome::refused(key!("reason-no-catalogue"));
+        };
+        let cps = cat
+            .parts
+            .iter()
+            .find(|r| r.copy == part)
+            .and_then(|r| r.functions.iter().find(|f| f.black_box))
+            .map(|f| f.cps.clone());
+        let (Some(cps), Some(symbol)) = (cps, params["symbol"].as_str()) else {
+            return Outcome::refused(key!("reason-place-no-box"));
+        };
+        let copies = params["copies"].as_array().cloned().unwrap_or_default();
+        let target = crate::tools::black_box::BoxTarget::Station {
+            station: station.to_string(),
+            device: device.to_string(),
+            label,
+            cps,
+        };
+        self.tools.picker = None;
+        self.activate_tool(Box::new(
+            crate::tools::black_box::BlackBoxTool::new(symbol.to_owned(), target).with_copies(copies),
+        ));
+        Outcome::Done
+    }
+
     /// `plc.rack_rename {device?, text?, cancel?}` (rc.5, H14): a tag of the station on show changed in place, as the
     /// Tag row of Properties changes it: the station's in the view's header, a card's in its row (`device`; absent,
     /// the device under the cursor, else the station). Without `text` the field opens on the tag; with `text` the typed

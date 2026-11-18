@@ -6846,6 +6846,12 @@ rack-rename-station = Tag { $p0 }: click to change it
 rack-rename-module = Change the tag of { $p0 }
 rack-rename-tip = Click to change the tag (F2)
 rack-rename-field = Tag of { $p0 }
+# rc.5 (H13): Place here on a PLC part a side of which no page draws yet.
+reason-place-electrical = Open an electrical page: its box is placed there
+reason-place-bus = Open a bus page: its bus ports are placed there
+reason-place-fluid = Open a fluid page: its valves are placed there on their positions
+reason-place-drawn = It stands on every page it belongs on already
+reason-place-no-box = Its part has no box to draw: give it its pins in the part editor
 rack-rename-taken = { $p0 } is the tag of another device already: type another tag, or Escape to keep this one.
 rack-rename-apply = { $p0 } changes more tags than this one: Apply in Properties takes the change, Cancel leaves it.
 valve-terminal-title = Valve terminal
@@ -7318,12 +7324,14 @@ action-plc-module-replace = Replace module…
 action-plc-module-remove = Remove module
 action-plc-module-draw = Draw module on a page…
 action-plc-module-goto = Go to the module's page
+action-plc-module-place = Place here
 action-plc-module-left = Move module left
 action-plc-module-right = Move module right
 bar-plc-module-replace = Replace
 bar-plc-module-remove = Remove
 bar-plc-module-draw = Draw on page
 bar-plc-module-goto = Go to page
+bar-plc-module-place = Place here
 bar-plc-module-left = Move left
 bar-plc-module-right = Move right
 # The same commands on a valve position of a valve terminal (a right click on a position): the valve's words.

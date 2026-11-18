@@ -386,6 +386,21 @@ fn station_module_undrawn(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
+/// The project can be written and, in a station's view, the page the view stands on takes the device under its
+/// cursor (Place here, rc.5); a navigator's row names its device and says the same itself.
+fn station_module_placeable(m: &ShellModel) -> Result<(), Key<'static>> {
+    writable(m)?;
+    if m.station_tab().is_none() {
+        return Ok(());
+    }
+    let device = m.station_device().ok_or(key!("reason-rack-no-module"))?;
+    match m.place_here(device) {
+        Some(Ok(_)) => Ok(()),
+        Some(Err(reason)) => Err(reason),
+        None => Err(key!("reason-place-drawn")),
+    }
+}
+
 /// Whether the cursor of a station's view stands on a valve terminal's position.
 fn on_valve_position(m: &ShellModel) -> bool {
     m.station_tab()
@@ -872,6 +887,10 @@ pub fn enabled_with(
     }
     // A terminal's menu or Properties row names its terminal.
     if meta.id == "fluid.draw_plug" && p.contains_key("terminal") {
+        return writable(m);
+    }
+    // A PLC navigator's row names its part, which the action words its refusal for.
+    if meta.id == "plc.module_place" && p.contains_key("device") {
         return writable(m);
     }
     (meta.enabled)(m)

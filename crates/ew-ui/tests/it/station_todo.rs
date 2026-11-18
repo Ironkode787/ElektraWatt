@@ -173,3 +173,87 @@ fn every_station_kinds_todo_runs_to_its_end() {
     run_todo(&mut d, device, &mut placed);
     d.shell_mut().shutdown();
 }
+
+/// The PLC panel's row of PLC part `device` (its station's or its card's), as its right-click reads it.
+fn plc_row(d: &mut Driver, device: Uuid) -> ew_ui::ew_viewmodel::ew_api::output::NavNode {
+    use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
+    let _ = d.shell_mut().dispatch("rail.show", &json!({"pane": "plc"}));
+    d.settle();
+    let _ = d.shell_mut().shown_rows(NavKind::Plc);
+    d.shell_mut()
+        .nav(NavKind::Plc)
+        .and_then(|n| n.table())
+        .and_then(|t| {
+            t.nodes
+                .iter()
+                .find(|n| {
+                    matches!(n.role, NavRole::Station | NavRole::Module) && n.records.first() == Some(&device)
+                })
+                .cloned()
+        })
+        .expect("the part's row")
+}
+
+/// The Place here entry of `device`'s row in the PLC panel.
+fn place_here(d: &mut Driver, device: Uuid) -> ew_ui::ew_viewmodel::actions::ActionItem {
+    let node = plc_row(d, device);
+    let menu = ew_ui::ew_viewmodel::command_bar::navigator_row_menu(
+        d.shell_mut(),
+        ew_ui::ew_viewmodel::navigators::NavKind::Plc,
+        &node,
+    );
+    menu.into_iter()
+        .find(|i| i.label == "Place here")
+        .unwrap_or_else(|| panic!("Place here on {}", node.label))
+}
+
+/// H13 of the rc.4 test: a PLC part that no page draws yet offers Place here on its row in the PLC panel. On a bus
+/// page a card's entry is greyed with the page to open; on an electrical page the station's box hangs on the pointer
+/// as after choosing it in the device browser, and two corners draw it there. The same entry stands in the station
+/// view's menu of a card.
+#[test]
+fn place_here_puts_an_unplaced_plc_part_on_the_pointer() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    let page = json!({"folio": "101", "type": "multi_line", "title": "Control"});
+    assert_eq!(d.shell_mut().dispatch("page.new", &page), Outcome::Done);
+    let bus = json!({"folio": "300", "type": "bus_topology", "title": "Bus"});
+    assert_eq!(d.shell_mut().dispatch("page.new", &bus), Outcome::Done);
+    let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "300"}));
+    let cpu = station(&mut d, "cpu", "EW-GEN-CPU-2", &["EW-GEN-DI-1"]);
+    let card = d.shell_mut().rack_view(cpu).expect("the rack").rows[0]
+        .module
+        .expect("the card");
+    let _ = d.shell_mut().dispatch("ui.dismiss", &json!({}));
+    d.settle();
+    let greyed = place_here(&mut d, card);
+    assert!(!greyed.enabled, "a bus page takes no card's box");
+    assert_eq!(
+        greyed.reason.as_deref(),
+        Some("Open an electrical page: its box is placed there")
+    );
+    let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "101"}));
+    d.settle();
+    let place = place_here(&mut d, cpu);
+    assert!(place.enabled, "{:?}", place.reason);
+    assert_eq!(d.shell_mut().dispatch(place.id, &place.params), Outcome::Done);
+    assert_eq!(d.shell_mut().tool().name(), "black_box", "its box on the pointer");
+    click_at(&mut d, (700, 400));
+    click_at(&mut d, (820, 500));
+    d.input(&key("escape"));
+    d.settle();
+    let head = d.shell_mut().rack_view(cpu).expect("the rack").head;
+    assert_eq!(head.page.as_deref(), Some("101"), "drawn on the page shown");
+    // The card's menu in the station view offers it too.
+    let rack = json!({"station": cpu.to_string()});
+    assert_eq!(d.shell_mut().dispatch("plc.rack_editor", &rack), Outcome::Done);
+    let select = json!({"card": card.to_string()});
+    assert_eq!(d.shell_mut().dispatch("plc.rack_select", &select), Outcome::Done);
+    let tools = ew_ui::ew_viewmodel::actions::station_tools(d.shell_mut());
+    let entry = tools.iter().find_map(|(_, e)| match e {
+        ew_ui::ew_viewmodel::actions::MenuEntry::Item(i) if i.id == "plc.module_place" => Some(i.label.clone()),
+        _ => None,
+    });
+    assert_eq!(entry.as_deref(), Some("Place here"));
+    d.shell_mut().shutdown();
+}
