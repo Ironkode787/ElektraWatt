@@ -810,6 +810,7 @@ rule-ew-pot-002 = { $form ->
         }. A SELV circuit is never earthed: take the bond away, or make the circuit PELV.
        *[pelv] { $potential } is a PELV circuit{ $bonds ->
             [none] , but its 0 V is not bonded to protective earth. Draw one wire from the 0 V to an earth point.
+            [joined] , but its 0 V is joined to protective earth without a bond. Select the wire to earth and choose Draw ▸ Connect ▸ Bond.
            *[some] {" "}whose 0 V is bonded to protective earth in { $count } places; a PELV circuit is earthed at one point only. Keep one bond to earth and take the others away.
         }
     }

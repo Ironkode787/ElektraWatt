@@ -4357,8 +4357,8 @@ fn d19(c: &Ctx) -> Outcome {
 }
 
 /// D-21, the MVP part: rail-bonded terminals join the location's PE node; clearing `rail_bonded` on the -X1032
-/// terminals cuts their PE off, so +J-E-2416 holds two PE potentials and EW-POT-008 warns once (the continuity
-/// through carriers, EW-POT-007, is 1.0).
+/// terminals cuts their PE off, so +J-E-2416 holds a PE potential that reaches neither the incoming PE nor an earth
+/// symbol, and EW-POT-008 warns once, naming it (the continuity through carriers, EW-POT-007, is 1.0).
 fn d21(c: &Ctx) -> Outcome {
     let before = golden_rows(c, "EW-POT-008");
     if !before.is_empty() {
@@ -4381,9 +4381,9 @@ fn d21(c: &Ctx) -> Outcome {
     });
     let islands = open_findings(&s, "EW-POT-008");
     match islands.as_slice() {
-        [f] if f.subject == "+J-E-2416"
-            && f.message
-                .starts_with("+J-E-2416 has 2 protective-earth networks that do not meet: ") =>
+        [f] if f
+            .message
+            .contains(" reaches neither the incoming PE nor an earth symbol of +J-E-2416.") =>
         {
             pass(format!(
                 "Golden A is clean (1X1:PE and -X1032 share one PE potential); clearing rail_bonded on -X1032 makes EW-POT-008 report one warning: \"{}\"",

@@ -972,7 +972,10 @@ impl Rule for PelvSelvBonding {
             return Vec::new();
         };
         let pt = potential_targets(q, p);
+        // A 0 V joined to PE without a bond (one potential with a PE definition or pin) is told to declare it.
+        let joined = declared(&|d| d.ptype == Some(PotentialType::Pe)) || zero_volt_meets_pe(q, p);
         let count = match bonds.len() {
+            0 if joined => "joined",
             0 => "none",
             1 => "one",
             _ => "some",

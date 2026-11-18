@@ -484,7 +484,8 @@ fn golden_a_d38_a_2_5_mm2_pe_clears_pot006() {
 }
 
 /// D-21, MVP part (P2-2): clearing `rail_bonded` on the -X1032 terminals cuts their PE off the location's rail, so
-/// +J-E-2416 holds two PE potentials: one EW-POT-008 warning naming both.
+/// +J-E-2416 holds a PE potential that reaches neither the incoming PE nor an earth symbol: one EW-POT-008 warning
+/// naming it by a pin and its page.
 #[test]
 fn golden_a_d21_unbonded_x1032_is_one_pe_island() {
     let batch = golden_common::batch();
@@ -507,13 +508,10 @@ fn golden_a_d21_unbonded_x1032_is_one_pe_island() {
         .filter(|f| f.rule == "EW-POT-008")
         .collect();
     assert_eq!(islands.len(), 1, "{islands:#?}");
-    assert_eq!(islands[0].subject, "+J-E-2416");
-    assert!(
-        islands[0]
-            .message
-            .starts_with("+J-E-2416 has 2 protective-earth networks that do not meet: "),
-        "{}",
-        islands[0].message
+    assert_eq!(
+        islands[0].message,
+        "The protective earth at -102G1:PE on page 102 reaches neither the incoming PE nor an earth symbol of \
+         +J-E-2416. Wire it to the PE rail or to an earth symbol, or put its PE terminal on a bonded rail."
     );
 }
 
