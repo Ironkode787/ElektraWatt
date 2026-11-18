@@ -45,12 +45,18 @@ fn run_todo(d: &mut Driver, station: Uuid, placed: &mut i64) {
         d.input(&Input::Hover { at: (1000, 600) });
         d.settle();
         let todo = d.shell_mut().station_todo();
-        let Some(item) = todo.iter().find(|t| matches!(t.fix, Some(TodoFix::OnPage { .. }))) else {
+        let Some(item) = todo
+            .iter()
+            .find(|t| matches!(t.fix, Some(TodoFix::OnPage { .. })))
+        else {
             return;
         };
         assert_ne!(last.as_ref(), Some(&item.text), "the step before left its line");
         last = Some(item.text.clone());
-        let Some(TodoFix::OnPage { label, folio, pages, .. }) = &item.fix else {
+        let Some(TodoFix::OnPage {
+            label, folio, pages, ..
+        }) = &item.fix
+        else {
             unreachable!()
         };
         let button = d
@@ -59,16 +65,17 @@ fn run_todo(d: &mut Driver, station: Uuid, placed: &mut i64) {
         d.input(&click(button));
         d.settle();
         if folio.is_none() {
-            let choice = pages
-                .first()
-                .map_or_else(|| "New page…".to_owned(), |(f, t)| format!("{f} {t}").trim().to_owned());
+            let choice = pages.first().map_or_else(
+                || "New page…".to_owned(),
+                |(f, t)| format!("{f} {t}").trim().to_owned(),
+            );
             // The list lies over the window: its entry is the last widget of that name (a page's row has it too).
             let at = d
                 .labels()
                 .into_iter()
-                .filter(|(l, _)| *l == choice)
+                .rev()
+                .find(|(l, _)| *l == choice)
                 .map(|(_, at)| at)
-                .last()
                 .unwrap_or_else(|| panic!("{choice} in the list of {label}"));
             d.input(&click(at));
             d.settle();
@@ -101,7 +108,10 @@ fn station(d: &mut Driver, kind: &str, head: &str, parts: &[&str]) -> Uuid {
     let _ = d.shell_mut().dispatch("plc.new_station", &json!({"kind": kind}));
     let set = json!({"head": head});
     assert_eq!(d.shell_mut().dispatch("plc.rack_set", &set), Outcome::Done);
-    assert_eq!(d.shell_mut().dispatch("plc.rack_create", &json!({})), Outcome::Done);
+    assert_eq!(
+        d.shell_mut().dispatch("plc.rack_create", &json!({})),
+        Outcome::Done
+    );
     for part in parts {
         let add = json!({"part": part});
         assert_eq!(d.shell_mut().dispatch("plc.rack_add", &add), Outcome::Done);
@@ -135,7 +145,12 @@ fn every_station_kinds_todo_runs_to_its_end() {
     let fluid = json!({"folio": "201", "type": "fluid", "title": "Pneumatics"});
     assert_eq!(d.shell_mut().dispatch("page.new", &fluid), Outcome::Done);
     let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "101"}));
-    let dp = station(&mut d, "valve_terminal", "EW-GEN-VTM-1", &["EW-GEN-VLV-3", "EW-GEN-VLV-3"]);
+    let dp = station(
+        &mut d,
+        "valve_terminal",
+        "EW-GEN-VTM-1",
+        &["EW-GEN-VLV-3", "EW-GEN-VLV-3"],
+    );
     run_todo(&mut d, dp, &mut placed);
     let view = d.shell_mut().rack_view(dp).expect("the terminal");
     let pages: Vec<Option<String>> = view.cells.iter().map(|c| c.at.page.clone()).collect();
@@ -150,8 +165,14 @@ fn every_station_kinds_todo_runs_to_its_end() {
     let pn = station(&mut d, "valve_terminal", "EW-GEN-VTM-2", &["EW-GEN-VLV-3"]);
     d.input(&Input::Hover { at: (1000, 600) });
     d.settle();
-    assert!(d.find("Draw on an electrical page…").is_some(), "{:?}", sides(&mut d));
-    d.input(&click(d.find("Draw on page 201").expect("the pneumatic side's button")));
+    assert!(
+        d.find("Draw on an electrical page…").is_some(),
+        "{:?}",
+        sides(&mut d)
+    );
+    d.input(&click(
+        d.find("Draw on page 201").expect("the pneumatic side's button"),
+    ));
     d.settle();
     click_at(&mut d, (650, 900));
     d.input(&key("escape"));
@@ -161,12 +182,16 @@ fn every_station_kinds_todo_runs_to_its_end() {
     run_todo(&mut d, pn, &mut placed);
     // A bus device of one's own, drawn on the electrical page and given to a PLC from a new station's view.
     let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "101"}));
-    let _ = d.shell_mut().dispatch("tool.black_box", &json!({"part": "EW-GEN-PND-1", "template": 0}));
+    let _ = d
+        .shell_mut()
+        .dispatch("tool.black_box", &json!({"part": "EW-GEN-PND-1", "template": 0}));
     click_at(&mut d, (900, 800));
     click_at(&mut d, (1000, 900));
     d.input(&key("escape"));
     d.settle();
-    let _ = d.shell_mut().dispatch("plc.new_station", &json!({"kind": "remote"}));
+    let _ = d
+        .shell_mut()
+        .dispatch("plc.new_station", &json!({"kind": "remote"}));
     let (device, _) = d.shell_mut().station_candidates()[0].clone();
     let add = json!({"device": device.to_string()});
     assert_eq!(d.shell_mut().dispatch("plc.add_to_plc", &add), Outcome::Done);
@@ -251,7 +276,9 @@ fn place_here_puts_an_unplaced_plc_part_on_the_pointer() {
     assert_eq!(d.shell_mut().dispatch("plc.rack_select", &select), Outcome::Done);
     let tools = ew_ui::ew_viewmodel::actions::station_tools(d.shell_mut());
     let entry = tools.iter().find_map(|(_, e)| match e {
-        ew_ui::ew_viewmodel::actions::MenuEntry::Item(i) if i.id == "plc.module_place" => Some(i.label.clone()),
+        ew_ui::ew_viewmodel::actions::MenuEntry::Item(i) if i.id == "plc.module_place" => {
+            Some(i.label.clone())
+        }
         _ => None,
     });
     assert_eq!(entry.as_deref(), Some("Place here"));

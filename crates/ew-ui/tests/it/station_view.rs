@@ -485,7 +485,11 @@ fn the_pointer_over_the_view_derives_nothing() {
     settle(&mut h);
     let before = made(&h);
     hover(&mut h);
-    assert_eq!(made(&h), before, "a made station's view, made again by the pointer");
+    assert_eq!(
+        made(&h),
+        before,
+        "a made station's view, made again by the pointer"
+    );
     let first = format!("Slot 1, {}", modules(&h, id)[0].tag);
     click(&mut h, &first);
     assert!(made(&h) > before, "a click that moves the cursor makes it again");

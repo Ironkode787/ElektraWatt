@@ -95,12 +95,15 @@ pub(crate) struct EditorView {
     /// The outline as made for the draft's generation and revision, the language and the discipline: a frame or a
     /// pointer move draws it, a change of the draft makes it again (rc.5, H11).
     outline: Option<(
-        (u64, u64, u64, &'static str),
+        OutlineKey,
         std::rc::Rc<ew_viewmodel::shell::symbol_editor::Outline>,
     )>,
     /// The start card's list on show under its filter ([`start_rows`]).
     start_rows: Option<(StartKey, std::rc::Rc<StartRows>)>,
 }
+
+/// What the outline is made for: the draft's generation and revision, the language and the discipline.
+type OutlineKey = (u64, u64, u64, &'static str);
 
 /// What a start card's list is made for: the list (`copy`, `box`), the editor's generation, the list's length and
 /// the filter typed; with the language.

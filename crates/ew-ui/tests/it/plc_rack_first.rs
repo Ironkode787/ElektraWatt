@@ -1166,9 +1166,9 @@ fn a_new_stations_tag_says_where_its_number_comes_from() {
         h.input_mut().time = Some(start + f64::from(i) * 0.05);
         h.step();
         tip |= h.get_all_by_role(egui::Role::Label).any(|n| {
-            n.accesskit_node()
-                .value()
-                .is_some_and(|v| v.contains("gets its number when it is drawn on a page: its line under To do draws it"))
+            n.accesskit_node().value().is_some_and(|v| {
+                v.contains("gets its number when it is drawn on a page: its line under To do draws it")
+            })
         });
     }
     assert!(tip, "the hover says where the number comes from");

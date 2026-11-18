@@ -150,7 +150,10 @@ pub struct NewProjectDialog {
 /// (rc.5, H11: a frame read a folder four times). Not part of the dialog's state: a copy starts empty, and two dialogs
 /// are equal whatever each read.
 #[derive(Default, Debug)]
-struct Checked(std::cell::RefCell<Option<(CheckKey, Option<String>, Option<String>)>>);
+struct Checked(std::cell::RefCell<Option<CheckFound>>);
+
+/// What [`Checked`] found for its fields: the fields, why Create waits, what it does besides.
+type CheckFound = (CheckKey, Option<String>, Option<String>);
 
 /// The fields [`Checked`] read for: the name, the folder, the chosen line and the folder it starts from.
 type CheckKey = (String, String, usize, Option<PathBuf>);
