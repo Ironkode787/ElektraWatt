@@ -477,6 +477,20 @@ impl BlackBoxTool {
         &self.target
     }
 
+    /// The records of the project the box names when it is put down (ID texts): the symbol copy unless the box
+    /// embeds it, and the function or device it draws. An undo or a redo that takes one away ends the tool (rc.5, H2).
+    pub fn records(&self) -> Vec<&str> {
+        let embedded = self.copies.iter().any(|c| c["id"].as_str() == Some(&self.symbol));
+        let mut out: Vec<&str> = (!embedded).then_some(self.symbol.as_str()).into_iter().collect();
+        match &self.target {
+            BoxTarget::Function { function, .. } => out.push(function),
+            BoxTarget::Device { device, .. } => out.push(device),
+            BoxTarget::Station { station, device, .. } => out.extend([station.as_str(), device.as_str()]),
+            BoxTarget::NewDevice { .. } | BoxTarget::Part { .. } | BoxTarget::Ports { .. } => {}
+        }
+        out
+    }
+
     fn cps(&self) -> &[(u16, String)] {
         match &self.target {
             BoxTarget::Part { cps, .. }

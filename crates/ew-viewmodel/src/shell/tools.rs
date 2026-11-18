@@ -392,9 +392,26 @@ impl ShellModel {
         self.end_editing_tool();
     }
 
-    /// Escapes the busy gesture of the active tool and ends an editing tool ([`ShellModel::end_editing_tool`]): an
-    /// undo or a redo does it.
-    pub(super) fn escape_editing_tool(&mut self) {
+    /// After an undo or a redo: a black box armed before it whose records ([`crate::tools::black_box::BlackBoxTool::records`]) the step took
+    /// out of the project is escaped and ended, so that it is armed again from the project as it is (rc.5, H2: put
+    /// down, it named a symbol copy the Undo had taken). A tool whose records are all there stays armed.
+    pub(super) fn end_tool_without_records(&mut self) {
+        let records: Vec<String> = self
+            .tools
+            .tool
+            .as_any_mut()
+            .and_then(|a| a.downcast_mut::<crate::tools::black_box::BlackBoxTool>())
+            .map(|t| t.records().into_iter().map(str::to_owned).collect())
+            .unwrap_or_default();
+        let gone = self.project_session().is_some_and(|s| {
+            records
+                .iter()
+                .filter_map(|r| r.parse::<ew_api::output::Uuid>().ok())
+                .any(|id| !s.record_exists(id))
+        });
+        if !gone {
+            return;
+        }
         if let Some(out) = self.run_tool(&CanvasEvent::Escape) {
             let _ = self.apply_tool_output(out);
         }
