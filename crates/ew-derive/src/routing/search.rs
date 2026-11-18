@@ -699,15 +699,20 @@ fn prepare(req: &RouteRequest) -> Option<Prepared> {
                 .collect()
         };
         let (crossed, mates) = (segs(&req.wires), segs(&req.mates));
-        for j in lo.1..=hi.1 {
-            for i in lo.0..=hi.0 {
-                let Some(n) = space.node((i, j)) else { continue };
-                let (Some(x), Some(y)) = (space.coord(i), space.coord(j)) else {
-                    continue;
-                };
-                let (x1, y1) = (space.coord(i + 1), space.coord(j + 1));
-                for &(a, b) in &crossed {
-                    let (s0, s1) = ((a.0.min(b.0), a.1.min(b.1)), (a.0.max(b.0), a.1.max(b.1)));
+        // Only the nodes about a segment are looked at: those within `pad` indices of its extent, inside the bounds
+        // (a page of wires times a page of nodes is the search's largest cost otherwise).
+        let about = |v0: i64, v1: i64, pad: i64, min: i64, max: i64| {
+            (idx(v0).saturating_sub(pad)).max(min)..=(idx(v1).saturating_add(pad)).min(max)
+        };
+        for &(a, b) in &crossed {
+            let (s0, s1) = ((a.0.min(b.0), a.1.min(b.1)), (a.0.max(b.0), a.1.max(b.1)));
+            for j in about(s0.1, s1.1, 1, lo.1, hi.1) {
+                for i in about(s0.0, s1.0, 1, lo.0, hi.0) {
+                    let Some(n) = space.node((i, j)) else { continue };
+                    let (Some(x), Some(y)) = (space.coord(i), space.coord(j)) else {
+                        continue;
+                    };
+                    let (x1, y1) = (space.coord(i + 1), space.coord(j + 1));
                     // A vertical wire crossed by the move right.
                     if a.0 == b.0
                         && i < hi.0
@@ -727,8 +732,17 @@ fn prepare(req: &RouteRequest) -> Option<Prepared> {
                         space.cross_down[n] = space.cross_down[n].saturating_add(1);
                     }
                 }
-                for &(a, b) in &mates {
-                    let (s0, s1) = ((a.0.min(b.0), a.1.min(b.1)), (a.0.max(b.0), a.1.max(b.1)));
+            }
+        }
+        for &(a, b) in &mates {
+            let (s0, s1) = ((a.0.min(b.0), a.1.min(b.1)), (a.0.max(b.0), a.1.max(b.1)));
+            for j in about(s0.1, s1.1, 2, lo.1, hi.1) {
+                for i in about(s0.0, s1.0, 2, lo.0, hi.0) {
+                    let Some(n) = space.node((i, j)) else { continue };
+                    let (Some(x), Some(y)) = (space.coord(i), space.coord(j)) else {
+                        continue;
+                    };
+                    let (x1, y1) = (space.coord(i + 1), space.coord(j + 1));
                     if a.1 == b.1 && i < hi.0 {
                         let beside = space.coord(j - 1) == Some(a.1) || space.coord(j + 1) == Some(a.1);
                         if beside && x1.is_some_and(|x1| s0.0 <= x && x1 <= s1.0) {

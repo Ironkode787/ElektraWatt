@@ -40,6 +40,7 @@
 //! points, then also without the bodies and the frame; the first relaxation that finds a route names the rule. With
 //! none, the reason is the symbols.
 
+use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 
 use ew_ids::Uuid;
@@ -47,7 +48,9 @@ use ew_schema::Dir4;
 
 use super::measures::{measure, meet, overlap};
 use super::page::{PageGeometry, Point, Rect};
-use super::search::{CROSSING_COST, Heading, RouteEnd, RouteRequest, TEXT_COST, fit, route};
+use super::search::{
+    BEND_COST, CROSSING_COST, Heading, RouteEnd, RouteRequest, STEP_COST, TEXT_COST, fit, route,
+};
 
 /// Why a job of a solve is left unrouted (§5.6): the first rule its free route broke.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
@@ -517,6 +520,10 @@ struct Solve<'a> {
     fixed_lines: Vec<&'a [Point]>,
     /// Each job's mates, routed before it in its group.
     mates: BTreeMap<Uuid, Vec<Uuid>>,
+    /// The jobs found to have no route even with no other job routed: no state of the solve gives them one (another
+    /// job's route only takes room), so they are not searched for again, each search of theirs covering the whole
+    /// page and its half grid in vain.
+    hopeless: RefCell<BTreeSet<Uuid>>,
 }
 
 impl Solve<'_> {
@@ -587,15 +594,27 @@ impl Solve<'_> {
     /// Routes `job` in `state`; whether it found a route. With `defer`, a route across a text is not taken yet: the
     /// jobs that cross a text are routed after the others, so that a text-clear route keeps its way.
     fn route(&self, job: Uuid, state: &mut State, defer: bool) -> bool {
-        if self.four_arms(job, state) {
+        if self.hopeless.borrow().contains(&job) || self.four_arms(job, state) {
             return false;
         }
         let found = search_checked(
             self.page,
             |half| self.request(job, state, false, Relax::default(), half),
             || (self.drawn(state), job),
-        )
-        .filter(|(r, _)| !defer || !crosses_text(self.page, r));
+        );
+        if found.is_none() {
+            // Without a way between its ends on the page's grid or its half grid, whatever it costs and with no
+            // other job routed, the job has none in any state.
+            let way = |half: bool| {
+                self.request(job, state, true, Relax::default(), half)
+                    .and_then(|req| search_areas(self.page, &req))
+                    .is_some()
+            };
+            if !way(false) && !way(true) {
+                self.hopeless.borrow_mut().insert(job);
+            }
+        }
+        let found = found.filter(|(r, _)| !defer || !crosses_text(self.page, r));
         match found {
             Some(r) => {
                 state.routes.insert(job, r);
@@ -605,16 +624,148 @@ impl Solve<'_> {
         }
     }
 
-    /// The page as `state` draws it: the routes found so far stored on their connections.
+    /// The page as `state` draws it: the routes found so far stored on their connections, a job without one unrouted.
     fn drawn(&self, state: &State) -> PageGeometry {
         let mut drawn = self.page.clone();
         for c in &mut drawn.connections {
             if let Some((route, _)) = state.routes.get(&c.id) {
                 c.polyline.clone_from(route);
                 c.routed = true;
+            } else if self.ends.contains_key(&c.id) {
+                c.routed = false;
             }
         }
         drawn
+    }
+
+    /// Routes the jobs `state` has no route for: the first pass in routing order, then at most two rip-up rounds,
+    /// each kept only when it scores better, then the jobs left, across a text where that is their way.
+    fn construct(&self, mut state: State) -> State {
+        for &j in &self.order {
+            if !state.routes.contains_key(&j) {
+                self.route(j, &mut state, true);
+            }
+        }
+        for _ in 0..2 {
+            if self.failed(&state).is_empty() {
+                break;
+            }
+            let next = self.round(&state);
+            if self.score(&next) < self.score(&state) {
+                state = next;
+            } else {
+                break;
+            }
+        }
+        for j in self.failed(&state) {
+            self.route(j, &mut state, false);
+        }
+        state
+    }
+
+    /// `state` with each job routed again against all the others, in routing order, and the new route taken where
+    /// the old one breaks a hard rule or the new one is drawn at less cost ([`Self::cost`]); at most two passes, the
+    /// second only where the first changed a route. A job without a better route keeps the one it has.
+    fn improve(&self, mut state: State) -> State {
+        for _ in 0..2 {
+            let bad = self.bad(&state);
+            let mut changed = false;
+            for &j in &self.order {
+                let Some(old) = state.routes.remove(&j) else {
+                    continue;
+                };
+                let found = if self.four_arms(j, &state) {
+                    None
+                } else {
+                    search_checked(
+                        self.page,
+                        |half| self.request(j, &state, false, Relax::default(), half),
+                        || (self.drawn(&state), j),
+                    )
+                };
+                match found {
+                    Some(new)
+                        if new.0 != old.0
+                            && (bad.contains(&j) || self.cost(j, &new.0, &state) < self.cost(j, &old.0, &state)) =>
+                    {
+                        state.routes.insert(j, new);
+                        changed = true;
+                    }
+                    _ => {
+                        state.routes.insert(j, old);
+                    }
+                }
+            }
+            if !changed {
+                break;
+            }
+        }
+        state
+    }
+
+    /// What `route` costs as the wire of `job` beside the other wires of `state`, by the weights of the search and
+    /// read off the drawing: its length in steps, its bends, the wires it crosses and the texts it runs across.
+    fn cost(&self, job: Uuid, route: &[Point], state: &State) -> u64 {
+        let g = step(self.page);
+        let steps = (length(route) * i64::from(STEP_COST) + g / 2) / g;
+        let mine = runs(route);
+        let (first, last) = (route.first(), route.last());
+        let others = self.fixed.iter().copied().chain(
+            state
+                .routes
+                .iter()
+                .filter(|(id, _)| **id != job)
+                .flat_map(|(_, (r, _))| runs(r)),
+        );
+        let mut crossings = 0_u64;
+        for t in others {
+            for s in &mine {
+                let (s, t) = ((s[0], s[1]), (t[0], t[1]));
+                if overlap(s, t).is_none()
+                    && meet(s, t).is_some_and(|p| Some(&p) != first && Some(&p) != last)
+                {
+                    crossings += 1;
+                }
+            }
+        }
+        let texts = self
+            .page
+            .texts
+            .iter()
+            .filter(|t| through_any(&[grow(t.rect, g / 4)], route))
+            .count();
+        u64::try_from(steps).unwrap_or(0)
+            + u64::from(BEND_COST) * (mine.len().saturating_sub(1) as u64)
+            + u64::from(CROSSING_COST) * crossings
+            + u64::from(TEXT_COST) * (texts as u64)
+    }
+
+    /// The jobs of `state` whose route breaks a hard rule but (d), a text, by the layout measures: it touches a
+    /// point it does not end at, lies on another wire or runs through a body.
+    fn bad(&self, state: &State) -> BTreeSet<Uuid> {
+        let mut drawn = self.drawn(state);
+        drawn.connections.retain(|c| c.routed);
+        let m = measure(&drawn);
+        m.touches
+            .iter()
+            .map(|t| t.connection)
+            .chain(m.overlaps.iter().flat_map(|o| o.connections))
+            .chain(m.through_bodies.iter().map(|t| t.connection))
+            .filter(|id| state.routes.contains_key(id))
+            .collect()
+    }
+
+    /// How well `state` draws the jobs (less is better): the jobs without a route or with one that breaks a hard
+    /// rule, then what the routes cost together ([`Self::cost`]).
+    fn rating(&self, state: &State) -> (usize, u64) {
+        (
+            self.failed(state).len() + self.bad(state).len(),
+            state
+                .routes
+                .iter()
+                .map(|(id, (r, _))| self.cost(*id, r, state))
+                .sum(),
+        )
     }
 
     /// The jobs of `state` left without a route, in routing order.
@@ -638,7 +789,7 @@ impl Solve<'_> {
     fn round(&self, before: &State) -> State {
         let mut state = before.clone();
         for f in self.failed(before) {
-            if state.routes.contains_key(&f) {
+            if state.routes.contains_key(&f) || self.hopeless.borrow().contains(&f) {
                 continue;
             }
             let free = self
@@ -811,74 +962,102 @@ pub fn route_page(page: &PageGeometry, jobs: &[Uuid]) -> RoutePlan {
         .flat_map(|c| runs(&c.polyline))
         .collect();
     let fixed_lines: Vec<&[Point]> = fixed_conns.iter().map(|c| c.polyline.as_slice()).collect();
-    // §5.3: class, span falling, mates together, ties by the ends' points and the ID.
+    // §5.3: class, span (falling, or rising with `short_first`), mates together, ties by the ends' points and the ID.
     let supply = |id: &Uuid| {
         page.connections
             .iter()
             .find(|c| c.id == *id)
             .and_then(|c| c.supply)
     };
-    let key = |id: &Uuid| {
-        let e = &ends[id];
-        let span = (e[0].at.0 - e[1].at.0).abs() + (e[0].at.1 - e[1].at.1).abs();
-        (
-            u8::from(supply(id).is_none()),
-            std::cmp::Reverse(span),
-            (e[0].at.1, e[0].at.0),
-            (e[1].at.1, e[1].at.0),
-            *id,
-        )
-    };
-    let mut sorted = jobs.clone();
-    sorted.sort_by_key(key);
     let groups = mate_groups(page, &jobs, &ends);
     let group_of: BTreeMap<Uuid, usize> = groups
         .iter()
         .enumerate()
         .flat_map(|(k, g)| g.iter().map(move |m| (*m, k)))
         .collect();
-    let mut order: Vec<Uuid> = Vec::with_capacity(sorted.len());
-    let mut placed: BTreeSet<usize> = BTreeSet::new();
-    for j in &sorted {
-        let k = group_of[j];
-        if placed.insert(k) {
-            order.extend(groups[k].iter().copied());
+    let order_by = |short_first: bool| -> Vec<Uuid> {
+        let key = |id: &Uuid| {
+            let e = &ends[id];
+            let span = (e[0].at.0 - e[1].at.0).abs() + (e[0].at.1 - e[1].at.1).abs();
+            (
+                u8::from(supply(id).is_none()),
+                if short_first { span } else { -span },
+                (e[0].at.1, e[0].at.0),
+                (e[1].at.1, e[1].at.0),
+                *id,
+            )
+        };
+        let mut sorted = jobs.clone();
+        sorted.sort_by_key(key);
+        let mut order: Vec<Uuid> = Vec::with_capacity(sorted.len());
+        let mut placed: BTreeSet<usize> = BTreeSet::new();
+        for j in &sorted {
+            let k = group_of[j];
+            if placed.insert(k) {
+                order.extend(groups[k].iter().copied());
+            }
         }
-    }
+        order
+    };
+    let [longest_first, shortest_first] = [order_by(false), order_by(true)];
     let mut mates: BTreeMap<Uuid, Vec<Uuid>> = BTreeMap::new();
     for g in &groups {
         for (i, m) in g.iter().enumerate() {
             mates.insert(*m, g[..i].to_vec());
         }
     }
-    let solve = Solve {
+    let mut solve = Solve {
         page,
-        order,
+        order: longest_first,
         ends,
         fixed,
         fixed_lines,
         mates,
+        hopeless: RefCell::default(),
     };
-    // The first pass, then at most two rounds, each kept only when it scores better.
-    let mut state = State::default();
-    for j in solve.order.clone() {
-        solve.route(j, &mut state, true);
-    }
-    for _ in 0..2 {
-        if solve.failed(&state).is_empty() {
-            break;
-        }
-        let next = solve.round(&state);
-        if solve.score(&next) < solve.score(&state) {
-            state = next;
-        } else {
-            break;
+    // The drawing as it is: each job's stored route between its two ends. A reroute starts from it, so that it mends
+    // what is badly drawn and never leaves the page worse than it found it.
+    let mut kept = State::default();
+    for c in page.connections.iter().filter(|c| c.routed) {
+        let mut line = c.polyline.clone();
+        line.dedup();
+        if let Some(e) = solve.ends.get(&c.id)
+            && line.len() >= 2
+            && line.first() == Some(&e[0].at)
+            && line.last() == Some(&e[1].at)
+        {
+            kept.routes.insert(c.id, (line, 0));
         }
     }
-    // The jobs left, in routing order, now across a text where that is their way.
-    for j in solve.failed(&state) {
-        solve.route(j, &mut state, false);
+    // The candidates, the first of the best rating taken (ADR-0033 amendment 4). A reroute: the drawing as it is,
+    // each wire then routed again where that is better; and the jobs routed from nothing, the shortest first (on a
+    // full page the long wires else take the straight tracks between the pins that the short ones need). A page
+    // routed for the first time: the jobs routed from nothing, the longest first (decision 5's order, whose result
+    // Golden A's routes are, decision 9); the shortest first too where that leaves a wire without a route.
+    let reroute = !kept.routes.is_empty();
+    let longest_first = solve.order.clone();
+    let mut best: Option<((usize, u64), bool, State)> = None;
+    let offer = |best: &mut Option<((usize, u64), bool, State)>, solve: &Solve, short_first: bool, state: State| {
+        let rating = solve.rating(&state);
+        if best.as_ref().is_none_or(|(r, _, _)| rating < *r) {
+            *best = Some((rating, short_first, state));
+        }
+    };
+    if reroute {
+        solve.order.clone_from(&shortest_first);
+        let drawn = solve.construct(kept);
+        offer(&mut best, &solve, true, solve.improve(drawn));
+        offer(&mut best, &solve, true, solve.construct(State::default()));
+    } else {
+        offer(&mut best, &solve, false, solve.construct(State::default()));
+        let complete = best.as_ref().is_some_and(|((failed, _), _, _)| *failed == 0);
+        if !complete && shortest_first != longest_first {
+            solve.order.clone_from(&shortest_first);
+            offer(&mut best, &solve, true, solve.construct(State::default()));
+        }
     }
+    let (_, short_first, state) = best.unwrap_or_default();
+    solve.order = if short_first { shortest_first } else { longest_first };
     let over_texts: Vec<Uuid> = state
         .routes
         .iter()
