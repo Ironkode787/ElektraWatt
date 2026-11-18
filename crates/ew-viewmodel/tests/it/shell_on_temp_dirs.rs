@@ -750,7 +750,10 @@ fn a_qelectrotech_file_is_re_imported_into_the_open_project() {
         json!({ "file": path(&qet), "accept": true }),
     );
     done(&mut shell, "file.reimport_qet_apply", json!({}));
-    assert_eq!(shell.banner(), Some("Re-imported example.qet."));
+    assert_eq!(
+        shell.toast().map(|t| t.text.as_str()),
+        Some("Re-imported example.qet.")
+    );
     assert_ne!(shell.revision(), rev);
     assert!(shell.is_dirty());
     done(&mut shell, "edit.undo", json!({}));
@@ -1130,7 +1133,7 @@ fn the_journal_of_an_earlier_session_is_discarded_after_a_confirmation() {
     done(&mut shell, "file.discard_journal", json!({ "confirm": true }));
     assert_eq!(shell.access(), Some(AccessMode::Edit));
     assert!(!shell.can_discard_journal());
-    assert!(shell.banner().unwrap_or_default().contains("discarded"));
+    assert!(shell.toast().is_some_and(|t| t.text.contains("discarded")));
     assert!(
         !shell.page_labels().iter().any(|l| l == "996"),
         "the edit is gone"
@@ -1370,7 +1373,7 @@ fn the_wizard_writes_a_basic_project_that_new_projects_start_from() {
     let basic = tmp.0.join("company.ew");
     done(&mut shell, "wizard.finish", json!({ "dir": path(&basic) }));
     // The finished wizard stays on the review step until it is closed; its fields are no longer edited.
-    assert!(shell.banner().unwrap_or_default().contains("company.ew"));
+    assert!(shell.toast().is_some_and(|t| t.text.contains("company.ew")));
     let w = shell.wizard().expect("the finished wizard stays open");
     assert_eq!(w.finished_dir(), Some(basic.as_path()));
     assert!(matches!(

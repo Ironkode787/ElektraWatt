@@ -17,6 +17,7 @@ use super::{DocRequest, Mode, Outcome, Prompt, ShellModel, dir_name, failed, ope
 use crate::first_run::{self, FirstRun, FirstRunStep, START_CHOICES};
 use crate::help;
 use crate::key;
+use crate::notifications::NoteTone;
 use crate::settings::{CANVAS_BACKENDS, DENSITIES, KEYMAPS, ORIGINS, THEMES};
 use crate::strings;
 use crate::wizard::{CHECK_SCHEME_FIELD, DRAFT_FILE, Draft, Step, USE_FOR_NEW_FIELD, Wizard, run_commands};
@@ -618,7 +619,6 @@ impl ShellModel {
         let use_for_new = self.onboarding.wizard.as_ref().is_some_and(|w| w.use_for_new);
         match self.write_basic_project(&draft, &dir) {
             Ok(unstable) => {
-                self.warn_unreleased(unstable);
                 // The template joins the list; it is used for new projects only when the last step says so.
                 let dir_text = dir.to_string_lossy().into_owned();
                 self.settings.add_template(&dir_text, None);
@@ -635,14 +635,20 @@ impl ShellModel {
                     w.step = Step::Review;
                     w.error = None;
                 }
-                self.banner = Some(strings::format(
-                    if use_for_new {
-                        key!("banner-wizard-done")
-                    } else {
-                        key!("banner-wizard-done-listed")
-                    },
-                    &[&name],
-                ));
+                // A success carries the success mark of a toast, not the banner's warning triangle (rc.3).
+                self.notify_toned(
+                    strings::format(
+                        if use_for_new {
+                            key!("banner-wizard-done")
+                        } else {
+                            key!("banner-wizard-done-listed")
+                        },
+                        &[&name],
+                    ),
+                    NoteTone::Success,
+                );
+                // After the success, so that the format's warning is the newest toast.
+                self.warn_unreleased(unstable);
                 Outcome::Done
             }
             Err(message) => {

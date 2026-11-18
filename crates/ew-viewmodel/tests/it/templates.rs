@@ -182,6 +182,11 @@ fn templates_are_a_list_the_person_manages() {
         json!({"name": "Cabinet standard", "folder": path(&tmp.0)}),
     );
     let cabinet = tmp.0.join("Cabinet standard");
+    // rc.3: "The template … is made" is a success: a toast with the success mark, not the banner's warning triangle.
+    assert_eq!(shell.banner(), None);
+    let toast = shell.toast().expect("the result's toast");
+    assert!(toast.text.contains("is made"), "{}", toast.text);
+    assert_eq!(toast.tone(), ew_viewmodel::notifications::NoteTone::Success);
     assert_eq!(
         shell.settings().basic_project.as_deref(),
         Some(path(&cabinet).as_str()),

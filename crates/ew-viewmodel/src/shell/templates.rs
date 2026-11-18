@@ -27,6 +27,7 @@ use serde_json::{Map, Value, json};
 use super::creation::{FormDialog, FormField};
 use super::{Dialog, Mode, Outcome, Prompt, ShellModel, dir_name, failed, open_error_key, string_param};
 use crate::key;
+use crate::notifications::NoteTone;
 use crate::settings::TemplateEntry;
 use crate::strings;
 
@@ -771,14 +772,18 @@ impl ShellModel {
             self.settings.basic_project = Some(dir_text);
         }
         self.save_settings();
-        self.banner = Some(strings::format(
-            if use_it {
-                key!("banner-template-saved-used")
-            } else {
-                key!("banner-template-saved")
-            },
-            &[&name],
-        ));
+        // A success carries the success mark of a toast, not the banner's warning triangle (rc.3).
+        self.notify_toned(
+            strings::format(
+                if use_it {
+                    key!("banner-template-saved-used")
+                } else {
+                    key!("banner-template-saved")
+                },
+                &[&name],
+            ),
+            NoteTone::Success,
+        );
         self.form_done(SAVE_AS_TEMPLATE, Outcome::Done)
     }
 
@@ -843,10 +848,10 @@ impl ShellModel {
         };
         let out = self.run_commit(&cmd);
         if out == Outcome::Done {
-            self.banner = Some(strings::format(
-                key!("banner-check-level-set"),
-                &[&level_words(&level)],
-            ));
+            self.notify_toned(
+                strings::format(key!("banner-check-level-set"), &[&level_words(&level)]),
+                NoteTone::Success,
+            );
         }
         self.form_done(CHECK_LEVEL, out)
     }

@@ -239,7 +239,7 @@ fn the_journal_of_an_earlier_session_is_discarded_by_a_script() {
         "the discarded page 77 is not there"
     );
     assert!(
-        steps[1]["state"]["banner"]
+        steps[1]["state"]["toast"]["text"]
             .as_str()
             .unwrap()
             .contains("discarded")
@@ -396,7 +396,7 @@ fn the_wizards_defaults_reproduce_the_sample_pages_and_a_choice_changes_the_prev
     );
     assert!(review.contains("\" written"), "{review}");
     assert!(
-        steps[13]["state"]["banner"]
+        steps[13]["state"]["toast"]["text"]
             .as_str()
             .unwrap()
             .contains("company.ew")

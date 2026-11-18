@@ -670,7 +670,8 @@ fn company_project(tmp: &Tmp) -> Driver {
     let _ = d.shell_mut().dispatch("wizard.cancel", &json!({}));
     let project = json!({"dir": tmp.0.join("p.ew")});
     assert_eq!(d.shell_mut().dispatch("file.new", &project), Outcome::Done);
-    d.settle();
+    // A frame of the project: the wizard's success toast waits for its own time, so settling alone paints none.
+    d.input(&Input::Wait { ms: 100 });
     d
 }
 

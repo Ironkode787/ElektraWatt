@@ -24,6 +24,7 @@ use super::{
     open_error_key, string_param,
 };
 use crate::key;
+use crate::notifications::NoteTone;
 use crate::strings;
 use crate::strings::Key;
 
@@ -1030,7 +1031,10 @@ impl ShellModel {
         };
         let outcome = match project.session.apply_reimport(pending) {
             Ok(_) => {
-                self.banner = Some(strings::format(key!("banner-reimported"), &[&file]));
+                self.notify_toned(
+                    strings::format(key!("banner-reimported"), &[&file]),
+                    NoteTone::Success,
+                );
                 Outcome::Done
             }
             Err(e) => {
@@ -1100,10 +1104,13 @@ impl ShellModel {
                     terminal_spacing: super::TERMINAL_SPACING_DEFAULT,
                 });
                 self.install_view();
-                self.banner = Some(match banner {
-                    Some(b) => b,
-                    None => strings::text(key!("banner-journal-discarded")).to_owned(),
-                });
+                match banner {
+                    Some(b) => self.banner = Some(b),
+                    None => self.notify_toned(
+                        strings::text(key!("banner-journal-discarded")).to_owned(),
+                        NoteTone::Success,
+                    ),
+                }
                 Outcome::Done
             }
             Err(e) => {
