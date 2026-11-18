@@ -740,7 +740,8 @@ impl ShellModel {
                 // A box one click places (a valve terminal's positions, a plug's pins) is one box: the tool gives way
                 // to Select too (rc.2: a second click placed a second terminal on the first).
                 // So does a station put on a bus page: its interfaces are all drawn there now, and the tool kept taking
-                // it ("-3A1 DP is drawn on this page already", the rc.2 persona run).
+                // it ("-3A1 DP is drawn on this page already", the rc.2 persona run). So does a PLC part's box placed
+                // with Place here: the part is drawn now, and a second click was refused (rc.5).
                 let gives_way = self
                     .tools
                     .tool
@@ -750,6 +751,7 @@ impl ShellModel {
                         t.one_click()
                             || matches!(t.target(), crate::tools::BoxTarget::Ports { target, .. }
                                 if target.get("device").is_some())
+                            || matches!(t.target(), crate::tools::BoxTarget::Station { .. })
                     });
                 if out == Outcome::Done
                     && (self.tools.tool.name() == "layout_place" || gives_way)

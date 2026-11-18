@@ -322,8 +322,8 @@ fn place_here_puts_an_unplaced_plc_part_on_the_pointer() {
     assert_eq!(d.shell_mut().tool().name(), "black_box", "its box on the pointer");
     click_at(&mut d, (700, 400));
     click_at(&mut d, (820, 500));
-    d.input(&key("escape"));
-    d.settle();
+    // The part is drawn: the tool gives way to Select, so a second click draws nothing and is refused nowhere.
+    assert_eq!(d.shell_mut().tool().name(), "select", "one part, one box");
     let head = d.shell_mut().rack_view(cpu).expect("the rack").head;
     assert_eq!(head.page.as_deref(), Some("101"), "drawn on the page shown");
     // The card's menu in the station view offers it too.
