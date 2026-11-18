@@ -146,8 +146,9 @@ pub struct NewProjectDialog {
 }
 
 /// The file system read for the New project dialog's fields (name, folder, chosen line and its folder): what Create cannot do, and
-/// what it does besides, in words. The dialog asks every frame; the folders are read again only when a field changes
-/// (rc.5, H11: a frame read a folder four times). Not part of the dialog's state: a copy starts empty, and two dialogs
+/// what it does besides, in words. The dialog asks every frame; the folders are read again only when a field changes,
+/// when the window regains the focus and once a second ([`ShellModel::recheck_new_project`]; rc.5, H11: a frame read a
+/// folder four times). Not part of the dialog's state: a copy starts empty, and two dialogs
 /// are equal whatever each read.
 #[derive(Default, Debug)]
 struct Checked(std::cell::RefCell<Option<CheckFound>>);
@@ -459,6 +460,15 @@ impl ShellModel {
             error: None,
             checked: Checked::default(),
         })))
+    }
+
+    /// The New project dialog's folders read again on its next frame (rc.5): the window calls it when it regains the
+    /// focus and once a second while the dialog is open, so that a folder made or taken away outside the program
+    /// meanwhile is seen without a field being typed. Nothing while the dialog is closed.
+    pub fn recheck_new_project(&mut self) {
+        if let Some(Dialog::NewProject(d)) = &mut self.dialog {
+            d.checked = Checked::default();
+        }
     }
 
     /// The open New project dialog, to change: its folders are read again after the change, also for a field typed

@@ -331,6 +331,8 @@ pub struct App {
     window_focused: Option<bool>,
     /// How many times the window regained the focus and asked for the frames that repaint it (tests).
     focus_repaints: u64,
+    /// When the New project dialog's folders were last read again, on the window's clock (rc.5).
+    new_project_checked: f64,
     /// When the project on disk was last polled for an external change, on the window's clock, and the
     /// time to the next poll in seconds.
     disk_polled: (f64, f64),
@@ -415,6 +417,7 @@ impl App {
             options_band: None,
             window_focused: None,
             focus_repaints: 0,
+            new_project_checked: 0.0,
             disk_polled: (0.0, ew_viewmodel::ew_api::external::POLL_EVERY.as_secs_f64()),
             alt_alone: false,
             alt_down: false,
@@ -937,6 +940,18 @@ impl App {
         }
         self.shell.poll_jobs();
         let now = ctx.input(|i| i.time);
+        // The New project dialog reads its folders again when the window regains the focus and once a second, so
+        // that a folder made outside meanwhile is seen (rc.5); not every frame.
+        if matches!(
+            self.shell.dialog(),
+            Some(ew_viewmodel::shell::Dialog::NewProject(_))
+        ) {
+            if regained || now - self.new_project_checked >= 1.0 {
+                self.shell.recheck_new_project();
+                self.new_project_checked = now;
+            }
+            ctx.request_repaint_after(Duration::from_secs(1));
+        }
         // The project on disk is polled every 3 s, 750 ms later again while a change settles,
         // and when the window regains the focus; never while a pointer button is held (a gesture) or on the frame clock
         // (a visual run polls through `project.check_disk`).

@@ -310,3 +310,32 @@ fn project_properties_name_the_template_the_project_came_from() {
     assert_eq!(made_from(&shell), "a template that is not in your list");
     shell.shutdown();
 }
+
+/// The New project dialog reads its folders once per change of its fields, not every frame (rc.5, H11), and again
+/// when the window asks (`recheck_new_project`: on regaining the focus and once a second): a folder made outside the
+/// program meanwhile is seen without a field being typed.
+#[test]
+fn the_new_project_dialog_sees_a_folder_made_outside_when_the_window_asks() {
+    let tmp = Tmp::new("new-project-recheck");
+    let mut shell = tmp.empty_shell(Mode::Gui);
+    let folder = tmp.0.join("jobs");
+    done(&mut shell, "file.new", json!({}));
+    done(
+        &mut shell,
+        "new_project.set",
+        json!({"name": "Job", "folder": path(&folder)}),
+    );
+    let note = |shell: &ShellModel| match shell.dialog() {
+        Some(Dialog::NewProject(d)) => d.note(),
+        _ => panic!("the dialog"),
+    };
+    assert_eq!(
+        note(&shell).as_deref(),
+        Some("This folder is not there yet: Create makes it.")
+    );
+    std::fs::create_dir_all(&folder).expect("the folder made outside");
+    assert!(note(&shell).is_some(), "read once for the fields as they stand");
+    shell.recheck_new_project();
+    assert_eq!(note(&shell), None, "the folder is there now");
+    shell.shutdown();
+}
