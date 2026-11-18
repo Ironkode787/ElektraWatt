@@ -55,8 +55,10 @@ const VERSION: &str = "0.1.0";
 /// EW-GEN-CBL-4 to -25 were added (rc.3: a cable part that matches the wires could not be chosen), 0.15.0 since the
 /// 5/3 valve for a valve terminal EW-GEN-VLV-53 was added (rc.3: a position is as wide as its valve needs), 0.16.0
 /// since a valve with two solenoids prints each solenoid's address at its own solenoid (rc.3: the 5/3 valve's two
-/// addresses touched its square).
-const LIBRARY_VERSION: &str = "0.16.0";
+/// addresses touched its square), 0.17.0 since the parts a panel builder reaches for first were added: the two-pole
+/// breaker EW-GEN-MCB-4, the main switches with two and three poles EW-GEN-SW-2 and -3, the residual-current device
+/// EW-GEN-RCD-1, the stop button EW-GEN-PB-2 and the emergency stop EW-GEN-ESB-1 (rc.3).
+const LIBRARY_VERSION: &str = "0.17.0";
 /// The parts whose content changed after 0.1.0, at their next patch version (the selector switch on a
 /// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y. The relay
 /// and the contactor template their contacts beside the coil. The CPU's bus section, after 0.2.0.
@@ -584,6 +586,87 @@ fn defs() -> Vec<Def> {
             tech: Vec::new(),
             plc: None,
             mech: ts35("18", "85", "70"),
+            sections: None,
+            unit: None,
+        },
+        // The parts a panel builder reaches for first (rc.3: a two-pole switch and breaker had a symbol and no part,
+        // so "Device without part" could not be mended; the stop button and the emergency stop were missing since the
+        // second candidate).
+        Def {
+            number: "EW-GEN-MCB-4",
+            kind: None,
+            description: "Miniature circuit breaker, 2 poles",
+            cps: cps(&["1", "2", "3", "4"]),
+            template: vec![("ew.fn.mcb-2p", true, range(0, 4))],
+            contacts: Vec::new(),
+            tech: vec![("characteristic", json!("C")), ("rated_current", q("16", "A"))],
+            plc: None,
+            mech: ts35("36", "85", "70"),
+            sections: None,
+            unit: None,
+        },
+        Def {
+            number: "EW-GEN-SW-2",
+            kind: None,
+            description: "Main switch, 2 poles",
+            cps: cps(&["1", "2", "3", "4"]),
+            template: vec![("ew.fn.switch-2p-manual", true, range(0, 4))],
+            contacts: Vec::new(),
+            tech: vec![("rated_current", q("25", "A"))],
+            plc: None,
+            mech: ts35("36", "85", "70"),
+            sections: None,
+            unit: None,
+        },
+        Def {
+            number: "EW-GEN-SW-3",
+            kind: None,
+            description: "Main switch, 3 poles",
+            cps: cps(&["1", "2", "3", "4", "5", "6"]),
+            template: vec![("ew.fn.switch-3p-manual", true, range(0, 6))],
+            contacts: Vec::new(),
+            tech: vec![("rated_current", q("25", "A"))],
+            plc: None,
+            mech: ts35("54", "85", "70"),
+            sections: None,
+            unit: None,
+        },
+        Def {
+            number: "EW-GEN-RCD-1",
+            kind: None,
+            description: "Residual-current device, 2 poles, 30 mA",
+            cps: cps(&["1", "2", "N", "N"]),
+            template: vec![("ew.fn.rcd-2p", true, range(0, 4))],
+            contacts: Vec::new(),
+            tech: vec![("rated_current", q("40", "A"))],
+            plc: None,
+            mech: ts35("36", "85", "70"),
+            sections: None,
+            unit: None,
+        },
+        Def {
+            number: "EW-GEN-PB-2",
+            kind: None,
+            description: "Pushbutton with one normally closed contact",
+            cps: cps(&["11", "12"]),
+            template: vec![("ew.fn.pushbutton-nc", true, vec![0, 1])],
+            contacts: vec![("nc", vec!["11", "12"])],
+            tech: Vec::new(),
+            plc: None,
+            mech: None,
+            sections: None,
+            unit: None,
+        },
+        Def {
+            number: "EW-GEN-ESB-1",
+            kind: None,
+            description: "Emergency stop, mushroom head, latching, with one normally closed contact",
+            cps: cps(&["11", "12"]),
+            template: vec![("ew.fn.emergency-stop", true, vec![0, 1])],
+            contacts: vec![("nc", vec!["11", "12"])],
+            tech: Vec::new(),
+            plc: None,
+            mech: None,
             sections: None,
             unit: None,
         },

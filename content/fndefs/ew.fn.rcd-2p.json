@@ -1,0 +1,65 @@
+{
+  "$k": "fndef",
+  "id": "61b03944-7f3b-518d-b33c-a42b7c086f3f",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "5547889c-906d-5b99-a42b-f517164ddba5",
+  "version": "0.1.0",
+  "sha256": "sha256:8d1f68a88002d7e10ead27f2b82dd28411827541fc597eec9dee0b755dd0837c",
+  "meta": {
+    "key": "ew.fn.rcd-2p",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "ProtectionResidualCurrent",
+    "RCD",
+    "2P"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1"
+    },
+    {
+      "idx": 1,
+      "designation": "2"
+    },
+    {
+      "idx": 2,
+      "designation": "N",
+      "potential_role": "n"
+    },
+    {
+      "idx": 3,
+      "designation": "N",
+      "potential_role": "n"
+    }
+  ],
+  "internal": [
+    {
+      "a": 0,
+      "b": 1,
+      "kind": {
+        "pass_through": {
+          "opens": true
+        }
+      }
+    },
+    {
+      "a": 2,
+      "b": 3,
+      "kind": {
+        "pass_through": {
+          "opens": true
+        }
+      }
+    }
+  ],
+  "flags": {
+    "switches_n_with_l": true
+  }
+}

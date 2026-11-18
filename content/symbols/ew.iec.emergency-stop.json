@@ -1,0 +1,252 @@
+{
+  "$k": "symbol",
+  "id": "2ed7872a-915d-5e1a-ae6b-4b9615ff1af9",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "a4bb9558-7262-53a7-8a1c-9cc7758e5250",
+  "version": "0.1.0",
+  "sha256": "sha256:32ae4af63ec8f1ce60eba379f76f731a390d3200a68e949be679f8fccdd9dc28",
+  "meta": {
+    "key": "ew.iec.emergency-stop",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Emergency stop, mushroom head",
+    "nl": "Noodstop, paddenstoelknop"
+  },
+  "keywords": [
+    "e-stop",
+    "emergency",
+    "mushroom",
+    "nc",
+    "stop"
+  ],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "e6716804-333b-5078-9dfa-797a67b7d48a",
+    "version_req": "^0.1",
+    "key": "ew.fn.emergency-stop"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "polyline": {
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            4000000
+          ],
+          [
+            -3000000,
+            4000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          12000000
+        ],
+        "to": [
+          0,
+          8000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          8000000
+        ],
+        "to": [
+          -2000000,
+          4000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          -1000000,
+          6000000
+        ],
+        "to": [
+          -5000000,
+          6000000
+        ],
+        "stroke": {
+          "pen": "p013",
+          "dash": "dash42"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          -5000000,
+          3500000
+        ],
+        "to": [
+          -5000000,
+          8500000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "polyline": {
+        "points": [
+          [
+            -5000000,
+            3500000
+          ],
+          [
+            -6000000,
+            4000000
+          ],
+          [
+            -6500000,
+            5000000
+          ],
+          [
+            -6500000,
+            7000000
+          ],
+          [
+            -6000000,
+            8000000
+          ],
+          [
+            -5000000,
+            8500000
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        0
+      ],
+      "dir": "up"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        0,
+        12000000
+      ],
+      "dir": "down"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        3000000,
+        5000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": "tech_data",
+      "pos": [
+        3000000,
+        8000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        -1000000,
+        1000000
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        -1000000,
+        11000000
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": "plc_address",
+      "pos": [
+        3000000,
+        11000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    }
+  ],
+  "link_points": [
+    {
+      "name": "link",
+      "pos": [
+        -1000000,
+        6000000
+      ]
+    }
+  ]
+}

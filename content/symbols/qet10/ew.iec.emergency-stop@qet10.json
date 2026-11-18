@@ -1,0 +1,264 @@
+{
+  "$k": "symbol",
+  "id": "7e2472c6-597c-5330-b219-c372cd54084a",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "de642bc7-496e-5bc0-b7ec-5402a4864c45",
+  "version": "0.1.0",
+  "sha256": "sha256:8cfe161bf4ba2eed5cda65fe5cb1ea4078825b7029b4deea3f2716703be37d3c",
+  "meta": {
+    "key": "ew.iec.emergency-stop@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Emergency stop, mushroom head",
+    "nl": "Noodstop, paddenstoelknop"
+  },
+  "keywords": [
+    "e-stop",
+    "emergency",
+    "mushroom",
+    "nc",
+    "stop"
+  ],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "e6716804-333b-5078-9dfa-797a67b7d48a",
+    "version_req": "^0.1",
+    "key": "ew.fn.emergency-stop"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "polyline": {
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            2645833
+          ],
+          [
+            -1984375,
+            2645833
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          7937500
+        ],
+        "to": [
+          0,
+          5291667
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          5291667
+        ],
+        "to": [
+          -1322917,
+          2645833
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          -661458,
+          3968750
+        ],
+        "to": [
+          -3307292,
+          3968750
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          },
+          "dash": "dash42"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          -3307292,
+          2315104
+        ],
+        "to": [
+          -3307292,
+          5622396
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "polyline": {
+        "points": [
+          [
+            -3307292,
+            2315104
+          ],
+          [
+            -3968750,
+            2645833
+          ],
+          [
+            -4299479,
+            3307292
+          ],
+          [
+            -4299479,
+            4630208
+          ],
+          [
+            -3968750,
+            5291667
+          ],
+          [
+            -3307292,
+            5622396
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        0
+      ],
+      "dir": "up"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        0,
+        7937500
+      ],
+      "dir": "down"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        1984375,
+        3307292
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": "tech_data",
+      "pos": [
+        1984375,
+        5291667
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        -661458,
+        661458
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        -661458,
+        7276042
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": "plc_address",
+      "pos": [
+        1984375,
+        7276042
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    }
+  ],
+  "link_points": [
+    {
+      "name": "link",
+      "pos": [
+        -661458,
+        3968750
+      ]
+    }
+  ]
+}

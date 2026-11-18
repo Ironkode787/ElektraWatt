@@ -107,6 +107,20 @@ fn a_cable_is_offered_cable_parts_only() {
     );
 }
 
+/// Two persona runs of the third candidate drew a two-pole switch from its symbol and found no part for it: Only parts
+/// that fit said "No part matches", so "Device without part" could not be mended. The starter's two-pole main switch
+/// fits it first, as its own function.
+#[test]
+fn a_two_pole_switch_has_a_starter_part_that_fits() {
+    let tmp = Tmp::new("part-sel-2p");
+    let mut s = golden(&tmp);
+    select(&mut s, "S51");
+    done(&mut s, "part.choose", json!({ "use": 0 }));
+    done(&mut s, "part.search", json!({ "fits": true }));
+    assert_eq!(results(&s).first().map(String::as_str), Some("EW-GEN-SW-2"));
+    assert!(result_of(&s, "EW-GEN-SW-2").ends_with("compatible same-fndef cursor"));
+}
+
 /// PS1 in the shell: F55's dialog lists the starter's 1P+N MCB (`same-fndef`), then its 1P MCB (`same-category`),
 /// then every other offer, held copies before library parts; the detail names the template's function; Only parts
 /// that fit keeps the first two; the view In this project lists held copies only.
@@ -129,8 +143,9 @@ fn f55_offers_the_same_function_first() {
     );
     assert!(result_of(&s, "EW-GEN-MCB-1").ends_with("compatible same-category"));
     assert!(result_of(&s, "EW-GEN-MCB-3").ends_with("compatible same-category"));
+    assert!(result_of(&s, "EW-GEN-MCB-4").ends_with("compatible same-category"));
     // Every later offer is `other`, the held copies (source `project`) first; 5SY4204-7 and the terminals are held.
-    let rest = &lines(&s, "result ")[3..];
+    let rest = &lines(&s, "result ")[4..];
     assert!(rest.iter().all(|l| l.contains(" compatible other")), "{rest:#?}");
     let first_library = rest.iter().position(|l| l.contains(" library \"")).unwrap();
     assert!(
@@ -154,7 +169,10 @@ fn f55_offers_the_same_function_first() {
     );
     // Only parts that fit.
     done(&mut s, "part.search", json!({ "fits": true }));
-    assert_eq!(results(&s), ["EW-GEN-MCB-2", "EW-GEN-MCB-1", "EW-GEN-MCB-3"]);
+    assert_eq!(
+        results(&s),
+        ["EW-GEN-MCB-2", "EW-GEN-MCB-1", "EW-GEN-MCB-3", "EW-GEN-MCB-4"]
+    );
     done(&mut s, "part.search", json!({ "fits": false, "view": "project" }));
     assert!(
         lines(&s, "result ")

@@ -232,7 +232,7 @@ fn f55_offers_the_same_function_first() {
         ..PartOfferQuery::default()
     };
     let offers = s.part_offers(&q);
-    let head: Vec<(&str, Fit)> = offers[..5]
+    let head: Vec<(&str, Fit)> = offers[..6]
         .iter()
         .map(|o| (o.part_number.as_str(), o.fit))
         .collect();
@@ -243,10 +243,11 @@ fn f55_offers_the_same_function_first() {
             ("FX-MCB-1PN", Fit::SameFnDef),
             ("EW-GEN-MCB-1", Fit::SameCategory),
             ("EW-GEN-MCB-3", Fit::SameCategory),
+            ("EW-GEN-MCB-4", Fit::SameCategory),
             ("FX-MCB-1P", Fit::SameCategory),
         ]
     );
-    let rest = &offers[5..];
+    let rest = &offers[6..];
     assert!(rest.iter().all(|o| o.fit == Fit::Other), "{:?}", numbers(rest));
     let first_not_held = rest.iter().position(|o| !o.held).unwrap();
     assert!(
@@ -272,7 +273,7 @@ fn f55_offers_the_same_function_first() {
         fits_only: true,
         ..q.clone()
     });
-    assert_eq!(numbers(&fits), numbers(&offers[..5]));
+    assert_eq!(numbers(&fits), numbers(&offers[..6]));
     // Without a function every row is `other`, in rank, held and part-number order.
     let plain = s.part_offers(&PartOfferQuery::default());
     assert!(plain.iter().all(|o| o.fit == Fit::Other));

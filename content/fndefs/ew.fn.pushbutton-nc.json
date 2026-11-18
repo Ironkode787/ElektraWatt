@@ -1,0 +1,43 @@
+{
+  "$k": "fndef",
+  "id": "669d34e1-6e8d-5378-9dd2-f00d7431fd9e",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "ca3501db-b685-555c-b0a7-b6da057ae692",
+  "version": "0.1.0",
+  "sha256": "sha256:901f8ece5876fa075220d0576ffe5e33a44cd51cd97c6c23b7e9586ece4a8391",
+  "meta": {
+    "key": "ew.fn.pushbutton-nc",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "ManualCommand",
+    "Pushbutton",
+    "NC"
+  ],
+  "contact_kind": "nc",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1"
+    },
+    {
+      "idx": 1,
+      "designation": "2"
+    }
+  ],
+  "internal": [
+    {
+      "a": 0,
+      "b": 1,
+      "kind": {
+        "pass_through": {
+          "opens": true
+        }
+      }
+    }
+  ]
+}

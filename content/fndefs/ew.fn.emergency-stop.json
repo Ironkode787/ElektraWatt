@@ -1,0 +1,43 @@
+{
+  "$k": "fndef",
+  "id": "00c42533-6929-5321-88df-86daafa49c4e",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "e6716804-333b-5078-9dfa-797a67b7d48a",
+  "version": "0.1.0",
+  "sha256": "sha256:afed7149556267a6a67c50422601885e2f2821274664e51d7a1374bcc6afb116",
+  "meta": {
+    "key": "ew.fn.emergency-stop",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "ManualCommand",
+    "EmergencyStop",
+    "NC"
+  ],
+  "contact_kind": "nc",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1"
+    },
+    {
+      "idx": 1,
+      "designation": "2"
+    }
+  ],
+  "internal": [
+    {
+      "a": 0,
+      "b": 1,
+      "kind": {
+        "pass_through": {
+          "opens": true
+        }
+      }
+    }
+  ]
+}
