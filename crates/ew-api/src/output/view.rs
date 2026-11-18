@@ -369,6 +369,52 @@ fn asset_ref(r: &ew_schema::AssetRef) -> AssetRef {
     }
 }
 
+/// A valve standing in a cell of a valve terminal's box drawn on `page` stands with its insertion point on the cell's
+/// top line, so a PLC address place of its symbol higher than one grid step under that point ran across the line (rc.3:
+/// the valves with one solenoid). There each such place is drawn one step of the symbol's grid under it, the row of the
+/// two-solenoid valves' places, inside the cell; a place a person moved, a turned valve and a valve drawn anywhere else
+/// keep the symbol's place. Drawn only: the record is not changed.
+fn addresses_in_cell(
+    q: &Q,
+    page: Id<Page>,
+    rep: Arc<Representation>,
+    def: &SymbolDef,
+) -> Arc<Representation> {
+    let Some(step) = def.grid.at(1).zip(def.grid.at(0)).map(|(a, b)| a - b) else {
+        return rep;
+    };
+    let device_of = |r: &Representation| r.functions.first().and_then(|f| q.functions().get(*f)?.device);
+    // The modules that hold the valve: its parent and theirs.
+    let holders: Vec<Id<Device>> = device_of(&rep)
+        .map(|d| ew_derive::parent_chain(q, d).into_iter().skip(1).collect())
+        .unwrap_or_default();
+    let in_cell = rep.orient == ew_derive::ew_units::Orient2::R0
+        && !holders.is_empty()
+        && q.idx().reps_by_page(page).any(|r| {
+            q.reps().get(r).is_some_and(|b| {
+                b.box_.as_ref().is_some_and(|x| x.slots.is_some())
+                    && device_of(b).is_some_and(|d| holders.contains(&d))
+            })
+        });
+    if !in_cell {
+        return rep;
+    }
+    let mut out = (*rep).clone();
+    for (i, slot) in def.text_slots.iter().enumerate() {
+        let Ok(index) = u16::try_from(i) else { break };
+        if slot.kind == SlotKind::PlcAddress && slot.pos.y < step && out.text_slots.get(&index).is_none() {
+            out.text_slots.insert(ew_schema::SlotOverride {
+                slot: index,
+                pos: Some(ew_derive::ew_units::Pt2::new(slot.pos.x, step)),
+                angle: None,
+                visible: None,
+                extra: Default::default(),
+            });
+        }
+    }
+    Arc::new(out)
+}
+
 /// `page_reps(page)`: the representations of a drawn page with their symbol copies and, for a strip segment, the
 /// terminals it draws; no slot texts (those are [`PageSlotsOf`]).
 #[derive(Debug)]
@@ -388,6 +434,10 @@ impl Query for PageRepsOf {
             };
             let symbol = q.symbols().get(rep.symbol).map(|s| Arc::new(s.item.clone()));
             let terminals = segment_terminals(q, &rep);
+            let rep = match &symbol {
+                Some(def) => addresses_in_cell(q, *key, rep, def),
+                None => rep,
+            };
             out.push(RepView {
                 rep,
                 symbol,

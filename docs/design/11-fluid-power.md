@@ -358,6 +358,10 @@ per declared solenoid (FR-FLU-003). Assigning the part creates both through the 
   wired coils are found by target tracking. *As built (rc.3 of 0.3.0):* a slot that names a `solenoid` (`14`, `12`)
   prints that solenoid's address alone; the shipped valves with two solenoids (5/2 bistable, the three 5/3 valves) have
   one such slot above each solenoid, clear of the valve's squares, and a valve with one solenoid keeps its one slot.
+  In a valve terminal's cell, where a valve stands with its insertion point on the cell's top line, an address slot
+  higher than one grid step under that point is drawn one step under it (the two-solenoid valves' row), so the
+  address stands inside the cell; the symbol and the record keep their place, and a valve drawn elsewhere (Golden A's)
+  prints as before.
 - **`FunctionText` with fallback to `ProcessTag`.** The slot prints the automatic function text (FR-DEV-011). If that
   is empty, it prints the tracked process tag (§3.3). Both are slot kinds of [07](07-symbols-parts-macros.md) §2.3; the
   fallback is a slot option `fallback: ProcessTag`, so reports keep the two values in separate columns (Open

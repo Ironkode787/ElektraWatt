@@ -1119,3 +1119,62 @@ fn a_valve_with_two_solenoids_prints_each_address_at_its_solenoid() {
     );
     assert_eq!(printed.len(), 2, "no place prints both: {printed:?}");
 }
+
+/// rc.3: in a valve terminal's cell a valve with one solenoid printed its PLC address across the cell's top line,
+/// where the valve stands with its insertion point. There its address place is drawn one grid step under that point,
+/// on the two-solenoid valves' row, inside the cell; the symbol and the record keep their place.
+#[test]
+fn a_valve_with_one_solenoid_prints_its_address_inside_its_cell() {
+    let mut s = project(186);
+    let terminal = place_terminal(&mut s, (60_000_000, 60_000_000));
+    let c = cells(&s, terminal);
+    let v = place_into(
+        &mut s,
+        "EW-GEN-VLV-3",
+        "ew.iso.valve-5-2-sol-spring",
+        centre(&c[0]),
+        terminal,
+    )
+    .expect("the 5/2 valve with one solenoid");
+    let rep = rep_of(&s, v);
+    let q = s.query();
+    let symbol = q
+        .symbols()
+        .get(Id::from_uuid(rep.symbol))
+        .expect("the symbol")
+        .item
+        .clone();
+    let (index, slot) = symbol
+        .text_slots
+        .iter()
+        .enumerate()
+        .find(|(_, x)| x.kind == ew_schema::SlotKind::PlcAddress)
+        .expect("an address place");
+    let step = symbol.grid.at(1).expect("a step") - symbol.grid.at(0).expect("the origin");
+    assert!(slot.pos.y < step, "the symbol's place is higher than one step");
+    let order = q.get::<ew_derive::PageOrder>(());
+    let entry = order
+        .entries
+        .iter()
+        .find(|e| e.page == ew_derive::PageRef::Drawn(Id::from_uuid(fluid_page(&s))))
+        .expect("page 201 in the page order");
+    let view = ew_api::output::page_view(&q, entry);
+    let drawn = view
+        .reps
+        .iter()
+        .find(|r| r.rep.id.as_uuid() == rep.id)
+        .expect("the valve drawn");
+    let at = drawn
+        .rep
+        .text_slots
+        .get(&u16::try_from(index).expect("a slot index"))
+        .and_then(|o| o.pos)
+        .unwrap_or(slot.pos);
+    assert_eq!(
+        (at.x, at.y),
+        (slot.pos.x, step),
+        "one step under the cell's top line"
+    );
+    let stored = q.reps().get(Id::from_uuid(rep.id)).expect("the record");
+    assert!(stored.text_slots.is_empty(), "the record is not changed");
+}
