@@ -563,7 +563,10 @@ fn the_detail_of_a_long_conflict_scrolls_and_names_three_member_cps() {
     let message = h.state().shell().messages_detail().expect("the detail").message;
     // The definitions' conflict and three member connection points, each a sentence with its page; the rest counted.
     assert_eq!(message.matches(" on page ").count(), 4, "{message}");
-    assert!(message.ends_with(" more connection points are wired the same way."), "{message}");
+    assert!(
+        message.ends_with(" more connection points are wired the same way."),
+        "{message}"
+    );
     let node = h.get_by_label(&message);
     node.scroll_to_me();
     settle(&mut h);

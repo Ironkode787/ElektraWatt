@@ -972,8 +972,7 @@ fn pot001_names_three_member_cps_and_counts_the_rest() {
         "{nl}"
     );
     assert_eq!(
-        nl.matches("is verbonden met de beschermingsaarde -1K435")
-            .count(),
+        nl.matches("is verbonden met de beschermingsaarde -1K435").count(),
         3,
         "{nl}"
     );
