@@ -235,6 +235,7 @@ picker-part-symbol-note = This part has no symbol of its own: choose the symbol 
 picker-empty-black-box = No black-box symbols or parts to place
 picker-empty-page = Nothing can be placed on this page
 picker-group-project = In this project
+picker-group-library = Library
 # F28: the device browser's trades.
 picker-trade-electrical = Electrical
 picker-trade-plc-bus = PLC and bus

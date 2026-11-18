@@ -271,6 +271,7 @@ picker-part-symbol-note = Dit artikel heeft geen eigen symbool: kies het symbool
 picker-empty-black-box = Geen black-boxsymbolen of artikelen om te plaatsen
 picker-empty-page = Op deze pagina kan niets worden geplaatst
 picker-group-project = In dit project
+picker-group-library = Bibliotheek
 # F28: de vakgebieden van de onderdelenbrowser.
 picker-trade-electrical = Elektrisch
 picker-trade-plc-bus = PLC en bus

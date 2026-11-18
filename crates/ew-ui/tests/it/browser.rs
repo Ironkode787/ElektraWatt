@@ -219,14 +219,14 @@ fn browser_rows(d: &mut Driver) -> (Vec<String>, Vec<Node>) {
 }
 
 /// The device browser's rows stay where they were once a part is used (the persona's second click hit the row that
-/// had moved into the used part's place): a placed relay keeps its row, and the tree has In this project from the
-/// start, so it does not shift either.
+/// had moved into the used part's place): a placed relay keeps its row. The tree has In this project once the project
+/// holds a part, and not before (rc.5: the owner read the library's groups as part of it); the rest stays.
 #[test]
 fn the_device_browsers_rows_stay_in_place_once_a_part_is_used() {
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     let (before, tree) = browser_rows(&mut d);
-    assert!(tree.contains(&Node::Project), "{tree:?}");
+    assert!(!tree.contains(&Node::Project), "{tree:?}");
     // The relay's row by its words: the starter parts run past the window's height.
     d.input(&typed("Relay with four"));
     d.settle();
@@ -256,7 +256,9 @@ fn the_device_browsers_rows_stay_in_place_once_a_part_is_used() {
         .count();
     assert!(held > 0, "the relay is the project's now");
     assert_eq!(after, before, "the rows keep their order");
-    assert_eq!(again, tree, "and the tree");
+    assert_eq!(again[0], Node::All);
+    assert_eq!(again[1], Node::Project, "In this project, below All: {again:?}");
+    assert_eq!(again[2..], tree[1..], "and the rest of the tree");
     d.shell_mut().shutdown();
 }
 

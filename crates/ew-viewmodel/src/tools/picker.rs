@@ -5,7 +5,7 @@
 //! (`Session::place_catalogue`, fetched once per (revision, folio) while it is open). The symbol browser
 //! ([`PickerMode::Place`]) lists the symbols, drawings without a part, but the terminals; the device browser
 //! ([`PickerMode::Parts`]) lists the parts with their functions (FT-1696). Its tree ([`Picker::nodes`]) is
-//! All, In this project (also without hits), then the trades ([`Trade`]: Electrical, PLC and bus, Pneumatics,
+//! All, In this project (also without hits, while the project holds anything the browser lists), then the trades ([`Trade`]: Electrical, PLC and bus, Pneumatics,
 //! Enclosure and mounting) in that order, each opening to its sub-groups, the function categories with words
 //! ([`category_words`]; the first level of a symbol's FnDef category, of a part's own category or its main function's,
 //! else the group its kind gives), then Other, each with the count of its hits under the filter. One table,
@@ -579,14 +579,20 @@ impl Picker {
         {
             self.node = Node::All;
         }
+        // In this project stands while the project holds anything this browser lists, with no hits under the filter too,
+        // so the tree does not shift while typing; a project that holds nothing has no such group (rc.5).
+        let holds = (self.mode != PickerMode::Parts && self.catalogue.symbols.iter().any(|s| s.copy.is_some()))
+            || (matches!(self.mode, PickerMode::Parts | PickerMode::BlackBox)
+                && self.catalogue.parts.iter().any(|p| p.library.is_none()));
         let nodes: Vec<(Node, usize)> = tree
             .into_iter()
             .map(|n| {
                 let c = count(&n);
                 (n, c)
             })
-            // In this project stands with no hits too, so the tree does not shift when the first part is used.
-            .filter(|(n, c)| *c > 0 || *n == Node::All || *n == Node::Project || *n == self.node)
+            .filter(|(n, c)| {
+                *c > 0 || *n == Node::All || (*n == Node::Project && holds) || *n == self.node
+            })
             .collect();
         // A position being filled: Blanking plate first, the first valve chosen.
         let blank = self.cell.is_some()

@@ -269,20 +269,47 @@ fn filter(ui: &mut Ui, picker: &Picker, focus: bool, pane: Pane, events: &mut Ve
     }
 }
 
-/// The tree: All, In this project, the categories and Other, each with its count of hits; the chosen node selected.
+/// The tree: All, In this project, then the library's heading with its categories and Other under it, each node with
+/// its count of hits; the chosen node selected. The library is a group of its own beside In this project, so that its
+/// categories do not read as the project's (rc.5).
 fn tree(ui: &mut Ui, t: &Tokens, picker: &Picker, pane: Pane, events: &mut Vec<Event>) {
     ScrollArea::vertical()
         .id_salt("picker-tree")
         .auto_shrink([false, false])
         .show(ui, |ui| {
             ui.spacing_mut().item_spacing.y = 0.0;
+            let mut heading = true;
             for (node, count) in &picker.nodes {
+                if heading && matches!(node, Node::Trade(_) | Node::Category(_) | Node::Other) {
+                    heading = false;
+                    // A group heading as a panel's (doc 16a §3: `type.label`, `color.text.secondary`), the space of
+                    // a group apart above it.
+                    let words = strings::text(key!("picker-group-library"));
+                    let words = if t.type_label.upper {
+                        words.to_uppercase()
+                    } else {
+                        words.to_owned()
+                    };
+                    ui.add_space(t.space_3);
+                    ui.allocate_ui_with_layout(
+                        Vec2::new(ui.available_width(), t.size_row),
+                        egui::Layout::left_to_right(egui::Align::Center),
+                        |ui| {
+                            ui.add_space(ui.spacing().button_padding.x);
+                            ui.label(
+                                RichText::new(words)
+                                    .font(theme::font(&t.type_label))
+                                    .color(t.text_secondary.color32()),
+                            );
+                        },
+                    );
+                }
                 let words = node.words();
                 let chosen = *node == picker.node;
                 // A trade has the chevron column of a tree node (open or closed); its sub-groups stand one indent in.
                 let indent = t.size_tree_indent - t.space_3;
                 let mut atoms = egui::Atoms::default();
-                if matches!(node, Node::Trade(_) | Node::Category(_)) {
+                if matches!(node, Node::Trade(_) | Node::Category(_) | Node::Other) {
                     let level = if matches!(node, Node::Category(_)) {
                         2.0
                     } else {

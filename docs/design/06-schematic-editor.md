@@ -624,8 +624,10 @@ device (`crates/ew-viewmodel/tests/starter_symbols.rs`).
 
 *As built.* **Device from part lists the
 project's own part copies and the libraries' parts in one order**, by maker and part number, so a library part keeps
-its row once it is embedded (its Library column then says "In this project", and the tree's In this project node is
-there from the start): the rows do not move between two placements (persona round), and
+its row once it is embedded (its Library column then says "In this project"): the rows do not move between two
+placements (persona round). The tree has All, then In this project once the project holds a part (rc.5: not
+before), then the heading Library with the trades and their groups under it, so that the library's categories do not
+read as the project's; and
 its empty state names Edit ▸ Choose part…. **A part without a function template** is placed through the symbols it
 can take: `device.place` with `from_part` accepts such a part at template entry 0 and gives the new device the part
 and one main function of the chosen symbol's function definition.
