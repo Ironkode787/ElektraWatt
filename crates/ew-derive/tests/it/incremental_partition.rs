@@ -52,12 +52,16 @@ const FN_SHORT: u128 = 0x502;
 const FN_PASS: u128 = 0x503;
 const FN_TERM: u128 = 0x504;
 const FN_PE: u128 = 0x505;
+/// A FnDef whose CP 1 is a 0 V pin (role M): a wire from it to a PE pin is an earth wire, which the edits make,
+/// move and delete.
+const FN_M: u128 = 0x506;
 const SYM_PLAIN: u128 = 0x510;
 const SYM_IP: u128 = 0x511;
 const SYM_SHORT: u128 = 0x512;
 const SYM_PASS: u128 = 0x513;
 const SYM_TERM: u128 = 0x514;
 const SYM_PE: u128 = 0x515;
+const SYM_M: u128 = 0x516;
 
 const P1: u128 = 0x100;
 const P2: u128 = 0x101;
@@ -87,6 +91,8 @@ const FUNCS: &[(u128, u16)] = &[
     (0x100a, 2),
     (0x100b, 2),
     (0x100c, 2),
+    // A function with a 0 V pin (CP 1).
+    (0x100d, 2),
     // A function with a declared short between CPs 0 and 1.
     (0x1006, 3),
     // Two functions with a pass-through pair (a contact).
@@ -197,7 +203,7 @@ fn fndef_sym(fx: &mut Fx, n: u128, sym: u128, contact_kind: &str, cps: Value, in
     fx.symbol(sym, n, json!("origin"), &pins);
 }
 
-/// The fixture: 4 pages (the fourth empty), 21 functions, 4 interruption points (two pairs), 2 potential
+/// The fixture: 4 pages (the fourth empty), 22 functions (one with a 0 V pin wired to a PE terminal: an earth wire), 4 interruption points (two pairs), 2 potential
 /// definitions, a bond with a via connection, a junction with 3 arms, a bridge, a page-less connection, a
 /// declared short, a pass-through pair, a strip with 5 terminals of which 2 are rail-bonded in one location.
 fn fixture() -> Fx {
@@ -256,6 +262,17 @@ fn fixture() -> Fx {
         ]),
         json!([]),
     );
+    fndef_sym(
+        &mut fx,
+        FN_M,
+        SYM_M,
+        "pole",
+        json!([
+            {"idx": 0, "designation": "1"},
+            {"idx": 1, "designation": "-", "potential_role": "m"},
+        ]),
+        json!([]),
+    );
     fx.node(LOC, "location", "A", None);
     for (page, number) in [(P1, 1), (P2, 2), (P3, 3), (P4, 4)] {
         fx.page(page, number, None, "multi_line", &[], &format!("page {number}"));
@@ -275,6 +292,7 @@ fn fixture() -> Fx {
     ] {
         func(&mut fx, f, FN_PLAIN, SYM_PLAIN, page);
     }
+    func(&mut fx, 0x100d, FN_M, SYM_M, P1);
     func(&mut fx, 0x1006, FN_SHORT, SYM_SHORT, P1);
     func(&mut fx, 0x1007, FN_PASS, SYM_PASS, P1);
     func(&mut fx, 0x1008, FN_PASS, SYM_PASS, P2);
@@ -314,7 +332,10 @@ fn fixture() -> Fx {
     // The bond's via connection with a stub on each side.
     conn(&mut fx, 0x2011, Some(P3), cp(0x1009, 0), cp(0x100a, 0), w.clone());
     conn(&mut fx, 0x2012, Some(P3), cp(0x1009, 0), cp(0x1013, 0), w.clone());
-    conn(&mut fx, 0x2013, Some(P3), cp(0x100a, 0), cp(0x1005, 0), w);
+    conn(&mut fx, 0x2013, Some(P3), cp(0x100a, 0), cp(0x1005, 0), w.clone());
+    // The earth wire: the 0 V pin to the PE terminal on page 1, and the 0 V pin to a plain function.
+    conn(&mut fx, 0x2014, Some(P1), cp(0x100d, 1), cp(0x1014, 1), w.clone());
+    conn(&mut fx, 0x2015, Some(P1), cp(0x100d, 1), cp(0x100b, 0), w);
     fx.push(json!({
         "$k": "bond", "id": uid(0x4101), "a": cp(0x1009, 0).json(), "b": cp(0x100a, 0).json(),
         "kind": "equipotential", "via": uid(0x2011),
@@ -911,8 +932,9 @@ fn join_and_split(a: (u128, u16), b: (u128, u16), slack: usize) {
 
 #[test]
 fn joining_and_splitting_declares_only_the_touched_parts() {
-    // CP 0x1003:1 and CP 0x1004:1: two potentials, neither of them an end of the bond.
-    join_and_split((0x1003, 1), (0x1004, 1), 0);
+    // CP 0x1003:1 and CP 0x1004:1: two potentials, neither of them an end of the declared bond; 0x1004:1 is on the
+    // PE that the earth wire bonds the 0 V of 0x100d to, so the 0 V's wire list (its bond closure) is re-derived too.
+    join_and_split((0x1003, 1), (0x1004, 1), 1);
     // CP 0x1003:1 and CP 0x1004:0, whose potential holds a bond end: the bond parts are per potential
     // (`PartKey::BondsOf`), so only the bond's other end is re-derived besides the changed potentials.
     join_and_split((0x1003, 1), (0x1004, 0), 1);

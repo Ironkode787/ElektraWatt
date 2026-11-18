@@ -911,9 +911,9 @@ rule-ew-pot-014 = { $form ->
     .title = Physical-wire conflict
     .hint = Give the physical wire one set of properties, or split it into separate wires.
 
-rule-ew-pot-015 = Wire number { $number } is printed on { $count } wires that are not one conductor. Give each of them its own number, or join them if they are one.
+rule-ew-pot-015 = Wire number { $number } is printed on { $count } wires that are not one conductor
     .title = Wire-number conflict
-    .hint = Give the wires of one potential the same wire number, or separate the potentials.
+    .hint = Give each wire its own number, or join the wires if they are one conductor.
 
 rule-ew-pot-016 = Wire { $wire } has { $member ->
         [csa] its cross-section { $value }

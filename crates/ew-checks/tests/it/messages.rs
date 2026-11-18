@@ -490,25 +490,25 @@ fn nl_nl_words_the_uniqueness_rules_the_bus_ends_and_the_conflicts() {
     let number = by_hand(
         "EW-POT-015",
         "",
-        "wire number 101.3 is printed on 2 wires; a wire number names one numbering unit",
+        "Wire number 101.3 is printed on 2 wires that are not one conductor",
         &[("number", "101.3"), ("count", "2")],
     );
     assert_eq!(
         render(&number, "nl-NL"),
-        "draadnummer 101.3 staat op 2 draden; een draadnummer benoemt één nummeringseenheid"
+        "Draadnummer 101.3 staat op 2 draden die niet één geleider zijn"
     );
     // EW-CORE-013 words the group by the uniqueness rule's pattern.
     let merge = by_hand(
         "EW-CORE-013",
         "EW-POT-015",
-        "wire number 101.3 is printed on 2 wires; a wire number names one numbering unit after a merge; the oldest \
-         record keeps it, and the other must change",
+        "Wire number 101.3 is printed on 2 wires that are not one conductor after a merge; the oldest record keeps \
+         it, and the other must change",
         &[
             ("number", "101.3"),
             ("count", "2"),
             (
                 "collision",
-                "wire number 101.3 is printed on 2 wires; a wire number names one numbering unit",
+                "Wire number 101.3 is printed on 2 wires that are not one conductor",
             ),
             ("keeper", "oldest"),
             ("others", "one"),
@@ -516,8 +516,8 @@ fn nl_nl_words_the_uniqueness_rules_the_bus_ends_and_the_conflicts() {
     );
     assert_eq!(
         render(&merge, "nl-NL"),
-        "draadnummer 101.3 staat op 2 draden; een draadnummer benoemt één nummeringseenheid na samenvoegen; het \
-         oudste record behoudt het, en het andere moet wijzigen"
+        "Draadnummer 101.3 staat op 2 draden die niet één geleider zijn na samenvoegen; het oudste record behoudt \
+         het, en het andere moet wijzigen"
     );
     // EW-BUS-004: every kind of segment end.
     for (end, port, en, nl) in [
@@ -560,69 +560,88 @@ fn nl_nl_words_the_uniqueness_rules_the_bus_ends_and_the_conflicts() {
         );
         assert_eq!(render(&f, "nl-NL"), nl, "{end}");
     }
-    // EW-POT-001: each shape of conflict, one per line of `conflict_list`.
+    // EW-POT-001: each shape of conflict, one per line of `conflict_list` (its fields separated by tabs: the attribute,
+    // the two sides with what each is, the page).
     let conflicts = [
         (
-            "24VDC-1 at -X1:1 sets type L1; LPlus applies (first definition in natural order)",
-            "24VDC-1 at -X1:1 stelt type L1 in; LPlus geldt (eerste definitie in natuurlijke volgorde)",
+            "conflict-type\t24VDC-1 at -X1:1\tphase L1\tL1 at -X2:1\tplus L+\t3",
+            "24VDC-1 at -X1:1 (phase L1) is wired to L1 at -X2:1 (plus L+) on page 3: a wire joins two different \
+             potentials. Take that wire away, or correct the type of one of the two.",
+            "24VDC-1 at -X1:1 (fase L1) is verbonden met L1 at -X2:1 (plus L+) op pagina 3: een draad verbindt twee \
+             verschillende potentialen. Haal die draad weg, of verbeter het type van een van beide.",
         ),
         (
-            "24VDC-1 at -X1:1 sets voltage 230 V; 24 V applies (first definition in natural order)",
-            "24VDC-1 at -X1:1 stelt spanning 230 V in; 24 V geldt (eerste definitie in natuurlijke volgorde)",
+            "conflict-voltage\t24VDC-1 at -X1:1\t230 V\t24VDC-2\t24.5 V\t",
+            "24VDC-1 at -X1:1 (230 V) is wired to 24VDC-2 (24.5 V): one conductor cannot carry two voltages. Take \
+             that wire away, or correct the voltage of one of the two.",
+            "24VDC-1 at -X1:1 (230 V) is verbonden met 24VDC-2 (24,5 V): één geleider kan geen twee spanningen voeren. \
+             Haal die draad weg, of verbeter de spanning van een van beide.",
         ),
         (
-            "24VDC-1 at -X1:1 sets environment \"IT\"; \"TN-S\" applies (first definition in natural order)",
-            "24VDC-1 at -X1:1 stelt omgeving \"IT\" in; \"TN-S\" geldt (eerste definitie in natuurlijke volgorde)",
+            "conflict-environment\tL at -X1:1\tAC\t24VDC-1 at -X2:1\tDC, floating\t1",
+            "L at -X1:1 (AC) is wired to 24VDC-1 at -X2:1 (DC, floating) on page 1: one conductor cannot be both. \
+             Take that wire away, or correct the setting of one of the two.",
+            "L at -X1:1 (AC) is verbonden met 24VDC-1 at -X2:1 (DC, zwevend) op pagina 1: één geleider kan niet \
+             allebei zijn. Haal die draad weg, of verbeter de instelling van een van beide.",
         ),
         (
-            "24VDC-1 at -X1:1 sets circuit class \"control\"; \"main\" applies (first definition in natural order)",
-            "24VDC-1 at -X1:1 stelt stroomkringklasse \"control\" in; \"main\" geldt (eerste definitie in natuurlijke \
-             volgorde)",
+            "conflict-class\tL at -X1:1\tmains circuit\tS at -X2:1\tcontrol circuit\t1",
+            "L at -X1:1 (mains circuit) is wired to S at -X2:1 (control circuit) on page 1: one conductor cannot be \
+             in two circuit classes. Take that wire away, or correct the class of one of the two.",
+            "L at -X1:1 (netstroomkring) is verbonden met S at -X2:1 (stuurstroomkring) op pagina 1: één geleider kan \
+             niet in twee stroomkringklassen zitten. Haal die draad weg, of verbeter de klasse van een van beide.",
         ),
         (
-            "member CP -K1:A1 has role Pe; the defined type LPlus applies",
-            "aansluitpunt -K1:A1 heeft rol Pe; het gedefinieerde type LPlus geldt",
+            "conflict-role\t-K1:A1\tprotective earth PE\t24VDC at -X1:1\tplus L+\t2",
+            "-K1:A1 (protective earth PE) is wired to 24VDC at -X1:1 (plus L+) on page 2: a wire joins two different \
+             potentials. Take that wire away, or correct the type of 24VDC at -X1:1.",
+            "-K1:A1 (beschermingsaarde PE) is verbonden met 24VDC at -X1:1 (plus L+) op pagina 2: een draad verbindt \
+             twee verschillende potentialen. Haal die draad weg, of verbeter het type van 24VDC at -X1:1.",
         ),
         (
-            "member roles M, Pe meet LPlus; the first in role order applies",
-            "aansluitpuntrollen M, Pe botsen met LPlus; de eerste in de rolvolgorde geldt",
+            "conflict-roles\t-G1:+\tplus L+\t-X1:N\tneutral N\t3",
+            "-G1:+ (plus L+) is wired to -X1:N (neutral N) on page 3: a wire joins two different potentials. Take \
+             that wire away.",
+            "-G1:+ (plus L+) is verbonden met -X1:N (nulleider N) op pagina 3: een draad verbindt twee verschillende \
+             potentialen. Haal die draad weg.",
+        ),
+        (
+            "conflict-earth\t-G1:−\t0 V (M)\t-X1:PE\tprotective earth PE\t3",
+            "The 0 V -G1:− is joined to protective earth at -X1:PE on page 3, but not by a wire drawn from the 0 V \
+             straight to an earth point. Select the wire that joins them and choose Draw ▸ Connect ▸ Bond, or take \
+             that wire away.",
+            "De 0 V -G1:− is verbonden met de beschermingsaarde bij -X1:PE op pagina 3, maar niet met een draad die \
+             van de 0 V recht naar een aardpunt loopt. Selecteer de draad die ze verbindt en kies Tekenen ▸ Verbinden \
+             ▸ Potentiaalverbinding, of haal die draad weg.",
         ),
     ];
-    let en: Vec<&str> = conflicts.iter().map(|(en, _)| *en).collect();
-    let nl: Vec<&str> = conflicts.iter().map(|(_, nl)| *nl).collect();
+    let lines: Vec<&str> = conflicts.iter().map(|(line, _, _)| *line).collect();
+    let en: Vec<&str> = conflicts.iter().map(|(_, en, _)| *en).collect();
+    let nl: Vec<&str> = conflicts.iter().map(|(_, _, nl)| *nl).collect();
     let pot = by_hand(
         "EW-POT-001",
         "attrs",
-        &format!("{}; and 2 more member CPs", en.join("; ")),
+        &format!("{} 2 more connection points are wired the same way.", en.join(" ")),
         &[
             ("form", "attrs"),
-            ("conflicts", &en.join("; ")),
-            ("conflict_list", &en.join("\n")),
+            ("conflict_list", &lines.join("\n")),
             ("more", "2"),
-            ("hint", "none"),
         ],
     );
     assert_eq!(
         render(&pot, "nl-NL"),
-        format!("{}; en nog 2 aansluitpunten", nl.join("; "))
+        format!("{} Nog 2 aansluitpunten zijn op dezelfde manier bedraad.", nl.join(" "))
     );
-    // A conflict of another shape keeps the en-GB conflicts.
-    let odd = by_hand(
-        "EW-POT-001",
-        "attrs",
-        "something else",
-        &[
-            ("form", "attrs"),
-            ("conflicts", "something else"),
-            ("conflict_list", "something else"),
-            ("more", "none"),
-            ("hint", "none"),
-        ],
-    );
+    // A conflict of another shape keeps the en-GB message.
+    let meta = ew_checks::rule("EW-POT-001").expect("registered").meta();
+    let odd = ew_checks::Finding::new(meta, [], "attrs", "", "something else")
+        .arg("form", "attrs")
+        .arg("conflict_list", "something else")
+        .arg("more", "none");
     assert_eq!(render(&odd, "nl-NL"), "something else");
 }
 
-/// Every quick fix a rule offers names its key beside its English label; the key's en-GB message
+// Every quick fix a rule offers names its key beside its English label; the key's en-GB message
 /// is that label byte for byte (the CLI's text), nl-NL words it in Dutch, and a fix without a key keeps its label.
 #[test]
 fn every_quick_fix_label_has_its_key_in_both_languages() {

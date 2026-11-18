@@ -413,25 +413,41 @@ pub enum AttrConflict {
 }
 
 impl AttrConflict {
-    /// The conflict in English, as the EW-POT-001 notes of `potential_name` carry it.
+    /// The conflict in English, as the EW-POT-001 notes of `potential_name` carry it (the check words it for a
+    /// person).
     pub fn detail(&self, q: &Q) -> String {
-        let def = |d: &Id<PotentialDef>| {
-            q.potential_defs()
-                .get(*d)
-                .map_or_else(|| "a definition".to_owned(), |d| def_text(q, d))
-        };
+        let defs = q.potential_defs();
         match self {
-            AttrConflict::Defs { attr, def: d, applied } => {
-                format!("{} disagrees with {} on the {attr:?}", def(d), def(applied))
+            AttrConflict::Defs { attr, def, applied } => {
+                let (Some(d), Some(a)) = (defs.get(*def), defs.get(*applied)) else {
+                    return "two definitions disagree".to_owned();
+                };
+                let (what, value, applies) = match attr {
+                    DefAttr::Type => ("type", format!("{:?}", d.ptype), format!("{:?}", a.ptype)),
+                    DefAttr::Voltage => {
+                        let v = |x: &PotentialDef| x.voltage.map(|v| format!("{v} V")).unwrap_or_default();
+                        ("voltage", v(d), v(a))
+                    }
+                    DefAttr::Environment => ("environment", format!("{:?}", d.env), format!("{:?}", a.env)),
+                    DefAttr::Class => (
+                        "circuit class",
+                        format!("{:?}", d.circuit_class),
+                        format!("{:?}", a.circuit_class),
+                    ),
+                };
+                format!(
+                    "{} sets {what} {value}; {applies} applies (first definition in natural order)",
+                    def_text(q, d)
+                )
             }
-            AttrConflict::Role { cp, role, def: d } => {
-                format!("{} has role {role:?}; {} gives the type", cp_text(q, *cp), def(d))
-            }
-            AttrConflict::Roles { first, applied, cp, role } => format!(
-                "{} has role {role:?}, {} role {applied:?}",
+            AttrConflict::Role { cp, role, def } => format!(
+                "member CP {} has role {role:?}; the defined type {:?} applies",
                 cp_text(q, *cp),
-                cp_text(q, *first)
+                defs.get(*def).and_then(|d| d.ptype.clone())
             ),
+            AttrConflict::Roles { applied, role, .. } => {
+                format!("member roles {role:?} meet {applied:?}; the first in role order applies")
+            }
         }
     }
 }

@@ -79,7 +79,7 @@ fn definitions_rank_in_natural_order_not_in_id_order() {
         assert_eq!(f.len(), 1, "swap {swap}: {f:#?}");
         assert_eq!(f[0].targets.len(), 2, "swap {swap}");
         assert!(
-            f[0].message.contains("24 applies"),
+            f[0].message.contains("is wired to P at -1K1:1 (24 V)"),
             "swap {swap}: {}",
             f[0].message
         );
@@ -117,7 +117,7 @@ fn the_first_name_in_natural_order_wins_whatever_the_ids() {
         assert_eq!(f.len(), 1, "swap {swap}: {f:#?}");
         assert_eq!(f[0].subject, "P2", "swap {swap}");
         assert!(
-            f[0].message.contains("24 applies"),
+            f[0].message.contains("is wired to P2 at -1K2:1 (24 V)"),
             "swap {swap}: {}",
             f[0].message
         );
@@ -132,7 +132,7 @@ fn the_first_name_in_natural_order_wins_whatever_the_ids() {
     }
 }
 
-/// A PE-role function tagged -K1 and an M-role function tagged -K2 on one wire, without a definition; `swap`
+/// A PE-role function tagged -K1 and an L+-role function tagged -K2 on one wire, without a definition; `swap`
 /// swaps their IDs; `extra` adds a plain function tagged -K9 to the wire.
 fn role_conflict(swap: bool, extra: bool) -> (Model, u128) {
     let (pe, m) = if swap { (0x1002, 0x1001) } else { (0x1001, 0x1002) };
@@ -222,50 +222,93 @@ fn a_waiver_of_an_undefined_potential_survives_a_new_member() {
     }
 }
 
-/// A PE-role CP and an M-role CP on one wire, without a definition; `pe_first` gives the PE function the
-/// lower ID. Returns the model and the IDs of the PE and the M function.
-fn pe_meets_m(pe_first: bool) -> (Model, u128, u128) {
-    let (pe, m) = if pe_first {
+/// A PE-role CP and a CP of the role `live` (an L+ pin) or a 0 V pin on one wire, without a definition; `pe_first`
+/// gives the PE function the lower ID. Returns the model and the IDs of the PE and the other function.
+fn pe_meets(pe_first: bool, live: bool) -> (Model, u128, u128) {
+    let (pe, other) = if pe_first {
         (0x1001, 0x1002)
     } else {
         (0x1002, 0x1001)
     };
     let mut fx = Fx::base();
     fx.func_pe(pe, P1);
-    fx.func_m(m, P1);
-    fx.conn(0x2001, P1, Ep::Cp(pe, 1), Ep::Cp(m, 1), &none());
-    (fx.build(), pe, m)
+    if live {
+        fx.func_lplus(other, P1);
+    } else {
+        fx.func_m(other, P1);
+    }
+    fx.conn(0x2001, P1, Ep::Cp(pe, 1), Ep::Cp(other, 1), &none());
+    (fx.build(), pe, other)
 }
 
 #[test]
 fn pot001_member_role_conflict_does_not_depend_on_the_id_order() {
-    // The two ID orders of one drawing (a new project mints random IDs): the applied role, the text and the
-    // targets are the same in both. Before the fix the CP (ID) order chose the applied role ("Pe meet M" in
-    // one order) and the one target (the function of the smallest CP), so a properties sheet of the PE
-    // terminal showed the finding in one copy of a project and not in the other (blind replay gpp-2).
+    // The two ID orders of one drawing (a new project mints random IDs): the applied role and the targets are the
+    // same in both. Before the fix the CP (ID) order chose the applied role and the one target (the function of the
+    // smallest CP), so a properties sheet of the PE terminal showed the finding in one copy of a project and not in
+    // the other (blind replay gpp-2).
     for pe_first in [true, false] {
-        let (m, pe, mf) = pe_meets_m(pe_first);
+        let (m, pe, other) = pe_meets(pe_first, true);
         let f: Vec<_> = findings_of(&m, "EW-POT-001")
             .into_iter()
             .filter(|f| f.discriminator.starts_with("attrs"))
             .collect();
         assert_eq!(f.len(), 1, "pe_first {pe_first}: {f:#?}");
-        let mut want = vec![target(Kind::Function, pe), target(Kind::Function, mf)];
+        let mut want = vec![target(Kind::Function, pe), target(Kind::Function, other)];
         want.sort();
         assert_eq!(
             f[0].targets, want,
             "pe_first {pe_first}: every member is a target"
         );
-        assert!(
-            f[0].message.contains("M meet Pe"),
-            "pe_first {pe_first}: {}",
-            f[0].message
-        );
+        // The live pin is named against the protective earth, in words, with the page and what to do.
+        let other_tag = format!("-1K{other}:+");
+        let pe_tag = format!("-1K{pe}:PE");
         assert_eq!(
-            f[0].message, "member roles M meet Pe; the first in role order applies",
+            f[0].message,
+            format!(
+                "{other_tag} (plus L+) is wired to {pe_tag} (protective earth PE) on page 1: a wire joins two \
+                 different potentials. Take that wire away."
+            ),
             "pe_first {pe_first}"
         );
     }
+}
+
+/// A wire drawn from a 0 V pin straight to a protective-earth pin is the bond (doc 08 §3.7): in both ID orders no
+/// EW-POT-001, the 0 V stays a potential of its own with the type M, the wire is a 0 V–PE bond of it, and EW-POT-002
+/// counts it, so a PELV 0 V with that one wire is satisfied.
+#[test]
+fn a_wire_from_0v_to_earth_is_the_bond() {
+    for pe_first in [true, false] {
+        let (m, pe, zero) = pe_meets(pe_first, false);
+        assert!(findings_of(&m, "EW-POT-001").is_empty(), "pe_first {pe_first}");
+        let q = ew_derive::Q::new(&m);
+        let part = q.get::<ew_derive::PotentialPartition>(());
+        let at = |f: u128| {
+            part.potential_at(ew_model::EndpointKey::Cp(uid(f).cast(), 1))
+                .map(|p| p.id)
+                .expect("a potential")
+        };
+        let (zero_volt, earth) = (at(zero), at(pe));
+        assert_ne!(zero_volt, earth, "pe_first {pe_first}: two potentials");
+        assert_eq!(
+            q.get::<ew_derive::PotentialAttrsOf>(zero_volt)
+                .ptype
+                .as_ref()
+                .map(|t| t.value.clone()),
+            Some(ew_derive::ew_schema::PotentialType::M),
+            "pe_first {pe_first}: the 0 V keeps its type"
+        );
+        let bonds = ew_derive::bonds_of_potential(&q, zero_volt);
+        assert_eq!(bonds.len(), 1, "pe_first {pe_first}: {bonds:#?}");
+        assert!(bonds[0].drawn && bonds[0].via == Some(uid(0x2001).cast()));
+        assert_eq!((bonds[0].a, bonds[0].b), (Some(zero_volt), Some(earth)));
+        // The one bond is the PELV circuit's one earthing point.
+        assert!(findings_of(&m, "EW-POT-002").is_empty(), "pe_first {pe_first}");
+    }
+    // A live pin wired to earth is no bond: it stays a fault.
+    let (m, _, _) = pe_meets(true, true);
+    assert_eq!(findings_of(&m, "EW-POT-001").len(), 1);
 }
 
 #[test]
@@ -276,8 +319,11 @@ fn pot001_joins_several_conflicts_into_one_finding() {
     );
     let f = findings_of(&m, "EW-POT-001");
     assert_eq!(f.len(), 1, "{f:#?}");
-    assert!(f[0].message.contains("; "), "{}", f[0].message);
-    assert!(f[0].message.contains("voltage") && f[0].message.contains("circuit class"));
+    assert!(
+        f[0].message.contains("cannot carry two voltages") && f[0].message.contains("two circuit classes"),
+        "{}",
+        f[0].message
+    );
 }
 
 #[test]
@@ -337,7 +383,11 @@ fn pot001_flow_reports_a_pass_through_between_different_types() {
         "{:?}",
         f[0].targets
     );
-    assert!(f[0].message.contains("pass-through"), "{}", f[0].message);
+    assert_eq!(
+        f[0].message,
+        "-1K4099 carries plus L+ through to neutral N: a contact or a fuse passes one potential on, it cannot change \
+         it into another. Correct the type on one side, or put a power supply or a transformer between them."
+    );
     // The same type on both sides is no conflict.
     let mut fx = Fx::base();
     fx.func(0x1001, P1);
@@ -659,6 +709,18 @@ fn bonded(def: &Value, bonds: usize) -> Model {
     fx.build()
 }
 
+/// A PELV 0 V (an M-role pin with a definition) wired straight to `n` protective-earth pins.
+fn drawn_bonds(n: u128) -> Model {
+    let mut fx = Fx::base();
+    fx.func_m(0x1001, P1);
+    fx.def(0x5001, Ep::Cp(0x1001, 1), &pelv_m());
+    for i in 0..n {
+        fx.func_pe(0x1002 + i, P1);
+        fx.conn(0x2001 + i, P1, Ep::Cp(0x1001, 1), Ep::Cp(0x1002 + i, 1), &none());
+    }
+    fx.build()
+}
+
 fn pelv_m() -> Value {
     json!({"ptype": "m", "env": {"earthing": "pelv"}})
 }
@@ -678,7 +740,7 @@ fn pot002_cases() {
                     assert_eq!(f[0].discriminator, "pelv", "case {c}");
                     assert_eq!(f[0].targets, vec![target(Kind::PotentialDef, 0x5001)], "case {c}");
                     assert!(
-                        f[0].message.contains("no 0 V–PE bond"),
+                        f[0].message.contains("its 0 V is not bonded to protective earth"),
                         "case {c}: {}",
                         f[0].message
                     );
@@ -692,7 +754,7 @@ fn pot002_cases() {
                     assert_eq!(f.len(), 1, "case {c}: {f:#?}");
                     assert_eq!(f[0].discriminator, "pelv", "case {c}");
                     assert!(
-                        f[0].message.contains("has 2 0 V–PE bonds"),
+                        f[0].message.contains("bonded to protective earth in 2 places"),
                         "case {c}: {}",
                         f[0].message
                     );
@@ -714,6 +776,19 @@ fn pot002_cases() {
                     );
                 },
             ),
+            Case::silent("a pelv 0 V with one wire drawn to earth", drawn_bonds(1)),
+            Case::reports(
+                "a pelv 0 V with two wires drawn to earth is reported",
+                drawn_bonds(2),
+                |c, f| {
+                    assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                    assert_eq!(f[0].discriminator, "pelv", "case {c}");
+                    // A drawn bond is targeted by its wire.
+                    for w in [0x2001, 0x2002] {
+                        assert!(f[0].targets.contains(&target(Kind::Connection, w)), "case {c}: {:?}", f[0].targets);
+                    }
+                },
+            ),
             Case::silent(
                 "a pelv potential that is not M type",
                 bonded(&json!({"ptype": "l_plus", "env": {"earthing": "pelv"}}), 0),
@@ -729,22 +804,28 @@ const M_FN: u128 = 0x1001;
 const TERMINAL: u128 = 0x1002;
 const PE_FN: u128 = 0x1003;
 const W1: u128 = 0x2001;
+const W2: u128 = 0x2002;
 const W27: u128 = 0x2027;
 const PE_FN2: u128 = 0x1004;
 const W30: u128 = 0x2030;
 
-/// 0 V (the M-role CP of `M_FN`) and PE (the PE-role CPs of `PE_FN` and `PE_FN2`, joined by wire W30) joined
-/// through a terminal: wire W1 from the 0 V CP to the terminal, wire W27 from the terminal to the PE CP; `bond` adds
-/// the bond the fix declares. `(w1, w27)` are the IDs of W1 and W27.
+/// 0 V (the M-role CP of `M_FN` on page 1) and PE (the PE-role CPs of `PE_FN` and `PE_FN2` on page 2, joined by wire
+/// W30) joined through an interruption-point pair "0V" and a terminal on page 2: wire W1 from the 0 V CP to the point
+/// on page 1, wire W2 from its partner to the terminal, wire W27 from the terminal to the PE CP. The 0 V comes onto
+/// page 2 through the point, so W27 is not drawn from a 0 V pin: 0 V and PE meet; `bond` adds the bond the fix
+/// declares. `(w1, w27)` are the IDs of W1 and W27.
 fn zero_volt_through_a_terminal_with(bond: bool, (w1, w27): (u128, u128)) -> Model {
     let mut fx = Fx::base();
     fx.func_m(M_FN, P1);
-    fx.func(TERMINAL, P1);
-    fx.func_pe(PE_FN, P1);
-    fx.func_pe(PE_FN2, P1);
-    fx.conn(w1, P1, Ep::Cp(M_FN, 1), cp(TERMINAL), &none());
-    fx.conn(w27, P1, cp(TERMINAL), Ep::Cp(PE_FN, 1), &none());
-    fx.conn(W30, P1, Ep::Cp(PE_FN, 1), Ep::Cp(PE_FN2, 1), &none());
+    fx.ip(0x1101, P1, "0V", "source");
+    fx.ip(0x1102, P2, "0V", "target");
+    fx.func(TERMINAL, P2);
+    fx.func_pe(PE_FN, P2);
+    fx.func_pe(PE_FN2, P2);
+    fx.conn(w1, P1, Ep::Cp(M_FN, 1), cp(0x1101), &none());
+    fx.conn(W2, P2, cp(0x1102), cp(TERMINAL), &none());
+    fx.conn(w27, P2, cp(TERMINAL), Ep::Cp(PE_FN, 1), &none());
+    fx.conn(W30, P2, Ep::Cp(PE_FN, 1), Ep::Cp(PE_FN2, 1), &none());
     if bond {
         fx.push(json!({
             "$k": "bond", "id": us(0x4001), "a": {"cp": [us(TERMINAL), 0]}, "b": {"cp": [us(PE_FN), 1]},
@@ -765,8 +846,10 @@ fn pot001_offers_the_0v_pe_bond_on_the_wire_at_the_pe_side() {
         let f = findings_of(&zero_volt_through_a_terminal_with(false, (w1, w27)), "EW-POT-001");
         assert_eq!(f.len(), 1, "{f:#?}");
         assert_eq!(
-            f[0].message, "member roles M meet Pe; the first in role order applies",
-            "a finding with a fix keeps its text"
+            f[0].message,
+            "The 0 V -1K4097:- is joined to protective earth at -2K4099:PE on page 2, but not by a wire drawn from \
+             the 0 V straight to an earth point. Select the wire that joins them and choose Draw ▸ Connect ▸ Bond, or \
+             take that wire away."
         );
         let fix = f[0].fix.as_ref().expect("the bond fix");
         assert_eq!(fix.label, "Declare 0 V–PE bond (PELV)");
@@ -801,13 +884,18 @@ fn the_declared_bond_keeps_0v_and_pe_apart_and_satisfies_pot002() {
     );
 }
 
-/// Two parallel wires between the 0 V and the PE CP: removing either splits nothing, so there is no bond carrier.
+/// The 0 V comes in through an interruption point to the PE CP, with two parallel wires on each side of the point:
+/// removing any one splits nothing, so there is no bond carrier.
 fn zero_volt_meets_pe_without_a_carrier() -> Model {
     let mut fx = Fx::base();
     fx.func_m(M_FN, P1);
-    fx.func_pe(PE_FN, P1);
-    fx.conn(W1, P1, Ep::Cp(M_FN, 1), Ep::Cp(PE_FN, 1), &none());
-    fx.conn(W27, P1, Ep::Cp(M_FN, 1), Ep::Cp(PE_FN, 1), &none());
+    fx.ip(0x1101, P1, "0V", "source");
+    fx.ip(0x1102, P2, "0V", "target");
+    fx.func_pe(PE_FN, P2);
+    fx.conn(0x2003, P1, Ep::Cp(M_FN, 1), cp(0x1101), &none());
+    fx.conn(0x2004, P1, Ep::Cp(M_FN, 1), cp(0x1101), &none());
+    fx.conn(W1, P2, cp(0x1102), Ep::Cp(PE_FN, 1), &none());
+    fx.conn(W27, P2, cp(0x1102), Ep::Cp(PE_FN, 1), &none());
     fx.build()
 }
 
@@ -819,13 +907,16 @@ fn pot001_without_a_carrier_has_no_fix_and_names_draw_connect_bond() {
     // The menu path as the menus give it (Draw ▸ Connect ▸ Bond).
     assert_eq!(
         f[0].message,
-        "member roles M meet Pe; the first in role order applies; declare the bond with Draw ▸ Connect ▸ Bond"
+        "The 0 V -1K4097:- is joined to protective earth at -2K4099:PE on page 2, but not by a wire drawn from the \
+         0 V straight to an earth point. Select the wire that joins them and choose Draw ▸ Connect ▸ Bond, or take \
+         that wire away."
     );
-    // The Dutch hint names the Dutch menu path.
+    // The Dutch sentence names the Dutch menu path.
     assert_eq!(
         ew_checks::messages::render(&f[0], "nl-NL"),
-        "aansluitpuntrollen M botsen met Pe; de eerste in de rolvolgorde geldt; declareer de potentiaalverbinding met \
-         Tekenen ▸ Verbinden ▸ Potentiaalverbinding"
+        "De 0 V -1K4097:- is verbonden met de beschermingsaarde bij -2K4099:PE op pagina 2, maar niet met een draad \
+         die van de 0 V recht naar een aardpunt loopt. Selecteer de draad die ze verbindt en kies Tekenen ▸ \
+         Verbinden ▸ Potentiaalverbinding, of haal die draad weg."
     );
 }
 
@@ -855,25 +946,22 @@ fn pe_members_against_m(n: u128) -> ew_checks::Finding {
     attrs_finding(&fx.build())
 }
 
-/// EW-POT-001's message names at most three member CPs and then "and N more member CPs";
-/// the finding's `members` argument keeps every conflict, and nl-NL renders the same cut from the arguments. Three
-/// member CPs or fewer are all named, with no count.
+/// EW-POT-001's message names at most three member CPs and then counts the rest; nl-NL renders the same cut from the
+/// arguments. Three member CPs or fewer are all named, with no count.
 #[test]
 fn pot001_names_three_member_cps_and_counts_the_rest() {
+    let joined = "is joined to protective earth at ";
     let f = pe_members_against_m(3);
-    assert_eq!(f.message.matches("member CP ").count(), 3, "{}", f.message);
+    assert_eq!(f.message.matches(joined).count(), 3, "{}", f.message);
     assert!(!f.message.contains("more"), "{}", f.message);
     let f = pe_members_against_m(6);
-    assert_eq!(f.message.matches("member CP ").count(), 3, "{}", f.message);
-    assert!(f.message.ends_with("; and 3 more member CPs"), "{}", f.message);
-    let members = &f.args.iter().find(|(k, _)| *k == "members").expect("members").1;
-    assert_eq!(members.matches("member CP ").count(), 6, "{members}");
-    let nl = ew_checks::messages::render(&f, "nl-NL");
-    assert!(nl.ends_with("; en nog 3 aansluitpunten"), "{nl}");
-    assert_eq!(
-        nl,
-        "aansluitpunt -1K4352:PE heeft rol Pe; het gedefinieerde type M geldt; aansluitpunt -1K4353:PE heeft rol Pe; \
-         het gedefinieerde type M geldt; aansluitpunt -1K4354:PE heeft rol Pe; het gedefinieerde type M geldt; en nog \
-         3 aansluitpunten"
+    assert_eq!(f.message.matches(joined).count(), 3, "{}", f.message);
+    assert!(
+        f.message.ends_with(" 3 more connection points are wired the same way."),
+        "{}",
+        f.message
     );
+    let nl = ew_checks::messages::render(&f, "nl-NL");
+    assert!(nl.ends_with(" Nog 3 aansluitpunten zijn op dezelfde manier bedraad."), "{nl}");
+    assert_eq!(nl.matches("is verbonden met de beschermingsaarde bij -1K435").count(), 3, "{nl}");
 }

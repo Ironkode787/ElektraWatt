@@ -907,9 +907,9 @@ rule-ew-pot-014 = { $form ->
     .title = Conflict in een fysieke draad
     .hint = Geef de fysieke draad één set eigenschappen, of splits hem in afzonderlijke draden.
 
-rule-ew-pot-015 = Draadnummer { $number } staat op { $count } draden die niet één geleider zijn. Geef elk een eigen nummer, of verbind ze als ze één geleider zijn.
+rule-ew-pot-015 = Draadnummer { $number } staat op { $count } draden die niet één geleider zijn
     .title = Draadnummerconflict
-    .hint = Geef de draden van één potentiaal hetzelfde draadnummer, of scheid de potentialen.
+    .hint = Geef elke draad een eigen nummer, of verbind de draden als ze één geleider zijn.
 
 rule-ew-pot-016 = Draad { WORD($wire) } heeft { $member ->
         [csa] zijn doorsnede { DECIMAL($value) }

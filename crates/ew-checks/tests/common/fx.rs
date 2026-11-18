@@ -72,6 +72,9 @@ pub const FNDEF_IP0: u128 = 0x504;
 /// The function definition with an M-role (0 V) CP 1.
 pub const FNDEF_M: u128 = 0x505;
 const SYM_M: u128 = 0x515;
+/// The function definition with an L+-role (plus) CP 1.
+pub const FNDEF_LPLUS: u128 = 0x5E6;
+const SYM_LPLUS: u128 = 0x5F6;
 const SYM: u128 = 0x510;
 const SYM_IP: u128 = 0x511;
 const SYM_PASS: u128 = 0x512;
@@ -214,6 +217,12 @@ impl Fx {
             &[(0, "1", Value::Null), (1, "-", json!({"potential_role": "m"}))],
             &no_links,
         );
+        fx.fndef(
+            FNDEF_LPLUS,
+            SYM_LPLUS,
+            &[(0, "1", Value::Null), (1, "+", json!({"potential_role": "l_plus"}))],
+            &no_links,
+        );
         for (n, page) in [(P1, 1), (P2, 2)] {
             fx.push(json!({
                 "$k": "page", "id": us(n), "folio": {"number": page}, "kind": "multi_line",
@@ -254,10 +263,10 @@ impl Fx {
         self.rep(n + 0x1000, SYM, page);
     }
 
-    /// A function `n` of the PE-role definition (`pe`) or the M-role one, whose device has the tag `-K<counter>`
+    /// A function `n` of the PE-role definition (`pe`) or the L+-role one, whose device has the tag `-K<counter>`
     /// whatever its ID: for ID-permutation tests, where the printed key must not follow the ID order.
     pub fn func_role_tagged(&mut self, n: u128, pe: bool, counter: u32, page: u128) {
-        let (def, sym) = if pe { (FNDEF_PE, SYM_PE) } else { (FNDEF_M, SYM_M) };
+        let (def, sym) = if pe { (FNDEF_PE, SYM_PE) } else { (FNDEF_LPLUS, SYM_LPLUS) };
         self.device(n + 0x20_000, "K", Some(counter));
         self.push(json!({"$k": "function", "id": us(n), "device": us(n + 0x20_000), "def": us(def)}));
         self.rep(n, sym, page);
@@ -305,6 +314,11 @@ impl Fx {
     /// A function `n` with an M-role CP 1, drawn on `page`.
     pub fn func_m(&mut self, n: u128, page: u128) {
         self.func_of(n, FNDEF_M, SYM_M, page);
+    }
+
+    /// A function `n` with an L+-role CP 1, drawn on `page`.
+    pub fn func_lplus(&mut self, n: u128, page: u128) {
+        self.func_of(n, FNDEF_LPLUS, SYM_LPLUS, page);
     }
 
     /// A pass-through function `n` drawn on `page`.

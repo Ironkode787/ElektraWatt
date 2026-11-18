@@ -2388,7 +2388,12 @@ impl Rule for RedundantOverride {
             let same = |a: Option<String>, b: Option<String>| a.is_some() && a == b;
             if o.csa.is_some() && props.csa.as_ref().map(|x| &x.value) == below.csa.as_ref().map(|x| &x.value)
             {
-                let v = o.csa.as_ref().and_then(csa_text).unwrap_or_default();
+                // A cross-section in mm² says its unit (`1.5 mm²`); AWG and kcmil print theirs.
+                let v = match o.csa.as_ref() {
+                    Some(c @ Csa::Mm2(_)) => csa_text(c).map(|t| format!("{t} mm²")),
+                    c => c.and_then(csa_text),
+                }
+                .unwrap_or_default();
                 redundant.push(("csa", s.csa, v));
             }
             if o.colour.is_some()
@@ -2756,12 +2761,12 @@ mod tests {
         assert_eq!(f[0].targets.len(), 2);
         assert_eq!(
             f[0].message,
-            "wire number 101.2 is printed on 2 wires; a wire number names one numbering unit"
+            "Wire number 101.2 is printed on 2 wires that are not one conductor"
         );
         // The finding's own arguments word it in Dutch.
         assert_eq!(
             crate::messages::render(&f[0], "nl-NL"),
-            "draadnummer 101.2 staat op 2 draden; een draadnummer benoemt één nummeringseenheid"
+            "Draadnummer 101.2 staat op 2 draden die niet één geleider zijn"
         );
         assert!(duplicate_numbers([("1.1".to_owned(), w(1)), ("1.1".to_owned(), w(1))]).is_empty());
     }

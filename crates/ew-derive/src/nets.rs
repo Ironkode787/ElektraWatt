@@ -112,7 +112,7 @@ pub(crate) fn ip_cp(q: &Q, ip: Id<Function>) -> Option<CpRef> {
 pub struct NetMember {
     /// The node.
     pub at: EndpointKey,
-    /// The joining connections at the node (at a protective-earth point also its earth wires), in ID order.
+    /// The joining connections at the node, and the earth wires that end at it, in ID order.
     pub via: Vec<Id<Connection>>,
 }
 
@@ -123,8 +123,7 @@ pub struct LocalNet {
     pub id: NetId,
     /// The members in node order.
     pub members: Vec<NetMember>,
-    /// The joining connections of the net, and the earth wires ([`EarthWire`]) that end at its protective-earth
-    /// points, in ID order.
+    /// The joining connections of the net, and the earth wires ([`EarthWire`]) that end in it, in ID order.
     pub connections: Vec<Id<Connection>>,
 }
 
@@ -269,11 +268,12 @@ impl Query for PageLocalNets {
             });
             match earth_wire {
                 Some((zero_volt, earth)) => {
-                    // The earth point stays a node of the page, brought in by its earth wire: the earth side of
-                    // the bond is a potential of its own even when nothing else is wired to it.
+                    // Both ends stay nodes of the page, brought in by the earth wire: each side of the bond is a
+                    // potential of its own even when nothing else is wired to it.
                     cut.push(id);
                     dsu.node(earth);
                     via.entry(earth).or_default().insert(id);
+                    via.entry(zero_volt).or_default().insert(id);
                     earth_wires.push(EarthWire {
                         via: id,
                         zero_volt,

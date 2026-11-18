@@ -95,7 +95,7 @@ fn pot003_cases() {
                     assert_eq!(f[0].severity, Severity::Warning, "case {c}");
                     assert_eq!(f[0].discriminator, "fe:1", "case {c}");
                     assert_eq!(f[0].targets, vec![target(Kind::Function, 0x1001)], "case {c}");
-                    assert!(f[0].message.contains("role FE"), "case {c}: {}", f[0].message);
+                    assert!(f[0].message.contains("is a functional earth (FE) pin"), "case {c}: {}", f[0].message);
                 },
             ),
             Case::silent("an FE pin on FE", fe_on(&json!({"ptype": "fe"}), false)),
@@ -141,7 +141,7 @@ fn pot004_cases() {
                     assert_eq!(f[0].code, "005004", "case {c}");
                     assert_eq!(f[0].severity, Severity::Error, "case {c}");
                     assert_eq!(f[0].targets, vec![target(Kind::Connection, 0x2001)], "case {c}");
-                    assert!(f[0].message.contains("GNYE"), "case {c}: {}", f[0].message);
+                    assert!(f[0].message.contains("is green-yellow but carries"), "case {c}: {}", f[0].message);
                 },
             ),
             Case::silent(
@@ -292,12 +292,22 @@ fn pot006_cases() {
 // EW-POT-008, PE-island half
 
 const LOC: u128 = 0x900;
+/// An earth symbol's definition (category `EarthingBar/ProtectiveEarth/Point`, one PE-role CP) and its symbol.
+const FNDEF_EARTH: u128 = 0x5A0;
+const SYM_EARTH: u128 = 0x5A1;
 
 /// Two PE potentials (PE1 on -K4097/-K4098, PE2 on -K4099/-K4100) in a project whose one own location is +A;
-/// `joined` wires them into one.
-fn two_pe(joined: bool) -> Model {
+/// `joined` wires them into one; `earths` wires an earth symbol to PE1, and with 2 a second one to PE2.
+fn two_pe(joined: bool, earths: u8) -> Model {
     let mut fx = Fx::base();
     fx.push(json!({"$k": "structure_node", "id": us(LOC), "aspect": "location", "code": "A"}));
+    fx.fndef_with(
+        FNDEF_EARTH,
+        SYM_EARTH,
+        &[(0, "PE", json!({"potential_role": "pe"}))],
+        &json!([]),
+        &json!({"category": ["EarthingBar", "ProtectiveEarth", "Point"]}),
+    );
     for n in [0x1001, 0x1002, 0x1003, 0x1004] {
         fx.func(n, P1);
     }
@@ -305,6 +315,11 @@ fn two_pe(joined: bool) -> Model {
     fx.conn(0x2002, P1, cp(0x1003), cp(0x1004), &none());
     if joined {
         fx.conn(0x2003, P1, cp(0x1002), cp(0x1003), &none());
+    }
+    for (i, at) in [0x1001u128, 0x1003].into_iter().take(earths.into()).enumerate() {
+        let earth = 0x1101 + i as u128;
+        fx.func_of(earth, FNDEF_EARTH, SYM_EARTH, P1);
+        fx.conn(0x2101 + i as u128, P1, cp(at), cp(earth), &none());
     }
     fx.def(0x5002, cp(0x1003), &json!({"name": "PE2", "ptype": "pe"}));
     fx.def(0x5001, cp(0x1001), &json!({"name": "PE1", "ptype": "pe"}));
@@ -317,40 +332,45 @@ fn pot008_pe_cases() {
         "EW-POT-008",
         vec![
             Case::reports(
-                "two PE potentials in one location are reported",
-                two_pe(false),
+                "two PE potentials that reach no earth are each reported",
+                two_pe(false, 0),
                 |c, f| {
-                    assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                    assert_eq!(f.len(), 2, "case {c}: {f:#?}");
                     assert_eq!(f[0].severity, Severity::Warning, "case {c}");
                     assert_eq!(f[0].discriminator, "island", "case {c}");
                     assert_eq!(
                         f[0].message,
-                        "+A has 2 protective-earth networks that do not meet: PE1, PE2. Connect them: put their PE \
-                         terminals on one bonded rail, or draw a PE wire between them.",
+                        "The protective earth at -1K4097:1 on page 1 reaches neither the incoming PE nor an earth \
+                         symbol of +A. Wire it to the PE rail or to an earth symbol, or put its PE terminal on a \
+                         bonded rail.",
                         "case {c}"
                     );
-                    assert_eq!(
-                        f[0].targets,
-                        vec![
-                            target(Kind::StructureNode, LOC),
-                            target(Kind::PotentialDef, 0x5001),
-                            target(Kind::PotentialDef, 0x5002),
-                        ]
-                        .into_iter()
-                        .collect::<std::collections::BTreeSet<_>>()
-                        .into_iter()
-                        .collect::<Vec<_>>(),
-                        "case {c}"
+                    assert!(f[1].message.contains(" at -1K4099:1 on page 1 "), "case {c}: {}", f[1].message);
+                    assert!(
+                        f[0].targets.contains(&target(Kind::StructureNode, LOC))
+                            && f[0].targets.contains(&target(Kind::PotentialDef, 0x5001)),
+                        "case {c}: {:?}",
+                        f[0].targets
                     );
-                    // Keyed on the location: the fingerprint survives a third island joining it.
+                    // Keyed on the location and the potential: a member joining it keeps the fingerprint.
                     assert_eq!(
                         f[0].fingerprint,
-                        ew_checks::Fingerprint::of("EW-POT-008", &[uid(LOC)], "island"),
+                        ew_checks::Fingerprint::of("EW-POT-008", &[uid(LOC), uid(0x5001)], "island"),
                         "case {c}"
                     );
                 },
             ),
-            Case::silent("one PE potential per location", two_pe(true)),
+            Case::reports(
+                "a PE that reaches no earth beside one that does is reported",
+                two_pe(false, 1),
+                |c, f| {
+                    assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                    assert!(f[0].message.contains(" at -1K4099:1 on page 1 "), "case {c}: {}", f[0].message);
+                },
+            ),
+            // Two earth symbols are wires to one cabinet earth, not two islands.
+            Case::silent("two PE potentials that each reach an earth symbol", two_pe(false, 2)),
+            Case::silent("one PE potential per location", two_pe(true, 0)),
         ],
     );
 }
@@ -528,10 +548,11 @@ fn pot016_cases() {
                     assert_eq!(f[0].severity, Severity::Info, "case {c}");
                     assert_eq!(f[0].discriminator, "csa", "case {c}");
                     assert_eq!(f[0].targets, vec![target(Kind::Connection, 0x2001)], "case {c}");
-                    assert!(
-                        f[0].message.contains("remove the override"),
-                        "case {c}: {}",
-                        f[0].message
+                    assert_eq!(
+                        f[0].message,
+                        "Wire -1W1/1 has its cross-section 1 mm² set by hand, which it gets anyway. Remove that \
+                         setting.",
+                        "case {c}"
                     );
                 },
             ),
@@ -570,7 +591,8 @@ fn pot017_cases() {
                     assert_eq!(f[0].subject, "P2", "case {c}");
                     assert_eq!(
                         f[0].message,
-                        "the definitions of one potential name it P2, P10; the first in natural order (P2) applies",
+                        "P2, P10 are names of one conductor: they are wired together. It is called P2; give the \
+                         others the same name, or take away the wire that joins them.",
                         "case {c}"
                     );
                     assert_eq!(f[0].targets.len(), 2, "case {c}");
