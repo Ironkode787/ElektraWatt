@@ -87,6 +87,17 @@ pub fn from_name(name: &str, phase: Option<&str>) -> (String, String) {
     (kind.to_owned(), voltage)
 }
 
+/// A row's voltage after its kind of conductor became `kind` (rc.5): a conductor without a voltage of its own (N, PE,
+/// PEN, FE) has none, so a voltage left from the kind before (a phase's `230 V AC`) goes; a phase without a voltage
+/// takes the project supply's (`phase`); any other keeps `voltage` as typed.
+fn voltage_for_kind(kind: &str, voltage: &str, phase: Option<&str>) -> String {
+    match kind {
+        "n" | "pe" | "pen" | "fe" => String::new(),
+        "l1" | "l2" | "l3" | "l" if voltage.trim().is_empty() => phase.unwrap_or_default().to_owned(),
+        _ => voltage.to_owned(),
+    }
+}
+
 impl ShellModel {
     /// The Potential panel, while it is open.
     pub fn supply_panel(&self) -> Option<&SupplyPanel> {
@@ -186,6 +197,7 @@ impl ShellModel {
                 (Err(e), _) | (_, Err(e)) => return e,
                 (Ok(k), Ok(v)) => (k.map(str::to_owned), v.map(str::to_owned)),
             };
+            let phase = self.project_session().and_then(ew_api::Session::supply_phase_voltage);
             let Some(r) = self
                 .supply_panel
                 .as_mut()
@@ -194,6 +206,7 @@ impl ShellModel {
                 return Outcome::refused(key!("reason-supply-potential-row"));
             };
             if let Some(kind) = kind {
+                r.voltage = voltage_for_kind(&kind, &r.voltage, phase.as_deref());
                 r.kind = kind;
             }
             if let Some(voltage) = voltage {
@@ -338,7 +351,18 @@ impl ShellModel {
 
 #[cfg(test)]
 mod tests {
-    use super::from_name;
+    use super::{from_name, voltage_for_kind};
+
+    /// A row made N or PE drops the phase's voltage it had; one made a phase takes the supply's where it had none.
+    #[test]
+    fn a_kind_of_conductor_without_a_voltage_drops_the_one_before() {
+        let phase = Some("230 V AC");
+        assert_eq!(voltage_for_kind("n", "230 V AC", phase), "");
+        assert_eq!(voltage_for_kind("pe", "230 V AC", phase), "");
+        assert_eq!(voltage_for_kind("l1", "", phase), "230 V AC");
+        assert_eq!(voltage_for_kind("l1", "400 V AC", phase), "400 V AC");
+        assert_eq!(voltage_for_kind("l_plus", "24 V DC", phase), "24 V DC");
+    }
 
     #[test]
     fn a_mark_s_name_tells_its_conductor() {
