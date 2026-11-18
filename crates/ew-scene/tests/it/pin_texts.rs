@@ -3,8 +3,8 @@
 
 //! The pin texts of a black box (module documentation of `ew_scene::page`, "Pin texts"): each
 //! [`RepView::pins`] entry prints in `data.small` inside the outline, 1 mm from its box CP along the inward normal,
-//! vertical for a pin leaving up or down and horizontal for one leaving left or right; an entry without a box CP prints
-//! nothing; a turned box turns the rule with it.
+//! upright on every side and under every turn (an imported box keeps its source's turned texts); an entry without a
+//! box CP prints nothing.
 
 use std::sync::Arc;
 
@@ -124,16 +124,16 @@ fn each_pin_text_sits_inside_the_box_one_millimetre_from_its_pin() {
             .map(|(_, a, b)| (*a, *b))
             .unwrap()
     };
-    // top pin: below it, vertical (taller than wide), centred on its x
+    // top pin: below it, upright (wider than tall), centred on its x
     let (a, b) = at("Q0.0");
     assert!(
-        near(a.1, y0 + MM) && b.1 > a.1 && b.1 - a.1 > b.0 - a.0,
+        near(a.1, y0 + MM) && b.1 > a.1 && b.0 - a.0 > b.1 - a.1,
         "{a:?} {b:?}"
     );
-    assert!(a.0 < mid.0 && b.0 > mid.0);
-    // bottom pin: above it, vertical
+    assert!(near(a.0 + b.0, 2 * mid.0), "{a:?} {b:?}");
+    // bottom pin: above it, upright
     let (a, b) = at("Q0.1");
-    assert!(near(b.1, y0 + side - MM) && b.1 - a.1 > b.0 - a.0, "{a:?} {b:?}");
+    assert!(near(b.1, y0 + side - MM) && b.0 - a.0 > b.1 - a.1, "{a:?} {b:?}");
     // left pin: right of it, horizontal
     let (a, b) = at("Q0.2");
     assert!(near(a.0, x0 + MM) && b.0 - a.0 > b.1 - a.1, "{a:?} {b:?}");
@@ -144,11 +144,66 @@ fn each_pin_text_sits_inside_the_box_one_millimetre_from_its_pin() {
 }
 
 #[test]
-fn a_turned_box_turns_the_rule() {
-    // under a quarter turn the top pin leaves sideways: its text becomes horizontal
-    let r = runs(&view("r90"));
+fn every_pin_text_of_a_turned_box_stays_upright() {
+    for orient in ["r90", "r180", "r270"] {
+        for (t, a, b) in runs(&view(orient)) {
+            assert!(b.0 - a.0 > b.1 - a.1, "{orient} {t}: {a:?} {b:?}");
+        }
+    }
+}
+
+/// A box imported from another drawing keeps the turned texts its source drew on its top and bottom.
+#[test]
+fn an_imported_box_keeps_its_turned_pin_texts() {
+    let mut v = view("r0");
+    Arc::make_mut(&mut v.reps[0].rep).source_ref = Some(
+        serde_json::from_value(json!({"lineage": uuid(0x99), "key": "representations|-A1"})).unwrap(),
+    );
+    let r = runs(&v);
     let (_, a, b) = r.iter().find(|(t, _, _)| t == "Q0.0").unwrap().clone();
-    assert!(b.0 - a.0 > b.1 - a.1, "{a:?} {b:?}");
+    assert!(b.1 - a.1 > b.0 - a.0, "{a:?} {b:?}");
+}
+
+/// Long upright texts on pins one grid step apart would lie on one another: they take two lines in turn, and no two
+/// texts of the side overlap.
+#[test]
+fn neighbouring_upright_pin_texts_take_two_lines_in_turn() {
+    let (id, def) = blackbox();
+    let cps: Vec<serde_json::Value> = (0..4)
+        .map(|i| json!({"idx": i, "pos": [g(2 + 2 * i), 0], "dir": "up"}))
+        .collect();
+    let r: Representation = serde_json::from_value(json!({
+        "id": uuid(0x11), "functions": [uuid(0x21)], "page": uuid(PAGE),
+        "symbol": id.as_uuid().hyphenated().to_string(), "pos": [g(30), g(30)],
+        "box": {"outline": [[0, 0], [g(10), 0], [g(10), g(10)], [0, g(10)]], "cps": cps},
+    }))
+    .unwrap();
+    let pins = (0..4)
+        .map(|idx| PinText {
+            idx,
+            text: format!("24VDC{idx}"),
+        })
+        .collect();
+    let v = PageView {
+        reps: vec![RepView {
+            rep: Arc::new(r),
+            symbol: Some(def),
+            slots: Vec::new(),
+            terminals: Vec::new(),
+            pins,
+        }],
+        ..blank_page(PAGE)
+    };
+    let r = runs(&v);
+    assert_eq!(r.len(), 4);
+    let tops: Vec<i64> = r.iter().map(|(_, a, _)| a.1).collect();
+    assert!(near(tops[0], tops[2]) && near(tops[1], tops[3]) && tops[1] > tops[0], "{tops:?}");
+    for (i, x) in r.iter().enumerate() {
+        for y in &r[i + 1..] {
+            let apart = x.2.0 <= y.1.0 || y.2.0 <= x.1.0 || x.2.1 <= y.1.1 || y.2.1 <= x.1.1;
+            assert!(apart, "{x:?} {y:?}");
+        }
+    }
 }
 
 #[test]
@@ -280,7 +335,7 @@ fn a_black_box_caption_never_rises_off_the_sheet() {
         .unwrap();
     {
         let r = Arc::make_mut(&mut v.reps[0].rep);
-        r.pos = Pt2::new(Nm(g(30)), Nm(g(4)));
+        r.pos = Pt2::new(Nm(g(30)), Nm(g(3)));
         r.box_.as_mut().unwrap().cps.clear();
     }
     v.reps[0].pins.clear();
@@ -294,7 +349,7 @@ fn a_black_box_caption_never_rises_off_the_sheet() {
     {
         let r = Arc::make_mut(&mut neighbour.rep);
         r.id = Id::from_uuid(Uuid::from_u128(0x12));
-        r.pos = Pt2::new(Nm(g(30)), Nm(g(-8)));
+        r.pos = Pt2::new(Nm(g(30)), Nm(g(-9)));
         r.box_.as_mut().unwrap().cps =
             serde_json::from_value(json!([{"idx": 1, "pos": [g(1), g(12)], "dir": "down"}])).unwrap();
     }
@@ -311,7 +366,7 @@ fn a_black_box_caption_never_rises_off_the_sheet() {
         .map(|(_, a, b)| (*a, *b))
         .unwrap();
     assert!(
-        near(cb.1, g(4) - BLACK_BOX_CAPTION_GAP.0),
+        near(cb.1, g(3) - BLACK_BOX_CAPTION_GAP.0),
         "caption {ca:?} {cb:?}"
     );
     assert!(ca.1 >= 0, "caption {ca:?} {cb:?}");
