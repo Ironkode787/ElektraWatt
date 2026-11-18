@@ -342,7 +342,7 @@ is 3.87, 3.42, 3.06 and 4.25:1, under NFR-A11Y-04's 4.5:1 for text (one of the t
 With slot 1 violet, white on the four hues in slot order is 3.27,
 3.06, 3.42 and 3.87:1, so the label stays black (the table's 6.43, 6.86, 6.14 and 5.43).
 
-*As built.* The open-CP squares are a session overlay, never in the display list, print or PDF. On paper, a black box's pins print their CP designations as stored, with the PLC address after one space when the CP is bound ("1 I0.0"), upright on every side (rc.5; where two on one side would touch they take two lines in turn; a box imported from another drawing keeps its source's turned texts); pin texts never move, and a cross-reference that would overlap one drops below it.
+*As built.* The open-CP squares are a session overlay, never in the display list, print or PDF. On paper, a black box's pins print their CP designations as stored, with the PLC address after one space when the CP is bound ("1 I0.0"), upright on every side (rc.5; where two on one side would touch they take two lines in turn); pin texts never move, and a cross-reference that would overlap one drops below it.
 
 ### 4.7 High-contrast themes
 

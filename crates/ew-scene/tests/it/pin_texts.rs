@@ -3,8 +3,7 @@
 
 //! The pin texts of a black box (module documentation of `ew_scene::page`, "Pin texts"): each
 //! [`RepView::pins`] entry prints in `data.small` inside the outline, 1 mm from its box CP along the inward normal,
-//! upright on every side and under every turn (an imported box keeps its source's turned texts); an entry without a
-//! box CP prints nothing.
+//! upright on every side and under every turn, an imported box's too; an entry without a box CP prints nothing.
 
 use std::sync::Arc;
 
@@ -152,15 +151,15 @@ fn every_pin_text_of_a_turned_box_stays_upright() {
     }
 }
 
-/// A box imported from another drawing keeps the turned texts its source drew on its top and bottom.
+/// A box imported from another drawing stands upright as every other (rc.5: Golden A's boxes too).
 #[test]
-fn an_imported_box_keeps_its_turned_pin_texts() {
+fn an_imported_box_has_upright_pin_texts_too() {
     let mut v = view("r0");
     Arc::make_mut(&mut v.reps[0].rep).source_ref =
         Some(serde_json::from_value(json!({"lineage": uuid(0x99), "key": "representations|-A1"})).unwrap());
-    let r = runs(&v);
-    let (_, a, b) = r.iter().find(|(t, _, _)| t == "Q0.0").unwrap().clone();
-    assert!(b.1 - a.1 > b.0 - a.0, "{a:?} {b:?}");
+    for (t, a, b) in runs(&v) {
+        assert!(b.0 - a.0 > b.1 - a.1, "{t}: {a:?} {b:?}");
+    }
 }
 
 /// Long upright texts on pins one grid step apart would lie on one another: they take two lines in turn, and no two
@@ -404,4 +403,19 @@ fn a_black_box_caption_never_rises_off_the_sheet() {
         "caption {ca:?} {cb:?}"
     );
     assert!(ca.1 >= 0, "caption {ca:?} {cb:?}");
+}
+
+/// rc.5 (Golden A's -102F2): an upright pin text of a pin one grid step from a corner, wider than two steps, moves
+/// along its side to stand inside the outline instead of on its edge.
+#[test]
+fn an_upright_pin_text_near_a_corner_stays_inside_the_outline() {
+    let mut v = view("r0");
+    Arc::make_mut(&mut v.reps[0].rep).box_.as_mut().unwrap().cps[0].pos = Pt2::new(Nm(g(1)), Nm(0));
+    v.reps[0].pins = vec![PinText {
+        idx: 0,
+        text: "24VDC".to_owned(),
+    }];
+    let r = runs(&v);
+    let (_, a, b) = r.iter().find(|(t, _, _)| t == "24VDC").unwrap().clone();
+    assert!(a.0 >= g(30) && b.0 <= g(42), "{a:?} {b:?}");
 }
