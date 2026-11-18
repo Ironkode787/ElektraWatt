@@ -376,6 +376,48 @@ fn passed_through(q: &Q, ports: &[Id<Function>], bus: &BusSystem) -> Vec<Id<Func
     seen.into_iter().collect()
 }
 
+/// A bus line's end as the bus lists name it: an interruption point with an external partner by that partner
+/// (`external_partner_text`), a port by its device's tag and interface (`-201U1:DP`), a passive port (a connector) by
+/// its device's tag alone, a port without a device by its interface, another interruption point by its name.
+pub fn bus_end_label(q: &Q, f: Id<Function>) -> String {
+    let Some(func) = q.functions().get(f) else {
+        return String::new();
+    };
+    let tag = |d: Id<Device>| {
+        q.get::<crate::DeviceTag>(d)
+            .as_ref()
+            .as_ref()
+            .map(|t| t.short())
+            .unwrap_or_default()
+    };
+    match (&func.bus_port, func.device, &func.kind) {
+        (_, _, FunctionKind::Ip(ip)) if ip.external.is_some() => {
+            ip.external.map(|e| external_partner_text(q, e)).unwrap_or_default()
+        }
+        (Some(p), Some(d), _) if p.role == PortRole::Passive => tag(d),
+        (Some(p), Some(d), _) => format!("{}:{}", tag(d), p.interface),
+        (Some(p), None, _) => p.interface.to_string(),
+        (None, _, FunctionKind::Ip(ip)) => ip.name.to_string(),
+        (None, _, _) => String::new(),
+    }
+}
+
+/// The ends of one core of a bus cable, over which no wire runs (rc.5: the bus line uses every core of its cable): at
+/// each end of the cable's line the pin its port's signal map gives the core ([`bus_core_pins`]), else the end itself
+/// ([`bus_end_label`]); `None` at both for a cable that carries no line.
+pub fn bus_core_ends(q: &Q, cable: Id<Device>, core: &str, shield: bool) -> [Option<String>; 2] {
+    let Some(line) = cable_bus_line(q, cable) else {
+        return [None, None];
+    };
+    let pins = bus_core_pins(q, cable, core, shield);
+    let end = |i: usize, e: &Endpoint| match (pins[i], e.function()) {
+        (Some(cp), _) => Some(crate::cp_label(q, cp)),
+        (None, Some(f)) => Some(bus_end_label(q, f)),
+        (None, None) => None,
+    };
+    [end(0, &line.a), end(1, &line.b)]
+}
+
 /// The `Bus` line a cable carries: the one of the lowest ID; `None` for a cable that carries none.
 pub fn cable_bus_line(q: &Q, cable: Id<Device>) -> Option<Connection> {
     q.connections()

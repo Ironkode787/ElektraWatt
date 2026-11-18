@@ -146,7 +146,7 @@ pub use bond_carrier::{BondCarrierQ, Carrier};
 // The bus model's derived data.
 pub use bus::{
     BusSegment, BusSegments, NetMaster, NetMembers, NetMembersOf, SegmentMember, bus_address_text,
-    bus_core_pins, bus_termination_text, bus_word, cable_bus_line, external_partner_text, net_address_text,
+    bus_core_ends, bus_core_pins, bus_end_label, bus_termination_text, bus_word, cable_bus_line, external_partner_text, net_address_text,
     potential_member_count, station_bus_address,
 };
 // The endpoint type of a carrier's ends (and of a component's members), for the crates above this one.

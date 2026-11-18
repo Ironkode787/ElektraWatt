@@ -1252,6 +1252,11 @@
           "type": "string"
         },
         {
+          "const": "mm",
+          "description": "Millimetre (a cable's outer diameter, rc.5).",
+          "type": "string"
+        },
+        {
           "const": "piece",
           "description": "Piece (the default order unit).",
           "type": "string"

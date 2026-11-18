@@ -1,12 +1,12 @@
 row,Cable,Cable type,Core,Colour,mm²,From,To,Length
 heading,Cable overview,,,,,,,
-data,-3W1,6XV1830-0EH10,,,,,,length missing
+data,-3W1,6XV1830-0EH10,,,,,-3X1,length missing
 data,-106W1,NEBU-G78W5-K-2-N-LE5,,,,"-X1031, -X1032",-201U1,from part
 data,-106W2,NEBU-G78W5-K-2-N-LE5,,,,"-X1031, -X1032",-202U1,from part
 heading,-3W1 6XV1830-0EH10,,,,,,,
-data,-3W1,,A,,,,,
-data,-3W1,,B,,,,,
-data,-3W1,,SH,,,,,
+data,-3W1,,A,,,+J-E-206 / JE-N1000-03,-3X1,
+data,-3W1,,B,,,+J-E-206 / JE-N1000-03,-3X1,
+data,-3W1,,SH,,,+J-E-206 / JE-N1000-03,-3X1,
 heading,-106W1 NEBU-G78W5-K-2-N-LE5,,,,,,,
 data,-106W1,,BK,BK,0.75 mm²,-X1031:12/b,-201U1:1,
 data,-106W1,,BN,BN,0.75 mm²,-X1031:1/b,-201U1:5,

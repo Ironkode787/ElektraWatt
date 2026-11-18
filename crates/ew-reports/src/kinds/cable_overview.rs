@@ -219,17 +219,14 @@ fn core_row(
         .or_else(|| c.csa.clone());
     // a core no wire runs over: the pins a bus line's signal maps give it (FR-BUS-023), else the line's port: the bus
     // line uses every core of its cable (rc.5)
-    let pins = if wire.is_none() {
-        ew_derive::bus_core_pins(q, cable, c.core.as_str(), c.shield)
+    let bus = if wire.is_none() {
+        ew_derive::bus_core_ends(q, cable, c.core.as_str(), c.shield)
     } else {
         [None, None]
     };
-    let ports = bus_line_ports(q, cable);
-    let end = |i: usize| match (wire, pins[i], ports[i]) {
-        (Some(w), _, _) => end_text(q, &w.wire.ends[i]),
-        (None, Some(cp), _) => ew_derive::cp_label(q, cp),
-        (None, None, Some(f)) => super::plc_bus_lists::port_label(q, f),
-        (None, None, None) => String::new(),
+    let end = |i: usize| match wire {
+        Some(w) => end_text(q, &w.wire.ends[i]),
+        None => bus[i].clone().unwrap_or_default(),
     };
     let mut r = Row::data(
         RowId::entity(cable).with(RowKey::Entity(core.as_uuid())),

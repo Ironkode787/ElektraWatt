@@ -102,23 +102,6 @@ fn text_cell(t: &str) -> Cell {
     Cell::Text(MlText::neutral(t))
 }
 
-/// A port's function as the bus lists name it: the device's tag and the interface (`-201U1:DP`), a connector by its
-/// tag alone.
-pub(super) fn port_label(q: &Q, f: Id<Function>) -> String {
-    let Some(func) = q.functions().get(f) else {
-        return String::new();
-    };
-    match (&func.bus_port, func.device) {
-        (Some(p), Some(d)) if p.role == PortRole::Passive => tag_short(q, d),
-        (Some(p), Some(d)) => format!("{}:{}", tag_short(q, d), p.interface),
-        (Some(p), None) => p.interface.to_string(),
-        (None, _) => match &func.kind {
-            ew_derive::ew_schema::FunctionKind::Ip(ip) => ip.name.to_string(),
-            _ => String::new(),
-        },
-    }
-}
-
 // ---------------------------------------------------------------------------------------------------------
 // plc_card_list
 
@@ -472,13 +455,7 @@ impl ReportKindDef for BusOverview {
                                 put(c, &mut cells, "termination", termination(&p.termination));
                             }
                             (None, _) => {
-                                let partner = func.and_then(|x| match &x.kind {
-                                    ew_derive::ew_schema::FunctionKind::Ip(ip) => ip.external,
-                                    _ => None,
-                                });
-                                let name = partner
-                                    .map_or_else(|| port_label(q, *f), |e| external_partner_text(q, e));
-                                put(c, &mut cells, "station", ident(&name));
+                                put(c, &mut cells, "station", ident(&ew_derive::bus_end_label(q, *f)));
                             }
                         }
                         RowId::entity(*f)
@@ -596,15 +573,7 @@ impl ReportKindDef for BusCableList {
             put(c, &mut cells, "part", ident(&part.unwrap_or_default()));
             put(c, &mut cells, "length", length_cell(q, cable));
             let end = |f: Id<Function>, plug: Option<Id<Part>>| {
-                let words = functions
-                    .get(f)
-                    .and_then(|x| match &x.kind {
-                        ew_derive::ew_schema::FunctionKind::Ip(ip) => {
-                            ip.external.map(|e| external_partner_text(q, e))
-                        }
-                        _ => None,
-                    })
-                    .unwrap_or_else(|| port_label(q, f));
+                let words = ew_derive::bus_end_label(q, f);
                 match plug.and_then(|p| q.parts().get(p)) {
                     Some(p) => format!("{words} \u{b7} plug {}", p.item.part_number),
                     None => words,

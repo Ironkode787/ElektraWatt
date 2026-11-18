@@ -4,7 +4,8 @@
 -- Golden acceptance (doc 20 §3.1, ADR-0017; api = "v1"): the cable overview and core lists of folio 906
 -- (doc 20 §10; AC-11). The result equals expected/csv/cables.csv: a heading and one row per cable in
 -- natural tag order, then per cable a heading and its cores (shield last, pair, natural core name). A core
--- prints the colour and cross-section of its wire, else the conductor's, and the ends of its wire.
+-- prints the colour and cross-section of its wire, else the conductor's, and the ends of its wire, else the ends its
+-- cable's bus line gives it.
 WITH
 cable AS (
   SELECT c.*, row_number() OVER (ORDER BY c.tag COLLATE ew_natural, c.id) AS rank
@@ -21,6 +22,7 @@ core AS (
                   ELSE w.from_tag || coalesce(':' || nullif(w.from_cp, ''), '') END
            WHEN 'external' THEN 'ext. ' || w.from_ip
            WHEN 'open' THEN 'open ' || w.from_ip
+           ELSE k.bus_end_a
          END AS end_a,
          CASE w.to_end
            WHEN 'device' THEN
@@ -28,6 +30,7 @@ core AS (
                   ELSE w.to_tag || coalesce(':' || nullif(w.to_cp, ''), '') END
            WHEN 'external' THEN 'ext. ' || w.to_ip
            WHEN 'open' THEN 'open ' || w.to_ip
+           ELSE k.bus_end_b
          END AS end_b
   FROM api_v1_conductor AS k
   JOIN cable AS c ON c.id = k.cable_id

@@ -227,6 +227,7 @@ fn the_network_address_list_lists_ports_without_a_net() {
 fn the_bus_cable_list_prints_the_length_in_metres() {
     let rows = rows("bus_cable_list");
     assert_eq!(rows.len(), 1, "{rows:?}");
-    assert_eq!(rows[0][0], "-W1");
+    // A bus cable takes the page of its line (rc.5).
+    assert_eq!(rows[0][0], "-1W1");
     assert_eq!(rows[0][3], "12.5 m");
 }
