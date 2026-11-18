@@ -477,22 +477,6 @@ fn function_line(picker: &Picker, p: usize, k: usize) -> String {
 /// The table: its header, then one row per symbol, part, opened part's function or strip; the empty state instead
 /// when it has none.
 fn table(ui: &mut Ui, t: &Tokens, picker: &Picker, pane: Pane, events: &mut Vec<Event>) {
-    // A terminal chosen in a project without strips opens the strip chooser on an empty state that says why and
-    // offers New terminal strip (doc 16a §6.17), whose form offers the tag (`strip.new {dialog}`); its Create lists
-    // the new strip as the current row.
-    if picker.mode == PickerMode::Strip && picker.empty_text() == Some(key!("picker-empty-strips")) {
-        let new = components::empty_state(
-            ui,
-            IconId::ew_terminal_strip,
-            strings::text(key!("picker-empty-strips")),
-            strings::text(key!("picker-empty-strips-text")),
-            Some(strings::text(key!("picker-new-strip"))),
-        );
-        if new.is_some_and(|r| r.clicked()) {
-            events.push(Event::Action("strip.new", json!({"dialog": true})));
-        }
-        return;
-    }
     // A greyed row says why in its last column (whole in its tooltip and beside the table).
     let texts: Vec<RowTexts> = picker
         .rows

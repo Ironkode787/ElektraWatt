@@ -324,13 +324,12 @@ fn a_double_click_with_the_wire_tool_is_its_finish() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// In a project without terminal strips, choosing the terminal symbol in the picker opens the strip chooser
-/// on its empty state, which says why and offers New terminal strip; the button creates a strip, which the chooser
-/// lists as its current row, and choosing it arms the Place tool.
+/// A persona run of the third 0.3.0 candidate: in a project without terminal strips, a PE terminal chosen in the
+/// device browser, Place and a click on the page left nothing and said nothing (the empty strip chooser that had
+/// opened took the click). The terminal now goes on a new strip made for it: Place arms it and the click places it.
 #[test]
-fn a_terminal_without_strips_says_why_and_offers_a_new_strip() {
+fn a_terminal_chosen_without_strips_is_placed_on_a_new_strip() {
     use ew_ui::ew_viewmodel::shell::{Mode, ShellModel};
-    use ew_ui::ew_viewmodel::tools::PickerMode;
     let tmp = Tmp::new();
     let dir = tmp.0.join("blank.ew");
     let mut shell = ShellModel::new(Mode::Gui, tmp.config());
@@ -349,42 +348,40 @@ fn a_terminal_without_strips_says_why_and_offers_a_new_strip() {
     let mut h: Harness<'static, App> = support::harness_with(shell, Scripted::default(), None);
     settle(&mut h);
     wait_for_page(&mut h);
+    let before = reps(&h);
+    // The device browser filtered to the PE terminal part, its row, then its Place button.
     dispatch(&mut h, "tool.place_part", json!({}));
-    dispatch(&mut h, "picker.filter", json!({"text": "EW-GEN-TRM-1"}));
+    dispatch(&mut h, "picker.filter", json!({"text": "EW-GEN-TRM-2"}));
     settle(&mut h);
-    // Chosen in the device browser, the terminal part opens the empty strip chooser instead of doing nothing.
-    dispatch(&mut h, "picker.choose", json!({}));
+    h.get_by_role_and_label(egui::Role::Button, "Place").click();
     settle(&mut h);
-    let picker = h.state().shell().picker().expect("the strip chooser is open");
-    assert_eq!(picker.mode, PickerMode::Strip);
-    assert!(picker.rows.is_empty());
-    assert!(
-        h.get_all_by_role(egui::Role::Group)
-            .any(|n| n.accesskit_node().label().as_deref() == Some("No terminal strips in this project yet")),
-        "the empty state says why"
-    );
-    h.get_by_label("New terminal strip…").click();
-    settle(&mut h);
-    settle(&mut h);
-    // The New terminal strip form offers the tag; Enter there creates the strip (the chooser
-    // under it does not take the key).
-    assert!(
-        matches!(h.state().shell().dialog(), Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) if f.action == "strip.new"),
-        "the New terminal strip form"
-    );
-    h.key_press(Key::Enter);
-    settle(&mut h);
-    settle(&mut h);
-    assert!(
-        h.state().shell().dialog().is_none(),
-        "Enter creates and closes the form"
-    );
-    let picker = h.state().shell().picker().expect("the chooser stays open");
-    assert_eq!(picker.mode, PickerMode::Strip);
-    assert_eq!(picker.rows.len(), 1, "the new strip is listed");
-    dispatch(&mut h, "picker.choose", json!({}));
-    settle(&mut h);
+    assert!(h.state().shell().picker().is_none(), "no strip chooser");
     assert_eq!(h.state().shell().tool().name(), "place");
+    let (w, hh) = h.state().shell().canvas().unwrap().sheet();
+    let pos = screen(&h, (w / 2, hh / 2));
+    h.event(egui::Event::PointerMoved(pos));
+    settle(&mut h);
+    for pressed in [true, false] {
+        h.event(egui::Event::PointerButton {
+            pos,
+            button: egui::PointerButton::Primary,
+            pressed,
+            modifiers: Modifiers::NONE,
+        });
+    }
+    settle(&mut h);
+    assert_eq!(reps(&h), before + 1, "the terminal is placed");
+    let placed = h
+        .state()
+        .shell()
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .reps
+        .iter()
+        .any(|r| r.terminal);
+    assert!(placed, "a terminal on the page");
     h.state_mut().shell_mut().shutdown();
 }
 

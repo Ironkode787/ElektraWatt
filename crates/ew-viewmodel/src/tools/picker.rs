@@ -684,7 +684,8 @@ impl Picker {
         }
         Some(match self.mode {
             PickerMode::Parts => key!("picker-empty-parts"),
-            PickerMode::Strip => key!("picker-empty-strips"),
+            // The strip chooser opens only when the project has a strip (a terminal goes on a new one otherwise).
+            PickerMode::Strip => key!("picker-empty"),
             PickerMode::BlackBox => key!("picker-empty-black-box"),
             PickerMode::Place | PickerMode::Exchange => key!("picker-empty-page"),
         })

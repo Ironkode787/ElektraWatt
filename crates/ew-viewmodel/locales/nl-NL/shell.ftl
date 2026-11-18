@@ -267,9 +267,6 @@ picker-empty-parts-filter = Geen artikel voldoet aan het filter. Om een geplaats
 picker-part-symbol = Een symbool kiezen…
 picker-title-part-symbol = Een symbool kiezen voor { $p0 }
 picker-part-symbol-note = Dit artikel heeft geen eigen symbool: kies het symbool waarmee u het plaatst.
-picker-empty-strips = Nog geen klemmenstroken in dit project
-picker-empty-strips-text = Een klem hoort in een klemmenstrook. Maak er hier een en kies die dan.
-picker-new-strip = Nieuwe klemmenstrook…
 picker-empty-black-box = Geen black-boxsymbolen of artikelen om te plaatsen
 picker-empty-page = Op deze pagina kan niets worden geplaatst
 picker-group-project = In dit project
@@ -2536,6 +2533,7 @@ count-box-pins = { $p0 } aansluitpunten
 toast-strip-new = Nieuwe klemmenstrook; de eerste klem geeft haar kenmerk, zoals { $p0 }: Tekenen ▸ Klem… plaatst haar klemmen.
 toast-strip-new-tagged = Nieuwe klemmenstrook { $p0 }: Tekenen ▸ Klem… plaatst haar klemmen.
 toast-strip-new-no-example = Nieuwe klemmenstrook; de eerste klem geeft haar kenmerk: Tekenen ▸ Klem… plaatst haar klemmen.
+toast-strip-new-for-terminal = De klem komt op een nieuwe klemmenstrook: klik waar hij moet staan.
 toast-export-pdf = { $p0 } geëxporteerd: { $p1 }, { $p2 } KiB.
 # FT-1212 (ID-1392): the export toast names its pages by kind.
 export-pages-drawing = { $p0 } tekeningpagina's

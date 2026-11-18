@@ -231,9 +231,6 @@ picker-part-symbol = Choose a symbol…
 picker-title-part-symbol = Choose a symbol for { $p0 }
 # ID-1497 (5): the line under the title of the symbol chooser of a part without a symbol.
 picker-part-symbol-note = This part has no symbol of its own: choose the symbol to place it with.
-picker-empty-strips = No terminal strips in this project yet
-picker-empty-strips-text = A terminal goes into a terminal strip. Create one here, then choose it.
-picker-new-strip = New terminal strip…
 picker-empty-black-box = No black-box symbols or parts to place
 picker-empty-page = Nothing can be placed on this page
 picker-group-project = In this project
@@ -2618,6 +2615,8 @@ toast-strip-new = New terminal strip; its first terminal tags it, such as { $p0 
 # FT-1090: a tag given in the New terminal strip form is the strip's from the start.
 toast-strip-new-tagged = New terminal strip { $p0 }: Draw ▸ Terminal… places its terminals.
 toast-strip-new-no-example = New terminal strip; its first terminal tags it: Draw ▸ Terminal… places its terminals.
+# A terminal chosen in the device browser of a project without strips goes on a new strip (rc.3 persona run).
+toast-strip-new-for-terminal = The terminal goes on a new terminal strip: click where it is to stand.
 toast-export-pdf = Exported { $p0 }: { $p1 }, { $p2 } KiB.
 # FT-1212 (ID-1392): the export toast names its pages by kind.
 export-pages-drawing = { $p0 } drawing pages

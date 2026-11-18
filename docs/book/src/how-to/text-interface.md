@@ -43,7 +43,8 @@ the same in several steps.
 `tool.place_terminal` with `strip` (and `kind`, `part`, `count`, `from` where they differ from its form's proposals)
 arms the Place tool on that strip. A terminal part chosen in the device browser, or `place.pick` with a terminal
 symbol and no `strip`, opens a second picker that lists the strips (`row strip "<tag>" terminal "<next>" @<n>`);
-choose the strip there. The terminal takes the row's proposed designation unless the choice names one
+choose the strip there. In a project without a strip, the terminal part chosen in the device browser goes on a new
+strip made for it, and `place.pick` without `strip` is refused. The terminal takes the row's proposed designation unless the choice names one
 (`picker.choose` with `designation` `PE`, on either picker). A strip without terminals prints its tag with question marks in it (`-X??`) because
 its counter is given with its first terminal; the `@n` at the end of its row selects it (`select.set` with `ids`
 `["@n"]`), and `edit.delete_selection` deletes a strip that has no terminals. After its first terminal the strip has

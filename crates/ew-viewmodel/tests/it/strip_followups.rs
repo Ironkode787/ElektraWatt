@@ -1,13 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The strip follow-ups, headless: a terminal chosen with no strip opens the strip chooser on its
-//! empty state, the PE terminal asks for its strip, the page description lists a strip's bridges,
+//! The strip follow-ups, headless: a terminal chosen with no strip goes on a new strip made for it,
+//! the PE terminal asks for its strip, the page description lists a strip's bridges,
 //! table mode adds an accessory before the first terminal, and Enter on an unplaced terminal row
 //! arms the Place tool with its function (§6.8).
 
 use crate::common;
-use ew_viewmodel::key;
 
 use common::{Tmp, done, new_project, refused, state, strip_at, strip_cursor, strip_row, strip_texts, toast};
 use ew_viewmodel::navigators::NavKind;
@@ -24,12 +23,12 @@ fn choose(s: &mut ShellModel, filter: &str) {
 
 // ---------------------------------------------------------------------------------------------------------------
 
-/// A terminal chosen in the picker of a project without strips opens the strip chooser on its empty state (the
-/// window's empty state says why and offers New terminal strip); `strip.new` lists the new strip as the current row
-/// and choosing it arms Place. A direct `place.pick` still refuses with the sentence that names Insert ▸ Terminal
-/// strip.
+/// A terminal chosen in the picker of a project without strips goes on a new strip, made for it: Place is armed with
+/// the terminal on it (a persona run: the empty strip chooser that opened instead stood between Place and the page).
+/// With a strip in the project the chooser lists it. A direct `place.pick` still refuses with the sentence that names
+/// Insert ▸ Terminal strip.
 #[test]
-fn the_picker_opens_the_empty_strip_chooser_and_strip_new_fills_it() {
+fn the_picker_puts_a_terminal_on_a_new_strip_when_the_project_has_none() {
     let tmp = Tmp::new("s207p2-605");
     let mut s = new_project(&tmp);
     assert_eq!(
@@ -37,14 +36,19 @@ fn the_picker_opens_the_empty_strip_chooser_and_strip_new_fills_it() {
         "reason-no-strip"
     );
     choose(&mut s, "EW-GEN-TRM-1");
+    assert!(s.picker().is_none(), "no strip chooser");
+    assert_eq!(s.tool().name(), "place");
+    assert_eq!(
+        toast(&s),
+        "The terminal goes on a new terminal strip: click where it is to stand."
+    );
+    let ghost = &state(&s)["canvas"]["ghost"];
+    assert_eq!(ghost["target"], "terminal", "{ghost}");
+    done(&mut s, "ui.dismiss", json!({}));
+    choose(&mut s, "EW-GEN-TRM-1");
     let p = s.picker().expect("the strip chooser");
     assert_eq!(p.mode, PickerMode::Strip);
-    assert!(p.rows.is_empty());
-    assert_eq!(p.empty_text(), Some(key!("picker-empty-strips")));
-    done(&mut s, "strip.new", json!({}));
-    let p = s.picker().expect("still open");
-    assert_eq!(p.mode, PickerMode::Strip);
-    assert_eq!(p.rows.len(), 1);
+    assert_eq!(p.rows.len(), 1, "the strip made for the first terminal");
     done(&mut s, "picker.choose", json!({}));
     assert_eq!(s.tool().name(), "place");
     assert!(s.picker().is_none());

@@ -1204,13 +1204,31 @@ impl ShellModel {
                 }
             }
             (_, part) if terminal => {
-                let strip = or_return!(string_param(p, "strip"));
-                // Without a strip in the project a terminal has nowhere to go. Chosen in the picker (the window's
-                // path) the strip chooser opens on its empty state, which says why and offers New terminal strip;
-                // `strip.new` then lists the new strip as the current row. A direct `place.pick` refuses.
+                let mut strip = or_return!(string_param(p, "strip")).map(str::to_owned);
+                // Without a strip in the project a terminal has nowhere to go: a direct `place.pick` refuses. Chosen
+                // in the picker (the window's path) it goes on a new strip, made as Terminal…'s new strip is (a
+                // persona run: the empty strip chooser that opened instead stood between Place and the page).
                 if cat.strips.is_empty() && (strip.is_some() || self.tools.picker.is_none()) {
                     return Outcome::refused(key!("reason-no-strip"));
                 }
+                let mut cat = cat;
+                if cat.strips.is_empty() {
+                    let made = self.act_strip_new(&Map::new());
+                    if made != Outcome::Done {
+                        return made;
+                    }
+                    strip.clone_from(&self.tools.last_primary);
+                    // Its toast says what happens now, not the Terminal… way strip.new's names.
+                    self.notify(
+                        strings::text(key!("toast-strip-new-for-terminal")).to_owned(),
+                        false,
+                    );
+                    match self.catalogue() {
+                        Some(fresh) => cat = fresh,
+                        None => return Outcome::refused(key!("reason-no-catalogue")),
+                    }
+                }
+                let strip = strip.as_deref();
                 // Without a strip the picker asks for one: its strip chooser.
                 let Some(strip) = strip else {
                     let folio = self.current_folio().unwrap_or_default().to_owned();
