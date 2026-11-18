@@ -781,7 +781,8 @@ impl ShellModel {
                 pr.session.fold_last_step();
             }
         }
-        // What moved: the symbols and junctions that stand elsewhere now.
+        // What moved: the symbols and junctions that stand elsewhere now (the canvas follows the commits first).
+        self.sync_views();
         let moved = match (before, self.canvas().map(|c| Arc::clone(&c.page().tables))) {
             (Some(b), Some(n)) => {
                 n.reps

@@ -281,6 +281,7 @@ fn a_paste_onto_another_grid_and_a_grid_change_fit_the_items_and_say_so() {
     assert!(t.connections.iter().all(|c| c.stored_route), "routed anew");
     let text = common::toast(&shell);
     assert!(text.starts_with("Page 150 now has the QET 10 px grid:"), "{text}");
+    assert!(!text.contains(": 0 items"), "the items that moved are counted: {text}");
     done(&mut shell, "edit.undo", json!({}));
     assert_eq!(shell.canvas().unwrap().page().snapper.grid(), (4_000_000, 1), "one step");
     shell.shutdown();
