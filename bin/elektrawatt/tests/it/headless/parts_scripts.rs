@@ -168,7 +168,7 @@ pub(crate) fn ps1_the_part_dialog_script_is_deterministic_case(twice: bool) {
     );
     assert!(d.contains("result 5 \"EW-GEN-MCB-1\" "), "{d}");
     let d = describe(&lines[6]);
-    assert!(has_line(d, "results showing 1 to 6"), "{d}");
+    assert!(has_line(d, "results showing 1 to 7"), "{d}");
 }
 
 /// PS4: F55's first use → EW-GEN-MCB-2 (`part.assign` replace with `copies`), then Add part… with a held copy; the
@@ -188,7 +188,7 @@ pub(crate) fn ps4_the_choose_script_is_deterministic_and_replays_case(twice: boo
             ("part.pick", json!({"part": "EW-GEN-MCB-2"})),
             ("part.choose", json!({"add": true})),
             // The held copy of A9P52610: the sample parts library offers its own, so the number names two.
-            ("part.pick", json!({"index": 21})),
+            ("part.pick", json!({"index": 22})),
             ("ui.describe", json!({})),
             ("file.save", json!({})),
         ]

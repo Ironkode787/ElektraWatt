@@ -961,11 +961,7 @@ fn tab_and_the_arrows_move_a_handle_of_the_selected_wire() {
     // Tab: the first handle, the middle of the wire's first segment.
     key(&mut s, "tool.next_proposal");
     assert_eq!(hot(&s), [mid(&s, p[0], p[1])]);
-    assert!(
-        prompt(&s).starts_with("Handle 1 of "),
-        "{}",
-        prompt(&s)
-    );
+    assert!(prompt(&s).starts_with("Handle 1 of "), "{}", prompt(&s));
     // Shift+Tab from the first goes round to the last: the middle of the last segment.
     key(&mut s, "layout.previous");
     let n = p.len();

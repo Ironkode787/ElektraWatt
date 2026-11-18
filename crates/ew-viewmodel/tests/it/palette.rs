@@ -92,7 +92,16 @@ fn the_order_is_deterministic_ties_by_label_then_id_and_disabled_last() {
 fn the_supply_point_is_found_by_supply_incoming_feed_and_mains_in_both_languages() {
     let tmp = Tmp::new("pal-supply");
     let mut shell = tmp.shell_in(Mode::Gui, true, "103");
-    for word in ["supply", "incoming", "feed", "mains", "voeding", "inkomend", "invoeding", "net"] {
+    for word in [
+        "supply",
+        "incoming",
+        "feed",
+        "mains",
+        "voeding",
+        "inkomend",
+        "invoeding",
+        "net",
+    ] {
         let entries = query(&mut shell, word);
         for id in ["ip.supply_in", "tool.ip"] {
             assert!(
@@ -109,7 +118,10 @@ fn the_supply_point_is_found_by_supply_incoming_feed_and_mains_in_both_languages
         .expect("Supply comes in here");
     assert!(!supply.enabled, "nothing selected");
     assert!(
-        supply.reason.as_deref().is_some_and(|r| r.contains("Interruption")),
+        supply
+            .reason
+            .as_deref()
+            .is_some_and(|r| r.contains("Interruption")),
         "{:?}",
         supply.reason
     );

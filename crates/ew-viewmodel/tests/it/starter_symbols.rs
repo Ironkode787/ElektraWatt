@@ -92,7 +92,10 @@ const PATHS: &[(&str, Path)] = &[
         Path::Part("EW-GEN-SEL-1", 0, MULTI),
     ),
     ("ew.iec.switch-1p@qet10", Path::Part("EW-GEN-SW-1", 0, MULTI)),
-    ("ew.iec.switch-2p-manual@qet10", Path::Part("EW-GEN-SW-2", 0, MULTI)),
+    (
+        "ew.iec.switch-2p-manual@qet10",
+        Path::Part("EW-GEN-SW-2", 0, MULTI),
+    ),
     (
         "ew.iec.switch-3p-manual@qet10",
         Path::Part("EW-GEN-SW-3", 0, MULTI),

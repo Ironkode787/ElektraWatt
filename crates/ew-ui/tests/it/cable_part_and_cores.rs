@@ -7,8 +7,8 @@
 
 use crate::support::Tmp;
 use crate::wires_and_cables::{
-    banner, click, key, named_wires, new_project, page_pixel, page_texts, select_both, state, tables, two_wires,
-    typed,
+    banner, click, key, named_wires, new_project, page_pixel, page_texts, select_both, state, tables,
+    two_wires, typed,
 };
 
 use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
@@ -121,21 +121,14 @@ fn a_cables_part_row_takes_a_catalogue_cable_and_its_cores_follow() {
         banner(&mut d)
     );
     d.settle();
-    assert_eq!(
-        d.shell_mut().recorded_commands().len(),
-        steps + 1,
-        "one step"
-    );
+    assert_eq!(d.shell_mut().recorded_commands().len(), steps + 1, "one step");
     assert_eq!(type_line(&mut d), "4G1.5", "the new type only");
     let texts = page_texts(&mut d);
     assert!(
         texts.iter().any(|t| t == "BK") && !texts.iter().any(|t| t == "BU"),
         "the new cores: {texts:?}"
     );
-    assert_eq!(
-        d.shell_mut().dispatch("edit.undo", &json!({})),
-        Outcome::Done
-    );
+    assert_eq!(d.shell_mut().dispatch("edit.undo", &json!({})), Outcome::Done);
     d.settle();
     assert_eq!(type_line(&mut d), before, "one Undo");
     d.shell_mut().shutdown();
@@ -254,9 +247,7 @@ fn a_wire_of_a_cable_says_its_cross_section_is_changed_at_the_cable() {
             .dispatch("props.row", &json!({"to": "connection/derived.csa"})),
         Outcome::Done
     );
-    let out = d
-        .shell_mut()
-        .dispatch("props.input", &json!({"text": "2"}));
+    let out = d.shell_mut().dispatch("props.input", &json!({"text": "2"}));
     match out {
         Outcome::Failed { message } => {
             assert!(message.starts_with("The cable -1W1 sets this"), "{message}");
