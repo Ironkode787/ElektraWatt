@@ -390,11 +390,11 @@ fn what_is_wrong_is_said_at_the_place_with_its_fix() {
         shown
             .todo
             .iter()
-            .any(|t| t.text.starts_with("Drawn on no page yet")),
+            .any(|t| t.text.starts_with("On no electrical page yet")),
         "{:?}",
         shown.todo
     );
-    h.get_by_label("Draw on a page…");
+    h.get_by_label("Draw on page 101");
     // Its part taken away: the row says so, never an empty cell, and offers the way out.
     dispatch(
         &mut h,
@@ -443,7 +443,7 @@ fn a_station_view_beside_the_focused_page_shows_its_lists() {
     h.get_by_label(&format!("Channels of {}", module.tag));
     h.get_by_label("To do");
     assert!(
-        h.query_all_by_label_contains("Drawn on no page yet").count() >= 1,
+        h.query_all_by_label_contains("On no electrical page yet").count() >= 1,
         "its To do list"
     );
     h.input_mut().events.push(egui::Event::PointerMoved(row));

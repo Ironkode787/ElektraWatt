@@ -280,17 +280,16 @@ pub(crate) fn show(
     let Some(shown) = shell.station_shown_of(tab) else {
         return;
     };
-    let view = &shown.rack;
-    let shown = Some(&*shown);
+    let shown: &StationShown = &shown;
     let mut out = Vec::new();
-    let all = places(view, tab.draft.is_some());
+    let all = places(&shown.rack, tab.draft.is_some());
     // Side by side, the view without the focus leaves out its catalogue where the room is short: a click in it gives
     // it the focus, and the catalogue with it.
     let with_catalogue = focused || full.width() >= wide_enough(&t);
     let left = if with_catalogue { lists_rect(full) } else { full };
     ui.scope_builder(UiBuilder::new().max_rect(left.shrink(t.space_5)), |ui| {
         ui.set_clip_rect(left);
-        header(ui, &t, shell, tab, view, &mut out);
+        header(ui, &t, tab, shown, &mut out);
         ui.add_space(t.space_2);
         // The focused view's commands on the module under its cursor, which is the window's selection.
         if focused {
@@ -331,14 +330,8 @@ pub(crate) fn show(
 
 /// The header: a made station's tag and part with the PLC it belongs to and what its part says of its modules; for a
 /// station not made yet what it is, the PLC it belongs to, the devices that can be it, and Create.
-fn header(
-    ui: &mut Ui,
-    t: &Tokens,
-    shell: &ShellModel,
-    tab: &StationTab,
-    view: &RackView,
-    events: &mut Vec<Event>,
-) {
+fn header(ui: &mut Ui, t: &Tokens, tab: &StationTab, shown: &StationShown, events: &mut Vec<Event>) {
+    let view = &shown.rack;
     let Some(draft) = &tab.draft else {
         ui.horizontal(|ui| {
             // A station drawn nowhere has a tag with question marks: its part number names it until it has one, and
@@ -436,7 +429,7 @@ fn header(
         ui.add(
             egui::Label::new(small(t, strings::text(key!("rack-plc")), t.text_secondary)).selectable(false),
         );
-        for (id, name) in &shell.plc_config_projects() {
+        for (id, name) in &shown.plcs {
             if ui.selectable_label(draft.config == Some(*id), name).clicked() {
                 events.push(Event::Action("plc.rack_set", json!({ "config": id.to_string() })));
             }
@@ -449,10 +442,9 @@ fn header(
         }
     });
     // A device in the project that can be this station is offered as it: Use -3K1, which is on the bus.
-    let candidates = shell.station_candidates();
-    if !candidates.is_empty() {
+    if !shown.candidates.is_empty() {
         ui.horizontal_wrapped(|ui| {
-            for (device, tag) in &candidates {
+            for (device, tag) in &shown.candidates {
                 let label = strings::format(key!("rack-use-device"), &[tag]);
                 if components::button(ui, Kind::Secondary, &label, true, 0.0).clicked() {
                     let mut params = json!({ "device": device.to_string() });
@@ -1004,7 +996,7 @@ fn page_menu(
 fn channels(
     ui: &mut Ui,
     t: &Tokens,
-    shown: Option<&StationShown>,
+    shown: &StationShown,
     all: &[Place],
     tab: &StationTab,
     events: &mut Vec<Event>,
@@ -1028,7 +1020,7 @@ fn channels(
         return;
     };
     section(ui, t, &strings::format(key!("rack-channels-of"), &[&p.tag]));
-    let rows = shown.map_or(&[][..], |s| s.channels.as_slice());
+    let rows = shown.channels.as_slice();
     if rows.is_empty() {
         let none = strings::format(key!("rack-channels-none"), &[&p.tag]);
         ui.add(egui::Label::new(small(t, none, t.text_tertiary)).selectable(false));
@@ -1105,8 +1097,7 @@ fn channels(
 
 /// To do: each finding of the slot rule with the error icon and word, each step that is left, in a sentence, with its
 /// fix beside it; a station with nothing left says so.
-fn todo(ui: &mut Ui, t: &Tokens, shell: &ShellModel, shown: Option<&StationShown>, events: &mut Vec<Event>) {
-    let Some(shown) = shown else { return };
+fn todo(ui: &mut Ui, t: &Tokens, shell: &ShellModel, shown: &StationShown, events: &mut Vec<Event>) {
     section(ui, t, strings::text(key!("rack-todo")));
     let items = &shown.todo;
     if items.is_empty() {
@@ -1126,9 +1117,6 @@ fn todo(ui: &mut Ui, t: &Tokens, shell: &ShellModel, shown: Option<&StationShown
         });
         return;
     }
-    let pages = shell.schematic_pages();
-    let bus_pages = shell.bus_pages();
-    let fluid_pages = shell.fluid_pages();
     for item in items {
         ui.horizontal_wrapped(|ui| {
             let (rect, _) = ui.allocate_exact_size(vec2(t.icon_sm, t.icon_sm), Sense::hover());
@@ -1185,56 +1173,21 @@ fn todo(ui: &mut Ui, t: &Tokens, shell: &ShellModel, shown: Option<&StationShown
                             }
                         });
                 }
-                Some(TodoFix::DrawOn) => {
-                    let label = strings::text(key!("rack-draw-on-page"));
+                // A side of the station on a page of its kind: there at once when the button names the page (the
+                // one the view stands on, or a new one), else the pages of the kind and New page… to choose from.
+                Some(TodoFix::OnPage {
+                    step,
+                    label,
+                    folio,
+                    pages,
+                }) => {
                     let button = components::button(ui, Kind::Secondary, label, true, 0.0);
-                    page_menu(
-                        t,
-                        &button,
-                        &pages,
-                        |folio| Event::Action("plc.rack_next", json!({ "step": "draw", "folio": folio })),
-                        events,
-                    );
-                }
-                Some(TodoFix::BusPage) => {
-                    let label = strings::text(key!("rack-next-bus"));
-                    let button = components::button(ui, Kind::Secondary, label, true, 0.0);
-                    // With several bus pages it asks which; with one or none it goes there (or makes it).
-                    if bus_pages.len() > 1 {
-                        egui::Popup::menu(&button)
-                            .style(crate::menu::menu_style(t))
-                            .show(|ui| {
-                                for (folio, title) in &bus_pages {
-                                    let label = strings::format(key!("rack-page-choice"), &[folio, title]);
-                                    if ui.button(label.trim()).clicked() {
-                                        events.push(Event::Action(
-                                            "plc.rack_next",
-                                            json!({ "step": "bus", "folio": folio }),
-                                        ));
-                                        ui.close();
-                                    }
-                                }
-                            });
-                    } else if button.clicked() {
-                        events.push(Event::Action("plc.rack_next", json!({ "step": "bus" })));
-                    }
-                }
-                Some(TodoFix::FluidPage) => {
-                    let label = strings::text(key!("rack-next-fluid"));
-                    let button = components::button(ui, Kind::Secondary, label, true, 0.0);
-                    // With several fluid pages it asks which (or a new one); with one or none it goes there (or makes it).
-                    if fluid_pages.len() > 1 {
-                        page_menu(
-                            t,
-                            &button,
-                            &fluid_pages,
-                            |folio| {
-                                Event::Action("plc.rack_next", json!({ "step": "fluid", "folio": folio }))
-                            },
-                            events,
-                        );
-                    } else if button.clicked() {
-                        events.push(Event::Action("plc.rack_next", json!({ "step": "fluid" })));
+                    let next =
+                        |folio: &str| Event::Action("plc.rack_next", json!({ "step": step, "folio": folio }));
+                    match folio {
+                        Some(folio) if button.clicked() => events.push(next(folio)),
+                        Some(_) => {}
+                        None => page_menu(t, &button, pages, next, events),
                     }
                 }
                 None => {}
@@ -1259,13 +1212,7 @@ fn group_title(group: PlcGroup) -> &'static str {
 }
 
 /// The catalogue: its title, the filter, what a double click does, the parts by group, and New part… at its foot.
-fn catalogue(
-    ui: &mut Ui,
-    t: &Tokens,
-    shown: Option<&StationShown>,
-    tab: &StationTab,
-    events: &mut Vec<Event>,
-) {
+fn catalogue(ui: &mut Ui, t: &Tokens, shown: &StationShown, tab: &StationTab, events: &mut Vec<Event>) {
     ui.add(
         egui::Label::new(
             RichText::new(strings::text(key!("rack-catalogue")))
@@ -1293,7 +1240,7 @@ fn catalogue(
             .wrap(),
     );
     ui.add_space(t.space_3);
-    let parts = shown.map_or(&[][..], |s| s.catalogue.as_slice());
+    let parts = shown.catalogue.as_slice();
     let foot = t.size_control + 2.0 * t.space_3;
     let list_height = (ui.available_height() - foot).max(t.size_row * 3.0);
     ScrollArea::vertical()
@@ -1370,6 +1317,10 @@ fn part_row(ui: &mut Ui, t: &Tokens, p: &StationPart, events: &mut Vec<Event>) {
     let width = ui.available_width();
     let height = t.size_row * 1.5;
     let (rect, response) = ui.allocate_exact_size(vec2(width, height), Sense::click_and_drag());
+    // A row scrolled out of sight takes its room and nothing else: a long catalogue lays out the rows on show only.
+    if !ui.is_rect_visible(rect) {
+        return;
+    }
     let name = p.words();
     response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::ListItem, p.unfit.is_none(), &name));
     if response.hovered() {

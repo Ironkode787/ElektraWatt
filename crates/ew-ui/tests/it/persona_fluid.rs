@@ -2209,13 +2209,16 @@ fn rc2_a_terminal_made_as_a_station_is_drawn_on_the_fluid_page() {
     d.settle();
     d.input(&key("escape"));
     d.settle();
-    // The station's rack dialog: Draw on a fluid page…, its valve in cell 1.
+    // The station's view, opened from the fluid page: Draw on page 201, its valve in cell 1.
     let rack = json!({"station": station.to_string()});
     assert_eq!(d.shell_mut().dispatch("plc.rack_editor", &rack), Outcome::Done);
     // A frame to show the dialog (a dispatch asks for none).
     d.input(&Input::Hover { at: (1000, 600) });
     d.settle();
-    d.input(&click(d.find("Draw on a fluid page…").expect("the rack's step")));
+    // The toast of the terminal placed before lies over the To do's button: it is dismissed.
+    d.input(&click(d.find("Dismiss").expect("the toast's Dismiss")));
+    d.settle();
+    d.input(&click(d.find("Draw on page 201").expect("the rack's step")));
     d.settle();
     assert_eq!(d.shell_mut().tool().name(), "black_box");
     click_at(&mut d, (760, 650));
@@ -2256,7 +2259,7 @@ fn asks_for_fluid_page(d: &mut Driver) -> bool {
     d.shell_mut()
         .station_todo()
         .iter()
-        .any(|t| t.fix == Some(TodoFix::FluidPage))
+        .any(|t| matches!(t.fix, Some(TodoFix::OnPage { step: "fluid", .. })))
 }
 
 /// The rc.3 cabinet run (blocker): a valve terminal with a bus node, put on the bus page first, never reached the
@@ -2300,7 +2303,8 @@ fn rc3_a_terminal_on_a_bus_page_first_is_drawn_on_the_fluid_page() {
 }
 
 /// The rc.3 rack run: in a project without a fluid page the station's Draw on a fluid page… did nothing and said
-/// nothing. It makes a fluid page there and then, says so, and puts the terminal's box on the pointer there.
+/// nothing. Draw on a new fluid page makes one there and then, says so, and puts the terminal's box on the pointer
+/// there.
 #[test]
 fn rc3_draw_on_a_fluid_page_makes_one_when_there_is_none() {
     let tmp = Tmp::new();
@@ -2309,7 +2313,7 @@ fn rc3_draw_on_a_fluid_page_makes_one_when_there_is_none() {
     d.input(&Input::Hover { at: (1000, 600) });
     d.settle();
     d.input(&click(
-        d.find("Draw on a fluid page…").expect("the To do's button"),
+        d.find("Draw on a new fluid page").expect("the To do's button"),
     ));
     d.settle();
     let kind = {
@@ -2324,13 +2328,14 @@ fn rc3_draw_on_a_fluid_page_makes_one_when_there_is_none() {
 }
 
 /// rc.3: with several fluid pages the station's Draw on a fluid page… asks which, as Draw on a page… does, and draws on
-/// the one chosen.
+/// the one chosen (rc.5: from a view opened on another page than a fluid one).
 #[test]
 fn rc3_draw_on_a_fluid_page_asks_which_of_several() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     let page = json!({"folio": "202", "type": "fluid", "title": "Eject"});
     assert_eq!(d.shell_mut().dispatch("page.new", &page), Outcome::Done);
+    let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "1"}));
     let station = profinet_terminal(&mut d, 1);
     d.input(&Input::Hover { at: (1000, 600) });
     d.settle();

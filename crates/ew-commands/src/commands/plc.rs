@@ -1426,13 +1426,16 @@ pub struct StationBox {
 
 /// `plc.draw_station` (`DrawStation`, rc.2 after F18): draws a station and its modules on a page, in one undo step.
 ///
-/// Each of `boxes` that the station holds (the station itself or a device under it) and that no page draws yet becomes
-/// a black box of the symbol `symbol` at its place, as `box.black` draws it (the window lays them out in a row in slot
-/// order). The function a box draws is the device's black-box function that no page draws yet; a device made without
-/// functions (`plc.add_station`'s) first gets its part's template functions, the box drawing the part's black-box
-/// entry. A device already drawn, and one whose part has no black-box entry, is left as it is. Refused in words: a
-/// device that is no station; a box of a device the station does not hold; nothing left to draw. `copies` are library
-/// documents embedded first. Outcome: the first box.
+/// Each of `boxes` that the station holds (the station itself or a device under it) and that no electrical page
+/// (multi-line or single-line) draws yet becomes a black box of the symbol `symbol` at its place, as `box.black` draws
+/// it (the window lays them out in a row in slot order). The box draws the device's black-box function, another
+/// drawing of it when a fluid page draws it as its positions already; a device made without functions
+/// (`plc.add_station`'s) first gets its part's template functions, the box drawing the part's black-box entry; a
+/// device whose functions are no black box (its bus port, put on a bus page first) gets an auxiliary function of its
+/// part's black-box entry (rc.5: a valve terminal's electrical side). A device an electrical page draws already, and one
+/// whose part has no black-box entry, is left as it is. Refused in words: a device that is no station; a box of a
+/// device the station does not hold; nothing left to draw. `copies` are library documents embedded first. Outcome:
+/// the first box.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DrawStation {
@@ -1453,21 +1456,36 @@ pub struct DrawStation {
 }
 
 impl DrawStation {
-    /// The black-box function of `device` that no page draws, made from its part's template when the device has no
-    /// function at all; `None` for a device drawn already or without a black-box entry.
-    fn box_function(tx: &mut TxBuilder<'_>, device: Id<Device>) -> Result<Option<Id<Function>>, CmdError> {
+    /// What the box of `device` draws on an electrical page: its black-box function; a function of its part's
+    /// black-box entry, the part's template functions made first when the device has none, an auxiliary one beside
+    /// functions that are no black box; `None` for a device an electrical page draws already or whose part has no
+    /// black-box entry.
+    fn box_target(
+        tx: &mut TxBuilder<'_>,
+        device: Id<Device>,
+    ) -> Result<Option<crate::commands::device::PlaceTarget>, CmdError> {
+        use crate::commands::device::PlaceTarget;
         let functions = tx.functions_of_device(device);
-        if functions.iter().any(|f| !tx.reps_of_function(*f).is_empty()) {
+        let electrical = |tx: &TxBuilder<'_>, f: Id<Function>| {
+            tx.reps_of_function(f).into_iter().any(|r| {
+                tx.get::<ew_schema::Representation>(r)
+                    .and_then(|r| tx.get::<ew_schema::Page>(r.page))
+                    .is_some_and(|p| {
+                        matches!(
+                            p.kind,
+                            ew_schema::PageType::MultiLine | ew_schema::PageType::SingleLine
+                        )
+                    })
+            })
+        };
+        if functions.iter().any(|f| electrical(tx, *f)) {
             return Ok(None);
         }
-        if let Some(f) = functions.iter().copied().find(|f| {
+        if let Some(function) = functions.iter().copied().find(|f| {
             tx.get::<Function>(*f)
                 .is_some_and(|x| x.kind == ew_schema::FunctionKind::BlackBox)
         }) {
-            return Ok(Some(f));
-        }
-        if !functions.is_empty() {
-            return Ok(None);
+            return Ok(Some(PlaceTarget::ExistingFunction { function }));
         }
         let dev = tx.require::<Device>(device)?;
         let Some(part) = dev.parts.first().map(|u| u.part.copy) else {
@@ -1476,24 +1494,35 @@ impl DrawStation {
         let Some(copy) = tx.get::<LibCopy<Part>>(part) else {
             return Ok(None);
         };
-        let entry = copy.item.function_template.iter().position(|e| {
+        let entry = copy.item.function_template.iter().enumerate().find_map(|(i, e)| {
             let def: Id<FnDef> = ew_ids::v5::lib_copy_id(e.fndef.library.as_uuid(), e.fndef.item.as_uuid());
             tx.get::<LibCopy<FnDef>>(def)
                 .is_some_and(|d| d.item.contact_kind == ew_schema::ContactKind::BlackBox)
+                .then_some((i, def))
         });
-        let Some(entry) = entry.and_then(|e| u16::try_from(e).ok()) else {
+        let Some((entry, fndef)) = entry else {
+            return Ok(None);
+        };
+        if !functions.is_empty() {
+            return Ok(Some(PlaceTarget::JoinDevice {
+                device,
+                fndef: Some(fndef),
+                role: ew_schema::FnRole::Aux,
+            }));
+        }
+        let Ok(entry) = u16::try_from(entry) else {
             return Ok(None);
         };
         let letter = dev.tag.letter.clone();
-        crate::commands::device::insert_template_functions(
+        let function = crate::commands::device::insert_template_functions(
             tx,
             part,
             entry,
             &letter,
             crate::commands::device::PartEntry::BlackBox,
             Some(device),
-        )
-        .map(Some)
+        )?;
+        Ok(Some(PlaceTarget::ExistingFunction { function }))
     }
 }
 
@@ -1523,7 +1552,7 @@ impl Command for DrawStation {
                     crate::words::device(tx, self.station)
                 ));
             }
-            let Some(function) = Self::box_function(tx, b.device)? else {
+            let Some(target) = Self::box_target(tx, b.device)? else {
                 continue;
             };
             let out = crate::commands::device::PlaceBlackBox {
@@ -1533,7 +1562,7 @@ impl Command for DrawStation {
                 orient: Default::default(),
                 rep_type: None,
                 box_: Some(b.box_.clone()),
-                target: crate::commands::device::PlaceTarget::ExistingFunction { function },
+                target,
                 copies: Vec::new(),
             }
             .run(tx)?;

@@ -187,6 +187,41 @@ fn drawn_folio(q: &Q, device: Id<Device>) -> Option<String> {
     super::properties::folio_of(q, q.reps().get(rep)?.page)
 }
 
+/// The station `station` and its modules in slot order that no electrical page (multi-line or single-line) draws;
+/// `None` for a device that is no station.
+fn off_electrical_pages(q: &Q, station: Id<Device>) -> Option<Vec<Id<Device>>> {
+    use ew_derive::ew_schema::PageType;
+    let cfg = q
+        .devices()
+        .get(station)?
+        .aspects
+        .plc_station
+        .as_ref()?
+        .config_project;
+    let electrical = |d: Id<Device>| {
+        q.idx().functions_of_device(d).any(|f| {
+            q.idx().reps_of_function(f).any(|r| {
+                q.reps()
+                    .get(r)
+                    .and_then(|r| q.pages().get(r.page))
+                    .is_some_and(|p| matches!(p.kind, PageType::MultiLine | PageType::SingleLine))
+            })
+        })
+    };
+    let modules = q
+        .get::<ModuleOrder>(cfg)
+        .iter()
+        .filter(|m| m.station == station && m.module != station)
+        .map(|m| m.module)
+        .collect::<Vec<_>>();
+    Some(
+        std::iter::once(station)
+            .chain(modules)
+            .filter(|d| !electrical(*d))
+            .collect(),
+    )
+}
+
 /// The row of a device of a station (a module, or the station itself) at slot 0 of rack 0: its tag, its part (the
 /// one that describes it for the PLC, else its first part: a module made by hand or imported by its order number
 /// showed an empty cell), what the part gives and allows, its addresses and where it is drawn.
@@ -753,8 +788,9 @@ impl Session {
     /// What `plc.draw_station` needs for `station` on page `page` (rc.2, Draw on this page): `at`, the next free place
     /// of the page (the left of its drawing area under everything drawn on it, its top left on an empty page);
     /// `right`, the drawing area's right, where the row wraps; `devices`, the station and its modules in slot order that
-    /// no page draws yet, each `[device, part copy]`; the starter black box of the page's grid as `symbol`, with its
-    /// `copies`. `None` for a page without a frame grid, a device that is no station, or no starter symbol.
+    /// no electrical page draws yet ([`Session::off_electrical_pages`]), each `[device, part copy]`; the starter black
+    /// box of the page's grid as `symbol`, with its `copies`. `None` for a page without a frame grid, a device that is no
+    /// station, or no starter symbol.
     pub fn station_draw_params(&self, station: Uuid, page: Uuid) -> Option<serde_json::Value> {
         let q = self.query();
         let page_id: Id<ew_derive::ew_schema::Page> = Id::from_uuid(page);
@@ -784,24 +820,9 @@ impl Session {
             "ew.gen.blackbox"
         };
         let symbol = self.starter_symbol_copy(key)?;
-        // The station, then its modules in slot order, each that no page draws yet, with its part.
-        let id: Id<Device> = Id::from_uuid(station);
-        let cfg = q.devices().get(id)?.aspects.plc_station.as_ref()?.config_project;
-        let drawn = |d: Id<Device>| {
-            q.idx()
-                .functions_of_device(d)
-                .any(|f| q.idx().reps_of_function(f).next().is_some())
-        };
-        let mut order = vec![id];
-        order.extend(
-            q.get::<ModuleOrder>(cfg)
-                .iter()
-                .filter(|m| m.station == id && m.module != id)
-                .map(|m| m.module),
-        );
-        let devices: Vec<serde_json::Value> = order
+        // The station, then its modules in slot order, each that no electrical page draws yet, with its part.
+        let devices: Vec<serde_json::Value> = off_electrical_pages(&q, Id::from_uuid(station))?
             .into_iter()
-            .filter(|d| !drawn(*d))
             .filter_map(|d| {
                 let part = q.devices().get(d)?.parts.first()?.part.copy;
                 Some(serde_json::json!([
@@ -818,6 +839,17 @@ impl Session {
             params["copies"] = embed["copies"].clone();
         }
         Some(params)
+    }
+
+    /// The station `station` and its modules, in slot order, that no electrical page (multi-line or single-line) draws
+    /// yet (rc.5): its electrical side, which a drawing on a bus page or as its positions on a fluid page does not
+    /// draw. Empty for a device that is no station.
+    pub fn off_electrical_pages(&self, station: Uuid) -> Vec<Uuid> {
+        off_electrical_pages(&self.query(), Id::from_uuid(station))
+            .unwrap_or_default()
+            .into_iter()
+            .map(|d| d.as_uuid())
+            .collect()
     }
 
     /// What a device row's fluid actions act on (doc 11 §7, FT-1733): whether it is a valve terminal (Generate

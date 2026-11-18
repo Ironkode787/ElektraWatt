@@ -1700,7 +1700,21 @@ fn command_error_text(e: &CmdError) -> (Key<'static>, Vec<String>) {
     let title = |c: &str| strings::command_title(c).to_owned();
     match e {
         CmdError::UnknownCommand { name } => (key!("error-command-unknown"), vec![name.clone()]),
-        CmdError::NotFound { .. } => (key!("error-command-not-found"), Vec::new()),
+        // A step on something deleted meanwhile names it by what it is (rc.5, H2): never "an item the command names".
+        CmdError::NotFound { key } => {
+            let thing = match key.0.name() {
+                "device" | "function" | "channel" => key!("error-gone-device"),
+                "representation" | "symbol" => key!("error-gone-symbol"),
+                "page" => key!("error-gone-page"),
+                "connection" | "conductor" => key!("error-gone-wire"),
+                "part" => key!("error-gone-part"),
+                _ => key!("error-gone-item"),
+            };
+            (
+                key!("error-command-not-found"),
+                vec![strings::text(thing).to_owned()],
+            )
+        }
         CmdError::Exposure {
             command, exposure, ..
         } => match exposure {
@@ -2037,7 +2051,8 @@ mod ft779 {
         );
     }
 
-    /// A command error names what it changes or misses as items ("elementen"), never records.
+    /// A command error names what it changes or misses as items ("elementen"), never records; what is gone
+    /// meanwhile by what it is, never as "an item the command names" (rc.5, H2).
     #[test]
     fn a_command_error_says_items_not_records() {
         let preview = CmdError::NeedsPreview {
@@ -2046,14 +2061,18 @@ mod ft779 {
         let texts = || {
             (
                 message(command_failed(&preview, &Value::Null)),
-                strings::text(key!("error-command-not-found")).to_owned(),
+                strings::format(
+                    key!("error-command-not-found"),
+                    &[strings::text(key!("error-gone-device"))],
+                ),
             )
         };
         assert_eq!(
             texts(),
             (
                 "Assign part changes many items: it is previewed first, then applied".to_owned(),
-                "An item the command names is no longer in the project; try again on what the page shows now"
+                "No longer in the project: the device this step works on. It was deleted or undone meanwhile; try \
+                 again on what the window shows now"
                     .to_owned()
             )
         );
@@ -2064,8 +2083,8 @@ mod ft779 {
             nl,
             (
                 "Artikel toewijzen wijzigt veel elementen: eerst volgt een voorbeeld, daarna toepassen".to_owned(),
-                "Een element dat de opdracht noemt staat niet meer in het project; probeer het opnieuw op wat de \
-                 pagina nu toont"
+                "Niet meer in het project: het apparaat waarmee deze stap werkt. Het is intussen verwijderd of \
+                 ongedaan gemaakt; probeer het opnieuw op wat het venster nu toont"
                     .to_owned()
             )
         );

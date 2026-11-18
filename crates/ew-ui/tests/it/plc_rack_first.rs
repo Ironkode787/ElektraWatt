@@ -115,8 +115,8 @@ fn a_station_is_made_as_a_rack_and_filled() {
         view.rows.iter().all(|r| r.module.is_none() || !r.drawn),
         "drawn nowhere yet"
     );
-    h.get_by_label("Draw on a page…");
-    h.get_by_label("Put it on a bus page");
+    h.get_by_label("Draw on page 101");
+    h.get_by_label("Put it on a new bus page");
     dispatch(&mut h, "edit.undo", json!({}));
     settle(&mut h);
     assert!(h.state().shell().rack_view(station).is_none(), "one undo step");
@@ -282,9 +282,9 @@ fn the_new_station_view_offers_a_device_on_the_bus() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// The rc.2 persona run: Put it on a bus page in a project without a bus-topology page makes one, asking nothing, and
-/// shows it with the station's port on the pointer; with two bus pages the button asks which, and the one chosen is
-/// shown.
+/// The rc.2 persona run: in a project without a bus-topology page the station's bus side goes onto a new one, asking
+/// nothing, which is shown with the station's port on the pointer; with bus pages the button asks which (rc.5, H2: a
+/// side lands on the page the person picks), and the one chosen is shown.
 #[test]
 fn put_it_on_a_bus_page_makes_the_page_or_asks_which() {
     let tmp = Tmp::new();
@@ -293,7 +293,7 @@ fn put_it_on_a_bus_page_makes_the_page_or_asks_which() {
     h.get_by_label("Create").click();
     settle(&mut h);
     let station = station_of(&h);
-    h.get_by_label("Put it on a bus page").click();
+    h.get_by_label("Put it on a new bus page").click();
     settle(&mut h);
     let shown = |h: &egui_kittest::Harness<'static, ew_ui::app::App>| {
         let shell = h.state().shell();
@@ -316,7 +316,7 @@ fn put_it_on_a_bus_page_makes_the_page_or_asks_which() {
     );
     dispatch(&mut h, "plc.rack_editor", json!({"station": station.to_string()}));
     settle(&mut h);
-    h.get_by_label("Put it on a bus page").click();
+    h.get_by_label("Put it on a bus page…").click();
     settle(&mut h);
     support::menu_node(&h, &format!("{made} Bus"));
     support::menu_node(&h, "900 Field bus").click();
@@ -338,7 +338,7 @@ fn topology_boxes(h: &egui_kittest::Harness<'static, ew_ui::app::App>, device: U
 }
 
 /// A station of kind `kind` with head part `head` made in the new-station dialog and put on a bus page from its rack
-/// with two corners of its first box: the station.
+/// (a new one, else the first one listed) with two corners of its first box: the station.
 fn station_on_bus_page(
     h: &mut egui_kittest::Harness<'static, ew_ui::app::App>,
     kind: &str,
@@ -350,7 +350,15 @@ fn station_on_bus_page(
     h.get_by_label("Create").click();
     settle(h);
     let station = station_of(h);
-    h.get_by_label("Put it on a bus page").click();
+    match h.query_by_label("Put it on a new bus page") {
+        Some(new) => new.click(),
+        None => {
+            h.get_by_label("Put it on a bus page…").click();
+            settle(h);
+            let first = h.state().shell().bus_pages()[0].clone();
+            support::menu_node(h, format!("{} {}", first.0, first.1).trim()).click();
+        }
+    }
     settle(h);
     crate::navigators::cursor_k(h, (10, 10));
     dispatch(h, "canvas.activate", json!({}));
@@ -500,18 +508,23 @@ fn a_click_on_the_selection_brings_its_properties_back() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// A persona run: Draw on this page put the station on page 1 without a word. Draw on a page… lists the schematic pages
-/// by folio and title, and New page…, which makes a schematic page and draws there; the page drawn on is shown, and
-/// the station's tab stays beside it.
+/// A persona run: Draw on this page put the station on page 1 without a word. From a view opened on a page that is no
+/// electrical page, Draw on an electrical page… lists the schematic pages by folio and title, and New page…, which
+/// makes a schematic page and draws there; the page drawn on is shown, and the station's tab stays beside it.
 #[test]
 fn draw_on_a_page_lists_the_pages() {
     let tmp = Tmp::new();
     let mut h = new_project(&tmp);
+    dispatch(
+        &mut h,
+        "page.new",
+        json!({"folio": "201", "type": "fluid", "title": "Pneumatics"}),
+    );
     draft_with(&mut h, 1);
     h.get_by_label("Create").click();
     settle(&mut h);
     let station = station_of(&h);
-    h.get_by_label("Draw on a page…").click();
+    h.get_by_label("Draw on an electrical page…").click();
     settle(&mut h);
     support::menu_node(&h, "101 Control");
     support::menu_node(&h, "New page…").click();
@@ -639,9 +652,7 @@ fn modules_drawn_from_the_rack_are_bound_to_their_pins() {
     assert!(topology_boxes(&h, modules[1]) == 1, "the module's box");
     dispatch(&mut h, "plc.rack_editor", json!({"station": station.to_string()}));
     settle(&mut h);
-    h.get_by_label("Draw on a page…").click();
-    settle(&mut h);
-    support::menu_node(&h, "101 Control").click();
+    h.get_by_label("Draw on page 101").click();
     settle(&mut h);
     let rows = channel_rows(&mut h);
     assert_eq!(rows.len(), 16, "two modules of eight channels");
@@ -652,9 +663,9 @@ fn modules_drawn_from_the_rack_are_bound_to_their_pins() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// After Create, Draw on a page… puts the station's box and each module's beside it in slot order on the page chosen,
-/// in one undo step; then nothing is left to draw: the view's To do list no longer offers it, and each row names its
-/// page.
+/// After Create, Draw on page 101 (the page the view was opened from) puts the station's box and each module's beside
+/// it in slot order on that page, in one undo step; then nothing is left to draw: the view's To do list no longer
+/// offers it, and each row names its page.
 #[test]
 fn draw_on_a_page_draws_the_station_and_its_modules() {
     let tmp = Tmp::new();
@@ -683,9 +694,7 @@ fn draw_on_a_page_draws_the_station_and_its_modules() {
         .iter()
         .filter_map(|r| r.module)
         .collect();
-    h.get_by_label("Draw on a page…").click();
-    settle(&mut h);
-    support::menu_node(&h, "101 Control").click();
+    h.get_by_label("Draw on page 101").click();
     settle(&mut h);
     assert!(h.state().shell().station_tab().is_none(), "the page is shown");
     let mut expected = vec![station];
@@ -716,7 +725,7 @@ fn draw_on_a_page_draws_the_station_and_its_modules() {
     dispatch(&mut h, "plc.rack_editor", json!({"station": station.to_string()}));
     settle(&mut h);
     assert!(
-        h.query_by_label("Draw on a page…").is_none(),
+        h.query_by_label("Draw on page 101").is_none(),
         "nothing is left to draw"
     );
     assert_eq!(
@@ -1124,8 +1133,8 @@ fn the_bus_panel_comes_to_the_front() {
 }
 
 /// The rc.3 rack run: a new station's tags read -?A? and -?A?-A1 and nothing said why. Its To do says that a tag gets
-/// its number when it is drawn on a page, beside Draw on a page…, and the hover of a card with such a tag says the
-/// same with the button that draws it.
+/// its number when it is drawn on a page, beside the button that draws it, and the hover of a card with such a tag
+/// says the same and where that button is.
 #[test]
 fn a_new_stations_tag_says_where_its_number_comes_from() {
     let tmp = Tmp::new();
@@ -1140,7 +1149,7 @@ fn a_new_stations_tag_says_where_its_number_comes_from() {
             .ends_with("A tag gets its number when it is drawn on a page.")),
         "{todo:?}"
     );
-    h.get_by_label("Draw on a page…");
+    h.get_by_label("Draw on page 101");
     let card = h
         .get_all_by_role(egui::Role::Button)
         .find(|n| {
@@ -1159,7 +1168,7 @@ fn a_new_stations_tag_says_where_its_number_comes_from() {
         tip |= h.get_all_by_role(egui::Role::Label).any(|n| {
             n.accesskit_node()
                 .value()
-                .is_some_and(|v| v.contains("gets its number when it is drawn on a page: Draw on a page…"))
+                .is_some_and(|v| v.contains("gets its number when it is drawn on a page: its line under To do draws it"))
         });
     }
     assert!(tip, "the hover says where the number comes from");

@@ -161,15 +161,22 @@ pub struct StationShown {
     pub rack: ew_api::output::RackView,
     /// The catalogue's parts ([`ShellModel::station_catalogue`]).
     pub catalogue: Vec<StationPart>,
+    /// The device under the cursor ([`ShellModel::station_device`]).
+    pub device: Option<Uuid>,
     /// The channels of the module under the cursor ([`ShellModel::station_channels`]).
     pub channels: Vec<ew_api::output::RackChannel>,
     /// What is left to do ([`ShellModel::station_todo`]).
     pub todo: Vec<StationTodo>,
+    /// For a station not made yet: the project's PLCs by name ([`ShellModel::plc_config_projects`]) and the devices
+    /// that can be the station ([`ShellModel::station_candidates`]); empty for a made station.
+    pub plcs: Vec<(Uuid, String)>,
+    /// See [`StationShown::plcs`].
+    pub candidates: Vec<(Uuid, String)>,
 }
 
-/// What [`StationShown`] is made for: the revision, the language generation, the place catalogue's key and the
-/// view's own state.
-pub(crate) type StationKey = (u64, u64, Option<(u64, u64, String)>, StationTab);
+/// What [`StationShown`] is made for: the revision, the language generation, the place catalogue's key, the view's
+/// own state and the page it stands on (its To do draws there).
+pub(crate) type StationKey = (u64, u64, Option<(u64, u64, String)>, StationTab, usize);
 
 impl StationPart {
     /// The part as one line of a choice: its number, its description and what it gives.
@@ -213,12 +220,19 @@ pub enum TodoFix {
         /// The card's slot.
         slot: u32,
     },
-    /// Draw on a page…: the schematic pages and New page…; the cards not drawn yet are drawn there.
-    DrawOn,
-    /// Put it on a bus page: the bus pages when there are several.
-    BusPage,
-    /// Draw on a fluid page…: the fluid pages and New page… when there are several (rc.3).
-    FluidPage,
+    /// A side of the station drawn on a page of its kind (rc.5): `plc.rack_next {step, folio}` on the page the view
+    /// stands on when it is of that kind, on a new one when the project has none, else on the one the person picks of
+    /// `pages`, or a new one.
+    OnPage {
+        /// `plc.rack_next`'s step: `draw` (an electrical page), `bus` or `fluid`.
+        step: &'static str,
+        /// The button's words: where it goes, or what it asks.
+        label: String,
+        /// The folio the button acts on without asking: the page the view stands on, or `new`; `None` when it asks.
+        folio: Option<String>,
+        /// The pages of the kind, folio and title, that it asks between (New page… after them).
+        pages: Vec<(String, String)>,
+    },
 }
 
 impl ShellModel {
@@ -253,22 +267,38 @@ impl ShellModel {
     }
 
     /// [`ShellModel::station_shown`] for the station view of `tab`, which may stand in the group without the focus
-    /// (side by side, it shows its lists too). The views of both groups are kept, so that neither is made every frame.
+    /// (side by side, it shows its lists too). The views of both groups are kept, so that neither is made every frame:
+    /// a frame, a pointer move and the view's bar read it, and it is made again only when the project, the language,
+    /// the catalogue, the view's state or the page it stands on changes (rc.5, H11).
     pub fn station_shown_of(&self, tab: &StationTab) -> Option<std::sync::Arc<StationShown>> {
         let key: StationKey = (
             self.revision()?,
             strings::generation(),
             self.tools.catalogue.as_ref().map(|(k, _)| k.clone()),
             tab.clone(),
+            self.page_index(),
         );
         if let Some((_, shown)) = self.station_cache.borrow().iter().find(|(k, _)| *k == key) {
             return Some(std::sync::Arc::clone(shown));
         }
+        self.count(|c| c.station_shown += 1);
+        let rack = self.rack_of(tab)?;
+        let device = self.device_of(tab, &rack);
+        let (plcs, candidates) = match &tab.draft {
+            Some(d) => (self.plc_config_projects(), self.candidates_of(d)),
+            None => (Vec::new(), Vec::new()),
+        };
         let shown = std::sync::Arc::new(StationShown {
-            rack: self.rack_of(tab)?,
-            catalogue: self.catalogue_of(tab),
-            channels: self.channels_of(tab),
-            todo: self.todo_of(tab),
+            catalogue: self.catalogue_of(tab, &rack),
+            channels: match (self.project_session(), device) {
+                (Some(s), Some(card)) => s.module_channels(card),
+                _ => Vec::new(),
+            },
+            todo: self.todo_of(tab, &rack),
+            device,
+            rack,
+            plcs,
+            candidates,
         });
         let mut cache = self.station_cache.borrow_mut();
         // One view per group of tabs: the oldest goes.
@@ -326,9 +356,9 @@ impl ShellModel {
         }
     }
 
-    /// The rack the station view on show draws ([`ShellModel::rack_of`]).
+    /// The rack the station view on show draws ([`ShellModel::rack_of`], read from [`ShellModel::station_shown`]).
     pub fn shown_rack(&self) -> Option<ew_api::output::RackView> {
-        self.rack_of(self.station_tab()?)
+        Some(self.station_shown()?.rack.clone())
     }
 
     /// The project's PLCs (configuration projects) by name, as a new station offers them.
@@ -357,7 +387,14 @@ impl ShellModel {
     /// The devices already in the project that a new station offers as the station (rc.2 persona run): the bus
     /// devices in no PLC, those that lead a bus for a PLC (CPU), the others for every other kind; by tag.
     pub fn station_candidates(&self) -> Vec<(Uuid, String)> {
-        let (Some(s), Some(d)) = (self.project_session(), self.station_draft()) else {
+        self.station_shown()
+            .map(|s| s.candidates.clone())
+            .unwrap_or_default()
+    }
+
+    /// [`ShellModel::station_candidates`] of the station not made yet `d`.
+    fn candidates_of(&self, d: &StationDraft) -> Vec<(Uuid, String)> {
+        let Some(s) = self.project_session() else {
             return Vec::new();
         };
         let cpu = d.kind == StationKind::Cpu;
@@ -417,25 +454,24 @@ impl ShellModel {
     /// stands first. A station not made yet without a head part lists the parts that can head a station of its
     /// kind, then the cards; a valve terminal lists the valves for a terminal beside the cards.
     pub fn station_catalogue(&self) -> Vec<StationPart> {
-        self.station_tab()
-            .map(|tab| self.catalogue_of(tab))
+        self.station_shown()
+            .map(|s| s.catalogue.clone())
             .unwrap_or_default()
     }
 
-    /// [`ShellModel::station_catalogue`] of the station view of `tab`.
-    fn catalogue_of(&self, tab: &StationTab) -> Vec<StationPart> {
+    /// [`ShellModel::station_catalogue`] of the station view of `tab`, whose rack is `view`.
+    fn catalogue_of(&self, tab: &StationTab, view: &ew_api::output::RackView) -> Vec<StationPart> {
         let Some((_, cat)) = self.tools.catalogue.as_ref() else {
             return Vec::new();
         };
-        let view = self.rack_of(tab);
         let heads = tab
             .draft
             .as_ref()
             .filter(|d| d.head.is_none() || tab.cursor == Some(StationCursor::Head))
             .map(|d| d.kind.word());
-        let terminal = view.as_ref().is_some_and(|v| !v.cells.is_empty());
+        let terminal = !view.cells.is_empty();
         // A station whose part takes no modules has no slot, free or taken (a valve terminal of valve positions alone).
-        let no_slots = view.as_ref().is_some_and(|v| v.rows.is_empty());
+        let no_slots = view.rows.is_empty();
         let tokens = crate::tools::filter_tokens(&tab.filter);
         // A library PLC part that nothing draws is listed too, greyed with what to do (not left out silently).
         let mut out: Vec<(bool, StationPart)> = cat
@@ -510,13 +546,12 @@ impl ShellModel {
     /// The device under the cursor of the station view on show: the station itself, the card in a slot, the valve
     /// or blanking plate on a position; `None` on a free place, for a station not made yet and without a cursor.
     pub fn station_device(&self) -> Option<Uuid> {
-        self.device_of(self.station_tab()?)
+        self.station_shown()?.device
     }
 
-    /// [`ShellModel::station_device`] of the station view of `tab`.
-    fn device_of(&self, tab: &StationTab) -> Option<Uuid> {
+    /// [`ShellModel::station_device`] of the station view of `tab`, whose rack is `view`.
+    fn device_of(&self, tab: &StationTab, view: &ew_api::output::RackView) -> Option<Uuid> {
         tab.draft.is_none().then_some(())?;
-        let view = self.rack_of(tab)?;
         match tab.cursor? {
             StationCursor::Head => tab.station,
             StationCursor::Slot { rack, slot } => {
@@ -537,34 +572,22 @@ impl ShellModel {
 
     /// The channels of the card under the cursor, in channel-number order (`Session::module_channels`).
     pub fn station_channels(&self) -> Vec<ew_api::output::RackChannel> {
-        self.station_tab()
-            .map(|tab| self.channels_of(tab))
+        self.station_shown()
+            .map(|s| s.channels.clone())
             .unwrap_or_default()
-    }
-
-    /// [`ShellModel::station_channels`] of the station view of `tab`.
-    fn channels_of(&self, tab: &StationTab) -> Vec<ew_api::output::RackChannel> {
-        match (self.project_session(), self.device_of(tab)) {
-            (Some(s), Some(card)) => s.module_channels(card),
-            _ => Vec::new(),
-        }
     }
 
     /// What is left to do on the station on show, each in a sentence with its fix: the slot rule's findings, a card
-    /// without a part, the cards drawn on no page, a station on no bus page, a valve terminal on no fluid page; for a
-    /// station not made yet, what Create still needs.
+    /// without a part, each side of the station on no page of its kind (its boxes on no electrical page, its bus
+    /// ports on no bus page, a valve terminal's valves on no fluid page), its overview; for a station not made yet,
+    /// what Create still needs.
     pub fn station_todo(&self) -> Vec<StationTodo> {
-        self.station_tab()
-            .map(|tab| self.todo_of(tab))
-            .unwrap_or_default()
+        self.station_shown().map(|s| s.todo.clone()).unwrap_or_default()
     }
 
-    /// [`ShellModel::station_todo`] of the station view of `tab`.
-    fn todo_of(&self, tab: &StationTab) -> Vec<StationTodo> {
+    /// [`ShellModel::station_todo`] of the station view of `tab`, whose rack is `view`.
+    fn todo_of(&self, tab: &StationTab, view: &ew_api::output::RackView) -> Vec<StationTodo> {
         let Some(session) = self.project_session() else {
-            return Vec::new();
-        };
-        let Some(view) = self.rack_of(tab) else {
             return Vec::new();
         };
         let step = |text: String, fix: Option<TodoFix>| StationTodo {
@@ -624,15 +647,61 @@ impl ShellModel {
                 r.tag.clone()
             }
         };
-        let undrawn: Vec<String> = std::iter::once(&view.head)
-            .chain(&view.rows)
-            .filter(|r| r.module.is_some() && !r.drawn)
-            .map(name)
+        let terminal = self.is_valve_terminal(station);
+        // Each side of the station is drawn on a page of its kind (rc.5, H2): its boxes on an electrical page, its bus
+        // ports on a bus page, a valve terminal's valves on their positions on a fluid page. A drawing of one side
+        // does not stand for another.
+        let open = self.page_rows().get(self.page_index());
+        let on_page = |step: &'static str, kinds: &[&str], pages: Vec<(String, String)>| {
+            let here = open.filter(|r| kinds.contains(&r.kind.as_str()));
+            let (label, folio) = match (here, pages.is_empty()) {
+                (Some(r), _) => {
+                    let at = if step == "bus" {
+                        key!("rack-put-here")
+                    } else {
+                        key!("rack-draw-here")
+                    };
+                    (strings::format(at, &[&r.folio]), Some(r.folio.clone()))
+                }
+                (None, true) => {
+                    let new = match step {
+                        "bus" => key!("rack-put-new-bus"),
+                        "fluid" => key!("rack-draw-new-fluid"),
+                        _ => key!("rack-draw-new-electrical"),
+                    };
+                    (strings::text(new).to_owned(), Some("new".to_owned()))
+                }
+                (None, false) => {
+                    let ask = match step {
+                        "bus" => key!("rack-next-bus"),
+                        "fluid" => key!("rack-next-fluid"),
+                        _ => key!("rack-next-electrical"),
+                    };
+                    (strings::text(ask).to_owned(), None)
+                }
+            };
+            Some(TodoFix::OnPage {
+                step,
+                label,
+                folio,
+                pages,
+            })
+        };
+        let rows: Vec<&ew_api::output::RackRow> = std::iter::once(&view.head).chain(&view.rows).collect();
+        let off: Vec<String> = session
+            .off_electrical_pages(station)
+            .into_iter()
+            .filter_map(|d| rows.iter().find(|r| r.module == Some(d)).map(|r| name(r)))
             .collect();
-        if !undrawn.is_empty() {
+        if !off.is_empty() {
+            let text = if terminal && off.len() == 1 {
+                strings::format(key!("rack-todo-electrical-side"), &[&off[0]])
+            } else {
+                strings::format(key!("rack-todo-undrawn"), &[&off.join(", ")])
+            };
             out.push(step(
-                strings::format(key!("rack-todo-undrawn"), &[&undrawn.join(", ")]),
-                Some(TodoFix::DrawOn),
+                text,
+                on_page("draw", &["multi_line", "single_line"], self.schematic_pages()),
             ));
         }
         let on_bus_page = self
@@ -642,10 +711,10 @@ impl ShellModel {
         if session.has_bus_interfaces(station) && !on_bus_page {
             out.push(step(
                 strings::format(key!("rack-todo-bus"), &[&name(&view.head)]),
-                Some(TodoFix::BusPage),
+                on_page("bus", &["bus_topology"], self.bus_pages()),
             ));
         }
-        if self.is_valve_terminal(station) {
+        if terminal {
             let next = |label: Key<'static>, name: &str| TodoFix::Action {
                 label: strings::text(label).to_owned(),
                 action: "plc.rack_next",
@@ -658,7 +727,7 @@ impl ShellModel {
             {
                 out.push(step(
                     strings::format(key!("rack-todo-fluid"), &[&name(&view.head)]),
-                    Some(TodoFix::FluidPage),
+                    on_page("fluid", &["fluid"], self.fluid_pages()),
                 ));
             }
             // Drawn as its positions, with valves put on them without a symbol (rc.3).
@@ -699,7 +768,8 @@ impl ShellModel {
     /// nothing to act on, in words.
     pub fn station_taken(&self) -> Result<bool, Key<'static>> {
         let tab = self.station_tab().ok_or(key!("reason-rack-closed"))?;
-        let view = self.rack_of(tab).ok_or(key!("reason-rack-closed"))?;
+        let shown = self.station_shown().ok_or(key!("reason-rack-closed"))?;
+        let view = &shown.rack;
         let (taken, drawn) = match tab.cursor {
             Some(StationCursor::Head) => (view.head.module.is_some(), view.head.drawn),
             Some(StationCursor::Slot { rack, slot }) => view
@@ -1698,12 +1768,12 @@ impl ShellModel {
         out
     }
 
-    /// `plc.rack_next {step, folio?}`: what is left to do for the station on show, from its To do list: `draw` draws
-    /// the station and its cards not drawn yet on a schematic page ([`ShellModel::draw_from_rack`]); `fluid` draws a
-    /// valve terminal on the fluid page `folio` names, or on a new one (`new`), else as `fluid.draw_terminal` chooses
-    /// its page; `overview` makes a valve terminal's overview pages
-    /// (`fluid.generate_overview`, previewed); `bus` opens a bus-topology page and puts the station's interfaces not
-    /// drawn there on the pointer.
+    /// `plc.rack_next {step, folio?}`: what is left to do for the station on show, from its To do list, on the page
+    /// `folio` names or a new one (`new`): `draw` draws the station and its cards that no electrical page draws yet on a
+    /// schematic page ([`ShellModel::draw_from_rack`]); `fluid` draws a valve terminal on a fluid page, without `folio`
+    /// as `fluid.draw_terminal` chooses its page; `bus` opens a bus-topology page, without `folio` the only one or a
+    /// new one, and puts the station's interfaces not drawn there on the pointer; `overview` makes a valve terminal's
+    /// overview pages (`fluid.generate_overview`, previewed).
     pub(crate) fn act_plc_rack_next(&mut self, p: &Map<String, Value>) -> Outcome {
         let station = or_return!(self.rack_station());
         let cursor = self.station_tab().and_then(|t| t.cursor);
@@ -1762,27 +1832,23 @@ impl ShellModel {
                     return self.rack_refuse(cursor, strings::format(key!("rack-no-bus-interface"), &[&tag]));
                 }
                 let pages = self.bus_pages();
+                let new = |s: &mut Self| {
+                    let folio = s.free_folio();
+                    let title = strings::text(key!("rack-bus-page-title"));
+                    let made = s.dispatch(
+                        "page.new",
+                        &json!({ "folio": folio, "type": "bus_topology", "title": title }),
+                    );
+                    (made == Outcome::Done).then_some(folio)
+                };
                 let folio = match string_param(p, "folio") {
-                    Ok(Some(f)) if pages.iter().any(|(x, _)| x == f) => f.to_owned(),
+                    Ok(Some(f)) if pages.iter().any(|(x, _)| x == f) => Some(f.to_owned()),
+                    Ok(Some("new")) => new(self),
                     Ok(Some(_)) => return failed(key!("error-bad-param"), &["folio"]),
                     Err(e) => return e,
                     Ok(None) => match pages.as_slice() {
-                        [(only, _)] => only.clone(),
-                        [] => {
-                            let folio = self.free_folio();
-                            let title = strings::text(key!("rack-bus-page-title"));
-                            let made = self.dispatch(
-                                "page.new",
-                                &json!({ "folio": folio, "type": "bus_topology", "title": title }),
-                            );
-                            if made != Outcome::Done {
-                                return self.rack_refuse(
-                                    cursor,
-                                    strings::text(key!("reason-rack-no-bus-page")).to_owned(),
-                                );
-                            }
-                            folio
-                        }
+                        [(only, _)] => Some(only.clone()),
+                        [] => new(self),
                         _ => {
                             return self.rack_refuse(
                                 cursor,
@@ -1790,6 +1856,10 @@ impl ShellModel {
                             );
                         }
                     },
+                };
+                let Some(folio) = folio else {
+                    return self
+                        .rack_refuse(cursor, strings::text(key!("reason-rack-no-bus-page")).to_owned());
                 };
                 // Every interface not drawn there, a box each (rc.2 persona run: the CPU stood there with its DP alone).
                 let interfaces = self
