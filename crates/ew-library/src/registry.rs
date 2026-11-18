@@ -185,8 +185,11 @@ pub struct Registry {
     held_locks: BTreeSet<PathBuf>,
     /// The records files read so far, by library and path, with the manifest hash they were read under
     /// ([`Registry::load_file`]).
-    parsed: Mutex<BTreeMap<(Uuid, String), ([u8; 32], Arc<Parsed>)>>,
+    parsed: Mutex<ParsedFiles>,
 }
+
+/// The parsed records files by (library, path), with the hash of the bytes they were parsed from.
+type ParsedFiles = BTreeMap<(Uuid, String), ([u8; 32], Arc<Parsed>)>;
 
 impl std::fmt::Debug for Registry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

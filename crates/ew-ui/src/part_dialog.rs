@@ -1130,7 +1130,7 @@ fn plug_section(
     labelled_combo(
         ui,
         "bus.0.bus",
-        &strings::text(key!("part-cable-bus")),
+        strings::text(key!("part-cable-bus")),
         d.text("bus.0.bus"),
         &ew_viewmodel::ew_api::bus_words(),
         |w| bus_choice("bus", w),
