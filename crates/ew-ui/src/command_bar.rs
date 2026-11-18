@@ -883,17 +883,28 @@ impl CommandBarHost {
                     let r = Rect::from_min_size(pos2(x, row.top()), vec2(*w, t.size_tab_row));
                     x = r.right();
                     let active = *tab == model.tab;
+                    // Without a project a tab that needs one is greyed with its reason (rc.3).
+                    let reason = ew_viewmodel::command_bar::tab_reason(shell, *tab)
+                        .filter(|_| shell.symbol_editor().is_none());
+                    let enabled = reason.is_none();
                     let response = ui.interact(r, tab_id(*tab), Sense::click());
                     let name = label.clone();
-                    response.widget_info(|| egui::WidgetInfo::selected(egui::Role::Tab, true, active, &name));
+                    response
+                        .widget_info(|| egui::WidgetInfo::selected(egui::Role::Tab, enabled, active, &name));
                     // A tab is selected, not toggled (egui maps `selected` to AccessKit's toggled state).
                     ui.ctx()
                         .accesskit_node_builder(response.id, |n| n.set_selected(active));
-                    state_overlay(ui, t, &response, true, t.radius_md);
+                    state_overlay(ui, t, &response, enabled, t.radius_md);
                     let (font, colour) = if active {
                         (theme::font(&t.type_body_strong), t.text_primary)
-                    } else {
+                    } else if enabled {
                         (theme::font(&t.type_body), t.text_secondary)
+                    } else {
+                        (theme::font(&t.type_body), t.text_disabled)
+                    };
+                    let response = match reason {
+                        Some(why) => response.disabled_tip(why),
+                        None => response,
                     };
                     let galley = ui.painter().layout_no_wrap(label.clone(), font, colour.color32());
                     let at = Align2::CENTER_CENTER.align_size_within_rect(galley.size(), r).min;
@@ -907,7 +918,12 @@ impl CommandBarHost {
                         ui.painter()
                             .rect_filled(line, theme::radius(t.radius_mark), t.accent.color32());
                     }
-                    if shell.symbol_editor().is_none() && response.double_clicked() {
+                    if let Some(why) = reason {
+                        // A greyed tab says why, as a greyed command does.
+                        if response.clicked() {
+                            events.push(Event::DisabledClick(why.to_owned()));
+                        }
+                    } else if shell.symbol_editor().is_none() && response.double_clicked() {
                         events.push(Event::Action("view.command_bar", json!({})));
                         self.popover = false;
                     } else if response.clicked() {

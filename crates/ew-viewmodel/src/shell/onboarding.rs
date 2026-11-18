@@ -125,9 +125,14 @@ impl ShellModel {
         Ok(())
     }
 
-    /// The command bar's active tab.
+    /// The command bar's active tab: without a project, Project in place of a tab that needs one (the start page's
+    /// bar shows what can be done there); the chosen tab comes back with a project.
     pub fn command_tab(&self) -> crate::command_bar::Tab {
-        self.chrome.tab
+        if crate::command_bar::tab_reason(self, self.chrome.tab).is_some() {
+            crate::command_bar::Tab::Project
+        } else {
+            self.chrome.tab
+        }
     }
 
     /// Whether the command bar is collapsed to its tab row.
@@ -142,6 +147,9 @@ impl ShellModel {
             Err(e) => e,
             Ok(None) => failed(key!("error-missing-param"), &["tab"]),
             Ok(Some(word)) => match crate::command_bar::Tab::from_word(word) {
+                Some(tab) if crate::command_bar::tab_reason(self, tab).is_some() => {
+                    Outcome::refused(key!("reason-tab-needs-project"))
+                }
                 Some(tab) => {
                     self.chrome.tab = tab;
                     Outcome::Done

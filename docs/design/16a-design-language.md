@@ -590,7 +590,10 @@ the bar.
 3. **Tabs**: Project, Page, Draw, PLC, Fluid, Check, Output, View, in `type.body` with `space.4` padding; the active one in
    `type.body.strong` and `color.text.primary` with a 2-px `color.accent` underline inset `space.4` from both ends
    (`radius.mark`), the others `color.text.secondary`; hover shows the hover overlay. One click switches; the tab row
-   is a `TabList` with `Tab` children for AccessKit.
+   is a `TabList` with `Tab` children for AccessKit. *As built (rc.3):* with no project open the bar shows the
+   Project tab (its Templates works there); the tabs that need a project (all but Project and View) stand in
+   `color.text.disabled` with their reason as tooltip, a click on one says it as a greyed command does, and the tab
+   chosen before comes back with a project.
 4. **The workspace switch** (rc.2, the owner's test: "the workspace buttons should also be there"), left of the
    command search with a `space.3` gap: a segmented control (§6.20) of Schematic, PLC and Fluid power, and a saved
    workspace by its name while it is the active one; the active workspace is the chosen item, a click loads another.

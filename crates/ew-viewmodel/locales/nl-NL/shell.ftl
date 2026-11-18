@@ -919,6 +919,7 @@ props-refused-no-command = Nog geen opdracht bewerkt deze rij.
 reason-nothing-to-undo = Niets om ongedaan te maken
 reason-nothing-to-redo = Niets om opnieuw te doen
 reason-no-project = Er is geen project open
+reason-tab-needs-project = Begin eerst een nieuw project of open er een: Nieuw project of Openen… op de startpagina
 reason-no-tag-proposal = Geen geweigerde kenmerkwijziging heeft een voorstel om te aanvaarden
 reason-no-pages = Het project heeft geen pagina's
 reason-no-parts-list = Het project heeft geen stuklijst: daarvoor is een rapportblok voor de stuklijst nodig

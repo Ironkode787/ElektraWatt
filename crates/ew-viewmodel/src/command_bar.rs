@@ -97,6 +97,18 @@ impl Tab {
     pub fn groups(self) -> impl Iterator<Item = Group> {
         Group::ALL.into_iter().filter(move |g| g.tab() == self)
     }
+
+    /// Whether the tab works on a project: without one it is greyed (rc.3: the start page showed the Draw tab as if
+    /// one could draw). Project holds the start's Templates, View the window's appearance.
+    pub fn needs_project(self) -> bool {
+        !matches!(self, Tab::Project | Tab::View)
+    }
+}
+
+/// Why `tab` is greyed in the state of `model` (no project is open for a tab that needs one); `None` while it can be
+/// chosen.
+pub fn tab_reason(model: &ShellModel, tab: Tab) -> Option<&'static str> {
+    (tab.needs_project() && !model.has_project()).then(|| strings::text(key!("reason-tab-needs-project")))
 }
 
 /// The groups of the command bar (doc 16a §5.3), in bar order: a tab's groups follow each other in this order.

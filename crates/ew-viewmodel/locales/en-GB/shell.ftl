@@ -963,6 +963,7 @@ props-refused-no-command = No command edits this row yet.
 reason-nothing-to-undo = Nothing to undo
 reason-nothing-to-redo = Nothing to redo
 reason-no-project = No project is open
+reason-tab-needs-project = Start a new project or open one first: New project or Open… on the start page
 reason-no-tag-proposal = No refused tag edit has a proposal to accept
 reason-no-pages = The project has no pages
 reason-no-parts-list = The project has no parts list: it needs a parts list report block
