@@ -1065,7 +1065,7 @@ fn tab_starts_at_the_wires_left_end_and_an_arrow_that_cannot_move_says_so() {
     assert_eq!(hot(&s), [at_seg(&s, p[n - 2], p[n - 1])]);
     let prompt = ew_viewmodel::command_bar::hud(&s).prompt;
     assert!(
-        prompt.starts_with("Handle 1 of 9, an upright segment: \u{2190} and \u{2192} move it"),
+        prompt.starts_with("Handle 1 of 9, a vertical segment: \u{2190} and \u{2192} move it"),
         "{prompt}"
     );
     // Up along it moves nothing and says why where the person looks.
