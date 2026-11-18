@@ -1670,6 +1670,15 @@ pub(crate) fn parse_input(
                     }
                 });
             let Some((unit, spelling)) = found else {
+                // "24 V DC", as a panel builder writes a control voltage: DC or AC is no part of the value.
+                let current = ["DC", "AC"].iter().any(|w| {
+                    t.len() > w.len()
+                        && t.get(t.len() - w.len()..)
+                            .is_some_and(|end| end.eq_ignore_ascii_case(w))
+                });
+                if current {
+                    return Err(invalid(api_text!("refusal-input-ac-dc", t)));
+                }
                 return Err(invalid(api_text!("refusal-input-no-unit", t)));
             };
             let number = t[..t.len() - spelling.len()].trim();

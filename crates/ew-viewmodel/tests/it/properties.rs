@@ -1242,3 +1242,110 @@ fn a_representations_position_reads_in_millimetres_with_its_cell() {
 /// The refusal of a page item's narrowed row, whole.
 const NARROWED: &str =
     "This row cannot be edited: stays on its page; delete it and place it on the other page.";
+
+/// A persona run of the third 0.3.0 candidate: the project's Control voltage looked like a row to type in and answered
+/// "No command edits this row yet". It takes a voltage now (and Rated consumption a current), another unit and a
+/// text without one refused in words.
+#[test]
+fn the_projects_control_voltage_takes_a_voltage() {
+    let tmp = Tmp::new("pf7-voltage");
+    let mut shell = writable(&tmp, "101");
+    done(&mut shell, "props.project", json!({}));
+    done(
+        &mut shell,
+        "props.set",
+        json!({"row": "project/control_voltage", "value": "24 V"}),
+    );
+    assert_eq!(text(&shell, "project/control_voltage"), "24 V");
+    done(
+        &mut shell,
+        "props.set",
+        json!({"row": "project/rated_consumption", "value": "16 A"}),
+    );
+    assert_eq!(text(&shell, "project/rated_consumption"), "16 A");
+    for typed in ["20 A", "24 V DC"] {
+        let out = shell.dispatch(
+            "props.set",
+            &json!({"row": "project/control_voltage", "value": typed}),
+        );
+        assert!(matches!(out, Outcome::Failed { .. }), "{typed}: {out:?}");
+        assert_eq!(text(&shell, "project/control_voltage"), "24 V", "{typed}");
+    }
+    let message = |shell: &mut ShellModel, typed: &str| match shell.dispatch(
+        "props.set",
+        &json!({"row": "project/control_voltage", "value": typed}),
+    ) {
+        Outcome::Failed { message } => message,
+        other => panic!("{typed}: {other:?}"),
+    };
+    assert_eq!(
+        message(&mut shell, "20 A"),
+        "a control voltage is in volts: type it as 24 V"
+    );
+    // As a panel builder writes it: the DC is no part of the value, and the refusal says so.
+    assert!(
+        message(&mut shell, "24 V DC").contains("type the number and its unit alone, such as 24 V"),
+        "{}",
+        message(&mut shell, "24 V DC")
+    );
+    shell.shutdown();
+}
+
+/// The same run: no row of Properties may answer that no command edits it. Every record of Golden A, a few of each
+/// kind, and the project: a row offered for editing has a command, and a row typed into without one says what its
+/// value is.
+#[test]
+fn no_row_of_properties_answers_that_no_command_edits_it() {
+    fn records(dir: &std::path::Path, out: &mut Vec<(String, String)>) {
+        for entry in std::fs::read_dir(dir).unwrap() {
+            let path = entry.unwrap().path();
+            if path.is_dir() {
+                records(&path, out);
+            } else if path.extension().is_some_and(|x| x == "jsonl") {
+                for line in std::fs::read_to_string(&path).unwrap().lines() {
+                    let Ok(v) = serde_json::from_str::<Value>(line) else {
+                        continue;
+                    };
+                    if let (Some(kind), Some(id)) = (v["$k"].as_str(), v["id"].as_str()) {
+                        out.push((kind.to_owned(), id.to_owned()));
+                    }
+                }
+            }
+        }
+    }
+    let tmp = Tmp::new("pf7-rows");
+    let mut shell = writable(&tmp, "101");
+    let mut all = Vec::new();
+    records(&tmp.golden_copy(), &mut all);
+    let mut per_kind: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
+    let mut problems = std::collections::BTreeSet::new();
+    let mut walk = |shell: &ShellModel| {
+        let Some(sheet) = shell.properties().sheet() else {
+            return;
+        };
+        for section in &sheet.sections {
+            for row in &section.rows {
+                let offered = row.actions.contains(&ew_viewmodel::properties::RowAction::Edit);
+                if offered && !row.route.is_editable() {
+                    problems.insert(format!("{}: offered for typing without a command", row.key));
+                }
+                let refusal = ew_viewmodel::properties::refusal_text(sheet, section, row);
+                if refusal.is_some_and(|r| r.contains("No command edits")) {
+                    problems.insert(format!("{}: answers that no command edits it", row.key));
+                }
+            }
+        }
+    };
+    done(&mut shell, "props.project", json!({}));
+    walk(&shell);
+    for (kind, id) in all {
+        let seen = per_kind.entry(kind).or_default();
+        *seen += 1;
+        if *seen > 12 || shell.dispatch("select.set", &json!({"ids": [id]})) != Outcome::Done {
+            continue;
+        }
+        walk(&shell);
+    }
+    assert!(problems.is_empty(), "{problems:#?}");
+    shell.shutdown();
+}

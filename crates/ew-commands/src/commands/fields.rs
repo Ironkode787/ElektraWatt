@@ -66,7 +66,8 @@ use crate::tx::TxBuilder;
 /// The project row (kind `project`, its one ID as the target) takes its master data (`master.description`, the project
 /// description that title blocks and bound free texts print, FR-SYM-024; the long description, the document title, the
 /// project reference, the drawing ID, the object ID, the manufacturing year, the created and edited dates) and its
-/// `parties` as a whole, every one a title block prints (FT-1686); the other project members keep their own commands.
+/// `parties` as a whole, every one a title block prints (FT-1686), and its `control_voltage` (in V) and
+/// `rated_consumption` (in A), another unit refused at `/value`; the other project members keep their own commands.
 ///
 /// The PLC kinds: a channel's `designation`, `address`, `state`, `symbol`, `comment`,
 /// `target`, `data_type`, `signal_range`, `mode` (a multi-function port's) and `safety` (its pair a channel, its test
@@ -213,6 +214,8 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
             "master.created",
             "master.edited",
             "parties",
+            "control_voltage",
+            "rated_consumption",
         ],
     ),
     (
@@ -646,6 +649,23 @@ fn set_project_member(
             text!("refusal-params-detail", crate::error::serde_error_text(&e)),
         )
     })?;
+    // The control voltage is a voltage and the rated consumption a current (doc 03 §5): another unit is refused.
+    let unit_refusal = match path {
+        "control_voltage" => next
+            .control_voltage
+            .as_ref()
+            .filter(|q| q.unit != ew_schema::Unit::V)
+            .map(|_| text!("refusal-fields-control-voltage-unit")),
+        "rated_consumption" => next
+            .rated_consumption
+            .as_ref()
+            .filter(|q| q.unit != ew_schema::Unit::A)
+            .map(|_| text!("refusal-fields-rated-consumption-unit")),
+        _ => None,
+    };
+    if let Some(text) = unit_refusal {
+        return Err(CmdError::invalid_params(SetFields::NAME, "/value", text));
+    }
     tx.set_project(next)
 }
 
