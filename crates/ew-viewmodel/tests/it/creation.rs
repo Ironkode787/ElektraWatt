@@ -93,7 +93,7 @@ fn a_label_a_section_and_the_refusals_of_page_new() {
     let m = failed(&mut shell, "page.new", json!({"folio": "104", "section": "9"}));
     assert!(m.contains("no section 9"), "{m}");
     let m = failed(&mut shell, "page.new", json!({"folio": "101"}));
-    assert!(m.contains("already exists"), "{m}");
+    assert!(m.contains("has folio 101 already"), "{m}");
     let m = failed(&mut shell, "page.new", json!({"folio": "A1"}));
     assert_eq!(m, "A folio starts with its number: \"A1\" does not.");
     let m = failed(&mut shell, "page.new", json!({"folio": "105", "type": "report"}));
@@ -141,6 +141,58 @@ fn page_new_proposes_the_first_free_folio_of_the_section_chosen() {
     done(&mut shell, "page.new", json!({}));
     shell.set_form_field("section", "7");
     assert_eq!(folio(&shell), "702", "the next free one");
+    shell.shutdown();
+}
+
+/// rc.5 (the owner: New page should propose the next free folio after the page right-clicked): New page from a page
+/// row's right-click proposes the next free number after that page inside its section, whichever page is open; from
+/// a section's row, the next free number after the section's last page. The dialog says where the page will stand,
+/// and names the page that has a folio typed that is in use, as the refusal does.
+#[test]
+fn page_new_from_a_rows_right_click_proposes_the_folio_after_it() {
+    let tmp = Tmp::new("pagenew-at");
+    let mut shell = new_project(&tmp, Mode::Gui);
+    let create = json!({"cmd": "section.create", "params": {
+        "number": 1, "folio_range": [100, 199], "title": "Wiring", "divider": true}});
+    done(&mut shell, "command.run", create);
+    for (folio, title) in [("101", "Supply"), ("102", "Motors"), ("105", "Controls")] {
+        done(&mut shell, "page.new", json!({"folio": folio, "title": title, "section": "1"}));
+    }
+    let row = |shell: &ShellModel, end: &str| {
+        shell
+            .shown_rows(ew_viewmodel::navigators::NavKind::Pages)
+            .into_iter()
+            .find(|r| r.key.ends_with(end))
+            .unwrap_or_else(|| panic!("a row ending {end}"))
+    };
+    let id = |shell: &ShellModel, folio: &str| {
+        shell.page_rows().iter().find(|r| r.folio == folio).map(|r| r.id.to_string()).unwrap()
+    };
+    let folio = |shell: &ShellModel| common::form(shell).fields.iter().find(|f| f.name == "folio").unwrap().value.clone();
+    let new_page = |shell: &ShellModel, end: &str| {
+        ew_viewmodel::command_bar::pages_tree_menu(shell, &row(shell, end))
+            .into_iter()
+            .find(|i| i.id == "page.new")
+            .expect("New page")
+    };
+    // On the page 101, while 105 is open: after 101, 102 being taken.
+    let item = new_page(&shell, &format!("p:{}", id(&shell, "101")));
+    done(&mut shell, "page.new", item.params);
+    assert_eq!(folio(&shell), "103");
+    let note = shell.form_note(&common::form(&shell), "folio").unwrap();
+    assert_eq!(note, "Stands after 102 Motors");
+    // A folio in use: the line and the refusal name its page.
+    shell.set_form_field("folio", "102");
+    let note = shell.form_note(&common::form(&shell), "folio").unwrap();
+    assert_eq!(note, "Page 102 Motors has this folio already; choose a free one");
+    assert_ne!(shell.submit_form(), Outcome::Done);
+    let error = common::form(&shell).error.unwrap_or_default();
+    assert!(error.contains("page 102 Motors has folio 102 already"), "{error}");
+    done(&mut shell, "ui.dismiss", json!({}));
+    // On the section: after its last page.
+    let item = new_page(&shell, "s:1");
+    done(&mut shell, "page.new", item.params);
+    assert_eq!(folio(&shell), "106");
     shell.shutdown();
 }
 
@@ -655,7 +707,7 @@ fn the_window_asks_for_the_fields_and_keeps_a_refusal_in_the_dialog() {
     let Outcome::Failed { message } = shell.submit_form() else {
         panic!()
     };
-    assert!(message.contains("already exists"));
+    assert!(message.contains("has folio 101 already"), "{message}");
     let form = common::form(&shell);
     assert_eq!(form.error.as_deref(), Some(message.as_str()));
     assert_eq!(shell.page_labels().len(), before + 1);

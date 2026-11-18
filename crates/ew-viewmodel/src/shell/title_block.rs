@@ -325,12 +325,16 @@ impl ShellModel {
         notes
     }
 
-    /// The line under field `field` of the open form `form`: the form's own ([`FormDialog::note`]), and the Title
+    /// The line under field `field` of the open form `form`: the form's own ([`FormDialog::note`]), New page's place
+    /// under its folio ([`ShellModel::new_page_place`]), and the Title
     /// block fields form's rule of the revision label before Apply (the persona round of 0.2.0-rc.2: a "B" was refused
     /// only after Apply): the project's form by the next free label, and where the form is set.
     pub fn form_note(&self, form: &FormDialog, field: &str) -> Option<String> {
         if let Some(note) = form.note(field) {
             return Some(note.to_owned());
+        }
+        if form.action == "page.new" && field == "folio" {
+            return self.new_page_place(form);
         }
         if form.action != TITLE_BLOCK {
             return None;

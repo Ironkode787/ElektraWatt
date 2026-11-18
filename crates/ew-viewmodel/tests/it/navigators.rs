@@ -483,24 +483,24 @@ fn pages_are_marked_and_reordered_through_one_previewed_command() {
     shell.shutdown();
 }
 
-/// NV8: Page ▸ New page proposes the next free folio after a page record and the section of the marked
-/// section node, else of the current page. With a section node marked that the current page is not in, the folio is
-/// that section's first free one (FT-1634: a page for a section just made; the folio after the current page lies
+/// NV8: Page ▸ New page proposes the next free folio after the open page inside its section (a generated page's too,
+/// rc.5) and the section of the marked section node, else of the current page. With a section node marked that the
+/// current page is not in, the folio is that section's next free one (FT-1634: a page for a section just made; the folio after the current page lies
 /// outside the marked section's range).
 #[test]
 fn new_page_proposes_the_next_free_folio_and_the_section() {
     let tmp = Tmp::new("navigators");
     let mut shell = open(&tmp, false);
     done(&mut shell, "page.goto", json!({"folio": "103"}));
-    assert_eq!(shell.new_page_proposal(), ("104".to_owned(), "1".to_owned()));
+    assert_eq!(shell.new_page_proposal(None), ("104".to_owned(), "1".to_owned()));
     done(&mut shell, "page.goto", json!({"folio": "1"}));
     // 2 is the generated table of contents and 3 a page record.
-    assert_eq!(shell.new_page_proposal().0, "4");
+    assert_eq!(shell.new_page_proposal(None).0, "4");
     done(&mut shell, "page.goto", json!({"folio": "2"}));
     assert_eq!(
-        shell.new_page_proposal().0,
-        "",
-        "a generated page proposes nothing"
+        shell.new_page_proposal(None).0,
+        "4",
+        "after a generated page too (rc.5)"
     );
     done(&mut shell, "page.goto", json!({"folio": "103"}));
     done(
@@ -508,7 +508,7 @@ fn new_page_proposes_the_next_free_folio_and_the_section() {
         "navigator.select",
         json!({"kind": "pages", "keys": ["s:2"]}),
     );
-    let (folio, section) = shell.new_page_proposal();
+    let (folio, section) = shell.new_page_proposal(None);
     assert_eq!(section, "2");
     let folio: u32 = folio.parse().unwrap();
     assert!((200..300).contains(&folio), "a folio of section 2: {folio}");

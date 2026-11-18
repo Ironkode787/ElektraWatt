@@ -1170,7 +1170,11 @@ impl ShellModel {
             json!({}),
             strings::text(key!("canvas-page-properties")).to_owned(),
         ));
-        out.extend(self.menu_item("page.new"));
+        // New page… after this page (rc.5).
+        out.extend(self.menu_item("page.new").map(|mut i| {
+            i.params = json!({ "at": key });
+            i
+        }));
         out.extend(self.aimed(
             "navigator.delete",
             json!({ "kind": NavKind::Pages.word() }),

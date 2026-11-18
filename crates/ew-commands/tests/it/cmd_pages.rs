@@ -109,7 +109,7 @@ fn create_page_rejections() {
     let mut report = CreatePage::at(Some(SEC1), 120);
     report.kind = ew_schema::PageType::Report;
     assert!(reason(e.execute(&report)).contains("report"));
-    assert!(reason(e.execute(&CreatePage::at(Some(SEC1), 101))).contains("already exists"));
+    assert!(reason(e.execute(&CreatePage::at(Some(SEC1), 101))).contains("has folio 101 already"));
 }
 
 fn labelled(section: Option<Id<Section>>, number: u32, label: &str) -> CreatePage {
@@ -224,20 +224,21 @@ fn create_page_names_the_first_of_several_refusals() {
     // The duplicate alone, last in the order.
     assert_eq!(
         reason(e.execute(&CreatePage::at(Some(SEC1), 101))),
-        "folio 101 already exists in this section; choose a free folio"
+        "page 101 Power Supply 1 - Main Current has folio 101 already; choose a free folio"
     );
 }
 
-/// FR-PAG-012: two pages of a section may not print the same folio, whatever their numbers.
+/// FR-PAG-012: two pages of a section may not print the same folio, whatever their numbers; the refusal names the page
+/// that has it, by its folio and title (rc.5).
 #[test]
 fn create_page_refuses_a_printed_folio_another_page_prints() {
     let mut e = engine(golden_model());
     assert_eq!(
         reason(e.execute(&labelled(Some(SEC1), 102, "101"))),
-        "folio 101 already exists in this section; choose a free folio"
+        "page 101 Power Supply 1 - Main Current has folio 101 already; choose a free folio"
     );
     e.execute(&labelled(Some(SEC1), 101, "101.1")).unwrap();
-    assert!(reason(e.execute(&labelled(Some(SEC1), 101, "101.1"))).contains("folio 101.1 already exists"));
+    assert!(reason(e.execute(&labelled(Some(SEC1), 101, "101.1"))).contains("has folio 101.1 already"));
 }
 
 // ---------------------------------------------------------------------------------------------------------

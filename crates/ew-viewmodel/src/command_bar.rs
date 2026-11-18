@@ -791,7 +791,8 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -
 }
 
 /// The context menu of the Pages tree's row `row`: on a page, what the Page tab offers for it (FT-1693,
-/// `ShellModel::page_row_fits`); elsewhere what the project can gain there, New page… and New section… (FT-1634). Each
+/// `ShellModel::page_row_fits`); elsewhere what the project can gain there, New page… (its folio proposed after the
+/// row's section's last page) and New section… (FT-1634). Each
 /// in the state of `model` (disabled with its reason in a read-only project).
 pub fn pages_tree_menu(model: &ShellModel, row: &crate::shell::ShownRow) -> Vec<ActionItem> {
     if row.role == crate::navigators::NavRole::Page.word() {
@@ -804,6 +805,10 @@ pub fn pages_tree_menu(model: &ShellModel, row: &crate::shell::ShownRow) -> Vec<
         .filter_map(actions::find)
         .map(|meta| actions::item_of(meta, model))
         .collect();
+    // New page… after the row's last page (a section's), else as the menu offers it (rc.5).
+    if let Some(new_page) = items.iter_mut().find(|i| i.id == "page.new") {
+        new_page.params = serde_json::json!({ "at": row.key });
+    }
     // A section's row (`s:<n>`, the last part of its key in every mode) also edits that section: its title and range.
     if let Some(number) = row
         .key

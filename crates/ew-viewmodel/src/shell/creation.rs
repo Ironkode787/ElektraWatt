@@ -23,6 +23,7 @@
 //! **After a page is created** the focused tab shows it: a person who creates a page works on it next, and a page
 //! change ends a modal tool like any other.
 
+use ew_api::output::PageRow;
 use ew_api::{AnyCommand, DynCommand};
 use serde_json::{Map, Value, json};
 
@@ -645,6 +646,41 @@ fn parse_folio(text: &str) -> Result<(u32, Option<String>), String> {
     Ok((number, (text.len() > digits.len()).then(|| text.to_owned())))
 }
 
+impl ShellModel {
+    /// Where the page New page makes will stand, under its folio field (rc.5): "Stands after 101 Wiring", the page of
+    /// the form's section whose folio comes last before the folio typed; first in its section when none does; the page
+    /// that has the folio when one has it already. `None` for a folio that does not read.
+    pub(super) fn new_page_place(&self, form: &FormDialog) -> Option<String> {
+        let value = |name: &str| form.fields.iter().find(|f| f.name == name).map(|f| f.value.trim());
+        let typed = value("folio")?;
+        let (number, _) = parse_folio(typed).ok()?;
+        let section = value("section").unwrap_or_default();
+        let words = |r: &PageRow| {
+            if r.title.trim().is_empty() {
+                r.folio.clone()
+            } else {
+                format!("{} {}", r.folio, r.title.trim())
+            }
+        };
+        let rows = self.page_rows();
+        let in_section = rows.iter().filter(|r| {
+            section.is_empty() || r.section.as_ref().is_some_and(|(n, _)| n.to_string() == section)
+        });
+        if let Some(held) = rows.iter().find(|r| r.folio == typed) {
+            return Some(strings::format(key!("form-page-new-held"), &[&words(held)]));
+        }
+        let lead = |r: &PageRow| r.folio.split('.').next().and_then(|k| k.parse::<u32>().ok());
+        let before = in_section
+            .filter_map(|r| Some((lead(r)?, r)))
+            .filter(|(n, r)| *n < number || (*n == number && r.folio.as_str() < typed))
+            .max_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.folio.cmp(&b.1.folio)));
+        Some(match before {
+            Some((_, r)) => strings::format(key!("form-page-new-after"), &[&words(r)]),
+            None => strings::text(key!("form-page-new-first")).to_owned(),
+        })
+    }
+}
+
 /// Doc 16a §8 item 5: a form's common refusal reasons, each with the key of what to do next.
 const NEXT_STEPS: [(Key<'static>, Key<'static>); 3] = [
     (key!("reason-read-only"), key!("form-step-read-only")),
@@ -976,8 +1012,10 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // The actions
 
-    /// `page.new {folio, type?, title?, section?, grid?}`: one `page.create` with the explicit folio and the
-    /// connection grid given, else the current page's, then the new page is shown.
+    /// `page.new {folio, type?, title?, section?, grid?, at?}`: one `page.create` with the explicit folio and the
+    /// connection grid given, else the current page's, then the new page is shown. Without a folio the dialog opens
+    /// with the folio proposed after the Pages row `at` the menu was opened on, else after the open page
+    /// ([`ShellModel::new_page_proposal`]).
     pub(crate) fn act_page_new(&mut self, p: &Map<String, Value>) -> Outcome {
         let mut v = Vec::new();
         for f in PAGE_NEW.fields {
@@ -994,7 +1032,9 @@ impl ShellModel {
         if folio.is_empty() {
             // The dialog opens with the proposed folio and section filled in.
             if !self.in_form_of(PAGE_NEW.action) {
-                let (proposal, proposed_section) = self.new_page_proposal();
+                // The Pages row the menu was opened on, when it was (rc.5).
+                let at = p.get("at").and_then(Value::as_str);
+                let (proposal, proposed_section) = self.new_page_proposal(at);
                 let mut filled = p.clone();
                 if !proposal.is_empty() {
                     filled.insert("folio".into(), Value::String(proposal));
@@ -2405,7 +2445,11 @@ mod tests {
         for spec in [&PAGE_NEW, &STRUCTURE_NEW, &EXTERNAL_REF_NEW] {
             let sig = parse_signature(find(spec.action).unwrap().params).unwrap();
             let names: Vec<&str> = sig.iter().map(|p| p.name.as_str()).collect();
-            let fields: Vec<&str> = spec.fields.iter().map(|f| f.name).collect();
+            let mut fields: Vec<&str> = spec.fields.iter().map(|f| f.name).collect();
+            // New page also takes the Pages row its menu was opened on, which is no field (rc.5).
+            if spec.action == "page.new" {
+                fields.push("at");
+            }
             assert_eq!(names, fields, "{}", spec.action);
         }
     }

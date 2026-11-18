@@ -599,62 +599,107 @@ impl ShellModel {
         }
     }
 
-    /// The New page pre-fill: the folio proposal and the section number text. The folio: when the current page
-    /// is a page record with number k, the smallest integer n > k whose text is not a folio of the page labels; else
-    /// empty. The section: of the marked or cursor section node of the Pages navigator, else the current page's.
-    /// With a section node chosen that the current page is not in, the folio is that section's first free one.
-    pub fn new_page_proposal(&self) -> (String, String) {
+    /// The New page pre-fill (rc.5): the folio proposal and the section number text. `at` is the Pages row the
+    /// menu was opened on (its key): on a page, the next free number after that page inside its section; on a section,
+    /// the next free number after the section's last page ([`Self::section_free_folio`]). Without one, a section
+    /// node marked in the Pages navigator (or under its cursor) that the open page is not in (a section just made,
+    /// still empty) takes the section's; else the next free number after the open page inside its section. A page's
+    /// number is its folio's leading number (a divider's and a generated page's too); the free numbers are those no
+    /// page label holds. Empty where there is none.
+    pub fn new_page_proposal(&self, at: Option<&str>) -> (String, String) {
         let rows = self.page_rows();
-        let current = self
-            .current_page()
-            .and_then(|c| rows.iter().find(|r| PageId::of(r) == c));
-        let folio = current
-            .filter(|r| is_record(r))
-            .and_then(|r| r.folio.split('.').next()?.parse::<u64>().ok())
-            .map(|k| {
-                let labels = self.page_labels();
-                (k + 1..)
-                    .find(|n| !labels.iter().any(|l| *l == n.to_string()))
-                    .map_or_else(String::new, |n| n.to_string())
-            })
-            .unwrap_or_default();
+        let last = |key: &str| key.rsplit('/').next().map(str::to_owned);
         let section_key = |key: &str| -> Option<String> {
-            let last = key.rsplit('/').next()?;
-            last.strip_prefix("s:")
+            last(key)?
+                .strip_prefix("s:")
                 .filter(|s| *s != "front")
                 .map(str::to_owned)
         };
+        let page_of = |key: &str| {
+            let id = last(key)?.strip_prefix("p:")?.parse::<Uuid>().ok()?;
+            rows.iter().find(|r| r.id == id)
+        };
+        let after_page = |r: &PageRow| -> (String, String) {
+            let section = r.section.as_ref().map(|(n, _)| n.to_string()).unwrap_or_default();
+            let folio = r
+                .folio
+                .split('.')
+                .next()
+                .and_then(|k| k.parse::<u32>().ok())
+                .and_then(|k| self.free_folio_after(k, &section))
+                .or_else(|| self.section_free_folio(&section))
+                .map_or_else(String::new, |n| n.to_string());
+            (folio, section)
+        };
+        let chosen = |number: String| -> (String, String) {
+            let folio = self
+                .section_free_folio(&number)
+                .map_or_else(String::new, |n| n.to_string());
+            (folio, number)
+        };
+        if let Some(key) = at {
+            if let Some(r) = page_of(key) {
+                return after_page(r);
+            }
+            if let Some(number) = section_key(key) {
+                return chosen(number);
+            }
+        }
+        let current = self
+            .current_page()
+            .and_then(|c| rows.iter().find(|r| PageId::of(r) == c));
         let nav = &self.navigator;
         let from_nav = nav
             .marked()
             .iter()
             .find_map(|k| section_key(k))
             .or_else(|| self.navigator_row_key().and_then(|k| section_key(&k)));
-        // A section chosen in the tree that the current page is not in (a section just made, still empty): its
-        // first free folio, since the page after the current one lies outside its range.
         let own = current.and_then(|r| r.section.as_ref().map(|(n, _)| n.to_string()));
-        let folio = match &from_nav {
-            Some(chosen) if own.as_ref() != Some(chosen) => {
-                self.section_free_folio(chosen).map_or(folio, |n| n.to_string())
-            }
-            _ => folio,
-        };
-        let section = from_nav.or(own).unwrap_or_default();
-        (folio, section)
+        match (from_nav, current) {
+            (Some(number), _) if own.as_ref() != Some(&number) => chosen(number),
+            (_, Some(r)) => after_page(r),
+            (from_nav, None) => (String::new(), from_nav.unwrap_or_default()),
+        }
     }
 
-    /// The first free folio of the section numbered `number`: the first of its range that no page holds, past its
-    /// divider page (rc.2: the persona typed the section's first folio, its divider's); `None` for no such section or a
-    /// full one.
-    pub(super) fn section_free_folio(&self, number: &str) -> Option<u32> {
+    /// The first number after `k` that no page holds, inside the folio range of the section numbered `section` (empty:
+    /// none, unbounded); `None` where the section has none left after `k`.
+    fn free_folio_after(&self, k: u32, section: &str) -> Option<u32> {
         let labels = self.page_labels();
+        let free = |n: &u32| !labels.iter().any(|l| *l == n.to_string());
+        let end = self.section_range(section).map_or(u32::MAX, |(_, last)| last);
+        (k.checked_add(1)?..=end).find(free)
+    }
+
+    /// The folio range `(first, last)` of the section numbered `number` and its first number past its divider page;
+    /// `None` for no such section.
+    fn section_range(&self, number: &str) -> Option<(u32, u32)> {
         let query = self.project.as_ref()?.session.query();
         let (_, s) = query
             .sections()
             .iter()
             .find(|(_, s)| s.number.to_string() == number.trim())?;
-        let first = s.folio_range.0 + u32::from(s.divider);
-        (first..=s.folio_range.1).find(|n| !labels.iter().any(|l| *l == n.to_string()))
+        Some((s.folio_range.0 + u32::from(s.divider), s.folio_range.1))
+    }
+
+    /// The folio New page proposes in the section numbered `number` (rc.5): the first free number after its last page
+    /// (its highest page number, a divider and generated pages counted), else its first free number past its divider
+    /// page (rc.2: the persona typed the section's first folio, its divider's); `None` for no such section or a full
+    /// one.
+    pub(super) fn section_free_folio(&self, number: &str) -> Option<u32> {
+        let labels = self.page_labels();
+        let (first, end) = self.section_range(number)?;
+        let free = |n: &u32| !labels.iter().any(|l| *l == n.to_string());
+        let highest = self
+            .page_rows()
+            .iter()
+            .filter(|r| r.section.as_ref().is_some_and(|(n, _)| n.to_string() == number.trim()))
+            .filter_map(|r| r.folio.split('.').next()?.parse::<u32>().ok())
+            .filter(|n| *n >= first)
+            .max();
+        highest
+            .and_then(|h| (h.checked_add(1)?..=end).find(free))
+            .or_else(|| (first..=end).find(free))
     }
 
     /// A language change (View ▸ Language) fetches the navigators' tables and the property sheet again, so that the

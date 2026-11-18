@@ -371,7 +371,7 @@ impl ShellModel {
     /// The folio a page the station view makes takes, asking nothing: New page's proposal, else the first number no
     /// page has.
     pub(super) fn free_folio(&self) -> String {
-        let (proposal, _) = self.new_page_proposal();
+        let (proposal, _) = self.new_page_proposal(None);
         if !proposal.is_empty() {
             return proposal;
         }
