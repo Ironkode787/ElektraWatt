@@ -81,7 +81,10 @@ The push starts `release.yml`:
 
 ## 5. Reading the draft
 
-On the repository's releases page, the draft `v<X.Y.Z>-rc.<n>` lists the files of §1 and the release notes. The run's
+On the repository's releases page, the draft `v<X.Y.Z>-rc.<n>` lists the files of §1 and the release notes. GitHub
+takes at most 125,000 characters as a release's text: where the notes are longer, the draft holds as many of their
+sections from the start as fit, whole, and a last section that links to the whole notes at the tag (0.3.0's third
+candidate was refused at this step before the script did that). The run's
 `release` job log ends with "the draft prerelease v<X.Y.Z>-rc.<n> holds <n> verified files; nothing is published". The
 summaries of `package`'s jobs carry the release-check reports and the container's packages.
 Download the files and check them as a user would (§9).

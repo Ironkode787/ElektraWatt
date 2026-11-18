@@ -46,6 +46,8 @@ SUMS = "SHA256SUMS"
 # ID-1313, ID-1331 (2), ID-1520: the x86_64 CLI archives and the installers.
 ARCHIVES = ("ew-{v}-x86_64-pc-windows-msvc.zip", "ew-{v}-x86_64-unknown-linux-gnu.tar.gz",
             "ElektraWatt-{v}-x64-user-setup.exe", "ElektraWatt-{v}-x86_64.AppImage")
+# GitHub refuses a release whose text is longer than 125,000 characters; the margin is for how it counts line ends.
+BODY_LIMIT = 120_000
 
 
 class Refusal(Exception):
@@ -133,10 +135,45 @@ def verify_files(directory, run=run):
     return present + [SUMS]
 
 
+def release_body(text, repo, tag, version):
+    """The text of the release: the notes whole where GitHub takes them, else as many of their sections from the
+    start as fit, whole, and a link to the whole notes at the tag. The notes of 0.3.0 outgrew a release's limit and
+    `gh release create` refused them."""
+    if len(text) <= BODY_LIMIT:
+        return text
+    whole = (f"\n## The whole notes\n\nThese notes go on with further sections. A release's text on GitHub is limited "
+             f"in length, so the whole notes are in the repository at this release's tag, "
+             f"[docs/release-notes/{version}.md](https://github.com/{repo}/blob/{tag}/docs/release-notes/{version}.md)"
+             f", and in the guide that is installed with the program, under Reference.\n")
+    # The start of each second-level section, fenced code left out.
+    starts, fenced, at = [], False, 0
+    for line in text.splitlines(keepends=True):
+        if line.startswith("```"):
+            fenced = not fenced
+        elif line.startswith("## ") and not fenced:
+            starts.append(at)
+        at += len(line)
+    # The longest run of whole sections from the start that fits, the first section at least.
+    head = None
+    for start in reversed(starts[2:]):
+        if start + len(whole) <= BODY_LIMIT:
+            head = text[:start]
+            break
+    if head is None:
+        # Not even the first two sections fit: the text ends at the last paragraph that does.
+        head = text[: BODY_LIMIT - len(whole)]
+        head = head[: head.rfind("\n\n") + 1] if "\n\n" in head else head
+    return head.rstrip("\n") + "\n" + whole
+
+
 def draft(repo_root, tag, directory, repo, run=run):
     """D13: the draft prerelease `tag` with every file of `directory`, then its files downloaded back and checked."""
     version = candidate_version(tag)
-    notes = os.path.join(repo_root, "docs", "release-notes", f"{version}.md")
+    with open(os.path.join(repo_root, "docs", "release-notes", f"{version}.md"), encoding="utf-8") as f:
+        body = release_body(f.read(), repo, tag, version)
+    notes = os.path.join(tempfile.mkdtemp(prefix="release-notes-"), "notes.md")
+    with open(notes, "w", encoding="utf-8", newline="\n") as f:
+        f.write(body)
     files = [os.path.join(directory, n) for n in sorted(os.listdir(directory))]
     run(["gh", "release", "create", tag, "--repo", repo, "--draft", "--prerelease", "--verify-tag",
          "--title", tag, "--notes-file", notes, *files])
@@ -417,6 +454,26 @@ class ReleaseVerifyTest(unittest.TestCase):
         self.assertEqual(len(create), 13 + len(self.FILES) + 1)
         self.assertEqual(fake.commands[1][:4], ["gh", "release", "download", "v0.1.0-rc.1"])
         self.assertEqual(fake.commands[2:], [["sha256sum", "--check", "--strict", SUMS]])
+        # Short notes are the release's text as they are.
+        with open(create[12], encoding="utf-8") as f:
+            self.assertEqual(f.read(), "# 0.1.0\n")
+
+    def test_notes_longer_than_a_release_takes_become_their_head_and_a_link(self):
+        head = "# 0.1.0\n\n## 1. What it is\n\nA release.\n\n## 2. The downloads\n\n```\n## not a heading\n```\n\n"
+        text = head + "## 3. What is new\n\n" + "A long line of what is new in this release.\n" * 4000 + "\n## 4. End\n"
+        self.assertGreater(len(text), BODY_LIMIT)
+        body = release_body(text, "o/r", "v0.1.0-rc.1", "0.1.0")
+        self.assertLessEqual(len(body), BODY_LIMIT)
+        self.assertTrue(body.startswith(head.rstrip("\n") + "\n\n## The whole notes\n"))
+        self.assertNotIn("## 3. What is new", body)
+        self.assertIn("https://github.com/o/r/blob/v0.1.0-rc.1/docs/release-notes/0.1.0.md", body)
+        # Notes of one endless section still fit: they end at a paragraph.
+        endless = "# 0.1.0\n\n" + ("A paragraph of the one section.\n\n" * 6000)
+        body = release_body(endless, "o/r", "v0.1.0-rc.1", "0.1.0")
+        self.assertLessEqual(len(body), BODY_LIMIT)
+        self.assertIn("## The whole notes", body)
+        # Notes that fit are not touched.
+        self.assertEqual(release_body(head, "o/r", "v0.1.0-rc.1", "0.1.0"), head)
 
 
 if __name__ == "__main__":
