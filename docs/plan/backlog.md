@@ -77,6 +77,10 @@ from the user's side (who changes it, when, what he sees while he does it) befor
 - FT-1814 `ew-api, ew-viewmodel, ew-ui, ew-scene`: The title block cannot be changed in the window: its layout, extra fields of the person's own, and pages that have their own title block (a cover page, a divider). Design first: an editor for a title block that a person who has never seen a form editor can use, what a template carries of it, and how a running project takes a changed one.
 - FT-1815 `ew-api, ew-viewmodel, ew-ui, ew-scene`: The frame's rulers (the numbers along the top, the letters along the left) cannot be changed: how many columns and rows a page has, numbers or letters on either side, where counting starts. Design first, together with FT-1814: cross-references and the page's grid depend on the columns and rows.
 
+### Before M4's new work: the golden project is retired
+
+- FT-1816 `golden, ew-api, ew-viewmodel, ew-ui, ew-derive, ew-commands, ew-testkit, xtask, docs`: Retire the golden project (owner, at the fourth candidate of 0.3.0: it was the result to build towards, the program can now make such a cabinet itself, and the persona runs do its job better). About four hundred test files and a hundred and sixty documents name it. Design first: which tests end with it (the acceptance specification of doc 20, the regression tests of the reference drawing's defects, the gates), and which only use it as "a whole cabinet" and move to a cabinet made in the program (generic parts, no origin outside the repository: electrical, PLC and bus, fluid, layout, reports), small enough to read. Then `golden/`, its blessing route, the rule in `CLAUDE.md` and doc 20 go. Since the fifth candidate of 0.3.0 the golden project no longer holds a design back: a decided change regenerates it.
+
 ## Later
 
 New development and polish for M3 and after, not scheduled: [backlog-later.md](backlog-later.md).
