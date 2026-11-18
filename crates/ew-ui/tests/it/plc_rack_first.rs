@@ -695,6 +695,24 @@ fn draw_on_a_page_draws_the_station_and_its_modules() {
         expected,
         "the station, then its modules in slot order, left to right"
     );
+    // The boxes' captions (tags, part numbers) stand inside the frame's drawing area, off its column numbers (rc.3).
+    {
+        let shell = h.state().shell();
+        let page = shell.canvas().expect("page 101").page();
+        let cells = page.cells.as_ref().expect("the frame's cells");
+        assert!(!page.texts.is_empty(), "the boxes' tags and part numbers");
+        for t in page.texts.iter() {
+            for corner in [
+                (t.rect.min().x.0, t.rect.min().y.0),
+                (t.rect.max().x.0, t.rect.max().y.0),
+            ] {
+                assert!(
+                    cells.cell_at(page.snapper.page_to_sheet(corner)).is_some(),
+                    "a text on the frame's bands: {t:?}"
+                );
+            }
+        }
+    }
     dispatch(&mut h, "plc.rack_editor", json!({"station": station.to_string()}));
     settle(&mut h);
     assert!(

@@ -100,7 +100,13 @@
 //!   wire runs through (the wire leaves the point's tail and turns down under the arrow: "+Supply / -X0" stood across
 //!   it) takes the first place that rule 4's free test passes, inside the drawing area: in line with the symbol,
 //!   [`SLOT_TEXT_GAP`] beyond its right edge (an arrow's tip), left-aligned; in line before its left edge,
-//!   right-aligned; centred above its other texts (the point's name). Without one it stays. Printed text order
+//!   right-aligned; centred above its other texts (the point's name). Without one it stays. (6, rc.3) A horizontal
+//!   function text, part number, manufacturer or technical-data text without an override, of a symbol that is no
+//!   black box, that overlaps another representation's pin text or such a text of its own symbol printed before it
+//!   (an interruption point's name on a box's "+"; a turned breaker's part number and rating, which the turn put on
+//!   one row) moves off it, a function text up and the others down, [`SLOT_TEXT_GAP`] apart, at most three times, to
+//!   the first place that overlaps no text or pin text, that no wire runs through and that lies inside the drawing
+//!   area; without one it stays. Rule 6 runs after the device tags and before rule 2. Printed text order
 //!   and every other position are unchanged. The rules run after "Black-box captions" and "Device tags" below and
 //!   see those texts where they ended.
 //! - **Black-box captions**. A black box's tag, part-number and manufacturer texts without a position or
@@ -128,7 +134,12 @@
 //!   box drawn with its own outline by that outline; rc.3: tags hopped onto symbols). A raise or drop goes
 //!   [`SLOT_TEXT_GAP`] past the texts, those bodies and horizontal wires in the way, at most three
 //!   times, and stays within one tag height of the symbol's top or bottom. Without a free place the
-//!   tag stays (at two grid steps' spacing the neighbours leave none).
+//!   tag stays (at two grid steps' spacing the neighbours leave none). Then (rc.3) a tag above or below its symbol
+//!   that stands between it and the next symbol of a stack, less than [`SLOT_TEXT_GAP`] from that one's body and
+//!   nearer to it than to its own (terminals two grid steps apart: "2" stood under terminal 1), takes the first place
+//!   of: moved towards its own body until [`SLOT_TEXT_GAP`] from it; beside its body, in line with its centre, left
+//!   (middle right) then right (middle left); where the tag rule judges it free and it is nearer its own body than any
+//!   other. Without one it stays.
 //! - **Pin texts**. A black box prints each [`RepView::pins`] entry whose index is one of its box CPs
 //!   (drawn as in "Black boxes") in style `data.small`, inside the outline, [`PIN_TEXT_GAP`] from the pin along its
 //!   inward normal: a pin leaving up or down reads bottom to top (90°), its end towards the pin (aligned middle right
@@ -1621,6 +1632,12 @@ impl Builder<'_> {
                     tag: matches!(slot.kind, SlotKind::Tag),
                     movable_tag: matches!(slot.kind, SlotKind::Tag) && !black_box && !moved && !turned,
                     designation: matches!(slot.kind, SlotKind::CpDesignation(_)),
+                    stack: match slot.kind {
+                        _ if moved || turned || black_box => None,
+                        SlotKind::FunctionText => Some(true),
+                        SlotKind::PartNumber | SlotKind::Manufacturer | SlotKind::TechData => Some(false),
+                        _ => None,
+                    },
                 });
             }
         }
@@ -1645,6 +1662,8 @@ impl Builder<'_> {
         self.place_black_box_captions(view, &mut texts, &pin_boxes);
         self.place_tags_off_own_mark(view, &mut texts);
         self.place_tags(view, &mut texts, &pin_boxes);
+        self.place_tags_by_own_symbol(view, &mut texts, &pin_boxes);
+        self.place_labels_clear(view, &mut texts, &pin_boxes);
         self.place_slot_texts(&mut texts, &pin_boxes);
         self.place_point_xrefs_off_own_wire(view, &mut texts, &pin_boxes);
         self.place_xrefs_off_wires(view, &mut texts, &pin_boxes);
@@ -2146,6 +2165,189 @@ impl Builder<'_> {
                     t.angle = angle;
                     t.align = align;
                 }
+            }
+        }
+    }
+
+    /// The own-symbol rule of the device tags (module documentation, "Device tags", rc.3): a movable device tag above
+    /// or below its own symbol body that stands less than [`SLOT_TEXT_GAP`] from another representation's symbol body and nearer to it than to its own
+    /// reads as the neighbour's (terminals
+    /// stacked two grid steps apart: "2" stood under terminal 1). It takes the first free place of: moved towards its
+    /// own body until [`SLOT_TEXT_GAP`] from it; beside its own body, in line with its centre, on the left (middle
+    /// right) and on the right (middle left). A place counts when the tag rule judges it free and it is nearer to its
+    /// own body than to any other; without one the tag stays.
+    fn place_tags_by_own_symbol(
+        &self,
+        view: &PageView,
+        texts: &mut [SlotText<'_>],
+        pins: &[(EntityRef, Rect)],
+    ) {
+        if !texts.iter().any(|t| t.movable_tag) {
+            return;
+        }
+        let wires = page_wires(view);
+        let bodies = symbol_bodies(view);
+        let mut boxes: Vec<Option<Rect>> = texts
+            .iter()
+            .map(|t| self.text_box(&t.spec(false), t.xref))
+            .collect();
+        let entities: Vec<EntityRef> = texts.iter().map(|t| t.entity).collect();
+        for i in 0..texts.len() {
+            if !texts[i].movable_tag || texts[i].angle != Angle2::ZERO {
+                continue;
+            }
+            let Some(own) = boxes[i] else { continue };
+            let entity = entities[i];
+            let Some(body) = bodies.iter().find(|(e, _)| *e == entity).map(|(_, b)| *b) else {
+                continue;
+            };
+            // Only a tag above or below its own symbol (a stack of symbols, one under the other); a tag beside it keeps
+            // the place the tag rule gave it.
+            if !(own.min().x < body.max().x && body.min().x < own.max().x) {
+                continue;
+            }
+            let reads_as_own = |b: Rect| {
+                let d = rect_gap(b, body);
+                bodies.iter().all(|(e, o)| *e == entity || rect_gap(b, *o) > d)
+            };
+            // Only a tag between its symbol and the next one in the stack, all but touching that one (less than the gap
+            // from its body), moves.
+            let above_own = own.max().y <= body.min().y;
+            let near_other = bodies.iter().any(|(e, o)| {
+                *e != entity
+                    && rect_gap(own, *o) < SLOT_TEXT_GAP.0
+                    && own.min().x < o.max().x
+                    && o.min().x < own.max().x
+                    && if above_own {
+                        o.min().y.0 + o.max().y.0 < own.min().y.0 + own.max().y.0
+                    } else {
+                        o.min().y.0 + o.max().y.0 > own.min().y.0 + own.max().y.0
+                    }
+            });
+            if !near_other || reads_as_own(own) {
+                continue;
+            }
+            let mid_y = Nm((body.min().y.0 + body.max().y.0) / 2);
+            let pulled = if own.max().y <= body.min().y {
+                Some(Pt2::new(Nm::ZERO, body.min().y - SLOT_TEXT_GAP - own.max().y))
+            } else if own.min().y >= body.max().y {
+                Some(Pt2::new(Nm::ZERO, body.max().y + SLOT_TEXT_GAP - own.min().y))
+            } else if own.max().x <= body.min().x {
+                Some(Pt2::new(body.min().x - SLOT_TEXT_GAP - own.max().x, Nm::ZERO))
+            } else if own.min().x >= body.max().x {
+                Some(Pt2::new(body.max().x + SLOT_TEXT_GAP - own.min().x, Nm::ZERO))
+            } else {
+                None
+            };
+            let (at, align) = (texts[i].at, texts[i].align.clone());
+            let places: Vec<(Pt2, Align)> = pulled
+                .map(|d| (at + d, align.clone()))
+                .into_iter()
+                .chain([
+                    (Pt2::new(body.min().x - SLOT_TEXT_GAP, mid_y), Align::MiddleRight),
+                    (Pt2::new(body.max().x + SLOT_TEXT_GAP, mid_y), Align::MiddleLeft),
+                ])
+                .collect();
+            let mut found = None;
+            for (to, a) in places {
+                texts[i].at = to;
+                texts[i].align = a.clone();
+                let Some(b) = self.text_box(&texts[i].spec(false), false) else {
+                    continue;
+                };
+                let free = in_the_way(b, entity, (&boxes, &entities), |k| k == i, pins, &wires)
+                    .is_some_and(|w| w.is_empty());
+                if free && reads_as_own(b) {
+                    found = Some((to, a, b));
+                    break;
+                }
+            }
+            match found {
+                Some((to, a, b)) => {
+                    texts[i].at = to;
+                    texts[i].align = a;
+                    boxes[i] = Some(b);
+                }
+                None => {
+                    texts[i].at = at;
+                    texts[i].align = align;
+                }
+            }
+        }
+    }
+
+    /// The label rule (module documentation, "Slot text collisions" rule 6, rc.3): a label ([`SlotText::stack`]) that
+    /// lies on another representation's pin text, or on a label of its own symbol printed before it, moves off it:
+    /// a function text rises above it (an interruption point's name on a box's "+"), a part number, manufacturer or
+    /// technical-data text drops below it (a turned breaker's part number and rating on one row), [`SLOT_TEXT_GAP`]
+    /// apart, at most [`SLOT_TEXT_DROPS`] times, to the first place that overlaps no text or pin text, that no wire
+    /// runs through and that lies inside the page's drawing area. Without one it stays.
+    fn place_labels_clear(&self, view: &PageView, texts: &mut [SlotText<'_>], pins: &[(EntityRef, Rect)]) {
+        if !texts.iter().any(|t| t.stack.is_some()) {
+            return;
+        }
+        let wires = page_wires(view);
+        let area = drawing_area(view);
+        let mut boxes: Vec<Option<Rect>> = texts
+            .iter()
+            .map(|t| self.text_box(&t.spec(false), t.xref))
+            .collect();
+        for i in 0..texts.len() {
+            let Some(up) = texts[i].stack else { continue };
+            if texts[i].angle != Angle2::ZERO {
+                continue;
+            }
+            let Some(own) = boxes[i] else { continue };
+            let entity = texts[i].entity;
+            let mut hit: Vec<Rect> = pins
+                .iter()
+                .filter(|(e, p)| *e != entity && overlaps(own, *p))
+                .map(|(_, p)| *p)
+                .chain(
+                    (0..i)
+                        .filter(|&k| texts[k].entity == entity && texts[k].stack.is_some())
+                        .filter_map(|k| boxes[k])
+                        .filter(|o| overlaps(own, *o)),
+                )
+                .collect();
+            let mut b = own;
+            let mut found = None;
+            for _ in 0..SLOT_TEXT_DROPS {
+                let dy = if up {
+                    let Some(top) = hit.iter().map(|r| r.min().y).min() else {
+                        break;
+                    };
+                    top - SLOT_TEXT_GAP - b.max().y
+                } else {
+                    let Some(bottom) = hit.iter().map(|r| r.max().y).max() else {
+                        break;
+                    };
+                    bottom + SLOT_TEXT_GAP - b.min().y
+                };
+                b = Rect::from_points(
+                    Pt2::new(b.min().x, b.min().y + dy),
+                    Pt2::new(b.max().x, b.max().y + dy),
+                );
+                let inside = area.min().y <= b.min().y && b.max().y <= area.max().y;
+                if !inside || wires.iter().any(|w| wire_through(b, *w)) {
+                    break;
+                }
+                hit = boxes
+                    .iter()
+                    .enumerate()
+                    .filter(|(k, _)| *k != i)
+                    .filter_map(|(_, o)| *o)
+                    .chain(pins.iter().map(|(_, p)| *p))
+                    .filter(|o| overlaps(b, *o))
+                    .collect();
+                if hit.is_empty() {
+                    found = Some(b);
+                    break;
+                }
+            }
+            if let Some(b) = found {
+                texts[i].at = texts[i].at + Pt2::new(Nm::ZERO, b.min().y - own.min().y);
+                boxes[i] = Some(b);
             }
         }
     }
@@ -3115,6 +3317,10 @@ struct SlotText<'v> {
     movable_tag: bool,
     /// A CP designation slot: a fixed text the tag rule yields to.
     designation: bool,
+    /// A label the label rule moves off what it lies on (rc.3), at the symbol's own position and angle: a function text
+    /// rises (`Some(true)`: an interruption point's name over a box's pin text), a part number, manufacturer or
+    /// technical data text drops (`Some(false)`: a turned breaker's texts on one row).
+    stack: Option<bool>,
 }
 
 /// `align` with its horizontal part kept and its vertical part at the bottom (a strip tag).
@@ -3353,6 +3559,13 @@ impl SlotText<'_> {
             items: &self.value.item_links,
         }
     }
+}
+
+/// The gap between two rectangles: the larger of their distances across and down, zero where they meet.
+fn rect_gap(a: Rect, b: Rect) -> i64 {
+    let dx = (a.min().x.0 - b.max().x.0).max(b.min().x.0 - a.max().x.0).max(0);
+    let dy = (a.min().y.0 - b.max().y.0).max(b.min().y.0 - a.max().y.0).max(0);
+    dx.max(dy)
 }
 
 /// Whether two rectangles share interior points (touching edges do not count).

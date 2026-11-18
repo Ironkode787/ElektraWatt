@@ -1377,15 +1377,17 @@ fn r2c_a_tube_from_a_port_facing_another_valve_takes_a_route() {
         .map(|c| c.stored_route)
         .collect();
     assert_eq!(routed, [true], "the tube is routed; the hint said {hint}");
-    assert_eq!(
+    // Since the lower valve's tag stands by its own valve (rc.3), not under the upper one, the tube keeps clear of it.
+    assert_ne!(
         hint,
         json!("The route crosses a text: keeping clear of it is a far longer way.")
     );
     d.shell_mut().shutdown();
 }
 
-/// R2-C, Route page: the same tube stored without a route (as the Wire tool stored it before) is routed by Route page,
-/// whose card says it crosses a text.
+/// R2-C, Route page: the same tube stored without a route (as the Wire tool stored it before) is routed by Route page;
+/// since the lower valve's tag stands by its own valve (rc.3), the route keeps clear of the texts and the card names
+/// no text crossed.
 #[test]
 fn r2c_route_page_routes_the_tube_across_a_text_and_says_so() {
     let tmp = Tmp::new();
@@ -1401,10 +1403,10 @@ fn r2c_route_page_routes_the_tube_across_a_text_and_says_so() {
     d.input(&Input::Hover { at: (1000, 600) });
     d.settle();
     assert!(
-        d.texts()
+        !d.texts()
             .iter()
             .any(|t| t.starts_with("Routed across a text, as keeping clear of it is a far longer way:")),
-        "the card says what was given up"
+        "no text crossed"
     );
     d.input(&click(d.find("Apply").expect("the card's Apply")));
     d.settle();

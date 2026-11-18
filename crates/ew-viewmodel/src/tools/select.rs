@@ -181,7 +181,8 @@ struct TextPress {
 /// The text of the one selected representation under the sheet point `at`, the last printed first; with no
 /// representation selected, the tag of the one selected page item (a cable mark's, rc.3). Else the tag under the
 /// point of a symbol or an item that is not one of several selected (rc.3: a drag at a tag moved its symbol, or the
-/// symbol under it, so the tag under the pointer wins over a symbol's body); several selected move together.
+/// symbol under it, so the tag under the pointer wins over a symbol's body), and so a drawn box's caption outside
+/// its outline (its part number: dragged, it moved the whole box, rc.3); several selected move together.
 pub(crate) fn text_under(cx: &ToolCx<'_>, at: (i64, i64)) -> Option<ew_api::output::SlotTextBox> {
     let reps = selected_reps(cx.selection, cx.page);
     let items: Vec<EntityRef> = super::selection_kinds(cx.selection, &cx.page.tables)
@@ -213,12 +214,25 @@ pub(crate) fn text_under(cx: &ToolCx<'_>, at: (i64, i64)) -> Option<ew_api::outp
             .any(|r| r.id == t.rep && r.tag_at.is_some_and(|a| a.0 == t.at.x.0))
             || cx.page.tables.items.iter().any(|i| i.id == t.rep)
     };
+    // A drawn box's caption outside its outline (the tag rule's texts stand inside a box only as pin texts).
+    let caption = |t: &ew_api::output::SlotTextBox| {
+        cx.page.tables.reps.iter().any(|r| {
+            r.id == t.rep
+                && r.black_box.as_ref().is_some_and(|b| {
+                    let xs = b.outline.iter().map(|q| q.0);
+                    let ys = b.outline.iter().map(|q| q.1);
+                    let (x0, x1) = (xs.clone().min().unwrap_or(0), xs.max().unwrap_or(0));
+                    let (y0, y1) = (ys.clone().min().unwrap_or(0), ys.max().unwrap_or(0));
+                    !((x0..=x1).contains(&p.0) && (y0..=y1).contains(&p.1))
+                })
+        })
+    };
     cx.page
         .texts
         .iter()
         .rev()
         .copied()
-        .find(|t| under(t) && tag(t) && !cx.selection.items.contains(&EntityRef(t.rep)))
+        .find(|t| under(t) && (tag(t) || caption(t)) && !cx.selection.items.contains(&EntityRef(t.rep)))
 }
 
 /// `r` turned by `turns` quarters counter-clockwise on the sheet about `c`, page nm.

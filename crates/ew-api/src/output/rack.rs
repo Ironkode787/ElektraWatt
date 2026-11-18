@@ -774,7 +774,9 @@ impl Session {
                 r.pos.y.0 + low
             })
             .max();
-        let (x, y) = (min.x.0 + gap, bottom.map_or(min.y.0 + gap, |b| b + 2 * gap));
+        // On an empty page the boxes stand two gaps under the frame's top: their captions (the tag, the part number
+        // and the manufacturer above each box) stay inside the drawing area, off the column numbers (rc.3).
+        let (x, y) = (min.x.0 + gap, bottom.map_or(min.y.0 + 2 * gap, |b| b + 2 * gap));
         let grid = q.pages().get(page_id)?.grid;
         let key = if grid == ew_derive::ew_units::Grid::QET_10PX {
             "ew.gen.blackbox@qet10"
