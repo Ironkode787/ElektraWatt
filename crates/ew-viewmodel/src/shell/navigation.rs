@@ -977,6 +977,10 @@ impl ShellModel {
     /// `page` names, else as its action decides (the page in front, or the window asks).
     pub(crate) fn act_props_follow(&mut self, p: &Map<String, Value>) -> Outcome {
         let key = or_return!(self.props_row_param(p));
+        // A wire's value its cable core gives: the cable, where it is changed (rc.3).
+        if self.cable_row(&key).is_some() {
+            return self.props_go_to_source(&key);
+        }
         let solenoid = self
             .props_find(&key)
             .and_then(|(_, row)| match (row.ty.inner(), &row.value) {

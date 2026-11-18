@@ -921,6 +921,13 @@ impl ShellModel {
             return failed(key!("error-no-row"), &[key]);
         };
         if let Some(out) = self.props_refusal(&section, &row, action) {
+            // A wire's value its cable core gives says so under the row, where the person tried (rc.3: click,
+            // double-click and typing did nothing); its button goes to the cable.
+            if let Some(tag) = self.cable_row(key) {
+                let message = strings::format(key!("props-set-by-cable"), &[&tag]);
+                self.props.set_error(key.to_owned(), message.clone());
+                return Outcome::Failed { message };
+            }
             // Tips 2 and 3.
             self.tip_for_refused_row(&section, &row, &out);
             return out;
@@ -2346,9 +2353,22 @@ impl ShellModel {
         out
     }
 
+    /// The tag of the cable whose core gives the value of the derived row `key` (a wire's cross-section or colour), which
+    /// is changed at the cable (rc.3); `None` for any other row.
+    pub fn cable_row(&self, key: &str) -> Option<String> {
+        let (_, row) = self.props.sheet().and_then(|sheet| find_row(sheet, key))?;
+        let Some(ew_api::output::SourceLink::Record { id, row: to }) = &row.source else {
+            return None;
+        };
+        if to != ew_api::output::CABLE_SOURCE_ROW || !is_derived(row) {
+            return None;
+        }
+        self.project.as_ref()?.session.device_tag(*id)
+    }
+
     /// Go to source (FT-1651): the row that holds the source of row `key`'s value, with the cursor on it; the sheet
     /// shows the record or the project first when it does not show the row, and the row's category unfolds.
-    fn props_go_to_source(&mut self, key: &str) -> Outcome {
+    pub(super) fn props_go_to_source(&mut self, key: &str) -> Outcome {
         let Some((_, row)) = self.props_find(key) else {
             return failed(key!("error-no-row"), &[key]);
         };

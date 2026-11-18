@@ -235,3 +235,47 @@ fn every_selected_wire_becomes_a_core_or_the_form_says_which_cannot() {
     d.shell_mut().shutdown();
 }
 
+/// The persona run: a cable's wire clicked, its cross-section clicked, double-clicked and typed into did nothing and
+/// said nothing. Now an edit there says that the cable sets it, and its button goes to the cable.
+#[test]
+fn a_wire_of_a_cable_says_its_cross_section_is_changed_at_the_cable() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    let pixel = two_wires(&mut d);
+    select_both(&mut d, &pixel);
+    cable_of_selection(&mut d);
+    let at = crate::wires_and_cables::on_wire(&mut d, &pixel, 0);
+    d.input(&Input::Hover { at });
+    d.input(&click(at));
+    d.settle();
+    // Typed into the row: the sentence under it.
+    assert_eq!(
+        d.shell_mut()
+            .dispatch("props.row", &json!({"to": "connection/derived.csa"})),
+        Outcome::Done
+    );
+    let out = d
+        .shell_mut()
+        .dispatch("props.input", &json!({"text": "2"}));
+    match out {
+        Outcome::Failed { message } => {
+            assert!(message.starts_with("The cable -1W1 sets this"), "{message}");
+        }
+        other => panic!("{other:?}"),
+    }
+    d.input(&Input::Hover { at: (4, 4) });
+    d.settle();
+    let button = d
+        .find("Change it at cable -1W1")
+        .expect("the button under the row");
+    d.input(&click(button));
+    d.settle();
+    let sheet = d.shell_mut().properties().sheet().expect("a sheet").clone();
+    assert_eq!(sheet.header.title, "-1W1", "the cable's sheet");
+    assert_eq!(
+        d.shell_mut().properties_row().as_deref(),
+        Some("device/parts"),
+        "its Parts row"
+    );
+    d.shell_mut().shutdown();
+}

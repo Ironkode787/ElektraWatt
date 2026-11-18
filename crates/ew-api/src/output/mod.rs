@@ -160,8 +160,8 @@ pub(crate) use potential_offer::said_type;
 pub use preview::PreviewEntity;
 pub use project_diff::textconv;
 pub use properties::{
-    CompanyColour, DeviceMedia, FindingChip, PropRow, PropertySheet, Provenance, RowAction, RowValue,
-    SelectionWords, SheetHeader, SheetSection, SheetWhat, SourceLink, WireColours, WireEnd,
+    CABLE_SOURCE_ROW, CompanyColour, DeviceMedia, FindingChip, PropRow, PropertySheet, Provenance, RowAction,
+    RowValue, SelectionWords, SheetHeader, SheetSection, SheetWhat, SourceLink, WireColours, WireEnd,
 };
 pub use rack::{
     FluidMenu, PlcOffer, RackCell, RackChannel, RackPosition, RackRow, RackView, SolenoidSeat, TerminalKind,

@@ -875,7 +875,7 @@ impl PropertiesPane {
         // Below the row: its error (§6.1: the icon and the message in `color.error`, `type.small`), its choices, the
         // notes of the last commit, the popups.
         if let Some(e) = error {
-            self.error_line(ui, props, &parts, e, events);
+            self.error_line(ui, shell, &parts, e, events);
         }
         // A list with no match opens no popup. The list starts under the value cell.
         if let Some(c) = props
@@ -1137,12 +1137,14 @@ impl PropertiesPane {
         let editable = !header && row.actions.contains(&RowAction::Edit);
         // A link row (Device) is a link in `color.accent` (doc 16a P4); a click follows it.
         let link = !header && !editable && is_link(row);
+        // A wire's value its cable core gives takes a click, which says where it is changed (rc.3).
+        let cable = !header && !editable && shell.cable_row(&row.key).is_some();
         let (cell, response) = child.allocate_exact_size(
             Vec2::new(
                 value_w,
                 t.size_control_inline.max(prose.map_or(0.0, |p| p.height)),
             ),
-            if editable || link {
+            if editable || link || cable {
                 Sense::click()
             } else {
                 Sense::hover()
@@ -1361,11 +1363,12 @@ impl PropertiesPane {
     fn error_line(
         &mut self,
         ui: &mut Ui,
-        props: &ew_viewmodel::properties::PropertiesState,
+        shell: &ShellModel,
         p: &RowParts<'_>,
         e: String,
         events: &mut Vec<Event>,
     ) {
+        let props = shell.properties();
         let (t, row) = (p.t, p.row);
         // The message wraps inside the panel (never cut at its edge), its icon at the first line.
         let shown = Some((row.key.clone(), e.clone()));
@@ -1412,6 +1415,18 @@ impl PropertiesPane {
                 };
                 if clicked {
                     events.push(Event::Action("props.accept_tag_proposal", json!({})));
+                }
+            });
+        }
+        // A wire's value its cable core gives: the button that goes to the cable (rc.3).
+        if let Some(tag) = shell.cable_row(&row.key) {
+            ui.horizontal(|ui| {
+                ui.add_space(t.space_4 + t.icon_sm);
+                let words = strings::format(key!("props-change-at-cable"), &[&tag]);
+                if crate::components::button(ui, crate::components::Kind::Secondary, &words, true, 0.0)
+                    .clicked()
+                {
+                    events.push(Event::Action("props.follow", json!({ "row": row.key })));
                 }
             });
         }

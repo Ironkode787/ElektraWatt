@@ -2295,6 +2295,8 @@ props-action-unfreeze = Unfreeze
 props-action-make-variable = Make variable
 # FT-1651, FT-1649: a derived value's source, a potential without a definition, a connection point not used.
 props-action-go-to-source = Go to source
+props-set-by-cable = The cable { $p0 } sets this: each of its cores takes the cross-section and colour of the cable's part or type. Change it at the cable.
+props-change-at-cable = Change it at cable { $p0 }
 action-cp-unused = Mark not used
 props-action-cp-used = Mark used
 props-cp-unused = { $p0 } · not used

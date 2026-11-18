@@ -128,6 +128,10 @@ pub struct SheetSection {
     pub rows: Vec<PropRow>,
 }
 
+/// The row a wire's cross-section or colour that its cable core gives goes to: the cable's Parts row, whose part gives
+/// its cores (rc.3: "Change it at cable -W1").
+pub const CABLE_SOURCE_ROW: &str = "device/parts";
+
 /// One row (§6.3, §6.4).
 #[derive(Clone, PartialEq, Debug)]
 pub struct PropRow {
@@ -3461,7 +3465,7 @@ impl Session {
                     .unwrap_or_else(|| "?".into());
                 // The source a person can go to: none for the wire's own override.
                 let link = (!matches!(&source, PropSource::Override(at) if at == c))
-                    .then(|| source_link(&source, name));
+                    .then(|| source_link(q, &source, name));
                 if !links.contains(&link) {
                     links.push(link);
                 }
@@ -4154,7 +4158,7 @@ pub(crate) fn kind_plural(kind: &str) -> String {
 /// The row that holds the source of the wire property `name` (`csa`, `colour`, `shielded`) (FT-1651): the same
 /// property of the connection that holds the override, of the cable's core or of the potential definition; else the
 /// project's profile or wire default, where a profile is chosen when the value is the built-in default.
-fn source_link(source: &PropSource, name: &str) -> SourceLink {
+fn source_link(q: &Q, source: &PropSource, name: &str) -> SourceLink {
     let project = |row: &str| SourceLink::Project {
         row: format!("project/settings.{row}"),
     };
@@ -4168,9 +4172,16 @@ fn source_link(source: &PropSource, name: &str) -> SourceLink {
             id: at.as_uuid(),
             row: format!("connection/derived.{name}"),
         },
-        PropSource::Conductor(c) => SourceLink::Record {
-            id: c.as_uuid(),
-            row: format!("conductor/{name}"),
+        // A core's value is its cable's: the cable's Parts row, whose part gives the cores (rc.3).
+        PropSource::Conductor(c) => match q.conductors().get(*c) {
+            Some(core) => SourceLink::Record {
+                id: core.cable.as_uuid(),
+                row: CABLE_SOURCE_ROW.to_owned(),
+            },
+            None => SourceLink::Record {
+                id: c.as_uuid(),
+                row: format!("conductor/{name}"),
+            },
         },
         PropSource::PotentialDef(d) => SourceLink::Record {
             id: d.as_uuid(),
