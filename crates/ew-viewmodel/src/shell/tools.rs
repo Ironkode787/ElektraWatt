@@ -392,7 +392,7 @@ impl ShellModel {
         self.end_editing_tool();
     }
 
-    /// After an undo or a redo: a black box armed before it whose records ([`crate::tools::black_box::BlackBoxTool::records`]) the step took
+    /// After an undo, a redo or any dispatch that commits (a Delete in a navigator): a black box armed before it whose records ([`crate::tools::black_box::BlackBoxTool::records`]) the step took
     /// out of the project is escaped and ended, so that it is armed again from the project as it is (rc.5, H2: put
     /// down, it named a symbol copy the Undo had taken). A tool whose records are all there stays armed.
     pub(super) fn end_tool_without_records(&mut self) {

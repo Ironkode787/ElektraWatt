@@ -341,3 +341,32 @@ fn place_here_puts_an_unplaced_plc_part_on_the_pointer() {
     assert_eq!(entry.as_deref(), Some("Place here"));
     d.shell_mut().shutdown();
 }
+
+/// A Delete in a navigator of the part a box hangs on the pointer for (Place here) ends the placement, as an Undo that
+/// takes it away does: the click that follows draws nothing and names nothing gone.
+#[test]
+fn a_delete_in_a_navigator_ends_the_box_of_what_it_deleted() {
+    use ew_ui::ew_viewmodel::navigators::NavKind;
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    let page = json!({"folio": "101", "type": "multi_line", "title": "Control"});
+    assert_eq!(d.shell_mut().dispatch("page.new", &page), Outcome::Done);
+    let cpu = station(&mut d, "cpu", "EW-GEN-CPU-2", &[]);
+    let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "101"}));
+    d.settle();
+    let place = place_here(&mut d, cpu);
+    assert_eq!(d.shell_mut().dispatch(place.id, &place.params), Outcome::Done);
+    assert_eq!(d.shell_mut().tool().name(), "black_box", "its box on the pointer");
+    let node = plc_row(&mut d, cpu);
+    let kind = NavKind::Plc.word();
+    let row = json!({"kind": kind, "key": node.key});
+    assert_eq!(d.shell_mut().dispatch("navigator.row", &row), Outcome::Done);
+    let revision = d.shell_mut().revision();
+    let _ = d.shell_mut().dispatch("navigator.delete", &json!({"kind": kind}));
+    if d.shell_mut().revision() == revision {
+        assert_eq!(d.shell_mut().dispatch("preview.apply", &json!({})), Outcome::Done);
+    }
+    assert_ne!(d.shell_mut().revision(), revision, "the station is deleted");
+    assert_eq!(d.shell_mut().tool().name(), "select", "the placement ends with it");
+    d.shell_mut().shutdown();
+}

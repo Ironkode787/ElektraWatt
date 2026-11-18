@@ -2827,6 +2827,8 @@ impl ShellModel {
     /// The after-commit duties (§6.4 item 3), at the end of a dispatch: a committed record the page tables no longer
     /// hold leaves the selection; the place tool's shape is read again for a new revision.
     pub(super) fn after_commit(&mut self) {
+        // A box armed with records this dispatch took away (a Delete in a navigator, as an Undo would) ends (rc.5).
+        self.end_tool_without_records();
         self.after_layout_commit();
         self.after_paste();
         // FT-900
