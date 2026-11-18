@@ -154,7 +154,9 @@
 //!   leaving right). They print after the slot texts and never move; in the slot-text collision rules they are fixed
 //!   obstacles of the cross-reference texts: a cross-reference text that overlaps one drops below it as
 //!   below a text of its own symbol (rule 2); a device tag yields to one ("Device tags"). An entry without its box
-//!   CP, or a pin of an unknown direction, prints nothing.
+//!   CP, or a pin of an unknown direction, prints nothing. A black box's cross-reference text (not moved) that would
+//!   cross its outline's right edge, a narrow box's, stands outside it at the corner it belongs to: right-aligned
+//!   [`SLOT_TEXT_GAP`] left of the outline, its top where it was (rc.5); the collision rules then treat it as any.
 //! - **Wire markers** (FR-OUT-011 keeps them in monochrome; FT-1706: the text stands clear of its wires, as drawing
 //!   practice has it): a short line across the wire at the midpoint of the polyline's longest segment (the first of
 //!   equal ones), [`MARKER_REACH`] past the wire on both sides in the page's wire stroke, and the caller's marker text
@@ -1664,6 +1666,7 @@ impl Builder<'_> {
             })
             .collect();
         self.place_black_box_captions(view, &mut texts, &pin_boxes);
+        self.place_black_box_xrefs_outside(view, &mut texts);
         self.place_tags_off_own_mark(view, &mut texts);
         self.place_tags(view, &mut texts, &pin_boxes);
         self.place_tags_by_own_symbol(view, &mut texts, &pin_boxes);
@@ -1765,6 +1768,39 @@ impl Builder<'_> {
             // A cable mark's tag keeps clear of it (rc.3).
             self.kept_clear.extend(self.text_box(&spec, false));
             self.text(&spec);
+        }
+    }
+
+    /// A black box's cross-reference text that would cross its outline's right edge (a narrow box, rc.5: the owner's box
+    /// made smaller had its cross-reference on its edge) stands outside it instead, at its top-left corner where it
+    /// belongs: right-aligned [`SLOT_TEXT_GAP`] left of the outline, its top where it was. A moved text stays.
+    fn place_black_box_xrefs_outside(&self, view: &PageView, texts: &mut [SlotText<'_>]) {
+        for rv in &view.reps {
+            let rep = &rv.rep;
+            let (Some(def), Some(b)) = (&rv.symbol, &rep.box_) else {
+                continue;
+            };
+            if !def.cps.is_empty() || b.outline.is_empty() {
+                continue;
+            }
+            let points: Vec<Pt2> = b.outline.iter().map(|p| rep.pos + rep.orient.apply(*p)).collect();
+            let (Some(left), Some(right)) = (
+                points.iter().map(|p| p.x).min(),
+                points.iter().map(|p| p.x).max(),
+            ) else {
+                continue;
+            };
+            let entity = EntityRef(rep.id.as_uuid());
+            for t in texts.iter_mut().filter(|t| t.entity == entity && t.xref && !t.moved) {
+                let Some(rect) = self.text_box(&t.spec(false), false) else {
+                    continue;
+                };
+                if rect.max().x <= right {
+                    continue;
+                }
+                t.at = Pt2::new(Nm(left.0 - SLOT_TEXT_GAP.0), rect.min().y);
+                t.align = Align::TopRight;
+            }
         }
     }
 

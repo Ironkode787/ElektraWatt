@@ -213,6 +213,38 @@ fn a_representation_without_a_box_prints_no_pin_text() {
     assert!(runs(&v).is_empty());
 }
 
+/// rc.5 (the owner's box made smaller had its cross-reference on its edge): a cross-reference text that would cross a
+/// narrow black box's right edge stands outside it, left of its top-left corner, clear of the outline.
+#[test]
+fn a_narrow_boxs_cross_reference_stands_outside_it() {
+    let mut v = view("r0");
+    {
+        let r = Arc::make_mut(&mut v.reps[0].rep);
+        let b = r.box_.as_mut().unwrap();
+        b.outline = serde_json::from_value(json!([[0, 0], [g(4), 0], [g(4), g(12)], [0, g(12)]])).unwrap();
+        b.cps.clear();
+    }
+    v.reps[0].pins.clear();
+    let xref = v.reps[0]
+        .symbol
+        .as_ref()
+        .unwrap()
+        .text_slots
+        .iter()
+        .position(|s| matches!(s.kind, SlotKind::Xref))
+        .unwrap();
+    v.reps[0].slots = vec![SlotValue {
+        slot: u16::try_from(xref).unwrap(),
+        text: "902-D1, 902-D4".to_owned(),
+        link: None,
+        item_links: Vec::new(),
+    }];
+    let r = runs(&v);
+    let (_, a, b) = r.iter().find(|(t, _, _)| t.contains("902-D1")).unwrap().clone();
+    assert!(b.0 < g(30), "left of the box: {a:?} {b:?}");
+    assert!(a.1 >= g(30) && a.1 < g(34), "at its top: {a:?} {b:?}");
+}
+
 /// A pin text is a fixed obstacle of the cross-reference text. A pin near the box's top-left corner prints
 /// its text where the box's cross-reference slot sits; the cross-reference drops below it, `SLOT_TEXT_GAP` apart,
 /// and the pin text stays 1 mm from its pin.
