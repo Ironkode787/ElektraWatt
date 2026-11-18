@@ -9,7 +9,8 @@
 //! more bends and crossings. (Routed from nothing with the longest wires first, the long wires took the straight
 //! tracks between the pins, the short ones stepped aside and seven kept their old route under the new ones.)
 //!
-//! And a wire ended on another where a third one crosses it: the crossing is no place for a junction.
+//! And a wire ended on another where a third one crosses it: the crossing is no place for a junction. And the texts
+//! beside the pins of a multipin plug, which a wire goes round.
 
 use crate::common;
 
@@ -230,4 +231,70 @@ fn a_wire_does_not_join_another_where_a_third_crosses_it() {
     assert_eq!(t.junctions[0].at, beside);
     let (m, unrouted) = layout(&s);
     assert_eq!((m.touches.len(), unrouted), (0, 0), "{m:?}");
+}
+
+/// The texts beside the pins of a multipin plug ("1 · 14", "COM") are texts of the router's page: a wire that would
+/// run under the plug across them goes round them, and the wire of a pin runs past its own text, not across it.
+#[test]
+fn a_wire_goes_round_the_texts_beside_a_plug_s_pins() {
+    let tmp = Tmp::new("reroute-plug-notes");
+    let mut s = project(&tmp);
+    done(&mut s, "place.pick", json!({"part": "EW-GEN-VTP-1"}));
+    let (a, b) = (page_point(&s, (30, 20)), page_point(&s, (56, 28)));
+    assert!(
+        click(&mut s, a, false) && click(&mut s, b, false),
+        "the plug's box"
+    );
+    done(&mut s, "tool.select", json!({}));
+    let plug = tables(&s).reps.last().expect("the plug").clone();
+    let below: Vec<TableCp> = tables(&s)
+        .cps
+        .iter()
+        .filter(|c| c.rep == plug.id && c.at.1 >= b.1)
+        .cloned()
+        .collect();
+    assert!(below.len() >= 2, "pins on the box's lower edge: {below:?}");
+    // The texts under the box, one beside each lower pin.
+    let under = |s: &ShellModel| -> Vec<[i64; 4]> {
+        let g = &s.canvas().unwrap().page().geometry;
+        g.texts
+            .iter()
+            .filter(|t| t.rep == plug.id && t.rect[1] >= b.1)
+            .map(|t| t.rect)
+            .collect()
+    };
+    let notes = under(&s);
+    assert!(
+        notes.len() >= below.len(),
+        "a text beside each lower pin: {notes:?}"
+    );
+    // A wire between two lamps left and right of the plug, whose pins end one step under the box's lower edge: the
+    // level way between them lies across the texts.
+    let k = (b.1 - a.1) / 8;
+    let row = |n: i64| b.1 + n * k;
+    let (left, right) = (
+        place(&mut s, "EW-GEN-LMP-1", (24, 25)),
+        place(&mut s, "EW-GEN-LMP-1", (62, 25)),
+    );
+    let (from, to) = (pins(&s, &left).1.at, pins(&s, &right).1.at);
+    assert!(from.1 < row(2), "the lamps' lower pins stand beside the texts");
+    wire(&mut s, from, to);
+    // A lamp under the plug, its upper pin in line with one of the plug's lower pins: the wire runs straight down
+    // past that pin's own text.
+    let pin = below[below.len() / 2].clone();
+    let col = s.canvas().unwrap().page().snapper.grid_index_of(pin.at.0);
+    let lamp = place(&mut s, "EW-GEN-LMP-1", (col, 40));
+    let upper = pins(&s, &lamp).0.at;
+    wire(&mut s, pin.at, upper);
+    let t = tables(&s);
+    let straight = t.connections.last().expect("the pin's wire");
+    assert!(
+        straight.polyline.iter().all(|p| (p.0 - pin.at.0).abs() <= 1),
+        "straight down from the pin: {:?}",
+        straight.polyline
+    );
+    let (m, unrouted) = layout(&s);
+    assert_eq!(unrouted, 0);
+    assert_eq!(m.through_texts, vec![], "no wire across a text");
+    assert_eq!(m.hard(), 0, "{m:?}");
 }

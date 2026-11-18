@@ -330,6 +330,31 @@ pub fn page_layer(q: &Q, page: PageRef, layer: Layer) -> Arc<PageLayer> {
     }
 }
 
+/// The texts beside the pins of the multipin plugs on `page` (`page_plug_notes`), each with the box the page prints
+/// it in: the note drawn alone on the symbols layer, as that layer draws it among the symbols. Empty for a page
+/// without such a plug.
+pub(crate) fn plug_note_boxes(
+    q: &Q,
+    page: PageRef,
+) -> Vec<(ew_scene::page::PlugNoteView, ew_dl::ew_units::Rect)> {
+    let PageRef::Drawn(p) = page else {
+        return Vec::new();
+    };
+    let styles = text_style_table(q);
+    page_plug_notes(q, p)
+        .into_iter()
+        .filter_map(|note| {
+            let mut v = base_view(page);
+            v.grid = page_grid(q, page);
+            v.plug_notes = vec![note.clone()];
+            let l = page_display_list(&v, Layer::Symbols, ew_text::bundled(), &styles);
+            let mut boxes = l.list.entity_bounds().into_iter().map(|(_, r)| r);
+            let first = boxes.next()?;
+            Some((note, boxes.fold(first, |a, b| a.union(b))))
+        })
+        .collect()
+}
+
 /// The page kind of a page-order entry.
 pub fn page_kind(entry: &PageEntry) -> PageKind {
     if entry.kind == PageType::PanelLayout {

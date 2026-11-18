@@ -11,7 +11,9 @@
 //! - **Text boxes:** the labels layer's entity rectangles that are not a point of the page's representations, free
 //!   texts and structure boxes: every line of a tag, a slot or pin text and a cross-reference text the scene prints
 //!   for a representation, a free text's lines and a structure box's caption, in page coordinates. A
-//!   wire marker's text moves with its wire and is left out.
+//!   wire marker's text moves with its wire and is left out. The texts beside the pins of a multipin plug (drawn on
+//!   the symbols layer) are texts too, each cut back to a quarter of a grid step from the line its own pin's wire
+//!   leaves along.
 //! - **Frame bands:** the frame's outer rectangle outside its drawing area (`ew_scene::forms::FrameGeometry`), up to
 //!   four bands, as the Wire tool's `frame_rects` without its inset.
 //! - **Connections:** each connection's drawn polyline (`TableConnection::polyline`, the scene's), ends included.
@@ -35,7 +37,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use super::editing::{PageTables, TableCp, TableEnd};
-use super::layers::page_layer;
+use super::layers::{page_layer, plug_note_boxes};
 use super::view::PageFrameOf;
 use crate::Session;
 use crate::geometry::Dir;
@@ -248,7 +250,7 @@ fn geometry(q: &Q, page: PageRef, tables: &PageTables) -> PageGeometry {
         .collect();
     // A cross-reference's link area repeats its text's box: each box once.
     let mut seen: BTreeSet<(Uuid, [i64; 4])> = BTreeSet::new();
-    let texts = page_layer(q, page, Layer::Labels)
+    let mut texts: Vec<TextBox> = page_layer(q, page, Layer::Labels)
         .list
         .entity_bounds()
         .into_iter()
@@ -259,6 +261,37 @@ fn geometry(q: &Q, page: PageRef, tables: &PageTables) -> PageGeometry {
             (a.x != b.x && a.y != b.y && seen.insert((e.0, rect))).then_some(TextBox { rep: e.0, rect })
         })
         .collect();
+    // The texts beside the pins of a multipin plug (the symbols layer draws them): a wire goes round them as round
+    // any text. A note stands right beside the line its own pin's wire leaves along, so its box is cut back to a
+    // quarter of a grid step from that line, the clearance a route keeps from a text: the pin's own wire runs past
+    // its note, never across it.
+    let clear = {
+        let (num, den) = tables.grid;
+        if den > 0 { (num + den / 2) / den / 4 } else { 0 }
+    };
+    for (note, r) in plug_note_boxes(q, page) {
+        let (a, b) = (r.min(), r.max());
+        let (mut x, mut y) = ((a.x.0, b.x.0), (a.y.0, b.y.0));
+        // The side of the pin's line the note stands on keeps the box; the line's side of it is cut back.
+        let cut = |(lo, hi): (i64, i64), line: i64| {
+            if lo + hi <= 2 * line {
+                (lo, hi.min(line - clear))
+            } else {
+                (lo.max(line + clear), hi)
+            }
+        };
+        if note.vertical {
+            x = cut(x, note.at.x.0);
+        } else {
+            y = cut(y, note.at.y.0);
+        }
+        if x.0 < x.1 && y.0 < y.1 {
+            texts.push(TextBox {
+                rep: note.rep.as_uuid(),
+                rect: [x.0, y.0, x.1, y.1],
+            });
+        }
+    }
     let frame = q.get::<PageFrameOf>(page);
     let frame_geometry = frame
         .as_ref()
