@@ -91,35 +91,35 @@ impl Session {
 /// of offers makes its commands without reading the libraries again per offer (rc.5).
 pub(crate) fn cable_command(offer: crate::output::LayoutPartOffer) -> AnyCommand {
     let part = offer.part;
-        let conductors: Vec<_> = offer
-            .sections
-            .cable_cores
-            .iter()
-            .map(|c| {
-                let mut spec = json!({ "core": c.core.as_str(), "shield": c.shield });
-                if let Some(colour) = &c.colour {
-                    spec["colour"] = serde_json::to_value(colour).unwrap_or_default();
-                }
-                if let Some(csa) = &c.csa {
-                    spec["csa"] = serde_json::to_value(csa).unwrap_or_default();
-                }
-                if let Some(pair) = c.pair {
-                    spec["pair"] = json!(pair);
-                }
-                spec
-            })
-            .collect();
-        let mut params = json!({
-            "parts": [{ "part": { "copy": part.to_string() }, "qty": "1" }],
-            "conductors": conductors,
-        });
-        if !offer.copies.is_empty() {
-            params["copies"] = serde_json::Value::Array(offer.copies);
-        }
-        AnyCommand {
-            name: "cable.create".into(),
-            params,
-        }
+    let conductors: Vec<_> = offer
+        .sections
+        .cable_cores
+        .iter()
+        .map(|c| {
+            let mut spec = json!({ "core": c.core.as_str(), "shield": c.shield });
+            if let Some(colour) = &c.colour {
+                spec["colour"] = serde_json::to_value(colour).unwrap_or_default();
+            }
+            if let Some(csa) = &c.csa {
+                spec["csa"] = serde_json::to_value(csa).unwrap_or_default();
+            }
+            if let Some(pair) = c.pair {
+                spec["pair"] = json!(pair);
+            }
+            spec
+        })
+        .collect();
+    let mut params = json!({
+        "parts": [{ "part": { "copy": part.to_string() }, "qty": "1" }],
+        "conductors": conductors,
+    });
+    if !offer.copies.is_empty() {
+        params["copies"] = serde_json::Value::Array(offer.copies);
+    }
+    AnyCommand {
+        name: "cable.create".into(),
+        params,
+    }
 }
 
 impl Session {

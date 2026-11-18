@@ -1087,7 +1087,10 @@ fn defs() -> Vec<Def> {
         bus_plug("EW-GEN-PLG-6", "RJ45 plug for EtherCAT"),
         bus_plug("EW-GEN-PLG-7", "RJ45 plug for EtherNet/IP"),
         bus_plug("EW-GEN-PLG-8", "RJ45 plug for Modbus TCP"),
-        bus_plug("EW-GEN-PLG-9", "M12 plug, A-coded, for CANopen, switchable termination"),
+        bus_plug(
+            "EW-GEN-PLG-9",
+            "M12 plug, A-coded, for CANopen, switchable termination",
+        ),
         bus_plug("EW-GEN-PLG-10", "M12 plug, A-coded, for IO-Link"),
         // The persona re-test: the job's cylinder and air supply kept their "no part" warnings, for want of a starter
         // part. A double-acting cylinder and a service unit for the air-supply point, each on its symbol's FnDef.

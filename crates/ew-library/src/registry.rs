@@ -666,10 +666,9 @@ impl Registry {
             .unwrap_or_else(std::sync::PoisonError::into_inner)
     }
 
-    /// Reads one records file of `lib`: checked against the manifest's hash, parsed; the skipped lines as notes. A file
-    /// read once is kept by the hash the manifest gives it (rc.5: every Cable form and part list read and parsed every
-    /// library file again, several times per opening): the same hash is the same content, and a file a write replaces
-    /// has a new hash.
+    /// Reads one records file of `lib`: checked against the manifest's hash, parsed; the skipped lines as notes. The file
+    /// is read and checked every time, but a file parsed once is kept by its hash (rc.5: every Cable form and part list
+    /// parsed every library file again, several times per opening): the same checked bytes give the same records.
     fn load_file(&self, lib: &Lib, path: &str) -> Result<Parsed, String> {
         if lib.manifest.is_none() {
             return Ok((starter_entries(), Vec::new(), Vec::new()));
@@ -677,28 +676,6 @@ impl Registry {
         let Ok(PathRole::Records(key)) = classify(path) else {
             return Ok((Vec::new(), Vec::new(), Vec::new()));
         };
-        let expected = lib.manifest.as_ref().and_then(|m| m.files.get(path)).copied();
-        let slot = (lib.info.id, path.to_owned());
-        let cache = || {
-            self.parsed
-                .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner)
-        };
-        if let Some(hash) = expected
-            && let Some((held, parsed)) = cache().get(&slot)
-            && *held == hash
-        {
-            return Ok((**parsed).clone());
-        }
-        let parsed = self.read_records(lib, path, key)?;
-        if let Some(hash) = expected {
-            cache().insert(slot, (hash, Arc::new(parsed.clone())));
-        }
-        Ok(parsed)
-    }
-
-    /// [`Registry::load_file`] without the kept files: reads, checks and parses the records file `path` of `lib`.
-    fn read_records(&self, lib: &Lib, path: &str, key: ShardKey) -> Result<Parsed, String> {
         let bytes = match (lib.dir(), lib.compiled) {
             (Some(dir), _) => read_file(dir, path, self.limits.max_file_bytes)?,
             (None, Some(files)) => files
@@ -711,18 +688,36 @@ impl Registry {
                 None => return Err(format!("{path}: the library has no directory")),
             },
         };
-        let expected = lib.manifest.as_ref().and_then(|m| m.files.get(path));
-        if !expected.is_some_and(|h| hash_matches(h, &bytes)) {
+        let Some(expected) = lib
+            .manifest
+            .as_ref()
+            .and_then(|m| m.files.get(path))
+            .copied()
+            .filter(|h| hash_matches(h, &bytes))
+        else {
             return Err(format!(
                 "{path}: does not match its hash in library.json; skipped"
             ));
+        };
+        let slot = (lib.info.id, path.to_owned());
+        let cache = || {
+            self.parsed
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+        };
+        if let Some((held, parsed)) = cache().get(&slot)
+            && *held == expected
+        {
+            return Ok((**parsed).clone());
         }
         let (entries, skipped, kept) = parse_records(&bytes, key.kind, lib.info.id, &self.limits)?;
-        Ok((
+        let parsed: Parsed = (
             entries,
             skipped.into_iter().map(|m| format!("{path}: {m}")).collect(),
             kept,
-        ))
+        );
+        cache().insert(slot, (expected, Arc::new(parsed.clone())));
+        Ok(parsed)
     }
 
     /// Reindexes every library (`whole`: from an empty index).

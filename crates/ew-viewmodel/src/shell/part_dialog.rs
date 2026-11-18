@@ -947,7 +947,11 @@ impl ShellModel {
                 if plug {
                     set(&mut draft, "kind", "accessory");
                     draft.add_bus_row();
-                    for (f, v) in [("bus.0.bus", bus), ("bus.0.role", "passive"), ("bus.0.termination", "")] {
+                    for (f, v) in [
+                        ("bus.0.bus", bus),
+                        ("bus.0.role", "passive"),
+                        ("bus.0.termination", ""),
+                    ] {
                         set(&mut draft, f, v);
                     }
                 } else {
@@ -1078,7 +1082,9 @@ impl ShellModel {
             };
             if field.starts_with("plug.") || field.starts_with("bus.") {
                 let words = plug_description(&editor.draft, plug);
-                let _ = project.session.set_draft_field(&mut editor.draft, "description", &words);
+                let _ = project
+                    .session
+                    .set_draft_field(&mut editor.draft, "description", &words);
             }
             return out;
         }

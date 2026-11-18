@@ -845,10 +845,7 @@ impl ShellModel {
             "bus_topology" => aspect == "cable",
             _ => false,
         };
-        if !numbered_here
-            || row.folio.is_empty()
-            || !row.folio.bytes().all(|b| b.is_ascii_digit())
-        {
+        if !numbered_here || row.folio.is_empty() || !row.folio.bytes().all(|b| b.is_ascii_digit()) {
             return None;
         }
         let session = &self.project.as_ref()?.session;

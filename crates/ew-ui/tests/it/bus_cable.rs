@@ -367,7 +367,10 @@ fn a_new_bus_cable_and_plug_are_made_in_the_cable_form() {
         assert_eq!(e.draft.text("cable.bus"), "profibus_dp");
         assert_eq!(
             e.draft.cable.table,
-            [("A".to_owned(), "GN".to_owned()), ("B".to_owned(), "RD".to_owned())]
+            [
+                ("A".to_owned(), "GN".to_owned()),
+                ("B".to_owned(), "RD".to_owned())
+            ]
         );
         assert_eq!(e.draft.text("cable.shield"), "true");
     }
@@ -382,7 +385,11 @@ fn a_new_bus_cable_and_plug_are_made_in_the_cable_form() {
     assert_eq!(d.shell_mut().dispatch("part.save", &json!({})), Outcome::Done);
     d.settle();
     let cable = field_value(&mut d, "part");
-    assert_eq!(option(&mut d, "part", "BUS-CBL-9"), cable, "the new cable is chosen");
+    assert_eq!(
+        option(&mut d, "part", "BUS-CBL-9"),
+        cable,
+        "the new cable is chosen"
+    );
     let new_plug = option(&mut d, "plug_b", "New plug");
     d.shell_mut().set_form_field("plug_b", &new_plug);
     {
@@ -405,14 +412,20 @@ fn a_new_bus_cable_and_plug_are_made_in_the_cable_form() {
         };
         let words = e.draft.text("description");
         assert!(
-            words.contains("PROFIBUS DP") && words.contains("angled") && words.contains("terminating resistor"),
+            words.contains("PROFIBUS DP")
+                && words.contains("angled")
+                && words.contains("terminating resistor"),
             "{words}"
         );
     }
     assert_eq!(d.shell_mut().dispatch("part.save", &json!({})), Outcome::Done);
     d.settle();
     let plug = field_value(&mut d, "plug_b");
-    assert_eq!(option(&mut d, "plug_b", "BUS-PLG-9"), plug, "the new plug is chosen");
+    assert_eq!(
+        option(&mut d, "plug_b", "BUS-PLG-9"),
+        plug,
+        "the new plug is chosen"
+    );
     d.shell_mut().set_form_field("length", "7.5");
     assert_eq!(d.shell_mut().submit_form(), Outcome::Done);
     d.settle();
@@ -427,6 +440,9 @@ fn a_new_bus_cable_and_plug_are_made_in_the_cable_form() {
             .unwrap_or_else(|| panic!("{number} in the parts list:\n{bom}"))
             .to_owned()
     };
-    assert!(row("BUS-CBL-9").contains(",7.5,m,"), "the cable by its length: {bom}");
+    assert!(
+        row("BUS-CBL-9").contains(",7.5,m,"),
+        "the cable by its length: {bom}"
+    );
     assert!(row("BUS-PLG-9").contains(",1,pc,"), "{bom}");
 }

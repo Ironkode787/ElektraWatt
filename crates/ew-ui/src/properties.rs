@@ -1174,7 +1174,8 @@ impl PropertiesPane {
             egui::Role::ComboBox
         } else if editable {
             egui::Role::Button
-        } else if link {
+        } else if link || cable {
+            // A value a click answers is a link with a name (a core's value said nothing to a screen reader).
             egui::Role::Link
         } else {
             egui::Role::Label

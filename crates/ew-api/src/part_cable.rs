@@ -32,9 +32,10 @@ pub const CABLE_MEMBERS: [&str; 7] = ["bus", "cores", "csa", "pe", "marking", "s
 pub fn bus_cores(bus: &str, n: Option<usize>) -> Option<(Vec<(&'static str, &'static str)>, bool)> {
     let (cores, shield): (&[(&str, &str)], bool) = match (bus, n) {
         ("profibus_dp", None | Some(2)) => (&[("A", "GN"), ("B", "RD")], true),
-        ("profinet" | "ethercat" | "ethernet_ip" | "modbus_tcp", None | Some(4)) => {
-            (&[("TD+", "YE"), ("TD-", "OG"), ("RD+", "WH"), ("RD-", "BU")], true)
-        }
+        ("profinet" | "ethercat" | "ethernet_ip" | "modbus_tcp", None | Some(4)) => (
+            &[("TD+", "YE"), ("TD-", "OG"), ("RD+", "WH"), ("RD-", "BU")],
+            true,
+        ),
         // Eight cores as T568B pairs them: 1-2, 3-6, 5-4, 7-8.
         ("profinet" | "ethercat" | "ethernet_ip" | "modbus_tcp", Some(8)) => (
             &[
@@ -412,7 +413,11 @@ impl Session {
             Some(_) => {}
         }
         let bus_words = crate::part_editor::bus_words();
-        if let Some(word) = rows.bus.split_whitespace().find(|w| !bus_words.iter().any(|b| b == w)) {
+        if let Some(word) = rows
+            .bus
+            .split_whitespace()
+            .find(|w| !bus_words.iter().any(|b| b == w))
+        {
             out.push(message(
                 "cable.bus",
                 ew_commands::text_key!("error-part-bus-system"),

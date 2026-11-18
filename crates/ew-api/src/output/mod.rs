@@ -125,8 +125,8 @@ pub use layers::{
     TablesLayer, WiresLayer, new_project_text_style_table, page_kind, page_layer, page_scene, page_view,
     text_style_table,
 };
-pub use layout_edit::{LayoutEdit, LayoutEditError, parse_mm};
 pub(crate) use layout_edit::LayoutPartOffer;
+pub use layout_edit::{LayoutEdit, LayoutEditError, parse_mm};
 pub use navigation::{CellLabel, GotoError, LinkTarget, PageCells, PageCp, PageListTable, PageRow};
 pub use scale_fit::fitting_scale;
 // The panel tables and the pure items of `ew_derive::layout` the layout tool runs, so that

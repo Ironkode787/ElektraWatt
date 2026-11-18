@@ -183,10 +183,7 @@ pub(crate) fn bus_placement(routes: &[(Id<Connection>, Vec<Pt2>)]) -> Option<Pla
                 best
             }
         })?;
-    let at = Pt2::new(
-        Nm(a.x.0 + (b.x.0 - a.x.0) / 2),
-        Nm(a.y.0 + (b.y.0 - a.y.0) / 2),
-    );
+    let at = Pt2::new(Nm(a.x.0 + (b.x.0 - a.x.0) / 2), Nm(a.y.0 + (b.y.0 - a.y.0) / 2));
     // Across a horizontal run the mark's line stands upright, across an upright run it lies flat.
     let angle = if a.y == b.y { Angle2(90_000) } else { Angle2::ZERO };
     // Every line of the cable on the page is the mark's, the one it stands on first.

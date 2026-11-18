@@ -23,8 +23,8 @@ use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_schema::{
-    AddrValue, BusPort, BusSystem, Connection, ConnectionKind, Device, Endpoint, ExternalRef, Function, FunctionKind,
-    Junction, LogicalNet, NetAddress, OnOff, PhysicalNet, PortRole,
+    AddrValue, BusPort, BusSystem, Connection, ConnectionKind, Device, Endpoint, ExternalRef, Function,
+    FunctionKind, Junction, LogicalNet, NetAddress, OnOff, PhysicalNet, PortRole,
 };
 
 use crate::Q;
@@ -391,9 +391,10 @@ pub fn bus_end_label(q: &Q, f: Id<Function>) -> String {
             .unwrap_or_default()
     };
     match (&func.bus_port, func.device, &func.kind) {
-        (_, _, FunctionKind::Ip(ip)) if ip.external.is_some() => {
-            ip.external.map(|e| external_partner_text(q, e)).unwrap_or_default()
-        }
+        (_, _, FunctionKind::Ip(ip)) if ip.external.is_some() => ip
+            .external
+            .map(|e| external_partner_text(q, e))
+            .unwrap_or_default(),
         (Some(p), Some(d), _) if p.role == PortRole::Passive => tag(d),
         (Some(p), Some(d), _) => format!("{}:{}", tag(d), p.interface),
         (Some(p), None, _) => p.interface.to_string(),
