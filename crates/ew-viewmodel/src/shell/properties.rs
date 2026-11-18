@@ -1408,6 +1408,25 @@ impl ShellModel {
         let Some((section, row)) = self.props_find(key) else {
             return failed(key!("error-no-row"), &[key]);
         };
+        // The Connection grid of the page shown changed while it holds items asks first, then fits them (rc.5).
+        if row.key == GRID_ROW
+            && self.mode == super::Mode::Gui
+            && section.targets.first().copied() == self.focused_page_id()
+            && self.page_holds_items()
+            && let Some(word) = value
+                .get("num")
+                .and_then(Value::as_i64)
+                .zip(value.get("den").and_then(Value::as_i64))
+                .and_then(|(n, d)| super::creation::page_grid_word(n, d))
+            && self.canvas().is_some_and(|c| {
+                super::creation::page_grid_word(c.page().snapper.grid().0, c.page().snapper.grid().1) != Some(word)
+            })
+        {
+            self.props.edit = None;
+            self.props.error = None;
+            self.props.choices = None;
+            return self.ask_grid_fit(word);
+        }
         // A bus device's PLC row gives it to the PLC chosen, or to a new one (rc.2 persona run).
         if matches!(&row.route, crate::properties::EditRoute::Command { command } if command == "plc.add_to_plc")
         {

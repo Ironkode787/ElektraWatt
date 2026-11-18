@@ -279,7 +279,7 @@ fn page_new_takes_a_connection_grid_and_properties_changes_an_empty_pages() {
             "props.set",
             json!({"row": "page/grid", "value": "4 mm"})
         ),
-        "page 203 holds items; a page's connection grid changes only while the page is empty"
+        "page 203 holds items; change its Connection grid in the page's Properties, which fits them to the new grid"
     );
     assert_eq!(grid(&headless), qet);
     headless.shutdown();

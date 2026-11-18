@@ -147,6 +147,12 @@ pub(crate) struct ToolHost {
     pub notice_basis: Option<(Option<u64>, u64)>,
     /// The paste tool committed: at the end of the dispatch Select takes over with the pasted representations selected.
     pub pasted: bool,
+    /// The paste committed was of another grid than the page's, fitted to it (rc.5): where its symbols and junctions
+    /// would have stood unfitted, page nm; at the end of the dispatch its wires are routed in the same undo step and a
+    /// message says so.
+    pub paste_fit: Option<PasteFit>,
+    /// The grid question's count (rc.5): the grid word it was counted for and how many items move.
+    pub grid_fit: Option<(String, usize)>,
     /// An Undo or a Redo ran: at the end of the dispatch a terminal placement takes its strip's next designation from
     /// the catalogue again.
     pub reread_designation: bool,
@@ -282,6 +288,8 @@ impl ToolHost {
             notice_at: None,
             notice_basis: None,
             pasted: false,
+            paste_fit: None,
+            grid_fit: None,
             reread_designation: false,
             row_steps: None,
             ip_memory: IpMemory::default(),
@@ -305,4 +313,16 @@ impl ToolHost {
             draw_offers: std::cell::RefCell::new(None),
         }
     }
+}
+
+/// A paste fitted to the page's grid (rc.5, `ToolHost::paste_fit`): the page's grid words and the points its
+/// representations and junctions would have taken unfitted (their fragment positions moved by `at − anchor`).
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct PasteFit {
+    /// The page's grid in words ("4 mm").
+    pub grid: String,
+    /// The representations' positions.
+    pub reps: Vec<(i64, i64)>,
+    /// The junctions' points.
+    pub junctions: Vec<(i64, i64)>,
 }

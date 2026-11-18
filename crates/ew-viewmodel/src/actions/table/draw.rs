@@ -1066,10 +1066,10 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     keeps_banner(in_canvas(act(
         "box.centre_pins",
         Command,
-        Menu::Edit,
+        Menu::Draw,
         &[],
         one_box,
-        None,
+        grp(Group::Place),
         |s, _| s.act_box_centre_pins(),
     ))),
     // End.

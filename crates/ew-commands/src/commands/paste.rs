@@ -106,7 +106,8 @@ pub struct Fragment {
 ///
 /// **Rejected**, at the JSON Pointer named: `/page` a missing page, a generated page or a page type that takes no
 /// symbols; `/fragment/format` another project format; `/fragment/grid` a page connection grid other than the
-/// fragment's; `/at` a point that is not a grid point of the page; `/fragment/anchor` an anchor off the grid;
+/// fragment's for a macro inserted with an orientation (a paste is fitted, effect 5); `/at` a point that is not a
+/// grid point of the page; `/fragment/anchor` an anchor off the fragment's grid;
 /// `/fragment/records` none or more than 10,000; `/fragment/records/<i>` a record that does not read, of a kind
 /// outside device, function, representation, connection, junction, potential definition, page item and structure
 /// box, of another schema version, listed twice, a representation off the grid or of a representation type the page
@@ -132,7 +133,13 @@ pub struct Fragment {
 /// `position`, and a `child` tag scheme. (5) Translation in grid steps: `Δk = index(at) − index(anchor)` per
 /// axis; a grid coordinate becomes the grid point at its index plus `Δk`, any other moves by
 /// `round_half_away(Δk × num / den)`; routes follow their ends as `rep.move`'s `steps` move them, and a page
-/// item's points and a structure box's outline vertices move by the same rule. (6) Frozen tags
+/// item's points and a structure box's outline vertices move by the same rule. **Fitted** (rc.5): a fragment of
+/// another connection grid than the page's moves by `at − anchor` in nanometres, and then each representation so that
+/// its first connection point lies on the nearest grid point of the page (`geometry::fitted_pos`; a symbol whose own
+/// pin spacing does not fit the grid has its first pin on it), each junction and each structure box's outline vertex
+/// to its nearest grid point; page items keep their place relative to the rest (a representation's texts stand
+/// relative to it), and every pasted connection loses its route, to be routed anew between the same ends (the window
+/// does it in the same undo step). (6) Frozen tags
 /// are cleared and wire numbers become unassigned; tag counters are cleared and the copies that take part in
 /// page-based numbering get the next free counter of their main page's scope from online numbering, in the order of
 /// their anchor cells (FR-NUM-028), so the tags follow the pasted positions and not the minted IDs. (7) A page item of a kind this
@@ -320,6 +327,10 @@ fn step_point(grid: Grid, p: Pt2, k: [i64; 2]) -> Result<Pt2, OutOfRange> {
         step_coord(grid, p.y, k[1])?,
     ))
 }
+
+/// What `place` gives: the page, its grid, the steps `Δk` and, for a fragment fitted to the page's grid, the
+/// fragment's grid.
+type Placed = (std::sync::Arc<Page>, Grid, [i64; 2], Option<Grid>);
 
 /// How effect 5 moves the fragment: by grid steps, or (a macro inserted with an orientation) turned and
 /// mirrored about the anchor first.
@@ -666,9 +677,135 @@ impl Insertion<'_> {
         }
     }
 
-    /// Checks the page, the grid, the anchor and the point; the page, the grid and the steps `Δk`. A fragment with
-    /// page records keeps its positions (no steps) on pages of its own grid after the page `page`.
-    fn place(&self, tx: &TxBuilder<'_>) -> Result<(std::sync::Arc<Page>, Grid, [i64; 2]), CmdError> {
+    /// Effect 5 by grid steps (turned about the anchor first for a macro inserted with an orientation): the
+    /// representations, junctions, page items and structure boxes move; routes follow their ends.
+    fn move_by_steps(
+        &self,
+        tx: &TxBuilder<'_>,
+        typed: &mut [(usize, Uuid, Record)],
+        grid: Grid,
+        steps: [i64; 2],
+    ) -> Result<(), CmdError> {
+        let too_far = |i: usize| self.invalid(self.pointer(i), text!("refusal-paste-out-of-range"));
+        let motion = if self.has_pages() {
+            Motion::steps(grid, steps)
+        } else {
+            Motion::turned(grid, steps, self.orient, self.fragment.anchor, self.at)
+        };
+        let mut moved_reps: Vec<(Representation, Representation)> = Vec::new();
+        let mut moved_junctions: BTreeMap<Id<Junction>, (Pt2, Pt2)> = BTreeMap::new();
+        for (i, _, record) in typed.iter_mut() {
+            match record {
+                Record::Representation(r) => {
+                    let before = r.clone();
+                    r.pos = motion.point(r.pos).map_err(|_| too_far(*i))?;
+                    r.orient = motion.orient(r.orient);
+                    if rep_cps_checked(tx, r).is_err() {
+                        return Err(too_far(*i));
+                    }
+                    moved_reps.push((before, r.clone()));
+                }
+                Record::Junction(j) => {
+                    let before = j.at;
+                    j.at = motion.point(j.at).map_err(|_| too_far(*i))?;
+                    moved_junctions.insert(j.id, (before, j.at));
+                }
+                Record::PageItem(item) => match &mut item.kind {
+                    PageItemKind::Graphic(g) => {
+                        motion.shape(&mut g.shape).map_err(|_| too_far(*i))?;
+                    }
+                    PageItemKind::FreeText(t) => {
+                        t.at = motion.point(t.at).map_err(|_| too_far(*i))?;
+                        t.angle = motion.angle(t.angle);
+                    }
+                    PageItemKind::WireMarker(m) => {
+                        m.at = motion.point(m.at).map_err(|_| too_far(*i))?;
+                        // a marker lies along its wire: 0 or 90°
+                        m.angle = Angle2(motion.angle(m.angle).0 % 180_000);
+                    }
+                    PageItemKind::Image(_)
+                    | PageItemKind::SurfaceView(_)
+                    | PageItemKind::Underlay(_)
+                    | PageItemKind::Unknown(_) => {
+                        unreachable!(
+                            "images, surface views, underlays and unknown page item kinds are left out"
+                        )
+                    }
+                },
+                Record::StructureBox(b) => {
+                    for p in &mut b.outline {
+                        *p = motion.point(*p).map_err(|_| too_far(*i))?;
+                    }
+                }
+                _ => {}
+            }
+        }
+        // The displacement and old point of a connection's end, drawn by a pasted representation or a pasted junction.
+        let end_of = |tx: &TxBuilder<'_>, e: &Endpoint| -> Option<(Pt2, Pt2)> {
+            match e {
+                Endpoint::Cp(f, idx) => moved_reps.iter().find_map(|(old, new)| {
+                    let find = |r: &Representation| {
+                        crate::geometry::rep_cps(tx, r)
+                            .into_iter()
+                            .find(|c| c.function == *f && c.idx == *idx)
+                            .map(|c| c.pos)
+                    };
+                    let (a, b) = (find(old)?, find(new)?);
+                    Some((sub(b, a).ok()?, a))
+                }),
+                Endpoint::Junction(j) => {
+                    let (a, b) = moved_junctions.get(j)?;
+                    Some((sub(*b, *a).ok()?, *a))
+                }
+                Endpoint::Unknown(_) => None,
+            }
+        };
+        for (i, _, record) in typed.iter_mut() {
+            let Record::Connection(c) = record else { continue };
+            if c.route.is_empty() {
+                continue;
+            }
+            let first = c.route[0];
+            let last = c.route[c.route.len() - 1];
+            if motion.turns() {
+                // Every vertex turns with the fragment; an end at its CP's or junction's old point then follows the
+                // CP's new point (the two can part by the rounding of a fractional grid), keeping the axes.
+                let turned: Result<Vec<Pt2>, OutOfRange> = c.route.iter().map(|p| motion.point(*p)).collect();
+                let mut route = turned.map_err(|_| too_far(*i))?;
+                let n = route.len();
+                let follow = |e: &Endpoint, old: Pt2, now: Pt2| -> Result<Option<Pt2>, OutOfRange> {
+                    match end_of(tx, e) {
+                        Some((d, at)) if at == old => {
+                            let d = sub(crate::geometry::add(at, d)?, now)?;
+                            Ok((d != Pt2::ORIGIN).then_some(d))
+                        }
+                        _ => Ok(None),
+                    }
+                };
+                let da = follow(&c.a, first, route[0]).map_err(|_| too_far(*i))?;
+                let db = follow(&c.b, last, route[n - 1]).map_err(|_| too_far(*i))?;
+                crate::geometry::follow_ends(&mut route, grid, da, db).map_err(|_| too_far(*i))?;
+                c.route = route;
+                continue;
+            }
+            let own = |p: Pt2| -> Result<(Pt2, Pt2), OutOfRange> { Ok((sub(motion.point(p)?, p)?, p)) };
+            let a = match end_of(tx, &c.a) {
+                Some(a) => a,
+                None => own(first).map_err(|_| too_far(*i))?,
+            };
+            let b = match end_of(tx, &c.b) {
+                Some(b) => b,
+                None => own(last).map_err(|_| too_far(*i))?,
+            };
+            step_route(&mut c.route, grid, steps, a, b).map_err(|_| too_far(*i))?;
+        }
+        Ok(())
+    }
+
+    /// Checks the page, the grid, the anchor and the point; the page, the grid, the steps `Δk` and, for a fragment of
+    /// another grid that is fitted to the page's (effect 5), the fragment's grid. A fragment with page records keeps
+    /// its positions (no steps) on pages of its own grid after the page `page`.
+    fn place(&self, tx: &TxBuilder<'_>) -> Result<Placed, CmdError> {
         let Some(page) = tx.get::<Page>(self.page) else {
             return Err(self.invalid("/page", text!("refusal-params-page-gone")));
         };
@@ -677,7 +814,7 @@ impl Insertion<'_> {
             let grid = Grid::new(num, den).map_err(|_| {
                 self.invalid(format!("{}/grid", self.prefix), text!("refusal-paste-grid-form"))
             })?;
-            return Ok((page, grid, [0, 0]));
+            return Ok((page, grid, [0, 0], None));
         }
         match &page.kind {
             PageType::Report | PageType::TableOfContents | PageType::SectionDivider => {
@@ -689,7 +826,9 @@ impl Insertion<'_> {
             _ => {}
         }
         let grid = page.grid;
-        if self.fragment.grid != [grid.num(), grid.den()] {
+        // A fragment of another grid is fitted (effect 5); a macro inserted turned is not.
+        let fit = self.fragment.grid != [grid.num(), grid.den()];
+        if fit && !self.orient.is_default() {
             let size = if grid.den() == 1 {
                 format!("{} nm", grid.num())
             } else {
@@ -715,11 +854,22 @@ impl Insertion<'_> {
             ));
         }
         let anchor = self.fragment.anchor;
-        if !point_in_range(anchor) || !point_on_grid(grid, anchor) {
+        let source = if fit {
+            let [num, den] = self.fragment.grid;
+            Some(Grid::new(num, den).map_err(|_| {
+                self.invalid(format!("{}/grid", self.prefix), text!("refusal-paste-grid-form"))
+            })?)
+        } else {
+            None
+        };
+        if !point_in_range(anchor) || !point_on_grid(source.unwrap_or(grid), anchor) {
             return Err(self.invalid(
                 format!("{}/anchor", self.prefix),
                 text!("refusal-paste-anchor-off-grid"),
             ));
+        }
+        if source.is_some() {
+            return Ok((page, grid, [0, 0], source));
         }
         let steps = [
             grid.snap(self.at.x).checked_sub(grid.snap(anchor.x)),
@@ -728,7 +878,7 @@ impl Insertion<'_> {
         let [Some(kx), Some(ky)] = steps else {
             return Err(self.invalid("/at", text!("refusal-paste-far-from-anchor")));
         };
-        Ok((page, grid, [kx, ky]))
+        Ok((page, grid, [kx, ky], None))
     }
 
     /// Reads the records: kind, schema version, distinct IDs. Returns each record's index in [`Insertion::all`],
@@ -1020,7 +1170,7 @@ impl Insertion<'_> {
             ));
         }
         let (keys, skipped_items) = self.records()?;
-        let (page, grid, steps) = self.place(tx)?;
+        let (page, grid, steps, fit) = self.place(tx)?;
         let (copies, embed) = self.copies(tx)?;
         let nodes = self.nodes(tx)?;
         let mut notices: Vec<String> = Vec::new();
@@ -1164,7 +1314,7 @@ impl Insertion<'_> {
                             text!("refusal-paste-rep-type", crate::words::rep_type(&r.rep_type)),
                         ));
                     }
-                    if !point_on_grid(grid, r.pos) {
+                    if !point_on_grid(fit.unwrap_or(grid), r.pos) {
                         return Err(self.invalid(&at, text!("refusal-paste-rep-off-grid")));
                     }
                 }
@@ -1195,120 +1345,40 @@ impl Insertion<'_> {
                 }
             }
         }
-        // Effect 5: representations, junctions, page items and structure boxes by grid steps (turned about the
-        // anchor first for a macro inserted with an orientation); routes follow their ends.
-        let motion = if self.has_pages() {
-            Motion::steps(grid, steps)
-        } else {
-            Motion::turned(grid, steps, self.orient, self.fragment.anchor, self.at)
-        };
         let too_far = |i: usize| self.invalid(self.pointer(i), text!("refusal-paste-out-of-range"));
-        let mut moved_reps: Vec<(Representation, Representation)> = Vec::new();
-        let mut moved_junctions: BTreeMap<Id<Junction>, (Pt2, Pt2)> = BTreeMap::new();
-        for (i, _, record) in &mut typed {
-            match record {
-                Record::Representation(r) => {
-                    let before = r.clone();
-                    r.pos = motion.point(r.pos).map_err(|_| too_far(*i))?;
-                    r.orient = motion.orient(r.orient);
-                    if rep_cps_checked(tx, r).is_err() {
-                        return Err(too_far(*i));
-                    }
-                    moved_reps.push((before, r.clone()));
-                }
-                Record::Junction(j) => {
-                    let before = j.at;
-                    j.at = motion.point(j.at).map_err(|_| too_far(*i))?;
-                    moved_junctions.insert(j.id, (before, j.at));
-                }
-                Record::PageItem(item) => match &mut item.kind {
-                    PageItemKind::Graphic(g) => {
-                        motion.shape(&mut g.shape).map_err(|_| too_far(*i))?;
-                    }
-                    PageItemKind::FreeText(t) => {
-                        t.at = motion.point(t.at).map_err(|_| too_far(*i))?;
-                        t.angle = motion.angle(t.angle);
-                    }
-                    PageItemKind::WireMarker(m) => {
-                        m.at = motion.point(m.at).map_err(|_| too_far(*i))?;
-                        // a marker lies along its wire: 0 or 90°
-                        m.angle = Angle2(motion.angle(m.angle).0 % 180_000);
-                    }
-                    PageItemKind::Image(_)
-                    | PageItemKind::SurfaceView(_)
-                    | PageItemKind::Underlay(_)
-                    | PageItemKind::Unknown(_) => {
-                        unreachable!(
-                            "images, surface views, underlays and unknown page item kinds are left out"
-                        )
-                    }
-                },
-                Record::StructureBox(b) => {
-                    for p in &mut b.outline {
-                        *p = motion.point(*p).map_err(|_| too_far(*i))?;
-                    }
-                }
-                _ => {}
-            }
-        }
-        // The displacement and old point of a connection's end, drawn by a pasted representation or a pasted junction.
-        let end_of = |tx: &TxBuilder<'_>, e: &Endpoint| -> Option<(Pt2, Pt2)> {
-            match e {
-                Endpoint::Cp(f, idx) => moved_reps.iter().find_map(|(old, new)| {
-                    let find = |r: &Representation| {
-                        crate::geometry::rep_cps(tx, r)
-                            .into_iter()
-                            .find(|c| c.function == *f && c.idx == *idx)
-                            .map(|c| c.pos)
-                    };
-                    let (a, b) = (find(old)?, find(new)?);
-                    Some((sub(b, a).ok()?, a))
-                }),
-                Endpoint::Junction(j) => {
-                    let (a, b) = moved_junctions.get(j)?;
-                    Some((sub(*b, *a).ok()?, *a))
-                }
-                Endpoint::Unknown(_) => None,
-            }
-        };
-        for (i, _, record) in &mut typed {
-            let Record::Connection(c) = record else { continue };
-            if c.route.is_empty() {
-                continue;
-            }
-            let first = c.route[0];
-            let last = c.route[c.route.len() - 1];
-            if motion.turns() {
-                // Every vertex turns with the fragment; an end at its CP's or junction's old point then follows the
-                // CP's new point (the two can part by the rounding of a fractional grid), keeping the axes.
-                let turned: Result<Vec<Pt2>, OutOfRange> = c.route.iter().map(|p| motion.point(*p)).collect();
-                let mut route = turned.map_err(|_| too_far(*i))?;
-                let n = route.len();
-                let follow = |e: &Endpoint, old: Pt2, now: Pt2| -> Result<Option<Pt2>, OutOfRange> {
-                    match end_of(tx, e) {
-                        Some((d, at)) if at == old => {
-                            let d = sub(crate::geometry::add(at, d)?, now)?;
-                            Ok((d != Pt2::ORIGIN).then_some(d))
+        // Effect 5 fitted: moved by `at − anchor`, then onto the page's grid; the connections routed anew.
+        if fit.is_some() {
+            let d = sub(self.at, self.fragment.anchor)
+                .map_err(|_| self.invalid("/at", text!("refusal-paste-far-from-anchor")))?;
+            for (i, _, record) in &mut typed {
+                let i = *i;
+                match record {
+                    Record::Representation(r) => {
+                        r.pos = crate::geometry::add(r.pos, d).map_err(|_| too_far(i))?;
+                        r.pos = crate::geometry::fitted_pos(tx, r, grid).map_err(|_| too_far(i))?;
+                        if rep_cps_checked(tx, r).is_err() {
+                            return Err(too_far(i));
                         }
-                        _ => Ok(None),
                     }
-                };
-                let da = follow(&c.a, first, route[0]).map_err(|_| too_far(*i))?;
-                let db = follow(&c.b, last, route[n - 1]).map_err(|_| too_far(*i))?;
-                crate::geometry::follow_ends(&mut route, grid, da, db).map_err(|_| too_far(*i))?;
-                c.route = route;
-                continue;
+                    Record::Junction(j) => {
+                        let at = crate::geometry::add(j.at, d).map_err(|_| too_far(i))?;
+                        j.at = crate::geometry::nearest_grid_point(grid, at).map_err(|_| too_far(i))?;
+                    }
+                    Record::PageItem(item) => {
+                        *item = super::items::translate_item(item, d).ok_or_else(|| too_far(i))?;
+                    }
+                    Record::StructureBox(b) => {
+                        for p in &mut b.outline {
+                            let at = crate::geometry::add(*p, d).map_err(|_| too_far(i))?;
+                            *p = crate::geometry::nearest_grid_point(grid, at).map_err(|_| too_far(i))?;
+                        }
+                    }
+                    Record::Connection(c) => c.route.clear(),
+                    _ => {}
+                }
             }
-            let own = |p: Pt2| -> Result<(Pt2, Pt2), OutOfRange> { Ok((sub(motion.point(p)?, p)?, p)) };
-            let a = match end_of(tx, &c.a) {
-                Some(a) => a,
-                None => own(first).map_err(|_| too_far(*i))?,
-            };
-            let b = match end_of(tx, &c.b) {
-                Some(b) => b,
-                None => own(last).map_err(|_| too_far(*i))?,
-            };
-            step_route(&mut c.route, grid, steps, a, b).map_err(|_| too_far(*i))?;
+        } else {
+            self.move_by_steps(tx, &mut typed, grid, steps)?;
         }
         // The records, in (kind rank, fragment order).
         // Effect 6 is completed by online numbering (normaliser #4), which numbers the new devices in the order

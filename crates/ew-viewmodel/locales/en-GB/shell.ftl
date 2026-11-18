@@ -141,6 +141,7 @@ command-layout-lock = Lock placement
 
 # WP-S4.01 part 3 (D9)
 command-page-surface_view-set = Set panel view
+command-page-set_grid = Change a page's connection grid
 command-layout-place_assembly = Place assembly
 command-layout-auto_fill = Auto-fill rail
 command-layout-enclosure-create_from_part = Create enclosure from part
@@ -487,6 +488,7 @@ action-ip-arrange-selected = Arrange interruption points
 action-box-grip = Move a black box grip
 action-box-add-cp = Add connection point
 action-box-centre-pins = Centre the pins
+action-page-fit-grid = Change the connection grid and fit
 tool-ip = Interruption point
 tool-black_box = Black box
 hint-ip = Click or { $p0 } to place; { $p1 } changes the direction; type a name; { $p2 } ends
@@ -1876,7 +1878,8 @@ refusal-page-renumber-label-used = sub-page label { $p0 } is already used by ano
 refusal-page-renumber-outside-section = folio { $p0 } lies outside section { $p1 }'s folios { $p2 } to { $p3 }; choose another `start` or `step`
 refusal-page-surface-view-not-layout = folio { $p0 } is not a panel-layout page; a surface view goes on a panel-layout page
 refusal-page-scale = a scale is 1:n with n at least 1
-refusal-page-grid-not-empty = page { $p0 } holds items; a page's connection grid changes only while the page is empty
+refusal-page-grid-not-empty = page { $p0 } holds items; change its Connection grid in the page's Properties, which fits them to the new grid
+refusal-page-grid-out-of-range = an item of page { $p0 } would leave the drawable range on the new grid; move it nearer the page's origin first
 # page.reorder.
 refusal-page-reorder-twice = { $p0 } is listed twice
 refusal-page-reorder-no-section = no section { $p0 }
@@ -2645,6 +2648,9 @@ toast-ips-deleted-wire = Deleted the interruption points { $p0 } and the wire co
 toast-ips-deleted-wires = Deleted the interruption points { $p0 } and the { $p1 } wires connected to them.
 # ID-1470 (C53-p1#6): a pasted interruption point keeps its name, so it continues the points of that name.
 toast-paste-ip-continues = The pasted interruption point { $p0 } keeps its name, so it continues { $p0 } at { $p1 }.
+toast-paste-fitted = The paste was fitted to this page's { $p0 } grid: { $p1 } items moved onto it, and their wires were drawn anew. Undo takes it all back in one step.
+toast-paste-fitted-one = The paste was fitted to this page's { $p0 } grid: one item moved onto it, and the wires were drawn anew. Undo takes it all back in one step.
+toast-page-grid-fitted = Page { $p0 } now has the { $p1 } grid: { $p2 } items moved onto it and its wires were drawn anew. Undo takes it all back in one step.
 
 # FT-709: a delete that leaves a device without a symbol keeps the device; the toast says where it stays.
 toast-device-unplaced = { $p0 } has no symbol on a page now; it stays in the Devices navigator and the parts list.
@@ -4087,6 +4093,9 @@ form-page-type = Type
 form-title = Title
 form-section = Section number
 form-grid = Connection grid
+page-grid-fit-title = Change the connection grid
+page-grid-fit-ok = Change and fit
+page-grid-fit-foot = Page { $p0 } holds { $p1 } symbols and junctions and { $p2 } wires. On the { $p3 } grid, { $p4 } of them move onto it and the wires are drawn anew; Undo takes it all back in one step.
 form-kind = Kind
 form-designation = Designation
 form-parent = Parent (designation)

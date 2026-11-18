@@ -368,6 +368,9 @@ impl ShellModel {
     /// yet, so the field is not in the form (the persona round of 0.2.0-rc.2: the line stood first, over fields that
     /// had no Checked). `None` for another form.
     pub fn form_foot(&self, form: &FormDialog) -> Option<String> {
+        if form.action == "page.fit_grid" {
+            return self.grid_fit_foot(form);
+        }
         if form.action != TITLE_BLOCK {
             return None;
         }

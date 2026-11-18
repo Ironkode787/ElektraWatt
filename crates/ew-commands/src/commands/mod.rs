@@ -119,6 +119,7 @@ commands! {
     page::RenumberPages,
     page::ReorderPages,
     page::SetSurfaceView,
+    page::SetPageGrid,
     structure::CreateStructureNode,
     structure::CreateSection,
     structure::CreateReportBlock,

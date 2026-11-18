@@ -510,6 +510,57 @@ fn random_text_never_panics_the_parser() {
 // ---------------------------------------------------------------------------------------------------------------------
 // CB3: edit.paste
 
+/// rc.5 (the owner: copy and paste between pages of different grids did not work): Golden A's power supply and load
+/// distributor, drawn on the QET grid, pasted on a page of the 4 mm grid are fitted to it: each symbol's first pin on
+/// a grid point of the page, the wires between them kept and left to the router (unrouted). A page's grid changed
+/// under its items (`page.set_grid`) fits them the same way, and undo takes it back.
+#[test]
+fn a_paste_onto_a_page_of_another_grid_is_fitted_to_it() {
+    let mut s = golden();
+    let frag = fragment(&s, &reps_of(&s, "102", &["-102G1", "-102F2"]));
+    let mm4 = Grid::new(4_000_000, 1).unwrap();
+    run(
+        &mut s,
+        "page.create",
+        json!({"number": 150, "title": "Fit", "grid": {"num": 4_000_000, "den": 1}}),
+    );
+    let page = page_of(&s, "150");
+    run(
+        &mut s,
+        "edit.paste",
+        json!({"page": page.to_string(), "at": [40_000_000, 40_000_000], "fragment": frag}),
+    );
+    let on = |g: Grid, p: (i64, i64)| g.snap_point(Nm(p.0)) == Some(Nm(p.0)) && g.snap_point(Nm(p.1)) == Some(Nm(p.1));
+    let check = |s: &Session, folio: &str, g: Grid| {
+        let t = s.page_tables(folio).unwrap();
+        assert!(t.reps.len() >= 2, "the pasted symbols");
+        // Each symbol has its first pin on a grid point (its others where its own spacing puts them).
+        for rep in &t.reps {
+            let pins: Vec<(i64, i64)> = t.cps.iter().filter(|c| c.rep == rep.id).map(|c| c.at).collect();
+            assert!(pins.iter().any(|p| on(g, *p)), "{}: pins at {pins:?}", rep.id);
+        }
+        assert!(!t.connections.is_empty(), "the wires between them");
+        assert!(t.connections.iter().all(|c| !c.stored_route), "left to the router");
+    };
+    check(&s, "150", mm4);
+    // Page 102's grid changed to 4 mm: its items fitted to it, its wires to be drawn anew; undo takes it back.
+    let before = s.page_tables("102").unwrap();
+    let page102 = page_of(&s, "102");
+    run(
+        &mut s,
+        "page.set_grid",
+        json!({"page": page102.to_string(), "grid": {"num": 4_000_000, "den": 1}}),
+    );
+    check(&s, "102", mm4);
+    s.undo(&Origin::Gui).expect("undo");
+    let after = s.page_tables("102").unwrap();
+    assert_eq!(
+        after.reps.iter().map(|r| r.pos).collect::<Vec<_>>(),
+        before.reps.iter().map(|r| r.pos).collect::<Vec<_>>()
+    );
+    assert_eq!(after.grid, before.grid);
+}
+
 /// CB3: every rejection of §8.4 at its pointer.
 #[test]
 fn every_rejection_at_its_pointer() {
@@ -519,9 +570,11 @@ fn every_rejection_at_its_pointer() {
     let page = page_of(&s, "102");
     let mut run = |page: Uuid, at: [i64; 2], f: &Value| s.preview(&paste_cmd(page, at, f)).map(|_| ());
     assert_eq!(pointer(run(Uuid::from_u128(9), at, &frag).unwrap_err()), "/page");
+    // A fragment of another grid is fitted (rc.5); its anchor is a point of its own grid.
     let mut grid = frag.clone();
     grid["grid"] = json!([4_000_000, 1]);
-    assert_eq!(pointer(run(page, at, &grid).unwrap_err()), "/fragment/grid");
+    grid["anchor"] = json!([1, 1]);
+    assert_eq!(pointer(run(page, at, &grid).unwrap_err()), "/fragment/anchor");
     assert_eq!(pointer(run(page, [at[0] + 1, at[1]], &frag).unwrap_err()), "/at");
     let mut format = frag.clone();
     format["format"] = json!("0.2");

@@ -473,8 +473,118 @@ impl ShellModel {
         Outcome::Done
     }
 
+    /// What a paste of `json` (`edit.paste`'s parameters) onto the page shown fits (rc.5): `None` for a fragment of
+    /// the page's own grid; else the page's grid in words and where the fragment's representations and junctions would
+    /// stand moved by `at − anchor` alone.
+    pub(super) fn paste_fit_of(&self, json: &Value) -> Option<crate::tools::PasteFit> {
+        let (num, den) = self.canvas()?.page().snapper.grid();
+        let f = &json["fragment"];
+        if (f["grid"][0].as_i64(), f["grid"][1].as_i64()) == (Some(num), Some(den)) {
+            return None;
+        }
+        let point = |v: &Value| Some((v[0].as_i64()?, v[1].as_i64()?));
+        let (at, anchor) = (point(&json["at"])?, point(&f["anchor"])?);
+        let d = (at.0.checked_sub(anchor.0)?, at.1.checked_sub(anchor.1)?);
+        let moved = |v: &Value| point(v).and_then(|p| Some((p.0.checked_add(d.0)?, p.1.checked_add(d.1)?)));
+        let mut fit = crate::tools::PasteFit {
+            grid: super::creation::page_grid_word(num, den).map_or_else(
+                || {
+                    let nm = num / den.max(1);
+                    format!("{}.{:03} mm", nm / 1_000_000, (nm % 1_000_000) / 1_000)
+                },
+                |w| strings::choice_text(w).to_owned(),
+            ),
+            ..Default::default()
+        };
+        for r in f["records"].as_array()? {
+            match r["$k"].as_str() {
+                Some("representation") => fit.reps.extend(moved(&r["pos"])),
+                Some("junction") => fit.junctions.extend(moved(&r["at"])),
+                _ => {}
+            }
+        }
+        Some(fit)
+    }
+
+    /// A paste fitted to the page's grid (rc.5): the wires it brought are routed anew between the same ends, folded
+    /// into the paste's undo step, and a message says that the paste was fitted, how many of its symbols and junctions
+    /// moved onto the grid and that the wires were redrawn. `pasted` are the pasted representations, `before` the page
+    /// tables before the paste.
+    fn finish_fitted_paste(
+        &mut self,
+        fit: crate::tools::PasteFit,
+        pasted: &[EntityRef],
+        before: Option<&ew_api::output::PageTables>,
+    ) {
+        let Some(now) = self.canvas().map(|c| Arc::clone(&c.page().tables)) else {
+            return;
+        };
+        let new = |id: Uuid, old: &dyn Fn(&ew_api::output::PageTables) -> bool| before.is_none_or(|b| !old(b)) && !id.is_nil();
+        // Moved: the pasted symbols and junctions that do not stand where the fragment put them.
+        let moved = |unfitted: &[(i64, i64)], at: Vec<(i64, i64)>| {
+            let mut left = unfitted.to_vec();
+            at.into_iter()
+                .filter(|p| match left.iter().position(|q| q == p) {
+                    Some(i) => {
+                        left.swap_remove(i);
+                        false
+                    }
+                    None => true,
+                })
+                .count()
+        };
+        let reps: Vec<(i64, i64)> = now
+            .reps
+            .iter()
+            .filter(|r| pasted.contains(&EntityRef(r.id)))
+            .map(|r| r.pos)
+            .collect();
+        let junctions: Vec<(i64, i64)> = now
+            .junctions
+            .iter()
+            .filter(|j| new(j.id, &|b| b.junctions.iter().any(|o| o.id == j.id)))
+            .map(|j| j.at)
+            .collect();
+        let count = moved(&fit.reps, reps) + moved(&fit.junctions, junctions);
+        let mut ids: Vec<Uuid> = now
+            .connections
+            .iter()
+            .filter(|c| new(c.id, &|b| b.connections.iter().any(|o| o.id == c.id)))
+            .map(|c| c.id)
+            .collect();
+        ids.extend(pasted.iter().map(|e| e.0));
+        let plan = self.current_folio().map(str::to_owned).and_then(|folio| {
+            self.project
+                .as_ref()?
+                .session
+                .route_plan(&folio, &ew_api::routing::RouteScope::Selection(ids))
+        });
+        if let Some(params) = plan.as_ref().and_then(ew_api::routing::route_many_params) {
+            let rev = self.revision();
+            let routed = self.run_commit(&ew_api::AnyCommand {
+                name: "connection.route_many".into(),
+                params,
+            });
+            if routed == Outcome::Done
+                && self.revision() != rev
+                && let Some(p) = &mut self.project
+            {
+                p.session.fold_last_step();
+            }
+            // The canvas shows the routes (the end of the dispatch synchronised it before this commit).
+            self.sync_views();
+        }
+        let text = if count == 1 {
+            strings::format(key!("toast-paste-fitted-one"), &[&fit.grid])
+        } else {
+            strings::format(key!("toast-paste-fitted"), &[&fit.grid, &count.to_string()])
+        };
+        self.notify(text, true);
+    }
+
     /// After a committed paste (§8.5): Select takes over with the pasted representations selected, one selection change.
-    /// The pasted representations are those the page tables hold now and did not before the commit.
+    /// The pasted representations are those the page tables hold now and did not before the commit; a paste fitted to the
+    /// page's grid has its wires routed and says so ([`Self::finish_fitted_paste`]).
     pub(super) fn after_paste(&mut self) {
         if !std::mem::take(&mut self.tools.pasted) {
             return;
@@ -508,6 +618,9 @@ impl ShellModel {
         }
         if let Some(select) = tool_named("select") {
             self.activate_tool(select);
+        }
+        if let Some(fit) = self.tools.paste_fit.take() {
+            self.finish_fitted_paste(fit, &pasted, before.as_deref());
         }
         if self.tools.selection.apply(&SelectionChange::Replace(pasted)) {
             self.announce_selection();

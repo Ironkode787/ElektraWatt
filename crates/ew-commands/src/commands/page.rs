@@ -11,7 +11,8 @@ use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_model::ModelError;
 use ew_schema::{
-    ContinuationPolicy, Device, Extra, Folio, FormDef, Function, Kind, LayoutLabels, MountingSurface, Page,
+    Connection, ContinuationPolicy, Device, Extra, Folio, FormDef, Function, Junction, Kind, LayoutLabels,
+    MountingSurface, Page,
     PageItem, PageItemKind, PageType, ReportBlock, Representation, Scale, Section, StructureAssignment,
     SurfaceLabelMode, SurfaceView,
 };
@@ -917,5 +918,85 @@ impl Command for SetSurfaceView {
             }
         };
         Ok(Outcome::primary((Kind::PageItem, id.cast())))
+    }
+}
+
+/// `page.set_grid` (`SetPageGrid`, rc.5): changes a page's connection grid and fits what stands on it to the new
+/// grid, in one undo step: each representation moves so that its first connection point lies on the nearest grid point
+/// (`geometry::fitted_pos`; a symbol whose own pin spacing does not fit the grid has its first pin on it), each
+/// junction and each structure box's outline vertex to its nearest grid point; page items keep their places, and every
+/// connection on the page loses its route, to be routed anew between the same ends (the window routes them in the same
+/// undo step). The page's own grid again changes nothing. Rejected: a page that does not exist; a point that would
+/// leave the drawable range. Interactive. Outcome: the page.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct SetPageGrid {
+    /// The page.
+    #[schemars(with = "UuidS")]
+    pub page: Id<Page>,
+    /// The new connection grid.
+    #[schemars(with = "GridS")]
+    pub grid: Grid,
+}
+
+impl Command for SetPageGrid {
+    const NAME: &'static str = "page.set_grid";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        let page = tx.require::<Page>(self.page)?;
+        let outcome = Outcome::primary((Kind::Page, self.page.cast()));
+        if page.grid == self.grid {
+            return Ok(outcome);
+        }
+        let folio = printed_folio(page.folio.number, page.folio.label.as_ref());
+        let out_of_range =
+            |tx: &TxBuilder<'_>| tx.reject::<()>(text!("refusal-page-grid-out-of-range", folio.clone()));
+        let grid = self.grid;
+        tx.update::<Page>(self.page, |p| p.grid = grid)?;
+        for id in tx.reps_on_page(self.page) {
+            let r = tx.require::<Representation>(id)?;
+            let Ok(pos) = crate::geometry::fitted_pos(tx, &r, grid) else {
+                out_of_range(tx)?;
+                continue;
+            };
+            if pos != r.pos {
+                tx.update::<Representation>(id, |r| r.pos = pos)?;
+            }
+        }
+        for id in tx.junctions_on_page(self.page) {
+            let j = tx.require::<Junction>(id)?;
+            let Ok(at) = crate::geometry::nearest_grid_point(grid, j.at) else {
+                out_of_range(tx)?;
+                continue;
+            };
+            if at != j.at {
+                tx.update::<Junction>(id, |j| j.at = at)?;
+            }
+        }
+        for id in tx.structure_boxes_on_page(self.page) {
+            let b = tx.require::<ew_schema::StructureBox>(id)?;
+            let Ok(outline) = b
+                .outline
+                .iter()
+                .map(|p| crate::geometry::nearest_grid_point(grid, *p))
+                .collect::<Result<Vec<Pt2>, _>>()
+            else {
+                out_of_range(tx)?;
+                continue;
+            };
+            if outline != b.outline {
+                tx.update::<ew_schema::StructureBox>(id, |b| b.outline = outline)?;
+            }
+        }
+        for id in tx.connections_on_page(self.page) {
+            if tx.get::<Connection>(id).is_some_and(|c| !c.route.is_empty()) {
+                tx.update::<Connection>(id, |c| c.route.clear())?;
+            }
+        }
+        Ok(outcome)
     }
 }

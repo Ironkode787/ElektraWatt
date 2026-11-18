@@ -23,6 +23,8 @@
 //! **After a page is created** the focused tab shows it: a person who creates a page works on it next, and a page
 //! change ends a modal tool like any other.
 
+use std::sync::Arc;
+
 use ew_api::output::PageRow;
 use ew_api::{AnyCommand, DynCommand};
 use serde_json::{Map, Value, json};
@@ -356,6 +358,19 @@ static PAGE_NEW: Spec = Spec {
     ],
 };
 
+/// The question before the Connection grid of the page shown changes under its items (rc.5): the grid, in its words;
+/// the form's foot says what will happen ([`ShellModel::form_foot`]); Change and fit or Cancel.
+static PAGE_GRID_FIT: Spec = Spec {
+    action: "page.fit_grid",
+    title_key: key!("page-grid-fit-title"),
+    fields: &[Field {
+        name: "grid",
+        label_key: key!("form-grid"),
+        choices: &super::choices::PAGE_GRIDS,
+        default: "",
+    }],
+};
+
 /// New section's form (`section.new`), its number and folio range proposed.
 /// The action of Edit section…'s form.
 const SECTION_EDIT: &str = "section.edit";
@@ -647,6 +662,147 @@ fn parse_folio(text: &str) -> Result<(u32, Option<String>), String> {
 }
 
 impl ShellModel {
+    /// Whether the page shown holds anything a change of its grid moves: a symbol, a junction or a wire.
+    pub(super) fn page_holds_items(&self) -> bool {
+        self.canvas().is_some_and(|c| {
+            let t = &c.page().tables;
+            !t.reps.is_empty() || !t.junctions.is_empty() || !t.connections.is_empty()
+        })
+    }
+
+    /// Opens the question of the Connection grid of the page shown changed to `word` while it holds items (rc.5).
+    pub(super) fn ask_grid_fit(&mut self, word: &str) -> Outcome {
+        let p = Map::from_iter([("grid".to_owned(), Value::String(word.to_owned()))]);
+        let out = self.open_dialog(Dialog::Form(PAGE_GRID_FIT.dialog(&p)));
+        if let Some(Dialog::Form(form)) = &mut self.dialog
+            && form.action == PAGE_GRID_FIT.action
+        {
+            form.ok_key = key!("page-grid-fit-ok");
+        }
+        self.refresh_grid_fit(word);
+        out
+    }
+
+    /// Counts what moves when the grid of the page shown becomes `word` (the records `page.set_grid`'s preview
+    /// changes: its symbols, junctions and structure boxes), for the question's foot.
+    pub(super) fn refresh_grid_fit(&mut self, word: &str) {
+        let count = (|| {
+            let page = self.focused_page_id()?;
+            let cmd = AnyCommand {
+                name: "page.set_grid".into(),
+                params: json!({"page": page.to_string(), "grid": page_grid_value(word)?}),
+            };
+            let submit = self.tool_submit();
+            let preview = self.project.as_mut()?.session.preview_with(&cmd, submit).ok()?;
+            Some(
+                preview
+                    .diff()
+                    .changes
+                    .iter()
+                    .filter(|c| matches!(c.key.0.name(), "representation" | "junction" | "structure_box"))
+                    .count(),
+            )
+        })();
+        self.count(|c| c.preview_with += 1);
+        self.tools.grid_fit = count.map(|n| (word.to_owned(), n));
+    }
+
+    /// The question's foot (rc.5): "Page 101 holds 12 items and 9 wires. On the 4 mm grid 7 of them move onto it and
+    /// the wires are drawn anew; Undo takes it all back in one step."
+    pub(super) fn grid_fit_foot(&self, form: &FormDialog) -> Option<String> {
+        let word = form.fields.iter().find(|f| f.name == "grid")?.value.as_str();
+        let (counted, moved) = self.tools.grid_fit.as_ref()?;
+        if counted != word {
+            return None;
+        }
+        let t = &self.canvas()?.page().tables;
+        let items = t.reps.len() + t.junctions.len();
+        Some(strings::format(
+            key!("page-grid-fit-foot"),
+            &[
+                self.current_folio().unwrap_or_default(),
+                &items.to_string(),
+                &t.connections.len().to_string(),
+                &strings::choice_text(word),
+                &moved.to_string(),
+            ],
+        ))
+    }
+
+    /// `page.fit_grid {grid}` (the question's Change and fit, rc.5): the page shown takes the Connection grid `grid`
+    /// (`page.set_grid`: its items fitted, its wires unrouted), its wires are routed anew between the same ends in the
+    /// same undo step, and a message says what moved.
+    pub(crate) fn act_page_fit_grid(&mut self, p: &Map<String, Value>) -> Outcome {
+        let word = match text_param(p, "grid") {
+            Ok(w) => w,
+            Err(e) => return e,
+        };
+        if word.is_empty() {
+            return self.form_missing(&PAGE_GRID_FIT, p, "grid");
+        }
+        let Some(value) = page_grid_value(&word) else {
+            return self.form_failed(
+                PAGE_GRID_FIT.action,
+                strings::format(key!("error-page-grid"), &[&word, &PAGE_GRIDS.join(", ")]),
+            );
+        };
+        let Some(page) = self.focused_page_id() else {
+            return Outcome::refused(key!("reason-no-page"));
+        };
+        let Some(folio) = self.current_folio().map(str::to_owned) else {
+            return Outcome::refused(key!("reason-no-page"));
+        };
+        let before = self.canvas().map(|c| Arc::clone(&c.page().tables));
+        let out = self.host_create("page.set_grid", json!({"page": page.to_string(), "grid": value}));
+        let out = self.form_done(PAGE_GRID_FIT.action, out);
+        self.tools.grid_fit = None;
+        if out != Outcome::Done {
+            return out;
+        }
+        // The wires, unrouted by the change, routed anew in the same undo step.
+        let ids: Vec<ew_api::output::Uuid> = before
+            .as_ref()
+            .map(|t| t.connections.iter().map(|c| c.id).collect())
+            .unwrap_or_default();
+        let plan = self
+            .project
+            .as_ref()
+            .and_then(|pr| pr.session.route_plan(&folio, &ew_api::routing::RouteScope::Selection(ids)));
+        if let Some(params) = plan.as_ref().and_then(ew_api::routing::route_many_params) {
+            let rev = self.revision();
+            let routed = self.run_commit(&AnyCommand {
+                name: "connection.route_many".into(),
+                params,
+            });
+            if routed == Outcome::Done
+                && self.revision() != rev
+                && let Some(pr) = &mut self.project
+            {
+                pr.session.fold_last_step();
+            }
+        }
+        // What moved: the symbols and junctions that stand elsewhere now.
+        let moved = match (before, self.canvas().map(|c| Arc::clone(&c.page().tables))) {
+            (Some(b), Some(n)) => {
+                n.reps
+                    .iter()
+                    .filter(|r| b.reps.iter().any(|o| o.id == r.id && o.pos != r.pos))
+                    .count()
+                    + n.junctions
+                        .iter()
+                        .filter(|j| b.junctions.iter().any(|o| o.id == j.id && o.at != j.at))
+                        .count()
+            }
+            _ => 0,
+        };
+        let text = strings::format(
+            key!("toast-page-grid-fitted"),
+            &[&folio, &strings::choice_text(&word), &moved.to_string()],
+        );
+        self.notify(text, true);
+        Outcome::Done
+    }
+
     /// Where the page New page makes will stand, under its folio field (rc.5): "Stands after 101 Wiring", the page of
     /// the form's section whose folio comes last before the folio typed; first in its section when none does; the page
     /// that has the folio when one has it already. `None` for a folio that does not read.
@@ -722,6 +878,10 @@ impl ShellModel {
         .then(|| self.cable_row_wires());
         // Create enclosure's code of a new location comes and goes with its "New location" choice.
         let code = (name == "location").then(|| self.proposed_location_code());
+        // The grid question counts again for another grid (rc.5).
+        if name == "grid" && self.in_form_of(PAGE_GRID_FIT.action) {
+            self.refresh_grid_fit(value);
+        }
         // New page's folio follows its section to the section's first free folio (rc.2: it stayed 3 for section 2).
         let free = (name == "section" && self.in_form_of(PAGE_NEW.action))
             .then(|| self.section_free_folio(value))

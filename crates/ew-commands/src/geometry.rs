@@ -101,6 +101,24 @@ pub fn rep_cps_checked(tx: &TxBuilder<'_>, rep: &Representation) -> Result<Vec<R
     cps_of(tx, rep).into_iter().collect()
 }
 
+/// The grid point of `grid` nearest `p`, axis by axis; [`OutOfRange`] on overflow.
+pub(crate) fn nearest_grid_point(grid: Grid, p: Pt2) -> Result<Pt2, OutOfRange> {
+    match (grid.snap_point(p.x), grid.snap_point(p.y)) {
+        (Some(x), Some(y)) if in_range(x) && in_range(y) => Ok(Pt2::new(x, y)),
+        _ => Err(OutOfRange),
+    }
+}
+
+/// The position at which `rep` stands fitted to `grid` (rc.5: a paste onto a page of another grid, a page's grid
+/// changed): moved so that its first connection point ([`rep_cps`]' order) lies on the nearest grid point, the others
+/// keeping their places relative to it (a symbol whose own pin spacing does not fit the grid has its first pin on
+/// it); a representation without connection points has its position there.
+pub(crate) fn fitted_pos(tx: &TxBuilder<'_>, rep: &Representation, grid: Grid) -> Result<Pt2, OutOfRange> {
+    let at = rep_cps_checked(tx, rep)?.first().map_or(rep.pos, |c| c.pos);
+    let to = nearest_grid_point(grid, at)?;
+    add(rep.pos, sub(to, at)?)
+}
+
 fn cps_of(tx: &TxBuilder<'_>, rep: &Representation) -> Vec<Result<RepCp, OutOfRange>> {
     let Some(symbol): Option<Arc<LibCopy<SymbolDef>>> = tx.get::<LibCopy<SymbolDef>>(rep.symbol) else {
         return Vec::new();

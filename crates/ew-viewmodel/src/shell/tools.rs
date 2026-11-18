@@ -667,6 +667,12 @@ impl ShellModel {
                 self.tools.preview = None;
                 // A committed paste returns to Select with the pasted representations selected.
                 self.tools.pasted = out == Outcome::Done && self.tools.tool.name() == "paste";
+                self.tools.paste_fit = self
+                    .tools
+                    .pasted
+                    .then(|| cmd.to_json().ok())
+                    .flatten()
+                    .and_then(|json| self.paste_fit_of(&json));
                 // FT-900: what a placement made is the selection, replacing it: the schematic Place tool's
                 // representations (the tool stays armed) and a layout drop's placement, at the end of the dispatch.
                 self.tools.placed = out == Outcome::Done && self.tools.tool.name() == "place";

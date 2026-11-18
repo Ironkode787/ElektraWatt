@@ -226,6 +226,66 @@ fn rep_pos(shell: &ShellModel, rep: &str) -> (i64, i64) {
 /// The QET grid step in nm (rounded): a sheet offset that moves the snapped anchor by one step.
 const STEP: i64 = 2_645_833;
 
+/// rc.5 (the owner: copy and paste between grids did not work, and a page's grid could not change once it held items):
+/// -102G1 and -102F2 with the wires between them, copied on folio 102 (the QET grid) and pasted on a new page of the
+/// 4 mm grid, are fitted to it and their wires routed anew, in one undo step, and a message says so. That page's grid
+/// changed back to the QET grid asks first, saying what will happen; Change and fit fits its items and routes its
+/// wires in one undo step, and says so.
+#[test]
+fn a_paste_onto_another_grid_and_a_grid_change_fit_the_items_and_say_so() {
+    let tmp = Tmp::new("clip-fit");
+    let mut shell = tmp.shell_in(Mode::Gui, true, "102");
+    let g1 = select_rep(&mut shell, "-102G1");
+    let f2 = select_rep(&mut shell, "-102F2");
+    done(&mut shell, "select.set", json!({ "ids": [g1, f2] }));
+    done(&mut shell, "edit.copy", json!({}));
+    done(&mut shell, "page.new", json!({"folio": "150", "title": "Fit", "grid": "mm4"}));
+    assert_eq!(shell.current_folio(), Some("150"));
+    done(&mut shell, "edit.paste_clip", json!({}));
+    let target = sheet(&shell, (60_000_000, 60_000_000));
+    done(&mut shell, "canvas.pointer", at(target, json!({})));
+    let rev = shell.revision();
+    done(&mut shell, "canvas.press", at(target, json!({})));
+    assert_eq!(shell.revision(), rev.map(|r| r + 2), "the paste, then its wires routed");
+    let tables = |shell: &ShellModel| shell.canvas().unwrap().page().tables.clone();
+    let t = tables(&shell);
+    assert_eq!(t.reps.len(), 2);
+    assert!(!t.connections.is_empty(), "the wires between them");
+    assert!(
+        t.connections.iter().all(|c| c.stored_route),
+        "routed anew: {:?} {}",
+        t.connections.iter().map(|c| (c.stored_route, c.polyline.len())).collect::<Vec<_>>(),
+        common::toast(&shell)
+    );
+    let text = common::toast(&shell);
+    assert!(text.starts_with("The paste was fitted to this page's 4 mm grid:"), "{text}");
+    // One undo step takes the paste and its routes back.
+    done(&mut shell, "edit.undo", json!({}));
+    assert!(tables(&shell).reps.is_empty(), "one step");
+    done(&mut shell, "edit.redo", json!({}));
+    assert_eq!(tables(&shell).reps.len(), 2);
+    // The page's grid back to the QET grid: the question first.
+    done(&mut shell, "select.set", json!({ "ids": [] }));
+    done(&mut shell, "props.show", json!({"on": true}));
+    let rev = shell.revision();
+    done(&mut shell, "props.set", json!({"row": "page/grid", "value": "QET 10 px"}));
+    assert_eq!(shell.revision(), rev, "nothing changed yet");
+    let form = common::form(&shell);
+    assert_eq!(form.action, "page.fit_grid");
+    let foot = shell.form_foot(&form).expect("what will happen");
+    assert!(foot.starts_with("Page 150 holds 2 symbols and junctions and "), "{foot}");
+    assert!(foot.contains("On the QET 10 px grid"), "{foot}");
+    assert_eq!(shell.submit_form(), Outcome::Done);
+    assert_eq!(shell.canvas().unwrap().page().snapper.grid(), (7_937_500, 3));
+    let t = tables(&shell);
+    assert!(t.connections.iter().all(|c| c.stored_route), "routed anew");
+    let text = common::toast(&shell);
+    assert!(text.starts_with("Page 150 now has the QET 10 px grid:"), "{text}");
+    done(&mut shell, "edit.undo", json!({}));
+    assert_eq!(shell.canvas().unwrap().page().snapper.grid(), (4_000_000, 1), "one step");
+    shell.shutdown();
+}
+
 /// CB4 (FR-DEV-029): copying -102F1 on folio 102 and pasting it on 102 yields a device whose tag is -102F3 with part
 /// A9F78116 and no connection (its wires had an end outside).
 #[test]
