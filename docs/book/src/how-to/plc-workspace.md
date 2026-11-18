@@ -66,9 +66,19 @@ The exchange of the hardware and the tags with the PLC software is at the end of
    **Remove**, **Move left** and **Move right** above the rack change it before it is made.
 5. Choose **Create**: the station and its modules are made in one step, drawn on no page yet. Nothing is written
    before; closing the tab before Create asks first.
-6. **To do** under the table says what is left. **Draw on a page…** draws the station and its modules side by side
-   in slot order on the schematic page you pick (or **New page…**) and shows that page; **Put it on a bus page** puts
-   every bus interface of the station on the bus-topology page (made when there is none; with several you choose one).
+6. **To do** under the table says what is left, one line for each side of the station that is on no page of its kind
+   yet: its boxes on an electrical page, its bus ports on a bus page, a valve terminal's valves on their positions on a
+   fluid page. Each button goes to the page the view was opened from when it is of that kind (**Draw on page 101**),
+   to a new page when the project has none (**Draw on a new electrical page**), else lists the pages of that kind and
+   **New page…**. The station and its modules are drawn side by side in slot order; the bus ports and a valve
+   terminal's box hang on the pointer, and a click puts them down.
+7. Click the station's tag in the header, or press `F2`, to change it in place; `Enter` takes it, `Esc` leaves it. `F2`
+   on a card, or a click on the tag of the card under the cursor, changes the card's tag in its row. A tag another
+   device has is refused under the rack; a change that moves the cards' tags too waits for **Apply** in Properties.
+
+A part of a station that no page draws yet has **Place here** on its row in the PLC panel and on its card's menu: on
+an electrical page its box hangs on the pointer, on a bus page its bus ports, on a fluid page a valve terminal's
+positions. On another page the entry is greyed with the page to open.
 
 A station part placed straight from the device browser opens its rack in a tab at once; `Esc` goes back to the page,
 and the tab stays beside it.
