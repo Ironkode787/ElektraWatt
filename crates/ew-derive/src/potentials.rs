@@ -174,6 +174,9 @@ pub struct BondLink {
     pub path_ips: Vec<Id<Function>>,
     /// Their distinct names, natural order: the bond's names ("PE-0VDC" names B1).
     pub names: Vec<String>,
+    /// A drawn bond: a wire from a 0 V point to a protective-earth point (`EarthWire`, doc 08 §3.7), which no
+    /// bond record declares. Its `bond` is the ID of its `via` connection, its kind `Pelv0vPe`, `a` its 0 V side.
+    pub drawn: bool,
 }
 
 /// One connected component of the stitch graph: a potential, or the points of no potential (an unconnected
@@ -448,13 +451,15 @@ pub fn bonds_of_potential(q: &Q, id: PotentialId) -> Vec<BondLink> {
         .collect()
 }
 
-/// The bonds between potentials (doc 03 §9.6), in bond ID order.
+/// The bonds between potentials (doc 03 §9.6), in bond ID order: the bond records, and the drawn bonds, the earth
+/// wires of the pages' local nets.
 pub(crate) fn bond_links(
     inputs: &StitchInputs,
     paths: &BondPaths,
+    pages: &OrdMap<Id<Page>, Arc<LocalNets>>,
     potential_at: impl Fn(EndpointKey) -> Option<PotentialId>,
 ) -> Vec<BondLink> {
-    inputs
+    let mut out: Vec<BondLink> = inputs
         .bonds
         .iter()
         .map(|(id, b)| {
@@ -467,9 +472,23 @@ pub(crate) fn bond_links(
                 via: b.via,
                 path_ips: path.map(|p| p.ips.clone()).unwrap_or_default(),
                 names: path.map(|p| p.names.clone()).unwrap_or_default(),
+                drawn: false,
             }
         })
-        .collect()
+        .collect();
+    let drawn = pages.values().flat_map(|l| l.earth_wires.iter()).map(|w| BondLink {
+        bond: Id::from_uuid(w.via.as_uuid()),
+        kind: BondKind::Pelv0vPe,
+        a: potential_at(w.zero_volt),
+        b: potential_at(w.earth),
+        via: Some(w.via),
+        path_ips: Vec::new(),
+        names: Vec::new(),
+        drawn: true,
+    });
+    out.extend(drawn);
+    out.sort_by_key(|b| b.bond);
+    out
 }
 
 /// The cold partition: the stitch graph built whole, one union-find over its nodes (the global algorithm),
@@ -638,7 +657,7 @@ fn cold(q: &Q) -> Partition {
         bond_paths,
         bonds: Vec::new(),
     };
-    let bonds = bond_links(&partition.inputs, &partition.bond_paths, |e| {
+    let bonds = bond_links(&partition.inputs, &partition.bond_paths, &partition.pages, |e| {
         partition.potential_at(e).map(|p| p.id)
     });
     partition.bonds = bonds;

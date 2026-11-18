@@ -5,7 +5,11 @@
 //!
 //! A local net is a connected set of drawing nodes (function CPs and junctions) of one page, joined by the
 //! page's connections of kind `Wire`, `Core`, `Bus` and `Internal`. A connection named as some
-//! `Bond.via` is left out (the bond cut, doc 08 §3.7); `Bridge` connections join at the potential level
+//! `Bond.via` is left out (the bond cut, doc 08 §3.7), and so is an earth wire: a connection with one end on a
+//! protective-earth point (a CP whose role is PE) and the other in a net of the page that holds a 0 V point (a CP
+//! whose role is M or L-), joined without the connections to protective-earth points. The person who drew that wire
+//! bonded the 0 V to earth: it is the bond, and 0 V stays 0 V (the drawn bond, doc 08 §3.7). `Bridge` connections
+//! join at the potential level
 //! and `Overview` and unknown kinds never join (CI-07). Every interruption point drawn on the page is a
 //! node even without a connection, so that the stitch graph can pair it.
 //!
@@ -18,7 +22,7 @@ use std::sync::Arc;
 
 use ew_ids::{Id, v5};
 use ew_model::EndpointKey;
-use ew_schema::{Connection, ConnectionKind, Function, FunctionKind, Junction, Page};
+use ew_schema::{Connection, ConnectionKind, Function, FunctionKind, Junction, Page, PotentialType};
 
 use crate::query::{Policy, Query};
 use crate::{Cp, FunctionCps, Q};
@@ -87,6 +91,11 @@ pub fn joins_net(kind: &ConnectionKind) -> bool {
     )
 }
 
+/// Whether a CP role is a 0 V conductor's: `M` or `L-`.
+fn is_zero_volt(role: Option<&PotentialType>) -> bool {
+    matches!(role, Some(PotentialType::M | PotentialType::LMinus))
+}
+
 /// The endpoint keys of a connection; `None` for an endpoint of a newer format.
 pub(crate) fn ends(c: &Connection) -> Option<(EndpointKey, EndpointKey)> {
     Some((EndpointKey::of(&c.a)?, EndpointKey::of(&c.b)?))
@@ -103,7 +112,7 @@ pub(crate) fn ip_cp(q: &Q, ip: Id<Function>) -> Option<CpRef> {
 pub struct NetMember {
     /// The node.
     pub at: EndpointKey,
-    /// The joining connections at the node, in ID order.
+    /// The joining connections at the node (at a protective-earth point also its earth wires), in ID order.
     pub via: Vec<Id<Connection>>,
 }
 
@@ -114,7 +123,8 @@ pub struct LocalNet {
     pub id: NetId,
     /// The members in node order.
     pub members: Vec<NetMember>,
-    /// The joining connections of the net, in ID order.
+    /// The joining connections of the net, and the earth wires ([`EarthWire`]) that end at its protective-earth
+    /// points, in ID order.
     pub connections: Vec<Id<Connection>>,
 }
 
@@ -133,6 +143,18 @@ impl LocalNet {
     }
 }
 
+/// A wire drawn on the page from a 0 V point to a protective-earth point: the bond it draws (doc 08 §3.7, "the
+/// drawn bond").
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
+pub struct EarthWire {
+    /// The connection.
+    pub via: Id<Connection>,
+    /// Its end on the 0 V side.
+    pub zero_volt: EndpointKey,
+    /// Its end on the protective-earth point.
+    pub earth: EndpointKey,
+}
+
 /// The value of [`PageLocalNets`].
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct LocalNets {
@@ -140,8 +162,10 @@ pub struct LocalNets {
     pub page: Id<Page>,
     /// The nets in ID order.
     pub nets: Vec<LocalNet>,
-    /// The page's connections cut as a bond's `via` (doc 08 §3.7), in ID order.
+    /// The page's connections cut as a bond's `via` or as an [`EarthWire`] (doc 08 §3.7), in ID order.
     pub cut: Vec<Id<Connection>>,
+    /// The page's earth wires, in connection ID order.
+    pub earth_wires: Vec<EarthWire>,
     net_of: BTreeMap<EndpointKey, usize>,
 }
 
@@ -170,6 +194,30 @@ impl Query for PageLocalNets {
         let mut via: BTreeMap<EndpointKey, BTreeSet<Id<Connection>>> = BTreeMap::new();
         let mut cut = Vec::new();
         let connections = q.connections();
+        // The connections with an end on a protective-earth point (a CP whose role is PE) wait until the rest of
+        // the page is joined: one whose other end's net holds a 0 V point is an earth wire.
+        let mut roles: BTreeMap<EndpointKey, Option<PotentialType>> = BTreeMap::new();
+        let mut role_of = |e: EndpointKey| -> Option<PotentialType> {
+            roles
+                .entry(e)
+                .or_insert_with(|| {
+                    let cp = CpRef::of(e)?;
+                    q.get::<FunctionCps>(cp.function)
+                        .iter()
+                        .find(|c| c.idx == cp.idx)
+                        .and_then(|c| c.potential_role.clone())
+                })
+                .clone()
+        };
+        let mut earth_ended: Vec<(Id<Connection>, EndpointKey, EndpointKey)> = Vec::new();
+        let mut zero_volt: Vec<EndpointKey> = Vec::new();
+        type Via = BTreeMap<EndpointKey, BTreeSet<Id<Connection>>>;
+        let join = |dsu: &mut Dsu<EndpointKey>, via: &mut Via, id: Id<Connection>, a: EndpointKey, b: EndpointKey| {
+            let (ia, ib) = (dsu.node(a), dsu.node(b));
+            dsu.union(ia, ib);
+            via.entry(a).or_default().insert(id);
+            via.entry(b).or_default().insert(id);
+        };
         for id in q.idx().connections_by_page(*page) {
             let Some(c) = connections.get(id) else { continue };
             if c.page != Some(*page) || !joins_net(&c.kind) {
@@ -180,10 +228,63 @@ impl Query for PageLocalNets {
                 continue;
             }
             let Some((a, b)) = ends(c) else { continue };
-            let (ia, ib) = (dsu.node(a), dsu.node(b));
-            dsu.union(ia, ib);
-            via.entry(a).or_default().insert(id);
-            via.entry(b).or_default().insert(id);
+            let (ra, rb) = (role_of(a), role_of(b));
+            for (e, r) in [(a, &ra), (b, &rb)] {
+                if is_zero_volt(r.as_ref()) {
+                    zero_volt.push(e);
+                }
+            }
+            if ra == Some(PotentialType::Pe) || rb == Some(PotentialType::Pe) {
+                earth_ended.push((id, a, b));
+                continue;
+            }
+            join(&mut dsu, &mut via, id, a, b);
+        }
+        // An earth wire: exactly one end on a protective-earth point, the other end in a net (as joined without the
+        // connections that wait) that holds a 0 V point. The test reads that net only, so the order of the waiting
+        // connections decides nothing.
+        let zero_volt_nets: BTreeSet<usize> = zero_volt
+            .into_iter()
+            .map(|e| {
+                let i = dsu.node(e);
+                dsu.find(i)
+            })
+            .collect();
+        let mut earth_wires = Vec::new();
+        let mut joined = Vec::new();
+        earth_ended.sort();
+        for (id, a, b) in earth_ended {
+            let (pa, pb) = (
+                role_of(a) == Some(PotentialType::Pe),
+                role_of(b) == Some(PotentialType::Pe),
+            );
+            let other = match (pa, pb) {
+                (true, false) => Some((b, a)),
+                (false, true) => Some((a, b)),
+                _ => None,
+            };
+            let earth_wire = other.filter(|(z, _)| {
+                let i = dsu.node(*z);
+                zero_volt_nets.contains(&dsu.find(i))
+            });
+            match earth_wire {
+                Some((zero_volt, earth)) => {
+                    // The earth point stays a node of the page, brought in by its earth wire: the earth side of
+                    // the bond is a potential of its own even when nothing else is wired to it.
+                    cut.push(id);
+                    dsu.node(earth);
+                    via.entry(earth).or_default().insert(id);
+                    earth_wires.push(EarthWire {
+                        via: id,
+                        zero_volt,
+                        earth,
+                    });
+                }
+                None => joined.push((id, a, b)),
+            }
+        }
+        for (id, a, b) in joined {
+            join(&mut dsu, &mut via, id, a, b);
         }
         for j in q.idx().junctions_by_page(*page) {
             dsu.node(EndpointKey::Junction(j));
@@ -247,6 +348,7 @@ impl Query for PageLocalNets {
             page: *page,
             nets,
             cut,
+            earth_wires,
             net_of,
         })
     }

@@ -644,7 +644,7 @@ pub(crate) fn update(q: &Q, prev: &Partition, changes: Changes<'_>) -> Option<(P
         }
     }
     w.p.bond_paths = bond_paths;
-    let bonds = bond_links(&w.p.inputs, &w.p.bond_paths, |e| {
+    let bonds = bond_links(&w.p.inputs, &w.p.bond_paths, &w.p.pages, |e| {
         w.p.potential_at(e).map(|p| p.id)
     });
 

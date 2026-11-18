@@ -766,33 +766,55 @@ rule-ew-iol-002 = { $channel }: { $form ->
 ## EW-POT: potentials
 
 rule-ew-pot-001 = { $form ->
-        [flow] pass-through of function { $device } joins type { $from } and type { $to } without a converting function
+        [flow] { $device } carries { WORD($from) } through to { WORD($to) }: a contact or a fuse passes one potential on, it cannot change it into another. Correct the type on one side, or put a power supply or a transformer between them.
        *[attrs] { $conflicts }{ $more ->
             [none] {""}
-           *[other] ; and { $more } more member CPs
-        }{ $hint ->
-            [bond] ; declare the bond with Draw ▸ Connect ▸ Bond
-           *[none] {""}
+           *[other] {" "}{ $more } more connection points are wired the same way.
         }
     }
     .title = Type or voltage conflict
-    .hint = Separate the potentials, correct the definition, or declare the bond that joins them.
-    .conflict-type = { $subject } sets type { $value }; { $applied } applies (first definition in natural order)
-    .conflict-voltage = { $subject } sets voltage { $value }; { $applied } applies (first definition in natural order)
-    .conflict-environment = { $subject } sets environment { $value }; { $applied } applies (first definition in natural order)
-    .conflict-class = { $subject } sets circuit class { $value }; { $applied } applies (first definition in natural order)
-    .conflict-role = member CP { $subject } has role { $value }; the defined type { $applied } applies
-    .conflict-roles = member roles { $value } meet { $applied }; the first in role order applies
+    .hint = Take away the wire that joins two different potentials, or correct the definition of one of them. A 0 V joined to earth some other way than by a wire drawn straight to an earth point needs its bond declared (Draw ▸ Connect ▸ Bond).
+    .conflict-type = { $a } ({ WORD($a_kind) }) is wired to { $b } ({ WORD($b_kind) }){ $at ->
+            [page] {" "}on page { $page }
+           *[none] {""}
+        }: a wire joins two different potentials. Take that wire away, or correct the type of one of the two.
+    .conflict-voltage = { $a } ({ $a_kind }) is wired to { $b } ({ $b_kind }){ $at ->
+            [page] {" "}on page { $page }
+           *[none] {""}
+        }: one conductor cannot carry two voltages. Take that wire away, or correct the voltage of one of the two.
+    .conflict-environment = { $a } ({ WORD($a_kind) }) is wired to { $b } ({ WORD($b_kind) }){ $at ->
+            [page] {" "}on page { $page }
+           *[none] {""}
+        }: one conductor cannot be both. Take that wire away, or correct the setting of one of the two.
+    .conflict-class = { $a } ({ WORD($a_kind) }) is wired to { $b } ({ WORD($b_kind) }){ $at ->
+            [page] {" "}on page { $page }
+           *[none] {""}
+        }: one conductor cannot be in two circuit classes. Take that wire away, or correct the class of one of the two.
+    .conflict-role = { $a } ({ WORD($a_kind) }) is wired to { $b } ({ WORD($b_kind) }){ $at ->
+            [page] {" "}on page { $page }
+           *[none] {""}
+        }: a wire joins two different potentials. Take that wire away, or correct the type of { $b }.
+    .conflict-roles = { $a } ({ WORD($a_kind) }) is wired to { $b } ({ WORD($b_kind) }){ $at ->
+            [page] {" "}on page { $page }
+           *[none] {""}
+        }: a wire joins two different potentials. Take that wire away.
+    .conflict-earth = The 0 V { $a } is joined to protective earth at { $b }{ $at ->
+            [page] {" "}on page { $page }
+           *[none] {""}
+        }, but not by a wire drawn from the 0 V straight to an earth point. Select the wire that joins them and choose Draw ▸ Connect ▸ Bond, or take that wire away.
 
 rule-ew-pot-002 = { $form ->
-        [selv] SELV potential { $potential } is bonded to PE ({ $count } 0 V–PE bond(s)); a SELV circuit must not be earthed
-       *[pelv] PELV potential { $potential } { $bonds ->
-            [none] has no 0 V–PE bond
-           *[some] has { $count } 0 V–PE bonds
-        }; a PELV circuit needs exactly one (declare the bond on the 0 V–PE wire)
+        [selv] { $potential } is a SELV circuit, but its 0 V is bonded to protective earth{ $bonds ->
+            [one] {""}
+           *[some] {" "}in { $count } places
+        }. A SELV circuit is never earthed: take the bond away, or make the circuit PELV.
+       *[pelv] { $potential } is a PELV circuit{ $bonds ->
+            [none] , but its 0 V is not bonded to protective earth. Draw one wire from the 0 V to an earth point.
+           *[some] {" "}whose 0 V is bonded to protective earth in { $count } places; a PELV circuit is earthed at one point only. Keep one bond to earth and take the others away.
+        }
     }
     .title = PELV or SELV bonding
-    .hint = Declare exactly one 0 V–PE bond for a PELV potential, and none for a SELV potential.
+    .hint = Bond the 0 V of a PELV circuit to protective earth at exactly one point (a wire from the 0 V to an earth point), and the 0 V of a SELV circuit nowhere.
 
 rule-ew-pot-003 = { $cp_shared ->
         [yes] { $cp_tag } pin { $cp_pin } ({ NUMBER($cp_nth, type: "ordinal") ->
@@ -802,21 +824,21 @@ rule-ew-pot-003 = { $cp_shared ->
            *[other] { $cp_nth }th
         })
        *[no] { $cp }
-    } has the role FE and is wired to the PE potential { $potential }; declare an FE–PE bond or connect it to functional earth
+    } is a functional earth (FE) pin and is wired to the protective earth { $potential }. Wire it to functional earth, or, where it should be earthed, select its wire and choose Draw ▸ Connect ▸ Bond (FE–PE).
     .title = FE pin on PE
-    .hint = Declare an FE–PE bond, or connect the pin to functional earth.
+    .hint = Wire the pin to functional earth, or declare the FE–PE bond on its wire.
 
-rule-ew-pot-004 = wire { $wire } is GNYE on the potential { $potential }{ $typed ->
-        [yes] {" "}(type { $type })
+rule-ew-pot-004 = Wire { $wire } is green-yellow but carries { $potential }{ $typed ->
+        [yes] {" "}({ WORD($type) })
        *[no] {""}
-    }; GNYE is reserved for protective conductors
+    }: green-yellow is for protective earth only. Give the wire another colour.
     .title = GNYE on a non-PE potential
     .hint = Use green-yellow only for protective conductors; give the wire another colour.
 
-rule-ew-pot-005 = wire { $wire } is BU on the potential { $potential }{ $type ->
+rule-ew-pot-005 = Wire { $wire } is blue but carries { $potential }{ $type ->
         [none] {""}
-       *[other] {" "}(type { $type })
-    }; in a project with a neutral, BU marks the neutral conductor
+       *[other] {" "}({ WORD($type) })
+    }: in a project with a neutral, blue marks the neutral. Give the wire another colour.
     .title = BU on a non-N conductor
     .hint = Use another colour for the wire, or a cable whose blue core carries the neutral.
 
@@ -829,13 +851,13 @@ rule-ew-pot-006 = PE wire { $wire } has { $pe } mm², below the { $required } mm
 
 rule-ew-pot-008 = { $form ->
         [terminal] { $detail }
-       *[island] { $location ->
-            [main] the main location
-           *[node] { $node }
-        } has { $count } protective-earth networks that do not meet: { $potentials }. Connect them: put their PE terminals on one bonded rail, or draw a PE wire between them.
+       *[island] The protective earth at { $at } on page { $page } reaches neither the incoming PE nor an earth symbol{ $location ->
+            [main] {""}
+           *[node] {" "}of { $node }
+        }. Wire it to the PE rail or to an earth symbol, or put its PE terminal on a bonded rail.
     }
     .title = PE island
-    .hint = Every PE in one place must be one network: put the PE terminals of the location on one bonded rail, or draw a PE wire from each network to the PE rail.
+    .hint = Every protective earth must reach the incoming PE: wire each PE conductor to the PE rail or to an earth symbol (an earth symbol stands for the cabinet's earth), or put its PE terminals on a bonded rail.
 
 rule-ew-pot-009 = { $cp_shared ->
         [yes] { $cp_tag } pin { $cp_pin } ({ NUMBER($cp_nth, type: "ordinal") ->
@@ -864,10 +886,10 @@ rule-ew-pot-011 = { $potential }: it is unclear which wire feeds { $place ->
     .hint = Draw the junction so that one end feeds it, or set its wiring order.
 
 rule-ew-pot-012 = { $form ->
-        [ring] the connection closes a ring in the drawing graph; it is the highest ID of the ring and forms no physical wire
+        [ring] The wire { $wire } closes a ring: its wires lead back to where they started, so it is left out of the wire list. Take one wire of the ring away, or confirm that the ring is meant.
        *[other] { $detail }
     }
-    .title = Ring in the drawing graph
+    .title = Wires in a ring
     .hint = Remove the wire that closes the ring, or confirm that the ring is intended.
 
 rule-ew-pot-013 = { $device } { $form ->
@@ -881,27 +903,31 @@ rule-ew-pot-013 = { $device } { $form ->
     .title = N switching
     .hint = Move the contact into the line conductor, or use a device that opens L and N together.
 
-rule-ew-pot-014 = { $detail }
+rule-ew-pot-014 = { $form ->
+        [conductor] Part of wire { $wire } is drawn on another cable core; the wire keeps the core it starts on. Draw the whole wire on one core.
+        [override] Part of wire { $wire } sets a value the wire already has from another part; the first value applies. Set it in one place.
+       *[other] { $detail }
+    }
     .title = Physical-wire conflict
     .hint = Give the physical wire one set of properties, or split it into separate wires.
 
-rule-ew-pot-015 = wire number { $number } is printed on { $count } wires; a wire number names one numbering unit
+rule-ew-pot-015 = Wire number { $number } is printed on { $count } wires that are not one conductor. Give each of them its own number, or join them if they are one.
     .title = Wire-number conflict
     .hint = Give the wires of one potential the same wire number, or separate the potentials.
 
-rule-ew-pot-016 = the override { $member ->
-        [csa] cross-section { $value }
-        [colour] colour { $value }
-        [wire_part] wire part
-        [insulation] insulation
-        [function] wire function
+rule-ew-pot-016 = Wire { $wire } has { $member ->
+        [csa] its cross-section { $value }
+        [colour] its colour { $value }
+        [wire_part] its wire part
+        [insulation] its insulation
+        [function] its wire function
         [shielded] shielded
        *[twisted] twisted
-    } of wire { $wire } equals the value below it in the inheritance chain; remove the override
+    } set by hand, which it gets anyway. Remove that setting.
     .title = Redundant override
     .hint = Remove the override; it sets the value the wire takes anyway.
 
-rule-ew-pot-017 = the definitions of one potential name it { $names }; the first in natural order ({ $first }) applies
+rule-ew-pot-017 = { $names } are names of one conductor: they are wired together. It is called { $first }; give the others the same name, or take away the wire that joins them.
     .title = Two potential names
     .hint = Keep one definition of the potential, or rename the interruption points to one name.
 
@@ -1199,6 +1225,25 @@ word-an-f-module = an F-module
 word-the-sensor = the sensor
 word-the-cable = the cable
 word-the-device = the device
+word-type-pe = protective earth PE
+word-type-pen = PEN conductor
+word-type-fe = functional earth FE
+word-type-n = neutral N
+word-type-phase = phase { $at }
+word-type-l-plus = plus L+
+word-type-l-minus = minus L−
+word-type-signal = signal
+word-type-none = no type
+word-type-newer = a type of a newer format
+word-current-newer = a current of a newer format
+word-earthing-floating = floating
+word-earthing-newer = an earthing of a newer format
+word-class-mains = mains circuit
+word-class-control = control circuit
+word-class-analogue = analogue circuit
+word-class-bus = bus circuit
+word-class-pe = protective-earth circuit
+word-class-newer = a circuit class of a newer format
 # The text styles by the names the Text styles page lists them under (`messages::text_style_name`).
 word-style-tag-main = Device tag
 word-style-data-small = Device details

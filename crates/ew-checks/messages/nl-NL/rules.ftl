@@ -772,52 +772,74 @@ rule-ew-iol-002 = { $channel }: { $form ->
     .hint = Houd elk IO-Link-apparaat binnen het venster en de kabellengte van zijn poort.
 
 rule-ew-pot-001 = { $form ->
-        [flow] de doorverbinding van functie { WORD($device) } verbindt type { $from } met type { $to } zonder omzettende functie
+        [flow] { WORD($device) } voert { WORD($from) } door naar { WORD($to) }: een contact of een zekering geeft één potentiaal door en kan die niet in een andere veranderen. Verbeter het type aan één kant, of zet er een voeding of een transformator tussen.
        *[attrs] { $conflicts }{ $more ->
             [none] {""}
-           *[other] ; en nog { $more } aansluitpunten
-        }{ $hint ->
-            [bond] ; declareer de potentiaalverbinding met Tekenen ▸ Verbinden ▸ Potentiaalverbinding
-           *[none] {""}
+           *[other] {" "}Nog { $more } aansluitpunten zijn op dezelfde manier bedraad.
         }
     }
     .title = Type- of spanningsconflict
-    .hint = Scheid de potentialen, corrigeer de definitie of declareer de potentiaalverbinding die ze samenbrengt.
-    .conflict-type = { $subject } stelt type { $value } in; { $applied } geldt (eerste definitie in natuurlijke volgorde)
-    .conflict-voltage = { $subject } stelt spanning { DECIMAL($value) } in; { DECIMAL($applied) } geldt (eerste definitie in natuurlijke volgorde)
-    .conflict-environment = { $subject } stelt omgeving { $value } in; { $applied } geldt (eerste definitie in natuurlijke volgorde)
-    .conflict-class = { $subject } stelt stroomkringklasse { $value } in; { $applied } geldt (eerste definitie in natuurlijke volgorde)
-    .conflict-role = aansluitpunt { $subject } heeft rol { $value }; het gedefinieerde type { $applied } geldt
-    .conflict-roles = aansluitpuntrollen { $value } botsen met { $applied }; de eerste in de rolvolgorde geldt
+    .hint = Haal de draad weg die twee verschillende potentialen verbindt, of verbeter de definitie van een van beide. Een 0 V die op een andere manier dan met een draad recht naar een aardpunt met aarde verbonden is, heeft een vastgelegde verbinding nodig (Tekenen ▸ Verbinden ▸ Potentiaalverbinding).
+    .conflict-type = { $a } ({ WORD($a_kind) }) is verbonden met { $b } ({ WORD($b_kind) }){ $at ->
+            [page] {" "}op pagina { $page }
+           *[none] {""}
+        }: een draad verbindt twee verschillende potentialen. Haal die draad weg, of verbeter het type van een van beide.
+    .conflict-voltage = { $a } ({ DECIMAL($a_kind) }) is verbonden met { $b } ({ DECIMAL($b_kind) }){ $at ->
+            [page] {" "}op pagina { $page }
+           *[none] {""}
+        }: één geleider kan geen twee spanningen voeren. Haal die draad weg, of verbeter de spanning van een van beide.
+    .conflict-environment = { $a } ({ WORD($a_kind) }) is verbonden met { $b } ({ WORD($b_kind) }){ $at ->
+            [page] {" "}op pagina { $page }
+           *[none] {""}
+        }: één geleider kan niet allebei zijn. Haal die draad weg, of verbeter de instelling van een van beide.
+    .conflict-class = { $a } ({ WORD($a_kind) }) is verbonden met { $b } ({ WORD($b_kind) }){ $at ->
+            [page] {" "}op pagina { $page }
+           *[none] {""}
+        }: één geleider kan niet in twee stroomkringklassen zitten. Haal die draad weg, of verbeter de klasse van een van beide.
+    .conflict-role = { $a } ({ WORD($a_kind) }) is verbonden met { $b } ({ WORD($b_kind) }){ $at ->
+            [page] {" "}op pagina { $page }
+           *[none] {""}
+        }: een draad verbindt twee verschillende potentialen. Haal die draad weg, of verbeter het type van { $b }.
+    .conflict-roles = { $a } ({ WORD($a_kind) }) is verbonden met { $b } ({ WORD($b_kind) }){ $at ->
+            [page] {" "}op pagina { $page }
+           *[none] {""}
+        }: een draad verbindt twee verschillende potentialen. Haal die draad weg.
+    .conflict-earth = De 0 V { $a } is verbonden met de beschermingsaarde bij { $b }{ $at ->
+            [page] {" "}op pagina { $page }
+           *[none] {""}
+        }, maar niet met een draad die van de 0 V recht naar een aardpunt loopt. Selecteer de draad die ze verbindt en kies Tekenen ▸ Verbinden ▸ Potentiaalverbinding, of haal die draad weg.
 
 rule-ew-pot-002 = { $form ->
-        [selv] SELV-potentiaal { $potential } is met PE verbonden ({ $count } 0 V–PE-verbinding(en)); een SELV-stroomkring mag niet geaard zijn
-       *[pelv] PELV-potentiaal { $potential } { $bonds ->
-            [none] heeft geen 0 V–PE-verbinding
-           *[some] heeft { $count } 0 V–PE-verbindingen
-        }; een PELV-stroomkring heeft er precies één nodig (declareer de potentiaalverbinding op de 0 V–PE-draad)
+        [selv] { $potential } is een SELV-stroomkring, maar de 0 V ervan is met de beschermingsaarde verbonden{ $bonds ->
+            [one] {""}
+           *[some] {" "}op { $count } plaatsen
+        }. Een SELV-stroomkring wordt nooit geaard: haal de verbinding weg, of maak de stroomkring PELV.
+       *[pelv] { $potential } is een PELV-stroomkring{ $bonds ->
+            [none] , maar de 0 V ervan is niet met de beschermingsaarde verbonden. Teken één draad van de 0 V naar een aardpunt.
+           *[some] {" "}waarvan de 0 V op { $count } plaatsen met de beschermingsaarde verbonden is; een PELV-stroomkring wordt op één punt geaard. Houd één verbinding met aarde en haal de andere weg.
+        }
     }
     .title = 0 V–PE-verbinding bij PELV of SELV
-    .hint = Definieer precies één 0 V–PE-verbinding voor een PELV-potentiaal, en geen voor een SELV-potentiaal.
+    .hint = Verbind de 0 V van een PELV-stroomkring op precies één punt met de beschermingsaarde (een draad van de 0 V naar een aardpunt), en de 0 V van een SELV-stroomkring nergens.
 
 rule-ew-pot-003 = { $cp_shared ->
         [yes] { $cp_tag } pen { $cp_pin } ({ $cp_nth }e)
        *[no] { $cp }
-    } heeft de rol FE en is aangesloten op de PE-potentiaal { $potential }; declareer een FE–PE-verbinding of sluit het aan op functionele aarde
+    } is een pen voor functionele aarde (FE) en is aangesloten op de beschermingsaarde { $potential }. Sluit hem aan op functionele aarde, of, waar hij geaard moet zijn, selecteer zijn draad en kies Tekenen ▸ Verbinden ▸ Potentiaalverbinding (FE–PE).
     .title = FE-pen op PE
-    .hint = Declareer een FE–PE-verbinding of sluit de pen aan op functionele aarde.
+    .hint = Sluit de pen aan op functionele aarde, of leg de FE–PE-verbinding vast op zijn draad.
 
-rule-ew-pot-004 = draad { WORD($wire) } is GNYE op potentiaal { $potential }{ $typed ->
-        [yes] {" "}(type { $type })
+rule-ew-pot-004 = Draad { WORD($wire) } is groen-geel maar voert { $potential }{ $typed ->
+        [yes] {" "}({ WORD($type) })
        *[no] {""}
-    }; GNYE is voorbehouden aan beschermingsleiders
+    }: groen-geel is alleen voor de beschermingsaarde. Geef de draad een andere kleur.
     .title = GNYE op een potentiaal die geen PE is
     .hint = Gebruik groen-geel alleen voor beschermingsleiders; geef de draad een andere kleur.
 
-rule-ew-pot-005 = draad { WORD($wire) } is BU op de potentiaal { $potential }{ $type ->
+rule-ew-pot-005 = Draad { WORD($wire) } is blauw maar voert { $potential }{ $type ->
         [none] {""}
-       *[other] {" "}(type { $type })
-    }; in een project met een nulleider markeert BU de nulleider
+       *[other] {" "}({ WORD($type) })
+    }: in een project met een nulleider markeert blauw de nulleider. Geef de draad een andere kleur.
     .title = BU op een geleider die geen N is
     .hint = Gebruik een andere kleur voor de draad, of een kabel waarvan de blauwe ader de nulleider voert.
 
@@ -830,13 +852,13 @@ rule-ew-pot-006 = PE-draad { WORD($wire) } heeft { DECIMAL($pe) } mm², minder d
 
 rule-ew-pot-008 = { $form ->
         [terminal] { WORD($terminal) } is met de rail verbonden maar heeft geen locatie, en het project heeft { $locations } eigen locaties; de klem sluit op geen PE-knooppunt van een locatie aan
-       *[island] { $location ->
-            [main] de hoofdlocatie
-           *[node] { WORD($node) }
-        } heeft { $count } aardingsnetten (PE) die elkaar niet raken: { $potentials }. Verbind ze: zet hun PE-klemmen op één geaarde rail, of teken een PE-draad ertussen.
+       *[island] De beschermingsaarde bij { $at } op pagina { $page } bereikt de inkomende PE niet en ook geen aardsymbool{ $location ->
+            [main] {""}
+           *[node] {" "}van { WORD($node) }
+        }. Verbind hem met de PE-rail of met een aardsymbool, of zet zijn PE-klem op een geaarde rail.
     }
     .title = PE-eiland
-    .hint = Alle PE op één plaats moet één net zijn: zet de PE-klemmen van de locatie op één geaarde rail, of teken van elk net een PE-draad naar de PE-rail.
+    .hint = Elke beschermingsaarde moet de inkomende PE bereiken: verbind elke PE-geleider met de PE-rail of met een aardsymbool (een aardsymbool staat voor de aarde van de kast), of zet zijn PE-klemmen op een geaarde rail.
 
 rule-ew-pot-009 = { $cp_shared ->
         [yes] { $cp_tag } pen { $cp_pin } ({ $cp_nth }e)
@@ -860,10 +882,10 @@ rule-ew-pot-011 = { $potential }: het is niet duidelijk welke draad { $place ->
     .hint = Teken de aftakking zo dat één draad haar voedt, of stel de bedradingsvolgorde in.
 
 rule-ew-pot-012 = { $form ->
-        [ring] de verbinding { WORD($wire) } sluit een ring in de tekening; ze heeft de hoogste ID van de ring en vormt geen fysieke draad
+        [ring] De draad { WORD($wire) } sluit een ring: zijn draden lopen terug naar waar ze begonnen, dus hij staat niet in de draadlijst. Haal één draad van de ring weg, of bevestig dat de ring bedoeld is.
        *[other] { $detail }
     }
-    .title = Ring in de tekening
+    .title = Draden in een ring
     .hint = Verwijder de draad die de ring sluit, of bevestig dat de ring bedoeld is.
 
 rule-ew-pot-013 = { WORD($device) } { $form ->
@@ -878,30 +900,30 @@ rule-ew-pot-013 = { WORD($device) } { $form ->
     .hint = Verplaats het contact naar de lijngeleider, of gebruik een apparaat dat L en N tegelijk opent.
 
 rule-ew-pot-014 = { $form ->
-        [conductor] draad { WORD($wire) }: een deel ervan noemt een andere ader; de ader van de draad geldt
-        [override] draad { WORD($wire) }: een deel ervan overschrijft een waarde die de draad al heeft; de eerste waarde geldt
+        [conductor] Een deel van draad { WORD($wire) } is op een andere kabelader getekend; de draad houdt de ader waarop hij begint. Teken de hele draad op één ader.
+        [override] Een deel van draad { WORD($wire) } zet een waarde die de draad al van een ander deel heeft; de eerste waarde geldt. Zet hem op één plaats.
        *[other] { $detail }
     }
     .title = Conflict in een fysieke draad
     .hint = Geef de fysieke draad één set eigenschappen, of splits hem in afzonderlijke draden.
 
-rule-ew-pot-015 = draadnummer { $number } staat op { $count } draden; een draadnummer benoemt één nummeringseenheid
+rule-ew-pot-015 = Draadnummer { $number } staat op { $count } draden die niet één geleider zijn. Geef elk een eigen nummer, of verbind ze als ze één geleider zijn.
     .title = Draadnummerconflict
     .hint = Geef de draden van één potentiaal hetzelfde draadnummer, of scheid de potentialen.
 
-rule-ew-pot-016 = de overschrijving { $member ->
-        [csa] doorsnede { DECIMAL($value) }
-        [colour] kleur { $value }
-        [wire_part] draadartikel
-        [insulation] isolatie
-        [function] draadfunctie
+rule-ew-pot-016 = Draad { WORD($wire) } heeft { $member ->
+        [csa] zijn doorsnede { DECIMAL($value) }
+        [colour] zijn kleur { $value }
+        [wire_part] zijn draadartikel
+        [insulation] zijn isolatie
+        [function] zijn draadfunctie
         [shielded] afgeschermd
        *[twisted] getwist
-    } van draad { WORD($wire) } is gelijk aan de waarde eronder in de overervingsketen; verwijder de overschrijving
+    } met de hand ingesteld, wat hij toch al krijgt. Haal die instelling weg.
     .title = Overbodige overschrijving
     .hint = Verwijder de overschrijving; ze zet de waarde die de draad toch al krijgt.
 
-rule-ew-pot-017 = de definities van één potentiaal geven die de namen { $names }; de eerste in natuurlijke volgorde ({ $first }) geldt
+rule-ew-pot-017 = { $names } zijn namen van één geleider: ze zijn met elkaar verbonden. Hij heet { $first }; geef de andere dezelfde naam, of haal de draad weg die ze verbindt.
     .title = Twee namen voor één potentiaal
     .hint = Houd één definitie van de potentiaal, of geef de onderbrekingspunten één naam.
 
@@ -1223,6 +1245,25 @@ word-an-f-module = een F-module
 word-the-sensor = de sensor
 word-the-cable = de kabel
 word-the-device = het apparaat
+word-type-pe = beschermingsaarde PE
+word-type-pen = PEN-geleider
+word-type-fe = functionele aarde FE
+word-type-n = nulleider N
+word-type-phase = fase { $at }
+word-type-l-plus = plus L+
+word-type-l-minus = min L−
+word-type-signal = signaal
+word-type-none = geen type
+word-type-newer = een type van een nieuwer formaat
+word-current-newer = een stroomsoort van een nieuwer formaat
+word-earthing-floating = zwevend
+word-earthing-newer = een aarding van een nieuwer formaat
+word-class-mains = netstroomkring
+word-class-control = stuurstroomkring
+word-class-analogue = analoge stroomkring
+word-class-bus = busstroomkring
+word-class-pe = beschermingsaardestroomkring
+word-class-newer = een stroomkringklasse van een nieuwer formaat
 word-style-tag-main = Apparaatkenmerk
 word-style-data-small = Apparaatgegevens
 word-style-cp-small = Aansluitpunt

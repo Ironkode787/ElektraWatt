@@ -3,11 +3,13 @@
 
 //! The carrier of a 0 V–PE bond: `bond_carrier(potential)` (doc 08 §3.7; FR-CON-014).
 //!
-//! A potential whose member CPs carry both the role `M` and the role `PE` is a 0 V joined to PE by a plain
-//! connection (EW-POT-001's member-role conflict). The quick fix "Declare 0 V–PE bond (PELV)" declares the bond on
-//! the connection that joins the two groups, which then keeps 0 V and PE as two potentials. That connection is
-//! the **carrier**: a connection c of the potential whose removal splits the potential's connection graph into
-//! two parts, one holding every `M`-role member CP and the other every `PE`-role member CP.
+//! A potential whose member CPs carry both a 0 V role (`M` or `L-`, the `M` side below) and the role `PE` is a 0 V
+//! joined to PE by a plain connection that is no earth wire (a wire drawn straight from a 0 V point to an earth
+//! point is the bond itself, `EarthWire`): EW-POT-001's member-role conflict. The quick fix "Declare 0 V–PE bond
+//! (PELV)" declares the bond on the connection that joins the two groups, which then keeps 0 V and PE as two
+//! potentials. That connection is the **carrier**: a connection c of the potential whose removal splits the
+//! potential's connection graph into two parts, one holding every 0 V member CP and the other every `PE`-role
+//! member CP.
 //!
 //! - **The graph.** Its nodes are the potential's member endpoints (CPs and junctions). Its edges are the
 //!   connections that join (`Wire`, `Core`, `Bus`, `Internal`, `Bridge`) with both ends among the members, minus
@@ -89,7 +91,7 @@ fn carrier(q: &Q, key: PotentialId) -> Option<Carrier> {
     let roles = member_roles(q, p);
     let m_cps: BTreeSet<EndpointKey> = roles
         .iter()
-        .filter(|(_, r)| *r == PotentialType::M)
+        .filter(|(_, r)| matches!(r, PotentialType::M | PotentialType::LMinus))
         .map(|(cp, _)| cp.key())
         .collect();
     let pe_cps: BTreeSet<EndpointKey> = roles

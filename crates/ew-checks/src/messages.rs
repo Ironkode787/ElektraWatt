@@ -245,31 +245,29 @@ pub fn format(f: &Finding, lang: &str) -> Option<String> {
             }
         }
     }
-    // EW-POT-001's conflicts, each worded by its attribute of the rule's message where every one has a shape
-    // and an attribute, else the en-GB `conflicts`.
+    // EW-POT-001's conflicts, each a sentence worded by its attribute of the rule's message; a piece of another
+    // shape, or one that does not resolve, leaves the finding to its en-GB message.
     if f.rule == crate::rules::pot::TYPE_OR_VOLTAGE_CONFLICT.id
         && let Some((_, list)) = f.args.iter().find(|(k, _)| *k == "conflict_list")
-        && let Some(message) = b.get_message(&id)
     {
-        let worded: Option<Vec<String>> = list
+        let message = b.get_message(&id)?;
+        let worded: Vec<String> = list
             .split('\n')
             .map(|piece| {
-                let (attribute, subject, value, applied) = crate::rules::pot::conflict_words(piece)?;
+                let (attribute, fields) = crate::rules::pot::conflict_words(piece)?;
                 let pattern = message.get_attribute(attribute)?.value();
-                let mut piece_args = FluentArgs::with_capacity(3);
-                piece_args.set("subject", subject);
-                piece_args.set("value", value);
-                piece_args.set("applied", applied);
+                let mut piece_args = FluentArgs::with_capacity(fields.len());
+                for (k, v) in fields {
+                    piece_args.set(k, v);
+                }
                 let mut errors = Vec::new();
                 let text = b
                     .format_pattern(pattern, Some(&piece_args), &mut errors)
                     .into_owned();
                 errors.is_empty().then_some(text)
             })
-            .collect();
-        if let Some(worded) = worded {
-            args.set("conflicts", worded.join("; "));
-        }
+            .collect::<Option<_>>()?;
+        args.set("conflicts", worded.join(" "));
     }
     let mut errors = Vec::new();
     let text = b.format_pattern(pattern, Some(&args), &mut errors);

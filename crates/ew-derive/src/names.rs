@@ -183,11 +183,11 @@ impl Query for PotentialNameOf {
             .collect();
 
         // The attribute conflicts, named.
-        for detail in &q.get::<PotentialAttrsOf>(*key).conflicts {
+        for conflict in &q.get::<PotentialAttrsOf>(*key).conflicts {
             notes.push(DeriveNote::Connectivity {
                 code: "EW-POT-001",
                 subject: format!("potential {}", name.text),
-                detail: detail.clone(),
+                detail: conflict.detail(q),
             });
         }
         notes.sort();
@@ -362,13 +362,88 @@ fn fallback_name(q: &Q, p: &Potential) -> PotentialName {
     }
 }
 
+/// The attribute two definitions of one potential disagree on.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub enum DefAttr {
+    /// The type.
+    Type,
+    /// The voltage.
+    Voltage,
+    /// The environment (AC or DC, frequency, earthing).
+    Environment,
+    /// The circuit class.
+    Class,
+}
+
+/// One EW-POT-001 conflict of a potential's own attributes (doc 08 §3.6), by the records it is about, never by
+/// text: the check words it.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum AttrConflict {
+    /// Two definitions set `attr` differently: `def`'s value loses to `applied`'s, the first in rank order that
+    /// sets it.
+    Defs {
+        /// The attribute.
+        attr: DefAttr,
+        /// The definition whose value does not apply.
+        def: Id<PotentialDef>,
+        /// The definition whose value applies.
+        applied: Id<PotentialDef>,
+    },
+    /// A member CP whose role contradicts the type the definition `def` gives.
+    Role {
+        /// The CP.
+        cp: CpRef,
+        /// Its role.
+        role: PotentialType,
+        /// The definition that gives the type.
+        def: Id<PotentialDef>,
+    },
+    /// Member CPs of two roles meet on a potential that no definition types: `cp` (the first in printed order of the
+    /// role `role`) against `first` (the first of the role that applies, `applied`).
+    Roles {
+        /// The first member CP of the role that applies.
+        first: CpRef,
+        /// The role that applies (the type).
+        applied: PotentialType,
+        /// The first member CP of the other role.
+        cp: CpRef,
+        /// The other role.
+        role: PotentialType,
+    },
+}
+
+impl AttrConflict {
+    /// The conflict in English, as the EW-POT-001 notes of `potential_name` carry it.
+    pub fn detail(&self, q: &Q) -> String {
+        let def = |d: &Id<PotentialDef>| {
+            q.potential_defs()
+                .get(*d)
+                .map_or_else(|| "a definition".to_owned(), |d| def_text(q, d))
+        };
+        match self {
+            AttrConflict::Defs { attr, def: d, applied } => {
+                format!("{} disagrees with {} on the {attr:?}", def(d), def(applied))
+            }
+            AttrConflict::Role { cp, role, def: d } => {
+                format!("{} has role {role:?}; {} gives the type", cp_text(q, *cp), def(d))
+            }
+            AttrConflict::Roles { first, applied, cp, role } => format!(
+                "{} has role {role:?}, {} role {applied:?}",
+                cp_text(q, *cp),
+                cp_text(q, *first)
+            ),
+        }
+    }
+}
+
 /// The value of [`PotentialAttrsOf`]: the own attributes and their conflicts.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct PotentialAttrsV {
     /// The attributes.
     pub attrs: PotentialAttrs,
-    /// The details of the EW-POT-001 conflicts, in the order found (reported by `potential_name`).
-    pub conflicts: Vec<String>,
+    /// The EW-POT-001 conflicts, in the order found: the definitions' type, the member CPs' roles in printed order,
+    /// then the definitions' voltage, environment and class, each in rank order.
+    pub conflicts: Vec<AttrConflict>,
 }
 
 impl std::ops::Deref for PotentialAttrsV {
@@ -397,103 +472,62 @@ impl Query for PotentialAttrsOf {
     }
 }
 
-fn attrs_of(q: &Q, p: &Potential) -> PotentialAttrsV {
-    let mut conflicts: Vec<String> = Vec::new();
-    let def_rows = ranked_defs(q, p);
-    let ptype = def_rows.iter().find_map(|(d, r)| {
-        r.ptype.clone().map(|v| Attr {
-            value: v,
-            source: AttrSource::Def(*d),
-        })
-    });
-    if let Some(t) = &ptype {
-        for (_, r) in &def_rows {
-            if let Some(other) = &r.ptype
-                && *other != t.value
-            {
-                conflicts.push(format!(
-                    "{} sets type {other:?}; {:?} applies (first definition in natural order)",
-                    def_text(q, r),
-                    t.value
-                ));
-            }
+/// The first definition in rank order that sets an attribute (`get`), as an [`Attr`]; every later definition whose
+/// value differs is a conflict of `attr`.
+fn def_attr<T: Clone + PartialEq>(
+    def_rows: &[RankedDef],
+    attr: DefAttr,
+    conflicts: &mut Vec<AttrConflict>,
+    get: impl Fn(&PotentialDef) -> Option<T>,
+) -> Option<Attr<T>> {
+    let (applied, value) = def_rows.iter().find_map(|(d, r)| get(r).map(|v| (*d, v)))?;
+    for (d, r) in def_rows {
+        if get(r).is_some_and(|other| other != value) {
+            conflicts.push(AttrConflict::Defs {
+                attr,
+                def: *d,
+                applied,
+            });
         }
-        let mut contradicting: Vec<(String, PotentialType)> = member_roles(q, p)
+    }
+    Some(Attr {
+        value,
+        source: AttrSource::Def(applied),
+    })
+}
+
+fn attrs_of(q: &Q, p: &Potential) -> PotentialAttrsV {
+    let mut conflicts: Vec<AttrConflict> = Vec::new();
+    let def_rows = ranked_defs(q, p);
+    let ptype = def_attr(&def_rows, DefAttr::Type, &mut conflicts, |r| r.ptype.clone());
+    if let Some(t) = &ptype
+        && let AttrSource::Def(def) = t.source
+    {
+        let mut contradicting: Vec<(String, CpRef, PotentialType)> = member_roles(q, p)
             .into_iter()
             .filter(|(_, role)| !role_compatible(&t.value, role))
-            .map(|(cp, role)| (cp_text(q, cp), role))
+            .map(|(cp, role)| (cp_text(q, cp), cp, role))
             .collect();
-        // The printed order, never the CP (ID) order.
-        contradicting.sort_by(|(a, ra), (b, rb)| {
+        // The printed order, never the CP (ID) order; two CPs that print alike with one role are one conflict.
+        contradicting.sort_by(|(a, ca, ra), (b, cb, rb)| {
             natural_cmp(a, b)
                 .then_with(|| a.cmp(b))
                 .then_with(|| format!("{ra:?}").cmp(&format!("{rb:?}")))
+                .then_with(|| ca.cmp(cb))
         });
-        contradicting.dedup();
-        for (text, role) in contradicting {
-            conflicts.push(format!(
-                "member CP {text} has role {role:?}; the defined type {:?} applies",
-                t.value
-            ));
+        contradicting.dedup_by(|(a, _, ra), (b, _, rb)| a == b && ra == rb);
+        for (_, cp, role) in contradicting {
+            conflicts.push(AttrConflict::Role { cp, role, def });
         }
     }
     let ptype = ptype.or_else(|| role_type(q, p, &mut conflicts));
-    let voltage = def_rows.iter().find_map(|(d, r)| {
-        r.voltage.map(|v| Attr {
-            value: v,
-            source: AttrSource::Def(*d),
-        })
+    let voltage = def_attr(&def_rows, DefAttr::Voltage, &mut conflicts, |r| r.voltage);
+    let env = def_attr(&def_rows, DefAttr::Environment, &mut conflicts, |r| {
+        (!r.env.is_empty()).then(|| r.env.clone())
     });
-    if let Some(w) = &voltage {
-        for (_, r) in &def_rows {
-            if let Some(other) = r.voltage
-                && other != w.value
-            {
-                conflicts.push(format!(
-                    "{} sets voltage {other}; {} applies (first definition in natural order)",
-                    def_text(q, r),
-                    w.value
-                ));
-            }
-        }
-    }
-    let env = def_rows.iter().find_map(|(d, r)| {
-        (!r.env.is_empty()).then(|| Attr {
-            value: r.env.clone(),
-            source: AttrSource::Def(*d),
-        })
+    let circuit_class = def_attr(&def_rows, DefAttr::Class, &mut conflicts, |r| {
+        r.circuit_class.clone()
     });
-    if let Some(w) = &env {
-        for (_, r) in &def_rows {
-            if !r.env.is_empty() && r.env != w.value {
-                conflicts.push(format!(
-                    "{} sets environment {:?}; {:?} applies (first definition in natural order)",
-                    def_text(q, r),
-                    r.env,
-                    w.value
-                ));
-            }
-        }
-    }
-    let circuit_class = def_rows.iter().find_map(|(d, r)| {
-        r.circuit_class.clone().map(|v| Attr {
-            value: v,
-            source: AttrSource::Def(*d),
-        })
-    });
-    if let Some(w) = &circuit_class {
-        for (_, r) in &def_rows {
-            if let Some(other) = &r.circuit_class
-                && *other != w.value
-            {
-                conflicts.push(format!(
-                    "{} sets circuit class {other:?}; {:?} applies (first definition in natural order)",
-                    def_text(q, r),
-                    w.value
-                ));
-            }
-        }
-    }
     PotentialAttrsV {
         attrs: PotentialAttrs {
             ptype,
@@ -520,17 +554,27 @@ pub(crate) fn member_roles(q: &Q, p: &Potential) -> Vec<(CpRef, PotentialType)> 
         .collect()
 }
 
-/// Whether a member CP `role` is compatible with the type `defined` by a definition or by a member role of a lower
-/// [`role_rank`] (doc 08 §3.7): equal values, an FE role on a PE or PEN potential (a separate check, EW-POT-003), a
-/// PE or N role on a PEN potential, and an L role on one phase, L1, L2 or L3 (a single-phase input fed from one phase,
-/// FT-1701).
+/// Whether a member CP `role` may meet the type `defined` (a definition's, or the member role of a lower
+/// [`role_rank`]) on one potential (doc 08 §3.6, the pairs of EW-POT-001). Either order of the two:
+///
+/// - **Nothing to report:** equal values; an FE role on a PE or PEN potential (a separate check, EW-POT-003); PE or N
+///   on PEN; L on one phase, L1, L2 or L3 (a single-phase input fed from one phase, FT-1701); M with L− (two names
+///   of one 0 V); a signal on any conductor but an earth (a signal pin wired straight to a supply is a fixed level);
+///   an undefined role, or one of a newer format, with anything (it says nothing).
+/// - **A fault:** every other pair: a live conductor (L1, L2, L3, L, L+) on PE, PEN, FE, N, 0 V or another live
+///   conductor; N on PE or FE (N and PE meet only in a PEN conductor); AC with DC; a signal on an earth.
+/// - **A bond:** 0 V (M or L−) on PE. A wire drawn straight from a 0 V point to a protective-earth point is the
+///   bond itself and never joins the two (`EarthWire`, the drawn bond); 0 V and PE that still meet here are joined
+///   some other way, and the bond is declared on the wire that joins them (Draw ▸ Connect ▸ Bond).
 fn role_compatible(defined: &PotentialType, role: &PotentialType) -> bool {
-    use PotentialType::{Fe, L, L1, L2, L3, N, Pe, Pen};
-    defined == role
-        || matches!(
-            (defined, role),
-            (Pe | Pen, Fe) | (Pen, Pe | N) | (L1 | L2 | L3, L)
-        )
+    use PotentialType::{Fe, L, L1, L2, L3, LMinus, M, N, Pe, Pen, Signal, Undefined, Unknown};
+    let pair = |a: &PotentialType, b: &PotentialType| {
+        matches!(
+            (a, b),
+            (Pe | Pen, Fe) | (Pen, Pe | N) | (L1 | L2 | L3, L) | (M, LMinus) | (Undefined | Unknown(_), _)
+        ) || (*a == Signal && !matches!(b, Pe | Pen | Fe))
+    };
+    defined == role || pair(defined, role) || pair(role, defined)
 }
 
 /// The rank of a member CP role when the roles of a potential disagree (the lowest applies): the protective
@@ -558,25 +602,41 @@ fn role_rank(role: &PotentialType) -> u8 {
 }
 
 /// The type from member CP roles: the first role in [`role_rank`] order (two newer-format roles by their
-/// text); every other distinct role that is not [`role_compatible`] with it is a conflict. The source is the first
-/// member CP with that role.
-fn role_type(q: &Q, p: &Potential, conflicts: &mut Vec<String>) -> Option<Attr<PotentialType>> {
+/// text); every other distinct role that is not [`role_compatible`] with it is a conflict, named by its first member
+/// CP in printed order against the first of the applied role. The source is the first member CP with that role.
+fn role_type(q: &Q, p: &Potential, conflicts: &mut Vec<AttrConflict>) -> Option<Attr<PotentialType>> {
     let roles = member_roles(q, p);
     let key = |r: &PotentialType| (role_rank(r), format!("{r:?}"));
     let (cp, applied) = roles
         .iter()
         .min_by(|(a_cp, a), (b_cp, b)| key(a).cmp(&key(b)).then_with(|| a_cp.cmp(b_cp)))
         .cloned()?;
-    let others: BTreeSet<String> = roles
+    // The first member CP of a role in printed order, never the CP (ID) order.
+    let first_of = |role: &PotentialType| {
+        roles
+            .iter()
+            .filter(|(_, r)| r == role)
+            .map(|(c, _)| (cp_text(q, *c), *c))
+            .min_by(|(a, ca), (b, cb)| natural_cmp(a, b).then_with(|| a.cmp(b)).then_with(|| ca.cmp(cb)))
+            .map(|(_, c)| c)
+    };
+    let mut others: Vec<&PotentialType> = roles
         .iter()
-        .filter(|(_, r)| !role_compatible(&applied, r))
-        .map(|(_, r)| format!("{r:?}"))
+        .map(|(_, r)| r)
+        .filter(|r| !role_compatible(&applied, r))
         .collect();
-    if !others.is_empty() {
-        conflicts.push(format!(
-            "member roles {} meet {applied:?}; the first in role order applies",
-            others.into_iter().collect::<Vec<_>>().join(", "),
-        ));
+    others.sort_by_key(|r| key(r));
+    others.dedup();
+    let first = first_of(&applied).unwrap_or(cp);
+    for role in others {
+        if let Some(c) = first_of(role) {
+            conflicts.push(AttrConflict::Roles {
+                first,
+                applied: applied.clone(),
+                cp: c,
+                role: role.clone(),
+            });
+        }
     }
     Some(Attr {
         value: applied,
