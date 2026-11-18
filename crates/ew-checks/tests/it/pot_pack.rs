@@ -95,7 +95,11 @@ fn pot003_cases() {
                     assert_eq!(f[0].severity, Severity::Warning, "case {c}");
                     assert_eq!(f[0].discriminator, "fe:1", "case {c}");
                     assert_eq!(f[0].targets, vec![target(Kind::Function, 0x1001)], "case {c}");
-                    assert!(f[0].message.contains("is a functional earth (FE) pin"), "case {c}: {}", f[0].message);
+                    assert!(
+                        f[0].message.contains("is a functional earth (FE) pin"),
+                        "case {c}: {}",
+                        f[0].message
+                    );
                 },
             ),
             Case::silent("an FE pin on FE", fe_on(&json!({"ptype": "fe"}), false)),
@@ -141,7 +145,11 @@ fn pot004_cases() {
                     assert_eq!(f[0].code, "005004", "case {c}");
                     assert_eq!(f[0].severity, Severity::Error, "case {c}");
                     assert_eq!(f[0].targets, vec![target(Kind::Connection, 0x2001)], "case {c}");
-                    assert!(f[0].message.contains("is green-yellow but carries"), "case {c}: {}", f[0].message);
+                    assert!(
+                        f[0].message.contains("is green-yellow but carries"),
+                        "case {c}: {}",
+                        f[0].message
+                    );
                 },
             ),
             Case::silent(
@@ -341,11 +349,15 @@ fn pot008_pe_cases() {
                     assert_eq!(
                         f[0].message,
                         "The protective earth at -1K4097:1 on page 1 reaches neither the incoming PE nor an earth \
-                         symbol of +A. Wire it to the PE rail or to an earth symbol, or put its PE terminal on a \
+                         symbol of +A. Connect it to the PE rail or to an earth symbol, or put its PE terminal on a \
                          bonded rail.",
                         "case {c}"
                     );
-                    assert!(f[1].message.contains(" at -1K4099:1 on page 1 "), "case {c}: {}", f[1].message);
+                    assert!(
+                        f[1].message.contains(" at -1K4099:1 on page 1 "),
+                        "case {c}: {}",
+                        f[1].message
+                    );
                     assert!(
                         f[0].targets.contains(&target(Kind::StructureNode, LOC))
                             && f[0].targets.contains(&target(Kind::PotentialDef, 0x5001)),
@@ -365,11 +377,18 @@ fn pot008_pe_cases() {
                 two_pe(false, 1),
                 |c, f| {
                     assert_eq!(f.len(), 1, "case {c}: {f:#?}");
-                    assert!(f[0].message.contains(" at -1K4099:1 on page 1 "), "case {c}: {}", f[0].message);
+                    assert!(
+                        f[0].message.contains(" at -1K4099:1 on page 1 "),
+                        "case {c}: {}",
+                        f[0].message
+                    );
                 },
             ),
             // Two earth symbols are wires to one cabinet earth, not two islands.
-            Case::silent("two PE potentials that each reach an earth symbol", two_pe(false, 2)),
+            Case::silent(
+                "two PE potentials that each reach an earth symbol",
+                two_pe(false, 2),
+            ),
             Case::silent("one PE potential per location", two_pe(true, 0)),
         ],
     );

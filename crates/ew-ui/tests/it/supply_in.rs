@@ -331,7 +331,10 @@ fn supply_marks_placed_in_one_go_ask_their_potential() {
         Outcome::Done
     );
     let ids: Vec<&String> = reps.iter().map(|(_, id)| id).collect();
-    assert_eq!(shell.dispatch("select.set", &json!({ "ids": ids })), Outcome::Done);
+    assert_eq!(
+        shell.dispatch("select.set", &json!({ "ids": ids })),
+        Outcome::Done
+    );
     assert_eq!(
         shell.dispatch("ip.supply_in", &json!({"location": "Supply", "device": "-X0"})),
         Outcome::Done
@@ -340,7 +343,12 @@ fn supply_marks_placed_in_one_go_ask_their_potential() {
     let rows = |d: &mut Driver| -> Vec<(String, String, String)> {
         d.shell_mut()
             .supply_panel()
-            .map(|p| p.rows.iter().map(|r| (r.name.clone(), r.kind.clone(), r.voltage.clone())).collect())
+            .map(|p| {
+                p.rows
+                    .iter()
+                    .map(|r| (r.name.clone(), r.kind.clone(), r.voltage.clone()))
+                    .collect()
+            })
             .unwrap_or_default()
     };
     assert_eq!(
@@ -381,7 +389,10 @@ fn supply_marks_placed_in_one_go_ask_their_potential() {
     );
     // Potential… on the marks' right-click menu shows what they carry now.
     let shell = d.shell_mut();
-    assert_eq!(shell.dispatch("select.set", &json!({ "ids": [reps[0].1] })), Outcome::Done);
+    assert_eq!(
+        shell.dispatch("select.set", &json!({ "ids": [reps[0].1] })),
+        Outcome::Done
+    );
     assert_eq!(
         shell.supply_potential_item().map(|i| i.label).as_deref(),
         Some("Potential…")
@@ -399,7 +410,10 @@ fn supply_marks_placed_in_one_go_ask_their_potential() {
     assert_eq!(d.shell_mut().recorded_commands().len(), steps);
     // One undo takes both definitions back: L1's row is its name's again.
     assert_eq!(d.shell_mut().dispatch("edit.undo", &json!({})), Outcome::Done);
-    assert_eq!(d.shell_mut().dispatch("ip.supply_potential", &json!({})), Outcome::Done);
+    assert_eq!(
+        d.shell_mut().dispatch("ip.supply_potential", &json!({})),
+        Outcome::Done
+    );
     assert_eq!(rows(&mut d)[0], ("L1".to_owned(), "l1".to_owned(), String::new()));
     d.shell_mut().shutdown();
 }

@@ -607,10 +607,10 @@ fn nl_nl_words_the_uniqueness_rules_the_bus_ends_and_the_conflicts() {
         ),
         (
             "conflict-earth\t-G1:−\t0 V (M)\t-X1:PE\tprotective earth PE\t3",
-            "The 0 V -G1:− is joined to protective earth at -X1:PE on page 3, but not by a wire drawn from the 0 V \
+            "-G1:− (0 V) is joined to the protective earth -X1:PE on page 3, but not by a wire drawn from the 0 V \
              straight to an earth point. Select the wire that joins them and choose Draw ▸ Connect ▸ Bond, or take \
              that wire away.",
-            "De 0 V -G1:− is verbonden met de beschermingsaarde bij -X1:PE op pagina 3, maar niet met een draad die \
+            "-G1:− (0 V) is verbonden met de beschermingsaarde -X1:PE op pagina 3, maar niet met een draad die \
              van de 0 V recht naar een aardpunt loopt. Selecteer de draad die ze verbindt en kies Tekenen ▸ Verbinden \
              ▸ Potentiaalverbinding, of haal die draad weg.",
         ),
@@ -621,7 +621,10 @@ fn nl_nl_words_the_uniqueness_rules_the_bus_ends_and_the_conflicts() {
     let pot = by_hand(
         "EW-POT-001",
         "attrs",
-        &format!("{} 2 more connection points are wired the same way.", en.join(" ")),
+        &format!(
+            "{} 2 more connection points are wired the same way.",
+            en.join(" ")
+        ),
         &[
             ("form", "attrs"),
             ("conflict_list", &lines.join("\n")),
@@ -630,7 +633,10 @@ fn nl_nl_words_the_uniqueness_rules_the_bus_ends_and_the_conflicts() {
     );
     assert_eq!(
         render(&pot, "nl-NL"),
-        format!("{} Nog 2 aansluitpunten zijn op dezelfde manier bedraad.", nl.join(" "))
+        format!(
+            "{} Nog 2 aansluitpunten zijn op dezelfde manier bedraad.",
+            nl.join(" ")
+        )
     );
     // A conflict of another shape keeps the en-GB message.
     let meta = ew_checks::rule("EW-POT-001").expect("registered").meta();

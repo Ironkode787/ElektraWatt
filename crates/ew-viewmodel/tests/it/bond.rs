@@ -225,8 +225,8 @@ fn the_bond_submenu_lists_the_four_kinds() {
     assert_eq!(items[0].label, "0 V–PE bond (PELV)");
 }
 
-/// EW-POT-001's bond hint names the menu path in the registry's words, Draw ▸ Connect ▸ Bond, in
-/// both languages.
+/// EW-POT-001's sentence on a 0 V joined to earth without a bond names the menu path in the registry's words,
+/// Draw ▸ Connect ▸ Bond, in both languages.
 #[test]
 fn the_bond_hint_names_the_menu_path_in_the_registrys_words() {
     let path = || {
@@ -235,12 +235,9 @@ fn the_bond_hint_names_the_menu_path_in_the_registrys_words() {
             .join(" \u{25b8} ")
     };
     let en = include_str!("../../../ew-checks/messages/en-GB/rules.ftl");
-    assert!(en.contains(&format!("[bond] ; declare the bond with {}\n", path())));
+    assert!(en.contains(&format!(" and choose {}, or take that wire away.\n", path())));
     assert!(ew_viewmodel::strings::set_locale("nl"));
     let nl = include_str!("../../../ew-checks/messages/nl-NL/rules.ftl");
-    assert!(nl.contains(&format!(
-        "[bond] ; declareer de potentiaalverbinding met {}\n",
-        path()
-    )));
+    assert!(nl.contains(&format!(" en kies {}, of haal die draad weg.\n", path())));
     assert!(ew_viewmodel::strings::set_locale("en"));
 }

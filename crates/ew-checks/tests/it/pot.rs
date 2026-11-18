@@ -785,7 +785,11 @@ fn pot002_cases() {
                     assert_eq!(f[0].discriminator, "pelv", "case {c}");
                     // A drawn bond is targeted by its wire.
                     for w in [0x2001, 0x2002] {
-                        assert!(f[0].targets.contains(&target(Kind::Connection, w)), "case {c}: {:?}", f[0].targets);
+                        assert!(
+                            f[0].targets.contains(&target(Kind::Connection, w)),
+                            "case {c}: {:?}",
+                            f[0].targets
+                        );
                     }
                 },
             ),
@@ -847,7 +851,7 @@ fn pot001_offers_the_0v_pe_bond_on_the_wire_at_the_pe_side() {
         assert_eq!(f.len(), 1, "{f:#?}");
         assert_eq!(
             f[0].message,
-            "The 0 V -1K4097:- is joined to protective earth at -2K4099:PE on page 2, but not by a wire drawn from \
+            "-1K4097:- (0 V) is joined to the protective earth -2K4099:PE on page 2, but not by a wire drawn from \
              the 0 V straight to an earth point. Select the wire that joins them and choose Draw ▸ Connect ▸ Bond, or \
              take that wire away."
         );
@@ -907,14 +911,14 @@ fn pot001_without_a_carrier_has_no_fix_and_names_draw_connect_bond() {
     // The menu path as the menus give it (Draw ▸ Connect ▸ Bond).
     assert_eq!(
         f[0].message,
-        "The 0 V -1K4097:- is joined to protective earth at -2K4099:PE on page 2, but not by a wire drawn from the \
+        "-1K4097:- (0 V) is joined to the protective earth -2K4099:PE on page 2, but not by a wire drawn from the \
          0 V straight to an earth point. Select the wire that joins them and choose Draw ▸ Connect ▸ Bond, or take \
          that wire away."
     );
     // The Dutch sentence names the Dutch menu path.
     assert_eq!(
         ew_checks::messages::render(&f[0], "nl-NL"),
-        "De 0 V -1K4097:- is verbonden met de beschermingsaarde bij -2K4099:PE op pagina 2, maar niet met een draad \
+        "-1K4097:- (0 V) is verbonden met de beschermingsaarde -2K4099:PE op pagina 2, maar niet met een draad \
          die van de 0 V recht naar een aardpunt loopt. Selecteer de draad die ze verbindt en kies Tekenen ▸ \
          Verbinden ▸ Potentiaalverbinding, of haal die draad weg."
     );
@@ -950,18 +954,27 @@ fn pe_members_against_m(n: u128) -> ew_checks::Finding {
 /// arguments. Three member CPs or fewer are all named, with no count.
 #[test]
 fn pot001_names_three_member_cps_and_counts_the_rest() {
-    let joined = "is joined to protective earth at ";
+    let joined = "is joined to the protective earth ";
     let f = pe_members_against_m(3);
     assert_eq!(f.message.matches(joined).count(), 3, "{}", f.message);
     assert!(!f.message.contains("more"), "{}", f.message);
     let f = pe_members_against_m(6);
     assert_eq!(f.message.matches(joined).count(), 3, "{}", f.message);
     assert!(
-        f.message.ends_with(" 3 more connection points are wired the same way."),
+        f.message
+            .ends_with(" 3 more connection points are wired the same way."),
         "{}",
         f.message
     );
     let nl = ew_checks::messages::render(&f, "nl-NL");
-    assert!(nl.ends_with(" Nog 3 aansluitpunten zijn op dezelfde manier bedraad."), "{nl}");
-    assert_eq!(nl.matches("is verbonden met de beschermingsaarde bij -1K435").count(), 3, "{nl}");
+    assert!(
+        nl.ends_with(" Nog 3 aansluitpunten zijn op dezelfde manier bedraad."),
+        "{nl}"
+    );
+    assert_eq!(
+        nl.matches("is verbonden met de beschermingsaarde -1K435")
+            .count(),
+        3,
+        "{nl}"
+    );
 }

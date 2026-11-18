@@ -511,7 +511,7 @@ fn golden_a_d21_unbonded_x1032_is_one_pe_island() {
     assert_eq!(
         islands[0].message,
         "The protective earth at -102G1:PE on page 102 reaches neither the incoming PE nor an earth symbol of \
-         +J-E-2416. Wire it to the PE rail or to an earth symbol, or put its PE terminal on a bonded rail."
+         +J-E-2416. Connect it to the PE rail or to an earth symbol, or put its PE terminal on a bonded rail."
     );
 }
 

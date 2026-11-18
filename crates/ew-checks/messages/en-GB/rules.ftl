@@ -798,7 +798,7 @@ rule-ew-pot-001 = { $form ->
             [page] {" "}on page { $page }
            *[none] {""}
         }: a wire joins two different potentials. Take that wire away.
-    .conflict-earth = The 0 V { $a } is joined to protective earth at { $b }{ $at ->
+    .conflict-earth = { $a } (0 V) is joined to the protective earth { $b }{ $at ->
             [page] {" "}on page { $page }
            *[none] {""}
         }, but not by a wire drawn from the 0 V straight to an earth point. Select the wire that joins them and choose Draw ▸ Connect ▸ Bond, or take that wire away.
@@ -855,10 +855,10 @@ rule-ew-pot-008 = { $form ->
        *[island] The protective earth at { $at } on page { $page } reaches neither the incoming PE nor an earth symbol{ $location ->
             [main] {""}
            *[node] {" "}of { $node }
-        }. Wire it to the PE rail or to an earth symbol, or put its PE terminal on a bonded rail.
+        }. Connect it to the PE rail or to an earth symbol, or put its PE terminal on a bonded rail.
     }
     .title = PE island
-    .hint = Every protective earth must reach the incoming PE: wire each PE conductor to the PE rail or to an earth symbol (an earth symbol stands for the cabinet's earth), or put its PE terminals on a bonded rail.
+    .hint = Every protective earth must reach the incoming PE: connect each PE conductor to the PE rail or to an earth symbol (an earth symbol stands for the cabinet's earth), or put its PE terminals on a bonded rail.
 
 rule-ew-pot-009 = { $cp_shared ->
         [yes] { $cp_tag } pin { $cp_pin } ({ NUMBER($cp_nth, type: "ordinal") ->
@@ -905,8 +905,8 @@ rule-ew-pot-013 = { $device } { $form ->
     .hint = Move the contact into the line conductor, or use a device that opens L and N together.
 
 rule-ew-pot-014 = { $form ->
-        [conductor] Part of wire { $wire } is drawn on another cable core; the wire keeps the core it starts on. Draw the whole wire on one core.
-        [override] Part of wire { $wire } sets a value the wire already has from another part; the first value applies. Set it in one place.
+        [conductor] A section of wire { $wire } is drawn on another cable core; the wire keeps the core it starts on. Draw the whole wire on one core.
+        [override] A section of wire { $wire } sets a value the wire already has from another section; the first value applies. Set it in one place.
        *[other] { $detail }
     }
     .title = Physical-wire conflict

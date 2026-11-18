@@ -804,7 +804,7 @@ rule-ew-pot-001 = { $form ->
             [page] {" "}op pagina { $page }
            *[none] {""}
         }: een draad verbindt twee verschillende potentialen. Haal die draad weg.
-    .conflict-earth = De 0 V { $a } is verbonden met de beschermingsaarde bij { $b }{ $at ->
+    .conflict-earth = { $a } (0 V) is verbonden met de beschermingsaarde { $b }{ $at ->
             [page] {" "}op pagina { $page }
            *[none] {""}
         }, maar niet met een draad die van de 0 V recht naar een aardpunt loopt. Selecteer de draad die ze verbindt en kies Tekenen ▸ Verbinden ▸ Potentiaalverbinding, of haal die draad weg.
