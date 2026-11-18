@@ -229,11 +229,19 @@ fn undo_and_redo_under_the_open_view_leave_no_step_without_its_records() {
     assert!(d.shell_mut().banner().is_none(), "{:?}", d.shell_mut().banner());
     // To do reads the project as the Undo left it: the electrical side is to draw again.
     assert_eq!(d.shell_mut().dispatch("plc.rack_editor", &rack), Outcome::Done);
-    assert!(sides(&mut d)[0].starts_with("The electrical side of"), "{:?}", sides(&mut d));
+    assert!(
+        sides(&mut d)[0].starts_with("The electrical side of"),
+        "{:?}",
+        sides(&mut d)
+    );
     d.input(&key("ctrl+shift+z"));
     d.settle();
     assert_eq!(d.shell_mut().dispatch("plc.rack_editor", &rack), Outcome::Done);
-    assert!(sides(&mut d)[0].starts_with("The bus side of"), "redone: {:?}", sides(&mut d));
+    assert!(
+        sides(&mut d)[0].starts_with("The bus side of"),
+        "redone: {:?}",
+        sides(&mut d)
+    );
     let mut placed = 0;
     run_todo(&mut d, terminal, &mut placed);
     let cells = d.shell_mut().rack_view(terminal).expect("the terminal").cells;

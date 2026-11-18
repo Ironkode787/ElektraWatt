@@ -195,7 +195,10 @@ fn a_pin_text_is_placed_inside_the_box_beside_its_pin() {
     // around the pin's x (an upright text centred on it)
     assert!(xs.iter().all(|x| (x - x0).abs() < 3_500_000), "{quad:?}");
     let (left, right) = (*xs.iter().min().unwrap(), *xs.iter().max().unwrap());
-    assert!(((left + right) / 2 - x0).abs() <= 1_000 && right - left > ys.iter().max().unwrap() - top, "{quad:?}");
+    assert!(
+        ((left + right) / 2 - x0).abs() <= 1_000 && right - left > ys.iter().max().unwrap() - top,
+        "{quad:?}"
+    );
 }
 
 /// The restated PT-2: in a new project with the CPU and the output card, a starter coil attached to the card and
