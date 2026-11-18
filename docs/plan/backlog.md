@@ -47,6 +47,20 @@ answers is deleted with a line in its report.
 - FT-1797 `ew-derive`: Two routes that ADR-0033's measures leave: a PE wire crosses L and N where the way round a box is far longer, and a pin right under a row of tags has no route clear of the texts.
 - FT-1798 `ew-scene`: An interruption point on the bottom pin of a box draws its arrow along the box's edge.
 - FT-1799 `ew-api`: An unnumbered wire's Properties title reads "?" (`wire_number` falls back to it); say "wire without a number" in words.
+- FT-1800 `ew-viewmodel, ew-ui`: With the Wire tool a connection point is about five screen points at the usual zoom, and a click a few points off starts a bend instead of ending the wire; the ring under the pointer is shown with Select only. Give the Wire tool the same ring and a reach in screen points.
+- FT-1801 `ew-viewmodel`: A tube drawn in a project without a default tube stops for the project's fluid settings; offer the size where the tube is drawn.
+- FT-1802 `ew-viewmodel, ew-api`: Auto-fill rail gives every device without a location the cabinet's and places them all, field devices too (sensors, cylinders, a valve terminal); let the person choose which devices go on the rail.
+- FT-1803 `ew-viewmodel`: Project properties name their rows otherwise than the title block's cells (Project reference and Project, Designer and Author), and Document title prints in no cell of the program's frame; Title block fields… says which cell prints which, the rows themselves do not.
+- FT-1804 `ew-scene`: Several small symbols placed at a PLC card's pin pitch (four sensors side by side) have tags, channel texts and pin numbers on one another; the placement rule keeps a text clear of its own symbol and of a few named cases, not of a close neighbour's texts.
+- FT-1805 `ew-api`: The terminal diagram lists terminal numbers without a column for the strip, so two strips' terminals 1 read alike.
+- FT-1806 `ew-viewmodel`: A tool stands at another place on another tab of the command bar (Wire on Draw, another button at that place on PLC); a tool a person uses on several tabs keeps its place.
+- FT-1807 `ew-api, ew-viewmodel`: A template cannot be applied to a project that exists (its sections, text styles, check level); only a new project starts from one.
+- FT-1808 `ew-viewmodel`: Placing a part that has no symbol arms the Black box tool without saying that the part is drawn as a box.
+- FT-1809 `docs/book`: A property's help page often repeats the row's label (the project's Control voltage); say what the program does with the value, its unit and an example.
+- FT-1810 `ew-ui`: The symbol editor's start card gets a "Carry on with…" row on top after a save, which moves every entry down; Copy a library symbol is one long list without order or preview; the pin list of a device box sorts itself again after an edge is changed.
+- FT-1811 `ew-ui, ew-api`: A pin's place typed between two steps of the pin grid is taken to the next step without a word; a copy of a starter part keeps the starter's part number without saying so.
+- FT-1812 `ew-viewmodel`: F1 on a selected connection point in the symbol editor opens the outline's section although the guide has a section for a connection point.
+- FT-1813 `ew-viewmodel`: The Place tool shows "-?X?:1" for a new strip until the pointer moves; the project's Kind row shows a dash.
 
 ### The development loop
 
