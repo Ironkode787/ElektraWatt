@@ -364,7 +364,7 @@ fn every_navigator_column_and_badge_reads_in_both_locales() {
         ("Overview ", "Overzicht "),
         ("5/2 valve ", "5/2-ventiel "),
         ("Terminal strip segment ", "Klemmenstrooksegment "),
-        ("Protective earth bar ", "PE-rail "),
+        ("Earth connection ", "Aardverbinding "),
         ("Enclosure heater ", "Kastverwarming "),
         ("2P manual switch ", "2P-handschakelaar "),
         ("NO position switch ", "NO-positieschakelaar "),
