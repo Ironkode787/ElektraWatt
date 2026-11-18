@@ -47,7 +47,7 @@ use ew_schema::Dir4;
 
 use super::measures::{measure, meet, overlap};
 use super::page::{PageGeometry, Point, Rect};
-use super::search::{CROSSING_COST, Heading, RouteEnd, RouteRequest, TEXT_COST, route};
+use super::search::{CROSSING_COST, Heading, RouteEnd, RouteRequest, TEXT_COST, fit, route};
 
 /// Why a job of a solve is left unrouted (§5.6): the first rule its free route broke.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
@@ -443,6 +443,24 @@ fn segments(line: &[Point]) -> impl Iterator<Item = [Point; 2]> + '_ {
     line.windows(2).filter(|w| w[0] != w[1]).map(|w| [w[0], w[1]])
 }
 
+/// The straight runs of a polyline, as another route meets it: its segments, those that run straight on along x or y
+/// joined into one. A vertex a wire runs straight through (a stored point on a straight stretch, or the place of a
+/// 1 nm step once the page is settled) is no corner: another wire may cross there as anywhere on the run.
+fn runs(line: &[Point]) -> Vec<[Point; 2]> {
+    let on = |p: Point, q: Point, r: Point| {
+        (p.0 == q.0 && q.0 == r.0 && (q.1 - p.1).signum() == (r.1 - q.1).signum())
+            || (p.1 == q.1 && q.1 == r.1 && (q.0 - p.0).signum() == (r.0 - q.0).signum())
+    };
+    let mut out: Vec<[Point; 2]> = Vec::new();
+    for [a, b] in segments(line) {
+        match out.last_mut() {
+            Some(last) if on(last[0], last[1], b) => last[1] = b,
+            _ => out.push([a, b]),
+        }
+    }
+    out
+}
+
 /// The directions in which the polylines of `lines` leave the point `j` (reduced to unit steps).
 fn arms(j: Point, lines: &[&[Point]]) -> BTreeSet<(i64, i64)> {
     let mut out = BTreeSet::new();
@@ -543,7 +561,7 @@ impl Solve<'_> {
         if !alone {
             for (id, (r, _)) in &state.routes {
                 if *id != job {
-                    wires.extend(segments(r));
+                    wires.extend(runs(r));
                 }
             }
         }
@@ -553,7 +571,7 @@ impl Solve<'_> {
             .into_iter()
             .flatten()
             .filter_map(|m| state.routes.get(m))
-            .flat_map(|(r, _)| segments(r).collect::<Vec<_>>())
+            .flat_map(|(r, _)| runs(r))
             .collect();
         Some(request(
             self.page,
@@ -769,6 +787,9 @@ fn mate_groups(page: &PageGeometry, jobs: &[Uuid], ends: &BTreeMap<Uuid, [End; 2
 /// others are fixed), deterministic for any order of the geometry's lists and of the jobs. A job whose ends are not
 /// both on the page is left out; a job whose ends meet needs no route and is left out.
 pub fn route_page(page: &PageGeometry, jobs: &[Uuid]) -> RoutePlan {
+    // The solve reads every grid position as one number; its routes then take their ends' own numbers.
+    let exact = page;
+    let page = &*page.settled();
     let mut jobs: Vec<Uuid> = jobs.to_vec();
     jobs.sort_unstable();
     jobs.dedup();
@@ -787,7 +808,7 @@ pub fn route_page(page: &PageGeometry, jobs: &[Uuid]) -> RoutePlan {
     fixed_conns.sort_by_key(|c| c.id);
     let fixed: Vec<[Point; 2]> = fixed_conns
         .iter()
-        .flat_map(|c| segments(&c.polyline).collect::<Vec<_>>())
+        .flat_map(|c| runs(&c.polyline))
         .collect();
     let fixed_lines: Vec<&[Point]> = fixed_conns.iter().map(|c| c.polyline.as_slice()).collect();
     // §5.3: class, span falling, mates together, ties by the ends' points and the ID.
@@ -872,9 +893,36 @@ pub fn route_page(page: &PageGeometry, jobs: &[Uuid]) -> RoutePlan {
         .into_iter()
         .collect();
     RoutePlan {
-        routes: state.routes.into_iter().map(|(id, (r, _))| (id, r)).collect(),
+        routes: state
+            .routes
+            .into_iter()
+            .map(|(id, (r, _))| match ends_of(exact, id) {
+                Some([a, b]) => (id, onto_ends(page, r, a.at, b.at)),
+                None => (id, r),
+            })
+            .collect(),
         unrouted,
         over_texts,
+    }
+}
+
+/// `route`, found on the settled page ([`PageGeometry::settled`]), with its ends on the points `a` and `b` as the
+/// page stores them: the corner next to an end takes that end's coordinate, and a straight route between two numbers
+/// of one grid line its jog ([`fit`]). Unchanged where the ends are the settled ones.
+fn onto_ends(page: &PageGeometry, mut route: Vec<Point>, a: Point, b: Point) -> Vec<Point> {
+    let n = route.len();
+    if n < 2 || (route[0] == a && route[n - 1] == b) {
+        return route;
+    }
+    let vertical = (route[0].0 == route[1].0, route[n - 2].0 == route[n - 1].0);
+    (route[0], route[n - 1]) = (a, b);
+    let grid = ew_units::Grid::new(
+        u64::try_from(page.grid.0).unwrap_or(0),
+        u64::try_from(page.grid.1).unwrap_or(0),
+    );
+    match grid {
+        Ok(grid) => fit(route.clone(), vertical, grid).unwrap_or(route),
+        Err(_) => route,
     }
 }
 
@@ -889,6 +937,14 @@ pub fn route_one(
     to: OneEnd,
     arrive: Option<Heading>,
 ) -> Option<Vec<Point>> {
+    // As the page solve: routed on the settled page, the route then on the ends' own numbers.
+    let exact = (from.at, to.at);
+    let page = &*page.settled();
+    let settle = |e: OneEnd| OneEnd {
+        at: page.settle(e.at),
+        ..e
+    };
+    let (from, to) = (settle(from), settle(to));
     let wires = routed_wires(page);
     let make = |half| {
         let mut req = request(
@@ -935,7 +991,7 @@ pub fn route_one(
         });
         (drawn, id)
     };
-    search_checked(page, make, drawn).map(|(points, _)| points)
+    search_checked(page, make, drawn).map(|(points, _)| onto_ends(page, points, exact.0, exact.1))
 }
 
 /// Whether `route` as the polyline of connection `id` of `page` breaks no hard rule but (d), a text: no touch, no
@@ -962,7 +1018,7 @@ fn routed_wires(page: &PageGeometry) -> Vec<[Point; 2]> {
     lines.sort_by_key(|c| c.id);
     lines
         .iter()
-        .flat_map(|c| segments(&c.polyline).collect::<Vec<_>>())
+        .flat_map(|c| runs(&c.polyline))
         .collect()
 }
 
@@ -976,7 +1032,14 @@ pub fn clear_one(
     through: &[Uuid],
     points: &[Point],
 ) -> bool {
-    let mut page = page.clone();
+    let mut page = page.settled().into_owned();
+    let settle = |e: OneEnd| OneEnd {
+        at: page.settle(e.at),
+        ..e
+    };
+    let (from, to) = (settle(from), settle(to));
+    let points: Vec<Point> = points.iter().map(|p| page.settle(*p)).collect();
+    let points = points.as_slice();
     page.bodies.retain(|b| !through.contains(&b.rep));
     page.texts.retain(|t| !through.contains(&t.rep));
     page.cps.retain(|c| !through.contains(&c.rep));

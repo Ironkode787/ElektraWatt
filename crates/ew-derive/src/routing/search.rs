@@ -960,31 +960,42 @@ fn build(
     pts.push(from.at);
     pts.extend(corners);
     pts.push(to.at);
+    fit(pts, (first.vertical(), last.vertical()), space.grid)
+}
+
+/// The route `pts`, whose first and last vertex are its ends' exact points and whose corners lie on the grid, made
+/// orthogonal to the nm: the corner after the first end takes the first end's coordinate across the first segment,
+/// the corner before the last end the last end's across the last segment (`vertical`: whether the first and the last
+/// segment run along y). A straight route between ends that part by a little across it (two numbers of one grid
+/// line) gets a jog at the grid coordinate nearest its middle. Cleaned; `None` where that coordinate overflows.
+pub(super) fn fit(
+    mut pts: Vec<(i64, i64)>,
+    (first_vertical, last_vertical): (bool, bool),
+    grid: Grid,
+) -> Option<Vec<(i64, i64)>> {
     let n = pts.len();
+    let (Some(&from), Some(&to)) = (pts.first(), pts.last()) else {
+        return Some(pts);
+    };
     if n > 2 {
-        // The corner after the first end lies on the first end's coordinate across the first segment; the corner
-        // before the last end on the last end's coordinate across the last segment.
-        if first.vertical() {
-            pts[1].0 = from.at.0;
+        if first_vertical {
+            pts[1].0 = from.0;
         } else {
-            pts[1].1 = from.at.1;
+            pts[1].1 = from.1;
         }
-        if last.vertical() {
-            pts[n - 2].0 = to.at.0;
+        if last_vertical {
+            pts[n - 2].0 = to.0;
         } else {
-            pts[n - 2].1 = to.at.1;
+            pts[n - 2].1 = to.1;
         }
     }
-    // A straight route between ends that part by a little across it (two CPs off the grid by different amounts):
-    // a jog at the grid coordinate nearest the middle keeps it orthogonal.
-    if pts.len() == 2 && from.at.0 != to.at.0 && from.at.1 != to.at.1 {
-        let g = space.grid;
-        if first.vertical() {
-            let ym = g.snap_point(Nm(from.at.1 + (to.at.1 - from.at.1) / 2))?.0;
-            pts = vec![from.at, (from.at.0, ym), (to.at.0, ym), to.at];
+    if n == 2 && from.0 != to.0 && from.1 != to.1 {
+        if first_vertical {
+            let ym = grid.snap_point(Nm(from.1 + (to.1 - from.1) / 2))?.0;
+            pts = vec![from, (from.0, ym), (to.0, ym), to];
         } else {
-            let xm = g.snap_point(Nm(from.at.0 + (to.at.0 - from.at.0) / 2))?.0;
-            pts = vec![from.at, (xm, from.at.1), (xm, to.at.1), to.at];
+            let xm = grid.snap_point(Nm(from.0 + (to.0 - from.0) / 2))?.0;
+            pts = vec![from, (xm, from.1), (xm, to.1), to];
         }
     }
     Some(clean(pts))

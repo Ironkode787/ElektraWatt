@@ -205,6 +205,34 @@ impl Grid {
         self.at(self.snap(x))
     }
 
+    /// The grid's own number for a coordinate that names a grid position up to rounding: `at(snap(x))` where `x` lies
+    /// within 1 nm of it, else `x` itself.
+    ///
+    /// On a grid whose step is not a whole number of nm (the QET grid's `7_937_500 / 3`) a coordinate added up from
+    /// two rounded parts (a symbol's place and a pin's offset in it) can lie 1 nm beside the number [`at`](Grid::at)
+    /// gives the same grid position. `settle` makes the two one number, so that geometry which compares coordinates
+    /// (a router, a layout measure) reads one grid line as one line. A coordinate between the grid's positions is
+    /// unchanged, and so is every coordinate on a grid of whole nm, where nothing is rounded.
+    ///
+    /// ```
+    /// use ew_units::{Grid, Nm};
+    ///
+    /// let g = Grid::QET_10PX;
+    /// assert_eq!(g.at(25), Some(Nm(66_145_833)));
+    /// assert_eq!(g.settle(Nm(66_145_834)), Nm(66_145_833));
+    /// assert_eq!(g.settle(Nm(66_145_835)), Nm(66_145_835));
+    /// assert_eq!(Grid::MM4.settle(Nm(4_000_001)), Nm(4_000_001));
+    /// ```
+    pub fn settle(self, x: Nm) -> Nm {
+        if self.den == 1 {
+            return x;
+        }
+        match self.snap_point(x) {
+            Some(g) if g.0.abs_diff(x.0) <= 1 => g,
+            _ => x,
+        }
+    }
+
     /// The grid index of a position given in whole **grid half-steps** (`half_steps / 2`, an index or the middle
     /// of two): exact when `half_steps` is even, else the tie between its two neighbours goes up (toward +∞) when
     /// `tie_up`, down (toward −∞) otherwise. Unlike [`snap`](Grid::snap) the tie

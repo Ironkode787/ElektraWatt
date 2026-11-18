@@ -4,8 +4,11 @@
 //! A page's geometry as the router and the layout measures read it: plain values in page nm, built by a caller that
 //! knows the page (`ew-api`'s adapter from its page tables and labels layer).
 
+use std::borrow::Cow;
+
 use ew_ids::Uuid;
 use ew_schema::Dir4;
+use ew_units::{Grid, Nm};
 
 /// A point on the page, `(x, y)` nm, y down.
 pub type Point = (i64, i64);
@@ -37,6 +40,66 @@ pub struct PageGeometry {
     pub frame_bands: Vec<Rect>,
     /// The connections drawn on the page with the polylines they are drawn along.
     pub connections: Vec<DrawnConnection>,
+}
+
+impl PageGeometry {
+    /// The page with every grid position as one number: each coordinate that lies within 1 nm of a position of the
+    /// page's grid takes the grid's own number for it ([`Grid::settle`]). On a grid of thirds of a nm (the QET
+    /// grid) a pin's point is a symbol's place plus the pin's offset, each rounded, and can lie 1 nm beside the
+    /// number of its grid position; a wire between two such pins on one grid line then holds a step of 1 nm, which is
+    /// no corner and no stretch of wire to a reader. The router and the layout measures read the settled page, so
+    /// neither depends on two numbers of one grid position being equal. Borrowed, unchanged, on a grid of whole nm.
+    pub(super) fn settled(&self) -> Cow<'_, PageGeometry> {
+        let Some(grid) = self.settling_grid() else {
+            return Cow::Borrowed(self);
+        };
+        let x = |v: i64| grid.settle(Nm(v)).0;
+        let point = |p: Point| (x(p.0), x(p.1));
+        let rect = |r: Rect| [x(r[0]), x(r[1]), x(r[2]), x(r[3])];
+        let mut page = self.clone();
+        page.sheet = rect(page.sheet);
+        page.drawing_area = page.drawing_area.map(rect);
+        for b in &mut page.bodies {
+            b.rect = rect(b.rect);
+        }
+        for cp in &mut page.cps {
+            cp.at = point(cp.at);
+        }
+        for t in &mut page.texts {
+            t.rect = rect(t.rect);
+        }
+        for j in &mut page.junctions {
+            j.at = point(j.at);
+        }
+        for r in &mut page.frame_bands {
+            *r = rect(*r);
+        }
+        for c in &mut page.connections {
+            for p in &mut c.polyline {
+                *p = point(*p);
+            }
+        }
+        Cow::Owned(page)
+    }
+
+    /// The point `p` as [`settled`](Self::settled) reads it.
+    pub(super) fn settle(&self, p: Point) -> Point {
+        match self.settling_grid() {
+            Some(grid) => (grid.settle(Nm(p.0)).0, grid.settle(Nm(p.1)).0),
+            None => p,
+        }
+    }
+
+    /// The page's grid where its positions are rounded numbers (a step that is not a whole number of nm); `None` on a
+    /// grid of whole nm and for an unusable grid, where nothing settles.
+    fn settling_grid(&self) -> Option<Grid> {
+        let grid = Grid::new(
+            u64::try_from(self.grid.0).ok()?,
+            u64::try_from(self.grid.1).ok()?,
+        )
+        .ok()?;
+        (grid.den() > 1).then_some(grid)
+    }
 }
 
 /// A representation's body or a black box's outline.

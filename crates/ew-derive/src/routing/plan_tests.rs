@@ -753,3 +753,142 @@ fn a_wire_leaves_a_pin_through_an_interruption_point_drawn_on_it() {
     let m = measure(&routed(&p, &plan));
     assert!(m.through_bodies.is_empty(), "{m:?}");
 }
+
+/// A page on the QET grid, whose step is a third of a nm off a whole number, with a wire from a pin straight down to
+/// the pin below it, and a junction on that wire. The upper pin stands on the grid's own number of its column
+/// (66 145 833), the lower one 1 nm beside it (66 145 834: its box's place plus the pin's offset, each rounded), so the
+/// wire holds a step of 1 nm, and the junction stands on it. Returns the page with the wire from the junction to the
+/// lower box's second pin, two columns to the right, as job 3, and that wire's ends.
+fn junction_on_a_wire_with_a_step_of_one_nm() -> (PageGeometry, OneEnd, OneEnd) {
+    let mut p = qet_page();
+    let (upper, lower) = (id(1001), id(1002));
+    p.bodies.push(Body {
+        rep: upper,
+        rect: [58_208_333, 82_020_833, 97_895_833, 100_541_667],
+    });
+    p.bodies.push(Body {
+        rep: lower,
+        rect: [60_854_167, 129_645_833, 92_604_167, 150_812_500],
+    });
+    let (pin, first, second) = (
+        (66_145_833, 100_541_667),
+        (66_145_834, 129_645_833),
+        (71_437_500, 129_645_833),
+    );
+    let junction = (66_145_834, 113_770_833);
+    for (n, rep, at, dir, c) in [
+        (10, upper, pin, Dir4::Down, 1),
+        (11, lower, first, Dir4::Up, 2),
+        (12, lower, second, Dir4::Up, 3),
+    ] {
+        p.cps.push(CpPoint {
+            id: id(n),
+            at,
+            dir: Some(dir),
+            rep,
+            connections: vec![id(c)],
+        });
+    }
+    p.junctions.push(JunctionPoint {
+        id: id(20),
+        at: junction,
+        connections: vec![id(1), id(2), id(3)],
+    });
+    for (c, ends, routed, polyline) in [
+        (1, [10, 20], true, vec![pin, (pin.0, junction.1), junction]),
+        (2, [20, 11], true, vec![junction, first]),
+        (3, [20, 12], false, vec![junction, second]),
+    ] {
+        p.connections.push(DrawnConnection {
+            id: id(c),
+            ends: ends.map(id),
+            routed,
+            supply: None,
+            polyline,
+        });
+    }
+    let from = OneEnd {
+        at: junction,
+        dir: None,
+        rep: None,
+    };
+    let to = OneEnd {
+        at: second,
+        dir: Some(Heading::Up),
+        rep: Some(lower),
+    };
+    (p, from, to)
+}
+
+/// The owner's rc.4 wire: from a junction on a vertical wire to the pin beside the one below. The wire the junction
+/// sits on reached it by a step of 1 nm, which the router took for a stretch of wire in the way of the first step to
+/// the right: the route left to the left, went down and came back under the wire it started from. One corner is the
+/// route, whichever end it is drawn from, by the Wire tool and by Reroute.
+#[test]
+fn a_wire_from_a_junction_takes_the_one_corner_past_a_step_of_one_nm() {
+    let (p, from, to) = junction_on_a_wire_with_a_step_of_one_nm();
+    let corner = (to.at.0, from.at.1);
+    let plan = route_page(&p, &[id(3)]);
+    assert_eq!(plan.unrouted, vec![]);
+    assert_eq!(plan.routes, vec![(id(3), vec![from.at, corner, to.at])]);
+    assert_eq!(route_one(&p, from, to, None), Some(vec![from.at, corner, to.at]));
+    assert_eq!(route_one(&p, to, from, None), Some(vec![to.at, corner, from.at]));
+    let m = measure(&routed(&p, &plan));
+    assert_eq!(m.hard(), 0, "{m:?}");
+}
+
+/// The same page with the loop a file of the fourth candidate holds: the measures read the step of 1 nm as no
+/// stretch of wire (no overlap with the wire that leaves the junction over it), no bend and no arm of the junction.
+#[test]
+fn a_step_of_one_nm_is_no_stretch_no_bend_and_no_arm() {
+    let (mut p, from, to) = junction_on_a_wire_with_a_step_of_one_nm();
+    let left = 63_500_000;
+    let below = 116_416_667;
+    p.connections[2].routed = true;
+    p.connections[2].polyline = vec![from.at, (left, from.at.1), (left, below), (to.at.0, below), to.at];
+    let m = measure(&p);
+    assert_eq!(m.overlaps, vec![], "{m:?}");
+    assert!(m.bends.iter().all(|b| b.connection != id(1)), "{:?}", m.bends);
+    // The junction's arms are up, down and left (the loop): a wire from the right would be its fourth. (Read to the
+    // nm, the wire from above arrives from the left over its step, and the junction seems to have two arms.)
+    let mut q = p.clone();
+    let far = (79_375_000, 113_770_833);
+    q.cps.push(CpPoint {
+        id: id(13),
+        at: far,
+        dir: Some(Dir4::Left),
+        rep: id(1003),
+        connections: vec![id(4)],
+    });
+    q.junctions[0].connections.push(id(4));
+    q.connections.push(DrawnConnection {
+        id: id(4),
+        ends: [id(13), id(20)],
+        routed: false,
+        supply: None,
+        polyline: vec![far, from.at],
+    });
+    assert_eq!(route_page(&q, &[id(4)]).unrouted, vec![(id(4), Unrouted::FourArms)]);
+}
+
+/// A straight wire between two pins on one grid line whose numbers differ by 1 nm keeps its ends' own numbers: the
+/// route steps over between them, and a route found on the settled page ends on the points the page stores.
+#[test]
+fn a_route_ends_on_its_pins_own_numbers() {
+    let (mut p, _, _) = junction_on_a_wire_with_a_step_of_one_nm();
+    p.junctions.clear();
+    p.connections.truncate(1);
+    p.connections[0].ends = [id(10), id(11)];
+    p.connections[0].routed = false;
+    p.cps[1].connections = vec![id(1)];
+    let (pin, first) = (p.cps[0].at, p.cps[1].at);
+    let plan = route_page(&p, &[id(1)]);
+    let (_, line) = &plan.routes[0];
+    assert_eq!((line.first(), line.last()), (Some(&pin), Some(&first)), "{line:?}");
+    assert!(
+        line.windows(2).all(|w| w[0].0 == w[1].0 || w[0].1 == w[1].1),
+        "{line:?}"
+    );
+    let m = measure(&routed(&p, &plan));
+    assert_eq!((m.hard(), m.bend_total()), (0, 0), "{m:?}");
+}

@@ -119,8 +119,11 @@ impl Measures {
     }
 }
 
-/// The measures of `page` (see the module documentation of [`crate::routing`]).
+/// The measures of `page` (see the module documentation of [`crate::routing`]), read with every grid position as one
+/// number ([`PageGeometry::settled`]): a step of 1 nm between two numbers of one grid line is no bend, no stretch and
+/// no arm.
 pub fn measure(page: &PageGeometry) -> Measures {
+    let page = &*page.settled();
     let lines: Vec<Vec<Point>> = page.connections.iter().map(|c| clean(&c.polyline)).collect();
     // The representations that draw a connection point: only their bodies are what (c) keeps wires out of.
     let with_cps: BTreeSet<Uuid> = page.cps.iter().map(|cp| cp.rep).collect();
