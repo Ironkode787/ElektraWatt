@@ -199,6 +199,55 @@ fn every_station_kinds_todo_runs_to_its_end() {
     d.shell_mut().shutdown();
 }
 
+/// H2 of the rc.4 test, the owner's refusal: a valve terminal's box armed by To do's Draw on a fluid page, then Undo
+/// (Ctrl+Z) of the step that drew its electrical side, then the click: the box named a symbol copy the Undo had taken
+/// out, and the window said "An item the command names is no longer in the project". An Undo or a Redo now ends the
+/// placement it may have left without its records; To do, read from the project as the step left it, asks again and
+/// arms it anew. With the view open the whole time, every line of To do is pressed after undo and redo to its end.
+#[test]
+fn undo_and_redo_under_the_open_view_leave_no_step_without_its_records() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    for (folio, kind) in [("101", "multi_line"), ("201", "fluid")] {
+        let page = json!({"folio": folio, "type": kind, "title": ""});
+        assert_eq!(d.shell_mut().dispatch("page.new", &page), Outcome::Done);
+    }
+    let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "101"}));
+    d.settle();
+    let terminal = station(&mut d, "valve_terminal", "EW-GEN-VTM-1", &["EW-GEN-VLV-3"]);
+    let rack = json!({"station": terminal.to_string()});
+    let draw = json!({"step": "draw", "folio": "101"});
+    assert_eq!(d.shell_mut().dispatch("plc.rack_next", &draw), Outcome::Done);
+    assert_eq!(d.shell_mut().dispatch("plc.rack_editor", &rack), Outcome::Done);
+    let fluid = json!({"step": "fluid", "folio": "201"});
+    assert_eq!(d.shell_mut().dispatch("plc.rack_next", &fluid), Outcome::Done);
+    assert_eq!(d.shell_mut().tool().name(), "black_box", "the box on the pointer");
+    d.input(&key("ctrl+z"));
+    d.settle();
+    assert_eq!(d.shell_mut().tool().name(), "select", "Undo ends the placement");
+    click_at(&mut d, (800, 400));
+    assert!(d.shell_mut().banner().is_none(), "{:?}", d.shell_mut().banner());
+    // To do reads the project as the Undo left it: the electrical side is to draw again.
+    assert_eq!(d.shell_mut().dispatch("plc.rack_editor", &rack), Outcome::Done);
+    assert!(sides(&mut d)[0].starts_with("The electrical side of"), "{:?}", sides(&mut d));
+    d.input(&key("ctrl+shift+z"));
+    d.settle();
+    assert_eq!(d.shell_mut().dispatch("plc.rack_editor", &rack), Outcome::Done);
+    assert!(sides(&mut d)[0].starts_with("The bus side of"), "redone: {:?}", sides(&mut d));
+    let mut placed = 0;
+    run_todo(&mut d, terminal, &mut placed);
+    let cells = d.shell_mut().rack_view(terminal).expect("the terminal").cells;
+    assert_eq!(cells[0].at.page.as_deref(), Some("201"), "its valve in its cell");
+    // Undone twice and redone under the open view, To do runs to its end again.
+    assert_eq!(d.shell_mut().dispatch("plc.rack_editor", &rack), Outcome::Done);
+    for chord in ["ctrl+z", "ctrl+z", "ctrl+shift+z"] {
+        d.input(&key(chord));
+        d.settle();
+    }
+    run_todo(&mut d, terminal, &mut placed);
+    d.shell_mut().shutdown();
+}
+
 /// The PLC panel's row of PLC part `device` (its station's or its card's), as its right-click reads it.
 fn plc_row(d: &mut Driver, device: Uuid) -> ew_ui::ew_viewmodel::ew_api::output::NavNode {
     use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};

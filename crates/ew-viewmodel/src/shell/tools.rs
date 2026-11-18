@@ -389,9 +389,24 @@ impl ShellModel {
         // A page or tab change ends the gesture a sticky refusal belonged to.
         self.tools.notice = None;
         self.tools.notice_sticky = false;
-        // An editing tool (Wire, Place, Change symbol, and the part-4b Text, Text edit, Graphic, Wire
-        // marker, Structure box and part-5 Image tools) works on one page: a page or tab
-        // change ends it and Select takes over. The selection survives.
+        self.end_editing_tool();
+    }
+
+    /// Escapes the busy gesture of the active tool and ends an editing tool ([`ShellModel::end_editing_tool`]): an
+    /// undo or a redo does it.
+    pub(super) fn escape_editing_tool(&mut self) {
+        if let Some(out) = self.run_tool(&CanvasEvent::Escape) {
+            let _ = self.apply_tool_output(out);
+        }
+        self.end_editing_tool();
+    }
+
+    /// Ends an editing tool (Wire, Place, Change symbol, and the part-4b Text, Text edit, Graphic, Wire marker,
+    /// Structure box and part-5 Image tools): Select takes over, the selection survives. Such a tool holds what it
+    /// was armed with (a function, a symbol copy, a page, the copies it embeds), which a page or tab change leaves
+    /// behind and an undo or a redo may take out of the project (rc.5, H2: a box armed by the station view's To do,
+    /// put down after an Undo, named a symbol copy that was gone).
+    pub(super) fn end_editing_tool(&mut self) {
         if matches!(
             self.tools.tool.name(),
             "wire"

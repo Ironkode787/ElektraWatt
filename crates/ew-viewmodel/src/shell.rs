@@ -2659,6 +2659,9 @@ impl ShellModel {
                 // and the preview go; the next pointer or cursor move draws them again.
                 self.tools.overlay = crate::tools::Overlay::default();
                 self.tools.preview = None;
+                // A tool armed before the step holds records the step may have taken away: it ends, and is armed again
+                // from the project as it is now (rc.5, H2).
+                self.escape_editing_tool();
                 self.crossed_step(crossed);
                 // A terminal placement takes the strip's next designation again.
                 self.tools.reread_designation = true;
