@@ -1403,6 +1403,9 @@ pub struct SymbolShape {
     /// Whether that FnDef is a valve (contact kind `valve`): placed inside a valve terminal's box, it is a valve of its
     /// own that joins the terminal.
     pub valve: bool,
+    /// Whether that FnDef is a contact (normally open, normally closed or change-over: a switch, a push-button, a
+    /// sensor's contact): autoconnect never joins it to a PLC output (rc.3).
+    pub contact: bool,
 }
 
 /// One connection point of a [`SymbolShape`].
@@ -1675,6 +1678,12 @@ fn shape_with(copy: Uuid, def: &SymbolDef, fndef: Option<Arc<LibCopy<FnDef>>>) -
         valve: fndef
             .as_ref()
             .is_some_and(|d| d.item.contact_kind == ContactKind::Valve),
+        contact: fndef.as_ref().is_some_and(|d| {
+            matches!(
+                d.item.contact_kind,
+                ContactKind::No | ContactKind::Nc | ContactKind::Co
+            )
+        }),
     }
 }
 
@@ -2272,6 +2281,9 @@ pub struct TableCp {
     /// The printed PLC address of the channel bound to it (`ew_derive::PlcAddressText`'s pins); `None`
     /// for an unbound CP or an address that does not resolve.
     pub plc_address: Option<String>,
+    /// Whether a PLC output channel (digital or analogue) is bound to it: autoconnect never joins a contact to it
+    /// (rc.3: a sensor placed near an output card was joined to an output).
+    pub plc_output: bool,
 }
 
 /// One end of a [`TableConnection`].
@@ -2623,6 +2635,7 @@ impl Session {
             });
         }
         let partition = q.get::<PotentialPartition>(());
+        let bound = q.get::<ew_derive::ChannelsByCp>(());
         let mut cps = Vec::new();
         for (function, idx) in cp_candidates(&q, page_id) {
             let Some(at) = cp_point(&q, function, idx, page_id) else {
@@ -2681,6 +2694,16 @@ impl Session {
                     .iter()
                     .find(|(i, _)| *i == idx)
                     .map(|(_, t)| t.clone()),
+                plc_output: bound.at_cp(function, idx).any(|ch| {
+                    q.table::<ew_derive::ew_schema::Channel>()
+                        .get(ch)
+                        .is_some_and(|c| {
+                            matches!(
+                                c.kind,
+                                ew_derive::ew_schema::ChannelKind::Do | ew_derive::ew_schema::ChannelKind::Ao
+                            )
+                        })
+                }),
             });
         }
         cps.sort_by(|a, b| {
@@ -2889,6 +2912,7 @@ mod tests {
             rep_type: String::new(),
             fndef: Uuid::from_u128(def),
             valve: false,
+            contact: false,
         }
     }
 

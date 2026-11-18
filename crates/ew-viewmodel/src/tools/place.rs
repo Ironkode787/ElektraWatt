@@ -331,6 +331,7 @@ impl PlaceTool {
                     strip_tag: strip_tag.clone(),
                     fluid: cp.fluid,
                     valve_port: cp.valve_port,
+                    contact: self.shape.contact,
                 }
             })
             .collect()

@@ -457,6 +457,7 @@ mod tests {
             fluid: false,
             valve_port: None,
             plc_address: None,
+            plc_output: false,
         }
     }
 

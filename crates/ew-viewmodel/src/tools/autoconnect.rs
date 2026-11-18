@@ -12,7 +12,10 @@
 //! connection segment collinear with the ray at the walk point stops it (the line is occupied); a segment crossing
 //! the ray is passed. Several CPs at one walk point are hits in label order (the page tables' order; never
 //! the v5 ID, which follows the minted function ID). A fluid port's hit is a fluid port and an electrical CP's an
-//! electrical CP, so on a fluid page autoconnect joins fluid ports with a fluid line (FT-1733); a valve's working port
+//! electrical CP, so on a fluid page autoconnect joins fluid ports with a fluid line (FT-1733); a contact's point (a
+//! switch, a push-button, a sensor) never takes a PLC output's pin, and a point that names a conductor (`N`, `PE`, `L1`,
+//! a supply's `+`) never takes a point of a potential named for another one, nor do a terminal's two sides join two
+//! potentials of different names (rc.3: a sensor joined to an output, a neutral to a phase); a valve's working port
 //! never takes another valve's exhaust port as a hit, nor the other way round (EW-FL-012's conflict, the persona
 //! re-test: two valves stacked had their exhausts joined to the working ports). A terminal's ghost CP never takes a CP of a terminal of its own
 //! strip as a hit: two terminals of one strip are joined by a bridge, never by a
@@ -63,6 +66,8 @@ pub struct GhostCp {
     pub fluid: bool,
     /// Its side of EW-FL-012 (a valve's working or exhaust port): a port of the conflicting side is never its hit.
     pub valve_port: Option<ew_api::output::ValvePort>,
+    /// Whether it is a contact's point (a switch, a push-button, a sensor): a PLC output's pin is never its hit.
+    pub contact: bool,
 }
 
 /// Whether the representation `rep` of the page is a terminal of the strip printed `strip_tag`: a terminal
@@ -208,6 +213,8 @@ fn ray_hits(
                 && q.dir == Some(want)
                 && q.fluid == cp.fluid
                 && !ew_api::output::ValvePort::conflict(q.valve_port, cp.valve_port)
+                && !(cp.contact && q.plc_output)
+                && !other_conductor(&cp.designation, q.potential.as_ref())
                 && !cp.strip_tag.as_deref().is_some_and(|tag| {
                     tables
                         .reps
@@ -292,6 +299,37 @@ pub fn on_off_sheet_segment(cps: &[GhostCp], tables: &PageTables) -> bool {
             cps.iter().any(|p| strictly_on(grid, *a, *b, p.at))
         })
     })
+}
+
+/// The conductor a connection point's designation or a potential's name stands for (`L`, `L1`…`L3`, `N`, `PE`, a DC
+/// supply's plus or minus), `None` for any other word. `L` stands for any phase.
+fn conductor(word: &str) -> Option<&'static str> {
+    Some(match word.trim().to_ascii_uppercase().as_str() {
+        "L" => "L",
+        "L1" => "L1",
+        "L2" => "L2",
+        "L3" => "L3",
+        "N" => "N",
+        "PE" => "PE",
+        "+" | "L+" | "24V" | "+24V" => "+",
+        "-" | "M" | "0V" => "-",
+        _ => return None,
+    })
+}
+
+/// Whether a ghost CP designated `designation` would join the named potential `potential` of another conductor (rc.3:
+/// a placement joined a neutral pin to a phase because they stood near): both stand for a conductor
+/// ([`conductor`]) and not the same one; a phase `L` matches any phase. A potential named by its fallback is no
+/// conductor's.
+fn other_conductor(designation: &str, potential: Option<&ew_api::output::TablePotential>) -> bool {
+    let Some(p) = potential.filter(|p| !p.fallback) else {
+        return false;
+    };
+    let phase = |c: &str| c.starts_with('L');
+    match (conductor(designation), conductor(&p.name)) {
+        (Some(a), Some(b)) => a != b && !(phase(a) && phase(b) && (a == "L" || b == "L")),
+        _ => false,
+    }
 }
 
 /// The splits of the ghost: pairs of ghost CPs on one segment of a connection facing its two ends. Only a wire with a
@@ -401,6 +439,29 @@ pub fn proposals(
             list.push(p);
         }
     }
+    // A terminal joins what its two sides reach: never two named potentials of different names, which it would short
+    // (rc.3); the later proposal goes.
+    if cps.iter().any(|c| c.strip_tag.is_some()) {
+        let named = |p: &Proposal| match &p.target {
+            ProposalTarget::Cp { function, idx, .. } => tables
+                .cps
+                .iter()
+                .find(|c| c.function == function.0 && c.idx == *idx)
+                .and_then(|c| c.potential.as_ref())
+                .filter(|p| !p.fallback)
+                .map(|p| p.name.clone()),
+            ProposalTarget::Split { .. } => None,
+        };
+        let mut first: Option<String> = None;
+        list.retain(|p| match (named(p), &first) {
+            (Some(name), Some(seen)) => name == *seen,
+            (Some(name), None) => {
+                first = Some(name);
+                true
+            }
+            (None, _) => true,
+        });
+    }
     Proposals { list, far }
 }
 
@@ -427,6 +488,8 @@ pub fn moved_cps(tables: &PageTables, delta: &dyn Fn(EntityRef) -> Option<(i64, 
             strip_tag: moved_strip_tag(tables, cp.rep),
             fluid: cp.fluid,
             valve_port: cp.valve_port,
+            // A moved symbol's proposals are shown, never committed (module documentation).
+            contact: false,
         });
     }
     out
@@ -493,6 +556,7 @@ mod tests {
             fluid: false,
             valve_port: None,
             plc_address: None,
+            plc_output: false,
         }
     }
 
@@ -525,6 +589,7 @@ mod tests {
             strip_tag: None,
             fluid: false,
             valve_port: None,
+            contact: false,
         }
     }
 
@@ -547,6 +612,74 @@ mod tests {
             matches!(&p.list[0].target, ProposalTarget::Cp { label, .. } if label == "X1:1"),
             "wraps"
         );
+    }
+
+    /// rc.3 persona runs: a sensor placed near an output card was joined to an output, and a neutral pin to a phase.
+    /// A contact's point never takes a PLC output's pin (a coil's still does); a point that names a conductor never
+    /// takes a point of a potential named for another one (a phase `L` takes any phase; a fallback name is no
+    /// conductor's); a terminal's two sides never join two potentials of different names.
+    #[test]
+    fn a_contact_never_takes_an_output_nor_a_point_another_conductor() {
+        let named = |name: &str, fallback: bool| {
+            Some(ew_api::output::TablePotential {
+                name: name.into(),
+                fallback,
+            })
+        };
+        let mut t = tables();
+        let mut output = cp(1, (0, 10 * G), Dir::Up, "-A2:6");
+        output.plc_output = true;
+        t.cps.push(output);
+        let contact = GhostCp {
+            contact: true,
+            ..ghost(0, (0, 0), Dir::Down)
+        };
+        assert!(
+            proposals(&[contact], &t, &[], AREA, 0).list.is_empty(),
+            "a sensor"
+        );
+        assert_eq!(
+            proposals(&[ghost(0, (0, 0), Dir::Down)], &t, &[], AREA, 0)
+                .list
+                .len(),
+            1,
+            "a coil or a lamp"
+        );
+        for (designation, potential, joins) in [
+            ("N", named("L1", false), false),
+            ("PE", named("N", false), false),
+            ("N", named("N", false), true),
+            ("L", named("L2", false), true),
+            ("N", named("-X1:3", true), true),
+            ("13", named("L1", false), true),
+        ] {
+            let mut t = tables();
+            let mut target = cp(1, (0, 10 * G), Dir::Up, "-F1:1");
+            target.potential = potential;
+            t.cps.push(target);
+            let g = GhostCp {
+                designation: designation.into(),
+                ..ghost(0, (0, 0), Dir::Down)
+            };
+            assert_eq!(
+                proposals(&[g], &t, &[], AREA, 0).list.len(),
+                usize::from(joins),
+                "{designation}"
+            );
+        }
+        // A terminal between L1 above and N below joins one of them.
+        let mut t = tables();
+        let mut above = cp(1, (0, -10 * G), Dir::Down, "-F1:2");
+        above.potential = named("L1", false);
+        let mut below = cp(2, (0, 10 * G), Dir::Up, "-K1:A1");
+        below.potential = named("N", false);
+        t.cps.extend([above, below]);
+        let terminal = |cp: u16, at, dir| GhostCp {
+            strip_tag: Some("-X1".into()),
+            ..ghost(cp, at, dir)
+        };
+        let g = [terminal(0, (0, 0), Dir::Up), terminal(1, (0, 0), Dir::Down)];
+        assert_eq!(proposals(&g, &t, &[], AREA, 0).list.len(), 1);
     }
 
     /// rc.2 persona run, entry 17: a CP facing the ghost within the short run is proposed, one further away is far.
