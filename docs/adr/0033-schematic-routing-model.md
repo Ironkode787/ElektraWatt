@@ -151,6 +151,42 @@ The decision text above is unchanged; these entries refine it.
      an older build draws such a route as stored.
 
    Golden A's routes are stored and not rerouted; its pictures and its routes are unchanged by this.
+4. **One number for a grid position; a reroute starts from the drawing** (2026-11-18, the owner's rc.4 test; decided
+   by the lane under the owner's delegation). A wire from a junction on a vertical wire to the pin beside the one
+   below left the junction to the left, went down and came back under the wire it started from, and EW-CORE-068
+   reported it lying on that wire. He asked for "a deep look into the autorouter, optimised also for larger
+   drawings". Decision 5 is refined in four ways:
+   - **A grid position is one number to the router and the measures.** On a grid whose step is not a whole number
+     of nm (the QET grid, 7 937 500/3) a pin's point is its symbol's or box's place plus the pin's offset, each
+     rounded, and can lie 1 nm beside the number the grid gives the same position (`Grid::at`). A straight wire
+     between two such pins on one grid line holds a step of 1 nm at its middle. The router read that step as a
+     stretch of wire in the way of the first step beside it (the owner's loop), and the measures as two bends, an arm
+     of a junction and an overlap with the wire leaving over it. The page solve, the Wire tool's route and the layout
+     measures now read the page with every coordinate within 1 nm of a grid position set to the grid's own number
+     (`Grid::settle`, `PageGeometry::settled`); a route found there takes its ends' stored numbers again, and a
+     vertex that a wire runs straight through is no corner to another route. The stored numbers are unchanged: a
+     pin's point is still its place plus its offset, because Golden A's stored routes hold 68 coordinates that are
+     such sums, and a change of the rule would move them.
+   - **A reroute starts from the drawing and never leaves the page worse.** Reroute routed its wires from nothing,
+     the longest first: on a full page the long wires took the straight tracks between the pins, the short ones
+     stepped aside, and a wire that found no route kept its old one under the new routes of the others. A solve
+     whose jobs have stored routes now rates two drawings by the wires without a good route (none, or one that
+     touches a point, lies on a wire or runs through a body) and then by what the routes cost as drawn (steps, bends,
+     crossings and texts by the search's weights), and takes the better, the first on a tie: the drawing as it is,
+     each wire routed again against all the others and the new route taken where the old one breaks a hard rule or
+     costs more (at most two passes); and the jobs routed from nothing, the shortest first. A wire that is drawn as
+     well as the router would draw it keeps its route, also where the tie rule would take another of the same cost.
+   - **The first routing of a page keeps decision 5's order** (the longest first), because Golden A's routes are its
+     result (decision 9). With the better of the two orders taken there too, Golden A's folios 101, 103, 106 and 203
+     would have 34 crossings for 54 and as many bends (26 routes change, one wire of folio 103 gets a fifth bend);
+     that is a change of Golden A and waits for the owner's word. Until then a page routed for the first time is
+     improved by Reroute.
+   - **No junction on a crossing.** The Wire tool does not end a wire on another at the point where a third wire
+     crosses it: the dot would sit on both wires and read as a joint of four arms.
+
+   Less work on a full page, with the same routes: the search marks the crossings and the mates along each wire
+   instead of testing every node against every wire, and a job with no way between its ends on the grid or the half
+   grid is searched for once in a solve. Golden A's routes and pictures are unchanged.
 
 ## Related
 

@@ -649,9 +649,10 @@ impl ShellModel {
     }
 
     /// `route.reroute` (Reroute, rc.3): the selected connections, and every connection with an end on a selected
-    /// representation, routed again as if freshly drawn; with nothing of the page selected, every connection of the
-    /// page. Applied at once as one `connection.route_many` (one undo step) with only the routes that change; a toast
-    /// says how many wires it rerouted, or that it found no better route and why.
+    /// representation, routed again; with nothing of the page selected, every connection of the page. The solve
+    /// starts from the drawing (ADR-0033 amendment 4): a wire keeps a route that is as good as a new one. Applied at
+    /// once as one `connection.route_many` (one undo step) with only the routes that change; a toast says how many
+    /// wires it rerouted, or that it found no better route and why.
     pub(crate) fn act_route_reroute(&mut self) -> Outcome {
         let Some(c) = self.canvas() else {
             return Outcome::refused(key!("reason-no-page"));

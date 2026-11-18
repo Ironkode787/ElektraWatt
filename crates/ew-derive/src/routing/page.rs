@@ -49,7 +49,7 @@ impl PageGeometry {
     /// number of its grid position; a wire between two such pins on one grid line then holds a step of 1 nm, which is
     /// no corner and no stretch of wire to a reader. The router and the layout measures read the settled page, so
     /// neither depends on two numbers of one grid position being equal. Borrowed, unchanged, on a grid of whole nm.
-    pub(super) fn settled(&self) -> Cow<'_, PageGeometry> {
+    pub fn settled(&self) -> Cow<'_, PageGeometry> {
         let Some(grid) = self.settling_grid() else {
             return Cow::Borrowed(self);
         };
@@ -83,7 +83,7 @@ impl PageGeometry {
     }
 
     /// The point `p` as [`settled`](Self::settled) reads it.
-    pub(super) fn settle(&self, p: Point) -> Point {
+    pub fn settle(&self, p: Point) -> Point {
         match self.settling_grid() {
             Some(grid) => (grid.settle(Nm(p.0)).0, grid.settle(Nm(p.1)).0),
             None => p,

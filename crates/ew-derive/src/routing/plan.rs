@@ -35,6 +35,16 @@
 //! whole grid's is more than 8/5 of it or there is none. A stub point that another pin's wire leaves through is that
 //! wire's, also where it is an end's own stub (two poles wired cross-over).
 //!
+//! **One number for a grid position** (ADR-0033 amendment 4). The solve and [`route_one`] read the settled page
+//! ([`PageGeometry::settled`]): a coordinate within 1 nm of a grid position is the grid's own number, so a step of
+//! 1 nm in a wire between two pins of one grid line is no stretch of wire. A route found there takes its ends' stored
+//! numbers again. A vertex another wire runs straight through is no corner to a route.
+//!
+//! **A reroute** (amendment 4). Jobs with stored routes are not only routed from nothing: the drawing as it is, each
+//! wire routed again against all the others and the new route taken where the old one breaks a hard rule or costs
+//! more as drawn, is rated against the jobs routed from nothing, the shortest first, and the better is taken. A page
+//! routed for the first time (no job has a route) is routed from nothing, the longest first.
+//!
 //! **Reasons.** A job left unrouted names the first rule its free route (against the fixed obstacles alone) breaks:
 //! the search is tried again without the other wires, then also without the texts, then also without the reserved
 //! points, then also without the bodies and the frame; the first relaxation that finds a route names the rule. With

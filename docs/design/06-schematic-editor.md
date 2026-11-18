@@ -1237,7 +1237,14 @@ the wires keep their routes.", each followed by the reasons of the wires left as
 with the selected wire's round handles (Select's segment and bend drag, doc 16a §7.1). *As built (rc.3, ADR-0033
 amendment 3).* The Wire tool and Reroute never put a corner on another wire's corner or end, and where the grid gives
 close pins no route or only one more than 8/5 of the direct way, they step on the half grid between the two ends:
-two two-pole devices wired cross-over, two grid steps apart, cross once between them. The layout measures are the check rules EW-CORE-067 to -070, -072 and -073 (doc 15 §4).
+two two-pole devices wired cross-over, two grid steps apart, cross once between them. *As built (rc.5, ADR-0033
+amendment 4).* Reroute starts from the drawing: each wire is routed again against all the others and takes the new
+route where its old one breaks a hard rule or costs more (steps, bends, crossings, texts), the result is compared
+with the wires routed from nothing, the shortest first, and the better drawing is taken, so a wire that is drawn as
+well as the router would draw it keeps its route and a page is never left worse than it was; the toast's rows about a
+text name the wires that were rerouted. The router and the layout measures read a grid position as one number: a
+step of 1 nm between two pins on one line of a grid of thirds of a nm is no stretch of wire, no bend and no arm of a
+junction. The Wire tool does not end a wire on another where a third wire crosses it. The layout measures are the check rules EW-CORE-067 to -070, -072 and -073 (doc 15 §4).
 
 ### 5.5 Physical wires behind junctions and IPs
 

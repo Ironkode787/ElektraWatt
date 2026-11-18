@@ -9,8 +9,10 @@
 //!
 //! # The measures
 //!
-//! All geometry is exact on integer nm, with no tolerance (0 nm): every point is an integer, the page's grid points
-//! rounded once, so two things on one grid line have equal coordinates. A connection's polyline is taken without its
+//! All geometry is exact on integer nm, read with every grid position as one number: a coordinate within 1 nm of a
+//! position of the page's grid counts as the grid's own number for it ([`PageGeometry::settled`]; on a grid of
+//! thirds of a nm a pin's point is a sum of two rounded numbers and can lie 1 nm beside it), so two things on one
+//! grid line have equal coordinates. No other tolerance applies. A connection's polyline is taken without its
 //! consecutive equal points; its **segments** are the pieces between consecutive points (a polyline of one point is
 //! one segment of no length). A point **lies on** a segment when it is on the closed segment exactly
 //! ([`on_segment`](crate::on_segment)). A segment runs **through** a rectangle when it has points strictly inside it

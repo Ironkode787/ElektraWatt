@@ -147,7 +147,8 @@ start as if drawn anew, without your bends, or stays unrouted: a wire never runs
 The hint says what a click at the pointer does: on another wire it joins that wire with a tee (Alt+Click places a bend
 there instead), on the start point it does nothing. A junction
 that already joins three wires is not an end: the hint says "This junction already joins three wires: end on a wire
-to make a new junction."
+to make a new junction." The point where two wires cross is not an end either (a junction there would join all
+four arms): end on the wire a step beside the crossing.
 
 An unrouted wire, from an import or a placement, is drawn as a dashed line between its ends, straight or with
 one corner and never diagonal, on the page and in the PDF. The line takes no notice of what lies under it: it is
@@ -197,8 +198,10 @@ apart, a wire may step half a grid step to cross the other once instead of going
 
 ## Reroute
 
-Routes the selected wires, and every wire with an end on a selected symbol, again, as if you had drawn them anew;
-with nothing selected, every wire of the page. It applies at once, in one undo step, and the toast says "3 wires
+Routes the selected wires, and every wire with an end on a selected symbol, again; with nothing selected, every
+wire of the page. A wire gets a new route where its own breaks a rule (it lies on another wire, runs through a
+symbol) or where a shorter one with fewer corners and crossings exists; a wire that is drawn well keeps its route,
+so the page is never worse afterwards. It applies at once, in one undo step, and the toast says "3 wires
 rerouted." When no route is better it says "No better route found: the wires keep their routes.", followed by why
 for each wire that no route keeps clear. Open it with Draw ▸ Connect ▸ Reroute, or Reroute in a wire's menu.
 
