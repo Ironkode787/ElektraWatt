@@ -121,6 +121,10 @@ impl ShellModel {
                     } else if rep.device.is_some() {
                         self.device_fits(rep, at, &mut out);
                     }
+                    // A drawn box: Centre the pins (rc.5).
+                    if rep.black_box.is_some() {
+                        out.extend(self.menu_item("box.centre_pins"));
+                    }
                 }
             }
             _ => {}

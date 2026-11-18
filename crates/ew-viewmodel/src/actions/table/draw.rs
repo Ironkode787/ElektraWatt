@@ -1062,6 +1062,16 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         grp(Group::Place),
         |s, _| s.act_box_add_cp(),
     ))),
+    // Centre the pins (rc.5): the one selected black box's pins centred on each side, its size kept.
+    keeps_banner(in_canvas(act(
+        "box.centre_pins",
+        Command,
+        Menu::Edit,
+        &[],
+        one_box,
+        None,
+        |s, _| s.act_box_centre_pins(),
+    ))),
     // End.
     // Text and graphic tools.
     keeps_banner(in_canvas(placed(

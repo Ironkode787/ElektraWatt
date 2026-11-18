@@ -899,6 +899,29 @@ impl ShellModel {
         }
     }
 
+    /// `box.centre_pins` (a black box's right-click, Centre the pins; rc.5): the pins of each side of the one selected
+    /// black box centred on it as a group, its size kept, committed as `box.reshape` with `centre`. A box stored with a
+    /// pin on its corner is put right without a resize.
+    pub(crate) fn act_box_centre_pins(&mut self) -> Outcome {
+        let Some(c) = self.canvas() else {
+            return Outcome::refused(key!("reason-no-page"));
+        };
+        let t = &c.page().tables;
+        let Some(rep) = (match self.selection().items.as_slice() {
+            [one] => t.reps.iter().find(|r| r.id == one.0 && r.black_box.is_some()),
+            _ => None,
+        })
+        .cloned() else {
+            return Outcome::refused(key!("reason-one-black-box"));
+        };
+        let Some(b) = &rep.black_box else {
+            return Outcome::refused(key!("reason-one-black-box"));
+        };
+        let mut cmd = reshape_command(&rep, &b.outline, None);
+        cmd.params["centre"] = Value::Bool(true);
+        self.commit_from_host(cmd.as_ref())
+    }
+
     /// `box.add_cp` (Edit ▸ Add connection point): a CP of the one selected black box at the grid cursor, which must lie
     /// on its outline, with the smallest function CP index the box does not use, leaving along the edge's outward
     /// normal; committed as `box.reshape` with `cps`.

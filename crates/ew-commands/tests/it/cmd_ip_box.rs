@@ -682,6 +682,7 @@ fn reshape(outline: Vec<Pt2>, cps: Option<Vec<BoxCp>>) -> ReshapeBox {
         rep: REP_102F2,
         outline,
         cps,
+        centre: false,
     }
 }
 
@@ -733,8 +734,10 @@ fn reshape_with_cps_replaces_the_outline_and_the_cps_and_routes_follow() {
     assert_eq!(lines(e.model()), before);
 }
 
+/// rc.5 (the owner made a CPU's box smaller and a pin ended on its corner): the pins of a side stay centred on it as
+/// a group when the box is resized, on grid points; a side whose extent did not change keeps them where they are.
 #[test]
-fn reshape_without_cps_widening_keeps_top_and_bottom_cps_where_they_are() {
+fn reshape_without_cps_keeps_each_sides_pins_centred() {
     let mut e = engine(standard_box());
     let before = lines(e.model());
     let outline = rect(20, 12);
@@ -743,14 +746,12 @@ fn reshape_without_cps_widening_keeps_top_and_bottom_cps_where_they_are() {
     let spec = box_of(&e);
     assert_eq!(spec.outline, outline);
     assert_eq!(spec.cps.len(), 2);
-    // The top edge runs left to right from its first vertex: CP 2 keeps its offset, so its position.
+    // Twenty steps wide: the one pin of each side stands in the middle, ten steps in.
     let top = cp_of(&spec, 2);
-    assert_eq!(top.pos, pt(2 * G, 0));
+    assert_eq!(top.pos, pt(grid_at(10).0, 0));
     assert_eq!(top.dir, Dir4::Up);
-    // The bottom edge runs right to left from the moved right vertex; its left vertex kept its x, so it is the anchor
-    // and CP 6 stays where it is.
     let bottom = cp_of(&spec, 6);
-    assert_eq!(bottom.pos, pt(4 * G, grid_at(12).0));
+    assert_eq!(bottom.pos, pt(grid_at(10).0, grid_at(12).0));
     assert_eq!(bottom.dir, Dir4::Down);
     // Every CP lies on the outline and on the grid (absolute positions).
     for c in &spec.cps {
@@ -758,20 +759,96 @@ fn reshape_without_cps_widening_keeps_top_and_bottom_cps_where_they_are() {
         assert!(on_rect_outline(&spec.outline, abs), "CP {} at {abs:?}", c.idx);
         assert!(point_on_grid(grid(), abs), "CP {} at {abs:?}", c.idx);
     }
-    // The wire to the top CP is untouched; the wire to the bottom CP follows its CP.
-    assert_eq!(row(&e, CON_W22).route, vec![pt(3 * G, -G), pt(3 * G, G)]);
+    // The wires follow their CPs.
+    let w22 = row(&e, CON_W22).route;
+    assert_eq!(*w22.last().expect("vertex"), at_box(top.pos));
     let w29 = row(&e, CON_W29).route;
     assert_eq!(w29[0], at_box(bottom.pos));
     assert_eq!(*w29.last().expect("vertex"), pt(9 * G, 7 * G));
     assert!(orthogonal(&w29), "{w29:?}");
     e.undo(&Origin::Gui).expect("undo");
     assert_eq!(lines(e.model()), before);
-    // A corner drag (the bottom-right corner two steps right and two down): the bottom CP keeps its x and follows its
-    // edge down; the top CP stays.
-    e.execute(&reshape(rect(20, 14), None)).expect("box.reshape");
+    // Made two steps higher only: the top and bottom sides keep their extent, so their pins keep their places along
+    // them; the bottom pin goes down with its side.
+    e.execute(&reshape(rect(18, 14), None)).expect("box.reshape");
     let spec = box_of(&e);
     assert_eq!(cp_of(&spec, 6).pos, pt(4 * G, grid_at(14).0));
     assert_eq!(cp_of(&spec, 2).pos, pt(2 * G, 0));
+}
+
+/// The pins of a side keep their order and spacing; where the side becomes too short the spacing closes up, down to
+/// one grid step; shorter still, the box is refused in words, and nothing changes.
+#[test]
+fn a_shorter_side_closes_up_its_pins_and_stops_at_one_step_apart() {
+    let cps = vec![
+        box_cp(2, pt(G, 0), Dir4::Up),
+        box_cp(3, pt(2 * G, 0), Dir4::Up),
+        box_cp(4, pt(3 * G, 0), Dir4::Up),
+        box_cp(6, pt(4 * G, 4 * G), Dir4::Down),
+    ];
+    let mut e = engine(box_model(cps, rect(18, 12)));
+    // Fifteen steps: the three keep their three steps apart, centred (6 steps between first and last pin, from 4).
+    e.execute(&reshape(rect(15, 12), None)).expect("box.reshape");
+    let xs = |e: &Engine| -> Vec<Nm> { [2, 3, 4].map(|i| cp_of(&box_of(e), i).pos.x).to_vec() };
+    assert_eq!(xs(&e), [grid_at(4), grid_at(7), grid_at(10)]);
+    // Six steps: room for four steps between the first and the last, so two apart.
+    e.execute(&reshape(rect(6, 12), None)).expect("box.reshape");
+    assert_eq!(xs(&e), [grid_at(1), grid_at(3), grid_at(5)]);
+    // Four steps: one apart, one to spare at each corner.
+    e.execute(&reshape(rect(4, 12), None)).expect("box.reshape");
+    assert_eq!(xs(&e), [grid_at(1), grid_at(2), grid_at(3)]);
+    let rev = e.model().rev();
+    assert_eq!(
+        rejection(e.execute(&reshape(rect(3, 12), None))),
+        "the symbol of -102F2 is too small for its pins: a side with 3 pins needs at least 4 grid steps; make the box \
+         larger"
+    );
+    assert_eq!(e.model().rev(), rev);
+}
+
+/// Made smaller from its left side, the box's position becomes its new top-left corner, so that its texts (stored
+/// relative to the position) keep their place relative to that corner; the pins stay where the rule puts them.
+#[test]
+fn a_box_made_smaller_from_the_left_takes_its_new_corner_as_its_position() {
+    let mut e = engine(standard_box());
+    let outline = vec![pt(G, 0), pt(6 * G, 0), pt(6 * G, 4 * G), pt(G, 4 * G)];
+    e.execute(&reshape(outline, None)).expect("box.reshape");
+    let r = row(&e, REP_102F2);
+    assert_eq!(r.pos, pt(BOX_POS + G, BOX_POS));
+    let spec = r.box_.expect("a box");
+    assert_eq!(spec.outline, rect(15, 12));
+    // Fifteen steps: the one pin of a side seven steps in (half a step to the left of the middle).
+    assert_eq!(cp_of(&spec, 2).pos, pt(grid_at(7).0, 0));
+    assert_eq!(r.pos + cp_of(&spec, 2).pos, pt(BOX_POS + G + grid_at(7).0, BOX_POS));
+}
+
+/// Centre the pins: a box as stored with a pin on its corner (made smaller before rc.5) puts its pins right without a
+/// resize; a pin moved onto a corner is refused.
+#[test]
+fn centre_the_pins_puts_a_pin_off_its_corner() {
+    let cps = vec![
+        box_cp(2, pt(2 * G, 0), Dir4::Up),
+        box_cp(6, pt(6 * G, 4 * G), Dir4::Down),
+    ];
+    let mut e = engine(box_model(cps, rect(18, 12)));
+    e.execute(&ReshapeBox {
+        centre: true,
+        ..reshape(rect(18, 12), None)
+    })
+    .expect("box.reshape");
+    let spec = box_of(&e);
+    assert_eq!(cp_of(&spec, 2).pos, pt(3 * G, 0));
+    assert_eq!(cp_of(&spec, 6).pos, pt(3 * G, 4 * G));
+    invalid_at(
+        e.execute(&reshape(
+            rect(18, 12),
+            Some(vec![
+                box_cp(2, pt(3 * G, 0), Dir4::Up),
+                box_cp(6, pt(6 * G, 4 * G), Dir4::Down),
+            ]),
+        )),
+        "/cps/1/pos",
+    );
 }
 
 #[test]

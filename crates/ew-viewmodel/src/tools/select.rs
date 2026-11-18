@@ -119,11 +119,13 @@ enum State {
         from: (i64, i64),
         steps: (i64, i64),
     },
-    /// A drag of a grip of the selected black box: `to` the grid point it is at.
+    /// A drag of a grip of the selected black box: `to` the grid point it is at; `held` while it stands where the box's
+    /// pins stop it (rc.5), short of the pointer.
     Grip {
         rep: EntityRef,
         grip: usize,
         to: Option<(i64, i64)>,
+        held: bool,
     },
     /// A drag of a CP of the selected black box along its outline.
     BoxCp {
@@ -1109,6 +1111,7 @@ impl SelectTool {
                 rep: e,
                 grip,
                 to: None,
+                held: false,
             });
         }
         if let Some((_, idx)) = b
@@ -1127,6 +1130,7 @@ impl SelectTool {
             rep: e,
             grip,
             to: None,
+            held: false,
         })
     }
 
@@ -1134,7 +1138,7 @@ impl SelectTool {
     /// `Err` with the refusal the grip itself produces (an inside-out box).
     fn box_command(&self, cx: &ToolCx<'_>) -> Result<Option<Box<ew_api::AnyCommand>>, Key<'static>> {
         Ok(match &self.state {
-            State::Grip { rep, grip, to } => {
+            State::Grip { rep, grip, to, .. } => {
                 let Some(r) = black_box::black_box_rep(cx, *rep) else {
                     return Ok(None);
                 };
@@ -1172,7 +1176,7 @@ impl SelectTool {
         let p = cx.snapper.snap_grid(at).page_nm;
         let grid = PageGridMap::new(cx.page.tables.grid);
         let overlay = match &mut self.state {
-            State::Grip { rep, grip, to } => {
+            State::Grip { rep, grip, to, held } => {
                 *to = Some(p);
                 let Some(r) = black_box::black_box_rep(cx, *rep) else {
                     return ToolOutput::Transient(Overlay::default());
@@ -1180,11 +1184,14 @@ impl SelectTool {
                 let Some(b) = r.black_box.as_ref() else {
                     return ToolOutput::Transient(Overlay::default());
                 };
-                let new = match black_box::reshape_by_grip(&b.outline, *grip, p) {
-                    Ok(new) => new,
+                // The box goes no smaller than its pins need: the grip stops there, and the hint says why (rc.5).
+                let (stop, new) = match black_box::grip_stop(grid, &b.outline, &b.cps, *grip, p) {
+                    Ok(stop) => stop,
                     // An inside-out grip is the same refusal on the drag and on its release; the box stays as it is.
                     Err(reason_key) => return ToolOutput::Refused(reason_key),
                 };
+                *held = stop != p;
+                *to = Some(stop);
                 Some(black_box::reshape_overlay(cx, &new, &[]))
             }
             State::BoxCp { rep, idx, to } => {
@@ -1624,6 +1631,9 @@ impl Tool for SelectTool {
 
     fn status_hint(&self) -> super::Hint {
         match self.state {
+            State::Grip { held: true, .. } => {
+                super::Hint::new(key!("hint-box-pins-room"), &[super::ENTER, super::ESCAPE])
+            }
             State::Dragging { .. }
             | State::Moving { .. }
             | State::Segment { .. }

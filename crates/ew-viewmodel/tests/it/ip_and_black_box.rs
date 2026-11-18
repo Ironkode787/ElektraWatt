@@ -619,10 +619,22 @@ fn check_widened(s: &ShellModel, before: &TableRep, connected: usize) {
     for c in &b1.cps {
         assert!(on_outline(&b1.outline, c.1), "CP {} at {:?}", c.0, c.1);
     }
-    // The CPs of the top and bottom edges stay where they were (the re-projection's anchor).
-    for (idx, p, _) in &b0.cps {
-        let q = b1.cps.iter().find(|c| c.0 == *idx).unwrap().1;
-        assert_eq!(q, *p, "CP {idx} stays");
+    // The CPs of the top and bottom edges move as a group: their spacing kept, the group centred on the wider edge
+    // (rc.5).
+    let (left, right) = (index_of(s, b1.outline[0]).0, index_of(s, b1.outline[1]).0);
+    for y in [b1.outline[0].1, b1.outline[2].1] {
+        let xs = |cps: &[(u16, (i64, i64), ew_viewmodel::ew_api::geometry::Dir)]| -> Vec<i64> {
+            let mut v: Vec<(u16, i64)> =
+                cps.iter().filter(|c| c.1.1 == y).map(|c| (c.0, index_of(s, c.1).0)).collect();
+            v.sort_unstable();
+            v.into_iter().map(|c| c.1).collect()
+        };
+        let (old, new) = (xs(&b0.cps), xs(&b1.cps));
+        assert_eq!(old.len(), new.len());
+        let gaps = |v: &[i64]| v.windows(2).map(|w| w[1] - w[0]).collect::<Vec<_>>();
+        assert_eq!(gaps(&old), gaps(&new), "the spacing kept");
+        let (first, last) = (*new.iter().min().unwrap(), *new.iter().max().unwrap());
+        assert!(((first - left) - (right - last)).abs() <= 1, "centred: {new:?} in {left}..{right}");
     }
     let f = ew_viewmodel::ew_api::output::ew_dl::EntityRef(after.functions[0]);
     let ends = ends_at(&t, f);
@@ -679,6 +691,45 @@ fn widening_g1_by_two_grid_steps_keeps_its_cps_on_the_outline_and_connected() {
     done(&mut s, "canvas.release", at(to, json!({})));
     assert_eq!(s.revision(), rev.map(|r| r + 1));
     check_widened(&s, &before, connected);
+}
+
+/// rc.5: a box's right-click offers Centre the pins, which centres the pins of each side without a resize (the
+/// owner's box stored with a pin on its corner is put right so), one undo step; the wires stay at their pins.
+#[test]
+fn centre_the_pins_from_a_boxs_right_click() {
+    let tmp = Tmp::new("centre-pins");
+    let mut s = actual_size(&tmp, "102");
+    let before = g1(&tables(&s));
+    select_ids(&mut s, &[before.id.to_string()]);
+    let menu = ew_viewmodel::command_bar::canvas_menu(&s, ew_viewmodel::command_bar::MenuSpot::Object, None);
+    let item = menu
+        .iter()
+        .find(|i| i.id == "box.centre_pins")
+        .expect("Centre the pins");
+    assert_eq!(item.label, "Centre the pins");
+    assert!(item.enabled);
+    let rev = s.revision();
+    done(&mut s, "box.centre_pins", json!({}));
+    assert_eq!(s.revision(), rev.map(|r| r + 1));
+    let t = tables(&s);
+    let after = g1(&t);
+    let b = after.black_box.as_ref().unwrap();
+    assert_eq!(b.outline, before.black_box.as_ref().unwrap().outline, "the size kept");
+    let (left, right) = (index_of(&s, b.outline[0]).0, index_of(&s, b.outline[1]).0);
+    let top: Vec<i64> = b
+        .cps
+        .iter()
+        .filter(|c| c.1.1 == b.outline[0].1)
+        .map(|c| index_of(&s, c.1).0)
+        .collect();
+    let (first, last) = (*top.iter().min().unwrap(), *top.iter().max().unwrap());
+    assert!(((first - left) - (right - last)).abs() <= 1, "{top:?} in {left}..{right}");
+    let f = ew_viewmodel::ew_api::output::ew_dl::EntityRef(after.functions[0]);
+    for (_, idx, end) in ends_at(&t, f) {
+        assert_eq!(end, b.cps.iter().find(|c| c.0 == idx).unwrap().1, "the wire of CP {idx}");
+    }
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(g1(&tables(&s)).black_box, before.black_box);
 }
 
 #[test]

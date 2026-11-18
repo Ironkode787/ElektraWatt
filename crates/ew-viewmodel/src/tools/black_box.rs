@@ -907,6 +907,80 @@ pub fn reshape_by_grip(
     Ok(out)
 }
 
+/// Whether the pins `cps` of the box `outline` (page nm) still fit when its outline becomes `new` (the same vertices
+/// moved), on the edges along x (`along_x`) or along y: an axis-aligned edge whose extent along its axis changed is at
+/// least one grid step longer than the steps its pins need one step apart (one to spare at each corner), as
+/// `box.reshape` re-centres them (rc.5). A pin belongs to the edge it lies on, at a corner to the one it leaves by
+/// its direction.
+fn pins_fit(grid: PageGridMap, outline: &[(i64, i64)], cps: &[BoxCpAt], new: &[(i64, i64)], along_x: bool) -> bool {
+    let n = outline.len();
+    let area = signed_area2(outline);
+    (0..n).all(|i| {
+        let (a, b) = (outline[i], outline[(i + 1) % n]);
+        let (na, nb) = (new[i], new[(i + 1) % n]);
+        let horizontal = na.1 == nb.1 && na.0 != nb.0;
+        let axis = |p: (i64, i64)| if horizontal { p.0 } else { p.1 };
+        if horizontal != along_x || (na.0 != nb.0 && na.1 != nb.1) {
+            return true;
+        }
+        if (axis(a).min(axis(b)), axis(a).max(axis(b))) == (axis(na).min(axis(nb)), axis(na).max(axis(nb))) {
+            return true;
+        }
+        let mut at: Vec<i64> = cps
+            .iter()
+            .filter(|(_, p, dir)| {
+                let edge = |j: usize| on_outline(&[outline[j], outline[(j + 1) % n]], *p);
+                let leaves = |j: usize| outward(outline[j], outline[(j + 1) % n], area) == Some(*dir);
+                let mine = (0..n).filter(|j| edge(*j)).collect::<Vec<_>>();
+                mine.iter().find(|j| leaves(**j)).or(mine.first()) == Some(&i)
+            })
+            .map(|(_, p, _)| axis(*p))
+            .collect();
+        at.sort_unstable();
+        at.dedup();
+        let steps = (grid.index(axis(nb)) - grid.index(axis(na))).abs();
+        at.is_empty() || steps >= i64::try_from(at.len()).unwrap_or(i64::MAX) + 1
+    })
+}
+
+/// Where grip `grip` of the box `outline` with the pins `cps` stops when dragged to the grid point `to` (page nm), and
+/// the outline there: at `to`, else, where the pins would not fit ([`pins_fit`]), as near to `to` as they fit, moved
+/// back towards the grip's own point a grid step at a time on each axis that is too short. Errors as
+/// [`reshape_by_grip`].
+pub fn grip_stop(
+    grid: PageGridMap,
+    outline: &[(i64, i64)],
+    cps: &[BoxCpAt],
+    grip: usize,
+    to: (i64, i64),
+) -> Result<((i64, i64), Vec<(i64, i64)>), Key<'static>> {
+    let home = grip_points(outline).get(grip).copied().unwrap_or(to);
+    let mut at = to;
+    let mut new = reshape_by_grip(outline, grip, at)?;
+    for along_x in [true, false] {
+        let toward = |v: i64, h: i64| {
+            let k = grid.index(v);
+            grid.coord(if h > v { k + 1 } else { k - 1 })
+        };
+        while !pins_fit(grid, outline, cps, &new, along_x) {
+            let (v, h) = if along_x { (at.0, home.0) } else { (at.1, home.1) };
+            if v == h {
+                break;
+            }
+            let next = toward(v, h);
+            // Never past the grip's own point.
+            let next = if (h - v).abs() < (next - v).abs() { h } else { next };
+            if along_x {
+                at.0 = next;
+            } else {
+                at.1 = next;
+            }
+            new = reshape_by_grip(outline, grip, at)?;
+        }
+    }
+    Ok((at, new))
+}
+
 /// The outward normal of edge `a`–`b` of a polygon with the signed area `area2`; `None` for an edge that is not
 /// axis-aligned.
 pub fn outward(a: (i64, i64), b: (i64, i64), area2: i128) -> Option<Dir> {
@@ -919,7 +993,8 @@ pub fn outward(a: (i64, i64), b: (i64, i64), area2: i128) -> Option<Dir> {
 }
 
 /// The grid point on the outline (page nm) nearest to `p`, with the edge's outward normal: per axis-aligned edge the
-/// point projected, clamped and snapped along it; ties by the smaller edge index. `None` without such an edge.
+/// point projected, clamped and snapped along it, a grid step clear of both corners where the edge is long enough (a
+/// pin never stands on a corner, rc.5); ties by the smaller edge index. `None` without such an edge.
 pub fn nearest_on_outline(
     grid: PageGridMap,
     outline: &[(i64, i64)],
@@ -929,6 +1004,12 @@ pub fn nearest_on_outline(
     let area = signed_area2(outline);
     let snap_between = |t: i64, a: i64, b: i64| {
         let (lo, hi) = (a.min(b), a.max(b));
+        let (inner_lo, inner_hi) = (grid.coord(grid.index(lo) + 1), grid.coord(grid.index(hi) - 1));
+        let (lo, hi) = if inner_lo <= inner_hi && lo < inner_lo && inner_hi < hi {
+            (inner_lo, inner_hi)
+        } else {
+            (lo, hi)
+        };
         let t = t.clamp(lo, hi);
         let k = grid.index(t);
         [k - 1, k, k + 1]
@@ -1205,7 +1286,33 @@ mod tests {
         );
         assert!(on_outline(&r, (10_000_000, 2_000_000)));
         assert!(!on_outline(&r, (9_000_000, 2_000_000)));
+        // Past a corner: a step clear of it, never on it (rc.5).
+        assert_eq!(
+            nearest_on_outline(g, &r, (-1_000_000, -1_000_000)),
+            Some(((1_000_000, 0), Dir::Up))
+        );
         assert_eq!(orient_inverse(1), 3);
         assert_eq!(orient_inverse(5), 5);
+    }
+
+    /// rc.5: a box made smaller goes no smaller than its pins need, one grid step each and one to spare at each corner:
+    /// the grip stops there; a side whose length does not change does not hold it.
+    #[test]
+    fn a_grip_stops_where_the_pins_need_the_room() {
+        let g = PageGridMap::new((1_000_000, 1));
+        let r = vec![(0, 0), (10_000_000, 0), (10_000_000, 5_000_000), (0, 5_000_000)];
+        let cps: Vec<BoxCpAt> = [2, 5, 8]
+            .into_iter()
+            .zip(0..)
+            .map(|(x, i)| (i, (x * 1_000_000, 0), Dir::Up))
+            .collect();
+        // The right edge's grip (5: the midpoint of v1v2) dragged to x 2: three pins need four steps.
+        let (at, new) = grip_stop(g, &r, &cps, 5, (2_000_000, 2_000_000)).unwrap();
+        assert_eq!(at, (4_000_000, 2_000_000));
+        assert_eq!(new[1].0, 4_000_000);
+        // To x 6 it goes all the way.
+        assert_eq!(grip_stop(g, &r, &cps, 5, (6_000_000, 2_000_000)).unwrap().0, (6_000_000, 2_000_000));
+        // The bottom edge's grip (6) up to y 1: the top and bottom sides keep their length, nothing holds it.
+        assert_eq!(grip_stop(g, &r, &cps, 6, (3_000_000, 1_000_000)).unwrap().0, (3_000_000, 1_000_000));
     }
 }

@@ -28,23 +28,29 @@ use crate::tx::TxBuilder;
 ///   least three vertices, each on the page's connection grid in absolute terms (`pos + orient(v)`).
 /// - **With `cps`** the box's CPs are replaced: function CP indices distinct, each CP on the grid in absolute terms
 ///   and on the outline (on an edge `v(i) v(i+1)`, the outline closed).
-/// - **Without `cps`** every CP is re-projected (doc 06 §8 item 13): it keeps the index of the edge it lay on (the
-///   first edge containing it, in outline order) and its offset from the edge's anchor (measured along the edge's
-///   axis), clamped to the new edge's length and snapped to the grid point along the edge nearest to it (ties toward
-///   the anchor); its direction is kept. The anchor is the endpoint whose coordinate along the edge did not change,
-///   the first vertex when both or neither kept it (so the CPs of a rectangle's bottom edge stay where they are when
-///   its right edge or a corner moves). A CP whose edge index no longer exists, or that
-///   lay on no edge, moves to the nearest grid point on the nearest remaining edge (ties by the smaller edge index)
-///   and leaves along that edge's outward normal, listed as a notice. On an edge that is neither horizontal nor
-///   vertical the grid point is the edge's first vertex (polygon outlines are a follow-up),
-///   also listed as a notice.
-/// - Inner graphics are kept. Routes of the connections on the page at the box's CPs follow each moved CP
-///   (`geometry::follow_end`).
+/// - **Without `cps`** every CP is re-projected (doc 06 §8 item 13, rc.5): it keeps the index of the edge it lay on
+///   (the first edge containing it, in outline order; on a corner the edge it leaves by its direction) and its
+///   direction. The CPs of one edge keep their order and
+///   their spacing and stand centred on the new edge as a group, on grid points, at least one grid step from both
+///   corners (half a step towards the edge's smaller coordinate when they cannot be centred exactly); where the edge
+///   is shorter than they need, the spacing closes up, each gap to at most the largest whole number of steps that
+///   lets them fit, down to one step. An edge whose extent along its axis did not change keeps its CPs where they
+///   are along it (the edge may have moved across), unless `centre` asks for every edge to be centred (Centre the
+///   pins). A CP whose edge index no longer exists, or that lay on no edge, moves to the nearest grid point on the
+///   nearest remaining edge (ties by the smaller edge index) and leaves along that edge's outward normal, listed as a
+///   notice. On an edge that is neither horizontal nor vertical the grid point is the edge's first vertex (polygon
+///   outlines are a follow-up), also listed as a notice.
+/// - The representation's position becomes the outline's smallest corner (its top-left one unturned): the outline,
+///   the CPs and the inner graphics are stored relative to it, so the box's texts, which stand relative to the
+///   position, keep their place relative to that corner when the box is made smaller or larger from its left or top.
+/// - Inner graphics keep their place on the page. Routes of the connections on the page at the box's CPs follow each
+///   moved CP (`geometry::follow_end`).
 ///
 /// Rejected: a representation that does not exist or has no box; fewer than three outline vertices or one off the
-/// grid; with `cps`, two CPs with one index, a CP off the grid or off the outline; a box CP that a connection on
-/// the page ends at and that the new CPs no longer draw (keep it in `cps`). Interactive. Outcome: the
-/// representation.
+/// grid; with `cps`, two CPs with one index, a CP off the grid or off the outline, or one moved onto a corner of the
+/// outline; without `cps`, an edge too short for the CPs it carries (one grid step apart and one to spare at each
+/// corner); a box CP that a connection on the page ends at and that the new CPs no longer draw (keep it in `cps`).
+/// Interactive. Outcome: the representation.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ReshapeBox {
@@ -57,6 +63,9 @@ pub struct ReshapeBox {
     /// The new connection points; absent re-projects the current ones.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cps: Option<Vec<BoxCp>>,
+    /// Without `cps`: centre the CPs of every edge, also of an edge whose extent did not change (Centre the pins).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub centre: bool,
 }
 
 /// The direction of a unit vector.
@@ -88,22 +97,6 @@ fn snap_between(grid: Grid, target: i64, a: i64, b: i64) -> i64 {
         }
     }
     best
-}
-
-/// The point at offset `d` (clamped) from `a` along the edge `a`–`b`, snapped to the grid along the edge; `None` on
-/// an edge that is neither horizontal nor vertical.
-fn along(grid: Grid, a: Pt2, b: Pt2, d: i64) -> Option<Pt2> {
-    if a.y == b.y {
-        let len = (b.x.0 - a.x.0).abs();
-        let t = a.x.0 + (b.x.0 - a.x.0).signum() * d.min(len);
-        Some(Pt2::new(Nm(snap_between(grid, t, a.x.0, b.x.0)), a.y))
-    } else if a.x == b.x {
-        let len = (b.y.0 - a.y.0).abs();
-        let t = a.y.0 + (b.y.0 - a.y.0).signum() * d.min(len);
-        Some(Pt2::new(a.x, Nm(snap_between(grid, t, a.y.0, b.y.0))))
-    } else {
-        None
-    }
 }
 
 /// The grid point on the edge `a`–`b` nearest to `p` (an axis-aligned edge: `p` projected, clamped and snapped
@@ -152,6 +145,75 @@ fn outward(a: Pt2, b: Pt2, area2: i128) -> Option<Dir4> {
 fn edges(poly: &[Pt2]) -> impl Iterator<Item = (usize, Pt2, Pt2)> + '_ {
     let n = poly.len();
     (0..n).map(move |i| (i, poly[i], poly[(i + 1) % n]))
+}
+
+/// The grid coordinates of CPs that stood at `at` (along one axis, in their order along it) centred as a group on the
+/// edge from `a` to `b` (coordinates along the same axis), on grid points at least one step inside both ends: the
+/// gaps kept, else each closed up to the largest whole number of steps that lets them fit, down to one step; `None`
+/// when even one step apart they do not fit.
+fn centred(grid: Grid, a: i64, b: i64, at: &[i64]) -> Option<Vec<i64>> {
+    let (lo, hi) = (a.min(b), a.max(b));
+    let mut first = grid.snap(Nm(lo));
+    if grid.at(first)?.0 < lo {
+        first += 1;
+    }
+    let mut last = grid.snap(Nm(hi));
+    if grid.at(last)?.0 > hi {
+        last -= 1;
+    }
+    // The steps between the first and the last CP's places, one step inside each corner.
+    let room = last.checked_sub(first)?.checked_sub(2)?;
+    let ks: Vec<i64> = at.iter().map(|x| grid.snap(Nm(*x))).collect();
+    let gaps: Vec<i64> = ks.windows(2).map(|w| (w[1] - w[0]).abs()).collect();
+    let fits = |cap: i64| gaps.iter().map(|g| (*g).min(cap)).sum::<i64>() <= room;
+    let mut cap = gaps.iter().copied().max().unwrap_or(0);
+    if !fits(cap) {
+        if !fits(1) {
+            return None;
+        }
+        // The largest cap that fits, by halving the interval (the gaps can be long on a long edge).
+        let (mut ok, mut bad) = (1, cap);
+        while bad - ok > 1 {
+            let mid = ok + (bad - ok) / 2;
+            if fits(mid) {
+                ok = mid;
+            } else {
+                bad = mid;
+            }
+        }
+        cap = ok;
+    }
+    let span: i64 = gaps.iter().map(|g| (*g).min(cap)).sum();
+    let mut k = first + 1 + (room - span) / 2;
+    let mut out = Vec::with_capacity(at.len());
+    for i in 0..at.len() {
+        if i > 0 {
+            k += gaps[i - 1].min(cap);
+        }
+        out.push(grid.at(k)?.0);
+    }
+    Some(out)
+}
+
+/// `shape` moved by `d`.
+fn shift_primitive(shape: &mut ew_schema::Primitive, d: Pt2) {
+    use ew_schema::Primitive as P;
+    let bounds = |r: &mut ew_schema::Bounds| r.0 = ew_units::Rect::from_points(r.0.min() + d, r.0.max() + d);
+    match shape {
+        P::Line(l) => {
+            l.from = l.from + d;
+            l.to = l.to + d;
+        }
+        P::Polyline(p) => p.points.iter_mut().for_each(|q| *q = *q + d),
+        P::Polygon(p) => p.points.iter_mut().for_each(|q| *q = *q + d),
+        P::Rect(r) => bounds(&mut r.rect),
+        P::Ellipse(e) => bounds(&mut e.rect),
+        P::Arc(a) => bounds(&mut a.rect),
+        P::Image(i) => bounds(&mut i.rect),
+        P::Circle(c) => c.centre = c.centre + d,
+        P::Text(t) => t.pos = t.pos + d,
+        P::Unknown(_) => {}
+    }
 }
 
 impl Command for ReshapeBox {
@@ -228,41 +290,51 @@ impl Command for ReshapeBox {
                             text!("refusal-box-reshape-cp-off-outline"),
                         ));
                     }
+                    // A pin never stands on a corner; one stored there stays until it is moved (rc.5).
+                    let kept = old.cps.iter().any(|c| c.idx == cp.idx && c.pos == cp.pos);
+                    if !kept && new_abs.contains(&p) {
+                        return Err(CmdError::invalid_params(
+                            Self::NAME,
+                            format!("/cps/{i}/pos"),
+                            text!("refusal-box-reshape-cp-on-corner"),
+                        ));
+                    }
                 }
                 cps.clone()
             }
             None => {
                 let area = signed_area2(&new_abs);
-                let mut out = Vec::with_capacity(old.cps.len());
-                for cp in &old.cps {
+                let old_area = signed_area2(&old_abs);
+                // Each CP's new point and direction; the CPs of an axis-aligned edge are placed as a group below.
+                let mut placed: Vec<Option<(Pt2, Dir4)>> = vec![None; old.cps.len()];
+                let mut groups: BTreeMap<usize, Vec<(usize, Pt2)>> = BTreeMap::new();
+                for (k, cp) in old.cps.iter().enumerate() {
                     let Ok(p) = abs(cp.pos) else {
                         return out_of_range(tx);
                     };
-                    let edge = edges(&old_abs).find(|(_, a, b)| on_segment(p, *a, *b));
-                    let (at, dir) = match edge {
-                        Some((i, a, b)) if i < new_abs.len() => {
+                    // Of two edges at a corner, the one the CP leaves by its direction.
+                    let containing: Vec<(usize, Pt2, Pt2)> =
+                        edges(&old_abs).filter(|(_, a, b)| on_segment(p, *a, *b)).collect();
+                    let leaves = |a: Pt2, b: Pt2| {
+                        outward(a, b, old_area).and_then(|d| ew_derive::oriented_dir(&d, inverse)) == Some(cp.dir.clone())
+                    };
+                    let edge = containing
+                        .iter()
+                        .find(|(_, a, b)| leaves(*a, *b))
+                        .or(containing.first())
+                        .copied();
+                    match edge {
+                        Some((i, ..)) if i < new_abs.len() => {
                             let (na, nb) = (new_abs[i], new_abs[(i + 1) % new_abs.len()]);
-                            // The anchor: the edge's endpoint whose coordinate along the edge did not change (the
-                            // second when only it kept it), else the first vertex.
-                            let along_x = na.y == nb.y && na.x != nb.x;
-                            let along_y = na.x == nb.x && na.y != nb.y;
-                            let kept = |o: Pt2, n: Pt2| (along_x && o.x == n.x) || (along_y && o.y == n.y);
-                            let (from, to, anchor) = if !kept(a, na) && kept(b, nb) {
-                                (nb, na, b)
+                            if na.x == nb.x || na.y == nb.y {
+                                groups.entry(i).or_default().push((k, p));
                             } else {
-                                (na, nb, a)
-                            };
-                            let d = (p.x.0 - anchor.x.0).abs().max((p.y.0 - anchor.y.0).abs());
-                            match along(grid, from, to, d) {
-                                Some(q) => (q, cp.dir.clone()),
-                                None => {
-                                    notices.push(format!(
-                                        "connection point {} moved to the first vertex of edge {i}, which is not \
-                                         horizontal or vertical",
-                                        cp.idx
-                                    ));
-                                    (na, cp.dir.clone())
-                                }
+                                notices.push(format!(
+                                    "connection point {} moved to the first vertex of edge {i}, which is not \
+                                     horizontal or vertical",
+                                    cp.idx
+                                ));
+                                placed[k] = Some((na, cp.dir.clone()));
                             }
                         }
                         _ => {
@@ -283,10 +355,49 @@ impl Command for ReshapeBox {
                                     cp.idx
                                 ),
                             });
-                            (q, dir)
+                            placed[k] = Some((q, dir));
+                        }
+                    }
+                }
+                for (i, mut group) in groups {
+                    let (a, b) = (old_abs[i], old_abs[(i + 1) % old_abs.len()]);
+                    let (na, nb) = (new_abs[i], new_abs[(i + 1) % new_abs.len()]);
+                    // Along x on a horizontal edge, else along y.
+                    let along_x = na.y == nb.y && na.x != nb.x;
+                    let coord = |p: Pt2| if along_x { p.x.0 } else { p.y.0 };
+                    let onto = |c: i64| {
+                        if along_x {
+                            Pt2::new(Nm(c), na.y)
+                        } else {
+                            Pt2::new(na.x, Nm(c))
                         }
                     };
-                    let Ok(pos) = rel(at) else { return out_of_range(tx) };
+                    group.sort_by_key(|(k, p)| (coord(*p), *k));
+                    let extent = |p: Pt2, q: Pt2| (coord(p).min(coord(q)), coord(p).max(coord(q)));
+                    let at: Vec<i64> = group.iter().map(|(_, p)| coord(*p)).collect();
+                    let points = if !self.centre && extent(a, b) == extent(na, nb) {
+                        at
+                    } else {
+                        let Some(points) = centred(grid, coord(na), coord(nb), &at) else {
+                            return tx.reject(text!(
+                                "refusal-box-reshape-too-small",
+                                crate::words::symbol(tx, self.rep),
+                                group.len().to_string(),
+                                (group.len() + 1).to_string()
+                            ));
+                        };
+                        points
+                    };
+                    for ((k, _), c) in group.iter().zip(points) {
+                        placed[*k] = Some((onto(c), old.cps[*k].dir.clone()));
+                    }
+                }
+                let mut out = Vec::with_capacity(old.cps.len());
+                for (cp, at) in old.cps.iter().zip(placed) {
+                    let Some((at, dir)) = at else { continue };
+                    let Ok(pos) = rel(at) else {
+                        return out_of_range(tx);
+                    };
                     out.push(BoxCp {
                         idx: cp.idx,
                         pos,
@@ -336,11 +447,36 @@ impl Command for ReshapeBox {
             }
         }
         follow_moved_cps(tx, rep.page, grid, &moves, text!("refusal-move-what-reshape"))?;
+        // The position becomes the outline's smallest corner; what is stored relative to it moves the other way.
+        let corner = Pt2::new(
+            self.outline.iter().map(|v| v.x).min().unwrap_or(Nm::ZERO),
+            self.outline.iter().map(|v| v.y).min().unwrap_or(Nm::ZERO),
+        );
+        let Ok(pos) = abs(corner) else {
+            return out_of_range(tx);
+        };
+        let back = |v: Pt2| sub(v, corner);
+        let (Ok(outline), Ok(cps)) = (
+            self.outline
+                .iter()
+                .map(|v| back(*v))
+                .collect::<Result<Vec<Pt2>, OutOfRange>>(),
+            cps.into_iter()
+                .map(|c| back(c.pos).map(|pos| BoxCp { pos, ..c }))
+                .collect::<Result<Vec<BoxCp>, OutOfRange>>(),
+        ) else {
+            return out_of_range(tx);
+        };
+        let mut inner = old.inner.clone();
+        for shape in &mut inner {
+            shift_primitive(shape, Pt2::ORIGIN - corner);
+        }
         let mut next = (*rep).clone();
+        next.pos = pos;
         next.box_ = Some(BoxSpec {
-            outline: self.outline.clone(),
+            outline,
             cps,
-            inner: old.inner.clone(),
+            inner,
             slots: None,
             extra: old.extra.clone(),
         });
