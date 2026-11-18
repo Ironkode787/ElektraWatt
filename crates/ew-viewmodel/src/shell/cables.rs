@@ -347,6 +347,37 @@ pub(super) fn retype(session: Option<&ew_api::Session>, wires: &[Uuid], form: &m
             *cell = core;
         }
     }
+    // A new cable (its form asks for a part) says at once which wire the type leaves without a core, and why (rc.3:
+    // three wires listed, the cable made from two, nothing said).
+    if form.fields.iter().any(|f| f.name == "part") {
+        let rows: Vec<(String, String)> = table
+            .rows
+            .iter()
+            .map(|r| (r.key.clone(), r.cells.first().cloned().unwrap_or_default()))
+            .collect();
+        if let Some(message) = coreless(&cores, &rows) {
+            form.error = Some(message);
+        }
+    }
+}
+
+/// Why the first of `rows` (a wire in words, its core) has no core of the type `cores`, in a sentence: the type's
+/// only free cores are green-yellow, kept for a protective conductor, or it has none free; `None` when every row has
+/// a core.
+fn coreless(cores: &[ew_api::window::TypeCore], rows: &[(String, String)]) -> Option<String> {
+    let (wire, _) = rows.iter().find(|(_, core)| core.trim().is_empty())?;
+    let free_green_yellow = cores
+        .iter()
+        .filter(|c| !rows.iter().any(|(_, core)| core.trim() == c.core))
+        .any(|c| c.colour.iter().map(String::as_str).eq(["GN", "YE"]));
+    Some(if free_green_yellow {
+        strings::format(key!("error-cable-wire-no-core-pe"), &[wire])
+    } else {
+        strings::format(
+            key!("error-cable-wire-no-core"),
+            &[wire, &cores.len().to_string()],
+        )
+    })
 }
 
 impl ShellModel {
@@ -544,6 +575,21 @@ impl ShellModel {
                 }
             },
         };
+        // Every selected wire becomes a core of a new cable, or nothing is made and the form says which wire cannot.
+        if cable.is_none() {
+            let cores = project
+                .session
+                .cable_type(&type_text)
+                .map(|(c, _)| c)
+                .unwrap_or_default();
+            let words: Vec<(String, String)> = rows
+                .iter()
+                .map(|(w, core)| (self.wire_words(*w), core.clone()))
+                .collect();
+            if let Some(message) = coreless(&cores, &words).filter(|_| !cores.is_empty()) {
+                return self.form_failed(FROM_WIRES, message);
+            }
+        }
         let commands = match project.session.cable_apply(cable, frozen, &type_text, &rows) {
             Ok(commands) => commands,
             Err(refused) => {

@@ -246,12 +246,16 @@ impl Session {
     }
 
     /// The cable parts that fit the wires `wires` (rc.3, the Cable form's type list): power and control cables (each
-    /// core states its cross-section, which a bus cable's do not) with at least as many cores (shields left out) as
-    /// there are wires, and a green-yellow core where a wire's potential says PE; the closest core count first, then
+    /// core states its cross-section, which a bus cable's do not) with a core for every wire: a green-yellow one for
+    /// each wire whose potential says PE, and one of another colour for each other wire (a green-yellow core is never
+    /// given to another wire, so a 3G cable takes two wires that are no PE); the closest core count first, then
     /// the cross-section of the size `proposed`, then unshielded, then by number. Each is its number and its words,
     /// `number · 3G1.5 · BN BU GNYE`.
     pub fn cable_parts_for(&self, wires: &[Uuid], proposed: &str) -> Vec<(String, String)> {
-        let pe = self.wires_say_pe(wires);
+        let pe_wires = wires
+            .iter()
+            .filter(|w| self.wires_say_pe(std::slice::from_ref(*w)))
+            .count();
         let want = written_type(proposed).map(|t| t.2.to_string());
         let mut fit: Vec<(usize, bool, bool, String, String)> = Vec::new();
         for offer in self.layout_part_offers("cable") {
@@ -264,9 +268,15 @@ impl Session {
                 .unwrap_or_default();
             let shielded = all.iter().any(|c| c["shield"] == Value::Bool(true));
             let cores: Vec<&Value> = all.iter().filter(|c| c["shield"] != Value::Bool(true)).collect();
-            let green_yellow = cores.iter().any(|c| c["colour"] == json!(["GN", "YE"]));
+            let green_yellow_cores = cores
+                .iter()
+                .filter(|c| c["colour"] == json!(["GN", "YE"]))
+                .count();
+            let green_yellow = green_yellow_cores > 0;
             let csas: BTreeSet<Option<&str>> = cores.iter().map(|c| c["csa"].as_str()).collect();
-            if csas.is_empty() || csas.contains(&None) || cores.len() < wires.len() || (pe && !green_yellow) {
+            let short =
+                cores.len() - green_yellow_cores < wires.len() - pe_wires || green_yellow_cores < pe_wires;
+            if csas.is_empty() || csas.contains(&None) || short {
                 continue;
             }
             let csa = match csas.into_iter().collect::<Vec<_>>().as_slice() {

@@ -141,3 +141,97 @@ fn a_cables_part_row_takes_a_catalogue_cable_and_its_cores_follow() {
     d.shell_mut().shutdown();
 }
 
+/// The persona run: three wires selected, the cable's form listed three but its type gave the third no core, the toast
+/// said "made from 2 wires" and nothing said why. The form offers only types with a core for every wire; a type
+/// typed that leaves a wire without one says which wire and why before Apply, and Apply makes nothing then. The
+/// cable's Part row refuses a part with fewer cores than its wires in a sentence.
+#[test]
+fn every_selected_wire_becomes_a_core_or_the_form_says_which_cannot() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    let pixel = named_wires(&mut d, &["L1", "L2", "L3"]);
+    for (i, mods) in [
+        egui::Modifiers::NONE,
+        egui::Modifiers::SHIFT,
+        egui::Modifiers::SHIFT,
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let at = crate::wires_and_cables::on_wire(&mut d, &pixel, i);
+        d.input(&Input::Hover { at });
+        d.input(&Input::Click {
+            at,
+            button: egui::PointerButton::Primary,
+            mods,
+        });
+        d.settle();
+    }
+    d.input(&click(d.find("Cable").expect("Cable on the Draw tab")));
+    d.settle();
+    let cores = |d: &mut Driver| match d.shell_mut().dialog() {
+        Some(Dialog::Form(f)) => f
+            .table
+            .as_ref()
+            .unwrap()
+            .rows
+            .iter()
+            .map(|r| r.cells[0].clone())
+            .collect::<Vec<_>>(),
+        other => panic!("not the Cable form: {other:?}"),
+    };
+    match d.shell_mut().dialog() {
+        Some(Dialog::Form(f)) => {
+            let part = &f.fields[0];
+            assert!(
+                !part.options.iter().any(|o| o.1.contains(" \u{b7} 3G")),
+                "a 3G cable has two cores for three wires: {:?}",
+                part.options
+            );
+            assert!(f.error.is_none(), "{:?}", f.error);
+        }
+        other => panic!("not the Cable form: {other:?}"),
+    }
+    assert!(cores(&mut d).iter().all(|c| !c.is_empty()), "{:?}", cores(&mut d));
+    // 3G1.5 typed: the third wire gets no core, and the form says so before Apply.
+    d.input(&key("tab"));
+    d.input(&typed("3G1.5"));
+    d.settle();
+    assert_eq!(cores(&mut d)[2], "");
+    let said = match d.shell_mut().dialog() {
+        Some(Dialog::Form(f)) => f.error.clone().unwrap_or_default(),
+        _ => String::new(),
+    };
+    assert!(
+        said.contains("gets no core") && said.contains("green-yellow"),
+        "{said}"
+    );
+    d.input(&click(d.find("Apply").unwrap()));
+    d.settle();
+    assert!(d.shell_mut().dialog().is_some(), "nothing made");
+    // A type with a core for each: the cable of all three.
+    d.shell_mut().set_form_field("type", "3X1.5");
+    d.input(&Input::Hover { at: (4, 4) });
+    d.settle();
+    d.input(&click(d.find("Apply").unwrap()));
+    d.settle();
+    assert!(d.shell_mut().dialog().is_none(), "{}", banner(&mut d));
+    let toast = state(&mut d)["toast"].to_string();
+    assert!(toast.contains("made from 3 wires"), "{toast}");
+    d.input(&key("escape"));
+    d.settle();
+    // The cable's Part row: a two-core cable for three wires is refused in a sentence.
+    click_mark(&mut d, &pixel);
+    let out = d.shell_mut().dispatch(
+        "props.set",
+        &json!({"row": "device/parts", "value": "EW-GEN-CBL-4"}),
+    );
+    match out {
+        Outcome::Failed { message } => {
+            assert!(message.contains("has only 2 cores"), "{message}");
+        }
+        other => panic!("not refused: {other:?}"),
+    }
+    d.shell_mut().shutdown();
+}
+
