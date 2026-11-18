@@ -400,14 +400,18 @@ fn identity(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mut Vec<Eve
             ui.label(RichText::new(symbol).color(t.text_secondary.color32()));
         });
     }
+    // A new cable type, bus cable or plug (rc.3, rc.5) asks its maker, its type or name and its part number only.
+    let small_form = e.cable_type || e.bus_part.is_some();
     let small = ["manufacturer", "type_designation", "part_number"];
-    let fields: Vec<&str> = if e.cable_type {
+    let fields: Vec<&str> = if small_form {
         small.to_vec()
     } else {
         ew_viewmodel::ew_api::DRAFT_FIELDS.to_vec()
     };
     for (i, f) in fields.iter().enumerate() {
-        let label = if e.cable_type && *f == "type_designation" {
+        let label = if e.bus_part.is_some() && *f == "type_designation" {
+            strings::text(key!("part-bus-part-name"))
+        } else if e.cable_type && *f == "type_designation" {
             strings::text(key!("part-cable-series"))
         } else {
             strings::text(strings::Key::run_time(&format!("part-field-{f}")))
@@ -426,7 +430,7 @@ fn identity(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mut Vec<Eve
             );
         }
     }
-    if e.cable_type {
+    if small_form {
         return save;
     }
     ui.add_space(t.space_3);
@@ -602,6 +606,11 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
             save |= identity(ui, e, just_opened, events);
             ui.add_space(t.space_3);
             save |= cable_section(ui, d, events);
+        } else if let Some(plug) = e.bus_part.filter(|b| b.plug) {
+            // New plug… (rc.5): its identity, then its bus, its cable outlet, its socket and its resistor.
+            save |= identity(ui, e, just_opened, events);
+            ui.add_space(t.space_3);
+            plug_section(ui, d, plug, events);
         } else if (d.new || d.own)
             && ui.available_width() >= 2.0 * (t.size_dialog_label + t.size_control * 6.0)
         {
@@ -987,6 +996,26 @@ fn cable_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut 
             json!({ "field": field, "value": value }),
         ));
     };
+    // The bus the cable is made for (rc.5): choosing one fills its cores as the bus has them.
+    let buses: Vec<String> = std::iter::once(String::new())
+        .chain(ew_viewmodel::ew_api::bus_words())
+        .collect();
+    labelled_combo(
+        ui,
+        "cable.bus",
+        &label("bus"),
+        d.text("cable.bus"),
+        &buses,
+        |w| {
+            if w.is_empty() {
+                strings::text(key!("part-cable-bus-none")).to_owned()
+            } else {
+                bus_choice("bus", w)
+            }
+        },
+        events,
+    );
+    message(ui, "cable.bus");
     for m in ["cores", "csa"] {
         let field = format!("cable.{m}");
         save |= labelled_field(ui, &label(m), d.text(&field), false, |text| {
@@ -1084,6 +1113,86 @@ fn cable_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut 
         });
     }
     save
+}
+
+/// A new plug's own section (rc.5): the bus it is for, its cable outlet straight or angled, with or without a
+/// programming socket, with or without a switchable terminating resistor. The description follows them.
+fn plug_section(
+    ui: &mut Ui,
+    d: &ew_viewmodel::ew_api::PartDraft,
+    plug: ew_viewmodel::shell::part_dialog::BusPart,
+    events: &mut Vec<Event>,
+) {
+    let t = theme::current(ui.ctx());
+    labelled_combo(
+        ui,
+        "bus.0.bus",
+        &strings::text(key!("part-cable-bus")),
+        d.text("bus.0.bus"),
+        &ew_viewmodel::ew_api::bus_words(),
+        |w| bus_choice("bus", w),
+        events,
+    );
+    let outlets = ["false".to_owned(), "true".to_owned()];
+    labelled_combo(
+        ui,
+        "plug.angled",
+        strings::text(key!("part-plug-outlet")),
+        &plug.angled.to_string(),
+        &outlets,
+        |w| {
+            strings::text(if w == "true" {
+                key!("part-plug-outlet-angled")
+            } else {
+                key!("part-plug-outlet-straight")
+            })
+            .to_owned()
+        },
+        events,
+    );
+    let mut toggle = |ui: &mut Ui, field: &str, label: &str, on: bool, value: fn(bool) -> &'static str| {
+        let mut now = on;
+        ui.horizontal(|ui| {
+            ui.add_space(t.size_dialog_label + t.space_3);
+            if ui.checkbox(&mut now, label).changed() {
+                events.push(Event::Action(
+                    "part.field",
+                    json!({ "field": field, "value": value(now) }),
+                ));
+            }
+        });
+    };
+    toggle(
+        ui,
+        "plug.socket",
+        strings::text(key!("part-plug-socket")),
+        plug.socket,
+        |b| if b { "true" } else { "false" },
+    );
+    toggle(
+        ui,
+        "bus.0.termination",
+        strings::text(key!("part-plug-resistor")),
+        !d.text("bus.0.termination").is_empty(),
+        |b| if b { "off" } else { "" },
+    );
+    let description = d.text("description");
+    if !description.is_empty() {
+        ui.add_space(t.space_2);
+        ui.horizontal(|ui| {
+            ui.spacing_mut().item_spacing.x = 0.0;
+            ui.allocate_ui_with_layout(
+                vec2(t.size_dialog_label, t.size_row),
+                egui::Layout::left_to_right(egui::Align::Center),
+                |ui| {
+                    ui.set_min_size(vec2(t.size_dialog_label, t.size_row));
+                    ui.label(strings::text(key!("part-cable-reads")));
+                },
+            );
+            ui.add_space(t.space_3);
+            ui.label(RichText::new(description).font(theme::font(&t.type_body_strong)));
+        });
+    }
 }
 
 /// A bus member's choice in words (`profinet` is "PROFINET", an empty termination "None").

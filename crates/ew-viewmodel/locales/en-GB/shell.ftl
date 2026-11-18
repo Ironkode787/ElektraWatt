@@ -7675,3 +7675,24 @@ field-help-project-people-customer = The customer's name, where a title block or
 field-help-project-people-end-user = The end user's name: the title block's End user cell prints it.
 field-help-project-people-panel-builder = The panel builder's name, the company that draws and builds the cabinet.
 field-help-project-people-engineer = The engineer's name, where a title block prints the project's engineer.
+
+# rc.5: a bus line's cable and plugs made in the window
+form-bus-cable-which = Cable
+form-bus-cable-new = A new cable
+form-bus-cable-new-part = New bus cable…
+form-bus-plug-new = { $p0 }: New plug…
+dialog-bus-cable-new-title = New bus cable
+dialog-bus-plug-new-title = New bus plug
+part-bus-part-name = Name
+part-cable-bus = Made for the bus
+part-cable-bus-none = No bus
+part-plug-outlet = Cable outlet
+part-plug-straight = straight cable outlet
+part-plug-angled = angled cable outlet
+part-plug-outlet-straight = Straight
+part-plug-outlet-angled = Angled (90°)
+part-plug-socket = With programming socket
+part-plug-resistor = With terminating resistor (switchable)
+part-plug-description = { $p0 } plug
+part-plug-with-socket = programming socket
+part-plug-with-resistor = switchable terminating resistor

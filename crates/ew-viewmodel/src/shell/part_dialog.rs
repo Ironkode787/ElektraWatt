@@ -119,11 +119,31 @@ pub struct PartEditor {
     pub cable_type: bool,
     /// The Cable form New cable type… was chosen in: Save opens it again with the new type chosen.
     pub cable_form: Option<Box<super::FormDialog>>,
+    /// New bus cable… or New plug… of a bus line's Cable form (rc.5): the small form of a new bus part.
+    pub bus_part: Option<BusPart>,
+}
+
+/// What New bus cable… and New plug… make (rc.5): a cable or a plug for a bus, and the form field it returns to.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct BusPart {
+    /// A plug; else a bus cable.
+    pub plug: bool,
+    /// The Cable form's field the new part is chosen in (`part`, `plug_a`, `plug_b`).
+    pub field: &'static str,
+    /// A plug's cable outlet is angled; else straight.
+    pub angled: bool,
+    /// A plug with a programming socket.
+    pub socket: bool,
 }
 
 impl PartEditor {
-    /// The title (`Edit part 5SY4204-7 (Siemens)`, `New part`, `New cable type`).
+    /// The title (`Edit part 5SY4204-7 (Siemens)`, `New part`, `New cable type`, `New bus cable`, `New bus plug`).
     pub fn title(&self) -> String {
+        match self.bus_part {
+            Some(b) if b.plug => return strings::text(key!("dialog-bus-plug-new-title")).to_owned(),
+            Some(_) => return strings::text(key!("dialog-bus-cable-new-title")).to_owned(),
+            None => {}
+        }
         if self.cable_type {
             return strings::text(key!("dialog-cable-type-new-title")).to_owned();
         }
@@ -132,6 +152,28 @@ impl PartEditor {
         }
         strings::format(key!("dialog-part-edit-title"), &[&self.name])
     }
+}
+
+/// A new plug's description in words (rc.5): `PROFIBUS DP plug, angled cable outlet, programming socket, switchable
+/// terminating resistor`, from its bus, its cable outlet, its socket and its terminating resistor.
+pub(crate) fn plug_description(draft: &ew_api::PartDraft, plug: BusPart) -> String {
+    let bus = strings::field_choice_text("function", "bus_port.bus", draft.text("bus.0.bus"));
+    let mut words = vec![strings::format(key!("part-plug-description"), &[&bus])];
+    words.push(
+        strings::text(if plug.angled {
+            key!("part-plug-angled")
+        } else {
+            key!("part-plug-straight")
+        })
+        .to_owned(),
+    );
+    if plug.socket {
+        words.push(strings::text(key!("part-plug-with-socket")).to_owned());
+    }
+    if !draft.text("bus.0.termination").is_empty() {
+        words.push(strings::text(key!("part-plug-with-resistor")).to_owned());
+    }
+    words.join(", ")
 }
 
 /// The words of a draft field (`part_number` is "Part number", `bus.1.ports` "Ports", `tech:rated_current` the key).
@@ -843,6 +885,7 @@ impl ShellModel {
             back: None,
             cable_type: false,
             cable_form: None,
+            bus_part: None,
         })))
     }
 
@@ -886,6 +929,46 @@ impl ShellModel {
                 let _ = project.session.set_draft_field(&mut draft, field, value);
             }
         }
+        // New bus cable… and New plug… of a bus line's Cable form (rc.5): a cable made for the bus, its cores as the bus
+        // has them, or a plug with a passive interface of the bus; Save returns to the form's field `field`.
+        let bus_part = match or_return!(string_param(p, "bus")) {
+            None => None,
+            Some(bus) => {
+                let plug = flag(p, "plug");
+                let field = match or_return!(string_param(p, "field")) {
+                    Some("plug_a") => "plug_a",
+                    Some("plug_b") => "plug_b",
+                    _ if plug => "plug_a",
+                    _ => "part",
+                };
+                let set = |draft: &mut ew_api::PartDraft, f: &str, v: &str| {
+                    let _ = project.session.set_draft_field(draft, f, v);
+                };
+                if plug {
+                    set(&mut draft, "kind", "accessory");
+                    draft.add_bus_row();
+                    for (f, v) in [("bus.0.bus", bus), ("bus.0.role", "passive"), ("bus.0.termination", "")] {
+                        set(&mut draft, f, v);
+                    }
+                } else {
+                    for (f, v) in [("kind", "cable"), ("unit", "m"), ("cable.bus", bus)] {
+                        set(&mut draft, f, v);
+                    }
+                }
+                let made = BusPart {
+                    plug,
+                    field,
+                    angled: false,
+                    socket: false,
+                };
+                if plug {
+                    let words = plug_description(&draft, made);
+                    set(&mut draft, "description", &words);
+                }
+                Some(made)
+            }
+        };
+        let cable_type = cable_type || bus_part.is_some_and(|b| !b.plug);
         let manufacturers = project.session.part_manufacturers();
         // The device browser gives way to the editor; it lists the new part when it opens again. From the symbol
         // editor, its view is left with its draft kept (as Close editor does): the part is the project's.
@@ -898,7 +981,10 @@ impl ShellModel {
         // From the Cable form (its New cable type…), Save returns to it with the new type chosen.
         let (back, cable_form) = match self.dialog.take() {
             Some(Dialog::PartChoose(c)) => (Some(c), None),
-            Some(Dialog::Form(f)) if cable_type && super::cables::chooses_cable_type(&f) => {
+            Some(Dialog::Form(f))
+                if (cable_type && super::cables::chooses_cable_type(&f))
+                    || (bus_part.is_some() && f.action == super::cables::BUS_CABLE) =>
+            {
                 (None, Some(Box::new(f)))
             }
             other => {
@@ -914,6 +1000,7 @@ impl ShellModel {
             back: None,
             cable_type,
             cable_form: None,
+            bus_part,
         })));
         if let Some(Dialog::PartEdit(e)) = &mut self.dialog {
             e.back = back;
@@ -971,6 +1058,29 @@ impl ShellModel {
         if field == "to_library" && editor.draft.new {
             editor.draft.to_library = value == "true";
             return Outcome::Done;
+        }
+        // A new plug's cable outlet and programming socket (rc.5) are words of its description, which follows them, its
+        // bus and its terminating resistor.
+        if let Some(mut plug) = editor.bus_part.filter(|b| b.plug) {
+            match field.as_str() {
+                "plug.angled" => plug.angled = value == "true",
+                "plug.socket" => plug.socket = value == "true",
+                _ => {}
+            }
+            editor.bus_part = Some(plug);
+            let out = if field.starts_with("plug.") {
+                Outcome::Done
+            } else {
+                match project.session.set_draft_field(&mut editor.draft, &field, &value) {
+                    Err(PartDraftError::Refused(_)) => return failed(key!("error-part-field"), &[&field]),
+                    Ok(()) | Err(PartDraftError::Field(_)) => Outcome::Done,
+                }
+            };
+            if field.starts_with("plug.") || field.starts_with("bus.") {
+                let words = plug_description(&editor.draft, plug);
+                let _ = project.session.set_draft_field(&mut editor.draft, "description", &words);
+            }
+            return out;
         }
         match project.session.set_draft_field(&mut editor.draft, &field, &value) {
             Err(PartDraftError::Refused(_)) => failed(key!("error-part-field"), &[&field]),
@@ -1127,7 +1237,10 @@ impl ShellModel {
             return self.part_new_like(*editor);
         }
         if let Some(form) = editor.cable_form.take() {
-            self.cable_type_made(*form, &number);
+            match editor.bus_part {
+                Some(b) => self.bus_part_made(*form, &number, b.field),
+                None => self.cable_type_made(*form, &number),
+            }
             return Outcome::Done;
         }
         if let Some(mut chooser) = editor.back.take() {

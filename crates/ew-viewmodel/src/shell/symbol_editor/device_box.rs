@@ -546,6 +546,7 @@ impl ShellModel {
                 back: None,
                 cable_type: false,
                 cable_form: None,
+                bus_part: None,
             },
         )))
     }

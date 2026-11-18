@@ -7411,3 +7411,24 @@ field-help-project-people-customer = De naam van de klant, waar een titelblok of
 field-help-project-people-end-user = De naam van de eindgebruiker: het vak Eindgebruiker van het titelblok drukt die af.
 field-help-project-people-panel-builder = De naam van de paneelbouwer, het bedrijf dat de kast tekent en bouwt.
 field-help-project-people-engineer = De naam van de ontwerper, waar een titelblok de ontwerper van het project afdrukt.
+
+# rc.5: a bus line's cable and plugs made in the window
+form-bus-cable-which = Kabel
+form-bus-cable-new = Een nieuwe kabel
+form-bus-cable-new-part = Nieuwe buskabel…
+form-bus-plug-new = { $p0 }: Nieuwe stekker…
+dialog-bus-cable-new-title = Nieuwe buskabel
+dialog-bus-plug-new-title = Nieuwe busstekker
+part-bus-part-name = Naam
+part-cable-bus = Gemaakt voor de bus
+part-cable-bus-none = Geen bus
+part-plug-outlet = Kabeluitgang
+part-plug-straight = rechte kabeluitgang
+part-plug-angled = haakse kabeluitgang
+part-plug-outlet-straight = Recht
+part-plug-outlet-angled = Haaks (90°)
+part-plug-socket = Met programmeeraansluiting
+part-plug-resistor = Met afsluitweerstand (schakelbaar)
+part-plug-description = { $p0 }-stekker
+part-plug-with-socket = programmeeraansluiting
+part-plug-with-resistor = schakelbare afsluitweerstand

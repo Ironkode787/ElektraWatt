@@ -715,11 +715,15 @@ fn offer_cores(command: &ew_api::AnyCommand) -> usize {
 }
 
 /// The action of a bus line's Cable form.
-const BUS_CABLE: &str = "bus.cable";
+pub(super) const BUS_CABLE: &str = "bus.cable";
+
+/// The value of New bus cable… and New plug…, the last entry of a bus line's Cable form's lists of cables and plugs
+/// (rc.5): it opens the small form of a new bus part, never names a part.
+pub const NEW_BUS_PART: &str = "<new bus part>";
 
 impl ShellModel {
     /// The selected connections that are bus lines, in the order of [`Self::selected_wires`].
-    fn selected_bus_lines(&self) -> Vec<Uuid> {
+    pub(super) fn selected_bus_lines(&self) -> Vec<Uuid> {
         let Some(project) = &self.project else {
             return Vec::new();
         };
@@ -781,7 +785,8 @@ impl ShellModel {
             let message = strings::format(key!("error-no-cable-part"), &[&part]);
             return self.form_failed(BUS_CABLE, message);
         };
-        // The cable: the lines' cable while its tag stands, else an existing one the typed tag names, else a new one.
+        // The cable: one of the project's bus cables chosen (a line that runs on, rc.5), or a new one chosen; else the
+        // lines' cable while its tag stands, else an existing one the typed tag names, else a new one.
         let typed = given(p, "tag");
         let named = typed.as_ref().and_then(|t| {
             project
@@ -791,12 +796,27 @@ impl ShellModel {
                 .find(|(_, tag, _)| tag == t)
                 .map(|(id, _, _)| id)
         });
-        let cable = match (&typed, form.cable) {
-            (None, Some(c)) => Some(c),
-            (Some(t), Some(c)) if *t == form.tag => Some(c),
+        let chosen = match p.get("cable").and_then(Value::as_str).map(str::trim) {
+            None => None,
+            Some("") => Some(None),
+            Some(text) => match form.existing.iter().find(|(id, _)| id.to_string() == text) {
+                Some((id, _)) => Some(Some(*id)),
+                None => {
+                    let message = strings::format(key!("error-no-cable"), &[text]);
+                    return self.form_failed(BUS_CABLE, message);
+                }
+            },
+        };
+        let cable = match (chosen, &typed, form.cable) {
+            (Some(Some(c)), _, _) => Some(c),
+            (Some(None), _, _) => named,
+            (None, None, Some(c)) => Some(c),
+            (None, Some(t), Some(c)) if *t == form.tag => Some(c),
             _ => named,
         };
-        let frozen = match typed.filter(|t| cable.is_none() && Some(t) != proposed.as_ref()) {
+        // A new cable's tag is frozen only when typed other than the next tag the numbering gives.
+        let example = self.tag_example("cable", "W");
+        let frozen = match typed.filter(|t| cable.is_none() && Some(t) != example.as_ref()) {
             None => None,
             Some(tag) => match project.session.parse_field_input("device", "tag.frozen", &tag) {
                 Ok(parsed) if !parsed.value.is_null() => Some(parsed.value),
@@ -869,6 +889,45 @@ impl ShellModel {
         Outcome::Done
     }
 
+    /// Back in the bus line's Cable form `form` after New bus cable… or New plug… saved the part `number` (rc.5): the
+    /// form's lists again with the new part, chosen in its field `field`; every other field keeps what it held.
+    pub(super) fn bus_part_made(&mut self, form: FormDialog, number: &str, field: &'static str) {
+        let lines = self.selected_bus_lines();
+        let Some(project) = &self.project else {
+            return;
+        };
+        let now = project.session.bus_cable_form(&lines);
+        let offers = if field == "part" { &now.cables } else { &now.plugs };
+        let made = offers
+            .iter()
+            .find(|o| o.words == number || o.words.starts_with(&format!("{number} \u{b7}")))
+            .map(|o| o.part.to_string());
+        let mut fresh = self.bus_cable_dialog(&now, None);
+        for f in &mut fresh.fields {
+            if let Some(old) = form.fields.iter().find(|o| o.name == f.name) {
+                f.value.clone_from(&old.value);
+            }
+        }
+        self.dialog = Some(Dialog::Form(fresh));
+        if let Some(value) = made {
+            self.set_form_field(field, &value);
+        }
+    }
+
+    /// After the bus line's Cable form's choice of cable changed (rc.5): the tag field shows the chosen cable's tag, or
+    /// the next tag a new cable takes.
+    pub(super) fn bus_cable_chosen(&mut self, value: &str) {
+        let tag = match value.parse::<Uuid>() {
+            Ok(c) => self.project.as_ref().and_then(|p| p.session.device_tag(c)),
+            Err(_) => self.tag_example("cable", "W"),
+        };
+        if let Some(Dialog::Form(form)) = &mut self.dialog
+            && let Some(f) = form.fields.iter_mut().find(|f| f.name == "tag")
+        {
+            f.value = tag.unwrap_or_default();
+        }
+    }
+
     /// The form of [`Self::act_bus_cable`] for `form`, the tag `proposed` for a new cable.
     fn bus_cable_dialog(&self, form: &ew_api::window::BusCableForm, proposed: Option<String>) -> FormDialog {
         let field = |name, label_key, options: Vec<(String, String)>, value: String| FormField {
@@ -889,8 +948,25 @@ impl ShellModel {
                 };
                 (o.part.to_string(), words)
             })
+            .chain([(
+                NEW_BUS_PART.to_owned(),
+                strings::text(key!("form-bus-cable-new-part")).to_owned(),
+            )])
             .collect();
+        // A new cable, or one of the project's bus cables the line runs on in (rc.5).
+        let which = std::iter::once((
+            String::new(),
+            strings::text(key!("form-bus-cable-new")).to_owned(),
+        ))
+        .chain(form.existing.iter().map(|(id, w)| (id.to_string(), w.clone())))
+        .collect();
         let mut fields = vec![
+            field(
+                "cable",
+                key!("form-bus-cable-which"),
+                which,
+                form.cable.map(|c| c.to_string()).unwrap_or_default(),
+            ),
             field(
                 "tag",
                 key!("form-cable-tag"),
@@ -935,6 +1011,10 @@ impl ShellModel {
                     .iter()
                     .map(|o| (o.part.to_string(), format!("{}: {}", end.words, o.words))),
             )
+            .chain([(
+                NEW_BUS_PART.to_owned(),
+                strings::format(key!("form-bus-plug-new"), &[&end.words]),
+            )])
             .collect();
             let value = end.plug.map(|u| u.to_string()).unwrap_or_default();
             fields.push(field(plug, plug_key, options, value));

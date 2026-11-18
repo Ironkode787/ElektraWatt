@@ -879,6 +879,30 @@ impl ShellModel {
             let _ = self.act_part_new(&Map::from_iter([("cable".to_owned(), Value::Bool(true))]));
             return;
         }
+        // A bus line's Cable form (rc.5): New bus cable… and New plug… open the small form of a new bus part for the
+        // line's bus; another cable chosen shows its tag.
+        if let Some(Dialog::Form(f)) = &self.dialog
+            && f.action == super::cables::BUS_CABLE
+        {
+            if value == super::cables::NEW_BUS_PART && ["part", "plug_a", "plug_b"].contains(&name) {
+                let lines = self.selected_bus_lines();
+                let bus = self
+                    .project
+                    .as_ref()
+                    .map(|p| p.session.bus_cable_form(&lines).system)
+                    .unwrap_or_default();
+                let params = Map::from_iter([
+                    ("bus".to_owned(), Value::String(bus)),
+                    ("plug".to_owned(), Value::Bool(name != "part")),
+                    ("field".to_owned(), Value::String(name.to_owned())),
+                ]);
+                let _ = self.act_part_new(&params);
+                return;
+            }
+            if name == "cable" {
+                self.bus_cable_chosen(value);
+            }
+        }
         let cable_rows = (["type", "part"].contains(&name)
             && matches!(&self.dialog, Some(Dialog::Form(f)) if f.action == "cable.from_wires"))
         .then(|| self.cable_row_wires());

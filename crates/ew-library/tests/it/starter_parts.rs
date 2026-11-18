@@ -57,8 +57,11 @@ const VERSION: &str = "0.1.0";
 /// since a valve with two solenoids prints each solenoid's address at its own solenoid (rc.3: the 5/3 valve's two
 /// addresses touched its square), 0.17.0 since the parts a panel builder reaches for first were added: the two-pole
 /// breaker EW-GEN-MCB-4, the main switches with two and three poles EW-GEN-SW-2 and -3, the residual-current device
-/// EW-GEN-RCD-1, the stop button EW-GEN-PB-2 and the emergency stop EW-GEN-ESB-1 (rc.3).
-const LIBRARY_VERSION: &str = "0.17.0";
+/// EW-GEN-RCD-1, the stop button EW-GEN-PB-2 and the emergency stop EW-GEN-ESB-1 (rc.3), 0.18.0 since every bus the
+/// program knows has a generic cable and plug (rc.5: the Ethernet cable EW-GEN-CBL-3 is made for EtherCAT too, the
+/// eight-core Ethernet cable EW-GEN-CBL-26, the CANopen, AS-Interface and IO-Link cables EW-GEN-CBL-27 to -29 and the
+/// plugs EW-GEN-PLG-6 to -10 were added).
+const LIBRARY_VERSION: &str = "0.18.0";
 /// The parts whose content changed after 0.1.0, at their next patch version (the selector switch on a
 /// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y. The relay
 /// and the contactor template their contacts beside the coil. The CPU's bus section, after 0.2.0.
@@ -83,6 +86,7 @@ const BUMPED: &[(&str, &str)] = &[
     ("EW-GEN-TRM-2", "0.1.1"),
     ("EW-GEN-CBL-1", "0.1.1"),
     ("EW-GEN-VTM-1", "0.1.2"),
+    ("EW-GEN-CBL-3", "0.1.1"),
 ];
 
 /// The bus section of part `number`: the generic CPUs' interfaces (EW-GEN-CPU-1's DP master; EW-GEN-CPU-2's DP
@@ -121,13 +125,23 @@ fn bus_section(number: &str) -> Option<Value> {
         "EW-GEN-VTM-1" => Some(json!({"ports": [port("DP", "profibus_dp", "slave")]})),
         "EW-GEN-VTM-2" => Some(json!({"ports": [sockets("device", 2)]})),
         "EW-GEN-CBL-2" => Some(json!({"cable_for": ["profibus_dp"]})),
-        "EW-GEN-CBL-3" => Some(json!({"cable_for": ["profinet", "ethernet_ip", "modbus_tcp"]})),
+        "EW-GEN-CBL-3" | "EW-GEN-CBL-26" => {
+            Some(json!({"cable_for": ["profinet", "ethernet_ip", "modbus_tcp", "ethercat"]}))
+        }
+        "EW-GEN-CBL-27" => Some(json!({"cable_for": ["canopen"]})),
+        "EW-GEN-CBL-28" => Some(json!({"cable_for": ["asi"]})),
+        "EW-GEN-CBL-29" => Some(json!({"cable_for": ["io_link"]})),
         // The bus plugs (doc 10 §2.7): a passive interface of their bus with their connector type; a plug with a
         // termination switch has it, off.
         "EW-GEN-PLG-1" | "EW-GEN-PLG-2" => Some(json!({"ports": [plug("profibus_dp", "sub-d-9", true)]})),
         "EW-GEN-PLG-3" => Some(json!({"ports": [plug("profinet", "rj45", false)]})),
         "EW-GEN-PLG-4" => Some(json!({"ports": [plug("profinet", "m12-d", false)]})),
         "EW-GEN-PLG-5" => Some(json!({"ports": [plug("profibus_dp", "m12-b", false)]})),
+        "EW-GEN-PLG-6" => Some(json!({"ports": [plug("ethercat", "rj45", false)]})),
+        "EW-GEN-PLG-7" => Some(json!({"ports": [plug("ethernet_ip", "rj45", false)]})),
+        "EW-GEN-PLG-8" => Some(json!({"ports": [plug("modbus_tcp", "rj45", false)]})),
+        "EW-GEN-PLG-9" => Some(json!({"ports": [plug("canopen", "m12-a", true)]})),
+        "EW-GEN-PLG-10" => Some(json!({"ports": [plug("io_link", "m12-a", false)]})),
         _ => None,
     }
 }
@@ -1069,6 +1083,12 @@ fn defs() -> Vec<Def> {
         bus_plug("EW-GEN-PLG-3", "RJ45 plug for Industrial Ethernet"),
         bus_plug("EW-GEN-PLG-4", "M12 plug, D-coded, for Industrial Ethernet"),
         bus_plug("EW-GEN-PLG-5", "M12 plug, B-coded, for PROFIBUS"),
+        // rc.5: a plug for every bus the program knows (AS-Interface's flat cable takes no plug).
+        bus_plug("EW-GEN-PLG-6", "RJ45 plug for EtherCAT"),
+        bus_plug("EW-GEN-PLG-7", "RJ45 plug for EtherNet/IP"),
+        bus_plug("EW-GEN-PLG-8", "RJ45 plug for Modbus TCP"),
+        bus_plug("EW-GEN-PLG-9", "M12 plug, A-coded, for CANopen, switchable termination"),
+        bus_plug("EW-GEN-PLG-10", "M12 plug, A-coded, for IO-Link"),
         // The persona re-test: the job's cylinder and air supply kept their "no part" warnings, for want of a starter
         // part. A double-acting cylinder and a service unit for the air-supply point, each on its symbol's FnDef.
         Def {
@@ -1541,7 +1561,68 @@ fn defs() -> Vec<Def> {
             ]})),
             unit: Some("m"),
         },
+        // rc.5: a cable for every bus the program knows, its cores as the bus has them.
+        bus_cable(
+            "EW-GEN-CBL-26",
+            "Industrial Ethernet cable, 8 cores in 4 pairs, shielded",
+            json!([
+                {"core": "1", "colour": ["WH", "OG"], "pair": 1},
+                {"core": "2", "colour": ["OG"], "pair": 1},
+                {"core": "3", "colour": ["WH", "GN"], "pair": 2},
+                {"core": "6", "colour": ["GN"], "pair": 2},
+                {"core": "5", "colour": ["WH", "BU"], "pair": 3},
+                {"core": "4", "colour": ["BU"], "pair": 3},
+                {"core": "7", "colour": ["WH", "BN"], "pair": 4},
+                {"core": "8", "colour": ["BN"], "pair": 4},
+                {"core": "SHIELD", "shield": true},
+            ]),
+        ),
+        bus_cable(
+            "EW-GEN-CBL-27",
+            "CANopen cable, 3 cores white, brown and green, shielded",
+            json!([
+                {"core": "CAN_H", "colour": ["WH"]},
+                {"core": "CAN_L", "colour": ["BN"]},
+                {"core": "CAN_GND", "colour": ["GN"]},
+                {"core": "SHIELD", "shield": true},
+            ]),
+        ),
+        bus_cable(
+            "EW-GEN-CBL-28",
+            "AS-Interface flat cable, 2 cores brown and blue",
+            json!([
+                {"core": "ASI+", "colour": ["BN"]},
+                {"core": "ASI-", "colour": ["BU"]},
+            ]),
+        ),
+        bus_cable(
+            "EW-GEN-CBL-29",
+            "IO-Link sensor cable, 3 cores brown, black and blue",
+            json!([
+                {"core": "L+", "colour": ["BN"]},
+                {"core": "CQ", "colour": ["BK"]},
+                {"core": "L-", "colour": ["BU"]},
+            ]),
+        ),
     ]
+}
+
+/// A generic bus cable with the cores `cores` (`cable_cores` as the file writes them), whose bus section
+/// ([`bus_section`]) names the buses it is made for.
+fn bus_cable(number: &'static str, description: &'static str, cores: Value) -> Def {
+    Def {
+        number,
+        kind: Some("cable"),
+        description,
+        cps: Vec::new(),
+        template: Vec::new(),
+        contacts: Vec::new(),
+        tech: Vec::new(),
+        plc: None,
+        mech: None,
+        sections: Some(json!({"cable_cores": cores})),
+        unit: Some("m"),
+    }
 }
 
 /// The manufacturer record "Generic".
