@@ -176,17 +176,29 @@ The decision text above is unchanged; these entries refine it.
      each wire routed again against all the others and the new route taken where the old one breaks a hard rule or
      costs more (at most two passes); and the jobs routed from nothing, the shortest first. A wire that is drawn as
      well as the router would draw it keeps its route, also where the tie rule would take another of the same cost.
-   - **The first routing of a page keeps decision 5's order** (the longest first), because Golden A's routes are its
-     result (decision 9). With the better of the two orders taken there too, Golden A's folios 101, 103, 106 and 203
-     would have 34 crossings for 54 and as many bends (26 routes change, one wire of folio 103 gets a fifth bend);
-     that is a change of Golden A and waits for the owner's word. Until then a page routed for the first time is
-     improved by Reroute.
+   - **The first routing of a page solves both orders** (Route page on unrouted wires, an import, the wires a
+     paste or a grid change redraws; decided 2026-11-18 by the main session under the owner's delegation of golden
+     decisions). The jobs are routed from nothing the longest first (decision 5's order) and the shortest first, and
+     the shortest-first drawing is taken where it rates better at no price a reader sees: no more wires without a
+     good route, no more bends, no more crossings and no more texts crossed. The rating alone is not enough: on
+     Golden A's folio 103 it prefers the shortest-first drawing (23 crossings for 27, at 54 bends for 52), which
+     leads two wires round the back of their terminal strip to leave it the other way, runs a feeder across the
+     sheet through four other wires and gives one wire a fifth bend; a draughtsman keeps the nested bundles of the
+     longest-first drawing and their crossings, so folio 103 keeps its routes. Golden A changes on two folios, as
+     many bends on each: folio 106 has 6 crossings for 14 (the loops under the two valve terminals nest instead of
+     crossing), folio 203 none for 8 (each valve's second tube runs round its cylinder instead of across the
+     first). Folio 101's routes are unchanged; its layout line counts 36 bends for 38 because the measures no
+     longer count a step of 1 nm as two.
    - **No junction on a crossing.** The Wire tool does not end a wire on another at the point where a third wire
      crosses it: the dot would sit on both wires and read as a joint of four arms.
+   - **The texts beside a multipin plug's pins are texts of the router's page.** The symbols layer draws them, so
+     the page's geometry did not hold them and wires ran across them. Each is a text box now, cut back to a quarter
+     of a grid step from the line its own pin's wire leaves along (the note stands right beside that line), so the
+     pin's wire runs past its note and every other wire goes round it.
 
    Less work on a full page, with the same routes: the search marks the crossings and the mates along each wire
    instead of testing every node against every wire, and a job with no way between its ends on the grid or the half
-   grid is searched for once in a solve. Golden A's routes and pictures are unchanged.
+   grid is searched for once in a solve. Golden A's routes change on folios 106 and 203 only, as said above.
 
 ## Related
 

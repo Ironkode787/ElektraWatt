@@ -43,7 +43,9 @@
 //! **A reroute** (amendment 4). Jobs with stored routes are not only routed from nothing: the drawing as it is, each
 //! wire routed again against all the others and the new route taken where the old one breaks a hard rule or costs
 //! more as drawn, is rated against the jobs routed from nothing, the shortest first, and the better is taken. A page
-//! routed for the first time (no job has a route) is routed from nothing, the longest first.
+//! routed for the first time (no job has a route) is routed from nothing twice, the longest first and the shortest
+//! first; the shortest-first drawing is taken where it rates better with no more wires without a good route, bends,
+//! crossings and texts crossed, else the longest-first one.
 //!
 //! **Reasons.** A job left unrouted names the first rule its free route (against the fixed obstacles alone) breaks:
 //! the search is tried again without the other wires, then also without the texts, then also without the reserved
@@ -717,6 +719,16 @@ impl Solve<'_> {
     /// What `route` costs as the wire of `job` beside the other wires of `state`, by the weights of the search and
     /// read off the drawing: its length in steps, its bends, the wires it crosses and the texts it runs across.
     fn cost(&self, job: Uuid, route: &[Point], state: &State) -> u64 {
+        let [steps, bends, crossings, texts] = self.counts(job, route, state);
+        steps
+            + u64::from(BEND_COST) * bends
+            + u64::from(CROSSING_COST) * crossings
+            + u64::from(TEXT_COST) * texts
+    }
+
+    /// What [`Self::cost`] weighs: the route's length in step costs, its bends, the wires it crosses and the texts
+    /// it runs across.
+    fn counts(&self, job: Uuid, route: &[Point], state: &State) -> [u64; 4] {
         let g = step(self.page);
         let steps = (length(route) * i64::from(STEP_COST) + g / 2) / g;
         let mine = runs(route);
@@ -745,10 +757,29 @@ impl Solve<'_> {
             .iter()
             .filter(|t| through_any(&[grow(t.rect, g / 4)], route))
             .count();
-        u64::try_from(steps).unwrap_or(0)
-            + u64::from(BEND_COST) * (mine.len().saturating_sub(1) as u64)
-            + u64::from(CROSSING_COST) * crossings
-            + u64::from(TEXT_COST) * (texts as u64)
+        [
+            u64::try_from(steps).unwrap_or(0),
+            mine.len().saturating_sub(1) as u64,
+            crossings,
+            texts as u64,
+        ]
+    }
+
+    /// Whether `state` draws the jobs better than `than` at no price a reader sees: a better rating
+    /// ([`Self::rating`]) with no more wires without a good route, no more bends, no more crossings and no more
+    /// texts crossed. (A better rating alone may buy fewer crossings with more bends and ways round the back of a
+    /// symbol, which reads worse than the crossings it saves.)
+    fn better_at_no_price(&self, state: &State, than: &State) -> bool {
+        let seen = |s: &State| {
+            let mut sum = [0_u64; 3];
+            for (id, (r, _)) in &s.routes {
+                let [_, bends, crossings, texts] = self.counts(*id, r, s);
+                sum = [sum[0] + bends, sum[1] + crossings, sum[2] + texts];
+            }
+            sum
+        };
+        let (new, old) = (self.rating(state), self.rating(than));
+        new < old && new.0 <= old.0 && seen(state).iter().zip(seen(than)).all(|(a, b)| *a <= b)
     }
 
     /// The jobs of `state` whose route breaks a hard rule but (d), a text, by the layout measures: it touches a
@@ -1042,10 +1073,23 @@ pub fn route_page(page: &PageGeometry, jobs: &[Uuid]) -> RoutePlan {
     // The candidates, the first of the best rating taken (ADR-0033 amendment 4). A reroute: the drawing as it is,
     // each wire then routed again where that is better; and the jobs routed from nothing, the shortest first (on a
     // full page the long wires else take the straight tracks between the pins that the short ones need). A page
-    // routed for the first time: the jobs routed from nothing, the longest first (decision 5's order, whose result
-    // Golden A's routes are, decision 9).
+    // routed for the first time: the jobs routed from nothing, the longest first (decision 5's order) and the
+    // shortest first, which is taken where it is better at no price a reader sees (no more bends, crossings or
+    // texts crossed).
     let state = if kept.routes.is_empty() {
-        solve.construct(State::default())
+        let longest = solve.construct(State::default());
+        if shortest_first == solve.order {
+            longest
+        } else {
+            let longest_first = std::mem::replace(&mut solve.order, shortest_first);
+            let shortest = solve.construct(State::default());
+            if solve.better_at_no_price(&shortest, &longest) {
+                shortest
+            } else {
+                solve.order = longest_first;
+                longest
+            }
+        }
     } else {
         solve.order = shortest_first;
         let drawn = solve.improve(solve.construct(kept));

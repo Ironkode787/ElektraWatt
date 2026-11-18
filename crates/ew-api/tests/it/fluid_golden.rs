@@ -457,7 +457,9 @@ fn the_working_lines_are_routed_clear_of_the_cylinder_bodies() {
         }
     }
     let f1: Vec<(i64, i64)> = routes[&1].1.iter().copied().map(px).collect();
-    assert_eq!(f1, [(140, 600), (140, 580), (80, 580), (80, 440), (100, 440)]);
+    // rc.5 (ADR-0033 amendment 4): the first tube of a valve runs up beside its cylinder and round its head to
+    // port A, so that it does not cross the second tube, which runs up the other side to port B.
+    assert_eq!(f1, [(140, 600), (140, 420), (90, 420), (90, 440), (100, 440)]);
     drop(q);
     for (n, (id, route)) in &routes {
         let cmd = AnyCommand {

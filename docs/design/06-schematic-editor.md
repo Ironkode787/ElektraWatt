@@ -1244,7 +1244,10 @@ with the wires routed from nothing, the shortest first, and the better drawing i
 well as the router would draw it keeps its route and a page is never left worse than it was; the toast's rows about a
 text name the wires that were rerouted. The router and the layout measures read a grid position as one number: a
 step of 1 nm between two pins on one line of a grid of thirds of a nm is no stretch of wire, no bend and no arm of a
-junction. The Wire tool does not end a wire on another where a third wire crosses it. The layout measures are the check rules EW-CORE-067 to -070, -072 and -073 (doc 15 §4).
+junction. The Wire tool does not end a wire on another where a third wire crosses it. A page routed for the first
+time (Route page, an import, the wires a paste or a grid change redraws) is solved the longest wires first and the
+shortest first, and the shortest-first drawing is taken where it is better with no more bends, crossings or texts
+crossed. The texts beside a multipin plug's pins are texts to the router: wires go round them. The layout measures are the check rules EW-CORE-067 to -070, -072 and -073 (doc 15 §4).
 
 ### 5.5 Physical wires behind junctions and IPs
 
