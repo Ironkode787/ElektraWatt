@@ -652,7 +652,9 @@ fn two_breakers_wired_cross_over_keep_the_hard_rules_drawn_and_rerouted() {
         json!({"ids": [first.id.to_string(), second.id.to_string()]}),
     );
     let rev = s.revision();
-    let bends = |s: &ShellModel| ew_viewmodel::ew_api::routing::measure(&s.canvas().unwrap().page().geometry).bend_total();
+    let bends = |s: &ShellModel| {
+        ew_viewmodel::ew_api::routing::measure(&s.canvas().unwrap().page().geometry).bend_total()
+    };
     let drawn = bends(&s);
     done(&mut s, "route.reroute", json!({}));
     assert!(s.revision() <= rev.map(|r| r + 1), "at most one step");

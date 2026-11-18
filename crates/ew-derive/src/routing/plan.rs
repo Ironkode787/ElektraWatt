@@ -474,34 +474,6 @@ fn runs(line: &[Point]) -> Vec<[Point; 2]> {
     out
 }
 
-/// Whether a corner of the route `a` stands on the wire `b` (on a corner, an end or a straight stretch of it): the
-/// two would read as joined there. Not where both leave one pin or junction and the corner is `a`'s first from it
-/// (two wires on one pin share its stub and may turn where it ends).
-fn corners_meet(a: &[Point], b: &[Point]) -> bool {
-    let (ra, rb) = (runs(a), runs(b));
-    let (Some(a0), Some(a1), Some(b0), Some(b1)) = (
-        ra.first().map(|s| s[0]),
-        ra.last().map(|s| s[1]),
-        rb.first().map(|s| s[0]),
-        rb.last().map(|s| s[1]),
-    ) else {
-        return false;
-    };
-    let within = |v: i64, p: i64, q: i64| p.min(q) <= v && v <= p.max(q);
-    let on_b = |p: Point| {
-        rb.iter().any(|s| {
-            (s[0].0 == s[1].0 && p.0 == s[0].0 && within(p.1, s[0].1, s[1].1))
-                || (s[0].1 == s[1].1 && p.1 == s[0].1 && within(p.0, s[0].0, s[1].0))
-        })
-    };
-    let shared = |end: Point| end == b0 || end == b1;
-    ra.windows(2).enumerate().any(|(k, w)| {
-        let corner = w[0][1];
-        let stub = (k == 0 && shared(a0)) || (k + 2 == ra.len() && shared(a1));
-        !stub && on_b(corner)
-    })
-}
-
 /// The directions in which the polylines of `lines` leave the point `j` (reduced to unit steps).
 fn arms(j: Point, lines: &[&[Point]]) -> BTreeSet<(i64, i64)> {
     let mut out = BTreeSet::new();
@@ -779,29 +751,20 @@ impl Solve<'_> {
             + u64::from(TEXT_COST) * (texts as u64)
     }
 
-    /// The jobs of `state` whose route breaks a hard rule but (d), a text: by the layout measures it touches a
-    /// point it does not end at, lies on another wire or runs through a body; or one of its corners stands on
-    /// another wire's corner or end (ADR-0033 amendment 3, which no measure reports).
+    /// The jobs of `state` whose route breaks a hard rule but (d), a text, by the layout measures: it touches a
+    /// point it does not end at, lies on another wire or runs through a body. (A corner on another wire's corner,
+    /// ADR-0033 amendment 3, breaks none of them: it counts as crossings in [`Self::cost`], which a route clear of
+    /// it undercuts.)
     fn bad(&self, state: &State) -> BTreeSet<Uuid> {
         let mut drawn = self.drawn(state);
         drawn.connections.retain(|c| c.routed);
         let m = measure(&drawn);
-        let lines = || {
-            let fixed = self.fixed_lines.iter().map(|l| (None, *l));
-            fixed.chain(state.routes.iter().map(|(id, (r, _))| (Some(*id), r.as_slice())))
-        };
-        let meeting = state
-            .routes
-            .iter()
-            .filter(|(id, (r, _))| lines().any(|(other, l)| other != Some(**id) && corners_meet(r, l)))
-            .map(|(id, _)| *id);
         m.touches
             .iter()
             .map(|t| t.connection)
             .chain(m.overlaps.iter().flat_map(|o| o.connections))
             .chain(m.through_bodies.iter().map(|t| t.connection))
             .filter(|id| state.routes.contains_key(id))
-            .chain(meeting)
             .collect()
     }
 

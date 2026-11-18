@@ -920,6 +920,49 @@ fn a_reroute_keeps_a_wire_that_is_well_drawn_and_mends_a_loop() {
     );
 }
 
+/// An older drawing with two wires that turn in one point (ADR-0033 amendment 3: it reads as a joint of four arms,
+/// and no measure reports it). Each has the fewest steps and one bend; a reroute that starts from the drawing mends
+/// it all the same, because the point counts as crossings in what a route costs as drawn.
+#[test]
+fn a_reroute_parts_two_corners_that_meet() {
+    let mut p = page();
+    add_job(
+        &mut p,
+        1,
+        (10, mm(0, 0), Dir4::Down),
+        (11, mm(10, 5), Dir4::Left),
+        None,
+    );
+    add_job(
+        &mut p,
+        2,
+        (20, mm(-10, 5), Dir4::Right),
+        (21, mm(0, 10), Dir4::Up),
+        None,
+    );
+    let meeting = [
+        vec![mm(0, 0), mm(0, 5), mm(10, 5)],
+        vec![mm(-10, 5), mm(0, 5), mm(0, 10)],
+    ];
+    for (c, line) in p.connections.iter_mut().zip(&meeting) {
+        c.routed = true;
+        c.polyline.clone_from(line);
+    }
+    let plan = route_page(&p, &[id(1), id(2)]);
+    assert_eq!(plan.unrouted, vec![]);
+    let corners = |k: usize| {
+        let line = &plan.routes[k].1;
+        line[1..line.len() - 1].to_vec()
+    };
+    assert!(
+        corners(0).iter().all(|c| !corners(1).contains(c)),
+        "{:?}",
+        plan.routes
+    );
+    let m = measure(&routed(&p, &plan));
+    assert_eq!(m.hard(), 0, "{m:?}");
+}
+
 /// A straight wire between two pins on one grid line whose numbers differ by 1 nm keeps its ends' own numbers: the
 /// route steps over between them, and a route found on the settled page ends on the points the page stores.
 #[test]
