@@ -3240,7 +3240,8 @@ msgid ""
 "Type the project's **Name**. Under it, **Folder** is where the project's "
 "folder is made; **Browse…** chooses another one. A folder typed without its "
 "whole path, such as `Pumps`, is a folder in your projects folder. The line "
-"under the folder says where the project will be."
+"under the folder says where the project will be. A folder that is not there "
+"yet is made with the project."
 msgstr ""
 
 #: src/how-to/start-a-project.md:13
@@ -3279,48 +3280,49 @@ msgstr ""
 #: src/how-to/start-a-project.md:21
 msgid ""
 "Press **Create**. The project is made and opens. While something is missing "
-"or wrong (no name, a folder that is not there, a project of that name there "
-"already) the line over **Create** says what."
+"or wrong (no name, a file where the folder would go, a drive that is not "
+"there, a project of that name there already) the line over **Create** says "
+"what; when the folder is to be made, the line says so."
 msgstr ""
 
-#: src/how-to/start-a-project.md:24
+#: src/how-to/start-a-project.md:25
 msgid "Nothing comes into the new project that the dialog did not name."
 msgstr ""
 
-#: src/how-to/start-a-project.md:26
+#: src/how-to/start-a-project.md:27
 msgid "What a template is"
 msgstr ""
 
-#: src/how-to/start-a-project.md:28
+#: src/how-to/start-a-project.md:29
 msgid ""
 "A template is a project folder that says how new projects start. It holds:"
 msgstr ""
 
-#: src/how-to/start-a-project.md:30
+#: src/how-to/start-a-project.md:31
 msgid "the frame and title block, and your company's name and logo in it;"
 msgstr ""
 
-#: src/how-to/start-a-project.md:31
+#: src/how-to/start-a-project.md:32
 msgid "the check level (see [The check level](#the-check-level));"
 msgstr ""
 
-#: src/how-to/start-a-project.md:32
+#: src/how-to/start-a-project.md:33
 msgid ""
 "the text styles, the wire colours and sizes, the numbering and the "
 "cross-reference style;"
 msgstr ""
 
-#: src/how-to/start-a-project.md:33
+#: src/how-to/start-a-project.md:34
 msgid ""
 "the sections and the structure your drawings always have, and the lists and "
 "overviews on their own pages;"
 msgstr ""
 
-#: src/how-to/start-a-project.md:34
+#: src/how-to/start-a-project.md:35
 msgid "the first revision label."
 msgstr ""
 
-#: src/how-to/start-a-project.md:36
+#: src/how-to/start-a-project.md:37
 msgid ""
 "A template can hold pages and devices too, but a new project takes them only "
 "when you tick **Also copy its pages and the devices on them**. A project "
@@ -3328,54 +3330,54 @@ msgid ""
 "changes only the projects you make after that."
 msgstr ""
 
-#: src/how-to/start-a-project.md:40
+#: src/how-to/start-a-project.md:41
 msgid "Your templates"
 msgstr ""
 
-#: src/how-to/start-a-project.md:42
+#: src/how-to/start-a-project.md:43
 msgid ""
 "**Templates…** on the start page, and in the Project tab under "
 "**Templates**, lists your templates. Each line shows the template's name, "
 "what it holds and its folder. Click a template to choose it, then:"
 msgstr ""
 
-#: src/how-to/start-a-project.md:45
+#: src/how-to/start-a-project.md:46
 msgid ""
 "**Use for new projects** marks it for the New project dialog; **Do not use** "
 "takes the mark off, so new projects start empty unless you choose a template."
 msgstr ""
 
-#: src/how-to/start-a-project.md:47
+#: src/how-to/start-a-project.md:48
 msgid ""
 "**Edit** opens the template to change it (see [Change a "
 "template](#change-a-template))."
 msgstr ""
 
-#: src/how-to/start-a-project.md:48
+#: src/how-to/start-a-project.md:49
 msgid ""
 "**Rename** changes the name the list shows and New project offers: type the "
 "name and press **Save name** or `Enter`. The folder keeps its own name. A "
 "name another template has is refused."
 msgstr ""
 
-#: src/how-to/start-a-project.md:50
+#: src/how-to/start-a-project.md:51
 msgid ""
 "**Remove from the list** takes it out of the list. Its folder stays on the "
 "disk; **Add a folder…** brings it back."
 msgstr ""
 
-#: src/how-to/start-a-project.md:52
+#: src/how-to/start-a-project.md:53
 msgid ""
 "Under the list, **New template…** makes a template for your company's "
 "drawings with the wizard, and **Add a folder…** takes a template somebody "
 "gave you (any project folder)."
 msgstr ""
 
-#: src/how-to/start-a-project.md:55
+#: src/how-to/start-a-project.md:56
 msgid "Make a template for your company's drawings"
 msgstr ""
 
-#: src/how-to/start-a-project.md:57
+#: src/how-to/start-a-project.md:58
 msgid ""
 "**New template…** opens the wizard. It has ten steps: the company, the frame "
 "and title block, the colour profile, the wire cross-sections, identifiers "
@@ -3389,14 +3391,14 @@ msgid ""
 "wizard where you left off."
 msgstr ""
 
-#: src/how-to/start-a-project.md:64
+#: src/how-to/start-a-project.md:65
 msgid ""
 "A new template's texts print readably: no style is lower than 1.2 mm. Their "
 "heights and typefaces are on **Text styles…** in the template (see [Text "
 "styles](#text-styles))."
 msgstr ""
 
-#: src/how-to/start-a-project.md:67
+#: src/how-to/start-a-project.md:68
 msgid ""
 "The last step lists every choice. **Use this template for new projects** is "
 "ticked: the New project dialog then chooses this template first. Untick it "
@@ -3407,42 +3409,42 @@ msgid ""
 "folder. **Create the template** writes it there, the check level included."
 msgstr ""
 
-#: src/how-to/start-a-project.md:73
+#: src/how-to/start-a-project.md:74
 msgid "Make a template of a project"
 msgstr ""
 
-#: src/how-to/start-a-project.md:75
+#: src/how-to/start-a-project.md:76
 msgid ""
 "When a project is set up the way you like, **Save as template…** (Project "
 "tab, **Templates**) makes the next projects start like it:"
 msgstr ""
 
-#: src/how-to/start-a-project.md:78
+#: src/how-to/start-a-project.md:79
 msgid "Type the template's **Name** and the **Folder** it is made in."
 msgstr ""
 
-#: src/how-to/start-a-project.md:79
+#: src/how-to/start-a-project.md:80
 msgid ""
 "**Its pages and their devices** is off: the template takes the project's "
 "settings, frames and title blocks, text styles, sections and structure, and "
 "no pages. Tick it to take the pages too."
 msgstr ""
 
-#: src/how-to/start-a-project.md:81
+#: src/how-to/start-a-project.md:82
 msgid ""
 "**Use for new projects** is ticked: the New project dialog then chooses this "
 "template first."
 msgstr ""
 
-#: src/how-to/start-a-project.md:82
+#: src/how-to/start-a-project.md:83
 msgid "Press **Save as template**. The template is in your list."
 msgstr ""
 
-#: src/how-to/start-a-project.md:84
+#: src/how-to/start-a-project.md:85
 msgid "Change a template"
 msgstr ""
 
-#: src/how-to/start-a-project.md:86
+#: src/how-to/start-a-project.md:87
 msgid ""
 "In **Templates…** choose the template and press **Edit**. The template opens "
 "like a project, with a band across the window: \"You are editing the "
@@ -3451,22 +3453,22 @@ msgid ""
 "the band closes it. A template does not appear among the recent projects."
 msgstr ""
 
-#: src/how-to/start-a-project.md:91
+#: src/how-to/start-a-project.md:92
 msgid "Stop using a template"
 msgstr ""
 
-#: src/how-to/start-a-project.md:93
+#: src/how-to/start-a-project.md:94
 msgid ""
 "In **Templates…** choose the template and press **Do not use**: new projects "
 "start empty unless you choose a template in the New project dialog. **Remove "
 "from the list** also takes it out of the list; the folder stays on the disk."
 msgstr ""
 
-#: src/how-to/start-a-project.md:97
+#: src/how-to/start-a-project.md:98
 msgid "Text styles"
 msgstr ""
 
-#: src/how-to/start-a-project.md:99
+#: src/how-to/start-a-project.md:100
 msgid ""
 "Every text on a drawing prints in a text style: device tags in **Device "
 "tag**, wire numbers in **Wire marker**, the number beside a terminal in "
@@ -3476,7 +3478,7 @@ msgid ""
 "the style prints and has:"
 msgstr ""
 
-#: src/how-to/start-a-project.md:104
+#: src/how-to/start-a-project.md:105
 msgid ""
 "**Typeface**: Standard (Noto Sans), Narrow (Noto Sans Condensed), Mono (Noto "
 "Sans Mono, every character equally wide) or Technical drawing (Routed "
@@ -3486,7 +3488,7 @@ msgid ""
 "bold: with it, **B** is off and the style prints regular."
 msgstr ""
 
-#: src/how-to/start-a-project.md:108
+#: src/how-to/start-a-project.md:109
 msgid ""
 "**Height**: the height of a capital letter on paper, in millimetres, as "
 "drawing standards give a text's size. Type a value, or choose one of the "
@@ -3495,17 +3497,17 @@ msgid ""
 "project then warns about it too."
 msgstr ""
 
-#: src/how-to/start-a-project.md:111
+#: src/how-to/start-a-project.md:112
 msgid "**B**: bold."
 msgstr ""
 
-#: src/how-to/start-a-project.md:112
+#: src/how-to/start-a-project.md:113
 msgid ""
 "A sample in the style, in proportion to the others, and **Reset**, which "
 "brings the style back to what a new project has."
 msgstr ""
 
-#: src/how-to/start-a-project.md:115
+#: src/how-to/start-a-project.md:116
 msgid ""
 "A change shows on the open page at once and is one step of **Undo**. "
 "**Standard sizes** gives every style the height a new project has and keeps "
@@ -3514,7 +3516,7 @@ msgid ""
 "project's, and a template carries its own to the projects made from it."
 msgstr ""
 
-#: src/how-to/start-a-project.md:120
+#: src/how-to/start-a-project.md:121
 msgid ""
 "The warning \"Wire marker prints 0.94 mm high, too small to read on paper\" "
 "opens **Text styles** at that style when you open it in Messages "
@@ -3522,35 +3524,35 @@ msgid ""
 "step."
 msgstr ""
 
-#: src/how-to/start-a-project.md:123
+#: src/how-to/start-a-project.md:124
 msgid ""
 "A free text has its own **Style** in its Properties, chosen by name, and its "
 "own **Height** for that one text. The Properties of a text or a device also "
 "say which style it prints in, with **Change styles…** beside it."
 msgstr ""
 
-#: src/how-to/start-a-project.md:126
+#: src/how-to/start-a-project.md:127
 msgid "The check level"
 msgstr ""
 
-#: src/how-to/start-a-project.md:128
+#: src/how-to/start-a-project.md:129
 msgid ""
 "Before drawings go out, the program checks them. The check level says how "
 "strict that check is:"
 msgstr ""
 
-#: src/how-to/start-a-project.md:130
+#: src/how-to/start-a-project.md:131
 msgid ""
 "**Pre-delivery**: what must be right before drawings go out, such as an "
 "interruption point without its partner on another page. A few tidiness "
 "checks are left out, such as a structure code with a separator in it."
 msgstr ""
 
-#: src/how-to/start-a-project.md:132
+#: src/how-to/start-a-project.md:133
 msgid "**Full**: every check, the tidiness checks too."
 msgstr ""
 
-#: src/how-to/start-a-project.md:134
+#: src/how-to/start-a-project.md:135
 msgid ""
 "While you draw, the Messages panel shows every check whatever the level. A "
 "project made with an earlier version may have the level **Drafting**: it "
@@ -3558,7 +3560,7 @@ msgid ""
 "Full."
 msgstr ""
 
-#: src/how-to/start-a-project.md:137
+#: src/how-to/start-a-project.md:138
 msgid ""
 "The wizard's step **Reports and checks** sets it for a template, and "
 "**Create the template** writes it. In a project (or an open template), "
@@ -3659,18 +3661,20 @@ msgid ""
 "form's proposals) arms the Place tool on that strip. A terminal part chosen "
 "in the device browser, or `place.pick` with a terminal symbol and no "
 "`strip`, opens a second picker that lists the strips (`row strip \"<tag>\" "
-"terminal \"<next>\" @<n>`); choose the strip there. The terminal takes the "
-"row's proposed designation unless the choice names one (`picker.choose` with "
-"`designation` `PE`, on either picker). A strip without terminals prints its "
-"tag with question marks in it (`-X??`) because its counter is given with its "
-"first terminal; the `@n` at the end of its row selects it (`select.set` with "
-"`ids` `[\"@n\"]`), and `edit.delete_selection` deletes a strip that has no "
-"terminals. After its first terminal the strip has its real tag (`-X1011`); "
-"`place.pick` with a strip name the project does not have fails with a "
-"message that lists the project's strips."
+"terminal \"<next>\" @<n>`); choose the strip there. In a project without a "
+"strip, the terminal part chosen in the device browser goes on a new strip "
+"made for it, and `place.pick` without `strip` is refused. The terminal takes "
+"the row's proposed designation unless the choice names one (`picker.choose` "
+"with `designation` `PE`, on either picker). A strip without terminals prints "
+"its tag with question marks in it (`-X??`) because its counter is given with "
+"its first terminal; the `@n` at the end of its row selects it (`select.set` "
+"with `ids` `[\"@n\"]`), and `edit.delete_selection` deletes a strip that has "
+"no terminals. After its first terminal the strip has its real tag "
+"(`-X1011`); `place.pick` with a strip name the project does not have fails "
+"with a message that lists the project's strips."
 msgstr ""
 
-#: src/how-to/text-interface.md:53
+#: src/how-to/text-interface.md:54
 msgid ""
 "In the Terminal strips navigator a row is named by what it prints: a "
 "terminal by its tag, the strip's label, a colon and its own (`-X1031:1`), "
@@ -3679,7 +3683,7 @@ msgid ""
 "`rows` `[\"-X1031:1\",\"-X1031:2\"]`, a `column` and a `value`)."
 msgstr ""
 
-#: src/how-to/text-interface.md:57
+#: src/how-to/text-interface.md:58
 msgid ""
 "A terminal's connection points print `strip:terminal/clamp` (`-X1031:1/b`): "
 "the starter terminal has clamp `a` on side 1 (internal) and `b` on side 2 "
@@ -3688,11 +3692,11 @@ msgid ""
 "`#n` in connection-point order: `-X1:1/a#1` and `-X1:1/a#2`."
 msgstr ""
 
-#: src/how-to/text-interface.md:61
+#: src/how-to/text-interface.md:62
 msgid "Bridge terminals"
 msgstr ""
 
-#: src/how-to/text-interface.md:63
+#: src/how-to/text-interface.md:64
 msgid ""
 "Select two or more terminals of one strip on the page (click the first "
 "terminal symbol, Shift+click the others, or `select.set` with their "
@@ -3710,11 +3714,11 @@ msgid ""
 "refusal names the reason."
 msgstr ""
 
-#: src/how-to/text-interface.md:73
+#: src/how-to/text-interface.md:74
 msgid "External points"
 msgstr ""
 
-#: src/how-to/text-interface.md:75
+#: src/how-to/text-interface.md:76
 msgid ""
 "`structure.new` with `kind` `location` and the location (`+J-E-206`), then "
 "`external_ref.new` with the location, the device and the connection, once "
@@ -3722,7 +3726,7 @@ msgid ""
 "reference's label is `<device>:<connection>` (`JE-N1000-03:L`)."
 msgstr ""
 
-#: src/how-to/text-interface.md:78
+#: src/how-to/text-interface.md:79
 msgid ""
 "With the Interruption point tool armed, `ip.external` takes that label, or "
 "the label after the location as the page prints it (`+J-E-206 / "
@@ -3730,11 +3734,11 @@ msgid ""
 "reference has fails with a message that lists the labels the project has."
 msgstr ""
 
-#: src/how-to/text-interface.md:82
+#: src/how-to/text-interface.md:83
 msgid "Draw wires"
 msgstr ""
 
-#: src/how-to/text-interface.md:84
+#: src/how-to/text-interface.md:85
 msgid ""
 "With the Wire tool armed, put the grid cursor on a connection point (its "
 "`cp` position), press Enter, move to the other end and press Enter. The "
@@ -3742,7 +3746,7 @@ msgid ""
 "commit."
 msgstr ""
 
-#: src/how-to/text-interface.md:87
+#: src/how-to/text-interface.md:88
 msgid ""
 "`cp.next` and `cp.previous` step the cursor through the page's connection "
 "points in reading order of the cell **column by column** (column 0 to 16, "
@@ -3751,18 +3755,18 @@ msgid ""
 "`cursor.set` needs no walk."
 msgstr ""
 
-#: src/how-to/text-interface.md:90
+#: src/how-to/text-interface.md:91
 msgid ""
 "**Ending a wire on a wire** makes a junction there and splits that wire. The "
 "route's `end` names the wire it would split by its ends (`@101-C12 F55:2 -> "
 "E55:L`): check it before Enter when two wires run through one cell."
 msgstr ""
 
-#: src/how-to/text-interface.md:93
+#: src/how-to/text-interface.md:94
 msgid "Delete"
 msgstr ""
 
-#: src/how-to/text-interface.md:95
+#: src/how-to/text-interface.md:96
 msgid ""
 "`edit.delete_selection` (Delete) deletes what is selected on the page shown: "
 "a representation, a wire, a junction or an item. A device selected by its "
@@ -3772,11 +3776,11 @@ msgid ""
 "refused (`reason-not-on-page`)."
 msgstr ""
 
-#: src/how-to/text-interface.md:100
+#: src/how-to/text-interface.md:101
 msgid "Save and export"
 msgstr ""
 
-#: src/how-to/text-interface.md:102
+#: src/how-to/text-interface.md:103
 msgid ""
 "`file.save` saves. `file.export_pdf` with a file name writes the PDF; the "
 "toast names the file, its page count and its size."
