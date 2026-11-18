@@ -910,6 +910,10 @@ impl ShellModel {
         }
         self.dialog = Some(Dialog::Form(fresh));
         if let Some(value) = made {
+            // A new cable type makes a new cable for the line, under the next tag.
+            if field == "part" {
+                self.set_form_field("cable", "");
+            }
             self.set_form_field(field, &value);
         }
     }

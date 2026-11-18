@@ -4,7 +4,8 @@
 //! A cable's mark placed with its cores (rc.3): when drawn wires become a cable's cores in one command (`cable.create`
 //! and `conductor.add` with `wires`, the Cable form), each page they lie on gets the cable's mark at once, a wire
 //! marker listing them that the page draws as the cable's mark (`ew-scene`, "Cable marks"). A bus line that a cable
-//! carries (`bus.cable.set`, rc.5) gets the mark the same way, listed as a core is.
+//! carries (`bus.cable.set`, rc.5) gets the mark the same way, listed as a core is, placed across the middle of the
+//! line's longest run ([`bus_placement`]).
 //!
 //! - **A page with a mark of the cable** already (a marker listing one of its cores) takes the new cores into that
 //!   mark's list; a core some marker lists already stays where it is.
@@ -72,7 +73,16 @@ pub(crate) fn mark_cores(
             .iter()
             .filter_map(|c| Some((*c, tx.get::<Connection>(*c)?.route.clone())))
             .collect();
-        let Some((at, angle, connections)) = placement(&routes) else {
+        let bus = cores.iter().all(|c| {
+            tx.get::<Connection>(*c)
+                .is_some_and(|c| matches!(c.kind, ConnectionKind::Bus(_)))
+        });
+        let place = if bus {
+            bus_placement(&routes)
+        } else {
+            placement(&routes)
+        };
+        let Some((at, angle, connections)) = place else {
             continue;
         };
         let id = tx.mint::<PageItem>();
@@ -155,6 +165,33 @@ pub(crate) fn follow_kinds(tx: &mut TxBuilder<'_>, connections: &[Id<Connection>
 
 /// A mark's place: its point, its angle and the connections it crosses in the line's order.
 type Placement = (Pt2, Angle2, Vec<Id<Connection>>);
+
+/// The place of the mark of bus lines (rc.5): across the longest segment of the first routed line, in its middle, where
+/// the line's tag stood before it had a mark (a bus layout's trunk); `None` without a routed segment. It lists every
+/// one of `routes`.
+pub(crate) fn bus_placement(routes: &[(Id<Connection>, Vec<Pt2>)]) -> Option<Placement> {
+    let (_, pts) = routes.iter().find(|(_, pts)| pts.len() >= 2)?;
+    let (a, b) = pts
+        .windows(2)
+        .map(|w| (w[0], w[1]))
+        .filter(|(a, b)| a != b)
+        .fold(None::<(Pt2, Pt2)>, |best, (a, b)| {
+            let len = |(p, q): (Pt2, Pt2)| (q.x.0 - p.x.0).abs() + (q.y.0 - p.y.0).abs();
+            if best.is_none_or(|x| len((a, b)) > len(x)) {
+                Some((a, b))
+            } else {
+                best
+            }
+        })?;
+    let at = Pt2::new(
+        Nm(a.x.0 + (b.x.0 - a.x.0) / 2),
+        Nm(a.y.0 + (b.y.0 - a.y.0) / 2),
+    );
+    // Across a horizontal run the mark's line stands upright, across an upright run it lies flat.
+    let angle = if a.y == b.y { Angle2(90_000) } else { Angle2::ZERO };
+    // Every line of the cable on the page is the mark's, the one it stands on first.
+    Some((at, angle, routes.iter().map(|(id, _)| *id).collect()))
+}
 
 /// The place of a mark over the routed connections `routes` (module documentation): its point, its angle (0: a
 /// horizontal line across vertical wires; 90000: a vertical line across horizontal ones) and the connections it

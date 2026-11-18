@@ -1034,7 +1034,10 @@ fn cable_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut 
         });
         message(ui, &field);
     };
-    toggle(ui, "pe", events);
+    // A bus cable has no protective conductor.
+    if d.text("cable.bus").is_empty() {
+        toggle(ui, "pe", events);
+    }
     let markings: Vec<String> = ew_viewmodel::ew_api::CABLE_MARKINGS
         .iter()
         .map(|m| (*m).to_owned())

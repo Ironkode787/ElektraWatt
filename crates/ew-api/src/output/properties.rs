@@ -606,6 +606,12 @@ pub(super) fn record_title(q: &Q, id: Uuid, source: Option<&str>) -> Option<Stri
         }
         // A fluid line has no wire number; it is named by its line kind ("drain line").
         Kind::Connection => match json.pointer("/kind/fluid") {
+            // A bus line is named by its cable (rc.5: it read `?`).
+            None if json.pointer("/kind/bus").is_some() => json
+                .pointer("/kind/bus/cable")
+                .and_then(Value::as_str)
+                .and_then(|c| Uuid::parse_str(c).ok())
+                .map_or_else(|| "bus line".to_owned(), |c| device_tag_text(q, Id::from_uuid(c))),
             Some(fluid) => format!(
                 "{} line",
                 fluid
@@ -3540,6 +3546,8 @@ impl Session {
             // A cable's core has no wire number (FR-NUM-019): its cable and core name it (`-1W1 BN`), never `?`.
             let core = match q.connections().get(*c).map(|conn| conn.kind.clone()) {
                 Some(ew_schema::ConnectionKind::Core(x)) => record_title(q, x.as_uuid(), None),
+                // A bus line has no wire number either: its cable names it (rc.5: it read `?`).
+                Some(ew_schema::ConnectionKind::Bus(line)) => line.cable.map(|x| device_tag_text(q, x)),
                 _ => None,
             };
             let printed = core.clone().unwrap_or_else(|| wire_number_text(q, *c));
