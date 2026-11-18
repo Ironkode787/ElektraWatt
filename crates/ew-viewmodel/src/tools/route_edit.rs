@@ -12,9 +12,12 @@
 //! starts from its drawn polyline. The keyboard route editor (Edit route) is gone since rc.3: Reroute
 //! (`route.reroute`) routes selected wires anew.
 //!
-//! **Keyboard** (rc.3): with one wire selected, Tab and Shift+Tab give a handle the focus in the order of the wire
-//! (`route.handle`, [`handle_parts`]); it shows as the one under the pointer does. The arrow keys move it one grid
-//! step (`route.handle_move`), one undo step each; Esc gives the focus back to the wire.
+//! **Keyboard** (rc.3): with one wire selected, Tab and Shift+Tab give a handle the focus along the wire from the end
+//! a person reads first ([`reads_backwards`]; `route.handle`, [`handle_parts`]); it shows as the one under the pointer
+//! does, and the status line names it (the n-th of the wire's handles, a segment and the arrows that move it, or a
+//! bend). The arrow keys move it one grid step (`route.handle_move`), one undo step each; an arrow that cannot move it
+//! (along its segment, or where the route would not stay square on its ends) says so in the status line. Esc gives the
+//! focus back to the wire.
 //!
 //! **The ends stay.** The route's ends are on their connection points and never move. A first or last segment that
 //! is moved keeps a stub of one grid step at its end (none when the segment is no longer than a step) and jogs
@@ -297,6 +300,16 @@ pub fn handle_parts(line: &[(i64, i64)]) -> Vec<RoutePart> {
         }
     }
     out
+}
+
+/// Whether `line` reads from its last point to its first: its last point stands above its first, or level with it and
+/// to its left (page y grows downwards). Tab then goes through [`handle_parts`] backwards, from the end a person
+/// reads first.
+pub fn reads_backwards(line: &[(i64, i64)]) -> bool {
+    match (line.first(), line.last()) {
+        (Some(a), Some(b)) => (b.1, b.0) < (a.1, a.0),
+        _ => false,
+    }
 }
 
 /// Where the handle of `part` of `line` stands, page nm: a segment's middle or the bend.

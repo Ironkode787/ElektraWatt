@@ -145,16 +145,33 @@ impl ShellModel {
         // With one wire selected, Select says how to reach its handles; with one in the keyboard's focus, how to move
         // it (rc.3).
         if hint == crate::tools::Hint::plain(key!("hint-select"))
-            && let Some((wire, _)) = self.wire_handles()
+            && let Some((wire, line)) = self.wire_handles()
         {
-            return self.hint_text(if self.tools.handle.is_some_and(|(w, _)| w == wire) {
-                crate::tools::Hint::new(
-                    key!("hint-select-handle"),
-                    &["tool.next_proposal", crate::tools::ESCAPE],
-                )
-            } else {
-                crate::tools::Hint::new(key!("hint-select-wire"), &["tool.next_proposal"])
-            });
+            // The handle with the focus by its place along the wire as Tab goes (a persona run could not tell which
+            // dot it was) and the arrows that move it.
+            if let Some((_, k)) = self.tools.handle.filter(|(w, _)| *w == wire) {
+                use crate::tools::route_edit::{GripMove, grip_move, handle_parts, reads_backwards};
+                let parts = handle_parts(&line);
+                let place = if reads_backwards(&line) {
+                    parts.len().saturating_sub(k)
+                } else {
+                    k + 1
+                };
+                let text = match parts.get(k).map(|p| grip_move(&line, *p)) {
+                    Some(GripMove::UpDown) => key!("hint-select-handle-up-down"),
+                    Some(GripMove::Sideways) => key!("hint-select-handle-sideways"),
+                    _ => key!("hint-select-handle-bend"),
+                };
+                let (tab, esc) = (
+                    crate::command_bar::key_name(self, "tool.next_proposal"),
+                    crate::command_bar::key_name(self, crate::tools::ESCAPE),
+                );
+                return strings::format(text, &[&place.to_string(), &parts.len().to_string(), &tab, &esc]);
+            }
+            return self.hint_text(crate::tools::Hint::new(
+                key!("hint-select-wire"),
+                &["tool.next_proposal"],
+            ));
         }
         self.hint_text(hint)
     }

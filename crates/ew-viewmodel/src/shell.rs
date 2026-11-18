@@ -1424,6 +1424,12 @@ impl ShellModel {
         )
     }
 
+    /// Shows `text` as the status bar's note ([`ShellModel::status_note`]).
+    pub(crate) fn note_status(&mut self, text: String) {
+        let epoch = self.project.as_ref().map(|p| p.epoch);
+        self.status_note = Some((text, epoch, self.revision()));
+    }
+
     /// The status bar's note: shown once, until the project changes or another one opens.
     pub fn status_note(&self) -> Option<&str> {
         let (text, epoch, rev) = self.status_note.as_ref()?;

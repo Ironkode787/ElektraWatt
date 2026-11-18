@@ -759,13 +759,19 @@ impl ShellModel {
     }
 
     /// `route.handle {step}` (Tab +1, Shift+Tab −1, rc.3): the focus goes to the next or the previous handle of the
-    /// one selected wire in the order of the wire, round at its ends; the first Tab takes the first, the first
-    /// Shift+Tab the last. Refused without one wire selected.
+    /// one selected wire along the wire as a person reads it, from its end that comes first (the upper, else the left
+    /// one; a persona run's Tab landed on a handle at the wire's far end) to the other, round at its ends; the first
+    /// Tab takes the first, the first Shift+Tab the last. Refused without one wire selected.
     pub(crate) fn act_route_handle(&mut self, p: &Map<String, Value>) -> Outcome {
-        let step = p.get("step").and_then(Value::as_i64).unwrap_or(1);
         let Some((wire, line)) = self.wire_handles() else {
             return Outcome::refused(key!("reason-route-handle"));
         };
+        let step = p.get("step").and_then(Value::as_i64).unwrap_or(1)
+            * if crate::tools::route_edit::reads_backwards(&line) {
+                -1
+            } else {
+                1
+            };
         let n = i64::try_from(crate::tools::route_edit::handle_parts(&line).len()).unwrap_or(0);
         if n == 0 {
             return Outcome::refused(key!("reason-route-handle"));
@@ -801,17 +807,33 @@ impl ShellModel {
         let Some(grid) = self.canvas().map(|c| PageGridMap::new(c.page().tables.grid)) else {
             return Outcome::refused(key!("reason-no-page"));
         };
-        // A segment moves across itself only: a step along it moves nothing.
+        // A segment moves across itself only: a step along it moves nothing, and says so in the status line (a persona
+        // run's arrow key did nothing without a word).
         let steps = match grip_move(&line, part) {
             GripMove::UpDown => (0, dy),
             GripMove::Sideways => (dx, 0),
             GripMove::Free => (dx, dy),
         };
+        if steps == (0, 0) {
+            let note = match grip_move(&line, part) {
+                GripMove::Sideways => key!("status-handle-moves-sideways"),
+                _ => key!("status-handle-moves-up-down"),
+            };
+            self.note_status(strings::text(note).to_owned());
+            return Outcome::Done;
+        }
         let moved = moved_part(&line, part, steps, grid).filter(|m| *m != line);
         let (Some(moved), Some(at)) = (moved, handle_at(&line, part)) else {
+            self.note_status(strings::text(key!("status-handle-cannot-move")).to_owned());
             return Outcome::Done;
         };
         let out = self.commit_from_host(route_command(wire, &moved).as_ref());
+        // A route the page refuses (an end off its point, a corner no longer square) moves nothing and says why.
+        if let Outcome::Failed { message } = &out {
+            let note = strings::format(key!("status-handle-refused"), &[message]);
+            self.note_status(note);
+            return Outcome::Done;
+        }
         if out == Outcome::Done {
             // The focus follows the handle: the one nearest to where it went.
             let want = (at.0 + steps.0 * grid.step(), at.1 + steps.1 * grid.step());

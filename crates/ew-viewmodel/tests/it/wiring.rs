@@ -962,7 +962,7 @@ fn tab_and_the_arrows_move_a_handle_of_the_selected_wire() {
     key(&mut s, "tool.next_proposal");
     assert_eq!(hot(&s), [mid(&s, p[0], p[1])]);
     assert!(
-        prompt(&s).starts_with("The arrow keys move the handle"),
+        prompt(&s).starts_with("Handle 1 of "),
         "{}",
         prompt(&s)
     );
@@ -1010,6 +1010,75 @@ fn tab_and_the_arrows_move_a_handle_of_the_selected_wire() {
         Some(wire.polyline.clone()),
         "one undo takes it back"
     );
+}
+
+/// A persona run of the third candidate: Tab landed on a handle at the wire's far end, and an arrow that could not move
+/// the handle did nothing without a word. A wire drawn from its right end to its left: the first Tab takes the handle
+/// at the end a person reads first (the left one), the status line names it (its place and the arrows that move it),
+/// and an arrow along its segment moves nothing and says so in the status line.
+#[test]
+fn tab_starts_at_the_wires_left_end_and_an_arrow_that_cannot_move_says_so() {
+    let tmp = Tmp::new("rh2");
+    let mut s = actual_size(&tmp, "103");
+    coils_and_wires(
+        &mut s,
+        &[(55, 20), (65, 20)],
+        &[(
+            "-103K2:A2",
+            "-103K1:A2",
+            &[(65, 24), (65, 26), (60, 26), (60, 31), (55, 31), (55, 24)],
+        )],
+    );
+    let t = tables(&s);
+    let wire = t
+        .connections
+        .iter()
+        .find(|c| end_label(&t, &c.a) == "-103K2:A2")
+        .expect("the wire")
+        .clone();
+    let p = wire.polyline.clone();
+    let at_seg = |s: &ShellModel, a: (i64, i64), b: (i64, i64)| {
+        sheet(s, (a.0 + (b.0 - a.0) / 2, a.1 + (b.1 - a.1) / 2))
+    };
+    let mid = at_seg(&s, p[1], p[2]);
+    done(&mut s, "canvas.press", at(mid, json!({})));
+    done(&mut s, "canvas.release", at(mid, json!({})));
+    let away = sheet(&s, grid_point(&s, (20, 10)));
+    done(&mut s, "canvas.pointer", at(away, json!({})));
+    let hot = |s: &ShellModel| -> Vec<(i64, i64)> {
+        s.tool_overlay()
+            .items
+            .iter()
+            .filter_map(|i| match i {
+                OverlayItem::Grip { at, hot: true } => Some(*at),
+                _ => None,
+            })
+            .collect()
+    };
+    let key = |s: &mut ShellModel, action: &'static str| {
+        let (a, p) = s.shortcut_action(action);
+        done(s, a, p);
+    };
+    // The first Tab: the upright segment at the left end, -103K1:A2's.
+    key(&mut s, "tool.next_proposal");
+    let n = p.len();
+    assert_eq!(hot(&s), [at_seg(&s, p[n - 2], p[n - 1])]);
+    let prompt = ew_viewmodel::command_bar::hud(&s).prompt;
+    assert!(
+        prompt.starts_with("Handle 1 of 9, an upright segment: \u{2190} and \u{2192} move it"),
+        "{prompt}"
+    );
+    // Up along it moves nothing and says why where the person looks.
+    let rev = s.revision();
+    key(&mut s, "cursor.up");
+    assert_eq!(s.revision(), rev, "nothing moved");
+    assert_eq!(
+        s.status_note(),
+        Some("This handle moves left and right only: press \u{2190} or \u{2192}.")
+    );
+    // Tab goes on along the wire: the bend after it.
+    key(&mut s, "tool.next_proposal");
+    assert_eq!(hot(&s), [sheet(&s, p[n - 2])]);
 }
 
 /// Reroute with nothing selected routes the page's wires, the unrouted one included.
