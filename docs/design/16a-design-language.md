@@ -995,7 +995,8 @@ An authored value shows nothing, so the eye finds the exceptions. An empty autho
 node, the connection grid) shows a 16-px `chevron-down` in `color.text.secondary` at the cell's right end, always,
 and its node is a combo box; a value chosen in the part picker shows a 16-px `dots` icon there while the row's "…"
 actions button is not on show. A navigator table's cell is typed, never a list, so it shows neither. **Editing is in place:** a click or Enter on an editable value turns it into its editor;
-Enter commits, Escape cancels; a read-only value shows no editor and its reason as tooltip. There are no "edit"
+Enter commits, Escape cancels; a read-only value shows no editor and its reason as tooltip, and a click on it moves
+the row cursor there, so what is typed next is refused with that reason. There are no "edit"
 buttons. The row's actions (Reset to derived, Freeze, Why this value?) are in its context menu and in a "…" icon
 button that appears on hover and focus. Two rows never share a label: duplicate labels (today "Tag" and "Tag",
 "Parts" and "Parts") get distinct names in the field catalogue.

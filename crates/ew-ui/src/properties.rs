@@ -1139,6 +1139,9 @@ impl PropertiesPane {
         let link = !header && !editable && is_link(row);
         // A wire's value its cable core gives takes a click, which says where it is changed (rc.3).
         let cable = !header && !editable && shell.cable_row(&row.key).is_some();
+        // A click on a read-only value moves the row cursor there (no focus stop of its own): what is typed next goes to
+        // that row and is refused with its reason, never into the row before (a persona run's text landed in the date
+        // row above).
         let (cell, response) = child.allocate_exact_size(
             Vec2::new(
                 value_w,
@@ -1146,8 +1149,10 @@ impl PropertiesPane {
             ),
             if editable || link || cable {
                 Sense::click()
-            } else {
+            } else if header {
                 Sense::hover()
+            } else {
+                Sense::CLICK
             },
         );
         let shown = if value.is_empty() && !header {
@@ -1296,7 +1301,7 @@ impl PropertiesPane {
             events.push(Event::Action("props.row", json!({"to": row.key})));
             if link {
                 events.push(Event::Action("props.follow", json!({"row": row.key})));
-            } else {
+            } else if editable || cable {
                 events.push(Event::Action("props.edit", json!({})));
             }
         }
@@ -1615,6 +1620,12 @@ impl PropertiesPane {
             FieldType::Date => shell.date_hint(),
             _ => label.to_owned(),
         };
+        // A fresh field holds the focus before it reads this frame's keys: a character typed in the frame the field
+        // opens (the one after the character that opened it) goes into it, not lost (a persona run's "24 V DC" became
+        // "2 V DC").
+        if fresh {
+            ui.memory_mut(|m| m.request_focus(field_id));
+        }
         let response = ui.add_sized(
             Vec2::new(ui.available_width(), t.size_control_inline),
             TextEdit::singleline(&mut self.buffer)

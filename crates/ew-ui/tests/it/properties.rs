@@ -1403,3 +1403,109 @@ fn a_one_word_prose_value_takes_nothing_from_the_labels() {
     assert!(column >= least - 0.5, "the label column {column}");
     h.state_mut().shell_mut().shutdown();
 }
+
+/// Brings the row `key` into view: the row cursor moved there scrolls it in.
+fn bring(h: &mut Harness<'_, App>, key: &str) {
+    dispatch(h, "props.row", json!({ "to": key }));
+    settle(h);
+    settle(h);
+}
+
+/// A click on the value of the row labelled `label` on show, as a person clicks it.
+fn click_value(h: &mut Harness<'_, App>, label: &str) {
+    let rect = h
+        .get_all_by_role(egui::Role::Group)
+        .find(|n| n.accesskit_node().label().as_deref() == Some(label))
+        .unwrap_or_else(|| panic!("the row {label}"))
+        .rect();
+    let pos = egui::pos2(rect.right() - 60.0, rect.center().y);
+    h.event(egui::Event::PointerMoved(pos));
+    settle(h);
+    for pressed in [true, false] {
+        h.event(egui::Event::PointerButton {
+            pos,
+            button: egui::PointerButton::Primary,
+            pressed,
+            modifiers: Modifiers::NONE,
+        });
+    }
+    settle(h);
+}
+
+/// Types `text` as a person types at the window's frame rate (its first two characters in one frame, then one a
+/// frame), then Enter.
+fn type_and_enter(h: &mut Harness<'_, App>, text: &str) {
+    for (k, c) in text.chars().enumerate() {
+        h.event(egui::Event::Text(c.to_string()));
+        if k > 0 {
+            h.step();
+        }
+    }
+    settle(h);
+    press(h, Key::Enter);
+}
+
+/// A persona run of the third 0.3.0 candidate: after the project's Created date and Enter, a click on a read-only
+/// row below it and "24 V DC" typed went into the date row (the click had not moved the row cursor) and lost a
+/// character. Enter commits and ends the edit for every kind of row (text, number, date, choice), the next row takes
+/// what is typed for it whole, and a click on a read-only row moves the cursor there: what is typed then is refused,
+/// never written into the row before.
+#[test]
+fn enter_ends_each_edit_and_the_next_row_takes_what_is_typed() {
+    use ew_ui::ew_viewmodel::shell::{Mode, ShellModel};
+    let tmp = Tmp::new();
+    let shell = ShellModel::new(Mode::Gui, tmp.config_with_resources());
+    let mut h = support::harness_with(shell, support::Scripted::default(), None);
+    settle(&mut h);
+    dispatch(
+        &mut h,
+        "file.new",
+        json!({"dir": tmp.0.join("p.ew"), "template": "builtin"}),
+    );
+    dispatch(
+        &mut h,
+        "page.new",
+        json!({"folio": "101", "type": "multi_line", "title": "Power"}),
+    );
+    dispatch(&mut h, "props.show", json!({"on": true}));
+    settle(&mut h);
+    // The page: a text row, then a choice row; the project: a text row, a number row, a date row.
+    let rows = [
+        ("page/title", "Title", "Supply 24 V DC"),
+        ("page/kind", "Kind", "Single-line"),
+        ("project/people.author", "Designer", "A. Smith"),
+        ("project/master.manufacturing_year", "Manufacturing year", "2026"),
+        ("project/master.created", "Created", "18-11-2026"),
+    ];
+    for (key, label, typed) in rows {
+        if key == "project/people.author" {
+            dispatch(&mut h, "props.project", json!({}));
+            settle(&mut h);
+        }
+        bring(&mut h, key);
+        click_value(&mut h, label);
+        type_and_enter(&mut h, typed);
+        assert!(
+            h.state().shell().properties().edit().is_none(),
+            "{label}: Enter ends the edit"
+        );
+        assert_eq!(row(&h, key).0, typed, "{label}");
+    }
+    // Typed on the cursor row without a click: the first character opens the field and none after it is lost.
+    bring(&mut h, "project/people.author");
+    type_and_enter(&mut h, "B. Jones");
+    assert_eq!(row(&h, "project/people.author").0, "B. Jones");
+    // The date row and a read-only row below it on show, the cursor on the date row as Enter left it: a click on the
+    // read-only row moves the cursor there, and what is typed is not written into the date row.
+    bring(&mut h, "project/derivation_profile");
+    bring(&mut h, "project/master.created");
+    click_value(&mut h, "Derivation profile");
+    assert_eq!(
+        h.state().shell().properties_row().as_deref(),
+        Some("project/derivation_profile")
+    );
+    type_and_enter(&mut h, "24 V DC");
+    assert!(h.state().shell().properties().edit().is_none());
+    assert_eq!(row(&h, "project/master.created").0, "18-11-2026");
+    h.state_mut().shell_mut().shutdown();
+}
