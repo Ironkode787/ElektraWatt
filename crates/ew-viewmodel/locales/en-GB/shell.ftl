@@ -484,6 +484,17 @@ supply-in-location = Comes from (location)
 supply-in-device = Device there
 supply-in-location-proposal = Supply
 reason-supply-in-select = Draw the points where the supply comes in with Interruption (L1, N, PE) and select them first
+# H9: the supply marks' Potential panel: a row per mark placed, its conductor and voltage.
+action-ip-supply-potential = Potential…
+supply-potential-title = What comes in here
+supply-potential-name = Mark
+supply-potential-kind = Conductor
+supply-potential-voltage = Voltage
+supply-potential-skip = Not now
+supply-potential-hint = Enter takes every row; Escape places the marks without a potential.
+supply-potential-refused = { $p0 }: { $p1 }
+reason-supply-potential-select = Select supply marks first: points marked with Supply comes in here…
+reason-supply-potential-row = The Potential panel has no such row: open it again with Potential… on the supply marks
 action-ip-arrange-selected = Arrange interruption points
 action-box-grip = Move a black box grip
 action-box-add-cp = Add connection point

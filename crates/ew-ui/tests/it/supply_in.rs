@@ -215,6 +215,8 @@ fn supply_points_that_stand_together_print_their_place_once() {
         shell.dispatch("ip.supply_in", &json!({"location": "Supply", "device": "-X0"})),
         Outcome::Done
     );
+    // The marks' Potential panel (H9): Not now.
+    assert_eq!(shell.dispatch("ui.dismiss", &json!({})), Outcome::Done);
     d.input(&Input::Hover { at: (4, 4) });
     d.settle();
     let printed = |d: &mut Driver| {
@@ -283,5 +285,121 @@ fn supply_points_that_stand_together_print_their_place_once() {
     d.input(&Input::Hover { at: (4, 4) });
     d.settle();
     assert_eq!(printed(&mut d), 1, "it joined the group under it");
+    d.shell_mut().shutdown();
+}
+
+/// H9: supply marks placed in one go ask what comes in. Three points L1, N and PE drawn with the Interruption tool, N
+/// defined as the neutral first; Supply comes in here… on all three opens the Potential panel at them with a row per
+/// mark whose potential has no type yet (L1 and PE: N continues its potential and is not asked), pre-filled from the
+/// names. A voltage typed in the L1 row and Enter define both potentials in one undo step; Potential… on the marks'
+/// right-click menu shows what they carry now. Escape on a fresh mark places it without a potential.
+#[test]
+fn supply_marks_placed_in_one_go_ask_their_potential() {
+    use ew_ui::ew_viewmodel::shell::Outcome;
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    d.input(&click(d.find("Interruption").unwrap()));
+    d.settle();
+    for (name, y) in [("L1", 400), ("N", 460), ("PE", 520)] {
+        crate::wires_and_cables::fill(&mut d, "Interruption point name", name);
+        d.input(&Input::Hover { at: (900, y) });
+        d.settle();
+        d.input(&click((900, y)));
+        d.settle();
+    }
+    d.input(&key("escape"));
+    d.settle();
+    let reps: Vec<(i64, String)> = {
+        let mut r: Vec<_> = tables(&mut d)
+            .reps
+            .iter()
+            .filter(|r| r.ip.is_some())
+            .map(|r| (r.pos.1, r.id.to_string()))
+            .collect();
+        r.sort();
+        r
+    };
+    assert_eq!(reps.len(), 3, "three points");
+    let shell = d.shell_mut();
+    // N is the neutral already.
+    assert_eq!(
+        shell.dispatch("select.set", &json!({ "ids": [reps[1].1] })),
+        Outcome::Done
+    );
+    assert_eq!(
+        shell.dispatch("potential.draw", &json!({"name": "N", "type": "N"})),
+        Outcome::Done
+    );
+    let ids: Vec<&String> = reps.iter().map(|(_, id)| id).collect();
+    assert_eq!(shell.dispatch("select.set", &json!({ "ids": ids })), Outcome::Done);
+    assert_eq!(
+        shell.dispatch("ip.supply_in", &json!({"location": "Supply", "device": "-X0"})),
+        Outcome::Done
+    );
+    d.settle();
+    let rows = |d: &mut Driver| -> Vec<(String, String, String)> {
+        d.shell_mut()
+            .supply_panel()
+            .map(|p| p.rows.iter().map(|r| (r.name.clone(), r.kind.clone(), r.voltage.clone())).collect())
+            .unwrap_or_default()
+    };
+    assert_eq!(
+        rows(&mut d),
+        vec![
+            ("L1".to_owned(), "l1".to_owned(), String::new()),
+            ("PE".to_owned(), "pe".to_owned(), String::new()),
+        ],
+        "the panel asks for the marks whose potential has no type, pre-filled from their names"
+    );
+    d.input(&Input::Hover { at: (4, 4) });
+    d.settle();
+    assert!(d.find("Not now").is_some(), "the panel is shown");
+    // A voltage typed in the L1 row, then Enter.
+    assert_eq!(
+        d.shell_mut()
+            .dispatch("ip.supply_potential", &json!({"row": 0, "voltage": "230 V AC"})),
+        Outcome::Done
+    );
+    let steps = d.shell_mut().recorded_commands().len();
+    d.input(&key("enter"));
+    d.settle();
+    assert!(d.shell_mut().supply_panel().is_none(), "Enter closes the panel");
+    let defined: Vec<_> = d.shell_mut().recorded_commands()[steps..]
+        .iter()
+        .map(|c| (c.cmd.clone(), c.params["name"].clone(), c.params["ptype"].clone()))
+        .collect();
+    assert_eq!(
+        defined,
+        vec![
+            ("potential.define".to_owned(), json!("L1"), json!("l1")),
+            ("potential.define".to_owned(), json!("PE"), json!("pe")),
+        ]
+    );
+    assert_eq!(
+        d.shell_mut().recorded_commands()[steps].params["env"],
+        json!({"ac_dc": "ac"})
+    );
+    // Potential… on the marks' right-click menu shows what they carry now.
+    let shell = d.shell_mut();
+    assert_eq!(shell.dispatch("select.set", &json!({ "ids": [reps[0].1] })), Outcome::Done);
+    assert_eq!(
+        shell.supply_potential_item().map(|i| i.label).as_deref(),
+        Some("Potential…")
+    );
+    assert_eq!(shell.dispatch("ip.supply_potential", &json!({})), Outcome::Done);
+    assert_eq!(
+        rows(&mut d),
+        vec![("L1".to_owned(), "l1".to_owned(), "230 V AC".to_owned())]
+    );
+    // Escape closes it and changes nothing.
+    let steps = d.shell_mut().recorded_commands().len();
+    d.input(&key("escape"));
+    d.settle();
+    assert!(d.shell_mut().supply_panel().is_none());
+    assert_eq!(d.shell_mut().recorded_commands().len(), steps);
+    // One undo takes both definitions back: L1's row is its name's again.
+    assert_eq!(d.shell_mut().dispatch("edit.undo", &json!({})), Outcome::Done);
+    assert_eq!(d.shell_mut().dispatch("ip.supply_potential", &json!({})), Outcome::Done);
+    assert_eq!(rows(&mut d)[0], ("L1".to_owned(), "l1".to_owned(), String::new()));
     d.shell_mut().shutdown();
 }

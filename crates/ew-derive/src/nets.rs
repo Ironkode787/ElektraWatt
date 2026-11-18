@@ -211,7 +211,11 @@ impl Query for PageLocalNets {
         let mut earth_ended: Vec<(Id<Connection>, EndpointKey, EndpointKey)> = Vec::new();
         let mut zero_volt: Vec<EndpointKey> = Vec::new();
         type Via = BTreeMap<EndpointKey, BTreeSet<Id<Connection>>>;
-        let join = |dsu: &mut Dsu<EndpointKey>, via: &mut Via, id: Id<Connection>, a: EndpointKey, b: EndpointKey| {
+        let join = |dsu: &mut Dsu<EndpointKey>,
+                    via: &mut Via,
+                    id: Id<Connection>,
+                    a: EndpointKey,
+                    b: EndpointKey| {
             let (ia, ib) = (dsu.node(a), dsu.node(b));
             dsu.union(ia, ib);
             via.entry(a).or_default().insert(id);

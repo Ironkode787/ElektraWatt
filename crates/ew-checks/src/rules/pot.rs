@@ -22,11 +22,12 @@ use ew_derive::ew_schema::{
 };
 use ew_derive::ew_units::Dec3;
 use ew_derive::{
-    AttrConflict, BondCarrierQ, DefAttr, ChannelStates, ChannelsByCp, ConnWireProps, CpRef, DeriveNote, DeviceTag, DrawnPageOrder,
-    EffectiveState, EndKind, EndpointKey, FlowBfs, FunctionCps, FunctionLinksOf, PageRef, PhysicalWire,
-    PhysicalWiresOf, PotentialAttrsOf, PotentialFlow, PotentialId, PotentialNameOf, PotentialPartition, Q,
-    RailLocation, RailTerminalOf, WireNumbers, bonds_of_potential, colour_text, cp_label, cp_text, csa_text,
-    device_location, potential_id_at, potential_part, ranked_defs, wire_props_below_overrides,
+    AttrConflict, BondCarrierQ, ChannelStates, ChannelsByCp, ConnWireProps, CpRef, DefAttr, DeriveNote,
+    DeviceTag, DrawnPageOrder, EffectiveState, EndKind, EndpointKey, FlowBfs, FunctionCps, FunctionLinksOf,
+    PageRef, PhysicalWire, PhysicalWiresOf, PotentialAttrsOf, PotentialFlow, PotentialId, PotentialNameOf,
+    PotentialPartition, Q, RailLocation, RailTerminalOf, WireNumbers, bonds_of_potential, colour_text,
+    cp_label, cp_text, csa_text, device_location, potential_id_at, potential_part, ranked_defs,
+    wire_props_below_overrides,
 };
 
 use crate::finding::{Finding, QuickFix, Severity, Target};
@@ -762,12 +763,10 @@ fn conflict_piece(q: &Q, c: &AttrConflict) -> ConflictPiece {
         AttrConflict::Defs { attr, def, applied } => {
             let (d, a) = (defs.get(*def), defs.get(*applied));
             let attribute = match attr {
-                DefAttr::Type => {
-                    match (d.and_then(|x| x.ptype.as_ref()), a.and_then(|x| x.ptype.as_ref())) {
-                        (Some(x), Some(y)) if zero_volt_and_pe(x, y) => "conflict-earth",
-                        _ => "conflict-type",
-                    }
-                }
+                DefAttr::Type => match (d.and_then(|x| x.ptype.as_ref()), a.and_then(|x| x.ptype.as_ref())) {
+                    (Some(x), Some(y)) if zero_volt_and_pe(x, y) => "conflict-earth",
+                    _ => "conflict-type",
+                },
                 DefAttr::Voltage => "conflict-voltage",
                 DefAttr::Environment => "conflict-environment",
                 DefAttr::Class => "conflict-class",
@@ -794,7 +793,9 @@ fn conflict_piece(q: &Q, c: &AttrConflict) -> ConflictPiece {
         }
         AttrConflict::Role { cp, role, def } => {
             let d = defs.get(*def);
-            let defined = d.and_then(|x| x.ptype.clone()).unwrap_or(PotentialType::Undefined);
+            let defined = d
+                .and_then(|x| x.ptype.clone())
+                .unwrap_or(PotentialType::Undefined);
             let (cp_side, def_side) = (
                 (cp_text(q, *cp), type_words(role)),
                 d.map_or_else(Default::default, |x| (def_label(q, x), type_words(&defined))),
@@ -957,7 +958,8 @@ impl Rule for PelvSelvBonding {
                 .filter_map(|d| q.potential_defs().get(*d))
                 .any(|d| pred(d))
         };
-        let zero_volt = |t: Option<&PotentialType>| matches!(t, Some(PotentialType::M | PotentialType::LMinus));
+        let zero_volt =
+            |t: Option<&PotentialType>| matches!(t, Some(PotentialType::M | PotentialType::LMinus));
         let m_type = zero_volt(ptype.as_ref()) || declared(&|d| zero_volt(d.ptype.as_ref()));
         let earthed = |e: PotentialEarthing| {
             earthing.as_ref() == Some(&e) || declared(&|d| d.env.earthing.as_ref() == Some(&e))
@@ -1234,7 +1236,10 @@ impl Rule for BuOnNonN {
                     )
                     .arg("wire", text)
                     .arg("potential", name.clone())
-                    .arg("type", ptype.as_ref().map_or_else(|| "none".to_owned(), type_words)),
+                    .arg(
+                        "type",
+                        ptype.as_ref().map_or_else(|| "none".to_owned(), type_words),
+                    ),
                 )
             })
             .collect()
@@ -2499,19 +2504,17 @@ impl Rule for TwoPotentialNames {
             return Vec::new();
         }
         let pt = potential_targets(q, p);
-        vec![
-            worded(
-                pt.finding(
-                    &TWO_POTENTIAL_NAMES,
-                    &[],
-                    "names".to_owned(),
-                    names[0].clone(),
-                    String::new(),
-                )
-                .arg("names", names.join(", "))
-                .arg("first", names[0].clone()),
-            ),
-        ]
+        vec![worded(
+            pt.finding(
+                &TWO_POTENTIAL_NAMES,
+                &[],
+                "names".to_owned(),
+                names[0].clone(),
+                String::new(),
+            )
+            .arg("names", names.join(", "))
+            .arg("first", names[0].clone()),
+        )]
     }
 }
 

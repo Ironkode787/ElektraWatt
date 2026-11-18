@@ -1354,6 +1354,19 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_potential_draw_row(p),
         ))),
     )),
+    // H9: the supply marks' Potential panel (it opens when marks are placed; Potential… on their right-click menu).
+    keeps_banner(with_params(
+        "row?:int, kind?:text, voltage?:text, apply?:bool",
+        hidden(in_canvas(act(
+            "ip.supply_potential",
+            Command,
+            Menu::Draw,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_supply_potential(p),
+        ))),
+    )),
     // FT-1700: Accept and Decline on the card of a potential reasoned for the selected wire.
     keeps_banner(with_params(
         "accept:bool",

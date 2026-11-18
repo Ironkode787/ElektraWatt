@@ -220,7 +220,10 @@ impl Fx {
         fx.fndef(
             FNDEF_LPLUS,
             SYM_LPLUS,
-            &[(0, "1", Value::Null), (1, "+", json!({"potential_role": "l_plus"}))],
+            &[
+                (0, "1", Value::Null),
+                (1, "+", json!({"potential_role": "l_plus"})),
+            ],
             &no_links,
         );
         for (n, page) in [(P1, 1), (P2, 2)] {
@@ -266,7 +269,11 @@ impl Fx {
     /// A function `n` of the PE-role definition (`pe`) or the L+-role one, whose device has the tag `-K<counter>`
     /// whatever its ID: for ID-permutation tests, where the printed key must not follow the ID order.
     pub fn func_role_tagged(&mut self, n: u128, pe: bool, counter: u32, page: u128) {
-        let (def, sym) = if pe { (FNDEF_PE, SYM_PE) } else { (FNDEF_LPLUS, SYM_LPLUS) };
+        let (def, sym) = if pe {
+            (FNDEF_PE, SYM_PE)
+        } else {
+            (FNDEF_LPLUS, SYM_LPLUS)
+        };
         self.device(n + 0x20_000, "K", Some(counter));
         self.push(json!({"$k": "function", "id": us(n), "device": us(n + 0x20_000), "def": us(def)}));
         self.rep(n, sym, page);

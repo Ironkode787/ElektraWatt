@@ -27,7 +27,7 @@ const SUPPLY_IN: &str = "ip.supply_in";
 impl ShellModel {
     /// The selected interruption points of the page shown (their functions) and whether every one has the supply
     /// mark already; `None` when the selection holds anything else or nothing.
-    fn selected_supply_points(&self) -> Option<(Vec<Uuid>, bool)> {
+    pub(super) fn selected_supply_points(&self) -> Option<(Vec<Uuid>, bool)> {
         let c = self.canvas()?;
         let t = &c.page().tables;
         let kinds = selection_kinds(&self.tools.selection, t);

@@ -44,6 +44,8 @@ mod clipboard;
 mod context_menu;
 // Supply comes in here… on interruption points (FT-1699).
 mod supply_in;
+// The supply marks' Potential panel (H9).
+mod supply_potential;
 pub mod symbol_editor;
 // The text and graphic tools' host duties.
 mod drawing;
@@ -133,6 +135,7 @@ pub use navigation::{Focus, RECENT_PAGES, SessionCalls};
 pub use navigators::{Chip, DragSource, FindingLook, MAX_CHIPS, ShownRow};
 pub use parts::{MapColumn, MapKind, PartsMap};
 pub use row_ops::NavRename;
+pub use supply_potential::{SupplyPanel, SupplyRow};
 pub use tools::SnapIndicator;
 
 /// Who drives the shell: the window or the headless runner. They share `dispatch`; the modes differ only where a
@@ -768,6 +771,8 @@ pub struct ShellModel {
     glossary: glossary::GlossaryState,
     /// The point a Potentials row's Define potential… pinned for its open form; none otherwise.
     potential_at: Option<ew_api::output::TableEnd>,
+    /// The supply marks' Potential panel while it is open (H9).
+    supply_panel: Option<supply_potential::SupplyPanel>,
     /// The reasoned potential of the one selected wire (FT-1700), kept for the revision and the wire it was read for.
     #[allow(clippy::type_complexity)]
     offer_cache: std::cell::RefCell<
@@ -1227,6 +1232,7 @@ impl ShellModel {
             revision: revision::RevisionState::default(),
             glossary: glossary::GlossaryState::default(),
             potential_at: None,
+            supply_panel: None,
             offer_cache: std::cell::RefCell::new(None),
             rack_cache: std::cell::RefCell::default(),
             station_cache: std::cell::RefCell::new(Vec::new()),
@@ -2705,6 +2711,10 @@ impl ShellModel {
     /// a tool other than Select is replaced by Select and Select's selection is cleared. A banner has a button of its
     /// own, [`ShellModel::dismiss_banner`].
     pub(crate) fn act_dismiss(&mut self) -> Outcome {
+        // Escape in the supply marks' Potential panel places the marks without a potential (H9).
+        if self.supply_panel.take().is_some() {
+            return Outcome::Done;
+        }
         // Escape in the confirmation that Discard… opened returns to the recovery dialog.
         // And Escape in the unsaved-changes question of the import card's Apply returns to the card.
         if matches!(

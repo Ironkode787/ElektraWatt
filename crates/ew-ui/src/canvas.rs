@@ -1486,6 +1486,7 @@ impl CanvasHost {
         );
         self.context_menu(&response, shell, canvas, group, events);
         Self::potential_offer(&response, shell, canvas, group, events);
+        Self::supply_panel(&response, shell, canvas, group, events);
         // A text of the one selected symbol can be grabbed and dragged on its own (doc 06 §2.5).
         // So can a layout label that drags alone (rc.2).
         if response.hovered()
@@ -2101,6 +2102,149 @@ impl CanvasHost {
                         let decline = strings::text(key!("potential-offer-decline"));
                         if button(ui, Kind::Secondary, decline, true, 0.0).clicked() {
                             events.push(Event::Action("potential.offer", json!({"accept": false})));
+                        }
+                    });
+                });
+            });
+    }
+
+    /// The supply marks' Potential panel (H9, `ShellModel::supply_panel`): below the marks it is for, a row per mark
+    /// (its name, the kind of conductor, the voltage with AC or DC), Apply (Enter) and Not now (Escape). On the focused
+    /// canvas only, hidden while a menu is open.
+    fn supply_panel(
+        response: &egui::Response,
+        shell: &ShellModel,
+        canvas: &CanvasModel,
+        group: usize,
+        events: &mut Vec<Event>,
+    ) {
+        let focused = shell.area().is_none_or(|a| a.focused == group);
+        if !focused || egui::Popup::is_any_open(&response.ctx) {
+            return;
+        }
+        let Some(panel) = shell.supply_panel() else {
+            return;
+        };
+        // Below the lowest of the marks, at the left of the leftmost, inside the canvas.
+        let page = canvas.page();
+        let rects: Vec<_> = page
+            .entities
+            .iter()
+            .filter(|(e, _)| panel.rows.iter().any(|r| r.rep == e.0))
+            .map(|(_, r)| *r)
+            .collect();
+        let view = view_of(canvas);
+        let ppp = canvas.ppp();
+        let corner = |x: f64, y: f64| {
+            let (px, py) = view.transform().to_screen((x, y));
+            response.rect.min + egui::vec2((px / ppp) as f32, (py / ppp) as f32)
+        };
+        let t = crate::theme::current(&response.ctx);
+        let at = match (
+            rects.iter().map(|r| r.min().x.0).min(),
+            rects.iter().map(|r| r.max().y.0).max(),
+        ) {
+            (Some(x), Some(y)) => corner(x as f64, y as f64) + egui::vec2(0.0, t.space_2),
+            _ => response.rect.min + egui::vec2(t.space_4, t.space_4),
+        };
+        let at = egui::pos2(
+            at.x.clamp(
+                response.rect.left(),
+                (response.rect.right() - 3.0 * t.size_dialog_label).max(response.rect.left()),
+            ),
+            at.y.clamp(
+                response.rect.top(),
+                (response.rect.bottom() - (panel.rows.len() as f32 + 4.0) * t.size_control)
+                    .max(response.rect.top()),
+            ),
+        );
+        let kinds = shell.supply_kinds();
+        egui::Area::new(response.id.with("supply-panel"))
+            .order(egui::Order::Foreground)
+            .fixed_pos(at)
+            .show(&response.ctx, |ui| {
+                crate::components::card_frame(&t).show(ui, |ui| {
+                    ui.label(
+                        egui::RichText::new(strings::text(key!("supply-potential-title")))
+                            .font(crate::theme::font(&t.type_body_strong))
+                            .color(t.text_primary.color32()),
+                    );
+                    ui.add_space(t.space_2);
+                    egui::Grid::new("supply-panel-rows")
+                        .num_columns(3)
+                        .spacing(egui::vec2(t.space_3, t.space_2))
+                        .show(ui, |ui| {
+                            for k in [
+                                key!("supply-potential-name"),
+                                key!("supply-potential-kind"),
+                                key!("supply-potential-voltage"),
+                            ] {
+                                ui.label(
+                                    egui::RichText::new(strings::text(k))
+                                        .font(crate::theme::font(&t.type_small))
+                                        .color(t.text_secondary.color32()),
+                                );
+                            }
+                            ui.end_row();
+                            for (i, row) in panel.rows.iter().enumerate() {
+                                ui.label(&row.name);
+                                let shown = kinds
+                                    .iter()
+                                    .find(|(w, _)| *w == row.kind)
+                                    .map_or(row.kind.as_str(), |(_, text)| text.as_str());
+                                egui::ComboBox::from_id_salt(("supply-kind", i))
+                                    .selected_text(shown)
+                                    .width(4.0 * t.size_control)
+                                    .show_ui(ui, |ui| {
+                                        for (word, text) in &kinds {
+                                            if ui.selectable_label(*word == row.kind, text).clicked() {
+                                                events.push(Event::Action(
+                                                    "ip.supply_potential",
+                                                    json!({"row": i, "kind": word}),
+                                                ));
+                                            }
+                                        }
+                                    });
+                                let mut voltage = row.voltage.clone();
+                                let edit = egui::TextEdit::singleline(&mut voltage)
+                                    .id_salt(("supply-voltage", i))
+                                    .desired_width(5.0 * t.size_control);
+                                if ui.add(edit).changed() {
+                                    events.push(Event::Action(
+                                        "ip.supply_potential",
+                                        json!({"row": i, "voltage": voltage}),
+                                    ));
+                                }
+                                ui.end_row();
+                            }
+                        });
+                    if let Some(error) = &panel.error {
+                        ui.add_space(t.space_2);
+                        ui.label(egui::RichText::new(error).color(t.error.color32()));
+                    }
+                    ui.add_space(t.space_2);
+                    ui.label(
+                        egui::RichText::new(strings::text(key!("supply-potential-hint")))
+                            .font(crate::theme::font(&t.type_small))
+                            .color(t.text_secondary.color32()),
+                    );
+                    ui.add_space(t.space_2);
+                    ui.horizontal(|ui| {
+                        use crate::components::{Kind, button};
+                        if button(ui, Kind::Primary, strings::text(key!("dialog-apply")), true, 0.0).clicked()
+                        {
+                            events.push(Event::Action("ip.supply_potential", json!({"apply": true})));
+                        }
+                        if button(
+                            ui,
+                            Kind::Secondary,
+                            strings::text(key!("supply-potential-skip")),
+                            true,
+                            0.0,
+                        )
+                        .clicked()
+                        {
+                            events.push(Event::Action("ui.dismiss", serde_json::Value::Null));
                         }
                     });
                 });

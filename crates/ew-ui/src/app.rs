@@ -1519,6 +1519,15 @@ impl App {
             // The notifications log is a popup too.
             || self.shell.notifications().popup_open();
         let overlay = palette_open || dialog_open || picker_open;
+        // Enter in the supply marks' Potential panel takes every row (H9), before the canvas's Enter.
+        if self.shell.supply_panel().is_some()
+            && !overlay
+            && !egui::Popup::is_any_open(ctx)
+            && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Enter))
+        {
+            events.push(Event::Action("ip.supply_potential", json!({"apply": true})));
+            return;
+        }
         // Escape closes the app menu (with its submenus), then the collapsed bar's command-row popover.
         // Any open menu, a context menu among them, closes and nothing else (the selection stays).
         if egui::Popup::is_any_open(ctx) && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {

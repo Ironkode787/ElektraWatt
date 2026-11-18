@@ -476,16 +476,19 @@ pub(crate) fn bond_links(
             }
         })
         .collect();
-    let drawn = pages.values().flat_map(|l| l.earth_wires.iter()).map(|w| BondLink {
-        bond: Id::from_uuid(w.via.as_uuid()),
-        kind: BondKind::Pelv0vPe,
-        a: potential_at(w.zero_volt),
-        b: potential_at(w.earth),
-        via: Some(w.via),
-        path_ips: Vec::new(),
-        names: Vec::new(),
-        drawn: true,
-    });
+    let drawn = pages
+        .values()
+        .flat_map(|l| l.earth_wires.iter())
+        .map(|w| BondLink {
+            bond: Id::from_uuid(w.via.as_uuid()),
+            kind: BondKind::Pelv0vPe,
+            a: potential_at(w.zero_volt),
+            b: potential_at(w.earth),
+            via: Some(w.via),
+            path_ips: Vec::new(),
+            names: Vec::new(),
+            drawn: true,
+        });
     out.extend(drawn);
     out.sort_by_key(|b| b.bond);
     out

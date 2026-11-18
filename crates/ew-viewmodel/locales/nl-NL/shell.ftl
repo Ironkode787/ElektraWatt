@@ -503,6 +503,17 @@ supply-in-location = Komt van (locatie)
 supply-in-device = Apparaat daar
 supply-in-location-proposal = Voeding
 reason-supply-in-select = Teken eerst de punten waar de voeding binnenkomt met Onderbreking (L1, N, PE) en selecteer ze
+# H9: het paneel Potentiaal van de voedingsmarkeringen: een rij per geplaatste markering, met geleider en spanning.
+action-ip-supply-potential = Potentiaal…
+supply-potential-title = Wat hier binnenkomt
+supply-potential-name = Markering
+supply-potential-kind = Geleider
+supply-potential-voltage = Spanning
+supply-potential-skip = Niet nu
+supply-potential-hint = Enter neemt alle rijen over; Escape plaatst de markeringen zonder potentiaal.
+supply-potential-refused = { $p0 }: { $p1 }
+reason-supply-potential-select = Selecteer eerst voedingsmarkeringen: punten gemarkeerd met Voeding komt hier binnen…
+reason-supply-potential-row = Het paneel Potentiaal heeft die rij niet: open het opnieuw met Potentiaal… op de voedingsmarkeringen
 action-ip-arrange-selected = Onderbrekingspunten schikken
 action-box-grip = Een greep van een black box verplaatsen
 action-box-add-cp = Aansluitpunt toevoegen

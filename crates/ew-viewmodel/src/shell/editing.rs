@@ -2844,6 +2844,8 @@ impl ShellModel {
         };
         self.say_result(&before, &now);
         self.say_card_waits(&before, &now);
+        // Supply marks placed: their Potential panel (H9).
+        self.after_supply_marks(&before, &now);
         // The IP tool's ghost proposes its next name on the page as the commit left it (its kept direction may meet
         // the name it just placed).
         self.after_ip_commit();

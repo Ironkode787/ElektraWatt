@@ -211,9 +211,6 @@ impl ShellModel {
             Ok(at) => at,
             Err(reason_key) => return Outcome::Refused { reason_key },
         };
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
         let mut params = json!({ "at": end_param(at) });
         for (param, path, text) in texts {
             let Some(text) = text.map(str::trim).filter(|t| !t.is_empty()) else {
@@ -222,42 +219,12 @@ impl ShellModel {
                 }
                 continue;
             };
-            let field = crate::palette::PaletteField {
-                name: param.to_owned(),
-                ty: "text".to_owned(),
-                optional: true,
-                value: String::new(),
-            }
-            .label();
-            let (input, extra) = potential_input("potential_def", path, text);
-            params[path] = match project.session.parse_field_input("potential_def", path, &input) {
-                Ok(parsed) => parsed.value,
-                // The form takes the printed forms: its refusal names them, not the stored words.
-                Err(InputError::Invalid(_) | InputError::NotOneOf { .. }) if path == "ptype" => {
-                    return failed(key!("error-potential-type"), &[text]);
-                }
-                Err(InputError::Invalid(_)) if path == "voltage" => {
-                    return failed(key!("error-potential-voltage"), &[text]);
-                }
-                Err(InputError::Invalid(why)) => {
-                    let why = super::tools::rejected_words(&why.to_string(), Some(&why));
-                    let title = strings::text(key!("command-potential-define"));
-                    return Outcome::Failed {
-                        message: strings::format(key!("error-command-field"), &[title, &field, &why]),
-                    };
-                }
-                Err(InputError::NotOneOf { typed, options }) => {
-                    let why = crate::properties::not_one_of_text("potential_def", path, &typed, &options);
-                    let title = strings::text(key!("command-potential-define"));
-                    return Outcome::Failed {
-                        message: strings::format(key!("error-command-field"), &[title, &field, &why]),
-                    };
-                }
-                Err(InputError::UnknownPart(_) | InputError::Ambiguous { .. }) => {
-                    return failed(key!("error-bad-param"), &[&field]);
-                }
+            let (value, ac_dc) = match self.potential_field(param, path, text) {
+                Ok(v) => v,
+                Err(out) => return out,
             };
-            if let Some((_, ac_dc)) = extra {
+            params[path] = value;
+            if let Some(ac_dc) = ac_dc {
                 params["env"] = json!({ "ac_dc": ac_dc });
             }
         }
@@ -266,6 +233,56 @@ impl ShellModel {
             params,
         };
         self.commit_from_host(&cmd)
+    }
+
+    /// One field of a potential definition as typed (`name`, `ptype` as printed, `L+`; `voltage` as printed, `24 V
+    /// DC`), as the command's value, with the `env.ac_dc` the voltage's current sets; a text the field does not take
+    /// fails with the field's words (`param`, as the form labels it). Define potential… and the supply marks' panel.
+    pub(crate) fn potential_field(
+        &self,
+        param: &str,
+        path: &str,
+        text: &str,
+    ) -> Result<(Value, Option<Value>), Outcome> {
+        let Some(project) = &self.project else {
+            return Err(Outcome::refused(key!("reason-no-project")));
+        };
+        let field = crate::palette::PaletteField {
+            name: param.to_owned(),
+            ty: "text".to_owned(),
+            optional: true,
+            value: String::new(),
+        }
+        .label();
+        let (input, extra) = potential_input("potential_def", path, text);
+        let value = match project.session.parse_field_input("potential_def", path, &input) {
+            Ok(parsed) => parsed.value,
+            // The form takes the printed forms: its refusal names them, not the stored words.
+            Err(InputError::Invalid(_) | InputError::NotOneOf { .. }) if path == "ptype" => {
+                return Err(failed(key!("error-potential-type"), &[text]));
+            }
+            Err(InputError::Invalid(_)) if path == "voltage" => {
+                return Err(failed(key!("error-potential-voltage"), &[text]));
+            }
+            Err(InputError::Invalid(why)) => {
+                let why = super::tools::rejected_words(&why.to_string(), Some(&why));
+                let title = strings::text(key!("command-potential-define"));
+                return Err(Outcome::Failed {
+                    message: strings::format(key!("error-command-field"), &[title, &field, &why]),
+                });
+            }
+            Err(InputError::NotOneOf { typed, options }) => {
+                let why = crate::properties::not_one_of_text("potential_def", path, &typed, &options);
+                let title = strings::text(key!("command-potential-define"));
+                return Err(Outcome::Failed {
+                    message: strings::format(key!("error-command-field"), &[title, &field, &why]),
+                });
+            }
+            Err(InputError::UnknownPart(_) | InputError::Ambiguous { .. }) => {
+                return Err(failed(key!("error-bad-param"), &[&field]));
+            }
+        };
+        Ok((value, extra.map(|(_, ac_dc)| ac_dc)))
     }
 
     /// The parameter form of `potential.draw` in the palette, its name required.
