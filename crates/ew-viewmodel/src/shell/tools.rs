@@ -510,7 +510,8 @@ impl ShellModel {
                 if refused || (committed && matches!(out, Outcome::Refused { .. })) {
                     self.tools.notice_at = match ev {
                         CanvasEvent::Press { at, .. } => Some(*at),
-                        CanvasEvent::Activate => Some((i64::MIN, i64::MIN)),
+                        // A refused key, Enter's finish of the Duct tool among them, has no pointer point either.
+                        CanvasEvent::Activate | CanvasEvent::Key(_) => Some((i64::MIN, i64::MIN)),
                         _ => None,
                     };
                 }
@@ -1500,6 +1501,11 @@ impl ShellModel {
             && self.canvas().and_then(CanvasModel::cursor).is_none()
         {
             return self.send_tool(&CanvasEvent::Activate);
+        }
+        // Without a grid cursor the Duct tool's Enter finishes the line its clicks drew, as its hint says, or says why
+        // not (a persona run: two clicks and Enter drew no duct and named the grid cursor).
+        if self.tools.tool.name() == "duct_draw" && self.canvas().and_then(CanvasModel::cursor).is_none() {
+            return self.send_tool(&CanvasEvent::Key(crate::tools::ToolKey::Finish));
         }
         let Some(at) = self.canvas().and_then(CanvasModel::cursor) else {
             return Outcome::refused(key!("reason-no-cursor"));

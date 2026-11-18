@@ -12,7 +12,8 @@
 //! **Size.** The part's `mech` `W × H`, else the tool option's fields (40 × 60 mm by default, then the last used).
 //!
 //! **Enter.** A click at the grid cursor adds its point as the next vertex; Enter where the last vertex already is
-//! finishes a centreline of two or more vertices, so the keyboard draws as the pointer does.
+//! finishes a centreline of two or more vertices, so the keyboard draws as the pointer does. Without a grid cursor
+//! (the points clicked with the pointer) Enter is the finish, which the shell sends.
 
 use ew_api::AnyCommand;
 use ew_api::output::PanelTables;

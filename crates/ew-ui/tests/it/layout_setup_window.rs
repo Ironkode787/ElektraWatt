@@ -293,6 +293,90 @@ fn the_create_enclosure_dialog_draws_the_locations_enclosure_on_the_layout_page(
     );
 }
 
+/// A persona run of the third 0.3.0 candidate: on a layout page with an enclosure and its mounting plate, the Duct
+/// tool's two clicks and Enter drew no duct and only named the grid cursor. Enter now finishes the duct the clicks drew;
+/// one click and Enter says in words why there is none.
+#[test]
+fn two_clicks_and_enter_with_the_duct_tool_draw_a_duct() {
+    let tmp = Tmp::new();
+    let shell = ShellModel::new(Mode::Gui, tmp.config_with_resources());
+    let mut h = support::harness_with(shell, support::Scripted::default(), None);
+    settle(&mut h);
+    dispatch(
+        &mut h,
+        "file.new",
+        json!({"dir": tmp.0.join("p.ew"), "template": "builtin"}),
+    );
+    dispatch(
+        &mut h,
+        "page.new",
+        json!({"folio": "301", "type": "panel_layout", "title": "Cabinet layout"}),
+    );
+    dispatch(
+        &mut h,
+        "layout.enclosure_new",
+        json!({"location": "new", "new_location": "CAB1", "part": "EW-GEN-ENC-1"}),
+    );
+    settle(&mut h);
+    let ducts = |h: &Harness<'_, App>| {
+        let t = h.state().shell().panel_tables().expect("the plate on the page");
+        t.carriers.iter().filter(|c| c.kind == "duct").count()
+    };
+    assert_eq!(ducts(&h), 0);
+    // Two points across the middle of the plate's usable area, in the window.
+    let points: Vec<egui::Pos2> = {
+        let shell = h.state().shell();
+        let t = shell.panel_tables().expect("the plate on the page");
+        let (us, vs): (Vec<i64>, Vec<i64>) = t.usable.iter().copied().unzip();
+        let (u0, u1) = (us.iter().min().unwrap(), us.iter().max().unwrap());
+        let (v0, v1) = (vs.iter().min().unwrap(), vs.iter().max().unwrap());
+        let v = i128::from((v0 + v1) / 2);
+        [3, 7]
+            .into_iter()
+            .map(|k| {
+                let u = i128::from(u0 + (u1 - u0) * k / 10);
+                let sheet = shell
+                    .canvas()
+                    .unwrap()
+                    .page()
+                    .snapper
+                    .page_to_sheet(t.to_page((u, v)));
+                support::screen(&h, sheet)
+            })
+            .collect()
+    };
+    dispatch(&mut h, "tool.duct_draw", json!({}));
+    settle(&mut h);
+    let click = |h: &mut Harness<'_, App>, pos: egui::Pos2| {
+        h.event(egui::Event::PointerMoved(pos));
+        settle(h);
+        for pressed in [true, false] {
+            h.event(egui::Event::PointerButton {
+                pos,
+                button: egui::PointerButton::Primary,
+                pressed,
+                modifiers: egui::Modifiers::NONE,
+            });
+        }
+        settle(h);
+    };
+    click(&mut h, points[0]);
+    click(&mut h, points[1]);
+    assert!(
+        h.state().shell().canvas().unwrap().cursor().is_none(),
+        "no grid cursor"
+    );
+    h.key_press(egui::Key::Enter);
+    settle(&mut h);
+    assert_eq!(ducts(&h), 1, "{:?}", h.state().shell().tool_notice());
+    // One point is no duct, and Enter says so.
+    click(&mut h, points[0]);
+    h.key_press(egui::Key::Enter);
+    settle(&mut h);
+    assert_eq!(ducts(&h), 1);
+    assert_eq!(h.state().shell().tool_notice(), Some("A duct needs two points"));
+}
+
 #[test]
 fn the_create_enclosure_dialog_keeps_its_refusal_under_the_fields() {
     let tmp = Tmp::new();
