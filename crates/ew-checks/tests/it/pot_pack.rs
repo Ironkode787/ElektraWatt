@@ -591,8 +591,8 @@ fn pot017_cases() {
                     assert_eq!(f[0].subject, "P2", "case {c}");
                     assert_eq!(
                         f[0].message,
-                        "P2, P10 are names of one conductor: they are wired together. It is called P2; give the \
-                         others the same name, or take away the wire that joins them.",
+                        "P2 has more than one name: P2, P10 are wired together. Give them one name, or take away \
+                         the wire that joins them.",
                         "case {c}"
                     );
                     assert_eq!(f[0].targets.len(), 2, "case {c}");

@@ -924,7 +924,7 @@ rule-ew-pot-016 = Draad { WORD($wire) } heeft { $member ->
     .title = Overbodige overschrijving
     .hint = Verwijder de overschrijving; ze zet de waarde die de draad toch al krijgt.
 
-rule-ew-pot-017 = { $names } zijn namen van één geleider: ze zijn met elkaar verbonden. Hij heet { $first }; geef de andere dezelfde naam, of haal de draad weg die ze verbindt.
+rule-ew-pot-017 = { $first } heeft meer dan één naam: { $names } zijn met elkaar verbonden. Geef ze één naam, of haal de draad weg die ze verbindt.
     .title = Twee namen voor één potentiaal
     .hint = Houd één definitie van de potentiaal, of geef de onderbrekingspunten één naam.
 

@@ -701,9 +701,10 @@ fn def_page(q: &Q, def: &ew_derive::ew_schema::PotentialDef) -> Option<String> {
 }
 
 /// A definition as a conflict names it: its name and the point it stands at (`24V at -G1:+`).
+/// A definition at an interruption point or a junction (no device) is named by its name alone.
 fn def_label(q: &Q, def: &ew_derive::ew_schema::PotentialDef) -> String {
     match def.at {
-        ew_derive::ew_schema::Endpoint::Cp(f, idx) => {
+        ew_derive::ew_schema::Endpoint::Cp(f, idx) if q.functions().get(f).is_some_and(|x| x.device.is_some()) => {
             format!("{} at {}", def.name.as_str(), cp_text(q, CpRef::new(f, idx)))
         }
         _ => def.name.as_str().to_owned(),

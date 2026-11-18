@@ -928,7 +928,7 @@ rule-ew-pot-016 = Wire { $wire } has { $member ->
     .title = Redundant override
     .hint = Remove the override; it sets the value the wire takes anyway.
 
-rule-ew-pot-017 = { $names } are names of one conductor: they are wired together. It is called { $first }; give the others the same name, or take away the wire that joins them.
+rule-ew-pot-017 = { $first } has more than one name: { $names } are wired together. Give them one name, or take away the wire that joins them.
     .title = Two potential names
     .hint = Keep one definition of the potential, or rename the interruption points to one name.
 
