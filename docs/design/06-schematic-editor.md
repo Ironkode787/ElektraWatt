@@ -1449,7 +1449,12 @@ export start (FR-OUT-001).
     ghost label shows the new tag before release, and the toast offers "freeze previous tag", which creates a frozen
     tag reported at info.
 13. **Black box resize.** CPs slide along the outline and cannot leave it; a CP on a removed polygon edge moves to
-    the nearest remaining edge and is listed in the preview.
+    the nearest remaining edge and is listed in the preview. *As built (rc.5):* the CPs of a side keep their order and
+    spacing and stay centred on it as a group, on grid points, a grid step clear of each corner; on a shorter side the
+    spacing closes up to one step, and below that the grip stops and the status line says why (`box.reshape` refuses
+    it in words). The representation's position follows the outline's top-left corner, so the box's texts keep their
+    place relative to it. A CP never moves onto a corner; Centre the pins (the box's right-click, `box.reshape` with
+    `centre`) re-centres a box stored with one there.
 14. **Large pastes.** Above 500 records `edit.paste` becomes `Cost::Bulk` and previews as a job (NFR-PERF-08,
     NFR-PERF-19). Autoconnect, routing, folio proposals and paste numbering break ties by ID, never by hash-map order
     or wall clock (NFR-REL-07).
