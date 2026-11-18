@@ -94,6 +94,19 @@ pub fn spread(width: i64, m: i64, k: i64) -> i64 {
     start + k * pitch
 }
 
+/// The room in nanometres a pin needs along a top or bottom edge for its text `text` read upright on one line beside
+/// its neighbours' (rc.5): the text's width in style `data.small` with the bundled fonts, and a millimetre to spare.
+pub fn pin_text_room(text: &str) -> i64 {
+    let Some(style) = ew_text::builtin().resolve("data.small") else {
+        return 0;
+    };
+    ew_text::bundled()
+        .shape(text, &style, None)
+        .advance()
+        .0
+        .saturating_add(1_000_000)
+}
+
 fn horizontal(side: &Dir4) -> bool {
     matches!(side, Dir4::Up | Dir4::Down)
 }

@@ -1505,8 +1505,8 @@ impl ShellModel {
     }
 
     /// `plc.draw_station`'s parameters for `station` on `page` (`Session::station_draw_params`): each device not drawn
-    /// yet a box 39.7 × 31.75 mm (wider where its pins need it), with its part's connection points laid out as the black box
-    /// tool lays them (`tools::black_box::layout`), beside the one before it from the next free place, a new row under
+    /// yet a box 39.7 × 31.75 mm (wider where its pins need it, so that their upright texts fit on one line), with its part's
+    /// connection points laid out as the black box tool lays them (`tools::black_box::layout`), beside the one before it from the next free place, a new row under
     /// the first where the next box would pass the drawing area's right. A device whose part has no black-box entry is
     /// left out. `None` without the page shown, its frame or the catalogue.
     fn station_boxes(&mut self, station: Uuid, page: Uuid) -> Option<Value> {
@@ -1547,6 +1547,7 @@ impl ShellModel {
                 (snap(x + SIZE.0), snap(y + SIZE.1)),
                 &entry.cps,
                 &[],
+                true,
             ) else {
                 continue;
             };
