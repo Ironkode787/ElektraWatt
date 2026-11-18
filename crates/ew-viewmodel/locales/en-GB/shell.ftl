@@ -722,6 +722,7 @@ reason-structure-box-tool-only = Choose the Structure box tool first
 tool-select = Select
 tool-measure = Measure
 hint-select = Click to select; drag for a rubber band
+hint-select-cp = A wire starts at this connection point: { $p0 }, then a click on it
 hint-measure-armed = Click or { $p0 } at the first point
 hint-measure-measuring = Click or { $p0 } at the second point; { $p1 } starts again
 measure-label = dx { $p0 } dy { $p1 } mm, { $p2 } mm

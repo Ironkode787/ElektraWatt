@@ -708,6 +708,7 @@ reason-structure-box-tool-only = Kies eerst het gereedschap Structuurkader
 tool-select = Selecteren
 tool-measure = Meten
 hint-select = Klik om te selecteren; sleep voor een selectierechthoek
+hint-select-cp = Een draad begint op dit aansluitpunt: { $p0 }, dan een klik erop
 hint-measure-armed = Klik of { $p0 } op het eerste punt
 hint-measure-measuring = Klik of { $p0 } op het tweede punt; { $p1 } begint opnieuw
 measure-label = dx { $p0 } dy { $p1 } mm, { $p2 } mm

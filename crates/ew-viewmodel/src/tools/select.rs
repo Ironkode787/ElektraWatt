@@ -159,6 +159,26 @@ pub struct SelectTool {
     panel: Option<PanelPress>,
     /// A press on a text of the one selected symbol, and its drag once it moves.
     text: Option<TextPress>,
+    /// The connection point under the pointer while idle, sheet point: its ring is on show (rc.3).
+    cp_hover: Option<(i64, i64)>,
+}
+
+/// The connection point within [`super::CP_SNAP_PT`] screen points of the sheet point `at` (the Wire tool's reach,
+/// at every zoom), the nearest first, as a sheet point; none on a panel page.
+fn cp_near(cx: &ToolCx<'_>, at: (i64, i64)) -> Option<(i64, i64)> {
+    if cx.page.panel.is_some() {
+        return None;
+    }
+    let reach = cx.nm_of_points(super::CP_SNAP_PT).floor().min(9.0e15) as i128;
+    cx.page
+        .tables
+        .cps
+        .iter()
+        .map(|cp| cx.snapper.page_to_sheet(cp.at))
+        .map(|p| (super::dist2(p, at), p))
+        .filter(|(d, _)| *d <= reach * reach)
+        .min_by_key(|(d, p)| (*d, *p))
+        .map(|(_, p)| p)
 }
 
 /// A press on a text of the one selected symbol (doc 06 §2.5): a drag moves the text alone, snapped to the fine grid
@@ -610,6 +630,7 @@ impl SelectTool {
             last: None,
             panel: None,
             text: None,
+            cp_hover: None,
         }
     }
 
@@ -1186,6 +1207,7 @@ impl SelectTool {
     }
 
     fn press(&mut self, at: (i64, i64), mods: Mods, cx: &ToolCx<'_>) -> ToolOutput {
+        self.cp_hover = None;
         if let Some(link) = cx.link_at(at) {
             self.state = State::Link { dest: link.dest, at };
             return ToolOutput::None;
@@ -1348,7 +1370,23 @@ impl SelectTool {
 
     fn moved(&mut self, at: (i64, i64), cx: &ToolCx<'_>) -> ToolOutput {
         match self.state.clone() {
-            State::Idle | State::Moving { .. } => ToolOutput::None,
+            State::Idle => {
+                // A connection point within reach shows its ring, so a wire can be started at the zoom the page
+                // fits at (rc.3: the points were one or two pixels).
+                let near = cp_near(cx, at);
+                let was = std::mem::replace(&mut self.cp_hover, near);
+                match near {
+                    Some(p) if was != near => {
+                        ToolOutput::Transient(Overlay::new(vec![OverlayItem::Marker {
+                            at: p,
+                            kind: super::MarkerKind::Cp,
+                        }]))
+                    }
+                    None if was.is_some() => ToolOutput::Transient(Overlay::default()),
+                    _ => ToolOutput::None,
+                }
+            }
+            State::Moving { .. } => ToolOutput::None,
             State::Grip { .. } | State::BoxCp { .. } => self.box_drag(at, cx),
             State::Segment {
                 connection,
@@ -1592,6 +1630,9 @@ impl Tool for SelectTool {
             | State::Grip { .. }
             | State::BoxCp { .. } => {
                 super::Hint::new(key!("hint-select-move"), &[super::ENTER, super::ESCAPE])
+            }
+            State::Idle if self.cp_hover.is_some() => {
+                super::Hint::new(key!("hint-select-cp"), &["tool.wire"])
             }
             _ => super::Hint::plain(key!("hint-select")),
         }
