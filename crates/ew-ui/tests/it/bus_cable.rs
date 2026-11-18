@@ -225,64 +225,208 @@ fn a_bus_line_takes_a_dp_cable_and_a_plug_at_each_end() {
     for number in ["EW-GEN-CBL-2", "EW-GEN-PLG-1", "EW-GEN-PLG-5"] {
         assert!(bom.contains(number), "{number} in the parts list:\n{bom}");
     }
+    // rc.5: the cable counts by its length.
+    assert!(
+        bom.lines()
+            .any(|l| l.contains("EW-GEN-CBL-2") && l.contains(",12.5,m,")),
+        "{bom}"
+    );
     let cables = saved.export_csv(Export::Cables).expect("the cable overview");
     assert!(cables.contains("EW-GEN-CBL-2"), "the cable overview:\n{cables}");
 }
 
-#[test]
-fn zz_experiment_plugs_in_session() {
-    let tmp = Tmp::new();
-    let mut d = new_project(&tmp);
-    let block = json!({"kind": "parts_summary", "folio": "901"});
-    assert_eq!(d.shell_mut().dispatch("report_block.new", &block), Outcome::Done);
+/// A line drawn on the bus layout between the starter CPU's and the remote I/O head's sockets, DP (`dp`) or PROFINET,
+/// and selected; its ID.
+fn bus_line(d: &mut ew_ui::visual::Driver, cpu: &[String], rio: &[String], dp: bool) -> String {
+    let pick = |labels: &[String]| {
+        labels
+            .iter()
+            .find(|l| l.ends_with(":P1") != dp)
+            .cloned()
+            .unwrap_or_else(|| panic!("a socket in {labels:?}"))
+    };
+    let lines = |d: &mut ew_ui::visual::Driver| -> Vec<String> {
+        d.shell_mut()
+            .canvas()
+            .expect("the page")
+            .page()
+            .tables
+            .connections
+            .iter()
+            .map(|c| c.id.to_string())
+            .collect()
+    };
+    let before = lines(d);
+    d.input(&key("W"));
+    d.settle();
+    press_cp(d, &pick(cpu));
+    press_cp(d, &pick(rio));
+    d.input(&key("Escape"));
+    d.input(&key("Escape"));
+    d.settle();
+    let line = lines(d)
+        .into_iter()
+        .find(|c| !before.contains(c))
+        .expect("the new line");
+    assert_eq!(
+        d.shell_mut().dispatch("select.set", &json!({"ids": [line]})),
+        Outcome::Done
+    );
+    d.settle();
+    line
+}
+
+/// The value of form field `name`.
+fn field_value(d: &mut ew_ui::visual::Driver, name: &str) -> String {
+    let Some(Dialog::Form(form)) = d.shell_mut().dialog() else {
+        panic!("a form");
+    };
+    form.fields
+        .iter()
+        .find(|f| f.name == name)
+        .map(|f| f.value.clone())
+        .expect("the field")
+}
+
+/// A new project with a bus layout page (folio 2) holding the starter CPU and remote I/O head; their sockets.
+fn bus_page(tmp: &Tmp) -> (ew_ui::visual::Driver, Vec<String>, Vec<String>) {
+    let mut d = new_project(tmp);
     let page = json!({"folio": "2", "type": "bus_topology", "title": "Network"});
     assert_eq!(d.shell_mut().dispatch("page.new", &page), Outcome::Done);
     d.settle();
     let cpu = place_box(&mut d, "EW-GEN-CPU-2", (20, 15), (30, 22));
     let rio = place_box(&mut d, "EW-GEN-RIO-1", (60, 45), (70, 52));
-    let dp = |labels: &[String]| labels.iter().find(|l| !l.ends_with(":P1")).cloned().unwrap();
-    let (from, to) = (dp(&cpu), dp(&rio));
-    d.input(&key("W"));
+    (d, cpu, rio)
+}
+
+/// H3 (rc.5): a cable chosen for a line on a bus layout gets the next tag by the project's numbering, with the page as
+/// a cable marked on a wiring page has it, and its mark at the line (a marker listing the line); a second line gets
+/// the next tag. Each tag stands once on the page.
+#[test]
+fn a_bus_cable_takes_the_next_tag_of_its_page_and_its_mark() {
+    let tmp = Tmp::new();
+    let (mut d, cpu, rio) = bus_page(&tmp);
+    let mut tags = Vec::new();
+    for dp in [true, false] {
+        let line = bus_line(&mut d, &cpu, &rio, dp);
+        assert_eq!(
+            d.shell_mut().dispatch("cable.from_wires", &json!({})),
+            Outcome::Done
+        );
+        d.settle();
+        let proposed = field_value(&mut d, "tag");
+        assert_eq!(d.shell_mut().submit_form(), Outcome::Done);
+        d.settle();
+        let toast = d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
+        assert!(toast.contains(&proposed), "{proposed}: {toast}");
+        let marked = crate::own_parts::records(&mut d).into_iter().any(|r| {
+            r["kind"]["wire_marker"]["connections"]
+                .as_array()
+                .is_some_and(|c| c.contains(&json!(line)))
+        });
+        assert!(marked, "the line {line} is in its cable's mark");
+        tags.push(proposed);
+    }
+    assert_eq!(tags, ["-2W1", "-2W2"], "the page's next tags, one each");
+    let texts = crate::own_parts::page_texts(&mut d);
+    for tag in &tags {
+        assert_eq!(
+            texts.iter().filter(|t| *t == tag).count(),
+            1,
+            "{tag} once on the page: {texts:?}"
+        );
+    }
+}
+
+/// H4 (rc.5): New bus cable… and New plug… in the bus line's Cable form make the parts in a short form, the cable's
+/// cores as PROFIBUS has them, the plug angled with its resistor; each is chosen in the form at once, and Apply puts
+/// both into the parts list (H15), the cable by its length.
+#[test]
+fn a_new_bus_cable_and_plug_are_made_in_the_cable_form() {
+    let tmp = Tmp::new();
+    let (mut d, cpu, rio) = bus_page(&tmp);
+    let block = json!({"kind": "parts_summary", "folio": "901"});
+    assert_eq!(d.shell_mut().dispatch("report_block.new", &block), Outcome::Done);
+    bus_line(&mut d, &cpu, &rio, true);
+    assert_eq!(
+        d.shell_mut().dispatch("cable.from_wires", &json!({})),
+        Outcome::Done
+    );
     d.settle();
-    press_cp(&mut d, &from);
-    press_cp(&mut d, &to);
-    d.input(&key("Escape"));
-    d.input(&key("Escape"));
+    let part_field = |d: &mut ew_ui::visual::Driver, field: &str, value: &str| {
+        let p = json!({"field": field, "value": value});
+        assert_eq!(d.shell_mut().dispatch("part.field", &p), Outcome::Done);
+    };
+    let new_cable = option(&mut d, "part", "New bus cable");
+    d.shell_mut().set_form_field("part", &new_cable);
+    {
+        let Some(Dialog::PartEdit(e)) = d.shell_mut().dialog() else {
+            panic!("the New bus cable form");
+        };
+        assert_eq!(e.title(), "New bus cable");
+        assert_eq!(e.draft.text("cable.bus"), "profibus_dp");
+        assert_eq!(
+            e.draft.cable.table,
+            [("A".to_owned(), "GN".to_owned()), ("B".to_owned(), "RD".to_owned())]
+        );
+        assert_eq!(e.draft.text("cable.shield"), "true");
+    }
+    for (f, v) in [
+        ("manufacturer", "Maker"),
+        ("type_designation", "DP trunk"),
+        ("part_number", "BUS-CBL-9"),
+        ("cable.diameter", "8"),
+    ] {
+        part_field(&mut d, f, v);
+    }
+    assert_eq!(d.shell_mut().dispatch("part.save", &json!({})), Outcome::Done);
     d.settle();
-    let line = d.shell_mut().canvas().unwrap().page().tables.connections[0].id.to_string();
-    d.shell_mut().dispatch("select.set", &json!({"ids": [line.clone()]}));
+    let cable = field_value(&mut d, "part");
+    assert_eq!(option(&mut d, "part", "BUS-CBL-9"), cable, "the new cable is chosen");
+    let new_plug = option(&mut d, "plug_b", "New plug");
+    d.shell_mut().set_form_field("plug_b", &new_plug);
+    {
+        let Some(Dialog::PartEdit(e)) = d.shell_mut().dialog() else {
+            panic!("the New plug form");
+        };
+        assert_eq!(e.title(), "New bus plug");
+    }
+    for (f, v) in [
+        ("manufacturer", "Maker"),
+        ("part_number", "BUS-PLG-9"),
+        ("plug.angled", "true"),
+        ("bus.0.termination", "off"),
+    ] {
+        part_field(&mut d, f, v);
+    }
+    {
+        let Some(Dialog::PartEdit(e)) = d.shell_mut().dialog() else {
+            panic!("the New plug form");
+        };
+        let words = e.draft.text("description");
+        assert!(
+            words.contains("PROFIBUS DP") && words.contains("angled") && words.contains("terminating resistor"),
+            "{words}"
+        );
+    }
+    assert_eq!(d.shell_mut().dispatch("part.save", &json!({})), Outcome::Done);
     d.settle();
-    d.shell_mut().dispatch("cable.from_wires", &json!({}));
-    d.settle();
+    let plug = field_value(&mut d, "plug_b");
+    assert_eq!(option(&mut d, "plug_b", "BUS-PLG-9"), plug, "the new plug is chosen");
+    d.shell_mut().set_form_field("length", "7.5");
     assert_eq!(d.shell_mut().submit_form(), Outcome::Done);
     d.settle();
-    d.shell_mut().dispatch("page.goto", &json!({"folio": "901"}));
-    d.settle();
-    eprintln!("BEFORE {:?}", crate::own_parts::page_texts(&mut d));
-    d.shell_mut().dispatch("navigator.show", &json!({ "kind": "parts" }));
-    d.settle();
-    {
-        let t = d.shell_mut().nav(ew_ui::ew_viewmodel::ew_api::output::NavKind::Parts).and_then(|n| n.table()).unwrap();
-        eprintln!("NAVBEFORE {:?}", t.nodes.iter().map(|n| n.label.clone()).collect::<Vec<_>>());
-    }
-    d.shell_mut().dispatch("page.goto", &json!({"folio": "2"}));
-    d.settle();
-    d.shell_mut().dispatch("select.set", &json!({"ids": [line]}));
-    d.settle();
-    d.shell_mut().dispatch("cable.from_wires", &json!({}));
-    d.settle();
-    let m12 = option(&mut d, "plug_b", "EW-GEN-PLG-5");
-    d.shell_mut().set_form_field("plug_b", &m12);
-    d.shell_mut().set_form_field("plug_a", &m12);
-    assert_eq!(d.shell_mut().submit_form(), Outcome::Done);
-    d.settle();
-    d.shell_mut().dispatch("page.goto", &json!({"folio": "901"}));
-    d.settle();
-    let after = crate::own_parts::page_texts(&mut d);
-    eprintln!("AFTER {after:?}");
-    {
-        let t = d.shell_mut().nav(ew_ui::ew_viewmodel::ew_api::output::NavKind::Parts).and_then(|n| n.table()).unwrap();
-        eprintln!("NAVAFTER {:?}", t.nodes.iter().map(|n| n.label.clone()).collect::<Vec<_>>());
-    }
-    assert!(after.iter().any(|t| t.contains("PLG-5")));
+    assert_eq!(d.shell_mut().dispatch("file.save", &json!({})), Outcome::Done);
+    let (saved, _) = Session::open_read_only(&tmp.0.join("p.ew"), "test").unwrap();
+    let bom = saved
+        .export_csv(Export::Bom(BomMode::Component))
+        .expect("the parts list");
+    let row = |number: &str| {
+        bom.lines()
+            .find(|l| l.contains(number))
+            .unwrap_or_else(|| panic!("{number} in the parts list:\n{bom}"))
+            .to_owned()
+    };
+    assert!(row("BUS-CBL-9").contains(",7.5,m,"), "the cable by its length: {bom}");
+    assert!(row("BUS-PLG-9").contains(",1,pc,"), "{bom}");
 }

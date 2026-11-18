@@ -121,6 +121,7 @@ pub fn unit_symbol(unit: &Unit) -> &'static str {
         Unit::Kg => "kg",
         Unit::W => "W",
         Unit::M => "m",
+        Unit::Mm => "mm",
         Unit::Piece => "pc",
         Unit::Set => "set",
         Unit::Unknown(_) => "",

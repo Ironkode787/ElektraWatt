@@ -1429,6 +1429,7 @@ const UNITS: &[(&str, &[&str])] = &[
     ("kg", &["kg"]),
     ("W", &["W"]),
     ("m", &["m"]),
+    ("mm", &["mm"]),
     ("piece", &["piece", "pc"]),
     ("set", &["set"]),
 ];

@@ -98,6 +98,9 @@ pub enum Unit {
     /// Metre (lengths and the order unit of cables).
     #[serde(rename = "m")]
     M,
+    /// Millimetre (a cable's outer diameter, rc.5).
+    #[serde(rename = "mm")]
+    Mm,
     /// Piece (the default order unit).
     #[serde(rename = "piece")]
     Piece,

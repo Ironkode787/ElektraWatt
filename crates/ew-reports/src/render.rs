@@ -215,6 +215,7 @@ fn unit_symbol(u: &QtyUnit) -> &'static str {
             Unit::Kg => "kg",
             Unit::W => "W",
             Unit::M => "m",
+            Unit::Mm => "mm",
             Unit::Piece => "pc",
             Unit::Set => "set",
             Unit::Unknown(_) => "",
