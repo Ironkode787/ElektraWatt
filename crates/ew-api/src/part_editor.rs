@@ -864,7 +864,7 @@ impl Session {
                 .as_ref()
                 .map(crate::part_plc::rows_of)
                 .unwrap_or_else(crate::part_plc::PlcRows::new_part),
-            cable: crate::part_cable::rows_of(&p.sections.cable_cores),
+            cable: crate::part_cable::rows_of(&p.sections.cable_cores, p.sections.bus.as_ref()),
             drawn_with: None,
             fndef: None,
             manufacturer: (p.manufacturer.clone(), Vec::new()),

@@ -23,7 +23,7 @@ use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_schema::{
-    AddrValue, BusPort, BusSystem, ConnectionKind, Device, Endpoint, ExternalRef, Function, FunctionKind,
+    AddrValue, BusPort, BusSystem, Connection, ConnectionKind, Device, Endpoint, ExternalRef, Function, FunctionKind,
     Junction, LogicalNet, NetAddress, OnOff, PhysicalNet, PortRole,
 };
 
@@ -376,6 +376,15 @@ fn passed_through(q: &Q, ports: &[Id<Function>], bus: &BusSystem) -> Vec<Id<Func
     seen.into_iter().collect()
 }
 
+/// The `Bus` line a cable carries: the one of the lowest ID; `None` for a cable that carries none.
+pub fn cable_bus_line(q: &Q, cable: Id<Device>) -> Option<Connection> {
+    q.connections()
+        .iter()
+        .filter(|(_, c)| matches!(&c.kind, ConnectionKind::Bus(l) if l.cable == Some(cable)))
+        .min_by_key(|(id, _)| *id)
+        .map(|(_, c)| (**c).clone())
+}
+
 /// The pins of one core of a bus cable at the two ends of the cable's `Bus` line (FR-BUS-023, doc 08 §7.5): at each
 /// end whose function is a bus port, the pin that the port part's signal map (`PartBusPort.signals`) gives the core's
 /// signal (the core's name, compared without regard to ASCII case; `SHIELD` for a shield core), found as a CP with
@@ -383,13 +392,7 @@ fn passed_through(q: &Q, ports: &[Id<Function>], bus: &BusSystem) -> Vec<Id<Func
 /// representation. `None` at an end without a port, a signal map entry or such a pin. The line is the cable's `Bus`
 /// connection of the lowest ID; its end `a` is the first entry.
 pub fn bus_core_pins(q: &Q, cable: Id<Device>, core: &str, shield: bool) -> [Option<CpRef>; 2] {
-    let line = q
-        .connections()
-        .iter()
-        .filter(|(_, c)| matches!(&c.kind, ConnectionKind::Bus(l) if l.cable == Some(cable)))
-        .map(|(id, c)| (id, (**c).clone()))
-        .min_by_key(|(id, _)| *id);
-    let Some((_, line)) = line else {
+    let Some(line) = cable_bus_line(q, cable) else {
         return [None, None];
     };
     let signal = if shield { "SHIELD" } else { core };

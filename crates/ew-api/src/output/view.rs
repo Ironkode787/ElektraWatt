@@ -482,7 +482,8 @@ impl Query for PageSlotsOf {
 }
 
 /// `page_connections(page)`: the connections drawn on a page with their wire-marker texts and, when the project prints
-/// them, their wire numbers; a bus line prints its cable's tag where it has no number ([`bus_cable_text`]).
+/// them, their wire numbers; a bus line that no cable mark lists prints its cable's tag where it has no number
+/// ([`bus_cable_text`]).
 #[derive(Debug)]
 pub struct PageConnectionsOf;
 
@@ -500,7 +501,9 @@ impl Query for PageConnectionsOf {
                 continue;
             };
             let marker = connection_marker(q, &c, grouped.contains(&cid));
-            let number = connection_number(q, cid).or_else(|| bus_cable_text(q, &c));
+            // A bus line in its cable's mark prints the tag there, not beside the line.
+            let number = connection_number(q, cid)
+                .or_else(|| (!grouped.contains(&cid)).then(|| bus_cable_text(q, &c)).flatten());
             out.push(ConnectionView {
                 connection: c,
                 marker,

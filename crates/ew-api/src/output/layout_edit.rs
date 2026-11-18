@@ -98,6 +98,9 @@ pub struct LayoutPartOffer {
     pub size: Option<(i128, i128)>,
     /// The library documents to embed first; empty for a project copy.
     pub copies: Vec<Value>,
+    /// The part's sections (a cable's cores, a bus part's bus section), read with the offer so that a form needs no
+    /// second read of the libraries (rc.5).
+    pub sections: ew_schema::PartSections,
 }
 
 /// Millimetres as the project prints them: the shortest decimal, the project's separator.
@@ -1445,6 +1448,7 @@ impl Session {
                 .as_ref()
                 .and_then(|m| Some((i128::from(m.width?.0), i128::from(m.height?.0)))),
             copies,
+            sections: c.item.sections.clone(),
         };
         let mut held: Vec<LayoutPartOffer> = q
             .table::<LibCopy<Part>>()

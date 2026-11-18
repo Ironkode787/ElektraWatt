@@ -104,7 +104,7 @@ fn text_cell(t: &str) -> Cell {
 
 /// A port's function as the bus lists name it: the device's tag and the interface (`-201U1:DP`), a connector by its
 /// tag alone.
-fn port_label(q: &Q, f: Id<Function>) -> String {
+pub(super) fn port_label(q: &Q, f: Id<Function>) -> String {
     let Some(func) = q.functions().get(f) else {
         return String::new();
     };

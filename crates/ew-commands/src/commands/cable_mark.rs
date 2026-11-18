@@ -3,7 +3,8 @@
 
 //! A cable's mark placed with its cores (rc.3): when drawn wires become a cable's cores in one command (`cable.create`
 //! and `conductor.add` with `wires`, the Cable form), each page they lie on gets the cable's mark at once, a wire
-//! marker listing them that the page draws as the cable's mark (`ew-scene`, "Cable marks").
+//! marker listing them that the page draws as the cable's mark (`ew-scene`, "Cable marks"). A bus line that a cable
+//! carries (`bus.cable.set`, rc.5) gets the mark the same way, listed as a core is.
 //!
 //! - **A page with a mark of the cable** already (a marker listing one of its cores) takes the new cores into that
 //!   mark's list; a core some marker lists already stays where it is.
@@ -51,8 +52,11 @@ pub(crate) fn mark_cores(
                 .and_then(|item| item.kind.wire_marker().cloned())
                 .is_some_and(|m| {
                     m.connections.iter().any(|c| {
-                        tx.get::<Connection>(*c)
-                            .is_some_and(|c| matches!(c.kind, ConnectionKind::Core(k) if own.contains(&k)))
+                        tx.get::<Connection>(*c).is_some_and(|c| match &c.kind {
+                            ConnectionKind::Core(k) => own.contains(k),
+                            ConnectionKind::Bus(line) => line.cable == Some(cable),
+                            _ => false,
+                        })
                     })
                 })
         });
@@ -99,6 +103,7 @@ pub(crate) fn mark_cores(
 pub(crate) fn follow_kinds(tx: &mut TxBuilder<'_>, connections: &[Id<Connection>]) -> Result<(), CmdError> {
     let cable_of = |tx: &TxBuilder<'_>, kind: &ConnectionKind| match kind {
         ConnectionKind::Core(k) => tx.get::<Conductor>(*k).map(|c| c.cable),
+        ConnectionKind::Bus(line) => line.cable,
         _ => None,
     };
     let base_kind = |tx: &TxBuilder<'_>, c: Id<Connection>| {

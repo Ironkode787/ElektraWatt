@@ -833,13 +833,19 @@ impl ShellModel {
     /// the starter symbol and every FnDef the part's template needs are
     /// embedded in one host commit before the tool arms; an FnDef neither the project nor the starter library holds
     /// fails the pick by name and arms nothing.
-    /// The tag a new strip (`aspect` `strip`) or cable (`cable`) with letter `letter` would take from its first terminal
-    /// or core on the page on show: its numbering format (`Session::numbering_format`) with the lowest counter no
-    /// device of that letter prints on the page (FR-NUM-007 fills gaps). `None` off a schematic page or on a folio that is not a whole number, where
-    /// the scheme's `{page}` is not the folio as written.
+    /// The tag a new strip (`aspect` `strip`) or cable (`cable`) with letter `letter` would take from its first terminal,
+    /// core or bus line on the page on show: its numbering format (`Session::numbering_format`) with the lowest counter
+    /// no device of that letter prints on the page (FR-NUM-007 fills gaps). `None` off a schematic page (a cable: and a
+    /// bus layout, rc.5), or on a folio that is not a whole number, where the scheme's `{page}` is not the folio as
+    /// written.
     pub(super) fn tag_example(&self, aspect: &str, letter: &str) -> Option<String> {
         let row = self.page_rows().get(self.page_index())?;
-        if !matches!(row.kind.as_str(), "multi_line" | "single_line")
+        let numbered_here = match row.kind.as_str() {
+            "multi_line" | "single_line" => true,
+            "bus_topology" => aspect == "cable",
+            _ => false,
+        };
+        if !numbered_here
             || row.folio.is_empty()
             || !row.folio.bytes().all(|b| b.is_ascii_digit())
         {

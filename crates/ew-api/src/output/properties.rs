@@ -1999,10 +1999,11 @@ fn sheet_what(q: &Q, device: Id<Device>) -> SheetWhat {
 fn marked_cable(q: &Q, item: Id<ew_schema::PageItem>) -> Option<Id<Device>> {
     let mark = ew_derive::cable_mark(q, q.page_items().get(item)?)?;
     let (first, _) = mark.cores.first()?;
-    let ew_schema::ConnectionKind::Core(core) = q.connections().get(*first)?.kind else {
-        return None;
-    };
-    q.conductors().get(core).map(|c| c.cable)
+    match &q.connections().get(*first)?.kind {
+        ew_schema::ConnectionKind::Core(core) => q.conductors().get(*core).map(|c| c.cable),
+        ew_schema::ConnectionKind::Bus(line) => line.cable,
+        _ => None,
+    }
 }
 
 /// The fluid port of a source device, by what it is (rc.2, F9: a source drawn in the symbol editor or made in the part

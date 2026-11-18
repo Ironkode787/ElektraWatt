@@ -160,11 +160,12 @@
 //!   in style `marker` [`MARKER_GAP`] beyond the line's end, horizontal: right of the line across a vertical wire
 //!   (aligned middle left), above the line across a horizontal wire (aligned bottom centre). A wire-marker group
 //!   ([`crate::items`]) draws the same line across all its wires. Provisional, like the routes.
-//! - **Cable marks** (rc.3, as panel builders draw a cable): a wire-marker group whose connections are all cores of
-//!   one cable ([`ew_derive::CableMark`]) is drawn whatever the marker mode: the line across the wires it crosses,
-//!   [`MARKER_REACH`] past the outer ones; on each core a slanted stroke (`/`, [`CABLE_TICK`] each way); each core's
-//!   designation (`1`, `BN`, `GNYE`) in style `marker` just past the stroke's upper end (aligned bottom left), right
-//!   of a vertical wire above the line, above a horizontal wire right of the line; the cable's tag in style
+//! - **Cable marks** (rc.3, as panel builders draw a cable): a wire-marker group whose connections are all cores or
+//!   bus lines of one cable ([`ew_derive::CableMark`]) is drawn whatever the marker mode: the line across the wires it
+//!   crosses, [`MARKER_REACH`] past the outer ones; on each core a slanted stroke (`/`, [`CABLE_TICK`] each way); each
+//!   core's designation (`1`, `BN`, `GNYE`; a bus line has none) in style `marker` just past the stroke's upper end
+//!   (aligned bottom left), right of a vertical wire above the line, above a horizontal wire right of the line; the
+//!   cable's tag in style
 //!   [`CABLE_TAG_STYLE`] at the line's start, left of a horizontal line (aligned middle right) or above a vertical one
 //!   (aligned bottom centre), or at the marker's `tag_at` once moved; and under the tag its type line in
 //!   [`CABLE_KIND_STYLE`] (`TYPE 3G1.5`), starting where the tag starts, or ending where it ends when it is the longer.
@@ -175,7 +176,8 @@
 //! - **Wire numbers** (FT-1692): a connection's [`ConnectionView::number`] prints once, at the midpoint of its
 //!   longest segment, in style `marker`, [`MARKER_GAP`] beside the wire as a marker's text stands (right of a
 //!   vertical segment, above a horizontal one) but without the marker's line; with a marker of its own it is that
-//!   marker's text, the number first (`101.1 1.5 BK`).
+//!   marker's text, the number first (`101.1 1.5 BK`). A bus line whose cable has no mark on the page prints the
+//!   cable's tag there in style [`CABLE_TAG_STYLE`] (rc.5: it was too small to read).
 //! - **Stored symbol variants** (`Representation.variant`, contact-image variants) are not drawn yet: the
 //!   main graphics are used, and the geometry key's `extra` is `None`.
 
@@ -2731,6 +2733,10 @@ impl Builder<'_> {
                 Pt2::new(p.x + CABLE_TICK, p.y - CABLE_TICK),
             );
             self.push(Item::path(tick, Some(stroke.clone()), None).with_entity(entity));
+            // A bus line has no core name: the cable carries the whole line.
+            if core.is_empty() {
+                continue;
+            }
             // Beside its own wire, just past the stroke's upper end: right of a vertical wire above the line, above a
             // horizontal wire right of the line.
             let name = cable_text(
@@ -2927,12 +2933,18 @@ impl Builder<'_> {
             } else {
                 (Pt2::new(at.x, at.y - MARKER_GAP), Align::BottomCentre)
             };
+            // A bus line's number is its cable's tag (module documentation, "Wire numbers").
+            let style_key = if matches!(c.kind, ConnectionKind::Bus(_)) {
+                CABLE_TAG_STYLE
+            } else {
+                MARKER_STYLE
+            };
             self.text(&TextSpec {
                 text: &text,
                 at,
                 angle: Angle2::ZERO,
                 align: &align,
-                style_key: MARKER_STYLE,
+                style_key,
                 entity,
                 link: None,
                 items: &[],

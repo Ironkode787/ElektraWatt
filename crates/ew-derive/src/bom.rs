@@ -86,7 +86,9 @@ pub struct PartLine {
 /// `device_part_lines(dev)`: the part lines of one device, in model order.
 ///
 /// A missing device and a device that is not fitted have no lines. Otherwise one line per part use of the
-/// device (`Device.parts` order; for a strip placed on a rail, the part use that declares its end brackets gives a
+/// device (`Device.parts` order; a cable with a length entered by hand counts its first part use, when that part is
+/// sold by the metre, by that length in metres exact to the millimetre (rc.5); for a strip placed on a rail, the part
+/// use that declares its end brackets gives a
 /// [`LineSource::GroupAccessory`] line whose quantity is the number of brackets attributed to the strip; a
 /// strip without a bracket on any rail keeps the authored quantity), then, for a strip device, one line of
 /// quantity 1 per strip accessory (mounting order), then one line of quantity 1 per bridge group of the
@@ -134,13 +136,23 @@ impl Query for DevicePartLines {
             }
         };
         let brackets = strip_brackets(q, *key);
+        // A cable with a length entered counts its part sold by the metre by that length (rc.5: a bus cable of 12.5 m
+        // was one metre in the parts list).
+        let cable_metres = match dev.aspects.cable.as_ref().map(|c| &c.length) {
+            Some(ew_schema::LengthSource::Manual(n)) => Some(metres_of_nm(i128::from(n.0))),
+            _ => None,
+        };
         for (i, u) in dev.parts.iter().enumerate() {
-            match &brackets {
-                Some(b) if b.part_use == i => {
+            let by_metre = parts
+                .get(u.part.copy)
+                .is_some_and(|c| c.item.unit == OrderUnit::Metre);
+            match (&brackets, cable_metres) {
+                (Some(b), _) if b.part_use == i => {
                     let n = i64::try_from(b.count).unwrap_or(i64::MAX);
                     let qty = Dec3::from_int(n).unwrap_or(Dec3(i64::MAX));
                     push(&u.part, qty, LineSource::GroupAccessory);
                 }
+                (_, Some(metres)) if i == 0 && by_metre => push(&u.part, metres, LineSource::Device),
                 _ => push(&u.part, u.qty, LineSource::Device),
             }
         }

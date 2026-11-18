@@ -185,7 +185,8 @@ impl Session {
             .layout_part_offers("cable")
             .into_iter()
             .find(|o| o.number.eq_ignore_ascii_case(text.trim()))?;
-        let command = self.create_cable(offer.part)?;
+        let part = offer.part;
+        let command = super::cable_edit::cable_command(offer);
         let cores = command
             .params
             .get("conductors")
@@ -205,7 +206,7 @@ impl Session {
                 csa: c["csa"].as_str().map(str::to_owned),
             })
             .collect();
-        Some((cores, Some(offer.part)))
+        Some((cores, Some(part)))
     }
 
     /// The conductors of `cable` in core order (natural order of the core).
@@ -258,10 +259,10 @@ impl Session {
             .count();
         let want = written_type(proposed).map(|t| t.2.to_string());
         let mut fit: Vec<(usize, bool, bool, String, String)> = Vec::new();
+        // One read of the offers; each makes its command from itself (rc.5: each offer read every library again).
         for offer in self.layout_part_offers("cable") {
-            let Some(command) = self.create_cable(offer.part) else {
-                continue;
-            };
+            let number = offer.number.clone();
+            let command = super::cable_edit::cable_command(offer);
             let all = command.params["conductors"]
                 .as_array()
                 .cloned()
@@ -285,9 +286,9 @@ impl Session {
             };
             let size = format!("{}{}{csa}", cores.len(), if green_yellow { "G" } else { "X" });
             let names: Vec<&str> = cores.iter().filter_map(|c| c["core"].as_str()).collect();
-            let words = format!("{} \u{b7} {size} \u{b7} {}", offer.number, names.join(" "));
+            let words = format!("{number} \u{b7} {size} \u{b7} {}", names.join(" "));
             let off = want.as_ref() != Some(&csa);
-            fit.push((cores.len() - wires.len(), off, shielded, offer.number, words));
+            fit.push((cores.len() - wires.len(), off, shielded, number, words));
         }
         fit.sort();
         fit.into_iter()

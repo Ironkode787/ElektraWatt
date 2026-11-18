@@ -463,25 +463,27 @@ pub(crate) fn unknown_numbering_token(format: &str) -> Option<String> {
     None
 }
 
-/// The page of a cable's first connected core: of the core connections that name one of its conductors and
-/// lie on a page, the one of the smallest ID; `None` for a device that is no cable or has no such core. A cable
-/// without a drawn definition line is placed through it, as `ew_commands::numbering::main_page` places it.
+/// The page of a cable's first connected core or bus line: of the connections that are a core of one of its
+/// conductors or a bus line it carries and lie on a page, the one of the smallest ID; `None` for a device that is no
+/// cable or has no such connection. A cable without a drawn definition line is placed through it, as
+/// `ew_commands::numbering::main_page` places it.
 pub fn cable_core_page(q: &Q, device: Id<Device>) -> Option<Id<Page>> {
     q.devices().get(device)?.aspects.cable.as_ref()?;
     let conductors: BTreeSet<Id<Conductor>> = q.idx().conductors_of_cable(device).collect();
-    if conductors.is_empty() {
-        return None;
-    }
     q.connections()
         .iter()
-        .filter(|(_, c)| matches!(c.kind, ConnectionKind::Core(k) if conductors.contains(&k)))
+        .filter(|(_, c)| match &c.kind {
+            ConnectionKind::Core(k) => conductors.contains(k),
+            ConnectionKind::Bus(line) => line.cable == Some(device),
+            _ => false,
+        })
         .filter_map(|(id, c)| c.page.map(|p| (id, p)))
         .min()
         .map(|(_, p)| p)
 }
 
 /// Renders a numbering format for a device. A cable without a drawn definition line takes the page of its first
-/// connected core, and without one no page: `{page}` prints nothing, its counter being the project's.
+/// connected core or bus line, and without one no page: `{page}` prints nothing, its counter being the project's.
 fn render_format(q: &Q, id: Id<Device>, dev: &Device, format: &str) -> String {
     let main_rep = *q.get::<MainRep>(id);
     let rep = main_rep.and_then(|r| q.reps().get(r));

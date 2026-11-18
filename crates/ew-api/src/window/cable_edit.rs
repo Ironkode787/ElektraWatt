@@ -8,7 +8,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{Conductor, ConnectionKind, Part};
+use ew_derive::ew_schema::{Conductor, ConnectionKind};
 use serde_json::json;
 
 use crate::output::Uuid;
@@ -83,24 +83,17 @@ impl Session {
             .layout_part_offers("cable")
             .into_iter()
             .find(|o| o.part == part)?;
-        let id: Id<Part> = Id::from_uuid(part);
-        let held = self
-            .query()
-            .parts()
-            .get(id)
-            .map(|c| c.item.sections.cable_cores.clone());
-        let cores = match held {
-            Some(cores) => cores,
-            None => {
-                self.library_parts()
-                    .into_iter()
-                    .find(|c| c.id == id)?
-                    .item
-                    .sections
-                    .cable_cores
-            }
-        };
-        let conductors: Vec<_> = cores
+        Some(cable_command(offer))
+    }
+}
+
+/// The `cable.create` of a cable part offer ([`Session::create_cable`]): read from the offer itself, so that a list
+/// of offers makes its commands without reading the libraries again per offer (rc.5).
+pub(crate) fn cable_command(offer: crate::output::LayoutPartOffer) -> AnyCommand {
+    let part = offer.part;
+        let conductors: Vec<_> = offer
+            .sections
+            .cable_cores
             .iter()
             .map(|c| {
                 let mut spec = json!({ "core": c.core.as_str(), "shield": c.shield });
@@ -123,12 +116,13 @@ impl Session {
         if !offer.copies.is_empty() {
             params["copies"] = serde_json::Value::Array(offer.copies);
         }
-        Some(AnyCommand {
+        AnyCommand {
             name: "cable.create".into(),
             params,
-        })
-    }
+        }
+}
 
+impl Session {
     /// The project's cables for Connect cores…: `(cable device, its tag, its words)`, by tag. The words are
     /// the tag, unless another cable prints the same tag (two frozen tags alike): then
     /// the tag, `·` and the cable's part number (none for a cable without a part), and where those words are shared too, its position among them in the order the cables were created, `(1)`, `(2)`.
@@ -236,10 +230,12 @@ impl Session {
                 _ => None,
             })
             .collect();
+        // A bus line uses every core of the cable that carries it (rc.5): none is free for a wire.
+        let on_bus = ew_derive::cable_bus_line(&q, cable_id).is_some();
         let free: Vec<Id<Conductor>> = cores
             .iter()
             .map(|(_, c)| c.id)
-            .filter(|c| !taken.contains(c))
+            .filter(|c| !on_bus && !taken.contains(c))
             .collect();
         if free.len() < wires.len() {
             let tag = self.device_tag(cable).unwrap_or_default();

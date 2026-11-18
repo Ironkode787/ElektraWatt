@@ -12,14 +12,14 @@
 //! A strip without a segment takes the main representation of its first placed terminal, and a device whose main
 //! function is not drawn takes the smallest-ID representation of its other functions ([`main_rep`]).
 //! `ew_derive::MainRep` applies the same rules; its `tests/agreement.rs` holds the two together. A cable without a
-//! drawn definition line is placed on the page of its first connected core ([`main_page`]), as
-//! `ew_derive::cable_core_page` places it.
+//! drawn definition line is placed on the page of its first connected core or of the first bus line it carries
+//! ([`main_page`]), as `ew_derive::cable_core_page` places it.
 //!
 //! **Which devices take part.** A device takes part in page-based numbering when it has no terminal
 //! aspect (a terminal is named by its strip and designation), no frozen tag and the default scheme. An
 //! unplaced device (no main representation) has no scope: it keeps its counter, and a device without a
-//! counter gets one when it is placed. An unplaced cable (no definition line, no connected core) takes the project's
-//! counter: the scope of the cables on no page, whose tags print no page.
+//! counter gets one when it is placed. An unplaced cable (no definition line, no connected core, no bus line) takes the
+//! project's counter: the scope of the cables on no page, whose tags print no page.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -39,7 +39,7 @@ use crate::tx::TxBuilder;
 pub enum CounterScope {
     /// The devices whose main representation is on this page.
     Page(Id<Page>),
-    /// The cables placed on no page: no definition line and no connected core.
+    /// The cables placed on no page: no definition line, no connected core and no bus line.
     Project,
 }
 
@@ -131,27 +131,30 @@ fn strip_main_rep(tx: &TxBuilder<'_>, device: Id<Device>) -> Option<Arc<Represen
 }
 
 /// The page of a device's main representation; for a cable without a drawn definition line, the page of its first
-/// connected core: of the core connections that name one of its conductors and lie on a page, the one of
-/// the smallest ID (`ew_derive::cable_core_page`).
+/// connected core or bus line: of the connections that are a core of one of its conductors or a bus line it carries
+/// and lie on a page, the one of the smallest ID (`ew_derive::cable_core_page`).
 pub fn main_page(tx: &TxBuilder<'_>, device: Id<Device>) -> Option<Id<Page>> {
     if let Some(rep) = main_rep(tx, device) {
         return Some(rep.page);
     }
     tx.get::<Device>(device)?.aspects.cable.as_ref()?;
     let conductors: BTreeSet<Id<Conductor>> = tx.conductors_of_cable(device).into_iter().collect();
-    if conductors.is_empty() {
-        return None;
-    }
-    core_page(tx.iter::<Connection>().iter().map(|c| &**c), &conductors)
+    core_page(tx.iter::<Connection>().iter().map(|c| &**c), device, &conductors)
 }
 
-/// The page of the smallest-ID connection of `connections` that is a core of one of `conductors` and lies on a page.
+/// The page of the smallest-ID connection of `connections` that is a core of one of `conductors` or a bus line that
+/// `cable` carries, and lies on a page.
 fn core_page<'c>(
     connections: impl Iterator<Item = &'c Connection>,
+    cable: Id<Device>,
     conductors: &BTreeSet<Id<Conductor>>,
 ) -> Option<Id<Page>> {
     connections
-        .filter(|c| matches!(c.kind, ConnectionKind::Core(k) if conductors.contains(&k)))
+        .filter(|c| match &c.kind {
+            ConnectionKind::Core(k) => conductors.contains(k),
+            ConnectionKind::Bus(line) => line.cable == Some(cable),
+            _ => false,
+        })
         .filter_map(|c| c.page.map(|p| (c.id, p)))
         .min()
         .map(|(_, p)| p)
@@ -289,7 +292,7 @@ pub fn main_page_in(model: &Model, device: Id<Device>) -> Option<Id<Page>> {
         })
         .or_else(|| aux_main_page_in(model, device))
         .or_else(|| {
-            // a cable without a definition line: the page of its first connected core (see [`main_page`])
+            // a cable without a definition line: the page of its first connected core or bus line (see [`main_page`])
             devices.get(&device)?.aspects.cable.as_ref()?;
             let conductors: BTreeSet<Id<Conductor>> = model
                 .indexes()
@@ -297,10 +300,11 @@ pub fn main_page_in(model: &Model, device: Id<Device>) -> Option<Id<Page>> {
                 .get(&device)
                 .copied()
                 .collect();
-            if conductors.is_empty() {
-                return None;
-            }
-            core_page(model.table::<Connection>().iter().map(|(_, c)| &**c), &conductors)
+            core_page(
+                model.table::<Connection>().iter().map(|(_, c)| &**c),
+                device,
+                &conductors,
+            )
         })
 }
 
@@ -371,10 +375,12 @@ pub fn devices_in_scope(
         }
     };
     let mut devices: BTreeSet<Id<Device>> = BTreeSet::new();
-    // A cable without a definition line is placed through its first connected core ([`main_page`]).
+    // A cable without a definition line is placed through its first connected core or bus line ([`main_page`]).
     for cid in tx.connections_on_page(page) {
-        if let Some(ConnectionKind::Core(k)) = tx.get::<Connection>(cid).map(|c| c.kind.clone()) {
-            devices.extend(tx.get::<Conductor>(k).map(|c| c.cable));
+        match tx.get::<Connection>(cid).map(|c| c.kind.clone()) {
+            Some(ConnectionKind::Core(k)) => devices.extend(tx.get::<Conductor>(k).map(|c| c.cable)),
+            Some(ConnectionKind::Bus(line)) => devices.extend(line.cable),
+            _ => {}
         }
     }
     for rid in tx.reps_on_page(page) {

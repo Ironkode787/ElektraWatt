@@ -525,8 +525,8 @@ pub fn group_marker(q: &Q, item: &PageItem) -> Option<GroupMarker> {
     })
 }
 
-/// A wire marker every live connection of which is a core of one cable: the cable's mark (rc.3), drawn as panel
-/// builders draw it (`ew-scene`'s page documentation, "Cable marks").
+/// A wire marker every live connection of which is a core or a bus line of one cable: the cable's mark (rc.3), drawn as
+/// panel builders draw it (`ew-scene`'s page documentation, "Cable marks").
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct CableMark {
     /// The cable's tag as the marker's page prints it (`-W1`).
@@ -534,7 +534,7 @@ pub struct CableMark {
     /// The type line under the tag: the cable part's type designation, then the size ([`cable_size_text`]) unless
     /// the designation already holds it (`TYPE 3G1.5`); the size alone without a part.
     pub kind: String,
-    /// Each live connection with its core's designation (`BN`, `1`, `GNYE`), in list order.
+    /// Each live connection with its core's designation (`BN`, `1`, `GNYE`; empty for a bus line), in list order.
     pub cores: Vec<(Id<Connection>, String)>,
 }
 
@@ -570,21 +570,26 @@ pub fn cable_size_text(q: &Q, cable: Id<Device>) -> String {
 }
 
 /// The cable mark of a wire-marker item: `None` for another item, a marker without live connections, or one that
-/// lists a connection which is not a core of the same cable as the others.
+/// lists a connection which is neither a core nor a bus line of the same cable as the others. A bus line (rc.5) is
+/// listed with no core name: the cable carries the whole line.
 pub fn cable_mark(q: &Q, item: &PageItem) -> Option<CableMark> {
     item.kind.wire_marker()?;
     let conductors = q.conductors();
     let mut cable: Option<Id<Device>> = None;
     let mut cores = Vec::new();
     for c in live_connections(q, item) {
-        let ConnectionKind::Core(k) = c.kind else {
-            return None;
+        let (of, core) = match &c.kind {
+            ConnectionKind::Core(k) => {
+                let k = conductors.get(*k)?;
+                (k.cable, k.core.as_str().to_owned())
+            }
+            ConnectionKind::Bus(line) => (line.cable?, String::new()),
+            _ => return None,
         };
-        let k = conductors.get(k)?;
-        if *cable.get_or_insert(k.cable) != k.cable {
+        if *cable.get_or_insert(of) != of {
             return None;
         }
-        cores.push((c.id, k.core.as_str().to_owned()));
+        cores.push((c.id, core));
     }
     let cable = cable?;
     let size = cable_size_text(q, cable);

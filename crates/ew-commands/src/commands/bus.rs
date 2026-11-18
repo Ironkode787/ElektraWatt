@@ -157,9 +157,11 @@ pub enum BusLineField {
 /// The library documents `copies` are embedded first (the plug parts and their closure). The lines are linked to the
 /// cable device `cable`, or to a new one that `create` makes as `cable.create` makes it (its cores from its part);
 /// `length` sets that cable's length by hand. `plug_a` and `plug_b` set the plug at each line's end a and b; `reset`
-/// removes the cable link or a plug. Refused: no line; a connection that is no bus line, a device that is no cable, a
-/// length of zero or less, a termination on a plug without a termination switch (in words); both `cable` and `create`;
-/// a part the project does not hold (`NotFound`). One undo step. Outcome: the cable, else the first line.
+/// removes the cable link or a plug. Each line's page gets the cable's mark (its tag and type at the line, a wire marker
+/// listing the line, as `cable.create` marks cores; rc.5), and a line that leaves a cable leaves its mark. Refused: no
+/// line; a connection that is no bus line, a device that is no cable, a length of zero or less, a termination on a plug
+/// without a termination switch (in words); both `cable` and `create`; a part the project does not hold (`NotFound`).
+/// One undo step. Outcome: the cable, else the first line.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct SetBusCable {
@@ -284,6 +286,20 @@ impl Command for SetBusCable {
                     }
                 }
             })?;
+        }
+        // The cable's mark stands at its lines (rc.5): a line that changed its cable leaves the old cable's mark, and
+        // every line with a cable gets its cable's mark on its page, or joins the one there.
+        crate::commands::cable_mark::follow_kinds(tx, &lines)?;
+        let mut carried: std::collections::BTreeMap<Id<Device>, Vec<Id<Connection>>> = Default::default();
+        for l in &lines {
+            if let Some(ConnectionKind::Bus(line)) = tx.get::<Connection>(*l).map(|c| c.kind.clone())
+                && let Some(c) = line.cable
+            {
+                carried.entry(c).or_default().push(*l);
+            }
+        }
+        for (c, ls) in carried {
+            crate::commands::cable_mark::mark_cores(tx, c, &ls)?;
         }
         Ok(match cable {
             Some(c) => Outcome::primary((Kind::Device, c.cast())),

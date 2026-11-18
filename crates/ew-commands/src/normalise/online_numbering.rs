@@ -56,13 +56,15 @@ fn touched(tx: &TxBuilder<'_>) -> BTreeSet<Id<Device>> {
                     }
                 }
             }
-            // A cable without a definition line is placed through its first connected core.
+            // A cable without a definition line is placed through its first connected core or bus line.
             Kind::Connection => {
                 for row in [tx.row(&key), tx.base_row(&key)].into_iter().flatten() {
-                    if let AnyRow::Connection(c) = row
-                        && let ConnectionKind::Core(k) = c.kind
-                    {
-                        out.extend(tx.get::<Conductor>(k).map(|c| c.cable));
+                    if let AnyRow::Connection(c) = row {
+                        match &c.kind {
+                            ConnectionKind::Core(k) => out.extend(tx.get::<Conductor>(*k).map(|c| c.cable)),
+                            ConnectionKind::Bus(line) => out.extend(line.cable),
+                            _ => {}
+                        }
                     }
                 }
             }

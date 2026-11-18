@@ -9,6 +9,8 @@
 //!   ([`BusPartOffer::made_for`]), as EW-BUS-009 will.
 //! - **The plugs** are the accessories with a bus interface of the line's bus system; a plug with a termination switch
 //!   takes its state.
+//! - **A further line** can run on in a cable of the project made for the bus ([`BusCableForm::existing`]), the
+//!   person's choice; else a new cable takes the next tag by the project's numbering.
 //! - **Apply** ([`Session::bus_cable_apply`]): links the lines to the cable (a new one made from its part with its
 //!   cores), sets its length and the plugs, and embeds what an installed library brings, in one undo step.
 
@@ -51,6 +53,8 @@ pub struct BusLineEnd {
 pub struct BusCableForm {
     /// The bus system of the first line in words (`PROFIBUS DP`); empty for a line between ports without one.
     pub bus: String,
+    /// That bus system as the file spells it (`profibus_dp`), for a new part made for it; empty without one.
+    pub system: String,
     /// The cable of the first line that has one.
     pub cable: Option<Uuid>,
     /// That cable's tag, else empty.
@@ -65,6 +69,9 @@ pub struct BusCableForm {
     pub cables: Vec<BusPartOffer>,
     /// The plug parts made for the bus, by part number.
     pub plugs: Vec<BusPartOffer>,
+    /// The project's cables made for the bus, each with its words (`-902W1 · EW-GEN-CBL-2`), by tag: a further line
+    /// can run on in one of them (rc.5).
+    pub existing: Vec<(Uuid, String)>,
 }
 
 /// What [`Session::bus_cable_apply`] is given for one end of the one selected line: the plug part (none: no plug) and
@@ -95,7 +102,8 @@ impl Session {
             .layout_part_offers(kind)
             .into_iter()
             .filter_map(|o| {
-                let section = self.part_copy(o.part).and_then(|(c, _)| c.item.sections.bus);
+                // The offer carries its sections: no second read of the libraries per offer (rc.5, the late form).
+                let section = o.sections.bus;
                 let made_for = match (kind, &section, bus) {
                     ("cable", Some(s), Some(b)) => s.cable_for.contains(b),
                     (_, Some(s), Some(b)) => s.ports.iter().any(|p| p.bus == *b),
@@ -174,7 +182,32 @@ impl Session {
             }
             _ => Vec::new(),
         };
+        let mut existing: Vec<(ew_derive::ew_mltext::NaturalKey, Uuid, String)> = q
+            .devices()
+            .iter()
+            .filter(|(_, d)| d.aspects.cable.is_some())
+            .filter_map(|(id, d)| {
+                let copy = q.parts().get(d.parts.first()?.part.copy)?;
+                let made_for = copy
+                    .item
+                    .sections
+                    .bus
+                    .as_ref()
+                    .is_some_and(|s| bus.as_ref().is_some_and(|b| s.cable_for.contains(b)));
+                let tag = self.device_tag(id.as_uuid())?;
+                made_for.then(|| {
+                    let words = format!("{tag} \u{b7} {}", copy.item.part_number);
+                    (ew_derive::ew_mltext::natural_key(&tag), id.as_uuid(), words)
+                })
+            })
+            .collect();
+        existing.sort();
         BusCableForm {
+            existing: existing.into_iter().map(|(_, id, w)| (id, w)).collect(),
+            system: bus
+                .as_ref()
+                .map(crate::part_editor::stored_word)
+                .unwrap_or_default(),
             bus: bus.as_ref().map(|b| bus_word(b).to_owned()).unwrap_or_default(),
             cable: cable.map(|c| c.as_uuid()),
             tag: cable

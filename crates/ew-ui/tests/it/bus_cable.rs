@@ -228,3 +228,61 @@ fn a_bus_line_takes_a_dp_cable_and_a_plug_at_each_end() {
     let cables = saved.export_csv(Export::Cables).expect("the cable overview");
     assert!(cables.contains("EW-GEN-CBL-2"), "the cable overview:\n{cables}");
 }
+
+#[test]
+fn zz_experiment_plugs_in_session() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    let block = json!({"kind": "parts_summary", "folio": "901"});
+    assert_eq!(d.shell_mut().dispatch("report_block.new", &block), Outcome::Done);
+    let page = json!({"folio": "2", "type": "bus_topology", "title": "Network"});
+    assert_eq!(d.shell_mut().dispatch("page.new", &page), Outcome::Done);
+    d.settle();
+    let cpu = place_box(&mut d, "EW-GEN-CPU-2", (20, 15), (30, 22));
+    let rio = place_box(&mut d, "EW-GEN-RIO-1", (60, 45), (70, 52));
+    let dp = |labels: &[String]| labels.iter().find(|l| !l.ends_with(":P1")).cloned().unwrap();
+    let (from, to) = (dp(&cpu), dp(&rio));
+    d.input(&key("W"));
+    d.settle();
+    press_cp(&mut d, &from);
+    press_cp(&mut d, &to);
+    d.input(&key("Escape"));
+    d.input(&key("Escape"));
+    d.settle();
+    let line = d.shell_mut().canvas().unwrap().page().tables.connections[0].id.to_string();
+    d.shell_mut().dispatch("select.set", &json!({"ids": [line.clone()]}));
+    d.settle();
+    d.shell_mut().dispatch("cable.from_wires", &json!({}));
+    d.settle();
+    assert_eq!(d.shell_mut().submit_form(), Outcome::Done);
+    d.settle();
+    d.shell_mut().dispatch("page.goto", &json!({"folio": "901"}));
+    d.settle();
+    eprintln!("BEFORE {:?}", crate::own_parts::page_texts(&mut d));
+    d.shell_mut().dispatch("navigator.show", &json!({ "kind": "parts" }));
+    d.settle();
+    {
+        let t = d.shell_mut().nav(ew_ui::ew_viewmodel::ew_api::output::NavKind::Parts).and_then(|n| n.table()).unwrap();
+        eprintln!("NAVBEFORE {:?}", t.nodes.iter().map(|n| n.label.clone()).collect::<Vec<_>>());
+    }
+    d.shell_mut().dispatch("page.goto", &json!({"folio": "2"}));
+    d.settle();
+    d.shell_mut().dispatch("select.set", &json!({"ids": [line]}));
+    d.settle();
+    d.shell_mut().dispatch("cable.from_wires", &json!({}));
+    d.settle();
+    let m12 = option(&mut d, "plug_b", "EW-GEN-PLG-5");
+    d.shell_mut().set_form_field("plug_b", &m12);
+    d.shell_mut().set_form_field("plug_a", &m12);
+    assert_eq!(d.shell_mut().submit_form(), Outcome::Done);
+    d.settle();
+    d.shell_mut().dispatch("page.goto", &json!({"folio": "901"}));
+    d.settle();
+    let after = crate::own_parts::page_texts(&mut d);
+    eprintln!("AFTER {after:?}");
+    {
+        let t = d.shell_mut().nav(ew_ui::ew_viewmodel::ew_api::output::NavKind::Parts).and_then(|n| n.table()).unwrap();
+        eprintln!("NAVAFTER {:?}", t.nodes.iter().map(|n| n.label.clone()).collect::<Vec<_>>());
+    }
+    assert!(after.iter().any(|t| t.contains("PLG-5")));
+}

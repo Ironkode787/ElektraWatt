@@ -9,9 +9,13 @@
 //! beyond (the Cable form's written type, [`crate::window::written_cores`]); `numbers`: numbered black cores, the
 //! green-yellow last with a protective conductor; `own`: a table of core and colour the person fills in, which starts
 //! as the cores the other marking gave. A shielded cable has a shield after its cores, as the starter cables do.
+//!
+//! **A bus cable** (rc.5, New bus cable…): `bus` names the bus systems the cable is made for (`BusSection.cable_for`).
+//! Choosing a bus fills the cores as the bus has them ([`bus_cores`]: PROFIBUS A green and B red with a shield, an
+//! Ethernet cable's four or eight cores by pair, …) in the own marking; a bus cable's cores need no cross-section.
 
 use ew_derive::ew_units::Dec3;
-use ew_schema::CableCore;
+use ew_schema::{BusSection, CableCore};
 use serde_json::{Value, json};
 
 use crate::Session;
@@ -20,7 +24,44 @@ use crate::window::TypeCore;
 
 /// The members of the cable section, in the form's order (`part.field`'s `cable.<member>`; the own marking's table is
 /// `cable.core.<row>` and `cable.colour.<row>`).
-pub const CABLE_MEMBERS: [&str; 6] = ["cores", "csa", "pe", "marking", "shield", "diameter"];
+pub const CABLE_MEMBERS: [&str; 7] = ["bus", "cores", "csa", "pe", "marking", "shield", "diameter"];
+
+/// The cores a cable made for the bus system `bus` (as the file spells it) has: (designation, colour codes) in pair
+/// order, and whether it is shielded; `n` asks for that many cores (an Ethernet cable has four or eight), `None` for
+/// the bus's usual number. `None` for a bus without such cores or another number.
+pub fn bus_cores(bus: &str, n: Option<usize>) -> Option<(Vec<(&'static str, &'static str)>, bool)> {
+    let (cores, shield): (&[(&str, &str)], bool) = match (bus, n) {
+        ("profibus_dp", None | Some(2)) => (&[("A", "GN"), ("B", "RD")], true),
+        ("profinet" | "ethercat" | "ethernet_ip" | "modbus_tcp", None | Some(4)) => {
+            (&[("TD+", "YE"), ("TD-", "OG"), ("RD+", "WH"), ("RD-", "BU")], true)
+        }
+        // Eight cores as T568B pairs them: 1-2, 3-6, 5-4, 7-8.
+        ("profinet" | "ethercat" | "ethernet_ip" | "modbus_tcp", Some(8)) => (
+            &[
+                ("1", "WHOG"),
+                ("2", "OG"),
+                ("3", "WHGN"),
+                ("6", "GN"),
+                ("5", "WHBU"),
+                ("4", "BU"),
+                ("7", "WHBN"),
+                ("8", "BN"),
+            ],
+            true,
+        ),
+        ("canopen", None | Some(3)) => (&[("CAN_H", "WH"), ("CAN_L", "BN"), ("CAN_GND", "GN")], true),
+        ("asi", None | Some(2)) => (&[("ASI+", "BN"), ("ASI-", "BU")], false),
+        ("io_link", None | Some(3)) => (&[("L+", "BN"), ("CQ", "BK"), ("L-", "BU")], false),
+        _ => return None,
+    };
+    Some((cores.to_vec(), shield))
+}
+
+/// Whether the cores of a cable for the bus systems `bus` are numbered in pairs (an Ethernet cable's twisted pairs).
+fn paired(bus: &str) -> bool {
+    bus.split_whitespace()
+        .any(|b| matches!(b, "profinet" | "ethercat" | "ethernet_ip" | "modbus_tcp"))
+}
 
 /// How the cores of a cable are marked, as `cable.marking` spells it.
 pub const CABLE_MARKINGS: [&str; 3] = ["hd308", "numbers", "own"];
@@ -46,6 +87,8 @@ pub struct CableRows {
     pub table: Vec<(String, String)>,
     /// Whether the cable has a shield.
     pub shield: bool,
+    /// The bus systems the cable is made for, as the file spells them, separated by spaces; empty for none.
+    pub bus: String,
 }
 
 impl CableRows {
@@ -58,7 +101,28 @@ impl CableRows {
             marking: "hd308".to_owned(),
             table: Vec::new(),
             shield: false,
+            bus: String::new(),
         }
+    }
+
+    /// After the bus changed, or the count of a bus cable: the cores the bus has ([`bus_cores`]) in the own marking,
+    /// without a cross-section; nothing for a bus without such cores.
+    fn fill_bus_cores(&mut self, n: Option<usize>) {
+        let Some(bus) = self.bus.split_whitespace().next() else {
+            return;
+        };
+        let Some((cores, shield)) = bus_cores(bus, n) else {
+            return;
+        };
+        self.cores = cores.len().to_string();
+        self.csa = String::new();
+        self.pe = false;
+        self.marking = "own".to_owned();
+        self.shield = shield;
+        self.table = cores
+            .iter()
+            .map(|(c, colour)| ((*c).to_owned(), (*colour).to_owned()))
+            .collect();
     }
 
     /// The text of member `m` of [`CABLE_MEMBERS`] (a choice as its word, `true` or `false`); `""` for another and for
@@ -66,6 +130,7 @@ impl CableRows {
     pub fn text(&self, m: &str) -> &str {
         let yes = |b: bool| if b { "true" } else { "false" };
         match m {
+            "bus" => &self.bus,
             "cores" => &self.cores,
             "csa" => &self.csa,
             "pe" => yes(self.pe),
@@ -94,10 +159,20 @@ impl CableRows {
             .filter(|d| *d > Dec3(0))
     }
 
+    /// Whether a cross-section is needed: always but for a bus cable's own cores, which may leave it out.
+    fn needs_size(&self) -> bool {
+        self.bus.trim().is_empty() || self.marking != "own"
+    }
+
     /// The cores the marking `marking` gives (the own marking: the table's), without the shield; empty while the
-    /// count or the cross-section does not parse.
+    /// count or a needed cross-section does not parse.
     fn cores_of(&self, marking: &str) -> Vec<TypeCore> {
-        let (Some(n), Some(csa)) = (self.count(), self.size()) else {
+        let Some(n) = self.count() else {
+            return Vec::new();
+        };
+        let size = self.size();
+        let optional = !self.bus.trim().is_empty() && marking == "own" && self.csa.trim().is_empty();
+        let Some(csa) = size.or_else(|| optional.then_some(Dec3(0))) else {
             return Vec::new();
         };
         match marking {
@@ -108,7 +183,7 @@ impl CableRows {
                 .map(|(core, colour)| TypeCore {
                     core: core.trim().to_owned(),
                     colour: own_colour(colour),
-                    csa: Some(csa.to_string()),
+                    csa: size.map(|s| s.to_string()),
                 })
                 .collect(),
             _ => crate::window::written_cores(n, self.pe, csa),
@@ -149,7 +224,7 @@ impl CableRows {
     /// The cable as it will read (`3G1.5 · BN BU GNYE`): the cores and the cross-section (`G` with a green-yellow
     /// core, `X` without), then the cores' designations; `None` while the count or the cross-section does not parse.
     pub fn preview(&self) -> Option<String> {
-        let size = self.size()?;
+        let size = self.size().map(|s| s.to_string()).unwrap_or_default();
         let cores = self.cores_of(&self.marking);
         if cores.is_empty() {
             return None;
@@ -195,10 +270,22 @@ pub(crate) fn cable_field(field: &str) -> Option<(&'static str, Option<usize>)> 
 
 /// The cable section of a held part's cores (`cable_cores`): the count and the common cross-section of its cores, a
 /// green-yellow core as the protective conductor, the marking that gives exactly these cores (else the own marking
-/// with them in its table), and a shield.
-pub(crate) fn rows_of(cores: &[CableCore]) -> CableRows {
+/// with them in its table), a shield, and the bus systems of its bus section's `cable_for`.
+pub(crate) fn rows_of(cores: &[CableCore], bus: Option<&BusSection>) -> CableRows {
+    let bus = bus
+        .map(|b| {
+            b.cable_for
+                .iter()
+                .map(crate::part_editor::stored_word)
+                .collect::<Vec<_>>()
+                .join(" ")
+        })
+        .unwrap_or_default();
     if cores.is_empty() {
-        return CableRows::new_cable();
+        return CableRows {
+            bus,
+            ..CableRows::new_cable()
+        };
     }
     let plain: Vec<&CableCore> = cores.iter().filter(|c| !c.shield).collect();
     let csas: Vec<String> = plain
@@ -228,6 +315,7 @@ pub(crate) fn rows_of(cores: &[CableCore]) -> CableRows {
             .map(|c| (c.core.as_str().to_owned(), codes(c).concat()))
             .collect(),
         shield: cores.iter().any(|c| c.shield),
+        bus,
     };
     let held: Vec<(String, Vec<String>)> = plain
         .iter()
@@ -261,7 +349,18 @@ impl Session {
         let before = rows.marking.clone();
         let t = text.trim();
         match (m, row) {
-            ("cores", _) => rows.cores = text.to_owned(),
+            // A bus chosen fills the cores the bus has (module documentation).
+            ("bus", _) => {
+                rows.bus = t.to_owned();
+                rows.fill_bus_cores(None);
+                return self.check_cable(rows);
+            }
+            ("cores", _) => {
+                rows.cores = text.to_owned();
+                if rows.marking == "own" {
+                    rows.fill_bus_cores(rows.count());
+                }
+            }
             ("csa", _) => rows.csa = text.to_owned(),
             ("pe", _) => rows.pe = t == "true",
             ("shield", _) => rows.shield = t == "true",
@@ -312,7 +411,15 @@ impl Session {
             )),
             Some(_) => {}
         }
-        if rows.size().is_none() {
+        let bus_words = crate::part_editor::bus_words();
+        if let Some(word) = rows.bus.split_whitespace().find(|w| !bus_words.iter().any(|b| b == w)) {
+            out.push(message(
+                "cable.bus",
+                ew_commands::text_key!("error-part-bus-system"),
+                &[word],
+            ));
+        }
+        if rows.size().is_none() && (rows.needs_size() || !rows.csa.trim().is_empty()) {
             out.push(message(
                 "cable.csa",
                 ew_commands::text_key!("error-cable-section-csa"),
@@ -380,6 +487,10 @@ impl Session {
                 }
                 if let Some(csa) = c.csa {
                     v["csa"] = json!(csa);
+                }
+                // An Ethernet cable's cores come in twisted pairs, in the order the table lists them.
+                if paired(&rows.bus) {
+                    v["pair"] = json!(i / 2 + 1);
                 }
                 v
             })

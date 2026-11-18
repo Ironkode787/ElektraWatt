@@ -6,7 +6,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use ew_format::Limits;
 use ew_format::ew_schema::{Kind, LibDocument, LibRef};
@@ -183,6 +183,9 @@ pub struct Registry {
     fault: Option<WriteFault>,
     findings: Vec<String>,
     held_locks: BTreeSet<PathBuf>,
+    /// The records files read so far, by library and path, with the manifest hash they were read under
+    /// ([`Registry::load_file`]).
+    parsed: Mutex<BTreeMap<(Uuid, String), ([u8; 32], Arc<Parsed>)>>,
 }
 
 impl std::fmt::Debug for Registry {
@@ -653,6 +656,7 @@ impl Registry {
             fault: None,
             findings,
             held_locks: BTreeSet::new(),
+            parsed: Mutex::new(BTreeMap::new()),
         }
     }
 
@@ -662,7 +666,10 @@ impl Registry {
             .unwrap_or_else(std::sync::PoisonError::into_inner)
     }
 
-    /// Reads one records file of `lib`: checked against the manifest's hash, parsed; the skipped lines as notes.
+    /// Reads one records file of `lib`: checked against the manifest's hash, parsed; the skipped lines as notes. A file
+    /// read once is kept by the hash the manifest gives it (rc.5: every Cable form and part list read and parsed every
+    /// library file again, several times per opening): the same hash is the same content, and a file a write replaces
+    /// has a new hash.
     fn load_file(&self, lib: &Lib, path: &str) -> Result<Parsed, String> {
         if lib.manifest.is_none() {
             return Ok((starter_entries(), Vec::new(), Vec::new()));
@@ -670,6 +677,28 @@ impl Registry {
         let Ok(PathRole::Records(key)) = classify(path) else {
             return Ok((Vec::new(), Vec::new(), Vec::new()));
         };
+        let expected = lib.manifest.as_ref().and_then(|m| m.files.get(path)).copied();
+        let slot = (lib.info.id, path.to_owned());
+        let cache = || {
+            self.parsed
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+        };
+        if let Some(hash) = expected
+            && let Some((held, parsed)) = cache().get(&slot)
+            && *held == hash
+        {
+            return Ok((**parsed).clone());
+        }
+        let parsed = self.read_records(lib, path, key)?;
+        if let Some(hash) = expected {
+            cache().insert(slot, (hash, Arc::new(parsed.clone())));
+        }
+        Ok(parsed)
+    }
+
+    /// [`Registry::load_file`] without the kept files: reads, checks and parses the records file `path` of `lib`.
+    fn read_records(&self, lib: &Lib, path: &str, key: ShardKey) -> Result<Parsed, String> {
         let bytes = match (lib.dir(), lib.compiled) {
             (Some(dir), _) => read_file(dir, path, self.limits.max_file_bytes)?,
             (None, Some(files)) => files

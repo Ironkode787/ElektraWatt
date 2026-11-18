@@ -248,10 +248,19 @@ impl Session {
         }
         // A cable part's cores from its section (rc.3), a section left as it was byte for byte; a new one without a
         // description reads as the cable does ("3G1.5 · BN BU GNYE").
-        if p.kind == ew_schema::PartKind::Cable
-            && (draft.new || draft.cable != crate::part_cable::rows_of(&original.sections.cable_cores))
-        {
+        let held_cable = crate::part_cable::rows_of(&original.sections.cable_cores, original.sections.bus.as_ref());
+        if p.kind == ew_schema::PartKind::Cable && (draft.new || draft.cable != held_cable) {
             p.sections.cable_cores = self.cable_cores(&draft.cable).map_err(PartDraftError::Field)?;
+            // The bus systems the cable is made for (rc.5, New bus cable…), beside the ports the section keeps.
+            let cable_for: Vec<ew_schema::BusSystem> = draft
+                .cable
+                .bus
+                .split_whitespace()
+                .filter_map(|w| serde_json::from_value(Value::String(w.to_owned())).ok())
+                .collect();
+            let mut section = p.sections.bus.take().unwrap_or_default();
+            section.cable_for = cable_for;
+            p.sections.bus = (section != ew_schema::BusSection::default()).then_some(section);
             if draft.new
                 && draft.text("description").trim().is_empty()
                 && let Some(reads) = draft.cable.preview()
@@ -260,8 +269,10 @@ impl Session {
                 p.description.set_neutral(format!("{series} {reads}").trim());
             }
         }
+        // A plug (an accessory with a bus interface, rc.5) is no device drawn by its port: it has no template.
         let first_port = p.sections.bus.as_ref().and_then(|b| b.ports.first());
         if p.function_template.is_empty()
+            && p.kind != ew_schema::PartKind::Accessory
             && let Some(def) = first_port.and_then(|port| port_fndef(&port.bus))
         {
             p.function_template = vec![TemplateFn {
