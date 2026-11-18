@@ -85,6 +85,37 @@ fn the_order_is_deterministic_ties_by_label_then_id_and_disabled_last() {
     shell.shutdown();
 }
 
+/// A persona run of the third candidate searched "supply" for the electrical supply and found only the air supply. The
+/// supply point (Supply comes in here..., and Interruption, which draws the points) is found by the words a panel
+/// builder types, in both languages; with no point selected the search says what it needs.
+#[test]
+fn the_supply_point_is_found_by_supply_incoming_feed_and_mains_in_both_languages() {
+    let tmp = Tmp::new("pal-supply");
+    let mut shell = tmp.shell_in(Mode::Gui, true, "103");
+    for word in ["supply", "incoming", "feed", "mains", "voeding", "inkomend", "invoeding", "net"] {
+        let entries = query(&mut shell, word);
+        for id in ["ip.supply_in", "tool.ip"] {
+            assert!(
+                entries.iter().any(|e| e.id == id),
+                "{word} -> {id}: {:?}",
+                &ids(&entries)[..entries.len().min(6)]
+            );
+        }
+    }
+    let entries = query(&mut shell, "mains");
+    let supply = entries
+        .iter()
+        .find(|e| e.id == "ip.supply_in")
+        .expect("Supply comes in here");
+    assert!(!supply.enabled, "nothing selected");
+    assert!(
+        supply.reason.as_deref().is_some_and(|r| r.contains("Interruption")),
+        "{:?}",
+        supply.reason
+    );
+    shell.shutdown();
+}
+
 /// PL-3 (NFR-UX-03): each NFR-DOC-05 term finds its EW action through a glossary alias, one row per term. A term the
 /// glossary maps to no listable action is listed here with `None` and fails nothing.
 #[test]

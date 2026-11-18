@@ -1851,6 +1851,8 @@ pub fn what_words(what: &SheetWhat) -> String {
         None if n.module => (Some(word(key!("nature-plc-module"))), Vec::new()),
         None if n.terminal => (Some(word(key!("nature-terminal"))), Vec::new()),
         None if n.strip => (Some(word(key!("nature-strip"))), Vec::new()),
+        // A cable's mark stands for its cable (rc.3: it read as a raw wire marker).
+        None if n.cable && what.mark => (Some(word(key!("nature-cable-mark"))), Vec::new()),
         None if n.cable => (Some(word(key!("nature-cable"))), Vec::new()),
         None => (
             what.symbol.as_ref().map(crate::shell::symbol_editor::name_words),

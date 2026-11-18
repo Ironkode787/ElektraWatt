@@ -9,6 +9,7 @@
 #   ew          the EW term (English)
 #   eplan, qet  what an EPLAN or QElectroTech user calls it (lists; each entry is a palette alias)
 #   panels      the rail panels the aliases find, by their words (`bus`)
+#   [term.words] the everyday words a person types for it, a list per UI language (`mains`, `net`); palette aliases too
 #   actions     the action IDs the aliases find; an empty list is a term the palette cannot act on (it still has its
 #               glossary row)
 #   [term.labels]      the term in each UI language (en-GB, nl-NL)
@@ -77,6 +78,19 @@ nl-NL = "Onderbrekingspunt"
 [term.definition]
 en-GB = "Where a potential leaves one page and continues on another; pairs are found by name, star or chain."
 nl-NL = "Waar een potentiaal een pagina verlaat en op een andere doorloopt; paren worden op naam gevonden, als ster of keten."
+
+[[term]]
+ew = "Supply point"
+actions = ["ip.supply_in", "tool.ip"]
+[term.labels]
+en-GB = "Supply point"
+nl-NL = "Voedingspunt"
+[term.definition]
+en-GB = "Where the supply enters the drawing: an interruption point per conductor (L1, N, PE), marked with Supply comes in here and where it comes from."
+nl-NL = "Waar de voeding de tekening binnenkomt: een onderbrekingspunt per geleider (L1, N, PE), gemarkeerd met Voeding komt hier binnen en waar zij vandaan komt."
+[term.words]
+en-GB = ["supply", "incoming", "incoming supply", "feed", "mains"]
+nl-NL = ["voeding", "inkomend", "inkomende voeding", "invoeding", "net", "netvoeding"]
 
 [[term]]
 ew = "Template"

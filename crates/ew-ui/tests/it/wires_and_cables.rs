@@ -26,13 +26,13 @@ pub(crate) fn key(chord: &str) -> Input {
     Input::Key { key, mods, repeat: 1 }
 }
 
-fn typed(text: &str) -> Input {
+pub(crate) fn typed(text: &str) -> Input {
     Input::Type {
         text: text.to_owned(),
     }
 }
 
-fn state(d: &mut Driver) -> Value {
+pub(crate) fn state(d: &mut Driver) -> Value {
     serde_json::from_str(&state_json(d.shell_mut())).unwrap()
 }
 
@@ -124,12 +124,19 @@ pub(crate) fn two_wires(d: &mut Driver) -> impl Fn((i64, i64)) -> (i64, i64) + u
 
 /// [`two_wires`] with the points named `names`, left to right.
 pub(crate) fn two_named_wires(d: &mut Driver, names: [&str; 2]) -> impl Fn((i64, i64)) -> (i64, i64) + use<> {
-    for x in [900, 1000] {
-        place_relay(d, (x, 620));
+    named_wires(d, &names)
+}
+
+/// [`two_wires`] with one point and relay per name in `names`, left to right, 100 pixels apart, ending at x 1000.
+pub(crate) fn named_wires(d: &mut Driver, names: &[&str]) -> impl Fn((i64, i64)) -> (i64, i64) + use<> {
+    let n = i64::try_from(names.len()).unwrap();
+    let xs: Vec<i64> = (0..n).map(|i| 1000 - 100 * (n - 1 - i)).collect();
+    for x in &xs {
+        place_relay(d, (*x, 620));
     }
     d.input(&click(d.find("Interruption").unwrap()));
     d.settle();
-    for (name, x) in names.into_iter().zip([900, 1000]) {
+    for (name, x) in names.iter().zip(xs.iter().copied()) {
         fill(d, "Interruption point name", name);
         d.input(&Input::Hover { at: (x, 420) });
         d.settle();
@@ -155,7 +162,7 @@ pub(crate) fn two_named_wires(d: &mut Driver, names: [&str; 2]) -> impl Fn((i64,
         .map(|c| c.at)
         .collect();
     a1.sort();
-    let ends = [(ips[0], a1[0]), (ips[1], a1[1])];
+    let ends: Vec<_> = ips.iter().copied().zip(a1.iter().copied()).collect();
     d.input(&click(d.find("Wire").unwrap()));
     d.settle();
     for (a, b) in ends {
@@ -168,12 +175,12 @@ pub(crate) fn two_named_wires(d: &mut Driver, names: [&str; 2]) -> impl Fn((i64,
     }
     d.input(&key("escape"));
     d.settle();
-    assert_eq!(tables(d).connections.len(), 2, "two wires");
+    assert_eq!(tables(d).connections.len(), names.len(), "a wire per point");
     pixel
 }
 
 /// The banner's text (where a refused step says why).
-fn banner(d: &mut Driver) -> String {
+pub(crate) fn banner(d: &mut Driver) -> String {
     state(d)["banner"].as_str().unwrap_or_default().to_owned()
 }
 
@@ -736,7 +743,7 @@ fn cable_gives_n_the_blue_core_and_proposes_the_tag_it_takes() {
 }
 
 /// The texts the page shown prints, groups followed.
-fn page_texts(d: &mut Driver) -> Vec<String> {
+pub(crate) fn page_texts(d: &mut Driver) -> Vec<String> {
     use ew_ui::ew_viewmodel::ew_api::output::ew_dl::{Item, ItemKind};
     fn walk(items: &[Item], out: &mut Vec<String>) {
         for item in items {

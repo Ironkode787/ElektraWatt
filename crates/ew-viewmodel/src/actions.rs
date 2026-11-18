@@ -897,6 +897,17 @@ fn one_ip(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
+/// A writable project with interruption points selected (Supply comes in here…): without them the command search
+/// says how to make them (rc.3: "supply" found it and nothing said what it needs).
+fn ips_selected(m: &ShellModel) -> Result<(), Key<'static>> {
+    writable(m)?;
+    if m.selected_ip_count() >= 1 {
+        Ok(())
+    } else {
+        Err(key!("reason-supply-in-select"))
+    }
+}
+
 /// An editable page with at least two interruption points selected (Edit ▸ Arrange interruption points; §9.3).
 fn two_ips(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;

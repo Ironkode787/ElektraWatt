@@ -28,6 +28,9 @@ pub struct Term {
     pub actions: Vec<String>,
     /// The rail panels its aliases find, by their words (`bus`); empty for none.
     pub panels: Vec<String>,
+    /// The everyday words a person types for it, of every UI language (`[term.words]`, a list per locale: `mains`,
+    /// `net`); empty for none.
+    pub words: Vec<String>,
 }
 
 impl Term {
@@ -41,11 +44,13 @@ impl Term {
         pick(&self.definition, locale).unwrap_or("")
     }
 
-    /// The palette aliases of the term: the EW term, then the EPLAN and the QET terms, in file order.
+    /// The palette aliases of the term: the EW term, then the EPLAN and the QET terms, then its everyday words, in
+    /// file order.
     pub fn aliases(&self) -> impl Iterator<Item = &str> {
         std::iter::once(self.ew.as_str())
             .chain(self.eplan.iter().map(String::as_str))
             .chain(self.qet.iter().map(String::as_str))
+            .chain(self.words.iter().map(String::as_str))
     }
 }
 
@@ -110,6 +115,23 @@ pub fn parse(text: &str) -> Result<Vec<Term>, String> {
         };
         let (eplan, qet, actions) = (strings("eplan")?, strings("qet")?, strings("actions")?);
         let panels = strings("panels")?;
+        let mut words = Vec::new();
+        if let Some(per_locale) = t.get("words") {
+            let Some(per_locale) = per_locale.as_table() else {
+                return Err(format!("glossary: `{ew}`.words is not a table"));
+            };
+            for (locale, list) in per_locale {
+                let Some(list) = list.as_array() else {
+                    return Err(format!("glossary: `{ew}`.words.{locale} is not a list"));
+                };
+                for w in list {
+                    let w = w
+                        .as_str()
+                        .ok_or_else(|| format!("glossary: `{ew}`.words.{locale} holds a non-string"))?;
+                    words.push(w.to_owned());
+                }
+            }
+        }
         out.push(Term {
             labels: locales("labels")?,
             eplan,
@@ -117,6 +139,7 @@ pub fn parse(text: &str) -> Result<Vec<Term>, String> {
             definition: locales("definition")?,
             actions,
             panels,
+            words,
             ew,
         });
     }

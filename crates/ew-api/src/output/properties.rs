@@ -97,6 +97,9 @@ pub struct SheetWhat {
     pub solenoids: usize,
     /// What kind of valve terminal it is (`Session::terminal_kind`); `None` for any other device.
     pub terminal: Option<super::TerminalKind>,
+    /// Whether what is selected is the cable's mark on a page, which stands for the cable (rc.3: it read as a raw wire
+    /// marker).
+    pub mark: bool,
 }
 
 /// One finding in the header.
@@ -1014,7 +1017,11 @@ fn selection_words(q: &Q, id: Uuid) -> Option<SelectionWords> {
         let (kind, text) = match &item.kind {
             K::Graphic(_) => ("graphic", None),
             K::FreeText(t) => ("free_text", Some(ew_derive::free_text(q, item.page, t))),
-            K::WireMarker(_) => ("wire_marker", ew_derive::group_marker(q, item).map(|g| g.text)),
+            // A cable's mark is named by its cable (rc.3).
+            K::WireMarker(_) => match ew_derive::cable_mark(q, item) {
+                Some(mark) => ("cable_mark", Some(mark.tag)),
+                None => ("wire_marker", ew_derive::group_marker(q, item).map(|g| g.text)),
+            },
             K::Image(_) => ("image", None),
             K::SurfaceView(_) => ("surface_view", None),
             K::Underlay(u) => ("underlay", Some(u.name.clone()).filter(|n| !n.is_empty())),
@@ -1980,7 +1987,18 @@ fn sheet_what(q: &Q, device: Id<Device>) -> SheetWhat {
         symbol,
         solenoids: super::rack::solenoids(q, device).len(),
         terminal: super::rack::terminal_kind(q, device),
+        mark: false,
     }
+}
+
+/// The cable whose mark the page item `item` is (`ew_derive::cable_mark`), if it is one.
+fn marked_cable(q: &Q, item: Id<ew_schema::PageItem>) -> Option<Id<Device>> {
+    let mark = ew_derive::cable_mark(q, q.page_items().get(item)?)?;
+    let (first, _) = mark.cores.first()?;
+    let ew_schema::ConnectionKind::Core(core) = q.connections().get(*first)?.kind else {
+        return None;
+    };
+    q.conductors().get(core).map(|c| c.cable)
 }
 
 /// The fluid port of a source device, by what it is (rc.2, F9: a source drawn in the symbol editor or made in the part
@@ -2534,7 +2552,14 @@ impl Session {
                 continue;
             };
             let mut reach: BTreeMap<Kind, BTreeSet<Uuid>> = BTreeMap::new();
-            reach.entry(kind).or_default().insert(id);
+            // A cable's mark stands for its cable: the cable's rows, not the marker's (rc.3).
+            match (kind == Kind::PageItem)
+                .then(|| marked_cable(&q, Id::from_uuid(id)))
+                .flatten()
+            {
+                Some(cable) => reach.entry(Kind::Device).or_default().insert(cable.as_uuid()),
+                None => reach.entry(kind).or_default().insert(id),
+            };
             let functions: Vec<Id<Function>> = match kind {
                 Kind::Representation => q
                     .reps()
@@ -3703,14 +3728,20 @@ impl Session {
             *kinds.entry(p.kind).or_default() += 1;
         }
         let items = picked.len();
-        // The device of a single device, function or representation.
+        // The device of a single device, function or representation, or the cable of a cable's mark.
         let device: Option<Id<Device>> = match picked {
-            [one] if matches!(one.kind, Kind::Device | Kind::Function | Kind::Representation) => one
-                .reach
-                .get(&Kind::Device)
-                .filter(|d| d.len() == 1)
-                .and_then(|d| d.iter().next())
-                .map(|u| Id::from_uuid(*u)),
+            [one]
+                if matches!(
+                    one.kind,
+                    Kind::Device | Kind::Function | Kind::Representation | Kind::PageItem
+                ) =>
+            {
+                one.reach
+                    .get(&Kind::Device)
+                    .filter(|d| d.len() == 1)
+                    .and_then(|d| d.iter().next())
+                    .map(|u| Id::from_uuid(*u))
+            }
             _ => None,
         };
         let title = match (picked, device) {
@@ -3817,7 +3848,10 @@ impl Session {
             location,
             findings: findings.into_iter().map(|(_, _, c)| c).collect(),
             filter,
-            what: device.map(|d| sheet_what(q, d)),
+            what: device.map(|d| SheetWhat {
+                mark: picked.iter().all(|p| p.kind == Kind::PageItem),
+                ..sheet_what(q, d)
+            }),
         }
     }
 

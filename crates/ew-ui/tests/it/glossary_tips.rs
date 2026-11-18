@@ -75,7 +75,11 @@ fn the_glossary_pane_is_named_and_folio_reports_insert_arms_the_ip_tool_in_engli
     settle(&mut h);
     assert!(group(&h, "Woordenlijst"), "the pane in Dutch");
     assert!(group(&h, "Onderbrekingspunt"), "the row in Dutch");
-    h.get_by_label("Invoegen: Onderbrekingspunt").click();
+    // The interruption point's row first; the supply point's row inserts one too.
+    h.get_all_by_label("Invoegen: Onderbrekingspunt")
+        .next()
+        .expect("the row's Insert")
+        .click();
     settle(&mut h);
     assert_eq!(h.state().shell().tool().name(), "ip");
     // No term: the empty state.

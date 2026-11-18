@@ -1012,7 +1012,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             Command,
             Menu::Draw,
             &[],
-            writable,
+            ips_selected,
             grp(Group::Connect),
             |s, p| s.act_supply_in(p),
         )),

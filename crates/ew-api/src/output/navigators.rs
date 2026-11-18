@@ -1400,7 +1400,11 @@ fn device_node(
             drawable(q, folios, r, x.main)
         })
         .collect();
-    let drawables = sorted(all);
+    let mut drawables = sorted(all);
+    // A cable is drawn where its cores run, a strip where its terminals stand (rc.3: both read "not drawn").
+    if drawables.is_empty() {
+        drawables = drawn_as_members(q, folios, dev);
+    }
     let label = tag(d);
     let mut badges = Vec::new();
     let mut facets = vec![("kind".to_owned(), "device".to_owned())];
@@ -1556,6 +1560,32 @@ fn device_drawables(
         );
     }
     sorted(v)
+}
+
+/// Where a device without symbols of its own is drawn: a cable's cores (its wires), a strip's terminals; nothing for
+/// any other device.
+fn drawn_as_members(
+    q: &Q,
+    folios: &BTreeMap<Id<Page>, (usize, String, Uuid)>,
+    dev: &Device,
+) -> Vec<Drawable> {
+    if dev.aspects.cable.is_some() {
+        let cores: std::collections::BTreeSet<_> = q.idx().conductors_of_cable(dev.id).collect();
+        let wires = q.connections().iter().filter_map(|(id, c)| match c.kind {
+            ew_derive::ew_schema::ConnectionKind::Core(k) if cores.contains(&k) => Some(id),
+            _ => None,
+        });
+        return sorted(wires.filter_map(|c| connection_drawable(q, folios, c)).collect());
+    }
+    if dev.aspects.strip.is_some() {
+        let terminals = q
+            .devices()
+            .iter()
+            .filter(|(_, t)| t.aspects.terminal.as_ref().is_some_and(|a| a.strip == dev.id))
+            .map(|(id, _)| id);
+        return terminals.flat_map(|t| device_drawables(q, folios, t)).collect();
+    }
+    Vec::new()
 }
 
 /// The drawable of a connection: its page, and the cell of its first end that is a CP drawn on that page (else of

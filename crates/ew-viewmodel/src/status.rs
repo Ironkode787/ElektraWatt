@@ -133,6 +133,7 @@ fn words_text(words: &SelectionWords) -> String {
                 "graphic" => key!("announce-item-graphic"),
                 "free_text" => key!("announce-item-free_text"),
                 "wire_marker" => key!("announce-item-wire_marker"),
+                "cable_mark" => key!("announce-item-cable_mark"),
                 "image" => key!("announce-item-image"),
                 "surface_view" => key!("announce-item-surface_view"),
                 _ => key!("announce-item-unknown"),
