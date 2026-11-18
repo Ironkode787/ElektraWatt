@@ -7586,7 +7586,9 @@ help-thing-panel-layout = Panel layout
 
 # New project, templates, the wizard, the people of a project and sections (rc.3 persona round)
 templates-name-taken = Another template is called "{ $p0 }" already: choose another name.
-new-project-folder-missing = That folder is not there: type a folder that is, or choose one with Browse….
+new-project-folder-new = This folder is not there yet: Create makes it.
+new-project-folder-file = A file of that name is in the folder's way: type another folder, or choose one with Browse….
+new-project-folder-no-drive = That drive is not there: type a folder on a drive this computer has, or choose one with Browse….
 props-template-not-listed = a template that is not in your list
 wizard-template-default-name = Company template
 wizard-made-in = The template is made in { $p0 }

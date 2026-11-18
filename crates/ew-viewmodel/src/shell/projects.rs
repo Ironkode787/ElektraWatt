@@ -310,8 +310,23 @@ impl ShellModel {
             Some(d) => ProjectTemplate::DirectoryWithoutPages(d),
             None => ProjectTemplate::Builtin,
         };
+        // The folders on the way that are not there yet are made with the project; a creation that fails takes
+        // away those it left empty, the deepest first.
+        let missing: Vec<PathBuf> = dir
+            .ancestors()
+            .take_while(|a| !a.as_os_str().is_empty() && !a.exists())
+            .map(Path::to_path_buf)
+            .collect();
         match Session::new_project(from, NewProjectKind::Schematic, self.session_options()) {
-            Ok(session) => self.create_and_install(session, dir, key!("error-new"), None),
+            Ok(session) => {
+                let out = self.create_and_install(session, dir, key!("error-new"), None);
+                if out != Outcome::Done {
+                    for made in &missing {
+                        let _ = std::fs::remove_dir(made);
+                    }
+                }
+                out
+            }
             Err(e) => {
                 let message = strings::format(key!("error-new"), &[strings::text(open_error_key(&e))]);
                 self.banner = Some(message.clone());

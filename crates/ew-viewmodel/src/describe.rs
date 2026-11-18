@@ -2281,6 +2281,9 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
             for e in d.problem().iter().chain(&d.error) {
                 lines.push(format!("  error: {e}"));
             }
+            if let Some(note) = d.note().filter(|_| d.error.is_none()) {
+                lines.push(format!("  note: {note}"));
+            }
         }
         // Templates: each template with what it holds and whether new projects start from it, the selected one, and
         // the line under the list.

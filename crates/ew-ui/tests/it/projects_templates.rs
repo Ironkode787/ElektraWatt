@@ -153,22 +153,35 @@ fn new_project_says_why_create_waits_and_keeps_what_was_typed() {
         panic!("the dialog stays open")
     };
     assert_eq!(d.folder, "pumpstation");
-    // A folder typed without its whole path is read from the projects folder; one that is not there is refused.
-    assert!(reason(&h, "That folder is not there"));
+    // A folder typed without its whole path is read from the projects folder. One that is not there yet is made by
+    // Create, and the line over Create says so (a persona run: the folder to be was refused); a file of that name in
+    // its way is refused in words.
+    assert!(reason(&h, "This folder is not there yet: Create makes it."));
+    assert!(!h.get_by_label("Create").accesskit_node().is_disabled());
     let projects = tmp.0.join("config").join("projects");
-    std::fs::create_dir_all(projects.join("pumpstation")).unwrap();
+    std::fs::create_dir_all(&projects).unwrap();
+    std::fs::write(projects.join("pumpstation"), b"").unwrap();
     set(&mut h, json!({"name": "Pump station"}));
-    let target = projects.join("pumpstation").join("Pump station");
+    assert!(reason(&h, "A file of that name is in the folder's way"));
+    assert!(h.get_by_label("Create").accesskit_node().is_disabled());
+    std::fs::remove_file(projects.join("pumpstation")).unwrap();
+    let folder = format!("pumpstation{}stage 1", std::path::MAIN_SEPARATOR);
+    set(&mut h, json!({"folder": folder}));
+    assert!(reason(&h, "This folder is not there yet: Create makes it."));
+    let target = projects.join("pumpstation").join("stage 1").join("Pump station");
     assert!(reason(&h, &target.to_string_lossy()), "the line says where");
     assert!(!h.get_by_label("Create").accesskit_node().is_disabled());
     assert_eq!(h.get_by_label("Browse…").rect(), browse, "the rows stay put");
     h.get_by_label("Create").click();
     settle(&mut h);
-    assert!(target.join("manifest.json").is_file());
+    assert!(
+        target.join("manifest.json").is_file(),
+        "Create made the folders on the way"
+    );
     // A project of that name there already.
     crate::support::dispatch(&mut h, "file.new", json!({"discard": true}));
     settle(&mut h);
-    set(&mut h, json!({"folder": "pumpstation", "name": "Pump station"}));
+    set(&mut h, json!({"folder": folder, "name": "Pump station"}));
     assert!(reason(&h, "A folder of that name is there already"));
     h.state_mut().shell_mut().shutdown();
 }

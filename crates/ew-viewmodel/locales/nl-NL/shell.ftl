@@ -7322,7 +7322,9 @@ help-thing-panel-layout = Paneellayout
 
 # Nieuw project, sjablonen, de wizard, de personen van een project en secties (rc.3-personaronde)
 templates-name-taken = Er is al een sjabloon dat "{ $p0 }" heet: kies een andere naam.
-new-project-folder-missing = Die map bestaat niet: typ een map die er is, of kies er een met Bladeren….
+new-project-folder-new = Deze map bestaat nog niet: Maken maakt hem aan.
+new-project-folder-file = Een bestand met die naam staat de map in de weg: typ een andere map, of kies er een met Bladeren….
+new-project-folder-no-drive = Dat station is er niet: typ een map op een station van deze computer, of kies er een met Bladeren….
 props-template-not-listed = een sjabloon dat niet in uw lijst staat
 wizard-template-default-name = Bedrijfssjabloon
 wizard-made-in = Het sjabloon komt in { $p0 }

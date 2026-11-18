@@ -9,7 +9,7 @@ template, change it and stop using it. The words in **bold** are the words of th
    opens.
 2. Type the project's **Name**. Under it, **Folder** is where the project's folder is made; **Browse…** chooses
    another one. A folder typed without its whole path, such as `Pumps`, is a folder in your projects folder. The line
-   under the folder says where the project will be.
+   under the folder says where the project will be. A folder that is not there yet is made with the project.
 3. Under **Start from**, choose what the project starts with. Each line says in words what it brings:
    - **Empty project**: one empty page, with the program's frame and title block and its settings.
    - Each of your templates, with its frame and title block, its check level, its text styles and its sections. The
@@ -18,8 +18,9 @@ template, change it and stop using it. The words in **bold** are the words of th
 4. A template or a project that has pages shows the box **Also copy its pages and the devices on them**. It is off:
    without it the new project starts with one empty page and none of the old pages or devices. Tick it only when you
    want those pages, for example to start from a standard cabinet.
-5. Press **Create**. The project is made and opens. While something is missing or wrong (no name, a folder that is not
-   there, a project of that name there already) the line over **Create** says what.
+5. Press **Create**. The project is made and opens. While something is missing or wrong (no name, a file where the
+   folder would go, a drive that is not there, a project of that name there already) the line over **Create** says
+   what; when the folder is to be made, the line says so.
 
 Nothing comes into the new project that the dialog did not name.
 

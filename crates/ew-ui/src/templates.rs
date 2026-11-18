@@ -185,12 +185,13 @@ pub(crate) fn new_project(
         }
         under(ui, &t, t.space_6, strings::text(key!("new-project-pages-note")));
     }
-    // Why Create cannot run, or why the last Create failed, over Create: a disabled button said it only on hover. The
-    // line keeps its room while there is nothing to say, so the dialog does not move when one appears.
+    // Why Create cannot run, or why the last Create failed, over Create: a disabled button said it only on hover; else
+    // what Create makes besides the project (a folder not there yet). The line keeps its room while there is nothing
+    // to say, so the dialog does not move when one appears.
     let (reason, colour) = match (&d.error, d.problem()) {
         (Some(error), _) => (error.clone(), t.error),
         (None, Some(problem)) => (problem, t.text_secondary),
-        (None, None) => (" ".to_owned(), t.text_secondary),
+        (None, None) => (d.note().unwrap_or_else(|| " ".to_owned()), t.text_secondary),
     };
     ui.add_space(t.space_2);
     ui.with_layout(egui::Layout::top_down(egui::Align::Max), |ui| {

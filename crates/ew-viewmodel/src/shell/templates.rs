@@ -30,6 +30,7 @@ use crate::key;
 use crate::notifications::NoteTone;
 use crate::settings::TemplateEntry;
 use crate::strings;
+use crate::strings::Key;
 
 /// The check levels a person chooses (the wizard's step and Check level…), from the least strict: only levels that
 /// check differently. `drafting`, the message panel's scheme, switches nothing off and so checks as `full` does; a
@@ -161,6 +162,16 @@ pub(super) fn taken(dir: &Path) -> bool {
     }
 }
 
+/// Why `folder` (a whole path) cannot hold a project, as a text key: a file of that name on its way, or nothing of it
+/// there at all (a drive this computer does not have); `None` when it is a folder or Create can make it one.
+fn folder_refusal(folder: &Path) -> Option<Key<'static>> {
+    match folder.ancestors().find(|a| a.exists()) {
+        None => Some(key!("new-project-folder-no-drive")),
+        Some(there) if !there.is_dir() => Some(key!("new-project-folder-file")),
+        Some(_) => None,
+    }
+}
+
 impl NewProjectDialog {
     /// The chosen line.
     pub fn start(&self) -> &StartLine {
@@ -202,11 +213,8 @@ impl NewProjectDialog {
             key!("new-project-need-folder")
         } else if self.folder_path().is_none() {
             key!("new-project-folder-whole")
-        } else if self
-            .folder_path()
-            .is_some_and(|f| !f.is_dir() && self.projects.as_ref() != Some(&f))
-        {
-            key!("new-project-folder-missing")
+        } else if let Some(why) = self.folder_path().and_then(|f| folder_refusal(&f)) {
+            why
         } else if self.start().other && self.start().dir.is_none() {
             key!("new-project-need-other")
         } else if !self.start().ok {
@@ -217,6 +225,13 @@ impl NewProjectDialog {
             return None;
         };
         Some(strings::text(key).to_owned())
+    }
+
+    /// What Create does beyond the project when it can run: the folder typed is not there yet and is made (a
+    /// persona run expected the program to make it, as programs do); `None` otherwise.
+    pub fn note(&self) -> Option<String> {
+        let missing = self.problem().is_none() && self.folder_path().is_some_and(|f| !f.exists());
+        missing.then(|| strings::text(key!("new-project-folder-new")).to_owned())
     }
 
     /// The parameters of `file.new` that Create dispatches.
