@@ -495,6 +495,7 @@ supply-potential-hint = Enter takes every row; Esc places the marks without a po
 supply-potential-refused = { $p0 }: { $p1 }
 reason-supply-potential-select = Select supply marks first: points marked with Supply comes in here…
 reason-supply-potential-row = The Potential panel has no such row: open it again with Potential… on the supply marks
+reason-supply-potential-gone = The supply marks this panel was for are no longer in the project: nothing was defined
 action-ip-arrange-selected = Arrange interruption points
 action-box-grip = Move a black box grip
 action-box-add-cp = Add connection point

@@ -220,11 +220,19 @@ impl ShellModel {
     }
 
     /// Enter: every row with a kind or a voltage defines its mark's potential (named as the mark) or changes the
-    /// definition at it, in one undo step; a text a cell does not take keeps the panel open with the refusal in words.
+    /// definition at it, in one undo step, all rows or none (a later row refused takes the earlier ones back); a text a
+    /// cell does not take keeps the panel open with the refusal in words. A mark deleted meanwhile is left out; with
+    /// every mark gone the panel closes and says so.
     fn apply_supply_panel(&mut self) -> Outcome {
-        let Some(panel) = self.supply_panel.clone() else {
+        let Some(mut panel) = self.supply_panel.clone() else {
             return Outcome::refused(key!("reason-supply-potential-select"));
         };
+        let gone = |id: Uuid| self.project_session().is_none_or(|s| !s.record_exists(id));
+        panel.rows.retain(|r| !gone(r.point) && r.def.is_none_or(|d| !gone(d)));
+        if panel.rows.is_empty() {
+            self.supply_panel = None;
+            return Outcome::refused(key!("reason-supply-potential-gone"));
+        }
         let mut commands: Vec<AnyCommand> = Vec::new();
         let mut edits: Vec<Value> = Vec::new();
         for row in &panel.rows {
@@ -284,21 +292,31 @@ impl ShellModel {
             });
         }
         self.supply_panel = None;
-        let mut first = true;
+        let mut committed = false;
         for cmd in &commands {
             let rev = self.revision();
             let out = self.commit_from_host(cmd);
             if out != Outcome::Done {
+                // All rows or none: the rows taken before it go back, and the panel stays with the refusal.
+                if committed {
+                    let _ = self.step_history(false);
+                }
+                let why = match &out {
+                    Outcome::Failed { message } => message.clone(),
+                    Outcome::Refused { reason_key } => strings::text(*reason_key).to_owned(),
+                    _ => String::new(),
+                };
+                panel.error = Some(why);
+                self.supply_panel = Some(panel);
                 return out;
             }
             // One undo step for the whole panel.
-            if !first
-                && self.revision() != rev
-                && let Some(p) = &mut self.project
-            {
-                p.session.fold_last_step();
+            if self.revision() != rev {
+                if committed && let Some(p) = &mut self.project {
+                    p.session.fold_last_step();
+                }
+                committed = true;
             }
-            first = false;
         }
         Outcome::Done
     }

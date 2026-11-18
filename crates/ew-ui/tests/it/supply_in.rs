@@ -417,3 +417,68 @@ fn supply_marks_placed_in_one_go_ask_their_potential() {
     assert_eq!(rows(&mut d)[0], ("L1".to_owned(), "l1".to_owned(), String::new()));
     d.shell_mut().shutdown();
 }
+
+/// The Potential panel stands at marks of the page it opened on, as the project stood (rc.5): an Undo closes it, so
+/// does a change of page; and an Enter after the marks were deleted defines nothing and says so in words, never "the
+/// device".
+#[test]
+fn the_potential_panel_closes_on_undo_and_on_a_page_change() {
+    use ew_ui::ew_viewmodel::shell::Outcome;
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    d.input(&click(d.find("Interruption").unwrap()));
+    d.settle();
+    for (name, y) in [("L1", 400), ("PE", 460)] {
+        crate::wires_and_cables::fill(&mut d, "Interruption point name", name);
+        d.input(&Input::Hover { at: (900, y) });
+        d.settle();
+        d.input(&click((900, y)));
+        d.settle();
+    }
+    d.input(&key("escape"));
+    d.settle();
+    let ids: Vec<String> = tables(&mut d)
+        .reps
+        .iter()
+        .filter(|r| r.ip.is_some())
+        .map(|r| r.id.to_string())
+        .collect();
+    let shell = d.shell_mut();
+    assert_eq!(shell.dispatch("select.set", &json!({ "ids": ids })), Outcome::Done);
+    let supply = json!({"location": "Supply", "device": "-X0"});
+    assert_eq!(shell.dispatch("ip.supply_in", &supply), Outcome::Done);
+    assert!(shell.supply_panel().is_some(), "the panel asks");
+    // An Undo takes the marks back: the panel goes with them.
+    assert_eq!(shell.dispatch("edit.undo", &json!({})), Outcome::Done);
+    assert!(shell.supply_panel().is_none(), "Undo closes the panel");
+    assert_eq!(shell.dispatch("edit.redo", &json!({})), Outcome::Done);
+    assert_eq!(shell.dispatch("select.set", &json!({ "ids": ids })), Outcome::Done);
+    assert_eq!(shell.dispatch("ip.supply_potential", &json!({})), Outcome::Done);
+    assert!(shell.supply_panel().is_some(), "Potential… opens it again");
+    // Another page shown: the panel goes.
+    let page = json!({"folio": "2", "type": "multi_line", "title": ""});
+    assert_eq!(shell.dispatch("page.new", &page), Outcome::Done);
+    d.settle();
+    assert!(d.shell_mut().supply_panel().is_none(), "a page change closes the panel");
+    // The marks deleted under the open panel: Enter defines nothing and names no device.
+    let shell = d.shell_mut();
+    let _ = shell.dispatch("page.goto", &json!({"folio": "1"}));
+    assert_eq!(shell.dispatch("select.set", &json!({ "ids": ids })), Outcome::Done);
+    assert_eq!(shell.dispatch("ip.supply_potential", &json!({})), Outcome::Done);
+    let rev = shell.revision();
+    d.input(&key("delete"));
+    d.settle();
+    let shell = d.shell_mut();
+    if shell.revision() == rev {
+        let _ = shell.dispatch("preview.apply", &json!({}));
+    }
+    assert_ne!(shell.revision(), rev, "the marks are deleted");
+    assert!(shell.supply_panel().is_some(), "the panel stands over the deleted marks");
+    let out = shell.dispatch("ip.supply_potential", &json!({"apply": true}));
+    assert_eq!(
+        out,
+        Outcome::refused(ew_ui::ew_viewmodel::key!("reason-supply-potential-gone"))
+    );
+    assert!(shell.supply_panel().is_none(), "and it closes");
+    d.shell_mut().shutdown();
+}

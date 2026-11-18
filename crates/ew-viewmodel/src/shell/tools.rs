@@ -389,6 +389,8 @@ impl ShellModel {
         // A page or tab change ends the gesture a sticky refusal belonged to.
         self.tools.notice = None;
         self.tools.notice_sticky = false;
+        // The supply marks' Potential panel stands at marks of the page it was opened on (rc.5).
+        self.supply_panel = None;
         self.end_editing_tool();
     }
 

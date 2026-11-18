@@ -2666,7 +2666,9 @@ impl ShellModel {
                 self.tools.overlay = crate::tools::Overlay::default();
                 self.tools.preview = None;
                 // A box armed before the step that names records the step took away ends at the end of the dispatch
-                // (`after_commit`, rc.5, H2).
+                // (`after_commit`, rc.5, H2); so does the supply marks' Potential panel, whose marks the step may have
+                // taken.
+                self.supply_panel = None;
                 self.crossed_step(crossed);
                 // A terminal placement takes the strip's next designation again.
                 self.tools.reread_designation = true;

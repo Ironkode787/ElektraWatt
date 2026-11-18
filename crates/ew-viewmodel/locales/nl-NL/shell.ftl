@@ -514,6 +514,7 @@ supply-potential-hint = Enter neemt alle rijen over; Esc plaatst de markeringen 
 supply-potential-refused = { $p0 }: { $p1 }
 reason-supply-potential-select = Selecteer eerst voedingsmarkeringen: punten gemarkeerd met Voeding komt hier binnen…
 reason-supply-potential-row = Het paneel Potentiaal heeft die rij niet: open het opnieuw met Potentiaal… op de voedingsmarkeringen
+reason-supply-potential-gone = De voedingsmarkeringen van dit paneel staan niet meer in het project: er is niets vastgelegd
 action-ip-arrange-selected = Onderbrekingspunten schikken
 action-box-grip = Een greep van een black box verplaatsen
 action-box-add-cp = Aansluitpunt toevoegen
