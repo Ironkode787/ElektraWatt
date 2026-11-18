@@ -1081,7 +1081,8 @@ potential. Swapping two cores is one transaction (FR-CBL-016).
 
 *As built.* **Where a cable without a drawn
 line is numbered.** A cable's tag takes the page of its definition line when one is drawn; without one, the page of
-its first connected core (the core with the smallest connection ID); with no core, the project's counter and no page
+its first connected core or of the first bus line it carries (rc.5; the connection with the smallest ID); with
+neither, the project's counter and no page
 in its tag (`-W1`). A cable placed later takes its page's next free counter. `fields.set` refuses an unplaced cable a
 counter another unplaced cable holds, in words naming no page, and renumbering groups the cables by the same scope
 ([03](03-domain-model.md) §8.2's note).

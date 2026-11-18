@@ -572,8 +572,16 @@ pub struct PhysicalNet { pub name: Ident, pub medium: Medium,           // added
   an older build keeps them in `extra`), not a device. It is a parts-list line of the device at that end
   (`LineSource::Plug`), the bus cable list names it at that end, and EW-BUS-004 reads its termination as the
   terminating element of the port it sits on when the port has no switch of its own. A plug part is an accessory
-  with a passive bus interface of its bus (starter EW-GEN-PLG-1 … -5). A bus line whose cable is not drawn on its page
-  prints the cable's tag beside it, as a wire number stands.
+  with a passive bus interface of its bus (starter EW-GEN-PLG-1 … -10). *As built (rc.5):* the cable is numbered on
+  the page of its first bus line, as a wiring page's cable on its first core's page, and `bus.cable.set` gives each
+  line's page the cable's mark (a wire marker listing the line, across the middle of its longest run: the tag in the
+  tag style, the type under it, movable); a line no mark lists (an older file) prints the tag beside it in the tag
+  style. The form also offers the project's cables made for the bus (a further line runs on in one, the person's
+  choice), and its lists end in New bus cable… and New plug…: the part editor's short form of a cable for the bus
+  (its cores as the bus has them, `part_cable::bus_cores`, no cross-section needed; its `cable_for`) or of a plug (its
+  bus, straight or angled, programming socket and switchable resistor, worded into its description), chosen in the
+  form at once. The cable's cores are used by its line: the cable overview and `api_v1_conductor` give each core the
+  line's ends, and Connect cores… offers none of them; a cable with a length entered counts it in the parts list.
 - **As built (WP-S1.24).** `NetAddress` types `profinet {name, ip?, mask?, gateway?}`, `ethercat {position?, alias?}`
   and `io_link_port` besides `profibus` (new values that an older reader keeps as `Unknown`); `BusPort` has the
   optional `mrp` (`manager`, `client`). The P1/P2 neighbours of FR-BUS-010 are the ports' `Bus` connections, read from

@@ -836,7 +836,7 @@ fn tutorial_a_bus_network_runs_as_its_page_says() {
     // Step 10: the cable.
     assert_eq!(
         line_of(&cable, "toast"),
-        "toast \"Cable -W1 carries the bus line.\" undo"
+        "toast \"Cable -2W1 carries the bus line.\" undo"
     );
     // Steps 9, 13 and 14: every node's address, and the check.
     assert_eq!(

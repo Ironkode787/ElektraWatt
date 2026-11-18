@@ -1264,7 +1264,8 @@ derived:
 
    *As built.* **A cable's page and counter
    scope.** A cable drawn by its definition line takes that line's page. A cable without a drawn line takes the page
-   of its first connected core, the core with the smallest connection ID; a cable with no core takes the project's
+   of its first connected core or of the first bus line it carries (rc.5), the connection with the smallest ID; a
+   cable with neither takes the project's
    counter, its tag carrying no page (`-W1`); a cable placed later takes its page's next free counter. Online
    numbering, `fields.set` and `numbering.renumber` use the same scope (the drawing's page, the first core's page or
    the project): `fields.set` refuses an unplaced cable a counter another unplaced cable holds, in words naming no

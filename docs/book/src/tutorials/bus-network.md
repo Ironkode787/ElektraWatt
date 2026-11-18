@@ -52,8 +52,10 @@ the same devices stay on the schematic pages.
     The Cable form opens with **EW-GEN-CBL-3 · Industrial Ethernet cable, 4 cores, shielded (PROFINET)**, the cables
     made for PROFINET first. Type `5` as the **Length (m)**, choose **EW-GEN-PLG-3 · RJ45 plug for Industrial
     Ethernet** as the plug at each end, and choose **Apply**.
-    The toast says "Cable -W1 carries the bus line." The line prints the cable's tag, and the cable and its two plugs
-    go into the parts list.
+    The **Tag** field proposes `-2W1`, the page's next cable tag. The toast says "Cable -2W1 carries the bus line."
+    The line carries the cable's mark: its tag with its type under it, which you can move as any tag; the cable and its
+    two plugs go into the parts list. The lists of cables and plugs end in **New bus cable…** and **New plug…**: a
+    short form makes a part of your own for the bus (a cable's cores come as the bus has them) and chooses it at once.
 11. Choose **Edit ▸ New part…**. Type the **Manufacturer** `Example`, the **Part number** `FC-PN-2` and the
     **Description** `Frequency converter with PROFINET, 2 ports`. Under **Bus interfaces** choose **Add interface**:
     it proposes the interface `X1` on **PROFINET** with the role **Device**; type **Ports** `2`. Choose **Save**.
