@@ -81,8 +81,10 @@ The two buttons beside the filter make a page and a section; a right click on a 
 section… changes that section's title and folio range (Project properties link each section to it as well). A right click
 on a page opens it and offers Open page in a new tab, Title block fields…, Page properties, New page… and Delete page.
 A section is a range of folios with a title, such as 100 to 199: New section proposes the next number and the next
-hundred, and the tree lists the section at once, still empty. With a section chosen in the tree, New page proposes its
-first free folio.
+hundred, and the tree lists the section at once, still empty. New page fills in the next free folio: after the page
+you right-clicked, inside its section; after the last page of a section you right-clicked (its first folio when it is
+empty); else after the open page. The folio stays yours to change: the dialog says where the page will stand ("Stands
+after 101 Wiring") and which page has a folio already taken.
 
 ### Devices
 
