@@ -29,6 +29,14 @@ select. A potential is electrical: on a fluid port (an air supply's) it is greye
 and its **Medium** row in Properties set the medium instead. A name left empty is refused with "Name the potential
 first".
 
+## The supply that comes in
+
+Points marked with **Supply comes in here…** (L1, N, PE from another drawing) ask for their potential as soon as they
+are marked: a panel at the marks has a row per mark, its kind of conductor and its voltage already filled in from the
+name where the name tells it. Correct what is wrong and press Enter: each mark's potential is defined, named as the
+mark, in one step. Escape leaves them without a potential. **Potential…** on a mark's right-click menu opens the panel
+again later.
+
 ## Accept a reasoned potential
 
 A selected wire whose potential has no name yet may show a small card beside it: "Potential 0VDC?" with the reason,

@@ -76,7 +76,12 @@ from a main distribution, say. It prints where the supply comes from instead of 
 points that stand together, one under the other, print that place once.
 
 To make one: select interruption points, right-click and choose **Supply comes in here…**; its form proposes where
-the supply comes from and the device there.
+the supply comes from and the device there. When the marks are placed, a small panel opens at them and asks what comes
+in: a row per mark, with the kind of conductor (L1, L2, L3, L, N, PE, L+, M, …) and the voltage with AC or DC
+(`230 V AC`), filled in from the mark's name where the name tells it (`L1-EXT` is a phase at the project supply's
+voltage, `N` the neutral, `PE` protective earth, `24V` a 24 V DC plus, `0V` or `M` its minus). Enter defines every
+row's potential in one step; Escape places the marks without one. A mark on a potential that has its type already is
+not asked. **Potential…** on the marks' right-click menu opens the panel again to change it.
 
 To change one: the place and the device are its rows in Properties; a value typed there moves the point and its
 group. A right click offers **Group these supply points**, **Take out of its group** and **Remove the supply mark**.

@@ -413,6 +413,15 @@ potential_flow(potential):                              // memo per potential; t
   definition are ranked by a fixed role order (PE, PEN, FE, N, L1, L2, L3, L, L+, L−, M, signal, undefined), never by
   CP or ID order, and the finding targets every member function; the definition half still follows ID order. A role
   compatible with the first by the list above (an L pin beside an L1 pin) is no conflict there either.
+  *As built (rc.5, the role pairs).* Which member roles may meet on one potential, either order: **nothing to report**
+  for equal roles, FE on PE or PEN, PE or N on PEN, L on one phase, M with L− (two names of one 0 V), a signal on any
+  conductor but an earth (a signal pin wired straight to a supply is a fixed level), and an undefined role or one of a
+  newer format with anything; **a bond** for 0 V (M or L−) on PE, which a drawn wire declares (§3.7, the drawn bond);
+  **a fault** for every other pair: a live conductor (L1, L2, L3, L, L+) on PE, PEN, FE, N, 0 V or another live
+  conductor, N on PE or FE, AC with DC, a signal on an earth. The conflicts are records of the derivation (the
+  definitions or member CPs and the attribute), and EW-POT-001 words each as a sentence in the trade's words: what is
+  wired to what, on which page, why that is a fault and what to do ("-G1:+ (plus L+) is wired to -X1:N (neutral N) on
+  page 3: a wire joins two different potentials. Take that wire away.").
   *As built.* A potential's definitions are **ranked** by natural order of the
   name, then the defining point's printed text (`<tag>:<designation>` of its CP; a junction's after every CP's), then
   the ID, which decides only between two definitions that print alike. The first applies its values and names the
@@ -432,10 +441,21 @@ potential_flow(potential):                              // memo per potential; t
   wire) is left out of union at both levels. B1 (`Pelv0vPe`, via W27) keeps 0V and PE as two potentials (FR-CON-014,
   D-22). The bond wire is still a physical wire: physical-wire extraction runs on the full drawing graph, including
   via connections (§3.8). The wire list shows W27 with potential "0V ⇄ PE".
+- *As built (rc.5).* **The drawn bond.** A wire drawn on a page from a 0 V point to a protective-earth point is the
+  bond itself: whoever draws it has declared it, and no second declaration is asked. `page_local_nets` joins the page
+  without the connections that end on a PE-role CP first; then such a connection with exactly one end on a PE-role CP
+  whose other end lies in a net holding an M- or L−-role CP is an **earth wire**: it is cut like a bond's `via` and
+  both its ends stay nodes of the page. The partition lists every earth wire as a bond (`BondLink::drawn`, kind
+  `Pelv0vPe`, its ID the connection's, `a` the 0 V side), so the 0 V keeps its own name, type and colour, the wire
+  list shows the wire as "0V ⇄ PE" and EW-POT-002 counts it (a PELV 0 V with one earth wire is satisfied, with two it
+  is reported). The decision reads the page only and roles only: a 0 V that reaches the earth wire through an
+  interruption point from another page, or by a definition rather than a pin's role, still meets PE, and the
+  declared bond below (Draw ▸ Connect ▸ Bond, or EW-POT-001's quick fix) is the way to say which wire bonds it.
 - **PELV and SELV.** An M-type potential is PELV when it has a `Pelv0vPe` bond or `env.earthing = Pelv`.
   EW-POT-002 requires exactly one such bond. A potential declared `Selv` must have none (FR-CHK-028).
 - *As built.* **The 0 V–PE quick fix.** When a potential's member CPs
-  (interruption points aside) carry both the role M and the role PE, its EW-POT-001 finding carries the quick fix
+  (interruption points aside) carry both a 0 V role (M or L−) and the role PE, its EW-POT-001 finding carries the
+  quick fix
   "Declare 0 V–PE bond (PELV)": one `bond.create {a, b, kind: pelv_0v_pe, via}` on the potential's **carrier**, which
   then keeps 0 V and PE as two potentials and satisfies EW-POT-002. The carrier comes from the derived query
   `bond_carrier(potential)`: a connection whose removal splits the potential's connection graph (its member CPs and
@@ -445,7 +465,7 @@ potential_flow(potential):                              // memo per potential; t
   parallel wires are never a carrier. The candidates order on printed keys only: one end on a PE-role CP first, then
   the displayed wire number in natural order (an unnumbered wire last), then the two ends' `tag:designation` texts;
   `a` is the M-side end, `b` the PE-side end. With no candidate, a disconnected graph or a tie between the first two
-  on every key there is no fix, and the message ends with the hint "declare the bond with Draw ▸ Bond". The query is
+  on every key there is no fix, and the sentence says to declare the bond with Draw ▸ Connect ▸ Bond. The query is
   **Cold**, not memoised, so Golden A's AC-16 memo sweep (the acceptance report's key and family counts) stays
   byte-equal; only EW-POT-001 asks for it, and everything it reads is memoised. Golden A without B1: the fix names
   W27, commits through the command path, and undo restores the finding.
@@ -1180,7 +1200,7 @@ p = prevent and r = release.
 | EW-POT-009 | Unconnected electrical CP of a placed function, not `unused` (fluid ports: EW-FL-001) | FR-CHK-018 | o r | warning; info if `unused` | EF-09: -102F2:13, :14 |
 | EW-POT-010 | Conductors or csa on a CP beyond its clamp data (1.0) | FR-CHK-021 | o r | error | 0 |
 | EW-POT-011 | Junction feed ambiguous (§3.2) | FR-CON-041 | o | warning | 0 |
-| EW-POT-012 | Ring in the drawing graph of a net | FR-CON-005, FR-CON-035 | o | warning | 0 |
+| EW-POT-012 | Wires in a ring (a ring in the drawing graph of a net) | FR-CON-005, FR-CON-035 | o | warning | 0 |
 | EW-POT-013 | Opening pass-through pair carrying N without the associated L (§8.2) | FR-CHK-019 | o r | error | EF-01: T55, S56 |
 | EW-POT-014 | Physical wire with constituents on different conductors or with conflicting overrides | FR-CHK-057 | o r | error | 0 |
 | EW-POT-015 | One wire number on two numbering units, or two numbers within one unit (§5.3) | FR-NUM-019, FR-NUM-020 | o r | error | 0 |
@@ -1245,7 +1265,8 @@ BFS from main; every PE-typed CP not reached → error with the nearest reached 
 - **Test.** Clearing `rail_bonded` on -X1032 cuts off an island: the five -X1032 terminals and the PE CPs wired to
   them (E55:PE via W19, -102G1:PE via W28, -201U1:3, -201U1:FE, -202U1:3 and -202U1:FE). EW-POT-007 reports each
   unreached CP once, grouped in one finding per island with the missing link kind "rail foot not bonded". At MVP
-  the same edit yields one EW-POT-008 warning naming the two PE potentials of +J-E-2416.
+  the same edit yields one EW-POT-008 warning naming the PE of -X1032's side, which reaches no earth, by its first
+  pin and page (rc.5).
 - **Checklist.** The same traversal feeds the EN 60204-1 18.2.2 continuity checklist (FR-MFG-036).
 
 **EW-POT-006, PE sizing (D-38).**

@@ -26,8 +26,10 @@ selection). A right click selects the thing first; Shift+F10 or the menu key ope
 - On an interruption point: Supply comes in here…, Go to partner, Direction: Source or Target, and Continue on page….
   Supply comes in here… says that the supply enters here from another drawing set (L1, L2, L3, N, PE from another
   drawing): its form proposes where the supply comes from and the device there, and one Apply marks every selected
-  point; the points then print where they come from and are no longer reported as unpaired. On a marked point the
-  entry reads Remove the supply mark. The same link stands under the point's name in Properties.
+  point; the points then print where they come from and are no longer reported as unpaired, and a panel at them asks
+  what each carries (its kind of conductor and voltage; Enter takes them, Escape leaves them without). On a marked
+  point the entry reads Remove the supply mark, and Potential… opens that panel again. The same link stands under the
+  point's name in Properties.
 - On the title block: Title block fields…. On an empty spot: Paste, Page properties, New page… and Print wire numbers.
 
 A navigator's row offers what the same thing offers on the page; a right click on a row selects it first. A device's
