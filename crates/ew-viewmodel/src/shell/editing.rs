@@ -90,6 +90,7 @@ fn box_shape(f: &ew_api::output::CatalogueTemplateFn) -> Option<SymbolShape> {
         rep_type: "multi_line".to_owned(),
         fndef: Uuid::nil(),
         valve: false,
+        contact: false,
     })
 }
 
