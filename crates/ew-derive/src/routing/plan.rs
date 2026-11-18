@@ -1033,31 +1033,19 @@ pub fn route_page(page: &PageGeometry, jobs: &[Uuid]) -> RoutePlan {
     // each wire then routed again where that is better; and the jobs routed from nothing, the shortest first (on a
     // full page the long wires else take the straight tracks between the pins that the short ones need). A page
     // routed for the first time: the jobs routed from nothing, the longest first (decision 5's order, whose result
-    // Golden A's routes are, decision 9); the shortest first too where that leaves a wire without a route.
-    let reroute = !kept.routes.is_empty();
-    let longest_first = solve.order.clone();
-    let mut best: Option<((usize, u64), bool, State)> = None;
-    let offer = |best: &mut Option<((usize, u64), bool, State)>, solve: &Solve, short_first: bool, state: State| {
-        let rating = solve.rating(&state);
-        if best.as_ref().is_none_or(|(r, _, _)| rating < *r) {
-            *best = Some((rating, short_first, state));
+    // Golden A's routes are, decision 9).
+    let state = if kept.routes.is_empty() {
+        solve.construct(State::default())
+    } else {
+        solve.order = shortest_first;
+        let drawn = solve.improve(solve.construct(kept));
+        let fresh = solve.construct(State::default());
+        if solve.rating(&fresh) < solve.rating(&drawn) {
+            fresh
+        } else {
+            drawn
         }
     };
-    if reroute {
-        solve.order.clone_from(&shortest_first);
-        let drawn = solve.construct(kept);
-        offer(&mut best, &solve, true, solve.improve(drawn));
-        offer(&mut best, &solve, true, solve.construct(State::default()));
-    } else {
-        offer(&mut best, &solve, false, solve.construct(State::default()));
-        let complete = best.as_ref().is_some_and(|((failed, _), _, _)| *failed == 0);
-        if !complete && shortest_first != longest_first {
-            solve.order.clone_from(&shortest_first);
-            offer(&mut best, &solve, true, solve.construct(State::default()));
-        }
-    }
-    let (_, short_first, state) = best.unwrap_or_default();
-    solve.order = if short_first { shortest_first } else { longest_first };
     let over_texts: Vec<Uuid> = state
         .routes
         .iter()

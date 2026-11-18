@@ -871,6 +871,49 @@ fn a_step_of_one_nm_is_no_stretch_no_bend_and_no_arm() {
     assert_eq!(route_page(&q, &[id(4)]).unrouted, vec![(id(4), Unrouted::FourArms)]);
 }
 
+/// A reroute starts from the drawing: a wire that is drawn as well as the router would draw it keeps its route, also
+/// where the router's tie rule would take another of the same cost, and a wire with a needless way round is mended.
+/// (Routed from nothing, every wire took the tie rule's route and a person's layout was lost.)
+#[test]
+fn a_reroute_keeps_a_wire_that_is_well_drawn_and_mends_a_loop() {
+    let mut p = page();
+    // A Z between two pins that face each other six rows apart: the person stepped down in the middle, the tie rule
+    // would step down last.
+    add_job(
+        &mut p,
+        1,
+        (10, mm(0, 0), Dir4::Right),
+        (11, mm(10, 6), Dir4::Left),
+        None,
+    );
+    let stepped = vec![mm(0, 0), mm(5, 0), mm(5, 6), mm(10, 6)];
+    // Two pins in line, the wire between them drawn down, along and back up.
+    add_job(
+        &mut p,
+        2,
+        (20, mm(0, 20), Dir4::Right),
+        (21, mm(10, 20), Dir4::Left),
+        None,
+    );
+    let looped = vec![mm(0, 20), mm(2, 20), mm(2, 24), mm(8, 24), mm(8, 20), mm(10, 20)];
+    for (c, line) in p.connections.iter_mut().zip([&stepped, &looped]) {
+        c.routed = true;
+        c.polyline.clone_from(line);
+    }
+    let plan = route_page(&p, &[id(1), id(2)]);
+    assert_eq!(plan.unrouted, vec![]);
+    assert_eq!(
+        plan.routes,
+        vec![(id(1), stepped), (id(2), vec![mm(0, 20), mm(10, 20)])]
+    );
+    // The same wires without a route are routed from nothing, by the tie rule.
+    for c in &mut p.connections {
+        c.routed = false;
+    }
+    let fresh = route_page(&p, &[id(1), id(2)]);
+    assert_eq!(fresh.routes[0], (id(1), vec![mm(0, 0), mm(9, 0), mm(9, 6), mm(10, 6)]));
+}
+
 /// A straight wire between two pins on one grid line whose numbers differ by 1 nm keeps its ends' own numbers: the
 /// route steps over between them, and a route found on the settled page ends on the points the page stores.
 #[test]

@@ -375,6 +375,18 @@ pub fn resolve_target(cx: &ToolCx<'_>, at: (i64, i64), alt: bool) -> WireTarget 
             let Some(p) = point else {
                 continue;
             };
+            // Where another wire crosses this one, a junction would sit on both and read as a joint of the four
+            // arms: a crossing is no place to join.
+            let crossed = tables.connections.iter().any(|o| {
+                o.id != c.id
+                    && o.stored_route
+                    && super::autoconnect::dedup(&o.polyline)
+                        .windows(2)
+                        .any(|s| segment_dist2(p, s[0], s[1]) == 0)
+            });
+            if crossed {
+                continue;
+            }
             let id = EntityRef(c.id);
             if best.is_none_or(|(bd, bid, _)| d < bd || (d == bd && id > bid)) {
                 best = Some((d, id, p));

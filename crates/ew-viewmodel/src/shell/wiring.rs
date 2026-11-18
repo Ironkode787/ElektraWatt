@@ -670,14 +670,17 @@ impl ShellModel {
         let Some(mut plan) = session.route_plan(&folio, &ew_api::routing::RouteScope::Selection(ids)) else {
             return Outcome::refused(key!("reason-no-page"));
         };
-        let rows = route_rows(session, &folio, &plan);
-        // Only the routes that change: a wire whose new route is the one it has keeps it.
+        // Only the routes that change: a wire whose new route is the one it has keeps it, and is not named again for
+        // a text it already crossed.
         plan.routes.retain(|(id, route)| {
             !tables
                 .connections
                 .iter()
                 .any(|t| t.id == *id && t.stored_route && t.polyline == *route)
         });
+        plan.over_texts
+            .retain(|id| plan.routes.iter().any(|(changed, _)| changed == id));
+        let rows = route_rows(session, &folio, &plan);
         let Some(params) = ew_api::routing::route_many_params(&plan) else {
             let lead = strings::text(key!("toast-reroute-none")).to_owned();
             let text = std::iter::once(lead).chain(rows).collect::<Vec<_>>().join(" ");
