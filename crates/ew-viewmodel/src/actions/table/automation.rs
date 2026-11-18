@@ -660,6 +660,22 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_plc_rack_next(p),
         )),
     ),
+    // A station's tag, or a card's, changed in its view (rc.5, H14); F2 in the view opens it (`shortcut_action`).
+    with_params(
+        "device?:ref, text?:text, cancel?:bool",
+        hidden(with_aliases(
+            &[("device", ParamForm::Whole)],
+            act(
+                "plc.rack_rename",
+                Command,
+                Menu::Project,
+                &[],
+                writable,
+                None,
+                |s, p| s.act_plc_rack_rename(p),
+            ),
+        )),
+    ),
     with_params(
         "device:ref, config?:ref",
         needs_parameters(in_canvas(with_aliases(

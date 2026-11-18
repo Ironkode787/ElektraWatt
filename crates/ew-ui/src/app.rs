@@ -1552,6 +1552,12 @@ impl App {
         if self.properties.field_open() && ctx.input(|i| i.key_pressed(Key::Escape)) {
             return;
         }
+        // So are Enter and Escape with a station view's tag field open: they take or leave the tag (rc.5, H14).
+        if self.shell.station_tab().is_some_and(|t| t.rename.is_some())
+            && ctx.input(|i| i.key_pressed(Key::Escape) || i.key_pressed(Key::Enter))
+        {
+            return;
+        }
         // While the symbol editor shows, Escape is its own (a gesture ends, then Select).
         if !palette_open
             && self.shell.has_project()

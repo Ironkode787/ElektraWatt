@@ -61,6 +61,9 @@ pub struct StationTab {
     pub note: Option<String>,
     /// The last refusal of a change, with the place it was refused at; `None` after a change went through.
     pub error: Option<(Option<StationCursor>, String)>,
+    /// The tag being changed in place (rc.5, H14): the device (the station in the header, a card in its row) and the
+    /// text the field opens with, which is the typed text after a refusal.
+    pub rename: Option<(ew_api::output::Uuid, String)>,
 }
 
 /// A place in a station's rack.

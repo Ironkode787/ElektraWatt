@@ -510,6 +510,73 @@ fn the_pointer_over_the_view_derives_nothing() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// The text typed into the field named `field`, then Enter.
+fn type_tag(h: &mut Window, field: &str, text: &str) {
+    h.get_by_label(field).focus();
+    h.get_by_label(field).type_text(text);
+    settle(h);
+    h.key_press(egui::Key::Enter);
+    settle(h);
+}
+
+/// H14 of the rc.4 test: a station made in its view got a tag by itself, and it could not be changed there. A click
+/// on the tag in the header opens it in place; Enter takes the tag typed through the Tag row's own path: the station's
+/// cards follow its tag, so the change waits for Apply in Properties, which the view says. F2 on a card opens the
+/// card's tag in its row; a tag another device has is refused in a sentence under the rack, the field staying open on
+/// the text as typed; Escape leaves the tag as it was.
+#[test]
+fn a_tag_is_changed_in_the_station_view() {
+    let tmp = Tmp::new();
+    let (mut h, id) = rack_with(&tmp, &["EW-GEN-DI-1", "EW-GEN-DI-1"]);
+    let tag = |h: &Window| h.state().shell().rack_view(id).expect("the rack").tag;
+    let before = tag(&h);
+    click(&mut h, &format!("Tag {before}: click to change it"));
+    type_tag(&mut h, &format!("Tag of {before}"), "5");
+    let typed = format!("{before}5");
+    h.get_by_label(&format!(
+        "{typed} changes more tags than this one: Apply in Properties takes the change, Cancel leaves it."
+    ));
+    dispatch(&mut h, "preview.apply", json!({}));
+    settle(&mut h);
+    assert_eq!(tag(&h), typed, "the station's tag");
+    assert!(
+        modules(&h, id).iter().all(|m| m.tag.starts_with(&typed)),
+        "its cards follow it: {:?}",
+        modules(&h, id)
+    );
+    // F2 on the second card: its tag in its row; the first card's tag is another device's.
+    let [first, second] = [0, 1].map(|i| modules(&h, id)[i].tag.clone());
+    click(&mut h, &format!("Slot 2, {second}"));
+    h.key_press(egui::Key::F2);
+    settle(&mut h);
+    let field = format!("Tag of {second}");
+    h.get_by_label(&field).focus();
+    settle(&mut h);
+    for _ in second.chars() {
+        h.key_press(egui::Key::Backspace);
+    }
+    type_tag(&mut h, &field, &first);
+    let (_, why) = h
+        .state()
+        .shell()
+        .station_tab()
+        .and_then(|t| t.error.clone())
+        .expect("refused under the rack");
+    h.get_by_label(&why);
+    assert!(why.contains(&first), "a sentence that names the tag: {why}");
+    assert_eq!(
+        h.get_by_label(&field).accesskit_node().value().as_deref(),
+        Some(first.as_str()),
+        "the field stays open on the text as typed"
+    );
+    h.get_by_label(&field).focus();
+    h.key_press(egui::Key::Escape);
+    settle(&mut h);
+    assert!(h.query_by_label(&field).is_none(), "Escape leaves it");
+    assert_eq!(modules(&h, id)[1].tag, second, "as it was");
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// A new station's view is closed only after a question once something is chosen, because nothing of it is written
 /// before Create: Cancel keeps it, Close without making it closes the tab and leaves the project as it was.
 #[test]

@@ -339,14 +339,34 @@ fn header(ui: &mut Ui, t: &Tokens, tab: &StationTab, shown: &StationShown, event
             let (number, description) = view.part.split_once(" · ").unwrap_or((&view.part, ""));
             let undrawn = (view.tag.contains('?') || view.tag.is_empty()) && !number.is_empty();
             let title = if undrawn { number } else { &view.tag };
-            ui.add(
-                egui::Label::new(
-                    RichText::new(title)
-                        .font(theme::font(&t.type_title))
-                        .color(t.text_primary.color32()),
-                )
-                .selectable(false),
-            );
+            // The station's tag changes in place: a click on it, or F2 on its head (rc.5, H14).
+            match (tab.station, &tab.rename) {
+                (Some(station), Some((device, text))) if *device == station => {
+                    tag_field(ui, t, tab, (station, &view.tag), text, &t.type_title, events);
+                }
+                (station, _) => {
+                    let label = ui.add(
+                        egui::Label::new(
+                            RichText::new(title)
+                                .font(theme::font(&t.type_title))
+                                .color(t.text_primary.color32()),
+                        )
+                        .selectable(false)
+                        .sense(Sense::click()),
+                    );
+                    let name = strings::format(key!("rack-rename-station"), &[title]);
+                    label.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
+                    let label = label.tip(strings::text(key!("rack-rename-tip")));
+                    if let Some(station) = station
+                        && label.clicked()
+                    {
+                        events.push(Event::Action(
+                            "plc.rack_rename",
+                            json!({ "device": station.to_string() }),
+                        ));
+                    }
+                }
+            }
             let part = if view.part.is_empty() {
                 strings::text(key!("rack-no-part")).to_owned()
             } else if undrawn {
@@ -456,6 +476,60 @@ fn header(ui: &mut Ui, t: &Tokens, tab: &StationTab, shown: &StationShown, event
             }
         });
     }
+}
+
+/// The field the tag `tag` is changed in, in its place (rc.5, H14): opened on `text` with the focus, in `font`; Enter
+/// takes it (`plc.rack_rename {device, text}`), Escape or a click elsewhere leaves it (`cancel`). While a refusal
+/// stands under the rack, a click elsewhere keeps the field, without the focus, on the text as typed.
+fn tag_field(
+    ui: &mut Ui,
+    t: &Tokens,
+    tab: &StationTab,
+    (device, tag): (Uuid, &str),
+    text: &str,
+    font: &TypeToken,
+    events: &mut Vec<Event>,
+) {
+    let id = egui::Id::unique(("station-rename", device));
+    let mut typed = ui
+        .data(|d| d.get_temp::<String>(id))
+        .unwrap_or_else(|| text.to_owned());
+    let started = ui
+        .data(|d| d.get_temp::<bool>(id.with("started")))
+        .unwrap_or(false);
+    let width = line(ui, &typed, font, t.text_primary, f32::INFINITY).size().x;
+    let response = ui.add(
+        egui::TextEdit::singleline(&mut typed)
+            .id(id.with("edit"))
+            .font(theme::font(font))
+            .desired_width(width.max(t.size_table_column) + t.space_5),
+    );
+    let name = strings::format(key!("rack-rename-field"), &[tag]);
+    ui.ctx()
+        .accesskit_node_builder(response.id, |n| n.set_label(name));
+    if !started {
+        response.request_focus();
+        ui.data_mut(|d| d.insert_temp(id.with("started"), true));
+    }
+    if !response.lost_focus() {
+        ui.data_mut(|d| d.insert_temp(id, typed));
+        return;
+    }
+    let (enter, escape) = ui.input(|i| (i.key_pressed(egui::Key::Enter), i.key_pressed(egui::Key::Escape)));
+    if tab.error.is_some() && !enter && !escape {
+        ui.data_mut(|d| d.insert_temp(id, typed));
+        return;
+    }
+    let params = if enter {
+        json!({ "device": device.to_string(), "text": typed })
+    } else {
+        json!({ "cancel": true })
+    };
+    events.push(Event::Action("plc.rack_rename", params));
+    ui.data_mut(|d| {
+        d.remove::<String>(id);
+        d.remove::<bool>(id.with("started"));
+    });
 }
 
 /// What a card or a row does with the pointer: a click puts the cursor there, a right click gives the module's menu,
@@ -890,7 +964,34 @@ fn table(
                 t.text_tertiary,
             );
         } else {
-            text(ui, module, &p.tag, t.text_primary);
+            // A tag changes in place: a click on the tag of the row under the cursor, or F2 (rc.5, H14); the station's
+            // in the header.
+            match (p.device.filter(|_| tab.draft.is_none()), &tab.rename) {
+                (Some(device), Some((renamed, typed)))
+                    if *renamed == device && tab.station != Some(device) =>
+                {
+                    in_cell(ui, module, |ui| {
+                        tag_field(ui, t, tab, (device, &p.tag), typed, &t.type_small, events);
+                    });
+                }
+                (Some(device), _) if selected => in_cell(ui, module, |ui| {
+                    let label = ui.add(
+                        egui::Label::new(small(t, &p.tag, t.text_primary))
+                            .selectable(false)
+                            .truncate()
+                            .sense(Sense::click()),
+                    );
+                    let name = strings::format(key!("rack-rename-module"), &[&p.tag]);
+                    label.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
+                    if label.tip(strings::text(key!("rack-rename-tip"))).clicked() {
+                        events.push(Event::Action(
+                            "plc.rack_rename",
+                            json!({ "device": device.to_string() }),
+                        ));
+                    }
+                }),
+                _ => text(ui, module, &p.tag, t.text_primary),
+            }
         }
         if p.part.is_empty() {
             // The fault a person met as an empty cell: said in words, with the way out beside it.

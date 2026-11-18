@@ -1882,6 +1882,103 @@ impl ShellModel {
         }
     }
 
+    /// `plc.rack_rename {device?, text?, cancel?}` (rc.5, H14): a tag of the station on show changed in place, as the
+    /// Tag row of Properties changes it: the station's in the view's header, a card's in its row (`device`; absent,
+    /// the device under the cursor, else the station). Without `text` the field opens on the tag; with `text` the typed
+    /// tag goes through the Tag field's own path ([`ShellModel::tag_rename_commit`]): taken, the field closes; refused
+    /// (a tag in use), the sentence stands under the rack and the field stays open on the text as typed. `cancel`
+    /// closes the field.
+    pub(crate) fn act_plc_rack_rename(&mut self, p: &Map<String, Value>) -> Outcome {
+        if flag(p, "cancel") {
+            if let Some(tab) = self.station_tab_mut() {
+                tab.rename = None;
+            }
+            return Outcome::Done;
+        }
+        let station = or_return!(self.rack_station());
+        let device = match p.get("device") {
+            Some(_) => or_return!(self.record_param(p, "device")),
+            None => self
+                .station_tab()
+                .and_then(|t| t.rename.as_ref().map(|r| r.0))
+                .or_else(|| self.station_device())
+                .unwrap_or(station),
+        };
+        // The station, a card in its slots, a valve on its positions.
+        let of_station = self.station_shown().is_some_and(|s| {
+            std::iter::once(&s.rack.head)
+                .chain(&s.rack.rows)
+                .filter_map(|r| r.module)
+                .chain(s.rack.cells.iter().filter_map(|c| c.at.holder))
+                .any(|d| d == device)
+        });
+        if !of_station {
+            return failed(key!("error-bad-param"), &["device"]);
+        }
+        let text = match string_param(p, "text") {
+            Ok(t) => t.map(str::to_owned),
+            Err(e) => return e,
+        };
+        let place = if device == station {
+            Some(StationCursor::Head)
+        } else {
+            self.station_tab().and_then(|t| t.cursor)
+        };
+        let Some(text) = text else {
+            // The field opens on the station's head, with the station selected, as its Properties show it.
+            if device == station {
+                self.rack_cursor(Some(StationCursor::Head));
+            }
+            let Some(tag) = self.tag_rename_sheet(device) else {
+                return Outcome::refused(key!("reason-nav-not-renamable"));
+            };
+            if let Some(tab) = self.station_tab_mut() {
+                tab.rename = Some((device, tag));
+                tab.error = None;
+            }
+            return Outcome::Done;
+        };
+        // A tag another device has is refused in a sentence, unless the device can join it (the Tag row proposes
+        // that): the Counter row takes a card's counter without asking whether another card has it.
+        let taken = self.project_session().is_some_and(|s| {
+            s.resolve_reference(text.trim()).is_ok_and(|d| d != device)
+                && s.join_proposal(device, &text).is_none()
+        });
+        if taken {
+            if let Some(tab) = self.station_tab_mut() {
+                tab.rename = Some((device, text.clone()));
+            }
+            let why = strings::format(key!("rack-rename-taken"), &[text.trim()]);
+            return self.rack_refuse(place, why);
+        }
+        let out = self.tag_rename_commit(device, &text);
+        if out == Outcome::Done {
+            // A tag that changes other tags too (a station's cards follow its tag) waits for Apply in Properties, as
+            // the Tag row's change does: the view says so under the rack.
+            let waits = self
+                .props
+                .card()
+                .is_some()
+                .then(|| strings::format(key!("rack-rename-apply"), &[&text]));
+            if let Some(tab) = self.station_tab_mut() {
+                tab.rename = None;
+                tab.error = None;
+                tab.note = waits;
+            }
+            return out;
+        }
+        let why = match (self.props.error(), out) {
+            (Some((_, message)), _) => message.to_owned(),
+            (None, Outcome::Failed { message }) => message,
+            (None, Outcome::Refused { reason_key }) => strings::text(reason_key).to_owned(),
+            (None, Outcome::Done) => String::new(),
+        };
+        if let Some(tab) = self.station_tab_mut() {
+            tab.rename = Some((device, text));
+        }
+        self.rack_refuse(place, why)
+    }
+
     /// `plc.add_to_plc {device, config?}` (F19 of the rc.1 test): a bus device that belongs to no PLC becomes a station
     /// of the PLC `config` (absent: a new one) with one `plc.add_station`, and its view opens, so its cards are
     /// added there; a network switch has no rack, and a toast says which PLC it belongs to now. A module, a station and

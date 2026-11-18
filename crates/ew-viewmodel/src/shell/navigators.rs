@@ -349,6 +349,13 @@ impl ShellModel {
                 _ => {}
             }
         }
+        // In a made station's view F2 changes the tag under the cursor, the station's on its head (rc.5, H14).
+        if action == "text.edit"
+            && self.focused_navigator().is_none()
+            && self.station_tab().is_some_and(|t| t.draft.is_none())
+        {
+            return ("plc.rack_rename", Value::Null);
+        }
         match action {
             "pages.move_up" if strips => ("strip.move", json!({ "step": -1 })),
             "pages.move_down" if strips => ("strip.move", json!({ "step": 1 })),
