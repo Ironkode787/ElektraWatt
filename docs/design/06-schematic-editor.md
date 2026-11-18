@@ -634,6 +634,10 @@ and one main function of the chosen symbol's function definition.
 
 - **Moves never change connectivity** (FR-CON-004). Route vertices adjacent to moved CPs are re-solved (§5.4); other
   vertices stay. Live potential highlighting during a drag uses page-local nets only (NFR-PERF-05).
+- **A turned or mirrored symbol stays where it stands** (rc.3): `rep.transform` turns it about the grid point nearest
+  the middle of its body (its graphics' bounding box, a black box's outline), not about its insertion point, so a
+  turned cylinder no longer lands on its neighbour. Four quarter turns bring it back exactly; its wires and tubes
+  follow its connection points; a drawing made before is not moved, only the act of turning changed.
 - **Cross-page move** (dragging a representation onto a page tab, or `rep.move` with a target page) keeps
   identities and, because it is a move, connectivity (FR-CON-004): each connection whose other end stays behind is
   replaced by an IP pair whose name is proposed from the potential ("24VDC-1" or the next free name of its series),

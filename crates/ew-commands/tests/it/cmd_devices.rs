@@ -832,6 +832,66 @@ fn transform_makes_the_route_follow_the_moved_cp() {
     );
 }
 
+/// rc.3: a turned symbol jumped onto its neighbour, turned about its insertion point. It turns about the grid point
+/// nearest the middle of its body, its wire follows its connection point, and four quarter turns bring it back.
+#[test]
+fn a_turned_symbol_keeps_the_middle_of_its_body_and_four_turns_bring_it_back() {
+    let (p, mut records, _) = mini_golden_parts();
+    for rec in records.iter_mut() {
+        if let Record::Representation(r) = rec
+            && r.id == REP_102F2
+        {
+            r.symbol = SYM_TWO;
+        }
+    }
+    let mut wire = connection(id(0x4101), Some(PAGE_102), cp(FN_102F2, 1), cp(FN_T1, 2));
+    wire.route = vec![pt(0, MM10), pt(0, 3 * MM10)];
+    records.push(Record::Connection(wire));
+    // A body four positions wide and one high, as a cylinder lies, its insertion point at its top left corner.
+    let (w, h) = (4 * G, G);
+    let mut lib = library();
+    for d in &mut lib {
+        if let ew_schema::LibDocument::Symbol(s) = d
+            && s.id == SYM_TWO
+        {
+            s.item.graphics = vec![
+                serde_json::from_value(serde_json::json!({"rect": {"rect": [[0, 0], [w, h]]}}))
+                    .expect("a rectangle"),
+            ];
+        }
+    }
+    let mut e = engine(Model::from_records(p, records, lib).expect("valid model"));
+    let middle = |e: &Engine| {
+        let r = row(e, REP_102F2);
+        let (a, b) = (r.pos + r.orient.apply(pt(0, 0)), r.pos + r.orient.apply(pt(w, h)));
+        ((a.x.0 + b.x.0) / 2, (a.y.0 + b.y.0) / 2)
+    };
+    // Half a step, rounded up: the QET grid's step is a third of a whole number of nanometres.
+    let half = (grid().at(1).expect("a step").0 - grid().at(0).expect("the origin").0 + 1) / 2;
+    let start = (row(&e, REP_102F2).pos, row(&e, REP_102F2).orient);
+    let before = middle(&e);
+    e.execute(&transform(vec![REP_102F2], 1, false)).unwrap();
+    let after = middle(&e);
+    assert!(
+        (after.0 - before.0).abs() <= half && (after.1 - before.1).abs() <= half,
+        "the body's middle stays within half a grid step: {before:?} to {after:?}"
+    );
+    let r = row(&e, REP_102F2);
+    assert_eq!(
+        row(&e, id::<Connection>(0x4101)).route.first(),
+        Some(&(r.pos + r.orient.apply(pt(0, MM10)))),
+        "the wire follows connection point 1"
+    );
+    for _ in 0..3 {
+        e.execute(&transform(vec![REP_102F2], 1, false)).unwrap();
+    }
+    assert_eq!(
+        (row(&e, REP_102F2).pos, row(&e, REP_102F2).orient),
+        start,
+        "back where it stood"
+    );
+}
+
 #[test]
 fn transform_without_cp_geometry_leaves_routes_alone() {
     let mut e = engine(routed_golden());

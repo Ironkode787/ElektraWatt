@@ -67,6 +67,14 @@ impl SymbolDef {
         Some((Nm(i64::try_from(x0).ok()?), Nm(i64::try_from(x1).ok()?)))
     }
 
+    /// The least and the greatest corner of the bounding box of [`SymbolDef::graphic_centre`], the symbol's body (a
+    /// turned representation keeps its middle, doc 06 §3.4); `None` for a symbol without graphics or on overflow.
+    pub fn graphic_bounds(&self) -> Option<(Pt2, Pt2)> {
+        let [x0, y0, x1, y1] = self.graphic_box().0?;
+        let nm = |v: i128| i64::try_from(v).ok().map(Nm);
+        Some((Pt2::new(nm(x0)?, nm(y0)?), Pt2::new(nm(x1)?, nm(y1)?)))
+    }
+
     /// The integer bounding box of the symbol's graphics (see [`SymbolDef::graphic_centre`]).
     fn graphic_box(&self) -> Bb {
         let mut bb = Bb::default();

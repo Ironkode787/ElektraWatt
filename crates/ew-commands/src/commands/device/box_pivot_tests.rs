@@ -8,7 +8,7 @@
 use ew_schema::{BoxCp, BoxSpec, Dir4, Extra};
 use ew_units::{Grid, Nm, Orient2, Pt2};
 
-use super::box_pivot;
+use super::pivot;
 
 const GRIDS: [Grid; 2] = [Grid::QET_10PX, Grid::MM4];
 const ORIGINS: [(i64, i64); 4] = [(31, 46), (-37, -23), (0, 0), (400, -401)];
@@ -62,7 +62,9 @@ fn tool_box(g: Grid, k0: (i64, i64), w: i64, h: i64) -> (Pt2, BoxSpec) {
 
 /// The insertion point and orientation after turning `(pos, o)` to `to`; asserts the point is a grid point.
 fn turn(g: Grid, b: &BoxSpec, (pos, o): (Pt2, Orient2), to: Orient2) -> (Pt2, Orient2) {
-    let next = box_pivot(g, pos, o, to, b).expect("in range").expect("a box");
+    let next = pivot(g, pos, o, to, &b.outline)
+        .expect("in range")
+        .expect("a box");
     for v in [next.x, next.y] {
         assert_eq!(g.snap_point(v), Some(v), "the insertion point is a grid point");
     }

@@ -1207,22 +1207,23 @@ impl MoveReps {
     }
 }
 
-/// `rep.transform`: rotates, mirrors or changes the variant of representations about their insertion point
-/// (doc 06 §3.4); a black box within its own bounding box.
+/// `rep.transform`: rotates, mirrors or changes the variant of representations, each about the middle of its body
+/// (doc 06 §3.4), so that it stays where it stands.
 ///
 /// The new orientation is `orient.then(r(rotate))`, then `.then(m0)` when `mirror` (rotation clockwise in
 /// quarter turns, `rotate` in 0..=3, then a mirror about the vertical axis). `variant`, when given,
 /// replaces the stored variant.
 ///
-/// **The pivot.** A symbol turns about its insertion point (`pos` stays). A black box (a representation with a
-/// `box`) turns about the centre of its bounding box (the outline's, else its CPs'), whose insertion point is a
-/// corner with no meaning to the user: `pos` becomes the grid point that keeps that centre, computed in whole grid
-/// half-steps, so a mirror and a half turn keep the bounding box (to the 1 nm of a rational grid's rounding) and a
-/// quarter turn turns it about its centre; when the centre falls between two grid points (a box whose width plus
-/// height is an odd number of steps) the tie goes up toward an odd number of quarter turns and down toward an even
-/// one (`Grid::index_of_half_steps`), so four quarter turns, or a turn and its reverse, bring the box back exactly
-/// and two quarter turns land where a half turn does, wherever the box lies. The stored outline and CPs are not
-/// rewritten. A black box whose orientation does not change keeps its `pos`.
+/// **The pivot.** A representation turns about the centre of its body's bounding box: a black box's (a
+/// representation with a `box`: the outline's, else its CPs'), a symbol's graphics (texts left out; rc.3: about its
+/// insertion point a turned cylinder jumped onto its neighbour). `pos` becomes the grid point that keeps that centre,
+/// computed in whole grid half-steps, so a mirror and a half turn keep the bounding box (to the 1 nm of a rational
+/// grid's rounding) and a quarter turn turns it about its centre; when the centre falls between two grid points (a
+/// body whose width plus height is an odd number of steps) the tie goes up toward an odd number of quarter turns and
+/// down toward an even one (`Grid::index_of_half_steps`), so four quarter turns, or a turn and its reverse, bring it
+/// back exactly and two quarter turns land where a half turn does, wherever it lies. The stored outline and CPs are
+/// not rewritten. A representation whose orientation does not change keeps its `pos`, and one without graphics or a
+/// box turns about its insertion point.
 ///
 /// Routes follow: each attached connection's route end at a CP drawn by a transformed representation (a symbol's
 /// CP or a black box's) follows that CP's displacement (`geometry::follow_end`); CPs whose geometry is unknown
@@ -1283,9 +1284,19 @@ impl Command for TransformReps {
                     crate::words::symbol(tx, *id)
                 ))
             };
-            if let Some(b) = old.box_.as_ref().filter(|_| orient != old.orient) {
+            if orient != old.orient {
+                let body: Vec<Pt2> = match old.box_.as_ref() {
+                    Some(b) if b.outline.is_empty() => b.cps.iter().map(|c| c.pos).collect(),
+                    Some(b) => b.outline.clone(),
+                    // rc.3: a symbol turned about its insertion point jumped onto its neighbour.
+                    None => tx
+                        .get::<LibCopy<SymbolDef>>(old.symbol)
+                        .and_then(|s| s.item.graphic_bounds())
+                        .map(|(lo, hi)| vec![lo, hi])
+                        .unwrap_or_default(),
+                };
                 let grid = tx.require::<Page>(old.page)?.grid;
-                match box_pivot(grid, old.pos, old.orient, orient, b) {
+                match pivot(grid, old.pos, old.orient, orient, &body) {
                     Ok(Some(pos)) => new.pos = pos,
                     Ok(None) => {}
                     Err(OutOfRange) => {
@@ -1349,29 +1360,18 @@ impl Command for TransformReps {
     }
 }
 
-/// The insertion point at which a black box of box `b` at `pos` keeps the centre of its bounding box when its
-/// orientation changes from `from` to `to` (see [`TransformReps`]), computed in whole grid half-steps: `pos`
-/// and every point of the box under `from` and under `to` are snapped to grid indices first (a stored point
+/// The insertion point at which a representation whose body has the points `local` (relative to `pos`, unturned)
+/// keeps the centre of its bounding box when its orientation changes from `from` to `to` (see [`TransformReps`]),
+/// computed in whole grid half-steps: `pos`
+/// and every point of the body under `from` and under `to` are snapped to grid indices first (a stored point
 /// lies within 1 nm of its grid point, a step is far longer), so the centre's offset is an exact number of
 /// half-steps on every grid, the rational QET grid included. A whole result is exact; a half one (a quarter
 /// turn of a box whose width plus height is odd) goes up toward an odd number of quarter turns of `to` and
 /// down toward an even one ([`Grid::index_of_half_steps`]), so every two quarter turns cancel: four turns
-/// bring the box back, a turn and its reverse too, two land where one half turn does, and the offset is the
-/// same wherever the box lies. The bounding box is the outline's, else the CPs'; `Ok(None)` when the box has
-/// neither (the insertion point stays). [`OutOfRange`] when a point of the box or the result leaves
-/// ±[`MAX_COORD`](crate::geometry::MAX_COORD).
-fn box_pivot(
-    grid: Grid,
-    pos: Pt2,
-    from: Orient2,
-    to: Orient2,
-    b: &BoxSpec,
-) -> Result<Option<Pt2>, OutOfRange> {
-    let local: Vec<Pt2> = if b.outline.is_empty() {
-        b.cps.iter().map(|c| c.pos).collect()
-    } else {
-        b.outline.clone()
-    };
+/// bring the body back, a turn and its reverse too, two land where one half turn does, and the offset is the
+/// same wherever the body lies. `Ok(None)` without a point (the insertion point stays). [`OutOfRange`] when a
+/// point of the body or the result leaves ±[`MAX_COORD`](crate::geometry::MAX_COORD).
+fn pivot(grid: Grid, pos: Pt2, from: Orient2, to: Orient2, local: &[Pt2]) -> Result<Option<Pt2>, OutOfRange> {
     if local.is_empty() {
         return Ok(None);
     }
