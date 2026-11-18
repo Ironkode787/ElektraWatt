@@ -519,9 +519,11 @@ pub fn bar(model: &ShellModel, hide_job: bool) -> Vec<StatusField> {
         ])
         .collect();
     }
-    // A note the shell made for the open project stands in the state's place.
+    // A note the shell made for the open project stands in the state's place, else why a command did nothing while
+    // its toast shows (rc.3).
     let state = model
         .status_note()
+        .or_else(|| model.refusal_shown())
         .unwrap_or_else(|| strings::text(key!("status-ready")));
     let mut out = vec![field(StatusKind::State, state.to_owned(), Tone::Normal)];
     out.extend(help);

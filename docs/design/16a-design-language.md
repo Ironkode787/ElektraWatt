@@ -623,7 +623,11 @@ breadcrumb in the palette. Inside a group:
 - A command that cannot run now is drawn disabled with its reason as tooltip; nothing is hidden or reflowed by state,
   so the bar never jumps. *As built:* a click on a disabled command shows
   its reason as an information toast as well ("A section divider takes no symbols or wires: draw on a schematic
-  page"), where the user looks (P3); a second click replaces that toast.
+  page"), where the user looks (P3); a second click replaces that toast. *As built (rc.3):* a command that is not
+  greyed but whose action is refused says why the same way, from the bar, a menu, a key, a row's or a dialog's
+  button: the toast, and the status line's state field while the toast shows; in an open dialog the sentence stands
+  in `color.error` over its buttons. A refusal the step already shows (the HUD, a form's or a row's line, a toast)
+  is not said twice.
 
 **Collapse.** Double-clicking a tab or pressing Ctrl+F1 collapses the bar to the tab row (32 px); a tab click then
 shows its command row as a popover over the canvas until a command runs or Escape. **Overflow.** When the window is too

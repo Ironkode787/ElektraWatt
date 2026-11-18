@@ -660,6 +660,9 @@ pub struct ShellModel {
     /// Bumped on every opening of a dialog: the window gives a dialog opened again, even as the same kind, its first
     /// focus.
     dialog_gen: u64,
+    /// Why the last action pressed in the open dialog did nothing, beside its buttons: the dialog's generation and
+    /// the sentence. The next action that runs takes it away.
+    dialog_refusal: Option<(u64, String)>,
     prompt: Option<PromptRequest>,
     record: Record,
     quit: bool,
@@ -1151,6 +1154,7 @@ impl ShellModel {
             form_target: None,
             import: projects::ImportState::default(),
             dialog_gen: 0,
+            dialog_refusal: None,
             prompt: None,
             record: Record::default(),
             quit: false,
@@ -1489,6 +1493,25 @@ impl ShellModel {
         self.banner = Some(text.to_owned());
     }
 
+    /// Says why an action the window ran did nothing, where the person is looking, when nothing on screen said it
+    /// (rc.3: a button that is not greyed but refused stayed silent): beside the open dialog's buttons, else as the
+    /// toast and the status line a click on a greyed command gives ([`ShellModel::explain_disabled`]).
+    pub fn say_refusal(&mut self, text: String) {
+        if self.dialog.is_some() {
+            self.dialog_refusal = Some((self.dialog_gen, text));
+        } else {
+            self.explain_disabled(text);
+        }
+    }
+
+    /// Why the last action pressed in the open dialog did nothing ([`ShellModel::say_refusal`]).
+    pub fn dialog_refusal(&self) -> Option<&str> {
+        match (&self.dialog, &self.dialog_refusal) {
+            (Some(_), Some((generation, text))) if *generation == self.dialog_gen => Some(text),
+            _ => None,
+        }
+    }
+
     /// The window title: `<directory name> - ElektraWatt` (an open template: `Template <name> - ElektraWatt`), with
     /// `*` before it while the project is dirty.
     pub fn title(&self) -> String {
@@ -1651,6 +1674,9 @@ impl ShellModel {
         self.refresh_picker_preview();
         // Tip 3 on an editing tool's, Paste's, a move's or a reorder's generated-page refusal.
         self.tip_for_outcome(action, params, &outcome);
+        if outcome == Outcome::Done {
+            self.dialog_refusal = None;
+        }
         if let Some(entry) = slot.and_then(|i| self.dispatch_log.as_mut()?.get_mut(i)) {
             (entry.outcome, entry.reason) = match &outcome {
                 Outcome::Done => ("done", None),

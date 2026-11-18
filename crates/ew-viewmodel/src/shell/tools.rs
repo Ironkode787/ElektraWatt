@@ -39,6 +39,9 @@ use crate::tools::{
 };
 use ew_api::output::ew_dl::EntityRef;
 
+/// The toast key of why a command did nothing ([`ShellModel::explain_disabled`]): a second one replaces the first.
+const DISABLED: &str = "disabled";
+
 /// A connection-point step of the keyboard (§7.7).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum CpStep {
@@ -323,7 +326,17 @@ impl ShellModel {
     /// stacking.
     pub fn explain_disabled(&mut self, text: String) {
         self.notes
-            .push_toned(text, "disabled", None, Some(crate::notifications::NoteTone::Info));
+            .push_toned(text, DISABLED, None, Some(crate::notifications::NoteTone::Info));
+    }
+
+    /// The reason [`ShellModel::explain_disabled`] shows while its toast is on screen: the status line says it too.
+    pub fn refusal_shown(&self) -> Option<&str> {
+        self.notes
+            .visible()
+            .into_iter()
+            .rev()
+            .find(|n| n.key == DISABLED)
+            .map(|n| n.text.as_str())
     }
 
     /// A fresh host: Select active, nothing selected (a project opened or closed).

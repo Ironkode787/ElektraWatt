@@ -65,12 +65,14 @@ pub(crate) type Clicked = Option<DialogAnswer>;
 
 /// Paints the dialog of `spec` with `content` between the body and the footer, at `width` when given (the print
 /// pre-dialog's [`preview_width`]), else at the width of the spec's kind. `focus_primary` gives the Primary the
-/// keyboard focus (the frame the dialog opens, when it has no field). Returns the answer of a clicked button.
+/// keyboard focus (the frame the dialog opens, when it has no field). `refusal`: why the button pressed last did
+/// nothing, in `color.error` over the buttons, as a form's refusal stands. Returns the answer of a clicked button.
 pub(crate) fn show_sized(
     ctx: &egui::Context,
     spec: &DialogSpec,
     width: Option<f32>,
     focus_primary: bool,
+    refusal: Option<&str>,
     content: impl FnOnce(&mut Ui),
 ) -> Clicked {
     let t = theme::current(ctx);
@@ -115,6 +117,9 @@ pub(crate) fn show_sized(
                 );
             }
             content(ui);
+            if let Some(text) = refusal {
+                components::live_line(ui, text, true);
+            }
             ui.add_space(t.space_2);
             // The footer's own scope, so its buttons keep their ids (and the focus) when the body above
             // gains a line (a form's refusal).

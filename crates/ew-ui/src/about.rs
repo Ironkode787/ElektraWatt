@@ -165,7 +165,8 @@ pub fn show(
     // Doc 16a §6.12: a form whose Primary is disabled at open and that has no text field gives its first
     // focus to its first control.
     let primary_disabled = spec.primary.disabled.is_some();
-    let clicked = crate::dialog::show_sized(ctx, &spec, width, focus_primary, |ui| match d {
+    let refusal = shell.dialog_refusal();
+    let clicked = crate::dialog::show_sized(ctx, &spec, width, focus_primary, refusal, |ui| match d {
         Dialog::About => {
             ui.horizontal_wrapped(|ui| {
                 ui.spacing_mut().item_spacing.x = crate::theme::current(ui.ctx()).space_4;

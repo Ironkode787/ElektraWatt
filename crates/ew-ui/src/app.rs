@@ -628,11 +628,26 @@ impl App {
                 _ => None,
             },
         });
+        // What the screen shows before the step, so that a refusal the step said there itself is not said again.
+        let toast = self.shell.notifications().entries().next().map(|n| n.serial);
+        let notice = self.shell.tool_notice().map(str::to_owned);
+        let dialog = self.shell.dialog().cloned();
+        let generation = self.shell.dialog_generation();
         let outcome = step(&mut self.shell);
-        if self.shell.banner() != before.as_deref() {
+        let banner_changed = self.shell.banner() != before.as_deref();
+        if banner_changed {
             self.reported = None;
         }
-        self.report(outcome, action.or(form));
+        let said = banner_changed
+            || self.shell.notifications().entries().next().map(|n| n.serial) != toast
+            || self
+                .shell
+                .tool_notice()
+                .is_some_and(|n| Some(n) != notice.as_deref())
+            || (dialog.is_some()
+                && self.shell.dialog().is_some()
+                && (self.shell.dialog_generation() != generation || self.shell.dialog() != dialog.as_ref()));
+        self.report(outcome, action.or(form), said);
     }
 
     /// A failure or incomplete Cut refusal becomes a banner when the shell shows none of its own; a banner this raised
@@ -643,14 +658,24 @@ impl App {
     ///
     /// A failure the open palette form shows under its fields is not made a banner either, and the
     /// banner this raised for an action's failure clears when that action next succeeds.
-    fn report(&mut self, outcome: Outcome, action: Option<&str>) {
+    ///
+    /// Any other refusal is said where the person looks ([`ShellModel::say_refusal`]: beside the open dialog's buttons,
+    /// else in a toast and the status line), unless the step said it on screen itself (`said`: a banner, a toast, the
+    /// HUD's notice, the dialog's own line) or one of the places above shows it (rc.3: a button that is not greyed
+    /// and was refused stayed silent).
+    fn report(&mut self, outcome: Outcome, action: Option<&str>, said: bool) {
         if self.shell.nav_rename_error().is_some() {
             return;
         }
         let ours = self.reported.is_some() && self.shell.banner() == self.reported.as_deref();
+        let mut refused = false;
         let message = match outcome {
             Outcome::Failed { message } => message,
             Outcome::Refused { reason_key } if reason_key == key!("reason-cut-incomplete-items") => {
+                strings::text(reason_key).to_owned()
+            }
+            Outcome::Refused { reason_key } => {
+                refused = true;
                 strings::text(reason_key).to_owned()
             }
             // An action that opened its parameter form has not run: its banner stays.
@@ -707,6 +732,14 @@ impl App {
             .and_then(|e| e.error.as_deref())
             .is_some_and(|e| message.ends_with(e))
         {
+            return;
+        }
+        if refused {
+            // The pointer's moves over a canvas (`canvas.pointer`, sent while it moves) are no act of the person.
+            if !said && action != Some("canvas.pointer") && self.shell.tool_notice() != Some(message.as_str())
+            {
+                self.shell.say_refusal(message);
+            }
             return;
         }
         // A state banner lies under a message: the message shows over it.
