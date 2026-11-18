@@ -132,3 +132,27 @@ fn plug_ports_the_findings_fix_and_set_spare_leave_no_port_open() {
     assert!(open_port_findings(&mut s).is_empty());
     s.shutdown();
 }
+
+/// A valve with both working ports open is one finding whose fix is two plugs. Fix all counted the plugs against the
+/// findings and went below nought: the program stopped at the click (a persona run lost its session there).
+#[test]
+fn fix_all_plugs_every_valves_open_ports_in_one_step() {
+    let tmp = Tmp::new("open-ports-all");
+    let (mut s, valves) = terminal_with_valves(&tmp);
+    assert_eq!(valves.len(), 3, "three valves in their cells");
+    let findings = open_port_findings(&mut s);
+    assert_eq!(
+        findings.len(),
+        3,
+        "each valve's two ports open: three findings, six plugs"
+    );
+    done(&mut s, "messages.fix_all", json!({"key": findings[0]}));
+    let rev = s.revision();
+    done(&mut s, "navigator.apply", json!({}));
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one step for all of them");
+    assert!(
+        open_port_findings(&mut s).is_empty(),
+        "no working port is left open"
+    );
+    s.shutdown();
+}

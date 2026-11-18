@@ -815,6 +815,9 @@ impl ShellModel {
             .map(|x| x.key.map_or_else(|| x.command.clone(), str::to_owned))
             .unwrap_or_default();
         let mut fixes = Vec::new();
+        // The findings whose fix can be done: one finding's fix may be several commands (a valve with two open
+        // ports), so the count of commands says nothing about how many findings are left.
+        let mut n = 0usize;
         for f in &found {
             let Some(fix) = &f.fix else { continue };
             let cmd = AnyCommand {
@@ -822,6 +825,7 @@ impl ShellModel {
                 params: fix_params(&project.session, fix),
             };
             if project.session.preview_with(&cmd, submit.clone()).is_ok() {
+                n += 1;
                 // A fix that is itself several (a valve's open ports plugged, rc.3) joins as its parts.
                 match cmd.params.get("fixes").and_then(Value::as_array) {
                     Some(parts) if fix.command == "check.fix_all" => fixes.extend(parts.iter().cloned()),
@@ -829,12 +833,11 @@ impl ShellModel {
                 }
             }
         }
-        let left = found.len() - fixes.len();
+        let left = found.len() - n;
         let fixes = merge_list_fixes(fixes);
         if fixes.is_empty() {
             return Outcome::refused(key!("reason-no-fix"));
         }
-        let n = found.len() - left;
         self.messages.fix_all = Some((kind, n));
         if left > 0 {
             self.notify(
