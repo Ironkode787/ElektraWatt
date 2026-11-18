@@ -176,6 +176,18 @@ pub static ANCHORS: &[Anchor] = &[
     on(SYMBOL_EDITOR, "symbol-editor-selecting", "selecting-and-moving"),
     on(SYMBOL_EDITOR, "symbol-editor-drawing", "drawing"),
     on(SYMBOL_EDITOR, "symbol-editor-device-box", "the-device-box"),
+    // Their own places (rc.3): the editor's start card, outline, a shape, a connection point and a pin of a box; a
+    // valve terminal's positions.
+    on(SYMBOL_EDITOR, "symbol-editor-start", "the-start-card"),
+    on(SYMBOL_EDITOR, "symbol-editor-outline", "the-outline"),
+    on(SYMBOL_EDITOR, "symbol-editor-shape", "a-shape"),
+    on(SYMBOL_EDITOR, "symbol-editor-cp", "a-connection-point"),
+    on(SYMBOL_EDITOR, "symbol-editor-pin", "a-pin-of-the-box"),
+    on(
+        FLUID_GUIDE,
+        "valve-terminal-positions",
+        "the-positions-of-a-valve-terminal",
+    ),
 ];
 
 /// The window reference pages: the tools, the dialogs, the panes and navigators, the things on a page.
@@ -183,6 +195,8 @@ const TOOLS: &str = "reference/window/tools.md";
 const DIALOGS: &str = "reference/window/dialogs.md";
 const PANELS: &str = "reference/window/panels.md";
 const THINGS: &str = "reference/window/things.md";
+/// The command bar's buttons, a section each ([`bar_anchor`]).
+const COMMAND_BAR: &str = "reference/window/command-bar.md";
 const FLUID_GUIDE: &str = "how-to/fluid-workspace.md";
 const SYMBOL_EDITOR: &str = "reference/symbol-editor.md";
 /// The properties reference, generated from [`property_sections`] (`cargo xtask docs-gen`).
@@ -223,6 +237,7 @@ pub fn anchor(topic: &str) -> Option<Anchor> {
         .find(|a| a.topic == topic)
         .cloned()
         .or_else(|| tool_anchor(topic))
+        .or_else(|| bar_anchor(topic))
 }
 
 /// The topic of a shipped rule's page (F1 on a finding or a rule of the Messages pane).
@@ -260,7 +275,35 @@ pub fn heading_id(text: &str) -> String {
 /// own opens it; the others open the section of what they act on (a cable's command the cables', a view command the
 /// page view's), never the window's pages as a whole where a closer section exists.
 pub fn action_topic(action: &str) -> Option<&'static str> {
-    own_topic(action).or_else(|| family_topic(action))
+    // A button of the bar opens its own section of the bar page (rc.3: Highlight opened the panels page, a PLC
+    // button the whole PLC guide), unless it has a section of its own elsewhere already.
+    own_topic(action)
+        .filter(|t| !t.starts_with("guide-") && *t != "symbol-editor")
+        .or_else(|| bar_anchor(action).and_then(|_| bar_topic(action)))
+        .or_else(|| own_topic(action))
+        .or_else(|| family_topic(action))
+}
+
+/// The topic of a button of the bar (an action the bar places, no tool): the action itself, whose anchor is
+/// [`bar_anchor`]'s.
+fn bar_topic(action: &str) -> Option<&'static str> {
+    crate::actions::find(action)
+        .filter(|m| m.placement.is_some() && !m.hidden && !m.id.starts_with("tool."))
+        .map(|m| m.id)
+}
+
+/// The section of the command bar page of the bar's button `action` (`navigator.highlight`): the heading that is the
+/// action's English label ("Highlight" is `### Highlight`), so a new button needs its section in the guide and no row
+/// here, as a tool does ([`tool_anchor`]).
+pub fn bar_anchor(action: &str) -> Option<Anchor> {
+    let id = bar_topic(action)?;
+    let meta = crate::actions::find(id)?;
+    let label = crate::strings::source_text(&meta.label_key())?;
+    Some(Anchor {
+        topic: Cow::Borrowed(id),
+        page: Cow::Borrowed(COMMAND_BAR),
+        fragment: Cow::Owned(heading_id(label)),
+    })
 }
 
 /// The topic of an action with a section of its own: what a form of the action opens (Check level…, Save as
@@ -749,32 +792,64 @@ pub fn context_topic(model: &ShellModel) -> String {
     }
 }
 
-/// The part of the symbol editor's screen on show: the device box, the start card, drawing with a tool, else the
-/// editor's page.
+/// The part of the symbol editor's screen on show: the device box (a selected pin's own place), the start card,
+/// drawing with a tool, the selection's first connection point or shape, else the editor's page.
 fn symbol_editor_topic(editor: &crate::shell::symbol_editor::SymbolEditor) -> &'static str {
-    if editor.device_box().is_some() {
-        "symbol-editor-device-box"
+    if let Some(b) = editor.device_box() {
+        if b.selection.is_empty() {
+            "symbol-editor-device-box"
+        } else {
+            "symbol-editor-pin"
+        }
     } else if editor.start {
-        "symbol-editor-screen"
+        "symbol-editor-start"
     } else if editor.tool != "select" {
         "symbol-editor-drawing"
     } else {
-        "symbol-editor"
+        selected_part(editor).unwrap_or("symbol-editor")
     }
 }
 
-/// The topic of a part of the symbol editor's screen under the pointer: the drawing (`drawing`) by the tool in hand
-/// (Select its selecting and moving, another its drawing), the outline and Properties the screen's section; the start
-/// card and the device box theirs.
-pub fn symbol_editor_part(editor: &crate::shell::symbol_editor::SymbolEditor, drawing: bool) -> &'static str {
-    if editor.device_box().is_some() {
-        "symbol-editor-device-box"
-    } else if editor.start || !drawing {
-        "symbol-editor-screen"
-    } else if editor.tool == "select" {
-        "symbol-editor-selecting"
+/// The section of what is selected in the symbol editor's drawing: a connection point's, else a shape's (or a text's).
+fn selected_part(editor: &crate::shell::symbol_editor::SymbolEditor) -> Option<&'static str> {
+    use crate::shell::symbol_editor::Item;
+    if editor.selection.iter().any(|i| matches!(i, Item::Cp(_))) {
+        Some("symbol-editor-cp")
+    } else if editor.selection.iter().any(|i| matches!(i, Item::Graphic(_))) {
+        Some("symbol-editor-shape")
     } else {
-        "symbol-editor-drawing"
+        None
+    }
+}
+
+/// A part of the symbol editor's screen under the pointer ([`symbol_editor_part`]).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum EditorPart {
+    /// The drawing in the middle.
+    Drawing,
+    /// The outline on the left.
+    Outline,
+    /// Anything else: Properties, the command bar's room, the start card.
+    Other,
+}
+
+/// The topic of a part of the symbol editor's screen under the pointer (rc.3: F1 on any part opened the editor's
+/// general page): the device box (a selected pin's own place), the start card, the outline; the drawing by the
+/// selection (a connection point, a shape), else by the tool in hand (Select its selecting and moving, another its
+/// drawing); Properties the screen's section.
+pub fn symbol_editor_part(
+    editor: &crate::shell::symbol_editor::SymbolEditor,
+    part: EditorPart,
+) -> &'static str {
+    if editor.device_box().is_some() {
+        return symbol_editor_topic(editor);
+    }
+    match part {
+        _ if editor.start => "symbol-editor-start",
+        EditorPart::Outline => "symbol-editor-outline",
+        EditorPart::Other => "symbol-editor-screen",
+        EditorPart::Drawing if editor.tool != "select" => "symbol-editor-drawing",
+        EditorPart::Drawing => selected_part(editor).unwrap_or("symbol-editor-selecting"),
     }
 }
 
@@ -783,6 +858,19 @@ fn station_topic(model: &ShellModel, tab: &crate::area::StationTab) -> &'static 
     match station_thing(model, tab) {
         Thing::ValveTerminal => Thing::ValveTerminal.topic(),
         _ => "dialog-rack",
+    }
+}
+
+/// What F1 opens over a card or a cell of a station's view, and its words (rc.3: a rack's card opened the page about
+/// things on a page): a valve terminal's position its own place in the valve terminals' section, a PLC card the rack's
+/// section.
+pub fn station_card_help(model: &ShellModel, tab: &crate::area::StationTab) -> (&'static str, &'static str) {
+    match station_thing(model, tab) {
+        Thing::ValveTerminal => (
+            "valve-terminal-positions",
+            strings::text(key!("help-valve-terminal-positions")),
+        ),
+        _ => ("dialog-rack", strings::text(key!("help-rack"))),
     }
 }
 
@@ -911,7 +999,16 @@ pub fn pane_topic(pane: PaneKind) -> &'static str {
 fn focus_topic(model: &ShellModel) -> Option<String> {
     Some(match model.focus()? {
         // A panel with a guide leads to it, in its table mode too (the PLC grid is a table).
-        Focus::Navigator(kind) if nav_topic(kind).starts_with("guide-") => nav_topic(kind).to_owned(),
+        // A panel with a guide leads to it, but a row of a device (a module, a valve) to the device's section (rc.3: a
+        // valve's row opened the whole Fluid guide).
+        Focus::Navigator(kind) if nav_topic(kind).starts_with("guide-") => {
+            match model.nav(kind).and_then(|n| n.cursor_key()) {
+                Some(key) if model.nav(kind).is_some_and(|n| n.table_mode().is_none()) => {
+                    row_help(model, kind, &key, "").topic
+                }
+                _ => nav_topic(kind).to_owned(),
+            }
+        }
         Focus::Navigator(kind) if model.nav(kind).is_some_and(|n| n.table_mode().is_some()) => {
             if kind == NavKind::Strips {
                 "strip-editor".to_owned()
@@ -1438,8 +1535,10 @@ mod tests {
                 meta.id
             );
         }
-        assert_eq!(action_topic("cable.from_wires"), Some(Thing::Cable.topic()));
-        assert_eq!(action_topic("view.zoom_in"), Some("pane-page-view"));
+        // A button of the bar opens its own section; a menu-only action the section of what it acts on.
+        assert_eq!(action_topic("cable.from_wires"), Some("cable.from_wires"));
+        assert_eq!(action_topic("view.zoom_in"), Some("view.zoom_in"));
+        assert_eq!(action_topic("cable.swap_cores"), Some(Thing::Cable.topic()));
         assert_eq!(action_topic("canvas.press"), None);
     }
 
@@ -1489,5 +1588,29 @@ mod tests {
         let a = anchor("start-page").unwrap();
         assert_eq!(html_target(&a), "how-to/application-window.html#start-page");
         assert_eq!(html_target(&anchor("home").unwrap()), "introduction.html");
+    }
+
+    /// The persona runs of the third 0.3.0 candidate: F1 on Highlight opened the panels page. A button of the bar opens
+    /// its action's own section: the bar page's (its English label), or an own section it had already.
+    #[test]
+    fn each_button_of_the_bar_opens_its_actions_own_section() {
+        for m in crate::actions::ACTIONS
+            .iter()
+            .filter(|m| m.placement.is_some() && !m.hidden && !m.id.starts_with("tool."))
+        {
+            let topic = action_topic(m.id).expect("a topic");
+            let a = anchor(topic).expect("an anchor");
+            assert!(
+                !a.fragment.is_empty(),
+                "{} opens {}#{}, not a section of its own",
+                m.id,
+                a.page,
+                a.fragment
+            );
+        }
+        let a = action_topic("navigator.highlight")
+            .and_then(anchor)
+            .expect("Highlight");
+        assert_eq!((a.page.as_ref(), a.fragment.as_ref()), (COMMAND_BAR, "highlight"));
     }
 }

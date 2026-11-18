@@ -6,7 +6,7 @@ editor to open this reference.
 
 ## The screen
 
-With nothing in hand the editor shows a **start card**: **New symbol**, **Copy a library symbol…** (a list of the
+<a id="the-start-card"></a>With nothing in hand the editor shows a **start card**: **New symbol**, **Copy a library symbol…** (a list of the
 project's and the libraries' symbols with a filter; the original stays as it is), **Device box for a part…**
 ([below](#the-device-box)), **Import a file…**, the draft in hand and the symbols edited lately. **Start** in the
 command bar returns to it.
@@ -18,7 +18,7 @@ With a symbol in hand the screen is built as the main window is:
   cross-reference point and the mechanical link point), the **Drawing grid** and **Snap to grid**, and at the right
   end **Test on a page**, **Save**, the **Draft** menu (**Make a part for this symbol…**, **Export draft**,
   **Discard draft**) and **Close editor**. Each tool's tooltip says what it does and how.
-- **The outline**, on the left, lists what the symbol consists of: its connection points (designation, and the
+- <a id="the-outline"></a>**The outline**, on the left, lists what the symbol consists of: its connection points (designation, and the
   potential each carries), its texts and its shapes. A click on a row selects the thing in the drawing, and the other
   way round. **To do** lists what keeps the symbol from being saved, each in a sentence and each a click to the thing
   it is about; with nothing left it says **Ready to save**. An import with more drawings lists them first, and an
@@ -48,11 +48,11 @@ selected, **Line up** in Properties puts them on one edge. Each change is one un
 
 ## Drawing
 
-A line, a rectangle, a circle, an ellipse and an arc are drawn by one drag or by two clicks; the circle takes its
+<a id="a-shape"></a>A line, a rectangle, a circle, an ellipse and an arc are drawn by one drag or by two clicks; the circle takes its
 centre and a point on its circumference, arcs and ellipses opposite corners of their box. A polyline and a polygon take
 a click per corner and a double-click on the last. **Text**: click where the text goes, type it and press Enter
 (`Shift+Enter` starts a new line). What a tool drew is selected, so its rows in Properties take exact numbers, an
-arc's angles, a shape's **Fill shape** or a text's **Text style**. **Connection point** places a point on the
+arc's angles, a shape's **Fill shape** or a text's **Text style**. <a id="a-connection-point"></a>**Connection point** places a point on the
 connection grid; the card at the drawing's top left holds its designation, which counts on, and its direction:
 **Along its lead**, the first, faces the way the line it ends points, so a wire carries straight on from it.
 **Text field** places a text the page fills in: the device's tag, its function text, its technical data, its
@@ -139,7 +139,7 @@ take, or, for a part not yet in the project, a new part in your own library. The
   and the box gets no smaller than its pins need. A click selects a pin, `Shift` and
   `Ctrl` select more; the arrow keys move the selected pins one grid step along their edge and `Delete` removes them;
   `Ctrl+C` and `Ctrl+V` copy them and paste pins of the same names, each last on its edge.
-- **Properties** shows the selected pin's **Name**, **Potential**, **Edge** and its place **Along the edge**; with no
+- <a id="a-pin-of-the-box"></a>**Properties** shows the selected pin's **Name**, **Potential**, **Edge** and its place **Along the edge**; with no
   pin selected the part's number, manufacturer and description (typed here for a new part; **Part data…** opens the
   part editor for the rest) and the box's width and height.
 

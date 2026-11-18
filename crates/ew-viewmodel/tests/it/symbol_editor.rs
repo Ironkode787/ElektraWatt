@@ -455,7 +455,8 @@ fn editor_f1_opens_its_reference_in_both_frontends() {
         );
         assert_eq!(
             ew_viewmodel::help::action_topic("symbol.new"),
-            Some("symbol-editor")
+            Some("symbol.new"),
+            "the bar's Symbol editor… button has its own section"
         );
         done(&mut shell, "symbol.close", json!({"discard":true}));
         done(&mut shell, "help.documentation", json!({}));

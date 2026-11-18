@@ -66,8 +66,8 @@ fn f1_in_a_dialog_opens_its_section() {
     assert_eq!(f1(&mut shell), "reference/window/dialogs.html#go-to-page-or-cell");
     done(&mut shell, "ui.dismiss", json!({}));
     done(&mut shell, "page.new", json!({}));
-    // A form opens the section of what its action makes: New page… the pages'.
-    assert_eq!(f1(&mut shell), "reference/window/panels.html#pages");
+    // A form opens its action's section: New page…'s on the command bar's page (rc.3).
+    assert_eq!(f1(&mut shell), "reference/window/command-bar.html#new-page");
     shell.shutdown();
 }
 
@@ -146,5 +146,44 @@ fn help_guides_lists_the_how_to_guides_and_opens_one() {
     done(&mut shell, plc.id, plc.params.clone());
     assert_eq!(shell.last_help(), Some("how-to/plc-workspace.html"));
     assert!(shell.dialog().is_none());
+    shell.shutdown();
+}
+
+/// The persona runs of the third 0.3.0 candidate: F1 in the symbol editor opened its general page whatever was in
+/// front. The start card, a selected shape and a selected connection point open their own places; the bar's buttons
+/// open theirs (Highlight its own section, not the panels page).
+#[test]
+fn f1_opens_the_own_place_of_the_editors_parts_and_the_bars_buttons() {
+    let tmp = Tmp::new("f1-own-places");
+    let mut shell = tmp.empty_shell(Mode::Headless);
+    done(
+        &mut shell,
+        "symbol.new",
+        json!({"key": "example.f1", "name": "F1"}),
+    );
+    done(
+        &mut shell,
+        "symbol.draw",
+        json!({"tool": "rectangle", "x": 0, "y": 0, "x2": 8, "y2": 8}),
+    );
+    assert_eq!(f1(&mut shell), "reference/symbol-editor.html#a-shape");
+    done(
+        &mut shell,
+        "symbol.cp",
+        json!({"x": 0, "y": 0, "designation": "1"}),
+    );
+    assert_eq!(f1(&mut shell), "reference/symbol-editor.html#a-connection-point");
+    done(&mut shell, "symbol.start", json!({}));
+    assert_eq!(f1(&mut shell), "reference/symbol-editor.html#the-start-card");
+    done(&mut shell, "symbol.close", json!({"discard": true}));
+    done(
+        &mut shell,
+        "help.documentation",
+        json!({"topic": "navigator.highlight"}),
+    );
+    assert_eq!(
+        shell.last_help(),
+        Some("reference/window/command-bar.html#highlight")
+    );
     shell.shutdown();
 }

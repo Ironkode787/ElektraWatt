@@ -29,6 +29,7 @@ What each part of the desktop application's window does and how to open it. `F1`
 what is under the pointer, or of the tool, dialog or pane you are in.
 
 - [Tools](window/tools.md): every tool of the Draw tab.
+- [The command bar's buttons](window/command-bar.md): every other button of the command bar, by tab.
 - [Dialogs](window/dialogs.md): every dialog.
 - [Panels](window/panels.md): every pane and navigator, the strip editor and the table mode.
 - [Things on a page](window/things.md): every kind of thing a page holds, how to make and change it.

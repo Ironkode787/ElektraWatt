@@ -34,6 +34,7 @@
 
 - [Reference](reference/index.md)
   - [Tools](reference/window/tools.md)
+  - [The command bar's buttons](reference/window/command-bar.md)
   - [Dialogs](reference/window/dialogs.md)
   - [Panels](reference/window/panels.md)
   - [Things on a page](reference/window/things.md)

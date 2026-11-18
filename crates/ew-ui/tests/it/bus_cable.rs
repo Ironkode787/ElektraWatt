@@ -62,7 +62,7 @@ fn a_bus_lines_kind_reads_in_words() {
 }
 
 /// A persona run met a banner about mdbook where the guide is not beside the program: in the offscreen visual driver
-/// a guide link names the page's file under `book/` in a toast instead.
+/// a guide link names the page's file under `book/` in a toast instead, with the section F1 chose (rc.3).
 #[test]
 fn a_guide_link_names_its_page_in_a_visual_run() {
     let tmp = Tmp::new();
@@ -71,7 +71,7 @@ fn a_guide_link_names_its_page_in_a_visual_run() {
     d.settle();
     let toast = d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
     assert!(toast.starts_with("The guide's page: book/"), "{toast}");
-    assert!(toast.ends_with(".html."), "{toast}");
+    assert!(toast.contains(".html#"), "{toast}");
 }
 
 fn option(d: &mut ew_ui::visual::Driver, name: &str, words: &str) -> String {

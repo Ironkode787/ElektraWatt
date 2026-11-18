@@ -118,7 +118,7 @@ station on PROFIBUS DP", "Valve terminal · multipin, wired"):
    page, and that page shows with the plug on the pointer; click once where it goes. With an electrical page in
    front it is drawn there. Its pins stand down both sides, and beside each pin stands the valve
    and solenoid it drives. Wire a pin to a PLC output, and the valve on the fluid page shows that output.
-6. The terminal's rack (**Rack…**, a tab beside the page tabs) shows its positions as places like slots: select one
+6. <a id="the-positions-of-a-valve-terminal"></a>The terminal's rack (**Rack…**, a tab beside the page tabs) shows its positions as places like slots: select one
    and double-click a valve in the catalogue; its right-click menu offers **Replace valve**, **Empty the position** and
    **Blanking plate**.
    **Generate overview…** on the terminal's menu makes the overview pages of its modules and valves, previewed.

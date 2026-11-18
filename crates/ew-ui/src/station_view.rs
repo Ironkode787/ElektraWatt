@@ -486,10 +486,10 @@ fn interact(
             .clone()
             .on_hover_text(strings::format(key!("rack-tag-unnumbered"), &[&p.tag]));
     }
-    // F1 on a card or a cell: what the cards or a valve terminal's cells are.
+    // F1 on a card or a cell: the rack's section, or a valve terminal's positions.
     crate::help::offer_for(response, || {
-        let thing = ew_viewmodel::help::station_thing(shell, tab);
-        (thing.topic().to_owned(), thing.words().to_owned())
+        let (topic, words) = ew_viewmodel::help::station_card_help(shell, tab);
+        (topic.to_owned(), words.to_owned())
     });
     response.context_menu(|ui| menu(ui, shell, events));
     // A module is dragged by its card or its row; a station not made yet orders its modules with Move left and right.

@@ -279,10 +279,10 @@ impl Platform for VisualPlatform {
         }
     }
 
-    /// A guide page is named by its file under the run's `book/` folder, its heading left out: the persona reads it there.
+    /// A guide page is named by its file under the run's `book/` folder with its section (`#reroute`): the persona reads
+    /// it there, at the section F1 chose (rc.3: without it every F1 read as the whole page).
     fn guide_file(&self, target: &str) -> Option<String> {
-        let page = target.split_once('#').map_or(target, |(page, _)| page);
-        Some(format!("book/{page}"))
+        Some(format!("book/{target}"))
     }
 
     /// A second window is answered as started: a visual run starts no second process.
