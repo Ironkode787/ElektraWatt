@@ -764,10 +764,10 @@ impl ShellModel {
             .as_ref()
             .map(|t| t.connections.iter().map(|c| c.id).collect())
             .unwrap_or_default();
-        let plan = self
-            .project
-            .as_ref()
-            .and_then(|pr| pr.session.route_plan(&folio, &ew_api::routing::RouteScope::Selection(ids)));
+        let plan = self.project.as_ref().and_then(|pr| {
+            pr.session
+                .route_plan(&folio, &ew_api::routing::RouteScope::Selection(ids))
+        });
         if let Some(params) = plan.as_ref().and_then(ew_api::routing::route_many_params) {
             let rev = self.revision();
             let routed = self.run_commit(&AnyCommand {
@@ -808,7 +808,12 @@ impl ShellModel {
     /// the form's section whose folio comes last before the folio typed; first in its section when none does; the page
     /// that has the folio when one has it already. `None` for a folio that does not read.
     pub(super) fn new_page_place(&self, form: &FormDialog) -> Option<String> {
-        let value = |name: &str| form.fields.iter().find(|f| f.name == name).map(|f| f.value.trim());
+        let value = |name: &str| {
+            form.fields
+                .iter()
+                .find(|f| f.name == name)
+                .map(|f| f.value.trim())
+        };
         let typed = value("folio")?;
         let (number, _) = parse_folio(typed).ok()?;
         let section = value("section").unwrap_or_default();

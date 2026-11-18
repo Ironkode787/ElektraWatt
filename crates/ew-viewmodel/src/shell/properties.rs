@@ -1419,7 +1419,8 @@ impl ShellModel {
                 .zip(value.get("den").and_then(Value::as_i64))
                 .and_then(|(n, d)| super::creation::page_grid_word(n, d))
             && self.canvas().is_some_and(|c| {
-                super::creation::page_grid_word(c.page().snapper.grid().0, c.page().snapper.grid().1) != Some(word)
+                super::creation::page_grid_word(c.page().snapper.grid().0, c.page().snapper.grid().1)
+                    != Some(word)
             })
         {
             self.props.edit = None;

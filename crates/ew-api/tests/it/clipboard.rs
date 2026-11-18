@@ -530,7 +530,9 @@ fn a_paste_onto_a_page_of_another_grid_is_fitted_to_it() {
         "edit.paste",
         json!({"page": page.to_string(), "at": [40_000_000, 40_000_000], "fragment": frag}),
     );
-    let on = |g: Grid, p: (i64, i64)| g.snap_point(Nm(p.0)) == Some(Nm(p.0)) && g.snap_point(Nm(p.1)) == Some(Nm(p.1));
+    let on = |g: Grid, p: (i64, i64)| {
+        g.snap_point(Nm(p.0)) == Some(Nm(p.0)) && g.snap_point(Nm(p.1)) == Some(Nm(p.1))
+    };
     let check = |s: &Session, folio: &str, g: Grid| {
         let t = s.page_tables(folio).unwrap();
         assert!(t.reps.len() >= 2, "the pasted symbols");
@@ -540,7 +542,10 @@ fn a_paste_onto_a_page_of_another_grid_is_fitted_to_it() {
             assert!(pins.iter().any(|p| on(g, *p)), "{}: pins at {pins:?}", rep.id);
         }
         assert!(!t.connections.is_empty(), "the wires between them");
-        assert!(t.connections.iter().all(|c| !c.stored_route), "left to the router");
+        assert!(
+            t.connections.iter().all(|c| !c.stored_route),
+            "left to the router"
+        );
     };
     check(&s, "150", mm4);
     // Page 102's grid changed to 4 mm: its items fitted to it, its wires to be drawn anew; undo takes it back.

@@ -266,7 +266,10 @@ fn a_pin_text_of_signs_only_prints_upright() {
         assert!((mid - pin).abs() <= 1_000, "{sign} centred: {mid} {pin}");
         assert!(p.rect.max().y.0 <= g(42) - 1_000_000 + 1_000);
     }
-    assert!(upright(run(&r, 0x11, "1 I0.0")), "a designation stands upright too");
+    assert!(
+        upright(run(&r, 0x11, "1 I0.0")),
+        "a designation stands upright too"
+    );
 }
 
 /// A make contact `n` tagged `name` at grid `(x, 20)` with its CP designations 13 and 14.

@@ -581,7 +581,8 @@ impl Picker {
         }
         // In this project stands while the project holds anything this browser lists, with no hits under the filter too,
         // so the tree does not shift while typing; a project that holds nothing has no such group (rc.5).
-        let holds = (self.mode != PickerMode::Parts && self.catalogue.symbols.iter().any(|s| s.copy.is_some()))
+        let holds = (self.mode != PickerMode::Parts
+            && self.catalogue.symbols.iter().any(|s| s.copy.is_some()))
             || (matches!(self.mode, PickerMode::Parts | PickerMode::BlackBox)
                 && self.catalogue.parts.iter().any(|p| p.library.is_none()));
         let nodes: Vec<(Node, usize)> = tree
@@ -590,9 +591,7 @@ impl Picker {
                 let c = count(&n);
                 (n, c)
             })
-            .filter(|(n, c)| {
-                *c > 0 || *n == Node::All || (*n == Node::Project && holds) || *n == self.node
-            })
+            .filter(|(n, c)| *c > 0 || *n == Node::All || (*n == Node::Project && holds) || *n == self.node)
             .collect();
         // A position being filled: Blanking plate first, the first valve chosen.
         let blank = self.cell.is_some()

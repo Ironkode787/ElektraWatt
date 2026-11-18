@@ -239,14 +239,22 @@ fn a_paste_onto_another_grid_and_a_grid_change_fit_the_items_and_say_so() {
     let f2 = select_rep(&mut shell, "-102F2");
     done(&mut shell, "select.set", json!({ "ids": [g1, f2] }));
     done(&mut shell, "edit.copy", json!({}));
-    done(&mut shell, "page.new", json!({"folio": "150", "title": "Fit", "grid": "mm4"}));
+    done(
+        &mut shell,
+        "page.new",
+        json!({"folio": "150", "title": "Fit", "grid": "mm4"}),
+    );
     assert_eq!(shell.current_folio(), Some("150"));
     done(&mut shell, "edit.paste_clip", json!({}));
     let target = sheet(&shell, (60_000_000, 60_000_000));
     done(&mut shell, "canvas.pointer", at(target, json!({})));
     let rev = shell.revision();
     done(&mut shell, "canvas.press", at(target, json!({})));
-    assert_eq!(shell.revision(), rev.map(|r| r + 2), "the paste, then its wires routed");
+    assert_eq!(
+        shell.revision(),
+        rev.map(|r| r + 2),
+        "the paste, then its wires routed"
+    );
     let tables = |shell: &ShellModel| shell.canvas().unwrap().page().tables.clone();
     let t = tables(&shell);
     assert_eq!(t.reps.len(), 2);
@@ -254,11 +262,17 @@ fn a_paste_onto_another_grid_and_a_grid_change_fit_the_items_and_say_so() {
     assert!(
         t.connections.iter().all(|c| c.stored_route),
         "routed anew: {:?} {}",
-        t.connections.iter().map(|c| (c.stored_route, c.polyline.len())).collect::<Vec<_>>(),
+        t.connections
+            .iter()
+            .map(|c| (c.stored_route, c.polyline.len()))
+            .collect::<Vec<_>>(),
         common::toast(&shell)
     );
     let text = common::toast(&shell);
-    assert!(text.starts_with("The paste was fitted to this page's 4 mm grid:"), "{text}");
+    assert!(
+        text.starts_with("The paste was fitted to this page's 4 mm grid:"),
+        "{text}"
+    );
     // One undo step takes the paste and its routes back.
     done(&mut shell, "edit.undo", json!({}));
     assert!(tables(&shell).reps.is_empty(), "one step");
@@ -268,12 +282,19 @@ fn a_paste_onto_another_grid_and_a_grid_change_fit_the_items_and_say_so() {
     done(&mut shell, "select.set", json!({ "ids": [] }));
     done(&mut shell, "props.show", json!({"on": true}));
     let rev = shell.revision();
-    done(&mut shell, "props.set", json!({"row": "page/grid", "value": "QET 10 px"}));
+    done(
+        &mut shell,
+        "props.set",
+        json!({"row": "page/grid", "value": "QET 10 px"}),
+    );
     assert_eq!(shell.revision(), rev, "nothing changed yet");
     let form = common::form(&shell);
     assert_eq!(form.action, "page.fit_grid");
     let foot = shell.form_foot(&form).expect("what will happen");
-    assert!(foot.starts_with("Page 150 holds 2 symbols and junctions and "), "{foot}");
+    assert!(
+        foot.starts_with("Page 150 holds 2 symbols and junctions and "),
+        "{foot}"
+    );
     assert!(foot.contains("On the QET 10 px grid"), "{foot}");
     assert_eq!(shell.submit_form(), Outcome::Done);
     assert_eq!(shell.canvas().unwrap().page().snapper.grid(), (7_937_500, 3));
@@ -281,9 +302,16 @@ fn a_paste_onto_another_grid_and_a_grid_change_fit_the_items_and_say_so() {
     assert!(t.connections.iter().all(|c| c.stored_route), "routed anew");
     let text = common::toast(&shell);
     assert!(text.starts_with("Page 150 now has the QET 10 px grid:"), "{text}");
-    assert!(!text.contains(": 0 items"), "the items that moved are counted: {text}");
+    assert!(
+        !text.contains(": 0 items"),
+        "the items that moved are counted: {text}"
+    );
     done(&mut shell, "edit.undo", json!({}));
-    assert_eq!(shell.canvas().unwrap().page().snapper.grid(), (4_000_000, 1), "one step");
+    assert_eq!(
+        shell.canvas().unwrap().page().snapper.grid(),
+        (4_000_000, 1),
+        "one step"
+    );
     shell.shutdown();
 }
 

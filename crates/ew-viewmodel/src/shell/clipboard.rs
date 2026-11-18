@@ -519,7 +519,9 @@ impl ShellModel {
         let Some(now) = self.canvas().map(|c| Arc::clone(&c.page().tables)) else {
             return;
         };
-        let new = |id: Uuid, old: &dyn Fn(&ew_api::output::PageTables) -> bool| before.is_none_or(|b| !old(b)) && !id.is_nil();
+        let new = |id: Uuid, old: &dyn Fn(&ew_api::output::PageTables) -> bool| {
+            before.is_none_or(|b| !old(b)) && !id.is_nil()
+        };
         // Moved: the pasted symbols and junctions that do not stand where the fragment put them.
         let moved = |unfitted: &[(i64, i64)], at: Vec<(i64, i64)>| {
             let mut left = unfitted.to_vec();

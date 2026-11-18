@@ -432,7 +432,7 @@ fn black_box_steps(
     let cps: Vec<(u16, String)> = golden.iter().map(|(i, _)| (*i, i.to_string())).collect();
     let g = PageGridMap::new(grid);
     let outputs = part_outputs(device["parts"][0]["part"]["copy"].as_str().unwrap());
-    let (origin, _, laid) = layout(g, pos, far, &cps, &outputs).expect("the default layout");
+    let (origin, _, laid) = layout(g, pos, far, &cps, &outputs, false).expect("the default layout");
     let mut current: Vec<(u16, (i64, i64))> = laid
         .iter()
         .map(|(i, p, _)| (*i, (origin.0 + p.0, origin.1 + p.1)))

@@ -693,7 +693,11 @@ impl ShellModel {
         let highest = self
             .page_rows()
             .iter()
-            .filter(|r| r.section.as_ref().is_some_and(|(n, _)| n.to_string() == number.trim()))
+            .filter(|r| {
+                r.section
+                    .as_ref()
+                    .is_some_and(|(n, _)| n.to_string() == number.trim())
+            })
             .filter_map(|r| r.folio.split('.').next()?.parse::<u32>().ok())
             .filter(|n| *n >= first)
             .max();

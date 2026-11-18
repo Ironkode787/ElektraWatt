@@ -819,7 +819,10 @@ fn a_box_made_smaller_from_the_left_takes_its_new_corner_as_its_position() {
     assert_eq!(spec.outline, rect(15, 12));
     // Fifteen steps: the one pin of a side seven steps in (half a step to the left of the middle).
     assert_eq!(cp_of(&spec, 2).pos, pt(grid_at(7).0, 0));
-    assert_eq!(r.pos + cp_of(&spec, 2).pos, pt(BOX_POS + G + grid_at(7).0, BOX_POS));
+    assert_eq!(
+        r.pos + cp_of(&spec, 2).pos,
+        pt(BOX_POS + G + grid_at(7).0, BOX_POS)
+    );
 }
 
 /// Centre the pins: a box as stored with a pin on its corner (made smaller before rc.5) puts its pins right without a

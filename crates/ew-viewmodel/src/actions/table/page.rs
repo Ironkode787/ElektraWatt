@@ -23,9 +23,15 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // The question before a page's Connection grid changes under its items: Change and fit (rc.5).
     with_params(
         "grid:enum(mm4|qet_10px)",
-        hidden(act("page.fit_grid", Command, Menu::Page, &[], writable_page, None, |s, p| {
-            s.act_page_fit_grid(p)
-        })),
+        hidden(act(
+            "page.fit_grid",
+            Command,
+            Menu::Page,
+            &[],
+            writable_page,
+            None,
+            |s, p| s.act_page_fit_grid(p),
+        )),
     ),
     // Page, Title block fields…: the focused page's title-block fields in one form (FT-1686), for the title block's
     // right-click menu too. Its parameters are the title-block paths the form shows (`project.drawing_id`), which no

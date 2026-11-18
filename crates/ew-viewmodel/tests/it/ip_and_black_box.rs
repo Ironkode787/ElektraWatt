@@ -624,8 +624,11 @@ fn check_widened(s: &ShellModel, before: &TableRep, connected: usize) {
     let (left, right) = (index_of(s, b1.outline[0]).0, index_of(s, b1.outline[1]).0);
     for y in [b1.outline[0].1, b1.outline[2].1] {
         let xs = |cps: &[(u16, (i64, i64), ew_viewmodel::ew_api::geometry::Dir)]| -> Vec<i64> {
-            let mut v: Vec<(u16, i64)> =
-                cps.iter().filter(|c| c.1.1 == y).map(|c| (c.0, index_of(s, c.1).0)).collect();
+            let mut v: Vec<(u16, i64)> = cps
+                .iter()
+                .filter(|c| c.1.1 == y)
+                .map(|c| (c.0, index_of(s, c.1).0))
+                .collect();
             v.sort_unstable();
             v.into_iter().map(|c| c.1).collect()
         };
@@ -634,7 +637,10 @@ fn check_widened(s: &ShellModel, before: &TableRep, connected: usize) {
         let gaps = |v: &[i64]| v.windows(2).map(|w| w[1] - w[0]).collect::<Vec<_>>();
         assert_eq!(gaps(&old), gaps(&new), "the spacing kept");
         let (first, last) = (*new.iter().min().unwrap(), *new.iter().max().unwrap());
-        assert!(((first - left) - (right - last)).abs() <= 1, "centred: {new:?} in {left}..{right}");
+        assert!(
+            ((first - left) - (right - last)).abs() <= 1,
+            "centred: {new:?} in {left}..{right}"
+        );
     }
     let f = ew_viewmodel::ew_api::output::ew_dl::EntityRef(after.functions[0]);
     let ends = ends_at(&t, f);
@@ -714,7 +720,11 @@ fn centre_the_pins_from_a_boxs_right_click() {
     let t = tables(&s);
     let after = g1(&t);
     let b = after.black_box.as_ref().unwrap();
-    assert_eq!(b.outline, before.black_box.as_ref().unwrap().outline, "the size kept");
+    assert_eq!(
+        b.outline,
+        before.black_box.as_ref().unwrap().outline,
+        "the size kept"
+    );
     let (left, right) = (index_of(&s, b.outline[0]).0, index_of(&s, b.outline[1]).0);
     let top: Vec<i64> = b
         .cps
@@ -723,10 +733,17 @@ fn centre_the_pins_from_a_boxs_right_click() {
         .map(|c| index_of(&s, c.1).0)
         .collect();
     let (first, last) = (*top.iter().min().unwrap(), *top.iter().max().unwrap());
-    assert!(((first - left) - (right - last)).abs() <= 1, "{top:?} in {left}..{right}");
+    assert!(
+        ((first - left) - (right - last)).abs() <= 1,
+        "{top:?} in {left}..{right}"
+    );
     let f = ew_viewmodel::ew_api::output::ew_dl::EntityRef(after.functions[0]);
     for (_, idx, end) in ends_at(&t, f) {
-        assert_eq!(end, b.cps.iter().find(|c| c.0 == idx).unwrap().1, "the wire of CP {idx}");
+        assert_eq!(
+            end,
+            b.cps.iter().find(|c| c.0 == idx).unwrap().1,
+            "the wire of CP {idx}"
+        );
     }
     done(&mut s, "edit.undo", json!({}));
     assert_eq!(g1(&tables(&s)).black_box, before.black_box);

@@ -12,9 +12,8 @@ use ew_mltext::{Ident, MlText};
 use ew_model::ModelError;
 use ew_schema::{
     Connection, ContinuationPolicy, Device, Extra, Folio, FormDef, Function, Junction, Kind, LayoutLabels,
-    MountingSurface, Page,
-    PageItem, PageItemKind, PageType, ReportBlock, Representation, Scale, Section, StructureAssignment,
-    SurfaceLabelMode, SurfaceView,
+    MountingSurface, Page, PageItem, PageItemKind, PageType, ReportBlock, Representation, Scale, Section,
+    StructureAssignment, SurfaceLabelMode, SurfaceView,
 };
 use ew_units::{Grid, Pt2};
 use schemars::JsonSchema;

@@ -156,9 +156,8 @@ fn every_pin_text_of_a_turned_box_stays_upright() {
 #[test]
 fn an_imported_box_keeps_its_turned_pin_texts() {
     let mut v = view("r0");
-    Arc::make_mut(&mut v.reps[0].rep).source_ref = Some(
-        serde_json::from_value(json!({"lineage": uuid(0x99), "key": "representations|-A1"})).unwrap(),
-    );
+    Arc::make_mut(&mut v.reps[0].rep).source_ref =
+        Some(serde_json::from_value(json!({"lineage": uuid(0x99), "key": "representations|-A1"})).unwrap());
     let r = runs(&v);
     let (_, a, b) = r.iter().find(|(t, _, _)| t == "Q0.0").unwrap().clone();
     assert!(b.1 - a.1 > b.0 - a.0, "{a:?} {b:?}");
@@ -197,7 +196,10 @@ fn neighbouring_upright_pin_texts_take_two_lines_in_turn() {
     let r = runs(&v);
     assert_eq!(r.len(), 4);
     let tops: Vec<i64> = r.iter().map(|(_, a, _)| a.1).collect();
-    assert!(near(tops[0], tops[2]) && near(tops[1], tops[3]) && tops[1] > tops[0], "{tops:?}");
+    assert!(
+        near(tops[0], tops[2]) && near(tops[1], tops[3]) && tops[1] > tops[0],
+        "{tops:?}"
+    );
     for (i, x) in r.iter().enumerate() {
         for y in &r[i + 1..] {
             let apart = x.2.0 <= y.1.0 || y.2.0 <= x.1.0 || x.2.1 <= y.1.1 || y.2.1 <= x.1.1;

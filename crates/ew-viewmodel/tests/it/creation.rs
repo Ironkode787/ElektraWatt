@@ -156,7 +156,11 @@ fn page_new_from_a_rows_right_click_proposes_the_folio_after_it() {
         "number": 1, "folio_range": [100, 199], "title": "Wiring", "divider": true}});
     done(&mut shell, "command.run", create);
     for (folio, title) in [("101", "Supply"), ("102", "Motors"), ("105", "Controls")] {
-        done(&mut shell, "page.new", json!({"folio": folio, "title": title, "section": "1"}));
+        done(
+            &mut shell,
+            "page.new",
+            json!({"folio": folio, "title": title, "section": "1"}),
+        );
     }
     let row = |shell: &ShellModel, end: &str| {
         shell
@@ -166,9 +170,22 @@ fn page_new_from_a_rows_right_click_proposes_the_folio_after_it() {
             .unwrap_or_else(|| panic!("a row ending {end}"))
     };
     let id = |shell: &ShellModel, folio: &str| {
-        shell.page_rows().iter().find(|r| r.folio == folio).map(|r| r.id.to_string()).unwrap()
+        shell
+            .page_rows()
+            .iter()
+            .find(|r| r.folio == folio)
+            .map(|r| r.id.to_string())
+            .unwrap()
     };
-    let folio = |shell: &ShellModel| common::form(shell).fields.iter().find(|f| f.name == "folio").unwrap().value.clone();
+    let folio = |shell: &ShellModel| {
+        common::form(shell)
+            .fields
+            .iter()
+            .find(|f| f.name == "folio")
+            .unwrap()
+            .value
+            .clone()
+    };
     let new_page = |shell: &ShellModel, end: &str| {
         ew_viewmodel::command_bar::pages_tree_menu(shell, &row(shell, end))
             .into_iter()

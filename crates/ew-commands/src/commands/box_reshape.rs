@@ -313,10 +313,12 @@ impl Command for ReshapeBox {
                         return out_of_range(tx);
                     };
                     // Of two edges at a corner, the one the CP leaves by its direction.
-                    let containing: Vec<(usize, Pt2, Pt2)> =
-                        edges(&old_abs).filter(|(_, a, b)| on_segment(p, *a, *b)).collect();
+                    let containing: Vec<(usize, Pt2, Pt2)> = edges(&old_abs)
+                        .filter(|(_, a, b)| on_segment(p, *a, *b))
+                        .collect();
                     let leaves = |a: Pt2, b: Pt2| {
-                        outward(a, b, old_area).and_then(|d| ew_derive::oriented_dir(&d, inverse)) == Some(cp.dir.clone())
+                        outward(a, b, old_area).and_then(|d| ew_derive::oriented_dir(&d, inverse))
+                            == Some(cp.dir.clone())
                     };
                     let edge = containing
                         .iter()

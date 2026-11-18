@@ -167,7 +167,7 @@ fn the_card_pins_print_their_channel_addresses() {
     );
 }
 
-/// The pin texts sit inside the box, 1 mm from their pin: a top pin's text below it, read bottom to top.
+/// The pin texts sit inside the box, 1 mm from their pin: a top pin's text below it, upright and centred on it (rc.5).
 #[test]
 fn a_pin_text_is_placed_inside_the_box_beside_its_pin() {
     let mut s = fresh(22);
@@ -192,8 +192,10 @@ fn a_pin_text_is_placed_inside_the_box_beside_its_pin() {
     assert!(ys.iter().all(|y| *y > y0 && *y < y0 + 8 * STEP), "{quad:?}");
     let top = *ys.iter().min().unwrap();
     assert!((top - (y0 + 1_000_000)).abs() <= 1_000, "{quad:?}");
-    // around the pin's x (a vertical text centred on it)
-    assert!(xs.iter().all(|x| (x - x0).abs() < 3_000_000), "{quad:?}");
+    // around the pin's x (an upright text centred on it)
+    assert!(xs.iter().all(|x| (x - x0).abs() < 3_500_000), "{quad:?}");
+    let (left, right) = (*xs.iter().min().unwrap(), *xs.iter().max().unwrap());
+    assert!(((left + right) / 2 - x0).abs() <= 1_000 && right - left > ys.iter().max().unwrap() - top, "{quad:?}");
 }
 
 /// The restated PT-2: in a new project with the CPU and the output card, a starter coil attached to the card and

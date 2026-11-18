@@ -1784,14 +1784,16 @@ impl Builder<'_> {
                 continue;
             }
             let points: Vec<Pt2> = b.outline.iter().map(|p| rep.pos + rep.orient.apply(*p)).collect();
-            let (Some(left), Some(right)) = (
-                points.iter().map(|p| p.x).min(),
-                points.iter().map(|p| p.x).max(),
-            ) else {
+            let (Some(left), Some(right)) =
+                (points.iter().map(|p| p.x).min(), points.iter().map(|p| p.x).max())
+            else {
                 continue;
             };
             let entity = EntityRef(rep.id.as_uuid());
-            for t in texts.iter_mut().filter(|t| t.entity == entity && t.xref && !t.moved) {
+            for t in texts
+                .iter_mut()
+                .filter(|t| t.entity == entity && t.xref && !t.moved)
+            {
                 let Some(rect) = self.text_box(&t.spec(false), false) else {
                     continue;
                 };

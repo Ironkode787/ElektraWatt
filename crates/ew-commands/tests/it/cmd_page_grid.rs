@@ -29,8 +29,8 @@ fn a_populated_pages_grid_change_is_refused_and_an_empty_pages_grid_is_set() {
         e.execute(&set_grid(PAGE_101, mm4.clone()))
             .unwrap_err()
             .to_string(),
-        "fields.set: invalid parameters at `/value`: page 101 holds items; a page's connection grid changes only \
-         while the page is empty"
+        "fields.set: invalid parameters at `/value`: page 101 holds items; change its Connection grid in the page's \
+         Properties, which fits them to the new grid"
     );
     let many = SetManyFields {
         edits: vec![set_grid(PAGE_102, mm4.clone())],
@@ -38,8 +38,8 @@ fn a_populated_pages_grid_change_is_refused_and_an_empty_pages_grid_is_set() {
     };
     assert_eq!(
         e.execute(&many).unwrap_err().to_string(),
-        "fields.set_many: invalid parameters at `/edits/0/value`: page 102 holds items; a page's connection grid \
-         changes only while the page is empty"
+        "fields.set_many: invalid parameters at `/edits/0/value`: page 102 holds items; change its Connection grid in the \
+         page's Properties, which fits them to the new grid"
     );
     assert_eq!(lines(e.model()), before, "nothing moved");
     // The grid the page has, given again, is no change of grid.

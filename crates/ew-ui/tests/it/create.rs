@@ -129,12 +129,17 @@ fn a_refusal_stays_in_the_dialog_and_the_type_is_a_choice() {
     assert_eq!(h.state().shell().page_count(), before);
     match h.state().shell().dialog() {
         Some(Dialog::Form(f)) => assert!(
-            f.error.as_deref().is_some_and(|e| e.contains("already; choose a free folio")),
+            f.error
+                .as_deref()
+                .is_some_and(|e| e.contains("already; choose a free folio")),
             "{f:?}"
         ),
         other => panic!("{other:?}"),
     }
-    assert!(h.query_by_label_contains("already; choose a free folio").is_some());
+    assert!(
+        h.query_by_label_contains("already; choose a free folio")
+            .is_some()
+    );
     assert!(
         h.state().shell().banner().is_none(),
         "the refusal is not made a banner as well"

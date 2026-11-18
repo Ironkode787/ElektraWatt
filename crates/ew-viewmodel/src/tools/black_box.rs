@@ -912,7 +912,13 @@ pub fn reshape_by_grip(
 /// least one grid step longer than the steps its pins need one step apart (one to spare at each corner), as
 /// `box.reshape` re-centres them (rc.5). A pin belongs to the edge it lies on, at a corner to the one it leaves by
 /// its direction.
-fn pins_fit(grid: PageGridMap, outline: &[(i64, i64)], cps: &[BoxCpAt], new: &[(i64, i64)], along_x: bool) -> bool {
+fn pins_fit(
+    grid: PageGridMap,
+    outline: &[(i64, i64)],
+    cps: &[BoxCpAt],
+    new: &[(i64, i64)],
+    along_x: bool,
+) -> bool {
     let n = outline.len();
     let area = signed_area2(outline);
     (0..n).all(|i| {
@@ -939,9 +945,12 @@ fn pins_fit(grid: PageGridMap, outline: &[(i64, i64)], cps: &[BoxCpAt], new: &[(
         at.sort_unstable();
         at.dedup();
         let steps = (grid.index(axis(nb)) - grid.index(axis(na))).abs();
-        at.is_empty() || steps >= i64::try_from(at.len()).unwrap_or(i64::MAX) + 1
+        at.is_empty() || steps > i64::try_from(at.len()).unwrap_or(i64::MAX)
     })
 }
+
+/// Where a grip stops and the outline there ([`grip_stop`]).
+pub type GripStop = ((i64, i64), Vec<(i64, i64)>);
 
 /// Where grip `grip` of the box `outline` with the pins `cps` stops when dragged to the grid point `to` (page nm), and
 /// the outline there: at `to`, else, where the pins would not fit ([`pins_fit`]), as near to `to` as they fit, moved
@@ -953,7 +962,7 @@ pub fn grip_stop(
     cps: &[BoxCpAt],
     grip: usize,
     to: (i64, i64),
-) -> Result<((i64, i64), Vec<(i64, i64)>), Key<'static>> {
+) -> Result<GripStop, Key<'static>> {
     let home = grip_points(outline).get(grip).copied().unwrap_or(to);
     let mut at = to;
     let mut new = reshape_by_grip(outline, grip, at)?;
@@ -1166,8 +1175,15 @@ mod tests {
     fn the_default_cps_go_half_on_top_and_grow_the_rectangle() {
         let g = PageGridMap::new((4_000_000, 1));
         let cps: Vec<(u16, String)> = (0..7).map(|i| (i, i.to_string())).collect();
-        let (pos, outline, laid) =
-            layout(g, (8_000_000, 12_000_000), (16_000_000, 36_000_000), &cps, &[], false).unwrap();
+        let (pos, outline, laid) = layout(
+            g,
+            (8_000_000, 12_000_000),
+            (16_000_000, 36_000_000),
+            &cps,
+            &[],
+            false,
+        )
+        .unwrap();
         assert_eq!(pos, (8_000_000, 12_000_000));
         // Four on top need five grid steps of width: the rectangle grew from two to five.
         assert_eq!(
@@ -1201,7 +1217,10 @@ mod tests {
         for w in top.windows(2) {
             assert!(w[1] - w[0] >= room, "{top:?} {room}");
         }
-        assert!(top[0] >= room / 2 && outline[1].0 - top[2] >= room / 2, "{top:?} {outline:?}");
+        assert!(
+            top[0] >= room / 2 && outline[1].0 - top[2] >= room / 2,
+            "{top:?} {outline:?}"
+        );
     }
 
     /// On a box drawn wider than the CPs need, the CPs spread over the edge one common whole-grid pitch apart,
@@ -1311,8 +1330,14 @@ mod tests {
         assert_eq!(at, (4_000_000, 2_000_000));
         assert_eq!(new[1].0, 4_000_000);
         // To x 6 it goes all the way.
-        assert_eq!(grip_stop(g, &r, &cps, 5, (6_000_000, 2_000_000)).unwrap().0, (6_000_000, 2_000_000));
+        assert_eq!(
+            grip_stop(g, &r, &cps, 5, (6_000_000, 2_000_000)).unwrap().0,
+            (6_000_000, 2_000_000)
+        );
         // The bottom edge's grip (6) up to y 1: the top and bottom sides keep their length, nothing holds it.
-        assert_eq!(grip_stop(g, &r, &cps, 6, (3_000_000, 1_000_000)).unwrap().0, (3_000_000, 1_000_000));
+        assert_eq!(
+            grip_stop(g, &r, &cps, 6, (3_000_000, 1_000_000)).unwrap().0,
+            (3_000_000, 1_000_000)
+        );
     }
 }
