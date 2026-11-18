@@ -262,8 +262,8 @@ fn after_a_lone_target_the_tool_offers_its_source_and_the_toast_says_the_directi
     assert_eq!(points(&mut d), [("L1".to_owned(), "target".to_owned())]);
     let said = toast(&mut d);
     assert!(
-        said.starts_with("L1: target here at 101-")
-            && said.ends_with("it has no source yet: the next point offers it."),
+        said.starts_with("L1 at 101-")
+            && said.contains("comes from nowhere in the drawing yet: the next point you place is offered"),
         "{said:?}"
     );
     // The next point is L1's source, in the same quarter too.
@@ -287,7 +287,11 @@ fn after_a_lone_target_the_tool_offers_its_source_and_the_toast_says_the_directi
             ("L1".to_owned(), "target".to_owned())
         ]
     );
-    assert!(toast(&mut d).starts_with("L1: source here at 101-"));
+    let said = toast(&mut d);
+    assert!(
+        said.starts_with("L1 at 101-") && said.contains(" goes on at "),
+        "{said:?}"
+    );
     // The pair is whole: the name is taken.
     assert_eq!(d.shell_mut().ip_typed_name(), None);
     d.shell_mut().shutdown();

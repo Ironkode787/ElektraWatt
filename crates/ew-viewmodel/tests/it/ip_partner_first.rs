@@ -39,8 +39,8 @@ fn the_tool_offers_the_partner_of_a_waiting_point() {
     assert_eq!(direction, "target");
     done(&mut s, "canvas.activate", json!({}));
     assert!(
-        toast(&s).starts_with(&format!("{name}: target here"))
-            && toast(&s).ends_with("it has no source yet: the next point offers it."),
+        toast(&s).starts_with(&format!("{name} at "))
+            && toast(&s).contains("comes from nowhere in the drawing yet: the next point you place is offered"),
         "{}",
         toast(&s)
     );
@@ -67,8 +67,8 @@ fn the_tool_offers_the_partner_of_a_waiting_point() {
     );
     let said = toast(&s);
     assert!(
-        said.starts_with(&format!("{name}: source here at "))
-            && said.ends_with(&format!("its target at {}.", placed.continuation)),
+        said.starts_with(&format!("{name} at "))
+            && said.ends_with(&format!("goes on at {}.", placed.continuation)),
         "{said}"
     );
     assert!(

@@ -83,7 +83,7 @@ fn a_renamed_point_says_its_base_is_taken_in_the_hud_and_the_toast() {
     // Then what the click placed (a free point has no result line of its own).
     let said = toast(&s);
     assert!(
-        said.starts_with("0V is taken, so this point is 0V-1. 0V-1: source here"),
+        said.starts_with("0V is taken, so this point is 0V-1. 0V-1 ") && said.contains(" goes on "),
         "{said}"
     );
 }

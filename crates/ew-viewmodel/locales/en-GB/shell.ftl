@@ -2683,14 +2683,14 @@ toast-ip-connected = Placed the interruption point { $p0 } at { $p1 } and connec
 toast-ip-connected-no-cell = Placed the interruption point { $p0 } and connected it to { $p2 }. Alt+Click or { $p3 } places it without connecting.
 toast-ip-external-connected = Placed the external point { $p0 } at { $p1 } and connected it to { $p2 }. Alt+Click or { $p3 } places it without connecting.
 toast-ip-external-connected-no-cell = Placed the external point { $p0 } and connected it to { $p2 }. Alt+Click or { $p3 } places it without connecting.
-toast-ip-placed-source = { $p0 }: source here at { $p1 }, its target at { $p2 }.
-toast-ip-placed-source-no-cell = { $p0 }: source here, its target at { $p2 }.
-toast-ip-placed-source-lone = { $p0 }: source here at { $p1 }; it has no target yet: the next point offers it.
-toast-ip-placed-source-lone-no-cell = { $p0 }: source here; it has no target yet: the next point offers it.
-toast-ip-placed-target = { $p0 }: target here at { $p1 }, its source at { $p2 }.
-toast-ip-placed-target-no-cell = { $p0 }: target here, its source at { $p2 }.
-toast-ip-placed-target-lone = { $p0 }: target here at { $p1 }; it has no source yet: the next point offers it.
-toast-ip-placed-target-lone-no-cell = { $p0 }: target here; it has no source yet: the next point offers it.
+toast-ip-placed-source = { $p0 } at { $p1 } goes on at { $p2 }.
+toast-ip-placed-source-no-cell = { $p0 } goes on at { $p2 }.
+toast-ip-placed-source-lone = { $p0 } at { $p1 } goes on nowhere yet: the next point you place is offered as where it goes on.
+toast-ip-placed-source-lone-no-cell = { $p0 } goes on nowhere yet: the next point you place is offered as where it goes on.
+toast-ip-placed-target = { $p0 } at { $p1 } comes from { $p2 }.
+toast-ip-placed-target-no-cell = { $p0 } comes from { $p2 }.
+toast-ip-placed-target-lone = { $p0 } at { $p1 } comes from nowhere in the drawing yet: the next point you place is offered as where it comes from. A supply from outside the drawing: choose Supply comes in here… on its right-click menu.
+toast-ip-placed-target-lone-no-cell = { $p0 } comes from nowhere in the drawing yet: the next point you place is offered as where it comes from. A supply from outside the drawing: choose Supply comes in here… on its right-click menu.
 terminal-in-sentence = { $p0 } terminal { $p1 }
 
 # FX38d: a pin whose designation the device shares, by its position in words ("-1A4 pin - (2nd)").
