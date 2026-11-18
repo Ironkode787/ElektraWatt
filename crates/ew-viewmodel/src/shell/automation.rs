@@ -281,7 +281,6 @@ impl ShellModel {
         if let Some((_, shown)) = self.station_cache.borrow().iter().find(|(k, _)| *k == key) {
             return Some(std::sync::Arc::clone(shown));
         }
-        self.count(|c| c.station_shown += 1);
         let rack = self.rack_of(tab)?;
         let device = self.device_of(tab, &rack);
         let (plcs, candidates) = match &tab.draft {
@@ -349,6 +348,7 @@ impl ShellModel {
     /// The rack of a tab's station view: its station's (`rack_view`), or for a station not made yet the draft's
     /// (`Session::draft_rack`).
     pub fn rack_of(&self, tab: &StationTab) -> Option<ew_api::output::RackView> {
+        self.count(|c| c.station_shown += 1);
         match (&tab.draft, tab.station) {
             (Some(d), _) => Some(self.project_session()?.draft_rack(d.head, &d.modules)),
             (None, Some(s)) => self.rack_view(s),
@@ -464,6 +464,7 @@ impl ShellModel {
         let Some((_, cat)) = self.tools.catalogue.as_ref() else {
             return Vec::new();
         };
+        self.count(|c| c.station_shown += 1);
         let heads = tab
             .draft
             .as_ref()

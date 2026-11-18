@@ -92,6 +92,40 @@ pub(crate) struct EditorView {
     /// The drawing's top right corner in the last frame: the toasts stand under it, on the drawing, never over
     /// Properties (FT-1714).
     pub(crate) toast_corner: Option<Pos2>,
+    /// The outline as made for the draft's generation and revision, the language and the discipline: a frame or a
+    /// pointer move draws it, a change of the draft makes it again (rc.5, H11).
+    outline: Option<(
+        (u64, u64, u64, &'static str),
+        std::rc::Rc<ew_viewmodel::shell::symbol_editor::Outline>,
+    )>,
+    /// The start card's list on show under its filter ([`start_rows`]).
+    start_rows: Option<(StartKey, std::rc::Rc<StartRows>)>,
+}
+
+/// What a start card's list is made for: the list (`copy`, `box`), the editor's generation, the list's length and
+/// the filter typed; with the language.
+type StartKey = (&'static str, u64, usize, String, u64);
+
+/// A start card's rows: the index in its list, the row's words and its detail.
+type StartRows = Vec<(usize, String, String)>;
+
+/// The rows of a start card's list as `key` names them: made by `make` when the list, the filter or the language
+/// changed since they were made, else those made then. A frame or a pointer move lays out the rows on show only, and
+/// does not word every symbol or part of the libraries again (rc.5, H11).
+fn start_rows(
+    cache: &mut Option<(StartKey, std::rc::Rc<StartRows>)>,
+    (list, generation, len, filter): (&'static str, u64, usize, String),
+    make: impl FnOnce() -> StartRows,
+) -> std::rc::Rc<StartRows> {
+    let key = (list, generation, len, filter, strings::generation());
+    match cache {
+        Some((k, rows)) if *k == key => std::rc::Rc::clone(rows),
+        _ => {
+            let rows = std::rc::Rc::new(make());
+            *cache = Some((key, std::rc::Rc::clone(&rows)));
+            rows
+        }
+    }
 }
 
 /// The height of the editor's command row: the main window's.
@@ -780,7 +814,20 @@ impl EditorView {
     /// The left panel: what the symbol consists of, each row a click to the thing, and what is left to do.
     fn outline(&mut self, ui: &mut Ui, editor: &SymbolEditor, events: &mut Vec<Event>) {
         let t = theme::current(ui.ctx());
-        let outline = editor.outline();
+        let key = (
+            editor.generation,
+            editor.revision,
+            strings::generation(),
+            editor.discipline(),
+        );
+        let outline = match &self.outline {
+            Some((k, o)) if *k == key => std::rc::Rc::clone(o),
+            _ => {
+                let o = std::rc::Rc::new(editor.outline());
+                self.outline = Some((key, std::rc::Rc::clone(&o)));
+                o
+            }
+        };
         panels::panel_header(ui, label(key!("symbol-outline")));
         panels::body(ui, "symbol-outline", |ui| {
             panels::title_lines(ui, &outline.title, &outline.what);
@@ -1163,12 +1210,18 @@ impl EditorView {
         }
         let wanted = self.source_filter.to_lowercase();
         let parts = shell.box_parts();
-        let rows: Vec<_> = parts
-            .iter()
-            .filter(|(_, number, detail)| {
-                number.to_lowercase().contains(&wanted) || detail.to_lowercase().contains(&wanted)
-            })
-            .collect();
+        let generation = shell.symbol_editor().map_or(0, |e| e.generation);
+        let key = ("box", generation, parts.len(), wanted.clone());
+        let rows = start_rows(&mut self.start_rows, key, || {
+            parts
+                .iter()
+                .enumerate()
+                .filter(|(_, (_, number, detail))| {
+                    number.to_lowercase().contains(&wanted) || detail.to_lowercase().contains(&wanted)
+                })
+                .map(|(i, (_, number, detail))| (i, number.clone(), detail.clone()))
+                .collect()
+        });
         // Why a part is missing, above the list, which takes the card's height.
         let note = if parts.is_empty() {
             key!("symbol-start-box-none")
@@ -1190,8 +1243,10 @@ impl EditorView {
             .id_salt("symbol-start-parts")
             .auto_shrink([false, false])
             .show_rows(ui, t.size_row, rows.len(), |ui, range| {
-                for (part, number, detail) in &rows[range] {
-                    if panels::list_row(ui, number, detail, false).clicked() {
+                for (i, number, detail) in &rows[range] {
+                    if panels::list_row(ui, number, detail, false).clicked()
+                        && let Some((part, _, _)) = parts.get(*i)
+                    {
                         action(events, "part.box", json!({ "part": part }));
                     }
                 }
@@ -1222,24 +1277,31 @@ impl EditorView {
             filter.request_focus();
         }
         let wanted = self.source_filter.to_lowercase();
-        let rows: Vec<_> = editor
-            .sources
-            .iter()
-            .map(|s| (s, s.words()))
-            .filter(|(s, (name, _))| {
-                name.to_lowercase().contains(&wanted)
-                    || s.key
-                        .as_deref()
-                        .is_some_and(|k| k.to_lowercase().contains(&wanted))
-            })
-            .collect();
+        let key = ("copy", editor.generation, editor.sources.len(), wanted.clone());
+        let rows = start_rows(&mut self.start_rows, key, || {
+            editor
+                .sources
+                .iter()
+                .enumerate()
+                .map(|(i, s)| (i, s, s.words()))
+                .filter(|(_, s, (name, _))| {
+                    name.to_lowercase().contains(&wanted)
+                        || s.key
+                            .as_deref()
+                            .is_some_and(|k| k.to_lowercase().contains(&wanted))
+                })
+                .map(|(i, _, (name, library))| (i, name, library))
+                .collect()
+        });
         ui.spacing_mut().scroll.floating = false;
         egui::ScrollArea::vertical()
             .id_salt("symbol-start-sources")
             .auto_shrink([false, false])
             .show_rows(ui, t.size_row, rows.len(), |ui, range| {
-                for (source, (name, library)) in &rows[range] {
-                    if panels::list_row(ui, name, library, false).clicked() {
+                for (i, name, library) in &rows[range] {
+                    if panels::list_row(ui, name, library, false).clicked()
+                        && let Some(source) = editor.sources.get(*i)
+                    {
                         ask(events, "symbol.copy_edit", json!({ "symbol": source.source }));
                     }
                 }

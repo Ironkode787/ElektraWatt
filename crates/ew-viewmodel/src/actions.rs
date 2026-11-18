@@ -2037,12 +2037,14 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
                 .station_device()
                 .and_then(|d| model.device_part(d))
                 .map(|c| json!(c.to_string()));
+            // The view's catalogue as made for its state, read in place: the bar asks every frame.
+            let shown = model.station_shown();
             let mut items = target_items(
                 meta,
                 model,
-                model
-                    .station_catalogue()
-                    .into_iter()
+                shown
+                    .iter()
+                    .flat_map(|s| &s.catalogue)
                     .filter(|p| p.unfit.is_none())
                     .map(|p| (p.words(), json!({ "part": p.copy.to_string() })))
                     .collect(),

@@ -92,8 +92,8 @@ pub struct SessionCalls {
     pub junction_wires: u64,
     /// `Session::rack_view`: once per (revision, station) while the rack and slot editor is open.
     pub rack_view: u64,
-    /// A station view's derivation (its rack, catalogue, channels and To do): once per revision, language, catalogue,
-    /// view state and page, never for a frame or a pointer move alone (rc.5, H11).
+    /// A station view's derivations (its rack, a station not made yet's rack, its catalogue): each once per revision,
+    /// language, catalogue, view state and page, never for a frame or a pointer move alone (rc.5, H11).
     pub station_shown: u64,
     /// `Session::copy_fragment`: `edit.copy`, `edit.cut`, `edit.duplicate`.
     pub copy_fragment: u64,

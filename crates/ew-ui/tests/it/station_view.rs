@@ -460,6 +460,56 @@ fn a_station_view_beside_the_focused_page_shows_its_lists() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// H11 of the rc.4 test (the view lagged): the view is made once for its state. The pointer moving over its cards, its
+/// bar and its catalogue for many frames makes none of it again, for a made station and for one not made yet (whose
+/// rack, PLCs and devices on the bus were derived several times a frame); a click that moves the cursor makes it again.
+#[test]
+fn the_pointer_over_the_view_derives_nothing() {
+    let tmp = Tmp::new();
+    let (mut h, id) = rack_with(&tmp, &["EW-GEN-DI-1", "EW-GEN-DO-1"]);
+    let made = |h: &Window| h.state().shell().session_calls().station_shown;
+    let hover = |h: &mut Window| {
+        let labels: Vec<String> = modules(h, id)
+            .iter()
+            .map(|r| format!("Slot {}, {}", r.slot, r.tag))
+            .chain(["Replace".to_owned(), "Free slot 3".to_owned()])
+            .collect();
+        for _ in 0..3 {
+            for label in &labels {
+                let at = at(h, label);
+                h.input_mut().events.push(egui::Event::PointerMoved(at));
+                h.run();
+            }
+        }
+    };
+    settle(&mut h);
+    let before = made(&h);
+    hover(&mut h);
+    assert_eq!(made(&h), before, "a made station's view, made again by the pointer");
+    let first = format!("Slot 1, {}", modules(&h, id)[0].tag);
+    click(&mut h, &first);
+    assert!(made(&h) > before, "a click that moves the cursor makes it again");
+    // A station not made yet: its rack is the draft's.
+    dispatch(&mut h, "plc.new_station", json!({}));
+    settle(&mut h);
+    take(&mut h, "EW-GEN-CPU-2");
+    take(&mut h, "EW-GEN-DI-1");
+    settle(&mut h);
+    let before = made(&h);
+    for _ in 0..3 {
+        for label in ["Create", "Head, EW-GEN-CPU-2", "Slot 1, EW-GEN-DI-1"] {
+            let at = h
+                .query_all_by_label_contains(label)
+                .next()
+                .map_or(egui::pos2(900.0, 500.0), |n| n.rect().center());
+            h.input_mut().events.push(egui::Event::PointerMoved(at));
+            h.run();
+        }
+    }
+    assert_eq!(made(&h), before, "a draft's view, made again by the pointer");
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// A new station's view is closed only after a question once something is chosen, because nothing of it is written
 /// before Create: Cancel keeps it, Close without making it closes the tab and leaves the project as it was.
 #[test]

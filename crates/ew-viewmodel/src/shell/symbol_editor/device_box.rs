@@ -567,12 +567,11 @@ impl ShellModel {
 
     /// The parts drawn as a box with pins of their own, for the start card's Device box for a part…, as the editor
     /// read them when it opened or its start card was shown last: each as (what `part.box` takes, its part number,
-    /// its manufacturer, description and where it is from).
-    pub fn box_parts(&self) -> Vec<(String, String, String)> {
+    /// its manufacturer, description and where it is from). Read in place: the start card asks every frame.
+    pub fn box_parts(&self) -> &[(String, String, String)] {
         self.symbol_editor
             .as_ref()
-            .map(|e| e.box_sources.clone())
-            .unwrap_or_default()
+            .map_or(&[], |e| e.box_sources.as_slice())
     }
 
     /// Reads [`ShellModel::box_parts`]: the project's parts and every installed library's, the project's first.

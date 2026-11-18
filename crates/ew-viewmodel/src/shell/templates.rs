@@ -141,7 +141,33 @@ pub struct NewProjectDialog {
     projects: Option<PathBuf>,
     /// Why the last Create failed.
     pub error: Option<String>,
+    /// What [`NewProjectDialog::problem`] and [`NewProjectDialog::note`] found for the fields as they stand.
+    checked: Checked,
 }
+
+/// The file system read for the New project dialog's fields (name, folder, chosen line and its folder): what Create cannot do, and
+/// what it does besides, in words. The dialog asks every frame; the folders are read again only when a field changes
+/// (rc.5, H11: a frame read a folder four times). Not part of the dialog's state: a copy starts empty, and two dialogs
+/// are equal whatever each read.
+#[derive(Default, Debug)]
+struct Checked(std::cell::RefCell<Option<(CheckKey, Option<String>, Option<String>)>>);
+
+/// The fields [`Checked`] read for: the name, the folder, the chosen line and the folder it starts from.
+type CheckKey = (String, String, usize, Option<PathBuf>);
+
+impl Clone for Checked {
+    fn clone(&self) -> Checked {
+        Checked::default()
+    }
+}
+
+impl PartialEq for Checked {
+    fn eq(&self, _: &Checked) -> bool {
+        true
+    }
+}
+
+impl Eq for Checked {}
 
 /// Whether `name` can be a folder's name on every system the program runs on: not empty, none of `\ / : * ? " < > |`
 /// or a control character, not `.` or `..`, and no point or space at its end.
@@ -203,6 +229,38 @@ impl NewProjectDialog {
 
     /// Why Create cannot run now, in words; `None` when it can.
     pub fn problem(&self) -> Option<String> {
+        self.checked().0
+    }
+
+    /// What Create does beyond the project when it can run: the folder typed is not there yet and is made (a
+    /// persona run expected the program to make it, as programs do); `None` otherwise.
+    pub fn note(&self) -> Option<String> {
+        self.checked().1
+    }
+
+    /// [`NewProjectDialog::problem`] and [`NewProjectDialog::note`], read from the file system once per change of the
+    /// fields.
+    fn checked(&self) -> (Option<String>, Option<String>) {
+        let key = (
+            self.name.clone(),
+            self.folder.clone(),
+            self.chosen,
+            self.start().dir.clone(),
+        );
+        if let Some((k, problem, note)) = &*self.checked.0.borrow()
+            && *k == key
+        {
+            return (problem.clone(), note.clone());
+        }
+        let problem = self.read_problem();
+        let missing = problem.is_none() && self.folder_path().is_some_and(|f| !f.exists());
+        let note = missing.then(|| strings::text(key!("new-project-folder-new")).to_owned());
+        *self.checked.0.borrow_mut() = Some((key, problem.clone(), note.clone()));
+        (problem, note)
+    }
+
+    /// Why Create cannot run with the fields as they stand, read from the file system.
+    fn read_problem(&self) -> Option<String> {
         let name = self.name.trim();
         let folder = self.folder.trim();
         let key = if name.is_empty() {
@@ -225,13 +283,6 @@ impl NewProjectDialog {
             return None;
         };
         Some(strings::text(key).to_owned())
-    }
-
-    /// What Create does beyond the project when it can run: the folder typed is not there yet and is made (a
-    /// persona run expected the program to make it, as programs do); `None` otherwise.
-    pub fn note(&self) -> Option<String> {
-        let missing = self.problem().is_none() && self.folder_path().is_some_and(|f| !f.exists());
-        missing.then(|| strings::text(key!("new-project-folder-new")).to_owned())
     }
 
     /// The parameters of `file.new` that Create dispatches.
@@ -403,13 +454,18 @@ impl ShellModel {
             discard,
             projects: self.config.projects_dir.clone(),
             error: None,
+            checked: Checked::default(),
         })))
     }
 
-    /// The open New project dialog.
+    /// The open New project dialog, to change: its folders are read again after the change, also for a field typed
+    /// as it was (a file put in the folder's way meanwhile).
     fn new_project_dialog(&mut self) -> Result<&mut NewProjectDialog, Outcome> {
         match &mut self.dialog {
-            Some(Dialog::NewProject(d)) => Ok(d),
+            Some(Dialog::NewProject(d)) => {
+                d.checked = Checked::default();
+                Ok(d)
+            }
             _ => Err(Outcome::refused(key!("reason-no-new-project"))),
         }
     }

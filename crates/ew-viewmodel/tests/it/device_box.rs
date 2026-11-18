@@ -386,8 +386,9 @@ fn a_starter_part_that_is_not_placed_opens_as_a_copy_of_one_s_own() {
     done(&mut s, "symbol.start", json!({}));
     let (part, _, detail) = s
         .box_parts()
-        .into_iter()
+        .iter()
         .find(|(_, number, _)| number == "EW-GEN-PSU-1")
+        .cloned()
         .expect("the starter power supply is listed");
     assert!(detail.contains("ElektraWatt starter parts"), "{detail}");
     done(&mut s, "part.box", json!({ "part": part }));
@@ -436,8 +437,9 @@ fn a_placed_starter_part_s_box_says_save_makes_a_copy() {
     done(&mut s, "symbol.start", json!({}));
     let (part, _, _) = s
         .box_parts()
-        .into_iter()
+        .iter()
         .find(|(_, number, _)| number == "EW-GEN-PSU-1")
+        .cloned()
         .expect("the placed power supply is listed");
     assert!(part.starts_with("id:"), "the project holds it: {part}");
     done(&mut s, "part.box", json!({ "part": part }));
