@@ -188,7 +188,8 @@ fn a_panel_layout_page_from_new_page_to_an_enabled_rail() {
 }
 
 /// FT-1719: Enclosure… on a schematic page toasts the new enclosure with its Undo, which takes the enclosure back: a
-/// second Create at the same location is not refused ("already has enclosure").
+/// second Create at the same location is not refused ("already has enclosure"). Off a panel layout page the dialog's
+/// Create only makes the enclosure without drawing it (rc.3).
 #[test]
 fn enclosure_toasts_the_new_enclosure_and_its_undo_takes_it_back() {
     let tmp = Tmp::new();
@@ -209,7 +210,7 @@ fn enclosure_toasts_the_new_enclosure_and_its_undo_takes_it_back() {
         support::open_menu(h, &["Project", "Setup"]);
         support::menu_node(h, "Enclosure…").click();
         settle(h);
-        h.get_by_label("Create").click();
+        h.get_by_label("Create only").click();
         settle(h);
         assert!(
             h.state().shell().dialog().is_none(),
@@ -242,6 +243,54 @@ fn enclosure_toasts_the_new_enclosure_and_its_undo_takes_it_back() {
         .click();
     settle(&mut h);
     create(&mut h);
+}
+
+/// The persona round of the third 0.3.0 candidate: the enclosure made from a schematic page could not be drawn on the
+/// layout page made afterwards. There the dialog's Primary draws the location's enclosure on the page, and Enter
+/// in the dialog off a layout page presses its Primary, which makes the layout page.
+#[test]
+fn the_create_enclosure_dialog_draws_the_locations_enclosure_on_the_layout_page() {
+    let tmp = Tmp::new();
+    let shell = ShellModel::new(Mode::Gui, tmp.config_with_resources());
+    let mut h = support::harness_with(shell, support::Scripted::default(), None);
+    settle(&mut h);
+    dispatch(
+        &mut h,
+        "file.new",
+        json!({"dir": tmp.0.join("p.ew"), "template": "builtin"}),
+    );
+    dispatch(
+        &mut h,
+        "layout.enclosure_new",
+        json!({"location": "new", "new_location": "CAB1", "part": "EW-GEN-ENC-1"}),
+    );
+    dispatch(
+        &mut h,
+        "page.new",
+        json!({"folio": "301", "type": "panel_layout", "title": "Cabinet layout"}),
+    );
+    dispatch(&mut h, "layout.enclosure_new", json!({}));
+    settle(&mut h);
+    h.get_by_label("Draw -UC1 of +CAB1 on this page").click();
+    settle(&mut h);
+    assert!(h.state().shell().dialog().is_none());
+    assert_eq!(
+        h.state().shell().panel_tables().map(|t| t.location.clone()),
+        Some("+CAB1".to_owned())
+    );
+    // On page 1, Enter presses "Draw -UC1 of +CAB1 on a new panel layout page".
+    dispatch(&mut h, "page.goto", json!({"folio": "1"}));
+    dispatch(&mut h, "layout.enclosure_new", json!({}));
+    settle(&mut h);
+    h.key_press(egui::Key::Enter);
+    settle(&mut h);
+    assert!(h.state().shell().dialog().is_none());
+    let shell = h.state().shell();
+    assert_eq!(shell.page_rows()[shell.page_index()].kind, "panel_layout");
+    assert_eq!(
+        shell.panel_tables().map(|t| t.location.clone()),
+        Some("+CAB1".to_owned())
+    );
 }
 
 #[test]

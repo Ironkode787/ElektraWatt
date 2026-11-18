@@ -1529,6 +1529,36 @@ impl Session {
         out
     }
 
+    /// The enclosures of the project's locations as `(location node, enclosure tag, its first mounting surface)`, in
+    /// [`Self::layout_locations`]' order: what the Create enclosure dialog offers to draw on a layout page (rc.3). An
+    /// enclosure without a mounting surface is left out: there is nothing to draw.
+    pub fn location_enclosures(&self) -> Vec<(Uuid, String, Uuid)> {
+        let q = self.query();
+        let surfaces = surfaces_in_order(&q);
+        self.layout_locations()
+            .into_iter()
+            .filter_map(|(location, _)| {
+                let space = q
+                    .table::<LayoutSpace>()
+                    .iter()
+                    .find(|(_, s)| s.location.as_uuid() == location)
+                    .map(|(id, _)| id)?;
+                let (enclosure, e) = q.table::<Enclosure>().iter().find(|(_, e)| e.space == space)?;
+                let (surface, _) = surfaces.iter().find(|(s, _)| {
+                    q.table::<MountingSurface>()
+                        .get(*s)
+                        .is_some_and(|m| m.enclosure == enclosure)
+                })?;
+                let tag = q
+                    .try_get::<DeviceTag>(e.device)
+                    .ok()
+                    .and_then(|t| t.as_ref().as_ref().map(|t| t.short()))
+                    .unwrap_or_default();
+                Some((location, tag, surface.as_uuid()))
+            })
+            .collect()
+    }
+
     /// The location and function nodes the page `page` names (its structure's explicit slots), for the Create
     /// enclosure dialog's defaults and the enclosure device's function (D7: "the focused page's function").
     pub fn page_structure(&self, page: Uuid) -> (Option<Uuid>, Option<Uuid>) {

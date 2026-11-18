@@ -4834,6 +4834,16 @@ toast-auto-fill-left = Placed { $p0 } on { $p1 }; { $p2 }.
 toast-enclosure-new = Created the enclosure { $p0 } at { $p1 }.
 toast-enclosure-new-shown = Created the enclosure { $p0 } at { $p1 }; the page shows its mounting plate.
 enclosure-new-no-part = No enclosure part is in the project or an installed library; type a part number.
+# rc.3: the Create enclosure dialog draws an enclosure the location has, and off a panel layout page it makes one.
+enclosure-draw-here = Draw { $p0 } of { $p1 } on this page
+enclosure-draw-new-page = Draw { $p0 } of { $p1 } on a new panel layout page
+enclosure-create-new-page = Create and draw on a new panel layout page
+enclosure-create-only = Create only
+enclosure-not-layout = This page is not a panel layout page. The enclosure is drawn on a new panel layout page after it; Create only makes the enclosure without drawing it.
+enclosure-has-one = { $p1 } has the enclosure { $p0 } already: the button draws it.
+enclosure-layout-title = Cabinet layout { $p0 }
+toast-enclosure-drawn = Drew { $p0 } of { $p1 } on page { $p2 }.
+toast-enclosure-new-page = Created the enclosure { $p0 } at { $p1 } and drew it on the new panel layout page { $p2 }.
 auto-fill-devices = { $p0 } devices
 auto-fill-devices-one = 1 device
 

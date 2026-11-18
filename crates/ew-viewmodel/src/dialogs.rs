@@ -1038,6 +1038,37 @@ fn form_spec(form: &crate::shell::FormDialog, model: &ShellModel) -> DialogSpec 
             },
         );
     }
+    // Create enclosure draws an enclosure the location has, and off a panel layout page makes the page (rc.3).
+    let choice = model.enclosure_choice();
+    if let Some((_, _, true, _)) = &choice {
+        secondary.insert(
+            0,
+            DialogButton {
+                disabled: model.enclosure_create_reason(),
+                ..DialogButton::new(key!("enclosure-create-only"), DialogAnswer::Submit)
+            },
+        );
+    }
+    let mut primary = DialogButton {
+        // Create enclosure's Create is disabled while its location or part is empty.
+        disabled: match form.action {
+            "layout.enclosure_new" => model.enclosure_create_reason(),
+            _ => None,
+        },
+        ..DialogButton::new(form.ok_key, DialogAnswer::Submit)
+    };
+    if let Some((label, new_page, _, _)) = choice {
+        primary.label = label;
+        if new_page {
+            let mut params: serde_json::Map<String, Value> = form
+                .fields
+                .iter()
+                .map(|f| (f.name.to_owned(), Value::String(f.value.clone())))
+                .collect();
+            params.insert("new_page".to_owned(), Value::Bool(true));
+            primary.answer = DialogAnswer::Action(form.action, Value::Object(params));
+        }
+    }
     DialogSpec {
         secondary,
         form: true,
@@ -1054,14 +1085,7 @@ fn form_spec(form: &crate::shell::FormDialog, model: &ShellModel) -> DialogSpec 
                 "project.save_as_template" => vec![strings::text(key!("save-template-text")).to_owned()],
                 _ => Vec::new(),
             },
-            DialogButton {
-                // Create enclosure's Create is disabled while its location or part is empty.
-                disabled: match form.action {
-                    "layout.enclosure_new" => model.enclosure_create_reason(),
-                    _ => None,
-                },
-                ..DialogButton::new(form.ok_key, DialogAnswer::Submit)
-            },
+            primary,
         )
     }
 }

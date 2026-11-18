@@ -919,16 +919,17 @@ fn enclosure_offers_a_new_location_and_create_waits_for_a_part() {
         (
             "Create enclosure",
             vec![
-                "No enclosure part is in the project or an installed library; type a part number.".to_owned()
+                "No enclosure part is in the project or an installed library; type a part number.".to_owned(),
+                NOT_LAYOUT.to_owned()
             ],
-            "Create",
+            "Create and draw on a new panel layout page",
             Some("Type or choose a part number")
         )
     );
     // The description names the reason whole.
     assert_eq!(
         create_line(&s),
-        "  button \"Create\" disabled: Type or choose a part number"
+        "  button \"Create and draw on a new panel layout page\" disabled: Type or choose a part number"
     );
     let rev = s.revision();
     let Outcome::Failed { message } = s.submit_form() else {
@@ -948,7 +949,10 @@ fn enclosure_offers_a_new_location_and_create_waits_for_a_part() {
     s.set_form_field("location", "");
     let spec = ew_viewmodel::dialogs::spec(s.dialog().unwrap(), &s);
     assert_eq!(spec.primary.disabled.as_deref(), Some("Choose a location"));
-    assert_eq!(create_line(&s), "  button \"Create\" disabled: Choose a location");
+    assert_eq!(
+        create_line(&s),
+        "  button \"Create and draw on a new panel layout page\" disabled: Choose a location"
+    );
     let Outcome::Failed { message } = s.submit_form() else {
         panic!("refused")
     };
@@ -977,7 +981,12 @@ fn the_starter_enclosure_is_offered_by_the_create_dialog() {
             spec.primary.label.as_str(),
             spec.primary.disabled.as_deref()
         ),
-        ("Create enclosure", Vec::<String>::new(), "Create", None)
+        (
+            "Create enclosure",
+            vec![NOT_LAYOUT.to_owned()],
+            "Create and draw on a new panel layout page",
+            None
+        )
     );
     // The part line names the starter's enclosure, whole.
     let describe = s.describe();
@@ -993,11 +1002,15 @@ fn the_starter_enclosure_is_offered_by_the_create_dialog() {
     s.shutdown();
 }
 
-/// The description's line of the dialog's Create button.
+/// Off a panel layout page, the Create enclosure dialog's line on what it draws (rc.3).
+const NOT_LAYOUT: &str = "This page is not a panel layout page. The enclosure is drawn on a new panel layout page \
+                          after it; Create only makes the enclosure without drawing it.";
+
+/// The description's line of the dialog's Primary, off a panel layout page.
 fn create_line(s: &ShellModel) -> String {
     s.describe()
         .lines()
-        .find(|l| l.trim_start().starts_with("button \"Create\""))
+        .find(|l| l.trim_start().starts_with("button \"Create and draw"))
         .expect("the Create button's line")
         .to_owned()
 }

@@ -757,7 +757,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         )),
     ),
     with_params(
-        "location?:text, part?:text, new_location?:text",
+        "location?:text, part?:text, new_location?:text, new_page?:bool",
         placed_also(
             place(
                 Group::PanelLayout,

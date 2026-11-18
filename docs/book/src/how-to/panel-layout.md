@@ -22,6 +22,12 @@ the parts list and the enclosure legend read it from there.
    would not fit the devices on paper (at 1:5 and smaller scales on an empty plate) the devices are numbered and the
    page gets a legend beside the plate that lists each number with its tag, quantity, part number and description.
 
+   A location that has its enclosure already (made from another page) is not made twice: with that location
+   chosen, the dialog's button reads **Draw -UC1 of +CAB1 on this page** and puts its mounting plate on the page.
+   On a page that is not a panel layout page, the button reads **Create and draw on a new panel layout page** (or
+   **Draw … on a new panel layout page**): it makes the panel layout page after the page shown and draws the
+   enclosure there. **Create only** beside it makes the enclosure without drawing it.
+
 ## Rails and ducts
 
 3. Choose **Draw ▸ Layout ▸ Rail** and click the rail's start and end on the plate (a rail runs across or up and

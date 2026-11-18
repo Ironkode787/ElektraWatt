@@ -392,10 +392,11 @@ pub fn show(
         }
     }
     // Enter in a revision dialog presses its Primary (Approve, Set author, Withdraw; Cancel in
-    // Release, whose step is the destructive button), never a plain form submit.
+    // Release, whose step is the destructive button), never a plain form submit; so it does in a form whose Primary is
+    // an action of its own (Create enclosure's "Create and draw on a new panel layout page").
     if submit
         && let Dialog::Form(form) = d
-        && form.action.starts_with("revision.")
+        && (form.action.starts_with("revision.") || matches!(spec.primary.answer, DialogAnswer::Action(..)))
     {
         submit = false;
         clicked = clicked.or_else(|| Some(spec.primary.answer.clone()));

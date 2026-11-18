@@ -1079,6 +1079,26 @@ impl ShellModel {
                 return self.form_failed(ACTION, message);
             }
         };
+        // A location that has an enclosure: drawn on this panel layout page when it does not show it yet, or on a new
+        // one (rc.3: the enclosure made from another page could not be drawn on the layout page).
+        let new_page = p.get("new_page").and_then(Value::as_bool).unwrap_or(false);
+        let existing = target.as_ref().ok().and_then(|(id, code)| {
+            project
+                .session
+                .location_enclosures()
+                .into_iter()
+                .find(|(l, ..)| l == id)
+                .map(|(_, tag, surface)| (tag, code.clone(), surface))
+        });
+        if let Some((tag, code, surface)) = existing {
+            let shown = self.panel_tables().map(|t| t.surface);
+            if new_page || (self.on_panel_page() && shown != Some(surface)) {
+                return self.draw_enclosure(ACTION, new_page, &tag, &code, surface);
+            }
+        }
+        let Some(project) = &self.project else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
         let offer = project
             .session
             .layout_part_offers("enclosure")
@@ -1132,31 +1152,122 @@ impl ShellModel {
         } else {
             offer.description.clone()
         };
+        // Off a panel layout page, Create and draw makes the layout page after the page shown first, its own undo step.
+        let paged = new_page && {
+            let out = self.new_layout_page(&location_code);
+            if out != Outcome::Done {
+                if made {
+                    let _ = self.act_undo();
+                }
+                return self.layout_form_done(ACTION, out);
+            }
+            true
+        };
+        let page = if paged { self.focused_page_id() } else { page };
         let out = self.host_create("layout.enclosure.create_from_part", params);
-        // All or nothing: a refused enclosure takes back the location node made for it.
-        if made && out != Outcome::Done {
-            let _ = self.act_undo();
+        // All or nothing: a refused enclosure takes back the layout page and the location node made for it.
+        if out != Outcome::Done {
+            for _ in 0..(usize::from(made) + usize::from(paged)) {
+                let _ = self.act_undo();
+            }
         }
         let out = self.layout_form_done(ACTION, out);
         if out == Outcome::Done {
             let shown = self.show_new_surface(page, &before);
-            // A layout page that shows its items by number gets the legend that lists them (F21).
-            if shown
-                && self.panel_view_shows_numbers()
-                && matches!(self.legend_offer(), ew_api::output::LegendOffer::At(_))
-            {
-                let _ = self.act_page_add_legend();
+            if shown {
+                self.add_numbered_legend();
             }
             // One toast for the step (FT-1719); it replaces the toast of an earlier step. Its Undo takes back the
             // enclosure, so it is offered only when the plate shown on the page is not the newer step.
-            let key = if shown {
-                key!("toast-enclosure-new-shown")
-            } else {
-                key!("toast-enclosure-new")
+            let folio = self.current_folio().unwrap_or_default().to_owned();
+            let text = match (shown, paged) {
+                (true, true) => strings::format(
+                    key!("toast-enclosure-new-page"),
+                    &[&words, &location_code, &folio],
+                ),
+                (true, false) => {
+                    strings::format(key!("toast-enclosure-new-shown"), &[&words, &location_code])
+                }
+                _ => strings::format(key!("toast-enclosure-new"), &[&words, &location_code]),
             };
-            self.notify(strings::format(key, &[&words, &location_code]), !shown);
+            self.notify(text, !shown);
         }
         out
+    }
+
+    /// A layout page that shows its items by number gets the legend that lists them (F21).
+    fn add_numbered_legend(&mut self) {
+        if self.panel_view_shows_numbers()
+            && matches!(self.legend_offer(), ew_api::output::LegendOffer::At(_))
+        {
+            let _ = self.act_page_add_legend();
+        }
+    }
+
+    /// Whether the page shown is a panel layout page.
+    fn on_panel_page(&self) -> bool {
+        self.page_rows()
+            .get(self.page_index())
+            .is_some_and(|r| r.kind == "panel_layout")
+    }
+
+    /// A panel layout page after the page shown (New page…'s proposed folio, else the first free number), titled
+    /// after the location `code` and shown: one undo step.
+    fn new_layout_page(&mut self, code: &str) -> Outcome {
+        let (proposal, _) = self.new_page_proposal();
+        let folio = if proposal.is_empty() {
+            let labels = self.page_labels();
+            (1u64..)
+                .map(|n| n.to_string())
+                .find(|n| !labels.contains(n))
+                .unwrap_or_default()
+        } else {
+            proposal
+        };
+        let mut p = Map::new();
+        p.insert("folio".into(), Value::String(folio));
+        p.insert("type".into(), Value::String("panel_layout".into()));
+        p.insert(
+            "title".into(),
+            Value::String(strings::format(key!("enclosure-layout-title"), &[code])),
+        );
+        self.act_page_new(&p)
+    }
+
+    /// Draws the enclosure `tag` of the location `code` on the panel layout page shown, or on a new one after it
+    /// (`new_page`): the page's Surface view shows its mounting plate `surface`, as the page's Surface row would, with
+    /// the legend where the page numbers its items. One toast says where; the new page and the view are an undo step
+    /// each, and the page is taken back when the view cannot be set.
+    fn draw_enclosure(
+        &mut self,
+        action: &str,
+        new_page: bool,
+        tag: &str,
+        code: &str,
+        surface: Uuid,
+    ) -> Outcome {
+        if new_page {
+            let out = self.new_layout_page(code);
+            if out != Outcome::Done {
+                return self.layout_form_done(action, out);
+            }
+        }
+        if !self
+            .focused_page_id()
+            .is_some_and(|page| self.show_surface(page, surface))
+        {
+            if new_page {
+                let _ = self.act_undo();
+            }
+            return self.layout_form_done(action, Outcome::refused(key!("reason-no-panel-page")));
+        }
+        self.add_numbered_legend();
+        let folio = self.current_folio().unwrap_or_default().to_owned();
+        self.notify(
+            strings::format(key!("toast-enclosure-drawn"), &[tag, code, &folio]),
+            false,
+        );
+        self.layout_form_done(action, Outcome::Done)
     }
 
     /// Whether the focused panel page's surface view labels its placements with item numbers (alone or with tags).
@@ -1175,11 +1286,7 @@ impl ShellModel {
     /// is left as it is. Whether the page now shows the plate.
     fn show_new_surface(&mut self, page: Option<Uuid>, before: &[(Uuid, String)]) -> bool {
         let Some(page) = page else { return false };
-        let panel = self
-            .page_rows()
-            .get(self.page_index())
-            .is_some_and(|r| r.kind == "panel_layout");
-        if !panel || self.panel_tables().is_some() {
+        if !self.on_panel_page() || self.panel_tables().is_some() {
             return false;
         }
         let Some(project) = &self.project else {
@@ -1191,6 +1298,15 @@ impl ShellModel {
             .into_iter()
             .find(|(id, _)| !before.iter().any(|(b, _)| b == id))
         else {
+            return false;
+        };
+        self.show_surface(page, surface)
+    }
+
+    /// The panel layout page `page` shows the mounting surface `surface`, as its Surface row sets it: one undo step.
+    /// Whether it does.
+    fn show_surface(&mut self, page: Uuid, surface: Uuid) -> bool {
+        let Some(project) = &self.project else {
             return false;
         };
         let edit = ew_api::output::LayoutEdit {
@@ -1345,7 +1461,7 @@ impl ShellModel {
     }
 
     /// The Create enclosure dialog's line when its part list has nothing to offer: no enclosure part in the project
-    /// or an installed library. The field then takes a typed part number.
+    /// or an installed library (the field then takes a typed part number); and the line of [`Self::enclosure_choice`].
     pub fn enclosure_form_notes(&self) -> Vec<String> {
         let Some(super::Dialog::Form(f)) = &self.dialog else {
             return Vec::new();
@@ -1355,7 +1471,58 @@ impl ShellModel {
         if empty("part") {
             notes.push(strings::text(key!("enclosure-new-no-part")).to_owned());
         }
+        notes.extend(self.enclosure_choice().and_then(|c| c.3));
         notes
+    }
+
+    /// What the Create enclosure dialog's Primary does where it does not just create (rc.3): `(label, new_page,
+    /// create_only, line)`. A location with an enclosure that the page does not show draws it: "Draw -UC1 of +CAB1 on
+    /// this page", or off a panel layout page "… on a new panel layout page" (`new_page`). Off a panel layout page a
+    /// location without one is made and drawn on a new panel layout page, with Create only beside it
+    /// (`create_only`). `line` says so. `None` while the Primary is Create: on a panel layout page for a location
+    /// without an enclosure, or one the page shows already (Create then says why not).
+    pub fn enclosure_choice(&self) -> Option<(String, bool, bool, Option<String>)> {
+        let Some(super::Dialog::Form(f)) = &self.dialog else {
+            return None;
+        };
+        if f.action != "layout.enclosure_new" {
+            return None;
+        }
+        let location = f.fields.iter().find(|x| x.name == "location")?.value.clone();
+        let on_panel = self.on_panel_page();
+        let project = self.project.as_ref()?;
+        let code = project
+            .session
+            .layout_locations()
+            .into_iter()
+            .find(|(id, _)| id.to_string() == location)
+            .map(|(_, code)| code);
+        let existing = project
+            .session
+            .location_enclosures()
+            .into_iter()
+            .find(|(l, ..)| l.to_string() == location);
+        match (existing, code) {
+            (Some((_, tag, surface)), Some(code)) => {
+                if on_panel && self.panel_tables().is_some_and(|t| t.surface == surface) {
+                    return None;
+                }
+                let key = if on_panel {
+                    key!("enclosure-draw-here")
+                } else {
+                    key!("enclosure-draw-new-page")
+                };
+                let line = strings::format(key!("enclosure-has-one"), &[&tag, &code]);
+                Some((strings::format(key, &[&tag, &code]), !on_panel, false, Some(line)))
+            }
+            _ if on_panel => None,
+            _ => Some((
+                strings::text(key!("enclosure-create-new-page")).to_owned(),
+                true,
+                true,
+                Some(strings::text(key!("enclosure-not-layout")).to_owned()),
+            )),
+        }
     }
 
     /// Why Auto-fill rail on the page shown has nothing to place, in words, with the number of devices that have no
