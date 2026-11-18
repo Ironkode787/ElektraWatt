@@ -16,7 +16,8 @@
 //! lines [`LINE_WIDTH`] (0.183 mm), text style `text.normal` (8.88 pt), left aligned and centred on the row's
 //! midline, inset by [`CELL_PADDING`]. Column widths split the table width by the columns' weights
 //! (the integer rounding of a cumulative share, so the edges are exact and the last edge is the right
-//! edge).
+//! edge). Where a text of the page would be cut (see "Overflow"), the columns with room to spare give it to the
+//! columns that cut, up to the width their widest text takes at the full size (rc.3; [`widened`]).
 //!
 //! # Paint order
 //!
@@ -285,6 +286,109 @@ pub(crate) fn push_cell(
     out.items.extend(carriers);
 }
 
+/// The column edges with room given to a column whose text would be cut (rc.3: the parts list's descriptions read
+/// "PLC CPU with PROFINET and …" in a smaller size beside columns with room to spare). Where a text of the page's
+/// header or data rows would be cut with an ellipsis at the smallest size in its column, each column whose texts
+/// all fit with room to spare gives some of it, in proportion to its spare room, so that the cut columns get the
+/// width their widest text takes at the full size (in proportion to what they lack, as far as the spare room goes).
+/// Without a cut text the edges stay those of the weights.
+fn widened(view: &TableView, edges: Vec<Nm>, fonts: &FontSet, style: &TextStyle, sheet: SheetMap) -> Vec<Nm> {
+    if view.note.is_some() || view.columns.len() < 2 {
+        return edges;
+    }
+    let texts = |c: usize| {
+        std::iter::once(view.columns[c].header.as_str()).chain(
+            view.rows
+                .iter()
+                .take(MAX_ROWS)
+                .filter(|r| r.kind == TableRowKind::Data)
+                .filter_map(move |r| r.cells.get(c).map(String::as_str)),
+        )
+    };
+    let pad = 2 * CELL_PADDING.0;
+    let n = view.columns.len();
+    let width = |c: usize| edges[c + 1].0 - edges[c].0;
+    // The widest text of each column at the full size, with its padding.
+    let need: Vec<i64> = (0..n)
+        .map(|c| {
+            texts(c)
+                .filter(|s| !s.is_empty())
+                .map(|s| fonts.shape(s, style, None).advance().0 + pad)
+                .max()
+                .unwrap_or(0)
+        })
+        .collect();
+    let cut = |c: usize| {
+        let rect = Rect::from_points(
+            sheet.unapply(Pt2::new(edges[c], TOP)),
+            sheet.unapply(Pt2::new(edges[c + 1], Nm(TOP.0 + ROW_HEIGHT.0))),
+        );
+        let shrink = Overflow::ShrinkToFit(ShrinkSpec {
+            min_cap_height: MIN_CAP_HEIGHT,
+            extra: Default::default(),
+        });
+        let spec = BoxSpec {
+            rect,
+            halign: -1,
+            valign: 0,
+            padding: CELL_PADDING,
+            overflow: Some(&shrink),
+            max_lines: 1,
+            sheet,
+        };
+        texts(c).any(|s| {
+            !s.is_empty() && lay_out(fonts, s, style, &spec).overflow == Some(OverflowKind::ShrinkLimit)
+        })
+    };
+    let lacking: Vec<i64> = (0..n)
+        .map(|c| {
+            if view.columns[c].weight > 0 && cut(c) {
+                (need[c] - width(c)).max(0)
+            } else {
+                0
+            }
+        })
+        .collect();
+    let lack: i64 = lacking.iter().sum();
+    if lack == 0 {
+        return edges;
+    }
+    let spare: Vec<i64> = (0..n)
+        .map(|c| {
+            if view.columns[c].weight > 0 && lacking[c] == 0 {
+                (width(c) - need[c]).max(0)
+            } else {
+                0
+            }
+        })
+        .collect();
+    let room: i64 = spare.iter().sum();
+    let moved = lack.min(room);
+    if moved == 0 {
+        return edges;
+    }
+    let share = |part: i64, whole: i64| {
+        i64::try_from(i128::from(moved) * i128::from(part) / i128::from(whole)).unwrap_or(0)
+    };
+    let mut out = Vec::with_capacity(n + 1);
+    out.push(edges[0]);
+    for c in 0..n {
+        let grow = if lacking[c] > 0 {
+            share(lacking[c], lack)
+        } else {
+            0
+        };
+        let give = if spare[c] > 0 { share(spare[c], room) } else { 0 };
+        let last = *out.last().unwrap_or(&edges[0]);
+        out.push(Nm(last.0 + width(c) + grow - give));
+    }
+    // The rounding's remainder stays in the last column: the right edge is the table's.
+    if let Some(last) = out.last_mut() {
+        *last = edges[n];
+    }
+    out
+}
+
 /// Lowers `view` (see the module documentation). `sheet` is the frame form's page-to-sheet map; the rows print in
 /// the default style of `styles`.
 pub fn lower_table(
@@ -301,7 +405,7 @@ pub fn lower_table(
         .resolve(DEFAULT_STYLE_KEY)
         .unwrap_or(TextStyle::regular(Nm(3_175_000)));
 
-    let edges: Vec<Nm> = column_edges(&view.columns);
+    let edges: Vec<Nm> = widened(view, column_edges(&view.columns), fonts, &style, sheet);
     // The table never runs below the form's data area: rows beyond the page's capacity are not drawn and
     // reported, instead of relying on the pagination's row count (FR-REP-039).
     let given = if view.note.is_some() { 1 } else { view.rows.len() };

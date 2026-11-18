@@ -162,7 +162,10 @@ fn the_table_prints_at_the_house_position_on_the_sheet() {
 /// never prints over the next cell.
 #[test]
 fn text_that_does_not_fit_is_shrunk_then_cut_and_reported() {
-    let long = "A description far too long for the narrow location column of the house form, and then some";
+    // Too long for the whole table's width: the room the other columns give is not enough.
+    let long = "A description far too long for the narrow location column of the house form, and then some, \
+                and then some more, as long as the whole table and longer, so that no room given to it is enough, \
+                not even the room of every other column put together";
     let l = drawn(table(&[&["1", "Title", long]]));
     assert!(
         l.findings.iter().any(|f| matches!(
@@ -183,6 +186,17 @@ fn text_that_does_not_fit_is_shrunk_then_cut_and_reported() {
             .any(|s| s.starts_with("A description") && s.ends_with('…')),
         "{texts:?}"
     );
+}
+
+/// The persona runs of the third 0.3.0 candidate: the parts list cut a description ("PLC CPU with PROFINET and …")
+/// beside columns with room to spare. A text that its column would cut takes the room the others spare: it prints
+/// whole, at the full size, and nothing is reported.
+#[test]
+fn a_text_its_column_would_cut_takes_the_room_the_other_columns_spare() {
+    let long = "A description too long for the narrow location column of the house form";
+    let l = drawn(table(&[&["1", "Title", long]]));
+    assert!(l.findings.is_empty(), "{:?}", l.findings);
+    assert!(glyph_texts(&l.list).iter().any(|s| s == long));
 }
 
 #[test]

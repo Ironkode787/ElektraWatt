@@ -83,6 +83,10 @@ pub(crate) struct TableUi {
     /// After a scroll to the cursor's column, its cell as laid out in the last frame and how many frames
     /// more the grid waits for it to come to rest before it checks the column's place.
     settling: Option<(Rect, u8)>,
+    /// The columns that grow to their content in the next frame (a cell cut a text not cut before).
+    grow: Vec<String>,
+    /// The (column key, text) pairs a column has grown for once.
+    cut_seen: std::collections::BTreeSet<(String, String)>,
 }
 
 /// How far the grid's focus ring is inset into the pane (doc 16a §6.21: 1 px).
@@ -203,10 +207,13 @@ impl TableUi {
                 let sort_changed = resorted
                     .as_ref()
                     .is_some_and(|(old, new)| old.as_ref() == Some(key) || new.as_ref() == Some(key));
+                // A text typed or changed that its column cut widens the column once, up to its range's end (the
+                // persona runs: a PLC grid's Symbol "CLAMP_RETRACTED" read "CLAMP_RETR…").
+                let grows = self.grow.iter().any(|g| g == key);
                 Column::new(tokens.size_table_column)
                     .range(tokens.size_table_column_min..=max)
                     .id(column_id(key))
-                    .auto_size_this_frame((resized && capped(kind, key)) || sort_changed)
+                    .auto_size_this_frame((resized && capped(kind, key)) || sort_changed || grows)
             })
             .collect();
         let mut t = Table::new()
@@ -251,6 +258,7 @@ impl TableUi {
             cursor_cell: None,
             key_right: None,
             others: None,
+            cut: Vec::new(),
         };
         let column_ids: Vec<(egui::Id, String)> = shown
             .iter()
@@ -318,6 +326,17 @@ impl TableUi {
             }
         });
         self.painted = delegate.painted;
+        // The columns that cut a text not cut before grow in the next frame; a text cut again after that (the column
+        // at its range's end, or narrowed by hand) keeps its ellipsis and its tooltip.
+        self.grow.clear();
+        for (column, text) in delegate.cut {
+            if self.cut_seen.insert((column.clone(), text)) && !self.grow.contains(&column) {
+                self.grow.push(column);
+            }
+        }
+        if !self.grow.is_empty() {
+            ui.ctx().request_repaint();
+        }
         // A column the grid scrolls into view lands whole to the right of the frozen key column, and one
         // wider than the room with its left edge there. egui scrolls as little as it can and left the column cut under
         // the key column at the floor; such a column is aligned again in the next frame: at its left edge when the key
@@ -930,6 +949,8 @@ struct Delegate<'a> {
     key_right: Option<f32>,
     /// The width the columns other than the filling one need ([`fill_cap`]), measured once in a sizing pass.
     others: Option<f32>,
+    /// The cells of a column without a cap cut with an ellipsis this frame: (column key, text).
+    cut: Vec<(String, String)>,
 }
 
 impl Delegate<'_> {
@@ -1308,6 +1329,9 @@ impl TableDelegate for Delegate<'_> {
         paint_text(ui, content, &text, theme::font(&t.type_small), colour);
         // A cell cut with an ellipsis shows its whole text in its tooltip (a read-only cell's reason first).
         let elided = text_width(ui, &text, theme::font(&t.type_small)) > content.width() + 0.5;
+        if elided && !ui.is_sizing_pass() && !capped(self.kind, &column.key) {
+            self.cut.push((column.key.clone(), text.clone()));
+        }
         let painter = ui.painter();
         // The cursor row: a 2-px accent bar at the key cell's left, inset `space.2` top and bottom. It sits just inside
         // the grid's focus ring (inset `RING_INSET`, `focus_width` wide), in the same place whether or not the grid has

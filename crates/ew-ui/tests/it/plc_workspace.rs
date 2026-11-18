@@ -87,6 +87,34 @@ fn the_plc_workspace_shows_the_plc_navigator_and_its_grid() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// The persona runs of the third 0.3.0 candidate: a symbol name typed into the PLC grid read "CLAMP_RETR…", with no
+/// way to see it whole. A column that cuts a new text grows to show it.
+#[test]
+fn the_plc_grids_symbol_column_grows_to_a_long_name() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "203");
+    dispatch(&mut h, "view.workspace_load", json!({"name": "PLC"}));
+    settle(&mut h);
+    let width = |h: &egui_kittest::Harness<'_, ew_ui::app::App>| {
+        h.get_by_label_contains("Sort by Symbol").rect().width()
+    };
+    let before = width(&h);
+    let row = h
+        .state()
+        .shell()
+        .shown_rows(NavKind::PlcGrid)
+        .into_iter()
+        .find(|r| r.role == "channel")
+        .expect("a channel row")
+        .key;
+    let set = json!({"kind": "plc_grid", "column": "Symbol", "value": "CLAMP_RETRACTED_AT_THE_FRONT_STOP", "rows": [row]});
+    dispatch(&mut h, "table.set", set);
+    settle(&mut h);
+    settle(&mut h);
+    assert!(width(&h) > before + 40.0, "{before} -> {}", width(&h));
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// The PLC grid's close button in the PLC workspace closes the bottom dock (it highlighted and left the grid on show);
 /// View ▸ Bottom dock (Ctrl+J) brings the grid back.
 #[test]
