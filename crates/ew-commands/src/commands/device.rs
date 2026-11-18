@@ -618,7 +618,10 @@ fn zero() -> Pt2 {
 /// **By grid steps** (`steps: [kx, ky]`, what the canvas tools send). Each representation's position
 /// becomes the grid point at its grid index plus the steps, exactly, per axis (`Grid::at(Grid::snap(x) + k)`), so
 /// several representations stay on the grid even where a uniform nm delta cannot keep them there (the QET grid
-/// `7_937_500/3` nm). A representation whose position is not on the grid cannot be moved by steps (rejected, named).
+/// `7_937_500/3` nm). A symbol fitted to a grid its pin spacing does not fit (its position between grid points, its
+/// first connection point on one; rc.5) steps by that pin instead, its position moving by the same displacement
+/// (`geometry::grid_anchor`). A representation with neither on the grid cannot be moved by steps (rejected, named);
+/// a move by `delta` checks the same.
 /// Routes follow: a connection with an end drawn by a moved representation has that end follow its CP's own
 /// displacement (`follow_end`); a connection with both ends moved keeps its shape vertex by vertex: an end vertex
 /// becomes its CP's new position, an interior coordinate equal to the old coordinate of an end CP moves with that
@@ -901,15 +904,16 @@ impl MoveReps {
         for id in &ids {
             let rep = tx.require::<Representation>(*id)?;
             let grid = tx.require::<Page>(rep.page)?.grid;
-            if !crate::geometry::point_on_grid(grid, rep.pos) {
+            // The point the steps are counted from: the position, or a fitted symbol's first pin (rc.5).
+            let Some(anchor) = crate::geometry::grid_anchor(tx, &rep, grid) else {
                 return tx.reject(text!(
                     "refusal-rep-move-steps-off-grid",
                     crate::geometry::off_grid(tx, crate::words::symbol(tx, *id), rep.page, rep.pos)
                 ));
-            }
+            };
             let (Some(x), Some(y)) = (
-                step_axis(grid, rep.pos.x, steps[0]),
-                step_axis(grid, rep.pos.y, steps[1]),
+                step_axis(grid, anchor.x, steps[0]),
+                step_axis(grid, anchor.y, steps[1]),
             ) else {
                 return tx.reject(text!(
                     "refusal-rep-move-steps-out-of-range",
@@ -917,8 +921,14 @@ impl MoveReps {
                 ));
             };
             let mut next = (*rep).clone();
-            next.pos = Pt2::new(x, y);
-            require_on_grid(tx, next.page, next.pos, "/steps")?;
+            let Ok(pos) = sub(Pt2::new(x, y), anchor).and_then(|d| add(rep.pos, d)) else {
+                return tx.reject(text!(
+                    "refusal-rep-move-steps-out-of-range",
+                    crate::words::symbol(tx, *id)
+                ));
+            };
+            next.pos = pos;
+            crate::geometry::require_rep_on_grid(tx, next.page, &next, "/steps")?;
             if rep_cps_checked(tx, &next).is_err() {
                 return tx.reject(text!(
                     "refusal-rep-move-steps-cp-out-of-range",
@@ -1132,7 +1142,7 @@ impl MoveReps {
                 next.page = p;
                 check_rep_type(tx, page, &rep.rep_type)?;
             }
-            require_on_grid(tx, next.page, next.pos, "/delta")?;
+            crate::geometry::require_rep_on_grid(tx, next.page, &next, "/delta")?;
             if rep_cps_checked(tx, &next).is_err() {
                 return tx.reject(text!(
                     "refusal-rep-move-cp-out-of-range",
@@ -1223,7 +1233,8 @@ impl MoveReps {
 /// down toward an even one (`Grid::index_of_half_steps`), so four quarter turns, or a turn and its reverse, bring it
 /// back exactly and two quarter turns land where a half turn does, wherever it lies. The stored outline and CPs are
 /// not rewritten. A representation whose orientation does not change keeps its `pos`, and one without graphics or a
-/// box turns about its insertion point.
+/// box turns about its insertion point. A fitted symbol (its position between grid points, its first connection point
+/// on one; rc.5) is fitted again after the turn (`geometry::fitted_pos`), so its first pin stays on the grid.
 ///
 /// Routes follow: each attached connection's route end at a CP drawn by a transformed representation (a symbol's
 /// CP or a black box's) follows that CP's displacement (`geometry::follow_end`); CPs whose geometry is unknown
@@ -1296,7 +1307,21 @@ impl Command for TransformReps {
                         .unwrap_or_default(),
                 };
                 let grid = tx.require::<Page>(old.page)?.grid;
+                // A fitted symbol (its position between grid points, its first pin on one) is fitted again after the
+                // turn, so its first pin stays on the grid (rc.5).
+                let fitted = !crate::geometry::point_on_grid(grid, old.pos)
+                    && crate::geometry::grid_anchor(tx, &old, grid).is_some();
                 match pivot(grid, old.pos, old.orient, orient, &body) {
+                    Ok(Some(pos)) if fitted => {
+                        new.pos = pos;
+                        match crate::geometry::fitted_pos(tx, &new, grid) {
+                            Ok(pos) => new.pos = pos,
+                            Err(OutOfRange) => {
+                                out_of_range(tx)?;
+                                continue;
+                            }
+                        }
+                    }
                     Ok(Some(pos)) => new.pos = pos,
                     Ok(None) => {}
                     Err(OutOfRange) => {

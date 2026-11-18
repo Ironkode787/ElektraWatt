@@ -119,6 +119,35 @@ pub(crate) fn fitted_pos(tx: &TxBuilder<'_>, rep: &Representation, grid: Grid) -
     add(rep.pos, sub(to, at)?)
 }
 
+/// The point by which `rep` keeps to `grid` (rc.5): its position when that is a grid point, else its first connection
+/// point ([`rep_cps`]' order) when that is one (a symbol fitted to a grid its own pin spacing does not fit, whose
+/// position lies between grid points); `None` for neither. A move by grid steps steps this point, so a fitted symbol
+/// moves, turns and pastes as any other and keeps its first pin on the grid.
+pub(crate) fn grid_anchor(tx: &TxBuilder<'_>, rep: &Representation, grid: Grid) -> Option<Pt2> {
+    if point_on_grid(grid, rep.pos) {
+        return Some(rep.pos);
+    }
+    rep_cps(tx, rep)
+        .first()
+        .map(|c| c.pos)
+        .filter(|p| point_on_grid(grid, *p))
+}
+
+/// [`require_on_grid`] for a representation: its [`grid_anchor`] on the grid of `page`, else the refusal of its
+/// position off the grid.
+pub(crate) fn require_rep_on_grid(
+    tx: &TxBuilder<'_>,
+    page: Id<Page>,
+    rep: &Representation,
+    field: &str,
+) -> Result<(), CmdError> {
+    let grid = tx.require::<Page>(page)?.grid;
+    if grid_anchor(tx, rep, grid).is_some() {
+        return Ok(());
+    }
+    require_on_grid(tx, page, rep.pos, field)
+}
+
 fn cps_of(tx: &TxBuilder<'_>, rep: &Representation) -> Vec<Result<RepCp, OutOfRange>> {
     let Some(symbol): Option<Arc<LibCopy<SymbolDef>>> = tx.get::<LibCopy<SymbolDef>>(rep.symbol) else {
         return Vec::new();

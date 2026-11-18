@@ -315,6 +315,136 @@ fn a_paste_onto_another_grid_and_a_grid_change_fit_the_items_and_say_so() {
     shell.shutdown();
 }
 
+/// The page point `p` as a sheet point clicked: pointer, press, release.
+fn click_at(shell: &mut ShellModel, p: (i64, i64)) {
+    let q = sheet(shell, p);
+    done(shell, "canvas.pointer", at(q, json!({})));
+    done(shell, "canvas.press", at(q, json!({})));
+    done(shell, "canvas.release", at(q, json!({})));
+}
+
+/// Moves every representation of the page shown by a drag of two grid steps right and by the keyboard (Move, one
+/// step down with the arrow key, Enter), each one commit that keeps its first pin on the grid `g`; turns the first
+/// one; draws a wire from its first pin to a free grid point.
+fn handle_fitted(shell: &mut ShellModel, g: (i64, i64)) {
+    let grid = ew_viewmodel::ew_api::output::ew_dl::ew_units::Grid::new(g.0 as u64, g.1 as u64).unwrap();
+    let on = |p: (i64, i64)| {
+        grid.snap_point(ew_viewmodel::ew_api::output::ew_dl::ew_units::Nm(p.0)).map(|n| n.0) == Some(p.0)
+            && grid.snap_point(ew_viewmodel::ew_api::output::ew_dl::ew_units::Nm(p.1)).map(|n| n.0) == Some(p.1)
+    };
+    let tables = |shell: &ShellModel| shell.canvas().unwrap().page().tables.clone();
+    let pins = |shell: &ShellModel, id| -> Vec<(i64, i64)> {
+        tables(shell).cps.iter().filter(|c| c.rep == id).map(|c| c.at).collect()
+    };
+    let ids: Vec<_> = tables(shell).reps.iter().map(|r| r.id).collect();
+    assert!(!ids.is_empty());
+    for id in &ids {
+        let pos = |shell: &ShellModel| tables(shell).reps.iter().find(|r| r.id == *id).unwrap().pos;
+        let before = pos(shell);
+        // A drag from the symbol's middle (a box's outline's, else the middle of its pins).
+        let t = tables(shell);
+        let rep = t.reps.iter().find(|r| r.id == *id).unwrap();
+        let points: Vec<(i64, i64)> = rep.black_box.as_ref().map_or_else(|| pins(shell, *id), |b| b.outline.clone());
+        let n = points.len() as i64;
+        let mid = (points.iter().map(|p| p.0).sum::<i64>() / n, points.iter().map(|p| p.1).sum::<i64>() / n);
+        done(shell, "select.set", json!({ "ids": [] }));
+        let from = sheet(shell, mid);
+        let to = (from.0 + 2 * (grid.at(1).unwrap().0 - grid.at(0).unwrap().0), from.1);
+        let rev = shell.revision();
+        done(shell, "canvas.press", at(from, json!({})));
+        done(shell, "canvas.pointer", at(to, json!({})));
+        done(shell, "canvas.release", at(to, json!({})));
+        assert_eq!(shell.revision(), rev.map(|r| r + 1), "{id}: the drag moves it");
+        assert_ne!(pos(shell), before, "{id}");
+        assert!(pins(shell, *id).iter().any(|p| on(*p)), "{id}: a pin on the grid");
+        // The keyboard: Move, one step down, Enter.
+        done(shell, "select.set", json!({ "ids": [id.to_string()] }));
+        let rev = shell.revision();
+        done(shell, "tool.move", json!({}));
+        done(shell, "cursor.down", json!({}));
+        done(shell, "canvas.activate", json!({}));
+        assert_eq!(shell.revision(), rev.map(|r| r + 1), "{id}: the arrow key moves it");
+        assert!(pins(shell, *id).iter().any(|p| on(*p)), "{id}: a pin on the grid");
+    }
+    // A turn keeps a pin on the grid (a symbol's: an interruption point turns by its direction).
+    let first = tables(shell)
+        .reps
+        .iter()
+        .find(|r| r.ip.is_none() && r.device.is_some())
+        .map(|r| r.id)
+        .unwrap();
+    done(shell, "select.set", json!({ "ids": [first.to_string()] }));
+    let rev = shell.revision();
+    done(shell, "tool.rotate_cw", json!({}));
+    assert_eq!(shell.revision(), rev.map(|r| r + 1), "the turn");
+    assert!(pins(shell, first).iter().any(|p| on(*p)), "a pin on the grid after the turn");
+    // A wire from one of its free pins to a free pin of another symbol.
+    done(shell, "select.set", json!({ "ids": [] }));
+    let t = tables(shell);
+    let free = |rep: ew_viewmodel::ew_api::output::Uuid, same: bool| {
+        t.cps
+            .iter()
+            .find(|c| (c.rep == rep) == same && c.connections.is_empty())
+            .map(|c| c.at)
+    };
+    let wired = t
+        .cps
+        .iter()
+        .find(|c| c.connections.is_empty() && t.reps.iter().any(|r| r.id == c.rep && r.ip.is_none()))
+        .map(|c| c.rep)
+        .expect("a symbol with a free pin");
+    // The other end: a free pin of another symbol, else a corner of a wire of the page (a junction there).
+    let pin = free(wired, true).unwrap();
+    let other = free(wired, false)
+        .or_else(|| t.connections.iter().find(|c| c.polyline.len() > 2).map(|c| c.polyline[1]))
+        .expect("another end");
+    let rev = shell.revision();
+    let wires = t.connections.len();
+    done(shell, "tool.wire", json!({}));
+    click_at(shell, pin);
+    click_at(shell, other);
+    assert_eq!(shell.revision(), rev.map(|r| r + 1), "the wire");
+    assert!(tables(shell).connections.len() > wires, "a new wire (a wire split at its junction counts twice)");
+    done(shell, "ui.dismiss", json!({}));
+    done(shell, "ui.dismiss", json!({}));
+}
+
+/// rc.5 review: a symbol fitted to a page's grid (its pins on the grid, its position between grid points) moves by
+/// drag and by the arrow key, turns and takes a wire, after a fitted paste and after a grid change.
+#[test]
+fn fitted_symbols_move_turn_and_take_a_wire() {
+    let tmp = Tmp::new("clip-fit-move");
+    let mut shell = tmp.shell_in(Mode::Gui, true, "102");
+    let g1 = select_rep(&mut shell, "-102G1");
+    let f1 = select_rep(&mut shell, "-102F1");
+    let f2 = select_rep(&mut shell, "-102F2");
+    done(&mut shell, "select.set", json!({ "ids": [g1, f1, f2] }));
+    done(&mut shell, "edit.copy", json!({}));
+    done(&mut shell, "page.new", json!({"folio": "150", "title": "Fit", "grid": "mm4"}));
+    done(&mut shell, "edit.paste_clip", json!({}));
+    let target = sheet(&shell, (60_000_000, 60_000_000));
+    done(&mut shell, "canvas.pointer", at(target, json!({})));
+    done(&mut shell, "canvas.press", at(target, json!({})));
+    assert_eq!(shell.canvas().unwrap().page().tables.reps.len(), 3);
+    handle_fitted(&mut shell, (4_000_000, 1));
+    // Copied and pasted again on the same page, the fitted symbols paste by grid steps.
+    let ids: Vec<String> = shell.canvas().unwrap().page().tables.reps.iter().map(|r| r.id.to_string()).collect();
+    done(&mut shell, "select.set", json!({ "ids": ids }));
+    done(&mut shell, "edit.copy", json!({}));
+    done(&mut shell, "edit.paste_clip", json!({}));
+    let target = sheet(&shell, (60_000_000, 150_000_000));
+    done(&mut shell, "canvas.pointer", at(target, json!({})));
+    done(&mut shell, "canvas.press", at(target, json!({})));
+    assert_eq!(shell.canvas().unwrap().page().tables.reps.len(), 6, "pasted again");
+    // Folio 102 changed to the 4 mm grid.
+    done(&mut shell, "page.goto", json!({"folio": "102"}));
+    done(&mut shell, "select.set", json!({ "ids": [] }));
+    done(&mut shell, "page.fit_grid", json!({"grid": "mm4"}));
+    assert_eq!(shell.canvas().unwrap().page().snapper.grid(), (4_000_000, 1));
+    handle_fitted(&mut shell, (4_000_000, 1));
+    shell.shutdown();
+}
+
 /// CB4 (FR-DEV-029): copying -102F1 on folio 102 and pasting it on 102 yields a device whose tag is -102F3 with part
 /// A9F78116 and no connection (its wires had an end outside).
 #[test]

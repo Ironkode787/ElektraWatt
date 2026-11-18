@@ -110,7 +110,8 @@ pub struct Fragment {
 /// grid point of the page; `/fragment/anchor` an anchor off the fragment's grid;
 /// `/fragment/records` none or more than 10,000; `/fragment/records/<i>` a record that does not read, of a kind
 /// outside device, function, representation, connection, junction, potential definition, page item and structure
-/// box, of another schema version, listed twice, a representation off the grid or of a representation type the page
+/// box, of another schema version, listed twice, a representation off the grid (neither its position nor its first
+/// connection point a grid point; a fitted symbol steps by its first pin) or of a representation type the page
 /// does not take, or a mandatory reference that resolves to nothing; `/fragment/copies/<i>` a copy that
 /// `library.embed` refuses, listed twice, or one the project holds in another version that `adapt` does not name;
 /// `/fragment/nodes/<i>` a node listed twice or without a path; `/adapt/<i>` an ID listed twice, one that names no copy
@@ -698,7 +699,14 @@ impl Insertion<'_> {
             match record {
                 Record::Representation(r) => {
                     let before = r.clone();
-                    r.pos = motion.point(r.pos).map_err(|_| too_far(*i))?;
+                    // A fitted symbol (its position between grid points) steps by its first pin (rc.5).
+                    let anchor = crate::geometry::grid_anchor(tx, r, grid)
+                        .filter(|a| *a == r.pos || !motion.turns())
+                        .ok_or_else(|| self.invalid(self.pointer(*i), text!("refusal-paste-rep-off-grid")))?;
+                    let to = motion.point(anchor).map_err(|_| too_far(*i))?;
+                    r.pos = sub(to, anchor)
+                        .and_then(|d| crate::geometry::add(r.pos, d))
+                        .map_err(|_| too_far(*i))?;
                     r.orient = motion.orient(r.orient);
                     if rep_cps_checked(tx, r).is_err() {
                         return Err(too_far(*i));
@@ -1313,9 +1321,6 @@ impl Insertion<'_> {
                             &at,
                             text!("refusal-paste-rep-type", crate::words::rep_type(&r.rep_type)),
                         ));
-                    }
-                    if !point_on_grid(fit.unwrap_or(grid), r.pos) {
-                        return Err(self.invalid(&at, text!("refusal-paste-rep-off-grid")));
                     }
                 }
                 _ => {}
