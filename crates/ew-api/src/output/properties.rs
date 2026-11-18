@@ -3892,7 +3892,7 @@ impl Session {
         let ty = row_type(kind, row_path)
             .ok_or_else(|| InputError::Invalid(api_text!("refusal-input-not-a-field", row_path, kind)))?;
         let member = last_member(row_path);
-        let cx = match ty.is_part_uses() || (kind == "connection" && member == super::fields::TUBE_PART) {
+        let cx = match offers_library_parts(kind, &member, &ty) {
             true => SheetCx::new(&q).with_library_parts(self),
             false => SheetCx::new(&q),
         };
@@ -3907,13 +3907,23 @@ impl Session {
         };
         let q = self.query();
         let member = last_member(row_path);
-        // A Parts row and a fluid line's tube part offer the libraries' parts too; choosing one embeds it.
-        let cx = match ty.is_part_uses() || (kind == "connection" && member == super::fields::TUBE_PART) {
+        let cx = match offers_library_parts(kind, &member, &ty) {
             true => SheetCx::new(&q).with_library_parts(self),
             false => SheetCx::new(&q),
         };
         choices(&cx, &ty, &member, filter)
     }
+}
+
+/// Whether the row of member `member` of `kind`, of type `ty`, offers and takes the libraries' parts beside the
+/// project's (choosing one embeds it): a Parts row, the Part row of one part use (rc.3: a cable's Part row refused a
+/// catalogue cable's number) and a fluid line's tube part.
+fn offers_library_parts(kind: &str, member: &str, ty: &FieldType) -> bool {
+    ty.is_part_uses()
+        || (kind == "device"
+            && member == "part"
+            && matches!(ty.inner(), FieldType::Link { kind } if kind == "part"))
+        || (kind == "connection" && member == super::fields::TUBE_PART)
 }
 
 impl Session {

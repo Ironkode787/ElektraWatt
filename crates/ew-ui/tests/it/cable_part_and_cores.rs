@@ -96,3 +96,48 @@ fn the_cables_mark_shows_the_cable_and_the_cable_is_drawn() {
     d.shell_mut().shutdown();
 }
 
+/// The persona run: the cable's Part row refused a catalogue cable's number, and a part swapped there left the old
+/// cores and a mark that read both types at once. Now the Part row takes the catalogue cable: its cores replace the
+/// cable's (the wires stay cores, the neutral's blue core becomes the new type's black one), the mark reads the new type
+/// only, and one Undo takes it all back.
+#[test]
+fn a_cables_part_row_takes_a_catalogue_cable_and_its_cores_follow() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    let pixel = two_wires(&mut d);
+    select_both(&mut d, &pixel);
+    cable_of_selection(&mut d);
+    let before = type_line(&mut d);
+    assert!(page_texts(&mut d).iter().any(|t| t == "BU"), "N on blue");
+    click_mark(&mut d, &pixel);
+    let steps = d.shell_mut().recorded_commands().len();
+    assert_eq!(
+        d.shell_mut().dispatch(
+            "props.set",
+            &json!({"row": "device/parts[0].part", "value": "EW-GEN-CBL-11"})
+        ),
+        Outcome::Done,
+        "{}",
+        banner(&mut d)
+    );
+    d.settle();
+    assert_eq!(
+        d.shell_mut().recorded_commands().len(),
+        steps + 1,
+        "one step"
+    );
+    assert_eq!(type_line(&mut d), "4G1.5", "the new type only");
+    let texts = page_texts(&mut d);
+    assert!(
+        texts.iter().any(|t| t == "BK") && !texts.iter().any(|t| t == "BU"),
+        "the new cores: {texts:?}"
+    );
+    assert_eq!(
+        d.shell_mut().dispatch("edit.undo", &json!({})),
+        Outcome::Done
+    );
+    d.settle();
+    assert_eq!(type_line(&mut d), before, "one Undo");
+    d.shell_mut().shutdown();
+}
+

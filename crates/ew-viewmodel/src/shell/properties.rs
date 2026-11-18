@@ -1687,9 +1687,11 @@ impl ShellModel {
             ),
             crate::properties::EditRoute::FieldsSet { kind, path } => {
                 let mut params = json!({ "kind": kind, "targets": targets, "path": path, "value": new });
-                // A part a library holds and the project does not (a tube part): embedded with the edit.
+                // A part a library holds and the project does not (a tube part, a part use's part): embedded with the
+                // edit.
                 let copies = new
                     .get("copy")
+                    .or_else(|| leaf.get("copy"))
                     .and_then(Value::as_str)
                     .and_then(|c| c.parse().ok())
                     .zip(self.project.as_ref())

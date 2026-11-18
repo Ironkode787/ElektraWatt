@@ -345,6 +345,7 @@ impl Command for SetFields {
             drop_left_surface_views(tx, &self.targets)?;
         }
         follow_cable_marks(tx, std::slice::from_ref(self))?;
+        cores_follow_parts(tx, std::slice::from_ref(self))?;
         Ok(Outcome::default())
     }
 }
@@ -993,6 +994,7 @@ impl Command for SetManyFields {
             .collect();
         drop_left_surface_views(tx, &pages.into_iter().collect::<Vec<_>>())?;
         follow_cable_marks(tx, &self.edits)?;
+        cores_follow_parts(tx, &self.edits)?;
         Ok(Outcome::default())
     }
 }
@@ -1009,6 +1011,33 @@ fn follow_cable_marks(tx: &mut TxBuilder<'_>, edits: &[SetFields]) -> Result<(),
         return Ok(());
     }
     crate::commands::cable_mark::follow_kinds(tx, &connections)
+}
+
+/// A cable whose parts `edits` set (its part uses, or the part of one) takes its cores from its first cable part, as `part.assign` gives them (rc.3:
+/// a part swapped at the Part row left the old cores, and the cable's mark read both types):
+/// [`crate::commands::terminal::cores_from_part`], which refuses a part with fewer cores than the cable has wires.
+fn cores_follow_parts(tx: &mut TxBuilder<'_>, edits: &[SetFields]) -> Result<(), CmdError> {
+    let cables: BTreeSet<ew_ids::Id<Device>> = edits
+        .iter()
+        .filter(|e| {
+            e.kind == KindName::Device
+                && (e.path == "parts" || (e.path.starts_with("parts[") && e.path.ends_with("].part")))
+        })
+        .flat_map(|e| e.targets.iter().map(|t| t.cast()))
+        .collect();
+    for cable in cables {
+        let Some(device) = tx.get::<Device>(cable) else {
+            continue;
+        };
+        let part = device.parts.iter().map(|u| u.part.copy).find(|p| {
+            tx.get::<ew_schema::LibCopy<ew_schema::Part>>(*p)
+                .is_some_and(|c| !c.item.sections.cable_cores.is_empty())
+        });
+        if let Some(part) = part {
+            crate::commands::terminal::cores_from_part(tx, cable, part)?;
+        }
+    }
+    Ok(())
 }
 
 /// Doc 03 §7: an assembly configuration covers the assembly device itself or its descendants, each named
