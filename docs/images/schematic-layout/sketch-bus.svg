@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1060" height="782" viewBox="0 0 1060 782">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="30" y="16" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="bold" fill="#111">Bus / network overview: stations in a row in topology order, ports on one edge, straight drops to a trunk or switch</text>
+<rect x="30" y="72" width="1000" height="640" fill="#fbfbf8" stroke="#888" stroke-width="1"/>
+<rect x="70" y="152" width="120" height="90" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<text x="130" y="188" font-family="Arial, Helvetica, sans-serif" font-size="10" fill="#222" font-weight="normal" text-anchor="middle">PLC CPU</text>
+<text x="130" y="206" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="middle">PN 192.168.0.1</text>
+<text x="186" y="144" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">-KE1</text>
+<text x="104" y="238" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#555" font-weight="normal" text-anchor="start">P1</text>
+<polyline points="100,242 100,372" fill="none" stroke="#222" stroke-width="1.2"/>
+<text x="104" y="368" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#555" font-weight="normal" text-anchor="start">X1</text>
+<text x="106" y="308" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#1a4fa0" font-weight="bold" text-anchor="start">-WG1</text>
+<rect x="270" y="152" width="120" height="90" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<text x="330" y="188" font-family="Arial, Helvetica, sans-serif" font-size="10" fill="#222" font-weight="normal" text-anchor="middle">remote I/O</text>
+<text x="330" y="206" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="middle">PN dev 2</text>
+<text x="386" y="144" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">-KE2</text>
+<text x="304" y="238" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#555" font-weight="normal" text-anchor="start">P1</text>
+<polyline points="300,242 300,372" fill="none" stroke="#222" stroke-width="1.2"/>
+<text x="304" y="368" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#555" font-weight="normal" text-anchor="start">X2</text>
+<text x="306" y="308" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#1a4fa0" font-weight="bold" text-anchor="start">-WG2</text>
+<rect x="470" y="152" width="120" height="90" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<text x="530" y="188" font-family="Arial, Helvetica, sans-serif" font-size="10" fill="#222" font-weight="normal" text-anchor="middle">valve terminal</text>
+<text x="530" y="206" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="middle">PN dev 3</text>
+<text x="586" y="144" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">-QM10</text>
+<text x="504" y="238" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#555" font-weight="normal" text-anchor="start">P1</text>
+<polyline points="500,242 500,372" fill="none" stroke="#222" stroke-width="1.2"/>
+<text x="504" y="368" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#555" font-weight="normal" text-anchor="start">X3</text>
+<text x="506" y="308" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#1a4fa0" font-weight="bold" text-anchor="start">-WG3</text>
+<rect x="670" y="152" width="120" height="90" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<text x="730" y="188" font-family="Arial, Helvetica, sans-serif" font-size="10" fill="#222" font-weight="normal" text-anchor="middle">drive</text>
+<text x="730" y="206" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="middle">PN dev 4</text>
+<text x="786" y="144" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">-TA1</text>
+<text x="704" y="238" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#555" font-weight="normal" text-anchor="start">P1</text>
+<polyline points="700,242 700,372" fill="none" stroke="#222" stroke-width="1.2"/>
+<text x="704" y="368" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#555" font-weight="normal" text-anchor="start">X4</text>
+<text x="706" y="308" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#1a4fa0" font-weight="bold" text-anchor="start">-WG4</text>
+<rect x="870" y="152" width="120" height="90" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<text x="930" y="188" font-family="Arial, Helvetica, sans-serif" font-size="10" fill="#222" font-weight="normal" text-anchor="middle">HMI</text>
+<text x="930" y="206" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="middle">PN dev 5</text>
+<text x="986" y="144" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">-PF1</text>
+<text x="904" y="238" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#555" font-weight="normal" text-anchor="start">P1</text>
+<polyline points="900,242 900,372" fill="none" stroke="#222" stroke-width="1.2"/>
+<text x="904" y="368" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#555" font-weight="normal" text-anchor="start">X5</text>
+<text x="906" y="308" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#1a4fa0" font-weight="bold" text-anchor="start">-WG5</text>
+<rect x="50" y="372" width="960" height="50" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<text x="530" y="404" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#222" font-weight="normal" text-anchor="middle">network switch, one port per station, ports on the top edge at each station axis</text>
+<text x="46" y="400" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">-KF1</text>
+<polyline points="130,572 930,572" fill="none" stroke="#222" stroke-width="1.6"/>
+<text x="126" y="576" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#222" font-weight="bold" text-anchor="end">fieldbus line</text>
+<rect x="180" y="472" width="100" height="50" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<text x="230" y="500.5" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#222" font-weight="normal" text-anchor="middle">node 1</text>
+<polyline points="230,522 230,572" fill="none" stroke="#222" stroke-width="1.2"/>
+<circle cx="230" cy="572" r="3" fill="#222"/>
+<text x="176" y="500" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">-A20</text>
+<rect x="380" y="472" width="100" height="50" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<text x="430" y="500.5" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#222" font-weight="normal" text-anchor="middle">node 2</text>
+<polyline points="430,522 430,572" fill="none" stroke="#222" stroke-width="1.2"/>
+<circle cx="430" cy="572" r="3" fill="#222"/>
+<text x="376" y="500" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">-A21</text>
+<rect x="580" y="472" width="100" height="50" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<text x="630" y="500.5" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#222" font-weight="normal" text-anchor="middle">node 3</text>
+<polyline points="630,522 630,572" fill="none" stroke="#222" stroke-width="1.2"/>
+<circle cx="630" cy="572" r="3" fill="#222"/>
+<text x="576" y="500" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">-A22</text>
+<rect x="780" y="472" width="100" height="50" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<text x="830" y="500.5" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#222" font-weight="normal" text-anchor="middle">node 4</text>
+<polyline points="830,522 830,572" fill="none" stroke="#222" stroke-width="1.2"/>
+<circle cx="830" cy="572" r="3" fill="#222"/>
+<text x="776" y="500" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">-A23</text>
+<text x="130" y="632" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#a04010" font-weight="normal" text-anchor="start">Lines leave and enter on the edge that faces the trunk; no line runs between two stations; cable tag beside the drop, address inside the box</text>
+<text x="30" y="732" font-family="Arial, Helvetica, sans-serif" font-size="10" fill="#444">Overview page (single-line). Station pitch 20 steps; drops 1 straight segment each; a second network gets its own trunk at least 4 steps away.</text>
+<text x="30" y="745" font-family="Arial, Helvetica, sans-serif" font-size="10" fill="#444">A line topology (daisy chain) is drawn as short links between neighbouring stations at the same height instead of drops.</text>
+</svg>

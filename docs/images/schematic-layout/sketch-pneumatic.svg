@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1060" height="782" viewBox="0 0 1060 782">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="30" y="16" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="bold" fill="#111">Pneumatic circuit (ISO 1219-2 practice): supply at the bottom, valves in the middle, actuators on top, one chain per actuator</text>
+<rect x="30" y="72" width="1000" height="640" fill="#fbfbf8" stroke="#888" stroke-width="1"/>
+<rect x="110" y="132" width="180" height="50" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<polyline points="190,132 190,182" fill="none" stroke="#222" stroke-width="2.0"/>
+<polyline points="190,157 330,157" fill="none" stroke="#222" stroke-width="2.0"/>
+<text x="106" y="161" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">1A1</text>
+<text x="122" y="198" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">A</text>
+<text x="270" y="198" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">B</text>
+<text x="300" y="126" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#1a4fa0" font-weight="normal" text-anchor="start">1B1</text>
+<polyline points="310,132 310,142" fill="none" stroke="#222" stroke-width="0.8"/>
+<polyline points="130,182 130,232" fill="none" stroke="#222" stroke-width="1.2"/>
+<rect x="118" y="232" width="24" height="30" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<polyline points="118,262 142,232" fill="none" stroke="#222" stroke-width="0.8"/>
+<text x="114" y="251" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">1V2</text>
+<polyline points="130,262 130,297" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="270,182 270,232" fill="none" stroke="#222" stroke-width="1.2"/>
+<rect x="258" y="232" width="24" height="30" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<polyline points="258,262 282,232" fill="none" stroke="#222" stroke-width="0.8"/>
+<text x="254" y="251" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">1V3</text>
+<polyline points="270,262 270,297" fill="none" stroke="#222" stroke-width="1.2"/>
+<rect x="140" y="312" width="60" height="50" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<rect x="200" y="312" width="60" height="50" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<polyline points="130,297 220,297 220,312" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="270,297 240,297 240,312" fill="none" stroke="#222" stroke-width="1.2"/>
+<text x="223" y="308" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">4</text>
+<text x="243" y="308" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">2</text>
+<polyline points="230,362 230,432" fill="none" stroke="#222" stroke-width="1.2"/>
+<text x="233" y="376" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">1</text>
+<polyline points="210,362 210,382" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="250,362 250,382" fill="none" stroke="#222" stroke-width="1.2"/>
+<text x="200" y="376" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">5</text>
+<text x="253" y="376" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">3</text>
+<polyline points="202,382 218,382 210,394 202,382" fill="none" stroke="#222" stroke-width="0.8"/>
+<polyline points="242,382 258,382 250,394 242,382" fill="none" stroke="#222" stroke-width="0.8"/>
+<rect x="115" y="322" width="25" height="30" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<text x="127.5" y="341" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#222" font-weight="normal" text-anchor="middle">/</text>
+<polyline points="260,337 285,327 285,347" fill="none" stroke="#222" stroke-width="0.8"/>
+<text x="111" y="341" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">1V1</text>
+<text x="126" y="374" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">14</text>
+<circle cx="230" cy="432" r="3" fill="#222"/>
+<rect x="410" y="132" width="180" height="50" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<polyline points="490,132 490,182" fill="none" stroke="#222" stroke-width="2.0"/>
+<polyline points="490,157 630,157" fill="none" stroke="#222" stroke-width="2.0"/>
+<text x="406" y="161" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">2A1</text>
+<text x="422" y="198" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">A</text>
+<text x="570" y="198" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">B</text>
+<text x="600" y="126" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#1a4fa0" font-weight="normal" text-anchor="start">2B1</text>
+<polyline points="610,132 610,142" fill="none" stroke="#222" stroke-width="0.8"/>
+<polyline points="430,182 430,232" fill="none" stroke="#222" stroke-width="1.2"/>
+<rect x="418" y="232" width="24" height="30" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<polyline points="418,262 442,232" fill="none" stroke="#222" stroke-width="0.8"/>
+<text x="414" y="251" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">2V2</text>
+<polyline points="430,262 430,297" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="570,182 570,232" fill="none" stroke="#222" stroke-width="1.2"/>
+<rect x="558" y="232" width="24" height="30" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<polyline points="558,262 582,232" fill="none" stroke="#222" stroke-width="0.8"/>
+<text x="554" y="251" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">2V3</text>
+<polyline points="570,262 570,297" fill="none" stroke="#222" stroke-width="1.2"/>
+<rect x="440" y="312" width="60" height="50" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<rect x="500" y="312" width="60" height="50" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<polyline points="430,297 520,297 520,312" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="570,297 540,297 540,312" fill="none" stroke="#222" stroke-width="1.2"/>
+<text x="523" y="308" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">4</text>
+<text x="543" y="308" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">2</text>
+<polyline points="530,362 530,432" fill="none" stroke="#222" stroke-width="1.2"/>
+<text x="533" y="376" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">1</text>
+<polyline points="510,362 510,382" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="550,362 550,382" fill="none" stroke="#222" stroke-width="1.2"/>
+<text x="500" y="376" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">5</text>
+<text x="553" y="376" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">3</text>
+<polyline points="502,382 518,382 510,394 502,382" fill="none" stroke="#222" stroke-width="0.8"/>
+<polyline points="542,382 558,382 550,394 542,382" fill="none" stroke="#222" stroke-width="0.8"/>
+<rect x="415" y="322" width="25" height="30" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<text x="427.5" y="341" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#222" font-weight="normal" text-anchor="middle">/</text>
+<polyline points="560,337 585,327 585,347" fill="none" stroke="#222" stroke-width="0.8"/>
+<text x="411" y="341" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">2V1</text>
+<text x="426" y="374" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">14</text>
+<circle cx="530" cy="432" r="3" fill="#222"/>
+<polyline points="90,432 950,432" fill="none" stroke="#222" stroke-width="1.4"/>
+<rect x="50" y="472" width="100" height="60" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<text x="100" y="505.5" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#222" font-weight="normal" text-anchor="middle">service unit</text>
+<text x="46" y="504" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">0Z1</text>
+<polyline points="100,472 100,432" fill="none" stroke="#222" stroke-width="1.2"/>
+<circle cx="100" cy="432" r="3" fill="#222"/>
+<circle cx="100" cy="592" r="20" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<polyline points="100,532 100,572" fill="none" stroke="#222" stroke-width="1.2"/>
+<text x="125" y="596" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">supply</text>
+<text x="670" y="152" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#a04010" font-weight="normal" text-anchor="start">Levels, top to bottom:</text>
+<text x="670" y="165" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#a04010" font-weight="normal" text-anchor="start">actuators (in order of operation, left to right)</text>
+<text x="670" y="178" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#a04010" font-weight="normal" text-anchor="start">final control elements in the working lines</text>
+<text x="670" y="191" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#a04010" font-weight="normal" text-anchor="start">directional valves (one under each actuator)</text>
+<text x="670" y="204" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#a04010" font-weight="normal" text-anchor="start">signal and processing elements (if pneumatic)</text>
+<text x="670" y="217" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#a04010" font-weight="normal" text-anchor="start">supply line and service unit at the bottom</text>
+<text x="670" y="242" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#a04010" font-weight="normal" text-anchor="start">Cylinders and valves drawn horizontally, in the</text>
+<text x="670" y="255" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#a04010" font-weight="normal" text-anchor="start">initial position; working lines vertical from 2/4</text>
+<text x="670" y="268" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#a04010" font-weight="normal" text-anchor="start">up to the actuator ports; exhausts 3/5 down</text>
+<text x="670" y="292" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#a04010" font-weight="normal" text-anchor="start">Tags (Festo teaching style 1A1, 1V1 shown;</text>
+<text x="670" y="305" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#a04010" font-weight="normal" text-anchor="start">ISO 1219-2:2012 codes or IEC 81346 tags in</text>
+<text x="670" y="318" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#a04010" font-weight="normal" text-anchor="start">practice) left of the component</text>
+<text x="670" y="331" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#a04010" font-weight="normal" text-anchor="start">Port numbers at the ports, outside the symbol</text>
+<text x="30" y="732" font-family="Arial, Helvetica, sans-serif" font-size="10" fill="#444">On a fluid page grid (EPLAN default 2 mm; ElektraWatt native 4 mm with 12 mm valve positions). Chain pitch here 30 steps.</text>
+<text x="30" y="745" font-family="Arial, Helvetica, sans-serif" font-size="10" fill="#444">A valve terminal puts the valves of all chains side by side on one sub-base; its supply gallery replaces the separate drops from the supply line.</text>
+</svg>

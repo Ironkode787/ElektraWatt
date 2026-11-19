@@ -1,0 +1,193 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1060" height="782" viewBox="0 0 1060 782">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="30" y="16" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="bold" fill="#111">Supply and power circuit (multi-line, detached): rails at the top, each feeder drops down its own column</text>
+<rect x="30" y="72" width="1000" height="640" fill="#fbfbf8" stroke="#888" stroke-width="1"/>
+<polyline points="30,50 30,72" fill="none" stroke="#888" stroke-width="0.8"/>
+<text x="80" y="65" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#555" font-weight="normal" text-anchor="middle">0</text>
+<polyline points="30,72 30,712" fill="none" stroke="#ddd" stroke-width="0.4" stroke-dasharray="2,4"/>
+<polyline points="130,50 130,72" fill="none" stroke="#888" stroke-width="0.8"/>
+<text x="180" y="65" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#555" font-weight="normal" text-anchor="middle">1</text>
+<polyline points="130,72 130,712" fill="none" stroke="#ddd" stroke-width="0.4" stroke-dasharray="2,4"/>
+<polyline points="230,50 230,72" fill="none" stroke="#888" stroke-width="0.8"/>
+<text x="280" y="65" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#555" font-weight="normal" text-anchor="middle">2</text>
+<polyline points="230,72 230,712" fill="none" stroke="#ddd" stroke-width="0.4" stroke-dasharray="2,4"/>
+<polyline points="330,50 330,72" fill="none" stroke="#888" stroke-width="0.8"/>
+<text x="380" y="65" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#555" font-weight="normal" text-anchor="middle">3</text>
+<polyline points="330,72 330,712" fill="none" stroke="#ddd" stroke-width="0.4" stroke-dasharray="2,4"/>
+<polyline points="430,50 430,72" fill="none" stroke="#888" stroke-width="0.8"/>
+<text x="480" y="65" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#555" font-weight="normal" text-anchor="middle">4</text>
+<polyline points="430,72 430,712" fill="none" stroke="#ddd" stroke-width="0.4" stroke-dasharray="2,4"/>
+<polyline points="530,50 530,72" fill="none" stroke="#888" stroke-width="0.8"/>
+<text x="580" y="65" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#555" font-weight="normal" text-anchor="middle">5</text>
+<polyline points="530,72 530,712" fill="none" stroke="#ddd" stroke-width="0.4" stroke-dasharray="2,4"/>
+<polyline points="630,50 630,72" fill="none" stroke="#888" stroke-width="0.8"/>
+<text x="680" y="65" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#555" font-weight="normal" text-anchor="middle">6</text>
+<polyline points="630,72 630,712" fill="none" stroke="#ddd" stroke-width="0.4" stroke-dasharray="2,4"/>
+<polyline points="730,50 730,72" fill="none" stroke="#888" stroke-width="0.8"/>
+<text x="780" y="65" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#555" font-weight="normal" text-anchor="middle">7</text>
+<polyline points="730,72 730,712" fill="none" stroke="#ddd" stroke-width="0.4" stroke-dasharray="2,4"/>
+<polyline points="830,50 830,72" fill="none" stroke="#888" stroke-width="0.8"/>
+<text x="880" y="65" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#555" font-weight="normal" text-anchor="middle">8</text>
+<polyline points="830,72 830,712" fill="none" stroke="#ddd" stroke-width="0.4" stroke-dasharray="2,4"/>
+<polyline points="930,50 930,72" fill="none" stroke="#888" stroke-width="0.8"/>
+<text x="980" y="65" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#555" font-weight="normal" text-anchor="middle">9</text>
+<polyline points="930,72 930,712" fill="none" stroke="#ddd" stroke-width="0.4" stroke-dasharray="2,4"/>
+<polyline points="30,50 1030,50" fill="none" stroke="#888" stroke-width="0.8"/>
+<polyline points="1030,50 1030,72" fill="none" stroke="#888" stroke-width="0.8"/>
+<text x="30" y="42" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#a04010" font-weight="normal" text-anchor="start">path (column) numbers in the frame band; dotted lines = column borders (not drawn on a real page)</text>
+<polyline points="50,112 1010,112" fill="none" stroke="#222" stroke-width="2.0"/>
+<text x="46" y="115.5" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#222" font-weight="bold" text-anchor="end">L1</text>
+<text x="1014" y="115.5" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#666" font-weight="normal" text-anchor="start">/3.0</text>
+<polyline points="50,122 1010,122" fill="none" stroke="#222" stroke-width="2.0"/>
+<text x="46" y="125.5" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#222" font-weight="bold" text-anchor="end">L2</text>
+<text x="1014" y="125.5" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#666" font-weight="normal" text-anchor="start">/3.0</text>
+<polyline points="50,132 1010,132" fill="none" stroke="#222" stroke-width="2.0"/>
+<text x="46" y="135.5" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#222" font-weight="bold" text-anchor="end">L3</text>
+<text x="1014" y="135.5" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#666" font-weight="normal" text-anchor="start">/3.0</text>
+<polyline points="50,142 1010,142" fill="none" stroke="#222" stroke-width="2.0"/>
+<text x="46" y="145.5" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#222" font-weight="bold" text-anchor="end">N</text>
+<text x="1014" y="145.5" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#666" font-weight="normal" text-anchor="start">/3.0</text>
+<polyline points="50,152 1010,152" fill="none" stroke="#222" stroke-width="2.0"/>
+<text x="46" y="155.5" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#222" font-weight="bold" text-anchor="end">PE</text>
+<text x="1014" y="155.5" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#666" font-weight="normal" text-anchor="start">/3.0</text>
+<text x="50" y="101" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#a04010" font-weight="normal" text-anchor="start">from /1.9 (interruption point)</text>
+<text x="870" y="101" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#a04010" font-weight="normal" text-anchor="start">to next page</text>
+<circle cx="150" cy="112" r="3" fill="#222"/>
+<polyline points="150,112 150,202" fill="none" stroke="#222" stroke-width="1.2"/>
+<circle cx="170" cy="122" r="3" fill="#222"/>
+<polyline points="170,122 170,202" fill="none" stroke="#222" stroke-width="1.2"/>
+<circle cx="190" cy="132" r="3" fill="#222"/>
+<polyline points="190,132 190,202" fill="none" stroke="#222" stroke-width="1.2"/>
+<rect x="140" y="202" width="60" height="50" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<text x="170" y="231" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#222" font-weight="normal" text-anchor="middle">I&gt; I&gt;</text>
+<text x="136" y="230" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">-Q1</text>
+<polyline points="150,252 150,302" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="170,252 170,302" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="190,252 190,302" fill="none" stroke="#222" stroke-width="1.2"/>
+<text x="147" y="198" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="end">1</text>
+<text x="147" y="262" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="end">2</text>
+<text x="167" y="198" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="end">3</text>
+<text x="167" y="262" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="end">4</text>
+<text x="187" y="198" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="end">5</text>
+<text x="187" y="262" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="end">6</text>
+<polyline points="150,302 150,314" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="150,314 141,340" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="150,340 150,352" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="170,302 170,314" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="170,314 161,340" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="170,340 170,352" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="190,302 190,314" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="190,314 181,340" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="190,340 190,352" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="145,327 185,327" fill="none" stroke="#222" stroke-width="0.8" stroke-dasharray="3,3"/>
+<text x="136" y="332" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">-K1</text>
+<text x="136" y="345" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#666" font-weight="normal" text-anchor="end">/4.2</text>
+<polyline points="150,352 150,422" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="170,352 170,422" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="190,352 190,422" fill="none" stroke="#222" stroke-width="1.2"/>
+<rect x="144" y="422" width="12" height="12" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<rect x="164" y="422" width="12" height="12" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<rect x="184" y="422" width="12" height="12" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<rect x="204" y="422" width="12" height="12" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<text x="136" y="433" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">-X1</text>
+<text x="158" y="418" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">1</text>
+<text x="178" y="418" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">2</text>
+<text x="198" y="418" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">3</text>
+<text x="218" y="418" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">PE</text>
+<circle cx="210" cy="152" r="3" fill="#222"/>
+<polyline points="210,152 210,422" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="150,434 150,492" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="170,434 170,492" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="190,434 190,492" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="210,434 210,518 196,518" fill="none" stroke="#222" stroke-width="1.2"/>
+<circle cx="170" cy="522" r="32" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<text x="170" y="525.5" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#222" font-weight="normal" text-anchor="middle">M 3~</text>
+<text x="134" y="525" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">-M1</text>
+<text x="153" y="488" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">U</text>
+<text x="173" y="488" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">V</text>
+<text x="193" y="488" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">W</text>
+<circle cx="350" cy="112" r="3" fill="#222"/>
+<polyline points="350,112 350,202" fill="none" stroke="#222" stroke-width="1.2"/>
+<circle cx="370" cy="122" r="3" fill="#222"/>
+<polyline points="370,122 370,202" fill="none" stroke="#222" stroke-width="1.2"/>
+<circle cx="390" cy="132" r="3" fill="#222"/>
+<polyline points="390,132 390,202" fill="none" stroke="#222" stroke-width="1.2"/>
+<rect x="340" y="202" width="60" height="50" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<text x="370" y="231" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#222" font-weight="normal" text-anchor="middle">I&gt; I&gt;</text>
+<text x="336" y="230" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">-Q2</text>
+<polyline points="350,252 350,302" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="370,252 370,302" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="390,252 390,302" fill="none" stroke="#222" stroke-width="1.2"/>
+<text x="347" y="198" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="end">1</text>
+<text x="347" y="262" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="end">2</text>
+<text x="367" y="198" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="end">3</text>
+<text x="367" y="262" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="end">4</text>
+<text x="387" y="198" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="end">5</text>
+<text x="387" y="262" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="end">6</text>
+<polyline points="350,302 350,314" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="350,314 341,340" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="350,340 350,352" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="370,302 370,314" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="370,314 361,340" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="370,340 370,352" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="390,302 390,314" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="390,314 381,340" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="390,340 390,352" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="345,327 385,327" fill="none" stroke="#222" stroke-width="0.8" stroke-dasharray="3,3"/>
+<text x="336" y="332" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">-K2</text>
+<text x="336" y="345" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#666" font-weight="normal" text-anchor="end">/4.2</text>
+<polyline points="350,352 350,422" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="370,352 370,422" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="390,352 390,422" fill="none" stroke="#222" stroke-width="1.2"/>
+<rect x="344" y="422" width="12" height="12" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<rect x="364" y="422" width="12" height="12" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<rect x="384" y="422" width="12" height="12" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<rect x="404" y="422" width="12" height="12" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<text x="336" y="433" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">-X1</text>
+<text x="358" y="418" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">1</text>
+<text x="378" y="418" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">2</text>
+<text x="398" y="418" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">3</text>
+<text x="418" y="418" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">PE</text>
+<circle cx="410" cy="152" r="3" fill="#222"/>
+<polyline points="410,152 410,422" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="350,434 350,492" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="370,434 370,492" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="390,434 390,492" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="410,434 410,518 396,518" fill="none" stroke="#222" stroke-width="1.2"/>
+<circle cx="370" cy="522" r="32" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<text x="370" y="525.5" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#222" font-weight="normal" text-anchor="middle">M 3~</text>
+<text x="334" y="525" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">-M2</text>
+<text x="353" y="488" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">U</text>
+<text x="373" y="488" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">V</text>
+<text x="393" y="488" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">W</text>
+<circle cx="650" cy="112" r="3" fill="#222"/>
+<polyline points="650,112 650,202" fill="none" stroke="#222" stroke-width="1.2"/>
+<circle cx="670" cy="142" r="3" fill="#222"/>
+<polyline points="670,142 670,202" fill="none" stroke="#222" stroke-width="1.2"/>
+<rect x="640" y="202" width="40" height="50" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<text x="660" y="231" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#222" font-weight="normal" text-anchor="middle">MCB</text>
+<text x="636" y="230" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">-F3</text>
+<polyline points="650,252 650,332" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="670,252 670,332" fill="none" stroke="#222" stroke-width="1.2"/>
+<rect x="640" y="332" width="60" height="70" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<text x="670" y="370.5" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#222" font-weight="normal" text-anchor="middle">AC/DC</text>
+<text x="636" y="370" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">-G1</text>
+<text x="653" y="328" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">L</text>
+<text x="673" y="328" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">N</text>
+<polyline points="650,402 650,592" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="680,402 680,592" fill="none" stroke="#222" stroke-width="1.2"/>
+<text x="653" y="416" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">+</text>
+<text x="683" y="416" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">-</text>
+<polyline points="650,592 640,602 660,602 650,592" fill="none" stroke="#222" stroke-width="1.0"/>
+<polyline points="680,592 670,602 690,602 680,592" fill="none" stroke="#222" stroke-width="1.0"/>
+<text x="650" y="618" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#666" font-weight="normal" text-anchor="middle">24V /3.0</text>
+<text x="685" y="632" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#666" font-weight="normal" text-anchor="middle">0V /3.0</text>
+<text x="710" y="572" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#a04010" font-weight="normal" text-anchor="start">outgoing potentials leave by interruption points</text>
+<text x="730" y="272" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#a04010" font-weight="normal" text-anchor="start">Order down a column: protection, switching, terminal, load</text>
+<text x="730" y="285" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#a04010" font-weight="normal" text-anchor="start">Tags left of the symbol (blue); terminal numbers beside the pins</text>
+<text x="730" y="298" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#a04010" font-weight="normal" text-anchor="start">Contactor coil is detached: its page/column under the tag (/4.2)</text>
+<text x="730" y="311" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#a04010" font-weight="normal" text-anchor="start">Rails 1 step apart in order L1 L2 L3 N PE; drops carry a dot</text>
+<text x="730" y="324" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#a04010" font-weight="normal" text-anchor="start">on their own rail and cross the rails below without a dot</text>
+<text x="30" y="732" font-family="Arial, Helvetica, sans-serif" font-size="10" fill="#444">Sketch on the page grid: 1 step = the connection grid (4 mm native). Drawing area ~100 x 64 steps (A3 landscape). Not to exact scale.</text>
+<text x="30" y="745" font-family="Arial, Helvetica, sans-serif" font-size="10" fill="#444">Pole pitch 2 steps, one feeder per column pair; PE drop at the right of each feeder; spare columns stay empty for later feeders.</text>
+</svg>

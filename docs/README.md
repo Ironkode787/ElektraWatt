@@ -27,6 +27,7 @@ how things work today, and a design document explains why and what is intended.
 | [04 Architecture](design/04-architecture.md) | Crates and layers, model, derived data, rendering, format |
 | [05 Project format](design/05-project-format-and-persistence.md) | Directory layout, encoding, manifest, save protocol, migration |
 | [06 Schematic editor](design/06-schematic-editor.md) | Editing of pages, symbols, devices, connections, frames |
+| [06a Drafting](design/06a-drafting.md) | Routing wires, arranging parts and settling texts on a schematic page |
 | [07 Symbols, parts, macros](design/07-symbols-parts-macros.md) | Master data, parts database, macros, libraries |
 | [07a Symbol design standard](design/07a-symbol-design-standard.md) | Authoring profile for symbols |
 | [08 Connections, terminals, cables](design/08-connections-terminals-cables.md) | Connectivity, potentials, wire properties, terminals, cables |

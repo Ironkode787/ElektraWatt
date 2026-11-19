@@ -1,0 +1,162 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1060" height="782" viewBox="0 0 1060 782">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="30" y="16" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="bold" fill="#111">PLC digital inputs: card along the lower part, one field device per channel above it, one channel per column</text>
+<rect x="30" y="72" width="1000" height="640" fill="#fbfbf8" stroke="#888" stroke-width="1"/>
+<polyline points="30,50 30,72" fill="none" stroke="#888" stroke-width="0.8"/>
+<text x="80" y="65" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#555" font-weight="normal" text-anchor="middle">0</text>
+<polyline points="30,72 30,712" fill="none" stroke="#ddd" stroke-width="0.4" stroke-dasharray="2,4"/>
+<polyline points="130,50 130,72" fill="none" stroke="#888" stroke-width="0.8"/>
+<text x="180" y="65" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#555" font-weight="normal" text-anchor="middle">1</text>
+<polyline points="130,72 130,712" fill="none" stroke="#ddd" stroke-width="0.4" stroke-dasharray="2,4"/>
+<polyline points="230,50 230,72" fill="none" stroke="#888" stroke-width="0.8"/>
+<text x="280" y="65" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#555" font-weight="normal" text-anchor="middle">2</text>
+<polyline points="230,72 230,712" fill="none" stroke="#ddd" stroke-width="0.4" stroke-dasharray="2,4"/>
+<polyline points="330,50 330,72" fill="none" stroke="#888" stroke-width="0.8"/>
+<text x="380" y="65" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#555" font-weight="normal" text-anchor="middle">3</text>
+<polyline points="330,72 330,712" fill="none" stroke="#ddd" stroke-width="0.4" stroke-dasharray="2,4"/>
+<polyline points="430,50 430,72" fill="none" stroke="#888" stroke-width="0.8"/>
+<text x="480" y="65" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#555" font-weight="normal" text-anchor="middle">4</text>
+<polyline points="430,72 430,712" fill="none" stroke="#ddd" stroke-width="0.4" stroke-dasharray="2,4"/>
+<polyline points="530,50 530,72" fill="none" stroke="#888" stroke-width="0.8"/>
+<text x="580" y="65" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#555" font-weight="normal" text-anchor="middle">5</text>
+<polyline points="530,72 530,712" fill="none" stroke="#ddd" stroke-width="0.4" stroke-dasharray="2,4"/>
+<polyline points="630,50 630,72" fill="none" stroke="#888" stroke-width="0.8"/>
+<text x="680" y="65" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#555" font-weight="normal" text-anchor="middle">6</text>
+<polyline points="630,72 630,712" fill="none" stroke="#ddd" stroke-width="0.4" stroke-dasharray="2,4"/>
+<polyline points="730,50 730,72" fill="none" stroke="#888" stroke-width="0.8"/>
+<text x="780" y="65" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#555" font-weight="normal" text-anchor="middle">7</text>
+<polyline points="730,72 730,712" fill="none" stroke="#ddd" stroke-width="0.4" stroke-dasharray="2,4"/>
+<polyline points="830,50 830,72" fill="none" stroke="#888" stroke-width="0.8"/>
+<text x="880" y="65" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#555" font-weight="normal" text-anchor="middle">8</text>
+<polyline points="830,72 830,712" fill="none" stroke="#ddd" stroke-width="0.4" stroke-dasharray="2,4"/>
+<polyline points="930,50 930,72" fill="none" stroke="#888" stroke-width="0.8"/>
+<text x="980" y="65" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#555" font-weight="normal" text-anchor="middle">9</text>
+<polyline points="930,72 930,712" fill="none" stroke="#ddd" stroke-width="0.4" stroke-dasharray="2,4"/>
+<polyline points="30,50 1030,50" fill="none" stroke="#888" stroke-width="0.8"/>
+<polyline points="1030,50 1030,72" fill="none" stroke="#888" stroke-width="0.8"/>
+<text x="30" y="42" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#a04010" font-weight="normal" text-anchor="start">path (column) numbers in the frame band; dotted lines = column borders (not drawn on a real page)</text>
+<polyline points="50,102 1010,102" fill="none" stroke="#222" stroke-width="2.0"/>
+<text x="46" y="105.5" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#222" font-weight="bold" text-anchor="end">L+</text>
+<polyline points="50,592 1010,592" fill="none" stroke="#222" stroke-width="2.0"/>
+<text x="46" y="595.5" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#222" font-weight="bold" text-anchor="end">M</text>
+<rect x="110" y="432" width="840" height="80" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<text x="106" y="476" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">-A1</text>
+<text x="120" y="504" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#555" font-weight="normal" text-anchor="start">DI 8 x 24 V DC   slot 2</text>
+<circle cx="70" cy="102" r="3" fill="#222"/>
+<polyline points="70,102 70,452 110,452" fill="none" stroke="#222" stroke-width="1.2"/>
+<text x="114" y="456" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">L+</text>
+<polyline points="110,492 80,492 80,592" fill="none" stroke="#222" stroke-width="1.2"/>
+<circle cx="80" cy="592" r="3" fill="#222"/>
+<text x="114" y="496" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">M</text>
+<circle cx="180" cy="102" r="3" fill="#222"/>
+<polyline points="180,102 180,202" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="180,202 180,214" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="180,214 171,240" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="180,240 180,252" fill="none" stroke="#222" stroke-width="1.2"/>
+<text x="168" y="232" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">-SF1</text>
+<polyline points="180,252 180,332" fill="none" stroke="#222" stroke-width="1.2"/>
+<rect x="174" y="332" width="12" height="12" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<text x="189" y="342" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">1</text>
+<text x="170" y="342" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">-X2</text>
+<polyline points="180,344 180,432" fill="none" stroke="#222" stroke-width="1.2"/>
+<text x="180" y="448" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#222" font-weight="normal" text-anchor="middle">I0.0</text>
+<text x="184" y="426" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#555" font-weight="normal" text-anchor="start">1</text>
+<text x="180" y="536" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="middle">Start</text>
+<circle cx="280" cy="102" r="3" fill="#222"/>
+<polyline points="280,102 280,202" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="280,202 280,214" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="280,214 271,240" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="280,240 280,252" fill="none" stroke="#222" stroke-width="1.2"/>
+<text x="268" y="232" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">-SF2</text>
+<polyline points="280,252 280,332" fill="none" stroke="#222" stroke-width="1.2"/>
+<rect x="274" y="332" width="12" height="12" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<text x="289" y="342" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">2</text>
+<polyline points="280,344 280,432" fill="none" stroke="#222" stroke-width="1.2"/>
+<text x="280" y="448" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#222" font-weight="normal" text-anchor="middle">I0.1</text>
+<text x="284" y="426" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#555" font-weight="normal" text-anchor="start">2</text>
+<text x="280" y="536" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="middle">Stop</text>
+<circle cx="380" cy="102" r="3" fill="#222"/>
+<polyline points="380,102 380,202" fill="none" stroke="#222" stroke-width="1.2"/>
+<rect x="360" y="202" width="40" height="50" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<text x="380" y="230.5" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#222" font-weight="normal" text-anchor="middle">PNP</text>
+<text x="356" y="230" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">-BG1</text>
+<polyline points="400,242 420,242 420,592" fill="none" stroke="#222" stroke-width="1.2"/>
+<circle cx="420" cy="592" r="3" fill="#222"/>
+<text x="423" y="238" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#555" font-weight="normal" text-anchor="start">BU</text>
+<polyline points="380,252 380,332" fill="none" stroke="#222" stroke-width="1.2"/>
+<rect x="374" y="332" width="12" height="12" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<text x="389" y="342" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">3</text>
+<polyline points="380,344 380,432" fill="none" stroke="#222" stroke-width="1.2"/>
+<text x="380" y="448" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#222" font-weight="normal" text-anchor="middle">I0.2</text>
+<text x="384" y="426" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#555" font-weight="normal" text-anchor="start">3</text>
+<text x="380" y="536" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="middle">Part present</text>
+<circle cx="480" cy="102" r="3" fill="#222"/>
+<polyline points="480,102 480,202" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="480,202 480,214" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="480,214 471,240" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="480,240 480,252" fill="none" stroke="#222" stroke-width="1.2"/>
+<text x="468" y="232" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">-SF3</text>
+<polyline points="480,252 480,332" fill="none" stroke="#222" stroke-width="1.2"/>
+<rect x="474" y="332" width="12" height="12" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<text x="489" y="342" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">4</text>
+<polyline points="480,344 480,432" fill="none" stroke="#222" stroke-width="1.2"/>
+<text x="480" y="448" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#222" font-weight="normal" text-anchor="middle">I0.3</text>
+<text x="484" y="426" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#555" font-weight="normal" text-anchor="start">4</text>
+<text x="480" y="536" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="middle">Door</text>
+<circle cx="580" cy="102" r="3" fill="#222"/>
+<polyline points="580,102 580,202" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="580,202 580,214" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="580,214 571,240" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="580,240 580,252" fill="none" stroke="#222" stroke-width="1.2"/>
+<text x="568" y="232" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">-SF4</text>
+<polyline points="580,252 580,332" fill="none" stroke="#222" stroke-width="1.2"/>
+<rect x="574" y="332" width="12" height="12" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<text x="589" y="342" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">5</text>
+<polyline points="580,344 580,432" fill="none" stroke="#222" stroke-width="1.2"/>
+<text x="580" y="448" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#222" font-weight="normal" text-anchor="middle">I0.4</text>
+<text x="584" y="426" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#555" font-weight="normal" text-anchor="start">5</text>
+<text x="580" y="536" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="middle">Pressure</text>
+<circle cx="680" cy="102" r="3" fill="#222"/>
+<polyline points="680,102 680,202" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="680,202 680,214" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="680,214 671,240" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="680,240 680,252" fill="none" stroke="#222" stroke-width="1.2"/>
+<text x="668" y="232" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">-SF5</text>
+<polyline points="680,252 680,332" fill="none" stroke="#222" stroke-width="1.2"/>
+<rect x="674" y="332" width="12" height="12" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<text x="689" y="342" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">6</text>
+<polyline points="680,344 680,432" fill="none" stroke="#222" stroke-width="1.2"/>
+<text x="680" y="448" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#222" font-weight="normal" text-anchor="middle">I0.5</text>
+<text x="684" y="426" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#555" font-weight="normal" text-anchor="start">6</text>
+<text x="680" y="536" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="middle">Level</text>
+<circle cx="780" cy="102" r="3" fill="#222"/>
+<polyline points="780,102 780,202" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="780,202 780,214" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="780,214 771,240" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="780,240 780,252" fill="none" stroke="#222" stroke-width="1.2"/>
+<text x="768" y="232" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">-SF6</text>
+<polyline points="780,252 780,332" fill="none" stroke="#222" stroke-width="1.2"/>
+<rect x="774" y="332" width="12" height="12" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<text x="789" y="342" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">7</text>
+<polyline points="780,344 780,432" fill="none" stroke="#222" stroke-width="1.2"/>
+<text x="780" y="448" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#222" font-weight="normal" text-anchor="middle">I0.6</text>
+<text x="784" y="426" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#555" font-weight="normal" text-anchor="start">7</text>
+<text x="780" y="536" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="middle">Spare</text>
+<circle cx="880" cy="102" r="3" fill="#222"/>
+<polyline points="880,102 880,202" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="880,202 880,214" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="880,214 871,240" fill="none" stroke="#222" stroke-width="1.2"/>
+<polyline points="880,240 880,252" fill="none" stroke="#222" stroke-width="1.2"/>
+<text x="868" y="232" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#1a4fa0" font-weight="bold" text-anchor="end">-SF7</text>
+<polyline points="880,252 880,332" fill="none" stroke="#222" stroke-width="1.2"/>
+<rect x="874" y="332" width="12" height="12" fill="#fff" stroke="#222" stroke-width="1.2"/>
+<text x="889" y="342" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="start">8</text>
+<polyline points="880,344 880,432" fill="none" stroke="#222" stroke-width="1.2"/>
+<text x="880" y="448" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#222" font-weight="normal" text-anchor="middle">I0.7</text>
+<text x="884" y="426" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#555" font-weight="normal" text-anchor="start">8</text>
+<text x="880" y="536" font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#555" font-weight="normal" text-anchor="middle">Spare</text>
+<text x="110" y="552" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#a04010" font-weight="normal" text-anchor="start">Function text per channel under the card, address inside the card at its pin, terminal between field device and card</text>
+<text x="110" y="565" font-family="Arial, Helvetica, sans-serif" font-size="9" fill="#a04010" font-weight="normal" text-anchor="start">Overview page lists all channels of -A1 and links each to the page/column where it is drawn</text>
+<text x="30" y="732" font-family="Arial, Helvetica, sans-serif" font-size="10" fill="#444">Sketch on the page grid: 1 step = the connection grid (4 mm native). Drawing area ~100 x 64 steps (A3 landscape). Not to exact scale.</text>
+<text x="30" y="745" font-family="Arial, Helvetica, sans-serif" font-size="10" fill="#444">Channel pitch = column width (10 steps); card pins on the card top edge at the column axis, so each drop is one straight line; 8 channels per page.</text>
+</svg>
