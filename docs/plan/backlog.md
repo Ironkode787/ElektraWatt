@@ -84,6 +84,11 @@ answers is deleted with a line in its report.
 - FT-1835 `ew-print`: The test `a_cancelled_print_aborts_before_its_first_band` fails with "The handle is invalid" while other builds run and passes alone. Find what it shares with a build that runs beside it.
 - FT-1836 `ew-viewmodel, ew-scene`: While a wire's pin name is asked (a wire drawn to a box's edge where no pin is), the wire's ghost is hidden; show it until the name is given.
 - FT-1837 `ew-derive`: Tubes from a wide valve terminal with upward ports to a cylinder below are long, because every clear way is.
+- FT-1838 `ew-ui, ew-viewmodel`: F2 does not open a channel's cell in the station view's channel table; a click does.
+- FT-1839 `ew-viewmodel`: The left and right sides of a drawn box have no smallest height by their pin texts, only one step per pin; the top and bottom sides have.
+- FT-1840 `content`: There is no proximity or reed sensor among the starter parts: a three-wire PNP sensor with its symbol.
+- FT-1841 `ew-viewmodel`: The strip rule of letter, page and counter (-X1021) as the wizard's default is the reference project's convention; look at it again when the golden project is retired (FT-1816).
+- FT-1842 `ew-reports, ew-derive`: A list whose last page would hold one or two rows.
 
 ### The development loop
 
