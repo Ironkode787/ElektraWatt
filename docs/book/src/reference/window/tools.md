@@ -92,8 +92,9 @@ pin's name; Enter adds it, Tab adds it and asks for the next pin further along t
 name (two 24 V inputs), as a part's pins may; where a name cannot be taken, the line under the field says why. A
 wire drawn to the box's edge where no pin is asks for a pin there in the same way and ends at it. Double-click a pin
 to rename it; right-click it for **Remove pin**, offered while no wire holds it. Each is one Undo step. The box goes
-no narrower and no lower than its pin names need. A box of a part draws the part's pins: its Add pin opens the
-part's device box, where they are edited.
+no narrower than its pins need and no lower than its longest top pin name and its longest bottom pin name need (those
+two sides' names are turned a quarter, reading from bottom to top; the left and right sides' are horizontal). A box
+of a part draws the part's pins: its Add pin opens the part's device box, where they are edited.
 
 ## Tool step back
 

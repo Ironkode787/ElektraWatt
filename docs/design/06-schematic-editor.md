@@ -1483,7 +1483,9 @@ export start (FR-OUT-001).
     the nearest remaining edge and is listed in the preview. *As built (rc.5):* the CPs of a side keep their order and
     spacing and stay centred on it as a group, on grid points, a grid step clear of each corner; on a shorter side the
     spacing closes up to one step, and below that the grip stops and the status line says why (`box.reshape` refuses
-    it in words). The representation's position follows the outline's top-left corner, so the box's texts keep their
+    it in words); across the box it goes no lower than its longest top pin text and its longest bottom pin text
+    together need, with a gap, and the grip stops there (the texts stay as they were drawn: turned a quarter on the
+    top and bottom sides, horizontal on the left and right). The representation's position follows the outline's top-left corner, so the box's texts keep their
     place relative to it. A CP never moves onto a corner; Centre the pins (the box's right-click, `box.reshape` with
     `centre`) re-centres a box stored with one there.
 14. **Large pastes.** Above 500 records `edit.paste` becomes `Cost::Bulk` and previews as a job (NFR-PERF-08,

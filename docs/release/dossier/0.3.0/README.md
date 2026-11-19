@@ -83,8 +83,9 @@ With the second candidate:
 - The fluid symbols are drawn on a 12 mm module (it was 16), and Golden A was regenerated once for the two of
   them it holds (the 5/2 valve and the double-acting cylinder: folios 203 to 206).
 - Turning or mirroring a symbol never turns its texts; an imported QElectroTech drawing keeps QET's text angles.
-  Pin texts on the top and bottom edges of a drawn box (a PLC card) still stand vertical: put to the owner, not
-  answered, left as it was; the multipin plug's pins run down its sides with horizontal texts.
+  Pin texts of a drawn box (a PLC card) stay as they were: on the top and bottom edges turned a quarter, reading
+  from bottom to top, on the left and right edges horizontal; the multipin plug's pins run down its sides with
+  horizontal texts.
 - A route crosses a text where keeping clear of it is a far longer way, more than 8/5 of the route across (ADR-0033
   amendment 2); a short step aside is still taken, and bodies, ports and other lines stay forbidden.
 - A bus device given to a PLC becomes a station of that PLC (a switch belongs to it without a rack); a station is
@@ -117,8 +118,6 @@ With the third candidate:
 - A turned or mirrored symbol turns about the middle of its body.
 - The persona round was not repeated after the last five fixes and the mended panic: the whole workspace and the
   deep run passed on that tree, and the owner's test is the gate.
-- Open, put to the owner twice and not answered: pin texts on the top and bottom edges of a drawn box stand
-  vertical.
 
 Only a real desktop shows three things (the checklist's RC-05): the installers, a printer, a screen reader. The
 owner's test says whether an open row holds the release.
