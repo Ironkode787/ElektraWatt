@@ -110,18 +110,21 @@ impl ShellModel {
         let Some(project) = &self.project else {
             return Vec::new();
         };
+        // What comes in from a supply first, in the order a panel builder draws it (a phase, N, PE; a DC plus and its
+        // 0 V), then the rest in the list's order (rc.5: 0 V was found only by scrolling).
+        const FIRST: [&str; 9] = ["l1", "l2", "l3", "l", "n", "pe", "l_plus", "m", "l_minus"];
+        let mut words: Vec<String> = project
+            .session
+            .field_choices("potential_def", "ptype", "")
+            .into_iter()
+            .filter_map(|c| c.value.as_str().map(str::to_owned))
+            .collect();
+        words.sort_by_key(|w| FIRST.iter().position(|f| f == w).unwrap_or(FIRST.len()));
         let mut out = vec![(String::new(), String::new())];
-        out.extend(
-            project
-                .session
-                .field_choices("potential_def", "ptype", "")
-                .into_iter()
-                .filter_map(|c| c.value.as_str().map(str::to_owned))
-                .map(|w| {
-                    let text = strings::choice_text(&w);
-                    (w, text)
-                }),
-        );
+        out.extend(words.into_iter().map(|w| {
+            let text = strings::choice_text(&w);
+            (w, text)
+        }));
         out
     }
 

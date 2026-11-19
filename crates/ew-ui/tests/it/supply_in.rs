@@ -552,3 +552,49 @@ fn supply_on_the_draw_tab_places_the_marks_of_what_comes_in() {
     assert!(tables(&mut d).reps.iter().all(|r| r.ip.is_none()), "one undo step");
     d.shell_mut().shutdown();
 }
+
+/// rc.5 (a first-timer's L1, N, PE side by side): marks of one group that stand in a row each print where they come
+/// from; before, the middle one printed nothing and seemed to come from nowhere. The Potential panel lists 0 V near
+/// the top, where a person finds it without scrolling.
+#[test]
+fn supply_marks_in_a_row_each_print_where_they_come_from() {
+    use ew_ui::ew_viewmodel::shell::Outcome;
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    d.input(&click(d.find("Interruption").unwrap()));
+    d.settle();
+    for (name, x) in [("L1", 800), ("N", 1000), ("PE", 1200)] {
+        crate::wires_and_cables::fill(&mut d, "Interruption point name", name);
+        d.input(&Input::Hover { at: (x, 400) });
+        d.settle();
+        d.input(&click((x, 400)));
+        d.settle();
+    }
+    d.input(&key("escape"));
+    d.settle();
+    let ips: Vec<String> = tables(&mut d)
+        .reps
+        .iter()
+        .filter(|r| r.ip.is_some())
+        .map(|r| r.id.to_string())
+        .collect();
+    assert_eq!(ips.len(), 3);
+    let shell = d.shell_mut();
+    assert_eq!(shell.dispatch("select.set", &json!({ "ids": ips })), Outcome::Done);
+    assert_eq!(
+        shell.dispatch("ip.supply_in", &json!({"location": "Mains", "device": "-X0"})),
+        Outcome::Done
+    );
+    let kinds: Vec<String> = shell.supply_kinds().into_iter().map(|(w, _)| w).collect();
+    let m = kinds.iter().position(|w| w == "m").expect("0 V in the list");
+    assert!(m <= 9, "0 V near the top: {kinds:?}");
+    assert_eq!(shell.dispatch("ui.dismiss", &json!({})), Outcome::Done);
+    d.input(&Input::Hover { at: (4, 4) });
+    d.settle();
+    let printed = crate::own_parts::page_texts(&mut d)
+        .iter()
+        .filter(|t| t.contains("-X0"))
+        .count();
+    assert_eq!(printed, 3, "each mark of the row prints where it comes from");
+    d.shell_mut().shutdown();
+}
