@@ -609,6 +609,10 @@ fn a_paste_shows_its_ghost_at_once_and_is_refused_off_the_drawing_area() {
         "paste",
         "the block still hangs on the pointer"
     );
+    // The first Ctrl+Z puts the hanging block away and undoes nothing.
+    done(&mut shell, "edit.undo", json!({}));
+    assert_ne!(shell.tool().name(), "paste");
+    assert_eq!(shell.revision(), rev);
     shell.shutdown();
 }
 

@@ -892,6 +892,14 @@ fn a_drawn_box_takes_pins_where_it_stands() {
         b.cps
     );
     assert_eq!(s.revision(), rev.map(|r| r + 2), "one step each");
+    // The first Ctrl+Z puts an open name field away and undoes nothing.
+    select_ids(&mut s, &[rep.id.to_string()]);
+    let point = sheet_mm(&s, grid_point(&s, (42, 34)));
+    done(&mut s, "box.add_cp", point);
+    let rev = s.revision();
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(s.tool().name(), "select");
+    assert_eq!((s.revision(), pin_names(&s, rep.id)), (rev, vec!["L1".to_owned(), "L2".to_owned()]));
     // A name with a space is refused in words; nothing changes.
     select_ids(&mut s, &[rep.id.to_string()]);
     let point = sheet_mm(&s, grid_point(&s, (42, 34)));
