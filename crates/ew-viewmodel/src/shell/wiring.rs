@@ -74,6 +74,33 @@ impl ShellModel {
             .map(|(_, line, part)| crate::tools::route_edit::grip_move(&line, part))
     }
 
+    /// Which way the grip of the selected box under the pointer resizes it, while Select is idle (the window's pointer
+    /// shape over it before the press, rc.5); `None` elsewhere.
+    pub fn box_grip_under_pointer(&self) -> Option<crate::tools::black_box::GripResize> {
+        if self.tools.tool.name() != "select" || self.tools.tool.state() != "idle" {
+            return None;
+        }
+        let c = self.canvas()?;
+        let at = c.pointer()?;
+        let page = c.page();
+        let cx = crate::tools::ToolCx {
+            page,
+            points_per_nm: c.points_per_nm(),
+            pane: c.pane(),
+            snapper: &page.snapper,
+            selection: &self.tools.selection,
+            layout: self.tools.layout_options,
+            connect_on_move: self.tools.connect_on_move,
+        };
+        let rep = crate::tools::black_box::selected_black_box(&cx)?;
+        match crate::tools::black_box::handle_at(&cx, rep, at)? {
+            crate::tools::black_box::BoxHandle::Grip(k) => {
+                crate::tools::black_box::grip_resize(&rep.black_box.as_ref()?.outline, k)
+            }
+            crate::tools::black_box::BoxHandle::Pin(_) => None,
+        }
+    }
+
     /// Whether a fluid line is selected on the page shown.
     pub fn fluid_line_selected(&self) -> bool {
         self.canvas().is_some_and(|c| {

@@ -550,8 +550,12 @@ impl ShellModel {
             out.extend(self.menu_item("place.join"));
         }
         out.extend(self.menu_item("part.choose"));
-        // A device drawn as a box: its part's pins and where they stand on the box (rc.3).
-        if thing.here.is_some_and(|rep| rep.black_box.is_some()) {
+        // A device drawn as a box: its part's pins and where they stand on the box (rc.3); a box drawn without a part
+        // has pins of its own, added with Add pin beside it (rc.5: the entry answered with a toast there).
+        if thing
+            .here
+            .is_some_and(|rep| rep.black_box.as_ref().is_some_and(|b| !b.own_pins))
+        {
             out.extend(self.aimed(
                 "part.box",
                 json!({}),

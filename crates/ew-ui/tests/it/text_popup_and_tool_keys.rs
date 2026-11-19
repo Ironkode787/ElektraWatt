@@ -530,3 +530,88 @@ fn clicking_placed_text_shows_properties_and_f2_edit() {
     assert_eq!(h.state().shell().selection().items[0].0, item.id);
     assert_sheet(&h);
 }
+
+/// A box drawn without a part on a new page 150 of Golden A's copy, selected, its name field open for a new pin on its
+/// top edge (Add pin from its right-click).
+fn naming_a_pin(h: &mut Harness<'_, App>) -> ew_ui::ew_viewmodel::ew_api::output::Uuid {
+    let page = json!({"cmd": "page.create", "params": {
+        "number": 150, "title": "Box", "kind": "multi_line", "grid": {"num": 7_937_500, "den": 3}}});
+    dispatch(h, "command.run", page);
+    dispatch(h, "page.goto", json!({ "folio": "150" }));
+    wait_for_page(h);
+    dispatch(
+        h,
+        "tool.black_box",
+        json!({"symbol": "ew.gen.blackbox@qet10", "letter": "A"}),
+    );
+    for at in [(60.0, 100.0), (110.0, 125.0)] {
+        dispatch(h, "cursor.set", json!({ "x_mm": at.0, "y_mm": at.1 }));
+        dispatch(h, "canvas.activate", json!({}));
+    }
+    dispatch(h, "tool.select", json!({}));
+    let rep = h
+        .state()
+        .shell()
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .reps
+        .iter()
+        .find(|r| r.black_box.is_some())
+        .expect("the box")
+        .id;
+    dispatch(h, "select.set", json!({ "ids": [rep.to_string()] }));
+    dispatch(h, "box.add_cp", json!({ "x_mm": 70.0, "y_mm": 101.0 }));
+    settle(h);
+    settle(h);
+    assert_eq!(h.state().shell().tool().name(), "box_pin");
+    rep
+}
+
+/// The names the box `rep` stores for its pins, in index order.
+fn pin_names(h: &Harness<'_, App>, rep: ew_ui::ew_viewmodel::ew_api::output::Uuid) -> Vec<String> {
+    let c = h.state().shell().canvas().unwrap();
+    let r = c.page().tables.reps.iter().find(|r| r.id == rep).unwrap();
+    let mut names = r.black_box.as_ref().unwrap().names.clone();
+    names.sort();
+    names.into_iter().map(|(_, n)| n).collect()
+}
+
+/// rc.5 re-test, his keys replayed: "24V Tab 24V Tab 0V Tab 0V Enter" in the pin name field makes four pins named
+/// 24V, 24V, 0V and 0V; each Tab takes the name typed so far and opens an empty field for the next.
+#[test]
+fn tab_between_pin_names_makes_one_pin_per_name() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    let rep = naming_a_pin(&mut h);
+    for (i, name) in ["24V", "24V", "0V", "0V"].into_iter().enumerate() {
+        h.event(egui::Event::Text(name.to_owned()));
+        h.run_ok();
+        h.key_press(if i < 3 { Key::Tab } else { Key::Enter });
+        settle(&mut h);
+        settle(&mut h);
+    }
+    assert_eq!(pin_names(&h, rep), ["24V", "24V", "0V", "0V"]);
+    assert_eq!(h.state().shell().tool().name(), "select");
+}
+
+/// rc.5 re-test: an empty name is said in a line under the field, whole, and the field stays open to type on.
+#[test]
+fn an_empty_pin_name_is_said_under_the_field() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    let rep = naming_a_pin(&mut h);
+    h.key_press(Key::Enter);
+    settle(&mut h);
+    settle(&mut h);
+    let why = "Type a name for the pin";
+    assert!(h.query_by_label(why).is_some(), "the line under the field");
+    h.event(egui::Event::Text("PE".to_owned()));
+    h.run_ok();
+    h.key_press(Key::Enter);
+    settle(&mut h);
+    settle(&mut h);
+    assert_eq!(pin_names(&h, rep), ["PE"]);
+}
+

@@ -345,16 +345,6 @@ impl Command for ReshapeBox {
                         ));
                     }
                 }
-                for (i, cp) in cps.iter().enumerate() {
-                    let Some(name) = &cp.name else { continue };
-                    if cps[..i].iter().any(|o| o.name.as_ref() == Some(name)) {
-                        return Err(CmdError::invalid_params(
-                            Self::NAME,
-                            format!("/cps/{i}/name"),
-                            text!("refusal-box-pin-name-twice", name.as_str()),
-                        ));
-                    }
-                }
                 cps.clone()
             }
             None => {

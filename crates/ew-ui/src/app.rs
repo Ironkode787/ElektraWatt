@@ -1778,6 +1778,25 @@ impl App {
                 _ => {}
             }
         }
+        // Ctrl+V with the focus in a navigator's list (no table) pastes onto the page shown (rc.5: after a page was
+        // opened from the page list, Ctrl+V did nothing and said nothing).
+        if focused == Context::Navigator && !palette_open {
+            let paste = ctx.input_mut(|i| {
+                let mut hit = None;
+                i.events.retain(|e| match e {
+                    egui::Event::Paste(text) if hit.is_none() => {
+                        hit = Some(text.clone());
+                        false
+                    }
+                    _ => true,
+                });
+                hit
+            });
+            if let Some(text) = paste {
+                events.push(Event::Action("edit.paste_clip", json!({ "text": text })));
+                return;
+            }
+        }
         // One list over the focused context and the global one, most modifiers first (egui matches an extra Shift
         // or Alt logically, so Alt+Left must be asked before Left), the focused context first on a tie.
         let mut candidates: Vec<&Binding> = self

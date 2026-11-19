@@ -1506,6 +1506,18 @@ impl CanvasHost {
                 GripMove::Free => egui::CursorIcon::Move,
             });
         }
+        // A grip of the selected box: the pointer says which way a drag resizes it, before the press (rc.5).
+        if response.hovered()
+            && let Some(way) = shell.box_grip_under_pointer()
+        {
+            use ew_viewmodel::tools::black_box::GripResize;
+            ui.ctx().set_cursor_icon(match way {
+                GripResize::UpDown => egui::CursorIcon::ResizeVertical,
+                GripResize::Sideways => egui::CursorIcon::ResizeHorizontal,
+                GripResize::CornerNwSe => egui::CursorIcon::ResizeNwSe,
+                GripResize::CornerNeSw => egui::CursorIcon::ResizeNeSw,
+            });
+        }
         // Doc 16a §7.2, §6.18: the connection point under the pointer names its printed label,
         // its kind and its potential in a tooltip in the inverse style.
         // The link preview popup and a hover tooltip never show at once; while the popup shows, the

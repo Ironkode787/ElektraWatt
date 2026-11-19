@@ -607,7 +607,7 @@ impl ShellModel {
         if lost > 0 {
             text.push(' ');
             text.push_str(&strings::format_count(
-                crate::count_key!("toast-paste-unrouted"),
+                crate::count_key!("toast-wires-unrouted"),
                 lost,
             ));
         }

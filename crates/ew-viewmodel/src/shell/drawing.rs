@@ -35,6 +35,8 @@ pub struct TextPopup {
     pub text: String,
     /// Whether Tab takes the text and asks for the next (a box's pins, rc.5: `tool.next_proposal`).
     pub tab_next: bool,
+    /// Why the text typed cannot be taken, shown whole in a line under the field (rc.5).
+    pub error: Option<String>,
 }
 
 impl ShellModel {
@@ -51,7 +53,7 @@ impl ShellModel {
         let title_key = match (self.tools.tool.name(), self.tools.tool.state()) {
             ("text", "typing") => key!("tool-text"),
             ("text_edit", _) => key!("tool-text_edit"),
-            ("box_pin", _) => key!("tool-box_pin"),
+            ("box_pin", "typing") => key!("tool-box_pin"),
             _ => return None,
         };
         let text = match self.tools.tool.ghost() {
@@ -63,6 +65,7 @@ impl ShellModel {
             title_key,
             text,
             tab_next,
+            error: self.tools.tool.field_error(),
         })
     }
 

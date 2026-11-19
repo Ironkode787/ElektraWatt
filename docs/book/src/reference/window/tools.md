@@ -85,11 +85,15 @@ ends; one Undo takes the row back. Draw ▸ Place ▸ Terminal….
 Draws a black box: a rectangle with connection points for a device that the library has no symbol for. Open it with
 Draw ▸ Place ▸ Black box….
 
-A box drawn without a part takes pins where it stands. Right-click the box and choose **Add pin**: a pin appears on
-the edge nearest the click and a field asks its name; Enter adds it, Tab adds it and asks for the next pin one step
-further along the same side. A wire drawn to the box's edge where no pin is asks for a pin there in the same way and
-ends at it. Double-click a pin to rename it; right-click it for **Remove pin**, offered while no wire holds it. Each is
-one Undo step. A box of a part draws the part's pins: its Add pin opens the part's device box, where they are edited.
+A box drawn without a part takes pins where it stands. Select the box and choose **Add pin** (Draw ▸ Arrange, beside
+Rotate and Mirror): the new pin follows the pointer along the box's edge nearest it, and a click puts it there.
+Right-click the box and choose Add pin to put the pin on the edge nearest the click at once. A field then asks the
+pin's name; Enter adds it, Tab adds it and asks for the next pin further along the same side. Two pins may have one
+name (two 24 V inputs), as a part's pins may; where a name cannot be taken, the line under the field says why. A
+wire drawn to the box's edge where no pin is asks for a pin there in the same way and ends at it. Double-click a pin
+to rename it; right-click it for **Remove pin**, offered while no wire holds it. Each is one Undo step. The box goes
+no narrower and no lower than its pin names need. A box of a part draws the part's pins: its Add pin opens the
+part's device box, where they are edited.
 
 ## Tool step back
 

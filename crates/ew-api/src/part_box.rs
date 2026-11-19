@@ -107,6 +107,14 @@ pub fn pin_text_room(text: &str) -> i64 {
         .saturating_add(1_000_000)
 }
 
+/// The height in nanometres of one line of pin text (style `data.small` with the bundled fonts: its ascent and descent,
+/// as the scene's text box measures it); `None` without the style.
+pub fn pin_text_line() -> Option<i64> {
+    let style = ew_text::builtin().resolve("data.small")?;
+    let m = ew_text::bundled().vertical_metrics(&style);
+    Some(m.ascent.0.saturating_add(m.descent.0))
+}
+
 fn horizontal(side: &Dir4) -> bool {
     matches!(side, Dir4::Up | Dir4::Down)
 }

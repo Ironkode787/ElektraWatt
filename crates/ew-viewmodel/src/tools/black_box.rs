@@ -1003,17 +1003,25 @@ fn pins_fit(
 pub type GripStop = ((i64, i64), Vec<(i64, i64)>);
 
 /// Where grip `grip` of the box `outline` with the pins `cps` stops when dragged to the grid point `to` (page nm), and
-/// the outline there: at `to`, else, where the pins would not fit ([`pins_fit`]), as near to `to` as they fit, moved
-/// back towards the grip's own point a grid step at a time on each axis that is too short. Errors as
+/// the outline there: at `to`, else, where the pins would not fit ([`pins_fit`]) or the box would be lower than `depth`
+/// grid steps while it gets lower (the pin texts of its top and bottom sides would touch, rc.5), as near to `to` as
+/// they fit, moved back towards the grip's own point a grid step at a time on each axis that is too short. Errors as
 /// [`reshape_by_grip`].
 pub fn grip_stop(
     grid: PageGridMap,
     outline: &[(i64, i64)],
     cps: &[BoxCpAt],
-    pitch: i64,
+    (pitch, depth): (i64, i64),
     grip: usize,
     to: (i64, i64),
 ) -> Result<GripStop, Key<'static>> {
+    let height = |o: &[(i64, i64)]| {
+        let ys = o.iter().map(|p| p.1);
+        ys.clone().max().zip(ys.min()).map_or(0, |(a, b)| a - b)
+    };
+    let low = |new: &[(i64, i64)]| {
+        height(new) < height(outline) && height(new) < depth.saturating_mul(grid.step())
+    };
     let home = grip_points(outline).get(grip).copied().unwrap_or(to);
     let mut at = to;
     let mut new = reshape_by_grip(outline, grip, at)?;
@@ -1022,7 +1030,7 @@ pub fn grip_stop(
             let k = grid.index(v);
             grid.coord(if h > v { k + 1 } else { k - 1 })
         };
-        while !pins_fit(grid, outline, cps, &new, along_x, pitch) {
+        while !pins_fit(grid, outline, cps, &new, along_x, pitch) || (!along_x && low(&new)) {
             let (v, h) = if along_x { (at.0, home.0) } else { (at.1, home.1) };
             if v == h {
                 break;
@@ -1272,12 +1280,97 @@ pub fn selected_black_box<'t>(cx: &'t ToolCx<'_>) -> Option<&'t TableRep> {
     }
 }
 
-/// The overlay of a selected black box: a solid square per grip and a dashed square per CP, 3 points across each
-/// half (shapes, not colour, tell them apart; NFR-A11Y-03).
-pub fn grips_overlay(cx: &ToolCx<'_>, rep: &TableRep) -> Overlay {
+/// How near a grip of a selected box a press takes it, in screen points (rc.5: a drag that missed the small handle
+/// moved the whole box): the round handle the wire's grips have, and a margin.
+pub const GRIP_SLOP_PT: f64 = 7.0;
+
+/// What a press on a selected box takes ([`handle_at`]).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum BoxHandle {
+    /// Grip `k` ([`grip_points`]).
+    Grip(usize),
+    /// The pin of this function CP index.
+    Pin(u16),
+}
+
+/// The handle of the selected box `rep` under the sheet point `at`: a corner grip within [`GRIP_SLOP_PT`], else a pin
+/// within [`crate::canvas::HOVER_SLOP_PT`], else an edge's middle grip within [`GRIP_SLOP_PT`]; the nearest of each
+/// kind, ties by index.
+pub fn handle_at(cx: &ToolCx<'_>, rep: &TableRep, at: (i64, i64)) -> Option<BoxHandle> {
+    let b = rep.black_box.as_ref()?;
+    let n = b.outline.len();
+    let near = |p: (i64, i64), slop: f64| {
+        let s = cx.snapper.page_to_sheet(p);
+        cx.within(s, at, slop).then(|| super::dist2(s, at))
+    };
+    let grips = grip_points(&b.outline);
+    let best = |range: std::ops::Range<usize>| {
+        range
+            .filter_map(|k| near(grips[k], GRIP_SLOP_PT).map(|d| (d, k)))
+            .min()
+            .map(|(_, k)| k)
+    };
+    if let Some(k) = best(0..n) {
+        return Some(BoxHandle::Grip(k));
+    }
+    if let Some((_, idx)) = b
+        .cps
+        .iter()
+        .filter_map(|(idx, p, _)| near(*p, crate::canvas::HOVER_SLOP_PT).map(|d| (d, *idx)))
+        .min()
+    {
+        return Some(BoxHandle::Pin(idx));
+    }
+    best(n..2 * n).map(BoxHandle::Grip)
+}
+
+/// Which way grip `grip` of a box `outline` resizes it, for the pointer's shape before the press (rc.5).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum GripResize {
+    /// An upright edge's middle: sideways.
+    Sideways,
+    /// A level edge's middle: up and down.
+    UpDown,
+    /// The top-left or the bottom-right corner.
+    CornerNwSe,
+    /// The top-right or the bottom-left corner.
+    CornerNeSw,
+}
+
+/// The [`GripResize`] of grip `grip` of `outline`; `None` for an edge that is neither level nor upright.
+pub fn grip_resize(outline: &[(i64, i64)], grip: usize) -> Option<GripResize> {
+    let n = outline.len();
+    if grip < n {
+        let (xs, ys) = (outline.iter().map(|p| p.0), outline.iter().map(|p| p.1));
+        let mid = (
+            (xs.clone().min()? + xs.max()?) / 2,
+            (ys.clone().min()? + ys.max()?) / 2,
+        );
+        let p = outline[grip];
+        return Some(if (p.0 < mid.0) == (p.1 < mid.1) {
+            GripResize::CornerNwSe
+        } else {
+            GripResize::CornerNeSw
+        });
+    }
+    let i = grip.checked_sub(n)?;
+    let (a, b) = (*outline.get(i)?, outline[(i + 1) % n]);
+    if a.1 == b.1 {
+        Some(GripResize::UpDown)
+    } else if a.0 == b.0 {
+        Some(GripResize::Sideways)
+    } else {
+        None
+    }
+}
+
+/// The overlay of a selected black box: the wire's round handle on each grip, hot under the pointer, and a dashed
+/// square per CP, 3 points across each half (shapes, not colour, tell them apart; NFR-A11Y-03).
+pub fn grips_overlay(cx: &ToolCx<'_>, rep: &TableRep, pointer: Option<(i64, i64)>) -> Overlay {
     let Some(b) = &rep.black_box else {
         return Overlay::default();
     };
+    let hot = pointer.and_then(|at| handle_at(cx, rep, at));
     let r = cx.nm_of_points(3.0).round() as i64;
     let square = |p: (i64, i64), style: Style| {
         let s = cx.snapper.page_to_sheet(p);
@@ -1288,7 +1381,11 @@ pub fn grips_overlay(cx: &ToolCx<'_>, rep: &TableRep) -> Overlay {
     };
     let mut items: Vec<OverlayItem> = grip_points(&b.outline)
         .into_iter()
-        .map(|p| square(p, Style::solid(Token::Ghost)))
+        .enumerate()
+        .map(|(k, p)| OverlayItem::Grip {
+            at: cx.snapper.page_to_sheet(p),
+            hot: hot == Some(BoxHandle::Grip(k)),
+        })
         .collect();
     items.extend(
         b.cps
@@ -1498,17 +1595,17 @@ mod tests {
             .map(|(x, i)| (i, (x * 1_000_000, 0), Dir::Up))
             .collect();
         // The right edge's grip (5: the midpoint of v1v2) dragged to x 2: three pins need four steps.
-        let (at, new) = grip_stop(g, &r, &cps, 1, 5, (2_000_000, 2_000_000)).unwrap();
+        let (at, new) = grip_stop(g, &r, &cps, (1, 0), 5, (2_000_000, 2_000_000)).unwrap();
         assert_eq!(at, (4_000_000, 2_000_000));
         assert_eq!(new[1].0, 4_000_000);
         // To x 6 it goes all the way.
         assert_eq!(
-            grip_stop(g, &r, &cps, 1, 5, (6_000_000, 2_000_000)).unwrap().0,
+            grip_stop(g, &r, &cps, (1, 0), 5, (6_000_000, 2_000_000)).unwrap().0,
             (6_000_000, 2_000_000)
         );
         // The bottom edge's grip (6) up to y 1: the top and bottom sides keep their length, nothing holds it.
         assert_eq!(
-            grip_stop(g, &r, &cps, 1, 6, (3_000_000, 1_000_000)).unwrap().0,
+            grip_stop(g, &r, &cps, (1, 0), 6, (3_000_000, 1_000_000)).unwrap().0,
             (3_000_000, 1_000_000)
         );
     }

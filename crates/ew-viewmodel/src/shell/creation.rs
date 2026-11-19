@@ -851,7 +851,7 @@ impl ShellModel {
                 pr.session.fold_last_step();
             }
         }
-        let text = if before.reps.is_empty()
+        let mut text = if before.reps.is_empty()
             && before.junctions.is_empty()
             && before.connections.is_empty()
             && before.items.is_empty()
@@ -872,6 +872,13 @@ impl ShellModel {
                 &[&folio, &strings::choice_text(&word), &moved.to_string()],
             )
         };
+        // The wires the router found no way for: counted, what their line means and what to do (rc.5: two wires were
+        // thin and dashed after the change with no word why).
+        let lost = plan.as_ref().map_or(0, |p| p.unrouted.len());
+        if lost > 0 {
+            text.push(' ');
+            text.push_str(&strings::format_count(crate::count_key!("toast-wires-unrouted"), lost));
+        }
         self.notify(text, true);
         Outcome::Done
     }
@@ -917,11 +924,11 @@ impl ShellModel {
         };
         let at = self.tools.page_proposal.as_ref().and_then(|p| p.1.clone());
         let kind = field(self, "type").unwrap_or_default();
-        let after_folio = if field(self, "place").as_deref() == Some("after") {
-            field(self, "folio")
-        } else {
-            Some(self.new_page_proposal(at.as_deref(), Some(&kind)).0)
-        };
+        // The folio in the field while the place is After and the folio reads, else the proposal for After.
+        let after_folio = field(self, "folio")
+            .filter(|f| field(self, "place").as_deref() == Some("after") && parse_folio(f).is_ok())
+            .unwrap_or_else(|| self.new_page_proposal(at.as_deref(), Some(&kind)).0);
+        let after_folio = Some(after_folio);
         let after = after_folio.and_then(|f| self.page_before(&f, &field(self, "section").unwrap_or_default()));
         let rows = self.page_rows();
         let section = match &self.dialog {

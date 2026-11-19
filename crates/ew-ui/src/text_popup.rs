@@ -49,8 +49,13 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, buffer: &mut Option<String>
             // Named for assistive technology (and the tests), as the tool strip's fields are.
             let label = strings::text(key!("action-text-input")).to_owned();
             edit.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &label));
-            if first {
+            // A name the tool could not take keeps the field focused, to type on at once (rc.5).
+            if first || (popup.error.is_some() && !edit.has_focus()) {
                 edit.request_focus();
+            }
+            // Why the text cannot be taken, whole, under the field, which stays open to type on (rc.5).
+            if let Some(why) = &popup.error {
+                ui.add(egui::Label::new(egui::RichText::new(why).color(ui.visuals().error_fg_color)).wrap());
             }
             let finish = edit.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
             if edit.changed() || finish {

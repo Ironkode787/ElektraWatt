@@ -759,7 +759,8 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -
         .iter()
         .filter(|g| symbols && SELECTION_GROUPS.contains(&g.group))
     {
-        for b in &g.buttons {
+        // Add pin stands among a box's own entries, aimed at the click (rc.5), not here.
+        for b in g.buttons.iter().filter(|b| b.id != "box.add_cp") {
             let variants = match &b.kind {
                 ButtonKind::Menu(_) => continue,
                 ButtonKind::Plain => &[][..],
@@ -1215,11 +1216,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
             );
             format!("{readout} \u{b7} {state}")
         }
-        Some(Ghost::Paste { records, .. }) => format!(
-            "{} \u{b7} {}",
-            strings::format_count(crate::count_key!("label-paste"), records),
-            hint()
-        ),
+        Some(Ghost::Paste { words, .. }) => format!("{words} \u{b7} {}", hint()),
         Some(Ghost::Exchange { symbol, unmapped }) => {
             let mut parts = vec![symbol];
             parts.extend(unmapped);

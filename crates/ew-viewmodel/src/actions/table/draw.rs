@@ -1071,17 +1071,22 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ))),
     )),
     // Add pin (rc.5): a pin of the one selected box where it stands, its name asked in place; a box of a part opens
-    // its device box.
+    // its device box. On the Draw tab beside Rotate and Mirror, which a selected box offers too (the re-test found it
+    // only in the right-click menu).
     keeps_banner(with_params(
         "x_mm?:mm, y_mm?:mm",
-        in_canvas(act(
-            "box.add_cp",
-            Command,
-            Menu::Draw,
-            &[],
-            one_box,
-            grp(Group::Place),
-            |s, p| s.act_box_add_cp(p),
+        in_canvas(placed(
+            place(Group::Arrange, 3, CommandSize::Small, None),
+            "plus",
+            act(
+                "box.add_cp",
+                Command,
+                Menu::Draw,
+                &[],
+                one_box,
+                None,
+                |s, p| s.act_box_add_cp(p),
+            ),
         )),
     )),
     keeps_banner(with_params(

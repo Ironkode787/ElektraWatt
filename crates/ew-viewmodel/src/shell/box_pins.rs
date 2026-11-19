@@ -40,22 +40,27 @@ impl ShellModel {
         }
     }
 
-    /// The page point of `x_mm`/`y_mm` (a sheet point, the menu's), else the grid cursor's.
-    fn pin_point(&self, p: &Map<String, Value>) -> Result<(i64, i64), Outcome> {
+    /// The page point of `x_mm`/`y_mm` (a sheet point, the menu's) and `true`; without them the pointer's, else the
+    /// grid cursor's, else the box's middle, and `false` (the pin then follows the pointer until a click puts it).
+    fn pin_point(&self, p: &Map<String, Value>, rep: &TableRep) -> Result<((i64, i64), bool), Outcome> {
         let c = self.canvas().ok_or(Outcome::refused(key!("reason-no-page")))?;
         let page = c.page();
-        match point_mm(p)? {
-            Some(sheet) => Ok(page.snapper.sheet_to_page(sheet)),
+        Ok(match point_mm(p)? {
+            Some(sheet) => (page.snapper.sheet_to_page(sheet), true),
             None => {
-                let cursor = c.cursor().ok_or(Outcome::refused(key!("reason-no-cursor")))?;
-                Ok(page.snapper.snap_grid(cursor).page_nm)
+                let at = c
+                    .pointer()
+                    .map(|q| page.snapper.sheet_to_page(q))
+                    .or_else(|| c.cursor().map(|q| page.snapper.snap_grid(q).page_nm))
+                    .unwrap_or(((rep.body[0] + rep.body[2]) / 2, rep.body[1]));
+                (at, false)
             }
-        }
+        })
     }
 
-    /// `box.add_cp {x_mm?, y_mm?}` (Add pin, the box's right-click and Edit ▸ Add pin): on a box whose pins are its
-    /// own, a new pin on the free grid point of its outline nearest the point (the menu's, else the grid cursor), its
-    /// name then asked in place; on a box of a part, its device box opens, where the part's pins are edited.
+    /// `box.add_cp {x_mm?, y_mm?}` (Add pin, the box's right-click, and the Draw tab's Arrange group): on a box whose
+    /// pins are its own, a new pin on the free grid point of its outline nearest the point, its name then asked in
+    /// place; without a point the pin follows the pointer along the edge until a click puts it (rc.5); on a box of a part, its device box opens, where the part's pins are edited.
     pub(crate) fn act_box_add_cp(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(rep) = self.selected_box() else {
             return Outcome::refused(key!("reason-one-black-box"));
@@ -70,7 +75,7 @@ impl ShellModel {
             }
             return out;
         }
-        let at = match self.pin_point(p) {
+        let (at, given) = match self.pin_point(p, &rep) {
             Ok(at) => at,
             Err(out) => return out,
         };
@@ -83,10 +88,14 @@ impl ShellModel {
         let Some((q, dir)) = pin_target(grid, &b.outline, &b.cps, idx, at) else {
             return Outcome::refused(key!("reason-box-pin-no-room"));
         };
-        self.activate_tool(Box::new(PinNameTool::add(
-            ew_api::output::ew_dl::EntityRef(rep.id),
-            (idx, q, dir),
-        )));
+        let (rep, pin) = (ew_api::output::ew_dl::EntityRef(rep.id), (idx, q, dir));
+        // The menu's point puts the pin at once; the bar's Add pin lets it follow the pointer first (rc.5).
+        let tool = if given {
+            PinNameTool::add(rep, pin)
+        } else {
+            PinNameTool::arm(rep, pin)
+        };
+        self.activate_tool(Box::new(tool));
         self.announce_tool();
         Outcome::Done
     }

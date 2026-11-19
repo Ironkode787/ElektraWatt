@@ -1701,6 +1701,7 @@ fn ghost_lines(model: &ShellModel, lines: &mut Vec<String>) {
             records,
             at_nm,
             dropped,
+            ..
         }) => {
             let mut line = format!("canvas ghost paste records {records}");
             if let Some((x, y)) = at_nm {

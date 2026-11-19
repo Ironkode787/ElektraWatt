@@ -175,8 +175,33 @@ impl PasteTool {
     }
 
     /// The label: `paste <n> records`, the dropped connections, the predicted tags.
+    /// What the block holds and what it leaves out, in a person's words (rc.5: "paste 21 records, 5 connections
+    /// dropped"): "Paste 3 symbols and 4 wires; 2 wires left out: their other end was not copied". Symbols are the
+    /// representations, wires the connections, other items the texts, graphics and boxes; the records behind them
+    /// (devices, functions, junctions) are not counted.
     fn label(&self) -> String {
-        let mut text = strings::format_count(crate::count_key!("label-paste"), self.fragment.records);
+        let count = |kinds: &[&str]| {
+            self.fragment.params["records"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter(|r| r["$k"].as_str().is_some_and(|k| kinds.contains(&k)))
+                .count()
+        };
+        let parts: Vec<String> = [
+            (crate::count_key!("label-paste-symbols"), count(&["representation"])),
+            (crate::count_key!("label-paste-wires"), count(&["connection"])),
+            (crate::count_key!("label-paste-other"), count(&["page_item", "structure_box"])),
+        ]
+        .into_iter()
+        .filter(|(_, n)| *n > 0)
+        .map(|(k, n)| strings::format_count(k, n))
+        .collect();
+        let what = parts
+            .into_iter()
+            .reduce(|a, b| strings::format(key!("label-paste-and"), &[&a, &b]))
+            .unwrap_or_default();
+        let mut text = strings::format(key!("label-paste"), &[&what]);
         if self.dropped > 0 {
             text.push_str(&strings::format_count(
                 crate::count_key!("label-paste-dropped"),
@@ -250,6 +275,7 @@ impl Tool for PasteTool {
             records: self.fragment.records,
             at_nm: self.at.map(|(_, page)| page),
             dropped: self.dropped,
+            words: self.label(),
         })
     }
 

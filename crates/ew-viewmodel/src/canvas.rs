@@ -925,14 +925,12 @@ impl CanvasModel {
     /// as the property grid's header names it ("Pilot line"); `None` over anything else, an electrical wire included.
     pub fn hovered_line_tip(&self) -> Option<String> {
         let (entity, _) = self.hover?;
-        let kind = self
-            .page
-            .tables
-            .connections
-            .iter()
-            .find(|c| c.id == entity.0)?
-            .line_kind
-            .as_deref()?;
+        let c = self.page.tables.connections.iter().find(|c| c.id == entity.0)?;
+        // A wire without a route says what its thin dashed line means and what to do (rc.5).
+        if !c.stored_route {
+            return Some(crate::strings::text(crate::key!("tip-wire-unrouted")).to_owned());
+        }
+        let kind = c.line_kind.as_deref()?;
         let words = crate::strings::field_choice_text("connection", "line_kind", kind);
         Some(crate::strings::format(crate::key!("props-fluid-line"), &[&words]))
     }

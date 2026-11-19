@@ -301,6 +301,8 @@ pub enum Ghost {
         at_nm: Option<(i64, i64)>,
         /// The connections the copy dropped.
         dropped: usize,
+        /// What the block holds and leaves out, in words ("Paste 3 symbols and 4 wires; …", rc.5).
+        words: String,
     },
     /// A symbol exchange.
     Exchange {
@@ -552,6 +554,12 @@ pub trait Tool {
     /// so two quick clicks of the Place tool place twice.
     fn finishes_on_double_click(&self) -> bool {
         false
+    }
+
+    /// Why the text typed into the tool's field cannot be taken, said in a line under the field, which stays open
+    /// (rc.5: a pin's name); `None` for most tools.
+    fn field_error(&self) -> Option<String> {
+        None
     }
 
     /// What the tool floats or drags; `None` while it holds nothing.

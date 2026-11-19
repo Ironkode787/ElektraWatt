@@ -2280,6 +2280,9 @@ pub struct TableBox {
     pub own_pins: bool,
     /// The names of the box's own pins (`BoxCp.name`): function CP index and name.
     pub names: Vec<(u16, String)>,
+    /// The least height in grid steps that keeps the pin texts of its top and bottom sides apart (rc.5); 0 where they
+    /// print none.
+    pub depth: i64,
 }
 
 /// One cell of a [`TableBox`] drawn as a valve terminal's positions.
@@ -2684,6 +2687,7 @@ impl Session {
                     cells: Vec::new(),
                     supply_end: None,
                     pitch: super::view::box_text_pitch(&q, &rep),
+                    depth: super::view::box_text_depth(&q, &rep),
                     own_pins: first.as_ref().is_some_and(|f| {
                         matches!(f.kind, FunctionKind::BlackBox)
                             && f.device

@@ -834,10 +834,10 @@ fn pin_names(s: &ShellModel, rep: ew_viewmodel::ew_api::output::Uuid) -> Vec<Str
 /// at a point puts a pin on the edge nearest it and asks its name; Tab takes it and asks for the next on the same side;
 /// a double click on a pin renames it; Remove pin takes it away while no wire holds it; a wire drawn to the box's edge
 /// where no pin is asks for a pin there and ends at it. Each is one undo step.
-#[test]
-fn a_drawn_box_takes_pins_where_it_stands() {
-    let tmp = Tmp::new("box-own-pins");
-    let mut s = actual_size(&tmp, "102");
+/// A new page 150 on the QET grid of Golden A's copy with a box drawn without a part from grid (30, 30) to (42, 38),
+/// selected.
+fn plain_box(tmp: &Tmp) -> (ShellModel, TableRep) {
+    let mut s = actual_size(tmp, "102");
     done(
         &mut s,
         "command.run",
@@ -864,6 +864,98 @@ fn a_drawn_box_takes_pins_where_it_stands() {
         .clone();
     assert!(rep.black_box.as_ref().unwrap().own_pins);
     select_ids(&mut s, &[rep.id.to_string()]);
+    (s, rep)
+}
+
+/// The rc.5 re-test of a drawn box's pins, as the person did it:
+/// - "24V Tab 24V Tab 0V Tab 0V Enter" gives four pins 24V, 24V, 0V, 0V: two pins may share a name, as a part's do;
+/// - an empty name is said under the field, whole, and the field stays open to type on (no banner);
+/// - Add pin stands on the Draw tab's Arrange group, and a box without a part offers no dead "Edit this device's box…";
+/// - Add pin without a point lets the new pin follow the pointer along the nearest edge, the status line says so, and
+///   a click puts it there;
+/// - the box's height stops where the texts of its top and bottom sides would touch, as its width does;
+/// - a press a few points beside a corner's handle takes the handle (the pointer shows resize first), not the box.
+#[test]
+fn a_drawn_box_s_pins_as_the_re_test_used_them() {
+    let tmp = Tmp::new("box-pins-retest");
+    let (mut s, rep) = plain_box(&tmp);
+    let near_top = grid_point(&s, (33, 31));
+    let point = sheet_mm(&s, near_top);
+    done(&mut s, "box.add_cp", point);
+    for (i, name) in ["24V", "24V", "0V", "0V"].into_iter().enumerate() {
+        done(&mut s, "text.input", json!({ "text": name }));
+        let next = if i < 3 { "tool.next_proposal" } else { "tool.finish" };
+        done(&mut s, next, json!({}));
+    }
+    // Two pins of one name, as a part's: the page prints them apart as 24V#1 and 24V#2.
+    assert_eq!(stored_names(&s, rep.id), ["24V", "24V", "0V", "0V"]);
+    assert_eq!(s.tool().name(), "select");
+    // An empty name: the line under the field says why, the field stays.
+    select_ids(&mut s, &[rep.id.to_string()]);
+    let point = sheet_mm(&s, grid_point(&s, (36, 38)));
+    done(&mut s, "box.add_cp", point);
+    done(&mut s, "text.input", json!({ "text": " " }));
+    done(&mut s, "tool.finish", json!({}));
+    let popup = s.text_popup().expect("the field stays open");
+    assert_eq!(popup.error.as_deref(), Some("Type a name for the pin"));
+    done(&mut s, "text.input", json!({ "text": "PE" }));
+    assert!(s.text_popup().is_some_and(|p| p.error.is_none()), "typing clears the line");
+    done(&mut s, "tool.finish", json!({}));
+    assert_eq!(stored_names(&s, rep.id), ["24V", "24V", "0V", "0V", "PE"]);
+    // Add pin on the Draw tab; no dead entry in the box's menu.
+    let arrange = ew_viewmodel::command_bar::placed_in(ew_viewmodel::command_bar::Group::Arrange);
+    assert!(arrange.iter().any(|a| a.id == "box.add_cp"));
+    select_ids(&mut s, &[rep.id.to_string()]);
+    let menu = ew_viewmodel::command_bar::canvas_menu(&s, ew_viewmodel::command_bar::MenuSpot::Object, None);
+    assert!(menu.iter().any(|i| i.label == "Add pin"), "{menu:?}");
+    assert!(!menu.iter().any(|i| i.label == "Edit this device's box…"), "{menu:?}");
+    // Add pin from the bar: the pin follows the pointer along the nearest edge before the click.
+    done(&mut s, "box.add_cp", json!({}));
+    assert_eq!(s.tool().state(), "armed");
+    assert!(s.status_fields(false)[0].contains("edge nearest the pointer"), "{:?}", s.status_fields(false));
+    let right = grid_point(&s, (43, 34));
+    let on_edge = grid_point(&s, (42, 34));
+    let pointer = sheet(&s, right);
+    done(&mut s, "canvas.pointer", at(pointer, json!({})));
+    assert!(
+        s.tool_overlay().items.iter().any(|i| matches!(i,
+            ew_viewmodel::tools::OverlayItem::Marker { at, .. } if *at == sheet(&s, on_edge))),
+        "the ghost pin stands on the right edge"
+    );
+    done(&mut s, "canvas.press", at(pointer, json!({})));
+    assert_eq!(s.tool().state(), "typing");
+    done(&mut s, "text.input", json!({ "text": "SIG" }));
+    done(&mut s, "tool.finish", json!({}));
+    let b = g1_box(&s, rep.id);
+    assert!(b.cps.iter().any(|c| c.1 == on_edge), "the pin stands where the ghost was");
+    // The height stops where the top's and the bottom's pin texts would touch.
+    let depth = b.depth;
+    assert!(depth > 0);
+    select_ids(&mut s, &[rep.id.to_string()]);
+    // The bottom-right corner dragged up to one step below the top.
+    let (from, to) = (sheet(&s, b.outline[2]), sheet(&s, grid_point(&s, (42, 31))));
+    done(&mut s, "canvas.press", at(from, json!({})));
+    done(&mut s, "canvas.pointer", at(to, json!({})));
+    assert!(s.status_fields(false)[0].starts_with("The box goes no smaller"), "{:?}", s.status_fields(false));
+    done(&mut s, "canvas.release", at(to, json!({})));
+    let b = g1_box(&s, rep.id);
+    let ys = b.outline.iter().map(|p| index_of(&s, *p).1);
+    assert!(ys.clone().max().unwrap() - ys.min().unwrap() >= depth, "{:?}", b.outline);
+    // A press a few points beside the top-left corner's handle takes it: the pointer shows resize first.
+    let corner = sheet(&s, b.outline[0]);
+    let pts = s.canvas().unwrap().points_per_nm();
+    let beside = (corner.0 - (5.0 / pts) as i64, corner.1);
+    done(&mut s, "canvas.pointer", at(beside, json!({})));
+    assert_eq!(
+        s.box_grip_under_pointer(),
+        Some(ew_viewmodel::tools::black_box::GripResize::CornerNwSe)
+    );
+}
+
+#[test]
+fn a_drawn_box_takes_pins_where_it_stands() {
+    let tmp = Tmp::new("box-own-pins");
+    let (mut s, rep) = plain_box(&tmp);
     // Add pin near the top edge: the pin goes on it, its name asked in place.
     let near_top = grid_point(&s, (33, 31));
     let point = sheet_mm(&s, near_top);
@@ -903,19 +995,13 @@ fn a_drawn_box_takes_pins_where_it_stands() {
         (s.revision(), pin_names(&s, rep.id)),
         (rev, vec!["L1".to_owned(), "L2".to_owned()])
     );
-    // A name with a space is refused in words; nothing changes.
+    // A name with a space is said under the field; nothing changes.
     select_ids(&mut s, &[rep.id.to_string()]);
     let point = sheet_mm(&s, grid_point(&s, (42, 34)));
     done(&mut s, "box.add_cp", point);
     done(&mut s, "text.input", json!({"text": "A 1"}));
-    assert_eq!(refused(&mut s, "tool.finish", json!({})), "reason-pin-name-space");
-    // A name the box has already is refused by the command, in words.
-    done(&mut s, "text.input", json!({"text": "L1"}));
-    let out = s.dispatch("tool.finish", &json!({}));
-    assert!(
-        format!("{out:?}").contains("has a pin named L1 already"),
-        "{out:?}"
-    );
+    done(&mut s, "tool.finish", json!({}));
+    assert!(s.text_popup().and_then(|p| p.error).is_some_and(|e| e.contains("no spaces")));
     done(&mut s, "ui.dismiss", json!({}));
     assert_eq!(s.tool().name(), "select");
     assert_eq!(pin_names(&s, rep.id), ["L1", "L2"]);
@@ -990,6 +1076,13 @@ fn a_drawn_box_takes_pins_where_it_stands() {
         ["L1", "N", "PE"],
         "one undo brings it back"
     );
+}
+
+/// The names the box `rep` stores for its pins, in index order.
+fn stored_names(s: &ShellModel, rep: ew_viewmodel::ew_api::output::Uuid) -> Vec<String> {
+    let mut names = g1_box(s, rep).names;
+    names.sort();
+    names.into_iter().map(|(_, n)| n).collect()
 }
 
 /// The box `rep` of the page shown.
@@ -1448,5 +1541,46 @@ fn a_pin_is_offered_define_potential_on_its_devices_right_click() {
     assert_eq!(
         last.params["at"],
         json!({"cp": {"function": cp.function.to_string(), "idx": cp.idx}})
+    );
+}
+
+/// rc.5 re-test (two wires thin and dashed after a grid change, with no word why): a wire without a route says in
+/// its tooltip what its thin dashed line means and what to do.
+#[test]
+fn an_unrouted_wire_says_why_it_is_dashed() {
+    let tmp = Tmp::new("unrouted-tip");
+    let (mut s, _) = plain_box(&tmp);
+    for k in [(60, 20), (60, 40)] {
+        done(
+            &mut s,
+            "place.pick",
+            json!({"symbol": "ew.iec.coil@qet10", "letter": "K"}),
+        );
+        let p = grid_point(&s, k);
+        cursor(&mut s, p);
+        done(&mut s, "canvas.activate_alt", json!({}));
+        done(&mut s, "tool.select", json!({}));
+    }
+    let t = tables(&s);
+    let end = |label: &str| {
+        t.cps
+            .iter()
+            .find(|c| c.label.ends_with(label))
+            .expect(label)
+            .clone()
+    };
+    let (a, b) = (end("K1:A2"), end("K2:A1"));
+    let draw = json!({"cmd": "connection.draw", "params": {
+        "a": {"cp": {"function": a.function.to_string(), "idx": a.idx}},
+        "b": {"cp": {"function": b.function.to_string(), "idx": b.idx}},
+        "page": t.page.to_string()}});
+    done(&mut s, "command.run", draw);
+    let middle = sheet(&s, (a.at.0, (a.at.1 + b.at.1) / 2));
+    done(&mut s, "canvas.pointer", at(middle, json!({})));
+    assert_eq!(
+        s.canvas().unwrap().hovered_line_tip().as_deref(),
+        Some(
+            "This wire has no route, so it is drawn as a thin dashed line: move what is in its way and choose Reroute."
+        )
     );
 }

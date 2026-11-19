@@ -1087,50 +1087,18 @@ impl SelectTool {
         Some(out)
     }
 
-    /// A grip or a CP of the selected black box within 4 points of `at` (vertex grips first, then CPs, then the edges'
-    /// midpoints; the nearest of each kind, ties by index).
+    /// A grip or a CP of the selected black box under `at` ([`black_box::handle_at`]).
     fn box_handle(cx: &ToolCx<'_>, at: (i64, i64)) -> Option<State> {
         let rep = black_box::selected_black_box(cx)?;
-        let b = rep.black_box.as_ref()?;
-        let n = b.outline.len();
-        let near = |p: (i64, i64)| {
-            let s = cx.snapper.page_to_sheet(p);
-            cx.within(s, at, crate::canvas::HOVER_SLOP_PT)
-                .then(|| super::dist2(s, at))
-        };
-        let grips = black_box::grip_points(&b.outline);
-        let best = |range: std::ops::Range<usize>| {
-            range
-                .filter_map(|k| near(grips[k]).map(|d| (d, k)))
-                .min()
-                .map(|(_, k)| k)
-        };
         let e = EntityRef(rep.id);
-        if let Some(grip) = best(0..n) {
-            return Some(State::Grip {
+        Some(match black_box::handle_at(cx, rep, at)? {
+            black_box::BoxHandle::Grip(grip) => State::Grip {
                 rep: e,
                 grip,
                 to: None,
                 held: false,
-            });
-        }
-        if let Some((_, idx)) = b
-            .cps
-            .iter()
-            .filter_map(|(idx, p, _)| near(*p).map(|d| (d, *idx)))
-            .min()
-        {
-            return Some(State::BoxCp {
-                rep: e,
-                idx,
-                to: None,
-            });
-        }
-        best(n..2 * n).map(|grip| State::Grip {
-            rep: e,
-            grip,
-            to: None,
-            held: false,
+            },
+            black_box::BoxHandle::Pin(idx) => State::BoxCp { rep: e, idx, to: None },
         })
     }
 
@@ -1185,7 +1153,7 @@ impl SelectTool {
                     return ToolOutput::Transient(Overlay::default());
                 };
                 // The box goes no smaller than its pins need: the grip stops there, and the hint says why (rc.5).
-                let (stop, new) = match black_box::grip_stop(grid, &b.outline, &b.cps, b.pitch, *grip, p) {
+                let (stop, new) = match black_box::grip_stop(grid, &b.outline, &b.cps, (b.pitch, b.depth), *grip, p) {
                     Ok(stop) => stop,
                     // An inside-out grip is the same refusal on the drag and on its release; the box stays as it is.
                     Err(reason_key) => return ToolOutput::Refused(reason_key),

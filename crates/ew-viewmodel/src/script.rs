@@ -672,6 +672,7 @@ fn ghost_json(shell: &ShellModel) -> String {
             records,
             at_nm,
             dropped,
+            ..
         }) => object(vec![
             member("kind", &Value::from("paste")),
             member("records", &Value::from(records)),

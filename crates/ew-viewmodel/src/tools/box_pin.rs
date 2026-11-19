@@ -4,15 +4,21 @@
 //! Naming a pin of a drawn box in place (`box_pin`, rc.5: a box drawn without a part could not get pins). A box whose
 //! pins are its own ([`TableBox::own_pins`](ew_api::output::TableBox::own_pins)) takes a pin where it stands: Add pin
 //! (its right-click, Edit ▸ Add pin), a wire drawn to its edge where no pin is, or a double click on a pin to rename it
-//! opens this tool on the pin's point, and the text popup asks for its name.
+//! opens this tool on the pin's point, and the text popup asks for its name. Add pin without a point (the bar's) arms
+//! the tool first: the new pin follows the pointer along the box's edge nearest it, and a click puts it there (rc.5: the
+//! person did not know where a new pin lands).
 //!
 //! | State | Event | Next | Output |
 //! |---|---|---|---|
-//! | typing | `Text(s)` | typing (name = `s`) | `Transient`: the pin's marker and its name |
-//! | typing | `Activate` or `Key(Finish)`, a valid name | typing, then finished | `Commit(box.reshape …)` with the pin named |
-//! | typing | `Key(NextProposal)` (Tab) on a new pin, a valid name | typing on the next free point of its side | `Commit(box.reshape …)` |
-//! | typing | a blank name, or one that is no name | typing | `Refused` in words |
-//! | typing | `Escape` | finished | `Cancel` |
+//! | armed | `PointerMove`, `CursorMove` | armed (the pin on the free point of the outline nearest the point) | `Transient`: the pin's marker and "new pin" |
+//! | armed | `Press` or `Activate` | typing | `Transient` |
+//! | typing | `Text(s)` | typing (name = `s`, the field's line cleared) | `Transient`: the pin's marker and its name |
+//! | typing | `Activate` or `Key(Finish)`, a name | typing, then finished | `Commit(box.reshape …)` with the pin named |
+//! | typing | `Key(NextProposal)` (Tab) on a new pin, a name | typing on the next free point of its side, an empty name | `Commit(box.reshape …)` |
+//! | typing | a blank name, or one with a space | typing | `None`; the line under the field says why ([`Tool::field_error`]) |
+//! | armed, typing | `Escape` | finished | `Cancel` |
+//!
+//! Two pins of one box may have one name (two 24 V inputs), as a part's pins may (rc.5).
 //!
 //! Each name is one `box.reshape` with `cps`, one undo step. The host returns to Select once the tool is finished, or,
 //! for a pin named for a wire, hands the Wire tool back to end the wire at the new pin (one undo step with it).
@@ -42,6 +48,10 @@ pub struct PinNameTool {
     next: bool,
     /// Whether a name was committed.
     named: bool,
+    /// Whether the pin still follows the pointer (armed, before the click that puts it).
+    armed: bool,
+    /// Why the name typed cannot be taken, said under the field.
+    error: Option<String>,
     /// Whether the host returns to Select (or to the wire).
     finished: bool,
     /// The Wire tool whose wire ends at the new pin, handed back by the host once it is named.
@@ -68,8 +78,19 @@ impl PinNameTool {
             name: String::new(),
             next: false,
             named: false,
+            armed: false,
+            error: None,
             finished: false,
             resume: None,
+        }
+    }
+
+    /// The tool armed for a new pin of the box `rep`, which follows the pointer along the box's edge; `pin` where it
+    /// stands first.
+    pub fn arm(rep: EntityRef, pin: BoxCpAt) -> PinNameTool {
+        PinNameTool {
+            armed: true,
+            ..PinNameTool::add(rep, pin)
         }
     }
 
@@ -142,7 +163,11 @@ impl PinNameTool {
                 self.next = next && self.new && self.resume.is_none();
                 ToolOutput::Commit(cmd)
             }
-            Err(reason) => ToolOutput::Refused(reason),
+            // Said under the field, which stays open to type on (rc.5: a banner covered it and took the typing).
+            Err(reason) => {
+                self.error = Some(crate::strings::text(reason).to_owned());
+                ToolOutput::None
+            }
         }
     }
 
@@ -152,10 +177,15 @@ impl PinNameTool {
             at,
             kind: MarkerKind::Cp,
         }];
-        if !self.name.is_empty() {
+        let label = if self.armed {
+            crate::strings::text(key!("label-box-pin-new")).to_owned()
+        } else {
+            self.name.clone()
+        };
+        if !label.is_empty() {
             items.push(OverlayItem::Label {
                 at,
-                text: self.name.clone(),
+                text: label,
                 anchor: Anchor::Above,
             });
         }
@@ -216,13 +246,32 @@ impl Tool for PinNameTool {
     }
 
     fn state(&self) -> &'static str {
-        "typing"
+        if self.armed { "armed" } else { "typing" }
+    }
+
+    fn field_error(&self) -> Option<String> {
+        self.error.clone()
     }
 
     fn on_event(&mut self, ev: &CanvasEvent, cx: &ToolCx<'_>) -> ToolOutput {
         match ev {
+            CanvasEvent::PointerMove { at, .. } | CanvasEvent::CursorMove { at } if self.armed => {
+                let p = cx.snapper.sheet_to_page(*at);
+                if let Some(b) = super::black_box::black_box_rep(cx, self.rep).and_then(|r| r.black_box.as_ref()) {
+                    let grid = PageGridMap::new(cx.page.tables.grid);
+                    if let Some((q, dir)) = super::black_box::pin_target(grid, &b.outline, &b.cps, self.pin.0, p) {
+                        self.pin = (self.pin.0, q, dir);
+                    }
+                }
+                ToolOutput::Transient(self.overlay(cx))
+            }
+            CanvasEvent::Press { .. } | CanvasEvent::Activate if self.armed => {
+                self.armed = false;
+                ToolOutput::Transient(self.overlay(cx))
+            }
             CanvasEvent::Text(text) => {
                 self.name = text.clone();
+                self.error = None;
                 ToolOutput::Transient(self.overlay(cx))
             }
             CanvasEvent::Activate | CanvasEvent::Key(ToolKey::Finish) => self.commit(false, cx),
@@ -250,7 +299,9 @@ impl Tool for PinNameTool {
     }
 
     fn status_hint(&self) -> super::Hint {
-        if self.new && self.resume.is_none() {
+        if self.armed {
+            super::Hint::plain(key!("hint-box-pin-armed"))
+        } else if self.new && self.resume.is_none() {
             super::Hint::new(key!("hint-box-pin-add"), &["tool.next_proposal"])
         } else {
             super::Hint::plain(key!("hint-box-pin-name"))

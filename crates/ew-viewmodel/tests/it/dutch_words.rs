@@ -164,12 +164,7 @@ fn the_finding_detail_names_kind_and_severity_in_words() {
 fn a_count_of_one_reads_in_the_singular() {
     let cases = [
         (count_key!("find-results"), "1 result", "1 resultaat", "2 results"),
-        (
-            count_key!("label-paste"),
-            "paste 1 record",
-            "1 record plakken",
-            "paste 2 records",
-        ),
+        (count_key!("label-paste-wires"), "1 wire", "1 draad", "2 wires"),
         (
             count_key!("find-updated-fewer"),
             "Preview updated: 1 fewer result",
@@ -185,9 +180,9 @@ fn a_count_of_one_reads_in_the_singular() {
         // The paste ghost's dropped connections, the open banner's findings, the approval's waivers.
         (
             count_key!("label-paste-dropped"),
-            ", 1 connection dropped",
-            ", 1 verbinding weggelaten",
-            ", 2 connections dropped",
+            "; 1 wire left out: its other end was not copied",
+            "; 1 draad weggelaten: het andere eind was niet gekopieerd",
+            "; 2 wires left out: their other end was not copied",
         ),
         (
             count_key!("banner-findings"),

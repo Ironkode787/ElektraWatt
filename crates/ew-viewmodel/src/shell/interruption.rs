@@ -935,7 +935,7 @@ impl ShellModel {
         let want = if idle {
             self.with_tool(|_, cx| {
                 selected_black_box(cx)
-                    .map(|r| black_box::grips_overlay(cx, r))
+                    .map(|r| black_box::grips_overlay(cx, r, pointer))
                     .or_else(|| {
                         crate::tools::route_edit::selected_connection(cx)
                             .map(|c| crate::tools::route_edit::handles_overlay(cx, c, pointer, focus))

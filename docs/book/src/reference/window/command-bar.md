@@ -96,6 +96,12 @@ On a panel layout page, places the cabinet's devices that are not placed yet on 
 or of their tags. Devices without a location can be given the cabinet's in the same step. See
 [Draw a panel layout](../../how-to/panel-layout.md).
 
+### Add pin
+
+On a selected box drawn without a part, puts a new pin on its edge: the pin follows the pointer along the edge
+nearest it, a click puts it there, and a field asks its name. On a box of a part it opens the part's device box. See
+[Black box](tools.md#black-box).
+
 ## PLC
 
 ### New station…

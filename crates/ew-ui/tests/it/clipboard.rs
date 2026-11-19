@@ -92,6 +92,33 @@ fn copy_and_paste_events_reach_the_clipboard_actions_on_the_canvas() {
     assert_eq!(h.state().shell().selection().items.len(), 1);
 }
 
+/// rc.5 re-test: a page opened from the page list keeps the keyboard in the list; Ctrl+V there pastes onto that page
+/// (it did nothing and said nothing), and the block hangs on the pointer saying what it holds in words.
+#[test]
+fn ctrl_v_with_the_page_list_focused_pastes_onto_the_page() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "102");
+    select_102f1(&mut h);
+    h.event(egui::Event::Copy);
+    settle(&mut h);
+    let copied = h.state().shell().clipboard().text().expect("copied").to_owned();
+    dispatch(&mut h, "select.set", json!({ "ids": [] }));
+    let pages = Some(Focus::Navigator(ew_ui::ew_viewmodel::navigators::NavKind::Pages));
+    for _ in 0..8 {
+        if h.state().shell().focus() == pages {
+            break;
+        }
+        h.key_press(Key::F6);
+        settle(&mut h);
+    }
+    assert_eq!(h.state().shell().focus(), pages);
+    h.event(egui::Event::Paste(copied));
+    settle(&mut h);
+    assert_eq!(h.state().shell().tool().name(), "paste");
+    let prompt = ew_ui::ew_viewmodel::command_bar::hud(h.state().shell()).prompt;
+    assert!(prompt.starts_with("Paste 1 symbol"), "{prompt}");
+}
+
 /// A focused text field keeps egui's own copy and paste: the gate `ctx.text_edit_focused()` in `route_keys` leaves
 /// the platform's paste and copy events to the field, so no tool is armed and the shell's clipboard is not written.
 #[test]
