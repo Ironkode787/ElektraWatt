@@ -620,7 +620,10 @@ fn the_plcs_name_is_changed_in_the_station_view() {
         .station_tab()
         .and_then(|t| t.error.clone())
         .expect("refused under the rack");
-    assert!(why.starts_with(&format!("{taken} is the name of another PLC")), "{why}");
+    assert!(
+        why.starts_with(&format!("{taken} is the name of another PLC")),
+        "{why}"
+    );
     h.get_by_label(&why);
     assert_eq!(plc(&h), before, "the name stays");
     erase(&mut h, &taken);
