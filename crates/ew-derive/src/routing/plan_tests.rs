@@ -1021,3 +1021,35 @@ fn a_reroute_takes_a_wire_through_its_own_device_s_text_round_it() {
     assert_eq!(plan.routes, vec![(id(1), drawn)]);
     assert_eq!(plan.over_texts, Vec::<Uuid>::new());
 }
+
+/// rc.5 persona run: a Reroute of a whole page made it worse. Routed from nothing, the page had nine crossings fewer
+/// and rated better, and one wire ran across a sensor's text that its stored route went round: a check's warning more.
+/// Here a wire stored round a text by the long way: routed again, the short way across the text rates better, but a
+/// reroute never breaks a hard rule a wire kept, so the wire keeps its route.
+#[test]
+fn a_reroute_never_takes_a_wire_across_a_text_it_kept_clear_of() {
+    let mut p = page();
+    add_job(
+        &mut p,
+        1,
+        (10, mm(0, 0), Dir4::Down),
+        (11, mm(20, 0), Dir4::Down),
+        None,
+    );
+    p.texts.push(TextBox {
+        rep: id(2000),
+        rect: tenths(90, -200, 110, 160),
+    });
+    let round = vec![mm(0, 0), mm(0, 17), mm(20, 17), mm(20, 0)];
+    p.connections[0].routed = true;
+    p.connections[0].polyline.clone_from(&round);
+    assert!(!crosses_text(&p, &round));
+    // From nothing the wire takes the short way across the text (ADR-0033 amendment 2).
+    let mut fresh = p.clone();
+    fresh.connections[0].routed = false;
+    assert_eq!(route_page(&fresh, &[id(1)]).over_texts, vec![id(1)]);
+    // Rerouted, it keeps the way round.
+    let plan = route_page(&p, &[id(1)]);
+    assert_eq!(plan.routes, vec![(id(1), round)]);
+    assert_eq!(plan.over_texts, Vec::<Uuid>::new());
+}

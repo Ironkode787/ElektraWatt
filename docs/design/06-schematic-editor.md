@@ -1246,7 +1246,7 @@ the selected wire's band while that toast is up and the project is at the revisi
 route found: the wires already run as well as the program can route them.", each followed by the reasons of the wires
 left as they were. The two buttons' tooltips say the difference under their names (`tooltip-<action>`), and Route
 page's "Every wire on folio 101 has a route." goes on to name Reroute. A reroute takes a new route clear of the texts
-where the stored one crosses a text (ADR-0033 amendment 5). A route is edited by hand
+where the stored one crosses a text, and never breaks a hard rule a wire kept as drawn (ADR-0033 amendment 5). A route is edited by hand
 with the selected wire's round handles (Select's segment and bend drag, doc 16a §7.1). *As built (rc.3, ADR-0033
 amendment 3).* The Wire tool and Reroute never put a corner on another wire's corner or end, and where the grid gives
 close pins no route or only one more than 8/5 of the direct way, they step on the half grid between the two ends:

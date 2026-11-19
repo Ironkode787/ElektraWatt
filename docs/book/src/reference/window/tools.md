@@ -215,7 +215,8 @@ Routes the selected wires, and every wire with an end on a selected symbol, agai
 wire of the page. A wire gets a new route where its own breaks a rule (it lies on another wire, runs through a
 symbol) or where a shorter one with fewer corners and crossings exists; a wire that is drawn well keeps its route,
 so the page is never worse afterwards. A wire drawn through a text gets a route clear of it wherever the Wire tool
-would draw one. It applies at once, in one undo step; the toast names the wires it changed,
+would draw one, and a wire never gets a route through a symbol or across a text that its old route kept clear of.
+It applies at once, in one undo step; the toast names the wires it changed,
 by their numbers or their ends, three of them and then how many more ("3 wires rerouted: 101.3, 101.5 and 101.7."),
 and the page shows them as selected wires while the toast is up. When no route is better it says "No better route found: the wires already
 run as well as the program can route them.", followed by why for each wire that no route keeps clear. Open it with

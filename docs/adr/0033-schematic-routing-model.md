@@ -224,6 +224,11 @@ The decision text above is unchanged; these entries refine it.
    clear of it is without that loop, and the way across it is the worse drawing, so Reroute keeps them. Reroute's
    toast names the wires it changed, by their numbers or their ends, and the page draws them as selected wires while
    the toast is up; where nothing changes it says that the wires already run as well as the router can route them.
+   Later in the same round a whole-page Reroute made a page worse: routed from nothing it had nine crossings fewer and
+   rated better, but one wire ran across a sensor's text that its stored route went round, a check's warning more. A
+   reroute now never breaks a hard rule a wire kept, wire by wire and for the page: a new route, and the drawing routed
+   from nothing, is taken only where no wire touches a point, lies on a wire or runs through a body that it kept clear
+   of, nor runs across a text it kept clear of unless that rids it of one of those faults.
 
 ## Related
 

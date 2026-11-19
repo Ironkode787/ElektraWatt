@@ -59,7 +59,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use ew_ids::Uuid;
 use ew_schema::Dir4;
 
-use super::measures::{measure, meet, overlap};
+use super::measures::{Measures, TouchedPoint, measure, meet, overlap};
 use super::page::{PageGeometry, Point, Rect};
 use super::search::{
     BEND_COST, CROSSING_COST, Heading, RouteEnd, RouteRequest, STEP_COST, TEXT_COST, fit, route,
@@ -521,6 +521,49 @@ struct State {
     routes: BTreeMap<Uuid, (Vec<Point>, u32)>,
 }
 
+/// What a wire breaks of the hard rules by the layout measures, the rules the checks report: the points it touches,
+/// the wires it lies on and the bodies it runs through (the grave ones), and apart from them the texts it runs across.
+#[derive(Clone, Default, PartialEq, Eq, Debug)]
+struct Faults {
+    /// `(rule, what)`: 0 a touched point, 1 a wire it lies on, 2 a body it runs through.
+    grave: BTreeSet<(u8, Uuid)>,
+    /// The representations whose texts it runs across.
+    texts: BTreeSet<Uuid>,
+}
+
+impl Faults {
+    /// Each wire's faults in the measures `m`.
+    fn of(m: &Measures) -> BTreeMap<Uuid, Faults> {
+        let mut out: BTreeMap<Uuid, Faults> = BTreeMap::new();
+        for t in &m.touches {
+            let point = match t.point {
+                TouchedPoint::Cp(id) | TouchedPoint::Junction(id) => id,
+            };
+            out.entry(t.connection).or_default().grave.insert((0, point));
+        }
+        for o in &m.overlaps {
+            let [a, b] = o.connections;
+            out.entry(a).or_default().grave.insert((1, b));
+            out.entry(b).or_default().grave.insert((1, a));
+        }
+        for t in &m.through_bodies {
+            out.entry(t.connection).or_default().grave.insert((2, t.rep));
+        }
+        for t in &m.through_texts {
+            out.entry(t.connection).or_default().texts.insert(t.rep);
+        }
+        out
+    }
+
+    /// Whether a wire with these faults, drawn anew, breaks no hard rule it kept with the faults `before`: no point,
+    /// wire or body it did not touch, lie on or run through before, and no text it did not run across before, unless
+    /// it is rid of a grave fault for it (a page is never worse after a reroute, rc.5).
+    fn no_worse(&self, before: &Faults) -> bool {
+        self.grave.is_subset(&before.grave)
+            && (self.texts.is_subset(&before.texts) || self.grave.len() < before.grave.len())
+    }
+}
+
 /// The page solve's fixed context.
 struct Solve<'a> {
     page: &'a PageGeometry,
@@ -681,7 +724,8 @@ impl Solve<'_> {
     /// where the new one is drawn at less cost ([`Self::cost`]); at most two passes, the second only where the first
     /// changed a route. A job without a better route keeps the one it has. (The search offers a route clear of the texts
     /// wherever it is not far longer than the best across one; weighed as drawn, a text costs as much as a bend and six
-    /// steps, so a stored wire through a text kept its route where the Wire tool would have gone round: rc.5.)
+    /// steps, so a stored wire through a text kept its route where the Wire tool would have gone round: rc.5.) A new
+    /// route is never taken where it breaks a hard rule the old one kept ([`Self::no_worse`]).
     fn improve(&self, mut state: State) -> State {
         for _ in 0..2 {
             let bad = self.bad(&state);
@@ -704,7 +748,8 @@ impl Solve<'_> {
                         if new.0 != old.0
                             && (bad.contains(&j)
                                 || (crosses_text(self.page, &old.0) && !crosses_text(self.page, &new.0))
-                                || self.cost(j, &new.0, &state) < self.cost(j, &old.0, &state)) =>
+                                || self.cost(j, &new.0, &state) < self.cost(j, &old.0, &state))
+                            && self.no_worse(j, &new.0, &old.0, &state) =>
                     {
                         state.routes.insert(j, new);
                         changed = true;
@@ -792,16 +837,29 @@ impl Solve<'_> {
     /// ADR-0033 amendment 3, breaks none of them: it counts as crossings in [`Self::cost`], which a route clear of
     /// it undercuts.)
     fn bad(&self, state: &State) -> BTreeSet<Uuid> {
+        self.faults(state)
+            .into_iter()
+            .filter(|(id, f)| !f.grave.is_empty() && state.routes.contains_key(id))
+            .map(|(id, _)| id)
+            .collect()
+    }
+
+    /// What every routed wire of `state` breaks by the layout measures ([`Faults`]).
+    fn faults(&self, state: &State) -> BTreeMap<Uuid, Faults> {
         let mut drawn = self.drawn(state);
         drawn.connections.retain(|c| c.routed);
-        let m = measure(&drawn);
-        m.touches
-            .iter()
-            .map(|t| t.connection)
-            .chain(m.overlaps.iter().flat_map(|o| o.connections))
-            .chain(m.through_bodies.iter().map(|t| t.connection))
-            .filter(|id| state.routes.contains_key(id))
-            .collect()
+        Faults::of(&measure(&drawn))
+    }
+
+    /// Whether the wire of `job` drawn along `new` instead of `old`, beside the other wires of `state`, breaks no hard
+    /// rule that it kept along `old` ([`Faults::no_worse`]).
+    fn no_worse(&self, job: Uuid, new: &[Point], old: &[Point], state: &State) -> bool {
+        let along = |route: &[Point]| {
+            let mut s = state.clone();
+            s.routes.insert(job, (route.to_vec(), 0));
+            self.faults(&s).remove(&job).unwrap_or_default()
+        };
+        along(new).no_worse(&along(old))
     }
 
     /// How well `state` draws the jobs (less is better): the jobs without a route or with one that breaks a hard
@@ -1097,9 +1155,20 @@ pub fn route_page(page: &PageGeometry, jobs: &[Uuid]) -> RoutePlan {
         }
     } else {
         solve.order = shortest_first;
+        let before = solve.faults(&kept);
+        let stored: Vec<Uuid> = kept.routes.keys().copied().collect();
         let drawn = solve.improve(solve.construct(kept));
         let fresh = solve.construct(State::default());
-        if solve.rating(&fresh) < solve.rating(&drawn) {
+        // The jobs routed from nothing are taken only where no wire breaks a hard rule it kept as drawn (rc.5: a
+        // drawing with nine crossings fewer rated better, and one of its wires ran across a text the old one kept clear
+        // of, a check's warning more).
+        let after = solve.faults(&fresh);
+        let kept_rules = stored.iter().all(|id| {
+            after
+                .get(id)
+                .is_some_and(|a| a.no_worse(&before.get(id).cloned().unwrap_or_default()))
+        });
+        if kept_rules && solve.rating(&fresh) < solve.rating(&drawn) {
             fresh
         } else {
             drawn
