@@ -652,7 +652,8 @@ impl ShellModel {
     /// representation, routed again; with nothing of the page selected, every connection of the page. The solve
     /// starts from the drawing (ADR-0033 amendment 4): a wire keeps a route that is as good as a new one. Applied at
     /// once as one `connection.route_many` (one undo step) with only the routes that change; a toast says how many
-    /// wires it rerouted, or that it found no better route and why.
+    /// wires it rerouted and names them (rc.5: "1 wire rerouted" and a page that looked the same), and the page
+    /// draws them with the selected wire's band while that toast is up; else it says that no better route exists.
     pub(crate) fn act_route_reroute(&mut self) -> Outcome {
         let Some(c) = self.canvas() else {
             return Outcome::refused(key!("reason-no-page"));
@@ -682,6 +683,8 @@ impl ShellModel {
         plan.over_texts
             .retain(|id| plan.routes.iter().any(|(changed, _)| changed == id));
         let rows = route_rows(session, &folio, &plan);
+        let changed: Vec<ew_api::output::Uuid> = plan.routes.iter().map(|(id, _)| *id).collect();
+        let names = wire_names(session, &folio, &changed);
         let Some(params) = ew_api::routing::route_many_params(&plan) else {
             let lead = strings::text(key!("toast-reroute-none")).to_owned();
             let text = std::iter::once(lead).chain(rows).collect::<Vec<_>>().join(" ");
@@ -695,15 +698,28 @@ impl ShellModel {
         if out != Outcome::Done {
             return out;
         }
-        let n = plan.routes.len();
-        let lead = if n == 1 {
-            strings::text(key!("toast-reroute-one")).to_owned()
+        let lead = if changed.len() == 1 {
+            strings::format(key!("toast-reroute-one"), &[&names])
         } else {
-            strings::format(key!("toast-reroute"), &[&n.to_string()])
+            strings::format(key!("toast-reroute"), &[&changed.len().to_string(), &names])
         };
         let text = std::iter::once(lead).chain(rows).collect::<Vec<_>>().join(" ");
         self.notify(text, true);
+        self.tools.rerouted = Some((self.notes.newest_serial(), self.revision(), changed));
         Outcome::Done
+    }
+
+    /// The wires the last Reroute changed, while its toast is on screen and the project is at the revision Reroute left
+    /// (rc.5): the page draws them as it draws a selected wire, so a person sees which ones moved.
+    pub(super) fn rerouted_wires(&self) -> &[ew_api::output::Uuid] {
+        match &self.tools.rerouted {
+            Some((serial, rev, ids))
+                if *rev == self.revision() && self.notes.visible().iter().any(|n| n.serial == *serial) =>
+            {
+                ids
+            }
+            _ => &[],
+        }
     }
 
     /// The routes an open Route page or Route selection card plans on the page of canvas `group`, in sheet nm, while
@@ -943,6 +959,29 @@ impl ShellModel {
         }
         out
     }
+}
+
+/// How many wires a Reroute names in its toast before it says how many more there are.
+const NAMED: usize = 3;
+
+/// The wires `ids` of page `folio` as Reroute's toast names them (rc.5): each by its number, else by its ends in words,
+/// the first [`NAMED`] of them and then how many more.
+fn wire_names(session: &ew_api::Session, folio: &str, ids: &[ew_api::output::Uuid]) -> String {
+    let name = |id: &ew_api::output::Uuid| match session.selection_words(*id) {
+        Some(ew_api::output::SelectionWords::Wire {
+            number: Some(number), ..
+        }) => number,
+        _ => session
+            .connection_words(folio, *id)
+            .map(|t| super::tools::rejected_words("", Some(&t)))
+            .unwrap_or_default(),
+    };
+    let mut names: Vec<String> = ids.iter().take(NAMED).map(name).collect();
+    if ids.len() > NAMED {
+        let more = (ids.len() - NAMED).to_string();
+        names.push(strings::format(key!("toast-reroute-more"), &[&more]));
+    }
+    super::external::and_list(&names)
 }
 
 /// One sentence per wire a plan leaves unrouted, with its reason, and per wire it routes across a text, each naming

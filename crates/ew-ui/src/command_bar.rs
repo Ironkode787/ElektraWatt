@@ -308,10 +308,15 @@ fn layout_row(ui: &Ui, t: &Tokens, model: &CommandBarModel, row: Rect) -> RowLay
 }
 
 /// The tooltip of a command: its full label and its shortcut, or the reason it cannot run. A label of more lines (a
-/// name, then how the command works) takes the shortcut on its first line.
+/// name, then how the command works) takes the shortcut or the reason on its first line.
 fn tooltip(b: &CommandButton) -> String {
     let tip = match (&b.reason, b.shortcut.is_empty()) {
-        (Some(reason), _) if !b.enabled => return format!("{}: {reason}", b.label),
+        (Some(reason), _) if !b.enabled => {
+            return match b.label.split_once('\n') {
+                Some((name, rest)) => format!("{name}: {reason}\n{rest}"),
+                None => format!("{}: {reason}", b.label),
+            };
+        }
         (_, true) => b.label.clone(),
         (_, false) => {
             let (name, rest) = b.label.split_once('\n').unwrap_or((&b.label, ""));
@@ -540,7 +545,7 @@ fn group_menu(ui: &mut Ui, g: &GroupModel, events: &mut Vec<Event>) {
             ButtonKind::Plain | ButtonKind::Split(_) => {
                 let item = ActionItem {
                     id: b.id,
-                    label: b.label.clone(),
+                    label: b.name().to_owned(),
                     shortcut: b.shortcut.clone(),
                     enabled: b.enabled,
                     reason: b.reason.clone(),

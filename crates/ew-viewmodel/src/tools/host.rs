@@ -217,6 +217,9 @@ pub(crate) struct ToolHost {
     /// The draw tools' part offers of (session, revision, kind): computed when Draw rail or Draw duct is armed, and
     /// again only when its options or the revision change (the options card reads them every frame).
     pub draw_offers: std::cell::RefCell<Option<DrawOffers>>,
+    /// The wires the last Reroute changed, with its toast's serial and the revision it left (rc.5): drawn as a
+    /// selected wire is while that toast is up and the project is at that revision.
+    pub rerouted: Option<(u64, Option<u64>, Vec<ew_api::output::Uuid>)>,
 }
 
 /// The cached part offers of a draw tool: the (session, revision, kind) they were computed for, and the offers.
@@ -324,6 +327,7 @@ impl ToolHost {
             placed_device: None,
             quiet_stack_at: None,
             draw_offers: std::cell::RefCell::new(None),
+            rerouted: None,
         }
     }
 }

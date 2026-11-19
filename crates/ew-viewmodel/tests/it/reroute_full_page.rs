@@ -233,6 +233,81 @@ fn a_wire_does_not_join_another_where_a_third_crosses_it() {
     assert_eq!((m.touches.len(), unrouted), (0, 0), "{m:?}");
 }
 
+/// rc.5 persona runs: Reroute said "1 wire rerouted" or "2 wires rerouted" and the page looked the same. The toast
+/// names the wire it changed, the page draws that wire as a selected one while the toast is up, and a second Reroute
+/// says why nothing changed.
+#[test]
+fn reroute_names_and_marks_the_wires_it_changed() {
+    let tmp = Tmp::new("reroute-says");
+    let mut s = project(&tmp);
+    let (upper, lower) = (
+        place(&mut s, "EW-GEN-LMP-1", (20, 20)),
+        place(&mut s, "EW-GEN-LMP-1", (20, 40)),
+    );
+    // A wire from the upper lamp down to the lower one, led by a bend far to the right.
+    let (a, bend, b) = (
+        pins(&s, &upper).1.at,
+        page_point(&s, (30, 30)),
+        pins(&s, &lower).0.at,
+    );
+    done(&mut s, "tool.wire", json!({}));
+    assert!(
+        click(&mut s, a, false) && click(&mut s, bend, false) && click(&mut s, b, false),
+        "the wire with its bend"
+    );
+    done(&mut s, "tool.select", json!({}));
+    let wire = tables(&s).connections[0].id;
+    common::select_ids(&mut s, &[wire.to_string()]);
+    let Some(ew_viewmodel::ew_api::output::SelectionWords::Wire { number: Some(number), .. }) = s.selection_words()
+    else {
+        panic!("the wire has a number");
+    };
+    common::select_ids(&mut s, &[]);
+    assert!(s.selected_paths(0).is_empty(), "nothing selected, nothing marked");
+
+    done(&mut s, "route.reroute", json!({}));
+    let said = common::toast(&s);
+    assert!(said.contains(&number), "the toast names the wire: {said}");
+    let line = tables(&s).connections[0].polyline.clone();
+    assert_eq!(line.len(), 2, "straight down now: {line:?}");
+    let sheet: Vec<(i64, i64)> = line.iter().map(|p| common::sheet(&s, *p)).collect();
+    assert_eq!(s.selected_paths(0), vec![sheet], "the changed wire is marked");
+    // The mark goes with the toast.
+    done(&mut s, "toast.dismiss", json!({}));
+    assert!(s.selected_paths(0).is_empty(), "the mark goes with the toast");
+
+    done(&mut s, "route.reroute", json!({}));
+    let again = common::toast(&s);
+    assert!(!again.contains(&number), "{again}");
+    assert_eq!(again, ew_viewmodel::strings::text(ew_viewmodel::key!("toast-reroute-none")));
+    assert!(s.selected_paths(0).is_empty(), "nothing changed, nothing marked");
+}
+
+/// rc.5 persona run: Route page was taken for drawing the page's wires again. Each of the two buttons says in its
+/// tooltip what it does, under its name; a menu that lists the button shows the name alone.
+#[test]
+fn route_page_and_reroute_say_the_difference_in_their_tooltips() {
+    use ew_viewmodel::command_bar::{Tab, command_bar_of};
+    let tmp = Tmp::new("reroute-tips");
+    let s = project(&tmp);
+    let bar = command_bar_of(&s, Tab::Draw);
+    let button = |id: &str| {
+        bar.groups
+            .iter()
+            .flat_map(|g| &g.buttons)
+            .find(|b| b.id == id)
+            .cloned()
+            .unwrap_or_else(|| panic!("{id} has a button"))
+    };
+    let (page, reroute) = (button("route.page"), button("route.reroute"));
+    for b in [&page, &reroute] {
+        let lines: Vec<&str> = b.label.lines().collect();
+        assert_eq!(lines.len(), 2, "a name and what it does: {:?}", b.label);
+        assert_eq!(b.name(), lines[0]);
+    }
+    assert_ne!(page.label.lines().nth(1), reroute.label.lines().nth(1));
+}
+
 /// The texts beside the pins of a multipin plug ("1 · 14", "COM") are texts of the router's page: a wire that would
 /// run under the plug across them goes round them, and the wire of a pin runs past its own text, not across it.
 #[test]

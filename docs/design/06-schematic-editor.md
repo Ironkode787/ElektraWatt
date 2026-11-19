@@ -1237,8 +1237,12 @@ folio 101 has a route." *As built (rc.3).* **Reroute** (`route.reroute`) stands 
 replaces Edit route (the keyboard route editor) and Route selection: the selected connections and every connection with
 an end on a selected representation, or with nothing of the page selected every connection of the page, are routed
 again as if freshly drawn (`RouteScope::Selection`) and applied at once, the routes that change in one
-`connection.route_many` (one undo step), with no card; the toast says "3 wires rerouted." or "No better route found:
-the wires keep their routes.", each followed by the reasons of the wires left as they were. A route is edited by hand
+`connection.route_many` (one undo step), with no card; the toast names the wires it changed ("3 wires rerouted: 101.3,
+101.5 and 101.7.", each by its number, else its ends, three and then how many more; rc.5) and the page draws them with
+the selected wire's band while that toast is up and the project is at the revision Reroute left, or it says "No better
+route found: the wires already run as well as the program can route them.", each followed by the reasons of the wires
+left as they were. The two buttons' tooltips say the difference under their names (`tooltip-<action>`), and Route
+page's "Every wire on folio 101 has a route." goes on to name Reroute. A route is edited by hand
 with the selected wire's round handles (Select's segment and bend drag, doc 16a §7.1). *As built (rc.3, ADR-0033
 amendment 3).* The Wire tool and Reroute never put a corner on another wire's corner or end, and where the grid gives
 close pins no route or only one more than 8/5 of the direct way, they step on the half grid between the two ends:

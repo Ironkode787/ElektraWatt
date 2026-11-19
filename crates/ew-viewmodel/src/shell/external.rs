@@ -756,8 +756,8 @@ impl ShellModel {
     }
 }
 
-/// `a, b and c`: the folios of a toast.
-fn and_list(items: &[String]) -> String {
+/// `a, b and c`: the folios of a toast, the wires of Reroute's.
+pub(super) fn and_list(items: &[String]) -> String {
     match items {
         [] => String::new(),
         [one] => one.clone(),

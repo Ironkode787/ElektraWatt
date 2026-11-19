@@ -404,6 +404,9 @@ action-tool-next-proposal = Next autoconnect proposal
 action-tool-connect-on-move = Connect while moving
 action-route-page = Route page
 action-route-reroute = Reroute
+# rc.5: the line under each name in its command button's tooltip, the difference between the two.
+tooltip-route-page = Draws a route for each wire on this page that has none yet (a dashed line).
+tooltip-route-reroute = Draws the selected wires again where a better way exists; with nothing selected, every wire on the page.
 action-route-handle = Next handle of the selected wire
 action-route-handle-move = Move the wire's handle
 reason-route-handle = Select one wire to go through its handles
@@ -6429,11 +6432,12 @@ route-reason-four-way = The junction would join four wires: { $p0 }.
 route-over-text = Routed across a text, as keeping clear of it is a far longer way: { $p0 }.
 toast-route-done = Routed { $p0 } wires on { $p1 }.
 toast-route-done-one = Routed 1 wire on { $p1 }.
-toast-route-nothing = Every wire on { $p0 } has a route.
+toast-route-nothing = Every wire on { $p0 } has a route. Reroute draws routed wires again where a better way exists.
 reason-route = The routes are previewed first
-toast-reroute = { $p0 } wires rerouted.
-toast-reroute-one = 1 wire rerouted.
-toast-reroute-none = No better route found: the wires keep their routes.
+toast-reroute = { $p0 } wires rerouted: { $p1 }.
+toast-reroute-one = 1 wire rerouted: { $p0 }.
+toast-reroute-more = { $p0 } more
+toast-reroute-none = No better route found: the wires already run as well as the program can route them.
 
 # FT-1648: the explanation of each property row, the tooltip of its label: `field-help-<kind>-<path>`, else the
 # member's `field-help-word-<member>` (see `strings::field_help`).

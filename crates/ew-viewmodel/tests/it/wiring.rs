@@ -822,13 +822,13 @@ fn reroute_with_a_plan_that_changes_nothing_says_so() {
     assert_eq!(s.revision(), rev, "nothing committed");
     assert_eq!(
         s.toast().map(|t| t.text.as_str()),
-        Some("No better route found: the wires keep their routes.")
+        Some("No better route found: the wires already run as well as the program can route them.")
     );
     done(&mut s, "view.language", json!({"value": "nl"}));
     done(&mut s, "route.reroute", json!({}));
     assert_eq!(
         s.toast().map(|t| t.text.as_str()),
-        Some("Geen betere route gevonden: de draden houden hun route.")
+        Some("Geen betere route gevonden: de draden lopen al zo goed als het programma ze kan routeren.")
     );
 }
 
@@ -877,7 +877,8 @@ fn reroute_routes_a_selected_wire_again_and_nothing_else() {
     done(&mut s, "route.reroute", json!({}));
     assert_eq!(describe_line(&s, "card "), None, "no card");
     assert_eq!(s.revision(), rev.map(|r| r + 1), "one step");
-    assert_eq!(s.toast().map(|t| t.text.as_str()), Some("1 wire rerouted."));
+    let said = s.toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert!(said.starts_with("1 wire rerouted: "), "{said}");
     let after = tables(&s);
     let now = after
         .connections

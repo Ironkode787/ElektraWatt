@@ -430,6 +430,8 @@ action-tool-next-proposal = Volgend voorstel voor automatisch verbinden
 action-tool-connect-on-move = Verbinden tijdens verplaatsen
 action-route-page = Pagina routeren
 action-route-reroute = Opnieuw routeren
+tooltip-route-page = Legt een route voor elke draad op deze pagina die er nog geen heeft (een gestreepte lijn).
+tooltip-route-reroute = Legt de geselecteerde draden opnieuw waar een betere weg bestaat; zonder selectie alle draden van de pagina.
 action-route-handle = Volgende greep van de geselecteerde draad
 action-route-handle-move = Greep van de draad verplaatsen
 reason-route-handle = Selecteer één draad om langs zijn grepen te gaan
@@ -6166,11 +6168,12 @@ route-reason-four-way = De aftakking zou vier draden verbinden: { $p0 }.
 route-over-text = Door een tekst gerouteerd, omdat vrij blijven van de tekst een veel langere weg is: { $p0 }.
 toast-route-done = { $p0 } draden op { $p1 } gerouteerd.
 toast-route-done-one = 1 draad op { $p1 } gerouteerd.
-toast-route-nothing = Elke draad op { $p0 } heeft een route.
+toast-route-nothing = Elke draad op { $p0 } heeft een route. Opnieuw routeren legt gerouteerde draden opnieuw waar een betere weg bestaat.
 reason-route = De routes worden eerst als voorbeeld getoond
-toast-reroute = { $p0 } draden opnieuw gerouteerd.
-toast-reroute-one = 1 draad opnieuw gerouteerd.
-toast-reroute-none = Geen betere route gevonden: de draden houden hun route.
+toast-reroute = { $p0 } draden opnieuw gerouteerd: { $p1 }.
+toast-reroute-one = 1 draad opnieuw gerouteerd: { $p0 }.
+toast-reroute-more = nog { $p0 }
+toast-reroute-none = Geen betere route gevonden: de draden lopen al zo goed als het programma ze kan routeren.
 
 # FT-1648: de uitleg van elke eigenschapsrij.
 field-help-word-v = De versie van het formaat van dit record in het bestand. Het bestand houdt haar bij; u kunt haar niet wijzigen.

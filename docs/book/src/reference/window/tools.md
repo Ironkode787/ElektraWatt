@@ -209,9 +209,12 @@ apart, a wire may step half a grid step to cross the other once instead of going
 Routes the selected wires, and every wire with an end on a selected symbol, again; with nothing selected, every
 wire of the page. A wire gets a new route where its own breaks a rule (it lies on another wire, runs through a
 symbol) or where a shorter one with fewer corners and crossings exists; a wire that is drawn well keeps its route,
-so the page is never worse afterwards. It applies at once, in one undo step, and the toast says "3 wires
-rerouted." When no route is better it says "No better route found: the wires keep their routes.", followed by why
-for each wire that no route keeps clear. Open it with Draw ▸ Connect ▸ Reroute, or Reroute in a wire's menu.
+so the page is never worse afterwards. It applies at once, in one undo step; the toast names the wires it changed,
+by their numbers or their ends, three of them and then how many more ("3 wires rerouted: 101.3, 101.5 and 101.7."),
+and the page shows them as selected wires while the toast is up. When no route is better it says "No better route found: the wires already
+run as well as the program can route them.", followed by why for each wire that no route keeps clear. Open it with
+Draw ▸ Connect ▸ Reroute, or Reroute in a wire's menu. Route page, beside it, routes only the wires that have no route
+yet.
 
 ## Route page
 
@@ -220,7 +223,7 @@ tab shows the plan first: "Route 3 wires on folio 101: 2 routed, 1 not routed.",
 keeps clear, why, such as "No route keeps clear of other wires: -101F1:2 → -101E55:L."; a wire routed across a text,
 as keeping clear of the text is a far longer way, is named too. Apply draws the routes, and
 one Undo takes them back; the toast says "Routed 2 wires on folio 101." When every wire of the page has a route it
-says "Every wire on folio 101 has a route." instead. The router routes supply wires and long wires first, keeps the
+says "Every wire on folio 101 has a route." and that Reroute draws routed wires again. The router routes supply wires and long wires first, keeps the
 wires of a feed side by side in the order L1, L2, L3, N, PE where their ends allow it, and keeps every route clear as
 the Wire tool does.
 A wire it cannot route stays unrouted; move a symbol to make room, or place its bends with the Wire tool.

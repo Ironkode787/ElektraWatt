@@ -397,7 +397,8 @@ pub enum ButtonKind {
 pub struct CommandButton {
     /// The action.
     pub id: &'static str,
-    /// The registry label (the tooltip, the menus and the palette carry it).
+    /// The registry label (the tooltip, the menus and the palette carry it), then for some commands a line on what it
+    /// does, which the tooltip alone shows ([`CommandButton::name`]).
     pub label: String,
     /// The short label the bar shows.
     pub bar_label: String,
@@ -417,6 +418,13 @@ pub struct CommandButton {
     pub topic: Option<&'static str>,
     /// Plain, split or menu.
     pub kind: ButtonKind,
+}
+
+impl CommandButton {
+    /// Its name: the label's first line, which a menu that lists the button shows.
+    pub fn name(&self) -> &str {
+        self.label.lines().next().unwrap_or_default()
+    }
 }
 
 /// One group of the command row.
@@ -543,9 +551,15 @@ fn button_of(meta: &'static ActionMeta, model: &ShellModel, size: CommandSize) -
         enabled = false;
         reason = items[0].reason.clone();
     }
+    // A command whose name does not tell it from its neighbour's has a line in its tooltip on what it does: the
+    // `tooltip-` key of its ID (rc.5: a persona took Route page for drawing the page's wires again).
+    let label = match strings::lookup(&format!("tooltip-{}", meta.id.replace(['.', '_'], "-"))) {
+        Some(how) => format!("{}\n{how}", item.label),
+        None => item.label,
+    };
     CommandButton {
         id: meta.id,
-        label: item.label,
+        label,
         bar_label,
         icon: meta.icon.unwrap_or(""),
         size,
@@ -754,7 +768,7 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -
             items.push(ActionItem {
                 id: b.id,
                 params: serde_json::Value::Null,
-                label: b.label.clone(),
+                label: b.name().to_owned(),
                 shortcut: b.shortcut.clone(),
                 enabled: b.enabled,
                 reason: b.reason.clone(),
