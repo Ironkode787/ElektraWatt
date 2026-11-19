@@ -1124,8 +1124,8 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // The actions
 
-    /// `navigator.show {kind, on?}`: shows a navigator as a tab beside the Pages pane and focuses it, or (`on: false`)
-    /// closes it.
+    /// `navigator.show {kind, on?}`: shows a navigator as a tab beside the Pages pane (the left column expanded) and
+    /// focuses it, or (`on: false`) closes it.
     pub(crate) fn act_navigator_show(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = or_return!(self.kind_param(p));
         let on = p.get("on").and_then(Value::as_bool).unwrap_or(true);
@@ -1138,7 +1138,9 @@ impl ShellModel {
             let layout = if PaneKind::BOTTOM.contains(&pane) {
                 self.layout().with_bottom(pane)
             } else {
-                // A navigator already docked becomes the shown tab of its group.
+                // A navigator already docked becomes the shown tab of its group, in a column that shows it (rc.5: the
+                // layout page's Unplaced devices button).
+                self.chrome.rail_collapsed = false;
                 self.layout().with_navigator(pane).showing(pane)
             };
             self.replace_layout(layout);

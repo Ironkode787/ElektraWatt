@@ -979,6 +979,20 @@ pub struct HudModel {
     /// since D is then a letter of the name, not the tool's key (the persona round of 0.2.0-rc.2). `None` for
     /// another tool, or while a refusal stands in the prompt.
     pub field_prompt: Option<String>,
+    /// The ways on the prompt names, as buttons after it (rc.5: a persona did not find Unplaced devices among the
+    /// rail's icons): a layout page's Give location…, Unplaced devices and Auto-fill rail…, a list's pages beside.
+    pub buttons: Vec<HudButton>,
+}
+
+/// A button of the HUD's prompt: its words and the action it runs with its parameters.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct HudButton {
+    /// The button's words.
+    pub label: String,
+    /// The action.
+    pub action: &'static str,
+    /// Its parameters.
+    pub params: serde_json::Value,
 }
 
 /// The number of objects in the pick stack under the focused canvas's pointer (FT-500), 0 without a pointer.
@@ -1001,20 +1015,6 @@ pub(crate) fn key_of(model: &ShellModel, id: &str) -> String {
     actions::find(id)
         .map(|m| crate::keymap::short_display(&model.shortcut_text(m)))
         .unwrap_or_default()
-}
-
-/// The folio of the next page of the generated list on show when the list runs on there (`901.1` after `901`); `None`
-/// for a list that ends on its page and for another page.
-fn report_continues(model: &ShellModel) -> Option<String> {
-    let rows = model.page_rows();
-    let i = model.page_index();
-    let here = rows.get(i).filter(|r| r.kind == "report" && r.generated)?;
-    let base = here.folio.split('.').next()?;
-    let next = rows.get(i + 1).filter(|r| r.generated)?;
-    next.folio
-        .strip_prefix(base)
-        .is_some_and(|rest| rest.starts_with('.'))
-        .then(|| next.folio.clone())
 }
 
 /// The key a hint, a HUD prompt, a toast or a reason names for action `id`: its
@@ -1049,6 +1049,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
     let mut target = None;
     let mut stack = 0;
     let mut field_prompt = None;
+    let mut buttons = Vec::new();
     let hint = || crate::status::hint(model);
     // The Tube tool (the Wire tool on a fluid page) says what it draws first: its line kind and tube (rc.2).
     let tube = name == "wire" && model.wire_kind() == Ok(Some("fluid"));
@@ -1118,22 +1119,67 @@ pub fn hud(model: &ShellModel) -> HudModel {
             {
                 // A layout page names its first step while it shows no plate (rc.2: the persona read only that it
                 // takes no symbols), and the Select hint once it does.
+                // Its ways on are buttons beside the words (rc.5: the rail's icons have no words).
+                let button = |label: String, action: &'static str, params: serde_json::Value| HudButton {
+                    label,
+                    action,
+                    params,
+                };
+                let unplaced = || {
+                    button(
+                        strings::text(key!("nav-title-unplaced")).to_owned(),
+                        "navigator.show",
+                        serde_json::json!({ "kind": "unplaced" }),
+                    )
+                };
                 match model.panel_tables() {
                     None => strings::text(key!("hud-layout-start")).to_owned(),
                     // A plate with no device on it says the next step (rc.5: a persona did not find it).
                     Some(t) if t.placements.is_empty() && !t.unplaced.is_empty() => {
+                        buttons.push(unplaced());
+                        buttons.push(button(
+                            strings::text(key!("action-layout-auto-fill-rail")).to_owned(),
+                            "layout.auto_fill_rail",
+                            serde_json::Value::Null,
+                        ));
                         strings::text(key!("hud-layout-place-next")).to_owned()
                     }
                     // No device of the cabinet's location yet: the location comes first (Unplaced devices lists only
-                    // the devices of the location).
-                    Some(t) if t.placements.is_empty() => {
+                    // the devices of the location), in one step for the devices drawn without one.
+                    Some(t) if t.placements.is_empty() && model.has_devices_to_locate() => {
+                        buttons.push(button(
+                            strings::format(key!("hud-layout-give-location"), &[&t.location]),
+                            "layout.locate_devices",
+                            serde_json::Value::Null,
+                        ));
+                        buttons.push(unplaced());
                         strings::format(key!("hud-layout-locate-first"), &[&t.location])
+                    }
+                    Some(t) if t.placements.is_empty() => {
+                        strings::format(key!("auto-fill-cause-none"), &[&t.location])
                     }
                     Some(_) => hint(),
                 }
-            } else if let Some(next) = report_continues(model) {
-                // A list that runs on says where (rc.5: a persona missed the plugs on the parts list's second page).
-                strings::format(key!("hud-report-continues"), &[&next])
+            } else if let Some(list) = model.list_pages(model.page_index()) {
+                // A list of more than one page says which page this is, with its way to the pages beside it (rc.5: a
+                // persona missed the plugs on the parts list's second page).
+                let ways = [
+                    (list.previous, key!("hud-list-previous")),
+                    (list.next, key!("hud-list-next")),
+                ];
+                for (folio, label) in ways {
+                    if let Some(folio) = folio {
+                        buttons.push(HudButton {
+                            label: strings::format(label, &[&folio]),
+                            action: "page.goto",
+                            params: serde_json::json!({ "folio": folio }),
+                        });
+                    }
+                }
+                strings::format(
+                    key!("hud-list-page"),
+                    &[&list.n.to_string(), &list.of.to_string()],
+                )
             } else if let Some(reason) = crate::actions::page_type_reason(model) {
                 // Doc 16a P3: on a page that takes no symbols, with no tool armed, the reason stands
                 // where the user looks: the page type's, as a greyed drawing tool says it.
@@ -1362,6 +1408,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
         prompt,
         stack,
         field_prompt,
+        buttons,
     }
 }
 

@@ -425,11 +425,6 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
     goto(&mut h, "990");
     checked.insert(check_form(&mut h, "bus.put_station", json!({})));
     dispatch(&mut h, "ui.dismiss", json!({}));
-    goto(&mut h, "902");
-    for action in ["layout.enclosure_new", "layout.auto_fill_rail"] {
-        checked.insert(check_form(&mut h, action, json!({})));
-    }
-    // Location… on a marked Devices row (rc.2).
     dispatch(&mut h, "navigator.show", json!({"kind": "devices"}));
     settle(&mut h);
     let device = h
@@ -444,6 +439,29 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
                 .map(|n| n.key.clone())
         })
         .expect("a device row");
+    // Give location… on a layout page offers the devices drawn without a location: a push-button on a new page (rc.5).
+    dispatch(
+        &mut h,
+        "page.new",
+        json!({"folio": "989", "type": "multi_line", "title": "Field"}),
+    );
+    goto(&mut h, "989");
+    dispatch(&mut h, "place.pick", json!({ "part": "EW-GEN-PB-1", "template": 0 }));
+    let at = json!({ "x_mm": 40.0, "y_mm": 40.0 });
+    dispatch(&mut h, "canvas.press", at.clone());
+    dispatch(&mut h, "canvas.release", at);
+    dispatch(&mut h, "ui.dismiss", json!({}));
+    dispatch(&mut h, "ui.dismiss", json!({}));
+    settle(&mut h);
+    goto(&mut h, "902");
+    for action in [
+        "layout.enclosure_new",
+        "layout.auto_fill_rail",
+        "layout.locate_devices",
+    ] {
+        checked.insert(check_form(&mut h, action, json!({})));
+    }
+    // Location… on a marked Devices row (rc.2).
     dispatch(
         &mut h,
         "navigator.mark",

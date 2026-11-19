@@ -739,6 +739,9 @@ pub struct PageListTable {
     pub rows: Vec<PageListRow>,
     /// The text printed instead of rows (a row source not derived yet, an empty block).
     pub note: Option<String>,
+    /// The sheet rectangle, nm `[left, top, right, bottom]`, of one row right under the table's last row: where the
+    /// window says that a list runs on (rc.5).
+    pub foot: [i64; 4],
 }
 
 /// One printed row of a [`PageListTable`].
@@ -790,7 +793,16 @@ impl Session {
         let entry = order.entries.iter().find(|e| e.folio == folio)?;
         let table = q.get::<PageTableOf>(entry.page);
         let t = table.as_ref().as_ref()?;
+        // The house table's rows (`ew_scene::table`): the header, then the rows drawn, or the note's one row.
+        use ew_scene::table::{LEFT, MAX_ROWS, RIGHT, ROW_HEIGHT, TOP};
+        let drawn = if t.note.is_some() {
+            1
+        } else {
+            t.rows.len().min(MAX_ROWS)
+        };
+        let top = TOP.0 + ROW_HEIGHT.0 * (1 + drawn as i64);
         Some(PageListTable {
+            foot: [LEFT.0, top, RIGHT.0, top + ROW_HEIGHT.0],
             columns: t.columns.iter().map(|c| c.header.clone()).collect(),
             rows: t
                 .rows

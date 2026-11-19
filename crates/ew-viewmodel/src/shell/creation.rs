@@ -553,6 +553,13 @@ pub struct FormTable {
     pub rows: Vec<FormRow>,
 }
 
+/// The type word of a [`FormTable`] column of ticks (Give location's devices): a cell is a tick box, [`TICKED`] when
+/// ticked, empty when not.
+pub const TICK: &str = "tick";
+
+/// The text of a ticked cell of a [`TICK`] column.
+pub const TICKED: &str = "yes";
+
 /// One row of a [`FormTable`]: the first column's text and one cell text per column.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct FormRow {

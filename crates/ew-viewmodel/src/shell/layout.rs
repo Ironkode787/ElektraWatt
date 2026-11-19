@@ -1711,12 +1711,7 @@ impl ShellModel {
         let Some(project) = &self.project else {
             return Outcome::refused(key!("reason-no-project"));
         };
-        let devices: Vec<String> = project
-            .session
-            .unlocated_devices()
-            .iter()
-            .map(ToString::to_string)
-            .collect();
+        let devices = project.session.unlocated_devices();
         let location = project
             .session
             .layout_locations()
@@ -1726,15 +1721,141 @@ impl ShellModel {
         let (false, Some(location)) = (devices.is_empty(), location) else {
             return Outcome::Done;
         };
+        self.give_location(&devices, location)
+    }
+
+    /// Whether devices drawn on the wiring pages have no location: what a layout page's Give location… offers.
+    pub fn has_devices_to_locate(&self) -> bool {
+        self.project
+            .as_ref()
+            .is_some_and(|p| !p.session.unlocated_drawn_devices().is_empty())
+    }
+
+    /// Gives `devices` the location node `location`: one `fields.set` of `structure.location`, one undo step.
+    fn give_location(&mut self, devices: &[Uuid], location: Uuid) -> Outcome {
         self.commit_from_host(&AnyCommand {
             name: "fields.set".into(),
             params: json!({
                 "kind": "device",
-                "targets": devices,
+                "targets": devices.iter().map(ToString::to_string).collect::<Vec<_>>(),
                 "path": "structure.location",
                 "value": location.to_string(),
             }),
         })
+    }
+
+    /// `layout.locate_devices {location?, devices?}` (a layout page's Give location…, rc.5: a persona was sent to
+    /// Properties for each of thirty devices): gives devices the location `location` (its `+` path or node ID; by
+    /// default the cabinet's the page shows) in one step. `devices` are device IDs, or the rows of the window's table
+    /// in its order (a ticked row's device); by default the devices drawn on the wiring pages without a location
+    /// (`Session::unlocated_drawn_devices`) but those behind terminals in the field. In the window without `devices`
+    /// the preview opens: the location, and those devices each with its tick, the field devices unticked. A toast
+    /// says how many took the location and where they wait.
+    pub(crate) fn act_layout_locate_devices(&mut self, p: &Map<String, Value>) -> Outcome {
+        const ACTION: &str = "layout.locate_devices";
+        let Some(panel) = self.panel_tables() else {
+            return Outcome::refused(key!("reason-no-panel-page"));
+        };
+        let Some(project) = &self.project else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let candidates = project.session.unlocated_drawn_devices();
+        let locations = project.session.layout_locations();
+        let tags: Vec<String> = candidates
+            .iter()
+            .map(|(d, _)| project.session.device_tag(*d).unwrap_or_default())
+            .collect();
+        let location = match string_param(p, "location") {
+            Err(e) => return e,
+            Ok(Some(l)) => locations
+                .iter()
+                .find(|(id, code)| id.to_string() == l || code.eq_ignore_ascii_case(l)),
+            Ok(None) => locations.iter().find(|(_, code)| *code == panel.location),
+        };
+        let Some((location, code)) = location.cloned() else {
+            return failed(key!("error-bad-param"), &["location"]);
+        };
+        let devices: Vec<Uuid> = match p.get("devices") {
+            None | Some(Value::Null) if self.mode == super::Mode::Gui && !self.in_form_of(ACTION) => {
+                if candidates.is_empty() {
+                    return Outcome::refused(key!("reason-locate-nothing"));
+                }
+                let tick = strings::text(key!("form-locate-tick")).to_owned();
+                let form = super::FormDialog {
+                    action: ACTION,
+                    title_key: key!("locate-title"),
+                    ok_key: key!("locate-ok"),
+                    fields: vec![super::FormField {
+                        name: "location",
+                        label_key: key!("form-locate-location"),
+                        choices: &super::choices::NONE,
+                        options: locations
+                            .iter()
+                            .map(|(id, c)| (id.to_string(), c.clone()))
+                            .collect(),
+                        value: location.to_string(),
+                    }],
+                    error: None,
+                    table: Some(super::FormTable {
+                        name: "devices",
+                        heading_key: key!("form-locate-devices"),
+                        fixed: true,
+                        key_label: key!("form-locate-device"),
+                        columns: vec![(tick, super::TICK.to_owned())],
+                        rows: candidates
+                            .iter()
+                            .zip(&tags)
+                            .map(|((_, field), tag)| super::FormRow {
+                                key: tag.clone(),
+                                cells: vec![if *field {
+                                    String::new()
+                                } else {
+                                    super::TICKED.to_owned()
+                                }],
+                            })
+                            .collect(),
+                    }),
+                };
+                return self.open_dialog(super::Dialog::Form(form));
+            }
+            None | Some(Value::Null) => candidates.iter().filter(|(_, f)| !f).map(|(d, _)| *d).collect(),
+            Some(Value::Array(items)) => {
+                let mut out = Vec::new();
+                for (i, item) in items.iter().enumerate() {
+                    match item {
+                        // A row of the window's table: its device when ticked.
+                        Value::Object(row) => {
+                            let ticked = row
+                                .get("values")
+                                .and_then(Value::as_object)
+                                .is_some_and(|v| !v.is_empty());
+                            match candidates.get(i) {
+                                Some((d, _)) if ticked => out.push(*d),
+                                Some(_) => {}
+                                None => return failed(key!("error-bad-param"), &["devices"]),
+                            }
+                        }
+                        Value::String(s) => match s.trim().parse::<Uuid>() {
+                            Ok(d) => out.push(d),
+                            Err(_) => return failed(key!("error-bad-param"), &["devices"]),
+                        },
+                        _ => return failed(key!("error-bad-param"), &["devices"]),
+                    }
+                }
+                out
+            }
+            Some(_) => return failed(key!("error-bad-param"), &["devices"]),
+        };
+        if devices.is_empty() {
+            let message = strings::text(key!("reason-locate-none")).to_owned();
+            return self.form_failed(ACTION, message);
+        }
+        let out = self.give_location(&devices, location);
+        if out == Outcome::Done {
+            let n = strings::format_count(count_key!("auto-fill-devices"), devices.len());
+            self.notify(strings::format(key!("toast-locate-devices"), &[&n, &code]), true);
+        }
+        self.layout_form_done(ACTION, out)
     }
 
     /// The end of a set-up action: a failure stays in its dialog, a success closes it.

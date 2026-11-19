@@ -132,9 +132,9 @@ pub use tips::Tip;
 
 pub use bond::BOND_KINDS;
 pub use bulk::PURGE_LISTED;
-pub use creation::{FormDialog, FormField, FormRow, FormTable, PAGE_TYPES, STRUCTURE_KINDS};
+pub use creation::{FormDialog, FormField, FormRow, FormTable, PAGE_TYPES, STRUCTURE_KINDS, TICK, TICKED};
 pub use drawing::TextPopup;
-pub use navigation::{Focus, RECENT_PAGES, SessionCalls};
+pub use navigation::{Focus, ListPages, RECENT_PAGES, SessionCalls};
 pub use navigators::{Chip, DragSource, FindingLook, MAX_CHIPS, ShownRow};
 pub use parts::{MapColumn, MapKind, PartsMap};
 pub use row_ops::NavRename;

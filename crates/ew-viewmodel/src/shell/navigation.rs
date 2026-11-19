@@ -33,6 +33,19 @@ use crate::strings::Key;
 /// How many pages no tab shows the page-content cache keeps, most recently shown first.
 pub const RECENT_PAGES: usize = 8;
 
+/// Where a page of a generated list of more than one page stands ([`ShellModel::list_pages`]).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct ListPages {
+    /// The page's number in the list, from 1.
+    pub n: usize,
+    /// The list's page count.
+    pub of: usize,
+    /// The folio of the list's page before, `None` on its first.
+    pub previous: Option<String>,
+    /// The folio of the list's page after, `None` on its last.
+    pub next: Option<String>,
+}
+
 /// Where the keyboard focus is: it decides which context's shortcuts the window binds.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Focus {
@@ -245,10 +258,52 @@ impl ShellModel {
                 None => strings::text(key!("rack-new-title")).to_owned(),
             };
         }
-        match self.tab_row(tab) {
-            Some(r) => strings::format(key!("tab-title"), &[&r.folio, &r.title]),
-            None => String::new(),
+        let Some(r) = self.tab_row(tab) else {
+            return String::new();
+        };
+        let title = strings::format(key!("tab-title"), &[&r.folio, &r.title]);
+        // A list of more than one page says which page the tab shows (rc.5).
+        match self.row_index(tab.page).and_then(|i| self.list_pages(i)) {
+            Some(l) => strings::format(
+                key!("tab-title-list-page"),
+                &[&title, &l.n.to_string(), &l.of.to_string()],
+            ),
+            None => title,
         }
+    }
+
+    /// Where the generated list of the page at position `i` of the page order stands among its pages (rc.5: the
+    /// plugs on a parts list's second page went unseen): the run of generated list pages of one folio and its
+    /// sub-pages (`901`, `901.1`, ...). `None` for a list of one page and for any other page.
+    pub fn list_pages(&self, i: usize) -> Option<ListPages> {
+        let rows = self.page_rows();
+        let here = rows.get(i).filter(|r| r.kind == "report" && r.generated)?;
+        let base = here.folio.split('.').next()?;
+        let of_list = |r: &PageRow| {
+            r.kind == "report"
+                && r.generated
+                && r.folio
+                    .strip_prefix(base)
+                    .is_some_and(|rest| rest.is_empty() || rest.starts_with('.'))
+        };
+        let start = (0..=i).rev().take_while(|&j| of_list(&rows[j])).last()?;
+        let end = (i..rows.len()).take_while(|&j| of_list(&rows[j])).last()?;
+        (start < end).then(|| ListPages {
+            n: i - start + 1,
+            of: end - start + 1,
+            previous: (i > start).then(|| rows[i - 1].folio.clone()),
+            next: (i < end).then(|| rows[i + 1].folio.clone()),
+        })
+    }
+
+    /// The row under the last row of the list on show that runs on (rc.5): its words, the folio it goes to and its
+    /// sheet rectangle, nm `[left, top, right, bottom]`; `None` on any other page.
+    pub fn list_foot(&self) -> Option<(String, String, [i64; 4])> {
+        let next = self.list_pages(self.page_index())?.next?;
+        let folio = &self.page_rows().get(self.page_index())?.folio;
+        let table = self.project.as_ref()?.session.page_list_table(folio)?;
+        let text = strings::format(key!("list-continues-row"), &[&next]);
+        Some((text, next, table.foot))
     }
 
     /// The canvas of the active tab of `group`.

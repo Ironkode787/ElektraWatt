@@ -69,7 +69,7 @@ pub(crate) use queries::shown_location;
 pub use queries::{
     CarrierGeom, CarrierGeometry, Exempt, LabelMode, LayoutLabel, MountAs, Mountability, Mountable, Occupied,
     PlacementGeom, PlacementGeometry, RailExtent, RailOccupancy, UNKNOWN_SIDE, Unplaced, is_earth_connection,
-    is_earth_point, places_strip, primary_part, rail_extent, space_of_location, unlocated,
+    is_earth_point, places_strip, primary_part, rail_extent, space_of_location, unlocated, unlocated_drawn,
 };
 pub use snap::{
     BracketRole, BracketSpan, RailItem, Resolution, SnapError, SnapMode, brackets, cascade, cascade_mirrored,

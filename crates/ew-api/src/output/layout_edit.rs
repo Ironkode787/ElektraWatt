@@ -1519,6 +1519,15 @@ impl Session {
             .collect()
     }
 
+    /// Of those, the devices drawn on a wiring page, each with whether it stands behind terminals in the field
+    /// (`ew_derive::layout::unlocated_drawn`), by tag.
+    pub fn unlocated_drawn_devices(&self) -> Vec<(Uuid, bool)> {
+        ew_derive::layout::unlocated_drawn(&self.query())
+            .into_iter()
+            .map(|(d, field)| (d.as_uuid(), field))
+            .collect()
+    }
+
     /// The project's locations (the structure nodes of the location aspect) as `(node, +code path)`, by path.
     pub fn layout_locations(&self) -> Vec<(Uuid, String)> {
         let q = self.query();

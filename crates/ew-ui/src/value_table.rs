@@ -15,10 +15,11 @@
 //!
 //! **Given rows** ([`FormTable::fixed`], the Cable form's wires): the first column is text, not a field, as wide as
 //! its longest row (at most half the table), no row is added or removed, a column's header is its name, and a cell field is named "`<column>`, `<first column>`".
+//! A column of ticks ([`TICK`], Give location's devices) is a tick box per row, named as a cell field is.
 
 use egui::{RichText, TextEdit, Ui};
 use ew_viewmodel::key;
-use ew_viewmodel::shell::FormTable;
+use ew_viewmodel::shell::{FormTable, TICK, TICKED};
 use ew_viewmodel::strings;
 
 use crate::app::Event;
@@ -143,7 +144,7 @@ pub(crate) fn show(ui: &mut Ui, table: &FormTable, events: &mut Vec<Event>) {
             let mut x = header.left();
             let labels = std::iter::once((strings::text(table.key_label).to_owned(), key_width)).chain(
                 table.columns.iter().map(|(name, ty)| {
-                    let label = if ty.is_empty() {
+                    let label = if ty.is_empty() || ty == TICK {
                         name.clone()
                     } else {
                         strings::format(key!("macro-value-label"), &[name, &strings::var_type_word(ty)])
@@ -197,6 +198,27 @@ pub(crate) fn show(ui: &mut Ui, table: &FormTable, events: &mut Vec<Event>) {
                             }
                         }
                         for (c, ((col, ty), value)) in table.columns.iter().zip(&row.cells).enumerate() {
+                            // A column of ticks (Give location's devices): a tick box named by its column and row.
+                            if ty == TICK {
+                                let (rect, _) = ui
+                                    .allocate_exact_size(egui::vec2(width, t.size_row), egui::Sense::hover());
+                                let mut on = value == TICKED;
+                                let name = strings::format(key!("form-table-cell"), &[col, &row.key]);
+                                // At the column's start, beside the row's name.
+                                let field = egui::Rect::from_min_size(
+                                    egui::pos2(rect.left() + t.space_4, rect.top()),
+                                    egui::vec2(t.size_row, t.size_row),
+                                );
+                                let check = ui.put(field, egui::Checkbox::without_text(&mut on));
+                                check.widget_info(|| {
+                                    egui::WidgetInfo::selected(egui::Role::CheckBox, true, on, &name)
+                                });
+                                if check.changed() {
+                                    let text = if on { TICKED } else { "" };
+                                    events.push(Event::FormTableCell(i, Some(c), text.to_owned()));
+                                }
+                                continue;
+                            }
                             let mut text = value.clone();
                             let (name, hint) = if table.fixed {
                                 (

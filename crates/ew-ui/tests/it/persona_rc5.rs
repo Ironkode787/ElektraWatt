@@ -116,26 +116,143 @@ fn a_panel_layout_page_says_how_the_devices_reach_the_plate() {
     assert!(words.contains("Unplaced devices"), "{words}");
 }
 
-/// rc.5 (the cabinet run): the bus plugs were on the parts list's second page, which he did not find. A list that runs
-/// on says on its page where it goes on; its last page does not.
+/// rc.5 (the cabinet run, twice): the bus plugs were on the parts list's second page, and the line at the window's foot
+/// that said so did not stop him reading the first page as the whole list. Now the page's tab says "page 1 of 2", the
+/// HUD says it with a button to the next page, and under the table's last row a row of the table says that the list
+/// continues there and goes there on a click; the last page has no such row and a button back.
 #[test]
 fn a_parts_list_that_runs_on_says_where() {
     let tmp = Tmp::new();
     let golden = tmp.golden("g.ew");
     let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
+    d.enable_accesskit();
     let opened = d
         .shell_mut()
         .dispatch("file.open", &json!({"dir": golden.to_string_lossy()}));
     assert_eq!(opened, Outcome::Done);
-    let prompt = |d: &mut Driver, folio: &str| {
-        assert_eq!(
-            d.shell_mut().dispatch("page.goto", &json!({"folio": folio})),
-            Outcome::Done
-        );
-        d.settle();
-        ew_ui::ew_viewmodel::command_bar::hud(d.shell_mut()).prompt
+    assert_eq!(
+        d.shell_mut().dispatch("page.goto", &json!({"folio": "901"})),
+        Outcome::Done
+    );
+    d.input(&ew_ui::visual::Input::Wait { ms: 50 });
+    let hud = |d: &mut Driver| {
+        let h = ew_ui::ew_viewmodel::command_bar::hud(d.shell_mut());
+        (
+            h.prompt,
+            h.buttons.into_iter().map(|b| b.label).collect::<Vec<_>>(),
+        )
     };
-    assert_eq!(prompt(&mut d, "901"), "This list continues on page 901.1");
-    assert!(!prompt(&mut d, "901.1").contains("continues"));
+    assert_eq!(
+        hud(&mut d),
+        (
+            "Page 1 of 2 of this list".to_owned(),
+            vec!["Next page 901.1".to_owned()]
+        )
+    );
+    let labels: Vec<String> = d.labels().into_iter().map(|(l, _)| l).collect();
+    assert!(
+        labels
+            .iter()
+            .any(|l| l.contains("901") && l.contains("page 1 of 2")),
+        "the tab: {labels:?}"
+    );
+    crate::own_parts::press(&mut d, "The list continues on page 901.1 ›");
+    d.input(&ew_ui::visual::Input::Wait { ms: 50 });
+    assert_eq!(
+        hud(&mut d),
+        (
+            "Page 2 of 2 of this list".to_owned(),
+            vec!["Previous page 901".to_owned()]
+        )
+    );
+    assert!(
+        d.shell_mut().list_foot().is_none(),
+        "the last page runs on nowhere"
+    );
     d.shell_mut().shutdown();
 }
+
+/// rc.5 (the cabinet run, again): the layout page's line sent him to "Unplaced devices (left rail)" among icons
+/// without words, and to Properties for each of thirty devices. Now the line carries its ways on as buttons: Give
+/// location +CAB1… gives the devices drawn on the wiring pages the cabinet's location in one step, after a preview that
+/// leaves a device wired only to the terminals' field side unticked; then Unplaced devices opens the panel, whose rail
+/// icon's tooltip has that very name.
+#[test]
+fn a_layout_page_gives_the_cabinets_devices_their_location_in_one_step() {
+    use crate::own_parts::{place_box, press};
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    let _ = place_box(&mut d, "EW-GEN-DI-1", (20, 10), (30, 16));
+    let _ = place_box(&mut d, "EW-GEN-DI-1", (20, 40), (30, 46));
+    place_terminal(&mut d, "new", (10, 28));
+    // The card above wired to the terminal's inner side, the one below to its field side (side 2, `b`) alone.
+    for (from, to) in [("-1A1:1", "-1X1:1/a"), ("-1A2:1", "-1X1:1/b")] {
+        d.input(&key("W"));
+        d.settle();
+        crate::own_parts::press_cp(&mut d, from);
+        crate::own_parts::press_cp(&mut d, to);
+        d.input(&key("Escape"));
+        d.input(&key("Escape"));
+        d.settle();
+    }
+    let page = json!({"folio": "301", "type": "panel_layout", "title": "Cabinet layout"});
+    assert_eq!(d.shell_mut().dispatch("page.new", &page), Outcome::Done);
+    let enclosure = json!({"location": "new", "new_location": "CAB1", "part": "EW-GEN-ENC-1"});
+    assert_eq!(
+        d.shell_mut().dispatch("layout.enclosure_new", &enclosure),
+        Outcome::Done
+    );
+    d.settle();
+    let buttons = |d: &mut Driver| -> Vec<String> {
+        let hud = ew_ui::ew_viewmodel::command_bar::hud(d.shell_mut());
+        hud.buttons.into_iter().map(|b| b.label).collect()
+    };
+    assert_eq!(buttons(&mut d), ["Give location +CAB1…", "Unplaced devices"]);
+    // A frame of the layout page: settling alone paints none after a dispatch.
+    d.input(&ew_ui::visual::Input::Wait { ms: 50 });
+    press(&mut d, "Give location +CAB1…");
+    let Some(Dialog::Form(form)) = d.shell_mut().dialog().cloned() else {
+        panic!("the preview");
+    };
+    let rows: Vec<(String, bool)> = form
+        .table
+        .expect("the devices")
+        .rows
+        .into_iter()
+        .map(|r| (r.key, r.cells[0] == ew_ui::ew_viewmodel::shell::TICKED))
+        .collect();
+    for (tag, ticked) in [("-1A1", true), ("-1A2", false), ("-1X1", true)] {
+        assert!(
+            rows.contains(&(tag.to_owned(), ticked)),
+            "{tag} {ticked}: {rows:?}"
+        );
+    }
+    press(&mut d, "Give location");
+    assert!(
+        d.shell_mut().dialog().is_none(),
+        "Give location closes the preview"
+    );
+    let unplaced: Vec<String> = d
+        .shell_mut()
+        .panel_tables()
+        .expect("the plate")
+        .unplaced
+        .iter()
+        .map(|u| u.label.clone())
+        .collect();
+    assert!(
+        unplaced.iter().any(|l| l.contains("1A1")) && !unplaced.iter().any(|l| l.contains("1A2")),
+        "{unplaced:?}"
+    );
+    assert_eq!(buttons(&mut d), ["Unplaced devices", "Auto-fill rail…"]);
+    press(&mut d, "Unplaced devices");
+    let rail = ew_ui::ew_viewmodel::rail::rail(d.shell_mut());
+    let entry = rail
+        .left
+        .iter()
+        .find(|b| b.word == "unplaced")
+        .expect("the rail's entry");
+    assert!(entry.active, "the button shows the panel");
+    assert_eq!(entry.label, "Unplaced devices", "the rail icon's tooltip");
+}
+

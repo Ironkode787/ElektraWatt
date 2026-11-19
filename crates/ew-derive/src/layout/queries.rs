@@ -353,6 +353,97 @@ pub fn unlocated(q: &Q) -> Vec<Id<Device>> {
     out.into_iter().map(|(_, d)| d).collect()
 }
 
+/// The [`unlocated`] devices drawn on a wiring page (multi-line or single-line; a strip through its terminals), each
+/// with whether it stands behind terminals, in the field: a wire or core from it ends, past junctions, at a
+/// terminal's field side (its strip's `field_side`), and every one does. What a layout page's Give location offers the
+/// cabinet's location in one step, the field devices unticked (rc.5: a persona was sent to Properties thirty times).
+pub fn unlocated_drawn(q: &Q) -> Vec<(Id<Device>, bool)> {
+    let (pages, reps) = (q.pages(), q.table::<ew_schema::Representation>());
+    let wiring = |f: Id<ew_schema::Function>| {
+        q.idx().reps_of_function(f).any(|r| {
+            reps.get(r).and_then(|r| pages.get(r.page)).is_some_and(|p| {
+                matches!(
+                    p.kind,
+                    ew_schema::PageType::MultiLine | ew_schema::PageType::SingleLine
+                )
+            })
+        })
+    };
+    unlocated(q)
+        .into_iter()
+        .filter(|d| {
+            std::iter::once(*d)
+                .chain(q.idx().terminals_of_strip(*d))
+                .any(|d| q.idx().functions_of_device(d).any(wiring))
+        })
+        .map(|d| (d, behind_terminals(q, d)))
+        .collect()
+}
+
+/// Whether every wire and core from `device` ends, past junctions and its own points, at a terminal's field side, and
+/// one does at least (see [`unlocated_drawn`]).
+fn behind_terminals(q: &Q, device: Id<Device>) -> bool {
+    use ew_model::EndpointKey;
+    let (connections, functions, devices) = (q.connections(), q.functions(), q.devices());
+    let own: std::collections::BTreeSet<Id<ew_schema::Function>> =
+        q.idx().functions_of_device(device).collect();
+    let mut stack: Vec<EndpointKey> = own
+        .iter()
+        .flat_map(|f| {
+            q.idx()
+                .connected_cps_of_function(*f)
+                .into_iter()
+                .map(|(idx, _)| EndpointKey::Cp(*f, idx))
+        })
+        .collect();
+    let mut seen = std::collections::BTreeSet::new();
+    let mut reached = false;
+    while let Some(at) = stack.pop() {
+        if !seen.insert(at) {
+            continue;
+        }
+        for c in q.idx().connections_at(at) {
+            let Some(c) = connections.get(c) else { continue };
+            if !matches!(
+                c.kind,
+                ew_schema::ConnectionKind::Wire | ew_schema::ConnectionKind::Core(_)
+            ) {
+                continue;
+            }
+            let Some((a, b)) = crate::nets::ends(c) else {
+                continue;
+            };
+            let other = if a == at { b } else { a };
+            match other {
+                EndpointKey::Cp(f, idx) if !own.contains(&f) => {
+                    // A terminal's point on its strip's field side (default side 2).
+                    let field = functions
+                        .get(f)
+                        .and_then(|f| devices.get(f.device?))
+                        .and_then(|t| devices.get(t.aspects.terminal.as_ref()?.strip))
+                        .map(|s| {
+                            s.aspects
+                                .strip
+                                .as_ref()
+                                .map_or(ew_schema::Side::Side2, |s| s.field_side.clone())
+                        })
+                        .is_some_and(|side| {
+                            q.get::<crate::FunctionCps>(f)
+                                .iter()
+                                .any(|c| c.idx == idx && c.side.as_ref() == Some(&side))
+                        });
+                    if !field {
+                        return false;
+                    }
+                    reached = true;
+                }
+                _ => stack.push(other),
+            }
+        }
+    }
+    reached
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // placement_geometry(p)
 

@@ -1487,6 +1487,7 @@ impl CanvasHost {
         self.context_menu(&response, shell, canvas, group, events);
         Self::potential_offer(&response, shell, canvas, group, events);
         Self::supply_panel(&response, shell, canvas, group, events);
+        Self::list_foot(&response, shell, canvas, group, events);
         // A text of the one selected symbol can be grabbed and dragged on its own (doc 06 §2.5).
         // So can a layout label that drags alone (rc.2).
         if response.hovered()
@@ -2117,6 +2118,65 @@ impl CanvasHost {
                         }
                     });
                 });
+            });
+    }
+
+    /// The row under the last row of a list that runs on (rc.5, `ShellModel::list_foot`: a persona read a parts list's
+    /// first page as the whole list): one row of the table as wide as it, its outline in `color.accent` on
+    /// `color.accent.subtle`, "The list continues on page 901.1 ›" in the table's text size, a click on it goes there.
+    /// The window's own (the printed page has its title block's Next); on the focused canvas.
+    fn list_foot(
+        response: &egui::Response,
+        shell: &ShellModel,
+        canvas: &CanvasModel,
+        group: usize,
+        events: &mut Vec<Event>,
+    ) {
+        let focused = shell.area().is_none_or(|a| a.focused == group);
+        let Some((text, folio, [x0, y0, x1, y1])) = shell.list_foot().filter(|_| focused) else {
+            return;
+        };
+        let view = view_of(canvas);
+        let ppp = canvas.ppp();
+        let corner = |x: i64, y: i64| {
+            let (px, py) = view.transform().to_screen((x as f64, y as f64));
+            response.rect.min + egui::vec2((px / ppp) as f32, (py / ppp) as f32)
+        };
+        let row = Rect::from_two_pos(corner(x0, y0), corner(x1, y1));
+        if !response.rect.intersects(row) {
+            return;
+        }
+        let t = crate::theme::current(&response.ctx);
+        let id = response.id.with("list-foot");
+        egui::Area::new(id)
+            .order(egui::Order::Middle)
+            .fixed_pos(row.min)
+            .show(&response.ctx, |ui| {
+                ui.set_clip_rect(response.rect);
+                let r = ui.interact(row, id.with("row"), Sense::click());
+                r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &text));
+                let painter = ui.painter();
+                let fill = if r.hovered() {
+                    t.accent_subtle.color32().gamma_multiply(1.5)
+                } else {
+                    t.accent_subtle.color32()
+                };
+                painter.rect_filled(row, egui::CornerRadius::ZERO, fill);
+                painter.rect_stroke(
+                    row,
+                    egui::CornerRadius::ZERO,
+                    crate::theme::stroke(t.border_width, t.accent),
+                    egui::StrokeKind::Inside,
+                );
+                // The table's text: about half the row's height, as the printed rows' 8.88 pt in their 6.52 mm.
+                let size = (row.height() * 0.5).max(t.type_small.size);
+                let font = crate::theme::font(&crate::theme::TypeToken { size, ..t.type_small });
+                let galley = painter.layout_no_wrap(text.clone(), font, t.accent.color32());
+                let at = egui::pos2(row.left() + size * 0.4, row.center().y - galley.size().y / 2.0);
+                painter.galley(at, galley, t.accent.color32());
+                if r.clicked() {
+                    events.push(Event::Action("page.goto", json!({ "folio": folio })));
+                }
             });
     }
 

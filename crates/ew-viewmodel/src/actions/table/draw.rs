@@ -744,6 +744,19 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
+    // The layout page's Give location… (rc.5), offered by its HUD while the cabinet's devices have no location.
+    with_params(
+        "location?:text, devices?:json",
+        hidden(act(
+            "layout.locate_devices",
+            Command,
+            Menu::Draw,
+            &[],
+            panel_view,
+            None,
+            |s, p| s.act_layout_locate_devices(p),
+        )),
+    ),
     with_params(
         "part?:text, width?:text, height?:text",
         hidden(act(

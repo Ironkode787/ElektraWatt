@@ -4,7 +4,8 @@
 //! The tool HUD and the zoom control of the page view (doc 16a §5.5), from
 //! `ew_viewmodel::command_bar::hud`. The HUD is a pill centred in the band at the foot of the page view
 //! ([`strip_height`]): the active tool as an accent pill, the three quick tools (Wire, Symbol, Text), a divider and
-//! the prompt (the selection and its keys, the pick stack under the pointer, or the tool's target and keys). It
+//! the prompt (the selection and its keys, the pick stack under the pointer, or the tool's target and keys) with the
+//! ways on it names as buttons at the pill's end (a layout page's Unplaced devices, rc.5). It
 //! never takes the keyboard focus and it stays where it is, so its buttons can be reached (moving away from the
 //! pointer put them out of reach, FT-1639). It floats over the canvas: its own rounded shape with a shadow and
 //! nothing behind it, the drawing visible to its edge (rc.3: the strip of its own that FT-1656 gave it, so that it
@@ -74,6 +75,17 @@ pub(crate) fn show(ctx: &egui::Context, shell: &ShellModel, pane: Rect, events: 
         + measure(&h.tool_label, theme::font(&small_strong(&t))).x
         + t.space_3;
     let prompt_size = measure(&h.prompt, theme::font(&t.type_small));
+    // The prompt's buttons (rc.5), at the pill's end: each its words with `space.3` at either side, `space.1` apart.
+    let button_widths: Vec<f32> = h
+        .buttons
+        .iter()
+        .map(|b| measure(&b.label, theme::font(&small_strong(&t))).x + 2.0 * t.space_3)
+        .collect();
+    let buttons_width = if button_widths.is_empty() {
+        0.0
+    } else {
+        button_widths.iter().sum::<f32>() + (button_widths.len() - 1) as f32 * t.space_1 + t.space_2
+    };
     let natural = t.space_2
         + tool_w
         + h.quick.len() as f32 * (t.space_1 + t.size_control)
@@ -81,7 +93,8 @@ pub(crate) fn show(ctx: &egui::Context, shell: &ShellModel, pane: Rect, events: 
         + t.border_width
         + t.space_icon
         + prompt_size.x
-        + t.space_4;
+        + t.space_4
+        + buttons_width;
     // The HUD never runs under the zoom column; past its room the prompt wraps onto a second
     // line within the pill's height and only then elides, whole in the HUD's accessible value and in a tooltip on the
     // prompt. The room grows with the page view (no fixed cap).
@@ -203,10 +216,66 @@ pub(crate) fn show(ctx: &egui::Context, shell: &ShellModel, pane: Rect, events: 
                             &h.prompt,
                         );
                     }
+                    // The prompt's buttons, right-aligned in the pill.
+                    let mut x = rect.right() - buttons_width;
+                    for (i, (b, w)) in h.buttons.iter().zip(&button_widths).enumerate() {
+                        let r =
+                            Rect::from_min_size(pos2(x, cy - t.size_control / 2.0), vec2(*w, t.size_control));
+                        x = r.right() + t.space_1;
+                        prompt_button(ui, &t, shell, b, r, i, events);
+                    }
                 },
             );
         });
     rect
+}
+
+/// A button of the HUD's prompt at `r`: its words in `type.small` SemiBold on a light pill over the dark surface,
+/// the hover and the press as the HUD's other buttons show them.
+fn prompt_button(
+    ui: &Ui,
+    t: &Tokens,
+    shell: &ShellModel,
+    b: &ew_viewmodel::command_bar::HudButton,
+    r: Rect,
+    i: usize,
+    events: &mut Vec<Event>,
+) {
+    let enabled = action_button(shell, b.action).is_none_or(|a| a.enabled);
+    let response = button_response(
+        ui,
+        Id::unique(("hud-prompt-button", i)),
+        r,
+        Spec {
+            name: &b.label,
+            shortcut: "",
+            enabled,
+            checked: None,
+            sense: Sense::CLICK,
+        },
+    );
+    ui.painter().rect_filled(
+        r,
+        theme::radius(t.radius_pill),
+        t.text_on_inverse.color32().gamma_multiply(INVERSE_HOVER),
+    );
+    inverse_overlay(ui, t, &response, enabled, t.text_on_inverse);
+    let colour = if enabled {
+        t.text_on_inverse.color32()
+    } else {
+        t.text_on_inverse.color32().gamma_multiply(PROMPT_OPACITY)
+    };
+    let galley = ui
+        .painter()
+        .layout_no_wrap(b.label.clone(), theme::font(&small_strong(t)), colour);
+    let at = pos2(
+        r.center().x - galley.size().x / 2.0,
+        r.center().y - galley.size().y / 2.0,
+    );
+    ui.painter().galley(at, galley, colour);
+    if response.clicked() && enabled {
+        events.push(Event::Action(b.action, b.params.clone()));
+    }
 }
 
 /// The widest the HUD may be in its strip `pane`: `space.4` from each end.
