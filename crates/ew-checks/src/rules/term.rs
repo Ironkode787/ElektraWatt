@@ -830,6 +830,11 @@ impl Rule for TerminalOnUnjoinedWire {
                 functions.extend(rep.functions.iter().copied());
             }
         }
+        // Every point is read with a grid position as one number (ADR-0033 amendment 4): a pin 1 nm beside the
+        // number of the line a wire is drawn along (its place plus its offset, each rounded, on a grid of thirds of
+        // a nm) lies on that wire to a reader.
+        let grid = q.pages().get(page).map(|p| p.grid);
+        let settle = |p: Pt2| grid.map_or(p, |g| Pt2::new(g.settle(p.x), g.settle(p.y)));
         let mut points: Vec<(Pt2, Id<Device>)> = Vec::new();
         for f in functions {
             let Some(terminal) = q.functions().get(f).and_then(|f| f.device) else {
@@ -844,7 +849,7 @@ impl Rule for TerminalOnUnjoinedWire {
             }
             for c in q.get::<FunctionCps>(f).iter() {
                 if let Some(at) = cp_point(q, f, c.idx, page) {
-                    points.push((at, terminal));
+                    points.push((settle(at), terminal));
                 }
             }
         }
@@ -871,7 +876,7 @@ impl Rule for TerminalOnUnjoinedWire {
                 continue;
             };
             for s in path.windows(2) {
-                let (a, b) = (s[0], s[1]);
+                let (a, b) = (settle(s[0]), settle(s[1]));
                 if a == b {
                     continue;
                 }
@@ -903,10 +908,11 @@ impl Rule for TerminalOnUnjoinedWire {
             [&c.a, &c.b].into_iter().any(|e| match e {
                 Endpoint::Junction(j) => {
                     q.junctions().get(*j).is_some_and(|j| {
+                        let at = settle(j.at);
                         j.page == page
                             && cp_points
                                 .get(&terminal)
-                                .is_some_and(|p| p.contains(&(j.at.x.0, j.at.y.0)))
+                                .is_some_and(|p| p.contains(&(at.x.0, at.y.0)))
                     }) && q
                         .idx()
                         .connections_at(EndpointKey::Junction(*j))

@@ -690,6 +690,26 @@ fn box_of(e: &Engine) -> BoxSpec {
     row(e, REP_102F2).box_.expect("a box")
 }
 
+/// A box of an older file whose pin's page point lies 1 nm beside the grid's number of its position (its place plus
+/// the pin's offset, each rounded, on the QET grid). It is a pin on the grid to a reader, and the box is reshaped
+/// with it: with the pins it has, and with its pins placed anew.
+#[test]
+fn a_box_with_a_pin_one_nm_beside_the_grid_is_reshaped() {
+    let mut cps = standard_cps();
+    // A pin of the upper edge, 1 nm along the edge beside its grid number.
+    let k = cps
+        .iter()
+        .position(|c| c.pos.y == Nm(0) && c.pos.x != Nm(0))
+        .expect("a pin on the upper edge");
+    cps[k].pos = pt(cps[k].pos.x.0 - 1, 0);
+    assert!(!point_on_grid(grid(), at_box(cps[k].pos)), "1 nm beside the grid");
+    let mut e = engine(box_model(cps.clone(), rect(18, 12)));
+    e.execute(&reshape(rect(18, 12), Some(cps)))
+        .expect("reshaped with the pins it has");
+    e.execute(&reshape(rect(20, 12), None))
+        .expect("reshaped with its pins placed anew");
+}
+
 fn cp_of(spec: &BoxSpec, idx: u16) -> BoxCp {
     spec.cps.iter().find(|c| c.idx == idx).expect("the CP").clone()
 }

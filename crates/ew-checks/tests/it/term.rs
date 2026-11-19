@@ -524,6 +524,30 @@ fn term006_a_terminal_lying_on_a_wire_it_does_not_join() {
     );
 }
 
+/// On a grid of thirds of a nm (the QET grid) a pin's point is its symbol's place plus the pin's offset, each
+/// rounded, and can lie 1 nm beside the number of the line a wire is drawn along: the terminal lies on that wire to a
+/// reader, and the rule reads it so (ADR-0033 amendment 4). On a grid of whole nm nothing is rounded, and 1 nm beside
+/// a wire is beside it.
+#[test]
+fn term006_reads_a_terminal_one_nm_beside_the_wires_number_as_on_the_wire() {
+    let (k1, k2) = (Ep::Cp(TERM_K1, 1), Ep::Cp(TERM_K2, 0));
+    let straight = || vec![[0, 17_000_000], [0, 64_000_000]];
+    let whole = term006_fx([1, 32_000_000], &[(TERM_WIRE, k1, k2, straight())]);
+    let mut thirds = term006_fx([1, 32_000_000], &[(TERM_WIRE, k1, k2, straight())]);
+    thirds.rec_mut(&us(P1))["grid"] = json!({"num": 7_937_500, "den": 3});
+    rule_table(
+        "EW-TERM-006",
+        vec![
+            Case::reports(
+                "a grid of thirds",
+                thirds.build(),
+                term006_reports(TERM_WIRE, "1.1"),
+            ),
+            Case::silent("a grid of whole nm", whole.build()),
+        ],
+    );
+}
+
 /// Each branch of EW-TERM-006, with the whole finding. A horizontal wire (the
 /// horizontal lines), a slanted route segment (tested one by one), an L-shaped route, a cable core (no wire number:
 /// "?"); every wire routed, as an unrouted one is not seen; silent when the wire

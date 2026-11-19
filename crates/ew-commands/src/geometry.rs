@@ -233,13 +233,47 @@ pub fn end_point(tx: &TxBuilder<'_>, e: &Endpoint, page: Id<Page>) -> Option<Pt2
     }
 }
 
+/// `p` read with a grid position as one number (ADR-0033 amendment 4): each coordinate within 1 nm of a position of
+/// `grid` is the grid's own number for it ([`Grid::settle`]). On a grid of thirds of a nm a pin's point, its symbol's
+/// place plus the pin's offset, each rounded, can lie 1 nm beside the number of its grid position; two points on one
+/// grid line are on one line to a reader, and a comparison of page points reads them settled.
+pub fn settled(grid: Grid, p: Pt2) -> Pt2 {
+    Pt2::new(grid.settle(p.x), grid.settle(p.y))
+}
+
 /// The straight route of an autoconnect hint's wire from `a` to `b` on `page` (a proposal is a
-/// straight, clear run): both ends' points when they lie on one line; empty, so unrouted, otherwise.
+/// straight, clear run): both ends' points when they lie on one line; empty, so unrouted, otherwise. Two ends on
+/// one grid line whose numbers differ by 1 nm ([`settled`]) are on one line: the run steps over at the grid
+/// coordinate nearest its middle, as the router's straight route does.
 pub fn hint_route(tx: &TxBuilder<'_>, a: &Endpoint, b: &Endpoint, page: Id<Page>) -> Vec<Pt2> {
-    match (end_point(tx, a, page), end_point(tx, b, page)) {
-        (Some(p), Some(q)) if p != q && (p.x == q.x || p.y == q.y) => vec![p, q],
-        _ => Vec::new(),
+    let (Some(p), Some(q)) = (end_point(tx, a, page), end_point(tx, b, page)) else {
+        return Vec::new();
+    };
+    if p == q {
+        return Vec::new();
     }
+    if p.x == q.x || p.y == q.y {
+        return vec![p, q];
+    }
+    let Some(grid) = tx.get::<Page>(page).map(|p| p.grid) else {
+        return Vec::new();
+    };
+    let (sp, sq) = (settled(grid, p), settled(grid, q));
+    let mut route = if sp.x == sq.x {
+        match mid_on_grid(grid, p.y, q.y) {
+            Ok(ym) => vec![p, Pt2::new(p.x, ym), Pt2::new(q.x, ym), q],
+            Err(OutOfRange) => Vec::new(),
+        }
+    } else if sp.y == sq.y {
+        match mid_on_grid(grid, p.x, q.x) {
+            Ok(xm) => vec![p, Pt2::new(xm, p.y), Pt2::new(xm, q.y), q],
+            Err(OutOfRange) => Vec::new(),
+        }
+    } else {
+        Vec::new()
+    };
+    route.dedup();
+    route
 }
 
 /// Whether `p` lies on the closed segment `a`–`b` (exact: collinear by an `i128` cross product, inside the

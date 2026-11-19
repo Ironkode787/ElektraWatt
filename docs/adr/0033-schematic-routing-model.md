@@ -191,6 +191,18 @@ The decision text above is unchanged; these entries refine it.
      longer count a step of 1 nm as two.
    - **No junction on a crossing.** The Wire tool does not end a wire on another at the point where a third wire
      crosses it: the dot would sit on both wires and read as a joint of four arms.
+   - **Other comparisons of page points read them settled too** (2026-11-19, the review of the candidate). Outside
+     the router and the measures, the places that two numbers of one grid position can reach are mended with the
+     same reading, none with a tolerance of its own: a symbol dropped on a wire is wired in where its pins lie 1 nm
+     beside the number of the wire's line (normaliser 7 cuts the wire on its own line and ends each part on its
+     pin's number); an autoconnect hint between two pins on one grid line stores the straight run with its step,
+     not an unrouted wire; EW-TERM-006 reports a terminal 1 nm beside the number of a wire it lies in, and sees a
+     junction on a terminal's pin as joining; the interruption-point tool finds the pin or the wire under its
+     point, and connects with the step as the wire's route; the Wire tool's test for a crossing reads settled. A
+     box's pin that a reshape leaves where it is keeps its place also 1 nm beside the grid, as an untouched corner
+     does; a pin that is new or moved stands on the grid. Left exact, because the tools hand in the wire's and the
+     pins' own numbers: the split point and the route's ends that the commands check (`require_split_point`,
+     `require_route`), and `drawn_path`'s joining of a stale end.
    - **The texts beside a multipin plug's pins are texts of the router's page.** The symbols layer draws them, so
      the page's geometry did not hold them and wires ran across them. Each is a text box now, cut back to a quarter
      of a grid step from the line its own pin's wire leaves along (the note stands right beside that line), so the

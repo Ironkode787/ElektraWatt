@@ -6,11 +6,11 @@
 
 use ew_ids::Id;
 use ew_model::{AnyKey, EndpointKey};
-use ew_schema::{Connection, Endpoint, Extra, Junction, Kind, NumberSpec, Representation};
+use ew_schema::{Connection, Endpoint, Extra, Junction, Kind, NumberSpec, Page, Representation};
 use ew_units::Pt2;
 
 use crate::error::CmdError;
-use crate::geometry::{locate, rep_cps, split_route};
+use crate::geometry::{locate, rep_cps, settled, split_route};
 use crate::normalise::Normaliser;
 use crate::text::text;
 use crate::tx::TxBuilder;
@@ -93,6 +93,11 @@ pub fn split_connection(
 /// A connection's path is the one the page draws it along: its stored route. A
 /// connection without one is unrouted and has no wire geometry: it is drawn as a dashed straight line
 /// between its ends, and it is not split.
+///
+/// A pin lies on the route as a reader sees it: with a grid position read as one number
+/// ([`settled`](crate::geometry::settled), ADR-0033 amendment 4), so a pin whose point lies 1 nm beside the number
+/// of the wire's line is on it. The wire is then cut on its own line beside the pin, and the part that ends at the
+/// pin takes one more vertex, the pin's own point.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct ConnectionSplit;
 
@@ -124,6 +129,10 @@ impl Normaliser for ConnectionSplit {
                 continue;
             }
             let on_page = tx.connections_on_page(rep.page);
+            // A pin lies on a wire where it does to a reader: with a grid position as one number (a pin 1 nm beside
+            // the number of the wire's line, ADR-0033 amendment 4, is on it).
+            let grid = tx.get::<Page>(rep.page).map(|p| p.grid);
+            let settle = |p: Pt2| grid.map_or(p, |g| settled(g, p));
             // Only a wire with a stored route has wire geometry: an unrouted connection is not split.
             for &cid in &on_page {
                 let Some(c) = tx.get::<Connection>(cid) else {
@@ -136,28 +145,47 @@ impl Normaliser for ConnectionSplit {
                 {
                     continue;
                 }
-                let path: &[Pt2] = &c.route;
+                let path: Vec<Pt2> = c.route.iter().copied().map(settle).collect();
                 let mut on: Vec<((usize, i128), usize)> = cps
                     .iter()
                     .enumerate()
-                    .filter_map(|(i, cp)| locate(path, cp.pos).map(|at| (at, i)))
+                    .filter_map(|(i, cp)| locate(&path, settle(cp.pos)).map(|at| (at, i)))
                     .collect();
                 on.sort();
                 let (Some(&(first_at, i1)), Some(&(last_at, i2))) = (on.first(), on.last()) else {
                     continue;
                 };
-                if first_at == last_at || cps[i1].pos == cps[i2].pos {
+                if first_at == last_at || settle(cps[i1].pos) == settle(cps[i2].pos) {
                     continue;
                 }
                 let (c1, c2) = (cps[i1], cps[i2]);
-                split_connection(
+                // The wire is cut on its own line, at the point beside each pin: the pin's coordinate along the
+                // stored segment it lies on, the segment's own number across it.
+                let beside = |seg: usize, p: Pt2| match (c.route.get(seg), c.route.get(seg + 1)) {
+                    (Some(u), Some(v)) if u.x == v.x && u.y != v.y => {
+                        Pt2::new(u.x, p.y.max(u.y.min(v.y)).min(u.y.max(v.y)))
+                    }
+                    (Some(u), Some(v)) if u.y == v.y && u.x != v.x => {
+                        Pt2::new(p.x.max(u.x.min(v.x)).min(u.x.max(v.x)), u.y)
+                    }
+                    _ => p,
+                };
+                let (p1, p2) = (beside(first_at.0, c1.pos), beside(last_at.0, c2.pos));
+                let second = split_connection(
                     tx,
                     cid,
-                    c1.pos,
+                    p1,
                     Endpoint::Cp(c1.function, c1.idx),
-                    c2.pos,
+                    p2,
                     Endpoint::Cp(c2.function, c2.idx),
                 )?;
+                // Each part ends on its pin's own number: a last step of 1 nm where the pin stands beside the line.
+                if p1 != c1.pos {
+                    tx.update::<Connection>(cid, |w| w.route.push(c1.pos))?;
+                }
+                if p2 != c2.pos {
+                    tx.update::<Connection>(second, |w| w.route.insert(0, c2.pos))?;
+                }
                 changed = true;
                 break;
             }

@@ -178,11 +178,18 @@ pub fn next_in_series(name: &str) -> String {
 /// Whether the page point `c` lies on a junction of `tables` or strictly inside a connection's polyline: on one of its
 /// segments, a bend included, but at neither of its ends. As the Wire tool's `resolve_target` looks, after
 /// the connection points: the junctions, then the segments.
-fn on_wire(tables: &PageTables, c: (i64, i64)) -> bool {
-    if tables.junctions.iter().any(|j| j.at == c) {
+///
+/// Every point is read through `settle`, the page's settled reading (`PageGeometry::settle`, ADR-0033 amendment 4):
+/// a point 1 nm beside the number of a wire's line lies on that wire.
+fn on_wire(tables: &PageTables, c: (i64, i64), settle: &dyn Fn((i64, i64)) -> (i64, i64)) -> bool {
+    let c = settle(c);
+    if tables.junctions.iter().any(|j| settle(j.at) == c) {
         return true;
     }
-    tables.connections.iter().any(|w| inside_polyline(&w.polyline, c))
+    tables.connections.iter().any(|w| {
+        let line: Vec<(i64, i64)> = w.polyline.iter().map(|p| settle(*p)).collect();
+        inside_polyline(&line, c)
+    })
 }
 
 /// Whether `c` lies on the polyline `line` but at neither of its ends: on a segment or at a bend.
@@ -735,7 +742,10 @@ impl IpTool {
             return DropOn::Free;
         };
         let tables = &cx.page.tables;
-        let under: Vec<&TableCp> = tables.cps.iter().filter(|x| x.at == c).collect();
+        // The pins under the ghost's CP, with a grid position read as one number: a pin whose point lies 1 nm beside
+        // the grid's number of its position (its place plus its offset, each rounded) is under a point dropped there.
+        let settle = |p: (i64, i64)| cx.page.geometry.settle(p);
+        let under: Vec<&TableCp> = tables.cps.iter().filter(|x| settle(x.at) == settle(c)).collect();
         // An interruption point's CP anywhere among them refuses, whatever the tables' order (after a connecting drop
         // the new point's CP and the pin coincide).
         let ip_name = under.iter().find_map(|x| {
@@ -772,7 +782,7 @@ impl IpTool {
         // A pin always wins; without one, a point on a junction or strictly inside a wire would sit on it without
         // joining it, so it is refused. A wire's bare end is no wire's inside: the point places free.
         let Some(pin) = under.first() else {
-            if on_wire(tables, c) {
+            if on_wire(tables, c, &settle) {
                 return DropOn::Refused(crate::strings::text(key!("notice-ip-on-wire")).to_owned());
             }
             return crowded.unwrap_or(DropOn::Free);
@@ -827,12 +837,23 @@ impl IpTool {
                 if let Some(e) = &self.external {
                     ip["external"] = Value::from(e.id.clone());
                 }
+                // The pin and the point's CP are one point and need no route; where the pin's number lies 1 nm beside
+                // the point's (one grid position, two numbers) the route is that step, else the connection would
+                // count as unrouted.
+                let route: Vec<Value> = match self.cp_at(pos) {
+                    Some(c) if c != pin.at => {
+                        let mut step = vec![pin.at, (c.0, pin.at.1), c];
+                        step.dedup();
+                        step.into_iter().map(|p| json!([p.0, p.1])).collect()
+                    }
+                    _ => Vec::new(),
+                };
                 (
                     "connection.draw_to_ip",
                     json!({
                         "a": {"cp": {"function": pin.function.to_string(), "idx": pin.idx}},
                         "page": page,
-                        "route": [],
+                        "route": route,
                         "ip": ip,
                     }),
                 )

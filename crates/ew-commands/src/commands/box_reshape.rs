@@ -282,7 +282,13 @@ impl Command for ReshapeBox {
                     let Ok(p) = abs(cp.pos) else {
                         return out_of_range(tx);
                     };
-                    require_on_grid(tx, rep.page, p, &format!("/cps/{i}/pos"))?;
+                    // A pin the box has is untouched and keeps its place, as an untouched vertex does: also 1 nm
+                    // beside the grid's number of its position (the box's place plus the pin's offset, each rounded,
+                    // in a file of an earlier candidate). A pin that is new or moved stands on the grid.
+                    let kept = old.cps.iter().any(|c| c.idx == cp.idx && c.pos == cp.pos);
+                    if !kept {
+                        require_on_grid(tx, rep.page, p, &format!("/cps/{i}/pos"))?;
+                    }
                     if !edges(&new_abs).any(|(_, a, b)| on_segment(p, a, b)) {
                         return Err(CmdError::invalid_params(
                             Self::NAME,
@@ -291,7 +297,6 @@ impl Command for ReshapeBox {
                         ));
                     }
                     // A pin never stands on a corner; one stored there stays until it is moved (rc.5).
-                    let kept = old.cps.iter().any(|c| c.idx == cp.idx && c.pos == cp.pos);
                     if !kept && new_abs.contains(&p) {
                         return Err(CmdError::invalid_params(
                             Self::NAME,
