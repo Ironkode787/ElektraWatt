@@ -596,11 +596,18 @@ impl ShellModel {
             // The canvas shows the routes (the end of the dispatch synchronised it before this commit).
             self.sync_views();
         }
-        let text = if count == 1 {
+        let mut text = if count == 1 {
             strings::format(key!("toast-paste-fitted-one"), &[&fit.grid])
         } else {
             strings::format(key!("toast-paste-fitted"), &[&fit.grid, &count.to_string()])
         };
+        // The wires the router found no way for stay dashed: the message counts them and says what to do (rc.5: it said
+        // the wires were redrawn while two were not).
+        let lost = plan.as_ref().map_or(0, |p| p.unrouted.len());
+        if lost > 0 {
+            text.push(' ');
+            text.push_str(&strings::format_count(crate::count_key!("toast-paste-unrouted"), lost));
+        }
         self.notify(text, true);
     }
 
