@@ -695,6 +695,7 @@ impl Session {
                     .collect(),
             ),
             centre: false,
+            pitch: None,
         })
         .ok()
     }

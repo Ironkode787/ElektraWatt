@@ -2269,6 +2269,9 @@ pub struct TableBox {
     pub cells: Vec<SlotCell>,
     /// The supply end of such a box (left, top, right, bottom on the page); `None` for a free box.
     pub supply_end: Option<[i64; 4]>,
+    /// The least distance in grid steps of two pins of its top or bottom side that keeps their upright texts on two
+    /// lines apart (rc.5, `box.reshape`'s `pitch`).
+    pub pitch: i64,
 }
 
 /// One cell of a [`TableBox`] drawn as a valve terminal's positions.
@@ -2669,6 +2672,7 @@ impl Session {
                         .is_some_and(|d| ew_derive::is_fluid_terminal(&q, d)),
                     cells: Vec::new(),
                     supply_end: None,
+                    pitch: super::view::box_text_pitch(&q, &rep),
                 }
             });
             let black_box = black_box.map(|mut b| {

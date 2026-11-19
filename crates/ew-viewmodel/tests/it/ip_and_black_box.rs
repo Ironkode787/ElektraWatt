@@ -866,6 +866,48 @@ fn a_pin_dragged_towards_a_corner_stays_on_its_side() {
     assert_eq!(unique.len(), pts.len(), "no two pins on one point: {pts:?}");
 }
 
+/// rc.5 persona run (on a narrow box four pin names stood in two lines with their frames on one another): a box whose
+/// pin names are long goes no smaller than keeps the names of each line apart. Golden A's -102F2 carries "24VDC" and
+/// "Out1" two steps apart, which its upright names need: its right edge dragged inward does not move, the status line
+/// says why, and Centre the pins keeps them two steps apart.
+#[test]
+fn a_box_with_long_pin_names_goes_no_smaller_than_they_need() {
+    let tmp = Tmp::new("box-cp-names");
+    let mut s = actual_size(&tmp, "102");
+    let t = tables(&s);
+    let f2 = t
+        .reps
+        .iter()
+        .find(|r| r.black_box.as_ref().is_some_and(|b| b.cps.len() == 10))
+        .expect("-102F2")
+        .clone();
+    let b = f2.black_box.clone().unwrap();
+    assert_eq!(b.pitch, 2, "two steps keep the names of one line apart");
+    select_ids(&mut s, &[f2.id.to_string()]);
+    let mid = ew_viewmodel::tools::black_box::grip_points(&b.outline)[5];
+    let k = index_of(&s, mid);
+    let from = sheet(&s, mid);
+    done(&mut s, "canvas.press", at(from, json!({})));
+    let inward = sheet(&s, grid_point(&s, (k.0 - 3, k.1)));
+    done(&mut s, "canvas.pointer", at(inward, json!({})));
+    assert!(s.tool_hint().starts_with("The box goes no smaller"), "{}", s.tool_hint());
+    done(&mut s, "canvas.release", at(inward, json!({})));
+    let same = tables(&s).reps.iter().find(|r| r.id == f2.id).unwrap().black_box.clone().unwrap();
+    assert_eq!(same.outline, b.outline, "the box keeps its size");
+    // Centre the pins: still two steps apart.
+    select_ids(&mut s, &[f2.id.to_string()]);
+    done(&mut s, "box.centre_pins", json!({}));
+    let c = tables(&s).reps.iter().find(|r| r.id == f2.id).unwrap().black_box.clone().unwrap();
+    let mut top: Vec<i64> = c
+        .cps
+        .iter()
+        .filter(|p| p.1.1 == c.outline[0].1)
+        .map(|p| index_of(&s, p.1).0)
+        .collect();
+    top.sort_unstable();
+    assert!(top.windows(2).all(|w| w[1] - w[0] >= 2), "{top:?}");
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // IB7: the picker, the transcript, the words and the counts
 

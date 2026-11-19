@@ -1030,6 +1030,23 @@ fn pin_texts(q: &Q, rep: &Representation, def: &SymbolDef) -> Vec<PinText> {
     compose_pin_texts(rep, def, function, designation, &texts.pins)
 }
 
+/// The least distance in grid steps of two pins of a top or bottom side of the black box `r` (rc.5): where the upright
+/// pin texts of a side take two lines in turn, the texts of one line stand two pins apart, so the pins stand at least
+/// half the room of the widest of them (its width and a millimetre, `part_box::pin_text_room`) apart; at least one
+/// step. 1 for a representation that is no black box or prints no pin text.
+pub(crate) fn box_text_pitch(q: &Q, r: &Representation) -> i64 {
+    let Some(symbol) = q.symbols().get(r.symbol) else {
+        return 1;
+    };
+    let step = page_grid(q, PageRef::Drawn(r.page)).at(1).map_or(1, |n| n.0.max(1));
+    let room = pin_texts(q, r, &symbol.item)
+        .iter()
+        .map(|p| crate::part_box::pin_text_room(&p.text))
+        .max()
+        .unwrap_or(0);
+    ((room + 2 * step - 1) / (2 * step)).max(1)
+}
+
 /// The interface a box of a port function draws, in words ("X1", "X1 P1R"; doc 10 §2.7): a black box (a symbol
 /// without CPs on a representation with a box) whose first function carries a bus port; `None` otherwise.
 fn port_box_label(q: &Q, rep: &Representation, def: &SymbolDef) -> Option<String> {

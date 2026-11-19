@@ -954,9 +954,9 @@ pub fn reshape_by_grip(
 }
 
 /// Whether the pins `cps` of the box `outline` (page nm) still fit when its outline becomes `new` (the same vertices
-/// moved), on the edges along x (`along_x`) or along y: an axis-aligned edge whose extent along its axis changed is at
-/// least one grid step longer than the steps its pins need one step apart (one to spare at each corner), as
-/// `box.reshape` re-centres them (rc.5). A pin belongs to the edge it lies on, at a corner to the one it leaves by
+/// moved), on the edges along x (`along_x`) or along y: an axis-aligned edge whose extent along its axis changed holds
+/// its pins `pitch` steps apart on a horizontal edge (one on a vertical one) and one step to spare at each corner, as
+/// `box.reshape` re-centres them (rc.5: `pitch` keeps their upright texts on two lines apart). A pin belongs to the edge it lies on, at a corner to the one it leaves by
 /// its direction.
 fn pins_fit(
     grid: PageGridMap,
@@ -964,6 +964,7 @@ fn pins_fit(
     cps: &[BoxCpAt],
     new: &[(i64, i64)],
     along_x: bool,
+    pitch: i64,
 ) -> bool {
     let n = outline.len();
     let area = signed_area2(outline);
@@ -991,7 +992,9 @@ fn pins_fit(
         at.sort_unstable();
         at.dedup();
         let steps = (grid.index(axis(nb)) - grid.index(axis(na))).abs();
-        at.is_empty() || steps > i64::try_from(at.len()).unwrap_or(i64::MAX)
+        let gap = if horizontal { pitch.max(1) } else { 1 };
+        let n = i64::try_from(at.len()).unwrap_or(i64::MAX / 4);
+        at.is_empty() || steps >= (n - 1) * gap + 2
     })
 }
 
@@ -1006,6 +1009,7 @@ pub fn grip_stop(
     grid: PageGridMap,
     outline: &[(i64, i64)],
     cps: &[BoxCpAt],
+    pitch: i64,
     grip: usize,
     to: (i64, i64),
 ) -> Result<GripStop, Key<'static>> {
@@ -1017,7 +1021,7 @@ pub fn grip_stop(
             let k = grid.index(v);
             grid.coord(if h > v { k + 1 } else { k - 1 })
         };
-        while !pins_fit(grid, outline, cps, &new, along_x) {
+        while !pins_fit(grid, outline, cps, &new, along_x, pitch) {
             let (v, h) = if along_x { (at.0, home.0) } else { (at.1, home.1) };
             if v == h {
                 break;
@@ -1170,7 +1174,7 @@ pub fn on_outline(outline: &[(i64, i64)], p: (i64, i64)) -> bool {
 
 /// The `box.reshape` of black box `rep` with the absolute outline `outline` and, when given, the absolute CPs
 /// `(idx, point, direction)` (page nm), converted to the representation's frame (relative to its position, under the
-/// inverse of its orientation).
+/// inverse of its orientation); without CPs, the box's `pitch` that keeps its pins' upright texts apart.
 pub fn reshape_command(rep: &TableRep, outline: &[(i64, i64)], cps: Option<&[BoxCpAt]>) -> Box<AnyCommand> {
     let inv = orient_inverse(rep.orient);
     let rel = |p: (i64, i64)| orient_point(inv, (p.0 - rep.pos.0, p.1 - rep.pos.1));
@@ -1184,6 +1188,9 @@ pub fn reshape_command(rep: &TableRep, outline: &[(i64, i64)], cps: Option<&[Box
                 .map(|(i, p, d)| cp_json(*i, rel(*p), orient_dir(inv, *d)))
                 .collect(),
         );
+    } else if let Some(pitch) = rep.black_box.as_ref().map(|b| b.pitch).filter(|p| *p > 1) {
+        // Re-centred pins keep their upright texts on two lines apart (rc.5).
+        params["pitch"] = Value::from(pitch);
     }
     Box::new(AnyCommand {
         name: "box.reshape".into(),
@@ -1434,17 +1441,17 @@ mod tests {
             .map(|(x, i)| (i, (x * 1_000_000, 0), Dir::Up))
             .collect();
         // The right edge's grip (5: the midpoint of v1v2) dragged to x 2: three pins need four steps.
-        let (at, new) = grip_stop(g, &r, &cps, 5, (2_000_000, 2_000_000)).unwrap();
+        let (at, new) = grip_stop(g, &r, &cps, 1, 5, (2_000_000, 2_000_000)).unwrap();
         assert_eq!(at, (4_000_000, 2_000_000));
         assert_eq!(new[1].0, 4_000_000);
         // To x 6 it goes all the way.
         assert_eq!(
-            grip_stop(g, &r, &cps, 5, (6_000_000, 2_000_000)).unwrap().0,
+            grip_stop(g, &r, &cps, 1, 5, (6_000_000, 2_000_000)).unwrap().0,
             (6_000_000, 2_000_000)
         );
         // The bottom edge's grip (6) up to y 1: the top and bottom sides keep their length, nothing holds it.
         assert_eq!(
-            grip_stop(g, &r, &cps, 6, (3_000_000, 1_000_000)).unwrap().0,
+            grip_stop(g, &r, &cps, 1, 6, (3_000_000, 1_000_000)).unwrap().0,
             (3_000_000, 1_000_000)
         );
     }
