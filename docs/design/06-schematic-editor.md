@@ -1076,7 +1076,7 @@ segments between the first and the last moved, so a straight wire and an L had n
 
 *As built.* **Measure** (Tools ▸ Measure) goes from armed to
 measuring on a press (or Activate at the grid cursor) and shows a line from the first point to the pointer with the
-readout chip `dx … dy … mm, d mm`. Its points snap to a connection point within 8 points, or to the grid while Alt is
+readout chip `dx … dy … mm, d mm`. Its points snap to a connection point within 9.5 points, or to the grid while Alt is
 held. It never previews and never commits, and it does not want hover, so the entity hover outline and the link hover
 and preview are not drawn under it. The readout is announced through the canvas's live region on Press and on Activate
 (doc 16 §4.5).
@@ -1292,7 +1292,12 @@ depends on the tool:
 - **Select:** text slot > representation > junction > connection > page item > structure-box edge;
 - **Wire:** CP > junction > connection segment > grid point.
 
-Snap targets within 8 screen px win over the grid. Alt means one thing per tool: in the Place tool it suppresses
+Snap targets within 9.5 screen points win over the grid, at every zoom (rc.5, FT-1800: at eight points a click nine
+points off a port placed a bend; a little under ten, as at 100 % a step of the QET grid is ten points and the grid point
+beside a pin stays one for a bend); what Select rings and the Wire tool's snap marker rings is what a click takes. A
+click of the Wire or Tube tool that takes nothing and leaves a free point right beside a connection point (within that
+reach or one grid step, whichever is more) says so at once in the status line: a start that took nothing, a bend
+beside the point, and a wire that ended elsewhere with such a bend. Alt means one thing per tool: in the Place tool it suppresses
 autoconnect proposals, in the graphic, text and route-edit tools it suspends object snaps and the fine grid. CPs
 never leave the connection grid in any tool. All snapping works on grid indices, never on float equality
 (ADR-0005). The grid rule binds every origin, scripts, command logs and MCP included: a command

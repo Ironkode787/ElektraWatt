@@ -5,7 +5,8 @@
 //! connection point, a junction or a point on a wire to another, routed by the pure router of §8.1 and committed as
 //! `connection.draw` with the route the ghost showed.
 //!
-//! **Targets** in priority order within 8 screen points of the pointer or the grid cursor: a connection point of the
+//! **Targets** in priority order within [`CP_SNAP_PT`] (9.5) screen points of the pointer or the grid cursor, at every
+//! zoom, the ring of the snap marker showing what a click there takes: a connection point of the
 //! page tables (anywhere on an interruption point's arrow, its one CP), a junction, a point on a connection segment (the grid point of the segment nearest to the pointer
 //! that is not its connection's end, so a press beside a rail's end joins the rail at the next grid point along it
 //! rather than fixing a bend; a coordinate of the segment that is off the grid is the segment's own, the CP-exact coordinate
@@ -40,6 +41,12 @@
 //! by the host ([`WireTool::with_kind`]): a wire on a multi-line page (`connection.draw`'s default, so no `kind` is
 //! sent), `overview` on single-line, overview and assembly-overview pages, a working fluid line (`{"fluid": {}}`) on a
 //! fluid page, a bus line (`{"bus": {}}`) on a bus-topology page; on the other page types the host refuses `tool.wire`.
+//!
+//! **A click beside a point** (FT-1800, rc.5). A click that takes no target leaves a free point; where that point lies
+//! right beside a connection point (within the targets' reach or one grid step of it, whichever is more) the hint says
+//! so at once: a start that took nothing, a bend placed beside the point, and, once the wire ends elsewhere, the wire
+//! that bends there without joining it (a persona's clicks a few pixels off the ports drew tubes to the wrong ports
+//! without a word).
 
 use ew_api::AnyCommand;
 use ew_api::geometry::Dir;
@@ -120,6 +127,14 @@ impl WireTarget {
     fn rep(&self) -> Option<EntityRef> {
         match self {
             WireTarget::Cp { rep, .. } => Some(*rep),
+            _ => None,
+        }
+    }
+
+    /// The connection point it is, as (function, index); `None` for another target.
+    fn cp(&self) -> Option<(Uuid, u16)> {
+        match self {
+            WireTarget::Cp { function, idx, .. } => Some((function.0, *idx)),
             _ => None,
         }
     }
@@ -411,6 +426,27 @@ fn full_junction(tables: &ew_api::output::PageTables, id: Uuid) -> bool {
         .filter(|c| c.a == at || c.b == at)
         .count()
         >= 3
+}
+
+/// The connection point, other than `but`, right beside the free page point `p` that a click left: within the targets'
+/// reach or one grid step of it, whichever is more (FT-1800), the nearest; `None` where none is.
+fn cp_beside(cx: &ToolCx<'_>, p: (i64, i64), but: Option<(Uuid, u16)>) -> Option<(Uuid, u16)> {
+    let tables = &cx.page.tables;
+    let grid = PageGridMap::new(tables.grid);
+    let step = super::dist2(
+        cx.snapper.page_to_sheet((0, 0)),
+        cx.snapper.page_to_sheet((grid.step(), 0)),
+    );
+    let reach = cx.nm_of_points(CP_SNAP_PT).floor().min(9.0e15) as i128;
+    let at = cx.snapper.page_to_sheet(p);
+    tables
+        .cps
+        .iter()
+        .filter(|cp| but != Some((cp.function, cp.idx)))
+        .map(|cp| (super::dist2(cx.snapper.page_to_sheet(cp.at), at), cp))
+        .filter(|(d, _)| *d <= step.max(reach * reach))
+        .min_by_key(|(d, _)| *d)
+        .map(|(_, cp)| (cp.function, cp.idx))
 }
 
 /// Whether the sheet point `at` is within reach of a junction that already joins three wires and of no connection
@@ -848,6 +884,20 @@ pub struct WireTool {
     kind: Option<&'static str>,
     /// The line kind of a fluid line the tool draws (Draw ▸ Fluid line…, FT-1733); `None` a working line.
     line_kind: Option<&'static str>,
+    /// A click that left a free point right beside a connection point, and that point (function, index): the hint says
+    /// so until the next wire starts.
+    missed: Option<(Missed, (Uuid, u16))>,
+}
+
+/// What a click beside a connection point left (FT-1800).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum Missed {
+    /// No start: the click took nothing.
+    Start,
+    /// A bend of the wire being drawn.
+    Bend,
+    /// A bend of the wire just drawn, which ended elsewhere.
+    Wire,
 }
 
 /// The JSON value of a connection kind name: `fluid` is a fluid line of `line_kind` (`{"fluid": {}}`, a working line,
@@ -880,6 +930,7 @@ impl WireTool {
             labels: (None, None),
             kind: None,
             line_kind: None,
+            missed: None,
         }
     }
 
@@ -1118,9 +1169,11 @@ impl WireTool {
         match self.state.clone() {
             State::Armed { .. } => {
                 if !target.is_end() {
+                    self.missed = cp_beside(cx, target.at(), None).map(|cp| (Missed::Start, cp));
                     self.state = State::Armed { target: Some(target) };
                     return ToolOutput::None;
                 }
+                self.missed = None;
                 self.labels = (target.label(cx), None);
                 self.direct = false;
                 self.over_text = false;
@@ -1149,6 +1202,12 @@ impl WireTool {
                     }
                     let route = self.full_route(cx, &start, &fixed, &target);
                     self.labels.1 = target.label(cx);
+                    // A bend beside a point the wire then ends on is the person's; one beside another point is said.
+                    let ends_on = target.cp();
+                    self.missed = self
+                        .missed
+                        .filter(|(m, cp)| *m == Missed::Bend && ends_on != Some(*cp))
+                        .map(|(_, cp)| (Missed::Wire, cp));
                     self.state = State::Routing {
                         start,
                         fixed,
@@ -1179,7 +1238,11 @@ impl WireTool {
                 if inside_symbol(cx, target.at(), &route) {
                     return ToolOutput::Refused(key!("reason-wire-bend-in-symbol"));
                 }
-                // A bend: the route so far to the grid point becomes fixed.
+                // A bend: the route so far to the grid point becomes fixed. Right beside a connection point other than the
+                // start, the hint says so at once.
+                if let Some(cp) = cp_beside(cx, target.at(), start.cp()) {
+                    self.missed = Some((Missed::Bend, cp));
+                }
                 marks.push(fixed);
                 fixed = route.clone();
                 self.state = State::Routing {
@@ -1382,6 +1445,7 @@ impl Tool for WireTool {
                     let Some(fixed) = marks.pop() else {
                         return ToolOutput::None;
                     };
+                    self.missed = None;
                     let route = match &end {
                         Some(t) => self.full_route(cx, &start, &fixed, t),
                         None => fixed.clone(),
@@ -1404,6 +1468,7 @@ impl Tool for WireTool {
             CanvasEvent::Escape => match self.state {
                 State::Routing { .. } => {
                     self.state = State::Armed { target: None };
+                    self.missed = None;
                     self.cache = None;
                     self.direct = false;
                     self.over_text = false;
@@ -1435,6 +1500,18 @@ impl Tool for WireTool {
             if t.same_end(start) {
                 return super::Hint::plain(key!("hint-wire-click-start"));
             }
+        }
+        match (self.missed, &self.state) {
+            (Some((Missed::Bend, _)), State::Routing { .. }) => {
+                return super::Hint::new(key!("hint-wire-bend-beside"), &[super::BACK]);
+            }
+            (Some((Missed::Start, _)), State::Armed { .. }) => {
+                return super::Hint::plain(key!("hint-wire-start-beside"));
+            }
+            (Some((Missed::Wire, _)), State::Armed { .. }) => {
+                return super::Hint::new(key!("hint-wire-ended-beside"), &["edit.undo"]);
+            }
+            _ => {}
         }
         if self.over_text {
             return super::Hint::plain(key!("hint-wire-over-text"));

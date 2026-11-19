@@ -144,6 +144,10 @@ its key or double-click where a tool allows it.
 
 Draws connections between connection points: click a start point, then the end point; corners are placed where you
 click in between. Open it with Draw ▸ Connect ▸ Wire. See [A first schematic page](../../tutorials/first-page.md).
+A click takes the connection point within about ten screen points of it, at any zoom, and the ring under the pointer
+shows which. A click that misses and lands right beside one is said in the status line at once ("The click placed a
+bend beside a connection point, not on it: …"), as is a start beside one that took nothing and a wire just drawn that
+bends beside one without joining it; Ctrl+Z takes such a wire back.
 
 While you draw, the wire shows the route it will take. The route never runs through another connection point, along
 another wire, through a symbol, over the frame's bands, or through a junction, and never makes a fourth arm of a

@@ -478,7 +478,7 @@ impl ShellModel {
 
     /// `navigator.bind {channel, x_mm, y_mm, group?}` (FR-PLC-020): a PLC channel row dropped on the
     /// canvas at the sheet point. The connection point under it, resolved as the Wire tool resolves its targets (the
-    /// nearest CP within 8 screen points), takes the channel: one `plc.bind_channel` with `endpoint: {cp: {function,
+    /// nearest CP within [`crate::tools::CP_SNAP_PT`] screen points), takes the channel: one `plc.bind_channel` with `endpoint: {cp: {function,
     /// idx}}`, whose own rules decide. A drop with no CP under it is refused with `reason-drop-on-cp`.
     ///
     /// A CP off the channel's card (`Session::off_card_bind`) is reached in the model's terms: a device

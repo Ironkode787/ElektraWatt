@@ -432,6 +432,10 @@ hint-wire-direct = No clear route: the wire stays a dashed line without a route.
 hint-wire-full-junction = This junction already joins three wires: end on a wire to make a new junction.
 # ID-1497 (11): after a click that placed a bend instead of ending the wire.
 hint-wire-bend = Bend placed: click a connection point to end the wire.
+# FT-1800 (rc.5): a click that took nothing, right beside a connection point.
+hint-wire-bend-beside = The click placed a bend beside a connection point, not on it: click the point itself to end the wire there; { $p0 } removes the bend.
+hint-wire-start-beside = The click was beside a connection point, not on it: a wire starts on the point itself; click on its ring.
+hint-wire-ended-beside = The wire just drawn bends beside a connection point without joining it; { $p0 } takes the wire back.
 hint-wire-click-tee = A click here joins the line under the pointer with a tee; Alt+Click places a bend instead.
 hint-wire-click-start = A click here is the start point: click further from it to place a bend.
 hint-wire-over-text = The route crosses a text: keeping clear of it is a far longer way.

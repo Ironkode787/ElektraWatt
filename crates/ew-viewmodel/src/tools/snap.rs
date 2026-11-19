@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Snapping (FR-UI-018, doc 06 §5.7): to the connection points drawn on a page within 8 screen
-//! points, else to the page's connection grid, always on grid indices (ADR-0005).
+//! Snapping (FR-UI-018, doc 06 §5.7): to the connection points drawn on a page within about ten
+//! screen points ([`CP_SNAP_PT`]), else to the page's connection grid, always on grid indices (ADR-0005).
 //!
 //! A [`Snapper`] is built per page content from its [`PageGrid`] and `Session::page_cps`, once per (revision,
 //! folio), and evaluated without a `Session` call. A sheet point maps to the page by the inverse of the frame's
@@ -58,8 +58,10 @@ pub enum FineKind {
     Text,
 }
 
-/// How far a connection point attracts the pointer, in screen points.
-pub const CP_SNAP_PT: f64 = 8.0;
+/// How far a connection point attracts the pointer, in screen points, at every zoom: what Select rings and what the
+/// Wire tool's click takes (FT-1800, rc.5: at eight points a click nine points off a port placed a bend). A little
+/// under ten: at 100 % a step of the QET grid is ten points, and the grid point beside a pin stays one for a bend.
+pub const CP_SNAP_PT: f64 = 9.5;
 
 /// A connection point as the snapper keeps it.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -259,7 +261,7 @@ impl Snapper {
     }
 
     /// Snaps the sheet point `at`: unless `alt` is held, the connection point nearest to it within
-    /// 8 screen points wins; else the nearest point of the page's connection grid.
+    /// [`CP_SNAP_PT`] screen points wins; else the nearest point of the page's connection grid.
     pub fn snap(&self, at: (i64, i64), points_per_nm: f64, alt: bool) -> Snap {
         if !alt && let Some(s) = self.snap_cp(at, points_per_nm) {
             return s;
@@ -294,11 +296,11 @@ mod tests {
     }
 
     #[test]
-    fn a_cp_within_8_points_wins_alt_suppresses_it_and_ties_go_to_reading_order() {
+    fn a_cp_within_reach_wins_alt_suppresses_it_and_ties_go_to_reading_order() {
         let a = cp(1, "-1A1:1", (100_000_000, 100_000_000));
         let b = cp(2, "-1A1:2", (100_000_000, 104_000_000));
         let s = Snapper::new(Some(&qet()), &[a, b]);
-        // At 100 % one point is 0.2646 mm, so 8 points are 2.117 mm.
+        // At 100 % one point is 0.2646 mm, so 9.5 points are 2.514 mm.
         let ppn = 96.0 / 25_400_000.0;
         let near = s.snap((101_500_000, 100_500_000), ppn, false);
         assert_eq!(near.kind, SnapKind::Cp);
@@ -306,12 +308,12 @@ mod tests {
         assert_eq!(near.at_nm, (100_000_000, 100_000_000));
         assert_eq!(near.grid_index, (1, 7));
         assert_eq!(near.page_nm, (s.page_of_index(1), s.page_of_index(7)));
-        // Beyond 8 points: the grid.
+        // Beyond 9.5 points: the grid.
         assert_eq!(
-            s.snap((102_200_000, 100_000_000), ppn, false).kind,
+            s.snap((102_700_000, 100_000_000), ppn, false).kind,
             SnapKind::Grid
         );
-        // Zoomed in to 400 % the reach shrinks to 0.53 mm.
+        // Zoomed in to 400 % the reach shrinks to 0.63 mm.
         assert_eq!(
             s.snap((101_000_000, 100_000_000), 4.0 * ppn, false).kind,
             SnapKind::Grid
