@@ -842,3 +842,6 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: window a device placed on a bus page as several boxes says so in its toast ("Placed as 2
   boxes, one for each bus interface."); the part editor's Ports field shows 1, what an empty field means, where it
   showed 8 (persona round)
+- format-variant: device Unit mm
+- format-variant: part Unit mm
+- format-variant: project Unit mm
