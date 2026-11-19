@@ -255,4 +255,3 @@ fn a_layout_page_gives_the_cabinets_devices_their_location_in_one_step() {
     assert!(entry.active, "the button shows the panel");
     assert_eq!(entry.label, "Unplaced devices", "the rail icon's tooltip");
 }
-

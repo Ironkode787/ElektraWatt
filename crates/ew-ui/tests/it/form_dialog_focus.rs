@@ -446,7 +446,11 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
         json!({"folio": "989", "type": "multi_line", "title": "Field"}),
     );
     goto(&mut h, "989");
-    dispatch(&mut h, "place.pick", json!({ "part": "EW-GEN-PB-1", "template": 0 }));
+    dispatch(
+        &mut h,
+        "place.pick",
+        json!({ "part": "EW-GEN-PB-1", "template": 0 }),
+    );
     let at = json!({ "x_mm": 40.0, "y_mm": 40.0 });
     dispatch(&mut h, "canvas.press", at.clone());
     dispatch(&mut h, "canvas.release", at);
