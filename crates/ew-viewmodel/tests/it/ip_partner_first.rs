@@ -40,7 +40,8 @@ fn the_tool_offers_the_partner_of_a_waiting_point() {
     done(&mut s, "canvas.activate", json!({}));
     assert!(
         toast(&s).starts_with(&format!("{name} at "))
-            && toast(&s).contains("comes from nowhere in the drawing yet: the next point you place is offered"),
+            && toast(&s)
+                .contains("comes from nowhere in the drawing yet: the next point you place is offered"),
         "{}",
         toast(&s)
     );

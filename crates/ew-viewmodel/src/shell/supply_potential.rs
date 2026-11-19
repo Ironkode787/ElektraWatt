@@ -197,7 +197,9 @@ impl ShellModel {
                 (Err(e), _) | (_, Err(e)) => return e,
                 (Ok(k), Ok(v)) => (k.map(str::to_owned), v.map(str::to_owned)),
             };
-            let phase = self.project_session().and_then(ew_api::Session::supply_phase_voltage);
+            let phase = self
+                .project_session()
+                .and_then(ew_api::Session::supply_phase_voltage);
             let Some(r) = self
                 .supply_panel
                 .as_mut()
@@ -241,7 +243,9 @@ impl ShellModel {
             return Outcome::refused(key!("reason-supply-potential-select"));
         };
         let gone = |id: Uuid| self.project_session().is_none_or(|s| !s.record_exists(id));
-        panel.rows.retain(|r| !gone(r.point) && r.def.is_none_or(|d| !gone(d)));
+        panel
+            .rows
+            .retain(|r| !gone(r.point) && r.def.is_none_or(|d| !gone(d)));
         if panel.rows.is_empty() {
             self.supply_panel = None;
             return Outcome::refused(key!("reason-supply-potential-gone"));

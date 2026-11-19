@@ -367,6 +367,10 @@ fn a_delete_in_a_navigator_ends_the_box_of_what_it_deleted() {
         assert_eq!(d.shell_mut().dispatch("preview.apply", &json!({})), Outcome::Done);
     }
     assert_ne!(d.shell_mut().revision(), revision, "the station is deleted");
-    assert_eq!(d.shell_mut().tool().name(), "select", "the placement ends with it");
+    assert_eq!(
+        d.shell_mut().tool().name(),
+        "select",
+        "the placement ends with it"
+    );
     d.shell_mut().shutdown();
 }
