@@ -891,12 +891,12 @@ rule-ew-pot-012 = { $form ->
     .hint = Verwijder de draad die de ring sluit, of bevestig dat de ring bedoeld is.
 
 rule-ew-pot-013 = { WORD($device) } { $form ->
-        [isolating] is een N-scheidingsklem op { $from } → { $to }
-       *[switching] schakelt de nulleider { $from } → { $to }{ $loads ->
-            [one] ; belasting { $load } blijft verbonden met { $line }
-            [many] ; deze belastingen blijven verbonden: { $pairs }
+        [isolating] is een N-scheidingsklem op { $from } → { $to }: goed zo, de nulleider wordt alleen geopend om te meten.
+       *[switching] opent de nulleider { $from } → { $to } zonder de fase{ $loads ->
+            [one] {" "}(belasting { $load } blijft verbonden met { $line })
+            [many] {" "}(deze belastingen blijven verbonden: { $pairs })
            *[none] {""}
-        }.
+        }: wat erachter zit blijft onder spanning terwijl het uitgeschakeld lijkt. Zet het contact in de fase, of gebruik een apparaat dat fase en nulleider samen opent, zoals een tweepolige automaat.
     }
     .title = Schakelen in de nulleider
     .hint = Verplaats het contact naar de lijngeleider, of gebruik een apparaat dat L en N tegelijk opent.

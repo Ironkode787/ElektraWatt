@@ -392,11 +392,11 @@ fn golden_a_ew_pot_pack_reports_the_ef_rows() {
     );
     assert_eq!(
         first("EW-POT-013", "T55").message,
-        "T55 switches the neutral N-55 → N-55T; load E55 stays connected to L-55."
+        "T55 opens the neutral N-55 → N-55T without the phase (load E55 stays connected to L-55): what is behind it stays live while it looks switched off. Put the contact in the phase, or use a device that opens phase and neutral together, such as a two-pole breaker."
     );
     assert_eq!(
         first("EW-POT-013", "S56").message,
-        "S56 switches the neutral N-55 → N-55S; load E56 stays connected to L-55."
+        "S56 opens the neutral N-55 → N-55S without the phase (load E56 stays connected to L-55): what is behind it stays live while it looks switched off. Put the contact in the phase, or use a device that opens phase and neutral together, such as a two-pole breaker."
     );
     assert_eq!(
         subjects(&report, "EW-POT-006"),

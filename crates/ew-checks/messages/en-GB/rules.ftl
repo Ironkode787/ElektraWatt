@@ -895,12 +895,12 @@ rule-ew-pot-012 = { $form ->
     .hint = Remove the wire that closes the ring, or confirm that the ring is intended.
 
 rule-ew-pot-013 = { $device } { $form ->
-        [isolating] is an N-isolating terminal on { $from } → { $to }
-       *[switching] switches the neutral { $from } → { $to }{ $loads ->
-            [one] ; load { $load } stays connected to { $line }
-            [many] ; { $stranded }
+        [isolating] is an N-isolating terminal on { $from } → { $to }: right as drawn, the neutral is opened only to test it.
+       *[switching] opens the neutral { $from } → { $to } without the phase{ $loads ->
+            [one] {" "}(load { $load } stays connected to { $line })
+            [many] {" "}({ $stranded })
            *[none] {""}
-        }.
+        }: what is behind it stays live while it looks switched off. Put the contact in the phase, or use a device that opens phase and neutral together, such as a two-pole breaker.
     }
     .title = N switching
     .hint = Move the contact into the line conductor, or use a device that opens L and N together.

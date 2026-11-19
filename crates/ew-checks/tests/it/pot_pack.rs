@@ -489,8 +489,8 @@ fn pot013_cases() {
                     assert_eq!(f[0].discriminator, "pair:0-1", "case {c}");
                     assert_eq!(f[0].targets, vec![target(Kind::Function, 0x1003)], "case {c}");
                     assert!(
-                        f[0].message.contains("switches the neutral N → ")
-                            && f[0].message.contains("stays connected to L."),
+                        f[0].message.contains("opens the neutral N → ")
+                            && f[0].message.contains("stays connected to L)"),
                         "case {c}: {}",
                         f[0].message
                     );
@@ -499,6 +499,12 @@ fn pot013_cases() {
             Case::silent(
                 "a two-pole switch flagged to switch N with L",
                 switch(&flags, &n_def(), true),
+            ),
+            // rc.5 (a first-timer's two-pole breaker, whose definition had no flag): a device whose one function opens
+            // the phase as well switches the neutral with it.
+            Case::silent(
+                "a two-pole breaker that opens L and N, without the flag",
+                switch(&none(), &n_def(), true),
             ),
             Case::reports(
                 "the flag without a line pole does not excuse it",

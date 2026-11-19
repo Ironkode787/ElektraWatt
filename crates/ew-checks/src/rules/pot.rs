@@ -2069,8 +2069,9 @@ fn opening_pairs(q: &Q, f: Id<Function>) -> Vec<OpeningPair> {
 /// (doc 08 §8.2, FR-CHK-019, D-13).
 ///
 /// For each function with an opening pair whose upstream side (by the flow) is the potential `p` of type N or PEN:
-/// it is accepted when its definition switches N with L (`switches_n_with_l`) and the function also opens a pair
-/// whose upstream type is L, L1, L2 or L3; a neutral-isolating terminal (`n_isolation`) is an info; otherwise an
+/// it is accepted when the function also opens a pair whose upstream type is L, L1, L2 or L3 (its poles are one
+/// mechanism: a two- or four-pole breaker or switch opens phase and neutral together, whatever its definition's
+/// `switches_n_with_l` says, rc.5); a neutral-isolating terminal (`n_isolation`) is an info; otherwise an
 /// error. The loads are the devices with a CP in the downstream potential whose line CPs lie in a potential the
 /// function does not switch, named in natural order. One finding per pair, target the function, discriminator
 /// `pair:<up>-<down>` (the CP indices). There is no quick fix: the correct wiring is a human decision (▲U-11).
@@ -2102,7 +2103,6 @@ impl Rule for NSwitching {
                 continue;
             };
             let flags = q.fndefs().get(function.def).map(|d| d.item.flags.clone());
-            let switches_n = flags.as_ref().is_some_and(|x| x.switches_n_with_l);
             let isolating = flags.as_ref().is_some_and(|x| x.n_isolation);
             let opens_line = pairs
                 .iter()
@@ -2112,26 +2112,28 @@ impl Rule for NSwitching {
                 .device
                 .map_or_else(|| "?".to_owned(), |d| full_or_short(q, d));
             for pair in pairs.iter().filter(|x| x.up == p) {
-                if switches_n && opens_line {
+                // A function that opens a line conductor as well switches the neutral with it: its poles are one
+                // mechanism (a two- or four-pole breaker, a main switch), whether or not its definition says so.
+                if opens_line {
                     continue;
                 }
                 let (up, down) = (potential_name(q, pair.up), potential_name(q, pair.down));
                 let discriminator = format!("pair:{}-{}", pair.up_idx, pair.down_idx);
                 if isolating {
-                    out.push(
+                    out.push(worded(
                         Finding::new(
                             &N_SWITCHING,
                             [Target::new(Kind::Function, f)],
                             discriminator,
                             name.clone(),
-                            format!("{name} is an N-isolating terminal on {up} → {down}"),
+                            String::new(),
                         )
                         .arg("form", "isolating")
                         .arg("device", name.clone())
                         .arg("from", up.clone())
                         .arg("to", down.clone())
                         .with_severity(Severity::Info),
-                    );
+                    ));
                     continue;
                 }
                 let loads = stranded_loads(q, pair.down, function.device, &switched);
@@ -2152,7 +2154,7 @@ impl Rule for NSwitching {
                     [Target::new(Kind::Function, f)],
                     discriminator,
                     name.clone(),
-                    format!("{name} switches the neutral {up} → {down}{tail}."),
+                    String::new(),
                 );
                 // Several stranded loads by their English sentences, and as `load → line` pairs for the other
                 // languages.
@@ -2174,13 +2176,13 @@ impl Rule for NSwitching {
                                 .join("; "),
                         ),
                 };
-                out.push(
+                out.push(worded(
                     finding
                         .arg("form", "switching")
                         .arg("device", name.clone())
                         .arg("from", up.to_string())
                         .arg("to", down.to_string()),
-                );
+                ));
             }
         }
         out

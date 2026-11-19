@@ -1237,7 +1237,7 @@ references and adds overcurrent coordination (I_b ≤ I_n ≤ I_z, EW-EN60204-00
 for each function f, for each PassThrough pair p = (u, d, opens = true) of f.def.internal:
   P_up = upstream side of p (potential_flow)
   if ptype(P_up) ∈ {N, PEN}:
-     ok = f.def.flags.switches_n_with_l and f has an opening pair whose upstream type ∈ {L, L1, L2, L3}
+     ok = f has an opening pair whose upstream type ∈ {L, L1, L2, L3}   // rc.5: its poles are one mechanism
      if f.def.flags.n_isolation: report info "N isolating terminal" and continue
      if not ok: report error {function f, potential P_up → P_d, loads}
   loads = devices with CPs in P_d whose line CPs lie in a potential that f does not switch
@@ -1247,7 +1247,12 @@ for each function f, for each PassThrough pair p = (u, d, opens = true) of f.def
   S56 is reported: pair 13–14 opens N-55 into N-55S, and E56:X2 stays on L-55.
 - **Not reported:** S51 (2-pole, flag set, opens L as well) and the MCBs -101F1 and F55 (1P+N, flag set).
   *As built (Golden A data fix):* the starter function definition `ew.fn.mcb-1pn` now sets
-  `flags.switches_n_with_l`; before, EW-POT-013 reported both MCBs.
+  `flags.switches_n_with_l`; before, EW-POT-013 reported both MCBs. *As built (rc.5):* the flag is no longer needed
+  for EW-POT-013: a function that opens a line pair as well switches its neutral with it (its poles are one
+  mechanism), so a two- or four-pole breaker or switch of any definition is accepted; a first-timer's `ew.fn.mcb-2p`,
+  which has no flag, was reported. The message says why and what to do: "-1F1 opens the neutral N → N/1F1:4 without
+  the phase: what is behind it stays live while it looks switched off. Put the contact in the phase, or use a device
+  that opens phase and neutral together, such as a two-pole breaker."
 - **Message:** "T55 switches the neutral N-55 → N-55T; load E55 stays connected to L-55." There is no automatic
   quick fix, because the correct wiring is a human decision (▲U-11). A waiver needs a reason.
 - **Scope.** A single-pole fuse in N is reported the same way.

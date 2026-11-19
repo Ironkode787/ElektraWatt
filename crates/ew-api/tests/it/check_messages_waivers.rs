@@ -400,6 +400,6 @@ fn golden_a_messages_render_byte_equal_in_en_gb_and_in_dutch_where_present() {
         .expect("EF-01");
     assert_eq!(
         checks::render(t55, "nl-NL"),
-        "T55 schakelt de nulleider N-55 → N-55T; belasting E55 blijft verbonden met L-55."
+        "T55 opent de nulleider N-55 → N-55T zonder de fase (belasting E55 blijft verbonden met L-55): wat erachter zit blijft onder spanning terwijl het uitgeschakeld lijkt. Zet het contact in de fase, of gebruik een apparaat dat fase en nulleider samen opent, zoals een tweepolige automaat."
     );
 }
