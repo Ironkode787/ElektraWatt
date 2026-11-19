@@ -41,8 +41,9 @@
 //! numbers again. A vertex another wire runs straight through is no corner to a route.
 //!
 //! **A reroute** (amendment 4). Jobs with stored routes are not only routed from nothing: the drawing as it is, each
-//! wire routed again against all the others and the new route taken where the old one breaks a hard rule or costs
-//! more as drawn, is rated against the jobs routed from nothing, the shortest first, and the better is taken. A page
+//! wire routed again against all the others and the new route taken where the old one breaks a hard rule, crosses a
+//! text the new one keeps clear of (amendment 5) or costs more as drawn, is rated against the jobs routed from nothing,
+//! the shortest first, and the better is taken. A page
 //! routed for the first time (no job has a route) is routed from nothing twice, the longest first and the shortest
 //! first; the shortest-first drawing is taken where it rates better with no more wires without a good route, bends,
 //! crossings and texts crossed, else the longest-first one.
@@ -676,8 +677,11 @@ impl Solve<'_> {
     }
 
     /// `state` with each job routed again against all the others, in routing order, and the new route taken where
-    /// the old one breaks a hard rule or the new one is drawn at less cost ([`Self::cost`]); at most two passes, the
-    /// second only where the first changed a route. A job without a better route keeps the one it has.
+    /// the old one breaks a hard rule, where the old one crosses a text and the new one keeps clear of every text, or
+    /// where the new one is drawn at less cost ([`Self::cost`]); at most two passes, the second only where the first
+    /// changed a route. A job without a better route keeps the one it has. (The search offers a route clear of the texts
+    /// wherever it is not far longer than the best across one; weighed as drawn, a text costs as much as a bend and six
+    /// steps, so a stored wire through a text kept its route where the Wire tool would have gone round: rc.5.)
     fn improve(&self, mut state: State) -> State {
         for _ in 0..2 {
             let bad = self.bad(&state);
@@ -699,6 +703,7 @@ impl Solve<'_> {
                     Some(new)
                         if new.0 != old.0
                             && (bad.contains(&j)
+                                || (crosses_text(self.page, &old.0) && !crosses_text(self.page, &new.0))
                                 || self.cost(j, &new.0, &state) < self.cost(j, &old.0, &state)) =>
                     {
                         state.routes.insert(j, new);

@@ -988,3 +988,36 @@ fn a_route_ends_on_its_pins_own_numbers() {
     let m = measure(&routed(&p, &plan));
     assert_eq!((m.hard(), m.bend_total()), (0, 0), "{m:?}");
 }
+
+/// rc.5 persona runs: "a wire through the supply's own name text stays after Reroute". A U from (0, 0) down and back up
+/// to (20, 0) past a text of the first end's own device that reaches down to y = 5: the way round it is five steps
+/// deeper, ten steps longer and not far longer (8/5), so the Wire tool draws it; a reroute of the same wire stored
+/// across the text mends it, though weighed as drawn the text costs no more than the steps round it.
+#[test]
+fn a_reroute_takes_a_wire_through_its_own_device_s_text_round_it() {
+    let mut p = page();
+    add_job(
+        &mut p,
+        1,
+        (10, mm(0, 0), Dir4::Down),
+        (11, mm(20, 0), Dir4::Down),
+        None,
+    );
+    p.texts.push(TextBox {
+        rep: id(1010),
+        rect: tenths(90, -200, 110, 50),
+    });
+    let ends = [(0, Heading::Down), (20, Heading::Down)].map(|(x, dir)| OneEnd {
+        at: mm(x, 0),
+        dir: Some(dir),
+        rep: Some(id(1010 + u128::from(x == 20))),
+    });
+    let drawn = route_one(&p, ends[0], ends[1], None).expect("a route");
+    assert!(!crosses_text(&p, &drawn), "the Wire tool goes round: {drawn:?}");
+    let across = vec![mm(0, 0), mm(0, 1), mm(20, 1), mm(20, 0)];
+    p.connections[0].routed = true;
+    p.connections[0].polyline.clone_from(&across);
+    let plan = route_page(&p, &[id(1)]);
+    assert_eq!(plan.routes, vec![(id(1), drawn)]);
+    assert_eq!(plan.over_texts, Vec::<Uuid>::new());
+}

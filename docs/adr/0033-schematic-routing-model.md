@@ -211,6 +211,19 @@ The decision text above is unchanged; these entries refine it.
    Less work on a full page, with the same routes: the search marks the crossings and the mates along each wire
    instead of testing every node against every wire, and a job with no way between its ends on the grid or the half
    grid is searched for once in a solve. Golden A's routes change on folios 106 and 203 only, as said above.
+5. **A reroute goes round a text where the Wire tool would; Reroute says what it changed** (2026-11-19, the rc.5
+   persona runs; decided by the coordinator under the owner's delegation). A wire through any text is worse than a
+   wire with a bend more that keeps clear of it, also where the text is one of a device the wire ends at, unless no
+   clear way exists or every clear way is far longer (amendment 2). The search already ranked so; a reroute did not:
+   weighed as drawn (amendment 4) a text costs as much as a bend and six steps, so a stored wire across a text kept
+   its route where the search offered one round the text a few steps longer. A reroute now takes the new route where
+   the stored one crosses a text and the new one keeps clear of every text. Two wires side by side keep one grid step
+   between them (decision 5; the half grid of amendment 3 only between close pins). On the persona's supply page no
+   wire crossed a text: the two wires from the breaker to the power supply loop over the supply's caption, which
+   stands above the box left of its first top pin, where every wire from the left into its top pins passes; no way
+   clear of it is without that loop, and the way across it is the worse drawing, so Reroute keeps them. Reroute's
+   toast names the wires it changed, by their numbers or their ends, and the page draws them as selected wires while
+   the toast is up; where nothing changes it says that the wires already run as well as the router can route them.
 
 ## Related
 
