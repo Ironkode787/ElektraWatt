@@ -606,3 +606,86 @@ fn source_and_target_are_two_choices_beside_the_name() {
     assert_eq!(direction(&h), other.to_lowercase());
     assert_eq!(chosen(&h, other), Some(true));
 }
+
+/// The pointer at `fraction` of the canvas's width, at its middle height.
+fn pointer_at(h: &mut Harness<'_, App>, fraction: f64) -> egui::Pos2 {
+    let b = h
+        .get_all_by_role(egui::Role::Canvas)
+        .next()
+        .expect("the canvas node")
+        .accesskit_node()
+        .raw_bounds()
+        .expect("bounds");
+    let at = egui::pos2(
+        (b.x0 + (b.x1 - b.x0) * fraction) as f32,
+        ((b.y0 + b.y1) / 2.0) as f32,
+    );
+    h.event(egui::Event::PointerMoved(at));
+    settle(h);
+    at
+}
+
+/// rc.5 (a persona carried 24 V to the PLC page): the tool proposed Target at the page's left side, the person
+/// clicked Target, and the point he placed further right turned source. A click on the direction the tool only
+/// proposed chooses it: the point placed anywhere is a target, as the button said.
+#[test]
+fn a_direction_clicked_where_the_tool_proposed_it_holds() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "103");
+    press(&mut h, Key::P);
+    type_in_name_field(&mut h, "T5");
+    press(&mut h, Key::Enter);
+    let _ = pointer_at(&mut h, 0.12);
+    assert_eq!(direction(&h), "target", "the page's left side proposes a target");
+    h.get_all_by_role(egui::Role::Tab)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Target"))
+        .expect("the Target choice")
+        .click();
+    settle(&mut h);
+    let centre = pointer_at(&mut h, 0.5);
+    assert_eq!(direction(&h), "target", "the chosen direction holds in the middle of the page");
+    for pressed in [true, false] {
+        h.event(egui::Event::PointerButton {
+            pos: centre,
+            button: egui::PointerButton::Primary,
+            pressed,
+            modifiers: egui::Modifiers::NONE,
+        });
+    }
+    settle(&mut h);
+    let placed: Vec<String> = h
+        .state()
+        .shell()
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .reps
+        .iter()
+        .filter_map(|r| r.ip.as_ref())
+        .filter(|ip| ip.name == "T5")
+        .map(|ip| ip.direction.clone())
+        .collect();
+    assert_eq!(placed, ["target"]);
+}
+
+/// rc.5: Interruption chosen on the bar while the page list had the focus; D then jumped in the page list. A tool
+/// chosen takes the keys to the canvas: D turns its direction.
+#[test]
+fn a_tool_chosen_while_a_navigator_has_the_focus_takes_the_keys() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "103");
+    dispatch(&mut h, "ui.focus", json!({"area": "navigator"}));
+    dispatch(&mut h, "tool.ip", json!({}));
+    assert!(
+        matches!(
+            h.state().shell().focus(),
+            Some(ew_ui::ew_viewmodel::shell::Focus::Canvas(_))
+        ),
+        "{:?}",
+        h.state().shell().focus()
+    );
+    let first = direction(&h);
+    press(&mut h, Key::D);
+    assert_ne!(direction(&h), first, "D reaches the tool");
+}

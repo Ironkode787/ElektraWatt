@@ -1128,3 +1128,48 @@ fn a_refused_grip_drag_leaves_no_band_on_the_next_hover() {
     });
     assert!(!band, "the hover draws no band");
 }
+
+/// rc.5 (the complete-cabinet persona): a potential could not be named where a device's pins touch terminals and no
+/// wire is there to select. A device's right-click at a pin offers Define potential at that pin…: it opens the form for
+/// that pin, and the name typed defines the potential there.
+#[test]
+fn a_pin_is_offered_define_potential_on_its_devices_right_click() {
+    let tmp = Tmp::new("pin-potential");
+    let mut s = actual_size(&tmp, "102");
+    let g = g1(&tables(&s));
+    let cp = tables(&s)
+        .cps
+        .iter()
+        .find(|c| c.rep == g.id && c.label.ends_with(":L"))
+        .expect("a pin of -102G1")
+        .clone();
+    select_ids(&mut s, &[g.id.to_string()]);
+    let at = sheet(&s, cp.at);
+    let menu = ew_viewmodel::command_bar::canvas_menu(&s, ew_viewmodel::command_bar::MenuSpot::Object, Some(at));
+    let item = menu
+        .iter()
+        .find(|i| i.label == format!("Define potential at {}…", cp.label))
+        .unwrap_or_else(|| panic!("{:?}", menu.iter().map(|i| &i.label).collect::<Vec<_>>()));
+    assert!(item.enabled, "{:?}", item.reason);
+    assert_eq!(item.params, json!({ "at": cp.label }));
+    // Away from the pins the device's menu offers none.
+    let far = ew_viewmodel::command_bar::canvas_menu(
+        &s,
+        ew_viewmodel::command_bar::MenuSpot::Object,
+        Some((at.0 + 50_000_000, at.1 + 50_000_000)),
+    );
+    assert!(!far.iter().any(|i| i.label.starts_with("Define potential at ")));
+    // The form opens for the pin; its name defines the potential there.
+    done(&mut s, "potential.draw", item.params.clone());
+    done(
+        &mut s,
+        "potential.draw",
+        json!({ "name": "PIN-POT", "at": cp.label }),
+    );
+    let last = s.recorded_commands().last().expect("a command").clone();
+    assert_eq!(last.cmd, "potential.define");
+    assert_eq!(
+        last.params["at"],
+        json!({"cp": {"function": cp.function.to_string(), "idx": cp.idx}})
+    );
+}
