@@ -471,7 +471,7 @@ fn the_messages_rows_and_the_chip_read_in_dutch() {
     assert_eq!(rows.iter().filter(|r| *r == cable).count(), 1, "{rows:?}");
     // A message that names its subject after a word shows it once.
     let pe = "PE-draad 101.8 heeft 1,5 mm², minder dan de 2,5 mm² die nodig is voor de lijngeleiders van 2,5 mm² bij 1X1 \
-              (de dimensioneringstabel is niet getoetst aan de norm)";
+              (de dimensioneringstabel is niet getoetst aan de norm). Maak hem minstens 2,5 mm² in zijn Eigenschappen.";
     assert_eq!(rows.iter().filter(|r| *r == pe).count(), 1, "{rows:?}");
     // The detail of that row names the rule by its nl-NL title.
     let key = t

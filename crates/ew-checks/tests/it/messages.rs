@@ -632,7 +632,10 @@ fn nl_nl_words_the_uniqueness_rules_the_bus_ends_and_the_conflicts() {
     let pot = by_hand(
         "EW-POT-001",
         "attrs",
-        &format!("{} 2 more connection points are wired the same way.", en.join(" ")),
+        &format!(
+            "{} 2 more connection points are wired the same way.",
+            en.join(" ")
+        ),
         &[
             ("form", "attrs"),
             ("conflict_list", &lines.join("\n")),
@@ -641,7 +644,10 @@ fn nl_nl_words_the_uniqueness_rules_the_bus_ends_and_the_conflicts() {
     );
     assert_eq!(
         render(&pot, "nl-NL"),
-        format!("{} Nog 2 aansluitpunten zijn op dezelfde manier bedraad.", nl.join(" "))
+        format!(
+            "{} Nog 2 aansluitpunten zijn op dezelfde manier bedraad.",
+            nl.join(" ")
+        )
     );
     // A conflict of another shape keeps the en-GB message.
     let meta = ew_checks::rule("EW-POT-001").expect("registered").meta();

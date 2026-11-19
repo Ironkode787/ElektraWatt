@@ -1096,7 +1096,8 @@ fn every_way_a_0v_is_earthed_is_no_type_conflict() {
             let part = q.get::<ew_derive::PotentialPartition>(());
             let at = |e: Ep| {
                 let Ep::Cp(n, i) = e else { unreachable!() };
-                part.potential_at(ew_model::EndpointKey::Cp(uid(n).cast(), i)).map(|p| p.id)
+                part.potential_at(ew_model::EndpointKey::Cp(uid(n).cast(), i))
+                    .map(|p| p.id)
             };
             assert_ne!(at(z), at(e), "{zero:?} to {earth:?}: two potentials");
         }
@@ -1112,7 +1113,9 @@ fn a_0v_on_functional_earth_is_told_where_the_bond_belongs() {
     assert_eq!(f.len(), 1, "{f:#?}");
     assert!(
         f[0].message.contains("goes to functional earth (FE) only")
-            && f[0].message.contains("protective earth symbol (PE) or to the PE rail"),
+            && f[0]
+                .message
+                .contains("protective earth symbol (PE) or to the PE rail"),
         "{}",
         f[0].message
     );

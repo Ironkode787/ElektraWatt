@@ -974,7 +974,8 @@ impl Rule for PelvSelvBonding {
         let earthed = |e: PotentialEarthing| {
             earthing.as_ref() == Some(&e) || declared(&|d| d.env.earthing.as_ref() == Some(&e))
         };
-        let pelv = m_type && (earthed(PotentialEarthing::Pelv) || !bonds.is_empty() || !functional.is_empty());
+        let pelv =
+            m_type && (earthed(PotentialEarthing::Pelv) || !bonds.is_empty() || !functional.is_empty());
         let selv = earthed(PotentialEarthing::Selv);
         let discriminator = if pelv && bonds.len() != 1 {
             "pelv"

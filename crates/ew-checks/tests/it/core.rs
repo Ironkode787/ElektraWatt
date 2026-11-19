@@ -621,7 +621,10 @@ fn two_targets_of_one_name_are_never_tied_to_each_other() {
     let m = fx.build();
     let q = ew_derive::Q::new(&m);
     let part = q.get::<ew_derive::PotentialPartition>(());
-    let at = |f: u128| part.potential_at(ew_model::EndpointKey::Cp(uid(f).cast(), 0)).map(|p| p.id);
+    let at = |f: u128| {
+        part.potential_at(ew_model::EndpointKey::Cp(uid(f).cast(), 0))
+            .map(|p| p.id)
+    };
     assert_ne!(at(0x1001), at(0x1002), "two potentials");
     assert_eq!(findings_of(&m, "EW-CORE-051").len(), 2);
 }

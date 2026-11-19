@@ -64,6 +64,13 @@ Shows the project's parts list: every part with its quantity, its description an
 
 ## Draw
 
+### Supply
+
+Places the supply that comes in from the mains in one go: its form asks what comes in (single phase L, N, PE; three
+phase with or without N; 24 V DC; your own names) and where it comes from, the marks follow the pointer as one group,
+and a click places them, one under the other; their Potential panel then asks what each carries. See
+[Supply comes in here](things.md).
+
 ### Cable…
 
 Makes a cable of the selected wires, or gives a wire's cable its part, and draws the cable's mark across them. See

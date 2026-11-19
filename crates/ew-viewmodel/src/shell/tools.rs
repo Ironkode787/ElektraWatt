@@ -1353,7 +1353,12 @@ impl ShellModel {
         self.tool_epoch = self.tool_epoch.wrapping_add(1);
         // A tool works on the canvas: its keys (D, R, Enter) go there, not to the navigator or the Properties row that
         // had the focus (rc.5: D after choosing Interruption jumped in the page list).
-        if self.tools.tool.name() != "select" && self.focus.as_ref().is_some_and(|f| !matches!(f, Focus::Canvas(_))) {
+        if self.tools.tool.name() != "select"
+            && self
+                .focus
+                .as_ref()
+                .is_some_and(|f| !matches!(f, Focus::Canvas(_)))
+        {
             let g = self.area.as_ref().map_or(0, |a| a.focused);
             self.focus = Some(Focus::Canvas(g));
         }

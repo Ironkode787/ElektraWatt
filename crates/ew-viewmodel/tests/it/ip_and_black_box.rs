@@ -1145,7 +1145,8 @@ fn a_pin_is_offered_define_potential_on_its_devices_right_click() {
         .clone();
     select_ids(&mut s, &[g.id.to_string()]);
     let at = sheet(&s, cp.at);
-    let menu = ew_viewmodel::command_bar::canvas_menu(&s, ew_viewmodel::command_bar::MenuSpot::Object, Some(at));
+    let menu =
+        ew_viewmodel::command_bar::canvas_menu(&s, ew_viewmodel::command_bar::MenuSpot::Object, Some(at));
     let item = menu
         .iter()
         .find(|i| i.label == format!("Define potential at {}…", cp.label))

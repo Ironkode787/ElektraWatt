@@ -599,7 +599,7 @@ fn check_lang_renders_the_messages_in_a_shipped_language() {
     assert_eq!(en.status.code(), Some(1));
     let en_text = stdout(&en);
     assert!(
-        en_text.contains("T55: T55 switches the neutral N-55 → N-55T; load E55 stays connected to L-55."),
+        en_text.contains("T55: T55 opens the neutral N-55 → N-55T without the phase (load E55 stays connected to L-55)"),
         "{en_text}"
     );
     assert_eq!(stdout(&check(Some("en-GB"))), en_text);
@@ -608,7 +608,7 @@ fn check_lang_renders_the_messages_in_a_shipped_language() {
     let nl_text = stdout(&nl);
     assert!(
         nl_text.contains(
-            "T55: T55 schakelt de nulleider N-55 → N-55T; belasting E55 blijft verbonden met L-55."
+            "T55: T55 opent de nulleider N-55 → N-55T zonder de fase (belasting E55 blijft verbonden met L-55)"
         ),
         "{nl_text}"
     );

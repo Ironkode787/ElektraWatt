@@ -810,7 +810,9 @@ fn the_messages_detail_follows_the_ui_language() {
     done(&mut shell, "view.language", json!({"value": "nl"}));
     assert_eq!(
         detail(&mut shell, &pot.key),
-        "S56 schakelt de nulleider N-55 → N-55S; belasting E56 blijft verbonden met L-55."
+        "S56 opent de nulleider N-55 → N-55S zonder de fase (belasting E56 blijft verbonden met L-55): wat erachter \
+         zit blijft onder spanning terwijl het uitgeschakeld lijkt. Zet het contact in de fase, of gebruik een apparaat \
+         dat fase en nulleider samen opent, zoals een tweepolige automaat."
     );
     for other in &others {
         assert_ne!(

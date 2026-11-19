@@ -347,9 +347,8 @@ fn pair(q: &Q) -> IpPairing {
                     .or_else(|| sources.first().copied())
                     .or(undirected);
                 g.source = source;
-                let directed = |f: &Id<Function>| {
-                    matches!(ips[f].direction, IpDirection::Source | IpDirection::Target)
-                };
+                let directed =
+                    |f: &Id<Function>| matches!(ips[f].direction, IpDirection::Source | IpDirection::Target);
                 for &m in &members {
                     match source {
                         Some(s) if m == s => {}

@@ -4937,6 +4937,9 @@ param-tab = Tab
 param-type = Type
 param-value = Value
 param-voltage = Voltage
+param-at = At
+param-system = System
+param-names = Names
 # Ruling 2: the words of a closed set's choice values, `choice-<value>` (`_` as `-`), the words derived before.
 choice-false = False
 choice-true = True

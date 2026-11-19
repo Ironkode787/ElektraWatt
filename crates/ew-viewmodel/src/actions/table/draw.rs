@@ -922,7 +922,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         "system?:enum(supply_1p|supply_3p|supply_3p_no_n|supply_dc|supply_own), names?:text, location?:text, device?:text",
         in_canvas(placed(
             place(Group::Connect, 7, CommandSize::Small, Some(key!("bar-supply"))),
-            "ew-potential",
+            "ew-supply",
             act(
                 "supply.place",
                 Command,

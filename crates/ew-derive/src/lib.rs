@@ -172,7 +172,9 @@ pub use names::{
     AttrConflict, DefAttr, PotentialAttrsOf, PotentialAttrsV, PotentialNameOf, PotentialNames, cp_text,
     def_text, potential_named, ranked_defs,
 };
-pub use nets::{CpRef, EarthKind, EarthWire, LocalNet, LocalNets, NetId, NetMember, PageLocalNets, joins_net};
+pub use nets::{
+    CpRef, EarthKind, EarthWire, LocalNet, LocalNets, NetId, NetMember, PageLocalNets, joins_net,
+};
 pub use note::{DeriveNote, EW_CORE_018, NoteSeverity, SchemeIssue};
 pub use numbering::{NumberedWire, WireNumber, WireNumbers, WireNumbersV, orient_wire};
 pub use pages::{

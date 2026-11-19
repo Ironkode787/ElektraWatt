@@ -9,7 +9,7 @@
 use super::Seg::{self, C, L, M, Q, Z};
 
 /// The number of icons in the table.
-pub const COUNT: usize = 143;
+pub const COUNT: usize = 144;
 
 /// One icon of the table, named by its key in `snake_case` (`ew_` for the project's own glyphs).
 #[allow(non_camel_case_types, missing_docs)]
@@ -76,6 +76,7 @@ pub enum IconId {
     ew_shape_polyline,
     ew_shape_rectangle,
     ew_structure_box,
+    ew_supply,
     ew_terminal_strip,
     eye,
     file,
@@ -224,6 +225,7 @@ impl IconId {
         IconId::ew_shape_polyline,
         IconId::ew_shape_rectangle,
         IconId::ew_structure_box,
+        IconId::ew_supply,
         IconId::ew_terminal_strip,
         IconId::eye,
         IconId::file,
@@ -372,6 +374,7 @@ pub const KEYS: [&str; COUNT] = [
     "ew-shape-polyline",
     "ew-shape-rectangle",
     "ew-structure-box",
+    "ew-supply",
     "ew-terminal-strip",
     "eye",
     "file",
@@ -1423,6 +1426,26 @@ pub(super) static PATHS: [&[Seg]; COUNT] = [
         L(12.0, 9.0),
         M(10.0, 7.0),
         L(10.0, 11.0),
+    ],
+    // ew-supply
+    &[
+        M(4.0, 5.0),
+        L(4.0, 19.0),
+        M(4.0, 6.0),
+        L(19.0, 6.0),
+        M(4.0, 12.0),
+        L(19.0, 12.0),
+        M(4.0, 18.0),
+        L(19.0, 18.0),
+        M(16.0, 3.0),
+        L(19.0, 6.0),
+        L(16.0, 9.0),
+        M(16.0, 9.0),
+        L(19.0, 12.0),
+        L(16.0, 15.0),
+        M(16.0, 15.0),
+        L(19.0, 18.0),
+        L(16.0, 21.0),
     ],
     // ew-terminal-strip
     &[

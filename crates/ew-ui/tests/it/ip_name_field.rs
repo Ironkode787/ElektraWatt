@@ -643,7 +643,11 @@ fn a_direction_clicked_where_the_tool_proposed_it_holds() {
         .click();
     settle(&mut h);
     let centre = pointer_at(&mut h, 0.5);
-    assert_eq!(direction(&h), "target", "the chosen direction holds in the middle of the page");
+    assert_eq!(
+        direction(&h),
+        "target",
+        "the chosen direction holds in the middle of the page"
+    );
     for pressed in [true, false] {
         h.event(egui::Event::PointerButton {
             pos: centre,

@@ -1031,11 +1031,13 @@ mod choice_word_tests {
                 missing.insert(format!("nl-NL: {key}"));
             }
             // The accessory has one English word, "End bracket" (16a §8 item 4); the connection
-            // grids read as the status bar writes them, "4 mm" and "QET 10 px"; a drawing's unit is its symbol, "mm".
+            // grids read as the status bar writes them, "4 mm" and "QET 10 px"; a drawing's unit is its symbol, "mm";
+            // Supply's systems name their conductors, "Single phase: L, N, PE" (rc.5).
             if !matches!(
                 v.as_str(),
                 "end_clamp" | "mm4" | "qet_10px" | "mm" | "cm" | "dm" | "um" | "in" | "ft" | "yd"
-            ) {
+            ) && !v.starts_with("supply_")
+            {
                 assert_eq!(choice_text(v), choice_words(v), "{v}");
             }
         }

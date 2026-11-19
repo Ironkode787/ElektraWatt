@@ -47,11 +47,11 @@ impl ShellModel {
             Ok(v) => Ok(v.map(str::trim).filter(|t| !t.is_empty()).map(str::to_owned)),
             Err(e) => Err(e),
         };
-        let (system, names, location, device) = match (text("system"), text("names"), text("location"), text("device"))
-        {
-            (Ok(s), Ok(n), Ok(l), Ok(d)) => (s, n, l, d),
-            (Err(e), ..) | (_, Err(e), ..) | (_, _, Err(e), _) | (.., Err(e)) => return e,
-        };
+        let (system, names, location, device) =
+            match (text("system"), text("names"), text("location"), text("device")) {
+                (Ok(s), Ok(n), Ok(l), Ok(d)) => (s, n, l, d),
+                (Err(e), ..) | (_, Err(e), ..) | (_, _, Err(e), _) | (.., Err(e)) => return e,
+            };
         let (place, feeder) = self.supply_in_proposal();
         let Some(system) = system else {
             if self.mode == Mode::Gui && !self.in_form_of(SUPPLY_PLACE) {
@@ -73,8 +73,18 @@ impl ShellModel {
                             &super::choices::SUPPLY_SYSTEMS,
                             "supply_1p".to_owned(),
                         ),
-                        field("names", key!("supply-place-names"), &super::choices::NONE, String::new()),
-                        field("location", key!("supply-in-location"), &super::choices::NONE, place),
+                        field(
+                            "names",
+                            key!("supply-place-names"),
+                            &super::choices::NONE,
+                            String::new(),
+                        ),
+                        field(
+                            "location",
+                            key!("supply-in-location"),
+                            &super::choices::NONE,
+                            place,
+                        ),
                         field("device", key!("supply-in-device"), &super::choices::NONE, feeder),
                     ],
                     error: None,

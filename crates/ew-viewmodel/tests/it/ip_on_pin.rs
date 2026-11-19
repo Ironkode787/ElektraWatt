@@ -217,7 +217,8 @@ fn a_point_dropped_on_a_free_pin_connects_to_it() {
         toast(&s),
         format!(
             "Placed the interruption point 0V at {cell} and connected it to -102F2:14. Alt+Click or Ctrl+Enter places \
-             it without connecting."
+             it without connecting. 0V at {cell} goes on nowhere yet: the next point you place is offered as where it \
+             goes on."
         )
     );
     // The control pin stays reported; -102F2:14 is connected now.

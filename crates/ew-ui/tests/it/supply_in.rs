@@ -509,7 +509,10 @@ fn supply_on_the_draw_tab_places_the_marks_of_what_comes_in() {
     d.input(&click(d.find("Supply").expect("Supply on the Draw tab")));
     d.settle();
     assert!(
-        matches!(d.shell_mut().dialog(), Some(ew_ui::ew_viewmodel::shell::Dialog::Form(_))),
+        matches!(
+            d.shell_mut().dialog(),
+            Some(ew_ui::ew_viewmodel::shell::Dialog::Form(_))
+        ),
         "its form"
     );
     d.shell_mut().set_form_field("system", "supply_3p");
@@ -538,18 +541,28 @@ fn supply_on_the_draw_tab_places_the_marks_of_what_comes_in() {
     marks.sort();
     let names: Vec<&str> = marks.iter().map(|(_, n, _)| n.as_str()).collect();
     assert_eq!(names, ["L1", "L2", "L3", "N", "PE"], "one under the other");
-    assert!(marks.iter().all(|(_, _, e)| *e), "all marked as where the supply comes in");
+    assert!(
+        marks.iter().all(|(_, _, e)| *e),
+        "all marked as where the supply comes in"
+    );
     let rows: Vec<String> = d
         .shell_mut()
         .supply_panel()
         .map(|p| p.rows.iter().map(|r| r.kind.clone()).collect())
         .unwrap_or_default();
-    assert_eq!(rows, ["l1", "l2", "l3", "n", "pe"], "the Potential panel, filled in from the names");
+    assert_eq!(
+        rows,
+        ["l1", "l2", "l3", "n", "pe"],
+        "the Potential panel, filled in from the names"
+    );
     // One undo takes the whole group back.
     assert_eq!(d.shell_mut().dispatch("ui.dismiss", &json!({})), Outcome::Done);
     assert_eq!(d.shell_mut().dispatch("edit.undo", &json!({})), Outcome::Done);
     d.settle();
-    assert!(tables(&mut d).reps.iter().all(|r| r.ip.is_none()), "one undo step");
+    assert!(
+        tables(&mut d).reps.iter().all(|r| r.ip.is_none()),
+        "one undo step"
+    );
     d.shell_mut().shutdown();
 }
 
@@ -580,7 +593,10 @@ fn supply_marks_in_a_row_each_print_where_they_come_from() {
         .collect();
     assert_eq!(ips.len(), 3);
     let shell = d.shell_mut();
-    assert_eq!(shell.dispatch("select.set", &json!({ "ids": ips })), Outcome::Done);
+    assert_eq!(
+        shell.dispatch("select.set", &json!({ "ids": ips })),
+        Outcome::Done
+    );
     assert_eq!(
         shell.dispatch("ip.supply_in", &json!({"location": "Mains", "device": "-X0"})),
         Outcome::Done

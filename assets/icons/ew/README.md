@@ -27,4 +27,5 @@ at the token stroke). `cargo xtask gen-icons` reads them with the vendored set a
 | `shape-polyline.svg` | `ew-shape-polyline` | An open zigzag of three segments: the symbol editor's Polyline tool |
 | `shape-rectangle.svg` | `ew-shape-rectangle` | A landscape rectangle: the symbol editor's Rectangle tool |
 | `structure-box.svg` | `ew-structure-box` | A frame with a "+" in its corner: a location (structure) box |
+| `supply.svg` | `ew-supply` | Three conductors coming in from a bar on the left, each with an arrow: the supply from the mains (rc.5) |
 | `terminal-strip.svg` | `ew-terminal-strip` | Three terminals in a row with their leads above and below |
