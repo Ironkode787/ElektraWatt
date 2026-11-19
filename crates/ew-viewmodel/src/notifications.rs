@@ -58,6 +58,8 @@ pub enum NoteAction {
     Connect,
     /// Redraw the boxes of a part whose device box was changed (rc.3): each as the part lays it out now.
     RedrawBoxes,
+    /// The Cable form of a bus line just drawn (rc.5: no cable was asked for).
+    ChooseCable,
 }
 
 impl NoteAction {
@@ -79,6 +81,7 @@ impl NoteAction {
             NoteAction::SelectUnlisted => "select_unlisted",
             NoteAction::Connect => "connect",
             NoteAction::RedrawBoxes => "redraw_boxes",
+            NoteAction::ChooseCable => "choose_cable",
         }
     }
 
@@ -100,6 +103,7 @@ impl NoteAction {
             "select_unlisted" => Some(NoteAction::SelectUnlisted),
             "connect" => Some(NoteAction::Connect),
             "redraw_boxes" => Some(NoteAction::RedrawBoxes),
+            "choose_cable" => Some(NoteAction::ChooseCable),
             _ => None,
         }
     }
@@ -122,6 +126,7 @@ impl NoteAction {
             NoteAction::SelectUnlisted => key!("note-action-select-unlisted"),
             NoteAction::Connect => key!("note-action-connect"),
             NoteAction::RedrawBoxes => key!("box-redraw"),
+            NoteAction::ChooseCable => key!("note-action-choose-cable"),
         }
     }
 }

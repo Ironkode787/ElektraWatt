@@ -497,6 +497,10 @@ impl FormDialog {
         match (self.action, field) {
             ("pages.renumber", "start") => Some(strings::text(key!("form-renumber-start-note"))),
             ("cable.from_wires", "type") => Some(strings::text(key!("form-cable-type-note"))),
+            // The length can wait (rc.5: a persona met it only in the check's findings).
+            ("cable.from_wires" | "bus.cable", "length") => {
+                Some(strings::text(key!("form-cable-length-note")))
+            }
             // What the chosen check level stops, in the words of the wizard's step.
             ("project.check_level", "level") => self
                 .fields

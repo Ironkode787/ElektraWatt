@@ -162,7 +162,8 @@ pub enum BusLineField {
 /// lines left that no bus line, core or drawing uses any more is removed in the same step. Refused: no
 /// line; a connection that is no bus line, a device that is no cable, a length of zero or less, a termination on a plug
 /// without a termination switch (in words); both `cable` and `create`; a part the project does not hold (`NotFound`).
-/// One undo step. Outcome: the cable, else the first line.
+/// `part` changes the existing cable's part, its cores following (rc.5; a part with fewer cores than the cable has
+/// wires is refused in words). One undo step. Outcome: the cable, else the first line.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct SetBusCable {
@@ -176,6 +177,11 @@ pub struct SetBusCable {
     /// A new cable device, as `cable.create` takes it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub create: Option<CreateCable>,
+    /// Another cable part for the existing cable `cable` (rc.5): its first part use becomes it and its cores follow, as
+    /// a wiring page's cable's do.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<UuidS>")]
+    pub part: Option<Id<Part>>,
     /// The cable's length in nanometres, entered by hand.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<NmS>")]
@@ -260,6 +266,21 @@ impl Command for SetBusCable {
             (None, Some(create)) => create.run(tx)?.primary.map(|(_, id)| id.cast::<Device>()),
             (None, None) => None,
         };
+        if let (Some(c), Some(p), None) = (cable, self.part, &self.create) {
+            tx.require::<LibCopy<Part>>(p)?;
+            let held = tx.require::<Device>(c)?;
+            if held.parts.first().map(|u| u.part.copy) != Some(p) {
+                tx.update::<Device>(c, |d| match d.parts.first_mut() {
+                    Some(u) => u.part = PartRef::new(p),
+                    None => d.parts.push(ew_schema::PartUse {
+                        part: PartRef::new(p),
+                        qty: ew_units::Dec3::ONE,
+                        extra: Extra::new(),
+                    }),
+                })?;
+                crate::commands::terminal::cores_from_part(tx, c, p)?;
+            }
+        }
         if let (Some(c), Some(n)) = (cable, self.length) {
             tx.update::<Device>(c, |d| {
                 if let Some(aspect) = &mut d.aspects.cable {

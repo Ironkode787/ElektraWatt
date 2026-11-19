@@ -1855,9 +1855,28 @@ impl ShellModel {
         out
     }
 
+    /// The strip of the terminal placed last on the page on show (the representation of the greatest ID, IDs being
+    /// minted in time order); `None` on a page without a terminal.
+    fn page_terminal_strip(&self) -> Option<String> {
+        let terminal = self
+            .canvas()?
+            .page()
+            .tables
+            .reps
+            .iter()
+            .filter(|r| r.terminal)
+            .max_by_key(|r| r.id)?
+            .device?;
+        let session = &self.project.as_ref()?.session;
+        let q = session.query();
+        let d = q.devices().get(terminal.to_string().parse().ok()?)?;
+        Some(d.aspects.terminal.as_ref()?.strip.as_uuid().to_string())
+    }
+
     /// `tool.place_terminal {strip?, kind?, part?, count?, from?, tag?}` (Draw ▸ Place ▸ Terminal…, FT-1695): in the
     /// window without parameters its small form asks which strip (one of the project's, or `new`: a new strip with the
-    /// tag it will take, editable in `tag`; on a page without a terminal `new` comes first and is chosen, rc.2), which kind of terminal (the page's terminal symbols: feed-through, PE…), which part (No part, or a
+    /// tag it will take, editable in `tag`; `new` stands first, and the strip of the page's terminal placed last is chosen, else
+    /// `new`, rc.2 and rc.5), which kind of terminal (the page's terminal symbols: feed-through, PE…), which part (No part, or a
     /// terminal part of the kinds: [`Self::terminal_part_proposal`] proposes one, and a part chosen sets its kind), how
     /// many and from which number (empty: the strip's next free one). Place then arms the Place tool with the first
     /// terminal floating; a click places the row, each terminal on the next free point two grid steps right of the one
@@ -1873,11 +1892,9 @@ impl ShellModel {
         if kinds.is_empty() {
             return Outcome::refused(key!("reason-no-terminal-kind"));
         }
-        // On a page without a terminal a new strip comes first (rc.2 persona run: the field terminals joined the supply
-        // page's strip, which the form had chosen).
-        let new_first = !self
-            .canvas()
-            .is_some_and(|c| c.page().tables.reps.iter().any(|r| r.terminal));
+        // The strip the form adds to: the strip of the terminal placed last on this page, else a new strip (rc.2: the
+        // field terminals joined the supply page's strip; rc.5: the strip used last on another page was chosen).
+        let page_strip: Option<String> = self.page_terminal_strip();
         if p.is_empty() && self.mode == super::Mode::Gui {
             let example = self.tag_example("strip", "X");
             let new_words = match &example {
@@ -1889,12 +1906,9 @@ impl ShellModel {
                 .iter()
                 .map(|st| (st.id.to_string(), crate::navigators::strip_label(&st.tag)))
                 .collect();
-            let new = ("new".to_owned(), new_words);
-            if new_first {
-                strips.insert(0, new);
-            } else {
-                strips.push(new);
-            }
+            // New strip stands first, always (rc.5: it moved in the list).
+            strips.insert(0, ("new".to_owned(), new_words));
+            let chosen = page_strip.clone().unwrap_or_else(|| "new".to_owned());
             // The Part: No part, then every terminal part of the kinds; it proposes the first strip's and kind's.
             let mut parts = vec![(
                 NO_PART.to_owned(),
@@ -1909,7 +1923,7 @@ impl ShellModel {
                     })
                     .map(|i| (cat.parts[i].copy.to_string(), terminal_part_words(&cat, i))),
             );
-            let strip = Self::catalogue_strip(&cat, &strips[0].0).map(|i| cat.strips[i].id);
+            let strip = Self::catalogue_strip(&cat, &chosen).map(|i| cat.strips[i].id);
             let proposal = self.terminal_part_proposal(&cat, strip, kinds[0]);
             offer_part(&cat, &mut parts, proposal);
             let proposal = proposal.map_or_else(|| NO_PART.to_owned(), |c| c.to_string());
@@ -1925,12 +1939,7 @@ impl ShellModel {
                 title_key: key!("terminal-form-title"),
                 ok_key: key!("tool-place"),
                 fields: vec![
-                    field(
-                        "strip",
-                        key!("form-terminal-strip"),
-                        strips.clone(),
-                        strips[0].0.clone(),
-                    ),
+                    field("strip", key!("form-terminal-strip"), strips.clone(), chosen),
                     field(
                         "kind",
                         key!("form-terminal-kind"),
@@ -1964,12 +1973,10 @@ impl ShellModel {
             Some(Value::Number(n)) => n.to_string(),
             _ => String::new(),
         };
-        let mut strip = Some(text("strip")).filter(|s| !s.is_empty()).unwrap_or_else(|| {
-            cat.strips
-                .first()
-                .filter(|_| !new_first)
-                .map_or_else(|| "new".to_owned(), |st| st.id.to_string())
-        });
+        let mut strip = Some(text("strip"))
+            .filter(|s| !s.is_empty())
+            .or(page_strip)
+            .unwrap_or_else(|| "new".to_owned());
         let mut kind = Some(text("kind"))
             .filter(|k| !k.is_empty())
             .unwrap_or_else(|| kinds[0].key.clone());
@@ -2873,6 +2880,20 @@ impl ShellModel {
         };
         self.say_result(&before, &now);
         self.say_card_waits(&before, &now);
+        // A bus line just drawn without a cable asks for one (rc.5).
+        let drawn = now
+            .connections
+            .iter()
+            .filter(|c| c.kind == "bus" && !before.connections.iter().any(|b| b.id == c.id))
+            .map(|c| c.id)
+            .find(|id| {
+                self.project
+                    .as_ref()
+                    .is_some_and(|p| p.session.bus_cable_form(&[*id]).cable.is_none())
+            });
+        if let Some(line) = drawn {
+            self.notify_bus_line(line);
+        }
         // Supply marks placed: their Potential panel (H9).
         self.after_supply_marks(&before, &now);
         // The IP tool's ghost proposes its next name on the page as the commit left it (its kept direction may meet

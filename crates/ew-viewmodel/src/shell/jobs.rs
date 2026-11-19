@@ -448,6 +448,15 @@ impl ShellModel {
                     other => other,
                 }
             }
+            // The Cable form of the bus line just drawn, the line selected.
+            Some(NoteAction::ChooseCable) => {
+                let ids: Vec<String> = entry.selects(action).iter().map(ToString::to_string).collect();
+                self.notes.dismiss(entry.serial);
+                match self.dispatch("select.set", &serde_json::json!({ "ids": ids })) {
+                    Outcome::Done => self.dispatch("bus.cable", &serde_json::json!({})),
+                    other => other,
+                }
+            }
             // The wire a placement offered instead of drawing it.
             Some(NoteAction::Connect) => {
                 let Some(params) = self.tools.offered_wire.take() else {
@@ -480,6 +489,25 @@ impl ShellModel {
             "edit",
             validity.clone().map(|v| (NoteAction::Undo, v)),
             validity.map(|v| (NoteAction::Connect, v)),
+        );
+    }
+
+    /// Shows that a bus line was drawn without a cable, with Choose cable… opening its Cable form (rc.5: no cable was
+    /// asked for, and the person looked for it in Properties). A toast, not a form, so drawing several lines goes on.
+    pub(super) fn notify_bus_line(&mut self, line: ew_api::output::Uuid) {
+        let action = self.project.as_ref().map(|p| {
+            (
+                NoteAction::ChooseCable,
+                Validity::Session {
+                    epoch: p.epoch,
+                    select: vec![line],
+                },
+            )
+        });
+        self.notes.push(
+            strings::text(key!("toast-bus-line-no-cable")).to_owned(),
+            "bus_line",
+            action,
         );
     }
 

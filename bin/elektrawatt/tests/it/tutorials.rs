@@ -834,9 +834,10 @@ fn tutorial_a_bus_network_runs_as_its_page_says() {
         ]
     );
     // Step 10: the cable.
-    assert_eq!(
-        line_of(&cable, "toast"),
-        "toast \"Cable -2W1 carries the bus line.\" undo"
+    // (the toast of the line drawn, with Choose cable…, stands beside it; rc.5)
+    assert!(
+        lines_of(&cable, &["toast"]).contains(&"toast \"Cable -2W1 carries the bus line.\" undo".to_owned()),
+        "{cable}"
     );
     // Steps 9, 13 and 14: every node's address, and the check.
     assert_eq!(
@@ -849,6 +850,8 @@ fn tutorial_a_bus_network_runs_as_its_page_says() {
             "row \"-2A2\" \"X1\" \"rio1 192.168.0.2\" \"\" \"PROFINET\" \"device\" \"PROFINET\" \"\"",
             "row \"-2K1\" \"X1\" \"\" \"\" \"PROFINET\" \"passive\" \"\" \"\"",
             "row \"-2K2\" \"X1\" \"drive1 192.168.0.3\" \"\" \"PROFINET\" \"device\" \"PROFINET\" \"\" cursor \"Address\"",
+            // The lines to the drive have no cable yet, which a toast offers to choose (rc.5).
+            "toast \"Bus line drawn: it has no cable yet.\" choose_cable",
             "toast \"Check: 0 errors, 0 warnings, 5 infos.\"",
         ]
     );

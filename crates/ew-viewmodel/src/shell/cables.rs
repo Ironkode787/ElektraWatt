@@ -464,6 +464,8 @@ impl ShellModel {
                         .collect();
                     // A new cable asks for its type first: the cable parts that fit the wires, best first, or none
                     // and the size typed (rc.3). Choosing a part writes its number as the type.
+                    // One Cable form in two uses (rc.5): the cable type, the tag, the length, then the cores (here) or
+                    // the plugs (a bus line's).
                     let mut fields = Vec::new();
                     let mut type_text = form.type_text.clone();
                     if form.cable.is_none() {
@@ -487,6 +489,7 @@ impl ShellModel {
                     }
                     fields.push(text("tag", key!("form-cable-tag"), proposed.unwrap_or_default()));
                     fields.push(text("type", key!("form-cable-type"), type_text));
+                    fields.push(text("length", key!("form-bus-cable-length"), form.length.clone()));
                     let mut dialog = FormDialog {
                         action: FROM_WIRES,
                         title_key: key!("bar-cable"),
@@ -575,6 +578,23 @@ impl ShellModel {
                 }
             },
         };
+        // The length typed (rc.5: the form asks for it, as a bus line's does), checked before anything is made.
+        let length = match given(p, "length") {
+            None => None,
+            Some(text) => {
+                let parsed = project
+                    .session
+                    .parse_field_input("device", "cable.length", &text.replace(',', "."))
+                    .ok()
+                    .map(|parsed| parsed.value)
+                    .filter(|v| v.get("manual").is_some());
+                let Some(value) = parsed else {
+                    let message = strings::format(key!("error-bus-cable-length"), &[&text]);
+                    return self.form_failed(FROM_WIRES, message);
+                };
+                Some(value)
+            }
+        };
         // Every selected wire becomes a core of a new cable, or nothing is made and the form says which wire cannot.
         if cable.is_none() {
             let cores = project
@@ -606,17 +626,30 @@ impl ShellModel {
             }
         }
         // The cable as it reads after the step (a new one takes its page number from its first core).
+        let made = self.project.as_ref().and_then(|p| {
+            cable.or_else(|| {
+                rows.iter()
+                    .find(|(_, c)| !c.is_empty())
+                    .and_then(|(w, _)| p.session.cable_of_wire(*w))
+            })
+        });
+        if let (Some(c), Some(value)) = (made, length) {
+            let set = ew_api::AnyCommand {
+                name: "fields.set".into(),
+                params: serde_json::json!({
+                    "kind": "device", "targets": [c.to_string()], "path": "cable.length", "value": value,
+                }),
+            };
+            match self.commit_from_host(&set) {
+                Outcome::Done => {}
+                Outcome::Failed { message } => return self.form_failed(FROM_WIRES, message),
+                other => return other,
+            }
+        }
         let tag = self
             .project
             .as_ref()
-            .and_then(|p| {
-                let c = cable.or_else(|| {
-                    rows.iter()
-                        .find(|(_, c)| !c.is_empty())
-                        .and_then(|(w, _)| p.session.cable_of_wire(*w))
-                })?;
-                p.session.device_tag(c)
-            })
+            .and_then(|p| p.session.device_tag(made?))
             .unwrap_or_default();
         let cored = rows.iter().filter(|(_, c)| !c.is_empty()).count();
         let wires = strings::format_count(crate::count_key!("cable-wires-count"), cored);
@@ -864,7 +897,9 @@ impl ShellModel {
             };
             plugs.push((chosen, on));
         }
-        let new_part = cable.is_none().then_some(part);
+        // The part goes with the command for a new cable and for the lines' own cable (another part there is the cable's
+        // new part); a cable of the project chosen for the lines keeps its part.
+        let new_part = (cable.is_none() || cable == form.cable).then_some(part);
         let Some(cmd) = project
             .session
             .bus_cable_apply(&lines, cable, new_part, frozen, length, &plugs)
@@ -989,17 +1024,18 @@ impl ShellModel {
                 which,
                 form.cable.map_or_else(|| NEW_CABLE.to_owned(), |c| c.to_string()),
             ),
+            // The rows of a wiring page's Cable form, in its order (rc.5): the cable type, the tag, the length.
+            field(
+                "part",
+                key!("form-cable-kind"),
+                cables,
+                form.part.map(|u| u.to_string()).unwrap_or_default(),
+            ),
             field(
                 "tag",
                 key!("form-cable-tag"),
                 Vec::new(),
                 proposed.unwrap_or_default(),
-            ),
-            field(
-                "part",
-                key!("form-cable-part"),
-                cables,
-                form.part.map(|u| u.to_string()).unwrap_or_default(),
             ),
             field(
                 "length",

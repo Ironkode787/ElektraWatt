@@ -31,7 +31,8 @@ cable in the Cables navigator. At the end you have a saved project whose checks 
    (**Cable** on the Draw tab). The form proposes the tag -1W1 and lists the two wires with the core each gets. Its
    **Cable type** lists the cable parts that fit the wires, the closest first; here type `3G1.5` as the **Size or part
    number** instead, a three-core cable of 1.5 mm² whose last core is green-yellow, without a part: the first wire gets the
-   core BN, the second BU. Choose **Apply**.
+   core BN, the second BU. Leave **Length (m)** empty for now: Check project lists a cable without a length. Choose
+   **Apply**.
    The toast says "Cable -1W1 made from 2 wires": the cable is made with its three cores and the
    two field wires are its cores, in one step that one Undo takes back. The cable takes its page number from its
    first core, and the wires take the cores' 1.5 mm² and colours.

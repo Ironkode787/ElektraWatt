@@ -270,3 +270,40 @@ fn a_wire_of_a_cable_says_its_cross_section_is_changed_at_the_cable() {
     );
     d.shell_mut().shutdown();
 }
+
+/// The persona runs of rc.5: Cable… on several wires asked no length and read otherwise than a bus line's form. Now its
+/// rows are the bus line's (tag, cable type, length, then the cores), the Length row says it can wait and what then
+/// reports it, and a length typed is the cable's.
+#[test]
+fn the_cable_form_asks_the_length_as_a_bus_lines_does() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    let pixel = two_wires(&mut d);
+    select_both(&mut d, &pixel);
+    assert_eq!(
+        d.shell_mut().dispatch("cable.from_wires", &json!({})),
+        Outcome::Done
+    );
+    d.settle();
+    let Some(Dialog::Form(form)) = d.shell_mut().dialog().cloned() else {
+        panic!("the Cable form");
+    };
+    let names: Vec<&str> = form.fields.iter().map(|f| f.name).collect();
+    assert_eq!(names, ["part", "tag", "type", "length"]);
+    let note = d.shell_mut().form_note(&form, "length").unwrap_or_default();
+    assert!(note.contains("Check project"), "{note}");
+    d.shell_mut().set_form_field("length", "7.5");
+    assert_eq!(d.shell_mut().submit_form(), Outcome::Done);
+    d.settle();
+    let world = d.shell_mut().world_for_tests().expect("a project");
+    let lengths: Vec<String> = ew_commands::rows::model_lines(&world.model)
+        .expect("lines")
+        .into_iter()
+        .map(|(_, l)| l)
+        .filter(|l| l.contains("\"cable\":{\"length\""))
+        .collect();
+    assert!(
+        lengths.iter().any(|l| l.contains("\"manual\":7500000000")),
+        "{lengths:?}"
+    );
+}

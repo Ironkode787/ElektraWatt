@@ -1098,7 +1098,7 @@ fn the_wire_buttons_disabled_reason_names_the_page_kind() {
         ),
         (
             "panel_layout",
-            "A panel layout page takes no symbols or wires: draw on a schematic page",
+            "A panel layout page takes no symbols or wires: drag a device from Unplaced devices on the left rail onto the plate, or choose Auto-fill rail",
         ),
     ];
     let rows: Vec<(String, String)> = s

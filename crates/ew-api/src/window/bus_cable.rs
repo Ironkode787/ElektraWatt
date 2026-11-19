@@ -233,8 +233,8 @@ impl Session {
         }
     }
 
-    /// The one `bus.cable.set` of the Cable form of `lines`: the existing cable `cable`, else a new one of the cable
-    /// part `part` with the frozen tag `frozen_tag` (its parsed `tag.frozen` value), else no cable change; the length
+    /// The one `bus.cable.set` of the Cable form of `lines`: the existing cable `cable` (with `part` when it is another
+    /// part than the lines' cable has: the cable takes it), else a new one of the cable part `part` with the frozen tag `frozen_tag` (its parsed `tag.frozen` value), else no cable change; the length
     /// in nanometres; for one line the plug at each end (`plugs`, end a then b; empty for several lines). `None` when
     /// `part` names no cable part.
     pub fn bus_cable_apply(
@@ -248,7 +248,15 @@ impl Session {
     ) -> Option<AnyCommand> {
         let mut params = json!({ "lines": lines.iter().map(Uuid::to_string).collect::<Vec<_>>() });
         let mut copies: Vec<Value> = Vec::new();
+        let form = self.bus_cable_form(lines);
         match (cable, part) {
+            (Some(c), Some(p)) if form.cable == Some(c) && form.part != Some(p) => {
+                // Another part for the lines' cable: its cores follow (rc.5: the part was dropped in silence).
+                let offer = form.cables.iter().find(|o| o.part == p)?;
+                params["cable"] = json!(c.to_string());
+                params["part"] = json!(p.to_string());
+                copies.extend(offer.copies.iter().cloned());
+            }
             (Some(c), _) => params["cable"] = json!(c.to_string()),
             (None, Some(p)) => {
                 let mut create = self.create_cable(p)?.params;
@@ -262,7 +270,6 @@ impl Session {
         if let Some(nm) = length {
             params["length"] = json!(nm);
         }
-        let form = self.bus_cable_form(lines);
         let mut reset: Vec<&str> = Vec::new();
         for ((name, field), (choice, end)) in [("plug_a", "plug_a"), ("plug_b", "plug_b")]
             .into_iter()

@@ -53,6 +53,8 @@ pub struct CableForm {
     pub type_text: String,
     /// The wires and the core each has or gets, in order.
     pub rows: Vec<(Uuid, String)>,
+    /// That cable's length in metres as typed (`25`), else empty (rc.5: the form asks for it, as a bus line's does).
+    pub length: String,
 }
 
 /// Why [`Session::cable_apply`] compiles no command: a text key and the texts it names.
@@ -369,11 +371,21 @@ impl Session {
             }
         }
         let cores = self.cable_type(&type_text).map(|(c, _)| c).unwrap_or_default();
+        let length = cable
+            .and_then(|c| q.devices().get(Id::from_uuid(c)).cloned())
+            .and_then(|d| match d.aspects.cable.as_ref().map(|c| &c.length) {
+                Some(ew_derive::ew_schema::LengthSource::Manual(nm)) => {
+                    Some(ew_derive::layout::mm(i128::from(nm.0) / 1000))
+                }
+                _ => None,
+            })
+            .unwrap_or_default();
         CableForm {
             cable,
             tag,
             type_text,
             rows: self.assign_cores(&cores, &rows),
+            length,
         }
     }
 

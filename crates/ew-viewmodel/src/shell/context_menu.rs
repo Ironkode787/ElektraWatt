@@ -77,6 +77,17 @@ impl ShellModel {
                 self.medium_entries(e.0, &mut out);
                 return out;
             }
+            // A bus line: Cable… first, the line's cable and plugs (rc.5).
+            let bus = kinds
+                .iter()
+                .all(|(e, _)| tables.connections.iter().any(|c| c.id == e.0 && c.kind == "bus"));
+            if bus {
+                out.extend(self.menu_item("cable.from_wires"));
+                for id in ["route.reroute", "tool.marker"] {
+                    out.extend(self.menu_item(id));
+                }
+                return out;
+            }
             if kinds.len() == 1 {
                 for id in [
                     "route.reroute",

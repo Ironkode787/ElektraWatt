@@ -609,7 +609,9 @@ fn a_greyed_commands_toast_title_stands_whole() {
     settle(&mut h);
     // The title's label carries the toast's whole text as its live value; its galley's rows are the rows as drawn
     // (the toast's labels are not selectable, so they hold no text runs).
-    let whole = format!("{TITLE}: draw on a schematic page");
+    let whole = format!(
+        "{TITLE}: drag a device from Unplaced devices on the left rail onto the plate, or choose Auto-fill rail"
+    );
     assert!(
         h.get_all_by_role(egui::Role::Label)
             .any(|n| n.accesskit_node().value().as_deref() == Some(whole.as_str())),

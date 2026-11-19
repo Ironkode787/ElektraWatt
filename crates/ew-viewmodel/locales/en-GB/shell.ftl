@@ -391,7 +391,7 @@ reason-page-type-no-symbols-divider = A section divider takes no symbols or wire
 reason-page-type-no-symbols-title = A title page takes no symbols or wires: draw on a schematic page
 reason-page-type-no-symbols-contents = A table of contents takes no symbols or wires: draw on a schematic page
 reason-page-type-no-symbols-report = A report page takes no symbols or wires: draw on a schematic page
-reason-page-type-no-symbols-panel = A panel layout page takes no symbols or wires: draw on a schematic page
+reason-page-type-no-symbols-panel = A panel layout page takes no symbols or wires: drag a device from Unplaced devices on the left rail onto the plate, or choose Auto-fill rail
 
 # WP-S2.04 part 2 (wiring; the strip chooser of FT-421). Begin.
 picker-title-strip = Choose a terminal strip
@@ -4799,6 +4799,12 @@ bar-duct = Duct
 bar-auto-fill = Auto-fill rail
 action-layout-choose-plate = Mounting plate…
 reason-no-plate = Create an enclosure first: Enclosure… brings its mounting plate
+hud-layout-place-next = Next: drag a device from Unplaced devices on the left rail onto the plate, or choose Auto-fill rail on the Draw tab
+hud-report-continues = This list continues on page { $p0 }
+toast-bus-line-no-cable = Bus line drawn: it has no cable yet.
+note-action-choose-cable = Choose cable…
+form-cable-length-note = You can leave it empty for now: Check project then lists the cable as having no length, and the parts list counts 1 m.
+hud-layout-locate-first = Next: give the cabinet's devices the location { $p0 } in Properties, then drag them from Unplaced devices (left rail) onto the plate
 hud-layout-start = Start with an enclosure: Enclosure on the Draw tab puts it on this page with its mounting plate
 bar-enclosure = Enclosure
 action-tool-rail-draw = Rail

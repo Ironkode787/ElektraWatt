@@ -172,7 +172,8 @@
 //!   Where the tag or its type line would lie there on a symbol, a symbol's text, a strip tag, a free text, another
 //!   cable mark's texts or this mark's core names (rc.3), they stand at the line's other end instead: right of a
 //!   horizontal line beyond the core names (aligned middle left), below a vertical one (aligned top centre), the type
-//!   line starting where the tag starts; with neither place free, at the start. Every text is upright.
+//!   line starting where the tag starts; a place is free only inside the drawing area (rc.5); with neither place free,
+//!   at the start. Every text is upright.
 //! - **Wire numbers** (FT-1692): a connection's [`ConnectionView::number`] prints once, at the midpoint of its
 //!   longest segment, in style `marker`, [`MARKER_GAP`] beside the wire as a marker's text stands (right of a
 //!   vertical segment, above a horizontal one) but without the marker's line; with a marker of its own it is that
@@ -2783,10 +2784,21 @@ impl Builder<'_> {
                 Nm(m.at.y.0.checked_add(d.y.0)?),
             ))
         });
+        // A place is free where its texts lie on nothing and inside the drawing area (rc.5: a bus line's tag stood on
+        // the frame's column numbers).
+        let area = drawing_area(view);
+        let inside = |b: Rect| {
+            b.min().x >= area.min().x
+                && b.min().y >= area.min().y
+                && b.max().x <= area.max().x
+                && b.max().y <= area.max().y
+        };
         let free = |p: &CablePlace| {
-            !clear
-                .iter()
-                .any(|o| collides(p.tag_box, *o) || p.kind_box.is_some_and(|k| collides(k, *o)))
+            inside(p.tag_box)
+                && p.kind_box.is_none_or(inside)
+                && !clear
+                    .iter()
+                    .any(|o| collides(p.tag_box, *o) || p.kind_box.is_some_and(|k| collides(k, *o)))
         };
         let chosen = match moved {
             Some(at) => self.cable_tag_place(mark, entity, at, places[0].1.clone()),

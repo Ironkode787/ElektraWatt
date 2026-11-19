@@ -987,6 +987,20 @@ pub(crate) fn key_of(model: &ShellModel, id: &str) -> String {
         .unwrap_or_default()
 }
 
+/// The folio of the next page of the generated list on show when the list runs on there (`901.1` after `901`); `None`
+/// for a list that ends on its page and for another page.
+fn report_continues(model: &ShellModel) -> Option<String> {
+    let rows = model.page_rows();
+    let i = model.page_index();
+    let here = rows.get(i).filter(|r| r.kind == "report" && r.generated)?;
+    let base = here.folio.split('.').next()?;
+    let next = rows.get(i + 1).filter(|r| r.generated)?;
+    next.folio
+        .strip_prefix(base)
+        .is_some_and(|rest| rest.starts_with('.'))
+        .then(|| next.folio.clone())
+}
+
 /// The key a hint, a HUD prompt, a toast or a reason names for action `id`: its
 /// first shortcut in the keycap form of [`key_of`], or "(no key)" when the keymap binds it to none.
 pub(crate) fn key_name(model: &ShellModel, id: &str) -> String {
@@ -1088,11 +1102,22 @@ pub fn hud(model: &ShellModel) -> HudModel {
             {
                 // A layout page names its first step while it shows no plate (rc.2: the persona read only that it
                 // takes no symbols), and the Select hint once it does.
-                if model.panel_tables().is_none() {
-                    strings::text(key!("hud-layout-start")).to_owned()
-                } else {
-                    hint()
+                match model.panel_tables() {
+                    None => strings::text(key!("hud-layout-start")).to_owned(),
+                    // A plate with no device on it says the next step (rc.5: a persona did not find it).
+                    Some(t) if t.placements.is_empty() && !t.unplaced.is_empty() => {
+                        strings::text(key!("hud-layout-place-next")).to_owned()
+                    }
+                    // No device of the cabinet's location yet: the location comes first (Unplaced devices lists only
+                    // the devices of the location).
+                    Some(t) if t.placements.is_empty() => {
+                        strings::format(key!("hud-layout-locate-first"), &[&t.location])
+                    }
+                    Some(_) => hint(),
                 }
+            } else if let Some(next) = report_continues(model) {
+                // A list that runs on says where (rc.5: a persona missed the plugs on the parts list's second page).
+                strings::format(key!("hud-report-continues"), &[&next])
             } else if let Some(reason) = crate::actions::page_type_reason(model) {
                 // Doc 16a P3: on a page that takes no symbols, with no tool armed, the reason stands
                 // where the user looks: the page type's, as a greyed drawing tool says it.

@@ -697,3 +697,71 @@ fn a_replaced_bus_cable_goes_and_its_tag_is_proposed_again() {
     assert_eq!(back.len(), 1, "{back:?}");
     assert!(!back[0].contains(&other), "the old cable is back: {back:?}");
 }
+
+/// The persona run of rc.5 (PROFIBUS): another cable type chosen for the line's cable and applied was dropped in
+/// silence. Now the cable takes the part, its cores following, in one step.
+#[test]
+fn another_cable_type_for_a_bus_lines_cable_is_the_cables() {
+    let tmp = Tmp::new();
+    let (mut d, cpu, rio) = bus_page(&tmp);
+    bus_line(&mut d, &cpu, &rio, true);
+    for change in [false, true] {
+        assert_eq!(
+            d.shell_mut().dispatch("cable.from_wires", &json!({})),
+            Outcome::Done
+        );
+        d.settle();
+        if change {
+            let other = option(&mut d, "part", "EW-GEN-CBL-26");
+            d.shell_mut().set_form_field("part", &other);
+        }
+        assert_eq!(d.shell_mut().submit_form(), Outcome::Done);
+        d.settle();
+    }
+    let records = crate::own_parts::records(&mut d);
+    let cables: Vec<&serde_json::Value> = records
+        .iter()
+        .filter(|r| r.get("cable").is_some() && r.get("tag").is_some())
+        .collect();
+    assert_eq!(cables.len(), 1, "the line's one cable");
+    let id = cables[0]["id"].clone();
+    let cores = records
+        .iter()
+        .filter(|r| r.get("core").is_some() && r["cable"] == id)
+        .count();
+    assert_eq!(cores, 9, "the eight-core cable's cores and its shield");
+}
+
+/// The persona run of rc.5 (PROFIBUS): no cable was asked for when a bus line was drawn. Now a toast says so with
+/// Choose cable…, which opens the line's Cable form, and the line's right-click menu has Cable… first.
+#[test]
+fn a_bus_line_drawn_asks_for_its_cable() {
+    let tmp = Tmp::new();
+    let (mut d, cpu, rio) = bus_page(&tmp);
+    bus_line(&mut d, &cpu, &rio, true);
+    let menu = ew_ui::ew_viewmodel::command_bar::canvas_menu(
+        d.shell_mut(),
+        ew_ui::ew_viewmodel::command_bar::MenuSpot::Object,
+        None,
+    );
+    assert_eq!(
+        menu.first().map(|i| i.id),
+        Some("cable.from_wires"),
+        "Cable… first"
+    );
+    let toast = d.shell_mut().toast().cloned().expect("a toast");
+    assert_eq!(toast.text, "Bus line drawn: it has no cable yet.");
+    assert_eq!(
+        d.shell_mut().dispatch("select.set", &json!({"ids": []})),
+        Outcome::Done
+    );
+    let run = json!({"entry": toast.serial, "action": "choose_cable"});
+    assert_eq!(d.shell_mut().dispatch("notifications.run", &run), Outcome::Done);
+    d.settle();
+    let Some(Dialog::Form(form)) = d.shell_mut().dialog() else {
+        panic!("the Cable form");
+    };
+    assert_eq!(form.action, "bus.cable");
+    let names: Vec<&str> = form.fields.iter().map(|f| f.name).collect();
+    assert_eq!(names[..4], ["cable", "part", "tag", "length"]);
+}
