@@ -32,6 +32,8 @@ symbol editor, the PLC rack); a lane finishes its whole brief and carries on whe
 stop for size; after the lanes one review of the whole round, a fix lane if it needs one, and a persona round that has
 the complete-cabinet job in it.
 
+Decided by the owner on the fourth candidate: pin texts of a drawn box stay as they were (turned a quarter on the top and bottom sides, horizontal on the left and right); the golden project has done its work and is retired after this release, and until then a decided change regenerates it instead of bending round it; after the fix lanes one full review with its fixes and a persona round, and the complete-cabinet job run again when every lane has delivered; the title block's layout and the frame's columns and rows become editable in the next milestone, design first; the milestone after that is given to fluid power, and the later milestones move one up.
+
 ## 2. The candidates
 
 | Candidate | Cut from | Checklist | State |
@@ -39,7 +41,8 @@ the complete-cabinet job in it.
 | `v0.3.0-rc.1` | `release/0.3`, the commit the tag names | [`checklist-rc.1.md`](checklist-rc.1.md) | Cut on 2026-11-16; its release build passed (run 11 of `release.yml`). **Tested by the owner by hand: not passed.** He found 29 points (the plan's log lists them as F1 to F29); no go |
 | `v0.3.0-rc.2` | `release/0.3`, the commit the tag names | [`checklist-rc.2.md`](checklist-rc.2.md) | Cut on 2026-11-16; its release build passed (run 12 of `release.yml`). **Tested by the owner by hand: not passed.** He wrote sixteen points (the plan's log lists them as G1 to G16), three of them asking for a screen to be designed anew; no go |
 | `v0.3.0-rc.3` | `release/0.3`, the commit the tag names | [`checklist-rc.3.md`](checklist-rc.3.md) | Cut on 2026-11-18. Its release build made every package (run 13 of `release.yml`: verify, the guide, the Linux and the Windows package and the sums passed) and **failed at the draft**: the release notes had grown longer than GitHub takes as a release's text. No draft exists; nobody tested it |
-| `v0.3.0-rc.4` | `release/0.3`, the commit the tag names | [`checklist-rc.4.md`](checklist-rc.4.md) | Cut on 2026-11-18: the third candidate's program with the release script mended (notes too long for a release are published as their first sections and a link to the whole). Its release build passed (run 14 of `release.yml`: verify, the guide, the Linux and the Windows package, the sums, the draft); waits for the owner's hands-on test |
+| `v0.3.0-rc.4` | `release/0.3`, the commit the tag names | [`checklist-rc.4.md`](checklist-rc.4.md) | Cut on 2026-11-18: the third candidate's program with the release script mended; its release build passed (run 14 of `release.yml`). **Tested by the owner by hand: not passed.** He wrote seventeen points and answered one open question (the plan's log lists them by theme); two of the points are asks for the next milestone |
+| `v0.3.0-rc.5` | `release/0.3`, the commit the tag names | [`checklist-rc.5.md`](checklist-rc.5.md) | Cut on 2026-11-19; waits for its release build and for the owner's hands-on test |
 
 Before the first cut, on the tip that the release branch starts from: eight reviews by area and one of the whole
 milestone, each with its fix lane; a persona round of three picture-led runs on a new project, two re-tests, two
@@ -62,6 +65,8 @@ lanes from it, two re-tests, and one panic found by the second cabinet run and m
 owner's test of the second candidate" on). On the candidate's tree the whole workspace (7,522 of 7,522 tests) and
 the deep run with the private corpus (18 of 18) passed. The release branch was moved forward to the working
 branch's tip again, for the same reason.
+
+Before the fifth cut: five lanes for the owner's seventeen points, each told to find the root cause (a wire from 0 V to earth is the bond; a page position stored one nanometre apart from itself; a box armed with something an Undo took away; a cable that only carries a bus line counted as on no page), one review of the whole round (one major finding, a symbol fitted to another grid that could not be moved, mended), a persona round of three runs, five fix lanes from it, two re-tests, a last round of fixes, and the complete cabinet drawn once more with twice the turns, which finished every step (the log's entries from "The owner's test of the fourth candidate" on). One decision was read wrongly on the way (the pin texts were built horizontal) and put back before the cut. On the candidate's tree the whole workspace (7,619 tests) and the deep run with the private corpus (18 of 18) passed; the deep run had first failed twice, and both causes were mended. The release branch was moved forward to the working branch's tip again.
 
 ## 3. Known when the candidates were cut
 
@@ -118,6 +123,35 @@ With the third candidate:
 - A turned or mirrored symbol turns about the middle of its body.
 - The persona round was not repeated after the last five fixes and the mended panic: the whole workspace and the
   deep run passed on that tree, and the owner's test is the gate.
+
+With the fifth candidate:
+
+- A wire drawn from a 0 V conductor to protective earth is the bond, and one to functional earth is no conflict
+  (the check then says where the protective bond belongs); earth symbols of one location are one earth for the
+  PE-island check; the potential findings say what is wired to what and what to do.
+- Reroute starts from the drawing and gives no wire a route worse than the one it had; a page routed for the
+  first time takes the better of two orders where that costs nothing (ADR-0033 amendments 4 and 5, with the golden
+  project's folios 106 and 203 regenerated).
+- One position of the grid is one point wherever points are compared (a step of one nanometre on a grid of thirds
+  is no step); with the Wire and Tube tools a click within about ten screen points of a connection point takes it.
+- A paste onto a page of another grid and a page's grid change fit each item to its nearest grid point and say
+  so; a fitted symbol keeps to the grid by its first pin.
+- A box drawn without a part takes pins where it stands, and two pins of a box may share a name; a resized box
+  keeps its pins centred and goes no lower than its turned pin texts need. A box the person draws keeps the size
+  drawn.
+- A bus cable is numbered on its line's page; an older project's bus cable whose tag now meets another is
+  reported with a renumbering offered, not renumbered silently. A plug at a line end without a device counts in
+  the parts list.
+- On a page without a location of its own, a device without a location no longer counts when the page's shared
+  location is found, so giving a cabinet's devices their location leaves the drawn tags as they were.
+- Ctrl+Z with something on the pointer first puts it away; every Undo and Redo says what it took back and where.
+- A station's To do has one line per side; a tag changed in the station view is taken at Enter.
+- A new terminal strip keeps the tag of the wizard's rule (letter, page, counter), which is the reference
+  project's convention.
+- No persona run followed the fixes that came after the last complete-cabinet run: the whole workspace and the
+  deep run passed on that tree, and the owner's test is the gate.
+- A redesign of the router that also places devices and parts, asked for by the owner at the end of this round,
+  is not in this candidate.
 
 Only a real desktop shows three things (the checklist's RC-05): the installers, a printer, a screen reader. The
 owner's test says whether an open row holds the release.
