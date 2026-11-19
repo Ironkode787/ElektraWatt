@@ -46,7 +46,6 @@ answers is deleted with a line in its report.
 - FT-1797 `ew-derive`: Two routes that ADR-0033's measures leave: a PE wire crosses L and N where the way round a box is far longer, and a pin right under a row of tags has no route clear of the texts.
 - FT-1798 `ew-scene`: An interruption point on the bottom pin of a box draws its arrow along the box's edge.
 - FT-1799 `ew-api`: An unnumbered wire's Properties title reads "?" (`wire_number` falls back to it); say "wire without a number" in words.
-- FT-1800 `ew-viewmodel, ew-ui`: With the Wire tool a connection point is about five screen points at the usual zoom, and a click a few points off starts a bend instead of ending the wire; the ring under the pointer is shown with Select only. Give the Wire tool the same ring and a reach in screen points.
 - FT-1801 `ew-viewmodel`: A tube drawn in a project without a default tube stops for the project's fluid settings; offer the size where the tube is drawn.
 - FT-1802 `ew-viewmodel, ew-api`: Auto-fill rail gives every device without a location the cabinet's and places them all, field devices too (sensors, cylinders, a valve terminal); let the person choose which devices go on the rail.
 - FT-1803 `ew-viewmodel`: Project properties name their rows otherwise than the title block's cells (Project reference and Project, Designer and Author), and Document title prints in no cell of the program's frame (a persona met this again); Title block fields… says which cell prints which, the rows themselves do not.
