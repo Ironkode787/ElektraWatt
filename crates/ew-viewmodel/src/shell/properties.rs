@@ -429,7 +429,15 @@ impl ShellModel {
             self.props.row = None;
             self.props.notes.clear();
         }
-        self.props.sheet = Some(Arc::new(self.fetch_sheet(&key.ids)));
+        let kinds = |s: &PropertySheet| s.sections.iter().map(|x| x.kind.clone()).collect::<Vec<_>>();
+        let before = self.props.sheet.as_deref().map(kinds);
+        let sheet = self.fetch_sheet(&key.ids);
+        // A filter typed for one kind of thing does not hide the rows of another (rc.5: "grid" typed on a page hid a
+        // breaker's rows): it clears when the selection changes kind.
+        if !same_records && before.is_some_and(|b| b != kinds(&sheet)) {
+            self.props.filter.clear();
+        }
+        self.props.sheet = Some(Arc::new(sheet));
         self.props.key = Some(key);
     }
 

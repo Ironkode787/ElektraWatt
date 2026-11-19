@@ -49,6 +49,15 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_page_title_block(p),
         ),
     ),
+    // Page, Connection grid…: the page's grid, asked and fitted where it holds items (rc.5: a persona looked for it on
+    // the Page tab).
+    placed(
+        place(Group::Pages, 3, CommandSize::Small, None),
+        "grid-dots",
+        act("page.grid", Command, Menu::Page, &[], writable_page, None, |s, _| {
+            s.act_page_grid()
+        }),
+    ),
     // Add legend: the panel page's item list beside the layout, with its button on the Page tab.
     placed(
         place(Group::Order, 9, CommandSize::Small, None),

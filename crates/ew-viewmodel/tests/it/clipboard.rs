@@ -535,6 +535,40 @@ fn a_page_with_a_free_text_alone_asks_before_its_grid_changes() {
     shell.shutdown();
 }
 
+/// rc.5 persona run (he looked for the page's grid on the Page tab, then found it by filtering Properties for "grid",
+/// and the filter word hid the next thing's rows): the Page tab has Connection grid…, which asks and fits as the
+/// Properties row does; a filter typed for the page clears when a symbol is selected.
+#[test]
+fn the_page_tab_changes_the_grid_and_a_filter_clears_with_the_kind() {
+    let tmp = Tmp::new("page-grid-tab");
+    let mut shell = tmp.shell_in(Mode::Gui, true, "102");
+    let bar = ew_viewmodel::command_bar::command_bar_of(&shell, ew_viewmodel::command_bar::Tab::Page);
+    let button = bar
+        .groups
+        .iter()
+        .flat_map(|g| g.buttons.iter())
+        .find(|b| b.id == "page.grid")
+        .expect("Connection grid… on the Page tab");
+    assert!(button.enabled);
+    done(&mut shell, "page.grid", json!({}));
+    let form = common::form(&shell);
+    assert_eq!(form.action, "page.fit_grid");
+    assert_eq!(form.fields[0].value, "qet_10px", "the page's own grid");
+    shell.set_form_field("grid", "mm4");
+    let form = common::form(&shell);
+    assert!(shell.form_foot(&form).is_some_and(|f| f.starts_with("Page 102 holds")));
+    assert_eq!(shell.submit_form(), Outcome::Done);
+    assert_eq!(shell.canvas().unwrap().page().snapper.grid(), (4_000_000, 1));
+    // The filter.
+    done(&mut shell, "select.set", json!({ "ids": [] }));
+    done(&mut shell, "props.show", json!({"on": true}));
+    done(&mut shell, "props.filter", json!({"text": "grid"}));
+    assert_eq!(shell.properties_filter(), "grid");
+    select_rep(&mut shell, "-102F1");
+    assert_eq!(shell.properties_filter(), "", "another kind of thing: the filter clears");
+    shell.shutdown();
+}
+
 /// CB4 (FR-DEV-029): copying -102F1 on folio 102 and pasting it on 102 yields a device whose tag is -102F3 with part
 /// A9F78116 and no connection (its wires had an end outside).
 #[test]

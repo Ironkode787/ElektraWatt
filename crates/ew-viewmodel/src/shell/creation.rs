@@ -703,6 +703,37 @@ impl ShellModel {
         Some(out)
     }
 
+    /// `page.grid` (Page ▸ Connection grid…, rc.5): the question of the page on show's grid, its own grid chosen; Change
+    /// and fit (`page.fit_grid`) sets it and fits what the page holds.
+    pub(crate) fn act_page_grid(&mut self) -> Outcome {
+        let Some(page) = self.focused_page_id() else {
+            return Outcome::refused(key!("reason-no-page"));
+        };
+        let Some((folio, t)) = self.tables_of_page(page) else {
+            return Outcome::refused(key!("reason-no-page"));
+        };
+        let word = page_grid_word(t.grid.0, t.grid.1).unwrap_or_default();
+        self.tools.grid_fit = Some(crate::tools::GridFit {
+            page,
+            folio,
+            word: String::new(),
+            moved: 0,
+            items: t.reps.len() + t.junctions.len() + t.items.len() + t.structure_boxes.len(),
+            wires: t.connections.len(),
+        });
+        let p = Map::from_iter([("grid".to_owned(), Value::String(word.to_owned()))]);
+        let out = self.open_dialog(Dialog::Form(PAGE_GRID_FIT.dialog(&p)));
+        if let Some(Dialog::Form(form)) = &mut self.dialog
+            && form.action == PAGE_GRID_FIT.action
+        {
+            form.ok_key = key!("page-grid-fit-ok");
+        }
+        if !word.is_empty() {
+            self.refresh_grid_fit(word);
+        }
+        out
+    }
+
     /// The items a grid change moves, from the records it changes (`diff`): its symbols, junctions and structure boxes
     /// (rc.5: the question and the message after it count by this one rule).
     fn grid_fit_moved(diff: &ew_api::ModelDiff) -> usize {
@@ -742,6 +773,10 @@ impl ShellModel {
     pub(super) fn grid_fit_foot(&self, form: &FormDialog) -> Option<String> {
         let word = form.fields.iter().find(|f| f.name == "grid")?.value.as_str();
         let g = self.tools.grid_fit.as_ref().filter(|g| g.word == word)?;
+        // An empty page changes its grid with nothing to say.
+        if g.items + g.wires == 0 {
+            return None;
+        }
         Some(strings::format(
             key!("page-grid-fit-foot"),
             &[
@@ -808,7 +843,14 @@ impl ShellModel {
                 pr.session.fold_last_step();
             }
         }
-        let text = if moved == 0 {
+        let text = if before.reps.is_empty()
+            && before.junctions.is_empty()
+            && before.connections.is_empty()
+            && before.items.is_empty()
+            && before.structure_boxes.is_empty()
+        {
+            strings::format(key!("toast-page-grid-set"), &[&folio, &strings::choice_text(&word)])
+        } else if moved == 0 {
             strings::format(
                 key!("toast-page-grid-fitted-none"),
                 &[&folio, &strings::choice_text(&word)],

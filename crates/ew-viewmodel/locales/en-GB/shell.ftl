@@ -2682,6 +2682,7 @@ toast-ips-deleted-wires = Deleted the interruption points { $p0 } and the { $p1 
 toast-paste-ip-continues = The pasted interruption point { $p0 } keeps its name, so it continues { $p0 } at { $p1 }.
 toast-paste-fitted = The paste was fitted to this page's { $p0 } grid: { $p1 } items moved onto it, and their wires were drawn anew. Undo takes it all back in one step.
 toast-paste-fitted-one = The paste was fitted to this page's { $p0 } grid: one item moved onto it, and the wires were drawn anew. Undo takes it all back in one step.
+toast-page-grid-set = Page { $p0 } now has the { $p1 } grid.
 toast-page-grid-fitted-none = Page { $p0 } now has the { $p1 } grid: every item stood on it already, and its wires were drawn anew. Undo takes it all back in one step.
 toast-page-grid-fitted = Page { $p0 } now has the { $p1 } grid: { $p2 } items moved onto it and its wires were drawn anew. Undo takes it all back in one step.
 
@@ -4094,6 +4095,7 @@ canvas-cursor-live-link = , link to { $p0 }
 # Creating pages, structure nodes and external references (FT-408, FT-409).
 action-page-new = New page…
 action-page-title-block = Title block fields…
+action-page-grid = Connection grid…
 titleblock-title = Title block fields
 titleblock-project-description = Project description
 titleblock-revision = Revision
