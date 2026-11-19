@@ -277,7 +277,7 @@ fn home_and_end_scroll_the_cursor_row_into_view() {
 }
 
 /// "a pre-filled form field selects its text when it takes the focus, as the Properties editor
-/// does". Page ▸ New page's folio holds the proposal 4; typing 999 over it, without clearing it, gives 999.
+/// does". Page ▸ New page's folio holds the proposal 107; typing 999 over it, without clearing it, gives 999.
 #[test]
 fn typing_over_a_pre_filled_field_replaces_it() {
     let tmp = Tmp::new();
@@ -292,7 +292,7 @@ fn typing_over_a_pre_filled_field_replaces_it() {
         Some(Dialog::Form(f)) => f.fields[0].value.clone(),
         other => panic!("{other:?}"),
     };
-    assert_eq!(folio(), "4");
+    assert_eq!(folio(), "107");
     h.get_all_by_role(egui::Role::TextInput)
         .find(|n| n.accesskit_node().label().as_deref() == Some("Folio"))
         .expect("the Folio field")

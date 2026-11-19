@@ -492,7 +492,10 @@ fn new_page_proposes_the_next_free_folio_and_the_section() {
     let tmp = Tmp::new("navigators");
     let mut shell = open(&tmp, false);
     done(&mut shell, "page.goto", json!({"folio": "103"}));
-    assert_eq!(shell.new_page_proposal(None, None), ("104".to_owned(), "1".to_owned()));
+    assert_eq!(
+        shell.new_page_proposal(None, None),
+        ("104".to_owned(), "1".to_owned())
+    );
     done(&mut shell, "page.goto", json!({"folio": "1"}));
     // 2 is the generated table of contents and 3 a page record.
     assert_eq!(shell.new_page_proposal(None, None).0, "4");

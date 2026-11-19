@@ -556,7 +556,11 @@ fn the_page_tab_changes_the_grid_and_a_filter_clears_with_the_kind() {
     assert_eq!(form.fields[0].value, "qet_10px", "the page's own grid");
     shell.set_form_field("grid", "mm4");
     let form = common::form(&shell);
-    assert!(shell.form_foot(&form).is_some_and(|f| f.starts_with("Page 102 holds")));
+    assert!(
+        shell
+            .form_foot(&form)
+            .is_some_and(|f| f.starts_with("Page 102 holds"))
+    );
     assert_eq!(shell.submit_form(), Outcome::Done);
     assert_eq!(shell.canvas().unwrap().page().snapper.grid(), (4_000_000, 1));
     // The filter.
@@ -565,7 +569,11 @@ fn the_page_tab_changes_the_grid_and_a_filter_clears_with_the_kind() {
     done(&mut shell, "props.filter", json!({"text": "grid"}));
     assert_eq!(shell.properties_filter(), "grid");
     select_rep(&mut shell, "-102F1");
-    assert_eq!(shell.properties_filter(), "", "another kind of thing: the filter clears");
+    assert_eq!(
+        shell.properties_filter(),
+        "",
+        "another kind of thing: the filter clears"
+    );
     shell.shutdown();
 }
 
@@ -581,7 +589,10 @@ fn a_paste_shows_its_ghost_at_once_and_is_refused_off_the_drawing_area() {
     done(&mut shell, "select.set", json!({ "ids": [] }));
     done(&mut shell, "edit.paste_clip", json!({}));
     assert_eq!(shell.tool().name(), "paste");
-    assert!(!shell.tool_overlay().is_empty(), "the ghost shows before the pointer moves");
+    assert!(
+        !shell.tool_overlay().is_empty(),
+        "the ghost shows before the pointer moves"
+    );
     // At the sheet's top-left corner: outside the drawing area.
     let corner = sheet(&shell, (0, 0));
     let rev = shell.revision();
@@ -593,7 +604,11 @@ fn a_paste_shows_its_ghost_at_once_and_is_refused_off_the_drawing_area() {
         }
     );
     assert_eq!(shell.revision(), rev, "nothing pasted");
-    assert_eq!(shell.tool().name(), "paste", "the block still hangs on the pointer");
+    assert_eq!(
+        shell.tool().name(),
+        "paste",
+        "the block still hangs on the pointer"
+    );
     shell.shutdown();
 }
 

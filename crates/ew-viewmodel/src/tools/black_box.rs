@@ -1100,6 +1100,9 @@ pub fn nearest_on_outline(
     best.map(|(_, _, q, d)| (q, d))
 }
 
+/// A pin's point on the page and the direction a wire leaves it.
+type PinAt = ((i64, i64), Dir);
+
 /// Where a drag of pin `idx` of the box `outline` with the pins `cps` (page nm) to `p` puts it, with the direction it
 /// leaves in (rc.5: a pin dragged on the smallest box went round its corner onto the next side): a grid point at least
 /// one step from both corners of an axis-aligned edge, no other pin's (read settled), nearest `p`. The pin keeps its
@@ -1121,7 +1124,7 @@ pub fn pin_target(
     };
     let me = cps.iter().find(|c| c.0 == idx).map(|c| c.1);
     // Each axis-aligned edge: its free points clear of the corners, and whether it holds the pin now.
-    let mut best: Option<(bool, i128, usize, (i64, i64), Dir)> = None;
+    let mut best: Option<(bool, i128, usize, PinAt)> = None;
     for i in 0..n {
         let (a, b) = (outline[i], outline[(i + 1) % n]);
         let along_x = a.1 == b.1 && a.0 != b.0;
@@ -1166,10 +1169,10 @@ pub fn pin_target(
             Some((bk, bd, bi, ..)) => (keep, -d, std::cmp::Reverse(i)) > (*bk, -*bd, std::cmp::Reverse(*bi)),
         };
         if better {
-            best = Some((keep, d, i, q, dir));
+            best = Some((keep, d, i, (q, dir)));
         }
     }
-    best.map(|(_, _, _, q, d)| (q, d))
+    best.map(|(.., at)| at)
 }
 
 /// The new pin a wire ending at the grid point `p` on the box `b` would take (rc.5): on a box whose pins are its own,

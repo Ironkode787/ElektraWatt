@@ -69,9 +69,11 @@ fn page_new_asks_for_the_fields_enter_creates_and_escape_cancels() {
     assert!(matches!(h.state().shell().dialog(), Some(Dialog::Form(f)) if f.action == "page.new"));
     // The navigator's button and the dialog's title.
     assert_eq!(h.query_all_by_label("New page").count(), 2);
-    // The folio field holds the proposal after the current page 1 (2 is the generated table
-    // of contents, 3 a page record).
-    assert_eq!(form_values(&h)[0], ("folio".into(), "4".into()));
+    // The folio field holds the proposal for a multi-line page: the first free folio of the section that holds the
+    // multi-line pages, never one in the front matter that page 1 stands in (rc.5).
+    assert_eq!(form_values(&h)[0], ("folio".into(), "107".into()));
+    // Folio 999 stands in no section: the section the proposal chose is cleared.
+    h.state_mut().shell_mut().set_form_field("section", "");
     h.state_mut().shell_mut().set_form_field("folio", "");
     settle(&mut h);
     // The folio field has the focus when the dialog opens: type the folio; Tab moves on (to the type's list, then the
@@ -120,6 +122,8 @@ fn a_refusal_stays_in_the_dialog_and_the_type_is_a_choice() {
     assert!(matches!(h.state().shell().dialog(), Some(Dialog::Form(f)) if f.action == "page.new"));
     // The folio of an existing page: the command's refusal is shown under the fields, the dialog stays open.
     let existing = h.state().shell().page_labels()[0].clone();
+    // Page 1 is in no section: the section the proposal chose is cleared.
+    h.state_mut().shell_mut().set_form_field("section", "");
     h.state_mut().shell_mut().set_form_field("folio", "");
     settle(&mut h);
     field(&h, "Folio").type_text(&existing);

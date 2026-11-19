@@ -149,7 +149,7 @@ fn n1_a_hint_onto_the_wire_takes_the_same_rule() {
             kind: None,
         },
         connect: vec![ConnectHint {
-        route: Vec::new(),
+            route: Vec::new(),
             cp: 0,
             to: EndpointParam::OnConnection { connection: w, at },
         }],

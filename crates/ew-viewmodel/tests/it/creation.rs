@@ -227,14 +227,26 @@ fn page_new_follows_the_kind_and_offers_the_end_of_the_section() {
     }
     done(&mut shell, "page.goto", json!({"folio": "1"}));
     let field = |shell: &ShellModel, name: &str| {
-        common::form(shell).fields.iter().find(|f| f.name == name).unwrap().value.clone()
+        common::form(shell)
+            .fields
+            .iter()
+            .find(|f| f.name == name)
+            .unwrap()
+            .value
+            .clone()
     };
     // A wiring page, the front matter open: into the wiring section, not the front matter.
     done(&mut shell, "page.new", json!({}));
-    assert_eq!((field(&shell, "folio"), field(&shell, "section")), ("101".to_owned(), "1".to_owned()));
+    assert_eq!(
+        (field(&shell, "folio"), field(&shell, "section")),
+        ("101".to_owned(), "1".to_owned())
+    );
     // A fluid page: the pneumatics section.
     shell.set_form_field("type", "fluid");
-    assert_eq!((field(&shell, "folio"), field(&shell, "section")), ("201".to_owned(), "2".to_owned()));
+    assert_eq!(
+        (field(&shell, "folio"), field(&shell, "section")),
+        ("201".to_owned(), "2".to_owned())
+    );
     shell.set_form_field("type", "multi_line");
     assert_eq!(field(&shell, "folio"), "101");
     assert_eq!(shell.submit_form(), Outcome::Done);
@@ -249,11 +261,17 @@ fn page_new_follows_the_kind_and_offers_the_end_of_the_section() {
     let place = form.fields.iter().find(|f| f.name == "place").unwrap();
     let words: Vec<&str> = place.options.iter().map(|o| o.1.as_str()).collect();
     assert_eq!(words, ["After 101", "At the end of section 1 Wiring Definition"]);
-    assert_eq!(shell.form_note(&form, "folio").unwrap(), "Stands after 102, before 105");
+    assert_eq!(
+        shell.form_note(&form, "folio").unwrap(),
+        "Stands after 102, before 105"
+    );
     shell.set_form_field("place", "end");
     assert_eq!(field(&shell, "folio"), "106");
     let form = common::form(&shell);
-    assert_eq!(shell.form_note(&form, "folio").unwrap(), "Stands after 105, the last page of its section");
+    assert_eq!(
+        shell.form_note(&form, "folio").unwrap(),
+        "Stands after 105, the last page of its section"
+    );
     // A number typed stays when the kind changes.
     shell.set_form_field("folio", "150");
     shell.set_form_field("type", "fluid");

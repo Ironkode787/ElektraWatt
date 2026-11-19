@@ -379,7 +379,7 @@ fn place_hints_create_wires_and_extend_junctions() {
     let mut cmd = place(PAGE_102, pt(0, 0), new_device("F"));
     cmd.connect = vec![
         ConnectHint {
-        route: Vec::new(),
+            route: Vec::new(),
             cp: 1,
             to: EndpointParam::Cp {
                 function: FN_102G1,
@@ -387,7 +387,7 @@ fn place_hints_create_wires_and_extend_junctions() {
             },
         },
         ConnectHint {
-        route: Vec::new(),
+            route: Vec::new(),
             cp: 0,
             to: EndpointParam::Junction { junction: J5 },
         },
@@ -427,7 +427,7 @@ fn place_hints_reject_bad_cps_and_connections_and_drop_missing_targets() {
     // a page-less connection cannot take a junction; the split point must be on the grid
     for (connection, at) in [(CON_BR1, pt(0, 0)), (CON_W11B, pt(1, 0))] {
         cmd.connect = vec![ConnectHint {
-        route: Vec::new(),
+            route: Vec::new(),
             cp: 0,
             to: EndpointParam::OnConnection { connection, at },
         }];

@@ -807,7 +807,10 @@ fn add_pin_on_a_part_s_box_opens_its_device_box() {
     assert!(!before.black_box.as_ref().unwrap().own_pins, "a box of a part");
     select_ids(&mut s, &[before.id.to_string()]);
     done(&mut s, "box.add_cp", json!({}));
-    assert!(s.symbol_editor().and_then(|e| e.device_box()).is_some(), "the device box opens");
+    assert!(
+        s.symbol_editor().and_then(|e| e.device_box()).is_some(),
+        "the device box opens"
+    );
     assert_eq!(g1(&tables(&s)).black_box, before.black_box, "the box stays");
 }
 
@@ -822,7 +825,9 @@ fn pin_names(s: &ShellModel, rep: ew_viewmodel::ew_api::output::Uuid) -> Vec<Str
     let t = tables(s);
     let mut cps: Vec<_> = t.cps.iter().filter(|c| c.rep == rep).collect();
     cps.sort_by_key(|c| c.idx);
-    cps.iter().map(|c| c.label.rsplit(':').next().unwrap_or_default().to_owned()).collect()
+    cps.iter()
+        .map(|c| c.label.rsplit(':').next().unwrap_or_default().to_owned())
+        .collect()
 }
 
 /// rc.5 persona runs (a plain box could not get pins): a box drawn without a part takes pins where it stands. Add pin
@@ -842,12 +847,21 @@ fn a_drawn_box_takes_pins_where_it_stands() {
     );
     done(&mut s, "page.goto", json!({"folio": "150"}));
     done(&mut s, "view.zoom_actual", json!({}));
-    done(&mut s, "tool.black_box", json!({"symbol": "ew.gen.blackbox@qet10", "letter": "A"}));
+    done(
+        &mut s,
+        "tool.black_box",
+        json!({"symbol": "ew.gen.blackbox@qet10", "letter": "A"}),
+    );
     enter_k(&mut s, (30, 30));
     cursor_k(&mut s, (42, 38));
     done(&mut s, "canvas.activate", json!({}));
     done(&mut s, "tool.select", json!({}));
-    let rep = tables(&s).reps.iter().find(|r| r.black_box.is_some()).expect("the box").clone();
+    let rep = tables(&s)
+        .reps
+        .iter()
+        .find(|r| r.black_box.is_some())
+        .expect("the box")
+        .clone();
     assert!(rep.black_box.as_ref().unwrap().own_pins);
     select_ids(&mut s, &[rep.id.to_string()]);
     // Add pin near the top edge: the pin goes on it, its name asked in place.
@@ -855,17 +869,28 @@ fn a_drawn_box_takes_pins_where_it_stands() {
     let point = sheet_mm(&s, near_top);
     done(&mut s, "box.add_cp", point);
     assert_eq!(s.tool().name(), "box_pin");
-    assert!(s.text_popup().is_some_and(|p| p.tab_next), "the name is asked; Tab adds the next");
+    assert!(
+        s.text_popup().is_some_and(|p| p.tab_next),
+        "the name is asked; Tab adds the next"
+    );
     let rev = s.revision();
     done(&mut s, "text.input", json!({"text": "L1"}));
     done(&mut s, "tool.next_proposal", json!({}));
-    assert_eq!(s.tool().name(), "box_pin", "Tab asks for the next pin of the side");
+    assert_eq!(
+        s.tool().name(),
+        "box_pin",
+        "Tab asks for the next pin of the side"
+    );
     done(&mut s, "text.input", json!({"text": "L2"}));
     done(&mut s, "tool.finish", json!({}));
     assert_eq!(s.tool().name(), "select");
     assert_eq!(pin_names(&s, rep.id), ["L1", "L2"]);
     let b = g1_box(&s, rep.id);
-    assert!(b.cps.iter().all(|c| index_of(&s, c.1).1 == 30), "both on the top edge: {:?}", b.cps);
+    assert!(
+        b.cps.iter().all(|c| index_of(&s, c.1).1 == 30),
+        "both on the top edge: {:?}",
+        b.cps
+    );
     assert_eq!(s.revision(), rev.map(|r| r + 2), "one step each");
     // A name with a space is refused in words; nothing changes.
     select_ids(&mut s, &[rep.id.to_string()]);
@@ -876,7 +901,10 @@ fn a_drawn_box_takes_pins_where_it_stands() {
     // A name the box has already is refused by the command, in words.
     done(&mut s, "text.input", json!({"text": "L1"}));
     let out = s.dispatch("tool.finish", &json!({}));
-    assert!(format!("{out:?}").contains("has a pin named L1 already"), "{out:?}");
+    assert!(
+        format!("{out:?}").contains("has a pin named L1 already"),
+        "{out:?}"
+    );
     done(&mut s, "ui.dismiss", json!({}));
     assert_eq!(s.tool().name(), "select");
     assert_eq!(pin_names(&s, rep.id), ["L1", "L2"]);
@@ -907,31 +935,60 @@ fn a_drawn_box_takes_pins_where_it_stands() {
     assert_eq!(s.tool().name(), "wire", "back to the wire");
     assert_eq!(pin_names(&s, rep.id), ["L1", "N", "PE"]);
     let t = tables(&s);
-    let pe = t.cps.iter().find(|c| c.rep == rep.id && c.label.ends_with(":PE")).unwrap();
+    let pe = t
+        .cps
+        .iter()
+        .find(|c| c.rep == rep.id && c.label.ends_with(":PE"))
+        .unwrap();
     assert_eq!(pe.connections.len(), 1, "the wire ends at the new pin");
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "ui.dismiss", json!({}));
     let wires = t.connections.len();
     done(&mut s, "edit.undo", json!({}));
-    assert_eq!(pin_names(&s, rep.id), ["L1", "N"], "one undo takes the pin and its wire back");
+    assert_eq!(
+        pin_names(&s, rep.id),
+        ["L1", "N"],
+        "one undo takes the pin and its wire back"
+    );
     assert_eq!(tables(&s).connections.len(), wires - 1);
     done(&mut s, "edit.redo", json!({}));
     let t = tables(&s);
-    let pe = t.cps.iter().find(|c| c.rep == rep.id && c.label.ends_with(":PE")).unwrap();
+    let pe = t
+        .cps
+        .iter()
+        .find(|c| c.rep == rep.id && c.label.ends_with(":PE"))
+        .unwrap();
     // Remove pin: refused while a wire holds it, done for a free one.
     select_ids(&mut s, &[rep.id.to_string()]);
     let pe_idx = pe.idx;
-    assert_eq!(refused(&mut s, "box.remove_pin", json!({"idx": pe_idx})), "reason-box-pin-wired");
-    let n_idx = t.cps.iter().find(|c| c.rep == rep.id && c.label.ends_with(":N")).unwrap().idx;
+    assert_eq!(
+        refused(&mut s, "box.remove_pin", json!({"idx": pe_idx})),
+        "reason-box-pin-wired"
+    );
+    let n_idx = t
+        .cps
+        .iter()
+        .find(|c| c.rep == rep.id && c.label.ends_with(":N"))
+        .unwrap()
+        .idx;
     done(&mut s, "box.remove_pin", json!({"idx": n_idx}));
     assert_eq!(pin_names(&s, rep.id), ["L1", "PE"]);
     done(&mut s, "edit.undo", json!({}));
-    assert_eq!(pin_names(&s, rep.id), ["L1", "N", "PE"], "one undo brings it back");
+    assert_eq!(
+        pin_names(&s, rep.id),
+        ["L1", "N", "PE"],
+        "one undo brings it back"
+    );
 }
 
 /// The box `rep` of the page shown.
 fn g1_box(s: &ShellModel, rep: ew_viewmodel::ew_api::output::Uuid) -> ew_viewmodel::ew_api::output::TableBox {
-    tables(s).reps.iter().find(|r| r.id == rep).and_then(|r| r.black_box.clone()).unwrap()
+    tables(s)
+        .reps
+        .iter()
+        .find(|r| r.id == rep)
+        .and_then(|r| r.black_box.clone())
+        .unwrap()
 }
 
 /// rc.5 persona run (a pin dragged on the smallest box went round its corner onto the next side, its name on the
@@ -955,7 +1012,11 @@ fn a_pin_dragged_towards_a_corner_stays_on_its_side() {
     done(&mut s, "canvas.release", at(sq, json!({})));
     let moved = g1(&tables(&s)).black_box.unwrap();
     let to = moved.cps.iter().find(|c| c.0 == 2).unwrap();
-    assert_eq!(to.1, grid_point(&s, (k1.0 - 1, k0.1)), "on its side, a step from the corner");
+    assert_eq!(
+        to.1,
+        grid_point(&s, (k1.0 - 1, k0.1)),
+        "on its side, a step from the corner"
+    );
     assert_eq!(to.2, ew_viewmodel::ew_api::geometry::Dir::Up);
     // Onto the point pin 1 holds: it stays.
     let other = moved.cps.iter().find(|c| c.0 == 1).unwrap().1;
@@ -995,14 +1056,32 @@ fn a_box_with_long_pin_names_goes_no_smaller_than_they_need() {
     done(&mut s, "canvas.press", at(from, json!({})));
     let inward = sheet(&s, grid_point(&s, (k.0 - 3, k.1)));
     done(&mut s, "canvas.pointer", at(inward, json!({})));
-    assert!(s.tool_hint().starts_with("The box goes no smaller"), "{}", s.tool_hint());
+    assert!(
+        s.tool_hint().starts_with("The box goes no smaller"),
+        "{}",
+        s.tool_hint()
+    );
     done(&mut s, "canvas.release", at(inward, json!({})));
-    let same = tables(&s).reps.iter().find(|r| r.id == f2.id).unwrap().black_box.clone().unwrap();
+    let same = tables(&s)
+        .reps
+        .iter()
+        .find(|r| r.id == f2.id)
+        .unwrap()
+        .black_box
+        .clone()
+        .unwrap();
     assert_eq!(same.outline, b.outline, "the box keeps its size");
     // Centre the pins: still two steps apart.
     select_ids(&mut s, &[f2.id.to_string()]);
     done(&mut s, "box.centre_pins", json!({}));
-    let c = tables(&s).reps.iter().find(|r| r.id == f2.id).unwrap().black_box.clone().unwrap();
+    let c = tables(&s)
+        .reps
+        .iter()
+        .find(|r| r.id == f2.id)
+        .unwrap()
+        .black_box
+        .clone()
+        .unwrap();
     let mut top: Vec<i64> = c
         .cps
         .iter()

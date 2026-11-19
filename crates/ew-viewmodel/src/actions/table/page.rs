@@ -50,10 +50,10 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     ),
     // Page, Connection grid…: the page's grid, asked and fitted where it holds items (rc.5: a persona looked for it on
-    // the Page tab).
+    // the Page tab). In the Order group: a fourth entry of Pages would turn that group into a submenu.
     placed(
-        place(Group::Pages, 3, CommandSize::Small, None),
-        "grid-dots",
+        place(Group::Order, 8, CommandSize::Small, None),
+        "ew-qet-grid",
         act(
             "page.grid",
             Command,
