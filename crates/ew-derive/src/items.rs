@@ -448,7 +448,7 @@ pub fn connection_number(q: &Q, c: Id<Connection>) -> Option<String> {
     if let Some(line) = q.connections().get(c)
         && matches!(line.kind, ConnectionKind::Fluid(_))
     {
-        return Some(crate::line_tag(q, &line)).filter(|t| !t.is_empty());
+        return Some(crate::line_tag(q, line)).filter(|t| !t.is_empty());
     }
     if !q.get::<DrawingSettingsQ>(()).wire_numbers {
         return None;

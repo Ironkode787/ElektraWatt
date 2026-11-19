@@ -57,7 +57,11 @@ fn a_tube_prints_its_tag_beside_it_when_tubes_are_tagged() {
     );
     done(&mut s, "page.goto", json!({"folio": "201"}));
     for k in [(20, 20), (40, 30)] {
-        done(&mut s, "place.pick", json!({"part": "EW-GEN-FCV-1", "template": 0}));
+        done(
+            &mut s,
+            "place.pick",
+            json!({"part": "EW-GEN-FCV-1", "template": 0}),
+        );
         click(&mut s, k, true);
         done(&mut s, "tool.select", json!({}));
     }

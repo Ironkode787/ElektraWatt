@@ -107,7 +107,10 @@ fn reach_and_beside(s: &mut ShellModel, tool: &str, (a, b, c): (&TableCp, &Table
         click(s, sheet(s, a.at));
         click(s, off(s, b, 9.0));
         assert_eq!(tables(s).connections.len(), n + 1, "{tool} at {percent} %");
-        assert!(last_ends_at(s, b), "nine points off the pin take it ({tool}, {percent} %)");
+        assert!(
+            last_ends_at(s, b),
+            "nine points off the pin take it ({tool}, {percent} %)"
+        );
         done(s, "edit.undo", json!({}));
         // A start beside the pin takes nothing and says so.
         done(s, tool, json!({}));
@@ -123,7 +126,10 @@ fn reach_and_beside(s: &mut ShellModel, tool: &str, (a, b, c): (&TableCp, &Table
         assert_eq!(tables(s).connections.len(), n + 1);
         assert!(last_ends_at(s, c));
         let hint = s.tool_hint();
-        assert!(hint.contains("just drawn bends beside a connection point"), "{hint}");
+        assert!(
+            hint.contains("just drawn bends beside a connection point"),
+            "{hint}"
+        );
         // The next wire that starts on a point forgets it.
         click(s, sheet(s, c.at));
         assert!(!s.tool_hint().contains("beside"), "{}", s.tool_hint());
