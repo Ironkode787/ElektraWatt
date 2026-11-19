@@ -28,9 +28,17 @@ use ew_units::{Nm, Orient2, Pt2};
 const Y_PIN: i64 = 5_291_666;
 const Y_GRID: i64 = 5_291_667;
 
+/// The wire a model holds as a record ([`model_with`]).
+const WIRE: Id<Connection> = id(0x2000);
+
 /// Two placed devices whose second pin (10 mm below the insertion point) is drawn at `y = Y_PIN`, at x = 0 and
 /// x = 8G. The positions are in the records, not placed by a command (a command would refuse them).
 fn model() -> (Model, Id<Function>, Id<Function>) {
+    model_with(None)
+}
+
+/// [`model`] with, given its route, a wire [`WIRE`] from the first device's second pin to the second's, as a record.
+fn model_with(route: Option<Vec<Pt2>>) -> (Model, Id<Function>, Id<Function>) {
     let (p, mut records, _) = mini_golden_parts();
     let mut fns = Vec::new();
     for (n, x) in [(0u128, 0i64), (1, 8 * G)] {
@@ -43,6 +51,11 @@ fn model() -> (Model, Id<Function>, Id<Function>) {
         rep.pos = pt(x, Y_PIN - MM10);
         records.push(Record::Representation(rep));
         fns.push(f);
+    }
+    if let Some(route) = route {
+        let mut wire = connection(WIRE, Some(PAGE_102), cp(fns[0], 1), cp(fns[1], 1));
+        wire.route = route;
+        records.push(Record::Connection(wire));
     }
     let model = Model::from_records(p, records, library()).expect("valid model");
     assert!(!on_grid(grid(), Nm(Y_PIN)) && on_grid(grid(), Nm(Y_GRID)));
@@ -165,4 +178,35 @@ fn an_autoconnect_hint_between_pins_one_nm_apart_is_a_straight_wire() {
         route.iter().all(|p| p.y == Nm(Y_GRID) || p.y == Nm(Y_PIN)),
         "a straight run with its step of 1 nm: {route:?}"
     );
+}
+
+/// A wire an import stored with a stretch 1 nm out of square (rc.5's private corpus: a conductor from a corner on the
+/// grid's number to a pin 1 nm beside it, one straight stretch): a symbol dropped on that stretch was found on it as a
+/// reader sees it, then the stretch had no point to cut it at and the whole import was refused. The stretch runs on
+/// its line with a step of 1 nm at the pin, and the symbol is wired in.
+#[test]
+fn a_symbol_on_a_stretch_one_nm_out_of_square_is_wired_in() {
+    // From the first pin up 1 nm onto the grid's line, then one stretch to the second pin, 1 nm off that line at its
+    // end: a diagonal of 1 nm across eight grid steps.
+    let (model, _, fb) = model_with(Some(vec![pt(0, Y_PIN), pt(0, Y_GRID), pt(8 * G, Y_PIN)]));
+    let mut e = engine(model);
+    let r = e.execute(&on_its_side(Vec::new())).expect("placed, the wire split");
+    let pins = new_pins(&e, &r);
+    let first = row(&e, WIRE);
+    assert_eq!(first.b, Endpoint::Cp(pins[0].0, pins[0].1));
+    let square = |route: &[Pt2]| route.windows(2).all(|s| s[0].x == s[1].x || s[0].y == s[1].y);
+    assert!(square(&first.route), "{:?}", first.route);
+    let second: Id<Connection> = r
+        .created
+        .iter()
+        .find(|k| k.0 == Kind::Connection)
+        .map(|k| typed(*k))
+        .expect("the second part of the wire");
+    let second = row(&e, second);
+    assert_eq!(
+        (second.a.clone(), second.b.clone()),
+        (Endpoint::Cp(pins[1].0, pins[1].1), Endpoint::Cp(fb, 1))
+    );
+    assert!(square(&second.route), "{:?}", second.route);
+    assert_eq!(second.route.last(), Some(&pt(8 * G, Y_PIN)));
 }

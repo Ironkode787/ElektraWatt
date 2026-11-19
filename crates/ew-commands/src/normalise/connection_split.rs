@@ -97,7 +97,10 @@ pub fn split_connection(
 /// A pin lies on the route as a reader sees it: with a grid position read as one number
 /// ([`settled`](crate::geometry::settled), ADR-0033 amendment 4), so a pin whose point lies 1 nm beside the number
 /// of the wire's line is on it. The wire is then cut on its own line beside the pin, and the part that ends at the
-/// pin takes one more vertex, the pin's own point.
+/// pin takes one more vertex, the pin's own point. The route is read in that one reading throughout: a stretch whose
+/// two vertices lie on one line to a reader but 1 nm apart across it (a stored diagonal of 1 nm, as an imported
+/// conductor holds) runs on that line, with a step of 1 nm at a vertex beside it, before the wire is cut ([`squared`];
+/// rc.5: an import was refused, its pins found on such a stretch and no point on the stretch to cut it at).
 #[derive(Clone, Copy, Debug, Default)]
 pub struct ConnectionSplit;
 
@@ -145,7 +148,8 @@ impl Normaliser for ConnectionSplit {
                 {
                     continue;
                 }
-                let path: Vec<Pt2> = c.route.iter().copied().map(settle).collect();
+                let route = squared(&c.route, settle);
+                let path: Vec<Pt2> = route.iter().copied().map(settle).collect();
                 let mut on: Vec<((usize, i128), usize)> = cps
                     .iter()
                     .enumerate()
@@ -161,7 +165,7 @@ impl Normaliser for ConnectionSplit {
                 let (c1, c2) = (cps[i1], cps[i2]);
                 // The wire is cut on its own line, at the point beside each pin: the pin's coordinate along the
                 // stored segment it lies on, the segment's own number across it.
-                let beside = |seg: usize, p: Pt2| match (c.route.get(seg), c.route.get(seg + 1)) {
+                let beside = |seg: usize, p: Pt2| match (route.get(seg), route.get(seg + 1)) {
                     (Some(u), Some(v)) if u.x == v.x && u.y != v.y => {
                         Pt2::new(u.x, p.y.max(u.y.min(v.y)).min(u.y.max(v.y)))
                     }
@@ -171,6 +175,9 @@ impl Normaliser for ConnectionSplit {
                     _ => p,
                 };
                 let (p1, p2) = (beside(first_at.0, c1.pos), beside(last_at.0, c2.pos));
+                if route != c.route {
+                    tx.update::<Connection>(cid, |w| w.route.clone_from(&route))?;
+                }
                 let second = split_connection(
                     tx,
                     cid,
@@ -192,6 +199,39 @@ impl Normaliser for ConnectionSplit {
         }
         Ok(changed)
     }
+}
+
+/// `route` read with a grid position as one number (`settle`): each stretch whose two vertices settle onto one
+/// horizontal or vertical line while they differ across it runs on that line, with a step to each vertex that lies
+/// beside it; every other stretch is kept as stored.
+fn squared(route: &[Pt2], settle: impl Fn(Pt2) -> Pt2) -> Vec<Pt2> {
+    let mut out: Vec<Pt2> = Vec::with_capacity(route.len());
+    for (k, &v) in route.iter().enumerate() {
+        if let Some(&u) = k.checked_sub(1).and_then(|i| route.get(i))
+            && u.x != v.x
+            && u.y != v.y
+        {
+            let (su, sv) = (settle(u), settle(v));
+            let line = if su.x == sv.x {
+                Some((Pt2::new(su.x, u.y), Pt2::new(su.x, v.y)))
+            } else if su.y == sv.y {
+                Some((Pt2::new(u.x, su.y), Pt2::new(v.x, su.y)))
+            } else {
+                None
+            };
+            // The line's own points, but where a vertex lies on it already (no step there).
+            if let Some((a, b)) = line {
+                if a != u {
+                    out.push(a);
+                }
+                if b != v {
+                    out.push(b);
+                }
+            }
+        }
+        out.push(v);
+    }
+    out
 }
 
 /// Whether two endpoints are the same.
