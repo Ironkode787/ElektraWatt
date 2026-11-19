@@ -1198,7 +1198,7 @@ impl SelectTool {
                 let r = black_box::black_box_rep(cx, *rep);
                 r.and_then(|r| {
                     let b = r.black_box.as_ref()?;
-                    let hit = black_box::nearest_on_outline(grid, &b.outline, p)?;
+                    let hit = black_box::pin_target(grid, &b.outline, &b.cps, *idx, p)?;
                     *to = Some(hit);
                     let cps: Vec<(i64, i64)> = b
                         .cps

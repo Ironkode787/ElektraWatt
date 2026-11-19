@@ -296,8 +296,21 @@ impl Command for ReshapeBox {
                             text!("refusal-box-reshape-cp-off-outline"),
                         ));
                     }
-                    // A pin never stands on a corner; one stored there stays until it is moved (rc.5).
-                    if !kept && new_abs.contains(&p) {
+                    // Two pins never stand on one point (rc.5: a dragged pin landed on its neighbour's).
+                    let twice = cps[..i].iter().any(|o| {
+                        abs(o.pos).is_ok_and(|q| crate::geometry::settled(grid, q) == crate::geometry::settled(grid, p))
+                    });
+                    if twice {
+                        return Err(CmdError::invalid_params(
+                            Self::NAME,
+                            format!("/cps/{i}/pos"),
+                            text!("refusal-box-reshape-cp-shared"),
+                        ));
+                    }
+                    // A pin never stands on a corner (read settled: a corner and a pin 1 nm apart are one point);
+                    // one stored there stays until it is moved (rc.5).
+                    let at = crate::geometry::settled(grid, p);
+                    if !kept && new_abs.iter().any(|v| crate::geometry::settled(grid, *v) == at) {
                         return Err(CmdError::invalid_params(
                             Self::NAME,
                             format!("/cps/{i}/pos"),

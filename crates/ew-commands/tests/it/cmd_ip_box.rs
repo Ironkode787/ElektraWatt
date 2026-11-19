@@ -872,6 +872,17 @@ fn centre_the_pins_puts_a_pin_off_its_corner() {
         )),
         "/cps/1/pos",
     );
+    // Two pins on one point: refused (rc.5).
+    invalid_at(
+        e.execute(&reshape(
+            rect(18, 12),
+            Some(vec![
+                box_cp(2, pt(3 * G, 0), Dir4::Up),
+                box_cp(6, pt(3 * G, 0), Dir4::Up),
+            ]),
+        )),
+        "/cps/1/pos",
+    );
 }
 
 #[test]

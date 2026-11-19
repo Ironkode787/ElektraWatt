@@ -829,6 +829,43 @@ fn a_cp_is_added_on_the_outline_and_dragged_along_it() {
     assert_eq!(moved.outline, added.outline);
 }
 
+/// rc.5 persona run (a pin dragged on the smallest box went round its corner onto the next side, its name on the
+/// corner): a pin dragged along its side towards a corner stays on its side, one step clear of the corner, on a point
+/// no other pin holds; dragged onto a point another pin holds, it stays where it was.
+#[test]
+fn a_pin_dragged_towards_a_corner_stays_on_its_side() {
+    let tmp = Tmp::new("box-cp-corner");
+    let mut s = actual_size(&tmp, "102");
+    let before = g1(&tables(&s));
+    let b = before.black_box.clone().unwrap();
+    select_ids(&mut s, &[before.id.to_string()]);
+    let (k0, k1) = (index_of(&s, b.outline[0]), index_of(&s, b.outline[1]));
+    // The top side's last pin (2, at step 5), dragged to half a step short of the right edge.
+    let pin = b.cps.iter().find(|c| c.0 == 2).unwrap().1;
+    let right = grid_point(&s, (k1.0, k0.1)).0;
+    let half = (grid_point(&s, (1, 0)).0 - grid_point(&s, (0, 0)).0) / 2;
+    let (sp, sq) = (sheet(&s, pin), sheet(&s, (right - half, pin.1)));
+    done(&mut s, "canvas.press", at(sp, json!({})));
+    done(&mut s, "canvas.pointer", at(sq, json!({})));
+    done(&mut s, "canvas.release", at(sq, json!({})));
+    let moved = g1(&tables(&s)).black_box.unwrap();
+    let to = moved.cps.iter().find(|c| c.0 == 2).unwrap();
+    assert_eq!(to.1, grid_point(&s, (k1.0 - 1, k0.1)), "on its side, a step from the corner");
+    assert_eq!(to.2, ew_viewmodel::ew_api::geometry::Dir::Up);
+    // Onto the point pin 1 holds: it stays.
+    let other = moved.cps.iter().find(|c| c.0 == 1).unwrap().1;
+    let (sp, sq) = (sheet(&s, to.1), sheet(&s, other));
+    done(&mut s, "canvas.press", at(sp, json!({})));
+    done(&mut s, "canvas.pointer", at(sq, json!({})));
+    done(&mut s, "canvas.release", at(sq, json!({})));
+    let after = g1(&tables(&s)).black_box.unwrap();
+    let pts: Vec<(i64, i64)> = after.cps.iter().map(|c| c.1).collect();
+    let mut unique = pts.clone();
+    unique.sort();
+    unique.dedup();
+    assert_eq!(unique.len(), pts.len(), "no two pins on one point: {pts:?}");
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // IB7: the picker, the transcript, the words and the counts
 

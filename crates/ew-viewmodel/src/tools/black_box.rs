@@ -1095,6 +1095,68 @@ pub fn nearest_on_outline(
     best.map(|(_, _, q, d)| (q, d))
 }
 
+/// Where a drag of pin `idx` of the box `outline` with the pins `cps` (page nm) to `p` puts it, with the direction it
+/// leaves in (rc.5: a pin dragged on the smallest box went round its corner onto the next side): a grid point at least
+/// one step from both corners of an axis-aligned edge, no other pin's (read settled), nearest `p`. The pin keeps its
+/// own side while `p` lies across from it (between that side's corners, them included); beyond them, the nearest side
+/// that has a free point. A side too short for a point clear of its corners takes none. `None` where no side has a free point.
+pub fn pin_target(
+    grid: PageGridMap,
+    outline: &[(i64, i64)],
+    cps: &[BoxCpAt],
+    idx: u16,
+    p: (i64, i64),
+) -> Option<((i64, i64), Dir)> {
+    let n = outline.len();
+    let area = signed_area2(outline);
+    let settle = |v: i64| grid.coord(grid.index(v));
+    let taken = |q: (i64, i64)| {
+        cps.iter()
+            .any(|c| c.0 != idx && settle(c.1.0) == settle(q.0) && settle(c.1.1) == settle(q.1))
+    };
+    let me = cps.iter().find(|c| c.0 == idx).map(|c| c.1);
+    // Each axis-aligned edge: its free points clear of the corners, and whether it holds the pin now.
+    let mut best: Option<(bool, i128, usize, (i64, i64), Dir)> = None;
+    for i in 0..n {
+        let (a, b) = (outline[i], outline[(i + 1) % n]);
+        let along_x = a.1 == b.1 && a.0 != b.0;
+        if !along_x && !(a.0 == b.0 && a.1 != b.1) {
+            continue;
+        }
+        let Some(dir) = outward(a, b, area) else {
+            continue;
+        };
+        let (lo, hi) = if along_x { (a.0.min(b.0), a.0.max(b.0)) } else { (a.1.min(b.1), a.1.max(b.1)) };
+        let (k_lo, k_hi) = (grid.index(lo) + 1, grid.index(hi) - 1);
+        if k_lo > k_hi {
+            continue;
+        }
+        let point = |k: i64| if along_x { (grid.coord(k), a.1) } else { (a.0, grid.coord(k)) };
+        let own = me.is_some_and(|m| on_outline(&[a, b], m));
+        let across = if along_x { p.0 } else { p.1 };
+        let k = grid.index(across.clamp(grid.coord(k_lo), grid.coord(k_hi)));
+        // The free point nearest the pointer along the edge: outward from the nearest grid point.
+        let hit = (0..=(k_hi - k_lo))
+            .flat_map(|d| [k - d, k + d])
+            .filter(|k| (k_lo..=k_hi).contains(k))
+            .map(point)
+            .find(|q| !taken(*q));
+        let Some(q) = hit else { continue };
+        // The pin's own side wins while the pointer lies across from it, its corners included (the pointer snaps to
+        // the grid, so a pointer just short of a corner reads as on it).
+        let keep = own && (lo..=hi).contains(&across);
+        let d = super::dist2(q, p);
+        let better = match &best {
+            None => true,
+            Some((bk, bd, bi, ..)) => (keep, -d, std::cmp::Reverse(i)) > (*bk, -*bd, std::cmp::Reverse(*bi)),
+        };
+        if better {
+            best = Some((keep, d, i, q, dir));
+        }
+    }
+    best.map(|(_, _, _, q, d)| (q, d))
+}
+
 /// Whether `p` lies on an edge of the closed outline (exact).
 pub fn on_outline(outline: &[(i64, i64)], p: (i64, i64)) -> bool {
     let n = outline.len();
