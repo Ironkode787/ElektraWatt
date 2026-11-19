@@ -202,7 +202,10 @@ fittings. `TubeSpec {od, id, material, colour, part, p_rating, t_range}`, every 
 a line's overrides, a medium's defaults and `ProjectSettings.fluid.default_tube`; a tube part's data is the part's
 `fluid.tube` (§2.6). `fluid.tube.set` and `fluid.length.set` write them (§4.3). The line-tag scheme is
 `ProjectSettings.fluid.line_tags`: absent (no tags) or `page_counter`, printed `{page}.{counter}` (N-FL-5, §4.2); a
-frozen number prints as written; the ISO 1219-2 line number (FR-FLU-023) is Later.
+frozen number prints as written; the ISO 1219-2 line number (FR-FLU-023) is Later. *As built (rc.5).* A tube with a
+tag prints it beside the line on its page, as a wire prints its number (`ew_derive::connection_number`), and in the
+tube list; its size, its tube part and a length from the drawing are not printed or derived at the tube (a length is
+typed in the tube table; routed lengths are 1.x).
 
 The line tag is `Connection.number: NumberSpec = Unassigned | Assigned{counter} | Frozen(Ident)`, the field every
 connection already has ([03](03-domain-model.md) §8.7, [08](08-connections-terminals-cables.md) §5.1). The numbering

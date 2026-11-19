@@ -19,7 +19,10 @@
 //!   connection a wire-marker item lists draws no marker of its own; the item draws the group whenever one of its
 //!   connections would show a marker ([`group_marker`]).
 //! - **Wire numbers on the page** (FT-1692): `settings.extra.drawing.wire_numbers`; on, every connection prints the
-//!   number of the wire it belongs to ([`connection_number`]); a core prints none (its cable and core name it).
+//!   number of the wire it belongs to ([`connection_number`]); a core prints none (its cable and core name it). A
+//!   fluid line prints its line tag (FR-FLU-011) whenever it has one, under the project's line-tag scheme or frozen,
+//!   as the Fluid settings promise (rc.5: the tubes of a project tagged by page and counter showed no tag on the
+//!   page).
 //! - **Group text** (FR-CON-039): the distinct effective cross-sections in list order joined by `/`, then one colour
 //!   code per connection in list order: `2.5 BK BU`, `1.5 DBU DBU WH WH`.
 //! - **Captions**: a structure box prints its caption and, with `external`, ` (<external>)` as the external
@@ -437,10 +440,16 @@ pub fn connection_marker(q: &Q, c: &Connection, grouped: bool) -> Option<String>
     })
 }
 
-/// The number a connection prints on the page (FT-1692): with the project's `drawing.wire_numbers` on, the printed
-/// number of the (first) physical wire it belongs to; `None` with the setting off, and for a connection that forms
-/// no numbered wire (a cable's core, which its cable and core name; a bridge; a fluid line).
+/// The number a connection prints on the page (FT-1692): a fluid line's line tag where it has one
+/// ([`crate::line_tag`]); else, with the project's `drawing.wire_numbers` on, the printed number of the (first)
+/// physical wire it belongs to; `None` with the setting off, and for a connection that forms no numbered wire (a
+/// cable's core, which its cable and core name; a bridge; a fluid line without a tag).
 pub fn connection_number(q: &Q, c: Id<Connection>) -> Option<String> {
+    if let Some(line) = q.connections().get(c)
+        && matches!(line.kind, ConnectionKind::Fluid(_))
+    {
+        return Some(crate::line_tag(q, &line)).filter(|t| !t.is_empty());
+    }
     if !q.get::<DrawingSettingsQ>(()).wire_numbers {
         return None;
     }
