@@ -566,6 +566,30 @@ fn supply_on_the_draw_tab_places_the_marks_of_what_comes_in() {
     d.shell_mut().shutdown();
 }
 
+/// rc.5 (two runs read "Own names (for Own)" and did not know what to do with it): the names field comes with Own,
+/// in plain words, and goes with another choice.
+#[test]
+fn the_supply_forms_names_field_comes_with_own() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    d.input(&click(d.find("Supply").expect("Supply on the Draw tab")));
+    d.settle();
+    let names = "Names, one per conductor";
+    assert!(!d.texts().iter().any(|t| t == names), "not for single phase");
+    // The list's choice as the window sends it, then a frame drawn.
+    let choose = |d: &mut Driver, system: &str| {
+        d.shell_mut().set_form_field("system", system);
+        d.input(&Input::Hover { at: (960, 540) });
+        d.settle();
+    };
+    let shown = |d: &Driver| d.texts().iter().any(|t| t == names);
+    choose(&mut d, "supply_own");
+    assert!(shown(&d), "with Own names");
+    choose(&mut d, "supply_dc");
+    assert!(!shown(&d), "gone with 24 V DC");
+    d.shell_mut().shutdown();
+}
+
 /// rc.5 (a first-timer's L1, N, PE side by side): marks of one group that stand in a row each print where they come
 /// from; before, the middle one printed nothing and seemed to come from nowhere. The Potential panel lists 0 V near
 /// the top, where a person finds it without scrolling.

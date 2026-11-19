@@ -1281,15 +1281,17 @@ fn an_external_point_after_an_ip_does_not_inherit_its_name() {
     done(&mut s, "ip.name", json!({"text": "PE-1.1"}));
     done(&mut s, "tool.ip_direction", json!({"direction": "target"}));
     done(&mut s, "canvas.activate", json!({}));
-    // Off the placed point (its CP now carries a potential), the IP series goes on.
+    // Off the placed point (its CP now carries a potential), the name in the field: one more target of PE-1.1 (rc.5).
     cursor_k(&mut s, (60, 9));
-    assert_eq!(canvas(&s)["ghost"]["name"], "PE-1.1-1", "the IP series goes on");
+    assert_eq!(canvas(&s)["ghost"]["name"], "PE-1.1", "the name in the field");
     let id = s
         .external_choices()
         .into_iter()
         .find(|(_, label)| label == "NAME-DEV:Y")
         .map(|(id, _)| id)
         .expect("the new external reference");
+    // The field erased: a name in it would be the external point's too.
+    done(&mut s, "ip.name", json!({"text": ""}));
     done(&mut s, "ip.external", json!({ "external": id }));
     let name = canvas(&s)["ghost"]["name"].as_str().unwrap().to_owned();
     assert!(
@@ -1300,11 +1302,11 @@ fn an_external_point_after_an_ip_does_not_inherit_its_name() {
     let rev = s.revision();
     done(&mut s, "canvas.activate", json!({}));
     assert_eq!(s.revision(), rev.map(|r| r + 1), "the external point is placed");
-    // Back to an ordinary point: the series goes on from the IP, not from the external point.
+    // Back to an ordinary point: a target goes on from the IP's source, not from the external point.
     done(&mut s, "ip.external", json!({"external": ""}));
     done(&mut s, "tool.ip_direction", json!({"direction": "target"}));
     cursor_k(&mut s, (60, 15));
-    assert_eq!(canvas(&s)["ghost"]["name"], "PE-1.1-1");
+    assert_eq!(canvas(&s)["ghost"]["name"], "PE-1.1");
 }
 
 #[test]

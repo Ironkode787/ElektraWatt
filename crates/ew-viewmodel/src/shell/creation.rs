@@ -1121,6 +1121,9 @@ impl ShellModel {
             {
                 super::layout::new_location_field(form, &code);
             }
+            if name == "system" {
+                super::supply_place::own_names_field(form);
+            }
             if let Some(free) = free
                 && let Some(f) = form.fields.iter_mut().find(|f| f.name == "folio")
             {

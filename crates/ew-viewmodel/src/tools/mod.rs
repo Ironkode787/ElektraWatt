@@ -541,6 +541,12 @@ pub trait Tool {
         None
     }
 
+    /// What the next click places and why, said in the HUD in the role's place (the IP tool's "next: where 24V
+    /// arrives from its source"); `None` for most tools.
+    fn role_note(&self) -> Option<String> {
+        None
+    }
+
     /// Whether the window sends a double click's second press as `tool.finish`. Only a tool whose
     /// keymap (doc 16) or status hint names the double click answers `true`; every other tool sees two plain presses,
     /// so two quick clicks of the Place tool place twice.

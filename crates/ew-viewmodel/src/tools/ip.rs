@@ -28,8 +28,10 @@
 //! direction is kept for after it), else the one D chose, else `target` for an external point, else `source` in the right or bottom quarter of the page's drawing area and `target` in the left
 //! or top quarter ([`quarter_direction`]: the horizontal quarters first), else the last committed one. After a commit
 //! the star is cleared and the committed name and direction (an external point's are not) are remembered ([`IpMemory`], kept by
-//! the host across tools); **a typed name stays after its source is placed**, so the next click places the target
-//! of that name ([`propose`]: a name that has a source is offered as a target), and is cleared by any other point;
+//! the host across tools); **a typed name stays until it is changed**, so the next click places the target of that
+//! name ([`propose`]: a name that has a source is offered as a target), and the clicks after it further targets of
+//! the same source; without a typed name, a target proposed by a name that has a source keeps that name (rc.5: no
+//! "24V-1" that nothing feeds);
 //! **the chosen direction stays** for the next placements (no flip after a placement; a chosen `source` of a typed
 //! name does not, since the name has its source then)
 //! until D or `tool.ip_direction` chooses another, and setting an external reference clears it, so that the external
@@ -154,11 +156,10 @@ pub struct IpMemory {
     /// The last committed direction.
     pub last_direction: IpDir,
     /// The name typed in Tool options (`ip.name`) that is still to be used: the next point the IP tool or the Wire
-    /// tool's P places takes it unchanged. A point the IP tool places without its partner (a source of a new name, a
-    /// target no source feeds) leaves it standing, so the next click places the partner of that name and a pair needs
-    /// its name typed once (FT-1657); a point that makes the pair whole takes it, any other point too, and it is
-    /// cleared (a name left standing would join the next wires to the pair unseen). It outlives a switch of tools,
-    /// so a name typed with the IP tool armed names the end of the next wire ended with P.
+    /// tool's P places takes it unchanged. The points the IP tool places leave it standing, as the field shows it, so
+    /// the next click places the partner of that name and a pair needs its name typed once (FT-1657), and the clicks
+    /// after the pair place further targets of its source (rc.5); an external point takes it. It outlives a switch of
+    /// tools, so a name typed with the IP tool armed names the end of the next wire ended with P, which takes it.
     pub typed: Option<String>,
 }
 
@@ -719,6 +720,10 @@ impl IpTool {
             if let Some((name, direction)) = self.project.waiting(&base, want) {
                 return (name, direction, None);
             }
+            // A target of a name that has its source is one more place that source feeds (rc.5).
+            if auto == IpDir::Target && self.project.has_source(&base) {
+                return (base, IpDir::Target, None);
+            }
         }
         let (name, direction) = propose(&base, false, auto, chosen, self.star, &self.project, tables);
         let taken = (name != base).then_some(base);
@@ -1015,14 +1020,14 @@ impl Tool for IpTool {
     fn on_commit(&mut self, done: bool) {
         let pending = self.pending.take();
         if let (true, Some((name, direction))) = (done, pending) {
-            // A typed name stays while its point lacks its partner: after its source, for the target (FT-1657: the
-            // tool renamed itself "L1-1" after the first "L1" and placed a second source), and after a target that no
-            // source feeds, for the source (the persona round of 0.2.0-rc.2); a point that makes the pair whole takes
-            // it. A chosen direction stays, but not the one just placed for the name left standing, whose next point
-            // is its partner.
-            if self.typed.is_some() && self.external.is_none() && self.project.lacks_partner(&name, direction)
-            {
-                if self.chosen == Some(direction) {
+            // The name in the field stays until it is changed: after its source, for the target (FT-1657: the tool
+            // renamed itself "L1-1" after the first "L1" and placed a second source), after a target that no source
+            // feeds, for the source (the persona round of 0.2.0-rc.2), and after the pair is whole, for further
+            // targets of the same source (rc.5: the next clicks became "24V" and "24V-1" of nothing). A chosen
+            // direction stays, but not the one just placed for a point that lacks its partner, whose next point is
+            // that partner (the HUD says so before the click).
+            if self.typed.is_some() && self.external.is_none() {
+                if self.chosen == Some(direction) && self.project.lacks_partner(&name, direction) {
                     self.chosen = None;
                 }
             } else {
@@ -1052,6 +1057,23 @@ impl Tool for IpTool {
 
     fn proposal_note(&self) -> Option<String> {
         self.taken_note()
+    }
+
+    /// The point is the other half of a name that has one (rc.5: after a source the tool turned to Target without a
+    /// word): "next: where 24V arrives from its source", "next: where 24V comes from, for its waiting target".
+    fn role_note(&self) -> Option<String> {
+        if self.star || self.external.is_some() {
+            return None;
+        }
+        let name = &self.shown;
+        let key = match self.shown_dir {
+            IpDir::Target if self.project.has_source(name) => key!("hud-ip-next-target"),
+            IpDir::Source if self.project.targets.contains(name) && !self.project.has_source(name) => {
+                key!("hud-ip-next-source")
+            }
+            _ => return None,
+        };
+        Some(crate::strings::format(key, &[name]))
     }
 
     fn ghost(&self) -> Option<Ghost> {

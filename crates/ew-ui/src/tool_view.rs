@@ -302,9 +302,15 @@ pub(crate) fn ip_fields(
     // (`app.rs`, the `text_edit_focused` gate of the key routing).
     let label = strings::text(key!("action-ip-name")).to_owned();
     edit.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &label));
-    // The tool was just chosen from the bar: the name takes the keys (`focus`, see the caller).
+    // The tool was just chosen from the bar: the name takes the keys (`focus`, see the caller), selected, so that what
+    // is typed replaces a name standing from before (rc.5: "24V" typed after "0V" stood).
     if focus {
         edit.request_focus();
+        let mut state = egui::text_edit::TextEditState::load(ui.ctx(), id).unwrap_or_default();
+        state
+            .cursor
+            .set_char_range(Some(egui::text::CCursorRange::select_all_str(name)));
+        state.store(ui.ctx(), id);
     }
     // Tab ends the name (Enter does so by itself, a single-line field's own key): the field gives up the focus and
     // takes the key, so that it does not also reach the canvas (Tab there is the next proposal).

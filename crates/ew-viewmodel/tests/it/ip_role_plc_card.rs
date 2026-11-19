@@ -91,7 +91,8 @@ fn a_name_with_a_source_on_another_page_is_offered_as_a_target() {
 }
 
 /// The persona round on rc.3 (FT-1657): after its source the typed name stays, and the tool floats its target, on
-/// the source's own page too; after the target the name is taken and the series goes on as before.
+/// the source's own page too; after the target the name stays for further targets (rc.5), and with the field erased
+/// the series goes on as before.
 #[test]
 fn on_the_page_of_the_source_the_target_follows_and_then_the_series_goes_on() {
     let tmp = Tmp::new("g40-series");
@@ -110,6 +111,13 @@ fn on_the_page_of_the_source_the_target_follows_and_then_the_series_goes_on() {
     let g = ghost(&s);
     assert_eq!(
         (g["name"].as_str(), g["direction"].as_str()),
+        (Some("24VDC-1"), Some("target")),
+        "the name in the field: one more place its source feeds"
+    );
+    done(&mut s, "ip.name", json!({"text": ""}));
+    let g = ghost(&s);
+    assert_eq!(
+        (g["name"].as_str(), g["direction"].as_str()),
         (Some("24VDC-2"), Some("source")),
         "the pair stands: the next source of the series"
     );
@@ -125,7 +133,7 @@ fn the_hud_names_the_role_and_d_goes_on_from_the_offered_one() {
     let prompt = |s: &ShellModel| ew_viewmodel::command_bar::hud(s).prompt;
     assert_eq!(
         prompt(&s),
-        format!("0V \u{b7} target: fed by its source \u{b7} {d}: source")
+        format!("0V \u{b7} next: where 0V arrives (its source is drawn) \u{b7} {d}: source")
     );
     // D goes on from the offered target, not from the quarter's source: the bar names the direction D gives, and D
     // gives it.
@@ -204,7 +212,7 @@ fn w42b_a_starred_point_is_named_the_star_source_alone_in_every_direction() {
             (
                 "target".to_owned(),
                 false,
-                format!("0V \u{b7} target: fed by its source \u{b7} {d}: source"),
+                format!("0V \u{b7} next: where 0V arrives (its source is drawn) \u{b7} {d}: source"),
                 "0V target".to_owned()
             ),
             (
@@ -216,7 +224,7 @@ fn w42b_a_starred_point_is_named_the_star_source_alone_in_every_direction() {
             (
                 "target".to_owned(),
                 false,
-                format!("0V \u{b7} target: fed by its source \u{b7} {d}: source"),
+                format!("0V \u{b7} next: where 0V arrives (its source is drawn) \u{b7} {d}: source"),
                 "0V target".to_owned()
             ),
         ]

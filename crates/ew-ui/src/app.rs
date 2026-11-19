@@ -1886,9 +1886,10 @@ impl App {
         // where the letters were lost and Enter placed a point at the grid cursor: the persona round before 0.2.0.)
         // Chosen by its key with the pointer on the sheet (or with no pointer in the window), the keys stay with the
         // tool, so D turns the direction.
-        let ip_focus = ip
-            && !std::mem::replace(&mut self.ip_shown, ip)
-            && ctx.pointer_latest_pos().is_some_and(|p| !pane.contains(p));
+        // Noted every frame (rc.5: noted only while the tool ran, so the tool chosen a second time kept the keys
+        // from the name).
+        let was_shown = std::mem::replace(&mut self.ip_shown, ip);
+        let ip_focus = ip && !was_shown && ctx.pointer_latest_pos().is_some_and(|p| !pane.contains(p));
         // The layout place tool, or a placement dragged by Select.
         let layout = self
             .shell

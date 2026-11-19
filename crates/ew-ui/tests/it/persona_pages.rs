@@ -292,8 +292,8 @@ fn after_a_lone_target_the_tool_offers_its_source_and_the_toast_says_the_directi
         said.starts_with("L1 at 101-") && said.contains(" goes on at "),
         "{said:?}"
     );
-    // The pair is whole: the name is taken.
-    assert_eq!(d.shell_mut().ip_typed_name(), None);
+    // The pair is whole; the name stays in the field for further targets of its source (rc.5).
+    assert_eq!(d.shell_mut().ip_typed_name(), Some("L1"));
     d.shell_mut().shutdown();
 }
 

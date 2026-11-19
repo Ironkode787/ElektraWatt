@@ -696,8 +696,11 @@ and one main function of the chosen symbol's function definition.
   and fro; undirected is a choice of a placed point's Direction in Properties, since D on a point the tool had
   already made a target used to give an undirected one), and the rotate and mirror
   keys are not offered. The tool takes the name first when it is chosen from the bar or a menu (the name field has
-  the keys; chosen by its key with the pointer on the sheet, the keys stay with the tool), a typed name without a
-  source starts with its source where the page's quarters say nothing, and a point whose arrow, name or
+  the keys, its name selected; chosen by its key with the pointer on the sheet, the keys stay with the tool), a typed
+  name without a source starts with its source where the page's quarters say nothing, a typed name stays until it is
+  changed, so that after the pair each click places one more target of the same source (rc.5: no "24V-1" of nothing),
+  the HUD says before the click when the next point is the other half of a name ("next: where 24V arrives (its
+  source is drawn)"), and a point whose arrow, name or
   cross-reference would print over another point's is refused with the reason, Alt placing it anyway: the name
   stands above the arrow and the cross-reference below, each as wide as its text, so a point in another's footprint
   prints over it (the footprint is reckoned by rule of thumb, 1.4 mm a character, and the cross-reference's room is

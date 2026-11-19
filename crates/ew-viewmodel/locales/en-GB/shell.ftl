@@ -495,8 +495,8 @@ bar-supply = Supply
 supply-place-title = Supply from the mains
 supply-place-ok = Place
 supply-place-system = What comes in
-supply-place-names = Own names (for Own)
-supply-place-no-names = Type the names of the marks for Own, separated by commas (L1, N, PE).
+supply-place-names = Names, one per conductor
+supply-place-no-names = Type the names, one per conductor, separated by commas (L1, N, PE).
 hint-supply = Click or { $p0 } to place the supply marks; { $p1 } ends
 choice-supply-1p = Single phase: L, N, PE
 choice-supply-3p = Three phase: L1, L2, L3, N, PE
@@ -978,6 +978,9 @@ hud-ip-source = source: the wire continues at its targets
 hud-ip-target = target: fed by its source
 hud-ip-undirected = undirected: pairs either way
 hud-ip-star = star source: feeds every point of the name
+# rc.5: the other half of a name that has one, said before the click (the tool turned to Target without a word).
+hud-ip-next-target = next: where { $p0 } arrives (its source is drawn)
+hud-ip-next-source = next: where { $p0 } comes from (its target waits for it)
 # While the IP tool's name field holds the keys, D is a letter of the name: the HUD says how to give the keys back.
 hud-ip-field-keys = Enter ends the name, then { $p0 }: { $p1 }
 

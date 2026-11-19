@@ -1242,8 +1242,16 @@ pub fn hud(model: &ShellModel) -> HudModel {
             // star's hint stands alone in the role's place.
             let mut key_part = None;
             if let Some(d) = crate::tools::IpDir::from_word(direction) {
-                let role = if star { key!("hud-ip-star") } else { ip_role_key(d) };
-                parts.push(strings::text(role).to_owned());
+                // The other half of a name that has one says so: "next: where 24V arrives from its source".
+                let role = if star {
+                    strings::text(key!("hud-ip-star")).to_owned()
+                } else {
+                    model
+                        .tool()
+                        .role_note()
+                        .unwrap_or_else(|| strings::text(ip_role_key(d)).to_owned())
+                };
+                parts.push(role);
                 let (key, next) = (key_name(model, "tool.ip_direction"), d.next().word());
                 key_part = Some((
                     parts.len(),

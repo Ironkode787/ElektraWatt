@@ -39,6 +39,41 @@ pub fn supply_names(system: &str, own: Option<&str>) -> Option<Vec<String>> {
     (!names.is_empty()).then_some(names)
 }
 
+/// The form's names field comes with Own, right after the system, and goes with another system (rc.5: "Own names
+/// (for Own)" stood in every form and two runs did not understand it).
+pub(super) fn own_names_field(form: &mut FormDialog) {
+    if form.action != SUPPLY_PLACE {
+        return;
+    }
+    let own = form
+        .fields
+        .iter()
+        .any(|f| f.name == "system" && f.value == "supply_own");
+    match (own, form.fields.iter().position(|f| f.name == "names")) {
+        (true, None) => {
+            let after = form
+                .fields
+                .iter()
+                .position(|f| f.name == "system")
+                .map_or(0, |i| i + 1);
+            form.fields.insert(
+                after,
+                FormField {
+                    name: "names",
+                    label_key: key!("supply-place-names"),
+                    choices: &super::choices::NONE,
+                    options: Vec::new(),
+                    value: String::new(),
+                },
+            );
+        }
+        (false, Some(i)) => {
+            form.fields.remove(i);
+        }
+        _ => {}
+    }
+}
+
 impl ShellModel {
     /// `supply.place {system?, names?, location?, device?}` (see the module documentation). In the window without
     /// `system` its form opens; with it the Supply tool floats the marks.
@@ -72,12 +107,6 @@ impl ShellModel {
                             key!("supply-place-system"),
                             &super::choices::SUPPLY_SYSTEMS,
                             "supply_1p".to_owned(),
-                        ),
-                        field(
-                            "names",
-                            key!("supply-place-names"),
-                            &super::choices::NONE,
-                            String::new(),
                         ),
                         field(
                             "location",
