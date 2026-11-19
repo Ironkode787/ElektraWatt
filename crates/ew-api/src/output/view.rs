@@ -1030,30 +1030,11 @@ fn pin_texts(q: &Q, rep: &Representation, def: &SymbolDef) -> Vec<PinText> {
     compose_pin_texts(rep, def, function, designation, &texts.pins)
 }
 
-/// The least distance in grid steps of two pins of a top or bottom side of the black box `r` (rc.5): where the upright
-/// pin texts of a side take two lines in turn, the texts of one line stand two pins apart, so the pins stand at least
-/// half the room of the widest of them (its width and a millimetre, `part_box::pin_text_room`) apart; at least one
-/// step. 1 for a representation that is no black box or prints no pin text.
-pub(crate) fn box_text_pitch(q: &Q, r: &Representation) -> i64 {
-    let Some(symbol) = q.symbols().get(r.symbol) else {
-        return 1;
-    };
-    let step = page_grid(q, PageRef::Drawn(r.page))
-        .at(1)
-        .map_or(1, |n| n.0.max(1));
-    let room = pin_texts(q, r, &symbol.item)
-        .iter()
-        .map(|p| crate::part_box::pin_text_room(&p.text))
-        .max()
-        .unwrap_or(0);
-    ((room + 2 * step - 1) / (2 * step)).max(1)
-}
-
-/// The least height in grid steps of the black box `r` that keeps the upright pin texts of its top side and of its
-/// bottom side apart (rc.5: the height collapsed through them): each side's texts reach in from it by the scene's
-/// `PIN_TEXT_GAP` and one line, two where two neighbours' texts would touch on one line (the scene then staggers
-/// them), with half a millimetre to spare between the two sides. 0 for a representation that is no black box or prints
-/// no pin text on a top or bottom side.
+/// The least height in grid steps of the black box `r` that keeps the pin texts of its top and its bottom side apart
+/// and inside it (rc.5: the height collapsed through them): a text of a top or bottom side is turned a quarter and
+/// reaches in from its pin by the scene's `PIN_TEXT_GAP` and its length (one line's height for a text of signs only,
+/// which the scene prints horizontally); the longest of the top side and the longest of the bottom side, with half a
+/// millimetre between them. 0 for a representation that is no black box or prints no pin text on a top or bottom side.
 pub(crate) fn box_text_depth(q: &Q, r: &Representation) -> i64 {
     let (Some(symbol), Some(b)) = (q.symbols().get(r.symbol), r.box_.as_ref()) else {
         return 0;
@@ -1062,27 +1043,20 @@ pub(crate) fn box_text_depth(q: &Q, r: &Representation) -> i64 {
         .at(1)
         .map_or(1, |n| n.0.max(1));
     let texts = pin_texts(q, r, &symbol.item);
-    let Some(line) = crate::part_box::pin_text_line() else {
-        return 0;
-    };
-    // Each side's pins with their text rooms, along the side.
+    let line = crate::part_box::pin_text_line().unwrap_or(0);
+    // How far the longest text of the side `dir` reaches into the box from it.
     let side = |dir: &ew_schema::Dir4| {
-        let mut pins: Vec<(i64, i64)> = b
-            .cps
+        b.cps
             .iter()
             .filter(|cp| ew_scene::symbol::transform_dir(&cp.dir, r.orient) == *dir)
-            .filter_map(|cp| {
-                let text = &texts.iter().find(|t| t.idx == cp.idx)?.text;
-                Some((r.orient.apply(cp.pos).x.0, crate::part_box::pin_text_room(text)))
+            .filter_map(|cp| texts.iter().find(|t| t.idx == cp.idx))
+            .map(|t| {
+                let signs = !t.text.chars().any(char::is_alphanumeric);
+                let reach = if signs { line } else { crate::part_box::pin_text_length(&t.text) };
+                ew_scene::page::PIN_TEXT_GAP.0 + reach
             })
-            .collect();
-        pins.sort_unstable();
-        let touch = pins.windows(2).any(|w| w[1].0 - w[0].0 < (w[0].1 + w[1].1) / 2);
-        match pins.len() {
-            0 => 0,
-            _ if touch => ew_scene::page::PIN_TEXT_GAP.0 + 2 * line,
-            _ => ew_scene::page::PIN_TEXT_GAP.0 + line,
-        }
+            .max()
+            .unwrap_or(0)
     };
     let depth = side(&ew_schema::Dir4::Up) + side(&ew_schema::Dir4::Down);
     if depth == 0 {

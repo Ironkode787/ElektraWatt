@@ -34,8 +34,7 @@ use crate::tx::TxBuilder;
 ///   their spacing and stand centred on the new edge as a group, on grid points, at least one grid step from both
 ///   corners (half a step towards the edge's smaller coordinate when they cannot be centred exactly); where the edge
 ///   is shorter than they need, the spacing closes up, each gap to at most the largest whole number of steps that
-///   lets them fit, down to one step (down to `pitch` steps on a horizontal edge, where the window keeps the upright pin
-///   texts of two lines apart; a gap narrower than that opens to it). An edge whose extent along its axis did not change keeps its CPs where they
+///   lets them fit, down to one step. An edge whose extent along its axis did not change keeps its CPs where they
 ///   are along it (the edge may have moved across), unless `centre` asks for every edge to be centred (Centre the
 ///   pins). A CP whose edge index no longer exists, or that lay on no edge, moves to the nearest grid point on the
 ///   nearest remaining edge (ties by the smaller edge index) and leaves along that edge's outward normal, listed as a
@@ -67,10 +66,6 @@ pub struct ReshapeBox {
     /// Without `cps`: centre the CPs of every edge, also of an edge whose extent did not change (Centre the pins).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub centre: bool,
-    /// Without `cps`: the least distance in grid steps of two CPs of a horizontal edge (on the page) that is centred
-    /// (rc.5: the window gives what keeps their upright texts apart on two lines); absent, one step.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub pitch: Option<u16>,
 }
 
 /// The direction of a unit vector.
@@ -154,9 +149,9 @@ fn edges(poly: &[Pt2]) -> impl Iterator<Item = (usize, Pt2, Pt2)> + '_ {
 
 /// The grid coordinates of CPs that stood at `at` (along one axis, in their order along it) centred as a group on the
 /// edge from `a` to `b` (coordinates along the same axis), on grid points at least one step inside both ends: the
-/// gaps kept, else each closed up to the largest whole number of steps that lets them fit, down to `floor` steps (a gap narrower opens to it); `None`
-/// when even `floor` steps apart they do not fit.
-fn centred(grid: Grid, a: i64, b: i64, at: &[i64], floor: i64) -> Option<Vec<i64>> {
+/// gaps kept, else each closed up to the largest whole number of steps that lets them fit, down to one step; `None`
+/// when even one step apart they do not fit.
+fn centred(grid: Grid, a: i64, b: i64, at: &[i64]) -> Option<Vec<i64>> {
     let (lo, hi) = (a.min(b), a.max(b));
     let mut first = grid.snap(Nm(lo));
     if grid.at(first)?.0 < lo {
@@ -170,8 +165,8 @@ fn centred(grid: Grid, a: i64, b: i64, at: &[i64], floor: i64) -> Option<Vec<i64
     let room = last.checked_sub(first)?.checked_sub(2)?;
     let ks: Vec<i64> = at.iter().map(|x| grid.snap(Nm(*x))).collect();
     let gaps: Vec<i64> = ks.windows(2).map(|w| (w[1] - w[0]).abs()).collect();
-    let floor = floor.max(1);
-    // A gap closed up to `cap`, and opened to `floor` where it is narrower.
+    let floor = 1;
+    // A gap closed up to `cap`, and opened to one step where it is narrower (two CPs on one point).
     let gap = |g: i64, cap: i64| g.min(cap).max(floor);
     let fits = |cap: i64| gaps.iter().map(|g| gap(*g, cap)).sum::<i64>() <= room;
     let mut cap = gaps.iter().copied().max().unwrap_or(0).max(floor);
@@ -425,18 +420,12 @@ impl Command for ReshapeBox {
                     let points = if !self.centre && extent(a, b) == extent(na, nb) {
                         at
                     } else {
-                        let floor = if along_x {
-                            i64::from(self.pitch.unwrap_or(1).max(1))
-                        } else {
-                            1
-                        };
-                        let Some(points) = centred(grid, coord(na), coord(nb), &at, floor) else {
-                            let n = i64::try_from(group.len()).unwrap_or(i64::MAX / 4);
+                        let Some(points) = centred(grid, coord(na), coord(nb), &at) else {
                             return tx.reject(text!(
                                 "refusal-box-reshape-too-small",
                                 crate::words::symbol(tx, self.rep),
                                 group.len().to_string(),
-                                ((n - 1) * floor + 2).to_string()
+                                (group.len() + 1).to_string()
                             ));
                         };
                         points

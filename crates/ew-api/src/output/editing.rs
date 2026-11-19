@@ -2272,16 +2272,13 @@ pub struct TableBox {
     pub cells: Vec<SlotCell>,
     /// The supply end of such a box (left, top, right, bottom on the page); `None` for a free box.
     pub supply_end: Option<[i64; 4]>,
-    /// The least distance in grid steps of two pins of its top or bottom side that keeps their upright texts on two
-    /// lines apart (rc.5, `box.reshape`'s `pitch`).
-    pub pitch: i64,
     /// Whether the box's pins are its own (rc.5): its function is a black box whose device has no part, so a pin is
     /// added, named and removed on the box itself; a box of a part draws the part's pins, edited in its device box.
     pub own_pins: bool,
     /// The names of the box's own pins (`BoxCp.name`): function CP index and name.
     pub names: Vec<(u16, String)>,
-    /// The least height in grid steps that keeps the pin texts of its top and bottom sides apart (rc.5); 0 where they
-    /// print none.
+    /// The least height in grid steps that keeps the turned pin texts of its top and bottom sides apart and inside it
+    /// (rc.5); 0 where they print none.
     pub depth: i64,
 }
 
@@ -2686,7 +2683,6 @@ impl Session {
                         .is_some_and(|d| ew_derive::is_fluid_terminal(&q, d)),
                     cells: Vec::new(),
                     supply_end: None,
-                    pitch: super::view::box_text_pitch(&q, &rep),
                     depth: super::view::box_text_depth(&q, &rep),
                     own_pins: first.as_ref().is_some_and(|f| {
                         matches!(f.kind, FunctionKind::BlackBox)

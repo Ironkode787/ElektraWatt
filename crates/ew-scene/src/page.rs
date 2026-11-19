@@ -142,18 +142,15 @@
 //!   other. Without one it stays.
 //! - **Pin texts**. A black box prints each [`RepView::pins`] entry whose index is one of its box CPs
 //!   (drawn as in "Black boxes") in style `data.small`, inside the outline, [`PIN_TEXT_GAP`] from the pin along its
-//!   inward normal, upright on every side and under every orientation (rc.5): a pin leaving up or down has its text
-//!   centred on the pin (aligned top centre below a pin leaving up, bottom centre above a pin leaving down); where two
-//!   such texts of one side would come nearer than [`SLOT_TEXT_GAP`], the texts of that side take two lines in turn
-//!   along it, every second one (in the order along the side) one text height further into the box; a text that would
-//!   cross the outline's left or right edge first moves along its side to stand [`SLOT_TEXT_GAP`] inside it (unless it
-//!   is wider than the box); an imported box too. A pin leaving left or right reads horizontally, its start towards the pin (middle left right of a pin leaving left, middle right left of a pin
+//!   inward normal: a pin leaving up or down reads bottom to top (90°), its end towards the pin (aligned middle right
+//!   below a pin leaving up, middle left above a pin leaving down), but a text of signs only ("+", "−", no letter or
+//!   digit: a turned "−" read as a tick) reads horizontally, centred on the pin at the same gap (aligned top
+//!   centre below a pin leaving up, bottom centre above a pin leaving down); a pin leaving left or right reads
+//!   horizontally, its start towards the pin (middle left right of a pin leaving left, middle right left of a pin
 //!   leaving right). They print after the slot texts and never move; in the slot-text collision rules they are fixed
 //!   obstacles of the cross-reference texts: a cross-reference text that overlaps one drops below it as
 //!   below a text of its own symbol (rule 2); a device tag yields to one ("Device tags"). An entry without its box
-//!   CP, or a pin of an unknown direction, prints nothing. A black box's cross-reference text (not moved) that would
-//!   cross its outline's right edge, a narrow box's, stands outside it at the corner it belongs to: right-aligned
-//!   [`SLOT_TEXT_GAP`] left of the outline, its top where it was (rc.5); the collision rules then treat it as any.
+//!   CP, or a pin of an unknown direction, prints nothing.
 //! - **Wire markers** (FR-OUT-011 keeps them in monochrome; FT-1706: the text stands clear of its wires, as drawing
 //!   practice has it): a short line across the wire at the midpoint of the polyline's longest segment (the first of
 //!   equal ones), [`MARKER_REACH`] past the wire on both sides in the page's wire stroke, and the caller's marker text
@@ -1647,7 +1644,7 @@ impl Builder<'_> {
                 });
             }
         }
-        let pins = self.pin_texts(view);
+        let pins = pin_texts(view);
         // The pin texts never move; they are fixed obstacles of the cross-reference texts.
         let pin_boxes: Vec<(EntityRef, Rect)> = pins
             .iter()
@@ -3278,135 +3275,48 @@ pub const PIN_TEXT_GAP: Nm = Nm(1_000_000);
 /// A placed pin text: its entity, text, point, angle and alignment.
 type PlacedPin = (EntityRef, String, Pt2, Angle2, Align);
 
-impl Builder<'_> {
-    /// The pin texts of the page's black boxes, by representation ID then box-CP order (module documentation, "Pin
-    /// texts"): upright, the texts of a top or bottom side that would touch taking two lines in turn.
-    fn pin_texts(&self, view: &PageView) -> Vec<PlacedPin> {
-        let mut out = Vec::new();
-        for rv in sorted_reps(view) {
-            let rep = &rv.rep;
-            let (Some(def), Some(b)) = (&rv.symbol, &rep.box_) else {
-                continue;
-            };
-            if rv.pins.is_empty() || !def.cps.is_empty() {
-                continue;
-            }
-            // The upright texts on the top side (`true`) and the bottom side: their places in `out`.
-            let mut sides: [Vec<usize>; 2] = Default::default();
-            for cp in &b.cps {
-                let Some(pin) = rv.pins.iter().find(|p| p.idx == cp.idx) else {
-                    continue;
-                };
-                if pin.text.is_empty() {
-                    continue;
-                }
-                let at = rep.pos + rep.orient.apply(cp.pos);
-                let g = PIN_TEXT_GAP;
-                let (offset, angle, align) = match symbol::transform_dir(&cp.dir, rep.orient) {
-                    Dir4::Up => {
-                        sides[0].push(out.len());
-                        (Pt2::new(Nm::ZERO, g), Angle2::ZERO, Align::TopCentre)
-                    }
-                    Dir4::Down => {
-                        sides[1].push(out.len());
-                        (Pt2::new(Nm::ZERO, Nm(-g.0)), Angle2::ZERO, Align::BottomCentre)
-                    }
-                    Dir4::Left => (Pt2::new(g, Nm::ZERO), Angle2::ZERO, Align::MiddleLeft),
-                    Dir4::Right => (Pt2::new(Nm(-g.0), Nm::ZERO), Angle2::ZERO, Align::MiddleRight),
-                    Dir4::Unknown(_) => continue,
-                };
-                out.push((
-                    EntityRef(rep.id.as_uuid()),
-                    pin.text.clone(),
-                    at + offset,
-                    angle,
-                    align,
-                ));
-            }
-            // The outline's extent across the page, which an upright text of a top or bottom side stays inside.
-            let xs = b.outline.iter().map(|p| (rep.pos + rep.orient.apply(*p)).x);
-            let across = xs.clone().min().zip(xs.max());
-            let [top, bottom] = &mut sides;
-            for side in [&*top, &*bottom] {
-                self.keep_pin_texts_inside(&mut out, side, across);
-            }
-            self.stagger_pin_texts(&mut out, top, 1);
-            self.stagger_pin_texts(&mut out, bottom, -1);
-        }
-        out
-    }
-
-    /// An upright pin text of a top or bottom side (`side`: its places in `out`) that would cross the outline's left or
-    /// right edge (`across`: the outline's extent along x) moves along the side until it stands [`SLOT_TEXT_GAP`]
-    /// inside it (rc.5: a pin one grid step from a corner has a text wider than two steps); a text wider than the box
-    /// stays centred on its pin.
-    fn keep_pin_texts_inside(&self, out: &mut [PlacedPin], side: &[usize], across: Option<(Nm, Nm)>) {
-        let Some((left, right)) = across else {
-            return;
+/// The pin texts of the page's black boxes, by representation ID then box-CP order (module documentation, "Pin
+/// texts").
+fn pin_texts(view: &PageView) -> Vec<PlacedPin> {
+    let mut out = Vec::new();
+    for rv in sorted_reps(view) {
+        let rep = &rv.rep;
+        let (Some(def), Some(b)) = (&rv.symbol, &rep.box_) else {
+            continue;
         };
-        let (left, right) = (left.0 + SLOT_TEXT_GAP.0, right.0 - SLOT_TEXT_GAP.0);
-        for &i in side {
-            let p = &out[i];
-            let spec = TextSpec {
-                text: &p.1,
-                at: p.2,
-                angle: p.3,
-                align: &p.4,
-                style_key: "data.small",
-                entity: p.0,
-                link: None,
-                items: &[],
-            };
-            let Some(r) = self.text_box(&spec, false) else {
+        if rv.pins.is_empty() || !def.cps.is_empty() {
+            continue;
+        }
+        for cp in &b.cps {
+            let Some(pin) = rv.pins.iter().find(|p| p.idx == cp.idx) else {
                 continue;
             };
-            if r.max().x.0 - r.min().x.0 > right - left {
+            if pin.text.is_empty() {
                 continue;
             }
-            let shift = if r.min().x.0 < left {
-                left - r.min().x.0
-            } else if r.max().x.0 > right {
-                right - r.max().x.0
-            } else {
-                0
+            let at = rep.pos + rep.orient.apply(cp.pos);
+            let g = PIN_TEXT_GAP;
+            // A text of signs only ("+", "−") reads the same horizontally, and turned a minus would read as a tick.
+            let signs = !pin.text.chars().any(char::is_alphanumeric);
+            let (offset, angle, align) = match symbol::transform_dir(&cp.dir, rep.orient) {
+                Dir4::Up if signs => (Pt2::new(Nm::ZERO, g), Angle2::ZERO, Align::TopCentre),
+                Dir4::Down if signs => (Pt2::new(Nm::ZERO, Nm(-g.0)), Angle2::ZERO, Align::BottomCentre),
+                Dir4::Up => (Pt2::new(Nm::ZERO, g), Angle2(90_000), Align::MiddleRight),
+                Dir4::Down => (Pt2::new(Nm::ZERO, Nm(-g.0)), Angle2(90_000), Align::MiddleLeft),
+                Dir4::Left => (Pt2::new(g, Nm::ZERO), Angle2::ZERO, Align::MiddleLeft),
+                Dir4::Right => (Pt2::new(Nm(-g.0), Nm::ZERO), Angle2::ZERO, Align::MiddleRight),
+                Dir4::Unknown(_) => continue,
             };
-            out[i].2.x = Nm(out[i].2.x.0.saturating_add(shift));
+            out.push((
+                EntityRef(rep.id.as_uuid()),
+                pin.text.clone(),
+                at + offset,
+                angle,
+                align,
+            ));
         }
     }
-
-    /// Where two upright pin texts of one side (`side`: their places in `out`) would touch, the texts of that side
-    /// take two lines in turn along it: every second one moves one line further into the box (`inward`: +1 below a
-    /// top side, −1 above a bottom side).
-    fn stagger_pin_texts(&self, out: &mut [PlacedPin], side: &mut [usize], inward: i64) {
-        let rect = |p: &PlacedPin| {
-            self.text_box(
-                &TextSpec {
-                    text: &p.1,
-                    at: p.2,
-                    angle: p.3,
-                    align: &p.4,
-                    style_key: "data.small",
-                    entity: p.0,
-                    link: None,
-                    items: &[],
-                },
-                false,
-            )
-        };
-        side.sort_by_key(|&i| out[i].2.x);
-        let boxes: Vec<Option<Rect>> = side.iter().map(|&i| rect(&out[i])).collect();
-        let touch = boxes.windows(2).any(|w| match (w[0], w[1]) {
-            (Some(a), Some(b)) => a.max().x.0 + SLOT_TEXT_GAP.0 > b.min().x.0,
-            _ => false,
-        });
-        if !touch {
-            return;
-        }
-        let line = boxes.iter().flatten().map(|r| r.height().0).max().unwrap_or(0);
-        for &i in side.iter().skip(1).step_by(2) {
-            out[i].2.y = Nm(out[i].2.y.0.saturating_add(inward * line));
-        }
-    }
+    out
 }
 
 /// The arc of a flexible fluid line through the ends of its route `pts` (ISO 1219-1, a hose): a quadratic curve whose

@@ -245,8 +245,8 @@ fn without_a_top_cp_the_tag_stays_and_the_caption_stacks_above_it() {
     assert!(!run_into(tag, part) && !run_into(part, maker));
 }
 
-/// A pin text of signs only prints upright ("−" would read as a tick turned), centred on its pin; so does one with a
-/// letter or a digit (rc.5: every pin text stands upright).
+/// A pin text of signs only prints upright ("−" would read as a tick turned); one with a letter or a digit
+/// turns with a pin leaving up or down, as before.
 #[test]
 fn a_pin_text_of_signs_only_prints_upright() {
     let v = view(
@@ -266,10 +266,7 @@ fn a_pin_text_of_signs_only_prints_upright() {
         assert!((mid - pin).abs() <= 1_000, "{sign} centred: {mid} {pin}");
         assert!(p.rect.max().y.0 <= g(42) - 1_000_000 + 1_000);
     }
-    assert!(
-        upright(run(&r, 0x11, "1 I0.0")),
-        "a designation stands upright too"
-    );
+    assert!(!upright(run(&r, 0x11, "1 I0.0")), "a designation still turns");
 }
 
 /// A make contact `n` tagged `name` at grid `(x, 20)` with its CP designations 13 and 14.

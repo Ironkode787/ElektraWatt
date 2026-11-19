@@ -685,7 +685,6 @@ fn reshape(outline: Vec<Pt2>, cps: Option<Vec<BoxCp>>) -> ReshapeBox {
         outline,
         cps,
         centre: false,
-        pitch: None,
     }
 }
 

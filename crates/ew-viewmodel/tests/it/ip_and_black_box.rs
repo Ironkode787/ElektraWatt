@@ -1165,12 +1165,11 @@ fn a_pin_dragged_towards_a_corner_stays_on_its_side() {
     assert_eq!(unique.len(), pts.len(), "no two pins on one point: {pts:?}");
 }
 
-/// rc.5 persona run (on a narrow box four pin names stood in two lines with their frames on one another): a box whose
-/// pin names are long goes no smaller than keeps the names of each line apart. Golden A's -102F2 carries "24VDC" and
-/// "Out1" two steps apart, which its upright names need: its right edge dragged inward does not move, the status line
-/// says why, and Centre the pins keeps them two steps apart.
+/// rc.5 (the height of a box collapsed through its pin texts): Golden A's -102F2 has pins on its top and bottom sides
+/// whose texts are turned a quarter and reach into the box; its bottom edge dragged up stops where the longest top
+/// text and the longest bottom text would meet, the status line says why, and the box is no lower than that.
 #[test]
-fn a_box_with_long_pin_names_goes_no_smaller_than_they_need() {
+fn a_box_goes_no_lower_than_its_turned_pin_texts_need() {
     let tmp = Tmp::new("box-cp-names");
     let mut s = actual_size(&tmp, "102");
     let t = tables(&s);
@@ -1181,21 +1180,27 @@ fn a_box_with_long_pin_names_goes_no_smaller_than_they_need() {
         .expect("-102F2")
         .clone();
     let b = f2.black_box.clone().unwrap();
-    assert_eq!(b.pitch, 2, "two steps keep the names of one line apart");
+    assert!(b.depth > 0, "the turned texts need a height");
     select_ids(&mut s, &[f2.id.to_string()]);
-    let mid = ew_viewmodel::tools::black_box::grip_points(&b.outline)[5];
-    let k = index_of(&s, mid);
-    let from = sheet(&s, mid);
+    // The lowest corner on the right, dragged up to one step below the top.
+    let corner = *b
+        .outline
+        .iter()
+        .max_by_key(|p| (p.1, p.0))
+        .unwrap();
+    let top = b.outline.iter().map(|p| index_of(&s, *p).1).min().unwrap();
+    let k = index_of(&s, corner);
+    let from = sheet(&s, corner);
+    let up = sheet(&s, grid_point(&s, (k.0, top + 1)));
     done(&mut s, "canvas.press", at(from, json!({})));
-    let inward = sheet(&s, grid_point(&s, (k.0 - 3, k.1)));
-    done(&mut s, "canvas.pointer", at(inward, json!({})));
+    done(&mut s, "canvas.pointer", at(up, json!({})));
     assert!(
         s.tool_hint().starts_with("The box goes no smaller"),
         "{}",
         s.tool_hint()
     );
-    done(&mut s, "canvas.release", at(inward, json!({})));
-    let same = tables(&s)
+    done(&mut s, "canvas.release", at(up, json!({})));
+    let after = tables(&s)
         .reps
         .iter()
         .find(|r| r.id == f2.id)
@@ -1203,26 +1208,9 @@ fn a_box_with_long_pin_names_goes_no_smaller_than_they_need() {
         .black_box
         .clone()
         .unwrap();
-    assert_eq!(same.outline, b.outline, "the box keeps its size");
-    // Centre the pins: still two steps apart.
-    select_ids(&mut s, &[f2.id.to_string()]);
-    done(&mut s, "box.centre_pins", json!({}));
-    let c = tables(&s)
-        .reps
-        .iter()
-        .find(|r| r.id == f2.id)
-        .unwrap()
-        .black_box
-        .clone()
-        .unwrap();
-    let mut top: Vec<i64> = c
-        .cps
-        .iter()
-        .filter(|p| p.1.1 == c.outline[0].1)
-        .map(|p| index_of(&s, p.1).0)
-        .collect();
-    top.sort_unstable();
-    assert!(top.windows(2).all(|w| w[1] - w[0] >= 2), "{top:?}");
+    let ys: Vec<i64> = after.outline.iter().map(|p| index_of(&s, *p).1).collect();
+    let height = ys.iter().max().unwrap() - ys.iter().min().unwrap();
+    assert!(height >= b.depth, "{height} {}", b.depth);
 }
 
 // ---------------------------------------------------------------------------------------------------------------

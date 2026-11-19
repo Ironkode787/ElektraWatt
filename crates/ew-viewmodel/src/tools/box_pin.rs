@@ -25,7 +25,6 @@
 
 use crate::key;
 use ew_api::AnyCommand;
-use ew_api::geometry::Dir;
 use ew_api::output::ew_dl::EntityRef;
 
 use super::black_box::{BoxCpAt, reshape_named};
@@ -193,16 +192,14 @@ impl PinNameTool {
     }
 }
 
-/// The next free point after the pin `at` on its side of the box `outline` with the pins `cps` (Tab, rc.5): `pitch`
-/// grid steps further along a side across the page (one step along an upright side), else as far back, at least one
-/// step from both corners and on no pin; `None` when the side has no such point.
+/// The next free point after the pin `at` on its side of the box `outline` with the pins `cps` (Tab, rc.5): the nearest
+/// grid point further along the side, else back along it, at least one step from both corners and on no pin; `None`
+/// when the side has no such point.
 pub fn next_on_side(
     grid: PageGridMap,
     outline: &[(i64, i64)],
     cps: &[BoxCpAt],
     at: (i64, i64),
-    dir: Dir,
-    pitch: i64,
 ) -> Option<(i64, i64)> {
     let n = outline.len();
     let side = (0..n)
@@ -216,11 +213,7 @@ pub fn next_on_side(
         (a.1.min(b.1), a.1.max(b.1))
     };
     let (k_lo, k_hi) = (grid.index(lo) + 1, grid.index(hi) - 1);
-    let step = if matches!(dir, Dir::Up | Dir::Down) {
-        pitch.max(1)
-    } else {
-        1
-    };
+    let step = 1;
     let k = grid.index(if along_x { at.0 } else { at.1 });
     let point = |k: i64| {
         if along_x {
@@ -338,13 +331,12 @@ impl PinNameTool {
         grid: PageGridMap,
         outline: &[(i64, i64)],
         cps: &[BoxCpAt],
-        pitch: i64,
     ) -> bool {
         if !self.next {
             return false;
         }
         self.next = false;
-        let at = next_on_side(grid, outline, cps, self.pin.1, self.pin.2, pitch);
+        let at = next_on_side(grid, outline, cps, self.pin.1);
         let idx = (0..=u16::MAX).find(|i| !cps.iter().any(|c| c.0 == *i));
         match (at, idx) {
             (Some(at), Some(idx)) => {

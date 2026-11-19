@@ -94,17 +94,13 @@ pub fn spread(width: i64, m: i64, k: i64) -> i64 {
     start + k * pitch
 }
 
-/// The room in nanometres a pin needs along a top or bottom edge for its text `text` read upright on one line beside
-/// its neighbours' (rc.5): the text's width in style `data.small` with the bundled fonts, and a millimetre to spare.
-pub fn pin_text_room(text: &str) -> i64 {
+/// The length in nanometres of the pin text `text` on one line in style `data.small` with the bundled fonts: how far a
+/// text of a top or bottom side, turned a quarter, reaches into the box (rc.5).
+pub fn pin_text_length(text: &str) -> i64 {
     let Some(style) = ew_text::builtin().resolve("data.small") else {
         return 0;
     };
-    ew_text::bundled()
-        .shape(text, &style, None)
-        .advance()
-        .0
-        .saturating_add(1_000_000)
+    ew_text::bundled().shape(text, &style, None).advance().0
 }
 
 /// The height in nanometres of one line of pin text (style `data.small` with the bundled fonts: its ascent and descent,
@@ -704,7 +700,6 @@ impl Session {
                     .collect(),
             ),
             centre: false,
-            pitch: None,
         })
         .ok()
     }

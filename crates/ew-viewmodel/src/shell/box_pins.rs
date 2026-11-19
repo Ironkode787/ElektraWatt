@@ -257,7 +257,7 @@ impl ShellModel {
                 ))
             });
             let moved = match (b, pin_tool(self)) {
-                (Some((grid, b)), Some(t)) => t.go_next(grid, &b.outline, &b.cps, b.pitch),
+                (Some((grid, b)), Some(t)) => t.go_next(grid, &b.outline, &b.cps),
                 _ => false,
             };
             if !moved {

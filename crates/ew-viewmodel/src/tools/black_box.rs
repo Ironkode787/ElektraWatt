@@ -18,9 +18,7 @@
 //! template entry's CPs in template order, the first `⌈n/2⌉` on the top edge and the rest on the bottom edge, left to
 //! right, leaving up and down; an entry with a source's outputs among its CPs (a power supply's + and −) has its inputs
 //! on the top edge and its outputs on the bottom one (FT-1702); when an edge is too short the rectangle grows to the right until they fit one grid step
-//! apart with one grid step to spare at each corner (a PLC card's box, which the program sizes: one common pitch apart
-//! and one pitch to spare, the pitch the whole grid steps that hold the edge's widest upright pin text with a
-//! millimetre to spare, `ew_api::part_box::pin_text_room`, rc.5). On a wider box the CPs of an edge spread over its drawn length:
+//! apart with one grid step to spare at each corner. On a wider box the CPs of an edge spread over its drawn length:
 //! one common pitch, the largest whole number of grid steps that fits `m + 1` times into the edge, the group
 //! centred (half a step to the left when it cannot be centred exactly). Without a part, no CPs: such a box takes pins of its
 //! own afterwards, where it stands ([`super::box_pin`], rc.5).
@@ -149,7 +147,6 @@ pub fn port_layouts(
             (grid.coord(x + width), b.1),
             &i.sockets,
             &[],
-            false,
         )?;
         let right = l.0.0 + l.1.get(1).map_or(0, |p| p.0);
         x = grid.index(right) + 2;
@@ -167,16 +164,13 @@ pub type BoxLayout = ((i64, i64), Vec<(i64, i64)>, Vec<(u16, (i64, i64), Dir)>);
 
 /// The box with corners `a` and `b` (page nm, grid points) and the CPs `cps` laid out on its top and bottom edges:
 /// with some but not all of them among `outputs` (a source's outputs) the others on top and those below, else the first
-/// half on top; `None` for a rectangle without height, or without width when no CP widens it. With `room` (a box the
-/// program sizes: a PLC card's) an edge too short for its pins grows until their upright texts fit on one line, else
-/// until they fit one grid step apart.
+/// half on top; `None` for a rectangle without height, or without width when no CP widens it.
 pub fn layout(
     grid: PageGridMap,
     a: (i64, i64),
     b: (i64, i64),
     cps: &[(u16, String)],
     outputs: &[u16],
-    room: bool,
 ) -> Option<BoxLayout> {
     let (ax, bx) = (grid.index(a.0), grid.index(b.0));
     let (ay, by) = (grid.index(a.1), grid.index(b.1));
@@ -187,25 +181,10 @@ pub fn layout(
     }
     let n = cps.len();
     let indices: Vec<u16> = cps.iter().map(|c| c.0).collect();
-    let names = cps;
     let (cps, top) = ew_api::part_box::split(&indices, outputs);
     let bottom = n - top;
     if n > 0 {
-        // Each edge as long as its pins need one common pitch: one step, or with `room` the steps that hold their
-        // upright texts on one line.
-        let step = grid.step().max(1);
-        let need_of = |edge: &[u16]| -> i64 {
-            let pitch = edge
-                .iter()
-                .filter(|_| room)
-                .filter_map(|i| names.iter().find(|c| c.0 == *i))
-                .map(|c| (ew_api::part_box::pin_text_room(&c.1) + step - 1) / step)
-                .max()
-                .unwrap_or(1)
-                .max(1);
-            (i64::try_from(edge.len()).unwrap_or(i64::MAX / 4) + 1).saturating_mul(pitch)
-        };
-        let need = need_of(&cps[..top]).max(need_of(&cps[top..]));
+        let need = i64::try_from(top.max(bottom)).unwrap_or(i64::MAX / 2) + 1;
         if kx1 - kx0 < need {
             kx1 = kx0 + need;
         }
@@ -534,7 +513,7 @@ impl BlackBoxTool {
         let grid = PageGridMap::new(cx.page.tables.grid);
         match &self.target {
             BoxTarget::Ports { interfaces, .. } => port_layouts(grid, first, at, interfaces),
-            _ => layout(grid, first, at, self.cps(), self.outputs(), false).map(|l| vec![l]),
+            _ => layout(grid, first, at, self.cps(), self.outputs()).map(|l| vec![l]),
         }
     }
 
@@ -956,8 +935,8 @@ pub fn reshape_by_grip(
 
 /// Whether the pins `cps` of the box `outline` (page nm) still fit when its outline becomes `new` (the same vertices
 /// moved), on the edges along x (`along_x`) or along y: an axis-aligned edge whose extent along its axis changed holds
-/// its pins `pitch` steps apart on a horizontal edge (one on a vertical one) and one step to spare at each corner, as
-/// `box.reshape` re-centres them (rc.5: `pitch` keeps their upright texts on two lines apart). A pin belongs to the edge it lies on, at a corner to the one it leaves by
+/// its pins one grid step apart and one step to spare at each corner, as `box.reshape` re-centres them. A pin belongs to
+/// the edge it lies on, at a corner to the one it leaves by
 /// its direction.
 fn pins_fit(
     grid: PageGridMap,
@@ -965,7 +944,6 @@ fn pins_fit(
     cps: &[BoxCpAt],
     new: &[(i64, i64)],
     along_x: bool,
-    pitch: i64,
 ) -> bool {
     let n = outline.len();
     let area = signed_area2(outline);
@@ -993,9 +971,8 @@ fn pins_fit(
         at.sort_unstable();
         at.dedup();
         let steps = (grid.index(axis(nb)) - grid.index(axis(na))).abs();
-        let gap = if horizontal { pitch.max(1) } else { 1 };
         let n = i64::try_from(at.len()).unwrap_or(i64::MAX / 4);
-        at.is_empty() || steps >= (n - 1) * gap + 2
+        at.is_empty() || steps >= n + 1
     })
 }
 
@@ -1011,7 +988,7 @@ pub fn grip_stop(
     grid: PageGridMap,
     outline: &[(i64, i64)],
     cps: &[BoxCpAt],
-    (pitch, depth): (i64, i64),
+    depth: i64,
     grip: usize,
     to: (i64, i64),
 ) -> Result<GripStop, Key<'static>> {
@@ -1029,7 +1006,7 @@ pub fn grip_stop(
             let k = grid.index(v);
             grid.coord(if h > v { k + 1 } else { k - 1 })
         };
-        while !pins_fit(grid, outline, cps, &new, along_x, pitch) || (!along_x && low(&new)) {
+        while !pins_fit(grid, outline, cps, &new, along_x) || (!along_x && low(&new)) {
             let (v, h) = if along_x { (at.0, home.0) } else { (at.1, home.1) };
             if v == h {
                 break;
@@ -1216,7 +1193,7 @@ pub fn on_outline(outline: &[(i64, i64)], p: (i64, i64)) -> bool {
 
 /// The `box.reshape` of black box `rep` with the absolute outline `outline` and, when given, the absolute CPs
 /// `(idx, point, direction)` (page nm), converted to the representation's frame (relative to its position, under the
-/// inverse of its orientation); without CPs, the box's `pitch` that keeps its pins' upright texts apart.
+/// inverse of its orientation).
 pub fn reshape_command(rep: &TableRep, outline: &[(i64, i64)], cps: Option<&[BoxCpAt]>) -> Box<AnyCommand> {
     let names = rep
         .black_box
@@ -1252,9 +1229,6 @@ pub fn reshape_named(
                 })
                 .collect(),
         );
-    } else if let Some(pitch) = rep.black_box.as_ref().map(|b| b.pitch).filter(|p| *p > 1) {
-        // Re-centred pins keep their upright texts on two lines apart (rc.5).
-        params["pitch"] = Value::from(pitch);
     }
     Box::new(AnyCommand {
         name: "box.reshape".into(),
@@ -1326,9 +1300,9 @@ pub fn handle_at(cx: &ToolCx<'_>, rep: &TableRep, at: (i64, i64)) -> Option<BoxH
 /// Which way grip `grip` of a box `outline` resizes it, for the pointer's shape before the press (rc.5).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum GripResize {
-    /// An upright edge's middle: sideways.
+    /// A vertical edge's middle: sideways.
     Sideways,
-    /// A level edge's middle: up and down.
+    /// A horizontal edge's middle: up and down.
     UpDown,
     /// The top-left or the bottom-right corner.
     CornerNwSe,
@@ -1336,7 +1310,7 @@ pub enum GripResize {
     CornerNeSw,
 }
 
-/// The [`GripResize`] of grip `grip` of `outline`; `None` for an edge that is neither level nor upright.
+/// The [`GripResize`] of grip `grip` of `outline`; `None` for an edge that is neither horizontal nor vertical.
 pub fn grip_resize(outline: &[(i64, i64)], grip: usize) -> Option<GripResize> {
     let n = outline.len();
     if grip < n {
@@ -1449,7 +1423,6 @@ mod tests {
             (16_000_000, 36_000_000),
             &cps,
             &[],
-            false,
         )
         .unwrap();
         assert_eq!(pos, (8_000_000, 12_000_000));
@@ -1463,31 +1436,12 @@ mod tests {
         assert_eq!(laid[4], (4, (4_000_000, 24_000_000), Dir::Down));
         assert_eq!(laid[6], (6, (12_000_000, 24_000_000), Dir::Down));
         assert!(
-            layout(g, (0, 0), (5_000_000, 0), &cps, &[], false).is_none(),
+            layout(g, (0, 0), (5_000_000, 0), &cps, &[]).is_none(),
             "no height"
         );
         assert!(
-            layout(g, (0, 0), (0, 5_000_000), &[], &[], false).is_none(),
+            layout(g, (0, 0), (0, 5_000_000), &[], &[]).is_none(),
             "no width and no CP"
-        );
-    }
-
-    /// Long pin names on a box the program sizes (rc.5, a PLC card's): the box grows until the pins stand far enough apart that their upright texts fit on
-    /// one line, with room at the corners.
-    #[test]
-    fn the_default_cps_leave_room_for_upright_texts() {
-        let g = PageGridMap::new((4_000_000, 1));
-        let cps: Vec<(u16, String)> = (0..6).map(|i| (i, format!("24VDC {i}"))).collect();
-        let (_, outline, laid) = layout(g, (0, 0), (8_000_000, 20_000_000), &cps, &[], true).unwrap();
-        let room = ew_api::part_box::pin_text_room("24VDC 0");
-        let top: Vec<i64> = laid.iter().filter(|c| c.2 == Dir::Up).map(|c| c.1.0).collect();
-        assert_eq!(top.len(), 3);
-        for w in top.windows(2) {
-            assert!(w[1] - w[0] >= room, "{top:?} {room}");
-        }
-        assert!(
-            top[0] >= room / 2 && outline[1].0 - top[2] >= room / 2,
-            "{top:?} {outline:?}"
         );
     }
 
@@ -1498,7 +1452,7 @@ mod tests {
         let g = PageGridMap::new((1_000_000, 1));
         let cps: Vec<(u16, String)> = (0..5).map(|i| (i, i.to_string())).collect();
         // Twelve steps wide: three on top at pitch 3 (12 / 4), from 3; two below at pitch 4 (12 / 3), from 4.
-        let (_, outline, laid) = layout(g, (0, 0), (12_000_000, 6_000_000), &cps, &[], false).unwrap();
+        let (_, outline, laid) = layout(g, (0, 0), (12_000_000, 6_000_000), &cps, &[]).unwrap();
         assert_eq!(outline[1], (12_000_000, 0), "the drawn width is kept");
         let xs: Vec<(i64, Dir)> = laid.iter().map(|(_, p, d)| (p.0 / 1_000_000, *d)).collect();
         assert_eq!(
@@ -1594,19 +1548,19 @@ mod tests {
             .map(|(x, i)| (i, (x * 1_000_000, 0), Dir::Up))
             .collect();
         // The right edge's grip (5: the midpoint of v1v2) dragged to x 2: three pins need four steps.
-        let (at, new) = grip_stop(g, &r, &cps, (1, 0), 5, (2_000_000, 2_000_000)).unwrap();
+        let (at, new) = grip_stop(g, &r, &cps, 0, 5, (2_000_000, 2_000_000)).unwrap();
         assert_eq!(at, (4_000_000, 2_000_000));
         assert_eq!(new[1].0, 4_000_000);
         // To x 6 it goes all the way.
         assert_eq!(
-            grip_stop(g, &r, &cps, (1, 0), 5, (6_000_000, 2_000_000))
+            grip_stop(g, &r, &cps, 0, 5, (6_000_000, 2_000_000))
                 .unwrap()
                 .0,
             (6_000_000, 2_000_000)
         );
         // The bottom edge's grip (6) up to y 1: the top and bottom sides keep their length, nothing holds it.
         assert_eq!(
-            grip_stop(g, &r, &cps, (1, 0), 6, (3_000_000, 1_000_000))
+            grip_stop(g, &r, &cps, 0, 6, (3_000_000, 1_000_000))
                 .unwrap()
                 .0,
             (3_000_000, 1_000_000)
