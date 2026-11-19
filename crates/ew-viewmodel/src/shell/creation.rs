@@ -724,7 +724,11 @@ impl ShellModel {
         })();
         self.count(|c| c.preview_with += 1);
         if let Some(g) = self.tools.grid_fit.as_mut() {
-            g.word = if moved.is_some() { word.to_owned() } else { String::new() };
+            g.word = if moved.is_some() {
+                word.to_owned()
+            } else {
+                String::new()
+            };
             g.moved = moved.unwrap_or(0);
         }
     }
@@ -801,7 +805,10 @@ impl ShellModel {
             }
         }
         let text = if moved == 0 {
-            strings::format(key!("toast-page-grid-fitted-none"), &[&folio, &strings::choice_text(&word)])
+            strings::format(
+                key!("toast-page-grid-fitted-none"),
+                &[&folio, &strings::choice_text(&word)],
+            )
         } else {
             strings::format(
                 key!("toast-page-grid-fitted"),

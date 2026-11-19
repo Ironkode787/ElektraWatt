@@ -291,10 +291,7 @@ fn a_paste_onto_another_grid_and_a_grid_change_fit_the_items_and_say_so() {
     let form = common::form(&shell);
     assert_eq!(form.action, "page.fit_grid");
     let foot = shell.form_foot(&form).expect("what will happen");
-    assert!(
-        foot.starts_with("Page 150 holds 2 items and "),
-        "{foot}"
-    );
+    assert!(foot.starts_with("Page 150 holds 2 items and "), "{foot}");
     assert!(foot.contains("On the QET 10 px grid"), "{foot}");
     assert_eq!(shell.submit_form(), Outcome::Done);
     assert_eq!(shell.canvas().unwrap().page().snapper.grid(), (7_937_500, 3));
@@ -303,8 +300,16 @@ fn a_paste_onto_another_grid_and_a_grid_change_fit_the_items_and_say_so() {
     let text = common::toast(&shell);
     assert!(text.starts_with("Page 150 now has the QET 10 px grid:"), "{text}");
     // The message counts what the question counted.
-    let moved = foot.split("grid, ").nth(1).and_then(|r| r.split(' ').next()).unwrap().to_owned();
-    assert!(text.contains(&format!(": {moved} items moved")), "{foot} / {text}");
+    let moved = foot
+        .split("grid, ")
+        .nth(1)
+        .and_then(|r| r.split(' ').next())
+        .unwrap()
+        .to_owned();
+    assert!(
+        text.contains(&format!(": {moved} items moved")),
+        "{foot} / {text}"
+    );
     done(&mut shell, "edit.undo", json!({}));
     assert_eq!(
         shell.canvas().unwrap().page().snapper.grid(),
@@ -328,12 +333,22 @@ fn click_at(shell: &mut ShellModel, p: (i64, i64)) {
 fn handle_fitted(shell: &mut ShellModel, g: (i64, i64)) {
     let grid = ew_viewmodel::ew_api::output::ew_dl::ew_units::Grid::new(g.0 as u64, g.1 as u64).unwrap();
     let on = |p: (i64, i64)| {
-        grid.snap_point(ew_viewmodel::ew_api::output::ew_dl::ew_units::Nm(p.0)).map(|n| n.0) == Some(p.0)
-            && grid.snap_point(ew_viewmodel::ew_api::output::ew_dl::ew_units::Nm(p.1)).map(|n| n.0) == Some(p.1)
+        grid.snap_point(ew_viewmodel::ew_api::output::ew_dl::ew_units::Nm(p.0))
+            .map(|n| n.0)
+            == Some(p.0)
+            && grid
+                .snap_point(ew_viewmodel::ew_api::output::ew_dl::ew_units::Nm(p.1))
+                .map(|n| n.0)
+                == Some(p.1)
     };
     let tables = |shell: &ShellModel| shell.canvas().unwrap().page().tables.clone();
     let pins = |shell: &ShellModel, id| -> Vec<(i64, i64)> {
-        tables(shell).cps.iter().filter(|c| c.rep == id).map(|c| c.at).collect()
+        tables(shell)
+            .cps
+            .iter()
+            .filter(|c| c.rep == id)
+            .map(|c| c.at)
+            .collect()
     };
     let ids: Vec<_> = tables(shell).reps.iter().map(|r| r.id).collect();
     assert!(!ids.is_empty());
@@ -343,12 +358,21 @@ fn handle_fitted(shell: &mut ShellModel, g: (i64, i64)) {
         // A drag from the symbol's middle (a box's outline's, else the middle of its pins).
         let t = tables(shell);
         let rep = t.reps.iter().find(|r| r.id == *id).unwrap();
-        let points: Vec<(i64, i64)> = rep.black_box.as_ref().map_or_else(|| pins(shell, *id), |b| b.outline.clone());
+        let points: Vec<(i64, i64)> = rep
+            .black_box
+            .as_ref()
+            .map_or_else(|| pins(shell, *id), |b| b.outline.clone());
         let n = points.len() as i64;
-        let mid = (points.iter().map(|p| p.0).sum::<i64>() / n, points.iter().map(|p| p.1).sum::<i64>() / n);
+        let mid = (
+            points.iter().map(|p| p.0).sum::<i64>() / n,
+            points.iter().map(|p| p.1).sum::<i64>() / n,
+        );
         done(shell, "select.set", json!({ "ids": [] }));
         let from = sheet(shell, mid);
-        let to = (from.0 + 2 * (grid.at(1).unwrap().0 - grid.at(0).unwrap().0), from.1);
+        let to = (
+            from.0 + 2 * (grid.at(1).unwrap().0 - grid.at(0).unwrap().0),
+            from.1,
+        );
         let rev = shell.revision();
         done(shell, "canvas.press", at(from, json!({})));
         done(shell, "canvas.pointer", at(to, json!({})));
@@ -362,7 +386,11 @@ fn handle_fitted(shell: &mut ShellModel, g: (i64, i64)) {
         done(shell, "tool.move", json!({}));
         done(shell, "cursor.down", json!({}));
         done(shell, "canvas.activate", json!({}));
-        assert_eq!(shell.revision(), rev.map(|r| r + 1), "{id}: the arrow key moves it");
+        assert_eq!(
+            shell.revision(),
+            rev.map(|r| r + 1),
+            "{id}: the arrow key moves it"
+        );
         assert!(pins(shell, *id).iter().any(|p| on(*p)), "{id}: a pin on the grid");
     }
     // A turn keeps a pin on the grid (a symbol's: an interruption point turns by its direction).
@@ -376,7 +404,10 @@ fn handle_fitted(shell: &mut ShellModel, g: (i64, i64)) {
     let rev = shell.revision();
     done(shell, "tool.rotate_cw", json!({}));
     assert_eq!(shell.revision(), rev.map(|r| r + 1), "the turn");
-    assert!(pins(shell, first).iter().any(|p| on(*p)), "a pin on the grid after the turn");
+    assert!(
+        pins(shell, first).iter().any(|p| on(*p)),
+        "a pin on the grid after the turn"
+    );
     // A wire from one of its free pins to a free pin of another symbol.
     done(shell, "select.set", json!({ "ids": [] }));
     let t = tables(shell);
@@ -395,7 +426,12 @@ fn handle_fitted(shell: &mut ShellModel, g: (i64, i64)) {
     // The other end: a free pin of another symbol, else a corner of a wire of the page (a junction there).
     let pin = free(wired, true).unwrap();
     let other = free(wired, false)
-        .or_else(|| t.connections.iter().find(|c| c.polyline.len() > 2).map(|c| c.polyline[1]))
+        .or_else(|| {
+            t.connections
+                .iter()
+                .find(|c| c.polyline.len() > 2)
+                .map(|c| c.polyline[1])
+        })
         .expect("another end");
     let rev = shell.revision();
     let wires = t.connections.len();
@@ -403,7 +439,10 @@ fn handle_fitted(shell: &mut ShellModel, g: (i64, i64)) {
     click_at(shell, pin);
     click_at(shell, other);
     assert_eq!(shell.revision(), rev.map(|r| r + 1), "the wire");
-    assert!(tables(shell).connections.len() > wires, "a new wire (a wire split at its junction counts twice)");
+    assert!(
+        tables(shell).connections.len() > wires,
+        "a new wire (a wire split at its junction counts twice)"
+    );
     done(shell, "ui.dismiss", json!({}));
     done(shell, "ui.dismiss", json!({}));
 }
@@ -419,7 +458,11 @@ fn fitted_symbols_move_turn_and_take_a_wire() {
     let f2 = select_rep(&mut shell, "-102F2");
     done(&mut shell, "select.set", json!({ "ids": [g1, f1, f2] }));
     done(&mut shell, "edit.copy", json!({}));
-    done(&mut shell, "page.new", json!({"folio": "150", "title": "Fit", "grid": "mm4"}));
+    done(
+        &mut shell,
+        "page.new",
+        json!({"folio": "150", "title": "Fit", "grid": "mm4"}),
+    );
     done(&mut shell, "edit.paste_clip", json!({}));
     let target = sheet(&shell, (60_000_000, 60_000_000));
     done(&mut shell, "canvas.pointer", at(target, json!({})));
@@ -427,14 +470,26 @@ fn fitted_symbols_move_turn_and_take_a_wire() {
     assert_eq!(shell.canvas().unwrap().page().tables.reps.len(), 3);
     handle_fitted(&mut shell, (4_000_000, 1));
     // Copied and pasted again on the same page, the fitted symbols paste by grid steps.
-    let ids: Vec<String> = shell.canvas().unwrap().page().tables.reps.iter().map(|r| r.id.to_string()).collect();
+    let ids: Vec<String> = shell
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .reps
+        .iter()
+        .map(|r| r.id.to_string())
+        .collect();
     done(&mut shell, "select.set", json!({ "ids": ids }));
     done(&mut shell, "edit.copy", json!({}));
     done(&mut shell, "edit.paste_clip", json!({}));
     let target = sheet(&shell, (60_000_000, 150_000_000));
     done(&mut shell, "canvas.pointer", at(target, json!({})));
     done(&mut shell, "canvas.press", at(target, json!({})));
-    assert_eq!(shell.canvas().unwrap().page().tables.reps.len(), 6, "pasted again");
+    assert_eq!(
+        shell.canvas().unwrap().page().tables.reps.len(),
+        6,
+        "pasted again"
+    );
     // Folio 102 changed to the 4 mm grid.
     done(&mut shell, "page.goto", json!({"folio": "102"}));
     done(&mut shell, "select.set", json!({ "ids": [] }));
@@ -450,7 +505,11 @@ fn fitted_symbols_move_turn_and_take_a_wire() {
 fn a_page_with_a_free_text_alone_asks_before_its_grid_changes() {
     let tmp = Tmp::new("clip-fit-text");
     let mut shell = tmp.shell_in(Mode::Gui, true, "102");
-    done(&mut shell, "page.new", json!({"folio": "150", "title": "Notes", "grid": "mm4"}));
+    done(
+        &mut shell,
+        "page.new",
+        json!({"folio": "150", "title": "Notes", "grid": "mm4"}),
+    );
     let page = shell.canvas().unwrap().page().tables.page.to_string();
     done(
         &mut shell,
@@ -460,7 +519,11 @@ fn a_page_with_a_free_text_alone_asks_before_its_grid_changes() {
     );
     done(&mut shell, "select.set", json!({ "ids": [] }));
     done(&mut shell, "props.show", json!({"on": true}));
-    done(&mut shell, "props.set", json!({"row": "page/grid", "value": "QET 10 px"}));
+    done(
+        &mut shell,
+        "props.set",
+        json!({"row": "page/grid", "value": "QET 10 px"}),
+    );
     let form = common::form(&shell);
     assert_eq!(form.action, "page.fit_grid");
     let foot = shell.form_foot(&form).expect("what will happen");
