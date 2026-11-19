@@ -70,6 +70,7 @@ For the orchestrator:
         [--folios <a,b>] --run <id> [--out <dir>] [--bin <dir>] [--stateless] (always on for --kind check)
         [--no-book]                           start without the built user guide (an empty book folder)
         [--window <W>x<H>] [--ppp <n>]        (visual) the window in points and its scale
+        [--turns <n>]                         the run's turns where the kind's own are too few; steps and looks grow alike
   stop <run> [--reason <r>]                   the epilogue, the exports, the report
   report <run> check|bom|score                what the stop wrote
   report <run> connections|pages|pdf          the wires and potentials, the page texts, the PDF (a check run's)
@@ -279,6 +280,13 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
                 out: f.take_value("--out")?.map(PathBuf::from),
                 bin: f.take_value("--bin")?.map(PathBuf::from),
                 stateless: f.take_flag("--stateless"),
+                turns: f
+                    .take_value("--turns")?
+                    .map(|s| {
+                        s.parse::<u32>()
+                            .with_context(|| format!("--turns `{s}` is not a number"))
+                    })
+                    .transpose()?,
                 geometry: {
                     let (window, ppp) = (f.take_value("--window")?, f.take_value("--ppp")?);
                     if window.is_some() || ppp.is_some() {

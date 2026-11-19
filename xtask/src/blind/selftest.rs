@@ -253,6 +253,7 @@ fn one_run(
     let run = start(
         root,
         &StartArgs {
+            turns: None,
             kind: Kind::Free,
             senses: if visual { Senses::Visual } else { Senses::Text },
             task: task_of(visual).to_owned(),

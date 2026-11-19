@@ -15,7 +15,7 @@ use anyhow::{Context, Result, bail};
 
 use super::compose::{ComposeIn, REFERENCE_FILES, compose, run_files};
 use super::run::{
-    Counts, GOLDEN_PROJECT_DIR, HARNESS_VERSION, Kind, RUN_SCHEMA, Run, RunJson, Senses, copy_dir,
+    Caps, Counts, GOLDEN_PROJECT_DIR, HARNESS_VERSION, Kind, RUN_SCHEMA, Run, RunJson, Senses, copy_dir,
     golden_digest, script_header, turns_header, valid_run_id,
 };
 use super::visual::Geometry;
@@ -45,6 +45,30 @@ pub struct StartArgs {
     pub stateless: bool,
     /// `--window` and `--ppp` (a visual run's window size and scale); `None`: the default 1920 × 1080 at 1.
     pub geometry: Option<Geometry>,
+    /// `--turns`: the run's turns where the kind's own number is too few for the job (a whole cabinet in a free
+    /// run); its steps and looks grow by the same factor. `None`: the kind's caps.
+    pub turns: Option<u32>,
+}
+
+impl StartArgs {
+    /// The run's caps: the kind's, or those scaled to `--turns`.
+    fn caps(&self) -> Caps {
+        let base = self.kind.caps_for(self.senses);
+        match self.turns {
+            Some(turns) if turns > 0 && turns != base.turns => {
+                let scaled = |n: u32| {
+                    u32::try_from(u64::from(n) * u64::from(turns) / u64::from(base.turns)).unwrap_or(u32::MAX)
+                };
+                Caps {
+                    turns,
+                    steps: scaled(base.steps),
+                    looks: scaled(base.looks),
+                    refusals: base.refusals,
+                }
+            }
+            _ => base,
+        }
+    }
 }
 
 /// The folder a run `id` gets under `out`.
@@ -418,7 +442,7 @@ fn populate(
         persona: a.persona.clone(),
         of: a.of.clone(),
         folios: folios.clone(),
-        caps: a.kind.caps_for(a.senses),
+        caps: a.caps(),
         files: files.clone(),
         golden: golden.clone(),
         app_version,
@@ -457,7 +481,7 @@ fn compose_input<'a>(
         persona: a.persona.as_deref(),
         run_id: &a.run_id,
         blind,
-        caps: a.kind.caps_for(a.senses),
+        caps: a.caps(),
         senses: a.senses,
         frames,
         folios,
@@ -628,8 +652,25 @@ mod tests {
         root
     }
 
+    #[test]
+    fn turns_asked_for_scale_the_steps_and_looks_with_them() {
+        let tmp = Tmp::new("blind-start-turns");
+        let mut a = args(&tmp, "turns");
+        let base = a.caps();
+        a.turns = Some(base.turns * 2);
+        let more = a.caps();
+        assert_eq!(
+            (more.turns, more.steps, more.looks),
+            (base.turns * 2, base.steps * 2, base.looks * 2)
+        );
+        assert_eq!(more.refusals, base.refusals);
+        a.turns = Some(0);
+        assert_eq!(a.caps(), base, "no turns is no change");
+    }
+
     fn args(tmp: &Tmp, id: &str) -> StartArgs {
         StartArgs {
+            turns: None,
             kind: Kind::Free,
             senses: crate::blind::run::Senses::Text,
             task: "selftest".to_owned(),
