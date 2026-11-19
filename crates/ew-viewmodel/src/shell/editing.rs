@@ -2430,7 +2430,20 @@ impl ShellModel {
                 .filter(|e| movable.iter().any(|m| m == e))
                 .unwrap_or(movable[0]);
             let anchor = if let Some(rep) = tables.reps.iter().find(|r| r.id == primary.0) {
-                Some(rep.pos)
+                // A symbol fitted to the grid (its position between grid points) is carried by a pin on the grid, so
+                // the first arrow key moves it a whole step (rc.5).
+                let g = crate::tools::wire::PageGridMap::new(tables.grid);
+                let on = |p: (i64, i64)| g.coord(g.index(p.0)) == p.0 && g.coord(g.index(p.1)) == p.1;
+                Some(if on(rep.pos) {
+                    rep.pos
+                } else {
+                    tables
+                        .cps
+                        .iter()
+                        .filter(|c| c.rep == rep.id && on(c.at))
+                        .min_by_key(|c| c.idx)
+                        .map_or(rep.pos, |c| c.at)
+                })
             } else if let Some(item) = tables.items.iter().find(|i| i.id == primary.0) {
                 Some((item.bounds[0], item.bounds[1]))
             } else {
