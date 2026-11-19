@@ -897,8 +897,9 @@ fn contact_rows(cx: &TextCx<'_>, targets: &[XrefTarget]) -> XrefText {
 }
 
 /// Whether the external point drawn by `rep` stands in a group (`IpSpec::group`) of points of the reference `e` on its
-/// page and another of them is drawn after it (lower, then further right): the group prints its place at its last
-/// point only (rc.3).
+/// page and another of them is drawn below it in its column (within 1 mm sideways): a column of points prints its
+/// place once, under its last point (rc.3). Points of a group that stand side by side each print their own (rc.5: in a
+/// row the place stood under the first and the last point only, and the middle one seemed to come from nowhere).
 fn grouped_before_last(q: &Q, rep: Id<Representation>, e: Id<ExternalRef>) -> bool {
     let group_of = |r: &Representation| {
         let f = q.functions().get(*r.functions.first()?)?;
@@ -917,7 +918,8 @@ fn grouped_before_last(q: &Q, rep: Id<Representation>, e: Id<ExternalRef>) -> bo
         id != rep
             && r.page == me.page
             && group_of(r) == Some(group)
-            && (r.pos.y, r.pos.x) > (me.pos.y, me.pos.x)
+            && (r.pos.x - me.pos.x).abs() <= ew_units::Nm(1_000_000)
+            && r.pos.y > me.pos.y
     })
 }
 

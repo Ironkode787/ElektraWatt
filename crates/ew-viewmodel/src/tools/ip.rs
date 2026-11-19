@@ -1018,14 +1018,9 @@ impl Tool for IpTool {
             // A typed name stays while its point lacks its partner: after its source, for the target (FT-1657: the
             // tool renamed itself "L1-1" after the first "L1" and placed a second source), and after a target that no
             // source feeds, for the source (the persona round of 0.2.0-rc.2); a point that makes the pair whole takes
-            // it. A chosen direction stays, but not the one just placed for the name left standing, whose next point
-            // is its partner.
-            if self.typed.is_some() && self.external.is_none() && self.project.lacks_partner(&name, direction)
-            {
-                if self.chosen == Some(direction) {
-                    self.chosen = None;
-                }
-            } else {
+            // it. A chosen direction stays: the direction a person sets holds for the next points (rc.5: after a
+            // target was placed, the tool turned the next one source by itself).
+            if !(self.typed.is_some() && self.external.is_none() && self.project.lacks_partner(&name, direction)) {
                 self.typed = None;
                 self.memory.typed = None;
             }

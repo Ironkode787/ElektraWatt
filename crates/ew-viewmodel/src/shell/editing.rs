@@ -548,6 +548,7 @@ impl ShellModel {
                 pin,
                 external,
                 taken,
+                placed,
             } => {
                 let cell = self.canvas().and_then(|c| {
                     let page = c.page();
@@ -570,9 +571,13 @@ impl ShellModel {
                         &[&name, "", &pin, &key],
                     ),
                 };
-                // A renamed point says why first.
+                // A renamed point says why first; where its partner is, last.
                 let text = match taken {
                     Some(taken) => format!("{taken} {text}"),
+                    None => text,
+                };
+                let text = match placed {
+                    Some(placed) => format!("{text} {placed}"),
                     None => text,
                 };
                 self.notify(text, true);

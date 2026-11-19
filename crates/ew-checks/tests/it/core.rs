@@ -605,3 +605,23 @@ fn core065_does_not_run_online() {
     let m = part_model("Miniature circuit breaker, 10A C");
     assert!(findings_of(&m, "EW-CORE-065").is_empty());
 }
+
+/// rc.5 (a persona carried 24 V to another page): two target points of one name and no source wait for their
+/// source, each on its own; they are never tied to each other, so each is reported without a partner.
+#[test]
+fn two_targets_of_one_name_are_never_tied_to_each_other() {
+    let mut fx = Fx::base();
+    for (f, page) in [(0x1001, P1), (0x1002, P2)] {
+        fx.func(f, page);
+    }
+    fx.ip(0x1101, P1, "24V", "target");
+    fx.ip(0x1102, P2, "24V", "target");
+    fx.conn(0x2001, P1, cp(0x1001), cp(0x1101), &Value::Null);
+    fx.conn(0x2002, P2, cp(0x1002), cp(0x1102), &Value::Null);
+    let m = fx.build();
+    let q = ew_derive::Q::new(&m);
+    let part = q.get::<ew_derive::PotentialPartition>(());
+    let at = |f: u128| part.potential_at(ew_model::EndpointKey::Cp(uid(f).cast(), 0)).map(|p| p.id);
+    assert_ne!(at(0x1001), at(0x1002), "two potentials");
+    assert_eq!(findings_of(&m, "EW-CORE-051").len(), 2);
+}

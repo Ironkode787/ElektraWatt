@@ -717,6 +717,9 @@ impl ShellModel {
                         pin,
                         external: !json["ip"]["external"].is_null(),
                         taken,
+                        // What it pairs with, as a point placed free says it (rc.5: a point dropped on a pin said
+                        // nothing of its partner).
+                        placed: self.ip_placed_text(&json["ip"]),
                     });
                 } else if out == Outcome::Done && (taken.is_some() || cmd.name() == "ip.place") {
                     // A point placed free says what it became and where its partner is, after the reason
@@ -1346,6 +1349,12 @@ impl ShellModel {
         self.tools.tool = tool;
         self.tools.put_down = false;
         self.tool_epoch = self.tool_epoch.wrapping_add(1);
+        // A tool works on the canvas: its keys (D, R, Enter) go there, not to the navigator or the Properties row that
+        // had the focus (rc.5: D after choosing Interruption jumped in the page list).
+        if self.tools.tool.name() != "select" && self.focus.as_ref().is_some_and(|f| !matches!(f, Focus::Canvas(_))) {
+            let g = self.area.as_ref().map_or(0, |a| a.focused);
+            self.focus = Some(Focus::Canvas(g));
+        }
         self.announce_tool();
         if let Some(at) = self.canvas().and_then(CanvasModel::cursor) {
             let _ = self.send_tool(&CanvasEvent::CursorMove { at });

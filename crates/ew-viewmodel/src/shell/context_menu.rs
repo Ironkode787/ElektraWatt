@@ -313,6 +313,23 @@ impl ShellModel {
         }
     }
 
+    /// The pin of `rep` nearest the sheet point `at`, within 2 mm, as the page prints it (`-1A1:L+`); `None` elsewhere.
+    fn pin_at(&self, rep: &TableRep, at: (i64, i64)) -> Option<String> {
+        let c = self.canvas()?;
+        let page = c.page();
+        page.tables
+            .cps
+            .iter()
+            .filter(|x| x.rep == rep.id && !x.fluid)
+            .map(|x| {
+                let s = page.snapper.page_to_sheet(x.at);
+                ((s.0 - at.0).abs().max((s.1 - at.1).abs()), x)
+            })
+            .filter(|(d, _)| *d <= 2_000_000)
+            .min_by_key(|(d, x)| (*d, x.idx))
+            .map(|(_, x)| x.label.clone())
+    }
+
     /// The symbol of a device on the page: [`Self::device_entries`] of its device, function and symbol.
     fn device_fits(&self, rep: &TableRep, at: Option<(i64, i64)>, out: &mut Vec<ActionItem>) {
         let thing = DeviceThing {
@@ -322,6 +339,12 @@ impl ShellModel {
             here: Some(rep),
         };
         self.device_entries(&thing, out);
+        // The pin under the pointer, where no wire is there to select (pins that touch a terminal directly): Define
+        // potential at it (rc.5).
+        if let Some(pin) = at.and_then(|at| self.pin_at(rep, at)) {
+            let label = strings::format(key!("canvas-define-potential-pin"), &[&pin]);
+            out.extend(self.aimed("potential.draw", json!({ "at": pin }), label));
+        }
         self.plc_entries(thing.device, out);
         // The persona round: a valve terminal's box offered no Add valve nor Generate overview….
         let coil = match rep.functions.as_slice() {

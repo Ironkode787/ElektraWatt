@@ -1273,7 +1273,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // Draw ▸ Define potential…, beside Bond: `potential.define` at the selection's point, through
     // its parameter form.
     keeps_banner(with_params(
-        "name?:text, type?:text, voltage?:text",
+        "name?:text, type?:text, voltage?:text, at?:text",
         in_canvas(act(
             "potential.draw",
             Command,

@@ -542,7 +542,9 @@ pub(crate) fn segmented(ui: &mut Ui, name: &str, choices: &[(&str, bool)]) -> Op
                 egui::StrokeKind::Inside,
             );
         }
-        if response.clicked() && !chosen {
+        // A click on the shown choice says it too: the IP tool shows a proposed direction until one is chosen, and a
+        // click on Target that the tool already proposed must choose it (rc.5: the next point at a pin turned source).
+        if response.clicked() {
             clicked = Some(i);
         }
     }

@@ -249,6 +249,8 @@ pub enum ResultNote {
         external: bool,
         /// The sentence of a proposal whose base is taken, said first.
         taken: Option<String>,
+        /// Where its partner is, or that it has none yet ("24V at 102-A1 comes from 101-D4."), said last.
+        placed: Option<String>,
     },
     /// A delete of representations (Delete, the command bar's Delete): the names of the interruption points among
     /// them and the connections at their connection points that the selection did not name (said only for those

@@ -334,20 +334,40 @@ fn pair(q: &Q) -> IpPairing {
                         ),
                     });
                 }
+                // The source: the star, else the first source point, else the first undirected point. Two points
+                // of one direction are never tied to each other (rc.5: a second target of a name without a source
+                // tied itself to the first target); a group of targets alone waits for its source.
+                let undirected = members
+                    .iter()
+                    .copied()
+                    .find(|f| ips[f].direction == IpDirection::Undirected);
                 let source = flagged
                     .first()
                     .copied()
                     .or_else(|| sources.first().copied())
-                    .unwrap_or(members[0]);
-                g.source = Some(source);
+                    .or(undirected);
+                g.source = source;
+                let directed = |f: &Id<Function>| {
+                    matches!(ips[f].direction, IpDirection::Source | IpDirection::Target)
+                };
                 for &m in &members {
-                    if m != source {
-                        g.pairs.push((source, m));
+                    match source {
+                        Some(s) if m == s => {}
+                        // A second source without a star stays apart (EW-CORE-052 asks which one feeds).
+                        Some(s)
+                            if !ips[&s].star_source
+                                && directed(&s)
+                                && directed(&m)
+                                && ips[&m].direction == ips[&s].direction => {}
+                        Some(s) => g.pairs.push((s, m)),
+                        None => g.unpaired.push(m),
                     }
                 }
-                if members.len() == 1 {
-                    g.unpaired.push(source);
+                if let (Some(s), true) = (source, g.pairs.is_empty()) {
+                    g.unpaired.push(s);
                 }
+                g.unpaired.sort();
+                g.unpaired.dedup();
                 g.members = members;
             }
             PairMode::Chain => {

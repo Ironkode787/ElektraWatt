@@ -204,10 +204,28 @@ impl ShellModel {
                 ("voltage", "voltage", voltage),
             ],
         };
+        // A pin named (a device's right-click menu, rc.5: pins that touch terminals directly, with no wire to select).
+        let pin = match string_param(p, "at") {
+            Err(e) => return e,
+            Ok(None) => None,
+            Ok(Some(label)) => {
+                let Some(c) = self.canvas() else {
+                    return Outcome::refused(key!("reason-potential-point"));
+                };
+                match cp_by_label(&c.page().tables, label) {
+                    Ok(end) => Some(end),
+                    Err(out) => return out,
+                }
+            }
+        };
         if texts[0].2.is_none() {
-            return self.open_potential_form();
+            let out = self.open_potential_form();
+            if pin.is_some() {
+                self.potential_at = pin;
+            }
+            return out;
         }
-        let at = match self.potential_point() {
+        let at = match pin.map_or_else(|| self.potential_point(), Ok) {
             Ok(at) => at,
             Err(reason_key) => return Outcome::Refused { reason_key },
         };

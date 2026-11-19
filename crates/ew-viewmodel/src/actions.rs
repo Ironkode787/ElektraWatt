@@ -886,6 +886,10 @@ pub fn enabled_with(
     if meta.id == "fluid.generate_overview" && p.contains_key("station") {
         return writable(m);
     }
+    // A device's menu names the pin a potential is defined at (rc.5).
+    if meta.id == "potential.draw" && p.contains_key("at") {
+        return editable_page(m);
+    }
     // A terminal's menu or Properties row names its terminal.
     if meta.id == "fluid.draw_plug" && p.contains_key("terminal") {
         return writable(m);
