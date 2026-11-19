@@ -1227,7 +1227,7 @@ impl ShellModel {
     /// A panel layout page after the page shown (New page…'s proposed folio, else the first free number), titled
     /// after the location `code` and shown: one undo step.
     fn new_layout_page(&mut self, code: &str) -> Outcome {
-        let (proposal, _) = self.new_page_proposal(None);
+        let (proposal, _) = self.new_page_proposal(None, None);
         let folio = if proposal.is_empty() {
             let labels = self.page_labels();
             (1u64..)

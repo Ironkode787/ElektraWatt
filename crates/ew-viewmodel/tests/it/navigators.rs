@@ -492,13 +492,13 @@ fn new_page_proposes_the_next_free_folio_and_the_section() {
     let tmp = Tmp::new("navigators");
     let mut shell = open(&tmp, false);
     done(&mut shell, "page.goto", json!({"folio": "103"}));
-    assert_eq!(shell.new_page_proposal(None), ("104".to_owned(), "1".to_owned()));
+    assert_eq!(shell.new_page_proposal(None, None), ("104".to_owned(), "1".to_owned()));
     done(&mut shell, "page.goto", json!({"folio": "1"}));
     // 2 is the generated table of contents and 3 a page record.
-    assert_eq!(shell.new_page_proposal(None).0, "4");
+    assert_eq!(shell.new_page_proposal(None, None).0, "4");
     done(&mut shell, "page.goto", json!({"folio": "2"}));
     assert_eq!(
-        shell.new_page_proposal(None).0,
+        shell.new_page_proposal(None, None).0,
         "4",
         "after a generated page too (rc.5)"
     );
@@ -508,7 +508,7 @@ fn new_page_proposes_the_next_free_folio_and_the_section() {
         "navigator.select",
         json!({"kind": "pages", "keys": ["s:2"]}),
     );
-    let (folio, section) = shell.new_page_proposal(None);
+    let (folio, section) = shell.new_page_proposal(None, None);
     assert_eq!(section, "2");
     let folio: u32 = folio.parse().unwrap();
     assert!((200..300).contains(&folio), "a folio of section 2: {folio}");

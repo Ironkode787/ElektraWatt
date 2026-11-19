@@ -153,6 +153,9 @@ pub(crate) struct ToolHost {
     pub paste_fit: Option<PasteFit>,
     /// The grid question's page and count (rc.5, [`GridFit`]).
     pub grid_fit: Option<GridFit>,
+    /// New page's proposed folio and the Pages row its menu was opened on (rc.5): its kind and place follow while the
+    /// folio is the one proposed.
+    pub page_proposal: Option<(String, Option<String>)>,
     /// An Undo or a Redo ran: at the end of the dispatch a terminal placement takes its strip's next designation from
     /// the catalogue again.
     pub reread_designation: bool,
@@ -297,6 +300,7 @@ impl ToolHost {
             pasted: false,
             paste_fit: None,
             grid_fit: None,
+            page_proposal: None,
             reread_designation: false,
             row_steps: None,
             ip_memory: IpMemory::default(),

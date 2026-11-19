@@ -83,8 +83,10 @@ on a page opens it and offers Open page in a new tab, Title block fields…, Pag
 A section is a range of folios with a title, such as 100 to 199: New section proposes the next number and the next
 hundred, and the tree lists the section at once, still empty. New page fills in the next free folio: after the page
 you right-clicked, inside its section; after the last page of a section you right-clicked (its first folio when it is
-empty); else after the open page. The folio stays yours to change: the dialog says where the page will stand ("Stands
-after 101 Wiring") and which page has a folio already taken.
+empty); else, in the section for pages of the kind you choose (the one that holds such pages, or whose title says so:
+Pneumatics for a fluid page), after the open page. Place offers the end of the section instead. The folio stays yours
+to change: the dialog says where the number in the field puts the page ("Stands after 101 Wiring, before 105
+Controls") and which page has a folio already taken; a number you typed stays when you change the kind.
 
 ### Devices
 

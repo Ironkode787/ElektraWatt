@@ -613,7 +613,7 @@ impl ShellModel {
     /// still empty) takes the section's; else the next free number after the open page inside its section. A page's
     /// number is its folio's leading number (a divider's and a generated page's too); the free numbers are those no
     /// page label holds. Empty where there is none.
-    pub fn new_page_proposal(&self, at: Option<&str>) -> (String, String) {
+    pub fn new_page_proposal(&self, at: Option<&str>, kind: Option<&str>) -> (String, String) {
         let rows = self.page_rows();
         let last = |key: &str| key.rsplit('/').next().map(str::to_owned);
         let section_key = |key: &str| -> Option<String> {
@@ -662,11 +662,56 @@ impl ShellModel {
             .find_map(|k| section_key(k))
             .or_else(|| self.navigator_row_key().and_then(|k| section_key(&k)));
         let own = current.and_then(|r| r.section.as_ref().map(|(n, _)| n.to_string()));
-        match (from_nav, current) {
-            (Some(number), _) if own.as_ref() != Some(&number) => chosen(number),
-            (_, Some(r)) => after_page(r),
-            (from_nav, None) => (String::new(), from_nav.unwrap_or_default()),
+        // The kind chosen (rc.5: a first wiring page was proposed into the front matter, a fluid page into the wiring
+        // section): the section for pages of that kind takes the page unless the open page stands in it.
+        let for_kind = kind.and_then(|k| self.section_for_kind(k));
+        match (from_nav, current, for_kind) {
+            (Some(number), _, _) if own.as_ref() != Some(&number) => chosen(number),
+            (_, _, Some(number)) if own.as_ref() != Some(&number) => chosen(number),
+            (_, Some(r), _) => after_page(r),
+            (from_nav, None, _) => (String::new(), from_nav.unwrap_or_default()),
         }
+    }
+
+    /// The section a new page of kind `kind` belongs in (rc.5): the first section (by number) that holds a page of
+    /// that kind, else the first whose title names the trade such pages belong to (a project made from a template:
+    /// Pneumatics for a fluid page, Wiring for a wiring page, the lists' section for a bus layout or an overview);
+    /// `None` where none does.
+    pub(super) fn section_for_kind(&self, kind: &str) -> Option<String> {
+        let query = self.project.as_ref()?.session.query();
+        let mut sections: Vec<(u16, String)> = query
+            .sections()
+            .iter()
+            .map(|(_, s)| {
+                let title = s
+                    .title
+                    .as_neutral()
+                    .or_else(|| s.title.languages().next().and_then(|l| s.title.get(l)))
+                    .unwrap_or_default()
+                    .to_lowercase();
+                (s.number, title)
+            })
+            .collect();
+        sections.sort();
+        let holds = |n: u16| {
+            self.page_rows()
+                .iter()
+                .any(|r| r.kind == kind && !r.generated && r.section.as_ref().is_some_and(|(m, _)| *m == u32::from(n)))
+        };
+        if let Some((n, _)) = sections.iter().find(|(n, _)| holds(*n)) {
+            return Some(n.to_string());
+        }
+        let words: &[&str] = match kind {
+            "fluid" => &["pneumat", "fluid", "hydraul"],
+            "multi_line" | "single_line" => &["wiring", "circuit", "schemat", "electric"],
+            "bus_topology" | "overview" => &["bus", "network", "overview", "nomenclature", "list"],
+            "panel_layout" | "assembly_overview" => &["layout", "cabinet", "panel", "enclosure"],
+            _ => &[],
+        };
+        sections
+            .iter()
+            .find(|(_, t)| words.iter().any(|w| t.contains(w)))
+            .map(|(n, _)| n.to_string())
     }
 
     /// The first number after `k` that no page holds, inside the folio range of the section numbered `section` (empty:

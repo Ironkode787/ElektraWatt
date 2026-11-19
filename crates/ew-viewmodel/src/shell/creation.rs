@@ -346,6 +346,14 @@ static PAGE_NEW: Spec = Spec {
         },
         field("title", key!("form-title")),
         field("section", key!("form-section")),
+        // Where the page goes: after the page right-clicked (else the open page) or at the end of its section (rc.5);
+        // its two choices in words are set when the dialog opens.
+        Field {
+            name: "place",
+            label_key: key!("form-page-place"),
+            choices: &super::choices::NONE,
+            default: "after",
+        },
         // The dialog starts with the current page's grid.
         Field {
             name: "grid",
@@ -865,6 +873,73 @@ impl ShellModel {
         Outcome::Done
     }
 
+    /// New page's folio and section for a kind or a place chosen in the dialog (rc.5): `None` where the person typed
+    /// a number of his own (the folio is no longer the one proposed). `place` `end`: the next free number after the
+    /// section's last page; `after` or a kind: the proposal for the row the menu was opened on, else the open page.
+    fn page_refolio(&self, name: &str, value: &str) -> Option<(String, String)> {
+        let Some(Dialog::Form(form)) = &self.dialog else {
+            return None;
+        };
+        let field = |n: &str| form.fields.iter().find(|f| f.name == n).map(|f| f.value.clone());
+        let (proposed, at) = self.tools.page_proposal.clone()?;
+        if field("folio")? != proposed {
+            return None;
+        }
+        let kind = if name == "type" { value.to_owned() } else { field("type").unwrap_or_default() };
+        let place = if name == "place" { value.to_owned() } else { field("place").unwrap_or_default() };
+        let (folio, section) = self.new_page_proposal(at.as_deref(), Some(&kind));
+        if place == "end" {
+            let end = self.section_free_folio(&section)?;
+            return Some((end.to_string(), section));
+        }
+        Some((folio, section))
+    }
+
+    /// New page's Place choices in words (rc.5): "After 101 Wiring" (the page right-clicked, else the open page) and
+    /// "At the end of section 1 Wiring Definition".
+    fn page_place_options(&mut self) {
+        let rows = self.page_rows();
+        let at = self.tools.page_proposal.as_ref().and_then(|p| p.1.clone());
+        let after = at
+            .as_deref()
+            .and_then(|k| k.rsplit('/').next()?.strip_prefix("p:")?.parse::<ew_api::output::Uuid>().ok())
+            .and_then(|id| rows.iter().find(|r| r.id == id))
+            .or_else(|| {
+                self.current_page()
+                    .and_then(|c| rows.iter().find(|r| crate::canvas::PageId::of(r) == c))
+            })
+            .map(|r| format!("{} {}", r.folio, r.title.trim()).trim().to_owned());
+        let section = match &self.dialog {
+            Some(Dialog::Form(form)) => form.fields.iter().find(|f| f.name == "section").map(|f| f.value.trim().to_owned()),
+            _ => None,
+        };
+        let section_words = section
+            .as_deref()
+            .and_then(|n| rows.iter().find(|r| r.section.as_ref().is_some_and(|(m, _)| m.to_string() == n)))
+            .and_then(|r| r.section.as_ref())
+            .map(|(n, t)| format!("{n} {t}"))
+            .or(section)
+            .unwrap_or_default();
+        let Some(Dialog::Form(form)) = &mut self.dialog else {
+            return;
+        };
+        if let Some(f) = form.fields.iter_mut().find(|f| f.name == "place") {
+            f.options = vec![
+                (
+                    "after".to_owned(),
+                    after.map_or_else(
+                        || strings::text(key!("form-page-place-after-open")).to_owned(),
+                        |words| strings::format(key!("form-page-place-after"), &[&words]),
+                    ),
+                ),
+                (
+                    "end".to_owned(),
+                    strings::format(key!("form-page-place-end"), &[&section_words]),
+                ),
+            ];
+        }
+    }
+
     /// Where the page New page makes will stand, under its folio field (rc.5): "Stands after 101 Wiring", the page of
     /// the form's section whose folio comes last before the folio typed; first in its section when none does; the page
     /// that has the folio when one has it already. `None` for a folio that does not read.
@@ -897,9 +972,19 @@ impl ShellModel {
             .filter_map(|r| Some((lead(r)?, r)))
             .filter(|(n, r)| *n < number || (*n == number && r.folio.as_str() < typed))
             .max_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.folio.cmp(&b.1.folio)));
-        Some(match before {
-            Some((_, r)) => strings::format(key!("form-page-new-after"), &[&words(r)]),
-            None => strings::text(key!("form-page-new-first")).to_owned(),
+        // What follows it in its section, so that the line says where the number in the field puts it (rc.5).
+        let next = rows
+            .iter()
+            .filter(|r| section.is_empty() || r.section.as_ref().is_some_and(|(n, _)| n.to_string() == section))
+            .filter_map(|r| Some((lead(r)?, r)))
+            .filter(|(n, r)| *n > number || (*n == number && r.folio.as_str() > typed))
+            .min_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.folio.cmp(&b.1.folio)));
+        Some(match (before, next) {
+            (Some((_, r)), Some((_, n))) => {
+                strings::format(key!("form-page-new-between"), &[&words(r), &words(n)])
+            }
+            (Some((_, r)), None) => strings::format(key!("form-page-new-last"), &[&words(r)]),
+            (None, _) => strings::text(key!("form-page-new-first")).to_owned(),
         })
     }
 }
@@ -973,10 +1058,16 @@ impl ShellModel {
         if name == "grid" && self.in_form_of(PAGE_GRID_FIT.action) {
             self.refresh_grid_fit(value);
         }
-        // New page's folio follows its section to the section's first free folio (rc.2: it stayed 3 for section 2).
+        // New page's folio follows its section to the section's first free folio (rc.2: it stayed 3 for section 2), its
+        // kind and its place to the proposal for them unless a number was typed (rc.5).
         let free = (name == "section" && self.in_form_of(PAGE_NEW.action))
             .then(|| self.section_free_folio(value))
             .flatten();
+        let refolio = if matches!(name, "type" | "place") && self.in_form_of(PAGE_NEW.action) {
+            self.page_refolio(name, value)
+        } else {
+            None
+        };
         if let Some(Dialog::Form(form)) = &mut self.dialog {
             if let Some(f) = form.fields.iter_mut().find(|f| f.name == name) {
                 f.value = value.to_owned();
@@ -1009,6 +1100,15 @@ impl ShellModel {
             {
                 f.value = free.to_string();
             }
+            if let Some((folio, section)) = &refolio {
+                for f in &mut form.fields {
+                    match f.name {
+                        "folio" => f.value.clone_from(folio),
+                        "section" => f.value.clone_from(section),
+                        _ => {}
+                    }
+                }
+            }
             // New medium…'s usual medium fills its name and pressure, both still to be changed (rc.2, F26).
             if form.action == MEDIUM_NEW.action
                 && name == "preset"
@@ -1026,6 +1126,11 @@ impl ShellModel {
         // Terminal…'s Kind and Part follow each other.
         if self.in_form_of("tool.place_terminal") {
             self.terminal_form_follow(name);
+        }
+        if let Some((folio, _)) = refolio {
+            let at = self.tools.page_proposal.as_ref().and_then(|p| p.1.clone());
+            self.tools.page_proposal = Some((folio, at));
+            self.page_place_options();
         }
     }
 
@@ -1275,7 +1380,7 @@ impl ShellModel {
                 Err(e) => return e,
             }
         }
-        let [folio, ty, title, section, grid] = <[String; 5]>::try_from(v).expect("five fields");
+        let [folio, ty, title, section, place, grid] = <[String; 6]>::try_from(v).expect("six fields");
         let current = self.canvas().map(|c| c.page().snapper.grid());
         let current_grid = current
             .and_then(|(num, den)| page_grid_word(num, den))
@@ -1285,7 +1390,14 @@ impl ShellModel {
             if !self.in_form_of(PAGE_NEW.action) {
                 // The Pages row the menu was opened on, when it was (rc.5).
                 let at = p.get("at").and_then(Value::as_str);
-                let (proposal, proposed_section) = self.new_page_proposal(at);
+                let kind = if ty.is_empty() { "multi_line" } else { ty.as_str() };
+                let (mut proposal, proposed_section) = self.new_page_proposal(at, Some(kind));
+                if place == "end"
+                    && let Some(end) = self.section_free_folio(&proposed_section)
+                {
+                    proposal = end.to_string();
+                }
+                self.tools.page_proposal = Some((proposal.clone(), at.map(str::to_owned)));
                 let mut filled = p.clone();
                 if !proposal.is_empty() {
                     filled.insert("folio".into(), Value::String(proposal));
@@ -1297,7 +1409,9 @@ impl ShellModel {
                     filled.insert("grid".into(), Value::String(current_grid.to_owned()));
                 }
                 if self.mode == Mode::Gui {
-                    return self.open_dialog(Dialog::Form(PAGE_NEW.dialog(&filled)));
+                    let out = self.open_dialog(Dialog::Form(PAGE_NEW.dialog(&filled)));
+                    self.page_place_options();
+                    return out;
                 }
             }
             return self.form_missing(&PAGE_NEW, p, "folio");

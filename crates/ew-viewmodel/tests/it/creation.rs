@@ -197,7 +197,7 @@ fn page_new_from_a_rows_right_click_proposes_the_folio_after_it() {
     done(&mut shell, "page.new", item.params);
     assert_eq!(folio(&shell), "103");
     let note = shell.form_note(&common::form(&shell), "folio").unwrap();
-    assert_eq!(note, "Stands after 102 Motors");
+    assert_eq!(note, "Stands after 102 Motors, before 105 Controls");
     // A folio in use: the line and the refusal name its page.
     shell.set_form_field("folio", "102");
     let note = shell.form_note(&common::form(&shell), "folio").unwrap();
@@ -210,6 +210,54 @@ fn page_new_from_a_rows_right_click_proposes_the_folio_after_it() {
     let item = new_page(&shell, "s:1");
     done(&mut shell, "page.new", item.params);
     assert_eq!(folio(&shell), "106");
+    shell.shutdown();
+}
+
+/// rc.5 persona runs: New page follows the kind chosen (a first wiring page was proposed into the front matter, a fluid
+/// page into the wiring section) and offers the end of the section as a place in words; the line under the folio says
+/// where the number in the field puts the page; a number the person typed stays when the kind changes.
+#[test]
+fn page_new_follows_the_kind_and_offers_the_end_of_the_section() {
+    let tmp = Tmp::new("pagenew-kind");
+    let mut shell = new_project(&tmp, Mode::Gui);
+    for (number, first, title) in [(1, 100, "Wiring Definition"), (2, 200, "Pneumatics")] {
+        let create = json!({"cmd": "section.create", "params": {
+            "number": number, "folio_range": [first, first + 99], "title": title, "divider": true}});
+        done(&mut shell, "command.run", create);
+    }
+    done(&mut shell, "page.goto", json!({"folio": "1"}));
+    let field = |shell: &ShellModel, name: &str| {
+        common::form(shell).fields.iter().find(|f| f.name == name).unwrap().value.clone()
+    };
+    // A wiring page, the front matter open: into the wiring section, not the front matter.
+    done(&mut shell, "page.new", json!({}));
+    assert_eq!((field(&shell, "folio"), field(&shell, "section")), ("101".to_owned(), "1".to_owned()));
+    // A fluid page: the pneumatics section.
+    shell.set_form_field("type", "fluid");
+    assert_eq!((field(&shell, "folio"), field(&shell, "section")), ("201".to_owned(), "2".to_owned()));
+    shell.set_form_field("type", "multi_line");
+    assert_eq!(field(&shell, "folio"), "101");
+    assert_eq!(shell.submit_form(), Outcome::Done);
+    for folio in ["102", "105"] {
+        done(&mut shell, "page.new", json!({"folio": folio, "section": "1"}));
+    }
+    // From the page 101: after it (103), or at the end of its section (106), in words.
+    done(&mut shell, "page.goto", json!({"folio": "101"}));
+    done(&mut shell, "page.new", json!({}));
+    assert_eq!(field(&shell, "folio"), "103");
+    let form = common::form(&shell);
+    let place = form.fields.iter().find(|f| f.name == "place").unwrap();
+    let words: Vec<&str> = place.options.iter().map(|o| o.1.as_str()).collect();
+    assert_eq!(words, ["After 101", "At the end of section 1 Wiring Definition"]);
+    assert_eq!(shell.form_note(&form, "folio").unwrap(), "Stands after 102, before 105");
+    shell.set_form_field("place", "end");
+    assert_eq!(field(&shell, "folio"), "106");
+    let form = common::form(&shell);
+    assert_eq!(shell.form_note(&form, "folio").unwrap(), "Stands after 105, the last page of its section");
+    // A number typed stays when the kind changes.
+    shell.set_form_field("folio", "150");
+    shell.set_form_field("type", "fluid");
+    assert_eq!(field(&shell, "folio"), "150");
     shell.shutdown();
 }
 
@@ -702,6 +750,7 @@ fn the_window_asks_for_the_fields_and_keeps_a_refusal_in_the_dialog() {
             ("type", "multi_line"),
             ("title", "Typed first"),
             ("section", ""),
+            ("place", "after"),
             ("grid", "qet_10px")
         ]
     );
@@ -813,6 +862,7 @@ fn the_dialog_describes_itself() {
             "  field \"Type\": \"multi_line\"",
             "  field \"Title\": \"\"",
             "  field \"Section number\": \"\"",
+            "  field \"Place\": \"After 1\"",
             "  field \"Connection grid\": \"qet_10px\"",
             "  error: A folio starts with its number: \"A1\" does not.",
             "  button \"Create\"",
