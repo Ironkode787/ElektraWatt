@@ -34,13 +34,17 @@ pub fn is_fluid(d: &Discipline) -> bool {
     )
 }
 
-/// Whether the FnDef `def` is a fitting: it has fluid ports and every one of them is a generic port, as a flow
-/// control's, a check valve's, a coupling's or a silencer's is (a valve's, a cylinder's and an air-preparation unit's
-/// ports have their roles). The window's autoconnect never joins two fittings: two set side by side are a row of
-/// branches, not one line (rc.5: four flow controls placed in a row were joined by tubes).
+/// Whether the FnDef `def` is an in-line fitting: it has two fluid ports, in and out, both generic ones, as a flow
+/// control, a check valve, a throttle, a coupling and a bulkhead have (a valve's, a cylinder's and an air-preparation
+/// unit's ports have their roles; an air supply, a silencer and a plug have one port). The window's autoconnect never
+/// joins two fittings: two set side by side are a row of branches, not one line (rc.5: four flow controls placed in a
+/// row were joined by tubes).
 pub fn is_fitting(def: &FnDef) -> bool {
-    let mut ports = def.cps.iter().filter(|c| is_fluid(&c.discipline)).peekable();
-    ports.peek().is_some() && ports.all(|c| matches!(c.port_role, Some(FluidPortRole::Generic)))
+    let ports: Vec<_> = def.cps.iter().filter(|c| is_fluid(&c.discipline)).collect();
+    ports.len() == 2
+        && ports
+            .iter()
+            .all(|c| matches!(c.port_role, Some(FluidPortRole::Generic)))
 }
 
 /// Whether a device is a valve terminal: a PLC station of role `valve_terminal` (doc 11 §3.2, FR-DEV-024).

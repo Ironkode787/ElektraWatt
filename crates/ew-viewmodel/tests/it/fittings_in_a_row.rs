@@ -57,7 +57,12 @@ fn flow_controls_set_side_by_side_are_not_joined_and_one_facing_a_cylinder_is() 
     // How far below its anchor a flow control's ports stand, in grid steps.
     let below = {
         let port = tables(&s).cps.iter().find(|c| c.rep == row[0].id).map(|c| c.at.1);
-        s.canvas().unwrap().page().snapper.grid_index_of(port.expect("a port")) - 30
+        s.canvas()
+            .unwrap()
+            .page()
+            .snapper
+            .grid_index_of(port.expect("a port"))
+            - 30
     };
     assert_eq!(tables(&s).reps.len(), 4);
     assert!(
@@ -88,5 +93,8 @@ fn flow_controls_set_side_by_side_are_not_joined_and_one_facing_a_cylinder_is() 
         });
         ends.contains(&Some(cylinder.id)) && ends.contains(&Some(fitting.id))
     });
-    assert!(joined, "the flow control facing the cylinder's port is joined to it");
+    assert!(
+        joined,
+        "the flow control facing the cylinder's port is joined to it"
+    );
 }
