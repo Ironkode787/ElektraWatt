@@ -6172,7 +6172,7 @@ toast-route-nothing = Elke draad op { $p0 } heeft een route. Opnieuw routeren le
 reason-route = De routes worden eerst als voorbeeld getoond
 toast-reroute = { $p0 } draden opnieuw gerouteerd: { $p1 }.
 toast-reroute-one = 1 draad opnieuw gerouteerd: { $p0 }.
-toast-reroute-more = nog { $p0 }
+reroute-more = nog { $p0 }
 toast-reroute-none = Geen betere route gevonden: de draden lopen al zo goed als het programma ze kan routeren.
 
 # FT-1648: de uitleg van elke eigenschapsrij.

@@ -979,7 +979,7 @@ fn wire_names(session: &ew_api::Session, folio: &str, ids: &[ew_api::output::Uui
     let mut names: Vec<String> = ids.iter().take(NAMED).map(name).collect();
     if ids.len() > NAMED {
         let more = (ids.len() - NAMED).to_string();
-        names.push(strings::format(key!("toast-reroute-more"), &[&more]));
+        names.push(strings::format(key!("reroute-more"), &[&more]));
     }
     super::external::and_list(&names)
 }

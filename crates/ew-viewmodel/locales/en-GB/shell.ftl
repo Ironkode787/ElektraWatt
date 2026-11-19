@@ -6436,7 +6436,7 @@ toast-route-nothing = Every wire on { $p0 } has a route. Reroute draws routed wi
 reason-route = The routes are previewed first
 toast-reroute = { $p0 } wires rerouted: { $p1 }.
 toast-reroute-one = 1 wire rerouted: { $p0 }.
-toast-reroute-more = { $p0 } more
+reroute-more = { $p0 } more
 toast-reroute-none = No better route found: the wires already run as well as the program can route them.
 
 # FT-1648: the explanation of each property row, the tooltip of its label: `field-help-<kind>-<path>`, else the

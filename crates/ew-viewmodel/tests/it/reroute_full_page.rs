@@ -258,7 +258,9 @@ fn reroute_names_and_marks_the_wires_it_changed() {
     done(&mut s, "tool.select", json!({}));
     let wire = tables(&s).connections[0].id;
     common::select_ids(&mut s, &[wire.to_string()]);
-    let Some(ew_viewmodel::ew_api::output::SelectionWords::Wire { number: Some(number), .. }) = s.selection_words()
+    let Some(ew_viewmodel::ew_api::output::SelectionWords::Wire {
+        number: Some(number), ..
+    }) = s.selection_words()
     else {
         panic!("the wire has a number");
     };
@@ -279,7 +281,10 @@ fn reroute_names_and_marks_the_wires_it_changed() {
     done(&mut s, "route.reroute", json!({}));
     let again = common::toast(&s);
     assert!(!again.contains(&number), "{again}");
-    assert_eq!(again, ew_viewmodel::strings::text(ew_viewmodel::key!("toast-reroute-none")));
+    assert_eq!(
+        again,
+        ew_viewmodel::strings::text(ew_viewmodel::key!("toast-reroute-none"))
+    );
     assert!(s.selected_paths(0).is_empty(), "nothing changed, nothing marked");
 }
 
