@@ -450,7 +450,15 @@ fn black_box_steps(
     let names = part_designations(device["parts"][0]["part"]["copy"].as_str().unwrap());
     let cps: Vec<(u16, String)> = golden
         .iter()
-        .map(|(i, _)| (*i, names.iter().find(|n| n.0 == *i).map_or_else(|| i.to_string(), |n| n.1.clone())))
+        .map(|(i, _)| {
+            (
+                *i,
+                names
+                    .iter()
+                    .find(|n| n.0 == *i)
+                    .map_or_else(|| i.to_string(), |n| n.1.clone()),
+            )
+        })
         .collect();
     let g = PageGridMap::new(grid);
     let outputs = part_outputs(device["parts"][0]["part"]["copy"].as_str().unwrap());
@@ -479,7 +487,10 @@ fn black_box_steps(
             let ks: Vec<i64> = side.iter().map(|i| g.index(current[*i].1.0)).collect();
             let gaps: Vec<i64> = ks.windows(2).map(|w| w[1] - w[0]).collect();
             let fits = |cap: i64| gaps.iter().map(|d| (*d).min(cap)).sum::<i64>() <= room;
-            let cap = (1..=gaps.iter().copied().max().unwrap_or(0)).rev().find(|c| fits(*c)).unwrap_or(1);
+            let cap = (1..=gaps.iter().copied().max().unwrap_or(0))
+                .rev()
+                .find(|c| fits(*c))
+                .unwrap_or(1);
             let span: i64 = gaps.iter().map(|d| (*d).min(cap)).sum();
             let mut k = lo + 1 + (room - span) / 2;
             for (n, i) in side.iter().enumerate() {
