@@ -899,7 +899,10 @@ fn a_drawn_box_takes_pins_where_it_stands() {
     let rev = s.revision();
     done(&mut s, "edit.undo", json!({}));
     assert_eq!(s.tool().name(), "select");
-    assert_eq!((s.revision(), pin_names(&s, rep.id)), (rev, vec!["L1".to_owned(), "L2".to_owned()]));
+    assert_eq!(
+        (s.revision(), pin_names(&s, rep.id)),
+        (rev, vec!["L1".to_owned(), "L2".to_owned()])
+    );
     // A name with a space is refused in words; nothing changes.
     select_ids(&mut s, &[rep.id.to_string()]);
     let point = sheet_mm(&s, grid_point(&s, (42, 34)));
