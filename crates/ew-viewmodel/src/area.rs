@@ -64,6 +64,9 @@ pub struct StationTab {
     /// The tag being changed in place (rc.5, H14): the device (the station in the header, a card in its row) and the
     /// text the field opens with, which is the typed text after a refusal.
     pub rename: Option<(ew_api::output::Uuid, String)>,
+    /// The channel cell being typed in (rc.5): the channel, its column (`symbol` or `function_text`, the PLC grid's
+    /// keys) and the text the field opens with, which is the typed text after a refusal.
+    pub channel: Option<(ew_api::output::Uuid, &'static str, String)>,
 }
 
 /// A place in a station's rack.

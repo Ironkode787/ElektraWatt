@@ -524,8 +524,8 @@ fn type_tag(h: &mut Window, field: &str, text: &str) {
 }
 
 /// H14 of the rc.4 test: a station made in its view got a tag by itself, and it could not be changed there. A click
-/// on the tag in the header opens it in place; Enter takes the tag typed through the Tag row's own path: the station's
-/// cards follow its tag, so the change waits for Apply in Properties, which the view says. F2 on a card opens the
+/// on the tag in the header opens it in place; Enter takes the tag typed through the Tag row's own path, with the
+/// station's cards that follow its tag (rc.5: no Apply is left waiting, no line asks for one). F2 on a card opens the
 /// card's tag in its row; a tag another device has is refused in a sentence under the rack, the field staying open on
 /// the text as typed; Escape leaves the tag as it was.
 #[test]
@@ -537,12 +537,11 @@ fn a_tag_is_changed_in_the_station_view() {
     click(&mut h, &format!("Tag {before}: click to change it"));
     type_tag(&mut h, &format!("Tag of {before}"), "5");
     let typed = format!("{before}5");
-    h.get_by_label(&format!(
-        "{typed} changes more tags than this one: Apply in Properties takes the change, Cancel leaves it."
-    ));
-    dispatch(&mut h, "preview.apply", json!({}));
-    settle(&mut h);
+    // rc.5: the Enter takes the change with the cards that follow it; no Apply waits, and no line asks for one.
     assert_eq!(tag(&h), typed, "the station's tag");
+    assert!(h.state().shell().properties().card().is_none(), "no Apply waits");
+    let tab = h.state().shell().station_tab().cloned().expect("the view");
+    assert_eq!((tab.note, tab.error), (None, None), "no line under the rack");
     assert!(
         modules(&h, id).iter().all(|m| m.tag.starts_with(&typed)),
         "its cards follow it: {:?}",
@@ -578,6 +577,114 @@ fn a_tag_is_changed_in_the_station_view() {
     settle(&mut h);
     assert!(h.query_by_label(&field).is_none(), "Escape leaves it");
     assert_eq!(modules(&h, id)[1].tag, second, "as it was");
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// rc.5 cabinet run: a click on a channel's Symbol name cell and typing did nothing. The cell opens in place; Enter
+/// takes the text, Tab takes it and opens the next channel's cell, so a card's channels are named in one go; the PLC
+/// panel's grid shows the same symbols. A channel nothing is wired to has no function text of its own: its cell says
+/// why under the rack.
+#[test]
+fn a_cards_channels_are_named_in_the_station_view() {
+    let tmp = Tmp::new();
+    let (mut h, id) = rack_with(&tmp, &["EW-GEN-DI-1"]);
+    let card = modules(&h, id)[0].tag.clone();
+    click(&mut h, &format!("Slot 1, {card}"));
+    let channels = |h: &Window| {
+        h.state()
+            .shell()
+            .station_shown()
+            .expect("the view")
+            .channels
+            .clone()
+    };
+    let [first, second, third] = [0, 1, 2].map(|i| channels(&h)[i].address.clone());
+    click(&mut h, &format!("Symbol name of {first}"));
+    let field = format!("Symbol name of {first}");
+    h.get_by_label(&field).type_text("Start");
+    settle(&mut h);
+    h.key_press(egui::Key::Tab);
+    settle(&mut h);
+    let next = format!("Symbol name of {second}");
+    h.get_by_label(&next).type_text("Stop");
+    settle(&mut h);
+    h.key_press(egui::Key::Enter);
+    settle(&mut h);
+    let named: Vec<String> = channels(&h).iter().take(3).map(|c| c.symbol.clone()).collect();
+    assert_eq!(named, ["Start", "Stop", ""], "Tab went on to the next channel");
+    assert!(h.query_by_label(&next).is_some(), "the cell again, closed");
+    // The PLC panel's grid reads the same symbols.
+    let grid = h
+        .state()
+        .shell()
+        .nav(NavKind::Plc)
+        .and_then(|n| n.table())
+        .cloned()
+        .expect("the PLC table");
+    assert!(
+        grid.nodes
+            .iter()
+            .any(|n| n.role == NavRole::Channel && n.cells.iter().any(|c| c == "Start")),
+        "the grid's Symbol"
+    );
+    click(&mut h, &format!("Function text of {third}"));
+    let (_, why) = h
+        .state()
+        .shell()
+        .station_tab()
+        .and_then(|t| t.error.clone())
+        .expect("said under the rack");
+    assert!(
+        why.starts_with(&format!("Nothing is wired to {third} yet")),
+        "{why}"
+    );
+    h.get_by_label(&why);
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// rc.5 cabinet run: the New station form had no tag. It shows the tag the station gets, given by its page until one
+/// is typed; a tag typed there is the station's after Create, frozen; a tag another device has is refused in a
+/// sentence.
+#[test]
+fn the_new_station_form_takes_a_tag() {
+    let tmp = Tmp::new();
+    let (mut h, id) = rack_with(&tmp, &[]);
+    let taken = h.state().shell().rack_view(id).expect("the CPU").tag;
+    dispatch(&mut h, "plc.new_station", json!({}));
+    dispatch(
+        &mut h,
+        "plc.rack_set",
+        json!({"head": "EW-GEN-CPU-1", "config": "new"}),
+    );
+    settle(&mut h);
+    click(&mut h, "Tag given by the page it is drawn on: click to change it");
+    h.get_by_label("Tag of the new station").type_text(&taken);
+    settle(&mut h);
+    h.key_press(egui::Key::Enter);
+    settle(&mut h);
+    let (_, why) = h
+        .state()
+        .shell()
+        .station_tab()
+        .and_then(|t| t.error.clone())
+        .expect("a tag another device has");
+    assert!(why.contains(&taken), "{why}");
+    h.get_by_label("Tag of the new station").focus();
+    settle(&mut h);
+    for _ in taken.chars() {
+        h.key_press(egui::Key::Backspace);
+    }
+    h.get_by_label("Tag of the new station").type_text("-100A1");
+    settle(&mut h);
+    h.key_press(egui::Key::Enter);
+    settle(&mut h);
+    h.get_by_label("Tag -100A1: click to change it");
+    dispatch(&mut h, "plc.rack_create", json!({}));
+    let made = station_of(&h);
+    assert_eq!(
+        h.state().shell().rack_view(made).expect("the new station").tag,
+        "-100A1"
+    );
     h.state_mut().shell_mut().shutdown();
 }
 

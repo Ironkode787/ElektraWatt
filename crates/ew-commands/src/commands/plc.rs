@@ -1296,6 +1296,9 @@ pub struct AddStation {
     /// Its modules in slot order.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub modules: Vec<StationModule>,
+    /// A tag of its own, frozen (rc.5: the New station form names it); absent: the tag its page gives it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tag: Option<ew_schema::FrozenTag>,
     /// Library documents (`lib/` JSON form) embedded first.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub copies: Vec<serde_json::Value>,
@@ -1380,6 +1383,9 @@ impl Command for AddStation {
         };
         let integrated = section.as_ref().is_some_and(|s| !s.io.is_empty());
         tx.update::<Device>(id, |d| {
+            if self.tag.is_some() {
+                d.tag.frozen.clone_from(&self.tag);
+            }
             d.aspects.plc_station = Some(ew_schema::PlcStation {
                 config_project: cfg,
                 role,

@@ -488,6 +488,33 @@ fn header(ui: &mut Ui, t: &Tokens, tab: &StationTab, shown: &StationShown, event
             events.push(Event::Action("plc.rack_set", json!({ "config": "new" })));
         }
     });
+    // The tag it gets, typed before Create (rc.5); left empty, its page gives it one when it is drawn.
+    ui.horizontal_wrapped(|ui| {
+        ui.add(
+            egui::Label::new(small(t, strings::text(key!("rack-draft-tag")), t.text_secondary))
+                .selectable(false),
+        );
+        let name = strings::text(key!("rack-draft-tag-field"));
+        match &tab.rename {
+            Some((device, text)) if device.is_nil() => {
+                tag_field(ui, t, tab, (*device, name), text, &t.type_small, events);
+            }
+            _ => {
+                let (shown, colour) = match &draft.tag {
+                    Some(tag) => (tag.clone(), t.text_primary),
+                    None => (
+                        strings::text(key!("rack-draft-tag-page")).to_owned(),
+                        t.text_tertiary,
+                    ),
+                };
+                let tip = strings::text(key!("rack-draft-tag-tip"));
+                let chip = strings::format(key!("rack-rename-station"), &[&shown]);
+                if editable(ui, t, &shown, &t.type_small, colour, &chip, tip).clicked() {
+                    events.push(Event::Action("plc.rack_rename", json!({})));
+                }
+            }
+        }
+    });
     // A device in the project that can be this station is offered as it: Use -3K1, which is on the bus.
     if !shown.candidates.is_empty() {
         ui.horizontal_wrapped(|ui| {
@@ -598,6 +625,64 @@ fn tag_field(
         json!({ "cancel": true })
     };
     events.push(Event::Action("plc.rack_rename", params));
+    ui.data_mut(|d| {
+        d.remove::<String>(id);
+        d.remove::<bool>(id.with("started"));
+    });
+}
+
+/// The field a channel's cell (`column` `symbol` or `function_text`) is typed in, named `name` (rc.5): opened on
+/// `text` with the focus; Enter takes it, Tab takes it and opens the next channel's cell (`plc.rack_channel {text,
+/// next}`), Escape or a click elsewhere leaves it. While a refusal stands under the rack, a click elsewhere keeps the
+/// field on the text as typed.
+fn channel_field(
+    ui: &mut Ui,
+    t: &Tokens,
+    tab: &StationTab,
+    (channel, column, name): (Uuid, &str, &str),
+    text: &str,
+    events: &mut Vec<Event>,
+) {
+    let id = egui::Id::unique(("station-channel", channel, column));
+    let mut typed = ui
+        .data(|d| d.get_temp::<String>(id))
+        .unwrap_or_else(|| text.to_owned());
+    let started = ui
+        .data(|d| d.get_temp::<bool>(id.with("started")))
+        .unwrap_or(false);
+    let response = ui.add(
+        egui::TextEdit::singleline(&mut typed)
+            .id(id.with("edit"))
+            .font(theme::font(&t.type_small))
+            .desired_width(ui.available_width() - t.space_2),
+    );
+    ui.ctx()
+        .accesskit_node_builder(response.id, |n| n.set_label(name));
+    if !started {
+        response.request_focus();
+        ui.data_mut(|d| d.insert_temp(id.with("started"), true));
+    }
+    if !response.lost_focus() {
+        ui.data_mut(|d| d.insert_temp(id, typed));
+        return;
+    }
+    let (enter, tab_key, escape) = ui.input(|i| {
+        (
+            i.key_pressed(egui::Key::Enter),
+            i.key_pressed(egui::Key::Tab),
+            i.key_pressed(egui::Key::Escape),
+        )
+    });
+    if tab.error.is_some() && !enter && !tab_key && !escape {
+        ui.data_mut(|d| d.insert_temp(id, typed));
+        return;
+    }
+    let params = if enter || tab_key {
+        json!({ "channel": channel.to_string(), "column": column, "text": typed, "next": tab_key })
+    } else {
+        json!({ "cancel": true })
+    };
+    events.push(Event::Action("plc.rack_channel", params));
     ui.data_mut(|d| {
         d.remove::<String>(id);
         d.remove::<bool>(id.with("started"));
@@ -1202,10 +1287,24 @@ fn channels(
     }
     let width = ui.available_width();
     let column = t.size_table_column;
-    let cells = |row: Rect| -> [Rect; 4] {
-        let lefts = [0.0, column * 0.7, column * 1.9, column * 4.4];
-        let rights = [column * 0.7, column * 1.9, column * 4.4, width.max(column * 5.5)];
-        [0, 1, 2, 3].map(|i| {
+    // The number and the address are short; the symbol, the function text and what is wired share the rest.
+    let rest = (width - column * 1.9).max(column * 3.0);
+    let cells = |row: Rect| -> [Rect; 5] {
+        let lefts = [
+            0.0,
+            column * 0.7,
+            column * 1.9,
+            column * 1.9 + rest * 0.3,
+            column * 1.9 + rest * 0.7,
+        ];
+        let rights = [
+            column * 0.7,
+            column * 1.9,
+            lefts[3],
+            lefts[4],
+            column * 1.9 + rest,
+        ];
+        [0, 1, 2, 3, 4].map(|i| {
             Rect::from_min_max(
                 pos2(row.left() + lefts[i] + t.space_4, row.top()),
                 pos2(row.left() + rights[i], row.bottom()),
@@ -1216,6 +1315,7 @@ fn channels(
         key!("rack-channel"),
         key!("rack-channel-address"),
         key!("rack-channel-symbol"),
+        key!("rack-channel-function"),
         key!("rack-channel-wired"),
     ];
     let (head, _) = ui.allocate_exact_size(vec2(width, t.size_table_header), Sense::hover());
@@ -1239,8 +1339,8 @@ fn channels(
             [row.left_bottom(), row.right_bottom()],
             theme::stroke(t.border_width, t.border_subtle),
         );
-        let [number, address, symbol, wired] = cells(row);
-        let mut text = |cell: Rect, text: String, colour: theme::Rgba| {
+        let [number, address, symbol, function, wired] = cells(row);
+        let text = |ui: &mut Ui, cell: Rect, text: String, colour: theme::Rgba| {
             if !text.is_empty() {
                 put_left(
                     ui,
@@ -1251,9 +1351,62 @@ fn channels(
                 );
             }
         };
-        text(number, c.number.to_string(), t.text_secondary);
-        text(address, c.address.clone(), t.text_primary);
-        text(symbol, c.symbol.clone(), t.text_primary);
+        text(ui, number, c.number.to_string(), t.text_secondary);
+        text(ui, address, c.address.clone(), t.text_primary);
+        // The symbol and the function text are typed in their cells (rc.5).
+        for (cell, column, shown) in [
+            (symbol, "symbol", &c.symbol),
+            (function, "function_text", &c.function_text),
+        ] {
+            let of = if c.address.is_empty() {
+                c.number.to_string()
+            } else {
+                c.address.clone()
+            };
+            let name_key = if column == "symbol" {
+                key!("rack-channel-symbol-of")
+            } else {
+                key!("rack-channel-function-of")
+            };
+            let name = strings::format(name_key, &[&of]);
+            match &tab.channel {
+                Some((channel, open, typed)) if *channel == c.channel && *open == column => {
+                    in_cell(ui, cell, |ui| {
+                        channel_field(ui, t, tab, (c.channel, column, &name), typed, events)
+                    });
+                }
+                _ => {
+                    let tip = if column == "symbol" {
+                        key!("rack-channel-edit-tip")
+                    } else {
+                        key!("rack-channel-function-tip")
+                    };
+                    let field = cell.with_max_x(cell.right() - t.space_2);
+                    let response = ui.interact(
+                        field,
+                        ui.scope_id().with(("channel-cell", c.channel, column)),
+                        Sense::click(),
+                    );
+                    if response.hovered() {
+                        ui.painter().rect_stroke(
+                            field.shrink(1.0),
+                            theme::radius(t.radius_sm),
+                            theme::stroke(t.border_width, t.border_control),
+                            egui::StrokeKind::Inside,
+                        );
+                    }
+                    text(ui, cell, shown.clone(), t.text_primary);
+                    response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
+                    let response = response.tip(strings::text(tip));
+                    if response.clicked() {
+                        events.push(Event::Action(
+                            "plc.rack_channel",
+                            json!({ "channel": c.channel.to_string(), "column": column }),
+                        ));
+                    }
+                }
+            }
+        }
         if let Some(target) = c.target {
             in_cell(ui, wired, |ui| {
                 ui.scope(|ui| {

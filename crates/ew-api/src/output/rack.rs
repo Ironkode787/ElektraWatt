@@ -78,7 +78,8 @@ pub struct RackCell {
     pub at: RackPosition,
 }
 
-/// One channel of a module in its station's view: its address, its symbol name and what is wired to it.
+/// One channel of a module in its station's view: its address, its symbol name, its function text and what is wired
+/// to it.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct RackChannel {
     /// The channel.
@@ -89,6 +90,10 @@ pub struct RackChannel {
     pub address: String,
     /// Its symbol name; empty without one.
     pub symbol: String,
+    /// Its function text as the PLC overview prints it (the wired device's); empty without one.
+    pub function_text: String,
+    /// The device wired to it, whose function text that is; `None` when nothing is.
+    pub device: Option<Uuid>,
     /// The tag of the device wired to it; empty when nothing is.
     pub wired: String,
     /// The function wired to it, to go to; `None` when nothing is.
@@ -502,6 +507,8 @@ impl Session {
             .iter()
             .map(|e| {
                 let target = targets.iter().find(|t| t.channel == e.channel);
+                let text = texts.iter().find(|(c, _)| *c == e.channel).map(|(_, t)| t);
+                let device = target.and_then(|t| t.device).filter(|d| *d != id);
                 RackChannel {
                     channel: e.channel.as_uuid(),
                     number: e.number,
@@ -509,16 +516,13 @@ impl Session {
                         ew_derive::ChannelAddr::At { text, .. } => text.clone(),
                         _ => String::new(),
                     },
-                    symbol: texts
-                        .iter()
-                        .find(|(c, _)| *c == e.channel)
-                        .and_then(|(_, t)| t.symbol.clone())
+                    symbol: text.and_then(|t| t.symbol.clone()).unwrap_or_default(),
+                    function_text: text
+                        .and_then(|t| t.function_text.as_ref())
+                        .map(super::properties::neutral_or_first)
                         .unwrap_or_default(),
-                    wired: target
-                        .and_then(|t| t.device)
-                        .filter(|d| *d != id)
-                        .map(|d| tag(&q, d))
-                        .unwrap_or_default(),
+                    device: device.map(|d| d.as_uuid()),
+                    wired: device.map(|d| tag(&q, d)).unwrap_or_default(),
                     target: target
                         .filter(|t| t.device.is_some_and(|d| d != id))
                         .and_then(|t| t.function)

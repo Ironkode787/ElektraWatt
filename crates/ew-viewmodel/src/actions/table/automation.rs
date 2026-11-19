@@ -693,6 +693,22 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         )),
     ),
+    // A channel's symbol or function text typed in the view's channel table (rc.5).
+    with_params(
+        "channel?:ref, column?:text, text?:text, next?:bool, cancel?:bool",
+        hidden(with_aliases(
+            &[("channel", ParamForm::Whole)],
+            act(
+                "plc.rack_channel",
+                Command,
+                Menu::Project,
+                &[],
+                writable,
+                None,
+                |s, p| s.act_plc_rack_channel(p),
+            ),
+        )),
+    ),
     with_params(
         "device:ref, config?:ref",
         needs_parameters(in_canvas(with_aliases(

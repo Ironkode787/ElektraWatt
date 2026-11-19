@@ -449,7 +449,7 @@ impl ShellModel {
 
     /// A target's stored member and the project's source language, for a composed leaf or a language text: one
     /// record read per target (a fill over hundreds of rows asks it for each).
-    fn member_base(&self, kind: &str, target: Uuid, member: &str) -> MemberBase {
+    pub(super) fn member_base(&self, kind: &str, target: Uuid, member: &str) -> MemberBase {
         let Some(project) = &self.project else {
             return MemberBase {
                 value: None,

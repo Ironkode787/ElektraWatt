@@ -889,6 +889,7 @@ impl ShellModel {
                 head: None,
                 config,
                 modules: Vec::new(),
+                tag: None,
             }),
             ..StationTab::default()
         });
@@ -1753,6 +1754,12 @@ impl ShellModel {
         if let Some(c) = d.config {
             params["config_project"] = json!(c.to_string());
         }
+        // The tag typed in the form, frozen (it was read when it was typed).
+        if let Some(tag) = &d.tag
+            && let Ok(parsed) = session.parse_field_input("device", "tag.frozen", tag)
+        {
+            params["tag"] = parsed.value;
+        }
         let out = self.rack_commit(Some(StationCursor::Head), "plc.add_station", params);
         if out != Outcome::Done {
             return out;
@@ -2015,6 +2022,9 @@ impl ShellModel {
             }
             return Outcome::Done;
         }
+        if self.station_draft().is_some() {
+            return self.rename_draft(p);
+        }
         let station = or_return!(self.rack_station());
         // The PLC's own name, beside the station's tag in the header.
         let plc = self.station_shown().and_then(|s| s.rack.plc_project);
@@ -2084,19 +2094,18 @@ impl ShellModel {
             let why = strings::format(key!("rack-rename-taken"), &[text.trim()]);
             return self.rack_refuse(place, why);
         }
-        let out = self.tag_rename_commit(device, &text);
+        let mut out = self.tag_rename_commit(device, &text);
+        // A tag that changes other tags too (a station's cards follow its tag) is previewed in Properties as the Tag
+        // row's change is; the Enter in the view takes it at once (rc.5: Properties and the Preview each offered an
+        // Apply for it, and the line that asked for one stayed after it).
+        if out == Outcome::Done && self.props.card().is_some() {
+            out = self.act_preview_apply();
+        }
         if out == Outcome::Done {
-            // A tag that changes other tags too (a station's cards follow its tag) waits for Apply in Properties, as
-            // the Tag row's change does: the view says so under the rack.
-            let waits = self
-                .props
-                .card()
-                .is_some()
-                .then(|| strings::format(key!("rack-rename-apply"), &[&text]));
             if let Some(tab) = self.station_tab_mut() {
                 tab.rename = None;
                 tab.error = None;
-                tab.note = waits;
+                tab.note = None;
             }
             return out;
         }
@@ -2110,6 +2119,58 @@ impl ShellModel {
             tab.rename = Some((device, text));
         }
         self.rack_refuse(place, why)
+    }
+
+    /// `plc.rack_rename {text?}` on the New station form (rc.5: it had no tag): the tag the station gets, typed before
+    /// Create, which gives it frozen. Without `text` the field opens (the nil ID standing for the station not made
+    /// yet); an empty text leaves the tag to its page; a tag another device has, or one a tag cannot be, is refused in
+    /// a sentence under the rack, the field staying open on the text as typed.
+    fn rename_draft(&mut self, p: &Map<String, Value>) -> Outcome {
+        let text = match string_param(p, "text") {
+            Ok(t) => t.map(str::to_owned),
+            Err(e) => return e,
+        };
+        let open = |s: &mut Self, text: Option<String>| {
+            if let Some(tab) = s.station_tab_mut() {
+                tab.rename = text.map(|t| (Uuid::nil(), t));
+                tab.error = None;
+            }
+        };
+        let Some(text) = text else {
+            let typed = self
+                .station_draft()
+                .and_then(|d| d.tag.clone())
+                .unwrap_or_default();
+            open(self, Some(typed));
+            return Outcome::Done;
+        };
+        let tag = text.trim().to_owned();
+        let refuse = |s: &mut Self, why: String| {
+            open(s, Some(text.clone()));
+            s.rack_refuse(Some(StationCursor::Head), why)
+        };
+        if !tag.is_empty() {
+            let Some(session) = self.project_session() else {
+                return Outcome::refused(key!("reason-no-project"));
+            };
+            if session.resolve_reference(&tag).is_ok() {
+                return refuse(self, strings::format(key!("rack-rename-taken"), &[&tag]));
+            }
+            match session.parse_field_input("device", "tag.frozen", &tag) {
+                Ok(_) => {}
+                Err(ew_api::output::InputError::Invalid(why)) => {
+                    return refuse(self, super::tools::rejected_words(&why.to_string(), Some(&why)));
+                }
+                Err(_) => return refuse(self, strings::format(key!("rack-channel-bad"), &[&tag])),
+            }
+        }
+        if let Some(tab) = self.station_tab_mut()
+            && let Some(draft) = tab.draft.as_mut()
+        {
+            draft.tag = (!tag.is_empty()).then_some(tag);
+        }
+        open(self, None);
+        Outcome::Done
     }
 
     /// `plc.rack_rename {plc: true, text?}` (rc.5, H14): the name of the PLC the station on show belongs to (its
@@ -2182,6 +2243,135 @@ impl ShellModel {
             Outcome::Failed { message } => refuse(self, message),
             Outcome::Refused { reason_key } => refuse(self, strings::text(reason_key).to_owned()),
         }
+    }
+
+    /// `plc.rack_channel {channel?, column?, text?, next?, cancel?}` (rc.5: a symbol typed into the channel table did
+    /// nothing): a channel's symbol (`column` `symbol`) or function text (`function_text`) of the module on show,
+    /// typed in its cell as the PLC grid and Properties set them (`fields.set`). Without `text` the field opens on the
+    /// cell; with it the cell takes the text, and with `next` the same cell of the next channel opens, so a card's
+    /// channels are typed in one go. The function text is the wired device's (the PLC overview prints that): a channel
+    /// nothing is wired to has none, said in a sentence. A refusal is said under the rack, the field staying open on
+    /// the text as typed.
+    pub(crate) fn act_plc_rack_channel(&mut self, p: &Map<String, Value>) -> Outcome {
+        let open = self.station_tab().and_then(|t| t.channel.clone());
+        if flag(p, "cancel") {
+            if let Some(tab) = self.station_tab_mut() {
+                tab.channel = None;
+            }
+            return Outcome::Done;
+        }
+        let column = match string_param(p, "column") {
+            Ok(Some("symbol")) => "symbol",
+            Ok(Some("function_text")) => "function_text",
+            Ok(Some(_)) => return failed(key!("error-bad-param"), &["column"]),
+            Ok(None) => open.as_ref().map_or("symbol", |o| o.1),
+            Err(e) => return e,
+        };
+        let channel = match (p.get("channel"), &open) {
+            (Some(_), _) => or_return!(self.record_param(p, "channel")),
+            (None, Some(o)) => o.0,
+            (None, None) => return failed(key!("error-missing-param"), &["channel"]),
+        };
+        let rows = self
+            .station_shown()
+            .map(|s| s.channels.clone())
+            .unwrap_or_default();
+        let Some(at) = rows.iter().position(|c| c.channel == channel) else {
+            return failed(key!("error-bad-param"), &["channel"]);
+        };
+        let row = &rows[at];
+        let text = match string_param(p, "text") {
+            Ok(t) => t.map(str::to_owned),
+            Err(e) => return e,
+        };
+        let set = |s: &mut Self, field: Option<(Uuid, &'static str, String)>| {
+            if let Some(tab) = s.station_tab_mut() {
+                tab.channel = field;
+            }
+        };
+        // The function text is the wired device's.
+        let target = match (column, row.device) {
+            ("symbol", _) => ("channel", channel),
+            (_, Some(device)) => ("device", device),
+            (_, None) => {
+                set(self, None);
+                let why = strings::format(key!("rack-channel-no-device"), &[&row.address]);
+                return self.rack_refuse(None, why);
+            }
+        };
+        let Some(text) = text else {
+            let current = if column == "symbol" {
+                row.symbol.clone()
+            } else {
+                row.function_text.clone()
+            };
+            set(self, Some((channel, column, current)));
+            if let Some(tab) = self.station_tab_mut() {
+                tab.error = None;
+            }
+            return Outcome::Done;
+        };
+        let refuse = |s: &mut Self, why: String| {
+            set(s, Some((channel, column, text.clone())));
+            s.rack_refuse(None, why)
+        };
+        let parsed = match self.project_session() {
+            Some(session) => session.parse_field_input(target.0, column, text.trim()),
+            None => return Outcome::refused(key!("reason-no-project")),
+        };
+        let leaf = match parsed {
+            Ok(parsed) => parsed.value,
+            Err(ew_api::output::InputError::Invalid(why)) => {
+                return refuse(self, super::tools::rejected_words(&why.to_string(), Some(&why)));
+            }
+            Err(_) => return refuse(self, strings::format(key!("rack-channel-bad"), &[text.trim()])),
+        };
+        // A function text is one language of the device's: the others stay (as the grid composes it).
+        let value = if column == "function_text" {
+            let base = self.member_base(target.0, target.1, column);
+            ew_api::output::table_edit::compose_leaf(column, column, &base, &leaf, true).unwrap_or(leaf)
+        } else {
+            leaf
+        };
+        let current = if column == "symbol" {
+            &row.symbol
+        } else {
+            &row.function_text
+        };
+        if text.trim() != current.as_str() {
+            let cmd = ew_api::AnyCommand {
+                name: "fields.set".into(),
+                params: json!({"kind": target.0, "targets": [target.1.to_string()], "path": column, "value": value}),
+            };
+            match self.commit_from_host(&cmd) {
+                Outcome::Done => {}
+                Outcome::Failed { message } => return refuse(self, message),
+                Outcome::Refused { reason_key } => return refuse(self, strings::text(reason_key).to_owned()),
+            }
+        }
+        if let Some(tab) = self.station_tab_mut() {
+            tab.error = None;
+        }
+        // Tab: the same cell of the next channel that has it, else the field closes.
+        let next = flag(p, "next")
+            .then(|| {
+                let shown = self.station_shown()?;
+                let has = |c: &&ew_api::output::RackChannel| column == "symbol" || c.device.is_some();
+                shown.channels.iter().skip(at + 1).find(has).cloned()
+            })
+            .flatten();
+        match next {
+            Some(n) => {
+                let opens = if column == "symbol" {
+                    n.symbol
+                } else {
+                    n.function_text
+                };
+                set(self, Some((n.channel, column, opens)));
+            }
+            None => set(self, None),
+        }
+        Outcome::Done
     }
 
     /// `plc.add_to_plc {device, config?}` (F19 of the rc.1 test): a bus device that belongs to no PLC becomes a station
@@ -2988,6 +3178,8 @@ pub struct StationDraft {
     pub config: Option<Uuid>,
     /// Its module parts in slot order.
     pub modules: Vec<Uuid>,
+    /// The tag typed for it (rc.5), which Create gives it frozen; `None`: the tag its page gives it when it is drawn.
+    pub tag: Option<String>,
 }
 
 /// The command a preview was made of, printed by its name only (its parameters hold the whole file read).
