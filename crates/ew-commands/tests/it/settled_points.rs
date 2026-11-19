@@ -190,7 +190,9 @@ fn a_symbol_on_a_stretch_one_nm_out_of_square_is_wired_in() {
     // end: a diagonal of 1 nm across eight grid steps.
     let (model, _, fb) = model_with(Some(vec![pt(0, Y_PIN), pt(0, Y_GRID), pt(8 * G, Y_PIN)]));
     let mut e = engine(model);
-    let r = e.execute(&on_its_side(Vec::new())).expect("placed, the wire split");
+    let r = e
+        .execute(&on_its_side(Vec::new()))
+        .expect("placed, the wire split");
     let pins = new_pins(&e, &r);
     let first = row(&e, WIRE);
     assert_eq!(first.b, Endpoint::Cp(pins[0].0, pins[0].1));
