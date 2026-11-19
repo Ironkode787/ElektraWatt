@@ -40,7 +40,6 @@ answers is deleted with a line in its report.
 - FT-1789 `ew-viewmodel`: The symbol editor draws a shape by the pointer only; draw a line, a rectangle or a circle from the keyboard alone (accessibility), as a placed shape already moves with the arrow keys.
 - FT-1790 `ew-scene, ew-viewmodel`: Round handles show for one selected wire; with several selected, none does. Decide whether handles of several wires help or only crowd.
 - FT-1791 `ew-viewmodel, ew-api`: The spacing between the terminals of a row is remembered by the open project only: keep it between sessions (a user setting, or a project setting, which is a format change).
-- FT-1792 `ew-scene`: The pin texts on the top and bottom edges of a drawn device box stand vertical, as on a symbol; decide whether they stand horizontal beside the pin where the box is wide enough.
 - FT-1793 `ew-api, ew-commands`: A valve stays undrawn when a valve terminal's positions are filled through `ew apply` without the symbols (`copies`); the command could find the symbols itself, or say so. Draw its valves in the valve terminal draws them.
 - FT-1795 `ew-scene`: A tag keeps clear of a neighbouring symbol only around a half-turned symbol (the tag rule's own-symbol and half-turn cases; wider rules changed Golden A's pictures). Around a quarter turn or a nudge a tag can still lie on a neighbour's body or text.
 - FT-1796 `ew-viewmodel`: A drag that starts on a pin's label of a symbol moves the symbol; the tag, a box's caption and the texts of one selected symbol are dragged by themselves already.
@@ -61,6 +60,22 @@ answers is deleted with a line in its report.
 - FT-1811 `ew-ui, ew-api`: A pin's place typed between two steps of the pin grid is taken to the next step without a word; a copy of a starter part keeps the starter's part number without saying so.
 - FT-1812 `ew-viewmodel`: F1 on a selected connection point in the symbol editor opens the outline's section although the guide has a section for a connection point.
 - FT-1813 `ew-viewmodel`: The Place tool shows "-?X?:1" for a new strip until the pointer moves; the project's Kind row shows a dash.
+
+### What the fourth candidate left
+
+- FT-1817 `ew-commands, ew-api`: After a page's grid change or a paste fitted to another grid each item goes to its nearest grid point, one by one, and two items can end on one another (two texts; a supply mark's name on its neighbour's arrow), because the commands do not know a text's drawn size. Part what the fit pushed together.
+- FT-1818 `ew-viewmodel`: With a fitted symbol (its first pin on the grid, its position between grid points) the first arrow key moves the ghost a part of a step in the readout, while the move itself is whole steps.
+- FT-1819 `ew-commands, ew-viewmodel`: A command's extra notices read in English in a Dutch window: `Outcome.notices` is a list of strings. Carry a text through `Outcome` (a box reshape's moved pin, a paste's notices).
+- FT-1820 `ew-commands, ew-derive`: An earth symbol takes a number from the cables' W counter (its tag is hidden on the page and used in the wire list), so a project's first cable can be W2 and a project can hold two devices tagged W1. Decide the symbol's own letter, or give it no tag.
+- FT-1821 `ew-derive, ew-checks`: The rule that a wire from 0 V to earth is the bond looks at one page and at pin roles only: a 0 V that comes in through an interruption point from another page still needs Draw ▸ Connect ▸ Bond.
+- FT-1822 `ew-viewmodel, ew-ui`: Properties builds its rows again on every frame with a device selected. Not measured.
+- FT-1823 `ew-viewmodel`: The overview page that a station's To do proposes takes a folio in the wiring section.
+- FT-1824 `ew-ui`: A toast can cover a To do button of the station view.
+- FT-1825 `ew-derive, ew-viewmodel`: A wire drawn one at a time with the Wire tool dodges its own device's movable tag.
+- FT-1826 `content, ew-api`: There is no A3 form among the starter frames and title blocks.
+- FT-1827 `ew-reports`: The potential overview numbers its bond rows by id order, so a drawn bond can shift the numbers of the declared ones.
+- FT-1828 `ew-api, ew-viewmodel`: The part editor's default box and a part's stored box are not widened for upright pin texts, as the black box tool widens the boxes it lays out.
+- FT-1829 `ew-ui`: The Text styles page builds a small list on every frame. Not measured.
 
 ### The development loop
 
