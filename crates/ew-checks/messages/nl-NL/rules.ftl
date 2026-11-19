@@ -815,7 +815,8 @@ rule-ew-pot-002 = { $form ->
            *[some] {" "}op { $count } plaatsen
         }. Een SELV-stroomkring wordt nooit geaard: haal de verbinding weg, of maak de stroomkring PELV.
        *[pelv] { $potential } is een PELV-stroomkring{ $bonds ->
-            [none] , maar de 0 V ervan is niet met de beschermingsaarde verbonden. Teken één draad van de 0 V naar een aardpunt.
+            [none] , maar de 0 V ervan is niet met de beschermingsaarde verbonden. Teken één draad van de 0 V naar een symbool beschermingsaarde (PE) of naar de PE-rail; is de stroomkring niet bedoeld om geaard te zijn, maak hem dan SELV.
+            [functional] , maar de 0 V ervan gaat alleen naar functionele aarde (FE), en dat is geen beschermende verbinding. Teken de draad van de 0 V in plaats daarvan naar een symbool beschermingsaarde (PE) of naar de PE-rail.
             [joined] , maar de 0 V ervan is zonder vastgelegde verbinding met de beschermingsaarde verbonden. Selecteer de draad naar aarde en kies Tekenen ▸ Verbinden ▸ Potentiaalverbinding.
            *[some] {" "}waarvan de 0 V op { $count } plaatsen met de beschermingsaarde verbonden is; een PELV-stroomkring wordt op één punt geaard. Houd één verbinding met aarde en haal de andere weg.
         }

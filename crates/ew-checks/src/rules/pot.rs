@@ -942,7 +942,14 @@ impl Rule for PelvSelvBonding {
         });
         // The 0 V–PE bonds: the declared ones and the drawn ones (a wire from a 0 V point to an earth point, doc 08
         // §3.7), each targeted by its record or, drawn, by its wire.
-        let bonds: Vec<Target> = bonds_of_potential(q, p)
+        let all = bonds_of_potential(q, p);
+        // Wires drawn from this 0 V to functional earth: the 0 V is earthed, but for function, not protection.
+        let functional: Vec<Target> = all
+            .iter()
+            .filter(|b| b.drawn && b.kind == BondKind::Equipotential && b.a == Some(p))
+            .filter_map(|b| b.via.map(|v| Target::new(Kind::Connection, v)))
+            .collect();
+        let bonds: Vec<Target> = all
             .into_iter()
             .filter(|b| b.kind == BondKind::Pelv0vPe)
             .map(|b| match (b.drawn, b.via) {
@@ -967,7 +974,7 @@ impl Rule for PelvSelvBonding {
         let earthed = |e: PotentialEarthing| {
             earthing.as_ref() == Some(&e) || declared(&|d| d.env.earthing.as_ref() == Some(&e))
         };
-        let pelv = m_type && (earthed(PotentialEarthing::Pelv) || !bonds.is_empty());
+        let pelv = m_type && (earthed(PotentialEarthing::Pelv) || !bonds.is_empty() || !functional.is_empty());
         let selv = earthed(PotentialEarthing::Selv);
         let discriminator = if pelv && bonds.len() != 1 {
             "pelv"
@@ -980,6 +987,7 @@ impl Rule for PelvSelvBonding {
         // A 0 V joined to PE without a bond (one potential with a PE definition or pin) is told to declare it.
         let joined = declared(&|d| d.ptype == Some(PotentialType::Pe)) || zero_volt_meets_pe(q, p);
         let count = match bonds.len() {
+            0 if !functional.is_empty() => "functional",
             0 if joined => "joined",
             0 => "none",
             1 => "one",
@@ -988,7 +996,7 @@ impl Rule for PelvSelvBonding {
         vec![worded(
             pt.finding(
                 &PELV_SELV_BONDING,
-                &bonds,
+                &[bonds.as_slice(), functional.as_slice()].concat(),
                 format!("{discriminator}{}", pt.suffix),
                 potential_name(q, p),
                 String::new(),

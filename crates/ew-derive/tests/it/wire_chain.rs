@@ -431,10 +431,16 @@ fn colour_code(e: &ew_derive::EffectiveProps) -> String {
 }
 
 /// The fixture with M and PE merged by the plain wire 0x2201, the members of `m_extra` and `pe_extra` set on the
-/// M and PE definitions (a null value removes the member), and its potentials by name.
+/// M and PE definitions (a null value removes the member), and its potentials by name. The wire stands on a second
+/// page, where nothing says that its end 0x1006:0 is the 0 V: it is no earth wire (a drawn bond, doc 08 §3.7) and
+/// merges the two.
 fn merged(m_extra: Value, pe_extra: Value) -> (Model, BTreeMap<String, PotentialId>) {
     let mut fx = fixture();
-    wire(&mut fx, 0x2201, (0x1006, 0), (PE_SRC, 0));
+    fx.page(0x101, 2, None, "multi_line", &[], "two");
+    fx.push(json!({
+        "$k": "connection", "id": uid(0x2201), "page": uid(0x101),
+        "a": {"cp": [uid(0x1006), 0]}, "b": {"cp": [uid(PE_SRC), 0]},
+    }));
     for (def, extra) in [(0x5003, m_extra), (0x5004, pe_extra)] {
         // By kind and ID: the terminal functions 0x5001..0x5005 share the definitions' IDs.
         let r = fx

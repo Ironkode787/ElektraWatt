@@ -821,8 +821,8 @@ const W30: u128 = 0x2030;
 fn zero_volt_through_a_terminal_with(bond: bool, (w1, w27): (u128, u128)) -> Model {
     let mut fx = Fx::base();
     fx.func_m(M_FN, P1);
-    fx.ip(0x1101, P1, "0V", "source");
-    fx.ip(0x1102, P2, "0V", "target");
+    fx.ip(0x1101, P1, "SUP", "source");
+    fx.ip(0x1102, P2, "SUP", "target");
     fx.func(TERMINAL, P2);
     fx.func_pe(PE_FN, P2);
     fx.func_pe(PE_FN2, P2);
@@ -893,8 +893,8 @@ fn the_declared_bond_keeps_0v_and_pe_apart_and_satisfies_pot002() {
 fn zero_volt_meets_pe_without_a_carrier() -> Model {
     let mut fx = Fx::base();
     fx.func_m(M_FN, P1);
-    fx.ip(0x1101, P1, "0V", "source");
-    fx.ip(0x1102, P2, "0V", "target");
+    fx.ip(0x1101, P1, "SUP", "source");
+    fx.ip(0x1102, P2, "SUP", "target");
     fx.func_pe(PE_FN, P2);
     fx.conn(0x2003, P1, Ep::Cp(M_FN, 1), cp(0x1101), &none());
     fx.conn(0x2004, P1, Ep::Cp(M_FN, 1), cp(0x1101), &none());
@@ -938,14 +938,19 @@ fn pot001_a_conflict_without_pe_has_no_fix_and_no_hint() {
     assert!(!f[0].message.contains("Draw"), "{}", f[0].message);
 }
 
-/// A type-M definition on a terminal wired to `n` PE-role functions: one member-CP conflict each.
+/// A type-M definition on a terminal on page 1, carried by the interruption points "SUP" to page 2, where the point is
+/// wired to `n` PE-role functions: nothing on page 2 says the point is the 0 V, so each wire merges, one member-CP
+/// conflict each.
 fn pe_members_against_m(n: u128) -> ew_checks::Finding {
     let mut fx = Fx::base();
     fx.func(TERMINAL, P1);
     fx.def(0x5001, cp(TERMINAL), &json!({"ptype": "m"}));
+    fx.ip(0x1201, P1, "SUP", "source");
+    fx.ip(0x1202, P2, "SUP", "target");
+    fx.conn(0x2001, P1, cp(TERMINAL), cp(0x1201), &none());
     for i in 0..n {
-        fx.func_pe(0x1100 + i, P1);
-        fx.conn(0x2100 + i, P1, cp(TERMINAL), Ep::Cp(0x1100 + i, 1), &none());
+        fx.func_pe(0x1100 + i, P2);
+        fx.conn(0x2100 + i, P2, cp(0x1202), Ep::Cp(0x1100 + i, 1), &none());
     }
     attrs_finding(&fx.build())
 }
@@ -972,8 +977,144 @@ fn pot001_names_three_member_cps_and_counts_the_rest() {
         "{nl}"
     );
     assert_eq!(
-        nl.matches("is verbonden met de beschermingsaarde -1K435").count(),
+        nl.matches("is verbonden met de beschermingsaarde -2K435").count(),
         3,
         "{nl}"
     );
+}
+
+/// The 0 V side of [`zero_volt_to_earth`].
+#[derive(Clone, Copy, Debug)]
+enum ZeroSide {
+    /// A pin whose role is M.
+    Pin,
+    /// A plain point with a definition of type M chosen from the list.
+    Defined,
+    /// A plain point with a definition named `0V` and no type.
+    Named,
+    /// An interruption point named `0V` (the 0 V from another page).
+    Point,
+}
+
+/// The earth side of [`zero_volt_to_earth`].
+#[derive(Clone, Copy, Debug)]
+enum EarthSide {
+    /// The protective earth symbol (a pin whose role is PE).
+    Protective,
+    /// The functional earth symbol (a pin whose role is FE).
+    Functional,
+    /// A rail-bonded PE terminal.
+    Terminal,
+    /// A plain point of the PE rail's potential (a definition of type PE).
+    Rail,
+    /// An interruption point named `PE`.
+    Point,
+}
+
+/// A 0 V point (`zero`) wired to an earth point (`earth`) on page 1, the 0 V also wired on to a plain function:
+/// returns the model and the endpoints of the two sides.
+fn zero_volt_to_earth(zero: ZeroSide, earth: EarthSide) -> (Model, Ep, Ep) {
+    const FN_FE: u128 = 0x5C0;
+    const SYM_FE: u128 = 0x5C1;
+    let mut fx = Fx::base();
+    fx.fndef_with(
+        FN_FE,
+        SYM_FE,
+        &[(0, "FE", json!({"potential_role": "fe"}))],
+        &json!([]),
+        &json!({"category": ["EarthingBar", "FunctionalEarth", "Point"]}),
+    );
+    let z = match zero {
+        ZeroSide::Pin => {
+            fx.func_m(0x1001, P1);
+            Ep::Cp(0x1001, 1)
+        }
+        ZeroSide::Defined | ZeroSide::Named => {
+            fx.func(0x1001, P1);
+            let def = match zero {
+                ZeroSide::Defined => json!({"name": "SUP-", "ptype": "m"}),
+                _ => json!({"name": "0V"}),
+            };
+            fx.def(0x5001, cp(0x1001), &def);
+            cp(0x1001)
+        }
+        ZeroSide::Point => {
+            fx.ip(0x1001, P1, "0V", "target");
+            cp(0x1001)
+        }
+    };
+    fx.func(0x1002, P1);
+    fx.conn(0x2001, P1, z, cp(0x1002), &none());
+    let e = match earth {
+        EarthSide::Protective => {
+            fx.func_pe(0x1003, P1);
+            Ep::Cp(0x1003, 1)
+        }
+        EarthSide::Functional => {
+            fx.func_of(0x1003, FN_FE, SYM_FE, P1);
+            cp(0x1003)
+        }
+        EarthSide::Terminal => {
+            fx.strip(STRIP, 1);
+            fx.rail_terminal(0x4001, STRIP, None, Some(0x1003));
+            Ep::Cp(0x1003, 1)
+        }
+        EarthSide::Rail => {
+            fx.func(0x1003, P1);
+            fx.def(0x5003, cp(0x1003), &json!({"name": "PE", "ptype": "pe"}));
+            cp(0x1003)
+        }
+        EarthSide::Point => {
+            fx.ip(0x1003, P1, "PE", "target");
+            cp(0x1003)
+        }
+    };
+    fx.conn(0x2002, P1, z, e, &none());
+    (fx.build(), z, e)
+}
+
+/// Every way a drawing earths a 0 V gives no EW-POT-001: the 0 V as a pin's role, a definition of type M, a definition
+/// named 0V without a type, or an interruption point named 0V; the earth as the protective or the functional earth
+/// symbol, a PE terminal, the PE rail's potential or an interruption point named PE. The wire is the bond (or, to
+/// functional earth, the 0 V earthed for function): the two sides stay two potentials.
+#[test]
+fn every_way_a_0v_is_earthed_is_no_type_conflict() {
+    use ZeroSide as Z;
+    for zero in [Z::Pin, Z::Defined, Z::Named, Z::Point] {
+        for earth in [
+            EarthSide::Protective,
+            EarthSide::Functional,
+            EarthSide::Terminal,
+            EarthSide::Rail,
+            EarthSide::Point,
+        ] {
+            let (m, z, e) = zero_volt_to_earth(zero, earth);
+            let f = findings_of(&m, "EW-POT-001");
+            assert!(f.is_empty(), "{zero:?} to {earth:?}: {f:#?}");
+            let q = ew_derive::Q::new(&m);
+            let part = q.get::<ew_derive::PotentialPartition>(());
+            let at = |e: Ep| {
+                let Ep::Cp(n, i) = e else { unreachable!() };
+                part.potential_at(ew_model::EndpointKey::Cp(uid(n).cast(), i)).map(|p| p.id)
+            };
+            assert_ne!(at(z), at(e), "{zero:?} to {earth:?}: two potentials");
+        }
+    }
+}
+
+/// A 0 V wired to the functional earth symbol is earthed for function, not bonded: EW-POT-002 says so in words and
+/// names the protective earth symbol and the PE rail as the way.
+#[test]
+fn a_0v_on_functional_earth_is_told_where_the_bond_belongs() {
+    let (m, _, _) = zero_volt_to_earth(ZeroSide::Pin, EarthSide::Functional);
+    let f = findings_of(&m, "EW-POT-002");
+    assert_eq!(f.len(), 1, "{f:#?}");
+    assert!(
+        f[0].message.contains("goes to functional earth (FE) only")
+            && f[0].message.contains("protective earth symbol (PE) or to the PE rail"),
+        "{}",
+        f[0].message
+    );
+    let (m, _, _) = zero_volt_to_earth(ZeroSide::Pin, EarthSide::Protective);
+    assert!(findings_of(&m, "EW-POT-002").is_empty());
 }

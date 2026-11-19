@@ -3,8 +3,8 @@
   "id": "e2d6945d-b52e-5352-895b-2082f52163cf",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "7fd3e88f-ffb6-5c63-ab19-f5236457f89b",
-  "version": "0.1.1",
-  "sha256": "sha256:1fa879ec445002161ad04cf46147f65ed68636c0dc6f4eb2f95f601b167566b2",
+  "version": "0.1.2",
+  "sha256": "sha256:9169046c315382b19efd1940f181ea8ed9fe629e2d1829bfb1468f1ad56d222a",
   "meta": {
     "key": "ew.iec.pe",
     "licence": "CC-BY-SA-4.0",
@@ -14,8 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Protective earth",
-    "nl": "Beschermingsaarde"
+    "en": "Earth (PE), protective: the cabinet's earth",
+    "nl": "Aarde (PE), beschermend: de aarde van de kast"
   },
   "keywords": [
     "earth",

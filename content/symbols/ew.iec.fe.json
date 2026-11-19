@@ -3,8 +3,8 @@
   "id": "36b1632c-308f-5bb0-9f9d-efec9121d2c8",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "b6fa4e0f-15f4-5b0c-b897-bdc664bc14b1",
-  "version": "0.1.1",
-  "sha256": "sha256:78577d29971fc05149a3df90fbb5d2970f6ca96df639f32ee79a2275619dc8b5",
+  "version": "0.1.2",
+  "sha256": "sha256:331d3068e8460c63d61f3ea6095b8a9f8cdba994e7f971653cc5a67d12427d5c",
   "meta": {
     "key": "ew.iec.fe",
     "licence": "CC-BY-SA-4.0",
@@ -14,8 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Functional earth",
-    "nl": "Functionele aarde"
+    "en": "Earth for function (FE): screens and noise, not protection",
+    "nl": "Aarde voor functie (FE): afscherming en storing, geen bescherming"
   },
   "keywords": [
     "earth",

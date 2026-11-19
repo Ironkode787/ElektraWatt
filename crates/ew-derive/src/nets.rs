@@ -5,10 +5,11 @@
 //!
 //! A local net is a connected set of drawing nodes (function CPs and junctions) of one page, joined by the
 //! page's connections of kind `Wire`, `Core`, `Bus` and `Internal`. A connection named as some
-//! `Bond.via` is left out (the bond cut, doc 08 §3.7), and so is an earth wire: a connection with one end on a
-//! protective-earth point (a CP whose role is PE) and the other in a net of the page that holds a 0 V point (a CP
-//! whose role is M or L-), joined without the connections to protective-earth points. The person who drew that wire
-//! bonded the 0 V to earth: it is the bond, and 0 V stays 0 V (the drawn bond, doc 08 §3.7). `Bridge` connections
+//! `Bond.via` is left out (the bond cut, doc 08 §3.7), and so is an earth wire: a connection with one end on an earth
+//! point (a pin whose role is PE or FE, a definition of that type there, or a definition or an interruption point named
+//! `PE` or `FE`) and the other in a net of the page that holds a 0 V point (the same for M, L-, `0V`), joined without
+//! the connections to earth points. The person who drew that wire earthed the 0 V: it is the bond, and 0 V stays
+//! 0 V (the drawn bond, doc 08 §3.7). `Bridge` connections
 //! join at the potential level
 //! and `Overview` and unknown kinds never join (CI-07). Every interruption point drawn on the page is a
 //! node even without a connection, so that the stitch graph can pair it.
@@ -91,9 +92,44 @@ pub fn joins_net(kind: &ConnectionKind) -> bool {
     )
 }
 
-/// Whether a CP role is a 0 V conductor's: `M` or `L-`.
-fn is_zero_volt(role: Option<&PotentialType>) -> bool {
-    matches!(role, Some(PotentialType::M | PotentialType::LMinus))
+/// What a drawing node says of the conductor it is on, for the earth wires (doc 08 §3.7, the drawn bond).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum Mark {
+    /// A 0 V point: a pin whose role is M or L-, a potential definition of that type there, or (without a type) a
+    /// definition or an interruption point named by a 0 V word (`0V`, `M`, `L-`).
+    ZeroVolt,
+    /// An earth point: a pin whose role is PE or FE (an earth symbol, a PE terminal, a PE or FE screw), or a
+    /// definition of that type there, or (without a type) a definition or an interruption point named `PE` or `FE`.
+    Earth(EarthKind),
+}
+
+/// The earth an [`EarthWire`] goes to.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub enum EarthKind {
+    /// Protective earth: the 0 V's PELV bond.
+    Protective,
+    /// Functional earth: the 0 V earthed for function, which is no PELV bond.
+    Functional,
+}
+
+/// The mark of a type (`None` for any other).
+fn type_mark(t: &PotentialType) -> Option<Mark> {
+    match t {
+        PotentialType::M | PotentialType::LMinus => Some(Mark::ZeroVolt),
+        PotentialType::Pe => Some(Mark::Earth(EarthKind::Protective)),
+        PotentialType::Fe => Some(Mark::Earth(EarthKind::Functional)),
+        _ => None,
+    }
+}
+
+/// The mark of a name that is a type's own word (`0V`, `M`, `L-`, `PE`, `FE`), as doc 08 §3.5 reads such a name.
+fn word_mark(name: &str) -> Option<Mark> {
+    match name.trim().to_uppercase().replace('\u{2212}', "-").as_str() {
+        "0V" | "M" | "L-" => Some(Mark::ZeroVolt),
+        "PE" => Some(Mark::Earth(EarthKind::Protective)),
+        "FE" => Some(Mark::Earth(EarthKind::Functional)),
+        _ => None,
+    }
 }
 
 /// The endpoint keys of a connection; `None` for an endpoint of a newer format.
@@ -142,16 +178,18 @@ impl LocalNet {
     }
 }
 
-/// A wire drawn on the page from a 0 V point to a protective-earth point: the bond it draws (doc 08 §3.7, "the
-/// drawn bond").
+/// A wire drawn on the page from a 0 V point to an earth point: the bond it draws (doc 08 §3.7, "the drawn bond"),
+/// a PELV bond to protective earth, or the 0 V earthed for function.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct EarthWire {
     /// The connection.
     pub via: Id<Connection>,
     /// Its end on the 0 V side.
     pub zero_volt: EndpointKey,
-    /// Its end on the protective-earth point.
+    /// Its end on the earth point.
     pub earth: EndpointKey,
+    /// The earth it goes to.
+    pub kind: EarthKind,
 }
 
 /// The value of [`PageLocalNets`].
@@ -193,20 +231,35 @@ impl Query for PageLocalNets {
         let mut via: BTreeMap<EndpointKey, BTreeSet<Id<Connection>>> = BTreeMap::new();
         let mut cut = Vec::new();
         let connections = q.connections();
-        // The connections with an end on a protective-earth point (a CP whose role is PE) wait until the rest of
-        // the page is joined: one whose other end's net holds a 0 V point is an earth wire.
-        let mut roles: BTreeMap<EndpointKey, Option<PotentialType>> = BTreeMap::new();
-        let mut role_of = |e: EndpointKey| -> Option<PotentialType> {
-            roles
-                .entry(e)
-                .or_insert_with(|| {
-                    let cp = CpRef::of(e)?;
-                    q.get::<FunctionCps>(cp.function)
+        // The connections with an end on an earth point wait until the rest of the page is joined: one whose other
+        // end's net holds a 0 V point is an earth wire.
+        let defs = q.get::<crate::index::DefPoints>(());
+        let functions = q.functions();
+        let mut marks: BTreeMap<EndpointKey, Option<Mark>> = BTreeMap::new();
+        let mut mark_of = |e: EndpointKey| -> Option<Mark> {
+            *marks.entry(e).or_insert_with(|| {
+                if let Some(cp) = CpRef::of(e)
+                    && let Some(m) = q
+                        .get::<FunctionCps>(cp.function)
                         .iter()
                         .find(|c| c.idx == cp.idx)
-                        .and_then(|c| c.potential_role.clone())
+                        .and_then(|c| c.potential_role.as_ref())
+                        .and_then(type_mark)
+                {
+                    return Some(m);
+                }
+                let by_def = defs.at(e).find_map(|d| {
+                    let d = q.potential_defs().get(d)?;
+                    match &d.ptype {
+                        Some(t) => type_mark(t),
+                        None => word_mark(d.name.as_str()),
+                    }
+                });
+                by_def.or_else(|| match &functions.get(CpRef::of(e)?.function)?.kind {
+                    FunctionKind::Ip(ip) => word_mark(ip.name.as_str()),
+                    _ => None,
                 })
-                .clone()
+            })
         };
         let mut earth_ended: Vec<(Id<Connection>, EndpointKey, EndpointKey)> = Vec::new();
         let mut zero_volt: Vec<EndpointKey> = Vec::new();
@@ -231,19 +284,19 @@ impl Query for PageLocalNets {
                 continue;
             }
             let Some((a, b)) = ends(c) else { continue };
-            let (ra, rb) = (role_of(a), role_of(b));
-            for (e, r) in [(a, &ra), (b, &rb)] {
-                if is_zero_volt(r.as_ref()) {
+            let (ma, mb) = (mark_of(a), mark_of(b));
+            for (e, m) in [(a, ma), (b, mb)] {
+                if m == Some(Mark::ZeroVolt) {
                     zero_volt.push(e);
                 }
             }
-            if ra == Some(PotentialType::Pe) || rb == Some(PotentialType::Pe) {
+            if matches!(ma, Some(Mark::Earth(_))) || matches!(mb, Some(Mark::Earth(_))) {
                 earth_ended.push((id, a, b));
                 continue;
             }
             join(&mut dsu, &mut via, id, a, b);
         }
-        // An earth wire: exactly one end on a protective-earth point, the other end in a net (as joined without the
+        // An earth wire: exactly one end on an earth point, the other end in a net (as joined without the
         // connections that wait) that holds a 0 V point. The test reads that net only, so the order of the waiting
         // connections decides nothing.
         let zero_volt_nets: BTreeSet<usize> = zero_volt
@@ -257,21 +310,17 @@ impl Query for PageLocalNets {
         let mut joined = Vec::new();
         earth_ended.sort();
         for (id, a, b) in earth_ended {
-            let (pa, pb) = (
-                role_of(a) == Some(PotentialType::Pe),
-                role_of(b) == Some(PotentialType::Pe),
-            );
-            let other = match (pa, pb) {
-                (true, false) => Some((b, a)),
-                (false, true) => Some((a, b)),
+            let other = match (mark_of(a), mark_of(b)) {
+                (Some(Mark::Earth(k)), m) if !matches!(m, Some(Mark::Earth(_))) => Some((b, a, k)),
+                (m, Some(Mark::Earth(k))) if !matches!(m, Some(Mark::Earth(_))) => Some((a, b, k)),
                 _ => None,
             };
-            let earth_wire = other.filter(|(z, _)| {
+            let earth_wire = other.filter(|(z, _, _)| {
                 let i = dsu.node(*z);
                 zero_volt_nets.contains(&dsu.find(i))
             });
             match earth_wire {
-                Some((zero_volt, earth)) => {
+                Some((zero_volt, earth, kind)) => {
                     // Both ends stay nodes of the page, brought in by the earth wire: each side of the bond is a
                     // potential of its own even when nothing else is wired to it.
                     cut.push(id);
@@ -282,6 +331,7 @@ impl Query for PageLocalNets {
                         via: id,
                         zero_volt,
                         earth,
+                        kind,
                     });
                 }
                 None => joined.push((id, a, b)),

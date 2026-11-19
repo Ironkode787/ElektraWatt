@@ -174,8 +174,9 @@ pub struct BondLink {
     pub path_ips: Vec<Id<Function>>,
     /// Their distinct names, natural order: the bond's names ("PE-0VDC" names B1).
     pub names: Vec<String>,
-    /// A drawn bond: a wire from a 0 V point to a protective-earth point (`EarthWire`, doc 08 §3.7), which no
-    /// bond record declares. Its `bond` is the ID of its `via` connection, its kind `Pelv0vPe`, `a` its 0 V side.
+    /// A drawn bond: a wire from a 0 V point to an earth point (`EarthWire`, doc 08 §3.7), which no bond record
+    /// declares. Its `bond` is the ID of its `via` connection, `a` its 0 V side; its kind `Pelv0vPe` to protective
+    /// earth, `Equipotential` to functional earth (the 0 V earthed for function, no PELV bond).
     pub drawn: bool,
 }
 
@@ -481,7 +482,11 @@ pub(crate) fn bond_links(
         .flat_map(|l| l.earth_wires.iter())
         .map(|w| BondLink {
             bond: Id::from_uuid(w.via.as_uuid()),
-            kind: BondKind::Pelv0vPe,
+            // To protective earth the PELV bond; to functional earth the 0 V earthed for function.
+            kind: match w.kind {
+                crate::nets::EarthKind::Protective => BondKind::Pelv0vPe,
+                crate::nets::EarthKind::Functional => BondKind::Equipotential,
+            },
             a: potential_at(w.zero_volt),
             b: potential_at(w.earth),
             via: Some(w.via),
