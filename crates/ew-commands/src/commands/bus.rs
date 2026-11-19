@@ -158,7 +158,8 @@ pub enum BusLineField {
 /// cable device `cable`, or to a new one that `create` makes as `cable.create` makes it (its cores from its part);
 /// `length` sets that cable's length by hand. `plug_a` and `plug_b` set the plug at each line's end a and b; `reset`
 /// removes the cable link or a plug. Each line's page gets the cable's mark (its tag and type at the line, a wire marker
-/// listing the line, as `cable.create` marks cores; rc.5), and a line that leaves a cable leaves its mark. Refused: no
+/// listing the line, as `cable.create` marks cores; rc.5), and a line that leaves a cable leaves its mark; a cable the
+/// lines left that no bus line, core or drawing uses any more is removed in the same step. Refused: no
 /// line; a connection that is no bus line, a device that is no cable, a length of zero or less, a termination on a plug
 /// without a termination switch (in words); both `cable` and `create`; a part the project does not hold (`NotFound`).
 /// One undo step. Outcome: the cable, else the first line.
@@ -202,11 +203,13 @@ impl Command for SetBusCable {
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         let mut lines: Vec<Id<Connection>> = Vec::new();
+        let mut before: Vec<Id<Device>> = Vec::new();
         for l in &self.lines {
             let c = tx.require::<Connection>(*l)?;
-            if !matches!(c.kind, ConnectionKind::Bus(_)) {
+            let ConnectionKind::Bus(line) = &c.kind else {
                 return tx.reject(text!("refusal-bus-line-not", crate::words::wire(tx, *l)));
-            }
+            };
+            before.extend(line.cable.filter(|c| !before.contains(c)));
             if !lines.contains(l) {
                 lines.push(*l);
             }
@@ -301,11 +304,36 @@ impl Command for SetBusCable {
         for (c, ls) in carried {
             crate::commands::cable_mark::mark_cores(tx, c, &ls)?;
         }
+        // A cable the lines left that nothing uses any more (no bus line, no core, no drawing) goes in the same step
+        // (rc.5: a replaced cable stayed in the parts list with no line).
+        let unused: Vec<ew_model::AnyKey> = before
+            .into_iter()
+            .filter(|c| Some(*c) != cable && !cable_in_use(tx, *c))
+            .map(|c| (Kind::Device, c.cast()))
+            .collect();
+        if !unused.is_empty() {
+            tx.delete_many(&unused)?;
+        }
         Ok(match cable {
             Some(c) => Outcome::primary((Kind::Device, c.cast())),
             None => Outcome::primary((Kind::Connection, lines[0].cast())),
         })
     }
+}
+
+/// Whether a cable is used: a bus line it carries, a connection that is one of its cores, or a function of its own (a
+/// drawn definition line).
+fn cable_in_use(tx: &TxBuilder<'_>, cable: Id<Device>) -> bool {
+    if !tx.functions_of_device(cable).is_empty() {
+        return true;
+    }
+    let cores: std::collections::BTreeSet<Id<ew_schema::Conductor>> =
+        tx.conductors_of_cable(cable).into_iter().collect();
+    tx.iter::<Connection>().iter().any(|c| match &c.kind {
+        ConnectionKind::Bus(l) => l.cable == Some(cable),
+        ConnectionKind::Core(k) => cores.contains(k),
+        _ => false,
+    })
 }
 
 /// The refusal of a bus system of a newer format: an edit writes only what this build knows.

@@ -839,6 +839,12 @@ impl ShellModel {
     /// bus layout, rc.5), or on a folio that is not a whole number, where the scheme's `{page}` is not the folio as
     /// written.
     pub(super) fn tag_example(&self, aspect: &str, letter: &str) -> Option<String> {
+        self.tag_example_except(aspect, letter, None)
+    }
+
+    /// [`Self::tag_example`] with the device `except` left out: a cable the same step removes (rc.5, a bus line's
+    /// cable replaced), whose tag the numbering gives again.
+    pub(super) fn tag_example_except(&self, aspect: &str, letter: &str, except: Option<Uuid>) -> Option<String> {
         let row = self.page_rows().get(self.page_index())?;
         let numbered_here = match row.kind.as_str() {
             "multi_line" | "single_line" => true,
@@ -862,7 +868,7 @@ impl ShellModel {
         let taken: std::collections::BTreeSet<String> = q
             .devices()
             .iter()
-            .filter(|(_, d)| d.tag.letter.as_str() == letter)
+            .filter(|(id, d)| d.tag.letter.as_str() == letter && Some(id.as_uuid()) != except)
             .filter_map(|(id, _)| session.device_tag(id.as_uuid()))
             .collect();
         // Bounded: at most one candidate per printed tag is taken.

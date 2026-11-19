@@ -721,6 +721,9 @@ pub(super) const BUS_CABLE: &str = "bus.cable";
 /// (rc.5): it opens the small form of a new bus part, never names a part.
 pub const NEW_BUS_PART: &str = "<new bus part>";
 
+/// The value of A new cable, the first entry of a bus line's Cable form's choice of cable (rc.5).
+const NEW_CABLE: &str = "<new cable>";
+
 impl ShellModel {
     /// The selected connections that are bus lines, in the order of [`Self::selected_wires`].
     pub(super) fn selected_bus_lines(&self) -> Vec<Uuid> {
@@ -798,7 +801,7 @@ impl ShellModel {
         });
         let chosen = match p.get("cable").and_then(Value::as_str).map(str::trim) {
             None => None,
-            Some("") => Some(None),
+            Some("" | NEW_CABLE) => Some(None),
             Some(text) => match form.existing.iter().find(|(id, _)| id.to_string() == text) {
                 Some((id, _)) => Some(Some(*id)),
                 None => {
@@ -809,13 +812,14 @@ impl ShellModel {
         };
         let cable = match (chosen, &typed, form.cable) {
             (Some(Some(c)), _, _) => Some(c),
-            (Some(None), _, _) => named,
+            // A new cable chosen is new even where its tag is the one the lines' cable gives up.
+            (Some(None), _, _) => named.filter(|n| Some(*n) != form.cable),
             (None, None, Some(c)) => Some(c),
             (None, Some(t), Some(c)) if *t == form.tag => Some(c),
             _ => named,
         };
         // A new cable's tag is frozen only when typed other than the next tag the numbering gives.
-        let example = self.tag_example("cable", "W");
+        let example = self.tag_example_except("cable", "W", form.cable.filter(|_| form.left_unused));
         let frozen = match typed.filter(|t| cable.is_none() && Some(t) != example.as_ref()) {
             None => None,
             Some(tag) => match project.session.parse_field_input("device", "tag.frozen", &tag) {
@@ -912,7 +916,7 @@ impl ShellModel {
         if let Some(value) = made {
             // A new cable type makes a new cable for the line, under the next tag.
             if field == "part" {
-                self.set_form_field("cable", "");
+                self.set_form_field("cable", NEW_CABLE);
             }
             self.set_form_field(field, &value);
         }
@@ -923,13 +927,23 @@ impl ShellModel {
     pub(super) fn bus_cable_chosen(&mut self, value: &str) {
         let tag = match value.parse::<Uuid>() {
             Ok(c) => self.project.as_ref().and_then(|p| p.session.device_tag(c)),
-            Err(_) => self.tag_example("cable", "W"),
+            Err(_) => {
+                let replaced = self.replaced_bus_cable();
+                self.tag_example_except("cable", "W", replaced)
+            }
         };
         if let Some(Dialog::Form(form)) = &mut self.dialog
             && let Some(f) = form.fields.iter_mut().find(|f| f.name == "tag")
         {
             f.value = tag.unwrap_or_default();
         }
+    }
+
+    /// The selected lines' cable when a new cable for them leaves it unused, which the step then removes
+    /// (`BusCableForm::left_unused`): its tag is free for the new one.
+    fn replaced_bus_cable(&self) -> Option<Uuid> {
+        let form = self.project.as_ref()?.session.bus_cable_form(&self.selected_bus_lines());
+        form.cable.filter(|_| form.left_unused)
     }
 
     /// The form of [`Self::act_bus_cable`] for `form`, the tag `proposed` for a new cable.
@@ -959,7 +973,7 @@ impl ShellModel {
             .collect();
         // A new cable, or one of the project's bus cables the line runs on in (rc.5).
         let which = std::iter::once((
-            String::new(),
+            NEW_CABLE.to_owned(),
             strings::text(key!("form-bus-cable-new")).to_owned(),
         ))
         .chain(form.existing.iter().map(|(id, w)| (id.to_string(), w.clone())))
@@ -969,7 +983,7 @@ impl ShellModel {
                 "cable",
                 key!("form-bus-cable-which"),
                 which,
-                form.cable.map(|c| c.to_string()).unwrap_or_default(),
+                form.cable.map_or_else(|| NEW_CABLE.to_owned(), |c| c.to_string()),
             ),
             field(
                 "tag",

@@ -72,6 +72,9 @@ pub struct BusCableForm {
     /// The project's cables made for the bus, each with its words (`-902W1 · EW-GEN-CBL-2`), by tag: a further line
     /// can run on in one of them (rc.5).
     pub existing: Vec<(Uuid, String)>,
+    /// Whether the lines' cable carries nothing else (no other line, no core, no drawing): replaced by another, it is
+    /// removed in the same step, and its tag is free again (rc.5).
+    pub left_unused: bool,
 }
 
 /// What [`Session::bus_cable_apply`] is given for one end of the one selected line: the plug part (none: no plug) and
@@ -202,7 +205,16 @@ impl Session {
             })
             .collect();
         existing.sort();
+        let left_unused = cable.is_some_and(|c| {
+            let others = q.connections().iter().any(|(id, x)| match &x.kind {
+                ConnectionKind::Bus(l) => l.cable == Some(c) && !lines.contains(&id.as_uuid()),
+                ConnectionKind::Core(k) => q.conductors().get(*k).is_some_and(|k| k.cable == c),
+                _ => false,
+            });
+            !others && q.idx().functions_of_device(c).next().is_none()
+        });
         BusCableForm {
+            left_unused,
             existing: existing.into_iter().map(|(_, id, w)| (id, w)).collect(),
             system: bus
                 .as_ref()

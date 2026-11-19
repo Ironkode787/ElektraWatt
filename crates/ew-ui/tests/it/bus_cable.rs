@@ -585,3 +585,51 @@ fn the_parts_list_shows_a_bus_lines_plugs_at_once() {
         assert!(nav.iter().any(|t| t == number), "{number} in the navigator: {nav:?}");
     }
 }
+
+/// rc.5: a new cable chosen for a line whose cable carries nothing else takes that cable's place: the form proposes
+/// the tag the numbering then gives (the old cable's, free again), the old cable goes in the same step, so the parts
+/// list holds the new cable only, and one Undo brings the old one back.
+#[test]
+fn a_replaced_bus_cable_goes_and_its_tag_is_proposed_again() {
+    let tmp = Tmp::new();
+    let (mut d, cpu, rio) = bus_page(&tmp);
+    bus_line(&mut d, &cpu, &rio, true);
+    assert_eq!(
+        d.shell_mut().dispatch("cable.from_wires", &json!({})),
+        Outcome::Done
+    );
+    d.settle();
+    assert_eq!(d.shell_mut().submit_form(), Outcome::Done);
+    d.settle();
+    let cables = |d: &mut ew_ui::visual::Driver| -> Vec<String> {
+        crate::own_parts::records(d)
+            .into_iter()
+            .filter(|r| r.get("cable").is_some() && r.get("tag").is_some())
+            .map(|r| r["parts"][0]["part"]["copy"].to_string())
+            .collect()
+    };
+    assert_eq!(cables(&mut d).len(), 1, "one cable");
+    assert_eq!(
+        d.shell_mut().dispatch("cable.from_wires", &json!({})),
+        Outcome::Done
+    );
+    d.settle();
+    let new_cable = option(&mut d, "cable", "A new cable");
+    d.shell_mut().set_form_field("cable", &new_cable);
+    let proposed = field_value(&mut d, "tag");
+    assert_eq!(proposed, "-2W1", "the replaced cable's tag is free again");
+    let other = option(&mut d, "part", "EW-GEN-CBL-26");
+    d.shell_mut().set_form_field("part", &other);
+    assert_eq!(d.shell_mut().submit_form(), Outcome::Done);
+    d.settle();
+    let toast = d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert!(toast.contains("-2W1"), "{toast}");
+    let now = cables(&mut d);
+    assert_eq!(now.len(), 1, "the replaced cable is gone: {now:?}");
+    assert!(now[0].contains(&other), "{now:?}");
+    assert_eq!(d.shell_mut().dispatch("edit.undo", &json!({})), Outcome::Done);
+    d.settle();
+    let back = cables(&mut d);
+    assert_eq!(back.len(), 1, "{back:?}");
+    assert!(!back[0].contains(&other), "the old cable is back: {back:?}");
+}

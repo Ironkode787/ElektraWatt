@@ -582,6 +582,9 @@ pub struct PhysicalNet { pub name: Ident, pub medium: Medium,           // added
   bus, straight or angled, programming socket and switchable resistor, worded into its description), chosen in the
   form at once. The cable's cores are used by its line: the cable overview and `api_v1_conductor` give each core the
   line's ends, and Connect cores… offers none of them; a cable with a length entered counts it in the parts list.
+  A new cable chosen for lines whose cable then carries nothing (no other line, no core, no drawing) removes that
+  cable in the same step, and the form proposes the tag the numbering then gives. A plug at an end without a device
+  (an interruption point) counts with the line's cable, else with the device at the other end.
 - **As built (WP-S1.24).** `NetAddress` types `profinet {name, ip?, mask?, gateway?}`, `ethercat {position?, alias?}`
   and `io_link_port` besides `profibus` (new values that an older reader keeps as `Unknown`); `BusPort` has the
   optional `mrp` (`manager`, `client`). The P1/P2 neighbours of FR-BUS-010 are the ports' `Bus` connections, read from
