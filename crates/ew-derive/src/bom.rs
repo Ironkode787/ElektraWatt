@@ -103,8 +103,10 @@ pub struct PartLine {
 /// lines, so a reader of the first line keeps the device's own part. Then the fluid lines (doc 11 §8.2, FR-FLU-014):
 /// the closure parts of its ports ([`LineSource::Closure`]), the tube parts of the tubes it owns (the device of the
 /// tube's from end, else of its to end; [`LineSource::Tube`]) and the fittings at its tube ends and the tees it owns ([`LineSource::Fitting`]), in that
-/// order. Last the plugs at the ends of the bus lines on its ports ([`LineSource::Plug`], by function, CP and line). A
-/// line whose part copy is missing is dropped.
+/// order. Last the plugs at the ends of the bus lines on its ports ([`LineSource::Plug`], by function, CP and line);
+/// a plug at an end without a device (an interruption point, a port of no device yet) is its line's cable's, else the
+/// device's at the other end, so that every plug is in the lists once (rc.5). A line whose part copy is missing is
+/// dropped.
 #[derive(Debug)]
 pub struct DevicePartLines;
 
@@ -231,8 +233,11 @@ impl Query for DevicePartLines {
                         continue;
                     };
                     for (end, plug) in [(&conn.a, &line.plug_a), (&conn.b, &line.plug_b)] {
-                        if let (ew_schema::Endpoint::Cp(ef, ei), Some(p)) = (end, plug)
-                            && (*ef, *ei) == (f, idx)
+                        let here = matches!(end, ew_schema::Endpoint::Cp(ef, ei) if (*ef, *ei) == (f, idx));
+                        // An end without a device of its own gives its plug to the device at the other end.
+                        if let Some(p) = plug
+                            && (here || end_device(q, end).is_none())
+                            && plug_owner(q, &conn, end) == Some(*key)
                         {
                             push(&p.part, Dec3::ONE, LineSource::Plug);
                         }
@@ -240,8 +245,49 @@ impl Query for DevicePartLines {
                 }
             }
         }
+        // A cable carries the plugs of its bus lines' ends that sit on no device (an interruption point, a port of no
+        // device yet).
+        if dev.aspects.cable.is_some() {
+            let mut carried: Vec<_> = q
+                .connections()
+                .iter()
+                .filter(|(_, c)| matches!(&c.kind, ew_schema::ConnectionKind::Bus(l) if l.cable == Some(*key)))
+                .map(|(_, c)| Arc::clone(c))
+                .collect();
+            carried.sort_by_key(|c| c.id);
+            for conn in carried {
+                let ew_schema::ConnectionKind::Bus(line) = &conn.kind else {
+                    continue;
+                };
+                for (end, plug) in [(&conn.a, &line.plug_a), (&conn.b, &line.plug_b)] {
+                    if let Some(p) = plug
+                        && end_device(q, end).is_none()
+                    {
+                        push(&p.part, Dec3::ONE, LineSource::Plug);
+                    }
+                }
+            }
+        }
         Arc::new(lines)
     }
+}
+
+/// The device of a connection's end: the device of the function whose CP it is; `None` for a function without one
+/// (an interruption point, a port of no device yet) and for a junction.
+fn end_device(q: &Q, end: &ew_schema::Endpoint) -> Option<Id<Device>> {
+    q.functions().get(end.function()?)?.device
+}
+
+/// The device whose part lines count the plug at end `end` of the bus line `conn` (rc.5: a plug at an end without a
+/// device was in no list): the device at that end, else the line's cable, else the device at the other end.
+fn plug_owner(q: &Q, conn: &ew_schema::Connection, end: &ew_schema::Endpoint) -> Option<Id<Device>> {
+    let ew_schema::ConnectionKind::Bus(line) = &conn.kind else {
+        return None;
+    };
+    let other = if std::ptr::eq(end, &conn.a) { &conn.b } else { &conn.a };
+    end_device(q, end)
+        .or(line.cable)
+        .or_else(|| end_device(q, other))
 }
 
 /// The device that owns a tube's BOM lines: the device of its from end, else of its to end (a tube from a tee), so a

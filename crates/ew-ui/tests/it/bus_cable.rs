@@ -446,3 +446,142 @@ fn a_new_bus_cable_and_plug_are_made_in_the_cable_form() {
     );
     assert!(row("BUS-PLG-9").contains(",1,pc,"), "{bom}");
 }
+
+/// The parts list page's part numbers and, with `nav` (it takes the keyboard), the Parts navigator's part rows, read in
+/// the window as they stand.
+fn parts_now(d: &mut ew_ui::visual::Driver, nav: bool) -> (Vec<String>, Vec<String>) {
+    assert_eq!(
+        d.shell_mut().dispatch("page.goto", &json!({"folio": "901"})),
+        Outcome::Done
+    );
+    d.settle();
+    let page = crate::own_parts::page_texts(d)
+        .into_iter()
+        .filter(|t| t.starts_with("EW-GEN-"))
+        .collect();
+    if !nav {
+        assert_eq!(
+            d.shell_mut().dispatch("page.goto", &json!({"folio": "2"})),
+            Outcome::Done
+        );
+        d.settle();
+        return (page, Vec::new());
+    }
+    assert_eq!(
+        d.shell_mut().dispatch("navigator.show", &json!({ "kind": "parts" })),
+        Outcome::Done
+    );
+    d.settle();
+    let nav = d
+        .shell_mut()
+        .nav(ew_ui::ew_viewmodel::ew_api::output::NavKind::Parts)
+        .and_then(|n| n.table())
+        .map(|t| {
+            t.nodes
+                .iter()
+                .map(|n| n.label.clone())
+                .filter(|l| l.starts_with("EW-GEN-"))
+                .collect()
+        })
+        .unwrap_or_default();
+    assert_eq!(
+        d.shell_mut().dispatch("page.goto", &json!({"folio": "2"})),
+        Outcome::Done
+    );
+    d.settle();
+    (page, nav)
+}
+
+/// H15 (rc.5): with the parts list page open before, a bus line's cable and plugs chosen in the Cable form are on that
+/// page and in the Parts navigator at once, without a save; a plug at an end without a device (an interruption point)
+/// counts too, with the cable.
+#[test]
+fn the_parts_list_shows_a_bus_lines_plugs_at_once() {
+    let tmp = Tmp::new();
+    let (mut d, cpu, rio) = bus_page(&tmp);
+    let block = json!({"kind": "parts_summary", "folio": "901"});
+    assert_eq!(d.shell_mut().dispatch("report_block.new", &block), Outcome::Done);
+    d.settle();
+    let (page, _) = parts_now(&mut d, false);
+    assert!(!page.iter().any(|t| t.contains("PLG")), "{page:?}");
+    bus_line(&mut d, &cpu, &rio, true);
+    assert_eq!(
+        d.shell_mut().dispatch("cable.from_wires", &json!({})),
+        Outcome::Done
+    );
+    d.settle();
+    let (a, b) = (
+        option(&mut d, "plug_a", "EW-GEN-PLG-5"),
+        option(&mut d, "plug_b", "EW-GEN-PLG-1"),
+    );
+    d.shell_mut().set_form_field("plug_a", &a);
+    d.shell_mut().set_form_field("plug_b", &b);
+    assert_eq!(d.shell_mut().submit_form(), Outcome::Done);
+    d.settle();
+    let (page, _) = parts_now(&mut d, false);
+    for number in ["EW-GEN-CBL-2", "EW-GEN-PLG-5", "EW-GEN-PLG-1"] {
+        assert!(page.iter().any(|t| t == number), "{number} on the open page: {page:?}");
+    }
+    // A line from the CPU's DP to an interruption point: its plug there is the cable's.
+    let before = crate::own_parts::cp_labels(&mut d);
+    assert_eq!(d.shell_mut().dispatch("tool.ip", &json!({})), Outcome::Done);
+    d.settle();
+    crate::own_parts::cursor_k(&mut d, (45, 15));
+    assert_eq!(
+        d.shell_mut().dispatch("canvas.activate", &json!({})),
+        Outcome::Done
+    );
+    d.settle();
+    d.input(&key("Escape"));
+    d.input(&key("Escape"));
+    d.settle();
+    let ip = crate::own_parts::cp_labels(&mut d)
+        .into_iter()
+        .find(|l| !before.contains(l))
+        .expect("the interruption point");
+    d.input(&key("W"));
+    d.settle();
+    press_cp(&mut d, &ip);
+    press_cp(&mut d, cpu.iter().find(|l| !l.ends_with(":P1")).expect("DP"));
+    d.input(&key("Escape"));
+    d.input(&key("Escape"));
+    d.settle();
+    let lines: Vec<String> = d
+        .shell_mut()
+        .canvas()
+        .expect("the page")
+        .page()
+        .tables
+        .connections
+        .iter()
+        .map(|c| c.id.to_string())
+        .collect();
+    assert_eq!(lines.len(), 2, "two bus lines");
+    let new_line = lines
+        .into_iter()
+        .find(|l| {
+            !crate::own_parts::records(&mut d)
+                .iter()
+                .any(|r| r["id"] == json!(l) && r["kind"]["bus"]["cable"].is_string())
+        })
+        .expect("the line without a cable");
+    assert_eq!(
+        d.shell_mut().dispatch("select.set", &json!({"ids": [new_line]})),
+        Outcome::Done
+    );
+    d.settle();
+    assert_eq!(
+        d.shell_mut().dispatch("cable.from_wires", &json!({})),
+        Outcome::Done
+    );
+    d.settle();
+    let plug = option(&mut d, "plug_a", "EW-GEN-PLG-2");
+    d.shell_mut().set_form_field("plug_a", &plug);
+    assert_eq!(d.shell_mut().submit_form(), Outcome::Done);
+    d.settle();
+    let (page, nav) = parts_now(&mut d, true);
+    for number in ["EW-GEN-CBL-2", "EW-GEN-PLG-5", "EW-GEN-PLG-1", "EW-GEN-PLG-2"] {
+        assert!(page.iter().any(|t| t == number), "{number} on the open page: {page:?}");
+        assert!(nav.iter().any(|t| t == number), "{number} in the navigator: {nav:?}");
+    }
+}
