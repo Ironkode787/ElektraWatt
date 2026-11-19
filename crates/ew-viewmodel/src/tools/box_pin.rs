@@ -309,6 +309,10 @@ impl Tool for PinNameTool {
     }
 
     fn ghost(&self) -> Option<Ghost> {
+        // Armed, nothing is typed yet: the status line alone says what a click does.
+        if self.armed {
+            return None;
+        }
         Some(Ghost::Text {
             at_nm: Some(self.pin.1),
             text: self.name.clone(),
