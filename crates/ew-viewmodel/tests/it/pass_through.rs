@@ -419,8 +419,9 @@ fn a_direct_route_on_another_wire_s_track_is_left_to_the_router() {
 
 // A black box's caption is an obstacle to the router, the through route included. Beside the line the through route is still taken; standing on the line it is not.
 
-/// Draws a MICO 4.10 black box with the grid corners `a` and `b` (it grows until its CPs fit) and returns the page
-/// rectangles `[x0, y0, x1, y1]` of its texts left of its outline (up to its edge): its caption.
+/// Draws a MICO 4.10 black box with the grid corners `a` and `b` (it grows until its CPs fit with room for their
+/// upright texts, rc.5) and returns the page rectangles `[x0, y0, x1, y1]` of its texts left of its outline or above
+/// it: its caption.
 fn black_box_caption(s: &mut ShellModel, a: (i64, i64), b: (i64, i64)) -> Vec<[i64; 4]> {
     done(s, "tool.black_box", json!({"part": "MICO 4.10", "template": 0}));
     for k in [a, b] {
@@ -433,15 +434,9 @@ fn black_box_caption(s: &mut ShellModel, a: (i64, i64), b: (i64, i64)) -> Vec<[i
     done(s, "tool.select", json!({}));
     let t = tables(s);
     let rep = t.reps.iter().find(|r| r.black_box.is_some()).expect("the box");
-    let left = rep
-        .black_box
-        .as_ref()
-        .unwrap()
-        .outline
-        .iter()
-        .map(|p| p.0)
-        .min()
-        .unwrap();
+    let outline = &rep.black_box.as_ref().unwrap().outline;
+    let left = outline.iter().map(|p| p.0).min().unwrap();
+    let top = outline.iter().map(|p| p.1).min().unwrap();
     let page = s.canvas().unwrap().page();
     page.entities
         .iter()
@@ -451,7 +446,7 @@ fn black_box_caption(s: &mut ShellModel, a: (i64, i64), b: (i64, i64)) -> Vec<[i
             let q = page.snapper.sheet_to_page((r.max().x.0, r.max().y.0));
             [p.0.min(q.0), p.1.min(q.1), p.0.max(q.0), p.1.max(q.1)]
         })
-        .filter(|r| r[2] <= left)
+        .filter(|r| r[2] <= left || r[3] <= top)
         .collect()
 }
 
@@ -459,7 +454,7 @@ fn black_box_caption(s: &mut ShellModel, a: (i64, i64), b: (i64, i64)) -> Vec<[i
 fn the_through_route_passes_a_black_box_whose_caption_stands_beside_the_line() {
     let tmp = Tmp::new("c39-box-beside");
     let mut s = circuit(&tmp, (60, 40));
-    let caption = black_box_caption(&mut s, (68, 34), (72, 40));
+    let caption = black_box_caption(&mut s, (65, 34), (69, 40));
     let (switch, coil) = (cp(&s, "-103S1:14"), cp(&s, "-103K1:A1"));
     let x = switch.at.0;
     let g = grid_point(&s, (1, 0)).0 - grid_point(&s, (0, 0)).0;
@@ -494,7 +489,7 @@ fn the_through_route_passes_a_black_box_whose_caption_stands_beside_the_line() {
 fn a_black_box_caption_on_the_line_turns_the_through_route_away() {
     let tmp = Tmp::new("c39-box-on");
     let mut s = circuit(&tmp, (60, 40));
-    let caption = black_box_caption(&mut s, (66, 36), (70, 42));
+    let caption = black_box_caption(&mut s, (63, 36), (67, 42));
     let (switch, coil) = (cp(&s, "-103S1:14"), cp(&s, "-103K1:A1"));
     let x = switch.at.0;
     // The case: a caption line crosses the straight run between the terminal and the coil.
@@ -589,7 +584,7 @@ fn a_wire_keeps_out_of_the_title_block() {
     place(
         &mut s,
         json!({"symbol": "ew.iec.coil@qet10", "letter": "K"}),
-        (88, 56),
+        (98, 56),
     );
     let (a, b) = (cp(&s, "-103K2:A2"), cp(&s, "-103K3:A2"));
     let before = tables(&s);

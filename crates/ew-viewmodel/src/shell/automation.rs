@@ -1618,7 +1618,6 @@ impl ShellModel {
                 (snap(x + SIZE.0), snap(y + SIZE.1)),
                 &entry.cps,
                 &[],
-                true,
             ) else {
                 continue;
             };

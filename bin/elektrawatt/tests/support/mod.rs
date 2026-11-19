@@ -375,6 +375,23 @@ fn part_outputs(id: &str) -> Vec<u16> {
         .unwrap_or_default()
 }
 
+/// The CP designations of Golden A's part copy `id` (its `cp_pattern`): (index, designation).
+fn part_designations(id: &str) -> Vec<(u16, String)> {
+    let path = Path::new(GOLDEN_A).join("lib/parts").join(format!("{id}.json"));
+    let doc: Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    doc["cp_pattern"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|c| {
+            (
+                c["idx"].as_u64().unwrap() as u16,
+                c["designation"].as_str().unwrap_or_default().to_owned(),
+            )
+        })
+        .collect()
+}
+
 /// A press, a move and a release of the pointer from `from` to `to` (page nm), with the Select tool.
 fn drag(map: SheetMap, from: (i64, i64), to: (i64, i64)) -> Vec<(String, Value)> {
     let (a, b) = (map.mm(from), map.mm(to));
@@ -428,11 +445,16 @@ fn black_box_steps(
         steps.push(("canvas.activate".into(), json!({})));
     }
     steps.push(("ui.dismiss".into(), json!({})));
-    // The tool's default layout (the template's CPs in index order, which is the golden template order).
-    let cps: Vec<(u16, String)> = golden.iter().map(|(i, _)| (*i, i.to_string())).collect();
+    // The tool's default layout (the template's CPs in index order, which is the golden template order), with their
+    // designations, which size the box (rc.5).
+    let names = part_designations(device["parts"][0]["part"]["copy"].as_str().unwrap());
+    let cps: Vec<(u16, String)> = golden
+        .iter()
+        .map(|(i, _)| (*i, names.iter().find(|n| n.0 == *i).map_or_else(|| i.to_string(), |n| n.1.clone())))
+        .collect();
     let g = PageGridMap::new(grid);
     let outputs = part_outputs(device["parts"][0]["part"]["copy"].as_str().unwrap());
-    let (origin, _, laid) = layout(g, pos, far, &cps, &outputs, false).expect("the default layout");
+    let (origin, drawn, laid) = layout(g, pos, far, &cps, &outputs).expect("the default layout");
     let mut current: Vec<(u16, (i64, i64))> = laid
         .iter()
         .map(|(i, p, _)| (*i, (origin.0 + p.0, origin.1 + p.1)))
@@ -442,6 +464,32 @@ fn black_box_steps(
     let (x, y) = map.mm(inside);
     steps.push(("canvas.press".into(), json!({"x_mm": x, "y_mm": y})));
     steps.push(("canvas.release".into(), json!({"x_mm": x, "y_mm": y})));
+    // The tool drew the box wider than golden's, where its pins' upright texts need the room (rc.5): its right edge's
+    // grip is dragged back to golden's, and the pins of each side stand centred again as `box.reshape` puts them
+    // (their spacing kept, closed up as far as the shorter side needs).
+    let right = origin.0 + drawn[1].0;
+    if right != far.0 {
+        let mid = (right, pos.1 + (far.1 - pos.1) / 2);
+        steps.extend(drag(map, mid, (far.0, mid.1)));
+        let (lo, hi) = (g.index(pos.0), g.index(far.0));
+        let room = hi - lo - 2;
+        for y in [pos.1, far.1] {
+            let mut side: Vec<usize> = (0..current.len()).filter(|i| current[*i].1.1 == y).collect();
+            side.sort_by_key(|i| current[*i].1.0);
+            let ks: Vec<i64> = side.iter().map(|i| g.index(current[*i].1.0)).collect();
+            let gaps: Vec<i64> = ks.windows(2).map(|w| w[1] - w[0]).collect();
+            let fits = |cap: i64| gaps.iter().map(|d| (*d).min(cap)).sum::<i64>() <= room;
+            let cap = (1..=gaps.iter().copied().max().unwrap_or(0)).rev().find(|c| fits(*c)).unwrap_or(1);
+            let span: i64 = gaps.iter().map(|d| (*d).min(cap)).sum();
+            let mut k = lo + 1 + (room - span) / 2;
+            for (n, i) in side.iter().enumerate() {
+                if n > 0 {
+                    k += gaps[n - 1].min(cap);
+                }
+                current[*i].1.0 = g.coord(k);
+            }
+        }
+    }
     loop {
         let pending: Vec<(u16, (i64, i64))> = golden
             .iter()
