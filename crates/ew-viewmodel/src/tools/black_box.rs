@@ -17,10 +17,10 @@
 //! rectangle relative to pos (v0 top-left, then clockwise), cps}, target}`. **Default CPs** for a part target: the
 //! template entry's CPs in template order, the first `⌈n/2⌉` on the top edge and the rest on the bottom edge, left to
 //! right, leaving up and down; an entry with a source's outputs among its CPs (a power supply's + and −) has its inputs
-//! on the top edge and its outputs on the bottom one (FT-1702); when an edge is too short the rectangle grows to the right until they fit
-//! one common pitch apart with one pitch to spare at each corner, the pitch the whole grid steps that hold the edge's
-//! widest upright pin text with a millimetre to spare (`ew_api::part_box::pin_text_room`, rc.5; at least one step).
-//! On a wider box the CPs of an edge spread over its drawn length:
+//! on the top edge and its outputs on the bottom one (FT-1702); when an edge is too short the rectangle grows to the right until they fit one grid step
+//! apart with one grid step to spare at each corner (a PLC card's box, which the program sizes: one common pitch apart
+//! and one pitch to spare, the pitch the whole grid steps that hold the edge's widest upright pin text with a
+//! millimetre to spare, `ew_api::part_box::pin_text_room`, rc.5). On a wider box the CPs of an edge spread over its drawn length:
 //! one common pitch, the largest whole number of grid steps that fits `m + 1` times into the edge, the group
 //! centred (half a step to the left when it cannot be centred exactly). Without a part, no CPs.
 //!
@@ -148,6 +148,7 @@ pub fn port_layouts(
             (grid.coord(x + width), b.1),
             &i.sockets,
             &[],
+            false,
         )?;
         let right = l.0.0 + l.1.get(1).map_or(0, |p| p.0);
         x = grid.index(right) + 2;
@@ -165,14 +166,16 @@ pub type BoxLayout = ((i64, i64), Vec<(i64, i64)>, Vec<(u16, (i64, i64), Dir)>);
 
 /// The box with corners `a` and `b` (page nm, grid points) and the CPs `cps` laid out on its top and bottom edges:
 /// with some but not all of them among `outputs` (a source's outputs) the others on top and those below, else the first
-/// half on top; `None` for a rectangle without height, or without width when no CP widens it. An edge too short for its
-/// pins grows until their upright texts fit on one line (rc.5).
+/// half on top; `None` for a rectangle without height, or without width when no CP widens it. With `room` (a box the
+/// program sizes: a PLC card's) an edge too short for its pins grows until their upright texts fit on one line, else
+/// until they fit one grid step apart.
 pub fn layout(
     grid: PageGridMap,
     a: (i64, i64),
     b: (i64, i64),
     cps: &[(u16, String)],
     outputs: &[u16],
+    room: bool,
 ) -> Option<BoxLayout> {
     let (ax, bx) = (grid.index(a.0), grid.index(b.0));
     let (ay, by) = (grid.index(a.1), grid.index(b.1));
@@ -187,11 +190,13 @@ pub fn layout(
     let (cps, top) = ew_api::part_box::split(&indices, outputs);
     let bottom = n - top;
     if n > 0 {
-        // Each edge as long as its pins need one common pitch: the steps that hold their upright texts on one line.
+        // Each edge as long as its pins need one common pitch: one step, or with `room` the steps that hold their
+        // upright texts on one line.
         let step = grid.step().max(1);
         let need_of = |edge: &[u16]| -> i64 {
             let pitch = edge
                 .iter()
+                .filter(|_| room)
                 .filter_map(|i| names.iter().find(|c| c.0 == *i))
                 .map(|c| (ew_api::part_box::pin_text_room(&c.1) + step - 1) / step)
                 .max()
@@ -528,7 +533,7 @@ impl BlackBoxTool {
         let grid = PageGridMap::new(cx.page.tables.grid);
         match &self.target {
             BoxTarget::Ports { interfaces, .. } => port_layouts(grid, first, at, interfaces),
-            _ => layout(grid, first, at, self.cps(), self.outputs()).map(|l| vec![l]),
+            _ => layout(grid, first, at, self.cps(), self.outputs(), false).map(|l| vec![l]),
         }
     }
 
@@ -1216,8 +1221,15 @@ mod tests {
     fn the_default_cps_go_half_on_top_and_grow_the_rectangle() {
         let g = PageGridMap::new((4_000_000, 1));
         let cps: Vec<(u16, String)> = (0..7).map(|i| (i, i.to_string())).collect();
-        let (pos, outline, laid) =
-            layout(g, (8_000_000, 12_000_000), (16_000_000, 36_000_000), &cps, &[]).unwrap();
+        let (pos, outline, laid) = layout(
+            g,
+            (8_000_000, 12_000_000),
+            (16_000_000, 36_000_000),
+            &cps,
+            &[],
+            false,
+        )
+        .unwrap();
         assert_eq!(pos, (8_000_000, 12_000_000));
         // Four on top need five grid steps of width: the rectangle grew from two to five.
         assert_eq!(
@@ -1229,11 +1241,11 @@ mod tests {
         assert_eq!(laid[4], (4, (4_000_000, 24_000_000), Dir::Down));
         assert_eq!(laid[6], (6, (12_000_000, 24_000_000), Dir::Down));
         assert!(
-            layout(g, (0, 0), (5_000_000, 0), &cps, &[]).is_none(),
+            layout(g, (0, 0), (5_000_000, 0), &cps, &[], false).is_none(),
             "no height"
         );
         assert!(
-            layout(g, (0, 0), (0, 5_000_000), &[], &[]).is_none(),
+            layout(g, (0, 0), (0, 5_000_000), &[], &[], false).is_none(),
             "no width and no CP"
         );
     }
@@ -1244,7 +1256,7 @@ mod tests {
     fn the_default_cps_leave_room_for_upright_texts() {
         let g = PageGridMap::new((4_000_000, 1));
         let cps: Vec<(u16, String)> = (0..6).map(|i| (i, format!("24VDC {i}"))).collect();
-        let (_, outline, laid) = layout(g, (0, 0), (8_000_000, 20_000_000), &cps, &[]).unwrap();
+        let (_, outline, laid) = layout(g, (0, 0), (8_000_000, 20_000_000), &cps, &[], true).unwrap();
         let room = ew_api::part_box::pin_text_room("24VDC 0");
         let top: Vec<i64> = laid.iter().filter(|c| c.2 == Dir::Up).map(|c| c.1.0).collect();
         assert_eq!(top.len(), 3);
@@ -1264,7 +1276,7 @@ mod tests {
         let g = PageGridMap::new((1_000_000, 1));
         let cps: Vec<(u16, String)> = (0..5).map(|i| (i, i.to_string())).collect();
         // Twelve steps wide: three on top at pitch 3 (12 / 4), from 3; two below at pitch 4 (12 / 3), from 4.
-        let (_, outline, laid) = layout(g, (0, 0), (12_000_000, 6_000_000), &cps, &[]).unwrap();
+        let (_, outline, laid) = layout(g, (0, 0), (12_000_000, 6_000_000), &cps, &[], false).unwrap();
         assert_eq!(outline[1], (12_000_000, 0), "the drawn width is kept");
         let xs: Vec<(i64, Dir)> = laid.iter().map(|(_, p, d)| (p.0 / 1_000_000, *d)).collect();
         assert_eq!(

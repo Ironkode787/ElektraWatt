@@ -471,7 +471,7 @@ fn the_black_box_tool_with_the_mico_part_gives_ten_cps_that_report_its_device() 
         json!({"kind": "box", "outline": 0, "cps": 10})
     );
     let rev = s.revision();
-    // A rectangle two grid steps wide grows until five CPs fit on top with room for their texts.
+    // A rectangle two grid steps wide grows until five CPs fit on top.
     enter_k(&mut s, (30, 30));
     assert_eq!(s.tool().state(), "outline");
     cursor_k(&mut s, (32, 36));
@@ -497,8 +497,7 @@ fn the_black_box_tool_with_the_mico_part_gives_ten_cps_that_report_its_device() 
         .clone();
     let b = rep.black_box.as_ref().unwrap();
     assert_eq!(b.outline.len(), 4);
-    // Five pins a side, one common pitch apart that holds "24VDC" upright on one line (four QET steps; rc.5).
-    assert_eq!(index_of(&s, b.outline[1]).0 - index_of(&s, b.outline[0]).0, 24);
+    assert_eq!(index_of(&s, b.outline[1]).0 - index_of(&s, b.outline[0]).0, 6);
     assert_eq!(b.cps.len(), 10);
     let device = rep.device.expect("a device");
     let _ = device;
