@@ -463,7 +463,8 @@ pub struct BomRow {
 ///    short tag, full tag and ID (natural order); the pages are those of the main representations of the devices
 ///    with a line other than an end-bracket line ([`LineSource::GroupAccessory`]) together with, for a line of a
 ///    layout object (the device of an enclosure or of a mounting surface, a carrier line, an end-bracket line), the
-///    panel-layout pages whose surface view shows its surface (-UC1's rows print folio 902;
+///    panel-layout pages whose surface view shows its surface, and for a plug at a bus line's end of no device, that
+///    line's page (rc.5) (-UC1's rows print folio 902;
 ///    An end-bracket line prints the panel pages of its rails and none of its strip's representation
 ///    pages, so row 26 prints 902), in page order. That is the Folios cell only: the order below
 ///    reads the representations alone. The covers of a configured row are the union of its configs' covers.
@@ -518,6 +519,9 @@ impl Query for BomRows {
             if !views.is_empty() {
                 e.surfaces.extend(line_surfaces(q, &l.line));
             }
+            if l.line.source == LineSource::Plug {
+                e.line_pages.extend(plug_pages(q, l.line.device, l.line.part));
+            }
         }
 
         let mut rows: Vec<(RowOrder, BomRow)> = Vec::new();
@@ -529,6 +533,7 @@ impl Query for BomRows {
                 drawn,
                 covers,
                 surfaces,
+                line_pages,
             },
         ) in acc
         {
@@ -546,6 +551,7 @@ impl Query for BomRows {
                 .map(|(_, p)| p.page)
                 .collect();
             pages.extend(surfaces.iter().filter_map(|s| views.get(s)).flatten().copied());
+            pages.extend(line_pages.into_iter().map(PageRef::Drawn));
             pages.sort_by_key(|p| (order.position(*p).unwrap_or(usize::MAX), *p));
             pages.dedup();
             let mut devices: Vec<Id<Device>> = devices.into_iter().collect();
@@ -614,6 +620,29 @@ struct Acc {
     covers: BTreeSet<Id<Device>>,
     /// The surfaces the row's layout-object lines show (their panel pages print in the Folios cell).
     surfaces: BTreeSet<Id<MountingSurface>>,
+    /// The pages of the bus lines whose plugs at an end of no device the row counts: their place (rc.5).
+    line_pages: BTreeSet<Id<Page>>,
+}
+
+/// The pages of the bus lines with a plug of part `part` at an end of no device that `device` counts
+/// ([`plug_owner`]): the place of such a plug in the Folios cell.
+fn plug_pages(q: &Q, device: Id<Device>, part: Id<Part>) -> Vec<Id<Page>> {
+    q.connections()
+        .iter()
+        .filter_map(|(_, c)| {
+            let ew_schema::ConnectionKind::Bus(line) = &c.kind else {
+                return None;
+            };
+            let here = [(&c.a, &line.plug_a), (&c.b, &line.plug_b)]
+                .into_iter()
+                .any(|(end, plug)| {
+                    plug.as_ref().is_some_and(|p| p.part.copy == part)
+                        && end_device(q, end).is_none()
+                        && plug_owner(q, c, end) == Some(device)
+                });
+            here.then_some(c.page).flatten()
+        })
+        .collect()
 }
 
 /// A part line after the mode filter, with the devices it covers (a config line) or none.

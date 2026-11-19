@@ -155,6 +155,15 @@ fn device_set(q: &Q, devices: impl IntoIterator<Item = Id<Device>>) -> String {
     tags.into_iter().map(|(_, t)| t).collect::<Vec<_>>().join(", ")
 }
 
+/// The devices of a cable's end, then the external point its bus line ends at.
+fn with_point(devices: String, point: Option<String>) -> String {
+    match point {
+        Some(p) if devices.is_empty() => p,
+        Some(p) => format!("{devices}, {p}"),
+        None => devices,
+    }
+}
+
 /// The functions at the two ends of the bus line a cable carries (`ew_derive::cable_bus_line`), end a first.
 fn bus_line_ports(q: &Q, cable: Id<Device>) -> [Option<Id<Function>>; 2] {
     ew_derive::cable_bus_line(q, cable).map_or([None, None], |l| [l.a.function(), l.b.function()])
@@ -166,6 +175,13 @@ fn cable_row(q: &Q, cable: Id<Device>, by_core: &BTreeMap<Id<Conductor>, &WireRe
     let [pa, pb] = bus_line_ports(q, cable);
     a.extend(pa.and_then(|f| super::conn::device_of(q, f)));
     b.extend(pb.and_then(|f| super::conn::device_of(q, f)));
+    // An end of no device (an external point) is named as the core rows name it.
+    let point = |f: Option<Id<Function>>| {
+        f.filter(|f| super::conn::device_of(q, *f).is_none())
+            .map(|f| ew_derive::bus_end_label(q, f))
+            .filter(|t| !t.is_empty())
+    };
+    let (point_a, point_b) = (point(pa), point(pb));
     for c in q.idx().conductors_of_cable(cable) {
         if let Some(w) = by_core.get(&c) {
             // A terminal end is its strip: end A of -106W1 is `-X1031, -X1032`, not the single terminals.
@@ -194,8 +210,8 @@ fn cable_row(q: &Q, cable: Id<Device>, by_core: &BTreeMap<Id<Conductor>, &WireRe
             Cell::Empty,
             Cell::Empty,
             Cell::Empty,
-            text_cell(device_set(q, a)),
-            text_cell(device_set(q, b)),
+            text_cell(with_point(device_set(q, a), point_a)),
+            text_cell(with_point(device_set(q, b), point_b)),
             length_cell(q, cable),
         ],
     );

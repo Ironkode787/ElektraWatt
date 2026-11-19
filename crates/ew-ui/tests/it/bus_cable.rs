@@ -594,6 +594,60 @@ fn the_parts_list_shows_a_bus_lines_plugs_at_once() {
             "{number} in the navigator: {nav:?}"
         );
     }
+    // The plug at the interruption point counts with the line's cable, its line's page as its place.
+    assert_eq!(d.shell_mut().dispatch("file.save", &json!({})), Outcome::Done);
+    let (saved, _) = Session::open_read_only(&tmp.0.join("p.ew"), "test").unwrap();
+    let bom = saved
+        .export_csv(Export::Bom(BomMode::Component))
+        .expect("the order list");
+    let row = bom
+        .lines()
+        .find(|l| l.contains("EW-GEN-PLG-2"))
+        .unwrap_or_else(|| panic!("{bom}"));
+    assert!(row.ends_with(",-2W2,2"), "{row}");
+}
+
+/// rc.5, a project made before: its bus cable had the project's counter (`-W1`) and now prints its line's page. Where
+/// a cable of that page holds the same counter, both would print `-2W1`: the check reports the duplicate and offers to
+/// renumber the newer, so no tag stands twice unseen.
+#[test]
+fn an_older_bus_cable_that_meets_a_page_tag_is_reported_with_renumber() {
+    use ew_ui::ew_viewmodel::ew_api::checks::{CheckMode, PRE_DELIVERY};
+    let tmp = Tmp::new();
+    let (mut d, cpu, rio) = bus_page(&tmp);
+    for dp in [true, false] {
+        bus_line(&mut d, &cpu, &rio, dp);
+        assert_eq!(
+            d.shell_mut().dispatch("cable.from_wires", &json!({})),
+            Outcome::Done
+        );
+        d.settle();
+        assert_eq!(d.shell_mut().submit_form(), Outcome::Done);
+        d.settle();
+    }
+    assert_eq!(d.shell_mut().dispatch("file.save", &json!({})), Outcome::Done);
+    d.shell_mut().shutdown();
+    // The second cable as an older build left it: counter 1 of the project's scope.
+    let devices = tmp.0.join("p.ew").join("devices");
+    for e in std::fs::read_dir(&devices).unwrap().flatten() {
+        let text = std::fs::read_to_string(e.path()).unwrap();
+        let older = text.replace(
+            r#""tag":{"letter":"W","counter":2}"#,
+            r#""tag":{"letter":"W","counter":1}"#,
+        );
+        if older != text {
+            std::fs::write(e.path(), older).unwrap();
+        }
+    }
+    let (s, _) = Session::open_read_only(&tmp.0.join("p.ew"), "test").unwrap();
+    let report = s.check(&PRE_DELIVERY, CheckMode::Online);
+    let twice: Vec<_> = report
+        .findings
+        .iter()
+        .filter(|f| f.rule == "EW-RDS-004" && f.message.contains("-2W1"))
+        .collect();
+    assert_eq!(twice.len(), 1, "{:?}", report.findings);
+    assert!(twice[0].fix.is_some(), "the finding offers to renumber");
 }
 
 /// rc.5: a new cable chosen for a line whose cable carries nothing else takes that cable's place: the form proposes

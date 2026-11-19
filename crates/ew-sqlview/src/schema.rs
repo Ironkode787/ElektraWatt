@@ -470,7 +470,7 @@ pub const CABLE: View = View {
         t("to_location", "the location aspect of end B; NULL until derived"),
         t(
             "end_a",
-            "the devices at the From ends of its cores, a terminal standing for its strip, and of its bus line's first              port, JSON array in natural order",
+            "the devices at the From ends of its cores, a terminal standing for its strip, and of its bus line's first port (its external point by name), JSON array in natural order",
         ),
         t(
             "end_b",
@@ -512,7 +512,7 @@ pub const CONDUCTOR: View = View {
         ),
         t(
             "bus_end_a",
-            "a core of a bus cable over which no wire runs: the pin its bus line's first port gives it, else that port              (\"-101A1:DP\"); NULL otherwise",
+            "a core of a bus cable over which no wire runs: the pin its bus line's first port gives it, else that port (\"-101A1:DP\"); NULL otherwise",
         ),
         t(
             "bus_end_b",

@@ -771,9 +771,17 @@ fn cables(q: &Q, wires: &Wires) -> Vec<Row> {
             let cores: Vec<_> = q.idx().conductors_of_cable(id).collect();
             let (mut a, mut b) = (Vec::new(), Vec::new());
             // A bus cable's ends are the devices of its line's ports (rc.5), as the cable overview has them.
+            let (mut point_a, mut point_b) = (None, None);
             if let Some(line) = ew_derive::cable_bus_line(q, id) {
                 a.extend(line.a.function().and_then(|f| device_of(q, f)));
                 b.extend(line.b.function().and_then(|f| device_of(q, f)));
+                // An end of no device (an external point) by its name, after the devices, as the cable overview has it.
+                let point = |f: Option<Id<ew_derive::ew_schema::Function>>| {
+                    f.filter(|f| device_of(q, *f).is_none())
+                        .map(|f| ew_derive::bus_end_label(q, f))
+                        .filter(|t| !t.is_empty())
+                };
+                (point_a, point_b) = (point(line.a.function()), point(line.b.function()));
             }
             let mut external = false;
             for c in &cores {
@@ -825,8 +833,8 @@ fn cables(q: &Q, wires: &Wires) -> Vec<Row> {
                 .set("cores", cores.len())
                 .set("length_nm", length_nm)
                 .set("length_source", source)
-                .set("end_a", device_set(q, a))
-                .set("end_b", device_set(q, b))
+                .set("end_a", device_set(q, a, point_a))
+                .set("end_b", device_set(q, b, point_b))
                 .set("external_end", external)
                 .set("shield", shield)
                 .set("pages", folios_json(q, pages.into_iter().map(|(_, p)| p)));
@@ -835,8 +843,8 @@ fn cables(q: &Q, wires: &Wires) -> Vec<Row> {
         .collect()
 }
 
-/// The short tags of a set of devices in natural order without repeats, as a JSON array.
-fn device_set(q: &Q, devices: Vec<Id<Device>>) -> String {
+/// The short tags of a set of devices in natural order without repeats, then `point` (an external end), as a JSON array.
+fn device_set(q: &Q, devices: Vec<Id<Device>>, point: Option<String>) -> String {
     let mut tags: Vec<(NaturalKey, String)> = devices
         .into_iter()
         .filter_map(|d| tag_short(q, d))
@@ -845,7 +853,9 @@ fn device_set(q: &Q, devices: Vec<Id<Device>>) -> String {
         .collect();
     tags.sort();
     tags.dedup();
-    json_array(&tags.into_iter().map(|(_, t)| t).collect::<Vec<_>>())
+    let mut out: Vec<String> = tags.into_iter().map(|(_, t)| t).collect();
+    out.extend(point);
+    json_array(&out)
 }
 
 /// The order of the conductor rows: cable tag, then the core-list order of doc 20 §10 (shield last, pair,
