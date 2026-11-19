@@ -906,26 +906,24 @@ impl ShellModel {
         Some((folio, section))
     }
 
-    /// New page's Place choices in words (rc.5): "After 101 Wiring" (the page right-clicked, else the open page) and
-    /// "At the end of section 1 Wiring Definition".
+    /// New page's Place choices in words (rc.5): "After 103 Wiring", the page the folio of that place stands after (the
+    /// folio in the field while the place is chosen, else the proposal for it), so that the choice and the line under
+    /// the folio always name the same page; "First in section 1 …" where none comes before it; and "At the end of
+    /// section 1 Wiring Definition".
     fn page_place_options(&mut self) {
-        let rows = self.page_rows();
+        let field = |s: &Self, n: &str| match &s.dialog {
+            Some(Dialog::Form(form)) => form.fields.iter().find(|f| f.name == n).map(|f| f.value.trim().to_owned()),
+            _ => None,
+        };
         let at = self.tools.page_proposal.as_ref().and_then(|p| p.1.clone());
-        let after = at
-            .as_deref()
-            .and_then(|k| {
-                k.rsplit('/')
-                    .next()?
-                    .strip_prefix("p:")?
-                    .parse::<ew_api::output::Uuid>()
-                    .ok()
-            })
-            .and_then(|id| rows.iter().find(|r| r.id == id))
-            .or_else(|| {
-                self.current_page()
-                    .and_then(|c| rows.iter().find(|r| crate::canvas::PageId::of(r) == c))
-            })
-            .map(|r| format!("{} {}", r.folio, r.title.trim()).trim().to_owned());
+        let kind = field(self, "type").unwrap_or_default();
+        let after_folio = if field(self, "place").as_deref() == Some("after") {
+            field(self, "folio")
+        } else {
+            Some(self.new_page_proposal(at.as_deref(), Some(&kind)).0)
+        };
+        let after = after_folio.and_then(|f| self.page_before(&f, &field(self, "section").unwrap_or_default()));
+        let rows = self.page_rows();
         let section = match &self.dialog {
             Some(Dialog::Form(form)) => form
                 .fields
@@ -952,7 +950,7 @@ impl ShellModel {
                 (
                     "after".to_owned(),
                     after.map_or_else(
-                        || strings::text(key!("form-page-place-after-open")).to_owned(),
+                        || strings::format(key!("form-page-place-first"), &[&section_words]),
                         |words| strings::format(key!("form-page-place-after"), &[&words]),
                     ),
                 ),
@@ -962,6 +960,18 @@ impl ShellModel {
                 ),
             ];
         }
+    }
+
+    /// The words of the page of section `section` (any section when empty) whose folio comes last before `folio`
+    /// ("103 Wiring"), as New page's line under the folio names it.
+    fn page_before(&self, folio: &str, section: &str) -> Option<String> {
+        let (number, _) = parse_folio(folio).ok()?;
+        let rows = self.page_rows();
+        let in_section = rows.iter().filter(|r| {
+            section.is_empty() || r.section.as_ref().is_some_and(|(n, _)| n.to_string() == section)
+        });
+        page_before_in(in_section, number, folio)
+            .map(|r| format!("{} {}", r.folio, r.title.trim()).trim().to_owned())
     }
 
     /// Where the page New page makes will stand, under its folio field (rc.5): "Stands after 101 Wiring", the page of
@@ -991,11 +1001,8 @@ impl ShellModel {
         if let Some(held) = rows.iter().find(|r| r.folio == typed) {
             return Some(strings::format(key!("form-page-new-held"), &[&words(held)]));
         }
+        let before = page_before_in(in_section, number, typed);
         let lead = |r: &PageRow| r.folio.split('.').next().and_then(|k| k.parse::<u32>().ok());
-        let before = in_section
-            .filter_map(|r| Some((lead(r)?, r)))
-            .filter(|(n, r)| *n < number || (*n == number && r.folio.as_str() < typed))
-            .max_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.folio.cmp(&b.1.folio)));
         // What follows it in its section, so that the line says where the number in the field puts it (rc.5).
         let next = rows
             .iter()
@@ -1006,13 +1013,20 @@ impl ShellModel {
             .filter(|(n, r)| *n > number || (*n == number && r.folio.as_str() > typed))
             .min_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.folio.cmp(&b.1.folio)));
         Some(match (before, next) {
-            (Some((_, r)), Some((_, n))) => {
-                strings::format(key!("form-page-new-between"), &[&words(r), &words(n)])
-            }
-            (Some((_, r)), None) => strings::format(key!("form-page-new-last"), &[&words(r)]),
+            (Some(r), Some((_, n))) => strings::format(key!("form-page-new-between"), &[&words(r), &words(n)]),
+            (Some(r), None) => strings::format(key!("form-page-new-last"), &[&words(r)]),
             (None, _) => strings::text(key!("form-page-new-first")).to_owned(),
         })
     }
+}
+
+/// The page of `rows` whose folio comes last before the folio `typed` (lead number `number`), in folio order.
+fn page_before_in<'r>(rows: impl Iterator<Item = &'r PageRow>, number: u32, typed: &str) -> Option<&'r PageRow> {
+    let lead = |r: &PageRow| r.folio.split('.').next().and_then(|k| k.parse::<u32>().ok());
+    rows.filter_map(|r| Some((lead(r)?, r)))
+        .filter(|(n, r)| *n < number || (*n == number && r.folio.as_str() < typed))
+        .max_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.folio.cmp(&b.1.folio)))
+        .map(|(_, r)| r)
 }
 
 /// Doc 16a §8 item 5: a form's common refusal reasons, each with the key of what to do next.
@@ -1159,6 +1173,9 @@ impl ShellModel {
         if let Some((folio, _)) = refolio {
             let at = self.tools.page_proposal.as_ref().and_then(|p| p.1.clone());
             self.tools.page_proposal = Some((folio, at));
+            self.page_place_options();
+        } else if matches!(name, "folio" | "section") && self.in_form_of(PAGE_NEW.action) {
+            // The Place choice names the page the folio in the field stands after, as the line under it does.
             self.page_place_options();
         }
     }
@@ -2105,7 +2122,7 @@ impl ShellModel {
             .collect();
         let folio = match page.as_str() {
             "new" => {
-                let folio = self.free_folio();
+                let folio = self.free_folio("multi_line");
                 let title = strings::text(key!("draw-page-new-title"));
                 let made = self.dispatch(
                     "page.new",

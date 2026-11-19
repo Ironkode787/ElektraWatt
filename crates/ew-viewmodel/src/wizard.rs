@@ -198,8 +198,36 @@ pub struct FieldMeta {
     pub written: bool,
 }
 
-/// The sections of the sample project, one per line: `number first-last title`.
-const DEFAULT_SECTIONS: &str = "1 100-199 Wiring Definition\n2 200-299 Pneumatics\n9 900-999 Nomenclature";
+/// The sections the wizard proposes, each with the page kinds it is made for: [`DEFAULT_SECTIONS`], the wizard's
+/// text, and [`SECTION_KINDS`], which New page and the pages the program makes read (rc.5: a fluid page went into the
+/// wiring section beside an empty "Pneumatics"), from one list.
+macro_rules! program_sections {
+    ($first:literal => [$($k0:literal),*] $(; $line:literal => [$($k:literal),*])* $(;)?) => {
+        /// The sections of the sample project, one per line: `number first-last title`.
+        const DEFAULT_SECTIONS: &str = concat!($first $(, "\n", $line)*);
+        /// The wizard's sections (`number first-last title`) with the page kinds each is made for.
+        pub const SECTION_KINDS: &[(&str, &[&str])] = &[($first, &[$($k0),*]) $(, ($line, &[$($k),*]))*];
+    };
+}
+
+program_sections! {
+    "1 100-199 Wiring Definition" => ["multi_line", "single_line", "bus_topology", "overview"];
+    "2 200-299 Pneumatics" => ["fluid"];
+    "9 900-999 Nomenclature" => [];
+}
+
+/// The page kinds a section titled `title` is made for, where the title is one the wizard gives (compared without
+/// case); empty for a title of the person's own.
+pub fn section_title_kinds(title: &str) -> &'static [&'static str] {
+    SECTION_KINDS
+        .iter()
+        .find(|(line, _)| {
+            line.splitn(3, ' ')
+                .nth(2)
+                .is_some_and(|t| t.eq_ignore_ascii_case(title.trim()))
+        })
+        .map_or(&[], |(_, kinds)| *kinds)
+}
 
 const fn field(
     step: Step,

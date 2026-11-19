@@ -405,10 +405,10 @@ impl ShellModel {
             .collect()
     }
 
-    /// The folio a page the station view makes takes, asking nothing: New page's proposal, else the first number no
-    /// page has.
-    pub(super) fn free_folio(&self) -> String {
-        let (proposal, _) = self.new_page_proposal(None, None);
+    /// The folio a page of `kind` the program makes takes, asking nothing: New page's proposal for the kind (the
+    /// section made for it, rc.5), else the first number no page has.
+    pub(super) fn free_folio(&self, kind: &str) -> String {
+        let (proposal, _) = self.new_page_proposal(None, Some(kind));
         if !proposal.is_empty() {
             return proposal;
         }
@@ -1653,7 +1653,7 @@ impl ShellModel {
         let cursor = self.station_tab().and_then(|t| t.cursor);
         let folio = match string_param(p, "folio") {
             Ok(Some("new")) => {
-                let folio = self.free_folio();
+                let folio = self.free_folio("multi_line");
                 let title = strings::text(key!("rack-draw-page-title"));
                 let made = self.dispatch(
                     "page.new",
@@ -1841,7 +1841,7 @@ impl ShellModel {
                 }
                 let pages = self.bus_pages();
                 let new = |s: &mut Self| {
-                    let folio = s.free_folio();
+                    let folio = s.free_folio("bus_topology");
                     let title = strings::text(key!("rack-bus-page-title"));
                     let made = s.dispatch(
                         "page.new",
@@ -2989,7 +2989,7 @@ impl ShellModel {
 
     /// Makes a fluid page with the next free folio, asking nothing; its folio, empty when it could not be made.
     fn new_fluid_page(&mut self) -> String {
-        let folio = self.free_folio();
+        let folio = self.free_folio("fluid");
         let title = strings::text(key!("fluid-page-title"));
         let made = self.dispatch(
             "page.new",

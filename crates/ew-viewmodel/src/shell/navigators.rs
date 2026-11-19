@@ -674,9 +674,9 @@ impl ShellModel {
     }
 
     /// The section a new page of kind `kind` belongs in (rc.5): the first section (by number) that holds a page of
-    /// that kind, else the first whose title names the trade such pages belong to (a project made from a template:
-    /// Pneumatics for a fluid page, Wiring for a wiring page, the lists' section for a bus layout or an overview);
-    /// `None` where none does.
+    /// that kind, else the first, empty or not, that the wizard made for that kind by its title
+    /// ([`crate::wizard::section_title_kinds`]: Pneumatics for a fluid page, Wiring Definition for a wiring page); a
+    /// section with a title of the person's own is left alone. `None` where none does.
     pub(super) fn section_for_kind(&self, kind: &str) -> Option<String> {
         let query = self.project.as_ref()?.session.query();
         let mut sections: Vec<(u16, String)> = query
@@ -701,16 +701,10 @@ impl ShellModel {
         if let Some((n, _)) = sections.iter().find(|(n, _)| holds(*n)) {
             return Some(n.to_string());
         }
-        let words: &[&str] = match kind {
-            "fluid" => &["pneumat", "fluid", "hydraul"],
-            "multi_line" | "single_line" => &["wiring", "circuit", "schemat", "electric"],
-            "bus_topology" | "overview" => &["bus", "network", "overview", "nomenclature", "list"],
-            "panel_layout" | "assembly_overview" => &["layout", "cabinet", "panel", "enclosure"],
-            _ => &[],
-        };
+        // Else a section the wizard made for the kind, by its title; a title of the person's own is left alone.
         sections
             .iter()
-            .find(|(_, t)| words.iter().any(|w| t.contains(w)))
+            .find(|(_, t)| crate::wizard::section_title_kinds(t).contains(&kind))
             .map(|(n, _)| n.to_string())
     }
 
