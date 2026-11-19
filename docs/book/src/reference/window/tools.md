@@ -257,6 +257,10 @@ name and press Enter or Tab, then click where the point goes. While the field ha
 and the bar says "Enter ends the name"; after Enter, Tab or a click on the page, D turns the point. The toast of a
 placed point says what it is and where its partner is ("L1: source here at 101-B2, its target at /102.3"), or that
 the partner is still to come.
+A point dropped on a pin, or with the pointer as near to it as the Wire tool catches a pin, joins that pin, whichever
+its form, and no other point's text keeps it off the pin. Alt places it without joining; a point left beside a pin
+that has no wire says so when it is placed, and the check's message for that pin offers to join the two. A free point
+too close to another says how far apart the two must stand.
 A point names the potential it carries whichever its direction, so a wire on a target that no source feeds yet
 carries the target's name.
 

@@ -867,7 +867,10 @@ rule-ew-pot-009 = { $cp_shared ->
        *[no] { $cp }
     } heeft geen draad{ $unused ->
         [yes] {" "}(gemarkeerd als niet gebruikt)
-       *[no] . Teken er een draad naartoe, of klik er met rechts op en kies Markeren als niet gebruikt.
+       *[no] { $near ->
+            [yes] , en de markering { $mark } staat er vlak naast zonder ermee te verbinden. Verbind de twee met de snelle oplossing, of teken er een draad naartoe.
+           *[no] . Teken er een draad naartoe, of klik er met rechts op en kies Markeren als niet gebruikt.
+        }
     }
     .title = Niet-aangesloten aansluitpunt
     .hint = Open de melding: de pagina opent met het apparaat geselecteerd. Teken een draad naar het aansluitpunt, of klik er met rechts op en kies Markeren als niet gebruikt als het bewust vrij blijft.
@@ -1197,6 +1200,7 @@ fix-realise-primary-part = Het primaire artikel opnieuw plaatsen
 fix-rebind-map-channel = Koppelen aan het kanaal van de kaart
 fix-declare-pelv-bond = 0 V–PE-verbinding (PELV) vastleggen
 fix-mark-cp-unused = Markeren als niet gebruikt
+fix-join-mark = Pen en markering verbinden
 fix-plc-take-out = Uit het rek halen
 fix-plc-bind-pins = De kanalen aan hun pinnen koppelen
 fix-blank-position = Blindplaat op ventielplaats { $position }

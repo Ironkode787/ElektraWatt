@@ -259,22 +259,34 @@ fn en_gb_renders_the_message_byte_for_byte_and_nl_nl_renders_dutch() {
 
     // A finding with arguments built by hand: the pattern's branches.
     let rule = ew_checks::rule("EW-POT-009").expect("registered").meta();
-    for (unused, en, nl) in [
+    for (unused, near, en, nl) in [
         (
+            "no",
             "no",
             "-K1:13 has no wire. Draw one to it, or right-click it and choose Mark not used.",
             "-K1:13 heeft geen draad. Teken er een draad naartoe, of klik er met rechts op en kies Markeren als niet gebruikt.",
         ),
         (
             "yes",
+            "no",
             "-K1:13 has no wire (marked not used)",
             "-K1:13 heeft geen draad (gemarkeerd als niet gebruikt)",
+        ),
+        (
+            "no",
+            "yes",
+            "-K1:13 has no wire, and the mark 24V stands right beside it without joining it. Join the two with the \
+             quick fix, or draw a wire to it.",
+            "-K1:13 heeft geen draad, en de markering 24V staat er vlak naast zonder ermee te verbinden. Verbind de \
+             twee met de snelle oplossing, of teken er een draad naartoe.",
         ),
     ] {
         let f = ew_checks::Finding::new(rule, [], "13", "-K1:13", en)
             .arg("cp", "-K1:13")
             .arg("cp_shared", "no")
-            .arg("unused", unused);
+            .arg("unused", unused)
+            .arg("near", near)
+            .arg("mark", if near == "yes" { "24V" } else { "" });
         assert_eq!(format(&f, DEFAULT_LANGUAGE).as_deref(), Some(en));
         assert_eq!(render(&f, DEFAULT_LANGUAGE), en);
         assert_eq!(render(&f, "nl-NL"), nl);
@@ -296,7 +308,9 @@ fn en_gb_renders_the_message_byte_for_byte_and_nl_nl_renders_dutch() {
             .arg("cp_tag", "-1A4")
             .arg("cp_pin", "−")
             .arg("cp_nth", nth)
-            .arg("unused", "no");
+            .arg("unused", "no")
+            .arg("near", "no")
+            .arg("mark", "");
         assert_eq!(format(&f, DEFAULT_LANGUAGE).as_deref(), Some(message.as_str()));
         let dutch = render(&f, "nl-NL");
         assert!(dutch.starts_with(&format!("{nl} heeft geen draad")), "{dutch}");

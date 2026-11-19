@@ -556,7 +556,9 @@ notice-ip-not-placed = Not placed: { $p0 }
 
 # FIXPT41: the drop on a connection point the IP tool cannot honour (FT-946: an external point on a pin connects).
 notice-ip-on-ip = Not placed: the interruption point { $p0 } is already here; place it on a pin or a free grid point
-notice-ip-too-close = Not placed: too close to the interruption point { $p0 }, their names and references would print over each other. Place it clear of them (three grid steps below or above), or hold Alt to place it anyway
+notice-ip-too-close = Not placed: too close to the interruption point { $p0 }, their names and references would print over each other. The two must stand { $p1 } grid steps ({ $p2 } mm) apart, one above the other, or hold Alt to place it anyway
+# rc.5: a point placed free beside a pin without a wire, or on it with Alt, does not join it.
+toast-ip-beside-pin = { $p0 } stands beside { $p1 } without joining it: place it on the pin, or draw a wire to it.
 
 # FT-948 (ID-1150): a drop whose connection point lies on a junction or inside a wire, which it would not join.
 notice-ip-on-wire = Not placed: the point would sit on a wire without joining it; place it on a pin or a free grid point

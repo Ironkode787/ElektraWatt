@@ -26,7 +26,7 @@ use ew_derive::{
     DeviceTag, DrawnPageOrder, EffectiveState, EndKind, EndpointKey, FlowBfs, FunctionCps, FunctionLinksOf,
     PageRef, PhysicalWire, PhysicalWiresOf, PotentialAttrsOf, PotentialFlow, PotentialId, PotentialNameOf,
     PotentialPartition, Q, RailLocation, RailTerminalOf, WireNumbers, bonds_of_potential, colour_text,
-    cp_label, cp_text, csa_text, device_location, potential_id_at, potential_part, ranked_defs,
+    cp_label, cp_point, cp_text, csa_text, device_location, potential_id_at, potential_part, ranked_defs,
     wire_props_below_overrides,
 };
 
@@ -1768,9 +1768,60 @@ pub const UNCONNECTED_CP: RuleMeta = RuleMeta {
 /// representations (page order), so a function drawn twice is reported once; one finding per CP, target the
 /// function, discriminator the CP index, shown on that page. Left out too: the pin of a PLC channel whose effective
 /// state is spare, reserved or deactivated (doc 10 §3.2): the channel's state says that it stays unconnected. Golden
-/// A: -102F2:13 and :14 (EF-09).
+/// A: -102F2:13 and :14 (EF-09). A pin with an interruption point's unjoined CP within [`MARK_BESIDE_PIN_NM`] of it
+/// on the page says so, and its quick fix joins the two instead of marking the pin not used (rc.5: a mark dropped a
+/// grid step beside a supply pin, and the fix offered was "Mark not used").
 #[derive(Clone, Copy, Debug)]
 pub struct UnconnectedCp;
+
+/// How near (nm, along either axis) an interruption point's CP stands to a pin to be "right beside it": two steps of
+/// the QET grid, and more than one of a 5 mm grid. The Interruption tool says the same of a point it places there.
+pub const MARK_BESIDE_PIN_NM: i64 = 6_000_000;
+
+/// The interruption points' CPs on `page` that no connection ends at: (name, CP, point).
+fn unjoined_marks(q: &Q, page: Id<Page>) -> Vec<(String, CpRef, (i64, i64))> {
+    let mut out = Vec::new();
+    let mut seen = BTreeSet::new();
+    for r in q.idx().reps_by_page(page) {
+        let Some(rep) = q.reps().get(r) else {
+            continue;
+        };
+        for &f in &rep.functions {
+            let Some(FunctionKind::Ip(ip)) = q.functions().get(f).map(|x| &x.kind) else {
+                continue;
+            };
+            if !seen.insert(f) {
+                continue;
+            }
+            for c in q.get::<FunctionCps>(f).iter() {
+                if q.idx().connections_at(EndpointKey::Cp(f, c.idx)).next().is_some() {
+                    continue;
+                }
+                if let Some(at) = cp_point(q, f, c.idx, page) {
+                    out.push((ip.name.to_string(), CpRef::new(f, c.idx), (at.x.0, at.y.0)));
+                }
+            }
+        }
+    }
+    out
+}
+
+/// EW-POT-009's quick fix for a pin with a mark beside it: a wire from the pin to the mark's CP on `page`, drawn
+/// unrouted (straight, or of no length where the two coincide).
+fn join_mark(pin: CpRef, mark: CpRef, page: Id<Page>) -> QuickFix {
+    let end = |c: CpRef| serde_json::json!({ "cp": { "function": c.function.to_string(), "idx": c.idx } });
+    QuickFix {
+        label: "Join the pin and the mark".to_owned(),
+        key: Some("fix-join-mark"),
+        command: "connection.draw".to_owned(),
+        params: serde_json::json!({
+            "a": end(pin),
+            "b": end(mark),
+            "page": page.to_string(),
+            "route": [],
+        }),
+    }
+}
 
 impl Rule for UnconnectedCp {
     fn meta(&self) -> &'static RuleMeta {
@@ -1790,6 +1841,7 @@ impl Rule for UnconnectedCp {
             }
         }
         let partition = q.get::<PotentialPartition>(());
+        let marks = unjoined_marks(q, page);
         let mut out = Vec::new();
         for f in functions {
             let Some(function) = q.functions().get(f) else {
@@ -1828,26 +1880,46 @@ impl Rule for UnconnectedCp {
                 }
                 let label = cp_label(q, CpRef::new(f, c.idx));
                 let pin = PinWords::of(q, CpRef::new(f, c.idx), &label);
+                // A mark of a potential standing right beside the pin without joining it (not for a pin marked not
+                // used, which stays free on purpose).
+                let beside = cp_point(q, f, c.idx, page).filter(|_| !c.unused).and_then(|at| {
+                    marks
+                        .iter()
+                        .map(|m| ((m.2.0 - at.x.0).abs().max((m.2.1 - at.y.0).abs()), m))
+                        .filter(|(d, _)| *d <= MARK_BESIDE_PIN_NM)
+                        .min_by(|a, b| a.0.cmp(&b.0).then_with(|| natural_cmp(&a.1.0, &b.1.0)))
+                        .map(|(_, m)| m)
+                });
                 let finding = pin
                     .args(Finding::new(
                         &UNCONNECTED_CP,
                         [Target::new(Kind::Function, f)],
                         c.idx.to_string(),
                         label.clone(),
-                        if c.unused {
-                            format!("{} has no wire (marked not used)", pin.sentence)
-                        } else {
-                            format!(
+                        match (c.unused, beside) {
+                            (true, _) => format!("{} has no wire (marked not used)", pin.sentence),
+                            (false, Some(m)) => format!(
+                                "{} has no wire, and the mark {} stands right beside it without joining it. Join \
+                                 the two with the quick fix, or draw a wire to it.",
+                                pin.sentence, m.0
+                            ),
+                            (false, None) => format!(
                                 "{} has no wire. Draw one to it, or right-click it and choose Mark not used.",
                                 pin.sentence
-                            )
+                            ),
                         },
                     ))
                     .arg("cp", label)
                     .arg("unused", if c.unused { "yes" } else { "no" })
+                    .arg("near", if beside.is_some() { "yes" } else { "no" })
+                    .arg("mark", beside.map_or("", |m| m.0.as_str()))
                     .on_page(page);
                 out.push(if c.unused {
                     finding.with_severity(Severity::Info)
+                } else if let Some(m) = beside {
+                    // The mark beside it joins it: the fix offers that before Mark not used, the opposite of what
+                    // the pin needs (rc.5).
+                    finding.with_fix(join_mark(CpRef::new(f, c.idx), m.1, page))
                 } else {
                     // The message says "mark it unused": its quick fix does that (three personas of M3's round
                     // looked for it on the message and did not find it).

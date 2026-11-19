@@ -871,7 +871,10 @@ rule-ew-pot-009 = { $cp_shared ->
        *[no] { $cp }
     } has no wire{ $unused ->
         [yes] {" "}(marked not used)
-       *[no] . Draw one to it, or right-click it and choose Mark not used.
+       *[no] { $near ->
+            [yes] , and the mark { $mark } stands right beside it without joining it. Join the two with the quick fix, or draw a wire to it.
+           *[no] . Draw one to it, or right-click it and choose Mark not used.
+        }
     }
     .title = Unconnected CP
     .hint = Open the message: its page opens with the device selected. Draw a wire to the connection point, or right-click it and choose Mark not used when it stays free on purpose.
@@ -1177,6 +1180,7 @@ fix-realise-primary-part = Realise the primary part
 fix-rebind-map-channel = Rebind to the map's channel
 fix-declare-pelv-bond = Declare 0 V–PE bond (PELV)
 fix-mark-cp-unused = Mark not used
+fix-join-mark = Join the pin and the mark
 fix-plc-take-out = Take it out of the rack
 fix-plc-bind-pins = Bind the channels to their pins
 fix-blank-position = Blanking plate on position { $position }

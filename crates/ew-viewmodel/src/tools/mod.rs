@@ -543,6 +543,12 @@ pub trait Tool {
         None
     }
 
+    /// A sentence the toast of the commit the tool makes adds (the IP tool's point placed beside a pin without
+    /// joining it); `None` for most tools.
+    fn commit_note(&self) -> Option<String> {
+        None
+    }
+
     /// What the next click places and why, said in the HUD in the role's place (the IP tool's "next: where 24V
     /// arrives from its source"); `None` for most tools.
     fn role_note(&self) -> Option<String> {

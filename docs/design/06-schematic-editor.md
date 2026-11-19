@@ -699,7 +699,7 @@ and one main function of the chosen symbol's function definition.
   the keys, its name selected; chosen by its key with the pointer on the sheet, the keys stay with the tool), a typed
   name without a source starts with its source where the page's quarters say nothing, a typed name stays until it is
   changed, so that after the pair each click places one more target of the same source (rc.5: no "24V-1" of nothing),
-  the HUD says before the click when the next point is the other half of a name ("next: where 24V arrives (its
+  the pointer as near a pin as the Wire tool catches one puts the point's CP on it, in either form (a source's CP is at its tail), a drop on a pin is not refused for room, Alt places a point unjoined and a point left within 6 mm of a pin without a wire says so on placing (EW-POT-009 then offers to join the two), a free point too close to another is refused with the grid steps and millimetres the two must stand apart, the HUD says before the click when the next point is the other half of a name ("next: where 24V arrives (its
   source is drawn)"), and a point whose arrow, name or
   cross-reference would print over another point's is refused with the reason, Alt placing it anyway: the name
   stands above the arrow and the cross-reference below, each as wide as its text, so a point in another's footprint

@@ -662,6 +662,11 @@ impl ShellModel {
                     "ip.place" | "connection.draw_to_ip" => self.tools.tool.proposal_note(),
                     _ => None,
                 };
+                // A point placed beside a pin without joining it says so (rc.5).
+                let beside = match cmd.name() {
+                    "ip.place" => self.tools.tool.commit_note(),
+                    _ => None,
+                };
                 // A terminal moved off a terminal of its strip, said again by the placement's toast.
                 let moved = match cmd.name() {
                     "device.place" => self.tools.tool.proposal_note(),
@@ -734,7 +739,7 @@ impl ShellModel {
                         "ip.place" => cmd.to_json().ok().and_then(|json| self.ip_placed_text(&json)),
                         _ => None,
                     };
-                    let text: Vec<String> = taken.into_iter().chain(placed).collect();
+                    let text: Vec<String> = taken.into_iter().chain(placed).chain(beside).collect();
                     if !text.is_empty() {
                         self.notify(text.join(" "), true);
                     }

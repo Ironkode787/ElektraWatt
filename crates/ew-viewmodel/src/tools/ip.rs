@@ -55,6 +55,7 @@ use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use ew_api::AnyCommand;
+use ew_api::checks::rules::pot::MARK_BESIDE_PIN_NM;
 use ew_api::geometry::{orient_point, orient_then};
 use ew_api::output::{PageTables, SymbolShape, TableCp, TableEnd, TablePotential, Uuid};
 use serde_json::{Value, json};
@@ -498,6 +499,8 @@ pub struct IpTool {
     shown_connects: Option<String>,
     /// The base of the proposal the last overlay showed, when it is taken and the name differs from it.
     shown_taken: Option<String>,
+    /// The pin without a wire the last overlay's point stands beside without joining it, in words.
+    shown_beside: Option<String>,
 }
 
 /// What a click does with the ghost's CP where it is.
@@ -536,6 +539,7 @@ impl IpTool {
             suppressed: false,
             shown_connects: None,
             shown_taken: None,
+            shown_beside: None,
         }
     }
 
@@ -665,6 +669,79 @@ impl IpTool {
         (found, false)
     }
 
+    /// The CPs of the page that lie under the ghost's CP at the insertion point `pos`, with a grid position read as one
+    /// number: a pin whose point lies 1 nm beside the grid's number of its position (its place plus its offset, each
+    /// rounded) is under a point dropped there.
+    fn pins_under<'a>(
+        &self,
+        cx: &'a ToolCx<'_>,
+        pos: (i64, i64),
+    ) -> impl Iterator<Item = &'a TableCp> + use<'a> {
+        let c = self.cp_at(pos);
+        let settle = move |p: (i64, i64)| cx.page.geometry.settle(p);
+        cx.page
+            .tables
+            .cps
+            .iter()
+            .filter(move |x| c.is_some_and(|c| settle(x.at) == settle(c)))
+    }
+
+    /// The insertion point (sheet nm, page nm) for the pointer at the sheet point `at`: the grid point under it,
+    /// or, unless `alt` is held, the point that puts the ghost's CP on a connection point within the catch distance
+    /// of the pointer ([`super::snap::Snapper::snap_cp`], the Wire tool's), so that a point dropped beside a pin
+    /// joins it (rc.5: marks dropped a grid step beside a supply pin stood there unjoined).
+    fn snapped(&self, at: (i64, i64), alt: bool, cx: &ToolCx<'_>) -> ((i64, i64), (i64, i64)) {
+        let s = cx.snapper.snap_grid(at);
+        let grid = (s.at_nm, s.page_nm);
+        if alt {
+            return grid;
+        }
+        let Some(pin) = cx.snapper.snap_cp(at, cx.points_per_nm) else {
+            return grid;
+        };
+        // The CP's offset from the insertion point in the form of direction `d`.
+        let offset = |d: IpDir| {
+            let (shape, _, orient) = self.drawn(d);
+            shape.cps.first().map(|c| orient_point(orient, c.at))
+        };
+        // On the grid, as every point is placed: a pin off the grid is joined only where the grid meets it.
+        let place = |o: (i64, i64)| {
+            let page = (pin.page_nm.0 - o.0, pin.page_nm.1 - o.1);
+            let s = cx.snapper.snap_grid(cx.snapper.page_to_sheet(page));
+            (s.at_nm, s.page_nm)
+        };
+        let Some(first) = offset(self.shown_dir).map(place) else {
+            return grid;
+        };
+        // The direction the point takes there decides its form, and with it where its CP is.
+        let direction = self.resolve(cx, Some(first.1)).1;
+        if direction == self.shown_dir {
+            return first;
+        }
+        offset(direction).map_or(first, place)
+    }
+
+    /// The pin without a wire nearest the ghost's CP at `pos`, within [`MARK_BESIDE_PIN_NM`] of it and not under it
+    /// joined: the pin a point placed free stands beside, said when it is placed (rc.5); in words.
+    fn beside(&self, cx: &ToolCx<'_>, pos: (i64, i64)) -> Option<String> {
+        let c = self.cp_at(pos)?;
+        let tables = &cx.page.tables;
+        let ip_reps: BTreeSet<Uuid> = tables
+            .reps
+            .iter()
+            .filter(|r| r.ip.is_some())
+            .map(|r| r.id)
+            .collect();
+        tables
+            .cps
+            .iter()
+            .filter(|x| x.connections.is_empty() && !ip_reps.contains(&x.rep))
+            .map(|x| ((x.at.0 - c.0).abs().max((x.at.1 - c.1).abs()), x))
+            .filter(|(d, _)| *d <= MARK_BESIDE_PIN_NM)
+            .min_by_key(|(d, x)| (*d, x.label.clone()))
+            .map(|(_, x)| crate::describe::pin_in_sentence(&x.label))
+    }
+
     /// The direction the ghost shows (the last overlay's).
     pub fn direction(&self) -> IpDir {
         self.shown_dir
@@ -747,10 +824,8 @@ impl IpTool {
             return DropOn::Free;
         };
         let tables = &cx.page.tables;
-        // The pins under the ghost's CP, with a grid position read as one number: a pin whose point lies 1 nm beside
-        // the grid's number of its position (its place plus its offset, each rounded) is under a point dropped there.
         let settle = |p: (i64, i64)| cx.page.geometry.settle(p);
-        let under: Vec<&TableCp> = tables.cps.iter().filter(|x| settle(x.at) == settle(c)).collect();
+        let under: Vec<&TableCp> = self.pins_under(cx, pos).collect();
         // An interruption point's CP anywhere among them refuses, whatever the tables' order (after a connecting drop
         // the new point's CP and the pin coincide).
         let ip_name = under.iter().find_map(|x| {
@@ -764,39 +839,55 @@ impl IpTool {
         if let Some(name) = ip_name {
             return DropOn::Refused(crate::strings::format(key!("notice-ip-on-ip"), &[&name]));
         }
-        // Room for the texts: a point prints its name above its arrow and its reference below, so a point placed in
-        // another's footprint prints over it, and a click on the arrow then follows the reference lying on it. Alt
-        // places it anyway.
-        let crowded = if self.suppressed {
-            None
-        } else {
-            let (name, direction) = self.resolve(cx, Some(pos));
-            let here = ip_footprint(cx.snapper.page_to_sheet(pos), direction == IpDir::Target, &name);
-            tables.reps.iter().find_map(|r| {
-                let ip = r.ip.as_ref()?;
-                let there = ip_footprint(
-                    cx.snapper.page_to_sheet(r.pos),
-                    r.symbol_key.contains("ip-target"),
-                    &ip.name,
-                );
-                footprints_meet(&here, &there).then(|| ip.name.clone())
-            })
-        };
-        let crowded = crowded
-            .map(|name| DropOn::Refused(crate::strings::format(key!("notice-ip-too-close"), &[&name])));
-        // A pin always wins; without one, a point on a junction or strictly inside a wire would sit on it without
-        // joining it, so it is refused. A wire's bare end is no wire's inside: the point places free.
-        let Some(pin) = under.first() else {
-            if on_wire(tables, c, &settle) {
-                return DropOn::Refused(crate::strings::text(key!("notice-ip-on-wire")).to_owned());
-            }
-            return crowded.unwrap_or(DropOn::Free);
-        };
-        if self.suppressed {
-            DropOn::Free
-        } else {
-            crowded.unwrap_or_else(|| DropOn::Pin((*pin).clone()))
+        // A pin always wins, without the room rule below: the pin decides where its mark stands (rc.5: the second
+        // mark of a power supply's two pins, a grid step apart, was refused, and Alt then placed it unjoined).
+        if let Some(pin) = under.first() {
+            return if self.suppressed {
+                DropOn::Free
+            } else {
+                DropOn::Pin((*pin).clone())
+            };
         }
+        // Without a pin, a point on a junction or strictly inside a wire would sit on it without joining it, so it is
+        // refused. A wire's bare end is no wire's inside: the point places free.
+        if on_wire(tables, c, &settle) {
+            return DropOn::Refused(crate::strings::text(key!("notice-ip-on-wire")).to_owned());
+        }
+        // Room for the texts: a point prints its name above its arrow and its reference below, so a point placed in
+        // another's footprint prints over it, and a click on the arrow then follows the reference lying on it. The
+        // refusal says how far apart the two must stand; Alt places it anyway.
+        if self.suppressed {
+            return DropOn::Free;
+        }
+        let (name, direction) = self.resolve(cx, Some(pos));
+        let footprint =
+            |p: (i64, i64)| ip_footprint(cx.snapper.page_to_sheet(p), direction == IpDir::Target, &name);
+        let here = footprint(pos);
+        let crowded = tables.reps.iter().find_map(|r| {
+            let ip = r.ip.as_ref()?;
+            let there = ip_footprint(
+                cx.snapper.page_to_sheet(r.pos),
+                r.symbol_key.contains("ip-target"),
+                &ip.name,
+            );
+            footprints_meet(&here, &there).then(|| (ip.name.clone(), r.pos, there))
+        });
+        let Some((other, at, there)) = crowded else {
+            return DropOn::Free;
+        };
+        // The grid steps straight above or below the other point at which the two clear each other.
+        let step = cx.snapper.page_of_index(1) - cx.snapper.page_of_index(0);
+        let steps = (1..=12)
+            .find(|k| {
+                [1, -1]
+                    .iter()
+                    .all(|s| !footprints_meet(&footprint((at.0, at.1 + s * k * step)), &there))
+            })
+            .unwrap_or(12);
+        DropOn::Refused(crate::strings::format(
+            key!("notice-ip-too-close"),
+            &[&other, &steps.to_string(), &crate::canvas::mm1(steps * step)],
+        ))
     }
 
     /// The words of the refusal of a click at the press point `at` (sheet nm, and whether Alt is held; `None` for Enter
@@ -805,8 +896,7 @@ impl IpTool {
     /// click.
     pub fn refusal(&mut self, at: Option<((i64, i64), bool)>, cx: &ToolCx<'_>) -> Option<(String, Overlay)> {
         if let Some((at, alt)) = at {
-            let s = cx.snapper.snap_grid(at);
-            self.at = Some((s.at_nm, s.page_nm));
+            self.at = Some(self.snapped(at, alt, cx));
             // The press's own Alt decides, as it does for the commit that follows.
             self.suppressed = alt;
         }
@@ -898,7 +988,12 @@ impl IpTool {
         self.shown = name.clone();
         self.shown_dir = direction;
         self.shown_taken = taken;
-        self.shown_connects = match pos.map(|p| self.drop_on(cx, p)) {
+        let drop = pos.map(|p| self.drop_on(cx, p));
+        self.shown_beside = match (&drop, pos) {
+            (Some(DropOn::Free), Some(p)) => self.beside(cx, p),
+            _ => None,
+        };
+        self.shown_connects = match drop {
             Some(DropOn::Pin(pin)) => Some(crate::describe::pin_in_sentence(&pin.label)),
             _ => None,
         };
@@ -929,9 +1024,10 @@ impl IpTool {
         Overlay::new(items)
     }
 
-    fn moved(&mut self, at: (i64, i64), alt: bool, cx: &ToolCx<'_>) -> ToolOutput {
-        let s = cx.snapper.snap_grid(at);
-        self.at = Some((s.at_nm, s.page_nm));
+    /// The ghost moved to the sheet point `at`: by the pointer, which catches a pin near it ([`IpTool::snapped`]), or
+    /// by the grid cursor (`pointer` false), which stands on the grid point it names.
+    fn moved(&mut self, at: (i64, i64), alt: bool, pointer: bool, cx: &ToolCx<'_>) -> ToolOutput {
+        self.at = Some(self.snapped(at, alt || !pointer, cx));
         self.suppressed = alt;
         ToolOutput::Transient(self.refresh(cx))
     }
@@ -968,8 +1064,8 @@ impl Tool for IpTool {
         match ev {
             // Alt on a pointer move holds for the hover and its dwell preview (`Dwell` carries no modifiers), as the
             // Place tool's does; a grid-cursor move releases it.
-            CanvasEvent::PointerMove { at, mods } => self.moved(*at, mods.alt, cx),
-            CanvasEvent::CursorMove { at } => self.moved(*at, false, cx),
+            CanvasEvent::PointerMove { at, mods } => self.moved(*at, mods.alt, true, cx),
+            CanvasEvent::CursorMove { at } => self.moved(*at, false, false, cx),
             CanvasEvent::Key(ToolKey::RotateCw) => turn(self, 1, false),
             CanvasEvent::Key(ToolKey::RotateCcw) => turn(self, 3, false),
             CanvasEvent::Key(ToolKey::MirrorX) => turn(self, 0, true),
@@ -1009,7 +1105,7 @@ impl Tool for IpTool {
                 button: Button::Primary,
                 mods,
             } => {
-                let _ = self.moved(*at, mods.alt, cx);
+                let _ = self.moved(*at, mods.alt, true, cx);
                 self.commit(cx)
             }
             CanvasEvent::Activate => self.commit(cx),
@@ -1057,6 +1153,15 @@ impl Tool for IpTool {
 
     fn proposal_note(&self) -> Option<String> {
         self.taken_note()
+    }
+
+    /// A point placed beside a pin without a wire, or on it with Alt, says that it does not join it (rc.5).
+    fn commit_note(&self) -> Option<String> {
+        let pin = self.shown_beside.as_ref()?;
+        Some(crate::strings::format(
+            key!("toast-ip-beside-pin"),
+            &[&self.shown, pin],
+        ))
     }
 
     /// The point is the other half of a name that has one (rc.5: after a source the tool turned to Target without a

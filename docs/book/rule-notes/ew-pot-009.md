@@ -21,7 +21,9 @@ Golden A's -102F2:13 and :14, the signal contact of the electronic breaker, are 
 ## How to fix
 
 Open the message: its page opens with the device selected. Draw a wire to the connection, or right-click it and choose
-Mark not used when it stays free on purpose. There is no quick fix.
+Mark not used when it stays free on purpose; the quick fix marks it. Where an interruption point or a supply mark
+stands right beside the pin without joining it (within 6 mm), the message says so and its quick fix joins the two
+instead.
 
 ## Waiving
 
