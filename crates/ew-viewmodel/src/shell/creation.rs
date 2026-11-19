@@ -877,7 +877,10 @@ impl ShellModel {
         let lost = plan.as_ref().map_or(0, |p| p.unrouted.len());
         if lost > 0 {
             text.push(' ');
-            text.push_str(&strings::format_count(crate::count_key!("toast-wires-unrouted"), lost));
+            text.push_str(&strings::format_count(
+                crate::count_key!("toast-wires-unrouted"),
+                lost,
+            ));
         }
         self.notify(text, true);
         Outcome::Done
@@ -919,7 +922,11 @@ impl ShellModel {
     /// section 1 Wiring Definition".
     fn page_place_options(&mut self) {
         let field = |s: &Self, n: &str| match &s.dialog {
-            Some(Dialog::Form(form)) => form.fields.iter().find(|f| f.name == n).map(|f| f.value.trim().to_owned()),
+            Some(Dialog::Form(form)) => form
+                .fields
+                .iter()
+                .find(|f| f.name == n)
+                .map(|f| f.value.trim().to_owned()),
             _ => None,
         };
         let at = self.tools.page_proposal.as_ref().and_then(|p| p.1.clone());
@@ -929,7 +936,8 @@ impl ShellModel {
             .filter(|f| field(self, "place").as_deref() == Some("after") && parse_folio(f).is_ok())
             .unwrap_or_else(|| self.new_page_proposal(at.as_deref(), Some(&kind)).0);
         let after_folio = Some(after_folio);
-        let after = after_folio.and_then(|f| self.page_before(&f, &field(self, "section").unwrap_or_default()));
+        let after =
+            after_folio.and_then(|f| self.page_before(&f, &field(self, "section").unwrap_or_default()));
         let rows = self.page_rows();
         let section = match &self.dialog {
             Some(Dialog::Form(form)) => form
@@ -1020,7 +1028,9 @@ impl ShellModel {
             .filter(|(n, r)| *n > number || (*n == number && r.folio.as_str() > typed))
             .min_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.folio.cmp(&b.1.folio)));
         Some(match (before, next) {
-            (Some(r), Some((_, n))) => strings::format(key!("form-page-new-between"), &[&words(r), &words(n)]),
+            (Some(r), Some((_, n))) => {
+                strings::format(key!("form-page-new-between"), &[&words(r), &words(n)])
+            }
             (Some(r), None) => strings::format(key!("form-page-new-last"), &[&words(r)]),
             (None, _) => strings::text(key!("form-page-new-first")).to_owned(),
         })
@@ -1028,7 +1038,11 @@ impl ShellModel {
 }
 
 /// The page of `rows` whose folio comes last before the folio `typed` (lead number `number`), in folio order.
-fn page_before_in<'r>(rows: impl Iterator<Item = &'r PageRow>, number: u32, typed: &str) -> Option<&'r PageRow> {
+fn page_before_in<'r>(
+    rows: impl Iterator<Item = &'r PageRow>,
+    number: u32,
+    typed: &str,
+) -> Option<&'r PageRow> {
     let lead = |r: &PageRow| r.folio.split('.').next().and_then(|k| k.parse::<u32>().ok());
     rows.filter_map(|r| Some((lead(r)?, r)))
         .filter(|(n, r)| *n < number || (*n == number && r.folio.as_str() < typed))

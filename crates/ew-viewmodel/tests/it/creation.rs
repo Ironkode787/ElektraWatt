@@ -278,7 +278,10 @@ fn page_new_follows_the_kind_and_offers_the_end_of_the_section() {
     let form = common::form(&shell);
     let place = form.fields.iter().find(|f| f.name == "place").unwrap();
     assert_eq!(place.options[0].1, "After 105");
-    assert_eq!(shell.form_note(&form, "folio").unwrap(), "Stands after 105, the last page of its section");
+    assert_eq!(
+        shell.form_note(&form, "folio").unwrap(),
+        "Stands after 105, the last page of its section"
+    );
     shell.set_form_field("type", "fluid");
     assert_eq!(field(&shell, "folio"), "150");
     shell.shutdown();
@@ -291,26 +294,45 @@ fn page_new_follows_the_kind_and_offers_the_end_of_the_section() {
 fn a_fluid_page_goes_into_the_empty_pneumatics_section() {
     let tmp = Tmp::new("pagenew-fluid-section");
     let mut shell = new_project(&tmp, Mode::Gui);
-    for (number, first, title) in [(1, 100, "Wiring Definition"), (2, 200, "Air and oil"), (3, 300, "Pneumatics")] {
+    for (number, first, title) in [
+        (1, 100, "Wiring Definition"),
+        (2, 200, "Air and oil"),
+        (3, 300, "Pneumatics"),
+    ] {
         let create = json!({"cmd": "section.create", "params": {
             "number": number, "folio_range": [first, first + 99], "title": title, "divider": true}});
         done(&mut shell, "command.run", create);
     }
     for (folio, kind) in [("101", "multi_line"), ("103", "bus_topology")] {
-        done(&mut shell, "page.new", json!({"folio": folio, "section": "1", "type": kind}));
+        done(
+            &mut shell,
+            "page.new",
+            json!({"folio": folio, "section": "1", "type": kind}),
+        );
     }
     done(&mut shell, "page.goto", json!({"folio": "101"}));
     done(&mut shell, "page.new", json!({}));
     shell.set_form_field("type", "fluid");
     let form = common::form(&shell);
     let value = |n: &str| form.fields.iter().find(|f| f.name == n).unwrap().value.clone();
-    assert_eq!((value("folio"), value("section")), ("301".to_owned(), "3".to_owned()));
+    assert_eq!(
+        (value("folio"), value("section")),
+        ("301".to_owned(), "3".to_owned())
+    );
     done(&mut shell, "ui.dismiss", json!({}));
     // The fluid page the program makes by itself (Fluid ▸ Symbol on a project without one) goes there too.
     done(&mut shell, "fluid.symbol", json!({}));
     done(&mut shell, "ui.dismiss", json!({}));
-    let made = shell.page_rows().iter().find(|r| r.kind == "fluid").cloned().expect("the fluid page made");
-    assert_eq!((made.folio.as_str(), made.section.map(|(n, _)| n)), ("301", Some(3)));
+    let made = shell
+        .page_rows()
+        .iter()
+        .find(|r| r.kind == "fluid")
+        .cloned()
+        .expect("the fluid page made");
+    assert_eq!(
+        (made.folio.as_str(), made.section.map(|(n, _)| n)),
+        ("301", Some(3))
+    );
     shell.shutdown();
 }
 

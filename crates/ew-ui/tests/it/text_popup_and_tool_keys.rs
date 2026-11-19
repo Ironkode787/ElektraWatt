@@ -614,4 +614,3 @@ fn an_empty_pin_name_is_said_under_the_field() {
     settle(&mut h);
     assert_eq!(pin_names(&h, rep), ["PE"]);
 }
-

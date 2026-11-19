@@ -884,7 +884,11 @@ fn a_drawn_box_s_pins_as_the_re_test_used_them() {
     done(&mut s, "box.add_cp", point);
     for (i, name) in ["24V", "24V", "0V", "0V"].into_iter().enumerate() {
         done(&mut s, "text.input", json!({ "text": name }));
-        let next = if i < 3 { "tool.next_proposal" } else { "tool.finish" };
+        let next = if i < 3 {
+            "tool.next_proposal"
+        } else {
+            "tool.finish"
+        };
         done(&mut s, next, json!({}));
     }
     // Two pins of one name, as a part's: the page prints them apart as 24V#1 and 24V#2.
@@ -899,7 +903,10 @@ fn a_drawn_box_s_pins_as_the_re_test_used_them() {
     let popup = s.text_popup().expect("the field stays open");
     assert_eq!(popup.error.as_deref(), Some("Type a name for the pin"));
     done(&mut s, "text.input", json!({ "text": "PE" }));
-    assert!(s.text_popup().is_some_and(|p| p.error.is_none()), "typing clears the line");
+    assert!(
+        s.text_popup().is_some_and(|p| p.error.is_none()),
+        "typing clears the line"
+    );
     done(&mut s, "tool.finish", json!({}));
     assert_eq!(stored_names(&s, rep.id), ["24V", "24V", "0V", "0V", "PE"]);
     // Add pin on the Draw tab; no dead entry in the box's menu.
@@ -908,11 +915,18 @@ fn a_drawn_box_s_pins_as_the_re_test_used_them() {
     select_ids(&mut s, &[rep.id.to_string()]);
     let menu = ew_viewmodel::command_bar::canvas_menu(&s, ew_viewmodel::command_bar::MenuSpot::Object, None);
     assert!(menu.iter().any(|i| i.label == "Add pin"), "{menu:?}");
-    assert!(!menu.iter().any(|i| i.label == "Edit this device's box…"), "{menu:?}");
+    assert!(
+        !menu.iter().any(|i| i.label == "Edit this device's box…"),
+        "{menu:?}"
+    );
     // Add pin from the bar: the pin follows the pointer along the nearest edge before the click.
     done(&mut s, "box.add_cp", json!({}));
     assert_eq!(s.tool().state(), "armed");
-    assert!(s.status_fields(false)[0].contains("edge nearest the pointer"), "{:?}", s.status_fields(false));
+    assert!(
+        s.status_fields(false)[0].contains("edge nearest the pointer"),
+        "{:?}",
+        s.status_fields(false)
+    );
     let right = grid_point(&s, (43, 34));
     let on_edge = grid_point(&s, (42, 34));
     let pointer = sheet(&s, right);
@@ -927,7 +941,10 @@ fn a_drawn_box_s_pins_as_the_re_test_used_them() {
     done(&mut s, "text.input", json!({ "text": "SIG" }));
     done(&mut s, "tool.finish", json!({}));
     let b = g1_box(&s, rep.id);
-    assert!(b.cps.iter().any(|c| c.1 == on_edge), "the pin stands where the ghost was");
+    assert!(
+        b.cps.iter().any(|c| c.1 == on_edge),
+        "the pin stands where the ghost was"
+    );
     // The height stops where the top's and the bottom's pin texts would touch.
     let depth = b.depth;
     assert!(depth > 0);
@@ -936,11 +953,19 @@ fn a_drawn_box_s_pins_as_the_re_test_used_them() {
     let (from, to) = (sheet(&s, b.outline[2]), sheet(&s, grid_point(&s, (42, 31))));
     done(&mut s, "canvas.press", at(from, json!({})));
     done(&mut s, "canvas.pointer", at(to, json!({})));
-    assert!(s.status_fields(false)[0].starts_with("The box goes no smaller"), "{:?}", s.status_fields(false));
+    assert!(
+        s.status_fields(false)[0].starts_with("The box goes no smaller"),
+        "{:?}",
+        s.status_fields(false)
+    );
     done(&mut s, "canvas.release", at(to, json!({})));
     let b = g1_box(&s, rep.id);
     let ys = b.outline.iter().map(|p| index_of(&s, *p).1);
-    assert!(ys.clone().max().unwrap() - ys.min().unwrap() >= depth, "{:?}", b.outline);
+    assert!(
+        ys.clone().max().unwrap() - ys.min().unwrap() >= depth,
+        "{:?}",
+        b.outline
+    );
     // A press a few points beside the top-left corner's handle takes it: the pointer shows resize first.
     let corner = sheet(&s, b.outline[0]);
     let pts = s.canvas().unwrap().points_per_nm();
@@ -1001,7 +1026,11 @@ fn a_drawn_box_takes_pins_where_it_stands() {
     done(&mut s, "box.add_cp", point);
     done(&mut s, "text.input", json!({"text": "A 1"}));
     done(&mut s, "tool.finish", json!({}));
-    assert!(s.text_popup().and_then(|p| p.error).is_some_and(|e| e.contains("no spaces")));
+    assert!(
+        s.text_popup()
+            .and_then(|p| p.error)
+            .is_some_and(|e| e.contains("no spaces"))
+    );
     done(&mut s, "ui.dismiss", json!({}));
     assert_eq!(s.tool().name(), "select");
     assert_eq!(pin_names(&s, rep.id), ["L1", "L2"]);

@@ -257,9 +257,13 @@ impl Tool for PinNameTool {
         match ev {
             CanvasEvent::PointerMove { at, .. } | CanvasEvent::CursorMove { at } if self.armed => {
                 let p = cx.snapper.sheet_to_page(*at);
-                if let Some(b) = super::black_box::black_box_rep(cx, self.rep).and_then(|r| r.black_box.as_ref()) {
+                if let Some(b) =
+                    super::black_box::black_box_rep(cx, self.rep).and_then(|r| r.black_box.as_ref())
+                {
                     let grid = PageGridMap::new(cx.page.tables.grid);
-                    if let Some((q, dir)) = super::black_box::pin_target(grid, &b.outline, &b.cps, self.pin.0, p) {
+                    if let Some((q, dir)) =
+                        super::black_box::pin_target(grid, &b.outline, &b.cps, self.pin.0, p)
+                    {
                         self.pin = (self.pin.0, q, dir);
                     }
                 }

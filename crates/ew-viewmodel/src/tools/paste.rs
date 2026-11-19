@@ -189,9 +189,15 @@ impl PasteTool {
                 .count()
         };
         let parts: Vec<String> = [
-            (crate::count_key!("label-paste-symbols"), count(&["representation"])),
+            (
+                crate::count_key!("label-paste-symbols"),
+                count(&["representation"]),
+            ),
             (crate::count_key!("label-paste-wires"), count(&["connection"])),
-            (crate::count_key!("label-paste-other"), count(&["page_item", "structure_box"])),
+            (
+                crate::count_key!("label-paste-other"),
+                count(&["page_item", "structure_box"]),
+            ),
         ]
         .into_iter()
         .filter(|(_, n)| *n > 0)

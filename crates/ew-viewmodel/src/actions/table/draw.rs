@@ -1078,15 +1078,9 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         in_canvas(placed(
             place(Group::Arrange, 3, CommandSize::Small, None),
             "plus",
-            act(
-                "box.add_cp",
-                Command,
-                Menu::Draw,
-                &[],
-                one_box,
-                None,
-                |s, p| s.act_box_add_cp(p),
-            ),
+            act("box.add_cp", Command, Menu::Draw, &[], one_box, None, |s, p| {
+                s.act_box_add_cp(p)
+            }),
         )),
     )),
     keeps_banner(with_params(

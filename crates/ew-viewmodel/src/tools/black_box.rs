@@ -1019,9 +1019,8 @@ pub fn grip_stop(
         let ys = o.iter().map(|p| p.1);
         ys.clone().max().zip(ys.min()).map_or(0, |(a, b)| a - b)
     };
-    let low = |new: &[(i64, i64)]| {
-        height(new) < height(outline) && height(new) < depth.saturating_mul(grid.step())
-    };
+    let low =
+        |new: &[(i64, i64)]| height(new) < height(outline) && height(new) < depth.saturating_mul(grid.step());
     let home = grip_points(outline).get(grip).copied().unwrap_or(to);
     let mut at = to;
     let mut new = reshape_by_grip(outline, grip, at)?;
@@ -1600,12 +1599,16 @@ mod tests {
         assert_eq!(new[1].0, 4_000_000);
         // To x 6 it goes all the way.
         assert_eq!(
-            grip_stop(g, &r, &cps, (1, 0), 5, (6_000_000, 2_000_000)).unwrap().0,
+            grip_stop(g, &r, &cps, (1, 0), 5, (6_000_000, 2_000_000))
+                .unwrap()
+                .0,
             (6_000_000, 2_000_000)
         );
         // The bottom edge's grip (6) up to y 1: the top and bottom sides keep their length, nothing holds it.
         assert_eq!(
-            grip_stop(g, &r, &cps, (1, 0), 6, (3_000_000, 1_000_000)).unwrap().0,
+            grip_stop(g, &r, &cps, (1, 0), 6, (3_000_000, 1_000_000))
+                .unwrap()
+                .0,
             (3_000_000, 1_000_000)
         );
     }
