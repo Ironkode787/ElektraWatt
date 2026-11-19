@@ -468,7 +468,8 @@ fn parts_now(d: &mut ew_ui::visual::Driver, nav: bool) -> (Vec<String>, Vec<Stri
         return (page, Vec::new());
     }
     assert_eq!(
-        d.shell_mut().dispatch("navigator.show", &json!({ "kind": "parts" })),
+        d.shell_mut()
+            .dispatch("navigator.show", &json!({ "kind": "parts" })),
         Outcome::Done
     );
     d.settle();
@@ -520,7 +521,10 @@ fn the_parts_list_shows_a_bus_lines_plugs_at_once() {
     d.settle();
     let (page, _) = parts_now(&mut d, false);
     for number in ["EW-GEN-CBL-2", "EW-GEN-PLG-5", "EW-GEN-PLG-1"] {
-        assert!(page.iter().any(|t| t == number), "{number} on the open page: {page:?}");
+        assert!(
+            page.iter().any(|t| t == number),
+            "{number} on the open page: {page:?}"
+        );
     }
     // A line from the CPU's DP to an interruption point: its plug there is the cable's.
     let before = crate::own_parts::cp_labels(&mut d);
@@ -581,8 +585,14 @@ fn the_parts_list_shows_a_bus_lines_plugs_at_once() {
     d.settle();
     let (page, nav) = parts_now(&mut d, true);
     for number in ["EW-GEN-CBL-2", "EW-GEN-PLG-5", "EW-GEN-PLG-1", "EW-GEN-PLG-2"] {
-        assert!(page.iter().any(|t| t == number), "{number} on the open page: {page:?}");
-        assert!(nav.iter().any(|t| t == number), "{number} in the navigator: {nav:?}");
+        assert!(
+            page.iter().any(|t| t == number),
+            "{number} on the open page: {page:?}"
+        );
+        assert!(
+            nav.iter().any(|t| t == number),
+            "{number} in the navigator: {nav:?}"
+        );
     }
 }
 

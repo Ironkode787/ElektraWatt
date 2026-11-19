@@ -237,7 +237,7 @@ impl Query for DevicePartLines {
                         // An end without a device of its own gives its plug to the device at the other end.
                         if let Some(p) = plug
                             && (here || end_device(q, end).is_none())
-                            && plug_owner(q, &conn, end) == Some(*key)
+                            && plug_owner(q, conn, end) == Some(*key)
                         {
                             push(&p.part, Dec3::ONE, LineSource::Plug);
                         }
@@ -251,7 +251,9 @@ impl Query for DevicePartLines {
             let mut carried: Vec<_> = q
                 .connections()
                 .iter()
-                .filter(|(_, c)| matches!(&c.kind, ew_schema::ConnectionKind::Bus(l) if l.cable == Some(*key)))
+                .filter(
+                    |(_, c)| matches!(&c.kind, ew_schema::ConnectionKind::Bus(l) if l.cable == Some(*key)),
+                )
                 .map(|(_, c)| Arc::clone(c))
                 .collect();
             carried.sort_by_key(|c| c.id);
@@ -284,10 +286,12 @@ fn plug_owner(q: &Q, conn: &ew_schema::Connection, end: &ew_schema::Endpoint) ->
     let ew_schema::ConnectionKind::Bus(line) = &conn.kind else {
         return None;
     };
-    let other = if std::ptr::eq(end, &conn.a) { &conn.b } else { &conn.a };
-    end_device(q, end)
-        .or(line.cable)
-        .or_else(|| end_device(q, other))
+    let other = if std::ptr::eq(end, &conn.a) {
+        &conn.b
+    } else {
+        &conn.a
+    };
+    end_device(q, end).or(line.cable).or_else(|| end_device(q, other))
 }
 
 /// The device that owns a tube's BOM lines: the device of its from end, else of its to end (a tube from a tee), so a

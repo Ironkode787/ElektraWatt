@@ -844,7 +844,12 @@ impl ShellModel {
 
     /// [`Self::tag_example`] with the device `except` left out: a cable the same step removes (rc.5, a bus line's
     /// cable replaced), whose tag the numbering gives again.
-    pub(super) fn tag_example_except(&self, aspect: &str, letter: &str, except: Option<Uuid>) -> Option<String> {
+    pub(super) fn tag_example_except(
+        &self,
+        aspect: &str,
+        letter: &str,
+        except: Option<Uuid>,
+    ) -> Option<String> {
         let row = self.page_rows().get(self.page_index())?;
         let numbered_here = match row.kind.as_str() {
             "multi_line" | "single_line" => true,

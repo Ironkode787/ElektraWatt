@@ -942,7 +942,11 @@ impl ShellModel {
     /// The selected lines' cable when a new cable for them leaves it unused, which the step then removes
     /// (`BusCableForm::left_unused`): its tag is free for the new one.
     fn replaced_bus_cable(&self) -> Option<Uuid> {
-        let form = self.project.as_ref()?.session.bus_cable_form(&self.selected_bus_lines());
+        let form = self
+            .project
+            .as_ref()?
+            .session
+            .bus_cable_form(&self.selected_bus_lines());
         form.cable.filter(|_| form.left_unused)
     }
 
