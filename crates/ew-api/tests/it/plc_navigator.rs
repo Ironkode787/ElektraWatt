@@ -227,7 +227,8 @@ fn the_typed_editors() {
 }
 
 /// The grid's routes: the channel members through `fields.set`, the slot on the module; the
-/// derived columns read-only.
+/// derived columns read-only. The function text is typed on a wired channel's row (the wired device's, rc.5) and
+/// read-only with the reason on a channel nothing is wired to.
 #[test]
 fn the_grid_columns_and_routes() {
     let s = common::golden_session();
@@ -243,10 +244,28 @@ fn the_grid_columns_and_routes() {
         assert_eq!(route(k), Some(format!("channel/{k}")));
     }
     assert_eq!(route("slot").as_deref(), Some("device/plc_module.slot"));
-    for k in ["function_text", "process_tag", "placed_on"] {
+    for k in ["process_tag", "placed_on"] {
         let c = t.columns.iter().find(|c| c.key == k).unwrap();
         assert!(c.derived && c.route.is_none(), "{k}");
     }
+    let text = t.columns.iter().position(|c| c.key == "function_text").unwrap();
+    let target = t.columns.iter().position(|c| c.key == "target").unwrap();
+    let channels = t.nodes.iter().filter(|n| n.role == NavRole::Channel);
+    let reasons: std::collections::BTreeSet<(bool, Option<&str>)> = channels
+        .map(|n| {
+            let wired = !n.cells[target].is_empty();
+            (wired, ew_api::output::table_edit::cell_reason_key(&t, n, text))
+        })
+        .collect();
+    assert!(
+        reasons.contains(&(true, None)),
+        "a wired channel's is typed: {reasons:?}"
+    );
+    assert!(
+        reasons.contains(&(false, Some("rack-channel-no-device"))),
+        "{reasons:?}"
+    );
+    assert!(reasons.iter().all(|(w, r)| *w == r.is_none()), "{reasons:?}");
     for k in ["station", "module", "channel", "kind"] {
         assert_eq!(route(k), None, "{k}");
     }

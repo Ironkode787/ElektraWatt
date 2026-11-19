@@ -77,6 +77,9 @@ pub struct PropertiesPane {
     /// Escape is then the field's (egui drops a field's focus on Escape before the frame starts).
     field_now: bool,
     field_last: bool,
+    /// A Tab (`false`) or Shift+Tab (`true`) pressed in the open editor (rc.5): its focus loss, in that frame or the
+    /// next, commits and opens the next (the previous) row's field.
+    tabbed: Option<bool>,
     /// The row error last brought into view, (row key, message): a new error scrolls its line into view once.
     error_shown: Option<(String, String)>,
     /// The categories' headers drawn in the last frame: while one of them has the keyboard focus the pane leaves it
@@ -1626,6 +1629,7 @@ impl PropertiesPane {
         // "2 V DC").
         if fresh {
             ui.memory_mut(|m| m.request_focus(field_id));
+            self.tabbed = None;
         }
         let response = ui.add_sized(
             Vec2::new(ui.available_width(), t.size_control_inline),
@@ -1707,6 +1711,20 @@ impl PropertiesPane {
         if response.lost_focus() && on_options && !escape {
             return;
         }
+        let tab = ui.input(|i| {
+            i.events.iter().find_map(|e| match e {
+                egui::Event::Key {
+                    key: Key::Tab,
+                    pressed: true,
+                    modifiers,
+                    ..
+                } => Some(modifiers.shift),
+                _ => None,
+            })
+        });
+        if tab.is_some() && (response.has_focus() || response.lost_focus()) {
+            self.tabbed = tab;
+        }
         if response.lost_focus() {
             self.editing = None;
             if escape {
@@ -1716,7 +1734,13 @@ impl PropertiesPane {
             } else if highlighted {
                 events.push(Event::Action("props.choose", json!({})));
             } else {
-                events.push(Event::Action("props.commit", json!({})));
+                // Tab takes the value and opens the next row's field, Shift+Tab the one before (rc.5).
+                let params = match self.tabbed.take() {
+                    Some(false) => json!({"step": 1}),
+                    Some(true) => json!({"step": -1}),
+                    None => json!({}),
+                };
+                events.push(Event::Action("props.commit", params));
             }
         }
     }

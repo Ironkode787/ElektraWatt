@@ -1229,16 +1229,61 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `props.commit` (Enter, Tab, focus loss): the buffer is parsed and committed.
-    pub(crate) fn act_props_commit(&mut self) -> Outcome {
+    /// `props.commit {step?}` (Enter, Tab, focus loss): the buffer is parsed and committed. With `step` (Tab 1,
+    /// Shift+Tab −1) the editor then opens on the next (the previous) row typed in, so that a sheet's fields are
+    /// filled one after the other (rc.5: a text typed after Tab replaced the one before in the same field).
+    pub(crate) fn act_props_commit(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(edit) = self.props.edit.clone() else {
             return Outcome::refused(key!("reason-not-editing"));
         };
         // The stored value's text committed unchanged: nothing to write (its display form need not parse back).
-        if edit.initial.as_deref() == Some(edit.buffer.as_str()) {
-            return self.act_props_cancel();
+        let out = if edit.initial.as_deref() == Some(edit.buffer.as_str()) {
+            self.act_props_cancel()
+        } else {
+            self.commit_text(&edit.row, &edit.buffer, None)
+        };
+        let step = p.get("step").and_then(Value::as_i64).unwrap_or(0).signum();
+        // A refusal, a proposal or a choice keeps its row.
+        if step == 0 || out != Outcome::Done || self.props.edit.is_some() || self.props.card().is_some() {
+            return out;
         }
-        self.commit_text(&edit.row, &edit.buffer, None)
+        match self.typed_row_after(&edit.row, step) {
+            Some(next) => self.begin_edit(&next, RowAction::Edit, None),
+            None => out,
+        }
+    }
+
+    /// The row after `key` (`step` 1) or before it (−1) in the sheet's visible order whose value is typed in its
+    /// field: one that can be edited now, not a checkbox and not a form's button. `None` at the sheet's end.
+    fn typed_row_after(&self, key: &str, step: i64) -> Option<String> {
+        let sheet = self.props.sheet.clone()?;
+        let collapsed = self.properties_collapsed();
+        let filter = self.properties_filter().to_owned();
+        let rows = visible_rows(
+            &sheet,
+            &collapsed,
+            self.settings.properties_show_advanced,
+            &filter,
+        );
+        let here = rows.iter().position(|r| r.row.key == key)?;
+        let typed = |i: usize| {
+            let row = rows[i].row;
+            let section = sheet
+                .sections
+                .iter()
+                .find(|s| s.rows.iter().any(|r| r.key == row.key))?;
+            let form = matches!(&row.route, crate::properties::EditRoute::Command { command } if command == "bus.cable");
+            (row.actions.contains(&RowAction::Edit)
+                && !matches!(row.ty.inner(), crate::properties::FieldType::Bool)
+                && !form
+                && self.props_refusal(section, row, RowAction::Edit).is_none())
+            .then(|| row.key.clone())
+        };
+        if step > 0 {
+            (here + 1..rows.len()).find_map(typed)
+        } else {
+            (0..here).rev().find_map(typed)
+        }
     }
 
     /// `props.set`: `row`, `value` (the text as typed), optional `choice` (an index for an ambiguous value).
@@ -2249,7 +2294,7 @@ impl ShellModel {
             },
             None => match self.props.choices.as_ref().and_then(|c| c.index) {
                 Some(i) => i,
-                None if self.props.edit.is_some() => return self.act_props_commit(),
+                None if self.props.edit.is_some() => return self.act_props_commit(&Map::new()),
                 None => return failed(key!("error-missing-param"), &["index"]),
             },
         };

@@ -2245,8 +2245,9 @@ impl ShellModel {
     }
 
     /// `plc.rack_channel {channel?, column?, text?, next?, cancel?}` (rc.5: a symbol typed into the channel table did
-    /// nothing): a channel's symbol (`column` `symbol`) or function text (`function_text`) of the module on show,
-    /// typed in its cell as the PLC grid and Properties set them (`fields.set`). Without `text` the field opens on the
+    /// nothing): a channel's symbol (`column` `symbol`) or function text (`function_text`) of the module on show, or
+    /// (the PLC grid's cell) of any channel, set as Properties set them ([`ShellModel::set_channel_text`]). Without
+    /// `text` the field opens on the
     /// cell; with it the cell takes the text, and with `next` the same cell of the next channel opens, so a card's
     /// channels are typed in one go. The function text is the wired device's (the PLC overview prints that): a channel
     /// nothing is wired to has none, said in a sentence. A refusal is said under the rack, the field staying open on
@@ -2271,14 +2272,19 @@ impl ShellModel {
             (None, Some(o)) => o.0,
             (None, None) => return failed(key!("error-missing-param"), &["channel"]),
         };
+        // The channel of the module on show, else any channel of the project (the PLC grid's cell).
         let rows = self
             .station_shown()
             .map(|s| s.channels.clone())
             .unwrap_or_default();
-        let Some(at) = rows.iter().position(|c| c.channel == channel) else {
+        let at = rows.iter().position(|c| c.channel == channel);
+        let Some(row) = at
+            .map(|i| rows[i].clone())
+            .or_else(|| self.project_session()?.channel_row(channel))
+        else {
             return failed(key!("error-bad-param"), &["channel"]);
         };
-        let row = &rows[at];
+        let row = &row;
         let text = match string_param(p, "text") {
             Ok(t) => t.map(str::to_owned),
             Err(e) => return e,
@@ -2289,15 +2295,10 @@ impl ShellModel {
             }
         };
         // The function text is the wired device's.
-        let target = match (column, row.device) {
-            ("symbol", _) => ("channel", channel),
-            (_, Some(device)) => ("device", device),
-            (_, None) => {
-                set(self, None);
-                let why = strings::format(key!("rack-channel-no-device"), &[&row.address]);
-                return self.rack_refuse(None, why);
-            }
-        };
+        if column == "function_text" && row.device.is_none() {
+            set(self, None);
+            return self.rack_refuse(None, strings::text(key!("rack-channel-no-device")).to_owned());
+        }
         let Some(text) = text else {
             let current = if column == "symbol" {
                 row.symbol.clone()
@@ -2310,55 +2311,18 @@ impl ShellModel {
             }
             return Outcome::Done;
         };
-        let refuse = |s: &mut Self, why: String| {
-            set(s, Some((channel, column, text.clone())));
-            s.rack_refuse(None, why)
-        };
-        let parsed = match self.project_session() {
-            Some(session) => session.parse_field_input(target.0, column, text.trim()),
-            None => return Outcome::refused(key!("reason-no-project")),
-        };
-        let leaf = match parsed {
-            Ok(parsed) => parsed.value,
-            Err(ew_api::output::InputError::Invalid(why)) => {
-                return refuse(self, super::tools::rejected_words(&why.to_string(), Some(&why)));
-            }
-            Err(_) => return refuse(self, strings::format(key!("rack-channel-bad"), &[text.trim()])),
-        };
-        // A function text is one language of the device's: the others stay (as the grid composes it).
-        let value = if column == "function_text" {
-            let base = self.member_base(target.0, target.1, column);
-            ew_api::output::table_edit::compose_leaf(column, column, &base, &leaf, true).unwrap_or(leaf)
-        } else {
-            leaf
-        };
-        let current = if column == "symbol" {
-            &row.symbol
-        } else {
-            &row.function_text
-        };
-        if text.trim() != current.as_str() {
-            let cmd = ew_api::AnyCommand {
-                name: "fields.set".into(),
-                params: json!({"kind": target.0, "targets": [target.1.to_string()], "path": column, "value": value}),
-            };
-            match self.commit_from_host(&cmd) {
-                Outcome::Done => {}
-                Outcome::Failed { message } => return refuse(self, message),
-                Outcome::Refused { reason_key } => return refuse(self, strings::text(reason_key).to_owned()),
-            }
+        if let Err(why) = self.set_channel_text(row, column, &text) {
+            set(self, Some((channel, column, text.clone())));
+            return self.rack_refuse(None, why);
         }
         if let Some(tab) = self.station_tab_mut() {
             tab.error = None;
         }
         // Tab: the same cell of the next channel that has it, else the field closes.
-        let next = flag(p, "next")
-            .then(|| {
-                let shown = self.station_shown()?;
-                let has = |c: &&ew_api::output::RackChannel| column == "symbol" || c.device.is_some();
-                shown.channels.iter().skip(at + 1).find(has).cloned()
-            })
-            .flatten();
+        let next = at.filter(|_| flag(p, "next")).and_then(|at| {
+            let has = |c: &&ew_api::output::RackChannel| column == "symbol" || c.device.is_some();
+            rows.iter().skip(at + 1).find(has).cloned()
+        });
         match next {
             Some(n) => {
                 let opens = if column == "symbol" {
@@ -2371,6 +2335,58 @@ impl ShellModel {
             None => set(self, None),
         }
         Outcome::Done
+    }
+
+    /// Sets the symbol (`column` `symbol`) or the function text (`function_text`) of the channel of `row` to `text`, as
+    /// the PLC grid and Properties set them (`fields.set`): the symbol on the channel, the function text on the device
+    /// wired to it, in the project's language (its other languages stay). The station view's channel table and the PLC
+    /// grid both type them through here (rc.5). A text equal to the one shown commits nothing. The refusal in words.
+    pub(super) fn set_channel_text(
+        &mut self,
+        row: &ew_api::output::RackChannel,
+        column: &str,
+        text: &str,
+    ) -> Result<(), String> {
+        let target = match (column, row.device) {
+            ("symbol", _) => ("channel", row.channel),
+            (_, Some(device)) => ("device", device),
+            (_, None) => return Err(strings::text(key!("rack-channel-no-device")).to_owned()),
+        };
+        let current = if column == "symbol" {
+            &row.symbol
+        } else {
+            &row.function_text
+        };
+        if text.trim() == current.as_str() {
+            return Ok(());
+        }
+        let parsed = match self.project_session() {
+            Some(session) => session.parse_field_input(target.0, column, text.trim()),
+            None => return Err(strings::text(key!("reason-no-project")).to_owned()),
+        };
+        let leaf = match parsed {
+            Ok(parsed) => parsed.value,
+            Err(ew_api::output::InputError::Invalid(why)) => {
+                return Err(super::tools::rejected_words(&why.to_string(), Some(&why)));
+            }
+            Err(_) => return Err(strings::format(key!("rack-channel-bad"), &[text.trim()])),
+        };
+        // A function text is one language of the device's: the others stay (as the grid composes it).
+        let value = if column == "function_text" {
+            let base = self.member_base(target.0, target.1, column);
+            ew_api::output::table_edit::compose_leaf(column, column, &base, &leaf, true).unwrap_or(leaf)
+        } else {
+            leaf
+        };
+        let cmd = ew_api::AnyCommand {
+            name: "fields.set".into(),
+            params: json!({"kind": target.0, "targets": [target.1.to_string()], "path": column, "value": value}),
+        };
+        match self.commit_from_host(&cmd) {
+            Outcome::Done => Ok(()),
+            Outcome::Failed { message } => Err(message),
+            Outcome::Refused { reason_key } => Err(strings::text(reason_key).to_owned()),
+        }
     }
 
     /// `plc.add_to_plc {device, config?}` (F19 of the rc.1 test): a bus device that belongs to no PLC becomes a station

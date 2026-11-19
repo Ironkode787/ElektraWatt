@@ -351,15 +351,18 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             }),
         ))),
     )),
-    keeps_banner(hidden(in_properties(act(
-        "props.commit",
-        Command,
-        Menu::Edit,
-        &[],
-        grid_writable,
-        None,
-        |s, _| s.act_props_commit(),
-    )))),
+    keeps_banner(with_params(
+        "step?:int",
+        hidden(in_properties(act(
+            "props.commit",
+            Command,
+            Menu::Edit,
+            &[],
+            grid_writable,
+            None,
+            |s, p| s.act_props_commit(p),
+        ))),
+    )),
     keeps_banner(hidden(in_properties(act(
         "props.cancel",
         View,

@@ -17,9 +17,10 @@
 
 use std::sync::Arc;
 
+use ew_api::output::table_edit::channel_text_cell;
 use ew_api::output::{InputError, NavKind, NavTable, StripEdit, StripEditError, Uuid};
 use ew_api::{AnyCommand, Exposure, Submit};
-use serde_json::{Map, Value};
+use serde_json::{Map, Value, json};
 
 use super::navigation::bump;
 use super::{Outcome, ShellModel, failed, flag, string_param};
@@ -995,7 +996,16 @@ impl ShellModel {
             return Outcome::refused(key!("reason-no-nav-row"));
         };
         let i = view.rows[r];
-        if let Err(reason) = self.cell_route(&view, i, col) {
+        // A PLC channel's function text is typed as in the station view (rc.5); one nothing is wired to says why.
+        let channel_text = channel_text_cell(&view.table, &view.table.nodes[i as usize], col);
+        if channel_text == Some(None) {
+            return Outcome::Failed {
+                message: strings::text(key!("rack-channel-no-device")).to_owned(),
+            };
+        }
+        if channel_text.is_none()
+            && let Err(reason) = self.cell_route(&view, i, col)
+        {
             // Tips 2 and 3.
             self.tip_for_refused_cell(kind, &view.table, i, col);
             return failed(
@@ -1086,6 +1096,22 @@ impl ShellModel {
         {
             self.close_edit(kind);
             return Outcome::Done;
+        }
+        // A PLC channel's function text, the wired device's, goes as in the station view (rc.5); a refusal stays in the
+        // field.
+        if let Some(Some(channel)) = channel_text_cell(&view.table, &view.table.nodes[row as usize], col) {
+            let set = json!({"channel": channel.to_string(), "column": "function_text", "text": edit.buffer});
+            let out = self.dispatch("plc.rack_channel", &set);
+            match &out {
+                Outcome::Done => self.close_edit(kind),
+                Outcome::Failed { message } => {
+                    if let Some(m) = self.mode_mut(kind) {
+                        m.error = Some(message.clone());
+                    }
+                }
+                Outcome::Refused { .. } => {}
+            }
+            return out;
         }
         // A parse error stays in the field (§8.3).
         let first = self.text_cell(&view, row, col, &edit.buffer);

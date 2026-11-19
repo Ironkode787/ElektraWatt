@@ -104,6 +104,21 @@ fn strip_reason(table: &NavTable, node: &NavNode, column: usize) -> Option<Optio
     None
 }
 
+/// A PLC channel row's Function text cell (rc.5): its function text is the wired device's, typed in the cell as in the
+/// station view's channel table (`plc.rack_channel`), not through a route of the row's record. `Some(Some(channel))`
+/// for such a cell of a channel something is wired to (its Target cell names it), `Some(None)` for one of a channel
+/// nothing is wired to, `None` for every other cell.
+pub fn channel_text_cell(table: &NavTable, node: &NavNode, column: usize) -> Option<Option<Uuid>> {
+    let on = matches!(table.kind, NavKind::Plc | NavKind::PlcGrid)
+        && node.role == NavRole::Channel
+        && table.columns.get(column)?.key == "function_text";
+    on.then(|| {
+        (!cell_of(table, node, "target").is_empty())
+            .then(|| node.records.first().copied())
+            .flatten()
+    })
+}
+
 /// The records of a row of the route's kind (D10): a conductor route takes a core row's conductor (the records after
 /// its cable), a potential definition route a potential row's record when it is a `potential_def` (not the bond row's,
 /// nor a connection point naming the potential), every other route the row's records; deduplicated, in record order.
@@ -265,6 +280,11 @@ pub fn cell_reason_key(table: &NavTable, node: &NavNode, column: usize) -> Optio
     let c = table.columns.get(column)?;
     if let Some(reason) = strip_reason(table, node, column) {
         return reason;
+    }
+    if let Some(channel) = channel_text_cell(table, node, column) {
+        return channel
+            .is_none()
+            .then_some(ew_commands::text_key!("rack-channel-no-device"));
     }
     if c.derived {
         return Some(ew_commands::text_key!("table-reason-derived"));

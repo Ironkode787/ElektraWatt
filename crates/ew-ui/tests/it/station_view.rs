@@ -634,10 +634,7 @@ fn a_cards_channels_are_named_in_the_station_view() {
         .station_tab()
         .and_then(|t| t.error.clone())
         .expect("said under the rack");
-    assert!(
-        why.starts_with(&format!("Nothing is wired to {third} yet")),
-        "{why}"
-    );
+    assert!(why.starts_with("Nothing is wired to this channel yet"), "{why}");
     h.get_by_label(&why);
     h.state_mut().shell_mut().shutdown();
 }

@@ -496,6 +496,19 @@ impl Session {
         }
     }
 
+    /// The row of channel `channel` as its station's view lists it ([`Session::module_channels`]); `None` for no
+    /// channel of the project.
+    pub fn channel_row(&self, channel: Uuid) -> Option<RackChannel> {
+        let module = self
+            .query()
+            .table::<ew_derive::ew_schema::Channel>()
+            .get(Id::from_uuid(channel))?
+            .module;
+        self.module_channels(module.as_uuid())
+            .into_iter()
+            .find(|c| c.channel == channel)
+    }
+
     /// The channels of module `module`, in channel-number order, as its station's view lists them: each its address,
     /// its symbol name and what is wired to it; empty for a device without channels.
     pub fn module_channels(&self, module: Uuid) -> Vec<RackChannel> {

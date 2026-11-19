@@ -543,7 +543,7 @@ const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 36] = [
 /// The derived columns (§8.2): cells the derivation computes from other records rather than a
 /// field of the row's record (a connection's or terminal's potential, the folios a row is drawn on, counts). Drawn
 /// italic in table mode and read-only with the reason "derived".
-const DERIVED_COLUMNS: [(NavKind, &str); 18] = [
+const DERIVED_COLUMNS: [(NavKind, &str); 17] = [
     (NavKind::Pages, "changed_in"),
     (NavKind::Connections, "potential"),
     (NavKind::Cables, "potential"),
@@ -554,8 +554,8 @@ const DERIVED_COLUMNS: [(NavKind, &str); 18] = [
     (NavKind::Potentials, "pages"),
     (NavKind::Structure, "usage"),
     (NavKind::Blocks, "pages"),
-    // A channel's function text and process tag come from its target, its page from the bound coil.
-    (NavKind::Plc, "function_text"),
+    // A channel's process tag comes from its target, its page from the bound coil. Its function text, its target's
+    // too, is typed in its cell (rc.5, `table_edit::channel_text_cell`).
     (NavKind::Plc, "process_tag"),
     (NavKind::Plc, "placed_on"),
     // The rack is the module's slot's (edited in the Slot cell).
