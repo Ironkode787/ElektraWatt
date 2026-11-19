@@ -482,7 +482,7 @@ fn fitted_symbols_move_turn_and_take_a_wire() {
     done(&mut shell, "select.set", json!({ "ids": ids }));
     done(&mut shell, "edit.copy", json!({}));
     done(&mut shell, "edit.paste_clip", json!({}));
-    let target = sheet(&shell, (60_000_000, 150_000_000));
+    let target = sheet(&shell, (150_000_000, 100_000_000));
     done(&mut shell, "canvas.pointer", at(target, json!({})));
     done(&mut shell, "canvas.press", at(target, json!({})));
     assert_eq!(
@@ -566,6 +566,34 @@ fn the_page_tab_changes_the_grid_and_a_filter_clears_with_the_kind() {
     assert_eq!(shell.properties_filter(), "grid");
     select_rep(&mut shell, "-102F1");
     assert_eq!(shell.properties_filter(), "", "another kind of thing: the filter clears");
+    shell.shutdown();
+}
+
+/// rc.5 persona run (after Ctrl+V no ghost showed until the pointer moved; the click set the block down partly off the
+/// sheet and nothing said so): the block hangs on the pointer at once, and a click where a part of it would lie outside
+/// the drawing area is refused in the status line, nothing pasted.
+#[test]
+fn a_paste_shows_its_ghost_at_once_and_is_refused_off_the_drawing_area() {
+    let tmp = Tmp::new("clip-ghost");
+    let mut shell = tmp.shell_in(Mode::Gui, true, "102");
+    select_rep(&mut shell, "-102F1");
+    done(&mut shell, "edit.copy", json!({}));
+    done(&mut shell, "select.set", json!({ "ids": [] }));
+    done(&mut shell, "edit.paste_clip", json!({}));
+    assert_eq!(shell.tool().name(), "paste");
+    assert!(!shell.tool_overlay().is_empty(), "the ghost shows before the pointer moves");
+    // At the sheet's top-left corner: outside the drawing area.
+    let corner = sheet(&shell, (0, 0));
+    let rev = shell.revision();
+    done(&mut shell, "canvas.pointer", at(corner, json!({})));
+    assert_eq!(
+        shell.dispatch("canvas.press", &at(corner, json!({}))),
+        Outcome::Refused {
+            reason_key: key!("reason-paste-outside")
+        }
+    );
+    assert_eq!(shell.revision(), rev, "nothing pasted");
+    assert_eq!(shell.tool().name(), "paste", "the block still hangs on the pointer");
     shell.shutdown();
 }
 

@@ -256,6 +256,26 @@ impl ShellModel {
         self.activate_tool(Box::new(
             PasteTool::new(Arc::new(f), dropped).adapting(adapt.to_vec()),
         ));
+        // The block hangs on the pointer at once, else in the middle of the view (rc.5: no ghost showed until the
+        // pointer moved, and the click set the block down where the person did not expect it).
+        let at = self.canvas().map(|c| {
+            c.pointer().unwrap_or_else(|| {
+                let [x0, y0, x1, y1] = c.view_nm();
+                (x0 / 2 + x1 / 2, y0 / 2 + y1 / 2)
+            })
+        });
+        if let Some(at) = at {
+            let out = self
+                .with_tool(|t, cx| {
+                    t.as_any_mut()
+                        .and_then(|a| a.downcast_mut::<PasteTool>())
+                        .map(|p| p.float_at(at, cx))
+                })
+                .flatten();
+            if let Some(ToolOutput::Transient(o)) = out {
+                self.tools.overlay = o;
+            }
+        }
         Outcome::Done
     }
 

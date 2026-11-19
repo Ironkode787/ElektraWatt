@@ -7,7 +7,10 @@
 //! State `floating` (not sticky). `PointerMove` or `CursorMove` → `Transient`: one ghost rectangle per ghost entry of
 //! the fragment, its middle at the point and its anchor snapped to the grid (never to a connection point:
 //! `snap_grid`; Duplicate starts with the anchor at its point), a label `paste <n> records` with the dropped
-//! connections, and after a preview the predicted tags; `Dwell` of 80 ms and more →
+//! connections, and after a preview the predicted tags; where a part of it would lie outside the frame's drawing area
+//! the label says so and `Press` or `Activate` is refused with that reason (rc.5: a paste ended off the sheet and
+//! nothing said so); the host floats it at the pointer (else the view's middle) as soon as it is armed, so the ghost
+//! shows before the first move; `Dwell` of 80 ms and more →
 //! `Preview(edit.paste {page, at, fragment})` (the semantic ghost: the derived diff's tags); `Press` or `Activate` →
 //! `Commit`, after which the host returns to Select with the pasted representations selected; `Escape` answers
 //! nothing, so the Escape chain ends the tool (the revision is unchanged). The tool reads no `Session`: the fragment was
@@ -73,6 +76,23 @@ impl PasteTool {
         self.anchor_at(cx.snapper.page_to_sheet(page), cx)
     }
 
+    /// The fragment floated with its middle at the sheet point `at` (the host's first ghost, rc.5).
+    pub fn float_at(&mut self, at: (i64, i64), cx: &ToolCx<'_>) -> ToolOutput {
+        self.moved(at, cx)
+    }
+
+    /// Whether a part of the fragment at its anchor lies outside the frame's drawing area (`ip::drawing_area`).
+    fn outside(&self, cx: &ToolCx<'_>) -> bool {
+        let (Some((_, page)), Some(area)) = (self.at, super::ip::drawing_area(cx.page)) else {
+            return false;
+        };
+        self.fragment.ghost.iter().any(|g| {
+            let (x0, x1) = (page.0.saturating_add(g[0].min(g[2])), page.0.saturating_add(g[0].max(g[2])));
+            let (y0, y1) = (page.1.saturating_add(g[1].min(g[3])), page.1.saturating_add(g[1].max(g[3])));
+            x0 < area[0] || y0 < area[1] || x1 > area[2] || y1 > area[3]
+        })
+    }
+
     /// The fragment's middle relative to its anchor (page nm): the centre of its ghost rectangles' bounds.
     fn middle(&self) -> (i64, i64) {
         let g = &self.fragment.ghost;
@@ -134,7 +154,11 @@ impl PasteTool {
             },
             OverlayItem::Label {
                 at: sheet,
-                text: self.label(),
+                text: if self.outside(cx) {
+                    format!("{} · {}", self.label(), strings::text(key!("label-paste-outside")))
+                } else {
+                    self.label()
+                },
                 anchor: Anchor::Above,
             },
         ])
@@ -196,8 +220,12 @@ impl Tool for PasteTool {
                 ..
             } => {
                 let _ = self.moved(*at, cx);
+                if self.outside(cx) {
+                    return ToolOutput::Refused(key!("reason-paste-outside"));
+                }
                 self.command(cx).map_or(ToolOutput::None, ToolOutput::Commit)
             }
+            CanvasEvent::Activate if self.outside(cx) => ToolOutput::Refused(key!("reason-paste-outside")),
             CanvasEvent::Activate => self.command(cx).map_or(ToolOutput::None, ToolOutput::Commit),
             _ => ToolOutput::None,
         }
