@@ -332,6 +332,7 @@ impl PlaceTool {
                     fluid: cp.fluid,
                     valve_port: cp.valve_port,
                     contact: self.shape.contact,
+                    fitting: self.shape.fitting,
                 }
             })
             .collect()

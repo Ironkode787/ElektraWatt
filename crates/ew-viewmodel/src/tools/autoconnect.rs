@@ -17,7 +17,9 @@
 //! a supply's `+`) never takes a point of a potential named for another one, nor do a terminal's two sides join two
 //! potentials of different names (rc.3: a sensor joined to an output, a neutral to a phase); a valve's working port
 //! never takes another valve's exhaust port as a hit, nor the other way round (EW-FL-012's conflict, the persona
-//! re-test: two valves stacked had their exhausts joined to the working ports). A terminal's ghost CP never takes a CP of a terminal of its own
+//! re-test: two valves stacked had their exhausts joined to the working ports), and a fitting's port (a flow control,
+//! a check valve, a coupling: `ew_derive::is_fitting`) never takes another fitting's (rc.5: four flow controls set side
+//! by side in a row were joined by tubes). A terminal's ghost CP never takes a CP of a terminal of its own
 //! strip as a hit: two terminals of one strip are joined by a bridge, never by a
 //! proposed wire; that terminal's body then stops the walk as any body does. The proposal of a ray is its
 //! first hit; [`ToolKey::NextProposal`](super::ToolKey::NextProposal) (Tab) cycles every ray to its next hit further
@@ -77,6 +79,8 @@ pub struct GhostCp {
     pub valve_port: Option<ew_api::output::ValvePort>,
     /// Whether it is a contact's point (a switch, a push-button, a sensor): a PLC output's pin is never its hit.
     pub contact: bool,
+    /// Whether it is a fitting's port: another fitting's port is never its hit.
+    pub fitting: bool,
 }
 
 /// Whether the representation `rep` of the page is a terminal of the strip printed `strip_tag`: a terminal
@@ -283,6 +287,7 @@ fn may_join(cp: &GhostCp, q: &TableCp, tables: &PageTables, own: &[EntityRef]) -
         && q.fluid == cp.fluid
         && !ew_api::output::ValvePort::conflict(q.valve_port, cp.valve_port)
         && !(cp.contact && q.plc_output)
+        && !(cp.fitting && q.fitting)
         && !other_conductor(&cp.designation, q.potential.as_ref())
         && !cp.strip_tag.as_deref().is_some_and(|tag| {
             tables
@@ -595,6 +600,7 @@ pub fn moved_cps(tables: &PageTables, delta: &dyn Fn(EntityRef) -> Option<(i64, 
             valve_port: cp.valve_port,
             // A moved symbol's proposals are shown, never committed (module documentation).
             contact: false,
+            fitting: cp.fitting,
         });
     }
     out
@@ -662,6 +668,7 @@ mod tests {
             valve_port: None,
             plc_address: None,
             plc_output: false,
+            fitting: false,
         }
     }
 
@@ -695,6 +702,7 @@ mod tests {
             fluid: false,
             valve_port: None,
             contact: false,
+            fitting: false,
         }
     }
 

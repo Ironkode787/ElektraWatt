@@ -91,6 +91,7 @@ fn box_shape(f: &ew_api::output::CatalogueTemplateFn) -> Option<SymbolShape> {
         fndef: Uuid::nil(),
         valve: false,
         contact: false,
+        fitting: false,
     })
 }
 

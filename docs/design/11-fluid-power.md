@@ -970,7 +970,10 @@ join, and the committed hint is a working fluid line (`device.place`'s hint take
 fluid ports); a fluid port never proposes an electrical CP, nor an electrical CP a fluid port, on any page, and a
 valve's working port never proposes another valve's exhaust port or a supply plate's exhaust tap, nor the other way
 round (EW-FL-012's conflict, `ew_derive::ValvePort`; the persona re-test's stacked valves, round 3's valve below a
-loose plate); the placement's toast counts the tubes it draws ("connected 1 tube"). A flexible
+loose plate), and a fitting's port (a FnDef whose every fluid port is generic: a flow control, a check valve, a
+throttle, a coupling, a silencer; `ew_derive::is_fitting`) never proposes another fitting's: two set side by side are
+a row of branches, not one line (rc.5: four flow controls placed in a row were joined by tubes); a fitting facing a
+valve's or a cylinder's port still is. The placement's toast counts the tubes it draws ("connected 1 tube"). A flexible
 line is drawn as an arc between its ends: a quadratic curve whose control point stands a quarter of the chord to the
 left of it, the route's corners not drawn. Project ▸ Fluid settings… (FT-1752) is a form of the member `fluid` of `project.settings.set`: the default tube's outer and inner diameter in mm and its material, and whether fluid lines are tagged by page and counter; the member's other values are kept, a diameter that is no length is refused in words.
 

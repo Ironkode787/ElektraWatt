@@ -1484,6 +1484,8 @@ pub struct SymbolShape {
     /// Whether that FnDef is a contact (normally open, normally closed or change-over: a switch, a push-button, a
     /// sensor's contact): autoconnect never joins it to a PLC output (rc.3).
     pub contact: bool,
+    /// Whether that FnDef is a fitting (`ew_derive::is_fitting`): autoconnect never joins it to another fitting (rc.5).
+    pub fitting: bool,
 }
 
 /// One connection point of a [`SymbolShape`].
@@ -1762,6 +1764,7 @@ fn shape_with(copy: Uuid, def: &SymbolDef, fndef: Option<Arc<LibCopy<FnDef>>>) -
                 ContactKind::No | ContactKind::Nc | ContactKind::Co
             )
         }),
+        fitting: fndef.as_ref().is_some_and(|d| ew_derive::is_fitting(&d.item)),
     }
 }
 
@@ -2370,6 +2373,9 @@ pub struct TableCp {
     /// Whether a PLC output channel (digital or analogue) is bound to it: autoconnect never joins a contact to it
     /// (rc.3: a sensor placed near an output card was joined to an output).
     pub plc_output: bool,
+    /// Whether its function's FnDef is a fitting (`ew_derive::is_fitting`): autoconnect never joins a fitting's port
+    /// to it (rc.5: four flow controls placed in a row were joined by tubes).
+    pub fitting: bool,
 }
 
 /// One end of a [`TableConnection`].
@@ -2802,6 +2808,11 @@ impl Session {
                             )
                         })
                 }),
+                fitting: q
+                    .functions()
+                    .get(function)
+                    .and_then(|f| q.fndefs().get(f.def))
+                    .is_some_and(|d| ew_derive::is_fitting(&d.item)),
             });
         }
         cps.sort_by(|a, b| {
@@ -3011,6 +3022,7 @@ mod tests {
             fndef: Uuid::from_u128(def),
             valve: false,
             contact: false,
+            fitting: false,
         }
     }
 

@@ -495,6 +495,7 @@ mod tests {
             valve_port: None,
             plc_address: None,
             plc_output: false,
+            fitting: false,
         }
     }
 
