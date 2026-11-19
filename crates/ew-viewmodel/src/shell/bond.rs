@@ -313,6 +313,8 @@ impl ShellModel {
             return Outcome::Done;
         };
         let mut form = crate::palette::PaletteForm::new(meta.id, &specs);
+        // The pin is the right-click's, kept in `potential_at`: the form asks what the potential is, not where.
+        form.fields.retain(|f| f.name != "at");
         if let Some(name) = form.fields.first_mut() {
             name.optional = false;
         }

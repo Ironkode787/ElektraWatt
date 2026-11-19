@@ -673,8 +673,9 @@ fn a_direction_clicked_where_the_tool_proposed_it_holds() {
     assert_eq!(placed, ["target"]);
 }
 
-/// rc.5: Interruption chosen on the bar while the page list had the focus; D then jumped in the page list. A tool
-/// chosen takes the keys to the canvas: D turns its direction.
+/// rc.5: Interruption chosen on the bar while the page list had the focus; D then jumped in the page list and Ctrl+Z
+/// said "No navigator row", leaving the point. A tool chosen takes the keys to the canvas: D turns its direction, and
+/// one Ctrl+Z takes back the point just placed.
 #[test]
 fn a_tool_chosen_while_a_navigator_has_the_focus_takes_the_keys() {
     let tmp = Tmp::new();
@@ -692,4 +693,9 @@ fn a_tool_chosen_while_a_navigator_has_the_focus_takes_the_keys() {
     let first = direction(&h);
     press(&mut h, Key::D);
     assert_ne!(direction(&h), first, "D reaches the tool");
+    let before = ips(&h);
+    assert_eq!(click_canvas_centre(&mut h).len(), 1, "the click places a point");
+    h.key_press_modifiers(egui::Modifiers::COMMAND, Key::Z);
+    settle(&mut h);
+    assert_eq!(ips(&h), before, "one Ctrl+Z takes the point back");
 }

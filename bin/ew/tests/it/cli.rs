@@ -599,7 +599,9 @@ fn check_lang_renders_the_messages_in_a_shipped_language() {
     assert_eq!(en.status.code(), Some(1));
     let en_text = stdout(&en);
     assert!(
-        en_text.contains("T55: T55 opens the neutral N-55 → N-55T without the phase (load E55 stays connected to L-55)"),
+        en_text.contains(
+            "T55: T55 opens the neutral N-55 → N-55T without the phase (load E55 stays connected to L-55)"
+        ),
         "{en_text}"
     );
     assert_eq!(stdout(&check(Some("en-GB"))), en_text);

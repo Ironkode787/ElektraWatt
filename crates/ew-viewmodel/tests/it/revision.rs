@@ -867,7 +867,7 @@ fn the_revision_dialogs_list_the_findings_in_dutch() {
     let first = [
         "=P01+J-E-2416-3W1 heeft nog geen lengte: typ die in de eigenschappen, of routeer de kabel in de layout",
         "101.8: PE-draad 101.8 heeft 1,5 mm², minder dan de 2,5 mm² die nodig is voor de lijngeleiders van 2,5 mm² bij \
-         1X1 (de dimensioneringstabel is niet getoetst aan de norm)",
+         1X1 (de dimensioneringstabel is niet getoetst aan de norm). Maak hem minstens 2,5 mm² in zijn Eigenschappen.",
     ];
     assert_eq!(
         (&approve[..2], &release[..2]),
