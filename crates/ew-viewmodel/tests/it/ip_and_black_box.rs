@@ -1183,11 +1183,7 @@ fn a_box_goes_no_lower_than_its_turned_pin_texts_need() {
     assert!(b.depth > 0, "the turned texts need a height");
     select_ids(&mut s, &[f2.id.to_string()]);
     // The lowest corner on the right, dragged up to one step below the top.
-    let corner = *b
-        .outline
-        .iter()
-        .max_by_key(|p| (p.1, p.0))
-        .unwrap();
+    let corner = *b.outline.iter().max_by_key(|p| (p.1, p.0)).unwrap();
     let top = b.outline.iter().map(|p| index_of(&s, *p).1).min().unwrap();
     let k = index_of(&s, corner);
     let from = sheet(&s, corner);

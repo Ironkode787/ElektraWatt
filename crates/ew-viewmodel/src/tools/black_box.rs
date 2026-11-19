@@ -972,7 +972,7 @@ fn pins_fit(
         at.dedup();
         let steps = (grid.index(axis(nb)) - grid.index(axis(na))).abs();
         let n = i64::try_from(at.len()).unwrap_or(i64::MAX / 4);
-        at.is_empty() || steps >= n + 1
+        at.is_empty() || steps > n
     })
 }
 
@@ -1417,14 +1417,8 @@ mod tests {
     fn the_default_cps_go_half_on_top_and_grow_the_rectangle() {
         let g = PageGridMap::new((4_000_000, 1));
         let cps: Vec<(u16, String)> = (0..7).map(|i| (i, i.to_string())).collect();
-        let (pos, outline, laid) = layout(
-            g,
-            (8_000_000, 12_000_000),
-            (16_000_000, 36_000_000),
-            &cps,
-            &[],
-        )
-        .unwrap();
+        let (pos, outline, laid) =
+            layout(g, (8_000_000, 12_000_000), (16_000_000, 36_000_000), &cps, &[]).unwrap();
         assert_eq!(pos, (8_000_000, 12_000_000));
         // Four on top need five grid steps of width: the rectangle grew from two to five.
         assert_eq!(
@@ -1553,16 +1547,12 @@ mod tests {
         assert_eq!(new[1].0, 4_000_000);
         // To x 6 it goes all the way.
         assert_eq!(
-            grip_stop(g, &r, &cps, 0, 5, (6_000_000, 2_000_000))
-                .unwrap()
-                .0,
+            grip_stop(g, &r, &cps, 0, 5, (6_000_000, 2_000_000)).unwrap().0,
             (6_000_000, 2_000_000)
         );
         // The bottom edge's grip (6) up to y 1: the top and bottom sides keep their length, nothing holds it.
         assert_eq!(
-            grip_stop(g, &r, &cps, 0, 6, (3_000_000, 1_000_000))
-                .unwrap()
-                .0,
+            grip_stop(g, &r, &cps, 0, 6, (3_000_000, 1_000_000)).unwrap().0,
             (3_000_000, 1_000_000)
         );
     }

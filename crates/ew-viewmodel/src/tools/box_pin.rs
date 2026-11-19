@@ -326,12 +326,7 @@ impl PinNameTool {
     /// After a Tab's commit: the next pin of the side, a free point and the smallest index the box does not use, with
     /// an empty name; finished where the side has no free point (the host says so). `cps` are the box's pins after the
     /// commit.
-    pub fn go_next(
-        &mut self,
-        grid: PageGridMap,
-        outline: &[(i64, i64)],
-        cps: &[BoxCpAt],
-    ) -> bool {
+    pub fn go_next(&mut self, grid: PageGridMap, outline: &[(i64, i64)], cps: &[BoxCpAt]) -> bool {
         if !self.next {
             return false;
         }

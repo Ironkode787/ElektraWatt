@@ -1052,7 +1052,11 @@ pub(crate) fn box_text_depth(q: &Q, r: &Representation) -> i64 {
             .filter_map(|cp| texts.iter().find(|t| t.idx == cp.idx))
             .map(|t| {
                 let signs = !t.text.chars().any(char::is_alphanumeric);
-                let reach = if signs { line } else { crate::part_box::pin_text_length(&t.text) };
+                let reach = if signs {
+                    line
+                } else {
+                    crate::part_box::pin_text_length(&t.text)
+                };
                 ew_scene::page::PIN_TEXT_GAP.0 + reach
             })
             .max()
