@@ -292,7 +292,7 @@ fn a_paste_onto_another_grid_and_a_grid_change_fit_the_items_and_say_so() {
     assert_eq!(form.action, "page.fit_grid");
     let foot = shell.form_foot(&form).expect("what will happen");
     assert!(
-        foot.starts_with("Page 150 holds 2 symbols and junctions and "),
+        foot.starts_with("Page 150 holds 2 items and "),
         "{foot}"
     );
     assert!(foot.contains("On the QET 10 px grid"), "{foot}");
@@ -302,10 +302,9 @@ fn a_paste_onto_another_grid_and_a_grid_change_fit_the_items_and_say_so() {
     assert!(t.connections.iter().all(|c| c.stored_route), "routed anew");
     let text = common::toast(&shell);
     assert!(text.starts_with("Page 150 now has the QET 10 px grid:"), "{text}");
-    assert!(
-        !text.contains(": 0 items"),
-        "the items that moved are counted: {text}"
-    );
+    // The message counts what the question counted.
+    let moved = foot.split("grid, ").nth(1).and_then(|r| r.split(' ').next()).unwrap().to_owned();
+    assert!(text.contains(&format!(": {moved} items moved")), "{foot} / {text}");
     done(&mut shell, "edit.undo", json!({}));
     assert_eq!(
         shell.canvas().unwrap().page().snapper.grid(),
@@ -442,6 +441,34 @@ fn fitted_symbols_move_turn_and_take_a_wire() {
     done(&mut shell, "page.fit_grid", json!({"grid": "mm4"}));
     assert_eq!(shell.canvas().unwrap().page().snapper.grid(), (4_000_000, 1));
     handle_fitted(&mut shell, (4_000_000, 1));
+    shell.shutdown();
+}
+
+/// rc.5 review: a page that holds only a free text asks the same question before its grid changes, instead of a
+/// refusal that sends the person to the Properties he is in; Change and fit says nothing moved.
+#[test]
+fn a_page_with_a_free_text_alone_asks_before_its_grid_changes() {
+    let tmp = Tmp::new("clip-fit-text");
+    let mut shell = tmp.shell_in(Mode::Gui, true, "102");
+    done(&mut shell, "page.new", json!({"folio": "150", "title": "Notes", "grid": "mm4"}));
+    let page = shell.canvas().unwrap().page().tables.page.to_string();
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "item.place", "params": {"page": page, "kind": {"free_text": {"text": "Note",
+            "at": [40_000_000, 40_000_000], "angle": 0, "style": "text.normal", "align": "centre"}}}}),
+    );
+    done(&mut shell, "select.set", json!({ "ids": [] }));
+    done(&mut shell, "props.show", json!({"on": true}));
+    done(&mut shell, "props.set", json!({"row": "page/grid", "value": "QET 10 px"}));
+    let form = common::form(&shell);
+    assert_eq!(form.action, "page.fit_grid");
+    let foot = shell.form_foot(&form).expect("what will happen");
+    assert!(foot.starts_with("Page 150 holds 1 items and 0 wires."), "{foot}");
+    assert_eq!(shell.submit_form(), Outcome::Done);
+    assert_eq!(shell.canvas().unwrap().page().snapper.grid(), (7_937_500, 3));
+    let text = common::toast(&shell);
+    assert!(text.contains("every item stood on it already"), "{text}");
     shell.shutdown();
 }
 

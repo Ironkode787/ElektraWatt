@@ -151,8 +151,8 @@ pub(crate) struct ToolHost {
     /// would have stood unfitted, page nm; at the end of the dispatch its wires are routed in the same undo step and a
     /// message says so.
     pub paste_fit: Option<PasteFit>,
-    /// The grid question's count (rc.5): the grid word it was counted for and how many items move.
-    pub grid_fit: Option<(String, usize)>,
+    /// The grid question's page and count (rc.5, [`GridFit`]).
+    pub grid_fit: Option<GridFit>,
     /// An Undo or a Redo ran: at the end of the dispatch a terminal placement takes its strip's next designation from
     /// the catalogue again.
     pub reread_designation: bool,
@@ -325,4 +325,22 @@ pub struct PasteFit {
     pub reps: Vec<(i64, i64)>,
     /// The junctions' points.
     pub junctions: Vec<(i64, i64)>,
+}
+
+/// The question before a page's Connection grid changes under its items (rc.5, `ToolHost::grid_fit`): the page asked
+/// about and what its foot says.
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct GridFit {
+    /// The page.
+    pub page: ew_api::output::Uuid,
+    /// Its folio.
+    pub folio: String,
+    /// The grid word the count is for (empty: not counted).
+    pub word: String,
+    /// How many items that grid moves.
+    pub moved: usize,
+    /// How many items the page holds.
+    pub items: usize,
+    /// How many wires it holds.
+    pub wires: usize,
 }

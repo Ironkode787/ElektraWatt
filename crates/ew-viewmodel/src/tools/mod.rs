@@ -112,7 +112,7 @@ use ew_api::output::ew_dl::{Destination, EntityRef};
 pub use host::{
     LINK_PREVIEW_DWELL_MS, LINK_PREVIEW_PANE, LinkPreview, PREVIEW_DWELL_MS, PreviewState, PreviewStatus,
 };
-pub(crate) use host::{PasteFit, ResultNote, ToolHost};
+pub(crate) use host::{GridFit, PasteFit, ResultNote, ToolHost};
 pub use measure::{MeasureTool, distance_nm, measure_label};
 pub use overlay::{Anchor, Dash, MarkerKind, Overlay, OverlayItem, Style, Token, paths_on_sheet};
 pub use select::{CLICK_SLOP_PT, SelectTool, band_selection, block_grips, grabbed_label, label_grip};

@@ -23,8 +23,6 @@
 //! **After a page is created** the focused tab shows it: a person who creates a page works on it next, and a page
 //! change ends a modal tool like any other.
 
-use std::sync::Arc;
-
 use ew_api::output::PageRow;
 use ew_api::{AnyCommand, DynCommand};
 use serde_json::{Map, Value, json};
@@ -662,16 +660,34 @@ fn parse_folio(text: &str) -> Result<(u32, Option<String>), String> {
 }
 
 impl ShellModel {
-    /// Whether the page shown holds anything a change of its grid moves: a symbol, a junction or a wire.
-    pub(super) fn page_holds_items(&self) -> bool {
-        self.canvas().is_some_and(|c| {
-            let t = &c.page().tables;
-            !t.reps.is_empty() || !t.junctions.is_empty() || !t.connections.is_empty()
-        })
+    /// The folio and the tables of page `page` (any page of the project, not only the one on show).
+    fn tables_of_page(&self, page: ew_api::output::Uuid) -> Option<(String, ew_api::output::PageTables)> {
+        let folio = self.page_rows().iter().find(|r| r.id == page)?.folio.clone();
+        let tables = self.project.as_ref()?.session.page_tables(&folio)?;
+        Some((folio, tables))
     }
 
-    /// Opens the question of the Connection grid of the page shown changed to `word` while it holds items (rc.5).
-    pub(super) fn ask_grid_fit(&mut self, word: &str) -> Outcome {
+    /// The question before page `page`'s Connection grid changes to `word` (rc.5), when the page holds anything a
+    /// change of its grid moves (what `fields.set` refuses to change under: a symbol, a wire, a junction, a page item or
+    /// a structure box) and `word` is another grid than its own; `None` otherwise, where the grid is set as typed.
+    pub(super) fn grid_question(&mut self, page: ew_api::output::Uuid, word: &str) -> Option<Outcome> {
+        let (folio, t) = self.tables_of_page(page)?;
+        let holds = !t.reps.is_empty()
+            || !t.junctions.is_empty()
+            || !t.connections.is_empty()
+            || !t.items.is_empty()
+            || !t.structure_boxes.is_empty();
+        if !holds || page_grid_word(t.grid.0, t.grid.1) == Some(word) {
+            return None;
+        }
+        self.tools.grid_fit = Some(crate::tools::GridFit {
+            page,
+            folio,
+            word: String::new(),
+            moved: 0,
+            items: t.reps.len() + t.junctions.len() + t.items.len() + t.structure_boxes.len(),
+            wires: t.connections.len(),
+        });
         let p = Map::from_iter([("grid".to_owned(), Value::String(word.to_owned()))]);
         let out = self.open_dialog(Dialog::Form(PAGE_GRID_FIT.dialog(&p)));
         if let Some(Dialog::Form(form)) = &mut self.dialog
@@ -680,58 +696,60 @@ impl ShellModel {
             form.ok_key = key!("page-grid-fit-ok");
         }
         self.refresh_grid_fit(word);
-        out
+        Some(out)
     }
 
-    /// Counts what moves when the grid of the page shown becomes `word` (the records `page.set_grid`'s preview
-    /// changes: its symbols, junctions and structure boxes), for the question's foot.
+    /// The items a grid change moves, from the records it changes (`diff`): its symbols, junctions and structure boxes
+    /// (rc.5: the question and the message after it count by this one rule).
+    fn grid_fit_moved(diff: &ew_api::ModelDiff) -> usize {
+        diff.changes
+            .iter()
+            .filter(|c| matches!(c.key.0.name(), "representation" | "junction" | "structure_box"))
+            .count()
+    }
+
+    /// Counts what moves when the question's page takes the grid `word` (`page.set_grid`'s preview), for its foot.
     pub(super) fn refresh_grid_fit(&mut self, word: &str) {
-        let count = (|| {
-            let page = self.focused_page_id()?;
+        let Some(page) = self.tools.grid_fit.as_ref().map(|g| g.page) else {
+            return;
+        };
+        let moved = (|| {
             let cmd = AnyCommand {
                 name: "page.set_grid".into(),
                 params: json!({"page": page.to_string(), "grid": page_grid_value(word)?}),
             };
             let submit = self.tool_submit();
             let preview = self.project.as_mut()?.session.preview_with(&cmd, submit).ok()?;
-            Some(
-                preview
-                    .diff()
-                    .changes
-                    .iter()
-                    .filter(|c| matches!(c.key.0.name(), "representation" | "junction" | "structure_box"))
-                    .count(),
-            )
+            Some(Self::grid_fit_moved(preview.diff()))
         })();
         self.count(|c| c.preview_with += 1);
-        self.tools.grid_fit = count.map(|n| (word.to_owned(), n));
+        if let Some(g) = self.tools.grid_fit.as_mut() {
+            g.word = if moved.is_some() { word.to_owned() } else { String::new() };
+            g.moved = moved.unwrap_or(0);
+        }
     }
 
     /// The question's foot (rc.5): "Page 101 holds 12 items and 9 wires. On the 4 mm grid 7 of them move onto it and
     /// the wires are drawn anew; Undo takes it all back in one step."
     pub(super) fn grid_fit_foot(&self, form: &FormDialog) -> Option<String> {
         let word = form.fields.iter().find(|f| f.name == "grid")?.value.as_str();
-        let (counted, moved) = self.tools.grid_fit.as_ref()?;
-        if counted != word {
-            return None;
-        }
-        let t = &self.canvas()?.page().tables;
-        let items = t.reps.len() + t.junctions.len();
+        let g = self.tools.grid_fit.as_ref().filter(|g| g.word == word)?;
         Some(strings::format(
             key!("page-grid-fit-foot"),
             &[
-                self.current_folio().unwrap_or_default(),
-                &items.to_string(),
-                &t.connections.len().to_string(),
+                &g.folio,
+                &g.items.to_string(),
+                &g.wires.to_string(),
                 &strings::choice_text(word),
-                &moved.to_string(),
+                &g.moved.to_string(),
             ],
         ))
     }
 
-    /// `page.fit_grid {grid}` (the question's Change and fit, rc.5): the page shown takes the Connection grid `grid`
-    /// (`page.set_grid`: its items fitted, its wires unrouted), its wires are routed anew between the same ends in the
-    /// same undo step, and a message says what moved.
+    /// `page.fit_grid {grid}` (the question's Change and fit, rc.5): the question's page (else the page on show) takes
+    /// the Connection grid `grid` (`page.set_grid`: its items fitted, its wires unrouted), its wires are routed anew
+    /// between the same ends in the same undo step, and a message says how many items moved, counted as the question
+    /// counted them.
     pub(crate) fn act_page_fit_grid(&mut self, p: &Map<String, Value>) -> Outcome {
         let word = match text_param(p, "grid") {
             Ok(w) => w,
@@ -746,24 +764,25 @@ impl ShellModel {
                 strings::format(key!("error-page-grid"), &[&word, &PAGE_GRIDS.join(", ")]),
             );
         };
-        let Some(page) = self.focused_page_id() else {
+        let asked = self.tools.grid_fit.take().map(|g| g.page);
+        let Some((page, (folio, before))) = asked
+            .or_else(|| self.focused_page_id())
+            .and_then(|page| Some((page, self.tables_of_page(page)?)))
+        else {
             return Outcome::refused(key!("reason-no-page"));
         };
-        let Some(folio) = self.current_folio().map(str::to_owned) else {
-            return Outcome::refused(key!("reason-no-page"));
-        };
-        let before = self.canvas().map(|c| Arc::clone(&c.page().tables));
         let out = self.host_create("page.set_grid", json!({"page": page.to_string(), "grid": value}));
         let out = self.form_done(PAGE_GRID_FIT.action, out);
-        self.tools.grid_fit = None;
         if out != Outcome::Done {
             return out;
         }
-        // The wires, unrouted by the change, routed anew in the same undo step.
-        let ids: Vec<ew_api::output::Uuid> = before
+        let moved = self
+            .project
             .as_ref()
-            .map(|t| t.connections.iter().map(|c| c.id).collect())
-            .unwrap_or_default();
+            .and_then(|pr| pr.session.history().entries().last()?.changes().ok())
+            .map_or(0, |d| Self::grid_fit_moved(&d));
+        // The wires, unrouted by the change, routed anew in the same undo step.
+        let ids: Vec<ew_api::output::Uuid> = before.connections.iter().map(|c| c.id).collect();
         let plan = self.project.as_ref().and_then(|pr| {
             pr.session
                 .route_plan(&folio, &ew_api::routing::RouteScope::Selection(ids))
@@ -781,25 +800,14 @@ impl ShellModel {
                 pr.session.fold_last_step();
             }
         }
-        // What moved: the symbols and junctions that stand elsewhere now (the canvas follows the commits first).
-        self.sync_views();
-        let moved = match (before, self.canvas().map(|c| Arc::clone(&c.page().tables))) {
-            (Some(b), Some(n)) => {
-                n.reps
-                    .iter()
-                    .filter(|r| b.reps.iter().any(|o| o.id == r.id && o.pos != r.pos))
-                    .count()
-                    + n.junctions
-                        .iter()
-                        .filter(|j| b.junctions.iter().any(|o| o.id == j.id && o.at != j.at))
-                        .count()
-            }
-            _ => 0,
+        let text = if moved == 0 {
+            strings::format(key!("toast-page-grid-fitted-none"), &[&folio, &strings::choice_text(&word)])
+        } else {
+            strings::format(
+                key!("toast-page-grid-fitted"),
+                &[&folio, &strings::choice_text(&word), &moved.to_string()],
+            )
         };
-        let text = strings::format(
-            key!("toast-page-grid-fitted"),
-            &[&folio, &strings::choice_text(&word), &moved.to_string()],
-        );
         self.notify(text, true);
         Outcome::Done
     }
