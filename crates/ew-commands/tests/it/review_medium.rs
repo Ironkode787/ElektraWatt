@@ -187,6 +187,7 @@ fn a_hint_onto_a_wire_splits_it_with_a_junction() {
     let mut cmd = place(PAGE_102, None);
     cmd.pos = pt(2 * G, 2 * G);
     cmd.connect = vec![ConnectHint {
+        route: Vec::new(),
         cp: 0,
         to: EndpointParam::OnConnection {
             connection: W,
@@ -232,6 +233,7 @@ fn a_hint_onto_a_wire_off_the_grid_is_rejected() {
     let mut cmd = place(PAGE_102, None);
     cmd.pos = pt(2 * G, 2 * G);
     cmd.connect = vec![ConnectHint {
+        route: Vec::new(),
         cp: 0,
         to: EndpointParam::OnConnection {
             connection: W,
@@ -250,6 +252,7 @@ fn a_hint_whose_target_vanished_is_dropped_and_reported() {
     let mut e = engine(golden_model());
     let mut cmd = place(PAGE_102, None);
     cmd.connect = vec![ConnectHint {
+        route: Vec::new(),
         cp: 0,
         to: EndpointParam::Junction { junction: id(0xccc) },
     }];
@@ -262,6 +265,7 @@ fn a_hint_whose_target_vanished_is_dropped_and_reported() {
     );
     // An unknown symbol CP is still a malformed command.
     cmd.connect = vec![ConnectHint {
+        route: Vec::new(),
         cp: 9,
         to: EndpointParam::Junction { junction: id(0xccc) },
     }];

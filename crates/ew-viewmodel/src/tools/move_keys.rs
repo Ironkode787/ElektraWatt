@@ -130,9 +130,10 @@ pub fn move_overlay(cx: &ToolCx<'_>, moved: &[EntityRef], steps: (i64, i64)) -> 
     let found = move_proposals(cx, moved, steps);
     for p in &found.list {
         if let super::autoconnect::ProposalTarget::Cp { at, .. } = &p.target {
-            items.push(OverlayItem::Line {
-                a: cx.snapper.page_to_sheet(p.cp.at),
-                b: cx.snapper.page_to_sheet(*at),
+            // A pole partner's stub follows its route.
+            let line = if p.route.is_empty() { vec![p.cp.at, *at] } else { p.route.clone() };
+            items.push(OverlayItem::Polyline {
+                points: line.iter().map(|q| cx.snapper.page_to_sheet(*q)).collect(),
                 style: Style::dashed(Token::Ghost),
             });
         }
@@ -270,11 +271,15 @@ pub fn release_command(
                 // A moved CP's index in the page tables stands for its symbol CP (`autoconnect::moved_cps`).
                 super::autoconnect::ProposalTarget::Cp { function, idx, .. } => {
                     let cp = tables.cps.get(usize::from(p.cp.symbol_cp))?;
-                    Some(json!({
+                    let mut hint = json!({
                         "rep": cp.rep.to_string(),
                         "cp": {"function": cp.function.to_string(), "idx": cp.idx},
                         "to": {"cp": {"function": function.0.to_string(), "idx": idx}},
-                    }))
+                    });
+                    if !p.route.is_empty() {
+                        hint["route"] = json!(p.route.iter().map(|q| vec![q.0, q.1]).collect::<Vec<_>>());
+                    }
+                    Some(hint)
                 }
                 super::autoconnect::ProposalTarget::Split { .. } => None,
             })

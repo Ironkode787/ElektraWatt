@@ -28,7 +28,9 @@ its tag, cell, symbol and position, its `cp` lines (connection points, the wires
   `tool.next_proposal` (Tab) tries the next target along each ray. After a placement that connected, the toast names
   the wires it drew; one Undo removes the symbol with its wires. A connection point further than 20 grid steps away,
   or one behind another wire, is not proposed: the toast offers it instead, and its Connect draws the wire. Tab still
-  proposes it.
+  proposes it. A pole that faces nothing in line joins the nearest free point, up to three grid steps aside, of a
+  device another of its wires joins, by a wire that steps aside halfway: a two-pole breaker under a two-pole switch
+  whose poles stand closer together gets both poles wired.
 
 ## Freeze a tag
 

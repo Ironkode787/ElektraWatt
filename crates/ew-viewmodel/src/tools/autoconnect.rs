@@ -26,6 +26,12 @@
 //! **Far hits.** A first hit more than [`SHORT_RUN`] grid steps away, or one whose run crosses a wire, is no proposal:
 //! the placement does not join it, its toast offers it with Connect (rc.2). A far hit that Tab chose is a proposal.
 //!
+//! **Pole partners.** A free ghost CP whose ray finds no hit joins a free CP of a representation another proposal joins,
+//! facing it, 2 to [`SHORT_RUN`] steps ahead and 1 to [`POLE_JOG`] steps aside, by a wire that runs out to halfway
+//! between them, steps aside there and runs on in (rc.5 persona run: a two-pole breaker dropped under a two-pole
+//! switch had one pole joined, because the other's poles stood a different distance apart); the nearest such CP, each
+//! taken once. The proposal carries that route, and its hint sends it.
+//!
 //! **The split.** Two ghost CPs that lie on one segment of a connection W and face its two ends (their directions
 //! along the segment, pointing apart) are the split of W: one proposal that sends no hint, because normaliser 7
 //! splits W when the symbol lands on the path the page draws it along (FR-CON-008, doc 06 §5.3), its stored route or,
@@ -33,7 +39,7 @@
 
 use ew_api::geometry::Dir;
 use ew_api::output::ew_dl::EntityRef;
-use ew_api::output::{PageTables, TableRep, Uuid};
+use ew_api::output::{PageTables, TableCp, TableRep, Uuid};
 use serde_json::{Value, json};
 
 use super::wire::PageGridMap;
@@ -45,6 +51,9 @@ pub const MAX_WALK: usize = 2_000;
 /// an output card was joined to the card's pin by a long wire through other wires). A hit further away, or one whose
 /// run crosses a wire, is far: it is offered after the placement, never drawn by it, unless Tab chose it.
 pub const SHORT_RUN: i64 = 20;
+
+/// The most grid steps aside a pole partner may stand (see the module documentation).
+pub const POLE_JOG: i64 = 3;
 
 /// A connection point of the ghost, in page nm.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -112,6 +121,8 @@ pub struct Proposal {
     pub cp: GhostCp,
     /// What it connects to.
     pub target: ProposalTarget,
+    /// The wire's route in page nm, from the ghost CP to the target, for a pole partner; empty: the straight run.
+    pub route: Vec<(i64, i64)>,
 }
 
 /// The proposals of a ghost.
@@ -129,10 +140,16 @@ impl Proposals {
         self.list
             .iter()
             .filter_map(|p| match &p.target {
-                ProposalTarget::Cp { function, idx, .. } => Some(json!({
-                    "cp": p.cp.symbol_cp,
-                    "to": {"cp": {"function": function.0.to_string(), "idx": idx}},
-                })),
+                ProposalTarget::Cp { function, idx, .. } => {
+                    let mut hint = json!({
+                        "cp": p.cp.symbol_cp,
+                        "to": {"cp": {"function": function.0.to_string(), "idx": idx}},
+                    });
+                    if !p.route.is_empty() {
+                        hint["route"] = json!(p.route.iter().map(|q| vec![q.0, q.1]).collect::<Vec<_>>());
+                    }
+                    Some(hint)
+                }
                 ProposalTarget::Split { .. } => None,
             })
             .collect()
@@ -188,7 +205,6 @@ fn ray_hits(
 ) -> Vec<(ProposalTarget, bool)> {
     let d = cp.dir.vector();
     let (ix, iy) = (grid.index(cp.at.0), grid.index(cp.at.1));
-    let want = opposite(cp.dir);
     let mut hits = Vec::new();
     // Whether the run so far crossed a wire.
     let mut crossed = false;
@@ -206,22 +222,7 @@ fn ray_hits(
         // Free CPs facing the ray at the walk point, in label order (the rows' order); never a terminal of the
         // ghost's own strip.
         for q in &tables.cps {
-            if grid.index(q.at.0) == kx
-                && grid.index(q.at.1) == ky
-                && !own.contains(&EntityRef(q.rep))
-                && q.connections.is_empty()
-                && q.dir == Some(want)
-                && q.fluid == cp.fluid
-                && !ew_api::output::ValvePort::conflict(q.valve_port, cp.valve_port)
-                && !(cp.contact && q.plc_output)
-                && !other_conductor(&cp.designation, q.potential.as_ref())
-                && !cp.strip_tag.as_deref().is_some_and(|tag| {
-                    tables
-                        .reps
-                        .iter()
-                        .any(|r| r.id == q.rep && is_strip_terminal(tables, r, tag))
-                })
-            {
+            if grid.index(q.at.0) == kx && grid.index(q.at.1) == ky && may_join(cp, q, tables, own) {
                 hits.push((
                     ProposalTarget::Cp {
                         function: EntityRef(q.function),
@@ -271,6 +272,95 @@ fn ray_hits(
         });
     }
     hits
+}
+
+/// Whether the page's CP `q`, wherever it stands, may be the ghost CP `cp`'s hit: free, of another representation,
+/// facing the ray, of its kind, and none of the exclusions of the module documentation.
+fn may_join(cp: &GhostCp, q: &TableCp, tables: &PageTables, own: &[EntityRef]) -> bool {
+    !own.contains(&EntityRef(q.rep))
+        && q.connections.is_empty()
+        && q.dir == Some(opposite(cp.dir))
+        && q.fluid == cp.fluid
+        && !ew_api::output::ValvePort::conflict(q.valve_port, cp.valve_port)
+        && !(cp.contact && q.plc_output)
+        && !other_conductor(&cp.designation, q.potential.as_ref())
+        && !cp.strip_tag.as_deref().is_some_and(|tag| {
+            tables
+                .reps
+                .iter()
+                .any(|r| r.id == q.rep && is_strip_terminal(tables, r, tag))
+        })
+}
+
+/// The pole partner of the ghost CP `cp` that found no hit (see the module documentation): the nearest free CP of a
+/// representation a proposal of `list` joins, not yet taken, with the route that jogs over halfway; `None` when no
+/// such CP stands within reach or the jog would run through a body.
+fn pole_partner(
+    cp: &GhostCp,
+    list: &[Proposal],
+    tables: &PageTables,
+    own: &[EntityRef],
+    grid: PageGridMap,
+) -> Option<Proposal> {
+    let taken = |q: &TableCp| {
+        list.iter().any(|p| {
+            matches!(&p.target, ProposalTarget::Cp { function, idx, .. } if function.0 == q.function && *idx == q.idx)
+        })
+    };
+    let joined = |q: &TableCp| {
+        list.iter().any(|p| match &p.target {
+            ProposalTarget::Cp { function, idx, .. } => tables
+                .cps
+                .iter()
+                .any(|c| c.function == function.0 && c.idx == *idx && c.rep == q.rep),
+            ProposalTarget::Split { .. } => false,
+        })
+    };
+    let d = cp.dir.vector();
+    let (ix, iy) = (grid.index(cp.at.0), grid.index(cp.at.1));
+    // (steps ahead, steps aside) of a page CP from the ghost CP.
+    let offset = |q: &TableCp| {
+        let (dx, dy) = (grid.index(q.at.0) - ix, grid.index(q.at.1) - iy);
+        if vertical(cp.dir) { (dy * d.1, dx) } else { (dx * d.0, dy) }
+    };
+    let (q, (ahead, _)) = tables
+        .cps
+        .iter()
+        .map(|q| (q, offset(q)))
+        .filter(|(q, (ahead, aside))| {
+            (2..=SHORT_RUN).contains(ahead)
+                && (1..=POLE_JOG).contains(&aside.abs())
+                && joined(q)
+                && !taken(q)
+                && may_join(cp, q, tables, own)
+        })
+        .min_by_key(|(_, (ahead, aside))| (*ahead, aside.abs()))?;
+    let half = ahead / 2;
+    let route = if vertical(cp.dir) {
+        let y = grid.coord(iy + d.1 * half);
+        vec![cp.at, (cp.at.0, y), (q.at.0, y), q.at]
+    } else {
+        let x = grid.coord(ix + d.0 * half);
+        vec![cp.at, (x, cp.at.1), (x, q.at.1), q.at]
+    };
+    let (m, n) = (route[1], route[2]);
+    let through_body = tables.reps.iter().any(|r| {
+        !own.contains(&EntityRef(r.id))
+            && m.0.max(n.0) > r.body[0]
+            && m.0.min(n.0) < r.body[2]
+            && m.1.max(n.1) > r.body[1]
+            && m.1.min(n.1) < r.body[3]
+    });
+    (!through_body).then(|| Proposal {
+        cp: cp.clone(),
+        target: ProposalTarget::Cp {
+            function: EntityRef(q.function),
+            idx: q.idx,
+            at: q.at,
+            label: q.label.clone(),
+        },
+        route,
+    })
 }
 
 /// Whether `p` lies strictly inside the axis-parallel segment `a`–`b` (on its line by grid index, between its ends);
@@ -380,6 +470,7 @@ fn splits(cps: &[GhostCp], tables: &PageTables, grid: PageGridMap) -> Vec<Propos
                                 connection: EntityRef(c.id),
                                 other: (second.symbol_cp, second.designation.clone(), second.at),
                             },
+                            route: Vec::new(),
                         },
                     ));
                 }
@@ -412,6 +503,8 @@ pub fn proposals(
     sorted.sort_by_key(|c| c.symbol_cp);
     let mut list: Vec<Proposal> = Vec::new();
     let mut far: Vec<Proposal> = Vec::new();
+    // The ghost CPs whose ray found no hit: pole partners once the rays are walked.
+    let mut lonely: Vec<&GhostCp> = Vec::new();
     for c in sorted {
         if c.connected {
             continue;
@@ -425,12 +518,14 @@ pub fn proposals(
         }
         let hits = ray_hits(c, tables, own, area, grid);
         if hits.is_empty() {
+            lonely.push(c);
             continue;
         }
         let (target, is_far) = hits[cycle % hits.len()].clone();
         let p = Proposal {
             cp: c.clone(),
             target,
+            route: Vec::new(),
         };
         // A far first hit is offered after the placement; one Tab chose is the drafter's.
         if is_far && cycle == 0 {
@@ -439,6 +534,12 @@ pub fn proposals(
             list.push(p);
         }
     }
+    for c in lonely {
+        if let Some(p) = pole_partner(c, &list, tables, own, grid) {
+            list.push(p);
+        }
+    }
+    list.sort_by_key(|p| p.cp.symbol_cp);
     // A terminal joins what its two sides reach: never two named potentials of different names, which it would short
     // (rc.3); the later proposal goes.
     if cps.iter().any(|c| c.strip_tag.is_some()) {
@@ -612,6 +713,29 @@ mod tests {
             matches!(&p.list[0].target, ProposalTarget::Cp { label, .. } if label == "X1:1"),
             "wraps"
         );
+    }
+
+    /// rc.5 persona run: a two-pole device under another whose poles stand a different distance apart had one pole
+    /// joined; the other pole now joins its partner by a wire that jogs over halfway, and its hint sends that route.
+    #[test]
+    fn a_pole_out_of_line_joins_its_partner_by_a_jog() {
+        let mut t = tables();
+        let mut far_pole = cp(2, (3 * G, 6 * G), Dir::Up, "F1:3");
+        far_pole.rep = uuid(0x301);
+        t.cps.push(cp(1, (0, 6 * G), Dir::Up, "F1:1"));
+        t.cps.push(far_pole);
+        // A free CP of another representation out of line is no partner.
+        t.cps.push(cp(3, (-2 * G, 6 * G), Dir::Up, "X9:1"));
+        let g = [ghost(0, (0, 0), Dir::Down), ghost(1, (2 * G, 0), Dir::Down)];
+        let p = proposals(&g, &t, &[], AREA, 0);
+        assert_eq!(p.list.len(), 2, "{p:?}");
+        assert!(matches!(&p.list[1].target, ProposalTarget::Cp { label, .. } if label == "F1:3"));
+        assert_eq!(p.list[1].route, [(2 * G, 0), (2 * G, 3 * G), (3 * G, 3 * G), (3 * G, 6 * G)]);
+        assert!(p.list[0].route.is_empty(), "the pole in line runs straight");
+        assert_eq!(p.hints()[1]["route"][2], json!([3 * G, 3 * G]));
+        // Without the pole in line joined, the out-of-line one is no partner of anything.
+        let p = proposals(&g[1..], &t, &[], AREA, 0);
+        assert!(p.list.is_empty(), "{p:?}");
     }
 
     /// rc.3 persona runs: a sensor placed near an output card was joined to an output, and a neutral pin to a phase.

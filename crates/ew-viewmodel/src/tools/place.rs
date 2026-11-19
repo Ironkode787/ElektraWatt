@@ -643,6 +643,11 @@ impl PlaceTool {
         };
         for p in &self.proposals.list {
             match &p.target {
+                // A pole partner's stub follows its route.
+                ProposalTarget::Cp { .. } if !p.route.is_empty() => items.push(OverlayItem::Polyline {
+                    points: p.route.iter().map(|q| cx.snapper.page_to_sheet(*q)).collect(),
+                    style: Style::dashed(Token::Ghost),
+                }),
                 ProposalTarget::Cp { at, .. } => items.push(OverlayItem::Line {
                     a: cx.snapper.page_to_sheet(p.cp.at),
                     b: cx.snapper.page_to_sheet(*at),

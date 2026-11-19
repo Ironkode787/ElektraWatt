@@ -202,6 +202,11 @@ pub struct ConnectHint {
     pub cp: u16,
     /// The other end: a CP or a junction.
     pub to: EndpointParam,
+    /// The wire's route in nm (a pole joined to a pole out of line, rc.5); empty: the straight run between the ends.
+    /// Checked as `connection.create` checks a route (`geometry::require_route`, at `/connect/<i>/route`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[schemars(with = "Vec<Pt2S>")]
+    pub route: Vec<Pt2>,
 }
 
 /// `device.place` (`PlaceSymbol`, doc 06 §3.3): places a symbol and creates the device and function as the
@@ -399,7 +404,7 @@ impl Command for PlaceSymbol {
             else {
                 return tx.reject(text!("refusal-device-place-lost-cp"));
             };
-            hint_wire(tx, Endpoint::Cp(function, fn_cp), &hint.to, self.page, i)?;
+            hint_wire(tx, Endpoint::Cp(function, fn_cp), &hint.to, &hint.route, self.page, i)?;
         }
         if let Some(terminal) = self.into
             && let Some(device) = tx.require::<Function>(function)?.device
@@ -421,13 +426,15 @@ impl Command for PlaceSymbol {
 }
 
 /// The wire of the autoconnect hint `i` (of `device.place`, or of `rep.move`'s `connect`): `{a, b: to, page}` with the
-/// straight route between its two ends' points (none when they do not lie on one line); a hint ending at a junction
+/// hint's route when it has one (checked), else the straight route between its two ends' points (none when they do not
+/// lie on one line); a hint ending at a junction
 /// appends the wire to the junction's sequence, one ending on a point of a connection splits it there
 /// ([`split_for_hint`], the point checked at `/connect/<i>/to/on_connection/at`).
 fn hint_wire(
     tx: &mut TxBuilder<'_>,
     a: Endpoint,
     to: &EndpointParam,
+    route: &[Pt2],
     page: Id<Page>,
     i: usize,
 ) -> Result<(), CmdError> {
@@ -450,7 +457,12 @@ fn hint_wire(
             true,
         ),
     };
-    let route = crate::geometry::hint_route(tx, &a, &to, page);
+    let route = if route.is_empty() {
+        crate::geometry::hint_route(tx, &a, &to, page)
+    } else {
+        crate::geometry::require_route(tx, page, &a, &to, route, &format!("/connect/{i}/route"))?;
+        route.to_vec()
+    };
     // A fluid port joined to a fluid port is a working fluid line (FT-1733, doc 06 §2.2), any other hint a wire.
     let fluid = |e: &Endpoint| {
         matches!(e, Endpoint::Cp(f, idx)
@@ -699,6 +711,10 @@ pub struct MoveHint {
     pub cp: HintCp,
     /// The other end: a CP or a junction (a point on a connection is refused: a move never splits a wire).
     pub to: EndpointParam,
+    /// The wire's route in nm after the move, as [`ConnectHint`]'s; empty: the straight run between the ends.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[schemars(with = "Vec<Pt2S>")]
+    pub route: Vec<Pt2>,
 }
 
 /// A function's connection point, as a [`MoveHint`] names it.
@@ -833,7 +849,7 @@ impl MoveReps {
                     crate::words::cp(tx, function, idx)
                 ));
             }
-            hint_wire(tx, Endpoint::Cp(function, idx), &hint.to, rep.page, i)?;
+            hint_wire(tx, Endpoint::Cp(function, idx), &hint.to, &hint.route, rep.page, i)?;
         }
         Ok(notices)
     }

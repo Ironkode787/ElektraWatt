@@ -141,6 +141,7 @@ fn an_autoconnect_hint_between_pins_one_nm_apart_is_a_straight_wire() {
     let mut e = engine(model);
     // The new symbol's first pin faces the first device's second pin along one grid line: `Y_GRID` against `Y_PIN`.
     let hint = ConnectHint {
+        route: Vec::new(),
         cp: 0,
         to: cp_param(fa, 1),
     };

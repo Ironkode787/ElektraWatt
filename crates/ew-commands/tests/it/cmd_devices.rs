@@ -379,6 +379,7 @@ fn place_hints_create_wires_and_extend_junctions() {
     let mut cmd = place(PAGE_102, pt(0, 0), new_device("F"));
     cmd.connect = vec![
         ConnectHint {
+        route: Vec::new(),
             cp: 1,
             to: EndpointParam::Cp {
                 function: FN_102G1,
@@ -386,6 +387,7 @@ fn place_hints_create_wires_and_extend_junctions() {
             },
         },
         ConnectHint {
+        route: Vec::new(),
             cp: 0,
             to: EndpointParam::Junction { junction: J5 },
         },
@@ -414,6 +416,7 @@ fn place_hints_reject_bad_cps_and_connections_and_drop_missing_targets() {
     let mut e = engine(golden_model());
     let mut cmd = place(PAGE_102, pt(0, 0), new_device("F"));
     cmd.connect = vec![ConnectHint {
+        route: Vec::new(),
         cp: 5,
         to: EndpointParam::Cp {
             function: FN_102G1,
@@ -424,12 +427,14 @@ fn place_hints_reject_bad_cps_and_connections_and_drop_missing_targets() {
     // a page-less connection cannot take a junction; the split point must be on the grid
     for (connection, at) in [(CON_BR1, pt(0, 0)), (CON_W11B, pt(1, 0))] {
         cmd.connect = vec![ConnectHint {
+        route: Vec::new(),
             cp: 0,
             to: EndpointParam::OnConnection { connection, at },
         }];
         rejected(e.execute(&cmd));
     }
     cmd.connect = vec![ConnectHint {
+        route: Vec::new(),
         cp: 0,
         to: EndpointParam::Junction { junction: id(0xccc) },
     }];
@@ -452,6 +457,7 @@ fn place_hint_on_a_connection_splits_it_at_a_junction() {
     let mut e = engine(golden_model());
     let mut cmd = place(PAGE_102, pt(0, 0), new_device("F"));
     cmd.connect = vec![ConnectHint {
+        route: Vec::new(),
         cp: 0,
         to: EndpointParam::OnConnection {
             connection: CON_W11B,
@@ -533,6 +539,7 @@ fn hinted_wire_in(
     let fa: ew_ids::Id<Function> = created(&r, Kind::Function)[0];
     let mut cmd = place(PAGE_102, b_at, new_device("K"));
     cmd.connect = vec![ConnectHint {
+        route: Vec::new(),
         cp: 0,
         to: EndpointParam::Cp { function: fa, idx: 1 },
     }];

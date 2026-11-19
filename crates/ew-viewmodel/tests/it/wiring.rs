@@ -1617,3 +1617,53 @@ fn escape_and_undo_leave_no_tool_mark_and_keep_the_grid_cursor() {
     assert!(s.tool_overlay().is_empty(), "no mark after the undo");
     assert_eq!(canvas(&s)["cursor_nm"], cursor_at, "the grid cursor stays");
 }
+
+/// rc.5 persona run: a two-pole breaker placed under a two-pole switch whose poles stand closer together had only one
+/// pole wired. Both poles are now joined, the one out of line by a wire that jogs over halfway, and both wires are
+/// routed.
+#[test]
+fn a_two_pole_breaker_under_a_narrower_two_pole_switch_gets_both_poles_wired() {
+    let tmp = Tmp::new("two-pole");
+    let mut s = actual_size(&tmp, "103");
+    for (pick, k, activate) in [
+        (
+            json!({"symbol": "ew.iec.switch-2p-manual@qet10", "letter": "Q"}),
+            (60, 20),
+            "canvas.activate_alt",
+        ),
+        (
+            json!({"symbol": "ew.iec.mcb-2p@qet10", "letter": "F"}),
+            (60, 30),
+            "canvas.activate",
+        ),
+    ] {
+        done(&mut s, "place.pick", pick);
+        let p = grid_point(&s, k);
+        cursor(&mut s, p);
+        done(&mut s, activate, json!({}));
+        done(&mut s, "tool.select", json!({}));
+    }
+    let t = tables(&s);
+    let first = grid_point(&s, (60, 30));
+    let breaker = t
+        .cps
+        .iter()
+        .find(|c| c.at == first)
+        .expect("the breaker's first pole")
+        .rep;
+    let up = Some(ew_viewmodel::ew_api::geometry::Dir::Up);
+    let poles: Vec<&TableCp> = t.cps.iter().filter(|c| c.rep == breaker && c.dir == up).collect();
+    assert_eq!(poles.len(), 2);
+    for pole in poles {
+        let [w] = pole.connections.as_slice() else {
+            panic!("{} has no wire", pole.label);
+        };
+        let wire = t.connections.iter().find(|c| c.id == *w).unwrap();
+        assert!(
+            wire.stored_route && orthogonal(&line(wire)),
+            "{} {:?}",
+            pole.label,
+            wire.polyline
+        );
+    }
+}
