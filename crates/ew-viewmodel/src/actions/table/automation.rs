@@ -679,7 +679,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     ),
     // A station's tag, or a card's, changed in its view (rc.5, H14); F2 in the view opens it (`shortcut_action`).
     with_params(
-        "device?:ref, text?:text, cancel?:bool",
+        "device?:ref, plc?:bool, text?:text, cancel?:bool",
         hidden(with_aliases(
             &[("device", ParamForm::Whole)],
             act(

@@ -6595,6 +6595,11 @@ rack-rename-station = Kenmerk { $p0 }: klik om het te wijzigen
 rack-rename-module = Het kenmerk van { $p0 } wijzigen
 rack-rename-tip = Klik om het kenmerk te wijzigen (F2)
 rack-rename-field = Kenmerk van { $p0 }
+rack-rename-plc = PLC { $p0 }: klik om de naam te wijzigen
+rack-rename-plc-tip = Klik om de naam van de PLC te wijzigen
+rack-rename-plc-field = Naam van PLC { $p0 }
+rack-rename-plc-taken = { $p0 } is al de naam van een andere PLC van het project: typ een andere naam, of Esc om deze te houden.
+rack-rename-plc-bad = { $p0 } kan geen PLC-naam zijn: typ letters, cijfers en - of _, zonder spaties.
 # rc.5 (H13): Hier plaatsen op een PLC-onderdeel waarvan een kant nog op geen pagina staat.
 reason-place-electrical = Open een elektrische pagina: daar wordt het kader geplaatst
 reason-place-bus = Open een buspagina: daar worden de buspoorten geplaatst

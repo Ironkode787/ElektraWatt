@@ -1990,7 +1990,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `plc.rack_rename {device?, text?, cancel?}` (rc.5, H14): a tag of the station on show changed in place, as the
+    /// `plc.rack_rename {device?, plc?, text?, cancel?}` (rc.5, H14): a tag of the station on show changed in place, as the
     /// Tag row of Properties changes it: the station's in the view's header, a card's in its row (`device`; absent,
     /// the device under the cursor, else the station). Without `text` the field opens on the tag; with `text` the typed
     /// tag goes through the Tag field's own path ([`ShellModel::tag_rename_commit`]): taken, the field closes; refused
@@ -2004,6 +2004,19 @@ impl ShellModel {
             return Outcome::Done;
         }
         let station = or_return!(self.rack_station());
+        // The PLC's own name, beside the station's tag in the header.
+        let plc = self.station_shown().and_then(|s| s.rack.plc_project);
+        let renaming_plc = self
+            .station_tab()
+            .and_then(|t| t.rename.as_ref())
+            .is_some_and(|r| Some(r.0) == plc);
+        let named = p
+            .get("device")
+            .and_then(Value::as_str)
+            .and_then(|d| d.parse::<Uuid>().ok());
+        if flag(p, "plc") || (renaming_plc && named.is_none_or(|d| Some(d) == plc)) {
+            return self.rename_station_plc(plc, p);
+        }
         let device = match p.get("device") {
             Some(_) => or_return!(self.record_param(p, "device")),
             None => self
@@ -2085,6 +2098,78 @@ impl ShellModel {
             tab.rename = Some((device, text));
         }
         self.rack_refuse(place, why)
+    }
+
+    /// `plc.rack_rename {plc: true, text?}` (rc.5, H14): the name of the PLC the station on show belongs to (its
+    /// configuration project, `plc`), changed in place in the view's header as its Properties change it
+    /// (`fields.set name`): without `text` the field opens on the name; a name another PLC of the project has, or one a
+    /// PLC's name cannot be, is refused in a sentence under the rack, the field staying open on the text as typed.
+    fn rename_station_plc(&mut self, plc: Option<Uuid>, p: &Map<String, Value>) -> Outcome {
+        let Some(plc) = plc else {
+            return Outcome::refused(key!("reason-rack-draft"));
+        };
+        let text = match string_param(p, "text") {
+            Ok(t) => t.map(str::to_owned),
+            Err(e) => return e,
+        };
+        let current = self
+            .station_shown()
+            .map(|s| s.rack.plc.clone())
+            .unwrap_or_default();
+        let open = |s: &mut Self, text: Option<String>| {
+            if let Some(tab) = s.station_tab_mut() {
+                tab.rename = text.map(|t| (plc, t));
+            }
+        };
+        let Some(text) = text else {
+            open(self, Some(current));
+            if let Some(tab) = self.station_tab_mut() {
+                tab.error = None;
+            }
+            return Outcome::Done;
+        };
+        let name = text.trim().to_owned();
+        if name == current {
+            open(self, None);
+            return Outcome::Done;
+        }
+        let refuse = |s: &mut Self, why: String| {
+            open(s, Some(text.clone()));
+            s.rack_refuse(None, why)
+        };
+        if self
+            .plc_config_projects()
+            .iter()
+            .any(|(id, n)| *id != plc && *n == name)
+        {
+            return refuse(self, strings::format(key!("rack-rename-plc-taken"), &[&name]));
+        }
+        let parsed = match self.project_session() {
+            Some(session) => session.parse_field_input("plc_config_project", "name", &name),
+            None => return Outcome::refused(key!("reason-no-project")),
+        };
+        let value = match parsed {
+            Ok(parsed) => parsed.value,
+            Err(ew_api::output::InputError::Invalid(why)) => {
+                return refuse(self, super::tools::rejected_words(&why.to_string(), Some(&why)));
+            }
+            Err(_) => return refuse(self, strings::format(key!("rack-rename-plc-bad"), &[&name])),
+        };
+        let cmd = ew_api::AnyCommand {
+            name: "fields.set".into(),
+            params: json!({"kind": "plc_config_project", "targets": [plc.to_string()], "path": "name", "value": value}),
+        };
+        match self.commit_from_host(&cmd) {
+            Outcome::Done => {
+                open(self, None);
+                if let Some(tab) = self.station_tab_mut() {
+                    tab.error = None;
+                }
+                Outcome::Done
+            }
+            Outcome::Failed { message } => refuse(self, message),
+            Outcome::Refused { reason_key } => refuse(self, strings::text(reason_key).to_owned()),
+        }
     }
 
     /// `plc.add_to_plc {device, config?}` (F19 of the rc.1 test): a bus device that belongs to no PLC becomes a station

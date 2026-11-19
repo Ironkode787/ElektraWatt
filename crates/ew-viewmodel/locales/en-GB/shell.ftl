@@ -6859,6 +6859,11 @@ rack-rename-station = Tag { $p0 }: click to change it
 rack-rename-module = Change the tag of { $p0 }
 rack-rename-tip = Click to change the tag (F2)
 rack-rename-field = Tag of { $p0 }
+rack-rename-plc = PLC { $p0 }: click to change its name
+rack-rename-plc-tip = Click to change the PLC's name
+rack-rename-plc-field = Name of PLC { $p0 }
+rack-rename-plc-taken = { $p0 } is the name of another PLC of the project already: type another name, or Esc to keep this one.
+rack-rename-plc-bad = { $p0 } cannot be a PLC's name: type letters, digits and - or _, without spaces.
 # rc.5 (H13): Place here on a PLC part a side of which no page draws yet.
 reason-place-electrical = Open an electrical page: its box is placed there
 reason-place-bus = Open a bus page: its bus ports are placed there

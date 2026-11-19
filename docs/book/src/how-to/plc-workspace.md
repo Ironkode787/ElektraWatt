@@ -75,6 +75,8 @@ The exchange of the hardware and the tags with the PLC software is at the end of
 7. Click the station's tag in the header, or press `F2`, to change it in place; `Enter` takes it, `Esc` leaves it. `F2`
    on a card, or a click on the tag of the card under the cursor, changes the card's tag in its row. A tag another
    device has is refused under the rack; a change that moves the cards' tags too waits for **Apply** in Properties.
+   The PLC's own name, **Belongs to PLC: …** at the header's right, changes the same way: click it; a name another
+   PLC of the project has is refused.
 
 A part of a station that no page draws yet has **Place here** on its row in the PLC panel and on its card's menu: on
 an electrical page its box hangs on the pointer, on a bus page its bus ports, on a fluid page a valve terminal's

@@ -1757,7 +1757,8 @@ gone (deleted, its making undone) closes. The view shows, from `Session::rack_vi
   the kind and New page…; a valve terminal without an overview page;
 - **the header**: the station's tag changes in place (a click, or F2 on the head; F2 or a click on the tag of the
   card under the cursor for a card), through the Properties Tag row's path (`plc.rack_rename`); a tag another device
-  has is refused under the rack;
+  has is refused under the rack; the PLC's name at its right likewise (`plc.rack_rename {plc}`, `fields.set name` of the
+  configuration project; a name another PLC has is refused);
 - **the catalogue** at the right: the place catalogue's parts (`CataloguePart::plc`, the device browser's list and
   its filter matching) that fit the station, by group (`PlcGroup`), the parts that do not fit where the cursor stands
   greyed with the reason; New part… at its foot. A library PLC part without a function template, which the place

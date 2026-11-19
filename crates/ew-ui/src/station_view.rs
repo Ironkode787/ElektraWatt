@@ -342,7 +342,8 @@ fn header(ui: &mut Ui, t: &Tokens, tab: &StationTab, shown: &StationShown, event
             // The station's tag changes in place: a click on it, or F2 on its head (rc.5, H14).
             match (tab.station, &tab.rename) {
                 (Some(station), Some((device, text))) if *device == station => {
-                    tag_field(ui, t, tab, (station, &view.tag), text, &t.type_title, events);
+                    let name = strings::format(key!("rack-rename-field"), &[&view.tag]);
+                    tag_field(ui, t, tab, (station, &name), text, &t.type_title, events);
                 }
                 (station, _) => {
                     let label = ui.add(
@@ -387,8 +388,31 @@ fn header(ui: &mut Ui, t: &Tokens, tab: &StationTab, shown: &StationShown, event
                         .truncate(),
                 );
             });
+            // The PLC's own name changes in place too: a click on it (rc.5, H14).
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                ui.add(egui::Label::new(small(t, plc, t.text_secondary)).selectable(false));
+                match (view.plc_project, &tab.rename) {
+                    (Some(id), Some((renamed, text))) if *renamed == id => {
+                        let name = strings::format(key!("rack-rename-plc-field"), &[&view.plc]);
+                        tag_field(ui, t, tab, (id, &name), text, &t.type_small, events);
+                        let label = strings::format(key!("rack-belongs-to"), &[""]);
+                        ui.add(
+                            egui::Label::new(small(t, label.trim_end(), t.text_secondary)).selectable(false),
+                        );
+                    }
+                    (id, _) => {
+                        let label = ui.add(
+                            egui::Label::new(small(t, &plc, t.text_secondary))
+                                .selectable(false)
+                                .sense(Sense::click()),
+                        );
+                        let name = strings::format(key!("rack-rename-plc"), &[&view.plc]);
+                        label.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
+                        let label = label.tip(strings::text(key!("rack-rename-plc-tip")));
+                        if id.is_some() && label.clicked() {
+                            events.push(Event::Action("plc.rack_rename", json!({ "plc": true })));
+                        }
+                    }
+                }
             });
         });
         let mut facts: Vec<String> = Vec::new();
@@ -478,14 +502,14 @@ fn header(ui: &mut Ui, t: &Tokens, tab: &StationTab, shown: &StationShown, event
     }
 }
 
-/// The field the tag `tag` is changed in, in its place (rc.5, H14): opened on `text` with the focus, in `font`; Enter
-/// takes it (`plc.rack_rename {device, text}`), Escape or a click elsewhere leaves it (`cancel`). While a refusal
+/// The field a tag (or the PLC's name, whose ID `device` then is) is changed in, in its place, named `name` (rc.5,
+/// H14): opened on `text` with the focus, in `font`; Enter takes it (`plc.rack_rename {device, text}`), Escape or a click elsewhere leaves it (`cancel`). While a refusal
 /// stands under the rack, a click elsewhere keeps the field, without the focus, on the text as typed.
 fn tag_field(
     ui: &mut Ui,
     t: &Tokens,
     tab: &StationTab,
-    (device, tag): (Uuid, &str),
+    (device, name): (Uuid, &str),
     text: &str,
     font: &TypeToken,
     events: &mut Vec<Event>,
@@ -504,7 +528,6 @@ fn tag_field(
             .font(theme::font(font))
             .desired_width(width.max(t.size_table_column) + t.space_5),
     );
-    let name = strings::format(key!("rack-rename-field"), &[tag]);
     ui.ctx()
         .accesskit_node_builder(response.id, |n| n.set_label(name));
     if !started {
@@ -971,7 +994,8 @@ fn table(
                     if *renamed == device && tab.station != Some(device) =>
                 {
                     in_cell(ui, module, |ui| {
-                        tag_field(ui, t, tab, (device, &p.tag), typed, &t.type_small, events);
+                        let name = strings::format(key!("rack-rename-field"), &[&p.tag]);
+                        tag_field(ui, t, tab, (device, &name), typed, &t.type_small, events);
                     });
                 }
                 (Some(device), _) if selected => in_cell(ui, module, |ui| {

@@ -581,6 +581,56 @@ fn a_tag_is_changed_in_the_station_view() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// H14, the PLC's own name: the header says which PLC the station belongs to, and a click on that opens the PLC's name
+/// in place; Enter takes it as Properties of the PLC take a name. A name another PLC of the project has is refused in
+/// a sentence under the rack, the field staying open on the text as typed; Esc leaves the name as it was.
+#[test]
+fn the_plcs_name_is_changed_in_the_station_view() {
+    let tmp = Tmp::new();
+    let (mut h, id) = rack_with(&tmp, &["EW-GEN-DI-1"]);
+    let plc = |h: &Window| h.state().shell().rack_view(id).expect("the rack").plc;
+    let before = plc(&h);
+    // A second PLC, made with a station of its own.
+    dispatch(&mut h, "plc.new_station", json!({}));
+    dispatch(
+        &mut h,
+        "plc.rack_set",
+        json!({"head": "EW-GEN-CPU-1", "config": "new"}),
+    );
+    dispatch(&mut h, "plc.rack_create", json!({}));
+    let other = station_of(&h);
+    let taken = h.state().shell().rack_view(other).expect("the other rack").plc;
+    assert_ne!(taken, before, "two PLCs");
+    dispatch(&mut h, "plc.rack_editor", json!({"station": id.to_string()}));
+    settle(&mut h);
+    click(&mut h, &format!("PLC {before}: click to change its name"));
+    let field = format!("Name of PLC {before}");
+    let erase = |h: &mut Window, text: &str| {
+        h.get_by_label(&field).focus();
+        settle(h);
+        for _ in text.chars() {
+            h.key_press(egui::Key::Backspace);
+        }
+    };
+    erase(&mut h, &before);
+    type_tag(&mut h, &field, &taken);
+    let (_, why) = h
+        .state()
+        .shell()
+        .station_tab()
+        .and_then(|t| t.error.clone())
+        .expect("refused under the rack");
+    assert!(why.starts_with(&format!("{taken} is the name of another PLC")), "{why}");
+    h.get_by_label(&why);
+    assert_eq!(plc(&h), before, "the name stays");
+    erase(&mut h, &taken);
+    type_tag(&mut h, &field, "Press");
+    assert_eq!(plc(&h), "Press", "the PLC's new name");
+    assert!(h.query_by_label(&field).is_none(), "the field closes");
+    h.get_by_label("PLC Press: click to change its name");
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// A new station's view is closed only after a question once something is chosen, because nothing of it is written
 /// before Create: Cancel keeps it, Close without making it closes the tab and leaves the project as it was.
 #[test]

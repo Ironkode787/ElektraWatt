@@ -106,6 +106,9 @@ pub struct RackView {
     pub head: RackRow,
     /// The name of the PLC the station belongs to; empty for a station not made yet.
     pub plc: String,
+    /// The PLC (its configuration project) the station belongs to, whose name the view changes in place (rc.5); `None`
+    /// for a station not made yet.
+    pub plc_project: Option<Uuid>,
     /// A valve terminal's positions, left to right; empty for any other station.
     pub cells: Vec<RackCell>,
     /// The most modules the station's part takes, when it says.
@@ -407,6 +410,7 @@ impl Session {
             part: section.map(|(copy, _)| part_text(&copy.item)).unwrap_or_default(),
             head: device_row(&q, id),
             plc,
+            plc_project: Some(cfg.as_uuid()),
             cells,
             max_modules,
             rows,
@@ -476,6 +480,7 @@ impl Session {
                 None => free_row(0, true),
             },
             plc: String::new(),
+            plc_project: None,
             cells: Vec::new(),
             max_modules,
             rows,
