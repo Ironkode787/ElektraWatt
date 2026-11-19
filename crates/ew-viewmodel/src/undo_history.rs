@@ -99,6 +99,8 @@ pub struct HistoryPane {
     pub(crate) crossed: Option<u64>,
     /// While Undo to here walks: the steps restore nothing until the last.
     pub(crate) quiet: bool,
+    /// While a toast's Undo runs: the toast named the step, so the Undo says nothing more (rc.5).
+    pub(crate) unsaid: bool,
 }
 
 impl HistoryPane {

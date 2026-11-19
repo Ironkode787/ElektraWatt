@@ -1913,6 +1913,17 @@ impl ShellModel {
         })
     }
 
+    /// Whether `station`'s bus side (its bus ports) stands on no bus page yet.
+    pub(crate) fn bus_side_undrawn(&self, station: Uuid) -> bool {
+        self.project_session().is_some_and(|session| {
+            session.has_bus_interfaces(station)
+                && !self
+                    .bus_pages()
+                    .iter()
+                    .any(|(folio, _)| session.undrawn_interfaces(station, folio).is_empty())
+        })
+    }
+
     /// `plc.module_place {device?}` (rc.5, H13): Place here on a PLC part (`device`; absent, the device under the
     /// station view's cursor) that the page on show takes ([`ShellModel::place_here`]): its box on the pointer on an
     /// electrical page, as after choosing it in the device browser; its bus ports on a bus page; a valve terminal's

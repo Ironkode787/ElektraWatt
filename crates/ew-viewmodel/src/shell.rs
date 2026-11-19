@@ -2605,6 +2605,12 @@ impl ShellModel {
         if self.symbol_editor().is_some() {
             return self.act_symbol(if redo { "redo" } else { "undo" }, &Map::new());
         }
+        // With something in flight on the pointer, the first Undo puts it away as Esc does and undoes nothing (rc.5:
+        // it undid a step on another page while the box still hung there, and said nothing).
+        if !self.history.quiet && self.tool_in_flight() {
+            self.put_away_in_flight(redo);
+            return Outcome::Done;
+        }
         let Some(p) = &mut self.project else {
             return Outcome::refused(key!("reason-no-project"));
         };
@@ -2616,6 +2622,15 @@ impl ShellModel {
             Some((first, end)) if redo && before == first => end - first - 1,
             _ => 0,
         };
+        // The pages the step touches as the project stands before it: an Undo takes away what it drew there.
+        let named = if redo {
+            Some(before)
+        } else {
+            before.checked_sub(1 + extra)
+        };
+        let drew = named
+            .and_then(|i| p.session.history_view().rows.get(i).map(|r| r.pages.clone()))
+            .unwrap_or_default();
         let stepped = if redo {
             p.session.redo(&origin)
         } else {
@@ -2670,6 +2685,9 @@ impl ShellModel {
                 // taken.
                 self.supply_panel = None;
                 self.crossed_step(crossed);
+                if let Some(index) = first {
+                    self.say_history_step(index, redo, drew);
+                }
                 // A terminal placement takes the strip's next designation again.
                 self.tools.reread_designation = true;
                 Outcome::Done

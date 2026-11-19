@@ -515,7 +515,8 @@ fn can_undo(m: &ShellModel) -> Result<(), Key<'static>> {
     if m.symbol_editor().is_none() {
         writable(m)?;
     }
-    if m.can_undo() {
+    // Something in flight on the pointer is put away by Undo even before the first step (rc.5).
+    if m.can_undo() || (m.symbol_editor().is_none() && m.tool_in_flight()) {
         Ok(())
     } else {
         Err(key!("reason-nothing-to-undo"))
@@ -526,7 +527,7 @@ fn can_redo(m: &ShellModel) -> Result<(), Key<'static>> {
     if m.symbol_editor().is_none() {
         writable(m)?;
     }
-    if m.can_redo() {
+    if m.can_redo() || (m.symbol_editor().is_none() && m.tool_in_flight()) {
         Ok(())
     } else {
         Err(key!("reason-nothing-to-redo"))

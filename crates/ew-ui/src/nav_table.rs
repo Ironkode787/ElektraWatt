@@ -1383,7 +1383,7 @@ impl TableDelegate for Delegate<'_> {
                 let events = &mut *self.events;
                 response.context_menu(|ui| {
                     for item in &menu {
-                        crate::menu::item(ui, item, events);
+                        crate::menu::row_item(ui, item, events);
                     }
                 });
             }

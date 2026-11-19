@@ -169,6 +169,9 @@ pub(crate) struct ToolHost {
     /// The last commit drew the bus interfaces of a device the project had already (a station put on a bus page): its
     /// rack does not open as for a station placed new (the rc.2 persona run: it opened unasked).
     pub drew_existing: bool,
+    /// The active tool has put down what it was armed with (a commit since it was armed): a placement repeated is
+    /// no longer in flight, and Undo takes back the step at once (rc.5).
+    pub put_down: bool,
     /// The grips overlay of a selected black box the host set last: cleared while the overlay is it.
     pub grips: Option<Overlay>,
     /// The handle of the selected wire that has the keyboard's focus (Tab): the wire and the handle's place in
@@ -296,6 +299,7 @@ impl ToolHost {
             black_box_pick: false,
             put_station_part: None,
             drew_existing: false,
+            put_down: false,
             grips: None,
             handle: None,
             press_held: false,

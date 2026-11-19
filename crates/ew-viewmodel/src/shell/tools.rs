@@ -394,6 +394,40 @@ impl ShellModel {
         self.end_editing_tool();
     }
 
+    /// Whether something is in flight on the pointer (rc.5): a gesture begun (a wire at its first click, a box at its
+    /// first corner, a text being typed), or what the tool was armed with hanging there before it put anything down
+    /// (a floating symbol, pasted block or interruption point, a box). A tool merely armed (the Wire tool after a
+    /// finished wire, the Place tool between two placements) has nothing in flight.
+    pub fn tool_in_flight(&self) -> bool {
+        let tool = &self.tools.tool;
+        let state = tool.state();
+        let begun = !matches!(state, "armed" | "idle" | "floating" | "picking");
+        let carries = state == "floating" || matches!(tool.ghost(), Some(crate::tools::Ghost::Box { .. }));
+        tool.name() != "select" && (begun || (carries && !self.tools.put_down))
+    }
+
+    /// Undo or Redo with something in flight on the pointer ([`ShellModel::tool_in_flight`]): it is put away as Esc
+    /// puts it away, the tool ends where it holds nothing more, nothing is undone, and the status line says so.
+    pub(super) fn put_away_in_flight(&mut self, redo: bool) {
+        if let Some(out) = self.run_tool(&CanvasEvent::Escape) {
+            let _ = self.apply_tool_output(out);
+        }
+        if self.tool_in_flight()
+            && let Some(select) = tool_named("select")
+        {
+            self.activate_tool(select);
+        }
+        let words = if redo {
+            key!("status-put-away-redo")
+        } else {
+            key!("status-put-away-undo")
+        };
+        // As a refused Enter's notice: it stands until the pointer or the grid cursor moves.
+        self.tools.notice = Some(strings::text(words).to_owned());
+        self.tools.notice_sticky = true;
+        self.tools.notice_at = Some((i64::MIN, i64::MIN));
+    }
+
     /// After an undo, a redo or any dispatch that commits (a Delete in a navigator): a black box armed before it whose records ([`crate::tools::black_box::BlackBoxTool::records`]) the step took
     /// out of the project is escaped and ended, so that it is armed again from the project as it is (rc.5, H2: put
     /// down, it named a symbol copy the Undo had taken). A tool whose records are all there stays armed.
@@ -598,6 +632,7 @@ impl ShellModel {
             }
             // The macro tool's click is a host step, no command.
             ToolOutput::Host(crate::tools::HostStep::MacroPlace { key, at }) => {
+                self.tools.put_down = true;
                 self.macro_place_from_tool(&key, at)
             }
             ToolOutput::Commit(cmd) => {
@@ -627,6 +662,7 @@ impl ShellModel {
                     _ => None,
                 };
                 let far = self.far_offers(cmd.as_ref());
+                self.tools.put_down = true;
                 self.tools.drew_existing = cmd.name() == "bus.place_ports"
                     && cmd.to_json().is_ok_and(|j| j["target"].get("device").is_some());
                 // An earlier toast stays (its Undo expires with this commit); a new toast of key `edit`
@@ -1308,6 +1344,7 @@ impl ShellModel {
         self.tools.notice = None;
         self.tools.notice_sticky = false;
         self.tools.tool = tool;
+        self.tools.put_down = false;
         self.tool_epoch = self.tool_epoch.wrapping_add(1);
         self.announce_tool();
         if let Some(at) = self.canvas().and_then(CanvasModel::cursor) {

@@ -329,6 +329,47 @@ impl ShellModel {
 
     /// After an undo or redo that crossed the step committed at `rev`: restores that step's context, unless Undo to
     /// here walks (it restores the last step's only).
+    /// After an Undo or a Redo of history entry `index`: what it took back or did again and where, in a toast
+    /// ("Undone: Draw wire on 101"), with Go to page when no page it changed is the one on show (rc.5: an Undo with a
+    /// box on the pointer took back a step on another page, and nothing said so). `drew` are the pages it touched
+    /// before it was stepped (an Undo takes away what it drew there); the pages it touches after it join them. The
+    /// history panel's walk says nothing step by step, nor a toast's Undo of the step the toast names.
+    pub(super) fn say_history_step(&mut self, index: usize, redo: bool, drew: Vec<String>) {
+        if self.history.quiet || self.history.unsaid {
+            return;
+        }
+        let Some(project) = &self.project else { return };
+        let view = project.session.history_view();
+        let Some(row) = view.rows.get(index) else { return };
+        let title = HistoryPane::label_words(row).to_owned();
+        let mut pages = drew;
+        for folio in &row.pages {
+            if !pages.contains(folio) {
+                pages.push(folio.clone());
+            }
+        }
+        let what = if pages.is_empty() {
+            title
+        } else {
+            crate::strings::format(key!("history-changed-on"), &[&title, &pages.join(", ")])
+        };
+        let words = if redo {
+            key!("history-redone")
+        } else {
+            key!("history-undone")
+        };
+        let text = crate::strings::format(words, &[&what]);
+        let here = self.current_folio().map(str::to_owned);
+        let elsewhere = pages
+            .first()
+            .filter(|_| here.as_ref().is_none_or(|h| !pages.contains(h)))
+            .and_then(|f| self.page_rows().iter().find(|r| r.folio == *f).map(|r| r.id));
+        match elsewhere {
+            Some(page) => self.notify_go_to(text, page),
+            None => self.notify_with(text, "edit", false),
+        }
+    }
+
     pub(super) fn crossed_step(&mut self, rev: Option<u64>) {
         self.history.crossed = rev.or(self.history.crossed);
         if !self.history.quiet

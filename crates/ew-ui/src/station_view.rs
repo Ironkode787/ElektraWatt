@@ -338,28 +338,36 @@ fn header(ui: &mut Ui, t: &Tokens, tab: &StationTab, shown: &StationShown, event
             // the part's description follows.
             let (number, description) = view.part.split_once(" · ").unwrap_or((&view.part, ""));
             let undrawn = (view.tag.contains('?') || view.tag.is_empty()) && !number.is_empty();
-            let title = if undrawn { number } else { &view.tag };
-            // The station's tag changes in place: a click on it, or F2 on its head (rc.5, H14).
+            // A station drawn nowhere is named by its part number; its tag of question marks stands beside it.
+            if undrawn {
+                ui.add(
+                    egui::Label::new(
+                        RichText::new(number)
+                            .font(theme::font(&t.type_title))
+                            .color(t.text_primary.color32()),
+                    )
+                    .selectable(false),
+                );
+            }
+            // The station's tag changes in place: it looks like it (a pencil, an outline on hover), and a click on it
+            // or F2 on its head opens it (rc.5, H14).
             match (tab.station, &tab.rename) {
                 (Some(station), Some((device, text))) if *device == station => {
                     let name = strings::format(key!("rack-rename-field"), &[&view.tag]);
-                    tag_field(ui, t, tab, (station, &name), text, &t.type_title, events);
+                    let font = if undrawn { &t.type_body } else { &t.type_title };
+                    tag_field(ui, t, tab, (station, &name), text, font, events);
                 }
                 (station, _) => {
-                    let label = ui.add(
-                        egui::Label::new(
-                            RichText::new(title)
-                                .font(theme::font(&t.type_title))
-                                .color(t.text_primary.color32()),
-                        )
-                        .selectable(false)
-                        .sense(Sense::click()),
-                    );
-                    let name = strings::format(key!("rack-rename-station"), &[title]);
-                    label.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
-                    let label = label.tip(strings::text(key!("rack-rename-tip")));
+                    let name = strings::format(key!("rack-rename-station"), &[&view.tag]);
+                    let tip = strings::text(key!("rack-rename-tip"));
+                    let tag = if undrawn {
+                        let words = strings::format(key!("rack-tag-chip"), &[&view.tag]);
+                        editable(ui, t, &words, &t.type_body, t.text_secondary, &name, tip)
+                    } else {
+                        editable(ui, t, &view.tag, &t.type_title, t.text_primary, &name, tip)
+                    };
                     if let Some(station) = station
-                        && label.clicked()
+                        && tag.clicked()
                     {
                         events.push(Event::Action(
                             "plc.rack_rename",
@@ -400,14 +408,9 @@ fn header(ui: &mut Ui, t: &Tokens, tab: &StationTab, shown: &StationShown, event
                         );
                     }
                     (id, _) => {
-                        let label = ui.add(
-                            egui::Label::new(small(t, &plc, t.text_secondary))
-                                .selectable(false)
-                                .sense(Sense::click()),
-                        );
                         let name = strings::format(key!("rack-rename-plc"), &[&view.plc]);
-                        label.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
-                        let label = label.tip(strings::text(key!("rack-rename-plc-tip")));
+                        let tip = strings::text(key!("rack-rename-plc-tip"));
+                        let label = editable(ui, t, &plc, &t.type_small, t.text_secondary, &name, tip);
                         if id.is_some() && label.clicked() {
                             events.push(Event::Action("plc.rack_rename", json!({ "plc": true })));
                         }
@@ -500,6 +503,52 @@ fn header(ui: &mut Ui, t: &Tokens, tab: &StationTab, shown: &StationShown, event
             }
         });
     }
+}
+
+/// A text that is changed in place (rc.5: the station's tag did not look changeable): the text with a pencil after
+/// it, the outline of a field and the hover fill under the pointer, and a tooltip that a click changes it; named
+/// `name` for a screen reader. Its response.
+fn editable(
+    ui: &mut Ui,
+    t: &Tokens,
+    text: &str,
+    font: &TypeToken,
+    colour: theme::Rgba,
+    name: &str,
+    tip: &str,
+) -> Response {
+    let galley = line(ui, text, font, colour, f32::INFINITY);
+    let (pad, icon) = (t.space_2, t.icon_sm);
+    let size = vec2(
+        galley.size().x + t.space_2 + icon + 2.0 * pad,
+        galley.size().y.max(icon) + pad,
+    );
+    let (rect, response) = ui.allocate_exact_size(size, Sense::click());
+    let painter = ui.painter();
+    let hovered = response.hovered();
+    if hovered {
+        painter.rect_filled(rect, theme::radius(t.radius_sm), t.state_hover.color32());
+        painter.rect_stroke(
+            rect,
+            theme::radius(t.radius_sm),
+            theme::stroke(t.border_width, t.border_control),
+            egui::StrokeKind::Inside,
+        );
+    }
+    let text_at = pos2(rect.left() + pad, rect.center().y - galley.size().y / 2.0);
+    painter.galley(text_at, galley, colour.color32());
+    let pencil = Rect::from_min_size(
+        pos2(rect.right() - pad - icon, rect.center().y - icon / 2.0),
+        vec2(icon, icon),
+    );
+    let ink = if hovered {
+        t.text_secondary
+    } else {
+        t.text_tertiary
+    };
+    icons::paint(painter, IconId::pencil, pencil, ink.color32(), t.icon_stroke);
+    response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, name));
+    response.tip(tip)
 }
 
 /// The field a tag (or the PLC's name, whose ID `device` then is) is changed in, in its place, named `name` (rc.5,

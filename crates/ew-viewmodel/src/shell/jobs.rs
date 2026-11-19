@@ -246,6 +246,21 @@ impl ShellModel {
         self.notes.push(text, "edit", action);
     }
 
+    /// Shows `text` as a toast of key `edit` whose action goes to page `page` (its row's ID), the page an Undo or a
+    /// Redo changed (rc.5).
+    pub(super) fn notify_go_to(&mut self, text: String, page: ew_api::output::Uuid) {
+        let action = self.project.as_ref().map(|p| {
+            (
+                NoteAction::GoTo,
+                Validity::Session {
+                    epoch: p.epoch,
+                    select: vec![page],
+                },
+            )
+        });
+        self.notes.push(text, "edit", action);
+    }
+
     /// Shows `text` as a toast of key `edit` whose action swaps the positions of valves `device` and `holder` (rc.2).
     pub(super) fn notify_swap(
         &mut self,
@@ -358,7 +373,10 @@ impl ShellModel {
             Some(NoteAction::Undo) => {
                 // The toast's Undo is spent: it goes from the screen.
                 self.notes.dismiss(entry.serial);
-                self.dispatch("edit.undo", &Value::Null)
+                self.history.unsaid = true;
+                let out = self.dispatch("edit.undo", &Value::Null);
+                self.history.unsaid = false;
+                out
             }
             Some(NoteAction::Open | NoteAction::ShowFolder) => match (self.mode, entry.open_path(action)) {
                 (Mode::Headless, _) => Outcome::refused(key!("reason-no-opener")),
@@ -411,6 +429,21 @@ impl ShellModel {
                     "plc.rack_editor",
                     &serde_json::json!({ "station": station.to_string() }),
                 )
+            }
+            // The page an Undo or a Redo changed; the toast is spent.
+            Some(NoteAction::GoTo) => {
+                let page = entry.selects(action).first().copied();
+                let folio = page.and_then(|id| {
+                    self.page_rows()
+                        .iter()
+                        .find(|r| r.id == id)
+                        .map(|r| r.folio.clone())
+                });
+                let Some(folio) = folio else {
+                    return Outcome::refused(key!("reason-action-expired"));
+                };
+                self.notes.dismiss(entry.serial);
+                self.dispatch("page.goto", &serde_json::json!({ "folio": folio }))
             }
             Some(NoteAction::NewStation) => {
                 self.notes.dismiss(entry.serial);

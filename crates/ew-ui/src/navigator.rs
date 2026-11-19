@@ -1252,6 +1252,10 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
                             && let Some(tip) = ew_viewmodel::navigators::library_state_tip(code)
                         {
                             chip.tip(&tip);
+                        // A word a panel builder may read otherwise says what it means here (rc.5: `spare`, and a
+                        // channel no page draws).
+                        } else if let Some(tip) = strings::lookup(&format!("nav-badge-{code}-tip")) {
+                            chip.tip(tip);
                         }
                     } else if code == ew_viewmodel::ew_api::output::FIX_ALL {
                         // A group whose findings' fixes are of one kind: Fix all (n)… on its row (rc.2 persona run).
@@ -1383,7 +1387,7 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
             }
             response.context_menu(|ui| {
                 for item in &menu {
-                    crate::menu::item(ui, item, events);
+                    crate::menu::row_item(ui, item, events);
                 }
             });
         }

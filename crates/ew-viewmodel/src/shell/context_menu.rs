@@ -610,9 +610,17 @@ impl ShellModel {
                 self.config_entries(cfg, &mut out);
             }
             (NavKind::Plc | NavKind::PlcGrid, NavRole::Channel, channel) => {
-                // A channel's card, not drawn yet.
-                if let Some(card) = node.records.get(1) {
-                    self.place_here_entry(*card, &mut out);
+                // A channel's card, not drawn yet; a channel no page draws whose card is drawn says why in its menu.
+                if let Some(card) = node.records.get(1).copied()
+                    && !self.place_here_entry(card, &mut out)
+                    && node.badges.iter().any(|b| b == "unplaced")
+                {
+                    let why = if self.is_valve_terminal(card) {
+                        key!("reason-place-channel-valve")
+                    } else {
+                        key!("reason-place-channel-pin")
+                    };
+                    self.place_entry(card, Err(why), &mut out);
                 }
                 self.go_to(kind, Some(node), &mut out);
                 out.extend(self.menu_item("props.focus"));
@@ -624,6 +632,11 @@ impl ShellModel {
                         label,
                     ));
                 }
+            }
+            // A bus port no page draws: its station's bus ports, on a bus page (rc.5).
+            (NavKind::Plc | NavKind::PlcGrid, NavRole::BusPort, Some(function)) => {
+                self.port_place_entry(function, &mut out);
+                self.go_to(kind, Some(node), &mut out);
             }
             (NavKind::Cables, NavRole::Cable, Some(cable)) => {
                 let wired = self
@@ -762,22 +775,55 @@ impl ShellModel {
 
     /// Place here on a PLC part a side of which no page draws yet (rc.5, H13): first in its row's menu, greyed with the
     /// page to open while the page on show takes no side of it; none for a part drawn on every page it belongs on.
-    fn place_here_entry(&self, device: Uuid, out: &mut Vec<ActionItem>) {
+    /// Whether the entry was added.
+    fn place_here_entry(&self, device: Uuid, out: &mut Vec<ActionItem>) -> bool {
         let Some(fits) = self.place_here(device) else {
-            return;
+            return false;
         };
+        self.place_entry(device, fits.map(|_| ()), out);
+        true
+    }
+
+    /// The Place here entry of `device`: enabled when `state` is, else greyed with its reason (shown beside it in the
+    /// row's menu). The row's part decides, not the one under a station view's cursor.
+    fn place_entry(&self, device: Uuid, state: Result<(), Key<'static>>, out: &mut Vec<ActionItem>) {
         let label = strings::text(key!("action-plc-module-place")).to_owned();
         let params = json!({ "device": device.to_string() });
-        // The row's part, not the one under a station view's cursor, decides.
-        let state = match fits {
-            Ok(_) if !self.is_writable() => Err(key!("reason-read-only")),
-            other => other.map(|_| ()),
+        let state = match state {
+            Ok(()) if !self.is_writable() => Err(key!("reason-read-only")),
+            other => other,
         };
         out.extend(self.aimed("plc.module_place", params, label).map(|mut i| {
             i.enabled = state.is_ok();
             i.reason = state.err().map(|k| strings::text(k).to_owned());
             i
         }));
+    }
+
+    /// Place here on a bus port's row that no page draws yet (rc.5): its station's bus ports on the pointer on a bus
+    /// page, else greyed with the page to open. None for a port drawn already.
+    fn port_place_entry(&self, function: Uuid, out: &mut Vec<ActionItem>) {
+        let Some(session) = self.project_session() else {
+            return;
+        };
+        let station = {
+            let q = session.query();
+            let device = function
+                .to_string()
+                .parse()
+                .ok()
+                .and_then(|id| q.functions().get(id)?.device.map(|d| d.as_uuid()));
+            device.and_then(|d| session.plc_station_of(d))
+        };
+        let Some(station) = station else {
+            return;
+        };
+        let state = match self.place_here(station) {
+            Some(Ok("bus")) => Ok(()),
+            Some(_) if self.bus_side_undrawn(station) => Err(key!("reason-place-bus")),
+            _ => return,
+        };
+        self.place_entry(station, state, out);
     }
 
     /// A waiting card's own entries: Attach to `<station>` for each station that takes cards, so that a card listed

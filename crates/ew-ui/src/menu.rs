@@ -48,6 +48,26 @@ pub(crate) fn item(ui: &mut Ui, item: &ActionItem, events: &mut Vec<Event>) {
     item_in(ui, item, true, events);
 }
 
+/// [`item`] in a row's right-click menu: a greyed entry shows its reason on a line under it, not only on hover (rc.5:
+/// a panel's Place here said why only to a pointer that rested on it).
+pub(crate) fn row_item(ui: &mut Ui, item: &ActionItem, events: &mut Vec<Event>) {
+    item_in(ui, item, true, events);
+    if let (false, Some(reason)) = (item.enabled, &item.reason) {
+        let t = crate::theme::current(ui.ctx());
+        ui.horizontal(|ui| {
+            ui.add_space(t.icon_sm + ui.spacing().button_padding.x + ui.spacing().icon_spacing);
+            ui.add(
+                egui::Label::new(
+                    egui::RichText::new(reason)
+                        .font(crate::theme::font(&t.type_caption))
+                        .color(t.text_tertiary.color32()),
+                )
+                .wrap(),
+            );
+        });
+    }
+}
+
 /// [`item`], with the action's icon in the icon column only when `icons`; else the column holds the check alone, blank
 /// when the item is off (View ▸ Show's switches).
 fn item_in(ui: &mut Ui, item: &ActionItem, icons: bool, events: &mut Vec<Event>) {
@@ -226,6 +246,32 @@ mod tests {
         assert!(
             tip.min.x >= first.max.x - 1.0,
             "beside the entry: {tip:?} {first:?}"
+        );
+    }
+
+    /// rc.5: in a row's menu a greyed entry shows its reason under it with no pointer resting on it.
+    #[test]
+    fn a_row_menus_greyed_entry_shows_its_reason_unhovered() {
+        let t = crate::theme::tokens(crate::theme::Theme::Light, crate::theme::Density::Comfortable);
+        let mut ready = false;
+        let mut h = Harness::builder()
+            .with_size(egui::vec2(600.0, 300.0))
+            .build_ui(move |ui| {
+                if !ready {
+                    crate::fonts::install(ui.ctx());
+                    crate::theme::install(ui.ctx(), &t);
+                    ready = true;
+                    return;
+                }
+                let mut events = Vec::new();
+                super::row_item(ui, &entry("Place here", Some("Open a bus page")), &mut events);
+            });
+        h.run();
+        let item = h.get_by_label_contains("Place here").rect();
+        let reason = h.get_by_label("Open a bus page").rect();
+        assert!(
+            reason.min.y >= item.max.y - 1.0,
+            "under the entry: {reason:?} {item:?}"
         );
     }
 }

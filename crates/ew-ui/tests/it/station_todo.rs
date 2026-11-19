@@ -222,9 +222,32 @@ fn undo_and_redo_under_the_open_view_leave_no_step_without_its_records() {
     let fluid = json!({"step": "fluid", "folio": "201"});
     assert_eq!(d.shell_mut().dispatch("plc.rack_next", &fluid), Outcome::Done);
     assert_eq!(d.shell_mut().tool().name(), "black_box", "the box on the pointer");
+    // rc.5: the first Ctrl+Z puts the box away and undoes nothing, and the status line says so.
+    let revision = d.shell_mut().revision();
     d.input(&key("ctrl+z"));
     d.settle();
-    assert_eq!(d.shell_mut().tool().name(), "select", "Undo ends the placement");
+    assert_eq!(d.shell_mut().tool().name(), "select", "Undo puts the box away");
+    assert_eq!(d.shell_mut().revision(), revision, "and undoes nothing");
+    assert!(
+        d.shell_mut()
+            .tool_notice()
+            .is_some_and(|n| n.starts_with("Undo put away what was on the pointer")),
+        "{:?}",
+        d.shell_mut().tool_notice()
+    );
+    // The next takes back the electrical side, drawn on another page: the toast says what and where, and goes there.
+    d.input(&key("ctrl+z"));
+    d.settle();
+    let toast = d.shell_mut().toast().cloned().expect("what Undo took back");
+    assert!(
+        toast.text.starts_with("Undone: ") && toast.text.contains("101"),
+        "{}",
+        toast.text
+    );
+    assert_eq!(
+        toast.action(),
+        Some(ew_ui::ew_viewmodel::notifications::NoteAction::GoTo)
+    );
     click_at(&mut d, (800, 400));
     assert!(d.shell_mut().banner().is_none(), "{:?}", d.shell_mut().banner());
     // To do reads the project as the Undo left it: the electrical side is to draw again.
@@ -372,5 +395,89 @@ fn a_delete_in_a_navigator_ends_the_box_of_what_it_deleted() {
         "select",
         "the placement ends with it"
     );
+    d.shell_mut().shutdown();
+}
+
+/// The Place here entry of the first PLC panel row of role `role` whose records satisfy `of`, with the row's badges.
+fn place_on_row(
+    d: &mut Driver,
+    role: ew_ui::ew_viewmodel::navigators::NavRole,
+    of: impl Fn(&[Uuid]) -> bool,
+) -> (Option<ew_ui::ew_viewmodel::actions::ActionItem>, Vec<String>) {
+    use ew_ui::ew_viewmodel::navigators::NavKind;
+    let _ = d.shell_mut().dispatch("rail.show", &json!({"pane": "plc"}));
+    d.settle();
+    let node = d
+        .shell_mut()
+        .nav(NavKind::Plc)
+        .and_then(|n| n.table())
+        .and_then(|t| t.nodes.iter().find(|n| n.role == role && of(&n.records)).cloned())
+        .unwrap_or_else(|| panic!("a {role:?} row"));
+    let menu = ew_ui::ew_viewmodel::command_bar::navigator_row_menu(d.shell_mut(), NavKind::Plc, &node);
+    let place = menu.into_iter().find(|i| i.id == "plc.module_place");
+    (place, node.badges.clone())
+}
+
+/// rc.5 persona run: Place here was hard to find. A channel of a card no page draws offers its card's Place here, and
+/// its row says "not drawn"; the entry puts the card's box on the pointer.
+#[test]
+fn a_channel_of_an_undrawn_card_offers_place_here() {
+    use ew_ui::ew_viewmodel::navigators::NavRole;
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    let page = json!({"folio": "101", "type": "multi_line", "title": "Control"});
+    assert_eq!(d.shell_mut().dispatch("page.new", &page), Outcome::Done);
+    let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "101"}));
+    let cpu = station(&mut d, "cpu", "EW-GEN-CPU-2", &["EW-GEN-DI-1"]);
+    let card = d.shell_mut().rack_view(cpu).expect("the rack").rows[0]
+        .module
+        .expect("the card");
+    let _ = d.shell_mut().dispatch("ui.dismiss", &json!({}));
+    d.settle();
+    let (place, badges) = place_on_row(&mut d, NavRole::Channel, |r| r.get(1) == Some(&card));
+    let place = place.expect("Place here on the channel's row");
+    assert!(place.enabled, "{:?}", place.reason);
+    assert_eq!(place.params["device"], json!(card.to_string()), "its card's box");
+    assert!(badges.iter().any(|b| b == "unplaced"), "{badges:?}");
+    assert_eq!(d.shell_mut().dispatch(place.id, &place.params), Outcome::Done);
+    assert_eq!(
+        d.shell_mut().tool().name(),
+        "black_box",
+        "its card's box on the pointer"
+    );
+    d.shell_mut().shutdown();
+}
+
+/// rc.5: a valve terminal whose bus side stands on a bus page and whose electrical side is drawn after it (or drawn
+/// again after an Undo) takes its tag from the electrical page: its box is its main drawing, the bus port a second one.
+#[test]
+fn a_box_drawn_after_the_bus_port_numbers_the_tag_by_its_page() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    let page = json!({"folio": "101", "type": "multi_line", "title": "Control"});
+    assert_eq!(d.shell_mut().dispatch("page.new", &page), Outcome::Done);
+    let bus = json!({"folio": "300", "type": "bus_topology", "title": "Bus"});
+    assert_eq!(d.shell_mut().dispatch("page.new", &bus), Outcome::Done);
+    let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "300"}));
+    let terminal = station(&mut d, "valve_terminal", "EW-GEN-VTM-1", &["EW-GEN-VLV-3"]);
+    let _ = d.shell_mut().dispatch("ui.dismiss", &json!({}));
+    d.settle();
+    for (folio, at) in [("300", (700, 400)), ("101", (900, 500))] {
+        let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": folio}));
+        d.settle();
+        let place = place_here(&mut d, terminal);
+        assert!(place.enabled, "{folio}: {:?}", place.reason);
+        assert_eq!(d.shell_mut().dispatch(place.id, &place.params), Outcome::Done);
+        let revision = d.shell_mut().revision();
+        click_at(&mut d, at);
+        if d.shell_mut().revision() == revision {
+            click_at(&mut d, (at.0 + 120, at.1 + 100));
+        }
+        assert_ne!(d.shell_mut().revision(), revision, "drawn on {folio}");
+        d.input(&key("escape"));
+        d.settle();
+    }
+    let tag = d.shell_mut().rack_view(terminal).expect("the terminal").tag;
+    assert!(tag.starts_with("-101"), "{tag}");
     d.shell_mut().shutdown();
 }

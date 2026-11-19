@@ -177,14 +177,14 @@ fn s68_enter_on_an_unplaced_terminal_row_arms_place_with_its_function() {
     let new = strip_row(&s, "Terminal", "9");
     let rows = s.shown_rows(NavKind::Strips);
     let r = rows.iter().find(|r| r.key == new).expect("the new row");
-    assert!(r.badges.iter().any(|b| b == "unplaced"), "{:?}", r.badges);
+    assert!(r.badges.iter().any(|b| b == "not drawn"), "{:?}", r.badges);
     assert!(matches!(
         &r.drag,
         Some(ew_viewmodel::shell::DragSource::Function(_))
     ));
     let placed = strip_row(&s, "Terminal", "1");
     let r1 = rows.iter().find(|r| r.key == placed).unwrap();
-    assert!(!r1.badges.iter().any(|b| b == "unplaced"));
+    assert!(!r1.badges.iter().any(|b| b == "not drawn"));
     // Enter on the row (in the tree view) arms Place with the terminal's function.
     done(&mut s, "navigator.table", json!({"kind": "strips", "on": false}));
     done(&mut s, "navigator.open", json!({"kind": "strips", "key": new}));
@@ -196,7 +196,7 @@ fn s68_enter_on_an_unplaced_terminal_row_arms_place_with_its_function() {
     common::click(&mut s, p, json!({}));
     let rows = s.shown_rows(NavKind::Strips);
     let r = rows.iter().find(|r| r.key == new).expect("the row");
-    assert!(!r.badges.iter().any(|b| b == "unplaced"), "{:?}", r.badges);
+    assert!(!r.badges.iter().any(|b| b == "not drawn"), "{:?}", r.badges);
     // -X1031's terminals are drawn by its strip segments.
     done(
         &mut s,
@@ -204,6 +204,6 @@ fn s68_enter_on_an_unplaced_terminal_row_arms_place_with_its_function() {
         json!({"kind": "strips", "text": "strip:-x1031"}),
     );
     let rows = s.shown_rows(NavKind::Strips);
-    assert!(rows.iter().all(|r| !r.badges.iter().any(|b| b == "unplaced")));
+    assert!(rows.iter().all(|r| !r.badges.iter().any(|b| b == "not drawn")));
     s.shutdown();
 }

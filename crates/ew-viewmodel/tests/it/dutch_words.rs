@@ -383,7 +383,6 @@ fn every_navigator_column_and_badge_reads_in_both_locales() {
             t.replace(" [main]", " [hoofdfunctie]")
                 .replace(" [aux]", " [hulpfunctie]")
                 .replace(" [spare]", " [reserve]")
-                .replace(" [unplaced]", " [niet geplaatst]")
                 .replace(" [not drawn]", " [niet getekend]")
                 .replace(" [frozen]", " [vastgezet]")
                 .replace(" [earth connection]", " [aardverbinding]")

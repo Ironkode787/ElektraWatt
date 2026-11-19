@@ -60,6 +60,8 @@ pub enum NoteAction {
     RedrawBoxes,
     /// The Cable form of a bus line just drawn (rc.5: no cable was asked for).
     ChooseCable,
+    /// Go to the page an Undo or a Redo changed, when it is not the page on show (rc.5).
+    GoTo,
 }
 
 impl NoteAction {
@@ -82,6 +84,7 @@ impl NoteAction {
             NoteAction::Connect => "connect",
             NoteAction::RedrawBoxes => "redraw_boxes",
             NoteAction::ChooseCable => "choose_cable",
+            NoteAction::GoTo => "go_to",
         }
     }
 
@@ -104,6 +107,7 @@ impl NoteAction {
             "connect" => Some(NoteAction::Connect),
             "redraw_boxes" => Some(NoteAction::RedrawBoxes),
             "choose_cable" => Some(NoteAction::ChooseCable),
+            "go_to" => Some(NoteAction::GoTo),
             _ => None,
         }
     }
@@ -127,6 +131,7 @@ impl NoteAction {
             NoteAction::Connect => key!("note-action-connect"),
             NoteAction::RedrawBoxes => key!("box-redraw"),
             NoteAction::ChooseCable => key!("note-action-choose-cable"),
+            NoteAction::GoTo => key!("note-action-go-to-page"),
         }
     }
 }

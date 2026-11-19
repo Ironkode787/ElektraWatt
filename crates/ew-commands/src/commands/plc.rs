@@ -1431,11 +1431,11 @@ pub struct StationBox {
 /// it (the window lays them out in a row in slot order). The box draws the device's black-box function, another
 /// drawing of it when a fluid page draws it as its positions already; a device made without functions
 /// (`plc.add_station`'s) first gets its part's template functions, the box drawing the part's black-box entry; a
-/// device whose functions are no black box (its bus port, put on a bus page first) gets an auxiliary function of its
-/// part's black-box entry (rc.5: a valve terminal's electrical side). A device an electrical page draws already, and one
-/// whose part has no black-box entry, is left as it is. Refused in words: a device that is no station; a box of a
-/// device the station does not hold; nothing left to draw. `copies` are library documents embedded first. Outcome:
-/// the first box.
+/// device whose functions are no black box (its bus port, put on a bus page first) gets a function of its part's
+/// black-box entry (rc.5: a valve terminal's electrical side), its main one when none of them is. A device an
+/// electrical page draws already, and one whose part has no black-box entry, is left as it is. Refused in words: a
+/// device that is no station; a box of a device the station does not hold; nothing left to draw. `copies` are library
+/// documents embedded first. Outcome: the first box.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DrawStation {
@@ -1457,9 +1457,9 @@ pub struct DrawStation {
 
 impl DrawStation {
     /// What the box of `device` draws on an electrical page: its black-box function; a function of its part's
-    /// black-box entry, the part's template functions made first when the device has none, an auxiliary one beside
-    /// functions that are no black box; `None` for a device an electrical page draws already or whose part has no
-    /// black-box entry.
+    /// black-box entry, the part's template functions made first when the device has none, another one beside
+    /// functions that are no black box (the main one, they its auxiliary ones); `None` for a device an electrical
+    /// page draws already or whose part has no black-box entry.
     fn box_target(
         tx: &mut TxBuilder<'_>,
         device: Id<Device>,
@@ -1504,10 +1504,21 @@ impl DrawStation {
             return Ok(None);
         };
         if !functions.is_empty() {
+            // The box is the device's main function, the functions it has (its bus port put on a bus page first) its
+            // auxiliary ones: its tag takes the electrical page's number, as it did before an Undo took the box away
+            // and the bus port was drawn first (rc.5: -101K1 came back as -102K1). A frozen tag stays as it is.
+            for f in &functions {
+                if tx
+                    .get::<Function>(*f)
+                    .is_some_and(|x| x.role == ew_schema::FnRole::Main)
+                {
+                    tx.update::<Function>(*f, |x| x.role = ew_schema::FnRole::Aux)?;
+                }
+            }
             return Ok(Some(PlaceTarget::JoinDevice {
                 device,
                 fndef: Some(fndef),
-                role: ew_schema::FnRole::Aux,
+                role: ew_schema::FnRole::Main,
             }));
         }
         let Ok(entry) = u16::try_from(entry) else {
