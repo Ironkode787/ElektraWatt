@@ -285,7 +285,7 @@ fn pot006_cases() {
                     // P2-4: the shipped table is `verified = false`, and the finding says so.
                     assert!(
                         f[0].message
-                            .ends_with("(the sizing table is not verified against the standard)"),
+                            .contains("(the sizing table is not verified against the standard)"),
                         "case {c}: {}",
                         f[0].message
                     );

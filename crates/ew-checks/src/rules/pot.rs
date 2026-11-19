@@ -1472,27 +1472,21 @@ impl Rule for PeUndersized {
                 continue;
             }
             let text = wire_text(q, &w);
-            let unverified = if table.verified {
-                String::new()
-            } else {
-                " (the sizing table is not verified against the standard)".to_owned()
-            };
-            out.push(Finding::new(
-                &PE_UNDERSIZED,
-                [Target::new(Kind::Connection, w.id)],
-                "",
-                text.clone(),
-                format!(
-                    "PE wire {text} has {pe} mm², below the {required} mm² required for the {line} mm² line \
-                     conductors at {at}{unverified}"
-                ),
-            )
-            .arg("wire", text)
-            .arg("pe", pe.to_string())
-            .arg("required", required.to_string())
-            .arg("line", line.to_string())
-            .arg("at", at)
-            .arg("verified", if table.verified { "yes" } else { "no" }));
+            out.push(worded(
+                Finding::new(
+                    &PE_UNDERSIZED,
+                    [Target::new(Kind::Connection, w.id)],
+                    "",
+                    text.clone(),
+                    String::new(),
+                )
+                .arg("wire", text)
+                .arg("pe", pe.to_string())
+                .arg("required", required.to_string())
+                .arg("line", line.to_string())
+                .arg("at", at)
+                .arg("verified", if table.verified { "yes" } else { "no" }),
+            ));
         }
         out
     }

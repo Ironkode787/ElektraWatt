@@ -783,27 +783,27 @@ rule-ew-pot-001 = { $form ->
     .conflict-type = { $a } ({ WORD($a_kind) }) is verbonden met { $b } ({ WORD($b_kind) }){ $at ->
             [page] {" "}op pagina { $page }
            *[none] {""}
-        }: een draad verbindt twee verschillende potentialen. Haal die draad weg, of verbeter het type van een van beide.
+        }: een draad verbindt twee verschillende potentialen. Is een van beide verkeerd getypeerd, verbeter dan het type; anders zit de draad op de verkeerde plaats: verplaats hem of haal hem weg.
     .conflict-voltage = { $a } ({ DECIMAL($a_kind) }) is verbonden met { $b } ({ DECIMAL($b_kind) }){ $at ->
             [page] {" "}op pagina { $page }
            *[none] {""}
-        }: één geleider kan geen twee spanningen voeren. Haal die draad weg, of verbeter de spanning van een van beide.
+        }: één geleider kan geen twee spanningen voeren. Is een spanning verkeerd ingevuld, verbeter die dan; anders zit de draad op de verkeerde plaats: verplaats hem of haal hem weg.
     .conflict-environment = { $a } ({ WORD($a_kind) }) is verbonden met { $b } ({ WORD($b_kind) }){ $at ->
             [page] {" "}op pagina { $page }
            *[none] {""}
-        }: één geleider kan niet allebei zijn. Haal die draad weg, of verbeter de instelling van een van beide.
+        }: één geleider kan niet allebei zijn. Is een instelling verkeerd, verbeter die dan; anders zit de draad op de verkeerde plaats: verplaats hem of haal hem weg.
     .conflict-class = { $a } ({ WORD($a_kind) }) is verbonden met { $b } ({ WORD($b_kind) }){ $at ->
             [page] {" "}op pagina { $page }
            *[none] {""}
-        }: één geleider kan niet in twee stroomkringklassen zitten. Haal die draad weg, of verbeter de klasse van een van beide.
+        }: één geleider kan niet in twee stroomkringklassen zitten. Is een klasse verkeerd, verbeter die dan; anders zit de draad op de verkeerde plaats: verplaats hem of haal hem weg.
     .conflict-role = { $a } ({ WORD($a_kind) }) is verbonden met { $b } ({ WORD($b_kind) }){ $at ->
             [page] {" "}op pagina { $page }
            *[none] {""}
-        }: een draad verbindt twee verschillende potentialen. Haal die draad weg, of verbeter het type van { $b }.
+        }: een draad verbindt twee verschillende potentialen. Zit de pen op de verkeerde geleider, verplaats dan zijn draad; is { $b } verkeerd getypeerd, verbeter dan het type.
     .conflict-roles = { $a } ({ WORD($a_kind) }) is verbonden met { $b } ({ WORD($b_kind) }){ $at ->
             [page] {" "}op pagina { $page }
            *[none] {""}
-        }: een draad verbindt twee verschillende potentialen. Haal die draad weg.
+        }: een draad verbindt twee verschillende potentialen, dus een van beide pennen zit op de verkeerde geleider. Verplaats die draad naar de juiste, of haal hem weg.
     .conflict-earth = { $a } (0 V) is verbonden met de beschermingsaarde { $b }{ $at ->
             [page] {" "}op pagina { $page }
            *[none] {""}
@@ -834,21 +834,21 @@ rule-ew-pot-003 = { $cp_shared ->
 rule-ew-pot-004 = Draad { WORD($wire) } is groen-geel maar voert { $potential }{ $typed ->
         [yes] {" "}({ WORD($type) })
        *[no] {""}
-    }: groen-geel is alleen voor de beschermingsaarde. Geef de draad een andere kleur.
+    }: groen-geel is alleen voor de beschermingsaarde. Is de kleur met de hand op de draad gezet, haal die daar weg; geef de draad anders een andere kleur in zijn Eigenschappen.
     .title = GNYE op een potentiaal die geen PE is
     .hint = Gebruik groen-geel alleen voor beschermingsleiders; geef de draad een andere kleur.
 
 rule-ew-pot-005 = Draad { WORD($wire) } is blauw maar voert { $potential }{ $type ->
         [none] {""}
        *[other] {" "}({ WORD($type) })
-    }: in een project met een nulleider markeert blauw de nulleider. Geef de draad een andere kleur.
+    }: in een project met een nulleider markeert blauw de nulleider. Is de kleur met de hand op de draad gezet, haal die daar weg; geef de draad anders een andere kleur, of gebruik een kabel waarvan de blauwe ader de nulleider voert.
     .title = BU op een geleider die geen N is
     .hint = Gebruik een andere kleur voor de draad, of een kabel waarvan de blauwe ader de nulleider voert.
 
 rule-ew-pot-006 = PE-draad { WORD($wire) } heeft { DECIMAL($pe) } mm², minder dan de { DECIMAL($required) } mm² die nodig is voor de lijngeleiders van { DECIMAL($line) } mm² bij { $at }{ $verified ->
         [yes] {""}
        *[no] {" "}(de dimensioneringstabel is niet getoetst aan de norm)
-    }
+    }. Maak hem minstens { DECIMAL($required) } mm² in zijn Eigenschappen.
     .title = PE te klein
     .hint = Vergroot de doorsnede van de beschermingsleider tot de vereiste maat.
 

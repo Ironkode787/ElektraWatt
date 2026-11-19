@@ -407,7 +407,7 @@ fn golden_a_ew_pot_pack_reports_the_ef_rows() {
     assert_eq!(
         w6.message,
         "PE wire 101.8 has 1.5 mm², below the 2.5 mm² required for the 2.5 mm² line conductors at 1X1 (the sizing \
-         table is not verified against the standard)"
+         table is not verified against the standard). Make it at least 2.5 mm² in its Properties."
     );
     assert_eq!(
         w6.targets[0].id.to_string(),

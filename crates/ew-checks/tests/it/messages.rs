@@ -181,7 +181,8 @@ fn every_word_is_in_every_language_and_nl_nl_words_names_and_decimals() {
     let pe = by_hand(
         "EW-POT-006",
         "",
-        "PE wire 101.3 has 1.5 mm², below the 2.5 mm² required for the 2.5 mm² line conductors at -X1:PE",
+        "PE wire 101.3 has 1.5 mm², below the 2.5 mm² required for the 2.5 mm² line conductors at -X1:PE. Make it at \
+         least 2.5 mm² in its Properties.",
         &[
             ("wire", "101.3"),
             ("pe", "1.5"),
@@ -193,7 +194,8 @@ fn every_word_is_in_every_language_and_nl_nl_words_names_and_decimals() {
     );
     assert_eq!(
         render(&pe, "nl-NL"),
-        "PE-draad 101.3 heeft 1,5 mm², minder dan de 2,5 mm² die nodig is voor de lijngeleiders van 2,5 mm² bij -X1:PE"
+        "PE-draad 101.3 heeft 1,5 mm², minder dan de 2,5 mm² die nodig is voor de lijngeleiders van 2,5 mm² bij -X1:PE. \
+         Maak hem minstens 2,5 mm² in zijn Eigenschappen."
     );
 }
 
@@ -566,44 +568,53 @@ fn nl_nl_words_the_uniqueness_rules_the_bus_ends_and_the_conflicts() {
         (
             "conflict-type\t24VDC-1 at -X1:1\tphase L1\tL1 at -X2:1\tplus L+\t3",
             "24VDC-1 at -X1:1 (phase L1) is wired to L1 at -X2:1 (plus L+) on page 3: a wire joins two different \
-             potentials. Take that wire away, or correct the type of one of the two.",
+             potentials. If one of them is typed wrongly, correct its type; otherwise the wire goes to the wrong place: \
+             move it or take it away.",
             "24VDC-1 at -X1:1 (fase L1) is verbonden met L1 at -X2:1 (plus L+) op pagina 3: een draad verbindt twee \
-             verschillende potentialen. Haal die draad weg, of verbeter het type van een van beide.",
+             verschillende potentialen. Is een van beide verkeerd getypeerd, verbeter dan het type; anders zit de draad \
+             op de verkeerde plaats: verplaats hem of haal hem weg.",
         ),
         (
             "conflict-voltage\t24VDC-1 at -X1:1\t230 V\t24VDC-2\t24.5 V\t",
-            "24VDC-1 at -X1:1 (230 V) is wired to 24VDC-2 (24.5 V): one conductor cannot carry two voltages. Take \
-             that wire away, or correct the voltage of one of the two.",
+            "24VDC-1 at -X1:1 (230 V) is wired to 24VDC-2 (24.5 V): one conductor cannot carry two voltages. If one \
+             voltage is typed wrongly, correct it; otherwise the wire goes to the wrong place: move it or take it away.",
             "24VDC-1 at -X1:1 (230 V) is verbonden met 24VDC-2 (24,5 V): één geleider kan geen twee spanningen voeren. \
-             Haal die draad weg, of verbeter de spanning van een van beide.",
+             Is een spanning verkeerd ingevuld, verbeter die dan; anders zit de draad op de verkeerde plaats: verplaats \
+             hem of haal hem weg.",
         ),
         (
             "conflict-environment\tL at -X1:1\tAC\t24VDC-1 at -X2:1\tDC, floating\t1",
-            "L at -X1:1 (AC) is wired to 24VDC-1 at -X2:1 (DC, floating) on page 1: one conductor cannot be both. \
-             Take that wire away, or correct the setting of one of the two.",
+            "L at -X1:1 (AC) is wired to 24VDC-1 at -X2:1 (DC, floating) on page 1: one conductor cannot be both. If \
+             one setting is wrong, correct it; otherwise the wire goes to the wrong place: move it or take it away.",
             "L at -X1:1 (AC) is verbonden met 24VDC-1 at -X2:1 (DC, zwevend) op pagina 1: één geleider kan niet \
-             allebei zijn. Haal die draad weg, of verbeter de instelling van een van beide.",
+             allebei zijn. Is een instelling verkeerd, verbeter die dan; anders zit de draad op de verkeerde plaats: \
+             verplaats hem of haal hem weg.",
         ),
         (
             "conflict-class\tL at -X1:1\tmains circuit\tS at -X2:1\tcontrol circuit\t1",
             "L at -X1:1 (mains circuit) is wired to S at -X2:1 (control circuit) on page 1: one conductor cannot be \
-             in two circuit classes. Take that wire away, or correct the class of one of the two.",
+             in two circuit classes. If one class is wrong, correct it; otherwise the wire goes to the wrong place: move \
+             it or take it away.",
             "L at -X1:1 (netstroomkring) is verbonden met S at -X2:1 (stuurstroomkring) op pagina 1: één geleider kan \
-             niet in twee stroomkringklassen zitten. Haal die draad weg, of verbeter de klasse van een van beide.",
+             niet in twee stroomkringklassen zitten. Is een klasse verkeerd, verbeter die dan; anders zit de draad op de \
+             verkeerde plaats: verplaats hem of haal hem weg.",
         ),
         (
             "conflict-role\t-K1:A1\tprotective earth PE\t24VDC at -X1:1\tplus L+\t2",
             "-K1:A1 (protective earth PE) is wired to 24VDC at -X1:1 (plus L+) on page 2: a wire joins two different \
-             potentials. Take that wire away, or correct the type of 24VDC at -X1:1.",
+             potentials. If the pin is wired to the wrong conductor, move its wire; if 24VDC at -X1:1 is typed wrongly, \
+             correct its type.",
             "-K1:A1 (beschermingsaarde PE) is verbonden met 24VDC at -X1:1 (plus L+) op pagina 2: een draad verbindt \
-             twee verschillende potentialen. Haal die draad weg, of verbeter het type van 24VDC at -X1:1.",
+             twee verschillende potentialen. Zit de pen op de verkeerde geleider, verplaats dan zijn draad; is 24VDC at \
+             -X1:1 verkeerd getypeerd, verbeter dan het type.",
         ),
         (
             "conflict-roles\t-G1:+\tplus L+\t-X1:N\tneutral N\t3",
-            "-G1:+ (plus L+) is wired to -X1:N (neutral N) on page 3: a wire joins two different potentials. Take \
-             that wire away.",
+            "-G1:+ (plus L+) is wired to -X1:N (neutral N) on page 3: a wire joins two different potentials, so one of \
+             the two pins is wired to the wrong conductor. Move that wire to the right one, or take it away.",
             "-G1:+ (plus L+) is verbonden met -X1:N (nulleider N) op pagina 3: een draad verbindt twee verschillende \
-             potentialen. Haal die draad weg.",
+             potentialen, dus een van beide pennen zit op de verkeerde geleider. Verplaats die draad naar de juiste, of \
+             haal hem weg.",
         ),
         (
             "conflict-earth\t-G1:−\t0 V (M)\t-X1:PE\tprotective earth PE\t3",
@@ -621,10 +632,7 @@ fn nl_nl_words_the_uniqueness_rules_the_bus_ends_and_the_conflicts() {
     let pot = by_hand(
         "EW-POT-001",
         "attrs",
-        &format!(
-            "{} 2 more connection points are wired the same way.",
-            en.join(" ")
-        ),
+        &format!("{} 2 more connection points are wired the same way.", en.join(" ")),
         &[
             ("form", "attrs"),
             ("conflict_list", &lines.join("\n")),
@@ -633,10 +641,7 @@ fn nl_nl_words_the_uniqueness_rules_the_bus_ends_and_the_conflicts() {
     );
     assert_eq!(
         render(&pot, "nl-NL"),
-        format!(
-            "{} Nog 2 aansluitpunten zijn op dezelfde manier bedraad.",
-            nl.join(" ")
-        )
+        format!("{} Nog 2 aansluitpunten zijn op dezelfde manier bedraad.", nl.join(" "))
     );
     // A conflict of another shape keeps the en-GB message.
     let meta = ew_checks::rule("EW-POT-001").expect("registered").meta();

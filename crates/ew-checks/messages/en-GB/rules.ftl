@@ -777,27 +777,27 @@ rule-ew-pot-001 = { $form ->
     .conflict-type = { $a } ({ WORD($a_kind) }) is wired to { $b } ({ WORD($b_kind) }){ $at ->
             [page] {" "}on page { $page }
            *[none] {""}
-        }: a wire joins two different potentials. Take that wire away, or correct the type of one of the two.
+        }: a wire joins two different potentials. If one of them is typed wrongly, correct its type; otherwise the wire goes to the wrong place: move it or take it away.
     .conflict-voltage = { $a } ({ $a_kind }) is wired to { $b } ({ $b_kind }){ $at ->
             [page] {" "}on page { $page }
            *[none] {""}
-        }: one conductor cannot carry two voltages. Take that wire away, or correct the voltage of one of the two.
+        }: one conductor cannot carry two voltages. If one voltage is typed wrongly, correct it; otherwise the wire goes to the wrong place: move it or take it away.
     .conflict-environment = { $a } ({ WORD($a_kind) }) is wired to { $b } ({ WORD($b_kind) }){ $at ->
             [page] {" "}on page { $page }
            *[none] {""}
-        }: one conductor cannot be both. Take that wire away, or correct the setting of one of the two.
+        }: one conductor cannot be both. If one setting is wrong, correct it; otherwise the wire goes to the wrong place: move it or take it away.
     .conflict-class = { $a } ({ WORD($a_kind) }) is wired to { $b } ({ WORD($b_kind) }){ $at ->
             [page] {" "}on page { $page }
            *[none] {""}
-        }: one conductor cannot be in two circuit classes. Take that wire away, or correct the class of one of the two.
+        }: one conductor cannot be in two circuit classes. If one class is wrong, correct it; otherwise the wire goes to the wrong place: move it or take it away.
     .conflict-role = { $a } ({ WORD($a_kind) }) is wired to { $b } ({ WORD($b_kind) }){ $at ->
             [page] {" "}on page { $page }
            *[none] {""}
-        }: a wire joins two different potentials. Take that wire away, or correct the type of { $b }.
+        }: a wire joins two different potentials. If the pin is wired to the wrong conductor, move its wire; if { $b } is typed wrongly, correct its type.
     .conflict-roles = { $a } ({ WORD($a_kind) }) is wired to { $b } ({ WORD($b_kind) }){ $at ->
             [page] {" "}on page { $page }
            *[none] {""}
-        }: a wire joins two different potentials. Take that wire away.
+        }: a wire joins two different potentials, so one of the two pins is wired to the wrong conductor. Move that wire to the right one, or take it away.
     .conflict-earth = { $a } (0 V) is joined to the protective earth { $b }{ $at ->
             [page] {" "}on page { $page }
            *[none] {""}
@@ -833,21 +833,21 @@ rule-ew-pot-003 = { $cp_shared ->
 rule-ew-pot-004 = Wire { $wire } is green-yellow but carries { $potential }{ $typed ->
         [yes] {" "}({ WORD($type) })
        *[no] {""}
-    }: green-yellow is for protective earth only. Give the wire another colour.
+    }: green-yellow is for protective earth only. If the colour was set by hand on the wire, clear it there; otherwise give the wire another colour in its Properties.
     .title = GNYE on a non-PE potential
     .hint = Use green-yellow only for protective conductors; give the wire another colour.
 
 rule-ew-pot-005 = Wire { $wire } is blue but carries { $potential }{ $type ->
         [none] {""}
        *[other] {" "}({ WORD($type) })
-    }: in a project with a neutral, blue marks the neutral. Give the wire another colour.
+    }: in a project with a neutral, blue marks the neutral. If the colour was set by hand on the wire, clear it there; otherwise give the wire another colour, or use a cable whose blue core carries the neutral.
     .title = BU on a non-N conductor
     .hint = Use another colour for the wire, or a cable whose blue core carries the neutral.
 
 rule-ew-pot-006 = PE wire { $wire } has { $pe } mm², below the { $required } mm² required for the { $line } mm² line conductors at { $at }{ $verified ->
         [yes] {""}
        *[no] {" "}(the sizing table is not verified against the standard)
-    }
+    }. Make it at least { $required } mm² in its Properties.
     .title = PE undersized
     .hint = Increase the protective conductor's cross-section to the required size.
 

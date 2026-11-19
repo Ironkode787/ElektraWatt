@@ -267,7 +267,8 @@ fn pot001_member_role_conflict_does_not_depend_on_the_id_order() {
             f[0].message,
             format!(
                 "{other_tag} (plus L+) is wired to {pe_tag} (protective earth PE) on page 1: a wire joins two \
-                 different potentials. Take that wire away."
+                 different potentials, so one of the two pins is wired to the wrong conductor. Move that wire to the \
+                 right one, or take it away."
             ),
             "pe_first {pe_first}"
         );
