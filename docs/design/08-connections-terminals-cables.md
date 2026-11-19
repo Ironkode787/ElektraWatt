@@ -448,9 +448,14 @@ potential_flow(potential):                              // memo per potential; t
   both its ends stay nodes of the page. The partition lists every earth wire as a bond (`BondLink::drawn`, kind
   `Pelv0vPe`, its ID the connection's, `a` the 0 V side), so the 0 V keeps its own name, type and colour, the wire
   list shows the wire as "0V ⇄ PE" and EW-POT-002 counts it (a PELV 0 V with one earth wire is satisfied, with two it
-  is reported). The decision reads the page only and roles only: a 0 V that reaches the earth wire through an
-  interruption point from another page, or by a definition rather than a pin's role, still meets PE, and the
-  declared bond below (Draw ▸ Connect ▸ Bond, or EW-POT-001's quick fix) is the way to say which wire bonds it.
+  is reported). *rc.5:* a point says what it is by a pin's role, else a potential definition's type there, else (no
+  type) a definition or an interruption point named by the type's word (`0V`, `M`, `L-`; `PE`, `FE`), so a 0 V
+  typed from the list, a potential named 0V and a 0 V carried in by an interruption point named 0V are earthed alike.
+  A wire to **functional earth** (an FE pin or the functional earth symbol) is the 0 V earthed for function: the two
+  stay apart (`BondLink` kind `Equipotential`), it is no PELV bond, and EW-POT-002 tells a PELV 0 V that goes to
+  functional earth only that its bond belongs on protective earth. Only a 0 V that reaches the earth wire through a
+  point that says nothing (an interruption point of another name, a terminal's other side) still meets PE, and the
+  declared bond below is the way to say which wire bonds it.
 - **PELV and SELV.** An M-type potential is PELV when it has a `Pelv0vPe` bond or `env.earthing = Pelv`.
   EW-POT-002 requires exactly one such bond. A potential declared `Selv` must have none (FR-CHK-028).
 - *As built.* **The 0 V–PE quick fix.** When a potential's member CPs

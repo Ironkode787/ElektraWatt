@@ -75,8 +75,10 @@ A supply point is an interruption point where the supply comes in from another d
 from a main distribution, say. It prints where the supply comes from instead of a partner on another page. Supply
 points that stand together, one under the other, print that place once.
 
-To make one: select interruption points, right-click and choose **Supply comes in here…**; its form proposes where
-the supply comes from and the device there. When the marks are placed, a small panel opens at them and asks what comes
+To make one: **Supply** on the Draw tab, beside Interruption, asks what comes in (single phase L, N, PE; three phase
+with or without N; 24 V DC; your own names) and where it comes from, and the marks follow the pointer as one group
+until you click. Or draw the points with Interruption, select them, right-click and choose **Supply comes in here…**;
+its form proposes where the supply comes from and the device there. When the marks are placed, a small panel opens at them and asks what comes
 in: a row per mark, with the kind of conductor (L1, L2, L3, L, N, PE, L+, M, …) and the voltage with AC or DC
 (`230 V AC`), filled in from the mark's name where the name tells it (`L1-EXT` is a phase at the project supply's
 voltage, `N` the neutral, `PE` protective earth, `24V` a 24 V DC plus, `0V` or `M` its minus). Enter defines every

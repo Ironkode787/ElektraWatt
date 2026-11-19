@@ -1701,6 +1701,10 @@ classDiagram
 **Pairing.** IPs pair by `(name, scope key)`, where the scope key is the IP's resolved structure at the project's
 pairing scope (project, `=` or `+`; FR-XRF-010). In **star** mode the star source refers to all others and each other
 point refers to the source; in **chain** mode points pair in `(sort, page order, cell)` order (FR-XRF-007).
+*As built (rc.5).* In star mode two points of one direction are never tied to each other: without a star the source is
+the first source point, else the first undirected point; targets of a name without a source wait unpaired for it
+(before, the first target became their source), and a second source without a star stays apart (EW-CORE-052 asks
+which one feeds).
 
 **Worked examples** (all from the cross-reference table of [20-golden-project.md](20-golden-project.md)):
 
