@@ -89,7 +89,7 @@ impl ShellModel {
 
     /// The form's proposals: where the project supply's origin is, when it names one, else a location named after
     /// the supply; and the device there, the origin's, else the feeder's terminal strip.
-    fn supply_in_proposal(&self) -> (String, String) {
+    pub(super) fn supply_in_proposal(&self) -> (String, String) {
         let proposal = || {
             (
                 strings::text(key!("supply-in-location-proposal")).to_owned(),

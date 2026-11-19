@@ -63,6 +63,7 @@ pub mod ip;
 mod junction_editor;
 pub mod layout;
 pub mod macro_place;
+pub mod supply_place;
 pub mod marker;
 mod measure;
 pub mod move_keys;
@@ -444,6 +445,12 @@ pub enum HostStep {
         /// The Macros navigator's row key.
         key: String,
         /// The snapped point, page nm.
+        at: (i64, i64),
+    },
+    /// The Supply tool's click: place its marks with the first at `at` (page nm) and mark them as where the supply
+    /// comes in.
+    SupplyPlace {
+        /// The snapped point of the first mark, page nm.
         at: (i64, i64),
     },
 }

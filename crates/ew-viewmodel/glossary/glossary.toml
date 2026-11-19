@@ -81,7 +81,7 @@ nl-NL = "Waar een potentiaal een pagina verlaat en op een andere doorloopt; pare
 
 [[term]]
 ew = "Supply point"
-actions = ["ip.supply_in", "tool.ip"]
+actions = ["supply.place", "ip.supply_in", "tool.ip"]
 [term.labels]
 en-GB = "Supply point"
 nl-NL = "Voedingspunt"

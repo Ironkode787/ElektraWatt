@@ -74,4 +74,6 @@ closed_choices! {
     PART_KINDS = &super::part_dialog::PART_KINDS;
     /// A fluid line's kinds (T25; not a form field).
     LINE_KINDS = crate::strings::LINE_KINDS;
+    /// Supply's systems: what comes in from the mains (rc.5).
+    SUPPLY_SYSTEMS = &["supply_1p", "supply_3p", "supply_3p_no_n", "supply_dc", "supply_own"];
 }

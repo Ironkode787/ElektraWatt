@@ -46,6 +46,8 @@ mod context_menu;
 mod supply_in;
 // The supply marks' Potential panel (H9).
 mod supply_potential;
+// The Draw tab's Supply: what comes in from the mains, as supply marks (rc.5).
+mod supply_place;
 pub mod symbol_editor;
 // The text and graphic tools' host duties.
 mod drawing;

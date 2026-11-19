@@ -486,6 +486,20 @@ supply-in-location-proposal = Supply
 reason-supply-in-select = Draw the points where the supply comes in with Interruption (L1, N, PE) and select them first
 # H9: the supply marks' Potential panel: a row per mark placed, its conductor and voltage.
 action-ip-supply-potential = Potential…
+# rc.5: Supply on the Draw tab: what comes in from the mains, placed as supply marks in one go.
+action-supply-place = Supply…
+bar-supply = Supply
+supply-place-title = Supply from the mains
+supply-place-ok = Place
+supply-place-system = What comes in
+supply-place-names = Own names (for Own)
+supply-place-no-names = Type the names of the marks for Own, separated by commas (L1, N, PE).
+hint-supply = Click or { $p0 } to place the supply marks; { $p1 } ends
+choice-supply-1p = Single phase: L, N, PE
+choice-supply-3p = Three phase: L1, L2, L3, N, PE
+choice-supply-3p-no-n = Three phase without N: L1, L2, L3, PE
+choice-supply-dc = 24 V DC: 24V, 0V
+choice-supply-own = Own names
 supply-potential-title = What comes in here
 supply-potential-name = Mark
 supply-potential-kind = Conductor

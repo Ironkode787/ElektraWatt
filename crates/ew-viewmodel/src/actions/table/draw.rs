@@ -833,7 +833,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     ),
     // Route page after Interruption, previewed (no default key), in a column of its own: the page as a whole.
     keeps_banner(placed(
-        place(Group::Connect, 7, CommandSize::Small, None),
+        place(Group::Connect, 8, CommandSize::Small, None),
         "file-settings",
         act(
             "route.page",
@@ -917,6 +917,23 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     )),
     // End.
+    // rc.5: Supply beside Interruption, what comes in from the mains as supply marks placed in one go.
+    keeps_banner(with_params(
+        "system?:enum(supply_1p|supply_3p|supply_3p_no_n|supply_dc|supply_own), names?:text, location?:text, device?:text",
+        in_canvas(placed(
+            place(Group::Connect, 7, CommandSize::Small, Some(key!("bar-supply"))),
+            "ew-potential",
+            act(
+                "supply.place",
+                Command,
+                Menu::Draw,
+                &[],
+                editable_page,
+                None,
+                |s, p| s.act_supply_place(p),
+            ),
+        )),
+    )),
     // Interruption points and black boxes.
     keeps_banner(in_canvas(placed(
         place(

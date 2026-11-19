@@ -505,6 +505,20 @@ supply-in-location-proposal = Voeding
 reason-supply-in-select = Teken eerst de punten waar de voeding binnenkomt met Onderbreking (L1, N, PE) en selecteer ze
 # H9: het paneel Potentiaal van de voedingsmarkeringen: een rij per geplaatste markering, met geleider en spanning.
 action-ip-supply-potential = Potentiaal…
+# rc.5: Supply on the Draw tab: what comes in from the mains, placed as supply marks in one go.
+action-supply-place = Voeding…
+bar-supply = Voeding
+supply-place-title = Voeding van het net
+supply-place-ok = Plaatsen
+supply-place-system = Wat binnenkomt
+supply-place-names = Eigen namen (bij Eigen)
+supply-place-no-names = Typ de namen van de markeringen bij Eigen, gescheiden door komma's (L1, N, PE).
+hint-supply = Klik of { $p0 } om de voedingsmarkeringen te plaatsen; { $p1 } stopt
+choice-supply-1p = Eenfase: L, N, PE
+choice-supply-3p = Driefase: L1, L2, L3, N, PE
+choice-supply-3p-no-n = Driefase zonder N: L1, L2, L3, PE
+choice-supply-dc = 24 V DC: 24V, 0V
+choice-supply-own = Eigen namen
 supply-potential-title = Wat hier binnenkomt
 supply-potential-name = Markering
 supply-potential-kind = Geleider

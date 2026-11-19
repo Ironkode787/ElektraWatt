@@ -497,3 +497,58 @@ fn the_potential_panel_closes_on_undo_and_on_a_page_change() {
     assert!(shell.supply_panel().is_none(), "and it closes");
     d.shell_mut().shutdown();
 }
+
+/// rc.5 (two personas could not find where the mains comes in): Supply on the Draw tab asks what comes in, the marks
+/// float as one group, and the click places them as supply marks from the place typed, one under the other, in one
+/// undo step; their Potential panel opens with a row per mark.
+#[test]
+fn supply_on_the_draw_tab_places_the_marks_of_what_comes_in() {
+    use ew_ui::ew_viewmodel::shell::Outcome;
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    d.input(&click(d.find("Supply").expect("Supply on the Draw tab")));
+    d.settle();
+    assert!(
+        matches!(d.shell_mut().dialog(), Some(ew_ui::ew_viewmodel::shell::Dialog::Form(_))),
+        "its form"
+    );
+    d.shell_mut().set_form_field("system", "supply_3p");
+    d.shell_mut().set_form_field("location", "Mains");
+    // The form's Place (the bar has a Place of its own, above it).
+    let place = d
+        .labels()
+        .into_iter()
+        .filter(|(l, _)| l == "Place")
+        .max_by_key(|(_, at)| at.1)
+        .expect("the form's Place")
+        .1;
+    d.input(&click(place));
+    d.settle();
+    assert_eq!(d.shell_mut().tool().name(), "supply");
+    d.input(&Input::Hover { at: (900, 400) });
+    d.settle();
+    d.input(&click((900, 400)));
+    d.settle();
+    let t = tables(&mut d);
+    let mut marks: Vec<(i64, String, bool)> = t
+        .reps
+        .iter()
+        .filter_map(|r| r.ip.as_ref().map(|ip| (r.pos.1, ip.name.clone(), ip.external)))
+        .collect();
+    marks.sort();
+    let names: Vec<&str> = marks.iter().map(|(_, n, _)| n.as_str()).collect();
+    assert_eq!(names, ["L1", "L2", "L3", "N", "PE"], "one under the other");
+    assert!(marks.iter().all(|(_, _, e)| *e), "all marked as where the supply comes in");
+    let rows: Vec<String> = d
+        .shell_mut()
+        .supply_panel()
+        .map(|p| p.rows.iter().map(|r| r.kind.clone()).collect())
+        .unwrap_or_default();
+    assert_eq!(rows, ["l1", "l2", "l3", "n", "pe"], "the Potential panel, filled in from the names");
+    // One undo takes the whole group back.
+    assert_eq!(d.shell_mut().dispatch("ui.dismiss", &json!({})), Outcome::Done);
+    assert_eq!(d.shell_mut().dispatch("edit.undo", &json!({})), Outcome::Done);
+    d.settle();
+    assert!(tables(&mut d).reps.iter().all(|r| r.ip.is_none()), "one undo step");
+    d.shell_mut().shutdown();
+}

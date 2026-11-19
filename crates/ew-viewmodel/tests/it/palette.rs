@@ -103,7 +103,7 @@ fn the_supply_point_is_found_by_supply_incoming_feed_and_mains_in_both_languages
         "net",
     ] {
         let entries = query(&mut shell, word);
-        for id in ["ip.supply_in", "tool.ip"] {
+        for id in ["supply.place", "ip.supply_in", "tool.ip"] {
             assert!(
                 entries.iter().any(|e| e.id == id),
                 "{word} -> {id}: {:?}",
