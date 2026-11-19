@@ -312,11 +312,11 @@ PLC/bus/fluid breadth, manufacturing outputs, 3D panel, EDZ/DXF/AML exchange. **
 parked. A **pilot preview** (milestone M-PP, release 0.0.x, an unsigned build for the pilot only) sits before the
 MVP: interactive 2D editing of *new* projects with the starter symbols, the core reports, PDF and the core online
 checks; it adds no release column, because it is a slice of MVP rows (global plan
-§5.3). The mapping to milestones is MVP = M2, 1.0 = M6 ([architecture](04-architecture.md) §15.2). The symbol editor is built (milestone **M2.5**) and shipped in release **0.1.0**.
+§5.3). The mapping to milestones is MVP = M2, 1.0 = M7 ([architecture](04-architecture.md) §15.2). The symbol editor is built (milestone **M2.5**) and shipped in release **0.1.0**.
 
 **Dates are not set here.** The calendar is the plan of record: see global plan
 §3.4 and §5.1 and milestones.csv. For the plan of record (three developers, lean scope,
-month 1 = November 2026) these are M-PP at month 26, M2 (MVP) at month 41 and M6 (1.0) at month 65; the plan
+month 1 = November 2026) these are M-PP at month 26, M2 (MVP) at month 41 and M7 (1.0) at month 65; the plan
 re-baselines them from measured velocity at G-M1.
 
 | Area | MVP | 1.0 | 1.x | Later |
@@ -338,7 +338,7 @@ re-baselines them from measured velocity at G-M1.
 | **REV** revisions | Managed revisions, four-eyes release, release gate, as-built archive | Revision compare, change lists, clouds | PDF annotation import | — |
 | **PLC** PLC & I/O | Stations, modules, channels, auto addresses from part maps, PLC overview | AML AR APC (CAEX 2.15) export/import, TIA tag XLSX, PLCopen XML, GSD/GSDML, safety flags | L5X, TwinCAT, more vendor profiles | TIA Openness bridge |
 | **BUS** fieldbus | Bus ports, Profibus topology page, termination as property | PROFINET, IO-Link, EtherCAT structure and checks, bus reports | EtherNet/IP, AS-i | CANopen, Modbus |
-| **FLU** fluid power | Pneumatic ISO 1219 symbols, ports 1–5/12/14, fluid connections | Media propagation, tube specs, tube list, fluid BOM | 3D tube routing | Hydraulics |
+| **FLU** fluid power | Pneumatic ISO 1219 symbols, ports 1–5/12/14, fluid connections | Media propagation, tube specs, tube list, fluid BOM | 3D tube routing, hydraulics | — |
 | **LAY** panel layout | 2D panel front bound to devices with part dimensions (folio 902), unplaced-device list | 3D cabinet, rails, ducts, STEP via worker, collision, routing, lengths, duct fill, door cut-outs, basic busbars | Bayed suites, door-swing sweep, topology (routing-path networks for field cables) | Bent copper |
 | **THM** thermal | — | Single-compartment calculation (IEC TR 60890 / IEC 61439-1 10.10), climate sizing | Multi-compartment | Forced-ventilation curves |
 | **MFG** manufacturing | Wire list and terminal plans as reports | `.ewpp`, ferrules, labels, Komax/Rittal WT/generic profiles, drilling DXF, checklists, read-only wiring viewer | Wiring status logging, more machine profiles | NC formats, tablet viewer |

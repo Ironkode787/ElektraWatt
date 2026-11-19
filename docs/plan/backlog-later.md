@@ -64,6 +64,7 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-1590 `ew-scene, ew-derive, ew-api`: The 1 nm family. A symbol's connection point is its position plus a rounded offset, so a point can sit 1 nm off a grid line: the exact measures miss an overlap 1 nm off, a straight route between two such points leans by 1 nm (the router turns the lean into a jog), and a macro inserted at 90° keeps a 1 nm jog. Terminal-strip points already follow an exact grid rule, written out in three places (`cp_map` in ew-scene, `rep_cp_end` in ew-derive, `editing.rs` in ew-api): give symbol connection points the same rule in one shared place. It moves 90 points of Golden A on 8 folios and leaves 33 stored route ends 1 nm off, to be rewritten in the same change; then take the 1 nm tolerances out of the testkit's diagonal check and the macro test.
 - FT-1597 `golden`: On Golden A's folio 106 the wires to the modules' lower pins (4, 5, FE) wrap round the module bodies, because doc 20 §15 puts the interruption points of the top and bottom pins' feeds in one cell (B1, E1); give the lower-pin feeds cells of their own (below the modules) and route them without the wrap.
 - FT-1683 `ew-scene, ew-viewmodel`: Interruption points one or two grid steps apart cannot print their texts: the name stands above the arrow and the cross-reference below. The interruption point tool does not place such a point (0.2.0), but the Wire tool's interruption point key still ends wires one step apart in points whose texts overlap. Print a crowded point's texts in line with its arrow (the name over its own wire, the reference beyond the free end), as dense drawings do; the tool's rule can then go.
+- FT-1856 `ew-scene, ew-commands, ew-viewmodel, ew-ui`: The later steps of a valve terminal drawn over several pages (WP-S2.23 built its smallest whole form): a cut or a valve dragged across pages on the canvas; a moved valve's actuator column carried to the other page instead of its tubes continuing through interruption points; supply plates drawn at their place inside the terminal and supply ports repeated on each part; two parts in rows on one page; an automatic re-split when a wider valve pushes a part past its page.
 
 ## Importers
 
@@ -84,10 +85,11 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-825 `ew-scene, ew-derive`: Canvas legibility of PLC addresses and card pin labels: the text sizes belong to the derivation profile (ADR-0032 decision 4), so enlarging them changes every printed drawing, and "1 Q0.0" needs about 7 mm against a pin pitch of 5.3 mm. A decision on the profile, not a window fix.
 - FT-1758 `ew-reports`: The I/O list cannot take the passed terminals, the signal range and the F-address: its twenty columns fill 248 of the house table's 261 mm on Golden A. They are in `api_v1_plc_channel`; the printed list needs shorter headers or a choice of columns.
 - FT-1759 `ew-schema, ew-derive`: A module with two channel kinds on one card (16 DI and 16 DO) cannot be described: a channel specification has one kind (older than M3).
-- FT-1760 `ew-commands`: N-FL-4 makes a `drives` link from a valve's working port's own net only, so a cylinder behind a throttle gets none by itself (the checks follow the path through it since M3's review).
 - FT-1762 `ew-commands, ew-viewmodel`: A command's notices are plain English texts, and the Preview tab shows them as they are, so a Dutch window reads English there (re-address's old → new, the overview generator, the instrument list). Wording them through the locale files changes the notice type at about 75 command sites.
 - FT-1579 `ew-api`: Routing at an import's front door for `ew import csv`, whose `route` column is optional (a QET import needs none any more: every wire arrives routed).
 - FT-1645 `ew-import-qet, ew-scene`: What an imported QET folio still shows differently, after the full-fidelity work of M2.5-Fix: a master's contact list has no contact symbols and its rows stand closer than QET's 10 px (the scene has no list drawing and the text style no line height); `displayhas="cross"` and `snapto="bottom"` cross-references print as a list, with a report entry; QET's folio list arrives as EW's own table of contents; an element's `mirror` is not read (QET 0.100 writes none; newer versions do); fonts are substituted, so texts sit slightly lower.
+- FT-1850 `ew-import-*`: Read a maker's asset administration shell (AASX: its technical-data and nameplate submodels, ECLASS properties) into a part with its fluid data. The structured route to real part data; left out of M5 as a new reader and mapping.
+- FT-1851 `ew-viewmodel`: Read a valve's function (5/2 monostable, 5/3 closed …) from its type code for the families of the maker that matters. Left out of M5 because the code tables are one maker's and change; the part form asks it in one click.
 
 ## Libraries, parts and content
 
@@ -101,11 +103,12 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-1449 `content`: Standard-based size profiles once their cross-sections are checked against licensed copies (WP-S7.03 FP-3, §13 O4).
 - FT-1450 `content, Golden A`: The divider form and report forms with data areas, deferred by WP-S7.03 §13 O1 since they change Golden A (WP-S7.03 FP-4).
 - FT-1731 `ew-schema, ew-derive, ew-checks`: The valve terminal's pilot supply (`valve_terminal.pilot_supply`, doc 11 §3.2): no pilot gallery is derived and EW-FL-010 does not check the X port (WP-S1.25).
-- FT-1732 `content, ew-reports`: The tube cut list has no cut allowance and no order increment, and the tube labels no marker part: none has part data yet (WP-S1.25). `tubes.json` of the production package comes with the package (M4).
 - FT-1735 `ew-derive, ew-scene`: ISO 1219-2 component codes as a second identifier set on pneumatic devices (FR-FLU-023, Could).
 - FT-1577 `ew-library`: Interruption point forms for vertical current paths (the arrow pointing down at a page's bottom edge), if users ask for them beside WP-S2.19 D16's two right-pointing forms.
 - FT-1578 `ew-library`: The external connection point's arrow under WP-S2.19 D16's orientation rule (FR-XRF-012).
 - FT-1677 `ew-library`: A symbol with eleven or more text slots cannot pass both the canonical-order check and the arrangement test (found while adding the three-pole MCB, FT-657).
+- FT-1848 `ew-library, ew-viewmodel, ew-ui`: A valve and cylinder builder (positions, bodies and actuators per side; cylinder kind, cushioning, rod), making the symbol on the 12 mm module, the function definition with port roles and the switching model. Left out of M5 as a new editor; until then an unusual valve is drawn in the symbol editor and given a shipped function definition.
+- FT-1849 `ew-schema, ew-library`: Named anchor points on cylinder symbols for mounted sensors. M5 derives a sensor's place from the cylinder's outline and its ports A and B.
 
 ## Model, commands and numbering
 
@@ -166,6 +169,7 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-1601 `docs`: The rule notes of EW-CORE-067 to -070, -072 and -073 say "No standard: a project-hygiene rule." because the IEC 61082-1 clauses they follow are unverified; verify the clauses and cite them in the …
 - FT-1609 `ew-commands`: `macro.insert` with a turned orientation refuses a fragment that holds one of EW's interruption-point forms (ID-1509 (5)); insert it instead with those points unturned at their turned positions and …
 - FT-1550 `ew-commands, ew-api`: `page.create` and the built-in template give a new page the QET 10 px grid, against FR-PAG-031, DEC-045 and doc 06 (new pages use the native grid); build FR-PAG-031's setting "grid for new pages", default native, and move the defaults with it (FT-458's ruling, ID-650). It is a command default: 95 test files rely on it and a changed default changes how an existing command log replays, so it needs a decision under ADR-0011 first.
+- FT-1852 `ew-commands, ew-derive`: Tube numbering per project with a prefix (T1, T2, …) beside the per-page scheme. Not asked for first; build it only if a shop asks.
 
 ## Packaging and release
 
@@ -181,6 +185,7 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-922 `ew-reports`: The legend's Qty column prints a carrier's length without its unit (m), by ruling 6; decide whether the header or the cell carries the unit (A42, cycle 42).
 - FT-923 `ew-reports, ew-scene`: On 902 the PART DATA codes sit under an empty label column (the enclosure's part lines carry no label); look at it with FT-920 (A42, cycle 42).
 - FT-966 `ew-reports`: Golden A's generated table of contents reads "A report page…" for the generated report pages (P42, cycle 42).
+- FT-1855 `ew-reports, ew-derive`: A sequence table derived from the actuator list (step, movement, output, the sensor that ends it), in place of drawing GRAFCET or function diagrams. Not in M5.
 
 ## Revisions and release
 
@@ -307,3 +312,5 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-1680 `ew-ui`: The symbol editor's connection points: a selected point shows no properties (its name is under Electrical data, Function definition); the Designation box of the Connection point tool names the next point, which reads as if it renamed the one just placed; "Facing up" does not say which way the wire leaves. The role list scrolling its row to the panel's top (an earlier decision, so that every role shows) made the next click land on another control in a picture-led run.
 - FT-1681 `ew-viewmodel`: A terminal renamed through the Tag row of Properties gets a frozen tag ("-X1011:L (frozen)") that the page does not print: the sheet still shows 1, and no row for the terminal's own designation is in sight.
 - FT-1682 `ew-viewmodel, ew-ui`: Smaller findings of the round: a part drawn as a black box (the power supply) wants two corners, and one click and Escape place nothing without a word; placing a second contact of a contactor from the browser makes a new contactor; Insert symbol lists a symbol twice, "embedded" and "library"; a wire is drawn by clicks and a drag from a pin only starts it; a new lamp is tagged E, not H; the mouse wheel zooms where an EPLAN user expects it to scroll.
+- FT-1853 `ew-viewmodel, ew-ui`: A multipin valve terminal's pin map edited freely (the rest of FT-1770). M5's part form offers the two usual pin patterns.
+- FT-1854 `ew-viewmodel, ew-commands`: Drive a cylinder places a column that does not fit above its valve on the page above, joined by interruption points. M5 refuses it in words.

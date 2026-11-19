@@ -1162,7 +1162,7 @@ The result equals step 6 of the Golden C fix script ([20](20-golden-project.md) 
    takes the next free position; a full module refuses the paste.
 10. **Determinism.** Gallery order, propagation order, tube counters and cut-list grouping break ties by position,
     then by ID, never by hash order or wall clock (NFR-REL-07).
-11. **Hydraulics** (Later, FR-FLU-025). The same records with `discipline = Hydraulic`, letter roles P, T, A, B, X,
+11. **Hydraulics** (1.x, FR-FLU-025). The same records with `discipline = Hydraulic`, letter roles P, T, A, B, X,
     Y, L, and hose data (identification, manufacturing date, pipe class). A hydraulic CP never joins a pneumatic net
     (FI-01). The other media EPLAN Fluid covers (lubrication, cooling, cooling lubricant, gas;
     [eplan-features](../research/eplan-features.md) §17) are further `discipline` values, also Later.
@@ -1260,7 +1260,8 @@ the valve glyphs print on 201 and 202. EW-FL-004 counts in the release run (`o r
 | Fluid navigator and workspace; overview page generator; zone highlight (Could) | | ● | | |
 | Tube routing and routed lengths (FR-FLU-024) | | | ● | |
 | Configurator decoders and EW-FL-003 (FR-FLU-022) | | | ● | |
-| Hydraulics (FR-FLU-025), P&ID process symbols | | | | ● |
+| Hydraulics (FR-FLU-025) | | | ● | |
+| P&ID process symbols | | | | ● |
 
 *As built.* The MVP row is built (WP-S1.20). The 1.0 rows of this work package (WP-S1.25) are built as the *As
 built* notes of §2 to §8 say: valve models, galleries, media and propagation, tube inheritance with provenance, the

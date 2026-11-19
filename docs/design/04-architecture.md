@@ -1921,8 +1921,9 @@ and the re-baseline at G-M1 are in the plan.
 | M2 (MVP) | month 41 | Interactive 2D editor MVP, QET import of the corpus (the plan's lean variant ships the project migration in the next 0.x, see [vision](00-vision-and-scope.md) §9.1), check packs and report pack, 2D panel front, usability test with two EPLAN users and one QET user, first release (0.1.0, unsigned) |
 | M3 | month 47 | PLC, bus and fluid 1.0; QET migration; EDZ, AML, TIA tag and PLCopen exchange; DXF and DWG |
 | M4 | month 58 | 3D panel, collision, routing and lengths; manufacturing outputs and machine profiles |
-| M5 | month 59 | 1.0 feature complete (beta) |
-| M6 (v1.0) | month 65 | Hardening, docs, format freeze, signed 1.0 |
+| M5 | after M4 | Fluid power (release 0.5.0) |
+| M6 | month 59 | 1.0 feature complete (beta) |
+| M7 (v1.0) | month 65 | Hardening, docs, format freeze, signed 1.0 |
 
 **Rotating schema-steward role.** Every format change passes the steward rule (§7.6).
 

@@ -449,7 +449,7 @@ changes. Until a question is answered, the documented defaults and the ▲ test 
 | PQ-49 | Are the field wires W1 to W3 and the cable -101W1 made in the shop or on site? | DEC-070; G-M4; WP-S5.01; default flagged "field" and excluded from machine files | plan/06 Part C |
 | PQ-50 | Do you need the legend position numbers of a layout frozen at release, so revised drawings keep their numbers? | DEC-070; G-M4; WP-S4.01; default derived positions that renumber when devices change | plan/06 Part C |
 | PQ-51 | Which cross-reference style do you want on native pages ("/101.H16" EPLAN style or the QET style you use today), and how should contact images and interruption-point directions look in your house style? | DEC-050; G-M2; WP-S7.03, R0; default EPLAN style on native frames, QET style in the pilot basic project | plan/06 Part C |
-| PQ-52 | Do you estimate labour from the wire list? Which I/O-list typicals (per card or per device) could you share? | DEC-012; G-M5; WP-S3.15, WP-S1.29; default labour estimate as an example SQL report, flat I/O-list value sets | plan/06 Part C |
+| PQ-52 | Do you estimate labour from the wire list? Which I/O-list typicals (per card or per device) could you share? | DEC-012; G-M6; WP-S3.15, WP-S1.29; default labour estimate as an example SQL report, flat I/O-list value sets | plan/06 Part C |
 
 ---
 

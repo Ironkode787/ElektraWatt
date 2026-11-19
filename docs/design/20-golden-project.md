@@ -8,7 +8,7 @@
 set) into ElektraWatt's (EW) executable acceptance specification. It fixes the data EW must hold as a model
 (project, pages, devices, potentials, wires, terminals, cables, PLC, fluid, layout, parts), the outputs it must
 regenerate from that model, the check findings it must report, and one regression test per reference defect
-D-01 … D-42. The numbered acceptance criteria AC-01 … AC-42 are the pass conditions of the milestone gates G-M1 … G-M6
+D-01 … D-42. The numbered acceptance criteria AC-01 … AC-43 are the pass conditions of the milestone gates G-M1 … G-M7
 and G-PP (§22).
 
 **Contents**
@@ -1497,15 +1497,16 @@ Commands run on `golden/J-E-2416.ew` unless stated. "Exact" means the comparison
 | AC-40 | Every release ships Golden A (CC0) as sample project; it opens offline without libraries or system fonts and passes its acceptance CSVs | NFR-DOC-04, NFR-REL-11 | MVP |
 | AC-41 | Two branches editing disjoint fields (function text of -102F2; colour override of W20) merge cleanly with `ew merge-driver`; editing the same field yields one conflict record | FR-COL-013, FR-COL-014 | MVP |
 | AC-42 | With nl-NL translations of page descriptions and function texts, the Dutch PDF has identical geometry, tags and cross-references; only translated texts differ | FR-I18N-005 | 1.0 |
+| AC-43 | The fluid side of the cabinet made in the program, with its 24-position valve terminal drawn over three pages: its actuator list, air consumption, valve-terminal configuration (with each position's page), tube list, tube cut list and parts-list lines equal the blessed expected files | FR-FLU-035 … FR-FLU-047 | M5 |
 
 ---
 
 ## 22. Milestone gates
 
-The gates are those of the plan: G-M1 … G-M6 for the milestones M1 … M6, G-PP for the pilot preview M-PP
+The gates are those of the plan: G-M1 … G-M7 for the milestones M1 … M7, G-PP for the pilot preview M-PP
 (gates §8.1 is the assignment of acceptance criteria to gates and wins where this table could
 differ). The dates are the plan's (global plan §5.1, milestones.csv),
-not this document's. The release names are M2 = MVP (0.1.0) and M6 = 1.0.
+not this document's. The release names are M2 = MVP (0.1.0) and M7 = 1.0.
 
 | Gate | Milestone | Must pass |
 |---|---|---|
@@ -1514,8 +1515,9 @@ not this document's. The release names are M2 = MVP (0.1.0) and M6 = 1.0.
 | **G-M2** | M2 MVP, release 0.1.0 | AC-14 (all platforms), AC-18 (GUI), AC-19, AC-21, AC-23, AC-28, AC-29, AC-31, AC-32 (MVP part), AC-33, AC-37 (SVG), AC-40, AC-41; §19 rows gated M2 and every earlier row; SC-3 starts its clock |
 | **G-M3** | M3 automation breadth and migration | AC-25, AC-26, AC-27 (QET migration, SC-4); AC-30 (reference files); AC-32 (tube list); AC-37 (DXF); AC-38; AC-22 for EW-PLC, EW-BUS and EW-FL |
 | **G-M4** | M4 manufacturing and 3D panel | AC-34; AC-35 (content); AC-22 for EW-LAYOUT |
-| **G-M5** | M5 feature complete, 1.0 beta | AC-22 complete |
-| **G-M6** | M6 release 1.0 | AC-01 … AC-42 except AC-36 and AC-42; AC-30 with SC-8; AC-35 with SC-7; every §19 row except D-40 |
+| **G-M5** | M5 fluid power | AC-43 |
+| **G-M6** | M6 feature complete, 1.0 beta | AC-22 complete |
+| **G-M7** | M7 release 1.0 | AC-01 … AC-43 except AC-36 and AC-42; AC-30 with SC-8; AC-35 with SC-7; every §19 row except D-40 |
 
 Two details differ between full and lean scope. At **full scope** the QET migration ships with the MVP, so AC-25
 and AC-26 are gated at G-M2 and AC-27 at the MVP release, and AC-36 (thermal) is gated at G-M4 and AC-42 at 1.0; the

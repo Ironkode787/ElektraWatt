@@ -1996,7 +1996,7 @@ findings (06 OQ7), the EPLAN-like bindings (FR-UI-014), the glossary (NFR-DOC-05
 |---|---|---|---|---|
 | R0 formative | as soon as the R0 viewer build and the place and wire tools exist (WP-S2.03, WP-S2.04), within WP-S2.12 before M2 of the work breakdown | ≥ 2 (the pilot user and a colleague) | development build | T1, T2, T8; think-aloud only (NFR-UX-09) |
 | R1 summative | before M2 exit | ≥ 2 EPLAN users, ≥ 1 QET user (PQ-27) | M2 release candidate | T1–T8; T6 for QET users |
-| R2 summative | before 1.0 (M6, WP-S2.16) | ≥ 5: ≥ 2 EPLAN, ≥ 2 QET, ≥ 1 PLC programmer (P3); a wireman (P2) for T11 | 1.0 release candidate | T1–T11 |
+| R2 summative | before 1.0 (M7, WP-S2.16) | ≥ 5: ≥ 2 EPLAN, ≥ 2 QET, ≥ 1 PLC programmer (P3); a wireman (P2) for T11 | 1.0 release candidate | T1–T11 |
 
 **Screening.** At least one year of production work in EPLAN Electric P8 or QET; at least one participant per
 summative round on a QWERTZ or AZERTY keyboard (NFR-I18N-06); at R2 one session on a GPU-less RDP host

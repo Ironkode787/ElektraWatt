@@ -20,16 +20,11 @@ answers is deleted with a line in its report.
 
 ### What the second candidate left
 
-- FT-1769 `ew-api, ew-viewmodel`: A valve terminal part that comes in several sizes is not asked for its size when it is placed: the number of positions is the part's, and a part that names its sizes changes the part record, which the format grows only additively (decide how a part names them first).
-- FT-1770 `ew-viewmodel, ew-ui`: The part editor has no controls for a valve terminal's kind (bus node or multipin) or for its pin map (which plug pin drives which solenoid); the starter parts carry them.
 - FT-1771 `ew-viewmodel, ew-ui`: An editor for a part's drawn front view (`mech.front_2d`): the part editor's Size and mounting section edits only the rectangle the layout draws.
 - FT-1772 `ew-api, ew-viewmodel`: The printed columns of a legend that exists already: a block made before `ReportBlock.columns` keeps the report's four columns (position, tag, quantity, part number), and nothing offers it the description.
-- FT-1773 `ew-ui`: A wiring test of the multipin valve terminal's plug in the window: a PLC output wired to a plug pin by clicks drives the solenoid at session level only; no window test does it by clicks.
 - FT-1779 `ew-viewmodel, ew-ui`: A wire's Potential row in Properties opens Define potential, as the wire's menu does.
 - FT-1780 `ew-scene, ew-viewmodel`: A selected wire marks its two ends.
 - FT-1782 `ew-scene`: The legend's part-number column is shortened and, last, left out where the legend has no room: decide whether the legend wraps its texts or asks for a wider box. An enclosure's legend still shows "…" in its quantity and part-number columns (the embedded table's own cutting rule), and its header and drop shadow are heavy.
-- FT-1783 `ew-viewmodel, ew-ui`: A tube's size is chosen in the Tube tool's bar, beside its line kind; it takes the project's default now.
-- FT-1784 `ew-viewmodel`: A Blanking plate row in the device browser of a valve terminal's cell, beside the valves made for a terminal; the cell's menu has Blanking plate at position.
 - FT-1785 `ew-viewmodel, ew-ui`: Dragging devices onto a location's group in the Devices list gives them that location; Location… does it by menu.
 - FT-1786 `ew-scene`: A knock-out for a text under a wire on schematic pages: a text that a route crosses and that does not move is drawn under the line, and no renderer clears the line round it (ADR-0033, amendment 2).
 - FT-1787 `ew-ui, xtask`: The deep run's replay of every script (`nightly_every_script_transcript_is_byte_identical_twice`) runs close to its time limit; split it or give it room. Not measured.
@@ -40,13 +35,11 @@ answers is deleted with a line in its report.
 - FT-1789 `ew-viewmodel`: The symbol editor draws a shape by the pointer only; draw a line, a rectangle or a circle from the keyboard alone (accessibility), as a placed shape already moves with the arrow keys.
 - FT-1790 `ew-scene, ew-viewmodel`: Round handles show for one selected wire; with several selected, none does. Decide whether handles of several wires help or only crowd.
 - FT-1791 `ew-viewmodel, ew-api`: The spacing between the terminals of a row is remembered by the open project only: keep it between sessions (a user setting, or a project setting, which is a format change).
-- FT-1793 `ew-api, ew-commands`: A valve stays undrawn when a valve terminal's positions are filled through `ew apply` without the symbols (`copies`); the command could find the symbols itself, or say so. Draw its valves in the valve terminal draws them.
 - FT-1795 `ew-scene`: A tag keeps clear of a neighbouring symbol only around a half-turned symbol (the tag rule's own-symbol and half-turn cases; wider rules changed Golden A's pictures). Around a quarter turn or a nudge a tag can still lie on a neighbour's body or text.
 - FT-1796 `ew-viewmodel`: A drag that starts on a pin's label of a symbol moves the symbol; the tag, a box's caption and the texts of one selected symbol are dragged by themselves already.
 - FT-1797 `ew-derive`: Two routes that ADR-0033's measures leave: a PE wire crosses L and N where the way round a box is far longer, and a pin right under a row of tags has no route clear of the texts.
 - FT-1798 `ew-scene`: An interruption point on the bottom pin of a box draws its arrow along the box's edge.
 - FT-1799 `ew-api`: An unnumbered wire's Properties title reads "?" (`wire_number` falls back to it); say "wire without a number" in words.
-- FT-1801 `ew-viewmodel`: A tube drawn in a project without a default tube stops for the project's fluid settings; offer the size where the tube is drawn.
 - FT-1802 `ew-viewmodel, ew-api`: Auto-fill rail gives every device without a location the cabinet's and places them all, field devices too (sensors, cylinders, a valve terminal); let the person choose which devices go on the rail.
 - FT-1803 `ew-viewmodel`: Project properties name their rows otherwise than the title block's cells (Project reference and Project, Designer and Author), and Document title prints in no cell of the program's frame (a persona met this again); Title block fields… says which cell prints which, the rows themselves do not.
 - FT-1804 `ew-scene`: Several small symbols placed at a PLC card's pin pitch (four sensors side by side) have tags, channel texts and pin numbers on one another; the placement rule keeps a text clear of its own symbol and of a few named cases, not of a close neighbour's texts.
@@ -106,10 +99,26 @@ from the user's side (who changes it, when, what he sees while he does it) befor
 
 - FT-1814 `ew-api, ew-viewmodel, ew-ui, ew-scene`: The title block cannot be changed in the window: its layout, extra fields of the person's own, and pages that have their own title block (a cover page, a divider). Design first: an editor for a title block that a person who has never seen a form editor can use, what a template carries of it, and how a running project takes a changed one.
 - FT-1815 `ew-api, ew-viewmodel, ew-ui, ew-scene`: The frame's rulers (the numbers along the top, the letters along the left) cannot be changed: how many columns and rows a page has, numbers or letters on either side, where counting starts. Design first, together with FT-1814: cross-references and the page's grid depend on the columns and rows.
+- FT-1847 `ew-reports` (WP-S5.07): `tubes.json` of the production package, with the tube rows of `cutlists.csv`, comes with the package (doc 13 §8.1); the tube cut list's allowance and order increment are M5's (FT-1732).
 
 ### Before M4's new work: the golden project is retired
 
 - FT-1816 `golden, ew-api, ew-viewmodel, ew-ui, ew-derive, ew-commands, ew-testkit, xtask, docs`: Retire the golden project (owner, at the fourth candidate of 0.3.0: it was the result to build towards, the program can now make such a cabinet itself, and the persona runs do its job better). About four hundred test files and a hundred and sixty documents name it. Design first: which tests end with it (the acceptance specification of doc 20, the regression tests of the reference drawing's defects, the gates), and which only use it as "a whole cabinet" and move to a cabinet made in the program (generic parts, no origin outside the repository: electrical, PLC and bus, fluid, layout, reports), small enough to read. Then `golden/`, its blessing route, the rule in `CLAUDE.md` and doc 20 go. Since the fifth candidate of 0.3.0 the golden project no longer holds a design back: a decided change regenerates it.
+
+## M5
+
+Rows that a work package of [m5.md](m5.md) takes. The lane checks each row first: a row that the code already
+answers is deleted with a line in its report.
+
+- FT-1760 `ew-commands` (WP-S1.35): N-FL-4 makes a `drives` link from a valve's working port's own net only, so a cylinder behind a throttle gets none by itself (the checks follow the path through it since M3's review).
+- FT-1732 `content, ew-reports` (WP-S1.36): The tube cut list has no cut allowance and no order increment, and the tube labels no marker part: none has part data yet (WP-S1.25).
+- FT-1783 `ew-viewmodel, ew-ui` (WP-S1.36): A tube's size is chosen in the Tube tool's bar, beside its line kind; it takes the project's default now.
+- FT-1801 `ew-viewmodel` (WP-S1.36): A tube drawn in a project without a default tube stops for the project's fluid settings; offer the size where the tube is drawn.
+- FT-1769 `ew-api, ew-viewmodel` (WP-S2.21): A valve terminal part that comes in several sizes is not asked for its size when it is placed: the number of positions is the part's, and a part that names its sizes changes the part record, which the format grows only additively (decide how a part names them first).
+- FT-1770 `ew-viewmodel, ew-ui` (WP-S2.21): The part editor has no controls for a valve terminal's kind (bus node or multipin) or for its pin map (which plug pin drives which solenoid); the starter parts carry them.
+- FT-1773 `ew-ui` (WP-S2.21): A wiring test of the multipin valve terminal's plug in the window: a PLC output wired to a plug pin by clicks drives the solenoid at session level only; no window test does it by clicks.
+- FT-1784 `ew-viewmodel` (WP-S2.21): A Blanking plate row in the device browser of a valve terminal's cell, beside the valves made for a terminal; the cell's menu has Blanking plate at position.
+- FT-1793 `ew-api, ew-commands` (WP-S2.21): A valve stays undrawn when a valve terminal's positions are filled through `ew apply` without the symbols (`copies`); the command could find the symbols itself, or say so. Draw its valves in the valve terminal draws them.
 
 ## Later
 

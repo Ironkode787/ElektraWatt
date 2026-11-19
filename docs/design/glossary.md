@@ -387,7 +387,7 @@ The IEC 81346 prefixes that appear in tags:
 | **Pilot user (pilot panel builder)** | The first real user and acceptance authority; it provides the reference drawing set and tests each milestone. | — | — | [00](00-vision-and-scope.md), plan/01 §12 |
 | **Placeholder** | A named slot in a form or macro, replaced by a model value at output or insertion. | Placeholder object | — | [09 §2.6](09-reports-forms-output.md), [07 §2.7](07-symbols-parts-macros.md) |
 | **Placement3D** | A 3D pose of a device or part on a carrier or surface; the 2D panel layout uses the same record. | Placement (Pro Panel) | — | [03 §16](03-domain-model.md), [12 §2.3](12-panel-layout.md) |
-| **Plan of record** | The baseline schedule: three developers, lean scope with levers (a), (b) and (c), M1 at month 16, M-PP at month 26, M2 (MVP) at month 41 and M6 (1.0) at month 65, with a ±20 % band. Each gate review replaces it with a re-forecast from actuals. | — | — | plan/01 §3.4, §5.1 |
+| **Plan of record** | The baseline schedule: three developers, lean scope with levers (a), (b) and (c), M1 at month 16, M-PP at month 26, M2 (MVP) at month 41 and M7 (1.0) at month 65, with a ±20 % band. Each gate review replaces it with a re-forecast from actuals. | — | — | plan/01 §3.4, §5.1 |
 | **PLC configuration project (`PlcConfigProject`)** | The record that holds an address profile, ownership and exchange snapshot of one PLC project. | PLC project | — | [10 §2.2](10-plc-and-bus.md) |
 | **PLC module (`PlcModule`)** | A device aspect for an I/O card, a valve sub-base or a device with channels and an address window. | PLC card | — | [10 §2.3](10-plc-and-bus.md) |
 | **PLC station (`PlcStation`)** | A device aspect for a PLC or I/O station that owns a bus port and an address window. | PLC box | — | [10 §2.3](10-plc-and-bus.md) |
@@ -539,7 +539,7 @@ The IEC 81346 prefixes that appear in tags:
 | NFR | `NFR-<AREA>-<nn>` | Non-functional requirement. Areas: PERF, PLAT, REL, SEC, PRIV, A11Y, I18N, MAINT, LIC, DOC, COMP, UX | [02c](02c-nonfunctional-requirements.md) |
 | REF | `REF-nnn` | Requirement candidate REF-001 … REF-108 extracted from the reference drawing set; each maps to at least one FR | [reference analysis](../research/reference-drawing.md), [02a](02a-requirements-core.md) Appendix A |
 | D | `D-nn` | One of the 42 defects D-01 … D-42 of the reference set that EW must prevent or detect | [20](20-golden-project.md) §19, [reference analysis](../research/reference-drawing.md) |
-| AC | `AC-nn` | Acceptance criterion AC-01 … AC-42 of the golden project; gates cite them | [20](20-golden-project.md) §21 |
+| AC | `AC-nn` | Acceptance criterion AC-01 … AC-43 of the golden project; gates cite them | [20](20-golden-project.md) §21 |
 | EF | `EF-nn` | Expected finding of the golden check run (EF-01 … EF-25 on Golden A), listed in the expected-findings CSVs | [20](20-golden-project.md) §18 |
 | MF | `MF-nn` | Migration finding of the Golden C QET import (MF-01 … MF-27) | [14](14-interop.md) §15.2, [20](20-golden-project.md) §20 |
 | U | `U-nn` | Entry of the unknowns register: a value not determinable from the reference set, marked with a triangle in the golden tables | [20](20-golden-project.md) §1.2 |
@@ -547,8 +547,8 @@ The IEC 81346 prefixes that appear in tags:
 | EW rule | `EW-<FAMILY>-<nnn>` | Check rule ID (EW-POT-013, EW-CORE-031); each rule also has a six-digit code (005013) | [15](15-checks-revisions-collaboration.md) §2.2 |
 | WP | `WP-S<s>.<nn>` | Work package nn of stream s (S0 … S7), for example WP-S1.04 | plan/02 |
 | S | `S0` … `S7` | Work stream: foundation and governance, core model, interaction and UI, documents and migration, physical, manufacturing, quality and release, content | plan/02 §2.1 |
-| M | `M0` … `M6`, `M-PP` | Milestone (M0 kick-off, M1 spine exit, M-PP pilot preview 0.0.x, M2 MVP, M3 automation and migration, M4 manufacturing and panel, M5 1.0 feature complete, M6 1.0 release). Dates in plan/milestones.csv | plan/01 §5 |
-| G-M, G-PP, G-SP | `G-M0` … `G-M6`, `G-PP`, `G-SP` | Gate of milestone M0 … M6; `G-PP` is the light gate of the pilot preview M-PP; `G-SP` is the optional performance-spike gate (formerly the "gate minus one" spike gate). Gates are never written as bare G0 … G6, which are research gap topics. Exit criteria are numbered `G-M<n>-<nn>`, `G-PP-<nn>`, `G-SP-<nn>` | plan/03 |
+| M | `M0` … `M7`, `M-PP` | Milestone (M0 kick-off, M1 spine exit, M-PP pilot preview 0.0.x, M2 MVP, M3 automation and migration, M4 manufacturing and panel, M5 fluid power, M6 1.0 feature complete, M7 1.0 release). Dates in plan/milestones.csv | plan/01 §5 |
+| G-M, G-PP, G-SP | `G-M0` … `G-M7`, `G-PP`, `G-SP` | Gate of milestone M0 … M7; `G-PP` is the light gate of the pilot preview M-PP; `G-SP` is the optional performance-spike gate (formerly the "gate minus one" spike gate). Gates are never written as bare G0 … G6, which are research gap topics. Exit criteria are numbered `G-M<n>-<nn>`, `G-PP-<nn>`, `G-SP-<nn>` | plan/03 |
 | H, M, S | criterion type | Type of a gate exit criterion: H hard (never waived), M must (may become a condition with owner and deadline), S should (a gap needs a dated plan) | plan/03 introduction |
 | KT | `KT-1` … `KT-n` | Kill trigger: a condition that forces the stop, pivot or descope options of the gate system (KT-1 acceptance truth lost, KT-2 legal basis lost). Not the vision constraints K-n | plan/03 §6 |
 | CP | `CP-01` … `CP-nn` | Gate checkpoint: a dated external item between gates (decision, data, statement). Not the research corrections C-n | plan/03 §2.5 |

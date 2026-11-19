@@ -7,6 +7,7 @@ M2.5, maintenance, closed on 2026-11-11 ([m2.5.md](m2.5.md)).
 | File | What it is |
 |---|---|
 | [m3.md](m3.md) | The milestone that is running: its scope, how a work package is built, the order, the log |
+| [m5.md](m5.md) | The fluid milestone, decided and not started: its scope, its work packages, the order |
 | [m2.5-fix.md](m2.5-fix.md) | The fix milestone: how a fix is made, the order of the rows, the log |
 | [m2.5.md](m2.5.md) | The maintenance milestone: principles, steps, assessment, what was cut and why, the exit record |
 | [backlog.md](backlog.md) | Open work, one row each, by milestone. A finished row is deleted |

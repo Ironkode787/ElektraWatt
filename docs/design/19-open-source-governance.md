@@ -59,8 +59,8 @@ behind them are PQ-31 (commercial intent, steward, employer statement), PQ-32 (m
 
 **Milestone shorthand.** M0 is the first commit and the foundations (repository, CI, licences); M1 is the spine exit;
 M-PP is the pilot preview (0.0.x, for the pilot only); M2 is the interactive 2D editor, whose release **0.1.0** (the
-MVP) is the first binary release; M6 is 1.0 ([04](04-architecture.md) §15.2). M0, M1 and M-PP are pre-MVP points, not
-release targets. The dates, and the gates G-M0 … G-M6, G-PP and G-SP that review them, are the plan's
+MVP) is the first binary release; M7 is 1.0 ([04](04-architecture.md) §15.2). M0, M1 and M-PP are pre-MVP points, not
+release targets. The dates, and the gates G-M0 … G-M7, G-PP and G-SP that review them, are the plan's
 (global plan §5.1, milestones.csv,
 gates).
 

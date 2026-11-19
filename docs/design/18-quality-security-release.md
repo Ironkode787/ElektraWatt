@@ -346,7 +346,7 @@ veraPDF is a test tool run from a pinned container image with a checked digest. 
 
 ### 3.10 Acceptance runner
 
-`ew-testkit accept golden/J-E-2416 --gate <M1|M-PP|M2|M3|M4|M5|M6>` (`MVP` and `1.0` are aliases of `M2` and `M6`; the rows per gate are those of [20](20-golden-project.md) §22 and gates §8):
+`ew-testkit accept golden/J-E-2416 --gate <M1|M-PP|M2|M3|M4|M5|M6|M7>` (`MVP` and `1.0` are aliases of `M2` and `M7`; the rows per gate are those of [20](20-golden-project.md) §22 and gates §8):
 1. builds GP through the three paths of 20 §3.2 and checks their equivalence (AC-15);
 2. builds the SQL projection and runs every `acceptance/*.sql`;
 3. diffs the results row by row against `expected/*.csv` (natural order, exact);
@@ -936,7 +936,7 @@ state which format a release writes and which it reads.
 
 The release structure in time is: nightlies and signed source tags (`m1`, `pp`) before the pilot preview; the
 pilot preview 0.0.x at milestone M-PP (gate G-PP), which is not a public release; the first binary release
-0.1.0 at M2 (MVP), unsigned; then monthly 0.x, the betas and release candidates of 1.0 (M5, M6) and quarterly minors. The
+0.1.0 at M2 (MVP), unsigned; then monthly 0.x, the betas and release candidates of 1.0 (M6, M7) and quarterly minors. The
 dates are the plan's (global plan §5.1 and §6, milestones.csv).
 The pipeline and checklist of §7.4 apply from 0.1.0; a pilot preview needs the build and the release notes only.
 Whether a pilot-only preview counts as "made available on the market" under the CRA is to be verified with counsel
