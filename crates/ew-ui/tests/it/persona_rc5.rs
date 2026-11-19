@@ -177,11 +177,112 @@ fn a_parts_list_that_runs_on_says_where() {
 /// location +CAB1… gives the devices drawn on the wiring pages the cabinet's location in one step, after a preview that
 /// leaves a device wired only to the terminals' field side unticked; then Unplaced devices opens the panel, whose rail
 /// icon's tooltip has that very name.
+///
+/// rc.5 (the cabinet run, a third time): after Give location every tag of the wiring page printed "+Supply-" in front,
+/// as the field devices beside them had no location. A drawn tag stays as it was.
 #[test]
 fn a_layout_page_gives_the_cabinets_devices_their_location_in_one_step() {
-    use crate::own_parts::{place_box, press};
+    use crate::own_parts::press;
     let tmp = Tmp::new();
-    let mut d = new_project(&tmp);
+    let mut d = cabinet_project(&tmp);
+    let buttons = |d: &mut Driver| -> Vec<String> {
+        let hud = ew_ui::ew_viewmodel::command_bar::hud(d.shell_mut());
+        hud.buttons.into_iter().map(|b| b.label).collect()
+    };
+    assert_eq!(buttons(&mut d), ["Give location +CAB1…", "Unplaced devices"]);
+    let before = tags_on(&mut d, "1");
+    let back = json!({"folio": "301"});
+    assert_eq!(d.shell_mut().dispatch("page.goto", &back), Outcome::Done);
+    d.input(&ew_ui::visual::Input::Wait { ms: 50 });
+    press(&mut d, "Give location +CAB1…");
+    let rows = preview_rows(&mut d);
+    for (tag, ticked) in [("-1A1", true), ("-1A2", false), ("-1X1", true)] {
+        assert!(
+            rows.contains(&(tag.to_owned(), ticked)),
+            "{tag} {ticked}: {rows:?}"
+        );
+    }
+    press(&mut d, "Give location");
+    assert!(
+        d.shell_mut().dialog().is_none(),
+        "Give location closes the preview"
+    );
+    assert_eq!(tags_on(&mut d, "1"), before, "every drawn tag as it was");
+    assert_eq!(d.shell_mut().dispatch("page.goto", &back), Outcome::Done);
+    d.settle();
+    let unplaced: Vec<String> = d
+        .shell_mut()
+        .panel_tables()
+        .expect("the plate")
+        .unplaced
+        .iter()
+        .map(|u| u.label.clone())
+        .collect();
+    assert!(
+        unplaced.iter().any(|l| l.contains("1A1")) && !unplaced.iter().any(|l| l.contains("1A2")),
+        "{unplaced:?}"
+    );
+    assert_eq!(buttons(&mut d), ["Unplaced devices", "Auto-fill rail…"]);
+    d.input(&ew_ui::visual::Input::Wait { ms: 50 });
+    press(&mut d, "Unplaced devices");
+    let rail = ew_ui::ew_viewmodel::rail::rail(d.shell_mut());
+    let entry = rail
+        .left
+        .iter()
+        .find(|b| b.word == "unplaced")
+        .expect("the rail's entry");
+    assert!(entry.active, "the button shows the panel");
+    assert_eq!(entry.label, "Unplaced devices", "the rail icon's tooltip");
+}
+
+/// rc.5: where a prefix has to appear (the page draws a device of a second location), the preview says so on the
+/// devices it concerns before Apply, the tags then print it, and one Undo takes the step back.
+#[test]
+fn give_location_announces_a_location_its_tags_will_print() {
+    use crate::own_parts::press;
+    let tmp = Tmp::new();
+    let mut d = cabinet_project(&tmp);
+    // A second cabinet, +FIELD, takes the card below alone, through its own Give location.
+    let page = json!({"folio": "302", "type": "panel_layout", "title": "Field box"});
+    assert_eq!(d.shell_mut().dispatch("page.new", &page), Outcome::Done);
+    let enclosure = json!({"location": "new", "new_location": "FIELD", "part": "EW-GEN-ENC-1"});
+    assert_eq!(
+        d.shell_mut().dispatch("layout.enclosure_new", &enclosure),
+        Outcome::Done
+    );
+    d.input(&ew_ui::visual::Input::Wait { ms: 50 });
+    press(&mut d, "Give location +FIELD…");
+    for (i, (tag, _)) in preview_rows(&mut d).iter().enumerate() {
+        let tick = if tag == "-1A2" {
+            ew_ui::ew_viewmodel::shell::TICKED
+        } else {
+            ""
+        };
+        d.shell_mut().set_form_table_cell(i, Some(0), tick);
+    }
+    press(&mut d, "Give location");
+    let before = tags_on(&mut d, "1");
+    assert_eq!(
+        d.shell_mut().dispatch("page.goto", &json!({"folio": "301"})),
+        Outcome::Done
+    );
+    d.input(&ew_ui::visual::Input::Wait { ms: 50 });
+    press(&mut d, "Give location +CAB1…");
+    let rows = preview_rows(&mut d);
+    let said = "-1A1: its tag will print +CAB1 in front, as its page draws another location";
+    assert!(rows.iter().any(|(k, _)| k == said), "{rows:?}");
+    press(&mut d, "Give location");
+    let after = tags_on(&mut d, "1");
+    assert!(after.iter().any(|t| t == "+CAB1-1A1"), "{after:?}");
+    assert_eq!(d.shell_mut().dispatch("edit.undo", &json!({})), Outcome::Done);
+    assert_eq!(tags_on(&mut d, "1"), before, "one Undo takes the step back");
+}
+
+/// A new project like his: a card above wired to a terminal's inner side, one below wired to its field side (side 2,
+/// `b`) alone, none with a location, and a layout page 301 with the enclosure of +CAB1, on show.
+fn cabinet_project(tmp: &Tmp) -> Driver {
+    use crate::own_parts::place_box;
+    let mut d = new_project(tmp);
     let _ = place_box(&mut d, "EW-GEN-DI-1", (20, 10), (30, 16));
     let _ = place_box(&mut d, "EW-GEN-DI-1", (20, 40), (30, 46));
     place_terminal(&mut d, "new", (10, 28));
@@ -202,56 +303,33 @@ fn a_layout_page_gives_the_cabinets_devices_their_location_in_one_step() {
         d.shell_mut().dispatch("layout.enclosure_new", &enclosure),
         Outcome::Done
     );
-    d.settle();
-    let buttons = |d: &mut Driver| -> Vec<String> {
-        let hud = ew_ui::ew_viewmodel::command_bar::hud(d.shell_mut());
-        hud.buttons.into_iter().map(|b| b.label).collect()
-    };
-    assert_eq!(buttons(&mut d), ["Give location +CAB1…", "Unplaced devices"]);
     // A frame of the layout page: settling alone paints none after a dispatch.
     d.input(&ew_ui::visual::Input::Wait { ms: 50 });
-    press(&mut d, "Give location +CAB1…");
+    d
+}
+
+/// The rows of the open Give location preview: each row's words and whether it is ticked.
+fn preview_rows(d: &mut Driver) -> Vec<(String, bool)> {
     let Some(Dialog::Form(form)) = d.shell_mut().dialog().cloned() else {
         panic!("the preview");
     };
-    let rows: Vec<(String, bool)> = form
-        .table
+    form.table
         .expect("the devices")
         .rows
         .into_iter()
         .map(|r| (r.key, r.cells[0] == ew_ui::ew_viewmodel::shell::TICKED))
+        .collect()
+}
+
+/// The device tags page `folio` prints (its texts that name a device of page 1), the page shown after.
+fn tags_on(d: &mut Driver, folio: &str) -> Vec<String> {
+    let at = json!({ "folio": folio });
+    assert_eq!(d.shell_mut().dispatch("page.goto", &at), Outcome::Done);
+    d.settle();
+    let mut tags: Vec<String> = crate::own_parts::page_texts(d)
+        .into_iter()
+        .filter(|t| t.contains("-1A") || t.contains("-1X"))
         .collect();
-    for (tag, ticked) in [("-1A1", true), ("-1A2", false), ("-1X1", true)] {
-        assert!(
-            rows.contains(&(tag.to_owned(), ticked)),
-            "{tag} {ticked}: {rows:?}"
-        );
-    }
-    press(&mut d, "Give location");
-    assert!(
-        d.shell_mut().dialog().is_none(),
-        "Give location closes the preview"
-    );
-    let unplaced: Vec<String> = d
-        .shell_mut()
-        .panel_tables()
-        .expect("the plate")
-        .unplaced
-        .iter()
-        .map(|u| u.label.clone())
-        .collect();
-    assert!(
-        unplaced.iter().any(|l| l.contains("1A1")) && !unplaced.iter().any(|l| l.contains("1A2")),
-        "{unplaced:?}"
-    );
-    assert_eq!(buttons(&mut d), ["Unplaced devices", "Auto-fill rail…"]);
-    press(&mut d, "Unplaced devices");
-    let rail = ew_ui::ew_viewmodel::rail::rail(d.shell_mut());
-    let entry = rail
-        .left
-        .iter()
-        .find(|b| b.word == "unplaced")
-        .expect("the rail's entry");
-    assert!(entry.active, "the button shows the panel");
-    assert_eq!(entry.label, "Unplaced devices", "the rail icon's tooltip");
+    tags.sort();
+    tags
 }

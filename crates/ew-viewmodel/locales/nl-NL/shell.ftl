@@ -4639,6 +4639,7 @@ form-locate-location = Locatie
 form-locate-devices = Apparaten op de schemapagina's zonder locatie (een apparaat dat alleen op de veldzijde van klemmen is aangesloten, staat in het veld: niet aangevinkt)
 form-locate-device = Apparaat
 form-locate-tick = In de kast
+locate-row-prefixed = { $p0 }: het kenmerk wordt afgedrukt met { $p1 } ervoor, omdat de pagina een andere locatie tekent
 reason-locate-nothing = Elk apparaat op de schemapagina's heeft al een locatie
 reason-locate-none = Vink de apparaten aan die in de kast staan
 toast-locate-devices = Locatie { $p1 } gegeven aan { $p0 }; Ongeplaatste apparaten toont nu wat op de plaat moet.

@@ -4880,6 +4880,7 @@ form-locate-location = Location
 form-locate-devices = Devices on the wiring pages without a location (one wired only to terminals' field side stands in the field: unticked)
 form-locate-device = Device
 form-locate-tick = In the cabinet
+locate-row-prefixed = { $p0 }: its tag will print { $p1 } in front, as its page draws another location
 reason-locate-nothing = Every device on the wiring pages has a location already
 reason-locate-none = Tick the devices that stand in the cabinet
 toast-locate-devices = Gave { $p0 } the location { $p1 }; Unplaced devices now lists what to drag onto the plate.

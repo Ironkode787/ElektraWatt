@@ -1528,6 +1528,12 @@ impl Session {
             .collect()
     }
 
+    /// Whether giving `device` the location node `location` makes its tags print that location on a page that draws
+    /// them (`ew_derive::would_print_location`); `false` for an ID that names neither.
+    pub fn would_print_location(&self, device: Uuid, location: Uuid) -> bool {
+        ew_derive::would_print_location(&self.query(), Id::from_uuid(device), Id::from_uuid(location))
+    }
+
     /// The project's locations (the structure nodes of the location aspect) as `(node, +code path)`, by path.
     pub fn layout_locations(&self) -> Vec<(Uuid, String)> {
         let q = self.query();

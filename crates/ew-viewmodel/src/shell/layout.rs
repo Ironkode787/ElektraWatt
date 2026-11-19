@@ -1749,8 +1749,10 @@ impl ShellModel {
     /// default the cabinet's the page shows) in one step. `devices` are device IDs, or the rows of the window's table
     /// in its order (a ticked row's device); by default the devices drawn on the wiring pages without a location
     /// (`Session::unlocated_drawn_devices`) but those behind terminals in the field. In the window without `devices`
-    /// the preview opens: the location, and those devices each with its tick, the field devices unticked. A toast
-    /// says how many took the location and where they wait.
+    /// the preview opens: the location, and those devices each with its tick, the field devices unticked, a device
+    /// whose tag will then print that location in front saying so (`Session::would_print_location`, for the location
+    /// the preview opened with). A toast says how many took the location and where they wait. A drawn tag stays as it
+    /// was where the pages draw only the cabinet's devices and devices without a location (`PageDisplayStructure`).
     pub(crate) fn act_layout_locate_devices(&mut self, p: &Map<String, Value>) -> Outcome {
         const ACTION: &str = "layout.locate_devices";
         let Some(panel) = self.panel_tables() else {
@@ -1761,10 +1763,6 @@ impl ShellModel {
         };
         let candidates = project.session.unlocated_drawn_devices();
         let locations = project.session.layout_locations();
-        let tags: Vec<String> = candidates
-            .iter()
-            .map(|(d, _)| project.session.device_tag(*d).unwrap_or_default())
-            .collect();
         let location = match string_param(p, "location") {
             Err(e) => return e,
             Ok(Some(l)) => locations
@@ -1775,6 +1773,19 @@ impl ShellModel {
         let Some((location, code)) = location.cloned() else {
             return failed(key!("error-bad-param"), &["location"]);
         };
+        // Each row names its device, and says where its tag will print the location in front: on a page that
+        // draws another location (rc.5: the prefix came unannounced).
+        let tags: Vec<String> = candidates
+            .iter()
+            .map(|(d, _)| {
+                let tag = project.session.device_tag(*d).unwrap_or_default();
+                if project.session.would_print_location(*d, location) {
+                    strings::format(key!("locate-row-prefixed"), &[&tag, &code])
+                } else {
+                    tag
+                }
+            })
+            .collect();
         let devices: Vec<Uuid> = match p.get("devices") {
             None | Some(Value::Null) if self.mode == super::Mode::Gui && !self.in_form_of(ACTION) => {
                 if candidates.is_empty() {
