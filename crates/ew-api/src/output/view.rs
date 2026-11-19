@@ -1038,7 +1038,9 @@ pub(crate) fn box_text_pitch(q: &Q, r: &Representation) -> i64 {
     let Some(symbol) = q.symbols().get(r.symbol) else {
         return 1;
     };
-    let step = page_grid(q, PageRef::Drawn(r.page)).at(1).map_or(1, |n| n.0.max(1));
+    let step = page_grid(q, PageRef::Drawn(r.page))
+        .at(1)
+        .map_or(1, |n| n.0.max(1));
     let room = pin_texts(q, r, &symbol.item)
         .iter()
         .map(|p| crate::part_box::pin_text_room(&p.text))

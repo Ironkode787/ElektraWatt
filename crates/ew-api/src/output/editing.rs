@@ -2272,6 +2272,11 @@ pub struct TableBox {
     /// The least distance in grid steps of two pins of its top or bottom side that keeps their upright texts on two
     /// lines apart (rc.5, `box.reshape`'s `pitch`).
     pub pitch: i64,
+    /// Whether the box's pins are its own (rc.5): its function is a black box whose device has no part, so a pin is
+    /// added, named and removed on the box itself; a box of a part draws the part's pins, edited in its device box.
+    pub own_pins: bool,
+    /// The names of the box's own pins (`BoxCp.name`): function CP index and name.
+    pub names: Vec<(u16, String)>,
 }
 
 /// One cell of a [`TableBox`] drawn as a valve terminal's positions.
@@ -2673,6 +2678,17 @@ impl Session {
                     cells: Vec::new(),
                     supply_end: None,
                     pitch: super::view::box_text_pitch(&q, &rep),
+                    own_pins: first.as_ref().is_some_and(|f| {
+                        matches!(f.kind, FunctionKind::BlackBox)
+                            && f.device
+                                .and_then(|d| q.devices().get(d))
+                                .is_some_and(|d| d.parts.is_empty())
+                    }),
+                    names: b
+                        .cps
+                        .iter()
+                        .filter_map(|cp| Some((cp.idx, cp.name.as_ref()?.as_str().to_owned())))
+                        .collect(),
                 }
             });
             let black_box = black_box.map(|mut b| {

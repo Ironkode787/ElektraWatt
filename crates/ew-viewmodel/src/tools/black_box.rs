@@ -22,7 +22,8 @@
 //! and one pitch to spare, the pitch the whole grid steps that hold the edge's widest upright pin text with a
 //! millimetre to spare, `ew_api::part_box::pin_text_room`, rc.5). On a wider box the CPs of an edge spread over its drawn length:
 //! one common pitch, the largest whole number of grid steps that fits `m + 1` times into the edge, the group
-//! centred (half a step to the left when it cannot be centred exactly). Without a part, no CPs.
+//! centred (half a step to the left when it cannot be centred exactly). Without a part, no CPs: such a box takes pins of its
+//! own afterwards, where it stands ([`super::box_pin`], rc.5).
 //!
 //! **A valve terminal drawn as its positions** ([`BlackBoxTool::with_slots`], doc 11 §3.2, rc.2): the box is sized by the
 //! terminal's positions, not by two clicks; armed, the tool shows it dashed with its top-left corner at the pointer, and
@@ -1130,12 +1131,22 @@ pub fn pin_target(
         let Some(dir) = outward(a, b, area) else {
             continue;
         };
-        let (lo, hi) = if along_x { (a.0.min(b.0), a.0.max(b.0)) } else { (a.1.min(b.1), a.1.max(b.1)) };
+        let (lo, hi) = if along_x {
+            (a.0.min(b.0), a.0.max(b.0))
+        } else {
+            (a.1.min(b.1), a.1.max(b.1))
+        };
         let (k_lo, k_hi) = (grid.index(lo) + 1, grid.index(hi) - 1);
         if k_lo > k_hi {
             continue;
         }
-        let point = |k: i64| if along_x { (grid.coord(k), a.1) } else { (a.0, grid.coord(k)) };
+        let point = |k: i64| {
+            if along_x {
+                (grid.coord(k), a.1)
+            } else {
+                (a.0, grid.coord(k))
+            }
+        };
         let own = me.is_some_and(|m| on_outline(&[a, b], m));
         let across = if along_x { p.0 } else { p.1 };
         let k = grid.index(across.clamp(grid.coord(k_lo), grid.coord(k_hi)));
@@ -1161,6 +1172,27 @@ pub fn pin_target(
     best.map(|(_, _, _, q, d)| (q, d))
 }
 
+/// The new pin a wire ending at the grid point `p` on the box `b` would take (rc.5): on a box whose pins are its own,
+/// `p` on an axis-aligned edge, no corner and no pin's point (read settled); the smallest index the box does not use,
+/// leaving along the edge's outward normal. `None` anywhere else.
+pub fn free_edge_pin(grid: PageGridMap, b: &ew_api::output::TableBox, p: (i64, i64)) -> Option<BoxCpAt> {
+    if !b.own_pins {
+        return None;
+    }
+    let settle = |q: (i64, i64)| (grid.index(q.0), grid.index(q.1));
+    if b.outline.iter().any(|v| settle(*v) == settle(p)) || b.cps.iter().any(|c| settle(c.1) == settle(p)) {
+        return None;
+    }
+    let n = b.outline.len();
+    let area = signed_area2(&b.outline);
+    let dir = (0..n).find_map(|i| {
+        let (a, c) = (b.outline[i], b.outline[(i + 1) % n]);
+        on_outline(&[a, c], p).then(|| outward(a, c, area)).flatten()
+    })?;
+    let idx = (0..=u16::MAX).find(|i| !b.cps.iter().any(|c| c.0 == *i))?;
+    Some((idx, p, dir))
+}
+
 /// Whether `p` lies on an edge of the closed outline (exact).
 pub fn on_outline(outline: &[(i64, i64)], p: (i64, i64)) -> bool {
     let n = outline.len();
@@ -1176,6 +1208,22 @@ pub fn on_outline(outline: &[(i64, i64)], p: (i64, i64)) -> bool {
 /// `(idx, point, direction)` (page nm), converted to the representation's frame (relative to its position, under the
 /// inverse of its orientation); without CPs, the box's `pitch` that keeps its pins' upright texts apart.
 pub fn reshape_command(rep: &TableRep, outline: &[(i64, i64)], cps: Option<&[BoxCpAt]>) -> Box<AnyCommand> {
+    let names = rep
+        .black_box
+        .as_ref()
+        .map(|b| b.names.clone())
+        .unwrap_or_default();
+    reshape_named(rep, outline, cps, &names)
+}
+
+/// [`reshape_command`] with the box's own pins named by `names` (function CP index, name; rc.5): a pin moved, added,
+/// renamed or kept keeps the name it has there.
+pub fn reshape_named(
+    rep: &TableRep,
+    outline: &[(i64, i64)],
+    cps: Option<&[BoxCpAt]>,
+    names: &[(u16, String)],
+) -> Box<AnyCommand> {
     let inv = orient_inverse(rep.orient);
     let rel = |p: (i64, i64)| orient_point(inv, (p.0 - rep.pos.0, p.1 - rep.pos.1));
     let mut params = json!({
@@ -1185,7 +1233,13 @@ pub fn reshape_command(rep: &TableRep, outline: &[(i64, i64)], cps: Option<&[Box
     if let Some(cps) = cps {
         params["cps"] = Value::Array(
             cps.iter()
-                .map(|(i, p, d)| cp_json(*i, rel(*p), orient_dir(inv, *d)))
+                .map(|(i, p, d)| {
+                    let mut cp = cp_json(*i, rel(*p), orient_dir(inv, *d));
+                    if let Some((_, name)) = names.iter().find(|(j, _)| j == i) {
+                        cp["name"] = Value::from(name.as_str());
+                    }
+                    cp
+                })
                 .collect(),
         );
     } else if let Some(pitch) = rep.black_box.as_ref().map(|b| b.pitch).filter(|p| *p > 1) {

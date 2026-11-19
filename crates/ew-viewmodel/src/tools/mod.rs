@@ -51,6 +51,7 @@
 
 pub mod autoconnect;
 pub mod black_box;
+pub mod box_pin;
 // The chooser list of doc 16a §6.22 (the Join chooser).
 mod chooser;
 // Draw rail and Draw duct.
@@ -452,6 +453,14 @@ pub enum HostStep {
     SupplyPlace {
         /// The snapped point of the first mark, page nm.
         at: (i64, i64),
+    },
+    /// The Wire tool's click on the edge of a box whose pins are its own where no pin is (rc.5): the host asks for the
+    /// new pin's name, the Wire tool waiting, and ends the wire at the named pin.
+    PinForWire {
+        /// The box's representation.
+        rep: ew_api::output::Uuid,
+        /// The new pin: function CP index, page point and direction.
+        pin: black_box::BoxCpAt,
     },
 }
 

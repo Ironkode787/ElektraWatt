@@ -797,36 +797,141 @@ fn an_inside_out_grip_drag_is_refused_and_leaves_the_box_alone() {
     );
 }
 
+/// rc.5 persona run: a box of a part draws the part's pins; Add pin opens its device box, where they are edited, and
+/// says so; the box is unchanged.
 #[test]
-fn a_cp_is_added_on_the_outline_and_dragged_along_it() {
+fn add_pin_on_a_part_s_box_opens_its_device_box() {
     let tmp = Tmp::new("box-cp");
     let mut s = actual_size(&tmp, "102");
     let before = g1(&tables(&s));
-    let b = before.black_box.clone().unwrap();
+    assert!(!before.black_box.as_ref().unwrap().own_pins, "a box of a part");
     select_ids(&mut s, &[before.id.to_string()]);
-    // Off the outline: refused.
-    let k0 = index_of(&s, b.outline[0]);
-    cursor_k(&mut s, (k0.0 + 1, k0.1 + 1));
-    assert_eq!(refused(&mut s, "box.add_cp", json!({})), "reason-cp-off-outline");
-    // On the left edge: a CP with the next free index (7), leaving left.
-    let p = grid_point(&s, (k0.0, k0.1 + 2));
-    cursor(&mut s, p);
     done(&mut s, "box.add_cp", json!({}));
-    let added = g1(&tables(&s)).black_box.unwrap();
-    assert_eq!(added.cps.len(), 8);
-    let new = added.cps.iter().find(|c| c.0 == 7).expect("CP 7");
-    assert_eq!(new.1, p);
-    assert_eq!(new.2, ew_viewmodel::ew_api::geometry::Dir::Left);
-    // Dragged one step down along the edge.
-    let q = grid_point(&s, (k0.0, k0.1 + 3));
-    let (sp, sq) = (sheet(&s, p), sheet(&s, q));
-    done(&mut s, "canvas.press", at(sp, json!({})));
-    assert_eq!(s.tool().state(), "dragging");
-    done(&mut s, "canvas.pointer", at(sq, json!({})));
-    done(&mut s, "canvas.release", at(sq, json!({})));
-    let moved = g1(&tables(&s)).black_box.unwrap();
-    assert_eq!(moved.cps.iter().find(|c| c.0 == 7).unwrap().1, q);
-    assert_eq!(moved.outline, added.outline);
+    assert!(s.symbol_editor().and_then(|e| e.device_box()).is_some(), "the device box opens");
+    assert_eq!(g1(&tables(&s)).black_box, before.black_box, "the box stays");
+}
+
+/// The sheet point of the page point `p`, as the menu's `x_mm`/`y_mm`.
+fn sheet_mm(s: &ShellModel, p: (i64, i64)) -> Value {
+    let q = sheet(s, p);
+    json!({"x_mm": q.0 as f64 / 1e6, "y_mm": q.1 as f64 / 1e6})
+}
+
+/// The names the page prints for the pins of the box `rep` (the label after its colon), in index order.
+fn pin_names(s: &ShellModel, rep: ew_viewmodel::ew_api::output::Uuid) -> Vec<String> {
+    let t = tables(s);
+    let mut cps: Vec<_> = t.cps.iter().filter(|c| c.rep == rep).collect();
+    cps.sort_by_key(|c| c.idx);
+    cps.iter().map(|c| c.label.rsplit(':').next().unwrap_or_default().to_owned()).collect()
+}
+
+/// rc.5 persona runs (a plain box could not get pins): a box drawn without a part takes pins where it stands. Add pin
+/// at a point puts a pin on the edge nearest it and asks its name; Tab takes it and asks for the next on the same side;
+/// a double click on a pin renames it; Remove pin takes it away while no wire holds it; a wire drawn to the box's edge
+/// where no pin is asks for a pin there and ends at it. Each is one undo step.
+#[test]
+fn a_drawn_box_takes_pins_where_it_stands() {
+    let tmp = Tmp::new("box-own-pins");
+    let mut s = actual_size(&tmp, "102");
+    done(
+        &mut s,
+        "command.run",
+        json!({"cmd": "page.create", "params": {
+            "number": 150, "title": "Box", "kind": "multi_line", "grid": {"num": 7_937_500, "den": 3},
+        }}),
+    );
+    done(&mut s, "page.goto", json!({"folio": "150"}));
+    done(&mut s, "view.zoom_actual", json!({}));
+    done(&mut s, "tool.black_box", json!({"symbol": "ew.gen.blackbox@qet10", "letter": "A"}));
+    enter_k(&mut s, (30, 30));
+    cursor_k(&mut s, (42, 38));
+    done(&mut s, "canvas.activate", json!({}));
+    done(&mut s, "tool.select", json!({}));
+    let rep = tables(&s).reps.iter().find(|r| r.black_box.is_some()).expect("the box").clone();
+    assert!(rep.black_box.as_ref().unwrap().own_pins);
+    select_ids(&mut s, &[rep.id.to_string()]);
+    // Add pin near the top edge: the pin goes on it, its name asked in place.
+    let near_top = grid_point(&s, (33, 31));
+    let point = sheet_mm(&s, near_top);
+    done(&mut s, "box.add_cp", point);
+    assert_eq!(s.tool().name(), "box_pin");
+    assert!(s.text_popup().is_some_and(|p| p.tab_next), "the name is asked; Tab adds the next");
+    let rev = s.revision();
+    done(&mut s, "text.input", json!({"text": "L1"}));
+    done(&mut s, "tool.next_proposal", json!({}));
+    assert_eq!(s.tool().name(), "box_pin", "Tab asks for the next pin of the side");
+    done(&mut s, "text.input", json!({"text": "L2"}));
+    done(&mut s, "tool.finish", json!({}));
+    assert_eq!(s.tool().name(), "select");
+    assert_eq!(pin_names(&s, rep.id), ["L1", "L2"]);
+    let b = g1_box(&s, rep.id);
+    assert!(b.cps.iter().all(|c| index_of(&s, c.1).1 == 30), "both on the top edge: {:?}", b.cps);
+    assert_eq!(s.revision(), rev.map(|r| r + 2), "one step each");
+    // A name with a space is refused in words; nothing changes.
+    select_ids(&mut s, &[rep.id.to_string()]);
+    let point = sheet_mm(&s, grid_point(&s, (42, 34)));
+    done(&mut s, "box.add_cp", point);
+    done(&mut s, "text.input", json!({"text": "A 1"}));
+    assert_eq!(refused(&mut s, "tool.finish", json!({})), "reason-pin-name-space");
+    // A name the box has already is refused by the command, in words.
+    done(&mut s, "text.input", json!({"text": "L1"}));
+    let out = s.dispatch("tool.finish", &json!({}));
+    assert!(format!("{out:?}").contains("has a pin named L1 already"), "{out:?}");
+    done(&mut s, "ui.dismiss", json!({}));
+    assert_eq!(s.tool().name(), "select");
+    assert_eq!(pin_names(&s, rep.id), ["L1", "L2"]);
+    // A double click on L2 renames it.
+    let l2 = g1_box(&s, rep.id).cps[1].1;
+    select_ids(&mut s, &[rep.id.to_string()]);
+    let pointer = sheet(&s, l2);
+    done(&mut s, "canvas.pointer", at(pointer, json!({})));
+    done(&mut s, "tool.finish", json!({}));
+    assert_eq!(s.tool().name(), "box_pin");
+    done(&mut s, "text.input", json!({"text": "N"}));
+    done(&mut s, "tool.finish", json!({}));
+    assert_eq!(pin_names(&s, rep.id), ["L1", "N"]);
+    // A wire from L1 to the bottom edge, where no pin is: the pin's name is asked, the wire ends at it.
+    let l1 = g1_box(&s, rep.id).cps[0].1;
+    done(&mut s, "tool.wire", json!({}));
+    cursor(&mut s, l1);
+    done(&mut s, "canvas.activate", json!({}));
+    for k in [(33, 26), (28, 26), (28, 42), (36, 42)] {
+        cursor_k(&mut s, k);
+        done(&mut s, "canvas.activate", json!({}));
+    }
+    cursor_k(&mut s, (36, 38));
+    done(&mut s, "canvas.activate", json!({}));
+    assert_eq!(s.tool().name(), "box_pin", "the wire asks for a pin there");
+    done(&mut s, "text.input", json!({"text": "PE"}));
+    done(&mut s, "tool.finish", json!({}));
+    assert_eq!(s.tool().name(), "wire", "back to the wire");
+    assert_eq!(pin_names(&s, rep.id), ["L1", "N", "PE"]);
+    let t = tables(&s);
+    let pe = t.cps.iter().find(|c| c.rep == rep.id && c.label.ends_with(":PE")).unwrap();
+    assert_eq!(pe.connections.len(), 1, "the wire ends at the new pin");
+    done(&mut s, "ui.dismiss", json!({}));
+    done(&mut s, "ui.dismiss", json!({}));
+    let wires = t.connections.len();
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(pin_names(&s, rep.id), ["L1", "N"], "one undo takes the pin and its wire back");
+    assert_eq!(tables(&s).connections.len(), wires - 1);
+    done(&mut s, "edit.redo", json!({}));
+    let t = tables(&s);
+    let pe = t.cps.iter().find(|c| c.rep == rep.id && c.label.ends_with(":PE")).unwrap();
+    // Remove pin: refused while a wire holds it, done for a free one.
+    select_ids(&mut s, &[rep.id.to_string()]);
+    let pe_idx = pe.idx;
+    assert_eq!(refused(&mut s, "box.remove_pin", json!({"idx": pe_idx})), "reason-box-pin-wired");
+    let n_idx = t.cps.iter().find(|c| c.rep == rep.id && c.label.ends_with(":N")).unwrap().idx;
+    done(&mut s, "box.remove_pin", json!({"idx": n_idx}));
+    assert_eq!(pin_names(&s, rep.id), ["L1", "PE"]);
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(pin_names(&s, rep.id), ["L1", "N", "PE"], "one undo brings it back");
+}
+
+/// The box `rep` of the page shown.
+fn g1_box(s: &ShellModel, rep: ew_viewmodel::ew_api::output::Uuid) -> ew_viewmodel::ew_api::output::TableBox {
+    tables(s).reps.iter().find(|r| r.id == rep).and_then(|r| r.black_box.clone()).unwrap()
 }
 
 /// rc.5 persona run (a pin dragged on the smallest box went round its corner onto the next side, its name on the

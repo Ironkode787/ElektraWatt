@@ -933,6 +933,7 @@ pub fn tool_action(name: &str) -> &'static str {
         "place" => "tool.place",
         "exchange" => "rep.exchange",
         "text_edit" => "text.edit",
+        "box_pin" => "box.add_cp",
         "paste" => "edit.paste_clip",
         "layout_place" => "tool.place_layout",
         other => ACTIONS

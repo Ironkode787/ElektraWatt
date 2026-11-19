@@ -287,6 +287,12 @@ pub struct BoxCp {
     pub pos: Pt2,
     /// The direction a wire leaves the CP.
     pub dir: Dir4,
+    /// The pin's name on a box whose device has no part (rc.5: a drawn box takes pins of its own): the box's function
+    /// has a CP of this index with this designation. Absent on a box of a part, whose pins are the part's. An optional
+    /// member without cascade semantics (ADR-0011 amendment 6): an older build keeps it and draws the pin unnamed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub name: Option<Ident>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

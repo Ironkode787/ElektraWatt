@@ -103,8 +103,8 @@ use sha2::{Digest, Sha256};
 
 pub use editing::{
     CatalogueSymbol, CatalogueTemplateFn, JunctionWire, PageTables, PlaceCatalogue, PlacedBy, ShapeCp,
-    SlotCell, SupplyPoint, SymbolShape, TableConnection, TableCp, TableEnd, TableItem, TableJunction,
-    TablePotential, TableRep, TableStructureBox, exchange_map, page_type_takes,
+    SlotCell, SupplyPoint, SymbolShape, TableBox, TableConnection, TableCp, TableEnd, TableItem,
+    TableJunction, TablePotential, TableRep, TableStructureBox, exchange_map, page_type_takes,
 };
 /// The display-list IR the pages of an export are made of ([`ExportPages`]' `content`), re-exported so that the
 /// shell names its types (`DisplayList`, `EntityRef`, `Rect`) without a workspace edge to `ew-dl`

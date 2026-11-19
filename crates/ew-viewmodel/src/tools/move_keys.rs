@@ -131,7 +131,11 @@ pub fn move_overlay(cx: &ToolCx<'_>, moved: &[EntityRef], steps: (i64, i64)) -> 
     for p in &found.list {
         if let super::autoconnect::ProposalTarget::Cp { at, .. } = &p.target {
             // A pole partner's stub follows its route.
-            let line = if p.route.is_empty() { vec![p.cp.at, *at] } else { p.route.clone() };
+            let line = if p.route.is_empty() {
+                vec![p.cp.at, *at]
+            } else {
+                p.route.clone()
+            };
             items.push(OverlayItem::Polyline {
                 points: line.iter().map(|q| cx.snapper.page_to_sheet(*q)).collect(),
                 style: Style::dashed(Token::Ghost),

@@ -470,6 +470,7 @@ impl ShellModel {
                 | "black_box"
                 | "text"
                 | "text_edit"
+                | "box_pin"
                 | "graphic"
                 | "marker"
                 | "structure_box"
@@ -637,6 +638,7 @@ impl ShellModel {
             }
             // The Supply tool's click places its marks in one undo step (rc.5).
             ToolOutput::Host(crate::tools::HostStep::SupplyPlace { at }) => self.supply_place_from_tool(at),
+            ToolOutput::Host(crate::tools::HostStep::PinForWire { rep, pin }) => self.pin_for_wire(rep, pin),
             ToolOutput::Commit(cmd) => {
                 let cmd = self.with_terminal(self.without_held_copies(cmd));
                 // A drop into a valve terminal's box says where the device sits now.

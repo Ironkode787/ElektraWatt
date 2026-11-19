@@ -321,7 +321,11 @@ fn pole_partner(
     // (steps ahead, steps aside) of a page CP from the ghost CP.
     let offset = |q: &TableCp| {
         let (dx, dy) = (grid.index(q.at.0) - ix, grid.index(q.at.1) - iy);
-        if vertical(cp.dir) { (dy * d.1, dx) } else { (dx * d.0, dy) }
+        if vertical(cp.dir) {
+            (dy * d.1, dx)
+        } else {
+            (dx * d.0, dy)
+        }
     };
     let (q, (ahead, _)) = tables
         .cps
@@ -730,7 +734,10 @@ mod tests {
         let p = proposals(&g, &t, &[], AREA, 0);
         assert_eq!(p.list.len(), 2, "{p:?}");
         assert!(matches!(&p.list[1].target, ProposalTarget::Cp { label, .. } if label == "F1:3"));
-        assert_eq!(p.list[1].route, [(2 * G, 0), (2 * G, 3 * G), (3 * G, 3 * G), (3 * G, 6 * G)]);
+        assert_eq!(
+            p.list[1].route,
+            [(2 * G, 0), (2 * G, 3 * G), (3 * G, 3 * G), (3 * G, 6 * G)]
+        );
         assert!(p.list[0].route.is_empty(), "the pole in line runs straight");
         assert_eq!(p.hints()[1]["route"][2], json!([3 * G, 3 * G]));
         // Without the pole in line joined, the out-of-line one is no partner of anything.

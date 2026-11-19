@@ -694,9 +694,9 @@ impl ShellModel {
             .collect();
         sections.sort();
         let holds = |n: u16| {
-            self.page_rows()
-                .iter()
-                .any(|r| r.kind == kind && !r.generated && r.section.as_ref().is_some_and(|(m, _)| *m == u32::from(n)))
+            self.page_rows().iter().any(|r| {
+                r.kind == kind && !r.generated && r.section.as_ref().is_some_and(|(m, _)| *m == u32::from(n))
+            })
         };
         if let Some((n, _)) = sections.iter().find(|(n, _)| holds(*n)) {
             return Some(n.to_string());

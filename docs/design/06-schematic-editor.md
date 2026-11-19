@@ -241,7 +241,12 @@ a box edge; structure assignment is a derived default that EPLAN users expect to
 **Black-box geometry.** A black box has no library symbol: its outline, the positions of its device CPs on the
 outline and its inner graphics ("AC ~ / 24 VDC" on -102G1, the "24VDC" and "GND" fields of -102F2) are page
 geometry, stored in `Representation.box: BoxSpec` ([03](03-domain-model.md) §6; FR-DEV-039). CPs stay on the
-connection grid and on the outline; resizing the box moves its CPs along the outline and connections follow. An
+connection grid and on the outline; resizing the box moves its CPs along the outline and connections follow. A box
+whose device has no part has pins of its own (rc.5): each box CP may carry a `name` (`BoxCp.name`, an optional member,
+ADR-0011 amendment 6), and the black-box function then has a CP of that index printed with that name
+(`ew_derive::FunctionCps`); the window adds, names, renames and removes them on the box (Add pin, a wire to a free point
+of its edge, a double click on a pin, Remove pin), each one `box.reshape`. A box of a part draws the part's pins, edited
+in its device box; `box.reshape` refuses a name there. An
 auxiliary function drawn inside its own device's box (the 13-14 contact of -102F2) prints no cross-reference.
 
 ### 2.8 Cross-reference display

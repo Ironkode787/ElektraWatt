@@ -15,8 +15,8 @@ use std::sync::Arc;
 use ew_ids::{Id, v5};
 use ew_mltext::MlText;
 use ew_schema::{
-    ClampKey, CpData, CpDef, Discipline, FluidPortRole, FnDef, Function, FunctionKind, PotentialType, Side,
-    TemplateFn, template_entry_of,
+    ClampKey, CpData, CpDef, Discipline, FluidPortRole, FnDef, Function, FunctionKind, PotentialType,
+    Representation, Side, TemplateFn, template_entry_of,
 };
 
 use crate::Q;
@@ -80,6 +80,9 @@ pub struct Cp {
 /// - A black box that is not template-origin takes the CPs of the first part use of its device (in
 ///   `Device.parts` order) whose part copy has a CP pattern; without one it falls back to its function
 ///   definition.
+/// - A black box that takes no CPs from a part (a box drawn without one, rc.5) adds the named pins of its boxes
+///   (`BoxCp.name`, in representation ID order, the first of one index): a CP of that index printed with that name,
+///   with the defaults of a black-box pattern CP. An index its FnDef has already is kept as the FnDef's.
 /// - `Function.cp_overrides` then replace designation, alias and description where given, copy the
 ///   `unused` flag and mark the CP `overridden`. An override whose index has no CP is ignored (finding it
 ///   is a normaliser's job).
@@ -104,7 +107,11 @@ impl Query for FunctionCps {
                 FunctionKind::BlackBox => pattern_cps(q, function),
                 _ => None,
             });
+        let own = pattern.is_none() && matches!(function.kind, FunctionKind::BlackBox);
         let mut cps = pattern.unwrap_or_else(|| fndef_cps(q, function));
+        if own {
+            box_pin_cps(q, *key, &mut cps);
+        }
         supply_role_fallback(q, function, &mut cps);
         for o in &function.cp_overrides {
             let Some(cp) = cps.iter_mut().find(|c| c.idx == o.idx) else {
@@ -318,6 +325,42 @@ fn template_cps(q: &Q, function: &Function) -> Option<Vec<Cp>> {
         })
         .collect();
     (!cps.is_empty()).then_some(cps)
+}
+
+/// The named pins of the boxes that draw the black box `f` (see [`FunctionCps`]), added to `cps` in `idx` order.
+fn box_pin_cps(q: &Q, f: Id<Function>, cps: &mut Vec<Cp>) {
+    let reps = q.reps();
+    let mut ids: Vec<Id<Representation>> = q.idx().reps_of_function(f).collect();
+    ids.sort();
+    for r in ids {
+        let Some(b) = reps.get(r).and_then(|r| r.box_.as_ref()) else {
+            continue;
+        };
+        for pin in &b.cps {
+            let Some(name) = &pin.name else { continue };
+            if cps.iter().any(|c| c.idx == pin.idx) {
+                continue;
+            }
+            cps.push(Cp {
+                idx: pin.idx,
+                designation: name.as_str().to_owned(),
+                alias: None,
+                description: None,
+                unused: false,
+                discipline: Discipline::default(),
+                potential_role: None,
+                source_output: false,
+                optional: false,
+                level: None,
+                side: None,
+                clamp: None,
+                physical: true,
+                port_role: None,
+                overridden: false,
+            });
+        }
+    }
+    cps.sort_by_key(|c| c.idx);
 }
 
 /// The CPs of the first part pattern of the function's device (black boxes).

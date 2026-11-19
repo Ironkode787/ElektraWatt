@@ -25,9 +25,7 @@ use crate::canvas::{CanvasModel, CanvasPage};
 use crate::key;
 use crate::strings;
 use crate::strings::Key;
-use crate::tools::black_box::{
-    on_outline, outward, reshape_by_grip, reshape_command, selected_black_box, signed_area2,
-};
+use crate::tools::black_box::{reshape_by_grip, reshape_command, selected_black_box};
 use crate::tools::ip::{
     drawing_area, potential_at, potential_of_end, proposal_base, propose, quarter_direction,
 };
@@ -919,34 +917,6 @@ impl ShellModel {
         };
         let mut cmd = reshape_command(&rep, &b.outline, None);
         cmd.params["centre"] = Value::Bool(true);
-        self.commit_from_host(cmd.as_ref())
-    }
-
-    /// `box.add_cp` (Edit ▸ Add connection point): a CP of the one selected black box at the grid cursor, which must lie
-    /// on its outline, with the smallest function CP index the box does not use, leaving along the edge's outward
-    /// normal; committed as `box.reshape` with `cps`.
-    pub(crate) fn act_box_add_cp(&mut self) -> Outcome {
-        let (rep, at) = or_return!(self.box_and_cursor());
-        let Some(b) = &rep.black_box else {
-            return Outcome::refused(key!("reason-one-black-box"));
-        };
-        if !on_outline(&b.outline, at) {
-            return Outcome::refused(key!("reason-cp-off-outline"));
-        }
-        let Some(idx) = (0..=u16::MAX).find(|i| !b.cps.iter().any(|(j, ..)| j == i)) else {
-            return Outcome::refused(key!("reason-cp-off-outline"));
-        };
-        let n = b.outline.len();
-        let area = signed_area2(&b.outline);
-        let dir = (0..n)
-            .find_map(|i| {
-                let (a, c) = (b.outline[i], b.outline[(i + 1) % n]);
-                on_outline(&[a, c], at).then(|| outward(a, c, area)).flatten()
-            })
-            .unwrap_or(ew_api::geometry::Dir::Up);
-        let mut cps = b.cps.clone();
-        cps.push((idx, at, dir));
-        let cmd = reshape_command(&rep, &b.outline, Some(&cps));
         self.commit_from_host(cmd.as_ref())
     }
 

@@ -412,6 +412,7 @@ fn draw_to_ip_refuses_a_start_on_another_page() {
                 idx: 0,
                 pos: pt(0, 0),
                 dir: Dir4::Left,
+                name: None,
                 extra: Extra::new(),
             }],
             inner: vec![],
@@ -625,6 +626,7 @@ fn box_cp(idx: u16, pos: Pt2, dir: Dir4) -> BoxCp {
         idx,
         pos,
         dir,
+        name: None,
         extra: Extra::new(),
     }
 }

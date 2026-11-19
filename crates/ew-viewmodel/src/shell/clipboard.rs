@@ -606,7 +606,10 @@ impl ShellModel {
         let lost = plan.as_ref().map_or(0, |p| p.unrouted.len());
         if lost > 0 {
             text.push(' ');
-            text.push_str(&strings::format_count(crate::count_key!("toast-paste-unrouted"), lost));
+            text.push_str(&strings::format_count(
+                crate::count_key!("toast-paste-unrouted"),
+                lost,
+            ));
         }
         self.notify(text, true);
     }

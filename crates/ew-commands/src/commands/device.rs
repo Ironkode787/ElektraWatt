@@ -404,7 +404,14 @@ impl Command for PlaceSymbol {
             else {
                 return tx.reject(text!("refusal-device-place-lost-cp"));
             };
-            hint_wire(tx, Endpoint::Cp(function, fn_cp), &hint.to, &hint.route, self.page, i)?;
+            hint_wire(
+                tx,
+                Endpoint::Cp(function, fn_cp),
+                &hint.to,
+                &hint.route,
+                self.page,
+                i,
+            )?;
         }
         if let Some(terminal) = self.into
             && let Some(device) = tx.require::<Function>(function)?.device
@@ -849,7 +856,14 @@ impl MoveReps {
                     crate::words::cp(tx, function, idx)
                 ));
             }
-            hint_wire(tx, Endpoint::Cp(function, idx), &hint.to, &hint.route, rep.page, i)?;
+            hint_wire(
+                tx,
+                Endpoint::Cp(function, idx),
+                &hint.to,
+                &hint.route,
+                rep.page,
+                i,
+            )?;
         }
         Ok(notices)
     }

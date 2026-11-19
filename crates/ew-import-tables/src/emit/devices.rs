@@ -710,6 +710,7 @@ fn black_box_geometry(grid: Grid, pos: Pt2, cps: &[CpInfo]) -> Option<BoxSpec> {
             idx: cp.idx,
             pos: step(1 + 2 * i64::try_from(row).ok()?, j)?,
             dir,
+            name: None,
             extra: Default::default(),
         });
     }

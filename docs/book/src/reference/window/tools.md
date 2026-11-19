@@ -85,6 +85,12 @@ ends; one Undo takes the row back. Draw ▸ Place ▸ Terminal….
 Draws a black box: a rectangle with connection points for a device that the library has no symbol for. Open it with
 Draw ▸ Place ▸ Black box….
 
+A box drawn without a part takes pins where it stands. Right-click the box and choose **Add pin**: a pin appears on
+the edge nearest the click and a field asks its name; Enter adds it, Tab adds it and asks for the next pin one step
+further along the same side. A wire drawn to the box's edge where no pin is asks for a pin there in the same way and
+ends at it. Double-click a pin to rename it; right-click it for **Remove pin**, offered while no wire holds it. Each is
+one Undo step. A box of a part draws the part's pins: its Add pin opens the part's device box, where they are edited.
+
 ## Tool step back
 
 Takes back the last step of the active tool, such as the last corner of a wire, without leaving the tool. It has no

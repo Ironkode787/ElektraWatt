@@ -857,7 +857,10 @@ impl ShellModel {
             && before.items.is_empty()
             && before.structure_boxes.is_empty()
         {
-            strings::format(key!("toast-page-grid-set"), &[&folio, &strings::choice_text(&word)])
+            strings::format(
+                key!("toast-page-grid-set"),
+                &[&folio, &strings::choice_text(&word)],
+            )
         } else if moved == 0 {
             strings::format(
                 key!("toast-page-grid-fitted-none"),
@@ -885,8 +888,16 @@ impl ShellModel {
         if field("folio")? != proposed {
             return None;
         }
-        let kind = if name == "type" { value.to_owned() } else { field("type").unwrap_or_default() };
-        let place = if name == "place" { value.to_owned() } else { field("place").unwrap_or_default() };
+        let kind = if name == "type" {
+            value.to_owned()
+        } else {
+            field("type").unwrap_or_default()
+        };
+        let place = if name == "place" {
+            value.to_owned()
+        } else {
+            field("place").unwrap_or_default()
+        };
         let (folio, section) = self.new_page_proposal(at.as_deref(), Some(&kind));
         if place == "end" {
             let end = self.section_free_folio(&section)?;
@@ -902,7 +913,13 @@ impl ShellModel {
         let at = self.tools.page_proposal.as_ref().and_then(|p| p.1.clone());
         let after = at
             .as_deref()
-            .and_then(|k| k.rsplit('/').next()?.strip_prefix("p:")?.parse::<ew_api::output::Uuid>().ok())
+            .and_then(|k| {
+                k.rsplit('/')
+                    .next()?
+                    .strip_prefix("p:")?
+                    .parse::<ew_api::output::Uuid>()
+                    .ok()
+            })
             .and_then(|id| rows.iter().find(|r| r.id == id))
             .or_else(|| {
                 self.current_page()
@@ -910,12 +927,19 @@ impl ShellModel {
             })
             .map(|r| format!("{} {}", r.folio, r.title.trim()).trim().to_owned());
         let section = match &self.dialog {
-            Some(Dialog::Form(form)) => form.fields.iter().find(|f| f.name == "section").map(|f| f.value.trim().to_owned()),
+            Some(Dialog::Form(form)) => form
+                .fields
+                .iter()
+                .find(|f| f.name == "section")
+                .map(|f| f.value.trim().to_owned()),
             _ => None,
         };
         let section_words = section
             .as_deref()
-            .and_then(|n| rows.iter().find(|r| r.section.as_ref().is_some_and(|(m, _)| m.to_string() == n)))
+            .and_then(|n| {
+                rows.iter()
+                    .find(|r| r.section.as_ref().is_some_and(|(m, _)| m.to_string() == n))
+            })
             .and_then(|r| r.section.as_ref())
             .map(|(n, t)| format!("{n} {t}"))
             .or(section)
@@ -975,7 +999,9 @@ impl ShellModel {
         // What follows it in its section, so that the line says where the number in the field puts it (rc.5).
         let next = rows
             .iter()
-            .filter(|r| section.is_empty() || r.section.as_ref().is_some_and(|(n, _)| n.to_string() == section))
+            .filter(|r| {
+                section.is_empty() || r.section.as_ref().is_some_and(|(n, _)| n.to_string() == section)
+            })
             .filter_map(|r| Some((lead(r)?, r)))
             .filter(|(n, r)| *n > number || (*n == number && r.folio.as_str() > typed))
             .min_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.folio.cmp(&b.1.folio)));

@@ -33,6 +33,8 @@ pub struct TextPopup {
     pub title_key: Key<'static>,
     /// The text the field starts with (the ghost's).
     pub text: String,
+    /// Whether Tab takes the text and asks for the next (a box's pins, rc.5: `tool.next_proposal`).
+    pub tab_next: bool,
 }
 
 impl ShellModel {
@@ -49,13 +51,19 @@ impl ShellModel {
         let title_key = match (self.tools.tool.name(), self.tools.tool.state()) {
             ("text", "typing") => key!("tool-text"),
             ("text_edit", _) => key!("tool-text_edit"),
+            ("box_pin", _) => key!("tool-box_pin"),
             _ => return None,
         };
         let text = match self.tools.tool.ghost() {
             Some(Ghost::Text { text, .. }) => text,
             _ => String::new(),
         };
-        Some(TextPopup { title_key, text })
+        let tab_next = self.tools.tool.name() == "box_pin";
+        Some(TextPopup {
+            title_key,
+            text,
+            tab_next,
+        })
     }
 
     /// The free text `text.edit` would open: its UUID text, its label point (the bounds' top-left corner, page nm) and

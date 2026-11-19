@@ -50,7 +50,7 @@ pub const GOLDEN: &[&str] = &[
     r#"{"$k":"function","id":"@FN_X1031","device":"@DEV_X1031","def":"@FNDEF_IP","kind":{"ip":{"name":"J-E-206-L","direction":"target","external":"@EXT_L"}}}"#,
     // representations
     r#"{"$k":"representation","id":"@REP_X1031A","functions":["@FN_X1031"],"page":"@P103","symbol":"@SYM_MCB","variant":1,"pos":[23812500,23812500],"orient":"r90","rep_type":"strip_segment","pin_map":[{"symbol_cp":0,"function":"@FN_X1031","idx":1}],"text_slots":[{"slot":0,"pos":[0,-2645833],"visible":true}],"arrangement":"full"}"#,
-    r#"{"$k":"representation","id":"@REP_F1","functions":["@FN_G1"],"page":"@P102","symbol":"@SYM_MCB","pos":[95250000,63500000],"box":{"outline":[[0,0],[47625000,0],[47625000,31750000],[0,31750000]],"cps":[{"idx":0,"pos":[0,7937500],"dir":"left"}]}}"#,
+    r#"{"$k":"representation","id":"@REP_F1","functions":["@FN_G1"],"page":"@P102","symbol":"@SYM_MCB","pos":[95250000,63500000],"box":{"outline":[[0,0],[47625000,0],[47625000,31750000],[0,31750000]],"cps":[{"idx":0,"pos":[0,7937500],"dir":"left","name":"L1"}]}}"#,
     // connections (doc 20 §8)
     r#"{"$k":"connection","id":"@CON_W20","a":{"cp":["@FN_G1",3]},"b":{"cp":["@FN_F1",0]},"page":"@P102","route":[[95250000,39687500],[111125000,39687500]],"overrides":{"csa":"1.5","show_marker":true},"number":{"assigned":{"counter":1}}}"#,
     r#"{"$k":"connection","id":"@CON_W29","a":{"cp":["@FN_F2_102",8]},"b":{"cp":["@FN_IP24",0]},"page":"@P102","route":[[150812500,95250000],[150812500,166687500]],"number":{"frozen":"102.5"}}"#,

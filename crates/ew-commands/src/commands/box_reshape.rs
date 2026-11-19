@@ -306,7 +306,9 @@ impl Command for ReshapeBox {
                     }
                     // Two pins never stand on one point (rc.5: a dragged pin landed on its neighbour's).
                     let twice = cps[..i].iter().any(|o| {
-                        abs(o.pos).is_ok_and(|q| crate::geometry::settled(grid, q) == crate::geometry::settled(grid, p))
+                        abs(o.pos).is_ok_and(|q| {
+                            crate::geometry::settled(grid, q) == crate::geometry::settled(grid, p)
+                        })
                     });
                     if twice {
                         return Err(CmdError::invalid_params(
@@ -323,6 +325,33 @@ impl Command for ReshapeBox {
                             Self::NAME,
                             format!("/cps/{i}/pos"),
                             text!("refusal-box-reshape-cp-on-corner"),
+                        ));
+                    }
+                }
+                // A box's own pins have names (rc.5); a box of a part draws the part's pins, edited in its device box.
+                if let Some(i) = cps.iter().position(|c| c.name.is_some()) {
+                    let of_part = rep
+                        .functions
+                        .first()
+                        .and_then(|f| tx.get::<Function>(*f))
+                        .and_then(|f| f.device)
+                        .and_then(|d| tx.get::<ew_schema::Device>(d))
+                        .is_some_and(|d| !d.parts.is_empty());
+                    if of_part {
+                        return Err(CmdError::invalid_params(
+                            Self::NAME,
+                            format!("/cps/{i}/name"),
+                            text!("refusal-box-pin-of-part"),
+                        ));
+                    }
+                }
+                for (i, cp) in cps.iter().enumerate() {
+                    let Some(name) = &cp.name else { continue };
+                    if cps[..i].iter().any(|o| o.name.as_ref() == Some(name)) {
+                        return Err(CmdError::invalid_params(
+                            Self::NAME,
+                            format!("/cps/{i}/name"),
+                            text!("refusal-box-pin-name-twice", name.as_str()),
                         ));
                     }
                 }
@@ -406,7 +435,11 @@ impl Command for ReshapeBox {
                     let points = if !self.centre && extent(a, b) == extent(na, nb) {
                         at
                     } else {
-                        let floor = if along_x { i64::from(self.pitch.unwrap_or(1).max(1)) } else { 1 };
+                        let floor = if along_x {
+                            i64::from(self.pitch.unwrap_or(1).max(1))
+                        } else {
+                            1
+                        };
                         let Some(points) = centred(grid, coord(na), coord(nb), &at, floor) else {
                             let n = i64::try_from(group.len()).unwrap_or(i64::MAX / 4);
                             return tx.reject(text!(
@@ -432,6 +465,7 @@ impl Command for ReshapeBox {
                         idx: cp.idx,
                         pos,
                         dir,
+                        name: cp.name.clone(),
                         extra: cp.extra.clone(),
                     });
                 }

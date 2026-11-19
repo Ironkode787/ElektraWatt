@@ -133,8 +133,9 @@ impl ShellModel {
                     } else if rep.device.is_some() {
                         self.device_fits(rep, at, &mut out);
                     }
-                    // A drawn box: Centre the pins (rc.5).
+                    // A drawn box: Add pin or Remove pin, and Centre the pins (rc.5).
                     if rep.black_box.is_some() {
+                        self.box_pin_entries(rep, at, &mut out);
                         out.extend(self.menu_item("box.centre_pins"));
                     }
                 }
@@ -232,7 +233,7 @@ impl ShellModel {
         }
     }
 
-    fn aimed(&self, id: &str, params: Value, label: String) -> Option<ActionItem> {
+    pub(super) fn aimed(&self, id: &str, params: Value, label: String) -> Option<ActionItem> {
         let meta = actions::find(id)?;
         let mut i = actions::item_of(meta, self);
         if let Some(p) = params.as_object().filter(|p| !p.is_empty()) {

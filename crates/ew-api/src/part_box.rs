@@ -690,6 +690,7 @@ impl Session {
                         idx,
                         pos: point(pos),
                         dir,
+                        name: None,
                         extra: Default::default(),
                     })
                     .collect(),

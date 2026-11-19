@@ -67,6 +67,7 @@ mod bond;
 // Draw ▸ Connect ▸ New cable… and Connect cores….
 mod cables;
 // The Preview tab, the renumber dialogs and the purge.
+mod box_pins;
 mod bulk;
 mod editing;
 mod find;
@@ -1759,6 +1760,8 @@ impl ShellModel {
         self.after_commit();
         // A finished text edit returns to Select, the selection kept.
         self.after_text_edit();
+        // A named pin returns to Select, or to the wire that waits for it.
+        self.after_pin_named();
         // The junction editor follows the revision and the page.
         self.sync_junction_editor();
         // The grips of a selected black box.
@@ -1783,11 +1786,12 @@ impl ShellModel {
     /// `tool.finish`: Shift+Enter or a double click; a selected free text opens text edit instead (
     /// §10.5).
     pub(crate) fn act_tool_finish(&mut self, _p: &Map<String, Value>) -> Outcome {
-        if self.tools.tool.name() == "select"
-            && self.tools.tool.state() == "idle"
-            && self.text_edit_target().is_ok()
-        {
+        let idle = self.tools.tool.name() == "select" && self.tools.tool.state() == "idle";
+        if idle && self.text_edit_target().is_ok() {
             self.act_text_edit()
+        } else if idle && self.rename_pin_at_pointer() {
+            // A double click on a pin of a drawn box renames it in place (rc.5).
+            Outcome::Done
         } else {
             self.send_tool(&crate::tools::CanvasEvent::Key(crate::tools::ToolKey::Finish))
         }

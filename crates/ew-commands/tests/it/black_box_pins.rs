@@ -86,6 +86,7 @@ fn box_cp(i: usize, pos: Pt2, dir: Dir4) -> BoxCp {
         idx: u16::try_from(i).expect("few CPs"),
         pos,
         dir,
+        name: None,
         extra: Extra::new(),
     }
 }

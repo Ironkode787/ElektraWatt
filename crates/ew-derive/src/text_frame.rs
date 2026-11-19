@@ -143,6 +143,7 @@ mod tests {
                     idx,
                     pos,
                     dir: Dir4::Up,
+                    name: None,
                     extra: Default::default(),
                 })
                 .collect(),

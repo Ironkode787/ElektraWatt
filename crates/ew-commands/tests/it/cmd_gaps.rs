@@ -29,6 +29,7 @@ fn box_cp(idx: u16, pos: Pt2) -> BoxCp {
         idx,
         pos,
         dir: Dir4::Down,
+        name: None,
         extra: Extra::new(),
     }
 }

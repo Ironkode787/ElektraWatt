@@ -87,8 +87,14 @@ impl PasteTool {
             return false;
         };
         self.fragment.ghost.iter().any(|g| {
-            let (x0, x1) = (page.0.saturating_add(g[0].min(g[2])), page.0.saturating_add(g[0].max(g[2])));
-            let (y0, y1) = (page.1.saturating_add(g[1].min(g[3])), page.1.saturating_add(g[1].max(g[3])));
+            let (x0, x1) = (
+                page.0.saturating_add(g[0].min(g[2])),
+                page.0.saturating_add(g[0].max(g[2])),
+            );
+            let (y0, y1) = (
+                page.1.saturating_add(g[1].min(g[3])),
+                page.1.saturating_add(g[1].max(g[3])),
+            );
             x0 < area[0] || y0 < area[1] || x1 > area[2] || y1 > area[3]
         })
     }
@@ -155,7 +161,11 @@ impl PasteTool {
             OverlayItem::Label {
                 at: sheet,
                 text: if self.outside(cx) {
-                    format!("{} · {}", self.label(), strings::text(key!("label-paste-outside")))
+                    format!(
+                        "{} · {}",
+                        self.label(),
+                        strings::text(key!("label-paste-outside"))
+                    )
                 } else {
                     self.label()
                 },

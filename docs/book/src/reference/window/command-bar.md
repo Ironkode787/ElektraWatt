@@ -36,6 +36,11 @@ its grid. See [Pages](panels.md#pages).
 Makes a section of the drawing set: a range of page numbers with a title, such as 100 to 199 "Power". New pages in
 that range belong to it.
 
+### Connection grid…
+
+Changes the grid of the page shown. It asks for the grid and says what the change does to what the page holds; with a
+fit, the symbols and wires move to the nearest points of the new grid. See [Pages](panels.md#pages).
+
 ### Renumber pages…
 
 Gives the pages new numbers in their order, in steps you choose, keeping the cross-references right.

@@ -1070,15 +1070,32 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_box_grip(p),
         ))),
     )),
-    keeps_banner(in_canvas(act(
-        "box.add_cp",
-        Command,
-        Menu::Draw,
-        &[],
-        one_box,
-        grp(Group::Place),
-        |s, _| s.act_box_add_cp(),
-    ))),
+    // Add pin (rc.5): a pin of the one selected box where it stands, its name asked in place; a box of a part opens
+    // its device box.
+    keeps_banner(with_params(
+        "x_mm?:mm, y_mm?:mm",
+        in_canvas(act(
+            "box.add_cp",
+            Command,
+            Menu::Draw,
+            &[],
+            one_box,
+            grp(Group::Place),
+            |s, p| s.act_box_add_cp(p),
+        )),
+    )),
+    keeps_banner(with_params(
+        "idx:uint",
+        hidden(in_canvas(act(
+            "box.remove_pin",
+            Command,
+            Menu::Edit,
+            &[],
+            one_box,
+            None,
+            |s, p| s.act_box_remove_pin(p),
+        ))),
+    )),
     // Centre the pins (rc.5): the one selected black box's pins centred on each side, its size kept.
     keeps_banner(in_canvas(act(
         "box.centre_pins",

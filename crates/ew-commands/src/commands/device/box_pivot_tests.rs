@@ -46,6 +46,7 @@ fn tool_box(g: Grid, k0: (i64, i64), w: i64, h: i64) -> (Pt2, BoxSpec) {
                 idx: u16::try_from(cps.len()).expect("few CPs"),
                 pos: p(dx(i), y),
                 dir,
+                name: None,
                 extra: Extra::new(),
             });
         }

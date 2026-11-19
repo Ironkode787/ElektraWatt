@@ -4,7 +4,8 @@
 //! The text popup (§10.5): the Text tool's and text edit's single-line field. While the Text
 //! tool types or Text edit is open, a window at the top holds one field; edits send `text.input` for the preview,
 //! and Enter sends the latest `text.input` and `tool.finish`
-//! (so the tool places or changes the text), Escape, the close button and a click beside the popup are the window's
+//! (so the tool places or changes the text); for a box's pin, Tab sends it and `tool.next_proposal` (the next pin of
+//! the side); Escape, the close button and a click beside the popup are the window's
 //! popup dismissal (`ui.dismiss`, which reaches the tool). The buffer starts as the ghost's text and is dropped when
 //! the popup closes.
 
@@ -33,6 +34,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, buffer: &mut Option<String>
     // FT-1635: a click beside it or its close button closes it, as Escape does.
     crate::components::overlay_backdrop(ctx, id, false, events);
     let title = strings::text(popup.title_key);
+    let mut next = false;
     Window::new(title)
         .id(id)
         .order(egui::Order::Foreground)
@@ -57,5 +59,15 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, buffer: &mut Option<String>
             if finish {
                 events.push(Event::Action("tool.finish", json!({})));
             }
+            // A box's pins: Tab takes the name and asks for the next pin of the side (rc.5).
+            if popup.tab_next && edit.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Tab)) {
+                events.push(Event::Action("text.input", json!({ "text": text.clone() })));
+                events.push(Event::Action("tool.next_proposal", json!({})));
+                next = true;
+            }
         });
+    // The next pin starts with an empty field, focused.
+    if next {
+        *buffer = None;
+    }
 }

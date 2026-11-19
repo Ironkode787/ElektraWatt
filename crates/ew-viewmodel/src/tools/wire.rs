@@ -1164,6 +1164,15 @@ impl WireTool {
                         None => ToolOutput::None,
                     };
                 }
+                // On the edge of a drawn box where no pin is, the wire asks for a pin there and ends at it (rc.5: a box
+                // drawn without a part could not get pins).
+                let grid = PageGridMap::new(cx.page.tables.grid);
+                if let Some((rep, pin)) = cx.page.tables.reps.iter().find_map(|r| {
+                    let b = r.black_box.as_ref()?;
+                    super::black_box::free_edge_pin(grid, b, target.at()).map(|pin| (r.id, pin))
+                }) {
+                    return ToolOutput::Host(super::HostStep::PinForWire { rep, pin });
+                }
                 // A bend inside a symbol would draw the wire through it (the rc.2 persona run: a click on a power
                 // supply's pin text, inside its box, fixed a bend there and the wire ran through the box).
                 let route = self.full_route(cx, &start, &fixed, &target);
