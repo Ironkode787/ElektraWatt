@@ -969,7 +969,7 @@ fn defs() -> Vec<Def> {
             sections: Some(json!({"fluid": {"positions": 4}})),
             unit: None,
         },
-        // The same terminal with a PROFINET bus node (the rc.2 persona run wanted a manifold on PROFINET).
+        // The same terminal with a PROFINET bus node (a persona run wanted a manifold on PROFINET).
         Def {
             number: "EW-GEN-VTM-2",
             kind: None,
@@ -990,7 +990,7 @@ fn defs() -> Vec<Def> {
             sections: Some(json!({"fluid": {"positions": 4}})),
             unit: None,
         },
-        // F15 of the rc.1 test: a multipin valve terminal, no station: its eight positions' solenoids are wired through
+        // F15 of a test: a multipin valve terminal, no station: its eight positions' solenoids are wired through
         // one 25-pin plug to outputs of a PLC card elsewhere (doc 10 §2.3). The plug is the overview box's CP pattern:
         // solenoid 14 of position p on pin 2p+1, 12 on pin 2p+2 (p from 0), the common on pin 25.
         Def {
@@ -1028,7 +1028,7 @@ fn defs() -> Vec<Def> {
             sections: Some(json!({"fluid": {"solenoids": ["14"], "coil": {"voltage": "24", "env": "dc"}}})),
             unit: None,
         },
-        // rc.3: a 5/3 valve on a valve terminal is everyday pneumatics. Its solenoids 14 and 12 are internal coils the
+        // A 5/3 valve on a valve terminal is everyday pneumatics. Its solenoids 14 and 12 are internal coils the
         // terminal's outputs drive; its symbol is wider than a cell, so its position takes the room it needs. Numbered
         // 53 for 5/3, so that the 5/2 EW-GEN-VLV-3 stays the first a valve position offers.
         Def {
@@ -1083,7 +1083,7 @@ fn defs() -> Vec<Def> {
         bus_plug("EW-GEN-PLG-3", "RJ45 plug for Industrial Ethernet"),
         bus_plug("EW-GEN-PLG-4", "M12 plug, D-coded, for Industrial Ethernet"),
         bus_plug("EW-GEN-PLG-5", "M12 plug, B-coded, for PROFIBUS"),
-        // rc.5: a plug for every bus the program knows (AS-Interface's flat cable takes no plug).
+        // A plug for every bus the program knows (AS-Interface's flat cable takes no plug).
         bus_plug("EW-GEN-PLG-6", "RJ45 plug for EtherCAT"),
         bus_plug("EW-GEN-PLG-7", "RJ45 plug for EtherNet/IP"),
         bus_plug("EW-GEN-PLG-8", "RJ45 plug for Modbus TCP"),
@@ -1120,7 +1120,7 @@ fn defs() -> Vec<Def> {
             sections: None,
             unit: None,
         },
-        // rc.2, F10: the basic pneumatic parts, generic, each on its symbol's FnDef, so that the device browser files
+        // The basic pneumatic parts, generic, each on its symbol's FnDef, so that the device browser files
         // it by its FnDef's category (air preparation, directional valves, flow control, logic valves, cylinders,
         // vacuum, fittings, pressure switches).
         fluid("EW-GEN-FIL-1", "Filter", "ew.fn.filter"),
@@ -1564,7 +1564,7 @@ fn defs() -> Vec<Def> {
             ]})),
             unit: Some("m"),
         },
-        // rc.5: a cable for every bus the program knows, its cores as the bus has them.
+        // A cable for every bus the program knows, its cores as the bus has them.
         bus_cable(
             "EW-GEN-CBL-26",
             "Industrial Ethernet cable, 8 cores in 4 pairs, shielded",
@@ -2106,7 +2106,7 @@ fn the_dimensioned_parts_read_back_from_the_shipped_files() {
     }
 }
 
-/// rc.2 persona run, entry 16: a search for a signal lamp finds the door's lamps in red, green and yellow.
+/// A persona run, entry 16: a search for a signal lamp finds the door's lamps in red, green and yellow.
 #[test]
 fn the_door_lamps_are_found_by_colour() {
     let reg = Registry::starter_only();
