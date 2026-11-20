@@ -95,9 +95,10 @@ Every row has the class `Structural`, except EW-INV-021, which has the class `De
 
 ## 4. Link table and delete policies
 
-Every ID-valued field of the persisted schema is either a link or listed as not a link. Links are in the table
-below and in `LINKS` in [`src/links.rs`](src/links.rs). Fields that are not links are in `NOT_LINKS`.
-The field-mask test `tests::field_mask` compares both lists with the JSON Schemas in `schemas/0.1`.
+Every ID-valued field of the persisted schema is either a link or listed as not a link. The links, each with its
+target kind, delete policy and base index, are `LINKS` in [`src/links.rs`](src/links.rs); the fields that are not
+links, each with its reason, are `NOT_LINKS` there. This file keeps no copy of either list. The field-mask test
+`tests::field_mask` compares both lists with the JSON Schemas in `schemas/0.1`.
 
 Policies follow doc 03 §4.2. Where doc 03 is silent, the policy is forbid for master data and library copies,
 and unlink for optional cross-references. `cascade` and `unlink` are computed by `Model::delete_plan`.
@@ -166,109 +167,6 @@ and the candidate model through `ew-derive` and calls the prevent rules of `ew-c
 may not depend on `ew-checks`, ci/dep-rules.toml). `ew-checks` reads through queries only (ADR-0019) and does not
 enable `raw-read`.
 
-Fields are written as `kind.path`. "referrers" means the generic referrer index.
-
-| Field | Target | Policy | Index |
-|-------|--------|--------|-------|
-| project.source_ref.lineage | import_lineage | forbid | referrers |
-| project.supply.origin.source | external_ref | unlink (cleared) | referrers |
-| project.settings.fluid.default_tube.part.copy | part | forbid, load-tolerant | referrers |
-| plc_config_project.cpu | device | unlink (cleared) | referrers |
-| plc_config_project.source_ref.lineage | import_lineage | forbid | referrers |
-| structure_node.parent | structure_node | forbid | structure_children |
-| structure_node.source_ref.lineage | import_lineage | forbid | referrers |
-| section.source_ref.lineage | import_lineage | forbid | referrers |
-| external_ref.location | structure_node | forbid | referrers |
-| external_ref.source_ref.lineage | import_lineage | forbid | referrers |
-| page.folio.section | section | forbid | pages_by_section |
-| page.form | form | forbid | referrers |
-| page.structure.* (seven slots) | structure_node | forbid | referrers |
-| page.source_ref.lineage | import_lineage | forbid | referrers |
-| device.parent | device | forbid | device_children |
-| device.parts[].part.copy | part | forbid | referrers |
-| device.strip.accessories[].part.copy | part | forbid | referrers |
-| device.assembly.configs[].part.copy | part | forbid | referrers |
-| device.assembly.configs[].covers[] | device | unlink (entry removed) | referrers |
-| device.structure.* (seven slots) | structure_node | forbid | referrers |
-| device.terminal.strip | device | forbid | terminals_by_strip |
-| device.plc_station.config_project | plc_config_project | forbid | referrers |
-| device.source_ref.lineage | import_lineage | forbid | referrers |
-| function.device | device | cascade | functions_by_device |
-| function.def | fndef | forbid | referrers |
-| function.kind.ip.external | external_ref | unlink (cleared) | referrers |
-| function.cp_overrides[].closure.part.copy | part | forbid | referrers |
-| function.source_ref.lineage | import_lineage | forbid | referrers |
-| representation.functions[] | function | cascade (representation removed) | reps_by_function |
-| representation.pin_map[].function | function | cascade (representation removed) | reps_by_function |
-| representation.page | page | cascade | reps_by_page |
-| representation.symbol | symbol | forbid | referrers |
-| representation.source_ref.lineage | import_lineage | forbid | referrers |
-| connection.a / connection.b (CP) | function | cascade | connections_by_endpoint |
-| connection.a / connection.b (junction) | junction | cascade | connections_by_endpoint |
-| connection.page | page | cascade | connections_by_page |
-| connection.kind.core | conductor | unlink (Core reverts to Wire) | referrers |
-| connection.kind.bus.cable | device | unlink (cleared) | referrers |
-| connection.overrides.wire_part.copy | part | forbid | referrers |
-| connection.kind.fluid.tube.part.copy | part | forbid, load-tolerant | referrers |
-| connection.kind.fluid.fitting_a.copy | part | forbid, load-tolerant | referrers |
-| connection.kind.fluid.fitting_b.copy | part | forbid, load-tolerant | referrers |
-| connection.source_ref.lineage | import_lineage | forbid | referrers |
-| junction.page | page | cascade | junctions_by_page |
-| junction.sequence[] | connection | unlink (entry removed) | referrers |
-| junction.fitting.copy | part | forbid, load-tolerant | referrers |
-| junction.source_ref.lineage | import_lineage | forbid | referrers |
-| conductor.cable | device | cascade | conductors_by_cable |
-| conductor.source_ref.lineage | import_lineage | forbid | referrers |
-| channel.module | device | cascade | referrers |
-| channel.binding (CP) | function | unlink (cleared) | referrers |
-| channel.binding (junction) | junction | unlink (cleared) | referrers |
-| channel.target | function | unlink (cleared) | referrers |
-| channel.source_ref.lineage | import_lineage | forbid | referrers |
-| potential_def.at (CP or junction) | function / junction | unlink (definition dropped) | potential_defs_by_endpoint |
-| potential_def.props.wire_part.copy | part | forbid | referrers |
-| potential_def.source_ref.lineage | import_lineage | forbid | referrers |
-| medium.default_tube.part.copy | part | forbid, load-tolerant | referrers |
-| medium.line_kind_tubes[].tube.part.copy | part | forbid, load-tolerant | referrers |
-| medium.source_ref.lineage | import_lineage | forbid | referrers |
-| medium_def.at (CP or junction) | function / junction | unlink (definition dropped), load-tolerant | referrers |
-| medium_def.medium | medium | cascade, load-tolerant | referrers |
-| medium_def.source_ref.lineage | import_lineage | forbid | referrers |
-| bond.a / bond.b (CP or junction) | function / junction | unlink (bond dropped) | bonds_by_endpoint |
-| bond.via | connection | unlink (cleared) | referrers |
-| bond.source_ref.lineage | import_lineage | forbid | referrers |
-| device_link.from / device_link.to | device | cascade | referrers |
-| device_link.source_ref.lineage | import_lineage | forbid | referrers |
-| page_item.page | page | cascade | page_items_by_page |
-| page_item.kind.wire_marker.connections[] | connection | unlink (entry removed; a marker left empty is dropped), load-tolerant (EW-INV-023) | referrers |
-| page_item.kind.surface_view.surface | mounting_surface | cascade (a view without its surface shows nothing; WP-S4.01 part 3) | referrers |
-| structure_box.page | page | cascade | structure_boxes_by_page |
-| structure_box.assigns.* (seven slots) | structure_node | forbid | referrers |
-| structure_box.external | external_ref | unlink (cleared) | referrers |
-| report_block.form | form | forbid | referrers |
-| report_block.section | section | forbid | referrers |
-| report_block.embedded.page | page | cascade | referrers |
-| report_block.source_ref.lineage | import_lineage | forbid | referrers |
-| macro_instance.macro | macro | forbid | referrers |
-| macro_instance.members[][1] | any of `MACRO_MEMBER_KINDS` (kind-erased) | unlink (member removed; the instance stays) | referrers |
-| macro_instance.page | page | cascade | referrers |
-| layout_space.location | structure_node | forbid | referrers |
-| enclosure.space | layout_space | cascade | referrers |
-| enclosure.device | device | forbid | referrers |
-| mounting_surface.enclosure | enclosure | cascade | referrers |
-| mounting_surface.device | device | unlink (cleared) | referrers |
-| carrier.surface | mounting_surface | cascade | carriers_by_surface |
-| carrier.part.copy | part | forbid | referrers |
-| placement.device | device | cascade (EW-LAY-002) | placements_by_device |
-| placement.function | function | cascade | referrers |
-| placement.carrier (a carrier) | carrier | forbid (only `layout.carrier.delete` removes an occupied carrier, doc 12 §3.6) | placements_by_carrier |
-| placement.carrier (the surface) | mounting_surface | forbid | referrers |
-| revision.withdraws | revision | forbid | referrers |
-| revision.source_ref.lineage | import_lineage | forbid | referrers |
-| form.title_block | form | forbid | referrers |
-| form.continuation | form | forbid | referrers |
-| symbol.fndef.item (with `.library`) | fndef (copy `v5(NS_LIBCOPY, library ‖ item)`) | forbid at delete time (EW-INV-021), while the copy is embedded | referrers |
-| part.function_template[].fndef.item (with `.library`) | fndef (copy `v5(NS_LIBCOPY, library ‖ item)`) | forbid at delete time (EW-INV-021), while the copy is embedded | referrers |
-
 **Forbid links: structural or delete-time** (ADR-0009 amendment 7). A forbid link is structural when its missing
 target is a dangling reference in any state: then no committed state holds a referrer without its target, so a
 restore of a committed state (undo, redo) never removes a target that a referrer of that state names, and the
@@ -293,27 +191,6 @@ state after it is right. Every forbid link stores its target's ID, except the tw
 | page.form, report_block.form, form.title_block, form.continuation | form | structural | Stored copy IDs; a form is embedded with the forms it names (the closure of `library.embed`), and a page or report block cannot render without its form |
 | revision.withdraws | revision | structural | History: a withdrawal record names the revision it withdraws (FR-REV-009) |
 | symbol.fndef.item, part.function_template[].fndef.item | fndef | delete-time (EW-INV-021) | `LibRef`: the target ID is computed from the referring row, and a `LibRef` to an item the project does not embed names nothing (NFR-REL-11) |
-
-### Not links
-
-The following ID-valued fields are not links.
-
-| Field | Reason |
-|-------|--------|
-| import_lineage.namespace | Computed v5 namespace, not a record |
-| import_lineage.anchor.qet_project_uuid | Foreign project UUID |
-| import_lineage.last_run | `import_run` is a reserved kind without a table in v0 |
-| import_lineage.anchor.copy.of | the namespace of the original lineage, not a record ID |
-| report_block.manual.include[] / exclude[] | Kind-erased selection; a stale ID selects nothing |
-| report_block.source.sql_query.file | Asset ID of a query file |
-| revision.page_notes[].page | History: a released revision is immutable (FR-REV-009), so its notes keep naming a page that a later revision deletes; a note on a page that does not exist selects nothing |
-| library_id, item_id of part, symbol, fndef and form | Library identity of the copy, not a reference |
-| meta.status.deprecated.successor.* of part, symbol, fndef and form | `LibRef` to a library item offered by "update from library"; never resolved to an embedded copy |
-| part.manufacturer.* | `LibRef` to a manufacturer record, which has no library-copy table in v0 |
-| symbol.fndef.library, part.function_template[].fndef.library | The library half of the `LibRef` links above (the `.item` field carries the link) |
-| placement.part.copy | The part use a placement realises (WP-S4.01 D4: no delete policy). A placement whose part use left its device keeps naming the copy: EW-LAY-003 reports it, and `part.assign` replace follows the new copy (D7); a fork by `part.edit_copy` re-points it with the device's part uses. The device's part uses keep the copy alive, never the placement |
-
-Each kind's own `id` is identity, not a link.
 
 ## 5. Structural invariants not evaluated in v0
 

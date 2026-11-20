@@ -438,8 +438,8 @@ const DROP: Option<UnlinkFn> = Some(|_, _| None);
 
 use IndexName as I;
 
-/// Every link field of the persisted v0 schema. See the module documentation; `invariants.md` prints the
-/// same table.
+/// Every link field of the persisted v0 schema. See the module documentation; `invariants.md` §4 explains the
+/// policies and keeps no copy of this table.
 pub static LINKS: &[LinkDecl] = &[
     // project
     lineage_link!(Project),

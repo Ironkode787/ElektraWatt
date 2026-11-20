@@ -366,8 +366,8 @@ Every link field declares a delete policy, generated into `ew-model` (arch §4.6
 | `Revision.withdraws` | forbid | a withdrawn revision cannot be deleted while a withdrawal record names it: a cascade would delete history with it, an unchecked reference could dangle; linear undo removes the withdrawal record first |
 | `Waiver.target` (fingerprint or part selector) | none; an unmatched waiver is reported (EW-CORE-081) | |
 
-**Policy by link class.** The complete list is the link table of `crates/ew-model/invariants.md` §4, which
-`ew-model` implements; the classes are:
+**Policy by link class.** The complete list is `LINKS` in `crates/ew-model/src/links.rs` (`crates/ew-model/invariants.md`
+§4 explains it); the classes are:
 - **Cascade** for page-owned rows (`Representation.page`, `Connection.page`, `Junction.page`, an embedded
   `ReportBlock`'s page, `PageItem.page` and `StructureBox.page` once WP-S2.04 part 4a implements them, and an IP
   function with its representation) and for `Function.device`. A connection
