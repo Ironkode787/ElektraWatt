@@ -971,8 +971,8 @@ function a page draws already as another drawing of it when none of its pins is 
 with inputs and outputs its two boxes in one step. The starter symbols that have a pin leaving upward (not the
 terminals, the earth symbols and the valve solenoid) carry the tag right-aligned one millimetre left of their
 graphics with its foot one step under the upper pin, then the PLC address, make, type, rating, function text and
-cross-reference line under line 5 mm apart (a coil's contact list last); 5 mm keeps the lines one block on the QET
-grid too, which scales places and not texts. The interruption point's two forms carry the cross-reference under the
+cross-reference line under line 6 mm apart (a coil's contact list last): 4 mm on the QET grid, which scales places
+and not texts, as in the reference set; there the lines are one block, on the native grid each line is placed alone. The interruption point's two forms carry the cross-reference under the
 wire on the wire's side. The text placer gained two places for this: a part's right corners stand beyond its pin
 numbers, and a mark's cross-reference may stand centred under or over its arrow.
 
