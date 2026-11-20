@@ -1711,6 +1711,7 @@ impl ShellModel {
 
 /// What [`ShellModel::commit`] commits in the window, and how a refusal of it reads: the one difference between the
 /// tool host's commits and the cards'.
+#[allow(clippy::large_enum_variant)] // a transient argument, moved once into the commit
 pub(super) enum Kept<'a> {
     /// The tool host's command: the tool's kept preview of it when that is fresh, else the command executed; a
     /// refusal in the command's words ([`command_failed`]).
