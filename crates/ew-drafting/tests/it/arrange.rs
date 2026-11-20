@@ -37,7 +37,7 @@ fn after(page: &DraftPage, a: &Arranged) -> DraftPage {
 }
 
 /// Arrange and route over the page, checked: `rules_kept` holds and the page is no worse.
-fn run(page: &DraftPage, fixed: &[PartId]) -> (Arranged, DraftPage) {
+fn run(page: &DraftPage, fixed: &[ew_ids::Uuid]) -> (Arranged, DraftPage) {
     let a = arrange(page, Scope::Page, fixed);
     let done = after(page, &a);
     assert_eq!(rules_kept(page, &done), Ok(()), "the plan keeps the rules");

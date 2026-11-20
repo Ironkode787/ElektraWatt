@@ -409,8 +409,93 @@ fn supply_rank(q: &Q, c: &TableConnection) -> Option<u8> {
     })
 }
 
+/// What part `rep` is for the rules of the placer (docs/design/06a-drafting.md §1.6, §2.2), on a page of `kind`:
+/// an interruption point by its direction (a target comes in, a source goes out; an undirected one by the side its
+/// wire leaves on); on a fluid page by its function definitions (air preparation the source, working ports a valve,
+/// consumer ports an actuator); on a bus page by its part's bus ports (one that leads a controller, else a
+/// station); a drawn box of a PLC module with channels a card; a part with one pin whose wires all carry protective
+/// or functional earth an earth symbol (`earthed`); anything else [`ew_drafting::Role::Other`].
+fn role(
+    q: &Q,
+    kind: ew_drafting::PageKind,
+    rep: &super::editing::TableRep,
+    pins: &[ew_drafting::Pin],
+    earthed: bool,
+) -> ew_drafting::Role {
+    use ew_derive::ew_schema::{FluidPortRole, PortRole};
+    use ew_drafting::{PageKind, Role, Side};
+    if let Some(ip) = &rep.ip {
+        return match ip.direction.as_str() {
+            "target" => Role::MarkIn,
+            "source" => Role::MarkOut,
+            _ => match pins.first().and_then(|p| p.side) {
+                Some(Side::Left) => Role::MarkOut,
+                _ => Role::MarkIn,
+            },
+        };
+    }
+    let functions: Vec<Id<ew_derive::ew_schema::Function>> = rep.functions.iter().map(|f| Id::from_uuid(*f)).collect();
+    match kind {
+        PageKind::Fluid => {
+            let defs: Vec<_> = functions
+                .iter()
+                .filter_map(|f| q.functions().get(*f))
+                .filter_map(|f| q.fndefs().get(f.def))
+                .collect();
+            if defs.iter().any(|d| d.item.category.0.as_str() == "AirPreparation") {
+                return Role::Source;
+            }
+            let ports: Vec<FluidPortRole> = defs
+                .iter()
+                .flat_map(|d| d.item.cps.iter().filter_map(|c| c.port_role.clone()))
+                .collect();
+            if ports.iter().any(|r| matches!(r, FluidPortRole::Working2 | FluidPortRole::Working4)) {
+                return Role::Valve;
+            }
+            if ports.contains(&FluidPortRole::Consumer) {
+                return Role::Actuator;
+            }
+        }
+        PageKind::Bus => {
+            let roles: Vec<PortRole> = rep
+                .device
+                .and_then(|d| q.devices().get(Id::from_uuid(d)))
+                .map(|d| {
+                    d.parts
+                        .iter()
+                        .filter_map(|u| q.parts().get(u.part.copy))
+                        .filter_map(|c| c.item.sections.bus.clone())
+                        .flat_map(|b| b.ports.into_iter().map(|p| p.role))
+                        .collect()
+                })
+                .unwrap_or_default();
+            if roles.iter().any(|r| matches!(r, PortRole::Master | PortRole::Controller)) {
+                return Role::Controller;
+            }
+            if !roles.is_empty() {
+                return Role::Station;
+            }
+        }
+        PageKind::Electrical => {}
+    }
+    let card = rep.black_box.is_some()
+        && rep
+            .device
+            .and_then(|d| ew_derive::module_part(q, Id::from_uuid(d)))
+            .is_some_and(|(_, plc)| plc.channels.as_ref().is_some_and(|c| c.count > 0));
+    if card {
+        return Role::Card;
+    }
+    if earthed && pins.len() == 1 {
+        return Role::Earth;
+    }
+    Role::Other
+}
+
 /// The page of `tables` as the layout sees it: the labels layer's page (texts at their sizes, the scene's one
-/// conversion into ticks), each wire's supply rank and the page's kind.
+/// conversion into ticks), each wire's supply rank, the page's kind, each part's role, and the parts inside a
+/// structure box kept where they stand (docs/design/06a-drafting.md §2.2: in the first build its outline is a fence
+/// the placer does not cross).
 fn draft(q: &Q, page: PageRef, tables: &PageTables) -> DraftPage {
     let mut d = page_layer(q, page, Layer::Labels)
         .draft
@@ -431,6 +516,33 @@ fn draft(q: &Q, page: PageRef, tables: &PageTables) -> DraftPage {
     for w in &mut d.wires {
         if let Some(c) = tables.connections.iter().find(|c| c.id == w.id.0) {
             w.supply = supply_rank(q, c);
+        }
+    }
+    // PEN, PE and FE in the order of the supply ranks.
+    let earth = |rank: Option<u8>| rank.and_then(|r| SUPPLY_ORDER.get(usize::from(r))).is_some_and(|w| ["PEN", "PE", "FE"].contains(w));
+    let ticks = crate::routing::Ticks::new(tables.grid);
+    let fences: Vec<ew_drafting::Rect> = tables
+        .structure_boxes
+        .iter()
+        .filter_map(|b| {
+            let (x0, x1) = (b.outline.iter().map(|p| p.0).min()?, b.outline.iter().map(|p| p.0).max()?);
+            let (y0, y1) = (b.outline.iter().map(|p| p.1).min()?, b.outline.iter().map(|p| p.1).max()?);
+            Some(ew_drafting::Rect::new(ticks.pt((x0, y0)), ticks.pt((x1, y1))))
+        })
+        .collect();
+    let kind = d.kind;
+    let wires = d.wires.clone();
+    for part in &mut d.parts {
+        let Some(rep) = tables.reps.iter().find(|r| r.id == part.id.0) else {
+            continue;
+        };
+        let earthed = part.pins.iter().all(|p| {
+            let at: Vec<_> = wires.iter().filter(|w| w.ends.contains(&ew_drafting::End::Pin(p.id))).collect();
+            !at.is_empty() && at.iter().all(|w| earth(w.supply))
+        });
+        part.role = role(q, kind, rep, &part.pins, earthed);
+        if fences.iter().any(|f| f.holds(part.bounds())) {
+            part.locked = true;
         }
     }
     d

@@ -1,9 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `ew route [<project-dir>] [--page <folio>] [--selection <ids>] [--dry-run] [--json]`: Route over the CLI
-//! (docs/design/06a-drafting.md §7.4). Each page's plan ([`ew_api::Session::route_plan`]) is stored as one
-//! `layout.apply`, the command the window's Route stores, and the project is saved once; `--dry-run` prints the plan.
+//! `ew route [<project-dir>] [--page <folio>] [--selection <ids>] [--arrange] [--dry-run] [--json]`: Route over the
+//! CLI (docs/design/06a-drafting.md §7.4), and with `--arrange` Arrange and route. Each page's plan
+//! ([`ew_api::Session::route_plan`], [`ew_api::Session::arrange_plan`]) is stored as one `layout.apply`, the command
+//! the window's buttons store, and the project is saved once; `--dry-run` prints the plan.
 
 use std::path::PathBuf;
 
@@ -23,6 +24,8 @@ pub struct RouteArgs {
     /// The connections and representations to route (`--selection`, IDs joined by `,`); empty: the pages' wires that
     /// are unrouted, broken or routed by the program.
     pub selection: Vec<String>,
+    /// Arrange and route instead of Route (`--arrange`).
+    pub arrange: bool,
     /// Route and print, but save nothing (`--dry-run`).
     pub dry_run: bool,
     /// Print the result as JSON (`--json`).
@@ -110,7 +113,12 @@ pub(super) fn run_route(a: &RouteArgs) -> i32 {
     let mut text = String::new();
     let mut changed = false;
     for folio in folios {
-        let Some(plan) = session.route_plan(&folio, &scope) else {
+        let planned = if a.arrange {
+            session.arrange_plan(&folio, &scope, &[])
+        } else {
+            session.route_plan(&folio, &scope)
+        };
+        let Some(plan) = planned else {
             continue;
         };
         let words = |id| {
@@ -119,7 +127,10 @@ pub(super) fn run_route(a: &RouteArgs) -> i32 {
                 .map(|t| t.to_string())
                 .unwrap_or_default()
         };
-        let page = page_result(&folio, &plan, words);
+        let mut page = page_result(&folio, &plan, words);
+        let name = |id| session.symbol_name(id).unwrap_or_else(|| "a symbol".to_owned());
+        page.moved = plan.moves.iter().map(|(p, _)| name(p.0)).collect();
+        page.left = plan.left.iter().map(|(p, _)| name(p.0)).collect();
         text.push_str(&page_text(&page, &plan, a.dry_run));
         if !a.dry_run
             && let Some(params) = plan.params.clone()
@@ -189,6 +200,8 @@ fn page_result(
             })
             .collect(),
         across_texts: across.into_iter().map(words).collect(),
+        moved: Vec::new(),
+        left: Vec::new(),
     }
 }
 
@@ -197,16 +210,27 @@ fn page_result(
 /// page-wide Route leaves as the person's.
 fn page_text(page: &results::RoutePageResult, plan: &RoutePlan, dry_run: bool) -> String {
     let (routed, unrouted, kept) = (page.routed.len(), page.unrouted.len(), plan.kept.len());
+    let moved = page.moved.len();
     let verb = if dry_run { "Would route" } else { "Routed" };
-    let mut out = match (routed, unrouted, kept) {
-        (0, 0, 0) => format!(
+    let wires = |n: usize| if n == 1 { "1 wire".to_owned() } else { format!("{n} wires") };
+    let mut out = match (moved, routed, unrouted, kept) {
+        (0, 0, 0, 0) => format!(
             "Nothing to route on folio {}: no wire would run better.\n",
             page.folio
         ),
-        (0, 0, _) => format!("Nothing changed on folio {}.\n", page.folio),
-        (1, _, _) => format!("{verb} 1 wire on folio {}.\n", page.folio),
-        (n, _, _) => format!("{verb} {n} wires on folio {}.\n", page.folio),
+        (0, 0, 0, _) => format!("Nothing changed on folio {}.\n", page.folio),
+        (0, n, _, _) => format!("{verb} {} on folio {}.\n", wires(n), page.folio),
+        (m, n, _, _) => {
+            let symbols = if m == 1 { "1 symbol".to_owned() } else { format!("{m} symbols") };
+            let (move_verb, route_verb) = if dry_run { ("Would move", "route") } else { ("Moved", "routed") };
+            format!("{move_verb} {symbols} and {route_verb} {} on folio {}.\n", wires(n), page.folio)
+        }
     };
+    for symbol in &page.left {
+        out.push_str(&format!(
+            "  No room for {symbol} on the side its pin faces: it is left where it stands.\n"
+        ));
+    }
     for ((_, why), u) in plan.plan.unrouted.iter().zip(&page.unrouted) {
         out.push_str(&format!("  {}\n", reason(*why, &u.wire).1));
     }
@@ -241,6 +265,8 @@ mod tests {
                 unrouted: vec![(WireId(id(2)), Reason::Parts), (WireId(id(3)), Reason::FourArms)],
                 ..Plan::default()
             },
+            moves: Vec::new(),
+            left: Vec::new(),
             params: None,
             kept: Vec::new(),
         };
@@ -254,6 +280,8 @@ mod tests {
         assert_eq!(page.unrouted[1].reason, "four_arms");
         let empty = RoutePlan {
             plan: Plan::default(),
+            moves: Vec::new(),
+            left: Vec::new(),
             params: None,
             kept: Vec::new(),
         };

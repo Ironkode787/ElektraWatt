@@ -1509,13 +1509,18 @@ refusal-connection-draw-many-entry = regel { $p0 }: { $p1 }
 refusal-connection-delete-none = geen verbinding opgegeven; noem ten minste één verbinding om te verwijderen
 refusal-connection-draw-many-too-many = { $p0 } verbindingen zijn meer dan de { $p1 } die één opdracht neemt
 # layout.apply.
-refusal-layout-apply-nothing = het plan verandert niets; geef ten minste één route, aftakking of adermarkering
+refusal-layout-apply-nothing = het plan verandert niets; geef ten minste één verschoven symbool, route, aftakking of adermarkering
 refusal-layout-apply-too-many = { $p0 } regels zijn meer dan de { $p1 } die één opdracht neemt
 refusal-layout-apply-other-page = { $p0 } staat niet op { $p1 }; een plan verandert één pagina
 refusal-layout-apply-junction-other-page = de aftakking staat niet op { $p0 }; een plan verandert één pagina
 refusal-layout-apply-junction-route = de aftakking verschuift zonder de route van { $p0 }; geef elke gerouteerde draad van een verschoven aftakking zijn route
 refusal-layout-apply-not-a-marker = alleen een adermarkering verschuift met zijn draden
 refusal-layout-apply-marker-other-page = de adermarkering staat niet op { $p0 }; een plan verandert één pagina
+refusal-layout-apply-twice = { $p0 } wordt twee keer verschoven; geef elk symbool één verschuiving
+refusal-layout-apply-kept = { $p0 } wordt op zijn plaats gehouden; zet Op zijn plaats houden uit om een plan het te laten verschuiven
+refusal-layout-apply-outside = { $p0 } zou buiten het tekenvlak van { $p1 } komen
+refusal-layout-apply-on-symbol = { $p0 } zou op { $p1 } komen te staan
+refusal-layout-apply-symbol-route = { $p0 } verschuift zonder de route van { $p1 }; geef elke gerouteerde draad van een verschoven symbool zijn route
 # junction.edit.
 refusal-junction-sequence = `sequence` is geen permutatie van de verbindingen die bij de aftakking eindigen; noem elk ervan precies één keer
 # ip.place, ip.continue and the star of an interruption point.

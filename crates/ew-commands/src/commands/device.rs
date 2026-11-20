@@ -897,38 +897,7 @@ impl MoveReps {
         let mut shift: BTreeMap<Id<Representation>, Pt2> = BTreeMap::new();
         for id in &ids {
             let rep = tx.require::<Representation>(*id)?;
-            let grid = tx.require::<Page>(rep.page)?.grid;
-            // The point the steps are counted from: the position, or a fitted symbol's first pin (rc.5).
-            let Some(anchor) = crate::geometry::grid_anchor(tx, &rep, grid) else {
-                return tx.reject(text!(
-                    "refusal-rep-move-steps-off-grid",
-                    crate::geometry::off_grid(tx, crate::words::symbol(tx, *id), rep.page, rep.pos)
-                ));
-            };
-            let (Some(x), Some(y)) = (
-                step_axis(grid, anchor.x, steps[0]),
-                step_axis(grid, anchor.y, steps[1]),
-            ) else {
-                return tx.reject(text!(
-                    "refusal-rep-move-steps-out-of-range",
-                    crate::words::symbol(tx, *id)
-                ));
-            };
-            let mut next = (*rep).clone();
-            let Ok(pos) = sub(Pt2::new(x, y), anchor).and_then(|d| add(rep.pos, d)) else {
-                return tx.reject(text!(
-                    "refusal-rep-move-steps-out-of-range",
-                    crate::words::symbol(tx, *id)
-                ));
-            };
-            next.pos = pos;
-            crate::geometry::require_rep_on_grid(tx, next.page, &next, "/steps")?;
-            if rep_cps_checked(tx, &next).is_err() {
-                return tx.reject(text!(
-                    "refusal-rep-move-steps-cp-out-of-range",
-                    crate::words::symbol(tx, *id)
-                ));
-            }
+            let next = stepped(tx, &rep, steps)?;
             let Ok(d) = sub(next.pos, rep.pos) else {
                 return tx.reject(text!(
                     "refusal-rep-move-steps-out-of-range",
@@ -1002,6 +971,45 @@ impl MoveReps {
             ..Outcome::default()
         })
     }
+}
+
+/// `rep` moved by `steps` grid steps (see [`MoveReps`]): the point the steps are counted from (its position, or a
+/// fitted symbol's first pin, rc.5) at its grid index plus the steps, exactly; refused when it has neither on the
+/// grid, or the move leaves the drawable range for it or a connection point.
+pub(crate) fn stepped(tx: &TxBuilder<'_>, rep: &Representation, steps: [i64; 2]) -> Result<Representation, CmdError> {
+    let id = rep.id;
+    let grid = tx.require::<Page>(rep.page)?.grid;
+    let Some(anchor) = crate::geometry::grid_anchor(tx, rep, grid) else {
+        return tx.reject(text!(
+            "refusal-rep-move-steps-off-grid",
+            crate::geometry::off_grid(tx, crate::words::symbol(tx, id), rep.page, rep.pos)
+        ));
+    };
+    let (Some(x), Some(y)) = (
+        step_axis(grid, anchor.x, steps[0]),
+        step_axis(grid, anchor.y, steps[1]),
+    ) else {
+        return tx.reject(text!(
+            "refusal-rep-move-steps-out-of-range",
+            crate::words::symbol(tx, id)
+        ));
+    };
+    let mut next = rep.clone();
+    let Ok(pos) = sub(Pt2::new(x, y), anchor).and_then(|d| add(rep.pos, d)) else {
+        return tx.reject(text!(
+            "refusal-rep-move-steps-out-of-range",
+            crate::words::symbol(tx, id)
+        ));
+    };
+    next.pos = pos;
+    crate::geometry::require_rep_on_grid(tx, next.page, &next, "/steps")?;
+    if rep_cps_checked(tx, &next).is_err() {
+        return tx.reject(text!(
+            "refusal-rep-move-steps-cp-out-of-range",
+            crate::words::symbol(tx, id)
+        ));
+    }
+    Ok(next)
 }
 
 /// The route of a connection whose both ends move by grid steps (see [`MoveReps`]): the end vertices become their

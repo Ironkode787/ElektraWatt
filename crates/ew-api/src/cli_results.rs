@@ -1218,6 +1218,13 @@ pub struct RoutePageResult {
     /// their ends.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub across_texts: Vec<String>,
+    /// With `--arrange`: the symbols the plan moved, by their tags, in the order of their IDs.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub moved: Vec<String>,
+    /// With `--arrange`: the symbols left where they stand against a rule of their page's kind, for want of room, by
+    /// their tags.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub left: Vec<String>,
 }
 
 /// A wire [`RoutePageResult`] leaves unrouted.

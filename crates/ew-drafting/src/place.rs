@@ -81,12 +81,15 @@ impl Arranged {
     }
 }
 
-/// The plan of Arrange and route over `scope` of `page` with the parts `fixed` kept where they stand (module
-/// documentation). Deterministic: the same page in any order of its lists gives the same plan.
-pub fn arrange(page: &DraftPage, scope: Scope<'_>, fixed: &[PartId]) -> Arranged {
+/// The plan of Arrange and route over `scope` of `page` with the parts and wires named in `fixed` kept as they stand
+/// (the rows unticked in the preview: a wire kept keeps its route and the parts at its ends; module documentation).
+/// Deterministic: the same page in any order of its lists gives the same plan.
+pub fn arrange(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> Arranged {
     let before = measure(page);
     let fallback = || {
-        let plan = route::route(page, &route::jobs(page, scope));
+        let mut jobs = route::jobs(page, scope);
+        jobs.wires.retain(|w| !fixed.contains(&w.0));
+        let plan = route::route(page, &jobs);
         Arranged {
             plan,
             ..Arranged::default()
@@ -100,7 +103,7 @@ pub fn arrange(page: &DraftPage, scope: Scope<'_>, fixed: &[PartId]) -> Arranged
         if moves.is_empty() {
             return fallback();
         }
-        let (moved, plan, after) = routed(page, &moves, scope);
+        let (moved, plan, after) = routed(page, &moves, scope, fixed);
         match rules_kept(page, &after) {
             Ok(()) => {
                 let quality = measure(&after);
@@ -137,7 +140,12 @@ pub fn arrange(page: &DraftPage, scope: Scope<'_>, fixed: &[PartId]) -> Arranged
 /// The page with every part of `moves` moved (its texts the program may not place with it) and the routes of the
 /// wires with an end on a moved part lifted; Route's plan of it for those wires and the jobs of `scope`; and the page
 /// as the plan leaves it.
-fn routed(page: &DraftPage, moves: &[(PartId, Pt)], scope: Scope<'_>) -> (DraftPage, Plan, DraftPage) {
+fn routed(
+    page: &DraftPage,
+    moves: &[(PartId, Pt)],
+    scope: Scope<'_>,
+    fixed: &[ew_ids::Uuid],
+) -> (DraftPage, Plan, DraftPage) {
     let mut moved = page.clone();
     let by: BTreeMap<PartId, Pt> = moves.iter().copied().collect();
     let mut pins: BTreeSet<PinId> = BTreeSet::new();
@@ -160,6 +168,7 @@ fn routed(page: &DraftPage, moves: &[(PartId, Pt)], scope: Scope<'_>) -> (DraftP
         }
     }
     let mut jobs: Jobs = route::jobs(&moved, scope);
+    jobs.wires.retain(|w| !fixed.contains(&w.0));
     jobs.wires.extend(touched);
     jobs.wires.sort();
     jobs.wires.dedup();
@@ -299,8 +308,19 @@ fn across_vec(s: Side, t: Tick) -> Pt {
 }
 
 impl<'a> Placer<'a> {
-    fn new(page: &'a DraftPage, scope: Scope<'_>, fixed: &[PartId]) -> Placer<'a> {
+    fn new(page: &'a DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> Placer<'a> {
         let w = Wiring::new(page);
+        // The pins at the ends of a kept wire hold their parts.
+        let held: BTreeSet<PinId> = page
+            .wires
+            .iter()
+            .filter(|x| fixed.contains(&x.id.0))
+            .flat_map(|x| x.ends)
+            .filter_map(|e| match e {
+                End::Pin(p) => Some(p),
+                End::Junction(_) => None,
+            })
+            .collect();
         let n = w.parts.len();
         // Units by number, and the parts inside an outline drawn round other parts.
         let mut up: Vec<usize> = (0..n).collect();
@@ -361,7 +381,8 @@ impl<'a> Placer<'a> {
                 || off(p.at.x)
                 || off(p.at.y)
                 || p.pins.iter().any(|x| x.off_grid)
-                || fixed.contains(&p.id)
+                || fixed.contains(&p.id.0)
+                || p.pins.iter().any(|x| held.contains(&x.id))
                 || selected.as_ref().is_some_and(|s| !s.contains(&p.id.0));
             let b = p.body;
             let area = i64::from(b.w() / TICKS_PER_STEP) * i64::from(b.h() / TICKS_PER_STEP);

@@ -251,6 +251,8 @@ enum Top {
     /// pins allow, and the plan is saved in one step per page. With `--selection <ids>` (record IDs joined by `,`) it
     /// routes the connections named and every connection with an end on a representation named, whoever shaped
     /// them. A wire without a way keeps its route, or stays unrouted, and is listed with what is in its way.
+    /// `--arrange` runs Arrange and route instead: the symbols are put in line with the pins they are wired to, on the
+    /// side those pins face, within the rules of the page's kind, and then routed; symbols kept in place stay.
     /// `--dry-run` prints the plan and saves nothing. `--json` prints `ew.route-result/1`. Exit 0 when no wire is left
     /// without a way, 1 when one is, 2 on usage, open, an unknown folio, a refused command and save errors.
     Route(RouteCli),
@@ -1994,6 +1996,9 @@ struct RouteCli {
         value_delimiter = ','
     )]
     selection: Vec<String>,
+    /// Arrange and route: line the symbols up, then route their wires.
+    #[arg(long, overrides_with = "arrange")]
+    arrange: bool,
     /// Print the plan and save nothing.
     #[arg(long, overrides_with = "dry_run")]
     dry_run: bool,
@@ -2860,12 +2865,14 @@ impl Cli {
                 project: flag,
                 page,
                 selection,
+                arrange,
                 dry_run,
                 json,
             }) => Command::Route(RouteArgs {
                 project: project(flag, project_dir),
                 page,
                 selection,
+                arrange,
                 dry_run,
                 json,
             }),

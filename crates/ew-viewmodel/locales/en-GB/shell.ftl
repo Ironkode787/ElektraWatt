@@ -1564,13 +1564,18 @@ refusal-connection-draw-many-entry = entry { $p0 }: { $p1 }
 refusal-connection-delete-none = no connection given; name at least one connection to delete
 refusal-connection-draw-many-too-many = { $p0 } connections are more than the { $p1 } one command takes
 # layout.apply.
-refusal-layout-apply-nothing = the plan changes nothing; give at least one route, junction or wire marker
+refusal-layout-apply-nothing = the plan changes nothing; give at least one symbol move, route, junction or wire marker
 refusal-layout-apply-too-many = { $p0 } entries are more than the { $p1 } one command takes
 refusal-layout-apply-other-page = { $p0 } is not drawn on { $p1 }; a plan changes one page
 refusal-layout-apply-junction-other-page = the junction is not on { $p0 }; a plan changes one page
 refusal-layout-apply-junction-route = the junction moves without the route of { $p0 }; give every routed wire of a moved junction its route
 refusal-layout-apply-not-a-marker = only a wire marker moves with its wires
 refusal-layout-apply-marker-other-page = the wire marker is not on { $p0 }; a plan changes one page
+refusal-layout-apply-twice = { $p0 } is moved twice; give each symbol one move
+refusal-layout-apply-kept = { $p0 } is kept in place; take off Keep in place to let a plan move it
+refusal-layout-apply-outside = { $p0 } would leave the drawing area of { $p1 }
+refusal-layout-apply-on-symbol = { $p0 } would stand on { $p1 }
+refusal-layout-apply-symbol-route = { $p0 } moves without the route of { $p1 }; give every routed wire of a moved symbol its route
 # junction.edit.
 refusal-junction-sequence = `sequence` is not a permutation of the connections ending at the junction; list each of them exactly once
 # ip.place, ip.continue and the star of an interruption point.

@@ -226,6 +226,11 @@ fn anchor_cell_with(rows: &impl Rows, rep: Id<Representation>) -> Option<ew_deri
     ew_derive::cell_in_grid(&grid, page.grid, point)
 }
 
+/// The frame grid of a page in a transaction, by the rule of `ew_derive::FrameGridOf`.
+pub(crate) fn frame_grid(tx: &TxBuilder<'_>, page: &Page) -> Option<FrameGrid> {
+    frame_grid_with(tx, page)
+}
+
 /// The frame grid of a page, by the rule of `ew_derive::FrameGridOf`.
 fn frame_grid_with(rows: &impl Rows, page: &Page) -> Option<FrameGrid> {
     let held = |id: Id<FormDef>| rows.row::<LibCopy<FormDef>>(id).is_some();

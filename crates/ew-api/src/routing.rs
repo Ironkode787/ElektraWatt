@@ -3,7 +3,8 @@
 
 //! The router as the window, the CLI and the tools reach it (docs/design/06a-drafting.md §2.7, §7): [`Session::route_plan`]
 //! plans Route on a page or a selection with `ew_drafting::route` on the page as the layout sees it
-//! ([`Session::page_draft`]) and gives the plan as the parameters of the one `layout.apply` that stores it;
+//! ([`Session::page_draft`]), [`Session::arrange_plan`] Arrange and route with `ew_drafting::arrange`, and each gives
+//! its plan as the parameters of the one `layout.apply` that stores it;
 //! [`route_wire`] and [`wire_clear`] are the Wire tool's route between two ends, in page nm; [`unrouted_line`] the line
 //! of a wire without a route.
 //!
@@ -14,8 +15,8 @@
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_units::Grid;
 use ew_drafting::consts::TICKS_PER_STEP;
-pub use ew_drafting::{DraftPage, Jobs, Plan, Quality, Reason, WireId, measure, route as route_on};
-use ew_drafting::{JunctionId, PinId, Pt, Side, WireEnd};
+pub use ew_drafting::{DraftPage, Jobs, PartId, Plan, Quality, Reason, Side, WireId, measure, route as route_on};
+use ew_drafting::{JunctionId, PinId, Pt, WireEnd};
 use serde_json::{Value, json};
 
 use crate::Session;
@@ -31,11 +32,16 @@ pub enum RouteScope {
     Selection(Vec<Uuid>),
 }
 
-/// A plan of Route on one page.
+/// A plan of Route or of Arrange and route on one page.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct RoutePlan {
     /// The plan, in the layout's ticks.
     pub plan: Plan,
+    /// The symbols Arrange and route moves, each by its move in ticks (whole grid steps); none for Route.
+    pub moves: Vec<(PartId, Pt)>,
+    /// The symbols Arrange and route leaves where they stand against a rule, each with the side of its host's pin
+    /// where it has no room; none for Route.
+    pub left: Vec<(PartId, Side)>,
     /// The parameters of the `layout.apply` that stores it; `None` for a plan that changes nothing.
     pub params: Option<Value>,
     /// The page's routed wires a page-wide Route leaves alone as the person's (no `computed` mark, no fault), by ID;
@@ -123,14 +129,23 @@ impl Ticks {
     }
 }
 
-/// The stored point of a wire's end on the page of `tables`, with the junctions at `moved` places.
-fn end_point(tables: &PageTables, e: &TableEnd, moved: &[(Uuid, (i64, i64))]) -> Option<(i64, i64)> {
+/// The stored point of a wire's end on the page of `tables`, with the junctions at `moved` places and the connection
+/// points of the representations of `shifted` moved by their shifts.
+fn end_point(
+    tables: &PageTables,
+    e: &TableEnd,
+    moved: &[(Uuid, (i64, i64))],
+    shifted: &[(Uuid, (i64, i64))],
+) -> Option<(i64, i64)> {
     match e {
         TableEnd::Cp { function, idx } => tables
             .cps
             .iter()
             .find(|c| c.function == *function && c.idx == *idx)
-            .map(|c| c.at),
+            .map(|c| {
+                let d = shifted.iter().find(|(r, _)| *r == c.rep).map_or((0, 0), |(_, d)| *d);
+                (c.at.0 + d.0, c.at.1 + d.1)
+            }),
         TableEnd::Junction { id } => moved
             .iter()
             .find(|(j, _)| j == id)
@@ -139,9 +154,35 @@ fn end_point(tables: &PageTables, e: &TableEnd, moved: &[(Uuid, (i64, i64))]) ->
     }
 }
 
-/// The routes of `plan` in page nm, by connection: each between its ends' stored points.
-pub fn plan_routes(tables: &PageTables, plan: &Plan) -> Vec<(Uuid, Vec<(i64, i64)>)> {
+/// The move in page nm of a representation at `pos` moved by `steps` grid steps, as `rep.move` and `layout.apply` move
+/// it: its position at its grid index plus the steps; `None` for a position off the grid.
+fn shift_of(grid: Grid, pos: (i64, i64), steps: [i64; 2]) -> Option<(i64, i64)> {
+    use ew_derive::ew_units::Nm;
+    let one = |x: i64, k: i64| {
+        let at = grid.snap_point(Nm(x)).filter(|p| p.0 == x)?;
+        Some(grid.at(grid.snap(at).checked_add(k)?)?.0 - x)
+    };
+    Some((one(pos.0, steps[0])?, one(pos.1, steps[1])?))
+}
+
+/// The representations of `tables` that `moves` moves, each with its grid steps and its move in page nm.
+fn part_moves(tables: &PageTables, moves: &[(PartId, Pt)]) -> Vec<(Uuid, [i64; 2], (i64, i64))> {
+    let grid = Ticks::new(tables.grid).0;
+    moves
+        .iter()
+        .filter_map(|(p, d)| {
+            let rep = tables.reps.iter().find(|r| r.id == p.0)?;
+            let steps = [i64::from(d.x / TICKS_PER_STEP), i64::from(d.y / TICKS_PER_STEP)];
+            Some((p.0, steps, shift_of(grid, rep.pos, steps)?))
+        })
+        .collect()
+}
+
+/// The routes of `plan` in page nm, by connection: each between its ends' stored points, those of the symbols that
+/// `moves` moves where they go.
+pub fn plan_routes(tables: &PageTables, plan: &Plan, moves: &[(PartId, Pt)]) -> Vec<(Uuid, Vec<(i64, i64)>)> {
     let ticks = Ticks::new(tables.grid);
+    let shifted: Vec<(Uuid, (i64, i64))> = part_moves(tables, moves).into_iter().map(|(r, _, d)| (r, d)).collect();
     let moved: Vec<(Uuid, (i64, i64))> = plan
         .junctions
         .iter()
@@ -151,29 +192,37 @@ pub fn plan_routes(tables: &PageTables, plan: &Plan) -> Vec<(Uuid, Vec<(i64, i64
         .iter()
         .filter_map(|(w, route)| {
             let c = tables.connections.iter().find(|c| c.id == w.0)?;
-            let (a, b) = (end_point(tables, &c.a, &moved)?, end_point(tables, &c.b, &moved)?);
+            let (a, b) = (
+                end_point(tables, &c.a, &moved, &shifted)?,
+                end_point(tables, &c.b, &moved, &shifted)?,
+            );
             Some((w.0, ticks.route(route, a, b)))
         })
         .collect()
 }
 
-/// The `layout.apply` that stores `plan` on the page of `tables`; `None` for a plan that changes nothing. A marker's
-/// anchor is read from `marker_at`.
+/// The `layout.apply` that stores `plan` with the symbol moves `moves` on the page of `tables`; `None` for a plan that
+/// changes nothing. A marker's anchor is read from `marker_at`.
 pub fn layout_apply_params(
     tables: &PageTables,
     plan: &Plan,
+    moves: &[(PartId, Pt)],
     marker_at: &dyn Fn(Uuid) -> Option<(i64, i64)>,
 ) -> Option<Value> {
-    if plan.is_empty() {
+    if plan.is_empty() && moves.is_empty() {
         return None;
     }
     let ticks = Ticks::new(tables.grid);
+    let parts: Vec<Value> = part_moves(tables, moves)
+        .into_iter()
+        .map(|(r, steps, _)| json!({"rep": r.to_string(), "steps": steps}))
+        .collect();
     let junctions: Vec<Value> = plan
         .junctions
         .iter()
         .map(|(j, p)| json!({"junction": j.0.to_string(), "at": [ticks.nm(p.x), ticks.nm(p.y)]}))
         .collect();
-    let routes: Vec<Value> = plan_routes(tables, plan)
+    let routes: Vec<Value> = plan_routes(tables, plan, moves)
         .into_iter()
         .map(|(id, route)| {
             let points: Vec<Value> = route.iter().map(|p| json!([p.0, p.1])).collect();
@@ -189,6 +238,9 @@ pub fn layout_apply_params(
         })
         .collect();
     let mut params = json!({"page": tables.page.to_string()});
+    if !parts.is_empty() {
+        params["parts"] = Value::Array(parts);
+    }
     if !junctions.is_empty() {
         params["junctions"] = Value::Array(junctions);
     }
@@ -212,7 +264,7 @@ impl Session {
             RouteScope::Selection(ids) => ew_drafting::jobs(&draft, ew_drafting::Scope::Selection(ids)),
         };
         let plan = ew_drafting::route(&draft, &jobs);
-        let params = self.plan_params(&tables, &plan);
+        let params = self.plan_params(&tables, &plan, &[]);
         let kept = match scope {
             RouteScope::Page => draft
                 .wires
@@ -222,19 +274,65 @@ impl Session {
                 .collect(),
             RouteScope::Selection(_) => Vec::new(),
         };
-        Some(RoutePlan { plan, params, kept })
+        Some(RoutePlan {
+            plan,
+            moves: Vec::new(),
+            left: Vec::new(),
+            params,
+            kept,
+        })
     }
 
-    /// The `layout.apply` of `plan` on the page of `tables` ([`layout_apply_params`]), the markers' anchors read from
-    /// the project.
-    pub fn plan_params(&self, tables: &PageTables, plan: &Plan) -> Option<Value> {
+    /// The plan of Arrange and route on `scope` of the page labelled `folio` (docs/design/06a-drafting.md §4, §7.3),
+    /// with the symbols and the wires of `fixed` kept as they stand (the rows unticked in the preview), with the
+    /// `layout.apply` that stores it; `None` for an unknown folio or a page that is not drawn. A symbol whose position
+    /// is not exactly a point of the page's grid stays where it stands (a move by grid steps counts from it).
+    pub fn arrange_plan(&self, folio: &str, scope: &RouteScope, fixed: &[Uuid]) -> Option<RoutePlan> {
+        let draft = self.page_draft(folio)?;
+        let tables = self.page_tables(folio)?;
+        let grid = Ticks::new(tables.grid).0;
+        let mut kept: Vec<Uuid> = fixed.to_vec();
+        kept.extend(
+            tables
+                .reps
+                .iter()
+                .filter(|r| shift_of(grid, r.pos, [0, 0]).is_none())
+                .map(|r| r.id),
+        );
+        let arranged = match scope {
+            RouteScope::Page => ew_drafting::arrange(&draft, ew_drafting::Scope::Page, &kept),
+            RouteScope::Selection(ids) => ew_drafting::arrange(&draft, ew_drafting::Scope::Selection(ids), &kept),
+        };
+        let params = self.plan_params(&tables, &arranged.plan, &arranged.moves);
+        Some(RoutePlan {
+            plan: arranged.plan,
+            moves: arranged.moves,
+            left: arranged.left,
+            params,
+            kept: Vec::new(),
+        })
+    }
+
+    /// A symbol's name in words, for a plan's rows: its device's printed tag, an interruption point's name; `None` for
+    /// one without either.
+    pub fn symbol_name(&self, id: Uuid) -> Option<String> {
+        match self.selection_words(id)? {
+            crate::output::SelectionWords::Device { tag, .. } => Some(tag).filter(|t| !t.is_empty()),
+            crate::output::SelectionWords::InterruptionPoint { name, .. } => Some(name).filter(|n| !n.is_empty()),
+            _ => None,
+        }
+    }
+
+    /// The `layout.apply` of `plan` with the symbol moves `moves` on the page of `tables` ([`layout_apply_params`]),
+    /// the markers' anchors read from the project.
+    pub fn plan_params(&self, tables: &PageTables, plan: &Plan, moves: &[(PartId, Pt)]) -> Option<Value> {
         let q = self.query();
         let items = q.page_items();
         let marker_at = |id: Uuid| match &items.get(Id::from_uuid(id))?.kind {
             ew_derive::ew_schema::PageItemKind::WireMarker(m) => Some((m.at.x.0, m.at.y.0)),
             _ => None,
         };
-        layout_apply_params(tables, plan, &marker_at)
+        layout_apply_params(tables, plan, moves, &marker_at)
     }
 }
 
