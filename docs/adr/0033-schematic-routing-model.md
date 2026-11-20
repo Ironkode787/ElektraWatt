@@ -1,6 +1,7 @@
 # ADR-0033: Schematic routing: stored routes written by one page router, unrouted connections and one route convention
 
-**Status:** Accepted; built in cycle 53 · **Date:** 2026-11-07 ·
+**Status:** Accepted; built in cycle 53; decisions 4, 5 and 9 and amendments 1 to 5 superseded by
+[ADR-0034](0034-schematic-drafting.md) · **Date:** 2026-11-07 ·
 **Deciders:** lead designer (design lane, the project owner may reverse it)
 
 ## Context
@@ -98,7 +99,9 @@
 
 ## Amendments
 
-The decision text above is unchanged; these entries refine it.
+The decision text above is unchanged; these entries refine it. All five are superseded by
+[ADR-0034](0034-schematic-drafting.md): what they decided is now the drafting design's
+([06a](../design/06a-drafting.md)), and amendment 4's settled readings give way to one number at the source (06a §2.1).
 
 1. **A route across a text, as the last resort** (2026-11-15, the M3 persona re-test). A tube from port 4 of a valve
    stacked under another one had no route: the facing port's stub reserved the tube's own stub, and the only way out

@@ -268,6 +268,20 @@ The design needs two things:
    draws as nothing and which the layout never sees. The comparisons that today read points "settled" in six
    places outside the router then compare equal numbers, and those calls go.
 
+*As built (step 8).* `Grid::settle_point` gives a point within 1 nm of a grid position the grid's own number; the
+functions that give a pin's and a box pin's point return it: ew-derive's `cp_end` (and `rep_cp_end`, which takes the
+page's grid), the commands' `rep_cps`, the drawn connection points of the scene and of the page tables, the two
+importers' (tables and QElectroTech), and the tools' ghost pins (placing, the interruption point, a moved symbol's
+proposals). A move by steps and the Select tool's re-solve move a wire's end by its pin's own displacement, which can
+differ from its symbol's by 1 nm. A junction keeps its stored point: it is made on a wire's line or at the router's
+place, which are the grid's numbers now, and an older drawing's junction keeps its point with the routes that end on
+it. A position 1 nm beside a grid point is still off the grid to the commands (its pins' points are on it, but it is
+no fitted symbol). The six settled comparisons are gone; `Grid::settle` stays as the rule `settle_point` applies. A
+route of an older build that ends 1 nm beside its pin is drawn with that step and read as one tick; EW-TERM-006,
+normaliser 7 and the interruption-point tool now compare exactly, so on an older drawing a wire whose line lies 1 nm
+beside a pin's number is not met there until it is routed again. Golden A's tables give its routes the grid's
+numbers: 38 coordinates moved by 1 nm, one jog of 1 nm on folio 101 went.
+
 ### 2.2 What the layout sees
 
 ```rust
@@ -1144,7 +1158,7 @@ a part" (C5, hygiene warnings). EW-TERM-006 is unchanged.
 -075 "Text on a text", -076 "Text on a symbol" and -077 "Symbol on a symbol" (a conflict warning), with the rows of
 [15](15-checks-revisions-collaboration.md) §4.2. Until step 2, -068 allows the common beginning of §1.2's note only.
 
-*As built (step 2).* The rows of this table marked 2 are gone. A shared run is that common beginning (a run from
+*As built (steps 2 and 8).* The rows of this table marked 2 and 8 are gone (step 8: §2.1). A shared run is that common beginning (a run from
 the pin of both wires while both go the same way), so -068 needs nothing more. `ew route` keeps its name and now
 stores `layout.apply`.
 

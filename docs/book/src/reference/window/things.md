@@ -27,8 +27,9 @@ selected. Choose **Keep in place** again, with its check showing, to let it go.
 
 ## Wires
 
-A wire joins two connection points. A junction, the dot where a wire branches, joins three. A wire's number,
-cross-section and colour come from its potential and the project's profile until you give it its own.
+A wire joins two connection points. A junction, where a wire branches with a bevel (or a dot, if you ask for one),
+joins three. A wire's number, cross-section and colour come from its potential and the project's profile until you
+give it its own.
 
 To make one: **Draw ▸ Connect ▸ Wire** (`W`), then a click on a start point and one on the end point
 ([Wire](tools.md#wire)).

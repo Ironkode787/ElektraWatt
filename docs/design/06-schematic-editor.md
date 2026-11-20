@@ -533,8 +533,8 @@ and accepted only while its refusal is still under the field on the same revisio
 | 17 | **Tube counter** (N-FL-5) | A new tube connection gets its counter when a line-tag scheme is active | [11](11-fluid-power.md) §4.2 |
 | 18 | **Interruption-point form** (`ip_form`) | An interruption point drawn with one of EW's two arrow forms whose direction the transaction changed takes the other form, the one of its new direction, with the default orientation; a project that does not hold that form refuses the change: "the project does not hold the incoming arrow of symbol Interruption point: place one interruption point of that direction first" | this document §3.5 |
 
-**Routing is one pure function, `ew_derive::routing::auto_route`, reached through `ew_api::routing`, and the tools call it;
-the commands do not.** The Wire tool computes its ghost with it and passes the result as the `route` of
+**Routing is one pure function, `ew_drafting::route` ([06a](06a-drafting.md) §3), reached through `ew_api::routing`, and
+the tools call it; the commands do not.** The Wire tool computes its ghost with it and passes the result as the `route` of
 `connection.draw`, which **stores the route it is given and stays unchanged**: an empty route stays route-less
 (*unrouted*, below). `rep.move` moves the route's vertices by `geometry::follow_end` (WP-S2.04 §5.2) and takes the
 routes the Select tool re-solved (§5.4). A script therefore gets the mouse's route by calling the same function and passing the result, not by a
@@ -550,16 +550,15 @@ route the router had drawn askew): ends on one horizontal or vertical line are j
 made of the ends' own coordinates, the first leg along the first end's direction, else the last leg along the second
 end's, else horizontal first. It takes no notice of what lies under it and is no route: the page draws it dashed in
 the thinnest pen, and the Wire tool's ghost and the router's own result for a request without a route are the same
-line (`ew_derive::routing::unrouted_line`). The
-commands still never route: the router, now `ew_derive::routing` reached through `ew_api::routing`, runs in
-the tools and in Route page and Reroute, which store their plan with `connection.route_many`; autoconnect
-hints store their straight run; `rep.move` takes the routes the Select tool re-solved (FT-18). A new row 18,
+line (`ew_api::routing::unrouted_line`). The
+commands still never route: the router runs in the tools and in Route, which stores its plan with `layout.apply`
+(06a §2.6); autoconnect hints store their straight run; `rep.move` takes the routes the Select tool re-solved (FT-18). A new row 18,
 *interruption-point form*, gives an interruption point drawn with EW's IP symbol the arrow form of its direction
 (WP-S2.19 specification D16).
 
 *As built.* The commands that store a route are `connection.draw`,
-`connection.draw_many`, `connection.draw_to_ip`, `connection.route`, `connection.route_many` (1 to 10,000 entries,
-one transaction, an entry's error prefixed `/routes/<i>`) and `rep.move` with its optional `routes`, each checked by
+`connection.draw_many`, `connection.draw_to_ip`, `connection.route`, `layout.apply` (06a §2.6) and `rep.move` with its
+optional `routes`, each checked by
 `require_route` (on the grid, the first vertex at end `a`'s point and the last at end `b`'s, a junction end included);
 `device.place`'s hints and `rep.move`'s optional `connect` hints store the straight run between their two ends, and a
 hint whose ends are not aligned stays unrouted. `rep.move`'s `connect` hint names its connection point by function,
@@ -662,9 +661,9 @@ and one main function of the chosen symbol's function definition.
 ### 3.5 Connections, junctions, interruption points and potentials
 
 - **Explicit connections.** A connection joins two endpoints: a CP or a junction (FR-CON-001). Several connections on
-  one CP are a daisy chain whose order is preserved (FR-CON-006). Where two connections of one CP share a route
-  section and then diverge, the scene draws a 45° bevel at the divergence: the reference's notation on the 101 top
-  bus, as presentation only (D-20).
+  one CP are a daisy chain whose order is preserved (FR-CON-006). Wires of one CP may share their run out of it and
+  part with a 45° bevel, without a dot: a potential wired from pin to pin is then a rail with drops
+  ([06a](06a-drafting.md) §3.4, D-20); a symbol is not dropped on a shared run.
 - **Junctions.** Ending a wire on the interior of another connection's segment creates a `Junction` and splits that
   connection. Style defaults to Bevel; the Wire tool's dot key (`.`) asks for a Dot (owner, drafting step 2,
   [06a](06a-drafting.md) §7.4). Wiring defaults to Star for Dot and Chain for Bevel ([03](03-domain-model.md)
@@ -1024,7 +1023,7 @@ stateDiagram-v2
 - *As built.* The ghost is `route_one`'s route; the passes
   and the turned IP end are gone. Without a clear route the ghost is the dashed right-angled line of an unrouted
   wire, the line the page then draws, and the HUD says "No clear route: the wire stays a dashed line without a route. Click
-  free points to lead it, or route it later with Reroute."; a commit then stores the
+  free points to lead it, or route it later with Route."; a commit then stores the
   wire without a route. *As built (rc.3).* After a fixed bend from which no clear route leads on, the wire is routed
   from its start as if drawn anew (its fixed bends dropped), else stored unrouted: the L tail the user's bend forced
   could run through a pin and along another wire, which the checks report as errors. After a click
@@ -1169,99 +1168,28 @@ W″ (c2 → B):
 - both keep W's overrides (FR-CON-008);
 - the preview names both resulting wires (FR-CON-008).
 
-### 5.4 Orthogonal auto-route
+### 5.4 Routing
 
-New connections and the route parts touched by a move are routed on the connection grid:
-1. Leave each CP along its direction by one grid step (the stub).
-2. Search for the path from stub to stub with A* over grid nodes (a small in-house search in `ew-commands`; the
-   `pathfinding` 4.16.0 crate that `ew-panel` already uses is an option), with costs of 1 per step and 4 per bend,
-   and symbol bodies inflated by one grid step as obstacles. The search is bounded to the bounding box of both CPs
-   plus 4 grid steps; outside that box there is no route (§5.4, as built).
-3. Break ties lexicographically on (bends, length, first-turn direction), so routes are deterministic.
-4. A user-edited route keeps its interior vertices; only the segments adjacent to a moved CP are re-solved.
+Routing is the drafting design's: [06a](06a-drafting.md) §3 (the method, the jobs, the search and its prices), §7.2
+(Route) and §7.4 (the Wire tool, connecting on placement, a move's re-solve), decided by
+[ADR-0034](../adr/0034-schematic-drafting.md). The router is `ew_drafting::route`, reached through `ew_api::routing`; it
+runs in the tools, in Route and in `ew route`, and the commands store its routes and never route (§3.2). What this
+document keeps of it:
 
-Routes are stored as nm vertices (FR-CON-007). Wire crossings render as plain crossings or hops by project setting
-(FR-CON-031).
-
-The router is the pure function
-`ew_derive::routing::auto_route` (reached through `ew_api::routing`), called by the Wire tool for its ghost and for the route it
-passes to `connection.draw`; it is not run inside the commands (§3.2). Two points of the list above change. **Step 3's
-tie-break is the whole move sequence**, not the first turn: among the paths of least cost the router returns the least by
-(bends, length, move sequence), the sequence being the list of unit moves from the first stub to the last, each ranked
-right, down, left, up and compared move by move, so the result is deterministic (NFR-REL-07) and independent of the
-order of the obstacles. **Step 2's bounds are fixed:** the search area is the bounding box of both ends grown by 4 grid
-steps and clipped to the page's drawing area; the obstacles are the bodies of every representation on the page except
-those of the two ends, inflated by one grid step; a stub into an obstacle is allowed; without a path inside the area
-there is no route and the connection stays unrouted. Step 4 (a user-edited route keeps its interior vertices and only
-the segments next to a moved CP are re-solved) is not built in WP-S2.04: a move shifts the route's vertices with the
-moved CPs (`rep.move`, §5.7), and the re-solve stays FT-18.
-
-*As built.* `auto_route` is an exact backward Dijkstra over (grid node, heading) from the end, then a forward walk from the start that takes the lowest-ranked move staying on a least path: not A*, but the same least path by (bends, length, move sequence). Ends are exact and interior corners on the grid (a corner next to an end takes that end's coordinate, so a connection point up to 1 nm off a rational grid stays valid); collinear vertices are removed. **Size limit:** the search area holds at most `MAX_NODES` = 262,144 grid nodes (2^18; an A0 sheet at a 2.5 mm grid has 160,412); a larger area, an index at the edge of `i64` and an area without a path all give no route (the straight line of an unrouted connection); the backward search stops once its distance passes the start's. Known minor case: after a fixed bend the router knows no incoming direction and can double back over the last segment. Crossings are drawn as hops by `ew-scene` when `project.drawing.set` sets `crossings` to `hops`: each proper crossing of a horizontal and a vertical segment of two connections, a half circle of 1 mm radius above the horizontal one, a crossing closer than 2 mm to a segment end or another hop drawn plain.
-
-*As built.* The obstacles are no longer
-the bodies alone. The Wire tool's request blocks the other representations' bodies and black-box outlines grown by one
-grid step, their texts (tags, slot texts, pin texts) grown by a quarter step, the frame's bands outside the drawing
-area, the vertices and tracks of the other wires (a right-angle crossing stays allowed) and every other CP with its
-stub; the two ends' own rectangles block except along a CP's escape corridor. The tool tries the passes Clear, then
-without the texts, then the bodies alone, each in an area of 4 and then 16 grid steps around the ends, after the
-direct route through a free terminal in line (only a terminal: a fuse, a contact or a coil standing in line is gone
-round, and is put in series by dropping it on a wire, §5.3); only without any route does it leave the connection
-unrouted and say so.
-
-Under [ADR-0033](../adr/0033-schematic-routing-model.md), this section's router is replaced by the page router of the
-WP-S2.19 specification §5: the search moves to
-`ew_derive::routing`; only the Clear pass remains, as hard rules; integer costs for steps, bends, crossings and
-parallel mates; a page or a selection routed in a fixed order (supply potentials first, then by span) with at most two
-rip-up rounds; no fallback route: a connection without a clear route stays unrouted and is reported (its dashed
-line is right-angled, and it is no route). Step 4 of the list
-above (re-solve after a move, FT-18) is built in the Select tool, which passes the re-solved routes to `rep.move`.
-
-*As built (M3 persona round).* A representation's body that holds an end of another representation strictly inside
-it is an outline drawn around that end (a valve terminal's box around its valves), not an obstacle of that route: with
-it the router found no route out of the box, and the persona's three tubes stayed unrouted. The layout findings
-(EW-CORE-067 to -070, -073) call a fluid line a tube ("Tube -201Q1:4 → -201M1:B has no route").
-
-*As built (M3 persona round).* The Wire tool refuses an end that already sits on one line with its start, in words where
-its hint stands ("These two points already sit on one line; click a point of another line, or Esc"), and keeps
-routing for another end: a point on a connection that ends at the start (or the start on one that ends there), and, for
-a tube, the other end of a tube that joins the two already. Two wires between the same points stay allowed (they may
-double a cross-section). Such a click did nothing and said nothing.
-
-*As built.* On the release of a move the Select tool builds the
-moved page geometry (the moved representations' bodies, CPs and texts displaced as `rep.move` displaces them, each
-followed route along its rubber band) and routes again every connection with a moved end that is unrouted, breaks a
-hard rule there or bends more than before; it commits them as `rep.move`'s `routes`, applied after the follow as
-`connection.route_many` applies its entries, in the move's one undo step; a connection the router finds no clear route
-for keeps the followed route. **Route page** (`route.page`) sits in the Draw
-tab's Connect group after Interruption, with no default key; it opens the plan in the Preview tab ("Route 3 wires on
-folio 101: 2 routed, 1 not routed.", one row per wire left unrouted with its reason) and draws the planned routes
-on the canvas as its ghost, solid in the ghost colour over the dashed lines, until Apply or Cancel; Apply commits one
-`connection.route_many` with the toast "Routed 2 wires on folio 101."; a page with nothing to route says "Every wire on
-folio 101 has a route." *As built (rc.3).* **Reroute** (`route.reroute`) stands beside Wire where Edit route stood and
-replaces Edit route (the keyboard route editor) and Route selection: the selected connections and every connection with
-an end on a selected representation, or with nothing of the page selected every connection of the page, are routed
-again as if freshly drawn (`RouteScope::Selection`) and applied at once, the routes that change in one
-`connection.route_many` (one undo step), with no card; the toast names the wires it changed ("3 wires rerouted: 101.3,
-101.5 and 101.7.", each by its number, else its ends, three and then how many more; rc.5) and the page draws them with
-the selected wire's band while that toast is up and the project is at the revision Reroute left, or it says "No better
-route found: the wires already run as well as the program can route them.", each followed by the reasons of the wires
-left as they were. The two buttons' tooltips say the difference under their names (`tooltip-<action>`), and Route
-page's "Every wire on folio 101 has a route." goes on to name Reroute. A reroute takes a new route clear of the texts
-where the stored one crosses a text, and never breaks a hard rule a wire kept as drawn (ADR-0033 amendment 5). A route is edited by hand
-with the selected wire's round handles (Select's segment and bend drag, doc 16a §7.1). *As built (rc.3, ADR-0033
-amendment 3).* The Wire tool and Reroute never put a corner on another wire's corner or end, and where the grid gives
-close pins no route or only one more than 8/5 of the direct way, they step on the half grid between the two ends:
-two two-pole devices wired cross-over, two grid steps apart, cross once between them. *As built (rc.5, ADR-0033
-amendment 4).* Reroute starts from the drawing: each wire is routed again against all the others and takes the new
-route where its old one breaks a hard rule or costs more (steps, bends, crossings, texts), the result is compared
-with the wires routed from nothing, the shortest first, and the better drawing is taken, so a wire that is drawn as
-well as the router would draw it keeps its route and a page is never left worse than it was; the toast's rows about a
-text name the wires that were rerouted. The router and the layout measures read a grid position as one number: a
-step of 1 nm between two pins on one line of a grid of thirds of a nm is no stretch of wire, no bend and no arm of a
-junction. The Wire tool does not end a wire on another where a third wire crosses it. A page routed for the first
-time (Route page, an import, the wires a paste or a grid change redraws) is solved the longest wires first and the
-shortest first, and the shortest-first drawing is taken where it is better with no more bends, crossings or texts
-crossed. The texts beside a multipin plug's pins are texts to the router: wires go round them. The layout measures are the check rules EW-CORE-067 to -070, -072 and -073 (doc 15 §4).
+- Routes are stored as nm vertices, the full list from end to end (FR-CON-007, ADR-0033 decision 2); a connection
+  point's point is the grid's own number of its position (06a §2.1).
+- Crossings render as plain crossings or as hops by the project's `crossings` setting (`project.drawing.set`,
+  FR-CON-031): each proper crossing of a horizontal and a vertical segment of two connections is a half circle of 1 mm
+  radius above the horizontal one; a crossing closer than 2 mm to a segment end or to another hop is drawn plain.
+- The Wire tool refuses an end that already sits on one line with its start, in words where its hint stands ("These
+  two points already sit on one line; click a point of another line, or Esc"), and keeps routing for another end: a
+  point on a connection that ends at the start (or the start on one that ends there), and, for a tube, the other end
+  of a tube that joins the two already. Two wires between the same points stay allowed (they may double a
+  cross-section).
+- A route is edited by hand with the selected wire's round handles (Select's segment and bend drag, doc 16a §7.1).
+- The layout findings are the check rules EW-CORE-067 to -070 and -072 to -077
+  ([15](15-checks-revisions-collaboration.md) §4.2); they call a fluid line a tube ("Tube -201Q1:4 → -201M1:B has no
+  route").
 
 ### 5.5 Physical wires behind junctions and IPs
 

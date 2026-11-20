@@ -208,8 +208,7 @@ fn assert_routes_meet_their_ends(s: &Session, page: Id<Page>) -> usize {
             Some(end_pos(&q, &c.b, page)),
             "{id}: route end"
         );
-        // A straight route between two CPs 1 nm apart across it keeps the router's 1 nm jog: no segment
-        // leans.
+        // No segment leans.
         for w in c.route.windows(2) {
             assert!(
                 w[0].x == w[1].x || w[0].y == w[1].y,

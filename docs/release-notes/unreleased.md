@@ -845,3 +845,52 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - format-variant: device Unit mm
 - format-variant: part Unit mm
 - format-variant: project Unit mm
+
+- behaviour-change: drafting (docs/design/06a-drafting.md, ADR-0034): one measure judges a drawn page
+  (`ew_drafting::measure`: its faults, its unrouted wires and one cost in grid steps); `ew layout`, the layout findings
+  and the rules EW-CORE-067 to -070, -072 and -073 read it, and -068 allows two wires of one pin that share their run
+  out of it (06a §1.2)
+- api-add: the check rules EW-CORE-074 "Wires meet without joining", -075 "Text on a text", -076 "Text on a symbol"
+  and -077 "Symbol on a symbol" (06a §1.2, §8)
+- behaviour-change: the texts of symbols, boxes, marks and wires are placed by one text placer from a short list of
+  places each, the same on the canvas, in the PDF and in the router, so a wire is not led round a text that can step
+  aside; a text the person moved stays, and a drawn box's pin texts are not touched (06a §5)
+- behaviour-change: window Draw ▸ Connect ▸ Route (`layout.route`, also in the menu of a wire and of a symbol) replaces
+  Route page and Reroute: it routes the selection, or the page's unrouted, broken and program-routed wires, applies at
+  once in one undo step and names the wires it changed; a route the person shaped is left alone unless it is
+  selected, a broken one is shown in the Preview tab first, and where routing the person's wires anew would make the
+  page better the toast offers Route these too… (06a §7.2)
+- behaviour-change: the router routes nets: a potential over several symbols is one straight trunk with a straight
+  drop to each pin, its junctions moved onto it with their wires and sequence; two wires of one pin share their run and
+  part with a 45° bevel (a symbol dropped on a shared run is refused in words); wires that step sideways between two
+  rows of pins take nested tracks; what is left is searched, and a tag in a wire's way steps aside (06a §3)
+- behaviour-change: a wire ended on a wire makes a junction of the bevel form; `.` in the Wire tool
+  (`tool.wire_dot`) asks for a dot, and the junction's editor changes the form later; junctions made before keep
+  theirs (06a §7.6)
+- behaviour-change: while a symbol is placed or dragged, guides show where one of its pins stands in line with a pin
+  it faces, and level with a symbol drawn alike beside it; within three quarters of a grid step (at most 8 screen
+  points beyond the ordinary snap) the symbol takes the in-line guide's line; Alt shows and takes none; nothing moves
+  a symbol once it is set down (06a §6)
+- api-add: window Keep in place (`rep.keep_in_place`, in the menu of a selection of symbols and a row of Properties,
+  through `fields.set` of `locked`): Arrange and route leaves such a symbol where it stands; a small pin shows on it
+  while it is selected (06a §2.4)
+- behaviour-change: Draw on a page draws a PLC card from the station view as one row of channel pins along one edge
+  of a low, wide box, 5 grid steps apart: inputs on the upper edge of a box at the foot of the drawing area, outputs
+  on the lower edge of one at its head, the supply pins down its left side; a row wider than the drawing area takes
+  at most 16 pins and the To do list offers the rest on another page; cards already drawn keep their form (06a §7.5)
+- behaviour-change: content: the starter symbols with a pin leaving upward carry their tag at the upper left, make,
+  type and rating under it and pin numbers right of their pins, and the interruption point's two forms their name in
+  line with the wire, so that marks stack two steps apart; each changed symbol's version rises (06a §5.2, §7.5)
+- api-add: format `Connection.computed` (a route the program computed, which Route may compute again) and
+  `Representation.locked` (Keep in place), optional members appended after the released ones and written only when
+  true; an older build keeps them; additive under ADR-0011 amendment 6 (06a §2.5)
+- api-add: command `layout.apply {page, junctions, routes, markers}`, one undo step: its routes are checked as
+  `connection.route` checks them and marked computed, and it cannot change a wire's end, a junction's form, wires or
+  sequence; `connection.draw` takes `computed` and `dot`; `ew route` stores Route's plan with it (06a §2.6, §7.4)
+- api-break: command `connection.route_many` removed (`layout.apply` stores a plan), and actions `route.page` and
+  `route.reroute` removed (`layout.route` replaces both) (06a §7.1, §8)
+- behaviour-change: on a page of the QElectroTech grid a connection point's point is the grid's own number of its
+  position where the symbol's place plus the pin's offset adds up to 1 nm beside it; the comparisons that read points
+  "settled" go; a route stored by an older build draws and measures as before; Golden A's routes regenerated, 38
+  coordinates moved by 1 nm (06a §2.1)
+<!-- Arrange and route (drafting step 4): its lines go here (`layout.arrange`, `layout.apply`'s `parts`, the preview). -->

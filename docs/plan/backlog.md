@@ -35,14 +35,11 @@ answers is deleted with a line in its report.
 - FT-1789 `ew-viewmodel`: The symbol editor draws a shape by the pointer only; draw a line, a rectangle or a circle from the keyboard alone (accessibility), as a placed shape already moves with the arrow keys.
 - FT-1790 `ew-scene, ew-viewmodel`: Round handles show for one selected wire; with several selected, none does. Decide whether handles of several wires help or only crowd.
 - FT-1791 `ew-viewmodel, ew-api`: The spacing between the terminals of a row is remembered by the open project only: keep it between sessions (a user setting, or a project setting, which is a format change).
-- FT-1795 `ew-scene`: A tag keeps clear of a neighbouring symbol only around a half-turned symbol (the tag rule's own-symbol and half-turn cases; wider rules changed Golden A's pictures). Around a quarter turn or a nudge a tag can still lie on a neighbour's body or text.
 - FT-1796 `ew-viewmodel`: A drag that starts on a pin's label of a symbol moves the symbol; the tag, a box's caption and the texts of one selected symbol are dragged by themselves already.
-- FT-1797 `ew-derive`: Two routes that ADR-0033's measures leave: a PE wire crosses L and N where the way round a box is far longer, and a pin right under a row of tags has no route clear of the texts.
 - FT-1798 `ew-scene`: An interruption point on the bottom pin of a box draws its arrow along the box's edge.
 - FT-1799 `ew-api`: An unnumbered wire's Properties title reads "?" (`wire_number` falls back to it); say "wire without a number" in words.
 - FT-1802 `ew-viewmodel, ew-api`: Auto-fill rail gives every device without a location the cabinet's and places them all, field devices too (sensors, cylinders, a valve terminal); let the person choose which devices go on the rail.
 - FT-1803 `ew-viewmodel`: Project properties name their rows otherwise than the title block's cells (Project reference and Project, Designer and Author), and Document title prints in no cell of the program's frame (a persona met this again); Title block fields… says which cell prints which, the rows themselves do not.
-- FT-1804 `ew-scene`: Several small symbols placed at a PLC card's pin pitch (four sensors side by side) have tags, channel texts and pin numbers on one another; the placement rule keeps a text clear of its own symbol and of a few named cases, not of a close neighbour's texts.
 - FT-1805 `ew-api`: The terminal diagram lists terminal numbers without a column for the strip, so two strips' terminals 1 read alike.
 - FT-1806 `ew-viewmodel`: A tool stands at another place on another tab of the command bar (Wire on Draw, another button at that place on PLC); a tool a person uses on several tabs keeps its place.
 - FT-1807 `ew-api, ew-viewmodel`: A template cannot be applied to a project that exists (its sections, text styles, check level); only a new project starts from one.
@@ -55,7 +52,7 @@ answers is deleted with a line in its report.
 
 ### What the fourth candidate left
 
-- FT-1817 `ew-commands, ew-api`: After a page's grid change or a paste fitted to another grid each item goes to its nearest grid point, one by one, and two items can end on one another (two texts; a supply mark's name on its neighbour's arrow), because the commands do not know a text's drawn size. Part what the fit pushed together.
+- FT-1817 `ew-commands, ew-api`: After a page's grid change or a paste fitted to another grid each item goes to its nearest grid point, one by one, and two symbols can end on one another (EW-CORE-077 reports it; the texts are placed by the text placer). Part what the fit pushed together.
 - FT-1818 `ew-viewmodel`: With a fitted symbol (its first pin on the grid, its position between grid points) the first arrow key moves the ghost a part of a step in the readout, while the move itself is whole steps.
 - FT-1819 `ew-commands, ew-viewmodel`: A command's extra notices read in English in a Dutch window: `Outcome.notices` is a list of strings. Carry a text through `Outcome` (a box reshape's moved pin, a paste's notices).
 - FT-1820 `ew-commands, ew-derive`: An earth symbol takes a number from the cables' W counter (its tag is hidden on the page and used in the wire list), so a project's first cable can be W2 and a project can hold two devices tagged W1. Decide the symbol's own letter, or give it no tag.
@@ -63,14 +60,12 @@ answers is deleted with a line in its report.
 - FT-1822 `ew-viewmodel, ew-ui`: Properties builds its rows again on every frame with a device selected. Not measured.
 - FT-1823 `ew-viewmodel`: The overview page that a station's To do proposes takes a folio in the wiring section.
 - FT-1824 `ew-ui`: A toast can cover a To do button of the station view.
-- FT-1825 `ew-derive, ew-viewmodel`: A wire drawn one at a time with the Wire tool dodges its own device's movable tag.
 - FT-1826 `content, ew-api`: There is no A3 form among the starter frames and title blocks.
 - FT-1827 `ew-reports`: The potential overview numbers its bond rows by id order, so a drawn bond can shift the numbers of the declared ones.
 - FT-1829 `ew-ui`: The Text styles page builds a small list on every frame. Not measured.
 - FT-1830 `ew-viewmodel, ew-ui`: Two persona runs expected the mouse wheel to pan and met a wheel that zooms; View ▸ Mouse wheel scrolls makes it pan, but only the zoom's tooltip says so. Offer the choice where the zoom is first met, and give the page scroll bars.
 - FT-1831 `ew-scene, ew-derive`: A black box's caption stands above it, left of its first top pin, exactly where the wires and tubes into those pins pass, so they loop round it (the loops on the persona pages). Place the caption clear of the pins' ways, so that the wires can run straight.
-- FT-1832 `ew-scene`: An interruption point's name stands on its own wire's way out. Place it clear of its wire.
-- FT-1833 `ew-commands, ew-api`: A paste fitted to another grid or a grid change can leave two pins so close that a wire finds no way (the message counts them, and Reroute after moving the items apart mends it). Let the fit leave room, so that every wire finds a way.
+- FT-1833 `ew-commands, ew-api`: A paste fitted to another grid or a grid change can leave two pins so close that a wire finds no way (the message counts them, and Route after moving the items apart mends it). Let the fit leave room, so that every wire finds a way.
 - FT-1834 `ew-derive, ew-viewmodel`: A new wire takes the control size, 0.75 mm², unless its potential names another circuit class, so a 16 A mains wire gets it. Propose the cross-section from the circuit.
 - FT-1835 `ew-print`: The test `a_cancelled_print_aborts_before_its_first_band` fails with "The handle is invalid" while other builds run and passes alone. Find what it shares with a build that runs beside it.
 - FT-1836 `ew-viewmodel, ew-scene`: While a wire's pin name is asked (a wire drawn to a box's edge where no pin is), the wire's ghost is hidden; show it until the name is given.
