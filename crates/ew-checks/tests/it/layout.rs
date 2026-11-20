@@ -641,7 +641,7 @@ fn the_geometry_cases_the_layout_queries_leave_to_the_rule() {
 }
 
 #[test]
-fn d3_limits_a_second_space_and_a_second_plate() {
+fn limits_a_second_space_and_a_second_plate() {
     let mut fx = plate();
     fx.push(json!({"$k": "layout_space", "id": us(0x2a), "location": us(LOC)}));
     fx.push(
