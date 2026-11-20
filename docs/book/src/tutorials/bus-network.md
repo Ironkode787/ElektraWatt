@@ -68,7 +68,7 @@ the same devices stay on the schematic pages.
     the Bus panel's table, type `drive1 192.168.0.3` into the **Address** cell of -2K2 X1.
     The converter is a node of the same network:
 
-    ![The bus page: CPU, switch, remote I/O station and converter, and the Bus panel's table](images/bus-network.png)
+    ![The bus page: the CPU, the switch, the remote I/O station and the converter, joined by their bus lines](images/bus-network.png)
 
 14. Choose **Check ▸ Run checks** (`F7`).
     The toast says "Check: 0 errors, 0 warnings, 5 infos." The infos say that the DP addresses are still TBD (this

@@ -20,11 +20,11 @@
 {"action":"tool.wire"}
 {"action":"cursor.set","params":{"x_mm":77.638,"y_mm":46.324}}
 {"action":"canvas.activate"}
-{"action":"cursor.set","params":{"x_mm":21.167,"y_mm":150.813}}
+{"action":"cursor.set","params":{"x_mm":30.665,"y_mm":158.535}}
 {"action":"canvas.activate"}
 {"action":"cursor.set","params":{"x_mm":124.61,"y_mm":46.324}}
 {"action":"canvas.activate"}
-{"action":"cursor.set","params":{"x_mm":134.938,"y_mm":37.042}}
+{"action":"cursor.set","params":{"x_mm":142.876,"y_mm":46.324}}
 {"action":"canvas.activate"}
 {"action":"tool.select"}
 {"action":"plc.grid"}
