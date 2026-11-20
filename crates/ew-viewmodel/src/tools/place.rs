@@ -714,21 +714,20 @@ impl PlaceTool {
     fn hang(&mut self, cx: &ToolCx<'_>) {
         let Some(at) = self.pointer else { return };
         let s = cx.snapper.snap_grid(at);
-        let part = (!self.suppressed)
-            .then(|| {
-                let b = self.shape.body;
-                let (p, q) = (
-                    orient_point(self.orient, (b[0], b[1])),
-                    orient_point(self.orient, (b[2], b[3])),
-                );
-                let body = [p.0.min(q.0), p.1.min(q.1), p.0.max(q.0), p.1.max(q.1)];
-                let pins = self
-                    .shape
-                    .cps
-                    .iter()
-                    .map(|cp| (orient_point(self.orient, cp.at), orient_dir(self.orient, cp.dir)));
-                super::guides::hanging(cx, s.grid_index, body, pins)
-            });
+        let part = (!self.suppressed).then(|| {
+            let b = self.shape.body;
+            let (p, q) = (
+                orient_point(self.orient, (b[0], b[1])),
+                orient_point(self.orient, (b[2], b[3])),
+            );
+            let body = [p.0.min(q.0), p.1.min(q.1), p.0.max(q.0), p.1.max(q.1)];
+            let pins = self
+                .shape
+                .cps
+                .iter()
+                .map(|cp| (orient_point(self.orient, cp.at), orient_dir(self.orient, cp.dir)));
+            super::guides::hanging(cx, s.grid_index, body, pins)
+        });
         let (nudge, guides) = match part {
             Some(part) => super::guides::guide(cx, &part, cx.snapper.sheet_to_page(at)),
             None => ((0, 0), Vec::new()),

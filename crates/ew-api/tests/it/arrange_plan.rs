@@ -104,7 +104,10 @@ type Shapes = (
 fn shapes(s: &ew_api::Session, folio: &str) -> Shapes {
     let d = s.page_draft(folio).expect("a drawn page");
     (
-        d.labels.iter().map(|l| (l.id, l.size, l.places.clone())).collect(),
+        d.labels
+            .iter()
+            .map(|l| (l.id, l.size, l.places.clone()))
+            .collect(),
         d.parts.iter().map(|p| (p.id, p.body)).collect(),
     )
 }
@@ -134,7 +137,11 @@ fn every_plan_arrange_offers_is_stored_by_its_command() {
             panic!("folio {folio}: {e}");
         }
         stored |= !plan.moves.is_empty();
-        assert_eq!(shapes(&s, &folio), before, "folio {folio}: the stored page's texts and bodies");
+        assert_eq!(
+            shapes(&s, &folio),
+            before,
+            "folio {folio}: the stored page's texts and bodies"
+        );
         // The stored page is the plan's own fixed point: a second press offers nothing (§4.8).
         let again = s.arrange_plan(&folio, &RouteScope::Page, &[]);
         assert!(

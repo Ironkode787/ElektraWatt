@@ -537,7 +537,10 @@ fn draft(q: &Q, page: PageRef, tables: &PageTables) -> DraftPage {
         .structure_boxes
         .iter()
         .filter_map(|b| {
-            let outline = b.outline.iter().map(|p| Rect::from_point(Pt2::new(Nm(p.0), Nm(p.1))));
+            let outline = b
+                .outline
+                .iter()
+                .map(|p| Rect::from_point(Pt2::new(Nm(p.0), Nm(p.1))));
             Some(ticks.outward(outline.reduce(Rect::union)?))
         })
         .collect();
