@@ -21,9 +21,9 @@
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use ew_api::output::ew_dl::{Destination, EntityRef};
 use ew_api::output::{Drawable, NavKind, NavNode, NavRole, PageRow, Uuid};
 use ew_api::{AnyCommand, Submit};
+use ew_dl::{Destination, EntityRef};
 use serde_json::{Map, Value, json};
 
 use super::navigation::{Focus, bump};

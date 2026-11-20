@@ -9,7 +9,7 @@
 
 use ew_api::AnyCommand;
 use ew_api::geometry::orient_then;
-use ew_api::output::ew_dl::EntityRef;
+use ew_dl::EntityRef;
 use serde_json::json;
 
 use super::{EntityKind, Selection, ToolKey, selection_kinds};

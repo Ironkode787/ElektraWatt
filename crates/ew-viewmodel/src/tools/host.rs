@@ -8,9 +8,9 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use ew_api::output::ew_dl::EntityRef;
 use ew_api::output::{LinkTarget, PageTables, PlaceCatalogue, SymbolShape};
 use ew_api::{DerivedDiff, Preview};
+use ew_dl::EntityRef;
 use serde_json::Value;
 
 use super::{Chooser, IpMemory, JunctionEditor, Overlay, Picker, SelectTool, Selection, Tool};

@@ -12,7 +12,7 @@ use common::{
     done, grid_point, refused, select_ids, sheet, tables,
 };
 use ew_viewmodel::ew_api::output::TableItem;
-use ew_viewmodel::ew_api::output::ew_dl::EntityRef;
+use ew_dl::EntityRef;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::tools::graphic::round_distance;
 use serde_json::{Value, json};

@@ -15,7 +15,7 @@ use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use ew_api::Cost;
-use ew_api::output::ew_dl::EntityRef;
+use ew_dl::EntityRef;
 
 use crate::canvas::PageId;
 use crate::strings::Key;

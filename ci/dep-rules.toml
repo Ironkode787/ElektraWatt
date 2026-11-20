@@ -34,9 +34,10 @@ banned_crates = [
 tools = ["xtask"]
 
 # The two crates whose dependencies are the architecture: the window reaches the model only through the view model,
-# and the view model only through `ew-api`. A crate without an entry here may depend on what its manifest says.
+# and the view model only through `ew-api`; beside that each names the foundation crates it uses by their own name
+# (ARCH §3 rule 6). A crate without an entry here may depend on what its manifest says.
 [allowed_edges]
-"ew-viewmodel" = ["ew-api", "ew-hack"]
+"ew-viewmodel" = ["ew-api", "ew-dl", "ew-units", "ew-hack"]
 "ew-ui" = ["ew-viewmodel", "ew-render2d", "ew-render-cpu", "ew-hack"]
 # The layout reads no project record, so it builds and tests alone (docs/design/06a-drafting.md §2.7).
 "ew-drafting" = ["ew-units", "ew-ids", "ew-hack"]

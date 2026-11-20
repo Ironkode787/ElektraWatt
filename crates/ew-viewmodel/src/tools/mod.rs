@@ -110,8 +110,8 @@ pub use wire::{WireTarget, WireTool};
 use crate::strings::Key;
 pub use ew_api::DynCommand;
 use ew_api::output::PageTables;
-use ew_api::output::ew_dl::ew_units::{Nm, Rect};
-use ew_api::output::ew_dl::{Destination, EntityRef};
+use ew_dl::{Destination, EntityRef};
+use ew_units::{Nm, Rect};
 
 pub(crate) use host::{GridFit, PasteFit, ResultNote, ToolHost};
 pub use host::{
@@ -907,7 +907,7 @@ pub(crate) fn distinct(points: &[(i64, i64)]) -> usize {
 
 /// The rectangle with corners `a` and `b` (any order).
 pub fn rect_of(a: (i64, i64), b: (i64, i64)) -> Rect {
-    use ew_api::output::ew_dl::ew_units::Pt2;
+    use ew_units::Pt2;
     Rect::from_points(Pt2::new(Nm(a.0), Nm(a.1)), Pt2::new(Nm(b.0), Nm(b.1)))
 }
 

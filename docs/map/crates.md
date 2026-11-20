@@ -377,7 +377,7 @@ All domain queries and the tracked-read context `Q` (ARCH §6, ADR-0002, ADR-000
 
 ## ew-dl
 
-`crates/ew-dl` · MIT OR Apache-2.0 · depends on `ew-units` · used by `ew-api`, `ew-export`, `ew-import-dxf`, `ew-render-cpu`, `ew-render2d`, `ew-scene`, `ew-text` · in tests by none
+`crates/ew-dl` · MIT OR Apache-2.0 · depends on `ew-units` · used by `ew-api`, `ew-export`, `ew-import-dxf`, `ew-render-cpu`, `ew-render2d`, `ew-scene`, `ew-text`, `ew-viewmodel` · in tests by none
 
 Display-list IR: paths, glyph runs, images, groups, symbol instances, link sources and targets, and entity tags.
 
@@ -1072,7 +1072,7 @@ The window of the desktop program in egui: it paints the shell model of `ew-view
 
 ## ew-units
 
-`crates/ew-units` · MIT OR Apache-2.0 · depends on none · used by `ew-api`, `ew-commands`, `ew-derive`, `ew-dl`, `ew-import-dxf`, `ew-import-qet`, `ew-import-tables`, `ew-scene`, `ew-schema`, `ew-testkit`, `ew-text` · in tests by `ew-export`, `ew-model`, `ew-render-cpu`
+`crates/ew-units` · MIT OR Apache-2.0 · depends on none · used by `ew-api`, `ew-commands`, `ew-derive`, `ew-dl`, `ew-import-dxf`, `ew-import-qet`, `ew-import-tables`, `ew-scene`, `ew-schema`, `ew-testkit`, `ew-text`, `ew-viewmodel` · in tests by `ew-export`, `ew-model`, `ew-render-cpu`
 
 Integer units and geometry of ElektraWatt: `Nm`, `Pt2`, `Rect`, rational `Grid`, `Orient2`, `Angle2`, `Pose3` and the fixed-point `Dec3`.
 
@@ -1092,7 +1092,7 @@ Integer units and geometry of ElektraWatt: `Nm`, `Pt2`, `Rect`, rational `Grid`,
 
 ## ew-viewmodel
 
-`crates/ew-viewmodel` · GPL-3.0-or-later · depends on `ew-api` · used by `ew-ui` · in tests by `elektrawatt`, `ew-viewmodel`
+`crates/ew-viewmodel` · GPL-3.0-or-later · depends on `ew-api`, `ew-dl`, `ew-units` · used by `ew-ui` · in tests by `elektrawatt`, `ew-viewmodel`
 
 Toolkit-agnostic panel models: navigator trees, table rows with edit-to-command mapping, property-grid rows with provenance and message lists, each with a revision stamp; and the model of the application shell.
 

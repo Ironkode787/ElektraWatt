@@ -13,7 +13,7 @@ use std::sync::Arc;
 
 use ew_api::AnyCommand;
 use ew_api::output::PageTables;
-use ew_api::output::ew_dl::EntityRef;
+use ew_dl::EntityRef;
 use serde_json::{Map, Value, json};
 
 use super::{Outcome, ShellModel};

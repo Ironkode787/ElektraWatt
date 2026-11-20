@@ -38,8 +38,8 @@ use std::sync::Arc;
 
 use ew_api::AnyCommand;
 use ew_api::geometry::{orient_dir, orient_point, orient_then, variant_letter};
-use ew_api::output::ew_dl::EntityRef;
 use ew_api::output::{PageTables, SymbolShape};
+use ew_dl::EntityRef;
 use serde_json::{Value, json};
 
 use super::autoconnect::{

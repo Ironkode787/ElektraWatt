@@ -22,9 +22,9 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use ew_api::output::ew_dl::ew_units::{Nm, Orient2, Pt2};
 use ew_api::output::{LibraryCopyDetail, MacroDetail, MacroThumbnail, NavRole, NavTable, PageRow, Uuid};
 use ew_api::{AnyCommand, InsertAt, MacroConflict, MacroScope, MacroSpec, MacroValues, Submit};
+use ew_units::{Nm, Orient2, Pt2};
 use serde_json::{Map, Value, json};
 
 use super::forms::{FormDialog, FormField, FormRow, FormTable};
@@ -489,7 +489,7 @@ impl ShellModel {
     /// The page UUID of the focused tab, `None` without a drawn page.
     fn macro_page(&self) -> Option<Uuid> {
         match self.current_page()? {
-            PageId(ew_api::output::ew_dl::Destination::Page(p)) => Some(p),
+            PageId(ew_dl::Destination::Page(p)) => Some(p),
             _ => None,
         }
     }

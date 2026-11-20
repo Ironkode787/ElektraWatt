@@ -1038,7 +1038,7 @@ fn tab_and_the_arrows_move_a_handle_of_the_selected_wire() {
     assert!(hot(&s).is_empty());
     assert!(
         s.selection()
-            .contains(ew_viewmodel::ew_api::output::ew_dl::EntityRef(wire.id))
+            .contains(ew_dl::EntityRef(wire.id))
     );
     assert_eq!(s.shortcut_action("cursor.right").0, "cursor.right");
     done(&mut s, "edit.undo", json!({}));

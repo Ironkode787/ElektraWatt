@@ -16,7 +16,7 @@
 //! items of its selection that still exist (`select.set`'s resolution).
 
 use ew_api::output::PageRow;
-use ew_api::output::ew_dl::EntityRef;
+use ew_dl::EntityRef;
 use serde_json::{Map, Value};
 
 use super::navigation::bump;

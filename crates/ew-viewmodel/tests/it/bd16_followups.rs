@@ -9,7 +9,7 @@
 use crate::common;
 
 use common::{Tmp, click, done, entity_points};
-use ew_viewmodel::ew_api::output::ew_dl::EntityRef;
+use ew_dl::EntityRef;
 use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
 use serde_json::{Value, json};
 

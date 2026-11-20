@@ -12,8 +12,8 @@ use std::collections::BTreeSet;
 
 use common::{Tmp, at, click, done, empty_point, entity_points, refused, state};
 use ew_viewmodel::canvas::reading_key;
-use ew_viewmodel::ew_api::output::ew_dl::EntityRef;
-use ew_viewmodel::ew_api::output::ew_dl::ew_units::Rect;
+use ew_dl::EntityRef;
+use ew_units::Rect;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::tools::{SnapKind, measure_label};
 use serde_json::{Value, json};

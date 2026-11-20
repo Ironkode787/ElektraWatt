@@ -13,7 +13,7 @@
 use std::sync::Arc;
 
 use ew_api::geometry::orient_point;
-use ew_api::output::ew_dl::ew_units::Rect;
+use ew_units::Rect;
 
 use super::Snapper;
 

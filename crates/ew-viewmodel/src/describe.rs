@@ -2496,7 +2496,7 @@ fn wire_point(page: &CanvasPage, wire: &ew_api::output::TableConnection) -> Opti
         .collect();
     segments.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(&b.1)));
     let wires: std::collections::BTreeSet<_> = page.tables.connections.iter().map(|c| c.id).collect();
-    let me = ew_api::output::ew_dl::EntityRef(wire.id);
+    let me = ew_dl::EntityRef(wire.id);
     // The pick reach of 4 points at 50 % and at 90 % zoom, nm (1 pt = 25.4 mm / 72).
     for reach in [25_400_000 * 4 * 2 / 72, 25_400_000 * 4 * 10 / 72 / 9] {
         for &(_, i) in &segments {
@@ -2646,7 +2646,7 @@ fn junction_order(page: &CanvasPage) -> Vec<usize> {
 
 /// The drawn connections of `page` with their two ends as the page text names them, without quotes: a CP label or
 /// `junction <n>` (item 4: `select.set` takes `wire:<a> -> <b>`).
-pub fn page_wires(page: &CanvasPage) -> Vec<(ew_api::output::ew_dl::EntityRef, String, String)> {
+pub fn page_wires(page: &CanvasPage) -> Vec<(ew_dl::EntityRef, String, String)> {
     let t: &PageTables = &page.tables;
     let order = junction_order(page);
     let end = |e: &TableEnd| match e {
@@ -2665,7 +2665,7 @@ pub fn page_wires(page: &CanvasPage) -> Vec<(ew_api::output::ew_dl::EntityRef, S
     };
     t.connections
         .iter()
-        .map(|c| (ew_api::output::ew_dl::EntityRef(c.id), end(&c.a), end(&c.b)))
+        .map(|c| (ew_dl::EntityRef(c.id), end(&c.a), end(&c.b)))
         .collect()
 }
 

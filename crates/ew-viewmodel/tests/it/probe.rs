@@ -15,8 +15,8 @@ use std::rc::Rc;
 
 use crate::common::{Tmp, at, click, done, entity_points, state};
 use ew_viewmodel::ew_api::AnyCommand;
-use ew_viewmodel::ew_api::output::ew_dl::ew_units::Rect;
-use ew_viewmodel::ew_api::output::ew_dl::{Destination, EntityRef};
+use ew_units::Rect;
+use ew_dl::{Destination, EntityRef};
 use ew_viewmodel::key;
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use ew_viewmodel::tools::{

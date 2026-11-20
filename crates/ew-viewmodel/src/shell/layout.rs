@@ -14,8 +14,8 @@ use std::sync::Arc;
 
 use ew_api::AnyCommand;
 use ew_api::checks::{CheckMode, FindingState};
-use ew_api::output::ew_dl::EntityRef;
 use ew_api::output::{Fit, PanelPlacement, PanelTables, SnapMode, Uuid, fits_rail};
+use ew_dl::EntityRef;
 use serde_json::{Map, Value, json};
 
 use super::navigation::bump;
@@ -926,7 +926,7 @@ impl ShellModel {
     /// The page the focused canvas shows, by ID; `None` without one.
     pub(super) fn focused_page_id(&self) -> Option<Uuid> {
         match self.current_page()? {
-            crate::canvas::PageId(ew_api::output::ew_dl::Destination::Page(id)) => Some(id),
+            crate::canvas::PageId(ew_dl::Destination::Page(id)) => Some(id),
             _ => None,
         }
     }

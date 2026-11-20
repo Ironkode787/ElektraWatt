@@ -159,7 +159,7 @@ fn a_valves_menu_draws_its_solenoid_and_both_say_where_the_other_is() {
     assert_eq!(s.current_folio(), Some("102"));
     assert!(
         s.selection()
-            .contains(ew_viewmodel::ew_api::output::ew_dl::EntityRef(valve.id)),
+            .contains(ew_dl::EntityRef(valve.id)),
         "the valve's symbol is marked"
     );
     let words = format!("{tag}, solenoid 14");

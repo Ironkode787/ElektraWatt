@@ -20,9 +20,9 @@
 
 use std::sync::Arc;
 
-use ew_api::output::ew_dl::Destination;
-use ew_api::output::ew_dl::ew_units::Rect;
 use ew_api::{AnyCommand, CmdError, DynCommand, Submit};
+use ew_dl::Destination;
+use ew_units::Rect;
 use serde_json::{Map, Value};
 
 use super::canvas_actions::point_mm;
@@ -38,7 +38,7 @@ use crate::tools::{
     PreviewInfo, PreviewState, PreviewStatus, ResultNote, Selection, SelectionChange, Tool, ToolCx,
     ToolOutput, tool_label, tool_named,
 };
-use ew_api::output::ew_dl::EntityRef;
+use ew_dl::EntityRef;
 
 /// The toast key of why a command did nothing ([`ShellModel::explain_disabled`]): a second one replaces the first.
 const DISABLED: &str = "disabled";

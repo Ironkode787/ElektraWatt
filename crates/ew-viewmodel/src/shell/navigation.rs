@@ -14,8 +14,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
-use ew_api::output::ew_dl::{Destination, EntityRef};
 use ew_api::output::{GotoError, PageRow};
+use ew_dl::{Destination, EntityRef};
 use serde_json::{Map, Value};
 
 use super::canvas_actions::point_mm;
@@ -1178,11 +1178,7 @@ impl ShellModel {
             return Outcome::refused(key!("reason-no-page"));
         }
         self.jump_to(g, page);
-        let items: Vec<ew_api::output::ew_dl::EntityRef> = open
-            .select
-            .iter()
-            .map(|u| ew_api::output::ew_dl::EntityRef(*u))
-            .collect();
+        let items: Vec<ew_dl::EntityRef> = open.select.iter().map(|u| ew_dl::EntityRef(*u)).collect();
         if self
             .tools
             .selection
@@ -1306,9 +1302,9 @@ impl ShellModel {
         if self
             .tools
             .selection
-            .apply(&crate::tools::SelectionChange::Replace(vec![
-                ew_api::output::ew_dl::EntityRef(rep),
-            ]))
+            .apply(&crate::tools::SelectionChange::Replace(vec![ew_dl::EntityRef(
+                rep,
+            )]))
         {
             self.announce_selection();
         }

@@ -7,8 +7,8 @@
 
 use ew_viewmodel::canvas::{PageLink, sort_links};
 use ew_viewmodel::ew_api::output::LinkTarget;
-use ew_viewmodel::ew_api::output::ew_dl::Destination;
-use ew_viewmodel::ew_api::output::ew_dl::ew_units::{Nm, Pt2, Rect};
+use ew_dl::Destination;
+use ew_units::{Nm, Pt2, Rect};
 
 /// The links on one spot (so one reading key), the target folios given in the order of the (random) IDs: the first
 /// gets the smallest destination and the first paint index, or the largest with `reversed`.

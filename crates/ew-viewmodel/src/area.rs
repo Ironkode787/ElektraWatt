@@ -528,7 +528,7 @@ impl CanvasArea {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ew_api::output::ew_dl::Destination;
+    use ew_dl::Destination;
 
     fn page(n: u128) -> PageId {
         let text = format!("00000000-0000-0000-0000-{n:012x}");

@@ -51,9 +51,9 @@
 use ew_api::AnyCommand;
 use ew_api::geometry::Dir;
 use ew_api::output::Uuid;
-use ew_api::output::ew_dl::EntityRef;
-use ew_api::output::ew_dl::ew_units::Rect;
 use ew_api::routing::{ToolEnd, route_wire, unrouted_line, wire_clear};
+use ew_dl::EntityRef;
+use ew_units::Rect;
 use serde_json::{Value, json};
 
 use super::{

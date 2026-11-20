@@ -14,8 +14,8 @@
 
 use std::sync::Arc;
 
-use ew_api::output::ew_dl::EntityRef;
 use ew_api::{AnyCommand, Exposure, Submit};
+use ew_dl::EntityRef;
 use serde_json::{Map, Value};
 
 use super::navigation::{Focus, bump};

@@ -181,7 +181,7 @@ pub fn next_in_series(name: &str) -> String {
 /// where it lies within 1 nm of a grid position (`Grid::settle_point`, docs/design/06a-drafting.md §2.1), so that it
 /// meets the page's pins and wires by equal numbers.
 pub(super) fn pin_point(tables: &PageTables, p: (i64, i64)) -> (i64, i64) {
-    use ew_api::output::ew_dl::ew_units::{Grid, Nm, Pt2};
+    use ew_units::{Grid, Nm, Pt2};
     let grid = u64::try_from(tables.grid.0)
         .ok()
         .zip(u64::try_from(tables.grid.1).ok())

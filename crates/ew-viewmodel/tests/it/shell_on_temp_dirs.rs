@@ -1636,7 +1636,7 @@ fn the_draft_preview_shows_readable_texts_and_the_current_choices() {
 
 /// The source texts of the shaped runs of a page output, in display-list order (the `text` member of each run).
 fn page_texts(pages: &ew_viewmodel::ew_api::output::ExportPages) -> Vec<String> {
-    use ew_viewmodel::ew_api::output::ew_dl::{Item, ItemKind};
+    use ew_dl::{Item, ItemKind};
     fn walk(items: &[Item], out: &mut Vec<String>) {
         for item in items {
             match &item.kind {
@@ -1792,7 +1792,7 @@ fn the_wizard_writes_the_company_the_frame_and_the_formats() {
 /// whose paths are filled; the placeholder logo is one filled rectangle over its whole view box, so its path bounds
 /// equal the clip.
 fn vector_logos(pages: &ew_viewmodel::ew_api::output::ExportPages) -> usize {
-    use ew_viewmodel::ew_api::output::ew_dl::{Item, ItemKind};
+    use ew_dl::{Item, ItemKind};
     fn walk(items: &[Item], out: &mut usize) {
         for item in items {
             if let ItemKind::Group(group) = &item.kind {
@@ -1820,9 +1820,9 @@ fn vector_logos(pages: &ew_viewmodel::ew_api::output::ExportPages) -> usize {
 /// The images of a page output, by content hash and format, in display-list order.
 fn page_images(
     pages: &ew_viewmodel::ew_api::output::ExportPages,
-) -> Vec<([u8; 32], ew_viewmodel::ew_api::output::ew_dl::ImageFormat)> {
-    use ew_viewmodel::ew_api::output::ew_dl::{Item, ItemKind};
-    fn walk(items: &[Item], out: &mut Vec<([u8; 32], ew_viewmodel::ew_api::output::ew_dl::ImageFormat)>) {
+) -> Vec<([u8; 32], ew_dl::ImageFormat)> {
+    use ew_dl::{Item, ItemKind};
+    fn walk(items: &[Item], out: &mut Vec<([u8; 32], ew_dl::ImageFormat)>) {
         for item in items {
             match &item.kind {
                 ItemKind::Image(image) => out.push((image.image.sha256, image.image.format)),
@@ -1860,7 +1860,7 @@ fn logo_of(dir: &Path) -> Option<([u8; 32], Value)> {
 /// says `written` for every field but the check scheme.
 #[test]
 fn the_wizard_writes_the_logo_the_shipped_profile_and_the_report_blocks() {
-    use ew_viewmodel::ew_api::output::ew_dl::ImageFormat;
+    use ew_dl::ImageFormat;
     // A placeholder logo, no company's artwork.
     const LOGO: &[u8] = br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 10"><rect width="40" height="10"/></svg>"#;
     let tmp = Tmp::new(STEM);

@@ -465,7 +465,7 @@ impl ShellModel {
         if let Some(p) = self.project.as_mut() {
             p.labels = p.session.page_labels();
         }
-        let exists = |s: &ew_api::Session, e: &ew_api::output::ew_dl::EntityRef| s.record_exists(e.0);
+        let exists = |s: &ew_api::Session, e: &ew_dl::EntityRef| s.record_exists(e.0);
         if let Some(p) = self.project.as_ref() {
             self.tools.selection.items.retain(|e| exists(&p.session, e));
             if self

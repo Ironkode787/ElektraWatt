@@ -10,8 +10,8 @@
 
 use std::sync::Arc;
 
-use ew_api::output::ew_dl::EntityRef;
 use ew_api::output::{CatalogueSymbol, PageTables, PlaceCatalogue, PlacedBy, Uuid};
+use ew_dl::EntityRef;
 use serde_json::{Map, Value, json};
 
 use super::editing::Pick;

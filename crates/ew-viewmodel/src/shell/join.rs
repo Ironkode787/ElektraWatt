@@ -54,7 +54,7 @@ impl ShellModel {
     /// The canvas object of the chooser's active row, which shows the hover outline while the row is active (doc 16a
     /// §6.22, §7.1): the row's device's first representation on the focused page (in the page table's order); none
     /// for "New device" or a device not drawn on this page.
-    pub fn chooser_object(&self) -> Option<ew_api::output::ew_dl::EntityRef> {
+    pub fn chooser_object(&self) -> Option<ew_dl::EntityRef> {
         let (ChooserValue::Join { device, .. } | ChooserValue::JoinRep { device, .. }) =
             &self.chooser()?.current()?.value
         else {
@@ -66,7 +66,7 @@ impl ShellModel {
             .reps
             .iter()
             .find(|r| r.device == Some(device))
-            .map(|r| ew_api::output::ew_dl::EntityRef(r.id))
+            .map(|r| ew_dl::EntityRef(r.id))
     }
 
     /// The active Place tool, if any.
@@ -90,12 +90,11 @@ impl ShellModel {
             return None;
         }
         let page = self.canvas()?.page();
-        let mut reps = page.tables.reps.iter().filter(|r| {
-            self.tools
-                .selection
-                .items
-                .contains(&ew_api::output::ew_dl::EntityRef(r.id))
-        });
+        let mut reps = page
+            .tables
+            .reps
+            .iter()
+            .filter(|r| self.tools.selection.items.contains(&ew_dl::EntityRef(r.id)));
         let (Some(rep), None) = (reps.next(), reps.next()) else {
             return None;
         };

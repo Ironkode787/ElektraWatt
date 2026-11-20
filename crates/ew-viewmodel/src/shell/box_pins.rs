@@ -88,7 +88,7 @@ impl ShellModel {
         let Some((q, dir)) = pin_target(grid, &b.outline, &b.cps, idx, at) else {
             return Outcome::refused(key!("reason-box-pin-no-room"));
         };
-        let (rep, pin) = (ew_api::output::ew_dl::EntityRef(rep.id), (idx, q, dir));
+        let (rep, pin) = (ew_dl::EntityRef(rep.id), (idx, q, dir));
         // The menu's point puts the pin at once; the bar's Add pin lets it follow the pointer first (rc.5).
         let tool = if given {
             PinNameTool::add(rep, pin)
@@ -158,11 +158,7 @@ impl ShellModel {
         let Some((rep, pin, name)) = self.pin_under_pointer() else {
             return false;
         };
-        self.activate_tool(Box::new(PinNameTool::rename(
-            ew_api::output::ew_dl::EntityRef(rep.id),
-            pin,
-            name,
-        )));
+        self.activate_tool(Box::new(PinNameTool::rename(ew_dl::EntityRef(rep.id), pin, name)));
         self.announce_tool();
         true
     }
@@ -218,7 +214,7 @@ impl ShellModel {
     /// The Wire tool's click on the edge of a box whose pins are its own where no pin is (rc.5): the pin's name is asked
     /// in place; once it is named the wire ends at it, one undo step with the pin. The Wire tool waits meanwhile.
     pub(super) fn pin_for_wire(&mut self, rep: ew_api::output::Uuid, pin: BoxCpAt) -> Outcome {
-        let tool = PinNameTool::add(ew_api::output::ew_dl::EntityRef(rep), pin);
+        let tool = PinNameTool::add(ew_dl::EntityRef(rep), pin);
         let wire = std::mem::replace(&mut self.tools.tool, Box::new(tool));
         if let Some(t) = self
             .tools

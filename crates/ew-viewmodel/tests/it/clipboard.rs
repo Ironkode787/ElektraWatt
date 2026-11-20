@@ -331,13 +331,13 @@ fn click_at(shell: &mut ShellModel, p: (i64, i64)) {
 /// step down with the arrow key, Enter), each one commit that keeps its first pin on the grid `g`; turns the first
 /// one; draws a wire from its first pin to a free grid point.
 fn handle_fitted(shell: &mut ShellModel, g: (i64, i64)) {
-    let grid = ew_viewmodel::ew_api::output::ew_dl::ew_units::Grid::new(g.0 as u64, g.1 as u64).unwrap();
+    let grid = ew_units::Grid::new(g.0 as u64, g.1 as u64).unwrap();
     let on = |p: (i64, i64)| {
-        grid.snap_point(ew_viewmodel::ew_api::output::ew_dl::ew_units::Nm(p.0))
+        grid.snap_point(ew_units::Nm(p.0))
             .map(|n| n.0)
             == Some(p.0)
             && grid
-                .snap_point(ew_viewmodel::ew_api::output::ew_dl::ew_units::Nm(p.1))
+                .snap_point(ew_units::Nm(p.1))
                 .map(|n| n.0)
                 == Some(p.1)
     };

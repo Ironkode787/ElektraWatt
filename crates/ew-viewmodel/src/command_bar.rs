@@ -634,10 +634,7 @@ pub enum MenuSpot {
 /// The spot of a right-click on `canvas` at its pointer over the entity `over`: an object when the page holds it as
 /// a record, else the frame when the pointer is on one of the page's frame bands (the title block and its texts among
 /// them), else the sheet.
-pub fn menu_spot(
-    canvas: &crate::canvas::CanvasModel,
-    over: Option<ew_api::output::ew_dl::EntityRef>,
-) -> MenuSpot {
+pub fn menu_spot(canvas: &crate::canvas::CanvasModel, over: Option<ew_dl::EntityRef>) -> MenuSpot {
     let page = canvas.page();
     if over.is_some_and(|e| tools::page_entity_kind(page, e).is_some()) {
         return MenuSpot::Object;

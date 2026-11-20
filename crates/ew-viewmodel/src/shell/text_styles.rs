@@ -14,12 +14,12 @@
 //! Every change is one `project.settings.set {member: "text_styles"}`: one undo step, and the open page shows it at
 //! once. The styles are the project's; a template carries them to the projects made from it.
 
-use ew_api::output::ew_dl::ew_units::Nm;
 use ew_api::{
     AnyCommand, EffectiveStyle, MIN_CAP_HEIGHT, TEXT_STYLE_MAX_SIZE, TEXT_STYLE_MIN_SIZE, TYPEFACES,
     TextStyleGroup, TextWeight, Typeface, cap_height, em_for_cap, standard_text_style, text_style_entry,
     text_style_group,
 };
+use ew_units::Nm;
 use serde_json::{Map, Value};
 
 use super::{Dialog, Outcome, ShellModel, failed, string_param};

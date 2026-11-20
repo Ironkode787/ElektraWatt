@@ -59,7 +59,7 @@ impl ShellModel {
         let mut out = Vec::new();
         if !kinds.is_empty() && kinds.iter().all(|(_, k)| *k == EntityKind::Connection) {
             // A fluid line: its medium, one entry per medium of the project (doc 11 §7), then New medium….
-            let fluid = |e: &ew_api::output::ew_dl::EntityRef| {
+            let fluid = |e: &ew_dl::EntityRef| {
                 tables
                     .connections
                     .iter()
@@ -108,8 +108,7 @@ impl ShellModel {
             return out;
         }
         // Several terminals: Choose part… for them all, and Spacing… for a row of them.
-        let terminal =
-            |e: &ew_api::output::ew_dl::EntityRef| tables.reps.iter().any(|r| r.id == e.0 && r.terminal);
+        let terminal = |e: &ew_dl::EntityRef| tables.reps.iter().any(|r| r.id == e.0 && r.terminal);
         if kinds.len() > 1 && kinds.iter().all(|(e, k)| *k == EntityKind::Rep && terminal(e)) {
             out.extend(self.menu_item("part.choose"));
             out.extend(self.menu_item("terminals.spacing"));

@@ -42,7 +42,7 @@ use crate::strings::Key;
 use ew_api::AnyCommand;
 use ew_api::geometry::{Dir, orient_dir, orient_point};
 use ew_api::output::TableRep;
-use ew_api::output::ew_dl::EntityRef;
+use ew_dl::EntityRef;
 use serde_json::{Value, json};
 
 use super::wire::PageGridMap;

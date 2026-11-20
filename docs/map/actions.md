@@ -61,12 +61,12 @@ Every key stands in `crates/ew-viewmodel/locales/en-GB/shell.ftl` and, in Dutch,
 | `page.previous` | `crates/ew-viewmodel/src/actions/table/page.rs:133` | `walk` `crates/ew-viewmodel/src/shell/navigation.rs:636` | `action-page-previous` |
 | `page.first` | `crates/ew-viewmodel/src/actions/table/page.rs:142` | `walk` `crates/ew-viewmodel/src/shell/navigation.rs:636` | `action-page-first` |
 | `page.last` | `crates/ew-viewmodel/src/actions/table/page.rs:151` | `walk` `crates/ew-viewmodel/src/shell/navigation.rs:636` | `action-page-last` |
-| `nav.goto` | `crates/ew-viewmodel/src/actions/table/page.rs:165` | `act_nav_goto` `crates/ew-viewmodel/src/shell/navigation.rs:1222` | `action-nav-goto` |
+| `nav.goto` | `crates/ew-viewmodel/src/actions/table/page.rs:165` | `act_nav_goto` `crates/ew-viewmodel/src/shell/navigation.rs:1218` | `action-nav-goto` |
 | `nav.back` | `crates/ew-viewmodel/src/actions/table/page.rs:179` | `act_history` `crates/ew-viewmodel/src/shell/navigation.rs:949` | `action-nav-back` |
 | `nav.forward` | `crates/ew-viewmodel/src/actions/table/page.rs:192` | `act_history` `crates/ew-viewmodel/src/shell/navigation.rs:949` | `action-nav-forward` |
 | `nav.follow` | `crates/ew-viewmodel/src/actions/table/page.rs:211` | `act_follow` `crates/ew-viewmodel/src/shell/navigation.rs:977` | `action-nav-follow` |
-| `nav.next_link` | `crates/ew-viewmodel/src/actions/table/page.rs:219` | `act_link_step` `crates/ew-viewmodel/src/shell/navigation.rs:1196` | `action-nav-next-link` |
-| `nav.previous_link` | `crates/ew-viewmodel/src/actions/table/page.rs:231` | `act_link_step` `crates/ew-viewmodel/src/shell/navigation.rs:1196` | `action-nav-previous-link` |
+| `nav.next_link` | `crates/ew-viewmodel/src/actions/table/page.rs:219` | `act_link_step` `crates/ew-viewmodel/src/shell/navigation.rs:1192` | `action-nav-next-link` |
+| `nav.previous_link` | `crates/ew-viewmodel/src/actions/table/page.rs:231` | `act_link_step` `crates/ew-viewmodel/src/shell/navigation.rs:1192` | `action-nav-previous-link` |
 | `cp.next` | `crates/ew-viewmodel/src/actions/table/page.rs:245` | `act_cp_step` `crates/ew-viewmodel/src/shell/tools.rs:1655` | `action-cp-next` |
 | `cp.previous` | `crates/ew-viewmodel/src/actions/table/page.rs:257` | `act_cp_step` `crates/ew-viewmodel/src/shell/tools.rs:1655` | `action-cp-previous` |
 | `cp.next_unconnected` | `crates/ew-viewmodel/src/actions/table/page.rs:269` | `act_cp_step` `crates/ew-viewmodel/src/shell/tools.rs:1655` | `action-cp-next-unconnected` |
@@ -81,8 +81,8 @@ Every key stands in `crates/ew-viewmodel/locales/en-GB/shell.ftl` and, in Dutch,
 | `view.pan_up` | `crates/ew-viewmodel/src/actions/table/view.rs:104` | `act_pan_step` `crates/ew-viewmodel/src/shell/canvas_actions.rs:232` | `action-view-pan-up` |
 | `view.pan_down` | `crates/ew-viewmodel/src/actions/table/view.rs:116` | `act_pan_step` `crates/ew-viewmodel/src/shell/canvas_actions.rs:232` | `action-view-pan-down` |
 | `view.side_by_side` | `crates/ew-viewmodel/src/actions/table/view.rs:129` | `act_side_by_side` `crates/ew-viewmodel/src/shell/navigation.rs:921` | `action-view-side-by-side` |
-| `pages.mode` | `crates/ew-viewmodel/src/actions/table/view.rs:141` | `act_pages_mode` `crates/ew-viewmodel/src/shell/navigation.rs:1474` | `action-pages-mode` |
-| `pages.sort` | `crates/ew-viewmodel/src/actions/table/view.rs:156` | `act_pages_sort` `crates/ew-viewmodel/src/shell/navigation.rs:1494` | `action-pages-sort` |
+| `pages.mode` | `crates/ew-viewmodel/src/actions/table/view.rs:141` | `act_pages_mode` `crates/ew-viewmodel/src/shell/navigation.rs:1470` | `action-pages-mode` |
+| `pages.sort` | `crates/ew-viewmodel/src/actions/table/view.rs:156` | `act_pages_sort` `crates/ew-viewmodel/src/shell/navigation.rs:1490` | `action-pages-sort` |
 | `view.grid` | `crates/ew-viewmodel/src/actions/table/view.rs:169` | `act_grid` `crates/ew-viewmodel/src/shell/canvas_actions.rs:356` | `action-view-grid` |
 | `view.frame_stats` | `crates/ew-viewmodel/src/actions/table/view.rs:176` | `act_frame_stats` `crates/ew-viewmodel/src/shell/canvas_actions.rs:361` | `action-view-frame-stats` |
 | `view.cpu_canvas` | `crates/ew-viewmodel/src/actions/table/view.rs:181` | `act_cpu_canvas` `crates/ew-viewmodel/src/shell/canvas_actions.rs:369` | `action-view-cpu-canvas` |
@@ -92,7 +92,7 @@ Every key stands in `crates/ew-viewmodel/locales/en-GB/shell.ftl` and, in Dutch,
 | `rail.show` | `crates/ew-viewmodel/src/actions/table/view.rs:229` | `act_rail_show` `crates/ew-viewmodel/src/shell/navigators.rs:1176` | `action-rail-show` |
 | `jobs.show` | `crates/ew-viewmodel/src/actions/table/view.rs:245` | `act_jobs_show` `crates/ew-viewmodel/src/shell/jobs.rs:889` | `action-jobs-show` |
 | `report_block.new` | `crates/ew-viewmodel/src/actions/table/view.rs:266` | `act_report_block_new` `crates/ew-viewmodel/src/shell/creation.rs:2204` | `action-report-block-new`, `report-block-new-title`, `toast-report-block-new` |
-| `lists.parts` | `crates/ew-viewmodel/src/actions/table/view.rs:283` | `act_lists_parts` `crates/ew-viewmodel/src/shell/navigation.rs:1370` | `action-lists-parts`, `bar-lists-parts` |
+| `lists.parts` | `crates/ew-viewmodel/src/actions/table/view.rs:283` | `act_lists_parts` `crates/ew-viewmodel/src/shell/navigation.rs:1366` | `action-lists-parts`, `bar-lists-parts` |
 | `notifications.show` | `crates/ew-viewmodel/src/actions/table/view.rs:298` | `act_notifications_show` `crates/ew-viewmodel/src/shell/jobs.rs:341` | `action-notifications-show` |
 | `messages.migration` | `crates/ew-viewmodel/src/actions/table/view.rs:312` | `act_messages_migration` `crates/ew-viewmodel/src/shell/messages.rs:332` | `action-messages-migration` |
 | `messages.show` | `crates/ew-viewmodel/src/actions/table/view.rs:328` | `act_messages_show` `crates/ew-viewmodel/src/shell/messages.rs:347` | `action-messages-show` |
@@ -132,10 +132,10 @@ Every key stands in `crates/ew-viewmodel/locales/en-GB/shell.ftl` and, in Dutch,
 | `picker.open` | `crates/ew-viewmodel/src/actions/table/draw.rs:197` | `act_picker_open` `crates/ew-viewmodel/src/shell/editing.rs:1310` | `action-picker-open` |
 | `picker.choose` | `crates/ew-viewmodel/src/actions/table/draw.rs:211` | `act_picker_choose` `crates/ew-viewmodel/src/shell/editing.rs:1378` | `action-picker-choose` |
 | `picker.new_page` | `crates/ew-viewmodel/src/actions/table/draw.rs:222` | `act_picker_new_page` `crates/ew-viewmodel/src/shell/editing.rs:1325` | `action-picker-new-page` |
-| `place.join` | `crates/ew-viewmodel/src/actions/table/draw.rs:233` | `act_place_join` `crates/ew-viewmodel/src/shell/join.rs:252` | `action-place-join`, `hud-keys-place-join` |
-| `chooser.row` | `crates/ew-viewmodel/src/actions/table/draw.rs:244` | `act_chooser_row` `crates/ew-viewmodel/src/shell/join.rs:365` | `action-chooser-row` |
-| `chooser.type` | `crates/ew-viewmodel/src/actions/table/draw.rs:256` | `act_chooser_type` `crates/ew-viewmodel/src/shell/join.rs:379` | `action-chooser-type` |
-| `chooser.choose` | `crates/ew-viewmodel/src/actions/table/draw.rs:268` | `act_chooser_choose` `crates/ew-viewmodel/src/shell/join.rs:394` | `action-chooser-choose` |
+| `place.join` | `crates/ew-viewmodel/src/actions/table/draw.rs:233` | `act_place_join` `crates/ew-viewmodel/src/shell/join.rs:251` | `action-place-join`, `hud-keys-place-join` |
+| `chooser.row` | `crates/ew-viewmodel/src/actions/table/draw.rs:244` | `act_chooser_row` `crates/ew-viewmodel/src/shell/join.rs:364` | `action-chooser-row` |
+| `chooser.type` | `crates/ew-viewmodel/src/actions/table/draw.rs:256` | `act_chooser_type` `crates/ew-viewmodel/src/shell/join.rs:378` | `action-chooser-type` |
+| `chooser.choose` | `crates/ew-viewmodel/src/actions/table/draw.rs:268` | `act_chooser_choose` `crates/ew-viewmodel/src/shell/join.rs:393` | `action-chooser-choose` |
 | `tool.rotate_cw` | `crates/ew-viewmodel/src/actions/table/draw.rs:281` | `act_tool_key` `crates/ew-viewmodel/src/shell/editing.rs:1640` | `action-tool-rotate-cw` |
 | `tool.rotate_ccw` | `crates/ew-viewmodel/src/actions/table/draw.rs:291` | `act_tool_key` `crates/ew-viewmodel/src/shell/editing.rs:1640` | `action-tool-rotate-ccw` |
 | `tool.mirror_x` | `crates/ew-viewmodel/src/actions/table/draw.rs:303` | `act_tool_key` `crates/ew-viewmodel/src/shell/editing.rs:1640` | `action-tool-mirror-x` |
@@ -283,23 +283,23 @@ Every key stands in `crates/ew-viewmodel/locales/en-GB/shell.ftl` and, in Dutch,
 | `script.expect_refused` | `crates/ew-viewmodel/src/actions/table/panes.rs:140` | `act_script_expect_refused` `crates/ew-viewmodel/src/shell.rs:1838` | `action-script-expect-refused` |
 | `script.expect_failed` | `crates/ew-viewmodel/src/actions/table/panes.rs:154` | `act_script_expect_failed` `crates/ew-viewmodel/src/shell.rs:1844` | `action-script-expect-failed` |
 | `ui.describe` | `crates/ew-viewmodel/src/actions/table/panes.rs:164` | `act_ui_describe` `crates/ew-viewmodel/src/shell.rs:1833` | `action-ui-describe` |
-| `page.goto` | `crates/ew-viewmodel/src/actions/table/panes.rs:175` | `act_page_goto` `crates/ew-viewmodel/src/shell/navigation.rs:1410` | `action-page-goto` |
+| `page.goto` | `crates/ew-viewmodel/src/actions/table/panes.rs:175` | `act_page_goto` `crates/ew-viewmodel/src/shell/navigation.rs:1406` | `action-page-goto` |
 | `tab.activate` | `crates/ew-viewmodel/src/actions/table/panes.rs:187` | `act_tab_activate` `crates/ew-viewmodel/src/shell/navigation.rs:873` | `action-tab-activate` |
 | `tab.move` | `crates/ew-viewmodel/src/actions/table/panes.rs:199` | `act_tab_move` `crates/ew-viewmodel/src/shell/navigation.rs:885` | `action-tab-move` |
 | `tab.open` | `crates/ew-viewmodel/src/actions/table/panes.rs:211` | `act_tab_open` `crates/ew-viewmodel/src/shell/navigation.rs:903` | `action-tab-open` |
-| `cursor.left` | `crates/ew-viewmodel/src/actions/table/panes.rs:223` | `act_cursor` `crates/ew-viewmodel/src/shell/navigation.rs:1434` | `action-cursor-left` |
-| `cursor.right` | `crates/ew-viewmodel/src/actions/table/panes.rs:235` | `act_cursor` `crates/ew-viewmodel/src/shell/navigation.rs:1434` | `action-cursor-right` |
-| `cursor.up` | `crates/ew-viewmodel/src/actions/table/panes.rs:247` | `act_cursor` `crates/ew-viewmodel/src/shell/navigation.rs:1434` | `action-cursor-up` |
-| `cursor.down` | `crates/ew-viewmodel/src/actions/table/panes.rs:259` | `act_cursor` `crates/ew-viewmodel/src/shell/navigation.rs:1434` | `action-cursor-down` |
-| `cursor.cell_left` | `crates/ew-viewmodel/src/actions/table/panes.rs:271` | `act_cursor` `crates/ew-viewmodel/src/shell/navigation.rs:1434` | `action-cursor-cell-left` |
-| `cursor.cell_right` | `crates/ew-viewmodel/src/actions/table/panes.rs:283` | `act_cursor` `crates/ew-viewmodel/src/shell/navigation.rs:1434` | `action-cursor-cell-right` |
-| `cursor.cell_up` | `crates/ew-viewmodel/src/actions/table/panes.rs:295` | `act_cursor` `crates/ew-viewmodel/src/shell/navigation.rs:1434` | `action-cursor-cell-up` |
-| `cursor.cell_down` | `crates/ew-viewmodel/src/actions/table/panes.rs:307` | `act_cursor` `crates/ew-viewmodel/src/shell/navigation.rs:1434` | `action-cursor-cell-down` |
-| `cursor.set` | `crates/ew-viewmodel/src/actions/table/panes.rs:319` | `act_cursor_set` `crates/ew-viewmodel/src/shell/navigation.rs:1455` | `action-cursor-set` |
-| `pages.filter` | `crates/ew-viewmodel/src/actions/table/panes.rs:331` | `act_pages_filter` `crates/ew-viewmodel/src/shell/navigation.rs:1508` | `action-pages-filter` |
-| `pages.toggle` | `crates/ew-viewmodel/src/actions/table/panes.rs:344` | `act_pages_toggle` `crates/ew-viewmodel/src/shell/navigation.rs:1532` | `action-pages-toggle` |
-| `pages.row` | `crates/ew-viewmodel/src/actions/table/panes.rs:353` | `act_pages_row` `crates/ew-viewmodel/src/shell/navigation.rs:1544` | `action-pages-row` |
-| `pages.open` | `crates/ew-viewmodel/src/actions/table/panes.rs:362` | `act_pages_open` `crates/ew-viewmodel/src/shell/navigation.rs:1577` | `action-pages-open` |
+| `cursor.left` | `crates/ew-viewmodel/src/actions/table/panes.rs:223` | `act_cursor` `crates/ew-viewmodel/src/shell/navigation.rs:1430` | `action-cursor-left` |
+| `cursor.right` | `crates/ew-viewmodel/src/actions/table/panes.rs:235` | `act_cursor` `crates/ew-viewmodel/src/shell/navigation.rs:1430` | `action-cursor-right` |
+| `cursor.up` | `crates/ew-viewmodel/src/actions/table/panes.rs:247` | `act_cursor` `crates/ew-viewmodel/src/shell/navigation.rs:1430` | `action-cursor-up` |
+| `cursor.down` | `crates/ew-viewmodel/src/actions/table/panes.rs:259` | `act_cursor` `crates/ew-viewmodel/src/shell/navigation.rs:1430` | `action-cursor-down` |
+| `cursor.cell_left` | `crates/ew-viewmodel/src/actions/table/panes.rs:271` | `act_cursor` `crates/ew-viewmodel/src/shell/navigation.rs:1430` | `action-cursor-cell-left` |
+| `cursor.cell_right` | `crates/ew-viewmodel/src/actions/table/panes.rs:283` | `act_cursor` `crates/ew-viewmodel/src/shell/navigation.rs:1430` | `action-cursor-cell-right` |
+| `cursor.cell_up` | `crates/ew-viewmodel/src/actions/table/panes.rs:295` | `act_cursor` `crates/ew-viewmodel/src/shell/navigation.rs:1430` | `action-cursor-cell-up` |
+| `cursor.cell_down` | `crates/ew-viewmodel/src/actions/table/panes.rs:307` | `act_cursor` `crates/ew-viewmodel/src/shell/navigation.rs:1430` | `action-cursor-cell-down` |
+| `cursor.set` | `crates/ew-viewmodel/src/actions/table/panes.rs:319` | `act_cursor_set` `crates/ew-viewmodel/src/shell/navigation.rs:1451` | `action-cursor-set` |
+| `pages.filter` | `crates/ew-viewmodel/src/actions/table/panes.rs:331` | `act_pages_filter` `crates/ew-viewmodel/src/shell/navigation.rs:1504` | `action-pages-filter` |
+| `pages.toggle` | `crates/ew-viewmodel/src/actions/table/panes.rs:344` | `act_pages_toggle` `crates/ew-viewmodel/src/shell/navigation.rs:1528` | `action-pages-toggle` |
+| `pages.row` | `crates/ew-viewmodel/src/actions/table/panes.rs:353` | `act_pages_row` `crates/ew-viewmodel/src/shell/navigation.rs:1540` | `action-pages-row` |
+| `pages.open` | `crates/ew-viewmodel/src/actions/table/panes.rs:362` | `act_pages_open` `crates/ew-viewmodel/src/shell/navigation.rs:1573` | `action-pages-open` |
 | `navigator.show` | `crates/ew-viewmodel/src/actions/table/panes.rs:374` | `act_navigator_show` `crates/ew-viewmodel/src/shell/navigators.rs:1134` | `action-navigator-show` |
 | `navigator.view` | `crates/ew-viewmodel/src/actions/table/panes.rs:387` | `act_navigator_view` `crates/ew-viewmodel/src/shell/navigators.rs:1227` | `action-navigator-view` |
 | `navigator.sort` | `crates/ew-viewmodel/src/actions/table/panes.rs:399` | `act_navigator_sort` `crates/ew-viewmodel/src/shell/navigators.rs:1249` | `action-navigator-sort` |
@@ -340,9 +340,9 @@ Every key stands in `crates/ew-viewmodel/locales/en-GB/shell.ftl` and, in Dutch,
 | `table.clear` | `crates/ew-viewmodel/src/actions/table/panes.rs:845` | `act_table_clear` `crates/ew-viewmodel/src/shell/table.rs:1444` | `action-table-clear` |
 | `table.resolve` | `crates/ew-viewmodel/src/actions/table/panes.rs:857` | `act_table_resolve` `crates/ew-viewmodel/src/shell/table.rs:1492` | `action-table-resolve` |
 | `table.drop` | `crates/ew-viewmodel/src/actions/table/panes.rs:869` | `act_table_drop` `crates/ew-viewmodel/src/shell/table.rs:1520` | `action-table-drop`, `card-table-drop` |
-| `ui.focus` | `crates/ew-viewmodel/src/actions/table/panes.rs:881` | `act_focus` `crates/ew-viewmodel/src/shell/navigation.rs:1617` | `action-ui-focus` |
-| `ui.focus_next` | `crates/ew-viewmodel/src/actions/table/panes.rs:891` | `act_focus_cycle` `crates/ew-viewmodel/src/shell/navigation.rs:1669` | `action-ui-focus-next` |
-| `ui.focus_previous` | `crates/ew-viewmodel/src/actions/table/panes.rs:900` | `act_focus_cycle` `crates/ew-viewmodel/src/shell/navigation.rs:1669` | `action-ui-focus-previous` |
+| `ui.focus` | `crates/ew-viewmodel/src/actions/table/panes.rs:881` | `act_focus` `crates/ew-viewmodel/src/shell/navigation.rs:1613` | `action-ui-focus` |
+| `ui.focus_next` | `crates/ew-viewmodel/src/actions/table/panes.rs:891` | `act_focus_cycle` `crates/ew-viewmodel/src/shell/navigation.rs:1665` | `action-ui-focus-next` |
+| `ui.focus_previous` | `crates/ew-viewmodel/src/actions/table/panes.rs:900` | `act_focus_cycle` `crates/ew-viewmodel/src/shell/navigation.rs:1665` | `action-ui-focus-previous` |
 | `ui.dismiss` | `crates/ew-viewmodel/src/actions/table/panes.rs:909` | `act_dismiss` `crates/ew-viewmodel/src/shell.rs:2200` | `action-ui-dismiss` |
 | `settings.set` | `crates/ew-viewmodel/src/actions/table/panes.rs:920` | `act_settings_set` `crates/ew-viewmodel/src/shell/onboarding.rs:185` | `action-settings-set`, `command-project-settings-set` |
 | `first_run.set` | `crates/ew-viewmodel/src/actions/table/controls.rs:16` | `act_first_run_set` `crates/ew-viewmodel/src/shell/onboarding.rs:295` | `action-first-run-set` |
@@ -511,7 +511,7 @@ Every key stands in `crates/ew-viewmodel/locales/en-GB/shell.ftl` and, in Dutch,
 | `fluid.draw_solenoid` | `crates/ew-viewmodel/src/actions/table/automation.rs:487` | `act_fluid_draw_solenoid` `crates/ew-viewmodel/src/shell/fluid.rs:269` | `action-fluid-draw-solenoid` |
 | `fluid.draw_plug` | `crates/ew-viewmodel/src/actions/table/automation.rs:512` | `act_fluid_draw_plug` `crates/ew-viewmodel/src/shell/fluid.rs:296` | `action-fluid-draw-plug` |
 | `fluid.plug_ports` | `crates/ew-viewmodel/src/actions/table/automation.rs:529` | `act_fluid_plug_ports` `crates/ew-viewmodel/src/shell/fluid.rs:328` | `action-fluid-plug-ports` |
-| `nav.show` | `crates/ew-viewmodel/src/actions/table/automation.rs:542` | `act_nav_show` `crates/ew-viewmodel/src/shell/navigation.rs:1265` | `action-nav-show`, `nav-show-solenoid` |
+| `nav.show` | `crates/ew-viewmodel/src/actions/table/automation.rs:542` | `act_nav_show` `crates/ew-viewmodel/src/shell/navigation.rs:1261` | `action-nav-show`, `nav-show-solenoid` |
 | `fluid.draw_terminal` | `crates/ew-viewmodel/src/actions/table/automation.rs:557` | `act_fluid_draw_terminal` `crates/ew-viewmodel/src/shell/fluid.rs:387` | `action-fluid-draw-terminal` |
 | `fluid.set_medium` | `crates/ew-viewmodel/src/actions/table/automation.rs:573` | `act_fluid_set_medium` `crates/ew-viewmodel/src/shell/fluid.rs:508` | `action-fluid-set-medium` |
 | `fluid.medium_new` | `crates/ew-viewmodel/src/actions/table/automation.rs:589` | `act_fluid_medium_new` `crates/ew-viewmodel/src/shell/creation.rs:1354` | `action-fluid-medium-new`, `form-hint-fluid-medium-new-name`, `form-hint-fluid-medium-new-p-nom`, `form-hint-fluid-medium-new-preset` |

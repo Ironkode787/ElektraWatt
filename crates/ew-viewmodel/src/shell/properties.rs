@@ -19,9 +19,9 @@
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use ew_api::output::ew_dl::{Destination, EntityRef};
 use ew_api::output::{InputError, ParsedInput};
 use ew_api::{AnyCommand, CmdError, Exposure};
+use ew_dl::{Destination, EntityRef};
 use serde_json::{Map, Value, json};
 
 use super::navigation::{Focus, bump};

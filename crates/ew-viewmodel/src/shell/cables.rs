@@ -24,7 +24,7 @@
 //! under the fields, a success closes the form with a toast.
 
 use ew_api::output::Uuid;
-use ew_api::output::ew_dl::{Destination, EntityRef};
+use ew_dl::{Destination, EntityRef};
 use serde_json::{Map, Value};
 
 use super::{Dialog, FormDialog, FormField, Mode, Outcome, ShellModel, failed};

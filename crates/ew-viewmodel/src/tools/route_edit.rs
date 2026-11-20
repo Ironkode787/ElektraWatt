@@ -26,7 +26,7 @@
 
 use ew_api::AnyCommand;
 use ew_api::output::TableConnection;
-use ew_api::output::ew_dl::EntityRef;
+use ew_dl::EntityRef;
 use serde_json::json;
 
 use super::autoconnect::dedup;

@@ -8,7 +8,7 @@
 use crate::common;
 
 use common::{Tmp, at, done, tables};
-use ew_viewmodel::ew_api::output::ew_dl::{Item, ItemKind};
+use ew_dl::{Item, ItemKind};
 use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
 use serde_json::json;
 

@@ -16,9 +16,9 @@ use std::sync::Arc;
 
 use ew_api::AnyCommand;
 use ew_api::geometry::orient_point;
-use ew_api::output::ew_dl::EntityRef;
-use ew_api::output::ew_dl::ew_units::{Nm, Pt2, Rect};
 use ew_api::output::{SymbolShape, exchange_map};
+use ew_dl::EntityRef;
+use ew_units::{Nm, Pt2, Rect};
 use serde_json::{Value, json};
 
 use super::{

@@ -11,8 +11,8 @@ use ew_api::drafting::consts::TICKS_PER_STEP;
 use ew_api::drafting::{self, GuideKind, Part, PartId, Pin, PinId, Pt, Rect, Side, Tick};
 use ew_api::geometry::Dir;
 use ew_api::output::Uuid;
-use ew_api::output::ew_dl::ew_units::Grid;
 use ew_api::routing::Ticks;
+use ew_units::Grid;
 
 use super::{OverlayItem, Style, Token, ToolCx};
 

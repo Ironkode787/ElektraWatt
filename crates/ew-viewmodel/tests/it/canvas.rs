@@ -214,14 +214,14 @@ fn a5_a_pointer_at_each_entity_centre_hovers_an_entity_no_larger_that_contains_i
     done(&mut shell, "view.zoom_to", json!({"percent": 400}));
     let entities = shell.canvas().unwrap().page().entities.clone();
     assert!(entities.len() > 20, "folio 103 has entities: {}", entities.len());
-    let area = |r: &ew_viewmodel::ew_api::output::ew_dl::ew_units::Rect| {
+    let area = |r: &ew_units::Rect| {
         i128::from(r.max().x.0 - r.min().x.0) * i128::from(r.max().y.0 - r.min().y.0)
     };
     // A wire answers only near its own line (rc.3): the centre of the box round its ends is no point of it, and a
     // wire hovered at another entity's centre passes within the reach, whatever its box.
     let tables = shell.canvas().unwrap().page().tables.clone();
     let wire =
-        |e: &ew_viewmodel::ew_api::output::ew_dl::EntityRef| tables.connections.iter().any(|c| c.id == e.0);
+        |e: &ew_dl::EntityRef| tables.connections.iter().any(|c| c.id == e.0);
     for (entity, r) in entities.iter().filter(|(e, _)| !wire(e)) {
         let (x, y) = rect_centre(*r);
         done(
@@ -657,8 +657,8 @@ fn the_canvas_says_how_to_move_about_and_back() {
 }
 
 /// Every text of a list (groups opened) with its origin, sorted.
-fn text_places(items: &[ew_viewmodel::ew_api::output::ew_dl::Item]) -> Vec<(String, (i64, i64))> {
-    use ew_viewmodel::ew_api::output::ew_dl::{Item, ItemKind};
+fn text_places(items: &[ew_dl::Item]) -> Vec<(String, (i64, i64))> {
+    use ew_dl::{Item, ItemKind};
     fn walk(items: &[Item], out: &mut Vec<(String, (i64, i64))>) {
         for item in items {
             match &item.kind {

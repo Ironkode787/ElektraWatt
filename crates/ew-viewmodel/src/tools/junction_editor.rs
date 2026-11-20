@@ -9,8 +9,8 @@
 //! style (R on a bevel cycles its orientation), `junction.wiring` the wiring. The popup reads itself again from the
 //! next page tables and closes with `ui.dismiss`.
 
-use ew_api::output::ew_dl::EntityRef;
 use ew_api::output::{JunctionWire, PageTables, TableEnd};
+use ew_dl::EntityRef;
 use serde_json::{Value, json};
 
 /// One member row of the editor.

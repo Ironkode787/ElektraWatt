@@ -13,7 +13,7 @@ use serde_json::json;
 
 /// The texts the page on show prints.
 fn texts(shell: &ShellModel) -> Vec<String> {
-    use ew_viewmodel::ew_api::output::ew_dl::{Item, ItemKind};
+    use ew_dl::{Item, ItemKind};
     fn walk(items: &[Item], out: &mut Vec<String>) {
         for item in items {
             match &item.kind {

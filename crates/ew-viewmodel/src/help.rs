@@ -562,12 +562,7 @@ impl Thing {
 /// (its handles stand on it). A device by what it is (a terminal, a PLC card, a valve, …), a connection by its kind,
 /// a page item by its kind; an entity the page tables do not hold is what the program draws itself: on a generated
 /// page the list, else a device (an assembly overview's).
-pub fn thing_at(
-    model: &ShellModel,
-    page: &CanvasPage,
-    e: ew_api::output::ew_dl::EntityRef,
-    pointer: bool,
-) -> Thing {
+pub fn thing_at(model: &ShellModel, page: &CanvasPage, e: ew_dl::EntityRef, pointer: bool) -> Thing {
     let tables = &page.tables;
     match crate::tools::page_entity_kind(page, e) {
         Some(EntityKind::Rep) => {

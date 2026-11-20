@@ -34,9 +34,9 @@
 
 use std::sync::Arc;
 
-use ew_api::output::ew_dl::ew_units::{Nm, Rect};
-use ew_api::output::ew_dl::{Destination, DisplayList, EntityRef};
 use ew_api::output::{LinkTarget, PageCells, PageCp, PageGrid, PageRow, PageTables, Uuid};
+use ew_dl::{Destination, DisplayList, EntityRef};
+use ew_units::{Nm, Rect};
 
 use crate::shell::natural_cmp;
 use crate::tools::{Snapper, clamp64, div_round_away};
@@ -1267,7 +1267,7 @@ pub fn symbol_name(key: &str) -> &str {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ew_api::output::ew_dl::ew_units::Pt2;
+    use ew_units::Pt2;
 
     fn pt(x: i64, y: i64) -> Pt2 {
         Pt2::new(Nm(x), Nm(y))

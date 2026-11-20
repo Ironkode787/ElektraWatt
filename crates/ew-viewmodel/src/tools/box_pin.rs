@@ -25,7 +25,7 @@
 
 use crate::key;
 use ew_api::AnyCommand;
-use ew_api::output::ew_dl::EntityRef;
+use ew_dl::EntityRef;
 
 use super::black_box::{BoxCpAt, reshape_named};
 use super::wire::PageGridMap;

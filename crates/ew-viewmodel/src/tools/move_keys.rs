@@ -17,9 +17,9 @@
 use std::collections::BTreeSet;
 
 use ew_api::AnyCommand;
-use ew_api::output::ew_dl::EntityRef;
-use ew_api::output::ew_dl::ew_units::Rect;
 use ew_api::output::{PageTables, TableEnd};
+use ew_dl::EntityRef;
+use ew_units::Rect;
 use serde_json::json;
 
 use super::{Anchor, Overlay, OverlayItem, Style, Token, ToolCx, clamp64, div_round_toward_zero};

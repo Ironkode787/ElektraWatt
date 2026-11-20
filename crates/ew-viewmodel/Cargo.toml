@@ -26,6 +26,10 @@ testkit = []
 
 [dependencies]
 ew-api = { path = "../ew-api" }
+# The display list and the lengths of the pages the shell shows, named by their own crates (foundation edges, ARCH §3
+# rule 6).
+ew-dl = { path = "../ew-dl" }
+ew-units = { path = "../ew-units" }
 # UI-script lines, command parameters and the transcript (ew.uiscript/1, ew.uitranscript/1).
 serde_json = "1.0.154"
 # settings.toml; a `toml::Table` keeps unknown keys, sorted.

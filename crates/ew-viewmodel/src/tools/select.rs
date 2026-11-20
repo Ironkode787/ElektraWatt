@@ -60,8 +60,8 @@
 
 use crate::key;
 use crate::strings::Key;
-use ew_api::output::ew_dl::ew_units::{Nm, Pt2, Rect};
-use ew_api::output::ew_dl::{Destination, EntityRef};
+use ew_dl::{Destination, EntityRef};
+use ew_units::{Nm, Pt2, Rect};
 
 use super::black_box;
 use super::move_keys::{move_command, move_overlay, moved_set, readout, release_command, steps_between};
@@ -1723,7 +1723,7 @@ impl Tool for SelectTool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ew_api::output::ew_dl::ew_units::{Nm, Pt2};
+    use ew_units::{Nm, Pt2};
 
     fn rect(x0: i64, y0: i64, x1: i64, y1: i64) -> Rect {
         Rect::from_points(Pt2::new(Nm(x0), Nm(y0)), Pt2::new(Nm(x1), Nm(y1)))

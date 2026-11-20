@@ -32,11 +32,11 @@
 //! commit (asked only when that command changes), or the tool's off-rail text.
 
 use ew_api::AnyCommand;
-use ew_api::output::ew_dl::ew_units::{Nm, Pt2, Rect};
 use ew_api::output::{
     Fit, PanelAxis, PanelTables, Profile, RailItem, SnapMode, Uuid, brackets, end_gap, fits_rail, min_gap,
     resolve, start_gap,
 };
+use ew_units::{Nm, Pt2, Rect};
 use serde_json::{Value, json};
 
 use super::{

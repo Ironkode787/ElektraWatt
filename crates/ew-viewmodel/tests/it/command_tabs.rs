@@ -188,7 +188,7 @@ fn the_rack_button_lists_the_stations() {
     let station = s.station_tab().and_then(|t| t.station).expect("the station");
     assert_eq!(
         s.selection().items,
-        vec![ew_viewmodel::ew_api::output::ew_dl::EntityRef(station)]
+        vec![ew_dl::EntityRef(station)]
     );
     let remove = ew_viewmodel::actions::find("plc.module_remove").expect("Remove module");
     assert_eq!((remove.enabled)(&s), Err(ew_viewmodel::key!("reason-rack-head")));
@@ -198,7 +198,7 @@ fn the_rack_button_lists_the_stations() {
     let module = s.station_device().expect("the module in slot 1");
     assert_eq!(
         s.selection().items,
-        vec![ew_viewmodel::ew_api::output::ew_dl::EntityRef(module)]
+        vec![ew_dl::EntityRef(module)]
     );
     s.shutdown();
 }

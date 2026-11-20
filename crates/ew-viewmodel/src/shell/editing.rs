@@ -17,9 +17,9 @@
 
 use std::sync::Arc;
 
-use ew_api::output::ew_dl::EntityRef;
 use ew_api::output::{CatalogueSymbol, PageTables, PlaceCatalogue, PlacedBy, SymbolShape, Uuid};
 use ew_api::{AnyCommand, Session};
+use ew_dl::EntityRef;
 use serde_json::{Map, Value, json};
 
 use super::terminals::{TERMINAL_DESIGNATION, TERMINAL_ROW_MAX, TERMINAL_SPACING_MAX, terminal_designation};

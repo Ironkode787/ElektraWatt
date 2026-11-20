@@ -22,7 +22,7 @@ use std::collections::BTreeMap;
 use ew_api::output::PreviewEntity;
 use ew_api::window::{HistoryRow, HistoryView};
 
-use ew_api::output::ew_dl::EntityRef;
+use ew_dl::EntityRef;
 
 use crate::canvas::{PageId, Viewport};
 use crate::shell::HistoryMarker;
@@ -318,7 +318,7 @@ mod tests {
     fn contexts_keep_the_first_and_drop_the_oldest() {
         let mut pane = HistoryPane::default();
         let ctx = |n: u128| HistoryContext {
-            page: PageId(ew_api::output::ew_dl::Destination::Page(uuid_of(n))),
+            page: PageId(ew_dl::Destination::Page(uuid_of(n))),
             viewport: Viewport {
                 centre: (0, 0),
                 zoom: 1.0,

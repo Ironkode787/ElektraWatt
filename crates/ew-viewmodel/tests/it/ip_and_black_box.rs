@@ -70,7 +70,7 @@ fn ips(t: &PageTables) -> Vec<(String, String, (i64, i64))> {
 /// Every connection of `t` at a CP of function `f`: (connection ID, the CP's index, the route's end at it).
 fn ends_at(
     t: &PageTables,
-    f: ew_viewmodel::ew_api::output::ew_dl::EntityRef,
+    f: ew_dl::EntityRef,
 ) -> Vec<(String, u16, (i64, i64))> {
     let mut out = Vec::new();
     for c in &t.connections {
@@ -390,7 +390,7 @@ fn arrange_by_name_puts_l1_in_the_upper_slot() {
     let n_before = xref_of_partner(&mut s, "N-1");
     assert!(before.starts_with("102-"), "{before}");
     assert_ne!(before, n_before, "two cells");
-    let l1_fn = ew_viewmodel::ew_api::output::ew_dl::EntityRef(l1.functions[0]);
+    let l1_fn = ew_dl::EntityRef(l1.functions[0]);
     // Fewer than two selected: refused.
     select_ids(&mut s, &[l1.id.to_string()]);
     assert_eq!(
@@ -642,7 +642,7 @@ fn check_widened(s: &ShellModel, before: &TableRep, connected: usize) {
             "centred: {new:?} in {left}..{right}"
         );
     }
-    let f = ew_viewmodel::ew_api::output::ew_dl::EntityRef(after.functions[0]);
+    let f = ew_dl::EntityRef(after.functions[0]);
     let ends = ends_at(&t, f);
     assert_eq!(ends.len(), connected, "all connected");
     for (_, idx, end) in ends {
@@ -657,7 +657,7 @@ fn widening_g1_by_two_grid_steps_keeps_its_cps_on_the_outline_and_connected() {
     let mut s = actual_size(&tmp, "102");
     let t = tables(&s);
     let before = g1(&t);
-    let f = ew_viewmodel::ew_api::output::ew_dl::EntityRef(before.functions[0]);
+    let f = ew_dl::EntityRef(before.functions[0]);
     let connected = ends_at(&t, f).len();
     assert_eq!(before.black_box.as_ref().unwrap().cps.len(), 7);
     assert_eq!(connected, 7, "Golden A connects all seven CPs of -102G1");
@@ -737,7 +737,7 @@ fn centre_the_pins_from_a_boxs_right_click() {
         ((first - left) - (right - last)).abs() <= 1,
         "{top:?} in {left}..{right}"
     );
-    let f = ew_viewmodel::ew_api::output::ew_dl::EntityRef(after.functions[0]);
+    let f = ew_dl::EntityRef(after.functions[0]);
     for (_, idx, end) in ends_at(&t, f) {
         assert_eq!(
             end,

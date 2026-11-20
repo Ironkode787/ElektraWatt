@@ -345,7 +345,7 @@ impl ShellModel {
         let items = self
             .station_device()
             .or(station)
-            .map(ew_api::output::ew_dl::EntityRef)
+            .map(ew_dl::EntityRef)
             .into_iter()
             .collect();
         if self

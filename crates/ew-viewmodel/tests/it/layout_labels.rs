@@ -11,7 +11,7 @@ use crate::common;
 
 use common::{Tmp, at, done, refused};
 use ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
-use ew_viewmodel::ew_api::output::ew_dl::ew_units::Rect;
+use ew_units::Rect;
 use ew_viewmodel::ew_api::output::{PanelTables, Uuid};
 use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
@@ -39,7 +39,7 @@ fn placed(shell: &ShellModel, tag: &str) -> Uuid {
 
 /// The texts the page on show prints.
 fn texts(shell: &ShellModel) -> Vec<String> {
-    use ew_viewmodel::ew_api::output::ew_dl::{Item, ItemKind};
+    use ew_dl::{Item, ItemKind};
     fn walk(items: &[Item], out: &mut Vec<String>) {
         for item in items {
             match &item.kind {
@@ -199,7 +199,7 @@ fn a_selected_placements_balloon_drags_alone_and_the_pages_menu_puts_labels_back
 
 /// The glyph runs the page on show prints inside the page rectangle `r`, in paint order.
 fn texts_in(shell: &ShellModel, r: Rect) -> Vec<String> {
-    use ew_viewmodel::ew_api::output::ew_dl::{Item, ItemKind};
+    use ew_dl::{Item, ItemKind};
     fn walk(items: &[Item], r: Rect, out: &mut Vec<String>) {
         for item in items {
             match &item.kind {

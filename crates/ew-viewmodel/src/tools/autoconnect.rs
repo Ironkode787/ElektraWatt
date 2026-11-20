@@ -40,8 +40,8 @@
 //! and is not split.
 
 use ew_api::geometry::Dir;
-use ew_api::output::ew_dl::EntityRef;
 use ew_api::output::{PageTables, TableCp, TableRep, Uuid};
+use ew_dl::EntityRef;
 use serde_json::{Value, json};
 
 use super::wire::PageGridMap;

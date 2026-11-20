@@ -90,7 +90,7 @@ impl History {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ew_api::output::ew_dl::Destination;
+    use ew_dl::Destination;
 
     fn page(n: u128) -> PageId {
         // A page identity made of a number (the crate names no UUID type: parse one).
