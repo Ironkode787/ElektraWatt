@@ -5,7 +5,8 @@
 //! together so that they nest and do not cross. The router lays them after the trunks and before the search
 //! ([`crate::route`]); [`tracks_needed`] counts them for the placer (§4.5).
 //!
-//! A **stepping wire** is a job between two pins that cannot be one segment and whose shape is known: a **Z** between
+//! A **stepping wire** is a job, the one wire of its net, between two pins that cannot be one segment and whose shape is
+//! known: a **Z** between
 //! two pins that face each other and are not in line (it leaves along the first pin, steps sideways once, arrives
 //! along the second), or a **U** between two pins on the same side (out, across, back). Its one free number is the
 //! **track**: the line of its middle segment.
@@ -18,16 +19,20 @@
 //!
 //! 1. *Order.* Wire *p* takes a track before wire *q* (nearer to the row it leaves) when a leg of *p* would otherwise
 //!    cross *q*'s middle: a leg of *p* that leaves the near row lies within *q*'s span, or a leg of *q* that arrives at
-//!    the far row lies within *p*'s span. A leg on a pin that the other wire also ends at counts for neither. Where two
+//!    the far row lies within *p*'s span, and the leg reaches the depths the other's middle may take (a leg runs from
+//!    its pin to its track). A leg on a pin that the other wire also ends at counts for neither. Where two
 //!    wires ask for both orders, one crossing is unavoidable and the pair is ordered by its legs' places (the near leg
 //!    first, smaller first). The wires are then taken in that order, ties by the left end of the span; a ring of three
 //!    or more is broken at the wire with the fewest wires still before it.
-//! 2. *Assignment.* Each wire takes the first track, from the near side, that lies [`TRACK_PITCH`] beyond the tracks
-//!    of the wires that must come before it and as far from the track of every wire whose span meets its own: the
-//!    left-edge method with its order constraints. When the channel has too few such tracks for its wires, the
-//!    assignment is made again with [`TRACK_PITCH_NARROW`].
-//! 3. *Laid* by the router where the whole route is clear in the occupancy; a track that is not is passed over, and a
-//!    wire with no free track goes to the search.
+//! 2. *Assignment.* Each wire takes the first track, from the near side, that lies a pitch ([`TRACK_PITCH`]) beyond the
+//!    tracks of the wires that must come before it and as far from the track of every wire whose span meets its own:
+//!    the left-edge method with its order constraints. When the channel has too few such tracks for its wires, the
+//!    assignment is made again at [`TRACK_PITCH_NARROW`]; the first track stays [`TRACK_PITCH`] from the row, beyond
+//!    the stubs of its pins.
+//! 3. *Laid* by the router where the whole route is clear in the occupancy and pays no more for crossings and texts
+//!    than the way the search would find for the wire (a track across wires or texts that way avoids is no gain; the
+//!    length and the bends the pitch costs are the track's to spend); a track that is not is passed over, and a wire
+//!    with no free track goes to the search.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -46,11 +51,13 @@ pub fn tracks_needed(wires: &[(Tick, Tick)]) -> usize {
             legs: [
                 Leg {
                     along: a,
+                    at: 0,
                     near: true,
                     pin: None,
                 },
                 Leg {
                     along: b,
+                    at: Tick::MAX / 2,
                     near: false,
                     pin: None,
                 },
@@ -71,6 +78,8 @@ pub fn tracks_needed(wires: &[(Tick, Tick)]) -> usize {
 pub(crate) struct Leg {
     /// Where it stands along the rows.
     pub along: Tick,
+    /// The depth of its pin.
+    pub at: Tick,
     /// Whether it leaves the near row (else it arrives at the far row).
     pub near: bool,
     /// The pin it stands on.
@@ -119,9 +128,11 @@ impl Lane {
     }
 }
 
-/// Whether `p` must take a track before `q` (module documentation, 1).
+/// Whether `p` must take a track before `q` (module documentation, 1): a leg that leaves the near row runs from its pin
+/// to its track, one that arrives at the far row from its track to its pin, and a middle can only cross it in between.
 fn before(p: &Lane, q: &Lane) -> bool {
-    p.legs.iter().any(|l| l.near && q.holds(*l)) || q.legs.iter().any(|l| !l.near && p.holds(*l))
+    p.legs.iter().any(|l| l.near && q.last > l.at && q.holds(*l))
+        || q.legs.iter().any(|l| !l.near && p.from < l.at && p.holds(*l))
 }
 
 /// The order of `lanes` (module documentation, 1) and, per lane, the lanes that must come before it.
@@ -271,8 +282,9 @@ pub(crate) fn stepping(a: (Pt, Side, PinId), b: (Pt, Side, PinId), area: Rect) -
     }
     // Depth grows down, or right, from the near row.
     let grows = |s: Side| matches!(s, Side::Down | Side::Right);
-    let leg = |p: Pt, pin: PinId, near: bool| Leg {
+    let leg = |p: Pt, pin: PinId, near: bool, frame: Frame| Leg {
         along: probe.along(p),
+        at: frame.depth(p),
         near,
         pin: Some(pin),
     };
@@ -289,7 +301,7 @@ pub(crate) fn stepping(a: (Pt, Side, PinId), b: (Pt, Side, PinId), area: Rect) -
             (false, false) => area.x0,
         };
         let lane = Lane {
-            legs: [leg(pa, ia, true), leg(pb, ib, true)],
+            legs: [leg(pa, ia, true, frame), leg(pb, ib, true, frame)],
             from: frame.depth(pa).max(frame.depth(pb)),
             last: frame.sense * edge - BODY_GAP,
         };
@@ -306,7 +318,7 @@ pub(crate) fn stepping(a: (Pt, Side, PinId), b: (Pt, Side, PinId), area: Rect) -
         return None;
     }
     let lane = Lane {
-        legs: [leg(n, ni, true), leg(f, fi, false)],
+        legs: [leg(n, ni, true, frame), leg(f, fi, false, frame)],
         from: frame.depth(n),
         last: frame.depth(f) - STUB,
     };

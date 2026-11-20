@@ -13,8 +13,9 @@
 //! 2. **Straights.** A net of one wire whose ends face each other on one line is that segment, where it is free.
 //! 3. **Trunks** (`nets`): a net whose taps form a chain, or a pin's fan, gets the trunk of least price; in the order
 //!    of their supply ranks, then their first tapped pin's place (left first), then more taps first, then the ID.
-//! 4. **Tracks** (`tracks`): a job still without a route between two pins in the shape of a Z or a U takes the track
-//!    its channel assigns it, where the route is clear; the others go on.
+//! 4. **Tracks** (`tracks`): a net of one wire still without a route, between two pins in the shape of a Z or a U,
+//!    takes the track its channel assigns it, where the route is clear and pays no more for crossings and texts than
+//!    the way the search would find for it; the others go on.
 //! 5. **A single tap.** A junction that is a net's only tap stands where its wires cost least with three arms.
 //! 6. **The search** for the rest, by the city-block distance of their ends (shortest first), then the first end's
 //!    place, then the ID; then at most [`PASSES`] passes in the same order, each wire lifted, searched again and its
@@ -38,7 +39,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_ids::Uuid;
 
-use crate::consts::{PASSES, TICKS_PER_STEP, TRACK_PITCH};
+use crate::consts::{BEND, PASSES, TICKS_PER_STEP, TRACK_PITCH};
 use crate::geom;
 use crate::labels::settle_labels;
 use crate::measure::{Quality, TextRef, measure};
@@ -602,6 +603,15 @@ fn trunk_routes(r: &Router, net: &Net, line: Line) -> Option<TrunkRoutes> {
     Some((routes, places))
 }
 
+/// The price of `route` for its length and its bends alone, in the search's unit (ticks).
+fn plain(route: &[Pt]) -> u32 {
+    let pts = geom::clean(route);
+    let length: i64 = geom::segments(&pts).into_iter().map(geom::length).sum();
+    let bends = i64::try_from(geom::corners(&pts).len()).unwrap_or(i64::MAX);
+    u32::try_from(length.saturating_add(bends.saturating_mul(BEND * i64::from(TICKS_PER_STEP))))
+        .unwrap_or(u32::MAX)
+}
+
 /// Whether a node of the occupancy lies on a laid wire (a vertex of one, or between two moves along one).
 fn on_a_wire(occ: &Occupancy, p: Pt) -> bool {
     let n = node_of(p);
@@ -778,12 +788,14 @@ impl Router {
         (laid, notes)
     }
 
-    /// Phase 4: the stepping wires (`tracks`): the jobs still without a route between two pins in the shape of a Z or
-    /// a U, on the tracks of their channels where the route is clear; the wires laid.
-    fn tracks(&mut self) -> BTreeSet<WireId> {
+    /// Phase 4: the stepping wires (`tracks`): the nets of one wire still without a route between two pins in the shape
+    /// of a Z or a U (a pin's wires together are the trunks' and the search's, which share their runs), on the tracks of their channels where the route is clear and pays no more for crossings and texts than the
+    /// search's way for the wire; the wires laid.
+    fn tracks(&mut self, nets: &[Net]) -> BTreeSet<WireId> {
         let area = self.page.area;
         let mut frames: BTreeMap<tracks::Frame, Vec<(WireId, tracks::Lane)>> = BTreeMap::new();
-        for w in self.jobs.clone() {
+        for net in nets.iter().filter(|n| n.wires.len() == 1) {
+            let w = net.wires[0];
             if !self.route_of(w).is_empty() {
                 continue;
             }
@@ -801,6 +813,8 @@ impl Router {
             }
         }
         let mut laid = BTreeSet::new();
+        // Per wire, the price of the way the search would find for it, asked when its first track is tried.
+        let mut searched: BTreeMap<WireId, u32> = BTreeMap::new();
         for (frame, wires) in frames {
             let lanes: Vec<tracks::Lane> = wires.iter().map(|(_, l)| l.clone()).collect();
             tracks::lay(&lanes, &mut |k, d| {
@@ -813,6 +827,15 @@ impl Router {
                 };
                 let route = search::clean_collinear(&frame.route(pa, pb, d));
                 if !self.clear(w, &route) {
+                    return false;
+                }
+                // A track whose route pays more than the search's way for crossings and texts (it crosses what that
+                // way avoids) is blocked too; the length and the bends of the pitch are the track's to spend.
+                let way = *searched.entry(w).or_insert_with(|| {
+                    self.search(w, &[], Relax::default())
+                        .map_or(u32::MAX, |f| f.cost.saturating_sub(plain(&f.route)))
+                });
+                if self.price(w, &route).saturating_sub(plain(&route)) > way {
                     return false;
                 }
                 self.lay(w, route);
@@ -1215,7 +1238,7 @@ pub fn route(page: &DraftPage, jobs: &Jobs) -> Plan {
     let nets = nets::nets(&wanted, &r.ends, &movable);
     r.straights(&nets);
     let (_, notes) = r.trunks(&nets);
-    r.tracks();
+    r.tracks(&nets);
     r.single_taps(&nets);
     let (_, failed) = r.searches();
     r.text_rounds();
