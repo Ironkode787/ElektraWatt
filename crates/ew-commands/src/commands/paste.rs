@@ -134,7 +134,7 @@ pub struct Fragment {
 /// `position`, and a `child` tag scheme. (5) Translation in grid steps: `Δk = index(at) − index(anchor)` per
 /// axis; a grid coordinate becomes the grid point at its index plus `Δk`, any other moves by
 /// `round_half_away(Δk × num / den)`; routes follow their ends as `rep.move`'s `steps` move them, and a page
-/// item's points and a structure box's outline vertices move by the same rule. **Fitted** (rc.5): a fragment of
+/// item's points and a structure box's outline vertices move by the same rule. **Fitted**: a fragment of
 /// another connection grid than the page's moves by `at − anchor` in nanometres, and then each representation so that
 /// its first connection point lies on the nearest grid point of the page (`geometry::fitted_pos`; a symbol whose own
 /// pin spacing does not fit the grid has its first pin on it), each junction and each structure box's outline vertex
@@ -699,7 +699,7 @@ impl Insertion<'_> {
             match record {
                 Record::Representation(r) => {
                     let before = r.clone();
-                    // A fitted symbol (its position between grid points) steps by its first pin (rc.5).
+                    // A fitted symbol (its position between grid points) steps by its first pin.
                     let anchor = crate::geometry::grid_anchor(tx, r, grid)
                         .filter(|a| *a == r.pos || !motion.turns())
                         .ok_or_else(|| self.invalid(self.pointer(*i), text!("refusal-paste-rep-off-grid")))?;

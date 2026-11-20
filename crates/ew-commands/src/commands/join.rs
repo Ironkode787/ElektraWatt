@@ -220,7 +220,7 @@ impl Command for JoinDevice {
             return not_eligible(text!("refusal-join-terminal"));
         }
         // The device's other functions (of its part) are neither drawn nor wired: the join empties the device, which
-        // goes with them and its part use (rc.2, F11).
+        // goes with them and its part use.
         let others: Vec<Id<Function>> = tx
             .functions_of_device(source)
             .into_iter()

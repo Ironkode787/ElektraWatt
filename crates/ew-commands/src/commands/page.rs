@@ -275,7 +275,7 @@ impl Command for CreatePage {
                 return tx.reject(reason);
             }
         }
-        // A folio in use is refused naming the page that has it, by its folio and title (rc.5).
+        // A folio in use is refused naming the page that has it, by its folio and title.
         if let Some((held, _)) = section_pages(tx, section)
             .into_iter()
             .find(|(_, f)| printed_folio(f.number, f.label.as_ref()) == printed)
@@ -920,7 +920,7 @@ impl Command for SetSurfaceView {
     }
 }
 
-/// `page.set_grid` (`SetPageGrid`, rc.5): changes a page's connection grid and fits what stands on it to the new
+/// `page.set_grid` (`SetPageGrid`): changes a page's connection grid and fits what stands on it to the new
 /// grid, in one undo step: each representation moves so that its first connection point lies on the nearest grid point
 /// (`geometry::fitted_pos`; a symbol whose own pin spacing does not fit the grid has its first pin on it), each
 /// junction and each structure box's outline vertex to its nearest grid point; page items keep their places, and every

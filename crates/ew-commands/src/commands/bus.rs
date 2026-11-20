@@ -158,11 +158,11 @@ pub enum BusLineField {
 /// cable device `cable`, or to a new one that `create` makes as `cable.create` makes it (its cores from its part);
 /// `length` sets that cable's length by hand. `plug_a` and `plug_b` set the plug at each line's end a and b; `reset`
 /// removes the cable link or a plug. Each line's page gets the cable's mark (its tag and type at the line, a wire marker
-/// listing the line, as `cable.create` marks cores; rc.5), and a line that leaves a cable leaves its mark; a cable the
+/// listing the line, as `cable.create` marks cores), and a line that leaves a cable leaves its mark; a cable the
 /// lines left that no bus line, core or drawing uses any more is removed in the same step. Refused: no
 /// line; a connection that is no bus line, a device that is no cable, a length of zero or less, a termination on a plug
 /// without a termination switch (in words); both `cable` and `create`; a part the project does not hold (`NotFound`).
-/// `part` changes the existing cable's part, its cores following (rc.5; a part with fewer cores than the cable has
+/// `part` changes the existing cable's part, its cores following (a part with fewer cores than the cable has
 /// wires is refused in words). One undo step. Outcome: the cable, else the first line.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -177,7 +177,7 @@ pub struct SetBusCable {
     /// A new cable device, as `cable.create` takes it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub create: Option<CreateCable>,
-    /// Another cable part for the existing cable `cable` (rc.5): its first part use becomes it and its cores follow, as
+    /// Another cable part for the existing cable `cable`: its first part use becomes it and its cores follow, as
     /// a wiring page's cable's do.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<UuidS>")]
@@ -311,7 +311,7 @@ impl Command for SetBusCable {
                 }
             })?;
         }
-        // The cable's mark stands at its lines (rc.5): a line that changed its cable leaves the old cable's mark, and
+        // The cable's mark stands at its lines: a line that changed its cable leaves the old cable's mark, and
         // every line with a cable gets its cable's mark on its page, or joins the one there.
         crate::commands::cable_mark::follow_kinds(tx, &lines)?;
         let mut carried: std::collections::BTreeMap<Id<Device>, Vec<Id<Connection>>> = Default::default();
@@ -326,7 +326,7 @@ impl Command for SetBusCable {
             crate::commands::cable_mark::mark_cores(tx, c, &ls)?;
         }
         // A cable the lines left that nothing uses any more (no bus line, no core, no drawing) goes in the same step
-        // (rc.5: a replaced cable stayed in the parts list with no line).
+        // (a replaced cable stayed in the parts list with no line).
         let unused: Vec<ew_model::AnyKey> = before
             .into_iter()
             .filter(|c| Some(*c) != cable && !cable_in_use(tx, *c))

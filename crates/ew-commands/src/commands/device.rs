@@ -201,7 +201,7 @@ pub struct ConnectHint {
     pub cp: u16,
     /// The other end: a CP or a junction.
     pub to: EndpointParam,
-    /// The wire's route in nm (a pole joined to a pole out of line, rc.5); empty: the straight run between the ends.
+    /// The wire's route in nm (a pole joined to a pole out of line); empty: the straight run between the ends.
     /// Checked as `connection.create` checks a route (`geometry::require_route`, at `/connect/<i>/route`).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[schemars(with = "Vec<Pt2S>")]
@@ -296,7 +296,7 @@ pub struct PlaceSymbol {
     #[schemars(with = "Option<UuidS>")]
     pub into: Option<Id<Device>>,
     /// With `into`: a valve placed in a held cell of a terminal drawn as its positions replaces the cell's valve or
-    /// blanking plate (Replace… on the cell's menu, rc.2); default false (refused).
+    /// blanking plate (Replace… on the cell's menu); default false (refused).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub replace: bool,
 }
@@ -422,7 +422,7 @@ impl Command for PlaceSymbol {
             .device
             .and_then(|d| tx.get::<Device>(d)?.parent)
         {
-            // A valve of a terminal drawn as its positions, drawn on the box's page, stands in its cell (rc.2).
+            // A valve of a terminal drawn as its positions, drawn on the box's page, stands in its cell.
             super::assembly::seat_reps(tx, parent)?;
         }
         Ok(Outcome {
@@ -602,7 +602,7 @@ fn zero() -> Pt2 {
 /// becomes the grid point at its grid index plus the steps, exactly, per axis (`Grid::at(Grid::snap(x) + k)`), so
 /// several representations stay on the grid even where a uniform nm delta cannot keep them there (the QET grid
 /// `7_937_500/3` nm). A symbol fitted to a grid its pin spacing does not fit (its position between grid points, its
-/// first connection point on one; rc.5) steps by that pin instead, its position moving by the same displacement
+/// first connection point on one) steps by that pin instead, its position moving by the same displacement
 /// (`geometry::grid_anchor`). A representation with neither on the grid cannot be moved by steps (rejected, named);
 /// a move by `delta` checks the same.
 /// Routes follow: a connection with an end drawn by a moved representation has that end follow its CP's own
@@ -970,7 +970,7 @@ impl MoveReps {
 }
 
 /// `rep` moved by `steps` grid steps (see [`MoveReps`]): the point the steps are counted from (its position, or a
-/// fitted symbol's first pin, rc.5) at its grid index plus the steps, exactly; refused when it has neither on the
+/// fitted symbol's first pin) at its grid index plus the steps, exactly; refused when it has neither on the
 /// grid, or the move leaves the drawable range for it or a connection point.
 pub(crate) fn stepped(
     tx: &TxBuilder<'_>,
@@ -1261,7 +1261,7 @@ impl MoveReps {
 /// back exactly and two quarter turns land where a half turn does, wherever it lies. The stored outline and CPs are
 /// not rewritten. A representation whose orientation does not change keeps its `pos`, and one without graphics or a
 /// box turns about its insertion point. A fitted symbol (its position between grid points, its first connection point
-/// on one; rc.5) is fitted again after the turn (`geometry::fitted_pos`), so its first pin stays on the grid.
+/// on one) is fitted again after the turn (`geometry::fitted_pos`), so its first pin stays on the grid.
 ///
 /// Routes follow: each attached connection's route end at a CP drawn by a transformed representation (a symbol's
 /// CP or a black box's) follows that CP's displacement (`geometry::follow_end`); CPs whose geometry is unknown
@@ -1335,7 +1335,7 @@ impl Command for TransformReps {
                 };
                 let grid = tx.require::<Page>(old.page)?.grid;
                 // A fitted symbol (its position between grid points, its first pin on one) is fitted again after the
-                // turn, so its first pin stays on the grid (rc.5).
+                // turn, so its first pin stays on the grid.
                 let fitted = !crate::geometry::point_on_grid(grid, old.pos)
                     && crate::geometry::grid_anchor(tx, &old, grid).is_some();
                 match pivot(grid, old.pos, old.orient, orient, &body) {
@@ -1785,7 +1785,7 @@ impl Command for PlaceBlackBox {
         }
         let slotted = record.box_.as_ref().is_some_and(|b| b.slots.is_some());
         tx.insert(record)?;
-        // A valve terminal drawn as its positions: its valves drawn on this page stand in their cells (rc.2).
+        // A valve terminal drawn as its positions: its valves drawn on this page stand in their cells.
         if slotted && let Some(device) = tx.require::<Function>(function)?.device {
             super::assembly::seat_reps(tx, device)?;
         }

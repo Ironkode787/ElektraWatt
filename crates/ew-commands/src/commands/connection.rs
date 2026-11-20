@@ -989,7 +989,7 @@ impl Command for ContinueIp {
 ///
 /// Creates `PotentialDef {at, name, ptype, voltage, env, circuit_class, props}`. `at` must be a CP of an
 /// existing function or an existing junction (a point on a connection is rejected), no fluid port (a potential is
-/// electrical; rc.2, F9), and must not hold a definition already: another point of the potential may (doc 08 §3.4).
+/// electrical), and must not hold a definition already: another point of the potential may (doc 08 §3.4).
 /// Outcome: the definition.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]

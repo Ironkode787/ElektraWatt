@@ -88,7 +88,7 @@ fn taken_positions(
 /// §4.2); any other tag is not touched. A child tag is set with `fields.set`, a valve added with `valve.add`.
 /// The generated assembly overviews, slots, break marks and the PLC overview follow from the tree (they are
 /// derived). A valve terminal drawn as its positions (`BoxSpec.slots`) has the symbols of its valves on that page
-/// moved into their cells, their tubes following (rc.2). Outcome: the parent.
+/// moved into their cells, their tubes following. Outcome: the parent.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct AttachChildren {
@@ -97,7 +97,7 @@ pub struct AttachChildren {
     pub parent: Id<Device>,
     /// The children, at least one.
     pub children: Vec<ChildSpec>,
-    /// A requested position another child of the parent holds is swapped (rc.2): that child takes the old position of
+    /// A requested position another child of the parent holds is swapped: that child takes the old position of
     /// the child that comes, which must be a child of the parent with a position; default false (refused).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub swap: bool,
@@ -417,7 +417,7 @@ fn supply_of(tx: &TxBuilder<'_>, terminal: Id<Device>) -> Option<Id<ew_schema::F
     })
 }
 
-/// The symbol that draws a function on FnDef copy `def` in a valve terminal's box on `page` (rc.3): the lowest-ID
+/// The symbol that draws a function on FnDef copy `def` in a valve terminal's box on `page`: the lowest-ID
 /// embedded fluid symbol on the page's grid that draws `def`; `None` when the project embeds none (the window embeds
 /// it with the command that fills a position, `Session::cell_copies`).
 fn cell_symbol(tx: &TxBuilder<'_>, def: Id<FnDef>, page: Id<Page>) -> Option<Id<ew_schema::SymbolDef>> {
@@ -435,7 +435,7 @@ fn cell_symbol(tx: &TxBuilder<'_>, def: Id<FnDef>, page: Id<Page>) -> Option<Id<
         .map(|s| s.id)
 }
 
-/// A new upright representation of `function` with symbol copy `symbol` at `pos` on `page` (rc.3: a valve in its cell,
+/// A new upright representation of `function` with symbol copy `symbol` at `pos` on `page` (a valve in its cell,
 /// the terminal's supply in its supply end), with the symbol's arrangement `arrangement` when it has one of that name;
 /// nothing when a point of it would leave the page's range.
 fn draw_in_box(
@@ -498,8 +498,8 @@ fn drawn(tx: &TxBuilder<'_>, f: Id<ew_schema::Function>) -> bool {
     !tx.reps_of_function(f).is_empty()
 }
 
-/// The symbols of a valve terminal's valves and its supply on the pages where the terminal is drawn as its positions
-/// (rc.2, rc.3): the valves' functions made first, as normaliser N-FL-1 makes them, so that a valve that has just taken
+/// The symbols of a valve terminal's valves and its supply on the pages where the terminal is drawn as its positions:
+/// the valves' functions made first, as normaliser N-FL-1 makes them, so that a valve that has just taken
 /// a position is drawn in the same step. On each such page every representation of a valve function of the valve
 /// holding cell `i` moves to the cell's valve point, and the first representation of the supply to the supply end
 /// ([`supply_of`]: a supply plate's, or the terminal's own); their tubes follow as `rep.move` makes them follow. On the
@@ -569,7 +569,7 @@ pub(crate) fn seat_reps(tx: &mut TxBuilder<'_>, parent: Id<Device>) -> Result<()
         }
     }
     let supply = supply_of(tx, terminal);
-    // With the valves drawn, each cell is as wide as its valve needs (rc.3: a 5/3 valve): the box keeps its corner and
+    // With the valves drawn, each cell is as wide as its valve needs (a 5/3 valve): the box keeps its corner and
     // grows or shrinks to the right, and the valves of the cells to its right move with their tubes.
     for (b, frame) in slotted_boxes(tx, terminal) {
         let outline = frame.outline(cells.len());
@@ -721,7 +721,7 @@ pub(crate) fn seat_on_terminal(
     .map(|_| ())
 }
 
-/// `valve_terminal.draw_slots` (`DrawSlots`, doc 11 §3.2, rc.2): redraws the free box of a valve terminal as its valve
+/// `valve_terminal.draw_slots` (`DrawSlots`, doc 11 §3.2): redraws the free box of a valve terminal as its valve
 /// positions, which a page drawn before rc.2 shows as one box (a page that exists is never redrawn by itself).
 ///
 /// The box representation `rep` keeps its ID, page and insertion point (its top-left corner) and becomes a box with one
@@ -739,7 +739,7 @@ pub struct DrawSlots {
     /// The terminal's box.
     #[schemars(with = "UuidS")]
     pub rep: Id<Representation>,
-    /// The library documents to embed (`lib/` JSON form): the symbols of the valves and the supply (rc.3).
+    /// The library documents to embed (`lib/` JSON form): the symbols of the valves and the supply.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub copies: Vec<serde_json::Value>,
 }
@@ -807,7 +807,7 @@ impl Command for DrawSlots {
     }
 }
 
-/// `valve_terminal.draw_valves` (`DrawValves`, doc 11 §3.2, rc.3): Draw its valves in the terminal. A valve terminal
+/// `valve_terminal.draw_valves` (`DrawValves`, doc 11 §3.2): Draw its valves in the terminal. A valve terminal
 /// drawn as its positions whose valves were put on their positions without a symbol (from the rack, the PLC list, a
 /// project made before rc.3) has them drawn in their cells, and its supply in its supply end ([`seat_reps`]); `copies`
 /// embeds their symbols first, as `part.assign` embeds. A valve drawn on another page stays there. Refused, in words: a
@@ -973,7 +973,7 @@ impl Command for AddValve {
         if let Some(def) = self.fndef.filter(|_| !from_part) {
             insert_function(tx, Some(id), def, FnRole::Main)?;
         }
-        // On a terminal drawn as its positions the valve stands in its cell (rc.3).
+        // On a terminal drawn as its positions the valve stands in its cell.
         seat_reps(tx, self.module)?;
         Ok(Outcome::primary((Kind::Device, id.cast())))
     }

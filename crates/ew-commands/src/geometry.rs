@@ -109,7 +109,7 @@ pub(crate) fn nearest_grid_point(grid: Grid, p: Pt2) -> Result<Pt2, OutOfRange> 
     }
 }
 
-/// The position at which `rep` stands fitted to `grid` (rc.5: a paste onto a page of another grid, a page's grid
+/// The position at which `rep` stands fitted to `grid` (a paste onto a page of another grid, a page's grid
 /// changed): moved so that its first connection point ([`rep_cps`]' order) lies on the nearest grid point, the others
 /// keeping their places relative to it (a symbol whose own pin spacing does not fit the grid has its first pin on
 /// it); a representation without connection points has its position there.
@@ -119,7 +119,7 @@ pub(crate) fn fitted_pos(tx: &TxBuilder<'_>, rep: &Representation, grid: Grid) -
     add(rep.pos, sub(to, at)?)
 }
 
-/// The point by which `rep` keeps to `grid` (rc.5): its position when that is a grid point, else its first connection
+/// The point by which `rep` keeps to `grid`: its position when that is a grid point, else its first connection
 /// point ([`rep_cps`]' order) when that is one (a symbol fitted to a grid its own pin spacing does not fit, whose
 /// position lies between grid points); `None` for neither, and for a position 1 nm beside a grid point, which is off
 /// the grid although its pins' points are the grid's numbers. A move by grid steps steps this point, so a fitted symbol

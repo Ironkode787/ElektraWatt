@@ -421,7 +421,7 @@ impl Command for CreateExternalRef {
 /// is no interruption point; a starred point (an external point takes no star); `location` or `device` missing
 /// without `remove` or `group`. Outcome: the reference (none with `remove`).
 ///
-/// **Groups** (rc.3, `IpSpec::group`): points that stand together print where they come from once. Several points
+/// **Groups** (`IpSpec::group`): points that stand together print where they come from once. Several points
 /// marked at once become one group; one point marked joins the group of a marked point of the same reference in its
 /// column on its page at most 20 mm above or below it (with that point a new group when it has none).
 /// With `group` and no place: `true` makes the points one group (all marked, from one place, else refused in words),

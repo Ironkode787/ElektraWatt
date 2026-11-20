@@ -598,7 +598,7 @@ fn pneumatic() -> Discipline {
 /// - With `medium` and `set`: the medium takes the values of `set`, its ID and provenance kept.
 /// - With `medium` and no `set`: the medium is deleted with its definition points, with a notice naming how many.
 /// - With `set` and `at`: each port of `at` then carries the medium, defined as `fluid.medium.define` defines it, in
-///   the same step (the window's Medium row choosing a usual medium in a project without one, rc.2).
+///   the same step (the window's Medium row choosing a usual medium in a project without one).
 ///
 /// Refused: an empty name; a discipline other than pneumatic, vacuum or hydraulic; a default tube against FI-05
 /// (diameters larger than zero, the outer larger than the inner, a rating of zero or more); a tube part the project

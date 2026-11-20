@@ -874,7 +874,7 @@ fn centre_the_pins_puts_a_pin_off_its_corner() {
         )),
         "/cps/1/pos",
     );
-    // Two pins on one point: refused (rc.5).
+    // Two pins on one point: refused.
     invalid_at(
         e.execute(&reshape(
             rect(18, 12),

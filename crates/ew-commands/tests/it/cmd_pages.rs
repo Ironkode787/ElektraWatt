@@ -229,7 +229,7 @@ fn create_page_names_the_first_of_several_refusals() {
 }
 
 /// FR-PAG-012: two pages of a section may not print the same folio, whatever their numbers; the refusal names the page
-/// that has it, by its folio and title (rc.5).
+/// that has it, by its folio and title.
 #[test]
 fn create_page_refuses_a_printed_folio_another_page_prints() {
     let mut e = engine(golden_model());

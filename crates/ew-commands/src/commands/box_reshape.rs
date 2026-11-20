@@ -28,7 +28,7 @@ use crate::tx::TxBuilder;
 ///   least three vertices, each on the page's connection grid in absolute terms (`pos + orient(v)`).
 /// - **With `cps`** the box's CPs are replaced: function CP indices distinct, each CP on the grid in absolute terms
 ///   and on the outline (on an edge `v(i) v(i+1)`, the outline closed).
-/// - **Without `cps`** every CP is re-projected (doc 06 §8 item 13, rc.5): it keeps the index of the edge it lay on
+/// - **Without `cps`** every CP is re-projected (doc 06 §8 item 13): it keeps the index of the edge it lay on
 ///   (the first edge containing it, in outline order; on a corner the edge it leaves by its direction) and its
 ///   direction. The CPs of one edge keep their order and
 ///   their spacing and stand centred on the new edge as a group, on grid points, at least one grid step from both
@@ -231,7 +231,7 @@ impl Command for ReshapeBox {
         let Some(old) = rep.box_.clone() else {
             return tx.reject(text!("refusal-box-reshape-no-box"));
         };
-        // A valve terminal drawn as its positions takes its size from them (rc.2).
+        // A valve terminal drawn as its positions takes its size from them.
         if old.slots.is_some() {
             return tx.reject(text!("refusal-box-reshape-slots"));
         }
@@ -302,7 +302,7 @@ impl Command for ReshapeBox {
                             text!("refusal-box-reshape-cp-off-outline"),
                         ));
                     }
-                    // Two pins never stand on one point (rc.5: a dragged pin landed on its neighbour's).
+                    // Two pins never stand on one point (a dragged pin landed on its neighbour's).
                     let at = grid.settle_point(p);
                     let twice = cps[..i].iter().any(|o| drawn(o.pos) == Ok(at));
                     if twice {
@@ -312,7 +312,7 @@ impl Command for ReshapeBox {
                             text!("refusal-box-reshape-cp-shared"),
                         ));
                     }
-                    // A pin never stands on a corner; one stored there stays until it is moved (rc.5).
+                    // A pin never stands on a corner; one stored there stays until it is moved.
                     if !kept && self.outline.iter().any(|v| drawn(*v) == Ok(at)) {
                         return Err(CmdError::invalid_params(
                             Self::NAME,
@@ -321,7 +321,7 @@ impl Command for ReshapeBox {
                         ));
                     }
                 }
-                // A box's own pins have names (rc.5); a box of a part draws the part's pins, edited in its device box.
+                // A box's own pins have names; a box of a part draws the part's pins, edited in its device box.
                 if let Some(i) = cps.iter().position(|c| c.name.is_some()) {
                     let of_part = rep
                         .functions

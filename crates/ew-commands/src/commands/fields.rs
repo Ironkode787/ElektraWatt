@@ -106,7 +106,7 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
             "tech_data",
             "state",
             "structure",
-            // The location alone, its other aspects kept (many devices given a cabinet at once, rc.2).
+            // The location alone, its other aspects kept (many devices given a cabinet at once).
             "structure.location",
             "strip.label_mode",
             "strip.designation_scheme",

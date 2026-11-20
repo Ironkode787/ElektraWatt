@@ -855,7 +855,7 @@ impl Command for AddConductors {
     }
 }
 
-/// A cable given a cable part takes its cores from the part (rc.3): their number, designations, cross-sections and
+/// A cable given a cable part takes its cores from the part: their number, designations, cross-sections and
 /// colours. A conductor whose core the part names keeps it; the other conductors that carry wires take the part's
 /// other cores in core order (cores before shields); the conductors left without a core of the part and without
 /// wires go, and the part's cores no conductor took are added. Nothing happens for a device without a cable aspect or
@@ -1006,7 +1006,7 @@ fn insert_conductors(
         }
         first.get_or_insert(id);
     }
-    // Wires made cores get the cable's mark on their pages at once (rc.3).
+    // Wires made cores get the cable's mark on their pages at once.
     let wires: Vec<Id<Connection>> = specs.iter().flat_map(|s| s.wires.iter().copied()).collect();
     if !wires.is_empty() {
         crate::commands::cable_mark::mark_cores(tx, cable, &wires)?;

@@ -45,7 +45,7 @@ pub const PART_EDITABLE: [&str; 10] = [
 /// library keeps its sections; its fork takes the others ([`PART_EDITABLE_FORK`]).
 pub const PART_EDITABLE_LOCAL: [&str; 4] = ["sections", "cp_pattern", "function_template", "box"];
 
-/// The members of [`PART_EDITABLE_LOCAL`] that the fork of a copy from a library may change too (rc.3): its pins
+/// The members of [`PART_EDITABLE_LOCAL`] that the fork of a copy from a library may change too: its pins
 /// (the CP pattern and the template entries that draw them) and its device box, so a library part's box is changed
 /// for the project as its identity is.
 pub const PART_EDITABLE_FORK: [&str; 3] = ["cp_pattern", "function_template", "box"];
@@ -69,7 +69,7 @@ const UNITS: [&str; 3] = ["piece", "m", "set"];
 ///
 /// `part` is the edited part item (its members, without the copy metadata). Only `manufacturer`, `part_number`,
 /// `type_designation`, `order_number`, `gtin`, `description`, `kind`, `category`, `unit` and `tech_data` may differ
-/// from the copy's, and also `cp_pattern`, `function_template` and `box` (the part's pins and its device box, rc.3)
+/// from the copy's, and also `cp_pattern`, `function_template` and `box` (the part's pins and its device box)
 /// and of a project-local copy `sections` (the part editor's bus and PLC forms, FT-1766): the devices that use the
 /// copy take the new connection points; a bus port a function carries keeps its value, N5. So no edit of a library
 /// copy changes its sections, and no edit changes the contacts or the mechanical data. `copies` carries library documents the edit names that the project lacks (a manufacturer),

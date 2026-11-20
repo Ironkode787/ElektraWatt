@@ -1296,7 +1296,7 @@ pub struct AddStation {
     /// Its modules in slot order.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub modules: Vec<StationModule>,
-    /// A tag of its own, frozen (rc.5: the New station form names it); absent: the tag its page gives it.
+    /// A tag of its own, frozen (the New station form names it); absent: the tag its page gives it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tag: Option<ew_schema::FrozenTag>,
     /// Library documents (`lib/` JSON form) embedded first.
@@ -1438,7 +1438,7 @@ pub struct StationBox {
 /// drawing of it when a fluid page draws it as its positions already; a device made without functions
 /// (`plc.add_station`'s) first gets its part's template functions, the box drawing the part's black-box entry; a
 /// device whose functions are no black box (its bus port, put on a bus page first) gets a function of its part's
-/// black-box entry (rc.5: a valve terminal's electrical side), its main one when none of them is. A box of a device
+/// black-box entry (a valve terminal's electrical side), its main one when none of them is. A box of a device
 /// whose black-box function an electrical page draws already, none of whose pins is drawn there yet, is another
 /// drawing of that function: a card drawn one box at a time (docs/design/06a-drafting.md §7.5), its inputs and its
 /// outputs, or a row wider than the drawing area. Any other device an electrical page draws already, and one whose part
@@ -1545,7 +1545,7 @@ impl DrawStation {
         if !functions.is_empty() {
             // The box is the device's main function, the functions it has (its bus port put on a bus page first) its
             // auxiliary ones: its tag takes the electrical page's number, as it did before an Undo took the box away
-            // and the bus port was drawn first (rc.5: -101K1 came back as -102K1). A frozen tag stays as it is.
+            // and the bus port was drawn first (-101K1 came back as -102K1). A frozen tag stays as it is.
             for f in &functions {
                 if tx
                     .get::<Function>(*f)

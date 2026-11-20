@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A cable's mark placed with its cores (rc.3): when drawn wires become a cable's cores in one command (`cable.create`
+//! A cable's mark placed with its cores: when drawn wires become a cable's cores in one command (`cable.create`
 //! and `conductor.add` with `wires`, the Cable form), each page they lie on gets the cable's mark at once, a wire
 //! marker listing them that the page draws as the cable's mark (`ew-scene`, "Cable marks"). A bus line that a cable
-//! carries (`bus.cable.set`, rc.5) gets the mark the same way, listed as a core is, placed across the middle of the
+//! carries (`bus.cable.set`) gets the mark the same way, listed as a core is, placed across the middle of the
 //! line's longest run ([`bus_placement`]).
 //!
 //! - **A page with a mark of the cable** already (a marker listing one of its cores) takes the new cores into that
@@ -105,7 +105,7 @@ pub(crate) fn mark_cores(
     Ok(())
 }
 
-/// The marks follow the connections `connections` whose kind this transaction set (rc.3, `fields.set` and
+/// The marks follow the connections `connections` whose kind this transaction set (`fields.set` and
 /// `fields.set_many`: Connect cores…, the Cable form on a cable that exists, Properties): a connection that left a cable
 /// leaves that cable's marks (a wire marker all of whose connections were cores of that cable), and a mark with no
 /// connection left goes; a connection that became a cable's core gets the cable's mark on its page, or joins the one
@@ -166,7 +166,7 @@ pub(crate) fn follow_kinds(tx: &mut TxBuilder<'_>, connections: &[Id<Connection>
 /// A mark's place: its point, its angle and the connections it crosses in the line's order.
 type Placement = (Pt2, Angle2, Vec<Id<Connection>>);
 
-/// The place of the mark of bus lines (rc.5): across the longest segment of the first routed line, in its middle, where
+/// The place of the mark of bus lines: across the longest segment of the first routed line, in its middle, where
 /// the line's tag stood before it had a mark (a bus layout's trunk); `None` without a routed segment. It lists every
 /// one of `routes`.
 pub(crate) fn bus_placement(routes: &[(Id<Connection>, Vec<Pt2>)]) -> Option<Placement> {
