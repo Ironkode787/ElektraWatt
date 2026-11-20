@@ -8,7 +8,6 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{
     AttachChildren, ChildSpec, CreateDevice, CreatePlcConfigProject, KindName, LinkDevices, SetFields,
@@ -17,6 +16,7 @@ use ew_commands::normalise::ORDER;
 use ew_commands::{CmdError, Engine, Origin, Receipt};
 use ew_ids::Id;
 use ew_model::Model;
+use ew_model::fixture::*;
 use ew_schema::{
     AddrSpec, Channel, ChannelState, Device, DeviceLink, DeviceLinkKind, Kind, LibCopy, LibDocument, Part,
     PartRef, PartUse, PlcArea, PlcConfigProject, PlcSection, PlcSize, StationRole,

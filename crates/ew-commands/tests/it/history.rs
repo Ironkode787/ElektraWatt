@@ -6,12 +6,12 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::MoveReps;
 use ew_commands::{AnyCommand, CmdError, Engine, Exposure, History, HistoryLimits, Origin, Transaction};
 use ew_model::Op;
 use ew_model::Rev;
+use ew_model::fixture::*;
 
 /// `rep.move` of `REP_102F2` by `dx` millimetres times ten.
 fn mv(dx: i64) -> MoveReps {

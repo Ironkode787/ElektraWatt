@@ -7,12 +7,12 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{DesignateTerminals, TerminalDesignation};
 use ew_commands::{AnyCommand, CmdError, CommandRegistry, Engine};
 use ew_ids::Id;
 use ew_mltext::Ident;
+use ew_model::fixture::*;
 use ew_schema::Device;
 use serde_json::json;
 

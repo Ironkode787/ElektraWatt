@@ -7,7 +7,6 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{
     BULK_ABOVE, DeleteSelection, DeviceScope, KindName, RenumberDevices, RenumberOptions, SetFields,
@@ -16,6 +15,7 @@ use ew_commands::commands::{
 use ew_commands::{CmdError, Command, Cost, Engine};
 use ew_ids::Id;
 use ew_mltext::MlText;
+use ew_model::fixture::*;
 use ew_model::{AnyKey, Model};
 use ew_schema::{
     AnyId, Connection, Csa, Device, FrozenTag, Function, Kind, LabelMode, Page, Record, TagSign,

@@ -8,7 +8,6 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{
     CreatePage, CreateReportBlock, CreateSection, CreateStructureNode, DeletePages, KindName, PageScope,
@@ -17,6 +16,7 @@ use ew_commands::commands::{
 use ew_commands::{CmdError, DynCommand, Engine, Receipt};
 use ew_ids::Id;
 use ew_model::Entity;
+use ew_model::fixture::*;
 use ew_rds::Aspect;
 use ew_schema::{
     Connection, ContinuationPolicy, Device, EmptyPolicy, Function, Open, Page, ReportBlock, ReportKind,

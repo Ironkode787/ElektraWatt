@@ -11,12 +11,12 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{PasteFragment, library_copy_hash};
 use ew_commands::{CmdError, Engine, Origin};
 use ew_ids::{Id, v5};
 use ew_model::Model;
+use ew_model::fixture::*;
 use ew_schema::{Device, LibCopy, LibDocument, Part, Sha256};
 use serde_json::{Value, json};
 

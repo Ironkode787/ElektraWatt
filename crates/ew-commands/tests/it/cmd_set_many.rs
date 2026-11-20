@@ -8,7 +8,6 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{
     CreateRevision, KindName, NewRevisionState, SET_MANY_MAX_EDITS, SetFields, SetManyFields,
@@ -16,6 +15,7 @@ use ew_commands::commands::{
 use ew_commands::{CmdError, Command, Cost};
 use ew_ids::Id;
 use ew_mltext::MlText;
+use ew_model::fixture::*;
 use ew_schema::{AnyId, Device, Revision};
 use serde_json::{Value, json};
 

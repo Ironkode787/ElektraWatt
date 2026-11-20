@@ -8,9 +8,9 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::{AnyCommand, Engine, Origin};
+use ew_model::fixture::*;
 use ew_model::{AnyKey, Model};
 use ew_schema::{Conflict, Connection, Kind, Record};
 use serde_json::{Value, json};

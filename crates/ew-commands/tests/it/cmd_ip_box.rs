@@ -10,12 +10,12 @@ use crate::common;
 
 use std::fmt::Debug;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{ArrangeIps, DrawToIp, EndpointParam, IpAtEnd, ReshapeBox};
 use ew_commands::geometry::point_on_grid;
 use ew_commands::{CmdError, Engine, Origin};
 use ew_ids::{Id, Uuid};
+use ew_model::fixture::*;
 use ew_model::{Entity, Model};
 use ew_schema::{
     BoxCp, BoxSpec, Connection, Device, Dir4, Endpoint, Extra, FnRole, Function, FunctionKind, IpDirection,

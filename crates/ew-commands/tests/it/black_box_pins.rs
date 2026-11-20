@@ -18,13 +18,13 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{
     Connect, EndpointParam, MoveReps, PasteFragment, PlaceBlackBox, PlaceSymbol, PlaceTarget, TransformReps,
 };
 use ew_commands::{CmdError, Engine};
 use ew_ids::Id;
+use ew_model::fixture::*;
 use ew_model::{Entity, Model};
 use ew_schema::{
     BoxCp, BoxSpec, Connection, ConnectionKind, Dir4, Endpoint, Extra, FnRole, Function, FunctionKind,

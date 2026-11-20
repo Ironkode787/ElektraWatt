@@ -11,7 +11,6 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{
     AddCarrier, CarrierKindParam, CarrierParamsParam, LockPlacement, MovePlacement, PlaceDevice, PlaceMode,
@@ -24,6 +23,7 @@ use ew_derive::layout::{
 };
 use ew_ids::Id;
 use ew_model::Model;
+use ew_model::fixture::*;
 use ew_schema::{
     Carrier, Clearance, Device, LibCopy, LibDocument, MechData, MountKind, MountingSurface, Part, PartUse,
     Placement, Record,

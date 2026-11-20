@@ -9,11 +9,11 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{KindName, LabelModeParam, SetFields, SetManyFields, SetSurfaceView};
 use ew_commands::{AnyCommand, CommandRegistry, Engine, Origin};
 use ew_ids::Id;
+use ew_model::fixture::*;
 use ew_model::{AnyKey, Model};
 use ew_schema::{
     Device, Kind, LibDocument, MountingSurface, Page, PageItem, PageItemKind, PageType, PartUse, Record,

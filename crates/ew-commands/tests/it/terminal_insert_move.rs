@@ -13,7 +13,6 @@ use crate::common;
 
 use std::collections::BTreeMap;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{
     AddTerminals, CreateDevice, InsertTerminals, KindName, MoveTerminals, SetFields, TerminalSpec,
@@ -22,6 +21,7 @@ use ew_commands::{CmdError, Engine, Origin};
 use ew_ids::Id;
 use ew_mltext::MlText;
 use ew_model::ModelError;
+use ew_model::fixture::*;
 use ew_schema::{Device, Kind, PartRef, PartUse, StripAccessory, TerminalGroup};
 use serde_json::json;
 

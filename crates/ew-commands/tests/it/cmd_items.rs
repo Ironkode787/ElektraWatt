@@ -9,7 +9,6 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{
     BoxStyleParam, CreateExternalRef, CreateStructureBox, DeleteSelection, FreeTextParam, GraphicParam,
@@ -20,6 +19,7 @@ use ew_commands::{CmdError, Engine, Origin};
 use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_model::Model;
+use ew_model::fixture::*;
 use ew_schema::{
     AnyId, ColourSpec, Conductor, Connection, Csa, ExternalRef, GraphicShape, Kind, Page, PageItem,
     PageItemKind, Record, Slot, StructureAssignment, StructureBox,

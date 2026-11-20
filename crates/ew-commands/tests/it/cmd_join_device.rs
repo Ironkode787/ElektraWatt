@@ -11,11 +11,11 @@ use crate::common;
 use std::collections::BTreeSet;
 use std::fmt::Debug;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{JoinDevice, KindName, LinkDevices, SetFields};
 use ew_commands::{CmdError, Engine, Origin};
 use ew_ids::{Id, Uuid};
+use ew_model::fixture::*;
 use ew_model::{Entity, Model};
 use ew_schema::{
     Connection, ContactKind, CpData, Device, DeviceKind, DeviceLinkKind, Endpoint, Extra, FnDef, FnRole,

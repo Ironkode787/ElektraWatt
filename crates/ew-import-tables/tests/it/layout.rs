@@ -380,11 +380,7 @@ fn a_repeated_page_key_takes_its_view_from_the_row_that_imported() {
     assert_eq!((expected.0.len(), expected.1.len()), (1, 1));
 
     let pages = std::fs::read_to_string(common::fixture_dir().join("pages.csv")).unwrap();
-    let row = pages
-        .lines()
-        .find(|l| l.starts_with("902,"))
-        .unwrap()
-        .to_owned();
+    let row = pages.lines().find(|l| l.starts_with("902,")).unwrap().to_owned();
     let other = row.replace(",qet10,-UC1,25 167,abbreviated", ",qet10,-UC1,0 0,full");
     let malformed = row.replace(",qet10,-UC1,25 167,abbreviated", ",bad,-UC1,0 0,full");
     assert!(other != row && malformed != row);

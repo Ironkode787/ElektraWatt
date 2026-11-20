@@ -12,13 +12,13 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::Engine;
 use ew_commands::commands::{Connect, ConnectHint, EndpointParam, PlaceSymbol, PlaceTarget};
 use ew_commands::geometry::on_grid;
 use ew_ids::Id;
 use ew_model::Model;
+use ew_model::fixture::*;
 use ew_schema::{
     Connection, ConnectionKind, Device, Endpoint, FnRole, Function, Kind, Record, Representation,
 };

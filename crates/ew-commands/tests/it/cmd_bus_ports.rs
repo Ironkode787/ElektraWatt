@@ -10,7 +10,6 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{
     AssignModeParam, AssignPart, JoinDevice, KindName, PlaceSymbol, PlaceTarget, SetFields,
@@ -19,6 +18,7 @@ use ew_commands::normalise::ORDER;
 use ew_commands::{Engine, Receipt};
 use ew_ids::Id;
 use ew_model::Model;
+use ew_model::fixture::*;
 use ew_schema::{
     AddrValue, BusPort, BusSection, BusSystem, ContactKind, Device, FnDef, FnRole, Function, Kind, LibCopy,
     LibDocument, NetAddress, OnOff, Part, PartRef, PartUse, PortRole, Record,

@@ -10,7 +10,6 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{
     AddCarrier, AttachChildren, AutoFill, CarrierKindParam, CarrierParamsParam, ChildSpec,
@@ -23,6 +22,7 @@ use ew_derive::Q;
 use ew_derive::layout::member_order;
 use ew_ids::Id;
 use ew_model::Model;
+use ew_model::fixture::*;
 use ew_rds::Aspect;
 use ew_schema::{
     Carrier, Clearance, Device, Enclosure, FnRole, FrozenTag, Kind, LayoutSpace, LibCopy, LibDocument,

@@ -6,11 +6,11 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{KindName, SetFields};
 use ew_commands::{Engine, HistoryLimits, Origin};
 use ew_ids::Id;
+use ew_model::fixture::*;
 use ew_schema::Device;
 use serde_json::json;
 

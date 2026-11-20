@@ -9,7 +9,6 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{
     AddValve, DefineMedium, EditMedium, MediumParam, SetLength, SetProjectSettings, SetTube, TubeField,
@@ -18,6 +17,7 @@ use ew_commands::{CmdError, Engine};
 use ew_ids::Id;
 use ew_mltext::MlText;
 use ew_model::Model;
+use ew_model::fixture::*;
 use ew_schema::{
     Connection, ConnectionKind, Device, Discipline, Endpoint, FluidLine, FnDef, FnRole, Function, KeyedList,
     LengthSource, LibDocument, Medium, MediumDef, NumberSpec, Part, PartUse, Record, TubeMaterial, TubeSpec,

@@ -9,7 +9,6 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::reason as rejection_reason;
 use common::*;
 use ew_commands::commands::{
@@ -18,6 +17,7 @@ use ew_commands::commands::{
 };
 use ew_commands::{CmdError, CommandRegistry, Engine, EngineOptions};
 use ew_ids::Id;
+use ew_model::fixture::*;
 use ew_model::{Entity, Model, PreventHook, PreventViolation};
 use ew_schema::{Connection, Junction, Kind, NumberSpec, Page, PageType, Record, RepType, Representation};
 use ew_testids::SeededSource;

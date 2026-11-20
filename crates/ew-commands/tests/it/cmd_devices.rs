@@ -8,13 +8,13 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{
     AddConductors, AddTerminals, ConductorSpec, ConnectHint, CreateCable, CreateDevice, EndpointParam,
     MoveReps, PlaceSymbol, PlaceTarget, SetAnchorPolicy, TerminalSpec, TransformReps,
 };
 use ew_commands::{AnyCommand, CmdError, Engine, Receipt};
+use ew_model::fixture::*;
 use ew_model::{Entity, Model};
 use ew_schema::{
     AnchorPolicy, Cable, Conductor, Connection, ConnectionKind, Device, DeviceAspects, DeviceKind, Function,

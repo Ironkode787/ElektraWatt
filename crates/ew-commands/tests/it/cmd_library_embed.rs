@@ -11,7 +11,6 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{
     DeleteConnections, DeletePages, DeleteSelection, EmbedLibraryCopies, KindName, TargetRef,
@@ -19,6 +18,7 @@ use ew_commands::commands::{
 };
 use ew_commands::{CmdError, DynCommand, Engine, Origin, Receipt};
 use ew_ids::Id;
+use ew_model::fixture::*;
 use ew_model::{Entity, Model};
 use ew_schema::{
     AnyId, Kind, LibCopy, LibDocument, MacroDef, MacroInstance, Manufacturer, MarkerField, PageItem,

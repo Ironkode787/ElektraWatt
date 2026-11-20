@@ -19,7 +19,6 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{
     AddValve, AssignModeParam, AssignPart, AttachChildren, BindChannel, ChildSpec, EndpointParam, KindName,
@@ -28,6 +27,7 @@ use ew_commands::commands::{
 use ew_commands::{Engine, Origin, Receipt};
 use ew_ids::Id;
 use ew_model::Model;
+use ew_model::fixture::*;
 use ew_schema::{
     Channel, Device, Endpoint, Extra, Function, LibCopy, LibDocument, Part, PartRef, PartUse, PlcSection,
     Record,

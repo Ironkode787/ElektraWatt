@@ -7,7 +7,6 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{
     AddTerminals, ConductorSpec, Connect, ContinueIp, CreateCable, CreateDevice, CreatePage, CreateSection,
@@ -17,6 +16,7 @@ use ew_commands::{Cost, DynCommand, Engine, Receipt};
 use ew_ids::Id;
 use ew_mltext::MlText;
 use ew_model::Model;
+use ew_model::fixture::*;
 use ew_rds::Aspect;
 use ew_schema::{
     BridgeKind, BridgeSpec, Cable, Conductor, Connection, ConnectionKind, Device, DeviceKind, Extra, FnDef,

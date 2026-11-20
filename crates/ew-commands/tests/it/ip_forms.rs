@@ -10,9 +10,9 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::reason as rejection;
 use common::*;
+use ew_model::fixture::*;
 
 use ew_commands::commands::{ContinueIp, KindName, PlaceIp, SetFields, TransformReps};
 use ew_ids::{Id, Uuid};

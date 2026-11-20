@@ -7,7 +7,6 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::CmdError;
 use ew_commands::commands::{
@@ -15,6 +14,7 @@ use ew_commands::commands::{
     SetFields,
 };
 use ew_ids::Id;
+use ew_model::fixture::*;
 use ew_schema::{
     Bond, BondKind, BoxCp, BoxSpec, Dir4, ExternalRef, Extra, FnRole, Function, FunctionKind, Kind,
     Representation,

@@ -9,11 +9,11 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{CreateLogicalNet, CreatePhysicalNet, KindName, SetFields};
 use ew_commands::{CmdError, Engine, Origin, Receipt};
 use ew_ids::Id;
+use ew_model::fixture::*;
 use ew_schema::{
     AddrValue, BusMedium, BusRate, BusSystem, Endpoint, Function, Kind, LogicalNet, NetAddress, OnOff,
     PhysicalNet, PortRole,

@@ -5,9 +5,9 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{KindName, SetFields};
+use ew_model::fixture::*;
 use serde_json::json;
 
 // `AddTerminals` itself refuses a duplicate designation, so the gap is shown through `fields.set` of

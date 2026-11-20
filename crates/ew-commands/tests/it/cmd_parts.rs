@@ -110,7 +110,8 @@ fn local_manufacturers() -> Vec<LibCopy<Manufacturer>> {
             c.library_id = ew_ids::Id::from_uuid(project);
             c.item_id = ew_ids::Id::from_uuid(uuid(item));
             c.sha256 = Sha256(
-                library_copy_hash(&LibDocument::Manufacturer(c.clone())).expect("a manufacturer copy has a hash"),
+                library_copy_hash(&LibDocument::Manufacturer(c.clone()))
+                    .expect("a manufacturer copy has a hash"),
             );
             c
         })

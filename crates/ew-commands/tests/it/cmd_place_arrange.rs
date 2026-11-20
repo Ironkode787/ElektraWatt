@@ -11,7 +11,6 @@ use crate::common;
 
 use std::fmt::Debug;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{
     Crossings, DeleteConnections, ExchangePin, ExchangeSymbol, MoveReps, PlaceBlackBox, PlaceSymbol,
@@ -19,6 +18,7 @@ use ew_commands::commands::{
 };
 use ew_commands::{AnyCommand, CmdError, Engine};
 use ew_ids::{Id, Uuid};
+use ew_model::fixture::*;
 use ew_model::{Entity, Model};
 use ew_schema::{
     ContactKind, Device, Dir4, Extra, FnRole, Function, FunctionKind, Kind, LibDocument, PartRef, PartUse,

@@ -13,7 +13,6 @@ use crate::common;
 
 use std::sync::Arc;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{
     Connect, CreatePage, DeleteConnections, DeleteSelection, DeviceScope, EndpointParam, KindName, MoveReps,
@@ -21,6 +20,7 @@ use ew_commands::commands::{
     TargetRef, TransformReps,
 };
 use ew_commands::{CmdError, Cost, DynCommand, Engine, Receipt};
+use ew_model::fixture::*;
 use ew_model::{AnyKey, Entity, Model};
 use ew_schema::{Connection, Device, Function, Kind, Representation};
 use proptest::prelude::*;

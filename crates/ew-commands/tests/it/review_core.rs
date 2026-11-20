@@ -9,7 +9,6 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::reason as rejection;
 use common::*;
 use ew_commands::commands::{
@@ -20,6 +19,7 @@ use ew_commands::geometry::MAX_COORD;
 use ew_commands::rows::{row_json, row_text};
 use ew_commands::{CmdError, Command, Cost, DynCommand, Engine};
 use ew_ids::Id;
+use ew_model::fixture::*;
 use ew_model::{AnyRow, Entity};
 use ew_schema::{
     Connection, ConnectionKind, Device, Endpoint, FnRole, Function, IpDirection, Junction, JunctionStyle,

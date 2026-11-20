@@ -8,7 +8,6 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{
     ApplyLayout, Connect, ConnectMany, ContinueIp, DefinePotential, DeleteConnections, EditJunction,
@@ -16,6 +15,7 @@ use ew_commands::commands::{
 };
 use ew_commands::{CmdError, Engine};
 use ew_ids::Id;
+use ew_model::fixture::*;
 use ew_model::{Entity, Model};
 use ew_schema::{
     Bond, BondKind, Connection, ConnectionKind, Endpoint, Function, FunctionKind, IpDirection, Junction,

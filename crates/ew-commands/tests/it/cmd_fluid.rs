@@ -9,7 +9,6 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{
     ClosePort, ClosureKindParam, ClosureParam, Connect, EndpointParam, KindName, OccupancyParam, SetFields,
@@ -17,6 +16,7 @@ use ew_commands::commands::{
 };
 use ew_commands::{CmdError, Engine, Origin};
 use ew_ids::Id;
+use ew_model::fixture::*;
 use ew_model::{Entity, Model};
 use ew_schema::{
     ClosureKind, Connection, ConnectionKind, Device, DeviceKind, DeviceState, Discipline, FnDef, FnRole,

@@ -8,7 +8,6 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{
     AddCarrier, AssignModeParam, AssignPart, CarrierKindParam, CarrierParamsParam, CarrierThen,
@@ -18,6 +17,7 @@ use ew_commands::commands::{
 };
 use ew_commands::{CmdError, Command, Engine, Origin};
 use ew_ids::{Id, v5};
+use ew_model::fixture::*;
 use ew_model::{Model, ModelError};
 use ew_rds::Aspect;
 use ew_schema::{

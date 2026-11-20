@@ -8,11 +8,11 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{KindName, SetFields, SetManyFields};
 use ew_commands::{AnyCommand, CommandRegistry};
 use ew_ids::Id;
+use ew_model::fixture::*;
 use ew_schema::Page;
 use serde_json::{Value, json};
 

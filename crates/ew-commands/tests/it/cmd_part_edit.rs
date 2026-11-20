@@ -9,12 +9,12 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{EditPartCopy, KindName, SetManyFields, library_copy_hash};
 use ew_commands::{CmdError, Engine, Origin};
 use ew_ids::{Id, v5};
 use ew_model::Model;
+use ew_model::fixture::*;
 use ew_schema::{
     Connection, Device, LibCopy, LibDocument, LibItem, Manufacturer, Part, PotentialDef, Sha256,
 };

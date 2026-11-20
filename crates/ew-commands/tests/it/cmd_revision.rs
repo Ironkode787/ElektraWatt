@@ -10,7 +10,6 @@
 
 use crate::common;
 
-use ew_model::fixture::*;
 use common::*;
 use ew_commands::commands::{
     ApproveRevision, ApprovedPack, CreateRevision, DeletePages, DeleteSelection, KindName, LABEL_ORDER_RULE,
@@ -20,6 +19,7 @@ use ew_commands::commands::{
 use ew_commands::{CmdError, Engine, Exposure, Origin, Submit};
 use ew_ids::Id;
 use ew_mltext::MlText;
+use ew_model::fixture::*;
 use ew_model::{AnyRow, Model, Op, Rev};
 use ew_schema::{
     Date, Extra, Kind, LabelFormat, PartyRole, Record, ReleaseRecord, Revision, RevisionState, Sha256,
