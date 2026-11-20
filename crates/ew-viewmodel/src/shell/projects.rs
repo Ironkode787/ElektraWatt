@@ -1,13 +1,17 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The project-creating and project-recovering actions of the shell: New project, Open
-//! sample project and Tutorials, Import QElectroTech project, and discarding the journal of an
+//! A project in and out of the shell: Open, Save, Save as, Close and Quit with the unsaved-changes guard; New
+//! project, Open sample project and Tutorials, Import QElectroTech project, and discarding the journal of an
 //! earlier session.
 //!
-//! All of them end in a `Session` from `ew-api` that the shell holds like an opened project: a new project is
+//! All of them end in a `Session` from `ew-api` that the shell holds like an opened project: an open is
+//! `Session::open` with the store's and the session's options, a new project is
 //! `Session::new_project` followed by `Session::create` into the directory the user chose, an import is
 //! `ew_api::import::import_qet` followed by `Session::create`, the discard is an open with `Recovery::Discard`.
+//!
+//! Not here: the shell's state and its dispatch are in `shell.rs`; Undo and Redo there too; the import of a drawing
+//! and of EPLAN data in `shell/drawing_import.rs` and `shell/eplan_import.rs`.
 
 use std::path::{Path, PathBuf};
 
@@ -16,12 +20,16 @@ use ew_api::import::{
     Detected, ImportBatch, LineageInfo, QetLineages, Refusal, ReimportClass, ReimportError, StarterLibrary,
     detect_qet_reimport, import_qet_batch, imported_of, migration_counts, reimport_qet_batch,
 };
-use ew_api::{NewProjectKind, ProjectTemplate, Recovery, Session};
+use ew_api::{
+    Access, NewProjectKind, OpenError, OpenReport, Origin, ProjectTemplate, ReadOnlyReason, Recovery,
+    SaveError, Session, SessionOptions, StoreOptions,
+};
 use serde_json::{Map, Value};
 
 use super::{
-    AccessMode, Dialog, Mode, Outcome, Project, Prompt, Record, ShellModel, dir_name, failed, flag,
-    open_error_key, string_param,
+    AccessMode, Dialog, HistoryMarker, Mode, Opened, Outcome, Pending, Project, Prompt, Record, ShellModel,
+    TERMINAL_SPACING_DEFAULT, damaged_banner, dir_name, failed, flag, left_out_copies, open_error_key,
+    revision, string_param, symbol_editor, tools,
 };
 use crate::key;
 use crate::notifications::NoteTone;
@@ -1138,6 +1146,563 @@ impl ShellModel {
     }
 }
 
+fn read_only_key(reason: &ReadOnlyReason) -> Key<'static> {
+    match reason {
+        ReadOnlyReason::Requested => key!("readonly-requested"),
+        ReadOnlyReason::LockedBy(_) => key!("readonly-locked"),
+        ReadOnlyReason::NotWritable(_) => key!("readonly-not-writable"),
+        ReadOnlyReason::Integrity => key!("readonly-integrity"),
+        ReadOnlyReason::Format(_) => key!("readonly-format"),
+        ReadOnlyReason::LockLost(_) => key!("readonly-lock-lost"),
+    }
+}
+
+/// The reason key of a save error (its `Display` carries file system paths that a transcript must not):
+/// `ew_api::save_error_text`'s.
+fn save_error_key(e: &SaveError) -> Key<'static> {
+    Key::run_time(ew_api::save_error_text(e).key())
+}
+
+impl ShellModel {
+    /// The unsaved-changes guard of Open, Close and Quit: `Some` when the action must not go on now.
+    pub(super) fn guard_unsaved(&mut self, action: &'static str, p: &Map<String, Value>) -> Option<Outcome> {
+        if !self.is_dirty() || flag(p, "discard") {
+            return None;
+        }
+        match self.mode {
+            Mode::Headless => Some(failed(key!("error-unsaved"), &[])),
+            Mode::Gui => {
+                self.open_dialog(Dialog::ConfirmDiscard {
+                    pending: Pending {
+                        action,
+                        params: Value::Object(p.clone()),
+                    },
+                    symbol: false,
+                });
+                Some(Outcome::Done)
+            }
+        }
+    }
+
+    pub(crate) fn act_open(&mut self, p: &Map<String, Value>) -> Outcome {
+        if self.has_project()
+            && let Some(outcome) = self.guard_unsaved("file.open", p)
+        {
+            return outcome;
+        }
+        let dir = match string_param(p, "dir") {
+            Err(e) => return e,
+            Ok(Some(dir)) => PathBuf::from(dir),
+            Ok(None) => return self.need_path("file.open", Prompt::OpenFolder, "dir", p),
+        };
+        self.open_dir(&dir, flag(p, "read_only"))
+    }
+
+    pub(crate) fn act_open_recent(&mut self, p: &Map<String, Value>) -> Outcome {
+        let Some(index) = p.get("index").and_then(Value::as_u64) else {
+            return failed(key!("error-missing-param"), &["index"]);
+        };
+        let Some(path) = usize::try_from(index)
+            .ok()
+            .and_then(|i| self.settings.recent_projects.get(i))
+            .cloned()
+        else {
+            return failed(key!("error-bad-param"), &["index"]);
+        };
+        if self.has_project()
+            && let Some(outcome) = self.guard_unsaved("file.open_recent", p)
+        {
+            return outcome;
+        }
+        self.open_dir(Path::new(&path), false)
+    }
+
+    /// Closes the open project (if any) and opens `dir`: a failure leaves the start page with a banner.
+    pub(super) fn open_dir(&mut self, dir: &Path, read_only: bool) -> Outcome {
+        self.close_project();
+        let name = dir_name(dir);
+        let path_text = dir.to_string_lossy().into_owned();
+        let version = self.config.app_version.clone();
+        let opened = if read_only {
+            Session::open_read_only(dir, &version)
+        } else {
+            self.open_for_editing(dir)
+        };
+        let opened = opened.and_then(|(session, report)| self.settle_open(dir, session, report, read_only));
+        let Opened {
+            session,
+            report,
+            access,
+            banner,
+            recovery,
+        } = match opened {
+            Ok(o) => o,
+            Err(e) => {
+                let message =
+                    strings::format(key!("error-open"), &[&name, strings::text(open_error_key(&e))]);
+                // A recent entry goes only when its path is gone; a held lock or a bad format keeps it.
+                if self.settings.recent_projects.contains(&path_text) && !dir.exists() {
+                    self.settings.remove_recent(&path_text);
+                    self.save_settings();
+                    self.banner = Some(strings::format(key!("banner-recent-removed"), &[&name]));
+                } else {
+                    self.banner = Some(message.clone());
+                }
+                return Outcome::Failed { message };
+            }
+        };
+        let integrity = ew_api::integrity_items(&report);
+        let findings = integrity
+            .iter()
+            .filter(|i| i.severity != ew_api::checks::Severity::Info)
+            .count();
+        self.banner = match (banner, findings) {
+            (b, 0) => b,
+            (None, n) => Some(strings::format_count(crate::count_key!("banner-findings"), n)),
+            (Some(b), n) => Some(format!(
+                "{b} {}",
+                strings::format_count(crate::count_key!("banner-findings"), n)
+            )),
+        };
+        let labels = session.page_labels();
+        if self.record.dir.as_deref() != Some(dir) {
+            self.record = Record {
+                dir: Some(dir.to_path_buf()),
+                ..Record::default()
+            };
+        }
+        self.epochs += 1;
+        // The read-only project of a leftover journal comes with the recovery dialog.
+        if let Some((transactions, base_matches, last_change_ms)) = recovery {
+            self.palette = None;
+            self.dialog_gen += 1;
+            self.dialog = Some(Dialog::Recovery {
+                name: name.clone(),
+                transactions,
+                base_matches,
+                last_change_ms,
+                failed: None,
+            });
+        }
+        self.project = Some(Project {
+            session,
+            epoch: self.epochs,
+            dir: dir.to_path_buf(),
+            name,
+            access,
+            labels,
+            rows: Vec::new(),
+            sections: Vec::new(),
+            terminal_spacing: TERMINAL_SPACING_DEFAULT,
+        });
+        // A project the start-up offer lists is no longer offered once it is open.
+        self.opened_offered_project(dir);
+        // The cloud-synced folder and the older format say so; the merge driver's status is read.
+        if let Some(extra) = self.opened_extras(dir, report.migrated_from.as_deref()) {
+            self.banner = Some(match self.banner.take() {
+                Some(b) => format!("{b} {extra}"),
+                None => extra,
+            });
+        }
+        // Each image over the pixel limit that an earlier build took in is kept, not drawn, and named.
+        for extra in self.undrawn_image_notes() {
+            self.banner = Some(match self.banner.take() {
+                Some(b) => format!("{b} {extra}"),
+                None => extra,
+            });
+        }
+        self.install_view();
+        // A template is no recent project.
+        if self.editing_template().is_none() {
+            self.settings.push_recent(&path_text);
+        }
+        self.save_settings();
+        // The gate's integrity findings, the release's warnings of opening and the offer of
+        // an incomplete release.
+        self.revision_opened(integrity);
+        Outcome::Done
+    }
+
+    /// The open project's images that no drawing shows, one sentence each: which image
+    /// (the company logo, or the folios that show it), its size in pixels, that it is kept but not drawn, and the
+    /// remedy.
+    fn undrawn_image_notes(&self) -> Vec<String> {
+        let Some(project) = &self.project else {
+            return Vec::new();
+        };
+        // `ew-api`'s notices, which `ew` prints in the same words.
+        project
+            .session
+            .undrawn_image_notices()
+            .iter()
+            .map(|t| tools::rejected_words("", Some(t)))
+            .collect()
+    }
+
+    fn open_for_editing(&self, dir: &Path) -> Result<(Session, OpenReport), OpenError> {
+        self.open_for_editing_with(dir, Recovery::Keep)
+    }
+
+    /// The store options of this shell: the application version and the journal directory.
+    pub(super) fn store_options(&self) -> StoreOptions {
+        let mut store = StoreOptions::new(&self.config.app_version);
+        if let Some(state) = &self.config.state_dir {
+            store.state_dir = Some(state.clone());
+        }
+        if let Some(chain) = self.collab.migrations {
+            store.migrations = chain;
+        }
+        if let Some(released) = self.collab.released {
+            store.released = released;
+        }
+        store
+    }
+
+    /// The session options of the shell's own sessions: the origin is the GUI, new IDs from the system unless a test
+    /// set a source (`set_id_source_for_tests`, feature `testkit`); the configuration's library tiers with the
+    /// company libraries of the settings key `libraries.company` after any the configuration names.
+    pub(super) fn configured_libraries(&self) -> Option<ew_api::library::LibraryTiers> {
+        let company = self.settings.company_libraries(self.config.config_dir.as_deref());
+        let tiers = self.config.libraries.clone().or_else(|| {
+            let dir = self.config.config_dir.as_deref()?;
+            (!company.is_empty()).then(|| {
+                ew_api::library::LibraryTiers::under(dir, &dir.join("library-index"), Vec::new(), Vec::new())
+            })
+        });
+        tiers.map(|mut tiers| {
+            for dir in company {
+                if !tiers.company.contains(&dir) {
+                    tiers.company.push(dir);
+                }
+            }
+            tiers
+        })
+    }
+
+    pub(super) fn session_options(&self) -> SessionOptions {
+        let libraries = self.configured_libraries();
+        SessionOptions {
+            origin: Origin::Gui,
+            ids: self.id_source.map(|make| make()),
+            libraries,
+            // A new project's created date.
+            today: self.today_date(),
+            ..SessionOptions::default()
+        }
+    }
+
+    pub(super) fn open_for_editing_with(
+        &self,
+        dir: &Path,
+        recovery: Recovery,
+    ) -> Result<(Session, OpenReport), OpenError> {
+        let mut store = self.store_options();
+        // D25: a half-synced cloud folder is read again before a missing file makes it read-only.
+        store.cloud_synced = self.cloud_of(dir).is_some();
+        Session::open(dir, store, self.session_options(), recovery)
+    }
+
+    /// Decides the access of a freshly opened session: a leftover journal re-opens it read-only.
+    fn settle_open(
+        &self,
+        dir: &Path,
+        session: Session,
+        report: OpenReport,
+        read_only: bool,
+    ) -> Result<Opened, OpenError> {
+        if !read_only && let Some(info) = &report.recovery {
+            // The editing session is closed again (its own journal goes, the leftover one stays) and the project
+            // re-opens through `open_read_only`; the recovery dialog answers the rest.
+            let recovery = Some((info.transactions, info.base_matches, info.last_change_ms));
+            session.close();
+            let (again, again_report) = Session::open_read_only(dir, &self.config.app_version)?;
+            return Ok(Opened {
+                session: again,
+                report: again_report,
+                access: AccessMode::ReadOnly {
+                    reason_key: key!("readonly-recovery"),
+                },
+                banner: Some(strings::text(key!("banner-recovery")).to_owned()),
+                recovery,
+            });
+        }
+        Ok(match &report.access {
+            Access::Edit => Opened {
+                session,
+                report,
+                access: AccessMode::Edit,
+                banner: None,
+                recovery: None,
+            },
+            Access::ReadOnly(reason) => {
+                let key = read_only_key(reason);
+                // FT-1383: a damaged library copy a device uses is named, with the way out.
+                let damaged = matches!(reason, ReadOnlyReason::Integrity)
+                    .then(|| session.damaged_copy())
+                    .flatten();
+                let banner = (!read_only).then(|| {
+                    damaged
+                        .as_ref()
+                        .map(damaged_banner)
+                        .unwrap_or_else(|| strings::format(key!("banner-read-only"), &[strings::text(key)]))
+                });
+                Opened {
+                    session,
+                    report,
+                    access: AccessMode::ReadOnly { reason_key: key },
+                    banner,
+                    recovery: None,
+                }
+            }
+        })
+    }
+
+    /// The clean close of the open project: its journal goes and the lock is released. Callers reach it only for
+    /// a clean project or after the user chose Discard. What a discard loses leaves the record too.
+    pub(super) fn close_project(&mut self) {
+        if let Some(p) = self.project.take() {
+            self.record.steps = self.record.saved_steps.clone();
+            self.record.undone.clear();
+            p.session.close();
+        }
+        self.area = None;
+        self.focus = None;
+        self.reset_tools();
+        self.props = crate::properties::PropertiesState::default();
+        self.parts_map = None;
+        // The toasts of the project go with it (the log keeps them; their Undo expires with the session), and
+        // so do its history markers.
+        self.notes.clear_visible();
+        self.markers.clear();
+        // The Preview tab's lists and the history panel's state are the project's.
+        self.preview.clear();
+        self.history.clear();
+        // The revision dialogs' state and the release's warnings are the project's.
+        self.revision = revision::RevisionState::default();
+        self.messages.release_notes = None;
+        // The migration report is the choice of the project it was made for.
+        self.messages.migration = false;
+        // The re-import's proposal and a waiting proposal or card are the project's.
+        self.import.reimport_proposal = None;
+        self.import.reimport_waiting = None;
+    }
+
+    pub(crate) fn act_save(&mut self) -> Outcome {
+        if self.symbol_editor().is_some() {
+            return self.act_symbol("save", &Map::new());
+        }
+        self.save_project()
+    }
+
+    /// A person's save: with changes it takes today's date as the project's edited date (`Session::save`).
+    pub(super) fn save_project(&mut self) -> Outcome {
+        let today = self.today_date();
+        self.save_project_on(today)
+    }
+
+    /// Saves the project, writing `today` as its edited date when it has changes (`None`: a save a step makes
+    /// itself, which keeps the date, as an approval's must to keep the content its sign-off covers).
+    pub(super) fn save_project_on(&mut self, today: Option<ew_api::catalog::Date>) -> Outcome {
+        let Some(p) = &mut self.project else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        p.session.set_today(today);
+        let result = p.session.save();
+        p.session.set_today(None);
+        match result {
+            Ok(saved) => {
+                self.record.saved_steps = self.record.steps.clone();
+                // A save is a marker line of the history panel.
+                let rev = p.session.world().rev.0;
+                self.markers.push(HistoryMarker {
+                    rev,
+                    text: strings::text(key!("marker-saved")).to_owned(),
+                });
+                // Every save that wrote an unreleased format says so.
+                self.warn_unreleased(saved.unstable);
+                Outcome::Done
+            }
+            // The first save of a project of an older format asks once.
+            Err(SaveError::UpgradeConsent { from }) => self.ask_upgrade(&from),
+            Err(e) => {
+                let message = strings::format(key!("error-save"), &[strings::text(save_error_key(&e))]);
+                self.banner = Some(message.clone());
+                // After Decide later (D24), a save held by the collisions shows their dialog again.
+                if matches!(e, SaveError::ExternalCollisions) && self.dialog.is_none() {
+                    self.open_collisions();
+                }
+                Outcome::Failed { message }
+            }
+        }
+    }
+
+    /// S1 as the toast of a write whose manifest is marked `unstable`.
+    pub(crate) fn warn_unreleased(&mut self, unstable: bool) {
+        if unstable {
+            self.notify_toned(
+                strings::text(key!("toast-saved-unreleased-format")).to_owned(),
+                crate::notifications::NoteTone::Warning,
+            );
+        }
+    }
+
+    pub(crate) fn act_save_as(&mut self, p: &Map<String, Value>) -> Outcome {
+        // FT-1383: a project whose damaged library copy a record names is not copied: the copy would not open.
+        // One that no record names is left out of the copy, which says so.
+        let damaged = self.project.as_ref().and_then(|p| p.session.damaged_copy());
+        if let Some(d) = damaged.as_ref().filter(|d| !d.left_out) {
+            let message = match (&d.device, &d.part) {
+                (Some(device), Some((part, library))) => {
+                    strings::format(key!("error-save-as-damaged-copy"), &[device, part, library])
+                }
+                (Some(device), None) => {
+                    strings::format(key!("error-save-as-damaged-copy-unnamed"), &[device])
+                }
+                (None, _) => strings::format(
+                    key!("error-save-as-damaged-copy-record"),
+                    &[&tools::rejected_words("", Some(&d.words))],
+                ),
+            };
+            self.banner = Some(message.clone());
+            return Outcome::Failed { message };
+        }
+        let dir = match string_param(p, "dir") {
+            Err(e) => return e,
+            Ok(Some(dir)) => PathBuf::from(dir),
+            Ok(None) => return self.need_path("file.save_as", Prompt::NewFolder, "dir", p),
+        };
+        let store = self.store_options();
+        let Some(project) = &mut self.project else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        match project.session.create(&dir, store) {
+            Ok(()) => {
+                let unstable = project.session.store().is_some_and(|s| s.writes_unstable());
+                project.dir = dir.clone();
+                project.name = dir_name(&dir);
+                project.access = AccessMode::Edit;
+                self.record.dir = Some(dir.clone());
+                self.record.saved_steps = self.record.steps.clone();
+                self.settings.push_recent(&dir.to_string_lossy());
+                self.save_settings();
+                if let Some(d) = damaged {
+                    self.collab.damaged = None;
+                    self.refresh_state_banner();
+                    let text = match left_out_copies(&d.left_out_words) {
+                        Some(all) => {
+                            strings::format(key!("toast-save-as-left-out-many"), &[&dir_name(&dir), &all])
+                        }
+                        None => strings::format(
+                            key!("toast-save-as-left-out"),
+                            &[&dir_name(&dir), &tools::rejected_words("", Some(&d.words))],
+                        ),
+                    };
+                    self.notify_toned(text, crate::notifications::NoteTone::Warning);
+                }
+                self.warn_unreleased(unstable);
+                Outcome::Done
+            }
+            Err(e) => {
+                let message = strings::format(key!("error-save-as"), &[strings::text(open_error_key(&e))]);
+                self.banner = Some(message.clone());
+                Outcome::Failed { message }
+            }
+        }
+    }
+
+    /// `library.update_damaged` (the damaged-copy banner's Update from library, FT-1499): every damaged library
+    /// copy an installed library holds is written from it, and the project opens again, writable when the integrity
+    /// check passes, else read-only with its banner; a toast says what was updated and names the copies that were not.
+    /// A refusal (another session holding the project among them) is a banner in words, nothing written.
+    pub(crate) fn act_update_damaged(&mut self) -> Outcome {
+        let Some(project) = self.project.as_mut() else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let dir = project.dir.clone();
+        let done = match project.session.update_damaged_copies() {
+            Ok(done) => done,
+            Err(refusal) => {
+                let message = strings::format(
+                    key!("error-update-damaged"),
+                    &[&tools::rejected_words("", Some(&refusal))],
+                );
+                self.banner = Some(message.clone());
+                return Outcome::Failed { message };
+            }
+        };
+        let outcome = self.open_dir(&dir, false);
+        if outcome != Outcome::Done {
+            return outcome;
+        }
+        // The toast names each copy written with its version.
+        let updated = ew_api::comma_joined(done.updated);
+        match (updated, ew_api::comma_joined(done.not_updated)) {
+            (updated, Some(left)) => self.notify_toned(
+                strings::format(
+                    key!("toast-damaged-copies-not-updated"),
+                    &[
+                        &tools::rejected_words("", updated.as_ref()),
+                        &tools::rejected_words("", Some(&left)),
+                    ],
+                ),
+                crate::notifications::NoteTone::Warning,
+            ),
+            (Some(updated), None) => self.notify_toned(
+                strings::format(
+                    key!("toast-damaged-copies-updated"),
+                    &[&tools::rejected_words("", Some(&updated))],
+                ),
+                crate::notifications::NoteTone::Success,
+            ),
+            (None, None) => {}
+        }
+        Outcome::Done
+    }
+
+    pub(crate) fn act_close(&mut self, p: &Map<String, Value>) -> Outcome {
+        if let Some(outcome) = self.guard_unsaved("file.close", p) {
+            return outcome;
+        }
+        self.close_project();
+        Outcome::Done
+    }
+
+    /// `file.save_project`: the project, while the symbol editor shows and Save is the symbol's.
+    pub(crate) fn act_save_project(&mut self) -> Outcome {
+        self.save_project()
+    }
+
+    pub(crate) fn act_quit(&mut self, p: &Map<String, Value>) -> Outcome {
+        // An unsaved symbol draft asks Save symbol, Discard or Cancel; `discard` discards it.
+        if self
+            .symbol_editor
+            .as_ref()
+            .is_some_and(symbol_editor::SymbolEditor::dirty)
+        {
+            if flag(p, "discard") {
+                self.symbol_editor = None;
+            } else {
+                return match self.mode {
+                    Mode::Headless => failed(key!("symbol-unsaved"), &[]),
+                    Mode::Gui => self.open_dialog(Dialog::ConfirmDiscard {
+                        pending: Pending {
+                            action: "app.quit",
+                            params: Value::Object(p.clone()),
+                        },
+                        symbol: true,
+                    }),
+                };
+            }
+        }
+        if let Some(outcome) = self.guard_unsaved("app.quit", p) {
+            return outcome;
+        }
+        self.close_project();
+        self.quit = true;
+        Outcome::Done
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1163,5 +1728,24 @@ mod tests {
         assert_eq!(shell.banner(), Some(text));
         assert!(shell.dialog().is_none());
         let _ = std::fs::remove_dir_all(&dir);
+    }
+}
+
+#[cfg(test)]
+mod save_error_tests {
+    use super::{SaveError, key, save_error_key, strings};
+
+    /// A save refused at the manifest's ceiling says so in words and ends with what the user can do.
+    #[test]
+    fn the_generation_limit_names_the_limit_and_save_as() {
+        let message = strings::format(
+            key!("error-save"),
+            &[strings::text(save_error_key(&SaveError::GenerationLimit))],
+        );
+        assert_eq!(
+            message,
+            "Saving failed: this project has been saved the greatest number of times its format allows; save it to a \
+             new folder (Save as\u{2026}), which starts the count again."
+        );
     }
 }
