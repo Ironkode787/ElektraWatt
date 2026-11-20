@@ -14,7 +14,7 @@ use std::process::{Command, Output, Stdio};
 
 use serde_json::{Value, json};
 
-use crate::support::GOLDEN_A;
+use crate::support::{EwTmp as _, GOLDEN_A, Tmp};
 
 /// Page 102.
 const PAGE: &str = "pages/4aa43308-d0d3-57ee-be0c-d9383f429f50.jsonl";
@@ -61,14 +61,14 @@ fn edit(dir: &Path, cmds: &[ew_api::AnyCommand]) {
 
 /// A fresh folder with a git repository `repo` holding a copy of Golden A as `J-E-2416.ew`, committed; its own global
 /// git configuration. Removed on drop.
-struct Repo(PathBuf);
+struct Repo(Tmp);
 
 impl Repo {
     /// `None` when git is absent (the test then skips).
     fn new(name: &str) -> Option<Repo> {
-        let r = Repo(ew_testdir::fresh_dir(name));
+        let r = Repo(Tmp::new(name));
         std::fs::create_dir_all(r.repo()).unwrap();
-        std::fs::write(r.0.join("gitconfig"), "").unwrap();
+        std::fs::write(r.0.path("gitconfig"), "").unwrap();
         if !r.git(&["--version"]).status.success() {
             eprintln!("{name} skipped: no git executable on the path");
             return None;
@@ -88,7 +88,7 @@ impl Repo {
     }
 
     fn repo(&self) -> PathBuf {
-        self.0.join("repo")
+        self.0.path("repo")
     }
 
     fn project(&self) -> PathBuf {
@@ -103,7 +103,7 @@ impl Repo {
         }
         cmd.env_remove("APPIMAGE")
             .env_remove("APPDIR")
-            .env("GIT_CONFIG_GLOBAL", self.0.join("gitconfig"))
+            .env("GIT_CONFIG_GLOBAL", self.0.path("gitconfig"))
             .env("GIT_CONFIG_NOSYSTEM", "1")
             .stdin(Stdio::null());
     }
@@ -116,8 +116,8 @@ impl Repo {
     }
 
     fn ew<S: AsRef<OsStr>>(&self, args: &[S]) -> Output {
-        let mut cmd = Command::new(crate::support::bin_exe());
-        cmd.args(args).current_dir(self.repo());
+        let mut cmd = self.0.ew_command(args);
+        cmd.current_dir(self.repo());
         self.env(&mut cmd);
         cmd.output().unwrap()
     }
@@ -137,12 +137,6 @@ impl Repo {
         o.status
             .success()
             .then(|| String::from_utf8_lossy(&o.stdout).trim_end().to_owned())
-    }
-}
-
-impl Drop for Repo {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
     }
 }
 
@@ -170,7 +164,7 @@ fn change_101f1(dir: &Path) {
 #[test]
 fn ew_diff_prints_the_changed_part_with_the_tags_of_each_side() {
     let Some(r) = Repo::new("ew-dg1") else { return };
-    let copy = r.0.join("copy.ew");
+    let copy = r.0.path("copy.ew");
     crate::support::copy_dir(Path::new(GOLDEN_A), &copy);
     change_101f1(&copy);
     let golden = Path::new(GOLDEN_A);
@@ -196,7 +190,7 @@ fn ew_diff_prints_the_changed_part_with_the_tags_of_each_side() {
     assert_eq!(typed.changes[0].label, "-101F1");
 
     // A directory and its `.ewz` hold the same records.
-    let ewz = r.0.join("copy.ewz");
+    let ewz = r.0.path("copy.ewz");
     let packed = r.ew(&[
         OsStr::new("export"),
         OsStr::new("ewz"),
@@ -416,7 +410,7 @@ fn the_hook_is_installed_and_a_foreign_one_is_kept() {
     }
 
     // A `core.hooksPath` outside the repository (as a global one is) serves other repositories too: refused.
-    let shared = r.0.join("shared-hooks");
+    let shared = r.0.path("shared-hooks");
     let value = shared.to_string_lossy().replace('\\', "/");
     assert!(r.git(&["config", "core.hooksPath", &value]).status.success());
     let refused = r.ew(&["git", "setup", "--yes", "--hooks"]);
@@ -444,16 +438,16 @@ fn git_setup_from_an_appimage_names_the_appimage() {
     let Some(r) = Repo::new("ew-dg3-appimage") else {
         return;
     };
-    let image = r.0.join("Apps").join("Editor.AppImage");
+    let image = r.0.path("Apps").join("Editor.AppImage");
     let exe = crate::support::bin_exe();
     let quoted_image = format!("'{}'", image.to_string_lossy().replace('\\', "/"));
-    let elsewhere = r.0.join("mount");
+    let elsewhere = r.0.path("mount");
     for (appdir, command) in [
         (elsewhere.as_path(), quoted_exe()),
         (exe.parent().unwrap(), format!("{quoted_image} ew")),
     ] {
-        let mut cmd = Command::new(&exe);
-        cmd.args(["git", "setup", "--yes"]).current_dir(r.repo());
+        let mut cmd = r.0.ew_command(&["git", "setup", "--yes"]);
+        cmd.current_dir(r.repo());
         r.env(&mut cmd);
         let done = cmd
             .env("APPIMAGE", &image)
@@ -498,13 +492,11 @@ fn cr1_project(dir: &Path) {
 /// DG-6: `ew check --integrity` exits 1 on CR-1's project for its conflict record and 0 on Golden A.
 #[test]
 fn the_integrity_check_fails_on_a_conflict_record_and_passes_golden_a() {
-    let base = ew_testdir::fresh_dir("ew-dg6");
-    let cr1 = base.join("cr1.ew");
+    let base = Tmp::new("ew-dg6");
+    let cr1 = base.path("cr1.ew");
     cr1_project(&cr1);
     let run = |dir: &Path| {
-        Command::new(crate::support::bin_exe())
-            .args([OsStr::new("check"), OsStr::new("--integrity"), dir.as_os_str()])
-            .current_dir(&base)
+        base.ew_command(&[OsStr::new("check"), OsStr::new("--integrity"), dir.as_os_str()])
             .output()
             .unwrap()
     };
@@ -518,7 +510,6 @@ fn the_integrity_check_fails_on_a_conflict_record_and_passes_golden_a() {
         (Some(0), "integrity: 0 errors, 0 warnings, 0 infos, 0 waived\n"),
         "{out}"
     );
-    let _ = std::fs::remove_dir_all(&base);
 }
 
 /// The page-102 file of the project `dir`, as text.

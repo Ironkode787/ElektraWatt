@@ -6,10 +6,10 @@
 //! with `%A` byte-identical; AC-41's driver half on W20 of page 102 and the manifest merge. Golden A is only
 //! read and copied.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Output;
 
-use crate::support::GOLDEN_A;
+use crate::support::{EwTmp as _, GOLDEN_A, Tmp};
 
 /// Page 102 in the project, and in the working tree (the project in `proj/`).
 const PAGE: &str = "pages/4aa43308-d0d3-57ee-be0c-d9383f429f50.jsonl";
@@ -17,12 +17,12 @@ const REPO_PAGE: &str = "proj/J-E-2416.ew/pages/4aa43308-d0d3-57ee-be0c-d9383f42
 const W20_OVERRIDES: &str = r#""overrides":{"csa":"1.5","show_marker":true}"#;
 
 /// A working tree with a copy of Golden A in `proj/J-E-2416.ew`, removed on drop.
-struct Tree(PathBuf);
+struct Tree(Tmp);
 
 impl Tree {
     fn new() -> Tree {
-        let root = ew_testdir::fresh_dir("ew-merge-driver");
-        crate::support::copy_dir(Path::new(GOLDEN_A), &root.join("proj/J-E-2416.ew"));
+        let root = Tmp::new("ew-merge-driver");
+        crate::support::copy_dir(Path::new(GOLDEN_A), &root.path("proj/J-E-2416.ew"));
         Tree(root)
     }
 
@@ -32,7 +32,7 @@ impl Tree {
         sides: [&str; 3],
         args_for: impl Fn(&Path, &Path, &Path) -> Vec<String>,
     ) -> (Output, String) {
-        let [o, a, b] = ["o", "a", "b"].map(|n| self.0.join(format!(".merge_file_{n}")));
+        let [o, a, b] = ["o", "a", "b"].map(|n| self.0.path(&format!(".merge_file_{n}")));
         for (path, text) in [(&o, sides[0]), (&a, sides[1]), (&b, sides[2])] {
             std::fs::write(path, text).unwrap();
         }
@@ -42,18 +42,7 @@ impl Tree {
     }
 
     fn run(&self, args: &[String]) -> Output {
-        std::process::Command::new(crate::support::bin_exe())
-            .arg("merge-driver")
-            .args(args)
-            .current_dir(&self.0)
-            .output()
-            .unwrap()
-    }
-}
-
-impl Drop for Tree {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
+        self.0.ew_command(&["merge-driver"]).args(args).output().unwrap()
     }
 }
 
@@ -120,7 +109,7 @@ fn w20_merges_cleanly_to_csa_2_5_and_colour_bu_and_exits_0() {
         assert_eq!(merged, expected);
     }
     // No temporary file is left beside the sides.
-    let names: Vec<String> = std::fs::read_dir(&t.0)
+    let names: Vec<String> = std::fs::read_dir(t.0.dir())
         .unwrap()
         .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
         .collect();
@@ -210,7 +199,7 @@ fn a_side_newer_than_the_reader_is_left_as_ours() {
     assert_eq!(result(&out), (Some(1), String::new(), said(manifest)));
     assert_eq!(merged, ours);
 
-    std::fs::write(t.0.join(manifest), &theirs).unwrap();
+    std::fs::write(t.0.path(manifest), &theirs).unwrap();
     let (base, ours, theirs) = clean_sides();
     let (out, merged) = t.merge([&base, &ours, &theirs], form(false, REPO_PAGE));
     assert_eq!(result(&out), (Some(1), String::new(), said(REPO_PAGE)));
@@ -254,7 +243,7 @@ fn a_record_this_reader_cannot_read_leaves_the_file_as_ours() {
 fn a_library_document_this_reader_cannot_read_is_left_as_ours() {
     const DOC: &str = "proj/J-E-2416.ew/lib/manufacturers/221fd06e-3263-5cab-bbb9-27aee71c8d79.json";
     let t = Tree::new();
-    let base = std::fs::read_to_string(t.0.join(DOC)).unwrap();
+    let base = std::fs::read_to_string(t.0.path(DOC)).unwrap();
     let ours = base.replace(r#""name": "Siemens""#, r#""name": "Siemens AG""#);
     let theirs = base.replace(r#""$k": "manufacturer","#, r#""$k": "manufacturer", "$v": 2,"#);
     assert!(ours != base && theirs != base);
@@ -276,11 +265,11 @@ fn a_failed_write_exits_129_and_leaves_a_byte_identical() {
     let (base, ours, theirs) = clean_sides();
     // 250 characters: a file's name, but not with a temporary file's suffix (a name holds at most 255).
     let name = format!(".merge_file_{}", "a".repeat(238));
-    let [o, a, b] = [".merge_file_o", name.as_str(), ".merge_file_b"].map(|n| t.0.join(n));
+    let [o, a, b] = [".merge_file_o", name.as_str(), ".merge_file_b"].map(|n| t.0.path(n));
     for (path, text) in [(&o, &base), (&a, &ours), (&b, &theirs)] {
         std::fs::write(path, text).unwrap();
     }
-    let os_error = std::fs::File::create(t.0.join(format!("{name}.tmp-0"))).unwrap_err();
+    let os_error = std::fs::File::create(t.0.path(&format!("{name}.tmp-0"))).unwrap_err();
     let out = t.run(&form(true, REPO_PAGE)(&o, &a, &b));
     assert_eq!(
         result(&out),
@@ -300,7 +289,7 @@ fn a_failed_write_exits_129_and_leaves_a_byte_identical() {
 #[test]
 fn a_side_that_cannot_be_read_exits_129() {
     let t = Tree::new();
-    let missing = t.0.join("gone");
+    let missing = t.0.path("gone");
     let os_error = std::fs::File::open(&missing).unwrap_err();
     let (out, merged) = t.merge(["o\n", "a\n", "b\n"], |o, a, _| {
         vec![s(o), s(a), s(&missing), "7".to_owned(), REPO_PAGE.to_owned()]
@@ -342,7 +331,7 @@ fn three_arguments_are_a_usage_error() {
 #[test]
 fn a_path_beginning_with_a_hyphen_merges() {
     let t = Tree::new();
-    std::fs::rename(t.0.join("proj"), t.0.join("-proj")).unwrap();
+    std::fs::rename(t.0.path("proj"), t.0.path("-proj")).unwrap();
     let (base, ours, theirs) = clean_sides();
     let expected = merged_sides();
     let path = "-proj/J-E-2416.ew/pages/4aa43308-d0d3-57ee-be0c-d9383f429f50.jsonl";

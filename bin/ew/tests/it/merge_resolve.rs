@@ -12,7 +12,7 @@ use std::process::Output;
 
 use ew_api::Conflict;
 
-use crate::support::GOLDEN_A;
+use crate::support::{EwTmp as _, GOLDEN_A, Tmp};
 
 /// Page 102.
 const PAGE: &str = "pages/4aa43308-d0d3-57ee-be0c-d9383f429f50.jsonl";
@@ -37,12 +37,12 @@ fn colour(c: &str) -> String {
 
 /// A copy of Golden A in a fresh folder whose page 102 is the merge driver's result of MD-6's conflict variant: W20
 /// with csa 2.5 and BU in place, and the conflict record. Removed on drop.
-struct Copy(PathBuf);
+struct Copy(Tmp);
 
 impl Copy {
     fn new() -> Copy {
-        let root = ew_testdir::fresh_dir("ew-merge-resolve");
-        let project = root.join("J-E-2416.ew");
+        let root = Tmp::new("ew-merge-resolve");
+        let project = root.path("J-E-2416.ew");
         crate::support::copy_dir(Path::new(GOLDEN_A), &project);
         std::fs::write(
             project.join(PAGE),
@@ -53,7 +53,7 @@ impl Copy {
     }
 
     fn project(&self) -> PathBuf {
-        self.0.join("J-E-2416.ew")
+        self.0.path("J-E-2416.ew")
     }
 
     fn page(&self) -> String {
@@ -61,18 +61,7 @@ impl Copy {
     }
 
     fn ew(&self, args: &[&str]) -> Output {
-        std::process::Command::new(crate::support::bin_exe())
-            .args(args)
-            .arg(self.project())
-            .current_dir(&self.0)
-            .output()
-            .unwrap()
-    }
-}
-
-impl Drop for Copy {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
+        self.0.ew_command(args).arg(self.project()).output().unwrap()
     }
 }
 

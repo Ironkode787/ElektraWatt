@@ -30,8 +30,9 @@ pub fn bin_exe() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from(env!("CARGO_BIN_EXE_ew"))) // bin-exe-fallback
 }
 
-/// Isolates `cmd` under `root`: no display, no starter content and no `SOURCE_DATE_EPOCH`; the user directories, the
-/// data directory and the cache directory inside `root`.
+/// Isolates `cmd` under `root` (the environment of G-M1-01 as far as a test can set it): no display, no starter
+/// content and no `SOURCE_DATE_EPOCH`; the user directories, the data directory and the cache directory inside
+/// `root`, so no user library and no user state is read and a writer's journal goes there.
 pub fn isolate(cmd: &mut Command, root: &Path) {
     cmd.env_remove("DISPLAY")
         .env_remove("WAYLAND_DISPLAY")

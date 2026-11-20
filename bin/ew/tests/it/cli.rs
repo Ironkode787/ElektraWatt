@@ -4,9 +4,9 @@
 //! End-to-end tests of the `ew` binary.
 
 use std::path::PathBuf;
-use std::process::{Command, Output};
+use std::process::Output;
 
-use crate::support::{CONTENT, GOLDEN_A, GOLDEN_PARTS, Tmp, bin_exe, copy_dir, stderr, stdout, tree};
+use crate::support::{CONTENT, EwTmp as _, GOLDEN_A, GOLDEN_PARTS, Tmp, copy_dir, stderr, stdout, tree};
 
 /// The QElectroTech project of the import tests.
 trait QetTmp {
@@ -29,12 +29,9 @@ impl QetTmp for Tmp {
 const LOST: &str = r#"<project version="0.100" title="T"><diagram order="1" folio="1" title="P"><elements/><conductors><conductor terminal1="999" terminal2="998"/></conductors></diagram></project>"#;
 const PROJECT: &str = r#"<project version="0.100" title="T"><diagram order="1" folio="1" title="P"><elements/><conductors/></diagram></project>"#;
 
+/// `ew <args>` in a fresh folder of its own ([`EwTmp::ew`]).
 fn ew(args: &[&std::ffi::OsStr]) -> Output {
-    Command::new(bin_exe())
-        .args(args)
-        .env_remove("EW_CONTENT_DIR")
-        .output()
-        .unwrap()
+    Tmp::new("ew-cli-run").ew(args)
 }
 
 #[test]
@@ -717,9 +714,8 @@ fn sql_random_is_denied_and_missing_project_is_exit_2() {
 
 /// `ew <args>` with `EW_DEBUG_PANIC` set to `site`: a debug build's test fault inside the panic guard of that site.
 fn ew_faulted(site: &str, args: &[&std::ffi::OsStr]) -> Output {
-    Command::new(bin_exe())
-        .args(args)
-        .env_remove("EW_CONTENT_DIR")
+    Tmp::new("ew-cli-run")
+        .ew_command(args)
         .env("EW_DEBUG_PANIC", site)
         .output()
         .unwrap()
@@ -1198,53 +1194,6 @@ fn verify_migration_exits_by_what_it_finds() {
 // ---------------------------------------------------------------------------------------------------------
 // `ew export pdf|svg` (G-M1-01) and `ew apply`
 
-/// `ew` in the environment of G-M1-01 as far as a test can set it: no display (`DISPLAY`, `WAYLAND_DISPLAY`
-/// removed), no starter content (`EW_CONTENT_DIR` removed), no `SOURCE_DATE_EPOCH`, and the user directories
-/// (home, application data, state, data and config) pointing at empty directories, so no user library and no
-/// user state is read and the journal of a writer goes there. The export uses the bundled fonts only (the PDF's
-/// digest holds that), and no subcommand uses a GPU.
-fn ew_isolated(home: &std::path::Path, args: &[&std::ffi::OsStr]) -> Output {
-    ew_isolated_with(home, args, None)
-}
-
-/// [`ew_isolated`] with `SOURCE_DATE_EPOCH` set to `epoch`.
-fn ew_isolated_with(home: &std::path::Path, args: &[&std::ffi::OsStr], epoch: Option<&str>) -> Output {
-    let dirs = [
-        "HOME",
-        "USERPROFILE",
-        "LOCALAPPDATA",
-        "APPDATA",
-        "XDG_STATE_HOME",
-        "XDG_DATA_HOME",
-        "XDG_CONFIG_HOME",
-    ];
-    let mut cmd = Command::new(bin_exe());
-    cmd.args(args)
-        .env_remove("EW_CONTENT_DIR")
-        .env_remove("DISPLAY")
-        .env_remove("WAYLAND_DISPLAY")
-        .env_remove("SOURCE_DATE_EPOCH");
-    for d in dirs {
-        let dir = home.join(d.to_ascii_lowercase());
-        std::fs::create_dir_all(&dir).unwrap();
-        cmd.env(d, &dir);
-    }
-    if let Some(e) = epoch {
-        cmd.env("SOURCE_DATE_EPOCH", e);
-    }
-    cmd.output().unwrap()
-}
-
-/// The OS state directory the isolated `ew` uses for journals (`ew_store::default_state_dir` under the user
-/// directories of [`ew_isolated`]).
-fn isolated_state_dir(home: &std::path::Path) -> PathBuf {
-    if cfg!(windows) {
-        home.join("localappdata").join("ElektraWatt").join("state")
-    } else {
-        home.join("xdg_state_home").join("elektrawatt")
-    }
-}
-
 /// A copy of Golden A in `t`.
 fn golden_copy(t: &Tmp) -> PathBuf {
     let copy = t.0.join("J-E-2416.ew");
@@ -1268,9 +1217,7 @@ fn export_pdf_of_golden_a_is_the_committed_pdf() {
     let links = structure["links"].as_u64().expect("the committed link count");
     for threads in ["1", "4"] {
         let out = t.0.join(format!("J-E-2416-{threads}.pdf"));
-        let o = ew_isolated(
-            &t.0.join("home"),
-            &[
+        let o = t.ew(&[
                 "export".as_ref(),
                 "pdf".as_ref(),
                 project.as_os_str(),
@@ -1303,9 +1250,7 @@ fn export_pdf_of_golden_a_is_the_committed_pdf() {
 fn export_svg_writes_the_selected_pages() {
     let t = Tmp::new("ew-cli-test");
     let dir = t.0.join("svg");
-    let o = ew_isolated(
-        &t.0.join("home"),
-        &[
+    let o = t.ew(&[
             "export".as_ref(),
             "svg".as_ref(),
             GOLDEN_A.as_ref(),
@@ -1349,13 +1294,10 @@ const VARIANTS: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-24
 #[test]
 fn apply_golden_b2_previews_then_saves() {
     let t = Tmp::new("ew-cli-test");
-    let home = t.0.join("home");
     let project = golden_copy(&t);
     let log = std::path::Path::new(VARIANTS).join("b2-renumber-pages.ewcmd");
     let before = tree(&project);
-    let preview = ew_isolated(
-        &home,
-        &[
+    let preview = t.ew(&[
             "apply".as_ref(),
             project.as_os_str(),
             log.as_os_str(),
@@ -1370,9 +1312,7 @@ fn apply_golden_b2_previews_then_saves() {
     assert!(out.contains(" 2 tags and 14 cross-references change"), "{out}");
     assert!(tree(&project) == before, "a preview wrote into the project");
     let svg = |pages: &str| {
-        ew_isolated(
-            &home,
-            &[
+        t.ew(&[
                 "export".as_ref(),
                 "svg".as_ref(),
                 project.as_os_str(),
@@ -1388,7 +1328,7 @@ fn apply_golden_b2_previews_then_saves() {
         Some(2),
         "no folio 104 before the replay"
     );
-    let applied = ew_isolated(&home, &["apply".as_ref(), project.as_os_str(), log.as_os_str()]);
+    let applied = t.ew(&["apply".as_ref(), project.as_os_str(), log.as_os_str()]);
     assert_eq!(applied.status.code(), Some(0), "{}", stderr(&applied));
     assert!(
         stdout(&applied).contains("applied 1 of 1 lines; saved"),
@@ -1406,7 +1346,6 @@ fn apply_golden_b2_previews_then_saves() {
 #[test]
 fn apply_exit_codes_and_one_step() {
     let t = Tmp::new("ew-cli-test");
-    let home = t.0.join("home");
     let project = golden_copy(&t);
     let write = |name: &str, lines: &[&str]| {
         let p = t.0.join(name);
@@ -1421,9 +1360,7 @@ fn apply_exit_codes_and_one_step() {
     let page = r#"{"cmd":"page.create","params":{"number":7777,"title":{"en":"T"}}}"#;
     let dup = write("dup.ewcmd", &[page, page]);
     let before = tree(&project);
-    let one_step = ew_isolated(
-        &home,
-        &[
+    let one_step = t.ew(&[
             "apply".as_ref(),
             project.as_os_str(),
             dup.as_os_str(),
@@ -1443,19 +1380,15 @@ fn apply_exit_codes_and_one_step() {
             r#"{"cmd":"fields.set","params":{"kind":"device","targets":[{"ref":"tag:-NOPE"}],"path":"tag.counter","value":1}}"#,
         ],
     );
-    let o = ew_isolated(
-        &home,
-        &["apply".as_ref(), project.as_os_str(), bad_ref.as_os_str()],
+    let o = t.ew(&["apply".as_ref(), project.as_os_str(), bad_ref.as_os_str()],
     );
     assert_eq!(o.status.code(), Some(2), "{}", stderr(&o));
     let malformed = write("bad.ewcmd", &["{\"cmd\":1}"]);
-    let o = ew_isolated(
-        &home,
-        &["apply".as_ref(), project.as_os_str(), malformed.as_os_str()],
+    let o = t.ew(&["apply".as_ref(), project.as_os_str(), malformed.as_os_str()],
     );
     assert_eq!(o.status.code(), Some(2), "{}", stderr(&o));
     assert!(tree(&project) == before, "a refused log saved something");
-    let partial = ew_isolated(&home, &["apply".as_ref(), project.as_os_str(), dup.as_os_str()]);
+    let partial = t.ew(&["apply".as_ref(), project.as_os_str(), dup.as_os_str()]);
     assert_eq!(partial.status.code(), Some(1), "{}", stderr(&partial));
     assert!(
         stdout(&partial).contains("applied 1 of 2 lines; saved"),
@@ -1474,9 +1407,7 @@ fn apply_preview_of_golden_b1_prints_the_10_tag_changes() {
     let project = golden_copy(&t);
     let before = tree(&project);
     let log = std::path::Path::new(VARIANTS).join("b1-page-based-tags.ewcmd");
-    let o = ew_isolated(
-        &t.0.join("home"),
-        &[
+    let o = t.ew(&[
             "apply".as_ref(),
             project.as_os_str(),
             log.as_os_str(),
@@ -1534,9 +1465,7 @@ fn apply_of_gp_ut_removes_102f1_and_its_four_wires_only() {
     };
     let before = records(&project);
     let log = std::path::Path::new(VARIANTS).join("gp-ut.ewcmd");
-    let o = ew_isolated(
-        &t.0.join("home"),
-        &["apply".as_ref(), project.as_os_str(), log.as_os_str()],
+    let o = t.ew(&["apply".as_ref(), project.as_os_str(), log.as_os_str()],
     );
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     assert_eq!(stdout(&o), "applied 1 of 1 lines; saved\n");
@@ -1587,12 +1516,9 @@ fn apply_of_gp_ut_removes_102f1_and_its_four_wires_only() {
 #[test]
 fn source_date_epoch_dates_the_pdf() {
     let t = Tmp::new("ew-cli-test");
-    let home = t.0.join("home");
     let export = |name: &str, threads: &str, epoch: &str| {
         let out = t.0.join(name);
-        let o = ew_isolated_with(
-            &home,
-            &[
+        let o = t.ew_at(&[
                 "export".as_ref(),
                 "pdf".as_ref(),
                 GOLDEN_A.as_ref(),
@@ -1630,12 +1556,9 @@ fn source_date_epoch_dates_the_pdf() {
 #[test]
 fn export_svg_replaces_the_set_and_keeps_other_files() {
     let t = Tmp::new("ew-cli-test");
-    let home = t.0.join("home");
     let dir = t.0.join("svg");
     let svg = |pages: &str, dir: &std::path::Path| {
-        ew_isolated(
-            &home,
-            &[
+        t.ew(&[
                 "export".as_ref(),
                 "svg".as_ref(),
                 GOLDEN_A.as_ref(),
@@ -1666,11 +1589,10 @@ fn export_svg_replaces_the_set_and_keeps_other_files() {
 #[test]
 fn apply_refuses_a_project_with_a_crashed_session_journal() {
     let t = Tmp::new("ew-cli-test");
-    let home = t.0.join("home");
     let project = golden_copy(&t);
     // A session that commits one edit and is dropped without a save or a clean close: its journal stays.
     let mut store = ew_api::StoreOptions::new("test");
-    store.state_dir = Some(isolated_state_dir(&home));
+    store.state_dir = Some(t.state_dir());
     let (mut session, _) = ew_api::Session::open(
         &project,
         store,
@@ -1686,10 +1608,10 @@ fn apply_refuses_a_project_with_a_crashed_session_journal() {
         .unwrap();
     drop(session);
     let before = tree(&project);
-    let journals = journal_files(&home);
+    let journals = journal_files(&t);
     assert_eq!(journals.len(), 1);
     let log = std::path::Path::new(VARIANTS).join("b2-renumber-pages.ewcmd");
-    let o = ew_isolated(&home, &["apply".as_ref(), project.as_os_str(), log.as_os_str()]);
+    let o = t.ew(&["apply".as_ref(), project.as_os_str(), log.as_os_str()]);
     assert_eq!(o.status.code(), Some(2), "{}{}", stdout(&o), stderr(&o));
     assert_eq!(
         stderr(&o),
@@ -1704,7 +1626,7 @@ fn apply_refuses_a_project_with_a_crashed_session_journal() {
     // its own segment, is `Journal::close` (`crates/ew-store/src/journal.rs`), shown by
     // `recovery_replays_the_newest_journal_and_keeps_the_other_unchanged` (`crates/ew-store/tests/it/recovery.rs`)
     // and `the_app_path_recovers_one_journal_at_a_time` (`crates/ew-api/tests/it/recovery.rs`).
-    assert!(journal_files(&home) == journals, "the journal is still there");
+    assert!(journal_files(&t) == journals, "the journal is still there");
 }
 
 /// Each kind of subcommand that prints `journal_refusal`'s text (`ew apply`, `ew import parts`, a human-only
@@ -1714,15 +1636,12 @@ fn apply_refuses_a_project_with_a_crashed_session_journal() {
 #[test]
 fn import_parts_refuses_a_project_with_a_crashed_session_journal() {
     let t = Tmp::new("ew-cli-test");
-    let home = t.0.join("home");
     let project = parts_target(&t, "parts-journal.ew");
-    crashed_session(&home, &project, &[new_page(7777)]);
+    crashed_session(&t, &project, &[new_page(7777)]);
     let before = tree(&project);
-    let journals = journal_files(&home);
+    let journals = journal_files(&t);
     assert_eq!(journals.len(), 1);
-    let o = ew_isolated(
-        &home,
-        &[
+    let o = t.ew(&[
             "import".as_ref(),
             "parts".as_ref(),
             GOLDEN_PARTS.as_ref(),
@@ -1743,7 +1662,7 @@ fn import_parts_refuses_a_project_with_a_crashed_session_journal() {
         )
     );
     assert!(tree(&project) == before, "nothing is imported");
-    assert!(journal_files(&home) == journals, "the journal stays");
+    assert!(journal_files(&t) == journals, "the journal stays");
 }
 
 /// `ew project checks set` submits the `HumanOnly` command
@@ -1754,7 +1673,6 @@ fn import_parts_refuses_a_project_with_a_crashed_session_journal() {
 #[test]
 fn project_checks_set_needs_an_interactive_terminal() {
     let t = Tmp::new("ew-cli-test");
-    let home = t.0.join("home");
     let project = golden_copy(&t);
     let before = tree(&project);
     let set = |extra: &[&str]| {
@@ -1765,7 +1683,7 @@ fn project_checks_set_needs_an_interactive_terminal() {
             project.as_os_str(),
         ];
         args.extend(extra.iter().map(|a| std::ffi::OsStr::new(*a)));
-        ew_isolated(&home, &args)
+        t.ew(&args)
     };
     let o = set(&["--active", "drafting", "--release", "full"]);
     assert_eq!(o.status.code(), Some(2), "{}{}", stdout(&o), stderr(&o));
@@ -1775,8 +1693,8 @@ fn project_checks_set_needs_an_interactive_terminal() {
          name); nothing was changed\n"
     );
     // The answer on a pipe does not count: a pipe is no terminal.
-    let mut child = Command::new(bin_exe())
-        .args(["project", "checks", "set"])
+    let mut child = t
+        .ew_command(&["project", "checks", "set"])
         .arg(&project)
         .args(["--active", "drafting"])
         .stdin(std::process::Stdio::piped())
@@ -1806,7 +1724,7 @@ fn project_checks_set_needs_an_interactive_terminal() {
         assert_eq!(o.status.code(), Some(2), "{usage:?}: {}", stderr(&o));
     }
     assert!(tree(&project) == before, "nothing is changed, locked or written");
-    let state = isolated_state_dir(&home);
+    let state = t.state_dir();
     assert!(
         !state.exists() || std::fs::read_dir(&state).unwrap().next().is_none(),
         "no journal was opened"
@@ -1821,7 +1739,6 @@ fn project_assets_purge_previews_and_is_refused_off_a_terminal() {
     const X: &[u8] = br#"<svg viewBox="0 0 8 2"><rect width="8" height="2"/></svg>"#;
     const Y: &[u8] = br#"<svg viewBox="0 0 3 3"><circle r="1"/></svg>"#;
     let t = Tmp::new("ew-cli-test");
-    let home = t.0.join("home");
     let dir = tiny_project(&t);
     // The logo X, saved, then Y, saved: X's file is left behind (a save never removes an asset file).
     let mut store = ew_api::StoreOptions::new("test");
@@ -1860,7 +1777,7 @@ fn project_assets_purge_previews_and_is_refused_off_a_terminal() {
             dir.as_os_str(),
         ];
         args.extend(extra.iter().map(|a| std::ffi::OsStr::new(*a)));
-        ew_isolated(&home, &args)
+        t.ew(&args)
     };
     let o = purge(&["--preview"]);
     assert_eq!(o.status.code(), Some(0), "{}{}", stdout(&o), stderr(&o));
@@ -1899,7 +1816,6 @@ fn project_assets_purge_previews_and_is_refused_off_a_terminal() {
 #[test]
 fn revision_commands_are_refused_off_a_terminal() {
     let t = Tmp::new("ew-cli-test");
-    let home = t.0.join("home");
     let dir = golden_copy(&t);
     let manifest = std::fs::read(dir.join("manifest.json")).unwrap();
     let dir_arg = dir.to_str().unwrap();
@@ -1909,7 +1825,7 @@ fn revision_commands_are_refused_off_a_terminal() {
         &["revision", "withdraw", "V1.0", dir_arg, "--reason", "wrong"],
     ] {
         let args: Vec<&std::ffi::OsStr> = args.iter().map(std::ffi::OsStr::new).collect();
-        let o = ew_isolated(&home, &args);
+        let o = t.ew(&args);
         assert_eq!(o.status.code(), Some(2), "{args:?}: {}{}", stdout(&o), stderr(&o));
         assert!(
             stderr(&o).contains("HumanOnly: needs an interactive terminal"),
@@ -1919,7 +1835,7 @@ fn revision_commands_are_refused_off_a_terminal() {
         assert!(!dir.join(".~ew.lock").exists(), "the project was not opened");
     }
     assert_eq!(std::fs::read(dir.join("manifest.json")).unwrap(), manifest);
-    let o = ew_isolated(&home, &["revision".as_ref(), "approve".as_ref(), dir.as_os_str()]);
+    let o = t.ew(&["revision".as_ref(), "approve".as_ref(), dir.as_os_str()]);
     assert_eq!(o.status.code(), Some(2), "`--as` is required: {}", stderr(&o));
 }
 
@@ -1936,7 +1852,6 @@ fn revision_commands_are_refused_off_a_terminal() {
 #[test]
 fn the_recorded_logs_replay_through_ew_apply() {
     let t = Tmp::new("ew-cli-test");
-    let home = t.0.join("home");
     let project = golden_copy(&t);
     let (golden, _) = ew_api::Session::open_read_only(&project, "test").unwrap();
     let tables = golden.page_tables("101").unwrap();
@@ -1986,7 +1901,7 @@ fn the_recorded_logs_replay_through_ew_apply() {
     let text = text(&lines);
     let log = t.0.join("logs.ewcmd");
     std::fs::write(&log, &text).unwrap();
-    let applied = ew_isolated(&home, &["apply".as_ref(), project.as_os_str(), log.as_os_str()]);
+    let applied = t.ew(&["apply".as_ref(), project.as_os_str(), log.as_os_str()]);
     assert_eq!(applied.status.code(), Some(0), "{}", stderr(&applied));
     assert_eq!(crate::find_log::FIND_LOG.lines().count(), 3);
     let n = 6 + crate::pilot_log::PILOT_LOG.lines().count() + crate::find_log::FIND_LOG.lines().count();
@@ -2097,13 +2012,10 @@ fn comparable_parts(dir: &std::path::Path) -> std::collections::BTreeMap<String,
 #[test]
 fn import_parts_creates_the_golden_part_copies_and_replays_through_apply() {
     let t = Tmp::new("ew-cli-test");
-    let home = t.0.join("home");
     let a = parts_target(&t, "parts-a.ew");
     let b = t.0.join("parts-b.ew");
     copy_dir(&a, &b);
-    let o = ew_isolated(
-        &home,
-        &[
+    let o = t.ew(&[
             "import".as_ref(),
             "parts".as_ref(),
             GOLDEN_PARTS.as_ref(),
@@ -2136,7 +2048,7 @@ fn import_parts_creates_the_golden_part_copies_and_replays_through_apply() {
     );
     let log_path = t.0.join("parts.ewcmd");
     std::fs::write(&log_path, log).unwrap();
-    let o = ew_isolated(&home, &["apply".as_ref(), b.as_os_str(), log_path.as_os_str()]);
+    let o = t.ew(&["apply".as_ref(), b.as_os_str(), log_path.as_os_str()]);
     assert_eq!(o.status.code(), Some(0), "{}{}", stdout(&o), stderr(&o));
     assert!(
         tree(&a.join("lib/parts")) == tree(&b.join("lib/parts")),
@@ -2148,12 +2060,9 @@ fn import_parts_creates_the_golden_part_copies_and_replays_through_apply() {
 #[test]
 fn a_second_import_parts_skips_every_key() {
     let t = Tmp::new("ew-cli-test");
-    let home = t.0.join("home");
     let a = parts_target(&t, "parts-a.ew");
     let run = || {
-        ew_isolated(
-            &home,
-            &[
+        t.ew(&[
                 "import".as_ref(),
                 "parts".as_ref(),
                 GOLDEN_PARTS.as_ref(),
@@ -2180,13 +2089,10 @@ fn a_second_import_parts_skips_every_key() {
 #[test]
 fn import_parts_refusals_name_line_and_column() {
     let t = Tmp::new("ew-cli-test");
-    let home = t.0.join("home");
     let a = parts_target(&t, "parts-a.ew");
     let before = tree(&a);
     let run = |file: &std::path::Path| {
-        ew_isolated(
-            &home,
-            &[
+        t.ew(&[
                 "import".as_ref(),
                 "parts".as_ref(),
                 file.as_os_str(),
@@ -2229,7 +2135,6 @@ fn import_parts_refusals_name_line_and_column() {
 #[test]
 fn import_parts_with_a_bom_prefixed_table_creates_the_same_copies() {
     let t = Tmp::new("ew-cli-test");
-    let home = t.0.join("home");
     let tables = std::path::Path::new(GOLDEN_PARTS).parent().unwrap();
     let marked = t.0.join("bom-tables");
     std::fs::create_dir_all(&marked).unwrap();
@@ -2245,9 +2150,7 @@ fn import_parts_with_a_bom_prefixed_table_creates_the_same_copies() {
         std::fs::write(marked.join(file), format!("\u{feff}{text}")).unwrap();
     }
     let import = |table: &std::path::Path, project: &std::path::Path| {
-        ew_isolated(
-            &home,
-            &[
+        t.ew(&[
                 "import".as_ref(),
                 "parts".as_ref(),
                 table.as_os_str(),
@@ -2282,15 +2185,7 @@ fn lib_create_list_search_and_rebuild() {
     let tmp = Tmp::new("ew-cli-test");
     let data = tmp.0.join("data");
     let cache = tmp.0.join("cache");
-    let run = |args: &[&str]| {
-        Command::new(bin_exe())
-            .args(args)
-            .env("EW_CONTENT_DIR", CONTENT)
-            .env("EW_DATA_DIR", &data)
-            .env("EW_CACHE_DIR", &cache)
-            .output()
-            .unwrap()
-    };
+    let run = |args: &[&str]| tmp.ew_with(args, true);
     let mine = data.join("libraries").join("mine.ewlib");
     let mine_arg = mine.to_str().unwrap();
     let o = run(&[
@@ -2406,29 +2301,8 @@ description = \"Text\"\nkind = \"Category\"\n";
 #[test]
 fn lib_import_parts_and_import_parts_with_a_map() {
     let tmp = Tmp::new("ew-cli-test");
-    let home = tmp.0.join("home");
     let data = tmp.0.join("data");
-    let cache = tmp.0.join("cache");
-    let run = |args: &[&std::ffi::OsStr]| {
-        let mut cmd = Command::new(bin_exe());
-        cmd.args(args)
-            .env_remove("EW_CONTENT_DIR")
-            .env("EW_DATA_DIR", &data)
-            .env("EW_CACHE_DIR", &cache);
-        for d in [
-            "HOME",
-            "USERPROFILE",
-            "LOCALAPPDATA",
-            "APPDATA",
-            "XDG_STATE_HOME",
-            "XDG_DATA_HOME",
-        ] {
-            let dir = home.join(d.to_ascii_lowercase());
-            std::fs::create_dir_all(&dir).unwrap();
-            cmd.env(d, &dir);
-        }
-        cmd.output().unwrap()
-    };
+    let run = |args: &[&std::ffi::OsStr]| tmp.ew(args);
     let lib = data.join("libraries").join("std.ewlib");
     let o = run(&[
         "lib".as_ref(),
@@ -2606,9 +2480,7 @@ fn ac21_through_the_cli_equals_findings_mvp_csv_for_the_built_packs() {
     type Groups = std::collections::BTreeMap<(String, String), Vec<String>>;
     let t = Tmp::new("ew-cli-test");
     let copy = golden_copy(&t);
-    let o = ew_isolated(
-        &t.0.join("home"),
-        &[
+    let o = t.ew(&[
             "check".as_ref(),
             "--scheme".as_ref(),
             "pre-delivery".as_ref(),
@@ -2733,9 +2605,9 @@ fn ac21_through_the_cli_equals_findings_mvp_csv_for_the_built_packs() {
 // ---------------------------------------------------------------------------------------------------------
 // `ew fmt`, `ew recover` and `ew import csv`
 
-/// The journal files of the isolated `ew` (`home`) with their bytes.
-fn journal_files(home: &std::path::Path) -> std::collections::BTreeMap<String, Vec<u8>> {
-    let dir = isolated_state_dir(home);
+/// The journal files of the isolated `ew` in `t` with their bytes.
+fn journal_files(t: &Tmp) -> std::collections::BTreeMap<String, Vec<u8>> {
+    let dir = t.state_dir();
     if !dir.exists() {
         return std::collections::BTreeMap::new();
     }
@@ -2745,11 +2617,11 @@ fn journal_files(home: &std::path::Path) -> std::collections::BTreeMap<String, V
         .collect()
 }
 
-/// A session on `project` with the journals of the isolated `ew` (`home`) that runs `cmds` and is dropped without a
+/// A session on `project` with the journals of the isolated `ew` in `t` that runs `cmds` and is dropped without a
 /// save or a clean close: its journal stays, as a crashed session's does.
-fn crashed_session(home: &std::path::Path, project: &std::path::Path, cmds: &[ew_api::AnyCommand]) {
+fn crashed_session(t: &Tmp, project: &std::path::Path, cmds: &[ew_api::AnyCommand]) {
     let mut store = ew_api::StoreOptions::new("test");
-    store.state_dir = Some(isolated_state_dir(home));
+    store.state_dir = Some(t.state_dir());
     let (mut session, opened) = ew_api::Session::open(
         project,
         store,
@@ -2789,11 +2661,11 @@ fn files_and_hashes(
     (files, manifest["files"].clone())
 }
 
-/// `ew <args>` isolated under `home`, with `extra` after them.
-fn ew_in(home: &std::path::Path, args: &[&std::ffi::OsStr], extra: &[&str]) -> Output {
+/// `ew <args>` isolated in `t`, with `extra` after them.
+fn ew_in(t: &Tmp, args: &[&std::ffi::OsStr], extra: &[&str]) -> Output {
     let mut all: Vec<&std::ffi::OsStr> = args.to_vec();
     all.extend(extra.iter().map(std::ffi::OsStr::new));
-    ew_isolated(home, &all)
+    t.ew(&all)
 }
 
 /// Swaps the first two lines of the project file `rel`.
@@ -2813,9 +2685,8 @@ fn swap_first_lines(project: &std::path::Path, rel: &str) {
 #[test]
 fn fmt_check_names_a_swapped_file_and_fmt_restores_its_bytes() {
     let t = Tmp::new("ew-cli-test");
-    let home = t.0.join("home");
     let project = golden_copy(&t);
-    let fmt = |extra: &[&str]| ew_in(&home, &["fmt".as_ref(), project.as_os_str()], extra);
+    let fmt = |extra: &[&str]| ew_in(&t, &["fmt".as_ref(), project.as_os_str()], extra);
     let run = |o: &Output| (o.status.code(), stdout(o), stderr(o));
     let original = files_and_hashes(&project);
     assert_eq!(
@@ -2869,7 +2740,7 @@ fn fmt_check_names_a_swapped_file_and_fmt_restores_its_bytes() {
         ["devices/71.jsonl", "manifest.json"],
         "only the rewrite set and the manifest"
     );
-    assert!(journal_files(&home).is_empty(), "the format's journal is closed");
+    assert!(journal_files(&t).is_empty(), "the format's journal is closed");
 }
 
 /// FM-2 (ADR-0011's preservation): a line with an unknown member survives `ew fmt` verbatim, and a quarantined line
@@ -2879,7 +2750,6 @@ fn fmt_check_names_a_swapped_file_and_fmt_restores_its_bytes() {
 #[test]
 fn fmt_keeps_unknown_members_and_quarantined_lines_verbatim() {
     let t = Tmp::new("ew-cli-test");
-    let home = t.0.join("home");
     let project = golden_copy(&t);
     let rel = "devices/71.jsonl";
     let text = std::fs::read_to_string(project.join(rel)).unwrap();
@@ -2902,7 +2772,7 @@ fn fmt_keeps_unknown_members_and_quarantined_lines_verbatim() {
     );
     let kept_text = format!("kept {rel}:{at} (EW-CORE-007): {}\n", kept[0].reason);
 
-    let fmt = |extra: &[&str]| ew_in(&home, &["fmt".as_ref(), project.as_os_str()], extra);
+    let fmt = |extra: &[&str]| ew_in(&t, &["fmt".as_ref(), project.as_os_str()], extra);
     let run = |o: &Output| (o.status.code(), stdout(o), stderr(o));
     assert_eq!(
         run(&fmt(&["--check"])),
@@ -2951,7 +2821,7 @@ fn fmt_keeps_unknown_members_and_quarantined_lines_verbatim() {
         kept[0].line.unwrap(),
         kept[0].reason
     );
-    let fmt = |extra: &[&str]| ew_in(&home, &["fmt".as_ref(), broken.as_os_str()], extra);
+    let fmt = |extra: &[&str]| ew_in(&t, &["fmt".as_ref(), broken.as_os_str()], extra);
     assert_eq!(
         run(&fmt(&["--check"])),
         (
@@ -2982,7 +2852,6 @@ fn fmt_keeps_unknown_members_and_quarantined_lines_verbatim() {
 #[test]
 fn a_writer_names_the_damaged_copy_a_device_uses() {
     let t = Tmp::new("ew-cli-test");
-    let home = t.0.join("home");
     let project = golden_copy(&t);
     let mut shards: Vec<_> = std::fs::read_dir(project.join("devices"))
         .unwrap()
@@ -3000,7 +2869,7 @@ fn a_writer_names_the_damaged_copy_a_device_uses() {
     let file = format!("lib/parts/{copy}.json");
     std::fs::write(project.join(&file), "{\"$k\": \"part\",\n").unwrap();
     let before = tree(&project);
-    let o = ew_in(&home, &["fmt".as_ref(), project.as_os_str()], &[]);
+    let o = ew_in(&t, &["fmt".as_ref(), project.as_os_str()], &[]);
     assert_eq!(
         (o.status.code(), stdout(&o), stderr(&o)),
         (
@@ -3025,11 +2894,10 @@ const STARTER_MCB_ASSIGN: &str = r#"{"cmd":"part.assign","params":{"copies":[{"$
 #[test]
 fn a_writer_names_the_damaged_copy_of_an_installed_part_whole() {
     let t = Tmp::new("ew-cli-test");
-    let home = t.0.join("home");
-    let (project, file) = starter_mcb_project(&t, &home);
+    let (project, file) = starter_mcb_project(&t);
     std::fs::write(&file, "{\"$k\": \"part\",\n").unwrap();
     let before = tree(&project);
-    let o = ew_in(&home, &["fmt".as_ref(), project.as_os_str()], &[]);
+    let o = ew_in(&t, &["fmt".as_ref(), project.as_os_str()], &[]);
     assert_eq!(
         (o.status.code(), stdout(&o), stderr(&o)),
         (
@@ -3051,7 +2919,6 @@ fn a_writer_names_the_damaged_copy_of_an_installed_part_whole() {
 #[test]
 fn a_writer_names_the_damaged_copy_a_page_names() {
     let t = Tmp::new("ew-cli-test");
-    let home = t.0.join("home");
     let project = golden_copy(&t);
     std::fs::write(
         project.join("lib/forms/81ee0d6d-6c0e-55e4-b7fd-1896f594051f.json"),
@@ -3059,7 +2926,7 @@ fn a_writer_names_the_damaged_copy_a_page_names() {
     )
     .unwrap();
     let before = tree(&project);
-    let o = ew_in(&home, &["fmt".as_ref(), project.as_os_str()], &[]);
+    let o = ew_in(&t, &["fmt".as_ref(), project.as_os_str()], &[]);
     assert_eq!(
         (o.status.code(), stdout(&o), stderr(&o)),
         (
@@ -3077,7 +2944,7 @@ fn a_writer_names_the_damaged_copy_a_page_names() {
 
 /// A copy of Golden A in `t` whose F55 uses the compiled-in starter part EW-GEN-MCB-2, assigned by `ew apply`: the folder
 /// and the part copy's file, as the save wrote it.
-fn starter_mcb_project(t: &Tmp, home: &std::path::Path) -> (PathBuf, PathBuf) {
+fn starter_mcb_project(t: &Tmp) -> (PathBuf, PathBuf) {
     let project = golden_copy(t);
     let log = t.0.join("assign.ewcmd");
     std::fs::write(
@@ -3085,7 +2952,7 @@ fn starter_mcb_project(t: &Tmp, home: &std::path::Path) -> (PathBuf, PathBuf) {
         format!("{{\"$schema\":\"ew.cmdlog/1\",\"label\":\"test\"}}\n{STARTER_MCB_ASSIGN}\n"),
     )
     .unwrap();
-    let applied = ew_isolated(home, &["apply".as_ref(), project.as_os_str(), log.as_os_str()]);
+    let applied = t.ew(&["apply".as_ref(), project.as_os_str(), log.as_os_str()]);
     assert_eq!(applied.status.code(), Some(0), "{}", stderr(&applied));
     let file = project.join("lib/parts/4b259878-8a92-56e0-ac8e-8f23e7c66a6b.json");
     (project, file)
@@ -3097,11 +2964,10 @@ fn starter_mcb_project(t: &Tmp, home: &std::path::Path) -> (PathBuf, PathBuf) {
 #[test]
 fn update_copies_writes_a_damaged_copy_from_its_library() {
     let t = Tmp::new("ew-cli-test");
-    let home = t.0.join("home");
-    let (project, file) = starter_mcb_project(&t, &home);
+    let (project, file) = starter_mcb_project(&t);
     let original = std::fs::read(&file).unwrap();
     std::fs::write(&file, "{\"$k\": \"part\",\n").unwrap();
-    let o = ew_in(&home, &["update-copies".as_ref(), project.as_os_str()], &[]);
+    let o = ew_in(&t, &["update-copies".as_ref(), project.as_os_str()], &[]);
     assert_eq!(
         (o.status.code(), stdout(&o), stderr(&o)),
         (
@@ -3117,7 +2983,7 @@ fn update_copies_writes_a_damaged_copy_from_its_library() {
         "the library's copy is written"
     );
     let fmt = ew_in(
-        &home,
+        &t,
         &["fmt".as_ref(), project.as_os_str(), "--check".as_ref()],
         &[],
     );
@@ -3129,7 +2995,6 @@ fn update_copies_writes_a_damaged_copy_from_its_library() {
 #[test]
 fn update_copies_refuses_a_copy_no_library_holds() {
     let t = Tmp::new("ew-cli-test");
-    let home = t.0.join("home");
     let project = golden_copy(&t);
     let mut shards: Vec<_> = std::fs::read_dir(project.join("devices"))
         .unwrap()
@@ -3150,7 +3015,7 @@ fn update_copies_refuses_a_copy_no_library_holds() {
     )
     .unwrap();
     let before = tree(&project);
-    let o = ew_in(&home, &["update-copies".as_ref(), project.as_os_str()], &[]);
+    let o = ew_in(&t, &["update-copies".as_ref(), project.as_os_str()], &[]);
     assert_eq!(
         (o.status.code(), stdout(&o), stderr(&o)),
         (
@@ -3212,7 +3077,6 @@ fn base64(bytes: &[u8]) -> String {
 #[test]
 fn an_image_kept_but_not_drawn_is_a_notice_of_check_integrity_and_of_an_open() {
     let t = Tmp::new("ew-cli-test");
-    let home = t.0.join("home");
     let project = golden_copy(&t);
     let (small, big) = (png(2, 1), png(65536, 32768));
     let place = format!(
@@ -3225,7 +3089,7 @@ fn an_image_kept_but_not_drawn_is_a_notice_of_check_integrity_and_of_an_open() {
         format!("{{\"$schema\":\"ew.cmdlog/1\",\"label\":\"test\"}}\n{place}\n"),
     )
     .unwrap();
-    let applied = ew_isolated(&home, &["apply".as_ref(), project.as_os_str(), log.as_os_str()]);
+    let applied = t.ew(&["apply".as_ref(), project.as_os_str(), log.as_os_str()]);
     assert_eq!(applied.status.code(), Some(0), "{}", stderr(&applied));
     // An earlier build took the big one in: the asset file, the record naming it and the manifest's hashes.
     let (from, to) = (sha256_hex(&small), sha256_hex(&big));
@@ -3263,7 +3127,7 @@ fn an_image_kept_but_not_drawn_is_a_notice_of_check_integrity_and_of_an_open() {
     let v: serde_json::Value = serde_json::from_str(&stdout(&o)).unwrap();
     assert_eq!(v["notices"], serde_json::json!([notice]));
     assert_eq!(v["counts"]["errors"], 0);
-    let o = ew_isolated(&home, &["fmt".as_ref(), project.as_os_str()]);
+    let o = t.ew(&["fmt".as_ref(), project.as_os_str()]);
     assert_eq!(
         (o.status.code(), stderr(&o)),
         (
@@ -3278,14 +3142,13 @@ fn an_image_kept_but_not_drawn_is_a_notice_of_check_integrity_and_of_an_open() {
 #[test]
 fn fmt_refuses_a_project_with_a_crashed_session_journal() {
     let t = Tmp::new("ew-cli-test");
-    let home = t.0.join("home");
     let project = golden_copy(&t);
     swap_first_lines(&project, "devices/71.jsonl");
-    crashed_session(&home, &project, &[new_page(7777)]);
+    crashed_session(&t, &project, &[new_page(7777)]);
     let before = tree(&project);
-    let journals = journal_files(&home);
+    let journals = journal_files(&t);
     assert_eq!(journals.len(), 1);
-    let o = ew_isolated(&home, &["fmt".as_ref(), project.as_os_str()]);
+    let o = t.ew(&["fmt".as_ref(), project.as_os_str()]);
     assert_eq!(
         (o.status.code(), stdout(&o), stderr(&o)),
         (
@@ -3299,7 +3162,7 @@ fn fmt_refuses_a_project_with_a_crashed_session_journal() {
         )
     );
     assert!(tree(&project) == before, "nothing is written");
-    assert!(journal_files(&home) == journals, "the journal stays");
+    assert!(journal_files(&t) == journals, "the journal stays");
 }
 
 /// The first page file of `project` (`pages/<id>.jsonl`).
@@ -3366,7 +3229,6 @@ fn beside_the_project(project: &std::path::Path) -> Vec<String> {
 #[test]
 fn fmt_repair_discards_a_broken_line_after_a_backup() {
     let t = Tmp::new("ew-cli-test");
-    let home = t.0.join("home");
     let project = golden_copy(&t);
     let rel = first_page_file(&project);
     let original = std::fs::read(project.join(&rel)).unwrap();
@@ -3376,7 +3238,7 @@ fn fmt_repair_discards_a_broken_line_after_a_backup() {
     let saved = t.0.join("as-it-was.ew");
     copy_dir(&project, &saved);
     let before = tree(&project);
-    let fmt = |extra: &[&str]| ew_in(&home, &["fmt".as_ref(), project.as_os_str()], extra);
+    let fmt = |extra: &[&str]| ew_in(&t, &["fmt".as_ref(), project.as_os_str()], extra);
     let run = |o: &Output| (o.status.code(), stdout(o), stderr(o));
     let backup = backup_of(&project, 1);
     let shown: String = broken.chars().take(80).collect();
@@ -3435,7 +3297,7 @@ fn fmt_repair_discards_a_broken_line_after_a_backup() {
         )
     );
     assert_eq!(tree(&project)[&rel], original);
-    assert!(journal_files(&home).is_empty(), "the repair's journal is closed");
+    assert!(journal_files(&t).is_empty(), "the repair's journal is closed");
 }
 
 /// EZ-5 on a hand-edited copy of Golden A: the broken line written by hand,
@@ -3451,7 +3313,6 @@ fn fmt_repair_backs_up_a_hand_edited_project_as_found() {
     let run = |o: &Output| (o.status.code(), stdout(o), stderr(o));
     for merged in [false, true] {
         let t = Tmp::new("ew-cli-test");
-        let home = t.0.join("home");
         let project = golden_copy(&t);
         let rel = first_page_file(&project);
         let original = std::fs::read(project.join(&rel)).unwrap();
@@ -3481,7 +3342,7 @@ fn fmt_repair_backs_up_a_hand_edited_project_as_found() {
 
         let out = t.0.join("export.ewz");
         let export = ew_in(
-            &home,
+            &t,
             &[
                 "export".as_ref(),
                 "ewz".as_ref(),
@@ -3508,7 +3369,7 @@ fn fmt_repair_backs_up_a_hand_edited_project_as_found() {
 
         let backup = backup_of(&project, 1);
         let repair = ew_in(
-            &home,
+            &t,
             &["fmt".as_ref(), project.as_os_str(), "--repair".as_ref()],
             &[],
         );
@@ -3535,7 +3396,7 @@ fn fmt_repair_backs_up_a_hand_edited_project_as_found() {
         );
         assert_eq!(
             run(&ew_in(
-                &home,
+                &t,
                 &["fmt".as_ref(), project.as_os_str(), "--check".as_ref()],
                 &[]
             )),
@@ -3548,7 +3409,7 @@ fn fmt_repair_backs_up_a_hand_edited_project_as_found() {
 
         let restored = t.0.join("restored.ew");
         let extract = ew_in(
-            &home,
+            &t,
             &[
                 "extract".as_ref(),
                 backup.as_os_str(),
@@ -3586,8 +3447,8 @@ fn fmt_repair_refusals_come_first_and_write_nothing() {
     const NOT_JSON: &[u8] = br#"{"$k":"page","id":"#;
     const MARKER: &[u8] = b"<<<<<<< HEAD";
     let run = |o: &Output| (o.status.code(), stdout(o), stderr(o));
-    let repair = |home: &std::path::Path, p: &std::path::Path, extra: &[&str]| {
-        ew_in(home, &["fmt".as_ref(), p.as_os_str(), "--repair".as_ref()], extra)
+    let repair = |t: &Tmp, p: &std::path::Path, extra: &[&str]| {
+        ew_in(t, &["fmt".as_ref(), p.as_os_str(), "--repair".as_ref()], extra)
     };
     // The project of a fresh temporary directory, its first page file holding `lines` after its first line, written as
     // a save writes them (`saved`) or by hand.
@@ -3606,11 +3467,10 @@ fn fmt_repair_refusals_come_first_and_write_nothing() {
 
     // An `.ewz`.
     let t = Tmp::new("ew-cli-test");
-    let home = t.0.join("home");
     let ewz = t.0.join("x.ewz");
     std::fs::write(&ewz, b"not read").unwrap();
     assert_eq!(
-        run(&repair(&home, &ewz, &[])),
+        run(&repair(&t, &ewz, &[])),
         (
             Some(2),
             String::new(),
@@ -3623,14 +3483,13 @@ fn fmt_repair_refusals_come_first_and_write_nothing() {
 
     // A crashed session's journal, before the conflict marker.
     let (t, p, _) = project(&[], true);
-    let home = t.0.join("home");
-    crashed_session(&home, &p, &[new_page(7777)]);
+    crashed_session(&t, &p, &[new_page(7777)]);
     let rel = first_page_file(&p);
     let bytes = after_the_first_line(&std::fs::read(p.join(&rel)).unwrap(), &[NOT_JSON, MARKER]);
     std::fs::write(p.join(&rel), &bytes).unwrap();
-    let (before, journals) = (tree(&p), journal_files(&home));
+    let (before, journals) = (tree(&p), journal_files(&t));
     assert_eq!(
-        run(&repair(&home, &p, &[])),
+        run(&repair(&t, &p, &[])),
         (
             Some(2),
             String::new(),
@@ -3642,16 +3501,15 @@ fn fmt_repair_refusals_come_first_and_write_nothing() {
         )
     );
     assert!(
-        tree(&p) == before && journal_files(&home) == journals,
+        tree(&p) == before && journal_files(&t) == journals,
         "nothing is written; the journal stays"
     );
 
     // A conflict marker (EW-CORE-006) beside a broken line.
     let (t, p, rel) = project(&[NOT_JSON, MARKER], false);
-    let home = t.0.join("home");
     let before = tree(&p);
     assert_eq!(
-        run(&repair(&home, &p, &[])),
+        run(&repair(&t, &p, &[])),
         (
             Some(2),
             String::new(),
@@ -3669,10 +3527,9 @@ fn fmt_repair_refusals_come_first_and_write_nothing() {
     let mut lines = vec![NOT_JSON; 1_001];
     lines.push(MARKER);
     let (t, p, _) = project(&lines, false);
-    let home = t.0.join("home");
     let before = tree(&p);
     assert_eq!(
-        run(&repair(&home, &p, &[])),
+        run(&repair(&t, &p, &[])),
         (
             Some(2),
             String::new(),
@@ -3689,10 +3546,9 @@ fn fmt_repair_refusals_come_first_and_write_nothing() {
     // A project without a manifest: its files cannot be packed as found.
     let (t, p, _) = project(&[NOT_JSON], false);
     std::fs::remove_file(p.join("manifest.json")).unwrap();
-    let home = t.0.join("home");
     let before = tree(&p);
     assert_eq!(
-        run(&repair(&home, &p, &[])),
+        run(&repair(&t, &p, &[])),
         (
             Some(2),
             String::new(),
@@ -3708,12 +3564,11 @@ fn fmt_repair_refusals_come_first_and_write_nothing() {
 
     // A file at the backup's name that is not this generation's backup.
     let (t, p, _) = project(&[NOT_JSON], true);
-    let home = t.0.join("home");
     let backup = backup_of(&p, 1);
     std::fs::write(&backup, b"another file").unwrap();
     let before = tree(&p);
     assert_eq!(
-        run(&repair(&home, &p, &[])),
+        run(&repair(&t, &p, &[])),
         (
             Some(2),
             String::new(),
@@ -3730,7 +3585,7 @@ fn fmt_repair_refusals_come_first_and_write_nothing() {
 
     // `--repair` with `--check`: the parser's refusal, before any open.
     assert_eq!(
-        run(&repair(&home, &p, &["--check"])),
+        run(&repair(&t, &p, &["--check"])),
         (
             Some(2),
             String::new(),
@@ -3748,12 +3603,11 @@ fn fmt_repair_refusals_come_first_and_write_nothing() {
 #[test]
 fn recover_summarises_and_replays_a_crashed_session_journal() {
     let t = Tmp::new("ew-cli-test");
-    let home = t.0.join("home");
     let project = golden_copy(&t);
-    crashed_session(&home, &project, &[new_page(7777), new_page(7778)]);
+    crashed_session(&t, &project, &[new_page(7777), new_page(7778)]);
     let before = tree(&project);
-    let journals = journal_files(&home);
-    let recover = |extra: &[&str]| ew_in(&home, &["recover".as_ref(), project.as_os_str()], extra);
+    let journals = journal_files(&t);
+    let recover = |extra: &[&str]| ew_in(&t, &["recover".as_ref(), project.as_os_str()], extra);
     let run = |o: &Output| (o.status.code(), stdout(o), stderr(o));
     let summary = "a crashed session left 2 unsaved transactions in its journal:\n  1. page.create\n  2. page.create\nthe \
                    project is unchanged since that session last opened or saved it\n";
@@ -3768,7 +3622,7 @@ fn recover_summarises_and_replays_a_crashed_session_journal() {
         )
     );
     assert!(
-        tree(&project) == before && journal_files(&home) == journals,
+        tree(&project) == before && journal_files(&t) == journals,
         "the summary changes nothing"
     );
 
@@ -3783,7 +3637,7 @@ fn recover_summarises_and_replays_a_crashed_session_journal() {
         )
     );
     assert!(
-        tree(&project) == before && journal_files(&home) == journals,
+        tree(&project) == before && journal_files(&t) == journals,
         "off a terminal nothing changes"
     );
 
@@ -3797,7 +3651,7 @@ fn recover_summarises_and_replays_a_crashed_session_journal() {
             String::new()
         )
     );
-    assert!(journal_files(&home).is_empty(), "the journal is removed");
+    assert!(journal_files(&t).is_empty(), "the journal is removed");
     let pages = saved_pages(&project);
     assert!(
         pages.contains(&"7777".to_owned()) && pages.contains(&"7778".to_owned()),
@@ -3819,7 +3673,6 @@ fn recover_summarises_and_replays_a_crashed_session_journal() {
 #[test]
 fn recover_refuses_a_replay_that_collides_with_a_later_save() {
     let t = Tmp::new("ew-cli-test");
-    let home = t.0.join("home");
     let project = golden_copy(&t);
     // A page's ID: its file name (`pages/<id>.jsonl`).
     let page = std::fs::read_dir(project.join("pages"))
@@ -3834,7 +3687,7 @@ fn recover_refuses_a_replay_that_collides_with_a_later_save() {
         name: "fields.set".into(),
         params: serde_json::json!({"kind": "page", "targets": [page], "path": "title", "value": {"en": text}}),
     };
-    crashed_session(&home, &project, &[title("from the crashed session")]);
+    crashed_session(&t, &project, &[title("from the crashed session")]);
     let mut store = ew_api::StoreOptions::new("test");
     store.state_dir = None;
     let (mut other, _) = ew_api::Session::open(
@@ -3848,11 +3701,9 @@ fn recover_refuses_a_replay_that_collides_with_a_later_save() {
     other.save().unwrap();
     other.close();
     let before = tree(&project);
-    let journals = journal_files(&home);
+    let journals = journal_files(&t);
 
-    let o = ew_isolated(
-        &home,
-        &["recover".as_ref(), project.as_os_str(), "--replay".as_ref()],
+    let o = t.ew(&["recover".as_ref(), project.as_os_str(), "--replay".as_ref()],
     );
     assert_eq!(
         (o.status.code(), stdout(&o), stderr(&o)),
@@ -3867,7 +3718,7 @@ fn recover_refuses_a_replay_that_collides_with_a_later_save() {
         )
     );
     assert!(tree(&project) == before, "nothing is saved");
-    assert!(journal_files(&home) == journals, "the journal is kept, unchanged");
+    assert!(journal_files(&t) == journals, "the journal is kept, unchanged");
 }
 
 /// `ew recover` checks that it got edit access; if not, it refuses with exit 2 and the same
@@ -3878,10 +3729,9 @@ fn recover_refuses_a_replay_that_collides_with_a_later_save() {
 #[test]
 fn recover_and_apply_refuse_a_held_lock_with_the_same_text() {
     let t = Tmp::new("ew-cli-test");
-    let home = t.0.join("home");
     let project = golden_copy(&t);
-    crashed_session(&home, &project, &[new_page(7777)]);
-    let journals = journal_files(&home);
+    crashed_session(&t, &project, &[new_page(7777)]);
+    let journals = journal_files(&t);
     let mut store = ew_api::StoreOptions::new("test");
     store.state_dir = None;
     store.identity.user = "ops\u{202E}fdp.exe".to_owned();
@@ -3936,7 +3786,7 @@ fn recover_and_apply_refuse_a_held_lock_with_the_same_text() {
         vec!["recover".as_ref(), project.as_os_str(), "--replay".as_ref()],
         vec!["apply".as_ref(), project.as_os_str(), log.as_os_str()],
     ] {
-        let o = ew_isolated(&home, &args);
+        let o = t.ew(&args);
         assert_eq!(
             (o.status.code(), stdout(&o), stderr(&o)),
             (Some(2), String::new(), expected.clone()),
@@ -3944,7 +3794,7 @@ fn recover_and_apply_refuse_a_held_lock_with_the_same_text() {
         );
     }
     assert!(tree(&project) == before, "nothing is written");
-    assert!(journal_files(&home) == journals, "the journal stays");
+    assert!(journal_files(&t) == journals, "the journal stays");
     holder.close();
 }
 
@@ -3988,14 +3838,14 @@ fn import_lines(tables: &std::path::Path, mode: ew_api::import::ImportMode, last
 
 /// `ew import csv` with the starter content.
 fn import_csv(
-    home: &std::path::Path,
+    t: &Tmp,
     tables: &std::path::Path,
     out: &std::path::Path,
     extra: &[&str],
 ) -> Output {
     let content = std::path::Path::new(CONTENT);
     ew_in(
-        home,
+        t,
         &[
             "import".as_ref(),
             "csv".as_ref(),
@@ -4016,10 +3866,9 @@ fn import_csv(
 #[test]
 fn import_csv_writes_the_golden_tables_as_a_new_project() {
     let t = Tmp::new("ew-cli-test");
-    let home = t.0.join("home");
     let tables = std::path::Path::new(GOLDEN_TABLES);
     let out = t.0.join("new.ew");
-    let o = import_csv(&home, tables, &out, &[]);
+    let o = import_csv(&t, tables, &out, &[]);
     let n = ew_api::import::read_tables(tables).unwrap().len();
     let library = ew_api::import::StarterLibrary::from_dir(std::path::Path::new(CONTENT)).unwrap();
     let batch = ew_api::import::import_tables(
@@ -4042,7 +3891,7 @@ fn import_csv_writes_the_golden_tables_as_a_new_project() {
             String::new()
         )
     );
-    let o = ew_isolated(&home, &["fmt".as_ref(), out.as_os_str(), "--check".as_ref()]);
+    let o = t.ew(&["fmt".as_ref(), out.as_os_str(), "--check".as_ref()]);
     assert_eq!(
         o.status.code(),
         Some(0),
@@ -4063,7 +3912,7 @@ fn import_csv_writes_the_golden_tables_as_a_new_project() {
     println!("FM-6 through `ew import csv`: the files that differ from golden/J-E-2416.ew: {differ:?}");
 
     // An `--out` that holds something: refused, kept.
-    let o = import_csv(&home, tables, &out, &[]);
+    let o = import_csv(&t, tables, &out, &[]);
     assert_eq!(
         (o.status.code(), stderr(&o)),
         (
@@ -4077,9 +3926,7 @@ fn import_csv_writes_the_golden_tables_as_a_new_project() {
     assert!(tree(&out) == written, "the project there is kept");
     // Without the starter content.
     let other = t.0.join("other.ew");
-    let o = ew_isolated(
-        &home,
-        &[
+    let o = t.ew(&[
             "import".as_ref(),
             "csv".as_ref(),
             tables.as_os_str(),
@@ -4106,7 +3953,6 @@ fn import_csv_writes_the_golden_tables_as_a_new_project() {
 #[test]
 fn import_csv_strict_lenient_and_unreadable_tables() {
     let t = Tmp::new("ew-cli-test");
-    let home = t.0.join("home");
     let tables = tables_copy(&t, "tables");
     let conductors = tables.join("conductors.csv");
     let text = std::fs::read_to_string(&conductors).unwrap();
@@ -4115,7 +3961,7 @@ fn import_csv_strict_lenient_and_unreadable_tables() {
     std::fs::write(&conductors, brown).unwrap();
 
     let strict = t.0.join("strict.ew");
-    let o = import_csv(&home, &tables, &strict, &[]);
+    let o = import_csv(&t, &tables, &strict, &[]);
     let lines = import_lines(&tables, ew_api::import::ImportMode::Strict, None);
     assert!(lines.contains("EW-IMP-002 error: conductors.csv:6: "), "{lines}");
     // The dropped conductor's two connections are dropped with it (EW-IMP-003).
@@ -4134,11 +3980,11 @@ fn import_csv_strict_lenient_and_unreadable_tables() {
         )
     );
     assert!(!strict.exists(), "nothing is written");
-    let o = import_csv(&home, &tables, &strict, &["--strict"]);
+    let o = import_csv(&t, &tables, &strict, &["--strict"]);
     assert_eq!(o.status.code(), Some(1), "`--strict` is the default");
 
     let lenient = t.0.join("lenient.ew");
-    let o = import_csv(&home, &tables, &lenient, &["--lenient"]);
+    let o = import_csv(&t, &tables, &lenient, &["--lenient"]);
     let library = ew_api::import::StarterLibrary::from_dir(std::path::Path::new(CONTENT)).unwrap();
     let batch = ew_api::import::import_tables(
         &ew_api::import::read_tables(&tables).unwrap(),
@@ -4171,7 +4017,7 @@ fn import_csv_strict_lenient_and_unreadable_tables() {
     let fields = original.lines().next().unwrap().split(',').count();
     std::fs::write(&devices, format!("{original}a,b\n")).unwrap();
     let out = t.0.join("unreadable.ew");
-    let o = import_csv(&home, &tables, &out, &[]);
+    let o = import_csv(&t, &tables, &out, &[]);
     assert_eq!(
         (o.status.code(), stdout(&o), stderr(&o)),
         (
@@ -4189,7 +4035,7 @@ fn import_csv_strict_lenient_and_unreadable_tables() {
         format!("{original}-K9,{long}{}\n", ",".repeat(fields - 2)),
     )
     .unwrap();
-    let o = import_csv(&home, &tables, &out, &[]);
+    let o = import_csv(&t, &tables, &out, &[]);
     assert_eq!(
         (o.status.code(), stdout(&o), stderr(&o)),
         (

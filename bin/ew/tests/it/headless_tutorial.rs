@@ -8,9 +8,8 @@
 //! whole; a line `...` stands for any lines, and a command without lines below it is only run.
 
 use std::path::Path;
-use std::process::{Command, Output};
 
-use crate::support::{GOLDEN_A, bin_exe, copy_dir, isolate};
+use crate::support::{EwTmp as _, GOLDEN_A, Tmp, copy_dir};
 
 const PAGE: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -84,18 +83,10 @@ fn lines(bytes: &[u8]) -> Vec<String> {
         .collect()
 }
 
-/// `ew` in `dir` with its user directories inside it, no starter content and no `SOURCE_DATE_EPOCH`.
-fn ew(dir: &Path, args: &[String]) -> Output {
-    let mut cmd = Command::new(bin_exe());
-    cmd.args(args).current_dir(dir);
-    isolate(&mut cmd, dir);
-    cmd.output().unwrap()
-}
-
 #[test]
 fn the_headless_tutorials_commands_print_what_its_page_shows() {
-    let tmp = ew_testdir::fresh_dir("ew-headless-tutorial");
-    copy_dir(Path::new(GOLDEN_A), &tmp.join("golden/J-E-2416.ew"));
+    let tmp = Tmp::new("ew-headless-tutorial");
+    copy_dir(Path::new(GOLDEN_A), &tmp.path("golden/J-E-2416.ew"));
     let page = std::fs::read_to_string(PAGE).unwrap().replace("\r\n", "\n");
     let commands = commands(&page);
     assert!(commands.iter().any(|(c, _)| c.starts_with("ew ")));
@@ -104,7 +95,7 @@ fn the_headless_tutorials_commands_print_what_its_page_shows() {
         let words = words(command);
         match words[0].as_str() {
             "ew" => {
-                let out = ew(&tmp, &words[1..]);
+                let out = tmp.ew(&words[1..]);
                 let mut actual = lines(&out.stdout);
                 actual.extend(lines(&out.stderr));
                 assert!(
@@ -115,7 +106,7 @@ fn the_headless_tutorials_commands_print_what_its_page_shows() {
                 );
                 last = out.status.code();
             }
-            "mkdir" => std::fs::create_dir_all(tmp.join(&words[1])).unwrap(),
+            "mkdir" => std::fs::create_dir_all(tmp.path(&words[1])).unwrap(),
             "echo" if words[1] == "$?" => {
                 assert_eq!(
                     shown,
@@ -126,7 +117,6 @@ fn the_headless_tutorials_commands_print_what_its_page_shows() {
             other => panic!("the page runs `{other}`, which the test does not know"),
         }
     }
-    let _ = std::fs::remove_dir_all(&tmp);
 }
 
 #[test]
