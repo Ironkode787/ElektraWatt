@@ -8,7 +8,7 @@ use crate::kit::{Page, fixtures, p, s};
 use ew_drafting::{DraftPage, End, Pt, Scope, Side, WireEnd, WireId, geom, jobs, measure, route, route_wire};
 
 /// The plan of a page-wide Route applied: every route and junction of the plan on the page.
-fn routed(page: &DraftPage) -> DraftPage {
+pub fn routed(page: &DraftPage) -> DraftPage {
     let plan = route(page, &jobs(page, Scope::Page));
     let mut out = page.clone();
     for (w, r) in &plan.routes {

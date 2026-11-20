@@ -265,10 +265,7 @@ pub(crate) fn stepping(a: (Pt, Side, PinId), b: (Pt, Side, PinId), area: Rect) -
         return None;
     }
     let horizontal = sa.vertical();
-    let probe = Frame {
-        horizontal,
-        sense: 1,
-    };
+    let probe = Frame { horizontal, sense: 1 };
     if probe.along(pa) == probe.along(pb) {
         return None;
     }
@@ -304,10 +301,7 @@ pub(crate) fn stepping(a: (Pt, Side, PinId), b: (Pt, Side, PinId), area: Rect) -
     } else {
         ((pb, ib), (pa, ia))
     };
-    let frame = Frame {
-        horizontal,
-        sense: 1,
-    };
+    let frame = Frame { horizontal, sense: 1 };
     if frame.depth(n) >= frame.depth(f) {
         return None;
     }
