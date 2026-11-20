@@ -5,9 +5,10 @@
 //! flags, its exit codes, its result schema and its stability.
 //!
 //! The paths and the flags (name, value, repetition) come from walking clap's tree in declaration order, skipping
-//! clap's own help and version; the exit codes, the result and the stability are [`TABLE`], keyed by path. The tests
-//! below tie the table to the tree (they name the same paths) and to the published result schemas
-//! ([`ew_api::cli_results::RESULTS`]). It is the source of the CLI snapshot and the CLI reference.
+//! clap's own help and version; the exit codes and the result are [`TABLE`], one row per path; every path is
+//! [`Stability::Preview`] before 1.0. The tests below tie the table to the tree (every path has its row, every row names
+//! a path) and to the published result schemas ([`ew_api::cli_results::RESULTS`]). It is the source of the CLI
+//! snapshot and the CLI reference.
 
 /// One flag of a subcommand.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -45,8 +46,6 @@ pub struct Row {
     pub exits: &'static [Exit],
     /// The schema name of its `--json` result (`ew.<command>-result/1`), or `None` when it prints none.
     pub result: Option<&'static str>,
-    /// Its stability.
-    pub stability: Stability,
 }
 
 /// One subcommand path of the CLI: its words and flags from the tree, the rest from its [`Row`].
@@ -68,6 +67,10 @@ const fn exit(code: u8, meaning: &'static str) -> Exit {
     Exit { code, meaning }
 }
 
+const fn row(path: &'static [&'static str], exits: &'static [Exit], result: Option<&'static str>) -> Row {
+    Row { path, exits, result }
+}
+
 const OK: Exit = exit(0, "success");
 const USAGE_ETC: Exit = exit(2, "usage, open, I/O and every other error");
 const ROW_EXPORT_ERRORS: Exit = exit(
@@ -80,41 +83,24 @@ const HUMAN_EXITS: &[Exit] = &[
     exit(2, "usage, no controlling terminal, open and save errors"),
 ];
 
-/// The exits, results and stability of every subcommand path of the tree.
+/// The exits and results of every subcommand path of the tree, in its order.
 pub const TABLE: &[Row] = &[
-    Row {
-        path: &["symbol", "template"],
-        exits: &[OK, USAGE_ETC],
-        result: None,
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["symbol", "schema"],
-        exits: &[OK, USAGE_ETC],
-        result: None,
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["symbol", "validate"],
-        exits: &[OK, exit(1, "invalid draft"), USAGE_ETC],
-        result: None,
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["symbol", "import"],
-        exits: &[OK, USAGE_ETC],
-        result: None,
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["symbol", "publish"],
-        exits: &[OK, exit(1, "invalid draft"), USAGE_ETC],
-        result: None,
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["import", "qet"],
-        exits: &[
+    row(&["symbol", "template"], &[OK, USAGE_ETC], None),
+    row(&["symbol", "schema"], &[OK, USAGE_ETC], None),
+    row(
+        &["symbol", "validate"],
+        &[OK, exit(1, "invalid draft"), USAGE_ETC],
+        None,
+    ),
+    row(&["symbol", "import"], &[OK, USAGE_ETC], None),
+    row(
+        &["symbol", "publish"],
+        &[OK, exit(1, "invalid draft"), USAGE_ETC],
+        None,
+    ),
+    row(
+        &["import", "qet"],
+        &[
             exit(0, "imported, even with findings"),
             exit(
                 1,
@@ -122,18 +108,16 @@ pub const TABLE: &[Row] = &[
             ),
             USAGE_ETC,
         ],
-        result: Some(ew_api::cli_results::IMPORT_QET),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["import", "parts"],
-        exits: &[exit(0, "imported and saved"), USAGE_ETC],
-        result: Some(ew_api::cli_results::IMPORT_PARTS),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["import", "csv"],
-        exits: &[
+        Some(ew_api::cli_results::IMPORT_QET),
+    ),
+    row(
+        &["import", "parts"],
+        &[exit(0, "imported and saved"), USAGE_ETC],
+        Some(ew_api::cli_results::IMPORT_PARTS),
+    ),
+    row(
+        &["import", "csv"],
+        &[
             exit(0, "written, with its findings"),
             exit(
                 1,
@@ -144,48 +128,44 @@ pub const TABLE: &[Row] = &[
                 "usage, starter content, an unreadable table, an `--out` that holds something, write errors",
             ),
         ],
-        result: Some(ew_api::cli_results::IMPORT_CSV),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["import", "table"],
-        exits: &[
+        Some(ew_api::cli_results::IMPORT_CSV),
+    ),
+    row(
+        &["import", "table"],
+        &[
             exit(0, "previewed, and with `--apply` applied and saved"),
             exit(
                 2,
                 "usage, open, read and save errors, a file without a table or of another project",
             ),
         ],
-        result: Some(ew_api::cli_results::IMPORT_TABLE),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["import", "dxf"],
-        exits: &[
+        Some(ew_api::cli_results::IMPORT_TABLE),
+    ),
+    row(
+        &["import", "dxf"],
+        &[
             exit(0, "imported and saved, or the symbol drafts printed"),
             exit(
                 2,
                 "usage, a refused file, a missing unit, open, write and save errors",
             ),
         ],
-        result: None,
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["import", "dwg"],
-        exits: &[
+        None,
+    ),
+    row(
+        &["import", "dwg"],
+        &[
             exit(0, "converted and imported"),
             exit(
                 2,
                 "usage, no converter, a failed or timed-out conversion, and as for `import dxf`",
             ),
         ],
-        result: None,
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["import", "edz"],
-        exits: &[
+        None,
+    ),
+    row(
+        &["import", "edz"],
+        &[
             exit(
                 0,
                 "imported into the library, or the update of the part copies previewed or committed and saved",
@@ -195,12 +175,11 @@ pub const TABLE: &[Row] = &[
                 "usage, a refused file, a refused library write, open and save errors",
             ),
         ],
-        result: None,
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["import", "parts-xml"],
-        exits: &[
+        None,
+    ),
+    row(
+        &["import", "parts-xml"],
+        &[
             exit(
                 0,
                 "imported into the library, or the update of the part copies previewed or committed and saved",
@@ -210,214 +189,190 @@ pub const TABLE: &[Row] = &[
                 "usage, a refused file, a refused library write, open and save errors",
             ),
         ],
-        result: None,
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["import", "eplan-report"],
-        exits: &[
+        None,
+    ),
+    row(
+        &["import", "eplan-report"],
+        &[
             exit(0, "written, with its findings"),
             exit(
                 2,
                 "usage, a table the mapping does not fit, an `--out` that holds something, write errors",
             ),
         ],
-        result: None,
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["import", "pdf"],
-        exits: &[
+        None,
+    ),
+    row(
+        &["import", "pdf"],
+        &[
             exit(0, "placed and saved"),
             exit(2, "usage, a refused file or page, open and save errors"),
         ],
-        result: None,
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["import", "plc-aml"],
-        exits: &[
+        None,
+    ),
+    row(
+        &["import", "plc-aml"],
+        &[
             exit(0, "previewed, and with `--accept` applied and saved"),
             exit(
                 2,
                 "usage, open, read and save errors, a file that is no AML file, a refused choice",
             ),
         ],
-        result: Some(ew_api::cli_results::IMPORT_PLC_AML),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["import", "plc-xlsx"],
-        exits: &[
+        Some(ew_api::cli_results::IMPORT_PLC_AML),
+    ),
+    row(
+        &["import", "plc-xlsx"],
+        &[
             exit(0, "previewed, and with `--accept` applied and saved"),
             exit(
                 2,
                 "usage, open, read and save errors, a workbook without a tag table, a refused choice",
             ),
         ],
-        result: Some(ew_api::cli_results::IMPORT_PLC_XLSX),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["plc", "status"],
-        exits: &[exit(0, "the status printed"), exit(2, "usage and open errors")],
-        result: Some(ew_api::cli_results::PLC_STATUS),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["check"],
-        exits: &[
+        Some(ew_api::cli_results::IMPORT_PLC_XLSX),
+    ),
+    row(&["import", "instrument-list"], &[OK, USAGE_ETC], None),
+    row(
+        &["plc", "status"],
+        &[exit(0, "the status printed"), exit(2, "usage and open errors")],
+        Some(ew_api::cli_results::PLC_STATUS),
+    ),
+    row(
+        &["check"],
+        &[
             exit(0, "no unwaived error"),
             exit(1, "unwaived errors"),
             exit(2, "usage and open errors"),
         ],
-        result: Some(ew_api::cli_results::CHECK),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["sql"],
-        exits: &[OK, exit(2, "usage, open and SQL errors, denials and limits")],
-        result: Some(ew_api::cli_results::SQL),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["sql", "dump"],
-        exits: &[OK, USAGE_ETC],
-        result: Some(ew_api::cli_results::SQL_DUMP),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["sql", "schema"],
-        exits: &[OK],
-        result: None,
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["export", "cables"],
-        exits: &[OK, ROW_EXPORT_ERRORS],
-        result: Some(ew_api::cli_results::EXPORT_CABLES),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["export", "bom"],
-        exits: &[OK, ROW_EXPORT_ERRORS],
-        result: Some(ew_api::cli_results::EXPORT_BOM),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["export", "wires"],
-        exits: &[OK, ROW_EXPORT_ERRORS],
-        result: Some(ew_api::cli_results::EXPORT_WIRES),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["export", "terminals"],
-        exits: &[
+        Some(ew_api::cli_results::CHECK),
+    ),
+    row(
+        &["sql"],
+        &[OK, exit(2, "usage, open and SQL errors, denials and limits")],
+        Some(ew_api::cli_results::SQL),
+    ),
+    row(
+        &["sql", "dump"],
+        &[OK, USAGE_ETC],
+        Some(ew_api::cli_results::SQL_DUMP),
+    ),
+    row(&["sql", "schema"], &[OK], None),
+    row(
+        &["export", "cables"],
+        &[OK, ROW_EXPORT_ERRORS],
+        Some(ew_api::cli_results::EXPORT_CABLES),
+    ),
+    row(
+        &["export", "bom"],
+        &[OK, ROW_EXPORT_ERRORS],
+        Some(ew_api::cli_results::EXPORT_BOM),
+    ),
+    row(
+        &["export", "wires"],
+        &[OK, ROW_EXPORT_ERRORS],
+        Some(ew_api::cli_results::EXPORT_WIRES),
+    ),
+    row(
+        &["export", "terminals"],
+        &[
             OK,
             exit(
                 2,
                 "usage and open errors, a project without the block, an unknown or wrong block, an unknown strip",
             ),
         ],
-        result: Some(ew_api::cli_results::EXPORT_TERMINALS),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["export", "report"],
-        exits: &[
+        Some(ew_api::cli_results::EXPORT_TERMINALS),
+    ),
+    row(
+        &["export", "report"],
+        &[
             OK,
             exit(
                 2,
                 "usage, open, I/O and writer errors, an unknown block, a block without rows or pages",
             ),
         ],
-        result: Some(ew_api::cli_results::EXPORT_REPORT),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["export", "table"],
-        exits: &[
+        Some(ew_api::cli_results::EXPORT_REPORT),
+    ),
+    row(
+        &["export", "table"],
+        &[
             OK,
             exit(
                 2,
                 "usage, open, I/O and writer errors, an unknown navigator or strip",
             ),
         ],
-        result: Some(ew_api::cli_results::EXPORT_TABLE),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["export", "pdf"],
-        exits: &[OK, USAGE_ETC],
-        result: Some(ew_api::cli_results::EXPORT_PDF),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["export", "svg"],
-        exits: &[OK, USAGE_ETC],
-        result: Some(ew_api::cli_results::EXPORT_SVG),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["export", "png"],
-        exits: &[OK, USAGE_ETC],
-        result: Some(ew_api::cli_results::EXPORT_PNG),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["export", "dxf"],
-        exits: &[OK, USAGE_ETC],
-        result: Some(ew_api::cli_results::EXPORT_DXF),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["export", "ewz"],
-        exits: &[
+        Some(ew_api::cli_results::EXPORT_TABLE),
+    ),
+    row(
+        &["export", "pdf"],
+        &[OK, USAGE_ETC],
+        Some(ew_api::cli_results::EXPORT_PDF),
+    ),
+    row(
+        &["export", "svg"],
+        &[OK, USAGE_ETC],
+        Some(ew_api::cli_results::EXPORT_SVG),
+    ),
+    row(
+        &["export", "png"],
+        &[OK, USAGE_ETC],
+        Some(ew_api::cli_results::EXPORT_PNG),
+    ),
+    row(
+        &["export", "dxf"],
+        &[OK, USAGE_ETC],
+        Some(ew_api::cli_results::EXPORT_DXF),
+    ),
+    row(&["export", "plc-aml"], &[OK, USAGE_ETC], None),
+    row(&["export", "plc-xlsx"], &[OK, USAGE_ETC], None),
+    row(&["export", "plcopen"], &[OK, USAGE_ETC], None),
+    row(
+        &["export", "ewz"],
+        &[
             exit(0, "written"),
             exit(
                 2,
                 "usage, open and write errors, a project changed on disk or one that cannot be packed",
             ),
         ],
-        result: Some(ew_api::cli_results::EXPORT_EWZ),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["extract"],
-        exits: &[
+        Some(ew_api::cli_results::EXPORT_EWZ),
+    ),
+    row(
+        &["extract"],
+        &[
             exit(0, "extracted"),
             exit(
                 2,
                 "usage, an unreadable or refused archive, an existing folder, write errors",
             ),
         ],
-        result: Some(ew_api::cli_results::EXTRACT),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["print"],
-        exits: &[
+        Some(ew_api::cli_results::EXTRACT),
+    ),
+    row(
+        &["print"],
+        &[
             exit(0, "printed, opened in the viewer or written"),
             exit(
                 2,
                 "usage, open, I/O and writer errors, an unknown folio or section, a refusal of the adapter",
             ),
         ],
-        result: Some(ew_api::cli_results::PRINT),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["render"],
-        exits: &[
+        Some(ew_api::cli_results::PRINT),
+    ),
+    row(
+        &["render"],
+        &[
             OK,
             exit(2, "usage, open, I/O and writer errors, an unknown folio"),
         ],
-        result: Some(ew_api::cli_results::RENDER),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["apply"],
-        exits: &[
+        Some(ew_api::cli_results::RENDER),
+    ),
+    row(
+        &["apply"],
+        &[
             exit(0, "every line commits"),
             exit(1, "a prevent or domain rule refuses a line"),
             exit(
@@ -425,12 +380,11 @@ pub const TABLE: &[Row] = &[
                 "usage, a malformed log, an unresolvable reference, a refused command, open, lock and save errors",
             ),
         ],
-        result: Some(ew_api::cli_results::APPLY),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["fmt"],
-        exits: &[
+        Some(ew_api::cli_results::APPLY),
+    ),
+    row(
+        &["fmt"],
+        &[
             exit(
                 0,
                 "every file is canonical, or the files were rewritten and saved; repaired, or nothing to repair",
@@ -443,12 +397,11 @@ pub const TABLE: &[Row] = &[
                  stay)",
             ),
         ],
-        result: Some(ew_api::cli_results::FMT),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["recover"],
-        exits: &[
+        Some(ew_api::cli_results::FMT),
+    ),
+    row(
+        &["recover"],
+        &[
             exit(0, "summarised, replayed and saved, discarded, or no journal"),
             exit(
                 1,
@@ -456,12 +409,11 @@ pub const TABLE: &[Row] = &[
             ),
             exit(2, "usage, no controlling terminal, lock, open and save errors"),
         ],
-        result: Some(ew_api::cli_results::RECOVER),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["upgrade"],
-        exits: &[
+        Some(ew_api::cli_results::RECOVER),
+    ),
+    row(
+        &["upgrade"],
+        &[
             exit(0, "upgraded, backed up and saved, or nothing to upgrade"),
             exit(
                 1,
@@ -473,12 +425,11 @@ pub const TABLE: &[Row] = &[
                  save errors",
             ),
         ],
-        result: None,
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["update-copies"],
-        exits: &[
+        None,
+    ),
+    row(
+        &["update-copies"],
+        &[
             exit(
                 0,
                 "every damaged library copy updated and the project opens for editing, or none damaged",
@@ -486,80 +437,46 @@ pub const TABLE: &[Row] = &[
             exit(1, "refused, or a copy stays damaged"),
             exit(2, "usage, open and save errors"),
         ],
-        result: None,
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["project", "checks", "set"],
-        exits: HUMAN_EXITS,
-        result: None,
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["project", "assets", "purge"],
-        exits: HUMAN_EXITS,
-        result: None,
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["revision", "approve"],
-        exits: HUMAN_EXITS,
-        result: None,
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["revision", "release"],
-        exits: HUMAN_EXITS,
-        result: None,
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["revision", "withdraw"],
-        exits: HUMAN_EXITS,
-        result: None,
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["verify-derived"],
-        exits: &[
+        None,
+    ),
+    row(&["project", "checks", "set"], HUMAN_EXITS, None),
+    row(&["project", "assets", "purge"], HUMAN_EXITS, None),
+    row(&["revision", "approve"], HUMAN_EXITS, None),
+    row(&["revision", "release"], HUMAN_EXITS, None),
+    row(&["revision", "withdraw"], HUMAN_EXITS, None),
+    row(
+        &["verify-derived"],
+        &[
             exit(0, "no difference"),
             exit(1, "differences"),
             exit(2, "usage and open errors"),
         ],
-        result: Some(ew_api::cli_results::VERIFY_DERIVED),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["verify-migration"],
-        exits: &[
+        Some(ew_api::cli_results::VERIFY_DERIVED),
+    ),
+    row(
+        &["verify-migration"],
+        &[
             exit(0, "only the expected deltas"),
             exit(1, "other deviations, or an expected delta not found"),
             exit(2, "usage, open and read errors"),
         ],
-        result: Some(ew_api::cli_results::VERIFY_MIGRATION),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["query"],
-        exits: &[
+        Some(ew_api::cli_results::VERIFY_MIGRATION),
+    ),
+    row(
+        &["query"],
+        &[
             exit(0, "answered"),
             exit(
                 2,
                 "usage, an unknown query, open errors, a key that names no record or one of another kind",
             ),
         ],
-        result: Some(ew_api::cli_results::QUERY),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["queries"],
-        exits: &[OK],
-        result: Some(ew_api::cli_results::QUERIES),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["route"],
-        exits: &[
+        Some(ew_api::cli_results::QUERY),
+    ),
+    row(&["queries"], &[OK], Some(ew_api::cli_results::QUERIES)),
+    row(
+        &["route"],
+        &[
             exit(0, "every wire it routes is routed"),
             exit(1, "a wire stays unrouted"),
             exit(
@@ -567,72 +484,54 @@ pub const TABLE: &[Row] = &[
                 "usage, open, an unknown folio, a refused command and save errors",
             ),
         ],
-        result: Some(ew_api::cli_results::ROUTE),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["layout"],
-        exits: &[
+        Some(ew_api::cli_results::ROUTE),
+    ),
+    row(
+        &["layout"],
+        &[
             exit(0, "measured"),
             exit(2, "usage and open errors, a folio that names no drawn page"),
         ],
-        result: Some(ew_api::cli_results::LAYOUT),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["lib", "list"],
-        exits: &[OK, USAGE_ETC],
-        result: Some(ew_api::cli_results::LIB_LIST),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["lib", "search"],
-        exits: &[OK, USAGE_ETC],
-        result: Some(ew_api::cli_results::LIB_SEARCH),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["lib", "index"],
-        exits: &[OK, USAGE_ETC],
-        result: Some(ew_api::cli_results::LIB_INDEX),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["lib", "create"],
-        exits: &[OK, USAGE_ETC],
-        result: Some(ew_api::cli_results::LIB_CREATE),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["lib", "import", "parts"],
-        exits: &[OK, USAGE_ETC],
-        result: Some(ew_api::cli_results::LIB_IMPORT_PARTS),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["lib", "import", "qet-elements"],
-        exits: &[
+        Some(ew_api::cli_results::LAYOUT),
+    ),
+    row(
+        &["lib", "list"],
+        &[OK, USAGE_ETC],
+        Some(ew_api::cli_results::LIB_LIST),
+    ),
+    row(
+        &["lib", "search"],
+        &[OK, USAGE_ETC],
+        Some(ew_api::cli_results::LIB_SEARCH),
+    ),
+    row(
+        &["lib", "index"],
+        &[OK, USAGE_ETC],
+        Some(ew_api::cli_results::LIB_INDEX),
+    ),
+    row(
+        &["lib", "create"],
+        &[OK, USAGE_ETC],
+        Some(ew_api::cli_results::LIB_CREATE),
+    ),
+    row(
+        &["lib", "import", "parts"],
+        &[OK, USAGE_ETC],
+        Some(ew_api::cli_results::LIB_IMPORT_PARTS),
+    ),
+    row(
+        &["lib", "import", "qet-elements"],
+        &[
             exit(0, "converted and written, files that cannot be converted listed"),
             USAGE_ETC,
         ],
-        result: Some(ew_api::cli_results::LIB_IMPORT_QET_ELEMENTS),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["commands"],
-        exits: &[OK],
-        result: Some(ew_api::cli_results::COMMANDS),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["schema"],
-        exits: &[OK, exit(2, "usage, an unknown schema name")],
-        result: None,
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["merge", "resolve"],
-        exits: &[
+        Some(ew_api::cli_results::LIB_IMPORT_QET_ELEMENTS),
+    ),
+    row(&["commands"], &[OK], Some(ew_api::cli_results::COMMANDS)),
+    row(&["schema"], &[OK, exit(2, "usage, an unknown schema name")], None),
+    row(
+        &["merge", "resolve"],
+        &[
             exit(0, "resolved and saved"),
             exit(
                 1,
@@ -643,12 +542,11 @@ pub const TABLE: &[Row] = &[
                 "usage (no conflict record selected), open, lock, a crashed session's journal and save errors",
             ),
         ],
-        result: Some(ew_api::cli_results::MERGE_RESOLVE),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["merge-driver"],
-        exits: &[
+        Some(ew_api::cli_results::MERGE_RESOLVE),
+    ),
+    row(
+        &["merge-driver"],
+        &[
             exit(0, "merged cleanly into `%A`"),
             exit(
                 1,
@@ -661,12 +559,11 @@ pub const TABLE: &[Row] = &[
                  clap's usage text (`%A` as it was)",
             ),
         ],
-        result: None,
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["diff"],
-        exits: &[
+        None,
+    ),
+    row(
+        &["diff"],
+        &[
             exit(
                 0,
                 "the sides are equal, or differ without `--exit-code`; `--textconv` printed",
@@ -674,12 +571,11 @@ pub const TABLE: &[Row] = &[
             exit(1, "the sides differ, with `--exit-code`"),
             exit(2, "usage and open errors, a git side that cannot be read"),
         ],
-        result: Some(ew_api::cli_results::DIFF),
-        stability: Stability::Preview,
-    },
-    Row {
-        path: &["git", "setup"],
-        exits: &[
+        Some(ew_api::cli_results::DIFF),
+    ),
+    row(
+        &["git", "setup"],
+        &[
             exit(0, "configured"),
             exit(
                 2,
@@ -687,9 +583,8 @@ pub const TABLE: &[Row] = &[
                  a post-merge hook ElektraWatt did not write, write errors",
             ),
         ],
-        result: None,
-        stability: Stability::Preview,
-    },
+        None,
+    ),
 ];
 
 /// The subcommand paths of `cmd` (a built command) with their flags: a command is a path when it has no subcommands
@@ -727,8 +622,8 @@ fn walk(cmd: &clap::Command, path: &mut Vec<String>, out: &mut Vec<(Vec<String>,
     }
 }
 
-/// The CLI catalogue: every subcommand path of the tree in declaration order, with its row of [`TABLE`]. A path
-/// without a row exits 0 or 2 and prints no result: a row is needed only to say more.
+/// The CLI catalogue: every subcommand path of the tree in declaration order, with its row of [`TABLE`] (the tests
+/// below give every path its row).
 pub fn catalogue() -> Vec<Entry> {
     let mut cmd = crate::cli::command();
     cmd.build();
@@ -739,13 +634,14 @@ pub fn catalogue() -> Vec<Entry> {
         .map(|(path, flags)| {
             let row = TABLE
                 .iter()
-                .find(|r| r.path.iter().copied().eq(path.iter().map(String::as_str)));
+                .find(|r| r.path.iter().copied().eq(path.iter().map(String::as_str)))
+                .unwrap_or_else(|| panic!("`ew {}` has no row in the CLI table", path.join(" ")));
             Entry {
                 path,
                 flags,
-                exits: row.map_or(&[OK, USAGE_ETC], |r| r.exits),
-                result: row.and_then(|r| r.result),
-                stability: row.map_or(Stability::Preview, |r| r.stability),
+                exits: row.exits,
+                result: row.result,
+                stability: Stability::Preview,
             }
         })
         .collect()
@@ -757,9 +653,9 @@ mod tests {
 
     use super::*;
 
-    /// Every row of the table names a path of the tree, each once; the paths are those of the tree.
+    /// Every path of the tree has its row and every row names a path of the tree, each once.
     #[test]
-    fn every_row_of_the_table_names_a_path_of_the_tree() {
+    fn every_path_of_the_tree_has_one_row_of_the_table() {
         let mut cmd = crate::cli::command();
         cmd.build();
         let mut walked = Vec::new();
@@ -770,7 +666,16 @@ mod tests {
             .map(|r| r.path.iter().map(|w| (*w).to_owned()).collect())
             .collect();
         assert_eq!(table.len(), TABLE.len(), "a path twice in the table");
-        assert!(table.is_subset(&tree), "{:?}", table.difference(&tree));
+        assert!(
+            table.is_subset(&tree),
+            "rows without a path: {:?}",
+            table.difference(&tree)
+        );
+        assert!(
+            tree.is_subset(&table),
+            "paths without a row: {:?}",
+            tree.difference(&table)
+        );
         assert!(
             tree.contains(&vec!["sql".to_owned()]),
             "`sql` takes a query and has subcommands"
