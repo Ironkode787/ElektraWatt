@@ -11,7 +11,7 @@ EW-CORE-053,MF-13,1,0,ft,the text 3-B0 is reproduced
 EW-CORE-061,MF-25,,1,holds,the import text style qet.4 (the drawing's 4 pt texts) is below the minimum height
 EW-CORE-063,MF-26,,0,ft,
 EW-CORE-067,,,3,extra,wires through a connection point they do not join (folio 102)
-EW-CORE-068,,,13,extra,wires that run along another wire (folios 102 and 103)
+EW-CORE-068,,,6,extra,wires that run along another wire beyond a common beginning from one pin
 EW-CORE-069,,,2,extra,wires through a symbol; four on folio 203 that reach their own pin along a step of 1 nm no longer count since the measures read a grid position as one number (ADR-0033 amendment 4)
 EW-CORE-070,,,3,extra,wires through a text
 EW-CORE-074,,,2,extra,wires of -X1032:PE that turn at one point without a junction
