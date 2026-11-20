@@ -199,7 +199,7 @@ fn every_station_kinds_todo_runs_to_its_end() {
     d.shell_mut().shutdown();
 }
 
-/// H2 of the rc.4 test, the owner's refusal: a valve terminal's box armed by To do's Draw on a fluid page, then Undo
+/// H2 of a test, the owner's refusal: a valve terminal's box armed by To do's Draw on a fluid page, then Undo
 /// (Ctrl+Z) of the step that drew its electrical side, then the click: the box named a symbol copy the Undo had taken
 /// out, and the window said "An item the command names is no longer in the project". An Undo or a Redo now ends the
 /// placement it may have left without its records; To do, read from the project as the step left it, asks again and
@@ -222,7 +222,7 @@ fn undo_and_redo_under_the_open_view_leave_no_step_without_its_records() {
     let fluid = json!({"step": "fluid", "folio": "201"});
     assert_eq!(d.shell_mut().dispatch("plc.rack_next", &fluid), Outcome::Done);
     assert_eq!(d.shell_mut().tool().name(), "black_box", "the box on the pointer");
-    // rc.5: the first Ctrl+Z puts the box away and undoes nothing, and the status line says so.
+    // The first Ctrl+Z puts the box away and undoes nothing, and the status line says so.
     let revision = d.shell_mut().revision();
     d.input(&key("ctrl+z"));
     d.settle();
@@ -312,7 +312,7 @@ fn place_here(d: &mut Driver, device: Uuid) -> ew_viewmodel::actions::ActionItem
         .unwrap_or_else(|| panic!("Place here on {}", node.label))
 }
 
-/// H13 of the rc.4 test: a PLC part that no page draws yet offers Place here on its row in the PLC panel. On a bus
+/// H13 of a test: a PLC part that no page draws yet offers Place here on its row in the PLC panel. On a bus
 /// page a card's entry is greyed with the page to open; on an electrical page the station's box hangs on the pointer
 /// as after choosing it in the device browser, and two corners draw it there. The same entry stands in the station
 /// view's menu of a card.
@@ -416,7 +416,7 @@ fn place_on_row(
     (place, node.badges.clone())
 }
 
-/// rc.5 persona run: Place here was hard to find. A channel of a card no page draws offers its card's Place here, and
+/// A persona run: Place here was hard to find. A channel of a card no page draws offers its card's Place here, and
 /// its row says "not drawn"; the entry puts the card's box on the pointer.
 #[test]
 fn a_channel_of_an_undrawn_card_offers_place_here() {
@@ -446,7 +446,7 @@ fn a_channel_of_an_undrawn_card_offers_place_here() {
     d.shell_mut().shutdown();
 }
 
-/// rc.5: a valve terminal whose bus side stands on a bus page and whose electrical side is drawn after it (or drawn
+/// A valve terminal whose bus side stands on a bus page and whose electrical side is drawn after it (or drawn
 /// again after an Undo) takes its tag from the electrical page: its box is its main drawing, the bus port a second one.
 #[test]
 fn a_box_drawn_after_the_bus_port_numbers_the_tag_by_its_page() {

@@ -401,7 +401,7 @@ fn a_card_goes_behind_the_station_it_is_placed_beside_or_dragged_onto() {
         waiting(&mut d).iter().any(|l| l.starts_with(&second)),
         "{second} waits"
     );
-    // F18 of the rc.1 test: with two stations and none on its page, a window asks which station takes it; Cancel
+    // F18 of a test: with two stations and none on its page, a window asks which station takes it; Cancel
     // leaves it waiting.
     assert!(
         matches!(

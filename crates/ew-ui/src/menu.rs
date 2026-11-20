@@ -249,7 +249,7 @@ mod tests {
         );
     }
 
-    /// rc.5: in a row's menu a greyed entry shows its reason under it with no pointer resting on it.
+    /// In a row's menu a greyed entry shows its reason under it with no pointer resting on it.
     #[test]
     fn a_row_menus_greyed_entry_shows_its_reason_unhovered() {
         let t = crate::theme::tokens(crate::theme::Theme::Light, crate::theme::Density::Comfortable);

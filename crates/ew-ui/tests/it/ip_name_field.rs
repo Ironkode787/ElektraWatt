@@ -578,7 +578,7 @@ fn a_row_with_no_value_lets_its_label_run_across_the_value_column() {
     );
 }
 
-/// rc.2 persona run (entry 14): Source and Target stand beside the name field as two choices, the ghost's direction
+/// A persona run (entry 14): Source and Target stand beside the name field as two choices, the ghost's direction
 /// chosen; a click on the other one turns the ghost, as D does.
 #[test]
 fn source_and_target_are_two_choices_beside_the_name() {
@@ -673,7 +673,7 @@ fn a_direction_clicked_where_the_tool_proposed_it_holds() {
     assert_eq!(placed, ["target"]);
 }
 
-/// rc.5: Interruption chosen on the bar while the page list had the focus; D then jumped in the page list and Ctrl+Z
+/// Interruption chosen on the bar while the page list had the focus; D then jumped in the page list and Ctrl+Z
 /// said "No navigator row", leaving the point. A tool chosen takes the keys to the canvas: D turns its direction, and
 /// one Ctrl+Z takes back the point just placed.
 #[test]

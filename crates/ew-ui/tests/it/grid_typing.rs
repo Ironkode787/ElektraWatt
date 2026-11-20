@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Typing into the window's tables and Properties as the rc.5 cabinet run did, at 1920 × 1080: the PLC grid's
+//! Typing into the window's tables and Properties as a cabinet run did, at 1920 × 1080: the PLC grid's
 //! Function text cell is typed in place as the station view's is, a cell that takes no text keeps the keys from the
 //! canvas's shortcuts, and Tab in Properties takes the value and moves to the next field.
 

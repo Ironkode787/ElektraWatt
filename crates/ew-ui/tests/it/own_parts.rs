@@ -832,7 +832,7 @@ fn a_starter_part_is_copied_as_a_part_of_ones_own() {
     assert_eq!(part["sections"]["bus"]["ports"][0]["ports"], json!(5));
 }
 
-/// rc.3: a part a person made in one project is there in the next, wherever parts are offered. The first project makes
+/// A part a person made in one project is there in the next, wherever parts are offered. The first project makes
 /// an input card in the part editor and a cable type (both into My parts); the next project, in the same person's
 /// folders, holds neither, and yet the device browser lists the card, the station view's catalogue offers it for the
 /// CPU's rack, the Cable form's type list offers the cable type, and the part dialog of a cable without a part lists

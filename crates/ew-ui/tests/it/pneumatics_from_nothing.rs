@@ -1030,7 +1030,7 @@ fn new_medium_from_the_tubes_medium_and_the_supplys_medium() {
     d.shell_mut().shutdown();
 }
 
-/// The rc.2 persona run (friction 3): Fluid ▸ Air supply opened the symbol browser and the supply placed had no part;
+/// A persona run (friction 3): Fluid ▸ Air supply opened the symbol browser and the supply placed had no part;
 /// the part was found only under Draw ▸ Device. Air supply opens the device browser at the air supply's parts, and the
 /// supply placed from it has its part, with no "no part" finding.
 #[test]
@@ -1065,7 +1065,7 @@ fn the_fluid_tabs_air_supply_places_the_part() {
     d.shell_mut().shutdown();
 }
 
-/// The rc.2 persona run (friction 2): in a project without media the supply's Medium offered a menu with one entry,
+/// A persona run (friction 2): in a project without media the supply's Medium offered a menu with one entry,
 /// Edit, then a list with New medium… alone. The row's "…" opens its list at once; the list and the tube's menu offer
 /// the usual media, and choosing one makes it and sets it in one undo step; New medium… stays last.
 #[test]
@@ -1834,7 +1834,7 @@ fn round3_the_valve_terminal_is_filed_with_its_plate_and_found_first() {
     d.shell_mut().shutdown();
 }
 
-/// The rc.2 persona run (friction 7): the terminal tool took a first and a second click, each made a terminal, the two
+/// A persona run (friction 7): the terminal tool took a first and a second click, each made a terminal, the two
 /// tags overprinted and nothing was said. Armed, the hint says a click places it; one click places one terminal, the
 /// tool ends and the toast says what was placed; a terminal clicked onto another is refused in words.
 #[test]
@@ -1881,7 +1881,7 @@ fn one_click_places_one_terminal_and_says_so() {
     d.shell_mut().shutdown();
 }
 
-/// F15 of the rc.1 test: the valve terminal took up a box of two clicks, its empty and blank positions were not drawn,
+/// F15 of a test: the valve terminal took up a box of two clicks, its empty and blank positions were not drawn,
 /// and a coil placed in the box was taken as a valve. Placed with one click it is drawn as its four positions in a row;
 /// a click on an empty cell opens the device browser narrowed to valves for a terminal, and the valve chosen fills that
 /// cell; the cell's menu has Replace, Empty and Blanking plate; a stand-alone valve placed in a cell stays a valve of its
@@ -2054,7 +2054,7 @@ fn place_multipin(d: &mut Driver, a: (i64, i64)) -> String {
         .expect("the terminal's row")
 }
 
-/// The rc.2 persona run (friction 10, 11): the multipin terminal's plug could be drawn only from the Devices tree's row
+/// A persona run (friction 10, 11): the multipin terminal's plug could be drawn only from the Devices tree's row
 /// while an electrical page was open; neither the terminal's menu on the fluid page nor the Fluid tab offered it. From
 /// the fluid page the terminal's menu, its Properties row and the Fluid tab draw it as a valve's solenoid is drawn: the
 /// electrical page shows with the plug's box on the pointer; placed, the menu and the row say where it is.
@@ -2132,7 +2132,7 @@ fn cells_of(d: &mut Driver, terminal: Uuid) -> Vec<ew_viewmodel::ew_api::output:
         .unwrap_or_default()
 }
 
-/// The rc.2 cabinet run (friction 24, 25): a valve terminal made first as a PLC station, its valve in its rack, could not
+/// A cabinet run (friction 24, 25): a valve terminal made first as a PLC station, its valve in its rack, could not
 /// be put on the pneumatic page: Fluid ▸ Valve terminal made a second terminal without a word, and the station's Draw on
 /// this page refused a fluid page. Fluid ▸ Valve terminal offers the terminal drawn on no fluid page first (Draw … here,
 /// then A new terminal…); a new one placed meanwhile says that the other is still undrawn; the rack dialog's Draw on a
@@ -2258,7 +2258,7 @@ fn asks_for_fluid_page(d: &mut Driver) -> bool {
         .any(|t| matches!(t.fix, Some(TodoFix::OnPage { step: "fluid", .. })))
 }
 
-/// The rc.3 cabinet run (blocker): a valve terminal with a bus node, put on the bus page first, never reached the
+/// A cabinet run (blocker): a valve terminal with a bus node, put on the bus page first, never reached the
 /// pneumatic page: the Valve terminal dialog's Create and the station's Draw on a fluid page… did nothing and said
 /// nothing (its bus port had become its main function). Create puts its box on the pointer; a click draws it with its
 /// valves in their cells, and its To do no longer asks for it.
@@ -2298,7 +2298,7 @@ fn a_terminal_on_a_bus_page_first_is_drawn_on_the_fluid_page() {
     d.shell_mut().shutdown();
 }
 
-/// The rc.3 rack run: in a project without a fluid page the station's Draw on a fluid page… did nothing and said
+/// A rack run: in a project without a fluid page the station's Draw on a fluid page… did nothing and said
 /// nothing. Draw on a new fluid page makes one there and then, says so, and puts the terminal's box on the pointer
 /// there.
 #[test]
@@ -2323,7 +2323,7 @@ fn draw_on_a_fluid_page_makes_one_when_there_is_none() {
     d.shell_mut().shutdown();
 }
 
-/// rc.3: with several fluid pages the station's Draw on a fluid page… asks which, as Draw on a page… does, and draws on
+/// With several fluid pages the station's Draw on a fluid page… asks which, as Draw on a page… does, and draws on
 /// the one chosen (from a view opened on another page than a fluid one).
 #[test]
 fn draw_on_a_fluid_page_asks_which_of_several() {
@@ -2349,7 +2349,7 @@ fn draw_on_a_fluid_page_asks_which_of_several() {
     d.shell_mut().shutdown();
 }
 
-/// rc.3 (G16): valves put on a valve terminal's positions in its station view stood in its cells as tags only, with no
+/// Valves put on a valve terminal's positions in its station view stood in its cells as tags only, with no
 /// port a tube could reach. All four positions are filled, as on the owner's terminal. Drawn on the fluid page from the view's Draw on a fluid page…, each valve stands in its cell
 /// as its symbol, its working ports 2 and 4 on the cell's top edge, and the terminal's own supply ports 1, 3 and 5 in
 /// its left end; a tube joins port 4 of a valve to a cylinder, and the view's positions name the page.
@@ -2476,7 +2476,7 @@ fn a_station_drawn_on_the_schematic_is_drawn_on_the_fluid_page_too() {
     d.shell_mut().shutdown();
 }
 
-/// The rc.2 persona run (friction 8, 9) and the tutorials lane: a right click on the multipin terminal's body offered no
+/// A persona run (friction 8, 9) and the tutorials lane: a right click on the multipin terminal's body offered no
 /// position (only one exactly in a cell did), its kind's line looked like a command with a key and did nothing, the
 /// browser of an empty cell listed hand-operated valves that fit no position, and a valve's "No medium" line had a key
 /// too. On the body the menu lists every position under a heading, the same for both kinds; the kind's line is a
@@ -2609,7 +2609,7 @@ fn supply_ends(d: &mut Driver) -> Vec<(i64, i64)> {
         .collect()
 }
 
-/// The rc.2 re-test (friction 13): the bus-node terminal's Properties said "Valve terminal · PLC station" and the
+/// A re-test (friction 13): the bus-node terminal's Properties said "Valve terminal · PLC station" and the
 /// multipin one's "Black-box frame · electrical", so the two kinds could be told apart only by their side effects. Each
 /// terminal's Properties header, its menu's heading and its row's hover in the Devices list say its kind in the same
 /// words.
@@ -2661,7 +2661,7 @@ fn each_valve_terminal_says_its_kind() {
     d.shell_mut().shutdown();
 }
 
-/// The rc.2 re-test (friction 11): a valve for a terminal placed from the device browser over position 1 of the multipin
+/// A re-test (friction 11): a valve for a terminal placed from the device browser over position 1 of the multipin
 /// terminal was taken (its plug's pin 1 named it), but the toast said the terminal had no free position and the valve
 /// stayed one of its own. The toast says where it sits, as on the bus-node terminal.
 #[test]
@@ -2691,7 +2691,7 @@ fn a_valve_dropped_on_a_multipin_position_is_said_to_sit_there() {
     d.shell_mut().shutdown();
 }
 
-/// The rc.2 re-test (friction 5, 7): on the control page the valve's coil row in the Devices list offered Location…
+/// A re-test (friction 5, 7): on the control page the valve's coil row in the Devices list offered Location…
 /// only, and Follow reference with the coil selected did nothing visible. The coil's row offers Draw solenoid 14 on this
 /// page… while an electrical page is in front (on an electrical page… from the fluid page) and Go to the valve; drawn
 /// and selected, Follow reference goes to the valve.
@@ -2788,7 +2788,7 @@ fn the_solenoid_is_drawn_from_the_coils_row_and_followed_back() {
     d.shell_mut().shutdown();
 }
 
-/// The rc.2 re-test (friction 8, 9, 14): the check said "fit a valve or a blanking plate", and the person searched the
+/// A re-test (friction 8, 9, 14): the check said "fit a valve or a blanking plate", and the person searched the
 /// parts for a blanking plate and found none. The browser of an empty cell lists Blanking plate first (the first valve
 /// stays chosen) and blanks the position; EW-FL-013 says where it is (a right click on the position) and offers it as
 /// its fix; Fix all blanks every empty position in one step, and one undo brings them back.
@@ -2858,7 +2858,7 @@ fn a_blanking_plate_is_found_from_the_cell_and_the_check() {
     d.shell_mut().shutdown();
 }
 
-/// The rc.2 re-test (friction 12): from the fluid page Draw plug went to page 1, an empty front page, without a word,
+/// A re-test (friction 12): from the fluid page Draw plug went to page 1, an empty front page, without a word,
 /// and could not be pointed at the control page. From a fluid page it asks on which electrical page (the one after this
 /// page chosen, New page… offered) and draws there; with an electrical page in front it draws there, asking nothing.
 #[test]
@@ -2919,7 +2919,7 @@ fn draw_plug_draws_where_the_person_is() {
     d.shell_mut().shutdown();
 }
 
-/// The rc.2 re-test (friction 10): the 8-position multipin terminal placed near the frame's right edge ran past it,
+/// A re-test (friction 10): the 8-position multipin terminal placed near the frame's right edge ran past it,
 /// positions 4 and up cut off, without a word. Placed there, it stands inside the drawing area, moved left.
 #[test]
 fn a_terminal_placed_at_the_frames_edge_stands_inside_it() {
@@ -2946,7 +2946,7 @@ fn a_terminal_placed_at_the_frames_edge_stands_inside_it() {
     d.shell_mut().shutdown();
 }
 
-/// The rc.2 re-test (friction 2, 3): after choosing "Compressed air, 6 bar" the supply's Medium row read "Compressed
+/// A re-test (friction 2, 3): after choosing "Compressed air, 6 bar" the supply's Medium row read "Compressed
 /// air", marked derived, and the Tube button's mode read "Wire". The row shows the medium as the list offered it, as the
 /// supply's own; the mode reads Tube.
 #[test]
@@ -2983,7 +2983,7 @@ fn the_medium_row_and_the_tube_mode_say_what_was_chosen() {
     d.shell_mut().shutdown();
 }
 
-/// The rc.2 cabinet run (friction 26, 27): Tube opened a small dialog first, so the clicks meant for the ports fell
+/// A cabinet run (friction 26, 27): Tube opened a small dialog first, so the clicks meant for the ports fell
 /// into it, and nothing showed the tube's size. Tube starts drawing at once with the line kind used last, the HUD says
 /// the kind and the project's tube and changes the kind, and a project without a default tube is told once where its
 /// size is set.

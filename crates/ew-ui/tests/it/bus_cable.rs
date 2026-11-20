@@ -225,7 +225,7 @@ fn a_bus_line_takes_a_dp_cable_and_a_plug_at_each_end() {
     for number in ["EW-GEN-CBL-2", "EW-GEN-PLG-1", "EW-GEN-PLG-5"] {
         assert!(bom.contains(number), "{number} in the parts list:\n{bom}");
     }
-    // rc.5: the cable counts by its length.
+    // The cable counts by its length.
     assert!(
         bom.lines()
             .any(|l| l.contains("EW-GEN-CBL-2") && l.contains(",12.5,m,")),
@@ -650,7 +650,7 @@ fn an_older_bus_cable_that_meets_a_page_tag_is_reported_with_renumber() {
     assert!(twice[0].fix.is_some(), "the finding offers to renumber");
 }
 
-/// rc.5: a new cable chosen for a line whose cable carries nothing else takes that cable's place: the form proposes
+/// A new cable chosen for a line whose cable carries nothing else takes that cable's place: the form proposes
 /// the tag the numbering then gives (the old cable's, free again), the old cable goes in the same step, so the parts
 /// list holds the new cable only, and one Undo brings the old one back.
 #[test]

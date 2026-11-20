@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! F18 and F19 of the rc.1 test in the window, at 1920 × 1080: a station is made as a rack and filled (New station…,
+//! F18 and F19 of a test in the window, at 1920 × 1080: a station is made as a rack and filled (New station…,
 //! its head part and its modules from the catalogue, Create, one undo step), and a bus device without PLC data is
 //! given to a PLC from its symbol's menu, whose view then opens and takes a module. The rack is a view in a tab
 //! beside the page tabs (doc 10 §6).
@@ -177,7 +177,7 @@ fn plc_row(h: &egui_kittest::Harness<'static, ew_ui::app::App>) -> Option<String
         .map(|(_, r)| ew_viewmodel::properties::value_text(r))
 }
 
-/// The rc.2 persona run: a bus device is given to a PLC from where a person looks. A managed switch's Properties show
+/// A persona run: a bus device is given to a PLC from where a person looks. A managed switch's Properties show
 /// a PLC row "in no PLC"; its Bus panel row says the same; choosing New PLC… in the row makes it belong to a new PLC
 /// without a rack (a toast with Undo says so, the Properties stay on it and name the PLC, its menu has no Rack…). A
 /// generic PROFINET device's row then offers that PLC, and choosing it opens its rack as before.
@@ -258,7 +258,7 @@ fn a_bus_device_is_given_to_a_plc_from_its_properties() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// The rc.2 persona run: in a new station's view a kind no library part is for says why and what to do, and a bus
+/// A persona run: in a new station's view a kind no library part is for says why and what to do, and a bus
 /// device in no PLC is offered as the station; chosen, it is a station of the view's PLC and its rack is shown.
 #[test]
 fn the_new_station_view_offers_a_device_on_the_bus() {
@@ -282,7 +282,7 @@ fn the_new_station_view_offers_a_device_on_the_bus() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// The rc.2 persona run: in a project without a bus-topology page the station's bus side goes onto a new one, asking
+/// A persona run: in a project without a bus-topology page the station's bus side goes onto a new one, asking
 /// nothing, which is shown with the station's port on the pointer; with bus pages the button asks which (a
 /// side lands on the page the person picks), and the one chosen is shown.
 #[test]
@@ -543,7 +543,7 @@ fn draw_on_a_page_lists_the_pages() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// The rc.2 persona run: twenty-nine "pin is not connected" warnings, each with its own Fix and Apply. A card with
+/// A persona run: twenty-nine "pin is not connected" warnings, each with its own Fix and Apply. A card with
 /// eight unconnected pins: its group's Fix all (n)… makes one card, one Apply marks them all not used (the toast says
 /// how many, with Undo), the warnings are gone, and one Undo brings them all back.
 #[test]
@@ -947,7 +947,7 @@ fn two_corners(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>) -> Strin
     h.state().shell().tool().name().to_owned()
 }
 
-/// The rc.2 persona run re-test: his CPU stood on a schematic page and he wanted it on the bus page. Placing its part
+/// A persona run re-test: his CPU stood on a schematic page and he wanted it on the bus page. Placing its part
 /// from the device browser there asks first, "Put <station> here" chosen, or "A new station"; Put here draws the station
 /// the project has, a box for each interface, and the tool gives way instead of taking it again. The Black box tool on
 /// the bus page then offers the station still missing there, not the one placed last.
@@ -1020,7 +1020,7 @@ fn place_port_list(
         .expect("Place port's list")
 }
 
-/// The rc.2 persona run re-test: a bus page's own menu and the PLC tab's Place port list have Put a station on this
+/// A persona run re-test: a bus page's own menu and the PLC tab's Place port list have Put a station on this
 /// page, listing what the page does not show yet; chosen, the station stands there whole, and the entry is greyed with
 /// its reason once nothing is left to put.
 #[test]
@@ -1074,7 +1074,7 @@ fn a_bus_page_offers_to_put_a_station_on_it() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// The rc.2 persona run dragged his CPU's row from the PLC panel onto the bus page and nothing happened. The drop puts
+/// A persona run dragged his CPU's row from the PLC panel onto the bus page and nothing happened. The drop puts
 /// the station there at the drop point, a box per interface, and the tool gives way; a drop that cannot be taken says
 /// why: the station is there already, or the page takes no stations.
 #[test]
@@ -1141,7 +1141,7 @@ fn a_station_row_dropped_on_the_bus_page_puts_it_there() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// The rc.2 persona run took the chip "Not on this page: 1-A0" for a code, and it only jumped away. With the CPU drawn
+/// A persona run took the chip "Not on this page: 1-A0" for a code, and it only jumped away. With the CPU drawn
 /// on page 101 and its PLC row selected on a bus page, the chip reads as the jump it is, and Put it here beside it puts
 /// the CPU on the bus page.
 #[test]
@@ -1190,7 +1190,7 @@ fn the_chip_says_where_it_goes_and_puts_a_station_here() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// A small one of the rc.2 persona run: the PLC tab's Bus panel closed the panel that stood open behind another tab.
+/// A small one of a persona run: the PLC tab's Bus panel closed the panel that stood open behind another tab.
 /// Bus panel brings the panel to the front and the status bar says so.
 #[test]
 fn the_bus_panel_comes_to_the_front() {
@@ -1222,7 +1222,7 @@ fn the_bus_panel_comes_to_the_front() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// The rc.3 rack run: a new station's tags read -?A? and -?A?-A1 and nothing said why. Its To do says that a tag gets
+/// A rack run: a new station's tags read -?A? and -?A?-A1 and nothing said why. Its To do says that a tag gets
 /// its number when it is drawn on a page, beside the button that draws it, and the hover of a card with such a tag
 /// says the same and where that button is.
 #[test]

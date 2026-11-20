@@ -460,7 +460,7 @@ fn a_station_view_beside_the_focused_page_shows_its_lists() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// H11 of the rc.4 test (the view lagged): the view is made once for its state. The pointer moving over its cards, its
+/// H11 of a test (the view lagged): the view is made once for its state. The pointer moving over its cards, its
 /// bar and its catalogue for many frames makes none of it again, for a made station and for one not made yet (whose
 /// rack, PLCs and devices on the bus were derived several times a frame); a click that moves the cursor makes it again.
 #[test]
@@ -523,7 +523,7 @@ fn type_tag(h: &mut Window, field: &str, text: &str) {
     settle(h);
 }
 
-/// H14 of the rc.4 test: a station made in its view got a tag by itself, and it could not be changed there. A click
+/// H14 of a test: a station made in its view got a tag by itself, and it could not be changed there. A click
 /// on the tag in the header opens it in place; Enter takes the tag typed through the Tag row's own path, with the
 /// station's cards that follow its tag (no Apply is left waiting, no line asks for one). F2 on a card opens the
 /// card's tag in its row; a tag another device has is refused in a sentence under the rack, the field staying open on
@@ -537,7 +537,7 @@ fn a_tag_is_changed_in_the_station_view() {
     click(&mut h, &format!("Tag {before}: click to change it"));
     type_tag(&mut h, &format!("Tag of {before}"), "5");
     let typed = format!("{before}5");
-    // rc.5: the Enter takes the change with the cards that follow it; no Apply waits, and no line asks for one.
+    // The Enter takes the change with the cards that follow it; no Apply waits, and no line asks for one.
     assert_eq!(tag(&h), typed, "the station's tag");
     assert!(h.state().shell().properties().card().is_none(), "no Apply waits");
     let tab = h.state().shell().station_tab().cloned().expect("the view");
@@ -580,7 +580,7 @@ fn a_tag_is_changed_in_the_station_view() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// rc.5 cabinet run: a click on a channel's Symbol name cell and typing did nothing. The cell opens in place; Enter
+/// A cabinet run: a click on a channel's Symbol name cell and typing did nothing. The cell opens in place; Enter
 /// takes the text, Tab takes it and opens the next channel's cell, so a card's channels are named in one go; the PLC
 /// panel's grid shows the same symbols. A channel nothing is wired to has no function text of its own: its cell says
 /// why under the rack.
@@ -639,7 +639,7 @@ fn a_cards_channels_are_named_in_the_station_view() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// rc.5 cabinet run: the New station form had no tag. It shows the tag the station gets, given by its page until one
+/// A cabinet run: the New station form had no tag. It shows the tag the station gets, given by its page until one
 /// is typed; a tag typed there is the station's after Create, frozen; a tag another device has is refused in a
 /// sentence.
 #[test]

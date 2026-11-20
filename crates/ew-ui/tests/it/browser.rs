@@ -262,7 +262,7 @@ fn the_device_browsers_rows_stay_in_place_once_a_part_is_used() {
     d.shell_mut().shutdown();
 }
 
-/// The rc.3 rack run: once a part was in the project the browser showed Edit part… above Place and pushed Place down,
+/// A rack run: once a part was in the project the browser showed Edit part… above Place and pushed Place down,
 /// so a click on Place's remembered spot hit Edit part…. Place stands in one place for every part: a part of the
 /// project with its Edit part…, one from the library without, and one with a longer card.
 #[test]

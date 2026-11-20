@@ -92,7 +92,7 @@ fn copy_and_paste_events_reach_the_clipboard_actions_on_the_canvas() {
     assert_eq!(h.state().shell().selection().items.len(), 1);
 }
 
-/// rc.5 re-test: a page opened from the page list keeps the keyboard in the list; Ctrl+V there pastes onto that page
+/// A re-test: a page opened from the page list keeps the keyboard in the list; Ctrl+V there pastes onto that page
 /// (it did nothing and said nothing), and the block hangs on the pointer saying what it holds in words.
 #[test]
 fn ctrl_v_with_the_page_list_focused_pastes_onto_the_page() {

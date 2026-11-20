@@ -139,7 +139,7 @@ fn supply_comes_in_here_marks_the_points_and_their_findings_go() {
     d.input(&key("ctrl+y"));
     d.settle();
     assert!(!has(&findings(&mut d), "EW-CORE-051"));
-    // rc.3 (G7): where it comes from can be changed: Where the supply comes from… on a marked point shows the place
+    // Where it comes from can be changed: Where the supply comes from… on a marked point shows the place
     // and device it comes from now, and Apply with another place moves it there.
     let at = points(&mut d, &pixel);
     d.input(&key("escape"));
@@ -179,7 +179,7 @@ fn supply_comes_in_here_marks_the_points_and_their_findings_go() {
     d.shell_mut().shutdown();
 }
 
-/// rc.3 (G7): three supply points one under the other (L1, N, PE), marked at once, print where they come from once,
+/// Three supply points one under the other (L1, N, PE), marked at once, print where they come from once,
 /// under the last of them; the right-click menu takes one out of the group (it prints its own again); Properties of a
 /// marked point have its place in a row, and a place typed there moves the point to it.
 #[test]

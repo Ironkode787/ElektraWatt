@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! rc.3: a button that is not greyed but whose action is refused said nothing (the cabinet persona run stopped twice
+//! A button that is not greyed but whose action is refused said nothing (the cabinet persona run stopped twice
 //! at one). A refusal is said where the person looks: in a toast and the status line, in an open dialog beside its
 //! buttons.
 

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! rc.3: with no project open the command bar showed the Draw tab as if one could draw. On the start page it shows the
+//! With no project open the command bar showed the Draw tab as if one could draw. On the start page it shows the
 //! Project tab; the tabs that need a project are there, greyed with the reason, and a click on one says it.
 
 use crate::support;

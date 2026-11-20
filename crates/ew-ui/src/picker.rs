@@ -752,7 +752,7 @@ fn detail(ui: &mut Ui, t: &Tokens, shell: &ShellModel, picker: &Picker, events: 
     response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Image, true, &label));
     picture(ui, t, rect, picker.preview.as_deref());
     ui.spacing_mut().item_spacing.y = t.space_2;
-    // The primary button stands right under the picture, in one place for every row (the rc.3 rack run clicked the
+    // The primary button stands right under the picture, in one place for every row (a rack run clicked the
     // remembered spot of Place and hit the Edit part… a part in the project shows above it).
     ui.add_space(t.space_2);
     let reason = picker.disabled_words(row);

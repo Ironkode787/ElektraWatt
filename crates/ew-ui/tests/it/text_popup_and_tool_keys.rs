@@ -578,7 +578,7 @@ fn pin_names(h: &Harness<'_, App>, rep: ew_viewmodel::ew_api::output::Uuid) -> V
     names.into_iter().map(|(_, n)| n).collect()
 }
 
-/// rc.5 re-test, his keys replayed: "24V Tab 24V Tab 0V Tab 0V Enter" in the pin name field makes four pins named
+/// A re-test, his keys replayed: "24V Tab 24V Tab 0V Tab 0V Enter" in the pin name field makes four pins named
 /// 24V, 24V, 0V and 0V; each Tab takes the name typed so far and opens an empty field for the next.
 #[test]
 fn tab_between_pin_names_makes_one_pin_per_name() {
@@ -596,7 +596,7 @@ fn tab_between_pin_names_makes_one_pin_per_name() {
     assert_eq!(h.state().shell().tool().name(), "select");
 }
 
-/// rc.5 re-test: an empty name is said in a line under the field, whole, and the field stays open to type on.
+/// A re-test: an empty name is said in a line under the field, whole, and the field stays open to type on.
 #[test]
 fn an_empty_pin_name_is_said_under_the_field() {
     let tmp = Tmp::new();

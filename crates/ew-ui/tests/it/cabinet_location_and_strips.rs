@@ -235,7 +235,7 @@ fn a_layout_page_gives_the_cabinets_devices_their_location_in_one_step() {
     assert_eq!(entry.label, "Unplaced devices", "the rail icon's tooltip");
 }
 
-/// rc.5: where a prefix has to appear (the page draws a device of a second location), the preview says so on the
+/// Where a prefix has to appear (the page draws a device of a second location), the preview says so on the
 /// devices it concerns before Apply, the tags then print it, and one Undo takes the step back.
 #[test]
 fn give_location_announces_a_location_its_tags_will_print() {
