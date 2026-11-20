@@ -23,19 +23,10 @@ use crate::fluid_media::{Effective, MediumZones, TubeProps, TubePropsOf, node_ne
 use crate::nets::{CpRef, NetId};
 use crate::query::{Policy, Query};
 use crate::{
-    ChannelsByCp, DeviceTag, FluidTubes, FunctionCps, PlcAddressText, Q, StructureOf, ValveSlot, ValveSlots,
-    cp_label, folio_label, is_valve_terminal, solenoid_coil, tracked_process_tag, tracked_target,
+    ChannelsByCp, FluidTubes, FunctionCps, PlcAddressText, Q, StructureOf, ValveSlot, ValveSlots, cp_label,
+    folio_label, is_valve_terminal, short_tag, solenoid_coil, tracked_process_tag, tracked_target,
     valve_functions, valve_solenoids,
 };
-
-/// A device's displayed tag without structure (`-201U3-Q1`); empty without one.
-pub fn short_tag(q: &Q, d: Id<Device>) -> String {
-    q.get::<DeviceTag>(d)
-        .as_ref()
-        .as_ref()
-        .map(|t| t.short())
-        .unwrap_or_default()
-}
 
 /// A port role in words, en-GB and nl-NL ("working" / "werkpoort").
 pub fn port_role_text(role: &FluidPortRole) -> MlText {

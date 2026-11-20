@@ -254,6 +254,15 @@ impl Query for DeviceTag {
     }
 }
 
+/// A device's displayed tag without structure (`-201U3-Q1`); empty without one.
+pub fn short_tag(q: &Q, d: Id<Device>) -> String {
+    q.get::<DeviceTag>(d)
+        .as_ref()
+        .as_ref()
+        .map(|t| t.short())
+        .unwrap_or_default()
+}
+
 fn counter_text(counter: Option<u32>) -> String {
     counter.map_or_else(|| "?".to_owned(), |c| c.to_string())
 }

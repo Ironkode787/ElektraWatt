@@ -165,8 +165,8 @@ pub use fluid_media::{
 };
 pub use fluid_rows::{
     MediumRow, MediumRows, TubeEnd, TubeRow, TubeRows, ValveTerminalRows, VtRow, VtSlot, is_blanking_plate,
-    langs, line_kind_text, line_tag, location_text, medium_text, part_number, port_role_text, short_tag,
-    tube_spec_text, valve_channels, valve_function,
+    langs, line_kind_text, line_tag, location_text, medium_text, part_number, port_role_text, tube_spec_text,
+    valve_channels, valve_function,
 };
 pub use names::{
     AttrConflict, DefAttr, PotentialAttrsOf, PotentialAttrsV, PotentialNameOf, PotentialNames, cp_text,
@@ -224,7 +224,7 @@ pub use structure::{
 };
 pub use tag::{
     DeviceTag, DisplayedTag, MainFunction, MainRep, Tag, TagSource, cable_core_page, numbering_format,
-    rule_product,
+    rule_product, short_tag,
 };
 pub use text_frame::{TextFrame, slot_shown, tag_slot_shown, text_frame};
 pub use title_block::{
