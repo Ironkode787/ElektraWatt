@@ -8,6 +8,12 @@ The keys of every tool are on the [keymap](../keymaps.md) page, for each keymap 
 while it is active. `Esc` or a right click on the page cancels what the active tool is doing, one step at a time,
 and ends at Select; with Select active, a right click opens the page's menu.
 
+While a symbol hangs on the pointer or is dragged, a dotted line shows where one of its pins would stand in line with
+a pin it faces, and a faint one where it would stand level with a symbol drawn alike beside it. Within three quarters
+of a grid step of the first line the symbol takes it and the line turns solid; move on and it lets go. The symbol
+always stands on the grid, and nothing moves it after you set it down. Hold `Alt` for no guides; Alt also places or
+moves it without connecting it.
+
 The page's menu is the quick way to what fits the thing under the pointer: its first entries are that thing's, then
 come the general ones (Rotate, Mirror and Renumber devices… on a symbol; Cut, Copy, Paste, Delete, Properties of
 selection). A right click selects the thing first; Shift+F10 or the menu key opens the same menu for the selection.

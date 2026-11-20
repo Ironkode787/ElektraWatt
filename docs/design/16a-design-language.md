@@ -318,8 +318,8 @@ lines of the drawing.
 | `canvas.grid_dot` | #B8BEC7 | 1.9 (intentionally faint) | Dots; the pitch doubles below 8 points (as built) |
 | `canvas.selection` | `volt-600` #0B63CE | 5.69 (3.69 on black lines) | Solid 2s-px outline with a 1s-px white casing, 8s-px square corner handles |
 | `canvas.hover` | `volt-600` | 5.69 | 1s-px dashed outline |
-| `canvas.ghost` | `volt-600` at 60 % | — | The placed symbol's strokes, its label chip (§7.3) |
-| `canvas.snap` | `volt-600` | 5.69 | Crosshair with a 6-px gap; CP ring 8s + 1 px |
+| `canvas.ghost` | `volt-600` at 60 % | — | The placed symbol's strokes, its label chip (§7.3); a Level guide, dotted (doc 06a §6) |
+| `canvas.snap` | `volt-600` | 5.69 | Crosshair with a 6-px gap; CP ring 8s + 1 px; the In-line guide of a symbol placed by hand, dotted (s px on, 2s off), solid with a tick across when in line (doc 06a §6) |
 | `canvas.open_cp` | `slate-400` #868E99 | 3.31 | A (4s + 1)-px hollow square with an s-px rim on each connection point without a connection on the page (screen only; drawn while a grid step is at least 4 points on screen). A subdued neutral ink, not the accent, so the squares on a valve page do not read as selection handles; fluid ports keep the marker; `slate-400`, 3.31:1 on the sheet, never an accent shade |
 | `canvas.highlight.1` | violet #9878FC (dark orange #A86F00 before) | 3.27 | 45° hatch halo, name chip filled with the hue |
 | `canvas.highlight.2` | reddish purple #CC79A7 | 3.06 | 135° hatch halo, name chip filled with the hue |

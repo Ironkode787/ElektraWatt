@@ -865,6 +865,17 @@ is dragged: a moved part's wires follow as today and are solved at release (§7.
 *Alternative: show where the placer would put the part and snap to it.* It is what the pilot user ruled out: a
 part placed by hand stands where the person puts it.
 
+*As built (step 6).* `ew_drafting::guides(page, ghost, pointer, points_per_step)` takes the hanging part at the
+ordinary snap's place and the pointer in ticks; the tools call it on the canvas page's `DraftPage`. Each pin of the
+hanging part has at most one In-line guide: the facing pin nearest across, then along. A pin it is already wired to
+must face it too, but may have a part between. The nudge works per axis, only onto the neighbouring grid line, and not
+on an axis where a guide is already in line at the snap's place. A faced pin off the part's grid nudges nothing. A
+Level guide is drawn beside the nearest part with the same pins at the same points and sides (the same symbol in the
+same orientation), whose body shares the hanging part's height. It runs at that part's level through the two top pins.
+Select shows guides while the drag moves one symbol; the keyboard move (M) shows none. In-line guides are dotted in
+`canvas.snap`, solid with a tick across half a step from the hanging pin when in line; Level guides are dotted in
+`canvas.ghost`.
+
 ---
 
 ## 7. The window
