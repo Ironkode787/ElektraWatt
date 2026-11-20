@@ -1,13 +1,14 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The raw-read rule of `cargo xtask rules`: the guard of ADR-0001 amendment 2 for the raw readers of
+//! The raw-read rule of `cargo xtask rules`: the guard of ADR-0001 amendments 2, 4 and 5 for the raw readers of
 //! `ew-model`, driven by the `[raw_read]` section of `ci/dep-rules.toml`.
 //!
-//! The feature rule stops a crate from *requesting* the `raw-read` feature of `ew-model`, but cargo features
-//! are additive: a crate that depends on `ew-derive` is compiled with the raw readers present. This check
-//! closes the remainder. It has two halves: a type-aware list that clippy enforces, which this check
-//! generates and keeps current, and a few lexical rules that clippy cannot express.
+//! The feature rule (`features.rs`) stops a crate from *requesting* the `raw-read` feature of `ew-model`, but cargo
+//! features are additive: a crate that depends on `ew-derive` is compiled with the raw readers present. Clippy closes
+//! the remainder with a type-aware list that this rule generates and keeps current, and the rule keeps the opt-out of
+//! that list narrow. It holds no other lexical rule: `raw_read!` is not exported, so no other crate can invoke it, and a
+//! `cfg(feature = "raw-read")` in a crate without that feature is an unexpected cfg, which `-D warnings` fails.
 //!
 //! # The clippy list
 //!
@@ -38,42 +39,22 @@
 //! The `disallowed-methods` list also ends with the wall-clock, environment and randomness functions
 //! ([`DISALLOWED_METHODS`]: doc 18 §3.5), which share the lint `disallowed_methods` with the raw
 //! readers. A helper that wraps one such call allows the lint on itself and gives the reason in the attribute
-//! (`#[allow(clippy::disallowed_methods, reason = "...")]`). In non-test source of a package that reaches `ew-model`,
-//! an allow without a reason, a crate-wide allow, an `expect` or an allow of a wider lint group is a suppression of
-//! this guard and a finding.
+//! (`#[allow(clippy::disallowed_methods, reason = "...")]`; see below).
 //!
 //! The reader crates (`policy.readers`) opt out with `#![allow(clippy::disallowed_methods)]` at each target
-//! root; no other crate may. Clippy finds its configuration by walking up from each package's manifest
-//! directory to the first `clippy.toml`, so the one root file covers every package, unless something shadows
-//! it. The check fails when
+//! root; no other crate may. The check fails when the committed file (policy key `clippy_config`, default
+//! `clippy.toml`) is missing or differs from the generated text (line endings are normalised first): run
+//! `cargo xtask gen`.
 //!
-//! - the committed file (policy key `clippy_config`, default `clippy.toml`) is missing or differs from the
-//!   generated text (line endings are normalised first): run `cargo xtask gen`;
-//! - a `clippy.toml` or `.clippy.toml` exists in a workspace package directory or a directory between it and
-//!   the root, or a `.clippy.toml` exists at the root (clippy would read it instead of the generated file);
-//! - `.cargo/config.toml`, `.cargo/config` or a `.github/workflows/*.yml` file mentions `CLIPPY_CONF_DIR` or
-//!   `disallowed_methods` (an override of the configuration directory, or of the lint).
+//! # Every allow gives a reason
 //!
-//! # Lexical rules
-//!
-//! The non-test Rust source of every workspace package outside the policy's `readers` (and
-//! `exempt_packages`) whose normal dependencies reach the gated crate must not
-//!
-//! - invoke the `raw_read!` macro,
-//! - contain a string literal equal to the feature name (`cfg(feature = "raw-read")`, `cfg_attr`, `cfg!`),
-//! - suppress the guard: an attribute `#[...]` or `#![...]` (also inside `cfg_attr(...)`) whose `allow(...)` or
-//!   `expect(...)` list contains `disallowed_methods` or its old name `disallowed_method` (with or without `clippy::`),
-//!   `renamed_and_removed_lints` (which would silence the rename warning), `clippy::style`,
-//!   `clippy::all` or `warnings`, or
-//! - enable the feature or suppress the lint in its manifest: a non-dev dependency edge with the feature, a
-//!   `[features]` entry that forwards it, or a `[lints.clippy]` table (the workspace's
-//!   `[workspace.lints.clippy]`, checked once) that sets `disallowed_methods`, `disallowed_method`, `renamed_and_removed_lints`, `style` or
-//!   `all` to `allow`.
-//!   The first two duplicate part of the feature rule on purpose, as the ADR words it.
-//!
-//! A false positive gets an `[[raw_read.allow]]` entry (path, item, reason); an entry that suppresses nothing
-//! fails. Packages whose normal dependencies cannot reach the gated crate are not scanned (they cannot
-//! name its readers).
+//! In the non-test Rust source of every workspace package outside the policy's `readers` whose normal dependencies
+//! reach the gated crate, an attribute `#[...]` or `#![...]` (also inside `cfg_attr(...)`) whose `allow(...)` or
+//! `expect(...)` list contains `disallowed_methods` or its old name `disallowed_method` (with or without `clippy::`),
+//! `renamed_and_removed_lints` (which would silence the rename warning), `clippy::style`, `clippy::all` or
+//! `warnings` suppresses the guard and is a finding, but for `#[allow(clippy::disallowed_methods, reason = "...")]`
+//! on one item: its reason stands where the code is. Packages whose normal dependencies cannot reach the gated crate
+//! are not scanned (they cannot name its readers).
 //!
 //! # Asset presence
 //!
@@ -88,8 +69,8 @@
 //!
 //! # Test code
 //!
-//! Test code is exempt from the lexical rules, as the feature rule's dev exemption is. That means files under
-//! a package's top-level `tests/`, `benches/`, `examples/` and `target/` directories; any item (fn, mod, impl,
+//! Test code is exempt from the suppression and asset-presence rules, as the feature rule's dev exemption is. That
+//! means files under a package's top-level `tests/`, `benches/`, `examples/` and `target/` directories; any item (fn, mod, impl,
 //! use, statement block) preceded by an attribute `#[cfg(test)]` or `#[cfg(all(test, ...))]` (a `test`
 //! argument at the top level of an `all`), skipped through its matching `}` or its `;`; a leading inner
 //! `#![cfg(test)]`; and out-of-line test modules: `#[cfg(test)] mod foo;` in `dir/lib.rs`, `dir/main.rs` or
@@ -102,7 +83,7 @@
 //!
 //! A small hand-written lexer yields identifiers, string literal contents and punctuation. Comments (line,
 //! block with nesting, doc), char literals, lifetimes, raw strings (`r"..."`, `r#"..."#`), byte and C strings
-//! never produce identifiers; the contents of a string count only for the feature-name rule.
+//! never produce identifiers or attributes; the contents of a string count only as `cfg(feature = "...")` values.
 //!
 //! Scanning and generation are pure and work on `(path, text)` pairs, so the unit tests feed synthetic
 //! sources; only [`run`], [`check`] and the loading code touch the file system and `cargo metadata`.
@@ -112,9 +93,6 @@ use std::path::Path;
 
 use anyhow::{Context, Result};
 use serde::Deserialize;
-
-use crate::deps::Kind;
-use crate::features;
 
 /// The policy file the section lives in (named by a stale allowlist entry).
 const POLICY_FILE: &str = "ci/dep-rules.toml";
@@ -221,15 +199,6 @@ const SUPPRESSING: [&str; 8] = [
     "warnings",
 ];
 
-/// Keys of `[lints.clippy]` whose `allow` switches the guard off.
-const SUPPRESSING_KEYS: [&str; 5] = [
-    "disallowed_methods",
-    "disallowed_method",
-    "renamed_and_removed_lints",
-    "style",
-    "all",
-];
-
 fn default_clippy_config() -> String {
     "clippy.toml".to_owned()
 }
@@ -251,12 +220,6 @@ pub struct RawReadPolicy {
     /// The generated clippy configuration, relative to the workspace root.
     #[serde(default = "default_clippy_config")]
     pub clippy_config: String,
-    /// Packages whose source is not scanned (the guard's own source names the feature and the macro).
-    #[serde(default)]
-    pub exempt_packages: Vec<String>,
-    /// Reviewed false positives.
-    #[serde(default)]
-    pub allow: Vec<Allow>,
     /// The asset-presence rule (`[raw_read.asset_presence]`).
     #[serde(default)]
     pub asset_presence: Option<AssetPresencePolicy>,
@@ -292,22 +255,6 @@ pub struct AssetAllow {
     pub reason: String,
 }
 
-/// One reviewed false positive.
-#[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct Allow {
-    /// The file, relative to the workspace root, with forward slashes.
-    pub path: String,
-    /// `raw_read!` (the macro), the feature name or `disallowed_methods`.
-    pub item: String,
-    /// Why the match is not a use of the raw reader.
-    pub reason: String,
-    /// When set, exactly this many findings of the file and item are suppressed: a further one is reported, so
-    /// the entry stays as narrow as the sites that were reviewed.
-    #[serde(default)]
-    pub count: Option<usize>,
-}
-
 /// One declaration of a gated reader in the policy crate.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GatedItem {
@@ -324,8 +271,8 @@ pub struct Violation {
     pub path: String,
     /// The 1-based line.
     pub line: usize,
-    /// What the match is about: `raw_read!`, the feature name or `disallowed_methods` (what an allow entry
-    /// names).
+    /// What the finding is about: `disallowed_methods`, `clippy_config` or `asset_presence:<function>` (what an
+    /// asset-presence allow entry names).
     pub item: String,
     /// The description.
     pub message: String,
@@ -356,26 +303,16 @@ pub struct SourcePackage {
     pub dir: String,
     /// Every `.rs` file of the package, test code included: workspace-relative path and text.
     pub files: Vec<(String, String)>,
-    /// The package's `Cargo.toml` text (to locate manifest findings).
-    pub manifest_text: String,
-    /// Declared dependencies and `[features]`, as the feature rule reads them.
-    pub manifest: features::Package,
     /// Whether the package's normal-dependency closure inside the workspace contains the gated crate. A
     /// package that cannot reach it cannot name its readers either, so it is not scanned.
     pub reaches_gated_crate: bool,
 }
 
-/// The files outside the packages that the clippy half of the check reads.
+/// The file outside the packages that the check reads.
 #[derive(Debug, Clone, Default)]
 pub struct WorkspaceFiles {
-    /// The workspace-root `Cargo.toml` text (for `[workspace.lints.clippy]`).
-    pub root_manifest: String,
     /// The committed clippy configuration, if the file exists.
     pub clippy_config: Option<String>,
-    /// The paths among [`shadow_candidates`] that exist.
-    pub shadowing: BTreeSet<String>,
-    /// `.cargo/config.toml`, `.cargo/config` and `.github/workflows/*.yml` (path, text).
-    pub config_files: Vec<(String, String)>,
 }
 
 /// The result of one run of the check.
@@ -385,7 +322,7 @@ pub struct Outcome {
     pub violations: Vec<String>,
     /// How many gated declarations were found in the policy crate.
     pub gated_items: usize,
-    /// How many packages were scanned (those outside `readers` and `exempt_packages`).
+    /// How many packages were scanned (those outside `readers` that reach the gated crate).
     pub packages_scanned: usize,
 }
 
@@ -1147,45 +1084,17 @@ fn is_test_path(package_dir: &str, path: &str) -> bool {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Lexical rules
+// Suppressions
 
-/// The violations of the lexical rules in one source file of a package that may not use the raw readers: the
-/// `raw_read!` macro, the feature name, and suppressions of the guard. Calls of the readers are clippy's job
-/// (see the module documentation).
-pub fn scan_source(path: &str, text: &str, policy: &RawReadPolicy) -> Vec<Violation> {
+/// The suppressions of the guard in one source file of a package that may not use the raw readers. Calls of the
+/// readers are clippy's job (see the module documentation).
+pub fn scan_source(path: &str, text: &str) -> Vec<Violation> {
     let p = Parsed::new(text);
     let exempt = exempt_mask(&p);
     let mut v = Vec::new();
     for (i, &skip) in exempt.iter().enumerate() {
-        if skip {
-            continue;
-        }
-        match &p.toks[i].kind {
-            Tk::Ident(name) => {
-                if *name == policy.macro_name && p.is_p(i + 1, '!') && !p.is_p(i + 2, '=') {
-                    v.push(Violation::new(
-                        path,
-                        p.line(i),
-                        &format!("{name}!"),
-                        format!(
-                            "invokes `{name}!`, the macro that declares {}'s readers behind feature `{}`",
-                            policy.krate, policy.feature
-                        ),
-                    ));
-                }
-            }
-            Tk::Str(s) if *s == policy.feature => v.push(Violation::new(
-                path,
-                p.line(i),
-                &policy.feature,
-                format!("names the feature `{}` of {}", policy.feature, policy.krate),
-            )),
-            Tk::Punct('#') => {
-                if let Some(a) = p.attr_at(i) {
-                    suppressions(&p, &a, path, &mut v);
-                }
-            }
-            _ => {}
+        if !skip && let Some(a) = p.attr_at(i) {
+            suppressions(&p, &a, path, &mut v);
         }
     }
     v
@@ -1344,178 +1253,6 @@ fn suppressions(p: &Parsed, a: &Attr, path: &str, v: &mut Vec<Violation>) {
             }
         }
     }
-}
-
-/// The 1-based line of the first `key = ...` assignment in `text`, or 1.
-fn key_line(text: &str, key: &str) -> usize {
-    text.lines()
-        .position(|l| {
-            l.trim_start()
-                .strip_prefix(key)
-                .is_some_and(|rest| rest.trim_start().starts_with('='))
-        })
-        .map_or(1, |l| l + 1)
-}
-
-/// The findings of a `[lints.clippy]` table (`[workspace.lints.clippy]` when `workspace`) that sets a lint of
-/// [`SUPPRESSING_KEYS`] to `allow`.
-pub fn lint_violations(path: &str, manifest_text: &str, workspace: bool) -> Vec<Violation> {
-    let Ok(doc) = toml::from_str::<toml::Table>(manifest_text) else {
-        return Vec::new();
-    };
-    let root = if workspace {
-        doc.get("workspace").and_then(toml::Value::as_table)
-    } else {
-        Some(&doc)
-    };
-    let Some(clippy) = root
-        .and_then(|r| r.get("lints"))
-        .and_then(toml::Value::as_table)
-        .and_then(|l| l.get("clippy"))
-        .and_then(toml::Value::as_table)
-    else {
-        return Vec::new();
-    };
-    let table = if workspace {
-        "workspace.lints.clippy"
-    } else {
-        "lints.clippy"
-    };
-    let mut v = Vec::new();
-    for key in SUPPRESSING_KEYS {
-        let level = match clippy.get(key) {
-            Some(toml::Value::String(s)) => Some(s.as_str()),
-            Some(toml::Value::Table(t)) => t.get("level").and_then(toml::Value::as_str),
-            _ => None,
-        };
-        if level == Some("allow") {
-            v.push(Violation::new(
-                path,
-                key_line(manifest_text, key),
-                GUARD_LINT,
-                format!(
-                    "`{key} = \"allow\"` in [{table}] suppresses the raw-read guard; that is reserved to the reader crates' roots"
-                ),
-            ));
-        }
-    }
-    v
-}
-
-/// The first 1-based line of `text` that contains one of `needles` (tried in order), or 1.
-fn line_of(text: &str, needles: &[&str]) -> usize {
-    needles
-        .iter()
-        .find_map(|n| text.lines().position(|l| l.contains(n)))
-        .map_or(1, |l| l + 1)
-}
-
-/// The manifest findings of one package: a non-dev dependency on the policy crate that enables the feature,
-/// and `[features]` entries that forward it (`crate/feature`, `crate?/feature`, a renamed dependency
-/// resolved).
-pub fn manifest_violations(
-    path: &str,
-    manifest_text: &str,
-    package: &features::Package,
-    policy: &RawReadPolicy,
-) -> Vec<Violation> {
-    let mut v = Vec::new();
-    for d in &package.deps {
-        if d.name == policy.krate && d.kind != Kind::Dev && d.features.contains(&policy.feature) {
-            v.push(Violation::new(
-                path,
-                line_of(manifest_text, &[policy.krate.as_str(), policy.feature.as_str()]),
-                &policy.feature,
-                format!(
-                    "enables `{}/{}` on a {}",
-                    policy.krate,
-                    policy.feature,
-                    d.kind.label()
-                ),
-            ));
-        }
-    }
-    for (feature, items) in &package.features {
-        for item in items {
-            let bare = item.strip_prefix("dep:").unwrap_or(item);
-            let Some((dep, f)) = bare.split_once('/') else {
-                continue;
-            };
-            let dep = dep.strip_suffix('?').unwrap_or(dep);
-            let krate = package
-                .deps
-                .iter()
-                .find(|d| d.alias == dep)
-                .map_or(dep, |d| d.name.as_str());
-            if krate == policy.krate && f == policy.feature {
-                v.push(Violation::new(
-                    path,
-                    line_of(manifest_text, &[item.as_str(), policy.feature.as_str()]),
-                    &policy.feature,
-                    format!(
-                        "its feature `{feature}` forwards `{}/{}`",
-                        policy.krate, policy.feature
-                    ),
-                ));
-            }
-        }
-    }
-    v
-}
-
-/// Applies the allowlist: drops the violations an entry names, and reports entries without a reason and
-/// entries that suppressed nothing.
-fn apply_allow(violations: Vec<Violation>, allow: &[Allow]) -> Vec<Violation> {
-    let mut used = vec![0usize; allow.len()];
-    let mut out: Vec<Violation> = violations
-        .into_iter()
-        .filter(|v| {
-            let mut suppressed = false;
-            for (k, a) in allow.iter().enumerate() {
-                if a.path == v.path && a.item == v.item {
-                    used[k] += 1;
-                    suppressed = true;
-                }
-            }
-            !suppressed
-        })
-        .collect();
-    for (a, used) in allow.iter().zip(used) {
-        if a.reason.trim().is_empty() {
-            out.push(Violation::new(
-                POLICY_FILE,
-                1,
-                &a.item,
-                format!("allow entry for `{}` in `{}` has no reason", a.item, a.path),
-            ));
-        }
-        if let Some(count) = a.count
-            && used > 0
-            && used != count
-        {
-            out.push(Violation::new(
-                POLICY_FILE,
-                1,
-                &a.item,
-                format!(
-                    "allow entry for `{}` in `{}` lists {count} site(s) but the file has {used}: review the change, then update the count",
-                    a.item, a.path
-                ),
-            ));
-        }
-        if used == 0 {
-            out.push(Violation::new(
-                POLICY_FILE,
-                1,
-                &a.item,
-                format!(
-                    "stale allow entry: `{}` in `{}` matches no violation; remove it",
-                    a.item, a.path
-                ),
-            ));
-        }
-    }
-    out
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -1684,24 +1421,6 @@ fn generate(policy: &RawReadPolicy, packages: &[SourcePackage]) -> Result<String
     }
 }
 
-/// The paths (relative to the workspace root) at which a clippy configuration would shadow the generated one:
-/// a `clippy.toml` or `.clippy.toml` in a package directory or a directory between it and the root, and a
-/// `.clippy.toml` at the root.
-pub fn shadow_candidates(policy: &RawReadPolicy, packages: &[SourcePackage]) -> BTreeSet<String> {
-    let mut out = BTreeSet::new();
-    out.insert(".clippy.toml".to_owned());
-    for pkg in packages {
-        let mut dir = pkg.dir.as_str();
-        while !dir.is_empty() {
-            out.insert(format!("{dir}/clippy.toml"));
-            out.insert(format!("{dir}/.clippy.toml"));
-            dir = dir.rsplit_once('/').map_or("", |(parent, _)| parent);
-        }
-    }
-    out.remove(&policy.clippy_config);
-    out
-}
-
 /// The first 1-based line at which `a` and `b` differ.
 fn first_difference(a: &str, b: &str) -> usize {
     let mut x = a.lines();
@@ -1715,8 +1434,7 @@ fn first_difference(a: &str, b: &str) -> usize {
     }
 }
 
-/// The findings of the clippy half: the committed configuration against the generated one, shadowing
-/// configurations, and overrides in the cargo configuration and the workflows.
+/// The findings of the clippy half: the committed configuration against the generated one.
 fn config_violations(
     policy: &RawReadPolicy,
     packages: &[SourcePackage],
@@ -1756,26 +1474,6 @@ fn config_violations(
             }
         },
     }
-    for path in &ws.shadowing {
-        v.push(Violation::new(
-            path,
-            1,
-            "clippy_config",
-            format!("clippy would read this file instead of the generated `{config}`; remove it"),
-        ));
-    }
-    for (path, text) in &ws.config_files {
-        for needle in ["CLIPPY_CONF_DIR", GUARD_LINT] {
-            if let Some(line) = text.lines().position(|l| l.contains(needle)) {
-                v.push(Violation::new(
-                    path,
-                    line + 1,
-                    needle,
-                    format!("mentions `{needle}`, which can redirect or switch off the raw-read guard's clippy configuration"),
-                ));
-            }
-        }
-    }
     v
 }
 
@@ -1811,13 +1509,10 @@ fn collect(policy: &RawReadPolicy, packages: &[SourcePackage], ws: Option<&Works
             packages_scanned: 0,
         };
     };
-    let mut found = Vec::new();
+    let mut violations = Vec::new();
     let mut scanned = 0;
     for pkg in packages {
-        if policy.readers.contains(&pkg.name)
-            || policy.exempt_packages.contains(&pkg.name)
-            || !pkg.reaches_gated_crate
-        {
+        if policy.readers.contains(&pkg.name) || !pkg.reaches_gated_crate {
             continue;
         }
         scanned += 1;
@@ -1825,21 +1520,9 @@ fn collect(policy: &RawReadPolicy, packages: &[SourcePackage], ws: Option<&Works
             if is_test_path(&pkg.dir, path) || modules.contains(path) {
                 continue;
             }
-            found.extend(scan_source(path, text, policy));
+            violations.extend(scan_source(path, text));
         }
-        let manifest_path = join(&pkg.dir, "Cargo.toml");
-        found.extend(manifest_violations(
-            &manifest_path,
-            &pkg.manifest_text,
-            &pkg.manifest,
-            policy,
-        ));
-        found.extend(lint_violations(&manifest_path, &pkg.manifest_text, false));
     }
-    if let Some(ws) = ws {
-        found.extend(lint_violations("Cargo.toml", &ws.root_manifest, true));
-    }
-    let mut violations = apply_allow(found, &policy.allow);
     // The asset-presence rule over its packages, the reader crates included.
     if let Some(rule) = &policy.asset_presence {
         let mut presence = Vec::new();
@@ -1875,8 +1558,7 @@ fn collect(policy: &RawReadPolicy, packages: &[SourcePackage], ws: Option<&Works
     }
 }
 
-/// Runs the source and manifest rules over `packages` without the clippy half: pure, so the unit tests can
-/// seed violations.
+/// Runs the source rules over `packages` without the clippy half: pure, so the unit tests can seed violations.
 #[cfg(test)]
 fn check_packages(policy: &RawReadPolicy, packages: &[SourcePackage]) -> Outcome {
     collect(policy, packages, None)
@@ -1974,47 +1656,6 @@ fn read_optional(root: &Path, path: &str) -> Result<Option<String>> {
     }
 }
 
-/// The files around the packages that the clippy half reads.
-fn load_workspace_files(
-    root: &Path,
-    policy: &RawReadPolicy,
-    packages: &[SourcePackage],
-) -> Result<WorkspaceFiles> {
-    let root_manifest = read_optional(root, "Cargo.toml")?.context("the workspace has a root Cargo.toml")?;
-    let shadowing = shadow_candidates(policy, packages)
-        .into_iter()
-        .filter(|path| root.join(path).is_file())
-        .collect();
-    let mut config_files = Vec::new();
-    for path in [".cargo/config.toml", ".cargo/config"] {
-        if let Some(text) = read_optional(root, path)? {
-            config_files.push((path.to_owned(), text));
-        }
-    }
-    let workflows = root.join(".github/workflows");
-    if workflows.is_dir() {
-        let mut names: Vec<String> = std::fs::read_dir(&workflows)
-            .with_context(|| format!("reading {}", workflows.display()))?
-            .filter_map(|e| e.ok())
-            .map(|e| e.file_name().to_string_lossy().into_owned())
-            .filter(|n| n.ends_with(".yml") || n.ends_with(".yaml"))
-            .collect();
-        names.sort();
-        for name in names {
-            let path = format!(".github/workflows/{name}");
-            if let Some(text) = read_optional(root, &path)? {
-                config_files.push((path, text));
-            }
-        }
-    }
-    Ok(WorkspaceFiles {
-        root_manifest,
-        clippy_config: read_optional(root, &policy.clippy_config)?,
-        shadowing,
-        config_files,
-    })
-}
-
 /// The `[raw_read]` section of the policy.
 fn section(policy: &crate::deps::Policy) -> Result<RawReadPolicy> {
     policy
@@ -2029,10 +1670,9 @@ fn load(
     policy: RawReadPolicy,
     metadata: &cargo_metadata::Metadata,
 ) -> Result<(RawReadPolicy, Vec<SourcePackage>, WorkspaceFiles)> {
-    let manifests = features::from_metadata(metadata);
     let reach = reaches(metadata, &policy.krate);
     let mut packages = Vec::new();
-    for (meta, manifest) in metadata.workspace_packages().iter().zip(manifests) {
+    for meta in metadata.workspace_packages() {
         let manifest_dir = meta
             .manifest_path
             .parent()
@@ -2048,18 +1688,16 @@ fn load(
             true,
             &mut files,
         )?;
-        let manifest_text = std::fs::read_to_string(&meta.manifest_path)
-            .with_context(|| format!("reading {}", meta.manifest_path))?;
         packages.push(SourcePackage {
             name: meta.name.to_string(),
             dir,
             files,
-            manifest_text,
-            manifest,
             reaches_gated_crate: reach.contains(meta.name.as_str()),
         });
     }
-    let ws = load_workspace_files(root, &policy, &packages)?;
+    let ws = WorkspaceFiles {
+        clippy_config: read_optional(root, &policy.clippy_config)?,
+    };
     Ok((policy, packages, ws))
 }
 
@@ -2120,7 +1758,6 @@ mod tests {
             feature = "raw-read"
             macro = "raw_read"
             readers = ["ew-model", "ew-derive", "ew-commands", "ew-store"]
-            exempt_packages = ["xtask"]
             "#,
         )
         .expect("test policy parses")
@@ -2251,97 +1888,50 @@ disallowed-types = [
             .collect()
     }
 
-    fn dep(name: &str, kind: Kind, features: &[&str]) -> features::Dep {
-        features::Dep {
-            alias: name.into(),
-            name: name.into(),
-            kind,
-            features: features.iter().map(|f| (*f).to_owned()).collect(),
-        }
-    }
-
-    fn manifest(name: &str, deps: Vec<features::Dep>, feats: &[(&str, &[&str])]) -> features::Package {
-        features::Package {
-            name: name.into(),
-            dir: format!("crates/{name}"),
-            deps,
-            features: feats
-                .iter()
-                .map(|(k, vs)| ((*k).to_owned(), vs.iter().map(|s| (*s).to_owned()).collect()))
-                .collect(),
-        }
-    }
-
-    fn package(
-        name: &str,
-        sources: &[(&str, &str)],
-        manifest: features::Package,
-        manifest_text: &str,
-    ) -> SourcePackage {
+    fn package(name: &str, sources: &[(&str, &str)]) -> SourcePackage {
         SourcePackage {
             name: name.into(),
             dir: format!("crates/{name}"),
             files: files(sources),
-            manifest_text: manifest_text.into(),
-            manifest,
             reaches_gated_crate: true,
         }
     }
 
     fn model_package() -> SourcePackage {
-        package(
-            "ew-model",
-            &[(MODEL_PATH, MODEL)],
-            manifest("ew-model", vec![], &[]),
-            "",
-        )
+        package("ew-model", &[(MODEL_PATH, MODEL)])
     }
 
     /// The outcome for a synthetic workspace: the fixture ew-model plus one package `app`.
-    fn run_app(sources: &[(&str, &str)], app_manifest: features::Package, manifest_text: &str) -> Outcome {
-        let app = package("app", sources, app_manifest, manifest_text);
-        check_packages(&policy(), &[model_package(), app])
+    fn run_app(sources: &[(&str, &str)]) -> Outcome {
+        check_packages(&policy(), &[model_package(), package("app", sources)])
     }
 
     fn scan(src: &str) -> Vec<String> {
-        run_app(
-            &[(APP_LIB, src)],
-            manifest("app", vec![dep("ew-model", Kind::Normal, &[])], &[]),
-            "",
-        )
-        .violations
+        run_app(&[(APP_LIB, src)]).violations
     }
 
-    fn at(line: usize, what: &str) -> String {
-        format!("{APP_LIB}:{line}: {what} (ADR-0001 amendment 2)")
-    }
-
-    fn invokes(line: usize) -> String {
-        at(
-            line,
-            "invokes `raw_read!`, the macro that declares ew-model's readers behind feature `raw-read`",
+    /// The finding of the suppression `attr` at `line` of `path`.
+    fn suppresses_in(path: &str, line: usize, attr: &str) -> String {
+        format!(
+            "{path}:{line}: `{attr}` suppresses the raw-read guard; that is reserved to the reader crates' roots (ADR-0001 amendment 2)"
         )
     }
 
     fn suppresses(line: usize, attr: &str) -> String {
-        at(
-            line,
-            &format!("`{attr}` suppresses the raw-read guard; that is reserved to the reader crates' roots"),
-        )
+        suppresses_in(APP_LIB, line, attr)
     }
+
+    /// A finding the tests seed: a suppression of the guard on one item, `allow(clippy::all)`.
+    const BAD: &str = "#[allow(clippy::all)] fn bad() {}";
+    const BAD_ATTR: &str = "allow(clippy::all)";
 
     // -----------------------------------------------------------------------------------------------------
     // Gated items
 
     #[test]
     fn a_package_that_cannot_reach_the_gated_crate_is_not_scanned() {
-        let src = "raw_read! { fn rows() {} }\n#![allow(clippy::disallowed_methods)]";
-        let mut app = package(
-            "csv-tool",
-            &[("crates/csv-tool/src/lib.rs", src)],
-            manifest("csv-tool", vec![], &[]),
-            "",
-        );
+        let src = "#![allow(clippy::disallowed_methods)]";
+        let mut app = package("csv-tool", &[("crates/csv-tool/src/lib.rs", src)]);
         app.reaches_gated_crate = false;
         let out = check_packages(&policy(), &[model_package(), app]);
         assert!(out.violations.is_empty(), "{:?}", out.violations);
@@ -2485,16 +2075,9 @@ disallowed-types = [
 
     /// The fixture workspace with the generated file committed.
     fn good_workspace() -> (Vec<SourcePackage>, WorkspaceFiles) {
-        let app = package(
-            "app",
-            &[(APP_LIB, "pub fn f() {}")],
-            manifest("app", vec![dep("ew-model", Kind::Normal, &[])], &[]),
-            "",
-        );
+        let app = package("app", &[(APP_LIB, "pub fn f() {}")]);
         let ws = WorkspaceFiles {
-            root_manifest: "[workspace]\nmembers = [\"crates/*\"]\n".into(),
             clippy_config: Some(model_clippy()),
-            ..WorkspaceFiles::default()
         };
         (vec![model_package(), app], ws)
     }
@@ -2559,64 +2142,8 @@ disallowed-types = [
         );
     }
 
-    #[test]
-    fn shadowing_configurations_are_detected() {
-        let (packages, mut ws) = good_workspace();
-        let candidates = shadow_candidates(&policy(), &packages);
-        for expected in [
-            ".clippy.toml",
-            "crates/clippy.toml",
-            "crates/.clippy.toml",
-            "crates/app/clippy.toml",
-            "crates/app/.clippy.toml",
-            "crates/ew-model/clippy.toml",
-        ] {
-            assert!(candidates.contains(expected), "{expected}: {candidates:#?}");
-        }
-        // The root clippy.toml is the generated file itself.
-        assert!(!candidates.contains("clippy.toml"));
-        for shadow in ["crates/app/clippy.toml", "crates/.clippy.toml", ".clippy.toml"] {
-            ws.shadowing = [shadow.to_owned()].into();
-            let v = workspace_violations(&packages, &ws);
-            assert_eq!(v.len(), 1, "{shadow}: {v:#?}");
-            assert!(
-                v[0].starts_with(&format!(
-                    "{shadow}:1: clippy would read this file instead of the generated `clippy.toml`"
-                )),
-                "{v:#?}"
-            );
-        }
-    }
-
-    #[test]
-    fn overrides_in_cargo_config_and_workflows_are_detected() {
-        let (packages, mut ws) = good_workspace();
-        ws.config_files = vec![
-            (
-                ".cargo/config.toml".into(),
-                "[env]\nCLIPPY_CONF_DIR = \"elsewhere\"\n".into(),
-            ),
-            (
-                ".github/workflows/ci.yml".into(),
-                "jobs:\n  lint:\n    steps:\n      - run: cargo clippy -- -A clippy::disallowed_methods\n      - run: cargo test\n"
-                    .into(),
-            ),
-            (".github/workflows/docs.yml".into(), "on: push\n".into()),
-        ];
-        let v = workspace_violations(&packages, &ws);
-        assert_eq!(v.len(), 2, "{v:#?}");
-        assert!(
-            v[0].starts_with(".cargo/config.toml:2: mentions `CLIPPY_CONF_DIR`"),
-            "{v:#?}"
-        );
-        assert!(
-            v[1].starts_with(".github/workflows/ci.yml:4: mentions `disallowed_methods`"),
-            "{v:#?}"
-        );
-    }
-
     // -----------------------------------------------------------------------------------------------------
-    // Lexical rules
+    // Suppressions
 
     #[test]
     fn passing_crate_is_clean() {
@@ -2634,27 +2161,6 @@ disallowed-types = [
             }
         "#;
         assert_eq!(scan(src), Vec::<String>::new());
-    }
-
-    #[test]
-    fn macro_invocation_and_feature_name_fail() {
-        let src = "raw_read! { fn x() {} }\n\
-            #[cfg(feature = \"raw-read\")]\n\
-            fn y() {}\n\
-            #[cfg_attr(feature = \"raw-read\", derive(Debug))]\n\
-            struct S;\n\
-            fn z() -> bool { cfg!(feature = \"raw-read\") }\n\
-            macro_rules! raw_read { () => {}; }\n\
-            fn w(raw_read: u8) -> bool { raw_read != 1 }\n";
-        let v = scan(src);
-        assert_eq!(v.len(), 4, "{v:#?}");
-        assert_eq!(v[0], invokes(1));
-        assert!(
-            v[1].starts_with("crates/app/src/lib.rs:2: names the feature `raw-read` of ew-model"),
-            "{v:#?}"
-        );
-        assert!(v[2].contains(":4: names the feature"), "{v:#?}");
-        assert!(v[3].contains(":6: names the feature"), "{v:#?}");
     }
 
     #[test]
@@ -2712,19 +2218,6 @@ disallowed-types = [
     }
 
     #[test]
-    fn old_lint_name_in_a_lint_table_fails() {
-        let v = run_app(
-            &[],
-            manifest("app", vec![dep("ew-model", Kind::Normal, &[])], &[]),
-            "[lints.clippy]\ndisallowed_method = \"allow\"\nrenamed_and_removed_lints = \"allow\"\n",
-        )
-        .violations;
-        assert_eq!(v.len(), 2, "{v:?}");
-        assert!(v[0].contains("`disallowed_method = \"allow\"`"));
-        assert!(v[1].contains("`renamed_and_removed_lints = \"allow\"`"));
-    }
-
-    #[test]
     fn harmless_attributes_and_exempt_suppressions_do_not_fail() {
         // Other lints, a `cfg(all(..))` mentioning `all`, and the lint name outside an allow/expect list.
         let src = "#[allow(clippy::too_many_arguments)]\n\
@@ -2738,30 +2231,20 @@ disallowed-types = [
         // Test code (items and files) may carry the allow.
         let src = format!("#[cfg(test)]\n{allow}\nmod tests {{ {allow} fn t() {{}} }}\n");
         assert_eq!(scan(&src), Vec::<String>::new());
-        let out = run_app(
-            &[
-                (APP_LIB, "pub fn f() {}"),
-                ("crates/app/tests/it.rs", "#![allow(clippy::disallowed_methods)]"),
-                ("crates/app/benches/b.rs", "#![allow(warnings)]"),
-                ("crates/app/examples/e.rs", "#![allow(clippy::all)]"),
-            ],
-            manifest("app", vec![], &[]),
-            "",
-        );
+        let out = run_app(&[
+            (APP_LIB, "pub fn f() {}"),
+            ("crates/app/tests/it.rs", "#![allow(clippy::disallowed_methods)]"),
+            ("crates/app/benches/b.rs", "#![allow(warnings)]"),
+            ("crates/app/examples/e.rs", "#![allow(clippy::all)]"),
+        ]);
         assert_eq!(out.violations, Vec::<String>::new());
     }
 
     #[test]
-    fn readers_and_exempt_packages_may_suppress_and_call() {
-        let src = "#![allow(clippy::disallowed_methods)]\nraw_read! { fn g() {} }\n#[cfg(feature = \"raw-read\")] fn h() {}\n";
-        let readers = ["ew-derive", "ew-commands", "ew-store", "xtask"].map(|n| {
-            package(
-                n,
-                &[(&format!("crates/{n}/src/lib.rs"), src)],
-                manifest(n, vec![dep("ew-model", Kind::Normal, &["raw-read"])], &[]),
-                "[lints.clippy]\ndisallowed_methods = \"allow\"\n",
-            )
-        });
+    fn readers_may_suppress() {
+        let src = "#![allow(clippy::disallowed_methods)]\n#[allow(warnings)] fn h() {}\n";
+        let readers = ["ew-derive", "ew-commands", "ew-store"]
+            .map(|n| package(n, &[(&format!("crates/{n}/src/lib.rs"), src)]));
         let mut packages = vec![model_package()];
         packages.extend(readers);
         let out = check_packages(&policy(), &packages);
@@ -2770,124 +2253,12 @@ disallowed-types = [
         assert_eq!(out.gated_items, 6);
     }
 
-    #[test]
-    fn lint_tables_that_allow_the_guard_fail() {
-        let case = |text: &str| {
-            run_app(
-                &[],
-                manifest("app", vec![dep("ew-model", Kind::Normal, &[])], &[]),
-                text,
-            )
-            .violations
-        };
-        let table = |key: &str, line: usize| {
-            format!(
-                "crates/app/Cargo.toml:{line}: `{key} = \"allow\"` in [lints.clippy] suppresses the raw-read guard; that is reserved to the reader crates' roots (ADR-0001 amendment 2)"
-            )
-        };
-        assert_eq!(
-            case("[lints.clippy]\ndisallowed_methods = \"allow\"\n"),
-            [table("disallowed_methods", 2)]
-        );
-        assert_eq!(
-            case("[lints.clippy]\ntodo = \"warn\"\nstyle = { level = \"allow\", priority = -1 }\n"),
-            [table("style", 3)]
-        );
-        assert_eq!(case("[lints.clippy]\nall = \"allow\"\n"), [table("all", 2)]);
-        // Other lints, other levels and an inherited workspace table pass.
-        assert_eq!(
-            case("[lints.clippy]\ntodo = \"allow\"\nall = \"warn\"\nstyle = \"deny\"\n"),
-            Vec::<String>::new()
-        );
-        assert_eq!(case("[lints]\nworkspace = true\n"), Vec::<String>::new());
-    }
-
-    #[test]
-    fn the_workspace_lint_table_is_checked_once() {
-        let (packages, mut ws) = good_workspace();
-        ws.root_manifest = "[workspace]\nmembers = []\n\n[workspace.lints.clippy]\ntodo = \"warn\"\ndisallowed_methods = \"allow\"\n".into();
-        let v = workspace_violations(&packages, &ws);
-        assert_eq!(
-            v,
-            [
-                "Cargo.toml:6: `disallowed_methods = \"allow\"` in [workspace.lints.clippy] suppresses the raw-read guard; that is reserved to the reader crates' roots (ADR-0001 amendment 2)"
-            ]
-        );
-    }
-
-    #[test]
-    fn manifest_rules() {
-        let text = "[dependencies]\new-model = { workspace = true, features = [\"raw-read\"] }\n";
-        let out = run_app(
-            &[],
-            manifest("app", vec![dep("ew-model", Kind::Normal, &["raw-read"])], &[]),
-            text,
-        );
-        assert_eq!(
-            out.violations,
-            ["crates/app/Cargo.toml:2: enables `ew-model/raw-read` on a dependency (ADR-0001 amendment 2)"]
-        );
-        let out = run_app(
-            &[],
-            manifest("app", vec![dep("ew-model", Kind::Build, &["raw-read"])], &[]),
-            text,
-        );
-        assert!(
-            out.violations[0].contains("on a build-dependency"),
-            "{:#?}",
-            out.violations
-        );
-
-        let text = "[features]\ndebug = [\"ew-model/raw-read\"]\n";
-        for item in ["ew-model/raw-read", "ew-model?/raw-read", "dep:ew-model/raw-read"] {
-            let out = run_app(
-                &[],
-                manifest(
-                    "app",
-                    vec![dep("ew-model", Kind::Normal, &[])],
-                    &[("debug", &[item])],
-                ),
-                text,
-            );
-            assert_eq!(
-                out.violations,
-                [
-                    "crates/app/Cargo.toml:2: its feature `debug` forwards `ew-model/raw-read` (ADR-0001 amendment 2)"
-                ],
-                "{item}"
-            );
-        }
-        // A renamed dependency is resolved.
-        let mut renamed = dep("ew-model", Kind::Normal, &[]);
-        renamed.alias = "model".into();
-        let out = run_app(
-            &[],
-            manifest("app", vec![renamed], &[("debug", &["model/raw-read"])]),
-            text,
-        );
-        assert_eq!(out.violations.len(), 1, "{:#?}", out.violations);
-        // Other features and other crates pass; so does a dev edge with the feature.
-        let out = run_app(
-            &[],
-            manifest(
-                "app",
-                vec![
-                    dep("ew-model", Kind::Dev, &["raw-read"]),
-                    dep("other", Kind::Normal, &["raw-read"]),
-                ],
-                &[("x", &["other/raw-read", "ew-model/other"])],
-            ),
-            "",
-        );
-        assert_eq!(out.violations, Vec::<String>::new());
-    }
-
     // -----------------------------------------------------------------------------------------------------
     // Test code
 
     #[test]
     fn test_code_is_exempt() {
-        let bad = "raw_read! { fn x() {} } let _ = \"raw-read\"; #![allow(warnings)]";
+        let bad = BAD;
         let src = format!(
             "#[cfg(test)]\nmod tests {{ fn t() {{ {bad} }} }}\n\
              #[cfg(test)]\nfn helper() {{ {bad} }}\n\
@@ -2901,9 +2272,7 @@ disallowed-types = [
         // `not(test)` is scanned, and so is code after an exempt item.
         let src =
             format!("#[cfg(not(test))]\nfn f() {{ {bad} }}\n#[cfg(test)]\nfn g() {{}}\nfn h() {{ {bad} }}\n");
-        let v = scan(&src);
-        assert_eq!(v.len(), 6, "{v:#?}");
-        assert!(v.iter().all(|l| l.contains(":2:") || l.contains(":5:")), "{v:#?}");
+        assert_eq!(scan(&src), [suppresses(2, BAD_ATTR), suppresses(5, BAD_ATTR)]);
         // A leading inner attribute exempts the file.
         assert_eq!(
             scan(&format!("#![cfg(test)]\nfn h() {{ {bad} }}")),
@@ -2918,7 +2287,7 @@ disallowed-types = [
     /// F6: only `cfg(test)` and `cfg(all(.., test, ..))` are test code.
     #[test]
     fn a_cfg_that_merely_mentions_test_is_production_code() {
-        let bad = "raw_read! { fn x() {} }";
+        let bad = BAD;
         for cfg in [
             "any(test, feature = \"x\")",
             "any(feature = \"x\", test)",
@@ -2929,39 +2298,33 @@ disallowed-types = [
             "all(unix, windows)",
         ] {
             let v = scan(&format!("#[cfg({cfg})]\nfn f() {{ {bad} }}\n"));
-            assert_eq!(v, [invokes(2)], "cfg({cfg})");
+            assert_eq!(v, [suppresses(2, BAD_ATTR)], "cfg({cfg})");
             // The inner attribute does not exempt the file either.
             let v = scan(&format!("#![cfg({cfg})]\nfn f() {{ {bad} }}\n"));
-            assert_eq!(v, [invokes(2)], "#![cfg({cfg})]");
+            assert_eq!(v, [suppresses(2, BAD_ATTR)], "#![cfg({cfg})]");
         }
         for cfg in ["test", "all(test, feature = \"x\")", "all(x, all(test, y))"] {
             let v = scan(&format!("#[cfg({cfg})]\nfn f() {{ {bad} }}\n"));
             assert_eq!(v, Vec::<String>::new(), "cfg({cfg})");
         }
         // Out-of-line modules follow the same rule.
-        let out = run_app(
-            &[
-                (
-                    APP_LIB,
-                    "#[cfg(any(test, feature = \"x\"))]\nmod either;\n#[cfg(all(test, feature = \"x\"))]\nmod both;\n",
-                ),
-                ("crates/app/src/either.rs", bad),
-                ("crates/app/src/both.rs", bad),
-            ],
-            manifest("app", vec![], &[]),
-            "",
-        );
+        let out = run_app(&[
+            (
+                APP_LIB,
+                "#[cfg(any(test, feature = \"x\"))]\nmod either;\n#[cfg(all(test, feature = \"x\"))]\nmod both;\n",
+            ),
+            ("crates/app/src/either.rs", bad),
+            ("crates/app/src/both.rs", bad),
+        ]);
         assert_eq!(
             out.violations,
-            [
-                "crates/app/src/either.rs:1: invokes `raw_read!`, the macro that declares ew-model's readers behind feature `raw-read` (ADR-0001 amendment 2)"
-            ]
+            [suppresses_in("crates/app/src/either.rs", 1, BAD_ATTR)]
         );
     }
 
     #[test]
     fn test_directories_and_out_of_line_test_modules_are_exempt() {
-        let bad = "fn t() { raw_read! { fn x() {} } }";
+        let bad = BAD;
         let sources = [
             (
                 "crates/app/src/lib.rs",
@@ -2980,12 +2343,12 @@ disallowed-types = [
             ("crates/app/examples/e.rs", bad),
             ("crates/app/src/bin/tests/x.rs", bad),
         ];
-        let out = run_app(&sources, manifest("app", vec![], &[]), "");
+        let out = run_app(&sources);
         assert_eq!(
             out.violations,
             [
-                "crates/app/src/bin/tests/x.rs:1: invokes `raw_read!`, the macro that declares ew-model's readers behind feature `raw-read` (ADR-0001 amendment 2)",
-                "crates/app/src/live/other.rs:1: invokes `raw_read!`, the macro that declares ew-model's readers behind feature `raw-read` (ADR-0001 amendment 2)",
+                suppresses_in("crates/app/src/bin/tests/x.rs", 1, BAD_ATTR),
+                suppresses_in("crates/app/src/live/other.rs", 1, BAD_ATTR),
             ]
         );
         assert!(is_test_path("crates/app", "crates/app/tests/it.rs"));
@@ -3021,142 +2384,15 @@ disallowed-types = [
             }
         "###;
         assert_eq!(scan(src), Vec::<String>::new());
-        // The raw string with the feature name is the only string match, and the line count survives the
-        // multi-line literals and comments before it.
-        let src = "/* a\nb */\nlet _ = \"multi\nline\";\nlet r = r#\"x\"y\"#;\nraw_read! {}\nlet _ = r#\"raw-read\"#;\n";
-        let v = scan(src);
-        assert_eq!(v.len(), 2, "{v:#?}");
-        assert_eq!(v[0], invokes(6));
-        assert!(v[1].contains(":7: names the feature"), "{v:#?}");
-    }
-
-    // -----------------------------------------------------------------------------------------------------
-    // The allowlist
-
-    #[test]
-    fn allowlist_suppresses_and_stale_entries_fail() {
-        let src = "raw_read! { fn x() {} }";
-        let sources = [(APP_LIB, src)];
-        let allow = |path: &str, item: &str, reason: &str| Allow {
-            path: path.into(),
-            item: item.into(),
-            reason: reason.into(),
-            count: None,
-        };
-        let app = package("app", &sources, manifest("app", vec![], &[]), "");
-        let run = |entries: Vec<Allow>| {
-            let mut p = policy();
-            p.allow = entries;
-            check_packages(&p, &[model_package(), app.clone()]).violations
-        };
-        assert_eq!(run(vec![]).len(), 1);
-        assert_eq!(
-            run(vec![allow(APP_LIB, "raw_read!", "not ew-model's")]),
-            Vec::<String>::new()
-        );
-        // Wrong item or wrong path: the violation stays and the entry is stale.
-        let v = run(vec![allow(APP_LIB, "raw-read", "x")]);
-        assert_eq!(v.len(), 2, "{v:#?}");
-        assert!(
-            v.iter()
-                .any(|m| m.contains("stale allow entry: `raw-read` in `crates/app/src/lib.rs`")),
-            "{v:#?}"
-        );
-        let v = run(vec![allow("crates/other/src/lib.rs", "raw_read!", "x")]);
-        assert_eq!(v.len(), 2, "{v:#?}");
-        // An entry that matches nothing at all fails on its own.
-        let v = run(vec![
-            allow(APP_LIB, "raw_read!", "ok"),
-            allow("crates/app/src/gone.rs", "raw_read!", "old"),
-        ]);
-        assert_eq!(v.len(), 1, "{v:#?}");
-        assert!(
-            v[0].starts_with("ci/dep-rules.toml:1: stale allow entry"),
-            "{v:#?}"
-        );
-        // An empty reason fails even when the entry is used.
-        let v = run(vec![allow(APP_LIB, "raw_read!", "  ")]);
-        assert_eq!(v.len(), 1, "{v:#?}");
-        assert!(v[0].contains("has no reason"), "{v:#?}");
-    }
-
-    #[test]
-    fn allowlist_suppresses_a_suppression_finding_and_goes_stale() {
-        let src = "#![allow(clippy::disallowed_methods)]\n";
-        let app = package(
-            "app",
-            &[(APP_LIB, src)],
-            manifest("app", vec![], &[]),
-            "[lints.clippy]\ndisallowed_methods = \"allow\"\n",
-        );
-        let allow = |path: &str| Allow {
-            path: path.into(),
-            item: "disallowed_methods".into(),
-            reason: "reviewed".into(),
-            count: None,
-        };
-        let run = |entries: Vec<Allow>| {
-            let mut p = policy();
-            p.allow = entries;
-            check_packages(&p, &[model_package(), app.clone()]).violations
-        };
-        assert_eq!(run(vec![]).len(), 2);
-        assert_eq!(
-            run(vec![allow(APP_LIB), allow("crates/app/Cargo.toml")]),
-            Vec::<String>::new()
-        );
-        // One entry covers its own file only; the other finding stays.
-        let v = run(vec![allow(APP_LIB)]);
-        assert_eq!(v.len(), 1, "{v:#?}");
-        assert!(v[0].starts_with("crates/app/Cargo.toml:2:"), "{v:#?}");
-        // An entry for a clean file is stale.
-        let v = run(vec![
-            allow(APP_LIB),
-            allow("crates/app/Cargo.toml"),
-            allow("crates/app/src/other.rs"),
-        ]);
-        assert_eq!(v.len(), 1, "{v:#?}");
-        assert!(
-            v[0].contains("stale allow entry: `disallowed_methods` in `crates/app/src/other.rs`"),
-            "{v:#?}"
-        );
-    }
-
-    #[test]
-    fn an_allow_entry_with_a_count_suppresses_exactly_that_many_findings() {
-        let finding = |line| Violation::new("a.rs", line, "disallowed_methods", "x".into());
-        let entry = |count| Allow {
-            path: "a.rs".into(),
-            item: "disallowed_methods".into(),
-            reason: "reviewed".into(),
-            count,
-        };
-        // Two findings, two reviewed: clean. No count: any number.
-        assert!(apply_allow(vec![finding(1), finding(9)], &[entry(Some(2))]).is_empty());
-        assert!(apply_allow(vec![finding(1), finding(9)], &[entry(None)]).is_empty());
-        // A third finding in the file is reported (the entry is as narrow as its count), and so is a removed one.
-        let v = apply_allow(vec![finding(1), finding(5), finding(9)], &[entry(Some(2))]);
-        assert_eq!(v.len(), 1, "{v:#?}");
-        assert!(
-            v[0].message.contains("lists 2 site(s) but the file has 3"),
-            "{v:#?}"
-        );
-        let v = apply_allow(vec![finding(1)], &[entry(Some(2))]);
-        assert!(
-            v[0].message.contains("lists 2 site(s) but the file has 1"),
-            "{v:#?}"
-        );
+        // The line count survives the multi-line literals and comments before a finding.
+        let src = "/* a\nb */\nlet _ = \"multi\nline\";\nlet r = r#\"x\"y\"#;\n#[allow(warnings)] fn f() {}\nlet _ = r#\"#[allow(warnings)]\"#;\n";
+        assert_eq!(scan(src), [suppresses(6, "allow(warnings)")]);
     }
 
     #[test]
     fn violations_are_sorted_by_path_then_line() {
-        let a = "\n\nfn f() { raw_read! {} }\nfn g() { raw_read! {} }";
-        let b = "fn f() { raw_read! {} }";
-        let out = run_app(
-            &[("crates/app/src/z.rs", b), ("crates/app/src/a.rs", a)],
-            manifest("app", vec![], &[]),
-            "",
-        );
+        let a = format!("\n\n{BAD}\n{BAD}");
+        let out = run_app(&[("crates/app/src/z.rs", BAD), ("crates/app/src/a.rs", a.as_str())]);
         let heads: Vec<&str> = out
             .violations
             .iter()
@@ -3177,10 +2413,7 @@ disallowed-types = [
 
     #[test]
     fn missing_policy_crate_is_reported() {
-        let out = check_packages(
-            &policy(),
-            &[package("app", &[], manifest("app", vec![], &[]), "")],
-        );
+        let out = check_packages(&policy(), &[package("app", &[])]);
         assert_eq!(out.violations.len(), 1);
         assert!(out.violations[0].contains("crate `ew-model` is not a workspace package"));
     }
@@ -3211,7 +2444,6 @@ disallowed-types = [
             feature = "raw-read"
             macro = "raw_read"
             readers = ["ew-model", "ew-derive", "ew-commands", "ew-store"]
-            exempt_packages = ["xtask"]
 
             [asset_presence]
             packages = ["ew-derive"]
@@ -3230,16 +2462,7 @@ disallowed-types = [
     "#;
 
     fn derive_run(policy: &RawReadPolicy, src: &str) -> Vec<String> {
-        let derive = package(
-            "ew-derive",
-            &[(DERIVE_Q, src)],
-            manifest(
-                "ew-derive",
-                vec![dep("ew-model", Kind::Normal, &["raw-read"])],
-                &[],
-            ),
-            "",
-        );
+        let derive = package("ew-derive", &[(DERIVE_Q, src)]);
         check_packages(policy, &[model_package(), derive]).violations
     }
 

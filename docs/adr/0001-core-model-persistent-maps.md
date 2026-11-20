@@ -111,6 +111,16 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    the allowlist. Integration-test targets of non-reader crates that drive `ew-model` directly carry the same opt-out
    line at their root (core team, 2026-10-19); it is stricter than exempting all test code and
    consistent with it, and applies to the clippy guard only.
+5. **The lexical check keeps only what can fire** (2026-11-20, M3.5 step 2). Of amendment 4's lexical rules, the
+   raw-read rule keeps the generated `clippy.toml` and its staleness check, and the suppression rule: outside the
+   reader crates, an allow of `disallowed_methods` stands on one item and gives its reason
+   (`#[allow(clippy::disallowed_methods, reason = "...")]`); a crate-wide allow, an `expect` and the wider lint groups
+   are findings. The asset-presence rule (ID-575) stays. Gone: the `raw_read!` and feature-name rules (the macro is
+   not exported, so no other crate can invoke it, and a `cfg(feature = "raw-read")` in a crate without the feature is
+   an unexpected cfg, which `-D warnings` fails), the manifest rules (enabling the feature is the feature rule's;
+   no manifest ever set the lint to `allow`), the scan for shadowing `clippy.toml` files and for `CLIPPY_CONF_DIR` in
+   the cargo configuration and the workflows (none was ever committed; there is no CI before 1.0), and the
+   `[[raw_read.allow]]` list, empty since the reason moved onto the helper.
 
 ## Consequences
 
