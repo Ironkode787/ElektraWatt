@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The command palette (spec section 5.3; FR-UI-012), restyled to doc 16a §6.14;
+//! The command palette (FR-UI-012), restyled to doc 16a §6.14;
 //! its behaviour: Ctrl+K opens a popover with a search field; the shell ranks the entries
 //! (`ew_viewmodel::palette`: fuzzy score, glossary aliases, recents, the prefixes `>`, `@`, `#`, `:` and `?`);
 //! disabled entries follow the enabled ones with their reason; Enter runs the selected enabled entry or opens its

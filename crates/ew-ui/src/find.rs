@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The find pane (spec §7.3 and §7.4): the search text, the replacement (find and replace), the
+//! The find pane: the search text, the replacement (find and replace), the
 //! toggles, the field checkboxes, the folio filter, the results with their matches marked, and the replace card.
 //!
 //! **Input.** Every gesture is a registry action (`find.*`, `preview.*`); the pane builds no command. In the text,

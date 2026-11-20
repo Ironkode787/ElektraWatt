@@ -138,7 +138,7 @@ fn a_scripts_ui_dismiss_with_the_app_menu_open_closes_only_the_menu() {
     assert_eq!(selected(&t[6]), Some(0), "then it dismisses: {}", t[6]);
 }
 
-/// BV2: the vocabulary's members and bounds (spec §4.1); the frame line's.
+/// BV2: the vocabulary's members and bounds; the frame line's.
 #[test]
 fn the_inputs_check_their_members_and_bounds() {
     let ok = |v: Value| parse_input(&obj(v)).unwrap();

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The dialogs of the shell (spec section 5.3): the complete About (FR-UI-038: the version,
+//! The dialogs of the shell: the complete About (FR-UI-038: the version,
 //! the page-view renderer, the privacy state, the licence, the repository, the engineering-verification
 //! disclaimer and the support status, with buttons for the third-party notices and the documentation), the
 //! notices, the keyboard shortcuts, the unsaved-changes question, the question about an earlier session's journal,

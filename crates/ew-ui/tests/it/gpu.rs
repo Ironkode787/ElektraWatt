@@ -90,7 +90,7 @@ fn drawn_items(items: &[Item]) -> usize {
         .sum()
 }
 
-/// The dense A3 page of the bench (spec section 9): translated copies of folio 103 on an A3 landscape sheet until
+/// The dense A3 page of the bench: translated copies of folio 103 on an A3 landscape sheet until
 /// at least 5,000 paths and glyph runs are drawn.
 fn dense_a3(base: &CanvasPage) -> (DisplayList, (i64, i64)) {
     const A3: (i64, i64) = (420_000_000, 297_000_000);

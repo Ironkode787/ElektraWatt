@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The egui frame over the shell model (spec section 5.3): the command bar with the app menu,
+//! The egui frame over the shell model: the command bar with the app menu,
 //! the banner, the start page, the first-run screen, the wizard, or the docked project view (the
 //! page list and the page canvas, with the tool HUD and the zoom control over it), the status bar, the
 //! palette and the dialogs, and the routing of keyboard shortcuts.

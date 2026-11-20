@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Keyboard shortcuts of the keymap as egui shortcuts (spec section 5.3, UX/UI doc 16
+//! Keyboard shortcuts of the keymap as egui shortcuts (UX/UI doc 16
 //! section 4.2).
 //!
 //! The keymap writes bindings as text (`Ctrl+Shift+Z`, `Page Down`, `]`, `phys:BracketRight`); `Ctrl` is

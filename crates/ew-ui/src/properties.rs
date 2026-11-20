@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The property grid pane (spec §6.9): the shell's sheet drawn as the inline preview card, the header
+//! The property grid pane: the shell's sheet drawn as the inline preview card, the header
 //! and one block per section with collapsible groups; each row its label, its value or editor, the provenance chip
 //! (an icon glyph and words, never colour alone) and its actions. The toast of a commit with several targets is one of
 //! the window's toasts (`crate::notifications`).

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The headless mode (spec section 6): `elektrawatt --headless --script <file|->` runs a UI
+//! The headless mode: `elektrawatt --headless --script <file|->` runs a UI
 //! script on the same `ShellModel::dispatch` as the window, with no window, no GPU and no display, and writes a
 //! deterministic transcript. This module adds the page raster (`view.snapshot`), the canvas snapshot
 //! (`canvas.snapshot`, section 6.6) and the link preview's image (`canvas.preview_snapshot`)

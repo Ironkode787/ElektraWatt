@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The egui host of the page canvases (spec sections 6.2 to 6.5, 7 and 9): every
+//! The egui host of the page canvases: every
 //! visible canvas group of the project view, drawn by `ew-render2d`'s GPU path where the switch rule allows
 //! ([`crate::gpu`]) and by its CPU tile path everywhere else, and as the loading state while a GPU scene prepares.
 //!

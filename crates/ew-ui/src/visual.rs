@@ -12,7 +12,7 @@
 //!   prelude and epilogue; the agent never sends one), one transcript line as `run_step` writes it. `view.zoom_to`'s
 //!   `x_mm` and `y_mm` are a fixed pivot, not the new view centre: the page point there stays where it is on screen
 //!   while the zoom changes about it (absent: the view's centre); to centre a point, pan to it first;
-//! - an input line (`{"input":"click","x":412,"y":96}`, spec §4.1): the egui events of the input in one or more
+//! - an input line (`{"input":"click","x":412,"y":96}`): the egui events of the input in one or more
 //!   frames, then frames until the window settles; one transcript line `{"step","input","dispatched","state"}`, with
 //!   `"closed":true` once the application has closed; `{"input":"answer_open","path":"plan.qet"}` runs no frame and
 //!   makes the next open file dialog answer with that file, resolved against the script's folder (without
@@ -225,7 +225,7 @@ fn hundredths(text: &str) -> Option<u32> {
     Some(int * 100 + frac)
 }
 
-/// The file dialogs answered without a dialog (spec §4.3): bare names in the working directory (the run's `work/`;
+/// The file dialogs answered without a dialog: bare names in the working directory (the run's `work/`;
 /// a test names its own folder): a project `project`, a PDF `project.pdf`; an import or an image is cancelled, unless
 /// an `answer_open` input named the file the next open dialog answers with, and the system browser opens
 /// nothing (the trait's default). An import from PLC software takes the file the run itself exported there
@@ -291,7 +291,7 @@ impl Platform for VisualPlatform {
     }
 }
 
-/// One input of the vocabulary (spec §4.1), coordinates in frame pixels.
+/// One input of the vocabulary, coordinates in frame pixels.
 #[derive(Clone, PartialEq, Debug)]
 pub enum Input {
     /// A click (press, then release in the next frame).
@@ -480,7 +480,7 @@ fn lines_member(o: &Map<String, Value>, name: &str) -> Result<i64, String> {
     }
 }
 
-/// Reads an input line's object (spec §4.1); the error names what is wrong.
+/// Reads an input line's object; the error names what is wrong.
 ///
 /// # Errors
 ///
@@ -790,7 +790,7 @@ impl Driver {
         // its shell submits from the script's origin, so every `HumanOnly` confirm (a release, an approval, a purge)
         // is refused while the dialogs still open, fill and frame.
         let mut shell = ShellModel::new_scripted(config.clone());
-        // The fixed rendering inputs (spec §3.1), before the log is on: they are the driver's, not an input's.
+        // The fixed rendering inputs, before the log is on: they are the driver's, not an input's.
         for (key, value) in [
             ("language", "en"),
             ("theme", "light"),
@@ -1002,7 +1002,7 @@ impl Driver {
         // Handled (or, without painters, not needed): egui checks that a frame's texture changes were taken.
         output.textures_delta.clear();
         self.shapes = output.shapes;
-        // A running job is waited for by blocking on it (spec §5.1), and the frame after it shows its end.
+        // A running job is waited for by blocking on it, and the frame after it shows its end.
         if app.shell().jobs().entries().any(|e| e.is_running()) {
             let _ = app.shell_mut().wait_jobs();
             self.last_delay = Some(std::time::Duration::ZERO);
@@ -1109,7 +1109,7 @@ impl Driver {
         }
     }
 
-    /// Sends one input and settles (spec §4.1, §5.1).
+    /// Sends one input and settles.
     pub fn input(&mut self, input: &Input) {
         if self.app.is_none() {
             return;

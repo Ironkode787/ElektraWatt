@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The page view (spec section 5.3): the current page as the CPU renderer's
+//! The page view: the current page as the CPU renderer's
 //! image, read-only, fitted to the pane with its aspect ratio kept.
 //!
 //! The project view shows the page canvas ([`crate::canvas`]); this fitted image remains the

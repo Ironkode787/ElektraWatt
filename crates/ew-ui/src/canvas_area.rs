@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The canvas area of the project view (spec section 6.2): the workspace's
+//! The canvas area of the project view: the workspace's
 //! `page-view` pane holds a nested `egui_tiles` tree built from the shell's toolkit-neutral `CanvasArea`, one `Tabs`
 //! container per tab group in a horizontal `Linear` container with equal shares.
 //!

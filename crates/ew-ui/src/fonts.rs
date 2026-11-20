@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The UI fonts (spec section 5.3): egui's built-in fonts are off (`default_fonts` is not a
+//! The UI fonts: egui's built-in fonts are off (`default_fonts` is not a
 //! feature of this build), and the bundled Noto Sans of `ew-text` becomes the proportional and monospace family.
 //! The face bytes come from `ew_api::output::font_bytes()`, the same set the PDF export embeds, so the screen and
 //! the paper use one font file (NFR-REL-11: no system fonts). Noto Sans SemiBold is the family

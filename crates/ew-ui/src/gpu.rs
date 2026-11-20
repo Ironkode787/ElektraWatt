@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The GPU host of the canvas (spec sections 7.1 and 7.2): which renderer draws, the GPU canvas
+//! The GPU host of the canvas: which renderer draws, the GPU canvas
 //! on eframe's device, the scene preparation worker, and the canvas texture registered with egui-wgpu's renderer.
 //!
 //! **The switch rule** is `ew_render2d::gpu::choose`, evaluated every frame from the host's facts: `--no-gpu`, the
