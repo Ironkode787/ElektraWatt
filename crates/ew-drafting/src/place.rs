@@ -21,7 +21,8 @@
 //!    its host pin's line, under the order of the host's pins with [`ROW_GAP`] between footprints (pooled adjacent
 //!    violators, the block at its members' median); along, a follower keeps its distance when it stands at least
 //!    [`CHAIN_GAP_MIN`] beyond and clear of its host, else it joins the row's line: the farthest distance a member
-//!    keeps within [`ROW_PULL`] of [`CHAIN_GAP`], at least [`CHAIN_GAP`]; a level follower stands level. A **stack**
+//!    keeps within [`ROW_PULL`] of the row's room, at least the room: [`CHAIN_GAP`], and a step more than the tracks
+//!    its stepping wires need ([`crate::tracks::tracks_needed`], §4.5); a level follower stands level. A **stack**
 //!    (corner leads that turn one way): across, each pin [`MARK_LEAD`] before its host pin unless it is further; along,
 //!    the ones that must move go beyond the others in nesting order (the drop furthest against the way the wires go
 //!    turns outermost), [`MARK_PITCH`] apart or a footprint more.
@@ -45,8 +46,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::consts::{
-    BODY_GAP, CHAIN_GAP, CHAIN_GAP_MIN, MARK_LEAD, MOVE_PRICE, PASSES, ROW_GAP, ROW_PULL,
-    TICKS_PER_STEP, TRUNK_GAP,
+    BODY_GAP, CHAIN_GAP, CHAIN_GAP_MIN, MARK_LEAD, MOVE_PRICE, PASSES, ROW_GAP, ROW_PULL, TICKS_PER_STEP,
+    TRACK_PITCH, TRUNK_GAP,
 };
 use crate::geom;
 use crate::labels::settle_labels;
@@ -874,12 +875,22 @@ impl<'a> Placer<'a> {
                 _ => movers.push((*f, dist)),
             }
         }
+        // The room of §4.5: the chain gap, and a step more than the tracks of the row's stepping wires.
+        let stepping: Vec<(Tick, Tick)> = items
+            .iter()
+            .filter(|(_, _, l)| l.kind == Kind::Facing)
+            .map(|(_, _, l)| (across(self.pt(l.h), s), across(self.pt(l.f), s)))
+            .collect();
+        let room = (crate::tracks::tracks_needed(&stepping) as Tick)
+            .saturating_mul(TRACK_PITCH)
+            .saturating_add(TICKS_PER_STEP)
+            .max(CHAIN_GAP);
         let line = keep
             .iter()
             .copied()
-            .filter(|d| (CHAIN_GAP..=CHAIN_GAP + ROW_PULL).contains(d))
+            .filter(|d| (room..=room + ROW_PULL).contains(d))
             .max()
-            .unwrap_or(CHAIN_GAP);
+            .unwrap_or(room);
         for (f, dist) in movers {
             self.nudge(f, along_of(s, whole_up(line - dist)));
             // Further while its footprint meets its host's.
