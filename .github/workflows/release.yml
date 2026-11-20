@@ -8,12 +8,12 @@
 #
 # On a candidate tag:
 # - `verify` (CI-R-01; D5): ci/release-verify.py checks that the tag's X.Y.Z is the workspace version and that
-#   docs/release-notes/<X.Y.Z>.md has notes. It waits for no CI run: CI is off until 1.0 (ID-1519).
+#   docs/release-notes/<X.Y.Z>.md has notes with a summary. It waits for no CI run: CI is off until 1.0 (ID-1519).
 # - `package` (CI-R-05): package.yml through workflow_call with `version: X.Y.Z` and `upload: true`: the x86_64 release
 #   builds, the notices, the staged trees with their smoke test, the CLI archives, the setup and the AppImage.
 # - `sums` (CI-R-06, D8): the release files of the run (the x86_64 CLI archives, the setup and the AppImage; ID-1313,
 #   ID-1331 (2)) and `SHA256SUMS` over them, unsigned.
-# - `release` (CI-R-11, D13): the draft prerelease `v<X.Y.Z>-rc.<n>` with the release notes and every file, then the
+# - `release` (CI-R-11, D13): the draft prerelease `v<X.Y.Z>-rc.<n>` with the notes' summary and every file, then the
 #   files downloaded back and `sha256sum -c SHA256SUMS`. It publishes nothing.
 # On a dispatch with `candidate` (the promote): `release` alone. It refuses when `v<X.Y.Z>` exists, finds the
 # candidate's draft, checks its files again and, with `dry: false`, publishes them byte for byte as the release

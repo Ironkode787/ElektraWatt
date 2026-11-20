@@ -53,12 +53,17 @@ These are the owner's (WP-S6.07 §13 O1). Check each before the first tag:
 
 1. The version: `[workspace.package].version` of `Cargo.toml` is `X.Y.Z`, on the release branch `release/<X.Y>`.
 2. The release notes: `docs/release-notes/<X.Y.Z>.md`, with the changes, the format, CLI and API changes (RC-08) and
-   the notices of the AppImage's runtime (NFR-LIC-04's amendment), on the release branch.
+   the notices of the AppImage's runtime (NFR-LIC-04's amendment), on the release branch. Before section 1 they have
+   a summary, `## In short`: at most 30 bullets for a draughtsman who decides whether to install, each one line of
+   about 120 characters, starting with its subject in bold, the most important first, and a last line that says the
+   sections below are the full notes.
 3. The settings of §2 hold.
 
 The workflow's `verify` job refuses the candidate when 1 or 2 does not hold, with one of these texts: "the tag v<t>
-does not match the workspace version <w>", "no release notes: docs/release-notes/<X.Y.Z>.md is missing or empty". It
-asks for no CI run.
+does not match the workspace version <w>", "no release notes: docs/release-notes/<X.Y.Z>.md is missing or empty",
+"no summary: docs/release-notes/<X.Y.Z>.md has no section `## In short`", "the summary of
+docs/release-notes/<X.Y.Z>.md has <n> bullets; it may have 30 at most", "a bullet of the summary of
+docs/release-notes/<X.Y.Z>.md has <n> characters; it may have 160 at most: <its start>". It asks for no CI run.
 
 ## 4. Cutting the candidate
 
@@ -81,12 +86,10 @@ The push starts `release.yml`:
 
 ## 5. Reading the draft
 
-On the repository's releases page, the draft `v<X.Y.Z>-rc.<n>` lists the files of §1 and the release notes. GitHub
-takes at most 125,000 characters as a release's text: where the notes are longer, the draft holds as many of their
-sections from the start as fit, whole, and a last section that links to the whole notes at the tag (0.3.0's third
-candidate was refused at this step before the script did that). The run's
-`release` job log ends with "the draft prerelease v<X.Y.Z>-rc.<n> holds <n> verified files; nothing is published". The
-summaries of `package`'s jobs carry the release-check reports and the container's packages.
+On the repository's releases page, the draft `v<X.Y.Z>-rc.<n>` lists the files of §1 and, as its text, the notes'
+summary (§3) and a last section that links to the full notes at the tag and names them in the installed guide. The
+run's `release` job log ends with "the draft prerelease v<X.Y.Z>-rc.<n> holds <n> verified files; nothing is
+published". The summaries of `package`'s jobs carry the release-check reports and the container's packages.
 Download the files and check them as a user would (§9).
 
 ## 6. The checklist
@@ -135,7 +138,7 @@ sha256sum --check --ignore-missing SHA256SUMS
 
 | Job (doc 18 §7.4) | Where | 0.1.x's form |
 |---|---|---|
-| CI-R-01 | `release.yml` `verify` | The tag's version is the workspace version; the release notes exist; no tag signature |
+| CI-R-01 | `release.yml` `verify` | The tag's version is the workspace version; the release notes exist with their summary; no tag signature |
 | CI-R-03 | `package.yml` `windows`, `linux` | `cargo build --release --locked`, network-less on Linux; `ci/release-check.sh env` on both OSes, `scan` and glibc 2.35 at most on Linux |
 | CI-R-05 | `package.yml` (WP-S6.06) | The setup, the AppImage and the CLI archives, after one smoke test of each staged tree |
 | CI-R-06 | `release.yml` `sums` | `SHA256SUMS` over every release file, unsigned |

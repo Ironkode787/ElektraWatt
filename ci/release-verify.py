@@ -12,12 +12,13 @@ CI-R-01, CI-R-06, CI-R-11), run by .github/workflows/release.yml.
   python3 -I ci/release-verify.py --test                     # its offline unit test
 
 `tag` takes a candidate tag `v<X.Y.Z>-rc.<n>` (D2) and refuses it unless `X.Y.Z` is `[workspace.package].version` of
-Cargo.toml and docs/release-notes/<X.Y.Z>.md exists with text beyond its licence comment. It asks for no CI run: CI is
-off until 1.0 (ID-1519, ID-1520). `sums` writes `SHA256SUMS` in sha256sum's format (`<hex>  <name>`, sorted by name)
+Cargo.toml and docs/release-notes/<X.Y.Z>.md exists with text beyond its licence comment and a summary: a section
+`## In short` of at most 30 bullets, none longer than 160 characters. It asks for no CI run: CI is off until 1.0
+(ID-1519, ID-1520). `sums` writes `SHA256SUMS` in sha256sum's format (`<hex>  <name>`, sorted by name)
 over the release files of 0.1.x in <dir>: the CLI archives of x86_64 Windows and Linux, the Windows setup and the
 AppImage (ID-476's hold lifted, ID-1331 (2), WP-S6.08 D26); it refuses any other file and a missing one.
 
-`draft` creates the draft prerelease <tag> with the release notes of its version and every file of <dir>
+`draft` creates the draft prerelease <tag> with the summary of its version's notes and every file of <dir>
 (`gh release create --draft --prerelease --verify-tag`, so no tag is created), downloads its files back and verifies
 them. `promote` refuses when the tag v<X.Y.Z> exists, finds the draft <candidate>, downloads its files into <dir> and
 verifies them; with `--dry` it prints what it would publish and changes nothing; with `--publish` it creates the
@@ -46,8 +47,11 @@ SUMS = "SHA256SUMS"
 # ID-1313, ID-1331 (2), ID-1520: the x86_64 CLI archives and the installers.
 ARCHIVES = ("ew-{v}-x86_64-pc-windows-msvc.zip", "ew-{v}-x86_64-unknown-linux-gnu.tar.gz",
             "ElektraWatt-{v}-x64-user-setup.exe", "ElektraWatt-{v}-x86_64.AppImage")
-# GitHub refuses a release whose text is longer than 125,000 characters; the margin is for how it counts line ends.
-BODY_LIMIT = 120_000
+# The notes' summary, which is the release's text: the heading of its section and the most bullets it may hold, and
+# the longest bullet (a bullet is one line of about 120 characters, a little room over it).
+SUMMARY = "## In short"
+SUMMARY_BULLETS = 30
+BULLET_LENGTH = 160
 
 
 class Refusal(Exception):
@@ -70,8 +74,30 @@ def candidate_version(tag):
     return match.group(1)
 
 
+def summary(text, version):
+    """The summary of the notes `text`: its section `## In short` up to the end of its last bullet, the line after it
+    that points to the sections below left out. Refuses notes without it, a summary of more than 30 bullets and a
+    bullet longer than 160 characters."""
+    lines = text.splitlines()
+    if SUMMARY not in lines:
+        raise Refusal(f"no summary: docs/release-notes/{version}.md has no section `{SUMMARY}`")
+    start = lines.index(SUMMARY)
+    end = next((i for i in range(start + 1, len(lines)) if lines[i].startswith("## ")), len(lines))
+    section = lines[start:end]
+    bullets = [line for line in section if line.startswith("- ")]
+    if len(bullets) > SUMMARY_BULLETS:
+        raise Refusal(f"the summary of docs/release-notes/{version}.md has {len(bullets)} bullets; it may have "
+                      f"{SUMMARY_BULLETS} at most")
+    for bullet in bullets:
+        if len(bullet) > BULLET_LENGTH:
+            raise Refusal(f"a bullet of the summary of docs/release-notes/{version}.md has {len(bullet)} characters; "
+                          f"it may have {BULLET_LENGTH} at most: {bullet[:60]}…")
+    last = max((i for i, line in enumerate(section) if line.startswith("- ")), default=len(section) - 1)
+    return "\n".join(section[: last + 1]) + "\n"
+
+
 def check_tag(repo, tag):
-    """D5: the tag's version is the workspace version, and its release notes exist and are not empty."""
+    """D5: the tag's version is the workspace version, and its release notes exist and have a summary."""
     version = candidate_version(tag)
     with open(os.path.join(repo, "Cargo.toml"), "rb") as f:
         workspace = tomllib.load(f)["workspace"]["package"]["version"]
@@ -86,6 +112,7 @@ def check_tag(repo, tag):
     text = re.sub(r"\A\s*<!--.*?-->", "", text, flags=re.S)
     if not text.strip():
         raise Refusal(f"no release notes: docs/release-notes/{version}.md is missing or empty")
+    summary(text, version)
     return version
 
 
@@ -136,34 +163,11 @@ def verify_files(directory, run=run):
 
 
 def release_body(text, repo, tag, version):
-    """The text of the release: the notes whole where GitHub takes them, else as many of their sections from the
-    start as fit, whole, and a link to the whole notes at the tag. The notes of 0.3.0 outgrew a release's limit and
-    `gh release create` refused them."""
-    if len(text) <= BODY_LIMIT:
-        return text
-    whole = (f"\n## The whole notes\n\nThese notes go on with further sections. A release's text on GitHub is limited "
-             f"in length, so the whole notes are in the repository at this release's tag, "
-             f"[docs/release-notes/{version}.md](https://github.com/{repo}/blob/{tag}/docs/release-notes/{version}.md)"
-             f", and in the guide that is installed with the program, under Reference.\n")
-    # The start of each second-level section, fenced code left out.
-    starts, fenced, at = [], False, 0
-    for line in text.splitlines(keepends=True):
-        if line.startswith("```"):
-            fenced = not fenced
-        elif line.startswith("## ") and not fenced:
-            starts.append(at)
-        at += len(line)
-    # The longest run of whole sections from the start that fits, the first section at least.
-    head = None
-    for start in reversed(starts[2:]):
-        if start + len(whole) <= BODY_LIMIT:
-            head = text[:start]
-            break
-    if head is None:
-        # Not even the first two sections fit: the text ends at the last paragraph that does.
-        head = text[: BODY_LIMIT - len(whole)]
-        head = head[: head.rfind("\n\n") + 1] if "\n\n" in head else head
-    return head.rstrip("\n") + "\n" + whole
+    """The text of the release: the summary of the notes `text` and a link to the full notes at the tag and in the
+    installed guide."""
+    return (summary(text, version) + f"\n## The full notes\n\nThe full notes are in the repository at this release's "
+            f"tag, [docs/release-notes/{version}.md](https://github.com/{repo}/blob/{tag}/docs/release-notes/"
+            f"{version}.md), and in the guide that is installed with the program, under Reference.\n")
 
 
 def draft(repo_root, tag, directory, repo, run=run):
@@ -296,9 +300,11 @@ class ReleaseVerifyTest(unittest.TestCase):
             call(*args, **kwargs)
         return str(refused.exception)
 
+    SHORT = "## In short\n\n- **New:** a thing.\n\nThe sections below are the full notes.\n"
+
     def test_a_matching_tag_with_notes_passes(self):
         # REUSE-IgnoreStart: the fixture's notes header is test data, not this file's licence.
-        self.notes("<!--\nSPDX-License-Identifier: CC-BY-4.0\n-->\n\n# ElektraWatt 0.1.0\n")
+        self.notes("<!--\nSPDX-License-Identifier: CC-BY-4.0\n-->\n\n# ElektraWatt 0.1.0\n\n" + self.SHORT)
         # REUSE-IgnoreEnd
         self.assertEqual(check_tag(self.repo, "v0.1.0-rc.1"), "0.1.0")
         self.assertEqual(check_tag(self.repo, "v0.1.0-rc.12"), "0.1.0")
@@ -317,6 +323,23 @@ class ReleaseVerifyTest(unittest.TestCase):
         self.assertEqual(self.refused(check_tag, self.repo, "v0.1.0-rc.1"), want)
         self.notes("<!--\nSPDX-FileCopyrightText: 2026 The ElektraWatt contributors\n-->\n\n  \n")
         self.assertEqual(self.refused(check_tag, self.repo, "v0.1.0-rc.1"), want)
+
+    def test_notes_without_a_summary_are_refused(self):
+        self.notes("# ElektraWatt 0.1.0\n\n## 1. What it is\n\n- A release.\n")
+        self.assertEqual(self.refused(check_tag, self.repo, "v0.1.0-rc.1"),
+                         "no summary: docs/release-notes/0.1.0.md has no section `## In short`")
+
+    def test_a_summary_of_more_than_30_bullets_is_refused(self):
+        bullets = "".join(f"- **Point {n}:** a thing.\n" for n in range(31))
+        self.notes("# ElektraWatt 0.1.0\n\n## In short\n\n### New\n\n" + bullets)
+        self.assertEqual(self.refused(check_tag, self.repo, "v0.1.0-rc.1"),
+                         "the summary of docs/release-notes/0.1.0.md has 31 bullets; it may have 30 at most")
+
+    def test_a_summary_bullet_longer_than_160_characters_is_refused(self):
+        self.notes("# ElektraWatt 0.1.0\n\n## In short\n\n- **Long:** " + "x" * 149 + "\n")
+        self.assertEqual(self.refused(check_tag, self.repo, "v0.1.0-rc.1"),
+                         "a bullet of the summary of docs/release-notes/0.1.0.md has 161 characters; it may have 160 "
+                         "at most: - **Long:** " + "x" * 48 + "…")
 
     def release_dir(self, names):
         directory = os.path.join(self.dir, "release")
@@ -443,7 +466,7 @@ class ReleaseVerifyTest(unittest.TestCase):
             f"no SHA256SUMS in {os.path.join(self.dir, 'd')}")
 
     def test_the_draft_is_created_from_the_tag_and_verified_after_the_download(self):
-        self.notes("# 0.1.0\n")
+        self.notes("# 0.1.0\n\n" + self.SHORT)
         directory = self.release_dir(self.FILES)
         write_sums(directory, "0.1.0")
         fake = self.promote_fake()
@@ -454,26 +477,17 @@ class ReleaseVerifyTest(unittest.TestCase):
         self.assertEqual(len(create), 13 + len(self.FILES) + 1)
         self.assertEqual(fake.commands[1][:4], ["gh", "release", "download", "v0.1.0-rc.1"])
         self.assertEqual(fake.commands[2:], [["sha256sum", "--check", "--strict", SUMS]])
-        # Short notes are the release's text as they are.
         with open(create[12], encoding="utf-8") as f:
-            self.assertEqual(f.read(), "# 0.1.0\n")
+            self.assertEqual(f.read(), release_body("# 0.1.0\n\n" + self.SHORT, "o/r", "v0.1.0-rc.1", "0.1.0"))
 
-    def test_notes_longer_than_a_release_takes_become_their_head_and_a_link(self):
-        head = "# 0.1.0\n\n## 1. What it is\n\nA release.\n\n## 2. The downloads\n\n```\n## not a heading\n```\n\n"
-        text = head + "## 3. What is new\n\n" + "A long line of what is new in this release.\n" * 4000 + "\n## 4. End\n"
-        self.assertGreater(len(text), BODY_LIMIT)
-        body = release_body(text, "o/r", "v0.1.0-rc.1", "0.1.0")
-        self.assertLessEqual(len(body), BODY_LIMIT)
-        self.assertTrue(body.startswith(head.rstrip("\n") + "\n\n## The whole notes\n"))
-        self.assertNotIn("## 3. What is new", body)
-        self.assertIn("https://github.com/o/r/blob/v0.1.0-rc.1/docs/release-notes/0.1.0.md", body)
-        # Notes of one endless section still fit: they end at a paragraph.
-        endless = "# 0.1.0\n\n" + ("A paragraph of the one section.\n\n" * 6000)
-        body = release_body(endless, "o/r", "v0.1.0-rc.1", "0.1.0")
-        self.assertLessEqual(len(body), BODY_LIMIT)
-        self.assertIn("## The whole notes", body)
-        # Notes that fit are not touched.
-        self.assertEqual(release_body(head, "o/r", "v0.1.0-rc.1", "0.1.0"), head)
+    def test_the_release_text_is_the_summary_and_a_link_to_the_full_notes(self):
+        text = ("# 0.1.0\n\nThe notes.\n\n## In short\n\n### New\n\n- **One:** a thing.\n\n### Changed\n\n"
+                "- **Two:** another.\n\nThe sections below are the full notes.\n\n## 1. What it is\n\nA release.\n")
+        self.assertEqual(release_body(text, "o/r", "v0.1.0", "0.1.0"),
+                         "## In short\n\n### New\n\n- **One:** a thing.\n\n### Changed\n\n- **Two:** another.\n\n"
+                         "## The full notes\n\nThe full notes are in the repository at this release's tag, "
+                         "[docs/release-notes/0.1.0.md](https://github.com/o/r/blob/v0.1.0/docs/release-notes/0.1.0.md)"
+                         ", and in the guide that is installed with the program, under Reference.\n")
 
 
 if __name__ == "__main__":

@@ -5,6 +5,9 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Unreleased changes
 
+At a release these lines become `docs/release-notes/<X.Y.Z>.md`, which opens with a summary, `## In short`, of at
+most 30 one-line bullets for a draughtsman (docs/release/README.md, section 3); the release page shows that summary.
+
 Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-variant`, `text-change`.
 
 - api-add: commands `plc.freeze {config_project}`, `plc.readdress {config_project | modules}` and
