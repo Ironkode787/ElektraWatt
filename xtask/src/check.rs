@@ -10,6 +10,11 @@
 //! with `-p`, or the whole workspace; all features are on, so the pixel snapshots of `ew-ui` run too. A failed step
 //! does not stop the later ones.
 //!
+//! Clippy is its own pass, not the workspace wrapper of the test build: a build through `clippy-driver` is another
+//! artefact set, which no plain `cargo build` or `cargo nextest run` of the loop reuses, so the compile it saved in
+//! `check` came back in the next plain build (tried on `ew-drafting`: 11 to 21 s saved in `check`, 5 to 13 s more in
+//! the `cargo build -p ew` after it, and every workspace crate's artefacts on disk twice).
+//!
 //! What follows `--` narrows the tests: it is handed to `cargo nextest run` as its filters (name substrings, or
 //! `-E <expression>`), the doctests do not run, and the summary says so. Format, clippy and the rules run in full.
 
