@@ -221,10 +221,9 @@ fn highlighting_24vdc_1_from_the_potentials_navigator() {
 }
 
 /// With Connections and Potentials open, selecting W29 on folio 103 from the canvas marks its
-/// wire row in both (in Potentials under 24VDC-1), reveals them and leaves the focus on the canvas. On Golden A, W29's
-/// provisional route on 103 lies on other wires' routes end to end, so the first click there picks the first wire of
-/// the pick stack and repeated clicks walk to W29 (FT-500, which closes deviation N30-3); every click marks the row of
-/// the wire it selects.
+/// wire row in both (in Potentials under 24VDC-1), reveals them and leaves the focus on the canvas. The first click on
+/// W29's route picks the first wire of the pick stack there, and repeated clicks walk to W29 where other wires share
+/// the point (FT-500, which closes deviation N30-3); every click marks the row of the wire it selects.
 #[test]
 fn selecting_w29_on_the_canvas_marks_its_rows_in_both_navigators() {
     let tmp = Tmp::new("nav2-sync");

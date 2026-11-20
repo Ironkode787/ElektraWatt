@@ -434,7 +434,7 @@ fn other_conductor(designation: &str, potential: Option<&ew_api::output::TablePo
 /// The splits of the ghost: pairs of ghost CPs on one segment of a connection facing its two ends. Only a wire with a
 /// stored route has wire geometry: an unrouted connection is not split (as normaliser 7).
 fn splits(cps: &[GhostCp], tables: &PageTables, grid: PageGridMap) -> Vec<Proposal> {
-    let mut out: Vec<(bool, Proposal)> = Vec::new();
+    let mut out: Vec<Proposal> = Vec::new();
     for c in tables.connections.iter().filter(|c| c.stored_route) {
         let line = dedup(&c.polyline);
         for w in line.windows(2) {
@@ -471,23 +471,19 @@ fn splits(cps: &[GhostCp], tables: &PageTables, grid: PageGridMap) -> Vec<Propos
                     } else {
                         (q, p)
                     };
-                    out.push((
-                        !c.stored_route,
-                        Proposal {
-                            cp: first.clone(),
-                            target: ProposalTarget::Split {
-                                connection: EntityRef(c.id),
-                                other: (second.symbol_cp, second.designation.clone(), second.at),
-                            },
-                            route: Vec::new(),
+                    out.push(Proposal {
+                        cp: first.clone(),
+                        target: ProposalTarget::Split {
+                            connection: EntityRef(c.id),
+                            other: (second.symbol_cp, second.designation.clone(), second.at),
                         },
-                    ));
+                        route: Vec::new(),
+                    });
                 }
             }
         }
     }
-    out.sort_by_key(|(route_less, _)| *route_less);
-    out.into_iter().map(|(_, p)| p).collect()
+    out
 }
 
 /// The proposals of `cps` on the page of `tables` (see the module documentation): `own` are the representations of
