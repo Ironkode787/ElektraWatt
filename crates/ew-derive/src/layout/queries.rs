@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The layout queries of the MVP (doc 12 §2.6): `mountable(dev)` (D8), `unplaced(space)`,
+//! The layout queries of the MVP (doc 12 §2.6): `mountable(dev)`, `unplaced(space)`,
 //! `placement_geometry(p)` (D5), `rail_occupancy(carrier)`, `layout_label(p)` (D10's text) and
 //! `carrier_geometry(carrier)`.
 //!

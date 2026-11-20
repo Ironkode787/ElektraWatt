@@ -21,7 +21,7 @@
 //! - `duplicate_pins_join_only_on_pattern_functions`: duplicated pins are one pin on black boxes only (D2).
 //! - `pass_through_terminal_shorts_each_side`: a pass-through terminal shorts each side apart (D3).
 //! - `override_provenance_names_the_constituent_that_carries_it`: level 7 names the constituent (F2).
-//! - `hub_arm_is_carried_by_the_connection_touching_its_end`: hub arm carrier, doc 08 §3.8 (D1).
+//! - `hub_arm_is_carried_by_the_connection_touching_its_end`: hub arm carrier, doc 08 §3.8.
 //! - `external_source_ip_names_an_undefined_potential`: an external source IP names, after non-external (D6).
 //! - `ambiguous_junction_feed_is_noted`: EW-POT-011, a link that feeds both junctions or neither.
 //! - `ring_is_broken_at_its_highest_connection`: EW-POT-012, the highest connection of a ring forms no wire.

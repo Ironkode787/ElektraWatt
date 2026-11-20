@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The layout legend of a mounting surface (doc 12 §5.4), the surface a panel page shows (D9), and the
+//! The layout legend of a mounting surface (doc 12 §5.4), the surface a panel page shows, and the
 //! legend order of carriers that the BOM's carrier lines share (part 4).
 //!
 //! These are plain functions over the tracked reads of `q`, not memo families: the legend is read by one report kind
