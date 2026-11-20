@@ -738,7 +738,8 @@ fn card_line(s: &ShellModel) -> String {
 
 /// On folio 103 with two unrouted wires, one between two free coils and one from a CP whose stub ends in another coil,
 /// Route routes what it can at once in one undo step, names the wire it routed with Undo and says what is in the
-/// other's way, in en-GB and nl-NL; a second Route has nothing better to do and says so.
+/// other's way, in en-GB and nl-NL; a second Route changes nothing and says that the folio's wires the person drew keep
+/// their routes (they would run better routed anew, so it offers that).
 #[test]
 fn route_applies_at_once_names_the_wires_and_says_what_stands_in_the_way() {
     let tmp = Tmp::new("rw1");
@@ -767,20 +768,20 @@ fn route_applies_at_once_names_the_wires_and_says_what_stands_in_the_way() {
         .map(|c| c.stored_route)
         .collect();
     assert_eq!(routed.iter().filter(|r| **r).count(), 1, "{routed:?}");
-    // Nothing better: nothing changes, and it says so, in both languages.
+    // Nothing changes, and it says the person's wires keep their routes, in both languages.
     let rev = s.revision();
     done(&mut s, "layout.route", json!({}));
     assert_eq!(s.revision(), rev, "nothing committed");
     let said = s.toast().map(|t| t.text.clone()).unwrap_or_default();
     assert!(
-        said.starts_with("Nothing to route: no wire would run better."),
+        said.starts_with("Nothing changed: ") && said.contains("keep the routes they have."),
         "{said}"
     );
     done(&mut s, "view.language", json!({"value": "nl"}));
     done(&mut s, "layout.route", json!({}));
     let said = s.toast().map(|t| t.text.clone()).unwrap_or_default();
     assert!(
-        said.starts_with("Niets te routeren: geen draad zou beter lopen."),
+        said.starts_with("Niets veranderd: ") && said.contains("houden de route die ze hebben."),
         "{said}"
     );
 }

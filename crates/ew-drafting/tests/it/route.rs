@@ -303,7 +303,11 @@ fn a_wire_leaves_a_pin_that_shares_its_point_with_a_free_connection_point() {
         "X1",
         p(10, 10),
         (p(-1, -2), p(1, 0)),
-        &[("1", p(0, -2), Side::Up), ("2", p(0, 0), Side::Down), ("2b", p(0, 0), Side::Down)],
+        &[
+            ("1", p(0, -2), Side::Up),
+            ("2", p(0, 0), Side::Down),
+            ("2b", p(0, 0), Side::Down),
+        ],
     );
     b.mark_out("out", p(20, 14));
     let w = b.wire("w", b.pin("X1", "2"), b.pin("out", "1"), &[]);
