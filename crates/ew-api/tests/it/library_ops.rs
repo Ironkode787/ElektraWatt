@@ -1000,10 +1000,7 @@ fn update_from_library_brings_golden_a_symbols_to_the_plc_address_slot() {
             let (version, class) = target(c.copy);
             assert_eq!(
                 c.state,
-                CopyState::UpdateAvailable {
-                    class,
-                    version
-                },
+                CopyState::UpdateAvailable { class, version },
                 "{}",
                 c.copy
             );
