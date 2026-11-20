@@ -22,8 +22,9 @@
 //!    once more with the texts it crosses at their full price, and the new route kept where the page's cost is
 //!    lower; at most [`PASSES`] rounds.
 //! 7. **Weighed against the stored drawing** (§3.9): a net whose stored routes cost no less and keep free of faults
-//!    among the others keeps them. The figures §1.2 only reports (length, labels moved, wires straight, turn-backs)
-//!    veto nothing.
+//!    among the others keeps them; and from the stored drawing, a net takes its new routes where they cost less. The
+//!    cheaper of the two pages stands. The figures §1.2 only reports (length, labels moved, wires straight,
+//!    turn-backs) veto nothing.
 //! 8. **Never worse** (§1.2): the plan is offered only when the page is better by [`measure`] and no wire routed
 //!    before that was free of a finding (F2 to F6, C4) gets one; nor a text free of C5, where the plan routes no wire
 //!    that had no route. A net that breaks it goes back to its stored drawing once; then the rule decides.
@@ -996,7 +997,12 @@ impl Router {
 
     /// The page with net `net`'s wires on their stored routes and its junctions at their first places.
     fn stored_page(&self, net: &Net) -> DraftPage {
-        let mut page = self.page.clone();
+        self.stored_on(&self.page, net)
+    }
+
+    /// `base` with net `net`'s wires on their stored routes and its junctions at their first places.
+    fn stored_on(&self, base: &DraftPage, net: &Net) -> DraftPage {
+        let mut page = base.clone();
         for w in &mut page.wires {
             if net.wires.contains(&w.id)
                 && let Some(s) = self.stored.get(&w.id)
@@ -1014,31 +1020,72 @@ impl Router {
         page
     }
 
-    /// Phase 7: each net weighed against its stored drawing (module documentation).
+    /// Phase 7: the nets with a stored drawing weighed against it (module documentation). Back: from the new drawing, a
+    /// net whose stored routes cost no less and keep free of faults among the others keeps them. Forward: from the
+    /// stored drawing, a net takes its new routes where they cost less and keep free of faults among the others. The
+    /// cheaper page stands: one net's gain is not lost to another's loss that no single net's going back undoes.
     fn weigh(&mut self, nets: &[Net]) {
-        for net in nets {
-            if net
-                .wires
-                .iter()
-                .any(|w| self.stored.get(w).is_none_or(Vec::is_empty))
-            {
-                continue;
-            }
-            let same = net
-                .wires
-                .iter()
-                .all(|w| self.stored.get(w).map(Vec::as_slice) == Some(self.route_of(*w)));
-            if same {
-                continue;
-            }
+        let weighed: Vec<&Net> = nets
+            .iter()
+            .filter(|net| {
+                net.wires
+                    .iter()
+                    .all(|w| self.stored.get(w).is_some_and(|r| !r.is_empty()))
+            })
+            .collect();
+        let new = self.page.clone();
+        for net in &weighed {
             let alt = self.stored_page(net);
+            if alt == self.page {
+                continue;
+            }
             let (qa, qn) = (measure(&alt), measure(&self.page));
             let faulty: BTreeSet<WireId> = wires_with_faults(&qa);
             if qa.key() <= qn.key() && net.wires.iter().all(|w| !faulty.contains(w)) {
                 self.page = alt;
             }
         }
+        let mut forward = new.clone();
+        for net in &weighed {
+            forward = self.stored_on(&forward, net);
+        }
+        let mut qf = measure(&forward);
+        for net in &weighed {
+            let taken = taken_from(&forward, net, &new);
+            if taken == forward {
+                continue;
+            }
+            let qt = measure(&taken);
+            let faulty: BTreeSet<WireId> = wires_with_faults(&qt);
+            if qt.key() < qf.key() && net.wires.iter().all(|w| !faulty.contains(w)) {
+                forward = taken;
+                qf = qt;
+            }
+        }
+        if qf.key() < measure(&self.page).key() {
+            self.page = forward;
+        }
     }
+}
+
+/// `page` with net `net`'s wires on the routes and its junctions at the places they have in `from`.
+fn taken_from(page: &DraftPage, net: &Net, from: &DraftPage) -> DraftPage {
+    let mut out = page.clone();
+    for w in &mut out.wires {
+        if net.wires.contains(&w.id)
+            && let Some(x) = from.wires.iter().find(|x| x.id == w.id)
+        {
+            w.route.clone_from(&x.route);
+        }
+    }
+    for j in &mut out.junctions {
+        if net.taps.contains(&End::Junction(j.id))
+            && let Some(x) = from.junctions.iter().find(|x| x.id == j.id)
+        {
+            j.at = x.at;
+        }
+    }
+    out
 }
 
 fn is_fan(net: &Net) -> bool {
