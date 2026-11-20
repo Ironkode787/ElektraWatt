@@ -94,7 +94,7 @@ fn branch(w: Id<Connection>, at: Pt2, to: Id<Function>) -> Connect {
 }
 
 #[test]
-fn n1_a_wire_between_off_grid_cps_can_be_branched_on_its_constant_coordinate() {
+fn a_wire_between_off_grid_cps_can_be_branched_on_its_constant_coordinate() {
     let (mut e, w, fa) = engine_with_wire();
     let r = e
         .execute(&branch(w, pt(2 * G, Y_CP), fa))
@@ -115,7 +115,7 @@ fn n1_a_wire_between_off_grid_cps_can_be_branched_on_its_constant_coordinate() {
 }
 
 #[test]
-fn n1_the_neighbouring_grid_line_is_not_on_the_route() {
+fn the_neighbouring_grid_line_is_not_on_the_route() {
     let (mut e, w, fa) = engine_with_wire();
     let before = lines(e.model());
     let reason = rejection(e.execute(&branch(w, pt(2 * G, Y_GRID), fa)));
@@ -124,7 +124,7 @@ fn n1_the_neighbouring_grid_line_is_not_on_the_route() {
 }
 
 #[test]
-fn n1_an_off_grid_x_is_still_rejected() {
+fn an_off_grid_x_is_still_rejected() {
     let (mut e, w, fa) = engine_with_wire();
     let before = lines(e.model());
     // y is the CP-exact coordinate of the segment, x is on the segment but not on the grid.
@@ -137,7 +137,7 @@ fn n1_an_off_grid_x_is_still_rejected() {
 }
 
 #[test]
-fn n1_a_hint_onto_the_wire_takes_the_same_rule() {
+fn a_hint_onto_the_wire_takes_the_same_rule() {
     let (mut e, w, _) = engine_with_wire();
     let hint = |at: Pt2| PlaceSymbol {
         copies: Vec::new(),
@@ -222,7 +222,7 @@ fn script() -> Origin {
 }
 
 #[test]
-fn n3_a_foreign_gui_preview_committed_with_a_script_origin_is_refused() {
+fn a_foreign_gui_preview_committed_with_a_script_origin_is_refused() {
     let mut a = engine_with_human_only(Origin::Gui);
     let mut b = engine_with_human_only(Origin::Gui);
     let p = b
@@ -239,7 +239,7 @@ fn n3_a_foreign_gui_preview_committed_with_a_script_origin_is_refused() {
 }
 
 #[test]
-fn n3_a_foreign_preview_committed_with_the_default_origin_is_judged_by_it() {
+fn a_foreign_preview_committed_with_the_default_origin_is_judged_by_it() {
     let mut a = engine_with_human_only(script());
     let mut b = engine_with_human_only(Origin::Gui);
     let p = b
@@ -250,7 +250,7 @@ fn n3_a_foreign_preview_committed_with_the_default_origin_is_judged_by_it() {
 }
 
 #[test]
-fn n3_the_committing_origin_is_recorded_for_a_foreign_re_run() {
+fn the_committing_origin_is_recorded_for_a_foreign_re_run() {
     let mut a = engine_with_human_only(Origin::Gui);
     let mut b = engine_with_human_only(Origin::Gui);
     let p = b
@@ -264,7 +264,7 @@ fn n3_the_committing_origin_is_recorded_for_a_foreign_re_run() {
 }
 
 #[test]
-fn n3_a_same_engine_preview_is_judged_by_the_committing_origin_too() {
+fn a_same_engine_preview_is_judged_by_the_committing_origin_too() {
     let mut a = engine_with_human_only(Origin::Gui);
     let p = a
         .preview_with(&HumanOnlyNoop {}, Submit::from(Origin::Gui))

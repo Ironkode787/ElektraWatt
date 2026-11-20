@@ -2186,7 +2186,7 @@ fn held<T: Entity>(e: &Engine) -> usize {
 }
 
 #[test]
-fn ft656_device_place_embeds_its_copies_in_the_same_undo_step() {
+fn device_place_embeds_its_copies_in_the_same_undo_step() {
     type Parts = ew_schema::LibCopy<ew_schema::Part>;
     type Symbols = ew_schema::LibCopy<SymbolDef>;
     let mut e = arrange_engine();
@@ -2229,7 +2229,7 @@ fn ft656_device_place_embeds_its_copies_in_the_same_undo_step() {
 }
 
 #[test]
-fn ft656_held_copies_are_skipped_and_another_hash_is_refused_by_item() {
+fn held_copies_are_skipped_and_another_hash_is_refused_by_item() {
     let mut e = arrange_engine();
     let (symbol, part, copies) = closure(PART_TWO, 0xf656_0003);
     let mut cmd = place_with(symbol, PAGE_101, gp(3, 3), from_part(part, 0, "K"));
@@ -2283,7 +2283,7 @@ fn ft656_held_copies_are_skipped_and_another_hash_is_refused_by_item() {
 }
 
 #[test]
-fn ft656_box_black_embeds_its_copies_in_the_same_undo_step() {
+fn box_black_embeds_its_copies_in_the_same_undo_step() {
     let mut e = arrange_engine();
     let before = lines(e.model());
     let (symbol, part, copies) = closure(PART_BOX, 0xf656_0004);

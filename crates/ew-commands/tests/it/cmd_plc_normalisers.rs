@@ -162,7 +162,7 @@ fn has_notice(r: &Receipt, needle: &str) -> bool {
 /// FR-PLC-051's acceptance: a 571334 child at position index 2 (position 3) of a new 533361 module binds
 /// coil 14 to channel 4 under H1 and to channel 5 under H2, in the same transaction.
 #[test]
-fn n2_binds_the_coil_of_a_new_valve_to_the_channel_of_the_map() {
+fn binds_the_coil_of_a_new_valve_to_the_channel_of_the_map() {
     for (part, expected) in [(MODULE_H1, 4u16), (MODULE_H2, 5u16)] {
         let mut e = engine(model_with(vec![]));
         make_module(&mut e, part);
@@ -179,7 +179,7 @@ fn n2_binds_the_coil_of_a_new_valve_to_the_channel_of_the_map() {
 
 /// A bistable valve declares both solenoids: coil 14 on 2p and coil 12 on 2p + 1 under H1.
 #[test]
-fn n2_binds_both_coils_of_a_bistable_valve() {
+fn binds_both_coils_of_a_bistable_valve() {
     let mut e = engine(model_with(vec![]));
     make_module(&mut e, MODULE_H1);
     let (_, v, f) = add_valve(&mut e, 2, VALVE_BI);
@@ -189,7 +189,7 @@ fn n2_binds_both_coils_of_a_bistable_valve() {
 
 /// A valve that declares no solenoid of the map (its part has no fluid section) binds nothing.
 #[test]
-fn n2_ignores_a_valve_without_a_declared_solenoid() {
+fn ignores_a_valve_without_a_declared_solenoid() {
     let mut e = engine(model_with(vec![]));
     make_module(&mut e, MODULE_H1);
     let (r, _, _) = add_valve(&mut e, 1, PLAIN);
@@ -200,7 +200,7 @@ fn n2_ignores_a_valve_without_a_declared_solenoid() {
 /// Valves added before the module has channels are bound when N1 creates the channels: the new channels trigger N2.
 /// (The aspect comes first and the part last, so that the channels appear only with the part.)
 #[test]
-fn n2_binds_existing_valves_when_n1_creates_the_channels() {
+fn binds_existing_valves_when_n1_creates_the_channels() {
     let mut e = engine(model_with(vec![]));
     e.execute(&set_device(DEV_102F2, "plc_module", json!({})))
         .expect("plc_module");
@@ -217,7 +217,7 @@ fn n2_binds_existing_valves_when_n1_creates_the_channels() {
 /// An explicit binding wins: a channel that is bound already keeps its binding, the coil stays unbound,
 /// and a notice names EW-FL-002.
 #[test]
-fn n2_leaves_the_coil_unbound_when_the_map_channel_is_held() {
+fn leaves_the_coil_unbound_when_the_map_channel_is_held() {
     let mut e = engine(model_with(vec![]));
     make_module(&mut e, MODULE_H1);
     e.execute(&bind(channel_id(DEV_102F2, 4), Some((FN_102F2, 1))))
@@ -287,7 +287,7 @@ fn a_preview_of_a_binding_is_re_run_after_another_channel_took_the_cp() {
 /// keeps its channel, with a notice (EW-PLC-012 reports the deviation from the map,
 /// doc 11 §4.2 N-FL-2).
 #[test]
-fn n2_on_a_move_binds_a_free_coil_and_keeps_a_bound_one() {
+fn on_a_move_binds_a_free_coil_and_keeps_a_bound_one() {
     let mut e = engine(model_with(vec![]));
     make_module(&mut e, MODULE_H1);
     let (_, v, f) = add_valve(&mut e, 1, VALVE);
@@ -322,7 +322,7 @@ fn n2_on_a_move_binds_a_free_coil_and_keeps_a_bound_one() {
 
 /// A map entry that gives no channel below the count at a position leaves the coil unbound, with a notice.
 #[test]
-fn n2_reports_a_map_that_gives_no_channel() {
+fn reports_a_map_that_gives_no_channel() {
     const SHORT: Id<Part> = id(0x6f);
     let short = plc_part(
         SHORT,
@@ -826,7 +826,7 @@ fn pinned(part_id: Id<Part>, pin_of: Value) -> LibCopy<Part> {
 /// names each pin by its channel number; a list names each pin, and a designation printed twice resolves to its
 /// lowest CP index.
 #[test]
-fn n3_binds_new_channels_to_the_module_pins_by_designation() {
+fn binds_new_channels_to_the_module_pins_by_designation() {
     const PINNED: Id<Part> = id(0x70);
     let cp = |idx| Some(Endpoint::Cp(FN_102F2, idx));
     for (pin_of, expected) in [
@@ -846,7 +846,7 @@ fn n3_binds_new_channels_to_the_module_pins_by_designation() {
 
 /// The part's CP pattern, when present, holds the pin designations (black boxes, doc 07 §4.2).
 #[test]
-fn n3_resolves_pins_in_the_part_pattern() {
+fn resolves_pins_in_the_part_pattern() {
     const PINNED: Id<Part> = id(0x77);
     let mut part = pinned(PINNED, json!("X2:{n+1}"));
     let pattern: Vec<ew_schema::CpData> = (0..4u16)
@@ -870,7 +870,7 @@ fn n3_resolves_pins_in_the_part_pattern() {
 /// A pin that no CP carries, a pin that another channel binds, and a pattern that does not expand leave
 /// the channel unbound with a notice.
 #[test]
-fn n3_reports_missing_held_and_unexpandable_pins() {
+fn reports_missing_held_and_unexpandable_pins() {
     const PINNED: Id<Part> = id(0x71);
     const BROKEN: Id<Part> = id(0x78);
     // a channel of another module that holds pin Out4 (CP 9) of FN_102F2 (an import; FR-PLC-005)
@@ -909,7 +909,7 @@ fn n3_reports_missing_held_and_unexpandable_pins() {
 
 /// N3 binds only channels created in the transaction: an explicit unbinding of an old channel stays.
 #[test]
-fn n3_leaves_an_unbound_old_channel_alone() {
+fn leaves_an_unbound_old_channel_alone() {
     const PINNED: Id<Part> = id(0x72);
     let mut e = engine(model_with(vec![pinned(PINNED, json!("Out{n+1}"))]));
     make_module(&mut e, PINNED);
@@ -931,7 +931,7 @@ fn n3_leaves_an_unbound_old_channel_alone() {
 /// A part change to a part of another channel kind changes the kind of the existing channels, keeps their
 /// IDs and bindings, and says so.
 #[test]
-fn n1_applies_the_new_kind_to_existing_channels() {
+fn applies_the_new_kind_to_existing_channels() {
     const DI8: Id<Part> = id(0x73);
     let di8 = plc_part(
         DI8,
@@ -972,7 +972,7 @@ fn n1_applies_the_new_kind_to_existing_channels() {
 
 /// A channel kind of a newer format is kept: this build cannot judge it.
 #[test]
-fn n1_keeps_a_kind_of_a_newer_format() {
+fn keeps_a_kind_of_a_newer_format() {
     let newer: Record = Record::Channel(
         serde_json::from_value(json!({
             "id": channel_id(DEV_102F2, 0), "module": DEV_102F2, "number": 0, "kind": {"safety_input": {"pairs": 2}}

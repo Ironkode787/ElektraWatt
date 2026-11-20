@@ -219,7 +219,7 @@ fn the_fluid_refusals_name_junction_and_connection_ends_in_words() {
 /// T3's walk over a ring of three junctions ends: a hydraulic port drawn to the ring, which a pneumatic
 /// port feeds, is refused in words; a pneumatic one is drawn.
 #[test]
-fn t3_walks_a_ring_of_three_junctions_to_its_end() {
+fn walks_a_ring_of_three_junctions_to_its_end() {
     let j: Vec<Id<ew_schema::Junction>> = (0..3).map(|n| id(0x7710 + n)).collect();
     let l: Vec<Id<Connection>> = (0..4).map(|n| id(0x7720 + n)).collect();
     let line = |id, a, b| {

@@ -129,7 +129,7 @@ fn largest_on_grid(grid: Grid) -> i64 {
 /// A move that would end outside the drawable range is refused in words and changes nothing: a second move by
 /// the largest grid coordinate, and a single move by `MAX_COORD` from a positive position.
 #[test]
-fn f1_a_move_out_of_the_drawable_range_is_refused_and_changes_nothing() {
+fn a_move_out_of_the_drawable_range_is_refused_and_changes_nothing() {
     let d = largest_on_grid(Grid::QET_10PX);
     for (first, second) in [(d, d), (G, MAX_COORD)] {
         let mut e = engine(golden_model());
@@ -150,7 +150,7 @@ fn f1_a_move_out_of_the_drawable_range_is_refused_and_changes_nothing() {
 /// A step move that keeps the position in range but takes a connection point outside it is
 /// refused in words, without the JSON pointer `/steps`, ending with what the user can do.
 #[test]
-fn f1_a_step_move_that_takes_a_connection_point_out_of_range_is_refused_in_words() {
+fn a_step_move_that_takes_a_connection_point_out_of_range_is_refused_in_words() {
     let (dev, f, r): (Id<Device>, Id<Function>, Id<Representation>) = (id(0x7402), id(0x7412), id(0x7422));
     // CP 1 of the two-CP symbol lies 10 mm below the insertion point: in range three steps of `G` below the largest
     // grid coordinate, out of range one step of `G` below it.
@@ -185,7 +185,7 @@ fn f1_a_step_move_that_takes_a_connection_point_out_of_range_is_refused_in_words
 /// `require_on_grid`'s range refusal names the item and its position in mm, no JSON pointer or
 /// nanometres, and ends with what the user can do.
 #[test]
-fn d3_a_position_outside_the_drawable_range_is_refused_in_words() {
+fn a_position_outside_the_drawable_range_is_refused_in_words() {
     let mut e = engine(golden_model());
     assert_eq!(
         rejection(e.execute(&place_k("K", PAGE_102, pt(MAX_COORD + 1, 0)))),
@@ -201,7 +201,7 @@ fn d3_a_position_outside_the_drawable_range_is_refused_in_words() {
 }
 
 #[test]
-fn f1_a_record_without_json_form_is_an_error_not_null() {
+fn a_record_without_json_form_is_an_error_not_null() {
     let mut r = rep(REP_102F2_AUX, PAGE_102, vec![FN_102F2_AUX]);
     r.pos = pt(MAX_COORD + 1, 0);
     let any = AnyRow::of(r);
@@ -227,7 +227,7 @@ fn wire(c: Id<Connection>, a: Endpoint, b: Endpoint) -> Record {
 }
 
 #[test]
-fn f2_cascade_j1_j3_j4_cleans_up_in_one_pass() {
+fn cascade_j1_j3_j4_cleans_up_in_one_pass() {
     let (j1, j3, j4): (Id<Junction>, Id<Junction>, Id<Junction>) = (id(0x4001), id(0x4003), id(0x4004));
     let [a, b, c, d, ee, f]: [Id<Connection>; 6] = std::array::from_fn(|i| id(0x5001 + i as u128));
     let model = golden_with(|r| {
@@ -259,7 +259,7 @@ fn f2_cascade_j1_j3_j4_cleans_up_in_one_pass() {
 }
 
 #[test]
-fn f2_a_50_long_chain_cleans_up_in_one_pass() {
+fn a_50_long_chain_cleans_up_in_one_pass() {
     // 25 pairs (A_i, B_i): A_i has [feed_i, p_i, q_i], p_i and q_i both go to B_i, B_i has [p_i, q_i, d_i]
     // and d_i is the feed of A_(i+1). Removing the feed of A_0 leaves A_0 with the loop p_0/q_0, B_0 with
     // d_0 alone, A_1 with p_1/q_1, ... down the whole chain. The IDs run against the chain order.
@@ -300,7 +300,7 @@ fn f2_a_50_long_chain_cleans_up_in_one_pass() {
 // F3: collision-only renumbering
 
 #[test]
-fn f3_editing_an_unrelated_field_of_a_colliding_device_changes_only_that_field() {
+fn editing_an_unrelated_field_of_a_colliding_device_changes_only_that_field() {
     let (first, second): (Id<Device>, Id<Device>) = (id(0x1001), id(0x1002));
     let model = golden_with(|r| {
         add_placed(r, 1, "K", 1, PAGE_102);
@@ -329,7 +329,7 @@ fn f3_editing_an_unrelated_field_of_a_colliding_device_changes_only_that_field()
 }
 
 #[test]
-fn f3_moving_onto_a_colliding_page_renumbers_the_moved_device() {
+fn moving_onto_a_colliding_page_renumbers_the_moved_device() {
     let (moved, stayed): (Id<Device>, Id<Device>) = (id(0x1001), id(0x1002));
     let model = golden_with(|r| {
         add_placed(r, 1, "K", 1, PAGE_101); // the mover: K1 on page 101
@@ -360,7 +360,7 @@ fn f3_moving_onto_a_colliding_page_renumbers_the_moved_device() {
 // F4: preview identity
 
 #[test]
-fn f4_a_preview_from_another_engine_is_re_run() {
+fn a_preview_from_another_engine_is_re_run() {
     let cmd = CreatePage::at(Some(SEC1), 103);
     let start = lines(&golden_model());
 
@@ -388,7 +388,7 @@ fn f4_a_preview_from_another_engine_is_re_run() {
 }
 
 #[test]
-fn f4_a_preview_from_another_engine_at_a_different_revision_is_re_run() {
+fn a_preview_from_another_engine_at_a_different_revision_is_re_run() {
     let unrelated = CreatePage::at(Some(SEC1), 104);
     let cmd = CreatePage::at(Some(SEC1), 103);
 
@@ -414,7 +414,7 @@ fn delete(targets: Vec<TargetRef>) -> DeleteSelection {
 }
 
 #[test]
-fn f5_delete_main_function_and_device_in_either_order() {
+fn delete_main_function_and_device_in_either_order() {
     let main_fn = target(KindName::Function, FN_102F2.cast());
     let dev = target(KindName::Device, DEV_102F2.cast());
     let rep_t = target(KindName::Representation, REP_102F2.cast());
@@ -440,7 +440,7 @@ fn f5_delete_main_function_and_device_in_either_order() {
 // D2: fields.set collisions
 
 #[test]
-fn d2_setting_a_colliding_counter_is_rejected_with_the_next_free_one() {
+fn setting_a_colliding_counter_is_rejected_with_the_next_free_one() {
     let mut e = engine(golden_model());
     let (_, _, k1) = place_device(&mut e, "K", PAGE_102, pt(G, G));
     let (_, _, k2) = place_device(&mut e, "K", PAGE_102, pt(2 * G, G));
@@ -489,7 +489,7 @@ fn place_ip(pos: Pt2) -> PlaceIp {
 }
 
 #[test]
-fn d3_off_grid_positions_are_rejected() {
+fn off_grid_positions_are_rejected() {
     // device.place
     let mut e = engine(golden_model());
     let off = |what: &str, at: &str| {
@@ -592,7 +592,7 @@ fn d3_off_grid_positions_are_rejected() {
 }
 
 #[test]
-fn d3_junction_edit_takes_no_coordinates_and_works_off_the_grid() {
+fn junction_edit_takes_no_coordinates_and_works_off_the_grid() {
     let model = golden_with(|r| {
         for rec in r.iter_mut() {
             if let Record::Junction(j) = rec {
@@ -619,7 +619,7 @@ fn d3_junction_edit_takes_no_coordinates_and_works_off_the_grid() {
 // D4: the cost of edit.delete counts the planned records
 
 #[test]
-fn d4_edit_delete_cost_counts_planned_records() {
+fn edit_delete_cost_counts_planned_records() {
     let (dev, f): (Id<Device>, Id<Function>) = (id(0x1001), id(0x1101));
     let model = golden_with(|r| {
         r.push(Record::Device(device(dev, "K", 1)));

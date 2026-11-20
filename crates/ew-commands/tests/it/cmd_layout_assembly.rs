@@ -345,7 +345,7 @@ fn placed(e: &Engine, device: Id<Device>) -> bool {
 /// AS-2 (fixture): with no member on the rail the members go as one block at `s` in member order (position first),
 /// abutting; each records its primary part; one undo step.
 #[test]
-fn as2_a_block_lands_in_member_order() {
+fn a_block_lands_in_member_order() {
     let mut f = fx();
     let before = lines(f.e.model());
     let cursor = f.e.history().cursor();
@@ -378,7 +378,7 @@ fn as2_a_block_lands_in_member_order() {
 /// AS-2 (fixture): the block in free mode goes to the nearest gap where it fits; in push mode it stays at `s` and
 /// pushes the placement to its right as one item.
 #[test]
-fn as2_the_block_resolves_as_one_item() {
+fn the_block_resolves_as_one_item() {
     let mut f = fx();
     f.e.execute(&place(k(1), f.rail1, 60)).unwrap(); // [51, 69]
     let order = [DEV_A1, DEV_M3, DEV_M1, DEV_M2];
@@ -400,7 +400,7 @@ fn as2_the_block_resolves_as_one_item() {
 /// A member without a placed predecessor goes before its first placed successor; each
 /// later member after its predecessor, pushing the rest; `s` is not needed.
 #[test]
-fn as2_members_join_the_placed_ones() {
+fn members_join_the_placed_ones() {
     let mut f = fx();
     f.e.execute(&place(DEV_M1, f.rail1, 300)).unwrap(); // [291, 309]
     let cursor = f.e.history().cursor();
@@ -429,7 +429,7 @@ fn override3_a_member_pushed_in_the_same_command_lands_once() {
 
 /// AS-2 (fixture): every refusal of `layout.place_assembly`; an unfit member refuses the whole command.
 #[test]
-fn as2_place_assembly_refusals() {
+fn place_assembly_refusals() {
     let mut f = fx();
     let before = lines(f.e.model());
     assert_eq!(
@@ -500,7 +500,7 @@ fn override2_a_concurrent_placement_of_a_member_conflicts() {
 /// Next-fit from the rail start in DT order; one notice per device not placed, in list
 /// order, with the table's texts; the outcome names the carrier.
 #[test]
-fn as3_auto_fill_next_fits_and_reports() {
+fn auto_fill_next_fits_and_reports() {
     let mut f = fx();
     f.e.execute(&place(k(2), f.rail2, 100)).unwrap();
     let cursor = f.e.history().cursor();
@@ -532,7 +532,7 @@ fn as3_auto_fill_next_fits_and_reports() {
 
 /// AS-3 (fixture): a part's clearance pads space the fill (D3): 18 mm + 5 mm pads.
 #[test]
-fn as3_the_pads_space_the_fill() {
+fn the_pads_space_the_fill() {
     let mut f = fx();
     f.e.execute(&place(k(8), f.rail1, 9)).unwrap(); // [0, 18]
     let padded = ew_commands::commands::AssignPart {
@@ -553,7 +553,7 @@ fn as3_the_pads_space_the_fill() {
 /// AS-3 (fixture): an item that fits nowhere is left with a notice and the fill continues; nothing placed at all, a
 /// duct, an empty list and a bad list are refused.
 #[test]
-fn as3_auto_fill_refusals() {
+fn auto_fill_refusals() {
     let mut f = fx();
     let r =
         f.e.execute(&fill(f.rail3, Some(vec![k(1), k(2)]), FillOrder::Dt))
@@ -658,7 +658,7 @@ fn as4_schematic_order() {
 
 /// AS-4: an assembly's members travel as one block at the place of the first of them, in member order.
 #[test]
-fn as4_an_assembly_stays_one_block() {
+fn an_assembly_stays_one_block() {
     let mut f = fx();
     f.e.execute(&fill(
         f.rail1,
@@ -676,7 +676,7 @@ fn as4_an_assembly_stays_one_block() {
 /// AS-4: more than 200 devices in the list is `Bulk`; the engine refuses it without a preview and commits it through
 /// one.
 #[test]
-fn as4_a_large_fill_is_bulk() {
+fn a_large_fill_is_bulk() {
     let mut f = fx_with(&Spec { many: 201, ..FULL });
     let list: Vec<Id<Device>> = (1..=201).map(many).collect();
     let cmd = fill(f.rail1, Some(list.clone()), FillOrder::Dt);
@@ -721,7 +721,7 @@ fn from_part(copies: Vec<Value>) -> CreateEnclosureFromPart {
 /// part, the plate child frozen UC1-plate, one enclosure and one plate surface (frame (50, 50, 0) mm, usable
 /// (0, 0)–(650, 900) mm, its device the child); one undo removes all and the embedded copies; a second call refused.
 #[test]
-fn as5_an_enclosure_from_its_part() {
+fn an_enclosure_from_its_part() {
     let mut e = engine(model(&Spec {
         uc1: false,
         enclosure_copies: false,
@@ -806,7 +806,7 @@ fn as5_an_enclosure_from_its_part() {
 /// AS-5: a part without an enclosure section, a plate part not held, a function node that is not a function; a
 /// location with a space and no enclosure reuses the space.
 #[test]
-fn as5_create_from_part_refusals_and_reuse() {
+fn create_from_part_refusals_and_reuse() {
     let mut e = engine(model(&Spec {
         uc1: false,
         enclosure_copies: false,
@@ -865,7 +865,7 @@ fn as5_create_from_part_refusals_and_reuse() {
 /// AS-6: each FT-840 edit changes its one member (whole records compared); a turned enclosure pose refused; missing
 /// records at their pointers.
 #[test]
-fn as6_the_edits_change_one_member() {
+fn the_edits_change_one_member() {
     let mut f = fx();
     let space = get(&f.e, f.space).unwrap();
     f.e.execute(&EditLayoutSpace {
@@ -982,7 +982,7 @@ fn placement_of(e: &Engine, device: Id<Device>) -> Id<Placement> {
 /// `edit.delete` on the layout kinds with its checks, each refusal whole; the model's cascades
 /// otherwise.
 #[test]
-fn as7_edit_delete_on_layout_kinds() {
+fn edit_delete_on_layout_kinds() {
     let mut f = fx();
     f.e.execute(&place(k(1), f.rail1, 100)).unwrap();
     f.e.execute(&place(k(2), f.rail1, 200)).unwrap();
@@ -1076,7 +1076,7 @@ fn mv(placement: Id<Placement>, s: i64, part: Option<u128>, mode: Option<PlaceMo
 /// AS-8: `layout.move {part}`: another part use of the device (the resolver reads its extent with `mode`); a part the
 /// device does not use, a duplicate key and an unfit part refused; without `part` the realised part stays.
 #[test]
-fn as8_move_realises_another_part() {
+fn move_realises_another_part() {
     let mut f = fx();
     let km = PlaceDevice {
         part: Some(copy_id(ITEM_MCB)),

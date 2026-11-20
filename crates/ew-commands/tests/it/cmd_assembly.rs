@@ -602,7 +602,7 @@ fn a_part_change_adds_channels_keeps_surplus_and_keeps_authored_data() {
 /// N1 keys a channel on (module, number): a module whose channels carry other IDs (pasted or imported)
 /// gets no second channel of a number it has.
 #[test]
-fn n1_keys_existing_channels_on_module_and_number_not_on_the_id() {
+fn keys_existing_channels_on_module_and_number_not_on_the_id() {
     let (p, mut records, mut lib) = mini_golden_parts();
     lib.push(LibDocument::Part(module_part(MODULE_PART)));
     let foreign: Id<Channel> = id(0xc000);

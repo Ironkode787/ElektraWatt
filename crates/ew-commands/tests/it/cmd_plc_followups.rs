@@ -247,7 +247,7 @@ fn a_move_within_the_module_keeps_the_binding() {
 /// set as `IndexRead::DeviceChildren`). A move within the module prepared before a valve was added to the module is
 /// re-run at commit, and the re-run sees the new child.
 #[test]
-fn n2_reads_the_children_through_the_parent_index() {
+fn reads_the_children_through_the_parent_index() {
     let mut e = engine(model_with(vec![], vec![]));
     make_module(&mut e, MODULE_H1);
     let (_, valve, _) = add_valve(&mut e, 1);
@@ -450,7 +450,7 @@ fn shifted_pins_re_pin_and_a_held_pin_unbinds() {
 
 /// N2: a map that gives no channel below the count at the position, and a map channel held by another binding.
 #[test]
-fn n2_notices_name_the_records_in_words() {
+fn notices_name_the_records_in_words() {
     const SHORT: Id<Part> = id(0x6f);
     let short = plc_part(
         SHORT,

@@ -136,7 +136,7 @@ fn invalid(r: Result<Receipt, CmdError>) -> (String, String) {
 
 /// N0 runs first after N-FL-1 (`valve_functions`), which gives valves their functions, and before N1.
 #[test]
-fn n0_is_the_first_row_of_the_registry_before_n1() {
+fn is_the_first_row_of_the_registry_before_n1() {
     assert_eq!(ORDER[..2], ["valve_functions", "plc_aspects"]);
     let n0 = ORDER.iter().position(|n| *n == "plc_aspects");
     let n1 = ORDER.iter().position(|n| *n == "channel_instantiation");
@@ -366,7 +366,7 @@ fn a_module_below_a_station_keeps_its_place() {
 /// D2: N0 never rewrites or re-adds an aspect: a removed aspect stays removed through unrelated edits and a part
 /// list whose PLC part is unchanged; only another PLC part triggers it again.
 #[test]
-fn n0_never_rewrites_or_re_adds_an_aspect() {
+fn never_rewrites_or_re_adds_an_aspect() {
     let mut e = engine(model());
     let (m, _) = make(&mut e, "A", 1, CARD);
     e.execute(&set(KindName::Device, m.cast(), "plc_module", Value::Null))
