@@ -22,14 +22,16 @@ use std::sync::Arc;
 
 use ew_dl::{Brush, Dash, DashPattern, EntityRef, ImageData, ImageFormat, Item, Path, Stroke};
 use ew_schema::{
-    Align, AssetFormat, AssetRef, BoxStyle, FreeText, Graphic, GraphicShape, LineDash, PageItem,
-    PageItemKind, StructureBox, TextAlign,
+    Align, AssetFormat, AssetRef, BoxStyle, Graphic, GraphicShape, LineDash, PageItem, PageItemKind,
+    StructureBox, TextAlign,
 };
 use ew_text::DEFAULT_STYLE_KEY;
 use ew_units::{Angle2, Nm, Orient2, Pt2, Rect};
 
-use crate::page::{Builder, MarkerText, PageView, TextSpec, wire_stroke};
+use crate::draft::{Ctx, Text};
+use crate::page::{Builder, MarkerText, PageView, wire_stroke};
 use crate::symbol;
+use ew_drafting::WireId;
 
 /// One page item of the page with what it prints.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -181,25 +183,32 @@ impl Builder<'_> {
         }
     }
 
-    /// [`Layer::Labels`](ew_dl::Layer::Labels): the free texts and the shown wire-marker groups by ID, then the
-    /// structure-box captions by box ID.
-    pub(crate) fn item_labels(&mut self, view: &PageView) {
-        // The free texts are what a cable mark's tag keeps clear of, wherever they come in the order (rc.3).
-        for iv in sorted_items(view) {
-            if let PageItemKind::FreeText(t) = &iv.item.kind {
-                let align = symbol::placed_align(&text_align(t.align.as_ref()), t.angle, Orient2::R0);
-                let entity = EntityRef(iv.item.id.as_uuid());
-                if let Some(b) = self.text_box(&free_text_spec(iv, t, &align, entity), false) {
-                    self.kept_clear.push(b);
-                }
-            }
-        }
+    /// [`Layer::Labels`](ew_dl::Layer::Labels): the free texts, the shown wire-marker groups and the cable marks by
+    /// ID, then the structure-box captions by box ID ([`crate::draft`]).
+    pub(crate) fn item_labels(&self, view: &PageView, ctx: &mut Ctx<'_>) {
         for iv in sorted_items(view) {
             let entity = EntityRef(iv.item.id.as_uuid());
             match &iv.item.kind {
-                PageItemKind::FreeText(t) => self.free_text(iv, t, entity),
+                PageItemKind::FreeText(t) => {
+                    let align = symbol::placed_align(&text_align(t.align.as_ref()), t.angle, Orient2::R0);
+                    let style = t.style.as_ref().map_or(DEFAULT_STYLE_KEY, |s| s.as_str());
+                    let text = Text::plain(
+                        &iv.text,
+                        t.at,
+                        symbol::upright_angle(t.angle),
+                        align,
+                        style,
+                        entity,
+                    );
+                    // The text's own height, where it has one the text styles allow: its style in that size.
+                    let size = t
+                        .height
+                        .map(ew_schema::em_for_cap)
+                        .filter(|em| ew_schema::text_style_size_ok(*em));
+                    self.fixed(ctx, text.sized(size), None);
+                }
                 PageItemKind::WireMarker(m) if let Some(mark) = &iv.cable => {
-                    self.cable_mark(view, m, mark, entity);
+                    self.cable_mark(view, ctx, m, mark, entity);
                 }
                 PageItemKind::WireMarker(m) if iv.shown && !iv.text.is_empty() => {
                     // Turned 90° the group reads upwards over horizontal wires, else across vertical ones.
@@ -209,7 +218,8 @@ impl Builder<'_> {
                         (MarkerText::Right, true)
                     };
                     let crossings = Builder::marker_crossings(view, &m.connections, m.at, horizontal);
-                    self.wire_marker(view, m.at, &crossings, place, &iv.text, entity);
+                    let wires: Vec<WireId> = m.connections.iter().map(|c| WireId(c.as_uuid())).collect();
+                    self.wire_marker(view, ctx, (m.at, &crossings), (place, &wires), &iv.text, entity);
                 }
                 _ => {}
             }
@@ -218,55 +228,16 @@ impl Builder<'_> {
             let Some(at) = top_left(&bv.sbox.outline) else {
                 continue;
             };
-            self.text(&TextSpec {
-                text: &bv.caption,
+            let caption = Text::plain(
+                &bv.caption,
                 at,
-                angle: Angle2::ZERO,
-                align: &Align::BottomLeft,
-                style_key: CAPTION_STYLE,
-                entity: EntityRef(bv.sbox.id.as_uuid()),
-                link: None,
-                items: &[],
-            });
+                Angle2::ZERO,
+                Align::BottomLeft,
+                CAPTION_STYLE,
+                EntityRef(bv.sbox.id.as_uuid()),
+            );
+            self.fixed(ctx, caption, None);
         }
-    }
-
-    fn free_text(&mut self, iv: &ItemView, t: &FreeText, entity: EntityRef) {
-        let align = symbol::placed_align(&text_align(t.align.as_ref()), t.angle, Orient2::R0);
-        let spec = free_text_spec(iv, t, &align, entity);
-        // The text's own height, where it has one the text styles allow: its style in that size.
-        match t
-            .height
-            .map(ew_schema::em_for_cap)
-            .filter(|em| ew_schema::text_style_size_ok(*em))
-        {
-            Some(em) => {
-                let mut own = self.style(spec.style_key, entity);
-                own.size = em;
-                let shaped = self.fonts.shape(&iv.text, &own, None);
-                self.text_shaped(&spec, &own, &shaped);
-            }
-            None => self.text(&spec),
-        }
-    }
-}
-
-/// A free text's text as it prints, aligned `align` (its alignment as placed).
-fn free_text_spec<'a>(
-    iv: &'a ItemView,
-    t: &'a FreeText,
-    align: &'a Align,
-    entity: EntityRef,
-) -> TextSpec<'a> {
-    TextSpec {
-        text: &iv.text,
-        at: t.at,
-        angle: symbol::upright_angle(t.angle),
-        align,
-        style_key: t.style.as_ref().map_or(DEFAULT_STYLE_KEY, |s| s.as_str()),
-        entity,
-        link: None,
-        items: &[],
     }
 }
 

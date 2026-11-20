@@ -139,10 +139,10 @@ Examples: EW-TERM-002 → `001002`, EW-CORE-033 → `003033`, EW-POT-013 → `00
 EW-CORE-013 → `100013`, EW-CORE-041 → `102041`, EW-CORE-061 → `104061`, EW-PLC-012 → `110012`, EW-SAF-001 →
 `110101`, EW-IOL-001 → `111101`, EW-LAY-011 → `130011`, EW-IMP-101 → `160101`, EW-LIB-006 → `170006`.
 
-*As built.* The schematic layout rules EW-CORE-067 to -070, -072 and
--073 (a drawn wire against its page's geometry) take numbers of EW-CORE's texts-and-graphics block, class 104
-(EW-CORE-067 → `104067`), around EW-CORE-071, which keeps its number; they are not of the EW-LAY family, which is the
-panel layout's.
+*As built.* The schematic layout rules EW-CORE-067 to -070 and -072 to -077 (a drawn page against the measure of
+[06a](06a-drafting.md) §1.2) take numbers of EW-CORE's texts-and-graphics block, class 104 (EW-CORE-067 →
+`104067`), around EW-CORE-071, which keeps its number; they are not of the EW-LAY family, which is the panel
+layout's.
 
 **Registry rules.**
 - **Fixed family list.** A new shipped family needs a row in the table above, with its class and number blocks.
@@ -688,6 +688,10 @@ cross-file reconciliation after merges is FR-COL-016 (1.0).
 | EW-CORE-071 | Graphic line on a CP | A graphic line ending on a CP, which has no electrical meaning (a QET habit); quick fix "convert to connection". *As built:* no quick fix: the conversion draws a connection and deletes the graphic, two commands where a quick fix runs one; the user draws the wire | hygiene | o | info | page | MVP | FR-CON-001 | — | 06 §8 |
 | EW-CORE-072 | Four-way junction | A junction that wires leave in four directions (measure (g)); reported only, the router never splits a junction (WP-S2.19 OQ6) | hygiene | o r | warning | page | MVP | FR-CON-005 | RK1 | WP-S2.19 §9 |
 | EW-CORE-073 | Unrouted wire | A page connection between two different points without a stored route, drawn as a dashed straight line (WP-S2.19 D3) | completeness | o r | info/error | page | MVP | FR-CON-007 | RK1, RK2 | WP-S2.19 §9 |
+| EW-CORE-074 | Wires meet without joining | A false joint: a corner on another wire's corner or end, a junction on a crossing, a wire's end on another wire without a junction (06a F6); one finding per pair | conflict | o r | warning | page | MVP | FR-CON-007 | — | 06a §1.2 |
+| EW-CORE-075 | Text on a text | A text the program places lies on another text of the page (06a C5); one finding per pair, the message quotes both | hygiene | o r | warning | page | MVP | FR-CON-007 | — | 06a §1.2 |
+| EW-CORE-076 | Text on a symbol | A text the program places lies on another symbol than its own (06a C5); a pin's number where the symbol's author put it is not reported | hygiene | o r | warning | page | MVP | FR-CON-007 | — | 06a §1.2 |
+| EW-CORE-077 | Symbol on a symbol | A symbol with connection points or a drawn box lies on another one, or leaves the drawing area (06a F7); a symbol on another one's connection point and the valves in a valve terminal's cells are not reported | conflict | o r | warning | page | MVP | FR-CON-007 | EF-26 | 06a §1.2 |
 | EW-CORE-081 | Waiver matches nothing | A waiver whose fingerprint or part target matches no finding. As built: reported only when the waiver's rule ran in the scheme and mode; a waiver whose rule did not run gets an info "not evaluated" finding under this ID; part targets and expiry are not built | hygiene | o r | info | project | MVP | FR-CHK-009, FR-CHK-049 | — | 15 |
 | EW-CORE-082 | Waiver expired | A waiver past its expiry date or release | hygiene | o r | warning | project | 1.0 | FR-CHK-049 | — | 15 |
 | EW-CORE-083 | Rule not evaluated | A rule could not be evaluated: rhai operation limit, SQL error, formula cycle, caught panic. *As built:* one cause, a caught panic: the shipped Rust rules have no operation limit, no SQL and no formulas | integrity | all | warning/error | project | MVP | FR-CHK-047 | — | 15 |

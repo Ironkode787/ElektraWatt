@@ -217,7 +217,8 @@ fn strings(v: &[&[&str]]) -> Vec<Vec<String>> {
 }
 
 /// Rule 2: Golden A's page 101 prints strip 1X1's tag once, at terminal "1" (the strip's first terminal in its
-/// own order: "1" before "2" before "PE"), one grid step above its designation; the designations stay.
+/// own order: "1" before "2" before "PE"), above its designation where the text placer sets it (left of the terminal
+/// or above it, docs/design/06a-drafting.md §5.2); the designations stay.
 #[test]
 fn the_strip_tag_prints_once_at_the_first_terminal_of_a_page_without_a_segment() {
     let (g, reps) = golden_with_terminal_reps();
@@ -235,10 +236,7 @@ fn the_strip_tag_prints_once_at_the_first_terminal_of_a_page_without_a_segment()
             .unwrap()
     };
     let (designation, tag) = (line("1"), line("1X1"));
-    // The quad runs top-left, bottom-left, bottom-right, top-right. The tag stands one connection-grid step above the
-    // tag slot's anchor (where the designation stands, as no placement rule moves it here), bottom-aligned, so it is
-    // above the designation, at the same right edge (the slot's horizontal alignment, middle right).
-    assert_eq!(tag[2].x, designation[2].x);
+    // The quad runs top-left, bottom-left, bottom-right, top-right: the tag stands above the designation.
     assert!(tag[2].y < designation[2].y, "{tag:?} above {designation:?}");
 }
 

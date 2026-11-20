@@ -171,8 +171,8 @@ pub use rack::{
 pub use raster::{DEFAULT_DPI, DPI_RANGE, page_png, sheet_image};
 pub use revisions::{PageDigest, changed_now, changed_pages, last_changed_in, page_digest, page_digests};
 pub use route_measures::{
-    LayoutBends, LayoutCrossing, LayoutError, LayoutJunction, LayoutPair, LayoutThrough, LayoutTouch,
-    PageLayout,
+    LayoutBends, LayoutCrossing, LayoutError, LayoutJunction, LayoutPair, LayoutParts, LayoutTexts,
+    LayoutThrough, LayoutTouch, PageLayout,
 };
 pub use rows::{
     RowExport, RowsCsv, RowsError, RowsFormat, RowsOutput, block_kind, find_block, page_report_kinds,

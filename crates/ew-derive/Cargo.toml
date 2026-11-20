@@ -28,6 +28,9 @@ ew-units = { path = "../ew-units" }
 ew-mltext = { path = "../ew-mltext" }
 # Reference designations and identifier sets (ADR-0026).
 ew-rds = { path = "../ew-rds" }
+# The one measure of a schematic page, which the page solve judges its routes by until it goes
+# (docs/design/06a-drafting.md §10, step 2).
+ew-drafting = { path = "../ew-drafting" }
 # Persistent maps for the incremental connectivity values (the partition and its index families): O(1)
 # clones and diffs that skip shared subtrees, so an edit costs what it touches (ADR-0002 amendment 4). MPL-2.0+,
 # as in ew-memo and ew-model.

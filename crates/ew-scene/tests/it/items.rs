@@ -213,10 +213,11 @@ fn texts_markers_and_captions_are_drawn_in_the_labels_layer() {
     );
 }
 
-/// rc.3 (G5): a cable mark's tag and type line stand at the line's start (left of it) unless they would lie on
-/// another text there; then at the line's other end (right of it), whatever order the items come in.
+/// rc.3 (G5): a cable mark's tag stands after its line (docs/design/06a-drafting.md §5.2: the type before the row of
+/// ticks, the tag after it) unless it would lie on another text there; then before the line, whatever order the items
+/// come in.
 #[test]
-fn a_cable_marks_tag_keeps_clear_of_a_text_at_the_lines_start() {
+fn a_cable_marks_tag_keeps_clear_of_a_text_after_its_line() {
     let mark = |n: u128| {
         let mut iv = item(
             n,
@@ -244,20 +245,19 @@ fn a_cable_marks_tag_keeps_clear_of_a_text_at_the_lines_start() {
             .expect("the tag")
     };
     assert!(
-        tag_left(&view(vec![mark(0x31)], Vec::new())) < Nm(100_000_000),
-        "at the start"
+        tag_left(&view(vec![mark(0x31)], Vec::new())) > Nm(100_000_000),
+        "after the line"
     );
-    // A text that ends where the type line would stand, listed after the mark.
+    // A text that starts where the tag would stand.
     let text = item(
         0x32,
-        json!({"free_text": {"text": "CONTROL CIRCUIT", "at": [98_000_000, 63_000_000], "align": "right"}}),
+        json!({"free_text": {"text": "CONTROL CIRCUIT", "at": [102_000_000, 60_000_000], "align": "left"}}),
         "CONTROL CIRCUIT",
         true,
     );
-    assert!(
-        tag_left(&view(vec![mark(0x31), text], Vec::new())) > Nm(100_000_000),
-        "at the other end"
-    );
+    let moved = tag_left(&view(vec![mark(0x31), text.clone()], Vec::new()));
+    assert!(moved < Nm(100_000_000), "before the line: {moved:?}");
+    assert_eq!(tag_left(&view(vec![text, mark(0x31)], Vec::new())), moved);
 }
 
 /// The order of the view's items does not change a display list, and a page without items draws what it drew

@@ -306,6 +306,8 @@ rule-ew-core-070 = { $line ->
         [free-text] the free text "{ $text }"
         [structure-box] the caption "{ $text }" of a structure box
         [ip] the text "{ $text }" of interruption point { $device }
+        [wire] the number "{ $text }" of { $device }
+        [mark] the cable mark "{ $text }"
        *[symbol] the text "{ $text }" of { $device }
     }.
     .title = Wire through a text
@@ -328,6 +330,60 @@ rule-ew-core-073 = { $line ->
     } { $wire } has no route: it is drawn as a dashed line.
     .title = Unrouted wire
     .hint = Run Route page; where it finds no clear way, drag the wire's handles or move the symbols.
+
+rule-ew-core-074 = { $line ->
+        [tube] Tube
+       *[wire] Wire
+    } { $wire } and { $other } turn on one point { $place ->
+        [off-grid] on folio { $page }
+       *[cell] at { $cell }
+    } without a junction, so on paper they look joined. Reroute one of them.
+    .title = Wires meet without joining
+    .hint = Open the message: both wires are selected. Reroute one of them, or drag a bend a grid step away.
+
+rule-ew-core-075 = { $owner ->
+        [free-text] The free text "{ $text }"
+        [structure-box] The caption "{ $text }" of a structure box
+        [ip] The text "{ $text }" of interruption point { $device }
+        [wire] The number "{ $text }" of { $device }
+        [mark] The cable mark "{ $text }"
+       *[symbol] The text "{ $text }" of { $device }
+    } lies on the text "{ $other }" { $place ->
+        [off-grid] on folio { $page }
+       *[cell] at { $cell }
+    }, so neither can be read. Move one of them.
+    .title = Text on a text
+    .hint = Drag one of the texts to a free place, or move its symbol; a text you moved stays where you put it.
+
+rule-ew-core-076 = { $owner ->
+        [free-text] The free text "{ $text }"
+        [structure-box] The caption "{ $text }" of a structure box
+        [ip] The text "{ $text }" of interruption point { $device }
+        [wire] The number "{ $text }" of { $device }
+        [mark] The cable mark "{ $text }"
+       *[symbol] The text "{ $text }" of { $device }
+    } lies on { $symbol ->
+        [ip] interruption point { $part }
+       *[device] { $part }
+    } { $place ->
+        [off-grid] on folio { $page }
+       *[cell] at { $cell }
+    }. Move the text or the symbol.
+    .title = Text on a symbol
+    .hint = Drag the text to a free place, or move the symbol it lies on.
+
+rule-ew-core-077 = { $symbol ->
+        [ip] Interruption point { $device }
+       *[device] { $device }
+    } { $form ->
+        [outside] stands outside the drawing area of page { $page }. Move it into the frame.
+       *[part] lies on { $other_symbol ->
+            [ip] interruption point { $other }
+           *[device] { $other }
+        }. Move one of them.
+    }
+    .title = Symbol on a symbol
+    .hint = Open the message: the symbols are selected. Drag one of them to a free place.
 
 rule-ew-core-081 = waiver { $waiver } for { $rule } { $form ->
         [not-evaluated] was not evaluated: the rule did not run in scheme { $scheme } ({ $mode } mode)

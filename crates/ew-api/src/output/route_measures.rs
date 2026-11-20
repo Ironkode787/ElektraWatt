@@ -1,10 +1,13 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A page's geometry for the schematic router and its layout measures in words: [`Session::page_geometry`]
-//! builds `ew_derive::routing`'s [`PageGeometry`] from the page tables ([`Session::page_tables`]), the labels
-//! layer's text boxes and the frame; [`Session::layout_report`] measures one page or every schematic page and
-//! names what it finds the way the page prints it, for `ew layout`.
+//! A page as the layout sees it and its measure in words: [`Session::page_draft`] is the page in ticks
+//! (`ew_drafting::DraftPage`, docs/design/06a-drafting.md §2), the labels layer's (`ew-scene`'s `draft` builds it from
+//! the page's view, with the scene's text sizes) with each wire's supply rank from its potential and the page's kind;
+//! [`Session::layout_report`] measures one page or every schematic page with `ew_drafting::measure` and names what it
+//! finds the way the page prints it, for `ew layout`; the layout rules (EW-CORE-067 to -070, -072 to -077) read the
+//! same measure. [`Session::page_geometry`] is the schematic router's page in nm, until the router moves onto the
+//! draft (§10, step 2):
 //!
 //! - **Bodies:** each representation's body (`TableRep::body`) and a black box's outline by its bounds, as the Wire
 //!   tool's obstacles without their growth (`ew-viewmodel`'s `rep_rects`).
@@ -24,19 +27,19 @@ use std::fmt;
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_schema::PotentialType;
 use ew_derive::ew_schema::{Dir4, PageType};
-use ew_derive::ew_units::{Nm, Pt2};
-use ew_derive::routing::{
-    self, Body, CpPoint, DrawnConnection, JunctionPoint, Measures, PageGeometry, TextBox, TouchedPoint,
-};
-use ew_derive::routing::{Point, SUPPLY_ORDER};
+use ew_derive::ew_units::{Grid, Nm, Pt2};
+use ew_derive::routing::SUPPLY_ORDER;
+use ew_derive::routing::{Body, CpPoint, DrawnConnection, JunctionPoint, PageGeometry, TextBox};
 use ew_derive::{CellOf, CpRef, DisplayedTag, PageOrder, PageRef, PotentialFlow, PotentialPartition, Q};
 use ew_dl::Layer;
+use ew_drafting::consts::TICKS_PER_STEP;
+use ew_drafting::{DraftPage, Passed, Quality, TextRef};
 use ew_scene::forms::FrameGeometry;
 use ew_scene::page::DEFAULT_SHEET;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::editing::{PageTables, TableCp, TableEnd};
+use super::editing::{PageTables, TableConnection, TableCp, TableEnd};
 use super::layers::{page_layer, plug_note_boxes};
 use super::view::PageFrameOf;
 use crate::Session;
@@ -68,36 +71,59 @@ impl std::error::Error for LayoutError {}
 /// A point in page nm, `[x, y]`.
 pub type LayoutPoint = [i64; 2];
 
-/// The layout measures of one page in words (`ew_derive::routing`'s module documentation defines them).
+/// The layout of one page in words: the measure's figures (docs/design/06a-drafting.md §1.2 and §9.2) and each item
+/// behind them.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct PageLayout {
     /// The printed folio label.
     pub folio: String,
-    /// (a) Hard rule: the connections touching a connection point or a junction they do not end at.
+    /// The faults F2 to F7, together.
+    pub faults: usize,
+    /// The wires without a route between two different points.
+    pub unrouted: usize,
+    /// The cost C1 to C7, in grid steps of wire, rounded.
+    pub cost: i64,
+    /// The wires drawn straight.
+    pub straight: usize,
+    /// Every wire, routed or not.
+    pub wires: usize,
+    /// The routes' length against the city-block distance of their ends, in percent.
+    pub detour: i64,
+    /// The texts the program placed off their first place.
+    pub labels_moved: usize,
+    /// F2: the connections running through a connection point or a junction they do not end at.
     pub touches: Vec<LayoutTouch>,
-    /// (b) Hard rule: the pairs of connections running along each other.
+    /// F3: the pairs of connections running along each other.
     pub overlaps: Vec<LayoutPair>,
-    /// (c) Hard rule: the connections through a symbol's body (or a black box), but along their own ends' escapes.
+    /// F4: the connections through a symbol's body (or a black box), but straight out of their own pins.
     pub through_symbols: Vec<LayoutThrough>,
-    /// (d) Hard rule: the connections through a symbol's text.
-    pub through_texts: Vec<LayoutThrough>,
-    /// (g) Hard rule: the junctions with four or more arms.
+    /// F5: the junctions with four or more arms.
     pub four_way_junctions: Vec<LayoutJunction>,
-    /// (e) Cost: the points where two connections meet.
+    /// F6: the pairs of connections whose corners meet without a junction.
+    pub false_joints: Vec<LayoutCrossing>,
+    /// F7: the symbols on another symbol or outside the drawing area.
+    pub parts_on_parts: Vec<LayoutParts>,
+    /// C4: the connections through a text.
+    pub through_texts: Vec<LayoutThrough>,
+    /// C5: the texts on another text.
+    pub texts_on_texts: Vec<LayoutTexts>,
+    /// C5: the texts on a symbol they do not belong to.
+    pub texts_on_symbols: Vec<LayoutTexts>,
+    /// C5: the texts outside the drawing area.
+    pub texts_outside: Vec<String>,
+    /// C3: the points where two connections cross.
     pub crossings: Vec<LayoutCrossing>,
-    /// (f) Cost: the connections with bends.
+    /// C2: the connections with bends.
     pub bends: Vec<LayoutBends>,
+    /// The connections with turn-backs (three runs in a row of which the third runs against the first).
+    pub turn_backs: Vec<LayoutBends>,
 }
 
 impl PageLayout {
-    /// The items that break a hard rule: (a) to (d) and (g).
+    /// The faults F2 to F7.
     pub fn hard(&self) -> usize {
-        self.touches.len()
-            + self.overlaps.len()
-            + self.through_symbols.len()
-            + self.through_texts.len()
-            + self.four_way_junctions.len()
+        self.faults
     }
 
     /// The bends of every connection together.
@@ -106,7 +132,7 @@ impl PageLayout {
     }
 }
 
-/// (a) A connection touching a point it does not end at.
+/// F2: a connection running through a point it does not end at.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct LayoutTouch {
@@ -120,7 +146,7 @@ pub struct LayoutTouch {
     pub cell: String,
 }
 
-/// (b) Two connections running along each other.
+/// F3: two connections running along each other.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct LayoutPair {
@@ -134,13 +160,14 @@ pub struct LayoutPair {
     pub cell: String,
 }
 
-/// (c) or (d): a connection through a symbol's body or text.
+/// F4 or C4: a connection through a symbol's body or a text.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct LayoutThrough {
     /// The connection, by its ends.
     pub connection: String,
-    /// The symbol: its device's tag as the page prints it, `interruption point <name>`, else its symbol's key.
+    /// The symbol (its device's tag as the page prints it, `interruption point <name>`, else its symbol's key), or the
+    /// text's owner so named.
     pub symbol: String,
     /// The stretches inside, in the connection's direction, in page nm.
     pub stretches: Vec<[LayoutPoint; 2]>,
@@ -148,7 +175,7 @@ pub struct LayoutThrough {
     pub cell: String,
 }
 
-/// (e) Two connections meeting at a point.
+/// C3 or F6: two connections meeting at a point.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct LayoutCrossing {
@@ -162,17 +189,17 @@ pub struct LayoutCrossing {
     pub cell: String,
 }
 
-/// (f) A connection's bends.
+/// C2 or a turn-back: a connection and how many.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct LayoutBends {
     /// The connection, by its ends.
     pub connection: String,
-    /// Its bends, at least one.
+    /// How many, at least one.
     pub bends: usize,
 }
 
-/// (g) A junction with four or more arms.
+/// F5: a junction with four or more arms.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct LayoutJunction {
@@ -181,6 +208,28 @@ pub struct LayoutJunction {
     /// Where, in page nm.
     pub at: LayoutPoint,
     /// The frame cell there.
+    pub cell: String,
+}
+
+/// F7: a symbol on another symbol, or outside the drawing area.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct LayoutParts {
+    /// The symbol, named as [`LayoutThrough::symbol`].
+    pub symbol: String,
+    /// The symbol it lies on; empty where it leaves the drawing area.
+    pub other: String,
+}
+
+/// C5: a text on another text or on a symbol.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct LayoutTexts {
+    /// The text as it prints.
+    pub text: String,
+    /// The other text as it prints, or the symbol named as [`LayoutThrough::symbol`].
+    pub other: String,
+    /// The frame cell at the text.
     pub cell: String,
 }
 
@@ -202,14 +251,6 @@ fn entry_of(q: &Q, folio: &str) -> Result<PageRef, LayoutError> {
         .find(|e| e.folio == folio)
         .map(|e| e.page)
         .ok_or_else(|| LayoutError::NoFolio(folio.to_owned()))
-}
-
-/// The layout measures of a page, of its routed connections only: an unrouted connection is no wire geometry, its
-/// dashed line only a sign, and it counts as unrouted alone (EW-CORE-073). The layout rules and `ew layout` read these.
-fn routed_measures(q: &Q, page: PageRef, tables: &PageTables) -> Measures {
-    let mut g = geometry(q, page, tables);
-    g.connections.retain(|c| c.routed);
-    routing::measure(&g)
 }
 
 /// The geometry of a page from its tables (see the module documentation).
@@ -340,36 +381,6 @@ fn geometry(q: &Q, page: PageRef, tables: &PageTables) -> PageGeometry {
                 .collect(),
         })
         .collect();
-    // The supply type of each connection's potential, by the potential of an end CP (§5.3).
-    let partition = q.get::<PotentialPartition>(());
-    let supply = |c: &super::editing::TableConnection| -> Option<u8> {
-        [c.a, c.b].into_iter().find_map(|e| {
-            let TableEnd::Cp { function, idx } = e else {
-                return None;
-            };
-            let p = partition.potential_at(CpRef::new(Id::from_uuid(function), idx).key())?;
-            let flow = q.get::<PotentialFlow>(p.id);
-            let ptype = flow.as_ref().as_ref()?.ptype.as_ref()?.value.clone();
-            let word = match ptype {
-                PotentialType::L1 => "L1",
-                PotentialType::L2 => "L2",
-                PotentialType::L3 => "L3",
-                PotentialType::L => "L",
-                PotentialType::N => "N",
-                PotentialType::Pen => "PEN",
-                PotentialType::Pe => "PE",
-                PotentialType::Fe => "FE",
-                PotentialType::LPlus => "L+",
-                PotentialType::M => "M",
-                PotentialType::LMinus => "L-",
-                _ => return None,
-            };
-            SUPPLY_ORDER
-                .iter()
-                .position(|w| *w == word)
-                .and_then(|k| u8::try_from(k).ok())
-        })
-    };
     let end_id = |e: &TableEnd| match e {
         TableEnd::Cp { function, idx } => tables
             .cps
@@ -404,7 +415,7 @@ fn geometry(q: &Q, page: PageRef, tables: &PageTables) -> PageGeometry {
                 id: c.id,
                 ends: [end_id(&c.a), end_id(&c.b)],
                 routed: c.stored_route,
-                supply: supply(c),
+                supply: supply_rank(q, c),
                 polyline: c.polyline.clone(),
             })
             .collect(),
@@ -515,87 +526,6 @@ fn signed(q: &Q, device: Option<Id<ew_derive::ew_schema::Device>>, text: &str) -
     }
 }
 
-/// The measures of a page in words (see [`PageLayout`]).
-fn page_layout(q: &Q, tables: &PageTables, m: &Measures) -> PageLayout {
-    let page: Id<ew_derive::ew_schema::Page> = Id::from_uuid(tables.page);
-    let cell = |p: (i64, i64)| cell_text(q, page, p);
-    let connection = |id: Uuid| connection_text(q, tables, id);
-    let symbol = |id: Uuid| symbol_text(q, tables, id);
-    let point = |p: (i64, i64)| [p.0, p.1];
-    let stretches = |s: &[(Point, Point)]| s.iter().map(|(a, b)| [point(*a), point(*b)]).collect();
-    let first = |s: &[(Point, Point)]| s.first().map(|(a, _)| cell(*a)).unwrap_or_default();
-    let through = |list: &[routing::Through]| {
-        list.iter()
-            .map(|t| LayoutThrough {
-                connection: connection(t.connection),
-                symbol: symbol(t.rep),
-                stretches: stretches(&t.stretches),
-                cell: first(&t.stretches),
-            })
-            .collect()
-    };
-    PageLayout {
-        folio: tables.folio.clone(),
-        touches: m
-            .touches
-            .iter()
-            .map(|t| LayoutTouch {
-                connection: connection(t.connection),
-                point: match t.point {
-                    TouchedPoint::Cp(id) => tables
-                        .cps
-                        .iter()
-                        .find(|cp| cp.id == id)
-                        .map(|cp| cp_text(q, cp))
-                        .unwrap_or_default(),
-                    TouchedPoint::Junction(_) => "the junction".to_owned(),
-                },
-                at: point(t.at),
-                cell: cell(t.at),
-            })
-            .collect(),
-        overlaps: m
-            .overlaps
-            .iter()
-            .map(|o| LayoutPair {
-                connection: connection(o.connections[0]),
-                other: connection(o.connections[1]),
-                stretches: stretches(&o.stretches),
-                cell: first(&o.stretches),
-            })
-            .collect(),
-        through_symbols: through(&m.through_bodies),
-        through_texts: through(&m.through_texts),
-        four_way_junctions: m
-            .four_way
-            .iter()
-            .map(|j| LayoutJunction {
-                arms: j.arms,
-                at: point(j.at),
-                cell: cell(j.at),
-            })
-            .collect(),
-        crossings: m
-            .crossings
-            .iter()
-            .map(|c| LayoutCrossing {
-                connection: connection(c.connections[0]),
-                other: connection(c.connections[1]),
-                at: point(c.at),
-                cell: cell(c.at),
-            })
-            .collect(),
-        bends: m
-            .bends
-            .iter()
-            .map(|b| LayoutBends {
-                connection: connection(b.connection),
-                bends: b.bends,
-            })
-            .collect(),
-    }
-}
-
 /// The text runs the labels layer draws on `page` for the owners in `owners`: each run's owner, its box in page nm and
 /// its text.
 fn text_runs(q: &Q, page: PageRef, owners: &BTreeSet<Uuid>) -> Vec<(Uuid, [i64; 4], String)> {
@@ -642,13 +572,380 @@ fn text_runs(q: &Q, page: PageRef, owners: &BTreeSet<Uuid>) -> Vec<(Uuid, [i64; 
     out
 }
 
-/// The layout rules' findings on the page of `tables`, worded by `ew-checks`: the measures of its
-/// routed connections (an unrouted one counts only as unrouted, D3), a touched terminal CP left to EW-TERM-006, and
-/// EW-CORE-073 for each connection without a route between two different points.
-fn layout_findings(q: &Q, page_ref: PageRef, tables: &PageTables, out: &mut Vec<crate::checks::Finding>) {
-    use crate::checks::rules::page as rules;
-    let page: Id<ew_derive::ew_schema::Page> = Id::from_uuid(tables.page);
-    let m = routed_measures(q, page_ref, tables);
+/// The rank of the supply type of a connection's potential in [`SUPPLY_ORDER`] (L1 first), by the potential of an end
+/// CP; `None` for a signal, undefined or unknown potential.
+fn supply_rank(q: &Q, c: &TableConnection) -> Option<u8> {
+    let partition = q.get::<PotentialPartition>(());
+    [c.a, c.b].into_iter().find_map(|e| {
+        let TableEnd::Cp { function, idx } = e else {
+            return None;
+        };
+        let p = partition.potential_at(CpRef::new(Id::from_uuid(function), idx).key())?;
+        let flow = q.get::<PotentialFlow>(p.id);
+        let ptype = flow.as_ref().as_ref()?.ptype.as_ref()?.value.clone();
+        let word = match ptype {
+            PotentialType::L1 => "L1",
+            PotentialType::L2 => "L2",
+            PotentialType::L3 => "L3",
+            PotentialType::L => "L",
+            PotentialType::N => "N",
+            PotentialType::Pen => "PEN",
+            PotentialType::Pe => "PE",
+            PotentialType::Fe => "FE",
+            PotentialType::LPlus => "L+",
+            PotentialType::M => "M",
+            PotentialType::LMinus => "L-",
+            _ => return None,
+        };
+        SUPPLY_ORDER
+            .iter()
+            .position(|w| *w == word)
+            .and_then(|k| u8::try_from(k).ok())
+    })
+}
+
+/// The page of `tables` as the layout sees it: the labels layer's page (texts at their sizes, the scene's one
+/// conversion into ticks), each wire's supply rank and the page's kind.
+fn draft(q: &Q, page: PageRef, tables: &PageTables) -> DraftPage {
+    let mut d = page_layer(q, page, Layer::Labels)
+        .draft
+        .as_deref()
+        .cloned()
+        .unwrap_or_default();
+    let kind = q
+        .get::<PageOrder>(())
+        .entries
+        .iter()
+        .find(|e| e.page == page)
+        .map(|e| e.kind.clone());
+    d.kind = match kind {
+        Some(PageType::Fluid) => ew_drafting::PageKind::Fluid,
+        Some(PageType::BusTopology) => ew_drafting::PageKind::Bus,
+        _ => ew_drafting::PageKind::Electrical,
+    };
+    for w in &mut d.wires {
+        if let Some(c) = tables.connections.iter().find(|c| c.id == w.id.0) {
+            w.supply = supply_rank(q, c);
+        }
+    }
+    d
+}
+
+/// What a page's findings are named by: the page's records, its grid and the labels layer's texts.
+struct Reader<'a> {
+    q: &'a Q,
+    page_ref: PageRef,
+    tables: &'a PageTables,
+    grid: Grid,
+    /// The labels layer's runs of the texts' owners, read once a text is named.
+    runs: std::cell::OnceCell<Vec<(Uuid, [i64; 4], String)>>,
+}
+
+impl Reader<'_> {
+    fn page(&self) -> Id<ew_derive::ew_schema::Page> {
+        Id::from_uuid(self.tables.page)
+    }
+
+    /// A tick in page nm.
+    fn nm(&self, t: i32) -> i64 {
+        self.grid
+            .nm_of_tick(i64::from(t), TICKS_PER_STEP as u32)
+            .map_or(0, |n| n.0)
+    }
+
+    fn point(&self, p: ew_drafting::Pt) -> (i64, i64) {
+        (self.nm(p.x), self.nm(p.y))
+    }
+
+    fn rect(&self, r: ew_drafting::Rect) -> [i64; 4] {
+        [self.nm(r.x0), self.nm(r.y0), self.nm(r.x1), self.nm(r.y1)]
+    }
+
+    fn cell(&self, p: ew_drafting::Pt) -> String {
+        cell_text(self.q, self.page(), self.point(p))
+    }
+
+    fn stretches(&self, s: &[ew_drafting::geom::Seg]) -> Vec<[LayoutPoint; 2]> {
+        s.iter()
+            .map(|(a, b)| {
+                let (a, b) = (self.point(*a), self.point(*b));
+                [[a.0, a.1], [b.0, b.1]]
+            })
+            .collect()
+    }
+
+    fn connection(&self, w: ew_drafting::WireId) -> String {
+        connection_text(self.q, self.tables, w.0)
+    }
+
+    fn symbol(&self, id: Uuid) -> String {
+        symbol_text(self.q, self.tables, id)
+    }
+
+    /// The owner of a text in words: a symbol as [`Reader::symbol`] names it, a wire by its ends (its number).
+    fn text_owner_words(&self, id: Uuid) -> String {
+        if self.tables.connections.iter().any(|c| c.id == id) {
+            format!("wire {}", connection_text(self.q, self.tables, id))
+        } else {
+            self.symbol(id)
+        }
+    }
+
+    /// An interruption point's name, which each language words itself.
+    fn ip_name(&self, rep: Uuid) -> Option<&str> {
+        self.tables
+            .reps
+            .iter()
+            .find(|r| r.id == rep)
+            .and_then(|r| r.ip.as_ref())
+            .map(|ip| ip.name.as_str())
+    }
+
+    /// The owner of a text and its box on the page.
+    fn text_owner(&self, t: TextRef, labels: &[ew_drafting::Settled]) -> (Uuid, ew_drafting::Rect) {
+        match t {
+            TextRef::Label(id) => (
+                id.owner,
+                labels
+                    .iter()
+                    .find(|s| s.id == id)
+                    .map_or_else(ew_drafting::Rect::default, |s| s.rect),
+            ),
+            TextRef::Fixed(owner, rect) => (owner, rect),
+        }
+    }
+
+    /// The text `owner` prints at `rect` (the run of the owner whose box's middle lies in it, else one whose box meets it,
+    /// else its first run).
+    fn text(&self, owner: Uuid, rect: ew_drafting::Rect) -> String {
+        let runs = self.runs.get_or_init(|| {
+            let owners: BTreeSet<Uuid> = self
+                .tables
+                .reps
+                .iter()
+                .map(|r| r.id)
+                .chain(self.tables.items.iter().map(|i| i.id))
+                .chain(self.tables.structure_boxes.iter().map(|b| b.id))
+                .chain(self.tables.connections.iter().map(|c| c.id))
+                .collect();
+            text_runs(self.q, self.page_ref, &owners)
+        });
+        let r = self.rect(rect.grown(1));
+        let own = || runs.iter().filter(|(o, _, _)| *o == owner);
+        own()
+            .find(|(_, b, _)| {
+                let (x, y) = ((b[0] + b[2]) / 2, (b[1] + b[3]) / 2);
+                r[0] <= x && x <= r[2] && r[1] <= y && y <= r[3]
+            })
+            .or_else(|| own().find(|(_, b, _)| b[0] <= r[2] && r[0] <= b[2] && b[1] <= r[3] && r[1] <= b[3]))
+            .or_else(|| own().next())
+            .map_or_else(String::new, |(_, _, s)| s.clone())
+    }
+
+    /// A representation as a layout rule names it: an interruption point by its name, else by `words`, its tag.
+    fn symbol_name<'b>(&'b self, rep: Uuid, words: &'b mut String) -> rules::SymbolName<'b> {
+        if let Some(n) = self.ip_name(rep) {
+            return rules::SymbolName::Ip(n);
+        }
+        *words = self.symbol(rep);
+        let words: &'b String = words;
+        rules::SymbolName::Device(words)
+    }
+
+    /// The owner of a text as a layout rule names it.
+    fn owner<'b>(&'b self, owner: Uuid, words: &'b mut String) -> rules::TextOwner<'b> {
+        if let Some(name) = self.ip_name(owner) {
+            return rules::TextOwner::Ip {
+                rep: Id::from_uuid(owner),
+                name,
+            };
+        }
+        if self.tables.reps.iter().any(|r| r.id == owner) {
+            *words = self.symbol(owner);
+            let device: &'b String = words;
+            return rules::TextOwner::Symbol {
+                rep: Id::from_uuid(owner),
+                device,
+            };
+        }
+        if self.tables.connections.iter().any(|c| c.id == owner) {
+            *words = connection_text(self.q, self.tables, owner);
+            let words: &'b String = words;
+            return rules::TextOwner::Wire {
+                id: Id::from_uuid(owner),
+                words,
+            };
+        }
+        match self.tables.items.iter().find(|i| i.id == owner) {
+            Some(i) if i.kind == "free_text" => rules::TextOwner::FreeText(Id::from_uuid(owner)),
+            Some(_) => rules::TextOwner::Mark(Id::from_uuid(owner)),
+            None => rules::TextOwner::StructureBox(Id::from_uuid(owner)),
+        }
+    }
+}
+
+use crate::checks::rules::page as rules;
+
+/// The measure of a page in words (see [`PageLayout`]).
+fn page_layout(r: &Reader<'_>, m: &Quality) -> PageLayout {
+    let f = &m.findings;
+    let at = |p: ew_drafting::Pt| {
+        let (x, y) = r.point(p);
+        [x, y]
+    };
+    let first = |s: &[ew_drafting::geom::Seg]| s.first().map(|(a, _)| r.cell(*a)).unwrap_or_default();
+    let text = |t: TextRef| {
+        let (owner, rect) = r.text_owner(t, &m.labels);
+        r.text(owner, rect)
+    };
+    let label_text = |id: ew_drafting::LabelId| text(TextRef::Label(id));
+    let label_cell = |id: ew_drafting::LabelId| {
+        m.labels
+            .iter()
+            .find(|s| s.id == id)
+            .map(|s| r.cell(s.rect.centre()))
+            .unwrap_or_default()
+    };
+    let step = i64::from(TICKS_PER_STEP);
+    PageLayout {
+        folio: r.tables.folio.clone(),
+        faults: m.faults,
+        unrouted: m.unrouted,
+        cost: (m.cost + step / 2).div_euclid(step),
+        straight: m.counts.straight,
+        wires: m.counts.wires,
+        detour: m.counts.detour,
+        labels_moved: m.counts.labels_moved,
+        touches: f
+            .through_points
+            .iter()
+            .map(|(w, p, pt)| LayoutTouch {
+                connection: r.connection(*w),
+                point: match p {
+                    Passed::Pin(pin) => r
+                        .tables
+                        .cps
+                        .iter()
+                        .find(|cp| cp.id == pin.0)
+                        .map(|cp| cp_text(r.q, cp))
+                        .unwrap_or_default(),
+                    Passed::Junction(_) => "the junction".to_owned(),
+                },
+                at: at(*pt),
+                cell: r.cell(*pt),
+            })
+            .collect(),
+        overlaps: f
+            .on_wires
+            .iter()
+            .map(|([a, b], s)| LayoutPair {
+                connection: r.connection(*a),
+                other: r.connection(*b),
+                stretches: r.stretches(s),
+                cell: first(s),
+            })
+            .collect(),
+        through_symbols: f
+            .through_parts
+            .iter()
+            .map(|(w, p, s)| LayoutThrough {
+                connection: r.connection(*w),
+                symbol: r.symbol(p.0),
+                stretches: r.stretches(s),
+                cell: first(s),
+            })
+            .collect(),
+        four_way_junctions: f
+            .four_way
+            .iter()
+            .map(|(_, arms, pt)| LayoutJunction {
+                arms: *arms,
+                at: at(*pt),
+                cell: r.cell(*pt),
+            })
+            .collect(),
+        false_joints: f
+            .false_joints
+            .iter()
+            .map(|([a, b], pt)| LayoutCrossing {
+                connection: r.connection(*a),
+                other: r.connection(*b),
+                at: at(*pt),
+                cell: r.cell(*pt),
+            })
+            .collect(),
+        parts_on_parts: f
+            .parts_on_parts
+            .iter()
+            .map(|(p, o)| LayoutParts {
+                symbol: r.symbol(p.0),
+                other: o.map(|o| r.symbol(o.0)).unwrap_or_default(),
+            })
+            .collect(),
+        through_texts: f
+            .across_texts
+            .iter()
+            .map(|(w, t, s)| LayoutThrough {
+                connection: r.connection(*w),
+                symbol: r.text_owner_words(r.text_owner(*t, &m.labels).0),
+                stretches: r.stretches(s),
+                cell: first(s),
+            })
+            .collect(),
+        texts_on_texts: f
+            .texts_on_texts
+            .iter()
+            .map(|(l, t)| LayoutTexts {
+                text: label_text(*l),
+                other: text(*t),
+                cell: label_cell(*l),
+            })
+            .collect(),
+        texts_on_symbols: f
+            .texts_on_parts
+            .iter()
+            .map(|(l, p)| LayoutTexts {
+                text: label_text(*l),
+                other: r.symbol(p.0),
+                cell: label_cell(*l),
+            })
+            .collect(),
+        texts_outside: f.texts_outside.iter().map(|l| label_text(*l)).collect(),
+        crossings: f
+            .crossings
+            .iter()
+            .map(|([a, b], pt)| LayoutCrossing {
+                connection: r.connection(*a),
+                other: r.connection(*b),
+                at: at(*pt),
+                cell: r.cell(*pt),
+            })
+            .collect(),
+        bends: f
+            .bends
+            .iter()
+            .map(|(w, n)| LayoutBends {
+                connection: r.connection(*w),
+                bends: *n,
+            })
+            .collect(),
+        turn_backs: f
+            .turn_backs
+            .iter()
+            .map(|(w, n)| LayoutBends {
+                connection: r.connection(*w),
+                bends: *n,
+            })
+            .collect(),
+    }
+}
+
+/// The layout rules' findings on the page of `tables`, worded by `ew-checks`, from the one measure: F2 (a touched
+/// terminal CP left to EW-TERM-006), F3 to F7, C4, C5 (a text on a text, a text on a symbol) and EW-CORE-073 for
+/// each wire without a route between two different points.
+fn layout_findings(r: &Reader<'_>, m: &Quality, out: &mut Vec<crate::checks::Finding>) {
+    let (q, tables, page) = (r.q, r.tables, r.page());
+    let f = &m.findings;
     let words: Vec<(Uuid, String)> = tables
         .connections
         .iter()
@@ -662,10 +959,10 @@ fn layout_findings(q: &Q, page_ref: PageRef, tables: &PageTables, out: &mut Vec<
             .map_or("", |(_, w)| w.as_str()),
         tube: tables.connections.iter().any(|c| c.id == id && c.kind == "fluid"),
     };
-    for t in &m.touches {
-        match t.point {
-            TouchedPoint::Cp(id) => {
-                let Some(cp) = tables.cps.iter().find(|cp| cp.id == id) else {
+    for (w, p, pt) in &f.through_points {
+        match p {
+            Passed::Pin(pin) => {
+                let Some(cp) = tables.cps.iter().find(|cp| cp.id == pin.0) else {
                     continue;
                 };
                 let terminal = q
@@ -683,86 +980,99 @@ fn layout_findings(q: &Q, page_ref: PageRef, tables: &PageTables, out: &mut Vec<
                     idx: cp.idx,
                     label: &label,
                 };
-                out.push(rules::wire_through_cp(page, wire(t.connection), point));
+                out.push(rules::wire_through_cp(page, wire(w.0), point));
             }
-            TouchedPoint::Junction(id) => {
-                let cell = cell_text(q, page, t.at);
+            Passed::Junction(j) => {
+                let cell = r.cell(*pt);
                 let point = rules::PassedPoint::Junction {
-                    id: Id::from_uuid(id),
+                    id: Id::from_uuid(j.0),
                     cell: &cell,
                 };
-                out.push(rules::wire_through_cp(page, wire(t.connection), point));
+                out.push(rules::wire_through_cp(page, wire(w.0), point));
             }
         }
     }
-    for o in &m.overlaps {
-        out.push(rules::wire_along_wire(
-            page,
-            &tables.folio,
-            wire(o.connections[0]),
-            wire(o.connections[1]),
-        ));
+    for ([a, b], _) in &f.on_wires {
+        out.push(rules::wire_along_wire(page, &tables.folio, wire(a.0), wire(b.0)));
     }
-    // An interruption point by its name, which each language words itself.
-    let ip_name = |rep: Uuid| {
-        tables
-            .reps
-            .iter()
-            .find(|r| r.id == rep)
-            .and_then(|r| r.ip.as_ref())
-            .map(|ip| ip.name.as_str())
-    };
-    for t in &m.through_bodies {
-        let device = symbol_text(q, tables, t.rep);
-        let symbol = ip_name(t.rep).map_or(rules::SymbolName::Device(&device), rules::SymbolName::Ip);
+    for (w, p, _) in &f.through_parts {
+        let mut device = String::new();
+        let symbol = r.symbol_name(p.0, &mut device);
         out.push(rules::wire_through_symbol(
             page,
-            wire(t.connection),
-            Id::from_uuid(t.rep),
+            wire(w.0),
+            Id::from_uuid(p.0),
             symbol,
         ));
     }
-    if !m.through_texts.is_empty() {
-        let owners: BTreeSet<Uuid> = m.through_texts.iter().map(|t| t.rep).collect();
-        let runs = text_runs(q, page_ref, &owners);
-        for t in &m.through_texts {
-            // The run the first stretch inside runs through: the one holding the stretch's middle, else the owner's
-            // first.
-            let mid = t
-                .stretches
-                .first()
-                .map(|(a, b)| ((a.0 + b.0) / 2, (a.1 + b.1) / 2));
-            let own = || runs.iter().filter(|(o, _, _)| *o == t.rep);
-            let text = own()
-                .find(|(_, r, _)| mid.is_some_and(|(x, y)| r[0] <= x && x <= r[2] && r[1] <= y && y <= r[3]))
-                .or_else(|| own().next())
-                .map_or("", |(_, _, s)| s.as_str());
-            let device = symbol_text(q, tables, t.rep);
-            let owner = if let Some(name) = ip_name(t.rep) {
-                rules::TextOwner::Ip {
-                    rep: Id::from_uuid(t.rep),
-                    name,
-                }
-            } else if tables.reps.iter().any(|r| r.id == t.rep) {
-                rules::TextOwner::Symbol {
-                    rep: Id::from_uuid(t.rep),
-                    device: &device,
-                }
-            } else if tables.items.iter().any(|i| i.id == t.rep) {
-                rules::TextOwner::FreeText(Id::from_uuid(t.rep))
-            } else {
-                rules::TextOwner::StructureBox(Id::from_uuid(t.rep))
-            };
-            out.push(rules::wire_through_text(page, wire(t.connection), owner, text));
-        }
+    for (w, t, s) in &f.across_texts {
+        let (owner, rect) = r.text_owner(*t, &m.labels);
+        // The run the first stretch inside runs through, else the owner's first.
+        let rect = s
+            .first()
+            .map_or(rect, |(a, b)| ew_drafting::Rect::new(*a, *b).grown(1));
+        let text = r.text(owner, rect);
+        let mut words = String::new();
+        out.push(rules::wire_through_text(
+            page,
+            wire(w.0),
+            r.owner(owner, &mut words),
+            &text,
+        ));
     }
-    for j in &m.four_way {
-        let cell = cell_text(q, page, j.at);
+    for (j, _, pt) in &f.four_way {
         out.push(rules::four_way_junction(
             page,
             &tables.folio,
-            Id::from_uuid(j.junction),
-            &cell,
+            Id::from_uuid(j.0),
+            &r.cell(*pt),
+        ));
+    }
+    for ([a, b], pt) in &f.false_joints {
+        out.push(rules::wires_meet(
+            page,
+            &tables.folio,
+            wire(a.0),
+            wire(b.0),
+            &r.cell(*pt),
+        ));
+    }
+    for (p, o) in &f.parts_on_parts {
+        let (mut a, mut b) = (String::new(), String::new());
+        let this = (Id::from_uuid(p.0), r.symbol_name(p.0, &mut a));
+        let other = o.map(|o| (Id::from_uuid(o.0), r.symbol_name(o.0, &mut b)));
+        out.push(rules::part_on_part(page, &tables.folio, this, other));
+    }
+    let label = |id: ew_drafting::LabelId| m.labels.iter().find(|s| s.id == id).map(|s| s.rect);
+    for (l, t) in &f.texts_on_texts {
+        let Some(rect) = label(*l) else { continue };
+        let text = r.text(l.owner, rect);
+        let (other_owner, other_rect) = r.text_owner(*t, &m.labels);
+        let other = r.text(other_owner, other_rect);
+        let mut words = String::new();
+        let owner = r.owner(l.owner, &mut words);
+        out.push(rules::text_on_text(
+            page,
+            &tables.folio,
+            owner,
+            &text,
+            &other,
+            &r.cell(rect.centre()),
+        ));
+    }
+    for (l, p) in &f.texts_on_parts {
+        let Some(rect) = label(*l) else { continue };
+        let text = r.text(l.owner, rect);
+        let (mut words, mut device) = (String::new(), String::new());
+        let owner = r.owner(l.owner, &mut words);
+        let part = (Id::from_uuid(p.0), r.symbol_name(p.0, &mut device));
+        out.push(rules::text_on_part(
+            page,
+            &tables.folio,
+            owner,
+            &text,
+            part,
+            &r.cell(rect.centre()),
         ));
     }
     for c in &tables.connections {
@@ -770,6 +1080,28 @@ fn layout_findings(q: &Q, page_ref: PageRef, tables: &PageTables, out: &mut Vec<
             out.push(rules::unrouted_wire(page, wire(c.id)));
         }
     }
+}
+
+/// The page's grid, from its tables (a 4 mm step for numbers that make no grid).
+fn grid_of(tables: &PageTables) -> Grid {
+    u64::try_from(tables.grid.0)
+        .ok()
+        .zip(u64::try_from(tables.grid.1).ok())
+        .and_then(|(n, d)| Grid::new(n, d).ok())
+        .unwrap_or(Grid::MM4)
+}
+
+/// The measure of the page of `tables` and what names its findings.
+fn measured<'a>(q: &'a Q, page_ref: PageRef, tables: &'a PageTables) -> (Reader<'a>, Quality) {
+    let quality = ew_drafting::measure(&draft(q, page_ref, tables));
+    let reader = Reader {
+        q,
+        page_ref,
+        tables,
+        grid: grid_of(tables),
+        runs: std::cell::OnceCell::new(),
+    };
+    (reader, quality)
 }
 
 impl Session {
@@ -789,6 +1121,10 @@ impl Session {
             &rules::WIRE_THROUGH_TEXT,
             &rules::FOUR_WAY_JUNCTION,
             &rules::UNROUTED_WIRE,
+            &rules::WIRES_MEET,
+            &rules::TEXT_ON_TEXT,
+            &rules::TEXT_ON_PART,
+            &rules::PART_ON_PART,
         ];
         if !report.rules.iter().any(|m| layout.iter().any(|l| l.id == m.id)) {
             return report;
@@ -796,7 +1132,8 @@ impl Session {
         let mut found = Vec::new();
         for folio in self.schematic_folios() {
             if let (Some(tables), Ok(page)) = (self.page_tables(&folio), entry_of(q, &folio)) {
-                layout_findings(q, page, &tables, &mut found);
+                let (reader, quality) = measured(q, page, &tables);
+                layout_findings(&reader, &quality, &mut found);
             }
         }
         report.with_layout_evidence(q, found)
@@ -830,9 +1167,17 @@ impl Session {
         Some(geometry(&q, page, &tables))
     }
 
-    /// The layout measures of the page labelled `folio`, or with `None` of every drawn page but the panel-layout
-    /// pages, in page order, each named in words ([`PageLayout`]); of the routed connections only, as the layout rules
-    /// measure them.
+    /// The page labelled `folio` as the layout sees it ([`DraftPage`], docs/design/06a-drafting.md §2.2); `None` for an
+    /// unknown folio or a page that is not drawn.
+    pub fn page_draft(&self, folio: &str) -> Option<DraftPage> {
+        let tables = self.page_tables(folio)?;
+        let q = self.query();
+        let page = entry_of(&q, folio).ok()?;
+        Some(draft(&q, page, &tables))
+    }
+
+    /// The layout measure of the page labelled `folio` ([`ew_drafting::measure`]), or with `None` of every drawn page
+    /// but the panel-layout pages, in page order, each named in words ([`PageLayout`]), as the layout rules read it.
     ///
     /// # Errors
     ///
@@ -853,8 +1198,8 @@ impl Session {
                 .page_tables(&f)
                 .ok_or_else(|| LayoutError::NotDrawn(f.clone()))?;
             let page = entry_of(&q, &f)?;
-            let m = routed_measures(&q, page, &tables);
-            out.push(page_layout(&q, &tables, &m));
+            let (reader, quality) = measured(&q, page, &tables);
+            out.push(page_layout(&reader, &quality));
         }
         Ok(out)
     }

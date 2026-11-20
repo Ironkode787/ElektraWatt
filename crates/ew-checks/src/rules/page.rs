@@ -3,8 +3,8 @@
 
 //! EW-CORE rules of pages, report blocks and texts (doc 15 §4.2): EW-CORE-021, -022, -025 and -026
 //! (folios, the table of contents and report coverage, doc 09 §3.1 and §7), EW-CORE-061, -063 and -071 (text
-//! heights, unstyled text sizes and graphic lines on connection points), and the layout rules EW-CORE-067 to -070,
-//! -072 and -073, whose findings the session joins.
+//! heights, unstyled text sizes and graphic lines on connection points), and the layout rules EW-CORE-067 to -070
+//! and -072 to -077, whose findings the session joins from the one measure (docs/design/06a-drafting.md §1.2).
 //!
 //! # Determinism
 //!
@@ -937,9 +937,9 @@ pub const UNROUTED_WIRE: RuleMeta = layout_rule(
     "reference/rules/ew-core-073",
 );
 
-/// A layout rule (EW-CORE-067 to -070, -072 and -073). Its evidence, a page's drawn geometry with the
-/// text boxes the scene measures, exists only where the scene runs, so the rule reports nothing over the model: the
-/// session measures each schematic page (`ew_derive::routing::measure`) and joins the findings, worded by the
+/// A layout rule (EW-CORE-067 to -070 and -072 to -077). Its evidence, a page's drawn geometry with the
+/// texts where the scene places them, exists only where the scene runs, so the rule reports nothing over the model:
+/// the session measures each schematic page (`ew_drafting::measure`) and joins the findings, worded by the
 /// functions below, through [`CheckReport::with_layout_evidence`](crate::CheckReport::with_layout_evidence), where
 /// the scheme, the mode's severity and the waivers apply as they do to any rule.
 #[derive(Clone, Copy, Debug)]
@@ -1148,38 +1148,22 @@ pub enum TextOwner<'a> {
     FreeText(Id<PageItem>),
     /// A structure box, by its caption.
     StructureBox(Id<StructureBox>),
+    /// A wire, by its words: its number.
+    Wire {
+        /// The connection.
+        id: Id<Connection>,
+        /// Its words.
+        words: &'a str,
+    },
+    /// A cable mark (a wire-marker group): its tag or type line.
+    Mark(Id<PageItem>),
 }
 
 /// EW-CORE-070: `wire` runs through the text `text` of `owner` (measure (d)). Targets the wire and the owner. A free
 /// text and a structure box's caption have their own wording ("the free text …", "the caption … of a structure box"),
 /// so that no English word enters another language's message.
 pub fn wire_through_text(page: Id<Page>, wire: LayoutWire<'_>, owner: TextOwner<'_>, text: &str) -> Finding {
-    let (target, kind, device, named) = match owner {
-        TextOwner::Symbol { rep, device } => (
-            Target::new(Kind::Representation, rep),
-            "symbol",
-            device,
-            format!("the text \"{text}\" of {device}"),
-        ),
-        TextOwner::Ip { rep, name } => (
-            Target::new(Kind::Representation, rep),
-            "ip",
-            name,
-            format!("the text \"{text}\" of interruption point {name}"),
-        ),
-        TextOwner::FreeText(id) => (
-            Target::new(Kind::PageItem, id),
-            "free-text",
-            "",
-            format!("the free text \"{text}\""),
-        ),
-        TextOwner::StructureBox(id) => (
-            Target::new(Kind::StructureBox, id),
-            "structure-box",
-            "",
-            format!("the caption \"{text}\" of a structure box"),
-        ),
-    };
+    let (target, kind, device, named) = owned_text(owner, text);
     Finding::new(
         &WIRE_THROUGH_TEXT,
         [wire.target(), target],
@@ -1240,4 +1224,251 @@ pub fn unrouted_wire(page: Id<Page>, wire: LayoutWire<'_>) -> Finding {
     .on_page(page)
     .arg("line", wire.line())
     .arg("wire", wire.words)
+}
+
+/// EW-CORE-074 "Wires meet without joining" (docs/design/06a-drafting.md §1.2, F6): conflict, o r, warning, page.
+pub const WIRES_MEET: RuleMeta = layout_rule(
+    "EW-CORE-074",
+    "104074",
+    "Wires meet without joining",
+    RuleKind::Conflict,
+    Severity::Warning,
+    None,
+    "reference/rules/ew-core-074",
+);
+
+/// EW-CORE-075 "Text on a text" (docs/design/06a-drafting.md §1.2, C5): hygiene, o r, warning, page.
+pub const TEXT_ON_TEXT: RuleMeta = layout_rule(
+    "EW-CORE-075",
+    "104075",
+    "Text on a text",
+    RuleKind::Hygiene,
+    Severity::Warning,
+    None,
+    "reference/rules/ew-core-075",
+);
+
+/// EW-CORE-076 "Text on a symbol" (docs/design/06a-drafting.md §1.2, C5: a text on a part): hygiene, o r, warning, page.
+pub const TEXT_ON_PART: RuleMeta = layout_rule(
+    "EW-CORE-076",
+    "104076",
+    "Text on a symbol",
+    RuleKind::Hygiene,
+    Severity::Warning,
+    None,
+    "reference/rules/ew-core-076",
+);
+
+/// EW-CORE-077 "Symbol on a symbol" (docs/design/06a-drafting.md §1.2, F7: a part on a part): conflict, o r, warning, page.
+pub const PART_ON_PART: RuleMeta = layout_rule(
+    "EW-CORE-077",
+    "104077",
+    "Symbol on a symbol",
+    RuleKind::Conflict,
+    Severity::Warning,
+    None,
+    "reference/rules/ew-core-077",
+);
+
+/// The frame cell a finding names, or the folio where the point is off the frame grid: the `place` argument's word
+/// (`cell`, `off-grid`) and the English words (`at C4`, `on folio 101`).
+fn place_words(folio: &str, cell: &str) -> (&'static str, String) {
+    if cell.is_empty() {
+        ("off-grid", format!("on folio {folio}"))
+    } else {
+        ("cell", format!("at {cell}"))
+    }
+}
+
+/// EW-CORE-074: the corners of `wire` and `other` meet at one point, in the frame cell `cell` of the page labelled
+/// `folio`, without a junction (measure F6). Targets both wires.
+pub fn wires_meet(
+    page: Id<Page>,
+    folio: &str,
+    wire: LayoutWire<'_>,
+    other: LayoutWire<'_>,
+    cell: &str,
+) -> Finding {
+    let (place, at) = place_words(folio, cell);
+    Finding::new(
+        &WIRES_MEET,
+        [wire.target(), other.target()],
+        cell,
+        wire.words,
+        format!(
+            "{} {} and {} turn on one point {at} without a junction, so on paper they look joined. Reroute one of \
+             them.",
+            wire.noun(),
+            wire.words,
+            other.words
+        ),
+    )
+    .on_page(page)
+    .arg("line", wire.line())
+    .arg("wire", wire.words)
+    .arg("other", other.words)
+    .arg("place", place)
+    .arg("cell", cell)
+    .arg("page", folio)
+}
+
+/// The target of a text's owner and the English words that name the text.
+fn owned_text(owner: TextOwner<'_>, text: &str) -> (Target, &'static str, String, String) {
+    match owner {
+        TextOwner::Symbol { rep, device } => (
+            Target::new(Kind::Representation, rep),
+            "symbol",
+            device.to_owned(),
+            format!("the text \"{text}\" of {device}"),
+        ),
+        TextOwner::Ip { rep, name } => (
+            Target::new(Kind::Representation, rep),
+            "ip",
+            name.to_owned(),
+            format!("the text \"{text}\" of interruption point {name}"),
+        ),
+        TextOwner::FreeText(id) => (
+            Target::new(Kind::PageItem, id),
+            "free-text",
+            String::new(),
+            format!("the free text \"{text}\""),
+        ),
+        TextOwner::StructureBox(id) => (
+            Target::new(Kind::StructureBox, id),
+            "structure-box",
+            String::new(),
+            format!("the caption \"{text}\" of a structure box"),
+        ),
+        TextOwner::Wire { id, words } => (
+            Target::new(Kind::Connection, id),
+            "wire",
+            words.to_owned(),
+            format!("the number \"{text}\" of {words}"),
+        ),
+        TextOwner::Mark(id) => (
+            Target::new(Kind::PageItem, id),
+            "mark",
+            String::new(),
+            format!("the cable mark \"{text}\""),
+        ),
+    }
+}
+
+/// EW-CORE-075: the text `text` of `owner` lies on the text `other` (measure C5), in the frame cell `cell` of the
+/// page labelled `folio`. Targets the text's owner.
+pub fn text_on_text(
+    page: Id<Page>,
+    folio: &str,
+    owner: TextOwner<'_>,
+    text: &str,
+    other: &str,
+    cell: &str,
+) -> Finding {
+    let (target, kind, device, named) = owned_text(owner, text);
+    let (place, at) = place_words(folio, cell);
+    Finding::new(
+        &TEXT_ON_TEXT,
+        [target],
+        format!("{text}\u{1f}{other}"),
+        text,
+        format!(
+            "{} lies on the text \"{other}\" {at}, so neither can be read. Move one of them.",
+            capitalised(&named)
+        ),
+    )
+    .on_page(page)
+    .arg("owner", kind)
+    .arg("text", text)
+    .arg("device", device)
+    .arg("other", other)
+    .arg("place", place)
+    .arg("cell", cell)
+    .arg("page", folio)
+}
+
+/// EW-CORE-076: the text `text` of `owner` lies on the body of the representation `rep`, named by `symbol` (measure
+/// C5), in the frame cell `cell` of the page labelled `folio`. Targets the text's owner and the representation.
+pub fn text_on_part(
+    page: Id<Page>,
+    folio: &str,
+    owner: TextOwner<'_>,
+    text: &str,
+    (rep, symbol): (Id<Representation>, SymbolName<'_>),
+    cell: &str,
+) -> Finding {
+    let (target, kind, device, named) = owned_text(owner, text);
+    let (place, at) = place_words(folio, cell);
+    let (part_kind, part) = symbol.parts();
+    Finding::new(
+        &TEXT_ON_PART,
+        [target, Target::new(Kind::Representation, rep)],
+        text,
+        text,
+        format!(
+            "{} lies on {} {at}. Move the text or the symbol.",
+            capitalised(&named),
+            symbol.english()
+        ),
+    )
+    .on_page(page)
+    .arg("owner", kind)
+    .arg("text", text)
+    .arg("device", device)
+    .arg("symbol", part_kind)
+    .arg("part", part)
+    .arg("place", place)
+    .arg("cell", cell)
+    .arg("page", folio)
+}
+
+/// EW-CORE-077: the representation `rep`, named by `symbol`, lies on `other` or, with `None`, leaves the drawing area
+/// of the page labelled `folio` (measure F7). Targets both representations.
+pub fn part_on_part(
+    page: Id<Page>,
+    folio: &str,
+    (rep, symbol): (Id<Representation>, SymbolName<'_>),
+    other: Option<(Id<Representation>, SymbolName<'_>)>,
+) -> Finding {
+    let (kind, name) = symbol.parts();
+    let mut targets = vec![Target::new(Kind::Representation, rep)];
+    let (form, message, other_kind, other_name) = match other {
+        Some((o, on)) => {
+            targets.push(Target::new(Kind::Representation, o));
+            let (ok, oname) = on.parts();
+            (
+                "part",
+                format!(
+                    "{} lies on {}. Move one of them.",
+                    capitalised(&symbol.english()),
+                    on.english()
+                ),
+                ok,
+                oname,
+            )
+        }
+        None => (
+            "outside",
+            format!(
+                "{} stands outside the drawing area of page {folio}. Move it into the frame.",
+                capitalised(&symbol.english())
+            ),
+            "device",
+            "",
+        ),
+    };
+    Finding::new(&PART_ON_PART, targets, form, name, message)
+        .on_page(page)
+        .arg("form", form)
+        .arg("symbol", kind)
+        .arg("device", name)
+        .arg("other_symbol", other_kind)
+        .arg("other", other_name)
+        .arg("page", folio)
+}
+
+/// `s` with its first letter capitalised.
+fn capitalised(s: &str) -> String {
+    let mut c = s.chars();
+    c.next()
+        .map_or_else(String::new, |f| f.to_uppercase().collect::<String>() + c.as_str())
 }

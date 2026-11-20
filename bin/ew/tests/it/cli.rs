@@ -2704,7 +2704,7 @@ fn ac21_through_the_cli_equals_findings_mvp_csv_for_the_built_packs() {
     for (package, rows) in &pending {
         println!("AC-21 rows pending {package}: {}", rows.join(", "));
     }
-    // Doc 20 §18.2: the rules of release 1.0 run too. `findings_1_0.csv` adds EF-20, EF-21 and EF-22, and EF-22
+    // Doc 20 §18.2: the rules of release 1.0 run too. `findings_1_0.csv` adds EF-20, EF-21, EF-22 and EF-26, and EF-22
     // (EW-PLC-013) supersedes EF-10 (EW-POT-003) on its pins.
     want.remove(&("EW-POT-003".to_owned(), "warning".to_owned()));
     let v1 = std::fs::read_to_string(

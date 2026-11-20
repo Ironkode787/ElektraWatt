@@ -54,16 +54,135 @@
 //! none, the reason is the symbols.
 
 use std::cell::RefCell;
+use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
 
 use ew_ids::Uuid;
 use ew_schema::Dir4;
 
-use super::measures::{Measures, TouchedPoint, measure, meet, overlap};
+use super::draft::{Measures, measure};
 use super::page::{PageGeometry, Point, Rect};
 use super::search::{
     BEND_COST, CROSSING_COST, Heading, RouteEnd, RouteRequest, STEP_COST, TEXT_COST, fit, route,
 };
+
+// The segment geometry of the solve's own tests (moved from the old layout measures).
+
+/// Whether `p` lies on the closed segment `a`–`b`, exactly ([`crate::on_segment`]).
+fn on(p: Point, (a, b): (Point, Point)) -> bool {
+    crate::on_segment(pt2(p), pt2(a), pt2(b))
+}
+
+fn pt2(p: Point) -> ew_units::Pt2 {
+    ew_units::Pt2::new(ew_units::Nm(p.0), ew_units::Nm(p.1))
+}
+
+/// A non-negative fraction `n / d` of a segment's length, `d > 0`.
+#[derive(Clone, Copy, Debug)]
+struct Frac {
+    n: i128,
+    d: i128,
+}
+
+impl Frac {
+    /// `n / d` for `d != 0`, its sign moved to the numerator.
+    fn new(n: i128, d: i128) -> Frac {
+        if d < 0 {
+            Frac { n: -n, d: -d }
+        } else {
+            Frac { n, d }
+        }
+    }
+}
+
+impl PartialEq for Frac {
+    fn eq(&self, other: &Frac) -> bool {
+        self.cmp(other) == Ordering::Equal
+    }
+}
+
+impl Eq for Frac {}
+
+impl PartialOrd for Frac {
+    fn partial_cmp(&self, other: &Frac) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Frac {
+    fn cmp(&self, other: &Frac) -> Ordering {
+        (self.n * other.d).cmp(&(other.n * self.d))
+    }
+}
+
+fn wide(p: Point) -> (i128, i128) {
+    (i128::from(p.0), i128::from(p.1))
+}
+
+/// `n / d` rounded to the nearest integer, halves away from zero, `d > 0`.
+fn div_round(n: i128, d: i128) -> i128 {
+    if n >= 0 {
+        (2 * n + d) / (2 * d)
+    } else {
+        -((-2 * n + d) / (2 * d))
+    }
+}
+
+/// The point at the fraction `t` (`0 <= t <= 1`) of the segment `a`–`b`, rounded to the nm. A fraction of more than 62
+/// bits (a crossing of two slanted segments far out, ADR-0005's ±(2⁵³ − 1) nm) is first shortened, both terms shifted
+/// alike, so that a difference of two coordinates times its numerator stays inside `i128`.
+fn at(a: Point, b: Point, t: Frac) -> Point {
+    let (a, b) = (wide(a), wide(b));
+    let (mut n, mut d) = (t.n, t.d);
+    while d > 1 << 62 {
+        (n, d) = (n >> 1, d >> 1);
+    }
+    let x = a.0 + div_round((b.0 - a.0) * n, d);
+    let y = a.1 + div_round((b.1 - a.1) * n, d);
+    (
+        i64::try_from(x).unwrap_or(i64::MAX),
+        i64::try_from(y).unwrap_or(i64::MAX),
+    )
+}
+
+/// The cross product `(b − a) × (c − a)`.
+fn orient(a: Point, b: Point, c: Point) -> i128 {
+    let (a, b, c) = (wide(a), wide(b), wide(c));
+    (b.0 - a.0) * (c.1 - a.1) - (b.1 - a.1) * (c.0 - a.0)
+}
+
+/// The stretch two segments with a length share on one line, from its smaller end to its larger (by x, on a
+/// vertical line by y); `None` when they are not on one line or share at most a point.
+fn overlap(s: (Point, Point), t: (Point, Point)) -> Option<(Point, Point)> {
+    let ((a, b), (c, d)) = (s, t);
+    if a == b || c == d || orient(a, b, c) != 0 || orient(a, b, d) != 0 {
+        return None;
+    }
+    let key = |p: Point| if a.0 != b.0 { p.0 } else { p.1 };
+    let sort = |p: Point, q: Point| if key(p) <= key(q) { (p, q) } else { (q, p) };
+    let ((s0, s1), (t0, t1)) = (sort(a, b), sort(c, d));
+    let lo = if key(s0) >= key(t0) { s0 } else { t0 };
+    let hi = if key(s1) <= key(t1) { s1 } else { t1 };
+    (key(lo) < key(hi)).then_some((lo, hi))
+}
+
+/// The point two segments meet at, when they share exactly one (rounded to the nm for a crossing of segments that
+/// are neither horizontal nor vertical); `None` when they are apart or share a stretch.
+fn meet(s: (Point, Point), t: (Point, Point)) -> Option<Point> {
+    let ((a, b), (c, d)) = (s, t);
+    let (o1, o2, o3, o4) = (orient(a, b, c), orient(a, b, d), orient(c, d, a), orient(c, d, b));
+    if o1.signum() * o2.signum() < 0 && o3.signum() * o4.signum() < 0 {
+        // A proper crossing: a + (b − a) · ((c − a) × (d − c)) / ((b − a) × (d − c)).
+        let (wa, wc, wd) = (wide(a), wide(c), wide(d));
+        let num = (wc.0 - wa.0) * (wd.1 - wc.1) - (wc.1 - wa.1) * (wd.0 - wc.0);
+        let den = o2 - o1;
+        return Some(at(a, b, Frac::new(num, den)));
+    }
+    [c, d]
+        .into_iter()
+        .find(|p| on(*p, s))
+        .or_else(|| [a, b].into_iter().find(|p| on(*p, t)))
+}
 
 /// Why a job of a solve is left unrouted (§5.6): the first rule its free route broke.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
@@ -536,10 +655,7 @@ impl Faults {
     fn of(m: &Measures) -> BTreeMap<Uuid, Faults> {
         let mut out: BTreeMap<Uuid, Faults> = BTreeMap::new();
         for t in &m.touches {
-            let point = match t.point {
-                TouchedPoint::Cp(id) | TouchedPoint::Junction(id) => id,
-            };
-            out.entry(t.connection).or_default().grave.insert((0, point));
+            out.entry(t.connection).or_default().grave.insert((0, t.point));
         }
         for o in &m.overlaps {
             let [a, b] = o.connections;

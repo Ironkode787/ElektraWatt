@@ -13,7 +13,7 @@ use ew_api::{AnyCommand, NewProjectKind, ProjectTemplate, Session, SessionOption
 use ew_derive::{DisplayedTag, PageOrder, PageRef, XrefTextOf};
 use ew_ids::{Id, Uuid};
 use ew_schema::{Kind, Page, Representation};
-use ew_units::{Orient2, Pt2, Rect};
+use ew_units::{Orient2, Pt2};
 use serde_json::{Value, json};
 
 const BLACKBOX: &str = "ew.gen.blackbox@qet10";
@@ -22,7 +22,6 @@ const COIL: &str = "ew.iec.coil@qet10";
 const STEP: i64 = 7_937_500;
 /// The slots of the generic black box (`content/symbols/ew.gen.blackbox.json`).
 const TAG: u16 = 0;
-const FUNCTION_TEXT: u16 = 1;
 
 /// One drawn line of text relative to the box: the text and the four corners of its layout box on the page (top-left,
 /// bottom-left, bottom-right, top-right of the run) less the box's top-left corner, which fix its place, its angle
@@ -251,26 +250,6 @@ fn collect(
     }
 }
 
-/// The rectangle a drawn text's layout box covers (relative to the box).
-fn page_box(t: &Drawn) -> Rect {
-    let quad = &t.1;
-    Rect::from_points(
-        Pt2::new(
-            quad.iter().map(|p| p.x).min().unwrap(),
-            quad.iter().map(|p| p.y).min().unwrap(),
-        ),
-        Pt2::new(
-            quad.iter().map(|p| p.x).max().unwrap(),
-            quad.iter().map(|p| p.y).max().unwrap(),
-        ),
-    )
-}
-
-/// Whether two rectangles share an inner point.
-fn overlap(a: Rect, b: Rect) -> bool {
-    a.min().x < b.max().x && b.min().x < a.max().x && a.min().y < b.max().y && b.min().y < a.max().y
-}
-
 /// Every slot text of the box (the tag, part number and manufacturer captions, the function text and the
 /// cross-reference) keeps its place, angle and alignment relative to the box through a half turn and back.
 #[test]
@@ -320,27 +299,4 @@ fn an_override_set_while_half_turned_keeps_its_place_after_the_turn_back() {
     assert_eq!(f.record().orient, Orient2::R0);
     assert_eq!(f.text(&tag), expected);
     assert_eq!(f.record().text_slots, given);
-}
-
-/// The cross-reference text keeps its dodge on a half-turned box: with the function text moved onto it, it drops
-/// clear of the function text before and after the turn.
-#[test]
-fn the_cross_reference_keeps_its_dodge_on_a_half_turned_box() {
-    let mut f = fixture(4);
-    let xref = f.xref();
-    let undodged = f.text(&xref);
-    f.set_slots(json!([{"slot": FUNCTION_TEXT, "pos": [1_000_000, 1_000_000]}]));
-    assert!(
-        overlap(page_box(&undodged), page_box(&f.text("Controller"))),
-        "the function text is moved onto the cross-reference's own place"
-    );
-    let clear = |f: &Fixture| !overlap(page_box(&f.text(&xref)), page_box(&f.text("Controller")));
-    assert!(clear(&f), "the cross-reference dodges the function text");
-    let before = f.text(&xref);
-    f.half_turn();
-    assert!(
-        clear(&f),
-        "the cross-reference dodges the function text after a half turn"
-    );
-    assert_eq!(f.text(&xref), before);
 }

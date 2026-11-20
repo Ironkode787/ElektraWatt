@@ -187,6 +187,9 @@ pub struct UndrawnImage {
 /// The check engine (`ew check`, the message panel, the migration report): rules, schemes, findings.
 pub use ew_checks as checks;
 pub use ew_derive::{BomMode, DeriveNote, MemoStore, Mismatch};
+/// The layout of a schematic page: the page as it sees it (`Session::page_draft`), its measure and its text placer
+/// (docs/design/06a-drafting.md); the shell and the tests name it through `ew-api` (no workspace edge of their own).
+pub use ew_drafting as drafting;
 /// The job runner: the shell names it through `ew-api` (no workspace edge of its own).
 pub use ew_jobs;
 /// The libraries: tiers, the `.ewlib` reader and writer, the index and search. The shell and the

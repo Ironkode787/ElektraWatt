@@ -78,68 +78,14 @@
 //!   A text that lists several items carries one link per item ([`SlotValue::item_links`]): an invisible
 //!   path item over the item's glyph span (the pen travel of the text up to the item's ends), after the text's
 //!   own items, with the text's entity and a [`Link::Source`].
-//! - **Slot text collisions**. A cross-reference slot (`xref`) without a position override follows rules 1,
-//!   2, 4 and 5, a technical-data slot without one rule 3; every other text stays where its symbol puts it. A black box's
-//!   pin texts ("Pin texts" below) take part as fixed obstacles of the cross-reference texts. (1) A list of
-//!   several lines aligned to the middle keeps its first line where a one-line text would sit and grows downward in
-//!   its own frame (a coil's contact mirror never climbs into the technical data above it). (2) A horizontal one
-//!   whose layout box overlaps another slot text's box on the page (its own symbol's or another representation's; the
-//!   texts in print order, each seen where it ended), or stands beside another representation's text less than
-//!   [`SLOT_TEXT_GAP`] away ("(101-D6)" ran into "-101K1"), drops straight down until its top is
-//!   [`SLOT_TEXT_GAP`] below the lowest box it so collided with; when it meets only its own symbol's texts there
-//!   (its CP designation reaching under it) it drops below those too, at most three times, and it stays where it was
-//!   when another representation's text is there or it finds no free place. At one-column spacing a contact's back-reference so moves below the neighbour contact's
-//!   tag. (3) A horizontal technical-data text follows rule 2 against other representations' texts only (a
-//!   valve's "24 V" ran into the next valve's tag); within one symbol its author's layout stands. A black box's pin
-//!   texts are fixed obstacles of rule 3 as of rule 2: a technical-data text that overlaps one drops below it.
-//!   (4) A horizontal cross-reference text that a horizontal wire runs through (on folio 101 the "102-A1" of
-//!   L-1 stood across N-1's wire, by N-1's own "102-A1") rises [`SLOT_TEXT_GAP`] above what is in its way, at most
-//!   three times, to the first place the device-tag rule judges free and that overlaps no other representation's
-//!   symbol body, inside the page's drawing area; without one it stays. (5) Before rule 4, the horizontal
-//!   cross-reference text of a symbol with one CP (an interruption point, an external connection point) that its own
-//!   wire runs through (the wire leaves the point's tail and turns down under the arrow: "+Supply / -X0" stood across
-//!   it) takes the first place that rule 4's free test passes, inside the drawing area: in line with the symbol,
-//!   [`SLOT_TEXT_GAP`] beyond its right edge (an arrow's tip), left-aligned; in line before its left edge,
-//!   right-aligned; centred above its other texts (the point's name). Without one it stays. (6, rc.3) A horizontal
-//!   function text, part number, manufacturer or technical-data text without an override, of a symbol that is no
-//!   black box, that overlaps another representation's pin text or such a text of its own symbol printed before it
-//!   (an interruption point's name on a box's "+"; a turned breaker's part number and rating, which the turn put on
-//!   one row) moves off it, a function text up and the others down, [`SLOT_TEXT_GAP`] apart, at most three times, to
-//!   the first place that overlaps no text or pin text, that no wire runs through and that lies inside the drawing
-//!   area; without one it stays. Rule 6 runs after the device tags and before rule 2. Printed text order
-//!   and every other position are unchanged. The rules run after "Black-box captions" and "Device tags" below and
-//!   see those texts where they ended.
-//! - **Black-box captions**. A black box's tag, part-number and manufacturer texts without a position or
-//!   angle override, printing horizontally, stack outward from the box's top edge in that order, each
-//!   [`SLOT_TEXT_GAP`] above the one before, the tag's anchor [`BLACK_BOX_CAPTION_GAP`] above the outline. Without a
-//!   CP on the top edge they are left-aligned on the outline's left edge (the tag where the symbol puts it); else
-//!   right-aligned one grid step left of the leftmost top CP, so no caption text stands over a CP, its pin text or
-//!   its wire. A stack that a stored wire's segment crosses moves left in grid steps, at most until its anchor
-//!   reaches the outline's left edge, to the first place no stored wire crosses; without one it stays. A text with an
-//!   override stays where it says. A stack that collides with another representation's pin
-//!   text rises [`SLOT_TEXT_GAP`] above what is in its way, at most three times, as a raised device tag
-//!   does, to the first place the device-tag rule judges free (no wire runs through it, it collides with no
-//!   text or pin text of another representation; a movable device tag yields to it in its turn) and that stays inside
-//!   the page's drawing area (the frame's drawing area, else the page); without a free place it stays.
-//! - **Device tags**. A device tag of a symbol that is no black box, without a position or angle override
-//!   and printing horizontally, moves when a wire runs through it, or when it collides (as in rule 2 above) with a
-//!   fixed text of another representation (a black-box caption, a CP designation, a pin text) or with the tag of a
-//!   representation printed before it, or when it stands on another representation's symbol body where either symbol
-//!   is turned by a half turn (rc.3). It stays upright (never turned) and takes the first free place of:
-//!   mirrored about the symbol's vertical axis; raised above what is in its way;
-//!   dropped below it; centred above its symbol ([`SLOT_TEXT_GAP`] above its bounds); centred below it. A place is
-//!   free when no wire runs through it, it overlaps no other text of its own symbol, collides with no text or pin text
-//!   of another representation (a movable tag printed later yields in its own turn), and overlaps neither its own
-//!   symbol's body nor the body of a symbol turned by a half turn (any body, for a tag of such a symbol; a black
-//!   box drawn with its own outline by that outline; rc.3: tags hopped onto symbols). A raise or drop goes
-//!   [`SLOT_TEXT_GAP`] past the texts, those bodies and horizontal wires in the way, at most three
-//!   times, and stays within one tag height of the symbol's top or bottom. Without a free place the
-//!   tag stays (at two grid steps' spacing the neighbours leave none). Then (rc.3) a tag above or below its symbol
-//!   that stands between it and the next symbol of a stack, less than [`SLOT_TEXT_GAP`] from that one's body and
-//!   nearer to it than to its own (terminals two grid steps apart: "2" stood under terminal 1), takes the first place
-//!   of: moved towards its own body until [`SLOT_TEXT_GAP`] from it; beside its body, in line with its centre, left
-//!   (middle right) then right (middle left); where the tag rule judges it free and it is nearer its own body than any
-//!   other. Without one it stays.
+//! - **Where the texts stand** (docs/design/06a-drafting.md §5). The labels layer builds the page as the layout sees it
+//!   ([`crate::draft`]) and places every text the program may place with [`ew_drafting::settle_labels`]: the slot
+//!   texts that no override moves or turns, a black box's texts, the strip tags, the wire numbers and a cable mark's
+//!   tag and type line. Each takes the first of its places (its slot as its author set it, then the places of its
+//!   kind) that keeps clear of the other parts' bodies, the wires, the fixed texts and the texts placed before it, in
+//!   the drawing area. A slot text that an override moves or turns, the pin texts, the plug notes, free texts, marker
+//!   texts, core names and structure-box captions are fixed: they stand where they are, and the others keep clear of
+//!   them. [`LayerList::draft`] is that page.
 //! - **Pin texts**. A black box prints each [`RepView::pins`] entry whose index is one of its box CPs
 //!   (drawn as in "Black boxes") in style `data.small`, inside the outline, [`PIN_TEXT_GAP`] from the pin along its
 //!   inward normal: a pin leaving up or down reads bottom to top (90°), its end towards the pin (aligned middle right
@@ -147,9 +93,7 @@
 //!   digit: a turned "−" read as a tick) reads horizontally, centred on the pin at the same gap (aligned top
 //!   centre below a pin leaving up, bottom centre above a pin leaving down); a pin leaving left or right reads
 //!   horizontally, its start towards the pin (middle left right of a pin leaving left, middle right left of a pin
-//!   leaving right). They print after the slot texts and never move; in the slot-text collision rules they are fixed
-//!   obstacles of the cross-reference texts: a cross-reference text that overlaps one drops below it as
-//!   below a text of its own symbol (rule 2); a device tag yields to one ("Device tags"). An entry without its box
+//!   leaving right). They print after the slot texts and never move: they are fixed texts. An entry without its box
 //!   CP, or a pin of an unknown direction, prints nothing.
 //! - **Wire markers** (FR-OUT-011 keeps them in monochrome; FT-1706: the text stands clear of its wires, as drawing
 //!   practice has it): a short line across the wire at the midpoint of the polyline's longest segment (the first of
@@ -161,21 +105,14 @@
 //!   bus lines of one cable ([`ew_derive::CableMark`]) is drawn whatever the marker mode: the line across the wires it
 //!   crosses, [`MARKER_REACH`] past the outer ones; on each core a slanted stroke (`/`, [`CABLE_TICK`] each way); each
 //!   core's designation (`1`, `BN`, `GNYE`; a bus line has none) in style `marker` just past the stroke's upper end
-//!   (aligned bottom left), right of a vertical wire above the line, above a horizontal wire right of the line; the
-//!   cable's tag in style
-//!   [`CABLE_TAG_STYLE`] at the line's start, left of a horizontal line (aligned middle right) or above a vertical one
-//!   (aligned bottom centre), or at the marker's `tag_at` once moved; and under the tag its type line in
-//!   [`CABLE_KIND_STYLE`] (`TYPE 3G1.5`), starting where the tag starts, or ending where it ends when it is the longer.
-//!   Where the tag or its type line would lie there on a symbol, a symbol's text, a strip tag, a free text, another
-//!   cable mark's texts or this mark's core names (rc.3), they stand at the line's other end instead: right of a
-//!   horizontal line beyond the core names (aligned middle left), below a vertical one (aligned top centre), the type
-//!   line starting where the tag starts; a place is free only inside the drawing area (rc.5); with neither place free,
-//!   at the start. Every text is upright.
-//! - **Wire numbers** (FT-1692): a connection's [`ConnectionView::number`] prints once, at the midpoint of its
-//!   longest segment, in style `marker`, [`MARKER_GAP`] beside the wire as a marker's text stands (right of a
-//!   vertical segment, above a horizontal one) but without the marker's line; with a marker of its own it is that
-//!   marker's text, the number first (`101.1 1.5 BK`). A bus line whose cable has no mark on the page prints the
-//!   cable's tag there in style [`CABLE_TAG_STYLE`] (rc.5: it was too small to read).
+//!   (aligned bottom left); the cable's tag in style [`CABLE_TAG_STYLE`] and its type line in [`CABLE_KIND_STYLE`]
+//!   (`TYPE 3G1.5`) where the text placer sets them (the type before the line, the tag after it), or the tag at the
+//!   marker's `tag_at` once moved, with its type line under it. Every text is upright.
+//! - **Wire numbers** (FT-1692): a connection's [`ConnectionView::number`] prints once, in style `marker`, along its
+//!   wire where the text placer sets it: right of a vertical stretch turned to read from the bottom, above a
+//!   horizontal one; beside the dashed line of an unrouted wire; with a marker of its own it is that marker's text,
+//!   the number first (`101.1 1.5 BK`). A bus line whose cable has no mark on the page prints the cable's tag there in
+//!   style [`CABLE_TAG_STYLE`] (rc.5: it was too small to read).
 //! - **Stored symbol variants** (`Representation.variant`, contact-image variants) are not drawn yet: the
 //!   main graphics are used, and the geometry key's `extra` is `None`.
 
@@ -191,7 +128,7 @@ use ew_ids::{Id, Uuid};
 use ew_mltext::LangTag;
 use ew_schema::{
     Align, Connection, ConnectionKind, Dir4, Endpoint, FormDef, Function, Junction, JunctionStyle, LineKind,
-    Page, Representation, SlotKind, SymbolDef,
+    Page, Representation, SymbolDef,
 };
 use ew_text::{DEFAULT_STYLE_KEY, FontSet, LineSpan, Shaped, TextStyle, TextStyleTable, VerticalMetrics};
 use ew_units::{Angle2, Grid, Nm, Orient2, Pt2, Rect};
@@ -670,7 +607,7 @@ pub struct LayerList {
     pub geometry: BTreeMap<SymbolGeomId, Arc<DisplayList>>,
     /// What to report, in paint order.
     pub findings: Vec<PageFinding>,
-    /// The labels layer's anchor of each representation's device tag where it prints, after the tag rule
+    /// The labels layer's anchor of each representation's device tag where it prints, where the text placer
     /// moved it, by representation ID: what `TableRep::tag_at` reports. Empty in the other
     /// layers.
     pub tags: BTreeMap<Uuid, Pt2>,
@@ -680,6 +617,9 @@ pub struct LayerList {
     /// The labels layer's slot texts where they print, in print order: what a drag of a symbol's text grabs; a cable
     /// mark's tag is one too, of its wire marker (slot 0). Empty in the other layers.
     pub slot_texts: Vec<SlotTextBox>,
+    /// The labels layer's page as the layout sees it ([`crate::draft`]), whose labels it placed; `None` in the other
+    /// layers and on a panel-layout page.
+    pub draft: Option<Arc<ew_drafting::DraftPage>>,
 }
 
 /// A representation's slot text where the labels layer prints it, or a cable mark's tag (`rep` the wire marker, `slot`
@@ -717,7 +657,6 @@ pub fn page_display_list(
         fonts,
         styles,
         out: LayerList::default(),
-        kept_clear: Vec::new(),
     };
     match layer {
         Layer::Frame => b.frame(view),
@@ -755,7 +694,7 @@ pub fn page_rect(view: &PageView) -> Rect {
 
 /// The page's drawing area in page coordinates: the frame's drawing area inside its grid header, else
 /// [`page_rect`].
-fn drawing_area(view: &PageView) -> Rect {
+pub(crate) fn drawing_area(view: &PageView) -> Rect {
     view.frame
         .as_ref()
         .and_then(|f| FrameGeometry::of(&f.form, f.title_block.as_deref()))
@@ -841,7 +780,6 @@ pub fn symbol_preview_text(
         fonts,
         styles,
         out: LayerList::default(),
-        kept_clear: Vec::new(),
     };
     if text.visible {
         builder.text(&TextSpec {
@@ -860,21 +798,8 @@ pub fn symbol_preview_text(
 
 pub(crate) struct Builder<'a> {
     pub(crate) fonts: &'a FontSet,
-    styles: &'a TextStyleTable,
+    pub(crate) styles: &'a TextStyleTable,
     pub(crate) out: LayerList,
-    /// The boxes of texts the page prints by itself that a cable mark's tag keeps clear of (rc.3): the strip tags
-    /// and the cable marks' tags and type lines (the symbols' texts are [`LayerList::slot_texts`]).
-    pub(crate) kept_clear: Vec<Rect>,
-}
-
-/// Where a cable mark's tag and type line stand ([`Builder::cable_tag_place`]).
-struct CablePlace {
-    tag_at: Pt2,
-    tag_align: Align,
-    tag_box: Rect,
-    kind_at: Pt2,
-    kind_align: Align,
-    kind_box: Option<Rect>,
 }
 
 impl<'a> Builder<'a> {
@@ -884,7 +809,6 @@ impl<'a> Builder<'a> {
             fonts,
             styles,
             out: LayerList::default(),
-            kept_clear: Vec::new(),
         }
     }
 
@@ -895,7 +819,7 @@ impl<'a> Builder<'a> {
 }
 
 /// A drawn CP: its position and the direction a wire leaves it.
-type CpMap = BTreeMap<(Uuid, u16), (Pt2, Dir4)>;
+pub(crate) type CpMap = BTreeMap<(Uuid, u16), (Pt2, Dir4)>;
 
 /// The point of every function CP the page draws, by `(function, CP index)`: the CP positions of the page scene
 /// without the directions. `ew-derive`'s `cp_point` restates these rules over `Q` (the wire numbers order
@@ -904,28 +828,37 @@ pub fn cp_points(view: &PageView) -> BTreeMap<(Uuid, u16), Pt2> {
     cp_map(view).into_iter().map(|(k, (pos, _))| (k, pos)).collect()
 }
 
-fn sorted_reps(view: &PageView) -> Vec<&RepView> {
+pub(crate) fn sorted_reps(view: &PageView) -> Vec<&RepView> {
     let mut reps: Vec<&RepView> = view.reps.iter().collect();
     reps.sort_by_key(|r| r.rep.id);
     reps
 }
 
-fn sorted_connections(view: &PageView) -> Vec<&ConnectionView> {
+pub(crate) fn sorted_connections(view: &PageView) -> Vec<&ConnectionView> {
     let mut c: Vec<&ConnectionView> = view.connections.iter().collect();
     c.sort_by_key(|c| c.connection.id);
     c
 }
 
 /// The drawn function CPs of the page (see the module documentation).
-fn cp_map(view: &PageView) -> CpMap {
-    let mut map = CpMap::new();
+pub(crate) fn cp_map(view: &PageView) -> CpMap {
+    drawn_cps(view)
+        .into_iter()
+        .map(|(k, (pos, dir, _))| (k, (pos, dir)))
+        .collect()
+}
+
+/// [`cp_map`] with the representation that draws each CP.
+fn drawn_cps(view: &PageView) -> BTreeMap<(Uuid, u16), (Pt2, Dir4, Uuid)> {
+    let mut map: BTreeMap<(Uuid, u16), (Pt2, Dir4, Uuid)> = BTreeMap::new();
     for rv in sorted_reps(view) {
         let Some(def) = &rv.symbol else { continue };
         let rep = &rv.rep;
         let mut put = |function: Id<Function>, idx: u16, offset: Pt2, dir: &Dir4| {
             let pos = rep.pos + rep.orient.apply(offset);
             let dir = symbol::transform_dir(dir, rep.orient);
-            map.entry((function.as_uuid(), idx)).or_insert((pos, dir));
+            map.entry((function.as_uuid(), idx))
+                .or_insert((pos, dir, rep.id.as_uuid()));
         };
         for cp in def.cps.iter() {
             let (function, idx) = match rep.pin_map.iter().find(|p| p.symbol_cp == cp.idx) {
@@ -963,7 +896,8 @@ fn cp_map(view: &PageView) -> CpMap {
                     .chain(t.side2.iter().map(|&i| (i, side2, Dir4::Down)))
                 {
                     let dir = symbol::transform_dir(&dir, rep.orient);
-                    map.entry((t.function.as_uuid(), idx)).or_insert((at, dir));
+                    map.entry((t.function.as_uuid(), idx))
+                        .or_insert((at, dir, rep.id.as_uuid()));
                 }
             }
         }
@@ -988,7 +922,7 @@ fn segment_point(grid: Grid, rep: &Representation, i: i64, j: i64) -> Option<Pt2
     Some(Pt2::new(axis(rep.pos.x, v.x.0)?, axis(rep.pos.y, v.y.0)?))
 }
 
-fn polyline_of(view: &PageView, cps: &CpMap, c: &Connection, page: Rect) -> Option<Vec<Pt2>> {
+pub(crate) fn polyline_of(view: &PageView, cps: &CpMap, c: &Connection, page: Rect) -> Option<Vec<Pt2>> {
     let junction_at = |j: Id<Junction>| {
         view.junctions
             .iter()
@@ -1467,32 +1401,8 @@ impl Builder<'_> {
     /// its pin along the wire's way and stands just beside the wire (turned upright for a pin whose wire leaves up or
     /// down, on the wire for one that leaves sideways), at the size of the box's own pin designations.
     fn plug_notes(&mut self, view: &PageView) {
-        let gap = Nm(1_000_000);
-        let side = Nm(700_000);
         for n in &view.plug_notes {
-            let out = if n.forward { gap } else { Nm(-gap.0) };
-            let (at, angle, align) = match (n.vertical, n.forward) {
-                (true, false) => (
-                    Pt2::new(n.at.x - side, n.at.y + out),
-                    Angle2(90_000),
-                    Align::MiddleLeft,
-                ),
-                (true, true) => (
-                    Pt2::new(n.at.x - side, n.at.y + out),
-                    Angle2(90_000),
-                    Align::MiddleRight,
-                ),
-                (false, true) => (
-                    Pt2::new(n.at.x + out, n.at.y - Nm(gap.0 / 2)),
-                    Angle2(0),
-                    Align::BottomLeft,
-                ),
-                (false, false) => (
-                    Pt2::new(n.at.x + out, n.at.y - Nm(gap.0 / 2)),
-                    Angle2(0),
-                    Align::BottomRight,
-                ),
-            };
+            let (at, angle, align) = plug_note_place(n);
             self.text(&TextSpec {
                 text: &n.text,
                 at,
@@ -1584,1301 +1494,6 @@ impl Builder<'_> {
         }
     }
 
-    fn labels(&mut self, view: &PageView) {
-        // The slot texts of every representation are gathered first, so the placement rules of
-        // [`SlotText`] can see the other representations' texts; they print in the same order as before.
-        let mut texts: Vec<SlotText<'_>> = Vec::new();
-        for rv in sorted_reps(view) {
-            let Some(def) = &rv.symbol else { continue };
-            let rep = &rv.rep;
-            let entity = EntityRef(rep.id.as_uuid());
-            let black_box = def.cps.is_empty() && rep.box_.is_some();
-            // A half-turned black box places its texts as on the same box unturned.
-            let frame = ew_derive::text_frame(rep, def);
-            let mut values: Vec<&SlotValue> = rv.slots.iter().collect();
-            values.sort_by_key(|v| v.slot);
-            for value in values {
-                let Some(slot) = def.text_slots.get(usize::from(value.slot)) else {
-                    continue;
-                };
-                if value.text.is_empty() {
-                    continue;
-                }
-                let ov = rep.text_slots.iter().find(|o| o.slot == value.slot);
-                if !ew_derive::slot_shown(rep, def, value.slot) {
-                    continue;
-                }
-                let moved = ov.and_then(|o| o.pos).is_some();
-                let turned = ov.and_then(|o| o.angle).is_some();
-                let pos = ov.and_then(|o| o.pos).unwrap_or(slot.pos);
-                let rot = ov.and_then(|o| o.angle).unwrap_or(slot.rot);
-                let (style_key, unknown) = symbol::slot_style_key(def, slot, self.styles);
-                texts.push(SlotText {
-                    symbol: rep.symbol.as_uuid(),
-                    value,
-                    frame,
-                    moved: moved || turned,
-                    at: frame.origin + frame.orient.apply(pos),
-                    angle: symbol::upright_angle(rot),
-                    // An angle a person set (or an import) is the sheet's: the text keeps its own alignment.
-                    align: if turned {
-                        symbol::placed_align(&slot.align, rot, Orient2::R0)
-                    } else {
-                        symbol::slot_align(def, slot, rot, frame.orient)
-                    },
-                    style_key,
-                    unknown,
-                    entity,
-                    xref: matches!(slot.kind, SlotKind::Xref) && !moved,
-                    data: matches!(slot.kind, SlotKind::TechData) && !moved,
-                    caption: caption_rank(&slot.kind).filter(|_| black_box && !moved && !turned),
-                    tag: matches!(slot.kind, SlotKind::Tag),
-                    movable_tag: matches!(slot.kind, SlotKind::Tag) && !black_box && !moved && !turned,
-                    designation: matches!(slot.kind, SlotKind::CpDesignation(_)),
-                    stack: match slot.kind {
-                        _ if moved || turned || black_box => None,
-                        SlotKind::FunctionText => Some(true),
-                        SlotKind::PartNumber | SlotKind::Manufacturer | SlotKind::TechData => Some(false),
-                        _ => None,
-                    },
-                });
-            }
-        }
-        let pins = pin_texts(view);
-        // The pin texts never move; they are fixed obstacles of the cross-reference texts.
-        let pin_boxes: Vec<(EntityRef, Rect)> = pins
-            .iter()
-            .filter_map(|(entity, text, at, angle, align)| {
-                let spec = TextSpec {
-                    text,
-                    at: *at,
-                    angle: *angle,
-                    align,
-                    style_key: "data.small",
-                    entity: *entity,
-                    link: None,
-                    items: &[],
-                };
-                self.text_box(&spec, false).map(|b| (*entity, b))
-            })
-            .collect();
-        self.place_black_box_captions(view, &mut texts, &pin_boxes);
-        self.place_black_box_xrefs_outside(view, &mut texts);
-        self.place_tags_off_own_mark(view, &mut texts);
-        self.place_tags(view, &mut texts, &pin_boxes);
-        self.place_tags_by_own_symbol(view, &mut texts, &pin_boxes);
-        self.place_labels_clear(view, &mut texts, &pin_boxes);
-        self.place_slot_texts(&mut texts, &pin_boxes);
-        self.place_point_xrefs_off_own_wire(view, &mut texts, &pin_boxes);
-        self.place_xrefs_off_wires(view, &mut texts, &pin_boxes);
-        for t in texts.iter().filter(|t| t.tag) {
-            self.out.tags.entry(t.entity.0).or_insert(t.at);
-        }
-        for t in &texts {
-            if let Some(name) = t.unknown {
-                self.out.findings.push(PageFinding::UnknownSlotStyle {
-                    entity: t.entity.0,
-                    symbol: t.symbol,
-                    slot: t.value.slot,
-                    name: name.to_owned(),
-                });
-            }
-            let conflict = t.value.link.is_some() && !t.value.item_links.is_empty();
-            if conflict {
-                self.out.findings.push(PageFinding::ConflictingLinks {
-                    entity: t.entity.0,
-                    slot: t.value.slot,
-                });
-            }
-            let spec = t.spec(conflict);
-            if let Some(rect) = self.text_box(&spec, false) {
-                self.out.slot_texts.push(SlotTextBox {
-                    rep: t.entity.0,
-                    slot: t.value.slot,
-                    at: t.at,
-                    angle: t.angle,
-                    moved: t.moved,
-                    rect,
-                    frame: t.frame,
-                });
-            }
-            self.text_placed(&spec, t.xref);
-        }
-        for (entity, text, at, angle, align) in &pins {
-            self.text(&TextSpec {
-                text,
-                at: *at,
-                angle: *angle,
-                align,
-                style_key: "data.small",
-                entity: *entity,
-                link: None,
-                items: &[],
-            });
-        }
-        self.strip_tags(view);
-        self.connection_markers(view);
-        // The free texts, wire-marker groups and structure-box captions.
-        self.item_labels(view);
-    }
-
-    /// The strip tags of terminals drawn alone ([`PageView::strip_tags`]), by representation ID. They are
-    /// no obstacle of the placement rules above and are not moved by them.
-    fn strip_tags(&mut self, view: &PageView) {
-        let step = view.grid.at(1).unwrap_or(Nm::ZERO);
-        let mut tags: Vec<&StripTagView> = view.strip_tags.iter().collect();
-        tags.sort_by_key(|t| t.rep);
-        for tag in tags {
-            let Some(rv) = view.reps.iter().find(|r| r.rep.id == tag.rep) else {
-                continue;
-            };
-            let Some(def) = &rv.symbol else { continue };
-            let rep = &rv.rep;
-            // The caller picks a terminal whose tag slot is shown; a hidden one prints no strip tag either.
-            let Some(i) = ew_derive::tag_slot_shown(rep, def) else {
-                continue;
-            };
-            let Some(slot) = def.text_slots.get(usize::from(i)) else {
-                continue;
-            };
-            let frame = ew_derive::text_frame(rep, def);
-            let ov = rep.text_slots.iter().find(|o| o.slot == i);
-            let pos = ov.and_then(|o| o.pos).unwrap_or(slot.pos);
-            let rot = ov.and_then(|o| o.angle).unwrap_or(slot.rot);
-            let angle = symbol::upright_angle(rot);
-            let align = match ov.and_then(|o| o.angle) {
-                Some(_) => bottom_align(&symbol::placed_align(&slot.align, rot, Orient2::R0)),
-                None => bottom_align(&symbol::slot_align(def, slot, rot, frame.orient)),
-            };
-            let at = frame.origin + frame.orient.apply(pos) + up_by(angle, step);
-            let (style_key, _) = symbol::slot_style_key(def, slot, self.styles);
-            let spec = TextSpec {
-                text: &tag.text,
-                at,
-                angle,
-                align: &align,
-                style_key,
-                entity: EntityRef(rep.id.as_uuid()),
-                link: None,
-                items: &[],
-            };
-            // A cable mark's tag keeps clear of it (rc.3).
-            self.kept_clear.extend(self.text_box(&spec, false));
-            self.text(&spec);
-        }
-    }
-
-    /// A black box's cross-reference text that would cross its outline's right edge (a narrow box, rc.5: the owner's box
-    /// made smaller had its cross-reference on its edge) stands outside it instead, at its top-left corner where it
-    /// belongs: right-aligned [`SLOT_TEXT_GAP`] left of the outline, its top where it was. A moved text stays.
-    fn place_black_box_xrefs_outside(&self, view: &PageView, texts: &mut [SlotText<'_>]) {
-        for rv in &view.reps {
-            let rep = &rv.rep;
-            let (Some(def), Some(b)) = (&rv.symbol, &rep.box_) else {
-                continue;
-            };
-            if !def.cps.is_empty() || b.outline.is_empty() {
-                continue;
-            }
-            let points: Vec<Pt2> = b.outline.iter().map(|p| rep.pos + rep.orient.apply(*p)).collect();
-            let (Some(left), Some(right)) =
-                (points.iter().map(|p| p.x).min(), points.iter().map(|p| p.x).max())
-            else {
-                continue;
-            };
-            let entity = EntityRef(rep.id.as_uuid());
-            for t in texts
-                .iter_mut()
-                .filter(|t| t.entity == entity && t.xref && !t.moved)
-            {
-                let Some(rect) = self.text_box(&t.spec(false), false) else {
-                    continue;
-                };
-                if rect.max().x <= right {
-                    continue;
-                }
-                t.at = Pt2::new(Nm(left.0 - SLOT_TEXT_GAP.0), rect.min().y);
-                t.align = Align::TopRight;
-            }
-        }
-    }
-
-    /// The caption of each black box (module documentation, "Black-box captions"): its tag, part-number and
-    /// manufacturer texts, each without a position or angle override and printing horizontally, stacked outward from
-    /// the box's top edge in that order, [`SLOT_TEXT_GAP`] apart, the tag's anchor [`BLACK_BOX_CAPTION_GAP`] above
-    /// the outline. Left-aligned on the outline's left edge when the top edge has no CP; else right-aligned one grid
-    /// step left of the leftmost top CP, so that no caption text stands over a CP, its pin text or its wire. A stack
-    /// that collides with another representation's pin text (`pins`) rises [`SLOT_TEXT_GAP`] above what is in
-    /// its way, at most [`SLOT_TEXT_DROPS`] times, as a raised device tag does, to the first place the tag rule's free
-    /// test ([`in_the_way`]) passes, never above the page's drawing area ([`drawing_area`]); without a
-    /// free place it stays. The stacks rise after all are stacked.
-    fn place_black_box_captions(
-        &self,
-        view: &PageView,
-        texts: &mut [SlotText<'_>],
-        pins: &[(EntityRef, Rect)],
-    ) {
-        let step = view.grid.at(1).unwrap_or(Nm::ZERO);
-        let mut stacks: Vec<(EntityRef, Vec<usize>, Rect)> = Vec::new();
-        let mut stored: Option<Vec<(Pt2, Pt2)>> = None;
-        for rv in sorted_reps(view) {
-            let rep = &rv.rep;
-            let (Some(def), Some(b)) = (&rv.symbol, &rep.box_) else {
-                continue;
-            };
-            if !def.cps.is_empty() {
-                continue;
-            }
-            let entity = EntityRef(rep.id.as_uuid());
-            let mut lines: Vec<(u8, usize)> = texts
-                .iter()
-                .enumerate()
-                .filter(|(_, t)| t.entity == entity && t.angle == Angle2::ZERO)
-                .filter_map(|(i, t)| t.caption.map(|r| (r, i)))
-                .collect();
-            if lines.is_empty() {
-                continue;
-            }
-            lines.sort_unstable();
-            let corners: Vec<Pt2> = b.outline.iter().map(|p| rep.pos + rep.orient.apply(*p)).collect();
-            let (Some(left), Some(top)) = (
-                corners.iter().map(|p| p.x).min(),
-                corners.iter().map(|p| p.y).min(),
-            ) else {
-                continue;
-            };
-            let first_top_cp = b
-                .cps
-                .iter()
-                .filter(|cp| symbol::transform_dir(&cp.dir, rep.orient) == Dir4::Up)
-                .map(|cp| (rep.pos + rep.orient.apply(cp.pos)).x)
-                .min();
-            let (x, align) = match first_top_cp {
-                Some(cx) => (cx - step, Align::BottomRight),
-                None => (left, Align::BottomLeft),
-            };
-            // The first line's anchor; each further line's box ends `SLOT_TEXT_GAP` above the previous one's.
-            let mut anchor = top - BLACK_BOX_CAPTION_GAP;
-            let mut above: Option<Nm> = None;
-            let mut stack: Option<Rect> = None;
-            for &(_, i) in &lines {
-                texts[i].align = align.clone();
-                texts[i].at = Pt2::new(x, anchor);
-                let Some(bx) = self.text_box(&texts[i].spec(false), false) else {
-                    continue;
-                };
-                if let Some(limit) = above {
-                    let dy = Nm(limit.0 - SLOT_TEXT_GAP.0 - bx.max().y.0);
-                    texts[i].at = Pt2::new(x, anchor + dy);
-                    above = Some(bx.min().y + dy);
-                } else {
-                    above = Some(bx.min().y);
-                }
-                anchor = texts[i].at.y;
-                if let Some(bx) = self.text_box(&texts[i].spec(false), false) {
-                    stack = Some(stack.map_or(bx, |s| {
-                        Rect::from_points(
-                            Pt2::new(s.min().x.min(bx.min().x), s.min().y.min(bx.min().y)),
-                            Pt2::new(s.max().x.max(bx.max().x), s.max().y.max(bx.max().y)),
-                        )
-                    }));
-                }
-            }
-            if let Some(mut own) = stack {
-                // A stack across a stored wire moves left in grid steps, at most to the
-                // outline's left edge, to the first place where no caption box crosses one; else it stays.
-                let wires = stored.get_or_insert_with(|| stored_wires(view));
-                let boxes: Vec<Rect> = lines
-                    .iter()
-                    .filter_map(|&(_, i)| self.text_box(&texts[i].spec(false), false))
-                    .collect();
-                let crosses = |dx: Nm| {
-                    boxes
-                        .iter()
-                        .any(|b| wires.iter().any(|w| wire_through(shifted(*b, dx), *w)))
-                };
-                if step > Nm::ZERO && crosses(Nm::ZERO) {
-                    let mut dx = Nm(-step.0);
-                    while x + dx >= left {
-                        if !crosses(dx) {
-                            for &(_, i) in &lines {
-                                texts[i].at = texts[i].at + Pt2::new(dx, Nm::ZERO);
-                            }
-                            own = shifted(own, dx);
-                            break;
-                        }
-                        dx -= step;
-                    }
-                }
-                stacks.push((entity, lines.iter().map(|&(_, i)| i).collect(), own));
-            }
-        }
-        // A stack over another representation's pin text rises to the first place
-        // the tag rule judges free. A movable device tag does not count: it yields to the caption in its turn.
-        if stacks.is_empty() {
-            return;
-        }
-        let wires = page_wires(view);
-        let area = drawing_area(view);
-        let entities: Vec<EntityRef> = texts.iter().map(|t| t.entity).collect();
-        let movable: Vec<bool> = texts
-            .iter()
-            .map(|t| t.movable_tag && t.angle == Angle2::ZERO)
-            .collect();
-        for (entity, lines, own) in stacks {
-            if !pins.iter().any(|(e, o)| *e != entity && collides(own, *o)) {
-                continue;
-            }
-            let boxes: Vec<Option<Rect>> = texts
-                .iter()
-                .map(|t| self.text_box(&t.spec(false), t.xref))
-                .collect();
-            let in_way = |b: Rect| {
-                in_the_way(
-                    b,
-                    entity,
-                    (&boxes, &entities),
-                    |k| movable[k] || lines.contains(&k),
-                    pins,
-                    &wires,
-                )
-            };
-            let mut b = own;
-            let mut found = false;
-            for _ in 0..SLOT_TEXT_DROPS {
-                let Some(top) = in_way(b).and_then(|w| w.iter().map(|w| w.0).min()) else {
-                    break;
-                };
-                let dy = Nm(top.0 - SLOT_TEXT_GAP.0 - b.max().y.0);
-                b = Rect::from_points(
-                    Pt2::new(b.min().x, b.min().y + dy),
-                    Pt2::new(b.max().x, b.max().y + dy),
-                );
-                // The stack never rises out of the drawing area (into the frame, or off the sheet).
-                if b.min().y < area.min().y {
-                    break;
-                }
-                if in_way(b).is_some_and(|w| w.is_empty()) {
-                    found = true;
-                    break;
-                }
-            }
-            if found {
-                let dy = b.min().y - own.min().y;
-                for &i in &lines {
-                    texts[i].at = texts[i].at + Pt2::new(Nm::ZERO, dy);
-                }
-            }
-        }
-    }
-
-    /// The tag rule (module documentation, "Device tags"): a movable device tag that a wire runs through, or
-    /// that collides with a fixed text of another representation (a black box's caption or pin text, a CP
-    /// designation) or with the tag of a representation printed before it, or that stands on another symbol's body
-    /// where either symbol is turned by a half turn, stays upright and takes the first free place of: mirrored to the
-    /// other side; raised above what is in its way; dropped below it; centred above its symbol; centred below it. A
-    /// place is free when no wire runs through it, it overlaps no other text of its own symbol, collides with no other
-    /// representation's text or pin text (a movable tag printed later yields in its turn) and overlaps neither its own
-    /// symbol's body nor a body the half-turn rule names. A raise or drop goes [`SLOT_TEXT_GAP`] past the texts, those
-    /// bodies and horizontal
-    /// wires in the way, at most [`SLOT_TEXT_DROPS`] times, and keeps within one tag height of its symbol's top or
-    /// bottom; another wire in the way ends it. Without a free place the tag stays.
-    /// A centred device tag whose anchor is inside its own symbol's body but whose text runs out across the body's
-    /// outline (a cable marker's tag, wider than its mark: "-1[06W]1", window check) moves beside the body, as
-    /// the other tags stand: [`SLOT_TEXT_GAP`] right of it, middle left, at the body's vertical centre. A tag inside its
-    /// body, or one already outside it, stays; the tag rule ([`Self::place_tags`]) then judges the new place.
-    fn place_tags_off_own_mark(&self, view: &PageView, texts: &mut [SlotText<'_>]) {
-        for t in texts.iter_mut() {
-            if !t.movable_tag || t.angle != Angle2::ZERO || t.align != Align::Centre {
-                continue;
-            }
-            let Some(rv) = view
-                .reps
-                .iter()
-                .find(|r| EntityRef(r.rep.id.as_uuid()) == t.entity)
-            else {
-                continue;
-            };
-            let Some(def) = &rv.symbol else { continue };
-            let b = symbol::lower(def, rv.rep.orient).bounds;
-            let pos = rv.rep.pos;
-            let body = Rect::from_points(
-                Pt2::new(pos.x + b.min().x, pos.y + b.min().y),
-                Pt2::new(pos.x + b.max().x, pos.y + b.max().y),
-            );
-            let inside =
-                |p: Pt2| p.x > body.min().x && p.x < body.max().x && p.y > body.min().y && p.y < body.max().y;
-            if !inside(t.at) {
-                continue;
-            }
-            let Some(own) = self.text_box(&t.spec(false), false) else {
-                continue;
-            };
-            let within = own.min().x >= body.min().x
-                && own.max().x <= body.max().x
-                && own.min().y >= body.min().y
-                && own.max().y <= body.max().y;
-            if within {
-                continue;
-            }
-            t.at = Pt2::new(
-                body.max().x + SLOT_TEXT_GAP,
-                Nm((body.min().y.0 + body.max().y.0) / 2),
-            );
-            t.align = Align::MiddleLeft;
-        }
-    }
-
-    fn place_tags(&self, view: &PageView, texts: &mut [SlotText<'_>], pins: &[(EntityRef, Rect)]) {
-        if !texts.iter().any(|t| t.movable_tag) {
-            return;
-        }
-        let wires = page_wires(view);
-        let bodies = tag_bodies(view);
-        let turned = |e: EntityRef| {
-            view.reps
-                .iter()
-                .any(|r| EntityRef(r.rep.id.as_uuid()) == e && r.rep.orient == Orient2::R180)
-        };
-        let mut boxes: Vec<Option<Rect>> = texts
-            .iter()
-            .map(|t| self.text_box(&t.spec(false), t.xref))
-            .collect();
-        let entities: Vec<EntityRef> = texts.iter().map(|t| t.entity).collect();
-        let movable: Vec<bool> = texts
-            .iter()
-            .map(|t| t.movable_tag && t.angle == Angle2::ZERO)
-            .collect();
-        for i in 0..texts.len() {
-            let Some(own) = boxes[i] else { continue };
-            if !movable[i] {
-                continue;
-            }
-            let entity = entities[i];
-            // Where it stands it yields to the fixed texts (captions, pins, CP designations) and to tags printed
-            // before it.
-            let yields = boxes.iter().enumerate().any(|(k, b)| {
-                k != i
-                    && entities[k] != entity
-                    && (texts[k].caption.is_some() || texts[k].designation || (texts[k].tag && k < i))
-                    && b.is_some_and(|b| collides(own, b))
-            }) || pins.iter().any(|(e, b)| *e != entity && collides(own, *b))
-                || wires.iter().any(|w| wire_through(own, *w))
-                // A tag on another symbol's body where either is turned by a half turn (rc.3: a cylinder turned so
-                // put its tag on its neighbour's rod, or its body on its neighbour's tag).
-                || bodies
-                    .iter()
-                    .any(|(e, b)| *e != entity && (turned(entity) || turned(*e)) && overlaps(own, *b));
-            if !yields {
-                continue;
-            }
-            // What is in the way of a raise or a drop: a movable tag printed later yields to this one in its turn; the
-            // bodies of the symbols turned by a half turn, and all of them for a tag of such a symbol (rc.3: a turned
-            // cylinder and its neighbour's rod).
-            let near: Vec<(EntityRef, Rect)> = bodies
-                .iter()
-                .filter(|(e, _)| turned(entity) || turned(*e))
-                .copied()
-                .collect();
-            let in_way = |b: Rect, boxes: &[Option<Rect>]| {
-                with_bodies(
-                    in_the_way(
-                        b,
-                        entity,
-                        (boxes, &entities),
-                        |k| k == i || (k > i && movable[k]),
-                        pins,
-                        &wires,
-                    ),
-                    b,
-                    entity,
-                    &near,
-                )
-            };
-            // A place is free of what is in the way and of its own symbol's body (rc.3: a valve's tag dropped onto its
-            // valve).
-            let own_body = bodies.iter().find(|(e, _)| *e == entity).map(|(_, r)| *r);
-            let free = |b: Rect, boxes: &[Option<Rect>]| {
-                in_way(b, boxes).is_some_and(|v| v.is_empty()) && !own_body.is_some_and(|o| overlaps(b, o))
-            };
-            let Some(rv) = view.reps.iter().find(|r| EntityRef(r.rep.id.as_uuid()) == entity) else {
-                continue;
-            };
-            let Some(def) = &rv.symbol else { continue };
-            let bounds = symbol::lower(def, rv.rep.orient).bounds;
-            // Twice the x of the symbol's vertical axis, and the band a raised or dropped tag keeps within.
-            let axis2 = Nm(2 * rv.rep.pos.x.0 + bounds.min().x.0 + bounds.max().x.0);
-            let height = own.max().y - own.min().y;
-            let band = (
-                rv.rep.pos.y + bounds.min().y - height,
-                rv.rep.pos.y + bounds.max().y + height,
-            );
-            let at = texts[i].at;
-            let (angle, align) = (texts[i].angle, texts[i].align.clone());
-            let mirror_at = Pt2::new(axis2 - at.x, at.y);
-            let mirror_align = mirrored_align(&align);
-            // A tag stays upright: it moves to the other side of its symbol, else above or below what is in its way.
-            let places: Vec<(Pt2, Angle2, Align)> = vec![(mirror_at, Angle2::ZERO, mirror_align.clone())];
-            let mut found: Option<(Pt2, Angle2, Align, Rect)> = None;
-            for (to, angle, align) in places {
-                texts[i].at = to;
-                texts[i].angle = angle;
-                texts[i].align = align.clone();
-                if let Some(b) = self
-                    .text_box(&texts[i].spec(false), false)
-                    .filter(|b| free(*b, &boxes))
-                {
-                    found = Some((to, angle, align, b));
-                    break;
-                }
-            }
-            // Raised above, then dropped below, what is in its way.
-            for up in [true, false] {
-                if found.is_some() {
-                    break;
-                }
-                let mut b = own;
-                for _ in 0..SLOT_TEXT_DROPS {
-                    let Some(way) = in_way(b, &boxes) else { break };
-                    let dy = if up {
-                        let Some(top) = way.iter().map(|w| w.0).min() else {
-                            break;
-                        };
-                        Nm(top.0 - SLOT_TEXT_GAP.0 - b.max().y.0)
-                    } else {
-                        let Some(bottom) = way.iter().map(|w| w.1).max() else {
-                            break;
-                        };
-                        Nm(bottom.0 + SLOT_TEXT_GAP.0 - b.min().y.0)
-                    };
-                    b = Rect::from_points(
-                        Pt2::new(b.min().x, b.min().y + dy),
-                        Pt2::new(b.max().x, b.max().y + dy),
-                    );
-                    if b.max().y <= band.0 || b.min().y >= band.1 {
-                        break;
-                    }
-                    if free(b, &boxes) {
-                        let to = at + Pt2::new(Nm::ZERO, b.min().y - own.min().y);
-                        found = Some((to, angle, align.clone(), b));
-                        break;
-                    }
-                }
-            }
-            // Centred above its symbol, then below it.
-            let axis = Nm(axis2.0.div_euclid(2));
-            let body = [
-                (
-                    Pt2::new(axis, rv.rep.pos.y + bounds.min().y - SLOT_TEXT_GAP),
-                    Align::BottomCentre,
-                ),
-                (
-                    Pt2::new(axis, rv.rep.pos.y + bounds.max().y + SLOT_TEXT_GAP),
-                    Align::TopCentre,
-                ),
-            ];
-            for (to, a) in body {
-                if found.is_some() {
-                    break;
-                }
-                texts[i].at = to;
-                texts[i].angle = Angle2::ZERO;
-                texts[i].align = a.clone();
-                if let Some(b) = self
-                    .text_box(&texts[i].spec(false), false)
-                    .filter(|b| free(*b, &boxes))
-                {
-                    found = Some((to, Angle2::ZERO, a, b));
-                }
-            }
-            let t = &mut texts[i];
-            match found {
-                Some((to, angle, align, b)) => {
-                    t.at = to;
-                    t.angle = angle;
-                    t.align = align;
-                    boxes[i] = Some(b);
-                }
-                None => {
-                    t.at = at;
-                    t.angle = angle;
-                    t.align = align;
-                }
-            }
-        }
-    }
-
-    /// The own-symbol rule of the device tags (module documentation, "Device tags", rc.3): a movable device tag above
-    /// or below its own symbol body that stands less than [`SLOT_TEXT_GAP`] from another representation's symbol body and nearer to it than to its own
-    /// reads as the neighbour's (terminals
-    /// stacked two grid steps apart: "2" stood under terminal 1). It takes the first free place of: moved towards its
-    /// own body until [`SLOT_TEXT_GAP`] from it; beside its own body, in line with its centre, on the left (middle
-    /// right) and on the right (middle left). A place counts when the tag rule judges it free and it is nearer to its
-    /// own body than to any other; without one the tag stays.
-    fn place_tags_by_own_symbol(
-        &self,
-        view: &PageView,
-        texts: &mut [SlotText<'_>],
-        pins: &[(EntityRef, Rect)],
-    ) {
-        if !texts.iter().any(|t| t.movable_tag) {
-            return;
-        }
-        let wires = page_wires(view);
-        let bodies = symbol_bodies(view);
-        let mut boxes: Vec<Option<Rect>> = texts
-            .iter()
-            .map(|t| self.text_box(&t.spec(false), t.xref))
-            .collect();
-        let entities: Vec<EntityRef> = texts.iter().map(|t| t.entity).collect();
-        for i in 0..texts.len() {
-            if !texts[i].movable_tag || texts[i].angle != Angle2::ZERO {
-                continue;
-            }
-            let Some(own) = boxes[i] else { continue };
-            let entity = entities[i];
-            let Some(body) = bodies.iter().find(|(e, _)| *e == entity).map(|(_, b)| *b) else {
-                continue;
-            };
-            // Only a tag above or below its own symbol (a stack of symbols, one under the other); a tag beside it keeps
-            // the place the tag rule gave it.
-            if !(own.min().x < body.max().x && body.min().x < own.max().x) {
-                continue;
-            }
-            let reads_as_own = |b: Rect| {
-                let d = rect_gap(b, body);
-                bodies.iter().all(|(e, o)| *e == entity || rect_gap(b, *o) > d)
-            };
-            // Only a tag between its symbol and the next one in the stack, all but touching that one (less than the gap
-            // from its body), moves.
-            let above_own = own.max().y <= body.min().y;
-            let near_other = bodies.iter().any(|(e, o)| {
-                *e != entity
-                    && rect_gap(own, *o) < SLOT_TEXT_GAP.0
-                    && own.min().x < o.max().x
-                    && o.min().x < own.max().x
-                    && if above_own {
-                        o.min().y.0 + o.max().y.0 < own.min().y.0 + own.max().y.0
-                    } else {
-                        o.min().y.0 + o.max().y.0 > own.min().y.0 + own.max().y.0
-                    }
-            });
-            if !near_other || reads_as_own(own) {
-                continue;
-            }
-            let mid_y = Nm((body.min().y.0 + body.max().y.0) / 2);
-            let pulled = if own.max().y <= body.min().y {
-                Some(Pt2::new(Nm::ZERO, body.min().y - SLOT_TEXT_GAP - own.max().y))
-            } else if own.min().y >= body.max().y {
-                Some(Pt2::new(Nm::ZERO, body.max().y + SLOT_TEXT_GAP - own.min().y))
-            } else if own.max().x <= body.min().x {
-                Some(Pt2::new(body.min().x - SLOT_TEXT_GAP - own.max().x, Nm::ZERO))
-            } else if own.min().x >= body.max().x {
-                Some(Pt2::new(body.max().x + SLOT_TEXT_GAP - own.min().x, Nm::ZERO))
-            } else {
-                None
-            };
-            let (at, align) = (texts[i].at, texts[i].align.clone());
-            let places: Vec<(Pt2, Align)> = pulled
-                .map(|d| (at + d, align.clone()))
-                .into_iter()
-                .chain([
-                    (Pt2::new(body.min().x - SLOT_TEXT_GAP, mid_y), Align::MiddleRight),
-                    (Pt2::new(body.max().x + SLOT_TEXT_GAP, mid_y), Align::MiddleLeft),
-                ])
-                .collect();
-            let mut found = None;
-            for (to, a) in places {
-                texts[i].at = to;
-                texts[i].align = a.clone();
-                let Some(b) = self.text_box(&texts[i].spec(false), false) else {
-                    continue;
-                };
-                let free = in_the_way(b, entity, (&boxes, &entities), |k| k == i, pins, &wires)
-                    .is_some_and(|w| w.is_empty());
-                if free && reads_as_own(b) {
-                    found = Some((to, a, b));
-                    break;
-                }
-            }
-            match found {
-                Some((to, a, b)) => {
-                    texts[i].at = to;
-                    texts[i].align = a;
-                    boxes[i] = Some(b);
-                }
-                None => {
-                    texts[i].at = at;
-                    texts[i].align = align;
-                }
-            }
-        }
-    }
-
-    /// The label rule (module documentation, "Slot text collisions" rule 6, rc.3): a label ([`SlotText::stack`]) that
-    /// lies on another representation's pin text, or on a label of its own symbol printed before it, moves off it:
-    /// a function text rises above it (an interruption point's name on a box's "+"), a part number, manufacturer or
-    /// technical-data text drops below it (a turned breaker's part number and rating on one row), [`SLOT_TEXT_GAP`]
-    /// apart, at most [`SLOT_TEXT_DROPS`] times, to the first place that overlaps no text or pin text, that no wire
-    /// runs through and that lies inside the page's drawing area. Without one it stays.
-    fn place_labels_clear(&self, view: &PageView, texts: &mut [SlotText<'_>], pins: &[(EntityRef, Rect)]) {
-        if !texts.iter().any(|t| t.stack.is_some()) {
-            return;
-        }
-        let wires = page_wires(view);
-        let area = drawing_area(view);
-        let mut boxes: Vec<Option<Rect>> = texts
-            .iter()
-            .map(|t| self.text_box(&t.spec(false), t.xref))
-            .collect();
-        for i in 0..texts.len() {
-            let Some(up) = texts[i].stack else { continue };
-            if texts[i].angle != Angle2::ZERO {
-                continue;
-            }
-            let Some(own) = boxes[i] else { continue };
-            let entity = texts[i].entity;
-            let mut hit: Vec<Rect> = pins
-                .iter()
-                .filter(|(e, p)| *e != entity && overlaps(own, *p))
-                .map(|(_, p)| *p)
-                .chain(
-                    (0..i)
-                        .filter(|&k| texts[k].entity == entity && texts[k].stack.is_some())
-                        .filter_map(|k| boxes[k])
-                        .filter(|o| overlaps(own, *o)),
-                )
-                .collect();
-            let mut b = own;
-            let mut found = None;
-            for _ in 0..SLOT_TEXT_DROPS {
-                let dy = if up {
-                    let Some(top) = hit.iter().map(|r| r.min().y).min() else {
-                        break;
-                    };
-                    top - SLOT_TEXT_GAP - b.max().y
-                } else {
-                    let Some(bottom) = hit.iter().map(|r| r.max().y).max() else {
-                        break;
-                    };
-                    bottom + SLOT_TEXT_GAP - b.min().y
-                };
-                b = Rect::from_points(
-                    Pt2::new(b.min().x, b.min().y + dy),
-                    Pt2::new(b.max().x, b.max().y + dy),
-                );
-                let inside = area.min().y <= b.min().y && b.max().y <= area.max().y;
-                if !inside || wires.iter().any(|w| wire_through(b, *w)) {
-                    break;
-                }
-                hit = boxes
-                    .iter()
-                    .enumerate()
-                    .filter(|(k, _)| *k != i)
-                    .filter_map(|(_, o)| *o)
-                    .chain(pins.iter().map(|(_, p)| *p))
-                    .filter(|o| overlaps(b, *o))
-                    .collect();
-                if hit.is_empty() {
-                    found = Some(b);
-                    break;
-                }
-            }
-            if let Some(b) = found {
-                texts[i].at = texts[i].at + Pt2::new(Nm::ZERO, b.min().y - own.min().y);
-                boxes[i] = Some(b);
-            }
-        }
-    }
-
-    /// The placement rules of the slot texts (module documentation, "Slot text collisions"): a
-    /// horizontal cross-reference text that overlaps another slot text on the page (its own symbol's or another
-    /// representation's) drops below the lowest of those texts, [`SLOT_TEXT_GAP`] apart, when it overlaps no
-    /// slot text there; texts are taken in print order, each seeing the earlier ones where they ended. The black
-    /// boxes' pin texts (`pins`) are fixed obstacles of the cross-reference texts and of the
-    /// technical-data texts: one that such a text overlaps sends it down like a slot text of the same
-    /// representation does.
-    fn place_slot_texts(&self, texts: &mut [SlotText<'_>], pins: &[(EntityRef, Rect)]) {
-        let mut boxes: Vec<Option<Rect>> = texts
-            .iter()
-            .map(|t| self.text_box(&t.spec(false), t.xref))
-            .collect();
-        for i in 0..texts.len() {
-            let Some(own) = boxes[i] else { continue };
-            if !(texts[i].xref || texts[i].data) || texts[i].angle != Angle2::ZERO {
-                continue;
-            }
-            // Each other box with whether it is the same representation's: within one symbol only an overlap
-            // collides (its author placed the texts), between representations also a gap below [`SLOT_TEXT_GAP`].
-            // A technical-data text yields only to other representations' texts.
-            // A pin text counts as a text of the same representation: only an overlap collides, and it sends the
-            // text further down; so for a technical-data text too (`pin`).
-            let others = || {
-                boxes
-                    .iter()
-                    .enumerate()
-                    .filter(|(k, _)| *k != i)
-                    .filter_map(|(k, b)| b.map(|b| (texts[k].entity == texts[i].entity, false, b)))
-                    .chain(pins.iter().map(|(_, b)| (true, true, *b)))
-            };
-            let hits = |at: Rect, (same, pin, b): (bool, bool, Rect)| {
-                if pin {
-                    overlaps(at, b)
-                } else if same {
-                    !texts[i].data && overlaps(at, b)
-                } else {
-                    collides(at, b)
-                }
-            };
-            let Some(mut bottom) = others()
-                .filter(|o| hits(own, *o))
-                .map(|(_, _, b)| b.max().y)
-                .max()
-            else {
-                continue;
-            };
-            // Where it lands it may still meet a text of its own symbol (its CP designation reaching under it): it
-            // drops below that one too, at most [`SLOT_TEXT_DROPS`] times; else it stays where it was.
-            let blocked = |at: Rect, (same, _, b): (bool, bool, Rect)| {
-                if same { overlaps(at, b) } else { collides(at, b) }
-            };
-            for _ in 0..SLOT_TEXT_DROPS {
-                let drop = Nm(bottom.0 + SLOT_TEXT_GAP.0 - own.min().y.0);
-                let moved = Rect::from_points(
-                    Pt2::new(own.min().x, own.min().y + drop),
-                    Pt2::new(own.max().x, own.max().y + drop),
-                );
-                let blockers: Vec<(bool, bool, Rect)> = others().filter(|o| blocked(moved, *o)).collect();
-                if blockers.is_empty() {
-                    texts[i].at = texts[i].at + Pt2::new(Nm::ZERO, drop);
-                    boxes[i] = Some(moved);
-                    break;
-                }
-                // Only its own symbol's texts send it further down; another representation's text there means no
-                // free place nearby, and it stays.
-                if blockers.iter().any(|(same, _, _)| !same) {
-                    break;
-                }
-                bottom = blockers.iter().map(|(_, _, b)| b.max().y).max().unwrap_or(bottom);
-            }
-        }
-    }
-
-    /// The wire rule of the cross-reference texts (module documentation, "Slot text collisions" rule 4): a
-    /// horizontal cross-reference text that a horizontal wire runs through rises [`SLOT_TEXT_GAP`] above what is in
-    /// its way, at most [`SLOT_TEXT_DROPS`] times, to the first place the device-tag rule judges free (no wire runs
-    /// through it, it overlaps no other text of its own symbol and collides with no text or pin text of another
-    /// representation, and overlaps no other representation's symbol body) inside the page's drawing area;
-    /// without a free place it stays.
-    fn place_xrefs_off_wires(&self, view: &PageView, texts: &mut [SlotText<'_>], pins: &[(EntityRef, Rect)]) {
-        if !texts.iter().any(|t| t.xref && t.angle == Angle2::ZERO) {
-            return;
-        }
-        let wires = page_wires(view);
-        let bodies = symbol_bodies(view);
-        let area = drawing_area(view);
-        let mut boxes: Vec<Option<Rect>> = texts
-            .iter()
-            .map(|t| self.text_box(&t.spec(false), t.xref))
-            .collect();
-        let entities: Vec<EntityRef> = texts.iter().map(|t| t.entity).collect();
-        for i in 0..texts.len() {
-            if !texts[i].xref || texts[i].angle != Angle2::ZERO {
-                continue;
-            }
-            // The printed text, every line of a list where the list prints (grown down from its first line),
-            // is judged against the wires.
-            let Some(own) = boxes[i] else {
-                continue;
-            };
-            if !wires
-                .iter()
-                .any(|&(a, c)| a.y == c.y && wire_through(own, (a, c)))
-            {
-                continue;
-            }
-            let entity = entities[i];
-            let in_way = |b: Rect, boxes: &[Option<Rect>]| {
-                with_bodies(
-                    in_the_way(b, entity, (boxes, &entities), |k| k == i, pins, &wires),
-                    b,
-                    entity,
-                    &bodies,
-                )
-            };
-            let mut b = own;
-            let mut found = false;
-            for _ in 0..SLOT_TEXT_DROPS {
-                let Some(top) = in_way(b, &boxes).and_then(|w| w.iter().map(|w| w.0).min()) else {
-                    break;
-                };
-                let dy = Nm(top.0 - SLOT_TEXT_GAP.0 - b.max().y.0);
-                b = Rect::from_points(
-                    Pt2::new(b.min().x, b.min().y + dy),
-                    Pt2::new(b.max().x, b.max().y + dy),
-                );
-                if b.min().y < area.min().y {
-                    break;
-                }
-                if in_way(b, &boxes).is_some_and(|w| w.is_empty()) {
-                    found = true;
-                    break;
-                }
-            }
-            if found {
-                let dy = b.min().y - own.min().y;
-                texts[i].at = texts[i].at + Pt2::new(Nm::ZERO, dy);
-                boxes[i] = boxes[i].map(|r| {
-                    Rect::from_points(
-                        Pt2::new(r.min().x, r.min().y + dy),
-                        Pt2::new(r.max().x, r.max().y + dy),
-                    )
-                });
-            }
-        }
-    }
-
-    /// The own-wire rule of a point's cross-reference text (module documentation, "Slot text collisions" rule 5): the
-    /// horizontal cross-reference text of a symbol with one CP (an interruption point, an external connection point)
-    /// that its own wire runs through takes the first free place of: in line with the symbol beyond its right edge
-    /// (an arrow's tip), in line before its left edge, centred above its other texts; free as rule 4 judges it, inside
-    /// the drawing area. Without a free place it stays.
-    fn place_point_xrefs_off_own_wire(
-        &self,
-        view: &PageView,
-        texts: &mut [SlotText<'_>],
-        pins: &[(EntityRef, Rect)],
-    ) {
-        let points: Vec<&RepView> = view
-            .reps
-            .iter()
-            .filter(|rv| rv.symbol.as_ref().is_some_and(|d| d.cps.len() == 1))
-            .collect();
-        if points.is_empty() || !texts.iter().any(|t| t.xref && t.angle == Angle2::ZERO) {
-            return;
-        }
-        let cps = cp_map(view);
-        let page = page_rect(view);
-        let wires = page_wires(view);
-        let bodies = symbol_bodies(view);
-        let area = drawing_area(view);
-        let mut boxes: Vec<Option<Rect>> = texts
-            .iter()
-            .map(|t| self.text_box(&t.spec(false), t.xref))
-            .collect();
-        let entities: Vec<EntityRef> = texts.iter().map(|t| t.entity).collect();
-        for i in 0..texts.len() {
-            if !texts[i].xref || texts[i].angle != Angle2::ZERO {
-                continue;
-            }
-            let entity = entities[i];
-            let Some(rv) = points.iter().find(|rv| EntityRef(rv.rep.id.as_uuid()) == entity) else {
-                continue;
-            };
-            let Some(own) = boxes[i] else { continue };
-            // The point's own wires, as the page draws them (routed connections, as `page_wires`).
-            let own_wires: Vec<(Pt2, Pt2)> = sorted_connections(view)
-                .into_iter()
-                .filter(|cv| !cv.connection.route.is_empty())
-                .filter(|cv| {
-                    [&cv.connection.a, &cv.connection.b]
-                        .iter()
-                        .any(|e| matches!(e, Endpoint::Cp(f, _) if rv.rep.functions.contains(f)))
-                })
-                .filter_map(|cv| polyline_of(view, &cps, &cv.connection, page))
-                .flat_map(|pts| pts.windows(2).map(|w| (w[0], w[1])).collect::<Vec<_>>())
-                .collect();
-            if !own_wires.iter().any(|&w| wire_through(own, w)) {
-                continue;
-            }
-            let Some(body) = bodies.iter().find(|(e, _)| *e == entity).map(|(_, b)| *b) else {
-                continue;
-            };
-            let middle = Nm(body.min().y.0 + (body.max().y.0 - body.min().y.0) / 2);
-            let top = (0..texts.len())
-                .filter(|&k| k != i && entities[k] == entity)
-                .filter_map(|k| boxes[k].map(|b| b.min().y))
-                .chain([body.min().y])
-                .min()
-                .unwrap_or(body.min().y);
-            let centre = Nm(body.min().x.0 + (body.max().x.0 - body.min().x.0) / 2);
-            let places = [
-                (Pt2::new(body.max().x + SLOT_TEXT_GAP, middle), Align::MiddleLeft),
-                (Pt2::new(body.min().x - SLOT_TEXT_GAP, middle), Align::MiddleRight),
-                (Pt2::new(centre, top - SLOT_TEXT_GAP), Align::BottomCentre),
-            ];
-            for (at, align) in places {
-                let spec = TextSpec {
-                    at,
-                    align: &align,
-                    ..texts[i].spec(false)
-                };
-                let Some(b) = self.text_box(&spec, true) else {
-                    continue;
-                };
-                let inside = area.min().x <= b.min().x
-                    && b.max().x <= area.max().x
-                    && area.min().y <= b.min().y
-                    && b.max().y <= area.max().y;
-                let free = with_bodies(
-                    in_the_way(b, entity, (&boxes, &entities), |k| k == i, pins, &wires),
-                    b,
-                    entity,
-                    &bodies,
-                )
-                .is_some_and(|w| w.is_empty());
-                if inside && free && !overlaps(b, body) {
-                    texts[i].at = at;
-                    texts[i].align = align;
-                    boxes[i] = Some(b);
-                    break;
-                }
-            }
-        }
-    }
-
-    /// One wire marker (module documentation, "Wire markers"): the line through `at` across the wires it crosses at
-    /// `crossings` (along the line; `at` itself without one), then `text` beyond the line's end as `place` says.
-    pub(crate) fn wire_marker(
-        &mut self,
-        view: &PageView,
-        at: Pt2,
-        crossings: &[Nm],
-        place: MarkerText,
-        text: &str,
-        entity: EntityRef,
-    ) {
-        let horizontal = place == MarkerText::Right;
-        let mine = if horizontal { at.x } else { at.y };
-        let lo = crossings.iter().copied().min().unwrap_or(mine) - MARKER_REACH;
-        let hi = crossings.iter().copied().max().unwrap_or(mine) + MARKER_REACH;
-        let (a, b) = if horizontal {
-            (Pt2::new(lo, at.y), Pt2::new(hi, at.y))
-        } else {
-            (Pt2::new(at.x, lo), Pt2::new(at.x, hi))
-        };
-        self.push(Item::path(Path::line(a, b), Some(wire_stroke(view.grid)), None).with_entity(entity));
-        let (at, angle, align) = match place {
-            MarkerText::Right => (Pt2::new(hi + MARKER_GAP, at.y), Angle2::ZERO, Align::MiddleLeft),
-            MarkerText::Above => (Pt2::new(at.x, lo - MARKER_GAP), Angle2::ZERO, Align::BottomCentre),
-            MarkerText::Up => (Pt2::new(at.x, lo - MARKER_GAP), Angle2(90_000), Align::MiddleLeft),
-        };
-        self.text(&TextSpec {
-            text,
-            at,
-            angle,
-            align: &align,
-            style_key: MARKER_STYLE,
-            entity,
-            link: None,
-            items: &[],
-        });
-    }
-
-    /// One cable's mark (module documentation, "Cable marks"): the line through the marker's `at` across the cable's
-    /// wires, a slanted stroke and the core's designation at each core it crosses, and the tag with the type line at
-    /// the line's start.
-    pub(crate) fn cable_mark(
-        &mut self,
-        view: &PageView,
-        m: &ew_schema::WireMarker,
-        mark: &ew_derive::CableMark,
-        entity: EntityRef,
-    ) {
-        // Turned 90° the line is vertical, across horizontal wires; else horizontal, across vertical ones.
-        let horizontal = m.angle != Angle2(90_000);
-        let cps = cp_map(view);
-        let page = page_rect(view);
-        let crossings: Vec<(Nm, &str)> = mark
-            .cores
-            .iter()
-            .filter_map(|(id, core)| {
-                let cv = view.connections.iter().find(|c| c.connection.id == *id)?;
-                let pts = polyline_of(view, &cps, &cv.connection, page)?;
-                Some((crossing_of(&pts, m.at, horizontal)?, core.as_str()))
-            })
-            .collect();
-        let mine = if horizontal { m.at.x } else { m.at.y };
-        let lo = crossings.iter().map(|c| c.0).min().unwrap_or(mine) - MARKER_REACH;
-        let hi = crossings.iter().map(|c| c.0).max().unwrap_or(mine) + MARKER_REACH;
-        let on_line = |along: Nm| {
-            if horizontal {
-                Pt2::new(along, m.at.y)
-            } else {
-                Pt2::new(m.at.x, along)
-            }
-        };
-        let stroke = wire_stroke(view.grid);
-        self.push(
-            Item::path(Path::line(on_line(lo), on_line(hi)), Some(stroke.clone()), None).with_entity(entity),
-        );
-        // What the tag and its type line keep clear of (rc.3): the texts printed so far, the symbols, and this mark's
-        // core names.
-        let mut clear: Vec<Rect> = self
-            .out
-            .slot_texts
-            .iter()
-            .map(|s| s.rect)
-            .chain(self.kept_clear.iter().copied())
-            .chain(symbol_bodies(view).into_iter().map(|(_, r)| r))
-            .collect();
-        // Where the core names end on the right: the tag at the line's end stands beyond them.
-        let mut names_end = Nm::ZERO;
-        for (along, core) in &crossings {
-            let p = on_line(*along);
-            let tick = Path::line(
-                Pt2::new(p.x - CABLE_TICK, p.y + CABLE_TICK),
-                Pt2::new(p.x + CABLE_TICK, p.y - CABLE_TICK),
-            );
-            self.push(Item::path(tick, Some(stroke.clone()), None).with_entity(entity));
-            // A bus line has no core name: the cable carries the whole line.
-            if core.is_empty() {
-                continue;
-            }
-            // Beside its own wire, just past the stroke's upper end: right of a vertical wire above the line, above a
-            // horizontal wire right of the line.
-            let name = cable_text(
-                core,
-                Pt2::new(p.x + CABLE_TICK + CABLE_TEXT_GAP, p.y - CABLE_TEXT_GAP),
-                &Align::BottomLeft,
-                MARKER_STYLE,
-                entity,
-            );
-            let name_box = self.text_box(&name, false);
-            names_end = names_end.max(name_box.map_or(Nm::ZERO, |b| b.max().x));
-            clear.extend(name_box);
-            self.text(&name);
-        }
-        // The tag: left of the line's start across vertical wires, above it across horizontal ones; where the tag or
-        // its type line would lie on another text or a symbol there, at the line's other end (right of it, below it);
-        // with neither free, at the start. A moved tag stands where it was put.
-        let (start, end) = (on_line(lo), on_line(hi));
-        let places = if horizontal {
-            [
-                (Pt2::new(start.x - MARKER_GAP, start.y), Align::MiddleRight),
-                (
-                    Pt2::new(end.x.max(names_end) + MARKER_GAP, end.y),
-                    Align::MiddleLeft,
-                ),
-            ]
-        } else {
-            // Above the line, with room for the type line between the tag and the line's start.
-            let kind = cable_text(&mark.kind, start, &Align::BottomCentre, CABLE_KIND_STYLE, entity);
-            let kind_h = self
-                .text_box(&kind, false)
-                .map_or(Nm::ZERO, |b| b.max().y - b.min().y + CABLE_TEXT_GAP);
-            [
-                (
-                    Pt2::new(start.x, start.y - MARKER_GAP - kind_h),
-                    Align::BottomCentre,
-                ),
-                (Pt2::new(end.x, end.y + MARKER_GAP), Align::TopCentre),
-            ]
-        };
-        let moved = m.tag_at.and_then(|d| {
-            Some(Pt2::new(
-                Nm(m.at.x.0.checked_add(d.x.0)?),
-                Nm(m.at.y.0.checked_add(d.y.0)?),
-            ))
-        });
-        // A place is free where its texts lie on nothing and inside the drawing area (rc.5: a bus line's tag stood on
-        // the frame's column numbers).
-        let area = drawing_area(view);
-        let inside = |b: Rect| {
-            b.min().x >= area.min().x
-                && b.min().y >= area.min().y
-                && b.max().x <= area.max().x
-                && b.max().y <= area.max().y
-        };
-        let free = |p: &CablePlace| {
-            inside(p.tag_box)
-                && p.kind_box.is_none_or(inside)
-                && !clear
-                    .iter()
-                    .any(|o| collides(p.tag_box, *o) || p.kind_box.is_some_and(|k| collides(k, *o)))
-        };
-        let chosen = match moved {
-            Some(at) => self.cable_tag_place(mark, entity, at, places[0].1.clone()),
-            None => {
-                let all: Vec<CablePlace> = places
-                    .iter()
-                    .filter_map(|(at, align)| self.cable_tag_place(mark, entity, *at, align.clone()))
-                    .collect();
-                let first = all.iter().position(free).unwrap_or(0);
-                all.into_iter().nth(first)
-            }
-        };
-        let Some(place) = chosen else {
-            return;
-        };
-        let (tag_at, tag_box) = (place.tag_at, place.tag_box);
-        self.text(&cable_text(
-            &mark.tag,
-            tag_at,
-            &place.tag_align,
-            CABLE_TAG_STYLE,
-            entity,
-        ));
-        self.text(&cable_text(
-            &mark.kind,
-            place.kind_at,
-            &place.kind_align,
-            CABLE_KIND_STYLE,
-            entity,
-        ));
-        self.kept_clear.push(tag_box);
-        self.kept_clear.extend(place.kind_box);
-        // The tag is moved as a symbol's text is, in the frame of the marker's point.
-        self.out.slot_texts.push(SlotTextBox {
-            rep: entity.0,
-            slot: 0,
-            at: tag_at,
-            angle: Angle2::ZERO,
-            moved: m.tag_at.is_some(),
-            rect: tag_box,
-            frame: ew_derive::TextFrame {
-                origin: m.at,
-                orient: Orient2::R0,
-            },
-        });
-    }
-
-    /// A cable mark's tag at `at` aligned `align` and its type line under it (module documentation, "Cable marks"):
-    /// the type line starts where the tag starts, or, beside a tag that ends towards the wires and is shorter than the
-    /// type line, ends where the tag ends, so that it never reaches the wires. `None` when the tag has no box.
-    fn cable_tag_place(
-        &self,
-        mark: &ew_derive::CableMark,
-        entity: EntityRef,
-        at: Pt2,
-        align: Align,
-    ) -> Option<CablePlace> {
-        let tag_box = self.text_box(&cable_text(&mark.tag, at, &align, CABLE_TAG_STYLE, entity), false)?;
-        let below = tag_box.max().y + CABLE_TEXT_GAP;
-        let kind_box = |at: Pt2, align: &Align| {
-            self.text_box(
-                &cable_text(&mark.kind, at, align, CABLE_KIND_STYLE, entity),
-                false,
-            )
-        };
-        let left = Pt2::new(tag_box.min().x, below);
-        let left_box = kind_box(left, &Align::TopLeft);
-        let toward_wires = matches!(align, Align::MiddleRight | Align::BottomCentre);
-        let (kind_at, kind_align) = if toward_wires && left_box.is_some_and(|b| b.max().x > tag_box.max().x) {
-            (Pt2::new(tag_box.max().x, below), Align::TopRight)
-        } else {
-            (left, Align::TopLeft)
-        };
-        Some(CablePlace {
-            tag_at: at,
-            tag_align: align,
-            tag_box,
-            kind_at,
-            kind_box: kind_box(kind_at, &kind_align),
-            kind_align,
-        })
-    }
-
     /// The crossings of the connections `ids` drawn on the page with the line through `at` (horizontal or
     /// vertical), along the line ([`crossing_of`]); a connection the page does not draw, or one the line misses,
     /// has none.
@@ -2895,70 +1510,6 @@ impl Builder<'_> {
             .filter_map(|cv| polyline_of(view, &cps, &cv.connection, page))
             .filter_map(|pts| crossing_of(&pts, at, horizontal))
             .collect()
-    }
-
-    /// The per-connection wire markers, by connection ID.
-    fn connection_markers(&mut self, view: &PageView) {
-        let markers: Vec<&ConnectionView> = sorted_connections(view)
-            .into_iter()
-            .filter(|c| {
-                c.marker.as_deref().is_some_and(|m| !m.is_empty())
-                    || c.number.as_deref().is_some_and(|n| !n.is_empty())
-            })
-            .collect();
-        if markers.is_empty() {
-            return;
-        }
-        let cps = cp_map(view);
-        let page = page_rect(view);
-        for cv in markers {
-            let c = &cv.connection;
-            let Some(pts) = polyline_of(view, &cps, c, page) else {
-                continue;
-            };
-            let Some((at, vertical)) = marker_point(&pts) else {
-                continue;
-            };
-            let entity = EntityRef(c.id.as_uuid());
-            // One text: the wire's number first, then its marker's values.
-            let text = [cv.number.as_deref(), cv.marker.as_deref()]
-                .into_iter()
-                .flatten()
-                .filter(|t| !t.is_empty())
-                .collect::<Vec<_>>()
-                .join(" ");
-            if cv.marker.as_deref().is_some_and(|m| !m.is_empty()) {
-                let (place, crossing) = if vertical {
-                    (MarkerText::Right, at.x)
-                } else {
-                    (MarkerText::Above, at.y)
-                };
-                self.wire_marker(view, at, &[crossing], place, &text, entity);
-                continue;
-            }
-            // A number alone stands beside its wire, as a marker's text does, without the marker's line.
-            let (at, align) = if vertical {
-                (Pt2::new(at.x + MARKER_GAP, at.y), Align::MiddleLeft)
-            } else {
-                (Pt2::new(at.x, at.y - MARKER_GAP), Align::BottomCentre)
-            };
-            // A bus line's number is its cable's tag (module documentation, "Wire numbers").
-            let style_key = if matches!(c.kind, ConnectionKind::Bus(_)) {
-                CABLE_TAG_STYLE
-            } else {
-                MARKER_STYLE
-            };
-            self.text(&TextSpec {
-                text: &text,
-                at,
-                angle: Angle2::ZERO,
-                align: &align,
-                style_key,
-                entity,
-                link: None,
-                items: &[],
-            });
-        }
     }
 
     pub(crate) fn geometry(&mut self, s: &SymbolRef, orient: Orient2) -> SymbolGeomId {
@@ -3001,7 +1552,7 @@ impl Builder<'_> {
 
     /// [`text`](Builder::text); with `first_line` a text of several lines aligned to the middle keeps its first line
     /// where a one-line text would sit and grows downward in its own frame (module documentation).
-    fn text_placed(&mut self, spec: &TextSpec<'_>, first_line: bool) {
+    pub(crate) fn text_placed(&mut self, spec: &TextSpec<'_>, first_line: bool) {
         if spec.text.is_empty() {
             return;
         }
@@ -3073,12 +1624,21 @@ impl Builder<'_> {
     /// The bounds of the layout boxes of `spec`'s lines as [`text_placed`](Builder::text_placed) would place
     /// them; `None` for an empty text. Reports nothing (an unknown style measures in the default style).
     pub(crate) fn text_box(&self, spec: &TextSpec<'_>, first_line: bool) -> Option<Rect> {
+        self.text_box_in(spec, &self.style_quiet(spec.style_key), first_line)
+    }
+
+    /// [`text_box`](Builder::text_box) of `spec` shaped in `style`.
+    pub(crate) fn text_box_in(
+        &self,
+        spec: &TextSpec<'_>,
+        style: &TextStyle,
+        first_line: bool,
+    ) -> Option<Rect> {
         if spec.text.is_empty() {
             return None;
         }
-        let style = self.style_quiet(spec.style_key);
-        let shaped = self.fonts.shape(spec.text, &style, None);
-        let lines = self.lay_out(spec, &style, &shaped, first_line);
+        let shaped = self.fonts.shape(spec.text, style, None);
+        let lines = self.lay_out(spec, style, &shaped, first_line);
         let mut out: Option<Rect> = None;
         for item in &lines {
             let quad: Vec<Pt2> = match &item.kind {
@@ -3273,11 +1833,11 @@ fn is_line_break(c: char) -> bool {
 pub const PIN_TEXT_GAP: Nm = Nm(1_000_000);
 
 /// A placed pin text: its entity, text, point, angle and alignment.
-type PlacedPin = (EntityRef, String, Pt2, Angle2, Align);
+pub(crate) type PlacedPin = (EntityRef, String, Pt2, Angle2, Align);
 
 /// The pin texts of the page's black boxes, by representation ID then box-CP order (module documentation, "Pin
 /// texts").
-fn pin_texts(view: &PageView) -> Vec<PlacedPin> {
+pub(crate) fn pin_texts(view: &PageView) -> Vec<PlacedPin> {
     let mut out = Vec::new();
     for rv in sorted_reps(view) {
         let rep = &rv.rep;
@@ -3319,6 +1879,51 @@ fn pin_texts(view: &PageView) -> Vec<PlacedPin> {
     out
 }
 
+/// Where the text beside a plug's pin stands (module documentation of [`Builder::plug_notes`]): its anchor, angle
+/// and alignment.
+pub(crate) fn plug_note_place(n: &PlugNoteView) -> (Pt2, Angle2, Align) {
+    let gap = Nm(1_000_000);
+    let side = Nm(700_000);
+    let out = if n.forward { gap } else { Nm(-gap.0) };
+    match (n.vertical, n.forward) {
+        (true, false) => (
+            Pt2::new(n.at.x - side, n.at.y + out),
+            Angle2(90_000),
+            Align::MiddleLeft,
+        ),
+        (true, true) => (
+            Pt2::new(n.at.x - side, n.at.y + out),
+            Angle2(90_000),
+            Align::MiddleRight,
+        ),
+        (false, true) => (
+            Pt2::new(n.at.x + out, n.at.y - Nm(gap.0 / 2)),
+            Angle2(0),
+            Align::BottomLeft,
+        ),
+        (false, false) => (
+            Pt2::new(n.at.x + out, n.at.y - Nm(gap.0 / 2)),
+            Angle2(0),
+            Align::BottomRight,
+        ),
+    }
+}
+
+/// A drawn function CP: its function, its index, its point and the direction a wire leaves it.
+pub(crate) type DrawnCp = (Id<Function>, u16, Pt2, Dir4);
+
+/// The function CPs each representation draws, by representation ID. A CP that several representations draw is the
+/// first one's by ID, as [`cp_map`] has it.
+pub(crate) fn cp_owners(view: &PageView) -> BTreeMap<Uuid, Vec<DrawnCp>> {
+    let mut out: BTreeMap<Uuid, Vec<DrawnCp>> = BTreeMap::new();
+    for ((function, idx), (pos, dir, rep)) in drawn_cps(view) {
+        out.entry(rep)
+            .or_default()
+            .push((Id::from_uuid(function), idx, pos, dir));
+    }
+    out
+}
+
 /// The arc of a flexible fluid line through the ends of its route `pts` (ISO 1219-1, a hose): a quadratic curve whose
 /// control point stands a quarter of the chord off the chord's middle, to the left of the direction from the first
 /// end to the last; the straight line where both ends coincide.
@@ -3337,54 +1942,8 @@ fn flexible_arc(pts: &[Pt2]) -> Path {
     Path::builder().move_to(*a).quad_to(control, *b).build()
 }
 
-/// How far a black box's caption stands above its outline: the black-box symbol's own tag-slot offset, a
-/// quarter of a QET grid step (0.661 mm).
-pub const BLACK_BOX_CAPTION_GAP: Nm = Nm(661_458);
-
-/// The gap a dropped cross-reference text keeps below the text it moved away from: 0.5 mm.
-pub const SLOT_TEXT_GAP: Nm = Nm(500_000);
-
-/// The most times one slot text drops: below the text it collided with, then below a text it
-/// meets there, and so on.
-const SLOT_TEXT_DROPS: usize = 3;
-
-/// One visible slot text of a representation before it prints: what [`TextSpec`] needs and whether the
-/// slot is a cross-reference the placement rules may move.
-struct SlotText<'v> {
-    symbol: Uuid,
-    value: &'v SlotValue,
-    /// The representation's text frame.
-    frame: ew_derive::TextFrame,
-    /// Whether the representation's override moves or turns it.
-    moved: bool,
-    at: Pt2,
-    angle: Angle2,
-    align: Align,
-    style_key: &'v str,
-    unknown: Option<&'v str>,
-    entity: EntityRef,
-    /// A cross-reference slot at the symbol's own position (no position override).
-    xref: bool,
-    /// A technical-data slot at the symbol's own position (no position override): it drops like a cross-reference
-    /// when it collides with another representation's text (a valve's "24 V" ran into the next tag).
-    data: bool,
-    /// A black box's caption line at the symbol's own position and angle (no override): its place in the caption
-    /// stack ([`caption_rank`]).
-    caption: Option<u8>,
-    /// A device-tag slot.
-    tag: bool,
-    /// A device tag the tag rule may move: not a black box's, without a position or angle override.
-    movable_tag: bool,
-    /// A CP designation slot: a fixed text the tag rule yields to.
-    designation: bool,
-    /// A label the label rule moves off what it lies on (rc.3), at the symbol's own position and angle: a function text
-    /// rises (`Some(true)`: an interruption point's name over a box's pin text), a part number, manufacturer or
-    /// technical data text drops (`Some(false)`: a turned breaker's texts on one row).
-    stack: Option<bool>,
-}
-
 /// `align` with its horizontal part kept and its vertical part at the bottom (a strip tag).
-fn bottom_align(align: &Align) -> Align {
+pub(crate) fn bottom_align(align: &Align) -> Align {
     match align {
         Align::TopLeft | Align::MiddleLeft | Align::BottomLeft => Align::BottomLeft,
         Align::TopCentre | Align::Centre | Align::BottomCentre => Align::BottomCentre,
@@ -3396,252 +1955,10 @@ fn bottom_align(align: &Align) -> Align {
 /// `step` towards the top of a text at `angle` (y down; a text at 90° reads bottom to top, so its top is to the
 /// left): the point of the circle of radius `step` at `angle + 90°`, by `ew_dl::num::arc_point` (doc 09 §4.3 rule 4:
 /// no platform trigonometry, nanometre ties toward zero; a quarter turn lands exactly on the page axes).
-fn up_by(angle: Angle2, step: Nm) -> Pt2 {
+pub(crate) fn up_by(angle: Angle2, step: Nm) -> Pt2 {
     // `normalized` is below 360°, so adding a quarter turn cannot overflow.
     let up = Angle2(angle.normalized().0 + 90_000);
     ew_dl::num::arc_point(Pt2::ORIGIN, step, step, up)
-}
-
-/// `align` mirrored left to right.
-fn mirrored_align(align: &Align) -> Align {
-    match align {
-        Align::TopLeft => Align::TopRight,
-        Align::TopRight => Align::TopLeft,
-        Align::MiddleLeft => Align::MiddleRight,
-        Align::MiddleRight => Align::MiddleLeft,
-        Align::BottomLeft => Align::BottomRight,
-        Align::BottomRight => Align::BottomLeft,
-        other => other.clone(),
-    }
-}
-
-/// The page's wire segments, connections in ID order: the obstacles of the tag rule.
-fn page_wires(view: &PageView) -> Vec<(Pt2, Pt2)> {
-    let cps = cp_map(view);
-    let page = page_rect(view);
-    let mut wires: Vec<(Pt2, Pt2)> = Vec::new();
-    // An unrouted connection has no wire geometry.
-    for cv in sorted_connections(view)
-        .into_iter()
-        .filter(|cv| !cv.connection.route.is_empty())
-    {
-        if let Some(pts) = polyline_of(view, &cps, &cv.connection, page) {
-            wires.extend(pts.windows(2).map(|w| (w[0], w[1])));
-        }
-    }
-    wires
-}
-
-/// The segments of the page's stored wires (a connection with a stored route), connections in ID order: the obstacles
-/// of a black box's caption stack.
-fn stored_wires(view: &PageView) -> Vec<(Pt2, Pt2)> {
-    let cps = cp_map(view);
-    let page = page_rect(view);
-    let mut wires: Vec<(Pt2, Pt2)> = Vec::new();
-    for cv in sorted_connections(view)
-        .into_iter()
-        .filter(|cv| !cv.connection.route.is_empty())
-    {
-        if let Some(pts) = polyline_of(view, &cps, &cv.connection, page) {
-            wires.extend(pts.windows(2).map(|w| (w[0], w[1])));
-        }
-    }
-    wires
-}
-
-/// `r` moved across by `dx`.
-fn shifted(r: Rect, dx: Nm) -> Rect {
-    Rect::from_points(
-        Pt2::new(r.min().x + dx, r.min().y),
-        Pt2::new(r.max().x + dx, r.max().y),
-    )
-}
-
-/// The tag rule's free test (module documentation, "Device tags"): what is
-/// in the way of a place `b` of a text of `entity`, as the vertical extent of each text (`texts`: the boxes and their
-/// entities, but those `skip` names) and pin text there, and of each horizontal wire through it; `None` when another
-/// wire runs through it. Empty: the place is free. A text or pin text of `entity` is in the way when it overlaps the
-/// place; another representation's when it collides with it.
-fn in_the_way(
-    b: Rect,
-    entity: EntityRef,
-    (boxes, entities): (&[Option<Rect>], &[EntityRef]),
-    skip: impl Fn(usize) -> bool,
-    pins: &[(EntityRef, Rect)],
-    wires: &[(Pt2, Pt2)],
-) -> Option<Vec<(Nm, Nm)>> {
-    let mut out: Vec<(Nm, Nm)> = Vec::new();
-    for (k, o) in boxes.iter().enumerate() {
-        if skip(k) {
-            continue;
-        }
-        let Some(o) = *o else { continue };
-        let hit = if entities[k] == entity {
-            overlaps(b, o)
-        } else {
-            collides(b, o)
-        };
-        if hit {
-            out.push((o.min().y, o.max().y));
-        }
-    }
-    for (e, o) in pins {
-        let hit = if *e == entity {
-            overlaps(b, *o)
-        } else {
-            collides(b, *o)
-        };
-        if hit {
-            out.push((o.min().y, o.max().y));
-        }
-    }
-    for &(a, c) in wires {
-        if wire_through(b, (a, c)) {
-            if a.y != c.y {
-                return None;
-            }
-            out.push((a.y, a.y));
-        }
-    }
-    Some(out)
-}
-
-/// The outline bounds of each representation's symbol on the page (`symbol::lower(def, orient).bounds` at its
-/// position, as the tag rule reads them), with the representation: the symbol bodies the rise of the cross-reference
-/// texts keeps clear of.
-fn symbol_bodies(view: &PageView) -> Vec<(EntityRef, Rect)> {
-    view.reps
-        .iter()
-        .filter_map(|rv| {
-            let def = rv.symbol.as_ref()?;
-            let b = symbol::lower(def, rv.rep.orient).bounds;
-            let pos = rv.rep.pos;
-            Some((
-                EntityRef(rv.rep.id.as_uuid()),
-                Rect::from_points(
-                    Pt2::new(pos.x + b.min().x, pos.y + b.min().y),
-                    Pt2::new(pos.x + b.max().x, pos.y + b.max().y),
-                ),
-            ))
-        })
-        .collect()
-}
-
-/// The bodies the tag rule keeps its tags off (rc.3): [`symbol_bodies`], a black box drawn with its own outline (a
-/// valve terminal's box of positions) by that outline.
-fn tag_bodies(view: &PageView) -> Vec<(EntityRef, Rect)> {
-    let mut bodies = symbol_bodies(view);
-    for (e, r) in &mut bodies {
-        let Some(rv) = view.reps.iter().find(|rv| EntityRef(rv.rep.id.as_uuid()) == *e) else {
-            continue;
-        };
-        let Some(b) = rv.rep.box_.as_ref().filter(|b| b.outline.len() > 2) else {
-            continue;
-        };
-        let pos = rv.rep.pos;
-        let points: Vec<Pt2> = b
-            .outline
-            .iter()
-            .map(|p| {
-                let q = rv.rep.orient.apply(*p);
-                Pt2::new(pos.x + q.x, pos.y + q.y)
-            })
-            .collect();
-        let (lo, hi) = points.iter().fold((points[0], points[0]), |(lo, hi), p| {
-            (
-                Pt2::new(lo.x.min(p.x), lo.y.min(p.y)),
-                Pt2::new(hi.x.max(p.x), hi.y.max(p.y)),
-            )
-        });
-        *r = Rect::from_points(lo, hi);
-    }
-    bodies
-}
-
-/// [`in_the_way`]'s answer for a place `b` of a text of `entity`, with the vertical extent of each other
-/// representation's symbol body (`bodies`) that the place overlaps added: the free test of the cross-reference texts'
-/// rise and of the device tags. Never the text's own symbol's body; not the captions.
-fn with_bodies(
-    in_way: Option<Vec<(Nm, Nm)>>,
-    b: Rect,
-    entity: EntityRef,
-    bodies: &[(EntityRef, Rect)],
-) -> Option<Vec<(Nm, Nm)>> {
-    let mut out = in_way?;
-    out.extend(
-        bodies
-            .iter()
-            .filter(|(e, r)| *e != entity && overlaps(b, *r))
-            .map(|(_, r)| (r.min().y, r.max().y)),
-    );
-    Some(out)
-}
-
-/// Whether a wire segment `(a, b)` meets the open inside of `r`.
-fn wire_through(r: Rect, (a, b): (Pt2, Pt2)) -> bool {
-    let (x0, x1) = (a.x.min(b.x), a.x.max(b.x));
-    let (y0, y1) = (a.y.min(b.y), a.y.max(b.y));
-    // A degenerate extent along an axis meets the open interval at a point inside it; a run by an overlap.
-    let meets = |lo: Nm, hi: Nm, rlo: Nm, rhi: Nm| {
-        if lo == hi {
-            rlo < lo && lo < rhi
-        } else {
-            lo < rhi && rlo < hi
-        }
-    };
-    meets(x0, x1, r.min().x, r.max().x) && meets(y0, y1, r.min().y, r.max().y)
-}
-
-/// The place of a black box's caption text in its stack, counted from the box outward: the tag, the part
-/// number, the manufacturer; `None` for any other slot kind.
-fn caption_rank(kind: &SlotKind) -> Option<u8> {
-    match kind {
-        SlotKind::Tag => Some(0),
-        SlotKind::PartNumber => Some(1),
-        SlotKind::Manufacturer => Some(2),
-        // A device with ports drawn as a box prints its address (FT-1767), as a port symbol does.
-        SlotKind::BusAddress => Some(3),
-        _ => None,
-    }
-}
-
-impl SlotText<'_> {
-    /// The text spec; `conflict` drops the whole-text link (a value with both kinds of link).
-    fn spec(&self, conflict: bool) -> TextSpec<'_> {
-        TextSpec {
-            text: &self.value.text,
-            at: self.at,
-            angle: self.angle,
-            align: &self.align,
-            style_key: self.style_key,
-            entity: self.entity,
-            link: self.value.link.filter(|_| !conflict).map(Link::Source),
-            items: &self.value.item_links,
-        }
-    }
-}
-
-/// The gap between two rectangles: the larger of their distances across and down, zero where they meet.
-fn rect_gap(a: Rect, b: Rect) -> i64 {
-    let dx = (a.min().x.0 - b.max().x.0).max(b.min().x.0 - a.max().x.0).max(0);
-    let dy = (a.min().y.0 - b.max().y.0).max(b.min().y.0 - a.max().y.0).max(0);
-    dx.max(dy)
-}
-
-/// Whether two rectangles share interior points (touching edges do not count).
-fn overlaps(a: Rect, b: Rect) -> bool {
-    a.min().x < b.max().x && b.min().x < a.max().x && a.min().y < b.max().y && b.min().y < a.max().y
-}
-
-/// Whether two slot-text boxes of two representations collide: they share interior points, or they sit side by side
-/// (their heights overlap) less than [`SLOT_TEXT_GAP`] apart, so the two texts would read as one ("(101-D6)-101K1").
-/// Texts stacked one above the other at any distance do not collide unless they overlap.
-fn collides(a: Rect, b: Rect) -> bool {
-    let gap = SLOT_TEXT_GAP.0;
-    a.min().x.0 < b.max().x.0 + gap
-        && b.min().x.0 < a.max().x.0 + gap
-        && a.min().y < b.max().y
-        && b.min().y < a.max().y
 }
 
 pub(crate) struct TextSpec<'a> {
@@ -3656,29 +1973,9 @@ pub(crate) struct TextSpec<'a> {
     pub(crate) items: &'a [ItemLink],
 }
 
-/// A horizontal text of a cable mark, without a link.
-fn cable_text<'a>(
-    text: &'a str,
-    at: Pt2,
-    align: &'a Align,
-    style_key: &'a str,
-    entity: EntityRef,
-) -> TextSpec<'a> {
-    TextSpec {
-        text,
-        at,
-        angle: Angle2::ZERO,
-        align,
-        style_key,
-        entity,
-        link: None,
-        items: &[],
-    }
-}
-
 /// The midpoint of the longest segment of `pts` (the first of equal ones) and whether that segment is
 /// vertical; `None` for fewer than two points.
-fn marker_point(pts: &[Pt2]) -> Option<(Pt2, bool)> {
+pub(crate) fn marker_point(pts: &[Pt2]) -> Option<(Pt2, bool)> {
     let mut best: Option<(i128, Pt2, bool)> = None;
     for w in pts.windows(2) {
         let (a, b) = (w[0], w[1]);

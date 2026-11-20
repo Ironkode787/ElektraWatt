@@ -15,6 +15,9 @@ publish = false
 workspace = true
 
 [dependencies]
+# The page as the layout sees it and its one measure (docs/design/06a-drafting.md): `Session::page_draft`, the layout
+# report and the layout rules.
+ew-drafting = { path = "../ew-drafting" }
 ew-store = { path = "../ew-store" }
 ew-commands = { path = "../ew-commands" }
 ew-checks = { path = "../ew-checks" }

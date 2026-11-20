@@ -10,10 +10,7 @@ use std::sync::Arc;
 
 use ew_dl::{EntityRef, ItemKind, Layer};
 use ew_ids::{Id, Uuid};
-use ew_scene::page::{
-    BLACK_BOX_CAPTION_GAP, ConnectionView, PageView, PinText, RepView, SLOT_TEXT_GAP, SlotValue, SymbolRef,
-    page_display_list,
-};
+use ew_scene::page::{ConnectionView, PageView, PinText, RepView, SlotValue, SymbolRef, page_display_list};
 use ew_schema::{Connection, LibCopy, LibDocument, Representation, SlotKind, SymbolDef};
 use ew_text::{builtin, bundled};
 use ew_units::{Pt2, Rect};
@@ -131,7 +128,8 @@ fn overlap(a: Rect, b: Rect) -> bool {
 
 /// Whether two texts run into each other: they overlap, or sit side by side less than the gap apart.
 fn run_into(a: Rect, b: Rect) -> bool {
-    let gap = SLOT_TEXT_GAP.0 - 1_000;
+    // The text placer keeps an eighth of a grid step between texts (docs/design/06a-drafting.md §1.5).
+    let gap = 7_937_500 / 3 / 8 - 1_000;
     a.min().x.0 < b.max().x.0 + gap
         && b.min().x.0 < a.max().x.0 + gap
         && a.min().y < b.max().y
@@ -173,76 +171,6 @@ fn black_box(cps: &[(u16, (i64, i64), &str)], pins: &[(u16, &str)]) -> RepView {
             })
             .collect(),
     }
-}
-
-/// With CPs on its top edge, the caption stacks tag, part number and manufacturer from the box upward, each a
-/// gap above the one before, right-aligned one grid step left of the leftmost top CP: no caption text stands over a
-/// CP, its pin text or each other.
-#[test]
-fn a_black_box_caption_stacks_clear_of_its_top_cps() {
-    let v = view(
-        vec![black_box(
-            &[(0, (6, 0), "up"), (1, (12, 0), "up"), (2, (6, 12), "down")],
-            &[(0, "L"), (1, "N"), (2, "+")],
-        )],
-        Vec::new(),
-    );
-    let r = runs(&v);
-    let (tag, part, maker) = (
-        run(&r, 0x11, "-101A1").rect,
-        run(&r, 0x11, "EW-GEN-PSU-1").rect,
-        run(&r, 0x11, "Generic").rect,
-    );
-    let top = g(30);
-    assert!(tag.max().y.0 <= top, "above the box: {tag:?}");
-    for (low, high) in [(tag, part), (part, maker)] {
-        let gap = low.min().y.0 - high.max().y.0;
-        assert!(
-            (gap - SLOT_TEXT_GAP.0).abs() <= 1_000,
-            "stacked one gap apart: {low:?} {high:?}"
-        );
-    }
-    let right = g(30 + 6) - g(1);
-    for t in [tag, part, maker] {
-        assert!(t.max().x.0 <= right + 1_000, "left of the first top CP: {t:?}");
-        assert!(upright(run(&r, 0x11, "-101A1")));
-    }
-    // The right edges line up.
-    assert_eq!(tag.max().x, part.max().x);
-    assert_eq!(part.max().x, maker.max().x);
-    for pin in ["L", "N", "+"] {
-        let p = run(&r, 0x11, pin).rect;
-        for t in [tag, part, maker] {
-            assert!(!overlap(t, p), "{t:?} over the pin text {p:?}");
-        }
-    }
-}
-
-/// Without a CP on its top edge, the tag stands where the symbol puts it (the outline's top-left corner,
-/// `BLACK_BOX_CAPTION_GAP` above it) and the part number and manufacturer stack above it, left-aligned with it.
-#[test]
-fn without_a_top_cp_the_tag_stays_and_the_caption_stacks_above_it() {
-    let v = view(
-        vec![black_box(&[(0, (0, 6), "left"), (1, (30, 6), "right")], &[])],
-        Vec::new(),
-    );
-    let r = runs(&v);
-    let (tag, part, maker) = (
-        run(&r, 0x11, "-101A1").rect,
-        run(&r, 0x11, "EW-GEN-PSU-1").rect,
-        run(&r, 0x11, "Generic").rect,
-    );
-    // The tag as the symbol places it on a representation that is no black box.
-    let mut plain = black_box(&[], &[]);
-    Arc::make_mut(&mut plain.rep).box_ = None;
-    let alone = runs(&view(vec![plain], Vec::new()));
-    assert_eq!(tag, run(&alone, 0x11, "-101A1").rect);
-    assert_eq!(tag.min().x.0, g(30), "on the outline's left edge");
-    assert!(tag.max().y.0 <= g(30) - BLACK_BOX_CAPTION_GAP.0 + 1_000);
-    assert_eq!(part.min().x, tag.min().x);
-    assert_eq!(maker.min().x, tag.min().x);
-    assert!(part.max().y < tag.min().y && maker.max().y < part.min().y);
-    assert!(!run_into(tag, part) && !run_into(part, maker));
 }
 
 /// A pin text of signs only prints upright ("−" would read as a tick turned); one with a letter or a digit
@@ -339,6 +267,52 @@ fn tags_with_room_stay_put() {
     }
 }
 
+/// docs/design/06a-drafting.md §5.2: a wire's number stands along its wire, right of a vertical stretch and turned to
+/// read from the bottom; on a horizontal stretch above the line, reading across.
+#[test]
+fn a_wire_number_stands_along_its_wire_turned_on_a_vertical_stretch() {
+    let coil = symbol(COIL);
+    let k = |n: u128, x: i64, y: i64| RepView {
+        rep: rep(n, coil.id, x, y, json!({})),
+        symbol: Some(coil.def.clone()),
+        slots: Vec::new(),
+        terminals: Vec::new(),
+        pins: Vec::new(),
+    };
+    let numbered = |c: ConnectionView, number: &str| ConnectionView {
+        number: Some(number.to_owned()),
+        ..c
+    };
+    // -K1's A2 (grid 40, 14) down to -K2's A1 (grid 40, 50); -K2's A2 (40, 54) across to -K3's A1 at (70, 40).
+    let v = view(
+        vec![k(0x31, 40, 10), k(0x32, 40, 50), k(0x33, 70, 40)],
+        vec![
+            numbered(routed(0x41, (0x1031, 1), (0x1032, 0), &[(40, 30)]), "101.3"),
+            numbered(
+                routed(0x42, (0x1032, 1), (0x1033, 0), &[(40, 60), (70, 60), (70, 40)]),
+                "101.4",
+            ),
+        ],
+    );
+    let r = runs(&v);
+    let tall = run(&r, 0x41, "101.3");
+    assert!(!upright(tall), "turned on the vertical stretch");
+    assert!(tall.rect.min().x.0 > g(40), "right of the wire: {:?}", tall.rect);
+    assert!(
+        tall.rect.min().y.0 > g(14) && tall.rect.max().y.0 < g(50),
+        "along it: {:?}",
+        tall.rect
+    );
+    let flat = run(&r, 0x42, "101.4");
+    assert!(upright(flat));
+    assert!(flat.rect.max().y.0 < g(60), "above the line: {:?}", flat.rect);
+    assert!(
+        flat.rect.min().x.0 > g(40) && flat.rect.max().x.0 < g(70),
+        "along it: {:?}",
+        flat.rect
+    );
+}
+
 /// A valve placed four grid steps right of a vertical wire would have its tag on
 /// the wire; the tag moves off it, stays upright and stands centred above or below its valve, clear of the valve's own
 /// texts (a tag is never turned to make room).
@@ -410,8 +384,12 @@ fn a_tag_that_moves_lands_on_no_symbol() {
         terminals: Vec::new(),
         pins: Vec::new(),
     };
+    // The body as the layout sees it: the bounds of the symbol's graphics.
     let body = |def: &SymbolDef, x: i64, y: i64| {
-        let b = ew_scene::symbol::lower(def, ew_units::Orient2::R0).bounds;
+        let b = ew_scene::symbol::lower(def, ew_units::Orient2::R0)
+            .graphics
+            .bounds()
+            .expect("graphics");
         Rect::from_points(
             Pt2::new(b.min().x + ew_units::Nm(g(x)), b.min().y + ew_units::Nm(g(y))),
             Pt2::new(b.max().x + ew_units::Nm(g(x)), b.max().y + ew_units::Nm(g(y))),
@@ -540,7 +518,8 @@ fn the_labels_layer_reports_a_moved_tag_where_it_prints() {
 }
 
 /// A cable marker's tag, wider than its mark, used to print centred on it with the mark's
-/// sides through the text ("-1[06W]1"); it stands clear of the mark, beside it on the right, reading horizontally.
+/// sides through the text ("-1[06W]1"); it stands clear of the mark, beside it, reading horizontally: a mark drawn as a
+/// symbol has no pins, and its texts keep off its body.
 #[test]
 fn a_cable_tag_stands_clear_of_its_mark() {
     let c = symbol(CABLE);
@@ -566,7 +545,10 @@ fn a_cable_tag_stands_clear_of_its_mark() {
         "the tag {:?} crosses the mark {mark:?}",
         t.rect
     );
-    assert!(t.rect.min().x >= mark.max().x, "beside the mark on the right");
+    assert!(
+        t.rect.min().x >= mark.max().x || t.rect.max().x <= mark.min().x,
+        "beside the mark"
+    );
     assert!(upright(t));
 }
 
@@ -612,126 +594,6 @@ fn boxed(
     }
 }
 
-/// The caption of `black_box` (0x11, no top CP) and a neighbour 0x12 at grid (32, 26), 12 × 4 steps, whose top pin at
-/// grid (34, 26) leaves up, its text "Q1.0" over that caption.
-fn caption_under_a_pin() -> Vec<RepView> {
-    vec![
-        black_box(&[(0, (0, 6), "left")], &[]),
-        boxed(
-            0x12,
-            (32, 26),
-            (12, 4),
-            &[(0, (2, 0), "up")],
-            &[(0, "Q1.0")],
-            None,
-        ),
-    ]
-}
-
-/// The caption of `black_box`.
-const CAPTION: [&str; 3] = ["-101A1", "EW-GEN-PSU-1", "Generic"];
-
-/// A risen caption is judged by the tag rule's free test. The neighbour's pin wire runs up from
-/// grid (34, 26) to a box above, through the place the caption would rise to: the caption never lies across it; with
-/// no free place within three rises it stays in its slot.
-#[test]
-fn a_risen_caption_never_lies_across_a_wire() {
-    let mut reps = caption_under_a_pin();
-    reps.push(boxed(0x13, (30, 2), (12, 8), &[(0, (4, 8), "down")], &[], None));
-    let wired = view(
-        reps.clone(),
-        vec![routed_nm(
-            0x41,
-            (0x1012, 0),
-            (0x1013, 0),
-            &[(g(32) + g(2), g(26)), (g(30) + g(4), g(2) + g(8))],
-        )],
-    );
-    let unwired = view(reps, Vec::new());
-    let wire_x = g(34);
-    let across = |t: Rect| t.min().x.0 < wire_x && wire_x < t.max().x.0 && t.min().y.0 < g(26);
-    let r = runs(&unwired);
-    assert!(
-        CAPTION.iter().any(|c| across(run(&r, 0x11, c).rect)),
-        "the case: without the wire the caption rises to where the wire runs"
-    );
-    let mut slot = caption_under_a_pin();
-    slot[1].pins.clear();
-    let alone = runs(&view(slot, Vec::new()));
-    let r = runs(&wired);
-    for c in CAPTION {
-        let t = run(&r, 0x11, c).rect;
-        assert!(!across(t), "{c} {t:?} across the wire");
-        assert_eq!(t, run(&alone, 0x11, c).rect, "{c} stays in its slot");
-    }
-}
-
-/// Another box's caption stands where the caption would rise to; the caption rises past it, never
-/// onto it.
-#[test]
-fn a_risen_caption_clears_another_caption() {
-    let other = ["-101A2", "MICO 4.10", "Murrelektronik"];
-    let mut reps = caption_under_a_pin();
-    reps.push(boxed(0x14, (30, 25), (4, 4), &[], &[], Some(other)));
-    let r = runs(&view(reps, Vec::new()));
-    let pin = run(&r, 0x12, "Q1.0").rect;
-    let other: Vec<Rect> = other.iter().map(|c| run(&r, 0x14, c).rect).collect();
-    let top = other.iter().map(|o| o.min().y.0).min().unwrap();
-    for c in CAPTION {
-        let t = run(&r, 0x11, c).rect;
-        assert!(!run_into(t, pin), "{c} {t:?} over the pin text {pin:?}");
-        for o in &other {
-            assert!(!run_into(t, *o), "{c} {t:?} onto the other caption {o:?}");
-        }
-        assert!(t.max().y.0 <= top - SLOT_TEXT_GAP.0 + 1_000, "{c} {t:?} above it");
-    }
-}
-
-/// A black box's pin text is a fixed obstacle of a technical-data text, as of a
-/// cross-reference text. A valve's "24 V" placed over the box's pin text "Q0.2" drops below it, `SLOT_TEXT_GAP` apart;
-/// the pin text stays where it was.
-#[test]
-fn a_technical_data_text_drops_below_a_pin_text_it_would_overlap() {
-    let valve = symbol(VALVE);
-    let bx = boxed(
-        0x12,
-        (30, 30),
-        (12, 12),
-        &[(0, (0, 6), "left")],
-        &[(0, "Q0.2")],
-        None,
-    );
-    let pin = run(&runs(&view(vec![bx.clone()], Vec::new())), 0x12, "Q0.2").rect;
-    let at = |pos: Pt2| {
-        let mut m = RepView {
-            rep: rep(0x33, valve.id, 0, 0, json!({})),
-            symbol: Some(valve.def.clone()),
-            slots: vec![value(slot(&valve, &SlotKind::TechData), "24 V")],
-            terminals: Vec::new(),
-            pins: Vec::new(),
-        };
-        Arc::make_mut(&mut m.rep).pos = pos;
-        m
-    };
-    // The valve placed so that its "24 V" starts on the pin text's top-left corner.
-    let data = run(&runs(&view(vec![at(Pt2::ORIGIN)], Vec::new())), 0x33, "24 V").rect;
-    let valve_at = Pt2::new(pin.min().x - data.min().x, pin.min().y - data.min().y);
-    let alone = run(&runs(&view(vec![at(valve_at)], Vec::new())), 0x33, "24 V").rect;
-    assert!(
-        overlap(alone, pin),
-        "the case: {alone:?} over the pin text {pin:?}"
-    );
-    let r = runs(&view(vec![bx, at(valve_at)], Vec::new()));
-    let moved = run(&r, 0x33, "24 V").rect;
-    assert_eq!(run(&r, 0x12, "Q0.2").rect, pin, "the pin text stays");
-    assert!(!overlap(moved, pin), "{moved:?} clear of {pin:?}");
-    assert_eq!(moved.min().x, alone.min().x, "straight down");
-    assert!(
-        (moved.min().y.0 - pin.max().y.0 - SLOT_TEXT_GAP.0).abs() <= 1_000,
-        "{moved:?} the gap below {pin:?}"
-    );
-}
-
 /// A connection `n` from `a` to `b` with the stored route `route` (grid points). A route of interior points only is a
 /// stale one: the scene joins each end to it with a straight segment; one point on the line between two
 /// aligned ends makes the straight wire. Without a route a connection is unrouted (D3) and no obstacle of a text.
@@ -755,107 +617,7 @@ fn routed_nm(n: u128, a: (u128, u16), b: (u128, u16), route: &[(i64, i64)]) -> C
     }
 }
 
-/// The black box `-101A1` (0x11) with its leftmost top CP at grid (50, 30): its caption stacks right-aligned at
-/// grid 49, above the box.
-fn captioned() -> RepView {
-    black_box(&[(0, (20, 0), "up")], &[])
-}
-
-/// A black box's caption stack that a stored wire crosses moves left in grid steps until
-/// no caption crosses it, every line by the same step, never past the outline's left edge. The wire runs down at grid
-/// x 47 from a box above to a box on the black box's top edge.
-#[test]
-fn a_caption_stack_moves_left_off_a_stored_wire() {
-    let reps = vec![
-        captioned(),
-        boxed(0x13, (44, 2), (6, 4), &[(0, (3, 4), "down")], &[], None),
-        boxed(0x14, (46, 29), (2, 1), &[(0, (1, 0), "up")], &[], None),
-    ];
-    let wire_x = g(47);
-    let across = |t: Rect| t.min().x.0 < wire_x && wire_x < t.max().x.0;
-    let before = runs(&view(reps.clone(), Vec::new()));
-    assert!(
-        CAPTION.iter().any(|c| across(run(&before, 0x11, c).rect)),
-        "the case: the caption stands where the wire runs"
-    );
-    let wired = view(reps, vec![routed(0x41, (0x1013, 0), (0x1014, 0), &[(47, 16)])]);
-    let r = runs(&wired);
-    let dx = run(&r, 0x11, CAPTION[0]).rect.min().x.0 - run(&before, 0x11, CAPTION[0]).rect.min().x.0;
-    assert!(dx < 0 && dx % g(1) == 0, "left in grid steps: {dx}");
-    for c in CAPTION {
-        let (t, b) = (run(&r, 0x11, c).rect, run(&before, 0x11, c).rect);
-        assert!(!across(t), "{c} {t:?} clear of the wire");
-        assert_eq!(t.min().x.0 - b.min().x.0, dx, "{c} moves with the stack");
-        assert_eq!(t.min().y, b.min().y, "{c} keeps its line");
-        assert!(t.max().x.0 >= g(30), "{c} within the outline's left edge");
-    }
-}
-
-/// A stored wire that crosses the caption stack wherever it could move (a horizontal wire across the whole box)
-/// leaves it where it was.
-#[test]
-fn a_caption_stack_without_a_free_place_stays() {
-    let reps = vec![
-        captioned(),
-        boxed(0x13, (10, 26), (2, 4), &[(0, (2, 2), "right")], &[], None),
-        boxed(0x14, (70, 26), (2, 4), &[(0, (0, 2), "left")], &[], None),
-    ];
-    let before = runs(&view(reps.clone(), Vec::new()));
-    let wired = view(reps, vec![routed(0x41, (0x1013, 0), (0x1014, 0), &[(40, 28)])]);
-    let r = runs(&wired);
-    let y = g(28);
-    assert!(
-        CAPTION.iter().any(|c| {
-            let t = run(&r, 0x11, c).rect;
-            t.min().y.0 < y && y < t.max().y.0
-        }),
-        "the case: the wire runs through the stack"
-    );
-    for c in CAPTION {
-        assert_eq!(run(&r, 0x11, c).rect, run(&before, 0x11, c).rect, "{c} stays");
-    }
-}
-
 const IP: &str = include_str!("../../../../content/symbols/qet10/ew.gen.ip@qet10.json");
-
-/// (Folio 101's "102-A1" of L-1 across N-1's wire.) A cross-reference text that a horizontal wire runs
-/// through rises [`SLOT_TEXT_GAP`] above the wire, in its column; without the wire it stays where its symbol
-/// puts it.
-#[test]
-fn a_cross_reference_rises_off_a_horizontal_wire() {
-    let ip = symbol(IP);
-    let arrow = RepView {
-        rep: rep(0x21, ip.id, 40, 27, json!({})),
-        symbol: Some(ip.def.clone()),
-        slots: vec![value(slot(&ip, &SlotKind::Xref), "102-A1")],
-        terminals: Vec::new(),
-        pins: Vec::new(),
-    };
-    let reps = vec![
-        arrow,
-        boxed(0x13, (10, 26), (2, 4), &[(0, (2, 2), "right")], &[], None),
-        boxed(0x14, (70, 26), (2, 4), &[(0, (0, 2), "left")], &[], None),
-    ];
-    let y = g(28);
-    let before = run(&runs(&view(reps.clone(), Vec::new())), 0x21, "102-A1").rect;
-    assert!(
-        before.min().y.0 < y && y < before.max().y.0,
-        "the case: the wire would run through {before:?}"
-    );
-    let ends = [(g(10) + g(2), g(26) + g(2)), (g(70), g(26) + g(2))];
-    let wired = view(reps, vec![routed_nm(0x41, (0x1013, 0), (0x1014, 0), &ends)]);
-    let after = run(&runs(&wired), 0x21, "102-A1").rect;
-    assert!(
-        (after.max().y.0 - (y - SLOT_TEXT_GAP.0)).abs() <= 1_000,
-        "{after:?} {SLOT_TEXT_GAP:?} above the wire"
-    );
-    assert_eq!(after.max().y - after.min().y, before.max().y - before.min().y);
-    assert_eq!(
-        (after.min().x, after.max().x),
-        (before.min().x, before.max().x),
-        "in its column"
-    );
-}
 
 /// One horizontal wire per page height in `ys` (nm), each between two black boxes at grid x 10 and 70 (representations
 /// `0x60 + 2k` and `0x61 + 2k`, connection `0x90 + k`).
@@ -964,98 +726,6 @@ fn a_cross_reference_does_not_rise_out_of_the_drawing_area() {
     assert_eq!(shown, bare, "it stays");
 }
 
-/// Without a free place above the wire (a vertical wire comes down to the arrow's row) the text stays.
-#[test]
-fn a_cross_reference_without_a_free_place_stays() {
-    let blocker = vec![
-        boxed(0x15, (38, 13), (2, 4), &[(0, (1, 4), "down")], &[], None),
-        boxed(0x16, (38, 27), (2, 2), &[(0, (1, 0), "up")], &[], None),
-    ];
-    let ends = [(g(38) + g(1), g(13) + g(4)), (g(38) + g(1), g(27))];
-    let down = routed_nm(0x45, (0x1015, 0), (0x1016, 0), &ends);
-    let (shown, bare) = arrow_label(27, &[g(28)], (blocker, vec![down]));
-    assert!(through(bare, g(28)), "the case: the wire runs through {bare:?}");
-    assert!(
-        bare.min().x.0 < g(39) && g(39) < bare.max().x.0,
-        "the case: the vertical wire stands over the text {bare:?}"
-    );
-    assert_eq!(shown, bare, "it stays");
-}
-
-/// The rise keeps clear of another representation's symbol body. A coil without texts whose
-/// outline bounds cover the place the label would rise to (above the wire) leaves the label clear of the body: it rises
-/// past it, never onto it.
-#[test]
-fn a_cross_reference_does_not_rise_onto_another_symbols_body() {
-    let (up, bare) = arrow_label(27, &[g(28)], (Vec::new(), Vec::new()));
-    assert!(
-        up.max().y.0 < g(28) && up != bare,
-        "the case: it rises off the wire to {up:?}"
-    );
-    let c = symbol(COIL);
-    let b = ew_scene::symbol::lower(&c.def, ew_units::Orient2::R0).bounds;
-    let overlap = |r: Rect, s: Rect| {
-        r.min().x < s.max().x && s.min().x < r.max().x && r.min().y < s.max().y && s.min().y < r.max().y
-    };
-    // A coil at grid x 40 whose body covers the risen place, not the label where it stands nor the wire.
-    let at = |y: i64| {
-        Rect::from_points(
-            Pt2::new(
-                ew_units::Nm(g(40) + b.min().x.0),
-                ew_units::Nm(g(y) + b.min().y.0),
-            ),
-            Pt2::new(
-                ew_units::Nm(g(40) + b.max().x.0),
-                ew_units::Nm(g(y) + b.max().y.0),
-            ),
-        )
-    };
-    let y = (0..27)
-        .rev()
-        .find(|&y| overlap(at(y), up) && !overlap(at(y), bare) && at(y).max().y.0 < g(28))
-        .expect("a place for the coil");
-    let body = at(y);
-    let coil = RepView {
-        rep: rep(0x30, c.id, 40, y, json!({})),
-        symbol: Some(c.def.clone()),
-        slots: Vec::new(),
-        terminals: Vec::new(),
-        pins: Vec::new(),
-    };
-    let (shown, _) = arrow_label(27, &[g(28)], (vec![coil], Vec::new()));
-    assert!(
-        !overlap(shown, body),
-        "{shown:?} clear of the coil's body {body:?}"
-    );
-    // It rises past the body, to SLOT_TEXT_GAP above it, as tall as it stood.
-    let height = bare.max().y.0 - bare.min().y.0;
-    let top = body.min().y.0 - SLOT_TEXT_GAP.0;
-    assert_eq!(
-        shown,
-        Rect::from_points(
-            Pt2::new(bare.min().x, ew_units::Nm(top - height)),
-            Pt2::new(bare.max().x, ew_units::Nm(top)),
-        ),
-        "above the coil's body {body:?}"
-    );
-}
-
-/// A text rises at most three times. Wires one grid step apart send it up past three of them, then it is free;
-/// a fourth leaves it where it was.
-#[test]
-fn a_cross_reference_rises_at_most_three_times() {
-    let rows = [g(28), g(27), g(26), g(25)];
-    let (three, bare) = arrow_label(27, &rows[..3], (Vec::new(), Vec::new()));
-    assert!(through(bare, g(28)), "the case: the wire runs through {bare:?}");
-    assert!(
-        rows[..3].iter().all(|y| !through(three, *y)),
-        "past three wires: {three:?}"
-    );
-    assert!(three.max().y.0 < g(26), "above the third: {three:?}");
-    let (four, bare) = arrow_label(27, &rows, (Vec::new(), Vec::new()));
-    assert_eq!(four, bare, "a fourth wire: it stays");
-}
-
 const IP_TARGET: &str = include_str!("../../../../content/symbols/qet10/ew.gen.ip-target@qet10.json");
 
 /// Whether the segment `a`–`b` (grid) meets the inside of `r`.
@@ -1101,12 +771,10 @@ fn point_label(symbol_text: &str, path: &[(i64, i64)]) -> (Rect, Rect) {
 }
 
 /// (FT-1699: "+Supply / -X0" of a supply's entry printed across its own wire.) A point's cross-reference that its own
-/// wire runs through takes the free side: a wire that leaves the tail and turns down under the arrow sends it beyond
-/// the tip, in line with the arrow; a target's wire that leaves the tip and turns down sends it before the tail. A
-/// wire that leaves upwards or sideways does not run through it, and it stays where its symbol puts it.
+/// wire runs through takes another of its places (docs/design/06a-drafting.md §5.2), clear of the wire. A wire that
+/// leaves upwards or sideways does not run through it, and it stays where its symbol puts it.
 #[test]
 fn a_points_cross_reference_stands_clear_of_its_own_wire() {
-    let (tip, tail) = (g(40), g(40) - 1_984_375);
     // Down: from the tail, down, under the arrow, down.
     let down = [(39, 27), (39, 28), (40, 28), (40, 34)];
     let (shown, bare) = point_label(IP, &down);
@@ -1117,11 +785,6 @@ fn a_points_cross_reference_stands_clear_of_its_own_wire() {
     assert!(
         down.windows(2).all(|w| !crosses(shown, w[0], w[1])),
         "clear of the wire: {shown:?}"
-    );
-    assert!(shown.min().x.0 > tip, "beyond the tip: {shown:?}");
-    assert!(
-        shown.min().y.0 < g(27) && g(27) < shown.max().y.0,
-        "in line with the arrow: {shown:?}"
     );
     // Up and sideways: the wire does not run through the text; it stays.
     for path in [
@@ -1135,17 +798,15 @@ fn a_points_cross_reference_stands_clear_of_its_own_wire() {
         );
         assert_eq!(shown, bare, "it stays: {path:?}");
     }
-    // A target's wire leaves the tip and turns down through its text: the tip's side is the wire's, so before the
-    // tail.
+    // A target's wire leaves the tip and turns down through its text.
     let target = [(40, 27), (41, 27), (41, 34)];
     let (shown, bare) = point_label(IP_TARGET, &target);
     assert!(
         target.windows(2).any(|w| crosses(bare, w[0], w[1])),
         "the case: the wire runs through {bare:?}"
     );
-    assert!(shown.max().x.0 < tail, "before the tail: {shown:?}");
     assert!(
-        shown.min().y.0 < g(27) && g(27) < shown.max().y.0,
-        "in line with the arrow: {shown:?}"
+        target.windows(2).all(|w| !crosses(shown, w[0], w[1])),
+        "clear of the wire: {shown:?}"
     );
 }

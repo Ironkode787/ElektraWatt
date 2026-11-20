@@ -10,7 +10,7 @@
 //! | [`FrameLayer`] | [`Layer::Frame`] | `page_frame`, `page_bindings` (`title_block(page)`, the date format) |
 //! | [`SymbolsLayer`] | [`Layer::Symbols`] | `page_reps`, `page_cp_targets`, `assembly_break_marks`, `page_grid` (the pen of the break marks and graphics), the page items and structure boxes without texts |
 //! | [`WiresLayer`] | [`Layer::Wires`] | `page_reps`, `page_connections`, `page_junctions`, `page_grid`, `page_frame` (the page rectangle) |
-//! | [`LabelsLayer`] | [`Layer::Labels`] | `page_reps`, `page_slots`, `page_connections`, `page_junctions`, `page_grid` (the step of a black box's caption), `page_frame`, the page items with texts, the structure boxes with captions and the strip tags of terminals drawn alone (`page_strip_tags`); on a panel-layout page also the placement labels (`panel.rs`) |
+//! | [`LabelsLayer`] | [`Layer::Labels`] | `page_reps`, `page_slots`, `page_connections`, `page_junctions`, `page_grid` (the step of a black box's caption), `page_frame`, the page items with texts, the structure boxes with captions the strip tags of terminals drawn alone (`page_strip_tags`), the valve cells and the plug notes (for the layout's page, `ew_scene::page::LayerList::draft`); on a panel-layout page also the placement labels (`panel.rs`) |
 //! | [`TablesLayer`] | [`Layer::Tables`] | `page_frame` (the sheet map), `page_table` or `page_embedded` |
 //! | [`SurfaceLayer`] | [`Layer::Surface`] | the surface outlines of the page's surface view (`panel.rs`) |
 //! | [`CarriersLayer`] | [`Layer::Carriers`] | the carriers of the page's surface view and its placement labels, which the carriers are cut around (`panel.rs`) |
@@ -61,6 +61,8 @@ pub struct PageLayer {
     pub panel_labels: BTreeMap<Uuid, ew_dl::ew_units::Rect>,
     /// The labels layer's slot texts where they print (`ew_scene::page::LayerList::slot_texts`).
     pub slot_texts: Vec<ew_scene::page::SlotTextBox>,
+    /// The labels layer's page as the layout sees it (`ew_scene::page::LayerList::draft`).
+    pub draft: Option<Arc<ew_drafting::DraftPage>>,
 }
 
 /// An empty view of `page`: the parts a layer reads are filled by its family.
@@ -168,6 +170,10 @@ fn layer_view(q: &Q, page: PageRef, layer: Layer) -> Option<PageView> {
             v.items = page_items(q, p, true);
             v.structure_boxes = page_boxes(q, p, true);
             v.strip_tags = page_strip_tags(q, p);
+            // The layout's page: a valve terminal drawn as its cells is an outline round its valves, and the texts
+            // beside a plug's pins are fixed texts the others keep clear of.
+            v.valve_cells = page_valve_cells(q, p);
+            v.plug_notes = page_plug_notes(q, p);
             v.panel = panel_view(
                 q,
                 p,
@@ -243,6 +249,7 @@ fn build(q: &Q, page: PageRef, layer: Layer) -> Arc<PageLayer> {
         tags: l.tags,
         panel_labels: l.panel_labels,
         slot_texts: l.slot_texts,
+        draft: l.draft,
     })
 }
 

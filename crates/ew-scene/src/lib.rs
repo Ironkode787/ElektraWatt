@@ -18,6 +18,7 @@
 
 #![forbid(unsafe_code)]
 
+mod draft;
 pub mod embedded;
 pub mod forms;
 pub mod hops;

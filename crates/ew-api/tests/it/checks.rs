@@ -65,13 +65,15 @@ fn golden_a_pre_delivery_summary() {
 }
 
 /// The memoised check equals the cold one (two independent halves of one claim, split so that nextest runs
-/// them in parallel; the oracle half is `golden_a_check_memoised_equals_cold_and_the_oracle_is_quiet_oracle`).
+/// them in parallel; the oracle half is `golden_a_check_memoised_equals_cold_and_the_oracle_is_quiet_oracle`). The
+/// rules run over the memo store and over a cold query; the layout rules' findings, which the session joins from the
+/// pages it draws, are left out of both.
 #[test]
 fn golden_a_check_memoised_equals_cold_and_the_oracle_is_quiet_memo() {
     let batch = golden_common::batch();
     let memo = golden_common::session(&batch);
-    let first = memo.check(&PRE_DELIVERY, CheckMode::Release);
-    let again = memo.check(&PRE_DELIVERY, CheckMode::Release);
+    let first = checks::run(&memo.query(), &PRE_DELIVERY, CheckMode::Release);
+    let again = checks::run(&memo.query(), &PRE_DELIVERY, CheckMode::Release);
     assert_eq!(
         first, again,
         "a second run over the memo store gives the same report"

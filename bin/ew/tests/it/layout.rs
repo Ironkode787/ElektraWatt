@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `ew layout` on a copy of Golden A: the text of folio 101 names the
-//! heater's PE wire touching the lamp's X1 and the lamp's feed along the switch's wires, its line of counts agrees
-//! with the `--json` result, and a folio that names no page is refused in words. Named items only, never totals.
+//! `ew layout` on a copy of Golden A: the text of folio 101 names no fault and no wire across a text, its line of
+//! figures agrees with the `--json` result, and a folio that names no page is refused in words. Named items only,
+//! never totals.
 
 use std::path::Path;
 
@@ -19,11 +19,13 @@ fn folio_101_routed_names_no_touch_overlap_or_symbol_crossed() {
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let text = stdout(&o);
     let lines: Vec<&str> = text.lines().collect();
-    // Golden A's routes are the router's (RG1, RG2): no line names a broken hard rule.
+    // Golden A's routes are the router's (RG1, RG2): no line names a fault or a wire across a text.
     for word in [
         "  touch: ",
         "  overlap: ",
         "  through a symbol: ",
+        "  false joint: ",
+        "  part on a part: ",
         "  through a text: ",
     ] {
         assert!(!lines.iter().any(|l| l.starts_with(word)), "{word}\n{text}");
@@ -36,20 +38,27 @@ fn folio_101_routed_names_no_touch_overlap_or_symbol_crossed() {
     let [page] = json.pages.as_slice() else {
         panic!("{json:?}");
     };
-    assert_eq!(
-        lines[0],
-        format!(
-            "101: hard rules {} (touches {}, overlaps {}, through symbols {}, through texts {}, four-way junctions {}); \
-             costs: crossings {}, bends {}",
-            page.hard(),
-            page.touches.len(),
-            page.overlaps.len(),
-            page.through_symbols.len(),
-            page.through_texts.len(),
-            page.four_way_junctions.len(),
+    assert!(
+        lines[0].starts_with(&format!(
+            "101: faults {} (through points {}, ",
+            page.faults,
+            page.touches.len()
+        )),
+        "{}",
+        lines[0]
+    );
+    assert!(
+        lines[0].contains(&format!(
+            "; unrouted {}; cost {}; crossings {}, bends {}, straight {} of {}, ",
+            page.unrouted,
+            page.cost,
             page.crossings.len(),
-            page.bend_total()
-        )
+            page.bend_total(),
+            page.straight,
+            page.wires
+        )),
+        "{}",
+        lines[0]
     );
 }
 

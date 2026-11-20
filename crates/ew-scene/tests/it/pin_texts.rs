@@ -10,12 +10,10 @@ use std::sync::Arc;
 
 use ew_dl::{ItemKind, Layer};
 use ew_ids::{Id, Uuid};
-use ew_scene::page::{
-    BLACK_BOX_CAPTION_GAP, PageView, PinText, RepView, SLOT_TEXT_GAP, SlotValue, page_display_list,
-};
+use ew_scene::page::{PageView, PinText, RepView, SlotValue, page_display_list};
 use ew_schema::{LibCopy, LibDocument, Representation, SlotKind, SymbolDef};
 use ew_text::{builtin, bundled};
-use ew_units::{Nm, Pt2};
+use ew_units::Pt2;
 use serde_json::json;
 
 use crate::common::blank_page;
@@ -161,6 +159,61 @@ fn a_representation_without_a_box_prints_no_pin_text() {
     assert!(runs(&v).is_empty());
 }
 
+/// docs/design/06a-drafting.md §9.3, step 1: a box's pin texts and a text the person moved are where they were, while
+/// the texts the program places step aside: a box's tag stands above its upper left corner, ending at its left edge,
+/// clear of every pin text, and a tag moved by an override stays at the override even where a pin text stands.
+#[test]
+fn a_moved_text_and_a_boxs_pin_texts_stay_where_they_were() {
+    let alone = runs(&view("r0"));
+    let tag_slot = |v: &PageView| {
+        let def = v.reps[0].symbol.as_ref().unwrap();
+        u16::try_from(
+            def.text_slots
+                .iter()
+                .position(|s| matches!(s.kind, SlotKind::Tag))
+                .unwrap(),
+        )
+        .unwrap()
+    };
+    let mut v = view("r0");
+    let slot = tag_slot(&v);
+    v.reps[0].slots = vec![SlotValue {
+        slot,
+        text: "-101A1".to_owned(),
+        link: None,
+        item_links: Vec::new(),
+    }];
+    let r = runs(&v);
+    let pins = |r: &[Run]| {
+        r.iter()
+            .filter(|(t, _, _)| t.starts_with("Q0."))
+            .cloned()
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(pins(&r), pins(&alone), "the pin texts as without the tag");
+    let (_, a, b) = r.iter().find(|(t, _, _)| t == "-101A1").unwrap().clone();
+    assert!(
+        b.0 <= g(30) && b.1 <= g(30),
+        "above the upper left corner: {a:?} {b:?}"
+    );
+    // Moved by an override onto the top pin's text, the tag stays there; the pin text too.
+    let def = v.reps[0].symbol.clone().unwrap();
+    let onto = Pt2::new(ew_units::Nm(g(6)), ew_units::Nm(g(2)));
+    let rep = Arc::make_mut(&mut v.reps[0].rep);
+    rep.text_slots = serde_json::from_value(json!([{"slot": slot, "pos": [onto.x.0, onto.y.0]}])).unwrap();
+    let frame = ew_derive::text_frame(rep, &def);
+    let r = runs(&v);
+    assert_eq!(pins(&r), pins(&alone), "the pin texts stay");
+    let slots = page_display_list(&v, Layer::Labels, bundled(), builtin()).slot_texts;
+    let moved = slots.iter().find(|s| s.slot == slot).expect("the tag");
+    assert!(moved.moved);
+    assert_eq!(
+        moved.at,
+        frame.origin + frame.orient.apply(onto),
+        "the tag at its override"
+    );
+}
+
 /// rc.5 (the owner's box made smaller had its cross-reference on its edge): a cross-reference text that would cross a
 /// narrow black box's right edge stands outside it, left of its top-left corner, clear of the outline.
 #[test]
@@ -191,163 +244,4 @@ fn a_narrow_boxs_cross_reference_stands_outside_it() {
     let (_, a, b) = r.iter().find(|(t, _, _)| t.contains("902-D1")).unwrap().clone();
     assert!(b.0 < g(30), "left of the box: {a:?} {b:?}");
     assert!(a.1 >= g(30) && a.1 < g(34), "at its top: {a:?} {b:?}");
-}
-
-/// A pin text is a fixed obstacle of the cross-reference text. A pin near the box's top-left corner prints
-/// its text where the box's cross-reference slot sits; the cross-reference drops below it, `SLOT_TEXT_GAP` apart,
-/// and the pin text stays 1 mm from its pin.
-#[test]
-fn a_cross_reference_drops_below_a_pin_text_it_would_overlap() {
-    let mut v = view("r0");
-    Arc::make_mut(&mut v.reps[0].rep).box_.as_mut().unwrap().cps[0].pos = Pt2::new(Nm(g(1)), Nm(0));
-    v.reps[0].pins = vec![PinText {
-        idx: 0,
-        text: "1".to_owned(),
-    }];
-    let xref = v.reps[0]
-        .symbol
-        .as_ref()
-        .unwrap()
-        .text_slots
-        .iter()
-        .position(|s| matches!(s.kind, SlotKind::Xref))
-        .unwrap();
-    v.reps[0].slots = vec![SlotValue {
-        slot: u16::try_from(xref).unwrap(),
-        text: "(201-E1)".to_owned(),
-        link: None,
-        item_links: Vec::new(),
-    }];
-    let find = |r: &[Run], t: &str| {
-        r.iter()
-            .find(|(x, _, _)| x == t)
-            .map(|(_, a, b)| (*a, *b))
-            .unwrap()
-    };
-    let r = runs(&v);
-    let (pa, pb) = find(&r, "1");
-    let (xa, xb) = find(&r, "(201-E1)");
-    // the pin text has not moved: 1 mm below its pin
-    assert!(near(pa.1, g(30) + MM), "{pa:?}");
-    // the cross-reference no longer overlaps it and sits the gap below it
-    let overlap = xa.0 < pb.0 && pa.0 < xb.0 && xa.1 < pb.1 && pa.1 < xb.1;
-    assert!(!overlap, "pin {pa:?} {pb:?}, xref {xa:?} {xb:?}");
-    assert!(
-        near(xa.1 - pb.1, SLOT_TEXT_GAP.0),
-        "pin {pa:?} {pb:?}, xref {xa:?} {xb:?}"
-    );
-    // without the pin text the cross-reference keeps its place at the top of the box, where the pin text would be
-    v.reps[0].pins.clear();
-    let (ya, _) = find(&runs(&v), "(201-E1)");
-    assert!(ya.1 < pb.1, "{ya:?}");
-}
-
-/// A black box's caption that would stand over a neighbour box's pin text rises
-/// `SLOT_TEXT_GAP` above it; the pin text stays 1 mm from its pin. The neighbour stands on the box's top edge, its
-/// one pin leaving down one grid step right of the box's left edge, where the caption starts.
-#[test]
-fn a_black_box_caption_rises_above_a_neighbours_pin_text() {
-    let mut v = view("r0");
-    let tag = v.reps[0]
-        .symbol
-        .as_ref()
-        .unwrap()
-        .text_slots
-        .iter()
-        .position(|s| matches!(s.kind, SlotKind::Tag))
-        .unwrap();
-    {
-        let r = Arc::make_mut(&mut v.reps[0].rep);
-        r.box_.as_mut().unwrap().cps.clear();
-    }
-    v.reps[0].pins.clear();
-    v.reps[0].slots = vec![SlotValue {
-        slot: u16::try_from(tag).unwrap(),
-        text: "-A1".to_owned(),
-        link: None,
-        item_links: Vec::new(),
-    }];
-    let mut neighbour = v.reps[0].clone();
-    {
-        let r = Arc::make_mut(&mut neighbour.rep);
-        r.id = Id::from_uuid(Uuid::from_u128(0x12));
-        r.pos = Pt2::new(Nm(g(30)), Nm(g(18)));
-        r.box_.as_mut().unwrap().cps =
-            serde_json::from_value(json!([{"idx": 1, "pos": [g(1), g(12)], "dir": "down"}])).unwrap();
-    }
-    neighbour.slots.clear();
-    neighbour.pins = vec![PinText {
-        idx: 1,
-        text: "Q1.0".to_owned(),
-    }];
-    v.reps.push(neighbour);
-    let r = runs(&v);
-    let find = |t: &str| {
-        r.iter()
-            .find(|(x, _, _)| x == t)
-            .map(|(_, a, b)| (*a, *b))
-            .unwrap()
-    };
-    let (pa, pb) = find("Q1.0");
-    let (ca, cb) = find("-A1");
-    // the pin text has not moved: 1 mm above its pin on the box's top edge
-    assert!(near(pb.1, g(30) - MM), "{pa:?} {pb:?}");
-    let overlap = ca.0 < pb.0 && pa.0 < cb.0 && ca.1 < pb.1 && pa.1 < cb.1;
-    assert!(!overlap, "pin {pa:?} {pb:?}, caption {ca:?} {cb:?}");
-    assert!(
-        near(pa.1 - cb.1, SLOT_TEXT_GAP.0),
-        "pin {pa:?} {pb:?}, caption {ca:?} {cb:?}"
-    );
-}
-
-/// The same caption near the sheet's top edge would rise off the sheet above the neighbour's pin text; it
-/// stays at its slot, its anchor `BLACK_BOX_CAPTION_GAP` above the box, inside the page.
-#[test]
-fn a_black_box_caption_never_rises_off_the_sheet() {
-    let mut v = view("r0");
-    let tag = v.reps[0]
-        .symbol
-        .as_ref()
-        .unwrap()
-        .text_slots
-        .iter()
-        .position(|s| matches!(s.kind, SlotKind::Tag))
-        .unwrap();
-    {
-        let r = Arc::make_mut(&mut v.reps[0].rep);
-        r.pos = Pt2::new(Nm(g(30)), Nm(g(4)));
-        r.box_.as_mut().unwrap().cps.clear();
-    }
-    v.reps[0].pins.clear();
-    v.reps[0].slots = vec![SlotValue {
-        slot: u16::try_from(tag).unwrap(),
-        text: "-A1".to_owned(),
-        link: None,
-        item_links: Vec::new(),
-    }];
-    let mut neighbour = v.reps[0].clone();
-    {
-        let r = Arc::make_mut(&mut neighbour.rep);
-        r.id = Id::from_uuid(Uuid::from_u128(0x12));
-        r.pos = Pt2::new(Nm(g(30)), Nm(g(-8)));
-        r.box_.as_mut().unwrap().cps =
-            serde_json::from_value(json!([{"idx": 1, "pos": [g(1), g(12)], "dir": "down"}])).unwrap();
-    }
-    neighbour.slots.clear();
-    neighbour.pins = vec![PinText {
-        idx: 1,
-        text: "Q1.0".to_owned(),
-    }];
-    v.reps.push(neighbour);
-    let r = runs(&v);
-    let (ca, cb) = r
-        .iter()
-        .find(|(x, _, _)| x == "-A1")
-        .map(|(_, a, b)| (*a, *b))
-        .unwrap();
-    assert!(
-        near(cb.1, g(4) - BLACK_BOX_CAPTION_GAP.0),
-        "caption {ca:?} {cb:?}"
-    );
-    assert!(ca.1 >= 0, "caption {ca:?} {cb:?}");
 }

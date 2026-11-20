@@ -308,6 +308,8 @@ rule-ew-core-070 = { $line ->
         [free-text] de vrije tekst "{ $text }"
         [structure-box] het bijschrift "{ $text }" van een structuurkader
         [ip] de tekst "{ $text }" van onderbrekingspunt { WORD($device) }
+        [wire] het nummer "{ $text }" van { WORD($device) }
+        [mark] de kabelmarkering "{ $text }"
        *[symbol] de tekst "{ $text }" van { WORD($device) }
     }.
     .title = Draad door een tekst
@@ -330,6 +332,60 @@ rule-ew-core-073 = { $line ->
     }
     .title = Draad zonder route
     .hint = Gebruik Pagina routeren; waar die geen vrije weg vindt, versleep de grepen van de draad of verplaats de symbolen.
+
+rule-ew-core-074 = { $line ->
+        [tube] Slangen
+       *[wire] Draden
+    } { WORD($wire) } en { WORD($other) } maken een bocht op hetzelfde punt { $place ->
+        [off-grid] op folio { $page }
+       *[cell] in { $cell }
+    } zonder aftakking, dus op papier lijken ze verbonden. Routeer een van beide opnieuw.
+    .title = Draden raken elkaar zonder verbinding
+    .hint = Open de melding: beide draden zijn geselecteerd. Routeer er een opnieuw, of sleep een bocht een rasterstap verder.
+
+rule-ew-core-075 = { $owner ->
+        [free-text] De vrije tekst "{ $text }"
+        [structure-box] Het bijschrift "{ $text }" van een structuurkader
+        [ip] De tekst "{ $text }" van onderbrekingspunt { WORD($device) }
+        [wire] Het nummer "{ $text }" van { WORD($device) }
+        [mark] De kabelmarkering "{ $text }"
+       *[symbol] De tekst "{ $text }" van { WORD($device) }
+    } staat op de tekst "{ $other }" { $place ->
+        [off-grid] op folio { $page }
+       *[cell] in { $cell }
+    }, zodat geen van beide te lezen is. Verplaats een van beide.
+    .title = Tekst op een tekst
+    .hint = Sleep een van de teksten naar een vrije plek, of verplaats het symbool; een tekst die u verplaatst, blijft waar u hem zet.
+
+rule-ew-core-076 = { $owner ->
+        [free-text] De vrije tekst "{ $text }"
+        [structure-box] Het bijschrift "{ $text }" van een structuurkader
+        [ip] De tekst "{ $text }" van onderbrekingspunt { WORD($device) }
+        [wire] Het nummer "{ $text }" van { WORD($device) }
+        [mark] De kabelmarkering "{ $text }"
+       *[symbol] De tekst "{ $text }" van { WORD($device) }
+    } staat op { $symbol ->
+        [ip] onderbrekingspunt { WORD($part) }
+       *[device] { WORD($part) }
+    } { $place ->
+        [off-grid] op folio { $page }
+       *[cell] in { $cell }
+    }. Verplaats de tekst of het symbool.
+    .title = Tekst op een symbool
+    .hint = Sleep de tekst naar een vrije plek, of verplaats het symbool waar hij op staat.
+
+rule-ew-core-077 = { $symbol ->
+        [ip] Onderbrekingspunt { WORD($device) }
+       *[device] { WORD($device) }
+    } { $form ->
+        [outside] staat buiten het tekengebied van pagina { $page }. Verplaats het binnen het kader.
+       *[part] ligt op { $other_symbol ->
+            [ip] onderbrekingspunt { WORD($other) }
+           *[device] { WORD($other) }
+        }. Verplaats een van beide.
+    }
+    .title = Symbool op een symbool
+    .hint = Open de melding: de symbolen zijn geselecteerd. Sleep een van beide naar een vrije plek.
 
 rule-ew-core-081 = vrijstelling { $waiver } voor { $rule } { $form ->
         [not-evaluated] is niet beoordeeld: de regel liep niet in schema { $scheme } ({ $mode ->

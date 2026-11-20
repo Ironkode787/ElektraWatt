@@ -541,7 +541,7 @@ proptest::proptest! {
         proptest::prop_assert!(!m.overlaps.iter().any(|o| mine(&o.connections[0]) || mine(&o.connections[1])), "{:?}", m.overlaps);
         proptest::prop_assert!(!m.through_bodies.iter().any(|t| mine(&t.connection)), "{:?}", m.through_bodies);
         proptest::prop_assert!(!m.through_texts.iter().any(|t| strict(&t.connection)), "{:?}", m.through_texts);
-        proptest::prop_assert_eq!(&m.four_way, &vec![]);
+        proptest::prop_assert!(m.four_way.is_empty(), "{:?}", m.four_way);
         for cp in &p.cps {
             if p.texts.iter().any(|t| across_stub(t.rect, cp)) {
                 proptest::prop_assert!(!cp.connections.iter().any(strict), "{:?} {:?}", cp, plan.routes);

@@ -1312,6 +1312,7 @@ dependencies = [
  "ew-commands",
  "ew-derive",
  "ew-dl",
+ "ew-drafting",
  "ew-export",
  "ew-hack",
  "ew-ids",
@@ -1405,6 +1406,7 @@ version = "0.3.0"
 dependencies = [
  "automod",
  "ew-commands",
+ "ew-drafting",
  "ew-hack",
  "ew-ids",
  "ew-memo",
@@ -1432,6 +1434,15 @@ dependencies = [
  "libm",
  "proptest",
  "uuid",
+]
+
+[[package]]
+name = "ew-drafting"
+version = "0.3.0"
+dependencies = [
+ "automod",
+ "ew-hack",
+ "ew-ids",
 ]
 
 [[package]]
@@ -1776,6 +1787,7 @@ dependencies = [
  "automod",
  "ew-derive",
  "ew-dl",
+ "ew-drafting",
  "ew-hack",
  "ew-ids",
  "ew-mltext",
