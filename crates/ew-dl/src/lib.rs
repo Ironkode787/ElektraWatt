@@ -107,12 +107,12 @@ mod transform;
 pub use canonical::{CANONICAL_VERSION, Canonical};
 pub use item::{
     DisplayList, GeometryResolver, GroupItem, ImageData, ImageFormat, ImageItem, InstanceItem, Item,
-    ItemKind, MAX_INSTANCE_DEPTH, PathItem, SymbolGeomId,
+    ItemKind, MAX_GROUP_DEPTH, MAX_INSTANCE_DEPTH, PathItem, SymbolGeomId,
 };
 pub use layer::Layer;
 pub use link::{Destination, EntityRef, Link};
 pub use paint::{Brush, Cap, Color, Dash, DashPattern, Join, MITER_LIMIT, Pen, Stroke};
-pub use path::{KAPPA_DEN, KAPPA_NUM, Path, PathBuilder, PathEl, kappa_handle};
+pub use path::{KAPPA_DEN, KAPPA_NUM, Path, PathBuilder, PathEl, kappa_handle, kurbo_rect};
 pub use text::{FontKey, Glyph, ShapedRun};
 pub use transform::Transform;
 

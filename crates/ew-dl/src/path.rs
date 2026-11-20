@@ -77,6 +77,12 @@ pub fn kappa_handle(r: Nm) -> Nm {
     Nm(div_round_tz(i128::from(r.0) * i128::from(KAPPA_NUM), i128::from(KAPPA_DEN)) as i64)
 }
 
+/// `r` as a `kurbo::Rect` in f64 nm, for renderers (as [`Path::to_kurbo`] for paths).
+pub fn kurbo_rect(r: Rect) -> kurbo::Rect {
+    let (a, b) = (r.min(), r.max());
+    kurbo::Rect::new(a.x.0 as f64, a.y.0 as f64, b.x.0 as f64, b.y.0 as f64)
+}
+
 /// A path of straight and Bézier segments in integer nanometres.
 ///
 /// A well-formed path is empty or starts with [`PathEl::MoveTo`]; the [`PathBuilder`] guarantees this by

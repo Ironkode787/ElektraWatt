@@ -20,7 +20,8 @@
 //!   points on multiples of 90° are exact.
 //! - **kurbo's arc conversion is not used on the export path:** `kurbo::Arc` calls `f64::sin_cos`. kurbo
 //!   appears in this crate only in the f64 conversions for renderers and picking
-//!   ([`Path::to_kurbo`](crate::Path::to_kurbo), [`Transform::to_affine`](crate::Transform::to_affine)).
+//!   ([`Path::to_kurbo`](crate::Path::to_kurbo), [`kurbo_rect`](crate::kurbo_rect),
+//!   [`Transform::to_affine`](crate::Transform::to_affine)).
 //!
 //! Supported targets have SSE2 or an equivalent binary64 unit (x86-64, AArch64). An x87-only target (i586)
 //! would evaluate in extended precision and is not supported for export.

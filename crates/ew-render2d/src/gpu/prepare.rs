@@ -43,10 +43,9 @@ use std::sync::mpsc::{Receiver, Sender, channel};
 use std::sync::{Arc, Condvar, Mutex, PoisonError};
 use std::thread;
 
-use ew_dl::ew_units::Rect;
 use ew_dl::{
-    Brush, Color, DisplayList, FontKey, ImageData, ImageFormat, ImageItem, Item, ItemKind, PathItem,
-    ShapedRun, Transform,
+    Color, DisplayList, FontKey, ImageData, ImageFormat, ImageItem, Item, ItemKind, MAX_GROUP_DEPTH,
+    PathItem, ShapedRun, Transform, kurbo_rect,
 };
 use ew_render_cpu::{FontBytes, FontResolver, decode_image};
 use kurbo::Affine;
@@ -58,9 +57,6 @@ use super::tess::{MeshBuilder, MeshData, PATH_TOLERANCE_UM, lyon_path, stroke_el
 
 /// A 128-bit content key of a mesh.
 pub type MeshKey = u128;
-
-/// How deep groups may nest before the walk skips the rest of a branch (as the CPU renderer).
-const MAX_GROUP_DEPTH: usize = 128;
 
 /// The alpha factor of a LOD bar.
 pub const BAR_ALPHA: f64 = 0.35;
@@ -542,12 +538,6 @@ fn glyph_mesh(face: &Face, id: u32, failed: &mut u64) -> MeshData {
     mesh
 }
 
-fn brush_color(b: Brush) -> Color {
-    match b {
-        Brush::Solid(c) => c,
-    }
-}
-
 fn coefficients(a: Affine) -> [f32; 6] {
     a.as_coeffs().map(|v| v as f32)
 }
@@ -570,11 +560,6 @@ fn clip_um(clip: Clip) -> [f32; 4] {
             (r.y1 / 1000.0) as f32,
         ],
     }
-}
-
-fn nm_rect(r: Rect) -> kurbo::Rect {
-    let (a, b) = (r.min(), r.max());
-    kurbo::Rect::new(a.x.0 as f64, a.y.0 as f64, b.x.0 as f64, b.y.0 as f64)
 }
 
 /// One primitive of a context's mesh.
@@ -670,7 +655,7 @@ impl<'a> Walker<'a> {
             let bez = item.path.to_kurbo();
             if stroke {
                 let Some(s) = &item.stroke else { continue };
-                let color = brush_color(s.brush);
+                let color = s.brush.color();
                 let builder = if color.a < 255 {
                     &mut translucent
                 } else {
@@ -681,7 +666,7 @@ impl<'a> Walker<'a> {
                 }
             } else {
                 let Some(fill) = item.fill else { continue };
-                let color = brush_color(fill);
+                let color = fill.color();
                 let builder = if color.a < 255 {
                     &mut translucent
                 } else {
@@ -764,7 +749,7 @@ impl<'a> Walker<'a> {
                     let inner_clip = match g.clip {
                         None => clip,
                         Some(r) => {
-                            let page = inner.transform_rect_bbox(nm_rect(r));
+                            let page = inner.transform_rect_bbox(kurbo_rect(r));
                             Some(clip.map_or(page, |c| c.intersect(page)))
                         }
                     };
@@ -781,7 +766,7 @@ impl<'a> Walker<'a> {
             self.stats.images_skipped += 1;
             return;
         };
-        let r = nm_rect(img.rect);
+        let r = kurbo_rect(img.rect);
         if r.width() <= 0.0 || r.height() <= 0.0 {
             return;
         }
@@ -824,7 +809,7 @@ impl<'a> Walker<'a> {
             * Affine::translate((run.origin.x.0 as f64, run.origin.y.0 as f64))
             * run.transform.to_affine();
         let scale = placed.determinant().abs().sqrt();
-        let color = brush_color(run.brush);
+        let color = run.brush.color();
         let tint = [color.r, color.g, color.b, color.a];
         let k = run.size.0 as f64 / face.units_per_em;
         let clip = clip_um(clip);
@@ -871,7 +856,7 @@ impl<'a> Walker<'a> {
             });
             self.stats.glyph_instances += 1;
         }
-        let b = nm_rect(run.layout_box);
+        let b = kurbo_rect(run.layout_box);
         let bar_mesh = Arc::new(MeshData::unit_square());
         let bar = self.use_mesh(bar_key(), &bar_mesh);
         let t = to_um()
@@ -1075,8 +1060,8 @@ impl Preparer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ew_dl::ew_units::{Nm, Pt2};
-    use ew_dl::{Path, Stroke};
+    use ew_dl::ew_units::{Nm, Pt2, Rect};
+    use ew_dl::{Brush, Path, Stroke};
 
     fn p(x: i64, y: i64) -> Pt2 {
         Pt2::new(Nm(x), Nm(y))

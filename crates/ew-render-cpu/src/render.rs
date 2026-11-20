@@ -6,10 +6,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
-use ew_dl::ew_units::{Nm, Pt2, Rect};
+use ew_dl::ew_units::{Nm, Pt2};
 use ew_dl::{
-    Brush, Cap, Color, DisplayList, FontKey, GeometryResolver, ImageFormat, ImageItem, ItemKind, Join,
-    MAX_INSTANCE_DEPTH, MITER_LIMIT, PathItem, ShapedRun, Stroke, Transform,
+    Cap, Color, DisplayList, FontKey, GeometryResolver, ImageFormat, ImageItem, ItemKind, Join,
+    MAX_GROUP_DEPTH, MAX_INSTANCE_DEPTH, MITER_LIMIT, PathItem, ShapedRun, Stroke, Transform, kurbo_rect,
 };
 use vello_cpu::kurbo::{self, Affine, Shape};
 use vello_cpu::peniko::{Blob, Fill, FontData};
@@ -20,11 +20,6 @@ use crate::image::{DecodedImage, decode_image};
 
 /// Nanometres per inch.
 const NM_PER_INCH: i128 = 25_400_000;
-
-/// How deep groups may nest before the renderer skips the rest of a branch. A display list from the
-/// scene nests a handful of levels; the bound keeps hostile input from exhausting the stack or the
-/// rasteriser's layer stack.
-const MAX_GROUP_DEPTH: usize = 128;
 
 /// Sheet size in nm (paper), e.g. A4 landscape 297 mm × 210 mm.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -579,7 +574,7 @@ fn reach_of(
             // painter skips adds nothing.
             ItemKind::Image(img) => {
                 if img.image.format != ImageFormat::Svg && !img.image.bytes.is_empty() {
-                    acc.add(cur.transform_rect_bbox(nm_rect(img.rect)));
+                    acc.add(cur.transform_rect_bbox(kurbo_rect(img.rect)));
                 }
             }
             ItemKind::Instance(inst) => {
@@ -604,7 +599,7 @@ fn reach_of(
                         reach_of(&g.items, t, depth + 1, inst_depth, geometry, &mut inner);
                         if let Some(r) = inner.rect {
                             let r = r.inflate(inner.pad, inner.pad);
-                            let cut = r.intersect(t.transform_rect_bbox(nm_rect(clip)));
+                            let cut = r.intersect(t.transform_rect_bbox(kurbo_rect(clip)));
                             if cut.width() >= 0.0 && cut.height() >= 0.0 {
                                 acc.add(cut);
                             }
@@ -733,17 +728,6 @@ fn paint_color(c: Color) -> vello_cpu::color::AlphaColor<vello_cpu::color::Srgb>
     vello_cpu::color::AlphaColor::from_rgba8(c.r, c.g, c.b, c.a)
 }
 
-fn brush_color(b: Brush) -> Color {
-    match b {
-        Brush::Solid(c) => c,
-    }
-}
-
-fn nm_rect(r: Rect) -> kurbo::Rect {
-    let (a, b) = (r.min(), r.max());
-    kurbo::Rect::new(a.x.0 as f64, a.y.0 as f64, b.x.0 as f64, b.y.0 as f64)
-}
-
 fn kurbo_stroke(s: &Stroke) -> kurbo::Stroke {
     let cap = match s.cap {
         Cap::Butt => kurbo::Cap::Butt,
@@ -813,7 +797,7 @@ impl Painter<'_> {
                     let t = cur * g.transform.unwrap_or(Transform::IDENTITY).to_affine();
                     if let Some(clip) = g.clip {
                         self.ctx.set_transform(self.pixel_transform(t));
-                        self.ctx.push_clip_layer(&nm_rect(clip).to_path(0.1));
+                        self.ctx.push_clip_layer(&kurbo_rect(clip).to_path(0.1));
                     }
                     self.items(&g.items, t, depth + 1, inst_depth);
                     if g.clip.is_some() {
@@ -837,14 +821,14 @@ impl Painter<'_> {
         self.ctx.set_transform(self.pixel_transform(cur));
         if let Some(brush) = item.fill {
             self.ctx.set_fill_rule(Fill::NonZero);
-            self.ctx.set_paint(paint_color(brush_color(brush)));
+            self.ctx.set_paint(paint_color(brush.color()));
             self.ctx.fill_path(&bez);
         }
         if let Some(stroke) = &item.stroke
             && stroke.width.0 > 0
         {
             self.ctx.set_stroke(kurbo_stroke(stroke));
-            self.ctx.set_paint(paint_color(brush_color(stroke.brush)));
+            self.ctx.set_paint(paint_color(stroke.brush.color()));
             self.ctx.stroke_path(&bez);
         }
     }
@@ -866,7 +850,7 @@ impl Painter<'_> {
             self.skipped_images += 1;
             return;
         };
-        let r = nm_rect(img.rect);
+        let r = kurbo_rect(img.rect);
         if r.width() <= 0.0 || r.height() <= 0.0 {
             return;
         }
@@ -919,7 +903,7 @@ impl Painter<'_> {
         let k = self.scale;
         self.ctx
             .set_transform(self.device * placed * Affine::scale(1.0 / k));
-        self.ctx.set_paint(paint_color(brush_color(run.brush)));
+        self.ctx.set_paint(paint_color(run.brush.color()));
         let glyphs = run.glyphs.iter().map(|g| vello_cpu::Glyph {
             id: g.id,
             x: (g.x.0 as f64 * k) as f32,

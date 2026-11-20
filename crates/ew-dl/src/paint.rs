@@ -75,6 +75,13 @@ pub enum Brush {
 impl Brush {
     /// Solid black, the default for drawing pens.
     pub const BLACK: Brush = Brush::Solid(Color::BLACK);
+
+    /// The colour a renderer paints with.
+    pub const fn color(self) -> Color {
+        match self {
+            Brush::Solid(c) => c,
+        }
+    }
 }
 
 /// The shape at the open ends of a stroked path and of each dash.

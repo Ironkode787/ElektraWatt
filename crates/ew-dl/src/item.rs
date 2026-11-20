@@ -17,6 +17,11 @@ use crate::{Brush, Destination, EntityRef, Link, Path, ShapedRun, Stroke, Transf
 /// normally contains no instances at all; the limit only guards against a cyclic resolver.
 pub const MAX_INSTANCE_DEPTH: usize = 8;
 
+/// How deep groups may nest before a renderer skips the rest of a branch. A display list from the
+/// scene nests a handful of levels; the bound keeps hostile input from exhausting the stack or the
+/// rasteriser's layer stack.
+pub const MAX_GROUP_DEPTH: usize = 128;
+
 /// The key of a symbol's geometry: ADR-0015's `symbol_geometry(symbol, variant)`, plus the index of a
 /// stored extra variant (doc 07 §2.3: contact-image and CP variants).
 ///
