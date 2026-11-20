@@ -875,9 +875,14 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   through `fields.set` of `locked`): Arrange and route leaves such a symbol where it stands; a small pin shows on it
   while it is selected (06a §2.4)
 - behaviour-change: Draw on a page draws a PLC card from the station view as one row of channel pins along one edge
-  of a low, wide box, 5 grid steps apart: inputs on the upper edge of a box at the foot of the drawing area, outputs
-  on the lower edge of one at its head, the supply pins down its left side; a row wider than the drawing area takes
-  at most 16 pins and the To do list offers the rest on another page; cards already drawn keep their form (06a §7.5)
+  of a low, wide box, 8 grid steps apart (a field device with its tag stands over each pin): inputs on the upper
+  edge of a box at the foot of the drawing area, outputs on the lower edge of one at its head, the supply pins down
+  its left side; a row wider than the drawing area takes at most 8 pins and the To do list offers the rest on
+  another page; cards already drawn keep their form (06a §7.5)
+- behaviour-change: Arrange and route on a page with PLC cards: a terminal wired to a card stands in the column of
+  its channel with its field device beyond it, also where the strip was set down in another order or between two
+  cards; a row that has no room at the usual distance (under the controller's box) stands nearer; a wire from a pin
+  with a potential's mark on it has a way (06a §4.4, §3.6)
 - behaviour-change: content: the starter symbols with a pin leaving upward carry their tag at the upper left, make,
   type and rating under it and pin numbers right of their pins, and the interruption point's two forms their name in
   line with the wire, so that marks stack two steps apart; each changed symbol's version rises (06a §5.2, §7.5)

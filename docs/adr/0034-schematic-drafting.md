@@ -173,6 +173,19 @@ The decision text above is unchanged; these entries refine it.
    - *Alternative: keep the estimate and correct it with the router's result.* It would be a second measure to
      keep true to the first. *Alternative: route every candidate place of every part.* The candidates multiply;
      one arrangement built from the pins' structure, and its parts, are few.
+2. **A card's pins stand 8 steps apart, and a strip stands by its channels** (2026-11-20). The design (06a §7.5) drew a
+   card's channel pins 5 steps apart and advised stretching the box where devices stand over the pins. On a page
+   with field devices no row of devices fits that pitch, so every wire stepped. The pitch is 8 steps (a device
+   with its tag stands over each pin; a card of eight channels still fits beside the controller at the head of an
+   A3 sheet), and one box of a row that does not fit takes 8 pins at most. With it the placer sets each terminal
+   that is wired to a card in the column of its channel, also where the strip was set down in another order or
+   between two cards, and a row that has no room at the chain gap stands nearer (06a §4.4, §7.5). The sentence
+   of amendment 1 on a page wired against its symbols is corrected in 06a §4.8: the wires round a card cross pair
+   by pair with the strip in the order of the pins, so no room the placer makes takes those crossings away.
+   - *Alternative: keep 5 steps and stagger the devices in two rows.* A tag of six characters then clears the
+     neighbouring wire by a fifth of a step; one more character and it does not.
+   - *Not built:* the cards of one page on common columns clear of the controller's column (06a §7.5), and the
+     router phase for the wires that go round a card of the older form (06a §4.8).
 
 ## Related
 

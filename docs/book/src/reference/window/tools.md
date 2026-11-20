@@ -273,12 +273,17 @@ potentials stand at the head and the foot and current runs down a circuit, a car
 fluid page the supply stands below the valves and each actuator above its valve, the actuators in their order; on a
 bus page the stations stand in the order of the line, level. The space you left along a circuit stays: a symbol is
 neither pulled nearer nor spread out, unless it has to move. A row you made (the terminals of a strip, cards side by
-side, like symbols level) moves as one or stays as one. Every arrangement is routed and measured before you see it. A
+side, like symbols level) moves as one or stays as one; a terminal wired to a card stands in the column of its
+channel, so a strip between a card and its field devices takes the order and the spacing of the channels. Every arrangement is routed and measured before you see it. A
 move has a price, so a symbol moves only where the page gets visibly better, and a page already in order gives no
 plan. It never offers less than Route would do with the same wires: when moving symbols does not make the page better
 than routing alone, it offers Route's plan and says that no symbol moves. That is also what it does on a page wired
 against its symbols, such as a card whose pins face up wired to the upper ends of terminals that stand below it: no
-arrangement mends that, wire the terminals' other ends or turn the page round yourself.
+arrangement mends that, wire the terminals by the ends that face the card. A card drawn before this version has two
+rows of pins, so half its channels face away from their circuits. You can draw it again without wiring it anew:
+delete its box on the page (the card, its channels and its wires stay in the project), choose Draw on a page for it
+in the station view, and run Arrange and route, which draws the wires to the new pins. A terminal whose card now
+stands on its other side still has to be wired by the end that faces the card.
 
 It never moves a symbol you keep in place (right-click ▸ Keep in place), a symbol outside the selection, a symbol in a
 structure box, or a symbol to another page, and it never turns or mirrors one. The symbols you keep stay where they

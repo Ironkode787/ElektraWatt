@@ -164,8 +164,8 @@ the same rules.
 |---|---|---|---|
 | **Supply and power** | Each feeder is one column: protection, switching, overload, terminals, cable mark, load, each in line with the pole it is wired to, poles 2 steps apart, the earth wire at the right of the phases. Where two devices have another pole pitch, one pole is in line and the others step once, nested. | The phases and N run across the head of the sheet from their marks at the left to their marks at the right, 2 steps apart; the first device of each feeder hangs 2 steps under the nearest. A drop crosses the trunks between it and its own without a dot. | Chain gap 5 steps; trunk 2 steps from the pins it taps; trunks 2 steps apart |
 | **Control circuit in current paths** | Each path is a column between the two trunks; the contacts of all paths on one line, the coils (or lamps) on one line; a parallel branch in its own column beside the path. The contact list of a coil stands left of the coil under its tag; the path's function text under the lower trunk. | The upper potential along the head, the lower one along the foot, each from a mark at the left; a trunk ends at its last path by a corner. | Paths clear of each other by their footprints and `ROW_GAP`; the last parts' lower pins on one line when within 6 steps of it |
-| **PLC inputs** | The card is a row of channel pins along the foot of the sheet, pins up. Signals from other pages arrive from marks, each mark 2 steps before its drop and 2 steps higher than the one before (a staircase), so the drops do not cross. Devices on the same page stand in line above their terminal and pin. | The devices' common potentials run as trunks between the devices and the card, or beyond the devices. | Card pins 5 steps apart (§7.5); a card stretched to 10 steps takes a device over each pin |
-| **PLC outputs** | The mirror: the card along the head of the sheet, pins down; each load in line under its pin; the loads on one line near the foot; tags and contact lists under the lower trunk, in two rows where the pitch is tighter than a tag is wide. | The loads' return potential is one trunk under the loads, from mark to mark. | Card pins 5 steps apart |
+| **PLC inputs** | The card is a row of channel pins along the foot of the sheet, pins up. Signals from other pages arrive from marks, each mark 2 steps before its drop and 2 steps higher than the one before (a staircase), so the drops do not cross. Devices on the same page stand in line above their terminal and pin. | The devices' common potentials run as trunks between the devices and the card, or beyond the devices. | Card pins 8 steps apart (§7.5): a device with its tag and address stands over each pin |
+| **PLC outputs** | The mirror: the card along the head of the sheet, pins down; each load in line under its pin; the loads on one line near the foot; tags and contact lists under the lower trunk, in two rows where the pitch is tighter than a tag is wide. | The loads' return potential is one trunk under the loads, from mark to mark. | Card pins 8 steps apart |
 | **Bus layout** | Stations with their ports on the same side stand level; a link between neighbours runs on the nearest free track beyond the ports and the captions it has to pass; a station's make, type, tag and address stand above its box. | A line bus with three or more stations is a trunk. | Track at least 2 steps from the ports |
 | **Pneumatic circuit** | The valve terminal or the valves are the anchor. Their working ports face up, so flow controls and actuators stand above, in the order of the ports; the supply port faces down, so the service unit and the source stand below. No part is turned. (From ISO 1219-2 as the research reads it; the reference set has no page of this kind.) | The supply line of single valves is a trunk below them. | Tubes are wires; the fluid grid's step applies |
 | **Distribution, and pages that are none of these** | The largest part of each group is its anchor; marks stack beside the pins they are wired to, incoming at the left and outgoing at the right, 2 steps apart, in the order of the pins, so that their wires nest. | As the nets ask. | Marks 2 steps apart |
@@ -208,8 +208,8 @@ One `const` table in `ew-drafting` holds these; nothing else in the program repe
 | `PASSES` | 2 | improvement passes; text rounds |
 | `MAX_NODES` | 262 144 | search area bound (kept) |
 | `GUIDE_SHOW`, `GUIDE_CATCH`, `GUIDE_CATCH_PT` | 2 steps, 3/4 step, 8 screen points | guides (§6) |
-| `CARD_PIN_PITCH` | 5 steps | cards drawn from the station view (§7.5) |
-| `CARD_HEIGHT`, `CARD_PINS_MOST` | 6 steps; 16 pins | cards drawn from the station view (§7.5) |
+| `CARD_PIN_PITCH` | 8 steps | cards drawn from the station view (§7.5) |
+| `CARD_HEIGHT`, `CARD_PINS_MOST` | 6 steps; 8 pins | cards drawn from the station view (§7.5) |
 
 ### 1.6 The rules that bind the placer
 
@@ -634,6 +634,10 @@ or one more than 8/5 of the city-block distance of the ends, the search runs on 
 step, a half-grid track only between the two ends), and its route is taken where the whole grid's is more than
 8/5 of it or there is none.
 
+A part of one pin that is set on the end's own point (a potential's mark on a pin of a box) is left as an end
+leaves its own part: the mark does not wall the pin in. Before, such a wire had no way and kept the route the
+person drew.
+
 Order: the remaining jobs by the city-block distance of their ends, shortest first, then by the first end's
 place, then by ID. Then at most `PASSES` passes in the same order: lift one wire, search it against all the
 others, keep the new route when its cost is lower. A pass that changes nothing ends the passes.
@@ -852,6 +856,30 @@ the card.
 
 The order within a row or a stack follows the hosts' pins, not the places the followers had.
 
+*As built (2026-11-20, pages with cards).* What the pages with a card at the head and one at the foot needed:
+
+- **A strip's terminals stand by their channels.** A member of a row does not take a line that carries it past a
+  unit of its row that has no line of its own (a fixed one, or one that hangs beside its host), nor further from
+  it than it stood by more than `ROW_PULL`; a unit of the row with a line of its own binds nobody. So the terminals
+  of one strip that are wired to two cards each stand at their own card's pin (rule E4).
+- **A terminal without a wire joins one strip.** A mate relation holds where one of the two is the top of its
+  tree; a unit that hangs on its mate is the top of no tree any more, so a spare terminal between the terminals
+  of two cards does not join the cards into one tree, in which one card would hang on a terminal.
+- **A wire across a row asks nothing** where one of two units of that row would have to leave it (two cards side
+  by side, a pin on the upper edge of one wired to a pin on the lower edge of the other); a wire along a row of
+  parts in line keeps its relation.
+- **A mark set on a pin.** A mark whose arrow lies along the body of the part it is set on (a potential's mark on
+  a controller's supply pin) has no way out on its own side: it asks for no row. And a pin with such a mark is
+  where the potential arrives: neither part steps for a corner of the wire from there.
+- **A block heavier than its host keeps its place** in a stack: a card with its channels does not step for the
+  corner of one supply wire.
+- **A row nearer than the chain gap.** Where a member that takes the row's line would stand on a unit that is
+  set, the members that take the line step back together, a step at a time and no nearer than `CHAIN_GAP_MIN`
+  and their tracks, to the first line that is clear: sensors under the controller's box.
+- **Who is in the way.** A tree is set as if the units of the trees after it will step aside. A unit that then
+  kept its place where a moved unit came to stand is in the way from the start, and the trees are set again,
+  `PASSES` times at most.
+
 ### 4.5 Room, and the texts
 
 The distance between a host's pins and a row is at least `CHAIN_GAP` and at least one step more than the tracks
@@ -940,7 +968,10 @@ Parts may cross the page, so these hold the person's picture of it:
 - **The price of a move.** No part moves for a small gain or a tie (§4.7), so a page that is already in order
   comes back with an empty plan, and a second run after a first changes nothing.
 - **Rows.** A row the person made (a strip, cards side by side, like devices level) moves as one or stays as
-  one, at the pitch it had or the one its new place asks of all its members.
+  one, at the pitch it had or the one its new place asks of all its members. Rule E4 comes first: a terminal
+  wired to a card's pin stands in that channel's column, so a strip between a card and its field devices takes
+  the pitch and the order of the channels, and a terminal of it that is wired to another card stands at that
+  card's pin.
 - **Order.** The parts of a circuit stand in the order of the wiring, the parts of a row in the order of the
   pins (rule A4, which reads the terminals of a strip as one row).
 - **Spacing.** Along a circuit the distances are the person's.
@@ -952,12 +983,24 @@ There is no upper bound on the parts one run moves, and no lighter mode, for the
 
 **Where the placer moves nothing.** A page whose wiring runs against its symbols cannot be made good by
 placing. The plain case: a card's pins face up and each is wired to the *upper* pin of a terminal that stands
-below the card. With the strip in its order the only drawing without crossings leads every such wire round the
-card (four bends each), and it needs room beside the card for as many tracks as there are channels; with two
-bends each (out, across and back into a terminal beside the card) the strip would have to stand in the reverse
-order. The placer does not reverse a strip and does not turn a card, so on such a page it offers Route's plan
-and moves nothing. The remedy is the person's: wire the terminals' lower pins, or use the card with its pins on
+below the card. Every such wire has to go round the card (four bends), and with the strip in the order of the
+pins the wires that pass one side of the card cross each other pair by pair: `m` wires round one side cross
+`m (m - 1) / 2` times, whatever room the placer makes. (An earlier text of this section said they nest clear;
+they do so only with the strip in the reverse order.) The placer does not reverse a strip, does not turn or
+mirror a terminal or a card (rule A3), and so on such a page it offers Route's plan and moves little or nothing.
+The remedy is the person's: wire the terminals by the pins that face the card, or use the card with its pins on
 the side the field stands.
+
+**A card in the older form.** Until step 7 "Draw on a page" drew a card with two rows of pins, so half its
+channels face away from their circuits: such a page is the case above. There is a way to draw the card again
+without wiring it anew: delete the card's box (the device, its channels and every connection stay, because a
+connection joins connection points of the device's function, not the box), then draw the card from the station
+view again; the connections end at the new pins, and Arrange and route draws them. What stays for the person is
+each terminal of a channel that now faces the other way: the wire to the card belongs on the terminal's pin that
+faces the card. A command that swaps the two wires of such a terminal for a whole strip would take that hand work
+away; it is not built. Routing the nested wires of the older form with the fewest
+crossings (a router phase that lays the wires round one card together, and the placer making the room beside the
+card) was started and is not built either: it removes no crossing that the order of the strip forces.
 
 ### 4.9 The plan
 
@@ -1225,13 +1268,13 @@ symbol dropped on a shared run is refused ("two wires run here; place the symbol
 
 The router and the placer work with a card as it is drawn, whatever its form. "Draw on a page" draws a card
 as **a low, wide box with its channel pins in one
-row on one edge, `CARD_PIN_PITCH` (5 steps) apart**: the upper edge for inputs, with the card set at the foot of
+row on one edge, `CARD_PIN_PITCH` (8 steps) apart**: the upper edge for inputs, with the card set at the foot of
 the drawing area; the lower edge for outputs, with the card set at its head; a card with both gets two boxes. Its
 supply pins are on its left side. Today it draws two rows of pins two steps apart, so half the channels face
 away from their circuits and nothing fits over a pin. A card is `pins × CARD_PIN_PITCH` wide plus two steps and
-six steps high; a card wider than the drawing area is split into boxes of at most 16 pins, and the command asks
-for the page of each further box. Stretching a box already spreads its pins at one common pitch: a card stretched to ten steps per
-pin takes a field device over each pin. Cards already drawn are not changed. The pin texts stay as the program
+six steps high; a card wider than the drawing area is split into boxes of at most 8 pins, and the command asks
+for the page of each further box. Stretching a box already spreads its pins at one common pitch. Cards already
+drawn are not changed. The pin texts stay as the program
 draws them on a box.
 
 In the same step the starter symbols get the first places of §5.2 as their slots (tag at the upper left, make
@@ -1257,6 +1300,20 @@ cross-reference line under line 6 mm apart (a coil's contact list last): 4 mm on
 and not texts, as in the reference set; there the lines are one block, on the native grid each line is placed alone. The interruption point's two forms keep their cross-reference under the
 arrow: under the wire on the wire's side, a wire that turns at once (a supply mark's drop) ran through it. The text placer gained two places for this: a part's right corners stand beyond its pin
 numbers, and a mark's cross-reference may stand centred under or over its arrow.
+
+*The pitch, changed on 2026-11-20.* The pitch was 5 steps, with the advice to stretch a card to 10 where devices
+stand over its pins. On a page with field devices that was the commonest case and the box stood in the way: a
+sensor with its tag and address is six to seven steps wide, so at 5 steps no row of devices can stand in line
+with its channels, and every wire steps. At 8 steps a device stands over each pin, and a card of eight channels
+(66 steps) still fits beside the controller's box at the head of an A3 sheet. `CARD_PINS_MOST` went from 16 to 8
+with it: a row that does not fit is drawn a byte a box, 8 and 8 for a card of sixteen channels, not 12 and 4.
+The price: a card of sixteen channels no longer fits one A3 page, and a card of inputs, which is set at the foot
+from the left edge, finds no room on a page where a symbol stands within two gaps of the foot (the To do list
+then offers another page). Two things the box still does that a draughtsman would not: a card of inputs stands
+at the foot under the controller's box, so the supply wires from the head cross its first channels; and the pins
+of a card at the head and one at the foot stand on columns two steps apart where the controller's box is not a
+whole number of pitches wide. Setting the cards of one page on common columns, half a pitch apart, clear of the
+controller's column, is the next change of this section; it is not built.
 
 ### 7.6 Joining wires: the bevel by default
 
@@ -1393,8 +1450,9 @@ Not measured: no timing test goes into the repository.
   at most `BRANCHES` trees, at most twice `BRANCHES` plans without or with one branch, and at most `BRANCHES` more
   for the price; a press makes at most `ROUNDS` runs. Setting the arrangement: relations and a sort per row; for
   each tree at most `ANCHORS` anchors, each with at most 4 × `REACH` steps of its root; the text placer once per
-  row and per pitch of a stack, on a page of those parts alone. So the work of a press grows with the wires of
-  the page times a bounded number of plans, and with the number of trees times the steps tried for each.
+  row and per pitch of a stack, on a page of those parts alone; the trees are set again for each unit found in the
+  way, `PASSES` times at most. So the work of a press grows with the wires of the page times a bounded number of
+  plans, and with the number of trees times the steps tried for each.
 - Trunks: nets × candidates (a handful) × taps. Tracks: per channel a sort of its wires.
 - The search: per remaining wire, the nodes of its area (at most `MAX_NODES`, five states each) times a
   logarithm; areas grow from the ends' box only when no route is found; `PASSES` passes.
