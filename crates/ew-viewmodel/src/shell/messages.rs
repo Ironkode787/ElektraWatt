@@ -639,7 +639,7 @@ impl ShellModel {
     }
 
     // -----------------------------------------------------------------------------------------------------------
-    // Quick fixes (§7.4, D10)
+    // Quick fixes
 
     /// `messages.fix {key?}`: previews the quick fix of a finding row (default the cursor row) and opens its card in the
     /// Messages pane, whatever FR-UI-044's policy would say; a finding without one refuses `reason-no-fix`.

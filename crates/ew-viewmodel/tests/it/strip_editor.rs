@@ -42,7 +42,7 @@ const SEQ_1_TO_20: [&str; 20] = [
     "20",
 ];
 
-/// SE7 (D2, D3, §6.2): the Terminal strips table sorts by `Order` by default (the strips in natural tag order, each
+/// SE7: the Terminal strips table sorts by `Order` by default (the strips in natural tag order, each
 /// strip's terminals in sequence order); `strip.edit` filters it to one strip (`strip:-X1031`, 20 rows) with the cursor
 /// on its first row; accessory rows are placed and numbered by D3 (`after_seq` 0, two at 4, 20); the read-only reasons
 /// of §6.2 refuse an edit of a Pos cell, an accessory row's cell and a Bridge part cell of a terminal without a bridge.

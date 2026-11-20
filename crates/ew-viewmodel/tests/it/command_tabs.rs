@@ -111,7 +111,7 @@ fn the_workspace_switch_shows_the_active_workspace() {
     s.shutdown();
 }
 
-/// The rc.3 rack run: Valve terminal and Air supply were greyed on a page that is no fluid page and did not say why.
+/// A rack run: Valve terminal and Air supply were greyed on a page that is no fluid page and did not say why.
 /// The Fluid tab's place buttons work from any page: on a project without a fluid page Air supply makes one, says so
 /// and opens the device browser there; from another page they go to the fluid page. The Tube, a tool of the page in
 /// front, is greyed elsewhere with the fluid page as its reason.

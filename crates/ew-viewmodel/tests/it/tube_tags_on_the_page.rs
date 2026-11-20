@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! rc.5 persona run: with Fluid settings' "Tag tubes by page and counter" on, the tubes carried their tags in the tube
+//! A persona run: with Fluid settings' "Tag tubes by page and counter" on, the tubes carried their tags in the tube
 //! table alone; the setting promises them on the page too. Each tube prints its tag beside it; without the setting,
 //! none.
 

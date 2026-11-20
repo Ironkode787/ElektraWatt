@@ -8,7 +8,7 @@
 //! tool's [`PlaceTarget::Join`] carries the device and its unplaced slots; the host refreshes them after every commit,
 //! so the target stays sticky: the next placement fills the next slot, then makes new auxiliary functions.
 //!
-//! **Before placing (D2).** J (`place.join`) opens the chooser list of doc 16a §6.22 while the armed symbol's FnDef
+//! **Before placing.** J (`place.join`) opens the chooser list of doc 16a §6.22 while the armed symbol's FnDef
 //! can be an auxiliary function: "New device" first, then [`ew_api::Session::join_candidates`]' rows (the slots,
 //! "slot 13-14", then the devices that take auxiliary functions). Enter (`chooser.choose`) arms the row's target, the
 //! ghost label reads `join -K1`; "New device" restores the target before the join.

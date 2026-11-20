@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Preview tab's host duties (§8.1, D11), the renumber dialogs and their `bulk` card (§8.2, §8.3,
+//! The Preview tab's host duties, the renumber dialogs and their `bulk` card (§8.2, §8.3,
 //! D12) and the GUI purge step (§8.6).
 //!
 //! **The Preview tab.** [`ShellModel::sync_preview`] runs at the end of every dispatch and after the window changed the

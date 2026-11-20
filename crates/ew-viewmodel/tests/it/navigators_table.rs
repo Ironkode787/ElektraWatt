@@ -319,7 +319,7 @@ fn a_doubling_prev_pattern_previews_five_rows_and_refuses_rows_that_grow_too_lon
     shell.shutdown();
 }
 
-/// TB4 (§8.6, §8.7, D13): paste with a header row in another column order maps by label (an unmatched pasted column is
+/// TB4: paste with a header row in another column order maps by label (an unmatched pasted column is
 /// ignored); without one by position from the cursor; quoted cells with TAB and line breaks; `0,75` and `1,500` (the
 /// latter ambiguous: the card, `table.resolve`, Apply); a read-only column and a row past the end are invalid; two rows
 /// on one record with different values are invalid ("same record as row <n>"); Apply is refused until resolved or

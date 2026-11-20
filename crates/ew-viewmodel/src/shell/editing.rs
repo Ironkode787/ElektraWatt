@@ -847,7 +847,7 @@ impl ShellModel {
         if let Pick::PartFn(pi, _) | Pick::PartSymbol(pi, _) = &pick
             && !cat.parts[*pi].interfaces.is_empty()
         {
-            // A station of this part that the project has and this page does not show comes first (rc.2 persona run:
+            // A station of this part that the project has and this page does not show comes first (a persona run:
             // Device ▸ Place made a second, empty CPU beside the one drawn with its cards): Put -1A1 here, or a new one.
             let copy = cat.parts[*pi].copy;
             if self.mode == super::Mode::Gui && !self.stations_off_page(Some(copy)).is_empty() {

@@ -986,7 +986,7 @@ impl ShellModel {
         };
         match index {
             Some(i) => self.follow_link(g, i),
-            // The selected coil of a valve's solenoid goes to its valve, as the coil's menu does (the rc.2 re-test:
+            // The selected coil of a valve's solenoid goes to its valve, as the coil's menu does (a re-test:
             // Follow reference did nothing visible).
             None => match self.selected_coil_valve() {
                 Some(params) => self.dispatch("nav.show", &params),

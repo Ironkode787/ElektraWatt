@@ -485,7 +485,7 @@ impl ShellModel {
     // Opening: the cloud banner, the upgrade banner, the driver status
 
     /// What the window learns when a project opened in `dir`: the cloud-synced folder (D25) and the merge driver's status
-    /// (doc 05 §16); the banner for a project of an older format (D11). Returns the banner's text to add, if any.
+    /// (doc 05 §16); the banner for a project of an older format. Returns the banner's text to add, if any.
     pub(super) fn opened_extras(&mut self, dir: &Path, migrated: Option<&str>) -> Option<String> {
         let cloud = self.cloud_of(dir);
         if let Some(p) = self.project.as_mut() {

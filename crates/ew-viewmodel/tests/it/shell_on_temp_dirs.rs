@@ -1952,7 +1952,7 @@ fn the_wizard_writes_the_logo_the_shipped_profile_and_the_report_blocks() {
     shell.shutdown();
 }
 
-/// G2 of the rc.2 test: the check level is part of what Create makes in the window (a person pressing Create submits
+/// G2 of a test: the check level is part of what Create makes in the window (a person pressing Create submits
 /// the `HumanOnly` `project.checks.set`), and the review lists it as written; a script's template keeps it out, and a
 /// script cannot set it later either.
 #[test]

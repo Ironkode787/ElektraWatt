@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Moving representations in grid steps (D13, §6.7): the steps of a drag or of the keyboard move,
+//! Moving representations in grid steps: the steps of a drag or of the keyboard move,
 //! the overlay (the ghost of the moved entities' rectangles, the rubber bands of their connections and the
 //! readout) and the command, `rep.move` with `steps`. Shared by Select's drag rows and its keyboard move (M).
 //!

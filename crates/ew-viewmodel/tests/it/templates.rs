@@ -182,7 +182,7 @@ fn templates_are_a_list_the_person_manages() {
         json!({"name": "Cabinet standard", "folder": path(&tmp.0)}),
     );
     let cabinet = tmp.0.join("Cabinet standard");
-    // rc.3: "The template … is made" is a success: a toast with the success mark, not the banner's warning triangle.
+    // "The template … is made" is a success: a toast with the success mark, not the banner's warning triangle.
     assert_eq!(shell.banner(), None);
     let toast = shell.toast().expect("the result's toast");
     assert!(toast.text.contains("is made"), "{}", toast.text);

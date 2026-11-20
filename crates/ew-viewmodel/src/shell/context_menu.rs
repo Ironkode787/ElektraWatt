@@ -1088,7 +1088,7 @@ impl ShellModel {
                 };
                 let mut run = occupancy(*module, *position, &change);
                 // A valve set spare has its open working ports plugged in the same step, so it asks for nothing (the
-                // rc.3 rack run set two valves spare to quiet their open ports and they still warned).
+                // a rack run set two valves spare to quiet their open ports and they still warned).
                 if state != "spare" && !menu.open_ports.is_empty() {
                     let fixes: Vec<Value> = std::iter::once(run)
                         .chain(

@@ -114,7 +114,7 @@ fn a_label_a_section_and_the_refusals_of_page_new() {
     shell.shutdown();
 }
 
-/// The rc.2 persona run (friction 1): New page proposed folio 3 and kept it when section 2 (pages 200 to 299) was
+/// A persona run (friction 1): New page proposed folio 3 and kept it when section 2 (pages 200 to 299) was
 /// chosen; 200, typed, was its divider page. Choosing a section in the form proposes its first free folio past the
 /// divider page.
 #[test]

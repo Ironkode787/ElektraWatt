@@ -1291,7 +1291,7 @@ fn route_edit_drags_a_middle_segment_of_a_selected_connection() {
     done(&mut s, "select.set", json!({"ids": [w.id.to_string()]}));
     let on = sheet(&s, ((pts[0].0 + pts[2].0) / 2, row));
     let down = sheet(&s, ((pts[0].0 + pts[2].0) / 2, sn.page_of_index(10)));
-    // rc.3: the selected wire shows a round handle on each segment and bend; the one under the pointer is hot, and
+    // The selected wire shows a round handle on each segment and bend; the one under the pointer is hot, and
     // the pointer says the middle segment moves up and down.
     done(&mut s, "canvas.pointer", at(on, json!({})));
     let grips: Vec<bool> = s
@@ -1658,7 +1658,7 @@ fn escape_and_undo_leave_no_tool_mark_and_keep_the_grid_cursor() {
     assert_eq!(canvas(&s)["cursor_nm"], cursor_at, "the grid cursor stays");
 }
 
-/// rc.5 persona run: a two-pole breaker placed under a two-pole switch whose poles stand closer together had only one
+/// A persona run: a two-pole breaker placed under a two-pole switch whose poles stand closer together had only one
 /// pole wired. Both poles are now joined, the one out of line by a wire that jogs over halfway, and both wires are
 /// routed.
 #[test]

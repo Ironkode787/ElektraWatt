@@ -91,7 +91,7 @@ pub enum PickerRow {
     /// function ([`Picker::part_main`]); choosing a part copy without one lists the symbols to place it with
     /// ([`Picker::part`]).
     Part(usize),
-    /// A blanking plate for the valve terminal's position the browser fills ([`Picker::cell`], the rc.2 re-test: the
+    /// A blanking plate for the valve terminal's position the browser fills ([`Picker::cell`], a re-test: the
     /// person searched the parts for one): the first row, above the valves.
     Blank,
 }

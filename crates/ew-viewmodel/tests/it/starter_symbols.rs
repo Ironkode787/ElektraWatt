@@ -151,7 +151,7 @@ const PATHS: &[(&str, Path)] = &[
     ("ew.iso.valve-5-3-pc@qet10", Path::Device("Q", FLUID)),
     ("ew.iso.valve-on-off@qet10", Path::Device("Q", FLUID)),
     ("ew.iso.valve-supply-plate@qet10", Path::Device("Q", FLUID)),
-    // rc.2, F10: the basic pneumatic parts' own symbols.
+    // The basic pneumatic parts' own symbols.
     ("ew.iso.air-reservoir@qet10", Path::Part("EW-GEN-RES-1", 0, FLUID)),
     (
         "ew.iso.condensate-drain@qet10",

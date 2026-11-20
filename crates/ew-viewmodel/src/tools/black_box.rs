@@ -1389,7 +1389,7 @@ pub fn reshape_overlay(cx: &ToolCx<'_>, outline: &[(i64, i64)], cps: &[(i64, i64
 mod tests {
     use super::*;
 
-    /// The rc.2 re-test: a terminal ran past the frame's edge. A box that would leave the drawing area moves inside it
+    /// A re-test: a terminal ran past the frame's edge. A box that would leave the drawing area moves inside it
     /// by whole grid steps; one larger than the area gives both sizes; without a frame grid it stays.
     #[test]
     fn a_one_click_box_moves_into_the_drawing_area_or_gives_its_size() {
@@ -1530,7 +1530,7 @@ mod tests {
         assert_eq!(orient_inverse(5), 5);
     }
 
-    /// rc.5: a box made smaller goes no smaller than its pins need, one grid step each and one to spare at each corner:
+    /// A box made smaller goes no smaller than its pins need, one grid step each and one to spare at each corner:
     /// the grip stops there; a side whose length does not change does not hold it.
     #[test]
     fn a_grip_stops_where_the_pins_need_the_room() {

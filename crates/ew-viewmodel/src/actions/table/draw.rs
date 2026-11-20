@@ -977,7 +977,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     )),
     // End.
-    // rc.5: Supply beside Interruption, what comes in from the mains as supply marks placed in one go.
+    // Supply beside Interruption, what comes in from the mains as supply marks placed in one go.
     keeps_banner(with_params(
         "system?:enum(supply_1p|supply_3p|supply_3p_no_n|supply_dc|supply_own), names?:text, location?:text, device?:text",
         in_canvas(placed(

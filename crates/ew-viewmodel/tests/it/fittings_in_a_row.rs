@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! rc.5 persona run: four one-way flow controls placed in a row on a fluid page, each beside the last, were joined by
+//! A persona run: four one-way flow controls placed in a row on a fluid page, each beside the last, were joined by
 //! tubes, port 1 of each to port 2 of the one before it, which he did not want. Two fittings set side by side are a
 //! row of branches: placing one never joins it to another; a fitting placed facing a cylinder's port still is.
 

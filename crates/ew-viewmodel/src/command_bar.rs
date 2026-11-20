@@ -1388,7 +1388,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
     } else {
         prompt
     };
-    // The Tube tool's mode reads Tube, as its button (the rc.2 re-test read "Wire").
+    // The Tube tool's mode reads Tube, as its button (a re-test read "Wire").
     let (action, tool_label) = match actions::find("tool.fluid_line").filter(|_| tube) {
         Some(a) => (
             a.id,

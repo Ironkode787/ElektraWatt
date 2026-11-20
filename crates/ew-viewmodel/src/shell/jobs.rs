@@ -571,7 +571,7 @@ impl ShellModel {
         );
     }
 
-    /// Shows the toast that the parts list leaves out the devices without a part, when there are any (rc.2 persona run,
+    /// Shows the toast that the parts list leaves out the devices without a part, when there are any (a persona run,
     /// entry 31): how many, with Select them.
     #[inline(never)]
     pub(super) fn notify_unlisted(&mut self) {

@@ -550,7 +550,7 @@ fn the_black_box_shows_its_first_corner_and_escape_leaves_in_two_steps() {
         "Click the box's first corner, then its opposite corner; Esc ends \u{b7} 10 connection points"
     );
     cursor_k(&mut s, (30, 30));
-    // rc.2: a chip at the pointer says how the box is drawn, not only the bottom bar.
+    // A chip at the pointer says how the box is drawn, not only the bottom bar.
     assert_eq!(canvas(&s)["overlay"], 2, "the grid marker and its chip");
     assert_eq!(
         s.tool_overlay().labels().collect::<Vec<_>>(),
@@ -695,7 +695,7 @@ fn widening_g1_by_two_grid_steps_keeps_its_cps_on_the_outline_and_connected() {
     check_widened(&s, &before, connected);
 }
 
-/// rc.5: a box's right-click offers Centre the pins, which centres the pins of each side without a resize (the
+/// A box's right-click offers Centre the pins, which centres the pins of each side without a resize (the
 /// owner's box stored with a pin on its corner is put right so), one undo step; the wires stay at their pins.
 #[test]
 fn centre_the_pins_from_a_boxs_right_click() {
@@ -793,7 +793,7 @@ fn an_inside_out_grip_drag_is_refused_and_leaves_the_box_alone() {
     );
 }
 
-/// rc.5 persona run: a box of a part draws the part's pins; Add pin opens its device box, where they are edited, and
+/// A persona run: a box of a part draws the part's pins; Add pin opens its device box, where they are edited, and
 /// says so; the box is unchanged.
 #[test]
 fn add_pin_on_a_part_s_box_opens_its_device_box() {
@@ -863,7 +863,7 @@ fn plain_box(tmp: &Tmp) -> (ShellModel, TableRep) {
     (s, rep)
 }
 
-/// The rc.5 re-test of a drawn box's pins, as the person did it:
+/// A re-test of a drawn box's pins, as the person did it:
 /// - "24V Tab 24V Tab 0V Tab 0V Enter" gives four pins 24V, 24V, 0V, 0V: two pins may share a name, as a part's do;
 /// - an empty name is said under the field, whole, and the field stays open to type on (no banner);
 /// - Add pin stands on the Draw tab's Arrange group, and a box without a part offers no dead "Edit this device's box…";
@@ -1120,7 +1120,7 @@ fn g1_box(s: &ShellModel, rep: ew_api::output::Uuid) -> ew_api::output::TableBox
         .unwrap()
 }
 
-/// rc.5 persona run (a pin dragged on the smallest box went round its corner onto the next side, its name on the
+/// A persona run (a pin dragged on the smallest box went round its corner onto the next side, its name on the
 /// corner): a pin dragged along its side towards a corner stays on its side, one step clear of the corner, on a point
 /// no other pin holds; dragged onto a point another pin holds, it stays where it was.
 #[test]
@@ -1552,7 +1552,7 @@ fn a_pin_is_offered_define_potential_on_its_devices_right_click() {
     );
 }
 
-/// rc.5 re-test (two wires thin and dashed after a grid change, with no word why): a wire without a route says in
+/// A re-test (two wires thin and dashed after a grid change, with no word why): a wire without a route says in
 /// its tooltip what its thin dashed line means and what to do.
 #[test]
 fn an_unrouted_wire_says_why_it_is_dashed() {

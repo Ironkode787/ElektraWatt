@@ -68,7 +68,7 @@ impl Chip {
         }
     }
 
-    /// What the chip does, in words: "Go to page 1, A0", "Go to page 1" without a cell (the rc.2 persona run read
+    /// What the chip does, in words: "Go to page 1, A0", "Go to page 1" without a cell (a persona run read
     /// "1-A0" as cryptic and did not take it for a jump).
     pub fn words(&self) -> String {
         if self.cell.is_empty() {
@@ -571,7 +571,7 @@ impl ShellModel {
                                 .then(|| node.records.first().map(|r| DragSource::Device(r.to_string())))
                                 .flatten()
                         })
-                        // A station's or a bus device's row drops onto a bus page (the rc.2 persona run dragged his CPU
+                        // A station's or a bus device's row drops onto a bus page (a persona run dragged his CPU
                         // from the PLC panel and nothing happened).
                         .or_else(|| {
                             let station = match k {
@@ -2185,7 +2185,7 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
 }
 
 // -----------------------------------------------------------------------------------------------------------------
-// Potential and net highlighting (§7.3, D14)
+// Potential and net highlighting
 
 /// The highlight a row stands for: a potential row of the potential overview (its record names the potential), or a
 /// connection row (the net of its first connection); `None` for every other row.

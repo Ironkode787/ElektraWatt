@@ -327,7 +327,7 @@ fn after_a_terminal_row_each_undo_takes_back_one_property_edit() {
     s.shutdown();
 }
 
-/// rc.3: Terminal…'s Spacing lays the row that many grid steps apart; Spacing… on placed terminals of a row spaces
+/// Terminal…'s Spacing lays the row that many grid steps apart; Spacing… on placed terminals of a row spaces
 /// them from the leftmost in one undo step, refuses a spacing out of range in words, and the project's next row takes
 /// the spacing.
 #[test]

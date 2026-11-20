@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! rc.2, F11: a valve's solenoid is drawn and joined without knowing the trick. The owner placed a 5/2 valve on a fluid
+//! A valve's solenoid is drawn and joined without knowing the trick. The owner placed a 5/2 valve on a fluid
 //! page and found no way to draw the solenoid that actuates it: a coil he placed made a second device, and nothing
 //! joined them.
 

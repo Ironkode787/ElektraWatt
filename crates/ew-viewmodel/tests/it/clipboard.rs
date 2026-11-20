@@ -530,7 +530,7 @@ fn a_page_with_a_free_text_alone_asks_before_its_grid_changes() {
     shell.shutdown();
 }
 
-/// rc.5 persona run (he looked for the page's grid on the Page tab, then found it by filtering Properties for "grid",
+/// A persona run (he looked for the page's grid on the Page tab, then found it by filtering Properties for "grid",
 /// and the filter word hid the next thing's rows): the Page tab has Connection grid…, which asks and fits as the
 /// Properties row does; a filter typed for the page clears when a symbol is selected.
 #[test]
@@ -572,7 +572,7 @@ fn the_page_tab_changes_the_grid_and_a_filter_clears_with_the_kind() {
     shell.shutdown();
 }
 
-/// rc.5 persona run (after Ctrl+V no ghost showed until the pointer moved; the click set the block down partly off the
+/// A persona run (after Ctrl+V no ghost showed until the pointer moved; the click set the block down partly off the
 /// sheet and nothing said so): the block hangs on the pointer at once, and a click where a part of it would lie outside
 /// the drawing area is refused in the status line, nothing pasted.
 #[test]

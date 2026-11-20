@@ -66,11 +66,11 @@ pub enum PaneKind {
     Find,
     /// A navigator other than Pages (§6.8): docked as a tab beside the Pages pane; its workspace key is the kind word.
     Navigator(NavKind),
-    /// The Jobs pane (§6.4): the PDF exports with their progress and results, in the bottom dock (D14).
+    /// The Jobs pane (§6.4): the PDF exports with their progress and results, in the bottom dock.
     Jobs,
-    /// The Preview tab (§8.1): the open card's preview, in the bottom dock (D11, D14).
+    /// The Preview tab (§8.1): the open card's preview, in the bottom dock.
     Preview,
-    /// The history panel (§8.4): the undo steps and the marker lines, in the bottom dock (D13, D14).
+    /// The history panel (§8.4): the undo steps and the marker lines, in the bottom dock.
     History,
     /// The glossary pane (D16, FR-UI-045): the EW terms with their EPLAN and QET terms, in the bottom dock.
     Glossary,

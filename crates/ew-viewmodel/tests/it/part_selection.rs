@@ -86,7 +86,7 @@ fn select(s: &mut ShellModel, tag: &str) {
     done(s, "select.set", json!({ "refs": [format!("tag:{tag}")] }));
 }
 
-/// rc.3 (G8): a cable's part dialog offers cable parts only, the starter cables among them; before, every part was
+/// A cable's part dialog offers cable parts only, the starter cables among them; before, every part was
 /// offered and the matching cable could not be found among them.
 #[test]
 fn a_cable_is_offered_cable_parts_only() {

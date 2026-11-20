@@ -1136,7 +1136,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_symbol("map_cp", p),
         )),
     ),
-    // rc.2, F9: the discipline the symbol is drawn for, or with `cp` one point's.
+    // The discipline the symbol is drawn for, or with `cp` one point's.
     with_params(
         "discipline:enum(electrical|pneumatic|vacuum|hydraulic|bus), cp?:uint",
         hidden(act(

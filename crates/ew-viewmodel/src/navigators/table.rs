@@ -13,7 +13,7 @@
 //! route's kind. Every other cell is read-only with the first reason of: "derived", "generated", "no record of this
 //! kind", "edit in the property grid", "no command yet" ([`cell_reason`]).
 //!
-//! **Compile** (§8.3, D11, D13): the gesture's cells in (row display order, column visible order); each valid cell
+//! **Compile**: the gesture's cells in (row display order, column visible order); each valid cell
 //! gives a (target, path, value) triple per target. A cell one of whose (target, path) pairs an earlier cell of the
 //! gesture sets to a different value is invalid (`"same record as row <n>"`); with the same value it is merged. A leaf
 //! below a settable member (`props.colour`) is composed into the member per target from the target's stored member

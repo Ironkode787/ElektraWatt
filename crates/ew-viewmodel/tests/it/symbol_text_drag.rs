@@ -111,7 +111,7 @@ fn a_selected_symbols_text_drags_alone_turns_hides_and_goes_back() {
     shell.shutdown();
 }
 
-/// The rc.3 rack run: dragging at a tag of a symbol that was not selected grabbed the symbol under it, and the menu
+/// A rack run: dragging at a tag of a symbol that was not selected grabbed the symbol under it, and the menu
 /// over a text offered only Hide text. The tag under the pointer wins over a symbol's body: it drags alone, its symbol
 /// stays; a click on it selects its symbol, whose menu over the text offers Put the text back, greyed with its reason
 /// while the texts stand where the symbol puts them.

@@ -716,7 +716,7 @@ pub struct ShellModel {
     chips_for: Option<(u64, Option<crate::canvas::PageId>)>,
     /// The page the focused tab showed at the end of the last dispatch (a page switch moves the Pages cursor).
     last_page: Option<crate::canvas::PageId>,
-    /// The window's potential and net highlights (§7.3, D14): view state.
+    /// The window's potential and net highlights: view state.
     highlights: crate::highlight::Highlights,
     /// Where the keyboard focus is.
     focus: Option<Focus>,

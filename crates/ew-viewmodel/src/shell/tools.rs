@@ -1537,7 +1537,7 @@ impl ShellModel {
         self.send_tool(&ev)
     }
 
-    /// `canvas.dwell` (§7.8, D11): `ms`, a positive integer. At 300 ms and more with a hovered link (while the tool
+    /// `canvas.dwell`: `ms`, a positive integer. At 300 ms and more with a hovered link (while the tool
     /// wants hover) the link preview shows its target; the tool gets `Dwell` either way.
     pub(crate) fn act_dwell(&mut self, p: &Map<String, Value>) -> Outcome {
         let ms = match p.get("ms") {

@@ -456,7 +456,7 @@ fn a_click_that_places_a_bend_says_so() {
     );
 }
 
-/// The rc.2 persona run on a cabinet: aiming at the power supply's pin, a click landed on the pin's text inside the box,
+/// A persona run on a cabinet: aiming at the power supply's pin, a click landed on the pin's text inside the box,
 /// fixed a bend there, and the wire ran through the box. A click inside a symbol is no bend: it is refused in words,
 /// the wire keeps routing, and ends on the next connection point clear of the box.
 #[test]

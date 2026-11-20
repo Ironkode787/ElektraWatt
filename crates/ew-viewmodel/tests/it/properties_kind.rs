@@ -367,7 +367,7 @@ fn a_symbol_drawn_as_pneumatic_gives_a_pneumatic_device() {
     s.shutdown();
 }
 
-/// rc.2 persona run, entries 1 and 2: the project's Properties put what a drafter fills first under Main, in the
+/// A persona run, entries 1 and 2: the project's Properties put what a drafter fills first under Main, in the
 /// order of a title block: the title, the project and drawing numbers, the description, the parties, the dates.
 #[test]
 fn the_project_shows_what_a_drafter_fills_first_under_main() {

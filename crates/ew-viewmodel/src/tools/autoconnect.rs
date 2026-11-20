@@ -723,7 +723,7 @@ mod tests {
         );
     }
 
-    /// rc.5 persona run: a two-pole device under another whose poles stand a different distance apart had one pole
+    /// A persona run: a two-pole device under another whose poles stand a different distance apart had one pole
     /// joined; the other pole now joins its partner by a wire that jogs over halfway, and its hint sends that route.
     #[test]
     fn a_pole_out_of_line_joins_its_partner_by_a_jog() {
@@ -817,7 +817,7 @@ mod tests {
         assert_eq!(proposals(&g, &t, &[], AREA, 0).list.len(), 1);
     }
 
-    /// rc.2 persona run, entry 17: a CP facing the ghost within the short run is proposed, one further away is far.
+    /// A persona run, entry 17: a CP facing the ghost within the short run is proposed, one further away is far.
     #[test]
     fn a_hit_beyond_the_short_run_is_far() {
         let g = [ghost(0, (0, 0), Dir::Down)];

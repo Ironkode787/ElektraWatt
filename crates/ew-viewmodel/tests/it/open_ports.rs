@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The rc.3 rack run: the open working ports of the valves on a terminal were plugged one at a time from a right-click
+//! A rack run: the open working ports of the valves on a terminal were plugged one at a time from a right-click
 //! menu found by chance, the Fluid tab's Draw plug stayed greyed, and two valves set spare still warned. Plug ports on
 //! the bar plugs the selected valve's open ports, EW-FL-001's fix plugs a valve's, and Set spare plugs them with it.
 
