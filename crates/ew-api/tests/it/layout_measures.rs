@@ -1,80 +1,56 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A page's geometry and its layout measures on a temporary copy of Golden A. Folio 101
-//! once drew its connections along the retired provisional path, and the measures name what the owner saw there: the heater's
-//! PE wire through the lamp's X1, and the lamp's L feed along the switch's wires. Named items only, never totals. The
-//! layout rules of §9 (EW-CORE-067 to -070, -072 and -073) on hand-built pages and on Golden A (RK1, RK2).
+//! A page's geometry and its layout measures on the sample project: its drawn pages break no hard layout rule, a
+//! wire's words name its ends. Named items only, never totals. The layout rules of §9 (EW-CORE-067 to -070, -072 and
+//! -073) on hand-built pages and on the sample (RK1, RK2).
 
-use std::path::Path;
+use crate::common;
 
 use ew_api::Session;
 use ew_api::output::LayoutError;
-use ew_testdir::Tmp;
 
-/// A read-only session on a temporary copy of Golden A (the committed project is only copied).
-fn golden_copy() -> (Tmp, Session) {
-    let tmp = Tmp::new("ew-api-layout");
-    let dir = tmp.0.join("J-E-2416.ew");
-    ew_testdir::copy_dir(Path::new(ew_testdir::GOLDEN_A), &dir);
-    let session = Session::open_read_only(&dir, "ElektraWatt test").unwrap().0;
-    (tmp, session)
-}
-
-/// On Golden A's routed folio 101 (rc.1's provisional drawing broke all three): the heater's PE wire does
-/// not touch the lamp's X1, the lamp's L feed runs along none of the switch's wires, and the heater's L feed does not
-/// pass through T55; the page breaks no hard rule.
+/// The sample's supply page 101, drawn as a draughtsman would: the page breaks no hard rule, and the whole-project
+/// report measures it alike.
 #[test]
-fn folio_101_s_pe_wire_lamp_feed_and_heater_feed_keep_clear() {
-    let (_tmp, s) = golden_copy();
+fn folio_101_breaks_no_hard_rule() {
+    let s = common::sample();
     let pages = s.layout_report(Some("101")).unwrap();
     assert_eq!(pages.len(), 1);
     let p = &pages[0];
     assert_eq!(p.folio, "101");
-    assert!(
-        !p.touches
-            .iter()
-            .any(|t| t.connection == "-E55:PE → PE-1.1" && t.point == "-E56:X1"),
-        "{:#?}",
-        p.touches
-    );
-    let feed = "the junction in C11 → -E56:X2";
-    assert!(
-        !p.overlaps.iter().any(|o| o.connection == feed || o.other == feed),
-        "{:#?}",
-        p.overlaps
-    );
-    assert!(
-        !p.through_symbols
-            .iter()
-            .any(|t| t.connection.ends_with("-E55:L") && t.symbol == "-T55"),
-        "{:#?}",
-        p.through_symbols
-    );
     assert_eq!(p.hard(), 0, "{p:#?}");
     // The page as the whole-project report measures it.
     let all = s.layout_report(None).unwrap();
     assert_eq!(all.iter().find(|q| q.folio == "101"), Some(p));
 }
 
-/// A wire's words name each device by its tag with its prefix, also where a
-/// frozen tag hides its sign on the page (folio 101's S51 and terminals 1X1).
+/// A wire's words name each end by its device's tag with its prefix: on folio 101 the wire from the terminal
+/// -X1011:L1's clamp a to the main switch's first pin.
 #[test]
 fn a_wire_s_words_name_each_device_with_its_tag_s_prefix() {
-    use crate::golden_common;
-    let (_tmp, s) = golden_copy();
-    let w4: ew_derive::ew_ids::Uuid = golden_common::ids_by_key(&golden_common::batch())["connections|W4"]
-        .parse()
-        .expect("an ID");
+    let s = common::sample();
+    let tables = s.page_tables("101").unwrap();
+    let switch = s.resolve_reference("-101Q1").unwrap();
+    let terminal = s.resolve_reference("-X1011:L1").unwrap();
+    let function = |d| tables.reps.iter().find(|r| r.device == Some(d)).unwrap().functions[0];
+    let (q1, l1) = (function(switch), function(terminal));
+    let end = |e: &ew_api::output::TableEnd, f| matches!(e, ew_api::output::TableEnd::Cp { function, .. } if *function == f);
+    let wire = tables
+        .connections
+        .iter()
+        .find(|c| (end(&c.a, l1) && end(&c.b, q1)) || (end(&c.a, q1) && end(&c.b, l1)))
+        .expect("the wire from -X1011:L1 to -101Q1")
+        .id;
     assert_eq!(
-        s.connection_words("101", w4).map(|t| t.to_string()).as_deref(),
-        Some("-1X1:1/a → -S51:2")
+        s.connection_words("101", wire).map(|t| t.to_string()).as_deref(),
+        Some("-X1011:L1/a → -101Q1:1")
     );
 }
 
 #[test]
 fn the_project_report_measures_the_drawn_pages_in_page_order() {
-    let (_tmp, s) = golden_copy();
+    let s = common::sample();
     let folios: Vec<String> = s
         .layout_report(None)
         .unwrap()
@@ -82,8 +58,8 @@ fn the_project_report_measures_the_drawn_pages_in_page_order() {
         .map(|p| p.folio)
         .collect();
     let pos = |f: &str| folios.iter().position(|x| x == f);
-    for (a, b) in [("1", "3"), ("3", "101"), ("103", "106"), ("106", "201")] {
-        assert!(pos(a).unwrap() < pos(b).unwrap(), "{folios:?}");
+    for (a, b) in [("1", "101"), ("101", "105"), ("105", "201")] {
+        assert!(pos(a).expect(a) < pos(b).expect(b), "{folios:?}");
     }
     // The dividers and the generated pages are not measured.
     for f in ["2", "100", "900"] {
@@ -93,7 +69,7 @@ fn the_project_report_measures_the_drawn_pages_in_page_order() {
 
 #[test]
 fn a_folio_that_names_no_drawn_page_is_refused_in_words() {
-    let (_tmp, s) = golden_copy();
+    let s = common::sample();
     let e = s.layout_report(Some("999")).unwrap_err();
     assert_eq!(e, LayoutError::NoFolio("999".to_owned()));
     assert_eq!(e.to_string(), "the page order has no folio `999`");
@@ -108,7 +84,7 @@ fn a_folio_that_names_no_drawn_page_is_refused_in_words() {
 
 #[test]
 fn the_draft_of_folio_101_holds_its_parts_wires_and_frame_bands() {
-    let (_tmp, s) = golden_copy();
+    let s = common::sample();
     let t = s.page_tables("101").unwrap();
     let d = s.page_draft("101").unwrap();
     // Every part is a representation of the page; every connection the page draws is a wire, routed where it has a
@@ -142,11 +118,8 @@ fn the_draft_of_folio_101_holds_its_parts_wires_and_frame_bands() {
 /// router see them.
 #[test]
 fn free_texts_and_structure_box_captions_are_fixed_texts() {
-    use crate::golden_common;
-    let batch = golden_common::batch();
-    let ids = golden_common::ids_by_key(&batch);
-    let mut s = golden_common::session(&batch);
-    let page = ids["pages|101"].clone();
+    let mut s = common::sample();
+    let page = s.page_tables("101").expect("folio 101").page.to_string();
     let at = [100_541_667, 31_750_000];
     let placed = s
         .execute(&ew_api::AnyCommand {
@@ -175,7 +148,7 @@ fn free_texts_and_structure_box_captions_are_fixed_texts() {
     assert!(has(structure), "the structure box's caption");
 }
 
-// The layout rules EW-CORE-067 to -070, -072 and -073 on hand-built pages (RK1) and on Golden A (RK2).
+// The layout rules EW-CORE-067 to -070, -072 and -073 on hand-built pages (RK1) and on the sample (RK2).
 
 /// The point of the QET grid at column `c` and row `r` of grid steps (7 937 500 / 3 nm, rounded to the nm).
 fn grid(c: i64, r: i64) -> serde_json::Value {
@@ -187,14 +160,12 @@ fn route(points: &[(i64, i64)]) -> serde_json::Value {
     serde_json::Value::Array(points.iter().map(|&(c, r)| grid(c, r)).collect())
 }
 
-/// RK1's page: Golden A's folio 103 with a coil (`-103K1`, `-103K2`, … in this order) whose upper connection point A1
-/// stands at each grid point of `coils`, on the empty stretch of columns 50 to 75 and rows 20 to 35; a coil's A2 is
-/// four steps below its A1. The session, the page's ID and each coil's function.
+/// RK1's page: the sample's motor page 103 with a coil (`-103K1`, `-103K2`, … in this order) whose upper connection
+/// point A1 stands at each grid point of `coils`, on the empty stretch of columns 50 to 75 and rows 20 to 35 (right of
+/// the motor circuit); a coil's A2 is four steps below its A1. The session, the page's ID and each coil's function.
 fn rk1_page(coils: &[(i64, i64)]) -> (Session, String, Vec<String>) {
-    use crate::golden_common;
-    let batch = golden_common::batch();
-    let page = golden_common::ids_by_key(&batch)["pages|103"].clone();
-    let mut s = golden_common::session(&batch);
+    let mut s = common::sample();
+    let page = s.page_tables("103").expect("folio 103").page.to_string();
     if let Some(embed) = s.starter_embed("ew.iec.coil@qet10") {
         run(&mut s, "library.embed", embed);
     }
@@ -748,11 +719,12 @@ fn an_unrouted_wire_fires_ew_core_073_at_its_severities_and_takes_a_waiver() {
     assert_eq!(findings(&s, "EW-CORE-073"), []);
 }
 
-/// RK2: Golden A's check report, online and in release mode, holds none of EW-CORE-067 to -070 and -073.
+/// RK2: the sample's check report, online and in release mode, holds none of EW-CORE-067 to -070 and -073.
 #[test]
-fn golden_a_s_check_report_holds_no_layout_finding() {
+fn the_sample_s_check_report_holds_no_layout_finding() {
+
     use ew_api::checks::{CheckMode, DRAFTING, PRE_DELIVERY};
-    let (_tmp, s) = golden_copy();
+    let s = common::sample();
     for report in [
         s.check(&DRAFTING, CheckMode::Online),
         s.check(&PRE_DELIVERY, CheckMode::Release),
