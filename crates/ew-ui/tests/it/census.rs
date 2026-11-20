@@ -1080,6 +1080,51 @@ fn the_walker_names_each_failing_node_in_words() {
     );
 }
 
+/// R6's lines: a new project's window whose last frame shows Undo enabled in the command bar and in the open app
+/// menu, after the shell undid the only step without a frame since, is a line for each; the next frame greys both,
+/// and the walk passes.
+#[test]
+fn the_availability_walk_names_an_enabled_button_of_an_unavailable_action() {
+    let tmp = Tmp::new();
+    let mut h = harness(&tmp, Scripted::default(), None);
+    dispatch(
+        &mut h,
+        "file.new",
+        json!({"dir": tmp.path("p.ew"), "template": "builtin"}),
+    );
+    dispatch(
+        &mut h,
+        "command.run",
+        json!({"cmd": "page.create", "params": {"number": 2, "title": {"en": "T"}}}),
+    );
+    let mut paths = Vec::new();
+    for menu in menu_model(h.state().shell()) {
+        menu_paths(vec![menu.label.clone()], &menu.entries, &mut paths);
+    }
+    let (path, items) = paths
+        .into_iter()
+        .find(|(_, items)| items.iter().any(|i| i.id == "edit.undo"))
+        .expect("a menu with Undo");
+    let entry = support::menu_label(items.iter().find(|i| i.id == "edit.undo").unwrap());
+    let labels: Vec<&str> = path.iter().map(String::as_str).collect();
+    support::open_menu(&mut h, &labels);
+    h.run_ok();
+    assert_eq!(support::availability_problems(&h, "window"), Vec::<String>::new());
+    dispatch(&mut h, "edit.undo", json!({}));
+    let bar = ew_ui::ew_viewmodel::command_bar::command_bar(h.state().shell());
+    let button = &bar.quick.iter().find(|b| b.id == "edit.undo").unwrap().bar_label;
+    assert_eq!(
+        support::availability_problems(&h, "window"),
+        [
+            format!("window: Button \"{button}\" is enabled, but its action is unavailable"),
+            format!("window: Button \"{entry}\" is enabled, but its action is unavailable"),
+        ]
+    );
+    h.run_ok();
+    assert_eq!(support::availability_problems(&h, "window"), Vec::<String>::new());
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// GT-3: the form census's source check names a form action it does not open (§5 U2).
 #[test]
 fn the_form_check_names_a_form_the_census_does_not_open() {

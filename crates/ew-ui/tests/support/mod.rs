@@ -414,7 +414,7 @@ pub fn availability_problems(harness: &Harness<'_, App>, surface: &str) -> Vec<S
 
 /// The accessible name of a menu entry: its label, then its shortcut as the entry shows it (egui joins a button's
 /// texts with a space).
-fn menu_label(item: &ew_ui::ew_viewmodel::actions::ActionItem) -> String {
+pub fn menu_label(item: &ew_ui::ew_viewmodel::actions::ActionItem) -> String {
     if item.shortcut.is_empty() {
         item.label.clone()
     } else {
