@@ -135,9 +135,14 @@ impl HistoryPane {
     }
 
     /// Doc 16a §8: an entry's label in words, its command's title ("Create page" for
-    /// `page.create`).
+    /// `page.create`); a step that moved symbols is "Arrange and route", one that routed wires alone "Route wires"
+    /// (docs/design/06a-drafting.md §7.3).
     pub fn label_words(row: &HistoryRow) -> &str {
-        crate::strings::command_title(&row.label)
+        if row.label == ew_api::window::ARRANGE_STEP {
+            crate::strings::text(crate::key!("action-layout-arrange"))
+        } else {
+            crate::strings::command_title(&row.label)
+        }
     }
 
     /// An origin text ([`HistoryPane::origin_of`]) in words in the UI language: "by hand" for the window's,

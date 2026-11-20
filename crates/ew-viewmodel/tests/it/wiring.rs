@@ -1762,3 +1762,91 @@ fn arrange_previews_its_moves_plans_again_on_an_untick_and_applies_in_one_step()
     done(&mut s, "edit.undo", json!({}));
     assert_eq!(places(&s), before, "one Undo restores every place");
 }
+
+/// The coils of the Arrange and route tests: the second a step out of line with the first, the wire between them drawn
+/// by the person with a step in it.
+fn coils_out_of_line(tmp: &Tmp) -> ShellModel {
+    let mut s = actual_size(tmp, "103");
+    coils_and_wires(
+        &mut s,
+        &[(55, 20), (56, 30)],
+        &[(
+            "-103K1:A2",
+            "-103K2:A1",
+            &[(55, 24), (55, 27), (56, 27), (56, 30)],
+        )],
+    );
+    done(&mut s, "ui.dismiss", json!({}));
+    s
+}
+
+/// Arrange and route's lead counts the wires the person drew that get a new route (§7.3); the heading of their rows
+/// unticks them all at once, which plans again with each kept as it runs (a second pair of coils, wired by the
+/// program, still has a move), and ticks them all again.
+#[test]
+fn arrange_counts_the_wires_you_drew_and_unticks_them_all_at_once() {
+    let tmp = Tmp::new("ar2");
+    let mut s = coils_out_of_line(&tmp);
+    coils_and_wires(&mut s, &[(70, 20), (71, 30)], &[("-103K3:A2", "-103K4:A1", &[])]);
+    done(&mut s, "ui.dismiss", json!({}));
+    done(&mut s, "layout.arrange", json!({}));
+    let card = card_line(&s);
+    assert!(card.contains(" of them drawn by you."), "{card}");
+    assert!(card.contains("\"gets a new route\""), "{card}");
+    done(&mut s, "layout.arrange_tick", json!({"all": false}));
+    let card = card_line(&s);
+    assert!(!card.contains("drawn by you"), "{card}");
+    assert!(card.contains("[ ] \"-103K1:A2"), "{card}");
+    assert!(card.contains("\"keeps its route (you unticked it)\""), "{card}");
+    done(&mut s, "layout.arrange_tick", json!({"all": true}));
+    let card = card_line(&s);
+    assert!(card.contains(" of them drawn by you."), "{card}");
+    done(&mut s, "view.language", json!({"value": "nl"}));
+    done(&mut s, "layout.arrange", json!({}));
+    let card = card_line(&s);
+    assert!(card.contains(" door u getekend."), "{card}");
+}
+
+/// The undo step of Arrange and route is named "Arrange and route" when symbols moved; Route's, which moves none,
+/// "Route wires" (§7.3), in both languages.
+#[test]
+fn the_undo_step_says_arrange_and_route_when_symbols_moved_and_route_wires_when_none_did() {
+    let said = |s: &ShellModel| s.toast().map(|t| t.text.clone()).unwrap_or_default();
+    let tmp = Tmp::new("ar3");
+    let mut s = coils_out_of_line(&tmp);
+    done(&mut s, "layout.arrange", json!({}));
+    done(&mut s, "preview.apply", json!({}));
+    done(&mut s, "edit.undo", json!({}));
+    assert!(said(&s).starts_with("Undone: Arrange and route"), "{}", said(&s));
+    done(&mut s, "view.language", json!({"value": "nl"}));
+    done(&mut s, "edit.redo", json!({}));
+    assert!(said(&s).contains("Schikken en routeren"), "{}", said(&s));
+    let tmp = Tmp::new("ar4");
+    let mut s = actual_size(&tmp, "103");
+    coils_and_wires(&mut s, &[(55, 20), (55, 29)], &[("-103K1:A2", "-103K2:A1", &[])]);
+    done(&mut s, "ui.dismiss", json!({}));
+    done(&mut s, "layout.route", json!({}));
+    done(&mut s, "edit.undo", json!({}));
+    assert!(said(&s).starts_with("Undone: Route wires"), "{}", said(&s));
+    done(&mut s, "view.language", json!({"value": "nl"}));
+    done(&mut s, "edit.redo", json!({}));
+    assert!(said(&s).contains("Draden routeren"), "{}", said(&s));
+}
+
+/// The canvas fitted when Arrange and route opens its card fits the page again once the card is gone and its pane
+/// gives the room back, though the person zoomed in while the card was open (§7.3).
+#[test]
+fn the_canvas_fits_again_after_the_arrange_preview_closes() {
+    let tmp = Tmp::new("ar5");
+    let mut s = coils_out_of_line(&tmp);
+    let pane = |s: &mut ShellModel, h: f64| done(s, "view.canvas_resize", json!({"width": 1200.0, "height": h}));
+    pane(&mut s, 900.0);
+    done(&mut s, "view.fit_page", json!({}));
+    done(&mut s, "layout.arrange", json!({}));
+    pane(&mut s, 500.0);
+    done(&mut s, "view.zoom_in", json!({}));
+    assert!(!s.canvas().unwrap().is_fitted());
+    done(&mut s, "preview.cancel", json!({}));
+    pane(&mut s, 900.0);
+    assert!(s.canvas().unwrap().is_fitted(), "the page fits the pane again");
+}

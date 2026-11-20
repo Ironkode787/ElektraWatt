@@ -258,8 +258,9 @@ fn paste_block(ui: &mut Ui, c: &ew_viewmodel::properties::PasteChoice, events: &
 /// the card again with `macros.value_set`) and its conflicts, shown open and also on a refused preview (the rule's
 /// text first), so the user decides on them before Apply.
 /// The rows of an Arrange and route card (docs/design/06a-drafting.md §7.3): the page's figures now and then, the
-/// symbols that move and the wires you drew, each with its tick (unticking plans again, `layout.arrange_tick`), what is
-/// left as it is (a symbol kept in place with its pin), the wires without a way, and the hint.
+/// symbols that move and the wires you drew, each with its tick (unticking plans again, `layout.arrange_tick`; the
+/// heading of the wires you drew ticks or unticks them all), what is left as it is (a symbol kept in place with its
+/// pin), the wires without a way, and the hint.
 fn arrange_block(ui: &mut Ui, a: &ew_viewmodel::properties::ArrangeCard, events: &mut Vec<Event>) {
     let t = components::tokens(ui);
     let small = |ui: &mut Ui, text: &str, colour: Rgba| {
@@ -279,14 +280,26 @@ fn arrange_block(ui: &mut Ui, a: &ew_viewmodel::properties::ArrangeCard, events:
         small(ui, strings::text(key), t.text_tertiary);
     };
     let mut row = 0;
-    for (key, rows) in [
-        (key!("arrange-heading-parts"), &a.parts),
-        (key!("arrange-heading-wires"), &a.wires),
+    for (key, rows, wires) in [
+        (key!("arrange-heading-parts"), &a.parts, false),
+        (key!("arrange-heading-wires"), &a.wires, true),
     ] {
         if rows.is_empty() {
             continue;
         }
-        heading(ui, key);
+        if wires {
+            ui.add_space(t.space_2);
+            let all = rows.iter().all(|r| r.ticked);
+            let mut on = all;
+            let label = RichText::new(strings::text(key))
+                .font(theme::font(&t.type_small))
+                .color(t.text_tertiary.color32());
+            if ui.checkbox(&mut on, label).changed() {
+                events.push(Event::Action("layout.arrange_tick", json!({ "all": !all })));
+            }
+        } else {
+            heading(ui, key);
+        }
         for r in rows {
             ui.horizontal(|ui| {
                 let mut on = r.ticked;

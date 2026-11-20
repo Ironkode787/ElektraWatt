@@ -461,12 +461,18 @@ under the LGPL, the second Java. Everything here is written anew except the sear
 |---|---|
 | Route, nothing selected | every wire of the page that is unrouted, has a fault as stored (F1 to F6), or is `computed` |
 | Route with a selection | the selected wires and every wire with an end on a selected part, whoever shaped them |
-| Arrange and route | every wire with an end on a part that moves, and the jobs of Route for the same scope |
+| Arrange and route | every wire of its scope, whoever shaped it: with nothing selected every wire of the page, with a selection the jobs of Route with that selection; but the wires kept (§7.3) |
 | A move by hand | the wires the move leaves unrouted or with a fault, or with more bends than before (as today) |
 
 A route the person shaped (not `computed`) that has a fault is a job of a page-wide Route too, but it is flagged
 **his**: the plan lists it apart, the command shows a preview instead of applying at once, and its row is ticked
 because the wire is broken; he can untick it (§7.2).
+
+Arrange and route flags his routes the same way, broken or not: each route of the person's that its plan would change
+is a ticked row of its card, and unticking it keeps the wire as it runs (with the parts at its ends) and plans again
+(§7.3). Its plan is judged against Route's plan of the same jobs on the page as it stands: a plan that Route's beats
+(by the measure with the price of the moves added, or by a figure the card shows) is not offered; Route's plan is, and
+the card says that no part moves.
 
 Every other routed wire is **fixed**: an obstacle with its own right of way. A junction may move when every wire
 at it is a job.
@@ -1017,18 +1023,21 @@ Always a preview (ADR-0008's fork). The canvas shows the page as it would become
 their old places as faint outlines joined to the new ones by a dotted line, the new routes drawn; holding **B**
 shows the page as it is. The Preview tab holds the card:
 
-- the lead: "Arrange and route: page 102. 14 parts move, 3 of them across the sheet; 9 wires are routed. Nothing
-  has changed yet.";
+- the lead: "Arrange and route: page 102. 14 parts move, 3 of them across the sheet; 9 wires are routed, 2 of them
+  drawn by you. Nothing has changed yet.";
 - now and then, from the measure: crossings, bends, wires straight, wires through texts, faults;
 - **Parts:** a ticked row per part that moves, with its tag and its move in words ("6 steps right, 31 up"), the
   parts that move further than a third of the sheet first;
-- **Wires you drew yourself:** a row per route of the person's that would change, unticked unless it is broken;
+- **Wires you drew yourself:** a ticked row per route of the person's that would change (every wire of the scope is
+  a job, §3.2); the heading's own tick unticks them all, or ticks them all again;
 - **Left as it is:** parts kept in place, parts without room (with the reason), wires without a way;
 - **Apply** and **Cancel**.
 
 Unticking a row plans again with that part fixed, or that wire kept, and the canvas follows. Apply stores what
 is shown, in one `layout.apply`; one Undo takes all of it back. After Apply a toast says "Arranged page 102: 4
-parts moved, 9 wires routed" with Undo.
+parts moved, 9 wires routed" with Undo. The undo step is named "Arrange and route" when parts moved and "Route wires"
+when none did (Route's plan offered instead). The canvas that showed the whole page when the card opened shows it
+whole again once the card is gone, whatever zoom was taken while it was open.
 
 *As built (step 4).* `layout.arrange` beside Route in the Connect group and in the menu of a symbol and of a selection
 of symbols; `ew route --arrange`. The card (the Preview tab) has the lead, the figures now and then, a ticked row
@@ -1039,6 +1048,14 @@ wire as it runs; unticked symbols stay listed. The canvas paints the page the pr
 (`Session::preview_page`, read once per plan) with each moved symbol's new place tinted, its old one a faint dashed
 outline and a dotted line between; while B is held it paints the page as it is (B, the black box tool's key, does
 nothing else while the card is open). The toast after Apply: "Arranged folio 102: 4 symbols moved, 9 wires routed."
+
+*As built (step 4b).* The jobs are every wire of the scope (§3.2), and Route's plan of the same jobs is the plan to
+beat. The lead counts the wires you drew that get a new route ("9 wires are routed, 2 of them drawn by you"); the
+heading "Wires you drew yourself" is a tick of its own (`layout.arrange_tick {all}`) that unticks every row under it,
+or ticks them all. The history names a `layout.apply` with symbol moves "Arrange and route" (`ARRANGE_STEP`), one
+without "Route wires". A canvas fitted when the card opened fits again at the first new size of its pane after the card
+is gone. When unticked rows leave nothing to arrange, the card closes with the toast that the page is arranged as well
+as the rules allow.
 
 ### 7.4 The Wire tool, connecting on placement, moving
 

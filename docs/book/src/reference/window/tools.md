@@ -262,8 +262,9 @@ would run better."
 ## Arrange and route
 
 Moves the symbols of the selection, or with nothing selected the symbols of the page, to where the page is best for
-them, and routes their wires. Open it with Draw ▸ Connect ▸ Arrange and route, or Arrange and route in the menu of a
-symbol. Nothing changes until you choose Apply.
+them, and routes their wires: every wire of the page, or of the selection and the symbols in it, also the wires you
+drew yourself. Open it with Draw ▸ Connect ▸ Arrange and route, or Arrange and route in the menu of a symbol. Nothing
+changes until you choose Apply.
 
 Each symbol is put in line with the pin it is wired to, on the side that pin faces: a contact under the breaker that
 feeds it, a sensor over its input's pin, a cylinder over its valve, a mark at the left end of the potential that comes
@@ -272,23 +273,29 @@ potentials stand at the head and the foot and current runs down a circuit, a car
 fluid page the supply stands below the valves and each actuator above its valve, the actuators in their order; on a
 bus page the stations stand in the order of the line, level. The space you left along a circuit stays: a symbol is
 neither pulled nearer nor spread out, unless it has to move. A move has a price, so a symbol moves only where the page
-gets visibly better, and a page already in order gives no plan.
+gets visibly better, and a page already in order gives no plan. It never offers less than Route would do with the
+same wires: when moving symbols does not make the page better than routing alone, it offers Route's plan and says that
+no symbol moves.
 
 It never moves a symbol you keep in place (right-click ▸ Keep in place), a symbol outside the selection, a symbol in a
 structure box, or a symbol to another page, and it never turns or mirrors one. The symbols you keep stay where they
 are and the others are arranged round them.
 
-The Preview tab shows what it would do: how many symbols move and how many of them across the sheet, the page's
-crossings and bends now and then, a ticked row per symbol that moves (the far moves first) with its move in grid
-steps, a ticked row per wire you drew that gets a new route, and what is left as it is: the symbols kept in place,
+The Preview tab shows what it would do: how many symbols move and how many of them across the sheet, how many wires
+are routed and how many of those you drew, the page's crossings and bends now and then, a ticked row per symbol that
+moves (the far moves first) with its move in grid steps, a ticked row per wire you drew that gets a new route, and what
+is left as it is: the symbols kept in place,
 with their pin, the symbols that have no room on the side their pin faces, and the wires without a way. The page shows
 it as it would become: the symbols that move tinted, their old places as faint outlines joined to the new ones by a
 dotted line. Hold B to see the page as it is.
 
 Untick a row to plan again with that symbol where it stands, or that wire as it runs; the page and the rows follow,
-and what you see is what Apply stores. Apply stores it in one step, and the toast says what moved and what was routed
-("Arranged folio 102: 4 symbols moved, 9 wires routed."); one Undo takes all of it back. When nothing would make the
-page better, it says "Nothing to arrange: the page is already arranged as well as the rules allow."
+and what you see is what Apply stores. The tick of the heading "Wires you drew yourself" unticks all your wires at
+once, so that each keeps its route, and ticks them all again. Apply stores it in one step, and the toast says what
+moved and what was routed ("Arranged folio 102: 4 symbols moved, 9 wires routed."); one Undo takes all of it back. In
+the history the step is called Arrange and route, or Route wires when no symbol moved. When the card closes, a page
+that was shown whole is shown whole again. When nothing would make the page better, it says "Nothing to arrange: the
+page is already arranged as well as the rules allow."
 
 ## Interruption point
 

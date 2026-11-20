@@ -33,7 +33,14 @@ impl ShellModel {
     /// selected of the page, as a preview card; nothing changes until Apply. Nothing to arrange: a toast says so.
     pub(crate) fn act_layout_arrange(&mut self) -> Outcome {
         let scope = self.route_selection_ids();
-        self.arrange_with(scope, Vec::new(), Vec::new())
+        let fitted = self.canvas().is_some_and(|c| c.is_fitted());
+        let out = self.arrange_with(scope, Vec::new(), Vec::new());
+        self.tools.refit = self
+            .area
+            .as_ref()
+            .map(|a| a.focused)
+            .filter(|_| fitted && self.arrange_card().is_some());
+        out
     }
 
     /// Plans Arrange and route over `scope` (empty: the page) with the rows `unticked` (symbols and wires by ID) kept as
@@ -127,8 +134,9 @@ impl ShellModel {
         card.shifts.iter().map(|(a, b)| (sheet(*a), sheet(*b))).collect()
     }
 
-    /// `layout.arrange_tick {row}`: ticks or unticks row `row` of the open card's symbols and wires (in that order) and
-    /// plans again with every unticked one kept as it stands. Refused without an Arrange and route card.
+    /// `layout.arrange_tick {row?, all?}`: ticks or unticks row `row` of the open card's symbols and wires (in that
+    /// order), or with `all` ticks (`true`) or unticks (`false`) every row of the wires you drew, and plans again with
+    /// every unticked one kept as it stands. Refused without an Arrange and route card or with neither parameter.
     pub(crate) fn act_layout_arrange_tick(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(card) = self.props.card.as_ref().and_then(|c| match &c.origin {
             CardOrigin::Arrange(a) => Some(a.as_ref().clone()),
@@ -136,19 +144,26 @@ impl ShellModel {
         }) else {
             return Outcome::refused(key!("reason-arrange-tick"));
         };
-        let row = p
-            .get("row")
-            .and_then(Value::as_u64)
-            .map_or(usize::MAX, |r| usize::try_from(r).unwrap_or(usize::MAX));
         let rows: Vec<&ArrangeRow> = card.parts.iter().chain(&card.wires).collect();
-        let Some(hit) = rows.get(row) else {
-            return Outcome::refused(key!("reason-arrange-tick"));
-        };
         let mut unticked: Vec<Uuid> = rows.iter().filter(|r| !r.ticked).map(|r| r.id).collect();
-        if hit.ticked {
-            unticked.push(hit.id);
+        if let Some(all) = p.get("all").and_then(Value::as_bool) {
+            unticked.retain(|id| !card.wires.iter().any(|w| w.id == *id));
+            if !all {
+                unticked.extend(card.wires.iter().map(|w| w.id));
+            }
         } else {
-            unticked.retain(|id| *id != hit.id);
+            let row = p
+                .get("row")
+                .and_then(Value::as_u64)
+                .map_or(usize::MAX, |r| usize::try_from(r).unwrap_or(usize::MAX));
+            let Some(hit) = rows.get(row) else {
+                return Outcome::refused(key!("reason-arrange-tick"));
+            };
+            if hit.ticked {
+                unticked.push(hit.id);
+            } else {
+                unticked.retain(|id| *id != hit.id);
+            }
         }
         let listed = card.parts.clone();
         self.arrange_with(card.scope, unticked, listed)
@@ -343,14 +358,13 @@ fn arrange_card(
         symbols = strings::format(key!("arrange-across"), &[&symbols, &across.to_string()]);
     }
     let routed = plan.plan.routes.iter().filter(|(_, r)| !r.is_empty()).count();
-    let lead = strings::format(
-        key!("arrange-lead"),
-        &[
-            &page,
-            &symbols,
-            &strings::format_count(count_key!("arrange-wires"), routed),
-        ],
-    );
+    let mut routes = strings::format_count(count_key!("arrange-wires"), routed);
+    // The wires the person drew that get a new route, counted in the lead.
+    let yours = plan.plan.his.len();
+    if yours > 0 {
+        routes = strings::format(key!("arrange-yours"), &[&routes, &yours.to_string()]);
+    }
+    let lead = strings::format(key!("arrange-lead"), &[&page, &symbols, &routes]);
     let figures = |q: &ew_api::routing::Quality| {
         strings::format(
             key!("arrange-figures"),

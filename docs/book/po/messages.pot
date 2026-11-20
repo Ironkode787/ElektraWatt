@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-20T06:53:50+01:00\n"
+"POT-Creation-Date: 2026-11-20T07:59:00+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -5778,12 +5778,14 @@ msgstr ""
 #: src/reference/window/tools.md:264
 msgid ""
 "Moves the symbols of the selection, or with nothing selected the symbols of "
-"the page, to where the page is best for them, and routes their wires. Open "
-"it with Draw ▸ Connect ▸ Arrange and route, or Arrange and route in the menu "
-"of a symbol. Nothing changes until you choose Apply."
+"the page, to where the page is best for them, and routes their wires: every "
+"wire of the page, or of the selection and the symbols in it, also the wires "
+"you drew yourself. Open it with Draw ▸ Connect ▸ Arrange and route, or "
+"Arrange and route in the menu of a symbol. Nothing changes until you choose "
+"Apply."
 msgstr ""
 
-#: src/reference/window/tools.md:268
+#: src/reference/window/tools.md:269
 msgid ""
 "Each symbol is put in line with the pin it is wired to, on the side that pin "
 "faces: a contact under the breaker that feeds it, a sensor over its input's "
@@ -5796,10 +5798,12 @@ msgid ""
 "order of the line, level. The space you left along a circuit stays: a symbol "
 "is neither pulled nearer nor spread out, unless it has to move. A move has a "
 "price, so a symbol moves only where the page gets visibly better, and a page "
-"already in order gives no plan."
+"already in order gives no plan. It never offers less than Route would do "
+"with the same wires: when moving symbols does not make the page better than "
+"routing alone, it offers Route's plan and says that no symbol moves."
 msgstr ""
 
-#: src/reference/window/tools.md:277
+#: src/reference/window/tools.md:280
 msgid ""
 "It never moves a symbol you keep in place (right-click ▸ Keep in place), a "
 "symbol outside the selection, a symbol in a structure box, or a symbol to "
@@ -5807,42 +5811,47 @@ msgid ""
 "where they are and the others are arranged round them."
 msgstr ""
 
-#: src/reference/window/tools.md:281
+#: src/reference/window/tools.md:284
 msgid ""
 "The Preview tab shows what it would do: how many symbols move and how many "
-"of them across the sheet, the page's crossings and bends now and then, a "
-"ticked row per symbol that moves (the far moves first) with its move in grid "
-"steps, a ticked row per wire you drew that gets a new route, and what is "
-"left as it is: the symbols kept in place, with their pin, the symbols that "
-"have no room on the side their pin faces, and the wires without a way. The "
-"page shows it as it would become: the symbols that move tinted, their old "
-"places as faint outlines joined to the new ones by a dotted line. Hold B to "
-"see the page as it is."
+"of them across the sheet, how many wires are routed and how many of those "
+"you drew, the page's crossings and bends now and then, a ticked row per "
+"symbol that moves (the far moves first) with its move in grid steps, a "
+"ticked row per wire you drew that gets a new route, and what is left as it "
+"is: the symbols kept in place, with their pin, the symbols that have no room "
+"on the side their pin faces, and the wires without a way. The page shows it "
+"as it would become: the symbols that move tinted, their old places as faint "
+"outlines joined to the new ones by a dotted line. Hold B to see the page as "
+"it is."
 msgstr ""
 
-#: src/reference/window/tools.md:288
+#: src/reference/window/tools.md:292
 msgid ""
 "Untick a row to plan again with that symbol where it stands, or that wire as "
 "it runs; the page and the rows follow, and what you see is what Apply "
-"stores. Apply stores it in one step, and the toast says what moved and what "
-"was routed (\"Arranged folio 102: 4 symbols moved, 9 wires routed.\"); one "
-"Undo takes all of it back. When nothing would make the page better, it says "
-"\"Nothing to arrange: the page is already arranged as well as the rules "
-"allow.\""
+"stores. The tick of the heading \"Wires you drew yourself\" unticks all your "
+"wires at once, so that each keeps its route, and ticks them all again. Apply "
+"stores it in one step, and the toast says what moved and what was routed "
+"(\"Arranged folio 102: 4 symbols moved, 9 wires routed.\"); one Undo takes "
+"all of it back. In the history the step is called Arrange and route, or "
+"Route wires when no symbol moved. When the card closes, a page that was "
+"shown whole is shown whole again. When nothing would make the page better, "
+"it says \"Nothing to arrange: the page is already arranged as well as the "
+"rules allow.\""
 msgstr ""
 
-#: src/reference/window/tools.md:293 src/explanation/eplan-and-ew.md:44
+#: src/reference/window/tools.md:300 src/explanation/eplan-and-ew.md:44
 msgid "Interruption point"
 msgstr ""
 
-#: src/reference/window/tools.md:295
+#: src/reference/window/tools.md:302
 msgid ""
 "Places an interruption point: the end of a potential on this page that "
 "continues at a point of the same name elsewhere. Open it with Draw ▸ Connect "
 "▸ Interruption point."
 msgstr ""
 
-#: src/reference/window/tools.md:298
+#: src/reference/window/tools.md:305
 msgid ""
 "The arrow always points right, the way the signal flows. A source, where the "
 "potential leaves the page, has its wire on the arrow's tail and belongs at "
@@ -5854,7 +5863,7 @@ msgid ""
 "end."
 msgstr ""
 
-#: src/reference/window/tools.md:304
+#: src/reference/window/tools.md:311
 msgid ""
 "Type the name in the field Interruption point name at the page's top left, "
 "once for a pair: the tool then floats the same name as the first point's "
@@ -5885,7 +5894,7 @@ msgid ""
 "carries the target's name."
 msgstr ""
 
-#: src/reference/window/tools.md:324
+#: src/reference/window/tools.md:331
 msgid ""
 "A point keeps room for its texts: where its name or its cross-reference "
 "would print over another interruption point's, it is not placed, and the "
@@ -5894,11 +5903,11 @@ msgid ""
 "anyway."
 msgstr ""
 
-#: src/reference/window/tools.md:328
+#: src/reference/window/tools.md:335
 msgid "Interruption point direction"
 msgstr ""
 
-#: src/reference/window/tools.md:330
+#: src/reference/window/tools.md:337
 msgid ""
 "Turns the interruption point that the tool floats from source to target, or "
 "back. Draw ▸ Connect ▸ Interruption point direction. An undirected point, "
@@ -5906,7 +5915,7 @@ msgid ""
 "properties."
 msgstr ""
 
-#: src/reference/window/tools.md:334
+#: src/reference/window/tools.md:341
 msgid ""
 "The point takes the form of its new direction: the wire moves from the tail "
 "to the tip, or back. Changing the direction of a placed point in its "
@@ -5914,21 +5923,21 @@ msgid ""
 "other form yet: place one point of that direction first."
 msgstr ""
 
-#: src/reference/window/tools.md:338
+#: src/reference/window/tools.md:345
 msgid "Star source"
 msgstr ""
 
-#: src/reference/window/tools.md:340
+#: src/reference/window/tools.md:347
 msgid ""
 "Marks the interruption point as the source of its name in star mode: one "
 "source, many targets. Draw ▸ Connect ▸ Star source."
 msgstr ""
 
-#: src/reference/window/tools.md:343
+#: src/reference/window/tools.md:350
 msgid "Wire marker"
 msgstr ""
 
-#: src/reference/window/tools.md:345
+#: src/reference/window/tools.md:352
 msgid ""
 "Places a wire marker, the label that prints the cross-section and colours of "
 "the wires it marks. Open it with **Marker** on the Draw tab or Shift+W. Drag "
@@ -5945,7 +5954,7 @@ msgid ""
 "text beyond the line's end, clear of the wires."
 msgstr ""
 
-#: src/reference/window/tools.md:355
+#: src/reference/window/tools.md:362
 msgid ""
 "The wires' numbers print on the page with **Draw ▸ Connect ▸ Print wire "
 "numbers**, a setting of the project that the PDF and print follow too: each "
@@ -5955,62 +5964,62 @@ msgid ""
 "and core name it."
 msgstr ""
 
-#: src/reference/window/tools.md:360
+#: src/reference/window/tools.md:367
 msgid "Text"
 msgstr ""
 
-#: src/reference/window/tools.md:362
+#: src/reference/window/tools.md:369
 msgid "Places a free text on the page. Open it with Draw ▸ Annotate ▸ Text."
 msgstr ""
 
-#: src/reference/window/tools.md:364
+#: src/reference/window/tools.md:371
 msgid "Graphic"
 msgstr ""
 
-#: src/reference/window/tools.md:366
+#: src/reference/window/tools.md:373
 msgid ""
 "Draws a graphic: a line, polyline, rectangle, circle, arc or polygon, which "
 "has no electrical meaning. Open it with Draw ▸ Annotate ▸ Graphic and the "
 "shape."
 msgstr ""
 
-#: src/reference/window/tools.md:369 src/explanation/eplan-and-ew.md:120
+#: src/reference/window/tools.md:376 src/explanation/eplan-and-ew.md:120
 msgid "Structure box"
 msgstr ""
 
-#: src/reference/window/tools.md:371
+#: src/reference/window/tools.md:378
 msgid ""
 "Draws a structure box: a dashed frame that puts what it encloses into a "
 "function or location of the project's structure. Open it with Draw ▸ "
 "Annotate ▸ Structure box."
 msgstr ""
 
-#: src/reference/window/tools.md:374
+#: src/reference/window/tools.md:381
 msgid "Image"
 msgstr ""
 
-#: src/reference/window/tools.md:376
+#: src/reference/window/tools.md:383
 msgid ""
 "Places an image file (SVG, PNG or JPEG) on the page. Open it with Draw ▸ "
 "Annotate ▸ Image…."
 msgstr ""
 
-#: src/reference/window/tools.md:378
+#: src/reference/window/tools.md:385
 msgid "Place device"
 msgstr ""
 
-#: src/reference/window/tools.md:380
+#: src/reference/window/tools.md:387
 msgid ""
 "On a panel layout page, places a device of the location on a rail or the "
 "mounting plate. Open it from the Unplaced devices navigator, which lists the "
 "devices of the location that have no place yet."
 msgstr ""
 
-#: src/reference/window/tools.md:383
+#: src/reference/window/tools.md:390
 msgid "Rail"
 msgstr ""
 
-#: src/reference/window/tools.md:385
+#: src/reference/window/tools.md:392
 msgid ""
 "On a panel layout page, draws a mounting rail. Open it with Draw ▸ Rail. The "
 "page shows an enclosure first: Project ▸ Setup ▸ Enclosure… puts the new "
@@ -6018,11 +6027,11 @@ msgid ""
 "layout](../../how-to/panel-layout.md))."
 msgstr ""
 
-#: src/reference/window/tools.md:388
+#: src/reference/window/tools.md:395
 msgid "Duct"
 msgstr ""
 
-#: src/reference/window/tools.md:390
+#: src/reference/window/tools.md:397
 msgid "On a panel layout page, draws a wiring duct. Open it with Draw ▸ Duct."
 msgstr ""
 

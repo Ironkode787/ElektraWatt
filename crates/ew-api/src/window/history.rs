@@ -25,12 +25,16 @@ use crate::Session;
 /// The most folios a history row lists.
 const MAX_HISTORY_PAGES: usize = 8;
 
+/// The label of a `layout.apply` step that moves symbols: Arrange and route's (docs/design/06a-drafting.md §7.3). One
+/// that moves none keeps its command's, Route's.
+pub const ARRANGE_STEP: &str = "layout.arrange";
+
 /// One entry of the history (§4.2).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct HistoryRow {
     /// The entry's index in the stack (0 the oldest kept).
     pub index: usize,
-    /// The label (the command's).
+    /// The label: the command's, or [`ARRANGE_STEP`] for a `layout.apply` that moves symbols.
     pub label: String,
     /// The origin as the panel prints it.
     pub origin: String,
@@ -145,7 +149,15 @@ pub(super) fn view_of(history: &History, q: &Q) -> HistoryView {
         .enumerate()
         .map(|(index, e)| HistoryRow {
             index,
-            label: e.label().to_owned(),
+            label: if e.label() == "layout.apply"
+                && e.command().params["parts"]
+                    .as_array()
+                    .is_some_and(|p| !p.is_empty())
+            {
+                ARRANGE_STEP.to_owned()
+            } else {
+                e.label().to_owned()
+            },
             origin: origin_text(e.origin()),
             step: e.is_step(),
             barrier: e.is_barrier(),

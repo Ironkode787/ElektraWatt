@@ -844,9 +844,10 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_layout_arrange(),
         ),
     )),
-    // A row of the Arrange and route card ticked or unticked: the page is planned again (§7.3).
+    // A row of the Arrange and route card ticked or unticked, or all the wires you drew: the page is planned again
+    // (§7.3).
     with_params(
-        "row:int",
+        "row?:int, all?:bool",
         hidden(act(
             "layout.arrange_tick",
             Command,

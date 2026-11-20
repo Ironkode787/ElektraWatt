@@ -293,6 +293,13 @@ impl ShellModel {
                 }
             }
         }
+        // The canvas that was fitted when Arrange and route opened its card fits again once the card is gone.
+        if self.tools.refit == Some(g) && !self.arrange_shown() {
+            self.tools.refit = None;
+            if let Some(c) = self.canvas_mut(g) {
+                c.fit_again();
+            }
+        }
         // A Route page or Route selection card draws its plan on the canvas, and its panel takes room from the
         // canvas: the planned routes stay in view, or the card would list a plan nobody can judge.
         if let Some((min, max)) = bounds(&self.route_preview(g))

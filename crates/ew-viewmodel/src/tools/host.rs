@@ -222,6 +222,9 @@ pub(crate) struct ToolHost {
     pub rerouted: Option<(u64, Option<u64>, Vec<ew_api::output::Uuid>)>,
     /// The page an open Arrange and route card would leave (docs/design/06a-drafting.md §7.3), read once per plan.
     pub arranged: Option<std::sync::Arc<crate::canvas::CanvasPage>>,
+    /// The canvas group whose view was fitted when Arrange and route opened its card: it fits the page again at the
+    /// first new size of its pane once the card is gone (§7.3), whatever zoom the person took while it was open.
+    pub refit: Option<usize>,
 }
 
 /// The cached part offers of a draw tool: the (session, revision, kind) they were computed for, and the offers.
@@ -331,6 +334,7 @@ impl ToolHost {
             draw_offers: std::cell::RefCell::new(None),
             rerouted: None,
             arranged: None,
+            refit: None,
         }
     }
 }
