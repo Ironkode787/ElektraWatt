@@ -782,7 +782,113 @@ fn position_realised_part_rotation_duct_size_and_datum_commit() {
     assert_eq!(text_of(&s, page, "page/derived.datum"), "100, 200 mm");
 }
 
+/// Removes the fixture directory at the end.
+struct Dir(std::path::PathBuf);
+
+impl Drop for Dir {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
+/// A library document of the sample (a part by number, or the manufacturer of one) moved into the library `lib`, with
+/// its references (manufacturer, enclosure plate) into `lib` too (the registry recomputes the copy ID and hash).
+fn sample_doc_in(lib: Uuid, pick: impl Fn(&ew_schema::LibDocument) -> bool) -> ew_schema::LibDocument {
+    let (_, _, docs) = common::sample_records();
+    let doc = docs.iter().find(|d| pick(d)).expect("a document of the sample");
+    let mut v = serde_json::to_value(doc).unwrap();
+    v["library_id"] = json!(lib.to_string());
+    if v.get("manufacturer").is_some() {
+        v["manufacturer"]["library"] = json!(lib.to_string());
+        v["manufacturer"]["version_req"] = json!("*");
+    }
+    if v["sections"]["enclosure"].get("plate").is_some() {
+        v["sections"]["enclosure"]["plate"]["library"] = json!(lib.to_string());
+        v["sections"]["enclosure"]["plate"]["version_req"] = json!("*");
+    }
+    ew_schema::LibDocument::from_value(v).expect("a library document")
+}
+
+fn part_named(number: &'static str) -> impl Fn(&ew_schema::LibDocument) -> bool {
+    move |d| matches!(d, ew_schema::LibDocument::Part(p) if p.item.part_number.as_str() == number)
+}
+
+/// The library path: a system library holding an enclosure part and its plate part (the sample's own, moved into
+/// it); the offer of `layout_part_offers` carries both through `copies` (the plate as the enclosure section's
+/// closure), beside the project's held copy, which brings none; and `layout.enclosure.create_from_part` with them
+/// creates +FLD's enclosure with its plate in one command.
+#[test]
+fn a_library_enclosure_part_is_offered_with_its_plate_and_creates_the_enclosure() {
+    use ew_api::library::{LibraryTiers, Registry};
+    use ew_api::SessionOptions;
+    let root = Dir(ew_testdir::fresh_dir("layout-edit-library"));
+    let tiers = |system: Vec<std::path::PathBuf>| LibraryTiers {
+        system,
+        community: root.0.join("data").join("packs"),
+        company: Vec::new(),
+        user: root.0.join("data").join("libraries"),
+        cache: root.0.join("cache"),
+    };
+    let dir = root.0.join("system");
+    {
+        let t = LibraryTiers {
+            company: vec![dir.clone()],
+            ..tiers(Vec::new())
+        };
+        let mut reg = Registry::open(&t).unwrap();
+        let lib = reg
+            .create(&dir.join("cabinets.ewlib"), "cabinets", "Cabinets", "CC0-1.0")
+            .unwrap();
+        let docs = vec![
+            sample_doc_in(lib, part_named("EW-GEN-ENC-1")),
+            sample_doc_in(lib, part_named("EW-GEN-PLT-1")),
+            sample_doc_in(lib, |d| matches!(d, ew_schema::LibDocument::Manufacturer(_))),
+        ];
+        reg.write(lib, &docs).unwrap();
+    }
+    let (project, records, lib) = common::sample_records();
+    let options = SessionOptions {
+        libraries: Some(tiers(vec![dir])),
+        ..SessionOptions::default()
+    };
+    let mut s = Session::from_records(project, records, lib, options).unwrap();
+    let offers = s.layout_part_offers("enclosure");
+    let numbers: Vec<(&str, usize)> = offers
+        .iter()
+        .map(|o| (o.number.as_str(), o.copies.len()))
+        .collect();
+    // The project's held copy brings no copies; the library's, with its copies, is offered beside it.
+    assert!(
+        offers.iter().any(|o| o.number == "EW-GEN-ENC-1" && o.copies.is_empty()),
+        "the held enclosure: {numbers:?}"
+    );
+    let library = offers
+        .iter()
+        .find(|o| o.number == "EW-GEN-ENC-1" && !o.copies.is_empty())
+        .unwrap_or_else(|| panic!("the library's enclosure: {numbers:?}"))
+        .clone();
+    let embedded: Vec<String> = library
+        .copies
+        .iter()
+        .filter_map(|c| c["part_number"].as_str().map(str::to_owned))
+        .collect();
+    assert_eq!(embedded, ["EW-GEN-ENC-1", "EW-GEN-PLT-1"], "the part and its plate");
+    let field = location(&s, "FLD");
+    let before = s.query().table::<MountingSurface>().iter().count();
+    let cmd = AnyCommand {
+        name: "layout.enclosure.create_from_part".into(),
+        params: json!({"location": field.to_string(), "part": library.part.to_string(), "copies": library.copies}),
+    };
+    run(&mut s, &cmd);
+    assert_eq!(
+        s.query().table::<MountingSurface>().iter().count(),
+        before + 1,
+        "one plate more"
+    );
+}
+
 /// The scale of the drawn page `page`.
+
 fn scale_of(s: &Session, page: Uuid) -> ew_schema::Scale {
     s.query()
         .pages()

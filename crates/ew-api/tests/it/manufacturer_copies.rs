@@ -1,38 +1,33 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Golden A's manufacturer copies. The bootstrap emits one project-local
-//! manufacturer copy per manufacturer name and the part references carry no `key`; every page, report and export
-//! derives exactly as from a file written before manufacturer copies existed, whose references keep the name
-//! in `key` and which holds no manufacturer copy (the readers' fallback). The committed outputs under
-//! `golden/J-E-2416/expected/` are unchanged (the page, PDF, PNG, CSV and acceptance tests compare them byte
-//! for byte).
+//! The sample project's manufacturer copies: the part references carry no `key`, and every page, report and export
+//! derives exactly as from a file written before manufacturer copies existed, whose references keep the name in `key`
+//! and which holds no manufacturer copy (the readers' fallback).
 
-use crate::golden_common;
+use crate::common;
 
 use ew_api::output::page_view;
 use ew_api::{BomMode, Export, Session};
 use ew_derive::PageOrder;
-use ew_import_tables::ew_interop_api::ImportBatch;
 use ew_schema::{LibDocument, Sha256};
 
-/// The batch as a file written before manufacturer copies existed holds it: no manufacturer copies, the name
-/// in each part reference's `key` member, the part hashes recomputed.
-fn before_part_3(batch: &ImportBatch) -> ImportBatch {
-    let mut old = batch.clone();
+/// The library copies as a file written before manufacturer copies existed holds them: no manufacturer copies, the
+/// name in each part reference's `key` member, the part hashes recomputed.
+fn before_part_3(lib: &[LibDocument]) -> Vec<LibDocument> {
+    let mut old = lib.to_vec();
     let names: Vec<(ew_ids::Uuid, String)> = old
-        .lib
         .iter()
         .filter_map(|d| match d {
             LibDocument::Manufacturer(m) => Some((
                 m.item_id.as_uuid(),
-                m.item.name.as_neutral().unwrap_or_default().to_owned(),
+                m.item.key.as_str().to_owned(),
             )),
             _ => None,
         })
         .collect();
-    old.lib.retain(|d| !matches!(d, LibDocument::Manufacturer(_)));
-    for doc in &mut old.lib {
+    old.retain(|d| !matches!(d, LibDocument::Manufacturer(_)));
+    for doc in &mut old {
         if let LibDocument::Part(p) = doc {
             let (_, name) = names
                 .iter()
@@ -60,27 +55,27 @@ fn pages(s: &Session) -> Vec<ew_scene::page::PageView> {
         .collect()
 }
 
+/// The sample's parts are the starter library's generic ones: one manufacturer copy, Generic, and no part reference
+/// keeps a name in `key`.
 #[test]
-fn golden_a_holds_eight_manufacturer_copies_and_no_reference_keeps_a_key() {
-    let batch = golden_common::batch();
-    let names: Vec<&str> = batch
-        .lib
+fn the_sample_holds_its_manufacturer_copy_and_no_reference_keeps_a_key() {
+    let (_, _, lib) = common::sample_records();
+    let names: Vec<&str> = lib
         .iter()
         .filter_map(|d| match d {
-            LibDocument::Manufacturer(m) => m.item.name.as_neutral(),
+            LibDocument::Manufacturer(m) => Some(m.item.key.as_str()),
             _ => None,
         })
         .collect();
-    assert_eq!(names.len(), 8, "{names:?}");
-    let parts: Vec<_> = batch
-        .lib
+    assert_eq!(names, ["Generic"]);
+    let parts: Vec<_> = lib
         .iter()
         .filter_map(|d| match d {
             LibDocument::Part(p) => Some(p),
             _ => None,
         })
         .collect();
-    assert_eq!(parts.len(), 29);
+    assert!(!parts.is_empty());
     for p in parts {
         assert!(p.item.manufacturer.extra.is_empty(), "{}", p.item.part_number);
     }
@@ -88,11 +83,12 @@ fn golden_a_holds_eight_manufacturer_copies_and_no_reference_keeps_a_key() {
 
 #[test]
 fn every_page_and_export_equals_the_file_written_before_part_3() {
-    let batch = golden_common::batch();
-    let now = golden_common::session(&batch);
-    let old = golden_common::session(&before_part_3(&batch));
+    let (project, records, lib) = common::sample_records();
+    let now = common::session_of(project.clone(), records.clone(), lib.clone());
+    let old = common::session_of(project, records, before_part_3(&lib));
     let (a, b) = (pages(&now), pages(&old));
-    assert_eq!(a.len(), 36);
+    assert_eq!(a.len(), b.len());
+    assert!(!a.is_empty());
     for (i, (a, b)) in a.iter().zip(&b).enumerate() {
         assert!(a == b, "page {i} differs");
     }
@@ -105,9 +101,8 @@ fn every_page_and_export_equals_the_file_written_before_part_3() {
         assert_eq!(a, b, "{what:?}");
         assert!(a.is_ok(), "{what:?}");
     }
-    // The manufacturer names print, from the copies now and from the keys before.
+    // The manufacturer's name prints, from the copy now and from the key before.
     let bom = now.export_csv(Export::Bom(BomMode::Component)).expect("the BOM");
-    for name in ["Phoenix Contact", "Schneider Electric", "Festo", "Siemens"] {
-        assert!(bom.contains(name), "{name}");
-    }
+    assert!(bom.contains("Generic"), "{bom}");
+
 }

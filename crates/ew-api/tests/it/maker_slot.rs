@@ -102,15 +102,42 @@ fn a_black_box_of_a_generic_part_prints_its_tag_and_part_number_only() {
     );
 }
 
-/// Any other maker still prints: Golden A's black boxes print their makers' names.
+/// Any other maker still prints: the sample's black boxes (its power supply, PLC and valve terminal), their parts
+/// made another maker's in the test (a manufacturer copy of its own item, which every part names), print the maker's
+/// name.
 #[test]
 fn a_part_of_any_other_maker_prints_its_maker() {
-    let s = Session::open_read_only(
-        std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew")),
-        "ElektraWatt test",
-    )
-    .unwrap()
-    .0;
+    let (project, records, mut lib) = crate::common::sample_records();
+    let maker = lib
+        .iter()
+        .find(|d| matches!(d, ew_schema::LibDocument::Manufacturer(_)))
+        .cloned()
+        .expect("the generic maker");
+    let item = Uuid::from_u128(0x5a_4b1e);
+    let mut v = serde_json::to_value(&maker).unwrap();
+    let library: Uuid = v["library_id"].as_str().unwrap().parse().unwrap();
+    v["item_id"] = json!(item.to_string());
+    v["id"] = json!(ew_ids::v5::lib_copy_id::<()>(library, item).as_uuid().to_string());
+    v["key"] = json!("Sample Maker");
+    v["name"] = json!({"en": "Sample Maker"});
+    lib.push(ew_schema::LibDocument::from_value(v).unwrap());
+    for doc in &mut lib {
+        let mut v = serde_json::to_value(&*doc).unwrap();
+        if v.get("manufacturer").is_some() {
+            v["manufacturer"]["item"] = json!(item.to_string());
+        }
+        *doc = ew_schema::LibDocument::from_value(v).unwrap();
+        if let Some(hash) = ew_commands::commands::library_copy_hash(doc) {
+            match doc {
+                ew_schema::LibDocument::Part(p) => p.sha256 = ew_schema::Sha256(hash),
+                ew_schema::LibDocument::Manufacturer(m) => m.sha256 = ew_schema::Sha256(hash),
+                _ => {}
+            }
+        }
+    }
+
+
+    let s = crate::common::session_of(project, records, lib);
     let q = s.query();
     let makers: std::collections::BTreeSet<String> = q
         .parts()
@@ -118,7 +145,8 @@ fn a_part_of_any_other_maker_prints_its_maker() {
         .map(|(_, p)| ew_derive::manufacturer_name(&q, &p.item.manufacturer))
         .filter(|m| !m.is_empty() && m != "Generic")
         .collect();
-    assert!(!makers.is_empty(), "Golden A's parts have makers");
+    assert_eq!(makers, ["Sample Maker".to_owned()].into());
+
     let mut printed = Vec::new();
     for (page, _) in q.pages().iter() {
         let list = page_layer(&q, PageRef::Drawn(page), Layer::Labels);

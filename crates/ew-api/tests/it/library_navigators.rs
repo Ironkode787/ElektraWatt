@@ -1,75 +1,64 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The data half: the Libraries navigator on Golden A shows its copies `SourceMissing` without
-//! libraries and `UpdateAvailable` with a fixture library, tiers and states in words; the Macros navigator
+//! The data half: the Libraries navigator on the sample project shows its copies without libraries and
+//! `UpdateAvailable` with a fixture library, tiers and states in words; the Macros navigator
 //! lists a saved macro under its tier and its detail lists the devices; a new macro instance ID is
 //! deterministic and skips held IDs.
 
-use crate::common::{Dir, tiers};
-use crate::golden_common;
+use crate::common::{self, Dir, tiers};
 
 use ew_api::library::{LibraryTiers, Registry};
 use ew_api::output::{NavKind, NavNode, NavRole, NavTable};
 use ew_api::{AnyCommand, InsertAt, MacroScope, MacroSpec, MacroValues, Session, SessionOptions};
 use ew_ids::Uuid;
 use ew_mltext::MlText;
-use ew_schema::{LibDocument, Record};
+use ew_schema::LibDocument;
 use serde_json::json;
 
-/// Golden A with the libraries of `tiers`, in memory.
-fn golden(tiers: Option<LibraryTiers>) -> Session {
-    let batch = golden_common::batch();
-    let mut project = None;
-    let mut records = Vec::new();
-    for r in &batch.records {
-        match r {
-            Record::Project(p) => project = Some(p.clone()),
-            other => records.push(other.clone()),
-        }
-    }
+/// The sample with the libraries of `tiers`, in memory.
+fn sample(tiers: Option<LibraryTiers>) -> Session {
+    let (project, records, lib) = common::sample_records();
     let options = SessionOptions {
         libraries: tiers,
         ids: Some(ew_testids::seeded_ids(38)),
         ..SessionOptions::default()
     };
-    Session::from_records(project.unwrap(), records, batch.lib.clone(), options).unwrap()
+    Session::from_records(project, records, lib, options).unwrap()
 }
 
-/// The golden document of part 2904602, as JSON.
-fn golden_part() -> serde_json::Value {
-    let batch = golden_common::batch();
-    let doc = batch
-        .lib
+/// The sample's copy of its power supply's part EW-GEN-PSU-1, as JSON.
+fn psu_part() -> serde_json::Value {
+    let (_, _, lib) = common::sample_records();
+    let doc = lib
         .iter()
-        .find(|d| matches!(d, LibDocument::Part(p) if p.item.part_number.as_str() == "2904602"))
-        .expect("a golden part");
+        .find(|d| matches!(d, LibDocument::Part(p) if p.item.part_number.as_str() == "EW-GEN-PSU-1"))
+        .expect("the power supply's part");
     serde_json::to_value(doc).unwrap()
 }
 
-/// The golden manufacturer copy of 2904602's manufacturer, as JSON.
-fn golden_manufacturer() -> serde_json::Value {
-    let item = golden_part()["manufacturer"]["item"].clone();
-    let batch = golden_common::batch();
-    let doc = batch
-        .lib
+/// The sample's copy of the power supply part's manufacturer, as JSON.
+fn psu_manufacturer() -> serde_json::Value {
+    let item = psu_part()["manufacturer"]["item"].clone();
+    let (_, _, lib) = common::sample_records();
+    let doc = lib
         .iter()
         .find(|d| matches!(d, LibDocument::Manufacturer(m) if json!(m.item_id.as_uuid().to_string()) == item))
-        .expect("a golden manufacturer");
+        .expect("the part's manufacturer");
     serde_json::to_value(doc).unwrap()
 }
 
-/// A golden document moved into the library `lib` (the registry recomputes the copy ID and hash on write).
+/// A document of the sample moved into the library `lib` (the registry recomputes the copy ID and hash on write).
 fn into_library(mut v: serde_json::Value, lib: Uuid) -> LibDocument {
     v["library_id"] = json!(lib.to_string());
     if v.get("manufacturer").is_some() {
         v["manufacturer"]["library"] = json!(lib.to_string());
-        v["manufacturer"]["version_req"] = json!("^1");
+        v["manufacturer"]["version_req"] = json!("*");
     }
     LibDocument::from_value(v).expect("a library document")
 }
 
-/// A user library "Fixture parts" holding 2904602 with its manufacturer: its ID and the library's tiers.
+/// A user library "Fixture parts" holding EW-GEN-PSU-1 with its manufacturer: its ID and the library's tiers.
 fn fixture_library(name: &str) -> (Dir, LibraryTiers, Uuid) {
     let root = Dir(ew_testdir::fresh_dir(name));
     let t = tiers(&root.0);
@@ -85,8 +74,8 @@ fn fixture_library(name: &str) -> (Dir, LibraryTiers, Uuid) {
     reg.write(
         lib,
         &[
-            into_library(golden_part(), lib),
-            into_library(golden_manufacturer(), lib),
+            into_library(psu_part(), lib),
+            into_library(psu_manufacturer(), lib),
         ],
     )
     .unwrap();
@@ -113,13 +102,11 @@ fn cell<'t>(t: &'t NavTable, n: &'t NavNode, key: &str) -> &'t str {
     &n.cells[i]
 }
 
-/// UI-4: without libraries (the compiled-in ones only), Golden A's frames and title block have no source (badge
-/// `source_missing`, "Only in this project") while its symbols are current; the compiled-in libraries stand under "System",
-/// read-only. Tiers and the group of the project's copies are words. (Golden A's parts are its own items, which
-/// `library_status` leaves out)
+/// UI-4: without libraries (the compiled-in ones only), the sample's symbols are current; the compiled-in libraries
+/// stand under "System", read-only. Tiers and the group of the project's copies are words.
 #[test]
-fn golden_a_copies_have_no_source_without_libraries() {
-    let s = golden(None);
+fn the_sample_s_copies_without_libraries() {
+    let s = sample(None);
     let t = s.navigator_table(NavKind::Libraries);
     let system = row(&t, NavRole::Tier, "System");
     assert_eq!(system.key, "tier:system");
@@ -170,24 +157,24 @@ fn golden_a_copies_have_no_source_without_libraries() {
     assert!(lamp.records.len() > 1);
 }
 
-/// UI-4: 2904602 assigned to -102G1 from a fixture user library is current; once the library holds 1.0.1 the copy
-/// has an update available. The library stands under "User", writable.
+/// UI-4: the power supply's part assigned to -101G1 from a fixture user library is current; once the library holds
+/// its next patch version the copy has an update available. The library stands under "User", writable.
 #[test]
 fn a_fixture_library_offers_an_update() {
     let (_root, t, lib) = fixture_library("ew-api-ui4");
-    let mut s = golden(Some(t));
-    let item: Uuid = golden_part()["item_id"].as_str().unwrap().parse().unwrap();
+    let mut s = sample(Some(t));
+    let item: Uuid = psu_part()["item_id"].as_str().unwrap().parse().unwrap();
     let reference: ew_schema::LibRef = serde_json::from_value(
-        json!({"library": lib.to_string(), "item": item.to_string(), "version_req": "^1"}),
+        json!({"library": lib.to_string(), "item": item.to_string(), "version_req": "*"}),
     )
     .unwrap();
-    let g1 = s.resolve_reference("tag:-102G1").unwrap();
-    let golden_copy: Uuid = golden_part()["id"].as_str().unwrap().parse().unwrap();
+    let g1 = s.resolve_reference("tag:-101G1").unwrap();
+    let held: Uuid = psu_part()["id"].as_str().unwrap().parse().unwrap();
     let cmd = s
         .assign_part(
             &[g1],
             &reference,
-            ew_api::AssignMode::Replace { from: golden_copy },
+            ew_api::AssignMode::Replace { from: held },
             ew_units::Dec3::ONE,
         )
         .unwrap();
@@ -197,21 +184,32 @@ fn a_fixture_library_offers_an_update() {
     let library = row(&table, NavRole::Library, "Fixture parts");
     assert_eq!(cell(&table, library, "access"), "Writable");
     assert_eq!(cell(&table, library, "tier"), "User");
-    let copy = row(&table, NavRole::LibCopy, "2904602");
+    let fixture_copy = |t: &NavTable| -> NavNode {
+        t.nodes
+            .iter()
+            .find(|n| n.role == NavRole::LibCopy && n.label == "EW-GEN-PSU-1" && cell(t, n, "used_by") == "-101G1")
+            .cloned()
+            .expect("the fixture library's copy, used by -101G1")
+    };
+    let copy = fixture_copy(&table);
     assert!(copy.badges.is_empty());
-    assert_eq!(cell(&table, copy, "state"), "Current");
-    assert_eq!(cell(&table, copy, "used_by"), "-102G1");
+    assert_eq!(cell(&table, &copy, "state"), "Current");
     // The library's next version: a description change.
     let mut next = serde_json::to_value(s.libraries().resolve(&reference).unwrap()).unwrap();
-    next["version"] = json!("1.0.1");
-    next["description"] = json!("Power supply 1 AC / DC, 24 V, 20 A");
+    // Its next patch version.
+    let held = next["version"].as_str().expect("a version").to_owned();
+    let (major_minor, patch) = held.rsplit_once('.').expect("a three-part version");
+    let bumped = format!("{major_minor}.{}", patch.parse::<u32>().unwrap() + 1);
+    next["version"] = json!(bumped);
+    next["description"] = json!("Power supply unit, AC to DC, 24 V");
     s.libraries_mut()
         .write(lib, &[LibDocument::from_value(next).unwrap()])
         .unwrap();
     let table = s.navigator_table(NavKind::Libraries);
-    let copy = row(&table, NavRole::LibCopy, "2904602");
+    let copy = fixture_copy(&table);
     assert_eq!(copy.badges, ["update_available"]);
-    assert_eq!(cell(&table, copy, "state"), "Update available (1.0.1)");
+    assert_eq!(cell(&table, &copy, "state"), format!("Update available ({bumped})"));
+
     assert!(
         copy.facets
             .contains(&("state".to_owned(), "update_available".to_owned()))
@@ -223,9 +221,10 @@ fn free_point() -> ew_units::Pt2 {
     ew_units::Pt2::new(g.at(20).unwrap(), g.at(20).unwrap())
 }
 
-/// UI-1 (data): the PSU macro saved into a user library is listed under "User" with its kind, version, library and
-/// device count; the detail lists its three devices, has no thumbnail and names the macro by reference. A new
-/// instance ID is the same twice and moves on after an insertion.
+/// UI-1 (data): the PSU macro (the sample's breaker -101F1, the power supply -101G1 it feeds and their two wires) saved
+/// into a user library is listed under "User" with its kind, version, library and device count; the detail lists its
+/// two devices, has no thumbnail and names the macro by reference. A new instance ID is the same twice and moves on
+/// after an insertion.
 #[test]
 fn the_macros_navigator_lists_a_saved_macro_and_its_detail() {
     let root = Dir(ew_testdir::fresh_dir("ew-api-ui1"));
@@ -235,21 +234,38 @@ fn the_macros_navigator_lists_a_saved_macro_and_its_detail() {
         .create(&t.user.join("mine.ewlib"), "mine", "Mine", "CC0-1.0")
         .unwrap();
     drop(reg);
-    let mut s = golden(Some(t));
+    let mut s = sample(Some(t));
     assert!(s.navigator_table(NavKind::Macros).nodes.is_empty());
-    let page = s.page_tables("102").unwrap();
+    let page = s.page_tables("101").unwrap();
+    let devices = [
+        s.resolve_reference("-101F1").unwrap(),
+        s.resolve_reference("-101G1").unwrap(),
+    ];
+    let functions: Vec<Uuid> = page
+        .reps
+        .iter()
+        .filter(|r| r.device.is_some_and(|d| devices.contains(&d)))
+        .flat_map(|r| r.functions.clone())
+        .collect();
+    let inside = |e: &ew_api::output::TableEnd| {
+        matches!(e, ew_api::output::TableEnd::Cp { function, .. } if functions.contains(function))
+    };
     let ids: Vec<Uuid> = page
         .reps
         .iter()
-        .filter(|r| r.device.is_some())
+        .filter(|r| r.device.is_some_and(|d| devices.contains(&d)))
         .map(|r| r.id)
-        .chain(page.connections.iter().map(|c| c.id))
-        .chain(page.junctions.iter().map(|j| j.id))
+        .chain(
+            page.connections
+                .iter()
+                .filter(|c| inside(&c.a) && inside(&c.b))
+                .map(|c| c.id),
+        )
         .collect();
     let spec = MacroSpec {
         key: "psu-24vdc".into(),
         name: MlText::neutral("PSU 24 V DC"),
-        description: MlText::neutral("Power supply with two output breakers"),
+        description: MlText::neutral("Power supply with its input breaker"),
         scope: MacroScope::Window(ids),
         origin: None,
         keep_tags: Vec::new(),
@@ -265,20 +281,20 @@ fn the_macros_navigator_lists_a_saved_macro_and_its_detail() {
     assert_eq!(cell(&table, m, "kind"), "Window");
     assert_eq!(cell(&table, m, "version"), "1.0.0");
     assert_eq!(cell(&table, m, "library"), "Mine");
-    assert_eq!(cell(&table, m, "devices"), "3");
+    assert_eq!(cell(&table, m, "devices"), "2");
     assert!(m.facets.contains(&("kind".to_owned(), "window".to_owned())));
     let detail = s.macro_detail(&m.key).expect("the detail");
     assert_eq!(detail.name, "PSU 24 V DC");
-    assert_eq!(detail.description, "Power supply with two output breakers");
+    assert_eq!(detail.description, "Power supply with its input breaker");
     assert_eq!(detail.library, "Mine");
     assert_eq!(detail.thumbnail, None);
-    assert_eq!(detail.devices.len(), 3, "{:?}", detail.devices);
+    assert_eq!(detail.devices.len(), 2, "{:?}", detail.devices);
     assert!(
         detail.devices.iter().any(|d| d.starts_with("-G")),
         "{:?}",
         detail.devices
     );
-    assert!(detail.devices.iter().filter(|d| d.starts_with("-F")).count() == 2);
+    assert!(detail.devices.iter().filter(|d| d.starts_with("-F")).count() == 1);
     assert_eq!(detail.copy, saved.copy);
     let reference = detail.reference.clone().expect("installed");
     assert_eq!(reference.item, saved.reference.item);
@@ -309,11 +325,11 @@ fn the_macros_navigator_lists_a_saved_macro_and_its_detail() {
     // The instance: deterministic, and the next one after an insertion differs.
     let first = s.next_macro_instance(saved.copy);
     assert_eq!(first, s.next_macro_instance(saved.copy));
-    let p102 = s.page_tables("102").unwrap().page;
+    let p101 = s.page_tables("101").unwrap().page;
     let q = s.query();
-    let page = serde_json::to_value(q.pages().get(ew_ids::Id::from_uuid(p102)).unwrap().as_ref()).unwrap();
+    let page = serde_json::to_value(q.pages().get(ew_ids::Id::from_uuid(p101)).unwrap().as_ref()).unwrap();
     drop(q);
-    let mut params = json!({"number": 105, "title": "Power Supply 5"});
+    let mut params = json!({"number": 106, "title": "Power Supply 6"});
     if let Some(section) = page["folio"].get("section") {
         params["section"] = section.clone();
     }
@@ -322,12 +338,12 @@ fn the_macros_navigator_lists_a_saved_macro_and_its_detail() {
         params,
     })
     .unwrap();
-    let p105 = s.page_tables("105").unwrap().page;
+    let p106 = s.page_tables("106").unwrap().page;
     let cmd = s
         .insert_macro(
             &reference,
             &InsertAt {
-                page: p105,
+                page: p106,
                 at: Some(free_point()),
                 orient: ew_units::Orient2::R0,
             },
@@ -349,7 +365,8 @@ fn the_macros_navigator_lists_a_saved_macro_and_its_detail() {
     // Re-saving the macro with a new description bumps its version; the held copy then reads Update
     // available in both navigators, and Update… plans the macro copy. (Equal content keeps the hash: no update.)
     let spec = MacroSpec {
-        description: MlText::neutral("Power supply, two output breakers"),
+        description: MlText::neutral("Power supply, its input breaker"),
+
         ..spec
     };
     let resaved = s.save_macro(lib, &spec).unwrap();
