@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 use ew_api::{NewProjectKind, ProjectTemplate, Recovery, Session, SessionOptions, StoreOptions};
 use ew_testids::seeded_ids;
 
-const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
+const SAMPLE: &str = ew_testdir::SAMPLE;
 
 fn temp(tag: &str) -> ew_testdir::Tmp {
     ew_testdir::Tmp::new(&format!("ew-api-newproject-{tag}"))
@@ -29,9 +29,9 @@ fn options(seed: u64) -> SessionOptions {
     }
 }
 
-/// Golden A, read only.
-fn open_golden() -> Session {
-    Session::open_read_only(Path::new(GOLDEN_A), "ElektraWatt test")
+/// The sample, read only.
+fn open_sample() -> Session {
+    Session::open_read_only(Path::new(SAMPLE), "ElektraWatt test")
         .unwrap()
         .0
 }
@@ -126,16 +126,16 @@ fn the_kind_basic_is_written_and_a_basic_project_is_a_template() {
 
 #[test]
 fn a_directory_template_copies_the_records_under_new_ids() {
-    let work = temp("golden");
-    let golden = open_golden();
+    let work = temp("sample");
+    let sample = open_sample();
     let mut copy = Session::new_project(
-        ProjectTemplate::Directory(Path::new(GOLDEN_A)),
+        ProjectTemplate::Directory(Path::new(SAMPLE)),
         NewProjectKind::Schematic,
         options(4),
     )
     .unwrap();
-    assert_eq!(copy.page_labels(), golden.page_labels(), "the same pages");
-    let (old, new) = (ids_of(&golden), ids_of(&copy));
+    assert_eq!(copy.page_labels(), sample.page_labels(), "the same pages");
+    let (old, new) = (ids_of(&sample), ids_of(&copy));
     assert!(old.len() > 100, "{} records", old.len());
     assert_eq!(old.len(), new.len(), "the same records");
     // Instantiated records are re-identified; library copies keep their IDs (their IDs derive from library and item).
@@ -150,7 +150,7 @@ fn a_directory_template_copies_the_records_under_new_ids() {
     copy.create(&dir, store(&work.join("state"))).unwrap();
     copy.close();
     let reopened = reopen_sound(&dir, &work.join("state"));
-    assert_eq!(reopened.page_labels(), golden.page_labels());
+    assert_eq!(reopened.page_labels(), sample.page_labels());
     reopened.close();
 }
 
@@ -219,9 +219,9 @@ fn id_map(
     map
 }
 
-fn copy_of_golden(seed: u64) -> Session {
+fn copy_of_sample(seed: u64) -> Session {
     Session::new_project(
-        ProjectTemplate::Directory(Path::new(GOLDEN_A)),
+        ProjectTemplate::Directory(Path::new(SAMPLE)),
         NewProjectKind::Schematic,
         options(seed),
     )
@@ -230,9 +230,9 @@ fn copy_of_golden(seed: u64) -> Session {
 
 #[test]
 fn ordered_lists_keep_their_order_in_a_copy() {
-    let golden = open_golden();
-    let copy = copy_of_golden(4);
-    let (old, new) = (lines_of(&golden), lines_of(&copy));
+    let sample = open_sample();
+    let copy = copy_of_sample(4);
+    let (old, new) = (lines_of(&sample), lines_of(&copy));
     let new_project = uuid_of(new.iter().find(|v| v["$k"] == "project").unwrap(), "id").unwrap();
     let map = id_map(&old, new_project);
     let by_id: std::collections::BTreeMap<String, &serde_json::Value> = new
@@ -282,7 +282,7 @@ fn ordered_lists_keep_their_order_in_a_copy() {
 
 #[test]
 fn plc_channel_ids_are_derived_from_the_new_module() {
-    let copy = copy_of_golden(4);
+    let copy = copy_of_sample(4);
     let lines = lines_of(&copy);
     let channels: Vec<_> = lines.iter().filter(|v| v["$k"] == "channel").collect();
     assert!(!channels.is_empty(), "the sample has PLC channels");
@@ -321,7 +321,7 @@ fn two_copies_with_one_seed_are_byte_equal() {
     let work = temp("determinism");
     let mut written = Vec::new();
     for n in 0..2 {
-        let mut copy = copy_of_golden(9);
+        let mut copy = copy_of_sample(9);
         let dir = work.join(format!("copy-{n}.ew"));
         copy.create(&dir, store(&work.join("state"))).unwrap();
         copy.close();
@@ -342,15 +342,15 @@ fn two_copies_with_one_seed_are_byte_equal() {
 
 #[test]
 fn a_copy_derives_the_page_texts_of_the_original() {
-    let golden = open_golden();
-    let copy = copy_of_golden(4);
+    let sample = open_sample();
+    let copy = copy_of_sample(4);
     let options = ew_api::output::ExportOptions::default();
     let (a, b) = (
-        golden.export_pages(&options).unwrap(),
+        sample.export_pages(&options).unwrap(),
         copy.export_pages(&options).unwrap(),
     );
     assert_eq!(a.pages.len(), b.pages.len());
-    assert!(a.pages.len() > 30);
+    assert!(!a.pages.is_empty());
     // The page texts: every quoted text of a page's display list (tags, cross references, titles, report rows) as
     // a sorted list, because the drawing order inside a page may follow record IDs. A quoted text ends at its first
     // unescaped quote, so a text holding an escaped quote ("Connecting cable 7/8\"" on 901) does not turn the record
@@ -380,7 +380,7 @@ fn a_copy_derives_the_page_texts_of_the_original() {
     for (i, (x, y)) in a.pages.iter().zip(&b.pages).enumerate() {
         let (tx, ty) = (texts(&x.content), texts(&y.content));
         total += tx.len();
-        assert_eq!(tx, ty, "the texts of page {i} ({})", golden.page_labels()[i]);
+        assert_eq!(tx, ty, "the texts of page {i} ({})", sample.page_labels()[i]);
     }
     assert!(total > 1000, "{total} texts compared");
 }
@@ -699,13 +699,13 @@ fn a_project_from_a_basic_project_records_it() {
     let text = project_text(&dir);
     assert!(text.contains("\"basic_project\":{"), "{text}");
 
-    // Golden A as a template: its project ID and the generation of its manifest.
-    let golden = project_line(&open_golden());
+    // The sample as a template: its project ID and the generation of its manifest.
+    let sample = project_line(&open_sample());
     let manifest: serde_json::Value =
-        serde_json::from_slice(&std::fs::read(Path::new(GOLDEN_A).join("manifest.json")).unwrap()).unwrap();
+        serde_json::from_slice(&std::fs::read(Path::new(SAMPLE).join("manifest.json")).unwrap()).unwrap();
     assert_eq!(
-        project_line(&copy_of_golden(13))["basic_project"],
-        serde_json::json!({"id": golden["id"], "generation": manifest["generation"]})
+        project_line(&copy_of_sample(13))["basic_project"],
+        serde_json::json!({"id": sample["id"], "generation": manifest["generation"]})
     );
 }
 
@@ -728,27 +728,27 @@ fn folio_1_frame(
     ((*frame.form).clone(), tb, geometry)
 }
 
-/// BP-2 (FR-MAC-011, D14): Golden A saved as a basic project without devices is a project of kind basic under a
+/// BP-2 (FR-MAC-011, D14): the sample saved as a basic project without devices is a project of kind basic under a
 /// new ID that keeps the frames and forms, the project's profiles and settings, the sections, the structure, the
 /// report blocks and the pages, and has no device, function, representation or connection.
-/// BP-3 (FR-PRJ-010's check): a project made from it draws folio 1 in the frame and title block of Golden A, exactly
+/// BP-3 (FR-PRJ-010's check): a project made from it draws folio 1 in the frame and title block of the sample, exactly
 /// (stricter than the ±0.2 mm of REF-096).
 #[test]
-fn golden_a_saved_as_basic_without_devices_keeps_its_conventions() {
+fn the_sample_saved_as_basic_without_devices_keeps_its_conventions() {
     let work = temp("bp2");
     let state = work.join("state");
-    let golden = open_golden();
+    let sample = open_sample();
     let dir = work.join("basic.ew");
-    golden.save_as_basic(&dir, false, true, store(&state)).unwrap();
+    sample.save_as_basic(&dir, false, true, store(&state)).unwrap();
     let basic = reopen_sound(&dir, &state);
-    let (g, b) = (project_line(&golden), project_line(&basic));
+    let (g, b) = (project_line(&sample), project_line(&basic));
     assert_eq!(b["kind"], "basic");
     assert_ne!(b["id"], g["id"], "a new project ID");
     assert_eq!(b.get("basic_project"), None);
     for member in ["settings", "master", "derivation_profile", "languages"] {
         assert_eq!(b.get(member), g.get(member), "the project's {member}");
     }
-    let (gc, bc) = (kind_counts(&golden), kind_counts(&basic));
+    let (gc, bc) = (kind_counts(&sample), kind_counts(&basic));
     for kind in [
         "device",
         "function",
@@ -759,19 +759,19 @@ fn golden_a_saved_as_basic_without_devices_keeps_its_conventions() {
     ] {
         assert!(
             gc.get(kind).copied().unwrap_or(0) > 0,
-            "Golden A has {kind} lines"
+            "the sample has {kind} lines"
         );
         assert_eq!(bc.get(kind), None, "no {kind} is left");
     }
     for kind in ["page", "section", "structure_node", "report_block"] {
         assert!(
             gc.get(kind).copied().unwrap_or(0) > 0,
-            "Golden A has {kind} lines"
+            "the sample has {kind} lines"
         );
         assert_eq!(bc.get(kind), gc.get(kind), "every {kind} is kept");
     }
     // The report blocks of one strip or module are kept (they lose the omitted devices from their lists).
-    assert_eq!(report_blocks(&basic), report_blocks(&golden));
+    assert_eq!(report_blocks(&basic), report_blocks(&sample));
     // The library copies (the frames and forms among them) are kept under their IDs.
     let lib_ids = |s: &Session| -> BTreeSet<String> {
         ew_commands::rows::model_lines(&s.world().model)
@@ -781,14 +781,14 @@ fn golden_a_saved_as_basic_without_devices_keeps_its_conventions() {
             .map(|(key, _)| key.1.to_string())
             .collect()
     };
-    assert_eq!(lib_ids(&basic), lib_ids(&golden));
+    assert_eq!(lib_ids(&basic), lib_ids(&sample));
     assert_eq!(
         frame_of_folio_1(&basic),
-        frame_of_folio_1(&golden),
+        frame_of_folio_1(&sample),
         "folio 1 keeps its frame"
     );
 
-    // BP-3: a project from this basic project draws folio 1 as Golden A does.
+    // BP-3: a project from this basic project draws folio 1 as the sample does.
     let copy = Session::new_project(
         ProjectTemplate::Directory(&dir),
         NewProjectKind::Schematic,
@@ -796,10 +796,10 @@ fn golden_a_saved_as_basic_without_devices_keeps_its_conventions() {
     )
     .unwrap();
     assert_eq!(project_line(&copy)["basic_project"]["id"], b["id"]);
-    let (gf, gt, gg) = folio_1_frame(&golden);
+    let (gf, gt, gg) = folio_1_frame(&sample);
     let (cf, ct, cg) = folio_1_frame(&copy);
     assert_eq!(cf, gf, "the frame form");
-    assert!(gt.is_some(), "Golden A's folio 1 has a title block");
+    assert!(gt.is_some(), "the sample's folio 1 has a title block");
     assert_eq!(ct, gt, "the title-block form");
     assert_eq!(cg, gg, "the frame and title-block geometry");
     basic.close();
@@ -823,7 +823,7 @@ fn layout_files(dir: &Path) -> (usize, std::collections::BTreeMap<String, usize>
     (files, counts)
 }
 
-/// FR-MAC-011: without devices the basic project keeps Golden A's
+/// FR-MAC-011: without devices the basic project keeps the sample's
 /// one layout space and nothing of its panel layout (no enclosure, mounting surface, carrier or placement), its
 /// `layout/<space>.jsonl` reopens without integrity findings and its derived values verify; with the devices kept
 /// the layout is whole.
@@ -838,22 +838,23 @@ fn a_basic_project_without_devices_keeps_only_the_layout_space() {
     ];
     let work = temp("bp2-layout");
     let state = work.join("state");
-    let golden = open_golden();
-    // Golden A's layout, by name: 1 space, 1 enclosure, 1 surface, 8 carriers, 20 placements.
-    let golden_layout: Vec<(&str, usize)> = vec![
+    let sample = open_sample();
+    // The sample's layout, by name: 1 space, 1 enclosure, 1 surface, 3 carriers (two rails and the duct), 25
+    // placements.
+    let sample_layout: Vec<(&str, usize)> = vec![
         ("layout_space", 1),
         ("enclosure", 1),
         ("mounting_surface", 1),
-        ("carrier", 8),
-        ("placement", 20),
+        ("carrier", 3),
+        ("placement", 25),
     ];
-    let gc = kind_counts(&golden);
-    for (kind, n) in &golden_layout {
-        assert_eq!(gc.get(*kind), Some(n), "Golden A's {kind} lines");
+    let gc = kind_counts(&sample);
+    for (kind, n) in &sample_layout {
+        assert_eq!(gc.get(*kind), Some(n), "the sample's {kind} lines");
     }
 
     let dir = work.join("without.ew");
-    golden.save_as_basic(&dir, false, true, store(&state)).unwrap();
+    sample.save_as_basic(&dir, false, true, store(&state)).unwrap();
     let basic = reopen_sound(&dir, &state);
     let bc = kind_counts(&basic);
     assert_eq!(bc.get("layout_space"), Some(&1), "the layout space stays");
@@ -871,10 +872,10 @@ fn a_basic_project_without_devices_keeps_only_the_layout_space() {
     basic.close();
 
     let dir = work.join("with.ew");
-    golden.save_as_basic(&dir, false, false, store(&state)).unwrap();
+    sample.save_as_basic(&dir, false, false, store(&state)).unwrap();
     let (whole, _) = Session::open_read_only(&dir, "ElektraWatt test").unwrap();
     let wc = kind_counts(&whole);
-    for (kind, n) in &golden_layout {
+    for (kind, n) in &sample_layout {
         assert_eq!(wc.get(*kind), Some(n), "every {kind} is kept");
     }
 }
@@ -885,11 +886,11 @@ fn a_basic_project_without_devices_keeps_only_the_layout_space() {
 fn a_basic_project_without_pages_and_devices() {
     let work = temp("bp2-nopages");
     let state = work.join("state");
-    let golden = open_golden();
-    let before = kind_counts(&golden);
+    let sample = open_sample();
+    let before = kind_counts(&sample);
     let dir = work.join("basic.ew");
-    golden.save_as_basic(&dir, true, true, store(&state)).unwrap();
-    assert_eq!(kind_counts(&golden), before, "the session is not changed");
+    sample.save_as_basic(&dir, true, true, store(&state)).unwrap();
+    assert_eq!(kind_counts(&sample), before, "the session is not changed");
     let (basic, _) = Session::open_read_only(&dir, "ElektraWatt test").unwrap();
     let counts = kind_counts(&basic);
     for kind in ["page", "device", "representation"] {
@@ -898,8 +899,8 @@ fn a_basic_project_without_pages_and_devices() {
     for kind in ["section", "structure_node"] {
         assert_eq!(counts.get(kind), before.get(kind), "every {kind} is kept");
     }
-    assert_eq!(report_blocks(&basic), report_blocks_with_own_pages(&golden));
-    let err = golden.save_as_basic(&dir, true, true, store(&state)).unwrap_err();
+    assert_eq!(report_blocks(&basic), report_blocks_with_own_pages(&sample));
+    let err = sample.save_as_basic(&dir, true, true, store(&state)).unwrap_err();
     assert!(matches!(err, ew_api::SaveAsBasicError::Write(_)), "{err}");
 }
 
@@ -946,15 +947,15 @@ fn the_wire_numbers_member_is_additive() {
 /// summary names what the template would bring.
 #[test]
 fn a_project_from_a_template_without_its_pages_starts_with_one_empty_page() {
-    let golden = open_golden();
-    let before = kind_counts(&golden);
-    let summary = ew_api::template_summary(Path::new(GOLDEN_A)).unwrap();
+    let sample = open_sample();
+    let before = kind_counts(&sample);
+    let summary = ew_api::template_summary(Path::new(SAMPLE)).unwrap();
     assert!(summary.pages > 0 && summary.devices > 0, "{summary:?}");
     assert_eq!(Some(&summary.sections), before.get("section"), "{summary:?}");
-    assert!(!summary.template, "Golden A is a project, not a template");
+    assert!(!summary.template, "the sample is a project, not a template");
 
     let copy = Session::new_project(
-        ProjectTemplate::DirectoryWithoutPages(Path::new(GOLDEN_A)),
+        ProjectTemplate::DirectoryWithoutPages(Path::new(SAMPLE)),
         NewProjectKind::Schematic,
         options(18),
     )
