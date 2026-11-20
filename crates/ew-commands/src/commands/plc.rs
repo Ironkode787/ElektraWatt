@@ -1438,8 +1438,11 @@ pub struct StationBox {
 /// drawing of it when a fluid page draws it as its positions already; a device made without functions
 /// (`plc.add_station`'s) first gets its part's template functions, the box drawing the part's black-box entry; a
 /// device whose functions are no black box (its bus port, put on a bus page first) gets a function of its part's
-/// black-box entry (rc.5: a valve terminal's electrical side), its main one when none of them is. A device an
-/// electrical page draws already, and one whose part has no black-box entry, is left as it is. Refused in words: a
+/// black-box entry (rc.5: a valve terminal's electrical side), its main one when none of them is. A box of a device
+/// whose black-box function an electrical page draws already, none of whose pins is drawn there yet, is another
+/// drawing of that function: a card drawn one box at a time (docs/design/06a-drafting.md §7.5), its inputs and its
+/// outputs, or a row wider than the drawing area. Any other device an electrical page draws already, and one whose part
+/// has no black-box entry, is left as it is. Refused in words: a
 /// device that is no station; a box of a device the station does not hold; nothing left to draw. `copies` are library
 /// documents embedded first. Outcome: the first box.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -1462,13 +1465,16 @@ pub struct DrawStation {
 }
 
 impl DrawStation {
-    /// What the box of `device` draws on an electrical page: its black-box function; a function of its part's
-    /// black-box entry, the part's template functions made first when the device has none, another one beside
-    /// functions that are no black box (the main one, they its auxiliary ones); `None` for a device an electrical
-    /// page draws already or whose part has no black-box entry.
+    /// What the box of `device` with the pins `pins` draws on an electrical page: its black-box function; a function of
+    /// its part's black-box entry, the part's template functions made first when the device has none, another one beside
+    /// functions that are no black box (the main one, they its auxiliary ones); another drawing of its black-box function
+    /// that an electrical page draws already, when none of `pins` is drawn there yet (a card drawn one box at a time:
+    /// docs/design/06a-drafting.md §7.5); `None` for any other device an electrical page draws already, or one whose
+    /// part has no black-box entry.
     fn box_target(
         tx: &mut TxBuilder<'_>,
         device: Id<Device>,
+        pins: &[u16],
     ) -> Result<Option<crate::commands::device::PlaceTarget>, CmdError> {
         use crate::commands::device::PlaceTarget;
         let functions = tx.functions_of_device(device);
@@ -1485,7 +1491,34 @@ impl DrawStation {
             })
         };
         if functions.iter().any(|f| electrical(tx, *f)) {
-            return Ok(None);
+            let drawn = |tx: &TxBuilder<'_>, f: Id<Function>| -> Vec<u16> {
+                tx.reps_of_function(f)
+                    .into_iter()
+                    .filter_map(|r| tx.get::<ew_schema::Representation>(r))
+                    .filter(|r| {
+                        tx.get::<ew_schema::Page>(r.page).is_some_and(|p| {
+                            matches!(
+                                p.kind,
+                                ew_schema::PageType::MultiLine | ew_schema::PageType::SingleLine
+                            )
+                        })
+                    })
+                    .flat_map(|r| {
+                        r.box_
+                            .iter()
+                            .flat_map(|b| b.cps.iter().map(|c| c.idx))
+                            .collect::<Vec<_>>()
+                    })
+                    .collect()
+            };
+            let further = functions.iter().copied().find(|f| {
+                tx.get::<Function>(*f)
+                    .is_some_and(|x| x.kind == ew_schema::FunctionKind::BlackBox)
+                    && electrical(tx, *f)
+                    && !pins.is_empty()
+                    && !drawn(tx, *f).iter().any(|i| pins.contains(i))
+            });
+            return Ok(further.map(|function| PlaceTarget::ExistingFunction { function }));
         }
         if let Some(function) = functions.iter().copied().find(|f| {
             tx.get::<Function>(*f)
@@ -1569,7 +1602,8 @@ impl Command for DrawStation {
                     crate::words::device(tx, self.station)
                 ));
             }
-            let Some(target) = Self::box_target(tx, b.device)? else {
+            let pins: Vec<u16> = b.box_.cps.iter().map(|c| c.idx).collect();
+            let Some(target) = Self::box_target(tx, b.device, &pins)? else {
                 continue;
             };
             let out = crate::commands::device::PlaceBlackBox {

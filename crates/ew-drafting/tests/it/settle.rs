@@ -311,3 +311,20 @@ fn a_cable_marks_type_stands_before_its_line_and_its_tag_after_it() {
     assert!(k.rect.x1 < s(19) && t.rect.x0 > s(23), "{k:?} {t:?}");
     assert_eq!((t.rank, k.rank), (0, 0));
 }
+
+/// A tag whose author's place leaves the drawing area is moved in to stand clear of the frame's line, as a text beside
+/// a line does, not flush against it.
+#[test]
+fn a_tag_moved_into_the_drawing_area_keeps_clear_of_its_line() {
+    let mut b = Page::new(40, 30);
+    let k1 = b.device("K1", p(4, 10));
+    let tag = b.label(
+        Owner::Part(k1),
+        0,
+        LabelKind::Tag,
+        TAG,
+        Places::At(vec![Pt::new(s(-6), 0)]),
+    );
+    let t = find(&settle_labels(&b.page), tag);
+    assert_eq!((t.rank, t.rect.x0), (1, LABEL_CLEAR), "{t:?}");
+}

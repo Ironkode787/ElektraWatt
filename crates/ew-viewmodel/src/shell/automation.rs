@@ -705,6 +705,27 @@ impl ShellModel {
                 on_page("draw", &["multi_line", "single_line"], self.schematic_pages()),
             ));
         }
+        // A card wider than the drawing area, drawn one box at a time (docs/design/06a-drafting.md §7.5): the rest goes
+        // onto a page the person chooses, another than the one its first box stands on.
+        for card in session.cards_drawn_in_part(station) {
+            let Some(row) = rows.iter().find(|r| r.module == Some(card)) else {
+                continue;
+            };
+            let pages: Vec<(String, String)> = self
+                .schematic_pages()
+                .into_iter()
+                .filter(|(folio, _)| row.page.as_ref() != Some(folio))
+                .collect();
+            out.push(step(
+                strings::format(key!("rack-todo-card-rest"), &[&name(row)]),
+                Some(TodoFix::OnPage {
+                    step: "draw",
+                    label: strings::text(key!("rack-next-electrical")).to_owned(),
+                    folio: None,
+                    pages,
+                }),
+            ));
+        }
         let on_bus_page = self
             .bus_pages()
             .iter()
@@ -1577,15 +1598,37 @@ impl ShellModel {
     }
 
     /// `plc.draw_station`'s parameters for `station` on `page` (`Session::station_draw_params`): each device not drawn
-    /// yet a box 39.7 × 31.75 mm (wider where its pins need it, so that their upright texts fit on one line), with its part's
-    /// connection points laid out as the black box tool lays them (`tools::black_box::layout`), beside the one before it from the next free place, a new row under
-    /// the first where the next box would pass the drawing area's right. A device whose part has no black-box entry is
-    /// left out. `None` without the page shown, its frame or the catalogue.
+    /// yet, and the rest of a card drawn in part, as boxes. A card, a device whose part's pin map gives its channels
+    /// pins, is drawn as docs/design/06a-drafting.md §7.5 says (`ew_api::part_box::card_box`): its inputs in one row on
+    /// the upper edge of a box at the foot of the drawing area, its outputs on the lower edge of a box at its head, its
+    /// other pins down the left side of the first; of a row wider than the drawing area one box takes as many pins as
+    /// fit, at most sixteen, and the rest waits for a page of its own (`part_box::card_share`). Any other device is a box
+    /// 39.7 × 31.75 mm (wider where its pins need it, so that their upright texts fit on one line), with its part's
+    /// connection points laid out as the black box tool lays them (`tools::black_box::layout`). The boxes at the head
+    /// stand in slot order beside each other from the next free place, a new row under the first where the next would
+    /// pass the drawing area's right; the cards of inputs from the left of the foot, a new row over the first, and after
+    /// the boxes at the head where the foot is taken. A device whose part has no black-box entry is left out. `None`
+    /// without the page shown, its frame or the catalogue.
     fn station_boxes(&mut self, station: Uuid, page: Uuid) -> Option<Value> {
+        use ew_api::part_box::{BoxSteps, card_box, card_share};
         const SIZE: (i64, i64, i64) = (39_687_500, 31_750_000, 7_937_500);
+        /// One box to lay out: a box of a device that is no card, by its pins, or a card's.
+        enum Piece {
+            Plain(Vec<(u16, String)>),
+            Card(BoxSteps),
+        }
         let mut params = self.project_session()?.station_draw_params(station, page)?;
-        let grid = crate::tools::wire::PageGridMap::new(self.canvas()?.page().tables.grid);
-        let cat = self.catalogue()?;
+        let page_grid = self.canvas()?.page().tables.grid;
+        let grid = crate::tools::wire::PageGridMap::new(page_grid);
+        // The pins of each device's black-box entry, from the catalogue.
+        let entries: Vec<(Uuid, Vec<(u16, String)>)> = {
+            let cat = self.catalogue()?;
+            cat.parts
+                .iter()
+                .filter_map(|r| Some((r.copy, r.functions.iter().find(|f| f.black_box)?.cps.clone())))
+                .collect()
+        };
+        let session = self.project_session()?;
         let snap = |v: i64| grid.coord(grid.index(v));
         let at = |i: usize| params["at"][i].as_i64().unwrap_or(0);
         let (x0, y0, right) = (
@@ -1593,37 +1636,54 @@ impl ShellModel {
             snap(at(1)),
             params["right"].as_i64().unwrap_or(i64::MAX),
         );
-        let (mut x, mut y) = (x0, y0);
-        let mut boxes = Vec::new();
+        let foot = params["foot"].as_i64().unwrap_or(i64::MAX);
+        let room = grid.index(right) - grid.index(x0);
+        // The boxes in slot order, each with its device and whether it stands at the foot.
+        let mut pieces: Vec<(String, Piece, bool)> = Vec::new();
         for d in params["devices"].as_array().cloned().unwrap_or_default() {
             let (Some(device), Some(part)) =
                 (d[0].as_str(), d[1].as_str().and_then(|p| p.parse::<Uuid>().ok()))
             else {
                 continue;
             };
-            let Some(entry) = cat
-                .parts
+            let Some((_, entry)) = entries.iter().find(|(copy, _)| *copy == part) else {
+                continue;
+            };
+            let drawn: Vec<u64> = d[2]
+                .as_array()
+                .map(|a| a.iter().filter_map(Value::as_u64).collect())
+                .unwrap_or_default();
+            let cps: Vec<(u16, String)> = entry
                 .iter()
-                .find(|r| r.copy == part)
-                .and_then(|r| r.functions.iter().find(|f| f.black_box))
-            else {
+                .filter(|(i, _)| !drawn.contains(&u64::from(*i)))
+                .cloned()
+                .collect();
+            let pins = device
+                .parse::<Uuid>()
+                .map(|id| session.card_pins(id, &cps))
+                .unwrap_or_default();
+            if pins.inputs.is_empty() && pins.outputs.is_empty() {
+                pieces.push((device.to_owned(), Piece::Plain(cps), false));
                 continue;
-            };
-            if x > x0 && x + SIZE.0 > right {
-                x = x0;
-                y += SIZE.1 + 2 * SIZE.2;
             }
-            let Some((pos, outline, cps)) = crate::tools::black_box::layout(
-                grid,
-                (x, y),
-                (snap(x + SIZE.0), snap(y + SIZE.1)),
-                &entry.cps,
-                &[],
-            ) else {
-                continue;
-            };
-            let width = outline.iter().map(|p| p.0).max().unwrap_or(SIZE.0);
-            boxes.push(json!({
+            let mut others = pins.others.as_slice();
+            for (row, up) in [(&pins.inputs, true), (&pins.outputs, false)] {
+                if row.is_empty() {
+                    continue;
+                }
+                let take = card_share(row.len(), room);
+                pieces.push((
+                    device.to_owned(),
+                    Piece::Card(card_box(&row[..take], up, others)),
+                    up,
+                ));
+                others = &[];
+            }
+        }
+        // A laid-out box as `plc.draw_station` takes it, and its right and its lower edge (page nm).
+        let to_json = |device: &str, (pos, outline, cps): crate::tools::black_box::BoxLayout| {
+            let (w, h) = outline.iter().fold((0, 0), |(w, h), p| (w.max(p.0), h.max(p.1)));
+            let json = json!({
                 "device": device,
                 "pos": [pos.0, pos.1],
                 "box": {
@@ -1631,14 +1691,105 @@ impl ShellModel {
                     "cps": cps.iter().map(|(i, p, dir)| json!({"idx": i, "pos": [p.0, p.1], "dir": dir.word()}))
                         .collect::<Vec<_>>(),
                 },
-            }));
-            x = snap(x + width + SIZE.2);
+            });
+            (json, pos.0 + w, pos.1 + h)
+        };
+        let card_at = |steps: &BoxSteps, at: (i64, i64)| {
+            use ew_api::geometry::Dir;
+            use ew_api::part_box::Dir4;
+            let (pos, outline, cps) = steps.on_grid(page_grid, at)?;
+            let cps = cps
+                .into_iter()
+                .map(|(i, p, dir)| {
+                    let dir = match dir {
+                        Dir4::Up => Dir::Up,
+                        Dir4::Down => Dir::Down,
+                        Dir4::Left => Dir::Left,
+                        _ => Dir::Right,
+                    };
+                    (i, p, dir)
+                })
+                .collect();
+            Some((pos, outline, cps))
+        };
+        // The grid line at or above `v`.
+        let floor = |v: i64| {
+            let k = grid.index(v);
+            if grid.coord(k) > v { k - 1 } else { k }
+        };
+        let mut boxes: Vec<(usize, Value)> = Vec::new();
+        // The boxes at the head, in a row from the next free place: (x, y, the lowest edge so far).
+        let mut flow = (x0, y0, y0);
+        let head = |flow: &mut (i64, i64, i64),
+                    i: usize,
+                    device: &str,
+                    piece: &Piece,
+                    boxes: &mut Vec<(usize, Value)>| {
+            let width = match piece {
+                Piece::Plain(_) => SIZE.0,
+                Piece::Card(s) => grid.coord(grid.index(flow.0) + s.w) - flow.0,
+            };
+            if flow.0 > x0 && flow.0 + width > right {
+                (flow.0, flow.1) = (x0, snap(flow.2 + 2 * SIZE.2));
+            }
+            let (x, y) = (flow.0, flow.1);
+            let laid = match piece {
+                Piece::Plain(cps) => crate::tools::black_box::layout(
+                    grid,
+                    (x, y),
+                    (snap(x + SIZE.0), snap(y + SIZE.1)),
+                    cps,
+                    &[],
+                ),
+                Piece::Card(s) => card_at(s, (x, y)),
+            };
+            if let Some(laid) = laid {
+                let (json, r, b) = to_json(device, laid);
+                boxes.push((i, json));
+                flow.2 = flow.2.max(b);
+                flow.0 = snap(r + SIZE.2);
+            }
+        };
+        for (i, (device, piece, _)) in pieces.iter().enumerate().filter(|(_, p)| !p.2) {
+            head(&mut flow, i, device, piece, &mut boxes);
         }
+        // The cards of inputs, their lower edges on the grid line at the foot, a new row over the first; where a row
+        // would reach the boxes above, they follow those.
+        let free = if boxes.is_empty() {
+            y0
+        } else {
+            snap(flow.2 + 2 * SIZE.2)
+        };
+        let (mut fx, mut bottom, mut top) = (x0, floor(foot), i64::MAX);
+        let mut at_foot = true;
+        for (i, (device, piece, _)) in pieces.iter().enumerate().filter(|(_, p)| p.2) {
+            let Piece::Card(s) = piece else { continue };
+            if at_foot && fx > x0 && grid.coord(grid.index(fx) + s.w) > right {
+                fx = x0;
+                bottom = floor(top - 2 * SIZE.2);
+                top = i64::MAX;
+            }
+            at_foot = at_foot && grid.coord(bottom - s.h) >= free;
+            if !at_foot {
+                head(&mut flow, i, device, piece, &mut boxes);
+                continue;
+            }
+            if let Some(laid) = card_at(s, (fx, grid.coord(bottom - s.h))) {
+                let (json, r, _) = to_json(device, laid);
+                boxes.push((i, json));
+                top = top.min(grid.coord(bottom - s.h));
+                fx = snap(r + SIZE.2);
+            }
+        }
+        boxes.sort_by_key(|b| b.0);
         if let Some(m) = params.as_object_mut() {
-            for k in ["at", "right", "devices"] {
+            for k in ["at", "right", "foot", "devices"] {
                 m.remove(k);
             }
-            m.insert("boxes".into(), Value::Array(boxes));
+            m.insert(
+                "boxes".into(),
+                Value::Array(boxes.into_iter().map(|b| b.1).collect()),
+            );
         }
         Some(params)
     }
@@ -1705,7 +1856,22 @@ impl ShellModel {
             params,
         });
         match out {
-            Outcome::Done => Outcome::Done,
+            Outcome::Done => {
+                // A card wider than the drawing area: its first box is drawn, the toast says where the rest is drawn.
+                let rest: Vec<String> = self.project_session().map_or_else(Vec::new, |s| {
+                    s.cards_drawn_in_part(station)
+                        .into_iter()
+                        .filter_map(|c| s.device_tag(c))
+                        .collect()
+                });
+                if !rest.is_empty() {
+                    self.notify_rack(
+                        strings::format(key!("rack-card-rest"), &[&rest.join(", ")]),
+                        station,
+                    );
+                }
+                Outcome::Done
+            }
             Outcome::Failed { message } => back(self, message),
             Outcome::Refused { reason_key } => back(self, strings::text(reason_key).to_owned()),
         }

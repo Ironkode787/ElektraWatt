@@ -663,8 +663,9 @@ fn modules_drawn_from_the_rack_are_bound_to_their_pins() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// After Create, Draw on page 101 (the page the view was opened from) puts the station's box and each module's beside
-/// it in slot order on that page, in one undo step; then nothing is left to draw: the view's To do list no longer
+/// After Create, Draw on page 101 (the page the view was opened from) puts the station's box and each module's on
+/// that page in one undo step, the input modules in slot order along the foot, a row over the first where the
+/// drawing area is full, the station above them; then nothing is left to draw: the view's To do list no longer
 /// offers it, and each row names its page.
 #[test]
 fn draw_on_a_page_draws_the_station_and_its_modules() {
@@ -674,6 +675,7 @@ fn draw_on_a_page_draws_the_station_and_its_modules() {
     h.get_by_label("Create").click();
     settle(&mut h);
     let station = station_of(&h);
+    // The boxes from the foot upward, each row left to right.
     let drawn = |h: &egui_kittest::Harness<'static, ew_ui::app::App>| {
         let reps = h
             .state()
@@ -681,9 +683,12 @@ fn draw_on_a_page_draws_the_station_and_its_modules() {
             .canvas()
             .map(|c| c.page().tables.reps.clone())
             .unwrap_or_default();
-        let mut boxes: Vec<(i64, Uuid)> = reps.iter().filter_map(|r| Some((r.body[0], r.device?))).collect();
-        boxes.sort_by_key(|b| b.0);
-        boxes.into_iter().map(|(_, d)| d).collect::<Vec<_>>()
+        let mut boxes: Vec<(i64, i64, Uuid)> = reps
+            .iter()
+            .filter_map(|r| Some((-r.body[1], r.body[0], r.device?)))
+            .collect();
+        boxes.sort();
+        boxes.into_iter().map(|(_, _, d)| d).collect::<Vec<_>>()
     };
     let modules: Vec<Uuid> = h
         .state()
@@ -697,12 +702,12 @@ fn draw_on_a_page_draws_the_station_and_its_modules() {
     h.get_by_label("Draw on page 101").click();
     settle(&mut h);
     assert!(h.state().shell().station_tab().is_none(), "the page is shown");
-    let mut expected = vec![station];
-    expected.extend(modules);
+    let mut expected = modules;
+    expected.push(station);
     assert_eq!(
         drawn(&h),
         expected,
-        "the station, then its modules in slot order, left to right"
+        "the modules in slot order from the foot, the station above them"
     );
     // The boxes' captions (tags, part numbers) stand inside the frame's drawing area, off its column numbers (rc.3).
     {
@@ -737,6 +742,79 @@ fn draw_on_a_page_draws_the_station_and_its_modules() {
     dispatch(&mut h, "edit.undo", json!({}));
     settle(&mut h);
     assert!(drawn(&h).is_empty(), "one undo step takes every box back");
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// docs/design/06a-drafting.md §7.5 and §9.3 row 7: drawn from the station view, an input module is one row of pins on
+/// the upper edge of a low, wide box at the foot of the drawing area, `CARD_PIN_PITCH` apart in channel order, its
+/// supply pin on its left side; an output module the same on the lower edge of a box in the upper half of the page.
+#[test]
+fn a_module_drawn_from_the_station_view_is_one_row_of_pins_along_one_edge() {
+    use ew_ui::ew_viewmodel::ew_api::drafting::consts::{CARD_PIN_PITCH, TICKS_PER_STEP};
+    use ew_ui::ew_viewmodel::ew_api::geometry::Dir;
+    let tmp = Tmp::new();
+    let mut h = new_project(&tmp);
+    draft_with(&mut h, 1);
+    dispatch(&mut h, "plc.rack_add", json!({"part": "EW-GEN-DO-1"}));
+    settle(&mut h);
+    h.get_by_label("Create").click();
+    settle(&mut h);
+    let station = station_of(&h);
+    let modules: Vec<Uuid> = h
+        .state()
+        .shell()
+        .rack_view(station)
+        .expect("the rack")
+        .rows
+        .iter()
+        .filter_map(|r| r.module)
+        .collect();
+    h.get_by_label("Draw on page 101").click();
+    settle(&mut h);
+    let channels = channel_rows(&mut h);
+    let shell = h.state().shell();
+    let page = shell.canvas().expect("page 101").page();
+    let area = ew_ui::ew_viewmodel::tools::ip::drawing_area(page).expect("the frame's drawing area");
+    let (num, den) = page.tables.grid;
+    let step = |v: i64| (v * den + num / 2).div_euclid(num);
+    let pitch = i64::from(CARD_PIN_PITCH / TICKS_PER_STEP);
+    let card = |device: Uuid| {
+        page.tables
+            .reps
+            .iter()
+            .find(|r| r.device == Some(device))
+            .and_then(|r| r.black_box.clone())
+            .expect("the module's box")
+    };
+    for (module, edge) in [(modules[0], Dir::Up), (modules[1], Dir::Down)] {
+        let b = card(module);
+        let (top, bottom, left) = b.outline.iter().fold((i64::MAX, i64::MIN, i64::MAX), |(t, d, l), p| {
+            (t.min(p.1), d.max(p.1), l.min(p.0))
+        });
+        let row: Vec<(u16, (i64, i64))> = b.cps.iter().filter(|c| c.2 == edge).map(|c| (c.0, c.1)).collect();
+        assert_eq!(
+            row.len(),
+            channels.iter().filter(|c| c.1 == module).count(),
+            "every channel's pin in the row: {b:?}"
+        );
+        let y = if edge == Dir::Up { top } else { bottom };
+        assert!(row.iter().all(|(_, p)| p.1 == y), "on one edge: {row:?}");
+        assert!(row.windows(2).all(|w| w[0].0 < w[1].0), "in channel order: {row:?}");
+        let steps: Vec<i64> = row.iter().map(|(_, p)| step(p.0)).collect();
+        assert!(steps.windows(2).all(|w| w[1] - w[0] == pitch), "{steps:?}");
+        assert!(
+            b.cps.iter().filter(|c| c.2 != edge).all(|c| c.2 == Dir::Left && c.1.0 == left),
+            "the supply pins on the left side: {b:?}"
+        );
+        if edge == Dir::Up {
+            assert!(
+                bottom <= area[3] && area[3] - bottom < bottom - top,
+                "at the foot of the drawing area: {b:?} {area:?}"
+            );
+        } else {
+            assert!(bottom < (area[1] + area[3]) / 2, "in the upper half: {b:?} {area:?}");
+        }
+    }
     h.state_mut().shell_mut().shutdown();
 }
 

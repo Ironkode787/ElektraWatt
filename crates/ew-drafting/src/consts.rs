@@ -77,3 +77,7 @@ pub const GUIDE_CATCH: Tick = 3 * TICKS_PER_STEP / 4;
 pub const GUIDE_CATCH_PT: u32 = 8;
 /// Cards drawn from the station view: their channel pins this far apart.
 pub const CARD_PIN_PITCH: Tick = 5 * TICKS_PER_STEP;
+/// Cards drawn from the station view: their height.
+pub const CARD_HEIGHT: Tick = 6 * TICKS_PER_STEP;
+/// Cards drawn from the station view: the most channel pins of one box of a card wider than the drawing area.
+pub const CARD_PINS_MOST: usize = 16;

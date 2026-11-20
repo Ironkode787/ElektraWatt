@@ -199,13 +199,6 @@ fn drawn_folio(q: &Q, device: Id<Device>) -> Option<String> {
 /// `None` for a device that is no station.
 fn off_electrical_pages(q: &Q, station: Id<Device>) -> Option<Vec<Id<Device>>> {
     use ew_derive::ew_schema::PageType;
-    let cfg = q
-        .devices()
-        .get(station)?
-        .aspects
-        .plc_station
-        .as_ref()?
-        .config_project;
     let electrical = |d: Id<Device>| {
         q.idx().functions_of_device(d).any(|f| {
             q.idx().reps_of_function(f).any(|r| {
@@ -216,18 +209,132 @@ fn off_electrical_pages(q: &Q, station: Id<Device>) -> Option<Vec<Id<Device>>> {
             })
         })
     };
+    Some(
+        station_devices(q, station)?
+            .into_iter()
+            .filter(|d| !electrical(*d))
+            .collect(),
+    )
+}
+
+/// The station `station` and its modules in slot order; `None` for a device that is no station.
+fn station_devices(q: &Q, station: Id<Device>) -> Option<Vec<Id<Device>>> {
+    let cfg = q
+        .devices()
+        .get(station)?
+        .aspects
+        .plc_station
+        .as_ref()?
+        .config_project;
     let modules = q
         .get::<ModuleOrder>(cfg)
         .iter()
         .filter(|m| m.station == station && m.module != station)
         .map(|m| m.module)
         .collect::<Vec<_>>();
+    Some(std::iter::once(station).chain(modules).collect())
+}
+
+/// The devices of `station` that "Draw on a page" draws, in slot order, each with the pins of it that electrical pages
+/// draw already: those no electrical page draws ([`off_electrical_pages`]: none) and the cards drawn in part
+/// ([`card_rest`]). `None` for a device that is no station.
+fn to_draw(q: &Q, station: Id<Device>) -> Option<Vec<(Id<Device>, Vec<u16>)>> {
+    let off = off_electrical_pages(q, station)?;
     Some(
-        std::iter::once(station)
-            .chain(modules)
-            .filter(|d| !electrical(*d))
+        station_devices(q, station)?
+            .into_iter()
+            .filter_map(|d| {
+                if off.contains(&d) {
+                    Some((d, Vec::new()))
+                } else {
+                    card_rest(q, d).map(|drawn| (d, drawn))
+                }
+            })
             .collect(),
     )
+}
+
+/// The pins of a card as "Draw on a page" lays them out (docs/design/06a-drafting.md §7.5): the pins of its channels in
+/// channel order, the inputs' apart from the outputs', and its other pins (its supply).
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct CardPins {
+    /// The pins of its input channels: digital and analogue inputs, counters, IO-Link and multi-function ports.
+    pub inputs: Vec<u16>,
+    /// The pins of its output channels: digital and analogue outputs.
+    pub outputs: Vec<u16>,
+    /// Its other pins, in their order.
+    pub others: Vec<u16>,
+}
+
+/// [`CardPins`] of the pins `cps` (function CP index, designation) of a device whose part's PLC section is `plc`: each
+/// channel's pin is the one its pin map names (normaliser N3's rule); a section without a pin map, or with channels
+/// of supply, gives none, and every pin is then one of `others`.
+fn card_pins<'a>(
+    plc: &ew_derive::ew_schema::PlcSection,
+    cps: impl IntoIterator<Item = (u16, &'a str)>,
+) -> CardPins {
+    use ew_derive::ew_schema::ChannelKind;
+    let cps: Vec<(u16, &str)> = cps.into_iter().collect();
+    let mut out = CardPins::default();
+    if let (Some(spec), Some(pin_of)) = (&plc.channels, &plc.pin_of) {
+        let input = match spec.kind {
+            ChannelKind::Do | ChannelKind::Ao => Some(false),
+            ChannelKind::PowerSupply | ChannelKind::Unknown(_) => None,
+            _ => Some(true),
+        };
+        for n in 0..spec.count {
+            let (Some(input), Some(name)) = (input, ew_derive::channel_pin(pin_of, n)) else {
+                continue;
+            };
+            let taken = |i: &u16| out.inputs.contains(i) || out.outputs.contains(i);
+            if let Some((idx, _)) = cps.iter().find(|(i, d)| *d == name && !taken(i)) {
+                if input {
+                    out.inputs.push(*idx);
+                } else {
+                    out.outputs.push(*idx);
+                }
+            }
+        }
+    }
+    out.others = cps
+        .iter()
+        .map(|(i, _)| *i)
+        .filter(|i| !out.inputs.contains(i) && !out.outputs.contains(i))
+        .collect();
+    out
+}
+
+/// The pins of `device`'s box that electrical pages draw (function CP indices), when its black-box function is drawn on
+/// one and a pin of its channels on none of them: a card wider than the drawing area, drawn one box at a time
+/// (docs/design/06a-drafting.md §7.5). `None` for any other device.
+fn card_rest(q: &Q, device: Id<Device>) -> Option<Vec<u16>> {
+    use ew_derive::ew_schema::{FunctionKind, PageType};
+    let (_, plc) = ew_derive::module_part(q, device)?;
+    let function = q.idx().functions_of_device(device).find(|f| {
+        q.functions()
+            .get(*f)
+            .is_some_and(|x| x.kind == FunctionKind::BlackBox)
+    })?;
+    let mut drawn: Vec<u16> = Vec::new();
+    let mut on_page = false;
+    for r in q.idx().reps_of_function(function) {
+        let Some(rep) = q.reps().get(r) else { continue };
+        if q.pages()
+            .get(rep.page)
+            .is_some_and(|p| matches!(p.kind, PageType::MultiLine | PageType::SingleLine))
+        {
+            on_page = true;
+            drawn.extend(rep.box_.iter().flat_map(|b| b.cps.iter().map(|c| c.idx)));
+        }
+    }
+    let cps = q.get::<ew_derive::FunctionCps>(function);
+    let pins = card_pins(&plc, cps.iter().map(|c| (c.idx, c.designation.as_str())));
+    let rest = pins
+        .inputs
+        .iter()
+        .chain(&pins.outputs)
+        .any(|i| !drawn.contains(i));
+    (on_page && rest).then_some(drawn)
 }
 
 /// The row of a device of a station (a module, or the station itself) at slot 0 of rack 0: its tag, its part (the
@@ -809,10 +916,12 @@ impl Session {
 
     /// What `plc.draw_station` needs for `station` on page `page` (rc.2, Draw on this page): `at`, the next free place
     /// of the page (the left of its drawing area under everything drawn on it, its top left on an empty page);
-    /// `right`, the drawing area's right, where the row wraps; `devices`, the station and its modules in slot order that
-    /// no electrical page draws yet ([`Session::off_electrical_pages`]), each `[device, part copy]`; the starter black
-    /// box of the page's grid as `symbol`, with its `copies`. `None` for a page without a frame grid, a device that is no
-    /// station, or no starter symbol.
+    /// `right`, the drawing area's right, where the row wraps; `foot`, its foot, where a card of inputs stands
+    /// (docs/design/06a-drafting.md §7.5); `devices`, the station and its modules in slot order that no electrical page
+    /// draws yet ([`Session::off_electrical_pages`]) and the cards drawn in part ([`Session::cards_drawn_in_part`]), each
+    /// `[device, part copy, the function CP indices of it drawn already]`; the starter black box of the page's grid as
+    /// `symbol`, with its `copies`. `None` for a page without a frame grid, a device that is no station, or no starter
+    /// symbol.
     pub fn station_draw_params(&self, station: Uuid, page: Uuid) -> Option<serde_json::Value> {
         let q = self.query();
         let page_id: Id<ew_derive::ew_schema::Page> = Id::from_uuid(page);
@@ -842,20 +951,22 @@ impl Session {
             "ew.gen.blackbox"
         };
         let symbol = self.starter_symbol_copy(key)?;
-        // The station, then its modules in slot order, each that no electrical page draws yet, with its part.
-        let devices: Vec<serde_json::Value> = off_electrical_pages(&q, Id::from_uuid(station))?
+        // The station, then its modules in slot order, each that no electrical page draws yet or draws in part, with its
+        // part and its pins drawn.
+        let devices: Vec<serde_json::Value> = to_draw(&q, Id::from_uuid(station))?
             .into_iter()
-            .filter_map(|d| {
+            .filter_map(|(d, drawn)| {
                 let part = q.devices().get(d)?.parts.first()?.part.copy;
                 Some(serde_json::json!([
                     d.as_uuid().to_string(),
-                    part.as_uuid().to_string()
+                    part.as_uuid().to_string(),
+                    drawn
                 ]))
             })
             .collect();
         let mut params = serde_json::json!({
             "station": station.to_string(), "page": page.to_string(), "symbol": symbol.to_string(),
-            "at": [x, y], "right": max.x.0 - gap, "devices": devices,
+            "at": [x, y], "right": max.x.0 - gap, "foot": max.y.0 - gap, "devices": devices,
         });
         if let Some(embed) = self.starter_embed(key) {
             params["copies"] = embed["copies"].clone();
@@ -872,6 +983,33 @@ impl Session {
             .into_iter()
             .map(|d| d.as_uuid())
             .collect()
+    }
+
+    /// The cards of `station`, in slot order, that electrical pages draw in part: a box of a card wider than the
+    /// drawing area is drawn, and pins of its channels are on no page yet (docs/design/06a-drafting.md §7.5). Empty for
+    /// a device that is no station.
+    pub fn cards_drawn_in_part(&self, station: Uuid) -> Vec<Uuid> {
+        let q = self.query();
+        let off = off_electrical_pages(&q, Id::from_uuid(station)).unwrap_or_default();
+        to_draw(&q, Id::from_uuid(station))
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|(d, _)| !off.contains(d))
+            .map(|(d, _)| d.as_uuid())
+            .collect()
+    }
+
+    /// [`CardPins`] of the pins `cps` (function CP index, designation) of `device`: by the PLC section of the part that
+    /// describes it for the PLC; every pin one of `others` for a device without one.
+    pub fn card_pins(&self, device: Uuid, cps: &[(u16, String)]) -> CardPins {
+        let pairs = cps.iter().map(|(i, d)| (*i, d.as_str()));
+        match ew_derive::module_part(&self.query(), Id::from_uuid(device)) {
+            Some((_, plc)) => card_pins(&plc, pairs),
+            None => CardPins {
+                others: cps.iter().map(|(i, _)| *i).collect(),
+                ..CardPins::default()
+            },
+        }
     }
 
     /// What a device row's fluid actions act on (doc 11 §7, FT-1733): whether it is a valve terminal (Generate

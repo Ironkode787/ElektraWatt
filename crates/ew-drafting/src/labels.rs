@@ -9,7 +9,7 @@
 //! # The places (§5.2)
 //!
 //! A label's places are the ones its adapter gives ([`Places::At`]: a symbol's slot as its author set it), those of
-//! them outside the drawing area moved in, "one line lower" for the second of a row (the two-rows rule), then the
+//! them outside the drawing area moved in to stand [`LABEL_CLEAR`] inside its line, "one line lower" for the second of a row (the two-rows rule), then the
 //! places of its kind, each once. For a part whose pins leave up or down (or that has none with a side) the corners
 //! are: upper left (right of the box against the body's left edge, its top level with the body's top), upper right,
 //! lower left, lower right, centred above (when no wire leaves upward), centred below, above the upper left and upper
@@ -915,17 +915,20 @@ fn repair(
 /// second.
 fn candidates(ground: &Ground<'_>, unit: &Unit, numbers: &[(Rect, bool, Seg)]) -> Vec<(Rect, bool)> {
     let mut list: Vec<(Rect, bool)> = unit.given.iter().map(|r| (*r, false)).collect();
-    // A given place that leaves the drawing area, moved in by the least distance.
+    // A given place that leaves the drawing area, moved in by the least distance, to stand LABEL_CLEAR off the frame's
+    // line as a text beside a line does.
     let area = ground.page.area;
     let into = |r: Rect| {
-        let dx = (area.x0 - r.x0).max(0) - (r.x1 - area.x1).max(0);
-        let dy = (area.y0 - r.y0).max(0) - (r.y1 - area.y1).max(0);
+        let dx = (area.x0 + LABEL_CLEAR - r.x0).max(0) - (r.x1 - area.x1 + LABEL_CLEAR).max(0);
+        let dy = (area.y0 + LABEL_CLEAR - r.y0).max(0) - (r.y1 - area.y1 + LABEL_CLEAR).max(0);
         r.moved(Pt::new(dx, dy))
     };
     let moved_in: Vec<(Rect, bool)> = unit
         .given
         .iter()
-        .filter(|r| !area.holds(**r) && r.w() <= area.w() && r.h() <= area.h())
+        .filter(|r| {
+            !area.holds(**r) && r.w() + 2 * LABEL_CLEAR <= area.w() && r.h() + 2 * LABEL_CLEAR <= area.h()
+        })
         .map(|r| (into(*r), false))
         .collect();
     list.extend(moved_in);

@@ -48,11 +48,13 @@ Three words of the program, in the trade's meaning:
    card says **not drawn**, and **To do** under the table says that they are drawn on no page yet. One Undo takes
    the whole station back.
 9. Choose **Draw on a page…** in the To do list and pick page **1**.
-   Page 1 shows, and the CPU -1A1 and its modules -1A1-A1 and -1A1-A2 stand on it as boxes, side by side in slot
-   order, under the switch and the lamp. Each module's pins are numbered from 1: pin 1 is channel 0. The station's
-   tab stays beside the page's: click it to see the rack again, where each module now names its page.
+   Page 1 shows, and the CPU -1A1 and its modules -1A1-A1 and -1A1-A2 stand on it as boxes. Each module is a low,
+   wide box with its channels' pins in one row: the input module at the foot of the page with its pins on its upper
+   edge, the output module under the switch and the lamp beside the CPU with its pins on its lower edge, the supply
+   pins on their left sides. Each module's pins are numbered from 1: pin 1 is channel 0. The station's tab stays
+   beside the page's: click it to see the rack again, where each module now names its page.
 10. Choose **Draw ▸ Connect ▸ Wire** (`W`). Click contact 14 of -1B1, then pin 1 at the top of -1A1-A1; click X2 of
-    -1E1, then pin 1 at the top of -1A1-A2. Choose **Draw ▸ Select**.
+    -1E1, then pin 1 at the bottom of -1A1-A2. Choose **Draw ▸ Select**.
     The switch is wired to the first input and the lamp to the first output. Each module's pins print their
     addresses, I0.0 at pin 1 of -1A1-A1, and the switch becomes the target of channel I0.0.
 11. Choose **PLC grid** on the PLC tab (**PLC ▸ PLC grid**).

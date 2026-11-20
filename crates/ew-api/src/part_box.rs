@@ -94,6 +94,49 @@ pub fn spread(width: i64, m: i64, k: i64) -> i64 {
     start + k * pitch
 }
 
+/// A card's box as "Draw on a page" draws it from the station view (docs/design/06a-drafting.md §7.5): `row`, the pins
+/// of its channels, in one row on its upper edge (`up`: a card of inputs, set at the foot of the drawing area) or its
+/// lower edge (a card of outputs, set at its head), `CARD_PIN_PITCH` apart and centred (half a step to the left when
+/// they cannot be), the box as wide as the row's pitches and two steps more and `CARD_HEIGHT` high; `left`, its other
+/// pins (its supply), down its left side `MARK_PITCH` apart so that the marks of their wires stack, the lowest that far
+/// above the lower edge of a card of inputs, whose pin texts hang from its upper edge, the highest that far under the
+/// upper edge of a card of outputs, the box higher where they need it.
+pub fn card_box(row: &[u16], up: bool, left: &[u16]) -> BoxSteps {
+    use crate::drafting::consts::{CARD_HEIGHT, CARD_PIN_PITCH, MARK_PITCH, TICKS_PER_STEP};
+    let count = |n: usize| i64::try_from(n).unwrap_or(i64::MAX / 64);
+    let (pitch, gap) = (
+        i64::from(CARD_PIN_PITCH / TICKS_PER_STEP),
+        i64::from(MARK_PITCH / TICKS_PER_STEP),
+    );
+    let w = count(row.len()).max(1) * pitch + 2;
+    let h = i64::from(CARD_HEIGHT / TICKS_PER_STEP).max(gap * (count(left.len()) + 1));
+    let start = (w - (count(row.len()) - 1).max(0) * pitch) / 2;
+    let edge = if up { Dir4::Up } else { Dir4::Down };
+    let n = count(left.len());
+    let pins = (0..)
+        .zip(row)
+        .map(|(k, idx)| (*idx, edge.clone(), start + k * pitch))
+        .chain((0..).zip(left).map(|(k, idx)| {
+            let at = if up { h - gap * (n - k) } else { gap * (k + 1) };
+            (*idx, Dir4::Left, at)
+        }))
+        .collect();
+    BoxSteps { w, h, pins }
+}
+
+/// How many of a row of `pins` channel pins one box of a card takes on a drawing area `room` grid steps wide
+/// ([`card_box`]): all of them where their box fits, else as many as fit and at most `CARD_PINS_MOST` (at least one).
+pub fn card_share(pins: usize, room: i64) -> usize {
+    use crate::drafting::consts::{CARD_PIN_PITCH, CARD_PINS_MOST, TICKS_PER_STEP};
+    let pitch = i64::from(CARD_PIN_PITCH / TICKS_PER_STEP);
+    let fit = usize::try_from((room - 2) / pitch).unwrap_or(0).max(1);
+    if pins <= fit {
+        pins
+    } else {
+        fit.min(CARD_PINS_MOST)
+    }
+}
+
 /// The length in nanometres of the pin text `text` on one line in style `data.small` with the bundled fonts: how far a
 /// text of a top or bottom side, turned a quarter, reaches into the box (rc.5).
 pub fn pin_text_length(text: &str) -> i64 {
