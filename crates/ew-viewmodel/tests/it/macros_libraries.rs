@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Macros and Libraries navigators in the shell on copies of Golden A with a fixture user
-//! library. The detail of the PSU macro, the model half of inserting it (the PSU macro on folio 105 from the
+//! The Macros and Libraries navigators in the shell on copies of the sample with a fixture user
+//! library. The detail of the PSU macro, the model half of inserting it (the PSU macro on folio 106 from the
 //! navigator: the card lists the conflicts, Apply is one undo step; the whole block with its interruption points lists
 //! the pairings and is refused by EW-CORE-052), Save as macro… (writes into a user library, refuses a system
 //! library and refuses headless), Update… (the bulk card of `library.update`), Make variable, and `navigator.show`
@@ -22,7 +22,7 @@ use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellConfig, ShellModel};
 use ew_viewmodel::strings;
 use serde_json::json;
 
-/// A shell in `mode` with the tiers `t` and a writable copy of Golden A (`copy` names the copy's directory) on
+/// A shell in `mode` with the tiers `t` and a writable copy of the sample (`copy` names the copy's directory) on
 /// `folio`.
 fn shell_with(tmp: &Tmp, copy: &str, mode: Mode, t: &LibraryTiers, folio: &str) -> ShellModel {
     let dir = tmp.0.join(copy);
@@ -41,8 +41,8 @@ fn shell_with(tmp: &Tmp, copy: &str, mode: Mode, t: &LibraryTiers, folio: &str) 
     shell
 }
 
-/// The IDs of folio 102's PSU block: with `ips`, every representation, connection and junction; without, the
-/// interruption points left out (the fixture of `ew-api`'s macro tests).
+/// The IDs of folio 101's supply and power supply block: with `ips`, every representation, connection and junction;
+/// without, the interruption points left out.
 fn psu_ids(shell: &ShellModel, ips: bool) -> Vec<String> {
     let tables = &shell.canvas().expect("a page").page().tables;
     tables
@@ -56,28 +56,29 @@ fn psu_ids(shell: &ShellModel, ips: bool) -> Vec<String> {
         .collect()
 }
 
-/// Saves folio 102's PSU block (`ips`: with its interruption points) as the macro `name` into "Mine" through Save
+/// Saves folio 101's supply and power supply block (`ips`: with its interruption points) as the macro `name` into
+/// "Mine" through Save
 /// as macro… in the window.
 fn save_psu(shell: &mut ShellModel, name: &str, ips: bool) {
-    done(shell, "page.goto", json!({"folio": "102"}));
+    done(shell, "page.goto", json!({"folio": "101"}));
     let ids = psu_ids(shell, ips);
     done(shell, "select.set", json!({ "ids": ids }));
     done(
         shell,
         "macros.save",
-        json!({"name": name, "library": "Mine", "description": "Power supply with two output breakers", "confirm": true}),
+        json!({"name": name, "library": "Mine", "description": "The supply and the 24 V power supply", "confirm": true}),
     );
 }
 
-/// A new folio 105 after 104, shown.
-fn add_folio_105(shell: &mut ShellModel) {
-    done(shell, "page.goto", json!({"folio": "102"}));
+/// A new folio 106 after 105, shown.
+fn add_folio_106(shell: &mut ShellModel) {
+    done(shell, "page.goto", json!({"folio": "101"}));
     done(
         shell,
         "page.new",
-        json!({"folio": "105", "type": "multi_line", "title": "Power Supply 5"}),
+        json!({"folio": "106", "type": "multi_line", "title": "Power Supply 6"}),
     );
-    done(shell, "page.goto", json!({"folio": "105"}));
+    done(shell, "page.goto", json!({"folio": "106"}));
 }
 
 /// The number of representations of the page on show.
@@ -86,12 +87,12 @@ fn reps_on_show(shell: &ShellModel) -> usize {
 }
 
 /// UI-1: the Macros navigator lists the saved PSU macro under "User" and its detail shows its name, version,
-/// library, its thumbnail drawn from the scene and its three devices.
+/// library, its thumbnail drawn from the scene and the devices of the block.
 #[test]
 fn the_macros_navigator_shows_the_psu_macro_and_its_detail() {
     let tmp = Tmp::new("macros-ui1");
     let (t, _) = user_library(&tmp.0);
-    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "102");
+    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "101");
     save_psu(&mut shell, "PSU 24 V DC", false);
     done(&mut shell, "navigator.show", json!({"kind": "macros"}));
     let key = row_key(&shell, NavKind::Macros, NavRole::Macro, "PSU 24 V DC");
@@ -102,7 +103,12 @@ fn the_macros_navigator_shows_the_psu_macro_and_its_detail() {
     assert_eq!(d.version, "1.0.0");
     assert_eq!(d.library, "Mine");
     assert!(d.thumbnail.is_none(), "no stored thumbnail asset");
-    assert_eq!(d.devices.len(), 3, "{:?}", d.devices);
+    // The main switch, the breaker and the power supply of folio 101, besides the strip's terminals.
+    for tag in ["-Q1", "-F1", "-G1"] {
+        assert!(d.devices.iter().any(|x| x == tag), "{tag}: {:?}", d.devices);
+    }
+
+
     // The detail's thumbnail is drawn from the scene.
     let th = shell.macro_thumbnail().expect("a drawn thumbnail");
     assert!(th.region[0] < th.region[2] && th.region[1] < th.region[3]);
@@ -142,17 +148,17 @@ fn the_macros_navigator_shows_the_psu_macro_and_its_detail() {
     }
 }
 
-/// UI-2 (model half): Enter on the macro row arms the macro tool; its click on folio 105 opens the `macro` card
+/// UI-2 (model half): Enter on the macro row arms the macro tool; its click on folio 106 opens the `macro` card
 /// with no conflicts; Apply is one undo step. The whole block with its interruption points lists the pairings of
 /// L-1 and N-1 and is refused by EW-CORE-052 (Apply fails with the rule's text and the card stays).
 #[test]
-fn insert_the_psu_macro_on_folio_105_from_the_navigator() {
+fn insert_the_psu_macro_on_folio_106_from_the_navigator() {
     let tmp = Tmp::new("macros-ui2");
     let (t, _) = user_library(&tmp.0);
-    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "102");
+    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "101");
     save_psu(&mut shell, "PSU 24 V DC", false);
     save_psu(&mut shell, "PSU block", true);
-    add_folio_105(&mut shell);
+    add_folio_106(&mut shell);
     done(&mut shell, "navigator.show", json!({"kind": "macros"}));
 
     // The whole block: the pairings, the refusal.
@@ -186,11 +192,12 @@ fn insert_the_psu_macro_on_folio_105_from_the_navigator() {
     assert!(m.conflicts.iter().all(|c| *c != lead.text), "{:?}", m.conflicts);
     let summary = ew_viewmodel::script::card_summary(&shell).expect("the card's line");
     assert!(summary.starts_with(&lead.text), "{summary}");
-    for name in ["L-1", "N-1"] {
+    // Folio 101's points are sources: each copy is a second source of its name.
+    for name in ["1L1", "0V"] {
         assert!(
             m.conflicts
                 .iter()
-                .any(|c| c.contains(name) && c.contains("pairs with")),
+                .any(|c| c.contains(name) && c.contains("2 source points")),
             "{name}: {:?}",
             m.conflicts
         );
@@ -245,7 +252,7 @@ fn insert_the_psu_macro_on_folio_105_from_the_navigator() {
 fn save_as_macro_writes_a_user_library_and_refuses_a_system_one() {
     let tmp = Tmp::new("macros-ui3");
     let (t, _) = user_library(&tmp.0);
-    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "102");
+    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "101");
     done(&mut shell, "navigator.show", json!({"kind": "macros"}));
     let ids = psu_ids(&shell, false);
     done(&mut shell, "select.set", json!({ "ids": ids }));
@@ -277,7 +284,7 @@ fn save_as_macro_writes_a_user_library_and_refuses_a_system_one() {
     assert!(shell.dialog().is_none());
     row_key(&shell, NavKind::Macros, NavRole::Macro, "PSU 24 V DC");
     // Headless: refused.
-    let mut headless = shell_with(&tmp, "b", Mode::Headless, &t, "102");
+    let mut headless = shell_with(&tmp, "b", Mode::Headless, &t, "101");
     let ids = psu_ids(&headless, false);
     done(&mut headless, "select.set", json!({ "ids": ids }));
     let reason = refused(
@@ -294,7 +301,7 @@ fn save_as_macro_writes_a_user_library_and_refuses_a_system_one() {
 fn a_name_that_gives_no_key_is_refused_before_any_write() {
     let tmp = Tmp::new("macros-nokey");
     let (t, _) = user_library(&tmp.0);
-    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "102");
+    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "101");
     let ids = psu_ids(&shell, false);
     done(&mut shell, "select.set", json!({ "ids": ids }));
     let listing = |root: &Path| -> Vec<String> {
@@ -328,7 +335,7 @@ fn a_name_that_gives_no_key_is_refused_before_any_write() {
 fn a_refused_save_keeps_the_typed_name() {
     let tmp = Tmp::new("macros-keepname");
     let (t, _) = user_library(&tmp.0);
-    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "102");
+    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "101");
     let ids = psu_ids(&shell, false);
     done(&mut shell, "select.set", json!({ "ids": ids }));
     done(&mut shell, "macros.save", json!({}));
@@ -348,7 +355,7 @@ fn a_refused_save_keeps_the_typed_name() {
 fn save_without_a_writable_library_names_the_reason() {
     let tmp = Tmp::new("macros-nowritable");
     let t = common::library_tiers(&tmp.0);
-    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "102");
+    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "101");
     let ids = psu_ids(&shell, false);
     done(&mut shell, "select.set", json!({ "ids": ids }));
     let reason = refused(&mut shell, "macros.save", json!({"name": "PSU", "confirm": true}));
@@ -372,14 +379,14 @@ fn walk(root: &Path) -> Vec<std::path::PathBuf> {
     out
 }
 
-/// Make variable: the process tag row of -102G1 becomes the variable `process_tag` of the next save, which the
+/// Make variable: the process tag row of -101G1 becomes the variable `process_tag` of the next save, which the
 /// detail then lists.
 #[test]
 fn make_variable_binds_a_property_row() {
     let tmp = Tmp::new("macros-var");
     let (t, _) = user_library(&tmp.0);
-    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "102");
-    done(&mut shell, "select.set", json!({"refs": ["tag:-102G1"]}));
+    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "101");
+    done(&mut shell, "select.set", json!({"refs": ["tag:-101G1"]}));
     done(&mut shell, "props.show", json!({"on": true}));
     done(
         &mut shell,
@@ -408,7 +415,7 @@ fn make_variable_binds_a_property_row() {
 fn update_refuses_without_an_update_and_badges_are_words() {
     let tmp = Tmp::new("macros-ui4");
     let (t, _) = user_library(&tmp.0);
-    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "102");
+    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "101");
     done(&mut shell, "navigator.show", json!({"kind": "libraries"}));
     let rows = shell.shown_rows(NavKind::Libraries);
     assert!(rows.iter().any(|r| r.label == "Mine"), "the user library");
@@ -448,7 +455,7 @@ fn update_refuses_without_an_update_and_badges_are_words() {
 fn a_copy_only_in_the_project_says_so_in_both_languages() {
     let tmp = Tmp::new("macros-only-here");
     let (t, _) = user_library(&tmp.0);
-    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "102");
+    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "101");
     assert!(strings::set_locale("nl"));
     done(&mut shell, "navigator.show", json!({"kind": "libraries"}));
     let key = row_key(&shell, NavKind::Libraries, NavRole::LibCopy, "Title block QET A4");
@@ -483,7 +490,7 @@ fn a_copy_only_in_the_project_says_so_in_both_languages() {
 #[test]
 fn navigator_show_shows_the_pane_asked_for() {
     let tmp = Tmp::new("macros-ft720b");
-    let mut shell = tmp.sample_in(Mode::Gui, false, "102");
+    let mut shell = tmp.sample_in(Mode::Gui, false, "101");
     done(&mut shell, "navigator.show", json!({"kind": "devices"}));
     done(&mut shell, "navigator.show", json!({"kind": "connections"}));
     assert_eq!(
@@ -514,7 +521,7 @@ fn company_libraries_of_the_settings_are_the_company_tier() {
         "version = 1\n\n[libraries]\ncompany = [\"shared\"]\n",
     )
     .unwrap();
-    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "102");
+    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "101");
     done(&mut shell, "navigator.show", json!({"kind": "libraries"}));
     let tier = row_key(&shell, NavKind::Libraries, NavRole::Tier, "Company");
     let lib = row_key(&shell, NavKind::Libraries, NavRole::Library, "Plant standard");
@@ -531,7 +538,7 @@ fn company_libraries_of_the_settings_are_the_company_tier() {
     assert!(m.starts_with("tier:company/"), "{m}");
 }
 
-/// Make variable is an entry of the property row's actions menu: the process tag row of -102G1 lists it
+/// Make variable is an entry of the property row's actions menu: the process tag row of -101G1 lists it
 /// after the row's own actions, and choosing it remembers the row as a variable of the next save; a row of several
 /// records does not list it.
 #[test]
@@ -539,8 +546,8 @@ fn make_variable_is_in_the_row_menu() {
     use ew_viewmodel::properties::RowMenuItem;
     let tmp = Tmp::new("macros-rowmenu");
     let (t, _) = user_library(&tmp.0);
-    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "102");
-    done(&mut shell, "select.set", json!({"refs": ["tag:-102G1"]}));
+    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "101");
+    done(&mut shell, "select.set", json!({"refs": ["tag:-101G1"]}));
     done(&mut shell, "props.show", json!({"on": true}));
     done(&mut shell, "props.row", json!({"to": "device/process_tag"}));
     let menu = shell.row_menu("device/process_tag");
@@ -562,15 +569,15 @@ fn make_variable_is_in_the_row_menu() {
     done(
         &mut shell,
         "select.set",
-        json!({"refs": ["tag:-102G1", "tag:-102F1"]}),
+        json!({"refs": ["tag:-101G1", "tag:-101F1"]}),
     );
     let menu = shell.row_menu("device/process_tag");
     assert!(!menu.contains(&RowMenuItem::MakeVariable), "{menu:?}");
 }
 
-/// Saves the selection `ids` of folio 102 as the macro `name` into "Mine" with `description`.
+/// Saves the selection `ids` of folio 101 as the macro `name` into "Mine" with `description`.
 fn save_ids(shell: &mut ShellModel, name: &str, ids: Vec<String>, description: &str) {
-    done(shell, "page.goto", json!({"folio": "102"}));
+    done(shell, "page.goto", json!({"folio": "101"}));
     done(shell, "select.set", json!({ "ids": ids }));
     done(
         shell,
@@ -605,7 +612,7 @@ fn card_copies(shell: &ShellModel) -> Vec<String> {
 fn update_previews_keys_then_marked_then_cursor_then_all() {
     let tmp = Tmp::new("macros-update");
     let (t, _) = user_library(&tmp.0);
-    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "102");
+    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "101");
     let all = psu_ids(&shell, false);
     let devices_only: Vec<String> = {
         let tables = &shell.canvas().expect("a page").page().tables;
@@ -618,7 +625,7 @@ fn update_previews_keys_then_marked_then_cursor_then_all() {
     };
     save_ids(&mut shell, "Macro A", all.clone(), "first");
     save_ids(&mut shell, "Macro B", devices_only.clone(), "first");
-    add_folio_105(&mut shell);
+    add_folio_106(&mut shell);
     done(&mut shell, "navigator.show", json!({"kind": "macros"}));
     for (name, x) in [("Macro A", 60.0), ("Macro B", 220.0)] {
         let key = row_key(&shell, NavKind::Macros, NavRole::Macro, name);
@@ -697,7 +704,7 @@ fn detail_of(shell: &mut ShellModel, name: &str) -> ew_api::output::MacroDetail 
 fn save_as_macro_takes_kind_insertion_point_and_marked_pages() {
     let tmp = Tmp::new("macros-kind");
     let (t, _) = user_library(&tmp.0);
-    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "102");
+    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "101");
     let ids = psu_ids(&shell, false);
     done(&mut shell, "select.set", json!({ "ids": ids }));
     // The dialog: kind window, the insertion point's fields.
@@ -733,7 +740,7 @@ fn save_as_macro_takes_kind_insertion_point_and_marked_pages() {
         "the same records"
     );
     // A bad coordinate is refused in words.
-    done(&mut shell, "page.goto", json!({"folio": "102"}));
+    done(&mut shell, "page.goto", json!({"folio": "101"}));
     done(&mut shell, "select.set", json!({ "ids": ids }));
     assert!(matches!(
         shell.dispatch(
@@ -742,21 +749,21 @@ fn save_as_macro_takes_kind_insertion_point_and_marked_pages() {
         ),
         Outcome::Failed { .. }
     ));
-    // Page macro: mark folio 102 in the Pages navigator.
+    // Page macro: mark folio 101 in the Pages navigator.
     done(&mut shell, "select.set", json!({ "ids": [] }));
     done(&mut shell, "navigator.show", json!({"kind": "pages"}));
-    let k102 = {
+    let k101 = {
         let rows = shell.page_rows();
         shell
             .navigator_rows()
             .into_iter()
-            .find(|r| matches!(r.kind, ew_viewmodel::navigator::RowKind::Page(i) if rows[i].folio == "102"))
+            .find(|r| matches!(r.kind, ew_viewmodel::navigator::RowKind::Page(i) if rows[i].folio == "101"))
             .map(|r| r.key)
-            .expect("the row of 102")
+            .expect("the row of 101")
     };
-    done(&mut shell, "pages.row", json!({ "key": k102 }));
+    done(&mut shell, "pages.row", json!({ "key": k101 }));
     done(&mut shell, "navigator.mark", json!({"kind": "pages"}));
-    assert!(!shell.navigator().marked().is_empty(), "102 is marked");
+    assert!(!shell.navigator().marked().is_empty(), "101 is marked");
     done(&mut shell, "macros.save", json!({}));
     let Some(Dialog::Form(f)) = shell.dialog() else {
         panic!("the Save as macro dialog")
@@ -787,7 +794,7 @@ fn save_as_macro_takes_kind_insertion_point_and_marked_pages() {
     done(
         &mut shell,
         "macros.save",
-        json!({"name": "Two pages", "library": "Mine", "kind": "page", "pages": ["102", "103"], "confirm": true}),
+        json!({"name": "Two pages", "library": "Mine", "kind": "page", "pages": ["101", "103"], "confirm": true}),
     );
     assert_eq!(detail_of(&mut shell, "Two pages").kind, "Page");
 }

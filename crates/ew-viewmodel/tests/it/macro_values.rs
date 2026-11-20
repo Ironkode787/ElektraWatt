@@ -4,7 +4,7 @@
 //! The value-set items: the macro card's ad-hoc values (a typed value is a literal of
 //! `macro.insert` that wins over the value set and the default; a value that does not coerce shows the command's
 //! refusal under its field) and Save as macro…'s value-set table (add, rename, remove, save; an invalid cell
-//! is refused naming the set and the variable), in the shell on copies of Golden A with a fixture user library.
+//! is refused naming the set and the variable), in the shell on copies of the sample with a fixture user library.
 
 use crate::common;
 
@@ -19,7 +19,7 @@ use ew_viewmodel::properties::{CardOrigin, MacroInsert};
 use ew_viewmodel::shell::{Dialog, FormDialog, Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::json;
 
-/// A window shell with the tiers `t` on a writable copy `copy` of Golden A, on `folio`.
+/// A window shell with the tiers `t` on a writable copy `copy` of the sample, on `folio`.
 fn shell_with(tmp: &Tmp, copy: &str, t: &LibraryTiers, folio: &str) -> ShellModel {
     let dir = tmp.0.join(copy);
     if !dir.exists() {
@@ -37,7 +37,7 @@ fn shell_with(tmp: &Tmp, copy: &str, t: &LibraryTiers, folio: &str) -> ShellMode
     shell
 }
 
-/// Seeds "Mine" with the macro "PSU values" (folio 102's supply and breakers with their wires) through the session:
+/// Seeds "Mine" with the macro "PSU values" (folio 101's supply and breakers with their wires) through the session:
 /// the variable `pt` (the supply's process tag, default `PSU-D`), the variable `n` (the supply's tag counter, no
 /// default) and the value set `a` (`pt` = `PSU-A`). The shell's Save as macro… gives no default, so the session
 /// writes it.
@@ -49,7 +49,7 @@ fn seed_macro(tmp: &Tmp, t: &LibraryTiers, lib: Uuid) {
         ..SessionOptions::default()
     };
     let (mut s, _) = Session::open(&dir, StoreOptions::new("0.0.0-test"), options, Recovery::Keep).unwrap();
-    let tables = s.page_tables("102").expect("folio 102");
+    let tables = s.page_tables("101").expect("folio 101");
     let scope: Vec<Uuid> = tables
         .reps
         .iter()
@@ -58,7 +58,7 @@ fn seed_macro(tmp: &Tmp, t: &LibraryTiers, lib: Uuid) {
         .chain(tables.connections.iter().map(|c| c.id))
         .chain(tables.junctions.iter().map(|j| j.id))
         .collect();
-    let g1 = s.resolve_reference("tag:-102G1").unwrap().to_string();
+    let g1 = s.resolve_reference("tag:-101G1").unwrap().to_string();
     let spec = MacroSpec {
         key: "psu-values".into(),
         name: serde_json::from_value(json!("PSU values")).unwrap(),
@@ -78,15 +78,15 @@ fn seed_macro(tmp: &Tmp, t: &LibraryTiers, lib: Uuid) {
     s.save_macro(lib, &spec).unwrap();
 }
 
-/// A shell on a new folio 105 with the Macros navigator open: the row key of "PSU values".
-fn on_folio_105(shell: &mut ShellModel) -> String {
-    done(shell, "page.goto", json!({"folio": "102"}));
+/// A shell on a new folio 106 with the Macros navigator open: the row key of "PSU values".
+fn on_folio_106(shell: &mut ShellModel) -> String {
+    done(shell, "page.goto", json!({"folio": "101"}));
     done(
         shell,
         "page.new",
-        json!({"folio": "105", "type": "multi_line", "title": "Power Supply 5"}),
+        json!({"folio": "106", "type": "multi_line", "title": "Power Supply 6"}),
     );
-    done(shell, "page.goto", json!({"folio": "105"}));
+    done(shell, "page.goto", json!({"folio": "106"}));
     done(shell, "navigator.show", json!({"kind": "macros"}));
     let t = shell.nav(NavKind::Macros).and_then(|n| n.table()).unwrap();
     t.nodes
@@ -114,7 +114,7 @@ fn process_tag(shell: &mut ShellModel, tag: &str) -> String {
     ew_viewmodel::properties::value_text(row)
 }
 
-/// Inserts "PSU values" at 100/100 on folio 105 with the value set `set` and the typed values `typed`, applies it and
+/// Inserts "PSU values" at 100/100 on folio 106 with the value set `set` and the typed values `typed`, applies it and
 /// returns the inserted supply's process tag; the insertion is undone again.
 fn insert_and_read(shell: &mut ShellModel, key: &str, set: Option<&str>, typed: &[(&str, &str)]) -> String {
     done(
@@ -132,7 +132,7 @@ fn insert_and_read(shell: &mut ShellModel, key: &str, set: Option<&str>, typed: 
     let (rev, before) = (shell.revision().unwrap(), reps(shell));
     done(shell, "preview.apply", json!({}));
     assert_eq!(shell.revision(), Some(rev + 1), "one transaction");
-    let tag = process_tag(shell, "-105G1");
+    let tag = process_tag(shell, "-106G1");
     done(shell, "edit.undo", json!({}));
     assert_eq!(reps(shell), before, "one undo step removes the macro");
     tag
@@ -146,8 +146,8 @@ fn a_typed_value_wins_over_the_value_set_and_the_default() {
     let tmp = Tmp::new("macro-values-785");
     let (t, lib) = user_library(&tmp.0);
     seed_macro(&tmp, &t, lib);
-    let mut shell = shell_with(&tmp, "a", &t, "102");
-    let key = on_folio_105(&mut shell);
+    let mut shell = shell_with(&tmp, "a", &t, "101");
+    let key = on_folio_106(&mut shell);
 
     done(
         &mut shell,
@@ -203,8 +203,8 @@ fn a_value_that_does_not_coerce_is_refused_under_its_field() {
     let tmp = Tmp::new("macro-values-785b");
     let (t, lib) = user_library(&tmp.0);
     seed_macro(&tmp, &t, lib);
-    let mut shell = shell_with(&tmp, "a", &t, "102");
-    let key = on_folio_105(&mut shell);
+    let mut shell = shell_with(&tmp, "a", &t, "101");
+    let key = on_folio_106(&mut shell);
     done(
         &mut shell,
         "macros.place",
@@ -250,12 +250,12 @@ fn save_form(shell: &ShellModel) -> &FormDialog {
     }
 }
 
-/// Folio 102's supply and breakers with their wires selected, after Make variable on -102G1's row `row` as `name`.
+/// Folio 101's supply and breakers with their wires selected, after Make variable on -101G1's row `row` as `name`.
 fn select_with_variable(shell: &mut ShellModel, row: &str, name: &str) {
-    done(shell, "select.set", json!({"refs": ["tag:-102G1"]}));
+    done(shell, "select.set", json!({"refs": ["tag:-101G1"]}));
     done(shell, "props.show", json!({"on": true}));
     done(shell, "props.make_variable", json!({"row": row, "name": name}));
-    let tables = &shell.canvas().expect("folio 102").page().tables;
+    let tables = &shell.canvas().expect("folio 101").page().tables;
     let ids: Vec<String> = tables
         .reps
         .iter()
@@ -290,7 +290,7 @@ fn detail(shell: &mut ShellModel, name: &str) -> ew_api::output::MacroDetail {
 fn the_value_set_table_adds_renames_removes_and_saves() {
     let tmp = Tmp::new("macro-values-786");
     let (t, _) = user_library(&tmp.0);
-    let mut shell = shell_with(&tmp, "a", &t, "102");
+    let mut shell = shell_with(&tmp, "a", &t, "101");
     select_with_variable(&mut shell, "device/process_tag", "pt");
     done(&mut shell, "macros.save", json!({}));
     let table = save_form(&shell).table.clone().expect("the value-set table");
@@ -356,7 +356,7 @@ fn the_value_set_table_adds_renames_removes_and_saves() {
 fn an_invalid_cell_is_refused_naming_the_set_and_the_variable() {
     let tmp = Tmp::new("macro-values-786b");
     let (t, _) = user_library(&tmp.0);
-    let mut shell = shell_with(&tmp, "a", &t, "102");
+    let mut shell = shell_with(&tmp, "a", &t, "101");
     select_with_variable(&mut shell, "device/tag.counter", "n");
     done(&mut shell, "macros.save", json!({}));
     assert_eq!(

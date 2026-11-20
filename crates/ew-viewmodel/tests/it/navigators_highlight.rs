@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The further navigators and highlighting on Golden A: highlighting 24VDC-1 from the Potentials navigator (slot 0, its members'
+//! The further navigators and highlighting on the sample: highlighting 24V from the Potentials navigator (slot 0, its members'
 //! polylines on folios 102 and 103, the describe lines, one members call per revision, toggling off, a fifth highlight
-//! replacing the first), a canvas click on W29 marking its row in Connections and Potentials, the New structure node
+//! replacing the first), a canvas click on a 24 V wire marking its row in Connections and Potentials, the New structure node
 //! pre-fill and the opening of a report block.
 
 use crate::common;
@@ -19,6 +19,31 @@ use ew_viewmodel::tools::OverlayItem;
 use serde_json::json;
 
 /// The records of every table row of navigator `kind` whose cell `col` is `text`.
+/// The 24 V wire to the output card's supply pin -104A1-A2:L+ on folio 104, the page shown.
+fn supply_wire(shell: &ShellModel) -> ew_api::output::Uuid {
+    shell
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .cps
+        .iter()
+        .find(|c| c.label == "-104A1-A2:L+")
+        .and_then(|c| c.connections.first().copied())
+        .expect("the wire to -104A1-A2:L+")
+}
+
+/// The key and the label of the Connections row of [`supply_wire`].
+fn supply_row(shell: &ShellModel) -> (String, String) {
+    let wire = supply_wire(shell);
+    let t = shell.nav(NavKind::Connections).and_then(|n| n.table()).unwrap();
+    t.nodes
+        .iter()
+        .find(|n| n.role == NavRole::Connection && n.records.contains(&wire))
+        .map(|n| (n.key.clone(), n.label.clone()))
+        .expect("the wire's row")
+}
+
 fn records_where(shell: &ShellModel, kind: NavKind, col: usize, text: &str) -> Vec<ew_api::output::Uuid> {
     let t = shell.nav(kind).and_then(|n| n.table()).unwrap();
     let mut v: Vec<_> = t
@@ -48,17 +73,17 @@ fn drawn(shell: &ShellModel, members: &[ew_api::output::Uuid]) -> Vec<Vec<(i64, 
         .collect()
 }
 
-/// NP3 (FR-UI-018, D14), the model half: Ctrl+Shift+H on 24VDC-1 in the Potentials navigator highlights it
-/// in slot 0; on folios 102 and 103 the overlay holds exactly its members' polylines, and the members are the
-/// connections of the wire-list rows whose potential is 24VDC-1; the describe lines; one `highlight_members` call per
+/// NP3 (FR-UI-018, D14), the model half: Ctrl+Shift+H on 24V in the Potentials navigator highlights it
+/// in slot 0; on folios 101, 102 and 104 the overlay holds exactly its members' polylines, and the members are the
+/// connections of the wire-list rows whose potential is 24V; the describe lines; one `highlight_members` call per
 /// highlight and revision; pressing it again removes it; a fifth highlight replaces the first; other rows refuse.
 #[test]
-fn highlighting_24vdc_1_from_the_potentials_navigator() {
+fn highlighting_24v_from_the_potentials_navigator() {
     let tmp = Tmp::new("nav2-hl");
     let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut shell, "navigator.show", json!({"kind": "connections"}));
     done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
-    let key = row_key(&shell, NavKind::Potentials, NavRole::Potential, "24VDC-1");
+    let key = row_key(&shell, NavKind::Potentials, NavRole::Potential, "24V");
     let calls = shell.session_calls().highlight_members;
     done(
         &mut shell,
@@ -73,10 +98,10 @@ fn highlighting_24vdc_1_from_the_potentials_navigator() {
     // Column 5 of the wire list is the potential.
     assert_eq!(
         members,
-        records_where(&shell, NavKind::Connections, 5, "24VDC-1"),
-        "the connections of the wire-list rows whose potential is 24VDC-1"
+        records_where(&shell, NavKind::Connections, 5, "24V"),
+        "the connections of the wire-list rows whose potential is 24V"
     );
-    for folio in ["102", "103"] {
+    for folio in ["101", "102", "104"] {
         done(&mut shell, "page.goto", json!({"folio": folio}));
         let overlay = shell.highlight_overlay(0);
         assert_eq!(overlay.len(), 1, "{folio}");
@@ -85,13 +110,13 @@ fn highlighting_24vdc_1_from_the_potentials_navigator() {
         };
         assert_eq!(*slot, 0);
         let want = drawn(&shell, &members);
-        assert!(!want.is_empty(), "24VDC-1 is drawn on {folio}");
+        assert!(!want.is_empty(), "24V is drawn on {folio}");
         assert_eq!(polylines, &want, "{folio}: exactly the members' polylines");
         assert_eq!(*n, want.len());
         assert_eq!(
             lines_with(&shell, "  highlight "),
             [format!(
-                "  highlight slot 0 potential \"24VDC-1\" connections {n}"
+                "  highlight slot 0 potential \"24V\" connections {n}"
             )]
         );
     }
@@ -103,12 +128,12 @@ fn highlighting_24vdc_1_from_the_potentials_navigator() {
     // The row line ends with its slot.
     let line = nav_rows(&shell, "Potentials")
         .into_iter()
-        .find(|l| l.contains("row level 1 potential \"24VDC-1\""))
+        .find(|l| l.contains("row level 1 potential \"24V\""))
         .unwrap();
     assert!(line.ends_with(" highlight 0"), "{line}");
     let group = nav_rows(&shell, "Connections")
         .into_iter()
-        .find(|l| l.contains("row level 1 potential \"24VDC-1\""))
+        .find(|l| l.contains("row level 1 potential \"24V\""))
         .unwrap();
     assert!(
         !group.contains("highlight"),
@@ -118,7 +143,7 @@ fn highlighting_24vdc_1_from_the_potentials_navigator() {
     done(
         &mut shell,
         "pages.reorder",
-        json!({"pages": ["106"], "before": "103"}),
+        json!({"pages": ["104"], "before": "103"}),
     );
     done(&mut shell, "navigator.apply", json!({}));
     assert_eq!(shell.session_calls().highlight_members, calls + 2);
@@ -135,7 +160,7 @@ fn highlighting_24vdc_1_from_the_potentials_navigator() {
     assert!(shell.highlights().is_empty());
     assert!(lines_with(&shell, "  highlight ").is_empty());
     // Four slots, then a fifth replaces the oldest.
-    for (i, name) in ["24VDC-1", "24VDC-2", "24VDC-3", "24VDC-4", "0V"]
+    for (i, name) in ["24V", "L1", "L2", "L3", "0V"]
         .iter()
         .enumerate()
     {
@@ -153,18 +178,18 @@ fn highlighting_24vdc_1_from_the_potentials_navigator() {
             .collect();
         match i {
             0..=3 => assert_eq!(slots.last(), Some(&(u8::try_from(i).unwrap(), *name))),
-            _ => assert_eq!(slots, [(1, "24VDC-2"), (2, "24VDC-3"), (3, "24VDC-4"), (0, "0V")]),
+            _ => assert_eq!(slots, [(1, "L1"), (2, "L2"), (3, "L3"), (0, "0V")]),
         }
     }
     // `off` only removes.
-    let k = row_key(&shell, NavKind::Potentials, NavRole::Potential, "24VDC-1");
+    let k = row_key(&shell, NavKind::Potentials, NavRole::Potential, "24V");
     done(
         &mut shell,
         "navigator.highlight",
         json!({"kind": "potentials", "key": k, "off": true}),
     );
     assert_eq!(shell.highlights().items().len(), 4);
-    // A connection row highlights its net: W29's row 102.10 in Connections.
+    // A connection row highlights its net: the row of the 24 V wire to the output card's L+ on 104.
     done(&mut shell, "view.clear_highlights", json!({}));
     assert!(shell.highlights().is_empty());
     assert_eq!(
@@ -173,7 +198,8 @@ fn highlighting_24vdc_1_from_the_potentials_navigator() {
             reason_key: key!("reason-no-highlights")
         }
     );
-    let w = row_key(&shell, NavKind::Connections, NavRole::Connection, "102.10");
+    done(&mut shell, "page.goto", json!({"folio": "104"}));
+    let (w, label) = supply_row(&shell);
     done(
         &mut shell,
         "navigator.highlight",
@@ -182,12 +208,11 @@ fn highlighting_24vdc_1_from_the_potentials_navigator() {
     let h = &shell.highlights().items()[0];
     assert!(matches!(h.target, HighlightTarget::Net(_)));
     assert_eq!(h.word(), "connection");
-    // The row's first connection (by ID) is W29 on 103: its page-local net is drawn there.
-    done(&mut shell, "page.goto", json!({"folio": "103"}));
+    // Its page-local net is drawn on 104.
     let l = lines_with(&shell, "  highlight ");
     assert_eq!(l.len(), 1);
     assert!(
-        l[0].starts_with("  highlight slot 0 connection \"102.10\" connections "),
+        l[0].starts_with(&format!("  highlight slot 0 connection \"{label}\" connections ")),
         "{}",
         l[0]
     );
@@ -204,7 +229,7 @@ fn highlighting_24vdc_1_from_the_potentials_navigator() {
         json!({"kind": "potentials", "key": bond}),
     );
     assert_eq!(m, "Only potentials and connections can be highlighted.");
-    let group = row_key(&shell, NavKind::Connections, NavRole::Potential, "24VDC-1");
+    let group = row_key(&shell, NavKind::Connections, NavRole::Potential, "24V");
     let m = failed(
         &mut shell,
         "navigator.highlight",
@@ -215,26 +240,20 @@ fn highlighting_24vdc_1_from_the_potentials_navigator() {
     shell.shutdown();
 }
 
-/// With Connections and Potentials open, selecting W29 on folio 103 from the canvas marks its
-/// wire row in both (in Potentials under 24VDC-1), reveals them and leaves the focus on the canvas. The first click on
-/// W29's route picks the first wire of the pick stack there, and repeated clicks walk to W29 where other wires share
-/// the point (FT-500, which closes deviation N30-3); every click marks the row of the wire it selects.
+/// With Connections and Potentials open, selecting the 24 V wire to the output card's L+ on folio 104 from the canvas
+/// marks its wire row in both (in Potentials under 24V), reveals them and leaves the focus on the canvas. The first
+/// click on the wire's route picks the first wire of the pick stack there, and repeated clicks walk to it where other
+/// wires share the point (FT-500, which closes deviation N30-3); every click marks the row of the wire it selects.
 #[test]
-fn selecting_w29_on_the_canvas_marks_its_rows_in_both_navigators() {
+fn selecting_a_wire_on_the_canvas_marks_its_rows_in_both_navigators() {
     let tmp = Tmp::new("nav2-sync");
-    let mut shell = tmp.sample_in(Mode::Headless, false, "103");
+    let mut shell = tmp.sample_in(Mode::Headless, false, "104");
     done(&mut shell, "navigator.show", json!({"kind": "connections"}));
     done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
-    let row = row_key(&shell, NavKind::Connections, NavRole::Connection, "102.10");
-    let (_, node) = shell.nav(NavKind::Connections).unwrap().node_of(&row).unwrap();
-    let w29 = node
-        .drawables
-        .iter()
-        .find(|d| d.folio == "103")
-        .map(|d| d.record)
-        .expect("W29 is drawn on 103");
-    // Collapse 24VDC-1 in Potentials, so that the selection must reveal the row.
-    let pot = row_key(&shell, NavKind::Potentials, NavRole::Potential, "24VDC-1");
+    let (row, _) = supply_row(&shell);
+    let wire = supply_wire(&shell);
+    // Collapse 24V in Potentials, so that the selection must reveal the row.
+    let pot = row_key(&shell, NavKind::Potentials, NavRole::Potential, "24V");
     let under = format!("{pot}/");
     done(
         &mut shell,
@@ -251,13 +270,13 @@ fn selecting_w29_on_the_canvas_marks_its_rows_in_both_navigators() {
             .cloned()
             .collect::<BTreeSet<String>>()
     };
-    // A pointer click on the middle of W29's route on 103.
+    // A pointer click on the middle of the wire's second segment on 104.
     let page = shell.canvas().unwrap().page();
     let line = page
         .tables
         .connections
         .iter()
-        .find(|x| x.id == w29)
+        .find(|x| x.id == wire)
         .unwrap()
         .polyline
         .clone();
@@ -279,7 +298,7 @@ fn selecting_w29_on_the_canvas_marks_its_rows_in_both_navigators() {
     assert_eq!(in_pots.len(), 1);
     assert!(in_pots.iter().next().unwrap().contains("/connection:"));
     assert_eq!(state(&shell)["focus"], "canvas");
-    // W29 itself: the same click repeated walks the pick stack to it.
+    // The wire itself: the same click repeated walks the pick stack to it.
     let stack = {
         let c = shell.canvas().unwrap();
         let page = c.page();
@@ -296,13 +315,13 @@ fn selecting_w29_on_the_canvas_marks_its_rows_in_both_navigators() {
     );
     let at_w29 = stack
         .iter()
-        .position(|e| e.0 == w29)
-        .expect("W29 is in the pick stack at its route");
+        .position(|e| e.0 == wire)
+        .expect("the wire is in the pick stack at its route");
     for (k, next) in stack.iter().enumerate().take(at_w29 + 1).skip(1) {
         click(&mut shell, p, json!({}));
         assert_eq!(shell.selection().items, vec![*next], "click {}", k + 1);
     }
-    assert_eq!(shell.selection().items[0].0, w29);
+    assert_eq!(shell.selection().items[0].0, wire);
     assert_eq!(
         marked(&shell, NavKind::Connections),
         BTreeSet::from([row.clone()])
@@ -310,7 +329,8 @@ fn selecting_w29_on_the_canvas_marks_its_rows_in_both_navigators() {
     let in_pots = marked(&shell, NavKind::Potentials);
     assert_eq!(in_pots.len(), 1);
     let k = in_pots.into_iter().next().unwrap();
-    assert!(k.starts_with(&under), "{k} under 24VDC-1");
+    assert!(k.starts_with(&under), "{k} under 24V");
+
     let segment = &row[row.rfind('/').unwrap()..];
     assert!(k.ends_with(segment), "{k}: the same wire row");
     assert!(
@@ -322,20 +342,20 @@ fn selecting_w29_on_the_canvas_marks_its_rows_in_both_navigators() {
     shell.shutdown();
 }
 
-/// Structure ▸ New node with +J-E-2416 marked and kind `location` opens with the
+/// Structure ▸ New node with +CAB marked and kind `location` opens with the
 /// parent filled in; with kind `function` it is left empty.
 #[test]
 fn new_structure_node_prefills_the_marked_parent() {
     let tmp = Tmp::new("nav2-struct");
     let mut shell = tmp.sample_in(Mode::Gui, true, "102");
     done(&mut shell, "navigator.show", json!({"kind": "structure"}));
-    let k = row_key(&shell, NavKind::Structure, NavRole::StructureNode, "+J-E-2416");
+    let k = row_key(&shell, NavKind::Structure, NavRole::StructureNode, "+CAB");
     done(
         &mut shell,
         "navigator.select",
         json!({"kind": "structure", "keys": [k]}),
     );
-    assert_eq!(shell.new_structure_parent("location"), "+J-E-2416");
+    assert_eq!(shell.new_structure_parent("location"), "+CAB");
     assert_eq!(shell.new_structure_parent("function"), "");
     shell.dispatch("structure.new", &json!({"kind": "location"}));
     let Some(Dialog::Form(f)) = shell.dialog() else {
@@ -343,7 +363,7 @@ fn new_structure_node_prefills_the_marked_parent() {
     };
     let field = |name: &str| f.fields.iter().find(|x| x.name == name).unwrap().value.clone();
     assert_eq!(field("kind"), "location");
-    assert_eq!(field("parent"), "+J-E-2416");
+    assert_eq!(field("parent"), "+CAB");
     shell.shutdown();
 }
 

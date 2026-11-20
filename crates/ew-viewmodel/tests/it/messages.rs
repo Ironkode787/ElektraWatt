@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The message panel on copies of Golden A: the pane in the bottom dock with its header, rows and detail lines; Enter on EF-08 opening -3W1;
+//! The message panel on copies of the sample: the pane in the bottom dock with its header, rows and detail lines;
+//! Enter on EF-08 (EW-CORE-033 of the supply cable -101W1, made to lack its length) opening -101W1;
 //! the pending rule of FR-UI-041 (a new unpaired interruption point on 101, the tab switch, Run checks, a conflict
 //! that is never pending); the quick fix of EW-CORE-023 as a previewed card with one undo step; F8 and Shift+F8; F1 on
 //! a finding; the exact counts of §7.5.
@@ -47,6 +48,38 @@ fn completeness_on(shell: &ShellModel, folio: &str) -> usize {
                 && has(n, "page", folio)
         })
         .count()
+}
+
+/// A writable copy of the sample on `folio` whose supply cable -101W1 has no length: EW-CORE-033 reports it (the
+/// sample, clean, has no warning of its own).
+fn with_a_cable_without_length(tmp: &Tmp, folio: &str) -> ShellModel {
+    let mut shell = tmp.sample_in(Mode::Headless, true, folio);
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-101W1"}],
+            "path": "cable.length", "value": "missing"}}),
+    );
+    shell
+}
+
+/// A writable copy of the sample on folio 102 with a push button placed in its empty right half: -102S3, whose pins
+/// 13 and 14 no wire reaches, so that EW-POT-009 reports both on the page (a finding of a drawn record).
+fn with_a_free_button(tmp: &Tmp) -> ShellModel {
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
+    done(&mut shell, "cursor.set", json!({"x_mm": 200.0, "y_mm": 80.0}));
+    done(&mut shell, "tool.place", json!({}));
+    done(
+        &mut shell,
+        "place.pick",
+        json!({"part": "EW-GEN-PB-1", "letter": "S"}),
+    );
+    done(&mut shell, "canvas.activate", json!({"alt": true}));
+    done(&mut shell, "ui.dismiss", json!({}));
+    // Away and back: 102 is no longer the editing page, so its findings are not pending.
+    done(&mut shell, "page.goto", json!({"folio": "101"}));
+    done(&mut shell, "page.goto", json!({"folio": "102"}));
+    shell
 }
 
 fn finding(shell: &ShellModel, rule: &str, subject: &str) -> NavNode {
@@ -124,7 +157,7 @@ fn arm_ip(s: &mut ShellModel, name: &str, k: (i64, i64), direction: &str) {
 #[test]
 fn the_pane_lists_the_findings_and_enter_opens_ef08() {
     let tmp = Tmp::new("msg-ms1");
-    let mut shell = tmp.sample_shell("102");
+    let mut shell = with_a_free_button(&tmp);
     let calls = shell.session_calls().navigator_table;
     done(&mut shell, "messages.show", json!({"on": true}));
     assert!(shell.navigator_open(NavKind::Messages));
@@ -167,14 +200,21 @@ fn the_pane_lists_the_findings_and_enter_opens_ef08() {
             counts.errors, counts.warnings, counts.infos, counts.waived
         )
     );
-    // The provider's order in the default label sort: Errors first, its rules in ID order.
+    // The provider's order in the default label sort: the gravest severity first, its rules in ID order.
     let shown = shell.shown_rows(NavKind::Messages);
-    assert_eq!(shown[0].text, "Errors");
+    let gravest = if counts.errors > 0 {
+        "Errors"
+    } else if counts.warnings > 0 {
+        "Warnings"
+    } else {
+        "Infos"
+    };
+    assert_eq!(shown[0].text, gravest);
     assert_eq!(shown[0].role, "severity");
     assert_eq!(shown[1].role, "rule");
-    // EF-08: Enter opens the page of -3W1's first drawable with it selected.
-    let ef08 = finding(&shell, "EW-CORE-033", "-3W1");
-    let first = ef08.drawables.first().cloned().expect("-3W1 is drawn");
+    // EF-08's way: Enter opens the page of the free pin -102S3:13's first drawable with it selected.
+    let ef08 = finding(&shell, "EW-POT-009", "-102S3:13");
+    let first = ef08.drawables.first().cloned().expect("-102S3 is drawn");
     done(
         &mut shell,
         "navigator.open",
@@ -188,7 +228,7 @@ fn the_pane_lists_the_findings_and_enter_opens_ef08() {
     let row = shell
         .describe()
         .lines()
-        .find(|l| l.contains("finding \"") && l.contains("-3W1"))
+        .find(|l| l.contains("finding \"") && l.contains("-102S3:13"))
         .map(str::to_owned)
         .unwrap();
     assert!(row.starts_with("  row level 3 finding \""), "{row}");
@@ -197,8 +237,8 @@ fn the_pane_lists_the_findings_and_enter_opens_ef08() {
     assert_eq!(
         line(&shell, "  detail rule "),
         format!(
-            "  detail rule \"EW-CORE-033\" title \"{}\" kind completeness severity warning",
-            ef08_title()
+            "  detail rule \"EW-POT-009\" title \"{}\" kind completeness severity warning",
+            ew_api::checks::rule("EW-POT-009").unwrap().meta().title
         )
     );
     assert_eq!(
@@ -219,13 +259,7 @@ fn the_pane_lists_the_findings_and_enter_opens_ef08() {
     shell.shutdown();
 }
 
-fn ef08_title() -> String {
-    ew_api::checks::rule("EW-CORE-033")
-        .unwrap()
-        .meta()
-        .title
-        .to_owned()
-}
+
 
 // ---------------------------------------------------------------------------------------------------------------
 // MS2: pending (FR-UI-041, amended by D16)
@@ -237,7 +271,7 @@ fn a_new_unpaired_point_on_the_editing_page_is_pending_until_the_tab_moves() {
     done(&mut shell, "view.zoom_actual", json!({}));
     done(&mut shell, "messages.show", json!({"on": true}));
     let e0 = errors(&shell);
-    // Golden A's page 101 already holds open completeness findings (EW-CORE-034, EW-CORE-041): they turn pending too.
+    // Open completeness findings page 101 already holds turn pending too.
     let p0 = completeness_on(&shell, "101");
     assert!(findings(&shell, "EW-CORE-051", "MSGTEST").is_empty());
     place_ip(&mut shell, "MSGTEST", (60, 3), "target");
@@ -426,7 +460,7 @@ fn run_checks_ends_pending_and_a_conflict_is_never_pending() {
         .iter()
         .find(|n| n.role == NavRole::Ip && n.cells[2] == "source" && n.cells[4] == "no")
         .map(|n| n.cells[0].clone())
-        .expect("a source point in Golden A");
+        .expect("a source point in the sample");
     done(&mut shell, "navigator.show", json!({"kind": "ips", "on": false}));
     let rev = shell.revision();
     arm_ip(&mut shell, &source, (66, 6), "source");
@@ -440,7 +474,7 @@ fn run_checks_ends_pending_and_a_conflict_is_never_pending() {
     assert_eq!(
         notice,
         format!(
-            "Not placed: {source} already has a source on page 102; press D for a target, or mark one source as the \
+            "Not placed: {source} already has a source on page 101; press D for a target, or mark one source as the \
              star"
         )
     );
@@ -459,7 +493,7 @@ fn run_checks_ends_pending_and_a_conflict_is_never_pending() {
     assert_eq!(
         shell.tool_notice().unwrap_or_default(),
         format!(
-            "Not placed: {source} already has a source on page 102; press Shift+Q for a target, or mark one source as \
+            "Not placed: {source} already has a source on page 101; press Shift+Q for a target, or mark one source as \
              the star"
         )
     );
@@ -477,7 +511,7 @@ fn run_checks_ends_pending_and_a_conflict_is_never_pending() {
     done(
         &mut shell,
         "command.run",
-        json!({"cmd": "fields.set", "params": {"kind": "section", "targets": ["4fedea58-1889-5ba9-aeb8-8ab28ffe9e89"],
+        json!({"cmd": "fields.set", "params": {"kind": "section", "targets": [{"ref": "section:1"}],
             "path": "folio_range", "value": [100, 149]}}),
     );
     let conflict = finding(&shell, "EW-CORE-021", "folio 150");
@@ -490,7 +524,7 @@ fn run_checks_ends_pending_and_a_conflict_is_never_pending() {
     assert!(shell.row_pending(NavKind::Messages, &row.key));
     // The conflict counts as an error; MSGTEST's finding left the errors for `pending`.
     assert_eq!(errors(&shell), e_before);
-    // Pending: MSGTEST's finding and the open completeness findings Golden A already has on the page.
+    // Pending: MSGTEST's finding and the open completeness findings the page already has.
     assert_eq!(
         shell.messages_counts().unwrap().pending,
         completeness_on(&shell, "150")
@@ -505,7 +539,7 @@ fn run_checks_ends_pending_and_a_conflict_is_never_pending() {
 #[test]
 fn the_quick_fix_is_previewed_applied_in_one_step_and_undone() {
     let tmp = Tmp::new("msg-ms3");
-    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
+    let mut shell = with_a_cable_without_length(&tmp, "102");
     let page = common::page_id(&shell, "102");
     done(
         &mut shell,
@@ -525,7 +559,7 @@ fn the_quick_fix_is_previewed_applied_in_one_step_and_undone() {
     );
     assert_eq!(line(&shell, "  detail fix "), "  detail fix \"drop override\"");
     // A finding without a fix refuses.
-    let ef08 = finding(&shell, "EW-CORE-033", "-3W1");
+    let ef08 = finding(&shell, "EW-CORE-033", "-101W1");
     assert_eq!(
         refused(&mut shell, "messages.fix", json!({"key": ef08.key})),
         "reason-no-fix"
@@ -614,7 +648,7 @@ fn a_stale_card_previews_again_and_a_read_only_project_refuses() {
 #[test]
 fn f8_walks_and_wraps_and_opens_the_pane_and_f1_opens_the_rule_page() {
     let tmp = Tmp::new("msg-ms4");
-    let mut shell = tmp.sample_shell("102");
+    let mut shell = with_a_free_button(&tmp);
     assert!(!shell.navigator_open(NavKind::Messages));
     let next = ew_viewmodel::actions::ACTIONS
         .iter()
@@ -674,8 +708,8 @@ fn f8_walks_and_wraps_and_opens_the_pane_and_f1_opens_the_rule_page() {
         shell.nav_cursor(NavKind::Messages).as_deref(),
         Some(order[0].as_str())
     );
-    // F1 on EW-CORE-033 in the Messages context opens its rule page.
-    let ef08 = finding(&shell, "EW-CORE-033", "-3W1");
+    // F1 on EW-POT-009 in the Messages context opens its rule page.
+    let ef08 = finding(&shell, "EW-POT-009", "-102S3:13");
     done(
         &mut shell,
         "navigator.row",
@@ -687,10 +721,10 @@ fn f8_walks_and_wraps_and_opens_the_pane_and_f1_opens_the_rule_page() {
         json!({"area": "navigator", "kind": "messages"}),
     );
     done(&mut shell, "help.documentation", json!({}));
-    assert_eq!(line(&shell, "help: "), "help: reference/rules/ew-core-033.html");
+    assert_eq!(line(&shell, "help: "), "help: reference/rules/ew-pot-009.html");
     assert_eq!(
-        ew_viewmodel::help::rule_page("EW-CORE-033").as_deref(),
-        Some("reference/rules/ew-core-033.md")
+        ew_viewmodel::help::rule_page("EW-POT-009").as_deref(),
+        Some("reference/rules/ew-pot-009.md")
     );
     // On a severity group, F1 falls back to the context's topic.
     let group = t.nodes.iter().find(|n| n.role == NavRole::Severity).unwrap();
@@ -700,7 +734,7 @@ fn f8_walks_and_wraps_and_opens_the_pane_and_f1_opens_the_rule_page() {
         json!({"kind": "messages", "key": group.key}),
     );
     done(&mut shell, "help.documentation", json!({}));
-    assert_ne!(line(&shell, "help: "), "help: reference/rules/ew-core-033.html");
+    assert_ne!(line(&shell, "help: "), "help: reference/rules/ew-pot-009.html");
     shell.shutdown();
 }
 
@@ -726,9 +760,9 @@ fn f8_with_no_findings_on_show_refuses() {
 #[test]
 fn navigator_row_into_a_collapsed_group_expands_its_path() {
     let tmp = Tmp::new("msg-ft528");
-    let mut shell = tmp.sample_shell("102");
+    let mut shell = with_a_cable_without_length(&tmp, "102");
     done(&mut shell, "messages.show", json!({"on": true}));
-    let ef08 = finding(&shell, "EW-CORE-033", "-3W1");
+    let ef08 = finding(&shell, "EW-CORE-033", "-101W1");
     let rows = shell.shown_rows(NavKind::Messages);
     let row = rows.iter().find(|r| r.key == ef08.key).expect("EF-08 on show");
     let group = row.parent.clone().expect("EF-08 under a group");
@@ -768,7 +802,7 @@ fn navigator_row_into_a_collapsed_group_expands_its_path() {
     done(
         &mut shell,
         "navigator.filter",
-        json!({"kind": "messages", "text": "F55"}),
+        json!({"kind": "messages", "text": "tube"}),
     );
     assert!(matches!(
         shell.dispatch("navigator.row", &json!({"kind": "messages", "key": ef08.key})),
@@ -803,16 +837,29 @@ fn check_reports_its_counts_with_the_pane_closed() {
     assert!(toast.contains("error") && toast.contains("warning"), "{toast}");
 }
 
-/// EW-BUS-001's message leads with its subject, so Golden A's row shows the subject once
-/// ("=P01+...-201U1:DP: the station address is TBD; ..."), never "X: X: ...".
+/// EW-BUS-001's message leads with its subject, so the row shows the subject once
+/// ("...-201K1:DP: the station address is TBD; ..."), never "X: X: ...": the valve terminal's PROFIBUS address of
+/// the sample is set to TBD first.
 #[test]
 fn a_finding_row_shows_its_subject_once() {
     let tmp = Tmp::new("msg-subject-once");
     let mut shell = tmp.sample_in(Mode::Headless, true, "101");
+    done(&mut shell, "navigator.show", json!({"kind": "bus"}));
+    done(
+        &mut shell,
+        "navigator.select",
+        json!({"kind": "bus", "keys": ["-201K1 DP"]}),
+    );
+    done(
+        &mut shell,
+        "props.set",
+        json!({"row": "function/bus_port.address", "value": "TBD"}),
+    );
     done(&mut shell, "messages.check", json!({}));
     done(&mut shell, "messages.show", json!({"on": true}));
-    let rows = findings(&shell, "EW-BUS-001", "-201U1:DP");
-    assert!(!rows.is_empty(), "Golden A's TBD station address");
+    let rows = findings(&shell, "EW-BUS-001", "");
+
+    assert!(!rows.is_empty(), "the TBD station address");
     for n in rows {
         let subject = &n.cells[3];
         assert_eq!(n.label.matches(subject.as_str()).count(), 1, "{}", n.label);
@@ -828,12 +875,15 @@ fn the_detail_message_starts_with_a_capital() {
     let tmp = Tmp::new("msg-ft1140");
     let mut shell = tmp.sample_shell("102");
     done(&mut shell, "messages.show", json!({"on": true}));
-    let row = finding(&shell, "EW-CORE-034", "1X1");
-    assert_eq!(
-        row.cells[2],
-        "the external connection +J-E-206 → 1X1 has no cable: wires 101.1, 101.2, 101.3 are not a cable core; add the \
-         cable and assign its cores"
-    );
+    // EW-FL-014's message starts with a lowercase word: the sample's tubes leave +CAB for the cylinders in +FLD.
+    let row = table(&shell)
+        .nodes
+        .iter()
+        .find(|n| n.role == NavRole::Finding && n.cells[1] == "EW-FL-014")
+        .cloned()
+        .expect("an EW-FL-014 finding");
+    let text = row.cells[2].clone();
+    assert!(text.starts_with("tube "), "{text}");
     done(
         &mut shell,
         "navigator.row",
@@ -841,8 +891,8 @@ fn the_detail_message_starts_with_a_capital() {
     );
     assert_eq!(
         shell.messages_detail().expect("the detail").message,
-        "The external connection +J-E-206 → 1X1 has no cable: wires 101.1, 101.2, 101.3 are not a cable core; add the \
-         cable and assign its cores"
+        format!("T{}", &text[1..])
     );
+
     shell.shutdown();
 }

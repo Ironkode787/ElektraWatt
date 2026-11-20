@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The navigators on Golden A: the
+//! The navigators on the sample: the
 //! Pages lines byte-equal to the as-built text, the filter as a superset of the as-built Pages filter, the Devices
 //! navigator with selection synchronisation both ways and the chip line, multi-selection and reorder of pages with the
 //! card, the New page pre-fill, the describe window and the transcript's `focus` values.
@@ -17,7 +17,7 @@ use serde_json::json;
 
 const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/expected");
 
-/// A headless shell with a copy of Golden A open (read-only unless `writable`).
+/// A headless shell with a copy of the sample open (read-only unless `writable`).
 fn open(tmp: &Tmp, writable: bool) -> ShellModel {
     let dir = tmp.sample_copy();
     if !dir.exists() {
@@ -67,8 +67,8 @@ fn the_pages_lines_are_the_as_built_lines() {
     done(&mut shell, "pages.toggle", json!({"key": "s:1"}));
     take(&shell, "section 1 collapsed");
     done(&mut shell, "pages.toggle", json!({"key": "s:1"}));
-    done(&mut shell, "pages.filter", json!({"text": "power supply"}));
-    take(&shell, "filter power supply");
+    done(&mut shell, "pages.filter", json!({"text": "supply"}));
+    take(&shell, "filter supply");
     done(&mut shell, "pages.filter", json!({"text": ""}));
     done(&mut shell, "pages.mode", json!({"mode": "flat"}));
     take(&shell, "flat view");
@@ -109,7 +109,7 @@ fn section1(shell: &ShellModel) -> Vec<String> {
 }
 
 /// NV3 (D6): the Pages filter keeps every as-built match (a folio or title substring, case-folded) for every folio and
-/// title substring of Golden A, and the ancestors of a match stay shown and expanded.
+/// title substring of the sample, and the ancestors of a match stay shown and expanded.
 #[test]
 fn the_pages_filter_is_a_superset_of_the_as_built_filter() {
     let tmp = Tmp::new("navigators");
@@ -150,14 +150,14 @@ fn the_pages_filter_is_a_superset_of_the_as_built_filter() {
     }
     // In the section view a match keeps its section, expanded even when it was collapsed.
     nav.mode = NavMode::Section;
-    nav.filter = "control current distribution".into();
+    nav.filter = "control".into();
     nav.toggle("s:1");
     let v = nav.visible(&rows);
     assert_eq!(v[0].key, "s:1");
     assert!(v[0].expanded);
     assert!(
         v.iter()
-            .any(|r| matches!(r.kind, RowKind::Page(i) if rows[i].folio == "103"))
+            .any(|r| matches!(r.kind, RowKind::Page(i) if rows[i].folio == "102"))
     );
 }
 
@@ -179,7 +179,7 @@ fn the_devices_navigator_describes_a_window_and_counts_its_table_calls() {
     assert_eq!(state(&shell)["focus"], "navigator.devices");
     assert!(shell.describe().contains("\nfocus navigator kind devices\n"));
     let n = shell.shown_rows(NavKind::Devices).len();
-    assert!(n > 50, "Golden A has {n} rows in the Devices tree");
+    assert!(n > 50, "the sample has {n} rows in the Devices tree");
     assert_eq!(
         lines_with(&shell, "navigator \"Devices\""),
         [format!(
@@ -204,7 +204,7 @@ fn the_devices_navigator_describes_a_window_and_counts_its_table_calls() {
     let lines = nav_rows(&shell, "Devices");
     assert_eq!(lines.len(), 50);
     assert!(
-        lines[0].starts_with("  row level 1 function \"=P01\" expanded"),
+        lines[0].starts_with("  row level 1 function \"(none)\" expanded"),
         "{}",
         lines[0]
     );
@@ -223,14 +223,14 @@ fn the_devices_navigator_describes_a_window_and_counts_its_table_calls() {
     );
     assert!(nav_rows(&shell, "Devices").last().unwrap().ends_with(" cursor"));
     // A row line: level, role, label, badges, expansion, mark, cursor.
-    let k = row_key(&shell, NavKind::Devices, NavRole::Device, "-201U3");
+    let k = row_key(&shell, NavKind::Devices, NavRole::Device, "-201K1-Q1");
     done(&mut shell, "navigator.row", json!({"kind": "devices", "key": k}));
     let line = nav_rows(&shell, "Devices")
         .into_iter()
-        .find(|l| l.contains("device \"-201U3\""))
+        .find(|l| l.contains("device \"-201K1-Q1\""))
         .unwrap();
-    // -201U3 is a child device of -201U1 (level 3), so its row is at level 4.
-    assert_eq!(line, "  row level 4 device \"-201U3\" expanded cursor");
+    // -201K1-Q1 is a child device of -201K1 (level 3), so its row is at level 4.
+    assert_eq!(line, "  row level 4 device \"-201K1-Q1\" expanded cursor");
     // Filter, sort, view, expansion, cursor, marks and type-ahead: no table call.
     let calls = shell.session_calls().navigator_table;
     done(
@@ -247,7 +247,7 @@ fn the_devices_navigator_describes_a_window_and_counts_its_table_calls() {
     done(
         &mut shell,
         "navigator.filter",
-        json!({"kind": "devices", "text": "201u"}),
+        json!({"kind": "devices", "text": "201k"}),
     );
     done(
         &mut shell,
@@ -263,7 +263,7 @@ fn the_devices_navigator_describes_a_window_and_counts_its_table_calls() {
     let header = lines_with(&shell, "navigator \"Devices\"");
     assert!(
         header[0].starts_with(
-            "navigator \"Devices\" kind devices view flat sort \"Tag\" descending filter \"201u\""
+            "navigator \"Devices\" kind devices view flat sort \"Tag\" descending filter \"201k\""
         ),
         "{}",
         header[0]
@@ -272,7 +272,7 @@ fn the_devices_navigator_describes_a_window_and_counts_its_table_calls() {
     done(
         &mut shell,
         "pages.reorder",
-        json!({"pages": ["106"], "before": "103"}),
+        json!({"pages": ["104"], "before": "103"}),
     );
     done(&mut shell, "navigator.apply", json!({}));
     assert_eq!(shell.session_calls().navigator_table, calls + 1);
@@ -300,8 +300,8 @@ fn the_devices_navigator_describes_a_window_and_counts_its_table_calls() {
     shell.shutdown();
 }
 
-/// NV5 (FR-UI-007 as amended by D16; §6.5): with folio 102 shown, marking -201U3 in Devices selects nothing on 102 but
-/// the device's record (the property grid shows -201U3) and shows the chips 201-E4 and 203-B4; Enter opens 201 with
+/// NV5 (FR-UI-007 as amended by D16; §6.5): with folio 102 shown, marking -103M1 in Devices selects nothing on 102 but
+/// the device's record (the property grid shows -103M1) and shows the chip 103-H3; Enter opens 103 with
 /// its representation selected (one back-history entry); a selection made elsewhere marks and reveals its row, the
 /// focus stays where it is, and no change is applied twice.
 #[test]
@@ -310,7 +310,7 @@ fn devices_and_the_canvas_keep_the_selection_in_step() {
     let mut shell = open(&tmp, false);
     done(&mut shell, "page.goto", json!({"folio": "102"}));
     done(&mut shell, "navigator.show", json!({"kind": "devices"}));
-    let k = row_key(&shell, NavKind::Devices, NavRole::Device, "-201U3");
+    let k = row_key(&shell, NavKind::Devices, NavRole::Device, "-103M1");
     done(
         &mut shell,
         "navigator.select",
@@ -327,20 +327,20 @@ fn devices_and_the_canvas_keep_the_selection_in_step() {
     assert_eq!(
         shell.selection().items.iter().map(|e| e.0).collect::<Vec<_>>(),
         [device],
-        "nothing of -201U3 is drawn on 102: the selection is its record"
+        "nothing of -103M1 is drawn on 102: the selection is its record"
     );
     let chips: Vec<String> = shell.chips().iter().map(|c| c.text()).collect();
-    assert_eq!(chips, ["201-E4", "203-B4"]);
+    assert_eq!(chips, ["103-H3"]);
     assert!(
-        shell.describe().contains("\n  elsewhere \"201-E4\" \"203-B4\"\n"),
+        shell.describe().contains("\n  elsewhere \"103-H3\"\n"),
         "the canvas section's chip line"
     );
-    assert_eq!(state(&shell)["properties"]["title"], "-201U3");
+    assert_eq!(state(&shell)["properties"]["title"], "+FLD-103M1", "the motor stands in the field");
     let generation = shell.selection().generation;
-    // Enter opens 201 with the representation selected, as a jump.
+    // Enter opens 103 with the representation selected, as a jump.
     let back = state(&shell)["tabs"]["groups"][0][0]["back"].as_u64().unwrap();
     done(&mut shell, "navigator.open", json!({"kind": "devices", "key": k}));
-    assert_eq!(shell.current_folio(), Some("201"));
+    assert_eq!(shell.current_folio(), Some("103"));
     assert_eq!(
         state(&shell)["tabs"]["groups"][0][0]["back"].as_u64().unwrap(),
         back + 1
@@ -403,7 +403,7 @@ fn pages_are_marked_and_reordered_through_one_previewed_command() {
         json!({"kind": "pages", "step": 1, "extend": true}),
     );
     let marked: Vec<String> = shell.navigator().marked().iter().cloned().collect();
-    let mut want = vec![page_key(&shell, "103"), page_key(&shell, "106")];
+    let mut want = vec![page_key(&shell, "103"), page_key(&shell, "104")];
     want.sort();
     assert_eq!(marked, want, "Shift+Down marks both");
     assert_eq!(shell.selection().items.len(), 2, "the selection is the two pages");
@@ -424,7 +424,7 @@ fn pages_are_marked_and_reordered_through_one_previewed_command() {
     done(
         &mut shell,
         "pages.reorder",
-        json!({"pages": ["106"], "before": "103"}),
+        json!({"pages": ["104"], "before": "103"}),
     );
     let card = state(&shell)["card"].clone();
     assert_eq!(card["command"], "page.reorder");
@@ -433,7 +433,7 @@ fn pages_are_marked_and_reordered_through_one_previewed_command() {
     let line = lines_with(&shell, "card ready \"page.reorder\"");
     assert_eq!(line.len(), 1);
     assert!(
-        line[0].ends_with(" reorder \"106 → 103\" \"103 → 106\""),
+        line[0].ends_with(" reorder \"104 → 103\" \"103 → 104\""),
         "{}",
         line[0]
     );
@@ -459,23 +459,23 @@ fn pages_are_marked_and_reordered_through_one_previewed_command() {
     assert_eq!(
         (a[i].clone(), a[i + 1].clone()),
         (b[i + 1].clone(), b[i].clone()),
-        "103 and 106 swapped"
+        "103 and 104 swapped"
     );
     // One undo step restores every folio.
     done(&mut shell, "edit.undo", json!({}));
     assert_eq!(section1(&shell), before);
     assert!(!shell.can_undo());
     // Alt+Up on 106 gives the same card.
-    let k106 = page_key(&shell, "106");
+    let k104 = page_key(&shell, "104");
     done(
         &mut shell,
         "navigator.select",
-        json!({"kind": "pages", "keys": [k106]}),
+        json!({"kind": "pages", "keys": [k104]}),
     );
     done(&mut shell, "pages.move_up", json!({}));
     let line = lines_with(&shell, "card ready \"page.reorder\"");
     assert!(
-        line[0].ends_with(" reorder \"106 → 103\" \"103 → 106\""),
+        line[0].ends_with(" reorder \"104 → 103\" \"103 → 104\""),
         "{}",
         line[0]
     );
@@ -494,15 +494,16 @@ fn new_page_proposes_the_next_free_folio_and_the_section() {
     done(&mut shell, "page.goto", json!({"folio": "103"}));
     assert_eq!(
         shell.new_page_proposal(None, None),
-        ("104".to_owned(), "1".to_owned())
+        ("106".to_owned(), "1".to_owned())
     );
     done(&mut shell, "page.goto", json!({"folio": "1"}));
-    // 2 is the generated table of contents and 3 a page record.
-    assert_eq!(shell.new_page_proposal(None, None).0, "4");
+    // 2 (and 2.1) is the generated table of contents.
+    assert_eq!(shell.new_page_proposal(None, None).0, "3");
     done(&mut shell, "page.goto", json!({"folio": "2"}));
     assert_eq!(
         shell.new_page_proposal(None, None).0,
-        "4",
+        "3",
+
         "after a generated page too (rc.5)"
     );
     done(&mut shell, "page.goto", json!({"folio": "103"}));

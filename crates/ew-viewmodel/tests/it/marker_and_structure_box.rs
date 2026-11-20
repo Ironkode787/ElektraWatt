@@ -4,7 +4,7 @@
 //! In the view model: the Wire marker tool's crossing order, fields and
 //! angle, the Structure box tool's rectangle, polygon and fields, the marker mode action, Escape and Back, the two
 //! tools' ghost lines and words, their exact `Session` counts, and the page change that ends every part-4b tool.
-//! Every test works on a writable temporary copy of Golden A.
+//! Every test works on a writable temporary copy of the sample.
 
 use crate::common;
 
@@ -67,13 +67,13 @@ fn vertical_segments(c: &TableConnection) -> Vec<((i64, i64), (i64, i64))> {
         .collect()
 }
 
-/// A horizontal crossing line across W4 and W5 (the wires ending at `S51:2` and `S51:4`), from one grid step left
+/// A horizontal crossing line across the 0 V wires of the coil -102Q1 and the lamp -102E1 (the wires ending at `-102Q1:A2` and `-102E1:X2`), from one grid step left
 /// of the left wire to one grid step right of the right one, at a y inside both their vertical segments; and the two
 /// connections in the line's order.
-fn w4_w5_line(s: &ShellModel) -> ((i64, i64), (i64, i64), Vec<String>) {
+fn zero_volt_line(s: &ShellModel) -> ((i64, i64), (i64, i64), Vec<String>) {
     let t = tables(s);
-    let w4 = connection_at_label(&t, "S51:2");
-    let w5 = connection_at_label(&t, "S51:4");
+    let w4 = connection_at_label(&t, "-102Q1:A2");
+    let w5 = connection_at_label(&t, "-102E1:X2");
     let v4 = vertical_segments(w4);
     let v5 = vertical_segments(w5);
     // The pair of vertical segments (one of each wire) with the widest shared y range.
@@ -93,7 +93,7 @@ fn w4_w5_line(s: &ShellModel) -> ((i64, i64), (i64, i64), Vec<String>) {
             }
         }
     }
-    let (_, i, j) = best.expect("W4 and W5 share a y range of vertical segments");
+    let (_, i, j) = best.expect("the two 0 V wires share a y range of vertical segments");
     let (a, b) = (v4[i], v5[j]);
     let lo = a.0.1.min(a.1.1).max(b.0.1.min(b.1.1));
     let hi = a.0.1.max(a.1.1).min(b.0.1.max(b.1.1));
@@ -124,9 +124,9 @@ fn expected_marker_at(s: &ShellModel, from: (i64, i64), to: (i64, i64)) -> (i64,
     sn.snap_fine(sn.page_to_sheet(mid), FineKind::Text, false).1
 }
 
-/// Draws the crossing line across W4 and W5 with the pointer and releases it.
-fn cross_w4_w5(s: &mut ShellModel) -> ((i64, i64), (i64, i64), Vec<String>) {
-    let (from, to, order) = w4_w5_line(s);
+/// Draws the crossing line across the two 0 V wires with the pointer and releases it.
+fn cross_zero_volt(s: &mut ShellModel) -> ((i64, i64), (i64, i64), Vec<String>) {
+    let (from, to, order) = zero_volt_line(s);
     press(s, from);
     assert_eq!(s.tool().state(), "crossing");
     pointer(s, to);
@@ -140,9 +140,9 @@ fn cross_w4_w5(s: &mut ShellModel) -> ((i64, i64), (i64, i64), Vec<String>) {
 #[test]
 fn a_press_and_a_release_without_moves_mark_the_crossed_wires() {
     let tmp = Tmp::new("marker-press-release");
-    let mut s = actual_size(&tmp, "101");
+    let mut s = actual_size(&tmp, "102");
     done(&mut s, "tool.marker", json!({}));
-    let (from, to, order) = w4_w5_line(&s);
+    let (from, to, order) = zero_volt_line(&s);
     press(&mut s, from);
     release(&mut s, to);
     assert_eq!(s.tool().state(), "typing");
@@ -161,31 +161,31 @@ fn empty_marker_line(s: &ShellModel) -> ((i64, i64), (i64, i64)) {
         .iter()
         .flat_map(|c| c.polyline.iter().map(|p| p.1))
         .max()
-        .expect("Golden A has connections");
+        .expect("the sample has connections");
     let max_x = t
         .connections
         .iter()
         .flat_map(|c| c.polyline.iter().map(|p| p.0))
         .max()
-        .expect("Golden A has connections");
+        .expect("the sample has connections");
     let sn = &s.canvas().unwrap().page().snapper;
     let step = sn.page_of_index(1) - sn.page_of_index(0);
     ((0, max_y + step), (max_x + step, max_y + step))
 }
 
-/// The UUID text of the structure node `J-E-206` of Golden A.
+/// The UUID text of the structure node `FLD` of the sample.
 fn location_node_uuid() -> String {
     let (session, _) =
-        ew_api::Session::open_read_only(Path::new(SAMPLE), "test").expect("Golden A opens read-only");
+        ew_api::Session::open_read_only(Path::new(SAMPLE), "test").expect("the sample opens read-only");
     let q = session.query();
     q.structure_nodes()
         .iter()
         .find(|(_, node)| {
             serde_json::to_value(&node.aspect).ok() == Some(Value::from("location"))
-                && node.code.as_str() == "J-E-206"
+                && node.code.as_str() == "FLD"
         })
         .map(|(id, _)| id.as_uuid().to_string())
-        .expect("Golden A has the location node J-E-206")
+        .expect("the sample has the location node FLD")
 }
 
 /// The items of the Wire markers submenu.
@@ -212,9 +212,11 @@ fn checked_mode(s: &ShellModel, mode: &str) -> bool {
 // PI7: the Wire marker tool
 
 #[test]
-fn the_marker_tool_takes_w4_and_w5_in_line_order() {
-    let tmp = Tmp::new("marker-w4w5");
-    let mut s = actual_size(&tmp, "101");
+fn the_marker_tool_takes_the_two_0v_wires_in_line_order() {
+    let tmp = Tmp::new("marker-0v");
+    let mut s = actual_size(&tmp, "102");
+    let markers = |s: &ShellModel| tables(s).items.iter().filter(|i| i.kind == "wire_marker").count();
+    let before = markers(&s);
     done(&mut s, "tool.marker", json!({}));
     assert_eq!(s.tool().name(), "marker");
     assert_eq!(s.tool().state(), "armed");
@@ -222,7 +224,7 @@ fn the_marker_tool_takes_w4_and_w5_in_line_order() {
         canvas(&s)["ghost"],
         json!({"kind": "marker", "connections": 0, "text": null})
     );
-    let (from, to, order) = cross_w4_w5(&mut s);
+    let (from, to, order) = cross_zero_volt(&mut s);
     assert_eq!(s.tool().state(), "typing");
     let ghost = canvas(&s)["ghost"].clone();
     assert_eq!(ghost["kind"], "marker");
@@ -246,24 +248,22 @@ fn the_marker_tool_takes_w4_and_w5_in_line_order() {
     let expected = expected_marker_at(&s, from, to);
     assert_eq!(last.params["at"], json!([expected.0, expected.1]));
     let t = tables(&s);
-    assert_eq!(
-        t.items.iter().filter(|i| i.kind == "wire_marker").count(),
-        1,
-        "one wire marker item"
-    );
+    assert_eq!(markers(&s), before + 1, "one wire marker item more");
     let marker = t
         .items
         .iter()
-        .find(|i| i.kind == "wire_marker")
+        .find(|i| i.kind == "wire_marker" && i.text.as_deref().is_some_and(|x| x.starts_with("2.5")))
         .expect("the wire marker");
-    assert_eq!(marker.text.as_deref(), Some("2.5 BK BU"));
+
+    // The cross-section, then each wire's colour by the colour profile: 0 V is BU.
+    assert_eq!(marker.text.as_deref(), Some("2.5 BU BU"));
 
     // The same line drawn right to left (a fresh copy) lists the two the other way round; the keyboard commit
     // needs a grid cursor even though the pointer drew the line.
-    let tmp = Tmp::new("marker-w4w5-rev");
-    let mut s = actual_size(&tmp, "101");
+    let tmp = Tmp::new("marker-0v-rev");
+    let mut s = actual_size(&tmp, "102");
     done(&mut s, "tool.marker", json!({}));
-    let (from, to, order) = w4_w5_line(&s);
+    let (from, to, order) = zero_volt_line(&s);
     press(&mut s, to);
     pointer(&mut s, from);
     release(&mut s, from);
@@ -359,7 +359,7 @@ fn a_crossing_of_no_wire_returns_to_armed() {
 #[test]
 fn marker_fields_parse_colours_and_are_refused_outside_the_tool() {
     let tmp = Tmp::new("marker-fields");
-    let mut s = actual_size(&tmp, "101");
+    let mut s = actual_size(&tmp, "102");
     assert_eq!(
         refused(&mut s, "marker.fields", json!({"csa": "2.5"})),
         "reason-marker-tool-only"
@@ -383,7 +383,7 @@ fn marker_fields_parse_colours_and_are_refused_outside_the_tool() {
     done(&mut s, "marker.fields", json!({"csa": ""}));
     assert_eq!(canvas(&s)["ghost"]["text"], "BK GN+YE");
     // Two entries for two crossed wires: the committed colours are lists of one and two codes.
-    let (from, to, order) = cross_w4_w5(&mut s);
+    let (from, to, order) = cross_zero_volt(&mut s);
     assert_eq!(s.tool().state(), "typing");
     assert_eq!(canvas(&s)["ghost"]["connections"], 2);
     done(&mut s, "tool.finish", json!({}));
@@ -419,11 +419,11 @@ fn the_structure_box_tool_draws_a_rectangle_with_its_fields() {
         .external_choices()
         .into_iter()
         .next()
-        .expect("Golden A has external references");
+        .expect("the sample has external references");
     done(
         &mut s,
         "structure_box.fields",
-        json!({"style": "dash_dot", "caption": "Spare", "location": "+J-E-206",
+        json!({"style": "dash_dot", "caption": "Spare", "location": "+FLD",
             "external": label}),
     );
     let rev = s.revision();
@@ -554,10 +554,10 @@ fn the_marker_mode_action_sets_clears_and_skips_an_equal_mode() {
 #[test]
 fn escape_and_back_in_the_marker_and_structure_box_tools() {
     let tmp = Tmp::new("marker-escape");
-    let mut s = actual_size(&tmp, "101");
+    let mut s = actual_size(&tmp, "102");
     // Escape from crossing.
     done(&mut s, "tool.marker", json!({}));
-    let (from, to, _) = w4_w5_line(&s);
+    let (from, to, _) = zero_volt_line(&s);
     press(&mut s, from);
     assert_eq!(s.tool().state(), "crossing");
     let rev = s.revision();
@@ -614,13 +614,13 @@ fn escape_and_back_in_the_marker_and_structure_box_tools() {
 #[test]
 fn the_marker_and_structure_box_ghost_lines_describe_the_tools() {
     let tmp = Tmp::new("marker-words");
-    let mut s = actual_size(&tmp, "101");
+    let mut s = actual_size(&tmp, "102");
     done(&mut s, "tool.marker", json!({}));
     assert_eq!(
         describe_line(&s, "canvas ghost marker ").as_deref(),
         Some("canvas ghost marker connections 0")
     );
-    let (from, to, _) = w4_w5_line(&s);
+    let (from, to, _) = zero_volt_line(&s);
     press(&mut s, from);
     assert_eq!(s.tool().state(), "crossing");
     pointer(&mut s, to);
@@ -665,11 +665,11 @@ fn assert_grid_moves_read_nothing(s: &mut ShellModel, what: &str) {
 #[test]
 fn pointer_moves_with_the_marker_and_structure_box_tools_call_no_session() {
     let tmp = Tmp::new("marker-counts");
-    let mut s = actual_size(&tmp, "101");
+    let mut s = actual_size(&tmp, "102");
     let p = grid_point(&s, (40, 30));
     done(&mut s, "tool.marker", json!({}));
     assert_grid_moves_read_nothing(&mut s, "the armed Wire marker tool");
-    let (from, to, _) = w4_w5_line(&s);
+    let (from, to, _) = zero_volt_line(&s);
     press(&mut s, from);
     assert_grid_moves_read_nothing(&mut s, "the crossing Wire marker tool");
     release(&mut s, to);
