@@ -97,7 +97,7 @@ fn is_ink(px: [u8; 4]) -> bool {
 }
 
 #[test]
-fn b4_a_line_of_one_hundredth_of_a_millimetre_leaves_ink() {
+fn a_line_of_one_hundredth_of_a_millimetre_leaves_ink() {
     for d in devices() {
         let d = &d;
         let mut list = DisplayList::new();
