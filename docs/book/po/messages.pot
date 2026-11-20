@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-20T04:37:29+01:00\n"
+"POT-Creation-Date: 2026-11-20T06:53:50+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -4724,7 +4724,7 @@ msgid ""
 "air supply and reaches every tube the supply feeds through the valves."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:28 src/reference/window/tools.md:180
+#: src/how-to/fluid-workspace.md:28 src/reference/window/tools.md:191
 msgid "Tube"
 msgstr ""
 
@@ -5289,7 +5289,7 @@ msgstr ""
 
 #: src/reference/window/tools.md:21
 msgid ""
-"On a wire: Reroute, Wire marker, Define potential…, Cable… and Print wire "
+"On a wire: Route, Wire marker, Define potential…, Cable… and Print wire "
 "numbers; a wire does not turn, so there is no Rotate or Mirror. On several "
 "selected wires: Make cable from the selection…."
 msgstr ""
@@ -5587,22 +5587,22 @@ msgid ""
 "free place beside its symbol. When no route exists at all the wire shows as "
 "a dashed right-angled line and the hint says \"No clear route: the wire "
 "stays a dashed line without a route. Click free points to lead it, or route "
-"it later with Reroute.\" Ending it there stores an unrouted wire: it keeps "
-"its connection, but it is drawn dashed and the check reports it (\"Wire … "
-"has no route: it is drawn as a dashed line.\") until it has a route. Click "
-"on empty points to place bends and the wire follows them (\"Bend placed: "
-"click a connection point to end the wire.\"); a click inside a symbol places "
-"no bend and says so (\"A bend cannot sit inside a symbol; click one of its "
+"it later with Route.\" Ending it there stores an unrouted wire: it keeps its "
+"connection, but it is drawn dashed and the check reports it (\"Wire … has no "
+"route: it is drawn as a dashed line.\") until it has a route. Click on empty "
+"points to place bends and the wire follows them (\"Bend placed: click a "
+"connection point to end the wire.\"); a click inside a symbol places no bend "
+"and says so (\"A bend cannot sit inside a symbol; click one of its "
 "connection points, or a free point outside it\"). Where no clean way leads "
 "on from your last bend, the wire is routed from its start as if drawn anew, "
 "without your bends, or stays unrouted: a wire never runs through a pin or "
 "along another wire. The hint says what a click at the pointer does: on "
-"another wire it joins that wire with a tee (Alt+Click places a bend there "
-"instead), on the start point it does nothing. A junction that already joins "
-"three wires is not an end: the hint says \"This junction already joins three "
-"wires: end on a wire to make a new junction.\" The point where two wires "
-"cross is not an end either (a junction there would join all four arms): end "
-"on the wire a step beside the crossing."
+"another wire it joins that wire with a tee, drawn with a bevel (Alt+Click "
+"places a bend there instead), on the start point it does nothing. A junction "
+"that already joins three wires is not an end: the hint says \"This junction "
+"already joins three wires: end on a wire to make a new junction.\" The point "
+"where two wires cross is not an end either (a junction there would join all "
+"four arms): end on the wire a step beside the crossing."
 msgstr ""
 
 #: src/reference/window/tools.md:176
@@ -5610,10 +5610,33 @@ msgid ""
 "An unrouted wire, from an import or a placement, is drawn as a dashed line "
 "between its ends, straight or with one corner and never diagonal, on the "
 "page and in the PDF. The line takes no notice of what lies under it: it is "
-"no route yet. Route page or Reroute draws it."
+"no route yet. Route draws it."
 msgstr ""
 
-#: src/reference/window/tools.md:182
+#: src/reference/window/tools.md:180
+msgid ""
+"A route the tool finds between your two clicks counts as the program's: "
+"Route may draw it again later. A route with a bend you placed is yours, and "
+"so is one you change by hand; Route leaves it alone unless you select the "
+"wire."
+msgstr ""
+
+#: src/reference/window/tools.md:183
+msgid "Dot at the joint"
+msgstr ""
+
+#: src/reference/window/tools.md:185
+msgid ""
+"A wire that ends on another wire joins it with a bevel: the wires then run "
+"from terminal to terminal, and the bevel shows which terminal carries two of "
+"them. Press `.` while you draw the wire, before you click on the other wire, "
+"to join it with a dot instead: then every wire of the joint starts from the "
+"terminal the potential comes from. Press `.` again for the bevel. A joint "
+"you made keeps its form; change it later in the junction's editor (select "
+"the junction and press Enter)."
+msgstr ""
+
+#: src/reference/window/tools.md:193
 msgid ""
 "The Wire tool on a fluid page, drawing tubes at once: open it with Tube on "
 "the Fluid tab (Fluid ▸ Tubes ▸ Tube). It draws the line kind used last, "
@@ -5624,28 +5647,28 @@ msgid ""
 "ends. Right-click a tube to change its line kind."
 msgstr ""
 
-#: src/reference/window/tools.md:188
+#: src/reference/window/tools.md:199
 msgid "Next autoconnect proposal"
 msgstr ""
 
-#: src/reference/window/tools.md:190
+#: src/reference/window/tools.md:201
 msgid ""
 "While a symbol floats near other connection points, shows the next of the "
 "connections EW proposes to draw when you place it. It has no menu item; use "
 "its key."
 msgstr ""
 
-#: src/reference/window/tools.md:193
+#: src/reference/window/tools.md:204
 msgid "Connect while moving"
 msgstr ""
 
-#: src/reference/window/tools.md:195
+#: src/reference/window/tools.md:206
 msgid ""
 "While moving a symbol, connects its connection points to the ones it lands "
 "on. It has no menu item; use its key."
 msgstr ""
 
-#: src/reference/window/tools.md:197
+#: src/reference/window/tools.md:208
 msgid ""
 "Connect while moving is on when you start: the wires the moved symbol would "
 "make are shown while you drag and are drawn with the move when you let go, "
@@ -5656,11 +5679,11 @@ msgid ""
 "keyboard follows that setting."
 msgstr ""
 
-#: src/reference/window/tools.md:203
+#: src/reference/window/tools.md:214
 msgid "Change a wire's route by hand"
 msgstr ""
 
-#: src/reference/window/tools.md:205
+#: src/reference/window/tools.md:216
 msgid ""
 "Select the wire with Select: it shows as a band along its path, with a round "
 "handle in the middle of each segment and on each bend; the handle under the "
@@ -5676,7 +5699,7 @@ msgid ""
 "spot to select the next of them."
 msgstr ""
 
-#: src/reference/window/tools.md:214
+#: src/reference/window/tools.md:225
 msgid ""
 "With the keyboard: select the wire, then `Tab` gives its first handle the "
 "focus and the handle shows as the one under the pointer does; `Tab` and "
@@ -5685,72 +5708,141 @@ msgid ""
 "back to the wire."
 msgstr ""
 
-#: src/reference/window/tools.md:218
+#: src/reference/window/tools.md:229
 msgid ""
-"When it draws or reroutes a wire, the router never puts a corner of one wire "
+"When it draws or routes a wire, the router never puts a corner of one wire "
 "on a corner or an end of another: it reads as a joint. Between pins that "
 "stand close, such as two two-pole devices wired cross-over a few grid steps "
 "apart, a wire may step half a grid step to cross the other once instead of "
 "going round."
 msgstr ""
 
-#: src/reference/window/tools.md:222
-msgid "Reroute"
+#: src/reference/window/tools.md:233
+msgid "Route"
 msgstr ""
 
-#: src/reference/window/tools.md:224
+#: src/reference/window/tools.md:235
 msgid ""
-"Routes the selected wires, and every wire with an end on a selected symbol, "
-"again; with nothing selected, every wire of the page. A wire gets a new "
-"route where its own breaks a rule (it lies on another wire, runs through a "
-"symbol) or where a shorter one with fewer corners and crossings exists; a "
-"wire that is drawn well keeps its route, so the page is never worse "
-"afterwards. A wire drawn through a text gets a route clear of it wherever "
-"the Wire tool would draw one, and a wire never gets a route through a symbol "
-"or across a text that its old route kept clear of. It applies at once, in "
-"one undo step; the toast names the wires it changed, by their numbers or "
-"their ends, three of them and then how many more (\"3 wires rerouted: 101.3, "
-"101.5 and 101.7.\"), and the page shows them as selected wires while the "
-"toast is up. When no route is better it says \"No better route found: the "
-"wires already run as well as the program can route them.\", followed by why "
-"for each wire that no route keeps clear. Open it with Draw ▸ Connect ▸ "
-"Reroute, or Reroute in a wire's menu. Route page, beside it, routes only the "
-"wires that have no route yet."
+"Routes the wires of the selection (the selected wires and every wire with an "
+"end on a selected symbol), or with nothing selected the wires of the page "
+"that need it: those without a route, those whose route is broken (it lies on "
+"another wire, runs through a pin or a symbol) and those the program routed "
+"before. Symbols stay where they are. A wire you drew yourself keeps its "
+"route unless you select it or it is broken. Open it with Draw ▸ Connect ▸ "
+"Route, or Route in the menu of a wire or a symbol."
 msgstr ""
 
-#: src/reference/window/tools.md:236
-msgid "Route page"
-msgstr ""
-
-#: src/reference/window/tools.md:238
+#: src/reference/window/tools.md:241
 msgid ""
-"Routes every unrouted wire of the page on show in one step. Open it with "
-"Draw ▸ Connect ▸ Route page. The Preview tab shows the plan first: \"Route 3 "
-"wires on folio 101: 2 routed, 1 not routed.\", and for each wire that no "
-"route keeps clear, why, such as \"No route keeps clear of other wires: "
-"-101F1:2 → -101E55:L.\"; a wire routed across a text, as keeping clear of "
-"the text is a far longer way, is named too. Apply draws the routes, and one "
-"Undo takes them back; the toast says \"Routed 2 wires on folio 101.\" When "
-"every wire of the page has a route it says \"Every wire on folio 101 has a "
-"route.\" and that Reroute draws routed wires again. The router routes supply "
-"wires and long wires first, keeps the wires of a feed side by side in the "
-"order L1, L2, L3, N, PE where their ends allow it, and keeps every route "
-"clear as the Wire tool does. A wire it cannot route stays unrouted; move a "
-"symbol to make room, or place its bends with the Wire tool."
+"The wires of one potential are routed together. A potential that runs over "
+"several symbols, from pin to pin or through junctions, becomes one straight "
+"line with a straight drop to each pin; the junctions move onto that line and "
+"keep their wires and their order. Two wires of one pin may run on one line "
+"out of it and part where they go different ways: the page draws the parting "
+"with a 45° bevel, the way two wires on one terminal are drawn. A wire "
+"between two pins that face each other on one line is one straight line. What "
+"is left is routed as the Wire tool routes it, and a tag that stands in a "
+"wire's way steps aside."
 msgstr ""
 
-#: src/reference/window/tools.md:248 src/explanation/eplan-and-ew.md:44
+#: src/reference/window/tools.md:248
+msgid ""
+"Route applies at once, in one undo step: the toast names the wires it "
+"changed, by their numbers or their ends, three of them and then how many "
+"more (\"Routed 5 wires: 101.3, 101.5, 101.7 and 2 more.\"), and the page "
+"shows them as selected wires while the toast is up. A wire without a way "
+"keeps its route, or stays a dashed line, and the toast says what is in its "
+"way, such as \"No way for -101F1:2 → -101E55:L: other wires are in its "
+"way.\" Where Route would replace a broken route you drew, the Preview tab "
+"shows the plan first and names those wires; Apply stores it, Cancel leaves "
+"the page as it is."
+msgstr ""
+
+#: src/reference/window/tools.md:255
+msgid ""
+"With nothing selected, Route draws again by itself only the wires the "
+"program routed, the unrouted ones and the broken ones. Every other routed "
+"wire counts as drawn by you, and so does every wire of a project made before "
+"this version: the toast says how many keep their routes (\"Nothing changed: "
+"14 wires keep the routes they have.\"), and where routing them anew would "
+"make the page better, its Route these too… shows that plan in the Preview "
+"tab first. To have some of them drawn again, select them and choose Route. "
+"When no wire would run better, it says \"Nothing to route: no wire would run "
+"better.\""
+msgstr ""
+
+#: src/reference/window/tools.md:262
+msgid "Arrange and route"
+msgstr ""
+
+#: src/reference/window/tools.md:264
+msgid ""
+"Moves the symbols of the selection, or with nothing selected the symbols of "
+"the page, to where the page is best for them, and routes their wires. Open "
+"it with Draw ▸ Connect ▸ Arrange and route, or Arrange and route in the menu "
+"of a symbol. Nothing changes until you choose Apply."
+msgstr ""
+
+#: src/reference/window/tools.md:268
+msgid ""
+"Each symbol is put in line with the pin it is wired to, on the side that pin "
+"faces: a contact under the breaker that feeds it, a sensor over its input's "
+"pin, a cylinder over its valve, a mark at the left end of the potential that "
+"comes in. A symbol may cross the page for it, within the rules of a drawing "
+"of its kind: on an electrical page the potentials stand at the head and the "
+"foot and current runs down a circuit, a card's channels keep their order; on "
+"a fluid page the supply stands below the valves and each actuator above its "
+"valve, the actuators in their order; on a bus page the stations stand in the "
+"order of the line, level. The space you left along a circuit stays: a symbol "
+"is neither pulled nearer nor spread out, unless it has to move. A move has a "
+"price, so a symbol moves only where the page gets visibly better, and a page "
+"already in order gives no plan."
+msgstr ""
+
+#: src/reference/window/tools.md:277
+msgid ""
+"It never moves a symbol you keep in place (right-click ▸ Keep in place), a "
+"symbol outside the selection, a symbol in a structure box, or a symbol to "
+"another page, and it never turns or mirrors one. The symbols you keep stay "
+"where they are and the others are arranged round them."
+msgstr ""
+
+#: src/reference/window/tools.md:281
+msgid ""
+"The Preview tab shows what it would do: how many symbols move and how many "
+"of them across the sheet, the page's crossings and bends now and then, a "
+"ticked row per symbol that moves (the far moves first) with its move in grid "
+"steps, a ticked row per wire you drew that gets a new route, and what is "
+"left as it is: the symbols kept in place, with their pin, the symbols that "
+"have no room on the side their pin faces, and the wires without a way. The "
+"page shows it as it would become: the symbols that move tinted, their old "
+"places as faint outlines joined to the new ones by a dotted line. Hold B to "
+"see the page as it is."
+msgstr ""
+
+#: src/reference/window/tools.md:288
+msgid ""
+"Untick a row to plan again with that symbol where it stands, or that wire as "
+"it runs; the page and the rows follow, and what you see is what Apply "
+"stores. Apply stores it in one step, and the toast says what moved and what "
+"was routed (\"Arranged folio 102: 4 symbols moved, 9 wires routed.\"); one "
+"Undo takes all of it back. When nothing would make the page better, it says "
+"\"Nothing to arrange: the page is already arranged as well as the rules "
+"allow.\""
+msgstr ""
+
+#: src/reference/window/tools.md:293 src/explanation/eplan-and-ew.md:44
 msgid "Interruption point"
 msgstr ""
 
-#: src/reference/window/tools.md:250
+#: src/reference/window/tools.md:295
 msgid ""
 "Places an interruption point: the end of a potential on this page that "
 "continues at a point of the same name elsewhere. Open it with Draw ▸ Connect "
 "▸ Interruption point."
 msgstr ""
 
-#: src/reference/window/tools.md:253
+#: src/reference/window/tools.md:298
 msgid ""
 "The arrow always points right, the way the signal flows. A source, where the "
 "potential leaves the page, has its wire on the arrow's tail and belongs at "
@@ -5762,7 +5854,7 @@ msgid ""
 "end."
 msgstr ""
 
-#: src/reference/window/tools.md:259
+#: src/reference/window/tools.md:304
 msgid ""
 "Type the name in the field Interruption point name at the page's top left, "
 "once for a pair: the tool then floats the same name as the first point's "
@@ -5793,7 +5885,7 @@ msgid ""
 "carries the target's name."
 msgstr ""
 
-#: src/reference/window/tools.md:279
+#: src/reference/window/tools.md:324
 msgid ""
 "A point keeps room for its texts: where its name or its cross-reference "
 "would print over another interruption point's, it is not placed, and the "
@@ -5802,11 +5894,11 @@ msgid ""
 "anyway."
 msgstr ""
 
-#: src/reference/window/tools.md:283
+#: src/reference/window/tools.md:328
 msgid "Interruption point direction"
 msgstr ""
 
-#: src/reference/window/tools.md:285
+#: src/reference/window/tools.md:330
 msgid ""
 "Turns the interruption point that the tool floats from source to target, or "
 "back. Draw ▸ Connect ▸ Interruption point direction. An undirected point, "
@@ -5814,7 +5906,7 @@ msgid ""
 "properties."
 msgstr ""
 
-#: src/reference/window/tools.md:289
+#: src/reference/window/tools.md:334
 msgid ""
 "The point takes the form of its new direction: the wire moves from the tail "
 "to the tip, or back. Changing the direction of a placed point in its "
@@ -5822,21 +5914,21 @@ msgid ""
 "other form yet: place one point of that direction first."
 msgstr ""
 
-#: src/reference/window/tools.md:293
+#: src/reference/window/tools.md:338
 msgid "Star source"
 msgstr ""
 
-#: src/reference/window/tools.md:295
+#: src/reference/window/tools.md:340
 msgid ""
 "Marks the interruption point as the source of its name in star mode: one "
 "source, many targets. Draw ▸ Connect ▸ Star source."
 msgstr ""
 
-#: src/reference/window/tools.md:298
+#: src/reference/window/tools.md:343
 msgid "Wire marker"
 msgstr ""
 
-#: src/reference/window/tools.md:300
+#: src/reference/window/tools.md:345
 msgid ""
 "Places a wire marker, the label that prints the cross-section and colours of "
 "the wires it marks. Open it with **Marker** on the Draw tab or Shift+W. Drag "
@@ -5853,7 +5945,7 @@ msgid ""
 "text beyond the line's end, clear of the wires."
 msgstr ""
 
-#: src/reference/window/tools.md:310
+#: src/reference/window/tools.md:355
 msgid ""
 "The wires' numbers print on the page with **Draw ▸ Connect ▸ Print wire "
 "numbers**, a setting of the project that the PDF and print follow too: each "
@@ -5863,62 +5955,62 @@ msgid ""
 "and core name it."
 msgstr ""
 
-#: src/reference/window/tools.md:315
+#: src/reference/window/tools.md:360
 msgid "Text"
 msgstr ""
 
-#: src/reference/window/tools.md:317
+#: src/reference/window/tools.md:362
 msgid "Places a free text on the page. Open it with Draw ▸ Annotate ▸ Text."
 msgstr ""
 
-#: src/reference/window/tools.md:319
+#: src/reference/window/tools.md:364
 msgid "Graphic"
 msgstr ""
 
-#: src/reference/window/tools.md:321
+#: src/reference/window/tools.md:366
 msgid ""
 "Draws a graphic: a line, polyline, rectangle, circle, arc or polygon, which "
 "has no electrical meaning. Open it with Draw ▸ Annotate ▸ Graphic and the "
 "shape."
 msgstr ""
 
-#: src/reference/window/tools.md:324 src/explanation/eplan-and-ew.md:120
+#: src/reference/window/tools.md:369 src/explanation/eplan-and-ew.md:120
 msgid "Structure box"
 msgstr ""
 
-#: src/reference/window/tools.md:326
+#: src/reference/window/tools.md:371
 msgid ""
 "Draws a structure box: a dashed frame that puts what it encloses into a "
 "function or location of the project's structure. Open it with Draw ▸ "
 "Annotate ▸ Structure box."
 msgstr ""
 
-#: src/reference/window/tools.md:329
+#: src/reference/window/tools.md:374
 msgid "Image"
 msgstr ""
 
-#: src/reference/window/tools.md:331
+#: src/reference/window/tools.md:376
 msgid ""
 "Places an image file (SVG, PNG or JPEG) on the page. Open it with Draw ▸ "
 "Annotate ▸ Image…."
 msgstr ""
 
-#: src/reference/window/tools.md:333
+#: src/reference/window/tools.md:378
 msgid "Place device"
 msgstr ""
 
-#: src/reference/window/tools.md:335
+#: src/reference/window/tools.md:380
 msgid ""
 "On a panel layout page, places a device of the location on a rail or the "
 "mounting plate. Open it from the Unplaced devices navigator, which lists the "
 "devices of the location that have no place yet."
 msgstr ""
 
-#: src/reference/window/tools.md:338
+#: src/reference/window/tools.md:383
 msgid "Rail"
 msgstr ""
 
-#: src/reference/window/tools.md:340
+#: src/reference/window/tools.md:385
 msgid ""
 "On a panel layout page, draws a mounting rail. Open it with Draw ▸ Rail. The "
 "page shows an enclosure first: Project ▸ Setup ▸ Enclosure… puts the new "
@@ -5926,11 +6018,11 @@ msgid ""
 "layout](../../how-to/panel-layout.md))."
 msgstr ""
 
-#: src/reference/window/tools.md:343
+#: src/reference/window/tools.md:388
 msgid "Duct"
 msgstr ""
 
-#: src/reference/window/tools.md:345
+#: src/reference/window/tools.md:390
 msgid "On a panel layout page, draws a wiring duct. Open it with Draw ▸ Duct."
 msgstr ""
 
@@ -7388,9 +7480,9 @@ msgstr ""
 msgid ""
 "To change one: select it. The selected wire shows round handles; drag one to "
 "change its route ([Change a wire's route by "
-"hand](tools.md#change-a-wires-route-by-hand)), or choose **Reroute** to "
-"route it again ([Reroute](tools.md#reroute)). Its number, colour and "
-"cross-section are its rows in Properties, explained under "
+"hand](tools.md#change-a-wires-route-by-hand)), or choose **Route** to route "
+"it again ([Route](tools.md#route)). Its number, colour and cross-section are "
+"its rows in Properties, explained under "
 "[Connection](../properties.md#connection)."
 msgstr ""
 

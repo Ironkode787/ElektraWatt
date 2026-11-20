@@ -231,6 +231,18 @@ place of a part that has no line to take.
 The rules are checked on a plan by one function, `rules_kept(before, after)`, beside the measure; the placer's
 tests use it on every plan.
 
+*As built (step 4).* `ew_drafting::rules`: each rule a function over the page that names the parts breaking it;
+`rules_kept` holds when every rule broken after the plan was broken before by the same parts and none of them moved.
+The rules read the parts and their nets: a **pair** is a net of two pins on two parts, a **rail** a net with two
+junctions or more on one horizontal line whose pins (but marks') all face it from one side. E1 reads pairs from a
+pin facing down to one facing up; E2 the circuits of a rail (the parts reached from its pins through pairs) and the
+band above the highest feeding rail and below the lowest returning one; E3 a mark against every pin and junction of
+its net; E4 a card's pairs (beyond its pin, in its channels' order; "no part of another circuit between" is not
+checked); E5 the nearest other pin of the earth symbol's net, city-block; F1 a source and service unit below every
+valve, an actuator above every valve it is reached from through parts that are neither; B1 a line read from its
+controller, else from its leftmost station. A5 judges only a pair whose parts stood against no rule (one that had to
+move), and lets a part join a row's line up to `ROW_PULL` beyond the chain gap.
+
 ---
 
 ## 2. The model of a page for layout
@@ -382,6 +394,13 @@ does (both ends on their pins or junctions, after the moves of the same command)
 `computed`, refuses a move of a locked part and a part onto another, sets `orient` only on a junction of the bevel form, and
 takes nothing else: it cannot change an end, a junction's form, its wires or its sequence. Commands store and never compute (kept): replaying a log runs no router.
 `connection.route_many` goes; `rep.move` keeps its `routes` for the move's own re-solve (§7.4).
+
+*As built (step 4).* `parts: [{rep, steps: [kx, ky]}]` moves each symbol as `rep.move`'s `steps` does (one function
+for both). The command refuses a symbol kept in place, one named twice, one whose connection points or anchor would
+leave the drawing area of a page with a frame grid (the cell lookup the command layer has), one whose body (its
+symbol's graphics, a drawn box's outline) would overlap another's by a grid step or more each way where it did not
+before, and a moved symbol whose routed wires (at its connection points) get no route in the same plan. A plan gives
+every wire whose route it changes, an empty route for a wire of a moved symbol that has no way.
 
 ### 2.7 Where the code lives
 
@@ -801,6 +820,30 @@ one feeder arranges that feeder and leaves the page.
 **In part.** Unticking a part in the preview adds it to the fixed units and plans again; the result is a
 consistent page whichever rows are ticked. The preview never applies half of a plan.
 
+*As built (step 4).* `ew_drafting::place`, its module documentation step by step. Where it differs or chooses:
+units by `unit` number and by an outline drawn round other parts (`frame_only`); a unit is fixed also when its origin
+is off the whole grid (the API keeps a symbol whose position is not exactly a grid point fixed, since a move by steps
+counts from it). The anchor of a group without a fixed unit is the one whose tree moves the least weight to set the
+others on the side their host's pin faces (a part out of place moves, not the circuit round it), then a part a rail
+taps, then the heaviest. A follower keeps its own place when it stands well beyond its host's new place (the host moved
+into the gap before it), but on a fluid page. A stack's movers take the nearest free place from the chain gap outward
+by the estimate. Trunks: a mark of a rail takes the rail's line; a group whose part drops straight from a junction
+within two steps takes that junction's line across. Fluid pages have their band as E2 has: a group without a valve,
+and each branch of the supply hanging on a valve, moves along the flow by the least distance. The estimate also
+prices a plain shape through another part's body (two bends). The footprint holds a part's labels at their first
+places as the page shows them now; fitting brings a branch that leaves the drawing area back first, and of two groups
+on each other the later takes the nearest free place across, one step at a time, right before left. The plan: the
+parts a broken rule names go back with what hangs on them until the rules hold (they read parts and nets, so no
+routing is needed for it); then the page is routed once. Where the measure does not take the plan of all moves, the
+plans without one branch (a unit's own move with what hangs on it) and of one branch alone are tried, eight each at
+most, and the best taken is offered. A plan is taken only when it is better by the measure with the price of its moves
+added (`MOVE_PRICE` per moved part), no wire or text gains a finding, a figure a reader compares gets better, and,
+where it routes no dashed wire, faults, crossings and bends are not worse. Without one, Route's plan of the scope is
+offered, the parts without room named all the same. Swaps of neighbouring groups are tried by the estimate; the
+candidates "beside each group it is wired to, `COLUMN_GAP` clear" and "the first free place from the left" are not
+built. The room of §4.5 counts the tracks of a row's stepping wires (`tracks_needed`); the labels between are not
+counted.
+
 ---
 
 ## 5. Texts
@@ -972,6 +1015,16 @@ shows the page as it is. The Preview tab holds the card:
 Unticking a row plans again with that part fixed, or that wire kept, and the canvas follows. Apply stores what
 is shown, in one `layout.apply`; one Undo takes all of it back. After Apply a toast says "Arranged page 102: 4
 parts moved, 9 wires routed" with Undo.
+
+*As built (step 4).* `layout.arrange` beside Route in the Connect group and in the menu of a symbol and of a selection
+of symbols; `ew route --arrange`. The card (the Preview tab) has the lead, the figures now and then, a ticked row
+per symbol that moves (far moves first, its move in steps) and per wire you drew that gets a new route, and "Left as it
+is": kept symbols with their pin, symbols without room with the side, wires without a way and nets wired against
+their order. A tick (`layout.arrange_tick`) plans again with every unticked symbol where it stands and every unticked
+wire as it runs; unticked symbols stay listed. The canvas paints the page the preview's candidate would leave
+(`Session::preview_page`, read once per plan) with each moved symbol's new place tinted, its old one a faint dashed
+outline and a dotted line between; while B is held it paints the page as it is (B, the black box tool's key, does
+nothing else while the card is open). The toast after Apply: "Arranged folio 102: 4 symbols moved, 9 wires routed."
 
 ### 7.4 The Wire tool, connecting on placement, moving
 

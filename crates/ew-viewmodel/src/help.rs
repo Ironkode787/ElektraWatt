@@ -100,8 +100,9 @@ pub static ANCHORS: &[Anchor] = &[
     on("reference/commands/index.md", "commands", ""),
     on(WINDOW, "about", "about"),
     // A topic for every tool action, every dialog without one above, every pane and navigator kind.
-    // Route has its section on the tools page.
+    // Route and Arrange and route have their sections on the tools page.
     on(TOOLS, "layout-route", "route"),
+    on(TOOLS, "layout-arrange", "arrange-and-route"),
     on(DIALOGS, "dialog-goto-page", "go-to-page-or-cell"),
     on(DIALOGS, "dialog-form", "form-dialogs"),
     on(DIALOGS, "dialog-purge", "purge-unused-images"),
@@ -336,6 +337,7 @@ fn own_topic(action: &str) -> Option<&'static str> {
         "strip.edit" => "strip-editor",
         "navigator.table" => "table-mode",
         "layout.route" => "layout-route",
+        "layout.arrange" | "layout.arrange_tick" | "layout.arrange_as_is" => "layout-arrange",
         "route.handle" | "route.handle_move" => "route-by-hand",
         a if a.starts_with("symbol.") => "symbol-editor",
         a if a.starts_with("tool.") => return tool_topic(a),
