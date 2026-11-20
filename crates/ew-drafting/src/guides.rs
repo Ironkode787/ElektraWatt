@@ -90,10 +90,7 @@ pub fn guides(page: &DraftPage, ghost: &Part, pointer: Pt, points_per_step: f64)
             }
         }
     }
-    let placed = Part {
-        at,
-        ..ghost.clone()
-    };
+    let placed = Part { at, ..ghost.clone() };
     let body = placed.bounds();
     let half = TICKS_PER_STEP / 2;
     let mut out: Vec<Guide> = in_line(page, &placed)
@@ -175,9 +172,9 @@ fn holds(r: Rect, p: Pt) -> bool {
 /// along, then by point.
 fn in_line(page: &DraftPage, ghost: &Part) -> Vec<Facing> {
     let wired = |a: &Pin, b: &Pin| {
-        page.wires.iter().any(|w| {
-            w.ends == [End::Pin(a.id), End::Pin(b.id)] || w.ends == [End::Pin(b.id), End::Pin(a.id)]
-        })
+        page.wires
+            .iter()
+            .any(|w| w.ends == [End::Pin(a.id), End::Pin(b.id)] || w.ends == [End::Pin(b.id), End::Pin(a.id)])
     };
     let mut out = Vec::new();
     for h in &ghost.pins {
@@ -208,7 +205,10 @@ fn in_line(page: &DraftPage, ghost: &Part) -> Vec<Facing> {
                     Pt::new(ph.x, po.y)
                 };
                 let between = page.parts.iter().any(|q| {
-                    q.id != ghost.id && q.id != part.id && !q.frame_only && geom::crosses((po, level), q.bounds())
+                    q.id != ghost.id
+                        && q.id != part.id
+                        && !q.frame_only
+                        && geom::crosses((po, level), q.bounds())
                 });
                 if between && !wired(h, o) {
                     continue;
@@ -256,7 +256,10 @@ fn level(page: &DraftPage, ghost: &Part) -> Option<Guide> {
         .min_by_key(|p| (p.at.x.abs_diff(ghost.at.x), p.at, p.id))?;
     let (a, b) = (other.at.plus(top), ghost.at.plus(top));
     let half = TICKS_PER_STEP / 2;
-    let (x0, x1) = (a.x.min(b.x).saturating_sub(half), a.x.max(b.x).saturating_add(half));
+    let (x0, x1) = (
+        a.x.min(b.x).saturating_sub(half),
+        a.x.max(b.x).saturating_add(half),
+    );
     Some(Guide {
         kind: GuideKind::Level,
         line: (Pt::new(x0, a.y), Pt::new(x1, a.y)),

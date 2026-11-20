@@ -915,7 +915,9 @@ fn line_px(
     let (dx, dy) = (fx1 as i64 - x0, fy1 as i64 - y0);
     let mut run = Vec::new();
     for i in first..=last {
-        if (dash == Dash::Dashed && (i / (TOOL_DASH_PX * s)) % 2 == 1) || (dash == Dash::Dotted && (i / s) % 3 != 0) {
+        if (dash == Dash::Dashed && (i / (TOOL_DASH_PX * s)) % 2 == 1)
+            || (dash == Dash::Dotted && (i / s) % 3 != 0)
+        {
             continue;
         }
         let (x, y) = if n == 0 {

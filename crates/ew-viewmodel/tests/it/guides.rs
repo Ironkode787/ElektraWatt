@@ -73,7 +73,11 @@ fn float_breaker(s: &mut ShellModel) {
 /// The representation new since `before`.
 fn new_rep(s: &ShellModel, before: &[TableRep]) -> TableRep {
     let t = tables(s);
-    let new: Vec<&TableRep> = t.reps.iter().filter(|r| before.iter().all(|b| b.id != r.id)).collect();
+    let new: Vec<&TableRep> = t
+        .reps
+        .iter()
+        .filter(|r| before.iter().all(|b| b.id != r.id))
+        .collect();
     assert_eq!(new.len(), 1, "one new representation");
     new[0].clone()
 }
@@ -135,7 +139,10 @@ fn a_pointer_0_7_step_from_the_guide_takes_its_line_0_8_does_not_and_alt_shows_n
     hover(&mut s, (40.7, row), false);
     assert_eq!(floating_at(&s), page_point(&s, 40.0, row));
     let (solid, all) = guides(&s);
-    assert!(solid >= 2 && all >= solid, "a solid guide with its tick: {solid} of {all}");
+    assert!(
+        solid >= 2 && all >= solid,
+        "a solid guide with its tick: {solid} of {all}"
+    );
     // 0.8 step: the ordinary snap's grid line, the guides dotted beside it.
     hover(&mut s, (40.8, row), false);
     assert_eq!(floating_at(&s), page_point(&s, 41.0, row));
@@ -156,7 +163,11 @@ fn a_pointer_0_7_step_from_the_guide_takes_its_line_0_8_does_not_and_alt_shows_n
     hover(&mut s, (41.3, row + 9), false);
     hover(&mut s, (42.6, row), false);
     let t = tables(&s);
-    let now = t.reps.iter().find(|r| r.id == lower.id).expect("the placed breaker");
+    let now = t
+        .reps
+        .iter()
+        .find(|r| r.id == lower.id)
+        .expect("the placed breaker");
     assert_eq!((now.pos, s.revision()), (lower.pos, rev));
     assert!(t.reps.iter().any(|r| r.id == upper.id && r.pos == upper.pos));
 }
@@ -184,7 +195,11 @@ fn a_dragged_symbol_takes_the_guides_line_unless_alt_is_held() {
     let to = (from.0 - step * 3 / 10, from.1);
     let drag = |s: &mut ShellModel, alt: bool| {
         done(s, "canvas.press", at(from, json!({ "alt": alt })));
-        done(s, "canvas.pointer", at((from.0 + 2 * step, from.1), json!({ "alt": alt })));
+        done(
+            s,
+            "canvas.pointer",
+            at((from.0 + 2 * step, from.1), json!({ "alt": alt })),
+        );
         done(s, "canvas.pointer", at(to, json!({ "alt": alt })));
         done(s, "canvas.release", at(to, json!({ "alt": alt })));
     };

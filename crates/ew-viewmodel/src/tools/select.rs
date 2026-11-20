@@ -194,7 +194,12 @@ fn drag_steps(
     alt: bool,
 ) -> ((i64, i64), Vec<OverlayItem>) {
     let steps = steps_between(cx, from, at);
-    let mut reps = cx.page.tables.reps.iter().filter(|r| moved.contains(&EntityRef(r.id)));
+    let mut reps = cx
+        .page
+        .tables
+        .reps
+        .iter()
+        .filter(|r| moved.contains(&EntityRef(r.id)));
     let (Some(rep), None, false) = (reps.next(), reps.next(), alt) else {
         return (steps, Vec::new());
     };
