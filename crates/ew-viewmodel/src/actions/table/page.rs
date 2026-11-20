@@ -16,9 +16,15 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         placed(
             place(Group::Pages, 1, CommandSize::Large, None),
             "file-plus",
-            act("page.new", Command, Menu::Page, &[], writable, None, |s, p| {
-                s.act_page_new(p)
-            }),
+            in_symbol_editor(act(
+                "page.new",
+                Command,
+                Menu::Page,
+                &[],
+                writable,
+                None,
+                |s, p| s.act_page_new(p),
+            )),
         ),
     ),
     // The question before a page's Connection grid changes under its items: Change and fit (rc.5).

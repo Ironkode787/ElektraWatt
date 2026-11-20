@@ -619,9 +619,10 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_jobs_open_result(p),
         )),
     )),
+    // A toast's action, which goes while the symbol editor shows too.
     keeps_banner(with_params(
         "entry:uint, action:text",
-        hidden(act(
+        in_symbol_editor(hidden(act(
             "notifications.run",
             Command,
             Menu::View,
@@ -629,7 +630,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             always,
             None,
             |s, p| s.act_notifications_run(p),
-        )),
+        ))),
     )),
     answers_recovery(hidden(act(
         "journal.recover",
@@ -946,9 +947,10 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_part_box_details(),
     )),
+    // Redraw the boxes, which the device box's Save in the symbol editor offers in one.
     with_params(
         "part:text",
-        hidden(act(
+        in_symbol_editor(hidden(act(
             "part.redraw_boxes",
             Command,
             Menu::Edit,
@@ -956,7 +958,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             writable,
             None,
             |s, p| s.act_part_redraw_boxes(p),
-        )),
+        ))),
     ),
     with_params(
         "another?:bool",

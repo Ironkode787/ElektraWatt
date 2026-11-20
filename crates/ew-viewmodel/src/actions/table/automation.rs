@@ -107,19 +107,23 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         )),
     ),
     // Place here (rc.5, H13): the part's box, bus ports or positions on the pointer on the page the view stands on; a
-    // PLC navigator's row names its part.
+    // PLC navigator's row names its part, which the action words its refusal for.
     with_params(
         "device?:ref",
         hidden(with_aliases(
             &[("device", ParamForm::Whole)],
-            act(
-                "plc.module_place",
-                Command,
-                Menu::Plc,
-                &[],
-                station_module_placeable,
-                None,
-                |s, p| s.act_plc_module_place(p),
+            enabled_when_named(
+                &["device"],
+                writable,
+                act(
+                    "plc.module_place",
+                    Command,
+                    Menu::Plc,
+                    &[],
+                    station_module_placeable,
+                    None,
+                    |s, p| s.act_plc_module_place(p),
+                ),
             ),
         )),
     ),
@@ -387,14 +391,19 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             placed(
                 place(Group::FluidLists, 3, CommandSize::Small, None),
                 "report-analytics",
-                act(
-                    "fluid.generate_overview",
-                    Command,
-                    Menu::Fluid,
-                    &[],
-                    valve_terminal_selected,
-                    None,
-                    |s, p| s.act_fluid_generate_overview(p),
+                // A valve terminal's row names its terminal.
+                enabled_when_named(
+                    &["station"],
+                    writable,
+                    act(
+                        "fluid.generate_overview",
+                        Command,
+                        Menu::Fluid,
+                        &[],
+                        valve_terminal_selected,
+                        None,
+                        |s, p| s.act_fluid_generate_overview(p),
+                    ),
                 ),
             ),
         )),
@@ -508,14 +517,19 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
                     Some(key!("bar-draw-plug")),
                 ),
                 "bolt",
-                act(
-                    "fluid.draw_plug",
-                    Command,
-                    Menu::Fluid,
-                    &[],
-                    multipin_terminal_selected,
-                    None,
-                    |s, p| s.act_fluid_draw_plug(p),
+                // A terminal's menu or Properties row names its terminal.
+                enabled_when_named(
+                    &["terminal"],
+                    writable,
+                    act(
+                        "fluid.draw_plug",
+                        Command,
+                        Menu::Fluid,
+                        &[],
+                        multipin_terminal_selected,
+                        None,
+                        |s, p| s.act_fluid_draw_plug(p),
+                    ),
                 ),
             ),
         ),

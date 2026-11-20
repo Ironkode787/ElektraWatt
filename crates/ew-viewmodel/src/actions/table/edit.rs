@@ -10,7 +10,7 @@ use super::super::enabled::*;
 use super::super::*;
 
 pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
-    with_icon(
+    in_symbol_editor(with_icon(
         "arrow-back-up",
         act(
             "edit.undo",
@@ -21,8 +21,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             slot(Menu::Edit),
             |s, _| s.act_undo(),
         ),
-    ),
-    with_icon(
+    )),
+    in_symbol_editor(with_icon(
         "arrow-forward-up",
         act(
             "edit.redo",
@@ -33,7 +33,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             slot(Menu::Edit),
             |s, _| s.act_redo(),
         ),
-    ),
+    )),
     // Edit, History.
     keeps_banner(with_params(
         "on?:bool",

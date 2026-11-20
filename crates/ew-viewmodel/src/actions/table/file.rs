@@ -423,7 +423,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_close(p),
         ),
     ),
-    answers_recovery(with_params(
+    answers_recovery(in_symbol_editor(with_params(
         "discard?:bool",
         act(
             "app.quit",
@@ -434,5 +434,5 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             slot(Menu::File),
             |s, p| s.act_quit(p),
         ),
-    )),
+    ))),
 ];

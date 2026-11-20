@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The actions' enable checks: each `fn(&ShellModel) -> Result<(), Key>` that an entry of the action table names as
-//! its `enabled`, the reason key of a refusal in its error, and [`enabled_with`], which decides with the parameters
-//! of a call where the table's check alone does not.
+//! its `enabled` or `enabled_when_named`, the reason key of a refusal in its error, and [`enabled_with`], which
+//! decides with the parameters of a call and holds the one rule that is not in the rows (the symbol editor's).
 //!
 //! Not here: the table that names the checks is `actions/table/`; the menus built from it in `actions/menu.rs`.
 
@@ -527,9 +527,15 @@ pub(super) fn potential_point(m: &ShellModel) -> Result<(), Key<'static>> {
     m.potential_point().map(|_| ())
 }
 
-/// Whether the action `meta` can run now with the parameters `p`: its predicate, except where the parameters supply
-/// what the predicate reads from the selection (`bond.draw` with `a` or `b` names its two ends itself). The
-/// menus and the palette, which send no such parameters, read the predicate alone.
+/// Whether the action `meta` can run now with the parameters `p`: its `enabled`, or its `enabled_when_named` where the
+/// parameters name what `enabled` reads from the selection. The menus and the palette, which send no such parameters,
+/// read `enabled` alone.
+///
+/// The one decision that is not in the action's row is the symbol editor's: while it shows, the tools and every
+/// command that is neither the editor's (`symbol.`) nor a file's (`file.`) are refused, but for the rows marked
+/// `in_symbol_editor`, and Save goes whatever the project's state, because it saves the symbol. It is written here
+/// once by the IDs' prefixes because it holds for whole families of actions, several hundred rows, and for every
+/// action added to them.
 ///
 /// # Errors
 ///
@@ -547,48 +553,15 @@ pub fn enabled_with(
             || (meta.kind == ActionKind::Command
                 && !meta.id.starts_with("symbol.")
                 && !meta.id.starts_with("file.")
-                && !matches!(
-                    meta.id,
-                    // A toast's action, and Redraw them, which the device box's Save offers in one (rc.3).
-                    "edit.undo"
-                        | "edit.redo"
-                        | "page.new"
-                        | "app.quit"
-                        | "notifications.run"
-                        | "part.redraw_boxes"
-                ))
+                && !meta.in_symbol_editor)
         {
             return Err(key!("symbol-editor-active"));
         }
     }
-    if meta.id == "bond.draw" && (p.contains_key("a") || p.contains_key("b")) {
-        return editable_page(m);
+    match meta.enabled_when_named {
+        Some((params, enabled)) if params.iter().any(|k| p.contains_key(*k)) => enabled(m),
+        _ => (meta.enabled)(m),
     }
-    // A Cables row's Cable… selects its cable's wires itself (FT-1693).
-    if meta.id == "cable.from_wires" && p.contains_key("cable") {
-        return writable_page(m);
-    }
-    // A station named (a menu's row, a row dropped on the page) is refused by the action in words of its own.
-    if meta.id == "bus.put_station" && p.contains_key("station") {
-        return editable_page(m);
-    }
-    // A valve terminal's row names its terminal.
-    if meta.id == "fluid.generate_overview" && p.contains_key("station") {
-        return writable(m);
-    }
-    // A device's menu names the pin a potential is defined at (rc.5).
-    if meta.id == "potential.draw" && p.contains_key("at") {
-        return editable_page(m);
-    }
-    // A terminal's menu or Properties row names its terminal.
-    if meta.id == "fluid.draw_plug" && p.contains_key("terminal") {
-        return writable(m);
-    }
-    // A PLC navigator's row names its part, which the action words its refusal for.
-    if meta.id == "plc.module_place" && p.contains_key("device") {
-        return writable(m);
-    }
-    (meta.enabled)(m)
 }
 
 /// An editable page with exactly one junction selected (Edit ▸ Junction sequence…; window check).

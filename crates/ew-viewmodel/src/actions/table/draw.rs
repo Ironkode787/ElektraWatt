@@ -1350,31 +1350,40 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_navigator_rename(p),
         ))),
     ),
-    // G-PP triage row 7: Draw ▸ Bond, `bond.create` on the selected connection or two named CPs, previewed.
+    // G-PP triage row 7: Draw ▸ Bond, `bond.create` on the selected connection or two named CPs, previewed. Its two
+    // ends named (`a`, `b`), it needs only the editable page.
     keeps_banner(with_params(
         "kind?:enum(pelv_0v_pe|fe_pe|equipotential|shield), a?:text, b?:text",
-        in_canvas(act(
-            "bond.draw",
-            Command,
-            Menu::Draw,
-            &[],
-            bond_ends,
-            grp_sub(Group::Connect, Submenu::Bond),
-            |s, p| s.act_bond_draw(p),
+        in_canvas(enabled_when_named(
+            &["a", "b"],
+            editable_page,
+            act(
+                "bond.draw",
+                Command,
+                Menu::Draw,
+                &[],
+                bond_ends,
+                grp_sub(Group::Connect, Submenu::Bond),
+                |s, p| s.act_bond_draw(p),
+            ),
         )),
     )),
     // Draw ▸ Define potential…, beside Bond: `potential.define` at the selection's point, through
-    // its parameter form.
+    // its parameter form. A device's menu names the pin a potential is defined at (`at`).
     keeps_banner(with_params(
         "name?:text, type?:text, voltage?:text, at?:text",
-        in_canvas(act(
-            "potential.draw",
-            Command,
-            Menu::Draw,
-            &[],
-            potential_point,
-            grp(Group::Connect),
-            |s, p| s.act_potential_draw(p),
+        in_canvas(enabled_when_named(
+            &["at"],
+            editable_page,
+            act(
+                "potential.draw",
+                Command,
+                Menu::Draw,
+                &[],
+                potential_point,
+                grp(Group::Connect),
+                |s, p| s.act_potential_draw(p),
+            ),
         )),
     )),
     // Draw ▸ Connect ▸ New cable… (`cable.create` from a cable part, with its cores) and Connect
@@ -1404,20 +1413,25 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         )),
     ),
     // Draw ▸ Connect ▸ Cable… (FT-1685): the selected wires as a cable's cores in one form, on the bar after Route
-    // selection, in a column of its own; with `cable`, a Cables row's Cable… on that cable's wires (FT-1693).
+    // selection, in a column of its own; with `cable`, a Cables row's Cable… on that cable's wires (FT-1693), which it
+    // selects itself.
     with_params(
         "tag?:text, type?:text, cores?:json, cable?:text",
         in_canvas(placed(
             place(Group::Connect, 9, CommandSize::Small, Some(key!("bar-cable"))),
             "ew-cable",
-            act(
-                "cable.from_wires",
-                Command,
-                Menu::Draw,
-                &[],
-                cable_wires,
-                grp(Group::Connect),
-                |s, p| s.act_cable_from_wires(p),
+            enabled_when_named(
+                &["cable"],
+                writable_page,
+                act(
+                    "cable.from_wires",
+                    Command,
+                    Menu::Draw,
+                    &[],
+                    cable_wires,
+                    grp(Group::Connect),
+                    |s, p| s.act_cable_from_wires(p),
+                ),
             ),
         )),
     ),

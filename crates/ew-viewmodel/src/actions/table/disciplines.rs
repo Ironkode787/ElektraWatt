@@ -33,17 +33,22 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
-    // Put a station on this page… (rc.2): its stations head Place port's list; the bus page's own menu has it.
+    // Put a station on this page… (rc.2): its stations head Place port's list; the bus page's own menu has it. A
+    // station named (a menu's row, a row dropped on the page) is refused by the action in words of its own.
     with_params(
         "station?:text, x_mm?:mm, y_mm?:mm, group?:uint",
-        act(
-            "bus.put_station",
-            Command,
-            Menu::Plc,
-            &[],
-            put_station_page,
-            sub(Menu::Plc, Submenu::BusPorts, false),
-            |s, p| s.act_bus_put_station(p),
+        enabled_when_named(
+            &["station"],
+            editable_page,
+            act(
+                "bus.put_station",
+                Command,
+                Menu::Plc,
+                &[],
+                put_station_page,
+                sub(Menu::Plc, Submenu::BusPorts, false),
+                |s, p| s.act_bus_put_station(p),
+            ),
         ),
     ),
     placed(

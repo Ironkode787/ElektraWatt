@@ -269,6 +269,9 @@ pub struct MenuSlot {
 /// that it is enabled and resolved its aliases.
 pub(crate) type Handler = fn(&mut ShellModel, &Map<String, Value>) -> Outcome;
 
+/// Whether an action can run now: `Err` carries the reason key of its refusal (the checks are in `actions/enabled.rs`).
+pub type Enabled = fn(&ShellModel) -> Result<(), Key<'static>>;
+
 /// One action of the registry.
 ///
 /// A dependant reads an action's facts but cannot reach its handler: an action runs only through
@@ -288,7 +291,14 @@ pub struct ActionMeta {
     /// The default shortcuts (`Ctrl+Shift+Z`); `Ctrl` reads `Cmd` on macOS. The first is shown in menus.
     pub shortcut: &'static [&'static str],
     /// Whether the action can run now: `Err` carries the reason key of its refusal.
-    pub enabled: fn(&ShellModel) -> Result<(), Key<'static>>,
+    pub enabled: Enabled,
+    /// The parameters that name what [`Self::enabled`] reads from the selection, and the check that decides in its
+    /// place when a call sends one of them (a row's menu that names its station, `bond.draw` with its two ends); the
+    /// menus and the palette send none and read `enabled` alone ([`enabled_with`]).
+    pub enabled_when_named: Option<(&'static [&'static str], Enabled)>,
+    /// A command that goes while the symbol editor shows, though it is neither the editor's (`symbol.`) nor a file's
+    /// (`file.`): Undo, Redo, New page, Quit, a toast's action and Redraw the boxes ([`enabled_with`]).
+    pub in_symbol_editor: bool,
     /// The place in the menu bar; `None` for palette-only and headless-only actions.
     pub menu: Option<MenuSlot>,
     /// The action exists only in the headless mode (no menu entry, not in the palette).
@@ -427,7 +437,7 @@ const fn act(
     kind: ActionKind,
     category: Menu,
     shortcut: &'static [&'static str],
-    enabled: fn(&ShellModel) -> Result<(), Key<'static>>,
+    enabled: Enabled,
     menu: Option<MenuSlot>,
     handler: Handler,
 ) -> ActionMeta {
@@ -437,6 +447,8 @@ const fn act(
         category,
         shortcut,
         enabled,
+        enabled_when_named: None,
+        in_symbol_editor: false,
         menu,
         headless_only: false,
         needs_parameters: false,
@@ -463,6 +475,23 @@ const fn with_params(params: &'static str, mut a: ActionMeta) -> ActionMeta {
 /// Names the parameters of an action that take a UUID or a reference.
 const fn with_aliases(aliases: &'static [(&'static str, ParamForm)], mut a: ActionMeta) -> ActionMeta {
     a.aliases = aliases;
+    a
+}
+
+/// Names the parameters that supply what the action's `enabled` reads from the selection, and the check of a call that
+/// sends one of them ([`ActionMeta::enabled_when_named`]).
+const fn enabled_when_named(
+    params: &'static [&'static str],
+    enabled: Enabled,
+    mut a: ActionMeta,
+) -> ActionMeta {
+    a.enabled_when_named = Some((params, enabled));
+    a
+}
+
+/// Marks a command that goes while the symbol editor shows ([`ActionMeta::in_symbol_editor`]).
+const fn in_symbol_editor(mut a: ActionMeta) -> ActionMeta {
+    a.in_symbol_editor = true;
     a
 }
 
