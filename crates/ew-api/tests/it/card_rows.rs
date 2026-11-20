@@ -99,7 +99,10 @@ fn a_card_drawn_one_box_at_a_time_is_finished_by_its_further_box() {
     );
     draw(&mut s, station, card, 10, &[4, 5, 6, 7]).expect("the further box");
     assert_eq!(drawings(&s, card), 2, "two drawings of the card");
-    assert!(s.cards_drawn_in_part(station).is_empty(), "every channel's pin drawn");
+    assert!(
+        s.cards_drawn_in_part(station).is_empty(),
+        "every channel's pin drawn"
+    );
     assert!(
         draw(&mut s, station, card, 20, &[0]).is_err(),
         "a pin drawn already is not drawn again"

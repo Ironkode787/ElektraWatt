@@ -961,7 +961,7 @@ fn update_from_library_brings_golden_a_symbols_to_the_plc_address_slot() {
         // to the drafting design's first places (06a §5.2): taking the later members off the shipped drawings no longer
         // gives their published 0.1.0; each rebuilt copy still names 0.1.0, which is what the update reads.
         assert!(
-            matches!(&before, LibDocument::Symbol(c) if c.version.to_string() == "0.1.0"),
+            matches!(&before, LibDocument::Symbol(c) if c.version == "0.1.0"),
             "{key}"
         );
         *doc = before;
@@ -1002,7 +1002,7 @@ fn update_from_library_brings_golden_a_symbols_to_the_plc_address_slot() {
                 c.state,
                 CopyState::UpdateAvailable {
                     class,
-                    version: version.into()
+                    version
                 },
                 "{}",
                 c.copy

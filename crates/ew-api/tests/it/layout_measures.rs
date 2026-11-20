@@ -493,7 +493,9 @@ fn starter_marks_stack_two_steps_apart_without_their_texts_meeting() {
     }
     let (source, target) = (
         s.starter_symbol_copy("ew.gen.ip@qet10").unwrap().to_string(),
-        s.starter_symbol_copy("ew.gen.ip-target@qet10").unwrap().to_string(),
+        s.starter_symbol_copy("ew.gen.ip-target@qet10")
+            .unwrap()
+            .to_string(),
     );
     for (i, row) in [20, 22, 24].into_iter().enumerate() {
         for (symbol, x, direction) in [(&target, 52, "target"), (&source, 72, "source")] {

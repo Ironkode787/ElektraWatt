@@ -24,7 +24,7 @@
 {"action":"canvas.activate"}
 {"action":"cursor.set","params":{"x_mm":124.61,"y_mm":46.324}}
 {"action":"canvas.activate"}
-{"action":"cursor.set","params":{"x_mm":68.792,"y_mm":82.021}}
+{"action":"cursor.set","params":{"x_mm":134.938,"y_mm":37.042}}
 {"action":"canvas.activate"}
 {"action":"tool.select"}
 {"action":"plc.grid"}

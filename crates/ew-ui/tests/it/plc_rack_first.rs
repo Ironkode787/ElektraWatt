@@ -788,9 +788,12 @@ fn a_module_drawn_from_the_station_view_is_one_row_of_pins_along_one_edge() {
     };
     for (module, edge) in [(modules[0], Dir::Up), (modules[1], Dir::Down)] {
         let b = card(module);
-        let (top, bottom, left) = b.outline.iter().fold((i64::MAX, i64::MIN, i64::MAX), |(t, d, l), p| {
-            (t.min(p.1), d.max(p.1), l.min(p.0))
-        });
+        let (top, bottom, left) = b
+            .outline
+            .iter()
+            .fold((i64::MAX, i64::MIN, i64::MAX), |(t, d, l), p| {
+                (t.min(p.1), d.max(p.1), l.min(p.0))
+            });
         let row: Vec<(u16, (i64, i64))> = b.cps.iter().filter(|c| c.2 == edge).map(|c| (c.0, c.1)).collect();
         assert_eq!(
             row.len(),
@@ -799,11 +802,17 @@ fn a_module_drawn_from_the_station_view_is_one_row_of_pins_along_one_edge() {
         );
         let y = if edge == Dir::Up { top } else { bottom };
         assert!(row.iter().all(|(_, p)| p.1 == y), "on one edge: {row:?}");
-        assert!(row.windows(2).all(|w| w[0].0 < w[1].0), "in channel order: {row:?}");
+        assert!(
+            row.windows(2).all(|w| w[0].0 < w[1].0),
+            "in channel order: {row:?}"
+        );
         let steps: Vec<i64> = row.iter().map(|(_, p)| step(p.0)).collect();
         assert!(steps.windows(2).all(|w| w[1] - w[0] == pitch), "{steps:?}");
         assert!(
-            b.cps.iter().filter(|c| c.2 != edge).all(|c| c.2 == Dir::Left && c.1.0 == left),
+            b.cps
+                .iter()
+                .filter(|c| c.2 != edge)
+                .all(|c| c.2 == Dir::Left && c.1.0 == left),
             "the supply pins on the left side: {b:?}"
         );
         if edge == Dir::Up {
@@ -812,7 +821,10 @@ fn a_module_drawn_from_the_station_view_is_one_row_of_pins_along_one_edge() {
                 "at the foot of the drawing area: {b:?} {area:?}"
             );
         } else {
-            assert!(bottom < (area[1] + area[3]) / 2, "in the upper half: {b:?} {area:?}");
+            assert!(
+                bottom < (area[1] + area[3]) / 2,
+                "in the upper half: {b:?} {area:?}"
+            );
         }
     }
     h.state_mut().shell_mut().shutdown();
