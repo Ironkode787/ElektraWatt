@@ -42,7 +42,7 @@ fn golden_a() -> Session {
         records,
         batch.lib,
         SessionOptions {
-            ids: Some(Box::new(ew_testkit::synth::SynthSource::new(11))),
+            ids: Some(ew_testids::seeded_ids(11)),
             history: HistoryLimits::default(),
             ..SessionOptions::default()
         },

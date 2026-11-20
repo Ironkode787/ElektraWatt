@@ -7,7 +7,7 @@ version.workspace = true
 edition.workspace = true
 rust-version = "1.93"
 license = "GPL-3.0-or-later"
-description = "Golden builders, project generators, oracle comparator and acceptance runner."
+description = "The golden builders of Golden A and a synthetic parts library, for the tests."
 repository.workspace = true
 publish = false
 
@@ -25,14 +25,10 @@ undocumented_unsafe_blocks = "warn"
 mem_forget = "warn"
 
 [dependencies]
-# The generator (`ew_testkit::synth`) builds format-level records and the model snapshot from them.
 ew-model = { path = "../ew-model" }
 ew-schema = { path = "../ew-schema" }
-# IDs come from `V7Generator` over a seeded source of this crate, so no test-only feature is needed here.
 ew-ids = { path = "../ew-ids" }
 ew-units = { path = "../ew-units" }
-ew-mltext = { path = "../ew-mltext" }
-ew-rds = { path = "../ew-rds" }
 # The golden builders (WP-S6.01): path (a), the CSV bootstrap, and path (b), the builder DSL, which reads the
 # bootstrap batch as its typed description and speaks the JSON parameters of the commands (doc 17 §3.5).
 ew-import-tables = { path = "../ew-import-tables" }
@@ -47,6 +43,9 @@ ew-api = { path = "../ew-api" }
 ew-commands = { path = "../ew-commands", features = ["testkit"] }
 # The seeded, reproducible ID source of the tests (doc 18 §2.2; dev-only crate).
 ew-testids = { path = "../ew-testids" }
+# The tests build texts and reference designations.
+ew-mltext = { path = "../ew-mltext" }
+ew-rds = { path = "../ew-rds" }
 serde_json = "1.0.154"
 # The command fuzz test reads the derived connectivity (dev-only edge, `[allowed_dev_edges]`).
 ew-derive = { path = "../ew-derive" }

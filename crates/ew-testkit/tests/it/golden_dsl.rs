@@ -57,7 +57,7 @@ fn session_over(shell: golden::Shell, seed: u64) -> Session {
         [],
         shell.lib,
         SessionOptions {
-            ids: Some(Box::new(ew_testkit::synth::SynthSource::new(seed))),
+            ids: Some(ew_testids::seeded_ids(seed)),
             memo: ew_api::MemoMode::Off,
             history: HistoryLimits {
                 max_steps: 10_000,

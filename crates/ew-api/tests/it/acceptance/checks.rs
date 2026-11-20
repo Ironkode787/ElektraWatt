@@ -1217,7 +1217,7 @@ fn ac15_builder_path(c: &Ctx) -> Outcome {
         [],
         shell.lib,
         SessionOptions {
-            ids: Some(Box::new(ew_testkit::synth::SynthSource::new(1))),
+            ids: Some(ew_testids::seeded_ids(1)),
             memo: ew_api::MemoMode::Off,
             ..SessionOptions::default()
         },

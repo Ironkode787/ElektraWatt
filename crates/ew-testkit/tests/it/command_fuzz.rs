@@ -237,7 +237,7 @@ fn open_session_with(seed: u64, memo: MemoMode) -> Session {
         batch.lib.clone(),
         SessionOptions {
             memo,
-            ids: Some(Box::new(ew_testkit::synth::SynthSource::new(seed))),
+            ids: Some(ew_testids::seeded_ids(seed)),
             history: HistoryLimits {
                 max_steps: 10_000,
                 ..HistoryLimits::default()
