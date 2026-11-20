@@ -6,6 +6,7 @@
 //! The sections follow one another in the order of `super::SECTIONS`, and that order is the registry's: it sets the
 //! order of menu items, palette rows and the shortcut list. Move an entry only where its menu neighbours are.
 
+use super::super::enabled::*;
 use super::super::*;
 
 pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[

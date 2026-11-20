@@ -5,6 +5,7 @@
 //! window already has with its discipline's parameters (`ShellModel::act_discipline_*`). The PLC and fluid commands
 //! themselves are placed where they are declared (section `automation`, `tool.fluid_line` in `draw`).
 
+use super::super::enabled::*;
 use super::super::*;
 
 pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[

@@ -5,6 +5,7 @@
 //! building one declared command (`plc.*`, `bus.*`, `fluid.*`, `assembly.attach`) from the row or the selection it is
 //! aimed at.
 
+use super::super::enabled::*;
 use super::super::*;
 
 pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
