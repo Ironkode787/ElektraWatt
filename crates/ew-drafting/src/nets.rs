@@ -281,6 +281,30 @@ pub fn tap_points(present: Pt, ends: &[(Pt, Option<Side>)]) -> Vec<Pt> {
             }
         }
     }
+    // Two ends that face each other along one axis (a drop and what it feeds, each on its own line): the tap on a
+    // line across between them, the trunk gap from either or in the middle, in line with each end of the net.
+    for (a, sa) in ends {
+        for (b, sb) in ends {
+            let (Some(sa), Some(sb)) = (sa, sb) else { continue };
+            let u = sa.unit();
+            let gap = (b.x - a.x) * u.x + (b.y - a.y) * u.y;
+            if *sb != crate::rules::opposite(*sa) || gap < 2 * TRUNK_GAP {
+                continue;
+            }
+            for d in [TRUNK_GAP, gap / 2, gap - TRUNK_GAP] {
+                for (c, _) in ends {
+                    let p = if sa.vertical() {
+                        Pt::new(grid(c.x), grid(a.y + u.y * d))
+                    } else {
+                        Pt::new(grid(a.x + u.x * d), grid(c.y))
+                    };
+                    if !out.contains(&p) {
+                        out.push(p);
+                    }
+                }
+            }
+        }
+    }
     out
 }
 

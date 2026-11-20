@@ -359,3 +359,40 @@ fn a_tube_goes_round_a_valve_terminal_and_one_across_it_is_f4() {
         "the valve's own tube leaves straight out of its port: {f:?}"
     );
 }
+
+/// A junction with two drops stands over one of them (§3.4): its wires leave it different ways, none lies along
+/// another, and the net is routed without a fault.
+#[test]
+fn a_junction_with_two_drops_stands_over_one_of_them() {
+    let mut b = Page::new(60, 30);
+    b.mark_in("L", p(6, 6));
+    for (k, x) in [16, 28, 34].into_iter().enumerate() {
+        b.device(&format!("K{k}"), p(x, 12));
+    }
+    let (j0, j1) = (b.junction("J0", p(16, 6)), b.junction("J1", p(31, 6)));
+    b.wire("a", b.pin("L", "1"), j0, &[]);
+    b.wire("d0", j0, b.pin("K0", "1"), &[]);
+    b.wire("b", j0, j1, &[]);
+    b.wire("d1", j1, b.pin("K1", "1"), &[]);
+    b.wire("d2", j1, b.pin("K2", "1"), &[]);
+    let page = routed(&b.page);
+    let q = measure(&page);
+    assert_eq!((q.faults, q.unrouted), (0, 0), "{:?}", q.findings);
+    let at = point(&page, j1);
+    assert!(at.x == s(28) || at.x == s(34), "{at:?}");
+}
+
+/// Between a pin and the pins it feeds that face it, a tap may stand on a line across, two steps from either or in the
+/// middle, in line with each end of the net (§3.4).
+#[test]
+fn a_tap_may_stand_on_a_line_across_between_a_pin_and_the_pins_that_face_it() {
+    let ends = [
+        (p(10, 10), Some(Side::Down)),
+        (p(10, 20), Some(Side::Up)),
+        (p(16, 20), Some(Side::Up)),
+    ];
+    let taps = ew_drafting::nets::tap_points(p(10, 15), &ends);
+    for want in [p(10, 12), p(16, 12), p(16, 15), p(10, 18), p(16, 18)] {
+        assert!(taps.contains(&want), "{want:?} of {taps:?}");
+    }
+}

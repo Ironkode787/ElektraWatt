@@ -41,6 +41,12 @@
 //! lower" (its height and [`LABEL_CLEAR`] down) as its second place: the first of a row keeps its place, the second
 //! steps down, the third finds its place free again: two rows.
 //!
+//! **The stacked-marks rule.** The name of a mark (a part of one pin that leaves sideways) whose texts, where their
+//! author put them, reach another mark or its texts, or leave the drawing area, has "in line with the wire beyond the
+//! arrow" as its first place: marks stacked two steps apart read as a list, each name beside its arrow. A mark that
+//! stands alone, and a name its author set in line already, keep the author's place. `first_places` gives the placer these first places, so that
+//! it sets a stack by the texts as they will stand.
+//!
 //! # The choice (§5.3)
 //!
 //! Labels (blocks) are placed in the order of their kind's priority, then of their owner's place (top, then left),
@@ -655,6 +661,7 @@ fn along_wire(route: &[Pt], (w, h): (Tick, Tick), placed: &[(Rect, bool, Seg)]) 
 pub fn settle_labels(page: &DraftPage) -> Vec<Settled> {
     let ground = Ground::of(page);
     let mut units = units(&ground);
+    stacked_marks(&ground, &mut units);
     stagger(&mut units);
     // The order of §5.3.
     let mut order: Vec<usize> = (0..units.len()).collect();
@@ -760,6 +767,34 @@ pub fn settle_labels(page: &DraftPage) -> Vec<Settled> {
         }
     }
     out.sort_by_key(|s| s.id);
+    out
+}
+
+/// Each label of a part at the first place of its list, by label ID: where it stands when nothing is in its way. The
+/// placer reads a part's footprint from these, so a text that stepped aside on the page as drawn does not change where
+/// the part is set.
+pub(crate) fn first_places(page: &DraftPage) -> Vec<(LabelId, Rect)> {
+    let ground = Ground::of(page);
+    let mut out: Vec<(LabelId, Rect)> = Vec::new();
+    let mut units = units(&ground);
+    stacked_marks(&ground, &mut units);
+    for unit in units {
+        if !matches!(unit.owner, Owner::Part(_)) {
+            continue;
+        }
+        let Some((r, _)) = candidates(&ground, &unit, &[]).first().copied() else {
+            continue;
+        };
+        for &(i, offset) in &unit.members {
+            let rect = if unit.members.len() == 1 {
+                r
+            } else {
+                Rect::sized(r.top_left().plus(offset), page.labels[i].size)
+            };
+            out.push((page.labels[i].id, rect));
+        }
+    }
+    out.sort_by_key(|x| x.0);
     out
 }
 
@@ -1112,6 +1147,69 @@ fn units(ground: &Ground<'_>) -> Vec<Unit> {
         out.extend(rest.into_iter().map(alone));
     }
     out
+}
+
+/// The stacked-marks rule (module documentation): the name of a mark whose texts, where their author put them, reach
+/// another mark or its texts, or leave the drawing area, has "in line with the wire beyond the arrow" as its first
+/// place. A name its author set in line already (the wire's line runs through its height) keeps its author's place.
+fn stacked_marks(ground: &Ground<'_>, units: &mut [Unit]) {
+    // Each mark with a name: its part, the texts' first places and its body.
+    let mut marks: BTreeMap<PartId, (Vec<Rect>, Rect)> = BTreeMap::new();
+    for u in units.iter() {
+        let Owner::Part(p) = u.owner else { continue };
+        let Some(part) = ground.parts.get(&p) else {
+            continue;
+        };
+        let level = matches!(
+            part.pins.as_slice(),
+            [pin] if matches!(pin.side, Some(Side::Left | Side::Right))
+        );
+        if level
+            && matches!(u.kind, LabelKind::MarkName | LabelKind::MarkXref)
+            && let Some(first) = u.given.first()
+        {
+            marks
+                .entry(p)
+                .or_insert_with(|| (Vec::new(), part.bounds()))
+                .0
+                .push(*first);
+        }
+    }
+    let crowded = |p: PartId| {
+        let Some((mine, _)) = marks.get(&p) else {
+            return false;
+        };
+        mine.iter().any(|r| {
+            let g = r.grown(LABEL_CLEAR);
+            !ground.inside(*r)
+                || marks.iter().any(|(o, (texts, body))| {
+                    *o != p && (body.overlaps(g) || texts.iter().any(|t| t.overlaps(g)))
+                })
+        })
+    };
+    for u in units.iter_mut() {
+        let Owner::Part(p) = u.owner else { continue };
+        if u.kind != LabelKind::MarkName || u.given.is_empty() || !crowded(p) {
+            continue;
+        }
+        let Some(part) = ground.parts.get(&p) else {
+            continue;
+        };
+        let (b, (w, h)) = (part.bounds(), u.size);
+        let Some((q, side)) = part.pins.first().map(|pin| (part.at.plus(pin.at), pin.side)) else {
+            continue;
+        };
+        if u.given.first().is_some_and(|r| r.y0 < q.y && q.y < r.y1) {
+            continue;
+        }
+        let in_line = match side {
+            Some(Side::Right) => bx(b.x0 - LABEL_CLEAR - w, q.y - half(h), u.size),
+            Some(Side::Left) => bx(b.x1 + LABEL_CLEAR, q.y - half(h), u.size),
+            _ => continue,
+        };
+        u.given.retain(|r| *r != in_line);
+        u.given.insert(0, in_line);
+    }
 }
 
 /// The two-rows rule (module documentation).

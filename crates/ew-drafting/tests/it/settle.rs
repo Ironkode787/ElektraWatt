@@ -375,3 +375,38 @@ fn a_tag_moved_into_the_drawing_area_keeps_clear_of_its_line() {
     let t = find(&settle_labels(&b.page), tag);
     assert_eq!((t.rank, t.rect.x0), (1, LABEL_CLEAR), "{t:?}");
 }
+
+/// The stacked-marks rule (§5.3): of marks set two steps apart, the name its author put above the arrow would stand
+/// on the mark above it; it stands in line with its wire beyond its arrow, and nothing clashes. A mark that stands
+/// alone keeps its name where its author put it.
+#[test]
+fn the_name_of_a_mark_stacked_under_another_stands_in_line_beyond_its_arrow() {
+    let mut b = Page::new(40, 30);
+    let size = (30, 24);
+    let above = Pt::new(-s(2), -s(1) / 2 - LABEL_CLEAR - size.1);
+    let mut named = |mark: &str, at: Pt| {
+        let part = b.mark_in(mark, at);
+        b.label(
+            Owner::Part(part),
+            0,
+            LabelKind::MarkName,
+            size,
+            Places::At(vec![above]),
+        )
+    };
+    let (_, under, alone) = (
+        named("m0", p(10, 10)),
+        named("m1", p(10, 12)),
+        named("m2", p(10, 22)),
+    );
+    let settled = settle_labels(&b.page);
+    assert!(apart(&settled), "{settled:?}");
+    let bodies: Vec<Rect> = b.page.parts.iter().map(|x| x.bounds()).collect();
+    for t in &settled {
+        assert!(!bodies.iter().any(|r| r.overlaps(t.rect)), "{t:?} on an arrow");
+    }
+    // In line: beyond the arrow's tail (the arrow lies from 8 to 10 steps), the wire's line through its height.
+    let r = find(&settled, under).rect;
+    assert!(r.x1 <= s(8) && r.y0 < s(12) && s(12) < r.y1, "{r:?}");
+    assert_eq!(find(&settled, alone).rect.top_left(), p(10, 22).plus(above));
+}

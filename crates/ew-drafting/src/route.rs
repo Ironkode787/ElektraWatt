@@ -530,9 +530,14 @@ fn trunk_routes(r: &Router, net: &Net, line: Line) -> Option<TrunkRoutes> {
                             .then_some(pin.at)
                         })
                         .collect();
-                    match drops.as_slice() {
-                        [one] => line.foot(*one),
-                        _ => line.foot(at),
+                    // Of several, the nearest: the junction stands over one of its drops, so that no two of its wires
+                    // come to it along one stretch of the trunk.
+                    match drops
+                        .iter()
+                        .min_by_key(|p| ((line.along(**p) - line.along(at)).abs(), line.along(**p)))
+                    {
+                        Some(one) => line.foot(*one),
+                        None => line.foot(at),
                     }
                 }
                 End::Junction(_) => line.foot(at),
@@ -729,16 +734,42 @@ impl Router {
                 let mut cost: u64 = 0;
                 let mut kept = BTreeMap::new();
                 let mut clear_count = 0usize;
+                // Two wires of one trunk may share only their run out of a pin both end at: a wire that would lie along
+                // another one of the trunk laid before it (two wires of a junction that leave it the same way) goes to
+                // the search.
+                let mut tried: Vec<(WireId, Vec<Pt>)> = Vec::new();
                 for (w, route) in &routes {
                     let spine_wire = self
                         .ends
                         .get(w)
                         .is_some_and(|e| e.iter().all(|x| net.taps.contains(x)));
-                    let ok = valid && route.as_ref().is_some_and(|rt| self.clear(*w, rt));
+                    let pin_of = |x: WireId| -> Vec<End> {
+                        self.ends
+                            .get(&x)
+                            .into_iter()
+                            .flatten()
+                            .copied()
+                            .filter(|e| matches!(e, End::Pin(_)))
+                            .collect()
+                    };
+                    let along = route.as_ref().is_some_and(|rt| {
+                        tried.iter().any(|(o, other)| {
+                            !pin_of(*w).iter().any(|e| pin_of(*o).contains(e))
+                                && geom::segments(rt).iter().any(|s| {
+                                    geom::segments(other)
+                                        .iter()
+                                        .any(|t| geom::overlap(*s, *t).is_some())
+                                })
+                        })
+                    });
+                    let ok = valid && !along && route.as_ref().is_some_and(|rt| self.clear(*w, rt));
                     if ok {
                         clear_count += 1;
                         cost += u64::from(self.price(*w, route.as_deref().unwrap_or(&[])));
                         kept.insert(*w, route.clone());
+                        if let Some(rt) = route {
+                            tried.push((*w, rt.clone()));
+                        }
                     } else {
                         if spine_wire {
                             valid = false;

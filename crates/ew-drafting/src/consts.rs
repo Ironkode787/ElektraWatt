@@ -53,12 +53,16 @@ pub const MARK_LEAD: Tick = 2 * TICKS_PER_STEP;
 pub const ROW_GAP: Tick = TICKS_PER_STEP;
 /// The placer: a part joins a common line when within this.
 pub const ROW_PULL: Tick = 6 * TICKS_PER_STEP;
-/// The placer: between two groups set side by side.
-pub const COLUMN_GAP: Tick = 6 * TICKS_PER_STEP;
-/// The placer: what a move has to earn in the estimate, per part, in steps.
+/// The placer: what a move has to earn on the routed page, per part, in steps.
 pub const MOVE_PRICE: i64 = 2;
-/// The placer: the head and the foot of the sheet kept for trunks and their marks, and [`TRUNK_PITCH`] more per trunk.
-pub const BAND: Tick = 3 * TICKS_PER_STEP;
+/// The placer: how many steps a tree's root may step, each way, to find its tree room.
+pub const REACH: Tick = 24;
+/// The placer: the most units of a tree that are tried as its anchor.
+pub const ANCHORS: usize = 6;
+/// The placer: the most trees, and the most branches, whose plans are routed one by one.
+pub const BRANCHES: usize = 8;
+/// The placer: the most runs one press makes (it stops at the first that changes nothing).
+pub const ROUNDS: usize = 4;
 /// The placer: an earth symbol from the pin it earths.
 pub const EARTH_REACH: Tick = 8 * TICKS_PER_STEP;
 /// The text placer: a label and anything it does not belong to stand at least this far apart (1/8 step).

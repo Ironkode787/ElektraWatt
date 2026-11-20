@@ -12,10 +12,13 @@
 //! - **A1.** A part with pins (or a drawn box) outside the drawing area or on another part (F7 of the measure).
 //! - **A2.** A part kept in place (`locked`: kept, outside the scope, inside a structure box) that moved.
 //! - **A3.** A part turned, mirrored or reshaped (its body or a pin moved against its origin), or gone.
-//! - **A4.** The partners of one part's pins on one side out of the order of those pins across that side.
-//! - **A5.** A pair of facing pins, the second at least two steps beyond the first, closed up, or spread further than
-//!   a row's common line takes it (the chain gap and [`ROW_PULL`] more); not a pair with a part that stood against
-//!   another rule (it had to move).
+//! - **A4.** The partners that face the pins of one line (the pins of one part on one side, or of parts of one size
+//!   whose pins stand on one line: the terminals of a strip) out of the order of those pins across that side. Facing
+//!   pairs only: wires that turn a corner nest, and wires that turn back lie inside one another, the other way round.
+//! - **A5.** A pair of facing pins, the second at least two steps beyond the first, closed up (nearer than it stood
+//!   and nearer than the chain gap) or spread (further than it stood, or than the chain gap, by more than
+//!   [`ROW_PULL`]: what a row's common line may take); not a pair with a part that stood against another rule (it had
+//!   to move).
 //! - **E1.** A pair from a pin that faces down to a pin that faces up whose first pin is not above the second.
 //! - **E2.** A part of a circuit above the rail that feeds it (or below the one it returns to): a trunk net with two
 //!   junctions or more on one horizontal line and whose pins all face that line from one side, its circuits the parts
@@ -24,7 +27,8 @@
 //! - **E3.** An incoming mark not at the left end of its net (a pin or junction of the net further left), an outgoing
 //!   one not at the right end.
 //! - **E4.** A card's partner not beyond the card's pin along its side, or two partners of one edge of a card out of
-//!   the order of their channels.
+//!   the order of their channels. Not a partner whose own pin faces the same way as the card's: its wire turns back,
+//!   and it has no place in the channel's column.
 //! - **E5.** An earth symbol further than [`EARTH_REACH`] (city-block) from the nearest pin of its net.
 //! - **F1.** A pressure source or service unit not lower than every valve; an actuator not higher than a valve it is
 //!   reached from through tubes and parts that are neither valves nor sources.
@@ -321,21 +325,30 @@ fn changes(
     out
 }
 
-/// A4: per part and side, its partners' pins across that side in the order of its pins.
+/// A4: per line of pins that face one side, of one part or of parts of one size (a card's edge, the terminals of a
+/// strip), their partners' pins across that side in the order of the pins.
 fn a4(w: &Wiring<'_>) -> Vec<Broken> {
-    let mut rows: BTreeMap<(usize, Side), Vec<Partner>> = BTreeMap::new();
+    let mut rows: BTreeMap<((Tick, Tick), Side, Tick), Vec<Partner>> = BTreeMap::new();
     for (a, b) in w.pairs() {
         for (h, f) in [(a, b), (b, a)] {
-            let ((hp, ha, hs), (fp, fa, _)) = (w.pins[&h], w.pins[&f]);
-            if let Some(s) = hs {
-                rows.entry((hp, s))
-                    .or_default()
-                    .push((across(ha, s), across(fa, s), fp));
+            let ((hp, ha, hs), (fp, fa, fs)) = (w.pins[&h], w.pins[&f]);
+            // A row is of parts that face their pins: a wire that turns a corner nests with its neighbours, and one
+            // that turns back lies inside or outside them (the order of such parts is the other way round).
+            if let Some(s) = hs
+                && fs == Some(opposite(s))
+            {
+                let body = w.parts[hp].body;
+                let line = if s.vertical() { ha.y } else { ha.x };
+                rows.entry(((body.w(), body.h()), s, line)).or_default().push((
+                    across(ha, s),
+                    across(fa, s),
+                    fp,
+                ));
             }
         }
     }
     let mut out = Vec::new();
-    for ((_, _), mut row) in rows {
+    for (_, mut row) in rows {
         row.sort();
         for i in 0..row.len() {
             for j in i + 1..row.len() {
@@ -363,9 +376,12 @@ fn a5(b: &Wiring<'_>, a: &Wiring<'_>, moved: &BTreeSet<PartId>, misplaced: &BTre
         };
         let (before, after) = (beyond(pb, qb, s), beyond(pa.1, qa.1, s));
         let ids = [b.part_id(pi), b.part_id(qi)];
-        let spread = after > before.max(CHAIN_GAP + ROW_PULL);
+        // Closed up: nearer than the chain gap, or than it stood where it stood nearer. Spread: further than a row's
+        // line takes a part beyond the chain gap, or beyond where it stood.
+        let closed = after < before.min(CHAIN_GAP);
+        let spread = after > before.max(CHAIN_GAP) + ROW_PULL;
         if before >= CHAIN_GAP_MIN
-            && (after < before || spread)
+            && (closed || spread)
             && ids.iter().any(|x| moved.contains(x))
             && !ids.iter().any(|x| misplaced.contains(x))
         {
@@ -502,10 +518,15 @@ fn e4(w: &Wiring<'_>) -> Vec<Broken> {
     let mut edges: BTreeMap<(usize, Side), Vec<Partner>> = BTreeMap::new();
     for (a, b) in w.pairs() {
         for (c, f) in [(a, b), (b, a)] {
-            let ((ci, cp, cs), (fi, fp, _)) = (w.pins[&c], w.pins[&f]);
+            let ((ci, cp, cs), (fi, fp, fs)) = (w.pins[&c], w.pins[&f]);
             let (Some(s), Role::Card) = (cs, w.parts[ci].role) else {
                 continue;
             };
+            // A partner whose pin faces the way the card's does is wired out, across and back: it has no side of the
+            // card to stand on, and its place in a row follows its neighbours.
+            if fs == Some(s) {
+                continue;
+            }
             if beyond(cp, fp, s) <= 0 {
                 out.push(broken_by(Rule::E4, vec![w.part_id(fi)]));
             }

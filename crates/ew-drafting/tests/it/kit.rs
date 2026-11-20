@@ -106,9 +106,10 @@ impl Page {
         part
     }
 
-    /// An incoming mark at `at` whose wire leaves right, with its name.
+    /// An incoming mark at `at` whose wire leaves right (an arrow two steps long and one high), with its name.
     pub fn mark_in(&mut self, name: &str, at: Pt) -> PartId {
-        let part = self.part(name, at, (p(-2, -1), p(0, 1)), &[("1", p(0, 0), Side::Right)]);
+        let body = (Pt::new(-s(2), -s(1) / 2), Pt::new(0, s(1) / 2));
+        let part = self.part(name, at, body, &[("1", p(0, 0), Side::Right)]);
         self.role(part, Role::MarkIn);
         self.label(
             Owner::Part(part),
@@ -120,9 +121,10 @@ impl Page {
         part
     }
 
-    /// An outgoing mark at `at` whose wire leaves left, with its name.
+    /// An outgoing mark at `at` whose wire leaves left (an arrow two steps long and one high), with its name.
     pub fn mark_out(&mut self, name: &str, at: Pt) -> PartId {
-        let part = self.part(name, at, (p(0, -1), p(2, 1)), &[("1", p(0, 0), Side::Left)]);
+        let body = (Pt::new(0, -s(1) / 2), Pt::new(s(2), s(1) / 2));
+        let part = self.part(name, at, body, &[("1", p(0, 0), Side::Left)]);
         self.role(part, Role::MarkOut);
         self.label(
             Owner::Part(part),
