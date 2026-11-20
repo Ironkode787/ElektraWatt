@@ -272,10 +272,13 @@ in. A symbol may cross the page for it, within the rules of a drawing of its kin
 potentials stand at the head and the foot and current runs down a circuit, a card's channels keep their order; on a
 fluid page the supply stands below the valves and each actuator above its valve, the actuators in their order; on a
 bus page the stations stand in the order of the line, level. The space you left along a circuit stays: a symbol is
-neither pulled nearer nor spread out, unless it has to move. A move has a price, so a symbol moves only where the page
-gets visibly better, and a page already in order gives no plan. It never offers less than Route would do with the
-same wires: when moving symbols does not make the page better than routing alone, it offers Route's plan and says that
-no symbol moves.
+neither pulled nearer nor spread out, unless it has to move. A row you made (the terminals of a strip, cards side by
+side, like symbols level) moves as one or stays as one. Every arrangement is routed and measured before you see it. A
+move has a price, so a symbol moves only where the page gets visibly better, and a page already in order gives no
+plan. It never offers less than Route would do with the same wires: when moving symbols does not make the page better
+than routing alone, it offers Route's plan and says that no symbol moves. That is also what it does on a page wired
+against its symbols, such as a card whose pins face up wired to the upper ends of terminals that stand below it: no
+arrangement mends that, wire the terminals' other ends or turn the page round yourself.
 
 It never moves a symbol you keep in place (right-click ▸ Keep in place), a symbol outside the selection, a symbol in a
 structure box, or a symbol to another page, and it never turns or mirrors one. The symbols you keep stay where they
@@ -285,13 +288,16 @@ The Preview tab shows what it would do: how many symbols move and how many of th
 are routed and how many of those you drew, the page's crossings and bends now and then, a ticked row per symbol that
 moves (the far moves first) with its move in grid steps, a ticked row per wire you drew that gets a new route, and what
 is left as it is: the symbols kept in place,
-with their pin, the symbols that have no room on the side their pin faces, and the wires without a way. The page shows
+with their pin, the symbols that stand against a rule of the drawing and found no better place on the side their pin
+faces, and the wires without a way. The page shows
 it as it would become: the symbols that move tinted, their old places as faint outlines joined to the new ones by a
 dotted line. Hold B to see the page as it is.
 
 Untick a row to plan again with that symbol where it stands, or that wire as it runs; the page and the rows follow,
 and what you see is what Apply stores. The tick of the heading "Wires you drew yourself" unticks all your wires at
-once, so that each keeps its route, and ticks them all again. Apply stores it in one step, and the toast says what
+once, so that each keeps its route, and ticks them all again. A row you unticked stays out, and a plan made again
+brings in no other wire of yours. When you have unticked everything, the card closes and says "Nothing is left to
+apply: every change of this preview is unticked." Apply stores it in one step, and the toast says what
 moved and what was routed ("Arranged folio 102: 4 symbols moved, 9 wires routed."); one Undo takes all of it back. In
 the history the step is called Arrange and route, or Route wires when no symbol moved. When the card closes, a page
 that was shown whole is shown whole again. When nothing would make the page better, it says "Nothing to arrange: the

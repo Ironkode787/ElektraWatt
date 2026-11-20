@@ -894,4 +894,27 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   "settled" go; a route and a junction of a drawing made by an older build are read on the grid's numbers too, so a
   symbol dropped on its wire is wired in and the checks meet its wires as before; a wire is written with those
   numbers only when a command changes it; Golden A's routes regenerated, 38 coordinates moved by 1 nm (06a §2.1)
-<!-- Arrange and route (drafting step 4): its lines go here (`layout.arrange`, `layout.apply`'s `parts`, the preview). -->
+- api-add: window Draw ▸ Connect ▸ Arrange and route (`layout.arrange`, also in the menu of a symbol and of a
+  selection of symbols; `ew route --arrange`): it puts the symbols of the selection, or of the page, where the page is
+  best for them within the rules of a drawing of its kind and routes every wire of that scope: each symbol in line
+  with the pin it is wired to on the side that pin faces, a row in the order of its pins, marks in stacks with their
+  wires nested, the symbols a potential feeds level under its rail, actuators above their valves and the service
+  unit below; a strip, cards side by side and like symbols in a row move as one or stay; no symbol is turned (06a §4)
+- behaviour-change: every arrangement Arrange and route weighs is routed and measured before it is offered; it is
+  offered only when it is better than Route over the same wires by more than its moves cost, with no new fault, no
+  new crossing against Route, no wire newly through a text and no text newly on a text; otherwise Arrange and route
+  offers Route's plan and moves nothing, and a second press finds nothing to do (06a §4.7)
+- api-add: the Arrange and route preview (Preview tab): the canvas shows the page as it would become, moved symbols
+  tinted and their old places outlined (B shows the page as it is); the card gives the figures now and then, a ticked
+  row per symbol that moves (far moves first) and per wire you drew that gets a new route, and what is left as it is;
+  unticking a row (`layout.arrange_tick {row}`, or `{all}` on the heading of your wires) plans again around it and
+  brings in no other wire of yours; when nothing is left to apply the card closes and says so; Apply is one undo step,
+  named "Arrange and route" when symbols moved (06a §7.3)
+- api-add: command `layout.apply` takes `parts` (symbol moves in whole grid steps) beside its routes, junctions and
+  markers: one plan, one undo step (06a §2.6)
+- behaviour-change: the name of an interruption point that, where the symbol's author put it, would stand on the next
+  mark stands in line with its wire beyond the arrow, so that marks of older symbols stack two steps apart too (06a
+  §5.3)
+- behaviour-change: Route sets a junction that has several drops over the nearest of them, tries a tap on a line
+  across between a pin and the pins that face it, and sends a wire of a trunk that would lie along another wire of
+  that trunk to the search: a net no longer stays unrouted for it (06a §3.4)

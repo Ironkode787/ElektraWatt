@@ -25,7 +25,8 @@ the reference set gives this program's defaults** (§1.3 marks those rules with 
 3. **Pins decide.** The placer has no template per kind of page. It puts each part *in line with the pin it is
    wired to, on the side that pin faces*, starts from the largest part and works outward, keeps the order the
    person gave, and makes room where things touch. Rails, current paths, card channels and fluid chains come out of
-   this rule and the trunk rule below. The spacings (two steps between wires and between rails, five between the
+   this rule and the trunk rule below. Every arrangement it weighs is routed and measured for real, and none is
+   offered that Route alone beats (§4.7). The spacings (two steps between wires and between rails, five between the
    devices of a chain, five between a card's pins) and the places of texts are those of the pilot's reference set.
 4. **A net is routed as one thing.** Wires joined by junctions, or leaving one pin, are one job. A net with
    several taps gets a **trunk**: one straight line with its junctions on it and a straight drop to each pin.
@@ -162,7 +163,7 @@ the same rules.
 | Kind | What stands where | Trunks | Numbers |
 |---|---|---|---|
 | **Supply and power** | Each feeder is one column: protection, switching, overload, terminals, cable mark, load, each in line with the pole it is wired to, poles 2 steps apart, the earth wire at the right of the phases. Where two devices have another pole pitch, one pole is in line and the others step once, nested. | The phases and N run across the head of the sheet from their marks at the left to their marks at the right, 2 steps apart; the first device of each feeder hangs 2 steps under the nearest. A drop crosses the trunks between it and its own without a dot. | Chain gap 5 steps; trunk 2 steps from the pins it taps; trunks 2 steps apart |
-| **Control circuit in current paths** | Each path is a column between the two trunks; the contacts of all paths on one line, the coils (or lamps) on one line; a parallel branch in its own column beside the path. The contact list of a coil stands left of the coil under its tag; the path's function text under the lower trunk. | The upper potential along the head, the lower one along the foot, each from a mark at the left; a trunk ends at its last path by a corner. | Paths `COLUMN_GAP` clear of each other; the last parts' lower pins on one line when within 6 steps of it |
+| **Control circuit in current paths** | Each path is a column between the two trunks; the contacts of all paths on one line, the coils (or lamps) on one line; a parallel branch in its own column beside the path. The contact list of a coil stands left of the coil under its tag; the path's function text under the lower trunk. | The upper potential along the head, the lower one along the foot, each from a mark at the left; a trunk ends at its last path by a corner. | Paths clear of each other by their footprints and `ROW_GAP`; the last parts' lower pins on one line when within 6 steps of it |
 | **PLC inputs** | The card is a row of channel pins along the foot of the sheet, pins up. Signals from other pages arrive from marks, each mark 2 steps before its drop and 2 steps higher than the one before (a staircase), so the drops do not cross. Devices on the same page stand in line above their terminal and pin. | The devices' common potentials run as trunks between the devices and the card, or beyond the devices. | Card pins 5 steps apart (§7.5); a card stretched to 10 steps takes a device over each pin |
 | **PLC outputs** | The mirror: the card along the head of the sheet, pins down; each load in line under its pin; the loads on one line near the foot; tags and contact lists under the lower trunk, in two rows where the pitch is tighter than a tag is wide. | The loads' return potential is one trunk under the loads, from mark to mark. | Card pins 5 steps apart |
 | **Bus layout** | Stations with their ports on the same side stand level; a link between neighbours runs on the nearest free track beyond the ports and the captions it has to pass; a station's make, type, tag and address stand above its box. | A line bus with three or more stations is a trunk. | Track at least 2 steps from the ports |
@@ -197,9 +198,10 @@ One `const` table in `ew-drafting` holds these; nothing else in the program repe
 | `MARK_PITCH`, `MARK_LEAD` | 2 steps each | placer: marks in a stack; a mark before its drop |
 | `ROW_GAP` | 1 step | placer: between two footprints in a row |
 | `ROW_PULL` | 6 steps | placer: a part joins a common line when within this |
-| `COLUMN_GAP` | 6 steps | placer: between two groups set side by side |
-| `MOVE_PRICE` | 2 per part | placer: what a move has to earn in the estimate (§4.7) |
-| `BAND` | 3 steps, and `TRUNK_PITCH` per trunk | placer: the head and the foot of the sheet, kept for trunks and their marks |
+| `MOVE_PRICE` | 2 per part | placer: what a move has to earn on the routed page (§4.7) |
+| `REACH` | 24 steps | placer: how far a tree's root may step, each way, to find its tree room (§4.7) |
+| `ANCHORS` | 6 | placer: the most units of a tree tried as its anchor (§4.2) |
+| `BRANCHES`, `ROUNDS` | 8; 4 | placer: the most trees, and branches, whose plans are routed one by one; the most runs of one press (§4.7) |
 | `EARTH_REACH` | 8 steps | placer: an earth symbol from the pin it earths |
 | `LABEL_CLEAR` | 2 ticks (1/8 step) | text placer |
 | `WINDOWS` | 4 steps, 16 steps, the drawing area | search areas round the two ends |
@@ -218,8 +220,8 @@ where it has none.
 
 | | Rule (never broken by a plan) |
 |---|---|
-| **Every page** | A1. Every part inside the drawing area; no part on a part. A2. A part that is kept in place, outside the scope or inside a structure box does not move. A3. No part is turned or mirrored, and none leaves its page. A4. The parts of a row stand in the order of the pins they are wired to; the parts of a circuit in the order of the wiring. A5. The spacing along a circuit is the person's: it is neither closed up nor spread; only a part that has to move takes the chain gap. |
-| **Electrical pages** (energy and signals flow down, potentials from left to right) | E1. Current runs down a circuit: of two parts wired through a pin that faces down and a pin that faces up, the first stands above the second. E2. Potentials at the head and the foot: a trunk that feeds lies above every part of the circuits it feeds, a trunk that returns below every part that returns to it, and no part but a mark stands above the highest feeding trunk or below the lowest returning one (the bands). E3. A potential or signal enters at the left and leaves at the right: an incoming mark stands at the left end of its wire or trunk, an outgoing mark at the right end. E4. A card's channels stand in channel order, each channel's parts in the channel's column on the side its pin faces, and no part of another circuit between a pin and its channel's parts. E5. An earth symbol stands within `EARTH_REACH` of the pin it earths. |
+| **Every page** | A1. Every part inside the drawing area; no part on a part. A2. A part that is kept in place, outside the scope or inside a structure box does not move. A3. No part is turned or mirrored, and none leaves its page. A4. The parts of a row stand in the order of the pins they are wired to; the parts of a circuit in the order of the wiring. The terminals of a strip are one row. A5. The spacing along a circuit is the person's: it is neither closed up nor spread; a part that has to move takes the chain gap, and one that joins its row's line may stand up to `ROW_PULL` further. |
+| **Electrical pages** (energy and signals flow down, potentials from left to right) | E1. Current runs down a circuit: of two parts wired through a pin that faces down and a pin that faces up, the first stands above the second. E2. Potentials at the head and the foot: a trunk that feeds lies above every part of the circuits it feeds, a trunk that returns below every part that returns to it, and no part but a mark stands above the highest feeding trunk or below the lowest returning one (the bands). E3. A potential or signal enters at the left and leaves at the right: an incoming mark stands at the left end of its wire or trunk, an outgoing mark at the right end. E4. A card's channels stand in channel order, each channel's parts in the channel's column on the side its pin faces, and no part of another circuit between a pin and its channel's parts. A part wired to a card's pin by a pin of its own that faces the same way (a hairpin) has no place in the column: it stands at the card (§4.3). E5. An earth symbol stands within `EARTH_REACH` of the pin it earths. |
 | **Fluid pages** (energy flows up) | F1. The pressure source and the service unit stand lower than every valve, and every actuator higher than the valve that drives it. F2. The actuators keep their order from left to right (the order of operation is the person's). |
 | **Bus pages** | B1. The stations of a line stand in the order of the line, the controller first at the left. B2. Stations with their ports on the same side stand level. |
 
@@ -240,8 +242,18 @@ band above the highest feeding rail and below the lowest returning one; E3 a mar
 its net; E4 a card's pairs (beyond its pin, in its channels' order; "no part of another circuit between" is not
 checked); E5 the nearest other pin of the earth symbol's net, city-block; F1 a source and service unit below every
 valve, an actuator above every valve it is reached from through parts that are neither; B1 a line read from its
-controller, else from its leftmost station. A5 judges only a pair whose parts stood against no rule (one that had to
-move), and lets a part join a row's line up to `ROW_PULL` beyond the chain gap.
+controller, else from its leftmost station. A4 reads facing pairs only (wires that turn a corner nest, and wires
+that turn back lie inside one another: for both the order of the parts is the other way round), per line of pins
+that face one side: the pins of one part, or of parts of one size whose pins stand on one line (a strip). A5 judges
+only a pair whose parts stood against no rule (one that had to move): it is closed up when it stands nearer than it
+stood and nearer than the chain gap, and spread when it stands further than it stood, or than the chain gap, by more
+than `ROW_PULL`. E4 does not read a pair whose two pins face the same way.
+
+*What was sharpened on 2026-11-20, and why.* A4 was read for every pair; it then forbade the nesting of a stack and
+the order of wires that turn back, both of which §4.4 and §1.4 ask for. A5 forbade any closing and any spreading; the
+designed pages need a part that stood nearer than the chain gap to take it, a row to take one line, and a chain whose
+host moved to keep its distance. E4 bound hairpin parts to the far side of the card. A4 gained the strip: without it
+the plan could leave two devices of two terminals of one strip in each other's order.
 
 ---
 
@@ -518,9 +530,10 @@ meet at it.
    into it: a mark at the sheet's edge); `TRUNK_GAP` beyond the outermost tapped pin on each side that pins face,
    and from there outward in steps of `TRUNK_PITCH` past the trunks already laid there; the middle between two
    tapped rows that face each other.
-3. *Each tap's place* on a candidate: the coordinate of the pin it drops to, so that the drop is straight. Two
-   taps that would fall on one point (two pins in line on either side of the trunk) are set one step apart: two T
-   junctions, never a four-way one (D-7).
+3. *Each tap's place* on a candidate: the coordinate of the pin it drops to, so that the drop is straight; a
+   junction with several drops stands over the nearest of them, so that no two of its wires come to it along one
+   stretch of the trunk. Two taps that would fall on one point (two pins in line on either side of the trunk) are
+   set one step apart: two T junctions, never a four-way one (D-7).
 4. *Valid* when the taps then lie along the trunk in the spine's order, no trunk segment or straight drop has a
    fault in the occupancy, and no tap falls on a crossing.
 5. *Chosen:* the valid candidate of least cost (the trunk's length, each drop's length, 4 for each bend a drop
@@ -530,8 +543,9 @@ meet at it.
    for the later phases, with its tap fixed.
 
 A net with one tap has no trunk: the tap is tried at each crossing of a grid line through one end's exit with a
-grid line through another's (at most nine points) and at its present place, and the cheapest point with three
-arms wins, ties to the present place.
+grid line through another's (at most nine points), between two ends that face each other along one axis (a drop
+and what it feeds) on a line across, `TRUNK_GAP` from either or in the middle, in line with each end of the net,
+and at its present place; the cheapest point with three arms wins, ties to the present place.
 
 With no valid candidate the taps stay where they are and the net's wires are routed one by one. This is the case
 when the person's wiring order runs against the parts' places (a rail tapped in the order 1, 3, 2): the plan says
@@ -549,8 +563,10 @@ one (a side branch is not yet a net of its own on the spine). Each end of a trun
 wire runs end, foot, foot, end, so the wires of a pin tap share the drop and part on the trunk. A trunk is valid only
 when every wire between two taps is free in the occupancy and at least two wires are; a wire whose drop is not
 straight or not free goes to the search with its tap where the trunk put it, priced in the choice as its ends'
-distance and two bends. The order of trunks is the supply rank, then the first tapped pin's place (left first),
-then more taps first, then the ID. The shared run is part of the search (§3.6): a wire of a pin starts, or ends, on
+distance and two bends. A wire of a trunk that would lie along a wire of the same trunk laid before it, other than
+on the run out of a pin both end at (two wires of one junction that leave it the same way: F3), goes to the search
+too. The order of trunks is the supply rank, then the first tapped pin's place (left first), then more taps first,
+then the ID. The shared run is part of the search (§3.6): a wire of a pin starts, or ends, on
 each node of the run of a wire already laid from that pin, with that run's price, so it can only share a common
 beginning. The note of an order that runs against the places names the net's first wire, not its potential.
 
@@ -692,6 +708,10 @@ a circuit stays the person's.
 *Best* is the measure of §1.2 on the arranged and routed page. *The rules* are those of §1.6; they are not
 weighed.
 
+**Every plan that is weighed has been routed.** The placer proposes one arrangement from the pins (§4.2 to §4.6)
+and a few parts of it (§4.7). Each is routed by the router of §3 on the page as it would become and measured, and
+Route's plan over the same wires is the plan to beat. Nothing estimates what the router will draw.
+
 It is what a draughtsman does by hand, and it needs no template: a breaker's lower pin faces down, so the
 contactor stands below it; a card's input pin faces up, so the terminal and the sensor stand above it; a valve's
 working port faces up, so the cylinder stands above the valve.
@@ -701,118 +721,212 @@ needs more than the type of a page says, fails on mixed pages, and would recast 
 template's shape. *Alternative: a layered layout (Sugiyama, ELK Layered) of the whole page.* It draws a new page
 from the netlist and does not keep what the person arranged; its crossing reduction is not needed where a part's
 place follows from a pin. *Alternative: a general constraint solver for alignment and separation.* The
-constraints here form rows on a tree, which a one-pass method solves exactly (§4.4). *Alternative: only line
+constraints here form rows on a tree, which a one-pass method solves (§4.4). *Alternative: only line
 parts up and make room, every large part left where it stands* (this design's first form). It leaves a device on
 the wrong part of the sheet, and the pilot user chose the full move. *Alternative: an upper bound on the parts
 one run moves, or a second mode that only lines up.* A bound would leave a page half arranged at an arbitrary
 cut, and every run is previewed, which is the asking; a second mode would be a third command, and the selection
-and the preview's ticks give its result where it is wanted.
+and the preview's ticks give its result where it is wanted. *Alternative: rank the candidate places by an
+estimate of the measure that needs no routing (the wires' city-block lengths, the bends their pins' sides force,
+the crossings of their plain shapes), and route only the winner* (this design's second form, built first). On a
+page with rails or many nets the estimate did not foresee what the router draws: plans it liked were refused
+afterwards and the page fell back to Route's plan, and a chain of stages, each ranked by the estimate, undid its
+own earlier choices. A page has tens of parts and tens of nets and a run of the router takes a fraction of a
+second, so the real answer is affordable and the estimate went (ADR-0034, amended 2026-11-20).
 
-### 4.2 Units, relations and anchors
+### 4.2 Units, relations and trees
 
 - **Units.** Parts with one `unit` number move as one: a valve terminal with its valves; parts the adapter finds
-  inside a `frame_only` part. Every other part is its own unit. A unit is **fixed** when it is locked, outside
-  the scope, off the grid, or inside a structure box.
-- **Relations.** Two units are related when a wire joins a pin of one to a pin of the other, directly or through
-  one tap. Through a net with a trunk there is no relation between its pins; each tapped unit is related to the
-  trunk (§4.6). A relation has a **kind** from the two pins' sides:
+  inside a `frame_only` part; a part that stands with its pin on another part's pin (a mark set on a connection
+  point). Every other part is its own unit. A unit is **fixed** when it is locked, outside the scope, unticked in
+  the preview, off the grid, inside a structure box, or at the end of a wire that is kept.
+- **Relations.** A relation joins a pin of one unit to a pin of another. By strength:
 
-  | Kind | Sides | Best drawing | Where the second unit belongs |
+  | Kind | Pins | Best drawing | Where the second unit belongs |
   |---|---|---|---|
-  | **Facing** | opposite | straight, no bend | beyond the first pin along its side, the two pins on one line |
-  | **Corner** | at a right angle | one bend | beyond the first pin along its side, and the first pin beyond the second along the second's side |
-  | **Level** | the same | two bends (out, across, back) | beside the first, the two pins level; where no room is beside, in a row beyond the pins, each offset by its own width so that the wire passes it |
+  | **Facing** | the two pins of a net of two, on opposite sides | straight, no bend | beyond the first pin along its side, the two pins on one line |
+  | **Tap** | a pin of a net of three or more and the one pin of that net that faces the other way (a path's drop to its branches) | straight for the nearest branch | beyond that pin; the branch nearer across than every other in line, the others in their own columns |
+  | **Corner** | the two pins of a net of two, at a right angle | one bend | beyond the first pin along its side, and the first pin beyond the second along the second's side |
+  | **Level** | the two pins of a net of two, on the same side | two bends (out, across, back) | beside the first, the two pins level; else in the row beyond the pins, off the pin's line by its own width so that the wire passes it (§4.3) |
+  | **Mate** | no wire: two units of one shape that stand level side by side or in line under one another, a step off at most, the nearest within twice `ROW_PULL` | — | where it stood against its mate: a strip's terminals, cards side by side, like devices in a row stay a row |
   | — | a pin without a side | — | no place follows |
 
+  A tap relation holds only where the second unit already stands beyond the first (on a fluid page wherever it
+  stands: rule F1 tells the supply from the work), and not for a unit in a row of three mates or more, which stays
+  in its row. An end symbol of one pin that is no mark (an earth symbol among them) keeps its hook: it has no line
+  to take (§1.3). A level pair is overruled, and counts after the mates, where more of the unit's mates face that
+  host than are wired to it out and back.
 - **Weight.** The number of a unit's pins that have a wire, times 4, plus its body's area in square steps over
-  16. **Anchors:** every fixed unit, and in each group of related units without a fixed one, the heaviest (ties to
-  the upper, then the left one, then the ID).
-- **Hosts.** From the anchors outward, breadth first over the relations: a unit's **host** is the related unit
-  one step nearer to an anchor; among several, a Facing relation before a Corner before a Level one, then the
-  heavier host, then the relation that needs the smaller move, then the pin order. That relation is the unit's
-  **lead**. The hosts form a tree under each anchor. A movable anchor is the root of its tree; a tree with all that hangs on it is a **group**, and §4.7 says where
-  a group stands.
+  16.
+- **Trees.** The wired relations are taken strongest first (of one strength the one nearest in line, then the
+  heavier pair), each joining two units that no stronger relation joined yet: a spanning forest, in which every
+  fixed unit is ground. Then the mates join those trees, the relation nearest the heaviest unit of the heavier
+  tree first, and only where one of the two is the heaviest of its tree or fixed: a terminal with its device joins
+  its strip, not the row of devices, and two marks of two strips are not joined. A unit's relation towards the
+  root is its **lead**, the unit at its other end its **host**. A relation left out of the tree is kept for the
+  stacks, which nest by it.
+- **Anchors.** A tree hangs from its fixed units. A tree without one hangs from its anchor: of its heaviest units
+  (those of at least three quarters of the heaviest's weight, `ANCHORS` at most) the one from which the tree is
+  set with room for every unit, with every step a rail demands (§4.6) and with the least weight moved: a part
+  out of place moves, not the circuit round it. Ties go to a unit a rail taps, then the heavier, the upper, the
+  left one, the ID.
+
+*Alternative: hosts chosen breadth first from the heaviest unit, a Facing relation before a Corner before a Level
+one* (the form built first). The tree then depends on which unit is reached first, and a strong relation far
+from the anchor loses to a weak one near it; taking the relations by strength over the whole page (Kruskal's
+spanning forest) makes each part hang on the pin it is best drawn from. *Alternative: no mates.* A strip's
+terminal without a wire of its own, or a card beside the card that moves, would stay behind and the row the
+person made would be torn.
 
 ### 4.3 A follower's place
 
 For a follower with its lead (host pin *h* with side *s*, follower pin *f*):
 
-- **Across** (the coordinate at a right angle to *s*): Facing wants *f* on *h*'s line. Corner and Level keep the
-  present coordinate when the relation's drawing is possible there, else take the nearest coordinate where it is.
+- **Across** (the coordinate at a right angle to *s*): a Facing follower, and the nearest branch of a tap, wants
+  *f* on *h*'s line. It takes the line where the straight way between the two pins is free of other parts, and
+  where that does not carry it past a member of its row that stays; else it stays where it stands across. Corner
+  and Level followers have no line to take.
 - **Along** (the coordinate along *s*): the follower stays at its present distance when it is beyond the host by
-  at least 2 steps and its footprint is clear of the host's; else it stands `CHAIN_GAP` (5 steps) beyond, further
-  when a label of either or a channel's tracks need the room (§4.5). **A part is never pulled nearer, and a chain
-  is never spread out**: how a path is spaced over the sheet is the person's.
+  at least 2 steps and its footprint is clear of the host's (one its host left more than `ROW_PULL` behind keeps
+  the distance it had); else it stands `CHAIN_GAP` (5 steps) beyond, further when the tracks of a row's stepping
+  wires need the room (§4.5). **A part in line is never pulled nearer, and a chain is never spread out**: how a
+  path is spaced over the sheet is the person's (rule A5).
 - **On the wrong side** (the follower stands behind the pin that faces away from it): it moves to the side the
-  pin faces. This is the one large move the placer makes, and the preview shows it.
+  pin faces. This is the one large move the placer makes for a chain, and the preview shows it.
+- **A level follower** whose wire has no way out and back (it stands under or over its host, so that the way
+  out of one pin runs into the other part) is set beside the host, the two pins level, the pin nearest that side
+  innermost, on the side the pins lie nearer to where it has the room, else on the other. One that stands neither
+  beside its host nor near beyond its pins (2 steps to `CHAIN_GAP` and `ROW_PULL`, clear of the pin's line) takes
+  the row beyond the pins: two steps clear of the host, further where the texts of the two need it, and off the
+  pin's line by its own width so that the wire passes it, on the side where the host has the fewer pins of that
+  edge. A lamp wired to a card's pin that faces the same way as its own stands at the card, on a short hairpin,
+  and not across the sheet. Where no such place is free the follower stays. On a bus page two stations whose
+  ports face one side stand level (rule B2).
+- **A mate** takes its host's step, stands level with it, and takes the pitch its row now has where the row had
+  one pitch before (a strip's terminal without a lead of its own stays in its strip, at the strip's new pitch).
 
-The **footprint** of a unit is its bodies, one step along each wired pin, and its labels at their first places;
-for a host, also the footprints of its followers once they are placed.
+The **footprint** of a unit is its bodies, one step along each wired pin, and its labels at their first places
+(§5.2, with the stacked-marks rule of §5.3).
 
 ### 4.4 Rows and stacks
 
-The followers of one side of one host are placed together.
+The followers of one side of one rank are placed together; a rank is the root, then the units that one step of
+the method set beside one another. A level follower that keeps its place belongs to the next rank with the
+members of the rows, so that what hangs on the terminals of a strip is one row, whatever joins each terminal to
+the card.
 
-- **A row** (Facing and Level followers): across, each wants its pin's line; they keep the order of the host's
-  pins; their footprints stay `ROW_GAP` apart. The places are the solution of least total move from the wanted
-  lines under that order and those gaps: neighbours that would overlap are merged into a block, the block stands
-  at the median of its members' wishes, and merging repeats until no two blocks overlap (pool adjacent
-  violators; exact for this problem, one pass, a stack of blocks). Followers narrower than the pin pitch stand
-  exactly in line; wider ones form a row centred on their pins, and their wires become the stepping wires of
-  §3.5. Along, the row has one line: the largest distance its members need or keep, for members within
-  `ROW_PULL` of it; a member further out keeps its own.
-- **A stack** (Corner followers that turn the same way; mostly marks): they are ordered along so that their wires
-  nest: for wires that enter pins from one hand, the pin furthest from that hand takes the outermost place. Their
-  pitch is `MARK_PITCH` (2 steps), more where a footprint needs it. Across, each keeps its coordinate when it is
-  at least `MARK_LEAD` (2 steps) before its drop (a column of marks at the sheet's edge stays a column, with
-  nested wires; marks that stand near their pins stay near them and form a staircase); a mark nearer than that,
-  or beyond its drop, is set `MARK_LEAD` before it.
-- **A mark at the end of a trunk** stands on the trunk's line: it moves along the trunk's cross axis only.
+- **A row** (Facing and Tap followers). Each wants its line (§4.3). The members whose extents meet along the side
+  then stand in the order of their host pins with `ROW_GAP` between: by their bodies where the text placer then
+  sets every text of the row clear and within a step of its part (a strip's terminals, two steps apart), else by their
+  footprints. Followers narrower than the pin pitch stand exactly in line; wider ones form a row, and their wires
+  become the stepping wires of §3.5. There are three ways to pack such a row, and the one is taken whose stepping
+  wires cross the fewest of the wires that pass the row, and that sets no member outside the drawing area:
+  1. by the least total move from the wanted lines under that order and those gaps (neighbours that would
+     overlap are merged into a block, the block stands at the median of its members' wishes, and merging repeats
+     until no two blocks overlap: pool adjacent violators, one pass);
+  2. the first member at its line and each next one as near to its own as the gap allows;
+  3. the last member at its line and each one before it likewise.
 
-The order within a row or a stack follows the host's pins, not the places the followers had. Groups keep the
-order the person gave them across the sheet unless a change of places pays for itself (§4.7).
+  A wire passes the row when it leaves the row's rank on the same side and does not end at a pin of the row that
+  faces the rank: the supply's riser from a strip's first terminal to the far pins of a row of sensors. The second
+  and third way set the row beside such a riser where the first would set it across. Members that keep their
+  places and their distances are not packed: no part steps aside for a wire.
 
-### 4.5 Room between a host and a row
+  Along, the row has one line: the largest distance its members need or keep, for members within `ROW_PULL` of
+  it; a member further out keeps its own, and a keeper one step off the distance that most keepers of its shape
+  keep takes that (a row set down a step crooked is levelled). Members that stand more than `ROW_PULL` beyond
+  the nearest are set after what hangs on the near ones: a device wired straight to a card does not take the
+  place of the row over the terminals. A member that then stands on a unit already set steps further out on its
+  line where the line is free that far (two flow controls wider than their ports' pitch stand staggered, both in
+  line); else it stands where it stood across and steps out from there.
+- **A stack** (Corner followers on one side of a rank that turn the same way; mostly marks). Each member is set
+  first with what hangs on it, as one block. The blocks are ordered along so that their wires nest: the drop
+  nearest the side the blocks stand on turns first. A block keeps its place when every one of its wires has its
+  corner (the drop at least 2 steps long, its own pin at least `MARK_LEAD` before the drop), it lies beyond the
+  blocks before it and stands clear; else it takes the nearest such place, in the column where most single
+  marks of the stack stand (a column of marks at the sheet's edge stays a column, with nested wires), or in the
+  column `MARK_LEAD` before the nearest drop. The pitch is `MARK_PITCH` (2 steps), or the next larger of 3 and 4
+  steps at which the text placer finds every text of the stack a place as clear as it had (§4.5). A stack that
+  leaves the drawing area slides back towards its hosts as far as its first block has room.
+- **A mark at the end of a rail** stands on the rail's line (§4.6).
 
-The distance between a host's pins and a row is at least `CHAIN_GAP`, at least what the labels between them need,
-and at least one step more than the tracks the row's stepping wires need (counted with the assignment of §3.5 on
-the wanted places). So a row is set far enough for its wires before the router runs.
+The order within a row or a stack follows the hosts' pins, not the places the followers had.
 
-### 4.6 Trunks
+### 4.5 Room, and the texts
 
-A unit tapped by a trunk and without a lead of another kind takes the trunk as its host: the units tapped on one
-side of one trunk form a row with one line (their tapped pins level), across they keep their places and order. A
-unit that has a lead keeps its place across from the lead; when it is also tapped by a trunk on its far side, it
-joins that side's line if it is within `ROW_PULL` of it (the coils of a control page on one line). The trunk's
-own coordinate is the router's (§3.4): it follows the rows.
+The distance between a host's pins and a row is at least `CHAIN_GAP` and at least one step more than the tracks
+the row's stepping wires need (`tracks_needed` of §3.5 on the wanted places; with the narrow pitch where a
+keeper stands nearer). So a row is set far enough for its wires before the router runs.
 
-### 4.7 Where a group stands
+Whether texts fit is not estimated: **the text placer is asked.** For a row packed by its bodies, and for each
+pitch of a stack, the placer builds a page of those parts alone where they would stand, each lead drawn in its
+plain shape (straight, with its one corner, or stepping at the middle) and every other wired pin with its first
+two steps of wire, and calls the measure. A row is packed by its bodies only where no text is then more on a
+text, on a part or under a wire, and none more than a step away from its part (§1.3), than with the parts where
+they stand; a stack takes the first pitch that leaves its texts as clear as they stood. Each question is asked once for a
+given set of parts and places.
 
-After the places inside each group are set (sizes from the leaves up, places from the root down), each movable
-group is placed as one block.
+*Alternative: footprints with the labels at their first places, and no question.* A page link whose name stands
+above its arrow is three to four steps tall by its footprint, so a stack could never take the pitch of two steps
+that §1.4 asks for, and a strip's terminals could never stand two steps apart; the text placer finds those texts
+a place (the stacked-marks rule of §5.3, the two rows of §5.2).
 
-1. **The estimate.** Choices are compared by an estimate of the measure that needs no routing: for every wire of
-   the scope the city-block distance of its pins; 4 for each bend that the sides and places of its pins make
-   unavoidable (none for a facing pair in line, one for a corner, two for a step or a hairpin, four for a pair on
-   the wrong side of each other); 6 for every crossing among the wires' plain shapes (the straight, the L, the
-   step at its middle track); and `MOVE_PRICE` for every part that does not stand where it stood. The price is
-   not part of the measure: it is what a move has to earn, so that a part moves only where the page gains more
-   than the move costs, and never for a tie.
-2. **The bands** (rule E2; on a fluid page rule F1 in the same way). The head band is the stretch at the top of
-   the drawing area that the page's feeding trunks need (`BAND`), the foot band the same for returning trunks. A
-   group is moved along the flow, whole and by the least distance, so that none of its parts but a mark stands in
-   a band or beyond a trunk it taps. Otherwise a group keeps its place along the flow: a circuit is not pulled
-   up under its trunk, its drop is as long as the person left it.
-3. **The place across.** Fixed groups stand. The movable groups, heaviest first, each take the place of least
-   estimate among: where it stands; directly beside each group it is wired to, left and right, `COLUMN_GAP`
-   clear; and the first free place from the left. Then two neighbouring groups change places where that lowers
-   the estimate. Both are done at most `PASSES` times. A group without a wire to another group keeps its place.
-4. **Fitting.** A group that sticks out of the drawing area is moved back in by the least distance. Of two
-   groups on each other, the later (fixed first, then heavier, then upper left) takes the next free place across.
-   A branch that still has no room on the side its pin faces goes back to where its parts stood.
+### 4.6 Rails
 
-A part that goes back is named in the plan: "no room below -F2; left where it stands". The placer does not close
-up or spread a circuit, does not turn a part to make it fit, and does not move a part to another page.
+A net of three pins or more whose pins, but marks', all face one side up or down is a **rail**, whether it is
+wired through junctions or from pin to pin. The units it taps belong on one row: the row most of them stand on
+(of two as full, the one nearer the rail), for each unit within `ROW_PULL` of it. Where the rail has its
+junctions on one line (two at least), a tapped unit that stands nearer that line than `TRUNK_GAP`, or beyond it,
+has to take the step: a tree is set only where it does (rule E2). A mark of such a rail belongs on its line. The
+rail's own coordinate is the router's (§3.4): it follows the rows.
+
+A unit that has a lead of another kind keeps its place across from the lead and takes the rail's row along
+where its lead leaves it the room (the coils of a control page on one line).
+
+### 4.7 Which plan is taken
+
+1. **Where a tree stands.** A tree is set from its root where the root stands. Where a unit of it then has no
+   room (it would leave the drawing area or stand on a unit that is set), the root steps by whole steps, the
+   least first, up, down, right and left, `REACH` (24) at most each way, until the whole tree has room; the
+   other roots of its shape that stood level with it take the same step along that axis, so that a row of cards
+   stays a row. Without such a step the root stays and what has no room goes back to where it stood. The trees
+   are set heaviest first, each clear of those set before it. On a fluid page (rule F1) what hangs on a valve's
+   unit with a part of the supply steps below every valve, and what hangs there with an actuator steps above
+   that unit's valves and takes the blocks above it along.
+2. **The rules.** The parts a broken rule names go back, with what hangs on them, until `rules_kept` holds
+   (§1.6; the rules read the parts and the nets, so this needs no routing).
+3. **Routed and judged.** The arrangement is routed and measured. It is taken when
+   - the rules hold on the routed page;
+   - no wire and no text gains a finding (the never-worse rule of §1.2, with F7);
+   - it has no more faults than Route's plan over the same wires, and, where it leaves no more wires without a
+     way, no more crossings;
+   - and it is better than Route's plan by the measure with the **price** of its moves added: `MOVE_PRICE` (2
+     steps of wire) for every part that does not stand where it stood. The price is not part of the measure: it
+     is what a move has to earn, so that a part moves only where the page gains more than the move costs, and
+     never for a tie.
+4. **In parts.** Where the whole arrangement is not taken, its trees are tried one after another, each kept
+   when the page gets better with it; then the arrangement without one branch, and one branch alone (`BRANCHES`,
+   8, of each at most). A **branch** is a unit's own move with what hangs on it; the members of a row the person
+   made (of one shape, level, on one host or on hosts that are a row themselves) are one branch, so that a row
+   goes or stays as one and is never left half moved.
+5. **The price, for real.** From the plan taken, each branch is put back in turn, where that breaks no rule the
+   plan set right; the plan without it is routed, and kept when it is the better one with the price of its
+   moves.
+6. **Without a better plan** Route's plan of the scope is offered: no part moves, and the parts that stand
+   against a rule and have no room are named.
+7. **Again.** The run is made again on the page its plan leaves, until a run changes nothing (`ROUNDS`, 4, at
+   most). The plan offered is the sum, so a second press finds nothing to do.
+
+A part that stays against a rule is named in the plan: "no better place below -F2; left where it stands" (it
+had no room there, or the page was no better with it there). The placer
+does not close up or spread a circuit, does not turn a part to make it fit, and does not move a part to another
+page.
+
+*What was weighed in the judge.* Fewer crossings bought with a few more bends is a better page, and so is the
+reverse where many bends go; both are what the measure's weights say (a crossing 6, a bend 4), so the measure
+decides, and not a rule that neither figure may rise. One figure is held all the same: a plan that moves parts
+may not have more crossings than Route's plan with every part in place, because a person who sees a part moved
+and a new crossing beside it reads the move as the cause.
 
 ### 4.8 What keeps a page recognisable
 
@@ -825,8 +939,10 @@ Parts may cross the page, so these hold the person's picture of it:
   move.
 - **The price of a move.** No part moves for a small gain or a tie (§4.7), so a page that is already in order
   comes back with an empty plan, and a second run after a first changes nothing.
+- **Rows.** A row the person made (a strip, cards side by side, like devices level) moves as one or stays as
+  one, at the pitch it had or the one its new place asks of all its members.
 - **Order.** The parts of a circuit stand in the order of the wiring, the parts of a row in the order of the
-  pins; circuits keep their order across the sheet unless a change of places removes a crossing or a long wire.
+  pins (rule A4, which reads the terminals of a strip as one row).
 - **Spacing.** Along a circuit the distances are the person's.
 - **The rules of the kind.** After a run a device stands where a draughtsman would look for it: the potentials
   at the head and the foot, a load under its protection, a field device at its channel, an actuator over its
@@ -834,42 +950,41 @@ Parts may cross the page, so these hold the person's picture of it:
 
 There is no upper bound on the parts one run moves, and no lighter mode, for the reasons of §4.1.
 
+**Where the placer moves nothing.** A page whose wiring runs against its symbols cannot be made good by
+placing. The plain case: a card's pins face up and each is wired to the *upper* pin of a terminal that stands
+below the card. With the strip in its order the only drawing without crossings leads every such wire round the
+card (four bends each), and it needs room beside the card for as many tracks as there are channels; with two
+bends each (out, across and back into a terminal beside the card) the strip would have to stand in the reverse
+order. The placer does not reverse a strip and does not turn a card, so on such a page it offers Route's plan
+and moves nothing. The remedy is the person's: wire the terminals' lower pins, or use the card with its pins on
+the side the field stands.
+
 ### 4.9 The plan
 
-`arrange(page, movable, jobs) -> Plan`: the units' new places; then `route` on the moved page with the jobs of
-§3.2. A plan is offered only when `rules_kept` holds (§1.6) and the never-worse rule of §1.2 holds for the whole
-plan with F7 included: when the arranged and routed page is not better than the page as it is, the plan is empty
-and the message says that the page is already arranged as well as the rules allow.
+`arrange(page, scope, fixed) -> Arranged`: the parts' moves, the parts left against a rule with the side their
+host's pin faces, and the plan of the page as it would become (the routes, junctions and marks, with the
+quality before and after). The plan is empty when nothing better than the page as it is was found, and the
+message says that the page is already arranged as well as the rules allow.
 
 **A selection** makes only the selected parts movable; everything else is fixed and can be a host. A selection of
 one feeder arranges that feeder and leaves the page.
 
-**In part.** Unticking a part in the preview adds it to the fixed units and plans again; the result is a
-consistent page whichever rows are ticked. The preview never applies half of a plan.
+**In part.** Unticking a part in the preview adds it to the fixed units and plans again; unticking a wire keeps
+its route and the parts at its two ends. The result is a consistent page whichever rows are ticked. The preview
+never applies half of a plan.
 
-*As built (step 4).* `ew_drafting::place`, its module documentation step by step. Where it differs or chooses:
-units by `unit` number and by an outline drawn round other parts (`frame_only`); a unit is fixed also when its origin
-is off the whole grid (the API keeps a symbol whose position is not exactly a grid point fixed, since a move by steps
-counts from it). The anchor of a group without a fixed unit is the one whose tree moves the least weight to set the
-others on the side their host's pin faces (a part out of place moves, not the circuit round it), then a part a rail
-taps, then the heaviest. A follower keeps its own place when it stands well beyond its host's new place (the host moved
-into the gap before it), but on a fluid page. A stack's movers take the nearest free place from the chain gap outward
-by the estimate. Trunks: a mark of a rail takes the rail's line; a group whose part drops straight from a junction
-within two steps takes that junction's line across. Fluid pages have their band as E2 has: a group without a valve,
-and each branch of the supply hanging on a valve, moves along the flow by the least distance. The estimate also
-prices a plain shape through another part's body (two bends). The footprint holds a part's labels at their first
-places as the page shows them now; fitting brings a branch that leaves the drawing area back first, and of two groups
-on each other the later takes the nearest free place across, one step at a time, right before left. The plan: the
-parts a broken rule names go back with what hangs on them until the rules hold (they read parts and nets, so no
-routing is needed for it); then the page is routed once. Where the measure does not take the plan of all moves, the
-plans without one branch (a unit's own move with what hangs on it) and of one branch alone are tried, eight each at
-most, and the best taken is offered. A plan is taken only when it is better by the measure with the price of its moves
-added (`MOVE_PRICE` per moved part), no wire or text gains a finding, a figure a reader compares gets better, and,
-where it routes no dashed wire, faults, crossings and bends are not worse. Without one, Route's plan of the scope is
-offered, the parts without room named all the same. Swaps of neighbouring groups are tried by the estimate; the
-candidates "beside each group it is wired to, `COLUMN_GAP` clear" and "the first free place from the left" are not
-built. The room of §4.5 counts the tracks of a row's stepping wires (`tracks_needed`); the labels between are not
-counted.
+**The same plan whatever the order of the page's lists**: units, relations and blocks are taken in an order made
+of their weights, places and IDs.
+
+*As built.* `ew_drafting::place` (the run and the judge) and `ew_drafting::place::sketch` (the arrangement),
+each with its module documentation step by step. Units by `unit` number, by an outline drawn round other parts
+(`frame_only`) and by a pin set on another part's pin; a unit is fixed also when its origin is off the whole grid
+(the API keeps a symbol whose position is not exactly a grid point fixed, since a move by steps counts from it).
+A junction that stands in line with the drop of a part's pin follows that part across, and a junction joined to
+it by a wire with it, so that a rail's junctions stay over the parts they feed when those move. The text placer
+is asked through `measure` on a page of the parts in question (§4.5). Not built: an order of independent
+circuits across the sheet other than the one their trees' steps give (§1.6 leaves it to the measure; no candidate
+swaps two trees), and the labels between a host and a row as room of their own (the text placer moves them).
 
 ---
 
@@ -922,6 +1037,13 @@ lower. The result does not depend on the order of the page's lists.
 
 A label leaves its first place only when something stands there, so a change elsewhere on the page does not move
 it.
+
+**The stacked-marks rule.** A symbol's author may have set a mark's name above its arrow (the starter symbols of
+before step 7, an imported library). Such a mark is three to four steps tall with its texts, and marks stacked two
+steps apart (§4.4) would stand on each other's names. So the name of a mark whose texts, where their author put
+them, reach another mark or its texts, or leave the drawing area, has the first place of its kind in §5.2 before
+the author's: in line with the wire beyond the arrow. A mark that stands alone keeps its name where its author put
+it, and so does a name its author set in line already (the starter symbols since step 7). The placer reads these first places (`first_places`), so it sets a stack by the texts as they will stand.
 
 ### 5.4 What is never moved
 
@@ -1040,7 +1162,11 @@ shows the page as it is. The Preview tab holds the card:
 - **Left as it is:** parts kept in place, parts without room (with the reason), wires without a way;
 - **Apply** and **Cancel**.
 
-Unticking a row plans again with that part fixed, or that wire kept, and the canvas follows. Apply stores what
+Unticking a row plans again with that part fixed, or that wire kept, and the canvas follows. An unticked row
+stays out of every later plan of that preview, and a plan made again brings in no wire of the person's that the
+card did not list: those keep their routes too, so unticking the heading means that none of his wires changes.
+When the unticked rows leave nothing to apply, the card closes and the toast says so ("Nothing is left to apply:
+every change of this preview is unticked"), not that the page is already arranged. Apply stores what
 is shown, in one `layout.apply`; one Undo takes all of it back. After Apply a toast says "Arranged page 102: 4
 parts moved, 9 wires routed" with Undo. The undo step is named "Arrange and route" when parts moved and "Route wires"
 when none did (Route's plan offered instead). The canvas that showed the whole page when the card opened shows it
@@ -1061,8 +1187,11 @@ beat. The lead counts the wires you drew that get a new route ("9 wires are rout
 heading "Wires you drew yourself" is a tick of its own (`layout.arrange_tick {all}`) that unticks every row under it,
 or ticks them all. The history names a `layout.apply` with symbol moves "Arrange and route" (`ARRANGE_STEP`), one
 without "Route wires". A canvas fitted when the card opened fits again at the first new size of its pane after the card
-is gone. When unticked rows leave nothing to arrange, the card closes with the toast that the page is arranged as well
-as the rules allow.
+is gone.
+
+*As built (the placer anew, 2026-11-20).* A tick plans again with the unticked rows and, of the wires the person drew,
+every one the card does not list kept as they run (`ShellModel::act_layout_arrange_tick` reads them from the page's
+draft); when nothing is left to apply the card closes with `toast-arrange-none-left`.
 
 ### 7.4 The Wire tool, connecting on placement, moving
 
@@ -1210,6 +1339,9 @@ stores `layout.apply`.
    stations and a switch), pneumatic circuit (a valve terminal with two actuators and a service unit),
    distribution (two terminal strips with stacks of marks). Each exists in two states: **untidy** (the parts shifted off their lines by a fixed pattern, two of them on the wrong side
    of their pin, every wire unrouted) and **as wired by hand** (parts in place, routes drawn as a person would).
+   Beside them, small pages that each state one property of a kind (§9.3 row 4): a strip with scattered marks, a
+   potential wired from pin to pin, a card with field devices through terminals and a supply terminal, a valve
+   terminal with two cylinders through flow controls, a part wired by a hairpin.
 2. **A full sheet:** generated in the test: twelve feeders and forty control paths on one A3 page, about 300
    wires.
 3. **The private pages,** measured outside the repository by whoever holds them: the pilot user's supply page,
@@ -1234,10 +1366,10 @@ No test pins the total of a growing set, a generated name or a path; each states
 
 | Step | A test that fails without it |
 |---|---|
-| 1 | Two parts whose tags' first places overlap: both tags are clear. A wire across a tag's first place: the tag stands at its second. A moved text and a box's pin texts are where they were. The measure counts a turn-back on a wire drawn round a caption |
-| 2 | A potential wired from pin to pin over three parts is one line with two drops. A T junction moves onto the trunk and keeps its three wires and its sequence. A wire the person shaped is in no page-wide plan; a broken one is, flagged. The same page with its lists shuffled gives the same plan. A plan never changes which pin a wire ends at |
+| 1 | Two parts whose tags' first places overlap: both tags are clear. A wire across a tag's first place: the tag stands at its second. A moved text and a box's pin texts are where they were. The measure counts a turn-back on a wire drawn round a caption. The name of a mark stacked under another stands in line beyond its arrow, and a mark alone keeps its author's place |
+| 2 | A potential wired from pin to pin over three parts is one line with two drops. A T junction moves onto the trunk and keeps its three wires and its sequence. A wire the person shaped is in no page-wide plan; a broken one is, flagged. The same page with its lists shuffled gives the same plan. A plan never changes which pin a wire ends at. A junction with two drops stands over one of them and its net has no fault. A tap may stand on a line across between a pin and the pins that face it |
 | 3 | Two-pole device over a two-pole device of another pitch: one pole straight, one step, no crossing. Five sensors over pins two steps apart: five wires step in and none crosses |
-| 4 | A sensor below a card whose pin faces up stands above it after the run. A circuit that stands above the trunk that feeds it stands below it after the run; an actuator below its valve stands above it. Two circuits whose drops cross change places, two whose drops do not cross keep theirs. A part with no wire does not move. `rules_kept` holds on every plan. A second run gives an empty plan. Unticking one part gives a plan in which it has not moved and nothing overlaps. One Undo restores every place and route |
+| 4 | A sensor below a card whose pin faces up stands above it after the run. A circuit that stands above the trunk that feeds it stands below it after the run; an actuator below its valve stands above it. Two circuits whose drops cross change places, two whose drops do not cross keep theirs. A part with no wire does not move. `rules_kept` holds on every plan. A second run gives an empty plan. Unticking one part gives a plan in which it has not moved and nothing overlaps. One Undo restores every place and route. The marks of a strip, scattered, stand in stacks and their wires nest: one corner each, none crossing. The parts a potential feeds from pin to pin stand level under one rail. Field devices stand in a row over their terminals, the terminals in line over their pins, the supply's riser beside the row: no crossing. On a valve terminal the cylinders stand above in the valves' order, the service unit below, no tube crossing. A part wired by a hairpin stands at its host, off the pin's line. A strip is one row for A4, a hairpin is not bound by E4, and a chain may take the chain gap and open by a row's pull and no more. When every row of the preview is unticked the toast says that nothing is left to apply |
 | 5 | A locked part is in no plan; it is a host for the others |
 | 6 | A pointer 0.7 step from an In-line guide's line puts the part on it; 0.8 step does not; with Alt neither guide nor nudge |
 | 7 | An input card drawn from the station view has every channel pin on its upper edge, `CARD_PIN_PITCH` apart. Two marks of the starter library stack two steps apart without their texts meeting |
@@ -1257,7 +1389,12 @@ page's figures at the end.
 Not measured: no timing test goes into the repository.
 
 - The text placer: labels × places × the things near a place (a grid of buckets over the page).
-- The placer: relations, and per row a sort of its members.
+- The placer: one run of the router over the page for every plan it weighs. A run weighs the whole arrangement,
+  at most `BRANCHES` trees, at most twice `BRANCHES` plans without or with one branch, and at most `BRANCHES` more
+  for the price; a press makes at most `ROUNDS` runs. Setting the arrangement: relations and a sort per row; for
+  each tree at most `ANCHORS` anchors, each with at most 4 × `REACH` steps of its root; the text placer once per
+  row and per pitch of a stack, on a page of those parts alone. So the work of a press grows with the wires of
+  the page times a bounded number of plans, and with the number of trees times the steps tried for each.
 - Trunks: nets × candidates (a handful) × taps. Tracks: per channel a sort of its wires.
 - The search: per remaining wire, the nodes of its area (at most `MAX_NODES`, five states each) times a
   logarithm; areas grow from the ends' box only when no route is found; `PASSES` passes.
@@ -1278,7 +1415,7 @@ ADR-0034 are in the repository before step 1, so that every step cites them wher
 | **1 Texts settle** | The crate, the model in ticks, the measure, the one text placer in the scene; `ew layout` and the checks on the new measure, with the three new checks | The scene's text steps; `measures.rs` | — | Large: about 3 500 lines with tests |
 | **2 Route** | Nets, shared runs, trunks, the search on the occupancy, texts and routes together, `computed`, `layout.apply`, the Route button, the Wire tool and the move on the new core, the bevel as the form of a new junction | `plan.rs`, `plan_tests`, `PageGeometry`, Route page, Reroute, `route_many`, the pinned reference routes | 1 | Very large: about 4 500 lines |
 | **3 Tracks** | Channels and track assignment for stepping wires | The mate discount | 2 | Medium: about 900 lines |
-| **4 Arrange and route** | The placer with the rules of §1.6 and the estimate of §4.7, the preview with its rows, planning again on a tick, the second button | — | 2 (3 for the room of §4.5; without it the chain gap alone) | Very large: about 4 500 lines |
+| **4 Arrange and route** | The placer with the rules of §1.6, the preview with its rows, planning again on a tick, the second button. The placer was built twice: first with an estimate that ranked candidate places without routing, then anew (§4, as it stands) with every plan routed | The estimate, its stages and its constants (`COLUMN_GAP`, `BAND`) | 2 (3 for the room of §4.5; without it the chain gap alone) | Very large: about 4 500 lines, and about 2 800 for the placer anew |
 | **5 Keep in place** | `Representation.locked`, the command, the glyph, the rows of the preview | — | 4 | Small: about 500 lines |
 | **6 Guides** | Guides and the nudge in the placing tool and the Select tool | — | 1 | Medium: about 900 lines |
 | **7 Cards and first places** | The station view's cards as one row of pins; the starter symbols' slots and the marks' name at the first places of §5.2 | The two-row pin layout of drawn cards | 1 (4 to see it arranged) | Medium: about 900 lines and the symbols' data |
@@ -1302,10 +1439,13 @@ not a layered layout. Nothing is ported from libavoid, ELK or OGDF.
 2. **Shared runs** (§3.4). They follow the reference drawing's notation and make pin-to-pin potentials readable,
    but a reader must take the bevel as "two wires part here". If that is misread, the fallback is hops on their
    own tracks, which the tracks of §3.5 already give.
-3. **The estimate is not the measure** (§4.7). Groups are placed by an estimate that routes nothing; the routed
-   page is then judged by the measure, and a plan that is not better is not offered. Where the two disagree a
-   good arrangement can be missed, never a bad one taken. The price of a move (2 per part) is a first value, to
-   be set on the proof pages.
+3. **One arrangement and its parts are weighed, not every arrangement** (§4.7). The placer proposes one
+   arrangement from the pins and routes it, its trees, and it without or with one branch. Where a page would gain
+   only by two changes that each lose alone, or by an order of its circuits that the trees' steps do not give, the
+   plan is missed and Route's is offered: a good arrangement can be missed, never a bad one taken. The price of a
+   move (2 per part) is a first value; it counts a part, not its distance. A page wired against its symbols
+   (§4.8) gets Route's plan and no move; wires that have to go round their own card are the router's to nest,
+   which it does not do yet: they cross where a draughtsman would nest them.
 4. **The weights** (§1.2) continue today's ratios. The text weight of 12 replaces a rule of thumb (8/5) with one
    number; the private pages named in ADR-0033's amendments are its test.
 5. **The rules of §1.6 are few on purpose.** They say what binds on every page of a kind. What a draughtsman

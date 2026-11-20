@@ -133,6 +133,47 @@
 - Two optional members in the file; an older build keeps them and does not obey them.
 - The reference project's routes are no longer pinned; the fixtures of the design take their place.
 
+## Amendments
+
+The decision text above is unchanged; these entries refine it.
+
+1. **Every plan the placer weighs is routed** (2026-11-20, the placer anew). Decision 7 placed each group of
+   parts "where an estimate of the measure is lowest", and decision 8 priced a move "in the placer's estimate". On
+   pages with rails or many nets the estimate did not foresee what the router draws: plans it ranked first were
+   refused by the measure afterwards, the page fell back to Route's plan with no part moved, and stages ranked by
+   the estimate undid each other's choices. A page has tens of parts and nets and a run of the router takes a
+   fraction of a second, so the estimate goes. Decisions 7 and 8 are refined:
+   - The placer proposes **one arrangement from the pins** and routes it. The parts hang in trees made of the
+     relations between their pins, the strongest first over the whole page (a facing pair, a tap of a net, a
+     corner pair, a pair that turns back), with a row the person made (parts of one shape that stand level: a
+     strip, cards side by side) kept as mates; rows, stacks and rails are set from each tree's anchor, and a tree
+     steps as a whole to find room (06a §4.2 to §4.7).
+   - **The judge.** The arrangement, then its trees one by one, then it without or with one branch, are each
+     routed and measured. A plan is taken when the rules hold on the routed page, no wire or text gains a finding,
+     it has no more faults and no more crossings than Route's plan over the same wires, and it is better than
+     that plan by the measure with the price of its moves added (2 steps of wire per moved part). The measure,
+     not a rule per figure, decides between crossings and bends. Then each branch is put back where the page is
+     no worse without it. Without a better plan Route's plan is offered and no part moves.
+   - **A row goes or stays as one.** The members of a row the person made are never left half moved.
+   - **Rules sharpened.** "A row in the order of its pins" (A4) reads facing pairs only, and reads the terminals
+     of a strip as one row: wires that turn a corner nest and wires that turn back lie inside one another, for
+     both the parts' order is the reverse. "The spacing along a circuit" (A5) lets a part that stood nearer than
+     the chain gap take it and a part that joins its row's line stand up to six steps further; nearer or further
+     is closed up or spread. "A card's channels in their columns" (E4) does not bind a part wired to a card's pin
+     by a pin of its own that faces the same way: it stands at the card on a short hairpin.
+   - **Whether texts fit is asked of the text placer,** on a page of the parts in question, not read from the
+     labels' first places. One text rule is added to decision 9's candidates: the name of a mark whose texts, where
+     their author put them, would stand on another mark takes the place in line with its wire beyond its arrow,
+     so that marks stack two steps apart.
+   - **What it costs.** A press runs the router a bounded number of times (06a §9.5), where the estimate ran it
+     once. The consequence "the placer chooses by an estimate" is replaced: the placer weighs one arrangement and
+     its parts, so an arrangement that needs two changes which each lose alone is missed; a worse page is still
+     never offered. A page wired against its symbols (a card's pins that face up wired to the upper pins of
+     terminals under the card) gets Route's plan and no move (06a §4.8).
+   - *Alternative: keep the estimate and correct it with the router's result.* It would be a second measure to
+     keep true to the first. *Alternative: route every candidate place of every part.* The candidates multiply;
+     one arrangement built from the pins' structure, and its parts, are few.
+
 ## Related
 
 - **Design:** [06a Drafting](../design/06a-drafting.md) (the design this record decides),
