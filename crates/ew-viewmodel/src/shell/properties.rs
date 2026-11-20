@@ -25,7 +25,8 @@ use ew_api::{AnyCommand, CmdError, Exposure};
 use serde_json::{Map, Value, json};
 
 use super::navigation::{Focus, bump};
-use super::{Mode, Outcome, RecordedCommand, ShellModel, failed, string_param};
+use super::tools::Kept;
+use super::{Mode, Outcome, ShellModel, failed, string_param};
 use crate::key;
 use crate::navigators::NavKind;
 use crate::properties::{
@@ -1923,53 +1924,15 @@ impl ShellModel {
         }
     }
 
-    /// Commits a kept, fresh preview of the command `name` with `params`: the window `Session::commit`; headless a
-    /// one-line command log through `Session::run_script` (`command.run`'s path: exposure, `--record`). A refusal
-    /// names a target of `section` by its label (§6.7).
-    pub(super) fn commit_kept(
-        &mut self,
-        state: PreviewState,
-        name: &str,
-        params: &Value,
-        section: Option<&SheetSection>,
-    ) -> Outcome {
-        if self.mode == Mode::Headless {
-            drop(state);
-            return self.run_logged(name.to_owned(), params.clone());
-        }
-        let calls = &self.calls;
-        let Some(project) = &mut self.project else {
-            return Outcome::Done;
-        };
-        let result = match state.result {
-            Ok(preview) => {
-                bump(calls, |c| c.commit += 1);
-                project.session.commit(preview)
-            }
-            Err(message) => return Outcome::Failed { message },
-        };
-        let outcome = match result {
-            Ok(_) => {
-                self.record.undone.clear();
-                self.record.steps.push(RecordedCommand {
-                    cmd: name.to_owned(),
-                    params: params.clone(),
-                });
-                Outcome::Done
-            }
-            Err(e) => Outcome::Failed {
-                message: self.refusal(&e, section),
-            },
-        };
-        self.refresh_rows();
-        outcome
-    }
-
-    /// Commits a kept, fresh preview of `edit` ([`ShellModel::commit_kept`]); a commit with several targets shows the
+    /// Commits a kept, fresh preview of `edit` ([`ShellModel::commit`]); a commit with several targets shows the
     /// toast.
     fn commit_edit(&mut self, state: PreviewState, edit: &PendingEdit) -> Outcome {
         let section = self.props_find(&edit.row).map(|(s, _)| s);
-        let outcome = self.commit_kept(state, &edit.name, &edit.params, section.as_ref());
+        let outcome = self.commit(
+            edit.name.clone(),
+            edit.params.clone(),
+            Kept::Card(state, section.as_ref()),
+        );
         match &outcome {
             Outcome::Done => {
                 self.props.edit = None;
@@ -2216,7 +2179,7 @@ impl ShellModel {
         })
     }
 
-    /// One command through the grid's commit path: a fresh preview, then [`ShellModel::commit_kept`]; with the
+    /// One command through the grid's commit path: a fresh preview, then [`ShellModel::commit`]; with the
     /// notices of the command's outcome (what it dropped instead of refusing), read on its preview.
     pub(super) fn run_logged_or_commit(
         &mut self,
@@ -2261,7 +2224,10 @@ impl ShellModel {
                 );
             }
         };
-        (self.commit_kept(state, name, params, section), notices)
+        (
+            self.commit(name.to_owned(), params.clone(), Kept::Card(state, section)),
+            notices,
+        )
     }
 
     /// `props.choose`: `index` of the choices under a field (an ambiguous reading, the multi-language switch, a choice

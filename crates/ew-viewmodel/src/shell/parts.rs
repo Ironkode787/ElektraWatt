@@ -28,6 +28,7 @@ use ew_api::{AnyCommand, Submit};
 use serde_json::{Map, Value};
 
 use super::navigation::bump;
+use super::tools::Kept;
 use super::{Outcome, Prompt, ShellModel, failed, string_param};
 use crate::key;
 use crate::properties::{Card, CardOrigin, EditRoute, FieldReadOnly, PendingEdit};
@@ -754,7 +755,7 @@ impl ShellModel {
         }
         if card.preview.base_rev == rev {
             let Card { preview, edit, .. } = card;
-            let outcome = self.commit_kept(preview, &edit.name, &edit.params, None);
+            let outcome = self.commit(edit.name.clone(), edit.params.clone(), Kept::Card(preview, None));
             if outcome == Outcome::Done {
                 let key = if created == 1 {
                     key!("banner-part-imported")

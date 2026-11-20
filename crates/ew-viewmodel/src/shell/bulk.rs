@@ -12,7 +12,7 @@
 //!
 //! **The renumber dialogs** build `page.renumber` and `numbering.renumber` with explicit values (UUIDs, never
 //! references), preview them through the host's path and open the `bulk` card; Apply commits one transaction through
-//! [`ShellModel::commit_kept`] (headless one command-log line, so `--record` replays it). Like the creation dialogs,
+//! [`ShellModel::commit`] (headless one command-log line, so `--record` replays it). Like the creation dialogs,
 //! a dialog opens only in the window, when the action lacks its required parameter (`start`, `scheme`);
 //! headless the step fails naming it.
 //!
@@ -27,6 +27,7 @@ use serde_json::{Map, Value, json};
 
 use super::forms::{FormDialog, FormField};
 use super::navigation::bump;
+use super::tools::Kept;
 use super::{Dialog, Mode, Outcome, ShellModel, failed, string_param};
 use crate::layout::PaneKind;
 use crate::preview::{PreviewPane, XrefChange, card_key};
@@ -362,7 +363,7 @@ impl ShellModel {
         if card.preview.base_rev == rev {
             let toast = self.plc_addressing_toast(&card);
             let Card { preview, edit, .. } = card;
-            let out = self.commit_kept(preview, &edit.name, &edit.params, None);
+            let out = self.commit(edit.name.clone(), edit.params.clone(), Kept::Card(preview, None));
             if out == Outcome::Done
                 && let Some(text) = toast
             {

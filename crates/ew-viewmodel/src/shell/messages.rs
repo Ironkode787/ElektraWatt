@@ -16,6 +16,7 @@ use ew_api::{AnyCommand, Submit};
 use serde_json::{Map, Value};
 
 use super::navigation::bump;
+use super::tools::Kept;
 use super::{Dialog, FormDialog, FormField, Mode, Outcome, ShellModel, failed, string_param};
 use crate::canvas::PageId;
 use crate::key;
@@ -922,7 +923,7 @@ impl ShellModel {
             return self.preview_fix(card.edit.name, card.edit.params, rule, card.targets);
         }
         let Card { preview, edit, .. } = card;
-        let out = self.commit_kept(preview, &edit.name, &edit.params, None);
+        let out = self.commit(edit.name.clone(), edit.params.clone(), Kept::Card(preview, None));
         // Fix all says what it did, with Undo: "29 pins marked not used."
         if out == Outcome::Done
             && edit.name == "check.fix_all"

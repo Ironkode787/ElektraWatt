@@ -30,6 +30,7 @@ use super::navigation::bump;
 use super::{Focus, Mode, Outcome, RecordedCommand, ShellModel, failed, flag};
 use crate::canvas::{CanvasModel, CanvasPage, PageId, reading_key};
 use crate::key;
+use crate::properties::SheetSection;
 use crate::strings;
 use crate::strings::Key;
 use crate::tools::{
@@ -1266,9 +1267,8 @@ impl ShellModel {
         }
     }
 
-    /// `Commit(cmd)` (§7.3): in the window `Session::commit` of a fresh, equal preview, else `Session::execute_with`
-    /// (a preview and its commit for a bulk command); headless a one-line command log through `Session::run_script`,
-    /// exactly `command.run`'s path, so the exposure rules and `--record` apply.
+    /// `Commit(cmd)` (§7.3) of the tool host: [`ShellModel::commit`] with the tool's kept preview of `cmd` when it is
+    /// fresh, else `cmd` executed. A read-only project refuses before anything runs.
     pub(super) fn run_commit(&mut self, cmd: &dyn DynCommand) -> Outcome {
         if !self.is_writable() {
             return Outcome::Refused {
@@ -1279,33 +1279,54 @@ impl ShellModel {
                 },
             };
         }
-        // Another commit ends a Terminal… row's single step for Undo and Redo.
-        self.tools.row_steps = None;
         let json = match cmd.to_json() {
             Ok(v) => v,
             Err(e) => return command_failed(&e, &Value::Null),
         };
-        let name = cmd.name().to_owned();
+        self.commit(cmd.name().to_owned(), json, Kept::Tool(cmd))
+    }
+
+    /// The one commit path of the shell, for the tool host and the cards alike: headless a one-line command log
+    /// through `Session::run_script`, exactly `command.run`'s path, so the exposure rules and `--record` apply; in the
+    /// window `Session::commit` of the preview `kept` names, else `Session::execute_with` of the tool's command (a
+    /// preview and its commit for a bulk command). A committed step joins the record, and the rows refresh.
+    pub(super) fn commit(&mut self, name: String, json: Value, kept: Kept<'_>) -> Outcome {
+        // Another commit ends a Terminal… row's single step for Undo and Redo.
+        self.tools.row_steps = None;
         if self.mode == Mode::Headless {
             return self.run_logged(name, json);
         }
-        let rev = self.revision();
-        let fresh = self.tools.preview.as_ref().is_some_and(|p| {
-            Some(p.base_rev) == rev && p.name == name && p.command == json && p.result.is_ok()
-        });
-        let kept = if fresh { self.tools.preview.take() } else { None };
+        // A card's section, which its refusal names a target of (`None` for the tool host's commit), and the tool's
+        // kept preview when it is fresh.
+        let (card, fresh_tool) = match &kept {
+            Kept::Card(_, section) => (Some(*section), None),
+            Kept::Tool(_) => {
+                let rev = self.revision();
+                let fresh = self.tools.preview.as_ref().is_some_and(|p| {
+                    Some(p.base_rev) == rev && p.name == name && p.command == json && p.result.is_ok()
+                });
+                (None, if fresh { self.tools.preview.take() } else { None })
+            }
+        };
         // The submission's own origin (a scripted window submits as its command log).
         let origin = self.origin();
         let calls = &self.calls;
         let Some(project) = &mut self.project else {
             return Outcome::refused(key!("reason-no-project"));
         };
-        let result = match kept.map(|p| p.result) {
-            Some(Ok(preview)) => {
+        let result = match (kept, fresh_tool.map(|p| p.result)) {
+            (Kept::Card(state, _), _) => match state.result {
+                Ok(preview) => {
+                    bump(calls, |c| c.commit += 1);
+                    project.session.commit(preview)
+                }
+                Err(message) => return Outcome::Failed { message },
+            },
+            (Kept::Tool(_), Some(Ok(preview))) => {
                 bump(calls, |c| c.commit += 1);
                 project.session.commit(preview)
             }
-            _ => {
+            (Kept::Tool(cmd), _) => {
                 bump(calls, |c| c.execute_with += 1);
                 match project.session.execute_with(cmd, Submit::from(origin.clone())) {
                     Err(CmdError::NeedsPreview { .. }) => {
@@ -1340,7 +1361,12 @@ impl ShellModel {
                 });
                 Outcome::Done
             }
-            Err(e) => command_failed(&e, &json),
+            Err(e) => match card {
+                Some(section) => Outcome::Failed {
+                    message: self.refusal(&e, section),
+                },
+                None => command_failed(&e, &json),
+            },
         };
         self.refresh_rows();
         outcome
@@ -1681,6 +1707,17 @@ impl ShellModel {
         self.cursor_moved(g);
         Outcome::Done
     }
+}
+
+/// What [`ShellModel::commit`] commits in the window, and how a refusal of it reads: the one difference between the
+/// tool host's commits and the cards'.
+pub(super) enum Kept<'a> {
+    /// The tool host's command: the tool's kept preview of it when that is fresh, else the command executed; a
+    /// refusal in the command's words ([`command_failed`]).
+    Tool(&'a dyn DynCommand),
+    /// A card's or the property grid's kept, fresh preview (a refused preview fails with its own message); a refusal
+    /// of the commit names a target of the section by its label (§6.7).
+    Card(PreviewState, Option<&'a SheetSection>),
 }
 
 /// The toast of a refused command: an invalid parameter names its field in words, never its JSON Pointer

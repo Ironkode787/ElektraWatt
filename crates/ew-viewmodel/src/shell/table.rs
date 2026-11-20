@@ -23,6 +23,7 @@ use ew_api::{AnyCommand, Exposure, Submit};
 use serde_json::{Map, Value, json};
 
 use super::navigation::bump;
+use super::tools::Kept;
 use super::{Outcome, ShellModel, failed, flag, string_param};
 use crate::key;
 use crate::navigators::Navigator;
@@ -634,7 +635,7 @@ impl ShellModel {
 
     /// Commits a kept, fresh preview of a gesture's command and shows the toast.
     fn commit_gesture(&mut self, state: PreviewState, c: &Compiled, gesture: &Gesture) -> Outcome {
-        let out = self.commit_kept(state, c.name, &c.params, None);
+        let out = self.commit(c.name.to_owned(), c.params.clone(), Kept::Card(state, None));
         match &out {
             Outcome::Done => {
                 self.close_edit(gesture.nav);

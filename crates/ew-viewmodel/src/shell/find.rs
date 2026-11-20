@@ -19,6 +19,7 @@ use ew_api::{AnyCommand, Exposure, Submit};
 use serde_json::{Map, Value};
 
 use super::navigation::{Focus, bump};
+use super::tools::Kept;
 use super::{Outcome, ShellModel, failed, string_param};
 use crate::find::{FindQuery, FindResults, FindState, Ran, field_of_word, updated_note};
 use crate::key;
@@ -467,7 +468,7 @@ impl ShellModel {
         }
         if card.preview.base_rev == rev {
             let Card { preview, edit, .. } = card;
-            let outcome = self.commit_kept(preview, &edit.name, &edit.params, None);
+            let outcome = self.commit(edit.name.clone(), edit.params.clone(), Kept::Card(preview, None));
             if outcome == Outcome::Done {
                 self.find.note = Some(strings::format(key!("find-replaced"), &[&hits.to_string()]));
             }

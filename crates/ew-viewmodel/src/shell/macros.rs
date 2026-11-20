@@ -8,7 +8,7 @@
 //! which composes `macro.insert` (`Session::insert_macro`, with the instance ID the session mints from the project,
 //! `Session::next_macro_instance`), lists its conflicts (`Session::macro_conflicts`) and opens the `macro` card in
 //! the Preview tab. `macros.value_set` previews the card again with a value set. Apply commits one transaction
-//! ([`ShellModel::commit_kept`]; headless one command-log line). A card whose preview a prevent rule refused still
+//! ([`ShellModel::commit`]; headless one command-log line). A card whose preview a prevent rule refused still
 //! lists its conflicts, and Apply fails with the rule's text.
 //!
 //! **Update.** `libraries.update` previews `library.update` of the marked copies of the Libraries navigator (else the
@@ -29,6 +29,7 @@ use serde_json::{Map, Value, json};
 
 use super::forms::{FormDialog, FormField, FormRow, FormTable};
 use super::navigation::bump;
+use super::tools::Kept;
 use super::{Dialog, Mode, Outcome, ShellModel, failed, string_param};
 use crate::canvas::PageId;
 use crate::key;
@@ -793,7 +794,7 @@ impl ShellModel {
         }
         if card.preview.base_rev == rev {
             let Card { preview, edit, .. } = card;
-            return self.commit_kept(preview, &edit.name, &edit.params, None);
+            return self.commit(edit.name.clone(), edit.params.clone(), Kept::Card(preview, None));
         }
         let CardOrigin::Macro(m) = card.origin else {
             return Outcome::Done;

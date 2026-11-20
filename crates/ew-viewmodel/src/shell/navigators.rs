@@ -27,6 +27,7 @@ use ew_api::{AnyCommand, Submit};
 use serde_json::{Map, Value, json};
 
 use super::navigation::{Focus, bump};
+use super::tools::Kept;
 use super::{Outcome, ShellModel, failed, flag, string_param};
 use crate::canvas::PageId;
 use crate::highlight::{HighlightTarget, Highlights};
@@ -1816,7 +1817,7 @@ impl ShellModel {
         }
         if card.preview.base_rev == rev {
             let Card { preview, edit, .. } = card;
-            let out = self.commit_kept(preview, &edit.name, &edit.params, None);
+            let out = self.commit(edit.name.clone(), edit.params.clone(), Kept::Card(preview, None));
             if out == Outcome::Done {
                 self.navigator.marked.clear();
             }

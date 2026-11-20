@@ -14,7 +14,7 @@
 //! **Reads.** The focused page's tables only; no memoised query.
 //!
 //! **Commit.** The card is the host card of the renumber dialogs (`CardOrigin::Bulk`, reason `reason-bond`): Apply
-//! commits the kept preview (`ShellModel::commit_kept`; headless one command-log line).
+//! commits the kept preview (`ShellModel::commit`; headless one command-log line).
 //!
 //! Beside it, Draw ▸ Define potential… (`potential.draw`): `potential.define` at the selection's
 //! one point, with the name, type and voltage of its parameter form.
