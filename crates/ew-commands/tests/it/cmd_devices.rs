@@ -510,6 +510,28 @@ fn place_on_a_wire_splits_it() {
     assert_eq!(second.page, Some(PAGE_102));
 }
 
+/// A symbol dropped on the shared run of two wires of one pin (docs/design/06a-drafting.md §3.4) is refused in words:
+/// cut, the other wire would run on through its pins.
+#[test]
+fn place_on_a_shared_run_is_refused_in_words() {
+    let (one, two): (ew_ids::Id<Connection>, ew_ids::Id<Connection>) = (id(0x4100), id(0x4101));
+    let mut a = connection(one, Some(PAGE_102), cp(FN_102G1, 0), cp(FN_T1, 1));
+    a.route = vec![pt(0, -MM10), pt(0, 2 * MM10)];
+    let mut b = connection(two, Some(PAGE_102), cp(FN_102G1, 0), cp(FN_T1, 2));
+    b.route = vec![pt(0, -MM10), pt(0, 2 * MM10), pt(MM10, 2 * MM10)];
+    let model = golden_with(|r| {
+        r.push(Record::Connection(a.clone()));
+        r.push(Record::Connection(b.clone()));
+    });
+    let mut e = engine(model);
+    let r = e.execute(&place(PAGE_102, pt(0, 0), new_device("F")));
+    assert!(
+        matches!(&r, Err(ew_commands::CmdError::Rejected { reason, .. }) if reason.contains("two wires run here")),
+        "{r:?}"
+    );
+    assert_eq!((&*row(&e, one), &*row(&e, two)), (&a, &b), "nothing changed");
+}
+
 /// A wire that a `connect` hint made, so without a route, on page 102. Device A of `SYM_TWO` stands at
 /// (0, 0) (CP 1 at (0, 10 mm), leaving down); device B at `b_at` with the hint from its CP 0 (leaving up) to A's CP 1.
 /// Returns the engine, the wire and the functions of A and B.

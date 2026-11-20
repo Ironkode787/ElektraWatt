@@ -22,7 +22,6 @@ use ew_commands::commands::{
     Connect, EndpointParam, MoveReps, PasteFragment, PlaceBlackBox, PlaceSymbol, PlaceTarget, TransformReps,
 };
 use ew_commands::{CmdError, Engine};
-use ew_derive::routing::{Heading, RouteEnd, RouteRequest, auto_route};
 use ew_ids::Id;
 use ew_model::{Entity, Model};
 use ew_schema::{
@@ -121,6 +120,31 @@ fn place_box(e: &mut Engine, pos: Pt2, spec: BoxSpec) -> (Id<Representation>, Id
     (rep, f)
 }
 
+/// The way a wire leaves a pin.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum Heading {
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
+impl Heading {
+    /// The unit step in grid indices.
+    fn step(self) -> (i64, i64) {
+        match self {
+            Heading::Up => (0, -1),
+            Heading::Down => (0, 1),
+            Heading::Left => (-1, 0),
+            Heading::Right => (1, 0),
+        }
+    }
+
+    fn vertical(self) -> bool {
+        matches!(self, Heading::Up | Heading::Down)
+    }
+}
+
 fn heading(orient: Orient2, dir: &Dir4) -> Heading {
     let v = match dir {
         Dir4::Up => pt(0, -1),
@@ -194,40 +218,37 @@ fn place_two(e: &mut Engine, page: Id<ew_schema::Page>, pos: Pt2) -> (Id<Represe
     (rep, f)
 }
 
-/// The route the Wire tool's router gives from `a` to `b` (no obstacles; the search area the ends' box grown by
-/// four steps).
+/// A route from `a` to `b` as a router draws it between two pins with nothing between: each end leaves along its side
+/// by one grid step, the two stubs are joined by one corner, and the vertices next to the ends take the ends' own
+/// coordinates across their segments (a pin may lie off the grid).
 fn routed(a: (Pt2, Heading), b: (Pt2, Heading)) -> Vec<Pt2> {
-    let grow = 4 * STEP + 4;
-    let req = RouteRequest {
-        from: RouteEnd {
-            at: (a.0.x.0, a.0.y.0),
-            dir: Some(a.1),
-        },
-        to: RouteEnd {
-            at: (b.0.x.0, b.0.y.0),
-            dir: Some(b.1),
-        },
-        obstacles: vec![],
-        texts: vec![],
-        grid: (7_937_500, 3),
-        area: [
-            a.0.x.0.min(b.0.x.0) - grow,
-            a.0.y.0.min(b.0.y.0) - grow,
-            a.0.x.0.max(b.0.x.0) + grow,
-            a.0.y.0.max(b.0.y.0) + grow,
-        ],
-        arrive: None,
-        own: [vec![], vec![]],
-        wires: vec![],
-        reserved: vec![],
-        cross_cost: 0,
-        text_cost: None,
-        mates: Vec::new(),
-        half_grid: false,
+    let g = grid();
+    let stub = |(p, h): (Pt2, Heading)| {
+        let (dx, dy) = h.step();
+        let at = |v: Nm, d: i64| g.at(g.snap(v) + d).expect("on the page");
+        Pt2::new(at(p.x, dx), at(p.y, dy))
     };
-    auto_route(&req).into_iter().map(|(x, y)| pt(x, y)).collect()
+    let (mut s, mut t) = (stub(a), stub(b));
+    // The stubs run straight out of their pins.
+    if a.1.vertical() {
+        s.x = a.0.x;
+    } else {
+        s.y = a.0.y;
+    }
+    if b.1.vertical() {
+        t.x = b.0.x;
+    } else {
+        t.y = b.0.y;
+    }
+    let corner = if a.1.vertical() {
+        Pt2::new(t.x, s.y)
+    } else {
+        Pt2::new(s.x, t.y)
+    };
+    let mut route = vec![a.0, s, corner, t, b.0];
+    route.dedup();
+    route
 }
-
 /// Draws, for every pin of the black box, a wire from the pin to a new two-CP symbol placed beyond it (above a pin
 /// leaving up, below one leaving down, and so on), with the route the Wire tool's router gives; panics with the
 /// refusal when one is refused. Returns the connections.

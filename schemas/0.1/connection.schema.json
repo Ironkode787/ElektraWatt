@@ -826,6 +826,10 @@
       "$ref": "#/$defs/Endpoint",
       "description": "Second endpoint."
     },
+    "computed": {
+      "description": "The stored route was computed by the program and may be computed again (docs/design/06a-drafting.md §2.5);\nabsent: the route is the person's. Optional and additive within format 0.1, after the released members\n(ADR-0011 amendment 6).",
+      "type": "boolean"
+    },
     "id": {
       "$ref": "#/$defs/Uuid",
       "description": "The record ID; also the wire ID of the physical wire it carries."

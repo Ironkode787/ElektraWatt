@@ -4,7 +4,7 @@
 //! The polyline a connection is drawn along: stored routes as stored, an unrouted connection as a right-angled
 //! line between its ends, clamping and properties.
 
-use ew_scene::route::{RouteEnd, connection_polyline};
+use ew_scene::route::{RouteEnd, bevel_partings, connection_polyline};
 use ew_schema::Dir4;
 use ew_units::{Nm, Pt2, Rect};
 use proptest::prelude::*;
@@ -20,6 +20,46 @@ fn end(x: i64, y: i64, dir: Option<Dir4>) -> RouteEnd {
 
 fn page() -> Rect {
     Rect::from_points(p(0, 0), p(1000, 1000))
+}
+
+/// Two wires of one pin that share their run out of it part as the trade draws two wires on one terminal
+/// (docs/design/06a-drafting.md §3.4): of two that turn away from each other, the one turning right leaves the run one
+/// step before the parting by a 45° bevel and the other keeps its square corner; of one going on straight and one
+/// turning, the turning one takes the bevel.
+#[test]
+fn a_shared_run_parts_with_a_bevel() {
+    let s = 10;
+    let pin = p(100, 100);
+    let left = vec![pin, p(100, 100 - 3 * s), p(100 - 5 * s, 100 - 3 * s)];
+    let right = vec![pin, p(100, 100 - 3 * s), p(100 + 5 * s, 100 - 3 * s)];
+    let mut lines = vec![left.clone(), right];
+    bevel_partings(&mut lines, &[(pin, vec![0, 1])], Nm(s));
+    assert_eq!(lines[0], left, "the square corner");
+    assert_eq!(
+        lines[1],
+        [
+            pin,
+            p(100, 100 - 2 * s),
+            p(100 + s, 100 - 3 * s),
+            p(100 + 5 * s, 100 - 3 * s)
+        ],
+        "the bevel"
+    );
+    // One goes on straight, stored from its far end: the one that turns takes the bevel.
+    let on = vec![p(100, 100 - 6 * s), pin];
+    let turn = vec![pin, p(100, 100 - 3 * s), p(100 - 5 * s, 100 - 3 * s)];
+    let mut lines = vec![on.clone(), turn];
+    bevel_partings(&mut lines, &[(pin, vec![0, 1])], Nm(s));
+    assert_eq!(lines[0], on);
+    assert_eq!(
+        lines[1],
+        [
+            pin,
+            p(100, 100 - 2 * s),
+            p(100 - s, 100 - 3 * s),
+            p(100 - 5 * s, 100 - 3 * s)
+        ]
+    );
 }
 
 /// The unrouted line of two ends on [`page`].
