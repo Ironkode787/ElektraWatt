@@ -70,7 +70,9 @@ The exchange of the hardware and the tags with the PLC software is at the end of
    yet: its boxes on an electrical page, its bus ports on a bus page, a valve terminal's valves on their positions on a
    fluid page. Each button goes to the page the view was opened from when it is of that kind (**Draw on page 101**),
    to a new page when the project has none (**Draw on a new electrical page**), else lists the pages of that kind and
-   **New page…**. The station and its modules are drawn side by side in slot order; the bus ports and a valve
+   **New page…**. The station and its modules are drawn in slot order, each input or output module as a low, wide box with
+   its channels' pins in one row: input modules along the foot of the page with their pins on the upper edge, output
+   modules at the head with their pins on the lower edge; the bus ports and a valve
    terminal's box hang on the pointer, and a click puts them down.
 7. Click the station's tag in the header, or press `F2`, to change it in place; `Enter` takes it, `Esc` leaves it. `F2`
    on a card, or a click on the tag of the card under the cursor, changes the card's tag in its row. A tag another

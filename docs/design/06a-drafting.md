@@ -207,6 +207,7 @@ One `const` table in `ew-drafting` holds these; nothing else in the program repe
 | `MAX_NODES` | 262 144 | search area bound (kept) |
 | `GUIDE_SHOW`, `GUIDE_CATCH`, `GUIDE_CATCH_PT` | 2 steps, 3/4 step, 8 screen points | guides (§6) |
 | `CARD_PIN_PITCH` | 5 steps | cards drawn from the station view (§7.5) |
+| `CARD_HEIGHT`, `CARD_PINS_MOST` | 6 steps; 16 pins | cards drawn from the station view (§7.5) |
 
 ### 1.6 The rules that bind the placer
 
@@ -954,6 +955,25 @@ draws them on a box.
 In the same step the starter symbols get the first places of §5.2 as their slots (tag at the upper left, make
 and type under it, pin numbers right of the pins), and the interruption point and supply mark get their name in
 line with the wire, so that marks stack two steps apart.
+
+*As built (step 7).* A card is a device of the station whose part's pin map gives its channels pins: inputs are
+digital and analogue inputs, counters, IO-Link and multi-function ports; outputs are digital and analogue outputs.
+Its box is `pins × CARD_PIN_PITCH` and two steps wide, the row centred (half a step to the left), `CARD_HEIGHT`
+high; its other pins stand down its left side `MARK_PITCH` apart, the lowest that far above the lower edge of a card
+of inputs and the highest that far under the upper edge of a card of outputs. The CPU and any device without
+channel pins keep their box; so does a box a person draws (Place here). The cards of inputs stand along the foot,
+a new row over the first where the area is full, and after the other boxes where something stands there already; the
+other boxes stand from the next free place at the head, in slot order. A row wider than the drawing area takes as
+many pins as fit, `CARD_PINS_MOST` at most; "asks for the page" is the station view's To do list, which offers the
+rest on another page, and a toast after the draw says so. `plc.draw_station` draws a box of a card whose black-box
+function a page draws already as another drawing of it when none of its pins is drawn yet, which also gives a card
+with inputs and outputs its two boxes in one step. The starter symbols that have a pin leaving upward (not the
+terminals, the earth symbols and the valve solenoid) carry the tag right-aligned one millimetre left of their
+graphics with its foot one step under the upper pin, then the PLC address, make, type, rating, function text and
+cross-reference line under line 5 mm apart (a coil's contact list last); 5 mm keeps the lines one block on the QET
+grid too, which scales places and not texts. The interruption point's two forms carry the cross-reference under the
+wire on the wire's side. The text placer gained two places for this: a part's right corners stand beyond its pin
+numbers, and a mark's cross-reference may stand centred under or over its arrow.
 
 ### 7.6 Joining wires: the bevel by default
 

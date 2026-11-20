@@ -195,8 +195,10 @@ its channels), and EW-PLC-017 reports a device in that state with that command a
 station's own module with `plc_station`, so N0 makes the paste a station again. Draw on page `<folio> <title>` (the
 page in front; beside it the other schematic pages and New page…) is one
 `plc.draw_station {station, page, symbol, boxes}`: the window lays the station's box and its modules' out in slot order
-in rows (the black box tool's pin layout over each part's pattern), and the command gives a device made without
-functions its part's template functions before it draws the black-box entry; a device drawn already is left alone. A
+(a module with channel pins as one row of pins along one edge, its inputs at the foot of the page and its outputs at
+its head, [06a](06a-drafting.md) §7.5; any other device by the black box tool's pin layout over its part's pattern), and
+the command gives a device made without functions its part's template functions before it draws the black-box entry;
+a device drawn already is left alone, except a further box of a module drawn in parts. A
 module row's Draw… draws that module the same way. N3 binds the channels of a module that gains its main function in
 the transaction, so a module drawn from the rack is bound to its pins as one drawn by hand; EW-PLC-018 reports a drawn
 module with every channel unbound (an earlier build's drawing), its fix `plc.bind_pins`.
