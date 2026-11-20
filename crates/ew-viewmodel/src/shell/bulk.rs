@@ -25,7 +25,7 @@ use ew_api::output::Uuid;
 use ew_api::{AnyCommand, PurgeError, Submit};
 use serde_json::{Map, Value, json};
 
-use super::creation::{FormDialog, FormField};
+use super::forms::{FormDialog, FormField};
 use super::navigation::bump;
 use super::{Dialog, Mode, Outcome, ShellModel, failed, string_param};
 use crate::layout::PaneKind;

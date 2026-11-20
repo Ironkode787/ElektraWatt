@@ -35,6 +35,7 @@ use crate::wizard::Wizard;
 
 mod canvas_actions;
 mod creation;
+mod forms;
 
 // The station view (the rack), its edits and drawing a station on pages.
 pub mod station;
@@ -144,8 +145,9 @@ pub use tips::Tip;
 
 pub use bond::BOND_KINDS;
 pub use bulk::PURGE_LISTED;
-pub use creation::{FormDialog, FormField, FormRow, FormTable, PAGE_TYPES, STRUCTURE_KINDS, TICK, TICKED};
+pub use creation::{PAGE_TYPES, STRUCTURE_KINDS};
 pub use drawing::TextPopup;
+pub use forms::{FormDialog, FormField, FormRow, FormTable, TICK, TICKED};
 pub use navigation::{Focus, ListPages, RECENT_PAGES, SessionCalls};
 pub use navigators::{Chip, DragSource, FindingLook, MAX_CHIPS, ShownRow};
 pub use parts::{MapColumn, MapKind, PartsMap};

@@ -24,7 +24,7 @@ use std::path::{Path, PathBuf};
 use ew_api::{AnyCommand, TemplateSummary, template_summary};
 use serde_json::{Map, Value, json};
 
-use super::creation::{FormDialog, FormField};
+use super::forms::{FormDialog, FormField};
 use super::{Dialog, Mode, Outcome, Prompt, ShellModel, dir_name, failed, open_error_key, string_param};
 use crate::key;
 use crate::notifications::NoteTone;

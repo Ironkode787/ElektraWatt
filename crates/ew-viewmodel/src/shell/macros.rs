@@ -27,7 +27,7 @@ use ew_api::output::{LibraryCopyDetail, MacroDetail, MacroThumbnail, NavRole, Na
 use ew_api::{AnyCommand, InsertAt, MacroConflict, MacroScope, MacroSpec, MacroValues, Submit};
 use serde_json::{Map, Value, json};
 
-use super::creation::{FormDialog, FormField, FormRow, FormTable};
+use super::forms::{FormDialog, FormField, FormRow, FormTable};
 use super::navigation::bump;
 use super::{Dialog, Mode, Outcome, ShellModel, failed, string_param};
 use crate::canvas::PageId;

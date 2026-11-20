@@ -27,7 +27,7 @@ use ew_api::{
 };
 use serde_json::{Map, Value};
 
-use super::creation::{FormDialog, FormField};
+use super::forms::{FormDialog, FormField};
 use super::tools::command_failed;
 use super::{Dialog, Outcome, ShellModel, failed, string_param};
 use crate::key;
