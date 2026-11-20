@@ -461,11 +461,11 @@ fn the_display_list_of_folio_101_is_stable() {
             labels glyphs 6112da7c "X1" origin=(236140625,102336865) size=1322917 angle=0
             labels glyphs 6112da7c "X2" origin=(236140625,107628531) size=1322917 angle=0
             labels glyphs 66c620c1 "1" origin=(33089851,80602931) size=3439583 angle=0
-            labels glyphs 682aa707 "T55" origin=(213426146,61830743) size=3439583 angle=0
-            labels glyphs 682aa707 "15 °C" origin=(213406037,70014306) size=2381250 angle=0
+            labels glyphs 682aa707 "T55" origin=(213426146,63153660) size=3439583 angle=0
+            labels glyphs 682aa707 "15 °C" origin=(213406037,71337223) size=2381250 angle=0
             labels glyphs 682aa707 "5" origin=(204390625,60003531) size=1322917 angle=0
             labels glyphs 682aa707 "3" origin=(204390625,65295197) size=1322917 angle=0
-            labels glyphs 682aa707 "SK 3110.000" origin=(205700312,66045556) size=2381250 angle=0
+            labels glyphs 682aa707 "SK 3110.000" origin=(205700312,67368473) size=2381250 angle=0
             labels glyphs 7b76f7a3 "-101F1" origin=(124836503,33388035) size=3439583 angle=0
             labels glyphs 7b76f7a3 "Schneider Electric" origin=(115813152,37602848) size=2381250 angle=0
             labels glyphs 7b76f7a3 "A9P52610" origin=(124464233,41571598) size=2381250 angle=0

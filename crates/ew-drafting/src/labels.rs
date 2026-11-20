@@ -14,7 +14,7 @@
 //! that has none with a side) the corners are: upper left (right of the box against the body's left edge, its top
 //! level with the body's top), upper right (beyond the pins' numbers at their first places), lower left, lower right
 //! (the same), centred above (when no wire leaves upward), centred below, above the upper left and upper right
-//! corners, centred below one line lower; for a part whose pins leave sideways: centred above, centred below, above
+//! corners, centred below one line lower, the upper corners half a step lower; for a part whose pins leave sideways: centred above, centred below, above
 //! and below at either end, centred below one line lower. Every gap to the owner is [`LABEL_CLEAR`].
 //!
 //! | Kind | Places after the adapter's |
@@ -55,7 +55,8 @@
 //! before it has the place under that text second.
 //!
 //! A label without a clear place takes its place of least cost ([`LABEL_CLASH`] for each text and body it lies on
-//! and for leaving the drawing area, [`TEXT_CROSSED`] and [`TEXT_STEP`] per tick for each wire across it,
+//! and for leaving the drawing area, [`TEXT_CROSSED`] and [`TEXT_STEP`] per tick for each wire across it or nearer
+//! than [`LABEL_CLEAR`],
 //! [`LABEL_RANK`] for each place down its list; ties to the earlier place). One repair round follows: for each such
 //! label, each label it lies on is tried at its first other clear place, and that label then at its first clear
 //! place; the change is kept when the labels' cost on the page is lower. Every list is read in a fixed order, so the
@@ -254,9 +255,11 @@ impl<'a> Ground<'a> {
             .into_iter()
             .filter(|&i| self.fixed[i].overlaps(r))
             .count() as i64;
+        // A wire nearer than LABEL_CLEAR runs across the text as a reader sees it (§1.3): one along its edge too.
+        let g = r.grown(LABEL_CLEAR);
         let mut across: BTreeMap<WireId, i64> = BTreeMap::new();
-        for i in self.seg_grid.near(r) {
-            if let Some(s) = geom::stretch_inside(self.segs[i].1, r) {
+        for i in self.seg_grid.near(g) {
+            if let Some(s) = geom::stretch_inside(self.segs[i].1, g) {
                 *across.entry(self.segs[i].0).or_default() += geom::length(s);
             }
         }
@@ -344,6 +347,9 @@ fn corners(s: &Shape, (w, h): (Tick, Tick)) -> Vec<Rect> {
         out.push(bx(b.x0 - w, b.y0 - g - h, size));
         out.push(bx(b.x1, b.y0 - g - h, size));
         out.push(lower);
+        // The upper corners half a step lower: clear of a wire that runs along the level of the upper pins.
+        out.push(bx(b.x0 - g - w, b.y0 + TICKS_PER_STEP / 2, size));
+        out.push(bx(s.right + g, b.y0 + TICKS_PER_STEP / 2, size));
         out
     } else {
         vec![
