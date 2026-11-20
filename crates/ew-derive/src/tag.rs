@@ -10,7 +10,7 @@
 //! ID, and the main representation is the smallest-ID representation that draws it, contact images
 //! excluded (doc 03 §5.1: a contact image never counts as the main representation). The richer rule of
 //! doc 03 §8.2 step 4 (lowest page order, row, column among the counted representation types) replaces
-//! both at once; `tests/agreement.rs` holds the two layers together until then.
+//! both at once; `ew-commands`' `tests/it/agreement.rs` holds the two layers together until then.
 //!
 //! **Schemes the command layer does not number.** The command layer numbers per (page of the main
 //! representation, letter) and nothing else. A scheme is therefore applied only when that makes
@@ -70,7 +70,7 @@ impl Query for MainFunction {
 /// **A device whose main function is not drawn** (a contact placed from a part's function template before its
 /// coil), and a strip without a placed terminal, take the smallest-ID representation of the device's functions that
 /// is not a contact image: the device is placed through it and gets a page for `{page}` and for numbering.
-/// `ew_commands::numbering::main_rep` applies the same rules (`tests/agreement.rs`).
+/// `ew_commands::numbering::main_rep` applies the same rules (`ew-commands`' `tests/it/agreement.rs`).
 #[derive(Debug)]
 pub struct MainRep;
 

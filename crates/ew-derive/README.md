@@ -130,8 +130,8 @@ where the documents leave the data open:
 
 `device_tag` takes the main representation by the rule of `ew_commands::numbering` (the smallest-ID
 representation of the smallest-ID main function), so that tags are unique wherever the command layer's counters
-are. The richer rule of doc 03 §8.2 step 4 must replace both rules together (WP-S1.11); `tests/agreement.rs`
-pins the agreement.
+are. The richer rule of doc 03 §8.2 step 4 must replace both rules together (WP-S1.11); `ew-commands`'
+`tests/it/agreement.rs` pins the agreement.
 
 The main representation excludes contact images in both layers (doc 03 §5.1). Only schemes the command layer
 numbers are applied (counter scope `page`, format and rules containing `{page}`, `{letter}` and `{counter}`); a

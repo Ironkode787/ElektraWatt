@@ -11,7 +11,7 @@
 //! as the main representation; the main function: role `Main`, smallest ID if the data holds more).
 //! A strip without a segment takes the main representation of its first placed terminal, and a device whose main
 //! function is not drawn takes the smallest-ID representation of its other functions ([`main_rep`]).
-//! `ew_derive::MainRep` applies the same rules; its `tests/agreement.rs` holds the two together. A cable without a
+//! `ew_derive::MainRep` applies the same rules; `tests/it/agreement.rs` holds the two together. A cable without a
 //! drawn definition line is placed on the page of its first connected core or of the first bus line it carries
 //! ([`main_page`]), as `ew_derive::cable_core_page` places it.
 //!
@@ -194,7 +194,7 @@ impl Rows for Model {
 
 /// `anchor_cell(rep)`: the frame cell of a representation's anchor point, read from the model alone (no derived
 /// query), equal to `ew_derive::RepAnchorCell` (doc 06 §5.1). Normalisers see only the transaction's model, so
-/// online numbering orders by this copy; `ew-derive`'s `tests/agreement.rs` holds the two together, like
+/// online numbering orders by this copy; `tests/it/agreement.rs` holds the two together, like
 /// [`main_rep`] and `ew_derive::MainRep`.
 ///
 /// The anchor point is `ew_derive::anchor_point_of` (the representation's or its symbol's anchor policy, mapped by

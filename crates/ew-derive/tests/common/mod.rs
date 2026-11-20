@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! A JSON fixture builder for the integration tests: records are written as the JSON of doc 05 §3 and
-//! read through `ew-schema`, so a fixture reads like a project file.
+//! read through `ew-schema`, so a fixture reads like a project file. `ew-commands`' `agreement` tests build their
+//! models with it too.
 
 #![allow(dead_code)]
 

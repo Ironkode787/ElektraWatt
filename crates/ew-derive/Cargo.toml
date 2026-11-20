@@ -43,7 +43,4 @@ ew-hack = { version = "0.3.0", path = "../ew-hack" }
 
 [dev-dependencies]
 automod.workspace = true
-# Agreement tests: the main representation and the counters of the command layer (tests/agreement.rs).
-# Its `testkit` is a uniform test feature (ci/dep-rules.toml).
-ew-commands = { path = "../ew-commands", features = ["testkit"] }
 proptest = { version = "1.12.0", default-features = false, features = ["std"] }

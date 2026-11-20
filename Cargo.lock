@@ -1405,7 +1405,6 @@ name = "ew-derive"
 version = "0.3.0"
 dependencies = [
  "automod",
- "ew-commands",
  "ew-hack",
  "ew-ids",
  "ew-memo",

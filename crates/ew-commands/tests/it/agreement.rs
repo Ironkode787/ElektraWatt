@@ -20,7 +20,7 @@
 //! The property below checks the consequence: two numbered devices print the same product designation
 //! exactly when the command layer sees them collide.
 
-use crate::common;
+use crate::derive_fixture as common;
 
 use common::{Fx, id, uid};
 use ew_derive::{DeriveNote, DeviceTag, MainRep, Q, SchemeIssue, TagSource};

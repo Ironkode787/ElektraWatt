@@ -5,6 +5,9 @@
 
 #[path = "../common/mod.rs"]
 mod common;
+// The JSON fixture builder of `ew-derive`'s tests, which `agreement` builds its models with.
+#[path = "../../../ew-derive/tests/common/mod.rs"]
+mod derive_fixture;
 
 // Every other file of tests/it is a module (automod 1.0, sorted by name).
 automod::dir!("tests/it");
