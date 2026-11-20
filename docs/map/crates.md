@@ -85,7 +85,7 @@ The `Session` facade shared by every front-end.
 | `src/output/mod.rs` | large | Page output: the export job of the session (doc 09 §4; ARCH §6.4, §8.4). |
 | `src/output/natures.rs` |  | What a device is (the owner's F9 and F12): its natures, derived from what the model knows of it — the disciplines of its functions' connection points, its bus ports and its aspects. |
 | `src/output/navigation.rs` | large | The reads a viewer finds its way with: the rows of the page navigator ([`Session::page_rows`]), a page's frame cells ([`Session::page_cells`], [`PageCells`]), Go to page or cell ([`Session::resolve_goto`]) and the targets of cross-reference links ([`Session::link_targets`]); and for the canvas tools of part 2 the connection points drawn on a page ([`Session::page_cps`], [`PageCp`]). |
-| `src/output/navigators.rs` | large | The navigators' tables (§6.1, D2, D3): one row source per navigator, [`Session::navigator_table`], a plain function over `Q` that the view model fetches once per (kind, revision) for an open navigator only (no memoised family). |
+| `src/output/navigators.rs` | large | The navigators' tables: one row source per navigator, [`Session::navigator_table`], a plain function over `Q` that the view model fetches once per (kind, revision) for an open navigator only (no memoised family). |
 | `src/output/navigators/blocks.rs` |  | The Report blocks navigator (§7.1): the project's report blocks in section and page order. |
 | `src/output/navigators/bus.rs` |  | The Bus navigator (FR-UI-006, doc 10 §6): logical nets, physical nets and their segments, the ports without a net and the ports not drawn yet. |
 | `src/output/navigators/cables.rs` |  | The Cables navigator (§7.1): the cable overview's cables and their cores. |
@@ -94,10 +94,10 @@ The `Session` facade shared by every front-end.
 | `src/output/navigators/devices.rs` |  | The Devices navigator's tree (§6.7): functions, locations, devices, their functions and representations. |
 | `src/output/navigators/fluid.rs` |  | The fluid navigators (doc 11 §7): Fluid (valve terminals, fluid devices, media), the tube table and the medium table, and the session's media and line ends they read. |
 | `src/output/navigators/function_kind.rs` |  | A function's FnDef name and its kind in words ("NO contact", "changeover"), which the navigators, the properties, the catalogue and the part card print. |
-| `src/output/navigators/highlight.rs` |  | Highlighting (§7.3, D14): what a highlight shows and the connections it draws. |
+| `src/output/navigators/highlight.rs` |  | Highlighting: what a highlight shows and the connections it draws. |
 | `src/output/navigators/ips.rs` |  | The Interruption points navigator (§7.1): each name with its points, from the interruption-point pairing. |
 | `src/output/navigators/libraries.rs` |  | The tables of the Macros and Libraries navigators and the macro detail. |
-| `src/output/navigators/messages.rs` |  | The message panel's table (§7.1, D8) and the migration report: the findings grouped by severity and rule, their target drawables and pages. |
+| `src/output/navigators/messages.rs` |  | The message panel's table and the migration report: the findings grouped by severity and rule, their target drawables and pages. |
 | `src/output/navigators/pages.rs` |  | The Pages navigator's tree (section view): the sections in page order and their pages. |
 | `src/output/navigators/parts.rs` |  | The Parts in use navigator (§7.1): manufacturer, part, the devices it counts (the parts summary). |
 | `src/output/navigators/plc.rs` |  | The PLC navigator and grid (FR-PLC-021): configuration project, station, module, channel from `plc_rows`, with the grid's columns, the station's bus ports, and the lists of cards and stations the PLC panel offers. |
@@ -112,9 +112,9 @@ The `Session` facade shared by every front-end.
 | `src/output/project_diff.rs` |  | `ew diff` and its textconv (doc 05 §11.6; FR-COL-013): the records that differ between two sessions, each labelled with the tags of its own side, and one project file's records as text lines for `git diff`. |
 | `src/output/properties.rs` | large | The property sheet: what the property grid shows for a set of records — the sections every record reaches, each field's value over the section's targets with its provenance and actions, and the closed list of derived rows with their authored partners. |
 | `src/output/properties/bus_rows.rs` |  | The bus and PLC rows of the property sheet: a channel's binding and a net's master in words, a bus port's address shown and read back (FT-856), and a bus line's cable and plugs (doc 10 §2.7). |
-| `src/output/properties/connection_rows.rs` |  | A connection's derived rows (§6.4, D15): the seven wire properties with their sources, the wire number, the potential (also an interruption point's) and the route in frame cells. |
+| `src/output/properties/connection_rows.rs` |  | A connection's derived rows: the seven wire properties with their sources, the wire number, the potential (also an interruption point's) and the route in frame cells. |
 | `src/output/properties/context.rs` |  | The display and parse context of the property sheet: how a row's value is shown and read back (a part, a structure node's path, a record's label, the date format, the company colour codes, the slot choices). |
-| `src/output/properties/device_rows.rs` |  | A device's derived rows (§6.4, D15): the tag, the structure per aspect, the main location and the connection points. |
+| `src/output/properties/device_rows.rs` |  | A device's derived rows: the tag, the structure per aspect, the main location and the connection points. |
 | `src/output/properties/fluid_rows.rs` |  | The fluid rows of the property sheet (doc 11 §7): a fluid line's derived rows, a source's medium, a fluid device's ports and media, and the session's fluid sources and media in words. |
 | `src/output/properties/header.rs` |  | The property sheet's header (§6.2): what the selection is, its title and count, and a record's short title. |
 | `src/output/properties/inputs.rs` |  | The parse rules of the property sheet's editors (§6.5): a row's typed text read back, the PLC typed editors (FT-429), a cable's length, a frozen tag, and the choices of a choice editor. |
@@ -128,7 +128,7 @@ The `Session` facade shared by every front-end.
 | `src/output/route_measures.rs` | large | A page as the layout sees it and its measure in words: [`Session::page_draft`] is the page in ticks (`ew_drafting::DraftPage`, docs/design/06a-drafting.md §2), the labels layer's (`ew-scene`'s `draft` builds it from the page's view, with the scene's text sizes) with each wire's supply rank from its potential and the page's kind; the router reads it (`crate::routing`). |
 | `src/output/rows.rs` | large | The row exports of a chosen report block (D8; FR-EXT-027): `ew export wires`, `ew export terminals [--strip <tag>]`, `--block <name or id>` on `bom`, `cables`, `wires` and `terminals`, `ew export report --block <name or id> --format csv\|pdf`, and `ew export report --kind <kind>`, the whole-project rows of a registered kind ([`RowExport::Kind`]). |
 | `src/output/scale_fit.rs` |  | The fitting scale of a panel-layout page and a mounting surface: the first 1:n of [`FIT_SCALES`] at which the bounding box of the surface's usable outline, drawn at 1:n on paper, fits the drawing area of the page's frame; 1:100 when none fits; none when the surface records no usable outline or the page has no frame. |
-| `src/output/strip_edit.rs` |  | The strip editor's door below the shell (§6.3 to §6.7; D4 to D8, D14): [`Session::strip_edit`] compiles one strip gesture into one command, and [`Session::strip_edits`] several cell gestures into one. |
+| `src/output/strip_edit.rs` |  | The strip editor's door below the shell: [`Session::strip_edit`] compiles one strip gesture into one command, and [`Session::strip_edits`] several cell gestures into one. |
 | `src/output/table_edit.rs` |  | Table mode's pure rule (§8.2, §8.3; moved down from the view model), so that the grid and the table round trip produce the same command for the same cells. |
 | `src/output/table_io.rs` | large | The table round trip (D8, D9, D11): a navigator table as a [`Table`] ([`Session::table_export`]), and a round-trip file read back against the project's table of the same key ([`Session::table_import`]), its changed cells compiled by table mode's own rule ([`super::table_edit::compile`]) into one `fields.set_many` ([`Session::apply_table_import`]). |
 | `src/output/title_block_fields.rs` |  | What the window's Title block fields form reads of a page (FT-1686): the placeholder paths the page's frame and title-block forms print, in the order of their cells, each with its text now; and where those values live (the project's ID, whether the page overrides the project's description, the open revision, the parties). |
@@ -336,10 +336,10 @@ All domain queries and the tracked-read context `Q` (ARCH §6, ADR-0002, ADR-000
 | `src/layout/assembly.rs` |  | The member order of an assembly or PLC station (FR-LAY-061): one function shared by `layout.place_assembly`, `layout.auto_fill` and EW-LAY-016, so that the layout and the check cannot disagree. |
 | `src/layout/carrier.rs` |  | Carrier paths: the axis-parallel check, the length and a rail's axis. |
 | `src/layout/fit.rs` |  | The mount-kind compatibility table (doc 12 §3.3): which rail profiles a part's mount kind fits. |
-| `src/layout/legend.rs` |  | The layout legend of a mounting surface (doc 12 §5.4), the surface a panel page shows (D9), and the legend order of carriers that the BOM's carrier lines share (part 4). |
+| `src/layout/legend.rs` |  | The layout legend of a mounting surface (doc 12 §5.4), the surface a panel page shows, and the legend order of carriers that the BOM's carrier lines share (part 4). |
 | `src/layout/mod.rs` |  | The layout's pure geometry (doc 12 §2.1–§2.4, §3.3): carrier paths, the mount-kind compatibility table and the pose validator, shared by the `layout.*` commands (`ew-commands`) and part 5's EW-LAY-010. |
 | `src/layout/pose.rs` |  | Poses on carriers (doc 12 §2.3): quarter turns about `w`, the degrees of freedom per carrier kind, the surface pose equivalent to a rail pose and the frame of a plate centred in its enclosure. |
-| `src/layout/queries.rs` |  | The layout queries of the MVP (doc 12 §2.6): `mountable(dev)` (D8), `unplaced(space)`, `placement_geometry(p)` (D5), `rail_occupancy(carrier)`, `layout_label(p)` (D10's text) and `carrier_geometry(carrier)`. |
+| `src/layout/queries.rs` |  | The layout queries of the MVP (doc 12 §2.6): `mountable(dev)`, `unplaced(space)`, `placement_geometry(p)` (D5), `rail_occupancy(carrier)`, `layout_label(p)` (D10's text) and `carrier_geometry(carrier)`. |
 | `src/layout/snap.rs` |  | The rail model and the mode resolution (doc 12 §3.3, §3.4): pure functions over the items of one rail, shared by the layout tool's ghost (part 3) and the `layout.place` and `layout.move` commands, so the ghost and the commit agree by construction (D4). |
 | `src/layout/snap/tests.rs` |  | The rail model and the resolver over Golden A's rail intervals (doc 20 §13; the spec's SN-1 to SN-6 numbers by hand) and over random rails (property tests: every mode's result holds D5's rules). |
 | `src/layout/tests.rs` |  | The layout geometry and the compatibility table of doc 12 §3.3. |
@@ -1150,7 +1150,7 @@ Toolkit-agnostic panel models: navigator trees, table rows with edit-to-command 
 | `src/shell/bond.rs` |  | Draw ▸ Bond (`bond.draw`): the host action that declares a bond with `bond.create` (doc 03 §9.6, doc 08 §3.7) on the page shown, previewed on a card and committed by Apply in one undo step. |
 | `src/shell/box_pins.rs` |  | The pins of a drawn box (a box drawn without a part could not get pins). |
 | `src/shell/bridge.rs` |  | The tool host's duty of Edit ▸ Bridge terminals, the host command on the selection that draws page-less bridges between two or more selected terminals of one strip, consecutive in the strip's terminal order (BR1 over :1 to :4 is 1-2, 2-3, 3-4), in one undo step. |
-| `src/shell/bulk.rs` |  | The Preview tab's host duties (§8.1, D11), the renumber dialogs and their `bulk` card (§8.2, §8.3, D12) and the GUI purge step (§8.6). |
+| `src/shell/bulk.rs` |  | The Preview tab's host duties, the renumber dialogs and their `bulk` card (§8.2, §8.3, D12) and the GUI purge step (§8.6). |
 | `src/shell/cables.rs` | large | A cable with its cores from the window: Draw ▸ Connect ▸ New cable… (`cable.new`) and Connect cores… (`cable.connect_cores`), the existing model commands behind a form, as the creation dialogs are. |
 | `src/shell/canvas_actions.rs` |  | The canvas actions of the shell: zoom, pan, fit, the pointer, the pane size, the grid and the frame statistics, and the page content the canvas shows. |
 | `src/shell/choices.rs` |  | The closed sets of choices the window shows through `strings::choice_text`: a form field's `choices` is a `&'static` [`ClosedChoices`], which only this module can build, and the one `closed_choices!` invocation below defines every set and [`ALL`] from the same lines, so a set a form names is in [`ALL`] by construction and the choice-word test reads it. |
@@ -1230,7 +1230,7 @@ Toolkit-agnostic panel models: navigator trees, table rows with edit-to-command 
 | `src/tools/marker.rs` |  | The Wire marker tool (`marker`; §10.7; doc 06 §4.5): a rubber line across the wires whose crossing places one group marker (`marker.place`) over them, in the order the line crosses them. |
 | `src/tools/measure.rs` |  | The Measure tool (`measure`): a distance between two snapped points, read in sheet millimetres. |
 | `src/tools/mod.rs` | large | The canvas tool framework: the tool contract, the overlay, the snapper, the selection and the two shipped tools, Select and Measure, which change nothing. |
-| `src/tools/move_keys.rs` |  | Moving representations in grid steps (D13, §6.7): the steps of a drag or of the keyboard move, the overlay (the ghost of the moved entities' rectangles, the rubber bands of their connections and the readout) and the command, `rep.move` with `steps`. |
+| `src/tools/move_keys.rs` |  | Moving representations in grid steps: the steps of a drag or of the keyboard move, the overlay (the ghost of the moved entities' rectangles, the rubber bands of their connections and the readout) and the command, `rep.move` with `steps`. |
 | `src/tools/overlay.rs` |  | The tool overlay: what a tool draws while it works, in sheet nanometres, toolkit-neutral and never persisted. |
 | `src/tools/paste.rs` |  | The paste tool: a parsed fragment floats at the snapped grid point under the pointer or the grid cursor and is pasted with one `edit.paste`. |
 | `src/tools/picker.rs` |  | The device and symbol browser (the picker): one overlay of the tool host for what can be placed on the focused page (`Session::place_catalogue`, fetched once per (revision, folio) while it is open). |
@@ -1278,7 +1278,7 @@ The development commands of ElektraWatt: one command that checks a change, one t
 | `src/blind/keeper.rs` |  | The session keeper (D6): the run's copied harness holds the product as a child and serves steps over a loopback socket with a per-run token. |
 | `src/blind/mod.rs` | large | `cargo xtask blind`: the blind-drafter harness. |
 | `src/blind/normalise.rs` |  | The normalisation of product output (D14) and the guards that go with it. |
-| `src/blind/oracle.rs` |  | `bless-oracle` and `check-task` (§5.7, D16). |
+| `src/blind/oracle.rs` |  | `bless-oracle` and `check-task`. |
 | `src/blind/oracle/tests.rs` |  | Tests of `check-task` and of the pure parts of `bless-oracle`. |
 | `src/blind/protocol.rs` | large | The protocol (D5): a turn is one `do` call followed by exactly one note; the harness forwards the steps in order and stops at the first step that is not done; `look` calls are free within a cap; a step that fails twice in a row is marked broken; the quit rules end a run on low scores; caps are counts, never wall time. |
 | `src/blind/replay.rs` |  | Recording, bless and replay (D14, D15). |
@@ -1312,4 +1312,4 @@ The development commands of ElektraWatt: one command that checks a change, one t
 
 The files whose head is missing or says too little to tell what they hold.
 
-None.
+- `xtask/src/blind/oracle.rs`
