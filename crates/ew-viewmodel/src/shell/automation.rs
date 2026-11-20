@@ -3836,7 +3836,7 @@ impl ShellModel {
             .file_name()
             .map(|n| n.to_string_lossy().into_owned())
             .unwrap_or_default();
-        if let Err(e) = super::external::write_replacing(&path, &export.bytes) {
+        if let Err(e) = ew_api::library::file::write_replacing(&path, &export.bytes) {
             return failed(key!("error-plc-export"), &[&e.to_string()]);
         }
         let out = export

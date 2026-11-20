@@ -4,7 +4,6 @@
 //! [`Registry`]: the opened tiers, the one resolver and the search index (§7).
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
@@ -14,6 +13,7 @@ use ew_ids::Uuid;
 use rusqlite::Transaction;
 use serde_json::Value;
 
+use crate::file::{Staged, temp_beside, write_replacing};
 use crate::index::{INDEX_FILE, Index, IndexState, LibState, MfrText, texts};
 use crate::lock::{self, Identity, LockPolicy};
 use crate::manifest::{LibManifest, MANIFEST, hash_matches};
@@ -410,35 +410,6 @@ fn closure_rank(doc: &LibDocument) -> u8 {
 
 fn io(e: std::io::Error) -> LibraryError {
     LibraryError::Io(e.to_string())
-}
-
-/// Writes `bytes` to `path` through a temporary sibling: write, flush, sync, rename.
-fn write_atomic(path: &Path, bytes: &[u8], session: &str) -> Result<(), LibraryError> {
-    let tmp = temp_name(path, session);
-    write_temp(&tmp, bytes)?;
-    std::fs::rename(&tmp, path).map_err(io)
-}
-
-fn temp_name(path: &Path, session: &str) -> PathBuf {
-    let mut name = path.file_name().unwrap_or_default().to_owned();
-    name.push(format!(".tmp-{session}"));
-    path.with_file_name(name)
-}
-
-fn write_temp(tmp: &Path, bytes: &[u8]) -> Result<(), LibraryError> {
-    let mut f = std::fs::File::create(tmp).map_err(io)?;
-    f.write_all(bytes).map_err(io)?;
-    f.flush().map_err(io)?;
-    f.sync_all().map_err(io)
-}
-
-/// Syncs a directory where the platform can (not on Windows).
-fn sync_dir(dir: &Path) {
-    if cfg!(unix)
-        && let Ok(f) = std::fs::File::open(dir)
-    {
-        let _ = f.sync_all();
-    }
 }
 
 /// Whether `child` lies at or under `parent` (lexically, both made absolute where possible).
@@ -1179,19 +1150,13 @@ impl Registry {
         if new_files.is_empty() {
             return Ok(report);
         }
-        let session = self.me.session.clone();
         for (path, bytes) in &new_files {
             let full = join(dir, path);
             if let Some(parent) = full.parent() {
                 std::fs::create_dir_all(parent).map_err(io)?;
             }
-            write_atomic(&full, bytes, &session)?;
+            write_replacing(&full, bytes).map_err(io)?;
             report.written.push(path.clone());
-        }
-        for (path, _) in &new_files {
-            if let Some(parent) = join(dir, path).parent() {
-                sync_dir(parent);
-            }
         }
         if self.fault == Some(WriteFault::AfterShards) {
             return Err(LibraryError::Io("injected fault after the shards".into()));
@@ -1205,15 +1170,19 @@ impl Registry {
             manifest.files.insert(path.clone(), ew_format::sha256(bytes));
         }
         let manifest_path = dir.join(MANIFEST);
-        let tmp = temp_name(&manifest_path, &session);
-        write_temp(&tmp, manifest.to_text().as_bytes())?;
+        let staged = Staged::write(
+            temp_beside(&manifest_path),
+            &manifest_path,
+            manifest.to_text().as_bytes(),
+            &std::fs::OpenOptions::new(),
+        )
+        .map_err(io)?;
         if self.fault == Some(WriteFault::BeforeManifestRename) {
             return Err(LibraryError::Io(
                 "injected fault before the manifest's rename".into(),
             ));
         }
-        std::fs::rename(&tmp, &manifest_path).map_err(io)?;
-        sync_dir(dir);
+        staged.commit().map_err(io)?;
         report.generation = generation;
         report.written.push(MANIFEST.to_owned());
         // The commit point is behind us: what the new manifest does not name goes.
@@ -1302,11 +1271,7 @@ impl Registry {
         std::fs::create_dir_all(dir).map_err(io)?;
         let id = ew_ids::Id::<()>::new_v7().as_uuid();
         let manifest = LibManifest::new(id, key, name.trim(), licence.trim());
-        write_atomic(
-            &dir.join(MANIFEST),
-            manifest.to_text().as_bytes(),
-            &self.me.session,
-        )?;
+        write_replacing(&dir.join(MANIFEST), manifest.to_text().as_bytes()).map_err(io)?;
         let tier = if !self.tiers.user.as_os_str().is_empty() && under(dir, &self.tiers.user) {
             Some(Tier::User)
         } else if self.tiers.company.iter().any(|p| under(dir, p)) {

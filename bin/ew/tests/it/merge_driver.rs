@@ -119,7 +119,12 @@ fn w20_merges_cleanly_to_csa_2_5_and_colour_bu_and_exits_0() {
         assert_eq!(result(&out), (Some(0), String::new(), String::new()));
         assert_eq!(merged, expected);
     }
-    assert!(!t.0.join(".merge_file_a.tmp").exists());
+    // No temporary file is left beside the sides.
+    let names: Vec<String> = std::fs::read_dir(&t.0)
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    assert!(names.iter().all(|n| !n.contains(".tmp")), "{names:?}");
 }
 
 /// MD-5, MD-6: the conflict variant (B also adds `colour` WH) writes one conflict record on `overrides.colour`, keeps
@@ -263,16 +268,20 @@ fn a_library_document_this_reader_cannot_read_is_left_as_ours() {
     assert_eq!(merged, ours);
 }
 
-/// A write that fails (the temporary file's name is taken by a folder) exits 129 and leaves `%A`
-/// byte-identical, the folder as it was.
+/// A write that fails (`%A`'s name is so long that no temporary file beside it can be named) exits 129 and leaves
+/// `%A` byte-identical.
 #[test]
 fn a_failed_write_exits_129_and_leaves_a_byte_identical() {
     let t = Tree::new();
     let (base, ours, theirs) = clean_sides();
-    let tmp = t.0.join(".merge_file_a.tmp");
-    std::fs::create_dir(&tmp).unwrap();
-    let os_error = std::fs::File::create(&tmp).unwrap_err();
-    let (out, merged) = t.merge([&base, &ours, &theirs], form(true, REPO_PAGE));
+    // 250 characters: a file's name, but not with a temporary file's suffix (a name holds at most 255).
+    let name = format!(".merge_file_{}", "a".repeat(238));
+    let [o, a, b] = [".merge_file_o", name.as_str(), ".merge_file_b"].map(|n| t.0.join(n));
+    for (path, text) in [(&o, &base), (&a, &ours), (&b, &theirs)] {
+        std::fs::write(path, text).unwrap();
+    }
+    let os_error = std::fs::File::create(t.0.join(format!("{name}.tmp-0"))).unwrap_err();
+    let out = t.run(&form(true, REPO_PAGE)(&o, &a, &b));
     assert_eq!(
         result(&out),
         (
@@ -280,12 +289,11 @@ fn a_failed_write_exits_129_and_leaves_a_byte_identical() {
             String::new(),
             format!(
                 "ew merge-driver: the merged {REPO_PAGE} cannot be written to {}: {os_error}; it is left as it was\n",
-                t.0.join(".merge_file_a").display()
+                a.display()
             )
         )
     );
-    assert_eq!(merged, ours);
-    assert!(tmp.is_dir());
+    assert_eq!(std::fs::read_to_string(&a).unwrap(), ours);
 }
 
 /// A side that cannot be read exits 129 and leaves `%A` byte-identical.

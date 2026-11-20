@@ -855,21 +855,15 @@ pub fn user_only_options() -> std::fs::OpenOptions {
     options
 }
 
-/// Writes `bytes` as the file `path` through `<path>.tmp`, created user-only ([`user_only_options`]), and a rename.
+/// Writes `bytes` as the file `path` all or nothing ([`ew_api::library::file`]), its temporary file created user-only
+/// ([`user_only_options`]).
 ///
 /// # Errors
 ///
 /// The I/O error of the first step that failed.
 pub fn write_user_only(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
-    use std::io::Write as _;
-    let mut name = path.as_os_str().to_owned();
-    name.push(".tmp");
-    let tmp = PathBuf::from(name);
-    let mut file = user_only_options().create(true).truncate(true).open(&tmp)?;
-    user_only_file(&tmp);
-    file.write_all(bytes)?;
-    drop(file);
-    std::fs::rename(&tmp, path)
+    use ew_api::library::file::{Staged, temp_beside};
+    Staged::write(temp_beside(path), path, bytes, &user_only_options())?.commit()
 }
 
 /// Removes a boolean key: absent is `false`, another type makes the file bad (`None`).

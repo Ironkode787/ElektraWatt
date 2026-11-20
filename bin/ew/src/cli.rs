@@ -949,15 +949,10 @@ fn read_bounded(path: &Path, limit: u64) -> std::io::Result<Vec<u8>> {
     Ok(bytes)
 }
 
-/// Writes `bytes` to `<path>.tmp` and renames it to `path`, so a failed export leaves no partial file (doc 09
-/// section 4.3).
+/// Writes `bytes` to `path` all or nothing ([`ew_api::library::file::write_replacing`]), so a failed export leaves no
+/// partial file (doc 09 section 4.3).
 fn write_atomically(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
-    let tmp = sibling(path, ".tmp");
-    write_synced(&tmp, bytes)
-        .and_then(|()| std::fs::rename(&tmp, path))
-        .inspect_err(|_| {
-            let _ = std::fs::remove_file(&tmp);
-        })
+    ew_api::library::file::write_replacing(path, bytes)
 }
 
 /// `path` with `suffix` appended to its last component.

@@ -506,13 +506,7 @@ pub(crate) fn keep_source(sha: &[u8; 32], format: &UnderlayFormat, bytes: &[u8])
     if path.is_file() {
         return Ok(());
     }
-    let tmp = dir.join(format!("{}.{}.tmp-{}", hex(sha), ext(format), std::process::id()));
-    std::fs::write(&tmp, bytes)
-        .and_then(|()| std::fs::rename(&tmp, &path))
-        .map_err(|_| {
-            let _ = std::fs::remove_file(&tmp);
-            refused()
-        })
+    ew_library::file::write_replacing(&path, bytes).map_err(|_| refused())
 }
 
 #[cfg(test)]

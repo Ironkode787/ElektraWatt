@@ -14,12 +14,12 @@
 //! for the elapsed time and the 200 ms rule. The entries are numbered from 1 per shell; the last [`MAX_JOBS`] are kept.
 
 use std::collections::VecDeque;
-use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
 use ew_api::ew_jobs::{Gate, Job, JobCtl, JobEnd, JobError, JobOptions, Progress, Waker};
+use ew_api::library::file::Staged;
 use ew_api::output::{CsvOptions, ExportJob, Table, WorkbookMeta};
 
 use crate::key;
@@ -404,20 +404,6 @@ pub fn sibling_of(target: &Path, name: &str) -> PathBuf {
     target.with_file_name(format!(".{name}.ew-part"))
 }
 
-/// Removes the sibling on drop unless the rename has taken it (a cancel, a failure, a panic's unwinding).
-struct Sibling<'a> {
-    path: &'a Path,
-    armed: bool,
-}
-
-impl Drop for Sibling<'_> {
-    fn drop(&mut self) {
-        if self.armed {
-            let _ = std::fs::remove_file(self.path);
-        }
-    }
-}
-
 /// The cause text of an I/O error: a fixed English text by its kind (a file in use on Windows has its own), never a
 /// path.
 pub(crate) fn io_cause(e: &std::io::Error) -> String {
@@ -446,20 +432,19 @@ fn export_body(
     hooks: &TestHooks,
 ) -> Result<ExportDone, JobError> {
     let (bytes, (pages, kinds)) = produce(ctl)?;
-    let mut guard = Sibling {
-        path: sibling,
-        armed: true,
-    };
     let failed = |e: std::io::Error| JobError::Failed(io_cause(&e));
-    let mut file = std::fs::File::create(sibling).map_err(failed)?;
-    file.write_all(&bytes).map_err(failed)?;
-    file.sync_all().map_err(failed)?;
-    drop(file);
+    // Dropped before its commit (a cancel, a failure, a panic's unwinding), the staged file removes the sibling.
+    let staged = Staged::write(
+        sibling.to_path_buf(),
+        target,
+        &bytes,
+        &std::fs::OpenOptions::new(),
+    )
+    .map_err(failed)?;
     // A test fault (feature `testkit` only): a panic with the sibling on disk.
     hooks.fault("sibling");
     ctl.checkpoint("rename")?;
-    std::fs::rename(sibling, target).map_err(failed)?;
-    guard.armed = false;
+    staged.commit().map_err(failed)?;
     Ok(ExportDone {
         pages,
         kinds,

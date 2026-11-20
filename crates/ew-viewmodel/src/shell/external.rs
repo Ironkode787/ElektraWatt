@@ -683,7 +683,7 @@ impl ShellModel {
                 return Outcome::Failed { message };
             }
         };
-        if let Err(e) = write_replacing(&path, &export.bytes) {
+        if let Err(e) = ew_api::library::file::write_replacing(&path, &export.bytes) {
             let message = strings::format(key!("error-export-ewz"), &[&e.to_string()]);
             self.banner = Some(message.clone());
             return Outcome::Failed { message };
@@ -785,23 +785,4 @@ fn ew_beside_program() -> Option<PathBuf> {
     let exe = std::env::current_exe().ok()?;
     let ew = exe.with_file_name(format!("ew{}", std::env::consts::EXE_SUFFIX));
     ew.is_file().then_some(ew)
-}
-
-/// Writes `bytes` to `path` all or nothing: a temporary file beside it, synced, renamed over it; removed on a failure.
-pub(super) fn write_replacing(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
-    use std::io::Write as _;
-    let mut temp = path.as_os_str().to_owned();
-    temp.push(".tmp-ew");
-    let temp = PathBuf::from(temp);
-    let written = (|| {
-        let mut f = std::fs::File::create(&temp)?;
-        f.write_all(bytes)?;
-        f.sync_all()?;
-        drop(f);
-        std::fs::rename(&temp, path)
-    })();
-    if written.is_err() {
-        let _ = std::fs::remove_file(&temp);
-    }
-    written
 }
