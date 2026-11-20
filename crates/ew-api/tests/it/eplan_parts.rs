@@ -1,11 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! EPLAN part data through the host (doc 14 §5.2, §5.3): AC-38 (an EDZ for a golden part updates the project's copy
+//! EPLAN part data through the host (doc 14 §5.2, §5.3): AC-38 (an EDZ for a held part updates the project's copy
 //! through a previewed command that lists the changed fields), the library write, the function-definition table.
+//! The held part is Phoenix Contact's power supply 2904602, which the synthetic EDZ describes: the sample's power
+//! supply -101G1 is given a copy of it in the test.
 
 use crate::common::{self, Dir};
-use crate::golden_common;
 
 use std::path::Path;
 
@@ -30,10 +31,80 @@ fn fixture(name: &str) -> ImportInput {
     .unwrap()
 }
 
-fn golden() -> Session {
-    let batch = golden_common::batch();
-    let (project, records) = common::split(&batch);
-    Session::from_records(project, records, batch.lib.clone(), SessionOptions::default()).unwrap()
+/// A library copy of `doc` with its hash.
+fn copy(mut doc: serde_json::Value) -> LibDocument {
+    let hash = ew_store::ew_format::library_copy_hash(&LibDocument::from_value(doc.clone()).unwrap()).unwrap();
+    doc["sha256"] = json!(ew_schema::Sha256(hash).to_string());
+    LibDocument::from_value(doc).unwrap()
+}
+
+/// The sample with a project copy (version 1.0.0) of Phoenix Contact's power supply 2904602 and of its maker: a
+/// description, two technical data and the potential roles of its seven CPs. The sample's power supply -101G1 uses it
+/// in place of its generic part.
+fn with_held_2904602() -> Session {
+    const STARTER: &str = "d76f5765-c456-5393-935c-4cec32a87b01";
+    // Replaced by the copy's own hash in `copy`.
+    const PLACEHOLDER: &str = "sha256:0000000000000000000000000000000000000000000000000000000000000000";
+    // The copy identities v5(NS_LIBCOPY, library_id ‖ item_id).
+    let part: Uuid = "68075c2c-1eed-5753-8749-88e37b4496d5".parse().unwrap();
+    let maker: Uuid = "bd612847-36e1-5b4e-a47a-bd9b685fe3c4".parse().unwrap();
+    let (project, mut records, mut lib) = common::sample_records();
+    let generic = lib
+        .iter()
+        .find_map(|d| match d {
+            LibDocument::Part(p) if p.item.part_number.as_str() == "EW-GEN-PSU-1" => Some(p.id),
+            _ => None,
+        })
+        .expect("the sample's generic power supply");
+    let fndef = lib
+        .iter()
+        .find_map(|d| match d {
+            LibDocument::Fndef(f) if f.item.meta.key.as_ref().is_some_and(|k| k.as_str() == "ew.fn.psu-ac-dc") => Some(f.clone()),
+            _ => None,
+        })
+        .expect("the power supply's FnDef");
+    lib.push(copy(json!({
+        "$k": "manufacturer", "id": maker.to_string(), "library_id": STARTER,
+        "item_id": "c7cc7426-9bee-56de-807e-d6db02ca0d01", "version": "1.0.0", "sha256": PLACEHOLDER,
+        "key": "Phoenix Contact", "name": "Phoenix Contact"
+    })));
+    lib.push(copy(json!({
+        "$k": "part", "id": part.to_string(), "library_id": STARTER,
+        "item_id": "801e4bf5-b638-575e-81cb-175e0345d825", "version": "1.0.0", "sha256": PLACEHOLDER,
+        "meta": {"key": "2904602"},
+        "manufacturer": {"library": STARTER, "item": "c7cc7426-9bee-56de-807e-d6db02ca0d01", "version_req": "*"},
+        "part_number": "2904602",
+        "description": "Power supply 1 AC / DC",
+        "tech_data": [
+            {"key": "output_voltage", "value": {"value": "24", "unit": "V"}},
+            {"key": "rated_current", "value": {"value": "20", "unit": "A"}}
+        ],
+        "cp_pattern": [
+            {"idx": 0, "designation": "L", "potential_role": "l"},
+            {"idx": 1, "designation": "N", "potential_role": "n"},
+            {"idx": 2, "designation": "PE", "potential_role": "pe"},
+            {"idx": 3, "designation": "+", "potential_role": "l_plus"},
+            {"idx": 4, "designation": "+", "potential_role": "l_plus"},
+            {"idx": 5, "designation": "−", "potential_role": "m"},
+            {"idx": 6, "designation": "−", "potential_role": "m"}
+        ],
+        "function_template": [{
+            "fndef": {"library": fndef.library_id.to_string(), "item": fndef.item_id.to_string(),
+                "version_req": "^0.1", "key": "ew.fn.psu-ac-dc"},
+            "main": true, "cps": [0, 1, 2, 3, 4, 5, 6]
+        }],
+        "mech": {"width": 70000000, "height": 130000000, "depth": 125000000, "mount_kind": "ts35x7_5"}
+    })));
+    for r in &mut records {
+        if let ew_schema::Record::Device(d) = r {
+            for u in &mut d.parts {
+                if u.part.copy == generic {
+                    u.part.copy = Id::from_uuid(part);
+                }
+            }
+        }
+    }
+    common::session_of(project, records, lib)
 }
 
 fn held_part(s: &Session, number: &str) -> ew_schema::LibCopy<ew_schema::Part> {
@@ -42,15 +113,15 @@ fn held_part(s: &Session, number: &str) -> ew_schema::LibCopy<ew_schema::Part> {
         .iter()
         .find(|(_, c)| c.item.part_number.as_str() == number)
         .map(|(_, c)| (**c).clone())
-        .expect("a golden part")
+        .expect("a held part")
 }
 
-/// AC-38: an EDZ for the golden part 2904602 updates the project's copy through a previewed `library.update` that
+/// AC-38: an EDZ for the held part 2904602 updates the project's copy through a previewed `library.update` that
 /// lists the changed fields and the device that uses the part; what the EDZ does not carry stays; nothing changes
 /// before the commit; the commit is one undo step.
 #[test]
-fn an_edz_updates_the_golden_part_copy_through_a_previewed_command_listing_the_changed_fields() {
-    let mut s = golden();
+fn an_edz_updates_the_held_part_copy_through_a_previewed_command_listing_the_changed_fields() {
+    let mut s = with_held_2904602();
     let before = held_part(&s, "2904602");
     let import = s
         .eplan_parts(&fixture("synthetic-psu-7z.edz"), &FndefMap::shipped(), None)
@@ -103,7 +174,7 @@ fn an_edz_updates_the_golden_part_copy_through_a_previewed_command_listing_the_c
 /// Parts of the file that the project holds no copy of are listed and never created.
 #[test]
 fn parts_the_project_does_not_hold_are_listed_not_created() {
-    let s = golden();
+    let s = common::sample();
     let xml = r#"<partsmanagement>
         <part P_ARTICLE_PARTNR="9999-X" P_ARTICLE_MANUFACTURER="Acme" P_ARTICLE_DESCR1="Gadget"/></partsmanagement>"#;
     let input = ImportInput::new("p.xml", xml.as_bytes().to_vec()).unwrap();
@@ -123,7 +194,8 @@ fn parts_the_project_does_not_hold_are_listed_not_created() {
 /// does not hold, the held manufacturer's is the copy.
 #[test]
 fn a_part_number_of_another_manufacturer_is_not_the_projects_copy() {
-    let s = golden();
+    let s = with_held_2904602();
+
     let xml = |maker: &str| {
         let xml = format!(
             r#"<partsmanagement><part P_ARTICLE_PARTNR="2904602" P_ARTICLE_MANUFACTURER="{maker}"

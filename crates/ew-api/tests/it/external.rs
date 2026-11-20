@@ -3,9 +3,10 @@
 
 //! External change in the session (XC-1 to XC-7; D20 to D23).
 //!
-//! Each test opens a copy of Golden A in memory for editing. The external change is a colleague's save made by a second
-//! session on a copy of the project, whose changed files and manifest are then copied into the live folder, the files
-//! first and `manifest.json` last, as a sync client may, with no lock taken over. Golden A is only read.
+//! Each test opens a copy of the sample project in memory for editing. The external change is a colleague's save made
+//! by a second session on a copy of the project, whose changed files and manifest are then copied into the live
+//! folder, the files first and `manifest.json` last, as a sync client may, with no lock taken over. The sample is only
+//! read.
 
 // The tests read rows through the untracked readers (dev-dependency `ew-model/raw-read`).
 #![allow(clippy::disallowed_methods)]
@@ -45,10 +46,10 @@ fn root() -> PathBuf {
     PathBuf::from("/r/p.ew")
 }
 
-/// Golden A's files by relative path.
-fn golden() -> BTreeMap<String, Vec<u8>> {
+/// The sample's files by relative path.
+fn sample_files() -> BTreeMap<String, Vec<u8>> {
     fn walk(dir: &Path, base: &Path, out: &mut BTreeMap<String, Vec<u8>>) {
-        for e in std::fs::read_dir(dir).expect("the golden folder") {
+        for e in std::fs::read_dir(dir).expect("the sample's folder") {
             let path = e.expect("an entry").path();
             if path.is_dir() {
                 walk(&path, base, out);
@@ -58,20 +59,20 @@ fn golden() -> BTreeMap<String, Vec<u8>> {
                     .expect("below")
                     .to_string_lossy()
                     .replace('\\', "/");
-                out.insert(rel, std::fs::read(&path).expect("a golden file"));
+                out.insert(rel, std::fs::read(&path).expect("a sample file"));
             }
         }
     }
-    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew");
+    let dir = Path::new(ew_testdir::SAMPLE);
     let mut out = BTreeMap::new();
     walk(&dir, &dir, &mut out);
     out
 }
 
-/// A folder of Golden A in a fresh in-memory file system, with a state directory.
+/// A folder of the sample in a fresh in-memory file system, with a state directory.
 fn project() -> Arc<MemVfs> {
     let vfs = Arc::new(MemVfs::new(DirSync::Explicit));
-    for (rel, bytes) in golden() {
+    for (rel, bytes) in sample_files() {
         vfs.put(&ew_store::join(&root(), &rel), &bytes);
     }
     vfs.put_dir(Path::new("/state"));
@@ -129,23 +130,6 @@ fn wire_on(s: &Session, folio: &str, nth: usize) -> String {
         .to_string()
 }
 
-/// W20's ID, from its source reference in Golden A's page files.
-fn w20() -> String {
-    let files = golden();
-    let line = files
-        .iter()
-        .filter(|(p, _)| p.starts_with("pages/"))
-        .flat_map(|(_, b)| {
-            String::from_utf8_lossy(b)
-                .lines()
-                .map(str::to_owned)
-                .collect::<Vec<_>>()
-        })
-        .find(|l| l.contains("connections|W20"))
-        .expect("W20's line");
-    let v: Value = serde_json::from_str(&line).expect("a record");
-    v["id"].as_str().expect("an ID").to_owned()
-}
 
 fn colour(wire: &str, value: Value) -> AnyCommand {
     AnyCommand {
@@ -215,7 +199,7 @@ fn lines(s: &Session) -> Vec<(ew_model::AnyKey, String)> {
     ew_commands::rows::model_lines(&s.world().model).expect("the rows serialise")
 }
 
-/// XC-1: a second store's save that changes folio 106 is detected after quiescence and applied as one step "External
+/// XC-1: a second store's save that changes folio 103 is detected after quiescence and applied as one step "External
 /// change"; undo restores the pre-change model; saving after the undo writes the earlier state.
 #[test]
 fn a_colleague_s_save_is_applied_as_one_undoable_step() {
@@ -223,7 +207,7 @@ fn a_colleague_s_save_is_applied_as_one_undoable_step() {
     let c = clock();
     let mut s = open(&vfs, &c, 1);
     let before = lines(&s);
-    let wire = wire_on(&s, "106", 0);
+    let wire = wire_on(&s, "103", 0);
     let entries = s.history().entries().len();
     let written = colleague(
         &vfs,
@@ -234,14 +218,14 @@ fn a_colleague_s_save_is_applied_as_one_undoable_step() {
         .first()
         .expect("the colleague wrote the page file")
         .clone();
-    let original = golden()[&page_file].clone();
+    let original = sample_files()[&page_file].clone();
 
     assert_eq!(s.poll_disk(), DiskPoll::Settling, "a change waits for quiescence");
     c.advance(QUIESCENCE / 2);
     assert_eq!(s.poll_disk(), DiskPoll::Settling, "not quiet yet");
     c.advance(QUIESCENCE / 2);
     let a = applied(s.poll_disk());
-    assert_eq!((a.records, a.folios.clone()), (1, vec!["106".to_owned()]));
+    assert_eq!((a.records, a.folios.clone()), (1, vec!["103".to_owned()]));
     assert_eq!(a.commit, None, "no git worktree");
     assert_eq!(overrides(&s, &wire)["colour"], json!(["RD"]));
     assert_eq!(s.history().entries().len(), entries + 1, "one step");
@@ -270,7 +254,7 @@ fn a_colleague_s_save_is_applied_as_one_undoable_step() {
     );
 }
 
-/// XC-2: a local unsaved edit on folio 101 stays through the external change on 106, the project stays dirty, and the
+/// XC-2: a local unsaved edit on folio 101 stays through the external change on 103, the project stays dirty, and the
 /// next save writes only the edit's file and passes D5.
 #[test]
 fn a_local_edit_survives_and_saves_alone() {
@@ -278,7 +262,7 @@ fn a_local_edit_survives_and_saves_alone() {
     let c = clock();
     let mut s = open(&vfs, &c, 1);
     let mine = wire_on(&s, "101", 0);
-    let theirs = wire_on(&s, "106", 0);
+    let theirs = wire_on(&s, "103", 0);
     s.execute(&colour(&mine, json!(["BU"]))).expect("the local edit");
     let written = colleague(
         &vfs,
@@ -309,12 +293,21 @@ fn a_local_edit_survives_and_saves_alone() {
     assert_eq!(overrides(&reopened, &theirs)["colour"], json!(["RD"]));
 }
 
-/// XC-3 setup: W20's colour BU locally and WH on disk; the poll holds the collision.
+/// The wire on folio 103 that holds overrides already: the shield's, whose cross-section the script sets.
+fn wire_with_overrides(s: &Session) -> String {
+    (0..)
+        .map(|n| wire_on(s, "103", n))
+        .find(|w| !overrides(s, w).is_null())
+        .expect("the shield's wire")
+}
+
+/// XC-3 setup: the colour of a wire with overrides BU locally and WH on disk; the poll holds the collision.
 fn collided() -> (Arc<MemVfs>, Arc<ManualClock>, Session, String) {
     let vfs = project();
     let c = clock();
     let mut s = open(&vfs, &c, 1);
-    let w = w20();
+    let w = wire_with_overrides(&s);
+
     s.execute(&colour(&w, json!(["BU"]))).expect("the local edit");
     colleague(
         &vfs,
@@ -325,7 +318,7 @@ fn collided() -> (Arc<MemVfs>, Arc<ManualClock>, Session, String) {
     (vfs, c, s, w)
 }
 
-/// XC-3: a local and an external change of W20's colour collide: nothing applies, saves are refused, the collision
+/// XC-3: a local and an external change of one wire's colour collide: nothing applies, saves are refused, the collision
 /// names the field; choosing theirs, then (on a fresh collision) mine, gives the expected models in one step each.
 #[test]
 fn a_collision_is_held_until_mine_or_theirs_is_chosen() {
@@ -393,7 +386,7 @@ fn a_held_change_is_kept_and_merged_again_at_the_apply() {
     // An edit of another field of the colliding record since the hold survives theirs.
     s.execute(&AnyCommand {
         name: "fields.set".into(),
-        params: json!({"kind": "connection", "targets": [w], "path": "overrides.csa", "value": "2.5"}),
+        params: json!({"kind": "connection", "targets": [w], "path": "overrides.csa", "value": "4"}),
     })
     .expect("an edit since the hold");
     // An edit of the colliding field since the hold changes the collision: the choice made before is refused.
@@ -403,7 +396,7 @@ fn a_held_change_is_kept_and_merged_again_at_the_apply() {
         Err(ew_api::ExternalError::Changed)
     ));
     let now = s.external_collisions().expect("still held");
-    assert_eq!(now.len(), 1);
+    assert_eq!(now.len(), 1, "{now:?}");
     assert_eq!(
         (now[0].mine.clone(), now[0].theirs.clone()),
         (Some(json!(["RD"])), Some(json!(["WH"])))
@@ -412,7 +405,7 @@ fn a_held_change_is_kept_and_merged_again_at_the_apply() {
         .expect("theirs applies to the collisions shown");
     assert_eq!(
         overrides(&s, &w),
-        json!({"csa": "2.5", "colour": ["WH"], "show_marker": true}),
+        json!({"csa": "4", "colour": ["WH"]}),
         "theirs at the colliding field, the edit since the hold kept"
     );
     assert!(s.external_collisions().is_none());
@@ -438,7 +431,7 @@ fn a_git_operation_defers_detection_and_an_own_save_is_no_change() {
 
     vfs.put_dir(Path::new("/r/.git"));
     vfs.put(Path::new("/r/.git/index.lock"), b"");
-    let theirs = wire_on(&s, "106", 0);
+    let theirs = wire_on(&s, "103", 0);
     colleague(
         &vfs,
         |o| drop(o.execute(&colour(&theirs, json!(["RD"]))).expect("the edit")),
@@ -462,7 +455,7 @@ fn an_unreadable_generation_holds_saves_until_it_reads() {
     let c = clock();
     let mut s = open(&vfs, &c, 1);
     let mine = wire_on(&s, "101", 0);
-    let theirs = wire_on(&s, "106", 0);
+    let theirs = wire_on(&s, "103", 0);
     s.execute(&colour(&mine, json!(["BU"]))).expect("the local edit");
     let written = colleague(
         &vfs,
@@ -504,7 +497,7 @@ fn a_crash_after_an_apply_recovers_the_live_model() {
     let c = clock();
     let mut s = open(&vfs, &c, 1);
     let mine = wire_on(&s, "101", 0);
-    let theirs = wire_on(&s, "106", 0);
+    let theirs = wire_on(&s, "103", 0);
     s.execute(&colour(&mine, json!(["BU"]))).expect("the local edit");
     colleague(
         &vfs,
@@ -555,7 +548,7 @@ fn a_read_only_follower_reloads_and_writes_nothing() {
     )
     .expect("opens");
     assert!(matches!(report.access, ew_api::Access::ReadOnly(_)));
-    let wire = wire_on(&holder, "106", 0);
+    let wire = wire_on(&holder, "103", 0);
     for (n, value) in [json!(["RD"]), json!(["GN"])].into_iter().enumerate() {
         holder
             .execute(&colour(&wire, value.clone()))
@@ -637,9 +630,9 @@ fn online(s: &Session) -> Vec<ew_api::checks::Finding> {
 }
 
 /// FR-CHK-012's acceptance: two branches each added a device on
-/// folio 102 that numbers as -102F3. Without merge evidence only EW-RDS-004 reports; in a merged copy (`merged: true`)
-/// EW-CORE-013 reports the group with the older UUIDv7 as keeper and the fix "Renumber the newer", which gives the
-/// other the next free counter, -102F4, in one undo step.
+/// folio 102 that numbers as -102F2 (the sample's breaker there is -102F1). Without merge evidence only EW-RDS-004
+/// reports; in a merged copy (`merged: true`) EW-CORE-013 reports the group with the older UUIDv7 as keeper and the
+/// fix "Renumber the newer", which gives the other the next free counter, -102F3, in one undo step.
 #[test]
 fn ew_core_013_renumbers_the_newer_after_a_merge() {
     let vfs = project();
@@ -678,7 +671,7 @@ fn ew_core_013_renumbers_the_newer_after_a_merge() {
     s.save().expect("saves");
     s.close();
 
-    // The other branch numbered its device -102F3 too: its device line with counter 3, as a merge leaves it, and the
+    // The other branch numbered its device -102F2 too: its device line with counter 2, as a merge leaves it, and the
     // manifest's hash of that file; `merged` as `merged` says.
     let shard = format!("devices/{}.jsonl", &newer[newer.len() - 2..]);
     let shard_path = ew_store::join(&root(), &shard);
@@ -688,9 +681,9 @@ fn ew_core_013_renumbers_the_newer_after_a_merge() {
         .find(|l| l.contains(&newer))
         .expect("the newer device's line")
         .to_owned();
-    let three = line.replace("\"counter\":4", "\"counter\":3");
-    assert_ne!(three, line);
-    let bytes = text.replace(&line, &three).into_bytes();
+    let two = line.replace("\"counter\":3", "\"counter\":2");
+    assert_ne!(two, line);
+    let bytes = text.replace(&line, &two).into_bytes();
     vfs.put(&shard_path, &bytes);
     let manifest_path = ew_store::join(&root(), "manifest.json");
     let mut manifest: Value = serde_json::from_slice(&vfs.read(&manifest_path).unwrap()).unwrap();
@@ -709,7 +702,7 @@ fn ew_core_013_renumbers_the_newer_after_a_merge() {
     assert!(!s.merge_evidence());
     let rds = findings(&s, "EW-RDS-004");
     assert_eq!(rds.len(), 1);
-    assert_eq!(rds[0].message, "`=P01+J-E-2416-102F3` is printed by 2 devices");
+    assert_eq!(rds[0].message, "`+CAB-102F2` is printed by 2 devices");
     assert!(findings(&s, "EW-CORE-013").is_empty(), "no merge evidence");
     assert!(online(&s).is_empty());
 
@@ -730,23 +723,22 @@ fn ew_core_013_renumbers_the_newer_after_a_merge() {
     let f = &collisions[0];
     assert_eq!(
         f.message,
-        "`=P01+J-E-2416-102F3` is printed by 2 devices after a merge; the oldest record keeps it, and the other must \
-         change"
+        "`+CAB-102F2` is printed by 2 devices after a merge; the oldest record keeps it, and the other must change"
     );
     // The inner uniqueness finding is worded by EW-RDS-004's own pattern in each language.
     use ew_api::checks::messages::{format, render};
     assert_eq!(format(f, "en-GB").as_deref(), Some(f.message.as_str()));
     assert_eq!(
         render(f, "nl-NL"),
-        "`=P01+J-E-2416-102F3` wordt afgedrukt door 2 apparaten na samenvoegen; het oudste record behoudt het, en het \
-         andere moet wijzigen"
+        "`+CAB-102F2` wordt afgedrukt door 2 apparaten na samenvoegen; het oudste record behoudt het, en het andere \
+         moet wijzigen"
     );
     let rds = findings(&s, "EW-RDS-004");
     let rds = &rds[0];
     assert_eq!(format(rds, "en-GB").as_deref(), Some(rds.message.as_str()));
     assert_eq!(
         render(rds, "nl-NL"),
-        "`=P01+J-E-2416-102F3` wordt afgedrukt door 2 apparaten"
+        "`+CAB-102F2` wordt afgedrukt door 2 apparaten"
     );
     let fix = f.fix.clone().expect("renumber the newer");
     assert_eq!(fix.label, "Renumber the newer");
@@ -779,7 +771,7 @@ fn ew_core_013_renumbers_the_newer_after_a_merge() {
             tag.as_ref().as_ref().expect("a tag").full.clone()
         })
         .collect();
-    assert_eq!(tags, ["=P01+J-E-2416-102F3", "=P01+J-E-2416-102F4"]);
+    assert_eq!(tags, ["+CAB-102F2", "+CAB-102F3"]);
     assert!(findings(&s, "EW-CORE-013").is_empty());
 }
 
@@ -788,12 +780,13 @@ fn ew_core_013_renumbers_the_newer_after_a_merge() {
 #[test]
 fn a_conflicted_copy_is_listed_as_an_orphan_file() {
     let vfs = project();
-    let page = golden()
+    let page = sample_files()
         .into_keys()
         .find(|p| p.starts_with("pages/"))
         .expect("a page file");
     let copy = page.replace(".jsonl", " (conflicted copy).jsonl");
-    vfs.put(&ew_store::join(&root(), &copy), &golden()[&page]);
+    vfs.put(&ew_store::join(&root(), &copy), &sample_files()[&page]);
+
     let c = clock();
     let (s, report) = Session::open(
         &root(),
