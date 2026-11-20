@@ -85,6 +85,7 @@ answers is deleted with a line in its report.
 Accepted by the owner as built on 2026-11-20 (the sixth candidate); these are what the builder and the reviews of
 its pages left open (ADR-0034, `docs/design/06a-drafting.md`).
 
+- FT-1880 `ew-drafting`: The placer does not always settle in one press, whatever the rounding: on a page of the reference project, after one symbol is moved two steps, the second press of Arrange and route moves ten symbols and routes thirteen wires, and only the third offers nothing; on two pages with wires that find no way, a second Route moves one wire by a step. The design's invariant is that a second press offers nothing: iterate to the fixed point before the plan is offered, or find why the first plan is not it.
 - FT-1849 `ew-drafting`: Route weighs a kept route per net, not per wire: on a page with an older two-row card its plan is two crossings worse than the page was, because one wire at a supply mark loses the person's route.
 - FT-1850 `ew-viewmodel`: The Arrange and route card, after rows are unticked, still lists a few wire rows that Route would redraw; find whether they belong there (the test's loop bound went from 8 to 64 without the cause).
 - FT-1851 `ew-drafting`: On a page with cards a feed terminal without a channel stays in the middle of its strip and its wires cross the channels; it wants a place at the strip's end.
