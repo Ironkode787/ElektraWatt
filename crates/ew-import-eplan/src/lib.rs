@@ -78,7 +78,7 @@ pub fn read(bytes: &[u8], name: &str) -> Result<Vec<ImportedSymbol>, String> {
     };
     let mut result = Vec::new();
     let mut budget = Budget::default();
-    // An archive member that is not read, or an XML of another kind, is reported on every symbol (spec §1).
+    // An archive member that is not read, or an XML of another kind, is reported on every symbol.
     let mut skipped = false;
     for (name, data) in files {
         let lower = name.to_ascii_lowercase();
