@@ -5,7 +5,7 @@
 //! `layout.apply` that moves the symbols and stores their wires' routes, one Undo restores every place and route, and
 //! the command refuses a symbol kept in place, one moved without its wires' routes and one out of the drawing area.
 
-use crate::golden_common;
+use crate::common;
 
 use ew_api::routing::RouteScope;
 use ew_api::{AnyCommand, Origin};
@@ -30,12 +30,33 @@ fn apply(params: serde_json::Value) -> AnyCommand {
     }
 }
 
-/// Golden A's distribution page: Arrange and route moves symbols; its one `layout.apply` stores them where the plan
-/// puts them, and one Undo takes all of it back.
+/// The sample with its motor breaker -103F1 moved three grid steps (7.9375 mm) right on folio 103, out of line with
+/// the contactor's main contacts under it: the sample's pages are drawn in line, so Arrange and route has nothing to
+/// move on them as they are.
+fn displaced() -> ew_api::Session {
+    let mut s = common::sample();
+    let breaker = s.resolve_reference("-103F1").expect("the motor breaker");
+    let rep = s
+        .page_tables("103")
+        .expect("folio 103")
+        .reps
+        .iter()
+        .find(|r| r.device == Some(breaker))
+        .expect("-103F1 on 103")
+        .id;
+    s.execute(&AnyCommand {
+        name: "rep.move".into(),
+        params: json!({"reps": [rep.to_string()], "delta": [7_937_500, 0]}),
+    })
+    .expect("rep.move");
+    s
+}
+
+/// The motor page with a breaker out of line: Arrange and route moves symbols; its one `layout.apply` stores them
+/// where the plan puts them, and one Undo takes all of it back.
 #[test]
 fn an_arranged_page_is_one_command_and_one_undo_restores_every_place_and_route() {
-    let batch = golden_common::batch();
-    let mut s = golden_common::session(&batch);
+    let mut s = displaced();
     let folio = "103";
     let before = drawing(&s, folio);
     let plan = s
@@ -65,8 +86,7 @@ fn an_arranged_page_is_one_command_and_one_undo_restores_every_place_and_route()
 /// the drawing area.
 #[test]
 fn layout_apply_refuses_a_kept_symbol_a_symbol_without_its_routes_and_one_out_of_the_drawing_area() {
-    let batch = golden_common::batch();
-    let mut s = golden_common::session(&batch);
+    let mut s = displaced();
     let t = s.page_tables("103").expect("folio 103");
     let page = t.page.to_string();
     // A symbol the plan moves: its wires get new routes in the plan.
@@ -112,15 +132,14 @@ fn shapes(s: &ew_api::Session, folio: &str) -> Shapes {
     )
 }
 
-/// Every plan Arrange and route offers on a page of Golden A is stored by its `layout.apply`: on its grid, whose step
+/// Every plan Arrange and route offers on a page of the sample is stored by its `layout.apply`: on its grid, whose step
 /// is no whole number of nm, the route of a moved symbol's wire ends on the number the moved connection point then
 /// has (docs/design/06a-drafting.md §2.1). The page as stored is the page the plan was judged on: every text keeps its
 /// box in ticks and every symbol its body where it was moved to. And on the page as stored a second press offers
 /// nothing.
 #[test]
 fn every_plan_arrange_offers_is_stored_by_its_command() {
-    let batch = golden_common::batch();
-    let mut s = golden_common::session(&batch);
+    let mut s = displaced();
     let mut folios: Vec<u32> = s.query().pages().iter().map(|(_, p)| p.folio.number).collect();
     folios.sort_unstable();
     let mut stored = false;

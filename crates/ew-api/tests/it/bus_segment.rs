@@ -1,36 +1,40 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! On Golden A (AC-31): the DP segment runs from
-//! the external end over -3W1 and -3X1 to -201U1:DP; the external partner JE-N1000-03 is the master and in no BOM;
-//! EW-BUS-004 gives one info for the external end and no error while -3X1 is On, an error once it is Off; EW-BUS-001
-//! reports the TBD station address once (EF-03) and supersedes EW-CORE-044.
+//! The bus segment of the sample project (page 105, AC-31's derived half): the PROFIBUS DP line runs from the CPU's
+//! port -104A1:DP over the cable -105W1 to the valve terminal's port -201K1:DP; the CPU is the master; the ports print
+//! their addresses and terminations; EW-BUS-004 reports an end switched off and EW-BUS-001 a TBD station address,
+//! which supersedes EW-CORE-044. The segment's rules and their in-code fixtures are `ew-checks`' and `ew-derive`'s
+//! `bus.rs`.
 
-use crate::golden_common;
-
-use std::collections::BTreeMap;
+use crate::common;
 
 use ew_api::checks::{CheckMode, CheckReport, Finding, PRE_DELIVERY, Severity};
-use ew_api::{AnyCommand, BomMode, Export, Session};
+use ew_api::{AnyCommand, Session};
 use ew_derive::{
     BusSegments, NetMaster, NetMembersOf, Q, SegmentMember, bus_address_text, bus_termination_text,
-    external_partner_text,
 };
 use ew_ids::Id;
-use ew_schema::{Device, Function, LogicalNet, PhysicalNet};
+use ew_schema::{Device, Function, PhysicalNet};
 use serde_json::json;
 
-/// The golden batch's IDs by key and a session over it.
-fn golden() -> (BTreeMap<String, String>, Session) {
-    let batch = golden_common::batch();
-    (golden_common::ids_by_key(&batch), golden_common::session(&batch))
-}
-
-fn id<T>(ids: &BTreeMap<String, String>, key: &str) -> Id<T> {
-    ids.get(key)
-        .unwrap_or_else(|| panic!("{key} is in the golden batch"))
-        .parse()
-        .expect("an ID")
+/// The bus port function of the device tagged `tag` on the sample.
+fn port(s: &Session, tag: &str) -> Id<Function> {
+    let q = s.query();
+    let device: Id<Device> = Id::from_uuid(s.resolve_reference(tag).expect("the device"));
+    let functions = q.functions();
+    let mut ports: Vec<Id<Function>> = q
+        .idx()
+        .functions_of_device(device)
+        .filter(|f| {
+            functions
+                .get(*f)
+                .and_then(|f| f.bus_port.as_ref())
+                .is_some_and(|p| p.interface.as_str() == "DP")
+        })
+        .collect();
+    assert_eq!(ports.len(), 1, "{tag} has one DP port");
+    ports.pop().unwrap()
 }
 
 /// The open findings of `rule` as (severity, subject, discriminator).
@@ -43,160 +47,146 @@ fn open(report: &CheckReport, rule: &str) -> Vec<(Severity, String, String)> {
         .collect()
 }
 
-fn set_termination(s: &mut Session, plug: Id<Function>, value: &str) {
+fn set_port(s: &mut Session, port: Id<Function>, path: &str, value: &str) {
     s.execute(&AnyCommand {
         name: "fields.set".into(),
         params: json!({
-            "kind": "function", "targets": [plug.to_string()], "path": "bus_port.termination", "value": value,
+            "kind": "function", "targets": [port.to_string()], "path": path, "value": value,
         }),
     })
-    .unwrap_or_else(|e| panic!("fields.set bus_port.termination {value}: {e:?}"));
+    .unwrap_or_else(|e| panic!("fields.set {path} {value}: {e:?}"));
 }
 
-/// The external end of the DP segment, printed as EW-BUS-004 names it.
-const EXTERNAL_END: &str = "external end DP (+J-E-206 / JE-N1000-03)";
+/// The physical net of the line, which the window's bus tools do not make: created, and named by both ports.
+fn with_physical_net(s: &mut Session) -> Id<PhysicalNet> {
+    let r = s
+        .execute(&AnyCommand {
+            name: "bus.physical_net.create".into(),
+            params: json!({"name": "DP", "medium": "copper"}),
+        })
+        .expect("bus.physical_net.create");
+    let pnet: Id<PhysicalNet> = Id::from_uuid(r.outcome.primary.expect("the net").1.as_uuid());
+    for tag in ["-104A1", "-201K1"] {
+        let p = port(s, tag);
+        set_port(s, p, "bus_port.physical_net", &pnet.to_string());
+    }
+    pnet
+}
 
-/// BU-2 (D11, A5): `bus_segments(DP)` holds one segment, ordered from the master end: the external interruption point
-/// DP, the cable -3W1, the plug -3X1 and the station port -201U1:DP; the external end is the IP, and the segment is
-/// on the logical net DP.
+/// BU-2 (D11, A5): the DP line is one segment, ordered from the master end: the CPU's port, the cable -105W1 and the
+/// valve terminal's port; both ports are its ends, neither is external, and it is on a logical net.
 #[test]
-fn one_segment_from_the_external_end_to_the_station_port() {
-    let (ids, s) = golden();
+fn one_segment_from_the_master_port_to_the_station_port() {
+    let mut s = common::sample();
+    let pnet = with_physical_net(&mut s);
     let q: Q = s.query();
-    let pnet: Id<PhysicalNet> = id(&ids, "physical_nets|DP");
-    let lnet: Id<LogicalNet> = id(&ids, "logical_nets|DP");
-    let ip: Id<Function> = id(&ids, "functions|DP@3");
-    let cable: Id<Device> = id(&ids, "devices|-3W1");
-    let plug: Id<Function> = id(&ids, "functions|-3X1");
-    let port: Id<Function> = id(&ids, "functions|-201U1#bus");
+    let master = port(&s, "-104A1");
+    let station = port(&s, "-201K1");
+    let cable: Id<Device> = Id::from_uuid(s.resolve_reference("-105W1").expect("the bus cable"));
     let segments = q.get::<BusSegments>(pnet);
     assert_eq!(segments.len(), 1, "{segments:#?}");
     let segment = &segments[0];
     assert_eq!(
         segment.members,
         [
-            SegmentMember::Function(ip),
+            SegmentMember::Function(master),
             SegmentMember::Cable(cable),
-            SegmentMember::Function(plug),
-            SegmentMember::Function(port),
+            SegmentMember::Function(station),
         ]
     );
-    assert_eq!(segment.external_ends, [ip]);
+    assert!(segment.external_ends.is_empty());
     assert!(
-        segment.ends.contains(&ip) && segment.ends.contains(&port),
+        segment.ends.contains(&master) && segment.ends.contains(&station),
         "{:?}",
         segment.ends
     );
-    assert_eq!(segment.logical_net, Some(lnet));
+    assert!(segment.logical_net.is_some());
     assert!(!segment.branched);
 }
 
-/// BU-4 (FR-BUS-005): the master of the logical net DP is the external partner JE-N1000-03 (the external
-/// interruption point DP of folio 3), the station port -201U1:DP is its one member, and the partner is no device: it
-/// is in neither BOM.
+/// BU-4 (FR-BUS-005): the master of the logical net is the CPU's port, and the valve terminal's port is a member.
 #[test]
-fn the_external_partner_is_the_master_and_in_no_bom() {
-    let (ids, s) = golden();
+fn the_cpu_port_is_the_master_of_the_net() {
+    let s = common::sample();
     let q: Q = s.query();
-    let lnet: Id<LogicalNet> = id(&ids, "logical_nets|DP");
+    let master = port(&s, "-104A1");
+    let station = port(&s, "-201K1");
+    let lnet = q
+        .functions()
+        .get(station)
+        .and_then(|f| f.bus_port.as_ref())
+        .and_then(|p| p.logical_net)
+        .expect("the station port names its net");
     let members = q.get::<NetMembersOf>(lnet);
-    assert_eq!(members.ports, [id::<Function>(&ids, "functions|-201U1#bus")]);
-    match members.master {
-        Some(NetMaster::External { ip, external }) => {
-            assert_eq!(ip, id::<Function>(&ids, "functions|DP@3"));
-            assert_eq!(external_partner_text(&q, external), "+J-E-206 / JE-N1000-03");
-        }
-        other => panic!("the master is the external partner, not {other:?}"),
-    }
-    assert!(
-        s.resolve_reference("JE-N1000-03").is_err(),
-        "the partner is no device"
-    );
-    for mode in [BomMode::Component, BomMode::Assembly] {
-        let bom = s.export_csv(Export::Bom(mode)).expect("a BOM");
-        assert!(!bom.contains("JE-N1000-03"), "{mode:?}: {bom}");
-    }
+    assert!(members.ports.contains(&station), "{members:?}");
+    assert_eq!(members.master, Some(NetMaster::Port(master)));
 }
 
-/// BU-5's derived half (the page bytes are the committed expected files): the station port prints "Node TBD" and the
-/// plug's termination derives "Switch to "ON"" (drawn by no slot of folio 3 yet).
+/// BU-5's derived half: a port prints its station address ("Node 3") and its termination switch; an open address
+/// prints "Node TBD"; a switch Off prints "Switch to "OFF"".
 #[test]
 fn the_port_texts() {
-    let (ids, s) = golden();
-    let q: Q = s.query();
-    let functions = q.functions();
-    let port = functions
-        .get(id(&ids, "functions|-201U1#bus"))
-        .expect("the station port");
-    let plug = functions.get(id(&ids, "functions|-3X1")).expect("the plug");
-    let port = port.bus_port.as_ref().expect("a bus port");
-    let plug = plug.bus_port.as_ref().expect("a bus port");
-    assert_eq!(bus_address_text(port).as_deref(), Some("Node TBD"));
-    assert_eq!(bus_termination_text(port), None, "the station port has no switch");
-    assert_eq!(bus_address_text(plug), None, "a passive port has no address");
-    assert_eq!(bus_termination_text(plug).as_deref(), Some("Switch to \"ON\""));
+    let mut s = common::sample();
+    let station = port(&s, "-201K1");
+    let text = |s: &Session| {
+        let q = s.query();
+        let port = q.functions().get(station).unwrap().bus_port.clone().unwrap();
+        (bus_address_text(&port), bus_termination_text(&port))
+    };
+    assert_eq!(
+        text(&s),
+        (Some("Node 3".to_owned()), Some("Switch to \"ON\"".to_owned()))
+    );
+    set_port(&mut s, station, "bus_port.address", "tbd");
+    set_port(&mut s, station, "bus_port.termination", "off");
+    assert_eq!(
+        text(&s),
+        (Some("Node TBD".to_owned()), Some("Switch to \"OFF\"".to_owned()))
+    );
 }
 
-/// BU-6 = AC-31 (D12; doc 20 §18.1 EF-03, EF-16): with -3X1 On, EW-BUS-004 reports no error and one info for the
-/// external end; EW-BUS-001 reports the TBD station address of -201U1:DP once, and EW-CORE-044's finding for it is
-/// superseded. BU-3: with -3X1 Off, EW-BUS-004 reports one error on -3X1 (the switch prints "Switch to "OFF""), the
-/// info stays, and On again clears the error.
+/// BU-6 = AC-31 (D12): the sample's line has no bus finding. BU-3: with the valve terminal's end Off, EW-BUS-004
+/// reports one error at that end, and On again clears it. A TBD station address is one EW-BUS-001 error on its port,
+/// worded in each language, and EW-CORE-044's finding for it is superseded.
 #[test]
-fn ac31_the_bus_checks_on_golden_a() {
-    let (ids, mut s) = golden();
+fn ac31_the_bus_checks_on_the_sample() {
+    let mut s = common::sample();
+    with_physical_net(&mut s);
+    let station = port(&s, "-201K1");
     let report = s.check(&PRE_DELIVERY, CheckMode::Release);
+    assert_eq!(open(&report, "EW-BUS-004"), []);
+    assert_eq!(open(&report, "EW-BUS-001"), []);
+
+    set_port(&mut s, station, "bus_port.termination", "off");
+    let off = s.check(&PRE_DELIVERY, CheckMode::Release);
     assert_eq!(
-        open(&report, "EW-BUS-004"),
-        [(Severity::Info, EXTERNAL_END.to_owned(), "external".to_owned())]
+        open(&off, "EW-BUS-004"),
+        [(Severity::Error, "+CAB-201K1:DP".to_owned(), "end".to_owned())]
     );
+    set_port(&mut s, station, "bus_port.termination", "on");
+    let on = s.check(&PRE_DELIVERY, CheckMode::Release);
+    assert_eq!(open(&on, "EW-BUS-004"), []);
+
+    set_port(&mut s, station, "bus_port.address", "tbd");
+    let tbd = s.check(&PRE_DELIVERY, CheckMode::Release);
     assert_eq!(
-        open(&report, "EW-BUS-001"),
-        [(
-            Severity::Error,
-            "=P01+J-E-2416-201U1:DP".to_owned(),
-            "address".to_owned()
-        )]
+        open(&tbd, "EW-BUS-001"),
+        [(Severity::Error, "+CAB-201K1:DP".to_owned(), "address".to_owned())]
     );
-    assert_eq!(open(&report, "EW-CORE-044"), [], "superseded by EW-BUS-001");
-    // The external end is worded in each language, from its name and partner.
-    let info = report
+    assert_eq!(open(&tbd, "EW-CORE-044"), [], "superseded by EW-BUS-001");
+    assert_eq!(tbd.exit_code(), 1, "a TBD address blocks release");
+    let finding = tbd
         .findings
         .iter()
-        .find(|f| f.rule == "EW-BUS-004")
-        .expect("the info");
+        .find(|f| f.rule == "EW-BUS-001")
+        .expect("the finding");
     assert_eq!(
-        ew_api::checks::messages::format(info, "en-GB").as_deref(),
-        Some(info.message.as_str())
+        ew_api::checks::messages::format(finding, "en-GB").as_deref(),
+        Some(finding.message.as_str())
     );
-    assert_eq!(
-        ew_api::checks::messages::render(info, "nl-NL"),
-        "extern einde DP (+J-E-206 / JE-N1000-03): de afsluiting aan het externe einde is onbekend; controleer dat \
-         de partner het segment afsluit"
-    );
-    assert_eq!(report.exit_code(), 1, "EF-03 blocks release");
-
-    let plug: Id<Function> = id(&ids, "functions|-3X1");
-    set_termination(&mut s, plug, "off");
-    let text = s
-        .query()
-        .functions()
-        .get(plug)
-        .and_then(|f| f.bus_port.as_ref().and_then(bus_termination_text));
-    assert_eq!(text.as_deref(), Some("Switch to \"OFF\""));
-    let off = s.check(&PRE_DELIVERY, CheckMode::Release);
-    let mut got = open(&off, "EW-BUS-004");
-    got.sort();
-    let mut want = vec![
-        (Severity::Error, "=P01+J-E-2416-3X1".to_owned(), "end".to_owned()),
-        (Severity::Info, EXTERNAL_END.to_owned(), "external".to_owned()),
-    ];
-    want.sort();
-    assert_eq!(got, want);
-
-    set_termination(&mut s, plug, "on");
-    let on = s.check(&PRE_DELIVERY, CheckMode::Release);
-    assert_eq!(
-        open(&on, "EW-BUS-004"),
-        [(Severity::Info, EXTERNAL_END.to_owned(), "external".to_owned())]
+    assert_ne!(
+        ew_api::checks::messages::render(finding, "nl-NL"),
+        finding.message,
+        "worded in Dutch"
     );
 }

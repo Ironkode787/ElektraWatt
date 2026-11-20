@@ -1,15 +1,14 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The clipboard below the shell on Golden A (acceptance checks CB1 to CB3 and the session half of
+//! The clipboard below the shell on the sample project (acceptance checks CB1 to CB3 and the session half of
 //! CB4 to CB6): the fragment `Session::copy_fragment` writes (byte-equal, against a committed file, the closure rules),
 //! `parse_fragment`'s refusals of hostile text, and `edit.paste` (every rejection at its pointer, the child device, the
 //! library copies, the structure rebinding, the exact grid-step translation, one undo step). The LINKS oracle of CB3 is
-//! the unit test `mandatory_and_optional_follow_the_oracle_for_every_link` of `ew-commands`. The page-item and
-//! structure-box cases run on the golden batch, so that a record of an unknown page-item variant can be added.
+//! the unit test `mandatory_and_optional_follow_the_oracle_for_every_link` of `ew-commands`. The cases of an unknown
+//! page-item variant build their session over the sample's records, so that such a record can be added.
 
-use crate::golden_common;
-use crate::golden_common::read_only as golden;
+use crate::common;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -24,15 +23,36 @@ use ew_testids::seeded_ids;
 use ew_units::{Grid, Nm};
 use serde_json::{Value, json};
 
-/// The representation of the terminal 1X1:1 on folio 101.
-fn terminal_1x1_1(s: &Session) -> ew_api::output::TableRep {
+/// The representation of the terminal -X1011:L1 on folio 101.
+fn terminal_l1(s: &Session) -> ew_api::output::TableRep {
     s.page_tables("101")
         .unwrap()
         .reps
         .iter()
-        .find(|r| r.device.is_some_and(|d| s.tag_list(&[d]) == "1X1:1\n"))
-        .expect("1X1:1 on 101")
+        .find(|r| r.device.is_some_and(|d| s.tag_list(&[d]) == "-X1011:L1\n"))
+        .expect("-X1011:L1 on 101")
         .clone()
+}
+
+/// The wire on folio 101 at CP index 0 of the terminal `tag` (`-X1011:L1`): the one to the main switch -101Q1.
+fn wire_to_switch(s: &Session, tag: &str) -> Id<Connection> {
+    let tables = s.page_tables("101").unwrap();
+    let terminal = s.resolve_reference(tag).expect(tag);
+    let function = tables
+        .reps
+        .iter()
+        .find(|r| r.device == Some(terminal))
+        .expect("the terminal on 101")
+        .functions[0];
+    let at = |e: &ew_api::output::TableEnd| {
+        matches!(e, ew_api::output::TableEnd::Cp { function: f, idx: 0 } if *f == function)
+    };
+    let c = tables
+        .connections
+        .iter()
+        .find(|c| at(&c.a) || at(&c.b))
+        .expect("the terminal's wire to the switch");
+    Id::from_uuid(c.id)
 }
 
 /// A new project as the wizard makes it (one empty multi-line page `1` on the QET grid).
@@ -78,7 +98,7 @@ fn fragment(s: &Session, ids: &[Uuid]) -> Value {
         .params
 }
 
-/// The QET grid of Golden A's and the wizard's pages.
+/// The QET grid of the sample's and the wizard's pages.
 const QET: Grid = Grid::QET_10PX;
 
 /// The anchor of `fragment` moved by `steps` grid steps.
@@ -128,14 +148,6 @@ fn device(s: &Session, id: Uuid) -> Device {
     (**s.query().devices().get(Id::from_uuid(id)).expect("the device")).clone()
 }
 
-/// The ID of the golden batch record `key` (`pages|101`, `connections|W4`).
-fn id<T>(ids: &BTreeMap<String, String>, key: &str) -> Id<T> {
-    ids.get(key)
-        .unwrap_or_else(|| panic!("no record {key}"))
-        .parse()
-        .unwrap_or_else(|_| panic!("{key} is an ID"))
-}
-
 /// Runs a command and returns its receipt.
 fn run(s: &mut Session, name: &str, params: Value) -> Receipt {
     s.execute(&AnyCommand {
@@ -153,6 +165,27 @@ fn page_item(s: &Session, id: Uuid) -> PageItem {
     .clone()
 }
 
+/// A session over the sample's records with a page item `unknown` of a variant this version does not know (a macro
+/// box) on folio 101, and folio 101's page.
+fn with_unknown_item(unknown: Uuid) -> (Session, Id<Page>) {
+    let (project, mut records, lib) = common::sample_records();
+    let page = records
+        .iter()
+        .find_map(|r| match r {
+            ew_schema::Record::Page(p) if p.folio.number == 101 => Some(p.id),
+            _ => None,
+        })
+        .expect("folio 101");
+    let item: PageItem = serde_json::from_value(json!({
+        "id": unknown.to_string(),
+        "page": page.to_string(),
+        "kind": {"macro_box": {"name": "later"}}
+    }))
+    .expect("the unknown page item reads");
+    records.push(ew_schema::Record::PageItem(item));
+    (common::session_of(project, records, lib), page)
+}
+
 fn structure_box(s: &Session, id: Uuid) -> StructureBox {
     (**s.query()
         .structure_boxes()
@@ -161,7 +194,7 @@ fn structure_box(s: &Session, id: Uuid) -> StructureBox {
     .clone()
 }
 
-/// Whether `EW_BLESS=1` asks the golden-text tests to rewrite their expected files.
+/// Whether `EW_BLESS=1` asks the expected-text tests to rewrite their expected files.
 // Allowed: the program boundary of a test, read once; the value never reaches a result.
 #[allow(clippy::disallowed_methods)]
 fn bless() -> bool {
@@ -172,17 +205,17 @@ fn bless() -> bool {
 // CB1: the fragment
 
 /// CB1: the fragment of -102F1's representation on 102 is byte-equal on two runs and equals the committed file; it
-/// holds the device, its function, the representation, the potential definition at its CP, the part, symbol and FnDef
-/// copies and the two structure nodes, in that order, and no import lineage.
+/// holds the device, its function, the representation and the part, symbol, FnDef and manufacturer copies, in that
+/// order (the breaker names no structure node of its own: it inherits the page's), and no import lineage.
 #[test]
 fn the_fragment_of_102f1_is_byte_equal_and_matches_the_expected_file() {
-    let s = golden();
+    let s = common::sample();
     let reps = reps_of(&s, "102", &["-102F1"]);
     let a = s.copy_fragment(&reps).unwrap();
-    let b = golden().copy_fragment(&reps).unwrap();
+    let b = common::sample().copy_fragment(&reps).unwrap();
     assert_eq!(a.text, b.text, "two runs give equal bytes");
     // The part, its manufacturer, the symbol and the FnDef.
-    assert_eq!((a.records, a.copies, a.dropped_connections), (4, 4, 0));
+    assert_eq!((a.records, a.copies, a.dropped_connections), (3, 4, 0));
     assert!(a.skipped.is_empty());
     assert!(
         a.text
@@ -209,13 +242,10 @@ fn the_fragment_of_102f1_is_byte_equal_and_matches_the_expected_file() {
             "device",
             "function",
             "representation",
-            "potential_def",
             "$lib",
             "$lib",
             "$lib",
-            "$lib",
-            "$node",
-            "$node"
+            "$lib"
         ]
     );
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/expected/fragment_102F1.txt");
@@ -226,12 +256,12 @@ fn the_fragment_of_102f1_is_byte_equal_and_matches_the_expected_file() {
     assert_eq!(a.text, expected.replace("\r\n", "\n"));
 }
 
-/// CB1: a terminal brings its strip device (with only the copied terminal), not the strip's other terminals: 1X1:1 on
-/// folio 101.
+/// CB1: a terminal brings its strip device (with only the copied terminal), not the strip's other terminals:
+/// -X1011:L1 on folio 101.
 #[test]
 fn a_terminal_brings_its_strip() {
-    let s = golden();
-    let rep = terminal_1x1_1(&s);
+    let s = common::sample();
+    let rep = terminal_l1(&s);
     let terminal = rep.device.unwrap();
     let frag = fragment(&s, &[rep.id]);
     let devices: Vec<&Value> = frag["records"]
@@ -250,26 +280,27 @@ fn a_terminal_brings_its_strip() {
     assert!(devices.iter().any(|d| d["id"] == terminal.to_string()));
 }
 
-/// CB1: copying -102G1 and -102F1 brings the junction where their wires meet and its three connections; a selected
-/// wire with one end outside is dropped and counted.
+/// CB1: copying the push buttons -102S2 and -102S1 brings the junction where their wires meet and those two
+/// connections; the junction's third wire, to the contactor's contact, stays out of the connections and of its
+/// sequence. A selected wire with one end outside is dropped and counted.
 #[test]
 fn internal_connections_and_junctions_come_along_and_an_outside_wire_is_dropped() {
-    let s = golden();
-    let mut ids = reps_of(&s, "102", &["-102G1", "-102F1"]);
+    let s = common::sample();
+    let mut ids = reps_of(&s, "102", &["-102S2", "-102S1"]);
     let tables = s.page_tables("102").unwrap();
-    let f1 = s.resolve_reference("tag:-102F1").unwrap();
-    let f1_fn = tables
+    let s1 = s.resolve_reference("tag:-102S1").unwrap();
+    let s1_fn = tables
         .reps
         .iter()
-        .find(|r| r.device == Some(f1))
+        .find(|r| r.device == Some(s1))
         .unwrap()
         .functions[0];
-    // -102F1's CP 1 runs to a junction whose other wires go to a device that is not copied.
+    // -102S1:14 runs to the junction of the contactor's coil and contact, neither of which is copied.
     let outside = tables
         .connections
         .iter()
-        .find(|c| matches!(c.a, ew_api::output::TableEnd::Cp { function, idx: 1 } if function == f1_fn))
-        .expect("-102F1:2's wire")
+        .find(|c| matches!(c.a, ew_api::output::TableEnd::Cp { function, idx: 1 } if function == s1_fn))
+        .expect("-102S1:14's wire")
         .id;
     ids.push(outside);
     let c = s.copy_fragment(&ids).unwrap();
@@ -284,21 +315,21 @@ fn internal_connections_and_junctions_come_along_and_an_outside_wire_is_dropped(
             .count()
     };
     assert_eq!(count("junction"), 1, "the junction between them");
-    assert_eq!(count("connection"), 3, "its three wires");
+    assert_eq!(count("connection"), 2, "its two wires between them");
     let junction = frag["records"]
         .as_array()
         .unwrap()
         .iter()
         .find(|r| r["$k"] == "junction")
         .unwrap();
-    assert_eq!(junction["sequence"].as_array().unwrap().len(), 3);
+    assert_eq!(junction["sequence"].as_array().unwrap().len(), 2);
     assert!(!c.text.contains(&outside.to_string()));
 }
 
 /// CB1: what is not copied: nothing, a device alone, generated content, two pages.
 #[test]
 fn the_copy_refusals() {
-    let s = golden();
+    let s = common::sample();
     assert_eq!(s.copy_fragment(&[]), Err(CopyError::Empty));
     let dev = s.resolve_reference("tag:-102F1").unwrap();
     assert_eq!(s.copy_fragment(&[dev]), Err(CopyError::Empty));
@@ -308,12 +339,12 @@ fn the_copy_refusals() {
     assert_eq!(s.copy_fragment(&two), Err(CopyError::NotOnePage));
 }
 
-/// FR-UI-040's tag list: -101F1, S51 and F55 in natural order, one per line.
+/// FR-UI-040's tag list: -101Q1, -101G1 and -101F1 in natural order, one per line.
 #[test]
 fn the_tag_list_is_natural_order_one_per_line() {
-    let s = golden();
-    let ids = reps_of(&s, "101", &["S51", "-101F1", "F55"]);
-    assert_eq!(s.tag_list(&ids), "-101F1\nF55\nS51\n");
+    let s = common::sample();
+    let ids = reps_of(&s, "101", &["-101Q1", "-101G1", "-101F1"]);
+    assert_eq!(s.tag_list(&ids), "-101F1\n-101G1\n-101Q1\n");
     assert_eq!(s.tag_list(&[]), "");
 }
 
@@ -321,7 +352,7 @@ fn the_tag_list_is_natural_order_one_per_line() {
 // CB2: parsing
 
 fn valid_text() -> String {
-    let s = golden();
+    let s = common::sample();
     s.copy_fragment(&reps_of(&s, "102", &["-102F1"])).unwrap().text
 }
 
@@ -373,7 +404,7 @@ fn a_fragment_refusal_keeps_its_english_through_its_key() {
 #[test]
 fn every_refusal_of_the_parser() {
     let text = valid_text();
-    assert_eq!(parse_fragment(&text).unwrap().records, 4);
+    assert_eq!(parse_fragment(&text).unwrap().records, 3);
     let record = text.lines().nth(2).unwrap().to_owned();
     let invalid = |r: Result<_, FragmentError>| matches!(r, Err(FragmentError::Invalid { .. }));
     // Not a fragment, a later fragment version.
@@ -510,14 +541,14 @@ fn random_text_never_panics_the_parser() {
 // ---------------------------------------------------------------------------------------------------------------------
 // CB3: edit.paste
 
-/// rc.5 (the owner: copy and paste between pages of different grids did not work): Golden A's power supply and load
-/// distributor, drawn on the QET grid, pasted on a page of the 4 mm grid are fitted to it: each symbol's first pin on
-/// a grid point of the page, the wires between them kept and left to the router (unrouted). A page's grid changed
+/// rc.5 (the owner: copy and paste between pages of different grids did not work): the sample's breaker and the power
+/// supply it feeds, drawn on the QET grid, pasted on a page of the 4 mm grid are fitted to it: each symbol's first pin
+/// on a grid point of the page, the wires between them kept and left to the router (unrouted). A page's grid changed
 /// under its items (`page.set_grid`) fits them the same way, and undo takes it back.
 #[test]
 fn a_paste_onto_a_page_of_another_grid_is_fitted_to_it() {
-    let mut s = golden();
-    let frag = fragment(&s, &reps_of(&s, "102", &["-102G1", "-102F2"]));
+    let mut s = common::sample();
+    let frag = fragment(&s, &reps_of(&s, "101", &["-101F1", "-101G1"]));
     let mm4 = Grid::new(4_000_000, 1).unwrap();
     run(
         &mut s,
@@ -569,7 +600,7 @@ fn a_paste_onto_a_page_of_another_grid_is_fitted_to_it() {
 /// CB3: every rejection of §8.4 at its pointer.
 #[test]
 fn every_rejection_at_its_pointer() {
-    let mut s = golden();
+    let mut s = common::sample();
     let frag = fragment(&s, &reps_of(&s, "102", &["-102F1"]));
     let at = at_steps(&frag, (2, 2));
     let page = page_of(&s, "102");
@@ -593,7 +624,7 @@ fn every_rejection_at_its_pointer() {
         "number": 9, "folio_range": [1, 2], "title": "x"}));
     match run(page, at, &foreign).unwrap_err() {
         CmdError::InvalidParams { path, message, .. } => {
-            assert_eq!(path, "/fragment/records/4");
+            assert_eq!(path, "/fragment/records/3");
             assert_eq!(
                 message,
                 "a record of kind section is not pasted (only devices, functions, representations, connections, \
@@ -619,14 +650,14 @@ fn every_rejection_at_its_pointer() {
     let mut many = frag.clone();
     many["records"] = json!(vec![Value::Null; 10_001]);
     assert_eq!(pointer(run(page, at, &many).unwrap_err()), "/fragment/records");
-    // A page whose type takes no symbols: Golden A's title page.
+    // A page whose type takes no symbols: the sample's title page.
     let title = s
         .query()
         .pages()
         .iter()
         .find(|(_, p)| p.kind == ew_schema::PageType::TitlePage)
         .map(|(id, _)| id.as_uuid())
-        .expect("Golden A has a title page");
+        .expect("the sample has a title page");
     assert_eq!(
         pointer(s.preview(&paste_cmd(title, at, &frag)).unwrap_err()),
         "/page"
@@ -636,8 +667,8 @@ fn every_rejection_at_its_pointer() {
 /// CB3: a child device whose parent is not copied loses its parent, position and child scheme, with a notice.
 #[test]
 fn a_child_whose_parent_is_not_copied() {
-    let mut s = golden();
-    let child = s.resolve_reference("tag:-201U4-Q2").unwrap();
+    let mut s = common::sample();
+    let child = s.resolve_reference("tag:-201K1-Q2").unwrap();
     assert_eq!(device(&s, child).tag.scheme, TagScheme::Child);
     let (folio, rep) = s
         .page_labels()
@@ -647,7 +678,7 @@ fn a_child_whose_parent_is_not_copied() {
             let r = t.reps.iter().find(|r| r.device == Some(child))?.id;
             Some((f, r))
         })
-        .expect("-201U4-Q2 is drawn");
+        .expect("-201K1-Q2 is drawn");
     let frag = fragment(&s, &[rep]);
     let receipt = paste(&mut s, &folio, at_steps(&frag, (0, 4)), &frag).unwrap();
     let new = created(&receipt, Kind::Device);
@@ -671,8 +702,8 @@ fn a_child_whose_parent_is_not_copied() {
 /// so the pasted valve prints a whole tag, not "Q?".
 #[test]
 fn a_child_pasted_with_its_parent_keeps_its_counter() {
-    let mut s = golden();
-    let child = s.resolve_reference("tag:-201U4-Q2").unwrap();
+    let mut s = common::sample();
+    let child = s.resolve_reference("tag:-201K1-Q2").unwrap();
     let parent = device(&s, child).parent.expect("a parent").as_uuid();
     let (folio, reps) = s
         .page_labels()
@@ -682,7 +713,7 @@ fn a_child_pasted_with_its_parent_keeps_its_counter() {
             let of = |d: Uuid| t.reps.iter().find(|r| r.device == Some(d)).map(|r| r.id);
             Some((f, vec![of(parent)?, of(child)?]))
         })
-        .expect("-201U4 and -201U4-Q2 are drawn on one page");
+        .expect("-201K1 and -201K1-Q2 are drawn on one page");
     let counter = device(&s, child).tag.counter;
     let frag = fragment(&s, &reps);
     let receipt = paste(&mut s, &folio, at_steps(&frag, (0, 8)), &frag).unwrap();
@@ -711,7 +742,7 @@ fn a_child_pasted_with_its_parent_keeps_its_counter() {
 /// CB3: a fragment whose records carry an import lineage (one written elsewhere) pastes; the pasted records have none.
 #[test]
 fn an_import_lineage_is_dropped_not_refused() {
-    let mut s = golden();
+    let mut s = common::sample();
     let mut frag = fragment(&s, &reps_of(&s, "102", &["-102F1"]));
     for r in frag["records"].as_array_mut().unwrap() {
         r["source_ref"] = json!({"lineage": Uuid::from_u128(77).to_string(), "key": "elsewhere"});
@@ -721,24 +752,24 @@ fn an_import_lineage_is_dropped_not_refused() {
     assert_eq!(d.source_ref, None);
 }
 
-/// CB3 and CB4: the held library copies are reused in the same project: -102F1 pasted on 102 is -102F3 with part
-/// A9F78116, no connection, and no copy is inserted.
+/// CB3 and CB4: the held library copies are reused in the same project: -102F1 pasted on 102 is -102F2 with part
+/// EW-GEN-MCB-1, no connection, and no copy is inserted.
 #[test]
-fn held_copies_are_reused_and_cb4_the_paste_of_102f1_is_102f3() {
-    let mut s = golden();
+fn held_copies_are_reused_and_cb4_the_paste_of_102f1_is_102f2() {
+    let mut s = common::sample();
     let frag = fragment(&s, &reps_of(&s, "102", &["-102F1"]));
     let parts = s.query().parts().len();
-    // Sixteen grid steps right: beside the original, on no wire. (Six steps down, or twelve right, the copy's pins would
-    // lie on a routed wire, which normaliser 7 splits into the copy.)
+    // Sixteen grid steps right: beside the original, on no wire (a pin on a routed wire would be split into the copy by
+    // normaliser 7).
     let receipt = paste(&mut s, "102", at_steps(&frag, (16, 0)), &frag).unwrap();
     assert_eq!(s.query().parts().len(), parts, "the part copy is reused");
     assert!(created(&receipt, Kind::Part).is_empty());
     assert!(created(&receipt, Kind::Connection).is_empty());
     let new = created(&receipt, Kind::Device);
-    assert_eq!(s.tag_list(&new), "-102F3\n");
+    assert_eq!(s.tag_list(&new), "-102F2\n");
     let d = device(&s, new[0]);
     let part = s.query().parts().get(d.parts[0].part.copy).unwrap().clone();
-    assert_eq!(part.item.part_number.as_str(), "A9F78116");
+    assert_eq!(part.item.part_number.as_str(), "EW-GEN-MCB-1");
     // Structure by path: the nodes are this project's own.
     assert_eq!(
         d.structure,
@@ -750,8 +781,8 @@ fn held_copies_are_reused_and_cb4_the_paste_of_102f1_is_102f3() {
 /// the records; a copy the target holds in another version is refused.
 #[test]
 fn copies_are_embedded_once_and_undone_with_the_records() {
-    let g = golden();
-    let frag = fragment(&g, &reps_of(&g, "101", &["T55", "E55", "E56"]));
+    let g = common::sample();
+    let frag = fragment(&g, &reps_of(&g, "104", &["-104E1", "-104E2", "-104B1"]));
     let mut w = wizard(11);
     let before = (
         w.query().parts().len(),
@@ -802,13 +833,27 @@ fn copies_are_embedded_once_and_undone_with_the_records() {
 /// with a notice; no node is created.
 #[test]
 fn structure_rebinds_by_path_and_alias_or_clears() {
-    let g = golden();
-    let frag = fragment(&g, &reps_of(&g, "102", &["-102F1"]));
+    // The position switch -104B1 stands in the field: its location is the sample's node FLD.
+    let g = common::sample();
+    let frag = fragment(&g, &reps_of(&g, "104", &["-104B1"]));
     let mut w = wizard(12);
+    let nodes = w.query().structure_nodes().len();
+    let receipt = paste(&mut w, "1", at_steps(&frag, (0, 0)), &frag).unwrap();
+    assert_eq!(w.query().structure_nodes().len(), nodes, "no node is created");
+    let d = device(&w, created(&receipt, Kind::Device)[0]);
+    assert_eq!(d.structure.location, None, "unmatched: the slot is cleared");
+    assert!(
+        receipt
+            .outcome
+            .notices
+            .contains(&"structure location FLD is not in this project: inherits the page".to_owned()),
+        "{:?}",
+        receipt.outcome.notices
+    );
     let node = w
         .execute(&AnyCommand {
             name: "structure.create_node".into(),
-            params: json!({"aspect": "location", "code": "CAB", "aliases": ["J-E-2416"]}),
+            params: json!({"aspect": "location", "code": "FIELD", "aliases": ["FLD"]}),
         })
         .unwrap()
         .outcome
@@ -816,31 +861,22 @@ fn structure_rebinds_by_path_and_alias_or_clears() {
         .unwrap()
         .1
         .as_uuid();
-    let nodes = w.query().structure_nodes().len();
-    let receipt = paste(&mut w, "1", at_steps(&frag, (0, 0)), &frag).unwrap();
-    assert_eq!(w.query().structure_nodes().len(), nodes, "no node is created");
+    let receipt = paste(&mut w, "1", at_steps(&frag, (0, 8)), &frag).unwrap();
     let d = device(&w, created(&receipt, Kind::Device)[0]);
     assert_eq!(
         serde_json::to_value(&d.structure).unwrap(),
         json!({"location": node.to_string()}),
-        "the location by alias; the function node is not in this project"
-    );
-    assert!(
-        receipt
-            .outcome
-            .notices
-            .contains(&"structure function P01 is not in this project: inherits the page".to_owned()),
-        "{:?}",
-        receipt.outcome.notices
+        "the location by alias"
     );
 }
 
-/// CB3: the translation in grid steps is exact on the QET grid (`7_937_500/3` nm): -101F1, S51 and T55 sit at y grid
-/// indices 12, 14 and 22 (0, 2 and 1 mod 3); each pasted representation is at its index plus the steps on both axes.
+/// CB3: the translation in grid steps is exact on the QET grid (`7_937_500/3` nm): -X1011:L3, -101F1 and -101G1 sit at
+/// y grid indices 18, 38 and 46 (0, 2 and 1 mod 3); each pasted representation is at its index plus the steps on both
+/// axes.
 #[test]
 fn the_step_translation_is_exact_on_the_qet_grid() {
-    let mut s = golden();
-    let reps = reps_of(&s, "101", &["-101F1", "S51", "T55"]);
+    let mut s = common::sample();
+    let reps = reps_of(&s, "101", &["-X1011:L3", "-101F1", "-101G1"]);
     let tables = s.page_tables("101").unwrap();
     let before: Vec<(i64, i64)> = reps
         .iter()
@@ -871,11 +907,12 @@ fn the_step_translation_is_exact_on_the_qet_grid() {
 }
 
 /// Effect 6: the copies are numbered in the fragment's position order, whatever IDs the session mints: two sessions
-/// with other ID seeds give the same tags at the same places, and of E55 and E56 the left one is numbered first.
+/// with other ID seeds give the same tags at the same places, and of the lamps -104E1 and -104E2 the left one is
+/// numbered first.
 #[test]
 fn the_numbering_follows_the_fragment_order_not_the_minted_ids() {
-    let g = golden();
-    let frag = fragment(&g, &reps_of(&g, "101", &["T55", "E55", "E56"]));
+    let g = common::sample();
+    let frag = fragment(&g, &reps_of(&g, "104", &["-104E1", "-104E2", "-104B1"]));
     let placed = |seed: u64| {
         let mut w = wizard(seed);
         let receipt = paste(&mut w, "1", at_steps(&frag, (0, 0)), &frag).unwrap();
@@ -928,6 +965,8 @@ fn five_breakers(g: &Session) -> Value {
         r["id"] = json!(local(3));
         r["functions"] = json!([local(2)]);
         r["pos"] = json!([QET.at(*kx).unwrap().0, QET.at(*ky).unwrap().0]);
+        // Upright, as the cells of [`FIVE_BREAKERS`] are counted (the sample draws its breaker turned).
+        r.as_object_mut().unwrap().remove("orient");
         out.extend([d, f, r]);
     }
     frag["records"] = json!(out);
@@ -1003,7 +1042,7 @@ fn in_cell_order(by_id: &[(i64, i64)]) -> bool {
 /// F, then (29, 30) in column 4, then (41, 14) in column 6.
 #[test]
 fn new_devices_are_numbered_in_cell_order_not_id_order() {
-    let g = golden();
+    let g = common::sample();
     let frag = five_breakers(&g);
     let want: BTreeMap<(i64, i64), u32> = [
         ((17, 14), 1),
@@ -1027,7 +1066,7 @@ fn new_devices_are_numbered_in_cell_order_not_id_order() {
 /// order (at least one of the replays below does).
 #[test]
 fn a_replay_numbers_the_new_devices_alike() {
-    let g = golden();
+    let g = common::sample();
     let frag = five_breakers(&g);
     let (first, first_order) = five_breakers_pasted(&frag, 7);
     let mut other_order = 0;
@@ -1045,10 +1084,8 @@ fn a_replay_numbers_the_new_devices_alike() {
 /// A free text alone copies (no representation is needed) and pastes by the same grid steps.
 #[test]
 fn cb_items_a_free_text_alone_copies_and_pastes_by_grid_steps() {
-    let batch = golden_common::batch();
-    let ids = golden_common::ids_by_key(&batch);
-    let mut s = golden_common::session(&batch);
-    let page: Id<Page> = id(&ids, "pages|101");
+    let mut s = common::sample();
+    let page: Id<Page> = Id::from_uuid(page_of(&s, "101"));
     let at = [QET.at(20).unwrap().0, QET.at(12).unwrap().0];
     let placed = run(
         &mut s,
@@ -1076,16 +1113,14 @@ fn cb_items_a_free_text_alone_copies_and_pastes_by_grid_steps() {
     );
 }
 
-/// A marker keeps the copied connections only (W4 joins 1X1:1 and S51:2; W5 ends at 1X1:2, which is not
-/// copied), and a marker without either wire is left out of the fragment and counted.
+/// A marker keeps the copied connections only (one wire joins -X1011:L1 and -101Q1:1; the other ends at -X1011:L2,
+/// which is not copied), and a marker without either wire is left out of the fragment and counted.
 #[test]
 fn cb_items_a_marker_keeps_the_copied_wires_only() {
-    let batch = golden_common::batch();
-    let ids = golden_common::ids_by_key(&batch);
-    let mut s = golden_common::session(&batch);
-    let page: Id<Page> = id(&ids, "pages|101");
-    let w4: Id<Connection> = id(&ids, "connections|W4");
-    let w5: Id<Connection> = id(&ids, "connections|W5");
+    let mut s = common::sample();
+    let page: Id<Page> = Id::from_uuid(page_of(&s, "101"));
+    let w4 = wire_to_switch(&s, "-X1011:L1");
+    let w5 = wire_to_switch(&s, "-X1011:L2");
     let marker = run(
         &mut s,
         "marker.place",
@@ -1093,8 +1128,8 @@ fn cb_items_a_marker_keeps_the_copied_wires_only() {
             "at": [QET.at(30).unwrap().0, QET.at(20).unwrap().0]}),
     );
     let marker_id = marker.outcome.primary.expect("the marker").1.as_uuid();
-    let mut selected = reps_of(&s, "101", &["S51"]);
-    selected.push(terminal_1x1_1(&s).id);
+    let mut selected = reps_of(&s, "101", &["-101Q1"]);
+    selected.push(terminal_l1(&s).id);
     selected.push(marker_id);
     let frag = fragment(&s, &selected);
     let copied_marker = frag["records"]
@@ -1106,11 +1141,11 @@ fn cb_items_a_marker_keeps_the_copied_wires_only() {
     assert_eq!(
         copied_marker["kind"]["wire_marker"]["connections"],
         json!([w4.to_string()]),
-        "W4 only"
+        "the wire to -X1011:L1 only"
     );
     let receipt = paste(&mut s, "101", at_steps(&frag, (0, 4)), &frag).expect("pasted");
     let new_connections = created(&receipt, Kind::Connection);
-    assert_eq!(new_connections.len(), 1, "the copy of W4 only");
+    assert_eq!(new_connections.len(), 1, "the copy of that wire only");
     let new_marker = created(&receipt, Kind::PageItem);
     assert_eq!(new_marker.len(), 1);
     let PageItemKind::WireMarker(m) = &page_item(&s, new_marker[0]).kind else {
@@ -1133,19 +1168,8 @@ fn cb_items_a_marker_keeps_the_copied_wires_only() {
 /// A page item of an unknown variant is counted by a copy and left out by a paste, with a notice.
 #[test]
 fn cb_items_an_unknown_page_item_is_skipped_on_copy_and_on_paste() {
-    let batch = golden_common::batch();
-    let ids = golden_common::ids_by_key(&batch);
     let unknown = Uuid::from_u128(0x0192_f3a0_0000_7000_8000_0000_0000_a001);
-    let page: Id<Page> = id(&ids, "pages|101");
-    let mut s = golden_common::session_with(&batch, |_, records| {
-        let item: PageItem = serde_json::from_value(json!({
-            "id": unknown.to_string(),
-            "page": page.to_string(),
-            "kind": {"macro_box": {"name": "later"}}
-        }))
-        .expect("the unknown page item reads");
-        records.push(ew_schema::Record::PageItem(item));
-    });
+    let (mut s, page) = with_unknown_item(unknown);
     let copied = s
         .copy_fragment(&[unknown])
         .expect("a selected page item is not Empty");
@@ -1188,24 +1212,23 @@ fn cb_items_an_unknown_page_item_is_skipped_on_copy_and_on_paste() {
 /// do and clears with the node notice otherwise.
 #[test]
 fn cb_items_a_structure_box_keeps_its_external_in_its_own_project_only() {
-    let batch = golden_common::batch();
-    let ids = golden_common::ids_by_key(&batch);
-    let mut s = golden_common::session(&batch);
-    let page: Id<Page> = id(&ids, "pages|101");
+    // The sample's upstream cabinet: the location node UP and the external reference of its supply.
+    let mut s = common::sample();
+    let page: Id<Page> = Id::from_uuid(page_of(&s, "101"));
     let (location, external) = {
         let q = s.query();
         let location = q
             .structure_nodes()
             .iter()
-            .find(|(_, n)| n.code.as_str() == "J-E-206")
+            .find(|(_, n)| n.code.as_str() == "UP")
             .map(|(id, _)| id.as_uuid())
-            .expect("the J-E-206 location node");
+            .expect("the UP location node");
         let external = q
             .external_refs()
             .iter()
             .next()
             .map(|(id, _)| id.as_uuid())
-            .expect("an external reference of Golden A");
+            .expect("the sample's external reference");
         (location, external)
     };
     let outline = [
@@ -1245,7 +1268,7 @@ fn cb_items_a_structure_box_keeps_its_external_in_its_own_project_only() {
             .outcome
             .notices
             .iter()
-            .any(|n| n == "structure location J-E-206 is not in this project: inherits the page"),
+            .any(|n| n == "structure location UP is not in this project: inherits the page"),
         "{:?}",
         receipt.outcome.notices
     );
@@ -1262,7 +1285,7 @@ fn cb_items_a_structure_box_keeps_its_external_in_its_own_project_only() {
     let node = run(
         &mut w,
         "structure.create_node",
-        json!({"aspect": "location", "code": "J-E-206"}),
+        json!({"aspect": "location", "code": "UP"}),
     )
     .outcome
     .primary
@@ -1278,21 +1301,10 @@ fn cb_items_a_structure_box_keeps_its_external_in_its_own_project_only() {
 /// Copy preserves its lossy bytes and notices while reporting whether Cut can transfer every selected item.
 #[test]
 fn copy_fragment_reports_incomplete_page_items() {
-    let batch = golden_common::batch();
-    let ids = golden_common::ids_by_key(&batch);
-    let page: Id<Page> = id(&ids, "pages|101");
     let unknown = Uuid::from_u128(0x0192_f3a0_0000_7000_8000_0000_0000_a002);
-    let mut s = golden_common::session_with(&batch, |_, records| {
-        records.push(ew_schema::Record::PageItem(
-            serde_json::from_value(json!({
-                "id": unknown.to_string(), "page": page.to_string(),
-                "kind": {"macro_box": {"name": "later"}}
-            }))
-            .unwrap(),
-        ));
-    });
-    let w4: Id<Connection> = id(&ids, "connections|W4");
-    let w5: Id<Connection> = id(&ids, "connections|W5");
+    let (mut s, page) = with_unknown_item(unknown);
+    let w4 = wire_to_switch(&s, "-X1011:L1");
+    let w5 = wire_to_switch(&s, "-X1011:L2");
     let marker = run(
         &mut s,
         "marker.place",
@@ -1347,8 +1359,8 @@ fn copy_fragment_reports_incomplete_page_items() {
     assert_eq!(omitted.records, 0);
     // With no record lines, each retains the exact same fragment bytes as an empty known-item selection's header.
     assert_eq!(omitted.text, empty.text);
-    let mut partial = reps_of(&s, "101", &["S51"]);
-    partial.extend([terminal_1x1_1(&s).id, marker]);
+    let mut partial = reps_of(&s, "101", &["-101Q1"]);
+    partial.extend([terminal_l1(&s).id, marker]);
     let copied = s.copy_fragment(&partial).unwrap();
     assert_eq!(copied.incomplete_page_items, 1);
     assert!(copied.skipped.is_empty());
@@ -1481,7 +1493,7 @@ fn an_older_fragment_pastes_through_the_test_chain() {
         current.params
     );
     // It pastes.
-    let mut s = golden();
+    let mut s = common::sample();
     let frag = migrated.params;
     let receipt = paste(&mut s, "102", at_steps(&frag, (0, 6)), &frag).unwrap();
     assert_eq!(created(&receipt, Kind::Device).len(), 1);
@@ -1546,7 +1558,7 @@ fn a_migrated_copy_takes_its_migrated_items_hash_and_pastes_as_the_held_copy() {
         let hash = ew_schema::Sha256(library_copy_hash(&doc).unwrap()).to_string();
         assert_eq!(claimed, hash, "{}", copy["$k"]);
     }
-    let mut s = golden();
+    let mut s = common::sample();
     let frag = migrated.params;
     let parts = s.query().parts().len();
     let receipt = paste(&mut s, "102", at_steps(&frag, (12, 0)), &frag).unwrap();

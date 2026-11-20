@@ -117,13 +117,34 @@ pub fn new_project(seed: u64) -> Session {
 }
 
 /// The sample project opened read-only in place in the source tree: no copy, no lock, no journal.
-// Allowed: no test reaches it yet; the api tests move to it from the golden helpers
-// (docs/plan/m3.5-reference-project.md, section 5, lane 4).
-#[allow(dead_code)]
 pub fn sample() -> Session {
     Session::open_read_only(Path::new(ew_testdir::SAMPLE), "test")
         .expect("the sample opens")
         .0
+}
+
+/// The sample's project record, its other records and its library copies, as the format reads them from the
+/// committed folder: for a test that edits a record before a session is built over them ([`session_of`]), such as one
+/// of a kind no command makes.
+pub fn sample_records() -> (ew_schema::Project, Vec<Record>, Vec<LibDocument>) {
+    use ew_store::ew_format::{self, Limits, MANIFEST, Manifest};
+    let dir = Path::new(ew_testdir::SAMPLE);
+    let bytes = std::fs::read(dir.join(MANIFEST)).expect("the sample's manifest");
+    let manifest = Manifest::parse(&bytes, &Limits::default()).expect("a manifest");
+    let files = manifest
+        .files
+        .keys()
+        .map(|p| {
+            let data = std::fs::read(dir.join(p.as_str())).unwrap_or_else(|e| panic!("{p}: {e}"));
+            (p.clone(), data)
+        })
+        .collect();
+    let loaded = ew_format::load(Some(&manifest), &files, &Limits::default());
+    (
+        loaded.project.expect("the sample's project record"),
+        loaded.records,
+        loaded.lib,
+    )
 }
 
 /// The copy ID of the starter part `number` among the library parts.
