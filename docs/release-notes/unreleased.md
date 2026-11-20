@@ -937,3 +937,6 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: a Terminal… row is one Undo step only until the next commit, a property, table or card edit as
   much as a drawing tool's; after an undone row and as many property edits as the row had terminals, one Undo took
   those edits back together
+- behaviour-change: inside the symbol editor the command search and the window's panes ask the same check as the menus:
+  a drawing tool that cannot run there is no longer offered as enabled, and Save, which saves the symbol, is no
+  longer greyed
