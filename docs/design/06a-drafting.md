@@ -144,7 +144,7 @@ Source: a rule number of the research, or **E** for a rule measured on the pilot
 | A potential that serves several devices | one straight trunk; every device taps it by a straight drop | E, D-10 |
 | Trunks side by side | 2 steps apart; the nearest one 2 steps from the pins it taps | E |
 | The order of trunks over a row of poles | the trunk of the leftmost tapped pole lies nearest the poles, the next pole's one further out, so that each drop crosses only the trunks of the poles to its left. With the usual pole order L1 lies nearest and L3 outermost; the textbook order (L1 outermost, D-10) is not taken | E against D-10 |
-| A tap of two wires on one pin | the arriving wire turns into the drop; the wire that goes on leaves the drop one step from the corner by a bevel; no dot | E, D-8 |
+| A tap of two wires on one pin | the arriving wire turns into the drop; the wire that goes on leaves the drop half a step from the corner by a bevel; no dot | E, D-8 |
 | A junction of three wires | on the whole grid, three arms, a dot (or the bevel form the person chose), never on a crossing | D-7 |
 | A trunk's end | at its last tap, by a corner, or at a mark at the sheet's edge; never a loose end | E |
 | An incoming potential's mark | at the left of the sheet; an outgoing one at the right; marks of one stack 2 steps apart | E |
@@ -512,8 +512,8 @@ end at. Its **taps** are those junctions and those pins. A wire with no tap at e
 **Shared runs.** Wires that end at one pin may run on one line from that pin, as long as they go the same way; where
 one turns off, the others run on. This is the common beginning that F3 allows. The scene draws the parting as the
 trade does for two wires on one terminal: the wire that arrives along
-the trunk turns into the drop by a square corner, and the wire that goes on leaves the drop one step from that
-corner by a 45° bevel; there is no dot. (Today the scene draws this bevel only where two wires of one pin part
+the trunk turns into the drop by a square corner, and the wire that goes on leaves the drop half a step from that
+corner by a 45° bevel (the size of the pilot's reference set; a whole step read as too large); there is no dot. (Today the scene draws this bevel only where two wires of one pin part
 after their first step.) It is how a potential that is wired from pin to pin, the usual way in this program, is
 drawn as a rail with drops instead of a staircase of rectangles. A part dropped on a shared run is refused in words ("two wires run here; place the part where they have parted").
 A junction of the bevel form is drawn the same way, and the router sets the way it points from the routes that

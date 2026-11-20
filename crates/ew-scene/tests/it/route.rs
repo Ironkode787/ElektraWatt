@@ -23,8 +23,8 @@ fn page() -> Rect {
 }
 
 /// Two wires of one pin that share their run out of it part as the trade draws two wires on one terminal
-/// (docs/design/06a-drafting.md §3.4): of two that turn away from each other, the one turning right leaves the run one
-/// step before the parting by a 45° bevel and the other keeps its square corner; of one going on straight and one
+/// (docs/design/06a-drafting.md §3.4): of two that turn away from each other, the one turning right leaves the run half
+/// a step before the parting by a 45° bevel and the other keeps its square corner; of one going on straight and one
 /// turning, the turning one takes the bevel.
 #[test]
 fn a_shared_run_parts_with_a_bevel() {
@@ -39,8 +39,8 @@ fn a_shared_run_parts_with_a_bevel() {
         lines[1],
         [
             pin,
-            p(100, 100 - 2 * s),
-            p(100 + s, 100 - 3 * s),
+            p(100, 100 - 3 * s + s / 2),
+            p(100 + s / 2, 100 - 3 * s),
             p(100 + 5 * s, 100 - 3 * s)
         ],
         "the bevel"
@@ -55,8 +55,8 @@ fn a_shared_run_parts_with_a_bevel() {
         lines[1],
         [
             pin,
-            p(100, 100 - 2 * s),
-            p(100 - s, 100 - 3 * s),
+            p(100, 100 - 3 * s + s / 2),
+            p(100 - s / 2, 100 - 3 * s),
             p(100 - 5 * s, 100 - 3 * s)
         ]
     );

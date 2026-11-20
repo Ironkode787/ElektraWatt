@@ -124,8 +124,8 @@ fn parting(a: &[Pt2], b: &[Pt2]) -> Option<Parting> {
 /// The drawn lines of the wires of one pin, where they share their run out of it, parted as the trade draws two wires
 /// on one terminal (docs/design/06a-drafting.md §3.4): where the run parts, a wire that turns while another goes on
 /// straight, or of two that turn away from each other the one that turns right or down, leaves the run by a 45° bevel
-/// from one `step` before the parting to one `step` along its own way; the other keeps its square corner. A run or a way
-/// on shorter than a step keeps its corner. `pins`: each pin's point with the lines (indices into `lines`) that end at
+/// from half a `step` before the parting to half a `step` along its own way (the size of the pilot's reference set); the
+/// other keeps its square corner. A run or a way on shorter than a step keeps its corner. `pins`: each pin's point with the lines (indices into `lines`) that end at
 /// it.
 pub fn bevel_partings(lines: &mut [Vec<Pt2>], pins: &[(Pt2, Vec<usize>)], step: Nm) {
     for (p, members) in pins {
@@ -200,8 +200,9 @@ pub fn bevel_partings(lines: &mut [Vec<Pt2>], pins: &[(Pt2, Vec<usize>)], step: 
             let Some((mut line, turned)) = out[i].clone() else {
                 continue;
             };
-            let back = Pt2::new(x.x - Nm(d_in.0 * step.0), x.y - Nm(d_in.1 * step.0));
-            let on_way = Pt2::new(x.x + Nm(d_out.0 * step.0), x.y + Nm(d_out.1 * step.0));
+            let leg = step.0 / 2;
+            let back = Pt2::new(x.x - Nm(d_in.0 * leg), x.y - Nm(d_in.1 * leg));
+            let on_way = Pt2::new(x.x + Nm(d_out.0 * leg), x.y + Nm(d_out.1 * leg));
             line.splice(k..=k, [back, on_way]);
             line.dedup();
             if turned {

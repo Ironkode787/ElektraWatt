@@ -422,7 +422,7 @@ fn the_display_list_of_folio_101_is_stable() {
             wires path 17b31bbc els=4 first=(42333333,37041667) last=(145520833,31750000) stroke=264583 fill=-
             wires path 2b9b8f17 els=4 first=(137583333,31750000) last=(201083333,31750000) stroke=264583 fill=-
             wires path 2be33590 els=6 first=(203729167,66145833) last=(203729167,105833333) stroke=264583 fill=-
-            wires path 301459db els=6 first=(145520833,31750000) last=(209020833,31750000) stroke=264583 fill=-
+            wires path 301459db els=7 first=(145520833,31750000) last=(209020833,31750000) stroke=264583 fill=-
             wires path 35faab6c els=4 first=(206375000,100541667) last=(248708333,142875000) stroke=264583 fill=-
             wires path 48f5a362 els=2 first=(235479167,87312500) last=(235479167,100541667) stroke=264583 fill=-
             wires path 522a3985 els=3 first=(145520833,42333333) last=(264583333,158750000) stroke=264583 fill=-
@@ -435,7 +435,7 @@ fn the_display_list_of_folio_101_is_stable() {
             wires path aba94b57 els=4 first=(50270833,76729167) last=(87312500,79375000) stroke=264583 fill=-
             wires path b5382424 els=5 first=(187854167,58208333) last=(203729167,95250000) stroke=264583 fill=-
             wires path c851008e els=4 first=(187854167,58208333) last=(235479167,108479167) stroke=264583 fill=-
-            wires path ce52ac00 els=4 first=(37041667,37041667) last=(137583333,31750000) stroke=264583 fill=-
+            wires path ce52ac00 els=5 first=(37041667,37041667) last=(137583333,31750000) stroke=264583 fill=-
             wires path d48db15f els=4 first=(201083333,42333333) last=(187854167,58208333) stroke=264583 fill=-
             wires path f40a98e3 els=5 first=(219604167,58208333) last=(203729167,58208333) stroke=264583 fill=-
             wires instance 0c0b22d7 sym=a3e1ca3e variant=A translate=(187854167,58208333)
