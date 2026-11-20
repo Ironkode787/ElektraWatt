@@ -9,7 +9,7 @@ use ew_ids::{Id, Uuid};
 use ew_schema::{Channel, Device, DeviceLink, Function, PlcConfigProject, Record};
 use serde_json::json;
 
-use super::fixture::*;
+use crate::fixture::*;
 use crate::{Model, ModelError, Op, Rev};
 
 const CFG: Id<PlcConfigProject> = Id::from_uuid(Uuid::from_u128(0x7_0001));

@@ -4,6 +4,7 @@
 //! The mini golden project of doc 20 §4–§6 as typed records (placeholders only), shared by the in-crate tests.
 
 #![allow(dead_code)]
+#![allow(missing_docs, reason = "test data: each name says which record it builds")]
 
 use ew_ids::{Id, Uuid};
 use ew_mltext::{Ident, MlText};
@@ -24,94 +25,94 @@ use crate::{AnyKey, Entity, Model, Op};
 // ---------------------------------------------------------------------------------------------------------
 // Identifiers
 
-const fn id<T>(n: u128) -> Id<T> {
+pub const fn id<T>(n: u128) -> Id<T> {
     Id::from_uuid(Uuid::from_u128(n))
 }
 
-pub(crate) const PROJECT: Id<Project> = id(0x01);
-pub(crate) const LOC: Id<StructureNode> = id(0x10);
-pub(crate) const FUNC_P01: Id<StructureNode> = id(0x11);
-pub(crate) const SEC1: Id<Section> = id(0x20);
-pub(crate) const PAGE_101: Id<Page> = id(0x30);
-pub(crate) const PAGE_102: Id<Page> = id(0x31);
+pub const PROJECT: Id<Project> = id(0x01);
+pub const LOC: Id<StructureNode> = id(0x10);
+pub const FUNC_P01: Id<StructureNode> = id(0x11);
+pub const SEC1: Id<Section> = id(0x20);
+pub const PAGE_101: Id<Page> = id(0x30);
+pub const PAGE_102: Id<Page> = id(0x31);
 
-pub(crate) const FORM: Id<FormDef> = id(0x40);
-pub(crate) const SYM: Id<SymbolDef> = id(0x41);
-pub(crate) const FNDEF_MCB: Id<FnDef> = id(0x42);
-pub(crate) const FNDEF_PSU: Id<FnDef> = id(0x43);
-pub(crate) const FNDEF_MICO: Id<FnDef> = id(0x44);
-pub(crate) const FNDEF_CONTACT: Id<FnDef> = id(0x45);
-pub(crate) const FNDEF_STRIP: Id<FnDef> = id(0x46);
-pub(crate) const FNDEF_TERMINAL: Id<FnDef> = id(0x47);
-pub(crate) const FNDEF_IP: Id<FnDef> = id(0x48);
-pub(crate) const PART_MCB: Id<Part> = id(0x50);
-pub(crate) const PART_PSU: Id<Part> = id(0x51);
+pub const FORM: Id<FormDef> = id(0x40);
+pub const SYM: Id<SymbolDef> = id(0x41);
+pub const FNDEF_MCB: Id<FnDef> = id(0x42);
+pub const FNDEF_PSU: Id<FnDef> = id(0x43);
+pub const FNDEF_MICO: Id<FnDef> = id(0x44);
+pub const FNDEF_CONTACT: Id<FnDef> = id(0x45);
+pub const FNDEF_STRIP: Id<FnDef> = id(0x46);
+pub const FNDEF_TERMINAL: Id<FnDef> = id(0x47);
+pub const FNDEF_IP: Id<FnDef> = id(0x48);
+pub const PART_MCB: Id<Part> = id(0x50);
+pub const PART_PSU: Id<Part> = id(0x51);
 
-pub(crate) const DEV_101F1: Id<Device> = id(0x100);
-pub(crate) const DEV_102G1: Id<Device> = id(0x101);
-pub(crate) const DEV_102F2: Id<Device> = id(0x102);
-pub(crate) const DEV_X1031: Id<Device> = id(0x103);
-pub(crate) const DEV_T1: Id<Device> = id(0x104);
-pub(crate) const DEV_T2: Id<Device> = id(0x105);
-pub(crate) const DEV_T3: Id<Device> = id(0x106);
-pub(crate) const DEV_3W1: Id<Device> = id(0x107);
+pub const DEV_101F1: Id<Device> = id(0x100);
+pub const DEV_102G1: Id<Device> = id(0x101);
+pub const DEV_102F2: Id<Device> = id(0x102);
+pub const DEV_X1031: Id<Device> = id(0x103);
+pub const DEV_T1: Id<Device> = id(0x104);
+pub const DEV_T2: Id<Device> = id(0x105);
+pub const DEV_T3: Id<Device> = id(0x106);
+pub const DEV_3W1: Id<Device> = id(0x107);
 
-pub(crate) const FN_101F1: Id<Function> = id(0x200);
-pub(crate) const FN_102G1: Id<Function> = id(0x201);
-pub(crate) const FN_102F2: Id<Function> = id(0x202);
-pub(crate) const FN_102F2_AUX: Id<Function> = id(0x203);
-pub(crate) const FN_X1031: Id<Function> = id(0x204);
-pub(crate) const FN_T1: Id<Function> = id(0x205);
-pub(crate) const FN_T2: Id<Function> = id(0x206);
-pub(crate) const FN_T3: Id<Function> = id(0x207);
-pub(crate) const FN_IP_101: Id<Function> = id(0x208);
-pub(crate) const FN_IP_102: Id<Function> = id(0x209);
+pub const FN_101F1: Id<Function> = id(0x200);
+pub const FN_102G1: Id<Function> = id(0x201);
+pub const FN_102F2: Id<Function> = id(0x202);
+pub const FN_102F2_AUX: Id<Function> = id(0x203);
+pub const FN_X1031: Id<Function> = id(0x204);
+pub const FN_T1: Id<Function> = id(0x205);
+pub const FN_T2: Id<Function> = id(0x206);
+pub const FN_T3: Id<Function> = id(0x207);
+pub const FN_IP_101: Id<Function> = id(0x208);
+pub const FN_IP_102: Id<Function> = id(0x209);
 
-pub(crate) const REP_101F1: Id<Representation> = id(0x300);
-pub(crate) const REP_102G1: Id<Representation> = id(0x301);
-pub(crate) const REP_102F2: Id<Representation> = id(0x302);
-pub(crate) const REP_102F2_AUX: Id<Representation> = id(0x303);
-pub(crate) const REP_X1031: Id<Representation> = id(0x304);
-pub(crate) const REP_T1: Id<Representation> = id(0x305);
-pub(crate) const REP_IP_101: Id<Representation> = id(0x306);
-pub(crate) const REP_IP_102: Id<Representation> = id(0x307);
+pub const REP_101F1: Id<Representation> = id(0x300);
+pub const REP_102G1: Id<Representation> = id(0x301);
+pub const REP_102F2: Id<Representation> = id(0x302);
+pub const REP_102F2_AUX: Id<Representation> = id(0x303);
+pub const REP_X1031: Id<Representation> = id(0x304);
+pub const REP_T1: Id<Representation> = id(0x305);
+pub const REP_IP_101: Id<Representation> = id(0x306);
+pub const REP_IP_102: Id<Representation> = id(0x307);
 
-pub(crate) const CON_W11A: Id<Connection> = id(0x400);
-pub(crate) const CON_W11B: Id<Connection> = id(0x401);
-pub(crate) const CON_J5_IN: Id<Connection> = id(0x402);
-pub(crate) const CON_W22: Id<Connection> = id(0x403);
-pub(crate) const CON_W27: Id<Connection> = id(0x404);
-pub(crate) const CON_W29: Id<Connection> = id(0x405);
-pub(crate) const CON_BR1: Id<Connection> = id(0x406);
-pub(crate) const CON_CORE_A: Id<Connection> = id(0x407);
+pub const CON_W11A: Id<Connection> = id(0x400);
+pub const CON_W11B: Id<Connection> = id(0x401);
+pub const CON_J5_IN: Id<Connection> = id(0x402);
+pub const CON_W22: Id<Connection> = id(0x403);
+pub const CON_W27: Id<Connection> = id(0x404);
+pub const CON_W29: Id<Connection> = id(0x405);
+pub const CON_BR1: Id<Connection> = id(0x406);
+pub const CON_CORE_A: Id<Connection> = id(0x407);
 
-pub(crate) const J5: Id<Junction> = id(0x500);
-pub(crate) const COND_A: Id<Conductor> = id(0x600);
-pub(crate) const COND_B: Id<Conductor> = id(0x601);
-pub(crate) const COND_SH: Id<Conductor> = id(0x602);
-pub(crate) const PD_24V: Id<PotentialDef> = id(0x700);
-pub(crate) const BOND_PE: Id<Bond> = id(0x800);
+pub const J5: Id<Junction> = id(0x500);
+pub const COND_A: Id<Conductor> = id(0x600);
+pub const COND_B: Id<Conductor> = id(0x601);
+pub const COND_SH: Id<Conductor> = id(0x602);
+pub const PD_24V: Id<PotentialDef> = id(0x700);
+pub const BOND_PE: Id<Bond> = id(0x800);
 
 // ---------------------------------------------------------------------------------------------------------
 // Value helpers
 
-fn ident(s: &str) -> Ident {
+pub fn ident(s: &str) -> Ident {
     s.parse().expect("valid identifier")
 }
 
-fn dec3(s: &str) -> Dec3 {
+pub fn dec3(s: &str) -> Dec3 {
     s.parse().expect("valid decimal")
 }
 
-fn pt0() -> Pt2 {
+pub fn pt0() -> Pt2 {
     Pt2::new(Nm(0), Nm(0))
 }
 
-fn grid() -> Grid {
+pub fn grid() -> Grid {
     Grid::new(7_937_500, 3).expect("valid grid")
 }
 
-fn lib_ref(item: u128) -> LibRef {
+pub fn lib_ref(item: u128) -> LibRef {
     LibRef {
         library: id(0x9100),
         item: id(item),
@@ -123,7 +124,7 @@ fn lib_ref(item: u128) -> LibRef {
 // ---------------------------------------------------------------------------------------------------------
 // Record helpers
 
-pub(crate) fn structure_node(
+pub fn structure_node(
     node_id: Id<StructureNode>,
     aspect: Aspect,
     code: &str,
@@ -143,7 +144,7 @@ pub(crate) fn structure_node(
     }
 }
 
-pub(crate) fn section(section_id: Id<Section>, number: u16, from: u32, to: u32, title: &str) -> Section {
+pub fn section(section_id: Id<Section>, number: u16, from: u32, to: u32, title: &str) -> Section {
     Section {
         id: section_id,
         v: 1,
@@ -156,7 +157,7 @@ pub(crate) fn section(section_id: Id<Section>, number: u16, from: u32, to: u32, 
     }
 }
 
-pub(crate) fn page(page_id: Id<Page>, section: Option<Id<Section>>, number: u32, title: &str) -> Page {
+pub fn page(page_id: Id<Page>, section: Option<Id<Section>>, number: u32, title: &str) -> Page {
     Page {
         id: page_id,
         v: 1,
@@ -181,7 +182,7 @@ pub(crate) fn page(page_id: Id<Page>, section: Option<Id<Section>>, number: u32,
     }
 }
 
-pub(crate) fn device(device_id: Id<Device>, letter: &str, counter: u32) -> Device {
+pub fn device(device_id: Id<Device>, letter: &str, counter: u32) -> Device {
     Device {
         id: device_id,
         v: 1,
@@ -204,7 +205,7 @@ pub(crate) fn device(device_id: Id<Device>, letter: &str, counter: u32) -> Devic
     }
 }
 
-pub(crate) fn strip(strip_id: Id<Device>, letter: &str, counter: u32) -> Device {
+pub fn strip(strip_id: Id<Device>, letter: &str, counter: u32) -> Device {
     let mut d = device(strip_id, letter, counter);
     d.aspects.strip = Some(Strip {
         label_mode: LabelMode::FunctionText,
@@ -218,7 +219,7 @@ pub(crate) fn strip(strip_id: Id<Device>, letter: &str, counter: u32) -> Device 
     d
 }
 
-pub(crate) fn terminal(terminal_id: Id<Device>, strip: Id<Device>, seq: u32, designation: &str) -> Device {
+pub fn terminal(terminal_id: Id<Device>, strip: Id<Device>, seq: u32, designation: &str) -> Device {
     let mut d = device(terminal_id, "X", seq);
     d.kind = Some(DeviceKind::Terminal);
     d.aspects.terminal = Some(Terminal {
@@ -232,13 +233,13 @@ pub(crate) fn terminal(terminal_id: Id<Device>, strip: Id<Device>, seq: u32, des
     d
 }
 
-pub(crate) fn cable(cable_id: Id<Device>, letter: &str, counter: u32) -> Device {
+pub fn cable(cable_id: Id<Device>, letter: &str, counter: u32) -> Device {
     let mut d = device(cable_id, letter, counter);
     d.aspects.cable = Some(Cable::default());
     d
 }
 
-pub(crate) fn function(
+pub fn function(
     function_id: Id<Function>,
     device: Id<Device>,
     def: Id<FnDef>,
@@ -259,7 +260,7 @@ pub(crate) fn function(
     }
 }
 
-pub(crate) fn ip_function(function_id: Id<Function>, name: &str, direction: IpDirection) -> Function {
+pub fn ip_function(function_id: Id<Function>, name: &str, direction: IpDirection) -> Function {
     Function {
         id: function_id,
         v: 1,
@@ -283,7 +284,7 @@ pub(crate) fn ip_function(function_id: Id<Function>, name: &str, direction: IpDi
     }
 }
 
-pub(crate) fn rep(
+pub fn rep(
     rep_id: Id<Representation>,
     page: Id<Page>,
     functions: Vec<Id<Function>>,
@@ -309,15 +310,15 @@ pub(crate) fn rep(
     }
 }
 
-pub(crate) fn cp(f: Id<Function>, idx: u16) -> Endpoint {
+pub fn cp(f: Id<Function>, idx: u16) -> Endpoint {
     Endpoint::Cp(f, idx)
 }
 
-pub(crate) fn at_junction(j: Id<Junction>) -> Endpoint {
+pub fn at_junction(j: Id<Junction>) -> Endpoint {
     Endpoint::Junction(j)
 }
 
-pub(crate) fn connection(
+pub fn connection(
     connection_id: Id<Connection>,
     page: Option<Id<Page>>,
     a: Endpoint,
@@ -339,7 +340,7 @@ pub(crate) fn connection(
     }
 }
 
-pub(crate) fn junction(junction_id: Id<Junction>, page: Id<Page>, sequence: Vec<Id<Connection>>) -> Junction {
+pub fn junction(junction_id: Id<Junction>, page: Id<Page>, sequence: Vec<Id<Connection>>) -> Junction {
     Junction {
         fitting: None,
         id: junction_id,
@@ -354,7 +355,7 @@ pub(crate) fn junction(junction_id: Id<Junction>, page: Id<Page>, sequence: Vec<
     }
 }
 
-pub(crate) fn conductor(conductor_id: Id<Conductor>, cable: Id<Device>, core: &str) -> Conductor {
+pub fn conductor(conductor_id: Id<Conductor>, cable: Id<Device>, core: &str) -> Conductor {
     Conductor {
         id: conductor_id,
         v: 1,
@@ -372,7 +373,7 @@ pub(crate) fn conductor(conductor_id: Id<Conductor>, cable: Id<Device>, core: &s
 // ---------------------------------------------------------------------------------------------------------
 // Library helpers
 
-fn lib_copy<T>(copy_id: Id<T>, item: T) -> LibCopy<T> {
+pub fn lib_copy<T>(copy_id: Id<T>, item: T) -> LibCopy<T> {
     let n = u128::from(copy_id.as_uuid().as_u128() as u8);
     LibCopy {
         id: copy_id,
@@ -385,7 +386,7 @@ fn lib_copy<T>(copy_id: Id<T>, item: T) -> LibCopy<T> {
     }
 }
 
-pub(crate) fn fndef(fndef_id: Id<FnDef>, cps: &[&str]) -> LibCopy<FnDef> {
+pub fn fndef(fndef_id: Id<FnDef>, cps: &[&str]) -> LibCopy<FnDef> {
     let item = FnDef {
         valve_model: None,
         meta: Default::default(),
@@ -419,7 +420,7 @@ pub(crate) fn fndef(fndef_id: Id<FnDef>, cps: &[&str]) -> LibCopy<FnDef> {
     lib_copy(fndef_id, item)
 }
 
-pub(crate) fn symbol(symbol_id: Id<SymbolDef>) -> LibCopy<SymbolDef> {
+pub fn symbol(symbol_id: Id<SymbolDef>) -> LibCopy<SymbolDef> {
     let item = SymbolDef {
         meta: Default::default(),
         name: MlText::default(),
@@ -441,7 +442,7 @@ pub(crate) fn symbol(symbol_id: Id<SymbolDef>) -> LibCopy<SymbolDef> {
     lib_copy(symbol_id, item)
 }
 
-pub(crate) fn form(form_id: Id<FormDef>) -> LibCopy<FormDef> {
+pub fn form(form_id: Id<FormDef>) -> LibCopy<FormDef> {
     let item = FormDef {
         kind: FormKind::Frame,
         sheet: SheetSpec {
@@ -462,7 +463,7 @@ pub(crate) fn form(form_id: Id<FormDef>) -> LibCopy<FormDef> {
     lib_copy(form_id, item)
 }
 
-pub(crate) fn part(part_id: Id<Part>, part_number: &str) -> LibCopy<Part> {
+pub fn part(part_id: Id<Part>, part_number: &str) -> LibCopy<Part> {
     let item = Part {
         meta: Default::default(),
         kind: Default::default(),
@@ -494,14 +495,14 @@ pub(crate) fn part(part_id: Id<Part>, part_number: &str) -> LibCopy<Part> {
 // LibRef helpers (a `LibRef` resolves to the embedded copy `v5(NS_LIBCOPY, library ‖ item)`)
 
 /// The library of the `LibRef` helpers.
-pub(crate) const LIBRARY_X: Uuid = Uuid::from_u128(0x9200);
+pub const LIBRARY_X: Uuid = Uuid::from_u128(0x9200);
 /// An item of [`LIBRARY_X`].
-pub(crate) const ITEM_X: Uuid = Uuid::from_u128(0x9201);
+pub const ITEM_X: Uuid = Uuid::from_u128(0x9201);
 /// Another item of [`LIBRARY_X`].
-pub(crate) const ITEM_Y: Uuid = Uuid::from_u128(0x9202);
+pub const ITEM_Y: Uuid = Uuid::from_u128(0x9202);
 
 /// A `LibRef` to `item` of `library`.
-pub(crate) fn lib_ref_to(library: Uuid, item: Uuid) -> LibRef {
+pub fn lib_ref_to(library: Uuid, item: Uuid) -> LibRef {
     LibRef {
         library: Id::from_uuid(library),
         item: Id::from_uuid(item),
@@ -511,7 +512,7 @@ pub(crate) fn lib_ref_to(library: Uuid, item: Uuid) -> LibRef {
 }
 
 /// The FnDef copy that a `LibRef` to `item` of `library` resolves to: its ID is `lib_copy_id(library, item)`.
-pub(crate) fn fndef_copy_for(library: Uuid, item: Uuid, cps: &[&str]) -> LibCopy<FnDef> {
+pub fn fndef_copy_for(library: Uuid, item: Uuid, cps: &[&str]) -> LibCopy<FnDef> {
     let mut copy = fndef(ew_ids::v5::lib_copy_id(library, item), cps);
     copy.library_id = Id::from_uuid(library);
     copy.item_id = Id::from_uuid(item);
@@ -519,14 +520,14 @@ pub(crate) fn fndef_copy_for(library: Uuid, item: Uuid, cps: &[&str]) -> LibCopy
 }
 
 /// A symbol copy whose `fndef` names `item` of `library`.
-pub(crate) fn symbol_using(symbol_id: Id<SymbolDef>, library: Uuid, item: Uuid) -> LibCopy<SymbolDef> {
+pub fn symbol_using(symbol_id: Id<SymbolDef>, library: Uuid, item: Uuid) -> LibCopy<SymbolDef> {
     let mut copy = symbol(symbol_id);
     copy.item.fndef = lib_ref_to(library, item);
     copy
 }
 
 /// A part copy whose single function template names `item` of `library`.
-pub(crate) fn part_using(part_id: Id<Part>, part_number: &str, library: Uuid, item: Uuid) -> LibCopy<Part> {
+pub fn part_using(part_id: Id<Part>, part_number: &str, library: Uuid, item: Uuid) -> LibCopy<Part> {
     let mut copy = part(part_id, part_number);
     copy.item.function_template = vec![TemplateFn {
         fndef: lib_ref_to(library, item),
@@ -541,7 +542,7 @@ pub(crate) fn part_using(part_id: Id<Part>, part_number: &str, library: Uuid, it
 // The fixture
 
 /// The mini golden project as records and library documents, in the order of the golden files.
-pub(crate) fn mini_golden_parts() -> (Project, Vec<Record>, Vec<LibDocument>) {
+pub fn mini_golden_parts() -> (Project, Vec<Record>, Vec<LibDocument>) {
     let project = Project {
         id: PROJECT,
         v: 1,
@@ -735,23 +736,23 @@ pub(crate) fn mini_golden_parts() -> (Project, Vec<Record>, Vec<LibDocument>) {
 }
 
 /// The mini golden project as a validated model snapshot.
-pub(crate) fn mini_golden() -> Model {
+pub fn mini_golden() -> Model {
     let (p, r, l) = mini_golden_parts();
     Model::from_records(p, r, l).expect("mini golden is valid")
 }
 
 /// The key of the row `id` of kind `T`.
-pub(crate) fn key<T: Entity>(id: crate::rev::RowId<T>) -> AnyKey {
+pub fn key<T: Entity>(id: crate::rev::RowId<T>) -> AnyKey {
     T::key(id)
 }
 
 /// Whether `ops` removes the row under `k`.
-pub(crate) fn removes(ops: &[Op], k: AnyKey) -> bool {
+pub fn removes(ops: &[Op], k: AnyKey) -> bool {
     ops.iter().any(|op| op.key() == k && op.after().is_none())
 }
 
 /// The modified record of kind `T` under `id` that `ops` carries.
-pub(crate) fn after<T: Entity>(ops: &[Op], id: crate::rev::RowId<T>) -> T {
+pub fn after<T: Entity>(ops: &[Op], id: crate::rev::RowId<T>) -> T {
     let op = ops
         .iter()
         .find(|op| op.key() == T::key(id))
@@ -760,7 +761,7 @@ pub(crate) fn after<T: Entity>(ops: &[Op], id: crate::rev::RowId<T>) -> T {
 }
 
 /// The text of an ID as the JSON of a record writes it.
-pub(crate) fn uid<T>(id: Id<T>) -> String {
+pub fn uid<T>(id: Id<T>) -> String {
     id.as_uuid().to_string()
 }
 
@@ -768,7 +769,7 @@ pub(crate) fn uid<T>(id: Id<T>) -> String {
 // Page items and structure boxes
 
 /// A wire marker on `page` listing `connections`.
-pub(crate) fn wire_marker(
+pub fn wire_marker(
     item_id: Id<ew_schema::PageItem>,
     page: Id<Page>,
     connections: Vec<Id<Connection>>,
@@ -791,7 +792,7 @@ pub(crate) fn wire_marker(
 }
 
 /// A line graphic on `page`.
-pub(crate) fn graphic_line(item_id: Id<ew_schema::PageItem>, page: Id<Page>) -> ew_schema::PageItem {
+pub fn graphic_line(item_id: Id<ew_schema::PageItem>, page: Id<Page>) -> ew_schema::PageItem {
     ew_schema::PageItem {
         id: item_id,
         v: 1,
@@ -813,7 +814,7 @@ pub(crate) fn graphic_line(item_id: Id<ew_schema::PageItem>, page: Id<Page>) -> 
 }
 
 /// A dotted structure box on `page` assigning `location`, standing for `external`.
-pub(crate) fn structure_box(
+pub fn structure_box(
     box_id: Id<ew_schema::StructureBox>,
     page: Id<Page>,
     location: Option<Id<StructureNode>>,
@@ -841,7 +842,7 @@ pub(crate) fn structure_box(
 }
 
 /// An external reference to device `JE-N1000-03` at `location`.
-pub(crate) fn external_ref(
+pub fn external_ref(
     ext_id: Id<ew_schema::ExternalRef>,
     location: Id<StructureNode>,
 ) -> ew_schema::ExternalRef {
@@ -861,7 +862,7 @@ pub(crate) fn external_ref(
 // Macros and manufacturers
 
 /// A window macro copy without variants (the model does not read its content).
-pub(crate) fn macro_copy(copy_id: Id<ew_schema::MacroDef>) -> LibCopy<ew_schema::MacroDef> {
+pub fn macro_copy(copy_id: Id<ew_schema::MacroDef>) -> LibCopy<ew_schema::MacroDef> {
     lib_copy(
         copy_id,
         ew_schema::MacroDef {
@@ -880,7 +881,7 @@ pub(crate) fn macro_copy(copy_id: Id<ew_schema::MacroDef>) -> LibCopy<ew_schema:
 }
 
 /// A manufacturer copy.
-pub(crate) fn manufacturer_copy(copy_id: Id<ew_schema::Manufacturer>) -> LibCopy<ew_schema::Manufacturer> {
+pub fn manufacturer_copy(copy_id: Id<ew_schema::Manufacturer>) -> LibCopy<ew_schema::Manufacturer> {
     lib_copy(
         copy_id,
         ew_schema::Manufacturer {
@@ -895,7 +896,7 @@ pub(crate) fn manufacturer_copy(copy_id: Id<ew_schema::Manufacturer>) -> LibCopy
 }
 
 /// A macro instance on `page` placed from `copy`, with `members` as `(fragment-local, created)` pairs.
-pub(crate) fn macro_instance(
+pub fn macro_instance(
     instance: Id<ew_schema::MacroInstance>,
     copy: Id<ew_schema::MacroDef>,
     page: Id<Page>,

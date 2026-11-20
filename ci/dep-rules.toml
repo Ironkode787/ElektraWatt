@@ -96,6 +96,12 @@ crate = "ew-commands"
 feature = "testkit"
 allowed_kinds = ["dev"]
 
+# The test fixture of ew-model (`ew_model::fixture`) is for tests only.
+[[banned_features]]
+crate = "ew-model"
+feature = "testkit"
+allowed_kinds = ["dev"]
+
 # WP-S2.03 §7.6: the probe tool's seam (`ShellModel::set_tool_for_tests`) is for tests only; the binaries never build
 # it, so no shipped path can install a tool that commits.
 [[banned_features]]

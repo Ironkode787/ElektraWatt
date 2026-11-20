@@ -691,7 +691,7 @@ mod tests {
     use ew_schema::{Kind, Record};
 
     use crate::entity::table_keys;
-    use crate::tests::fixture;
+    use crate::fixture;
 
     use super::Model;
 

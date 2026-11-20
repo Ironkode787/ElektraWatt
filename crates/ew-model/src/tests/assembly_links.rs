@@ -9,7 +9,7 @@ use ew_ids::{Id, Uuid};
 use ew_schema::{Device, LibDocument, Part, Record};
 use serde_json::json;
 
-use super::fixture::*;
+use crate::fixture::*;
 use crate::{Model, ModelError, Op, Rev};
 
 /// A configured part copy of the fixture library, used only by the assembly.

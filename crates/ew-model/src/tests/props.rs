@@ -21,7 +21,7 @@ use ew_units::{Nm, Pt2};
 use proptest::prelude::*;
 use serde_json::json;
 
-use super::fixture::{
+use crate::fixture::{
     DEV_3W1, DEV_101F1, DEV_102F2, FNDEF_CONTACT, FNDEF_MCB, LIBRARY_X, LOC, PAGE_101, PAGE_102, conductor,
     connection, cp, device, fndef_copy_for, function, mini_golden, mini_golden_parts, part_using, strip,
     structure_node, symbol_using,

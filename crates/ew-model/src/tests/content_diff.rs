@@ -9,7 +9,7 @@ use ew_rds::Aspect;
 use ew_schema::{Kind, LibDocument, Record, StructureNode};
 use serde_json::json;
 
-use super::fixture::{mini_golden_parts, structure_node};
+use crate::fixture::{mini_golden_parts, structure_node};
 use crate::{AnyRow, ContentDiff, Model, Presence, Rev};
 
 const ROOT: Id<StructureNode> = Id::from_uuid(Uuid::from_u128(0x9001));

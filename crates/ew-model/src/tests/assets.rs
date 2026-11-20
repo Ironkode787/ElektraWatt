@@ -6,7 +6,7 @@
 
 use ew_schema::{AssetFormat, AssetRef, Sha256};
 
-use super::fixture::mini_golden;
+use crate::fixture::mini_golden;
 use crate::{Asset, Rev};
 
 /// An asset whose hash is `n` repeated (the model does not hash; the caller computed the reference).

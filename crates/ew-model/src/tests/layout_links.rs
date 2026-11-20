@@ -14,7 +14,7 @@ use ew_schema::{
 };
 use ew_units::{Nm, Pose3, Pt2};
 
-use super::fixture::*;
+use crate::fixture::*;
 use crate::{AnyKey, ApplyOptions, BaseIndexes, Model, ModelError, Op, Rev, invert_batch};
 
 const LOC_B: Id<StructureNode> = Id::from_uuid(Uuid::from_u128(0x9500));

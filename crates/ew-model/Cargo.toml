@@ -19,10 +19,17 @@ workspace = true
 # rule 1, ADR-0002 decision 1. Off by default. The feature rule of `cargo xtask rules` allows it on normal edges of
 # ew-derive, ew-commands and ew-store only, and on dev-dependency edges (ci/dep-rules.toml).
 raw-read = []
+# The test fixture `ew_model::fixture` (the small in-code project) for the tests of other crates. Test-only: the
+# feature rule of `cargo xtask rules` allows it on dev-dependency edges only (ci/dep-rules.toml).
+testkit = ["dep:ew-units", "dep:ew-mltext", "dep:ew-rds"]
 
 [dependencies]
 ew-schema = { path = "../ew-schema" }
 ew-ids = { path = "../ew-ids" }
+# Value types of the test fixture's records (coordinates, decimals, identifiers, aspects); with `testkit` only.
+ew-units = { path = "../ew-units", optional = true }
+ew-mltext = { path = "../ew-mltext", optional = true }
+ew-rds = { path = "../ew-rds", optional = true }
 # Persistent ordered maps and sets: O(1) snapshots and deterministic order (ADR-0001 decision 1). MPL-2.0+, on
 # the GPL-layer allowlist; `Table<T>` and `RevIndex` encapsulate it.
 imbl = "7.0.2"

@@ -642,7 +642,7 @@ Generic memo engine: revisions, dependency recording, early cut-off, durability 
 
 ## ew-mltext
 
-`crates/ew-mltext` · MIT OR Apache-2.0 · depends on none · used by `ew-api`, `ew-commands`, `ew-derive`, `ew-import-dxf`, `ew-import-eplan`, `ew-import-qet`, `ew-import-tables`, `ew-scene`, `ew-schema` · in tests by `ew-model`, `ew-testkit`
+`crates/ew-mltext` · MIT OR Apache-2.0 · depends on none · used by `ew-api`, `ew-commands`, `ew-derive`, `ew-import-dxf`, `ew-import-eplan`, `ew-import-qet`, `ew-import-tables`, `ew-model`, `ew-scene`, `ew-schema` · in tests by `ew-testkit`
 
 Multilingual text `MlText` with neutral-xor-languages semantics, BCP 47 `LangTag`, NFC identifiers `Ident`, confusable detection and natural-sort keys.
 
@@ -659,7 +659,7 @@ Multilingual text `MlText` with neutral-xor-languages semantics, BCP 47 `LangTag
 
 ## ew-model
 
-`crates/ew-model` · GPL-3.0-or-later · depends on `ew-ids`, `ew-schema` · used by `ew-api`, `ew-commands`, `ew-derive`, `ew-store`, `ew-testkit` · in tests by `ew-checks`, `ew-reports`
+`crates/ew-model` · GPL-3.0-or-later · depends on `ew-ids`, `ew-mltext`, `ew-rds`, `ew-schema`, `ew-units` · used by `ew-api`, `ew-commands`, `ew-derive`, `ew-store`, `ew-testkit` · in tests by `ew-checks`, `ew-reports`
 
 `Table<T>` of `ew-schema` records, the `Model` snapshot, `Op` apply and invert, base reverse indexes, structural invariants and link delete policies.
 
@@ -669,6 +669,7 @@ Multilingual text `MlText` with neutral-xor-languages semantics, BCP 47 `LangTag
 | `src/diff.rs` |  | The first difference between two models ([`crate::Model::content_diff`]): what [`crate::Model::content_eq`] calls unequal, named for a diagnosis (the save-and-reload oracle of the command fuzzer). |
 | `src/entity.rs` |  | The entity kinds of the model: the sealed [`Entity`] trait that ties each `ew-schema` record type to its [`Kind`], its table and its ID type, the kind-erased row [`AnyRow`] of the op layer and its key [`AnyKey`]. |
 | `src/error.rs` |  | The error of loading, applying and planning. |
+| `src/fixture.rs` |  | The mini golden project of doc 20 §4–§6 as typed records (placeholders only), shared by the in-crate tests. |
 | `src/index.rs` |  | Base reverse indexes (ARCH §4.1, ADR-0001 decision 5): pure reverse-FK maps, each key with its own `changed_at`, maintained by delta by [`Model::apply_with`](crate::Model::apply_with) and [`Model::apply_history`](crate::Model::apply_history), rebuilt on load, never saved. |
 | `src/invariants.rs` | large | The structural invariants of ADR-0009 decision 2, evaluated on the candidate snapshot at the end of a batch, limited to the touched keys and their index neighbours (decision 1), or on every record for the integrity check (decision 5), and the model's one delete-time rule (EW-INV-021, ADR-0009 amendment 7), evaluated by [`Model::apply_with`] only. |
 | `src/lib.rs` |  | `Table<T>` of `ew-schema` records, the `Model` snapshot, `Op` apply and invert, base reverse indexes, structural invariants and link delete policies. |
@@ -681,11 +682,10 @@ Multilingual text `MlText` with neutral-xor-languages semantics, BCP 47 `LangTag
 | `src/tests/assets.rs` |  | The stamp of the asset store: a tracked read of whether an asset is held depends on it, so it changes exactly when an insert grows the set. |
 | `src/tests/content_diff.rs` |  | `Model::content_diff`: the first difference between two models, per part. |
 | `src/tests/field_mask.rs` |  | The field-mask exhaustiveness test (ARCH §4.1, ADR-0001 "Verification"): every ID-valued member of an implemented kind's JSON Schema (`schemas/0.1/<kind>.schema.json`) must be declared, either as a link in [`LINKS`], as a non-link in [`NOT_LINKS`], or as the kind's own `id`; and every declaration must exist in the schema. |
-| `src/tests/fixture.rs` |  | The mini golden project of doc 20 §4–§6 as typed records (placeholders only), shared by the in-crate tests. |
 | `src/tests/invariants.rs` | large | One positive and at least one negative test per structural invariant of `invariants.md`. |
 | `src/tests/layout_links.rs` |  | The links of the layout kinds (LM-2, LM-6; doc 03 §4.2, §16): a placement cannot outlive its device or function (cascade, EW-LAY-002), an occupied carrier and an enclosure's device cannot be removed (forbid), a separate surface part's device leaves the surface without one (unlink), the containment chain cascades, and a location with a layout space cannot be deleted. |
 | `src/tests/macro_links.rs` |  | The links of `macro_instance` (L1-4; doc 03 §7): deleting the anchor page removes the instance (cascade), a deleted member leaves it (the kind-erased unlink `members[][1]`), and the macro copy cannot be removed while an instance names it (a stored copy ID: a structural forbid, as `representation.symbol`). |
-| `src/tests/mod.rs` |  | In-crate tests: they see the crate-private internals (tables, scopes) and share the `mini_golden()` fixture without a testkit dependency. |
+| `src/tests/mod.rs` |  | In-crate tests: they see the crate-private internals (tables, scopes) and share the `mini_golden()` fixture of `crate::fixture`. |
 | `src/tests/ops.rs` | large | Tests of the op layer, the delete plans (FR-DEV-030, doc 03 §4.2), loading and snapshots. |
 | `src/tests/plc_links.rs` |  | The links of the PLC records (doc 03 §4.2, §13; doc 10 §2.2–§2.4): `channel.module` cascades, `channel.binding` and `channel.target` unlink, `device_link.from`/`to` cascade, `device.plc_station.config_project` forbids and `plc_config_project.cpu` unlinks. |
 | `src/tests/props.rs` | large | Property tests of the model (doc 18 §3.3, §3.5): undo, maintained indexes and load order. |
@@ -738,7 +738,7 @@ OS print adapters with per-OS features (ADR-0015 amendment 1).
 
 ## ew-rds
 
-`crates/ew-rds` · MIT OR Apache-2.0 · depends on none · used by `ew-commands`, `ew-derive`, `ew-import-tables`, `ew-schema` · in tests by `ew-model`, `ew-testkit`
+`crates/ew-rds` · MIT OR Apache-2.0 · depends on none · used by `ew-commands`, `ew-derive`, `ew-import-tables`, `ew-model`, `ew-schema` · in tests by `ew-testkit`
 
 IEC 81346 reference-designation parser and formatter (strict and lenient), with identifier sets as data.
 
@@ -1072,7 +1072,7 @@ The window of the desktop program in egui: it paints the shell model of `ew-view
 
 ## ew-units
 
-`crates/ew-units` · MIT OR Apache-2.0 · depends on none · used by `ew-api`, `ew-commands`, `ew-derive`, `ew-dl`, `ew-import-dxf`, `ew-import-qet`, `ew-import-tables`, `ew-scene`, `ew-schema`, `ew-testkit`, `ew-text`, `ew-ui`, `ew-viewmodel` · in tests by `elektrawatt`, `ew-export`, `ew-model`, `ew-render-cpu`
+`crates/ew-units` · MIT OR Apache-2.0 · depends on none · used by `ew-api`, `ew-commands`, `ew-derive`, `ew-dl`, `ew-import-dxf`, `ew-import-qet`, `ew-import-tables`, `ew-model`, `ew-scene`, `ew-schema`, `ew-testkit`, `ew-text`, `ew-ui`, `ew-viewmodel` · in tests by `elektrawatt`, `ew-export`, `ew-render-cpu`
 
 Integer units and geometry of ElektraWatt: `Nm`, `Pt2`, `Rect`, rational `Grid`, `Orient2`, `Angle2`, `Pose3` and the fixed-point `Dec3`.
 

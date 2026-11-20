@@ -12,7 +12,7 @@ use ew_schema::{
 };
 use serde_json::json;
 
-use super::fixture::{
+use crate::fixture::{
     CON_J5_IN, CON_W22, CON_W27, DEV_3W1, DEV_101F1, DEV_102F2, DEV_102G1, DEV_X1031, FN_101F1, FN_102F2,
     FN_102F2_AUX, FN_102G1, FN_IP_101, FN_T3, FNDEF_CONTACT, FORM, FUNC_P01, ITEM_X, ITEM_Y, J5, LIBRARY_X,
     LOC, PAGE_101, PAGE_102, REP_IP_101, SEC1, at_junction, cable, conductor, connection, cp, device,
@@ -147,7 +147,7 @@ fn inv001_lib_ref_referrer_left_by_removal_ok() {
 #[test]
 fn inv001_load_tolerant_added_target_rejected() {
     let fitting = |n: u128| -> Option<ew_schema::PartRef> {
-        Some(serde_json::from_value(json!({ "copy": super::fixture::uid(nid::<Part>(n)) })).unwrap())
+        Some(serde_json::from_value(json!({ "copy": crate::fixture::uid(nid::<Part>(n)) })).unwrap())
     };
     let (project, mut records, lib) = mini_golden_parts();
     for r in &mut records {
@@ -1145,8 +1145,8 @@ fn inv016_two_open_revisions_rejected_on_load() {
 fn inv022_items_and_boxes_on_their_page_ok() {
     let m = mini_golden();
     let ops = [
-        ins(super::fixture::graphic_line(nid(0x43_000), PAGE_101)),
-        ins(super::fixture::structure_box(
+        ins(crate::fixture::graphic_line(nid(0x43_000), PAGE_101)),
+        ins(crate::fixture::structure_box(
             nid(0x44_000),
             PAGE_101,
             Some(LOC),
@@ -1161,13 +1161,13 @@ fn inv022_items_and_boxes_on_their_page_ok() {
 fn inv022_item_on_missing_page_rejected() {
     let m = mini_golden();
     rejected_by(
-        edit(&m, &[ins(super::fixture::graphic_line(nid(0x43_000), nid(0x39)))]),
+        edit(&m, &[ins(crate::fixture::graphic_line(nid(0x43_000), nid(0x39)))]),
         crate::REFS_RESOLVE,
     );
     rejected_by(
         edit(
             &m,
-            &[ins(super::fixture::structure_box(
+            &[ins(crate::fixture::structure_box(
                 nid(0x44_000),
                 nid(0x39),
                 None,
@@ -1182,7 +1182,7 @@ fn inv022_item_on_missing_page_rejected() {
 #[test]
 fn inv023_marker_on_its_page_ok() {
     let m = mini_golden();
-    let marker = super::fixture::wire_marker(nid(0x43_000), PAGE_102, vec![CON_W22, CON_W27]);
+    let marker = crate::fixture::wire_marker(nid(0x43_000), PAGE_102, vec![CON_W22, CON_W27]);
     assert!(edit(&m, &[ins(marker)]).is_ok());
 }
 
@@ -1191,7 +1191,7 @@ fn inv023_marker_on_its_page_ok() {
 #[test]
 fn inv023_missing_connection_rejected() {
     let m = mini_golden();
-    let marker = super::fixture::wire_marker(nid(0x43_000), PAGE_102, vec![CON_W22, nid(0x4ff)]);
+    let marker = crate::fixture::wire_marker(nid(0x43_000), PAGE_102, vec![CON_W22, nid(0x4ff)]);
     rejected_by(edit(&m, &[ins(marker)]), crate::REFS_RESOLVE);
 }
 
@@ -1199,7 +1199,7 @@ fn inv023_missing_connection_rejected() {
 #[test]
 fn inv023_connection_on_another_page_rejected() {
     let m = mini_golden();
-    let marker = super::fixture::wire_marker(nid(0x43_000), PAGE_101, vec![CON_W22]);
+    let marker = crate::fixture::wire_marker(nid(0x43_000), PAGE_101, vec![CON_W22]);
     rejected_by(edit(&m, &[ins(marker)]), crate::MARKER_CONNECTIONS);
 }
 
@@ -1207,7 +1207,7 @@ fn inv023_connection_on_another_page_rejected() {
 #[test]
 fn inv023_connection_moved_off_its_page_rejected() {
     let m = mini_golden();
-    let marker = super::fixture::wire_marker(nid(0x43_000), PAGE_102, vec![CON_W22]);
+    let marker = crate::fixture::wire_marker(nid(0x43_000), PAGE_102, vec![CON_W22]);
     let m = edit(&m, &[ins(marker)]).expect("a marker");
     let op = upd(&m, CON_W22, |c: &mut Connection| c.page = Some(PAGE_101));
     rejected_by(edit(&m, &[op]), crate::MARKER_CONNECTIONS);
@@ -1220,7 +1220,7 @@ fn inv023_connection_moved_off_its_page_rejected() {
 fn inv023_stale_list_loads_and_edits_keep_it_ok() {
     let mut records: Vec<Record> = Vec::new();
     let base = mini_golden();
-    let marker = super::fixture::wire_marker(nid(0x43_000), PAGE_102, vec![CON_W22, nid(0x4ff), CON_W11A_ID]);
+    let marker = crate::fixture::wire_marker(nid(0x43_000), PAGE_102, vec![CON_W22, nid(0x4ff), CON_W11A_ID]);
     records.push(Record::PageItem(marker.clone()));
     let m = reload_with(&base, records);
     let moved = upd(&m, marker.id, |i: &mut ew_schema::PageItem| {
@@ -1250,7 +1250,7 @@ fn inv023_stale_list_loads_and_edits_keep_it_ok() {
 #[test]
 fn inv023_added_stale_entry_rejected() {
     let base = mini_golden();
-    let marker = super::fixture::wire_marker(nid(0x43_000), PAGE_102, vec![CON_W22, nid(0x4ff)]);
+    let marker = crate::fixture::wire_marker(nid(0x43_000), PAGE_102, vec![CON_W22, nid(0x4ff)]);
     let m = reload_with(&base, vec![Record::PageItem(marker.clone())]);
     let op = upd(&m, marker.id, |i: &mut ew_schema::PageItem| {
         if let ew_schema::PageItemKind::WireMarker(w) = &mut i.kind {
@@ -1261,12 +1261,12 @@ fn inv023_added_stale_entry_rejected() {
 }
 
 /// The ID of `CON_W11A`, a connection of page 101.
-const CON_W11A_ID: Id<Connection> = super::fixture::CON_W11A;
+const CON_W11A_ID: Id<Connection> = crate::fixture::CON_W11A;
 
 /// The mini golden project plus `extra` records, loaded through `Model::from_records` (the integrity check of an
 /// open).
 fn reload_with(_base: &Model, extra: Vec<Record>) -> Model {
-    let (project, mut records, lib) = super::fixture::mini_golden_parts();
+    let (project, mut records, lib) = crate::fixture::mini_golden_parts();
     records.extend(extra);
     Model::from_records(project, records, lib).expect("a stale list is not an integrity violation")
 }
@@ -1276,7 +1276,7 @@ fn reload_with(_base: &Model, extra: Vec<Record>) -> Model {
 
 /// A FnDef copy with two CPs of `discipline`.
 fn fluid_fndef(def: Id<FnDef>, discipline: ew_schema::Discipline) -> LibCopy<FnDef> {
-    let mut copy = super::fixture::fndef(def, &["1", "2"]);
+    let mut copy = crate::fixture::fndef(def, &["1", "2"]);
     let cps = copy
         .item
         .cps
@@ -1401,13 +1401,13 @@ fn inv024_junction_with_a_wire_and_a_fluid_line_rejected() {
     let j = nid::<Junction>(0x24_400);
     let line = fluid(0x24_300, cp(nid(FQ1), 0), at_junction(j));
     let wire = connection(nid(0x24_301), Some(PAGE_102), cp(FN_101F1, 0), at_junction(j));
-    let both = super::fixture::junction(j, PAGE_102, vec![line.id, wire.id]);
+    let both = crate::fixture::junction(j, PAGE_102, vec![line.id, wire.id]);
     rejected_by(
         edit(&m, &[ins(both), ins(line.clone()), ins(wire.clone())]),
         crate::FLUID_LINES,
     );
     let line2 = fluid(0x24_302, cp(nid(FQ2), 0), at_junction(j));
-    let fluid_only = super::fixture::junction(j, PAGE_102, vec![line.id, line2.id]);
+    let fluid_only = crate::fixture::junction(j, PAGE_102, vec![line.id, line2.id]);
     let m = edit(&m, &[ins(fluid_only), ins(line.clone()), ins(line2.clone())]).expect("fluid lines");
     let seq = upd(&m, j, |x: &mut Junction| {
         x.sequence = vec![line.id, line2.id, wire.id]
@@ -1430,7 +1430,7 @@ fn inv024_media_across_three_junctions_in_series() {
         ];
         let mut ops: Vec<_> = (0..3)
             .map(|n| {
-                ins(super::fixture::junction(
+                ins(crate::fixture::junction(
                     j[n],
                     PAGE_102,
                     vec![lines[n].id, lines[n + 1].id],
@@ -1466,7 +1466,7 @@ fn inv024_media_across_a_ring_of_three_junctions() {
         let mut ops: Vec<_> = sequences
             .into_iter()
             .enumerate()
-            .map(|(n, seq)| ins(super::fixture::junction(j[n], PAGE_102, seq)))
+            .map(|(n, seq)| ins(crate::fixture::junction(j[n], PAGE_102, seq)))
             .collect();
         ops.extend(lines.into_iter().map(ins));
         ops
@@ -1490,8 +1490,8 @@ fn drives_model(parent: Id<Device>) -> Model {
     }
     records.push(
         serde_json::from_value(json!({
-            "$k": "device_link", "id": super::fixture::uid(nid::<Device>(0x25_000)),
-            "from": super::fixture::uid(DEV_101F1), "to": super::fixture::uid(DEV_102F2), "kind": "drives",
+            "$k": "device_link", "id": crate::fixture::uid(nid::<Device>(0x25_000)),
+            "from": crate::fixture::uid(DEV_101F1), "to": crate::fixture::uid(DEV_102F2), "kind": "drives",
         }))
         .unwrap(),
     );

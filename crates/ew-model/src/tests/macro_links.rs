@@ -9,7 +9,7 @@
 use ew_ids::{Id, Uuid};
 use ew_schema::{AnyId, Kind, LibDocument, MacroDef, MacroInstance, Manufacturer, PageItem, Record};
 
-use super::fixture::*;
+use crate::fixture::*;
 use crate::{
     AnyKey, ApplyOptions, BaseIndexes, Entity, MACRO_MEMBER_KINDS, Model, ModelError, Op, Rev, invert_batch,
 };

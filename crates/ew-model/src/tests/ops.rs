@@ -15,7 +15,7 @@ use ew_schema::{
 };
 use serde_json::json;
 
-use super::fixture::*;
+use crate::fixture::*;
 use crate::rev::RowId;
 use crate::{
     AnyKey, AnyRow, ApplyOptions, BaseIndexes, EndpointKey, Entity, Model, ModelError, Op, PreventHook,

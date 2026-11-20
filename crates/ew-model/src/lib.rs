@@ -131,6 +131,11 @@ mod op;
 mod prevent;
 mod rev;
 
+/// The small in-code test project as typed records, for this crate's tests and, through the feature `testkit`, for
+/// the tests of `ew-commands`.
+#[cfg(any(test, feature = "testkit"))]
+pub mod fixture;
+
 #[cfg(test)]
 mod tests;
 
