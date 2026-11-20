@@ -7,7 +7,8 @@
 //! # Shape (MVP engine)
 //!
 //! - **Rules.** A shipped rule is a [`Rule`]: static [`RuleMeta`] (ID, six-digit code, pack, kind, modes,
-//!   severity and release severity, scope kind, supersessions, copied from the catalogue of doc 15 §4) and
+//!   severity and release severity, scope kind, supersessions; the source of a built rule's row, which leaves the
+//!   catalogue of doc 15 §4 when the rule is built) and
 //!   `run(&Q, &Scope) -> Vec<Finding>`, a pure function over the tracked-read context of `ew-derive`. A rule
 //!   whose modes include prevent also implements [`Rule::prevent`], which compares the base and the
 //!   candidate snapshot of a batch. Rules read through `Q` only: this crate does not enable `ew-model`'s
