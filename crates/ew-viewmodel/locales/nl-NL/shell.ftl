@@ -7222,6 +7222,7 @@ rack-todo-no-part = { $p0 } heeft geen artikel.
 rack-todo-undrawn = Nog op geen elektrische pagina: { $p0 }. Een kenmerk krijgt zijn nummer als het op een pagina getekend wordt.
 rack-todo-card-rest = De rest van { $p0 } staat nog op geen pagina: de module is breder dan één pagina.
 rack-card-rest = De rest van { $p0 } past niet op deze pagina: Rek… toont de regel onder Te doen, die hem op een pagina naar keuze tekent.
+rack-card-no-room = Pagina { $p1 } heeft geen plaats voor { $p0 }: Rek… toont de regel onder Te doen, die hem op een andere pagina tekent.
 rack-tag-unnumbered = { $p0 } krijgt zijn nummer als het op een pagina getekend wordt: de regel ervan onder Te doen tekent het.
 rack-todo-bus = De buskant van { $p0 }, de buspoorten, staat nog op geen buspagina.
 rack-todo-fluid = De pneumatische kant van { $p0 }, de ventielen op hun posities, staat nog op geen fluïdumpagina.

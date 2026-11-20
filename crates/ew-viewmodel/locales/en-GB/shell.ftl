@@ -7490,6 +7490,7 @@ rack-todo-no-part = { $p0 } has no part.
 rack-todo-undrawn = On no electrical page yet: { $p0 }. A tag gets its number when it is drawn on a page.
 rack-todo-card-rest = The rest of { $p0 } is on no page yet: the module is wider than one page.
 rack-card-rest = The rest of { $p0 } does not fit on this page: Rack… shows its line under To do, which draws it on a page you choose.
+rack-card-no-room = Page { $p1 } has no room for { $p0 }: Rack… shows its line under To do, which draws it on another page.
 rack-tag-unnumbered = { $p0 } gets its number when it is drawn on a page: its line under To do draws it.
 rack-todo-bus = The bus side of { $p0 }, its bus ports, stands on no bus page yet.
 rack-todo-fluid = The pneumatic side of { $p0 }, its valves on their positions, is on no fluid page yet.
