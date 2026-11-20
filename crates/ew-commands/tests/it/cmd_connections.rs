@@ -414,6 +414,7 @@ fn layout_apply_stores_a_plan_in_one_step_marks_its_routes_and_refuses_a_junctio
     let r = e
         .execute(&ApplyLayout {
             page: PAGE_102,
+            parts: vec![],
             junctions: vec![],
             routes: vec![RouteConnection {
                 connection: W,
@@ -439,6 +440,7 @@ fn layout_apply_stores_a_plan_in_one_step_marks_its_routes_and_refuses_a_junctio
     // Nothing to apply.
     let r = e.execute(&ApplyLayout {
         page: PAGE_102,
+        parts: vec![],
         junctions: vec![],
         routes: vec![],
         markers: vec![],
@@ -449,6 +451,7 @@ fn layout_apply_stores_a_plan_in_one_step_marks_its_routes_and_refuses_a_junctio
     let at = row(&e, j).at;
     let r = e.execute(&ApplyLayout {
         page: PAGE_102,
+        parts: vec![],
         junctions: vec![JunctionPlace {
             junction: j,
             at: pt(at.x.0 + G, at.y.0),
@@ -483,6 +486,7 @@ fn layout_apply_keeps_a_junction_s_form_and_sequence() {
     let to = n.route.last().copied();
     let r = e.execute(&ApplyLayout {
         page: PAGE_102,
+        parts: vec![],
         junctions: vec![JunctionPlace {
             junction: j,
             at: before.at,

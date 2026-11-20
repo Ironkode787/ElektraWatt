@@ -186,18 +186,21 @@ impl ApplyLayout {
                 }
             }
         }
-        // Every routed wire with an end on a moved symbol gets its route in the plan.
+        // Every routed wire with an end on a connection point of a moved symbol gets its route in the plan.
         for (old, _) in &moved {
-            let functions: BTreeSet<_> = old.functions.iter().copied().collect();
-            let mut wires: Vec<Id<Connection>> = functions.iter().flat_map(|f| tx.connections_of_function(*f)).collect();
+            let mut wires: Vec<Id<Connection>> = crate::geometry::rep_cps(tx, old)
+                .iter()
+                .filter_map(|c| ew_model::EndpointKey::of(&Endpoint::Cp(c.function, c.idx)))
+                .flat_map(|k| tx.connections_at(k))
+                .collect();
             wires.sort();
             wires.dedup();
             for c in wires {
                 let Some(w) = tx.get::<Connection>(c) else { continue };
-                let ends_here = [&w.a, &w.b]
-                    .iter()
-                    .any(|e| matches!(e, Endpoint::Cp(f, _) if functions.contains(f)));
-                if w.page == Some(self.page) && ends_here && !w.route.is_empty() && !self.routes.iter().any(|r| r.connection == c) {
+                if w.page == Some(self.page)
+                    && !w.route.is_empty()
+                    && !self.routes.iter().any(|r| r.connection == c)
+                {
                     return tx.reject(text!(
                         "refusal-layout-apply-symbol-route",
                         crate::words::symbol(tx, old.id),
