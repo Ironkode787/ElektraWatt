@@ -455,7 +455,7 @@ fn populate(
         end: None,
         handed_back: false,
         diverged_at: None,
-        ci: "none".to_owned(),
+        replay: "none".to_owned(),
         stale: None,
         clean_before_epilogue: None,
         child_exit: None,

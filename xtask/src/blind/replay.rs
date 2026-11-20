@@ -441,13 +441,13 @@ pub fn replay_text(report: &ReplayReport) -> String {
     out
 }
 
-/// `bless <run> --as <name> [--ci pr|nightly|none]`: copies the replay inputs and the evidence into
+/// `bless <run> --as <name> [--replay check|deep|none]`: copies the replay inputs and the evidence into
 /// `tools/blind/recordings/<name>/`, normalised (the full transcript is not committed).
 ///
 /// # Errors
 ///
 /// A run that is not stopped, lost or diverged; an absolute path in what would be committed.
-pub fn bless(root: &Path, run: &Run, name: &str, ci: &str) -> Result<PathBuf> {
+pub fn bless(root: &Path, run: &Run, name: &str, replay: &str) -> Result<PathBuf> {
     if name.is_empty()
         || !name
             .chars()
@@ -455,8 +455,8 @@ pub fn bless(root: &Path, run: &Run, name: &str, ci: &str) -> Result<PathBuf> {
     {
         bail!("`{name}` is not a recording name");
     }
-    if !matches!(ci, "pr" | "nightly" | "none") {
-        bail!("--ci is pr, nightly or none");
+    if !matches!(replay, "check" | "deep" | "none") {
+        bail!("--replay is check, deep or none");
     }
     let rj = run.load()?;
     if rj.golden_changed {
@@ -477,9 +477,9 @@ pub fn bless(root: &Path, run: &Run, name: &str, ci: &str) -> Result<PathBuf> {
     }
     let inputs = load_inputs(&run.dir)?;
     let steps_n = inputs.steps.len();
-    if ci == "pr" && steps_n + inputs.prelude.len() > 100 {
+    if replay == "check" && steps_n + inputs.prelude.len() > 100 {
         bail!(
-            "a recording with ci = \"pr\" has at most 100 steps; this one has {}",
+            "a recording with replay = \"check\" has at most 100 steps; this one has {}",
             steps_n + inputs.prelude.len()
         );
     }
@@ -524,7 +524,10 @@ pub fn bless(root: &Path, run: &Run, name: &str, ci: &str) -> Result<PathBuf> {
     }
     files.push((
         "run.json".to_owned(),
-        format!("{}\n", serde_json::to_string_pretty(&recorded_run_json(&rj, ci))?),
+        format!(
+            "{}\n",
+            serde_json::to_string_pretty(&recorded_run_json(&rj, replay))?
+        ),
     ));
     for (rel, text) in &files {
         if let Some(path) = absolute_path_in(text) {
@@ -546,13 +549,13 @@ pub fn bless(root: &Path, run: &Run, name: &str, ci: &str) -> Result<PathBuf> {
     Ok(dest)
 }
 
-/// The `run.json` a recording keeps of the run `rj`, blessed with `ci`: not stale. A self-test recording keeps no
+/// The `run.json` a recording keeps of the run `rj`, blessed with `replay`: not stale. A self-test recording keeps no
 /// digests (no `files`, no `golden`): its replay (R1, R2) is the evidence, and the digests of the
 /// reference and task files, which many changes re-bless, only made merge conflicts. A persona or check recording
 /// keeps both: they mark a recording made under older references.
-fn recorded_run_json(rj: &RunJson, ci: &str) -> RunJson {
+fn recorded_run_json(rj: &RunJson, replay: &str) -> RunJson {
     let mut recorded = rj.clone();
-    recorded.ci = ci.to_owned();
+    recorded.replay = replay.to_owned();
     recorded.stale = None;
     if is_selftest(&rj.task) {
         recorded.files.clear();
@@ -689,7 +692,7 @@ mod tests {
     use super::*;
 
     /// A self-test's recorded `run.json` drops the digests; a persona run's and a check
-    /// run's keep them. Both are blessed with the given `ci` and are not stale.
+    /// run's keep them. Both are blessed with the given `replay` and are not stale.
     #[test]
     fn a_self_test_bless_drops_the_digests_and_a_persona_bless_keeps_them() {
         let mut rj = super::super::testkit::new_run_json("r", super::super::run::Kind::Free);
@@ -701,8 +704,8 @@ mod tests {
         rj.stale = Some("old".to_owned());
         for task in ["selftest", "selftest-visual"] {
             rj.task = task.to_owned();
-            let recorded = recorded_run_json(&rj, "pr");
-            assert_eq!((recorded.ci.as_str(), &recorded.stale), ("pr", &None));
+            let recorded = recorded_run_json(&rj, "check");
+            assert_eq!((recorded.replay.as_str(), &recorded.stale), ("check", &None));
             let json: Value = serde_json::to_value(&recorded).unwrap();
             for key in ["files", "golden"] {
                 assert_eq!(json.get(key), None, "{task}: {key}");

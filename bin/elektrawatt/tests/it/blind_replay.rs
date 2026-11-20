@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The CI replay of the blind drafter's recordings (acceptance check).
+//! The replay of the blind drafter's recordings (acceptance check).
 //!
 //! `tools/blind/recordings/<name>/` holds what a run needs to be replayed: `prelude.uiscript`, `steps.uiscript` (the
 //! agent's steps, the harness's looks and the epilogue), `outcomes.jsonl` (per step its action, outcome and reason) and
 //! `epilogue.txt` (the `page.describe` texts of the epilogue). This test replays every recording whose `run.json` says
-//! `ci = "pr"` and `stale = null` through the built binary, **twice, each time in fresh folders**, with the
+//! `replay = "check"` and `stale = null` through the built binary, **twice, each time in fresh folders**, with the
 //! configuration folder, the sample folder and the guide folder set as the harness's keeper sets them (an empty sample
 //! folder, an empty guide, a fresh config), and checks **R1** (every step's action, outcome and reason equal the
 //! recording's) and **R2** (the epilogue's page texts equal `epilogue.txt` byte for byte). Outcomes and page texts carry
@@ -17,7 +17,7 @@
 //! scale its `run.json` records (`--window`, `--ppp`): its input and frame lines are settled as in the run and no
 //! frame is painted, so it runs on every OS. R1 then compares
 //! each input's and each frame line's `dispatched` (and `closed`) too; the frames themselves are a report (§5.4).
-//! `blind_replay_long` (ignored) does the same for `ci = "nightly"`.
+//! `blind_replay_long` (ignored) does the same for `replay = "deep"`.
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -31,7 +31,7 @@ const RECORDINGS: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../tools/blind
 /// A recording read from its folder; `outcomes` may be replaced by a test.
 struct Recording {
     dir: PathBuf,
-    ci: String,
+    replay: String,
     stale: Option<String>,
     /// A visual run's recording.
     visual: bool,
@@ -82,7 +82,7 @@ fn load(dir: &Path) -> Recording {
         });
     Recording {
         dir: dir.to_path_buf(),
-        ci: run["ci"].as_str().unwrap_or("none").to_owned(),
+        replay: run["replay"].as_str().unwrap_or("none").to_owned(),
         stale: run["stale"].as_str().map(str::to_owned),
         visual: run["senses"] == "visual",
         geometry: match (run["window"].as_array(), run["ppp"].as_f64()) {
@@ -273,14 +273,14 @@ struct Outcome {
     skipped: Vec<String>,
 }
 
-/// Replays the recordings of `dir` whose `ci` is `which` twice and reports every failure at once; a recording with
+/// Replays the recordings of `dir` whose `replay` is `which` twice and reports every failure at once; a recording with
 /// `stale` set is skipped with its reason (D15).
 fn run_recordings(dir: &Path, which: &str) -> Outcome {
     let mut out = Outcome {
         failures: Vec::new(),
         skipped: Vec::new(),
     };
-    for (name, rec) in recordings_in(dir).iter().filter(|(_, r)| r.ci == which) {
+    for (name, rec) in recordings_in(dir).iter().filter(|(_, r)| r.replay == which) {
         if let Some(reason) = &rec.stale {
             eprintln!("recording {name} is stale and skipped: {reason}");
             out.skipped.push(format!("{name}: {reason}"));
@@ -307,19 +307,19 @@ fn run_recordings(dir: &Path, which: &str) -> Outcome {
 
 #[test]
 fn blind_replay() {
-    let out = run_recordings(Path::new(RECORDINGS), "pr");
+    let out = run_recordings(Path::new(RECORDINGS), "check");
     assert!(out.failures.is_empty(), "{}", out.failures.join("\n"));
 }
 
-/// The long recordings (`ci = "nightly"`), replayed by the deep run.
+/// The long recordings (`replay = "deep"`), replayed by the deep run.
 #[test]
 #[ignore = "deep run: the long recordings"]
 fn blind_replay_long() {
-    let out = run_recordings(Path::new(RECORDINGS), "nightly");
+    let out = run_recordings(Path::new(RECORDINGS), "deep");
     assert!(out.failures.is_empty(), "{}", out.failures.join("\n"));
 }
 
-/// BV10: the visual self-test recording runs in the PR jobs on every OS (replayed without painting), and a changed
+/// BV10: the visual self-test recording runs in every test run on every OS (replayed without painting), and a changed
 /// dispatch of one of its inputs fails R1 naming the input.
 #[test]
 fn the_visual_self_test_recording_replays_and_compares_the_dispatches() {
@@ -329,7 +329,7 @@ fn the_visual_self_test_recording_replays_and_compares_the_dispatches() {
         .find(|(n, _)| n == "selftest-visual")
         .expect("tools/blind/recordings/selftest-visual is committed (`cargo xtask blind selftest-visual` writes it)")
         .1;
-    assert!(visual.visual && visual.ci == "pr" && visual.stale.is_none());
+    assert!(visual.visual && visual.replay == "check" && visual.stale.is_none());
     let lines = replay(visual);
     assert!(check(visual, &lines).is_empty(), "{:?}", check(visual, &lines));
     let mut bad = load(&visual.dir);
@@ -404,7 +404,7 @@ fn a_stale_recording_is_skipped_with_its_reason() {
     std::fs::write(copy.join("run.json"), run.to_string()).unwrap();
 
     // Not stale: the corrupted outcome fails the replay.
-    let live = run_recordings(&tmp.0, "pr");
+    let live = run_recordings(&tmp.0, "check");
     assert!(live.skipped.is_empty(), "{:?}", live.skipped);
     assert!(
         live.failures.iter().any(|f| f.starts_with("copy: R1 step 1")),
@@ -415,7 +415,7 @@ fn a_stale_recording_is_skipped_with_its_reason() {
     // Stale: skipped, with its reason, and nothing fails.
     run["stale"] = Value::from("the wizard's step order changed (WP-X)");
     std::fs::write(copy.join("run.json"), run.to_string()).unwrap();
-    let skipped = run_recordings(&tmp.0, "pr");
+    let skipped = run_recordings(&tmp.0, "check");
     assert!(skipped.failures.is_empty(), "{:?}", skipped.failures);
     assert_eq!(skipped.skipped, ["copy: the wizard's step order changed (WP-X)"]);
 }

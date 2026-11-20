@@ -35,7 +35,7 @@
   "end": "handback",
   "handed_back": true,
   "diverged_at": null,
-  "ci": "pr",
+  "replay": "check",
   "stale": null,
   "clean_before_epilogue": true,
   "child_exit": 0,

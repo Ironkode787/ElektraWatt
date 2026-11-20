@@ -55,7 +55,7 @@ navigator, pointing (`canvas.pointer`, `canvas.dwell`), the grid cursor, `tool.s
    actions only, on a copy of the project; the drafter's check report, parts list and score are copied into its
    `reports/` for `report <run> check|bom|score`, and its folios are the drafter's), then `stop` it.
 6. `cargo xtask blind replay gpp-r1 --twice` (R1 and R2 must hold), then `cargo xtask blind bless gpp-r1 --as gpp-1
-   --ci nightly`.
+   --replay deep`.
 7. An Opus lead reads `drafter.md`, `handback.md`, `checker.md`, `out/report.md` and the PDF, checks the agents' tool
    logs for any call outside the allowed commands (a violation voids the run, which is not blessed), and writes the
    findings as follow-up tasks.
@@ -66,7 +66,7 @@ and every accepted step and goes on when the outcomes repeat; otherwise the run 
 ## The self-test
 
 `cargo xtask blind selftest` builds `elektrawatt` and `ew`, plays the scripted agent of `tasks/selftest/agent.jsonl`
-through the real keeper and the copied binaries, stops the run, blesses it as `recordings/selftest/` (`ci = "pr"`) and
+through the real keeper and the copied binaries, stops the run, blesses it as `recordings/selftest/` (`replay = "check"`) and
 replays it twice in fresh folders; it then plays the same agent with `--stateless` and compares the files, the transcript
 and the outcomes. `bin/elektrawatt/tests/it/blind_replay.rs` replays the committed recording in CI. **A change of the
 product that breaks the recording is repaired in the same change by running the self-test again; the self-test recording

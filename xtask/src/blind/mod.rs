@@ -77,7 +77,7 @@ For the orchestrator:
   check-brief <task> [--bin <dir>]            a brief's files, and its reference solution replayed and scored
   resume <run>                                a lost session: replay and go on
   compose --kind <k> --task <t> [--senses text|visual] [--persona <p>] [--folios <a,b>] --run <id>
-  bless <run> --as <name> [--ci pr|nightly|none]
+  bless <run> --as <name> [--replay check|deep|none]
   replay <recording|run> [--bin <dir>] [--twice] [--frames <dir>]
   rescore <recording> [--bin <dir>] [--write] a recording scored again against its task's current oracle
   selftest [--no-build] [--bin <dir>] [--out <dir>] [--keep]
@@ -592,13 +592,13 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
             let mut f = Flags(rest);
             let out = f.take_value("--out")?;
             let name = f.take_value("--as")?.context("--as <name> is needed")?;
-            let ci = f.take_value("--ci")?.unwrap_or_else(|| "none".to_owned());
+            let replay = f.take_value("--replay")?.unwrap_or_else(|| "none".to_owned());
             let args = f.rest();
             let [run_arg] = args.as_slice() else {
-                bail!("bless <run> --as <name> [--ci pr|nightly|none]");
+                bail!("bless <run> --as <name> [--replay check|deep|none]");
             };
             let run = locate(run_arg, out.as_deref())?;
-            let dest = replay::bless(root, &run, &name, &ci)?;
+            let dest = replay::bless(root, &run, &name, &replay)?;
             println!(
                 "blessed into {}",
                 dest.strip_prefix(root).unwrap_or(&dest).display()

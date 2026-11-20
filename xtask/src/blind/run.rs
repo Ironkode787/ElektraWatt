@@ -365,8 +365,9 @@ pub struct RunJson {
     /// The first step (1-based, over the prelude and the steps) where a replay differed, for `end: diverged`.
     #[serde(default)]
     pub diverged_at: Option<usize>,
-    /// `ci`: `none`, `pr` or `nightly`; set by `bless`.
-    pub ci: String,
+    /// Which test run replays the recording: `check` (every test run of `elektrawatt`), `deep` (the deep run) or
+    /// `none`; set by `bless`.
+    pub replay: String,
     /// `null`, or why the recording no longer replays; never set on the self-test recording.
     #[serde(default)]
     pub stale: Option<String>,
@@ -771,7 +772,7 @@ mod tests {
             end: None,
             handed_back: false,
             diverged_at: None,
-            ci: "none".to_owned(),
+            replay: "none".to_owned(),
             stale: None,
             clean_before_epilogue: None,
             child_exit: None,

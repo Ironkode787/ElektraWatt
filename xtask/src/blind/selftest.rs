@@ -6,7 +6,7 @@
 //! The agent is data, `tools/blind/tasks/selftest/agent.jsonl`: one line per call of the harness (`do`, `kv`, `look`,
 //! `note`, `handback`), each with the substrings its output must hold. The self-test starts the run, plays the agent by
 //! running `<run>/bin/xtask blind …` as a child process exactly as a real agent's shell would, stops the run, blesses it as
-//! the recording `tools/blind/recordings/selftest/` (`ci = "pr"`, never stale) and replays that recording twice in
+//! the recording `tools/blind/recordings/selftest/` (`replay = "check"`, never stale) and replays that recording twice in
 //! fresh folders (R1 and R2). A second run with `--stateless` must leave the same files, the same transcript and the same
 //! outcomes as the keeper's.
 //!
@@ -363,7 +363,7 @@ pub fn run(root: &Path, a: &Args) -> Result<bool> {
 
     // With the keeper: the run that is blessed.
     let keeper = one_run(root, &out, &bin, task, false, a.visual, &agent)?;
-    let dest = replay::bless(root, &keeper, task, "pr")?;
+    let dest = replay::bless(root, &keeper, task, "check")?;
     println!("blessed {}", dest.strip_prefix(root).unwrap_or(&dest).display());
     let inputs = load_inputs(&dest)?;
     let exe = bin.join(format!("elektrawatt{}", std::env::consts::EXE_SUFFIX));
