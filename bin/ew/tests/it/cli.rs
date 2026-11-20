@@ -1218,15 +1218,14 @@ fn export_pdf_of_golden_a_is_the_committed_pdf() {
     for threads in ["1", "4"] {
         let out = t.0.join(format!("J-E-2416-{threads}.pdf"));
         let o = t.ew(&[
-                "export".as_ref(),
-                "pdf".as_ref(),
-                project.as_os_str(),
-                "--out".as_ref(),
-                out.as_os_str(),
-                "--threads".as_ref(),
-                threads.as_ref(),
-            ],
-        );
+            "export".as_ref(),
+            "pdf".as_ref(),
+            project.as_os_str(),
+            "--out".as_ref(),
+            out.as_os_str(),
+            "--threads".as_ref(),
+            threads.as_ref(),
+        ]);
         assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
         assert!(
             stdout(&o).contains(&format!(": 36 pages, {links} links")),
@@ -1251,15 +1250,14 @@ fn export_svg_writes_the_selected_pages() {
     let t = Tmp::new("ew-cli-test");
     let dir = t.0.join("svg");
     let o = t.ew(&[
-            "export".as_ref(),
-            "svg".as_ref(),
-            GOLDEN_A.as_ref(),
-            "--out".as_ref(),
-            dir.as_os_str(),
-            "--pages".as_ref(),
-            "101-106".as_ref(),
-        ],
-    );
+        "export".as_ref(),
+        "svg".as_ref(),
+        GOLDEN_A.as_ref(),
+        "--out".as_ref(),
+        dir.as_os_str(),
+        "--pages".as_ref(),
+        "101-106".as_ref(),
+    ]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let files: Vec<String> = tree(&dir).into_keys().collect();
     assert_eq!(files, ["101.svg", "102.svg", "103.svg", "106.svg"]);
@@ -1298,12 +1296,11 @@ fn apply_golden_b2_previews_then_saves() {
     let log = std::path::Path::new(VARIANTS).join("b2-renumber-pages.ewcmd");
     let before = tree(&project);
     let preview = t.ew(&[
-            "apply".as_ref(),
-            project.as_os_str(),
-            log.as_os_str(),
-            "--preview".as_ref(),
-        ],
-    );
+        "apply".as_ref(),
+        project.as_os_str(),
+        log.as_os_str(),
+        "--preview".as_ref(),
+    ]);
     assert_eq!(preview.status.code(), Some(0), "{}", stderr(&preview));
     let out = stdout(&preview);
     assert!(out.starts_with("preview: 1 of 1 lines commit;"), "{out}");
@@ -1313,15 +1310,14 @@ fn apply_golden_b2_previews_then_saves() {
     assert!(tree(&project) == before, "a preview wrote into the project");
     let svg = |pages: &str| {
         t.ew(&[
-                "export".as_ref(),
-                "svg".as_ref(),
-                project.as_os_str(),
-                "--out".as_ref(),
-                t.0.join("svg").as_os_str(),
-                "--pages".as_ref(),
-                pages.as_ref(),
-            ],
-        )
+            "export".as_ref(),
+            "svg".as_ref(),
+            project.as_os_str(),
+            "--out".as_ref(),
+            t.0.join("svg").as_os_str(),
+            "--pages".as_ref(),
+            pages.as_ref(),
+        ])
     };
     assert_eq!(
         svg("104").status.code(),
@@ -1361,12 +1357,11 @@ fn apply_exit_codes_and_one_step() {
     let dup = write("dup.ewcmd", &[page, page]);
     let before = tree(&project);
     let one_step = t.ew(&[
-            "apply".as_ref(),
-            project.as_os_str(),
-            dup.as_os_str(),
-            "--one-step".as_ref(),
-        ],
-    );
+        "apply".as_ref(),
+        project.as_os_str(),
+        dup.as_os_str(),
+        "--one-step".as_ref(),
+    ]);
     assert_eq!(one_step.status.code(), Some(1), "{}", stderr(&one_step));
     assert!(
         stderr(&one_step).contains("nothing saved"),
@@ -1380,12 +1375,10 @@ fn apply_exit_codes_and_one_step() {
             r#"{"cmd":"fields.set","params":{"kind":"device","targets":[{"ref":"tag:-NOPE"}],"path":"tag.counter","value":1}}"#,
         ],
     );
-    let o = t.ew(&["apply".as_ref(), project.as_os_str(), bad_ref.as_os_str()],
-    );
+    let o = t.ew(&["apply".as_ref(), project.as_os_str(), bad_ref.as_os_str()]);
     assert_eq!(o.status.code(), Some(2), "{}", stderr(&o));
     let malformed = write("bad.ewcmd", &["{\"cmd\":1}"]);
-    let o = t.ew(&["apply".as_ref(), project.as_os_str(), malformed.as_os_str()],
-    );
+    let o = t.ew(&["apply".as_ref(), project.as_os_str(), malformed.as_os_str()]);
     assert_eq!(o.status.code(), Some(2), "{}", stderr(&o));
     assert!(tree(&project) == before, "a refused log saved something");
     let partial = t.ew(&["apply".as_ref(), project.as_os_str(), dup.as_os_str()]);
@@ -1408,12 +1401,11 @@ fn apply_preview_of_golden_b1_prints_the_10_tag_changes() {
     let before = tree(&project);
     let log = std::path::Path::new(VARIANTS).join("b1-page-based-tags.ewcmd");
     let o = t.ew(&[
-            "apply".as_ref(),
-            project.as_os_str(),
-            log.as_os_str(),
-            "--preview".as_ref(),
-        ],
-    );
+        "apply".as_ref(),
+        project.as_os_str(),
+        log.as_os_str(),
+        "--preview".as_ref(),
+    ]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let out = stdout(&o);
     assert!(out.starts_with("preview: 2 of 2 lines commit;"), "{out}");
@@ -1465,8 +1457,7 @@ fn apply_of_gp_ut_removes_102f1_and_its_four_wires_only() {
     };
     let before = records(&project);
     let log = std::path::Path::new(VARIANTS).join("gp-ut.ewcmd");
-    let o = t.ew(&["apply".as_ref(), project.as_os_str(), log.as_os_str()],
-    );
+    let o = t.ew(&["apply".as_ref(), project.as_os_str(), log.as_os_str()]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     assert_eq!(stdout(&o), "applied 1 of 1 lines; saved\n");
     let after = records(&project);
@@ -1518,7 +1509,8 @@ fn source_date_epoch_dates_the_pdf() {
     let t = Tmp::new("ew-cli-test");
     let export = |name: &str, threads: &str, epoch: &str| {
         let out = t.0.join(name);
-        let o = t.ew_at(&[
+        let o = t.ew_at(
+            &[
                 "export".as_ref(),
                 "pdf".as_ref(),
                 GOLDEN_A.as_ref(),
@@ -1559,15 +1551,14 @@ fn export_svg_replaces_the_set_and_keeps_other_files() {
     let dir = t.0.join("svg");
     let svg = |pages: &str, dir: &std::path::Path| {
         t.ew(&[
-                "export".as_ref(),
-                "svg".as_ref(),
-                GOLDEN_A.as_ref(),
-                "--out".as_ref(),
-                dir.as_os_str(),
-                "--pages".as_ref(),
-                pages.as_ref(),
-            ],
-        )
+            "export".as_ref(),
+            "svg".as_ref(),
+            GOLDEN_A.as_ref(),
+            "--out".as_ref(),
+            dir.as_os_str(),
+            "--pages".as_ref(),
+            pages.as_ref(),
+        ])
     };
     assert_eq!(svg("1,2,101", &dir).status.code(), Some(0));
     assert_eq!(svg("101-106", &dir).status.code(), Some(0));
@@ -1642,13 +1633,12 @@ fn import_parts_refuses_a_project_with_a_crashed_session_journal() {
     let journals = journal_files(&t);
     assert_eq!(journals.len(), 1);
     let o = t.ew(&[
-            "import".as_ref(),
-            "parts".as_ref(),
-            GOLDEN_PARTS.as_ref(),
-            "--project".as_ref(),
-            project.as_os_str(),
-        ],
-    );
+        "import".as_ref(),
+        "parts".as_ref(),
+        GOLDEN_PARTS.as_ref(),
+        "--project".as_ref(),
+        project.as_os_str(),
+    ]);
     assert_eq!(
         (o.status.code(), stdout(&o), stderr(&o)),
         (
@@ -2016,13 +2006,12 @@ fn import_parts_creates_the_golden_part_copies_and_replays_through_apply() {
     let b = t.0.join("parts-b.ew");
     copy_dir(&a, &b);
     let o = t.ew(&[
-            "import".as_ref(),
-            "parts".as_ref(),
-            GOLDEN_PARTS.as_ref(),
-            "--project".as_ref(),
-            a.as_os_str(),
-        ],
-    );
+        "import".as_ref(),
+        "parts".as_ref(),
+        GOLDEN_PARTS.as_ref(),
+        "--project".as_ref(),
+        a.as_os_str(),
+    ]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     assert_eq!(
         stdout(&o),
@@ -2063,13 +2052,12 @@ fn a_second_import_parts_skips_every_key() {
     let a = parts_target(&t, "parts-a.ew");
     let run = || {
         t.ew(&[
-                "import".as_ref(),
-                "parts".as_ref(),
-                GOLDEN_PARTS.as_ref(),
-                "--project".as_ref(),
-                a.as_os_str(),
-            ],
-        )
+            "import".as_ref(),
+            "parts".as_ref(),
+            GOLDEN_PARTS.as_ref(),
+            "--project".as_ref(),
+            a.as_os_str(),
+        ])
     };
     assert_eq!(run().status.code(), Some(0));
     let before = tree(&a.join("lib"));
@@ -2093,13 +2081,12 @@ fn import_parts_refusals_name_line_and_column() {
     let before = tree(&a);
     let run = |file: &std::path::Path| {
         t.ew(&[
-                "import".as_ref(),
-                "parts".as_ref(),
-                file.as_os_str(),
-                "--project".as_ref(),
-                a.as_os_str(),
-            ],
-        )
+            "import".as_ref(),
+            "parts".as_ref(),
+            file.as_os_str(),
+            "--project".as_ref(),
+            a.as_os_str(),
+        ])
     };
     let d1 = t.0.join("t1");
     std::fs::create_dir_all(&d1).unwrap();
@@ -2151,13 +2138,12 @@ fn import_parts_with_a_bom_prefixed_table_creates_the_same_copies() {
     }
     let import = |table: &std::path::Path, project: &std::path::Path| {
         t.ew(&[
-                "import".as_ref(),
-                "parts".as_ref(),
-                table.as_os_str(),
-                "--project".as_ref(),
-                project.as_os_str(),
-            ],
-        )
+            "import".as_ref(),
+            "parts".as_ref(),
+            table.as_os_str(),
+            "--project".as_ref(),
+            project.as_os_str(),
+        ])
     };
     let plain = parts_target(&t, "parts-plain.ew");
     let o = import(std::path::Path::new(GOLDEN_PARTS), &plain);
@@ -2481,14 +2467,13 @@ fn ac21_through_the_cli_equals_findings_mvp_csv_for_the_built_packs() {
     let t = Tmp::new("ew-cli-test");
     let copy = golden_copy(&t);
     let o = t.ew(&[
-            "check".as_ref(),
-            "--scheme".as_ref(),
-            "pre-delivery".as_ref(),
-            "--json".as_ref(),
-            "--project".as_ref(),
-            copy.as_os_str(),
-        ],
-    );
+        "check".as_ref(),
+        "--scheme".as_ref(),
+        "pre-delivery".as_ref(),
+        "--json".as_ref(),
+        "--project".as_ref(),
+        copy.as_os_str(),
+    ]);
     assert_eq!(
         o.status.code(),
         Some(1),
@@ -3703,8 +3688,7 @@ fn recover_refuses_a_replay_that_collides_with_a_later_save() {
     let before = tree(&project);
     let journals = journal_files(&t);
 
-    let o = t.ew(&["recover".as_ref(), project.as_os_str(), "--replay".as_ref()],
-    );
+    let o = t.ew(&["recover".as_ref(), project.as_os_str(), "--replay".as_ref()]);
     assert_eq!(
         (o.status.code(), stdout(&o), stderr(&o)),
         (
@@ -3837,12 +3821,7 @@ fn import_lines(tables: &std::path::Path, mode: ew_api::import::ImportMode, last
 }
 
 /// `ew import csv` with the starter content.
-fn import_csv(
-    t: &Tmp,
-    tables: &std::path::Path,
-    out: &std::path::Path,
-    extra: &[&str],
-) -> Output {
+fn import_csv(t: &Tmp, tables: &std::path::Path, out: &std::path::Path, extra: &[&str]) -> Output {
     let content = std::path::Path::new(CONTENT);
     ew_in(
         t,
@@ -3927,13 +3906,12 @@ fn import_csv_writes_the_golden_tables_as_a_new_project() {
     // Without the starter content.
     let other = t.0.join("other.ew");
     let o = t.ew(&[
-            "import".as_ref(),
-            "csv".as_ref(),
-            tables.as_os_str(),
-            "--out".as_ref(),
-            other.as_os_str(),
-        ],
-    );
+        "import".as_ref(),
+        "csv".as_ref(),
+        tables.as_os_str(),
+        "--out".as_ref(),
+        other.as_os_str(),
+    ]);
     assert_eq!(
         (o.status.code(), stdout(&o), stderr(&o)),
         (

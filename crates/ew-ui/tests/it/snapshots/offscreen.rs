@@ -15,8 +15,8 @@ use egui::TexturesDelta;
 use egui_kittest::TestRenderer;
 use ew_render_cpu::RgbaImage;
 use ew_render2d::gpu::HeadlessDevice;
-pub use ew_ui::offscreen::{TextureOp, device};
 use ew_ui::offscreen::{Offscreen, size_in_pixels};
+pub use ew_ui::offscreen::{TextureOp, device};
 
 /// Collects the texture changes the harness reports, in order, and holds the renderer of the test's images with the
 /// number of changes it has applied. On the software adapter a renderer's first image took about 0.4 s more than
@@ -46,7 +46,13 @@ pub fn render(
     let ops = recorder.ops.borrow();
     renderer.apply(dev, &ops[*applied..]);
     *applied = ops.len();
-    renderer.paint(dev, ctx, output.shapes.clone(), size_in_pixels(ctx), ctx.pixels_per_point())
+    renderer.paint(
+        dev,
+        ctx,
+        output.shapes.clone(),
+        size_in_pixels(ctx),
+        ctx.pixels_per_point(),
+    )
 }
 
 /// Writes `image` as a PNG to `path` (directories created).
