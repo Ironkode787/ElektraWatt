@@ -3,7 +3,7 @@
 
 //! The built-in address profiles as data (SC-6): `content/plc-profiles/*.json` are library documents of
 //! kind `plc_profile` in the starter library, canonical (pretty JSON, the schema's member order, their copy IDs and
-//! hash), compiled in and parsed once; both render and parse every address Golden A's 56 channels print, and a
+//! hash), compiled in and parsed once; both render and parse every address of seven 8-channel output bytes, and a
 //! profile file that does not render is refused with T2's text. That the files are canonical is `ew-commands`'
 //! `tests/it/plc_profile_files.rs` (the hash is the command layer's).
 
@@ -17,10 +17,10 @@ fn dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../content/plc-profiles")
 }
 
-/// SC-6: the two built-ins in shipping order, their pins as before (Golden A's configuration project names
-/// `siemens-tia-intl@2027.1`), and every address Golden A's channels print (Q0.0 … Q6.7) round-trips in both.
+/// SC-6: the two built-ins in shipping order, their pins as before (a configuration project names
+/// `siemens-tia-intl@2027.1`), and every address of seven output bytes (Q0.0 … Q6.7) round-trips in both.
 #[test]
-fn both_builtins_parse_and_round_trip_golden_as_addresses() {
+fn both_builtins_parse_and_round_trip_seven_output_bytes() {
     let refs: Vec<String> = builtin_profiles().iter().map(|p| p.reference()).collect();
     assert_eq!(
         refs,

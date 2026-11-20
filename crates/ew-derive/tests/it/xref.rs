@@ -1217,8 +1217,8 @@ fn star_formats_only_the_shown_items() {
 fn page_index_counts_dividers_but_not_continuations() {
     // FR-XRF-003: `%f` is the position in `page_order` counting every page record, as in QET: the divider
     // page of a section counts, so "L-1" on folio 102 of a section with a divider prints 4 (front page,
-    // divider, 101, 102). Report base pages count and continuation pages do not: the golden project's
-    // "6-A1" is asserted in `ew-api` (`golden_xref`), which has the report engine.
+    // divider, 101, 102). Report base pages count and continuation pages do not; that needs the report engine
+    // of `ew-api`.
     let mut fx = lib();
     fx.section(0x5001, 1, (100, 199), "Section", true);
     fx.page(pg(1), 1, None, "multi_line", &[], "front");

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The PLC queries (doc 10 §3.1–§3.4) on a small valve terminal shaped like Golden A's -201U1: a
+//! The PLC queries (doc 10 §3.1–§3.4) on a small valve terminal of the -201U1 kind: a
 //! station with three output modules in manifold slots, one bound used valve that drives a field device and
 //! one bound spare valve.
 

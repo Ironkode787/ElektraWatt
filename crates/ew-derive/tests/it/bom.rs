@@ -222,8 +222,8 @@ fn row<'a>(rows: &'a [BomRow], number: &str) -> &'a BomRow {
         .unwrap_or_else(|| panic!("no row {number}"))
 }
 
-/// A subset of doc 20 §14.1.
-fn golden() -> Fx {
+/// The parts of a small control cabinet with a valve terminal.
+fn fixture() -> Fx {
     let mut fx = base();
     // Page 3: a plug.
     dev(
@@ -285,7 +285,7 @@ fn golden() -> Fx {
 
 #[test]
 fn component_rows_are_ordered_and_numbered() {
-    let out = rows(&golden(), BomMode::Component);
+    let out = rows(&fixture(), BomMode::Component);
     assert_eq!(
         numbers(&out),
         [
@@ -317,7 +317,7 @@ fn component_rows_are_ordered_and_numbered() {
 
 #[test]
 fn terminals_aggregate_with_devices_in_natural_tag_order() {
-    let out = rows(&golden(), BomMode::Component);
+    let out = rows(&fixture(), BomMode::Component);
     let uk = row(&out, "UK 5 N");
     assert_eq!(uk.qty, Dec3(2_000));
     assert_eq!(uk.devices, [id(0x1110), id(0x1120)]);
@@ -338,14 +338,14 @@ fn terminals_aggregate_with_devices_in_natural_tag_order() {
 
 #[test]
 fn strip_accessories_are_rows_of_the_strip() {
-    let m = golden().build();
+    let m = fixture().build();
     let q = Q::new(&m);
     let lines = q.get::<DevicePartLines>(id(0x1200));
     assert_eq!(lines.len(), 2);
     assert!(lines.iter().all(|l| l.source == LineSource::StripAccessory));
     assert!(lines.iter().all(|l| l.qty == Dec3::ONE && !l.configured));
 
-    let out = rows(&golden(), BomMode::Component);
+    let out = rows(&fixture(), BomMode::Component);
     let eb = row(&out, "C-EB");
     assert_eq!(eb.qty, Dec3(2_000));
     assert_eq!(eb.devices, [id(0x1200)]);
@@ -355,7 +355,7 @@ fn strip_accessories_are_rows_of_the_strip() {
 
 #[test]
 fn one_part_on_two_pages_is_one_row() {
-    let out = rows(&golden(), BomMode::Component);
+    let out = rows(&fixture(), BomMode::Component);
     let r = row(&out, "550208");
     assert_eq!(r.qty, Dec3(2_000));
     assert_eq!(r.devices, [id(0x2000), id(0x2100)]);
@@ -367,13 +367,13 @@ fn one_part_on_two_pages_is_one_row() {
 
 #[test]
 fn devices_without_parts_and_not_fitted_devices_have_no_rows() {
-    let out = rows(&golden(), BomMode::Component);
+    let out = rows(&fixture(), BomMode::Component);
     assert!(out.iter().all(|r| r.part_number != "D-SPARE"));
     for r in &out {
         assert!(!r.devices.contains(&id(0x1300)));
         assert!(!r.devices.contains(&id(0x1310)));
     }
-    let m = golden().build();
+    let m = fixture().build();
     let q = Q::new(&m);
     assert!(q.get::<DevicePartLines>(id(0x1300)).is_empty());
     assert!(q.get::<DevicePartLines>(id(0x1310)).is_empty());
@@ -382,7 +382,7 @@ fn devices_without_parts_and_not_fitted_devices_have_no_rows() {
 
 #[test]
 fn metre_quantities_add_up_in_dec3() {
-    let out = rows(&golden(), BomMode::Component);
+    let out = rows(&fixture(), BomMode::Component);
     let rail = row(&out, "A-RAIL");
     assert_eq!(rail.qty, Dec3(3_750));
     assert_eq!(rail.unit, OrderUnit::Metre);

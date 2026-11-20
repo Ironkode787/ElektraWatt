@@ -3,8 +3,7 @@
 
 //! The BOM on a small fixture: the carrier lines of the enclosure device, the folios of the layout objects'
 //! BOM rows, `layout_legend(surface)` with its order and
-//! renumbering, and a free graphic counted nowhere. Golden A's values are `ew-api`'s
-//! `tests/golden_layout.rs`.
+//! renumbering, and a free graphic counted nowhere.
 
 use crate::common;
 

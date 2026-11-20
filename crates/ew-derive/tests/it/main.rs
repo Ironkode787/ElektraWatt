@@ -5,9 +5,9 @@
 
 #[path = "../common/mod.rs"]
 mod common;
-// The golden fixture of `golden` (it imports it as `golden`; the name is taken by the module `golden`).
+// The typed subset fixture (`fixture()`) that `fixture_tables` and other modules build on.
 #[path = "../common/fixture.rs"]
-mod golden_fixture;
+mod fixture;
 
 // Every other file of tests/it is a module (automod 1.0, sorted by name).
 automod::dir!("tests/it");

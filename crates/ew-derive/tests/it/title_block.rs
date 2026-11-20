@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Title-block values (doc 09 §2.6–§2.7, doc 20 §4.1, §4.2, §17.2) over the golden-shaped fixture, with the
-//! anonymised placeholders of doc 20 §1.2 as literal strings. The full value sets of folio 101, folio 201 and
-//! the divider of section 1 are `golden::title_block_value_sets_match_the_specification`.
+//! Title-block values (doc 09 §2.6–§2.7) over a small project's title data, with anonymised placeholders as
+//! literal strings. The full value sets of folio 101, folio 201 and the divider of section 1 are
+//! `fixture_tables::title_block_value_sets_match_the_specification`.
 
 use crate::common;
 
@@ -31,8 +31,8 @@ fn text(s: &str) -> TbValue {
     TbValue::Text(s.to_owned())
 }
 
-/// The golden-shaped fixture: doc 20 §4.1–§4.2 master data and parties, two sections, two revisions.
-fn golden() -> Fx {
+/// The fixture: master data and parties, two sections, two revisions.
+fn fixture() -> Fx {
     let mut fx = Fx::new();
     fx.project_set(
         "master",
@@ -107,7 +107,7 @@ fn block(fx: &Fx, page: PageRef) -> TitleBlock {
 /// Prev and Next at both ends of the page order (FR-PAG-013): (name, page, expected values, `None` = absent).
 #[test]
 fn prev_next_at_ends() {
-    let fx = golden();
+    let fx = fixture();
     let m = fx.build();
     let q = Q::new(&m);
     let last = q.get::<PageOrder>(()).entries.last().expect("pages").page;
@@ -142,7 +142,7 @@ fn prev_next_at_ends() {
 
 #[test]
 fn a_page_outside_the_order_has_no_page_or_doc_values() {
-    let tb = block(&golden(), PageRef::Drawn(id(0xdead)));
+    let tb = block(&fixture(), PageRef::Drawn(id(0xdead)));
     assert!(
         tb.values
             .keys()
@@ -155,7 +155,7 @@ fn a_page_outside_the_order_has_no_page_or_doc_values() {
 
 #[test]
 fn description_override_wins() {
-    let mut fx = golden();
+    let mut fx = fixture();
     fx.record(PAGE102)["description_override"] = json!({"en": "Special Cabinet"});
     let tb = block(&fx, PageRef::Drawn(id(PAGE102)));
     assert_eq!(
@@ -171,7 +171,7 @@ fn description_override_wins() {
 
 #[test]
 fn scale_prints_one_to_n() {
-    let mut fx = golden();
+    let mut fx = fixture();
     fx.record(PAGE103)["scale"] = json!({"one_to": 10});
     let tb = block(&fx, PageRef::Drawn(id(PAGE103)));
     assert_eq!(tb.get("page.scale"), Some(&text("1:10")));
@@ -189,7 +189,7 @@ fn scale_prints_one_to_n() {
 
 #[test]
 fn logo_and_notice_come_from_the_provisional_company_data() {
-    let mut fx = golden();
+    let mut fx = fixture();
     fx.project_set(
         "ew.company",
         json!({"logo": common::sha(7), "notice": {"en": "<notice>"}}),
@@ -228,14 +228,14 @@ fn logo_and_notice_come_from_the_provisional_company_data() {
     assert_eq!(tb.get("project.notice"), Some(&TbValue::Ml(ml("<notice>"))));
 
     // Without company data both are absent.
-    let tb = block(&golden(), PageRef::Drawn(id(PAGE101)));
+    let tb = block(&fixture(), PageRef::Drawn(id(PAGE101)));
     assert_eq!(tb.get("project.logo"), None);
     assert_eq!(tb.get("project.notice"), None);
 }
 
 #[test]
 fn supply_text_follows_the_supply_format() {
-    let mut fx = golden();
+    let mut fx = fixture();
     let supply = |fx: &Fx| {
         block(fx, PageRef::Drawn(id(PAGE101)))
             .get("project.supply")
@@ -258,7 +258,7 @@ fn supply_text_follows_the_supply_format() {
 
 #[test]
 fn quantities_are_not_bound_yet() {
-    let mut fx = golden();
+    let mut fx = fixture();
     fx.project_set("control_voltage", json!({"value": "24", "unit": "V"}))
         .project_set("rated_consumption", json!({"value": "6", "unit": "A"}));
     let tb = block(&fx, PageRef::Drawn(id(PAGE101)));
@@ -268,7 +268,7 @@ fn quantities_are_not_bound_yet() {
 
 #[test]
 fn the_current_revision_is_the_latest_and_a_checker_is_resolved() {
-    let mut fx = golden();
+    let mut fx = fixture();
     fx.record(0x602)["checker"] = json!("checker");
     // The checker party exists: its name is bound; the first party of a role wins.
     fx.project.as_object_mut().expect("object")["parties"]
@@ -305,7 +305,7 @@ fn the_current_revision_is_the_latest_and_a_checker_is_resolved() {
 fn a_revision_edit_re_derives_the_memoised_title_block() {
     use ew_model::{AnyRow, Op};
     use ew_schema::{Kind, Revision};
-    let model = golden().build();
+    let model = fixture().build();
     let store = ew_derive::MemoStore::new(&model);
     let page = PageRef::Drawn(id(PAGE101));
     let label = |store: &ew_derive::MemoStore| {
@@ -332,7 +332,7 @@ fn a_revision_edit_re_derives_the_memoised_title_block() {
 
 #[test]
 fn no_revision_means_no_revision_values() {
-    let mut fx = golden();
+    let mut fx = fixture();
     fx.records.retain(|r| r["$k"] != "revision");
     let tb = block(&fx, PageRef::Drawn(id(PAGE101)));
     assert!(tb.values.keys().all(|k| !k.starts_with("revision.")));
@@ -340,7 +340,7 @@ fn no_revision_means_no_revision_values() {
 
 #[test]
 fn only_profile_paths_appear() {
-    let mut fx = golden();
+    let mut fx = fixture();
     fx.project_set(
         "ew.company",
         json!({"logo": common::sha(7), "notice": {"en": "<notice>"}}),
@@ -470,7 +470,7 @@ fn the_current_revision_follows_the_project_label_order_past_z() {
 
 #[test]
 fn last_changed_in_follows_page_notes() {
-    let mut fx = golden();
+    let mut fx = fixture();
     // A note on a page that does not exist (a page deleted after the note) selects nothing.
     fx.record(0x602)["page_notes"] = json!([
         {"page": uid(PAGE101), "description": "reworked"},
@@ -502,7 +502,7 @@ fn last_changed_in_follows_page_notes() {
 
 #[test]
 fn every_role_binds_its_address() {
-    let mut fx = golden();
+    let mut fx = fixture();
     let parties = fx.project.as_object_mut().expect("object")["parties"]
         .as_array_mut()
         .expect("parties");

@@ -1,19 +1,21 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A subset of the golden project (doc 20, "Golden A") as a fixture: project master data, parties,
-//! company data and revisions, structure, sections, the drawn pages on the QET grid frame, a library with
-//! one FnDef and one symbol per device class and the parts of doc 20 §14.1, and the devices of folios 3,
-//! 101, 102, 103, 106, 201, 202 and 203 with their parts.
+//! The typed subset fixture of the integration tests (`fixture()`): the data of a small control cabinet with a
+//! valve terminal, as JSON records through `crate::common::Fx`. Project master data, parties, company data and
+//! revisions, structure, sections, the drawn pages on the QET grid frame, a library with one FnDef and one
+//! symbol per device class and the parts list, and the devices of folios 3, 101, 102, 103, 106, 201, 202 and
+//! 203 with their parts. The JSON builder itself is `tests/common/mod.rs`; the tests that assert the whole
+//! fixture's derived values are `tests/it/fixture_tables.rs`.
 //!
 //! Every record has a fixed small integer ID, exposed as a named constant or a `const fn`, so that
 //! assertion tables can name pages, devices, representations and parts. Positions are test inputs: every
-//! main representation sits so that its anchor lands in the cell of doc 20 §6.1 "Main rep.".
+//! main representation sits so that its anchor lands in its main cell (`fixture_tables`' anchor table).
 //!
 //! The folios the report engine generates are not part of the fixture.
 //! Section dividers (100, 200, 900) are not records either: the page order derives them from the sections.
-//! The fixture is a subset of Golden A: -X1031 has 5 of its 20 terminals, -X1032 3 of its 5, -202U1 is the
-//! only device of folio 202, -202U2 and -202U3 are missing and only the valves of -201U3 and -201U4 exist.
+//! The cabinet is cut down: -X1031 has 5 terminals, -X1032 3, -202U1 is the only device of folio 202 and only
+//! the valves of -201U3 and -201U4 exist.
 
 #![allow(dead_code)]
 
@@ -591,8 +593,8 @@ fn ml(text: &str) -> Value {
     json!({"en": text})
 }
 
-/// The golden-project subset (doc 20 §4 to §6, §9, §14).
-pub fn golden() -> Fx {
+/// The fixture: every record and library document of this file.
+pub fn fixture() -> Fx {
     let mut fx = Fx::new();
 
     // Library forms: the QET grid frame and its title block.
@@ -880,8 +882,8 @@ pub fn golden() -> Fx {
 }
 
 /// The fixture with the order of its records and of its library documents reversed.
-pub fn golden_reversed() -> Fx {
-    let mut fx = golden();
+pub fn fixture_reversed() -> Fx {
+    let mut fx = fixture();
     fx.records.reverse();
     fx.lib.reverse();
     fx

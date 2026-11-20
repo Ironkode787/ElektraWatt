@@ -22,8 +22,8 @@ const DEVICE: u128 = 0x1000;
 const FUNCTION: u128 = 0x1001;
 const FRAME_COPY: &str = "c80af135-34f8-574c-8f52-756bd24c7bd0";
 
-/// A fixture with the golden grid frame and its title block loaded.
-fn golden() -> Fx {
+/// A fixture with the shipped QET grid frame and its title block loaded.
+fn fixture() -> Fx {
     let mut fx = Fx::new();
     fx.lib(
         serde_json::from_str(include_str!(
@@ -40,7 +40,7 @@ fn golden() -> Fx {
     fx
 }
 
-/// Adds the page with the golden frame on the QET 10 px grid.
+/// Adds the page with the QET grid frame on the QET 10 px grid.
 fn qet_page(fx: &mut Fx) {
     fx.page(PAGE, 101, None, "multi_line", &[], "Power");
     fx.record(PAGE)["form"] = json!(FRAME_COPY);
@@ -73,7 +73,7 @@ fn cell_str(m: &Model, page: u128, p: Pt2) -> Option<String> {
 
 #[test]
 fn doc06_5_1_l1_anchor_is_h16() {
-    let mut fx = golden();
+    let mut fx = fixture();
     qet_page(&mut fx);
     let m = fx.build();
     // The L-1 anchor at (1010 px, 620 px): grid index (101, 62), stored as Grid::at(101) / Grid::at(62) nm.
@@ -100,7 +100,7 @@ fn doc06_5_1_l1_anchor_is_h16() {
 
 #[test]
 fn boundary_belongs_to_the_right_or_lower_cell() {
-    let mut fx = golden();
+    let mut fx = fixture();
     qet_page(&mut fx);
     let m = fx.build();
     // Column 1 starts at k = 8 (60 px), row B at k_y = 10 (80 px below the 20 px band).
@@ -127,7 +127,7 @@ fn qet_px(px: i64) -> i64 {
 fn off_grid_points_near_a_boundary_stay_in_their_cell() {
     // Folio 101 on the QET frame: column 1 starts at 80 px (20 px band + 60 px). The points at 76 to
     // 79 px are off the 10 px grid; snapping them to 80 px would answer A1, the true cell is A0.
-    let mut fx = golden();
+    let mut fx = fixture();
     qet_page(&mut fx);
     let m = fx.build();
     let y = qet_at(0, 5).y.0;
@@ -195,7 +195,7 @@ fn rounding_left_of_the_boundary_stays_in_the_right_cell() {
 
 #[test]
 fn outside_the_drawing_area_and_without_a_frame() {
-    let mut fx = golden();
+    let mut fx = fixture();
     qet_page(&mut fx);
     grid_page(&mut fx, 0x102, 102);
     let m = fx.build();
@@ -228,7 +228,7 @@ fn outside_the_drawing_area_and_without_a_frame() {
 
 #[test]
 fn frame_defaults_from_the_project_settings() {
-    let mut fx = golden();
+    let mut fx = fixture();
     // A frame form without a `grid` member (a cover, say): its pages have no cells.
     fx.lib_item(
         "form",
@@ -294,7 +294,7 @@ fn malformed_frame_settings_fall_back_to_the_default() {
         json!({"per_page_type": [{"page_type": "multi_line"}], "default": FRAME_COPY}),
         json!({"per_page_type": [{"form": FRAME_COPY}], "default": FRAME_COPY}),
     ] {
-        let mut fx = golden();
+        let mut fx = fixture();
         fx.project_set("settings", json!({"frames": frames}));
         grid_page(&mut fx, PAGE, 101);
         let m = fx.build();
@@ -303,7 +303,7 @@ fn malformed_frame_settings_fall_back_to_the_default() {
         assert_eq!(shim_notes(&notes).len(), 1, "{frames}: {notes:?}");
     }
     // An entry of another page type that is malformed does not hide the default, but is noted.
-    let mut fx = golden();
+    let mut fx = fixture();
     fx.project_set(
         "settings",
         json!({"frames": {"default": FRAME_COPY, "per_page_type": [7, {"page_type": "fluid", "form": 1}]}}),
@@ -316,7 +316,7 @@ fn malformed_frame_settings_fall_back_to_the_default() {
     assert!(!notes.contains(&DeriveNote::DefaultFrame));
     // A malformed matching entry falls through to the `default`, not to the built-in frame: here a default
     // form with a different grid (3 columns by 2 rows of 10 mm, no bands) decides.
-    let mut fx = golden();
+    let mut fx = fixture();
     fx.lib_item(
         "form",
         0x600,
@@ -336,7 +336,7 @@ fn malformed_frame_settings_fall_back_to_the_default() {
     assert!(!notes.contains(&DeriveNote::DefaultFrame));
 }
 
-/// The grid of the golden QET frame file.
+/// The grid of the shipped QET frame file.
 fn shipped_qet_grid() -> FrameGrid {
     let doc: Value = serde_json::from_str(include_str!(
         "../../../../content/forms/ew.frame.qet-a4-landscape-grid.json"
@@ -392,7 +392,7 @@ fn default_frame_matches_the_shipped_qet_frame() {
 
 #[test]
 fn form_without_grid_has_no_cells_and_no_default() {
-    let mut fx = golden();
+    let mut fx = fixture();
     fx.lib_item(
         "form",
         0x600,
@@ -410,7 +410,7 @@ fn form_without_grid_has_no_cells_and_no_default() {
     );
     // A `frames` shim that names a form whose copy is missing from the project (Page.form cannot: EW-INV-001): the
     // rule falls through to the next, here the built-in frame (as in the page output).
-    let mut fx = golden();
+    let mut fx = fixture();
     fx.project_set(
         "settings",
         json!({"frames": {"default": uid(0x777), "per_page_type": [{"page_type": "multi_line", "form": uid(0x778)}]}}),
@@ -421,7 +421,7 @@ fn form_without_grid_has_no_cells_and_no_default() {
     assert_eq!(cell.as_deref(), Some("H16"));
     assert_eq!(notes, vec![DeriveNote::DefaultFrame]);
     // The same through the `frames` shim with a form without a grid.
-    let mut fx = golden();
+    let mut fx = fixture();
     fx.lib_item(
         "form",
         0x600,
@@ -437,7 +437,7 @@ fn form_without_grid_has_no_cells_and_no_default() {
 
 #[test]
 fn frame_grid_is_evaluated_once_per_page() {
-    let mut fx = golden();
+    let mut fx = fixture();
     qet_page(&mut fx);
     grid_page(&mut fx, 0x102, 102);
     let m = fx.build();
@@ -667,7 +667,7 @@ fn ref_cell(p: &Params, x: i64, y: i64) -> Option<String> {
 }
 
 /// The two page grids of the format at realistic frame sizes: the native 4 mm grid with a 10 mm band and
-/// 20 columns of 14 mm by 8 rows of 24 mm, and the QET 10 px grid with the golden QET frame's constants
+/// 20 columns of 14 mm by 8 rows of 24 mm, and the QET 10 px grid with the shipped QET frame's constants
 /// (band 20 px, 17 columns of 60 px, 8 rows of 80 px).
 fn realistic() -> impl Strategy<Value = Params> {
     prop_oneof![
@@ -782,9 +782,9 @@ const MM: i64 = 1_000_000;
 type AnchorRow = (&'static str, Sym, &'static str, (i64, i64), &'static str);
 
 /// A model with one function drawn by one representation of a symbol with `sym`, rotated or mirrored by
-/// `orient` at grid index `(kx, ky)` of the QET grid on the golden frame page.
+/// `orient` at grid index `(kx, ky)` of the QET grid on the QET grid frame's page.
 fn anchor_model(sym: &Sym, orient: &str, k: (i64, i64), overrides: Value) -> Model {
-    let mut fx = golden();
+    let mut fx = fixture();
     qet_page(&mut fx);
     fx.fndef(FNDEF, ["ProtectionOvercurrent", "MCB", "1P"], &[(0, "1")]);
     fx.symbol(SYM, FNDEF, sym.anchor.clone(), &[(0, 0, 0, 0)]);
@@ -924,7 +924,7 @@ fn missing_rep_or_symbol_copy_has_no_anchor_cell() {
 
     // A representation whose symbol copy is missing cannot be built: the model refuses the dangling
     // `Representation.symbol` reference, so that branch of `anchor_point` is a defensive `None` only.
-    let mut fx = golden();
+    let mut fx = fixture();
     qet_page(&mut fx);
     fx.fndef(FNDEF, ["ProtectionOvercurrent", "MCB", "1P"], &[(0, "1")]);
     fx.device(DEVICE, "F", Some(1))

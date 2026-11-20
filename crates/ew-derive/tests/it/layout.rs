@@ -3,7 +3,7 @@
 
 //! The layout queries on a small fixture: the mountable predicate case by case, `unplaced`,
 //! `placement_geometry` on a horizontal and a vertical rail, flipped, on the surface turned 270°, unknown and on a
-//! duct, `rail_occupancy` and `carrier_geometry`. Golden A's values are `ew-api`'s `tests/golden_layout.rs`.
+//! duct, `rail_occupancy` and `carrier_geometry`.
 
 use crate::common;
 

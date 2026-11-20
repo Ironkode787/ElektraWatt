@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The golden project (doc 20) as an acceptance fixture of `ew-derive`: assertion tables against the
-//! values printed in the specification.
+//! The typed subset fixture (`tests/common/fixture.rs`) as a whole: assertion tables of the values `ew-derive`
+//! derives from it.
 //!
-//! Covered so far (fixture: `tests/common/golden.rs`):
+//! Covered so far:
 //!
 //! - **Device tags** (doc 20 §2.1 rule 1, §6.1, §6.2, §9; FR-NUM-001, FR-NUM-002, FR-DEV-021): full and
 //!   displayed tags of the frozen tags S51, F55, T55, E55, S56, E56 and 1X1 with its terminals, of the
@@ -31,12 +31,12 @@
 //!   page order, TOC, tags, anchor cells, title blocks and BOM rows in both modes, in reversed order and in 16
 //!   seeded shuffles of the records and library documents: `derived_values_do_not_depend_on_record_order`.
 //!
-//! The fixture is a subset of Golden A (see `tests/common/golden.rs`): the quantities of the strips and of
-//! the 533361 and 571334 rows count the fixture's devices, not the 20, 5, 7 and 28 of doc 20.
+//! The quantities of the strips and of the 533361 and 571334 rows count the fixture's devices (see
+//! `tests/common/fixture.rs`).
 //! The generated folios (2, 901, 903 to 911) are not in the fixture.
 
 use crate::common;
-use crate::golden_fixture as golden;
+use crate::fixture;
 
 use std::collections::BTreeMap;
 
@@ -48,7 +48,7 @@ use ew_derive::{
 use ew_mltext::MlText;
 use ew_schema::{Date, OrderUnit};
 use ew_units::{Dec3, Grid};
-use golden::*;
+use fixture::*;
 
 fn ml(text: &str) -> MlText {
     MlText::with_lang("en".parse().expect("language tag"), text)
@@ -93,7 +93,7 @@ fn tag_table() -> Vec<(u128, &'static str, u128, &'static str)> {
 
 #[test]
 fn tags_match_the_specification() {
-    let m = golden().build();
+    let m = fixture().build();
     let q = Q::new(&m);
     let table = tag_table();
     assert!(table.len() >= 20);
@@ -114,7 +114,7 @@ fn tags_match_the_specification() {
 
 #[test]
 fn page_order_matches_the_specification() {
-    let m = golden().build();
+    let m = fixture().build();
     let q = Q::new(&m);
     let order = q.get::<PageOrder>(());
     assert_eq!(
@@ -156,7 +156,7 @@ fn row<'a>(rows: &'a [TocRow], folio: &str) -> &'a TocRow {
 
 #[test]
 fn toc_rows_match_the_specification() {
-    let m = golden().build();
+    let m = fixture().build();
     let q = Q::new(&m);
     let order = q.get::<PageOrder>(());
     let rows = q.get::<TocRows>(());
@@ -246,7 +246,7 @@ fn anchor_table() -> Vec<(u128, u128, &'static str)> {
 
 #[test]
 fn anchor_cells_match_the_main_rep_cells() {
-    let m = golden().build();
+    let m = fixture().build();
     let q = Q::new(&m);
     let table = anchor_table();
     assert!(table.len() >= 10);
@@ -269,7 +269,7 @@ fn anchor_cells_match_the_main_rep_cells() {
 
 #[test]
 fn representations_sit_on_the_qet_grid_and_some_anchors_are_named() {
-    let m = golden().build();
+    let m = fixture().build();
     let q = Q::new(&m);
     let mut named = 0;
     for (rep_id, rep) in q.reps().iter() {
@@ -350,7 +350,7 @@ fn expected(pairs: Vec<(&'static str, TbValue)>) -> BTreeMap<String, TbValue> {
 
 #[test]
 fn title_block_value_sets_match_the_specification() {
-    let m = golden().build();
+    let m = fixture().build();
     let q = Q::new(&m);
     let block = |page: PageRef| (*q.get::<TitleBlockValues>(page)).clone();
     // The fixture has 16 pages: 1, 3, 100, 101, 102, 103, 106, 200, 201 ... 206, 900, 902.
@@ -640,7 +640,7 @@ fn rows_of(q: &Q, mode: BomMode) -> Vec<BomRow> {
 
 #[test]
 fn bom_component_rows_match_the_specification() {
-    let m = golden().build();
+    let m = fixture().build();
     let q = Q::new(&m);
     let rows = rows_of(&q, BomMode::Component);
     let table = component_table();
@@ -683,7 +683,7 @@ fn bom_component_rows_match_the_specification() {
 
 #[test]
 fn bom_assembly_rows_replace_the_covered_rows() {
-    let m = golden().build();
+    let m = fixture().build();
     let q = Q::new(&m);
     let component = rows_of(&q, BomMode::Component);
     let assembly = rows_of(&q, BomMode::Assembly);
@@ -712,9 +712,9 @@ fn bom_assembly_rows_replace_the_covered_rows() {
 }
 
 /// The fixture with the overview representations of -201U1's members (the head, -201U2 … -201U9 on 201,
-/// -202U1 on 202) typed `overview`, as the golden tables draw them.
+/// -202U1 on 202) typed `overview`, as a valve terminal's overview pages draw them.
 fn overview_fixture() -> Fx {
-    let mut fx = golden();
+    let mut fx = fixture();
     let members: Vec<u128> = (1..=9).map(dev_201u).chain([DEV_202U1]).collect();
     for dev in members {
         fx.record(rep_of(dev))["rep_type"] = serde_json::json!("overview");
@@ -755,7 +755,7 @@ fn the_assembly_overview_breaks_where_it_continues_on_another_page() {
 #[test]
 fn an_overview_on_one_page_or_without_an_assembly_has_no_break_marks() {
     // Not drawn as an overview: no segment, no mark.
-    assert!(break_marks(&golden()).is_empty());
+    assert!(break_marks(&fixture()).is_empty());
     // One page: -202U1 moved to 201.
     let mut fx = overview_fixture();
     fx.record(rep_of(DEV_202U1))["page"] = serde_json::json!(common::uid(PAGE_201));
@@ -824,13 +824,13 @@ fn shuffle<T>(items: &mut [T], seed: u64) {
 /// in its own order.
 #[test]
 fn derived_values_do_not_depend_on_record_order() {
-    let forward = derived_text(&golden());
+    let forward = derived_text(&fixture());
     // Page order, TOC, tags, one anchor cell per representation, one title block per page, two BOMs.
     // Every device of the fixture has one representation.
     assert_eq!(forward.len(), 2 + 2 * all_devices().len() + 16 + 2);
-    let mut cases = vec![("reversed".to_owned(), golden_reversed())];
+    let mut cases = vec![("reversed".to_owned(), fixture_reversed())];
     for seed in 0..16u64 {
-        let mut fx = golden();
+        let mut fx = fixture();
         shuffle(&mut fx.records, seed);
         shuffle(&mut fx.lib, seed.wrapping_add(1_000));
         cases.push((format!("seed {seed}"), fx));
