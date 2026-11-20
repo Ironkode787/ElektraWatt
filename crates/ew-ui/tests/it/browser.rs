@@ -5,7 +5,7 @@
 //! button, a category of its tree lists that category alone, a double click on a part places it (FT-1636); the browser
 //! and every other floating overlay close by their close button and by a click beside them (FT-1635).
 
-use crate::persona_round::typed;
+use crate::relays_paste_and_ip_wires::typed;
 use crate::support::Tmp;
 
 use egui::{Modifiers, PointerButton};

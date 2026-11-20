@@ -6,7 +6,7 @@
 //! side of a station (its boxes on an electrical page, its bus ports on a bus page, a valve terminal's valves on a
 //! fluid page) lands on a page of its kind, and no step ends in a refusal.
 
-use crate::persona_round::{click, key, new_project};
+use crate::relays_paste_and_ip_wires::{click, key, new_project};
 use crate::support::Tmp;
 
 use ew_viewmodel::ew_api::output::Uuid;

@@ -8,7 +8,7 @@ use crate::own_parts::{
     cp_labels, cursor_k, edit_part, fill, make_card, make_head_station, make_port_device, new_project,
     page_texts, place_box, press, press_cp, records,
 };
-use crate::persona_round::{key, typed};
+use crate::relays_paste_and_ip_wires::{key, typed};
 use crate::support::Tmp;
 
 use egui::{Modifiers, PointerButton};

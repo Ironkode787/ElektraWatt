@@ -4,7 +4,7 @@
 //! The persona round's pneumatics from nothing (M3, run m3-p2): a QElectroTech user drew a valve terminal, a cylinder,
 //! a supply and three tubes on a new project, by the window's own path (clicks, keys, menus) at 1920 × 1080.
 
-use crate::persona_round::{click, key, new_project, starting_with, typed};
+use crate::relays_paste_and_ip_wires::{click, key, new_project, starting_with, typed};
 use crate::support::Tmp;
 
 use egui::{Modifiers, PointerButton};
@@ -188,7 +188,7 @@ fn sheet_pixel(d: &mut Driver) -> impl Fn((i64, i64)) -> (i64, i64) + use<> {
     let probe = |d: &mut Driver, at: (i64, i64)| {
         d.input(&Input::Hover { at });
         d.settle();
-        let p = crate::persona_round::state(d)["canvas"]["pointer_nm"].clone();
+        let p = crate::relays_paste_and_ip_wires::state(d)["canvas"]["pointer_nm"].clone();
         (p[0].as_i64().unwrap(), p[1].as_i64().unwrap())
     };
     let (f0, f1) = ((700, 400), (1000, 700));
@@ -528,7 +528,7 @@ fn p2f_a_click_on_an_unrouted_tube_selects_it() {
     d.input(&click(at));
     d.settle();
     assert_eq!(
-        crate::persona_round::state(&mut d)["canvas"]["selection"],
+        crate::relays_paste_and_ip_wires::state(&mut d)["canvas"]["selection"],
         json!([line]),
         "the click at {at:?} selects the tube drawn along {polyline:?}"
     );
@@ -629,7 +629,7 @@ fn item8_a_tube_between_ports_already_on_one_line_says_so() {
     click_at(&mut d, b);
     d.input(&Input::Wait { ms: 800 });
     click_at(&mut d, a);
-    let state = crate::persona_round::state(&mut d);
+    let state = crate::relays_paste_and_ip_wires::state(&mut d);
     assert_eq!(tubes(&mut d), 1, "no second tube");
     assert_eq!(
         state["status"][0],
@@ -657,7 +657,7 @@ fn item8_a_tube_between_ports_already_on_one_line_says_so() {
     click_at(&mut d, mid);
     assert_eq!(tubes(&mut d), 1, "no tube to its own line");
     assert_eq!(
-        crate::persona_round::state(&mut d)["status"][0],
+        crate::relays_paste_and_ip_wires::state(&mut d)["status"][0],
         json!("These two points already sit on one line; click a point of another line, or Esc")
     );
     d.shell_mut().shutdown();
@@ -1361,7 +1361,7 @@ fn r2c_a_tube_from_a_port_facing_another_valve_takes_a_route() {
     click_at(&mut d, a);
     d.input(&Input::Hover { at: b });
     d.settle();
-    let hint = crate::persona_round::state(&mut d)["status"][0].clone();
+    let hint = crate::relays_paste_and_ip_wires::state(&mut d)["status"][0].clone();
     click_at(&mut d, b);
     d.input(&key("escape"));
     d.settle();
@@ -1447,7 +1447,7 @@ fn r2c_the_hint_says_what_a_click_will_do_while_a_tube_is_drawn() {
     let hint_at = |d: &mut Driver, at: (i64, i64)| {
         d.input(&Input::Hover { at });
         d.settle();
-        crate::persona_round::state(d)["status"][0].clone()
+        crate::relays_paste_and_ip_wires::state(d)["status"][0].clone()
     };
     assert_eq!(
         hint_at(&mut d, on_line),
@@ -1856,7 +1856,7 @@ fn rc2_one_click_places_one_terminal_and_says_so() {
     d.settle();
     d.input(&Input::Hover { at: (760, 300) });
     d.settle();
-    let hint = crate::persona_round::state(&mut d)["status"][0].clone();
+    let hint = crate::relays_paste_and_ip_wires::state(&mut d)["status"][0].clone();
     assert_eq!(hint, json!("Click to place; Esc ends"));
     click_at(&mut d, (760, 300));
     assert_eq!(d.shell_mut().tool().name(), "select", "one click, one terminal");
@@ -1878,7 +1878,7 @@ fn rc2_one_click_places_one_terminal_and_says_so() {
     });
     d.settle();
     click_at(&mut d, (780, 320));
-    let status = crate::persona_round::state(&mut d)["status"][0].clone();
+    let status = crate::relays_paste_and_ip_wires::state(&mut d)["status"][0].clone();
     assert_eq!(status, json!("Another box stands here: click on a free place"));
     assert_eq!(cells(&mut d).len(), 4, "one terminal only");
     d.shell_mut().shutdown();

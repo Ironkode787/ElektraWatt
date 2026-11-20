@@ -6,7 +6,7 @@
 //! that runs on says where.
 
 use crate::own_parts::{cursor_k, new_project};
-use crate::persona_round::key;
+use crate::relays_paste_and_ip_wires::key;
 use crate::support::Tmp;
 
 use ew_viewmodel::shell::{Dialog, Outcome};

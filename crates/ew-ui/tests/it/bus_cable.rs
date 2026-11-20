@@ -5,7 +5,7 @@
 //! never a refusal of a wire's cores. The window's own path on a new project.
 
 use crate::own_parts::{new_project, place_box, press_cp};
-use crate::persona_round::key;
+use crate::relays_paste_and_ip_wires::key;
 use crate::support::Tmp;
 
 use ew_viewmodel::ew_api::{BomMode, Export, Session};

@@ -6,7 +6,7 @@
 //! two the next click places. A mark dropped on a pin or beside it joins it, a mark left beside a pin is said, and
 //! the check offers to join the two.
 
-use crate::persona_round::{click, cp_at, key, new_project, page_pixel, pixel_map, state, typed};
+use crate::relays_paste_and_ip_wires::{click, cp_at, key, new_project, page_pixel, pixel_map, state, typed};
 use crate::support::Tmp;
 
 use ew_viewmodel::navigators::{NavKind, NavRole};

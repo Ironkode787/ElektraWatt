@@ -5,7 +5,7 @@
 //! the part editor on a new part, whose bus interfaces are a form; Save puts the part into the project and into My
 //! parts. The window's own path: clicks and keys on a new project at 1920 × 1080.
 
-use crate::persona_round::{click, key, typed};
+use crate::relays_paste_and_ip_wires::{click, key, typed};
 use crate::support::Tmp;
 
 use ew_viewmodel::ew_api::library::LibraryTiers;
