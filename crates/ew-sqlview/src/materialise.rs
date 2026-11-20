@@ -770,7 +770,7 @@ fn cables(q: &Q, wires: &Wires) -> Vec<Row> {
             let cable = d.aspects.cable.as_ref()?;
             let cores: Vec<_> = q.idx().conductors_of_cable(id).collect();
             let (mut a, mut b) = (Vec::new(), Vec::new());
-            // A bus cable's ends are the devices of its line's ports (rc.5), as the cable overview has them.
+            // A bus cable's ends are the devices of its line's ports, as the cable overview has them.
             let (mut point_a, mut point_b) = (None, None);
             if let Some(line) = ew_derive::cable_bus_line(q, id) {
                 a.extend(line.a.function().and_then(|f| device_of(q, f)));
@@ -879,7 +879,7 @@ fn conductors(q: &Q, wires: &Wires) -> Vec<Row> {
                 .set("colour_iec", c.colour.as_ref().and_then(colour_iec))
                 .set("shield", c.shield)
                 .set("wire_id", by_core.get(&id).map(|w| uuid(w.wire.id)));
-            // A bus cable's core over which no wire runs is used by the cable's bus line (rc.5).
+            // A bus cable's core over which no wire runs is used by the cable's bus line.
             if !by_core.contains_key(&id) {
                 let [a, b] = ew_derive::bus_core_ends(q, c.cable, c.core.as_str(), c.shield);
                 r.set("bus_end_a", a).set("bus_end_b", b);
