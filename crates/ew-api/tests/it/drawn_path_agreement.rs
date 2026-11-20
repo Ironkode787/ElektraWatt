@@ -3,13 +3,13 @@
 
 //! One drawn path: the path the page scene draws a wire
 //! along is the path `ew_derive::drawn_path` gives, which EW-TERM-006 and normaliser 7 read: the stored route. Over
-//! Golden A's connections (the wire layer as drawn: every page connection has the router's route, so none is
+//! the sample project's connections (the wire layer as drawn: every page connection has the router's route, so none is
 //! unrouted), and over random ends (a proptest): a connection without a route is unrouted, has no drawn path and is
 //! drawn as the straight line between its ends.
 //!
 //! EW-TERM-006's Messages row and its detail card (which shows the message cell) name the terminal once.
 
-use crate::golden_common::read_only as golden;
+use crate::common;
 
 use ew_api::output::{NavKind, NavRole, PageLayer, TableCp, page_layer};
 use ew_api::{AnyCommand, Session};
@@ -85,11 +85,11 @@ fn wire_of(wires: &PageLayer, id: Uuid) -> Vec<(i64, i64)> {
         .unwrap_or_else(|| panic!("no wire for {id}"))
 }
 
-/// Golden A: every connection the wire layer draws is drawn along `drawn_path`, its stored route; no page connection
+/// The sample: every connection the wire layer draws is drawn along `drawn_path`, its stored route; no page connection
 /// is unrouted (RG1).
 #[test]
-fn golden_a_s_wires_are_drawn_along_the_one_path() {
-    let s = golden();
+fn the_sample_s_wires_are_drawn_along_the_one_path() {
+    let s = common::sample();
     let q = s.query();
     let order = q.get::<PageOrder>(());
     let mut drawn = 0;
@@ -184,13 +184,14 @@ fn run(s: &mut Session, name: &str, params: serde_json::Value) -> Vec<Uuid> {
         .collect()
 }
 
-/// On an empty stretch of Golden A's folio 103, terminal -X1031 71 and two coils
+/// On an empty stretch of the sample's folio 103, terminal -X1031 71 and two coils
 /// above and below it, then a wire drawn from the upper coil to the lower one across the terminal (drawing a wire does
 /// not split it at a symbol it crosses): EW-TERM-006, whose Messages row names the terminal once. Its message leads with
 /// the subject, so the row shows the message alone; the detail card shows the message cell, which names it once too.
+/// The new wire is 103.8, after the seven the sample's motor page numbers.
 #[test]
 fn ew_term_006_s_row_names_the_terminal_once() {
-    let mut s = golden();
+    let mut s = common::sample();
     let page = s.page_tables("103").expect("folio 103").page.to_string();
     for key in ["ew.iec.terminal@qet10", "ew.iec.coil@qet10"] {
         if let Some(embed) = s.starter_embed(key) {
@@ -240,7 +241,7 @@ fn ew_term_006_s_row_names_the_terminal_once() {
         .map(|n| (n.label.as_str(), n.cells[2].as_str(), n.cells[3].as_str()))
         .collect();
     let message =
-        "=P01+J-E-2416-X1031:71 lies on wire 103.3 without joining it; connect it to the wire or move it";
+        "+CAB-X1031:71 lies on wire 103.8 without joining it; connect it to the wire or move it";
     // The row's text, the message cell (the detail card's text) and the subject cell.
-    assert_eq!(rows, [(message, message, "=P01+J-E-2416-X1031:71")]);
+    assert_eq!(rows, [(message, message, "+CAB-X1031:71")]);
 }

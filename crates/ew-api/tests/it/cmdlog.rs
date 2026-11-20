@@ -3,7 +3,7 @@
 
 //! Command logs (`.ewcmd`, doc 17 §3.5): parsing and `Session::run_script`.
 
-use crate::golden_common;
+use crate::common;
 
 use ew_api::{CmdError, CmdLog, CmdLogError, Session, SessionOptions};
 use ew_derive::DeviceTag;
@@ -350,20 +350,19 @@ fn short_tag(s: &Session, id: ew_derive::ew_ids::Id<ew_schema::Device>) -> Strin
 
 #[test]
 fn tag_and_folio_references_name_exactly_one_device_or_drawn_page() {
-    let b = golden_common::batch();
-    let mut s = golden_common::session(&b);
-    let set = |target: &str, kind: &str, path: &str, value: &str| {
+    let mut s = common::sample();
+    let set =|target: &str, kind: &str, path: &str, value: &str| {
         format!(
             r#"{{"cmd":"fields.set","params":{{"kind":"{kind}","targets":[{{"ref":"{target}"}}],"path":"{path}","value":{value}}}}}"#
         )
     };
-    // A short tag (frozen with hidden sign, product, terminal) and a full designation resolve.
+    // A short tag (frozen, a strip, a terminal) and a full designation resolve, on the sample.
     let l = log(&[
-        &set("tag:S51", "device", "function_text", r#"{"en":"a"}"#),
+        &set("tag:-UC1", "device", "function_text", r#"{"en":"a"}"#),
         &set("tag:-X1031", "device", "function_text", r#"{"en":"b"}"#),
-        &set("tag:-X1031:12", "device", "function_text", r#"{"en":"c"}"#),
+        &set("tag:-X1031:U", "device", "function_text", r#"{"en":"c"}"#),
         &set(
-            "tag:=P01+J-E-2416-102F1",
+            "tag:+CAB-102F1",
             "device",
             "function_text",
             r#"{"en":"d"}"#,
@@ -390,9 +389,10 @@ fn tag_and_folio_references_name_exactly_one_device_or_drawn_page() {
         texts,
         [
             ("-102F1".to_owned(), "d".to_owned()),
+            ("-UC1".to_owned(), "a".to_owned()),
             ("-X1031".to_owned(), "b".to_owned()),
-            ("-X1031:12".to_owned(), "c".to_owned()),
-            ("S51".to_owned(), "a".to_owned()),
+            ("-X1031:U".to_owned(), "c".to_owned()),
+            
         ]
     );
     let titled: Vec<u32> = q
@@ -424,10 +424,10 @@ fn tag_and_folio_references_name_exactly_one_device_or_drawn_page() {
         assert_eq!(err.exit_code(), 2);
     }
 
-    // An ambiguous tag does not resolve either: once S51 is frozen to "102F1", two devices print -102F1.
+    // An ambiguous tag does not resolve either: once the enclosure -UC1 is frozen to "102F1", two devices print -102F1.
     // The first line commits; the second stops the replay.
     let l = log(&[
-        &set("tag:S51", "device", "tag.frozen", r#"{"text":"102F1"}"#),
+        &set("tag:-UC1", "device", "tag.frozen", r#"{"text":"102F1"}"#),
         &set("tag:-102F1", "device", "function_text", r#"{"en":"x"}"#),
     ]);
     let err = s.run_script(&l, "x.ewcmd").unwrap_err();
@@ -454,34 +454,29 @@ fn tag_and_folio_references_name_exactly_one_device_or_drawn_page() {
 /// preview and commit, one undo step, like a command that is bulk by its metadata.
 #[test]
 fn a_set_many_above_500_targets_runs_from_a_log_as_one_step() {
-    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew");
-    let mut s = Session::open_read_only(&dir, "ElektraWatt test").unwrap().0;
+    let mut s = session();
+    let pages: Vec<String> = (1..=501).map(|n| page(n)).collect();
+    let lines: Vec<&str> = pages.iter().map(String::as_str).collect();
+    s.run_script(&log(&lines), "pages.ewcmd").expect("501 pages");
     let q = s.query();
-    let devices: Vec<String> = q.devices().ids().map(|d| d.as_uuid().to_string()).collect();
-    let reps: Vec<String> = q.reps().ids().map(|r| r.as_uuid().to_string()).collect();
-    let functions: Vec<String> = q.functions().ids().map(|f| f.as_uuid().to_string()).collect();
-    let connections: Vec<String> = q.connections().ids().map(|c| c.as_uuid().to_string()).collect();
     let pages: Vec<String> = q.pages().ids().map(|p| p.as_uuid().to_string()).collect();
-    let nodes: Vec<String> = q
-        .table::<ew_schema::StructureNode>()
-        .ids()
-        .map(|n| n.as_uuid().to_string())
-        .collect();
     drop(q);
-    let total = devices.len() + reps.len() + functions.len() + connections.len() + pages.len() + nodes.len();
-    assert!(total > 500, "{total}");
+    assert!(pages.len() > 500, "{}", pages.len());
     let edits = serde_json::json!({"edits": [
-        {"kind": "device", "targets": devices, "path": "process_tag", "value": "P-1"},
-        {"kind": "function", "targets": functions, "path": "cp_overrides", "value": null},
-        {"kind": "connection", "targets": connections, "path": "overrides.show_marker", "value": null},
-        {"kind": "page", "targets": pages, "path": "description_override", "value": "Bulk"},
-        {"kind": "structure_node", "targets": nodes, "path": "description", "value": "Bulk"},
-        {"kind": "representation", "targets": reps, "path": "arrangement", "value": null}]});
+        {"kind": "page", "targets": pages, "path": "description_override", "value": "Bulk"}]});
     let line = serde_json::json!({"cmd": "fields.set_many", "params": edits}).to_string();
-    let before = s.history().entries().len();
     let receipts = s
         .run_script(&log(&[&line]), "big.ewcmd")
         .expect("the line commits");
     assert_eq!(receipts.len(), 1);
-    assert_eq!(s.history().entries().len(), before + 1, "one undo step");
+    let bulk = |s: &Session| {
+        s.query()
+            .pages()
+            .iter()
+            .filter(|(_, p)| serde_json::to_value(&***p).unwrap()["description_override"] == "Bulk")
+            .count()
+    };
+    assert_eq!(bulk(&s), 501);
+    s.undo(&ew_api::Origin::Gui).unwrap();
+    assert_eq!(bulk(&s), 0, "one undo step");
 }

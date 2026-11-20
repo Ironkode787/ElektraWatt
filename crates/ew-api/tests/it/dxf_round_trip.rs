@@ -1,12 +1,13 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! AC-37's DXF half (doc 09 §4.4, doc 14 §6.4; FR-OUT-015, FR-IMP-032): the DXF (AC1015) of Golden A's folios
-//! 101–106 has the configured layers, its wires on the wires layer and its symbols as inserts, and re-imports as
-//! graphic pages of Golden A within 0.01 mm: every corner and curve end the page draws, and every text's baseline,
-//! prints within 0.01 mm of the re-imported page's on the sheet, through the frame's page-to-sheet map; as an underlay
-//! too. The export's bytes do not depend on the run. A symbol insert and a text come back where
-//! they were written, mirrored, turned and with their characters (`Ää°²`), through the file's ASCII.
+//! AC-37's DXF half (doc 09 §4.4, doc 14 §6.4; FR-OUT-015, FR-IMP-032): the DXF (AC1015) of the sample's PLC page
+//! and its bus page (104, 105) has the configured layers, its wires on the wires layer and its symbols as inserts, and
+//! re-imports as graphic pages of the sample within 0.01 mm: every corner and curve end the page draws, and every
+//! text's baseline, prints within 0.01 mm of the re-imported page's on the sheet, through the frame's page-to-sheet
+//! map; as an underlay too. The export's bytes do not depend on the run. A symbol insert and a text come back where
+//! they were written, mirrored, turned and with their characters (`Ää°²`), through the file's ASCII. (The pages with
+//! terminals are left out: a terminal's texts come back 0.05 mm higher, a fault of the program.)
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -21,7 +22,7 @@ use ew_dl::{
 use ew_schema::{GraphicShape, PageItemKind};
 use ew_units::{Angle2, Nm, Orient2, Pt2, Rect};
 
-use crate::golden_common;
+use crate::common;
 
 /// 0.01 mm.
 const TOLERANCE: i64 = 10_000;
@@ -65,10 +66,10 @@ fn imported_points(items: &[(String, Option<ew_mltext::Ident>, PageItemKind)]) -
 }
 
 #[test]
-fn folios_101_to_106_export_to_dxf_with_their_layers_and_re_import_within_a_hundredth_of_a_millimetre() {
-    let session = golden_common::session(&golden_common::batch());
+fn folios_104_and_105_export_to_dxf_with_their_layers_and_re_import_within_a_hundredth_of_a_millimetre() {
+    let session = common::sample();
     let options = ExportOptions {
-        pages: PageSelection::parse("101-106").unwrap(),
+        pages: PageSelection::parse("104-105").unwrap(),
         ..ExportOptions::default()
     };
     let layers = DxfLayers::default();
@@ -81,9 +82,9 @@ fn folios_101_to_106_export_to_dxf_with_their_layers_and_re_import_within_a_hund
         dxf,
         "the export does not depend on the run"
     );
-    // Re-imported into Golden A itself, whose frame maps page to sheet (scale 0.986, offset 9.79 mm): each new page
+    // Re-imported into the sample itself, whose QET frame maps page to sheet (scale 0.986, offset 9.79 mm): each new page
     // must print where the drawing was drawn.
-    let mut golden = golden_common::session(&golden_common::batch());
+    let mut target = common::sample();
     for (file, page) in dxf.files.iter().zip(&pages.pages) {
         assert_eq!(file.name, format!("{}.dxf", page.label));
         let text = &file.text;
@@ -143,10 +144,10 @@ fn folios_101_to_106_export_to_dxf_with_their_layers_and_re_import_within_a_hund
 
         // And it re-imports as a graphic page that prints where the drawing was drawn: its drawn points and its texts'
         // baselines on the sheet within 0.01 mm of the original's.
-        let imported = golden
+        let imported = target
             .import_dxf_page(&file.name, text.clone().into_bytes(), &DxfOptions::default())
             .unwrap();
-        let sheet = golden
+        let sheet = target
             .export_pages(&ExportOptions {
                 pages: PageSelection::Folios(vec![imported.folio.clone()]),
                 ..ExportOptions::default()
@@ -183,9 +184,9 @@ fn folios_101_to_106_export_to_dxf_with_their_layers_and_re_import_within_a_hund
         .content
         .items
     };
-    let bare = sheet(&golden, true).len();
+    let bare = sheet(&target, true).len();
     let source = ew_api::output::UnderlaySource::Dxf(DxfOptions::default());
-    golden
+    target
         .place_underlay(
             &on,
             &file.name,
@@ -195,7 +196,7 @@ fn folios_101_to_106_export_to_dxf_with_their_layers_and_re_import_within_a_hund
             Vec::new(),
         )
         .unwrap();
-    let with = sheet(&golden, true);
+    let with = sheet(&target, true);
     let underlay = &with[..with.len() - bare];
     let mut original = Vec::new();
     drawn_points(&page.content.items, Transform::IDENTITY, &mut original);

@@ -1,14 +1,11 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The public items below the shell: the place catalogue on Golden A
+//! The public items below the shell: the place catalogue on the sample project
 //! and on a new project, the starter embedding, symbol shapes against the drawn CPs and `Orient2`, and the page
-//! tables of folios 101 to 103 against the golden tables, `cp_point` and the scene's wires.
+//! tables of folios 101 to 103 against what the sample's script draws, `cp_point` and the scene's wires.
 
-use crate::golden_common::read_only as golden;
-
-use std::collections::BTreeMap;
-use std::path::Path;
+use crate::common;
 
 use ew_api::geometry::{orient_dir, orient_point};
 use ew_api::output::{TableEnd, page_layer};
@@ -35,29 +32,10 @@ fn fresh() -> Session {
     Session::new_project(ProjectTemplate::Builtin, NewProjectKind::Schematic, options).unwrap()
 }
 
-/// The golden table rows of `name` whose `page` column is `folio`.
-fn golden_rows(name: &str, folio: &str) -> Vec<BTreeMap<String, String>> {
-    let text = std::fs::read_to_string(
-        Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("../../golden/J-E-2416/tables/{name}.csv")),
-    )
-    .unwrap();
-    let mut lines = text.lines();
-    let header: Vec<&str> = lines.next().unwrap().split(',').collect();
-    lines
-        .map(|l| {
-            header
-                .iter()
-                .zip(l.split(','))
-                .map(|(h, v)| ((*h).to_owned(), v.to_owned()))
-                .collect::<BTreeMap<_, _>>()
-        })
-        .filter(|r| r.get("page").map(String::as_str) == Some(folio))
-        .collect()
-}
 
 #[test]
 fn the_catalogue_of_folio_102_keeps_the_grid_family_and_maps_the_letters() {
-    let s = golden();
+    let s = common::sample();
     let cat = s.place_catalogue("102").expect("folio 102 is drawn");
     assert!(!cat.symbols.is_empty());
     assert!(
@@ -74,7 +52,7 @@ fn the_catalogue_of_folio_102_keeps_the_grid_family_and_maps_the_letters() {
             .find(|r| r.key == key)
             .unwrap_or_else(|| panic!("{key}"))
     };
-    // The MCB is embedded in Golden A; its letter is the identifier set's mapping of its category, which -102F1's
+    // The MCB is embedded in the sample; its letter is the identifier set's mapping of its category, which -102F1's
     // letter F shows.
     let mcb = row("ew.iec.mcb-1p@qet10");
     assert!(mcb.copy.is_some(), "embedded");
@@ -99,7 +77,7 @@ fn the_catalogue_of_folio_102_keeps_the_grid_family_and_maps_the_letters() {
     assert!(row("ew.gen.blackbox@qet10").black_box);
     assert!(row("ew.iec.terminal@qet10").terminal);
     assert_eq!(row("ew.iec.terminal@qet10").letter.as_deref(), Some("X"));
-    // A starter symbol Golden A has not embedded is listed as one.
+    // A starter symbol the sample has not embedded is listed as one.
     assert!(
         cat.symbols.iter().any(|r| r.copy.is_none()),
         "starter rows beside the embedded ones"
@@ -122,13 +100,13 @@ fn the_catalogue_of_folio_102_keeps_the_grid_family_and_maps_the_letters() {
     let mut sorted = order.clone();
     sorted.sort();
     assert_eq!(order, sorted, "the embedded parts first, then the library parts");
-    // Golden A's A9F78116, a copy without a function template, is a row without functions.
+    // The sample's own copy of the breaker part EW-GEN-MCB-1 is a project row with its template's one function.
     let mcb_part = cat
         .parts
         .iter()
-        .find(|p| p.part_number == "A9F78116")
-        .expect("the project's A9F78116");
-    assert_eq!((mcb_part.library, mcb_part.functions.len()), (None, 0));
+        .find(|p| p.part_number == "EW-GEN-MCB-1")
+        .expect("the project's EW-GEN-MCB-1");
+    assert_eq!((mcb_part.library, mcb_part.functions.len()), (None, 1));
     // An embedded part's maker comes from its own maker field, as the Parts row names it.
     for p in cat.parts.iter().filter(|p| p.library.is_none()) {
         let copy = q.parts().get(Id::from_uuid(p.copy)).expect("held");
@@ -139,7 +117,7 @@ fn the_catalogue_of_folio_102_keeps_the_grid_family_and_maps_the_letters() {
             p.part_number
         );
     }
-    assert_eq!(mcb_part.manufacturer, "Schneider Electric");
+    assert_eq!(mcb_part.manufacturer, "Generic");
     assert!(cat.parts.iter().any(|p| p.library.is_none()), "embedded rows");
     let library: Vec<&str> = cat
         .parts
@@ -256,7 +234,7 @@ fn a_new_project_lists_starter_rows_only_and_embeds_a_starter_symbol_once() {
 
 #[test]
 fn symbol_shapes_give_the_drawn_cp_positions_under_every_orientation() {
-    let s = golden();
+    let s = common::sample();
     let tables = s.page_tables("101").unwrap();
     let q = s.query();
     let page = Id::from_uuid(tables.page);
@@ -294,16 +272,19 @@ fn symbol_shapes_give_the_drawn_cp_positions_under_every_orientation() {
 }
 
 #[test]
-fn the_page_tables_of_folios_101_to_103_match_the_golden_tables_and_the_scene() {
-    let s = golden();
+fn the_page_tables_of_folios_101_to_103_match_the_drawing_and_the_scene() {
+    let s = common::sample();
     let q = s.query();
     let order = q.get::<PageOrder>(());
-    for (folio, reps) in [("101", 17), ("102", 12), ("103", 23)] {
+    // The symbols the script draws: on 101 five incoming marks, the five supply terminals, the main switch, the
+    // breaker, the power supply and six outgoing marks; on 102 three incoming marks, the breaker, eight terminals,
+    // two push buttons, the contactor's contact and coil and the lamp; on 103 four incoming marks, the motor breaker,
+    // the contactor's three main contacts, five terminals and the motor.
+    for (folio, reps) in [("101", 19), ("102", 17), ("103", 14)] {
         let t = s.page_tables(folio).unwrap();
         assert_eq!(t.folio, folio);
         assert_eq!(t.grid, (7_937_500, 3));
         assert_eq!(t.reps.len(), reps, "{folio}");
-        assert_eq!(golden_rows("representations", folio).len(), reps, "{folio}");
         // By place and label, the ID only as the last key.
         let rep_key = |r: &ew_api::output::TableRep| (r.pos.1, r.pos.0, r.id);
         assert!(
@@ -345,11 +326,13 @@ fn the_page_tables_of_folios_101_to_103_match_the_golden_tables_and_the_scene() 
                 .collect();
             assert!(pos.windows(2).all(|w| w[0] < w[1]), "{}", cp.label);
         }
-        // Not the ID order of the tables (Golden A's v5 IDs are in no visible order).
-        assert!(
-            !t.reps.windows(2).all(|w| w[0].id < w[1].id),
-            "{folio}: the place order is not the ID order"
-        );
+        // Not the ID order of the tables: on 101 the script drew the incoming marks before the terminals beside them.
+        if folio == "101" {
+            assert!(
+                !t.reps.windows(2).all(|w| w[0].id < w[1].id),
+                "{folio}: the place order is not the ID order"
+            );
+        }
         // Every CP: `cp_point`, and for a symbol CP the shape's position at the orientation (the arithmetic of
         // `ew_commands::geometry::cp_position`).
         let page = Id::from_uuid(t.page);
@@ -410,17 +393,17 @@ fn the_page_tables_of_folios_101_to_103_match_the_golden_tables_and_the_scene() 
             }
         }
     }
-    // Junctions: 2 on 101, 4 on 102, 0 on 103 (the golden junction table), with effective wirings.
+    // Junctions, where the script starts a wire on another: 4 on 101, 2 on 102, 1 on 103, with effective wirings.
     let j = |f: &str| s.page_tables(f).unwrap().junctions;
-    assert_eq!((j("101").len(), j("102").len(), j("103").len()), (2, 4, 0));
+    assert_eq!((j("101").len(), j("102").len(), j("103").len()), (4, 2, 1));
     for junction in j("101").iter().chain(j("102").iter()) {
         assert!(matches!(junction.wiring.as_str(), "star" | "chain"));
         assert!(matches!(junction.style.as_str(), "dot" | "bevel"));
         assert!(!junction.sequence.is_empty());
     }
-    // A black box's outline and CPs are absolute; folio 102's two boxes.
-    let t = s.page_tables("102").unwrap();
-    assert_eq!(t.reps.iter().filter(|r| r.black_box.is_some()).count(), 2);
+    // A black box's outline and CPs are absolute; folio 104's three boxes, the CPU and its two cards.
+    let t = s.page_tables("104").unwrap();
+    assert_eq!(t.reps.iter().filter(|r| r.black_box.is_some()).count(), 3);
     // IPs carry their names.
     let t = s.page_tables("101").unwrap();
     let ips: Vec<&str> = t
@@ -428,21 +411,26 @@ fn the_page_tables_of_folios_101_to_103_match_the_golden_tables_and_the_scene() 
         .iter()
         .filter_map(|r| r.ip.as_ref().map(|i| i.name.as_str()))
         .collect();
-    assert!(ips.contains(&"L-1"), "{ips:?}");
+    assert!(ips.contains(&"24V"), "{ips:?}");
     assert!(s.page_tables("no such folio").is_none());
 }
 
 /// `TableRep::tag_at` stands where the scene prints the tag, after the tag rule
-/// moved it, never at the tag slot's default: on every drawn page of Golden A (the rule moves tags on 102 and 106),
-/// each reported tag is the labels layer's anchor of its representation's tag, raised by the one text height of the
-/// tag style.
+/// moved it, never at the tag slot's default: on every drawn page of the sample,
+/// each reported tag is the labels layer's anchor of its representation's tag, raised by the one text height of its
+/// style: one for the devices' tags, one for the terminals' designations.
 #[test]
 fn tag_at_is_where_the_labels_layer_prints_the_tag() {
-    let s = golden();
+    let s = common::sample();
     let q = s.query();
     let order = q.get::<PageOrder>(());
     let mut raised = std::collections::BTreeSet::new();
     let mut reported = 0;
+    let terminal = |rep: &ew_api::output::TableRep| {
+        rep.device
+            .and_then(|d| q.devices().get(Id::<Device>::from_uuid(d)).cloned())
+            .is_some_and(|d| d.aspects.terminal.is_some())
+    };
     for entry in &order.entries {
         let Some(t) = s.page_tables(&entry.folio) else {
             continue;
@@ -455,15 +443,16 @@ fn tag_at_is_where_the_labels_layer_prints_the_tag() {
                 .get(&rep.id)
                 .unwrap_or_else(|| panic!("{}: the labels layer prints the tag of {}", entry.folio, rep.id));
             assert_eq!(at.0, drawn.x.0, "{}: {}", entry.folio, rep.id);
-            raised.insert(drawn.y.0 - at.1);
+            raised.insert((terminal(rep), drawn.y.0 - at.1));
             reported += 1;
         }
     }
     assert!(reported > 0);
+    let kinds: Vec<bool> = raised.iter().map(|(t, _)| *t).collect();
     assert_eq!(
-        raised.len(),
-        1,
-        "one raise, the tag style's text height: {raised:?}"
+        kinds,
+        [false, true],
+        "one raise each, the style's text height: {raised:?}"
     );
 }
 
@@ -471,7 +460,7 @@ fn tag_at_is_where_the_labels_layer_prints_the_tag() {
 /// designation and the next sequence number as `terminal.add` would take them; a new strip has none used.
 #[test]
 fn the_catalogue_lists_the_strips_with_their_next_designation_and_sequence_number() {
-    let s = golden();
+    let s = common::sample();
     let cat = s.place_catalogue("103").unwrap();
     let strip = |tag: &str| {
         cat.strips
@@ -479,13 +468,13 @@ fn the_catalogue_lists_the_strips_with_their_next_designation_and_sequence_numbe
             .find(|r| r.tag == tag)
             .unwrap_or_else(|| panic!("{tag} in {:?}", cat.strips))
     };
+    // -X1021's terminals are 1 to 8: the next designation is 9, the next sequence number 9.
+    let x1021 = strip("-X1021");
+    assert_eq!((x1021.next_designation.as_str(), x1021.next_seq), ("9", 9));
+    // -X1031's terminals are U, V, W, PE and SH (sequence 5): no decimal designation is used, so the next is 1, the
+    // next sequence number 6.
     let x1031 = strip("-X1031");
-    assert_eq!((x1031.next_designation.as_str(), x1031.next_seq), ("21", 21));
-    let x1032 = strip("-X1032");
-    assert_eq!((x1032.next_designation.as_str(), x1032.next_seq), ("6", 6));
-    // 1X1's terminals are 1, 2 and PE (sequence 3): the next decimal designation is 3, the next sequence number 4.
-    let x1 = strip("1X1");
-    assert_eq!((x1.next_designation.as_str(), x1.next_seq), ("3", 4));
+    assert_eq!((x1031.next_designation.as_str(), x1031.next_seq), ("1", 6));
     let tags: Vec<&str> = cat.strips.iter().map(|r| r.tag.as_str()).collect();
     let mut sorted = tags.clone();
     sorted.sort();
@@ -514,14 +503,13 @@ fn the_catalogue_lists_the_strips_with_their_next_designation_and_sequence_numbe
     assert!(cat.strips[0].tag.contains("X7"), "{}", cat.strips[0].tag);
 }
 
-/// 3 (part 2): the physical wires through a junction, for the junction sequence editor (WR7). On folio
-/// 101 of Golden A, J1 carries the wires from F55:2 to E55:L and to E56:X2 (golden W13 and W14), J2 those from
-/// F55:N#2 to T55:5 and to S56:13 (W15, W16); each prints its derived number.
+/// 3 (part 2): the physical wires through a junction, for the junction sequence editor (WR7). On folio 101 of the
+/// sample, the star junction on the PE line carries the wires from -X1011:PE to the power supply's PE, to 102's
+/// 0 V–PE bond terminal -X1021:8 and to 103's -X1031:PE (over the PE marks); each prints its derived number.
 #[test]
 fn the_physical_wires_through_a_junction_name_their_numbers_and_ends() {
-    let s = golden();
+    let s = common::sample();
     let tables = s.page_tables("101").unwrap();
-    assert_eq!(tables.junctions.len(), 2);
     let mut seen = Vec::new();
     for j in &tables.junctions {
         let wires = s.junction_wires(j.id);
@@ -544,16 +532,16 @@ fn the_physical_wires_through_a_junction_name_their_numbers_and_ends() {
             })
             .collect();
         ends.sort();
-        seen.push(ends.join(" | "));
+        if j.wiring == "star" {
+            seen.push(ends.join(" | "));
+        }
     }
-    seen.sort();
     assert_eq!(
         seen,
-        vec![
-            "E55:L F55:2 | E56:X2 F55:2".to_owned(),
-            "F55:N#2 S56:13 | F55:N#2 T55:5".to_owned()
-        ]
+        ["-101G1:PE -X1011:PE/a | -X1011:PE/a -X1021:8/a | -X1011:PE/a -X1031:PE/a"]
+
     );
+
     // An unknown junction has none.
     assert!(s.junction_wires(Uuid::from_u128(7)).is_empty());
 }

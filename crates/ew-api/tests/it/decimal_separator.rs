@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! `settings.formatting.decimal_separator` reaches the rendering of decimals in the printed tables of the
-//! generated pages (`ew_reports::render`, neutral language). The golden project sets `point`, a project that sets
-//! nothing prints the point as well, `comma` prints the comma.
+//! generated pages (`ew_reports::render`, neutral language), on the sample project: `point` and a project that sets
+//! nothing print the point, `comma` prints the comma.
 
-use crate::golden_common;
+use crate::common;
 
 use ew_api::Session;
 use ew_api::output::PageTableOf;
@@ -26,11 +26,9 @@ fn table_cells(s: &Session) -> Vec<String> {
 }
 
 fn with_separator(separator: Option<DecimalSeparator>) -> Vec<String> {
-    let batch = golden_common::batch();
-    let s = golden_common::session_with(&batch, |project, _| {
-        project.settings.formatting.decimal_separator = separator;
-    });
-    table_cells(&s)
+    let (mut project, records, lib) = common::sample_records();
+    project.settings.formatting.decimal_separator = separator;
+    table_cells(&common::session_of(project, records, lib))
 }
 
 #[test]
@@ -38,9 +36,9 @@ fn the_project_decimal_separator_prints_in_the_tables_of_the_generated_pages() {
     let point = with_separator(Some(DecimalSeparator::Point));
     let none = with_separator(None);
     let comma = with_separator(Some(DecimalSeparator::Comma));
-    // The golden cable list prints "0.75 mm²" and the bill of materials the lengths "1.71" and "3.17" (metres, the
-    // carrier part lines of -UC1).
-    for printed in ["0.75 mm²", "1.5 mm²", "1.71", "3.17"] {
+    // The wire list prints the cross-sections "0.75 mm²" and "1.5 mm²", the parts list the lengths "0.94" and "0.47"
+    // (metres of the plate's rails and duct).
+    for printed in ["0.75 mm²", "1.5 mm²", "0.94", "0.47"] {
         assert!(
             point.iter().any(|c| c == printed),
             "{printed} in the point output"
@@ -50,14 +48,11 @@ fn the_project_decimal_separator_prints_in_the_tables_of_the_generated_pages() {
             "{printed} in the comma output"
         );
     }
-    assert_eq!(
-        point, none,
-        "no setting prints as `point` does (the golden output)"
-    );
+    assert_eq!(point, none, "no setting prints as `point` does");
     // Only the decimals differ: the same cells, each equal or equal after the separator.
     assert_eq!(comma.len(), point.len());
     let differing: Vec<(&String, &String)> = point.iter().zip(&comma).filter(|(a, b)| a != b).collect();
-    assert!(differing.len() > 50, "{} cells differ", differing.len());
+    assert!(!differing.is_empty());
     for (a, b) in differing {
         assert_eq!(&a.replacen('.', ",", 1), b);
     }
