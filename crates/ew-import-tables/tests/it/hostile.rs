@@ -138,10 +138,10 @@ impl Lcg {
     }
 }
 
-/// Random bytes in place of one golden table never panic the importer.
+/// Random bytes in place of one test table never panic the importer.
 #[test]
 fn arbitrary_bytes_never_panic() {
-    let golden = common::golden_inputs();
+    let tables = common::fixture_inputs();
     let importer = TablesImporter::new(common::library());
     let ctx = common::context();
     let mut rng = Lcg(0x5EED_1234_ABCD_0042);
@@ -154,10 +154,10 @@ fn arbitrary_bytes_never_panic() {
             "functions.csv",
             "representations.csv",
         ] {
-            let (golden, importer, ctx, junk) = (&golden, &importer, &ctx, &junk);
+            let (tables, importer, ctx, junk) = (&tables, &importer, &ctx, &junk);
             scope.spawn(move || {
                 for bytes in junk {
-                    let mut inputs: Vec<_> = golden.iter().filter(|i| i.name() != target).cloned().collect();
+                    let mut inputs: Vec<_> = tables.iter().filter(|i| i.name() != target).cloned().collect();
                     inputs.push(ew_interop_api::ImportInput::new(target, bytes.clone()).unwrap());
                     let _ = importer.import(&inputs, ctx);
                 }
@@ -241,32 +241,32 @@ fn mutate_once(lines: &mut Vec<String>, rng: &mut Lcg) {
     }
 }
 
-/// Mutated golden tables never panic: 1 to 3 cell-wise mutations of one table at a time, for every golden
+/// Mutated test tables never panic: 1 to 3 cell-wise mutations of one table at a time, for every test
 /// table, and every successful batch has unique record IDs.
 ///
 /// Per table: `MUTATIONS_PER_TABLE` = 60 mutated runs from the seed `0xC5F0_7A11_0B5E_ED01` mixed with the
 /// table index, one thread per table (debug build: see the measured time in the test run). A failure names its table,
 /// its run and the seed, and prints the panic's message and the mutated text.
 #[test]
-fn mutated_golden_tables_never_panic() {
+fn mutated_tables_never_panic() {
     const MUTATIONS_PER_TABLE: usize = 60;
     const SEED: u64 = 0xC5F0_7A11_0B5E_ED01;
-    let golden = common::golden_inputs();
-    // The set of golden tables grows (the bus tables are the latest), so its total is not pinned
+    let tables = common::fixture_inputs();
+    // The set of test tables grows (the bus tables are the latest), so its total is not pinned
     // (CONTRIBUTING.md); the newest tables are mutated too.
     for table in ["logical_nets.csv", "physical_nets.csv", "bus_ports.csv"] {
         assert!(
-            golden.iter().any(|i| i.name() == table),
-            "{table} is a golden table"
+            tables.iter().any(|i| i.name() == table),
+            "{table} is a test table"
         );
     }
     let importer = TablesImporter::new(common::library());
     let ctx = common::context();
     std::thread::scope(|scope| {
-        for (n, target) in golden.iter().enumerate() {
-            let (golden, importer, ctx) = (&golden, &importer, &ctx);
+        for (n, target) in tables.iter().enumerate() {
+            let (tables, importer, ctx) = (&tables, &importer, &ctx);
             scope.spawn(move || {
-                let text = String::from_utf8(target.bytes().to_vec()).expect("golden tables are UTF-8");
+                let text = String::from_utf8(target.bytes().to_vec()).expect("the test tables are UTF-8");
                 let mut rng = Lcg(SEED ^ ((n as u64 + 1) << 32));
                 for run in 0..MUTATIONS_PER_TABLE {
                     let mut lines: Vec<String> = text.lines().map(str::to_owned).collect();
@@ -275,7 +275,7 @@ fn mutated_golden_tables_never_panic() {
                     }
                     let mut mutated = lines.join("\n");
                     mutated.push('\n');
-                    let mut inputs: Vec<_> = golden
+                    let mut inputs: Vec<_> = tables
                         .iter()
                         .filter(|i| i.name() != target.name())
                         .cloned()

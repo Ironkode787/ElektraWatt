@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The layout tables of doc 20 §13's test geometry (U-50): the records they give, the mechanical
+//! The layout tables of the test tables' cabinet (U-50): the records they give, the mechanical
 //! columns of `parts.csv`, and the defective rows the emitter refuses.
 
 use crate::common;
@@ -24,9 +24,9 @@ fn pt(u: i64, v: i64) -> Pt2 {
     Pt2::new(mm(u), mm(v))
 }
 
-/// The golden inputs with the file `name` replaced by `text`.
-fn golden_with(name: &str, text: &str) -> ImportBatch {
-    let inputs: Vec<ImportInput> = common::golden_inputs()
+/// The test tables with the file `name` replaced by `text`.
+fn fixture_with(name: &str, text: &str) -> ImportBatch {
+    let inputs: Vec<ImportInput> = common::fixture_inputs()
         .into_iter()
         .map(|i| {
             if i.name() == name {
@@ -39,8 +39,8 @@ fn golden_with(name: &str, text: &str) -> ImportBatch {
     common::import(&inputs).expect("the import succeeds")
 }
 
-fn golden() -> ImportBatch {
-    common::import(&common::golden_inputs()).expect("the golden tables import")
+fn fixture() -> ImportBatch {
+    common::import(&common::fixture_inputs()).expect("the test tables import")
 }
 
 /// The messages of the findings with `code`.
@@ -71,10 +71,10 @@ fn placements(b: &ImportBatch) -> Vec<&Placement> {
 }
 
 /// The space, the enclosure and its plate surface carry the identities of the rule, the plate frame and outline of
-/// §13 (plate 650 × 900 mm at (50, 50) mm in the 750 × 1000 mm enclosure) and `pe_bond`.
+/// the tables (plate 650 × 900 mm at (50, 50) mm in the 750 × 1000 mm enclosure) and `pe_bond`.
 #[test]
-fn the_space_enclosure_and_plate_are_those_of_doc_20() {
-    let b = golden();
+fn the_space_enclosure_and_plate_are_those_of_the_tables() {
+    let b = fixture();
     let space = record_id::<LayoutSpace>("layout_spaces", "+J-E-2416");
     let enclosure = record_id::<Enclosure>("enclosures", "-UC1");
     let surface = record_id::<MountingSurface>("mounting_surfaces", "-UC1");
@@ -108,8 +108,8 @@ fn the_space_enclosure_and_plate_are_those_of_doc_20() {
 
 /// R1 is a TS 35 × 7.5 rail from (40, 740) to (610, 740) mm with its part and `pe_bond`; D1 a 40 × 60 mm duct.
 #[test]
-fn the_carriers_are_those_of_doc_20() {
-    let b = golden();
+fn the_carriers_are_those_of_the_tables() {
+    let b = fixture();
     let carrier = |key: &str| -> &Carrier {
         let id = record_id::<Carrier>("carriers", key);
         b.records
@@ -134,7 +134,7 @@ fn the_carriers_are_those_of_doc_20() {
 /// A placement sits at `t = (s, 0, 0)` on its rail; a strip has no part, a device with a part names its copy.
 #[test]
 fn the_placements_are_rail_poses() {
-    let b = golden();
+    let b = fixture();
     let all = placements(&b);
     let by_key = |key: &str| {
         let id = record_id::<Placement>("placements", key);
@@ -154,7 +154,7 @@ fn the_placements_are_rail_poses() {
 /// The mechanical columns give `mech` and the carrier sections; the enclosure section names its plate part.
 #[test]
 fn the_parts_carry_their_mechanical_data() {
-    let b = golden();
+    let b = fixture();
     let psu = part(&b, "2904602");
     let mech = psu.mech.as_ref().expect("2904602 has mech");
     assert_eq!(
@@ -198,7 +198,7 @@ fn defective_placements_are_dropped_with_a_finding() {
                 d,-102G1,2904602,R1,90\n\
                 e,-102F1,,R9,10\n\
                 f,-102F2,,R1,-1\n";
-    let b = golden_with("placements.csv", text);
+    let b = fixture_with("placements.csv", text);
     let malformed = messages(&b, Code::MALFORMED_ITEM);
     assert!(malformed.iter().any(|m| m.contains("is a duct")), "{malformed:?}");
     assert!(
@@ -229,7 +229,7 @@ fn defective_carriers_are_dropped_with_a_finding() {
                 D1,-UC1,duct,,0 0;10 10,,40,60,\n\
                 R2,-UC1,rail,,0 0;10 0,,,,\n\
                 R3,-UC9,rail,,0 0;10 0,ts32,,,\n";
-    let b = golden_with("carriers.csv", text);
+    let b = fixture_with("carriers.csv", text);
     let malformed = messages(&b, Code::MALFORMED_ITEM);
     assert!(
         malformed
@@ -258,7 +258,7 @@ fn defective_carriers_are_dropped_with_a_finding() {
 /// A second layout space for one location and an unknown location are refused.
 #[test]
 fn a_location_has_one_layout_space() {
-    let b = golden_with(
+    let b = fixture_with(
         "layout_spaces.csv",
         "key,location,name\n+J-E-2416,+J-E-2416,\nsecond,+J-E-2416,\nnowhere,+NOWHERE,\n",
     );
@@ -300,7 +300,7 @@ fn the_view_columns_give_902_its_surface_view_and_refuse_the_defective_ones() {
             })
             .collect()
     };
-    let b = golden();
+    let b = fixture();
     let found = views(&b);
     assert_eq!(found.len(), 1);
     let (item, view) = &found[0];
@@ -314,8 +314,8 @@ fn the_view_columns_give_902_its_surface_view_and_refuse_the_defective_ones() {
         )
     );
 
-    let golden_pages = std::fs::read_to_string(common::tables_dir().join("pages.csv")).unwrap();
-    let text: String = golden_pages
+    let pages = std::fs::read_to_string(common::fixture_dir().join("pages.csv")).unwrap();
+    let text: String = pages
         .lines()
         .map(|l| {
             if l.starts_with("101,") {
@@ -330,7 +330,7 @@ fn the_view_columns_give_902_its_surface_view_and_refuse_the_defective_ones() {
         })
         .map(|l| l + "\n")
         .collect();
-    let b = golden_with("pages.csv", &text);
+    let b = fixture_with("pages.csv", &text);
     let malformed = messages(&b, Code::MALFORMED_ITEM);
     for expected in [
         "a surface view goes on a panel_layout page",
@@ -376,11 +376,11 @@ fn a_repeated_page_key_takes_its_view_from_the_row_that_imported() {
             .collect();
         (pages, items)
     };
-    let expected = pages_and_views(&golden());
+    let expected = pages_and_views(&fixture());
     assert_eq!((expected.0.len(), expected.1.len()), (1, 1));
 
-    let golden_pages = std::fs::read_to_string(common::tables_dir().join("pages.csv")).unwrap();
-    let row = golden_pages
+    let pages = std::fs::read_to_string(common::fixture_dir().join("pages.csv")).unwrap();
+    let row = pages
         .lines()
         .find(|l| l.starts_with("902,"))
         .unwrap()
@@ -389,7 +389,7 @@ fn a_repeated_page_key_takes_its_view_from_the_row_that_imported() {
     let malformed = row.replace(",qet10,-UC1,25 167,abbreviated", ",bad,-UC1,0 0,full");
     assert!(other != row && malformed != row);
     let with_902 = |rows: [&str; 2]| -> String {
-        golden_pages
+        pages
             .lines()
             .map(|l| {
                 if l.starts_with("902,") {
@@ -403,7 +403,7 @@ fn a_repeated_page_key_takes_its_view_from_the_row_that_imported() {
     };
 
     // The malformed first row is refused, and the second row gives the page and the view.
-    let b = golden_with("pages.csv", &with_902([&malformed, &row]));
+    let b = fixture_with("pages.csv", &with_902([&malformed, &row]));
     assert_eq!(
         messages(&b, Code::MALFORMED_ITEM)
             .into_iter()
@@ -414,6 +414,6 @@ fn a_repeated_page_key_takes_its_view_from_the_row_that_imported() {
     assert_eq!(pages_and_views(&b), expected);
 
     // A valid first row gives both; the repeated second row is dropped as a duplicate.
-    let b = golden_with("pages.csv", &with_902([&row, &other]));
+    let b = fixture_with("pages.csv", &with_902([&row, &other]));
     assert_eq!(pages_and_views(&b), expected);
 }

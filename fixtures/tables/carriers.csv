@@ -1,0 +1,9 @@
+key,surface,kind,part,path,profile,width,height,pe_bond
+D1,-UC1,duct,TBD wiring duct,0 880;650 880,,40,60,
+D2,-UC1,duct,TBD wiring duct,20 860;20 0,,40,60,
+D3,-UC1,duct,TBD wiring duct,630 860;630 340,,40,60,
+D4,-UC1,duct,TBD wiring duct,40 600;610 600,,40,60,
+D5,-UC1,duct,TBD wiring duct,40 360;610 360,,40,60,
+R1,-UC1,rail,TBD DIN rail,40 740;610 740,ts35x7_5,,,true
+R2,-UC1,rail,TBD DIN rail,40 480;610 480,ts35x7_5,,,true
+R3,-UC1,rail,TBD DIN rail,40 200;610 200,ts35x7_5,,,true

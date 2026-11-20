@@ -199,6 +199,13 @@ precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
 SPDX-License-Identifier = "CC0-1.0"
 
+# L8: the CSV tables of the table importer's tests (fixtures/tables/README.md); CSV files cannot carry a header.
+[[annotations]]
+path = "fixtures/tables/*.csv"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
+SPDX-License-Identifier = "CC0-1.0"
+
 # L8: binary test inputs kept from the former fuzz corpus: three command sequences and one EPLAN archive; the synthetic
 # EDZ of the part readers' tests (WP-S3.18), made by those tests (`EW_BLESS=1` writes them).
 [[annotations]]

@@ -1,0 +1,3 @@
+key,profile,name,basis,basis_note,standards,dbu_code,verified,pe_class,class_rules,bond_rule
+company.0.75-1.5,size,0.75/1.5,,,,,true,highest_at_ends,"[{""select"":{""ptype"":[""pe"",""pen"",""fe""]},""class"":""pe""},{""select"":{""discipline"":""bus""},""class"":""bus""},{""select"":{""analogue"":true},""class"":""analogue""},{""select"":{""ac_dc"":""ac"",""u_min"":""50""},""class"":""mains""},{""select"":{},""class"":""control""}]","{""colour_from"":""pe"",""class_from"":""non_pe_side""}"
+company.dbu-wh-24v,colour,DBU/WH 24 V,company_convention,"company convention; codes per IEC 60757, DBU is a company code (BU, dark shade)",IEC60757 / EN60204-1,DBU:BU:dark,true,,,

@@ -1,0 +1,3 @@
+key,interface,port_label,bus,role,address,termination,logical_net,physical_net
+-3X1,DP,,profibus_dp,passive,not_applicable,on,,DP
+-201U1#bus,DP,,profibus_dp,slave,tbd,,DP,DP

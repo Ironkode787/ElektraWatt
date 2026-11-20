@@ -1,0 +1,5 @@
+key,role,name,street,postcode,city,country,personal_data
+customer,customer,<customer>,,,,,true
+end_user,end_user,<end user>,<address>,,,<country>,true
+engineer,engineer,<engineer>,,,,,true
+panel_builder,panel_builder,,,,,,true

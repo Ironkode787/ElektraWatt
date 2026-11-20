@@ -338,6 +338,11 @@ allowed = ["CC0-1.0"]
 glob = "fixtures/format/**"
 allowed = ["CC0-1.0"]
 
+# L8 (test fixtures): fixtures/tables/ holds the CSV tables of the table importer's tests.
+[[path]]
+glob = "fixtures/tables/**"
+allowed = ["CC0-1.0"]
+
 # ---------------------------------------------------------------------------------------------------------------
 # L12: CI workflows, scripts and tools (MIT OR Apache-2.0), so that others may copy the gates.
 [[path]]

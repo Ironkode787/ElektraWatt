@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The bus tables (doc 20 §11.1): `logical_nets.csv`, `physical_nets.csv` and `bus_ports.csv` on the
-//! golden tables, and the rows that are refused when the golden bus tables are replaced by small ones.
+//! The bus tables: `logical_nets.csv`, `physical_nets.csv` and `bus_ports.csv` on the
+//! test tables, and the rows that are refused when their bus tables are replaced by small ones.
 
 use crate::common;
 
@@ -47,10 +47,10 @@ fn physical_nets(b: &ImportBatch) -> Vec<&PhysicalNet> {
         .collect()
 }
 
-/// BU-1's import half: the golden DP nets and the two ports, without a finding.
+/// BU-1's import half: the DP nets and the two ports, without a finding.
 #[test]
-fn the_golden_dp_nets_and_ports_are_typed() {
-    let b = common::import(&common::golden_inputs()).expect("the golden tables import");
+fn the_dp_nets_and_ports_are_typed() {
+    let b = common::import(&common::fixture_inputs()).expect("the test tables import");
     assert!(b.report.entries.is_empty(), "{:#?}", b.report.entries);
     let lnets = logical_nets(&b);
     assert_eq!(lnets.len(), 1);
@@ -87,14 +87,14 @@ const LNETS: &str = "key,bus,name,master,rate\n";
 const PNETS: &str = "key,name,medium,order_hint\n";
 const PORTS: &str = "key,interface,port_label,bus,role,address,termination,logical_net,physical_net\n";
 
-/// The golden tables with the three bus tables replaced.
+/// The test tables with the three bus tables replaced.
 fn run(lnets: &str, pnets: &str, ports: &str) -> ImportBatch {
     let replaced = [
         ("logical_nets.csv", format!("{LNETS}{lnets}")),
         ("physical_nets.csv", format!("{PNETS}{pnets}")),
         ("bus_ports.csv", format!("{PORTS}{ports}")),
     ];
-    let inputs: Vec<ImportInput> = common::golden_inputs()
+    let inputs: Vec<ImportInput> = common::fixture_inputs()
         .into_iter()
         .map(|i| match replaced.iter().find(|(n, _)| *n == i.name()) {
             Some((n, text)) => ImportInput::new(n, text.as_bytes().to_vec()).expect("a name"),

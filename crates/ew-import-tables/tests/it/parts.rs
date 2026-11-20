@@ -1,24 +1,24 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `parse_parts_tables`, the strict parts import into an existing project. The golden tables give the
+//! `parse_parts_tables`, the strict parts import into an existing project. The test tables give the
 //! bootstrap's part copies (but for the provenance), deterministically; a missing or unknown column and a bad row
 //! refuse the whole import with their pointer.
 
 use crate::common;
 
-use common::{golden_inputs, library, tables_dir};
+use common::{fixture_dir, fixture_inputs, library};
 use ew_ids::{Id, Uuid};
 use ew_import_tables::{SiblingTables, TablesImporter, bootstrap_context, ids, parse_parts_tables};
 use ew_interop_api::ImportError;
 use ew_schema::{LibCopy, LibDocument, Part, Project};
 
 fn read(name: &str) -> String {
-    std::fs::read_to_string(tables_dir().join(name)).unwrap()
+    std::fs::read_to_string(fixture_dir().join(name)).unwrap()
 }
 
-/// The golden parts tables, all five.
-fn golden() -> (String, Vec<(&'static str, String)>) {
+/// The test tables' parts tables, all five.
+fn fixture() -> (String, Vec<(&'static str, String)>) {
     let siblings = SiblingTables::FILE_NAMES.iter().map(|n| (*n, read(n))).collect();
     (read("parts.csv"), siblings)
 }
@@ -36,17 +36,17 @@ fn parse(
 }
 
 #[test]
-fn the_golden_tables_give_the_bootstraps_manufacturer_copies() {
+fn the_tables_give_the_bootstraps_manufacturer_copies() {
     // One project-local manufacturer copy per manufacturer name, in name order, the bootstrap's
     // but for the provenance; the part references name them and keep no `key`.
-    let (parts, siblings) = golden();
+    let (parts, siblings) = fixture();
     let mut s = SiblingTables::default();
     for (n, t) in &siblings {
         assert!(s.set(n, t));
     }
-    let golden_project = ids::project_id("J-E-2416");
+    let tables_project = ids::project_id("J-E-2416");
     let read =
-        parse_parts_tables(&parts, &s, golden_project, "parts.csv", &library()).expect("the tables import");
+        parse_parts_tables(&parts, &s, tables_project, "parts.csv", &library()).expect("the tables import");
     let names: Vec<&str> = read
         .manufacturers
         .iter()
@@ -66,10 +66,10 @@ fn the_golden_tables_give_the_bootstraps_manufacturer_copies() {
         ]
     );
     let batch = TablesImporter::new(library())
-        .import(&golden_inputs(), &bootstrap_context())
+        .import(&fixture_inputs(), &bootstrap_context())
         .unwrap();
     for m in &read.manufacturers {
-        assert_eq!(m.library_id.as_uuid(), golden_project.as_uuid());
+        assert_eq!(m.library_id.as_uuid(), tables_project.as_uuid());
         assert_eq!(m.item.key.as_str(), m.item.name.as_neutral().unwrap_or_default());
         let b = batch
             .lib
@@ -96,12 +96,12 @@ fn project() -> Id<Project> {
 }
 
 #[test]
-fn the_golden_tables_give_the_bootstraps_part_copies() {
-    let (parts, siblings) = golden();
-    let golden_project = ids::project_id("J-E-2416");
-    let copies = parse(&parts, &siblings, golden_project).expect("the golden parts tables import");
+fn the_tables_give_the_bootstraps_part_copies() {
+    let (parts, siblings) = fixture();
+    let tables_project = ids::project_id("J-E-2416");
+    let copies = parse(&parts, &siblings, tables_project).expect("the parts tables import");
     let batch = TablesImporter::new(library())
-        .import(&golden_inputs(), &bootstrap_context())
+        .import(&fixture_inputs(), &bootstrap_context())
         .unwrap();
     let boot: Vec<&LibCopy<Part>> = batch
         .lib
@@ -138,7 +138,7 @@ fn the_golden_tables_give_the_bootstraps_part_copies() {
 
 #[test]
 fn copies_are_project_local_and_deterministic() {
-    let (parts, siblings) = golden();
+    let (parts, siblings) = fixture();
     let a = parse(&parts, &siblings, project()).unwrap();
     let b = parse(&parts, &siblings, project()).unwrap();
     assert_eq!(a, b);
@@ -155,7 +155,7 @@ fn copies_are_project_local_and_deterministic() {
 
 #[test]
 fn without_siblings_the_import_is_parts_only() {
-    let (parts, _) = golden();
+    let (parts, _) = fixture();
     let copies = parse(&parts, &[], project()).unwrap();
     assert!(!copies.is_empty());
     assert!(

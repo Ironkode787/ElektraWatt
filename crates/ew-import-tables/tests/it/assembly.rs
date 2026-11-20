@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The assembly table (doc 20 §14.2, D-36, D-41): the `assembly` aspect of -201U1 in the golden tables, and the
+//! The assembly table (D-36, D-41): the `assembly` aspect of -201U1 in the test tables, and the
 //! rows that are refused on small in-memory tables.
 
 use crate::common;
@@ -43,11 +43,11 @@ fn aspect<'b>(b: &'b ImportBatch, key: &str) -> Option<&'b Assembly> {
     device(b, key).aspects.assembly.as_ref()
 }
 
-/// The golden batch gives -201U1 two order codes in order, named by part key, and no other device an assembly
+/// The test tables give -201U1 two order codes in order, named by part key, and no other device an assembly
 /// aspect.
 #[test]
-fn the_golden_valve_terminal_carries_its_two_order_codes() {
-    let b = common::import(&common::golden_inputs()).expect("the golden tables import");
+fn the_valve_terminal_carries_its_two_order_codes() {
+    let b = common::import(&common::fixture_inputs()).expect("the test tables import");
     assert!(b.report.entries.is_empty(), "{:#?}", b.report.entries);
     let assembly = aspect(&b, "-201U1").expect("the assembly aspect");
     assert_eq!(assembly.bom_basis, BomBasis::Assembly);
@@ -65,7 +65,7 @@ fn the_golden_valve_terminal_carries_its_two_order_codes() {
     for (config, key) in configs.iter().zip([ORDER_CODE_1, ORDER_CODE_2]) {
         assert_eq!(config.part, Some(PartRef::new(part_copy(&b, key))), "{key}");
     }
-    // The parts are configured products, one set each (doc 20 §14.2).
+    // The parts are configured products, one set each.
     for key in [ORDER_CODE_1, ORDER_CODE_2] {
         let part = b
             .lib

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Strict and lenient colour import (doc 20 §19 D-17, doc 14 §4.12 and §8.4, doc 15 §2.6 and §4.10): a foreign
+//! Strict and lenient colour import (D-17, doc 14 §4.12 and §8.4, doc 15 §2.6 and §4.10): a foreign
 //! colour code such as `BR` fails its row in a strict import (EW-IMP-002) and is kept and reported with a quick
 //! fix in a lenient one (EW-IMP-008).
 
@@ -21,9 +21,9 @@ fn import(inputs: &[ImportInput], mode: ImportMode) -> ImportBatch {
         .expect("the import succeeds")
 }
 
-/// The golden tables with `from` replaced by `to` in table `file` (`from` occurs exactly once).
-fn golden_with(file: &str, from: &str, to: &str) -> Vec<ImportInput> {
-    common::golden_inputs()
+/// The test tables with `from` replaced by `to` in table `file` (`from` occurs exactly once).
+fn fixture_with(file: &str, from: &str, to: &str) -> Vec<ImportInput> {
+    common::fixture_inputs()
         .into_iter()
         .map(|input| {
             if input.name() != file {
@@ -81,7 +81,7 @@ const BR_ON_BN: (&str, &str, &str) = (
 #[test]
 fn strict_refuses_a_foreign_colour_code() {
     let (file, from, to) = BR_ON_BN;
-    let b = import(&golden_with(file, from, to), ImportMode::Strict);
+    let b = import(&fixture_with(file, from, to), ImportMode::Strict);
     assert!(conductor(&b, "-106W1:BN").is_none());
     let found: Vec<&ReportEntry> = entries(&b, Code::MALFORMED_ITEM)
         .into_iter()
@@ -111,7 +111,7 @@ fn the_bootstrap_runs_strict() {
 #[test]
 fn lenient_keeps_a_foreign_colour_code_with_a_quick_fix() {
     let (file, from, to) = BR_ON_BN;
-    let b = import(&golden_with(file, from, to), ImportMode::Lenient);
+    let b = import(&fixture_with(file, from, to), ImportMode::Lenient);
     let c = conductor(&b, "-106W1:BN").expect("the conductor is kept");
     assert_eq!(
         c.colour.as_ref().map(ColourSpec::codes),
@@ -137,10 +137,10 @@ fn lenient_keeps_a_foreign_colour_code_with_a_quick_fix() {
             params: json!({"kind": "conductor", "targets": [id], "path": "colour", "value": ["BN"]}),
         })
     );
-    // Without the changed cell the conductor is the golden one.
-    let golden = import(&common::golden_inputs(), ImportMode::Lenient);
-    assert!(golden.report.entries.is_empty());
-    let g = conductor(&golden, "-106W1:BN").unwrap();
+    // Without the changed cell the conductor is the table's own.
+    let unchanged = import(&common::fixture_inputs(), ImportMode::Lenient);
+    assert!(unchanged.report.entries.is_empty());
+    let g = conductor(&unchanged, "-106W1:BN").unwrap();
     assert_eq!(
         g.colour.as_ref().map(ColourSpec::codes),
         Some(&[iec(IecColour::Bn)][..])
@@ -230,7 +230,7 @@ fn a_connection_override_gets_a_quick_fix_on_overrides_colour() {
         "W1,W1,101,ip:J-E-206-L@101,1X1:1/field,,,,,,,,,",
         "W1,W1,101,ip:J-E-206-L@101,1X1:1/field,,,,,,,GE,,",
     );
-    let inputs = golden_with(file, from, to);
+    let inputs = fixture_with(file, from, to);
     let b = import(&inputs, ImportMode::Lenient);
     let id = record_id::<Connection>("connections", "W1");
     let c = b
@@ -289,7 +289,7 @@ fn a_cable_core_finding_has_no_quick_fix() {
         "NEBU-G78W5-K-2-N-LE5:BN,NEBU-G78W5-K-2-N-LE5,4,BN,BN,",
         "NEBU-G78W5-K-2-N-LE5:BN,NEBU-G78W5-K-2-N-LE5,4,BN,BR,",
     );
-    let inputs = golden_with(file, from, to);
+    let inputs = fixture_with(file, from, to);
     let cores = |b: &ImportBatch| {
         b.lib
             .iter()
@@ -333,7 +333,7 @@ fn a_colour_profile_row_follows_the_mode() {
         "3,24 VDC,0V,M,White,WH,m,",
         "3,24 VDC,0V,M,White,WS,m,",
     );
-    let inputs = golden_with(file, from, to);
+    let inputs = fixture_with(file, from, to);
     let b = import(&inputs, ImportMode::Lenient);
     let found = entries(&b, Code::FOREIGN_VALUE);
     assert_eq!(found.len(), 1, "{:#?}", b.report.entries);

@@ -1,8 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Shared helpers of the integration tests: the built-in library from `content/`, table inputs from memory
-//! or from `golden/J-E-2416/tables/`, and a default import.
+//! Shared helpers of the integration tests: the built-in library from `content/`, table inputs from memory,
+//! from the test tables `fixtures/tables/` or from the reference tables `golden/J-E-2416/tables/` (which only
+//! `golden.rs` and `tables.rs` read), and a default import.
 
 #![allow(dead_code)]
 
@@ -24,6 +25,11 @@ pub fn tables_dir() -> PathBuf {
     repo().join("golden/J-E-2416/tables")
 }
 
+/// The test tables directory `fixtures/tables/`.
+pub fn fixture_dir() -> PathBuf {
+    repo().join("fixtures/tables")
+}
+
 /// Every `*.json` library document of `content/<sub>` (not recursive).
 pub fn content_docs(sub: &str) -> Vec<LibDocument> {
     let dir = repo().join("content").join(sub);
@@ -42,7 +48,7 @@ pub fn content_docs(sub: &str) -> Vec<LibDocument> {
         .collect()
 }
 
-/// The built-in library of the golden project: the `@qet10` symbols, the FnDefs and the forms. Read from
+/// The built-in library of the tables: the `@qet10` symbols, the FnDefs and the forms. Read from
 /// `content/` once per test binary; every call returns a copy.
 pub fn library() -> BuiltinLibrary {
     static LIBRARY: OnceLock<BuiltinLibrary> = OnceLock::new();
@@ -66,8 +72,18 @@ pub fn inputs(files: &[(&str, &str)]) -> Vec<ImportInput> {
 
 /// The committed golden tables as inputs, in file-name order.
 pub fn golden_inputs() -> Vec<ImportInput> {
-    let mut paths: Vec<PathBuf> = std::fs::read_dir(tables_dir())
-        .expect("golden/J-E-2416/tables exists")
+    csv_inputs(&tables_dir())
+}
+
+/// The test tables `fixtures/tables/` as inputs, in file-name order.
+pub fn fixture_inputs() -> Vec<ImportInput> {
+    csv_inputs(&fixture_dir())
+}
+
+/// The `*.csv` files of `dir` as inputs, in file-name order.
+fn csv_inputs(dir: &Path) -> Vec<ImportInput> {
+    let mut paths: Vec<PathBuf> = std::fs::read_dir(dir)
+        .unwrap_or_else(|e| panic!("reading {}: {e}", dir.display()))
         .map(|e| e.unwrap().path())
         .filter(|p| p.extension().is_some_and(|e| e == "csv"))
         .collect();
@@ -86,7 +102,7 @@ pub fn context() -> ImportContext {
     ImportContext::new(Id::from_uuid(ew_ids::Uuid::nil()))
 }
 
-/// Imports `inputs` with the golden library and the default context.
+/// Imports `inputs` with the built-in library and the default context.
 pub fn import(inputs: &[ImportInput]) -> Result<ImportBatch, ImportError> {
     TablesImporter::new(library()).import(inputs, &context())
 }
