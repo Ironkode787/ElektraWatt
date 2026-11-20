@@ -59,6 +59,9 @@
 //! aside. A unit that then kept its place where a moved unit came to stand is in the way from the start, and the
 //! trees are set again ([`PASSES`] times at most).
 //!
+//! A card that is the root of its tree steps along its edge first, clear of its supply's way and of another card's
+//! columns ([`CardSteps`]): the judge tries the arrangement with that step, with a part of it and without it.
+//!
 //! A tree is set from its root where it stands. Where a unit of it then has no room (it would leave the drawing area
 //! or stand on a unit that is set) the root steps by whole steps, the least first and [`REACH`] at most each way, until
 //! the whole tree has room; the roots of its shape that stood level with it take the same step, so that a row of cards
@@ -122,7 +125,7 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use crate::consts::{
     ANCHORS, BODY_GAP, CHAIN_GAP, CHAIN_GAP_MIN, LABEL_CLEAR, MARK_LEAD, MARK_PITCH, PASSES, REACH, ROW_GAP,
-    ROW_PULL, TICKS_PER_STEP, TRACK_PITCH, TRACK_PITCH_NARROW, TRUNK_GAP,
+    ROW_PULL, STUB, TICKS_PER_STEP, TRACK_PITCH, TRACK_PITCH_NARROW, TRUNK_GAP,
 };
 use crate::labels::first_places;
 use crate::measure::measure;
@@ -143,6 +146,15 @@ pub(super) enum Kind {
     Mate,
     /// A level pair that most of the unit's row-mates overrule: they face the same host.
     Overruled,
+}
+
+/// How a card that is its tree's root steps along its edge ([`Sketch::card_step`]): clear of its supply's way and of
+/// another card's columns, clear of its supply's way alone, or not at all. Which of them is best the judge finds.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(super) enum CardSteps {
+    Columns,
+    Supply,
+    None,
 }
 
 /// A relation between pin `pa` of unit `a` and pin `pb` of unit `b`.
@@ -239,6 +251,8 @@ pub(super) struct Sketch<'a> {
     /// The rows the person made, by unit: the units joined through mates that stand side by side have one number in
     /// the first list, those that stand one under another one number in the second.
     strips: [Vec<usize>; 2],
+    /// How a card that is its tree's root steps along its edge ([`Sketch::card_step`]).
+    pub card_steps: CardSteps,
 }
 
 /// Rounds `v` ticks up (away from zero) to a whole step.
@@ -457,6 +471,7 @@ impl<'a> Sketch<'a> {
             edges: Vec::new(),
             steps: BTreeMap::new(),
             strips: [Vec::new(), Vec::new()],
+            card_steps: CardSteps::Columns,
         };
         sketch.tree();
         sketch
@@ -1170,10 +1185,106 @@ impl<'a> Sketch<'a> {
     fn first_step(&self, root: usize, wish: &BTreeMap<usize, Pt>) -> Pt {
         let rail = self.steps.get(&root).map_or(Pt::default(), |s| s.0);
         let row = wish.get(&root).copied().unwrap_or_default();
+        let card = self.card_step(root, self.card_steps);
         Pt::new(
-            if rail.x != 0 { rail.x } else { row.x },
+            if rail.x != 0 {
+                rail.x
+            } else if row.x != 0 {
+                row.x
+            } else {
+                card.x
+            },
             if rail.y != 0 { rail.y } else { row.y },
         )
+    }
+
+    /// Whether a card of the page would take a step along its edge ([`Sketch::card_step`]).
+    pub fn cards_step(&self) -> bool {
+        (0..self.units.len()).any(|u| self.card_step(u, CardSteps::Columns) != Pt::default())
+    }
+
+    /// The step a card takes along its edge as the root of its tree (§4.4), so that its channels keep clear of its
+    /// own supply and of another card's channels. Its channel pins face up or down and its supply pins stand on its
+    /// left side. (a) Every pin its supply is wired to that lies on the side its channels face (the controller's
+    /// supply pin, a mark, the supply pin of a card at the other edge) stands left of the card, where the wire drops
+    /// beside the first channel and crosses none. (b) Its channel columns stand half a pitch from the columns of a
+    /// card of the same pitch whose pins face its own, so that the parts of the two cards' channels do not stand
+    /// against each other ([`CardSteps::Columns`] only). No step where the card would leave the drawing area.
+    fn card_step(&self, u: usize, steps: CardSteps) -> Pt {
+        if steps == CardSteps::None {
+            return Pt::default();
+        }
+        let card = self.units[u]
+            .parts
+            .iter()
+            .map(|i| self.w.parts[*i])
+            .find(|p| p.role == Role::Card);
+        let Some(card) = card else {
+            return Pt::default();
+        };
+        let facing = |s: Side| card.pins.iter().filter(|p| p.side == Some(s)).count();
+        let s = if facing(Side::Up) >= facing(Side::Down) {
+            Side::Up
+        } else {
+            Side::Down
+        };
+        if self.units[u].fixed || facing(s) < 2 || facing(opposite(s)) > 0 {
+            return Pt::default();
+        }
+        let body = card.bounds();
+        let ahead = |p: Pt| {
+            if s == Side::Up {
+                p.y < body.y0
+            } else {
+                p.y > body.y1
+            }
+        };
+        let mut left = body.x0;
+        for pin in card.pins.iter().filter(|p| p.side == Some(Side::Left)) {
+            for net in self.w.nets.iter().filter(|n| n.pins.contains(&pin.id)) {
+                for q in &net.pins {
+                    let (i, at, side) = self.w.pins[q];
+                    if self.unit_of[i] == u || !ahead(at) {
+                        continue;
+                    }
+                    let way = match side {
+                        Some(Side::Left) => at.x - STUB,
+                        Some(Side::Right) => at.x + STUB,
+                        _ => at.x,
+                    };
+                    left = left.max(way + TICKS_PER_STEP);
+                }
+            }
+        }
+        let mut by = whole_up(left - body.x0);
+        let columns = |part: &crate::model::Part, side: Side| -> Vec<Tick> {
+            let mut xs: Vec<Tick> = part
+                .pins
+                .iter()
+                .filter(|p| p.side == Some(side))
+                .map(|p| part.at.x + p.at.x)
+                .collect();
+            xs.sort_unstable();
+            xs
+        };
+        let own = columns(card, s);
+        let pitch = own[1] - own[0];
+        let other = self
+            .w
+            .parts
+            .iter()
+            .filter(|p| p.role == Role::Card && p.id != card.id && ahead(p.at))
+            .map(|p| columns(p, opposite(s)))
+            .find(|xs| xs.len() >= 2 && xs[1] - xs[0] == pitch);
+        if let (Some(xs), CardSteps::Columns) = (other, steps) {
+            let off = (own[0] + by - xs[0]).rem_euclid(pitch);
+            by += whole_up((pitch / 2 - off).rem_euclid(pitch));
+        }
+        let room = self.w.page.area.x1 - TICKS_PER_STEP - body.x1;
+        if by > room {
+            return Pt::default();
+        }
+        Pt::new(by, 0)
     }
 
     /// The anchor of the tree that hangs from `root`: of its heaviest units, the one from which the tree is set with

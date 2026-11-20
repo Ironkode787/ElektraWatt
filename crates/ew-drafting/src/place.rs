@@ -25,6 +25,9 @@
 //! 7. **Again**, on the page the plan leaves, until a run changes nothing ([`ROUNDS`] at most): the plan offered is
 //!    the sum, and a second press finds nothing to do.
 //!
+//! On a page where a card would step along its edge (`sketch::CardSteps`) steps 2 to 6 are made three times, with the
+//! step, with the part of it that clears the card's supply, and without it; the best page is offered.
+//!
 //! Nothing here estimates what the router will draw: every plan compared has been routed. The work of one run is one
 //! run of the router over the page for each plan tried: the whole arrangement, at most [`BRANCHES`] trees, at most
 //! twice [`BRANCHES`] plans without or with one branch, and at most [`BRANCHES`] for the price. A run of the router
@@ -41,7 +44,7 @@ use crate::rules::{broken, rules_kept};
 
 mod sketch;
 
-use sketch::Sketch;
+use sketch::{CardSteps, Sketch};
 
 /// What Arrange and route plans for a page (§4.9): the parts' moves and the routes of the page as it would become.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
@@ -186,13 +189,43 @@ struct Taken {
     quality: crate::Quality,
 }
 
-/// One run of Arrange and route (module documentation).
+/// One run of Arrange and route (module documentation). Where a card would step along its edge ([`CardSteps`]) the
+/// arrangement is made three ways: with that step, with the step that clears the supply alone, and without it; the
+/// best page by the measure with the price of its moves is offered.
 fn arrange_once(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> Arranged {
+    let (stepped, cards) = arrange_try(page, scope, fixed, CardSteps::Columns);
+    if !cards {
+        return stepped;
+    }
+    let score = |a: &Arranged| {
+        let q = &a.plan.after;
+        let price = MOVE_PRICE * i64::from(TICKS_PER_STEP) * a.moves.len() as i64;
+        (q.faults, q.unrouted, q.cost + price)
+    };
+    let mut best = stepped;
+    for steps in [CardSteps::Supply, CardSteps::None] {
+        let (other, _) = arrange_try(page, scope, fixed, steps);
+        if score(&other) < score(&best) {
+            best = other;
+        }
+    }
+    best
+}
+
+/// One arrangement routed and judged; and whether a card of the page would take a step along its edge.
+fn arrange_try(
+    page: &DraftPage,
+    scope: Scope<'_>,
+    fixed: &[ew_ids::Uuid],
+    cards: CardSteps,
+) -> (Arranged, bool) {
     let before = measure(page);
     // Route over the same wires (every wire of the scope, whoever shaped it): the plan to beat.
     let routed_only = route::route(page, &jobs(page, scope, fixed));
     let baseline = routed_only.after.clone();
     let mut sk = Sketch::new(page, scope, fixed);
+    sk.card_steps = cards;
+    let stepping = sk.cards_step();
     sk.lay();
     // The rules read the parts and the nets alone: the parts a broken rule names go back, with what hangs on them,
     // until none breaks.
@@ -370,17 +403,23 @@ fn arrange_once(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> A
     };
     let Some(taken) = best else {
         // Without a better plan: Route's plan, and the parts that stay against a rule named all the same.
-        return Arranged {
-            plan: finished(page, page, routed_only, before, baseline),
-            left: left(&[]),
-            moves: Vec::new(),
-        };
+        return (
+            Arranged {
+                plan: finished(page, page, routed_only, before, baseline),
+                left: left(&[]),
+                moves: Vec::new(),
+            },
+            stepping,
+        );
     };
-    Arranged {
-        left: left(&taken.moves),
-        plan: finished(page, &taken.moved, taken.plan, before, taken.quality),
-        moves: taken.moves,
-    }
+    (
+        Arranged {
+            left: left(&taken.moves),
+            plan: finished(page, &taken.moved, taken.plan, before, taken.quality),
+            moves: taken.moves,
+        },
+        stepping,
+    )
 }
 
 /// The jobs of Arrange and route (§3.2): every wire of the scope, whoever shaped it (the page's, or the selection's

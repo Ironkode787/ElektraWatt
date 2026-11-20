@@ -1214,8 +1214,8 @@ pub struct RoutePageResult {
     pub routed: Vec<String>,
     /// The wires left unrouted, with why.
     pub unrouted: Vec<RouteUnrouted>,
-    /// The routed wires whose new route crosses a text that could not step aside (docs/design/06a-drafting.md §3.7), by
-    /// their ends.
+    /// The routed wires whose new route crosses a text that could not step aside (docs/design/06a-drafting.md §3.7), and
+    /// the wires the plan leaves as they were that such a text now lies across, by their ends.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub across_texts: Vec<String>,
     /// With `--arrange`: the symbols the plan moved, by their tags, in the order of their IDs.

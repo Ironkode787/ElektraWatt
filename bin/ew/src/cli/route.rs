@@ -183,7 +183,8 @@ fn page_result(
         .across_texts
         .iter()
         .map(|(w, _, _)| w.0)
-        .filter(|w| changed.contains(w))
+        // (And a wire the plan leaves as it was that a text now lies across: a text that had to step aside.)
+        .filter(|w| changed.contains(w) || !p.before.findings.across_texts.iter().any(|(b, _, _)| b.0 == *w))
         .collect();
     results::RoutePageResult {
         folio: folio.to_owned(),

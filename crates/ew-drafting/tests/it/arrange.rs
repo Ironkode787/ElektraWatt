@@ -945,3 +945,47 @@ fn a_row_under_a_box_stands_nearer_than_the_chain_gap_and_clear_of_it() {
         );
     }
 }
+
+/// A card of inputs set at the foot under the controller's box, its supply pin on its left side wired to the
+/// controller's and to that of a card of outputs at the head (§4.4): where it stands its supply has to cross its
+/// first channels. As the root of its tree it steps along the foot until the pins its supply comes from stand left of
+/// it, its strip and its devices with it, and no supply wire crosses a channel.
+#[test]
+fn a_card_under_the_controller_steps_aside_until_its_supply_crosses_no_channel() {
+    let mut b = Page::new(100, 62);
+    b.part("K", p(4, 6), (p(0, 0), p(14, 12)), &[("M", p(7, 12), Side::Down)]);
+    let row = |side: Side, y: Tick| {
+        [
+            ("0", p(5, y), side),
+            ("1", p(13, y), side),
+            ("2", p(21, y), side),
+            ("M", p(0, 4), Side::Left),
+        ]
+    };
+    let out = b.part("A2", p(22, 6), (p(0, 0), p(26, 6)), &row(Side::Down, 6));
+    b.role(out, Role::Card);
+    let inputs = b.part("A1", p(4, 50), (p(0, 0), p(26, 6)), &row(Side::Up, 0));
+    b.role(inputs, Role::Card);
+    b.wire("m1", b.pin("A1", "M"), b.pin("K", "M"), &[]);
+    b.wire("m2", b.pin("A2", "M"), b.pin("A1", "M"), &[]);
+    for k in 0..3 {
+        let (terminal, sensor) = (format!("X{k}"), format!("B{k}"));
+        b.terminal(&terminal, p(9 + 8 * k, 34));
+        b.device(&sensor, p(9 + 8 * k, 19));
+        b.wire(&format!("s{k}"), b.pin(&sensor, "2"), b.pin(&terminal, "1"), &[]);
+        b.wire(&format!("c{k}"), b.pin(&terminal, "2"), b.pin("A1", &format!("{k}")), &[]);
+    }
+    let (_, done) = run(&b.page, &[]);
+    assert_eq!(sound(&done), (0, 0, 0), "{:?}", measure(&done).findings);
+    let card = at(&done, "A1");
+    assert!(card.x >= s(22), "the card stands right of the pins its supply comes from: {card:?}");
+    assert_eq!(card.y, s(50), "along the foot");
+    for k in 0..3 {
+        let x = card.x + s(5 + 8 * k);
+        assert_eq!(
+            (at(&done, &format!("X{k}")).x, at(&done, &format!("B{k}")).x),
+            (x, x),
+            "channel {k} came with it"
+        );
+    }
+}

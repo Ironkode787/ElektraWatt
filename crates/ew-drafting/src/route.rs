@@ -30,7 +30,9 @@
 //!    turn-backs) veto nothing.
 //! 9. **Never worse** (§1.2): the plan is offered only when the page is better by [`measure`] and no wire routed
 //!    before that was free of a finding (F2 to F6, C4) gets one; nor a text free of C5, where the plan routes no wire
-//!    that had no route. A net that breaks it goes back to its stored drawing once; then the rule decides.
+//!    that had no route. A net that breaks it goes back to its stored drawing once; then the rule decides. A plan
+//!    that routes a wire that had no route is not refused for a text across a wire routed before (C4): only for a
+//!    fault on one.
 //! 10. **Marks follow** (§3.10) the wires they name.
 //!
 //! A job without a way keeps its stored route, or stays unrouted, and is named with the first thing in its way.
@@ -1298,7 +1300,14 @@ pub fn route(page: &DraftPage, jobs: &Jobs) -> Plan {
         after = measure(&r.page);
     }
     let (bad, texts) = worse(page, &before, &after);
-    if !after.better_than(&before) || !bad.is_empty() || texts {
+    // A wire without a route is the worst state a wire has: a plan that routes one is not refused for a text that then
+    // lies across a wire routed before (the plan's quality names it); for a fault on such a wire it is.
+    let faulty_after = wires_with_faults(&after);
+    let gained = after.unrouted < before.unrouted;
+    let refused = bad
+        .iter()
+        .any(|w| !gained || (faulty_after.contains(w) && !faulty_before.contains(w)));
+    if !after.better_than(&before) || refused || texts {
         return empty(before);
     }
     let mut plan = Plan {

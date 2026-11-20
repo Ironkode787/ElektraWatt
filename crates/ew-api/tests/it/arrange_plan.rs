@@ -96,7 +96,7 @@ fn layout_apply_refuses_a_kept_symbol_a_symbol_without_its_routes_and_one_out_of
 
 /// Every plan Arrange and route offers on a page of Golden A is stored by its `layout.apply`: on its grid, whose step
 /// is no whole number of nm, the route of a moved symbol's wire ends on the number the moved connection point then
-/// has (docs/design/06a-drafting.md §2.1).
+/// has (docs/design/06a-drafting.md §2.1). And on the page as stored a second press offers nothing.
 #[test]
 fn every_plan_arrange_offers_is_stored_by_its_command() {
     let batch = golden_common::batch();
@@ -116,6 +116,12 @@ fn every_plan_arrange_offers_is_stored_by_its_command() {
             panic!("folio {folio}: {e}");
         }
         stored |= !plan.moves.is_empty();
+        // The stored page is the plan's own fixed point: a second press offers nothing (§4.8).
+        let again = s.arrange_plan(&folio, &RouteScope::Page, &[]);
+        assert!(
+            again.is_none_or(|p| p.params.is_none()),
+            "folio {folio}: a second press offers a plan"
+        );
         s.undo(&Origin::Gui).expect("undo");
     }
     assert!(stored, "a plan with moved symbols was stored");
