@@ -17,7 +17,10 @@ use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
 use serde_json::Value;
 
 /// The UI script that makes the sample.
-const SCRIPT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/sample/sample.uiscript");
+const SCRIPT: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../fixtures/sample/sample.uiscript"
+);
 
 /// New IDs from a counting clock (from 2026-01-01T00:00:00Z) and counting random bits, so that the script makes the
 /// same records on every run and every machine.

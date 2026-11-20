@@ -16,7 +16,6 @@ use ew_ui::app::App;
 use serde_json::json;
 use support::{Scripted, Tmp, dispatch, harness, settle};
 
-
 /// The texts of the window's last frame (each node's label, then its value; a label is often its value too) in the
 /// order AccessKit lists them.
 fn texts(h: &Harness<'_, App>) -> Vec<String> {
