@@ -131,7 +131,7 @@ fn untouched_lines_with_later_members_are_kept_byte_for_byte() {
 /// them, opens; an edit of one function saves, and every untouched line of that file is written as it was, byte for
 /// byte, while the edited function's line is the canonical one, its unknown role in byte order.
 #[test]
-fn d30_untouched_lines_with_a_later_variant_are_kept_byte_for_byte() {
+fn untouched_lines_with_a_later_variant_are_kept_byte_for_byte() {
     use ew_model::{AnyRow, Op};
     use ew_store::ew_format::ew_schema::Function;
     use ew_store::ew_format::{FileHash, FilePath, Limits, MANIFEST, Manifest, sha256};
