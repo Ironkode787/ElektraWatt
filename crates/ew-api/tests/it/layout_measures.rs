@@ -453,6 +453,33 @@ fn rk1_a_wire_through_a_text_fires_ew_core_070() {
     );
 }
 
+/// EW-CORE-070 quotes the line of a text that the wire runs through, not the text's first line.
+#[test]
+fn ew_core_070_quotes_the_crossed_line() {
+    let (mut s, page, k) = rk1_page(&[(60, 20), (70, 32)]);
+    run(
+        &mut s,
+        "item.place",
+        serde_json::json!({"page": page, "kind": {"free_text": {"text": "Upper\nLower", "at": grid(58, 29)}}}),
+    );
+    draw(
+        &mut s,
+        &page,
+        pin(&k[0], 1),
+        pin(&k[1], 0),
+        route(&[(60, 24), (60, 25), (55, 25), (55, 30), (70, 30), (70, 32)]),
+    );
+    let found = findings(&s, "EW-CORE-070");
+    assert_eq!(
+        found
+            .iter()
+            .map(|f| f.0.as_str())
+            .filter(|m| m.contains("-103K1"))
+            .collect::<Vec<_>>(),
+        ["Wire -103K1:A2 → -103K2:A1 runs through the free text \"Lower\"."]
+    );
+}
+
 /// A wire through an interruption point names the point in each language's words, never
 /// "interruption point" in a Dutch message: EW-CORE-069 on a page, and EW-CORE-070's wording of a point's text.
 #[test]

@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "a4bb9558-7262-53a7-8a1c-9cc7758e5250",
   "version": "0.1.1",
-  "sha256": "sha256:f3349b4a800fc49899e1d7dc800a117e095227c47f1d0c230e1330c8b533eb61",
+  "sha256": "sha256:d977058032f143f774a7a6187b5dac9a4580dcd81239e4f009d65d66dcc88dec",
   "meta": {
     "key": "ew.iec.emergency-stop",
     "licence": "CC-BY-SA-4.0",
@@ -185,7 +185,7 @@
       "kind": "tech_data",
       "pos": [
         -8000000,
-        8000000
+        10000000
       ],
       "align": "top_right",
       "visible": true

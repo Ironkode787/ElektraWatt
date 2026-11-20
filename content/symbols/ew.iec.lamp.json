@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "c0dedc82-6bdf-5b56-8911-a4871c827294",
   "version": "0.2.2",
-  "sha256": "sha256:7cb9f735fde90ea88efd12ee2c2bdbf8d966a11b9c86a31ad64df739ac36f0ec",
+  "sha256": "sha256:8f3fd24bda44b763f1c47d2a07dadc723e0a88edc72414794a37ae6c50bb6ae8",
   "meta": {
     "key": "ew.iec.lamp",
     "licence": "CC-BY-SA-4.0",
@@ -140,7 +140,7 @@
       "kind": "function_text",
       "pos": [
         -4000000,
-        11000000
+        15000000
       ],
       "align": "top_right"
     },
@@ -148,7 +148,7 @@
       "kind": "tech_data",
       "pos": [
         -4000000,
-        8000000
+        10000000
       ],
       "align": "top_right",
       "visible": true

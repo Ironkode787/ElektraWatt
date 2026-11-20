@@ -9,12 +9,13 @@
 //! # The places (§5.2)
 //!
 //! A label's places are the ones its adapter gives ([`Places::At`]: a symbol's slot as its author set it), those of
-//! them outside the drawing area moved in to stand [`LABEL_CLEAR`] inside its line, "one line lower" for the second of a row (the two-rows rule), then the
-//! places of its kind, each once. For a part whose pins leave up or down (or that has none with a side) the corners
-//! are: upper left (right of the box against the body's left edge, its top level with the body's top), upper right,
-//! lower left, lower right, centred above (when no wire leaves upward), centred below, above the upper left and upper
-//! right corners, centred below one line lower; for a part whose pins leave sideways: centred above, centred below,
-//! above and below at either end, centred below one line lower. Every gap to the owner is [`LABEL_CLEAR`].
+//! them outside the drawing area moved in to stand [`LABEL_CLEAR`] inside its line, "one line lower" for the second
+//! of a row (the two-rows rule), then the places of its kind, each once. For a part whose pins leave up or down (or
+//! that has none with a side) the corners are: upper left (right of the box against the body's left edge, its top
+//! level with the body's top), upper right (beyond the pins' numbers at their first places), lower left, lower right
+//! (the same), centred above (when no wire leaves upward), centred below, above the upper left and upper right
+//! corners, centred below one line lower; for a part whose pins leave sideways: centred above, centred below, above
+//! and below at either end, centred below one line lower. Every gap to the owner is [`LABEL_CLEAR`].
 //!
 //! | Kind | Places after the adapter's |
 //! |---|---|
@@ -24,7 +25,7 @@
 //! | tag of a drawn box | above the upper left corner ending at the left edge; above the upper edge from the corner; above the upper right corner; inside at the upper left |
 //! | data of a drawn box | left of the box under its top, under the box's data before it; right of it; inside under the tag; above the box over its tag |
 //! | name of a mark | in line with the pin beyond the body (the side away from the wire); centred above; centred below; centred above one line higher |
-//! | cross-reference of a mark | beside the wire past the pin, under it then over it; the same beyond the arrow |
+//! | cross-reference of a mark | beside the wire past the pin, under it then over it; the same beyond the arrow; centred under the arrow, then over it |
 //! | name of a terminal | right below its centre, left below it (with wires across it: left below, left above); beside the body, left then right |
 //! | strip designation | left of the terminal at its middle; centred above it; above it, ending at its left edge |
 //! | wire number | along the wire ([`along_wire`]) |
@@ -276,6 +277,9 @@ struct Shape {
     upright: bool,
     /// A wire leaves it upward.
     wire_up: bool,
+    /// The right edge of the body and of its pins' numbers at their first places, which a text at a right corner
+    /// stands beyond.
+    right: Tick,
 }
 
 impl Shape {
@@ -287,11 +291,23 @@ impl Shape {
             .pins
             .iter()
             .any(|p| p.side == Some(Side::Up) && ground.wired.contains(&p.id));
+        let body = part.bounds();
+        let right = ground
+            .page
+            .labels
+            .iter()
+            .filter(|l| l.owner == Owner::Part(part.id) && matches!(l.kind, LabelKind::PinNumber(_)))
+            .filter_map(|l| match &l.places {
+                Places::At(at) => at.first().map(|a| Rect::sized(part.at.plus(*a), l.size).x1),
+                Places::AlongWire => None,
+            })
+            .fold(body.x1, Tick::max);
         Shape {
-            body: part.bounds(),
+            body,
             pins,
             upright,
             wire_up,
+            right,
         }
     }
 }
@@ -316,9 +332,9 @@ fn corners(s: &Shape, (w, h): (Tick, Tick)) -> Vec<Rect> {
     if s.upright {
         let mut out = vec![
             bx(b.x0 - g - w, b.y0, size),
-            bx(b.x1 + g, b.y0, size),
+            bx(s.right + g, b.y0, size),
             bx(b.x0 - g - w, b.y1 - h, size),
-            bx(b.x1 + g, b.y1 - h, size),
+            bx(s.right + g, b.y1 - h, size),
         ];
         if !s.wire_up {
             out.push(above);
@@ -434,19 +450,23 @@ fn part_places(ground: &Ground<'_>, unit: &Unit, s: &Shape) -> Vec<Rect> {
                 .collect()
         }
         // Beside the wire past the pin, under it then over it; then the same beyond the arrow, where the wire turns at
-        // once.
+        // once; then centred under the arrow and over it, where the mark's name stands beyond it in line.
         LabelKind::MarkXref => match first_pin {
             Some((q, Some(Side::Right))) => vec![
                 bx(q.x + g, q.y + g, unit.size),
                 bx(q.x + g, q.y - g - h, unit.size),
                 bx(b.x0 - g - w, q.y + g, unit.size),
                 bx(b.x0 - g - w, q.y - g - h, unit.size),
+                bx(c.x - half(w), b.y1 + g, unit.size),
+                bx(c.x - half(w), b.y0 - g - h, unit.size),
             ],
             Some((q, Some(Side::Left))) => vec![
                 bx(q.x - g - w, q.y + g, unit.size),
                 bx(q.x - g - w, q.y - g - h, unit.size),
                 bx(b.x1 + g, q.y + g, unit.size),
                 bx(b.x1 + g, q.y - g - h, unit.size),
+                bx(c.x - half(w), b.y1 + g, unit.size),
+                bx(c.x - half(w), b.y0 - g - h, unit.size),
             ],
             Some((q, Some(Side::Up))) => vec![
                 bx(q.x + g, q.y - g - h, unit.size),

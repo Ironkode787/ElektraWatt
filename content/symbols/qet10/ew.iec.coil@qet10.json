@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "d9214097-d48e-5903-be87-e4d93cbb0b69",
   "version": "0.2.3",
-  "sha256": "sha256:b5910bea7bbc240d40ce8389c1460278d55442f743414d165f509fb95cd4afc3",
+  "sha256": "sha256:ae185724739f6a5c5d7615afc151bbafaa5d769d87de4b27da2eeef4f6c1deb8",
   "meta": {
     "key": "ew.iec.coil@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -121,7 +121,7 @@
       "kind": "xref",
       "pos": [
         -3307292,
-        7276042
+        9921875
       ],
       "align": "top_right",
       "visible": true,
@@ -131,7 +131,7 @@
       "kind": "tech_data",
       "pos": [
         -3307292,
-        5291667
+        6614583
       ],
       "align": "top_right",
       "visible": true

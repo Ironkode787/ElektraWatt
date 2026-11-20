@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "87f4b115-a699-5a4c-9463-ed51b2a92448",
   "version": "0.2.3",
-  "sha256": "sha256:dac43c453ed1329af7fdccfd23dd7f8c73c274a0496b49befcf5f5e264d4f00b",
+  "sha256": "sha256:af444fa50755a168dbd2f520d1ea42aa36c302fa083e9712b18aa1135d9b2391",
   "meta": {
     "key": "ew.iec.coil",
     "licence": "CC-BY-SA-4.0",
@@ -115,7 +115,7 @@
       "kind": "xref",
       "pos": [
         -5000000,
-        11000000
+        15000000
       ],
       "align": "top_right",
       "visible": true,
@@ -125,7 +125,7 @@
       "kind": "tech_data",
       "pos": [
         -5000000,
-        8000000
+        10000000
       ],
       "align": "top_right",
       "visible": true

@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "dccb7a0b-cfbe-5ec9-88f7-e695643425fa",
   "version": "0.1.1",
-  "sha256": "sha256:480a09959ad53ea4b95d95c51402fffd49c6704dac0ff27142c3937b24066d6f",
+  "sha256": "sha256:eccb3a15b0d3e4f5fe6283893082723a00dacff28fe0fd4217c4bc8ac6e3e000",
   "meta": {
     "key": "ew.iec.switch-3p-manual",
     "licence": "CC-BY-SA-4.0",
@@ -299,7 +299,7 @@
       "kind": "tech_data",
       "pos": [
         -3000000,
-        8000000
+        10000000
       ],
       "align": "top_right",
       "visible": true
@@ -308,7 +308,7 @@
       "kind": "function_text",
       "pos": [
         -3000000,
-        11000000
+        15000000
       ],
       "align": "top_right"
     },

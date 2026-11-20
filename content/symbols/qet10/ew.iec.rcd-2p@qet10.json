@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "fd302728-34c0-58b0-a437-3356d5a5619c",
   "version": "0.1.1",
-  "sha256": "sha256:f83a6624cdc017746ce5a2e00b4becc3b1f247f1ef30991197289bba814b5b8d",
+  "sha256": "sha256:78fe977ba4e6658642ef9e84a16bc68026e24b549fe494dff173e452ea538e09",
   "meta": {
     "key": "ew.iec.rcd-2p@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -289,7 +289,7 @@
       "kind": "part_number",
       "pos": [
         -1984375,
-        5291667
+        6614583
       ],
       "align": "top_right",
       "visible": true
@@ -298,7 +298,7 @@
       "kind": "tech_data",
       "pos": [
         -1984375,
-        7276042
+        9921875
       ],
       "align": "top_right",
       "visible": true
@@ -307,7 +307,7 @@
       "kind": "function_text",
       "pos": [
         -1984375,
-        9260417
+        13229167
       ],
       "align": "top_right"
     },
