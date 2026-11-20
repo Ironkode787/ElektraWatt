@@ -17,7 +17,7 @@
 //! midline, inset by [`CELL_PADDING`]. Column widths split the table width by the columns' weights
 //! (the integer rounding of a cumulative share, so the edges are exact and the last edge is the right
 //! edge). Where a text of the page would be cut (see "Overflow"), the columns with room to spare give it to the
-//! columns that cut, up to the width their widest text takes at the full size (rc.3; [`widened`]).
+//! columns that cut, up to the width their widest text takes at the full size ([`widened`]).
 //!
 //! # Paint order
 //!
@@ -286,7 +286,7 @@ pub(crate) fn push_cell(
     out.items.extend(carriers);
 }
 
-/// The column edges with room given to a column whose text would be cut (rc.3: the parts list's descriptions read
+/// The column edges with room given to a column whose text would be cut (the parts list's descriptions read
 /// "PLC CPU with PROFINET and …" in a smaller size beside columns with room to spare). Where a text of the page's
 /// header or data rows would be cut with an ellipsis at the smallest size in its column, each column whose texts
 /// all fit with room to spare gives some of it, in proportion to its spare room, so that the cut columns get the

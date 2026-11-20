@@ -105,7 +105,7 @@ fn near(a: i64, b: i64) -> bool {
     (a - b).abs() <= 1_000
 }
 
-/// The rule for the four sides (as the fourth candidate drew it, rc.5): a pin text of the top or the bottom side is
+/// The rule for the four sides (as the fourth candidate drew it): a pin text of the top or the bottom side is
 /// turned a quarter, reading from bottom to top; one of the left or the right side is horizontal; each sits inside the
 /// box, 1 mm from its pin.
 #[test]

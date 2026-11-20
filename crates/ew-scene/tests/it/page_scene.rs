@@ -436,7 +436,7 @@ fn the_callers_style_table_overrides_and_extends_the_slot_styles() {
         .map(|r| {
             (
                 r.key.clone(),
-                // `-X1` is a terminal: its tag prints in the terminal's number style (rc.3).
+                // `-X1` is a terminal: its tag prints in the terminal's number style.
                 if r.key == "terminal" { Nm(4_000_000) } else { r.em },
                 r.weight,
                 r.family,

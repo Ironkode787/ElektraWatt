@@ -102,7 +102,7 @@
 //!   in style `marker` [`MARKER_GAP`] beyond the line's end, horizontal: right of the line across a vertical wire
 //!   (aligned middle left), above the line across a horizontal wire (aligned bottom centre). A wire-marker group
 //!   ([`crate::items`]) draws the same line across all its wires.
-//! - **Cable marks** (rc.3, as panel builders draw a cable): a wire-marker group whose connections are all cores or
+//! - **Cable marks** (as panel builders draw a cable): a wire-marker group whose connections are all cores or
 //!   bus lines of one cable ([`ew_derive::CableMark`]) is drawn whatever the marker mode: the line across the wires it
 //!   crosses, [`MARKER_REACH`] past the outer ones; on each core a slanted stroke (`/`, [`CABLE_TICK`] each way); each
 //!   core's designation (`1`, `BN`, `GNYE`; a bus line has none) in style `marker` just past the stroke's upper end
@@ -113,7 +113,7 @@
 //!   wire where the text placer sets it: right of a vertical stretch turned to read from the bottom, above a
 //!   horizontal one; beside the dashed line of an unrouted wire; with a marker of its own it is that marker's text,
 //!   the number first (`101.1 1.5 BK`). A bus line whose cable has no mark on the page prints the cable's tag there in
-//!   style [`CABLE_TAG_STYLE`] (rc.5: it was too small to read).
+//!   style [`CABLE_TAG_STYLE`] (it was too small to read).
 //! - **Stored symbol variants** (`Representation.variant`, contact-image variants) are not drawn yet: the
 //!   main graphics are used, and the geometry key's `extra` is `None`.
 
@@ -176,16 +176,16 @@ pub const MARKER_REACH: Nm = Nm(1_500_000);
 /// The gap between a wire marker's line and its text (FT-1706).
 pub const MARKER_GAP: Nm = Nm(1_000_000);
 
-/// The text style of a cable mark's tag: the device tag's (rc.3).
+/// The text style of a cable mark's tag: the device tag's.
 pub const CABLE_TAG_STYLE: &str = "tag.main";
 
-/// The text style of a cable mark's type line (rc.3).
+/// The text style of a cable mark's type line.
 pub const CABLE_KIND_STYLE: &str = "data.small";
 
-/// Half the run of a cable mark's slanted stroke on a core, along and across the line (rc.3).
+/// Half the run of a cable mark's slanted stroke on a core, along and across the line.
 pub const CABLE_TICK: Nm = Nm(1_000_000);
 
-/// The gap between a cable mark's stroke or line and the texts beside them (rc.3).
+/// The gap between a cable mark's stroke or line and the texts beside them.
 pub const CABLE_TEXT_GAP: Nm = Nm(500_000);
 
 /// Where a wire marker's text stands beyond its line (FT-1706).
@@ -367,7 +367,7 @@ pub struct ValveGlyphsView {
 /// The text style of a valve glyph's part number: the CP-label style.
 pub const VALVE_GLYPH_STYLE: &str = "cp.small";
 
-/// What one cell of a valve terminal drawn as its positions shows (doc 11 §3.2, rc.2); everything a cell draws is the
+/// What one cell of a valve terminal drawn as its positions shows (doc 11 §3.2); everything a cell draws is the
 /// box representation's entity, so that a click or a right-click on a cell reaches the terminal's box.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum CellView {
@@ -375,7 +375,7 @@ pub enum CellView {
     Valve {
         /// The tag of a valve not drawn on this page.
         elsewhere: Option<String>,
-        /// Where such a valve is drawn (rc.3): the place its symbol stands at on another page (`3-B2`) and that
+        /// Where such a valve is drawn: the place its symbol stands at on another page (`3-B2`) and that
         /// symbol, which the place links to; `None` for a valve drawn nowhere.
         drawn_at: Option<(String, Id<Representation>)>,
     },
@@ -385,7 +385,7 @@ pub enum CellView {
     Empty,
 }
 
-/// The text beside one pin of a multipin valve terminal's plug (rc.2): what the pin carries (`-201K2-Q1 14`, `1 · 14`,
+/// The text beside one pin of a multipin valve terminal's plug: what the pin carries (`-201K2-Q1 14`, `1 · 14`,
 /// `COM`), read along the wire that leaves the pin, just beside it.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PlugNoteView {
@@ -413,7 +413,7 @@ pub struct ValveCellsView {
     pub cells: Vec<(u32, CellView)>,
     /// Whether a supply plate stands in the supply end; without, the end is drawn dashed.
     pub supply: bool,
-    /// The valves' ports that end on the sub-base (rc.3): each port's x on the page and the gallery it joins (its
+    /// The valves' ports that end on the sub-base: each port's x on the page and the gallery it joins (its
     /// index in `ew_derive::GALLERY_PORTS`).
     pub taps: Vec<(Nm, usize)>,
 }
@@ -495,7 +495,7 @@ pub struct PageView {
     /// The cells of the valve terminals drawn as their positions on this page, drawn in [`Layer::Symbols`] after the
     /// valve glyphs.
     pub valve_cells: Vec<ValveCellsView>,
-    /// The texts beside the pins of the multipin valve terminals' plugs on this page (rc.2), drawn in
+    /// The texts beside the pins of the multipin valve terminals' plugs on this page, drawn in
     /// [`Layer::Symbols`] after the valve cells.
     pub plug_notes: Vec<PlugNoteView>,
     /// The connection points of this page that a link of the export points at (a PLC overview row links to
@@ -1240,7 +1240,7 @@ impl Builder<'_> {
         self.item_graphics(view);
     }
 
-    /// The cells of the valve terminals drawn as their positions (doc 11 §3.2, rc.2, rc.3): the sub-base along the
+    /// The cells of the valve terminals drawn as their positions (doc 11 §3.2, rc.2): the sub-base along the
     /// bottom of the cells with its galleries (supply 1, exhausts 3 and 5) drawn through it, one row each, each valve
     /// port that ends on it joined to its gallery by a line with a dot, and each cell's number centred under the
     /// galleries; a thin line between two cells above it, the line that closes the supply end (dashed while no supply
@@ -1401,7 +1401,7 @@ impl Builder<'_> {
         }
     }
 
-    /// The texts beside the pins of the multipin valve terminals' plugs (rc.2): each starts one millimetre out from
+    /// The texts beside the pins of the multipin valve terminals' plugs: each starts one millimetre out from
     /// its pin along the wire's way and stands just beside the wire (turned upright for a pin whose wire leaves up or
     /// down, on the wire for one that leaves sideways), at the size of the box's own pin designations.
     fn plug_notes(&mut self, view: &PageView) {

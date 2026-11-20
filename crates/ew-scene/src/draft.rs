@@ -677,7 +677,7 @@ impl Builder<'_> {
                 self.wire_marker(view, ctx, (at, &[crossing]), (place, &wires), &text, entity);
                 continue;
             }
-            // A bus line's number is its cable's tag (rc.5: it was too small to read).
+            // A bus line's number is its cable's tag (it was too small to read).
             let style_key = if matches!(c.kind, ConnectionKind::Bus(_)) {
                 CABLE_TAG_STYLE
             } else {
