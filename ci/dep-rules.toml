@@ -38,6 +38,8 @@ tools = ["xtask"]
 [allowed_edges]
 "ew-viewmodel" = ["ew-api", "ew-hack"]
 "ew-ui" = ["ew-viewmodel", "ew-render2d", "ew-render-cpu", "ew-hack"]
+# The layout reads no project record, so it builds and tests alone (docs/design/06a-drafting.md §2.7).
+"ew-drafting" = ["ew-units", "ew-ids", "ew-hack"]
 
 # Their tests may also use these.
 [allowed_dev_edges]

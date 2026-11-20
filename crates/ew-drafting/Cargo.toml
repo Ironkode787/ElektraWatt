@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[package]
+name = "ew-drafting"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "GPL-3.0-or-later"
+description = "Schematic drafting: the page model in grid ticks, the one measure and the one text placer."
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+# The IDs of the page's records (docs/design/06a-drafting.md §2.7: `ew-units` and `ew-ids` only).
+ew-ids = { path = "../ew-ids" }
+ew-hack = { version = "0.3", path = "../ew-hack" }
+
+[dev-dependencies]
+automod.workspace = true
