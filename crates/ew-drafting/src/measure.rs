@@ -162,6 +162,35 @@ impl Quality {
     }
 }
 
+/// F7 of `page` (module documentation), by part ID: each part with pins (or drawn box) that leaves the drawing area,
+/// with `None`, and each pair whose bodies overlap, the outlines drawn round other parts and two parts with a pin on
+/// one point (an interruption point on a pin) left out.
+pub fn parts_on_parts(page: &DraftPage) -> Vec<(PartId, Option<PartId>)> {
+    let mut solid: Vec<_> = page
+        .parts
+        .iter()
+        .filter(|p| !p.frame_only && !p.pins.is_empty())
+        .collect();
+    solid.sort_by_key(|p| p.id);
+    let pin_on_pin = |p: &crate::model::Part, o: &crate::model::Part| {
+        p.pins
+            .iter()
+            .any(|a| o.pins.iter().any(|b| p.at.plus(a.at) == o.at.plus(b.at)))
+    };
+    let mut out = Vec::new();
+    for (i, p) in solid.iter().enumerate() {
+        if !page.area.holds(p.bounds()) {
+            out.push((p.id, None));
+        }
+        for o in &solid[i + 1..] {
+            if geom::texts_meet(p.bounds(), o.bounds()) && !pin_on_pin(p, o) {
+                out.push((p.id, Some(o.id)));
+            }
+        }
+    }
+    out
+}
+
 /// A wire as the measure reads it.
 struct Line {
     id: WireId,
@@ -338,27 +367,7 @@ pub fn measure(page: &DraftPage) -> Quality {
             f.four_way.push((j.id, dirs.len(), j.at));
         }
     }
-    // F7.
-    let solid: Vec<_> = parts
-        .iter()
-        .filter(|p| !p.frame_only && !p.pins.is_empty())
-        .collect();
-    // Two parts with a pin on one point are drawn one on the other's pin (an interruption point on a pin).
-    let pin_on_pin = |p: &crate::model::Part, o: &crate::model::Part| {
-        p.pins
-            .iter()
-            .any(|a| o.pins.iter().any(|b| p.at.plus(a.at) == o.at.plus(b.at)))
-    };
-    for (i, p) in solid.iter().enumerate() {
-        if !page.area.holds(p.bounds()) {
-            f.parts_on_parts.push((p.id, None));
-        }
-        for o in &solid[i + 1..] {
-            if geom::texts_meet(p.bounds(), o.bounds()) && !pin_on_pin(p, o) {
-                f.parts_on_parts.push((p.id, Some(o.id)));
-            }
-        }
-    }
+    f.parts_on_parts = parts_on_parts(page);
     // C4 and C5 over the texts where they stand.
     let mut texts: Vec<(TextRef, Rect)> = labels.iter().map(|s| (TextRef::Label(s.id), s.rect)).collect();
     let mut fixed: Vec<_> = page

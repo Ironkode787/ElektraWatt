@@ -14,6 +14,8 @@
 //! - [`occupancy`] (§3.3), [`search`] (§3.6), [`nets`] (§3.4), [`tracks`] (§3.5) and [`route`] (§3.2, §3.7 to
 //!   §3.10): the router. [`route()`] makes a page's plan, [`route_wire`] the Wire tool's route; [`unrouted_line`] is
 //!   the line of a wire without a route; [`tracks_needed`] counts the tracks of a row's stepping wires for the placer.
+//! - [`place`] (§4) and [`rules`] (§1.6): the placer. [`arrange`] makes Arrange and route's plan, [`rules_kept`]
+//!   checks a plan's page against the rules that bind it.
 //!
 //! The crate reads no project record and knows no nanometre: two numbers for one grid position cannot meet in it.
 
@@ -25,7 +27,9 @@ pub mod measure;
 pub mod model;
 pub mod nets;
 pub mod occupancy;
+pub mod place;
 pub mod route;
+pub mod rules;
 pub mod search;
 pub mod tracks;
 
@@ -33,6 +37,8 @@ pub use guides::{Guide, GuideKind, Guided, guides};
 pub use labels::{Settled, settle_labels};
 pub use measure::{Counts, Findings, Passed, Quality, TextRef, measure};
 pub use model::*;
+pub use place::{Arranged, arrange};
+pub use rules::{Broken, Rule, rules_kept};
 pub use route::{
     Jobs, Plan, Reason, Scope, WireEnd, WireRoute, jobs, route, route_wire, unrouted_line, wire_clear,
 };

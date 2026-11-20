@@ -6,8 +6,8 @@
 
 use ew_drafting::consts::TICKS_PER_STEP;
 use ew_drafting::{
-    DraftPage, End, FixedText, Junction, JunctionId, Label, LabelId, LabelKind, Mark, MarkId, Owner, Part,
-    PartId, Pin, PinId, Places, Pt, Rect, Role, Side, Tick, Wire, WireClass, WireId,
+    DraftPage, End, FixedText, Junction, JunctionId, Label, LabelId, LabelKind, Mark, MarkId, Owner, PageKind,
+    Part, PartId, Pin, PinId, Places, Pt, Rect, Role, Side, Tick, Wire, WireClass, WireId,
 };
 use ew_ids::Uuid;
 
@@ -109,6 +109,7 @@ impl Page {
     /// An incoming mark at `at` whose wire leaves right, with its name.
     pub fn mark_in(&mut self, name: &str, at: Pt) -> PartId {
         let part = self.part(name, at, (p(-2, -1), p(0, 1)), &[("1", p(0, 0), Side::Right)]);
+        self.role(part, Role::MarkIn);
         self.label(
             Owner::Part(part),
             0,
@@ -122,6 +123,7 @@ impl Page {
     /// An outgoing mark at `at` whose wire leaves left, with its name.
     pub fn mark_out(&mut self, name: &str, at: Pt) -> PartId {
         let part = self.part(name, at, (p(0, -1), p(2, 1)), &[("1", p(0, 0), Side::Left)]);
+        self.role(part, Role::MarkOut);
         self.label(
             Owner::Part(part),
             0,
@@ -181,6 +183,13 @@ impl Page {
             Places::At(Vec::new()),
         );
         part
+    }
+
+    /// Sets what `part` is, for the rules of the placer.
+    pub fn role(&mut self, part: PartId, role: Role) {
+        if let Some(x) = self.page.parts.iter_mut().find(|x| x.id == part) {
+            x.role = role;
+        }
     }
 
     /// The tag of `part`, at the places of its kind.
@@ -296,11 +305,27 @@ impl Fixture {
         let mut page = self.hand.clone();
         let mut parts: Vec<&mut Part> = page.parts.iter_mut().collect();
         parts.sort_by_key(|p| p.id);
+        // The parts of one unit (a valve terminal with its valves) move as one, by the shift of the first.
+        let mut shifts: Vec<(u32, Pt)> = Vec::new();
         for (i, part) in parts.into_iter().enumerate() {
             let k = i as Tick;
-            part.at = part.at.plus(Pt::new(s(k % 3 - 1), s(k % 2)));
-            if let Some((_, d)) = self.wrong_side.iter().find(|(w, _)| *w == part.id) {
-                part.at = part.at.plus(*d);
+            let shift = match shifts.iter().find(|(u, _)| *u == part.unit) {
+                Some((_, d)) => *d,
+                None => {
+                    let d = self
+                        .wrong_side
+                        .iter()
+                        .find(|(w, _)| *w == part.id)
+                        .map_or(Pt::default(), |(_, d)| *d)
+                        .plus(Pt::new(s(k % 3 - 1), s(k % 2)));
+                    shifts.push((part.unit, d));
+                    d
+                }
+            };
+            part.at = part.at.plus(shift);
+            // A drawn box's pin texts move with it.
+            for t in page.fixed_texts.iter_mut().filter(|t| t.owner == part.id.0) {
+                t.rect = t.rect.moved(shift);
             }
         }
         for w in &mut page.wires {
@@ -581,6 +606,11 @@ fn bus() -> Fixture {
     for w in &mut b.page.wires {
         w.class = WireClass::Bus;
     }
+    b.page.kind = PageKind::Bus;
+    for name in names {
+        let part = PartId(id(name));
+        b.role(part, Role::Station);
+    }
     Fixture {
         name: "bus",
         wrong_side: [(PartId(id("D1")), p(0, 12)), (PartId(id("SW")), p(0, 12))],
@@ -608,6 +638,12 @@ fn pneumatic() -> Fixture {
             ],
         );
         b.tag(valve, TAG);
+        b.role(valve, Role::Valve);
+        // A valve in the terminal's cells moves with it.
+        let vt = b.page.parts.iter().find(|x| x.id == frame).map(|x| x.unit);
+        if let (Some(u), Some(x)) = (vt, b.page.parts.iter_mut().find(|x| x.id == valve)) {
+            x.unit = u;
+        }
         let cylinder = b.part(
             &format!("C{i}"),
             p(x, 14),
@@ -615,6 +651,7 @@ fn pneumatic() -> Fixture {
             &[("a", p(2, 6), Side::Down), ("b", p(4, 6), Side::Down)],
         );
         b.tag(cylinder, TAG);
+        b.role(cylinder, Role::Actuator);
         for (port, end) in [("2", "a"), ("4", "b")] {
             b.run(
                 &format!("V{i}-C{i}:{port}"),
@@ -631,6 +668,7 @@ fn pneumatic() -> Fixture {
         &[("out", p(2, 0), Side::Up)],
     );
     b.tag(unit, TAG);
+    b.role(unit, Role::Source);
     let j = b.junction("JP", p(30, 46));
     b.run("FRL-JP", b.pin("FRL", "out"), j, &[]);
     b.run("JP-V0", j, b.pin("V0", "1"), &[p(25, 46)]);
@@ -638,6 +676,7 @@ fn pneumatic() -> Fixture {
     for w in &mut b.page.wires {
         w.class = WireClass::Tube;
     }
+    b.page.kind = PageKind::Fluid;
     Fixture {
         name: "pneumatic",
         wrong_side: [(PartId(id("C0")), p(0, 30)), (PartId(id("FRL")), p(0, -40))],

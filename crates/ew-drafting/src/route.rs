@@ -1192,7 +1192,7 @@ fn labels_with_clashes(q: &Quality) -> BTreeSet<crate::model::LabelId> {
 
 /// What breaks the never-worse rule (§1.2) from `before` to `after`: the wires routed before and free of a finding
 /// that get one, and whether a text free of C5 gets one where the plan routes no wire that had no route.
-fn worse(page: &DraftPage, before: &Quality, after: &Quality) -> (BTreeSet<WireId>, bool) {
+pub(crate) fn worse(page: &DraftPage, before: &Quality, after: &Quality) -> (BTreeSet<WireId>, bool) {
     let (fb, fa) = (wires_with_findings(before), wires_with_findings(after));
     let routed_before: BTreeSet<WireId> = page
         .wires
