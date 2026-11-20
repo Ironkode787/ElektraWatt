@@ -8,8 +8,7 @@ use std::path::{Path, PathBuf};
 
 use ew_api::library::LibraryTiers;
 use ew_api::{Session, SessionOptions};
-use ew_import_tables::ew_interop_api::{ImportBatch, ImportInput};
-use ew_import_tables::{BuiltinLibrary, TablesImporter, bootstrap_context};
+use ew_import_tables::ew_interop_api::ImportBatch;
 use ew_schema::{LibDocument, Record};
 
 /// The repository root.
@@ -17,38 +16,9 @@ pub fn repo() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
 }
 
-fn json_files(dir: &Path, ext: &str) -> Vec<PathBuf> {
-    let mut paths: Vec<PathBuf> = std::fs::read_dir(dir)
-        .unwrap_or_else(|e| panic!("reading {}: {e}", dir.display()))
-        .map(|e| e.unwrap().path())
-        .filter(|p| p.extension().is_some_and(|e| e == ext))
-        .collect();
-    paths.sort();
-    paths
-}
-
-fn library() -> BuiltinLibrary {
-    let mut docs = Vec::new();
-    for sub in ["symbols/qet10", "fndefs", "forms"] {
-        for p in json_files(&repo().join("content").join(sub), "json") {
-            docs.push(LibDocument::from_json(&std::fs::read_to_string(&p).unwrap()).unwrap());
-        }
-    }
-    BuiltinLibrary::new(docs).unwrap()
-}
-
-/// The imported golden batch (doc 20 §3.2 path (a)).
+/// The imported golden batch (doc 20 §3.2 path (a)): [`crate::golden_common::batch`], the one recipe.
 pub fn golden_batch() -> ImportBatch {
-    let inputs: Vec<ImportInput> = json_files(&repo().join("golden/J-E-2416/tables"), "csv")
-        .iter()
-        .map(|p| {
-            let name = p.file_name().unwrap().to_string_lossy().into_owned();
-            ImportInput::new(&name, std::fs::read(p).unwrap()).unwrap()
-        })
-        .collect();
-    TablesImporter::new(library())
-        .import(&inputs, &bootstrap_context())
-        .expect("the golden tables import")
+    crate::golden_common::batch()
 }
 
 /// The project and the other records of a batch.
