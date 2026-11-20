@@ -1,7 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! Typed PLC addresses.
+//! Typed PLC addresses: the area, the access size and the absolute [`PlcAddress`] of a byte or a bit.
+//!
+//! Only the values. How an address is written and read in a profile's notation is in `profile.rs`, bit ranges in
+//! `intervals.rs`.
 
 /// Address area.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]

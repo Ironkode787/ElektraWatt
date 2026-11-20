@@ -1,7 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! `Pt2` and `Rect`.
+//! The page's points and rectangles in nanometres: `Pt2` (also the offset `Vec2Nm`) and the axis-aligned `Rect`,
+//! with their arithmetic and their JSON form.
+//!
+//! The length itself is `Nm` (`nm.rs`); orientations and poses are in `orient.rs` and `pose.rs`.
 
 use std::ops::{Add, Neg, Sub};
 

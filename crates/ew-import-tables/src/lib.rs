@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The golden CSV bootstrap behind `ew import csv` (FR-IMP-022; doc 20 §3.2 build path (a)), the
-//! round-trip table reader and translation tables (later work packages).
+//! The CSV bootstrap of the reference project behind `ew import csv` (FR-IMP-022; doc 20 §3.2 build path (a)): its
+//! tables read into format-level records.
 //!
 //! [`TablesImporter`] reads the tables of `golden/J-E-2416/tables/` (schemas: `golden/J-E-2416/README.md`)
 //! and emits format-level `ew-schema` records and library documents plus an import report, under the

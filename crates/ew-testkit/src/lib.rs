@@ -1,9 +1,11 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The test kit: the golden builders of Golden A ([`golden`]: the CSV bootstrap and the command DSL) and a synthetic
-//! parts library ([`library`]). A dev-only crate. Its tests hold the command fuzzer and the hostile corpus; the
-//! seeded ID source of the tests is `ew_testids`, the fresh temporary directory `ew_testdir`.
+//! The test kit, a crate only tests depend on: the builders of the reference project ([`golden`]: the CSV bootstrap
+//! and the command DSL) and a synthetic parts library ([`library`]). Its own tests hold the command fuzzer and the
+//! hostile corpus (`hostile/`).
+//!
+//! Not here: the seeded ID source of the tests is `ew-testids`, the temporary directory of a test `ew-testdir`.
 
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]

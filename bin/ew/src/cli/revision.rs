@@ -1,7 +1,11 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `ew revision approve|release|withdraw`.
+//! The release workflow on the command line, `ew revision approve|release|withdraw`: the typed confirmation on a
+//! terminal, the gate, the archive and the tag of a release, and the settling of a release a crash left.
+//!
+//! The commands themselves run in `ew-api` (`Session::approve`, `Session::release`); the other subcommands are in
+//! their own files of `cli/`.
 
 use super::*;
 

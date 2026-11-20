@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The ElektraWatt desktop application: eframe shell, file dialogs, the headless mode, the crash log and exit codes.
-//! Native menus and clipboard come with a later work package.
+//! The window itself is `ew-ui`'s, what it shows and does `ew-viewmodel`'s.
 //!
 //! ```text
 //! elektrawatt [--no-gpu] [<project-dir>]               the window; the project opens after the first frame

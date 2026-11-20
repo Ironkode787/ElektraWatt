@@ -1,8 +1,13 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Bounded EPLAN EDZ, PXF/parts XML and native SLK companion-table symbol import, and the EDZ and parts XML part
-//! import (`read_parts`, doc 14 §5.2, §5.3) under the importer contract of `ew-interop-api`.
+//! The EPLAN importer: reads EPLAN's files into plain import data under the importer contract of `ew-interop-api`,
+//! within fixed bounds. It holds the symbol import (EDZ archives, PXF macro drawings, the SLK companion tables), the
+//! part import (`read_parts`: EDZ part packages and parts XML, doc 14 §5.2, §5.3) and the report spreadsheets
+//! (`read_report`, §5.4).
+//!
+//! Not here: what the program does with the result (the import dialog and its commands are in `ew-api` and
+//! `ew-viewmodel`); the archive and 7z bounds are in `archive.rs` and `seven.rs`.
 
 #![forbid(unsafe_code)]
 

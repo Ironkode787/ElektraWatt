@@ -1,8 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! egui widgets, canvas host, tools (state machines), command palette, keymaps and the action registry
-//! behind every menu.
+//! The window of the desktop program in egui: it paints the shell model of `ew-viewmodel` and turns the person's
+//! input into its actions. The actions, their enabling, the tools' state machines and every text are the
+//! view-model's; this crate holds the widgets, the canvas host and the docking.
 //!
 //! The application shell: [`app::App`] paints the shell model of `ew-viewmodel` (menu bar, start page,
 //! the first-run screen, the company-standard wizard, the docked project view with the page list and the read-only

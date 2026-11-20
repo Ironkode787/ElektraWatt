@@ -1,7 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The `ew` command-line interface: CLI, `ew mcp`, merge driver, textconv and migration verifier.
+//! The `ew` command-line program: its entry point, which parses the arguments, runs the subcommand and exits with
+//! its code. Every subcommand (import, check, export, print, query, revision, the git merge driver and textconv,
+//! the migration verifier and the rest) works on a project through `ew-api`'s `Session`.
+//!
+//! Not here: the argument tree and the subcommands are in `cli.rs` and one file per group under `cli/`; the table
+//! of every subcommand path with its flags, exit codes and result schema in `catalogue.rs`.
 
 #![forbid(unsafe_code)]
 
