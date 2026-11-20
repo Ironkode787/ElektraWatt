@@ -756,7 +756,7 @@ impl ShellModel {
     }
 }
 
-/// `a, b and c`: the folios of a toast, the wires of Reroute's.
+/// `a, b and c`: the folios of a toast, the wires of Route's.
 pub(super) fn and_list(items: &[String]) -> String {
     match items {
         [] => String::new(),

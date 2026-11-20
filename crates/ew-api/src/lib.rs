@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The `Session` facade shared by every front-end: registers the SQL and plugin rule implementations at
-//! session start and composes `.ewpp` export jobs.
+//! The `Session` facade shared by every front-end.
 //!
 //! v0 is the editing facade of ARCH §5.1: [`Session`] owns one project model and hands commands
 //! to the commit pipeline of `ew-commands` ([`ew_commands::Engine`]): `execute` for interactive commands,

@@ -300,7 +300,7 @@ impl ShellModel {
                 c.fit_again();
             }
         }
-        // A Route page or Route selection card draws its plan on the canvas, and its panel takes room from the
+        // A Route card draws its plan on the canvas, and its panel takes room from the
         // canvas: the planned routes stay in view, or the card would list a plan nobody can judge.
         if let Some((min, max)) = bounds(&self.route_preview(g))
             && let Some(c) = self.canvas_mut(g)

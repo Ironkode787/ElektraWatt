@@ -217,9 +217,9 @@ pub(crate) struct ToolHost {
     /// The draw tools' part offers of (session, revision, kind): computed when Draw rail or Draw duct is armed, and
     /// again only when its options or the revision change (the options card reads them every frame).
     pub draw_offers: std::cell::RefCell<Option<DrawOffers>>,
-    /// The wires the last Reroute changed, with its toast's serial and the revision it left (rc.5): drawn as a
+    /// The wires the last Route changed, with its toast's serial and the revision it left (rc.5): drawn as a
     /// selected wire is while that toast is up and the project is at that revision.
-    pub rerouted: Option<(u64, Option<u64>, Vec<ew_api::output::Uuid>)>,
+    pub last_routed: Option<(u64, Option<u64>, Vec<ew_api::output::Uuid>)>,
     /// The page an open Arrange and route card would leave (docs/design/06a-drafting.md §7.3), read once per plan.
     pub arranged: Option<std::sync::Arc<crate::canvas::CanvasPage>>,
     /// The canvas group whose view was fitted when Arrange and route opened its card: it fits the page again at the
@@ -332,7 +332,7 @@ impl ToolHost {
             placed_device: None,
             quiet_stack_at: None,
             draw_offers: std::cell::RefCell::new(None),
-            rerouted: None,
+            last_routed: None,
             arranged: None,
             refit: None,
         }

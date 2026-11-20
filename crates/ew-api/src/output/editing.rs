@@ -2408,7 +2408,7 @@ pub struct TableConnection {
     pub b: TableEnd,
     /// The connection kind's JSON key (`wire`, `core`, `bridge`).
     pub kind: String,
-    /// The drawn polyline: the stored route as the scene draws it, else the scene's provisional route.
+    /// The drawn polyline: the stored route as the scene draws it, else the unrouted line it draws.
     pub polyline: Vec<(i64, i64)>,
     /// Whether the connection has a stored route.
     pub stored_route: bool,
@@ -2433,7 +2433,7 @@ impl TableConnection {
 
 /// The segments of the drawn (clamped) `polyline` that lie on no segment of the connection's unclamped `path`
 /// (`ew_derive::drawn_path`, the path normaliser 7 and EW-TERM-006 read). A stored route is drawn vertex
-/// for vertex, so its segment `i` is compared with the path's segment `i` alone; a provisional route (at most three
+/// for vertex, so its segment `i` is compared with the path's segment `i` alone; the unrouted line (at most three
 /// vertices, cleaned after the clamp) with every segment of the path.
 fn off_sheet_segments(polyline: &[Pt2], path: &[Pt2], stored: bool) -> Vec<usize> {
     if polyline == path {
@@ -2626,7 +2626,7 @@ impl Session {
     /// `ew_commands::geometry::cp_position` computes inside a command), its `dir` the direction the scene draws a
     /// wire leaving it, its `connections` those on this page ending there, its `potential` the derived name. A
     /// connection's `polyline` is what the scene draws: its stored route (`[a] ++ route ++ [b]`, clamped to the
-    /// page), else the provisional route. A junction's `wiring` is the stored one, else the style's default (dot:
+    /// page), else the unrouted line. A junction's `wiring` is the stored one, else the style's default (dot:
     /// star, bevel: chain). Reads tracked records and memoised families only; the shell fetches it once per
     /// (revision, folio) with the page content.
     pub fn page_tables(&self, folio: &str) -> Option<PageTables> {

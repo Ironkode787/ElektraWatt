@@ -1537,7 +1537,7 @@ interactions:
 | Symbol placement with variants A–H, representation types, part-first placement | ● | | | |
 | Autoconnect assistant with two-stage ghosts; split on insert | ● | | | |
 | Explicit connections, orthogonal auto-route, route editing, crossings or hops | ● | | | |
-| Page router: Route page and Reroute, re-solve and connect on move, the unrouted dashed line, the layout rules | ● | | | |
+| Page router: Route, re-solve and connect on move, the unrouted dashed line, the layout rules | ● | | | |
 | Junctions with style, wiring and sequence editor | ● | | | |
 | Interruption points (star, chain, matrix, external), continue on page, arrange | ● | | | |
 | Xref formats and presets; main/aux and same-function xrefs; contact images | ● | | | |

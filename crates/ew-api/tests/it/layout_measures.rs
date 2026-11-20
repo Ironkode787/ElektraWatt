@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! A page's geometry and its layout measures on a temporary copy of Golden A. Folio 101
-//! draws its connections along the provisional path, and the measures name what the owner saw there: the heater's
+//! once drew its connections along the retired provisional path, and the measures name what the owner saw there: the heater's
 //! PE wire through the lamp's X1, and the lamp's L feed along the switch's wires. Named items only, never totals. The
 //! layout rules of §9 (EW-CORE-067 to -070, -072 and -073) on hand-built pages and on Golden A (RK1, RK2).
 

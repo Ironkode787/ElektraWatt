@@ -52,7 +52,7 @@
 //!   turns with the orientation and lands on the exact grid point (no 1 nm rounding drift). Every function CP the caller lists for a side is drawn at that side's
 //!   point; CPs without a side (shaft, rail foot) are not drawn.
 //! - **Routes.** A connection with a stored route draws `[a, route…, b]`; without one it draws the
-//!   provisional orthogonal route of [`crate::route`] (a placeholder for doc 06 §5.4). Ends are clamped to
+//!   unrouted line of [`crate::route`], dashed (the scene never routes, ADR-0033). Ends are clamped to
 //!   the page. A connection whose end cannot be resolved on this page is reported and not drawn.
 //! - **Strokes.** Wires are solid black in [`wire_stroke`] of the page's grid: on the QET 10 px grid the 1.0
 //!   QET px pen [`QET_PEN_1PX`] (printed 0.261 mm through the QET frame's sheet map, like the frame and the
@@ -101,7 +101,7 @@
 //!   equal ones), [`MARKER_REACH`] past the wire on both sides in the page's wire stroke, and the caller's marker text
 //!   in style `marker` [`MARKER_GAP`] beyond the line's end, horizontal: right of the line across a vertical wire
 //!   (aligned middle left), above the line across a horizontal wire (aligned bottom centre). A wire-marker group
-//!   ([`crate::items`]) draws the same line across all its wires. Provisional, like the routes.
+//!   ([`crate::items`]) draws the same line across all its wires.
 //! - **Cable marks** (rc.3, as panel builders draw a cable): a wire-marker group whose connections are all cores or
 //!   bus lines of one cable ([`ew_derive::CableMark`]) is drawn whatever the marker mode: the line across the wires it
 //!   crosses, [`MARKER_REACH`] past the outer ones; on each core a slanted stroke (`/`, [`CABLE_TICK`] each way); each

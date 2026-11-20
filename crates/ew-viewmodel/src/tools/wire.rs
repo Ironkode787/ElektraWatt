@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The Wire tool (`wire`; doc 06 §4.4, FR-UI-015, FR-CON-001, FR-CON-006): a connection drawn from a
-//! connection point, a junction or a point on a wire to another, routed by the pure router of §8.1 and committed as
+//! connection point, a junction or a point on a wire to another, routed by `ew_api::routing::route_wire` (`ew-drafting`'s router) and committed as
 //! `connection.draw` with the route the ghost showed.
 //!
 //! **Targets** in priority order within [`CP_SNAP_PT`] (9.5) screen points of the pointer or the grid cursor, at every

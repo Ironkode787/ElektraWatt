@@ -217,18 +217,18 @@ impl ShellModel {
     }
 
     /// The drawn polylines (sheet nm) of the selected connections on group `group`'s page: a wire or a fluid line is
-    /// selected as a band along its path ([`Self::selected_rects`] leaves it out). The wires the last Reroute changed
+    /// selected as a band along its path ([`Self::selected_rects`] leaves it out). The wires the last Route changed
     /// are drawn so too while its toast is up (rc.5).
     pub fn selected_paths(&self, group: usize) -> Vec<Vec<(i64, i64)>> {
         let Some(c) = self.canvas_of(group) else {
             return Vec::new();
         };
         let page = c.page();
-        let rerouted = self.rerouted_wires();
+        let last_routed = self.last_routed_wires();
         page.tables
             .connections
             .iter()
-            .filter(|t| self.tools.selection.contains(EntityRef(t.id)) || rerouted.contains(&t.id))
+            .filter(|t| self.tools.selection.contains(EntityRef(t.id)) || last_routed.contains(&t.id))
             .map(|t| {
                 t.polyline
                     .iter()

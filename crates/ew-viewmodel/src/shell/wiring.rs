@@ -769,7 +769,7 @@ impl ShellModel {
             .collect::<Vec<_>>()
             .join(" ");
         self.notify(text, true);
-        self.tools.rerouted = Some((self.notes.newest_serial(), self.revision(), changed));
+        self.tools.last_routed = Some((self.notes.newest_serial(), self.revision(), changed));
         Outcome::Done
     }
 
@@ -817,8 +817,8 @@ impl ShellModel {
 
     /// The wires the last Route changed, while its toast is on screen and the project is at the revision Route left
     /// (rc.5): the page draws them as it draws a selected wire, so a person sees which ones moved.
-    pub(super) fn rerouted_wires(&self) -> &[ew_api::output::Uuid] {
-        match &self.tools.rerouted {
+    pub(super) fn last_routed_wires(&self) -> &[ew_api::output::Uuid] {
+        match &self.tools.last_routed {
             Some((serial, rev, ids))
                 if *rev == self.revision() && self.notes.visible().iter().any(|n| n.serial == *serial) =>
             {

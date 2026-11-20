@@ -1513,9 +1513,9 @@ classDiagram
 non-empty `Connection.route` is the drawing: the full orthogonal vertex list from end `a`'s point (a CP's or a
 junction's) to end `b`'s, both included, every corner between on the page grid or on an end's coordinate; a reader
 draws it as stored and joins an end that has moved off it with one straight segment. An empty route on a page
-connection whose ends lie at two points means the connection is *unrouted*: it is drawn as a dashed straight line
+connection whose ends lie at two points means the connection is *unrouted*: it is drawn as a dashed right-angled line
 between its ends, has no wire geometry for normaliser 7, EW-TERM-006 or autoconnect, and is reported by EW-CORE-073.
-Routes are written only by an explicit step (the Wire tool, Route page, Route selection, a move's re-solve, an
+Routes are written only by an explicit step (the Wire tool, Route, a move's re-solve, an
 importer, Golden A's route tool); no reader routes.
 
 ### 9.1 Potential types and circuit classes

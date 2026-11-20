@@ -572,7 +572,7 @@ pub struct Card {
 
 impl Card {
     /// What the card's title names (`Preview: <it>`): the command's title, but for a route card the button that opened
-    /// it, "Route page" (the window check's C3).
+    /// it, Route (the window check's C3).
     pub fn command(&self) -> &str {
         match &self.origin {
             CardOrigin::Route { .. } => strings::text(key!("action-layout-route")),

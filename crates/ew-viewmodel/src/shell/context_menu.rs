@@ -5,7 +5,7 @@
 //! what it is. The right-click selected the thing first, so the entries read the selection; each calls an action
 //! that exists, with the parameters that aim it at the thing, and an entry that cannot run now carries its reason.
 //!
-//! - **One wire:** Edit route, Wire marker, Define potential…, Cable… (its cable where it is a core), Print wire
+//! - **One wire:** Route, Wire marker, Define potential…, Cable… (its cable where it is a core), Print wire
 //!   numbers. **Several wires:** Make cable from the selection….
 //! - **A junction:** Define potential….
 //! - **An interruption point:** Supply comes in here… (Remove the supply mark on a marked point; several points

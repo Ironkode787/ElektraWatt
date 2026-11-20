@@ -218,9 +218,9 @@ cable definition line (ADR-0007).
 
 *As built.* A page connection without a stored route whose ends lie at
 two points is **unrouted**. It keeps its connectivity (its potential, its wire number, its rows in the wire list), but
-it has no wire geometry: it is drawn as a dashed straight line between its ends on the canvas and in every export,
+it has no wire geometry: it is drawn as a dashed right-angled line between its ends on the canvas and in every export,
 normaliser 7 does not split it, EW-TERM-006 and autoconnect do not see it, and EW-CORE-073 reports it (an info, an
-error in release mode) as drawn dashed for want of a route. Route page draws it where a clear way exists. A route-less
+error in release mode) as drawn dashed for want of a route. Route draws it where a clear way exists. A route-less
 connection whose ends meet is drawn as nothing and is not unrouted.
 
 ### 3.2 Junctions and wiring sequence

@@ -36,8 +36,8 @@
 //!
 //! **The split.** Two ghost CPs that lie on one segment of a connection W and face its two ends (their directions
 //! along the segment, pointing apart) are the split of W: one proposal that sends no hint, because normaliser 7
-//! splits W when the symbol lands on the path the page draws it along (FR-CON-008, doc 06 §5.3), its stored route or,
-//! for a route-less W, its provisional path.
+//! splits W when the symbol lands on its stored route (FR-CON-008, doc 06 §5.3); a route-less W has no wire geometry
+//! and is not split.
 
 use ew_api::geometry::Dir;
 use ew_api::output::ew_dl::EntityRef;

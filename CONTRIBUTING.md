@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Contributing to ElektraWatt
 
-Thank you for your interest in ElektraWatt. The project is an early alpha: 0.1.0 is released, and the work now is
+Thank you for your interest in ElektraWatt. The project is an early alpha, and the work now is
 to make it lean and to make it work well. The roles and decision rules are in the
 [open-source governance document](docs/design/19-open-source-governance.md).
 

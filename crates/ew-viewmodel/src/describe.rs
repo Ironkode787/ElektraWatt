@@ -2480,8 +2480,8 @@ const FRACTIONS: [i64; 31] = [
 /// FT-500 amends it), so a reader of the page text can hover, select or delete it: with the pick reach
 /// at 50 % zoom (else at 90 %), the wire is first in the pick stack there ([`crate::tools::pick_stack`]) and no other
 /// connection is in it, and no link is under it (a press on a link follows it). The candidates are the points at n/32 of each segment ([`FRACTIONS`]: the middle first, then
-/// outward), longer segments first (ties: the segment's order); `None` when no candidate is unambiguous (a provisional
-/// route that runs along other wires for its whole length; a repeated click there walks the stack).
+/// outward), longer segments first (ties: the segment's order); `None` when no candidate is unambiguous (an unrouted
+/// line that runs along other wires for its whole length; a repeated click there walks the stack).
 fn wire_point(page: &CanvasPage, wire: &ew_api::output::TableConnection) -> Option<(i64, i64)> {
     let own: Vec<(i64, i64)> = wire
         .polyline

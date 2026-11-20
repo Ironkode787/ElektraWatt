@@ -751,8 +751,8 @@ only its own inputs, records are taken in ID order, a CP's position comes from t
 ID that draws it, and slot visibility is the override, else the arrangement, else the symbol default. The `revision`
 and `highlights` layers are empty so far; the `tables` layer draws the house report table of a generated page from a
 caller-filled `TableView` of printed texts (x 16.31 to 277.27 mm, rows of 6.52 mm, header #C0C0C0,
-column widths by the kinds' weights, text shrunk to a printed cap height of 1.8 mm and then reported, never cut). Wires
-without a stored route take the provisional router. *As built:* the `Session`
+column widths by the kinds' weights, text shrunk to a printed cap height of 1.8 mm and then reported, never cut). A wire
+without a stored route is drawn as the unrouted dashed line. *As built:* the `Session`
 export job (`ew_api::output`) owns the view's glue rules: a divider or a page without a form uses the no-grid frame,
 the wire-marker text is "csa colour" (both provisional), and the slots filled are the tag, the CP
 designation, the function text, the process tag, the cross-reference with its item links, the technical data, the

@@ -22,7 +22,7 @@ workspace = true
 testkit = []
 
 [dependencies]
-# The tracked read layer; no query is used yet (previews and prevent rules read through it from WP-S1.05 on).
+# The tracked read layer: the queries that commands, normalisers and previews read through a `Q`.
 ew-derive = { path = "../ew-derive" }
 # The PLC exchange: the exchange image, the matching and the three-way merge that `plc.apply_exchange` applies.
 ew-plc = { path = "../ew-plc" }
