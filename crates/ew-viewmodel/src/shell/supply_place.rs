@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Supply (`supply.place`, rc.5): the Draw tab's button for what comes in from the mains. Its form asks what comes in
+//! Supply (`supply.place`): the Draw tab's button for what comes in from the mains. Its form asks what comes in
 //! (single phase L, N, PE; three phase L1, L2, L3, N, PE; three phase without N; 24 V DC and 0 V; own names) and where
 //! it comes from (the place and the device there, as Supply comes in here… proposes them). Apply floats the marks as one
 //! group on the pointer ([`SupplyTool`]); the click places them, marks them as where the supply comes in
@@ -39,7 +39,7 @@ pub fn supply_names(system: &str, own: Option<&str>) -> Option<Vec<String>> {
     (!names.is_empty()).then_some(names)
 }
 
-/// The form's names field comes with Own, right after the system, and goes with another system (rc.5: "Own names
+/// The form's names field comes with Own, right after the system, and goes with another system ("Own names
 /// (for Own)" stood in every form and two runs did not understand it).
 pub(super) fn own_names_field(form: &mut FormDialog) {
     if form.action != SUPPLY_PLACE {

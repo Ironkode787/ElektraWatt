@@ -66,7 +66,7 @@ fn f1_in_a_dialog_opens_its_section() {
     assert_eq!(f1(&mut shell), "reference/window/dialogs.html#go-to-page-or-cell");
     done(&mut shell, "ui.dismiss", json!({}));
     done(&mut shell, "page.new", json!({}));
-    // A form opens its action's section: New page…'s on the command bar's page (rc.3).
+    // A form opens its action's section: New page…'s on the command bar's page.
     assert_eq!(f1(&mut shell), "reference/window/command-bar.html#new-page");
     shell.shutdown();
 }

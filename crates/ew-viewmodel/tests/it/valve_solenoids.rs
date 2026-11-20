@@ -153,7 +153,7 @@ fn a_valves_menu_draws_its_solenoid_and_both_say_where_the_other_is() {
         .unwrap_or_else(|| panic!("{menu:?}"))
         .clone();
     assert_eq!(row_text(&s, "representation/derived.solenoid_of"), Some(label));
-    // Going there marks the valve's symbol itself and says what it is (rc.2: a ring at the cell's middle meant
+    // Going there marks the valve's symbol itself and says what it is (a ring at the cell's middle meant
     // nothing to the persona).
     assert_eq!(s.dispatch(go.1, &go.2), Outcome::Done);
     assert_eq!(s.current_folio(), Some("102"));

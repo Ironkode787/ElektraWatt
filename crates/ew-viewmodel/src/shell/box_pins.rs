@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The pins of a drawn box (rc.5: a box drawn without a part could not get pins). A box whose pins are its own
+//! The pins of a drawn box (a box drawn without a part could not get pins). A box whose pins are its own
 //! (`TableBox::own_pins`) takes them where it stands: Add pin puts one on the edge nearest the point, its name asked in
 //! place ([`PinNameTool`]); a double click on a pin renames it; its right-click removes it while no wire holds it; a wire
 //! drawn to the box's edge where no pin is asks for the new pin's name and ends there. A box of a part draws the
@@ -60,7 +60,7 @@ impl ShellModel {
 
     /// `box.add_cp {x_mm?, y_mm?}` (Add pin, the box's right-click, and the Draw tab's Arrange group): on a box whose
     /// pins are its own, a new pin on the free grid point of its outline nearest the point, its name then asked in
-    /// place; without a point the pin follows the pointer along the edge until a click puts it (rc.5); on a box of a part, its device box opens, where the part's pins are edited.
+    /// place; without a point the pin follows the pointer along the edge until a click puts it; on a box of a part, its device box opens, where the part's pins are edited.
     pub(crate) fn act_box_add_cp(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(rep) = self.selected_box() else {
             return Outcome::refused(key!("reason-one-black-box"));
@@ -89,7 +89,7 @@ impl ShellModel {
             return Outcome::refused(key!("reason-box-pin-no-room"));
         };
         let (rep, pin) = (ew_dl::EntityRef(rep.id), (idx, q, dir));
-        // The menu's point puts the pin at once; the bar's Add pin lets it follow the pointer first (rc.5).
+        // The menu's point puts the pin at once; the bar's Add pin lets it follow the pointer first.
         let tool = if given {
             PinNameTool::add(rep, pin)
         } else {
@@ -211,7 +211,7 @@ impl ShellModel {
         }
     }
 
-    /// The Wire tool's click on the edge of a box whose pins are its own where no pin is (rc.5): the pin's name is asked
+    /// The Wire tool's click on the edge of a box whose pins are its own where no pin is: the pin's name is asked
     /// in place; once it is named the wire ends at it, one undo step with the pin. The Wire tool waits meanwhile.
     pub(super) fn pin_for_wire(&mut self, rep: ew_api::output::Uuid, pin: BoxCpAt) -> Outcome {
         let tool = PinNameTool::add(ew_dl::EntityRef(rep), pin);

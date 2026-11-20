@@ -520,7 +520,7 @@ pub fn bar(model: &ShellModel, hide_job: bool) -> Vec<StatusField> {
         .collect();
     }
     // A note the shell made for the open project stands in the state's place, else why a command did nothing while
-    // its toast shows (rc.3).
+    // its toast shows.
     let state = model
         .status_note()
         .or_else(|| model.refusal_shown())
@@ -557,7 +557,7 @@ pub fn bar(model: &ShellModel, hide_job: bool) -> Vec<StatusField> {
                 out.push(field(StatusKind::Cursor, text, Tone::Normal));
             }
             out.push(field(StatusKind::Grid, grid_text(model), Tone::Normal));
-            // How to move about the page, as the wheel is set (rc.2: nothing told the persona how to pan).
+            // How to move about the page, as the wheel is set (nothing told the persona how to pan).
             let tip = if model.settings().wheel_scrolls {
                 key!("status-tip-zoom-scrolls")
             } else {

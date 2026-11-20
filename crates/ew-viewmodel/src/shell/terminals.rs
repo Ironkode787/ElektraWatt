@@ -99,7 +99,7 @@ fn offer_part(cat: &PlaceCatalogue, options: &mut Vec<(String, String)>, copy: O
 }
 
 impl ShellModel {
-    /// A valve terminal placed as its positions (rc.2): the result line `text` with how many positions it has and how
+    /// A valve terminal placed as its positions: the result line `text` with how many positions it has and how
     /// many are empty, then, while another valve terminal of the project is drawn on no fluid page (made as a station
     /// first), that one and how to draw it.
     pub(super) fn terminal_placed_words(
@@ -241,7 +241,7 @@ impl ShellModel {
     /// terminal floating; a click places the row, each terminal on the next free point two grid steps right of the one
     /// before (`place.pick`'s `count`), each with the part in the step that places it. Headless, the parameters left
     /// out take the form's defaults. Spacing (`spacing`, grid steps, shown with their length) is how far apart the row's
-    /// terminals stand, remembered for the project's next row (rc.3).
+    /// terminals stand, remembered for the project's next row.
     pub(crate) fn act_place_terminal(&mut self, p: &Map<String, Value>) -> Outcome {
         const ACTION: &str = "tool.place_terminal";
         let Some(cat) = self.catalogue() else {
@@ -251,7 +251,7 @@ impl ShellModel {
         if kinds.is_empty() {
             return Outcome::refused(key!("reason-no-terminal-kind"));
         }
-        // The strip the form adds to: the strip of the terminal placed last on this page, else a new strip (rc.2: the
+        // The strip the form adds to: the strip of the terminal placed last on this page, else a new strip (the
         // field terminals joined the supply page's strip; rc.5: the strip used last on another page was chosen).
         let page_strip: Option<String> = self.page_terminal_strip();
         if p.is_empty() && self.mode == super::Mode::Gui {
@@ -265,7 +265,7 @@ impl ShellModel {
                 .iter()
                 .map(|st| (st.id.to_string(), crate::navigators::strip_label(&st.tag)))
                 .collect();
-            // New strip stands first, always (rc.5: it moved in the list).
+            // New strip stands first, always (it moved in the list).
             strips.insert(0, ("new".to_owned(), new_words));
             let chosen = page_strip.clone().unwrap_or_else(|| "new".to_owned());
             // The Part: No part, then every terminal part of the kinds; it proposes the first strip's and kind's.
@@ -490,7 +490,7 @@ impl ShellModel {
         }
     }
 
-    /// `terminals.spacing {steps?}` (Spacing… on two or more selected terminals of one row; rc.3): the terminals spaced
+    /// `terminals.spacing {steps?}` (Spacing… on two or more selected terminals of one row): the terminals spaced
     /// `steps` grid steps apart from the leftmost, each moved as a move moves it (its wires' ends follow), in one undo
     /// step; the spacing is the project's for its next row too. In the window without `steps` a small form asks it.
     pub(crate) fn act_terminals_spacing(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -711,7 +711,7 @@ impl ShellModel {
 
     /// FT-1695: after the first terminal of a Terminal… row the rest of the row, each by the Place tool's own commit at
     /// the same point (it lands on the next free point two grid steps right of a terminal of its strip). Undo and Redo
-    /// take the row whole (`row_steps`), and Select takes over: one click places the count once (rc.2: four clicks with
+    /// take the row whole (`row_steps`), and Select takes over: one click places the count once (four clicks with
     /// How many 4 gave sixteen terminals).
     pub(super) fn place_terminal_row(&mut self) {
         let rest = |s: &mut Self| {

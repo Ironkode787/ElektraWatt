@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The parts list says what it leaves out (rc.2 persona run, entry 31), on a copy of Golden A: Output ▸ Parts list
+//! The parts list says what it leaves out, on a copy of Golden A: Output ▸ Parts list
 //! opens the list and a toast says how many devices have no part and are not listed; its Select them selects exactly
 //! the devices that the check's "Device without part" group names, so Edit ▸ Choose part… gives them one.
 

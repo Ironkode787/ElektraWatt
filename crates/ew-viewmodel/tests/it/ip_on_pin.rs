@@ -295,7 +295,7 @@ fn a_point_on_another_point_is_refused() {
     // Without the typed name (it stays for a source's target, whose form has its CP elsewhere) the ghost is the next
     // point of the same form, on the point just placed.
     done(&mut s, "ip.name", json!({"text": ""}));
-    // A source again: the waiting source's partner, a target, would have its CP elsewhere (rc.2).
+    // A source again: the waiting source's partner, a target, would have its CP elsewhere.
     done(&mut s, "tool.ip_direction", json!({"direction": "source"}));
     assert_eq!(
         ghost(&s)["connects"],

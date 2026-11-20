@@ -39,7 +39,7 @@ const NEW: &str = "cable.new";
 /// The action of Connect cores….
 const CONNECT: &str = "cable.connect_cores";
 
-/// The value of New cable type…, the last entry of a Cable form's list of cable types (rc.3): it opens the small form of
+/// The value of New cable type…, the last entry of a Cable form's list of cable types: it opens the small form of
 /// a new cable part, never names a part (a part number has no angle brackets).
 pub const NEW_CABLE_TYPE: &str = "<new cable type>";
 
@@ -463,8 +463,8 @@ impl ShellModel {
                         })
                         .collect();
                     // A new cable asks for its type first: the cable parts that fit the wires, best first, or none
-                    // and the size typed (rc.3). Choosing a part writes its number as the type.
-                    // One Cable form in two uses (rc.5): the cable type, the tag, the length, then the cores (here) or
+                    // and the size typed. Choosing a part writes its number as the type.
+                    // One Cable form in two uses: the cable type, the tag, the length, then the cores (here) or
                     // the plugs (a bus line's).
                     let mut fields = Vec::new();
                     let mut type_text = form.type_text.clone();
@@ -578,7 +578,7 @@ impl ShellModel {
                 }
             },
         };
-        // The length typed (rc.5: the form asks for it, as a bus line's does), checked before anything is made.
+        // The length typed (the form asks for it, as a bus line's does), checked before anything is made.
         let length = match given(p, "length") {
             None => None,
             Some(text) => {
@@ -696,7 +696,7 @@ fn from_wires_options(session: &ew_api::Session, wires: &[Uuid], proposed: &str)
 }
 
 impl ShellModel {
-    /// Back in the Cable form `form` after New cable type… saved the cable part `number` (rc.3): the form's list again,
+    /// Back in the Cable form `form` after New cable type… saved the cable part `number`: the form's list again,
     /// the new type in it and chosen (in Cable… from wires also as the type, its cores proposed again).
     pub(super) fn cable_type_made(&mut self, mut form: FormDialog, number: &str) {
         let Some(project) = &self.project else {
@@ -750,11 +750,11 @@ fn offer_cores(command: &ew_api::AnyCommand) -> usize {
 /// The action of a bus line's Cable form.
 pub(super) const BUS_CABLE: &str = "bus.cable";
 
-/// The value of New bus cable… and New plug…, the last entry of a bus line's Cable form's lists of cables and plugs
-/// (rc.5): it opens the small form of a new bus part, never names a part.
+/// The value of New bus cable… and New plug…, the last entry of a bus line's Cable form's lists of cables and plugs:
+/// it opens the small form of a new bus part, never names a part.
 pub const NEW_BUS_PART: &str = "<new bus part>";
 
-/// The value of A new cable, the first entry of a bus line's Cable form's choice of cable (rc.5).
+/// The value of A new cable, the first entry of a bus line's Cable form's choice of cable.
 const NEW_CABLE: &str = "<new cable>";
 
 impl ShellModel {
@@ -821,7 +821,7 @@ impl ShellModel {
             let message = strings::format(key!("error-no-cable-part"), &[&part]);
             return self.form_failed(BUS_CABLE, message);
         };
-        // The cable: one of the project's bus cables chosen (a line that runs on, rc.5), or a new one chosen; else the
+        // The cable: one of the project's bus cables chosen (a line that runs on), or a new one chosen; else the
         // lines' cable while its tag stands, else an existing one the typed tag names, else a new one.
         let typed = given(p, "tag");
         let named = typed.as_ref().and_then(|t| {
@@ -928,7 +928,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// Back in the bus line's Cable form `form` after New bus cable… or New plug… saved the part `number` (rc.5): the
+    /// Back in the bus line's Cable form `form` after New bus cable… or New plug… saved the part `number`: the
     /// form's lists again with the new part, chosen in its field `field`; every other field keeps what it held.
     pub(super) fn bus_part_made(&mut self, form: FormDialog, number: &str, field: &'static str) {
         let lines = self.selected_bus_lines();
@@ -957,7 +957,7 @@ impl ShellModel {
         }
     }
 
-    /// After the bus line's Cable form's choice of cable changed (rc.5): the tag field shows the chosen cable's tag, or
+    /// After the bus line's Cable form's choice of cable changed: the tag field shows the chosen cable's tag, or
     /// the next tag a new cable takes.
     pub(super) fn bus_cable_chosen(&mut self, value: &str) {
         let tag = match value.parse::<Uuid>() {
@@ -1010,7 +1010,7 @@ impl ShellModel {
                 strings::text(key!("form-bus-cable-new-part")).to_owned(),
             )])
             .collect();
-        // A new cable, or one of the project's bus cables the line runs on in (rc.5).
+        // A new cable, or one of the project's bus cables the line runs on in.
         let which = std::iter::once((
             NEW_CABLE.to_owned(),
             strings::text(key!("form-bus-cable-new")).to_owned(),
@@ -1024,7 +1024,7 @@ impl ShellModel {
                 which,
                 form.cable.map_or_else(|| NEW_CABLE.to_owned(), |c| c.to_string()),
             ),
-            // The rows of a wiring page's Cable form, in its order (rc.5): the cable type, the tag, the length.
+            // The rows of a wiring page's Cable form, in its order: the cable type, the tag, the length.
             field(
                 "part",
                 key!("form-cable-kind"),

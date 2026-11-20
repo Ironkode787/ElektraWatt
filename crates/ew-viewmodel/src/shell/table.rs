@@ -997,7 +997,7 @@ impl ShellModel {
             return Outcome::refused(key!("reason-no-nav-row"));
         };
         let i = view.rows[r];
-        // A PLC channel's function text is typed as in the station view (rc.5); one nothing is wired to says why.
+        // A PLC channel's function text is typed as in the station view; one nothing is wired to says why.
         let channel_text = channel_text_cell(&view.table, &view.table.nodes[i as usize], col);
         if channel_text == Some(None) {
             return Outcome::Failed {
@@ -1098,7 +1098,7 @@ impl ShellModel {
             self.close_edit(kind);
             return Outcome::Done;
         }
-        // A PLC channel's function text, the wired device's, goes as in the station view (rc.5); a refusal stays in the
+        // A PLC channel's function text, the wired device's, goes as in the station view; a refusal stays in the
         // field.
         if let Some(Some(channel)) = channel_text_cell(&view.table, &view.table.nodes[row as usize], col) {
             let set = json!({"channel": channel.to_string(), "column": "function_text", "text": edit.buffer});

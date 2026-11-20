@@ -256,7 +256,7 @@ impl ShellModel {
         self.activate_tool(Box::new(
             PasteTool::new(Arc::new(f), dropped).adapting(adapt.to_vec()),
         ));
-        // The block hangs on the pointer at once, else in the middle of the view (rc.5: no ghost showed until the
+        // The block hangs on the pointer at once, else in the middle of the view (no ghost showed until the
         // pointer moved, and the click set the block down where the person did not expect it).
         let at = self.canvas().map(|c| {
             c.pointer().unwrap_or_else(|| {
@@ -493,7 +493,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// What a paste of `json` (`edit.paste`'s parameters) onto the page shown fits (rc.5): `None` for a fragment of
+    /// What a paste of `json` (`edit.paste`'s parameters) onto the page shown fits: `None` for a fragment of
     /// the page's own grid; else the page's grid in words and where the fragment's representations and junctions would
     /// stand moved by `at − anchor` alone.
     pub(super) fn paste_fit_of(&self, json: &Value) -> Option<crate::tools::PasteFit> {
@@ -526,7 +526,7 @@ impl ShellModel {
         Some(fit)
     }
 
-    /// A paste fitted to the page's grid (rc.5): the wires it brought are routed anew between the same ends, folded
+    /// A paste fitted to the page's grid: the wires it brought are routed anew between the same ends, folded
     /// into the paste's undo step, and a message says that the paste was fitted, how many of its symbols and junctions
     /// moved onto the grid and that the wires were redrawn. `pasted` are the pasted representations, `before` the page
     /// tables before the paste.
@@ -601,7 +601,7 @@ impl ShellModel {
         } else {
             strings::format(key!("toast-paste-fitted"), &[&fit.grid, &count.to_string()])
         };
-        // The wires the router found no way for stay dashed: the message counts them and says what to do (rc.5: it said
+        // The wires the router found no way for stay dashed: the message counts them and says what to do (it said
         // the wires were redrawn while two were not).
         let lost = plan.as_ref().map_or(0, |p| p.plan.unrouted.len());
         if lost > 0 {

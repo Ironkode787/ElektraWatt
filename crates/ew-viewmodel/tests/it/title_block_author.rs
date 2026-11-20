@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Title block fields form never applies half (rc.2 persona run, entry 3): in a session that may not name a
+//! The Title block fields form never applies half: in a session that may not name a
 //! revision's author (a script; `revision.set_author` is a person's step at the window), the form leaves Author out
 //! and says why under its fields before Apply; Apply then applies everything the form holds. A project made as the
 //! persona made it: from the company standard, page 101, its open revision naming no author.

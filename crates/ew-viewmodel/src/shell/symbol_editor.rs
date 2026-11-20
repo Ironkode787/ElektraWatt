@@ -61,7 +61,7 @@ pub const ROLES: [&str; 13] = [
     "undefined",
 ];
 
-/// The disciplines a symbol is drawn for, in the order the editor's Discipline list offers them (rc.2, F9).
+/// The disciplines a symbol is drawn for, in the order the editor's Discipline list offers them.
 pub const DISCIPLINES: [&str; 5] = ["electrical", "pneumatic", "vacuum", "hydraulic", "bus"];
 
 /// The function types the editor offers for a symbol of `discipline` (one of [`DISCIPLINES`]), in the order of its list:
@@ -93,7 +93,7 @@ pub const TOOL_KEYS: [(&str, &str); 5] = [
     ("cp", "tool.ip"),
 ];
 
-/// The page's editing keys that act on the editor's selection while the editor shows (rc.3: what a person learned on
+/// The page's editing keys that act on the editor's selection while the editor shows (what a person learned on
 /// a page works here): the main window's action whose key it is, the editor's action, and the direction of an arrow.
 pub const EDIT_KEYS: [(&str, &str, (i8, i8)); 10] = [
     ("edit.delete_selection", "symbol.delete", (0, 0)),
@@ -430,7 +430,7 @@ impl SymbolSource {
             .library
             .clone()
             .unwrap_or_else(|| words(key!("symbol-project-copy")));
-        // The name says its grid: the starter library holds most symbols on both (rc.3: two rows read "Lamp").
+        // The name says its grid: the starter library holds most symbols on both (two rows read "Lamp").
         let grid = crate::status::grid_words(self.grid.num() as i64, self.grid.den() as i64);
         let name = strings::format(key!("symbol-source-grid"), &[&name_words(&self.name), &grid]);
         (name, from)
@@ -1359,7 +1359,7 @@ impl ShellModel {
         Ok(())
     }
 
-    /// Sets the discipline the symbol is drawn for (rc.2, F9): every connection point and function pin takes it, and a
+    /// Sets the discipline the symbol is drawn for: every connection point and function pin takes it, and a
     /// function type it does not offer ([`function_kinds`]) becomes a black box; with `cp`, that one point and the pin it
     /// draws only (a point that differs). Refused while the draft uses a library's function definition.
     fn symbol_discipline(editor: &mut SymbolEditor, p: &Map<String, Value>) -> Result<(), String> {
@@ -1686,7 +1686,7 @@ impl ShellModel {
         let pos = [nm(p, "x")?, nm(p, "y")?];
         match text(p, "direction") {
             "" => {}
-            // `lead`: the way the lead it ends points, so a wire carries on from it (rc.3); left where it ends none.
+            // `lead`: the way the lead it ends points, so a wire carries on from it; left where it ends none.
             "lead" => {
                 if let Some(dir) = lead_direction(&editor.draft, pos) {
                     cp["dir"] = json!(dir);

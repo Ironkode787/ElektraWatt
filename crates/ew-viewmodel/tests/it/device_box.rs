@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The device box (rc.3, doc 07 §2.5): a part's pins and where they stand on its box, edited on the symbol editor's
+//! The device box (doc 07 §2.5): a part's pins and where they stand on its box, edited on the symbol editor's
 //! screen, saved with the part, and drawn that way when the part is placed.
 
 use crate::common::{Tmp, actual_size, cursor, done, failed, grid_point, new_project, tables};

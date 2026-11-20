@@ -1593,7 +1593,7 @@ fn every_choice_of_the_wizard_is_accepted_by_the_commands() {
 #[test]
 fn the_draft_preview_shows_readable_texts_and_the_current_choices() {
     // NFR-UX-08 in miniature: the preview is the sample project's folio 102 under the draft's settings. A template
-    // always starts with the readable text styles of a new project (rc.3), so the preview differs from the sample's
+    // always starts with the readable text styles of a new project, so the preview differs from the sample's
     // page, whose pin numbers and wire markers print as QElectroTech's small ones.
     let tmp = Tmp::new(STEM);
     let mut shell = tmp.shell();

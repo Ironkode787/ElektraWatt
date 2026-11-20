@@ -523,7 +523,7 @@ impl ShellModel {
     }
 
     /// The toast's sentence for a point `ip.place` put down free (`params`, the command's): what was made and where its
-    /// partner is, "IP-1: source here at 101-B2, target on /102.3", or that it has none yet (rc.2 persona run: the toast
+    /// partner is, "IP-1: source here at 101-B2, target on /102.3", or that it has none yet (the toast
     /// said how D would have made the opposite); `None` for an external connection point or an undirected one.
     #[inline(never)]
     pub(super) fn ip_placed_text(&self, params: &Value) -> Option<String> {
@@ -897,7 +897,7 @@ impl ShellModel {
         }
     }
 
-    /// `box.centre_pins` (a black box's right-click, Centre the pins; rc.5): the pins of each side of the one selected
+    /// `box.centre_pins` (a black box's right-click, Centre the pins): the pins of each side of the one selected
     /// black box centred on it as a group, its size kept, committed as `box.reshape` with `centre`. A box stored with a
     /// pin on its corner is put right without a resize.
     pub(crate) fn act_box_centre_pins(&mut self) -> Outcome {

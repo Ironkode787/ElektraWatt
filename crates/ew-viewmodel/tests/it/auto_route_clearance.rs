@@ -351,7 +351,7 @@ fn the_same_page_routes_the_same_wires() {
 
 /// Without a clear route the ghost is the unrouted line, right-angled and never a diagonal, the hint says so,
 /// and the commit stores the wire unrouted, drawn on the page as the ghost showed it; with a fixed bend from which no
-/// clear way leads on, the same: no L tail through the box is stored (rc.3: such a tail ran through a pin and along
+/// clear way leads on, the same: no L tail through the box is stored (such a tail ran through a pin and along
 /// another wire).
 #[test]
 fn without_a_clear_route_the_wire_stays_unrouted_and_the_tool_says_so() {
@@ -495,7 +495,7 @@ fn a_click_inside_a_symbol_places_no_bend() {
     );
 }
 
-/// The owner's case (rc.3): a two-pole breaker over another, two grid steps between the upper's bottom pins and the
+/// The owner's case: a two-pole breaker over another, two grid steps between the upper's bottom pins and the
 /// lower's top pins, in a new project; the upper's bottom pins and the lower's top pins, each left to right.
 fn breakers_over_one_another(tmp: &Tmp) -> (ShellModel, Vec<TableCp>, Vec<TableCp>) {
     use ew_api::geometry::Dir;
@@ -609,7 +609,7 @@ fn two_breakers_wired_cross_over_cross_once_drawn_and_rerouted() {
 
 /// rc.3 (the owner's case): the second wire drawn with a free point on the first wire's corner, the way he drew it,
 /// keeps every hard rule; Route on both, in at most one undo step, leaves them crossing once and running straight
-/// otherwise, with no more bends than drawn (rc.5: a reroute starts from the drawing and keeps it where routing the
+/// otherwise, with no more bends than drawn (a reroute starts from the drawing and keeps it where routing the
 /// two from nothing gives more corners, as it did here).
 #[test]
 fn two_breakers_wired_cross_over_keep_the_hard_rules_drawn_and_rerouted() {

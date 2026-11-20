@@ -30,7 +30,7 @@
 //! **Hover**: the first entity of the pick stack at the pointer ([`crate::tools::pick_stack`], what a click there
 //! picks): a connection whose drawn line passes within 4 points, an entity whose rectangle
 //! (`DisplayList::entity_bounds`, computed once per page content) inflated by 4 points contains the pointer, in the
-//! stack's order. A wire answers only near its own line, never over the box around its ends (rc.3).
+//! stack's order. A wire answers only near its own line, never over the box around its ends.
 
 use std::sync::Arc;
 
@@ -927,7 +927,7 @@ impl CanvasModel {
     pub fn hovered_line_tip(&self) -> Option<String> {
         let (entity, _) = self.hover?;
         let c = self.page.tables.connections.iter().find(|c| c.id == entity.0)?;
-        // A wire without a route says what its thin dashed line means and what to do (rc.5).
+        // A wire without a route says what its thin dashed line means and what to do.
         if !c.stored_route {
             return Some(crate::strings::text(crate::key!("tip-wire-unrouted")).to_owned());
         }

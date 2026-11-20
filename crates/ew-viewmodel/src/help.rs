@@ -90,7 +90,7 @@ pub static ANCHORS: &[Anchor] = &[
         "make-a-template-for-your-companys-drawings",
     ),
     on("tutorials/index.md", "tutorials", ""),
-    // The how-to guides of the disciplines (rc.2, F5): the PLC, Fluid and Workspace buttons' Guide, F1 on their
+    // The how-to guides of the disciplines: the PLC, Fluid and Workspace buttons' Guide, F1 on their
     // tabs, navigators and pages, the part editor and a panel layout page.
     on(PLC_GUIDE, "guide-plc", ""),
     on(PLC_GUIDE, "guide-bus", "bus-ports-and-nets"),
@@ -144,7 +144,7 @@ pub static ANCHORS: &[Anchor] = &[
     on(PANELS, "nav-macros", "macros"),
     on(PANELS, "nav-libraries", "libraries"),
     on(PANELS, "nav-messages", "messages"),
-    // The kinds of thing on a page (rc.3, F1 everywhere): their sections of the page about them.
+    // The kinds of thing on a page (F1 everywhere): their sections of the page about them.
     on(THINGS, "thing-device", "devices-and-symbols"),
     on(THINGS, "thing-wire", "wires"),
     on(THINGS, "thing-cable", "cables-and-their-marks"),
@@ -176,7 +176,7 @@ pub static ANCHORS: &[Anchor] = &[
     on(SYMBOL_EDITOR, "symbol-editor-selecting", "selecting-and-moving"),
     on(SYMBOL_EDITOR, "symbol-editor-drawing", "drawing"),
     on(SYMBOL_EDITOR, "symbol-editor-device-box", "the-device-box"),
-    // Their own places (rc.3): the editor's start card, outline, a shape, a connection point and a pin of a box; a
+    // Their own places: the editor's start card, outline, a shape, a connection point and a pin of a box; a
     // valve terminal's positions.
     on(SYMBOL_EDITOR, "symbol-editor-start", "the-start-card"),
     on(SYMBOL_EDITOR, "symbol-editor-outline", "the-outline"),
@@ -275,7 +275,7 @@ pub fn heading_id(text: &str) -> String {
 /// own opens it; the others open the section of what they act on (a cable's command the cables', a view command the
 /// page view's), never the window's pages as a whole where a closer section exists.
 pub fn action_topic(action: &str) -> Option<&'static str> {
-    // A button of the bar opens its own section of the bar page (rc.3: Highlight opened the panels page, a PLC
+    // A button of the bar opens its own section of the bar page (Highlight opened the panels page, a PLC
     // button the whole PLC guide), unless it has a section of its own elsewhere already.
     own_topic(action)
         .filter(|t| !t.starts_with("guide-") && *t != "symbol-editor")
@@ -828,7 +828,7 @@ pub enum EditorPart {
     Other,
 }
 
-/// The topic of a part of the symbol editor's screen under the pointer (rc.3: F1 on any part opened the editor's
+/// The topic of a part of the symbol editor's screen under the pointer (F1 on any part opened the editor's
 /// general page): the device box (a selected pin's own place), the start card, the outline; the drawing by the
 /// selection (a connection point, a shape), else by the tool in hand (Select its selecting and moving, another its
 /// drawing); Properties the screen's section.
@@ -856,7 +856,7 @@ fn station_topic(model: &ShellModel, tab: &crate::area::StationTab) -> &'static 
     }
 }
 
-/// What F1 opens over a card or a cell of a station's view, and its words (rc.3: a rack's card opened the page about
+/// What F1 opens over a card or a cell of a station's view, and its words (a rack's card opened the page about
 /// things on a page): a valve terminal's position its own place in the valve terminals' section, a PLC card the rack's
 /// section.
 pub fn station_card_help(model: &ShellModel, tab: &crate::area::StationTab) -> (&'static str, &'static str) {
@@ -955,7 +955,7 @@ pub fn nav_topic(kind: NavKind) -> &'static str {
         NavKind::Connections => "nav-connections",
         NavKind::Strips => "nav-strips",
         NavKind::Cables => "nav-cables",
-        // The PLC, Bus and Fluid panels lead to their discipline's guide (rc.2, F5).
+        // The PLC, Bus and Fluid panels lead to their discipline's guide.
         NavKind::Plc | NavKind::PlcGrid => "guide-plc",
         NavKind::Bus => "guide-bus",
         NavKind::Fluid => "guide-fluid",
@@ -994,7 +994,7 @@ pub fn pane_topic(pane: PaneKind) -> &'static str {
 fn focus_topic(model: &ShellModel) -> Option<String> {
     Some(match model.focus()? {
         // A panel with a guide leads to it, in its table mode too (the PLC grid is a table).
-        // A panel with a guide leads to it, but a row of a device (a module, a valve) to the device's section (rc.3: a
+        // A panel with a guide leads to it, but a row of a device (a module, a valve) to the device's section (a
         // valve's row opened the whole Fluid guide).
         Focus::Navigator(kind) if nav_topic(kind).starts_with("guide-") => {
             match model.nav(kind).and_then(|n| n.cursor_key()) {

@@ -900,7 +900,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_part_field(p),
         )),
     ),
-    // The device box (rc.3, doc 07 §2.5): a part's pins and where they stand on its box, edited on the symbol
+    // The device box (doc 07 §2.5): a part's pins and where they stand on its box, edited on the symbol
     // editor's screen.
     with_params(
         "part?:text, new?:bool, discard?:bool",
@@ -1231,7 +1231,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             s.act_symbol("tool", p)
         })),
     ),
-    // What a person does with the drawing's selection, as on a page (rc.3): the page's own keys run these while the
+    // What a person does with the drawing's selection, as on a page: the page's own keys run these while the
     // editor shows ([`crate::shell::symbol_editor::EDIT_KEYS`]).
     with_params(
         "items:json, mode?:enum(replace|add|toggle)",

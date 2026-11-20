@@ -147,7 +147,7 @@ pub struct PlaceTool {
     copies: Vec<Value>,
     /// How many terminals one click lays in a row (Terminal…'s count, FT-1695); 1 for every other placement.
     row: u32,
-    /// How many grid steps right of a terminal of its strip the next terminal lands (Terminal…'s Spacing, rc.3).
+    /// How many grid steps right of a terminal of its strip the next terminal lands (Terminal…'s Spacing).
     spacing: u32,
     /// Whether a commit was made and the host has not taken the rest of its row ([`Self::take_row_rest`]).
     row_due: bool,
@@ -241,7 +241,7 @@ impl PlaceTool {
         self
     }
 
-    /// The tool stepping a terminal `spacing` grid steps right of one of its strip (at least 1; rc.3).
+    /// The tool stepping a terminal `spacing` grid steps right of one of its strip (at least 1).
     pub fn with_spacing(mut self, spacing: u32) -> PlaceTool {
         self.spacing = spacing.max(1);
         self

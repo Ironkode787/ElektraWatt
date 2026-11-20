@@ -619,8 +619,7 @@ fn check_widened(s: &ShellModel, before: &TableRep, connected: usize) {
     for c in &b1.cps {
         assert!(on_outline(&b1.outline, c.1), "CP {} at {:?}", c.0, c.1);
     }
-    // The CPs of the top and bottom edges move as a group: their spacing kept, the group centred on the wider edge
-    // (rc.5).
+    // The CPs of the top and bottom edges move as a group: their spacing kept, the group centred on the wider edge.
     let (left, right) = (index_of(s, b1.outline[0]).0, index_of(s, b1.outline[1]).0);
     for y in [b1.outline[0].1, b1.outline[2].1] {
         let xs = |cps: &[(u16, (i64, i64), ew_api::geometry::Dir)]| -> Vec<i64> {
@@ -1387,7 +1386,7 @@ fn an_external_point_after_an_ip_does_not_inherit_its_name() {
     done(&mut s, "ip.name", json!({"text": "PE-1.1"}));
     done(&mut s, "tool.ip_direction", json!({"direction": "target"}));
     done(&mut s, "canvas.activate", json!({}));
-    // Off the placed point (its CP now carries a potential), the name in the field: one more target of PE-1.1 (rc.5).
+    // Off the placed point (its CP now carries a potential), the name in the field: one more target of PE-1.1.
     cursor_k(&mut s, (60, 9));
     assert_eq!(canvas(&s)["ghost"]["name"], "PE-1.1", "the name in the field");
     let id = s

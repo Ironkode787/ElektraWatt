@@ -48,19 +48,19 @@ pub enum NoteAction {
     NewStation,
     /// Show the folder a practice project was made in, in the system's file manager.
     ShowFolder,
-    /// Swap two valves' positions on their valve terminal, after a typed position another valve holds (rc.2).
+    /// Swap two valves' positions on their valve terminal, after a typed position another valve holds.
     Swap,
-    /// The layout page's devices labelled with item numbers, after a legend was added beside their tags (rc.2).
+    /// The layout page's devices labelled with item numbers, after a legend was added beside their tags.
     ItemNumbers,
-    /// Select the devices the parts list leaves out because they have no part, for Choose part… (rc.2).
+    /// Select the devices the parts list leaves out because they have no part, for Choose part….
     SelectUnlisted,
-    /// Draw the wire a placement offered for a far autoconnect hit instead of drawing it (rc.2).
+    /// Draw the wire a placement offered for a far autoconnect hit instead of drawing it.
     Connect,
-    /// Redraw the boxes of a part whose device box was changed (rc.3): each as the part lays it out now.
+    /// Redraw the boxes of a part whose device box was changed: each as the part lays it out now.
     RedrawBoxes,
-    /// The Cable form of a bus line just drawn (rc.5: no cable was asked for).
+    /// The Cable form of a bus line just drawn (no cable was asked for).
     ChooseCable,
-    /// Go to the page an Undo or a Redo changed, when it is not the page on show (rc.5).
+    /// Go to the page an Undo or a Redo changed, when it is not the page on show.
     GoTo,
     /// Route these too…: the preview of Route over the wires a page-wide Route left as the person's.
     RouteHis,

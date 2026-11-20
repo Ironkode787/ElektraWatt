@@ -76,7 +76,7 @@ impl ShellModel {
     }
 
     /// Which way the grip of the selected box under the pointer resizes it, while Select is idle (the window's pointer
-    /// shape over it before the press, rc.5); `None` elsewhere.
+    /// shape over it before the press); `None` elsewhere.
     pub fn box_grip_under_pointer(&self) -> Option<crate::tools::black_box::GripResize> {
         if self.tools.tool.name() != "select" || self.tools.tool.state() != "idle" {
             return None;
@@ -816,8 +816,8 @@ impl ShellModel {
         )
     }
 
-    /// The wires the last Route changed, while its toast is on screen and the project is at the revision Route left
-    /// (rc.5): the page draws them as it draws a selected wire, so a person sees which ones moved.
+    /// The wires the last Route changed, while its toast is on screen and the project is at the revision Route left:
+    /// the page draws them as it draws a selected wire, so a person sees which ones moved.
     pub(super) fn last_routed_wires(&self) -> &[ew_api::output::Uuid] {
         match &self.tools.last_routed {
             Some((serial, rev, ids))
@@ -885,7 +885,7 @@ impl ShellModel {
         self.tools.handle.map(|(w, _)| w)
     }
 
-    /// `route.handle {step}` (Tab +1, Shift+Tab −1, rc.3): the focus goes to the next or the previous handle of the
+    /// `route.handle {step}` (Tab +1, Shift+Tab −1): the focus goes to the next or the previous handle of the
     /// one selected wire along the wire as a person reads it, from its end that comes first (the upper, else the left
     /// one; a persona run's Tab landed on a handle at the wire's far end) to the other, round at its ends; the first
     /// Tab takes the first, the first Shift+Tab the last. Refused without one wire selected.
@@ -912,7 +912,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `route.handle_move {dx, dy}` (the arrow keys while a handle has the focus, rc.3): the focused handle moved by
+    /// `route.handle_move {dx, dy}` (the arrow keys while a handle has the focus): the focused handle moved by
     /// grid steps as a drag moves it (a segment across itself, a bend both ways), committed as `connection.route` in
     /// one undo step; the focus stays on the moved handle. Refused without a focused handle.
     pub(crate) fn act_route_handle_move(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -1013,7 +1013,7 @@ impl ShellModel {
 /// How many wires Route names in its toast before it says how many more there are.
 const NAMED: usize = 3;
 
-/// The wires `ids` of page `folio` as Route's toast names them (rc.5): each by its number, else by its ends in words,
+/// The wires `ids` of page `folio` as Route's toast names them: each by its number, else by its ends in words,
 /// the first [`NAMED`] of them and then how many more.
 fn wire_names(session: &ew_api::Session, folio: &str, ids: &[ew_api::output::Uuid]) -> String {
     let name = |id: &ew_api::output::Uuid| match session.selection_words(*id) {

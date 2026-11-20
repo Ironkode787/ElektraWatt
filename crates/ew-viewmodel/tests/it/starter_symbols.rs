@@ -468,7 +468,7 @@ fn every_starter_symbol_reaches_a_usable_device_from_the_picker() {
 /// The letter a new project (identifier set EN 81346-2:2009) gives each generic starter part placed from the
 /// picker without a letter of its own: the selector switch and the one-pole on/off switch S (a manual command,
 /// by IEC 81346-2:2019), not the switching device's Q or the relay's K. The solenoid valve, whose main function is its
-/// valve (rc.2, F11), is placed on a fluid page: `valve_solenoids` checks its Q.
+/// valve, is placed on a fluid page: `valve_solenoids` checks its Q.
 #[test]
 fn a_new_project_gives_each_starter_part_its_iec_81346_letter() {
     let tmp = Tmp::new("starter-letters");

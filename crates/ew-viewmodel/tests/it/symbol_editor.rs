@@ -1216,7 +1216,7 @@ fn the_symbol_file_picker_offers_every_extension_an_importer_reads() {
 
 /// On a QET-grid page the Insert symbol picker lists a published 4 mm symbol with both grids in words and what Place
 /// does: it is placed on the page in front as its copy drawn on the page's grid, every connection point on a grid
-/// point of the page, so wires meet it (rc.3; it was refused before, with a new page as the only way).
+/// point of the page, so wires meet it (it was refused before, with a new page as the only way).
 #[test]
 fn a_symbol_on_another_grid_is_placed_on_the_page_in_front_on_its_grid() {
     use ew_viewmodel::strings;
@@ -2065,7 +2065,7 @@ fn selection(shell: &ShellModel) -> Vec<String> {
         .collect()
 }
 
-/// What a person learned on a page works on the drawing's selection (rc.3): Select all, the arrows (a grid step; the
+/// What a person learned on a page works on the drawing's selection: Select all, the arrows (a grid step; the
 /// connection grid's with a connection point selected), Duplicate, Copy and Paste, Delete, each one undo step; a
 /// click's Shift adds and Ctrl toggles.
 #[test]
@@ -2218,7 +2218,7 @@ fn the_rows_of_properties_follow_the_selection_and_set_every_selected_thing() {
         shell.symbol_editor().unwrap().outline().what,
         "Normally open contact \u{b7} Electrical"
     );
-    // A pressure switch is one of the kinds a panel builder draws (rc.3): a contact, listed with the sensors.
+    // A pressure switch is one of the kinds a panel builder draws: a contact, listed with the sensors.
     done(
         &mut shell,
         "symbol.prop",

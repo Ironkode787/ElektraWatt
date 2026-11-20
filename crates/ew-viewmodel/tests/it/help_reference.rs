@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! F1 for what is under the hand (rc.3) on a copy of Golden A: a wire under the pointer opens the wires' section, the
+//! F1 for what is under the hand on a copy of Golden A: a wire under the pointer opens the wires' section, the
 //! selected wire under it its route's, a terminal the terminals'; the status bar says what F1 opens; a row of Properties
 //! opens its anchor of the properties reference, whose page `cargo xtask docs-gen` writes from the reference this
 //! file's last test writes.

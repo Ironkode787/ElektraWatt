@@ -33,7 +33,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
-    // Put a station on this page… (rc.2): its stations head Place port's list; the bus page's own menu has it. A
+    // Put a station on this page…: its stations head Place port's list; the bus page's own menu has it. A
     // station named (a menu's row, a row dropped on the page) is refused by the action in words of its own.
     with_params(
         "station?:text, x_mm?:mm, y_mm?:mm, group?:uint",
@@ -101,7 +101,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     ),
     // Fluid ▸ Place: the device browser at the pneumatic parts, at the valve terminals, and at the air supply and its
-    // preparation, so that what is placed has its part (rc.2: the air supply placed from the symbols had none); a bare
+    // preparation, so that what is placed has its part (the air supply placed from the symbols had none); a bare
     // symbol stays Draw ▸ Symbol's. From any page they work on a fluid page: the nearest, else one made then (rc.3:
     // greyed elsewhere, they did not say why).
     keeps_banner(placed(
@@ -122,7 +122,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_fluid_picker("pneumatics"),
         ),
     )),
-    // A valve terminal of the project drawn on no fluid page yet comes first (rc.2): Draw -104A1 here, or a new one.
+    // A valve terminal of the project drawn on no fluid page yet comes first: Draw -104A1 here, or a new one.
     with_params(
         "terminal?:text",
         keeps_banner(placed(

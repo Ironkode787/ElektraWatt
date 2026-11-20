@@ -8,7 +8,7 @@
 //! the fragment, its middle at the point and its anchor snapped to the grid (never to a connection point:
 //! `snap_grid`; Duplicate starts with the anchor at its point), a label `paste <n> records` with the dropped
 //! connections, and after a preview the predicted tags; where a part of it would lie outside the frame's drawing area
-//! the label says so and `Press` or `Activate` is refused with that reason (rc.5: a paste ended off the sheet and
+//! the label says so and `Press` or `Activate` is refused with that reason (a paste ended off the sheet and
 //! nothing said so); the host floats it at the pointer (else the view's middle) as soon as it is armed, so the ghost
 //! shows before the first move; `Dwell` of 80 ms and more →
 //! `Preview(edit.paste {page, at, fragment})` (the semantic ghost: the derived diff's tags); `Press` or `Activate` →
@@ -76,7 +76,7 @@ impl PasteTool {
         self.anchor_at(cx.snapper.page_to_sheet(page), cx)
     }
 
-    /// The fragment floated with its middle at the sheet point `at` (the host's first ghost, rc.5).
+    /// The fragment floated with its middle at the sheet point `at` (the host's first ghost).
     pub fn float_at(&mut self, at: (i64, i64), cx: &ToolCx<'_>) -> ToolOutput {
         self.moved(at, cx)
     }
@@ -175,7 +175,7 @@ impl PasteTool {
     }
 
     /// The label: `paste <n> records`, the dropped connections, the predicted tags.
-    /// What the block holds and what it leaves out, in a person's words (rc.5: "paste 21 records, 5 connections
+    /// What the block holds and what it leaves out, in a person's words ("paste 21 records, 5 connections
     /// dropped"): "Paste 3 symbols and 4 wires; 2 wires left out: their other end was not copied". Symbols are the
     /// representations, wires the connections, other items the texts, graphics and boxes; the records behind them
     /// (devices, functions, junctions) are not counted.

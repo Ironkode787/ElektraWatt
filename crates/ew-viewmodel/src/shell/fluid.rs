@@ -90,7 +90,7 @@ impl ShellModel {
         let valve = session.valve_at(module, position);
         let tag = valve.and_then(|v| session.device_tag(v)).unwrap_or_default();
         let module_tag = session.device_tag(module).unwrap_or_default();
-        // On a terminal drawn as its positions the valve stands in its cell already (rc.3).
+        // On a terminal drawn as its positions the valve stands in its cell already.
         let seated = session.drawn_as_positions(module);
         self.notify(
             strings::format(
@@ -107,7 +107,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `fluid.go_output {channel?}` (rc.2, F15): a terminal valve's Go to output: the PLC list shown with the channel
+    /// `fluid.go_output {channel?}`: a terminal valve's Go to output: the PLC list shown with the channel
     /// that drives the solenoid marked; refused in words while no output drives it.
     pub(crate) fn act_fluid_go_output(&mut self, p: &Map<String, Value>) -> Outcome {
         if p.get("channel").is_none_or(Value::is_null) {
@@ -124,12 +124,12 @@ impl ShellModel {
         )
     }
 
-    /// `fluid.draw_slots {rep}` (rc.2, F15): Draw as slots on a valve terminal drawn before as a free box: the preview
+    /// `fluid.draw_slots {rep}`: Draw as slots on a valve terminal drawn before as a free box: the preview
     /// of `valve_terminal.draw_slots`, committed from it as one undo step.
     pub(crate) fn act_fluid_draw_slots(&mut self, p: &Map<String, Value>) -> Outcome {
         let rep = or_return!(self.record_param(p, "rep"));
         let mut params = json!({ "rep": rep.to_string() });
-        // Its valves and its supply drawn on no page are drawn in it, with their symbols (rc.3).
+        // Its valves and its supply drawn on no page are drawn in it, with their symbols.
         if let (Some(session), Some(c)) = (self.project_session(), self.canvas()) {
             let tables = &c.page().tables;
             let terminal = tables.reps.iter().find(|r| r.id == rep).and_then(|r| r.device);
@@ -141,7 +141,7 @@ impl ShellModel {
         self.preview_bulk("valve_terminal.draw_slots", params)
     }
 
-    /// `fluid.draw_valves {terminal}` (rc.3): Draw its valves in the terminal: `valve_terminal.draw_valves` with the
+    /// `fluid.draw_valves {terminal}`: Draw its valves in the terminal: `valve_terminal.draw_valves` with the
     /// symbols it needs, one undo step: the valves put on its positions without a symbol stand in its cells, and its
     /// supply ports 1, 3 and 5 at its left end; a toast says so.
     pub(crate) fn act_fluid_draw_valves(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -161,7 +161,7 @@ impl ShellModel {
         out
     }
 
-    /// `fluid.cell_fill {terminal, module, position, replace?, part?}` (rc.2, F15): Fill position n… or Replace… on a
+    /// `fluid.cell_fill {terminal, module, position, replace?, part?}`: Fill position n… or Replace… on a
     /// cell of a valve terminal drawn as its positions on the page shown: with `part`, that valve is placed in the cell
     /// ([`Self::fill_cell`]); without, the device browser opens narrowed to valves for a terminal, and its choice does
     /// it. Refused in words when the terminal is not drawn as its positions on the page shown.
@@ -262,7 +262,7 @@ impl ShellModel {
         self.run_logged("device.place".to_owned(), params)
     }
 
-    /// `fluid.draw_solenoid {function, page?}` (rc.2, F11): a valve's Draw solenoid 14 on this page… or on an
+    /// `fluid.draw_solenoid {function, page?}`: a valve's Draw solenoid 14 on this page… or on an
     /// electrical page…: on the electrical page `page` names or the one in front, else the window asks which
     /// ([`Self::electrical_page_for`]), the solenoid's coil symbol on the pointer, so that a click places it as that
     /// solenoid of the valve; a toast says which and where. Refused in words without an electrical page (headless).
@@ -288,7 +288,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `fluid.draw_plug {terminal?, page?}` (rc.2): a multipin valve terminal's Draw the plug on an electrical page…,
+    /// `fluid.draw_plug {terminal?, page?}`: a multipin valve terminal's Draw the plug on an electrical page…,
     /// from any page, as a valve's Draw solenoid: the plug's box on the pointer on the electrical page `page` names or
     /// the one in front, else the window asks which, so that a click places it; a toast says whose and where. Without
     /// `terminal`, of the selected multipin terminal. Refused in words for another device or without an electrical page
@@ -379,10 +379,10 @@ impl ShellModel {
         }
     }
 
-    /// `fluid.draw_terminal {terminal}` (rc.2): a valve terminal made as a station (its valves in its rack) drawn on a
+    /// `fluid.draw_terminal {terminal}`: a valve terminal made as a station (its valves in its rack) drawn on a
     /// fluid page: the fluid page shown, else the nearest one, else one made there and then ([`Self::fluid_page_here`]),
     /// with its box of positions on the pointer, its valves in their cells, so that a click places it; a toast says which
-    /// and where. A failure is said in words, also from a button that bypasses the bar's greying (rc.3: the station's
+    /// and where. A failure is said in words, also from a button that bypasses the bar's greying (the station's
     /// To do and the Valve terminal dialog's Create did nothing and said nothing).
     pub(crate) fn act_fluid_draw_terminal(&mut self, p: &Map<String, Value>) -> Outcome {
         let terminal = or_return!(self.record_param(p, "terminal"));
@@ -423,7 +423,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// The fluid page a fluid command works on (rc.3): the page shown when it is one, else the nearest
+    /// The fluid page a fluid command works on: the page shown when it is one, else the nearest
     /// ([`Self::show_page_of_kind`]), else a new one made there and then, asking nothing, as the station's Put it on a
     /// bus page makes its page; a toast names the page made.
     pub(crate) fn fluid_page_here(&mut self) -> Outcome {
@@ -532,7 +532,7 @@ impl ShellModel {
     }
 }
 
-/// The copies a valve of part `part` about to take a position of module `module` needs (rc.3): the library part's
+/// The copies a valve of part `part` about to take a position of module `module` needs: the library part's
 /// closure ([`ew_api::Session::module_part_copies`]) and the symbols that draw it, and the terminal's supply, in its cell
 /// ([`ew_api::Session::cell_copies`]).
 pub(super) fn valve_copies(session: &ew_api::Session, module: Uuid, part: Uuid) -> Vec<Value> {
@@ -556,7 +556,7 @@ pub(crate) fn extend_copies(copies: &mut Vec<Value>, more: Vec<Value>) {
     }
 }
 
-/// The parameters of `valve_terminal.draw_valves` for `terminal`, with the symbols it draws with (rc.3): its menu's
+/// The parameters of `valve_terminal.draw_valves` for `terminal`, with the symbols it draws with: its menu's
 /// Draw its valves in the terminal and EW-CORE-047's fix run it.
 pub(crate) fn draw_valves_params(session: &ew_api::Session, terminal: Uuid) -> Value {
     let mut params = json!({ "terminal": terminal.to_string() });

@@ -378,8 +378,8 @@ impl ShellModel {
         let station = or_return!(self.rack_station());
         let cursor = self.station_tab().and_then(|t| t.cursor);
         match string_param(p, "step") {
-            // A valve terminal on a fluid page: drawn as its positions there (rc.2), on the fluid page named (`new`: a
-            // new one), else the nearest one, else on one made then (rc.3). A failure is said under the rack.
+            // A valve terminal on a fluid page: drawn as its positions there, on the fluid page named (`new`: a
+            // new one), else the nearest one, else on one made then. A failure is said under the rack.
             Ok(Some("fluid")) => {
                 let opened = match string_param(p, "folio") {
                     Ok(Some("new")) => match self.new_fluid_page() {
@@ -412,7 +412,7 @@ impl ShellModel {
                 }
                 self.rack_refuse(cursor, why)
             }
-            // The station and its cards not drawn yet, in a row in slot order, one undo step (rc.2).
+            // The station and its cards not drawn yet, in a row in slot order, one undo step.
             Ok(Some("draw")) => self.draw_from_rack(station, None, p),
             Ok(Some("overview")) => self.act_fluid_generate_overview(&Map::from_iter([(
                 "station".to_owned(),
@@ -420,7 +420,7 @@ impl ShellModel {
             )])),
             Ok(Some("bus")) => {
                 // The bus page named, else the only one; with none one is made, asking nothing; with several the
-                // window asks which (rc.2 persona run: the button ended in "make one with New page first").
+                // window asks which (the button ended in "make one with New page first").
                 // A station whose part has no bus interface cannot stand on a bus page: said in the view.
                 let (tag, bus) = self.project_session().map_or((String::new(), false), |s| {
                     (
@@ -461,7 +461,7 @@ impl ShellModel {
                     return self
                         .rack_refuse(cursor, strings::text(key!("reason-rack-no-bus-page")).to_owned());
                 };
-                // Every interface not drawn there, a box each (rc.2 persona run: the CPU stood there with its DP alone).
+                // Every interface not drawn there, a box each (the CPU stood there with its DP alone).
                 let interfaces = self
                     .project_session()
                     .map(|s| s.undrawn_interfaces(station, &folio))
@@ -481,7 +481,7 @@ impl ShellModel {
         }
     }
 
-    /// Place here on PLC part `device` (rc.5, H13): the side of it the page on show takes and no page of that kind
+    /// Place here on PLC part `device`: the side of it the page on show takes and no page of that kind
     /// draws yet, `draw` (its box on an electrical page), `bus` (its bus ports on a bus page) or `fluid` (a valve
     /// terminal's positions on a fluid page); else, for a side not drawn yet, why not in words: the page to open.
     /// `None` when every side of it is drawn, or for a device that is no PLC station's.
@@ -523,7 +523,7 @@ impl ShellModel {
         })
     }
 
-    /// `plc.module_place {device?}` (rc.5, H13): Place here on a PLC part (`device`; absent, the device under the
+    /// `plc.module_place {device?}`: Place here on a PLC part (`device`; absent, the device under the
     /// station view's cursor) that the page on show takes ([`ShellModel::place_here`]): its box on the pointer on an
     /// electrical page, as after choosing it in the device browser; its bus ports on a bus page; a valve terminal's
     /// positions on a fluid page. From the station view the page the view stands on is shown first. Refused in words

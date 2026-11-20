@@ -217,7 +217,7 @@ fn a_pointer_at_each_entity_centre_hovers_an_entity_no_larger_that_contains_it()
     let area = |r: &ew_units::Rect| {
         i128::from(r.max().x.0 - r.min().x.0) * i128::from(r.max().y.0 - r.min().y.0)
     };
-    // A wire answers only near its own line (rc.3): the centre of the box round its ends is no point of it, and a
+    // A wire answers only near its own line: the centre of the box round its ends is no point of it, and a
     // wire hovered at another entity's centre passes within the reach, whatever its box.
     let tables = shell.canvas().unwrap().page().tables.clone();
     let wire =

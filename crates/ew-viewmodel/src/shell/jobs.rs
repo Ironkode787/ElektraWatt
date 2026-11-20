@@ -262,7 +262,7 @@ impl ShellModel {
     }
 
     /// Shows `text` as a toast of key `edit` whose action goes to page `page` (its row's ID), the page an Undo or a
-    /// Redo changed (rc.5).
+    /// Redo changed.
     pub(super) fn notify_go_to(&mut self, text: String, page: ew_api::output::Uuid) {
         let action = self.project.as_ref().map(|p| {
             (
@@ -276,7 +276,7 @@ impl ShellModel {
         self.notes.push(text, "edit", action);
     }
 
-    /// Shows `text` as a toast of key `edit` whose action swaps the positions of valves `device` and `holder` (rc.2).
+    /// Shows `text` as a toast of key `edit` whose action swaps the positions of valves `device` and `holder`.
     pub(super) fn notify_swap(
         &mut self,
         text: String,
@@ -530,7 +530,7 @@ impl ShellModel {
     }
 
     /// Shows a placement's `text` with its Undo and Connect, which draws `wire` (`connection.draw`'s parameters), both
-    /// valid while the placement is the next undo step (rc.2: a far autoconnect hit is offered, not drawn).
+    /// valid while the placement is the next undo step (a far autoconnect hit is offered, not drawn).
     #[inline(never)]
     pub(super) fn notify_connect_offer(&mut self, text: String, wire: Value) {
         let validity = self.project.as_ref().and_then(|p| {
@@ -552,7 +552,7 @@ impl ShellModel {
         );
     }
 
-    /// Shows that a bus line was drawn without a cable, with Choose cable… opening its Cable form (rc.5: no cable was
+    /// Shows that a bus line was drawn without a cable, with Choose cable… opening its Cable form (no cable was
     /// asked for, and the person looked for it in Properties). A toast, not a form, so drawing several lines goes on.
     pub(super) fn notify_bus_line(&mut self, line: ew_api::output::Uuid) {
         let action = self.project.as_ref().map(|p| {

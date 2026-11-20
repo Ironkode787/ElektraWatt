@@ -50,7 +50,7 @@ pub struct PartChooser {
     pub query: PartOfferQuery,
     /// The offers of the query.
     pub offers: Vec<PartOffer>,
-    /// Why each offer does not fit a cable, in the offers' order; `None` where it fits (rc.3).
+    /// Why each offer does not fit a cable, in the offers' order; `None` where it fits.
     pub misfits: Vec<Option<String>>,
     /// The active row (0-based).
     pub cursor: usize,
@@ -115,15 +115,15 @@ pub struct PartEditor {
     pub error: Option<String>,
     /// The part dialog that New part… was chosen in: Save opens it again on the new part.
     pub back: Option<Box<PartChooser>>,
-    /// New cable type… (rc.3): the small form of a new cable part (its maker, type and number, then the cable section).
+    /// New cable type…: the small form of a new cable part (its maker, type and number, then the cable section).
     pub cable_type: bool,
     /// The Cable form New cable type… was chosen in: Save opens it again with the new type chosen.
     pub cable_form: Option<Box<super::FormDialog>>,
-    /// New bus cable… or New plug… of a bus line's Cable form (rc.5): the small form of a new bus part.
+    /// New bus cable… or New plug… of a bus line's Cable form: the small form of a new bus part.
     pub bus_part: Option<BusPart>,
 }
 
-/// What New bus cable… and New plug… make (rc.5): a cable or a plug for a bus, and the form field it returns to.
+/// What New bus cable… and New plug… make: a cable or a plug for a bus, and the form field it returns to.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct BusPart {
     /// A plug; else a bus cable.
@@ -154,7 +154,7 @@ impl PartEditor {
     }
 }
 
-/// A new plug's description in words (rc.5): `PROFIBUS DP plug, angled cable outlet, programming socket, switchable
+/// A new plug's description in words: `PROFIBUS DP plug, angled cable outlet, programming socket, switchable
 /// terminating resistor`, from its bus, its cable outlet, its socket and its terminating resistor.
 pub(crate) fn plug_description(draft: &ew_api::PartDraft, plug: BusPart) -> String {
     let bus = strings::field_choice_text("function", "bus_port.bus", draft.text("bus.0.bus"));
@@ -454,7 +454,7 @@ impl ShellModel {
             .as_ref()
             .and_then(|p| p.session.main_function(devices[0]))
             .map(|f| f.0);
-        // A cable is offered cable parts only (rc.3: every part was offered).
+        // A cable is offered cable parts only (every part was offered).
         let cables = self
             .project
             .as_ref()
@@ -497,7 +497,7 @@ impl ShellModel {
                 c.offers
                     .retain(|o| !LAYOUT_KIND_WORDS.contains(&o.kind.as_str()) || allowed.contains(&o.kind));
             }
-            // A cable's parts that do not fit it come after those that do, each with the reason (rc.3: greyed, not
+            // A cable's parts that do not fit it come after those that do, each with the reason (greyed, not
             // hidden).
             let cable = match &c.target {
                 PartTarget::Devices { devices, .. } if devices.len() == 1 => devices
@@ -580,7 +580,7 @@ impl ShellModel {
     /// `part.choose {target?, use?, add?, strip?}` (§9.4): opens the part dialog for its target; `strip` (its ID), for
     /// the strip's terminals without a part.
     pub(crate) fn act_part_choose(&mut self, p: &Map<String, Value>) -> Outcome {
-        // A cable by its ID (Choose a cable type… on its finding, rc.3): its cable parts, those that fit first.
+        // A cable by its ID (Choose a cable type… on its finding): its cable parts, those that fit first.
         if let Some(cable) = or_return!(string_param(p, "cable")) {
             let Some(cable) = cable.parse::<Uuid>().ok().filter(|c| {
                 self.project_session()
@@ -892,7 +892,7 @@ impl ShellModel {
     /// `part.new {symbol?}` (Edit ▸ New part…, and New part… in the part dialog and the device browser): opens the part
     /// editor on a new part's draft (FT-1766); with `symbol` (the symbol editor's saved symbol, its library address:
     /// Make a part for this symbol…), a part drawn with that symbol. From the part dialog, Save returns to it on the new
-    /// part. With `plc` (the rack dialog's New part…, rc.2): the draft starts as what the dialog was asked for, `cpu`,
+    /// part. With `plc` (the rack dialog's New part…): the draft starts as what the dialog was asked for, `cpu`,
     /// `remote`, `valve_terminal` or `compact` a station part with that kind's defaults ([`plc_preset`]), `module` a
     /// module part; Save returns to the rack dialog with the new part chosen.
     pub(crate) fn act_part_new(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -922,14 +922,14 @@ impl ShellModel {
         if let Some(word) = &plc {
             plc_preset(&project.session, &mut draft, word);
         }
-        // New cable type… (rc.3): a cable part, sold by the metre, in the small form.
+        // New cable type…: a cable part, sold by the metre, in the small form.
         let cable_type = flag(p, "cable");
         if cable_type {
             for (field, value) in [("kind", "cable"), ("unit", "m")] {
                 let _ = project.session.set_draft_field(&mut draft, field, value);
             }
         }
-        // New bus cable… and New plug… of a bus line's Cable form (rc.5): a cable made for the bus, its cores as the bus
+        // New bus cable… and New plug… of a bus line's Cable form: a cable made for the bus, its cores as the bus
         // has them, or a plug with a passive interface of the bus; Save returns to the form's field `field`.
         let bus_part = match or_return!(string_param(p, "bus")) {
             None => None,
@@ -1063,7 +1063,7 @@ impl ShellModel {
             editor.draft.to_library = value == "true";
             return Outcome::Done;
         }
-        // A new plug's cable outlet and programming socket (rc.5) are words of its description, which follows them, its
+        // A new plug's cable outlet and programming socket are words of its description, which follows them, its
         // bus and its terminating resistor.
         if let Some(mut plug) = editor.bus_part.filter(|b| b.plug) {
             match field.as_str() {
@@ -1201,7 +1201,7 @@ impl ShellModel {
     /// (`Session::new_part_command`), in one undo step; a field that does not parse refuses at its field. From the
     /// part dialog, the dialog opens again on the new part; from the Cable form, the form with the new cable type
     /// chosen. With `another` the editor opens again on a new part like this one but for its part number and its
-    /// cross-section, the next size of a series (rc.3).
+    /// cross-section, the next size of a series.
     fn part_save_new(&mut self, another: bool) -> Outcome {
         let Some(Dialog::PartEdit(mut editor)) = self.dialog.take() else {
             return Outcome::refused(key!("reason-no-part-editor"));
@@ -1267,7 +1267,7 @@ impl ShellModel {
 
 impl ShellModel {
     /// The editor of `saved` open again on a new part that keeps everything but the part number and the cross-section
-    /// (Save and add another size, rc.3): its own item ID, the form's way back kept.
+    /// (Save and add another size): its own item ID, the form's way back kept.
     fn part_new_like(&mut self, saved: PartEditor) -> Outcome {
         let Some(project) = &self.project else {
             return Outcome::Done;
@@ -1294,7 +1294,7 @@ impl ShellModel {
 /// The words of `part.new`'s `plc`: the rack dialog's station kinds and `module`.
 const PLC_PRESETS: [&str; 5] = ["cpu", "remote", "valve_terminal", "compact", "module"];
 
-/// What a new part starts as when the rack dialog asks for it (rc.2): `module` a module part; a station kind a station
+/// What a new part starts as when the rack dialog asks for it: `module` a module part; a station kind a station
 /// part with one bus interface (a CPU's leads the bus as a PROFINET controller, the others answer as devices) and, for
 /// a valve terminal and a compact device, eight channels of their own (outputs for the valves, inputs for the compact
 /// device). The person changes any of it in the editor; a preset the draft does not take is left out.

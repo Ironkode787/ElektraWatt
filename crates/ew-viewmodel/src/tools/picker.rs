@@ -369,7 +369,7 @@ pub struct Picker {
     /// The tag of the device each function of a part fills, by (part, function) indices into the catalogue: a device
     /// of the part that has the function unplaced (the host's `template_slots`, set when the browser opens).
     pub joins: BTreeMap<(usize, usize), String>,
-    /// The position of a valve terminal this device browser fills (Fill position n…, Replace…; rc.2): the parts are
+    /// The position of a valve terminal this device browser fills (Fill position n…, Replace…): the parts are
     /// narrowed to valves for a terminal, and the one chosen is placed in that cell.
     pub cell: Option<CellFill>,
 }
@@ -580,7 +580,7 @@ impl Picker {
             self.node = Node::All;
         }
         // In this project stands while the project holds anything this browser lists, with no hits under the filter too,
-        // so the tree does not shift while typing; a project that holds nothing has no such group (rc.5).
+        // so the tree does not shift while typing; a project that holds nothing has no such group.
         let holds = (self.mode != PickerMode::Parts
             && self.catalogue.symbols.iter().any(|s| s.copy.is_some()))
             || (matches!(self.mode, PickerMode::Parts | PickerMode::BlackBox)
@@ -774,7 +774,7 @@ impl Picker {
                     None
                 }
             }
-            // A valve for a position without a symbol that fits its cell (rc.3).
+            // A valve for a position without a symbol that fits its cell.
             PickerRow::Part(p)
                 if self.cell.is_some() && self.catalogue.parts.get(p).is_some_and(|x| !x.cell_symbol) =>
             {

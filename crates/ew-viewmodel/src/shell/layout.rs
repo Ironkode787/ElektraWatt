@@ -756,7 +756,7 @@ impl ShellModel {
             name: "report_block.create".into(),
             params,
         });
-        // A legend beside devices that show their tags offers their numbers (rc.2).
+        // A legend beside devices that show their tags offers their numbers.
         if out == Outcome::Done && !self.panel_view_shows_numbers() {
             self.notify_item_numbers(strings::text(key!("toast-legend-tags")).to_owned());
         }
@@ -764,7 +764,7 @@ impl ShellModel {
     }
 
     /// The legend a new layout view that shows item numbers gets (F21), when the page has room for it: in the undo step
-    /// of the act that made the view, so that one undo takes back both (rc.3: it was a step of its own after it).
+    /// of the act that made the view, so that one undo takes back both (it was a step of its own after it).
     pub(super) fn add_view_legend(&mut self) {
         if !matches!(self.legend_offer(), ew_api::output::LegendOffer::At(_)) {
             return;
@@ -1152,7 +1152,7 @@ impl ShellModel {
             }
         };
         // A location that has an enclosure: drawn on this panel layout page when it does not show it yet, or on a new
-        // one (rc.3: the enclosure made from another page could not be drawn on the layout page).
+        // one (the enclosure made from another page could not be drawn on the layout page).
         let new_page = p.get("new_page").and_then(Value::as_bool).unwrap_or(false);
         let existing = target.as_ref().ok().and_then(|(id, code)| {
             project
@@ -1545,7 +1545,7 @@ impl ShellModel {
         notes
     }
 
-    /// What the Create enclosure dialog's Primary does where it does not just create (rc.3): `(label, new_page,
+    /// What the Create enclosure dialog's Primary does where it does not just create: `(label, new_page,
     /// create_only, line)`. A location with an enclosure that the page does not show draws it: "Draw -UC1 of +CAB1 on
     /// this page", or off a panel layout page "… on a new panel layout page" (`new_page`). Off a panel layout page a
     /// location without one is made and drawn on a new panel layout page, with Create only beside it
@@ -1646,7 +1646,7 @@ impl ShellModel {
     /// of the rail (its label or ID; by default the selected rail, else the page's first) in `order` (`schematic` or
     /// `dt`) with the Unplaced devices navigator's marked devices, else every unplaced device that fits; a toast says
     /// what it placed and what did not fit. With `locate` the devices without a location get the cabinet's first
-    /// (`fields.set` of `structure.location`, its own undo step: the dialog's Give-and-place button, rc.2). In the
+    /// (`fields.set` of `structure.location`, its own undo step: the dialog's Give-and-place button). In the
     /// window without `order` the Auto-fill rail dialog opens, saying why there is nothing to place where that is so;
     /// a refusal stays under its fields.
     pub(crate) fn act_layout_auto_fill_rail(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -1831,7 +1831,7 @@ impl ShellModel {
             return failed(key!("error-bad-param"), &["location"]);
         };
         // Each row names its device, and says where its tag will print the location in front: on a page that
-        // draws another location (rc.5: the prefix came unannounced).
+        // draws another location (the prefix came unannounced).
         let tags: Vec<String> = candidates
             .iter()
             .map(|(d, _)| {

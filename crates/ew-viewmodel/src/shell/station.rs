@@ -110,7 +110,7 @@ pub enum TodoFix {
         /// The card's slot.
         slot: u32,
     },
-    /// A side of the station drawn on a page of its kind (rc.5): `plc.rack_next {step, folio}` on the page the view
+    /// A side of the station drawn on a page of its kind: `plc.rack_next {step, folio}` on the page the view
     /// stands on when it is of that kind, on a new one when the project has none, else on the one the person picks of
     /// `pages`, or a new one.
     OnPage {
@@ -154,7 +154,7 @@ impl ShellModel {
     /// [`ShellModel::station_shown`] for the station view of `tab`, which may stand in the group without the focus
     /// (side by side, it shows its lists too). The views of both groups are kept, so that neither is made every frame:
     /// a frame, a pointer move and the view's bar read it, and it is made again only when the project, the language,
-    /// the catalogue, the view's state or the page it stands on changes (rc.5, H11).
+    /// the catalogue, the view's state or the page it stands on changes.
     pub fn station_shown_of(&self, tab: &StationTab) -> Option<std::sync::Arc<StationShown>> {
         let key: StationKey = (
             self.revision()?,
@@ -193,7 +193,7 @@ impl ShellModel {
         Some(shown)
     }
 
-    /// What kind of valve terminal `device` is, in words (rc.2, F15): `Valve terminal · PLC station on PROFIBUS DP`,
+    /// What kind of valve terminal `device` is, in words: `Valve terminal · PLC station on PROFIBUS DP`,
     /// `Valve terminal · PLC station with bus node`, `Valve terminal · multipin, wired`; `None` for any other device.
     /// The terminal's menu and its row's hover in the Devices list say it ([`crate::properties::terminal_kind_text`]).
     pub fn terminal_kind_words(&self, device: Uuid) -> Option<String> {
@@ -269,7 +269,7 @@ impl ShellModel {
         self.station_tab()?.draft.as_ref()
     }
 
-    /// The devices already in the project that a new station offers as the station (rc.2 persona run): the bus
+    /// The devices already in the project that a new station offers as the station: the bus
     /// devices in no PLC, those that lead a bus for a PLC (CPU), the others for every other kind; by tag.
     pub fn station_candidates(&self) -> Vec<(Uuid, String)> {
         self.station_shown()
@@ -291,7 +291,7 @@ impl ShellModel {
     }
 
     /// The folio a page of `kind` the program makes takes, asking nothing: New page's proposal for the kind (the
-    /// section made for it, rc.5), else the first number no page has.
+    /// section made for it), else the first number no page has.
     pub(super) fn free_folio(&self, kind: &str) -> String {
         let (proposal, _) = self.new_page_proposal(None, Some(kind));
         if !proposal.is_empty() {
@@ -321,7 +321,7 @@ impl ShellModel {
     }
 
     /// The project's fluid pages: folio and title, in page order (a valve terminal's Draw on a fluid page… asks which
-    /// when there are several, rc.3).
+    /// when there are several).
     pub fn fluid_pages(&self) -> Vec<(String, String)> {
         self.pages_of_kind("fluid")
     }
@@ -527,7 +527,7 @@ impl ShellModel {
             }
         };
         let terminal = self.is_valve_terminal(station);
-        // Each side of the station is drawn on a page of its kind (rc.5, H2): its boxes on an electrical page, its bus
+        // Each side of the station is drawn on a page of its kind: its boxes on an electrical page, its bus
         // ports on a bus page, a valve terminal's valves on their positions on a fluid page. A drawing of one side
         // does not stand for another.
         let open = self.page_rows().get(self.page_index());
@@ -630,7 +630,7 @@ impl ShellModel {
                     on_page("fluid", &["fluid"], self.fluid_pages()),
                 ));
             }
-            // Drawn as its positions, with valves put on them without a symbol (rc.3).
+            // Drawn as its positions, with valves put on them without a symbol.
             if session.valves_to_draw(station) {
                 out.push(step(
                     strings::format(key!("rack-todo-valves"), &[&name(&view.head)]),
@@ -810,7 +810,7 @@ pub fn rack_positions_text(r: &ew_api::output::RackRow) -> String {
         .join(" · ")
 }
 
-/// What a new station is (F18 of the rc.1 test), as the new-station dialog asks it; it narrows the head parts offered
+/// What a new station is, as the new-station dialog asks it; it narrows the head parts offered
 /// (`Session::station_parts`).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum StationKind {
@@ -869,7 +869,7 @@ impl StationKind {
     }
 }
 
-/// A station not made yet: the new-station dialog's choices (F18 of the rc.1 test).
+/// A station not made yet: the new-station dialog's choices.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct StationDraft {
     /// What it is.
@@ -880,6 +880,6 @@ pub struct StationDraft {
     pub config: Option<Uuid>,
     /// Its module parts in slot order.
     pub modules: Vec<Uuid>,
-    /// The tag typed for it (rc.5), which Create gives it frozen; `None`: the tag its page gives it when it is drawn.
+    /// The tag typed for it, which Create gives it frozen; `None`: the tag its page gives it when it is drawn.
     pub tag: Option<String>,
 }

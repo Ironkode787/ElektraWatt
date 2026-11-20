@@ -253,7 +253,7 @@ fn an_air_supplys_menu_offers_its_medium_and_no_potential() {
             "at": {"cp": {"function": air.functions[0].to_string(), "idx": 0}}, "name": "L1"}}),
     );
     assert!(message.contains("is a fluid port"), "{message}");
-    // A valve on no tube: its ports carry nothing, and its menu goes to the air supply, where a medium is set (rc.2).
+    // A valve on no tube: its ports carry nothing, and its menu goes to the air supply, where a medium is set.
     let valve = place(&mut s, json!({"part": "EW-GEN-VLV-1", "template": 0}), (30, 10));
     assert!(
         menu(&mut s, &valve)

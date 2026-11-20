@@ -305,7 +305,7 @@ pub enum Ghost {
         at_nm: Option<(i64, i64)>,
         /// The connections the copy dropped.
         dropped: usize,
-        /// What the block holds and leaves out, in words ("Paste 3 symbols and 4 wires; …", rc.5).
+        /// What the block holds and leaves out, in words ("Paste 3 symbols and 4 wires; …").
         words: String,
     },
     /// A symbol exchange.
@@ -432,7 +432,7 @@ pub enum ToolOutput {
     /// The tool refused the event: the key names why (see [`crate::strings`]); the host shows it as every other
     /// refusal and leaves the model unchanged.
     Refused(Key<'static>),
-    /// The tool refused the event with its own words (a refused layout drop says why, rc.2): as `Refused`, the text
+    /// The tool refused the event with its own words (a refused layout drop says why): as `Refused`, the text
     /// shown instead of the key's.
     RefusedWith(Key<'static>, String),
     /// Change the selection; the overlay is cleared.
@@ -460,7 +460,7 @@ pub enum HostStep {
         /// The snapped point of the first mark, page nm.
         at: (i64, i64),
     },
-    /// The Wire tool's click on the edge of a box whose pins are its own where no pin is (rc.5): the host asks for the
+    /// The Wire tool's click on the edge of a box whose pins are its own where no pin is: the host asks for the
     /// new pin's name, the Wire tool waiting, and ends the wire at the named pin.
     PinForWire {
         /// The box's representation.
@@ -567,7 +567,7 @@ pub trait Tool {
     }
 
     /// Why the text typed into the tool's field cannot be taken, said in a line under the field, which stays open
-    /// (rc.5: a pin's name); `None` for most tools.
+    /// (a pin's name); `None` for most tools.
     fn field_error(&self) -> Option<String> {
         None
     }

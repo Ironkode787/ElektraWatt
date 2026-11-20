@@ -172,7 +172,7 @@ impl ShellModel {
             }
             _ => Err(reason),
         }?;
-        // A potential is electrical: a fluid port has none (rc.2, F9: Define potential… on an air supply).
+        // A potential is electrical: a fluid port has none (Define potential… on an air supply).
         let fluid = tables.cps.iter().any(|c| {
             c.fluid
                 && point

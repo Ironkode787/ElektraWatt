@@ -800,7 +800,7 @@ pub fn categories(section: &SheetSection) -> Vec<(Category, Vec<&PropRow>)> {
 
 // Main and Advanced (doc 16a §6.8).
 /// A group of rows in the grid: **Main** (the kind's primary fields, first and open), one of the sheet's categories, or
-/// **More** (the rows only a rare case needs, last and closed; rc.2, F12).
+/// **More** (the rows only a rare case needs, last and closed).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum RowGroup {
     /// The primary fields of the kind ([`is_primary`]).
@@ -864,14 +864,14 @@ const PRIMARY: &[(&str, &[&str])] = &[
             "derived.tag",
             "function_text",
             "parts",
-            // The PLC a bus device belongs to, or Add to PLC (rc.2 persona run).
+            // The PLC a bus device belongs to, or Add to PLC.
             "derived.plc",
             "derived.structure.location",
             // A fluid source's medium (the persona re-test: a person starts at the source).
             "derived.medium",
-            // Any other fluid device's ports with the medium each carries (rc.2, F9).
+            // Any other fluid device's ports with the medium each carries.
             "derived.port",
-            // A valve's solenoids (rc.2, F11) and its position on its valve terminal (the persona round: found only
+            // A valve's solenoids and its position on its valve terminal (the persona round: found only
             // through the filter).
             "derived.solenoid",
             "derived.position",
@@ -892,7 +892,7 @@ const PRIMARY: &[(&str, &[&str])] = &[
         ],
     ),
     // A bus port's address: the device name and IP, the station address (a persona run looked for them).
-    // A marked supply point's place and device (rc.3, G7: "the comes from cannot be changed in the properties").
+    // A marked supply point's place and device ("the comes from cannot be changed in the properties").
     (
         "function",
         &[
@@ -903,7 +903,7 @@ const PRIMARY: &[(&str, &[&str])] = &[
     ),
     // A wire's and an interruption point's potential: its name, the kind of signal and the voltage (FT-1651).
     ("potential_def", &["name", "ptype", "voltage"]),
-    // What a drafter fills first and the title block prints (rc.2 persona run: a long flat list, the drawing number
+    // What a drafter fills first and the title block prints (a long flat list, the drawing number
     // ten rows down): the title, the project and drawing numbers, the description, the parties (customer, designer)
     // and the dates.
     (
@@ -920,7 +920,7 @@ const PRIMARY: &[(&str, &[&str])] = &[
     ),
 ];
 
-/// The rows only a rare case needs, under the closed group More at the end of their section (rc.2, F12), by the row
+/// The rows only a rare case needs, under the closed group More at the end of their section, by the row
 /// key after `<kind>/` as [`PRIMARY`]: the device's kind (its state is a drafter's row: Spare), its tag's numbering, its parent and the stored
 /// structure members a derived row does not show; a function's kind, definition, device, role, part function and
 /// connection-point overrides; a symbol's own members besides its page, place, turn and symbol. A raw value (shown as
@@ -1073,7 +1073,7 @@ pub fn group_of(section: &SheetSection, row: &PropRow) -> RowGroup {
 
 /// The rows on show: every row of every expanded group, in display order ([`groups`]); the Advanced rows only while
 /// `advanced` is on; with a non-empty `filter`, only the rows it matches and their parents ([`filtered`]), in every group,
-/// a closed one too (rc.2, F12: the filter finds a row that waits in the closed More).
+/// a closed one too (the filter finds a row that waits in the closed More).
 pub fn visible_rows<'s>(
     sheet: &'s PropertySheet,
     collapsed: &BTreeSet<String>,
@@ -1233,7 +1233,7 @@ pub fn connection_kind_in_words(sheet: &mut PropertySheet) {
     }
 }
 
-/// Writes a fluid port that carries no medium as what to do (rc.2, F9): set one at the air supply; and a bus device's
+/// Writes a fluid port that carries no medium as what to do: set one at the air supply; and a bus device's
 /// PLC row while it is in none. The JSON value is unchanged.
 pub fn ports_in_words(sheet: &mut PropertySheet) {
     for row in sheet.sections.iter_mut().flat_map(|s| s.rows.iter_mut()) {
@@ -1243,7 +1243,7 @@ pub fn ports_in_words(sheet: &mut PropertySheet) {
         {
             *text = strings::text(key!("props-port-no-medium")).to_owned();
         }
-        // A bus device in no PLC: what to do, as its choices do it (rc.2 persona run).
+        // A bus device in no PLC: what to do, as its choices do it.
         if let RowValue::One { json, text } = &mut row.value
             && row.key == "device/derived.plc"
             && json.is_null()
@@ -1253,7 +1253,7 @@ pub fn ports_in_words(sheet: &mut PropertySheet) {
     }
 }
 
-/// Writes a valve's solenoid rows in words (rc.2, F11): where the coil is drawn, else "not drawn"; a multipin terminal's
+/// Writes a valve's solenoid rows in words: where the coil is drawn, else "not drawn"; a multipin terminal's
 /// plug row likewise; and the coil symbol's valve as "Solenoid 14 of -201Q1". The JSON value is unchanged.
 pub fn solenoids_in_words(sheet: &mut PropertySheet) {
     for row in sheet.sections.iter_mut().flat_map(|s| s.rows.iter_mut()) {
@@ -1277,7 +1277,7 @@ pub fn solenoids_in_words(sheet: &mut PropertySheet) {
     }
 }
 
-/// Where a terminal valve's solenoid is driven from, in words (rc.2, F15), from its row's `seat`: `driven by output
+/// Where a terminal valve's solenoid is driven from, in words, from its row's `seat`: `driven by output
 /// Q0.0 of -201K1 (inside the terminal: nothing to wire)`, `pin 3 of -201K1's plug at 101-C2`, or that the plug is not
 /// drawn yet; `None` for a stand-alone valve's solenoid.
 pub fn solenoid_seat_words(seat: &Value) -> Option<String> {
@@ -1880,7 +1880,7 @@ pub fn header_in_words(sheet: &mut PropertySheet) {
     }
 }
 
-/// What the one selected device is, in the UI language (rc.2, F9), the header's line under the title: what it is
+/// What the one selected device is, in the UI language, the header's line under the title: what it is
 /// first — a PLC station or module, a terminal, a strip or a cable by that word, anything else by its symbol's name —
 /// then its natures ("Compressed-air supply point · pneumatic", "5/2 valve, solenoid and spring · pneumatic, 1
 /// solenoid", "PLC station · CPU", "Valve terminal · PLC station on PROFIBUS DP", "Valve terminal · multipin, wired",
@@ -1904,7 +1904,7 @@ pub fn what_words(what: &SheetWhat) -> String {
         None if n.module => (Some(word(key!("nature-plc-module"))), Vec::new()),
         None if n.terminal => (Some(word(key!("nature-terminal"))), Vec::new()),
         None if n.strip => (Some(word(key!("nature-strip"))), Vec::new()),
-        // A cable's mark stands for its cable (rc.3: it read as a raw wire marker).
+        // A cable's mark stands for its cable (it read as a raw wire marker).
         None if n.cable && what.mark => (Some(word(key!("nature-cable-mark"))), Vec::new()),
         None if n.cable => (Some(word(key!("nature-cable"))), Vec::new()),
         None => (
@@ -1945,7 +1945,7 @@ pub fn what_words(what: &SheetWhat) -> String {
     }
 }
 
-/// What kind of valve terminal it is, in words (rc.2, F15): `Valve terminal · PLC station on PROFIBUS DP`, `Valve
+/// What kind of valve terminal it is, in words: `Valve terminal · PLC station on PROFIBUS DP`, `Valve
 /// terminal · PLC station with bus node`, `Valve terminal · multipin, wired`. Properties' header, the terminal's menu
 /// and its row's hover in the Devices list say it.
 pub fn terminal_kind_text(kind: &ew_api::output::TerminalKind) -> String {
@@ -2101,7 +2101,7 @@ const CHIP_PHRASES: &[(&str, Option<&str>, Key<'static>)] = &[
         key!("chip-via-through-valves"),
     ),
     ("no medium definition", None, key!("chip-via-no-medium")),
-    // A source without a medium says what to do (rc.2, F9).
+    // A source without a medium says what to do.
     ("no medium yet", None, key!("chip-via-no-medium-yet")),
     ("no medium at its source", None, key!("chip-via-port-no-medium")),
     (
@@ -2114,7 +2114,7 @@ const CHIP_PHRASES: &[(&str, Option<&str>, Key<'static>)] = &[
     ("no tube specification", None, key!("chip-via-no-tube-spec")),
     // A valve's position (the persona round).
     ("on no valve terminal", None, key!("chip-via-no-terminal")),
-    // A valve's solenoids (rc.2, F11).
+    // A valve's solenoids.
     ("PLC output ", Some(""), key!("chip-via-plc-output")),
     ("no PLC output", None, key!("chip-via-no-plc-output")),
     ("the valve's part", None, key!("chip-via-valve-part")),
@@ -2126,7 +2126,7 @@ const CHIP_PHRASES: &[(&str, Option<&str>, Key<'static>)] = &[
 fn chip_words(text: &str) -> String {
     text.split(" · ")
         .map(|part| {
-            // A cable's core names two things: the cable and the core (rc.3).
+            // A cable's core names two things: the cable and the core.
             if let Some((cable, core)) = part.strip_prefix("cable ").and_then(|p| p.split_once(", core ")) {
                 return strings::format(key!("chip-via-cable-core"), &[cable, core]);
             }

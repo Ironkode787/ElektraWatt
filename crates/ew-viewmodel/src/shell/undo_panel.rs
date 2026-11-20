@@ -331,7 +331,7 @@ impl ShellModel {
     /// After an undo or redo that crossed the step committed at `rev`: restores that step's context, unless Undo to
     /// here walks (it restores the last step's only).
     /// After an Undo or a Redo of history entry `index`: what it took back or did again and where, in a toast
-    /// ("Undone: Draw wire on 101"), with Go to page when no page it changed is the one on show (rc.5: an Undo with a
+    /// ("Undone: Draw wire on 101"), with Go to page when no page it changed is the one on show (an Undo with a
     /// box on the pointer took back a step on another page, and nothing said so). `drew` are the pages it touched
     /// before it was stepped (an Undo takes away what it drew there); the pages it touches after it join them. The
     /// history panel's walk says nothing step by step, nor a toast's Undo of the step the toast names.

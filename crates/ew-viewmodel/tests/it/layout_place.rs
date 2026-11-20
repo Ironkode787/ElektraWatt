@@ -590,7 +590,7 @@ fn refused_drops_and_a_plate_placement() {
         refused(&mut shell, "canvas.release", at(over, json!({}))),
         "reason-layout-refused"
     );
-    // The refused drop says why in the bar, as its ghost did (rc.2).
+    // The refused drop says why in the bar, as its ghost did.
     assert_eq!(
         shell.tool_notice(),
         Some("F55 mounts on a TS 35×7.5 rail and does not fit rail 4: drop it on a TS 35×7.5 rail.")

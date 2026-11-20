@@ -134,7 +134,7 @@ fn node_path(nodes: &[(String, String, Option<String>)], id: &str) -> Vec<String
 }
 
 /// New medium… (doc 11 §2.5, FR-FLU-008): a usual medium to start from, then the medium's name and its nominal
-/// pressure in bar. The ISO 1219-2 letter (`code`) is no field (rc.2, F26): nothing reads it yet; the action takes it.
+/// pressure in bar. The ISO 1219-2 letter (`code`) is no field: nothing reads it yet; the action takes it.
 pub(super) static MEDIUM_NEW: Spec = Spec {
     action: "fluid.medium_new",
     title_key: key!("medium-new-title"),
@@ -145,7 +145,7 @@ pub(super) static MEDIUM_NEW: Spec = Spec {
     ],
 };
 
-/// Fluid ▸ Valve terminal… on a fluid page while a valve terminal of the project is drawn on no fluid page (rc.2): which
+/// Fluid ▸ Valve terminal… on a fluid page while a valve terminal of the project is drawn on no fluid page: which
 /// to draw, each such terminal ("Draw -104A1 here") or a new one.
 static VALVE_TERMINAL: Spec = Spec {
     action: "fluid.valve_terminal",
@@ -153,7 +153,7 @@ static VALVE_TERMINAL: Spec = Spec {
     fields: &[field("terminal", key!("form-valve-terminal"))],
 };
 
-/// Put a station on this page (rc.2): on a bus-topology page, which station or bus device of the project the page does
+/// Put a station on this page: on a bus-topology page, which station or bus device of the project the page does
 /// not draw yet ("Put -1A1 here"), or a new one.
 static PUT_STATION: Spec = Spec {
     action: "bus.put_station",
@@ -161,7 +161,7 @@ static PUT_STATION: Spec = Spec {
     fields: &[field("station", key!("form-put-station"))],
 };
 
-/// Draw the plug… from a page that is no electrical page (the rc.2 re-test: Draw plug went to page 1 without a word):
+/// Draw the plug… from a page that is no electrical page (Draw plug went to page 1 without a word):
 /// on which electrical page, or a new one. The plug's terminal stands in the form as what it draws.
 static DRAW_PLUG: Spec = Spec {
     action: "fluid.draw_plug",
@@ -182,7 +182,7 @@ static DRAW_SOLENOID: Spec = Spec {
     ],
 };
 
-/// The usual media New medium… starts from (rc.2, F26), each with its usual nominal pressure in bar (gauge: a vacuum
+/// The usual media New medium… starts from, each with its usual nominal pressure in bar (gauge: a vacuum
 /// below the atmosphere); its name is the text `medium-preset-<word>`.
 const MEDIUM_PRESETS: &[(&str, &str)] = &[
     ("compressed_air", "6"),
@@ -203,7 +203,7 @@ pub(super) fn medium_preset(word: &str) -> Option<(String, &'static str)> {
 /// The value of a usual medium in a Medium row's choice: `preset:<word>`.
 pub(super) const PRESET_PREFIX: &str = "preset:";
 
-/// The usual media as a Medium row's choices (rc.2): "Compressed air, 6 bar", its value `preset:<word>`.
+/// The usual media as a Medium row's choices: "Compressed air, 6 bar", its value `preset:<word>`.
 pub(super) fn medium_preset_choices() -> Vec<(String, Value)> {
     MEDIUM_PRESETS
         .iter()
@@ -319,7 +319,7 @@ pub(super) static PAGE_NEW: Spec = Spec {
         },
         field("title", key!("form-title")),
         field("section", key!("form-section")),
-        // Where the page goes: after the page right-clicked (else the open page) or at the end of its section (rc.5);
+        // Where the page goes: after the page right-clicked (else the open page) or at the end of its section;
         // its two choices in words are set when the dialog opens.
         Field {
             name: "place",
@@ -337,7 +337,7 @@ pub(super) static PAGE_NEW: Spec = Spec {
     ],
 };
 
-/// The question before the Connection grid of the page shown changes under its items (rc.5): the grid, in its words;
+/// The question before the Connection grid of the page shown changes under its items: the grid, in its words;
 /// the form's foot says what will happen ([`ShellModel::form_foot`]); Change and fit or Cancel.
 pub(super) static PAGE_GRID_FIT: Spec = Spec {
     action: "page.fit_grid",
@@ -465,7 +465,7 @@ impl ShellModel {
         Some((folio, tables))
     }
 
-    /// The question before page `page`'s Connection grid changes to `word` (rc.5), when the page holds anything a
+    /// The question before page `page`'s Connection grid changes to `word`, when the page holds anything a
     /// change of its grid moves (what `fields.set` refuses to change under: a symbol, a wire, a junction, a page item or
     /// a structure box) and `word` is another grid than its own; `None` otherwise, where the grid is set as typed.
     pub(super) fn grid_question(&mut self, page: ew_api::output::Uuid, word: &str) -> Option<Outcome> {
@@ -497,7 +497,7 @@ impl ShellModel {
         Some(out)
     }
 
-    /// `page.grid` (Page ▸ Connection grid…, rc.5): the question of the page on show's grid, its own grid chosen; Change
+    /// `page.grid` (Page ▸ Connection grid…): the question of the page on show's grid, its own grid chosen; Change
     /// and fit (`page.fit_grid`) sets it and fits what the page holds.
     pub(crate) fn act_page_grid(&mut self) -> Outcome {
         let Some(page) = self.focused_page_id() else {
@@ -529,7 +529,7 @@ impl ShellModel {
     }
 
     /// The items a grid change moves, from the records it changes (`diff`): its symbols, junctions and structure boxes
-    /// (rc.5: the question and the message after it count by this one rule).
+    /// (the question and the message after it count by this one rule).
     fn grid_fit_moved(diff: &ew_api::ModelDiff) -> usize {
         diff.changes
             .iter()
@@ -562,7 +562,7 @@ impl ShellModel {
         }
     }
 
-    /// The question's foot (rc.5): "Page 101 holds 12 items and 9 wires. On the 4 mm grid 7 of them move onto it and
+    /// The question's foot: "Page 101 holds 12 items and 9 wires. On the 4 mm grid 7 of them move onto it and
     /// the wires are drawn anew; Undo takes it all back in one step."
     pub(super) fn grid_fit_foot(&self, form: &FormDialog) -> Option<String> {
         let word = form.fields.iter().find(|f| f.name == "grid")?.value.as_str();
@@ -583,7 +583,7 @@ impl ShellModel {
         ))
     }
 
-    /// `page.fit_grid {grid}` (the question's Change and fit, rc.5): the question's page (else the page on show) takes
+    /// `page.fit_grid {grid}` (the question's Change and fit): the question's page (else the page on show) takes
     /// the Connection grid `grid` (`page.set_grid`: its items fitted, its wires unrouted), its wires are routed anew
     /// between the same ends in the same undo step, and a message says how many items moved, counted as the question
     /// counted them.
@@ -658,7 +658,7 @@ impl ShellModel {
                 &[&folio, &strings::choice_text(&word), &moved.to_string()],
             )
         };
-        // The wires the router found no way for: counted, what their line means and what to do (rc.5: two wires were
+        // The wires the router found no way for: counted, what their line means and what to do (two wires were
         // thin and dashed after the change with no word why).
         let lost = plan.as_ref().map_or(0, |p| p.plan.unrouted.len());
         if lost > 0 {
@@ -672,7 +672,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// New page's folio and section for a kind or a place chosen in the dialog (rc.5): `None` where the person typed
+    /// New page's folio and section for a kind or a place chosen in the dialog: `None` where the person typed
     /// a number of his own (the folio is no longer the one proposed). `place` `end`: the next free number after the
     /// section's last page; `after` or a kind: the proposal for the row the menu was opened on, else the open page.
     pub(super) fn page_refolio(&self, name: &str, value: &str) -> Option<(String, String)> {
@@ -702,7 +702,7 @@ impl ShellModel {
         Some((folio, section))
     }
 
-    /// New page's Place choices in words (rc.5): "After 103 Wiring", the page the folio of that place stands after (the
+    /// New page's Place choices in words: "After 103 Wiring", the page the folio of that place stands after (the
     /// folio in the field while the place is chosen, else the proposal for it), so that the choice and the line under
     /// the folio always name the same page; "First in section 1 …" where none comes before it; and "At the end of
     /// section 1 Wiring Definition".
@@ -775,7 +775,7 @@ impl ShellModel {
             .map(|r| format!("{} {}", r.folio, r.title.trim()).trim().to_owned())
     }
 
-    /// Where the page New page makes will stand, under its folio field (rc.5): "Stands after 101 Wiring", the page of
+    /// Where the page New page makes will stand, under its folio field: "Stands after 101 Wiring", the page of
     /// the form's section whose folio comes last before the folio typed; first in its section when none does; the page
     /// that has the folio when one has it already. `None` for a folio that does not read.
     pub(super) fn new_page_place(&self, form: &FormDialog) -> Option<String> {
@@ -804,7 +804,7 @@ impl ShellModel {
         }
         let before = page_before_in(in_section, number, typed);
         let lead = |r: &PageRow| r.folio.split('.').next().and_then(|k| k.parse::<u32>().ok());
-        // What follows it in its section, so that the line says where the number in the field puts it (rc.5).
+        // What follows it in its section, so that the line says where the number in the field puts it.
         let next = rows
             .iter()
             .filter(|r| {
@@ -943,7 +943,7 @@ impl ShellModel {
         if folio.is_empty() {
             // The dialog opens with the proposed folio and section filled in.
             if !self.in_form_of(PAGE_NEW.action) {
-                // The Pages row the menu was opened on, when it was (rc.5).
+                // The Pages row the menu was opened on, when it was.
                 let at = p.get("at").and_then(Value::as_str);
                 let kind = if ty.is_empty() { "multi_line" } else { ty.as_str() };
                 let (mut proposal, proposed_section) = self.new_page_proposal(at, Some(kind));
@@ -1423,11 +1423,11 @@ impl ShellModel {
         out
     }
 
-    /// `fluid.valve_terminal {terminal?}` (Fluid ▸ Valve terminal…, rc.2): on a fluid page a valve terminal of the project
+    /// `fluid.valve_terminal {terminal?}` (Fluid ▸ Valve terminal…): on a fluid page a valve terminal of the project
     /// that is drawn on no fluid page yet (made as a station first) comes first: the form offers "Draw -104A1 here" for
     /// each, then "A new terminal…". `terminal` a terminal draws it here (`fluid.draw_terminal`); `new`, or no such
     /// terminal, opens the device browser at the valve terminals. From another page it works on the nearest fluid page,
-    /// else on one made then ([`ShellModel::fluid_page_here`], rc.3).
+    /// else on one made then ([`ShellModel::fluid_page_here`]).
     pub(crate) fn act_fluid_valve_terminal(&mut self, p: &Map<String, Value>) -> Outcome {
         let terminal = match text_param(p, "terminal") {
             Ok(t) => t,
@@ -1472,7 +1472,7 @@ impl ShellModel {
         self.dispatch("fluid.draw_terminal", &json!({ "terminal": terminal }))
     }
 
-    /// `bus.put_station {station?, x_mm?, y_mm?, group?}` (Put a station on this page…, rc.2): on a bus-topology page,
+    /// `bus.put_station {station?, x_mm?, y_mm?, group?}` (Put a station on this page…): on a bus-topology page,
     /// every interface of the station or bus device `station` (its tag or ID) that the page does not draw yet, a box
     /// each, as the rack's Put it on a bus page puts it: on the pointer, or at the sheet point `x_mm`, `y_mm` (a row
     /// dropped on the page). `new` places what the asking placement waited with (a part from the device browser), else
@@ -1606,7 +1606,7 @@ impl ShellModel {
     }
 
     /// Brings the electrical page a multipin terminal's plug (`solenoid` false) or a valve's solenoid is drawn on in
-    /// front (the rc.2 re-test: Draw plug went to page 1 without a word): the page `page` names (the folio of a
+    /// front (Draw plug went to page 1 without a word): the page `page` names (the folio of a
     /// multi-line page, or `new`: a new one); without, the page in front when it is one; else in the window the form asks
     /// which, the electrical pages and New page… (`target`, its words, stands in it as what is drawn), the next one after
     /// the page in front chosen; headless the nearest one (`none` without any). `Ok(true)`: that page is in front;
@@ -2095,7 +2095,7 @@ impl ShellModel {
             Ok(k) => k,
             Err(e) => return e,
         };
-        // Without a kind the tool starts at once with the one used last (rc.2: a dialog first caught the clicks meant
+        // Without a kind the tool starts at once with the one used last (a dialog first caught the clicks meant
         // for the ports); Line kind in the HUD changes it.
         let kind = if kind.is_empty() {
             self.tools.tube_kind.unwrap_or("working")
@@ -2118,7 +2118,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `fluid.tube_kind` (the Tube tool's Line kind in the HUD, rc.2): the next line kind, remembered; the Tube
+    /// `fluid.tube_kind` (the Tube tool's Line kind in the HUD): the next line kind, remembered; the Tube
     /// tool, while it draws no tube, takes it at once.
     pub(crate) fn act_fluid_tube_kind(&mut self, _p: &Map<String, Value>) -> Outcome {
         let kinds = crate::strings::LINE_KINDS;
@@ -2145,7 +2145,7 @@ impl ShellModel {
         Some(format!("{}/{}", mm(&tube["od"])?, mm(&tube["id"])?))
     }
 
-    /// What the Tube tool draws, as the HUD says it (rc.2): its line kind and the project's default tube ("Working
+    /// What the Tube tool draws, as the HUD says it: its line kind and the project's default tube ("Working
     /// line · tube 6/4 mm"), or that the project has none and where it is set.
     pub(crate) fn tube_words(&self) -> String {
         let kind = self.tools.tube_kind.unwrap_or("working");
@@ -2343,7 +2343,7 @@ mod tests {
             let sig = parse_signature(find(spec.action).unwrap().params).unwrap();
             let names: Vec<&str> = sig.iter().map(|p| p.name.as_str()).collect();
             let mut fields: Vec<&str> = spec.fields.iter().map(|f| f.name).collect();
-            // New page also takes the Pages row its menu was opened on, which is no field (rc.5).
+            // New page also takes the Pages row its menu was opened on, which is no field.
             if spec.action == "page.new" {
                 fields.push("at");
             }

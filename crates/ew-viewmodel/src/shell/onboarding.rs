@@ -643,7 +643,7 @@ impl ShellModel {
                     w.step = Step::Review;
                     w.error = None;
                 }
-                // A success carries the success mark of a toast, not the banner's warning triangle (rc.3).
+                // A success carries the success mark of a toast, not the banner's warning triangle.
                 self.notify_toned(
                     strings::format(
                         if use_for_new {

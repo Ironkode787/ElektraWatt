@@ -63,7 +63,7 @@ impl ShellModel {
                 Some(d) if d.parent.is_some_and(|p| p.as_uuid() == station) => {
                     return failed(key!("error-card-on-station"), &[&tag, &station_tag]);
                 }
-                // Only a module goes into a rack (F17 of the rc.1 test: a bus node whose part has no PLC data was
+                // Only a module goes into a rack (a bus node whose part has no PLC data was
                 // attached to a CPU and got eight channels no part gives); a bus device joins a PLC as a station.
                 Some(d)
                     if d.aspects.plc_module.as_ref().is_some_and(|m| !m.integrated)
@@ -484,7 +484,7 @@ impl ShellModel {
         let number = |name: &str| p.get(name).and_then(Value::as_u64);
         // A valve for a terminal: a position's.
         if part.plc.is_none() && part.terminal_valve {
-            // A valve without a symbol that fits a cell would stand on its position undrawn (rc.3).
+            // A valve without a symbol that fits a cell would stand on its position undrawn.
             if !part.cell_symbol {
                 return self.rack_refuse(
                     cursor,
@@ -960,7 +960,7 @@ impl ShellModel {
         out
     }
 
-    /// `plc.rack_rename {device?, plc?, text?, cancel?}` (rc.5, H14): a tag of the station on show changed in place, as the
+    /// `plc.rack_rename {device?, plc?, text?, cancel?}`: a tag of the station on show changed in place, as the
     /// Tag row of Properties changes it: the station's in the view's header, a card's in its row (`device`; absent,
     /// the device under the cursor, else the station). Without `text` the field opens on the tag; with `text` the typed
     /// tag goes through the Tag field's own path ([`ShellModel::tag_rename_commit`]): taken, the field closes; refused
@@ -1047,7 +1047,7 @@ impl ShellModel {
         }
         let mut out = self.tag_rename_commit(device, &text);
         // A tag that changes other tags too (a station's cards follow its tag) is previewed in Properties as the Tag
-        // row's change is; the Enter in the view takes it at once (rc.5: Properties and the Preview each offered an
+        // row's change is; the Enter in the view takes it at once (Properties and the Preview each offered an
         // Apply for it, and the line that asked for one stayed after it).
         if out == Outcome::Done && self.props.card().is_some() {
             out = self.act_preview_apply();
@@ -1072,7 +1072,7 @@ impl ShellModel {
         self.rack_refuse(place, why)
     }
 
-    /// `plc.rack_rename {text?}` on the New station form (rc.5: it had no tag): the tag the station gets, typed before
+    /// `plc.rack_rename {text?}` on the New station form (it had no tag): the tag the station gets, typed before
     /// Create, which gives it frozen. Without `text` the field opens (the nil ID standing for the station not made
     /// yet); an empty text leaves the tag to its page; a tag another device has, or one a tag cannot be, is refused in
     /// a sentence under the rack, the field staying open on the text as typed.
@@ -1127,7 +1127,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `plc.rack_rename {plc: true, text?}` (rc.5, H14): the name of the PLC the station on show belongs to (its
+    /// `plc.rack_rename {plc: true, text?}`: the name of the PLC the station on show belongs to (its
     /// configuration project, `plc`), changed in place in the view's header as its Properties change it
     /// (`fields.set name`): without `text` the field opens on the name; a name another PLC of the project has, or one a
     /// PLC's name cannot be, is refused in a sentence under the rack, the field staying open on the text as typed.
@@ -1202,7 +1202,7 @@ impl ShellModel {
         }
     }
 
-    /// `plc.rack_channel {channel?, column?, text?, next?, cancel?}` (rc.5: a symbol typed into the channel table did
+    /// `plc.rack_channel {channel?, column?, text?, next?, cancel?}` (a symbol typed into the channel table did
     /// nothing): a channel's symbol (`column` `symbol`) or function text (`function_text`) of the module on show, or
     /// (the PLC grid's cell) of any channel, set as Properties set them ([`ShellModel::set_channel_text`]). Without
     /// `text` the field opens on the
@@ -1298,7 +1298,7 @@ impl ShellModel {
     /// Sets the symbol (`column` `symbol`) or the function text (`function_text`) of the channel of `row` to `text`, as
     /// the PLC grid and Properties set them (`fields.set`): the symbol on the channel, the function text on the device
     /// wired to it, in the project's language (its other languages stay). The station view's channel table and the PLC
-    /// grid both type them through here (rc.5). A text equal to the one shown commits nothing. The refusal in words.
+    /// grid both type them through here. A text equal to the one shown commits nothing. The refusal in words.
     pub(in crate::shell) fn set_channel_text(
         &mut self,
         row: &ew_api::output::RackChannel,
@@ -1347,7 +1347,7 @@ impl ShellModel {
         }
     }
 
-    /// `plc.add_to_plc {device, config?}` (F19 of the rc.1 test): a bus device that belongs to no PLC becomes a station
+    /// `plc.add_to_plc {device, config?}`: a bus device that belongs to no PLC becomes a station
     /// of the PLC `config` (absent: a new one) with one `plc.add_station`, and its view opens, so its cards are
     /// added there; a network switch has no rack, and a toast says which PLC it belongs to now. A module, a station and
     /// a device without an addressed bus port are refused in words.
@@ -1377,7 +1377,7 @@ impl ShellModel {
         }
         // Chosen in a new station's view, that view is the device's from here on.
         let draft = self.station_draft().is_some();
-        // A network switch belongs to the PLC with no rack of its own: a toast says so, with Undo (rc.2 persona run).
+        // A network switch belongs to the PLC with no rack of its own: a toast says so, with Undo.
         let switch = self.project_session().is_some_and(|s| s.network_switch(device));
         if switch {
             let plc = match self.project_session().map(|s| s.plc_offer(device)) {

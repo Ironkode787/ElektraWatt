@@ -100,7 +100,7 @@ impl FormDialog {
         match (self.action, field) {
             ("pages.renumber", "start") => Some(strings::text(key!("form-renumber-start-note"))),
             ("cable.from_wires", "type") => Some(strings::text(key!("form-cable-type-note"))),
-            // The length can wait (rc.5: a persona met it only in the check's findings).
+            // The length can wait (a persona met it only in the check's findings).
             ("cable.from_wires" | "bus.cable", "length") => {
                 Some(strings::text(key!("form-cable-length-note")))
             }
@@ -122,7 +122,7 @@ impl FormDialog {
                     .unwrap_or_else(|| strings::text(key!("form-page-type-note"))),
             ),
             // Every other field says what it changes, with an example, where its form has the text
-            // `form-hint-<action>-<field>` (rc.2, F27).
+            // `form-hint-<action>-<field>`.
             _ => strings::lookup(&format!("form-hint-{}-{field}", self.action).replace(['.', '_'], "-")),
         }
     }
@@ -264,7 +264,7 @@ fn refusal_text(reason: Key<'_>) -> String {
 impl ShellModel {
     /// Sets the text of field `name` of the open creation dialog (a keystroke or a choice) and clears the last refusal.
     pub fn set_form_field(&mut self, name: &str, value: &str) {
-        // New cable type…, the last entry of a Cable form's list of types, opens its small form (rc.3); Save comes
+        // New cable type…, the last entry of a Cable form's list of types, opens its small form; Save comes
         // back with the new type chosen.
         if name == "part"
             && value == super::cables::NEW_CABLE_TYPE
@@ -273,7 +273,7 @@ impl ShellModel {
             let _ = self.act_part_new(&Map::from_iter([("cable".to_owned(), Value::Bool(true))]));
             return;
         }
-        // A bus line's Cable form (rc.5): New bus cable… and New plug… open the small form of a new bus part for the
+        // A bus line's Cable form: New bus cable… and New plug… open the small form of a new bus part for the
         // line's bus; another cable chosen shows its tag.
         if let Some(Dialog::Form(f)) = &self.dialog
             && f.action == super::cables::BUS_CABLE
@@ -302,12 +302,12 @@ impl ShellModel {
         .then(|| self.cable_row_wires());
         // Create enclosure's code of a new location comes and goes with its "New location" choice.
         let code = (name == "location").then(|| self.proposed_location_code());
-        // The grid question counts again for another grid (rc.5).
+        // The grid question counts again for another grid.
         if name == "grid" && self.in_form_of(PAGE_GRID_FIT.action) {
             self.refresh_grid_fit(value);
         }
-        // New page's folio follows its section to the section's first free folio (rc.2: it stayed 3 for section 2), its
-        // kind and its place to the proposal for them unless a number was typed (rc.5).
+        // New page's folio follows its section to the section's first free folio (it stayed 3 for section 2), its
+        // kind and its place to the proposal for them unless a number was typed.
         let free = (name == "section" && self.in_form_of(PAGE_NEW.action))
             .then(|| self.section_free_folio(value))
             .flatten();
@@ -321,7 +321,7 @@ impl ShellModel {
                 f.value = value.to_owned();
             }
             form.error = None;
-            // Cable…'s cores follow its type; a cable part chosen is the type (rc.3).
+            // Cable…'s cores follow its type; a cable part chosen is the type.
             if let Some(wires) = &cable_rows {
                 if name == "part"
                     && !value.is_empty()
@@ -360,7 +360,7 @@ impl ShellModel {
                     }
                 }
             }
-            // New medium…'s usual medium fills its name and pressure, both still to be changed (rc.2, F26).
+            // New medium…'s usual medium fills its name and pressure, both still to be changed.
             if form.action == MEDIUM_NEW.action
                 && name == "preset"
                 && let Some((words, p_nom)) = medium_preset(value)

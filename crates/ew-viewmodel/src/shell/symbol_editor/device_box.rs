@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The device box, the symbol editor's second kind of thing (rc.3, doc 07 §2.5): a part that is drawn as a box with
+//! The device box, the symbol editor's second kind of thing (doc 07 §2.5): a part that is drawn as a box with
 //! pins. The editor holds the part's draft: its pins (added, removed, renamed, given a potential) and where each
 //! stands on the box (its edge and its place along it), and the box's size. Save saves the part as the part editor
 //! does (a new part, a part of the project corrected in place, a part of My parts as its next version, a library's

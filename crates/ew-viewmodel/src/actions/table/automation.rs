@@ -106,7 +106,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_plc_module(p, "draw"),
         )),
     ),
-    // Place here (rc.5, H13): the part's box, bus ports or positions on the pointer on the page the view stands on; a
+    // Place here: the part's box, bus ports or positions on the pointer on the page the view stands on; a
     // PLC navigator's row names its part, which the action words its refusal for.
     with_params(
         "device?:ref",
@@ -424,7 +424,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ))),
     ),
-    // A position of a valve terminal drawn as its positions (rc.2, F15): Fill position n… and Replace… open the device
+    // A position of a valve terminal drawn as its positions: Fill position n… and Replace… open the device
     // browser narrowed to valves for a terminal; the valve chosen (or `part`) is placed in that cell.
     with_params(
         "terminal:ref, module:ref, position:uint, replace?:bool, part?:ref",
@@ -441,7 +441,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ))),
     ),
-    // A terminal valve's Go to output (rc.2, F15): the channel that drives its solenoid, in the PLC list.
+    // A terminal valve's Go to output: the channel that drives its solenoid, in the PLC list.
     with_params(
         "channel?:ref",
         hidden(act(
@@ -454,7 +454,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_fluid_go_output(p),
         )),
     ),
-    // A valve terminal drawn before as a free box: Draw as slots (rc.2, F15), previewed.
+    // A valve terminal drawn before as a free box: Draw as slots, previewed.
     with_params(
         "rep:ref",
         needs_parameters(hidden(with_aliases(
@@ -470,7 +470,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ))),
     ),
-    // Draw its valves in the terminal (rc.3): valves put on its positions without a symbol stand in its cells.
+    // Draw its valves in the terminal: valves put on its positions without a symbol stand in its cells.
     with_params(
         "terminal:ref",
         needs_parameters(hidden(with_aliases(
@@ -486,7 +486,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ))),
     ),
-    // A stand-alone valve's Draw solenoid 14 on this page… or on an electrical page… (rc.2, F11): the coil's symbol on the
+    // A stand-alone valve's Draw solenoid 14 on this page… or on an electrical page…: the coil's symbol on the
     // pointer on the electrical page in front, `page` (a folio or `new`), else the page the window asks for.
     with_params(
         "function:ref, page?:text",
@@ -503,7 +503,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ))),
     ),
-    // A multipin valve terminal's Draw the plug on an electrical page… (rc.2): from any page, its menu, its Properties
+    // A multipin valve terminal's Draw the plug on an electrical page…: from any page, its menu, its Properties
     // row and the Fluid tab (of the selected terminal, greyed in words while none is selected).
     with_params(
         "terminal?:ref, page?:text",
@@ -534,7 +534,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
-    // Plug ports beside the Tube (rc.3): the open working ports of the selected valves plugged in one step, greyed in
+    // Plug ports beside the Tube: the open working ports of the selected valves plugged in one step, greyed in
     // words while no selected valve has one; EW-FL-001's fix does the same.
     placed(
         place(Group::Tubes, 3, CommandSize::Small, Some(key!("bar-plug-ports"))),
@@ -549,7 +549,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_fluid_plug_ports(),
         ),
     ),
-    // Go to a thing by its drawing (rc.2): a valve's solenoid and the coil's valve, the symbol selected and named.
+    // Go to a thing by its drawing: a valve's solenoid and the coil's valve, the symbol selected and named.
     with_params(
         "record:text, words?:text",
         needs_parameters(hidden(act(
@@ -562,7 +562,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_nav_show(p),
         ))),
     ),
-    // A valve terminal made as a station, drawn on a fluid page as its positions (rc.2): its PLC row, its rack dialog.
+    // A valve terminal made as a station, drawn on a fluid page as its positions: its PLC row, its rack dialog.
     with_params(
         "terminal:ref",
         needs_parameters(hidden(with_aliases(
@@ -692,7 +692,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_plc_rack_next(p),
         )),
     ),
-    // A station's tag, or a card's, changed in its view (rc.5, H14); F2 in the view opens it (`shortcut_action`).
+    // A station's tag, or a card's, changed in its view; F2 in the view opens it (`shortcut_action`).
     with_params(
         "device?:ref, plc?:bool, text?:text, cancel?:bool",
         hidden(with_aliases(
@@ -708,7 +708,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         )),
     ),
-    // A channel's symbol or function text typed in the view's channel table (rc.5).
+    // A channel's symbol or function text typed in the view's channel table.
     with_params(
         "channel?:ref, column?:text, text?:text, next?:bool, cancel?:bool",
         hidden(with_aliases(

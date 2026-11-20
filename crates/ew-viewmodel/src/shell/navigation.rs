@@ -106,7 +106,7 @@ pub struct SessionCalls {
     /// `Session::rack_view`: once per (revision, station) while the rack and slot editor is open.
     pub rack_view: u64,
     /// A station view's derivations (its rack, a station not made yet's rack, its catalogue): each once per revision,
-    /// language, catalogue, view state and page, never for a frame or a pointer move alone (rc.5, H11).
+    /// language, catalogue, view state and page, never for a frame or a pointer move alone.
     pub station_shown: u64,
     /// `Session::copy_fragment`: `edit.copy`, `edit.cut`, `edit.duplicate`.
     pub copy_fragment: u64,
@@ -262,7 +262,7 @@ impl ShellModel {
             return String::new();
         };
         let title = strings::format(key!("tab-title"), &[&r.folio, &r.title]);
-        // A list of more than one page says which page the tab shows (rc.5).
+        // A list of more than one page says which page the tab shows.
         match self.row_index(tab.page).and_then(|i| self.list_pages(i)) {
             Some(l) => strings::format(
                 key!("tab-title-list-page"),
@@ -272,7 +272,7 @@ impl ShellModel {
         }
     }
 
-    /// Where the generated list of the page at position `i` of the page order stands among its pages (rc.5: the
+    /// Where the generated list of the page at position `i` of the page order stands among its pages (the
     /// plugs on a parts list's second page went unseen): the run of generated list pages of one folio and its
     /// sub-pages (`901`, `901.1`, ...). `None` for a list of one page and for any other page.
     pub fn list_pages(&self, i: usize) -> Option<ListPages> {
@@ -296,7 +296,7 @@ impl ShellModel {
         })
     }
 
-    /// The row under the last row of the list on show that runs on (rc.5): its words, the folio it goes to and its
+    /// The row under the last row of the list on show that runs on: its words, the folio it goes to and its
     /// sheet rectangle, nm `[left, top, right, bottom]`; `None` on any other page.
     pub fn list_foot(&self) -> Option<(String, String, [i64; 4])> {
         let next = self.list_pages(self.page_index())?.next?;
@@ -1030,12 +1030,12 @@ impl ShellModel {
     /// `props.follow {row?}` (F or a click on a link row of the grid): follows the device link of
     /// `row` (else the focused row) as the Devices navigator opens the device: its main page shows in the focused
     /// group and its drawings there are selected. A valve's solenoid row goes to where its coil is drawn, or draws it
-    /// while it is not (`fluid.draw_solenoid`); a coil's valve row goes to the valve (rc.2, F11); a multipin terminal's
+    /// while it is not (`fluid.draw_solenoid`); a coil's valve row goes to the valve; a multipin terminal's
     /// plug row goes to the plug, or draws it while it is not (`fluid.draw_plug`). A draw goes to the electrical page
     /// `page` names, else as its action decides (the page in front, or the window asks).
     pub(crate) fn act_props_follow(&mut self, p: &Map<String, Value>) -> Outcome {
         let key = or_return!(self.props_row_param(p));
-        // A wire's value its cable core gives: the cable, where it is changed (rc.3).
+        // A wire's value its cable core gives: the cable, where it is changed.
         if self.cable_row(&key).is_some() {
             return self.props_go_to_source(&key);
         }
@@ -1048,7 +1048,7 @@ impl ShellModel {
                 ) if kind == "solenoid" => Some(json.clone()),
                 _ => None,
             });
-        // A multipin terminal's plug row (rc.2): where it is drawn, or draws it while it is not.
+        // A multipin terminal's plug row: where it is drawn, or draws it while it is not.
         let plug = self
             .props_find(&key)
             .and_then(|(_, row)| match (row.ty.inner(), &row.value) {
@@ -1074,7 +1074,7 @@ impl ShellModel {
         }
         if let Some(json) = solenoid {
             let mut params = Map::new();
-            // A terminal valve's solenoid (rc.2, F15): its output in the PLC list, or its plug pin on the page.
+            // A terminal valve's solenoid: its output in the PLC list, or its plug pin on the page.
             let seat = &json["seat"];
             match seat.get("kind").and_then(Value::as_str) {
                 Some("terminal") => {
@@ -1254,7 +1254,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `nav.show {record, words?}` (rc.2): Go to a thing by its drawing, not by its cell: the page of the first drawing of
+    /// `nav.show {record, words?}`: Go to a thing by its drawing, not by its cell: the page of the first drawing of
     /// function `record` (of device `record`'s main function) shows with the symbol in the middle, selected (its whole
     /// outline marked), and `words` stand beside it until the pointer moves (the persona run read a ring at the cell's
     /// middle as nothing). Refused in words for a thing drawn nowhere.

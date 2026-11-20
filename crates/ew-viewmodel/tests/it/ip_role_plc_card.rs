@@ -91,7 +91,7 @@ fn a_name_with_a_source_on_another_page_is_offered_as_a_target() {
 }
 
 /// The persona round on rc.3 (FT-1657): after its source the typed name stays, and the tool floats its target, on
-/// the source's own page too; after the target the name stays for further targets (rc.5), and with the field erased
+/// the source's own page too; after the target the name stays for further targets, and with the field erased
 /// the series goes on as before.
 #[test]
 fn on_the_page_of_the_source_the_target_follows_and_then_the_series_goes_on() {
@@ -251,7 +251,7 @@ fn key_of(s: &ShellModel, id: &str) -> String {
 fn choosing_source_for_a_proposed_name_offers_the_next_free_name() {
     let tmp = Tmp::new("g40-free");
     let mut s = source_on_101(&tmp);
-    // No typed name: the source on 101 waits for a target, so the proposal is its partner (rc.2), "0V" as a target.
+    // No typed name: the source on 101 waits for a target, so the proposal is its partner, "0V" as a target.
     done(&mut s, "tool.ip", json!({}));
     done(&mut s, "cursor.set", json!({"x_mm": 330.0, "y_mm": 150.0}));
     assert_eq!(ghost(&s)["name"], "0V");

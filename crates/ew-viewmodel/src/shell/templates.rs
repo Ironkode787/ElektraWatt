@@ -462,7 +462,7 @@ impl ShellModel {
         })))
     }
 
-    /// The New project dialog's folders read again on its next frame (rc.5): the window calls it when it regains the
+    /// The New project dialog's folders read again on its next frame: the window calls it when it regains the
     /// focus and once a second while the dialog is open, so that a folder made or taken away outside the program
     /// meanwhile is seen without a field being typed. Nothing while the dialog is closed.
     pub fn recheck_new_project(&mut self) {
@@ -856,7 +856,7 @@ impl ShellModel {
             self.settings.basic_project = Some(dir_text);
         }
         self.save_settings();
-        // A success carries the success mark of a toast, not the banner's warning triangle (rc.3).
+        // A success carries the success mark of a toast, not the banner's warning triangle.
         self.notify_toned(
             strings::format(
                 if use_it {

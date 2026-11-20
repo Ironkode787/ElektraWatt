@@ -254,7 +254,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     )),
     // Output ▸ Reports ▸ Report block…, `report_block.create` through its form; on the Output tab as Report, where
     // every list page is made (three of three personas looked for it there), and on the Page tab beside New page,
-    // since a report block is put on a page (the owner looked for it there, rc.1).
+    // since a report block is put on a page (the owner looked for it there).
     with_params(
         "kind:text, folio:text, title?:text",
         placed_also(
@@ -373,7 +373,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_messages_fix(p),
         ))),
     ),
-    // Fix all of a group of findings whose fixes are of one kind (rc.2 persona run): one card, one Apply.
+    // Fix all of a group of findings whose fixes are of one kind: one card, one Apply.
     with_params(
         "key:text",
         hidden(in_navigator(act(

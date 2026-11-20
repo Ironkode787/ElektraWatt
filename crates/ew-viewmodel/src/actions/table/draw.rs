@@ -72,7 +72,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         )),
     )),
-    // Spacing… on two or more selected terminals of one row (rc.3): their own small form, in the terminals' menu and
+    // Spacing… on two or more selected terminals of one row: their own small form, in the terminals' menu and
     // Edit.
     keeps_banner(with_params(
         "steps?:uint",
@@ -499,7 +499,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
-    // The Tube tool's Line kind in the HUD (rc.2): the next kind, remembered.
+    // The Tube tool's Line kind in the HUD: the next kind, remembered.
     with_icon(
         "arrows-sort",
         hidden(act(
@@ -658,7 +658,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_layout_reset_label(),
     ))),
-    // Labels: Tags, Item numbers or Both in the canvas context menu over an empty spot of a panel page (rc.2: the persona
+    // Labels: Tags, Item numbers or Both in the canvas context menu over an empty spot of a panel page (the persona
     // found the choice only far down the page's Properties).
     with_params(
         "show:enum(tags|item_numbers|both)",
@@ -756,7 +756,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
-    // The layout page's Give location… (rc.5), offered by its HUD while the cabinet's devices have no location.
+    // The layout page's Give location…, offered by its HUD while the cabinet's devices have no location.
     with_params(
         "location?:text, devices?:json",
         hidden(act(
@@ -879,7 +879,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_wire_dot(),
     )))),
-    // The selected wire's handles by keyboard (rc.3): Tab and Shift+Tab (`ShellModel::shortcut_action` maps them while
+    // The selected wire's handles by keyboard: Tab and Shift+Tab (`ShellModel::shortcut_action` maps them while
     // one wire is selected) give a handle the focus, the arrows move it.
     with_params(
         "step?:int",
@@ -1130,7 +1130,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_box_grip(p),
         ))),
     )),
-    // Add pin (rc.5): a pin of the one selected box where it stands, its name asked in place; a box of a part opens
+    // Add pin: a pin of the one selected box where it stands, its name asked in place; a box of a part opens
     // its device box. On the Draw tab beside Rotate and Mirror, which a selected box offers too (the re-test found it
     // only in the right-click menu).
     keeps_banner(with_params(
@@ -1155,7 +1155,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_box_remove_pin(p),
         ))),
     )),
-    // Centre the pins (rc.5): the one selected black box's pins centred on each side, its size kept.
+    // Centre the pins: the one selected black box's pins centred on each side, its size kept.
     keeps_banner(in_canvas(act(
         "box.centre_pins",
         Command,
@@ -1324,7 +1324,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_navigator_delete(p),
         ))),
     ),
-    // Location… on Devices rows (rc.2: fifteen devices without a location took fifteen edits): the marked devices, or
+    // Location… on Devices rows (fifteen devices without a location took fifteen edits): the marked devices, or
     // every device of a marked group, get one location in one undo step.
     with_params(
         "location?:text",

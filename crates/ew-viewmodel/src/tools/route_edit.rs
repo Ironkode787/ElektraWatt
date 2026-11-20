@@ -12,7 +12,7 @@
 //! starts from its drawn polyline. The keyboard route editor (Edit route) is gone since rc.3: Route
 //! (`layout.route`) routes selected wires anew.
 //!
-//! **Keyboard** (rc.3): with one wire selected, Tab and Shift+Tab give a handle the focus along the wire from the end
+//! **Keyboard**: with one wire selected, Tab and Shift+Tab give a handle the focus along the wire from the end
 //! a person reads first ([`reads_backwards`]; `route.handle`, [`handle_parts`]); it shows as the one under the pointer
 //! does, and the status line names it (the n-th of the wire's handles, a segment and the arrows that move it, or a
 //! bend). The arrow keys move it one grid step (`route.handle_move`), one undo step each; an arrow that cannot move it

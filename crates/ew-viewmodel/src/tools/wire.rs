@@ -37,12 +37,12 @@
 //! end is connected through on the direct route instead when nothing else is in its way (`through_route`). Where no
 //! route keeps the hard rules from the last fixed vertex, the wire is routed from its start as if drawn anew (its
 //! fixed bends dropped), and where none keeps them from there either it is stored unrouted: a route that runs through
-//! a pin or along another wire is never stored (rc.3). The connection kind is the page type's (doc 06 §2.2), given
+//! a pin or along another wire is never stored. The connection kind is the page type's (doc 06 §2.2), given
 //! by the host ([`WireTool::with_kind`]): a wire on a multi-line page (`connection.draw`'s default, so no `kind` is
 //! sent), `overview` on single-line, overview and assembly-overview pages, a working fluid line (`{"fluid": {}}`) on a
 //! fluid page, a bus line (`{"bus": {}}`) on a bus-topology page; on the other page types the host refuses `tool.wire`.
 //!
-//! **A click beside a point** (FT-1800, rc.5). A click that takes no target leaves a free point; where that point lies
+//! **A click beside a point** (FT-1800). A click that takes no target leaves a free point; where that point lies
 //! right beside a connection point (within the targets' reach or one grid step of it, whichever is more) the hint says
 //! so at once: a start that took nothing, a bend placed beside the point, and, once the wire ends elsewhere, the wire
 //! that bends there without joining it (a persona's clicks a few pixels off the ports drew tubes to the wrong ports
@@ -1070,7 +1070,7 @@ impl WireTool {
         };
         let tail = self.tail(cx, ((last, from_dir, arrive), from_end), own, to);
         // No clear way on from the last free point: the wire as if drawn anew from its start, its free points
-        // dropped, else unrouted (rc.3: the corner of the user's L had run through a pin and along another wire).
+        // dropped, else unrouted (the corner of the user's L had run through a pin and along another wire).
         if self.direct && fixed.len() > 1 {
             let start_at = fixed[0];
             return clean(self.tail(
@@ -1275,7 +1275,7 @@ impl WireTool {
                         None => ToolOutput::None,
                     };
                 }
-                // On the edge of a drawn box where no pin is, the wire asks for a pin there and ends at it (rc.5: a box
+                // On the edge of a drawn box where no pin is, the wire asks for a pin there and ends at it (a box
                 // drawn without a part could not get pins).
                 let grid = PageGridMap::new(cx.page.tables.grid);
                 if let Some((rep, pin)) = cx.page.tables.reps.iter().find_map(|r| {
@@ -1284,7 +1284,7 @@ impl WireTool {
                 }) {
                     return ToolOutput::Host(super::HostStep::PinForWire { rep, pin });
                 }
-                // A bend inside a symbol would draw the wire through it (the rc.2 persona run: a click on a power
+                // A bend inside a symbol would draw the wire through it (a click on a power
                 // supply's pin text, inside its box, fixed a bend there and the wire ran through the box).
                 let route = self.full_route(cx, &start, &fixed, &target);
                 if inside_symbol(cx, target.at(), &route) {

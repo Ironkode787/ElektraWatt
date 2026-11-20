@@ -80,7 +80,7 @@ impl ShellModel {
     }
 
     /// The Fluid tab's device browser at `category` (`AirPreparation`), on a fluid page: the one shown, else the nearest,
-    /// else one made then ([`ShellModel::fluid_page_here`], rc.3).
+    /// else one made then ([`ShellModel::fluid_page_here`]).
     pub(crate) fn act_fluid_picker(&mut self, category: &str) -> Outcome {
         match self.fluid_page_here() {
             Outcome::Done => self.act_discipline_picker(PickerMode::Parts, category),
@@ -118,7 +118,7 @@ impl ShellModel {
     }
 
     /// On a bus-topology page in front, the stations and bus devices of the project with a bus interface that page
-    /// does not draw yet, with their tags, in natural order of the tag: what Put a station on this page lists (rc.2).
+    /// does not draw yet, with their tags, in natural order of the tag: what Put a station on this page lists.
     /// With `part`, only the PLC stations of that part copy (the device browser placing it asks first). Empty on any
     /// other page.
     pub(crate) fn stations_off_page(

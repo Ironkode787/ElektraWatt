@@ -613,7 +613,7 @@ fn part_edit_spec(e: &crate::shell::part_dialog::PartEditor) -> DialogSpec {
             ),
         );
     }
-    // A new cable type is one size of a series: the next size is typed in the same form (rc.3).
+    // A new cable type is one size of a series: the next size is typed in the same form.
     if d.new && d.text("kind") == "cable" {
         secondary.insert(
             0,
@@ -1024,7 +1024,7 @@ fn recovery_spec(name: &str, transactions: usize, base_matches: bool, failed: Op
 
 /// A form of an action's fields: its OK button submits them, beside Cancel.
 fn form_spec(form: &crate::shell::FormDialog, model: &ShellModel) -> DialogSpec {
-    // Auto-fill rail with nothing to place offers to give the devices without a location the cabinet's (rc.2).
+    // Auto-fill rail with nothing to place offers to give the devices without a location the cabinet's.
     let mut secondary = vec![cancel()];
     if form.action == "layout.auto_fill_rail"
         && let Some((label, params)) = model.fill_locate_offer()
@@ -1038,7 +1038,7 @@ fn form_spec(form: &crate::shell::FormDialog, model: &ShellModel) -> DialogSpec 
             },
         );
     }
-    // Create enclosure draws an enclosure the location has, and off a panel layout page makes the page (rc.3).
+    // Create enclosure draws an enclosure the location has, and off a panel layout page makes the page.
     let choice = model.enclosure_choice();
     if let Some((_, _, true, _)) = &choice {
         secondary.insert(

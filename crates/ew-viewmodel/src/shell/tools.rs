@@ -147,7 +147,7 @@ impl ShellModel {
             return strings::text(key!("hint-select-legend")).to_owned();
         }
         // With one wire selected, Select says how to reach its handles; with one in the keyboard's focus, how to move
-        // it (rc.3).
+        // it.
         if hint == crate::tools::Hint::plain(key!("hint-select"))
             && let Some((wire, line)) = self.wire_handles()
         {
@@ -219,7 +219,7 @@ impl ShellModel {
 
     /// The drawn polylines (sheet nm) of the selected connections on group `group`'s page: a wire or a fluid line is
     /// selected as a band along its path ([`Self::selected_rects`] leaves it out). The wires the last Route changed
-    /// are drawn so too while its toast is up (rc.5).
+    /// are drawn so too while its toast is up.
     pub fn selected_paths(&self, group: usize) -> Vec<Vec<(i64, i64)>> {
         let Some(c) = self.canvas_of(group) else {
             return Vec::new();
@@ -392,12 +392,12 @@ impl ShellModel {
         // A page or tab change ends the gesture a sticky refusal belonged to.
         self.tools.notice = None;
         self.tools.notice_sticky = false;
-        // The supply marks' Potential panel stands at marks of the page it was opened on (rc.5).
+        // The supply marks' Potential panel stands at marks of the page it was opened on.
         self.supply_panel = None;
         self.end_editing_tool();
     }
 
-    /// Whether something is in flight on the pointer (rc.5): a gesture begun (a wire at its first click, a box at its
+    /// Whether something is in flight on the pointer: a gesture begun (a wire at its first click, a box at its
     /// first corner, a text being typed), or what the tool was armed with hanging there before it put anything down
     /// (a floating symbol, pasted block or interruption point, a box). A tool merely armed (the Wire tool after a
     /// finished wire, the Place tool between two placements) has nothing in flight.
@@ -432,7 +432,7 @@ impl ShellModel {
     }
 
     /// After an undo, a redo or any dispatch that commits (a Delete in a navigator): a black box armed before it whose records ([`crate::tools::black_box::BlackBoxTool::records`]) the step took
-    /// out of the project is escaped and ended, so that it is armed again from the project as it is (rc.5, H2: put
+    /// out of the project is escaped and ended, so that it is armed again from the project as it is (put
     /// down, it named a symbol copy the Undo had taken). A tool whose records are all there stays armed.
     pub(super) fn end_tool_without_records(&mut self) {
         let records: Vec<String> = self
@@ -460,7 +460,7 @@ impl ShellModel {
     /// Ends an editing tool (Wire, Place, Change symbol, and the part-4b Text, Text edit, Graphic, Wire marker,
     /// Structure box and part-5 Image tools): Select takes over, the selection survives. Such a tool holds what it
     /// was armed with (a function, a symbol copy, a page, the copies it embeds), which a page or tab change leaves
-    /// behind and an undo or a redo may take out of the project (rc.5, H2: a box armed by the station view's To do,
+    /// behind and an undo or a redo may take out of the project (a box armed by the station view's To do,
     /// put down after an Undo, named a symbol copy that was gone).
     pub(super) fn end_editing_tool(&mut self) {
         if matches!(
@@ -639,7 +639,7 @@ impl ShellModel {
                 self.tools.put_down = true;
                 self.macro_place_from_tool(&key, at)
             }
-            // The Supply tool's click places its marks in one undo step (rc.5).
+            // The Supply tool's click places its marks in one undo step.
             ToolOutput::Host(crate::tools::HostStep::SupplyPlace { at }) => self.supply_place_from_tool(at),
             ToolOutput::Host(crate::tools::HostStep::PinForWire { rep, pin }) => self.pin_for_wire(rep, pin),
             ToolOutput::Commit(cmd) => {
@@ -663,7 +663,7 @@ impl ShellModel {
                     "ip.place" | "connection.draw_to_ip" => self.tools.tool.proposal_note(),
                     _ => None,
                 };
-                // A point placed beside a pin without joining it says so (rc.5).
+                // A point placed beside a pin without joining it says so.
                 let beside = match cmd.name() {
                     "ip.place" => self.tools.tool.commit_note(),
                     _ => None,
@@ -692,7 +692,7 @@ impl ShellModel {
                 }
                 // Every placement answers with its result line (the tag and the cell, and the wires it drew),
                 // said at the end of the dispatch, once the page tables show it.
-                // A valve terminal drawn as its positions answers the same way, with what its positions hold (rc.2).
+                // A valve terminal drawn as its positions answers the same way, with what its positions hold.
                 if out == Outcome::Done
                     && (cmd.name() == "device.place"
                         || (cmd.name() == "box.black"
@@ -729,7 +729,7 @@ impl ShellModel {
                         pin,
                         external: !json["ip"]["external"].is_null(),
                         taken,
-                        // What it pairs with, as a point placed free says it (rc.5: a point dropped on a pin said
+                        // What it pairs with, as a point placed free says it (a point dropped on a pin said
                         // nothing of its partner).
                         placed: self.ip_placed_text(&json["ip"]),
                     });
@@ -791,10 +791,10 @@ impl ShellModel {
                     self.announce_selection();
                 }
                 // A box one click places (a valve terminal's positions, a plug's pins) is one box: the tool gives way
-                // to Select too (rc.2: a second click placed a second terminal on the first).
+                // to Select too (a second click placed a second terminal on the first).
                 // So does a station put on a bus page: its interfaces are all drawn there now, and the tool kept taking
-                // it ("-3A1 DP is drawn on this page already", the rc.2 persona run). So does a PLC part's box placed
-                // with Place here: the part is drawn now, and a second click was refused (rc.5).
+                // it ("-3A1 DP is drawn on this page already"). So does a PLC part's box placed
+                // with Place here: the part is drawn now, and a second click was refused.
                 let gives_way = self
                     .tools
                     .tool
@@ -893,7 +893,7 @@ impl ShellModel {
                     // persona run's Properties stayed on the project until he selected something else first).
                     self.props.project_mode = None;
                 }
-                // A click on an empty cell of a valve terminal drawn as its positions fills it (rc.2, F15).
+                // A click on an empty cell of a valve terminal drawn as its positions fills it.
                 if let SelectionChange::Replace(one) = &change
                     && let [e] = one.as_slice()
                     && let Some(params) = self.empty_cell_under_pointer(e.0)
@@ -1387,7 +1387,7 @@ impl ShellModel {
         self.tools.put_down = false;
         self.tool_epoch = self.tool_epoch.wrapping_add(1);
         // A tool works on the canvas: its keys (D, R, Enter) go there, not to the navigator or the Properties row that
-        // had the focus (rc.5: D after choosing Interruption jumped in the page list).
+        // had the focus (D after choosing Interruption jumped in the page list).
         if self.tools.tool.name() != "select"
             && self
                 .focus
@@ -1836,7 +1836,7 @@ fn command_error_text(e: &CmdError) -> (Key<'static>, Vec<String>) {
     let title = |c: &str| strings::command_title(c).to_owned();
     match e {
         CmdError::UnknownCommand { name } => (key!("error-command-unknown"), vec![name.clone()]),
-        // A step on something deleted meanwhile names it by what it is (rc.5, H2): never "an item the command names".
+        // A step on something deleted meanwhile names it by what it is: never "an item the command names".
         CmdError::NotFound { key } => {
             let thing = match key.0.name() {
                 "device" | "function" | "channel" => key!("error-gone-device"),
@@ -2188,7 +2188,7 @@ mod ft779 {
     }
 
     /// A command error names what it changes or misses as items ("elementen"), never records; what is gone
-    /// meanwhile by what it is, never as "an item the command names" (rc.5, H2).
+    /// meanwhile by what it is, never as "an item the command names".
     #[test]
     fn a_command_error_says_items_not_records() {
         let preview = CmdError::NeedsPreview {

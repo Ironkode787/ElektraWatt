@@ -35,7 +35,7 @@ pub struct TextPopup {
     pub text: String,
     /// Whether Tab takes the text and asks for the next (a box's pins, rc.5: `tool.next_proposal`).
     pub tab_next: bool,
-    /// Why the text typed cannot be taken, shown whole in a line under the field (rc.5).
+    /// Why the text typed cannot be taken, shown whole in a line under the field.
     pub error: Option<String>,
 }
 

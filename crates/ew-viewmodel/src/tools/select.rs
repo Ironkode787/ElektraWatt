@@ -120,7 +120,7 @@ enum State {
         steps: (i64, i64),
     },
     /// A drag of a grip of the selected black box: `to` the grid point it is at; `held` while it stands where the box's
-    /// pins stop it (rc.5), short of the pointer.
+    /// pins stop it, short of the pointer.
     Grip {
         rep: EntityRef,
         grip: usize,
@@ -161,7 +161,7 @@ pub struct SelectTool {
     panel: Option<PanelPress>,
     /// A press on a text of the one selected symbol, and its drag once it moves.
     text: Option<TextPress>,
-    /// The connection point under the pointer while idle, sheet point: its ring is on show (rc.3).
+    /// The connection point under the pointer while idle, sheet point: its ring is on show.
     cp_hover: Option<(i64, i64)>,
 }
 
@@ -234,10 +234,10 @@ struct TextPress {
 }
 
 /// The text of the one selected representation under the sheet point `at`, the last printed first; with no
-/// representation selected, the tag of the one selected page item (a cable mark's, rc.3). Else the tag under the
-/// point of a symbol or an item that is not one of several selected (rc.3: a drag at a tag moved its symbol, or the
+/// representation selected, the tag of the one selected page item (a cable mark's). Else the tag under the
+/// point of a symbol or an item that is not one of several selected (a drag at a tag moved its symbol, or the
 /// symbol under it, so the tag under the pointer wins over a symbol's body), and so a drawn box's caption outside
-/// its outline (its part number: dragged, it moved the whole box, rc.3); several selected move together.
+/// its outline (its part number: dragged, it moved the whole box); several selected move together.
 pub(crate) fn text_under(cx: &ToolCx<'_>, at: (i64, i64)) -> Option<ew_api::output::SlotTextBox> {
     let reps = selected_reps(cx.selection, cx.page);
     let items: Vec<EntityRef> = super::selection_kinds(cx.selection, &cx.page.tables)
@@ -1197,7 +1197,7 @@ impl SelectTool {
                 let Some(b) = r.black_box.as_ref() else {
                     return ToolOutput::Transient(Overlay::default());
                 };
-                // The box goes no smaller than its pins need: the grip stops there, and the hint says why (rc.5).
+                // The box goes no smaller than its pins need: the grip stops there, and the hint says why.
                 let (stop, new) = match black_box::grip_stop(grid, &b.outline, &b.cps, b.depth, *grip, p) {
                     Ok(stop) => stop,
                     // An inside-out grip is the same refusal on the drag and on its release; the box stays as it is.
@@ -1392,7 +1392,7 @@ impl SelectTool {
         match self.state.clone() {
             State::Idle => {
                 // A connection point within reach shows its ring, so a wire can be started at the zoom the page
-                // fits at (rc.3: the points were one or two pixels).
+                // fits at (the points were one or two pixels).
                 let near = cp_near(cx, at);
                 let was = std::mem::replace(&mut self.cp_hover, near);
                 match near {

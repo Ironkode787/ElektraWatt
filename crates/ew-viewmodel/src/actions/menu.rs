@@ -550,7 +550,7 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
             )
         }
         // Put a station on this page: on a bus-topology page the stations and bus devices it does not draw yet, each put
-        // there whole (rc.2), else the entry greyed with its reason; then the ports the Bus panel lists as not drawn yet.
+        // there whole, else the entry greyed with its reason; then the ports the Bus panel lists as not drawn yet.
         Submenu::BusPorts => {
             let mut items = Vec::new();
             if let Some(put) = metas.iter().find(|m| m.id == "bus.put_station") {

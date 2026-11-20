@@ -311,7 +311,7 @@ fn project_properties_name_the_template_the_project_came_from() {
     shell.shutdown();
 }
 
-/// The New project dialog reads its folders once per change of its fields, not every frame (rc.5, H11), and again
+/// The New project dialog reads its folders once per change of its fields, not every frame, and again
 /// when the window asks (`recheck_new_project`: on regaining the focus and once a second): a folder made outside the
 /// program meanwhile is seen without a field being typed.
 #[test]

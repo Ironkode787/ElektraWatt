@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Supply tool (rc.5, the Draw tab's Supply): the supply marks of what comes in from the mains (L, N, PE; L1, L2,
+//! The Supply tool (the Draw tab's Supply): the supply marks of what comes in from the mains (L, N, PE; L1, L2,
 //! L3, N, PE; …) float as one group under the pointer or the grid cursor, one under the other two grid steps apart,
 //! each drawn with the target form of an interruption point and its name.
 //!

@@ -198,7 +198,7 @@ impl ShellModel {
         out
     }
 
-    /// The first time a person zooms far in (rc.2: the persona was at 1131 % and found no way back but by chance), a
+    /// The first time a person zooms far in (the persona was at 1131 % and found no way back but by chance), a
     /// toast says how the whole page shows again; remembered in the settings' `tips_seen`, so it is said once.
     fn say_way_back(&mut self, p: &Map<String, Value>) {
         /// How far in counts as far: four times the paper's size.

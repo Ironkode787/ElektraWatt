@@ -117,7 +117,7 @@ fn the_layout_group_is_enabled_on_a_panel_page_and_says_why_not_elsewhere() {
     let tmp = Tmp::new("ps7");
     let mut s = tmp.shell_in(Mode::Headless, true, "902");
     let on = |b: &str| (b.to_owned(), true, None);
-    // The enclosure and the plate stand where the layout tools are (rc.2: the persona found them by the search only).
+    // The enclosure and the plate stand where the layout tools are (the persona found them by the search only).
     assert_eq!(
         layout_group(&s),
         [on("Enclosure"), on("Auto-fill rail"), on("Rail"), on("Duct")]
@@ -442,7 +442,7 @@ fn a_new_projects_panel_page_takes_the_fitting_scale() {
         "the plate ({x0}, {y0})–({x1}, {y1}) inside the drawing area ({a0}, {b0})–({a1}, {b1})"
     );
     // On the frame a new project's page prints on, the numbered view takes its legend beside the layout, in the
-    // view's undo step (rc.3: it was a step of its own after it): one undo takes the legend, the view and the scale
+    // view's undo step (it was a step of its own after it): one undo takes the legend, the view and the scale
     // back, one redo brings them again.
     assert_eq!(
         s.legend_offer(),
@@ -1014,7 +1014,7 @@ fn the_starter_enclosure_is_offered_by_the_create_dialog() {
     s.shutdown();
 }
 
-/// Off a panel layout page, the Create enclosure dialog's line on what it draws (rc.3).
+/// Off a panel layout page, the Create enclosure dialog's line on what it draws.
 const NOT_LAYOUT: &str = "This page is not a panel layout page. The enclosure is drawn on a new panel layout page \
                           after it; Create only makes the enclosure without drawing it.";
 
@@ -1121,7 +1121,7 @@ fn the_draw_tools_texts_read_whole() {
     assert_eq!(overlay_labels(&s), ["570 mm"]);
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "tool.duct_draw", json!({}));
-    // How the duct ends, from the first click on (rc.2: the persona pressed Esc after two points).
+    // How the duct ends, from the first click on (the persona pressed Esc after two points).
     assert_eq!(
         s.tool_hint(),
         "Click the duct's first point, then each next point; a double click or Enter finishes; Esc cancels"

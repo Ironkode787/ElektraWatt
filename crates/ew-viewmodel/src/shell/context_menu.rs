@@ -77,7 +77,7 @@ impl ShellModel {
                 self.medium_entries(e.0, &mut out);
                 return out;
             }
-            // A bus line: Cable… first, the line's cable and plugs (rc.5).
+            // A bus line: Cable… first, the line's cable and plugs.
             let bus = kinds
                 .iter()
                 .all(|(e, _)| tables.connections.iter().any(|c| c.id == e.0 && c.kind == "bus"));
@@ -140,7 +140,7 @@ impl ShellModel {
                         out.extend(self.menu_item("layout.route"));
                         out.extend(self.menu_item("layout.arrange"));
                     }
-                    // A drawn box: Add pin or Remove pin, and Centre the pins (rc.5).
+                    // A drawn box: Add pin or Remove pin, and Centre the pins.
                     if rep.black_box.is_some() {
                         self.box_pin_entries(rep, at, &mut out);
                         out.extend(self.menu_item("box.centre_pins"));
@@ -185,7 +185,7 @@ impl ShellModel {
         out.extend(self.menu_item("fluid.medium_new"));
     }
 
-    /// In a project without a medium, the usual media of New medium… (rc.2): Medium: Compressed air, 6 bar…, each made
+    /// In a project without a medium, the usual media of New medium…: Medium: Compressed air, 6 bar…, each made
     /// and set through the Properties row `row` of the thing under the pointer in one step.
     fn usual_medium_entries(&self, row: &str, session: &ew_api::Session, out: &mut Vec<ActionItem>) {
         if !session.media().is_empty() {
@@ -208,7 +208,7 @@ impl ShellModel {
     }
 
     /// The item of action `id` aimed by `params`, labelled `label`, enabled as the action is with them.
-    /// What a finding asks the person to do, where the window can take him there (rc.3): a cable without a part,
+    /// What a finding asks the person to do, where the window can take him there: a cable without a part,
     /// Choose a cable type… (its part dialog); a cable without a length, Type the length… (its Length row). The
     /// finding row's right-click menu and its detail offer it; `None` for any other row.
     pub fn finding_offer(&self, key: &str) -> Option<ActionItem> {
@@ -348,7 +348,7 @@ impl ShellModel {
         };
         self.device_entries(&thing, out);
         // The pin under the pointer, where no wire is there to select (pins that touch a terminal directly): Define
-        // potential at it (rc.5).
+        // potential at it.
         if let Some(pin) = at.and_then(|at| self.pin_at(rep, at)) {
             let label = strings::format(key!("canvas-define-potential-pin"), &[&pin]);
             out.extend(self.aimed("potential.draw", json!({ "at": pin }), label));
@@ -360,7 +360,7 @@ impl ShellModel {
             _ => None,
         };
         // A valve terminal's box: the cell under the pointer when it is drawn as its positions, else Draw as slots. The
-        // terminal's own supply in its supply end is the box's body (rc.3).
+        // terminal's own supply in its supply end is the box's body.
         let own_box = rep
             .black_box
             .is_none()
@@ -387,7 +387,7 @@ impl ShellModel {
         self.fluid_entries(thing.device, coil, !slotted, out);
     }
 
-    /// A valve terminal's box (rc.2, F15): drawn as its positions, the cell at `at` (the sheet point the menu was opened
+    /// A valve terminal's box: drawn as its positions, the cell at `at` (the sheet point the menu was opened
     /// at), or on its body each position, under a heading "Position 2: empty", with [`Self::position_entries`]; a free box
     /// on a fluid page offers Draw as slots. Whether the box is drawn as its positions (its menu then lists no position
     /// of the device's own).
@@ -412,7 +412,7 @@ impl ShellModel {
             }
             return false;
         }
-        // The cell under the pointer; on the box's body every position (rc.2: a right click on the body offered none),
+        // The cell under the pointer; on the box's body every position (a right click on the body offered none),
         // each under a heading that says what holds it.
         let cells = match at.and_then(|at| self.cell_at(rep.id, at)) {
             Some((_, cell)) => vec![cell],
@@ -468,7 +468,7 @@ impl ShellModel {
         out.extend(self.aimed("command.run", occupancy(json!({ "blank": {} })), label));
     }
 
-    /// A device's PLC entries (F19 of the rc.1 test), on its symbol on any page and on its rows in the Devices and Bus
+    /// A device's PLC entries, on its symbol on any page and on its rows in the Devices and Bus
     /// panels: a station offers Rack… (a network switch has none) and names its PLC; a bus device that belongs to no
     /// PLC offers Add to `<PLC>` for each PLC of the project and Add to a new PLC; a device whose bus ports are all
     /// passive (a switch, a plug) says in a disabled row why it takes no part.
@@ -479,7 +479,7 @@ impl ShellModel {
         };
         match session.plc_offer(device) {
             PlcOffer::Station(name) => {
-                // A network switch belongs to its PLC with no rack (rc.2 persona run).
+                // A network switch belongs to its PLC with no rack.
                 if !session.network_switch(device) {
                     let label = strings::text(key!("action-plc-rack-editor")).to_owned();
                     out.extend(self.aimed(
@@ -557,8 +557,8 @@ impl ShellModel {
             out.extend(self.menu_item("place.join"));
         }
         out.extend(self.menu_item("part.choose"));
-        // A device drawn as a box: its part's pins and where they stand on the box (rc.3); a box drawn without a part
-        // has pins of its own, added with Add pin beside it (rc.5: the entry answered with a toast there).
+        // A device drawn as a box: its part's pins and where they stand on the box; a box drawn without a part
+        // has pins of its own, added with Add pin beside it (the entry answered with a toast there).
         if thing
             .here
             .is_some_and(|rep| rep.black_box.as_ref().is_some_and(|b| !b.own_pins))
@@ -668,7 +668,7 @@ impl ShellModel {
                     ));
                 }
             }
-            // A bus port no page draws: its station's bus ports, on a bus page (rc.5).
+            // A bus port no page draws: its station's bus ports, on a bus page.
             (NavKind::Plc | NavKind::PlcGrid, NavRole::BusPort, Some(function)) => {
                 self.port_place_entry(function, &mut out);
                 self.go_to(kind, Some(node), &mut out);
@@ -698,8 +698,8 @@ impl ShellModel {
                 self.go_to(kind, wire, &mut out);
             }
             (NavKind::Pages, NavRole::Page, _) => self.page_row_fits(&node.key, &mut out),
-            // A group of the Devices list ("(none)" too): Location… for every device in it (rc.2).
-            // A valve's coil: its solenoid's entry and Go to the valve (the rc.2 re-test).
+            // A group of the Devices list ("(none)" too): Location… for every device in it.
+            // A valve's coil: its solenoid's entry and Go to the valve.
             (NavKind::Devices, NavRole::Function | NavRole::Location, record) => {
                 if node.role == NavRole::Function
                     && let Some(function) = record
@@ -710,7 +710,7 @@ impl ShellModel {
             }
             // A finding's row: its quick fix, where it has one, and Waive… or Unwaive, as the detail under the list
             // offers them (the persona round of M3: a right-click on a message did nothing).
-            // A group whose findings' fixes are of one kind: Fix all (n)… (rc.2 persona run).
+            // A group whose findings' fixes are of one kind: Fix all (n)….
             (NavKind::Messages, NavRole::Rule, _) => {
                 if let Some((group, n)) = self.fix_all_offer(&node.key) {
                     let label = strings::format(key!("messages-fix-all"), &[&n.to_string()]);
@@ -736,7 +736,7 @@ impl ShellModel {
                 };
                 out.extend(self.aimed(action, key, strings::text(label).to_owned()));
             }
-            // A port's row in the Bus navigator: its device's PLC entries (F19 of the rc.1 test).
+            // A port's row in the Bus navigator: its device's PLC entries.
             (NavKind::Bus, NavRole::BusPort, Some(function)) => {
                 let device = self.project_session().and_then(|s| {
                     let q = s.query();
@@ -808,7 +808,7 @@ impl ShellModel {
         }
     }
 
-    /// Place here on a PLC part a side of which no page draws yet (rc.5, H13): first in its row's menu, greyed with the
+    /// Place here on a PLC part a side of which no page draws yet: first in its row's menu, greyed with the
     /// page to open while the page on show takes no side of it; none for a part drawn on every page it belongs on.
     /// Whether the entry was added.
     fn place_here_entry(&self, device: Uuid, out: &mut Vec<ActionItem>) -> bool {
@@ -835,7 +835,7 @@ impl ShellModel {
         }));
     }
 
-    /// Place here on a bus port's row that no page draws yet (rc.5): its station's bus ports on the pointer on a bus
+    /// Place here on a bus port's row that no page draws yet: its station's bus ports on the pointer on a bus
     /// page, else greyed with the page to open. None for a port drawn already.
     fn port_place_entry(&self, function: Uuid, out: &mut Vec<ActionItem>) {
         let Some(session) = self.project_session() else {
@@ -901,7 +901,7 @@ impl ShellModel {
                     out.extend(self.aimed("place.pick", json!({ "symbol": symbol, "device": tag }), label));
                 }
             }
-            // A valve terminal drawn on no fluid page yet (rc.2): Draw on a fluid page….
+            // A valve terminal drawn on no fluid page yet: Draw on a fluid page….
             if session
                 .undrawn_fluid_terminals()
                 .iter()
@@ -969,7 +969,7 @@ impl ShellModel {
     /// position at each empty one; on a valve Set used or Set spare and Blank position, on a blanking plate Add valve;
     /// Plug port for each open working
     /// port (EW-FL-001's). Each is one `valve.set_occupancy` or `fluid.port.close`, one undo step. A stand-alone
-    /// valve's solenoids (rc.2, F11): Go to solenoid 14 where its coil is drawn, else Draw solenoid 14 on an electrical
+    /// valve's solenoids: Go to solenoid 14 where its coil is drawn, else Draw solenoid 14 on an electrical
     /// page… (`fluid.draw_solenoid`); on the symbol of the coil itself (`symbol_of`, the function it draws) Solenoid 14
     /// of -201Q1, which goes to the valve. Without `positions` (a box drawn as its positions, whose cells have their own
     /// entries), no position's entries.
@@ -1002,7 +1002,7 @@ impl ShellModel {
                 }
             }
         }
-        // What kind of valve terminal it is, in words (F15: a PLC station or a multipin terminal), as a heading (rc.2: a
+        // What kind of valve terminal it is, in words (F15: a PLC station or a multipin terminal), as a heading (a
         // line with a key that did nothing).
         if let Some(words) = self.terminal_kind_words(device) {
             out.extend(self.heading(words));
@@ -1017,7 +1017,7 @@ impl ShellModel {
             ));
         }
         self.device_medium_entries(session, device, out);
-        // A multipin terminal's plug (rc.2), from any page: Go to the plug where it is drawn, else Draw the plug on an
+        // A multipin terminal's plug, from any page: Go to the plug where it is drawn, else Draw the plug on an
         // electrical page… (`fluid.draw_plug`), a box with a pin each.
         if let Some(plug) = session.terminal_plug(device) {
             out.extend(match &plug.drawn {
@@ -1115,7 +1115,7 @@ impl ShellModel {
     }
 
     /// The entry of solenoid `s` of valve `device`, on the valve's symbol, its rows and its coil's row alike: a terminal
-    /// valve's Go to output or its plug pin (rc.2, F15; never Draw solenoid); a stand-alone valve's Go to solenoid 14
+    /// valve's Go to output or its plug pin (never Draw solenoid); a stand-alone valve's Go to solenoid 14
     /// where its coil is drawn, else Draw solenoid 14 on this page… while an electrical page is in front (the rc.2
     /// re-test), on an electrical page… otherwise.
     fn solenoid_entry(
@@ -1194,7 +1194,7 @@ impl ShellModel {
         }
     }
 
-    /// The row of a valve's coil in the Devices list (the rc.2 re-test: it offered Location… only): its solenoid's entry
+    /// The row of a valve's coil in the Devices list (it offered Location… only): its solenoid's entry
     /// ([`Self::solenoid_entry`]) and Go to the valve, as the coil's own symbol offers; nothing for another function.
     fn coil_row_entries(&self, function: Uuid, out: &mut Vec<ActionItem>) {
         let Some(session) = self.project_session() else {
@@ -1234,7 +1234,7 @@ impl ShellModel {
         }));
     }
 
-    /// A fluid device's medium (rc.2, F9): a source chooses it, Medium: `<medium>` for each medium of the project (its
+    /// A fluid device's medium: a source chooses it, Medium: `<medium>` for each medium of the project (its
     /// own checked, through its Properties row `device/derived.medium`), then New medium…; any other fluid device names
     /// each medium its ports carry, or that one carries none, each opening its Properties, where the port rows say from
     /// where and what to do.
@@ -1257,7 +1257,7 @@ impl ShellModel {
             out.extend(self.menu_item("fluid.medium_new"));
             return;
         }
-        // What it carries is a heading; no medium leads to the air supply, where one is chosen (rc.2: a line with a key
+        // What it carries is a heading; no medium leads to the air supply, where one is chosen (a line with a key
         // that did nothing).
         for carried in &media.carried {
             match carried {
@@ -1291,7 +1291,7 @@ impl ShellModel {
             json!({}),
             strings::text(key!("canvas-page-properties")).to_owned(),
         ));
-        // New page… after this page (rc.5).
+        // New page… after this page.
         out.extend(self.menu_item("page.new").map(|mut i| {
             i.params = json!({ "at": key });
             i

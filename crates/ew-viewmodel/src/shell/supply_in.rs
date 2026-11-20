@@ -8,7 +8,7 @@
 //! where the project lacks it, the reference, the points' `ip.external`, and the supply's origin where it has none.
 //! The points then print what an external point prints, and pair with nothing, so the unpaired point's finding is
 //! gone. On points that all have the mark it is Where the supply comes from…, whose form shows where they come from
-//! now and moves them to the place and device typed (rc.3), with Remove the supply mark beside it in the right-click
+//! now and moves them to the place and device typed, with Remove the supply mark beside it in the right-click
 //! menu, which takes the mark off.
 
 use ew_api::AnyCommand;
@@ -48,7 +48,7 @@ impl ShellModel {
     }
 
     /// Supply comes in here…, or Where the supply comes from… on points that all have the mark (its form shows where
-    /// it comes from now, to change it, rc.3), for the selected interruption points (the right-click menu's first
+    /// it comes from now, to change it), for the selected interruption points (the right-click menu's first
     /// entry for a point, and its Properties link); `None` for any other selection.
     pub fn supply_in_item(&self) -> Option<ActionItem> {
         let (_, marked) = self.selected_supply_points()?;
@@ -69,7 +69,7 @@ impl ShellModel {
         Some(item)
     }
 
-    /// For selected supply points that all have the mark (rc.3, G7): Take out of its group where one of them stands in
+    /// For selected supply points that all have the mark: Take out of its group where one of them stands in
     /// a group, else, for two or more, Group these supply points; `None` otherwise (the right-click menu's entry after
     /// [`Self::supply_remove_item`]).
     pub fn supply_group_item(&self) -> Option<ActionItem> {
@@ -99,7 +99,7 @@ impl ShellModel {
         let Some(project) = &self.project else {
             return proposal();
         };
-        // Points that come from one place already show it, to change it (rc.3).
+        // Points that come from one place already show it, to change it.
         let points = self.selected_supply_points().map(|(p, _)| p).unwrap_or_default();
         if let Some(now) = project.session.supply_source(&points) {
             return now;
@@ -133,7 +133,7 @@ impl ShellModel {
             return Outcome::refused(key!("reason-supply-in-select"));
         };
         let remove = flag(p, "remove");
-        // Group these supply points, or take them out of their group (rc.3).
+        // Group these supply points, or take them out of their group.
         if let Some(join) = p.get("group").and_then(Value::as_bool) {
             let cmd = AnyCommand {
                 name: SUPPLY_IN.into(),

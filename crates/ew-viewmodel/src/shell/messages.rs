@@ -705,7 +705,7 @@ impl ShellModel {
     }
 
     /// Opening a finding (`navigator.open` on a Messages row: a double click, Enter) that has no place on a page opens
-    /// where it is mended (the owner's test of rc.2): a text style's finding (EW-CORE-061) the Text styles page at that
+    /// where it is mended: a text style's finding (EW-CORE-061) the Text styles page at that
     /// style; a finding of the project record Project properties; a finding of other records those records, selected,
     /// in Properties (a device drawn on no page, a cable without a part, a location). A finding of no record at all
     /// says what to do in a banner, its rule's hint.
@@ -743,7 +743,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// The Fix all of the Messages row `key` (rc.2 persona run): a rule group whose findings all have a quick fix of
+    /// The Fix all of the Messages row `key`: a rule group whose findings all have a quick fix of
     /// one kind, or a finding of such a group (Fix all like this): the group's key and its number of findings.
     pub fn fix_all_offer(&self, key: &str) -> Option<(String, usize)> {
         let table = self.navs.get(&NavKind::Messages)?.table()?;
@@ -827,7 +827,7 @@ impl ShellModel {
             };
             if project.session.preview_with(&cmd, submit.clone()).is_ok() {
                 n += 1;
-                // A fix that is itself several (a valve's open ports plugged, rc.3) joins as its parts.
+                // A fix that is itself several (a valve's open ports plugged) joins as its parts.
                 match cmd.params.get("fixes").and_then(Value::as_array) {
                     Some(parts) if fix.command == "check.fix_all" => fixes.extend(parts.iter().cloned()),
                     _ => fixes.push(serde_json::json!({ "cmd": fix.command, "params": cmd.params })),
@@ -1082,7 +1082,7 @@ pub(crate) fn check_tone(c: MessageCounts) -> NoteTone {
     }
 }
 
-/// A quick fix's parameters with the library documents its command draws with (rc.3): EW-CORE-047's Draw its valves in
+/// A quick fix's parameters with the library documents its command draws with: EW-CORE-047's Draw its valves in
 /// the terminal takes the symbols of the terminal's valves and its supply
 /// ([`super::fluid::draw_valves_params`]); any other fix's are the rule's.
 fn fix_params(session: &ew_api::Session, fix: &ew_api::checks::QuickFix) -> Value {

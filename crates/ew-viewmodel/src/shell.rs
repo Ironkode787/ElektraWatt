@@ -52,7 +52,7 @@ mod context_menu;
 mod supply_in;
 // The supply marks' Potential panel (H9).
 mod supply_potential;
-// The Draw tab's Supply: what comes in from the mains, as supply marks (rc.5).
+// The Draw tab's Supply: what comes in from the mains, as supply marks.
 mod supply_place;
 pub mod symbol_editor;
 // The text and graphic tools' host duties.
@@ -645,7 +645,7 @@ struct Project {
     /// The sections by number with their titles, once per revision: the Pages tree lists a section that holds no
     /// page yet (FT-1634).
     sections: Vec<(u16, String)>,
-    /// The spacing of the next terminal row in grid steps (Terminal…'s Spacing, Spacing… on placed terminals; rc.3),
+    /// The spacing of the next terminal row in grid steps (Terminal…'s Spacing, Spacing… on placed terminals),
     /// remembered while the project is open.
     terminal_spacing: u32,
 }
@@ -1007,7 +1007,7 @@ mod choice_word_tests {
             }
             // The accessory has one English word, "End bracket" (16a §8 item 4); the connection
             // grids read as the status bar writes them, "4 mm" and "QET 10 px"; a drawing's unit is its symbol, "mm";
-            // Supply's systems name their conductors, "Single phase: L, N, PE" (rc.5).
+            // Supply's systems name their conductors, "Single phase: L, N, PE".
             if !matches!(
                 v.as_str(),
                 "end_clamp" | "mm4" | "qet_10px" | "mm" | "cm" | "dm" | "um" | "in" | "ft" | "yd"
@@ -1484,7 +1484,7 @@ impl ShellModel {
     }
 
     /// Says why an action the window ran did nothing, where the person is looking, when nothing on screen said it
-    /// (rc.3: a button that is not greyed but refused stayed silent): beside the open dialog's buttons, else as the
+    /// (a button that is not greyed but refused stayed silent): beside the open dialog's buttons, else as the
     /// toast and the status line a click on a greyed command gives ([`ShellModel::explain_disabled`]).
     pub fn say_refusal(&mut self, text: String) {
         if self.dialog.is_some() {
@@ -1651,7 +1651,7 @@ impl ShellModel {
         });
         let page_toasts = self.symbol_editor().is_none().then(|| self.notes.newest_serial());
         let outcome = self.dispatch_unlogged(action, params);
-        // The page's toasts leave the screen when the symbol editor takes the window (rc.3): they speak of the page,
+        // The page's toasts leave the screen when the symbol editor takes the window: they speak of the page,
         // and their Undo would act there; the log keeps them.
         if let Some(last) = page_toasts
             && self.symbol_editor().is_some()
@@ -1769,7 +1769,7 @@ impl ShellModel {
         if idle && self.text_edit_target().is_ok() {
             self.act_text_edit()
         } else if idle && self.rename_pin_at_pointer() {
-            // A double click on a pin of a drawn box renames it in place (rc.5).
+            // A double click on a pin of a drawn box renames it in place.
             Outcome::Done
         } else {
             self.send_tool(&crate::tools::CanvasEvent::Key(crate::tools::ToolKey::Finish))
@@ -2083,7 +2083,7 @@ impl ShellModel {
         };
         let origin = Self::origin_of(self.mode, self.person, &self.origin_file);
         let before = p.session.history().cursor();
-        // A Terminal… row is one step for Undo and Redo (rc.2): the steps between its ends are taken together.
+        // A Terminal… row is one step for Undo and Redo: the steps between its ends are taken together.
         let extra = match self.tools.row_steps {
             Some((first, end)) if !redo && before == end => end - first - 1,
             Some((first, end)) if redo && before == first => end - first - 1,
@@ -2148,7 +2148,7 @@ impl ShellModel {
                 self.tools.overlay = crate::tools::Overlay::default();
                 self.tools.preview = None;
                 // A box armed before the step that names records the step took away ends at the end of the dispatch
-                // (`after_commit`, rc.5, H2); so does the supply marks' Potential panel, whose marks the step may have
+                // (`after_commit`); so does the supply marks' Potential panel, whose marks the step may have
                 // taken.
                 self.supply_panel = None;
                 self.crossed_step(crossed);
@@ -2213,7 +2213,7 @@ impl ShellModel {
             self.dialog = Some(stashed);
             return Outcome::Done;
         }
-        // Escape and Cancel in New cable type… return to the Cable form it was chosen in (rc.3).
+        // Escape and Cancel in New cable type… return to the Cable form it was chosen in.
         if let Some(Dialog::PartEdit(e)) = &mut self.dialog
             && let Some(form) = e.cable_form.take()
         {
@@ -2302,7 +2302,7 @@ impl ShellModel {
             return self.dispatch("messages.show", &serde_json::json!({ "on": false }));
         }
         // Escape with a handle of the selected wire in the keyboard's focus gives the focus back to the wire, which
-        // stays selected (rc.3).
+        // stays selected.
         if self.tools.handle.take().is_some() {
             return Outcome::Done;
         }

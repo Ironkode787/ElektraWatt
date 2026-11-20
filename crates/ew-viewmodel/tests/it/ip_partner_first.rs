@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The IP tool offers the partner of a point that waits for one (rc.2 persona run, entries 13 and 14): a target placed
+//! The IP tool offers the partner of a point that waits for one: a target placed
 //! on folio 101 of a new project, the tool armed again on folio 102 offers that name as a source, not a new name, and
 //! the toast says what was made and where its partner is, never what D would have made.
 

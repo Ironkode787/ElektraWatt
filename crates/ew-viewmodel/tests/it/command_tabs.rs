@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The PLC and Fluid tabs of the command bar and the workspace switch (rc.2, the owner's F3): the PLC and fluid
+//! The PLC and Fluid tabs of the command bar and the workspace switch (the owner's F3): the PLC and fluid
 //! commands have buttons of their own instead of hiding in menus and row menus, each tab switches to its workspace,
 //! and the tab row shows which workspace is active.
 

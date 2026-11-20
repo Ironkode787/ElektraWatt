@@ -423,7 +423,7 @@ fn the_transcript_and_describe_members() {
     assert!(d.contains("properties \"-101F1\" items 1 kinds device 1"), "{d}");
     assert!(d.contains("  section device targets 1"), "{d}");
     assert!(d.contains("  category \"Main\" expanded"), "{d}");
-    // The rows only a rare case needs (rc.2, F12) wait in More, closed.
+    // The rows only a rare case needs wait in More, closed.
     assert!(d.contains("  category \"More\" collapsed"), "{d}");
     assert!(
         d.contains("    row \"device/derived.tag\" \"Tag\" \"-101F1\" derived \"numbering scheme 'page-based'\" actions edit freeze"),
@@ -443,7 +443,7 @@ fn the_transcript_and_describe_members() {
     }
     assert!(!looks_like_uuid(&st["properties"].to_string()));
     // Open and close a category: its rows come and go in the text, the state says expanded or collapsed. More (closed
-    // at first, rc.2) holds the kind row; the tag is a Main row and stays.
+    // at first) holds the kind row; the tag is a Main row and stays.
     done(&mut shell, "props.focus", json!({}));
     assert!(!shell.describe().contains("row \"device/kind\""));
     done(

@@ -67,7 +67,7 @@ pub(super) fn station_module_undrawn(m: &ShellModel) -> Result<(), Key<'static>>
 }
 
 /// The project can be written and, in a station's view, the page the view stands on takes the device under its
-/// cursor (Place here, rc.5); a navigator's row names its device and says the same itself.
+/// cursor (Place here); a navigator's row names its device and says the same itself.
 pub(super) fn station_module_placeable(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     if m.station_tab().is_none() {
@@ -112,7 +112,7 @@ pub(super) fn multipin_terminal_selected(m: &ShellModel) -> Result<(), Key<'stat
     m.selected_multipin_terminal().map(|_| ())
 }
 
-/// The project can be written and a selected valve has open working ports (Plug ports, rc.3).
+/// The project can be written and a selected valve has open working ports (Plug ports).
 pub(super) fn open_ports_selected(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     m.selected_open_ports().map(|_| ())
@@ -195,7 +195,7 @@ pub(super) fn can_undo(m: &ShellModel) -> Result<(), Key<'static>> {
     if m.symbol_editor().is_none() {
         writable(m)?;
     }
-    // Something in flight on the pointer is put away by Undo even before the first step (rc.5).
+    // Something in flight on the pointer is put away by Undo even before the first step.
     if m.can_undo() || (m.symbol_editor().is_none() && m.tool_in_flight()) {
         Ok(())
     } else {
@@ -471,7 +471,7 @@ pub(super) fn wire_page(m: &ShellModel) -> Result<(), Key<'static>> {
 }
 
 /// An editable bus-topology page that does not draw a station or bus device of the project yet (Put a station on this
-/// page…, rc.2).
+/// page…).
 pub(super) fn put_station_page(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
     if m.page_rows().get(m.page_index()).map(|r| r.kind.as_str()) != Some("bus_topology") {
@@ -484,7 +484,7 @@ pub(super) fn put_station_page(m: &ShellModel) -> Result<(), Key<'static>> {
 }
 
 /// An editable fluid page (Draw ▸ Fluid line…); elsewhere (another page, a station's view) the reason names the
-/// fluid page (rc.3: in a station's view the Tube's hover spoke of symbols on drawn pages).
+/// fluid page (in a station's view the Tube's hover spoke of symbols on drawn pages).
 pub(super) fn fluid_page(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     match m.wire_kind() {
@@ -585,7 +585,7 @@ pub(super) fn one_ip(m: &ShellModel) -> Result<(), Key<'static>> {
 }
 
 /// A writable project with interruption points selected (Supply comes in here…): without them the command search
-/// says how to make them (rc.3: "supply" found it and nothing said what it needs).
+/// says how to make them ("supply" found it and nothing said what it needs).
 pub(super) fn ips_selected(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     if m.selected_ip_count() >= 1 {
@@ -906,7 +906,7 @@ pub(super) fn selection_editable(m: &ShellModel) -> Result<(), Key<'static>> {
     selection_shown(m)
 }
 
-/// An editable page whose selection is shown and holds no tube: a cable's cores are wires (Cable…; rc.2, F9).
+/// An editable page whose selection is shown and holds no tube: a cable's cores are wires (Cable…).
 pub(super) fn cable_wires(m: &ShellModel) -> Result<(), Key<'static>> {
     selection_editable(m)?;
     if m.fluid_line_selected() {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A new terminal strip is a new strip (rc.2 persona run, entry 18): Terminal… on a page that has no terminal yet takes
+//! A new terminal strip is a new strip: Terminal… on a page that has no terminal yet takes
 //! a new strip, with the tag given; on a page with a terminal it goes on with the strip there.
 
 use crate::common;

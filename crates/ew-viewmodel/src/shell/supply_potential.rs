@@ -87,7 +87,7 @@ pub fn from_name(name: &str, phase: Option<&str>) -> (String, String) {
     (kind.to_owned(), voltage)
 }
 
-/// A row's voltage after its kind of conductor became `kind` (rc.5): a conductor without a voltage of its own (N, PE,
+/// A row's voltage after its kind of conductor became `kind`: a conductor without a voltage of its own (N, PE,
 /// PEN, FE) has none, so a voltage left from the kind before (a phase's `230 V AC`) goes; a phase without a voltage
 /// takes the project supply's (`phase`); any other keeps `voltage` as typed.
 fn voltage_for_kind(kind: &str, voltage: &str, phase: Option<&str>) -> String {
@@ -111,7 +111,7 @@ impl ShellModel {
             return Vec::new();
         };
         // What comes in from a supply first, in the order a panel builder draws it (a phase, N, PE; a DC plus and its
-        // 0 V), then the rest in the list's order (rc.5: 0 V was found only by scrolling).
+        // 0 V), then the rest in the list's order (0 V was found only by scrolling).
         const FIRST: [&str; 9] = ["l1", "l2", "l3", "l", "n", "pe", "l_plus", "m", "l_minus"];
         let mut words: Vec<String> = project
             .session

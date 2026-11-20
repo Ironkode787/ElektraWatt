@@ -150,7 +150,7 @@ fn far_offer(
 }
 
 impl ShellModel {
-    /// After a commit that drew PLC devices for the first time (F18 of the rc.1 test, the rack comes first): a station
+    /// After a commit that drew PLC devices for the first time (the rack comes first): a station
     /// placed directly opens its view in a tab beside the page, so it is filled there (a further symbol of a station
     /// drawn before, a station the project had put on a bus page, or one whose view is open already, does not; Escape
     /// goes back to the page); a module that joined a station says which slot it got, with Rack… as the toast's action; a module that
@@ -266,8 +266,8 @@ impl ShellModel {
     }
 
     /// Arms the black box tool with the box of positions of valve terminal `terminal`, a PLC station whose main
-    /// function is no box (made in the New station dialog, rc.2): one click draws it as its positions, its main function
-    /// the box's, or another function beside its bus port when that is put on a bus page first (rc.3).
+    /// function is no box (made in the New station dialog): one click draws it as its positions, its main function
+    /// the box's, or another function beside its bus port when that is put on a bus page first.
     pub(super) fn arm_terminal_box(&mut self, terminal: Uuid) -> Outcome {
         let Some(cat) = self.catalogue() else {
             return Outcome::refused(key!("reason-no-catalogue"));
@@ -289,7 +289,7 @@ impl ShellModel {
                 };
             }
         };
-        // Its valves and its supply stand in it with their symbols (rc.3).
+        // Its valves and its supply stand in it with their symbols.
         if let Some(c) = self.canvas() {
             let cells = session.cell_copies(Some(terminal), &[], Some(c.page().tables.page));
             super::fluid::extend_copies(&mut copies, cells);
@@ -321,7 +321,7 @@ impl ShellModel {
                 far,
             } => {
                 // The representation the placement added at its insertion point (the lowest ID if several), else the one
-                // it added elsewhere (a valve placed in a terminal's cell stands at the cell's point, rc.2).
+                // it added elsewhere (a valve placed in a terminal's cell stands at the cell's point).
                 let added = |at: bool| {
                     now.reps
                         .iter()
@@ -388,7 +388,7 @@ impl ShellModel {
                     Some(b) => self.terminal_placed_words(text, rep.device, &b.cells),
                     None => text,
                 };
-                // A far autoconnect hit is offered, not drawn, with Connect (rc.2).
+                // A far autoconnect hit is offered, not drawn, with Connect.
                 match far.first().and_then(|f| far_offer(f, &cps, now)) {
                     Some((question, wire)) => self.notify_connect_offer(format!("{text} {question}"), wire),
                     None => self.notify(text, true),
@@ -577,7 +577,7 @@ impl ShellModel {
             }
             _ => None,
         };
-        // A part drawn as a box shows its box with its pins as it lays them out, not the frame every box shares (rc.3).
+        // A part drawn as a box shows its box with its pins as it lays them out, not the frame every box shares.
         let boxed = match picker.rows.get(picker.row) {
             Some(PickerRow::Part(p)) => picker.part_main(*p).map(|k| (*p, k)),
             Some(PickerRow::PartFn(p, k)) => Some((*p, *k)),
@@ -695,13 +695,13 @@ impl ShellModel {
     /// The tag a new strip (`aspect` `strip`) or cable (`cable`) with letter `letter` would take from its first terminal,
     /// core or bus line on the page on show: its numbering format (`Session::numbering_format`) with the lowest counter
     /// no device of that letter prints on the page (FR-NUM-007 fills gaps). `None` off a schematic page (a cable: and a
-    /// bus layout, rc.5), or on a folio that is not a whole number, where the scheme's `{page}` is not the folio as
+    /// bus layout), or on a folio that is not a whole number, where the scheme's `{page}` is not the folio as
     /// written.
     pub(super) fn tag_example(&self, aspect: &str, letter: &str) -> Option<String> {
         self.tag_example_except(aspect, letter, None)
     }
 
-    /// [`Self::tag_example`] with the device `except` left out: a cable the same step removes (rc.5, a bus line's
+    /// [`Self::tag_example`] with the device `except` left out: a cable the same step removes (a bus line's
     /// cable replaced), whose tag the numbering gives again.
     pub(super) fn tag_example_except(
         &self,
@@ -902,7 +902,7 @@ impl ShellModel {
         if !row.allowed {
             return Outcome::refused(key!("reason-rep-type-not-allowed"));
         }
-        // A symbol on another connection grid is placed here as its copy drawn on the page's grid (rc.3), which the
+        // A symbol on another connection grid is placed here as its copy drawn on the page's grid, which the
         // project keeps; a symbol a part draws keeps the refusal with both grids named.
         if let Some(grids) = row.grid_mismatch {
             if let Pick::Symbol(_) = &pick {
@@ -940,7 +940,7 @@ impl ShellModel {
                 function: function.clone(),
                 cps,
             };
-            // A valve terminal made as a station, drawn on a fluid page: as its positions, one click (rc.2).
+            // A valve terminal made as a station, drawn on a fluid page: as its positions, one click.
             let fluid = self
                 .page_rows()
                 .get(self.page_index())
@@ -951,7 +951,7 @@ impl ShellModel {
                 .and_then(|t| u16::try_from(project.session.terminal_positions(t).len()).ok());
             // A multipin terminal's main function elsewhere is its plug: its pins down its two sides, one click.
             let pins = !fluid && terminal.is_some_and(|t| project.session.terminal_plug(t).is_some());
-            // Drawn as its positions, its valves and its supply stand in it with their symbols (rc.3).
+            // Drawn as its positions, its valves and its supply stand in it with their symbols.
             let copies = match (slots, self.canvas()) {
                 (Some(_), Some(c)) => project
                     .session
@@ -1027,7 +1027,7 @@ impl ShellModel {
             self.tools.picker = None;
             // On a bus-topology page the frame draws a topology box (a device with its sockets, doc 10 §2.7).
             let rep_type = (row.rep_type == "topology").then(|| row.rep_type.clone());
-            // On a fluid page a valve terminal is drawn as its positions, one click (rc.2, F15).
+            // On a fluid page a valve terminal is drawn as its positions, one click.
             let fluid = self
                 .page_rows()
                 .get(self.page_index())
@@ -1035,7 +1035,7 @@ impl ShellModel {
             let slots = part_copy
                 .filter(|_| fluid)
                 .and_then(|p| self.project.as_ref()?.session.part_positions(p));
-            // Drawn as its positions, its supply ports stand in its left end (rc.3).
+            // Drawn as its positions, its supply ports stand in its left end.
             let mut copies = copies;
             if let (Some(_), Some(project), Some(c)) = (slots, &self.project, self.canvas()) {
                 let cells = project.session.cell_copies(None, &[], Some(c.page().tables.page));
@@ -1392,11 +1392,11 @@ impl ShellModel {
             return Outcome::Refused { reason_key };
         }
         let (mode, cat, pending) = (picker.mode, Arc::clone(&picker.catalogue), picker.pending.clone());
-        // A valve terminal's position being filled: the valve chosen goes in that cell (rc.2, F15).
+        // A valve terminal's position being filled: the valve chosen goes in that cell.
         if let (Some(fill), PickerRow::Part(pi) | PickerRow::PartFn(pi, _)) = (picker.cell, row) {
             return self.fill_cell(fill, cat.parts[pi].copy);
         }
-        // Its Blanking plate (the rc.2 re-test): the position blanked, as the cell's menu does.
+        // Its Blanking plate: the position blanked, as the cell's menu does.
         if let (Some(fill), PickerRow::Blank) = (picker.cell, row) {
             self.tools.picker = None;
             let params = json!({ "cmd": "valve.set_occupancy", "params": { "module": fill.module.to_string(),
@@ -1608,7 +1608,7 @@ impl ShellModel {
                                 .iter()
                                 .find(|s| s.fndef_key == fndef && s.allowed && s.black_box)
                         })
-                        // A black-box function on another FnDef (a multipin terminal's plug, rc.2) by the frame too.
+                        // A black-box function on another FnDef (a multipin terminal's plug) by the frame too.
                         .or_else(|| {
                             let black_box = self.project.as_ref().is_some_and(|p| {
                                 function.parse().is_ok_and(|f| p.session.is_black_box_function(f))
@@ -1779,7 +1779,7 @@ impl ShellModel {
                 .unwrap_or(movable[0]);
             let anchor = if let Some(rep) = tables.reps.iter().find(|r| r.id == primary.0) {
                 // A symbol fitted to the grid (its position between grid points) is carried by a pin on the grid, so
-                // the first arrow key moves it a whole step (rc.5).
+                // the first arrow key moves it a whole step.
                 let g = crate::tools::wire::PageGridMap::new(tables.grid);
                 let on = |p: (i64, i64)| g.coord(g.index(p.0)) == p.0 && g.coord(g.index(p.1)) == p.1;
                 Some(if on(rep.pos) {
@@ -1907,7 +1907,7 @@ impl ShellModel {
     /// The after-commit duties (§6.4 item 3), at the end of a dispatch: a committed record the page tables no longer
     /// hold leaves the selection; the place tool's shape is read again for a new revision.
     pub(super) fn after_commit(&mut self) {
-        // A box armed with records this dispatch took away (a Delete in a navigator, as an Undo would) ends (rc.5).
+        // A box armed with records this dispatch took away (a Delete in a navigator, as an Undo would) ends.
         self.end_tool_without_records();
         self.after_layout_commit();
         self.after_paste();
@@ -1929,7 +1929,7 @@ impl ShellModel {
         };
         self.say_result(&before, &now);
         self.say_card_waits(&before, &now);
-        // A bus line just drawn without a cable asks for one (rc.5).
+        // A bus line just drawn without a cable asks for one.
         let drawn = now
             .connections
             .iter()

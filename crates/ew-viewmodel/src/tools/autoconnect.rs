@@ -15,10 +15,10 @@
 //! electrical CP, so on a fluid page autoconnect joins fluid ports with a fluid line (FT-1733); a contact's point (a
 //! switch, a push-button, a sensor) never takes a PLC output's pin, and a point that names a conductor (`N`, `PE`, `L1`,
 //! a supply's `+`) never takes a point of a potential named for another one, nor do a terminal's two sides join two
-//! potentials of different names (rc.3: a sensor joined to an output, a neutral to a phase); a valve's working port
+//! potentials of different names (a sensor joined to an output, a neutral to a phase); a valve's working port
 //! never takes another valve's exhaust port as a hit, nor the other way round (EW-FL-012's conflict, the persona
 //! re-test: two valves stacked had their exhausts joined to the working ports), and an in-line fitting's port (a flow
-//! control, a check valve, a coupling: `ew_derive::is_fitting`) never takes another fitting's (rc.5: four flow controls set side
+//! control, a check valve, a coupling: `ew_derive::is_fitting`) never takes another fitting's (four flow controls set side
 //! by side in a row were joined by tubes). A terminal's ghost CP never takes a CP of a terminal of its own
 //! strip as a hit: two terminals of one strip are joined by a bridge, never by a
 //! proposed wire; that terminal's body then stops the walk as any body does. The proposal of a ray is its
@@ -26,11 +26,11 @@
 //! along, wrapping.
 //!
 //! **Far hits.** A first hit more than [`SHORT_RUN`] grid steps away, or one whose run crosses a wire, is no proposal:
-//! the placement does not join it, its toast offers it with Connect (rc.2). A far hit that Tab chose is a proposal.
+//! the placement does not join it, its toast offers it with Connect. A far hit that Tab chose is a proposal.
 //!
 //! **Pole partners.** A free ghost CP whose ray finds no hit joins a free CP of a representation another proposal joins,
 //! facing it, 2 to [`SHORT_RUN`] steps ahead and 1 to [`POLE_JOG`] steps aside, by a wire that runs out to halfway
-//! between them, steps aside there and runs on in (rc.5 persona run: a two-pole breaker dropped under a two-pole
+//! between them, steps aside there and runs on in (a two-pole breaker dropped under a two-pole
 //! switch had one pole joined, because the other's poles stood a different distance apart); the nearest such CP, each
 //! taken once. The proposal carries that route, and its hint sends it.
 //!
@@ -49,7 +49,7 @@ use super::wire::PageGridMap;
 /// The most grid steps a ray walks.
 pub const MAX_WALK: usize = 2_000;
 
-/// The longest run, in grid steps, that a placement joins by itself (rc.2 persona run, entry 17: a sensor dropped under
+/// The longest run, in grid steps, that a placement joins by itself (a sensor dropped under
 /// an output card was joined to the card's pin by a long wire through other wires). A hit further away, or one whose
 /// run crosses a wire, is far: it is offered after the placement, never drawn by it, unless Tab chose it.
 pub const SHORT_RUN: i64 = 20;
@@ -545,8 +545,8 @@ pub fn proposals(
         }
     }
     list.sort_by_key(|p| p.cp.symbol_cp);
-    // A terminal joins what its two sides reach: never two named potentials of different names, which it would short
-    // (rc.3); the later proposal goes.
+    // A terminal joins what its two sides reach: never two named potentials of different names, which it would short;
+    // the later proposal goes.
     if cps.iter().any(|c| c.strip_tag.is_some()) {
         let named = |p: &Proposal| match &p.target {
             ProposalTarget::Cp { function, idx, .. } => tables
@@ -862,7 +862,7 @@ mod tests {
             1
         );
         t.reps.clear();
-        // A crossing segment is passed, but the hit behind it is far: offered, not proposed (rc.2); Tab proposes it.
+        // A crossing segment is passed, but the hit behind it is far: offered, not proposed; Tab proposes it.
         t.connections.push(wire(
             0x600,
             vec![(-5 * G, 5 * G), (5 * G, 5 * G)],

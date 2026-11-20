@@ -167,7 +167,7 @@ impl ShellModel {
         Ok(out)
     }
 
-    /// `devices.set_location {location?}` (Location… on Devices rows, rc.2): the devices of the acted rows
+    /// `devices.set_location {location?}` (Location… on Devices rows): the devices of the acted rows
     /// ([`Self::acted_devices`]) get the location (its ID or `+code`), one `fields.set` of `structure.location`, and a
     /// toast says so. In the window without `location` a dialog asks for it.
     pub(crate) fn act_devices_set_location(&mut self, p: &Map<String, Value>) -> Outcome {

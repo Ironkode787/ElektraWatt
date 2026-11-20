@@ -27,7 +27,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             )),
         ),
     ),
-    // The question before a page's Connection grid changes under its items: Change and fit (rc.5).
+    // The question before a page's Connection grid changes under its items: Change and fit.
     with_params(
         "grid:enum(mm4|qet_10px)",
         hidden(act(
@@ -56,7 +56,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_page_title_block(p),
         ),
     ),
-    // Page, Connection grid…: the page's grid, asked and fitted where it holds items (rc.5: a persona looked for it on
+    // Page, Connection grid…: the page's grid, asked and fitted where it holds items (a persona looked for it on
     // the Page tab). In the Order group: a fourth entry of Pages would turn that group into a submenu.
     placed(
         place(Group::Order, 8, CommandSize::Small, None),

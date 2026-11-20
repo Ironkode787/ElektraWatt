@@ -30,7 +30,7 @@
 //! the star is cleared and the committed name and direction (an external point's are not) are remembered ([`IpMemory`], kept by
 //! the host across tools); **a typed name stays until it is changed**, so the next click places the target of that
 //! name ([`propose`]: a name that has a source is offered as a target), and the clicks after it further targets of
-//! the same source; without a typed name, a target proposed by a name that has a source keeps that name (rc.5: no
+//! the same source; without a typed name, a target proposed by a name that has a source keeps that name (no
 //! "24V-1" that nothing feeds);
 //! **the chosen direction stays** for the next placements (no flip after a placement; a chosen `source` of a typed
 //! name does not, since the name has its source then)
@@ -159,7 +159,7 @@ pub struct IpMemory {
     /// The name typed in Tool options (`ip.name`) that is still to be used: the next point the IP tool or the Wire
     /// tool's P places takes it unchanged. The points the IP tool places leave it standing, as the field shows it, so
     /// the next click places the partner of that name and a pair needs its name typed once (FT-1657), and the clicks
-    /// after the pair place further targets of its source (rc.5); an external point takes it. It outlives a switch of
+    /// after the pair place further targets of its source; an external point takes it. It outlives a switch of
     /// tools, so a name typed with the IP tool armed names the end of the next wire ended with P, which takes it.
     pub typed: Option<String>,
 }
@@ -252,7 +252,7 @@ impl ProjectIps {
 
     /// A name whose point waits for its partner, with the partner's direction: a target without a source (its source
     /// is offered), else a source without a target (a target is offered); `prefer` first when it waits, then in name
-    /// order. With `want` only a partner of that direction. `None` when no point waits (rc.2 persona run: the tool
+    /// order. With `want` only a partner of that direction. `None` when no point waits (the tool
     /// offered IP-3 where the source of IP-1 was wanted).
     pub fn waiting(&self, prefer: &str, want: Option<IpDir>) -> Option<(String, IpDir)> {
         let lone_targets = self
@@ -693,7 +693,7 @@ impl IpTool {
     /// The insertion point (sheet nm, page nm) for the pointer at the sheet point `at`: the grid point under it,
     /// or, unless `alt` is held, the point that puts the ghost's CP on a connection point within the catch distance
     /// of the pointer ([`super::snap::Snapper::snap_cp`], the Wire tool's), so that a point dropped beside a pin
-    /// joins it (rc.5: marks dropped a grid step beside a supply pin stood there unjoined).
+    /// joins it (marks dropped a grid step beside a supply pin stood there unjoined).
     fn snapped(&self, at: (i64, i64), alt: bool, cx: &ToolCx<'_>) -> ((i64, i64), (i64, i64)) {
         let s = cx.snapper.snap_grid(at);
         let grid = (s.at_nm, s.page_nm);
@@ -726,7 +726,7 @@ impl IpTool {
     }
 
     /// The pin without a wire nearest the ghost's CP at `pos`, within [`MARK_BESIDE_PIN_NM`] of it and not under it
-    /// joined: the pin a point placed free stands beside, said when it is placed (rc.5); in words.
+    /// joined: the pin a point placed free stands beside, said when it is placed; in words.
     fn beside(&self, cx: &ToolCx<'_>, pos: (i64, i64)) -> Option<String> {
         let tables = &cx.page.tables;
         let c = self.cp_at(pos, tables)?;
@@ -801,7 +801,7 @@ impl IpTool {
             if let Some((name, direction)) = self.project.waiting(&base, want) {
                 return (name, direction, None);
             }
-            // A target of a name that has its source is one more place that source feeds (rc.5).
+            // A target of a name that has its source is one more place that source feeds.
             if auto == IpDir::Target && self.project.has_source(&base) {
                 return (base, IpDir::Target, None);
             }
@@ -842,7 +842,7 @@ impl IpTool {
         if let Some(name) = ip_name {
             return DropOn::Refused(crate::strings::format(key!("notice-ip-on-ip"), &[&name]));
         }
-        // A pin always wins, without the room rule below: the pin decides where its mark stands (rc.5: the second
+        // A pin always wins, without the room rule below: the pin decides where its mark stands (the second
         // mark of a power supply's two pins, a grid step apart, was refused, and Alt then placed it unjoined).
         if let Some(pin) = under.first() {
             return if self.suppressed {
@@ -1110,8 +1110,8 @@ impl Tool for IpTool {
         if let (true, Some((name, direction))) = (done, pending) {
             // The name in the field stays until it is changed: after its source, for the target (FT-1657: the tool
             // renamed itself "L1-1" after the first "L1" and placed a second source), after a target that no source
-            // feeds, for the source (the persona round of 0.2.0-rc.2), and after the pair is whole, for further
-            // targets of the same source (rc.5: the next clicks became "24V" and "24V-1" of nothing). A chosen
+            // feeds, for the source, and after the pair is whole, for further
+            // targets of the same source (the next clicks became "24V" and "24V-1" of nothing). A chosen
             // direction stays, but not the one just placed for a point that lacks its partner, whose next point is
             // that partner (the HUD says so before the click).
             if self.typed.is_some() && self.external.is_none() {
@@ -1147,7 +1147,7 @@ impl Tool for IpTool {
         self.taken_note()
     }
 
-    /// A point placed beside a pin without a wire, or on it with Alt, says that it does not join it (rc.5).
+    /// A point placed beside a pin without a wire, or on it with Alt, says that it does not join it.
     fn commit_note(&self) -> Option<String> {
         let pin = self.shown_beside.as_ref()?;
         Some(crate::strings::format(
@@ -1156,7 +1156,7 @@ impl Tool for IpTool {
         ))
     }
 
-    /// The point is the other half of a name that has one (rc.5: after a source the tool turned to Target without a
+    /// The point is the other half of a name that has one (after a source the tool turned to Target without a
     /// word): "next: where 24V arrives from its source", "next: where 24V comes from, for its waiting target".
     fn role_note(&self) -> Option<String> {
         if self.star || self.external.is_some() {

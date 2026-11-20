@@ -5,7 +5,7 @@
 //! pins are its own ([`TableBox::own_pins`](ew_api::output::TableBox::own_pins)) takes a pin where it stands: Add pin
 //! (its right-click, Edit ▸ Add pin), a wire drawn to its edge where no pin is, or a double click on a pin to rename it
 //! opens this tool on the pin's point, and the text popup asks for its name. Add pin without a point (the bar's) arms
-//! the tool first: the new pin follows the pointer along the box's edge nearest it, and a click puts it there (rc.5: the
+//! the tool first: the new pin follows the pointer along the box's edge nearest it, and a click puts it there (the
 //! person did not know where a new pin lands).
 //!
 //! | State | Event | Next | Output |
@@ -18,7 +18,7 @@
 //! | typing | a blank name, or one with a space | typing | `None`; the line under the field says why ([`Tool::field_error`]) |
 //! | armed, typing | `Escape` | finished | `Cancel` |
 //!
-//! Two pins of one box may have one name (two 24 V inputs), as a part's pins may (rc.5).
+//! Two pins of one box may have one name (two 24 V inputs), as a part's pins may.
 //!
 //! Each name is one `box.reshape` with `cps`, one undo step. The host returns to Select once the tool is finished, or,
 //! for a pin named for a wire, hands the Wire tool back to end the wire at the new pin (one undo step with it).
@@ -162,7 +162,7 @@ impl PinNameTool {
                 self.next = next && self.new && self.resume.is_none();
                 ToolOutput::Commit(cmd)
             }
-            // Said under the field, which stays open to type on (rc.5: a banner covered it and took the typing).
+            // Said under the field, which stays open to type on (a banner covered it and took the typing).
             Err(reason) => {
                 self.error = Some(crate::strings::text(reason).to_owned());
                 ToolOutput::None
@@ -192,7 +192,7 @@ impl PinNameTool {
     }
 }
 
-/// The next free point after the pin `at` on its side of the box `outline` with the pins `cps` (Tab, rc.5): the nearest
+/// The next free point after the pin `at` on its side of the box `outline` with the pins `cps` (Tab): the nearest
 /// grid point further along the side, else back along it, at least one step from both corners and on no pin; `None`
 /// when the side has no such point.
 pub fn next_on_side(

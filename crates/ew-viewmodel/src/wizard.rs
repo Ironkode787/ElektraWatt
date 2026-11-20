@@ -199,7 +199,7 @@ pub struct FieldMeta {
 }
 
 /// The sections the wizard proposes, each with the page kinds it is made for: [`DEFAULT_SECTIONS`], the wizard's
-/// text, and [`SECTION_KINDS`], which New page and the pages the program makes read (rc.5: a fluid page went into the
+/// text, and [`SECTION_KINDS`], which New page and the pages the program makes read (a fluid page went into the
 /// wiring section beside an empty "Pneumatics"), from one list.
 macro_rules! program_sections {
     ($first:literal => [$($k0:literal),*] $(; $line:literal => [$($k:literal),*])* $(;)?) => {

@@ -98,7 +98,7 @@ impl Tab {
         Group::ALL.into_iter().filter(move |g| g.tab() == self)
     }
 
-    /// Whether the tab works on a project: without one it is greyed (rc.3: the start page showed the Draw tab as if
+    /// Whether the tab works on a project: without one it is greyed (the start page showed the Draw tab as if
     /// one could draw). Project holds the start's Templates, View the window's appearance.
     pub fn needs_project(self) -> bool {
         !matches!(self, Tab::Project | Tab::View)
@@ -365,7 +365,7 @@ pub const fn place(
 /// The split buttons: the main action runs the default, the chevron opens its variants (doc 16a §5.2).
 pub const SPLITS: &[(&str, &[&str])] = &[
     ("tool.mirror_x", &["tool.mirror_x", "tool.mirror_y"]),
-    // Enclosure… and the plate a layout page shows (rc.2: the persona looked for both beside Rail and Duct).
+    // Enclosure… and the plate a layout page shows (the persona looked for both beside Rail and Duct).
     (
         "layout.enclosure_new",
         &["layout.enclosure_new", "layout.choose_plate"],
@@ -552,7 +552,7 @@ fn button_of(meta: &'static ActionMeta, model: &ShellModel, size: CommandSize) -
         reason = items[0].reason.clone();
     }
     // A command whose name does not tell it from its neighbour's has a line in its tooltip on what it does: the
-    // `tooltip-` key of its ID (rc.5: a persona took Route page for drawing the page's wires again).
+    // `tooltip-` key of its ID (a persona took Route page for drawing the page's wires again).
     let label = match strings::lookup(&format!("tooltip-{}", meta.id.replace(['.', '_'], "-"))) {
         Some(how) => format!("{}\n{how}", item.label),
         None => item.label,
@@ -667,7 +667,7 @@ pub fn menu_spot(canvas: &crate::canvas::CanvasModel, over: Option<ew_dl::Entity
 ///
 /// An entry that cannot run now is disabled and carries its reason, as the bar's button does. `at` is the sheet point
 /// the menu was opened at (a right-click's; `None` from the keyboard): a valve terminal's cell there offers its own
-/// entries (rc.2). No action of its own.
+/// entries. No action of its own.
 pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -> Vec<ActionItem> {
     let item = |id: &str| model.menu_item(id);
     if spot != MenuSpot::Object {
@@ -684,7 +684,7 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -
         if model.canvas().is_some_and(|c| c.page().panel.is_none()) {
             items.extend(item("project.wire_numbers"));
         } else if model.legend_offer() != ew_api::output::LegendOffer::NoLayout {
-            // A panel page offers its legend beside the layout (F21), what its devices are labelled with (rc.2) and
+            // A panel page offers its legend beside the layout (F21), what its devices are labelled with and
             // puts its moved labels back.
             items.extend(item("page.add_legend"));
             let numbered = model.panel_tables().map(|p| (p.numbered, p.tagged));
@@ -708,12 +708,12 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -
             }
             items.extend(item("layout.reset_labels"));
         }
-        // A schematic page offers New station… (F18 of the rc.1 test: the rack comes first).
+        // A schematic page offers New station… (the rack comes first).
         let kind = model.page_rows().get(model.page_index()).map(|r| r.kind.as_str());
         if matches!(kind, Some("multi_line" | "single_line")) {
             items.extend(item("plc.new_station"));
         }
-        // A bus-topology page offers Put a station on this page… (rc.2 persona run: the CPU drawn with its cards had no
+        // A bus-topology page offers Put a station on this page… (the CPU drawn with its cards had no
         // way onto it), greyed with its reason when every station is on it.
         if kind == Some("bus_topology") {
             items.extend(item("bus.put_station"));
@@ -756,7 +756,7 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -
         .iter()
         .filter(|g| symbols && SELECTION_GROUPS.contains(&g.group))
     {
-        // Add pin stands among a box's own entries, aimed at the click (rc.5), not here.
+        // Add pin stands among a box's own entries, aimed at the click, not here.
         for b in g.buttons.iter().filter(|b| b.id != "box.add_cp") {
             let variants = match &b.kind {
                 ButtonKind::Menu(_) => continue,
@@ -821,7 +821,7 @@ pub fn pages_tree_menu(model: &ShellModel, row: &crate::shell::ShownRow) -> Vec<
         .filter_map(actions::find)
         .map(|meta| actions::item_of(meta, model))
         .collect();
-    // New page… after the row's last page (a section's), else as the menu offers it (rc.5).
+    // New page… after the row's last page (a section's), else as the menu offers it.
     if let Some(new_page) = items.iter_mut().find(|i| i.id == "page.new") {
         new_page.params = serde_json::json!({ "at": row.key });
     }
@@ -977,10 +977,10 @@ pub struct HudModel {
     /// How many objects a click under the pointer can pick (FT-500's stack; Select only, else 0).
     pub stack: usize,
     /// The prompt while the IP tool's name field holds the keys: its key part says that Enter ends the name first,
-    /// since D is then a letter of the name, not the tool's key (the persona round of 0.2.0-rc.2). `None` for
+    /// since D is then a letter of the name, not the tool's key. `None` for
     /// another tool, or while a refusal stands in the prompt.
     pub field_prompt: Option<String>,
-    /// The ways on the prompt names, as buttons after it (rc.5: a persona did not find Unplaced devices among the
+    /// The ways on the prompt names, as buttons after it (a persona did not find Unplaced devices among the
     /// rail's icons): a layout page's Give location…, Unplaced devices and Auto-fill rail…, a list's pages beside.
     pub buttons: Vec<HudButton>,
 }
@@ -1052,7 +1052,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
     let mut field_prompt = None;
     let mut buttons = Vec::new();
     let hint = || crate::status::hint(model);
-    // The Tube tool (the Wire tool on a fluid page) says what it draws first: its line kind and tube (rc.2).
+    // The Tube tool (the Wire tool on a fluid page) says what it draws first: its line kind and tube.
     let tube = name == "wire" && model.wire_kind() == Ok(Some("fluid"));
     let prompt = match model.tool_ghost() {
         None if name == "select" && tool.state() == "idle" => {
@@ -1085,7 +1085,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
             } else if selected > 0
                 && let Some((wire, _)) = model.wire_handles()
             {
-                // One wire selected (rc.3): how its handles are reached by keyboard, and with one in the focus, how
+                // One wire selected: how its handles are reached by keyboard, and with one in the focus, how
                 // it moves (Select's hint); a wire does not rotate.
                 if model.handle_focus().is_some_and(|w| w == wire) {
                     hint()
@@ -1118,9 +1118,9 @@ pub fn hud(model: &ShellModel) -> HudModel {
             } else if model.page_rows().get(model.page_index()).map(|r| r.kind.as_str())
                 == Some("panel_layout")
             {
-                // A layout page names its first step while it shows no plate (rc.2: the persona read only that it
+                // A layout page names its first step while it shows no plate (the persona read only that it
                 // takes no symbols), and the Select hint once it does.
-                // Its ways on are buttons beside the words (rc.5: the rail's icons have no words).
+                // Its ways on are buttons beside the words (the rail's icons have no words).
                 let button = |label: String, action: &'static str, params: serde_json::Value| HudButton {
                     label,
                     action,
@@ -1135,7 +1135,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
                 };
                 match model.panel_tables() {
                     None => strings::text(key!("hud-layout-start")).to_owned(),
-                    // A plate with no device on it says the next step (rc.5: a persona did not find it).
+                    // A plate with no device on it says the next step (a persona did not find it).
                     Some(t) if t.placements.is_empty() && !t.unplaced.is_empty() => {
                         buttons.push(unplaced());
                         buttons.push(button(
@@ -1162,7 +1162,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
                     Some(_) => hint(),
                 }
             } else if let Some(list) = model.list_pages(model.page_index()) {
-                // A list of more than one page says which page this is, with its way to the pages beside it (rc.5: a
+                // A list of more than one page says which page this is, with its way to the pages beside it (a
                 // persona missed the plugs on the parts list's second page).
                 let ways = [
                     (list.previous, key!("hud-list-previous")),

@@ -946,7 +946,7 @@ fn route_names_the_wires_it_left_as_the_person_s_and_offers_to_route_them_too() 
     assert_ne!(now.polyline, wire.polyline, "routed anew");
 }
 
-/// The selected wire's handles by keyboard (rc.3): Tab gives the first handle the focus and it shows as hot, an
+/// The selected wire's handles by keyboard: Tab gives the first handle the focus and it shows as hot, an
 /// arrow moves it one grid step in one undo step and the focus stays on it, Shift+Tab goes back round to the last,
 /// and Esc gives the focus back to the wire, which stays selected.
 #[test]

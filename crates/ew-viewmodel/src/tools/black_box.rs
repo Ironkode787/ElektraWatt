@@ -21,15 +21,15 @@
 //! apart with one grid step to spare at each corner. On a wider box the CPs of an edge spread over its drawn length:
 //! one common pitch, the largest whole number of grid steps that fits `m + 1` times into the edge, the group
 //! centred (half a step to the left when it cannot be centred exactly). Without a part, no CPs: such a box takes pins of its
-//! own afterwards, where it stands ([`super::box_pin`], rc.5).
+//! own afterwards, where it stands ([`super::box_pin`]).
 //!
-//! **A valve terminal drawn as its positions** ([`BlackBoxTool::with_slots`], doc 11 §3.2, rc.2): the box is sized by the
+//! **A valve terminal drawn as its positions** ([`BlackBoxTool::with_slots`], doc 11 §3.2): the box is sized by the
 //! terminal's positions, not by two clicks; armed, the tool shows it dashed with its top-left corner at the pointer, and
 //! one click commits `box.black` with `box: {outline, slots: {pitch}}` (`ew_api::geometry::slot_box`). **A multipin
 //! terminal's plug** ([`BlackBoxTool::with_pins`]) is placed the same way, sized by its pins down its two sides
 //! ([`pin_layout`]). Such a one-click box stands inside the frame's drawing area, moved there by whole grid steps where
 //! it would leave it, and is refused with its size where it is larger than the area (`reason-box-too-large`) and on
-//! another box (`reason-box-occupied`); the host ends the tool once it is placed (rc.2: one click, one box).
+//! another box (`reason-box-occupied`); the host ends the tool once it is placed (one click, one box).
 //!
 //! **Grips** ([`grip_points`], [`reshape_by_grip`]): for an outline of `n` vertices in stored order, grips `0 … n−1`
 //! are the vertices and grips `n … 2n−1` the midpoints of the edges `v0v1, …, v(n−1)v0`. On a rectangle a vertex grip
@@ -85,7 +85,7 @@ pub enum BoxTarget {
         cps: Vec<(u16, String)>,
     },
     /// A new function of a device (`join_device`): a valve terminal made as a PLC station, drawn first on a fluid page
-    /// as its positions (rc.2); its main function, or another when its bus port drawn on a bus page is that (rc.3).
+    /// as its positions; its main function, or another when its bus port drawn on a bus page is that.
     Device {
         /// The device's ID text.
         device: String,
@@ -216,7 +216,7 @@ const PIN_PITCH: i64 = 5_000_000;
 /// The least width of a plug's box (nm): the pin designations inside stand clear of each other.
 const PIN_BOX_WIDTH: i64 = 15_000_000;
 
-/// The box of a multipin valve terminal's plug with its top-left corner at the grid point `at` (rc.2): its pins down its
+/// The box of a multipin valve terminal's plug with its top-left corner at the grid point `at`: its pins down its
 /// left side (the first half, top to bottom) and its right side (the rest), the wires leaving sideways so that each pin's
 /// designation inside and its text outside read horizontally; the pins `PIN_PITCH` apart and the box `PIN_BOX_WIDTH`
 /// wide, each rounded up to whole grid steps; the first pin one pitch lower than the others' spacing, below the box's
@@ -363,13 +363,13 @@ impl BlackBoxTool {
         }
     }
 
-    /// The tool placing a valve terminal of `count` positions drawn as its positions (rc.2): one click, no outline.
+    /// The tool placing a valve terminal of `count` positions drawn as its positions: one click, no outline.
     pub fn with_slots(mut self, count: Option<u16>) -> BlackBoxTool {
         self.slots = count.filter(|n| *n > 0);
         self
     }
 
-    /// The tool placing a multipin valve terminal's plug (rc.2): one click, the box sized by its pins ([`pin_layout`]).
+    /// The tool placing a multipin valve terminal's plug: one click, the box sized by its pins ([`pin_layout`]).
     pub fn with_pins(mut self, pins: bool) -> BlackBoxTool {
         self.pins = pins;
         self
@@ -458,7 +458,7 @@ impl BlackBoxTool {
     }
 
     /// The records of the project the box names when it is put down (ID texts): the symbol copy unless the box
-    /// embeds it, and the function or device it draws. An undo or a redo that takes one away ends the tool (rc.5, H2).
+    /// embeds it, and the function or device it draws. An undo or a redo that takes one away ends the tool.
     pub fn records(&self) -> Vec<&str> {
         let embedded = self.copies.iter().any(|c| c["id"].as_str() == Some(&self.symbol));
         let mut out: Vec<&str> = (!embedded).then_some(self.symbol.as_str()).into_iter().collect();
@@ -651,7 +651,7 @@ impl BlackBoxTool {
         }
         match self.state {
             State::Armed { at: None } => Overlay::default(),
-            // A chip at the pointer says how the box is drawn, where the person looks (rc.2: a part placed as a black
+            // A chip at the pointer says how the box is drawn, where the person looks (a part placed as a black
             // box asked for two corners in the bottom bar only).
             State::Armed { at: Some(at) } => Overlay::new(vec![
                 OverlayItem::Marker {
@@ -724,7 +724,7 @@ impl BlackBoxTool {
         self.dropped = false;
         if self.one_click() {
             if let Some(((pos, outline, _), _)) = self.one_click_box(cx) {
-                // A box larger than the drawing area says so, with its size (the rc.2 re-test).
+                // A box larger than the drawing area says so, with its size.
                 let (area, grid) = (
                     super::ip::drawing_area(cx.page),
                     PageGridMap::new(cx.page.tables.grid),
@@ -981,7 +981,7 @@ pub type GripStop = ((i64, i64), Vec<(i64, i64)>);
 
 /// Where grip `grip` of the box `outline` with the pins `cps` stops when dragged to the grid point `to` (page nm), and
 /// the outline there: at `to`, else, where the pins would not fit ([`pins_fit`]) or the box would be lower than `depth`
-/// grid steps while it gets lower (the pin texts of its top and bottom sides would touch, rc.5), as near to `to` as
+/// grid steps while it gets lower (the pin texts of its top and bottom sides would touch), as near to `to` as
 /// they fit, moved back towards the grip's own point a grid step at a time on each axis that is too short. Errors as
 /// [`reshape_by_grip`].
 pub fn grip_stop(
@@ -1038,7 +1038,7 @@ pub fn outward(a: (i64, i64), b: (i64, i64), area2: i128) -> Option<Dir> {
 
 /// The grid point on the outline (page nm) nearest to `p`, with the edge's outward normal: per axis-aligned edge the
 /// point projected, clamped and snapped along it, a grid step clear of both corners where the edge is long enough (a
-/// pin never stands on a corner, rc.5); ties by the smaller edge index. `None` without such an edge.
+/// pin never stands on a corner); ties by the smaller edge index. `None` without such an edge.
 pub fn nearest_on_outline(
     grid: PageGridMap,
     outline: &[(i64, i64)],
@@ -1088,7 +1088,7 @@ pub fn nearest_on_outline(
 type PinAt = ((i64, i64), Dir);
 
 /// Where a drag of pin `idx` of the box `outline` with the pins `cps` (page nm) to `p` puts it, with the direction it
-/// leaves in (rc.5: a pin dragged on the smallest box went round its corner onto the next side): a grid point at least
+/// leaves in (a pin dragged on the smallest box went round its corner onto the next side): a grid point at least
 /// one step from both corners of an axis-aligned edge, no other pin's (read settled), nearest `p`. The pin keeps its
 /// own side while `p` lies across from it (between that side's corners, them included); beyond them, the nearest side
 /// that has a free point. A side too short for a point clear of its corners takes none. `None` where no side has a free point.
@@ -1159,7 +1159,7 @@ pub fn pin_target(
     best.map(|(.., at)| at)
 }
 
-/// The new pin a wire ending at the grid point `p` on the box `b` would take (rc.5): on a box whose pins are its own,
+/// The new pin a wire ending at the grid point `p` on the box `b` would take: on a box whose pins are its own,
 /// `p` on an axis-aligned edge, no corner and no pin's point (read settled); the smallest index the box does not use,
 /// leaving along the edge's outward normal. `None` anywhere else.
 pub fn free_edge_pin(grid: PageGridMap, b: &ew_api::output::TableBox, p: (i64, i64)) -> Option<BoxCpAt> {
@@ -1203,7 +1203,7 @@ pub fn reshape_command(rep: &TableRep, outline: &[(i64, i64)], cps: Option<&[Box
     reshape_named(rep, outline, cps, &names)
 }
 
-/// [`reshape_command`] with the box's own pins named by `names` (function CP index, name; rc.5): a pin moved, added,
+/// [`reshape_command`] with the box's own pins named by `names` (function CP index, name): a pin moved, added,
 /// renamed or kept keeps the name it has there.
 pub fn reshape_named(
     rep: &TableRep,
@@ -1253,7 +1253,7 @@ pub fn selected_black_box<'t>(cx: &'t ToolCx<'_>) -> Option<&'t TableRep> {
     }
 }
 
-/// How near a grip of a selected box a press takes it, in screen points (rc.5: a drag that missed the small handle
+/// How near a grip of a selected box a press takes it, in screen points (a drag that missed the small handle
 /// moved the whole box): the round handle the wire's grips have, and a margin.
 pub const GRIP_SLOP_PT: f64 = 7.0;
 
@@ -1297,7 +1297,7 @@ pub fn handle_at(cx: &ToolCx<'_>, rep: &TableRep, at: (i64, i64)) -> Option<BoxH
     best(n..2 * n).map(BoxHandle::Grip)
 }
 
-/// Which way grip `grip` of a box `outline` resizes it, for the pointer's shape before the press (rc.5).
+/// Which way grip `grip` of a box `outline` resizes it, for the pointer's shape before the press.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum GripResize {
     /// A vertical edge's middle: sideways.
@@ -1521,7 +1521,7 @@ mod tests {
         );
         assert!(on_outline(&r, (10_000_000, 2_000_000)));
         assert!(!on_outline(&r, (9_000_000, 2_000_000)));
-        // Past a corner: a step clear of it, never on it (rc.5).
+        // Past a corner: a step clear of it, never on it.
         assert_eq!(
             nearest_on_outline(g, &r, (-1_000_000, -1_000_000)),
             Some(((1_000_000, 0), Dir::Up))

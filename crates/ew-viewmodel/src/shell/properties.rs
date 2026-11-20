@@ -244,7 +244,7 @@ impl ShellModel {
     }
 
     /// The collapsed categories (`device/identity`), from the settings file (`properties.collapsed`). A section's More
-    /// group is closed until a person opens it (rc.2, F12): its key in the settings means it is open.
+    /// group is closed until a person opens it: its key in the settings means it is open.
     pub fn properties_collapsed(&self) -> BTreeSet<String> {
         let stored = &self.settings.properties_collapsed;
         let mut out: BTreeSet<String> = stored
@@ -433,7 +433,7 @@ impl ShellModel {
         let kinds = |s: &PropertySheet| s.sections.iter().map(|x| x.kind.clone()).collect::<Vec<_>>();
         let before = self.props.sheet.as_deref().map(kinds);
         let sheet = self.fetch_sheet(&key.ids);
-        // A filter typed for one kind of thing does not hide the rows of another (rc.5: "grid" typed on a page hid a
+        // A filter typed for one kind of thing does not hide the rows of another ("grid" typed on a page hid a
         // breaker's rows): it clears when the selection changes kind.
         if !same_records && before.is_some_and(|b| b != kinds(&sheet)) {
             self.props.filter.clear();
@@ -584,7 +584,7 @@ impl ShellModel {
         }
     }
 
-    /// A valve terminal's Valve positions row in the window's words (rc.2): `1 -K1-Q1 · 2 blanking plate · 3 empty`.
+    /// A valve terminal's Valve positions row in the window's words: `1 -K1-Q1 · 2 blanking plate · 3 empty`.
     fn valve_positions_in_words(sheet: &mut PropertySheet, session: &ew_api::Session) {
         for section in sheet.sections.iter_mut().filter(|s| s.kind == "device") {
             let Some(terminal) = section.targets.first().copied() else {
@@ -904,7 +904,7 @@ impl ShellModel {
 
     /// `props.edit`: opens the editor of `row` (else the focused row) with its value's text.
     pub(crate) fn act_props_edit(&mut self, p: &Map<String, Value>) -> Outcome {
-        // With `record` (its ID: a finding's Type the length…, rc.3) the sheet shows that record first.
+        // With `record` (its ID: a finding's Type the length…) the sheet shows that record first.
         if let Some(record) = or_return!(string_param(p, "record")) {
             let out = self.act_select_set(&Map::from_iter([("ids".to_owned(), json!([record]))]));
             if out != Outcome::Done {
@@ -930,7 +930,7 @@ impl ShellModel {
             return failed(key!("error-no-row"), &[key]);
         };
         if let Some(out) = self.props_refusal(&section, &row, action) {
-            // A wire's value its cable core gives says so under the row, where the person tried (rc.3: click,
+            // A wire's value its cable core gives says so under the row, where the person tried (click,
             // double-click and typing did nothing); its button goes to the cable.
             if let Some(tag) = self.cable_row(key) {
                 let message = strings::format(key!("props-set-by-cable"), &[&tag]);
@@ -1041,7 +1041,7 @@ impl ShellModel {
                 items
             }
             // A tube's medium by its name; choosing one commits the medium's ID. While the project has none, the usual
-            // media of New medium… (rc.2: a list with one entry, New medium…, offered no ready medium), each made and
+            // media of New medium… (a list with one entry, New medium…, offered no ready medium), each made and
             // set in one step. New medium… stands last (the persona re-test met a text box that refused every text).
             (crate::properties::EditRoute::Command { command }, _) if command == "fluid.medium.define" => {
                 let f = filter.to_lowercase();
@@ -1058,7 +1058,7 @@ impl ShellModel {
                     )])
                     .collect()
             }
-            // A bus device's PLC: the project's PLCs by name, then New PLC… (rc.2 persona run); choosing one runs Add to
+            // A bus device's PLC: the project's PLCs by name, then New PLC…; choosing one runs Add to
             // PLC.
             (crate::properties::EditRoute::Command { command }, _) if command == "plc.add_to_plc" => {
                 let f = filter.to_lowercase();
@@ -1232,7 +1232,7 @@ impl ShellModel {
 
     /// `props.commit {step?}` (Enter, Tab, focus loss): the buffer is parsed and committed. With `step` (Tab 1,
     /// Shift+Tab −1) the editor then opens on the next (the previous) row typed in, so that a sheet's fields are
-    /// filled one after the other (rc.5: a text typed after Tab replaced the one before in the same field).
+    /// filled one after the other (a text typed after Tab replaced the one before in the same field).
     pub(crate) fn act_props_commit(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(edit) = self.props.edit.clone() else {
             return Outcome::refused(key!("reason-not-editing"));
@@ -1353,7 +1353,7 @@ impl ShellModel {
                 return outcome;
             }
             // Another device's tag that the symbol cannot join: the words say why it joins nothing (what that device has
-            // free, what the symbol is; rc.2, F11); the tag is set as typed, a duplicate the checks then name.
+            // free, what the symbol is); the tag is set as typed, a duplicate the checks then name.
             if let [device] = section.targets.as_slice()
                 && let Some(m) = self
                     .project
@@ -1462,7 +1462,7 @@ impl ShellModel {
         let Some((section, row)) = self.props_find(key) else {
             return failed(key!("error-no-row"), &[key]);
         };
-        // A page's Connection grid changed while it holds items asks first, then fits them (rc.5): every page, the
+        // A page's Connection grid changed while it holds items asks first, then fits them: every page, the
         // one on show or not, whatever it holds; `fields.set` would refuse it.
         if row.key == GRID_ROW
             && self.mode == super::Mode::Gui
@@ -1480,7 +1480,7 @@ impl ShellModel {
                 return out;
             }
         }
-        // A bus device's PLC row gives it to the PLC chosen, or to a new one (rc.2 persona run).
+        // A bus device's PLC row gives it to the PLC chosen, or to a new one.
         if matches!(&row.route, crate::properties::EditRoute::Command { command } if command == "plc.add_to_plc")
         {
             self.props.edit = None;
@@ -1594,7 +1594,7 @@ impl ShellModel {
         let Some(target) = section.targets.first().copied() else {
             return failed(key!("error-no-row"), &[&row.key]);
         };
-        // A usual medium chosen (rc.2): the ports the row defines its medium at, as for a medium of the project.
+        // A usual medium chosen: the ports the row defines its medium at, as for a medium of the project.
         let preset = text.strip_prefix(super::creation::PRESET_PREFIX);
         let edit = ew_api::output::LayoutEdit {
             kind: section.kind.clone(),
@@ -1632,7 +1632,7 @@ impl ShellModel {
             }
             _ => cmd,
         };
-        // A valve's position typed that another valve holds (rc.2, F15): the window offers to swap the two.
+        // A valve's position typed that another valve holds: the window offers to swap the two.
         if row.path == "derived.position"
             && let Some(parent) = cmd.params["parent"]
                 .as_str()
@@ -2385,7 +2385,7 @@ impl ShellModel {
     }
 
     /// The tag of the cable whose core gives the value of the derived row `key` (a wire's cross-section or colour), which
-    /// is changed at the cable (rc.3); `None` for any other row.
+    /// is changed at the cable; `None` for any other row.
     pub fn cable_row(&self, key: &str) -> Option<String> {
         let (_, row) = self.props.sheet().and_then(|sheet| find_row(sheet, key))?;
         let Some(ew_api::output::SourceLink::Record { id, row: to }) = &row.source else {
@@ -2592,7 +2592,7 @@ impl ShellModel {
         if menu.is_empty() {
             return Outcome::refused(key!("reason-no-actions"));
         }
-        // A row whose only action is Edit opens its editor at once, not a menu of one entry (rc.2).
+        // A row whose only action is Edit opens its editor at once, not a menu of one entry.
         if menu == [RowMenuItem::Action(RowAction::Edit)] {
             return self.row_action(&key, RowAction::Edit);
         }

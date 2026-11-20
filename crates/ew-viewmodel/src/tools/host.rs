@@ -147,35 +147,35 @@ pub(crate) struct ToolHost {
     pub notice_basis: Option<(Option<u64>, u64)>,
     /// The paste tool committed: at the end of the dispatch Select takes over with the pasted representations selected.
     pub pasted: bool,
-    /// The paste committed was of another grid than the page's, fitted to it (rc.5): where its symbols and junctions
+    /// The paste committed was of another grid than the page's, fitted to it: where its symbols and junctions
     /// would have stood unfitted, page nm; at the end of the dispatch its wires are routed in the same undo step and a
     /// message says so.
     pub paste_fit: Option<PasteFit>,
-    /// The grid question's page and count (rc.5, [`GridFit`]).
+    /// The grid question's page and count ([`GridFit`]).
     pub grid_fit: Option<GridFit>,
-    /// New page's proposed folio and the Pages row its menu was opened on (rc.5): its kind and place follow while the
+    /// New page's proposed folio and the Pages row its menu was opened on: its kind and place follow while the
     /// folio is the one proposed.
     pub page_proposal: Option<(String, Option<String>)>,
     /// An Undo or a Redo ran: at the end of the dispatch a terminal placement takes its strip's next designation from
     /// the catalogue again.
     pub reread_designation: bool,
     /// The history entries a Terminal… row laid with one click, `(first, end)` cursor positions: Undo at `end` takes the
-    /// row back whole and Redo at `first` lays it again whole (rc.2); forgotten at the next other commit.
+    /// row back whole and Redo at `first` lays it again whole; forgotten at the next other commit.
     pub row_steps: Option<(usize, usize)>,
     /// The last committed interruption point's name and direction, kept across tools.
     pub ip_memory: IpMemory,
-    /// Where the Supply tool's marks come from, while it floats them (rc.5).
+    /// Where the Supply tool's marks come from, while it floats them.
     pub supply: Option<super::supply_place::SupplyPlan>,
     /// `tool.black_box` is choosing: a row that is no black box is refused.
     pub black_box_pick: bool,
     /// The station part the device browser was placing on a bus page when Put a station on this page asked first:
-    /// its copy and the letter given; "A new station" places it (rc.2).
+    /// its copy and the letter given; "A new station" places it.
     pub put_station_part: Option<(ew_api::output::Uuid, Option<String>)>,
     /// The last commit drew the bus interfaces of a device the project had already (a station put on a bus page): its
-    /// rack does not open as for a station placed new (the rc.2 persona run: it opened unasked).
+    /// rack does not open as for a station placed new (it opened unasked).
     pub drew_existing: bool,
     /// The active tool has put down what it was armed with (a commit since it was armed): a placement repeated is
-    /// no longer in flight, and Undo takes back the step at once (rc.5).
+    /// no longer in flight, and Undo takes back the step at once.
     pub put_down: bool,
     /// The grips overlay of a selected black box the host set last: cleared while the overlay is it.
     pub grips: Option<Overlay>,
@@ -199,7 +199,7 @@ pub(crate) struct ToolHost {
     /// Whether a move connects its autoconnect proposals, kept across tools for the session (on until
     /// `tool.connect_on_move` turns it off).
     pub connect_on_move: bool,
-    /// The line kind the Tube tool draws, the one chosen last (rc.2); `None` before any: working lines.
+    /// The line kind the Tube tool draws, the one chosen last; `None` before any: working lines.
     pub tube_kind: Option<&'static str>,
     /// Whether the Tube tool said once that the project has no default tube.
     pub tube_size_said: bool,
@@ -217,7 +217,7 @@ pub(crate) struct ToolHost {
     /// The draw tools' part offers of (session, revision, kind): computed when Draw rail or Draw duct is armed, and
     /// again only when its options or the revision change (the options card reads them every frame).
     pub draw_offers: std::cell::RefCell<Option<DrawOffers>>,
-    /// The wires the last Route changed, with its toast's serial and the revision it left (rc.5): drawn as a
+    /// The wires the last Route changed, with its toast's serial and the revision it left: drawn as a
     /// selected wire is while that toast is up and the project is at that revision.
     pub last_routed: Option<(u64, Option<u64>, Vec<ew_api::output::Uuid>)>,
     /// The page an open Arrange and route card would leave (docs/design/06a-drafting.md §7.3), read once per plan.
@@ -339,7 +339,7 @@ impl ToolHost {
     }
 }
 
-/// A paste fitted to the page's grid (rc.5, `ToolHost::paste_fit`): the page's grid words and the points its
+/// A paste fitted to the page's grid (`ToolHost::paste_fit`): the page's grid words and the points its
 /// representations and junctions would have taken unfitted (their fragment positions moved by `at − anchor`).
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct PasteFit {
@@ -351,7 +351,7 @@ pub struct PasteFit {
     pub junctions: Vec<(i64, i64)>,
 }
 
-/// The question before a page's Connection grid changes under its items (rc.5, `ToolHost::grid_fit`): the page asked
+/// The question before a page's Connection grid changes under its items (`ToolHost::grid_fit`): the page asked
 /// about and what its foot says.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct GridFit {

@@ -97,7 +97,7 @@ pub enum DragSource {
     /// layout place tool takes it (`tool.place_layout {device}`).
     Device(String),
     /// A station's row of the PLC navigator, or a device's row of the Bus or the Devices navigator (the device's ID
-    /// text): dropped on a bus-topology page, `bus.put_station` puts it there at the drop point (rc.2).
+    /// text): dropped on a bus-topology page, `bus.put_station` puts it there at the drop point.
     Station(String),
 }
 
@@ -263,7 +263,7 @@ impl ShellModel {
     }
 
     /// The device the chips are of when the bus-topology page in front does not draw all of it yet: the chip line's
-    /// Put it here puts it on the page (`bus.put_station`, rc.2); `None` without chips or on any other page.
+    /// Put it here puts it on the page (`bus.put_station`); `None` without chips or on any other page.
     pub fn chip_put_here(&self) -> Option<Uuid> {
         if self.chips.is_empty() {
             return None;
@@ -339,7 +339,7 @@ impl ShellModel {
             }
         }
         // With one wire selected on a drawing page, Tab and Shift+Tab go from handle to handle, and the arrows move the
-        // handle that has the focus (rc.3).
+        // handle that has the focus.
         if self.focused_navigator().is_none()
             && let Some((wire, _)) = self.wire_handles()
         {
@@ -354,7 +354,7 @@ impl ShellModel {
                 _ => {}
             }
         }
-        // In a made station's view F2 changes the tag under the cursor, the station's on its head (rc.5, H14).
+        // In a made station's view F2 changes the tag under the cursor, the station's on its head.
         if action == "text.edit"
             && self.focused_navigator().is_none()
             && self.station_tab().is_some_and(|t| t.draft.is_none())
@@ -611,7 +611,7 @@ impl ShellModel {
         }
     }
 
-    /// The New page pre-fill (rc.5): the folio proposal and the section number text. `at` is the Pages row the
+    /// The New page pre-fill: the folio proposal and the section number text. `at` is the Pages row the
     /// menu was opened on (its key): on a page, the next free number after that page inside its section; on a section,
     /// the next free number after the section's last page ([`Self::section_free_folio`]). Without one, a section
     /// node marked in the Pages navigator (or under its cursor) that the open page is not in (a section just made,
@@ -667,7 +667,7 @@ impl ShellModel {
             .find_map(|k| section_key(k))
             .or_else(|| self.navigator_row_key().and_then(|k| section_key(&k)));
         let own = current.and_then(|r| r.section.as_ref().map(|(n, _)| n.to_string()));
-        // The kind chosen (rc.5: a first wiring page was proposed into the front matter, a fluid page into the wiring
+        // The kind chosen (a first wiring page was proposed into the front matter, a fluid page into the wiring
         // section): the section for pages of that kind takes the page unless the open page stands in it.
         let for_kind = kind.and_then(|k| self.section_for_kind(k));
         match (from_nav, current, for_kind) {
@@ -678,7 +678,7 @@ impl ShellModel {
         }
     }
 
-    /// The section a new page of kind `kind` belongs in (rc.5): the first section (by number) that holds a page of
+    /// The section a new page of kind `kind` belongs in: the first section (by number) that holds a page of
     /// that kind, else the first, empty or not, that the wizard made for that kind by its title
     /// ([`crate::wizard::section_title_kinds`]: Pneumatics for a fluid page, Wiring Definition for a wiring page); a
     /// section with a title of the person's own is left alone. `None` where none does.
@@ -733,9 +733,9 @@ impl ShellModel {
         Some((s.folio_range.0 + u32::from(s.divider), s.folio_range.1))
     }
 
-    /// The folio New page proposes in the section numbered `number` (rc.5): the first free number after its last page
+    /// The folio New page proposes in the section numbered `number`: the first free number after its last page
     /// (its highest page number, a divider and generated pages counted), else its first free number past its divider
-    /// page (rc.2: the persona typed the section's first folio, its divider's); `None` for no such section or a full
+    /// page (the persona typed the section's first folio, its divider's); `None` for no such section or a full
     /// one.
     pub(super) fn section_free_folio(&self, number: &str) -> Option<u32> {
         let labels = self.page_labels();
@@ -1143,7 +1143,7 @@ impl ShellModel {
             let layout = if PaneKind::BOTTOM.contains(&pane) {
                 self.layout().with_bottom(pane)
             } else {
-                // A navigator already docked becomes the shown tab of its group, in a column that shows it (rc.5: the
+                // A navigator already docked becomes the shown tab of its group, in a column that shows it (the
                 // layout page's Unplaced devices button).
                 self.chrome.rail_collapsed = false;
                 self.layout().with_navigator(pane).showing(pane)

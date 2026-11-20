@@ -274,7 +274,7 @@ impl ShellModel {
                     // A released revision's author is history: its party's name only, while it names one. An open
                     // revision without one gets it by `revision.set_author`, which only a person at the window runs: a
                     // session that may not leaves the field out and says so under the form (`form_foot`), so Apply
-                    // never applies half (rc.2 persona run).
+                    // never applies half.
                     Source::RevisionAuthor => {
                         facts.revision_author.is_some()
                             || (facts.open_revision.is_some() && self.may_set_author())
@@ -305,7 +305,7 @@ impl ShellModel {
         if facts.fixed_texts {
             notes.push(strings::text(key!("titleblock-note-fixed")).to_owned());
         }
-        // The edited date the title block prints, which the save sets (the owner's test of 0.3.0-rc.1).
+        // The edited date the title block prints, which the save sets.
         let edited = FIELDS
             .iter()
             .find(|(_, _, s)| matches!(s, Source::Edited))
