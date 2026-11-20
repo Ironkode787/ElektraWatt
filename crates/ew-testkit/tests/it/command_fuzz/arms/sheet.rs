@@ -394,7 +394,7 @@ pub(super) fn rep_transform(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                     // A black box whose orientation changes turns about the centre of its bounding box (the
                     // outline's, else its CPs'), so its insertion point moves (`rep.transform`, "The pivot"): the
                     // centre, in grid half-steps, stays, or moves by the one half-step of a tie. A symbol turns
-                    // about the middle of its graphics the same way (rc.3); one without graphics keeps its
+                    // about the middle of its graphics the same way; one without graphics keeps its
                     // insertion point.
                     let local = match b.box_.as_ref() {
                         Some(x) if x.outline.is_empty() => x.cps.iter().map(|c| c.pos).collect(),
