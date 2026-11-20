@@ -1,7 +1,7 @@
 # ElektraWatt — notes for Claude
 
 ElektraWatt is a desktop ECAD application in Rust for electrical control-cabinet design. It is open source:
-GPL-3.0-or-later for the app, MIT OR Apache-2.0 for the format crates. It is an early alpha: 0.1.0 is released.
+GPL-3.0-or-later for the app, MIT OR Apache-2.0 for the format crates. It is an early alpha.
 
 ## Read first
 

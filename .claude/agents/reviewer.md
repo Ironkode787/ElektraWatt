@@ -39,8 +39,9 @@ When you are told which findings are yours (minor ones; a major is the author's)
 1. `git reset --hard <the base you are given>`.
 2. Fix only those findings, one commit each, `fix(<area>): <what it fixes>`. Each fix has a test that fails without
    it, or the report says why none can.
-3. Stop on a finding and report it when its fix changes the file format, re-blesses Golden A, adds a dependency or
-   reaches beyond the finding.
+3. Stop on a finding and report it when its fix changes the file format, adds a dependency or reaches beyond the
+   finding. A fix that changes an expected output of Golden A regenerates it by the documented route, after you
+   looked at the page, and the report names the files.
 4. Run `cargo xtask check -p <the crates you changed>` once at the end and quote its summary.
 
 A fix is not reviewed again.
