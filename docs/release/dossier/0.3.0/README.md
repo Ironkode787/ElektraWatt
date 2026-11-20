@@ -45,7 +45,7 @@ Decided by the owner on the way to the sixth candidate: the router is redesigned
 | `v0.3.0-rc.3` | `release/0.3`, the commit the tag names | [`checklist-rc.3.md`](checklist-rc.3.md) | Cut on 2026-11-18. Its release build made every package (run 13 of `release.yml`: verify, the guide, the Linux and the Windows package and the sums passed) and **failed at the draft**: the release notes had grown longer than GitHub takes as a release's text. No draft exists; nobody tested it |
 | `v0.3.0-rc.4` | `release/0.3`, the commit the tag names | [`checklist-rc.4.md`](checklist-rc.4.md) | Cut on 2026-11-18: the third candidate's program with the release script mended; its release build passed (run 14 of `release.yml`). **Tested by the owner by hand: not passed.** He wrote seventeen points and answered one open question (the plan's log lists them by theme); two of the points are asks for the next milestone |
 | `v0.3.0-rc.5` | `release/0.3`, the commit the tag names | [`checklist-rc.5.md`](checklist-rc.5.md) | Cut on 2026-11-19. Its release build passed (run 15 of `release.yml`: verify, the guide, the Linux and the Windows package, the sums and the draft). **Not tested by the owner:** he asked for a redesign of the router that also places devices and parts before 0.3.0 is released, and the sixth candidate holds it |
-| `v0.3.0-rc.6` | `release/0.3`, the commit the tag names | [`checklist-rc.6.md`](checklist-rc.6.md) | Cut on 2026-11-20; waits for its release build and for the owner's hands-on test |
+| `v0.3.0-rc.6` | `release/0.3`, the commit the tag names | [`checklist-rc.6.md`](checklist-rc.6.md) | Cut on 2026-11-20. Its release build passed (run 16 of `release.yml`). **Promoted to 0.3.0** on the owner's go (section 4) |
 
 Before the first cut, on the tip that the release branch starts from: eight reviews by area and one of the whole
 milestone, each with its fix lane; a persona round of three picture-led runs on a new project, two re-tests, two
@@ -181,4 +181,6 @@ owner's test says whether an open row holds the release.
 
 ## 4. The go
 
-Not given yet.
+Given by the owner on 2026-11-20 for `v0.3.0-rc.6` ("Promote after build"), after he had accepted the redesigned router and placer as built. The candidate's release build passed (run 16 of `release.yml`: verify, the guide, the Linux and the Windows package, the sums and the draft). The release manager dispatched the promote from `main`: its dry run listed the tag, the commit and the candidate's five files, and the real run created the tag `v0.3.0` on the candidate's commit and published the release `v0.3.0` (latest) with those files, verified again against `SHA256SUMS`. The draft `v0.3.0-rc.6` stays as the record of the candidate.
+
+The owner did not test this candidate by hand before the go. Its test is the first production job drawn with it, which ran on the candidate's commit: what that job found in the program is in the backlog ("What the first production job found"), and none of it was held to be a reason not to release.
