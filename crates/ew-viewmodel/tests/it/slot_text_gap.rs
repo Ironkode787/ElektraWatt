@@ -99,8 +99,8 @@ fn a_back_reference_clears_the_next_contacts_tag_and_its_own_designation() {
     let (back, next_tag, own_end) = (backs[0], tags[1], ends[0]);
     let beside = back.1 < next_tag.3 && next_tag.1 < back.3;
     assert!(
-        // `ew_scene::page::SLOT_TEXT_GAP`, 0.5 mm.
-        !beside || next_tag.0 - back.2 >= 500_000 - 1_000,
+        // The text placer keeps an eighth of a grid step between texts (docs/design/06a-drafting.md §1.5).
+        !beside || next_tag.0 - back.2 >= 7_937_500 / 3 / 8 - 1_000,
         "{back:?} runs into {next_tag:?}"
     );
     assert!(!overlap(back, next_tag), "{back:?} overlaps {next_tag:?}");
@@ -161,13 +161,20 @@ fn a_valves_data_clears_the_next_valves_tag() {
         let beside = first.1 < next.3 && next.1 < first.3;
         assert!(!overlap(first, next), "{steps}: {first:?} overlaps {next:?}");
         assert!(
-            // `ew_scene::page::SLOT_TEXT_GAP`, 0.5 mm.
-            !beside || next.0 - first.2 >= 500_000 - 1_000,
+            // The text placer keeps an eighth of a grid step between texts (docs/design/06a-drafting.md §1.5).
+            !beside || next.0 - first.2 >= 7_937_500 / 3 / 8 - 1_000,
             "{steps}: {first:?} runs into {next:?}"
         );
-        // M1's own texts: everything left of M2's tag's right end that is not the data itself or M2's.
+        // M1's own texts: everything left of M2's tag's right end that is not the data itself or M2's, and not a pin's
+        // designation, which the symbol's author sets beside the data (their layout boxes touch at a corner).
         for (t, b) in &all {
-            if t != "24 V" && t != "-101M2" && b.2 <= first.0 + 2_000_000 && b.0 >= first.0 - 15_000_000 {
+            let designation = t.starts_with('A') && t.len() == 2;
+            if t != "24 V"
+                && t != "-101M2"
+                && !designation
+                && b.2 <= first.0 + 2_000_000
+                && b.0 >= first.0 - 15_000_000
+            {
                 assert!(!overlap(first, *b), "{steps}: {first:?} overlaps {t} {b:?}");
             }
         }

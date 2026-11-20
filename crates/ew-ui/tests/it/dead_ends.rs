@@ -179,7 +179,7 @@ fn count_before(d: &Driver, word: &str) -> Option<usize> {
 fn a_pages_pending_badge_counts_what_the_status_bar_counts() {
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
-    for (name, at) in [("fuse", (600, 400)), ("lamp", (900, 400))] {
+    for (name, at) in [("fuse", (700, 400)), ("lamp", (900, 400))] {
         d.input(&click(d.find("Symbol").unwrap()));
         d.input(&typed(name));
         d.input(&key("enter"));

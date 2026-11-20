@@ -431,6 +431,11 @@ fn black_box_caption(s: &mut ShellModel, a: (i64, i64), b: (i64, i64)) -> Vec<[i
         done(s, "canvas.activate", json!({}));
     }
     done(s, "tool.select", json!({}));
+    caption_rects(s)
+}
+
+/// The boxes of the texts the page prints left of the black box's outline, in page nm.
+fn caption_rects(s: &ShellModel) -> Vec<[i64; 4]> {
     let t = tables(s);
     let rep = t.reps.iter().find(|r| r.black_box.is_some()).expect("the box");
     let left = rep
@@ -514,8 +519,10 @@ fn a_black_box_caption_on_the_line_turns_the_through_route_away() {
         [pair("-103S1:14", "-103K1:A1")],
         "the router's route"
     );
-    // It runs through no caption text.
+    // It runs through no caption text where the texts stand once it is drawn: a text the program places steps aside
+    // (docs/design/06a-drafting.md §5).
     let line = &new[0].polyline;
+    let caption = caption_rects(&s);
     for w in line.windows(2) {
         let (a, b) = (w[0], w[1]);
         let (x0, x1, y0, y1) = (a.0.min(b.0), a.0.max(b.0), a.1.min(b.1), a.1.max(b.1));
