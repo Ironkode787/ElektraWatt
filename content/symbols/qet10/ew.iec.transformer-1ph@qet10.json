@@ -3,8 +3,8 @@
   "id": "28d03957-d8ac-5f96-ad48-22645501210d",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "c2ec65cb-4074-5a11-b7b0-322418f090d5",
-  "version": "0.1.1",
-  "sha256": "sha256:303003a6f1084db66cd886bae02696e2e662dc03e9308486b9fe2173159735cc",
+  "version": "0.1.2",
+  "sha256": "sha256:164378110afc295d4a839cad74d91bd660eb321bfa0b9473d9713687012016b2",
   "meta": {
     "key": "ew.iec.transformer-1ph@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -171,38 +171,38 @@
     {
       "kind": "tag",
       "pos": [
-        -3968750,
-        5291667
+        -3307292,
+        2645833
       ],
-      "align": "middle_right",
+      "align": "bottom_right",
       "visible": true
     },
     {
       "kind": "tech_data",
       "pos": [
-        7937500,
-        5291667
+        -3307292,
+        3307292
       ],
-      "align": "middle_left",
+      "align": "top_right",
       "visible": true
     },
     {
       "kind": "function_text",
       "pos": [
-        7937500,
-        2645833
+        -3307292,
+        5291667
       ],
-      "align": "middle_left"
+      "align": "top_right"
     },
     {
       "kind": {
         "cp_designation": 0
       },
       "pos": [
-        -661458,
+        661458,
         1322917
       ],
-      "align": "middle_right",
+      "align": "middle_left",
       "visible": true
     },
     {
@@ -210,10 +210,10 @@
         "cp_designation": 1
       },
       "pos": [
-        -661458,
+        661458,
         9260417
       ],
-      "align": "middle_right",
+      "align": "middle_left",
       "visible": true
     },
     {

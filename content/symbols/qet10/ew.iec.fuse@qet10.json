@@ -3,8 +3,8 @@
   "id": "3a823ea9-a3a0-558b-8529-5b66b06050b2",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "c5520c3c-c42c-568d-9f48-e30c1f5a8cf7",
-  "version": "0.1.1",
-  "sha256": "sha256:f1dd1c97ccfbea058a8a373928dfccb0cfa06e9781e7260be140996848356d01",
+  "version": "0.1.2",
+  "sha256": "sha256:1904ec54e3cb7c56988b99be5d0148700d07a97f109ba3d0953ef3c2cfd6912a",
   "meta": {
     "key": "ew.iec.fuse@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -94,19 +94,19 @@
     {
       "kind": "tag",
       "pos": [
-        -2645833,
-        3968750
+        -1984375,
+        2645833
       ],
-      "align": "middle_right",
+      "align": "bottom_right",
       "visible": true
     },
     {
       "kind": "tech_data",
       "pos": [
-        1984375,
-        3968750
+        -1984375,
+        3307292
       ],
-      "align": "middle_left",
+      "align": "top_right",
       "visible": true
     },
     {
@@ -115,7 +115,7 @@
       },
       "pos": [
         661458,
-        661458
+        1322917
       ],
       "align": "middle_left",
       "visible": true
@@ -126,7 +126,7 @@
       },
       "pos": [
         661458,
-        7276042
+        6614583
       ],
       "align": "middle_left",
       "visible": true

@@ -3,8 +3,8 @@
   "id": "3e29f902-5e37-55a2-bc41-2caca2ebabf0",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "bd5dff42-e6b1-56b3-b32f-e951a2ea9c08",
-  "version": "0.1.1",
-  "sha256": "sha256:57a09972d2032f1396f33c7f81e06fb6853fccc0688edd6303ab54f387d7f7b6",
+  "version": "0.1.2",
+  "sha256": "sha256:090fcf96ee8403a438f725c8c8ceb2295f3c8b48c66ea33064a1b787681f8775",
   "meta": {
     "key": "ew.iec.transformer-1ph",
     "licence": "CC-BY-SA-4.0",
@@ -159,38 +159,38 @@
     {
       "kind": "tag",
       "pos": [
-        -6000000,
-        8000000
+        -5000000,
+        4000000
       ],
-      "align": "middle_right",
+      "align": "bottom_right",
       "visible": true
     },
     {
       "kind": "tech_data",
       "pos": [
-        12000000,
-        8000000
+        -5000000,
+        5000000
       ],
-      "align": "middle_left",
+      "align": "top_right",
       "visible": true
     },
     {
       "kind": "function_text",
       "pos": [
-        12000000,
-        4000000
+        -5000000,
+        8000000
       ],
-      "align": "middle_left"
+      "align": "top_right"
     },
     {
       "kind": {
         "cp_designation": 0
       },
       "pos": [
-        -1000000,
+        1000000,
         2000000
       ],
-      "align": "middle_right",
+      "align": "middle_left",
       "visible": true
     },
     {
@@ -198,10 +198,10 @@
         "cp_designation": 1
       },
       "pos": [
-        -1000000,
+        1000000,
         14000000
       ],
-      "align": "middle_right",
+      "align": "middle_left",
       "visible": true
     },
     {

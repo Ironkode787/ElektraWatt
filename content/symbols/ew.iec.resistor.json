@@ -3,8 +3,8 @@
   "id": "c0997f9b-2471-5a5e-adb4-e267f4d74e64",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "cc3c4315-4c45-505d-b321-88c4f9643b38",
-  "version": "0.1.1",
-  "sha256": "sha256:09af20ad1a6a41c79acbff74a1ae54515289dc63a1f987340c71e648c0709efc",
+  "version": "0.1.2",
+  "sha256": "sha256:1b5919d9f3356cabef618b43240cbf147095a9bfee8856c90d6bdea0975f2e5a",
   "meta": {
     "key": "ew.iec.resistor",
     "licence": "CC-BY-SA-4.0",
@@ -104,18 +104,18 @@
       "kind": "tag",
       "pos": [
         -3000000,
-        6000000
+        4000000
       ],
-      "align": "middle_right",
+      "align": "bottom_right",
       "visible": true
     },
     {
       "kind": "tech_data",
       "pos": [
-        3000000,
-        6000000
+        -3000000,
+        5000000
       ],
-      "align": "middle_left",
+      "align": "top_right",
       "visible": true
     },
     {
@@ -124,7 +124,7 @@
       },
       "pos": [
         1000000,
-        1000000
+        2000000
       ],
       "align": "middle_left",
       "visible": true
@@ -135,7 +135,7 @@
       },
       "pos": [
         1000000,
-        11000000
+        10000000
       ],
       "align": "middle_left",
       "visible": true

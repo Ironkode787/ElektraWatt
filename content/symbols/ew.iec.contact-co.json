@@ -3,8 +3,8 @@
   "id": "69085337-eff9-55aa-a98f-c42c43e9c511",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "b628ca8f-9f29-5f06-87e9-b0b859f90399",
-  "version": "0.1.1",
-  "sha256": "sha256:493579ca2ceace6bd232311a7183914bbdbc2fa682b5011e6f2376f48957e591",
+  "version": "0.1.2",
+  "sha256": "sha256:10978821c8b2a7f44073c95c3e93d1382cc04ea10af32040d489678a66f62942",
   "meta": {
     "key": "ew.iec.contact-co",
     "licence": "CC-BY-SA-4.0",
@@ -127,19 +127,19 @@
     {
       "kind": "tag",
       "pos": [
-        -2000000,
-        8000000
+        -1000000,
+        4000000
       ],
-      "align": "middle_right",
+      "align": "bottom_right",
       "visible": true
     },
     {
       "kind": "xref",
       "pos": [
-        10000000,
-        8000000
+        -1000000,
+        5000000
       ],
-      "align": "middle_left",
+      "align": "top_right",
       "visible": true,
       "style": "xref.device"
     },
@@ -149,7 +149,7 @@
       },
       "pos": [
         5000000,
-        11000000
+        10000000
       ],
       "align": "middle_left",
       "visible": true
@@ -160,7 +160,7 @@
       },
       "pos": [
         1000000,
-        1000000
+        2000000
       ],
       "align": "middle_left",
       "visible": true
@@ -171,7 +171,7 @@
       },
       "pos": [
         9000000,
-        1000000
+        2000000
       ],
       "align": "middle_left",
       "visible": true

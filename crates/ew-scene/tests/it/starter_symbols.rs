@@ -1328,17 +1328,17 @@ fn snapshot_mcb_1pn_r0() {
       cp 1 fn 1 (0,16000000) Down
       cp 2 fn 2 (12000000,0) Up
       cp 3 fn 3 (12000000,16000000) Down
-      text slot Tag (-4000000,8000000) 0 MiddleRight visible=true
-      text slot Manufacturer (15000000,3000000) 0 MiddleLeft visible=true
-      text slot PartNumber (15000000,8000000) 0 MiddleLeft visible=true
-      text slot TechData (15000000,13000000) 0 MiddleLeft visible=true
-      text slot FunctionText (-4000000,12000000) 0 MiddleRight visible=false
+      text slot Tag (-3000000,4000000) 0 BottomRight visible=true
+      text slot Manufacturer (-3000000,5000000) 0 TopRight visible=true
+      text slot PartNumber (-3000000,8000000) 0 TopRight visible=true
+      text slot TechData (-3000000,11000000) 0 TopRight visible=true
+      text slot FunctionText (-3000000,14000000) 0 TopRight visible=false
       text slot CpDesignation(0) (1000000,2000000) 0 MiddleLeft visible=true
       text slot CpDesignation(1) (1000000,14000000) 0 MiddleLeft visible=true
       text slot CpDesignation(2) (13000000,2000000) 0 MiddleLeft visible=true
       text slot CpDesignation(3) (13000000,14000000) 0 MiddleLeft visible=true
       anchor (4000000,8000000)
-      bounds (-4000000,0) (15000000,16000000)
+      bounds (-3000000,0) (13000000,16000000)
       items 14
         0 path pen w260000 #000000ff fill none M(0,0) L(0,5000000)
         1 path pen w260000 #000000ff fill none M(0,16000000) L(0,12000000)
@@ -1367,12 +1367,12 @@ fn snapshot_contact_no_m90() {
     F
       cp 0 fn 0 (0,0) Right
       cp 1 fn 1 (-12000000,0) Left
-      text slot Tag (-6000000,4000000) 0 TopCentre visible=true
-      text slot Xref (-6000000,-4000000) 0 BottomCentre visible=true
+      text slot Tag (-4000000,3000000) 0 TopLeft visible=true
+      text slot Xref (-5000000,3000000) 0 TopRight visible=true
       text slot CpDesignation(0) (-2000000,-1000000) 0 BottomLeft visible=true
       text slot CpDesignation(1) (-10000000,-1000000) 0 BottomRight visible=true
       anchor (0,0)
-      bounds (-12000000,-4000000) (0,4000000)
+      bounds (-12000000,-1000000) (0,3000000)
       items 3
         0 path pen w260000 #000000ff fill none M(0,0) L(-4000000,0)
         1 path pen w260000 #000000ff fill none M(-12000000,0) L(-8000000,0)

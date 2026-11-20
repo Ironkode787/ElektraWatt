@@ -3,8 +3,8 @@
   "id": "910b3784-95b2-50a6-af5d-d3e0bdd51271",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "c0dedc82-6bdf-5b56-8911-a4871c827294",
-  "version": "0.2.1",
-  "sha256": "sha256:aac457126f30b22b181d9bf72c3f29c5614fb251331e7ae5d8b45f374808f3c6",
+  "version": "0.2.2",
+  "sha256": "sha256:7cb9f735fde90ea88efd12ee2c2bdbf8d966a11b9c86a31ad64df739ac36f0ec",
   "meta": {
     "key": "ew.iec.lamp",
     "licence": "CC-BY-SA-4.0",
@@ -130,27 +130,27 @@
     {
       "kind": "tag",
       "pos": [
-        -5000000,
-        6000000
+        -4000000,
+        4000000
       ],
-      "align": "middle_right",
+      "align": "bottom_right",
       "visible": true
     },
     {
       "kind": "function_text",
       "pos": [
-        5000000,
-        4000000
+        -4000000,
+        11000000
       ],
-      "align": "middle_left"
+      "align": "top_right"
     },
     {
       "kind": "tech_data",
       "pos": [
-        5000000,
+        -4000000,
         8000000
       ],
-      "align": "middle_left",
+      "align": "top_right",
       "visible": true
     },
     {
@@ -159,7 +159,7 @@
       },
       "pos": [
         1000000,
-        1000000
+        2000000
       ],
       "align": "middle_left",
       "visible": true
@@ -170,7 +170,7 @@
       },
       "pos": [
         1000000,
-        11000000
+        10000000
       ],
       "align": "middle_left",
       "visible": true
@@ -178,10 +178,10 @@
     {
       "kind": "plc_address",
       "pos": [
-        -5000000,
-        10000000
+        -4000000,
+        5000000
       ],
-      "align": "middle_right",
+      "align": "top_right",
       "visible": true
     }
   ],

@@ -3,8 +3,8 @@
   "id": "a7cfb20f-77c8-523b-bb13-58e9448ad522",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "636be513-c97e-5e10-9005-226c9b41e5b5",
-  "version": "0.2.1",
-  "sha256": "sha256:91b445a5f7095cfa2d8dde790bdc431f8c3574d4cd9c7dbc395d352889819e6d",
+  "version": "0.2.2",
+  "sha256": "sha256:c366599d9e98d6b957253b45f097f769e06db300985608a09779a260543aaf2c",
   "meta": {
     "key": "ew.iec.valve-coil",
     "licence": "CC-BY-SA-4.0",
@@ -121,29 +121,29 @@
     {
       "kind": "tag",
       "pos": [
-        -4000000,
-        8000000
+        -3000000,
+        4000000
       ],
-      "align": "middle_right",
+      "align": "bottom_right",
       "visible": true
     },
     {
       "kind": "xref",
       "pos": [
-        4000000,
-        10000000
+        -3000000,
+        11000000
       ],
-      "align": "middle_left",
+      "align": "top_right",
       "visible": true,
       "style": "xref.device"
     },
     {
       "kind": "tech_data",
       "pos": [
-        4000000,
-        6000000
+        -3000000,
+        8000000
       ],
-      "align": "middle_left",
+      "align": "top_right",
       "visible": true
     },
     {
@@ -171,10 +171,10 @@
     {
       "kind": "plc_address",
       "pos": [
-        -4000000,
-        12000000
+        -3000000,
+        5000000
       ],
-      "align": "middle_right",
+      "align": "top_right",
       "visible": true
     }
   ],

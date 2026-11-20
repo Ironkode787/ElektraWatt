@@ -3,8 +3,8 @@
   "id": "e2cae815-1055-54bb-aa76-9cd14baaaa7d",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "fc5100f0-d55c-50cc-9249-96cee6cb92b6",
-  "version": "0.1.1",
-  "sha256": "sha256:854e00cf308d8d8b1cffd14ffdb6b6170310931a0182965820caccdb47db7dca",
+  "version": "0.1.2",
+  "sha256": "sha256:65a0b1d91791cde11158f12464e634c4d98790db5f17c84c6f7f3666a278d702",
   "meta": {
     "key": "ew.iec.thermostat-nc@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -156,19 +156,19 @@
     {
       "kind": "tag",
       "pos": [
-        1984375,
-        1984375
+        -5291667,
+        2645833
       ],
-      "align": "middle_left",
+      "align": "bottom_right",
       "visible": true
     },
     {
       "kind": "tech_data",
       "pos": [
-        1984375,
-        5953125
+        -5291667,
+        5291667
       ],
-      "align": "middle_left",
+      "align": "top_right",
       "visible": true
     },
     {
@@ -176,10 +176,10 @@
         "cp_designation": 0
       },
       "pos": [
-        -661458,
-        661458
+        661458,
+        1322917
       ],
-      "align": "middle_right",
+      "align": "middle_left",
       "visible": true
     },
     {
@@ -187,19 +187,19 @@
         "cp_designation": 1
       },
       "pos": [
-        -661458,
-        7276042
+        661458,
+        6614583
       ],
-      "align": "middle_right",
+      "align": "middle_left",
       "visible": true
     },
     {
       "kind": "part_number",
       "pos": [
-        1984375,
-        9260417
+        -5291667,
+        3307292
       ],
-      "align": "middle_left",
+      "align": "top_right",
       "visible": true
     }
   ],

@@ -3,8 +3,8 @@
   "id": "9d3d8d16-1fe1-5765-a458-716bad07decb",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "926b5153-9c7e-5aee-8c58-44e62edebc4d",
-  "version": "0.1.0",
-  "sha256": "sha256:8b0399b78bfcbd5afad6d339c7fd358541db7dcec8e5704127e35105a51c516d",
+  "version": "0.1.1",
+  "sha256": "sha256:86794ad715f4ad169ae22b67d92e47e326d20287e6a76818184453b3b89cee92",
   "meta": {
     "key": "ew.iec.mcb-3p@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -431,37 +431,37 @@
     {
       "kind": "tag",
       "pos": [
-        -2645833,
-        5291667
+        -1984375,
+        2645833
       ],
-      "align": "middle_right",
+      "align": "bottom_right",
       "visible": true
     },
     {
       "kind": "part_number",
       "pos": [
-        17859375,
-        3968750
+        -1984375,
+        3307292
       ],
-      "align": "middle_left",
+      "align": "top_right",
       "visible": true
     },
     {
       "kind": "tech_data",
       "pos": [
-        17859375,
-        7276042
+        -1984375,
+        5291667
       ],
-      "align": "middle_left",
+      "align": "top_right",
       "visible": true
     },
     {
       "kind": "function_text",
       "pos": [
-        -2645833,
-        7937500
+        -1984375,
+        7276042
       ],
-      "align": "middle_right"
+      "align": "top_right"
     },
     {
       "kind": {

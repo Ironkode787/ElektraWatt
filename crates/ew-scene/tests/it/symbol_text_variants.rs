@@ -124,7 +124,7 @@ fn align_of(g: &ew_scene::symbol::SymbolGeometry, kind: &ew_schema::SlotKind) ->
 }
 
 /// Turning or mirroring a symbol never turns a text (a turned part's tag and connection texts stay upright). A
-/// transformer has its tag left of the body and a designation beside each of its four points.
+/// transformer has its tag at the upper left of the body and a designation beside each of its four points.
 #[test]
 fn a_turned_transformer_keeps_every_text_upright_and_beside_its_point() {
     use ew_schema::SlotKind::{CpDesignation, Tag};
@@ -136,19 +136,19 @@ fn a_turned_transformer_keeps_every_text_upright_and_beside_its_point() {
         assert!(g.texts.iter().all(|t| t.angle == Angle2::ZERO), "{variant:?}");
     }
     let r90 = lower(&def, Orient2::R90);
-    // The tag, left of the body, stands centred above it.
-    assert_eq!(align_of(&r90, &Tag), Align::BottomCentre);
-    // The points' lines leave right: the designations run right along their lines, one above and one below.
-    assert_eq!(align_of(&r90, &CpDesignation(0)), Align::BottomLeft);
+    // The tag, at the upper left of the body, stands above it.
+    assert_eq!(align_of(&r90, &Tag), Align::BottomLeft);
+    // The points' lines leave right: the designations, right of their lines unturned, run right along them below.
+    assert_eq!(align_of(&r90, &CpDesignation(0)), Align::TopLeft);
     assert_eq!(align_of(&r90, &CpDesignation(2)), Align::TopLeft);
-    // Unturned and mirrored they keep their sides as before.
+    // Unturned and mirrored they keep their sides.
     assert_eq!(
         align_of(&lower(&def, Orient2::R0), &CpDesignation(0)),
-        Align::MiddleRight
+        Align::MiddleLeft
     );
     assert_eq!(
         align_of(&lower(&def, Orient2::M0), &CpDesignation(0)),
-        Align::MiddleLeft
+        Align::MiddleRight
     );
 }
 

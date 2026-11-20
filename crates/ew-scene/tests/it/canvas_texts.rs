@@ -775,8 +775,8 @@ fn point_label(symbol_text: &str, path: &[(i64, i64)]) -> (Rect, Rect) {
 /// leaves upwards or sideways does not run through it, and it stays where its symbol puts it.
 #[test]
 fn a_points_cross_reference_stands_clear_of_its_own_wire() {
-    // Down: from the tail, down, under the arrow, down.
-    let down = [(39, 27), (39, 28), (40, 28), (40, 34)];
+    // Down: from the tail a step on, then down through the text under the wire.
+    let down = [(39, 27), (38, 27), (38, 34)];
     let (shown, bare) = point_label(IP, &down);
     assert!(
         down.windows(2).any(|w| crosses(bare, w[0], w[1])),

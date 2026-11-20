@@ -3,8 +3,8 @@
   "id": "abf8caba-a8dc-5a2e-8ea8-cee4c0c0d0c3",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "3f26e701-0526-50a5-ba4e-5b0e2cc8f9ef",
-  "version": "0.3.0",
-  "sha256": "sha256:c7f50a1991f0881c9fc01a08a24bba012f96af064456849b120965c99cf87e9d",
+  "version": "0.3.1",
+  "sha256": "sha256:17270abb524b469c906cdf09eb58a66c4bea47c5d95cc5a8b9fc9af43f4d0f58",
   "meta": {
     "key": "ew.iec.motor-3ph",
     "licence": "CC-BY-SA-4.0",
@@ -179,27 +179,27 @@
     {
       "kind": "tag",
       "pos": [
-        -8000000,
-        8000000
+        -9000000,
+        0
       ],
-      "align": "middle_right",
+      "align": "bottom_right",
       "visible": true
     },
     {
       "kind": "function_text",
       "pos": [
-        -8000000,
+        -9000000,
         4000000
       ],
-      "align": "middle_right"
+      "align": "top_right"
     },
     {
       "kind": "tech_data",
       "pos": [
-        -8000000,
-        12000000
+        -9000000,
+        1000000
       ],
-      "align": "middle_right",
+      "align": "top_right",
       "visible": true
     },
     {
@@ -208,7 +208,7 @@
       },
       "pos": [
         -7000000,
-        -1000000
+        -2000000
       ],
       "align": "middle_left",
       "visible": true
@@ -219,7 +219,7 @@
       },
       "pos": [
         1000000,
-        -1000000
+        -2000000
       ],
       "align": "middle_left",
       "visible": true
@@ -230,7 +230,7 @@
       },
       "pos": [
         9000000,
-        -1000000
+        -2000000
       ],
       "align": "middle_left",
       "visible": true

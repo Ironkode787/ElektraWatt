@@ -3,8 +3,8 @@
   "id": "491078b6-57b5-51ab-a256-f1936894fe92",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "7d40db56-40ab-5425-b993-d94ee239e7a9",
-  "version": "0.2.1",
-  "sha256": "sha256:84c36e63c148e78ee2a57e160cab433a4950aad9ccaa70e88d27a4a1e1208fbf",
+  "version": "0.2.2",
+  "sha256": "sha256:65c66f434cd9769c5080265492c1b6b510e01aa6bea5dd5bcb4d74ceb4cf1a1f",
   "meta": {
     "key": "ew.iec.position-switch-no",
     "licence": "CC-BY-SA-4.0",
@@ -133,19 +133,19 @@
     {
       "kind": "tag",
       "pos": [
-        3000000,
-        5000000
+        -8000000,
+        4000000
       ],
-      "align": "middle_left",
+      "align": "bottom_right",
       "visible": true
     },
     {
       "kind": "tech_data",
       "pos": [
-        3000000,
+        -8000000,
         8000000
       ],
-      "align": "middle_left",
+      "align": "top_right",
       "visible": true
     },
     {
@@ -153,10 +153,10 @@
         "cp_designation": 0
       },
       "pos": [
-        -1000000,
-        1000000
+        1000000,
+        2000000
       ],
-      "align": "middle_right",
+      "align": "middle_left",
       "visible": true
     },
     {
@@ -164,19 +164,19 @@
         "cp_designation": 1
       },
       "pos": [
-        -1000000,
-        11000000
+        1000000,
+        10000000
       ],
-      "align": "middle_right",
+      "align": "middle_left",
       "visible": true
     },
     {
       "kind": "plc_address",
       "pos": [
-        3000000,
-        11000000
+        -8000000,
+        5000000
       ],
-      "align": "middle_left",
+      "align": "top_right",
       "visible": true
     }
   ],
