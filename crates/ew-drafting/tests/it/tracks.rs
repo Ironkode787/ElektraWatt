@@ -32,8 +32,18 @@ fn routed_clean(page: &DraftPage) -> (DraftPage, usize) {
 #[test]
 fn a_two_pole_device_over_one_of_another_pitch_has_one_pole_straight_and_one_step() {
     let mut b = Page::new(40, 30);
-    let upper = [("1", p(0, 0), Side::Up), ("3", p(2, 0), Side::Up), ("2", p(0, 4), Side::Down), ("4", p(2, 4), Side::Down)];
-    let lower = [("1", p(0, 0), Side::Up), ("3", p(3, 0), Side::Up), ("2", p(0, 4), Side::Down), ("4", p(3, 4), Side::Down)];
+    let upper = [
+        ("1", p(0, 0), Side::Up),
+        ("3", p(2, 0), Side::Up),
+        ("2", p(0, 4), Side::Down),
+        ("4", p(2, 4), Side::Down),
+    ];
+    let lower = [
+        ("1", p(0, 0), Side::Up),
+        ("3", p(3, 0), Side::Up),
+        ("2", p(0, 4), Side::Down),
+        ("4", p(3, 4), Side::Down),
+    ];
     b.part("Q1", p(10, 10), (p(-1, 0), p(3, 4)), &upper);
     b.part("K1", p(10, 19), (p(-1, 0), p(4, 4)), &lower);
     let straight = b.wire("a", b.pin("Q1", "2"), b.pin("K1", "1"), &[]);
@@ -54,11 +64,22 @@ fn five_sensors_over_pins_two_steps_apart_step_in_and_none_crosses() {
     }
     b.card("A1", p(14, 16), (12, 4), &[2, 4, 6, 8, 10], true);
     let w: Vec<WireId> = (0..xs.len())
-        .map(|k| b.wire(&format!("w{k}"), b.pin(&format!("B{k}"), "2"), b.pin("A1", &format!("{k}")), &[]))
+        .map(|k| {
+            b.wire(
+                &format!("w{k}"),
+                b.pin(&format!("B{k}"), "2"),
+                b.pin("A1", &format!("{k}")),
+                &[],
+            )
+        })
         .collect();
     let (done, crossings) = routed_clean(&b.page);
     assert_eq!(crossings, 0);
-    assert_eq!(route_of(&done, w[2]).len(), 2, "the middle sensor stands over its pin");
+    assert_eq!(
+        route_of(&done, w[2]).len(),
+        2,
+        "the middle sensor stands over its pin"
+    );
     // On each side the inner wire takes the track nearer the sensors, the outer one the next, two steps further.
     for (inner, outer) in [(w[1], w[0]), (w[3], w[4])] {
         assert_eq!(track(&done, inner), s(8) + TRACK_PITCH);
@@ -72,7 +93,14 @@ fn four_wires_between_two_rows_in_the_same_order_take_four_tracks_and_cross_nowh
     b.card("U", p(10, 6), (20, 4), &[2, 4, 6, 8], false);
     b.card("L", p(10, 22), (20, 4), &[12, 14, 16, 18], true);
     let w: Vec<WireId> = (0..4)
-        .map(|k| b.wire(&format!("w{k}"), b.pin("U", &format!("{k}")), b.pin("L", &format!("{k}")), &[]))
+        .map(|k| {
+            b.wire(
+                &format!("w{k}"),
+                b.pin("U", &format!("{k}")),
+                b.pin("L", &format!("{k}")),
+                &[],
+            )
+        })
         .collect();
     let (done, crossings) = routed_clean(&b.page);
     assert_eq!(crossings, 0);
@@ -80,7 +108,10 @@ fn four_wires_between_two_rows_in_the_same_order_take_four_tracks_and_cross_nowh
     tracks.sort();
     tracks.dedup();
     assert_eq!(tracks.len(), 4, "{tracks:?}");
-    assert!(tracks.windows(2).all(|t| t[1] - t[0] == TRACK_PITCH), "{tracks:?}");
+    assert!(
+        tracks.windows(2).all(|t| t[1] - t[0] == TRACK_PITCH),
+        "{tracks:?}"
+    );
 }
 
 #[test]
@@ -125,7 +156,10 @@ fn a_u_inside_another_u_takes_the_nearer_track() {
 #[test]
 fn the_placer_s_count_follows_the_assignment() {
     // Four wires that step the same way over each other's legs: four tracks.
-    assert_eq!(tracks_needed(&[(s(0), s(10)), (s(2), s(12)), (s(4), s(14)), (s(6), s(16))]), 4);
+    assert_eq!(
+        tracks_needed(&[(s(0), s(10)), (s(2), s(12)), (s(4), s(14)), (s(6), s(16))]),
+        4
+    );
     // Steps side by side, their spans apart: one track.
     assert_eq!(tracks_needed(&[(s(0), s(2)), (s(5), s(7)), (s(10), s(12))]), 1);
     // A pair that swaps sides: two tracks; a wire in line: none.
