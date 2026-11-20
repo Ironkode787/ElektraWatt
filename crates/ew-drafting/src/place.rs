@@ -92,12 +92,14 @@ impl Arranged {
 /// Deterministic: the same page in any order of its lists gives the same plan.
 pub fn arrange(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> Arranged {
     let before = measure(page);
-    let fallback = || {
+    // Without a plan the measure takes: Route's plan of the scope, and the parts that have no room named all the same.
+    let fallback = |left: &[(PartId, Side)]| {
         let mut jobs = route::jobs(page, scope);
         jobs.wires.retain(|w| !fixed.contains(&w.0));
         let plan = route::route(page, &jobs);
         Arranged {
             plan,
+            left: left.to_vec(),
             ..Arranged::default()
         }
     };
@@ -205,7 +207,7 @@ pub fn arrange(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> Ar
         }
     }
     let Some((_, moves, moved, plan, quality)) = best else {
-        return fallback();
+        return fallback(&p.left);
     };
     Arranged {
         plan: finished(page, &moved, plan, before, quality),
