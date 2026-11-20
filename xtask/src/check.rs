@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! `check [-p <package>]... [--no-test]`: the one command that checks a change.
+//! `check [-p <package>]... [--no-test] [-- <test filter>...]`: the one command that checks a change.
 //!
 //! In this order, each step printed with its result: rustfmt over every Rust file (it formats, it does not only
 //! compare), clippy with warnings as errors, the tests and the doctests, and the repository rules. Before the tests of
@@ -9,6 +9,9 @@
 //! harness's replay of its briefs on the built product reads. The scope of clippy and the tests is the packages named
 //! with `-p`, or the whole workspace; all features are on, so the pixel snapshots of `ew-ui` run too. A failed step
 //! does not stop the later ones.
+//!
+//! What follows `--` narrows the tests: it is handed to `cargo nextest run` as its filters (name substrings, or
+//! `-E <expression>`), the doctests do not run, and the summary says so. Format, clippy and the rules run in full.
 
 use std::io::{BufRead, BufReader};
 use std::path::Path;
@@ -26,12 +29,15 @@ const UNRESOLVED_CLIPPY_PATH: &str = "does not refer to a reachable";
 struct Args {
     packages: Vec<String>,
     test: bool,
+    /// The test filter after `--`, handed to nextest as it is; empty runs every test.
+    filter: Vec<String>,
 }
 
 fn parse(args: &[String]) -> Result<Args> {
     let mut out = Args {
         packages: Vec::new(),
         test: true,
+        filter: Vec::new(),
     };
     let mut rest = args.iter();
     while let Some(arg) = rest.next() {
@@ -40,8 +46,17 @@ fn parse(args: &[String]) -> Result<Args> {
                 .packages
                 .push(rest.next().context("-p needs a package name")?.clone()),
             "--no-test" => out.test = false,
+            "--" => {
+                out.filter = rest.by_ref().cloned().collect();
+                if out.filter.is_empty() {
+                    bail!("check: `--` needs a test filter after it");
+                }
+            }
             other => bail!("check: unknown argument `{other}`"),
         }
+    }
+    if !out.test && !out.filter.is_empty() {
+        bail!("check: --no-test runs no test, so it takes no test filter");
     }
     Ok(out)
 }
@@ -78,12 +93,13 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
             }
         }
         println!("==> tests");
+        let tests_scope: Vec<String> = scope.iter().chain(&args.filter).cloned().collect();
         summary.push((
             "tests",
-            cargo(root, &["nextest", "run", "--all-features"], &scope)?,
+            cargo(root, &["nextest", "run", "--all-features"], &tests_scope)?,
         ));
         let with_lib = doctest_scope(&args.packages)?;
-        if !with_lib.is_empty() {
+        if !with_lib.is_empty() && args.filter.is_empty() {
             println!("==> doctests");
             summary.push((
                 "doctests",
@@ -98,6 +114,12 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
     println!("\nsummary:");
     for (name, passed) in &summary {
         println!("  {name:<10} {}", if *passed { "ok" } else { "FAILED" });
+    }
+    if !args.filter.is_empty() {
+        println!(
+            "  the tests were narrowed to `{}`; the doctests did not run",
+            args.filter.join(" ")
+        );
     }
     Ok(summary.iter().all(|(_, passed)| *passed))
 }
@@ -316,7 +338,14 @@ mod tests {
         let parsed = parse(&args(&["-p", "ew-ui", "--no-test", "-p", "ew"])).unwrap();
         assert_eq!(parsed.packages, ["ew-ui", "ew"]);
         assert!(!parsed.test);
+        assert!(parsed.filter.is_empty());
         assert!(parse(&args(&["--fast"])).is_err());
         assert!(parse(&args(&["-p"])).is_err());
+        // Everything after `--` is the test filter, as nextest takes it.
+        let parsed = parse(&args(&["-p", "ew", "--", "-E", "test(=a) | test(b)", "-p"])).unwrap();
+        assert_eq!(parsed.packages, ["ew"]);
+        assert_eq!(parsed.filter, ["-E", "test(=a) | test(b)", "-p"]);
+        assert!(parse(&args(&["-p", "ew", "--"])).is_err());
+        assert!(parse(&args(&["--no-test", "--", "a"])).is_err());
     }
 }

@@ -36,10 +36,11 @@ const USAGE: &str = "\
 usage: cargo xtask <command>
 
 the loop:
-  check [-p <package>]... [--no-test]
+  check [-p <package>]... [--no-test] [-- <test filter>...]
                        checks a change: formats every Rust file, then clippy and the tests of the named packages
                        (the whole workspace without -p) with all features, then the repository rules. --no-test
-                       leaves the tests out
+                       leaves the tests out; a filter after -- (nextest's: name substrings or -E <expression>)
+                       narrows them and leaves the doctests out
   gen [--check]        regenerates every generated file: the reference of the commands, rules,
                        keymaps, CLI, queries and views (target/reference, not committed), the book's contents and
                        reference pages, the icon table, the lint list and the QET symbol edition; --check writes
