@@ -220,6 +220,8 @@ pub(crate) struct ToolHost {
     /// The wires the last Reroute changed, with its toast's serial and the revision it left (rc.5): drawn as a
     /// selected wire is while that toast is up and the project is at that revision.
     pub rerouted: Option<(u64, Option<u64>, Vec<ew_api::output::Uuid>)>,
+    /// The page an open Arrange and route card would leave (docs/design/06a-drafting.md §7.3), read once per plan.
+    pub arranged: Option<std::sync::Arc<crate::canvas::CanvasPage>>,
 }
 
 /// The cached part offers of a draw tool: the (session, revision, kind) they were computed for, and the offers.
@@ -328,6 +330,7 @@ impl ToolHost {
             quiet_stack_at: None,
             draw_offers: std::cell::RefCell::new(None),
             rerouted: None,
+            arranged: None,
         }
     }
 }

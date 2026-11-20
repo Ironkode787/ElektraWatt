@@ -121,6 +121,10 @@ impl ShellModel {
             out.extend(self.supply_remove_item());
             out.extend(self.supply_potential_item());
             out.extend(self.supply_group_item());
+            // Arrange and route the symbols selected (docs/design/06a-drafting.md §7.1).
+            if kinds.iter().any(|(_, k)| *k == EntityKind::Rep) {
+                out.extend(self.menu_item("layout.arrange"));
+            }
             return out;
         };
         match kind {
@@ -133,8 +137,9 @@ impl ShellModel {
                         self.terminal_fits(rep, &mut out);
                     } else if rep.device.is_some() {
                         self.device_fits(rep, at, &mut out);
-                        // Route its wires (docs/design/06a-drafting.md §7.1).
+                        // Route its wires, or arrange it and route (docs/design/06a-drafting.md §7.1).
                         out.extend(self.menu_item("layout.route"));
+                        out.extend(self.menu_item("layout.arrange"));
                     }
                     // A drawn box: Add pin or Remove pin, and Centre the pins (rc.5).
                     if rep.black_box.is_some() {

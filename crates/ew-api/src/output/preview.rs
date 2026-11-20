@@ -156,6 +156,23 @@ impl Session {
             })
             .collect()
     }
+
+    /// The sheet display list of the page labelled `folio` as `preview` would leave it, read from its candidate model:
+    /// the page Arrange and route shows before anything changes (docs/design/06a-drafting.md §7.3). `None` for a
+    /// folio the candidate does not have.
+    pub fn preview_page(&self, preview: &Preview, folio: &str) -> Option<ew_export::PdfPage> {
+        let options = super::ExportOptions {
+            pages: super::PageSelection::Folios(vec![folio.to_owned()]),
+            underlays: true,
+            ..super::ExportOptions::default()
+        };
+        let q = self.query_over(preview.candidate());
+        super::export_pages_with(&q, &options, &super::ExportAssets::of(preview.candidate()))
+            .ok()?
+            .pages
+            .into_iter()
+            .next()
+    }
 }
 
 #[cfg(test)]

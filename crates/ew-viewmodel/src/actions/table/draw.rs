@@ -829,6 +829,44 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_layout_route(),
         ),
     )),
+    // Arrange and route beside Route (docs/design/06a-drafting.md §7.1): the selection's symbols, or the page's, put
+    // in line with the pins they are wired to within the rules of the page's kind, then routed; always previewed.
+    keeps_banner(placed(
+        place(Group::Connect, 3, CommandSize::Small, None),
+        "layout-align-left",
+        act(
+            "layout.arrange",
+            Command,
+            Menu::Draw,
+            &[],
+            editable_page,
+            grp(Group::Connect),
+            |s, _| s.act_layout_arrange(),
+        ),
+    )),
+    // A row of the Arrange and route card ticked or unticked: the page is planned again (§7.3).
+    with_params(
+        "row:int",
+        hidden(act(
+            "layout.arrange_tick",
+            Command,
+            Menu::Draw,
+            &[],
+            editable_page,
+            None,
+            |s, p| s.act_layout_arrange_tick(p),
+        )),
+    ),
+    // B while an Arrange and route card is open: the window shows the page as it is while the key is held.
+    hidden(in_canvas(act(
+        "layout.arrange_as_is",
+        View,
+        Menu::Draw,
+        &[],
+        editable_page,
+        None,
+        |s, _| s.act_layout_arrange_as_is(),
+    ))),
     // While a wire is drawn, `.` makes the joint it makes on a wire a dot instead of the bevel (§7.6).
     keeps_banner(hidden(in_canvas(act(
         "tool.wire_dot",

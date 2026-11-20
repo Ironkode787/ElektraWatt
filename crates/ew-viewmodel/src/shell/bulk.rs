@@ -118,9 +118,12 @@ impl ShellModel {
                 ],
             ));
         }
-        // A route card's summary is its plan's lead (§12a).
+        // A route card's summary is its plan's lead (§12a), and so is an Arrange and route card's.
         if let crate::properties::CardOrigin::Route { lead, .. } = &card.origin {
             return Some(lead.clone());
+        }
+        if let crate::properties::CardOrigin::Arrange(a) = &card.origin {
+            return Some(a.lead.clone());
         }
         let records = card.preview.result.as_ref().map_or(0, |p| p.diff().len());
         // A count of one takes the singular ("1 item · 1 page").

@@ -2959,6 +2959,10 @@ impl ShellModel {
         if matches!(card.origin, CardOrigin::Route { .. }) {
             return self.apply_route_card(card);
         }
+        // An Arrange and route card commits its plan and says what moved and what it routed.
+        if matches!(card.origin, CardOrigin::Arrange(_)) {
+            return self.apply_arrange_card(card);
+        }
         // A bulk card is a renumber dialog's (§8.2).
         if matches!(card.origin, CardOrigin::Bulk | CardOrigin::Part(_)) {
             return self.apply_bulk_card(card);

@@ -990,7 +990,8 @@ pub fn card_summary(shell: &ShellModel) -> Option<String> {
         | CardOrigin::PasteVersions(_)
         | CardOrigin::PasteUpdate { .. }
         | CardOrigin::TableImport(_)
-        | CardOrigin::Route { .. } => format!(
+        | CardOrigin::Route { .. }
+        | CardOrigin::Arrange(_) => format!(
             "{} · {}",
             shell.table_gesture().map_or_else(
                 || strings::format(

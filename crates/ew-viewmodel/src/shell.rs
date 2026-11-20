@@ -110,6 +110,8 @@ pub(crate) mod tools;
 mod undo_panel;
 // The wiring tools' host duties.
 mod wiring;
+// Arrange and route: its preview card and the page it shows.
+mod arrange;
 mod workspaces;
 // The Macros and Libraries navigators, Save as macro… and Make variable.
 mod macros;

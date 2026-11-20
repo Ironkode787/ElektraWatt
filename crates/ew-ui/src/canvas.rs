@@ -609,6 +609,53 @@ fn composite_highlights(
 
 /// Paints the highlights of canvas group `group` in the window (§7.3): the bands as filled quadrilaterals at 30 % and
 /// the hatch segments as lines in the full colour, above the overlays.
+/// Paints an open Arrange and route card's moves on canvas group `group` (docs/design/06a-drafting.md §7.3): each moved
+/// symbol's new place tinted in the accent colour, its old place a faint dashed outline, the two joined by a dotted
+/// line; nothing while `as_is` (B held: the page as it is).
+fn paint_arrange_moves(
+    ui: &egui::Ui,
+    rect: egui::Rect,
+    ppp: f32,
+    t: &DrawTransform,
+    shell: &ShellModel,
+    group: usize,
+    as_is: bool,
+) {
+    if as_is {
+        return;
+    }
+    let moves = shell.arrange_moves(group);
+    if moves.is_empty() {
+        return;
+    }
+    let painter = ui.painter_at(rect);
+    let theme = crate::theme::current(ui.ctx());
+    let to_pt = |p: (i64, i64)| {
+        let (x, y) = t.to_screen((p.0 as f64, p.1 as f64));
+        rect.min + egui::Vec2::new(x as f32, y as f32) / ppp
+    };
+    let accent = theme.accent;
+    let tint = egui::Color32::from_rgba_unmultiplied(accent.r, accent.g, accent.b, 40);
+    let edge = egui::Stroke::new(1.5, accent.color32());
+    let faint = egui::Stroke::new(1.0, theme.text_tertiary.color32());
+    for (old, new) in moves {
+        let (a0, a1) = (to_pt((old[0], old[1])), to_pt((old[2], old[3])));
+        let (b0, b1) = (to_pt((new[0], new[1])), to_pt((new[2], new[3])));
+        let (was, now) = (egui::Rect::from_two_pos(a0, a1), egui::Rect::from_two_pos(b0, b1));
+        painter.rect_filled(now, 0.0, tint);
+        painter.rect_stroke(now, 0.0, edge, egui::StrokeKind::Middle);
+        for side in [
+            [was.left_top(), was.right_top()],
+            [was.right_top(), was.right_bottom()],
+            [was.right_bottom(), was.left_bottom()],
+            [was.left_bottom(), was.left_top()],
+        ] {
+            painter.extend(egui::Shape::dashed_line(&side, faint, 4.0, 4.0));
+        }
+        painter.extend(egui::Shape::dotted_line(&[was.center(), now.center()], faint.color, 6.0, 1.0));
+    }
+}
+
 fn paint_highlights(
     ui: &egui::Ui,
     rect: egui::Rect,
@@ -1588,14 +1635,20 @@ impl CanvasHost {
         self.add_phase(Phase::Input, t_scene - started);
 
         // Phase 2: scene.
-        let scene = self.sync_scene(group, canvas);
+        // An open Arrange and route card: the page as it would become, but while B is held (docs/design/06a §7.3).
+        let as_is = ui.input(|i| i.key_down(egui::Key::B)) && !ui.ctx().egui_wants_keyboard_input();
+        let shown = shell
+            .arrange_page(group)
+            .filter(|_| !as_is)
+            .unwrap_or_else(|| Arc::clone(canvas.page()));
+        let scene = self.sync_scene(group, &shown);
         let t_render = now();
         self.add_phase(Phase::Scene, t_render - t_scene);
 
         // Phase 3: render.
         let view = view_of(canvas);
         let sheet = scene.sheet();
-        let gpu = self.gpu_frame(ui.ctx(), group, canvas, &view);
+        let gpu = self.gpu_frame(ui.ctx(), group, &shown, &view);
         let plan = if gpu.is_some() {
             None
         } else {
@@ -1652,6 +1705,8 @@ impl CanvasHost {
         paint_conflicts(ui, rect, ppp, &transform, shell, group);
         // The window's highlights on this page (§7.3).
         paint_highlights(ui, rect, ppp, &transform, shell, group);
+        // An open Arrange and route card's moves.
+        paint_arrange_moves(ui, rect, ppp, &transform, shell, group, as_is);
         // A jump's arrival, marked for a moment.
         self.paint_arrival(ui, rect, ppp, &transform, canvas, group, shell.reduce_motion());
         // A locked placement's lock icon, a selected kept symbol's pin, over the page on either backend.
@@ -1947,7 +2002,7 @@ impl CanvasHost {
         &mut self,
         ctx: &egui::Context,
         group: usize,
-        canvas: &CanvasModel,
+        page: &Arc<CanvasPage>,
         view: &View,
     ) -> Option<(TextureId, bool)> {
         let fonts = Arc::clone(&self.fonts);
@@ -1955,7 +2010,7 @@ impl CanvasHost {
         if !gpu.drawing() {
             return None;
         }
-        let (has_scene, ready) = gpu.sync_scene(ctx, canvas.page(), &fonts);
+        let (has_scene, ready) = gpu.sync_scene(ctx, page, &fonts);
         if !has_scene {
             return None;
         }
@@ -2849,9 +2904,9 @@ impl CanvasHost {
         }
     }
 
-    /// The tile scene of a group's page content, one per (session, revision, folio) and shared by the groups.
-    fn sync_scene(&mut self, group: usize, canvas: &CanvasModel) -> Arc<Scene> {
-        let page = canvas.page();
+    /// The tile scene of a group's page content `page` (the canvas's page, or the page an open preview would leave),
+    /// one per (session, revision, folio) and shared by the groups.
+    fn sync_scene(&mut self, group: usize, page: &CanvasPage) -> Arc<Scene> {
         let key = key_of(page);
         if let Some(s) = &self.views[group].scene
             && s.key == key

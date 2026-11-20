@@ -14,9 +14,10 @@
 
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_units::Grid;
-use ew_drafting::consts::TICKS_PER_STEP;
+pub use ew_drafting::consts::TICKS_PER_STEP;
 pub use ew_drafting::{DraftPage, Jobs, PartId, Plan, Quality, Reason, Side, WireId, measure, route as route_on};
-use ew_drafting::{JunctionId, PinId, Pt, WireEnd};
+pub use ew_drafting::Pt;
+use ew_drafting::{JunctionId, PinId, WireEnd};
 use serde_json::{Value, json};
 
 use crate::Session;
@@ -76,6 +77,11 @@ impl Ticks {
         self.0
             .nm_of_tick(i64::from(t), TICKS_PER_STEP.unsigned_abs())
             .map_or(0, |n| n.0)
+    }
+
+    /// A move of `d` ticks in page nm.
+    pub fn move_nm(self, d: Pt) -> (i64, i64) {
+        (self.nm(d.x) - self.nm(0), self.nm(d.y) - self.nm(0))
     }
 
     /// A point in page nm as ticks (a point within 1 nm of a half-grid position takes its tick).

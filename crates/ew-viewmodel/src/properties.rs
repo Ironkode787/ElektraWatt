@@ -276,6 +276,9 @@ pub enum CardOrigin {
     /// A table round trip's file read against a navigator's table (`navigator.import_table`): the card in the Preview tab with the counts and the per-cell list; Apply commits the import's one
     /// `fields.set_many`.
     TableImport(Box<TableImportCard>),
+    /// Arrange and route (`layout.arrange`, docs/design/06a-drafting.md §7.3): the card in the Preview tab with the plan's
+    /// rows; Apply commits the plan's `layout.apply`.
+    Arrange(Box<ArrangeCard>),
     /// Route (`layout.route`) over routes a person drew: the card in the Preview tab with the plan's
     /// lead line and one row per connection left unrouted; Apply commits the plan's `layout.apply`.
     Route {
@@ -288,6 +291,53 @@ pub enum CardOrigin {
         /// How many wires the plan routes.
         routed: usize,
     },
+}
+
+/// What an Arrange and route card shows (docs/design/06a-drafting.md §7.3).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct ArrangeCard {
+    /// The folio of the page it arranges.
+    pub folio: String,
+    /// The page in words (`folio 102`), for the toast.
+    pub page: String,
+    /// The selection it arranges (symbols and wires by ID); empty: the page.
+    pub scope: Vec<ew_api::output::Uuid>,
+    /// "Arrange and route: folio 102. 14 symbols move, 3 of them across the sheet; 9 wires are routed. Nothing has
+    /// changed yet."
+    pub lead: String,
+    /// The page's figures now, in words.
+    pub now: String,
+    /// The page's figures as the plan would leave it, in words.
+    pub then: String,
+    /// The symbols that move (the far moves first), then those unticked.
+    pub parts: Vec<ArrangeRow>,
+    /// The wires drawn by the person that get a new route, then those unticked.
+    pub wires: Vec<ArrangeRow>,
+    /// What is left as it is: the symbols kept in place and those without room.
+    pub left: Vec<ArrangeRow>,
+    /// One sentence per wire left without a way, with what is in it, and per net wired against its symbols' order.
+    pub ways: Vec<String>,
+    /// Each moved symbol's body where it stands and where it goes, in page nm.
+    pub shifts: Vec<([i64; 4], [i64; 4])>,
+    /// How many symbols move.
+    pub moved: usize,
+    /// How many wires the plan routes.
+    pub routed: usize,
+}
+
+/// One row of an Arrange and route card.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct ArrangeRow {
+    /// The symbol or wire.
+    pub id: ew_api::output::Uuid,
+    /// Its name: a symbol's tag, a wire by its ends.
+    pub name: String,
+    /// What happens to it, in words ("6 steps right, 31 steps up", "kept in place").
+    pub words: String,
+    /// Whether the row is ticked (a row of what is left as it is is never).
+    pub ticked: bool,
+    /// A symbol kept in place: the row shows the pin.
+    pub kept: bool,
 }
 
 /// What a table import card shows and commits.
@@ -498,6 +548,7 @@ impl CardOrigin {
             CardOrigin::PasteUpdate { .. } => "update",
             CardOrigin::TableImport(_) => "table-import",
             CardOrigin::Route { .. } => "route",
+            CardOrigin::Arrange(_) => "arrange",
         }
     }
 }
@@ -525,6 +576,7 @@ impl Card {
     pub fn command(&self) -> &str {
         match &self.origin {
             CardOrigin::Route { .. } => strings::text(key!("action-layout-route")),
+            CardOrigin::Arrange(_) => strings::text(key!("action-layout-arrange")),
             _ => strings::command_title(&self.preview.name),
         }
     }

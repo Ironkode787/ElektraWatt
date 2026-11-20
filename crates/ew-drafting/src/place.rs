@@ -36,10 +36,11 @@
 //! 7. **Fitting** (§4.7). A group that leaves the drawing area is moved in by the least distance; of two groups on
 //!    each other the later (fixed, then heavier, then upper left) takes the next free place across; a unit that still
 //!    has no room goes back to where it stood, and one whose move set a rule right is named.
-//! 8. **The plan** (§4.9). The wires with an end on a moved part are routed with the jobs of Route for the scope.
-//!    The plan is offered only when [`rules_kept`] holds and the page is better by the measure with no wire or text
-//!    gaining a finding; parts named by a broken rule go back and the page is planned again, at most [`PASSES`] times;
-//!    a plan that still breaks is dropped for Route's plan of the same scope.
+//! 8. **The plan** (§4.9). The parts a broken rule names go back with what hangs on them until [`rules_kept`] holds
+//!    (the rules read the parts and the nets alone). The wires with an end on a moved part are routed with the jobs of
+//!    Route for the scope. The plan is offered only when the rules still hold, the page is better by the measure, no
+//!    wire or text gains a finding and, where it routes no dashed wire, no figure a reader compares (faults,
+//!    crossings, bends) is worse; else Route's plan of the same scope is offered.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -53,6 +54,9 @@ use crate::measure::measure;
 use crate::model::{DraftPage, End, Owner, PartId, PinId, Pt, Rect, Role, Side, Tick, WireId};
 use crate::route::{self, Jobs, Plan, Scope};
 use crate::rules::{Wiring, across, beyond, opposite, rails, rules_kept};
+
+/// The most branches of the moves whose plans without them, and alone, are tried (§4.9).
+const BRANCHES: usize = 8;
 
 /// What Arrange and route plans for a page (§4.9): the parts' moves and the routes of the page as it would become.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
@@ -98,61 +102,125 @@ pub fn arrange(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> Ar
     };
     let mut p = Placer::new(page, scope, fixed);
     p.place();
-    let mut moves = p.moves();
-    let left = p.left.clone();
-    for _ in 0..=PASSES {
+    // The rules read the parts and the nets alone: the parts a broken rule names go back, with what hangs on them,
+    // until none breaks; then the page is routed once.
+    for _ in 0..p.units.len() {
+        let moves = p.moves();
         if moves.is_empty() {
-            return fallback();
+            break;
         }
-        let (moved, plan, after) = routed(page, &moves, scope, fixed);
-        match rules_kept(page, &after) {
-            Ok(()) => {
-                let quality = measure(&after);
-                let (bad, texts) = route::worse(page, &before, &quality);
-                if std::env::var("EW_PLACE_DEBUG").is_ok() { eprintln!("judged {:?} {:?} bad {} texts {} clashes {:?} {:?} {:?}", quality.key(), before.key(), bad.len(), texts, quality.findings.texts_on_texts.iter().map(|x| (x.0.owner.to_string()[32..].to_owned(), x.1)).collect::<Vec<_>>(), quality.findings.texts_on_parts.iter().map(|x| (x.0.owner.to_string()[32..].to_owned(), x.1.0.to_string()[32..].to_owned())).collect::<Vec<_>>(), quality.findings.texts_outside.len()); }
-                // No figure a reader compares worse (crossings, bends, faults), where the plan routes no wire that had
-                // no route (routing a dashed wire is the larger gain).
-                let figures = quality.faults > before.faults
-                    || quality.unrouted >= before.unrouted
-                        && (quality.counts.crossings > before.counts.crossings
-                            || quality.counts.bends > before.counts.bends);
-                if (!quality.better_than(&before) || !bad.is_empty() || texts || figures) && std::env::var("EW_PLACE_FORCE").is_err() {
-                    return fallback();
-                }
-                return Arranged {
-                    plan: finished(page, &moved, plan, before, quality),
-                    left: left
-                        .into_iter()
-                        .filter(|(id, _)| !moves.iter().any(|(m, _)| m == id))
-                        .collect(),
-                    moves,
-                };
-            }
-            Err(broken) => {
-                if std::env::var("EW_PLACE_DEBUG").is_ok() { eprintln!("broken {:?}", broken.iter().map(|b| (b.rule, b.parts.iter().map(|p| p.0.to_string()[32..].to_owned()).collect::<Vec<_>>())).collect::<Vec<_>>()); }
-                let named: BTreeSet<PartId> = broken.iter().flat_map(|b| b.parts.iter().copied()).collect();
-                let units: BTreeSet<usize> = named.iter().filter_map(|id| p.unit_of_id(*id)).collect();
-                for u in units {
-                    for f in p.subtree(u) {
-                        p.d[f] = Pt::default();
-                    }
-                }
-                moves = p.moves();
+        let Err(broken) = rules_kept(page, &moved(page, &moves).0) else {
+            break;
+        };
+        if std::env::var("EW_PLACE_DEBUG").is_ok() { eprintln!("broken {:?}", broken.iter().map(|b| (b.rule, b.parts.iter().map(|p| p.0.to_string()[32..].to_owned()).collect::<Vec<_>>())).collect::<Vec<_>>()); }
+        let named: BTreeSet<PartId> = broken.iter().flat_map(|b| b.parts.iter().copied()).collect();
+        let units: BTreeSet<usize> = named.iter().filter_map(|id| p.unit_of_id(*id)).collect();
+        for u in units {
+            for f in p.subtree(u) {
+                p.d[f] = Pt::default();
             }
         }
     }
-    fallback()
+    // The plan of all the moves; where the measure does not take it, the plans without one branch of them and then of
+    // one branch alone, at most `BRANCHES` each (a branch: a unit's own move with what hangs on it). The best plan the
+    // measure takes is offered.
+    let full = p.d.clone();
+    let mut tries: Vec<Vec<Pt>> = vec![full.clone()];
+    let branches: Vec<usize> = p
+        .order
+        .iter()
+        .copied()
+        .filter(|u| {
+            let own = match p.lead[*u] {
+                Some(l) => full[*u].minus(full[l.host]),
+                None => full[*u],
+            };
+            own != Pt::default() && !p.units[*u].fixed
+        })
+        .take(BRANCHES)
+        .collect();
+    for b in &branches {
+        let mut d = full.clone();
+        for f in p.subtree(*b) {
+            d[f] = Pt::default();
+        }
+        tries.push(d);
+    }
+    for b in &branches {
+        let sub = p.subtree(*b);
+        let d: Vec<Pt> = (0..full.len())
+            .map(|u| if sub.contains(&u) { full[u] } else { Pt::default() })
+            .collect();
+        tries.push(d);
+    }
+    let mut best: Option<(i64, Vec<(PartId, Pt)>, DraftPage, Plan, crate::Quality)> = None;
+    let mut seen: BTreeSet<Vec<(PartId, Pt)>> = BTreeSet::new();
+    for (k, d) in tries.into_iter().enumerate() {
+        // The plans without a branch are tried only when the full one is not taken, and so on.
+        if k == 1 + branches.len() && best.is_some() {
+            break;
+        }
+        if k == 1 && best.is_some() {
+            break;
+        }
+        p.d = d;
+        let moves = p.moves();
+        if moves.is_empty() || !seen.insert(moves.clone()) {
+            continue;
+        }
+        if rules_kept(page, &moved(page, &moves).0).is_err() {
+            continue;
+        }
+        let (moved, plan, after) = routed(page, &moves, scope, fixed);
+        if rules_kept(page, &after).is_err() {
+            continue;
+        }
+        let quality = measure(&after);
+        let (bad, texts) = route::worse(page, &before, &quality);
+        // No figure a reader compares worse (crossings, bends, faults), where the plan routes no wire that had no route
+        // (routing a dashed wire is the larger gain).
+        let figures = quality.faults > before.faults
+            || quality.unrouted >= before.unrouted
+                && (quality.counts.crossings > before.counts.crossings
+                    || quality.counts.bends > before.counts.bends);
+        if std::env::var("EW_PLACE_DEBUG").is_ok() { eprintln!("judged {k} {:?} {:?} bad {} texts {} figures {} x {}->{} b {}->{}", quality.key(), before.key(), bad.len(), texts, figures, before.counts.crossings, quality.counts.crossings, before.counts.bends, quality.counts.bends); }
+        // A move pays its price (§4.7) and shows: some figure a reader compares is better.
+        let (b, q) = (&before.counts, &quality.counts);
+        let shows = quality.faults < before.faults
+            || quality.unrouted < before.unrouted
+            || q.crossings < b.crossings
+            || q.bends < b.bends
+            || q.turn_backs < b.turn_backs
+            || q.across_texts < b.across_texts
+            || q.label_clashes < b.label_clashes;
+        let price = MOVE_PRICE * i64::from(TICKS_PER_STEP) * moves.len() as i64;
+        let priced = (quality.faults, quality.unrouted, quality.cost + price) < before.key();
+        if !priced || !shows || !bad.is_empty() || texts || figures {
+            continue;
+        }
+        let cost = quality.cost;
+        if best.as_ref().is_none_or(|b| (quality.key(), cost) < (b.4.key(), b.0)) {
+            best = Some((cost, moves, moved, plan, quality));
+        }
+    }
+    let Some((_, moves, moved, plan, quality)) = best else {
+        return fallback();
+    };
+    Arranged {
+        plan: finished(page, &moved, plan, before, quality),
+        left: p
+            .left
+            .iter()
+            .filter(|(id, _)| !moves.iter().any(|(m, _)| m == id))
+            .copied()
+            .collect(),
+        moves,
+    }
 }
 
-/// The page with every part of `moves` moved (its texts the program may not place with it) and the routes of the
-/// wires with an end on a moved part lifted; Route's plan of it for those wires and the jobs of `scope`; and the page
-/// as the plan leaves it.
-fn routed(
-    page: &DraftPage,
-    moves: &[(PartId, Pt)],
-    scope: Scope<'_>,
-    fixed: &[ew_ids::Uuid],
-) -> (DraftPage, Plan, DraftPage) {
+/// The page with every part of `moves` moved, with its texts the program may not place, and the routes of the wires
+/// with an end on a moved part lifted; and those wires.
+fn moved(page: &DraftPage, moves: &[(PartId, Pt)]) -> (DraftPage, Vec<WireId>) {
     let mut moved = page.clone();
     let by: BTreeMap<PartId, Pt> = moves.iter().copied().collect();
     let mut pins: BTreeSet<PinId> = BTreeSet::new();
@@ -174,6 +242,18 @@ fn routed(
             touched.push(w.id);
         }
     }
+    (moved, touched)
+}
+
+/// The page with every part of `moves` moved ([`moved`]); Route's plan of it for the wires of the moved parts and the
+/// jobs of `scope`; and the page as the plan leaves it.
+fn routed(
+    page: &DraftPage,
+    moves: &[(PartId, Pt)],
+    scope: Scope<'_>,
+    fixed: &[ew_ids::Uuid],
+) -> (DraftPage, Plan, DraftPage) {
+    let (moved, touched) = moved(page, moves);
     let mut jobs: Jobs = route::jobs(&moved, scope);
     jobs.wires.retain(|w| !fixed.contains(&w.0));
     jobs.wires.extend(touched);

@@ -965,6 +965,20 @@ fn card_and_toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
                             line.push_str(&format!(" \"{}\"", user(r)));
                         }
                     }
+                    // The Arrange and route card names its origin, its lead, its figures and its rows.
+                    if let crate::properties::CardOrigin::Arrange(a) = &card.origin {
+                        line.push_str(&format!(" arrange \"{}\" \"{}\" \"{}\"", user(&a.lead), user(&a.now), user(&a.then)));
+                        for r in a.parts.iter().chain(&a.wires) {
+                            let tick = if r.ticked { "[x]" } else { "[ ]" };
+                            line.push_str(&format!(" {tick} \"{}\" \"{}\"", user(&r.name), user(&r.words)));
+                        }
+                        for r in &a.left {
+                            line.push_str(&format!(" left \"{}\" \"{}\"", user(&r.name), user(&r.words)));
+                        }
+                        for w in &a.ways {
+                            line.push_str(&format!(" \"{}\"", user(w)));
+                        }
+                    }
                     // The quick-fix card names its origin and the finding's rule.
                     if let crate::properties::CardOrigin::QuickFix { rule } = &card.origin {
                         line.push_str(&format!(" fix \"{}\"", user(rule)));

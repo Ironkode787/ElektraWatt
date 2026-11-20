@@ -316,6 +316,10 @@ impl ShellModel {
             };
             return (edit, params);
         }
+        // While an Arrange and route card is open, B shows the page as it is (docs/design/06a-drafting.md §7.3).
+        if action == "tool.black_box" && self.arrange_shown() {
+            return ("layout.arrange_as_is", Value::Null);
+        }
         let strips = self.focused_navigator() == Some(NavKind::Strips);
         // On a panel page (doc 12 §12.4) the canvas's Tab, R and X place, and the arrows nudge
         // a selected placement; each chord stays unique per context.

@@ -257,6 +257,74 @@ fn paste_block(ui: &mut Ui, c: &ew_viewmodel::properties::PasteChoice, events: &
 /// A macro card's value set (a chooser of "Defaults" and the macro's value sets, which previews
 /// the card again with `macros.value_set`) and its conflicts, shown open and also on a refused preview (the rule's
 /// text first), so the user decides on them before Apply.
+/// The rows of an Arrange and route card (docs/design/06a-drafting.md §7.3): the page's figures now and then, the
+/// symbols that move and the wires you drew, each with its tick (unticking plans again, `layout.arrange_tick`), what is
+/// left as it is (a symbol kept in place with its pin), the wires without a way, and the hint.
+fn arrange_block(ui: &mut Ui, a: &ew_viewmodel::properties::ArrangeCard, events: &mut Vec<Event>) {
+    let t = components::tokens(ui);
+    let small = |ui: &mut Ui, text: &str, colour: Rgba| {
+        ui.add(
+            egui::Label::new(
+                RichText::new(text)
+                    .font(theme::font(&t.type_small))
+                    .color(colour.color32()),
+            )
+            .wrap(),
+        );
+    };
+    small(ui, &a.now, t.text_secondary);
+    small(ui, &a.then, t.text_primary);
+    let heading = |ui: &mut Ui, key: ew_viewmodel::strings::Key<'static>| {
+        ui.add_space(t.space_2);
+        small(ui, strings::text(key), t.text_tertiary);
+    };
+    let mut row = 0;
+    for (key, rows) in [
+        (key!("arrange-heading-parts"), &a.parts),
+        (key!("arrange-heading-wires"), &a.wires),
+    ] {
+        if rows.is_empty() {
+            continue;
+        }
+        heading(ui, key);
+        for r in rows {
+            ui.horizontal(|ui| {
+                let mut on = r.ticked;
+                if ui.checkbox(&mut on, RichText::new(&r.name).strong()).changed() {
+                    events.push(Event::Action("layout.arrange_tick", json!({ "row": row })));
+                }
+                small(ui, &r.words, t.text_secondary);
+            });
+            row += 1;
+        }
+    }
+    if !a.left.is_empty() || !a.ways.is_empty() {
+        heading(ui, key!("arrange-heading-left"));
+        for r in &a.left {
+            ui.horizontal(|ui| {
+                if r.kept {
+                    let size = theme::font(&t.type_small).size;
+                    let (rect, _) = ui.allocate_exact_size(egui::vec2(size, size), egui::Sense::hover());
+                    ui.painter().extend(crate::icons::shapes(
+                        IconId::pin,
+                        rect,
+                        t.text_secondary.color32(),
+                        1.0,
+                    ));
+                }
+                small(ui, &r.name, t.text_primary);
+                small(ui, &r.words, t.text_secondary);
+            });
+        }
+        for w in &a.ways {
+            small(ui, w, t.text_secondary);
+        }
+    }
+    ui.add_space(t.space_2);
+    small(ui, strings::text(key!("arrange-hint")), t.text_tertiary);
+    small(ui, strings::text(key!("arrange-hold-b")), t.text_tertiary);
+}
+
 fn macro_block(ui: &mut Ui, m: &ew_viewmodel::properties::MacroInsert, events: &mut Vec<Event>) {
     let t = components::tokens(ui);
     if !m.value_sets.is_empty() {
@@ -703,6 +771,10 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         }
         if let CardOrigin::Part(p) = &card.origin {
             inset(ui, &mut |ui| part_block(ui, p));
+        }
+        // An Arrange and route card's figures and rows.
+        if let CardOrigin::Arrange(a) = &card.origin {
+            inset(ui, &mut |ui| arrange_block(ui, a, events));
         }
         // A route card's connections left unrouted, one row each with its reason.
         if let CardOrigin::Route { rows, .. } = &card.origin {
