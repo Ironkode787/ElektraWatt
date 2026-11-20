@@ -293,3 +293,22 @@ fn route_over_a_person_s_route_takes_a_cheaper_way_with_no_new_finding() {
         "{f:?}"
     );
 }
+
+#[test]
+fn a_wire_leaves_a_pin_that_shares_its_point_with_a_free_connection_point() {
+    // A terminal with two connection points at one point of its lower edge, one of them wired to a mark at the right:
+    // the free point's stub is the wired one's way out, its half step as well as its full one.
+    let mut b = Page::new(40, 30);
+    b.part(
+        "X1",
+        p(10, 10),
+        (p(-1, -2), p(1, 0)),
+        &[("1", p(0, -2), Side::Up), ("2", p(0, 0), Side::Down), ("2b", p(0, 0), Side::Down)],
+    );
+    b.mark_out("out", p(20, 14));
+    let w = b.wire("w", b.pin("X1", "2"), b.pin("out", "1"), &[]);
+    let done = routed(&b.page);
+    let q = measure(&done);
+    assert_eq!((q.faults, q.unrouted), (0, 0), "{:?}", q.findings);
+    assert_eq!(corners(&done.wires.iter().find(|x| x.id == w).unwrap().route), 1);
+}

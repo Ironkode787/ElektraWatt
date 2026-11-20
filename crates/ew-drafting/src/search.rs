@@ -176,8 +176,6 @@ struct Space<'a> {
     /// The bodies that hold a first end that is a bend reached over one of their pins a step behind it (the person led the
     /// wire through the part): the route may leave them.
     held: Vec<Rect>,
-    /// The two ends' stub nodes of the occupancy.
-    stubs: [Option<Node>; 2],
 }
 
 /// Least (cost, bends).
@@ -261,7 +259,8 @@ impl<'a> Space<'a> {
                     Holder::Pin { pin, .. } => tips.iter().any(|t| t.owner == Owner::Pin(*pin)),
                     Holder::Junction(j) => tips.iter().any(|t| t.owner == Owner::Junction(*j)),
                 };
-                // A free pin's stub on an end's own stub is the end's way out.
+                // A free pin's stub on an end's own stub (a second connection point on the same point) is the end's way
+                // out, its half step as well as its full one.
                 let shared_stub = matches!(
                     h,
                     Holder::Pin {
@@ -269,7 +268,14 @@ impl<'a> Space<'a> {
                         wired: false,
                         ..
                     }
-                ) && self.stubs.contains(&Some(n));
+                ) && tips.iter().any(|t| {
+                    t.side.is_some_and(|s| {
+                        let u = s.unit();
+                        [HALF, STUB]
+                            .iter()
+                            .any(|d| node_of(t.at.plus(Pt::new(u.x * d, u.y * d))) == n)
+                    })
+                });
                 if !own && !shared_stub {
                     return true;
                 }
@@ -550,7 +556,6 @@ fn space<'a>(ask: &'a Ask<'a>, half: bool, window: Rect) -> Option<Space<'a>> {
             })
             .map(|(_, r, _)| *r)
             .collect(),
-        stubs: [None, None],
     };
     for (k, tip) in [&ask.from, &ask.to].into_iter().enumerate() {
         let Some(side) = tip.side else { continue };
@@ -558,7 +563,6 @@ fn space<'a>(ask: &'a Ask<'a>, half: bool, window: Rect) -> Option<Space<'a>> {
         // From the end's node of the lattice searched: an end off the grid takes the lattice's nearest line.
         let mut n = sp.occ(if k == 0 { sp.s } else { sp.t });
         let mut out = vec![n];
-        sp.stubs[k] = Some(node_of(tip.at.plus(Pt::new(u.x * STUB, u.y * STUB))));
         for _ in 0..64 {
             n = (n.0 + u.x, n.1 + u.y);
             out.push(n);
