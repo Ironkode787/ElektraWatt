@@ -46,7 +46,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::consts::{
-    BODY_GAP, CHAIN_GAP, CHAIN_GAP_MIN, MARK_LEAD, MOVE_PRICE, PASSES, ROW_GAP, ROW_PULL, TICKS_PER_STEP,
+    BODY_GAP, CHAIN_GAP, CHAIN_GAP_MIN, MARK_LEAD, MARK_PITCH, MOVE_PRICE, PASSES, ROW_GAP, ROW_PULL, TICKS_PER_STEP,
     TRACK_PITCH, TRUNK_GAP,
 };
 use crate::geom;
@@ -91,17 +91,93 @@ impl Arranged {
 /// (the rows unticked in the preview: a wire kept keeps its route and the parts at its ends; module documentation).
 /// Deterministic: the same page in any order of its lists gives the same plan.
 pub fn arrange(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> Arranged {
-    let before = measure(page);
-    // Without a plan the measure takes: Route's plan of the scope, and the parts that have no room named all the same.
-    let fallback = |left: &[(PartId, Side)]| {
-        let mut jobs = route::jobs(page, scope);
-        jobs.wires.retain(|w| !fixed.contains(&w.0));
-        let plan = route::route(page, &jobs);
-        Arranged {
-            plan,
-            left: left.to_vec(),
-            ..Arranged::default()
+    // Planned again on the page each plan leaves, until a run changes nothing (at most `ROUNDS` runs), so that a second
+    // press of the button finds nothing to do (§4.8).
+    let first = arrange_once(page, scope, fixed);
+    if first.is_empty() {
+        return first;
+    }
+    let mut now = applied_all(page, &first);
+    let mut moves: BTreeMap<PartId, Pt> = first.moves.iter().copied().collect();
+    let mut left = first.left.clone();
+    for _ in 1..ROUNDS {
+        let next = arrange_once(&now, scope, fixed);
+        if next.is_empty() {
+            break;
         }
+        for (id, d) in &next.moves {
+            let at = moves.entry(*id).or_default();
+            *at = at.plus(*d);
+        }
+        left = next.left.clone();
+        now = applied_all(&now, &next);
+    }
+    moves.retain(|_, d| *d != Pt::default());
+    let moves: Vec<(PartId, Pt)> = moves.into_iter().collect();
+    // The plan from the page to where the runs left it.
+    let mut plan = Plan::default();
+    for w in &now.wires {
+        if page.wires.iter().find(|x| x.id == w.id).is_some_and(|o| o.route != w.route) {
+            plan.routes.push((w.id, w.route.clone()));
+        }
+    }
+    for j in &now.junctions {
+        if page.junctions.iter().find(|x| x.id == j.id).is_some_and(|o| o.at != j.at) {
+            plan.junctions.push((j.id, j.at));
+        }
+    }
+    for m in &now.marks {
+        if let Some(o) = page.marks.iter().find(|x| x.id == m.id)
+            && o.line != m.line
+        {
+            plan.marks.push((m.id, m.line.top_left().minus(o.line.top_left())));
+        }
+    }
+    plan.unrouted = first.plan.unrouted.clone();
+    plan.notes = first.plan.notes.clone();
+    plan.his = plan
+        .routes
+        .iter()
+        .filter(|(w, _)| page.wires.iter().any(|x| x.id == *w && !x.computed && !x.route.is_empty()))
+        .map(|(w, _)| *w)
+        .collect();
+    plan.before = first.plan.before.clone();
+    plan.after = measure(&now);
+    Arranged {
+        left: left.into_iter().filter(|(id, _)| !moves.iter().any(|(m, _)| m == id)).collect(),
+        moves,
+        plan,
+    }
+}
+
+/// The most runs of the placer one press makes (it stops at the first that changes nothing).
+const ROUNDS: usize = 4;
+
+/// `page` as `a` leaves it: its parts moved (with their texts the program may not place), its routes, junctions and
+/// marks.
+fn applied_all(page: &DraftPage, a: &Arranged) -> DraftPage {
+    let (moved, _) = moved(page, &a.moves);
+    let mut out = applied(&moved, &a.plan);
+    // A wire of a moved part the plan leaves without a way keeps no route.
+    for w in &mut out.wires {
+        if let Some((_, r)) = a.plan.routes.iter().find(|(x, _)| *x == w.id) {
+            w.route.clone_from(r);
+        }
+    }
+    out
+}
+
+/// One run of Arrange and route (module documentation).
+fn arrange_once(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> Arranged {
+    let before = measure(page);
+    // Route over the same wires (every wire of the scope, whoever shaped it): the plan to beat.
+    let routed_only = route::route(page, &jobs(page, scope, fixed));
+    let baseline = routed_only.after.clone();
+    // Without a better plan: Route's plan, and the parts that have no room named all the same.
+    let fallback = |left: &[(PartId, Side)]| Arranged {
+        plan: finished(page, page, routed_only.clone(), before.clone(), baseline.clone()),
+        left: left.to_vec(),
+        moves: Vec::new(),
     };
     let mut p = Placer::new(page, scope, fixed);
     p.place();
@@ -179,24 +255,22 @@ pub fn arrange(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> Ar
         }
         let quality = measure(&after);
         let (bad, texts) = route::worse(page, &before, &quality);
-        // No figure a reader compares worse (crossings, bends, faults), where the plan routes no wire that had no route
-        // (routing a dashed wire is the larger gain).
-        let figures = quality.faults > before.faults
-            || quality.unrouted >= before.unrouted
-                && (quality.counts.crossings > before.counts.crossings
-                    || quality.counts.bends > before.counts.bends);
-        // A move pays its price (§4.7) and shows: some figure a reader compares is better.
-        let (b, q) = (&before.counts, &quality.counts);
-        let shows = quality.faults < before.faults
-            || quality.unrouted < before.unrouted
+        // Better than Route's plan of the same wires with the price of the moves added (§4.7), no figure a reader
+        // compares worse than Route's where it routes no more wires, and some figure better.
+        let (b, q) = (&baseline.counts, &quality.counts);
+        let figures = quality.faults > baseline.faults
+            || quality.unrouted >= baseline.unrouted && (q.crossings > b.crossings || q.bends > b.bends);
+        let shows = quality.faults < baseline.faults
+            || quality.unrouted < baseline.unrouted
             || q.crossings < b.crossings
             || q.bends < b.bends
             || q.turn_backs < b.turn_backs
             || q.across_texts < b.across_texts
             || q.label_clashes < b.label_clashes;
         let price = MOVE_PRICE * i64::from(TICKS_PER_STEP) * moves.len() as i64;
-        let priced = (quality.faults, quality.unrouted, quality.cost + price) < before.key();
-        if !priced || !shows || !bad.is_empty() || texts || figures {
+        let priced = (quality.faults, quality.unrouted, quality.cost + price) < baseline.key();
+        if std::env::var("EW_PLACE_DEBUG").is_ok() { eprintln!("judged {k} moves {} ({},{},{}) vs route ({},{},{}) priced {priced} shows {shows} bad {} texts {texts} figures {figures}", moves.len(), quality.faults, q.crossings, q.bends, baseline.faults, b.crossings, b.bends, bad.len()); }
+        if (!priced || !shows || !bad.is_empty() || texts || figures) && !(k == 0 && std::env::var("EW_PLACE_FORCE").is_ok()) {
             continue;
         }
         let cost = quality.cost;
@@ -220,6 +294,22 @@ pub fn arrange(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> Ar
             .collect(),
         moves,
     }
+}
+
+/// The jobs of Arrange and route (§3.2): every wire of the scope, whoever shaped it (the page's, or the selection's
+/// and every wire with an end on a part of it), but the wires kept (`fixed`).
+fn jobs(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> Jobs {
+    let mut jobs = match scope {
+        Scope::Page => Jobs {
+            wires: page.wires.iter().map(|w| w.id).collect(),
+            ..Jobs::default()
+        },
+        Scope::Selection(_) => route::jobs(page, scope),
+    };
+    jobs.wires.retain(|w| !fixed.contains(&w.0));
+    jobs.wires.sort();
+    jobs.his.clear();
+    jobs
 }
 
 /// The page with every part of `moves` moved, with its texts the program may not place, and the routes of the wires
@@ -261,8 +351,7 @@ fn routed(
     fixed: &[ew_ids::Uuid],
 ) -> (DraftPage, Plan, DraftPage) {
     let (moved, touched) = moved(page, moves);
-    let mut jobs: Jobs = route::jobs(&moved, scope);
-    jobs.wires.retain(|w| !fixed.contains(&w.0));
+    let mut jobs: Jobs = jobs(&moved, scope, fixed);
     jobs.wires.extend(touched);
     jobs.wires.sort();
     jobs.wires.dedup();
@@ -626,11 +715,70 @@ impl<'a> Placer<'a> {
     fn place(&mut self) {
         self.hosts();
         self.followers();
+        self.seconds();
         self.trunk_marks();
         self.bands();
         self.priced();
         self.swaps();
         self.fit();
+    }
+
+    /// Step 4b: a follower of a stack that faces a pin of another unit (not its host, not hanging on it) steps along its
+    /// stack to that pin's line where it is free, keeps its place in the stack and the estimate gains (a flow control
+    /// level with its cylinder's second port).
+    fn seconds(&mut self) {
+        let pairs = self.w.pairs();
+        for u in self.order.clone() {
+            let Some(l) = self.lead[u] else { continue };
+            if l.kind != Kind::Corner {
+                continue;
+            }
+            let Some(s) = self.side(l.h) else { continue };
+            let sub = self.subtree(u);
+            for (a, b) in &pairs {
+                for (fp, gp) in [(*a, *b), (*b, *a)] {
+                    let (g, mine) = (self.unit_of_pin(gp), self.unit_of_pin(fp));
+                    if mine != u || g == l.host || sub.contains(&g) || g == u {
+                        continue;
+                    }
+                    if kind(self.side(fp), self.side(gp)) != Some(Kind::Facing) {
+                        continue;
+                    }
+                    let Some(gs) = self.side(gp) else { continue };
+                    if gs.vertical() == s.vertical() {
+                        continue;
+                    }
+                    // Across the other pin's side is along the stack.
+                    let by = across(self.pt(gp), gs) - across(self.pt(fp), gs);
+                    if by == 0 || by % TICKS_PER_STEP != 0 {
+                        continue;
+                    }
+                    let before = self.estimate();
+                    let shift = across_vec(gs, by);
+                    self.nudge(u, shift);
+                    let others: Vec<usize> = (0..self.units.len()).filter(|x| *x != u).collect();
+                    let behind = beyond(self.pt(l.h), self.pt(l.f), s) < CHAIN_GAP_MIN;
+                    // Its bodies clear of the others' (its texts take the places the text placer finds).
+                    let bodies = |p: &Self, x: usize| -> Vec<Rect> {
+                        p.units[x]
+                            .parts
+                            .iter()
+                            .filter(|i| !p.w.parts[**i].frame_only)
+                            .map(|i| p.w.parts[*i].bounds().moved(p.d[x]))
+                            .collect()
+                    };
+                    let mine = bodies(self, u);
+                    let meets = others.iter().any(|o| {
+                        bodies(self, *o)
+                            .iter()
+                            .any(|b| mine.iter().any(|m| geom::texts_meet(*m, b.grown(TICKS_PER_STEP / 2))))
+                    });
+                    if behind || meets || self.estimate() >= before {
+                        self.nudge(u, Pt::new(-shift.x, -shift.y));
+                    }
+                }
+            }
+        }
     }
 
     /// The units a rail taps.
@@ -964,9 +1112,11 @@ impl<'a> Placer<'a> {
                 movers.push((*f, *l));
             }
         }
+        // The stack nests: each one further out than the one before it, by `MARK_PITCH` at least.
+        let mut floor = host_line + CHAIN_GAP;
         for (f, l) in movers.into_iter().rev() {
             let at = beyond(Pt::default(), self.pt(l.f), s);
-            self.nudge(f, along_of(s, whole_up(host_line + CHAIN_GAP - at)));
+            self.nudge(f, along_of(s, whole_up(floor - at)));
             // The free places from there outward, the first few, and of them the one of least estimate.
             let reach = self.w.page.area.w().max(self.w.page.area.h());
             let mut best: Option<(i64, Tick)> = None;
@@ -984,6 +1134,7 @@ impl<'a> Placer<'a> {
             }
             let back = more - best.map_or(more, |(_, m)| m);
             self.nudge(f, along_of(s, -back));
+            floor = beyond(Pt::default(), self.pt(l.f), s) + MARK_PITCH;
             placed.push(f);
             self.needed.insert(f);
         }
@@ -1382,12 +1533,19 @@ impl<'a> Placer<'a> {
             units
                 .iter()
                 .flat_map(|u| p.units[*u].parts.iter().map(move |i| (*u, *i)))
-                .map(|(u, i)| p.w.parts[i].bounds().moved(p.d[u]))
+                .map(|(u, i)| {
+                    // A part keeps the drawing area with its texts (a tag at the frame's edge).
+                    let part = p.w.parts[i];
+                    p.texts[i]
+                        .iter()
+                        .fold(part.bounds(), |r, t| r.union(t.moved(part.at)))
+                        .moved(p.d[u])
+                })
                 .reduce(Rect::union)
                 .unwrap_or_default()
         };
         for u in self.order.clone().into_iter().rev() {
-            if self.lead[u].is_none() || self.units[u].fixed {
+            if self.lead[u].is_none() || self.units[u].fixed || self.d[u] == Pt::default() {
                 continue;
             }
             let own = bodies(self, &[u]);
@@ -1415,6 +1573,9 @@ impl<'a> Placer<'a> {
             }
         }
         for g in &groups {
+            if g.iter().all(|u| self.d[*u] == Pt::default()) {
+                continue;
+            }
             let r = bodies(self, g).grown(-1);
             let dx = if r.x0 < area.x0 {
                 whole_up(area.x0 - r.x0)
