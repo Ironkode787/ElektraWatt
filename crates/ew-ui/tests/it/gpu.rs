@@ -19,8 +19,8 @@ use ew_render_cpu::{
 };
 use ew_render2d::gpu::{GpuView, HeadlessDevice, MeshCache, prepare};
 use ew_ui::ew_viewmodel::canvas::CanvasPage;
-use ew_ui::ew_viewmodel::ew_api::output::ew_dl::ew_units::{Nm, Pt2, Rect};
-use ew_ui::ew_viewmodel::ew_api::output::ew_dl::{
+use ew_units::{Nm, Pt2, Rect};
+use ew_dl::{
     Brush, Color, DisplayList, FontKey, Item, ItemKind, Path, Transform,
 };
 use ew_ui::ew_viewmodel::ew_api::output::font_bytes;
@@ -661,9 +661,9 @@ fn a_page_with_a_png_item_is_drawn_by_the_gpu_path_with_its_pixels() {
     let at = |x: i64, y: i64| Pt2::new(Nm(x), Nm(y));
     let rect = Rect::from_points(at(20_000_000, 20_000_000), at(60_000_000, 30_000_000));
     let png = Item::image(
-        Arc::new(ew_ui::ew_viewmodel::ew_api::output::ew_dl::ImageData {
+        Arc::new(ew_dl::ImageData {
             sha256: [9; 32],
-            format: ew_ui::ew_viewmodel::ew_api::output::ew_dl::ImageFormat::Png,
+            format: ew_dl::ImageFormat::Png,
             bytes: Arc::from(red_png(8, 2)),
         }),
         rect,

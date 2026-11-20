@@ -8,8 +8,8 @@ use crate::persona_round::{click, key, new_project, starting_with, typed};
 use crate::support::Tmp;
 
 use egui::{Modifiers, PointerButton};
-use ew_ui::ew_viewmodel::ew_api::output::ew_dl::ew_units::Pt2;
-use ew_ui::ew_viewmodel::ew_api::output::ew_dl::{Item, ItemKind};
+use ew_units::Pt2;
+use ew_dl::{Item, ItemKind};
 use ew_ui::ew_viewmodel::ew_api::output::{NavNode, Uuid};
 use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_ui::ew_viewmodel::shell::Outcome;

@@ -235,7 +235,7 @@ fn a_medium_is_added_set_on_a_line_and_highlighted() {
     assert_eq!(kind.as_deref(), Some("pilot"));
     // FT-1733: a flexible line (a hose) is drawn as an arc.
     let curved = |h: &egui_kittest::Harness<'_, ew_ui::app::App>| {
-        use ew_ui::ew_viewmodel::ew_api::output::ew_dl::{ItemKind, PathEl};
+        use ew_dl::{ItemKind, PathEl};
         let c = h.state().shell().canvas().unwrap();
         c.page().list.items.iter().any(|i| {
             i.entity.is_some_and(|e| e.0.to_string() == line)

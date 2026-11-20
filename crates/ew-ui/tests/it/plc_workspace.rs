@@ -527,7 +527,7 @@ fn modules_are_added_in_the_station_view() {
     assert_eq!(h.state().shell().station_device(), Some(second));
     assert_eq!(
         h.state().shell().selection().items,
-        vec![ew_ui::ew_viewmodel::ew_api::output::ew_dl::EntityRef(second)]
+        vec![ew_dl::EntityRef(second)]
     );
     dispatch(&mut h, "tab.close", json!({}));
     settle(&mut h);
@@ -1656,7 +1656,7 @@ fn a_terminal_on_a_traced_path_prints_the_channel_address() {
     settle(&mut h);
     // The texts "Q0.0" drawn within 10 mm of the terminal's insertion point.
     let at_terminal = |h: &egui_kittest::Harness<'_, ew_ui::app::App>| {
-        use ew_ui::ew_viewmodel::ew_api::output::ew_dl::{Item, ItemKind};
+        use ew_dl::{Item, ItemKind};
         fn runs(items: &[Item], out: &mut Vec<(String, (i64, i64))>) {
             for item in items {
                 match &item.kind {

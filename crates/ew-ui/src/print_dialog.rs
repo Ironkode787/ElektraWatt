@@ -80,8 +80,8 @@ fn render_page(set: &PrintSet, index: usize, dpi: u32, mono: bool) -> Result<Rgb
                 width: page.width,
                 height: page.height,
                 scale: (1, 1),
-                offset: ew_viewmodel::ew_api::output::ew_dl::ew_units::Pt2::ORIGIN,
-                overlay: ew_viewmodel::ew_api::output::ew_dl::DisplayList::default(),
+                offset: ew_units::Pt2::ORIGIN,
+                overlay: ew_dl::DisplayList::default(),
             };
             &identity
         }

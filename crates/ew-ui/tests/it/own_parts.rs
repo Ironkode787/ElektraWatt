@@ -65,7 +65,7 @@ pub(crate) fn records(d: &mut Driver) -> Vec<Value> {
 
 /// The texts the page shown prints, groups followed.
 pub(crate) fn page_texts(d: &mut Driver) -> Vec<String> {
-    use ew_ui::ew_viewmodel::ew_api::output::ew_dl::{Item, ItemKind};
+    use ew_dl::{Item, ItemKind};
     fn walk(items: &[Item], out: &mut Vec<String>) {
         for item in items {
             match &item.kind {

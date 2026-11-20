@@ -254,12 +254,12 @@ fn render_thumbnail(th: &MacroThumbnail, dpi: u32) -> Option<ew_render_cpu::Rgba
         y,
         width,
         height,
-        background: ew_viewmodel::ew_api::output::ew_dl::Color::WHITE,
-        surround: ew_viewmodel::ew_api::output::ew_dl::Color::WHITE,
+        background: ew_dl::Color::WHITE,
+        surround: ew_dl::Color::WHITE,
     };
     let sheet = ew_render_cpu::SheetSize {
-        width: ew_viewmodel::ew_api::output::ew_dl::ew_units::Nm(th.sheet.0),
-        height: ew_viewmodel::ew_api::output::ew_dl::ew_units::Nm(th.sheet.1),
+        width: ew_units::Nm(th.sheet.0),
+        height: ew_units::Nm(th.sheet.1),
     };
     let bounds = ew_render_cpu::ItemBounds::of(&th.content, None);
     ew_render_cpu::render_region(

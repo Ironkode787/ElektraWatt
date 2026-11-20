@@ -745,7 +745,7 @@ fn cable_gives_n_the_blue_core_and_proposes_the_tag_it_takes() {
 
 /// The texts the page shown prints, groups followed.
 pub(crate) fn page_texts(d: &mut Driver) -> Vec<String> {
-    use ew_ui::ew_viewmodel::ew_api::output::ew_dl::{Item, ItemKind};
+    use ew_dl::{Item, ItemKind};
     fn walk(items: &[Item], out: &mut Vec<String>) {
         for item in items {
             match &item.kind {

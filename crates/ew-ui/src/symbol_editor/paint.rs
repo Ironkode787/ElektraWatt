@@ -6,7 +6,7 @@
 
 use crate::theme;
 use egui::{Pos2, Stroke, Vec2};
-use ew_viewmodel::ew_api::symbols::{self, SymbolDraft, drawing};
+use ew_viewmodel::ew_api::symbols::{self, SymbolDraft};
 use ew_viewmodel::shell::symbol_editor::Item;
 use ew_viewmodel::strings;
 
@@ -404,13 +404,7 @@ impl Bounds {
 }
 
 /// The production CPU renderer handles fills, dashes and stroke widths. Cache one viewport per variant.
-fn paint_graphics(
-    painter: &egui::Painter,
-    list: &drawing::DisplayList,
-    variant: u8,
-    origin: Pos2,
-    scale: f32,
-) {
+fn paint_graphics(painter: &egui::Painter, list: &ew_dl::DisplayList, variant: u8, origin: Pos2, scale: f32) {
     use std::hash::{Hash, Hasher};
     use symbols::units::{Nm, Pt2};
     let rect = painter.clip_rect();
@@ -444,7 +438,7 @@ fn paint_graphics(
         };
         let options = ew_render_cpu::RenderOptions {
             dpi: 254,
-            background: drawing::Color::from_rgba8(0, 0, 0, 0),
+            background: ew_dl::Color::from_rgba8(0, 0, 0, 0),
         };
         let Ok((image, _)) = ew_render_cpu::render_placed(
             list,

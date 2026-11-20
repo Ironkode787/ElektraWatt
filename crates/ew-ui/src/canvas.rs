@@ -59,13 +59,13 @@ use ew_render2d::pool::{Scene, TilePool, worker_count};
 use ew_render2d::stats::{FrameSample, FrameStats, Phase};
 
 use crate::clock::{Stamp, now};
+use ew_dl::{Color, FontKey, ew_units::Nm};
 use ew_render2d::tiles::{DEFAULT_CACHE_BYTES, Plan, Planner, TileCache, TileKey};
 use ew_render2d::view::{DrawTransform, PxRect, View};
+use ew_units::Rect as SheetRect;
 use ew_viewmodel::canvas::{
     CanvasModel, CanvasPage, HOVER_SLOP_PT, Viewport, bounded_pane, zoom_in_step, zoom_out_step,
 };
-use ew_viewmodel::ew_api::output::ew_dl::ew_units::Rect as SheetRect;
-use ew_viewmodel::ew_api::output::ew_dl::{Color, FontKey, ew_units::Nm};
 use ew_viewmodel::ew_api::output::font_bytes;
 use ew_viewmodel::key;
 use ew_viewmodel::shell::{Focus, ShellModel};
@@ -131,10 +131,7 @@ pub fn hover_path(shell: &ShellModel, c: &CanvasModel) -> Option<Vec<(i64, i64)>
 }
 
 /// The drawn polyline (sheet nm) of `e` when it is a connection of the page.
-fn hovered_line(
-    c: &CanvasModel,
-    e: ew_viewmodel::ew_api::output::ew_dl::EntityRef,
-) -> Option<Vec<(i64, i64)>> {
+fn hovered_line(c: &CanvasModel, e: ew_dl::EntityRef) -> Option<Vec<(i64, i64)>> {
     let page = c.page();
     page.tables.connections.iter().find(|t| t.id == e.0).map(|t| {
         t.polyline
@@ -470,12 +467,7 @@ fn paint_locks(
             .tables
             .reps
             .iter()
-            .filter(|r| {
-                r.locked
-                    && shell
-                        .selection()
-                        .contains(ew_viewmodel::ew_api::output::ew_dl::EntityRef(r.id))
-            })
+            .filter(|r| r.locked && shell.selection().contains(ew_dl::EntityRef(r.id)))
             .map(|r| {
                 let [x0, y0, x1, y1] = r.body;
                 (crate::icons::IconId::pin, vec![(x0, y0), (x1, y1)])
@@ -731,7 +723,7 @@ fn paint_wire_codes(
     }
     let painter = ui.painter_at(rect);
     let tokens = crate::theme::current(ui.ctx());
-    let screen = |p: ew_viewmodel::ew_api::output::ew_dl::ew_units::Pt2| {
+    let screen = |p: ew_units::Pt2| {
         let (x, y) = t.to_screen((p.x.0 as f64, p.y.0 as f64));
         rect.min + egui::Vec2::new(x as f32, y as f32) / ppp
     };
@@ -1175,8 +1167,8 @@ pub(crate) fn ring_runs(centre: Pos2, radius: f32, texts: &[Rect]) -> Vec<Vec<Po
 /// The frames, in sheet nm, of the printed texts of the page's display list `list` (a device's texts, the title
 /// block's): each glyph run at any depth, its layout box through the transforms of the groups that hold it. Symbol
 /// instances are not resolved. The wire codes and the arrival ring keep clear of them.
-pub(crate) fn text_rects(list: &ew_viewmodel::ew_api::output::ew_dl::DisplayList) -> Vec<SheetRect> {
-    use ew_viewmodel::ew_api::output::ew_dl::ItemKind;
+pub(crate) fn text_rects(list: &ew_dl::DisplayList) -> Vec<SheetRect> {
+    use ew_dl::ItemKind;
     list.placed()
         .filter_map(|placed| {
             let ItemKind::Glyphs(run) = &placed.item.kind else {
@@ -3310,10 +3302,8 @@ mod model_identity_tests {
 #[cfg(test)]
 mod arrival_tests {
     use super::*;
-    use ew_viewmodel::ew_api::output::ew_dl::ew_units::Pt2;
-    use ew_viewmodel::ew_api::output::ew_dl::{
-        Brush, DisplayList, Glyph, Item, ShapedRun, Transform, ew_units::Rect as R,
-    };
+    use ew_dl::{Brush, DisplayList, Glyph, Item, ShapedRun, Transform, ew_units::Rect as R};
+    use ew_units::Pt2;
 
     /// The ring runs under a text: no step of it lies in the text's rectangle, and the rest of the
     /// circle is drawn; without a text it is one closed run.
@@ -3359,11 +3349,7 @@ mod arrival_tests {
         };
         let list = DisplayList {
             items: vec![
-                Item::path(
-                    ew_viewmodel::ew_api::output::ew_dl::Path::line(p(0, 0), p(9, 9)),
-                    None,
-                    None,
-                ),
+                Item::path(ew_dl::Path::line(p(0, 0), p(9, 9)), None, None),
                 Item::group(
                     Some(Transform::from_translation(p(10_000, 0))),
                     None,

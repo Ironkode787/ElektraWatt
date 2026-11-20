@@ -38,7 +38,7 @@ tools = ["xtask"]
 # (ARCH §3 rule 6). A crate without an entry here may depend on what its manifest says.
 [allowed_edges]
 "ew-viewmodel" = ["ew-api", "ew-dl", "ew-units", "ew-hack"]
-"ew-ui" = ["ew-viewmodel", "ew-render2d", "ew-render-cpu", "ew-hack"]
+"ew-ui" = ["ew-viewmodel", "ew-render2d", "ew-render-cpu", "ew-dl", "ew-units", "ew-hack"]
 # The layout reads no project record, so it builds and tests alone (docs/design/06a-drafting.md §2.7).
 "ew-drafting" = ["ew-units", "ew-ids", "ew-hack"]
 
