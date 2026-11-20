@@ -636,6 +636,17 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_rep_reset_texts(),
     ))),
+    // Keep in place in the canvas context menu over a symbol (doc 06a §2.4): checked while every selected symbol is
+    // kept; it keeps them, or lets them go when all are kept.
+    hidden(in_canvas(act(
+        "rep.keep_in_place",
+        Command,
+        Menu::Edit,
+        &[],
+        reps_selected,
+        None,
+        |s, _| s.act_rep_keep_in_place(),
+    ))),
     // Reset label position in the canvas context menu over a placement whose label was dragged.
     hidden(in_canvas(act(
         "layout.reset_label",

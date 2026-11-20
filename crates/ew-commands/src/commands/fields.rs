@@ -169,7 +169,7 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
             "kind",
         ],
     ),
-    (KindName::Representation, &["text_slots", "arrangement"]),
+    (KindName::Representation, &["text_slots", "arrangement", "locked"]),
     (
         KindName::Connection,
         &[

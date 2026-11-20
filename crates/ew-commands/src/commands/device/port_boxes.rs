@@ -283,6 +283,7 @@ impl Command for PlacePortBoxes {
                 anchor: None,
                 box_: Some(b.box_.clone()),
                 source_ref: None,
+                locked: false,
                 extra: Extra::new(),
             };
             if rep_cps_checked(tx, &record).is_err() {

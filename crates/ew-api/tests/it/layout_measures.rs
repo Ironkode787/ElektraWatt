@@ -537,6 +537,42 @@ fn starter_marks_stack_two_steps_apart_without_their_texts_meeting() {
     }
 }
 
+/// Doc 06a §2.4: a symbol kept in place (`fields.set` of `locked`) is a locked part of the page's model, its
+/// neighbour is not; letting it go unlocks it again.
+#[test]
+fn a_symbol_kept_in_place_is_a_locked_part_of_the_page_model() {
+    let (mut s, _, functions) = rk1_page(&[(52, 22), (60, 22)]);
+    let coils: Vec<_> = s
+        .page_tables("103")
+        .unwrap()
+        .reps
+        .iter()
+        .filter(|r| r.functions.iter().any(|f| functions.contains(&f.to_string())))
+        .map(|r| r.id)
+        .collect();
+    let [kept, other] = coils[..] else {
+        panic!("two coils: {coils:?}")
+    };
+    let locked = |s: &Session, id| {
+        s.page_draft("103")
+            .unwrap()
+            .parts
+            .iter()
+            .find(|p| p.id.0 == id)
+            .expect("the coil's part")
+            .locked
+    };
+    for keep in [true, false] {
+        run(
+            &mut s,
+            "fields.set",
+            serde_json::json!({"kind": "representation", "targets": [kept.to_string()], "path": "locked", "value": keep}),
+        );
+        assert_eq!(locked(&s, kept), keep);
+        assert!(!locked(&s, other));
+    }
+}
+
 /// A wire through an interruption point names the point in each language's words, never
 /// "interruption point" in a Dutch message: EW-CORE-069 on a page, and EW-CORE-070's wording of a point's text.
 #[test]

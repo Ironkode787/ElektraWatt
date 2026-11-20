@@ -354,6 +354,13 @@ no member that could.
 - **A text:** moving it. The stored slot override (as today) holds it; *Reset text positions* gives it back to
   the program.
 
+*As built (step 5).* No command of its own: Properties' row and the context menu's entry (`rep.keep_in_place`, a
+check that keeps the selected symbols, or lets them go when all are kept, with a toast that names them) both run
+`fields.set` of `locked`, one undo step for the selection. The pin is `IconId::pin` at the top-right corner of the
+symbol's body while it is selected, painted with the panel pages' lock (`paint_locks`); the page tables carry
+`TableRep.locked`, the adapter `Part.locked`. The glyph in the preview's "Left as it is" (§7.3) is step 4's, from
+`Part.locked`.
+
 ### 2.5 The file format
 
 Two optional members, appended after the released members of their records, written only when true:

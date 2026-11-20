@@ -410,10 +410,6 @@ fn paint_conflicts(
     }
 }
 
-/// Paints `IconId::lock` at the top-right corner of each locked placement's footprint on a panel page (doc 12 §12.1):
-/// `icon.sm` in `color.text.secondary`, fixed on screen whatever the zoom, standing on the footprint's top
-/// edge at its right end, so it covers none of the device's drawing or labels. An overlay of the window only: the
-/// page's output (SVG, PDF) has no lock. Returns the icons' frames in points.
 /// The hovered link's text underlined, as a link (doc 16a §7.2's hover, P4): a 1-px `canvas.hover` line
 /// along the bottom of the link's rectangle on screen, when the link leads somewhere.
 fn paint_link_underline(ui: &egui::Ui, rect: Rect, ppp: f32, t: &DrawTransform, canvas: &CanvasModel) {
@@ -439,29 +435,66 @@ fn paint_link_underline(ui: &egui::Ui, rect: Rect, ppp: f32, t: &DrawTransform, 
     );
 }
 
-fn paint_locks(ui: &egui::Ui, rect: Rect, ppp: f32, t: &DrawTransform, canvas: &CanvasModel) -> Vec<Rect> {
+/// Paints `IconId::lock` at the top-right corner of each locked placement's footprint on a panel page (doc 12 §12.1):
+/// `icon.sm` in `color.text.secondary`, fixed on screen whatever the zoom, standing on the footprint's top
+/// edge at its right end, so it covers none of the device's drawing or labels. On a drawn page the same mark is
+/// `IconId::pin` on each selected symbol kept in place (doc 06a §2.4), on its body's top edge. An overlay of the window
+/// only: the page's output (SVG, PDF) has neither. Returns the icons' frames in points.
+fn paint_locks(
+    ui: &egui::Ui,
+    rect: Rect,
+    ppp: f32,
+    t: &DrawTransform,
+    canvas: &CanvasModel,
+    shell: &ShellModel,
+) -> Vec<Rect> {
     let page = canvas.page();
-    let Some(panel) = page.panel.as_deref() else {
-        return Vec::new();
+    // Each mark: its icon and the page points of the outline it stands on.
+    let marks: Vec<(crate::icons::IconId, Vec<(i64, i64)>)> = match page.panel.as_deref() {
+        Some(panel) => panel
+            .placements
+            .iter()
+            .filter(|p| p.locked)
+            .map(|p| {
+                let (lo, hi) = (p.footprint.min(), p.footprint.max());
+                let corners = [
+                    (lo.x.0, lo.y.0),
+                    (hi.x.0, lo.y.0),
+                    (hi.x.0, hi.y.0),
+                    (lo.x.0, hi.y.0),
+                ];
+                let on_page = corners
+                    .iter()
+                    .map(|&(u, v)| panel.to_page((i128::from(u), i128::from(v))))
+                    .collect();
+                (crate::icons::IconId::lock, on_page)
+            })
+            .collect(),
+        None => page
+            .tables
+            .reps
+            .iter()
+            .filter(|r| {
+                r.locked
+                    && shell
+                        .selection()
+                        .contains(ew_viewmodel::ew_api::output::ew_dl::EntityRef(r.id))
+            })
+            .map(|r| {
+                let [x0, y0, x1, y1] = r.body;
+                (crate::icons::IconId::pin, vec![(x0, y0), (x1, y1)])
+            })
+            .collect(),
     };
     let tokens = crate::theme::current(ui.ctx());
     let size = tokens.icon_sm;
     let painter = ui.painter_at(rect);
     let mut out = Vec::new();
-    for p in panel.placements.iter().filter(|p| p.locked) {
-        let (lo, hi) = (p.footprint.min(), p.footprint.max());
-        let corners = [
-            (lo.x.0, lo.y.0),
-            (hi.x.0, lo.y.0),
-            (hi.x.0, hi.y.0),
-            (lo.x.0, hi.y.0),
-        ];
-        let on_screen: Vec<Pos2> = corners
+    for (id, on_page) in marks {
+        let on_screen: Vec<Pos2> = on_page
             .iter()
-            .map(|&(u, v)| {
-                let sheet = page
-                    .snapper
-                    .page_to_sheet(panel.to_page((i128::from(u), i128::from(v))));
+            .map(|&p| {
+                let sheet = page.snapper.page_to_sheet(p);
                 let (x, y) = t.to_screen((sheet.0 as f64, sheet.1 as f64));
                 rect.min + Vec2::new(x as f32, y as f32) / ppp
             })
@@ -474,7 +507,7 @@ fn paint_locks(ui: &egui::Ui, rect: Rect, ppp: f32, t: &DrawTransform, canvas: &
         }
         crate::icons::paint(
             &painter,
-            crate::icons::IconId::lock,
+            id,
             icon,
             tokens.text_secondary.color32(),
             tokens.icon_stroke,
@@ -1349,7 +1382,8 @@ impl CanvasHost {
         Some(rect.min + Vec2::new(x as f32, y as f32) / ppp)
     }
 
-    /// The lock icons (points) the last frame of `group` painted, one per locked placement in view.
+    /// The lock icons (points) the last frame of `group` painted, one per locked placement or selected kept symbol in
+    /// view.
     #[doc(hidden)]
     pub fn lock_marks(&self, group: usize) -> &[Rect] {
         self.locks.get(group).map_or(&[], Vec::as_slice)
@@ -1620,8 +1654,8 @@ impl CanvasHost {
         paint_highlights(ui, rect, ppp, &transform, shell, group);
         // A jump's arrival, marked for a moment.
         self.paint_arrival(ui, rect, ppp, &transform, canvas, group, shell.reduce_motion());
-        // A locked placement's lock icon, over the page on either backend.
-        self.locks[group] = paint_locks(ui, rect, ppp, &transform, canvas);
+        // A locked placement's lock icon, a selected kept symbol's pin, over the page on either backend.
+        self.locks[group] = paint_locks(ui, rect, ppp, &transform, canvas, shell);
         // A hovered link that leads somewhere is underlined.
         if shell.tool().wants_hover() {
             paint_link_underline(ui, rect, ppp, &transform, canvas);

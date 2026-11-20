@@ -20,6 +20,11 @@ right click offers Rotate, Mirror, **Edit symbol** and **Join device…**. Its r
 [Device](../properties.md#device), [Function](../properties.md#function) and
 [Representation](../properties.md#representation).
 
+To keep a symbol where it stands: select it, right-click and choose **Keep in place**, or tick **Keep in place** in
+Properties. Arrange and route then leaves it where it is and arranges the other parts around it. It does not hold the
+symbol for you: you can still move it yourself, and Route still routes its wires. A small pin shows on it while it is
+selected. Choose **Keep in place** again, with its check showing, to let it go.
+
 ## Wires
 
 A wire joins two connection points. A junction, the dot where a wire branches, joins three. A wire's number,

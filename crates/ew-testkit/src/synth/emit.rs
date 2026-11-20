@@ -596,6 +596,7 @@ pub(super) fn emit(plan: &Plan, seed: u64, options: &Options) -> Generated {
             anchor: None,
             box_: None,
             source_ref: None,
+            locked: false,
             extra: Extra::new(),
         }));
     }

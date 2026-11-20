@@ -380,6 +380,7 @@ impl Command for PlaceSymbol {
             anchor: None,
             box_: None,
             source_ref: None,
+            locked: false,
             extra: Extra::new(),
         };
         if rep_cps_checked(tx, &record).is_err() {
@@ -1780,6 +1781,7 @@ impl Command for PlaceBlackBox {
             anchor: None,
             box_: self.box_.clone(),
             source_ref: None,
+            locked: false,
             extra: Extra::new(),
         };
         if rep_cps_checked(tx, &record).is_err() {

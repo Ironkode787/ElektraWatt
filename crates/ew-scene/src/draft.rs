@@ -13,7 +13,7 @@
 //! - **Parts:** every representation with its symbol: its origin, its body (a drawn box's outline, else the bounds of
 //!   its symbol's graphics in its orientation), its drawn connection points as pins with their sides (the
 //!   representation that draws a function CP first, by ID, owns it), `frame_only` for a valve terminal drawn as its
-//!   cells. Its role is [`Role::Other`](ew_drafting::Role) here.
+//!   cells, `locked` when the representation is kept in place. Its role is [`Role::Other`](ew_drafting::Role) here.
 //! - **Wires:** every connection whose ends the page draws: its drawn polyline when it has a stored route, else no
 //!   route (unrouted). **Junctions** at their points. **Marks:** each cable mark, by its line, ticks and core names.
 //! - **Labels** (§5.2): the slot texts that no override moves or turns, by their slot's kind; a drawn box's texts
@@ -377,7 +377,7 @@ impl Builder<'_> {
                 pins,
                 unit: u32::try_from(unit).unwrap_or(u32::MAX),
                 role: Role::Other,
-                locked: false,
+                locked: rep.locked,
                 off_grid: !on_grid,
             });
         }

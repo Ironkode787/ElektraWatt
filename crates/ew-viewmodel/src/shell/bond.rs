@@ -475,6 +475,7 @@ mod tests {
             ip: None,
             black_box: None,
             terminal,
+            locked: false,
         }
     }
 

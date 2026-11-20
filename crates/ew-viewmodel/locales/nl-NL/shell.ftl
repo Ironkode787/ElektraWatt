@@ -6881,6 +6881,16 @@ reason-text-one-symbol = Selecteer één symbool
 reason-texts-not-moved = De teksten van het symbool staan waar het symbool ze zet
 refusal-rep-text-slot = het symbool heeft geen tekst { $p0 }
 
+# Een symbool op zijn plaats gehouden: Schikken en routeren laat het staan waar het staat (doc 06a §2.4).
+action-rep-keep-in-place = Op zijn plaats houden
+reason-keep-in-place-no-symbol = Selecteer een symbool op een getekende pagina
+keep-in-place-untagged = een symbool zonder kenmerk
+toast-kept-in-place = Op hun plaats gehouden: { $p0 }. Schikken en routeren zet de andere delen eromheen; zelf verplaatsen kan nog steeds.
+toast-kept-in-place-one = Op zijn plaats gehouden: { $p0 }. Schikken en routeren zet de andere delen eromheen; zelf verplaatsen kan nog steeds.
+toast-let-go = Niet langer op de plaats gehouden: { $p0 }.
+field-representation-locked = Op zijn plaats houden
+field-help-representation-locked = Schikken en routeren laat het symbool staan waar het staat en zet de andere delen eromheen. Zelf verplaatsen kan nog steeds. Een kleine punaise staat erop zolang het geselecteerd is.
+
 # Wat een apparaat is, onder de titel van Eigenschappen (rc.2, F9).
 props-what = { $p0 } · { $p1 }
 nature-electrical = elektrisch

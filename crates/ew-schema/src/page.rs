@@ -202,6 +202,11 @@ pub struct Representation {
     /// Import provenance.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_ref: Option<SourceRef>,
+    /// Keep in place (doc 06a §2.4): Arrange and route leaves the symbol where it stands and arranges the others
+    /// around it; moving it by hand is unaffected. Written only when set; an optional member appended after the
+    /// released ones, additive within format 0.1 (ADR-0011 amendment 6).
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub locked: bool,
     /// Unknown members and plugin keys.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

@@ -524,6 +524,7 @@ impl Mx<'_, '_> {
             anchor: None,
             box_: None,
             source_ref: Some(ids.source_ref(&rkey)),
+            locked: false,
             extra: BTreeMap::new(),
         }));
         self.out.used_defs.insert(e.path.to_owned());

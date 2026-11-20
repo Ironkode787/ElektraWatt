@@ -856,6 +856,7 @@ mod tests {
             ip: None,
             black_box: None,
             terminal: false,
+            locked: false,
         });
         let g = [ghost(0, (0, 0), Dir::Down)];
         assert!(proposals(&g, &t, &[], AREA, 0).list.is_empty());
@@ -974,6 +975,7 @@ mod tests {
             ip: None,
             black_box: None,
             terminal,
+            locked: false,
         });
         for (k, label) in cps {
             let mut c = cp(*k, (0, 0), Dir::Up, label);

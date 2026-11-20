@@ -688,6 +688,16 @@ fn texts_moved(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
+/// Keep in place: the selection holds a symbol of a drawn page.
+fn reps_selected(m: &ShellModel) -> Result<(), Key<'static>> {
+    writable_page(m)?;
+    if m.selected_rep_rows().is_empty() {
+        Err(key!("reason-keep-in-place-no-symbol"))
+    } else {
+        Ok(())
+    }
+}
+
 /// Reset label position: the selected placement's label was moved.
 fn label_moved(m: &ShellModel) -> Result<(), Key<'static>> {
     panel_selection(m)?;
@@ -1802,6 +1812,7 @@ pub(crate) fn switch_on(model: &ShellModel, id: &str) -> Option<bool> {
         "project.crossings" => model.crossings_hops(),
         "project.wire_numbers" => model.wire_numbers_on(),
         "project.plc_addresses_at_terminals" => model.plc_addresses_at_terminals_on(),
+        "rep.keep_in_place" => model.selection_kept_in_place(),
         // The command bar's collapse.
         "view.command_bar" => model.command_bar_collapsed(),
         "props.show_advanced" => model.properties_show_advanced(),

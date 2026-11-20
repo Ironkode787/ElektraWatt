@@ -9,7 +9,7 @@
 use super::Seg::{self, C, L, M, Q, Z};
 
 /// The number of icons in the table.
-pub const COUNT: usize = 144;
+pub const COUNT: usize = 145;
 
 /// One icon of the table, named by its key in `snake_case` (`ew_` for the project's own glyphs).
 #[allow(non_camel_case_types, missing_docs)]
@@ -122,6 +122,7 @@ pub enum IconId {
     package,
     packages,
     pencil,
+    pin,
     pipeline,
     plug,
     plug_connected,
@@ -271,6 +272,7 @@ impl IconId {
         IconId::package,
         IconId::packages,
         IconId::pencil,
+        IconId::pin,
         IconId::pipeline,
         IconId::plug,
         IconId::plug_connected,
@@ -420,6 +422,7 @@ pub const KEYS: [&str; COUNT] = [
     "package",
     "packages",
     "pencil",
+    "pin",
     "pipeline",
     "plug",
     "plug-connected",
@@ -2353,6 +2356,21 @@ pub(super) static PATHS: [&[Seg]; COUNT] = [
         L(4.0, 20.0),
         M(13.5, 6.5),
         L(17.5, 10.5),
+    ],
+    // pin
+    &[
+        M(15.0, 4.5),
+        L(11.0, 8.5),
+        L(7.0, 10.0),
+        L(5.5, 11.5),
+        L(12.5, 18.5),
+        L(14.0, 17.0),
+        L(15.5, 13.0),
+        L(19.5, 9.0),
+        M(9.0, 15.0),
+        L(4.5, 19.5),
+        M(14.5, 4.0),
+        L(20.0, 9.5),
     ],
     // pipeline
     &[

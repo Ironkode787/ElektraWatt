@@ -272,6 +272,7 @@ impl Category {
                     "page",
                     "pos",
                     "orient",
+                    "locked",
                     "arrangement",
                     "grid",
                     "scale",

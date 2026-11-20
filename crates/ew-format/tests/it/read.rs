@@ -1041,6 +1041,34 @@ fn a_page_file_with_page_items_and_a_structure_box_round_trips_byte_for_byte() {
     );
 }
 
+/// Two symbols of one page, the second kept in place (`Representation.locked`, doc 06a §2.5).
+const KEPT_LINES: [&str; 3] = [
+    PAGE,
+    r#"{"$k":"representation","id":"5a0c1e2d-3b4f-5a61-8000-000000000011","functions":["1d6f3a92-7c05-5b8e-94a1-e3c2087f5d19"],"page":"8e41c0d2-1b7f-5a39-a6c4-0f5e2d913b7a","symbol":"5b9e2d70-3c41-5f8a-b6d2-19e4c7a03f58","pos":[0,0]}"#,
+    r#"{"$k":"representation","id":"5a0c1e2d-3b4f-5a61-8000-000000000012","functions":["1d6f3a92-7c05-5b8e-94a1-e3c2087f5d19"],"page":"8e41c0d2-1b7f-5a39-a6c4-0f5e2d913b7a","symbol":"5b9e2d70-3c41-5f8a-b6d2-19e4c7a03f58","pos":[0,0],"locked":true}"#,
+];
+
+/// Keep in place is an optional member appended after the released ones (ADR-0011 amendment 6): a page file with a
+/// kept and an unkept symbol reads without a finding, the kept one typed as kept, and is written back byte for byte;
+/// the unkept one writes no member.
+#[test]
+fn a_kept_symbol_round_trips_and_an_unkept_one_writes_no_member() {
+    let loaded = load_lines(PAGE_FILE, &KEPT_LINES);
+    assert!(loaded.findings.is_empty(), "{:?}", loaded.findings);
+    assert!(loaded.kept.is_empty() && loaded.rewrite.is_empty());
+    let kept: Vec<bool> = loaded
+        .records
+        .iter()
+        .filter_map(|r| match r {
+            Record::Representation(x) => Some(x.locked),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(kept, [false, true]);
+    let lines: Vec<String> = loaded.records.iter().map(|r| record_line(r).unwrap()).collect();
+    assert_eq!(lines, KEPT_LINES);
+}
+
 /// The same records as an earlier build wrote them: `page_item` and `structure_box` were reserved kinds, kept
 /// as unknown records, so every object's members were written in byte-wise key order. This build reads them typed,
 /// reports the file as not canonical (info) and schedules its rewrite in the canonical member order of the typed

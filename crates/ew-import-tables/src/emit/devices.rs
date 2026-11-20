@@ -979,6 +979,7 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
             anchor: None,
             box_,
             source_ref: Some(source_ref("representations", row.key())),
+            locked: false,
             extra: Default::default(),
         }));
     }

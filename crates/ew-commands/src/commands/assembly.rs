@@ -469,6 +469,7 @@ fn draw_in_box(
         anchor: None,
         box_: None,
         source_ref: None,
+        locked: false,
         extra: Extra::new(),
     };
     if crate::geometry::rep_cps_checked(tx, &record).is_err() {

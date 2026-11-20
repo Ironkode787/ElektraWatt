@@ -7149,6 +7149,16 @@ reason-text-one-symbol = Select one symbol
 reason-texts-not-moved = The symbol's texts stand where the symbol puts them
 refusal-rep-text-slot = the symbol has no text { $p0 }
 
+# A symbol kept in place: Arrange and route leaves it where it stands (doc 06a §2.4).
+action-rep-keep-in-place = Keep in place
+reason-keep-in-place-no-symbol = Select a symbol on a drawn page
+keep-in-place-untagged = a symbol without a tag
+toast-kept-in-place = Kept in place: { $p0 }. Arrange and route arranges the other parts around them; you can still move them yourself.
+toast-kept-in-place-one = Kept in place: { $p0 }. Arrange and route arranges the other parts around it; you can still move it yourself.
+toast-let-go = No longer kept in place: { $p0 }.
+field-representation-locked = Keep in place
+field-help-representation-locked = Arrange and route leaves the symbol where it stands and arranges the other parts around it. You can still move it yourself. A small pin shows on it while it is selected.
+
 # What a device is, under the Properties title (rc.2, F9).
 props-what = { $p0 } · { $p1 }
 nature-electrical = electrical

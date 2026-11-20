@@ -662,7 +662,7 @@ pub fn menu_spot(
 /// - Over an object: the entries that fit it (`ShellModel::menu_fits`: a wire's, an interruption point's, a
 ///   terminal's, a device's), then, where the selection holds a symbol, the commands the command bar offers for it
 ///   (the buttons of [`SELECTION_GROUPS`], in the bar's order and as a collapsed group lists them: a split button, then
-///   its other variants), then Cut, Copy, Paste, Delete and Properties of selection. Over a placement of a panel
+///   its other variants) and Keep in place, then Cut, Copy, Paste, Delete and Properties of selection. Over a placement of a panel
 ///   page: Turn, Flip, Lock or Unlock, Reset label position and Delete.
 /// - Over the frame or the title block: Title block fields…, then what an empty spot offers.
 /// - Over an empty spot: Paste, Page properties, New page… and, on a page that is not a panel layout, Print wire
@@ -778,6 +778,10 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -
             });
             items.extend(variants.iter().filter(|v| v.id != b.id).cloned());
         }
+    }
+    // Keep in place, checked while every selected symbol is kept (doc 06a §2.4).
+    if symbols {
+        items.extend(item("rep.keep_in_place"));
     }
     // Over a text of the one selected symbol, Hide text and Put the text back (greyed with its reason while the texts
     // stand where the symbol puts them, rc.3: the menu offered only Hide text); over a symbol with a moved text, Put

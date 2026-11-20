@@ -2241,6 +2241,8 @@ pub struct TableRep {
     /// Whether the device of its first function is a terminal of a strip: its connection points print the terminal's
     /// tag (`-X1011:2`, with `/clamp` where the function names clamps), not `tag:designation`.
     pub terminal: bool,
+    /// Kept in place (`Representation.locked`, doc 06a §2.4): the canvas marks it while it is selected.
+    pub locked: bool,
 }
 
 /// The interruption point of a [`TableRep`].
@@ -2736,6 +2738,7 @@ impl Session {
                     .and_then(|f| f.device)
                     .and_then(|d| q.devices().get(d))
                     .is_some_and(|d| d.aspects.terminal.is_some()),
+                locked: rep.locked,
             });
         }
         let partition = q.get::<PotentialPartition>(());

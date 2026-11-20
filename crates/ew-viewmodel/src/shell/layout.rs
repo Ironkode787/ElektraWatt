@@ -600,6 +600,63 @@ impl ShellModel {
         })
     }
 
+    /// The selected symbols of a drawn page, in selection order; none on a panel layout.
+    pub fn selected_rep_rows(&self) -> Vec<&ew_api::output::TableRep> {
+        let Some(canvas) = self.canvas() else {
+            return Vec::new();
+        };
+        let page = canvas.page();
+        if page.panel.is_some() {
+            return Vec::new();
+        }
+        crate::tools::transform::selected_reps(&self.tools.selection, page)
+            .into_iter()
+            .filter_map(|e| page.tables.reps.iter().find(|r| r.id == e.0))
+            .collect()
+    }
+
+    /// Whether every selected symbol is kept in place (and one is selected): Keep in place shows its check.
+    pub fn selection_kept_in_place(&self) -> bool {
+        let reps = self.selected_rep_rows();
+        !reps.is_empty() && reps.iter().all(|r| r.locked)
+    }
+
+    /// `rep.keep_in_place` (Keep in place in the canvas context menu over a symbol, doc 06a §2.4): `fields.set` of
+    /// `locked` on the selected symbols, one undo step: kept when one of them is not yet, else let go. A toast with
+    /// Undo names them by their tags.
+    pub(crate) fn act_rep_keep_in_place(&mut self) -> Outcome {
+        let reps = self.selected_rep_rows();
+        if reps.is_empty() {
+            return Outcome::refused(key!("reason-keep-in-place-no-symbol"));
+        }
+        let keep = !reps.iter().all(|r| r.locked);
+        let targets: Vec<String> = reps.iter().map(|r| r.id.to_string()).collect();
+        let mut names: Vec<String> = Vec::new();
+        for r in &reps {
+            let name = r
+                .device
+                .and_then(|d| self.project.as_ref()?.session.device_tag(d))
+                .or_else(|| r.ip.as_ref().map(|ip| ip.name.clone()))
+                .unwrap_or_else(|| strings::text(key!("keep-in-place-untagged")).to_owned());
+            if !names.contains(&name) {
+                names.push(name);
+            }
+        }
+        let out = self.commit_from_host(&AnyCommand {
+            name: "fields.set".into(),
+            params: json!({"kind": "representation", "targets": targets, "path": "locked", "value": keep}),
+        });
+        if out == Outcome::Done {
+            let text = match (keep, names.len()) {
+                (true, 1) => key!("toast-kept-in-place-one"),
+                (true, _) => key!("toast-kept-in-place"),
+                (false, _) => key!("toast-let-go"),
+            };
+            self.notify(strings::format(text, &[&names.join(", ")]), true);
+        }
+        out
+    }
+
     /// `layout.reset_label` (Reset label position in the canvas context menu over a placement): `layout.label_move
     /// {placement}` of the selected placement, which puts its label back where the label rules place it.
     pub(crate) fn act_layout_reset_label(&mut self) -> Outcome {

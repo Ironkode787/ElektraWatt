@@ -296,6 +296,7 @@ pub fn rep(rep_id: Id<Representation>, page: Id<Page>, functions: Vec<Id<Functio
         anchor: None,
         box_: None,
         source_ref: None,
+        locked: false,
         extra: Extra::new(),
     }
 }

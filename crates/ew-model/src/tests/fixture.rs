@@ -304,6 +304,7 @@ pub(crate) fn rep(
         anchor: None,
         box_: None,
         source_ref: None,
+        locked: false,
         extra: Extra::new(),
     }
 }
