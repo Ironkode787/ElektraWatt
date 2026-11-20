@@ -97,7 +97,7 @@ impl Session {
             })
             .collect();
         let (value, provenance) = merge(cx, &FieldType::Text, per);
-        // rc.2, F12: a cross-reference is an electrical device's (a contact's to its coil); an empty one of a symbol
+        // A cross-reference is an electrical device's (a contact's to its coil); an empty one of a symbol
         // with no electrical point is not listed.
         let electrical = targets.iter().any(|t| {
             q.reps().get(Id::from_uuid(*t)).is_some_and(|r| {

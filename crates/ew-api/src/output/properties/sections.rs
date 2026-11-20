@@ -108,7 +108,7 @@ impl SectionCx<'_, '_> {
             }
             return;
         }
-        // rc.2, F12: what the thing is not has no row. An empty aspect of a device (a strip, a terminal, a cable, an
+        // What the thing is not has no row. An empty aspect of a device (a strip, a terminal, a cable, an
         // assembly), its place in a parent it does not have, and a function's empty bus port and interruption point
         // belong to another kind of thing.
         let not_this = value == RowValue::Absent

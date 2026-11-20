@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The strip editor's door below the shell (§6.3 to §6.7; D4 to D8, D14): [`Session::strip_edit`]
+//! The strip editor's door below the shell: [`Session::strip_edit`]
 //! compiles one strip gesture into one command, and [`Session::strip_edits`] several cell gestures into one.
 //!
 //! - **Group labels** (D8): setting the label L on terminals E of a strip rewrites `strip.groups`: every group that

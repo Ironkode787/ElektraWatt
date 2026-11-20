@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Highlighting (§7.3, D14): what a highlight shows and the connections it draws.
+//! Highlighting: what a highlight shows and the connections it draws.
 //!
 //! Not here: the media's zones it reads (`fluid.rs`).
 

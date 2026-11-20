@@ -847,7 +847,7 @@ impl Session {
             if dev.aspects.plc_station.take().is_some() {
                 stations += 1;
                 // The station's own module goes with it, so that the paste is a station again by normaliser N0 (F17 of
-                // the rc.1 test: a copy kept the module alone, waited as a card and was attached to a CPU).
+                // a test: a copy kept the module alone, waited as a card and was attached to a CPU).
                 if dev.aspects.plc_module.as_ref().is_some_and(|m| m.integrated) {
                     dev.aspects.plc_module = None;
                 }

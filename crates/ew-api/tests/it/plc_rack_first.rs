@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! F17, F18 and F19 of the rc.1 test, on the starter parts: a device that nothing describes as a PLC module is found
+//! F17, F18 and F19 of a test, on the starter parts: a device that nothing describes as a PLC module is found
 //! by EW-PLC-017 and taken out of the rack by its quick fix; a copy of a valve terminal is a station again; a station
 //! that is its own module is one row of the PLC navigator, a station drawn nowhere says so; `plc.add_station` makes a
 //! station with its modules in one undo step, or a bus device a station of a PLC.

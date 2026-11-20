@@ -3,7 +3,7 @@
 
 //! The nine further navigators and the highlight members on Golden A (acceptance checks NP1 and NP2,
 //! and the member half of NP3): each provider's table rows equal its oracle (the stored block's data rows, or the
-//! golden facts of §7.1), the records and open targets of one row per provider, FR-UI-005's counts (D16), and the
+//! golden facts of §7.1), the records and open targets of one row per provider, FR-UI-005's counts, and the
 //! members of a potential's and of a connection's highlight.
 
 use crate::common;

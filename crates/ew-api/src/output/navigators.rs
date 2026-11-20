@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The navigators' tables (§6.1, D2, D3): one row source per navigator,
+//! The navigators' tables: one row source per navigator,
 //! [`Session::navigator_table`], a plain function over `Q` that the view model fetches once per (kind, revision) for
 //! an open navigator only (no memoised family).
 //!

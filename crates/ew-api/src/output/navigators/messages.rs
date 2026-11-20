@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The message panel's table (§7.1, D8) and the migration report: the findings grouped by severity and rule, their
+//! The message panel's table and the migration report: the findings grouped by severity and rule, their
 //! target drawables and pages.
 //!
 //! Not here: the checks themselves (`crate::checks`); the table types (`navigators.rs`).
@@ -173,7 +173,7 @@ impl Session {
                     of_severity.iter().copied().filter(|f| f.rule == rule).collect();
                 let meta = checks::rule(rule).map(|r| r.meta());
                 // Every finding of the group has a quick fix of one kind (its key, else its command): Fix all (the
-                // rc.2 persona run met 29 fixes to apply one by one).
+                // a persona run met 29 fixes to apply one by one).
                 let kinds: std::collections::BTreeSet<Option<String>> = findings
                     .iter()
                     .map(|f| {

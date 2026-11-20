@@ -128,7 +128,7 @@ fn an_earth_connection_s_row_says_so() {
             .iter()
             .any(|b| b == ew_api::output::EARTH_CONNECTION)
     );
-    // rc.3: its function reads as what the device is called, not "Protective earth bar".
+    // Its function reads as what the device is called, not "Protective earth bar".
     let functions: Vec<&str> = t
         .nodes
         .iter()

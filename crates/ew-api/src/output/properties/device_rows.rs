@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A device's derived rows (§6.4, D15): the tag, the structure per aspect, the main location and the connection
+//! A device's derived rows: the tag, the structure per aspect, the main location and the connection
 //! points.
 //!
 //! Not here: the provenance of the tag row (`properties.rs`); a connection's rows (`connection_rows.rs`).
@@ -84,7 +84,7 @@ impl Session {
         let structures: Vec<std::sync::Arc<ResolvedStructure>> =
             devices.iter().map(|d| q.get::<StructureOf>(*d)).collect();
         let mut aspects: BTreeSet<Aspect> = structures.iter().flat_map(|s| s.slots.keys().copied()).collect();
-        // rc.2, F12: the location is what a drafter sets first, so its row is there on every device, set or not.
+        // The location is what a drafter sets first, so its row is there on every device, set or not.
         aspects.insert(Aspect::Location);
         for aspect in aspects {
             let member = member_of_aspect(aspect);

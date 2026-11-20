@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A connection's derived rows (§6.4, D15): the seven wire properties with their sources, the wire number, the
+//! A connection's derived rows: the seven wire properties with their sources, the wire number, the
 //! potential (also an interruption point's) and the route in frame cells.
 //!
 //! Not here: a bus line's rows (`bus_rows.rs`); a fluid line's rows (`fluid_rows.rs`).

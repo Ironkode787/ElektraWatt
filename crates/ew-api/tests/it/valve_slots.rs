@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! F15 of the rc.1 test, on the starter parts: a valve terminal is drawn as its valve positions, a cell is filled where
+//! F15 of a test, on the starter parts: a valve terminal is drawn as its valve positions, a cell is filled where
 //! it is, a valve dragged onto another cell moves there or swaps, a device that is no valve for a terminal stays its own,
 //! and a terminal drawn before as a free box is redrawn as its positions with its valves and their tubes.
 
