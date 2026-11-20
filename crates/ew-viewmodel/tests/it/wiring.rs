@@ -746,7 +746,7 @@ fn route_applies_at_once_names_the_wires_and_says_what_stands_in_the_way() {
     let mut s = actual_size(&tmp, "103");
     coils_and_wires(
         &mut s,
-        &[(55, 20), (55, 29), (70, 20), (70, 25)],
+        &[(55, 20), (55, 29), (70, 20), (70, 24)],
         &[("-103K1:A2", "-103K2:A1", &[]), ("-103K3:A2", "-103K2:A2", &[])],
     );
     done(&mut s, "ui.dismiss", json!({}));
