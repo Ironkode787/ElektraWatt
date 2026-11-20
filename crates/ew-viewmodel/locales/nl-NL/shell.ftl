@@ -5594,6 +5594,7 @@ field-word-rep-type = Representatietype
 field-word-revision-label = Revisielabel
 field-word-role = Rol
 field-word-route = Route
+field-word-computed = Door het programma gerouteerd
 field-word-rule = Regel
 field-word-rule-packs = Regelpakketten
 field-word-scale = Schaal

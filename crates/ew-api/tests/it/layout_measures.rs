@@ -103,55 +103,38 @@ fn a_folio_that_names_no_drawn_page_is_refused_in_words() {
         e.to_string(),
         "folio `2` is not a drawn page: a section divider or a generated page has no wires"
     );
-    assert_eq!(s.page_geometry("2"), None);
+    assert_eq!(s.page_draft("2"), None);
 }
 
 #[test]
-fn the_geometry_of_folio_101_holds_its_bodies_texts_and_frame_bands() {
+fn the_draft_of_folio_101_holds_its_parts_wires_and_frame_bands() {
     let (_tmp, s) = golden_copy();
     let t = s.page_tables("101").unwrap();
-    let g = s.page_geometry("101").unwrap();
-    // Every body, text box and CP belongs to a representation of the page; each connection keeps its drawn polyline.
+    let d = s.page_draft("101").unwrap();
+    // Every part is a representation of the page; every connection the page draws is a wire, routed where it has a
+    // stored route.
     let reps: Vec<_> = t.reps.iter().map(|r| r.id).collect();
-    assert!(g.bodies.iter().all(|b| reps.contains(&b.rep)));
-    assert!(
-        g.texts
-            .iter()
-            .all(|x| reps.contains(&x.rep) && x.rect[0] < x.rect[2] && x.rect[1] < x.rect[3])
-    );
-    assert!(g.cps.iter().all(|c| reps.contains(&c.rep)));
-    assert_eq!(
-        g.connections
-            .iter()
-            .map(|c| (c.id, c.polyline.clone()))
-            .collect::<Vec<_>>(),
-        t.connections
-            .iter()
-            .map(|c| (c.id, c.polyline.clone()))
-            .collect::<Vec<_>>()
-    );
-    // The lamp's pin text X1 beside its point: a text box of E56's representation, once.
-    let lamp = t.cps.iter().find(|c| c.label == "E56:X1").unwrap();
-    let x1 = [236_140_625, 100_922_667, 237_672_563, 102_724_480];
-    assert_eq!(
-        g.texts
-            .iter()
-            .filter(|x| x.rep == lamp.rep && x.rect == x1)
-            .count(),
-        1
-    );
-    // The frame's bands keep clear of every CP of the page, and the QET frame has some.
-    assert!(!g.frame_bands.is_empty());
-    for b in &g.frame_bands {
-        let inside = |p: (i64, i64)| b[0] < p.0 && p.0 < b[2] && b[1] < p.1 && p.1 < b[3];
-        assert!(g.cps.iter().all(|c| !inside(c.at)), "{b:?}");
+    assert!(d.parts.iter().all(|p| reps.contains(&p.id.0)));
+    for c in &t.connections {
+        let w = d.wires.iter().find(|w| w.id.0 == c.id).expect("a wire of the page");
+        assert_eq!(w.route.is_empty(), !c.stored_route);
+    }
+    // The frame's bands keep clear of every pin of the page, and the QET frame has some.
+    assert!(!d.keep_out.is_empty());
+    for b in &d.keep_out {
+        for p in &d.parts {
+            for pin in &p.pins {
+                let at = p.at.plus(pin.at);
+                assert!(!(b.x0 < at.x && at.x < b.x1 && b.y0 < at.y && at.y < b.y1), "{b:?}");
+            }
+        }
     }
 }
 
-/// A free text and a structure box's caption are text boxes of the page's geometry, so measure (d) and
-/// the router's rule 4 see them.
+/// A free text and a structure box's caption are fixed texts of the page as the layout sees it, so the measure and the
+/// router see them.
 #[test]
-fn free_texts_and_structure_box_captions_are_text_boxes() {
+fn free_texts_and_structure_box_captions_are_fixed_texts() {
     use crate::golden_common;
     let batch = golden_common::batch();
     let ids = golden_common::ids_by_key(&batch);
@@ -179,8 +162,8 @@ fn free_texts_and_structure_box_captions_are_text_boxes() {
         })
         .expect("box.structure");
     let structure = boxed.outcome.primary.expect("the box").1.as_uuid();
-    let geometry = s.page_geometry("101").expect("folio 101");
-    let has = |id| geometry.texts.iter().any(|t| t.rep == id);
+    let draft = s.page_draft("101").expect("folio 101");
+    let has = |id| draft.fixed_texts.iter().any(|t| t.owner == id);
     assert!(has(item), "the free text");
     assert!(has(structure), "the structure box's caption");
 }
@@ -319,8 +302,8 @@ fn rk1_a_wire_through_a_connection_point_fires_ew_core_067() {
     assert_eq!(
         findings(&s, "EW-CORE-067"),
         [(
-            "Wire -103K1:A2 → -103K3:A2 crosses -103K2:A1 without joining it, so on paper it looks connected. Reroute \
-             it so that it passes beside."
+            "Wire -103K1:A2 → -103K3:A2 crosses -103K2:A1 without joining it, so on paper it looks connected. Route it \
+             again so that it passes beside."
                 .to_owned(),
             "Draad -103K1:A2 → -103K3:A2 kruist -103K2:A1 zonder ermee verbonden te zijn, dus op papier lijkt hij \
              aangesloten. Routeer hem opnieuw zodat hij ernaast loopt."
@@ -358,7 +341,7 @@ fn rk1_a_wire_along_another_fires_ew_core_068() {
         findings(&s, "EW-CORE-068"),
         [(
             "Wire -103K1:A2 → -103K4:A2 lies on top of -103K2:A2 → -103K3:A2 on page 103, so on paper the two cannot \
-             be told apart. Reroute one of them."
+             be told apart. Route one of them again."
                 .to_owned(),
             "Draad -103K1:A2 → -103K4:A2 ligt over -103K2:A2 → -103K3:A2 op pagina 103, dus op papier zijn de twee \
              niet uit elkaar te houden. Routeer een van beide opnieuw."

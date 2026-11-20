@@ -696,6 +696,8 @@ const OTHER_COMMANDS: &[(&str, &str, &str, Option<&str>)] = &[
     ("connection", "a", "connection.draw", Some("the canvas")),
     ("connection", "b", "connection.draw", Some("the canvas")),
     ("connection", "route", "connection.route", Some("the canvas")),
+    // The program's mark on a route: Route sets it, the route editor clears it (docs/design/06a-drafting.md §2.4).
+    ("connection", "computed", "layout.apply", Some("Route (Draw ▸ Connect)")),
     ("junction", "*", "junction.edit", Some("the canvas")),
     ("page", "folio", "page.renumber", None),
     ("device", "parent", "assembly.attach", None),

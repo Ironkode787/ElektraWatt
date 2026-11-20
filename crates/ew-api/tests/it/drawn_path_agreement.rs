@@ -30,6 +30,38 @@ fn pt(p: (i64, i64)) -> Pt2 {
     Pt2::new(Nm(p.0), Nm(p.1))
 }
 
+/// Whether the scene's line `scene` is the path `path` as the scene draws it: the same, or with one corner cut by the
+/// bevel where two wires of one pin part (docs/design/06a-drafting.md §3.4): the corner replaced by a point on the
+/// stretch before it and one on the stretch after it, as far from it each (the first left out where it is the point
+/// before the corner).
+pub(crate) fn drawn_as(path: &[(i64, i64)], scene: &[(i64, i64)]) -> bool {
+    if path == scene {
+        return true;
+    }
+    let on = |p: (i64, i64), a: (i64, i64), b: (i64, i64)| {
+        (p.0 == a.0 && a.0 == b.0 && (a.1.min(b.1)..=a.1.max(b.1)).contains(&p.1))
+            || (p.1 == a.1 && a.1 == b.1 && (a.0.min(b.0)..=a.0.max(b.0)).contains(&p.0))
+    };
+    let far = |a: (i64, i64), b: (i64, i64)| (a.0 - b.0).abs() + (a.1 - b.1).abs();
+    (1..path.len().saturating_sub(1)).any(|k| {
+        let (head, x, rest) = (&path[..k], path[k], &path[k + 1..]);
+        if scene.len() < head.len() + rest.len() + 1
+            || scene[..head.len()] != *head
+            || scene[scene.len() - rest.len()..] != *rest
+        {
+            return false;
+        }
+        match &scene[head.len()..scene.len() - rest.len()] {
+            [b] => {
+                (on(*b, x, path[k + 1]) && far(path[k - 1], x) == far(*b, x))
+                    || (on(*b, path[k - 1], x) && far(path[k + 1], x) == far(*b, x))
+            }
+            [a, b] => on(*a, path[k - 1], x) && on(*b, x, path[k + 1]) && far(*a, x) == far(*b, x),
+            _ => false,
+        }
+    })
+}
+
 /// The polyline the wire layer draws for connection `id`.
 fn wire_of(wires: &PageLayer, id: Uuid) -> Vec<(i64, i64)> {
     wires
@@ -76,8 +108,8 @@ fn golden_a_s_wires_are_drawn_along_the_one_path() {
             assert!(!c.route.is_empty(), "{} {}: unrouted", entry.folio, row.id);
             let path = drawn_path(&q, &c, page).expect("a routed wire is drawn");
             let scene = wire_of(&wires, row.id);
-            assert_eq!(pts(&path), scene, "{} {}", entry.folio, row.id);
-            assert_eq!(row.polyline, scene, "{} {}", entry.folio, row.id);
+            assert!(drawn_as(&pts(&path), &scene), "{} {}: {:?} {scene:?}", entry.folio, row.id, pts(&path));
+            assert!(drawn_as(&row.polyline, &scene), "{} {}", entry.folio, row.id);
             drawn += 1;
         }
     }

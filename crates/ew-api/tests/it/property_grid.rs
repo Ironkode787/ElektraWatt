@@ -1161,6 +1161,7 @@ fn a_fluid_line_shows_its_line_kind_row_and_a_wire_none() {
             "connection/page",
             "connection/a",
             "connection/b",
+            "connection/computed",
             "connection/route",
             "connection/source_ref"
         ]

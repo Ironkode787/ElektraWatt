@@ -195,6 +195,7 @@ pub fn bevel_partings(lines: &mut [Vec<Pt2>], pins: &[(Pt2, Vec<usize>)], step: 
             let back = Pt2::new(x.x - Nm(d_in.0 * step.0), x.y - Nm(d_in.1 * step.0));
             let on_way = Pt2::new(x.x + Nm(d_out.0 * step.0), x.y + Nm(d_out.1 * step.0));
             line.splice(k..=k, [back, on_way]);
+            line.dedup();
             if turned {
                 line.reverse();
             }

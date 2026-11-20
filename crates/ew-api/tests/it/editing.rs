@@ -389,7 +389,12 @@ fn the_page_tables_of_folios_101_to_103_match_the_golden_tables_and_the_scene() 
                     _ => None,
                 })
                 .unwrap_or_else(|| panic!("no wire for {}", c.id));
-            assert_eq!(c.polyline, drawn, "{folio} {}", c.id);
+            assert!(
+                crate::drawn_path_agreement::drawn_as(&c.polyline, &drawn),
+                "{folio} {}: {:?} {drawn:?}",
+                c.id,
+                c.polyline
+            );
             for end in [c.a, c.b] {
                 if let TableEnd::Junction { id } = end {
                     assert!(t.junctions.iter().any(|j| j.id == id));

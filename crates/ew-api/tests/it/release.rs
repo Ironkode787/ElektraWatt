@@ -166,13 +166,13 @@ fn build_release_min(dir: &Path, state: &Path) {
             }),
         );
     }
-    // Route page: an unrouted wire is an error in release mode (EW-CORE-073).
+    // Route: an unrouted wire is an error in release mode (EW-CORE-073).
     let plan = s
         .route_plan("1", &ew_api::routing::RouteScope::Page)
         .expect("folio 1");
-    assert_eq!(plan.unrouted, []);
-    let params = ew_api::routing::route_many_params(&plan).expect("the two routes");
-    run(&mut s, "connection.route_many", params);
+    assert_eq!(plan.plan.unrouted, []);
+    let params = plan.params.expect("the two routes");
+    run(&mut s, "layout.apply", params);
     run(
         &mut s,
         "revision.create",
