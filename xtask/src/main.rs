@@ -11,11 +11,13 @@
 // Build tooling, not a product path: `CARGO` names the cargo binary, and tests name scratch directories by the clock.
 #![allow(clippy::disallowed_methods)]
 
+mod action_map;
 mod anonymise;
 mod api_guard;
 mod blind;
 mod book_po;
 mod check;
+mod crate_map;
 mod deps;
 mod docs_gen;
 mod features;
@@ -43,7 +45,8 @@ the loop:
                        narrows them and leaves the doctests out
   gen [--check]        regenerates every generated file: the reference of the commands, rules,
                        keymaps, CLI, queries and views (target/reference, not committed), the book's contents and
-                       reference pages, the icon table, the lint list and the QET symbol edition; --check writes
+                       reference pages, the maps of the actions and the crates (docs/map/), the icon table, the
+                       lint list and the QET symbol edition; --check writes
                        nothing and fails when a committed file that needs no build to compare is stale
   rules                the repository rules alone, in seconds: the crate layers and the licence boundary
                        (ci/dep-rules.toml, ci/licence-map.toml), test-only features, raw reads of the model,
@@ -52,6 +55,7 @@ the loop:
 single steps:
   docs-gen             the reference (target/reference) and from it the generated reference pages of the user
                        guide (docs/book/src/reference/) and the lists of its SUMMARY.md
+  gen-maps [--check]   the action map and the crate map (docs/map/), read from the source in seconds
   gen-icons [--check]  the icon table of ew-ui from assets/icons/
   symbols-qet10 [--check]
                        seals the library documents and generates the QET edition (content/symbols/qet10)
@@ -76,6 +80,10 @@ fn main() -> ExitCode {
         },
         "rules" => rules(&root),
         "docs-gen" => generate::reference(&root).and_then(|ok| Ok(ok && docs_gen::run(&root, false)?)),
+        "gen-maps" => match flag(&args[1..], "--check") {
+            Some(check) => generate::maps(&root, check),
+            None => usage("gen-maps takes only --check"),
+        },
         "gen-icons" => match flag(&args[1..], "--check") {
             Some(check) => icons::run(&root, check),
             None => usage("gen-icons takes only --check"),

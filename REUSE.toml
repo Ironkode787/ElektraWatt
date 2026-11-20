@@ -65,6 +65,7 @@ path = [
     "docs/book/src/reference/cli/**",
     "docs/book/src/reference/queries.md",
     "docs/book/src/reference/api-v1.md",
+    "docs/map/**",
 ]
 precedence = "override"
 SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"

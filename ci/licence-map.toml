@@ -212,6 +212,12 @@ allowed = ["GPL-3.0-or-later"]
 glob = "docs/book/src/reference/format/**"
 allowed = ["MIT OR Apache-2.0"]
 
+# The maps of the code for its builders (`cargo xtask gen-maps`) are made of the GPL crates' source (the action
+# table's IDs and keys, the crates' head comments): they keep its licence, by the same ruling.
+[[path]]
+glob = "docs/map/**"
+allowed = ["GPL-3.0-or-later"]
+
 # WP-S7.05 D13, D18: the release-notes pages are generated from docs/release-notes/ (CC-BY-4.0, L9), whose licence
 # they keep.
 [[path]]

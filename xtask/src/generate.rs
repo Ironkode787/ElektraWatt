@@ -9,7 +9,7 @@
 //!   GPL), so each registry's own crate has a test that writes its file when `EW_REFERENCE_DIR` is set, and
 //!   [`reference`] runs those tests.
 //! - **Committed files** that a generator writes from data in the tree: the workspace-hack crate, the book's
-//!   contents and reference pages, the icon table, the lint list and the QET symbol edition. `--check` compares the
+//!   contents and reference pages, the maps of the actions and the crates (`docs/map/`), the icon table, the lint list and the QET symbol edition. `--check` compares the
 //!   ones that need no build. The guide's translation catalogue is not among them: `cargo xtask book-po` makes it,
 //!   when the guide is translated and before a release.
 
@@ -58,6 +58,7 @@ type Own = fn(&Path, bool) -> Result<bool>;
 
 /// The generators of xtask that write a committed file from data in the tree, in their order.
 const OWN: &[(&str, Own)] = &[
+    ("gen-maps", maps),
     ("gen-icons", crate::icons::run),
     // The rule `raw-read` compares the list; here it is only written.
     ("lint-list", |root, check| {
@@ -72,6 +73,29 @@ const OWN: &[(&str, Own)] = &[
     // and before a release, not with every change of a page: made here, every change of a page rewrote the
     // template and the translations in every branch, and they met at every merge.
 ];
+
+/// `gen-maps [--check]`: the action map and the crate map under `docs/map/`, read from the source.
+pub(crate) fn maps(root: &Path, check: bool) -> Result<bool> {
+    if !check {
+        crate::action_map::write(root)?;
+        crate::crate_map::write(root)?;
+        println!(
+            "gen-maps: wrote {} and {}",
+            crate::action_map::OUTPUT,
+            crate::crate_map::OUTPUT
+        );
+        return Ok(true);
+    }
+    let mut problems = crate::action_map::violations(root)?;
+    problems.extend(crate::crate_map::violations(root)?);
+    if problems.is_empty() {
+        println!("gen-maps: ok");
+    }
+    for p in &problems {
+        eprintln!("  - {p}");
+    }
+    Ok(problems.is_empty())
+}
 
 /// `gen [--check]`.
 pub(crate) fn run(root: &Path, check: bool) -> Result<bool> {
