@@ -12,6 +12,10 @@ failure-output = "immediate-final"
 success-output = "never"
 # A hung test is ended after two minutes and fails under its name.
 slow-timeout = { period = "60s", terminate-after = 2 }
+# The thread count stays nextest's default, one per logical core. The whole suite on the 12-core, 24-thread
+# development PC (measured by hand, 2026-11-20): 12 threads 535 s, 24 threads 286 to 328 s, 32 threads 344 s; the
+# four heavy test binaries started first (`priority`) 294 s against 286 s without. A test's own threads (the tile
+# workers, the software rasteriser) run inside that load; the suite keeps the cores at 85 to 90 % throughout.
 
 # The long tests: the acceptance run, the command fuzzer, the memo oracle and the page output take about two minutes
 # on a busy machine.
