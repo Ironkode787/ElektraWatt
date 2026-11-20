@@ -289,12 +289,17 @@ fn arrange_block(ui: &mut Ui, a: &ew_viewmodel::properties::ArrangeCard, events:
         }
         if wires {
             ui.add_space(t.space_2);
+            // Ticked when every row is, half when some are (a click ticks them all).
             let all = rows.iter().all(|r| r.ticked);
+            let some = rows.iter().any(|r| r.ticked);
             let mut on = all;
             let label = RichText::new(strings::text(key))
                 .font(theme::font(&t.type_small))
                 .color(t.text_tertiary.color32());
-            if ui.checkbox(&mut on, label).changed() {
+            if ui
+                .add(egui::Checkbox::new(&mut on, label).indeterminate(some && !all))
+                .changed()
+            {
                 events.push(Event::Action("layout.arrange_tick", json!({ "all": !all })));
             }
         } else {
