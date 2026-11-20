@@ -324,14 +324,15 @@ fn half(v: Tick) -> Tick {
     v.div_euclid(2)
 }
 
-/// The corners of a part (module documentation).
-fn corners(s: &Shape, (w, h): (Tick, Tick)) -> Vec<Rect> {
+/// The corners of a part (module documentation), for a unit `w` by `h` whose first line is `line` high.
+fn corners(s: &Shape, (w, h): (Tick, Tick), line: Tick) -> Vec<Rect> {
     let (b, g, size) = (s.body, LABEL_CLEAR, (w, h));
     let cx = b.centre().x;
     let above = bx(cx - half(w), b.y0 - g - h, size);
     let below = bx(cx - half(w), b.y1 + g, size);
-    // Centred below, one line lower: past a text that stands right under the body.
-    let lower = bx(cx - half(w), b.y1 + 2 * g + h, size);
+    // Centred below, one line lower: past a text that stands right under the body. One line, not the block's height:
+    // a block of several lines goes no further from its part than one line past that text.
+    let lower = bx(cx - half(w), b.y1 + 2 * g + line, size);
     if s.upright {
         let mut out = vec![
             bx(b.x0 - g - w, b.y0, size),
@@ -381,6 +382,7 @@ fn part_places(ground: &Ground<'_>, unit: &Unit, s: &Shape) -> Vec<Rect> {
     let (w, h) = unit.size;
     let c = b.centre();
     let first_pin = s.pins.first().copied();
+    let line = ground.page.labels[unit.members[0].0].size.1;
     match unit.kind {
         LabelKind::PinNumber(pin) => match ground.pins.get(&pin) {
             Some(&(q, side, _)) => pin_places(q, side, unit.size),
@@ -409,7 +411,7 @@ fn part_places(ground: &Ground<'_>, unit: &Unit, s: &Shape) -> Vec<Rect> {
                 bx(c.x - half(w), b.y1 + g, unit.size),
                 bx(b.x1 + g, c.y - half(h), unit.size),
             ];
-            out.extend(corners(s, unit.size));
+            out.extend(corners(s, unit.size, line));
             out
         }
         LabelKind::BoxTag => vec![
@@ -491,7 +493,7 @@ fn part_places(ground: &Ground<'_>, unit: &Unit, s: &Shape) -> Vec<Rect> {
                 bx(q.x + g, b.y0 - g - h, unit.size),
                 bx(q.x - g - w, b.y0 - g - h, unit.size),
             ],
-            _ => corners(s, unit.size),
+            _ => corners(s, unit.size, line),
         },
         LabelKind::StripTag => vec![
             bx(b.x0 - g - w, c.y - half(h), unit.size),
@@ -505,7 +507,7 @@ fn part_places(ground: &Ground<'_>, unit: &Unit, s: &Shape) -> Vec<Rect> {
         | LabelKind::ContactList
         | LabelKind::WireNumber
         | LabelKind::CableType
-        | LabelKind::CableTag => corners(s, unit.size),
+        | LabelKind::CableTag => corners(s, unit.size, line),
     }
 }
 

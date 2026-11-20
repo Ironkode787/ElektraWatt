@@ -181,6 +181,47 @@ fn the_texts_of_one_side_move_as_a_block() {
     assert_eq!(find(&after, tag).rank, find(&after, data).rank);
 }
 
+/// A block of two lines (a tag and its data) whose places beside the symbol are all taken stays by its symbol: its
+/// place "one line lower" is one line past the place under the body, not the block's height, so the block never stands
+/// further from its part than one line and the gaps.
+#[test]
+fn a_block_of_two_lines_stays_within_one_line_of_its_part() {
+    let mut b = Page::new(40, 30);
+    let k = b.part(
+        "K1",
+        p(10, 10),
+        (p(-1, 0), p(1, 4)),
+        &[
+            ("1", p(0, 0), ew_drafting::Side::Up),
+            ("2", p(0, 4), ew_drafting::Side::Down),
+        ],
+    );
+    let left = -s(1) - LABEL_CLEAR - TAG.0;
+    let tag = b.label(
+        Owner::Part(k),
+        0,
+        LabelKind::Tag,
+        TAG,
+        Places::At(vec![Pt::new(left, 0)]),
+    );
+    b.label(
+        Owner::Part(k),
+        1,
+        LabelKind::Data,
+        TAG,
+        Places::At(vec![Pt::new(left, 12)]),
+    );
+    // Everything round the symbol down to a step under it is taken.
+    b.page.fixed_texts.push(FixedText {
+        owner: id("note"),
+        rect: Rect::new(p(4, 4), p(16, 15)),
+    });
+    let r = find(&settle_labels(&b.page), tag).rect;
+    let body = Rect::new(p(9, 10), p(11, 14));
+    let gap = (body.x0 - r.x1).max(r.x0 - body.x1).max(body.y0 - r.y1).max(r.y0 - body.y1);
+    assert!(gap <= 2 * LABEL_CLEAR + TAG.1, "{r:?} is {gap} ticks from its part");
+}
+
 /// The two-rows rule: tags of a row wider than its pitch stand in two rows, every second one a line lower.
 #[test]
 fn tags_wider_than_their_rows_pitch_stand_in_two_rows() {
