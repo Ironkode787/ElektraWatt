@@ -1111,7 +1111,7 @@ fn the_availability_walk_names_an_enabled_button_of_an_unavailable_action() {
     h.run_ok();
     assert_eq!(support::availability_problems(&h, "window"), Vec::<String>::new());
     dispatch(&mut h, "edit.undo", json!({}));
-    let bar = ew_ui::ew_viewmodel::command_bar::command_bar(h.state().shell());
+    let bar = ew_viewmodel::command_bar::command_bar(h.state().shell());
     let button = &bar.quick.iter().find(|b| b.id == "edit.undo").unwrap().bar_label;
     assert_eq!(
         support::availability_problems(&h, "window"),

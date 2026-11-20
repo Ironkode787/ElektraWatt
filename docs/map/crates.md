@@ -39,9 +39,9 @@ The `ew` command-line program: its entry point, which parses the arguments, runs
 | `src/cli/open.rs` | 300 | Finding and opening the project, for reading and for writing, and the words of the refusals. |
 | `src/cli/plc.rs` | 500 | The PLC exchange (doc 10 §7): `ew export plc-aml`, `plc-xlsx` and `plcopen`, `ew import plc-aml`, `plc-xlsx` and `instrument-list`, and `ew plc status`. |
 | `src/cli/print.rs` | 100 | `ew print`: the pages to a printer or a spool file. |
-| `src/cli/project_files.rs` | 2,100 | `ew fmt` and `ew recover`, `ew fmt --repair` and `ew upgrade`: the subcommands that work on the project's files and journals as the store keeps them. |
+| `src/cli/project_files.rs` | 2,000 | `ew fmt` and `ew recover`, `ew fmt --repair` and `ew upgrade`: the subcommands that work on the project's files and journals as the store keeps them. |
 | `src/cli/query.rs` | 100 | `ew query` and `ew queries`: the public queries of the session, with `--explain`, and the query registry. |
-| `src/cli/revision.rs` | 1,000 | The release workflow on the command line, `ew revision approve\|release\|withdraw`: the typed confirmation on a terminal, the gate, the archive and the tag of a release, and the settling of a release a crash left. |
+| `src/cli/revision.rs` | 1,100 | The release workflow on the command line, `ew revision approve\|release\|withdraw`: the typed confirmation on a terminal, the gate, the archive and the tag of a release, and the settling of a release a crash left. |
 | `src/cli/route.rs` | 300 | `ew route [<project-dir>] [--page <folio>] [--selection <ids>] [--arrange] [--dry-run] [--json]`: Route over the CLI (docs/design/06a-drafting.md §7.4), and with `--arrange` Arrange and route. |
 | `src/cli/sql.rs` | 200 | `ew sql` and `ew sql dump`: a statement over the projection, under its panic guard. |
 | `src/cli/symbol.rs` | 100 | Project-independent symbol authoring: bounded input, structured validation, ordinary library publication. |
@@ -613,7 +613,7 @@ Parts, symbol, form and macro libraries as canonical `.ewlib` text directories a
 | `src/file.rs` | 100 | The one all-or-nothing file write of the program: the bytes go to a temporary file beside the target, are synced and renamed over it, so a failure, a cancel or a crash never leaves a partial file at the target's name. |
 | `src/index.rs` | 1,000 | The derived per-user search index (doc 07 §4.3, §4.7): one SQLite file in the cache directory, never authoritative, rebuilt per library when its generation or a file hash changes, and from scratch when it is missing, unreadable or of another schema. |
 | `src/lib.rs` | 100 | Parts, symbol, form and macro libraries as canonical `.ewlib` text directories at every tier, a derived SQLite FTS5 index per user, and embedding used items into projects. |
-| `src/lock.rs` | 700 | `library.lock`, the writer's lock of a `.ewlib` directory, with the project lock's record and stale rule (doc 05 §7.1, §7.4). |
+| `src/lock.rs` | 600 | `library.lock`, the writer's lock of a `.ewlib` directory, with the project lock's record and stale rule (doc 05 §7.1, §7.4). |
 | `src/manifest.rs` | 300 | `library.json`, the manifest of a `.ewlib` directory (doc 07 §2.2), written last. |
 | `src/record.rs` | 500 | Library record lines and the files of a `.ewlib` directory (doc 07 §2.2, §7.2). |
 | `src/registry.rs` | 1,400 | [`Registry`]: the opened tiers, the one resolver and the search index (§7). |
