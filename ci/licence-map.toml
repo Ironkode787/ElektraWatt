@@ -348,6 +348,16 @@ allowed = ["CC0-1.0"]
 glob = "fixtures/tables/README.md"
 allowed = ["CC-BY-4.0"]
 
+# L8 (test fixtures): fixtures/sample/ holds the sample project's UI script and the folder `cargo xtask gen` makes
+# from it; fixtures/release-min/ the release fixture.
+[[path]]
+glob = "fixtures/sample/**"
+allowed = ["CC0-1.0"]
+
+[[path]]
+glob = "fixtures/release-min/**"
+allowed = ["CC0-1.0"]
+
 # ---------------------------------------------------------------------------------------------------------------
 # L12: CI workflows, scripts and tools (MIT OR Apache-2.0), so that others may copy the gates.
 [[path]]
