@@ -20,7 +20,7 @@
 //! **The scale rule**: every mark scales by the integer factor `s = max(1, ⌊ppp⌋)`
 //! ([`mark_scale`]): lines are `s` pixels wide with dashes of `4s` on and `4s` off, the grid cross and the junction
 //! square are `6s + 1` pixels, the CP ring `8s + 1`, the hover outline `s`, the selection outline `2s` with an
-//! `s`-pixel white casing on both sides (no corner handles: a symbol is not resized by its corners, rc.3), and the
+//! `s`-pixel white casing on both sides (no corner handles: a symbol is not resized by its corners), and the
 //! grid cursor's arms `s` wide from `2s` to `8s` off its centre. At ppp 1 every mark keeps its size.
 //!
 //! The colours come from the caller's [`Theme`]: the window and the snapshot build it from the design language's
@@ -1026,7 +1026,7 @@ pub fn fill(image: &mut RgbaImage, r: PxRect, c: Color) {
 /// The marks of the overlays over the sheet, each pixel rectangle with its colour, in paint order: page bounds, grid
 /// dots, hover, the lines' bands, the selection (casing, then outline), the open markers of the free connection
 /// points, the tool's lines and ghosts, its round handles, its snap markers, and last the grid cursor's crosshair. The
-/// window and the snapshot both paint this one list, so what one shows the other shows (rc.3: the window had left out
+/// window and the snapshot both paint this one list, so what one shows the other shows (the window had left out
 /// the selection's casing).
 pub fn marks<'a>(overlay: &'a Overlay, theme: &'a Theme) -> impl Iterator<Item = (PxRect, Color)> + 'a {
     let each = |rects: &'a [PxRect], c: Color| rects.iter().map(move |&r| (r, c));
