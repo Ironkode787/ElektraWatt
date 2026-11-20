@@ -610,7 +610,10 @@ it keep clear of it, and each pass tries it again first. Never worse: a net that
 have, or a wire routed before a finding it did not have, goes back to its stored drawing (a wire without one to no
 route), until none does; the text part of the rule (a label newly on a text or a part) holds where the plan routes no
 wire that had no route, since routing a dashed wire is the larger gain. A page whose Route gains only a tie is
-offered nothing. A mark moves along its line only (its line reaches across to its wires wherever it stands), by
+offered nothing. The weighing of §3.9 runs both ways: from the new drawing a net goes back to its stored routes
+where they cost no less; from the stored drawing a net takes its new routes where they cost less; the cheaper page
+stands, so one net's gain is not lost to a loss that no single net's going back undoes. A mark moves along its line
+only (its line reaches across to its wires wherever it stands), by
 `layout.apply`'s `markers`, which this step adds with `junctions` and `routes`; `parts` come with step 4. The plan's
 `his` rows are listed in Route's preview card (§7.2); ticking them comes with the preview of §7.3.
 
@@ -971,7 +974,10 @@ parts moved, 9 wires routed" with Undo.
   `--dry-run` prints the plan.
 
 *As built (step 2).* Route is `layout.route` in the Connect group where Reroute stood, and in the menu of a wire and
-of a symbol; its toast lists the wires without a way and the nets whose order runs against their places. The Wire
+of a symbol; its toast lists the wires without a way and the nets whose order runs against their places. A
+page-wide Route says how many routed wires it left as the person's (every wire of a file without the mark counts as
+his); where routing them anew would make the page better, the toast offers Route these too…, which opens the preview
+card of §7.2. The Wire
 tool's dot key is `.` (`tool.wire_dot`, with a hint while the end is on a wire); the junction editor (Enter on a
 selected junction) gives the dot to a junction that exists. A move's re-solve keeps every junction where it stands
 (its command moves none). Paste and the grid fit route their wires on the same core and store one `layout.apply`.
