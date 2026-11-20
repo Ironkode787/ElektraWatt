@@ -46,8 +46,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::consts::{
-    BODY_GAP, CHAIN_GAP, CHAIN_GAP_MIN, MARK_LEAD, MARK_PITCH, MOVE_PRICE, PASSES, ROW_GAP, ROW_PULL, TICKS_PER_STEP,
-    TRACK_PITCH, TRUNK_GAP,
+    BODY_GAP, CHAIN_GAP, CHAIN_GAP_MIN, MARK_LEAD, MARK_PITCH, MOVE_PRICE, PASSES, ROW_GAP, ROW_PULL,
+    TICKS_PER_STEP, TRACK_PITCH, TRUNK_GAP,
 };
 use crate::geom;
 use crate::labels::settle_labels;
@@ -117,12 +117,22 @@ pub fn arrange(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> Ar
     // The plan from the page to where the runs left it.
     let mut plan = Plan::default();
     for w in &now.wires {
-        if page.wires.iter().find(|x| x.id == w.id).is_some_and(|o| o.route != w.route) {
+        if page
+            .wires
+            .iter()
+            .find(|x| x.id == w.id)
+            .is_some_and(|o| o.route != w.route)
+        {
             plan.routes.push((w.id, w.route.clone()));
         }
     }
     for j in &now.junctions {
-        if page.junctions.iter().find(|x| x.id == j.id).is_some_and(|o| o.at != j.at) {
+        if page
+            .junctions
+            .iter()
+            .find(|x| x.id == j.id)
+            .is_some_and(|o| o.at != j.at)
+        {
             plan.junctions.push((j.id, j.at));
         }
     }
@@ -130,7 +140,8 @@ pub fn arrange(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> Ar
         if let Some(o) = page.marks.iter().find(|x| x.id == m.id)
             && o.line != m.line
         {
-            plan.marks.push((m.id, m.line.top_left().minus(o.line.top_left())));
+            plan.marks
+                .push((m.id, m.line.top_left().minus(o.line.top_left())));
         }
     }
     plan.unrouted = first.plan.unrouted.clone();
@@ -138,13 +149,20 @@ pub fn arrange(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> Ar
     plan.his = plan
         .routes
         .iter()
-        .filter(|(w, _)| page.wires.iter().any(|x| x.id == *w && !x.computed && !x.route.is_empty()))
+        .filter(|(w, _)| {
+            page.wires
+                .iter()
+                .any(|x| x.id == *w && !x.computed && !x.route.is_empty())
+        })
         .map(|(w, _)| *w)
         .collect();
     plan.before = first.plan.before.clone();
     plan.after = measure(&now);
     Arranged {
-        left: left.into_iter().filter(|(id, _)| !moves.iter().any(|(m, _)| m == id)).collect(),
+        left: left
+            .into_iter()
+            .filter(|(id, _)| !moves.iter().any(|(m, _)| m == id))
+            .collect(),
         moves,
         plan,
     }
@@ -269,8 +287,7 @@ fn arrange_once(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> A
             || q.label_clashes < b.label_clashes;
         let price = MOVE_PRICE * i64::from(TICKS_PER_STEP) * moves.len() as i64;
         let priced = (quality.faults, quality.unrouted, quality.cost + price) < baseline.key();
-        if std::env::var("EW_PLACE_DEBUG").is_ok() { eprintln!("judged {k} moves {} ({},{},{}) vs route ({},{},{}) priced {priced} shows {shows} bad {} texts {texts} figures {figures}", moves.len(), quality.faults, q.crossings, q.bends, baseline.faults, b.crossings, b.bends, bad.len()); }
-        if (!priced || !shows || !bad.is_empty() || texts || figures) && !(k == 0 && std::env::var("EW_PLACE_FORCE").is_ok()) {
+        if !priced || !shows || !bad.is_empty() || texts || figures {
             continue;
         }
         let cost = quality.cost;
@@ -769,9 +786,10 @@ impl<'a> Placer<'a> {
                     };
                     let mine = bodies(self, u);
                     let meets = others.iter().any(|o| {
-                        bodies(self, *o)
-                            .iter()
-                            .any(|b| mine.iter().any(|m| geom::texts_meet(*m, b.grown(TICKS_PER_STEP / 2))))
+                        bodies(self, *o).iter().any(|b| {
+                            mine.iter()
+                                .any(|m| geom::texts_meet(*m, b.grown(TICKS_PER_STEP / 2)))
+                        })
                     });
                     if behind || meets || self.estimate() >= before {
                         self.nudge(u, Pt::new(-shift.x, -shift.y));
@@ -938,21 +956,53 @@ impl<'a> Placer<'a> {
             .copied()
             .filter(|u| self.lead[*u].is_none())
             .collect();
-        for h in order {
-            let mut sides: BTreeMap<(Side, bool, Option<Side>), Vec<usize>> = BTreeMap::new();
+        // The stacks: corner followers whose host pins lie on one line and leave it on one side, the wires turning one
+        // way (the marks of a strip's terminals, the flow controls of a valve terminal), one stack across their hosts,
+        // set when the last of those hosts has its place.
+        let at: BTreeMap<usize, usize> = order.iter().enumerate().map(|(k, u)| (*u, k)).collect();
+        let mut stacks: BTreeMap<(Side, Side, Tick), Vec<usize>> = BTreeMap::new();
+        for (f, l) in self.lead.iter().enumerate() {
+            let Some(l) = l else { continue };
+            if l.kind != Kind::Corner {
+                continue;
+            }
+            let (Some(s), Some(sf)) = (self.side(l.h), self.side(l.f)) else {
+                continue;
+            };
+            stacks
+                .entry((s, sf, beyond(Pt::default(), self.pt(l.h), s)))
+                .or_default()
+                .push(f);
+        }
+        let mut ready: BTreeMap<usize, Vec<(Side, Vec<usize>)>> = BTreeMap::new();
+        for ((s, _, _), members) in stacks {
+            let last = members
+                .iter()
+                .filter_map(|f| self.lead[*f].and_then(|l| at.get(&l.host).copied()))
+                .max()
+                .unwrap_or(0);
+            ready.entry(last).or_default().push((s, members));
+        }
+        for (k, h) in order.into_iter().enumerate() {
+            let mut sides: BTreeMap<Side, Vec<usize>> = BTreeMap::new();
             for (f, l) in self.lead.iter().enumerate() {
                 let Some(l) = l else { continue };
-                if l.host != h {
+                if l.host != h || l.kind == Kind::Corner {
                     continue;
                 }
                 let Some(s) = self.side(l.h) else { continue };
-                let stack = l.kind == Kind::Corner;
-                sides
-                    .entry((s, stack, if stack { self.side(l.f) } else { None }))
-                    .or_default()
-                    .push(f);
+                sides.entry(s).or_default().push(f);
             }
-            for ((s, stack, _), members) in sides {
+            let mut sets: Vec<(Side, bool, Vec<usize>)> =
+                sides.into_iter().map(|(s, m)| (s, false, m)).collect();
+            sets.extend(
+                ready
+                    .remove(&k)
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(|(s, m)| (s, true, m)),
+            );
+            for (s, stack, members) in sets {
                 // A follower moves with its host, unless it stands well beyond the host's new place where it is (the
                 // host moved into the gap before it) and is no part of the supply or the work of a fluid page; its own
                 // followers take its move when their turn comes.
@@ -963,16 +1013,22 @@ impl<'a> Placer<'a> {
                     });
                     let stays = !fluid
                         && beyond(self.pt(l.h), self.pt(l.f), s) >= CHAIN_GAP_MIN
-                        && !self.meets(*f, &[h]);
+                        && !self.meets(*f, &[l.host]);
                     if !stays {
-                        self.d[*f] = self.d[h];
-                        if self.needed.contains(&h) && self.d[h] != Pt::default() {
+                        self.d[*f] = self.d[l.host];
+                        if self.needed.contains(&l.host) && self.d[l.host] != Pt::default() {
                             self.needed.insert(*f);
                         }
                     }
                 }
                 if stack {
-                    self.stack(h, s, &members);
+                    let mut hosts: Vec<usize> = members
+                        .iter()
+                        .filter_map(|f| self.lead[*f].map(|l| l.host))
+                        .collect();
+                    hosts.sort_unstable();
+                    hosts.dedup();
+                    self.stack(&hosts, s, &members);
                 } else {
                     self.row(h, s, &members);
                 }
@@ -1073,8 +1129,8 @@ impl<'a> Placer<'a> {
         }
     }
 
-    /// A stack of corner followers on side `s` of host `h` (§4.4).
-    fn stack(&mut self, h: usize, s: Side, members: &[usize]) {
+    /// A stack of corner followers on side `s` of `hosts` (§4.4).
+    fn stack(&mut self, hosts: &[usize], s: Side, members: &[usize]) {
         let mut items: Vec<(usize, Lead)> = members
             .iter()
             .filter_map(|f| self.lead[*f].map(|l| (*f, l)))
@@ -1103,10 +1159,10 @@ impl<'a> Placer<'a> {
             .unwrap_or(0);
         let mut movers = Vec::new();
         let mut placed: Vec<usize> = self.settled.clone();
-        placed.push(h);
+        placed.extend(hosts.iter().copied());
         for (f, l) in &items {
             let dist = beyond(self.pt(l.h), self.pt(l.f), s);
-            if dist >= CHAIN_GAP_MIN && !self.meets(*f, &[h]) {
+            if dist >= CHAIN_GAP_MIN && !self.meets(*f, hosts) {
                 placed.push(*f);
             } else {
                 movers.push((*f, *l));
