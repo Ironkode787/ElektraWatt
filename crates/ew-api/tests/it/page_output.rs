@@ -445,8 +445,8 @@ fn the_display_list_of_folio_101_is_stable() {
             labels glyphs 20d847a1 "14" origin=(236140625,86461864) size=1322917 angle=0
             labels glyphs 23a4ce3c "PE" origin=(44293102,80602931) size=3439583 angle=0
             labels glyphs 313e2bc4 "N-1" origin=(267890625,159600106) size=2381250 angle=0
-            labels glyphs 313e2bc4 "102-A1" origin=(256185194,161957014) size=2381250 angle=0
-            labels path 313e2bc4 els=5 first=(256185194,159411458) last=(263921875,159411458) stroke=- fill=-
+            labels glyphs 313e2bc4 "102-A1" origin=(259492486,162618473) size=2381250 angle=0
+            labels path 313e2bc4 els=5 first=(259492486,160072917) last=(267229167,160072917) stroke=- fill=-
             labels glyphs 57543b91 "S51" origin=(29234078,38679702) size=3439583 angle=0
             labels glyphs 57543b91 "Eaton" origin=(28625536,42894515) size=2381250 angle=0
             labels glyphs 57543b91 "533356" origin=(26884842,46863265) size=2381250 angle=0
@@ -486,11 +486,11 @@ fn the_display_list_of_folio_101_is_stable() {
             labels glyphs 92878d9b "+J-E-206 / JE-N1000-03" origin=(5905236,157326806) size=2381250 angle=0
             labels glyphs 9945b5aa "2" origin=(40035163,83414129) size=3439583 angle=0
             labels glyphs 9b2316f2 "PE-1.1" origin=(252015625,143725106) size=2381250 angle=0
-            labels glyphs 9b2316f2 "103-G6" origin=(240098263,146082014) size=2381250 angle=0
-            labels path 9b2316f2 els=5 first=(240098263,143536458) last=(248046875,143536458) stroke=- fill=-
+            labels glyphs 9b2316f2 "103-G6" origin=(243405555,146743473) size=2381250 angle=0
+            labels path 9b2316f2 els=5 first=(243405555,144197917) last=(251354167,144197917) stroke=- fill=-
             labels glyphs dc21e14c "L-1" origin=(267890625,170183439) size=2381250 angle=0
-            labels glyphs dc21e14c "102-A1" origin=(256185194,172540347) size=2381250 angle=0
-            labels path dc21e14c els=5 first=(256185194,169994791) last=(263921875,169994791) stroke=- fill=-
+            labels glyphs dc21e14c "102-A1" origin=(259492486,173201806) size=2381250 angle=0
+            labels path dc21e14c els=5 first=(259492486,170656250) last=(267229167,170656250) stroke=- fill=-
             labels glyphs de795e26 "E55" origin=(195897501,96888035) size=3439583 angle=0
             labels glyphs de795e26 "L" origin=(204390625,97045198) size=1322917 angle=0
             labels glyphs de795e26 "N" origin=(204390625,104982698) size=1322917 angle=0

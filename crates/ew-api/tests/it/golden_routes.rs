@@ -251,14 +251,21 @@ fn write_routes(routes: &BTreeMap<String, String>) {
 }
 
 /// Why a connection of Golden A runs more than twice the Manhattan distance of its ends, by its words.
-const DETOURS: &[(&str, &str)] = &[];
+const DETOURS: &[(&str, &str)] = &[(
+    "PE-1.2 → -X1032:2/b",
+    "a mark of a stack whose name stands in line with its wire (06a §5.2, step 7): the page router of ADR-0033 goes round the names; Route of 06a reroutes it",
+)];
 
 /// Why a connection of Golden A bends more than four times (RG3), by its words.
 const BENDS: &[(&str, &str)] = &[
-    ("-X1032:1/a → PE-AIR2", "a mark of a stack whose name stands in line with its wire and whose cross-reference stands under the wire (06a §5.2, step 7): the page router of ADR-0033 goes round them; Route of 06a reroutes it"),
-    ("-X1031:13/b → 0VDC-AIR3", "a mark of a stack whose name stands in line with its wire and whose cross-reference stands under the wire (06a §5.2, step 7): the page router of ADR-0033 goes round them; Route of 06a reroutes it"),
-    ("PE-1.3 → -201U1:FE", "a mark of a stack whose name stands in line with its wire and whose cross-reference stands under the wire (06a §5.2, step 7): the page router of ADR-0033 goes round them; Route of 06a reroutes it"),
-    ("PE-1.4 → -202U1:FE", "a mark of a stack whose name stands in line with its wire and whose cross-reference stands under the wire (06a §5.2, step 7): the page router of ADR-0033 goes round them; Route of 06a reroutes it"),
+    (
+        "-X1031:13/b → 0VDC-AIR3",
+        "a mark of a stack whose name stands in line with its wire (06a §5.2, step 7): the page router of ADR-0033 goes round the names; Route of 06a reroutes it",
+    ),
+    (
+        "PE-1.4 → -202U1:FE",
+        "a mark of a stack whose name stands in line with its wire (06a §5.2, step 7): the page router of ADR-0033 goes round the names; Route of 06a reroutes it",
+    ),
     (
         "PE-1.1 → -X1032:1/b",
         "one of four targets in 103-G6, right of the strip it feeds: its wire leaves right and loops back over the \

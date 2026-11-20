@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "7d6e7973-ea72-531b-ad6f-3bb2ce26a9c3",
   "version": "0.1.1",
-  "sha256": "sha256:0b9daeca848c4913420d8c5c89dc6716818b87e458574aadf6a31ea275772e6c",
+  "sha256": "sha256:09305a2159527ed70a209332fe42ec48d22e10c99ee32fee8d24723e4584bc97",
   "meta": {
     "key": "ew.iso.ip-target",
     "licence": "CC-BY-SA-4.0",
@@ -86,8 +86,8 @@
     {
       "kind": "xref",
       "pos": [
-        1000000,
-        1000000
+        -3000000,
+        2000000
       ],
       "align": "top_left",
       "visible": true

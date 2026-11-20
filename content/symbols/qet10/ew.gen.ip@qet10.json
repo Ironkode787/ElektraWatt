@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "bec7edb6-3ceb-5d63-bbcb-baca0a4f31f3",
   "version": "0.2.2",
-  "sha256": "sha256:3a2de7a80ca1bd0547492242c8c50ff9b99539b9b93a846ae2fef468ec460c30",
+  "sha256": "sha256:53cb8036ed43ef1e29f1e3ecf5e3814ec6a294d14f39defa66f5c55d6566be2f",
   "meta": {
     "key": "ew.gen.ip@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -100,8 +100,8 @@
     {
       "kind": "xref",
       "pos": [
-        -3307292,
-        661458
+        0,
+        1322917
       ],
       "align": "top_right",
       "visible": true

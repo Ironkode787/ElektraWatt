@@ -972,8 +972,8 @@ with inputs and outputs its two boxes in one step. The starter symbols that have
 terminals, the earth symbols and the valve solenoid) carry the tag right-aligned one millimetre left of their
 graphics with its foot one step under the upper pin, then the PLC address, make, type, rating, function text and
 cross-reference line under line 6 mm apart (a coil's contact list last): 4 mm on the QET grid, which scales places
-and not texts, as in the reference set; there the lines are one block, on the native grid each line is placed alone. The interruption point's two forms carry the cross-reference under the
-wire on the wire's side. The text placer gained two places for this: a part's right corners stand beyond its pin
+and not texts, as in the reference set; there the lines are one block, on the native grid each line is placed alone. The interruption point's two forms keep their cross-reference under the
+arrow: under the wire on the wire's side, a wire that turns at once (a supply mark's drop) ran through it. The text placer gained two places for this: a part's right corners stand beyond its pin
 numbers, and a mark's cross-reference may stand centred under or over its arrow.
 
 ### 7.6 Joining wires: the bevel by default
