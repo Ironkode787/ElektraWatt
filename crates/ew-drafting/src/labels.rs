@@ -58,8 +58,9 @@
 //! and for leaving the drawing area, [`TEXT_CROSSED`] and [`TEXT_STEP`] per tick for each wire across it or nearer
 //! than [`LABEL_CLEAR`],
 //! [`LABEL_RANK`] for each place down its list; ties to the earlier place). One repair round follows: for each such
-//! label, each label it lies on is tried at its first other clear place, and that label then at its first clear
-//! place; the change is kept when the labels' cost on the page is lower. Every list is read in a fixed order, so the
+//! label, each label it lies on is tried at each of its other clear places in turn, and that label then at its first
+//! clear place; the first change that lowers the labels' cost on the page is kept, and while the label still lies on
+//! another, the next one it lay on is tried. Every list is read in a fixed order, so the
 //! result does not depend on the order of the page's lists.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -889,6 +890,14 @@ fn repair(
     placed: &mut [Option<(Rect, u32, bool)>],
     grid: &mut Buckets,
 ) {
+    let clear_at = |placed: &[Option<(Rect, u32, bool)>], grid: &Buckets, u: usize, k: usize| {
+        let at_first = authors(&units[u], k);
+        ground.clear(
+            units[u].owner,
+            lists[u][k].0,
+            (bodies(&units[u], at_first), at_first),
+        ) && labels_clear(units, placed, grid, u, (lists[u][k].0, at_first))
+    };
     for &u in clashing {
         let Some((ur, _, _)) = placed[u] else { continue };
         let under: Vec<usize> = grid
@@ -896,50 +905,52 @@ fn repair(
             .into_iter()
             .filter(|&v| v != u && placed[v].is_some_and(|(o, _, _)| o.overlaps(ur)))
             .collect();
-        for v in under {
+        'under: for v in under {
             let (Some((vr, vk, vt)), Some(uplace)) = (placed[v], placed[u]) else {
                 continue;
             };
             let before = total(ground, units, placed, grid);
-            let Some(nk) = (0..lists[v].len()).find(|&k| {
-                k != vk as usize
-                    && ground.clear(
-                        units[v].owner,
-                        lists[v][k].0,
-                        (bodies(&units[v], authors(&units[v], k)), authors(&units[v], k)),
-                    )
-                    && labels_clear(units, placed, grid, v, (lists[v][k].0, authors(&units[v], k)))
-            }) else {
-                continue;
-            };
-            let (nr, nt) = lists[v][nk];
-            grid.remove(v, vr);
-            placed[v] = Some((nr, nk as u32, nt));
-            grid.insert(v, nr);
-            // The label it stood on takes its first clear place now.
-            if let Some(uk) = (0..lists[u].len()).find(|&k| {
-                ground.clear(
-                    units[u].owner,
-                    lists[u][k].0,
-                    (bodies(&units[u], authors(&units[u], k)), authors(&units[u], k)),
-                ) && labels_clear(units, placed, grid, u, (lists[u][k].0, authors(&units[u], k)))
-            }) {
-                grid.remove(u, uplace.0);
-                placed[u] = Some((lists[u][uk].0, uk as u32, lists[u][uk].1));
-                grid.insert(u, lists[u][uk].0);
+            // Each other clear place of the label it stands on, in order (a mark's name above its arrow, one line
+            // higher, frees its cross-reference's places beside it): the first where the change costs less stands.
+            for nk in (0..lists[v].len()).filter(|&k| k != vk as usize) {
+                if !clear_at(placed, grid, v, nk) {
+                    continue;
+                }
+                let (nr, nt) = lists[v][nk];
+                grid.remove(v, vr);
+                placed[v] = Some((nr, nk as u32, nt));
+                grid.insert(v, nr);
+                // The label it stood on takes its first clear place now.
+                if let Some(uk) = (0..lists[u].len()).find(|&k| clear_at(placed, grid, u, k)) {
+                    grid.remove(u, uplace.0);
+                    placed[u] = Some((lists[u][uk].0, uk as u32, lists[u][uk].1));
+                    grid.insert(u, lists[u][uk].0);
+                }
+                if total(ground, units, placed, grid) < before {
+                    // Kept; the next label it lies on is tried while it still lies on one (a mark's cross-reference
+                    // on a pin's number and on its own name: both move).
+                    let Some((now, _, _)) = placed[u] else {
+                        break 'under;
+                    };
+                    let still = grid
+                        .near(now)
+                        .into_iter()
+                        .any(|w| w != u && placed[w].is_some_and(|(o, _, _)| o.overlaps(now)));
+                    if still {
+                        continue 'under;
+                    }
+                    break 'under;
+                }
+                // Not better: both go back.
+                if let Some((r, _, _)) = placed[u] {
+                    grid.remove(u, r);
+                }
+                grid.remove(v, nr);
+                placed[u] = Some(uplace);
+                placed[v] = Some((vr, vk, vt));
+                grid.insert(u, uplace.0);
+                grid.insert(v, vr);
             }
-            if total(ground, units, placed, grid) < before {
-                break;
-            }
-            // Not better: both go back.
-            if let Some((r, _, _)) = placed[u] {
-                grid.remove(u, r);
-            }
-            grid.remove(v, nr);
-            placed[u] = Some(uplace);
-            placed[v] = Some((vr, vk, vt));
-            grid.insert(u, uplace.0);
-            grid.insert(v, vr);
         }
     }
 }
