@@ -12,8 +12,8 @@ use egui::{Key, Modifiers};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::properties::CardOrigin;
-use ew_ui::ew_viewmodel::shell::{Dialog, Focus};
+use ew_viewmodel::properties::CardOrigin;
+use ew_viewmodel::shell::{Dialog, Focus};
 use serde_json::json;
 use support::{Tmp, dispatch, on_golden, settle};
 
@@ -109,7 +109,7 @@ fn chord_in_one_frame(h: &mut Harness<'_, App>, modifiers: Modifiers, key: Key) 
 /// the frame's consume keeps Ctrl+Enter with the form.
 #[track_caller]
 fn open_the_form_and_ctrl_enter_in_one_frame(h: &mut Harness<'_, App>, scope: Option<&str>) {
-    let pane = ew_ui::ew_viewmodel::strings::text(ew_ui::ew_viewmodel::key!("pane-find"));
+    let pane = ew_viewmodel::strings::text(ew_viewmodel::key!("pane-find"));
     assert_eq!(h.state().shell().focus(), Some(Focus::Find));
     assert!(h.get_by_role_and_label(egui::Role::Group, pane).is_focused());
     chord_in_one_frame(h, Modifiers::COMMAND | Modifiers::SHIFT, Key::N);

@@ -8,7 +8,7 @@
 use crate::support;
 
 use egui_kittest::kittest::Queryable;
-use ew_ui::ew_viewmodel::properties::{ValueChooser, find_row, value_chooser};
+use ew_viewmodel::properties::{ValueChooser, find_row, value_chooser};
 use serde_json::json;
 use support::{Tmp, dispatch, on_golden, settle};
 

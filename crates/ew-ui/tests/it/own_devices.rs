@@ -12,8 +12,8 @@ use crate::persona_round::{key, typed};
 use crate::support::Tmp;
 
 use egui::{Modifiers, PointerButton};
-use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
-use ew_ui::ew_viewmodel::shell::Outcome;
+use ew_viewmodel::navigators::{NavKind, NavRole};
+use ew_viewmodel::shell::Outcome;
 use ew_ui::visual::{Driver, Input};
 use serde_json::json;
 
@@ -53,7 +53,7 @@ fn the_bus_panel_lists_the_ports_not_drawn_yet_and_places_them() {
         .nav(NavKind::Bus)
         .and_then(|n| n.node_of(&undrawn[0].0).map(|(_, n)| n.clone()))
         .expect("the DP row");
-    let menu = ew_ui::ew_viewmodel::command_bar::navigator_row_menu(d.shell_mut(), NavKind::Bus, &node);
+    let menu = ew_viewmodel::command_bar::navigator_row_menu(d.shell_mut(), NavKind::Bus, &node);
     let place = menu
         .iter()
         .find(|i| i.label == "Place port DP")
@@ -198,7 +198,7 @@ fn the_card_of_a_corrected_part_speaks_words_and_names_a_line_that_loses_its_soc
     d.settle();
     press(&mut d, "Save");
     let card = match d.shell_mut().properties().card().map(|c| c.origin.clone()) {
-        Some(ew_ui::ew_viewmodel::properties::CardOrigin::Part(p)) => *p,
+        Some(ew_viewmodel::properties::CardOrigin::Part(p)) => *p,
         other => panic!("the part card: {other:?}"),
     };
     assert!(
@@ -406,7 +406,7 @@ fn a_card_goes_behind_the_station_it_is_placed_beside_or_dragged_onto() {
     assert!(
         matches!(
             d.shell_mut().dialog(),
-            Some(ew_ui::ew_viewmodel::shell::Dialog::ChooseStation { .. })
+            Some(ew_viewmodel::shell::Dialog::ChooseStation { .. })
         ),
         "the station chooser"
     );

@@ -16,10 +16,10 @@ use std::path::Path;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::ew_api::library::{LibraryTiers, Registry};
-use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
-use ew_ui::ew_viewmodel::script::{self, NoExtension};
-use ew_ui::ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
+use ew_viewmodel::ew_api::library::{LibraryTiers, Registry};
+use ew_viewmodel::navigators::{NavKind, NavRole};
+use ew_viewmodel::script::{self, NoExtension};
+use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::{Value, json};
 use support::{Scripted, Tmp, done, harness_with, settle};
 

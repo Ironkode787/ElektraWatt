@@ -9,8 +9,8 @@
 use crate::support;
 
 use egui_kittest::kittest::{NodeT as _, Queryable};
-use ew_ui::ew_viewmodel::layout::PaneKind;
-use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
+use ew_viewmodel::layout::PaneKind;
+use ew_viewmodel::navigators::{NavKind, NavRole};
 use serde_json::json;
 use support::{Tmp, dispatch, on_golden, settle};
 
@@ -106,7 +106,7 @@ fn the_fluid_workspace_lists_valves_lines_and_tubes_and_edits_a_length() {
 /// alone (not "mixed") and the menu checks it.
 #[test]
 fn a_medium_set_on_a_line_replaces_the_definition_of_its_net() {
-    use ew_ui::ew_viewmodel::ew_api::output::TableEnd;
+    use ew_viewmodel::ew_api::output::TableEnd;
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "203");
     for (name, p_nom) in [("Air 6 bar", "6"), ("Air 4 bar", "4")] {
@@ -296,7 +296,7 @@ fn a_medium_is_added_set_on_a_line_and_highlighted() {
 /// connection is a fluid line, not a wire.
 #[test]
 fn a_silencer_autoconnects_to_a_free_fluid_port_with_a_fluid_line() {
-    use ew_ui::ew_viewmodel::tools::Ghost;
+    use ew_viewmodel::tools::Ghost;
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "203");
     let (free, step) = {

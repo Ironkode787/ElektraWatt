@@ -14,8 +14,8 @@ use egui::{Key, Modifiers, PointerButton};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::navigators::NavKind;
-use ew_ui::ew_viewmodel::shell::{Mode, Outcome, ShellModel};
+use ew_viewmodel::navigators::NavKind;
+use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
 use support::{Scripted, Tmp, harness_with, settle, wait_for_page};
 
@@ -1022,14 +1022,14 @@ fn export_and_import_table_follow_their_predicates() {
     done(shell, "navigator.show", json!({"kind": "devices"}));
     done(shell, "navigator.table", json!({"kind": "devices", "on": true}));
     // Terminal strips behind the Devices tab moves to the bottom dock, so both tables are shown.
-    let strips_pane = ew_ui::ew_viewmodel::layout::PaneKind::Navigator(NavKind::Strips);
+    let strips_pane = ew_viewmodel::layout::PaneKind::Navigator(NavKind::Strips);
     let moved = shell.layout().without(strips_pane).with_bottom(strips_pane);
     shell.set_layout(moved, 1.0);
     done(shell, "ui.focus", json!({"area": "canvas", "group": 0}));
     settle(&mut h);
-    let reason = ew_ui::ew_viewmodel::actions::find("navigator.export_table")
+    let reason = ew_viewmodel::actions::find("navigator.export_table")
         .and_then(|a| (a.enabled)(h.state().shell()).err());
-    assert_eq!(reason, Some(ew_ui::ew_viewmodel::key!("reason-table-which")));
+    assert_eq!(reason, Some(ew_viewmodel::key!("reason-table-which")));
     h.get_all_by_label("Columns")
         .next()
         .expect("a Columns button")

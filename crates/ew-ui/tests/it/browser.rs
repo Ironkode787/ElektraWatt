@@ -9,8 +9,8 @@ use crate::persona_round::typed;
 use crate::support::Tmp;
 
 use egui::{Modifiers, PointerButton};
-use ew_ui::ew_viewmodel::shell::{Outcome, ShellModel};
-use ew_ui::ew_viewmodel::tools::{Node, PickerRow};
+use ew_viewmodel::shell::{Outcome, ShellModel};
+use ew_viewmodel::tools::{Node, PickerRow};
 use ew_ui::visual::{Driver, Input};
 use serde_json::json;
 

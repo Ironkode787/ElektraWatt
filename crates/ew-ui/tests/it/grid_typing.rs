@@ -8,8 +8,8 @@
 use crate::support::{Tmp, dispatch, on_golden, settle};
 
 use egui_kittest::kittest::{NodeT as _, Queryable};
-use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
-use ew_ui::ew_viewmodel::properties::{RowValue, find_row, row_label, visible_rows};
+use ew_viewmodel::navigators::{NavKind, NavRole};
+use ew_viewmodel::properties::{RowValue, find_row, row_label, visible_rows};
 use serde_json::json;
 
 type Window = egui_kittest::Harness<'static, ew_ui::app::App>;

@@ -12,7 +12,7 @@ use egui::{Key, Modifiers, Pos2};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::shell::Outcome;
+use ew_viewmodel::shell::Outcome;
 use serde_json::{Value, json};
 use support::{Scripted, Tmp, dispatch, on_golden, screen, settle, wait_for_page};
 
@@ -48,7 +48,7 @@ fn a_terminal_joins_x1031_from_the_keyboard_with_the_predicted_tag_after_the_dwe
     // reads no clock and sleeps nowhere.
     dispatch(&mut h, "canvas.dwell", json!({"ms": 80}));
     settle(&mut h);
-    let Some(ew_ui::ew_viewmodel::tools::Ghost::Place { tag: Some(tag), .. }) =
+    let Some(ew_viewmodel::tools::Ghost::Place { tag: Some(tag), .. }) =
         h.state().shell().tool_ghost()
     else {
         panic!("no predicted tag after the rest");
@@ -124,7 +124,7 @@ fn the_picker_filter_keeps_the_first_typed_character() {
             assert!(
                 matches!(
                     h.state().shell().focus(),
-                    Some(ew_ui::ew_viewmodel::shell::Focus::Navigator(_))
+                    Some(ew_viewmodel::shell::Focus::Navigator(_))
                 ),
                 "the navigator has the focus"
             );
@@ -225,7 +225,7 @@ fn exact_counts_of_place_move_and_the_picker_in_the_window() {
     }
     let shown = h.state().shell().session_calls();
     assert_eq!(
-        ew_ui::ew_viewmodel::shell::SessionCalls {
+        ew_viewmodel::shell::SessionCalls {
             symbol_shape: opened.symbol_shape,
             ..shown
         },
@@ -278,7 +278,7 @@ fn two_quick_clicks_with_the_place_tool_place_once_and_refuse_the_stacked_twin()
     );
     // The HUD says it over the Place ghost.
     assert_eq!(
-        ew_ui::ew_viewmodel::command_bar::hud(h.state().shell()).prompt,
+        ew_viewmodel::command_bar::hud(h.state().shell()).prompt,
         "An identical symbol already stands here; move the pointer to place another"
     );
     assert_eq!(h.state().shell().tool().name(), "place");
@@ -329,7 +329,7 @@ fn a_double_click_with_the_wire_tool_is_its_finish() {
 /// opened took the click). The terminal now goes on a new strip made for it: Place arms it and the click places it.
 #[test]
 fn a_terminal_chosen_without_strips_is_placed_on_a_new_strip() {
-    use ew_ui::ew_viewmodel::shell::{Mode, ShellModel};
+    use ew_viewmodel::shell::{Mode, ShellModel};
     let tmp = Tmp::new();
     let dir = tmp.0.join("blank.ew");
     let mut shell = ShellModel::new(Mode::Gui, tmp.config());
@@ -387,7 +387,7 @@ fn a_terminal_chosen_without_strips_is_placed_on_a_new_strip() {
 
 /// The key chord bound to action `id` in the effective keymap, as egui's key and modifiers.
 fn chord_of(h: &Harness<'_, App>, id: &str) -> (Key, Modifiers) {
-    let meta = ew_ui::ew_viewmodel::actions::find(id).expect("the action");
+    let meta = ew_viewmodel::actions::find(id).expect("the action");
     let text = h.state().shell().shortcut_text(meta);
     let (key, mods) = ew_ui::visual::parse_chord(&text).unwrap_or_else(|e| panic!("`{text}`: {e}"));
     (key.expect("a key"), mods)
@@ -558,7 +558,7 @@ fn the_symbol_chooser_of_a_part_says_why_takes_the_keys_and_holds_the_page() {
     assert_eq!(
         press,
         Outcome::Refused {
-            reason_key: ew_ui::ew_viewmodel::key!("reason-choose-symbol")
+            reason_key: ew_viewmodel::key!("reason-choose-symbol")
         }
     );
     assert!(h.state().shell().picker().is_some(), "the chooser stays open");

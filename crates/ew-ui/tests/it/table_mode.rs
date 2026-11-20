@@ -12,9 +12,9 @@ use egui::OutputCommand;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::layout::PaneKind;
-use ew_ui::ew_viewmodel::navigators::NavKind;
-use ew_ui::ew_viewmodel::shell::ShellModel;
+use ew_viewmodel::layout::PaneKind;
+use ew_viewmodel::navigators::NavKind;
+use ew_viewmodel::shell::ShellModel;
 use serde_json::json;
 use support::{Scripted, Tmp, done, harness, settle, wait_for_page};
 

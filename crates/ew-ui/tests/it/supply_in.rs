@@ -10,7 +10,7 @@
 use crate::support::Tmp;
 
 use egui::{Modifiers, PointerButton};
-use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
+use ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_ui::visual::{Driver, Input};
 use serde_json::json;
 
@@ -113,7 +113,7 @@ fn supply_comes_in_here_marks_the_points_and_their_findings_go() {
         .collect();
     assert_eq!(
         d.shell_mut().dispatch("select.set", &json!({ "ids": ips })),
-        ew_ui::ew_viewmodel::shell::Outcome::Done
+        ew_viewmodel::shell::Outcome::Done
     );
     let at = points(&mut d, &pixel);
     menu(&mut d, at[0], "Supply comes in here");
@@ -146,7 +146,7 @@ fn supply_comes_in_here_marks_the_points_and_their_findings_go() {
     d.settle();
     menu(&mut d, at[0], "Where the supply comes from");
     let place = match d.shell_mut().dialog() {
-        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => f.fields[0].value.clone(),
+        Some(ew_viewmodel::shell::Dialog::Form(f)) => f.fields[0].value.clone(),
         other => panic!("the form: {other:?}"),
     };
     let shown_before = d.shell_mut().supply_in_item().map(|i| i.label);
@@ -184,8 +184,8 @@ fn supply_comes_in_here_marks_the_points_and_their_findings_go() {
 /// marked point have its place in a row, and a place typed there moves the point to it.
 #[test]
 fn supply_points_that_stand_together_print_their_place_once() {
-    use ew_ui::ew_viewmodel::properties::{RowValue, find_row};
-    use ew_ui::ew_viewmodel::shell::Outcome;
+    use ew_viewmodel::properties::{RowValue, find_row};
+    use ew_viewmodel::shell::Outcome;
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     d.input(&click(d.find("Interruption").unwrap()));
@@ -265,11 +265,11 @@ fn supply_points_that_stand_together_print_their_place_once() {
     let texts = crate::own_parts::page_texts(&mut d);
     assert!(texts.iter().any(|t| t.starts_with("+MCC1")), "{texts:?}");
     // An empty place is refused in the window's language (rc.3 review: it was English in a Dutch window).
-    assert!(ew_ui::ew_viewmodel::strings::set_locale("nl"));
+    assert!(ew_viewmodel::strings::set_locale("nl"));
     let refused = d
         .shell_mut()
         .dispatch("props.set", &json!({"row": row, "value": " "}));
-    assert!(ew_ui::ew_viewmodel::strings::set_locale("en"));
+    assert!(ew_viewmodel::strings::set_locale("en"));
     assert_eq!(
         refused,
         Outcome::Failed {
@@ -295,7 +295,7 @@ fn supply_points_that_stand_together_print_their_place_once() {
 /// right-click menu shows what they carry now. Escape on a fresh mark places it without a potential.
 #[test]
 fn supply_marks_placed_in_one_go_ask_their_potential() {
-    use ew_ui::ew_viewmodel::shell::Outcome;
+    use ew_viewmodel::shell::Outcome;
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     d.input(&click(d.find("Interruption").unwrap()));
@@ -423,7 +423,7 @@ fn supply_marks_placed_in_one_go_ask_their_potential() {
 /// device".
 #[test]
 fn the_potential_panel_closes_on_undo_and_on_a_page_change() {
-    use ew_ui::ew_viewmodel::shell::Outcome;
+    use ew_viewmodel::shell::Outcome;
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     d.input(&click(d.find("Interruption").unwrap()));
@@ -492,7 +492,7 @@ fn the_potential_panel_closes_on_undo_and_on_a_page_change() {
     let out = shell.dispatch("ip.supply_potential", &json!({"apply": true}));
     assert_eq!(
         out,
-        Outcome::refused(ew_ui::ew_viewmodel::key!("reason-supply-potential-gone"))
+        Outcome::refused(ew_viewmodel::key!("reason-supply-potential-gone"))
     );
     assert!(shell.supply_panel().is_none(), "and it closes");
     d.shell_mut().shutdown();
@@ -503,7 +503,7 @@ fn the_potential_panel_closes_on_undo_and_on_a_page_change() {
 /// undo step; their Potential panel opens with a row per mark.
 #[test]
 fn supply_on_the_draw_tab_places_the_marks_of_what_comes_in() {
-    use ew_ui::ew_viewmodel::shell::Outcome;
+    use ew_viewmodel::shell::Outcome;
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     d.input(&click(d.find("Supply").expect("Supply on the Draw tab")));
@@ -511,7 +511,7 @@ fn supply_on_the_draw_tab_places_the_marks_of_what_comes_in() {
     assert!(
         matches!(
             d.shell_mut().dialog(),
-            Some(ew_ui::ew_viewmodel::shell::Dialog::Form(_))
+            Some(ew_viewmodel::shell::Dialog::Form(_))
         ),
         "its form"
     );
@@ -595,7 +595,7 @@ fn the_supply_forms_names_field_comes_with_own() {
 /// the top, where a person finds it without scrolling.
 #[test]
 fn supply_marks_in_a_row_each_print_where_they_come_from() {
-    use ew_ui::ew_viewmodel::shell::Outcome;
+    use ew_viewmodel::shell::Outcome;
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     d.input(&click(d.find("Interruption").unwrap()));

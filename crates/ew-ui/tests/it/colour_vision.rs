@@ -14,9 +14,9 @@ use crate::support;
 
 use std::path::PathBuf;
 
-use ew_ui::ew_viewmodel::highlight::{SLOT_ANGLES, SLOT_COLOURS};
-use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
-use ew_ui::ew_viewmodel::shell::{Mode, Outcome, ShellModel};
+use ew_viewmodel::highlight::{SLOT_ANGLES, SLOT_COLOURS};
+use ew_viewmodel::navigators::{NavKind, NavRole};
+use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
 use support::Tmp;
 use support::colour::{Simulation, ciede2000, from_linear, lab, to_linear};

@@ -14,10 +14,10 @@ use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_render2d::view::View;
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::highlight::SLOT_COLOURS;
-use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
-use ew_ui::ew_viewmodel::shell::{Focus, Mode, ShellModel};
-use ew_ui::ew_viewmodel::tools::OverlayItem;
+use ew_viewmodel::highlight::SLOT_COLOURS;
+use ew_viewmodel::navigators::{NavKind, NavRole};
+use ew_viewmodel::shell::{Focus, Mode, ShellModel};
+use ew_viewmodel::tools::OverlayItem;
 use serde_json::json;
 use support::{Scripted, Tmp, done, harness, settle, wait_for_page};
 

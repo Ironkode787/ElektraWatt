@@ -11,8 +11,8 @@ use ew_viewmodel::key;
 use egui::{Key, Modifiers};
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::Pick;
-use ew_ui::ew_viewmodel::layout::{Layout, LayoutNode, PaneKind};
-use ew_ui::ew_viewmodel::shell::{AccessMode, Dialog, Mode, Prompt, ShellModel};
+use ew_viewmodel::layout::{Layout, LayoutNode, PaneKind};
+use ew_viewmodel::shell::{AccessMode, Dialog, Mode, Prompt, ShellModel};
 use serde_json::json;
 use support::{Scripted, Tmp, done, harness_with, settle, wait_for_page, wait_for_preview};
 
@@ -563,9 +563,9 @@ fn the_about_dialog_is_complete_and_leads_to_the_notices() {
     settle(&mut h);
     assert_eq!(
         *platform.opened.borrow(),
-        [ew_ui::ew_viewmodel::about::PRIVACY_URL]
+        [ew_viewmodel::about::PRIVACY_URL]
     );
-    assert!(ew_ui::ew_viewmodel::about::PRIVACY_URL.ends_with("/blob/main/PRIVACY.md"));
+    assert!(ew_viewmodel::about::PRIVACY_URL.ends_with("/blob/main/PRIVACY.md"));
     h.get_by_label("Third-party notices").click();
     settle(&mut h);
     assert!(matches!(h.state().shell().dialog(), Some(Dialog::Notices)));
@@ -659,6 +659,6 @@ fn the_first_run_privacy_step_links_privacy_md() {
     settle(&mut h);
     assert_eq!(
         *platform.opened.borrow(),
-        [ew_ui::ew_viewmodel::about::PRIVACY_URL]
+        [ew_viewmodel::about::PRIVACY_URL]
     );
 }

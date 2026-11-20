@@ -13,8 +13,8 @@ use egui::Key;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::properties::CardOrigin;
-use ew_ui::ew_viewmodel::shell::Dialog;
+use ew_viewmodel::properties::CardOrigin;
+use ew_viewmodel::shell::Dialog;
 use serde_json::json;
 use support::{Scripted, Tmp, dispatch, harness, settle, wait_for_page};
 
@@ -91,9 +91,9 @@ fn the_part_dialog_by_keyboard_and_its_accessibility_tree() {
     let last = shell.recorded_commands().last().unwrap();
     assert_eq!(last.cmd, "part.assign", "{}", last.params);
     let sheet = shell.properties().sheet().unwrap();
-    let (_, row) = ew_ui::ew_viewmodel::properties::find_row(sheet, "device/parts").unwrap();
+    let (_, row) = ew_viewmodel::properties::find_row(sheet, "device/parts").unwrap();
     assert!(
-        ew_ui::ew_viewmodel::properties::value_text(row).contains(&second),
+        ew_viewmodel::properties::value_text(row).contains(&second),
         "the second row was chosen: {second}"
     );
     h.state_mut().shell_mut().shutdown();

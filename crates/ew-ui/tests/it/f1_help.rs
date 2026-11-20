@@ -8,7 +8,7 @@
 use crate::support::{self, Tmp, dispatch, on_golden, screen, settle};
 use egui::Key;
 use egui_kittest::kittest::{NodeT as _, Queryable};
-use ew_ui::ew_viewmodel::{key, strings};
+use ew_viewmodel::{key, strings};
 use serde_json::json;
 
 /// The guide page the last F1 asked for.

@@ -8,7 +8,7 @@ use crate::support;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::shell::Outcome;
+use ew_viewmodel::shell::Outcome;
 use serde_json::json;
 use support::{Scripted, Tmp, harness, settle, wait_for_page};
 
@@ -119,7 +119,7 @@ fn the_hud_gives_the_page_types_reason_while_no_tool_is_armed() {
         .find(|r| r.kind == "section_divider")
         .map(|r| r.folio.clone())
         .expect("Golden A has a section divider");
-    let prompt = |h: &Harness<'_, App>| ew_ui::ew_viewmodel::command_bar::hud(h.state().shell()).prompt;
+    let prompt = |h: &Harness<'_, App>| ew_viewmodel::command_bar::hud(h.state().shell()).prompt;
     assert_eq!(
         h.state_mut()
             .shell_mut()

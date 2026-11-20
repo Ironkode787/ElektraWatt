@@ -9,7 +9,7 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use ew_ui::ew_viewmodel::ew_api::{CmdLog, Session};
+use ew_viewmodel::ew_api::{CmdLog, Session};
 use serde_json::{Value, json};
 
 use super::bin_exe;
@@ -102,7 +102,7 @@ pub fn folio_101_is_placed_by_a_generated_script_twice_identically_and_replays_c
     assert_eq!(runs, 0);
     // IB7: the IP tool placed Golden A's six interruption points of 101 with their names, directions, symbols
     // and points, the three external connection points with their external references.
-    let ip_rows = |t: &ew_ui::ew_viewmodel::ew_api::output::PageTables| {
+    let ip_rows = |t: &ew_viewmodel::ew_api::output::PageTables| {
         let mut v: Vec<_> = t
             .reps
             .iter()
@@ -142,13 +142,13 @@ pub fn folio_101_is_placed_by_a_generated_script_twice_identically_and_replays_c
         "{names:?}"
     );
     assert_eq!(names.iter().filter(|n| **n == "ip.place").count(), 6);
-    let mut store = ew_ui::ew_viewmodel::ew_api::StoreOptions::new("test");
+    let mut store = ew_viewmodel::ew_api::StoreOptions::new("test");
     store.state_dir = Some(tmp.path("state"));
     let (mut s, _) = Session::open(
         &replay,
         store,
-        ew_ui::ew_viewmodel::ew_api::SessionOptions::default(),
-        ew_ui::ew_viewmodel::ew_api::Recovery::Keep,
+        ew_viewmodel::ew_api::SessionOptions::default(),
+        ew_viewmodel::ew_api::Recovery::Keep,
     )
     .unwrap();
     s.run_script(&log, "a.ewcmd").unwrap();
@@ -291,7 +291,7 @@ pub fn folio_101_is_wired_by_a_generated_script_twice_identically_and_replays_ca
     assert_eq!(selected.len(), 2, "{selected:?}");
     let alias = selected[0][0].as_str().unwrap_or_default();
     assert!(
-        ew_ui::ew_viewmodel::alias::is_alias(alias),
+        ew_viewmodel::alias::is_alias(alias),
         "the selection prints an alias: {selected:?}"
     );
     assert_eq!(selected[1], json!([]));
@@ -321,13 +321,13 @@ pub fn folio_101_is_wired_by_a_generated_script_twice_identically_and_replays_ca
         19,
         "{names:?}"
     );
-    let mut store = ew_ui::ew_viewmodel::ew_api::StoreOptions::new("test");
+    let mut store = ew_viewmodel::ew_api::StoreOptions::new("test");
     store.state_dir = Some(tmp.path("state"));
     let (mut s, _) = Session::open(
         &replay,
         store,
-        ew_ui::ew_viewmodel::ew_api::SessionOptions::default(),
-        ew_ui::ew_viewmodel::ew_api::Recovery::Keep,
+        ew_viewmodel::ew_api::SessionOptions::default(),
+        ew_viewmodel::ew_api::Recovery::Keep,
     )
     .unwrap();
     // The log names the functions and connections the session minted (a new project's IDs are random):
@@ -364,7 +364,7 @@ pub fn folio_101_is_wired_by_a_generated_script_twice_identically_and_replays_ca
                         .iter()
                         .find(|c| c.id.to_string() == id)
                         .expect("the wire");
-                    let ew_ui::ew_viewmodel::ew_api::output::TableEnd::Cp { function, idx } = w.a else {
+                    let ew_viewmodel::ew_api::output::TableEnd::Cp { function, idx } = w.a else {
                         panic!("the split wire starts at a CP");
                     };
                     let f = map_cp(&function.to_string(), u64::from(idx));
@@ -372,7 +372,7 @@ pub fn folio_101_is_wired_by_a_generated_script_twice_identically_and_replays_ca
                         .connections
                         .iter()
                         .find(|c| {
-                            matches!(c.a, ew_ui::ew_viewmodel::ew_api::output::TableEnd::Cp { function, idx: i }
+                            matches!(c.a, ew_viewmodel::ew_api::output::TableEnd::Cp { function, idx: i }
                                 if function.to_string() == f && i == idx)
                         })
                         .expect("the wire of the replay")
@@ -389,7 +389,7 @@ pub fn folio_101_is_wired_by_a_generated_script_twice_identically_and_replays_ca
     }
     let replayed = s.page_tables("101").unwrap();
     assert_eq!(wiring_oracle(&replayed), wired, "the replay's wiring");
-    let routes = |t: &ew_ui::ew_viewmodel::ew_api::output::PageTables| {
+    let routes = |t: &ew_viewmodel::ew_api::output::PageTables| {
         let mut r: Vec<Vec<(i64, i64)>> = t.connections.iter().map(|c| c.polyline.clone()).collect();
         r.sort();
         r
@@ -413,7 +413,7 @@ pub fn folio_101_is_wired_by_a_generated_script_twice_identically_and_replays_ca
 pub fn folio_102_ips_and_black_boxes_are_placed_by_a_generated_script_twice_identically_and_replays_case(
     twice: bool,
 ) {
-    use ew_ui::ew_viewmodel::ew_api::output::PageTables;
+    use ew_viewmodel::ew_api::output::PageTables;
     let tmp = Tmp::new();
     let job = start(&bin_exe(), &tmp);
     let (session, _) = Session::open_read_only(&job, "test").unwrap();
@@ -541,13 +541,13 @@ pub fn folio_102_ips_and_black_boxes_are_placed_by_a_generated_script_twice_iden
     );
     assert_eq!(names.iter().filter(|n| **n == "ip.place").count(), 9, "{names:?}");
     assert!(names.contains(&"box.reshape"));
-    let mut store = ew_ui::ew_viewmodel::ew_api::StoreOptions::new("test");
+    let mut store = ew_viewmodel::ew_api::StoreOptions::new("test");
     store.state_dir = Some(tmp.path("state"));
     let (mut s, _) = Session::open(
         &replay,
         store,
-        ew_ui::ew_viewmodel::ew_api::SessionOptions::default(),
-        ew_ui::ew_viewmodel::ew_api::Recovery::Keep,
+        ew_viewmodel::ew_api::SessionOptions::default(),
+        ew_viewmodel::ew_api::Recovery::Keep,
     )
     .unwrap();
     for cmd in log.commands() {
@@ -595,7 +595,7 @@ pub fn folio_101_structure_box_and_markers_are_drawn_by_a_generated_script_twice
         external_connection_anchors, golden_wiring, marker_steps, potential_steps, structure_box_steps,
         typed_tag_steps, wiring_oracle, wiring_steps,
     };
-    use ew_ui::ew_viewmodel::ew_api::output::{PageTables, TableConnection, TableEnd};
+    use ew_viewmodel::ew_api::output::{PageTables, TableConnection, TableEnd};
     let tmp = Tmp::new();
     let job = start(&bin_exe(), &tmp);
     let (session, _) = Session::open_read_only(&job, "test").unwrap();
@@ -717,13 +717,13 @@ pub fn folio_101_structure_box_and_markers_are_drawn_by_a_generated_script_twice
     let apply_potentials = |dir: &Path, state: &str| {
         let potentials = potential_steps(&[101], dir);
         assert!(!potentials.is_empty(), "the golden potentials of folio 101");
-        let mut store = ew_ui::ew_viewmodel::ew_api::StoreOptions::new("test");
+        let mut store = ew_viewmodel::ew_api::StoreOptions::new("test");
         store.state_dir = Some(tmp.path(state));
         let (mut p, _) = Session::open(
             dir,
             store,
-            ew_ui::ew_viewmodel::ew_api::SessionOptions::default(),
-            ew_ui::ew_viewmodel::ew_api::Recovery::Keep,
+            ew_viewmodel::ew_api::SessionOptions::default(),
+            ew_viewmodel::ew_api::Recovery::Keep,
         )
         .unwrap();
         for (label, cmd) in &potentials {
@@ -787,13 +787,13 @@ pub fn folio_101_structure_box_and_markers_are_drawn_by_a_generated_script_twice
         };
         (label(c.a), label(c.b))
     };
-    let mut store = ew_ui::ew_viewmodel::ew_api::StoreOptions::new("test");
+    let mut store = ew_viewmodel::ew_api::StoreOptions::new("test");
     store.state_dir = Some(tmp.path("state"));
     let (mut s, _) = Session::open(
         &replay,
         store,
-        ew_ui::ew_viewmodel::ew_api::SessionOptions::default(),
-        ew_ui::ew_viewmodel::ew_api::Recovery::Keep,
+        ew_viewmodel::ew_api::SessionOptions::default(),
+        ew_viewmodel::ew_api::Recovery::Keep,
     )
     .unwrap();
     for cmd in log.commands() {

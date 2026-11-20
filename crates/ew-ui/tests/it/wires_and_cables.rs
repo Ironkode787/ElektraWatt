@@ -7,9 +7,9 @@
 use crate::support::Tmp;
 
 use egui::{Modifiers, PointerButton};
-use ew_ui::ew_viewmodel::script::state_json;
-use ew_ui::ew_viewmodel::shell::Outcome;
-use ew_ui::ew_viewmodel::tools::Ghost;
+use ew_viewmodel::script::state_json;
+use ew_viewmodel::shell::Outcome;
+use ew_viewmodel::tools::Ghost;
 use ew_ui::visual::{Driver, Input, parse_chord};
 use serde_json::{Value, json};
 
@@ -74,7 +74,7 @@ pub(crate) fn page_pixel(
 }
 
 /// The page tables of the page shown.
-pub(crate) fn tables(d: &mut Driver) -> std::sync::Arc<ew_ui::ew_viewmodel::ew_api::output::PageTables> {
+pub(crate) fn tables(d: &mut Driver) -> std::sync::Arc<ew_viewmodel::ew_api::output::PageTables> {
     std::sync::Arc::clone(&d.shell_mut().canvas().unwrap().page().tables)
 }
 
@@ -276,7 +276,7 @@ fn ft1684_the_marker_tool_marks_two_wires_with_a_typed_colour() {
 /// cable, and offers no override there.
 #[test]
 fn a_wire_made_a_core_takes_the_cores_cross_section_over_its_marker() {
-    use ew_ui::ew_viewmodel::properties::{RowAction, RowValue, chip_text, find_row};
+    use ew_viewmodel::properties::{RowAction, RowValue, chip_text, find_row};
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     let pixel = two_wires(&mut d);
@@ -481,7 +481,7 @@ pub(crate) fn select_both(d: &mut Driver, pixel: &impl Fn((i64, i64)) -> (i64, i
 /// The core cell of the Cable form's row `i`.
 fn core_cell(d: &mut Driver, i: usize) -> String {
     match d.shell_mut().dialog() {
-        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => {
+        Some(ew_viewmodel::shell::Dialog::Form(f)) => {
             f.table.as_ref().unwrap().rows[i].cells[0].clone()
         }
         other => panic!("not the Cable form: {other:?}"),
@@ -504,7 +504,7 @@ fn ft1685_cable_makes_the_selected_wires_a_cable_in_one_step() {
     // The cable type comes first: the starter cables that fit two wires, a two-core one first and chosen
     // (rc.3); typing a size instead makes a cable without a part.
     match d.shell_mut().dialog() {
-        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => {
+        Some(ew_viewmodel::shell::Dialog::Form(f)) => {
             let part = &f.fields[0];
             assert_eq!(part.name, "part");
             let chosen = part
@@ -574,7 +574,7 @@ fn ft1685_cable_makes_the_selected_wires_a_cable_in_one_step() {
     d.input(&click(at));
     d.settle();
     {
-        use ew_ui::ew_viewmodel::properties::{RowValue, find_row};
+        use ew_viewmodel::properties::{RowValue, find_row};
         let sheet = d
             .shell_mut()
             .properties()
@@ -678,7 +678,7 @@ fn company_project(tmp: &Tmp) -> Driver {
 /// The tag field of the Cable form.
 fn form_tag(d: &mut Driver) -> String {
     match d.shell_mut().dialog() {
-        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => {
+        Some(ew_viewmodel::shell::Dialog::Form(f)) => {
             f.fields.iter().find(|x| x.name == "tag").unwrap().value.clone()
         }
         other => panic!("not the Cable form: {other:?}"),
@@ -729,7 +729,7 @@ fn cable_gives_n_the_blue_core_and_proposes_the_tag_it_takes() {
     d.input(&Input::Hover { at });
     d.input(&click(at));
     d.settle();
-    use ew_ui::ew_viewmodel::properties::{RowValue, find_row};
+    use ew_viewmodel::properties::{RowValue, find_row};
     let sheet = d
         .shell_mut()
         .properties()
@@ -803,7 +803,7 @@ fn ft1692_print_wire_numbers_puts_each_wires_number_on_the_page() {
 /// The core cells of the Cable form's rows, in the rows' order.
 fn core_cells(d: &mut Driver) -> Vec<String> {
     match d.shell_mut().dialog() {
-        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => f
+        Some(ew_viewmodel::shell::Dialog::Form(f)) => f
             .table
             .as_ref()
             .unwrap()
@@ -847,7 +847,7 @@ fn cable_on_a_supply_with_pe_proposes_a_g_type_and_retyping_proposes_the_cores_a
     d.settle();
     // The type: the cable part chosen for the wires (rc.3), else the size proposed; with a PE wire a G type.
     let type_text = |d: &mut Driver| match d.shell_mut().dialog() {
-        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => {
+        Some(ew_viewmodel::shell::Dialog::Form(f)) => {
             let part = f.fields.iter().find(|x| x.name == "part");
             let chosen = part.and_then(|p| p.options.iter().find(|o| !p.value.is_empty() && o.0 == p.value));
             chosen.map_or_else(

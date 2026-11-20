@@ -435,7 +435,7 @@ fn no_pages_row_is_cut_at_1920() {
     let labels: Vec<(String, bool)> = h
         .state()
         .shell()
-        .shown_rows(ew_ui::ew_viewmodel::navigators::NavKind::Pages)
+        .shown_rows(ew_viewmodel::navigators::NavKind::Pages)
         .into_iter()
         .map(|r| (r.label, r.current))
         .collect();

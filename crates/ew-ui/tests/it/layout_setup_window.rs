@@ -12,7 +12,7 @@ use crate::support;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::shell::{Dialog, Mode, ShellModel};
+use ew_viewmodel::shell::{Dialog, Mode, ShellModel};
 use serde_json::json;
 use support::{Tmp, dispatch, on_golden, settle};
 
@@ -606,7 +606,7 @@ fn an_editor_opened_out_of_view_scrolls_into_view() {
     settle(&mut h);
     dispatch(&mut h, "select.set", json!({"refs": ["tag:-102F1"]}));
     settle(&mut h);
-    let pane_name = ew_ui::ew_viewmodel::strings::text(ew_ui::ew_viewmodel::key!("pane-properties"));
+    let pane_name = ew_viewmodel::strings::text(ew_viewmodel::key!("pane-properties"));
     let pane = h
         .get_all_by_role(egui::Role::Group)
         .find(|n| n.accesskit_node().label().as_deref() == Some(pane_name))
@@ -615,7 +615,7 @@ fn an_editor_opened_out_of_view_scrolls_into_view() {
     // The last editable row on show, in the order the pane draws them (Main first, the closed More not at all).
     let shell = h.state().shell();
     let collapsed = shell.properties_collapsed();
-    let last = ew_ui::ew_viewmodel::properties::visible_rows(
+    let last = ew_viewmodel::properties::visible_rows(
         shell.properties().sheet().unwrap(),
         &collapsed,
         false,
@@ -626,15 +626,15 @@ fn an_editor_opened_out_of_view_scrolls_into_view() {
     .rev()
     .find(|r| {
         r.actions
-            .contains(&ew_ui::ew_viewmodel::ew_api::output::RowAction::Edit)
-            && !matches!(r.ty.inner(), ew_ui::ew_viewmodel::properties::FieldType::Bool)
+            .contains(&ew_viewmodel::ew_api::output::RowAction::Edit)
+            && !matches!(r.ty.inner(), ew_viewmodel::properties::FieldType::Bool)
     })
     .map(|r| r.key.clone())
     .expect("an editable row");
     let row_name = {
         let sheet = h.state().shell().properties().sheet().unwrap();
-        let (section, row) = ew_ui::ew_viewmodel::properties::find_row(sheet, &last).unwrap();
-        ew_ui::ew_viewmodel::properties::row_label(section, row)
+        let (section, row) = ew_viewmodel::properties::find_row(sheet, &last).unwrap();
+        ew_viewmodel::properties::row_label(section, row)
     };
     let before = h
         .get_all_by_role(egui::Role::Group)
@@ -686,7 +686,7 @@ fn create_enclosure_disabled_at_open_focuses_its_first_control() {
         form.fields.iter().all(|f| !f.is_text()),
         "two lists, no text field"
     );
-    let spec = ew_ui::ew_viewmodel::dialogs::spec(&Dialog::Form(form), h.state().shell());
+    let spec = ew_viewmodel::dialogs::spec(&Dialog::Form(form), h.state().shell());
     assert_eq!(
         spec.primary.disabled.as_deref(),
         Some("Type or choose a part number")

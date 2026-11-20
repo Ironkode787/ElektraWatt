@@ -12,8 +12,8 @@ use egui::{Key, Modifiers, PointerButton};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::properties::{RowValue, find_row};
-use ew_ui::ew_viewmodel::shell::Focus;
+use ew_viewmodel::properties::{RowValue, find_row};
+use ew_viewmodel::shell::Focus;
 use serde_json::json;
 use support::{Tmp, dispatch, settle};
 
@@ -92,7 +92,7 @@ fn a_rows_tooltip_explains_it() {
     dispatch(&mut h, "select.set", json!({"ids": [F1_SYMBOL]}));
     settle(&mut h);
     let help =
-        ew_ui::ew_viewmodel::strings::field_help("device", "derived.tag").expect("the Tag row's explanation");
+        ew_viewmodel::strings::field_help("device", "derived.tag").expect("the Tag row's explanation");
     let label = h
         .get_all_by_role(egui::Role::Button)
         .find(|n| n.accesskit_node().label().as_deref() == Some("Tag"))

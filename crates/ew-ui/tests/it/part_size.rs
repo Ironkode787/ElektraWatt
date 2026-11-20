@@ -8,7 +8,7 @@ use crate::own_parts::{fill, new_project, press, records};
 use crate::persona_round::key;
 use crate::support::Tmp;
 
-use ew_ui::ew_viewmodel::shell::{Dialog, Outcome};
+use ew_viewmodel::shell::{Dialog, Outcome};
 use serde_json::json;
 
 /// The owner met no way to give a part its footprint. A new part is typed with its width, height, depth, its mounting
@@ -74,7 +74,7 @@ fn a_new_part_takes_its_size_and_a_saved_one_changes_it_through_the_card() {
     assert!(
         matches!(
             d.shell_mut().properties().card().map(|c| &c.origin),
-            Some(ew_ui::ew_viewmodel::properties::CardOrigin::Part(_))
+            Some(ew_viewmodel::properties::CardOrigin::Part(_))
         ),
         "the size change is the part's update card"
     );

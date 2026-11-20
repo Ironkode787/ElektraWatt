@@ -13,8 +13,8 @@ use egui::{Key, Modifiers};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::strings;
-use ew_ui::ew_viewmodel::tools::Ghost;
+use ew_viewmodel::strings;
+use ew_viewmodel::tools::Ghost;
 use serde_json::json;
 use support::{Tmp, dispatch, on_golden, screen, settle, wait_for_page};
 
@@ -320,7 +320,7 @@ fn page_and_project_changes_do_not_keep_stale_drawing_fields() {
 
 #[test]
 fn text_popup_typing_previews_without_commit_and_enter_places_it() {
-    use ew_ui::ew_viewmodel::tools::PreviewStatus;
+    use ew_viewmodel::tools::PreviewStatus;
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "101");
     typing_text(&mut h);
@@ -366,7 +366,7 @@ fn text_popup_typing_previews_without_commit_and_enter_places_it() {
 
 #[test]
 fn text_edit_typing_updates_preview_before_enter() {
-    use ew_ui::ew_viewmodel::tools::PreviewStatus;
+    use ew_viewmodel::tools::PreviewStatus;
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "101");
     let page = h.state().shell().canvas().unwrap().page().tables.page.to_string();
@@ -443,7 +443,7 @@ fn tap(h: &mut Harness<'_, App>, pos: egui::Pos2) {
 
 #[test]
 fn clicking_placed_text_shows_properties_and_f2_edit() {
-    use ew_ui::ew_viewmodel::properties::{RowValue, find_row};
+    use ew_viewmodel::properties::{RowValue, find_row};
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "101");
     assert!(h.state().shell().properties_shown());
@@ -533,7 +533,7 @@ fn clicking_placed_text_shows_properties_and_f2_edit() {
 
 /// A box drawn without a part on a new page 150 of Golden A's copy, selected, its name field open for a new pin on its
 /// top edge (Add pin from its right-click).
-fn naming_a_pin(h: &mut Harness<'_, App>) -> ew_ui::ew_viewmodel::ew_api::output::Uuid {
+fn naming_a_pin(h: &mut Harness<'_, App>) -> ew_viewmodel::ew_api::output::Uuid {
     let page = json!({"cmd": "page.create", "params": {
         "number": 150, "title": "Box", "kind": "multi_line", "grid": {"num": 7_937_500, "den": 3}}});
     dispatch(h, "command.run", page);
@@ -570,7 +570,7 @@ fn naming_a_pin(h: &mut Harness<'_, App>) -> ew_ui::ew_viewmodel::ew_api::output
 }
 
 /// The names the box `rep` stores for its pins, in index order.
-fn pin_names(h: &Harness<'_, App>, rep: ew_ui::ew_viewmodel::ew_api::output::Uuid) -> Vec<String> {
+fn pin_names(h: &Harness<'_, App>, rep: ew_viewmodel::ew_api::output::Uuid) -> Vec<String> {
     let c = h.state().shell().canvas().unwrap();
     let r = c.page().tables.reps.iter().find(|r| r.id == rep).unwrap();
     let mut names = r.black_box.as_ref().unwrap().names.clone();

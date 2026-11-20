@@ -10,8 +10,8 @@ use crate::support;
 
 use egui_kittest::kittest::Queryable;
 use ew_ui::app::Pick;
-use ew_ui::ew_viewmodel::ew_api::library::LibraryTiers;
-use ew_ui::ew_viewmodel::shell::{Dialog, EplanStep, Mode, Outcome, ShellModel};
+use ew_viewmodel::ew_api::library::LibraryTiers;
+use ew_viewmodel::shell::{Dialog, EplanStep, Mode, Outcome, ShellModel};
 use serde_json::json;
 use std::path::Path;
 use support::{Scripted, Tmp, harness_with, settle, wait_for_page};

@@ -13,9 +13,9 @@ use egui::{Key, Modifiers, Rect, Vec2, ViewportId};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable as _};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::actions::ACTIONS;
-use ew_ui::ew_viewmodel::command_bar::{ButtonKind, CommandSize, Tab, command_bar, command_bar_of};
-use ew_ui::ew_viewmodel::shell::{Focus, Mode, Outcome, ShellModel};
+use ew_viewmodel::actions::ACTIONS;
+use ew_viewmodel::command_bar::{ButtonKind, CommandSize, Tab, command_bar, command_bar_of};
+use ew_viewmodel::shell::{Focus, Mode, Outcome, ShellModel};
 use ew_ui::icons::IconId;
 use serde_json::json;
 use support::{Scripted, Tmp, harness_with, settle, wait_for_page};
@@ -632,7 +632,7 @@ fn in_bar(h: &Harness<'_, App>, label: &str) -> bool {
 
 /// Shows command tab `tab` by a click on it.
 fn show_tab(h: &mut Harness<'_, App>, tab: Tab) {
-    let label = ew_ui::ew_viewmodel::strings::text(tab.label_key()).to_owned();
+    let label = ew_viewmodel::strings::text(tab.label_key()).to_owned();
     h.get_by_role_and_label(egui::Role::Tab, &label).click();
     settle(h);
     assert_eq!(h.state().shell().command_tab(), tab);
@@ -642,7 +642,7 @@ fn show_tab(h: &mut Harness<'_, App>, tab: Tab) {
 /// command of every tab stands in the bar as a button of its own, and no More button shows.
 #[test]
 fn nothing_folds_at_1920_in_english_dutch_and_the_pseudo_locale() {
-    use ew_ui::ew_viewmodel::{key, strings};
+    use ew_viewmodel::{key, strings};
     let tmp = Tmp::new();
     let mut h = window(&tmp, "comfortable");
     let mut folded = Vec::new();
@@ -671,7 +671,7 @@ fn nothing_folds_at_1920_in_english_dutch_and_the_pseudo_locale() {
 /// the group went there), and the page view keeps at least half the window's width and height.
 #[test]
 fn a_smaller_window_stays_usable() {
-    use ew_ui::ew_viewmodel::{key, strings};
+    use ew_viewmodel::{key, strings};
     let tmp = Tmp::new();
     let mut h = window(&tmp, "comfortable");
     h.set_size(Vec2::new(1280.0, 800.0));

@@ -10,8 +10,8 @@ use crate::support;
 
 use egui_kittest::kittest::Queryable;
 use ew_ui::app::Pick;
-use ew_ui::ew_viewmodel::ew_api::Session;
-use ew_ui::ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellModel};
+use ew_viewmodel::ew_api::Session;
+use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellModel};
 use serde_json::json;
 use support::{Scripted, Tmp, finish_jobs, harness_with, settle, wait_for_page};
 
@@ -30,7 +30,7 @@ fn a_drawing_import_runs_as_a_job_with_cancel() {
     std::fs::write(&dxf, PLAN).unwrap();
     let mut h = support::on_golden(&tmp, "101");
     let pages = h.state().shell().page_rows().len();
-    let gate = ew_ui::ew_viewmodel::ew_api::ew_jobs::Gate::new();
+    let gate = ew_viewmodel::ew_api::ew_jobs::Gate::new();
     gate.hold("drawing");
     h.state_mut()
         .shell_mut()

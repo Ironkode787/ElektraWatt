@@ -12,8 +12,8 @@ use egui::{Modifiers, PointerButton};
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
-use ew_ui::ew_viewmodel::shell::{Outcome, ShellModel};
+use ew_viewmodel::navigators::{NavKind, NavRole};
+use ew_viewmodel::shell::{Outcome, ShellModel};
 use serde_json::{Value, json};
 use support::{Scripted, Tmp, done, harness, settle, wait_for_page};
 

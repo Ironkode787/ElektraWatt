@@ -12,11 +12,11 @@ use egui::{Modifiers, PointerButton, Pos2};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::canvas::{pick, rect_centre};
-use ew_ui::ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
-use ew_ui::ew_viewmodel::ew_api::output::TableRep;
-use ew_ui::ew_viewmodel::navigators::NavKind;
-use ew_ui::ew_viewmodel::shell::{Dialog, Outcome};
+use ew_viewmodel::canvas::{pick, rect_centre};
+use ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
+use ew_viewmodel::ew_api::output::TableRep;
+use ew_viewmodel::navigators::NavKind;
+use ew_viewmodel::shell::{Dialog, Outcome};
 use ew_ui::visual::{Driver, Input};
 use serde_json::json;
 use support::{Tmp, dispatch, on_golden, screen, settle, wait_for_page};
@@ -470,8 +470,8 @@ fn item_at(h: &Harness<'_, App>, name: &str) -> Pos2 {
 /// Properties of selection; Choose part… opens the part dialog for it and Go to shows its first placement.
 #[test]
 fn a_device_rows_menu_offers_what_its_symbol_offers_and_goes_to_it() {
-    use ew_ui::ew_viewmodel::command_bar::navigator_row_menu;
-    use ew_ui::ew_viewmodel::navigators::NavRole;
+    use ew_viewmodel::command_bar::navigator_row_menu;
+    use ew_viewmodel::navigators::NavRole;
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "102");
     dispatch(&mut h, "navigator.show", json!({ "kind": "devices" }));
@@ -538,7 +538,7 @@ fn a_device_rows_menu_offers_what_its_symbol_offers_and_goes_to_it() {
 /// shows that wire's page with the cable's wires selected and opens the cable's form.
 #[test]
 fn a_cable_rows_menu_opens_the_cable_form() {
-    use ew_ui::ew_viewmodel::navigators::NavRole;
+    use ew_viewmodel::navigators::NavRole;
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "101");
     dispatch(&mut h, "navigator.show", json!({ "kind": "cables" }));

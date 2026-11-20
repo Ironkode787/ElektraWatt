@@ -14,9 +14,9 @@ use egui::Modifiers;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::ew_api::output::TableEnd;
-use ew_ui::ew_viewmodel::navigators::{NavKind, NavNode, NavRole};
-use ew_ui::ew_viewmodel::shell::{Focus, Mode, Resources, ShellModel};
+use ew_viewmodel::ew_api::output::TableEnd;
+use ew_viewmodel::navigators::{NavKind, NavNode, NavRole};
+use ew_viewmodel::shell::{Focus, Mode, Resources, ShellModel};
 use serde_json::{Value, json};
 use support::{Scripted, Tmp, dispatch, harness_with, settle, wait_for_page};
 
@@ -89,7 +89,7 @@ fn place_ip(h: &mut Harness<'_, App>, name: &str) {
     dispatch(h, "ip.name", json!({ "text": name }));
     for _ in 0..3 {
         let state: Value =
-            serde_json::from_str(&ew_ui::ew_viewmodel::script::state_json(h.state().shell())).unwrap();
+            serde_json::from_str(&ew_viewmodel::script::state_json(h.state().shell())).unwrap();
         if state["canvas"]["ghost"]["direction"] == "target" {
             break;
         }
@@ -207,7 +207,7 @@ fn the_pane_in_the_window_named_rows_keyboard_detail_and_pending() {
         "{name}"
     );
     assert!(!name.ends_with(", pending"), "{name}");
-    let title = ew_ui::ew_viewmodel::ew_api::checks::rule("EW-CORE-033")
+    let title = ew_viewmodel::ew_api::checks::rule("EW-CORE-033")
         .unwrap()
         .meta()
         .title;
@@ -278,7 +278,7 @@ fn waive_from_the_detail_takes_an_empty_reason_and_author() {
     settle(&mut h);
     h.get_by_label("Waive…").click();
     settle(&mut h);
-    let Some(ew_ui::ew_viewmodel::shell::Dialog::Form(form)) = h.state().shell().dialog() else {
+    let Some(ew_viewmodel::shell::Dialog::Form(form)) = h.state().shell().dialog() else {
         panic!("the Waive prompt: {:?}", h.state().shell().dialog());
     };
     assert!(form.fields.iter().all(|f| f.value.is_empty()), "{form:?}");
@@ -798,7 +798,7 @@ fn the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_at_1920
 /// texts in words, in en-GB and in nl-NL (it read "1, 0, 0").
 #[test]
 fn the_quick_fix_card_counts_in_words_in_english_and_dutch() {
-    use ew_ui::ew_viewmodel::{key, strings};
+    use ew_viewmodel::{key, strings};
     for (lang, line) in [
         (
             "en",
@@ -856,7 +856,7 @@ fn the_quick_fix_card_counts_in_words_in_english_and_dutch() {
 /// the window paints the badge from its code, the row's text carries the Dutch word.
 #[test]
 fn a_finding_keeps_its_fix_badge_in_dutch() {
-    use ew_ui::ew_viewmodel::{key, strings};
+    use ew_viewmodel::{key, strings};
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, Scripted::default());
     dispatch(&mut h, "view.language", json!({ "value": "nl" }));
@@ -952,7 +952,7 @@ fn a_findings_row_menu_offers_its_fix_and_waive() {
     settle(&mut h);
     let nodes = table_nodes(&h);
     let labels = |n: &NavNode| -> Vec<String> {
-        ew_ui::ew_viewmodel::command_bar::navigator_row_menu(h.state().shell(), NavKind::Messages, n)
+        ew_viewmodel::command_bar::navigator_row_menu(h.state().shell(), NavKind::Messages, n)
             .into_iter()
             .map(|i| i.label)
             .collect()

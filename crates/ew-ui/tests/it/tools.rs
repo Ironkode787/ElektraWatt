@@ -13,8 +13,8 @@ use egui::{Key, Modifiers, MouseWheelSource, MouseWheelUnit, PointerButton, Pos2
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::shell::Outcome;
-use ew_ui::ew_viewmodel::tools::{Dash, Ghost, OverlayItem, Token, band_selection, measure_label, rect_of};
+use ew_viewmodel::shell::Outcome;
+use ew_viewmodel::tools::{Dash, Ghost, OverlayItem, Token, band_selection, measure_label, rect_of};
 use serde_json::json;
 use support::{Scripted, Tmp, dispatch, harness, settle, wait_for_page};
 
@@ -223,17 +223,17 @@ fn a_press_and_its_release_in_one_frame_still_click() {
     // drawn through a symbol's middle first, FT-500, and the tap's point is rounded to the screen).
     let (entity, p) = {
         let c = h.state().shell().canvas().unwrap();
-        let slop = ew_ui::ew_viewmodel::canvas::HOVER_SLOP_PT / c.points_per_nm();
+        let slop = ew_viewmodel::canvas::HOVER_SLOP_PT / c.points_per_nm();
         let page = c.page();
         page.entities
             .iter()
-            .map(|(e, r)| (*e, ew_ui::ew_viewmodel::canvas::rect_centre(*r)))
+            .map(|(e, r)| (*e, ew_viewmodel::canvas::rect_centre(*r)))
             .find(|(e, p)| {
                 c.link_at(*p).is_none()
-                    && ew_ui::ew_viewmodel::canvas::pick(&page.entities, Some(*p), slop).map(|x| x.0)
+                    && ew_viewmodel::canvas::pick(&page.entities, Some(*p), slop).map(|x| x.0)
                         == Some(*e)
                     && {
-                        let stack = ew_ui::ew_viewmodel::tools::pick_stack(page, &page.snapper, *p, slop);
+                        let stack = ew_viewmodel::tools::pick_stack(page, &page.snapper, *p, slop);
                         stack.first() == Some(e)
                             && stack
                                 .iter()
@@ -258,7 +258,7 @@ fn a_press_and_its_release_in_one_frame_still_click() {
         .find(|l| l.target.as_ref().is_some_and(|t| t.folio != "103"))
         .unwrap()
         .clone();
-    let pos = screen(&h, ew_ui::ew_viewmodel::canvas::rect_centre(link.rect));
+    let pos = screen(&h, ew_viewmodel::canvas::rect_centre(link.rect));
     tap(&mut h, pos);
     settle(&mut h);
     assert_eq!(
@@ -500,7 +500,7 @@ fn t8_the_window_reports_the_rest_and_shows_the_popup() {
         })
         .unwrap()
         .clone();
-    let p = ew_ui::ew_viewmodel::canvas::rect_centre(link.rect);
+    let p = ew_viewmodel::canvas::rect_centre(link.rect);
     let calls = h.state().shell().session_calls();
     // The window's pointer over the link.
     let pos = screen(&h, p);
@@ -697,7 +697,7 @@ fn a_page_change_after_a_hover_paints_no_dashed_rectangle() {
     // The centre of an entity, wherever the fit put the sheet.
     let at = {
         let c = h.state().shell().canvas().unwrap();
-        let p = ew_ui::ew_viewmodel::canvas::rect_centre(c.page().entities[0].1);
+        let p = ew_viewmodel::canvas::rect_centre(c.page().entities[0].1);
         screen(&h, p)
     };
     h.event(egui::Event::PointerMoved(at));
@@ -793,7 +793,7 @@ fn a_stationary_click_keeps_the_place_ghost() {
 #[test]
 fn a_view_change_with_a_stationary_pointer_replays_the_pointer() {
     let tmp = Tmp::new();
-    use ew_ui::ew_viewmodel::canvas::{pick, rect_centre};
+    use ew_viewmodel::canvas::{pick, rect_centre};
     let mut h = quick_golden(&tmp, "102");
     // The pan below moves the sheet by `pan` on the screen. The pointer rests where that brings an object under it,
     // whatever the page's layout is: the centre of an object's rectangle whose pick is that object, moved by the pan.
@@ -883,7 +883,7 @@ fn place_and_rest(h: &mut Harness<'_, App>) -> (i64, i64) {
 /// Whether `frame` stands where the chip rule may put a chip by the point `anchor`: one of its four
 /// candidates, 8 points off.
 fn by_point(frame: egui::Rect, anchor: Pos2) -> bool {
-    use ew_ui::ew_viewmodel::canvas::chip::{Pos2 as P, Rect as R, Vec2 as V, candidates};
+    use ew_viewmodel::canvas::chip::{Pos2 as P, Rect as R, Vec2 as V, candidates};
     candidates(
         R::point(P::new(anchor.x, anchor.y)),
         V::new(frame.width(), frame.height()),
@@ -1102,13 +1102,13 @@ fn r30_the_image_hint_follows_the_file_answer_without_a_pointer_move() {
 struct ThreadedImage(std::path::PathBuf);
 
 impl ew_ui::app::Platform for ThreadedImage {
-    fn pick(&mut self, _: ew_ui::ew_viewmodel::shell::Prompt) -> ew_ui::app::Pick {
+    fn pick(&mut self, _: ew_viewmodel::shell::Prompt) -> ew_ui::app::Pick {
         panic!("a threaded platform is asked through start_pick");
     }
 
     fn start_pick(
         &mut self,
-        _: ew_ui::ew_viewmodel::shell::Prompt,
+        _: ew_viewmodel::shell::Prompt,
         ctx: &egui::Context,
     ) -> ew_ui::app::PickReply {
         let path = self.0.clone();
@@ -1126,7 +1126,7 @@ fn r30_the_image_hint_follows_a_threaded_file_answer_without_a_pointer_move() {
     let file = a_png(&tmp);
     let dir = tmp.golden("g.ew");
     let shell =
-        ew_ui::ew_viewmodel::shell::ShellModel::new(ew_ui::ew_viewmodel::shell::Mode::Gui, tmp.config());
+        ew_viewmodel::shell::ShellModel::new(ew_viewmodel::shell::Mode::Gui, tmp.config());
     let app = App::new(shell, Box::new(ThreadedImage(file)), Some(dir));
     let mut h = Harness::builder()
         .with_size(egui::Vec2::new(1000.0, 700.0))
@@ -1245,7 +1245,7 @@ pub(crate) fn right_click(h: &mut Harness<'_, App>, pos: Pos2) {
 /// selection.
 #[test]
 fn a_right_click_opens_the_canvas_context_menu() {
-    use ew_ui::ew_viewmodel::canvas::{pick, rect_centre};
+    use ew_viewmodel::canvas::{pick, rect_centre};
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "103");
     // The centre of an object's rectangle whose pick is that object.

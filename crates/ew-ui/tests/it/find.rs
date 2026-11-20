@@ -13,7 +13,7 @@ use egui::{Key, Modifiers};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::shell::Focus;
+use ew_viewmodel::shell::Focus;
 use serde_json::json;
 use support::{Tmp, dispatch, on_golden, settle};
 
@@ -265,7 +265,7 @@ fn results_are_named_in_plain_text_and_only_the_rows_on_show_are_built() {
     dispatch(&mut h, "find.run", json!({}));
     settle(&mut h);
     let hit = h.state().shell().find_state().results().unwrap().hits[0].clone();
-    let marked = ew_ui::ew_viewmodel::find::marked(&hit);
+    let marked = ew_viewmodel::find::marked(&hit);
     assert!(!hit.before.contains("[[") && marked.contains("[["), "{marked}");
     let lead = format!(
         "{} · {} · Function text · ",
@@ -328,7 +328,7 @@ fn long_and_two_line_results_keep_the_cursor_inside_the_list() {
     let mut h = on_golden(&tmp, "204");
     h.key_press_modifiers(Modifiers::COMMAND, Key::H);
     settle(&mut h);
-    let pane_name = ew_ui::ew_viewmodel::strings::text(ew_ui::ew_viewmodel::key!("pane-find")).to_owned();
+    let pane_name = ew_viewmodel::strings::text(ew_viewmodel::key!("pane-find")).to_owned();
     // One line of body text in a button's padding: the list's row height.
     let style = h.ctx.style_of(h.ctx.theme());
     let line = h
@@ -456,8 +456,8 @@ fn the_folio_filter_takes_the_width_it_has_at_both_sizes() {
     dispatch(&mut h, "view.language", json!({ "value": "nl" }));
     h.key_press_modifiers(Modifiers::COMMAND, Key::H);
     settle(&mut h);
-    let name = ew_ui::ew_viewmodel::strings::text(ew_ui::ew_viewmodel::key!("find-folios")).to_owned();
-    let pane_name = ew_ui::ew_viewmodel::strings::text(ew_ui::ew_viewmodel::key!("pane-find")).to_owned();
+    let name = ew_viewmodel::strings::text(ew_viewmodel::key!("find-folios")).to_owned();
+    let pane_name = ew_viewmodel::strings::text(ew_viewmodel::key!("pane-find")).to_owned();
     for size in [egui::Vec2::new(1920.0, 1080.0), egui::Vec2::new(2560.0, 1440.0)] {
         h.set_size(size);
         settle(&mut h);
@@ -514,11 +514,11 @@ fn w49_2_f4_the_find_fields_take_their_rows_width_at_the_headers_inset() {
         "find.replacement",
         json!({ "text": "a replacement that runs past the edge ".repeat(8) }),
     );
-    let label = |k| ew_ui::ew_viewmodel::strings::text(k).to_owned();
-    let find = label(ew_ui::ew_viewmodel::key!("find-text"));
-    let replacement = label(ew_ui::ew_viewmodel::key!("find-replacement"));
-    let close = label(ew_ui::ew_viewmodel::key!("find-close"));
-    let pane_name = label(ew_ui::ew_viewmodel::key!("pane-find"));
+    let label = |k| ew_viewmodel::strings::text(k).to_owned();
+    let find = label(ew_viewmodel::key!("find-text"));
+    let replacement = label(ew_viewmodel::key!("find-replacement"));
+    let close = label(ew_viewmodel::key!("find-close"));
+    let pane_name = label(ew_viewmodel::key!("pane-find"));
     let inset = ew_ui::theme::current(&h.ctx).space_4;
     let mut widths = Vec::new();
     for size in [egui::Vec2::new(1920.0, 1080.0), egui::Vec2::new(2560.0, 1440.0)] {
@@ -577,11 +577,11 @@ fn w49_2_f4_the_find_fields_take_their_rows_width_at_the_headers_inset() {
 fn the_empty_state_shows_whole() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "204");
-    let text = |k| ew_ui::ew_viewmodel::strings::text(k).to_owned();
-    let pane_name = text(ew_ui::ew_viewmodel::key!("pane-find"));
+    let text = |k| ew_viewmodel::strings::text(k).to_owned();
+    let pane_name = text(ew_viewmodel::key!("pane-find"));
     let lines = [
-        text(ew_ui::ew_viewmodel::key!("empty-find-start")),
-        text(ew_ui::ew_viewmodel::key!("empty-find-start-text")),
+        text(ew_viewmodel::key!("empty-find-start")),
+        text(ew_viewmodel::key!("empty-find-start-text")),
     ];
     for (size, chord) in [
         (egui::Vec2::new(1920.0, 1080.0), Key::F),

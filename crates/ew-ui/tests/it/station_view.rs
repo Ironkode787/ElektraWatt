@@ -11,9 +11,9 @@ use crate::plc_workspace::{at, new_project_with_cpu, station_of, take};
 use crate::support::{self, Tmp, dispatch, settle};
 
 use egui_kittest::kittest::{NodeT as _, Queryable};
-use ew_ui::ew_viewmodel::ew_api::output::{RackRow, Uuid};
-use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
-use ew_ui::ew_viewmodel::shell::Outcome;
+use ew_viewmodel::ew_api::output::{RackRow, Uuid};
+use ew_viewmodel::navigators::{NavKind, NavRole};
+use ew_viewmodel::shell::Outcome;
 use serde_json::json;
 
 type Window = egui_kittest::Harness<'static, ew_ui::app::App>;
@@ -215,8 +215,8 @@ fn a_valve_terminals_positions_are_filled_like_slots() {
     );
     // Its right click speaks of the valve: Replace lists the valves with its own checked, and what a position does not
     // take (a move, a drawing of its own) is greyed with the reason.
-    use ew_ui::ew_viewmodel::actions::MenuEntry;
-    let menu = ew_ui::ew_viewmodel::actions::station_tools(h.state().shell());
+    use ew_viewmodel::actions::MenuEntry;
+    let menu = ew_viewmodel::actions::station_tools(h.state().shell());
     let entry = |label: &str| {
         menu.iter()
             .find_map(|(_, e)| match e {
@@ -362,7 +362,7 @@ fn what_is_wrong_is_said_at_the_place_with_its_fix() {
     let (place, why) = tab.error.expect("the refusal stays in the view");
     assert_eq!(
         place,
-        Some(ew_ui::ew_viewmodel::area::StationCursor::Slot { rack: 0, slot: 3 }),
+        Some(ew_viewmodel::area::StationCursor::Slot { rack: 0, slot: 3 }),
         "at the slot it was refused at"
     );
     h.get_by_label(&why);
@@ -742,7 +742,7 @@ fn the_plcs_name_is_changed_in_the_station_view() {
 /// before Create: Cancel keeps it, Close without making it closes the tab and leaves the project as it was.
 #[test]
 fn closing_a_station_not_made_yet_asks() {
-    use ew_ui::ew_viewmodel::shell::Dialog;
+    use ew_viewmodel::shell::Dialog;
     let tmp = Tmp::new();
     let mut h = new_project_with_cpu(&tmp);
     let revision = h.state().shell().revision();

@@ -9,7 +9,7 @@
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 
-use ew_ui::ew_viewmodel::ew_api::{CmdLog, Session};
+use ew_viewmodel::ew_api::{CmdLog, Session};
 use serde_json::{Value, json};
 
 pub(crate) use crate::support::{CONTENT, Tmp, bin_exe, copy_dir, path, steps};
@@ -164,13 +164,13 @@ pub(crate) fn page_new_creates_folios_101_to_103_twice_identically_and_the_recor
     assert_eq!(names, ["page.create", "page.create", "page.create"]);
     let replay = tmp.path("c").join("p.ew");
     copy_dir(&start, &replay);
-    let mut store = ew_ui::ew_viewmodel::ew_api::StoreOptions::new("test");
+    let mut store = ew_viewmodel::ew_api::StoreOptions::new("test");
     store.state_dir = Some(tmp.path("state"));
     let (mut s, _) = Session::open(
         &replay,
         store,
-        ew_ui::ew_viewmodel::ew_api::SessionOptions::default(),
-        ew_ui::ew_viewmodel::ew_api::Recovery::Keep,
+        ew_viewmodel::ew_api::SessionOptions::default(),
+        ew_viewmodel::ew_api::Recovery::Keep,
     )
     .unwrap();
     s.run_script(&log, "a.ewcmd").unwrap();
@@ -263,13 +263,13 @@ pub(crate) fn a_navigator_script_runs_twice_identically_and_its_record_replays_c
     assert_eq!(names, ["page.reorder"]);
     let replay = tmp.path("c").join("J-E-2416.ew");
     copy_dir(Path::new(GOLDEN_A), &replay);
-    let mut store = ew_ui::ew_viewmodel::ew_api::StoreOptions::new("test");
+    let mut store = ew_viewmodel::ew_api::StoreOptions::new("test");
     store.state_dir = Some(tmp.path("state"));
     let (mut s, _) = Session::open(
         &replay,
         store,
-        ew_ui::ew_viewmodel::ew_api::SessionOptions::default(),
-        ew_ui::ew_viewmodel::ew_api::Recovery::Keep,
+        ew_viewmodel::ew_api::SessionOptions::default(),
+        ew_viewmodel::ew_api::Recovery::Keep,
     )
     .unwrap();
     s.run_script(&log, "a.ewcmd").unwrap();
@@ -371,7 +371,7 @@ page view: {folio}
 /// The Terminal strips table's cell texts of a project, row by row (the table's nodes in tree order).
 pub(crate) fn strip_cells(dir: &Path) -> Vec<Vec<String>> {
     let (s, _) = Session::open_read_only(dir, "test").unwrap();
-    let t = s.navigator_table(ew_ui::ew_viewmodel::ew_api::output::NavKind::Strips);
+    let t = s.navigator_table(ew_viewmodel::ew_api::output::NavKind::Strips);
     t.nodes.into_iter().map(|n| n.cells).collect()
 }
 
@@ -463,13 +463,13 @@ pub(crate) fn a_table_script_runs_twice_identically_and_its_record_replays_case(
     assert_eq!(names, ["fields.set", "fields.set"]);
     let replay = tmp.path("c").join("J-E-2416.ew");
     copy_dir(Path::new(GOLDEN_A), &replay);
-    let mut store = ew_ui::ew_viewmodel::ew_api::StoreOptions::new("test");
+    let mut store = ew_viewmodel::ew_api::StoreOptions::new("test");
     store.state_dir = Some(tmp.path("state"));
     let (mut s, _) = Session::open(
         &replay,
         store,
-        ew_ui::ew_viewmodel::ew_api::SessionOptions::default(),
-        ew_ui::ew_viewmodel::ew_api::Recovery::Keep,
+        ew_viewmodel::ew_api::SessionOptions::default(),
+        ew_viewmodel::ew_api::Recovery::Keep,
     )
     .unwrap();
     s.run_script(&log, "a.ewcmd").unwrap();

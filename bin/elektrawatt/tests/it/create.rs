@@ -28,8 +28,8 @@ pub(crate) mod scripts;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-use ew_ui::ew_viewmodel::ew_api::output::RowValue;
-use ew_ui::ew_viewmodel::ew_api::{CmdLog, Session};
+use ew_viewmodel::ew_api::output::RowValue;
+use ew_viewmodel::ew_api::{CmdLog, Session};
 use scripts::{CONTENT, Tmp, all_done, copy_dir, new_project, path, run, same_transcript, steps};
 use serde_json::{Value, json};
 use support::{SheetMap, golden_reps, placement_steps};
@@ -209,13 +209,13 @@ fn folio_101s_external_points_print_the_structure_node_and_the_external_referenc
     let log = CmdLog::parse(&std::fs::read_to_string(&records[0]).unwrap()).unwrap();
     let replay = tmp.path("c").join("folio.ew");
     copy_dir(&job, &replay);
-    let mut store = ew_ui::ew_viewmodel::ew_api::StoreOptions::new("test");
+    let mut store = ew_viewmodel::ew_api::StoreOptions::new("test");
     store.state_dir = Some(tmp.path("state"));
     let (mut s, _) = Session::open(
         &replay,
         store,
-        ew_ui::ew_viewmodel::ew_api::SessionOptions::default(),
-        ew_ui::ew_viewmodel::ew_api::Recovery::Keep,
+        ew_viewmodel::ew_api::SessionOptions::default(),
+        ew_viewmodel::ew_api::Recovery::Keep,
     )
     .unwrap();
     s.run_script(&log, "a.ewcmd").unwrap();

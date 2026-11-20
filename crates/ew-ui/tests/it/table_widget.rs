@@ -13,8 +13,8 @@ use egui::{Key, Modifiers};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole, SortBy};
-use ew_ui::ew_viewmodel::shell::ShellModel;
+use ew_viewmodel::navigators::{NavKind, NavRole, SortBy};
+use ew_viewmodel::shell::ShellModel;
 use serde_json::json;
 use support::{Scripted, Tmp, done, harness, settle, wait_for_page};
 

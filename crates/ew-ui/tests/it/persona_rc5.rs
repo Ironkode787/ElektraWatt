@@ -9,7 +9,7 @@ use crate::own_parts::{cursor_k, new_project};
 use crate::persona_round::key;
 use crate::support::Tmp;
 
-use ew_ui::ew_viewmodel::shell::{Dialog, Outcome};
+use ew_viewmodel::shell::{Dialog, Outcome};
 use ew_ui::visual::Driver;
 use serde_json::json;
 
@@ -103,14 +103,14 @@ fn a_panel_layout_page_says_how_the_devices_reach_the_plate() {
     );
     d.settle();
     // The CPU has no location yet: Unplaced devices lists none, so the location comes first.
-    let prompt = ew_ui::ew_viewmodel::command_bar::hud(d.shell_mut()).prompt;
+    let prompt = ew_viewmodel::command_bar::hud(d.shell_mut()).prompt;
     assert!(
         prompt.contains("+CAB1") && prompt.contains("Unplaced devices"),
         "{prompt}"
     );
     let out = d.shell_mut().dispatch("tool.place", &json!({}));
     let words = match out {
-        Outcome::Refused { reason_key } => ew_ui::ew_viewmodel::strings::text(reason_key).to_owned(),
+        Outcome::Refused { reason_key } => ew_viewmodel::strings::text(reason_key).to_owned(),
         other => format!("{other:?}"),
     };
     assert!(words.contains("Unplaced devices"), "{words}");
@@ -136,7 +136,7 @@ fn a_parts_list_that_runs_on_says_where() {
     );
     d.input(&ew_ui::visual::Input::Wait { ms: 50 });
     let hud = |d: &mut Driver| {
-        let h = ew_ui::ew_viewmodel::command_bar::hud(d.shell_mut());
+        let h = ew_viewmodel::command_bar::hud(d.shell_mut());
         (
             h.prompt,
             h.buttons.into_iter().map(|b| b.label).collect::<Vec<_>>(),
@@ -186,7 +186,7 @@ fn a_layout_page_gives_the_cabinets_devices_their_location_in_one_step() {
     let tmp = Tmp::new();
     let mut d = cabinet_project(&tmp);
     let buttons = |d: &mut Driver| -> Vec<String> {
-        let hud = ew_ui::ew_viewmodel::command_bar::hud(d.shell_mut());
+        let hud = ew_viewmodel::command_bar::hud(d.shell_mut());
         hud.buttons.into_iter().map(|b| b.label).collect()
     };
     assert_eq!(buttons(&mut d), ["Give location +CAB1…", "Unplaced devices"]);
@@ -225,7 +225,7 @@ fn a_layout_page_gives_the_cabinets_devices_their_location_in_one_step() {
     assert_eq!(buttons(&mut d), ["Unplaced devices", "Auto-fill rail…"]);
     d.input(&ew_ui::visual::Input::Wait { ms: 50 });
     press(&mut d, "Unplaced devices");
-    let rail = ew_ui::ew_viewmodel::rail::rail(d.shell_mut());
+    let rail = ew_viewmodel::rail::rail(d.shell_mut());
     let entry = rail
         .left
         .iter()
@@ -254,7 +254,7 @@ fn give_location_announces_a_location_its_tags_will_print() {
     press(&mut d, "Give location +FIELD…");
     for (i, (tag, _)) in preview_rows(&mut d).iter().enumerate() {
         let tick = if tag == "-1A2" {
-            ew_ui::ew_viewmodel::shell::TICKED
+            ew_viewmodel::shell::TICKED
         } else {
             ""
         };
@@ -317,7 +317,7 @@ fn preview_rows(d: &mut Driver) -> Vec<(String, bool)> {
         .expect("the devices")
         .rows
         .into_iter()
-        .map(|r| (r.key, r.cells[0] == ew_ui::ew_viewmodel::shell::TICKED))
+        .map(|r| (r.key, r.cells[0] == ew_viewmodel::shell::TICKED))
         .collect()
 }
 

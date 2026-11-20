@@ -7,7 +7,7 @@
 use crate::support::Tmp;
 
 use egui::{Modifiers, PointerButton};
-use ew_ui::ew_viewmodel::shell::{Dialog, Outcome};
+use ew_viewmodel::shell::{Dialog, Outcome};
 use ew_ui::visual::{Driver, Input};
 use serde_json::json;
 

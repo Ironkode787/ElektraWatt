@@ -12,8 +12,8 @@
 use std::path::Path;
 use std::process::{Output, Stdio};
 
-use ew_ui::ew_viewmodel::ew_api::{CmdLog, Session};
-use ew_ui::ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
+use ew_viewmodel::ew_api::{CmdLog, Session};
+use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::{Value, json};
 
 use crate::support::{Tmp, copy_dir};

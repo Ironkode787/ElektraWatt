@@ -37,15 +37,15 @@ use std::path::{Path, PathBuf};
 
 use eframe::egui;
 use ew_ui::app::{App, Pick, PickReply, Platform, PrintReply, setup, spawn_pick};
-use ew_ui::ew_viewmodel::key;
-use ew_ui::ew_viewmodel::shell::print::{PrintEnd, PrintRequest, PrintVia};
-use ew_ui::ew_viewmodel::shell::{Mode, Prompt, Resources, ShellConfig, ShellModel};
-use ew_ui::ew_viewmodel::strings;
-use ew_ui::ew_viewmodel::window::{MonitorArea, WindowGeometry};
 use ew_ui::gpu::{Flags, adapter_count, wgpu_configuration};
 use ew_ui::headless::{self, HeadlessArgs, ScriptSource};
 use ew_ui::visual::Geometry;
 use ew_ui::window_memory::{Display, FirstFrameStep};
+use ew_viewmodel::key;
+use ew_viewmodel::shell::print::{PrintEnd, PrintRequest, PrintVia};
+use ew_viewmodel::shell::{Mode, Prompt, Resources, ShellConfig, ShellModel};
+use ew_viewmodel::strings;
+use ew_viewmodel::window::{MonitorArea, WindowGeometry};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -320,7 +320,7 @@ impl RfdPlatform {
                 base.set_title(strings::text(key!("prompt-open-symbol-title")))
                     .add_filter(
                         strings::text(key!("prompt-symbol-filter")),
-                        &ew_ui::ew_viewmodel::shell::symbol_editor::FILE_EXTENSIONS,
+                        &ew_viewmodel::shell::symbol_editor::FILE_EXTENSIONS,
                     ),
                 DialogKind::File,
             ),
@@ -430,7 +430,7 @@ fn run_print(request: &PrintRequest) -> Result<ew_print::Printed, Vec<(&'static 
         title: request.title.clone(),
         pdf: request.set.pdf.clone(),
         pages: request.set.pages.clone(),
-        fonts: ew_ui::ew_viewmodel::ew_api::output::font_bytes().clone(),
+        fonts: ew_viewmodel::ew_api::output::font_bytes().clone(),
         printer: None,
         monochrome: request.monochrome,
         // The Jobs pane's Cancel of the print sets it.
@@ -534,7 +534,7 @@ fn current_exe() -> Option<PathBuf> {
 fn library_tiers(
     isolated: bool,
     content: Option<&Path>,
-) -> Option<ew_ui::ew_viewmodel::ew_api::library::LibraryTiers> {
+) -> Option<ew_viewmodel::ew_api::library::LibraryTiers> {
     library_tiers_from(
         isolated,
         content,
@@ -549,8 +549,8 @@ fn library_tiers_from(
     content: Option<&Path>,
     data_dir: Option<PathBuf>,
     cache_dir: Option<PathBuf>,
-) -> Option<ew_ui::ew_viewmodel::ew_api::library::LibraryTiers> {
-    use ew_ui::ew_viewmodel::ew_api::library::LibraryTiers;
+) -> Option<ew_viewmodel::ew_api::library::LibraryTiers> {
+    use ew_viewmodel::ew_api::library::LibraryTiers;
     let system: Vec<PathBuf> = content
         .map(|c| c.join("libraries"))
         .filter(|p| p.is_dir())
@@ -582,8 +582,8 @@ fn crash_dir(config: &ShellConfig) -> Option<PathBuf> {
     config
         .state_dir
         .clone()
-        .or_else(|| ew_ui::ew_viewmodel::ew_api::StoreOptions::new(VERSION).state_dir)
-        .map(|state| state.join(ew_ui::ew_viewmodel::shell::startup::CRASH_DIR))
+        .or_else(|| ew_viewmodel::ew_api::StoreOptions::new(VERSION).state_dir)
+        .map(|state| state.join(ew_viewmodel::shell::startup::CRASH_DIR))
 }
 
 /// The eframe application: the shell frame of `ew-ui`, and whether the window has been placed on a monitor.
@@ -875,7 +875,7 @@ mod tests {
         assert_eq!(lines[0], format!("ElektraWatt {VERSION} crash log"));
         assert_eq!(lines[5], "Message: a rule run panicked");
         assert!(text.ends_with("\n\n"), "{text}");
-        assert!(!text.contains(ew_ui::ew_viewmodel::shell::startup::ENDED_LINE));
+        assert!(!text.contains(ew_viewmodel::shell::startup::ENDED_LINE));
         let mut shell = ShellModel::new(Mode::Headless, config);
         shell.start_up();
         assert_eq!(shell.startup_offer(), None);
@@ -893,7 +893,7 @@ mod tests {
         let tiers = library_tiers_from(true, None, Some(data.clone()), None).expect("tiers");
         assert_eq!(tiers.cache, data.join("cache"));
         assert_eq!(tiers.user, data.join("libraries"));
-        if let Some(user_cache) = ew_ui::ew_viewmodel::ew_api::library::default_cache_dir() {
+        if let Some(user_cache) = ew_viewmodel::ew_api::library::default_cache_dir() {
             assert!(!tiers.cache.starts_with(&user_cache), "{}", tiers.cache.display());
         }
         let cache = PathBuf::from("isolated-cache");

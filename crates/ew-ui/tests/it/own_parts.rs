@@ -8,8 +8,8 @@
 use crate::persona_round::{click, key, typed};
 use crate::support::Tmp;
 
-use ew_ui::ew_viewmodel::ew_api::library::LibraryTiers;
-use ew_ui::ew_viewmodel::shell::{Dialog, Outcome};
+use ew_viewmodel::ew_api::library::LibraryTiers;
+use ew_viewmodel::shell::{Dialog, Outcome};
 use ew_ui::visual::Driver;
 use serde_json::{Value, json};
 
@@ -46,7 +46,7 @@ pub(crate) fn fill(d: &mut Driver, name: &str, text: &str) {
 }
 
 /// The open part editor's draft.
-fn draft(d: &mut Driver) -> ew_ui::ew_viewmodel::ew_api::PartDraft {
+fn draft(d: &mut Driver) -> ew_viewmodel::ew_api::PartDraft {
     match d.shell_mut().dialog() {
         Some(Dialog::PartEdit(e)) => e.draft.clone(),
         other => panic!("the part editor is open: {other:?}"),
@@ -234,7 +234,7 @@ pub(crate) fn place_box(d: &mut Driver, number: &str, a: (i64, i64), b: (i64, i6
 
 /// The texts of the findings of the rules whose code starts with `prefix`, after Check project.
 pub(crate) fn findings(d: &mut Driver, prefix: &str) -> Vec<String> {
-    use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
+    use ew_viewmodel::navigators::{NavKind, NavRole};
     press(d, "Check project");
     let _ = d
         .shell_mut()
@@ -260,7 +260,7 @@ pub(crate) fn findings(d: &mut Driver, prefix: &str) -> Vec<String> {
 /// passes through (the Bus navigator lists it in the net), and no EW-BUS rule speaks.
 #[test]
 fn a_switch_joins_a_cpu_and_two_devices_in_one_net() {
-    use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
+    use ew_viewmodel::navigators::{NavKind, NavRole};
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     let page = json!({"folio": "2", "type": "bus_topology", "title": "Network"});
@@ -353,7 +353,7 @@ pub(crate) fn make_port_device(d: &mut Driver, number: &str, description: &str, 
 /// speaks.
 #[test]
 fn a_managed_switch_and_a_drive_made_in_the_window_are_nodes_of_one_net() {
-    use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
+    use ew_viewmodel::navigators::{NavKind, NavRole};
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     make_port_device(
@@ -481,7 +481,7 @@ fn rack_add(d: &mut Driver, station: &str, number: &str, slot: u64) {
 
 /// The texts of the PLC navigator's rows.
 pub(crate) fn plc_rows(d: &mut Driver) -> Vec<String> {
-    use ew_ui::ew_viewmodel::navigators::NavKind;
+    use ew_viewmodel::navigators::NavKind;
     let _ = d.shell_mut().dispatch("rail.show", &json!({"pane": "plc"}));
     d.settle();
     d.shell_mut()
@@ -528,7 +528,7 @@ fn a_card_made_in_the_window_is_a_card_of_the_starter_cpu() {
 /// The valve terminal with a bus node stays with the valve terminals.
 #[test]
 fn plc_parts_stand_under_plc_and_bus_in_the_device_browser() {
-    use ew_ui::ew_viewmodel::tools::{Node, Trade};
+    use ew_viewmodel::tools::{Node, Trade};
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     make_card(&mut d, "DI8-24", "");
@@ -653,7 +653,7 @@ pub(crate) fn make_head_station(d: &mut Driver, number: &str) {
 /// facts the program ships about a manufacturer's product.
 #[test]
 fn a_head_station_made_in_the_window_takes_its_cards_and_its_dp_port() {
-    use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
+    use ew_viewmodel::navigators::{NavKind, NavRole};
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     make_head_station(&mut d, "HEAD-DP");
@@ -675,7 +675,7 @@ fn a_head_station_made_in_the_window_takes_its_cards_and_its_dp_port() {
     let page = json!({"folio": "2", "type": "bus_topology", "title": "Network"});
     assert_eq!(d.shell_mut().dispatch("page.new", &page), Outcome::Done);
     d.settle();
-    let symbol = ew_ui::ew_viewmodel::ew_api::library::starter::items()
+    let symbol = ew_viewmodel::ew_api::library::starter::items()
         .iter()
         .find(|i| i.key.starts_with("ew.bus.dp-port@"))
         .expect("the DP port symbol")
@@ -840,7 +840,7 @@ fn a_starter_part_is_copied_as_a_part_of_ones_own() {
 #[test]
 fn a_part_made_in_one_project_is_offered_in_the_next() {
     use crate::wires_and_cables::{select_both, two_wires};
-    use ew_ui::ew_viewmodel::navigators::NavKind;
+    use ew_viewmodel::navigators::NavKind;
     let tmp = Tmp::new();
     let mut first = new_project(&tmp);
     make_card(&mut first, "DI8-OWN", "");

@@ -9,7 +9,7 @@
 use crate::support;
 
 use egui_kittest::kittest::Queryable;
-use ew_ui::ew_viewmodel::ew_api::output::SnapMode;
+use ew_viewmodel::ew_api::output::SnapMode;
 use serde_json::json;
 use support::{Tmp, dispatch, on_golden, settle};
 

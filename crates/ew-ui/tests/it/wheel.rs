@@ -11,7 +11,7 @@ use egui::{Modifiers, MouseWheelSource, MouseWheelUnit, TouchPhase, Vec2};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable as _};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::shell::Outcome;
+use ew_viewmodel::shell::Outcome;
 use ew_ui::visual::{Driver, Input};
 use serde_json::json;
 use support::{Scripted, Tmp, harness, settle, wait_for_page};
@@ -181,7 +181,7 @@ fn the_wheel_table_by_the_visual_driver() {
         for step in STEPS {
             let _ = d.shell_mut().dispatch("view.zoom_to", &json!({"percent": 100.0}));
             d.settle();
-            let name = ew_ui::ew_viewmodel::status::canvas_node(d.app().unwrap().shell(), 0)
+            let name = ew_viewmodel::status::canvas_node(d.app().unwrap().shell(), 0)
                 .expect("the canvas node")
                 .name;
             let at = d.find(&name).expect("the canvas");

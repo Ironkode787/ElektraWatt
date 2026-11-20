@@ -11,7 +11,7 @@
 use std::path::Path;
 use std::process::{Output, Stdio};
 
-use ew_ui::ew_viewmodel::ew_api::{CmdLog, Session};
+use ew_viewmodel::ew_api::{CmdLog, Session};
 use serde_json::{Value, json};
 
 use crate::support::Tmp;
@@ -262,7 +262,7 @@ pub(crate) fn pg10_the_pilot_script_is_deterministic_and_replays_case(twice: boo
                 .as_str()
                 .unwrap()
                 .to_owned();
-            assert!(ew_ui::ew_viewmodel::alias::is_alias(&alias), "{alias}");
+            assert!(ew_viewmodel::alias::is_alias(&alias), "{alias}");
             if lines_a[..i].iter().any(|l| l.contains(&format!("\"{alias}\""))) {
                 *params = json!({ "ids": [alias] });
                 aliased.push(id);

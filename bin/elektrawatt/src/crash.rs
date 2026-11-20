@@ -21,8 +21,8 @@ use std::sync::OnceLock;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use ew_ui::ew_viewmodel::settings::{user_only_dir, user_only_file, user_only_options};
-use ew_ui::ew_viewmodel::shell::startup::ENDED_LINE;
+use ew_viewmodel::settings::{user_only_dir, user_only_file, user_only_options};
+use ew_viewmodel::shell::startup::ENDED_LINE;
 
 /// The start of the process, read once by [`install`].
 static START: OnceLock<SystemTime> = OnceLock::new();
@@ -58,8 +58,8 @@ thread_local! {
 /// The wall clock: the process start (the log's name) and the time of a panic (L3), from the clock the lock and the
 /// journal use (`ew_store::SystemClock`); the crash log, like them, is no project data.
 fn now() -> SystemTime {
-    use ew_ui::ew_viewmodel::ew_api::Clock as _;
-    ew_ui::ew_viewmodel::ew_api::SystemClock.now()
+    use ew_viewmodel::ew_api::Clock as _;
+    ew_viewmodel::ew_api::SystemClock.now()
 }
 
 /// `t` in UTC as `yyyy-mm-ddThh:mm:ssZ` (`compact`: `yyyymmddThhmmssZ`, for a file name).
@@ -67,7 +67,7 @@ fn utc(t: SystemTime, compact: bool) -> String {
     let secs = t.duration_since(UNIX_EPOCH).map_or(0, |d| d.as_secs());
     let Some(d) = i64::try_from(secs)
         .ok()
-        .and_then(ew_ui::ew_viewmodel::ew_api::output::date_from_epoch)
+        .and_then(ew_viewmodel::ew_api::output::date_from_epoch)
     else {
         return String::from("unknown");
     };

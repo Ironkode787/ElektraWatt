@@ -14,9 +14,9 @@ use egui::{Key, Modifiers, PointerButton, Pos2};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::ew_api::output::Uuid;
-use ew_ui::ew_viewmodel::navigators::NavKind;
-use ew_ui::ew_viewmodel::shell::Dialog;
+use ew_viewmodel::ew_api::output::Uuid;
+use ew_viewmodel::navigators::NavKind;
+use ew_viewmodel::shell::Dialog;
 use serde_json::json;
 use support::{Tmp, dispatch, screen, settle, wait_for_page};
 

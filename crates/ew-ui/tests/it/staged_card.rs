@@ -11,8 +11,8 @@ use crate::support;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::layout::PaneKind;
-use ew_ui::ew_viewmodel::status::waiting_text;
+use ew_viewmodel::layout::PaneKind;
+use ew_viewmodel::status::waiting_text;
 use serde_json::json;
 use support::{Tmp, dispatch, on_golden, settle};
 

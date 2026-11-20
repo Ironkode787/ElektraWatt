@@ -66,7 +66,7 @@ fn last_change(journal: &Path) -> String {
         .filter_map(|v| v["t"].as_u64())
         .max()
         .unwrap();
-    let d = ew_ui::ew_viewmodel::ew_api::output::date_from_epoch(i64::try_from(ms / 1000).unwrap()).unwrap();
+    let d = ew_viewmodel::ew_api::output::date_from_epoch(i64::try_from(ms / 1000).unwrap()).unwrap();
     format!(
         "{:04}-{:02}-{:02} {:02}:{:02}",
         d.year, d.month, d.day, d.hour, d.minute

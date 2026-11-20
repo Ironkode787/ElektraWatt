@@ -12,7 +12,7 @@ use egui::Key;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::shell::{Dialog, Focus};
+use ew_viewmodel::shell::{Dialog, Focus};
 use serde_json::json;
 use support::{Scripted, Tmp, dispatch, harness, settle};
 
@@ -241,7 +241,7 @@ fn home_and_end_scroll_the_cursor_row_into_view() {
     settle(&mut h);
     dispatch(&mut h, "props.focus", json!({}));
     settle(&mut h);
-    let pane_name = ew_ui::ew_viewmodel::strings::text(ew_ui::ew_viewmodel::key!("pane-properties"));
+    let pane_name = ew_viewmodel::strings::text(ew_viewmodel::key!("pane-properties"));
     let pane = h
         .get_all_by_role(egui::Role::Group)
         .find(|n| n.accesskit_node().label().as_deref() == Some(pane_name))
@@ -251,8 +251,8 @@ fn home_and_end_scroll_the_cursor_row_into_view() {
         let shell = h.state().shell();
         let key = shell.properties_row().expect("a cursor row");
         let sheet = shell.properties().sheet().unwrap();
-        let (section, row) = ew_ui::ew_viewmodel::properties::find_row(sheet, &key).unwrap();
-        let name = ew_ui::ew_viewmodel::properties::row_label(section, row);
+        let (section, row) = ew_viewmodel::properties::find_row(sheet, &key).unwrap();
+        let name = ew_viewmodel::properties::row_label(section, row);
         h.get_all_by_role(egui::Role::Group)
             .find(|n| n.accesskit_node().label().as_deref() == Some(name.as_str()))
             .map(|n| n.rect())

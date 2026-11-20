@@ -12,7 +12,7 @@ use egui::Key;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::{App, Pick};
-use ew_ui::ew_viewmodel::shell::Dialog;
+use ew_viewmodel::shell::Dialog;
 use support::{Scripted, Tmp, harness, settle};
 
 /// The text field labelled `name`.

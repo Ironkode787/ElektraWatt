@@ -7,8 +7,8 @@
 //! a transparent background. The test renders the SVG and compares the PNG's bytes; `EW_BLESS=1` writes the PNG.
 //! The same SVG, the menu button's mark, is the Windows icon `elektrawatt.ico` at six sizes (FT-1710).
 
-use ew_render_cpu::ew_dl::ew_units::{Nm, Pt2, Rect};
-use ew_render_cpu::ew_dl::{Color, DisplayList, FontKey};
+use ew_units::{Nm, Pt2, Rect};
+use ew_dl::{Color, DisplayList, FontKey};
 use ew_render_cpu::{FontBytes, RenderOptions, SheetSize};
 
 const SVG: &str = concat!(

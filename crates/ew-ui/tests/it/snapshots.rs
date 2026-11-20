@@ -37,7 +37,7 @@ use egui::Vec2;
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
 use ew_ui::app::{App, setup};
-use ew_ui::ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::json;
 use support::{Scripted, Tmp};
 
@@ -334,7 +334,7 @@ fn the_command_bar_on_every_tab() {
     {
         let (theme, density) = ("light", "comfortable");
         let (mut h, recorder, tmp) = main_window(theme, density);
-        for tab in ew_ui::ew_viewmodel::command_bar::Tab::ALL.map(|t| t.word()) {
+        for tab in ew_viewmodel::command_bar::Tab::ALL.map(|t| t.word()) {
             assert_eq!(
                 h.state_mut()
                     .shell_mut()
@@ -536,7 +536,7 @@ fn messages_and_history(k: usize, of: usize) {
             }
             for _ in 0..3 {
                 let state: serde_json::Value =
-                    serde_json::from_str(&ew_ui::ew_viewmodel::script::state_json(shell)).unwrap();
+                    serde_json::from_str(&ew_viewmodel::script::state_json(shell)).unwrap();
                 if state["canvas"]["ghost"]["direction"] == "target" {
                     break;
                 }
@@ -559,7 +559,7 @@ fn messages_and_history(k: usize, of: usize) {
                 shell.dismiss_toast(serial);
             }
             let pending = shell
-                .shown_rows(ew_ui::ew_viewmodel::navigators::NavKind::Messages)
+                .shown_rows(ew_viewmodel::navigators::NavKind::Messages)
                 .into_iter()
                 .find(|r| r.finding.is_some_and(|f| f.pending))
                 .expect("the pending row");
@@ -698,10 +698,10 @@ fn the_data_grid(k: usize, of: usize) {
             // The derived Potential column right after Terminal.
             let order: Vec<String> = {
                 let nav = shell
-                    .nav(ew_ui::ew_viewmodel::navigators::NavKind::Strips)
+                    .nav(ew_viewmodel::navigators::NavKind::Strips)
                     .unwrap();
                 let table = nav.table().unwrap();
-                let movable: Vec<&ew_ui::ew_viewmodel::ew_api::output::NavColumn> = nav
+                let movable: Vec<&ew_viewmodel::ew_api::output::NavColumn> = nav
                     .table_mode()
                     .unwrap()
                     .shown_columns(table)
@@ -751,7 +751,7 @@ fn the_data_grid(k: usize, of: usize) {
             let shell = h.state_mut().shell_mut();
             assert_eq!(
                 shell
-                    .nav(ew_ui::ew_viewmodel::navigators::NavKind::Strips)
+                    .nav(ew_viewmodel::navigators::NavKind::Strips)
                     .unwrap()
                     .marked()
                     .len(),
@@ -981,7 +981,7 @@ fn pin_journal_times(dir: &std::path::Path, t: u64) {
 /// re-opened).
 #[test]
 fn cp6_the_fixture_dialogs_in_light() {
-    use ew_ui::ew_viewmodel::shell::Dialog;
+    use ew_viewmodel::shell::Dialog;
     let dev = device();
     let mut failures = Vec::new();
     {
@@ -1050,7 +1050,7 @@ fn cp6_the_fixture_dialogs_in_light() {
             let mut shell = ShellModel::new(Mode::Gui, tmp.config());
             let logo = |svg: &str| {
                 json!({"cmd": "project.company.set",
-                    "params": {"logo": ew_ui::ew_viewmodel::ew_api::base64_encode(svg.as_bytes())}})
+                    "params": {"logo": ew_viewmodel::ew_api::base64_encode(svg.as_bytes())}})
             };
             for (action, params) in [
                 ("file.open", json!({ "dir": dir.to_string_lossy() })),
@@ -1143,7 +1143,7 @@ fn cp9_the_quick_fix_card_and_the_table_card_in_light() {
             assert_eq!(shell.dispatch(action, &params), Outcome::Done, "{action}");
         }
         let key = shell
-            .nav(ew_ui::ew_viewmodel::navigators::NavKind::Messages)
+            .nav(ew_viewmodel::navigators::NavKind::Messages)
             .and_then(|n| n.table())
             .and_then(|t| {
                 t.nodes
@@ -1177,7 +1177,7 @@ fn cp9_the_quick_fix_card_and_the_table_card_in_light() {
         let cursor = h
             .state()
             .shell()
-            .nav_cursor(ew_ui::ew_viewmodel::navigators::NavKind::Messages);
+            .nav_cursor(ew_viewmodel::navigators::NavKind::Messages);
         assert!(
             cursor.as_deref().is_some_and(|k| k.ends_with("severity:error")),
             "the Messages cursor is on the Errors group: {cursor:?}"
@@ -1320,13 +1320,13 @@ fn the_chip_line_in_light() {
         // -201U3 is under -201U1: revealed by its row, then marked (the navigator's selection makes the chips).
         let shell = h.state_mut().shell_mut();
         let key = shell
-            .nav(ew_ui::ew_viewmodel::navigators::NavKind::Devices)
+            .nav(ew_viewmodel::navigators::NavKind::Devices)
             .and_then(|n| n.table())
             .and_then(|t| {
                 t.nodes
                     .iter()
                     .find(|n| {
-                        n.role == ew_ui::ew_viewmodel::navigators::NavRole::Device && n.label == "-201U3"
+                        n.role == ew_viewmodel::navigators::NavRole::Device && n.label == "-201U3"
                     })
                     .map(|n| n.key.clone())
             })
@@ -1644,7 +1644,7 @@ fn ft625_the_place_ghost_wires_and_hud_hint(
             "cursor.set",
             json!({"x_mm": s.0 as f64 / 1e6, "y_mm": s.1 as f64 / 1e6}),
         );
-        let hud = ew_ui::ew_viewmodel::command_bar::hud(h.state().shell());
+        let hud = ew_viewmodel::command_bar::hud(h.state().shell());
         assert!(hud.prompt.contains("places without"), "{}", hud.prompt);
         support::wait_for_page(&mut h);
         dismiss_toasts(&mut h);
@@ -1755,7 +1755,7 @@ fn ft625_the_wire_marker_row(dev: &ew_render2d::gpu::HeadlessDevice, failures: &
 /// deleted), its Name cell in the editor with a typed name; cropped to the grid, light
 /// Comfortable.
 fn ft625_the_potential_name_cell(dev: &ew_render2d::gpu::HeadlessDevice, failures: &mut Vec<String>) {
-    use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
+    use ew_viewmodel::navigators::{NavKind, NavRole};
     {
         let theme = "light";
         let (mut h, recorder, tmp) = main_window(theme, "comfortable");
@@ -1854,7 +1854,7 @@ fn the_conflict_overlay_in_light() {
     run(&mut shell, "navigator.show", json!({"kind": "potentials"}));
     let bond = {
         let t = shell
-            .nav(ew_ui::ew_viewmodel::navigators::NavKind::Potentials)
+            .nav(ew_viewmodel::navigators::NavKind::Potentials)
             .and_then(|n| n.table())
             .expect("the Potentials table");
         let rows: Vec<_> = t.nodes.iter().filter(|n| n.kinds == ["bond"]).collect();

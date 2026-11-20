@@ -18,11 +18,11 @@ use ew_render_cpu::{FontBytes, FontResolver, RenderOptions, SheetSize, pixel_siz
 use ew_render2d::pool::Scene;
 use ew_render2d::tiles::{TILE_SIZE, TileKey};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::canvas::{rect_centre, zoom_in_step};
+use ew_viewmodel::canvas::{rect_centre, zoom_in_step};
 use ew_dl::FontKey;
 use ew_units::Nm;
-use ew_ui::ew_viewmodel::ew_api::output::font_bytes;
-use ew_ui::ew_viewmodel::shell::Outcome;
+use ew_viewmodel::ew_api::output::font_bytes;
+use ew_viewmodel::shell::Outcome;
 use serde_json::json;
 use support::{Scripted, Tmp, harness, settle, wait_for_page};
 
@@ -158,7 +158,7 @@ fn a10_a_line_unit_wheel_event_zooms_about_the_pointer() {
     }
     assert_eq!(
         zoom(&h),
-        ew_ui::ew_viewmodel::canvas::zoom_out_step(zoom_in_step(fit)),
+        ew_viewmodel::canvas::zoom_out_step(zoom_in_step(fit)),
         "the two halves are one ladder step out"
     );
     h.state_mut().shell_mut().shutdown();

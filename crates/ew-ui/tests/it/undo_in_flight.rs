@@ -102,7 +102,7 @@ fn ctrl_z_puts_away_a_wire_begun_and_takes_back_a_finished_one() {
 /// armed between two placements, takes both back.
 #[test]
 fn a_placement_and_the_line_it_connected_go_back_as_one_step() {
-    use ew_ui::ew_viewmodel::tools::Ghost;
+    use ew_viewmodel::tools::Ghost;
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "203");
     let (free, step) = {

@@ -18,13 +18,13 @@ use ew_render_cpu::{
     render_region,
 };
 use ew_render2d::gpu::{GpuView, HeadlessDevice, MeshCache, prepare};
-use ew_ui::ew_viewmodel::canvas::CanvasPage;
+use ew_viewmodel::canvas::CanvasPage;
 use ew_units::{Nm, Pt2, Rect};
 use ew_dl::{
     Brush, Color, DisplayList, FontKey, Item, ItemKind, Path, Transform,
 };
-use ew_ui::ew_viewmodel::ew_api::output::font_bytes;
-use ew_ui::ew_viewmodel::shell::{Mode, Outcome, ShellModel};
+use ew_viewmodel::ew_api::output::font_bytes;
+use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::json;
 use support::Tmp;
 
@@ -739,7 +739,7 @@ fn a_title_block_page_with_a_png_logo_is_drawn_by_the_gpu_path() {
     assert_eq!(red_pixels(&plain_gpu), 0, "the golden page has no red");
     // The page's own GPU/CPU difference at 96 dpi (text and widened hairlines), which the logo adds to.
     let plain_mean = mean_difference(&plain_gpu, &tiles(&plain.list, plain.sheet, 96).0);
-    let logo = ew_ui::ew_viewmodel::ew_api::base64_encode(&red_png(64, 32));
+    let logo = ew_viewmodel::ew_api::base64_encode(&red_png(64, 32));
     assert_eq!(
         shell.dispatch(
             "command.run",
@@ -775,7 +775,7 @@ fn a_title_block_page_with_a_png_logo_is_drawn_by_the_gpu_path() {
 #[test]
 fn a_frame_beyond_the_limits_is_drawn_on_the_cpu_and_the_next_on_the_gpu() {
     use ew_render2d::gpu::GpuError;
-    use ew_ui::ew_viewmodel::{key, strings};
+    use ew_viewmodel::{key, strings};
     let devices = devices();
     let tmp = Tmp::new();
     let fonts: ew_render2d::pool::SharedFonts = Arc::new(fonts().clone());

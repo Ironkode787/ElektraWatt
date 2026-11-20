@@ -14,9 +14,9 @@ use crate::support;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::{App, Pick};
-use ew_ui::ew_viewmodel::navigators::NavKind;
-use ew_ui::ew_viewmodel::shell::{Mode, ShellModel};
-use ew_ui::ew_viewmodel::{key, strings};
+use ew_viewmodel::navigators::NavKind;
+use ew_viewmodel::shell::{Mode, ShellModel};
+use ew_viewmodel::{key, strings};
 use serde_json::{Value, json};
 use support::{Scripted, Tmp, dispatch, harness, harness_with, settle, wait_for_page};
 

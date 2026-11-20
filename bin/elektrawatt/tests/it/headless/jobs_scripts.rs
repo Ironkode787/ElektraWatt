@@ -10,7 +10,7 @@
 use std::path::Path;
 use std::process::{Output, Stdio};
 
-use ew_ui::ew_viewmodel::ew_api::{CmdLog, Session};
+use ew_viewmodel::ew_api::{CmdLog, Session};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 

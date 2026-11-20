@@ -10,9 +10,9 @@ use crate::support;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::actions::ACTIONS;
-use ew_ui::ew_viewmodel::shell::{Outcome, ShellModel};
-use ew_ui::ew_viewmodel::{key, strings};
+use ew_viewmodel::actions::ACTIONS;
+use ew_viewmodel::shell::{Outcome, ShellModel};
+use ew_viewmodel::{key, strings};
 use serde_json::json;
 use support::{Scripted, Tmp, bar_button, dispatch, harness, settle};
 
@@ -31,7 +31,7 @@ fn new_project(tmp: &Tmp) -> Harness<'static, App> {
 
 /// The status bar's state field, at its left end.
 fn status_line(shell: &ShellModel) -> String {
-    ew_ui::ew_viewmodel::status::bar(shell, false)[0].text.clone()
+    ew_viewmodel::status::bar(shell, false)[0].text.clone()
 }
 
 /// The texts of the toasts on screen.

@@ -13,11 +13,11 @@ use std::path::Path;
 use std::process::{Output, Stdio};
 
 use crate::support::{self, Tmp, bin_exe};
-use ew_ui::ew_viewmodel::canvas::{HOVER_SLOP_PT, pick, rect_centre};
-use ew_ui::ew_viewmodel::ew_api::Session;
-use ew_ui::ew_viewmodel::ew_api::output::ew_dl::ew_units::Rect;
-use ew_ui::ew_viewmodel::ew_api::output::{ExportOptions, PageSelection};
-use ew_ui::ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
+use ew_viewmodel::canvas::{HOVER_SLOP_PT, pick, rect_centre};
+use ew_viewmodel::ew_api::Session;
+use ew_units::Rect;
+use ew_viewmodel::ew_api::output::{ExportOptions, PageSelection};
+use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::{Value, json};
 
 const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/expected");
@@ -318,13 +318,13 @@ fn a8_the_pointer_at_an_entity_hovers_it_in_the_transcript_and_the_describe_text
         .to_owned();
     // The entity as its alias `@n`, never its UUID; the describe line names it with its box, which
     // identifies the entity of the page.
-    assert!(ew_ui::ew_viewmodel::alias::is_alias(&hover), "{hover}");
+    assert!(ew_viewmodel::alias::is_alias(&hover), "{hover}");
     let describe = steps[7]["describe"].as_str().unwrap();
     let line = describe
         .lines()
         .find(|l| l.starts_with(&format!("canvas hover {hover} box ")))
         .unwrap_or_else(|| panic!("{describe}"));
-    let mm3 = ew_ui::ew_viewmodel::canvas::mm3;
+    let mm3 = ew_viewmodel::canvas::mm3;
     let hovered = entities
         .iter()
         .find(|(_, r)| {

@@ -12,15 +12,15 @@ use crate::support;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
-use ew_ui::ew_viewmodel::ew_api::output::{PageTables, RowValue, TableEnd, TableJunction};
-use ew_ui::ew_viewmodel::ew_api::{
+use ew_viewmodel::ew_api::output::{PageTables, RowValue, TableEnd, TableJunction};
+use ew_viewmodel::ew_api::{
     AnyCommand, BomMode, CmdLog, EntropyError, Export, IdSource, Recovery, Session, SessionOptions,
     StoreOptions, UnixTime,
 };
-use ew_ui::ew_viewmodel::script::{self, NoExtension};
-use ew_ui::ew_viewmodel::shell::{IdSourceFactory, Mode, Resources, ShellConfig, ShellModel};
-use ew_ui::ew_viewmodel::tools::ToolCx;
-use ew_ui::ew_viewmodel::tools::wire::{WireTarget, resolve_target};
+use ew_viewmodel::script::{self, NoExtension};
+use ew_viewmodel::shell::{IdSourceFactory, Mode, Resources, ShellConfig, ShellModel};
+use ew_viewmodel::tools::ToolCx;
+use ew_viewmodel::tools::wire::{WireTarget, resolve_target};
 use serde_json::json;
 
 use support::{
@@ -244,7 +244,7 @@ fn assert_unique_split_target(shell: &ShellModel, point: (i64, i64), far: &[Stri
         pane: canvas.pane(),
         snapper: &page.snapper,
         selection: shell.selection(),
-        layout: ew_ui::ew_viewmodel::tools::LayoutOptions::default(),
+        layout: ew_viewmodel::tools::LayoutOptions::default(),
         connect_on_move: true,
     };
     let target = resolve_target(&cx, page.snapper.page_to_sheet(point), false);

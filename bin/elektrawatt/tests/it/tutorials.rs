@@ -17,8 +17,8 @@ use crate::support;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 
-use ew_ui::ew_viewmodel::actions::{ACTIONS, MenuEntry, menu_model};
-use ew_ui::ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
+use ew_viewmodel::actions::{ACTIONS, MenuEntry, menu_model};
+use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::{Value, json};
 use support::{CONTENT, Tmp, USER_DIRS};
 
@@ -151,7 +151,7 @@ struct Item {
 }
 
 fn walk(entry: &MenuEntry, path: &mut Vec<String>, out: &mut Vec<Item>) {
-    let mut item = |i: &ew_ui::ew_viewmodel::actions::ActionItem, path: &[String]| {
+    let mut item = |i: &ew_viewmodel::actions::ActionItem, path: &[String]| {
         let keys = ACTIONS
             .iter()
             .find(|a| a.id == i.id)

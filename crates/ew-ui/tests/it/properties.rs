@@ -12,8 +12,8 @@ use egui::{Key, Modifiers};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::properties::{Provenance, RowValue, find_row};
-use ew_ui::ew_viewmodel::shell::{Focus, Outcome};
+use ew_viewmodel::properties::{Provenance, RowValue, find_row};
+use ew_viewmodel::shell::{Focus, Outcome};
 use serde_json::json;
 use support::{Tmp, dispatch, settle};
 
@@ -624,7 +624,7 @@ fn j32_property_rows_are_left_aligned_with_one_word_chips() {
 /// its title, through the existing `messages.show` and `navigator.filter`.
 #[test]
 fn a_finding_chip_opens_messages_filtered_to_the_record() {
-    use ew_ui::ew_viewmodel::navigators::NavKind;
+    use ew_viewmodel::navigators::NavKind;
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "101");
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
@@ -783,11 +783,11 @@ fn header_severity_chips_and_the_actions_menu_on_the_dots_button() {
         .flat_map(|s| s.rows.iter().map(move |r| (s, r)))
         .find(|(s, r)| {
             !r.actions.is_empty()
-                && ew_ui::ew_viewmodel::properties::is_primary(&s.kind, r)
-                && !ew_ui::ew_viewmodel::properties::is_header(s, r)
+                && ew_viewmodel::properties::is_primary(&s.kind, r)
+                && !ew_viewmodel::properties::is_header(s, r)
         })
         .expect("a Main row with actions");
-    let label = ew_ui::ew_viewmodel::properties::row_label(section, prow);
+    let label = ew_viewmodel::properties::row_label(section, prow);
     dispatch(&mut h, "ui.focus", json!({"area": "properties"}));
     dispatch(&mut h, "props.row", json!({ "to": prow.key }));
     dispatch(&mut h, "props.row_menu", json!({}));
@@ -808,7 +808,7 @@ fn header_severity_chips_and_the_actions_menu_on_the_dots_button() {
         .shell()
         .row_menu(&prow.key)
         .into_iter()
-        .map(ew_ui::ew_viewmodel::properties::menu_label)
+        .map(ew_viewmodel::properties::menu_label)
         .collect();
     assert_eq!(words.last().copied(), Some("Make variable"), "{words:?}");
     assert_eq!(
@@ -857,7 +857,7 @@ fn header_severity_chips_and_the_actions_menu_on_the_dots_button() {
     assert!(
         matches!(
             h.state().shell().properties().popup(),
-            Some(ew_ui::ew_viewmodel::properties::Popup::Actions { row, .. }) if *row == prow.key
+            Some(ew_viewmodel::properties::Popup::Actions { row, .. }) if *row == prow.key
         ),
         "a right-click opens the row's actions menu"
     );
@@ -883,7 +883,7 @@ fn header_severity_chips_and_the_actions_menu_on_the_dots_button() {
         h.state().shell().properties().popup().is_none(),
         "a choice closes the menu"
     );
-    if prow.actions[0] == ew_ui::ew_viewmodel::properties::RowAction::Edit {
+    if prow.actions[0] == ew_viewmodel::properties::RowAction::Edit {
         assert!(
             h.state().shell().properties().edit().is_some(),
             "Edit opens the editor"
@@ -896,7 +896,7 @@ fn header_severity_chips_and_the_actions_menu_on_the_dots_button() {
 /// filter.
 #[test]
 fn the_properties_filter_for_more_than_twelve_rows() {
-    use ew_ui::ew_viewmodel::properties::{FILTER_ROWS, visible_rows};
+    use ew_viewmodel::properties::{FILTER_ROWS, visible_rows};
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "101");
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
@@ -937,7 +937,7 @@ fn the_properties_filter_for_more_than_twelve_rows() {
             shell.properties_filter(),
         )
         .iter()
-        .map(|r| ew_ui::ew_viewmodel::properties::row_label(r.section, r.row))
+        .map(|r| ew_viewmodel::properties::row_label(r.section, r.row))
         .collect();
         keys
     };
@@ -1222,7 +1222,7 @@ fn a_prose_value_wraps_and_is_never_cut() {
                     .sections
                     .iter()
                     .flat_map(|s| s.rows.iter().map(move |r| (s, r)))
-                    .find(|(s, r)| ew_ui::ew_viewmodel::properties::row_label(s, r) == label)
+                    .find(|(s, r)| ew_viewmodel::properties::row_label(s, r) == label)
                     .map(|(_, r)| r)
                     .expect(label);
                 match &r.value {
@@ -1452,7 +1452,7 @@ fn type_and_enter(h: &mut Harness<'_, App>, text: &str) {
 /// never written into the row before.
 #[test]
 fn enter_ends_each_edit_and_the_next_row_takes_what_is_typed() {
-    use ew_ui::ew_viewmodel::shell::{Mode, ShellModel};
+    use ew_viewmodel::shell::{Mode, ShellModel};
     let tmp = Tmp::new();
     let shell = ShellModel::new(Mode::Gui, tmp.config_with_resources());
     let mut h = support::harness_with(shell, support::Scripted::default(), None);

@@ -241,20 +241,20 @@ fn the_smoke_script_runs_on_golden_a() {
     assert_eq!(digest, expected.trim());
 
     // The saved page survives the reopen: the project on disk has it.
-    let (session, _) = ew_ui::ew_viewmodel::ew_api::Session::open_read_only(&project, "test").unwrap();
+    let (session, _) = ew_viewmodel::ew_api::Session::open_read_only(&project, "test").unwrap();
     let labels = session.page_labels();
     assert!(labels.iter().any(|l| l == "999"));
 
     // --record: a command log that CmdLog reads back to the committed command, and that replays to the same pages.
     let log_text = std::fs::read_to_string(&record).unwrap();
     assert!(log_text.starts_with("{\"$schema\":\"ew.cmdlog/1\",\"label\":\"recorded by elektrawatt "));
-    let log = ew_ui::ew_viewmodel::ew_api::CmdLog::parse(&log_text).unwrap();
+    let log = ew_viewmodel::ew_api::CmdLog::parse(&log_text).unwrap();
     let commands: Vec<_> = log.commands().collect();
     assert_eq!(commands.len(), 1);
     assert_eq!(commands[0].name, "page.create");
     assert_eq!(commands[0].params, json!({"number": 999, "title": "Smoke"}));
     let fresh = tmp.golden("fresh");
-    let (mut again, _) = ew_ui::ew_viewmodel::ew_api::Session::open_read_only(&fresh, "test").unwrap();
+    let (mut again, _) = ew_viewmodel::ew_api::Session::open_read_only(&fresh, "test").unwrap();
     again.run_script(&log, "recorded.ewcmd").unwrap();
     assert_eq!(again.page_labels(), labels);
 }

@@ -19,9 +19,9 @@ use egui::{Modifiers, MouseWheelSource, MouseWheelUnit, TouchPhase, Vec2};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::settings::Settings;
-use ew_ui::ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellModel};
-use ew_ui::ew_viewmodel::{key, strings};
+use ew_viewmodel::settings::Settings;
+use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellModel};
+use ew_viewmodel::{key, strings};
 use serde_json::json;
 use support::{Scripted, Tmp, dispatch, harness, harness_with, settle, wait_for_page};
 
@@ -269,7 +269,7 @@ fn a_footer_below_the_window_is_reported() {
     h.set_size(Vec2::new(WINDOW.x * 3.0, 60.0));
     settle(&mut h);
     let problems = support::footer_problems(&h);
-    let spec = ew_ui::ew_viewmodel::dialogs::spec(h.state().shell().dialog().unwrap(), h.state().shell());
+    let spec = ew_viewmodel::dialogs::spec(h.state().shell().dialog().unwrap(), h.state().shell());
     for button in spec.buttons() {
         let quoted = format!("{:?}", button.label);
         assert!(

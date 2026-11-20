@@ -11,9 +11,9 @@ use crate::support;
 use egui::{Key, Modifiers};
 use egui_kittest::Harness;
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::key;
-use ew_ui::ew_viewmodel::shell::Outcome;
-use ew_ui::ew_viewmodel::strings;
+use ew_viewmodel::key;
+use ew_viewmodel::shell::Outcome;
+use ew_viewmodel::strings;
 use serde_json::json;
 use support::{Scripted, Tmp, dispatch, harness, settle, wait_for_page};
 

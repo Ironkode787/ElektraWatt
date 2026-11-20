@@ -19,13 +19,13 @@ fn press(h: &mut Harness<'_, App>, key: Key) {
     settle(h);
 }
 
-fn ghost(h: &Harness<'_, App>) -> Option<ew_ui::ew_viewmodel::tools::Ghost> {
+fn ghost(h: &Harness<'_, App>) -> Option<ew_viewmodel::tools::Ghost> {
     h.state().shell().tool_ghost()
 }
 
 fn direction(h: &Harness<'_, App>) -> &'static str {
     match ghost(h) {
-        Some(ew_ui::ew_viewmodel::tools::Ghost::Ip { direction, .. }) => direction,
+        Some(ew_viewmodel::tools::Ghost::Ip { direction, .. }) => direction,
         other => panic!("not the IP tool's ghost: {other:?}"),
     }
 }
@@ -75,7 +75,7 @@ fn p_d_and_b_stay_with_the_ip_name_field_while_it_has_the_focus() {
 /// The name the IP tool's ghost carries.
 fn ghost_name(h: &Harness<'_, App>) -> String {
     match ghost(h) {
-        Some(ew_ui::ew_viewmodel::tools::Ghost::Ip { name, .. }) => name,
+        Some(ew_viewmodel::tools::Ghost::Ip { name, .. }) => name,
         other => panic!("not the IP tool's ghost: {other:?}"),
     }
 }
@@ -110,7 +110,7 @@ fn tab_ends_the_ip_name_and_gives_the_keys_back_to_the_tool() {
 fn the_ip_name_tooltip_names_the_keys_that_end_it() {
     const TIP: &str = "Enter or Tab ends the name and gives the keys back to the tool";
     assert_eq!(
-        ew_ui::ew_viewmodel::strings::text(ew_ui::ew_viewmodel::key!("action-ip-name-hint")),
+        ew_viewmodel::strings::text(ew_viewmodel::key!("action-ip-name-hint")),
         TIP
     );
     let tmp = Tmp::new();
@@ -359,7 +359,7 @@ fn a_typed_name_erased_from_the_field_is_cancelled() {
     press(&mut h, Key::Backspace);
     assert_eq!(name_field_text(&h).unwrap_or_default(), "");
     match ghost(&h) {
-        Some(ew_ui::ew_viewmodel::tools::Ghost::Ip { name, .. }) => assert_eq!(name, "IP"),
+        Some(ew_viewmodel::tools::Ghost::Ip { name, .. }) => assert_eq!(name, "IP"),
         other => panic!("not the IP tool's ghost: {other:?}"),
     }
     assert_eq!(click_canvas_centre(&mut h), vec!["IP".to_owned()]);
@@ -685,7 +685,7 @@ fn a_tool_chosen_while_a_navigator_has_the_focus_takes_the_keys() {
     assert!(
         matches!(
             h.state().shell().focus(),
-            Some(ew_ui::ew_viewmodel::shell::Focus::Canvas(_))
+            Some(ew_viewmodel::shell::Focus::Canvas(_))
         ),
         "{:?}",
         h.state().shell().focus()

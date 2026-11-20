@@ -10,7 +10,7 @@ use crate::support;
 use egui::{Key, Modifiers};
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::Pick;
-use ew_ui::ew_viewmodel::shell::{Dialog, Outcome, Prompt};
+use ew_viewmodel::shell::{Dialog, Outcome, Prompt};
 use serde_json::json;
 use support::{Scripted, Tmp, harness, settle, wait_for_page};
 
@@ -131,10 +131,10 @@ fn a_click_in_the_page_list_marks_and_enter_goes_to_that_page() {
     let row = shell
         .navigator_rows()
         .into_iter()
-        .find(|r| matches!(r.kind, ew_ui::ew_viewmodel::navigator::RowKind::Page(3)))
+        .find(|r| matches!(r.kind, ew_viewmodel::navigator::RowKind::Page(3)))
         .unwrap();
     let name =
-        ew_ui::ew_viewmodel::navigator::PageNavigator::accessible_name(&row, &rows, shell.current_page());
+        ew_viewmodel::navigator::PageNavigator::accessible_name(&row, &rows, shell.current_page());
     // A click marks the row and moves the cursor; (doc 16a §6.6) it also opens
     // the page.
     h.get_by_label(&name).click();

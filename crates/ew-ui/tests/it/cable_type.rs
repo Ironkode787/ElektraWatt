@@ -6,7 +6,7 @@
 use crate::support::Tmp;
 use crate::wires_and_cables::{click, key, new_project, select_both, two_named_wires, two_wires};
 
-use ew_ui::ew_viewmodel::shell::{Dialog, Outcome};
+use ew_viewmodel::shell::{Dialog, Outcome};
 use ew_ui::visual::{Driver, Input};
 
 /// Clicks the field named `label`, selects its text and types `text`.
@@ -31,7 +31,7 @@ fn shown(d: &mut Driver) {
 fn title(d: &mut Driver) -> String {
     match d.shell_mut().dialog() {
         Some(Dialog::PartEdit(e)) => e.title(),
-        Some(Dialog::Form(f)) => ew_ui::ew_viewmodel::strings::text(f.title_key).to_owned(),
+        Some(Dialog::Form(f)) => ew_viewmodel::strings::text(f.title_key).to_owned(),
         other => panic!("no form: {other:?}"),
     }
 }
@@ -162,7 +162,7 @@ fn a_new_part_of_kind_cable_has_the_cable_section() {
 /// wire).
 #[test]
 fn a_cable_without_a_part_offers_its_cable_types_the_misfits_greyed() {
-    use ew_ui::ew_viewmodel::navigators::NavKind;
+    use ew_viewmodel::navigators::NavKind;
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     let pixel = two_named_wires(&mut d, ["L1", "PE"]);

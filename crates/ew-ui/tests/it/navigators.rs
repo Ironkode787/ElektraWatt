@@ -13,9 +13,9 @@ use egui::{Modifiers, PointerButton, Pos2};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::navigator::RowKind;
-use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
-use ew_ui::ew_viewmodel::shell::Focus;
+use ew_viewmodel::navigator::RowKind;
+use ew_viewmodel::navigators::{NavKind, NavRole};
+use ew_viewmodel::shell::Focus;
 use serde_json::json;
 use support::{Scripted, Tmp, dispatch, harness, settle, wait_for_page};
 
@@ -223,7 +223,7 @@ fn an_unplaced_function_is_dragged_onto_the_canvas() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let def = {
-        let s = ew_ui::ew_viewmodel::ew_api::Session::open_read_only(&dir, "test")
+        let s = ew_viewmodel::ew_api::Session::open_read_only(&dir, "test")
             .expect("the copy opens")
             .0;
         let q = s.query();

@@ -9,7 +9,7 @@
 use std::path::Path;
 use std::process::{Output, Stdio};
 
-use ew_ui::ew_viewmodel::ew_api::{CmdLog, Session};
+use ew_viewmodel::ew_api::{CmdLog, Session};
 use serde_json::{Value, json};
 
 use crate::support::{GOLDEN_A, Tmp, copy_dir};

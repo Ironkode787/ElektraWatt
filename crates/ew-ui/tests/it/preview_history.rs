@@ -11,7 +11,7 @@ use crate::support;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::shell::Dialog;
+use ew_viewmodel::shell::Dialog;
 use serde_json::json;
 use support::{Scripted, Tmp, dispatch, harness, settle};
 

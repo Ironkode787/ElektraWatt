@@ -165,9 +165,9 @@ fn the_glossary_has_a_keyboard_row_cursor() {
 /// colour; then the stroke in its colour.
 #[test]
 fn a_cased_strokes_casing_is_painted_first_one_pixel_wider_on_each_side() {
-    use ew_ui::ew_viewmodel::wire_colours::{CASING_RGB, STROKE_PT, WireStroke};
+    use ew_viewmodel::wire_colours::{CASING_RGB, STROKE_PT, WireStroke};
     let white = WireStroke::new(
-        ew_ui::ew_viewmodel::ew_api::output::Uuid::nil(),
+        ew_viewmodel::ew_api::output::Uuid::nil(),
         vec![(10_000_000, 10_000_000), (20_000_000, 10_000_000)],
         (420_000_000, 297_000_000),
         &["WH".to_owned()],
@@ -243,8 +243,8 @@ fn f8_the_dutch_term_keeps_its_longest_word_whole() {
 /// A WH and a GNYE wire on one path are drawn side by side, both colours on show; each code on its own.
 #[test]
 fn f9_two_wires_on_one_path_are_drawn_side_by_side() {
-    use ew_ui::ew_viewmodel::wire_colours::{LANE_PT, WireStroke, assign_lanes};
-    let nil = ew_ui::ew_viewmodel::ew_api::output::Uuid::nil();
+    use ew_viewmodel::wire_colours::{LANE_PT, WireStroke, assign_lanes};
+    let nil = ew_viewmodel::ew_api::output::Uuid::nil();
     let path = vec![(10_000_000, 10_000_000), (50_000_000, 10_000_000)];
     let sheet = (420_000_000, 297_000_000);
     let mut strokes = vec![
@@ -403,9 +403,9 @@ fn the_exported_pdf_is_the_golden_one_with_the_wire_colour_view_on_and_off() {
         assert_eq!(shapes.len(), count);
         // The headless snapshot shows the view as the window does: W29's DBU only while it is on.
         let (image, _) = ew_ui::canvas::snapshot_image(shell, 0).unwrap();
-        let dbu = ew_ui::ew_viewmodel::wire_colours::company_rgb(
+        let dbu = ew_viewmodel::wire_colours::company_rgb(
             "DBU",
-            &[ew_ui::ew_viewmodel::wire_colours::CompanyColour {
+            &[ew_viewmodel::wire_colours::CompanyColour {
                 code: "DBU".to_owned(),
                 base: "BU".to_owned(),
                 shade: Some("dark".to_owned()),

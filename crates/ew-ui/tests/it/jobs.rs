@@ -14,8 +14,8 @@ use egui::Key;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::{App, Pick};
-use ew_ui::ew_viewmodel::ew_api::ew_jobs::Gate;
-use ew_ui::ew_viewmodel::shell::{AccessMode, Dialog, Mode, Outcome, Prompt, ShellModel};
+use ew_viewmodel::ew_api::ew_jobs::Gate;
+use ew_viewmodel::shell::{AccessMode, Dialog, Mode, Outcome, Prompt, ShellModel};
 use serde_json::{Value, json};
 use support::{Scripted, Tmp, dispatch, edit_toast, harness, harness_with, settle};
 

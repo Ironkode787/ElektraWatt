@@ -16,7 +16,7 @@ use std::path::Path;
 use std::process::{Command, Output, Stdio};
 
 use ew_testkit::library::starter_version;
-use ew_ui::ew_viewmodel::ew_api::{CmdLog, Session};
+use ew_viewmodel::ew_api::{CmdLog, Session};
 use serde_json::{Value, json};
 
 use crate::support::{GOLDEN_A, Tmp, copy_dir, path};
@@ -277,8 +277,8 @@ pub(crate) fn ps7_the_fork_script_is_deterministic_and_replays_case(twice: bool)
 }
 
 /// The user tiers of a run whose data directory is `data` (what `EW_DATA_DIR` gives the binary).
-fn data_tiers(data: &Path) -> ew_ui::ew_viewmodel::ew_api::library::LibraryTiers {
-    ew_ui::ew_viewmodel::ew_api::library::LibraryTiers {
+fn data_tiers(data: &Path) -> ew_viewmodel::ew_api::library::LibraryTiers {
+    ew_viewmodel::ew_api::library::LibraryTiers {
         system: Vec::new(),
         community: data.join("packs"),
         company: Vec::new(),
@@ -291,8 +291,8 @@ fn data_tiers(data: &Path) -> ew_ui::ew_viewmodel::ew_api::library::LibraryTiers
 /// (created on the first call) through the parts import into a library; `bump` writes a changed description as the
 /// next patch version (1.0.0, then 1.0.1).
 fn publish_fixture(data: &Path, description: &str, bump: bool) {
-    use ew_ui::ew_viewmodel::ew_api::catalog::{self, ColumnMap, Limits};
-    use ew_ui::ew_viewmodel::ew_api::library::Registry;
+    use ew_viewmodel::ew_api::catalog::{self, ColumnMap, Limits};
+    use ew_viewmodel::ew_api::library::Registry;
     let t = data_tiers(data);
     let mut reg = Registry::open(&t).unwrap();
     let lib = match reg.libraries().into_iter().find(|l| l.key == "fixture") {

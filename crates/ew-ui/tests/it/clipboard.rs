@@ -15,11 +15,11 @@ use egui::{Key, Modifiers, OutputCommand};
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::clipboard::ClipKind;
-use ew_ui::ew_viewmodel::ew_api::output::PageTables;
-use ew_ui::ew_viewmodel::shell::{Focus, SessionCalls};
-use ew_ui::ew_viewmodel::strings;
-use ew_ui::ew_viewmodel::tools::Selection;
+use ew_viewmodel::clipboard::ClipKind;
+use ew_viewmodel::ew_api::output::PageTables;
+use ew_viewmodel::shell::{Focus, SessionCalls};
+use ew_viewmodel::strings;
+use ew_viewmodel::tools::Selection;
 use serde_json::json;
 use support::{Tmp, dispatch, on_golden, settle};
 
@@ -103,7 +103,7 @@ fn ctrl_v_with_the_page_list_focused_pastes_onto_the_page() {
     settle(&mut h);
     let copied = h.state().shell().clipboard().text().expect("copied").to_owned();
     dispatch(&mut h, "select.set", json!({ "ids": [] }));
-    let pages = Some(Focus::Navigator(ew_ui::ew_viewmodel::navigators::NavKind::Pages));
+    let pages = Some(Focus::Navigator(ew_viewmodel::navigators::NavKind::Pages));
     for _ in 0..8 {
         if h.state().shell().focus() == pages {
             break;
@@ -115,7 +115,7 @@ fn ctrl_v_with_the_page_list_focused_pastes_onto_the_page() {
     h.event(egui::Event::Paste(copied));
     settle(&mut h);
     assert_eq!(h.state().shell().tool().name(), "paste");
-    let prompt = ew_ui::ew_viewmodel::command_bar::hud(h.state().shell()).prompt;
+    let prompt = ew_viewmodel::command_bar::hud(h.state().shell()).prompt;
     assert!(prompt.starts_with("Paste 1 symbol"), "{prompt}");
 }
 

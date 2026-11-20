@@ -13,8 +13,8 @@ use egui::{Key, Modifiers, Rect, Vec2};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable as _};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::layout::Layout;
-use ew_ui::ew_viewmodel::shell::{Focus, Mode, Outcome, ShellModel};
+use ew_viewmodel::layout::Layout;
+use ew_viewmodel::shell::{Focus, Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
 use support::{Scripted, Tmp, harness_with, settle, wait_for_page};
 
@@ -242,7 +242,7 @@ fn page_rows_carry_badge_nodes_not_bracketed_words() {
             .any(|n| n.accesskit_node().role() == egui::Role::Label),
         "the badge is a named node"
     );
-    let rows = shell.shown_rows(ew_ui::ew_viewmodel::navigators::NavKind::Pages);
+    let rows = shell.shown_rows(ew_viewmodel::navigators::NavKind::Pages);
     assert!(rows.iter().all(|r| !r.label.contains('[')));
     assert_eq!(
         rows.iter().filter(|r| r.current).count(),
@@ -292,7 +292,7 @@ fn properties_main_first_and_advanced_on_demand() {
 fn the_status_bar_fields_in_order() {
     let tmp = Tmp::new();
     let mut h = window(&tmp);
-    let fields = ew_ui::ew_viewmodel::status::bar(h.state().shell(), false);
+    let fields = ew_viewmodel::status::bar(h.state().shell(), false);
     let mut last = f32::MIN;
     for f in &fields {
         let text = f.text.clone();
@@ -316,10 +316,10 @@ fn the_status_bar_fields_in_order() {
     }
     // Messages open: the findings field is one button, a click shows Messages.
     dispatch(&mut h, "messages.show", json!({"on": true}));
-    let fields = ew_ui::ew_viewmodel::status::bar(h.state().shell(), false);
+    let fields = ew_viewmodel::status::bar(h.state().shell(), false);
     if let Some(f) = fields
         .iter()
-        .find(|f| f.kind == ew_ui::ew_viewmodel::status::StatusKind::Findings)
+        .find(|f| f.kind == ew_viewmodel::status::StatusKind::Findings)
     {
         dispatch(&mut h, "messages.show", json!({"on": false}));
         assert!(
@@ -332,7 +332,7 @@ fn the_status_bar_fields_in_order() {
         assert!(
             h.state()
                 .shell()
-                .navigator_open(ew_ui::ew_viewmodel::navigators::NavKind::Messages)
+                .navigator_open(ew_viewmodel::navigators::NavKind::Messages)
         );
     }
     h.state_mut().shell_mut().shutdown();
@@ -395,7 +395,7 @@ fn the_history_panel_from_the_keyboard() {
 fn the_badge_opens_messages_and_its_close_button_closes_it() {
     let tmp = Tmp::new();
     let mut h = window(&tmp);
-    let messages = ew_ui::ew_viewmodel::navigators::NavKind::Messages;
+    let messages = ew_viewmodel::navigators::NavKind::Messages;
     let view = |h: &Harness<'_, App>| {
         let c = h.state().shell().canvas().expect("a canvas");
         (c.zoom(), c.centre())
@@ -406,9 +406,9 @@ fn the_badge_opens_messages_and_its_close_button_closes_it() {
     let before = view(&h);
     dispatch(&mut h, "messages.check", json!({}));
     assert!(!h.state().shell().navigator_open(messages));
-    let field = ew_ui::ew_viewmodel::status::bar(h.state().shell(), false)
+    let field = ew_viewmodel::status::bar(h.state().shell(), false)
         .into_iter()
-        .find(|f| f.kind == ew_ui::ew_viewmodel::status::StatusKind::Findings)
+        .find(|f| f.kind == ew_viewmodel::status::StatusKind::Findings)
         .expect("the findings field after the check");
     h.get_by_role_and_label(egui::Role::Button, &field.text).click();
     settle(&mut h);
@@ -419,7 +419,7 @@ fn the_badge_opens_messages_and_its_close_button_closes_it() {
     // The untouched fit refits the shorter pane (the whole page stays in view).
     assert!(h.state().shell().canvas().unwrap().is_fitted());
     assert!(view(&h).0 < before.0, "the fit refits the shorter pane");
-    let close = ew_ui::ew_viewmodel::strings::text(key!("dock-close"));
+    let close = ew_viewmodel::strings::text(key!("dock-close"));
     h.get_by_role_and_label(egui::Role::Button, close).click();
     settle(&mut h);
     assert!(

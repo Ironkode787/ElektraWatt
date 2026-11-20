@@ -10,7 +10,7 @@
 use crate::support;
 
 use egui_kittest::kittest::Queryable;
-use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
+use ew_viewmodel::navigators::{NavKind, NavRole};
 use serde_json::json;
 use support::{Tmp, dispatch, on_golden, settle};
 

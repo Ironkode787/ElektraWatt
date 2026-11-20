@@ -10,8 +10,8 @@ use egui::Key;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
-use ew_ui::ew_viewmodel::shell::{Mode, Outcome, ShellModel};
+use ew_viewmodel::navigators::{NavKind, NavRole};
+use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
 use support::{Scripted, Tmp, dispatch, harness, harness_with, settle, wait_for_page};
 
@@ -67,7 +67,7 @@ fn place_ip(h: &mut Harness<'_, App>, name: &str) {
     dispatch(h, "ip.name", json!({ "text": name }));
     for _ in 0..3 {
         let state: Value =
-            serde_json::from_str(&ew_ui::ew_viewmodel::script::state_json(h.state().shell())).unwrap();
+            serde_json::from_str(&ew_viewmodel::script::state_json(h.state().shell())).unwrap();
         if state["canvas"]["ghost"]["direction"] == "target" {
             break;
         }
@@ -471,7 +471,7 @@ fn cp5_the_empty_states_of_messages_find_history_and_the_navigators() {
 /// start; a run that recorded none leaves no `[window]` table.
 #[test]
 fn the_window_geometry_survives_a_restart() {
-    use ew_ui::ew_viewmodel::window::WindowGeometry;
+    use ew_viewmodel::window::WindowGeometry;
     let tmp = Tmp::new();
     let mut shell = ShellModel::new(Mode::Gui, tmp.config());
     assert_eq!(shell.settings().window, None);

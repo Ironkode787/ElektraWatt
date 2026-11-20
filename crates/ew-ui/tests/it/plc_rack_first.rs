@@ -9,9 +9,9 @@
 use crate::support;
 
 use egui_kittest::kittest::{NodeT as _, Queryable};
-use ew_ui::ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
-use ew_ui::ew_viewmodel::ew_api::output::Uuid;
-use ew_ui::ew_viewmodel::shell::Dialog;
+use ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
+use ew_viewmodel::ew_api::output::Uuid;
+use ew_viewmodel::shell::Dialog;
 use serde_json::json;
 use support::{Scripted, Tmp, dispatch, harness, settle, wait_for_page};
 
@@ -173,8 +173,8 @@ fn a_bus_device_is_given_to_a_plc_from_its_menu() {
 /// The PLC row of the selected device's Properties: its text.
 fn plc_row(h: &egui_kittest::Harness<'static, ew_ui::app::App>) -> Option<String> {
     let sheet = h.state().shell().properties().sheet()?.clone();
-    ew_ui::ew_viewmodel::properties::find_row(&sheet, "device/derived.plc")
-        .map(|(_, r)| ew_ui::ew_viewmodel::properties::value_text(r))
+    ew_viewmodel::properties::find_row(&sheet, "device/derived.plc")
+        .map(|(_, r)| ew_viewmodel::properties::value_text(r))
 }
 
 /// The rc.2 persona run: a bus device is given to a PLC from where a person looks. A managed switch's Properties show
@@ -195,7 +195,7 @@ fn a_bus_device_is_given_to_a_plc_from_its_properties() {
     let rows = h
         .state_mut()
         .shell_mut()
-        .shown_rows(ew_ui::ew_viewmodel::navigators::NavKind::Bus);
+        .shown_rows(ew_viewmodel::navigators::NavKind::Bus);
     assert!(
         rows.iter().any(|r| r.badges.iter().any(|b| b == "in no PLC")),
         "{:?}",
@@ -394,13 +394,13 @@ fn every_station_kind_goes_onto_a_bus_page_with_all_its_interfaces() {
 /// where the pointer's hint stands, and a CPU's box on it shows its addresses in Main, named as its bus names them.
 #[test]
 fn a_bus_page_says_its_steps_and_a_box_its_addresses() {
-    use ew_ui::ew_viewmodel::properties::{RowGroup, group_of, row_label};
+    use ew_viewmodel::properties::{RowGroup, group_of, row_label};
     let tmp = Tmp::new();
     let mut h = new_project(&tmp);
     let cpu = station_on_bus_page(&mut h, "cpu", "EW-GEN-CPU-2");
     dispatch(&mut h, "select.set", json!({"ids": []}));
     settle(&mut h);
-    let prompt = ew_ui::ew_viewmodel::command_bar::hud(h.state().shell()).prompt;
+    let prompt = ew_viewmodel::command_bar::hud(h.state().shell()).prompt;
     assert!(prompt.starts_with("1 Put the stations here"), "{prompt}");
     let rep = h
         .state()
@@ -548,8 +548,8 @@ fn draw_on_a_page_lists_the_pages() {
 /// how many, with Undo), the warnings are gone, and one Undo brings them all back.
 #[test]
 fn fix_all_marks_every_unconnected_pin_in_one_step() {
-    use ew_ui::ew_viewmodel::ew_api::output::NavRole;
-    use ew_ui::ew_viewmodel::navigators::NavKind;
+    use ew_viewmodel::ew_api::output::NavRole;
+    use ew_viewmodel::navigators::NavKind;
     let tmp = Tmp::new();
     let mut h = new_project(&tmp);
     crate::plc_workspace::draw_black_box(&mut h, "EW-GEN-CPU-2", (10, 10));
@@ -603,7 +603,7 @@ fn fix_all_marks_every_unconnected_pin_in_one_step() {
 
 /// The channel rows of the PLC panel: (channel, module, badges).
 fn channel_rows(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>) -> Vec<(Uuid, Uuid, Vec<String>)> {
-    use ew_ui::ew_viewmodel::navigators::NavKind;
+    use ew_viewmodel::navigators::NavKind;
     dispatch(h, "rail.show", json!({"pane": "plc"}));
     settle(h);
     let shell = h.state_mut().shell_mut();
@@ -615,7 +615,7 @@ fn channel_rows(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>) -> Vec<
                 .map(|t| t.nodes.clone())
                 .unwrap_or_default()
                 .iter()
-                .filter(|n| n.role == ew_ui::ew_viewmodel::ew_api::output::NavRole::Channel)
+                .filter(|n| n.role == ew_viewmodel::ew_api::output::NavRole::Channel)
                 .map(|n| (n.records[0], n.records[1], n.badges.clone()))
                 .collect()
         })
@@ -750,8 +750,8 @@ fn draw_on_a_page_draws_the_station_and_its_modules() {
 /// supply pin on its left side; an output module the same on the lower edge of a box in the upper half of the page.
 #[test]
 fn a_module_drawn_from_the_station_view_is_one_row_of_pins_along_one_edge() {
-    use ew_ui::ew_viewmodel::ew_api::drafting::consts::{CARD_PIN_PITCH, TICKS_PER_STEP};
-    use ew_ui::ew_viewmodel::ew_api::geometry::Dir;
+    use ew_viewmodel::ew_api::drafting::consts::{CARD_PIN_PITCH, TICKS_PER_STEP};
+    use ew_viewmodel::ew_api::geometry::Dir;
     let tmp = Tmp::new();
     let mut h = new_project(&tmp);
     draft_with(&mut h, 1);
@@ -774,7 +774,7 @@ fn a_module_drawn_from_the_station_view_is_one_row_of_pins_along_one_edge() {
     let channels = channel_rows(&mut h);
     let shell = h.state().shell();
     let page = shell.canvas().expect("page 101").page();
-    let area = ew_ui::ew_viewmodel::tools::ip::drawing_area(page).expect("the frame's drawing area");
+    let area = ew_viewmodel::tools::ip::drawing_area(page).expect("the frame's drawing area");
     let (num, den) = page.tables.grid;
     let step = |v: i64| (v * den + num / 2).div_euclid(num);
     let pitch = i64::from(CARD_PIN_PITCH / TICKS_PER_STEP);
@@ -1007,8 +1007,8 @@ fn a_station_the_project_has_is_put_on_the_bus_page_not_made_again() {
 /// The items of the PLC tab's Place port button.
 fn place_port_list(
     h: &egui_kittest::Harness<'static, ew_ui::app::App>,
-) -> Vec<ew_ui::ew_viewmodel::actions::ActionItem> {
-    use ew_ui::ew_viewmodel::command_bar::{ButtonKind, Tab, command_bar_of};
+) -> Vec<ew_viewmodel::actions::ActionItem> {
+    use ew_viewmodel::command_bar::{ButtonKind, Tab, command_bar_of};
     command_bar_of(h.state().shell(), Tab::Plc)
         .groups
         .into_iter()
@@ -1079,8 +1079,8 @@ fn a_bus_page_offers_to_put_a_station_on_it() {
 /// why: the station is there already, or the page takes no stations.
 #[test]
 fn a_station_row_dropped_on_the_bus_page_puts_it_there() {
-    use ew_ui::ew_viewmodel::navigators::NavKind;
-    use ew_ui::ew_viewmodel::shell::DragSource;
+    use ew_viewmodel::navigators::NavKind;
+    use ew_viewmodel::shell::DragSource;
     let tmp = Tmp::new();
     let mut h = new_project(&tmp);
     let cpu = made_station(&mut h, "cpu", "EW-GEN-CPU-2");
@@ -1146,7 +1146,7 @@ fn a_station_row_dropped_on_the_bus_page_puts_it_there() {
 /// the CPU on the bus page.
 #[test]
 fn the_chip_says_where_it_goes_and_puts_a_station_here() {
-    use ew_ui::ew_viewmodel::navigators::NavKind;
+    use ew_viewmodel::navigators::NavKind;
     let tmp = Tmp::new();
     let mut h = new_project(&tmp);
     crate::plc_workspace::draw_black_box(&mut h, "EW-GEN-CPU-2", (10, 10));
@@ -1194,8 +1194,8 @@ fn the_chip_says_where_it_goes_and_puts_a_station_here() {
 /// Bus panel brings the panel to the front and the status bar says so.
 #[test]
 fn the_bus_panel_comes_to_the_front() {
-    use ew_ui::ew_viewmodel::layout::PaneKind;
-    use ew_ui::ew_viewmodel::navigators::NavKind;
+    use ew_viewmodel::layout::PaneKind;
+    use ew_viewmodel::navigators::NavKind;
     let tmp = Tmp::new();
     let mut h = new_project(&tmp);
     let bus = PaneKind::Navigator(NavKind::Bus);

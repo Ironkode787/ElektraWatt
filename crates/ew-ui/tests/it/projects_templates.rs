@@ -8,7 +8,7 @@
 use crate::support::{Scripted, Tmp, harness_with, settle};
 use egui::{Key, Modifiers};
 use egui_kittest::kittest::{NodeT as _, Queryable as _};
-use ew_ui::ew_viewmodel::shell::{Dialog, Mode, ShellModel};
+use ew_viewmodel::shell::{Dialog, Mode, ShellModel};
 use serde_json::json;
 
 fn gui_shell(tmp: &Tmp) -> ShellModel {
@@ -244,7 +244,7 @@ fn a_running_projects_sections_are_made_renamed_and_ranged() {
         "page.new",
         &json!({"folio": "301", "type": "multi_line", "section": "3"}),
     );
-    let ew_ui::ew_viewmodel::shell::Outcome::Failed { message } = refused else {
+    let ew_viewmodel::shell::Outcome::Failed { message } = refused else {
         panic!("{refused:?}")
     };
     assert!(
@@ -295,7 +295,7 @@ fn a_running_projects_sections_are_made_renamed_and_ranged() {
     assert!(h.query_by_label_contains("comes after the last").is_some());
     assert_eq!(
         apply(&mut h, "Cabinet layout", "300", "349"),
-        ew_ui::ew_viewmodel::shell::Outcome::Done
+        ew_viewmodel::shell::Outcome::Done
     );
     settle(&mut h);
     assert!(h.state().shell().dialog().is_none());

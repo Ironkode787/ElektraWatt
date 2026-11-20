@@ -20,6 +20,8 @@ workspace = true
 
 [dependencies]
 ew-ui = { path = "../../crates/ew-ui" }
+# The shell model the window shows, named by its own crate (the window's settings, crash log and print requests).
+ew-viewmodel = { path = "../../crates/ew-viewmodel" }
 ew-print = { path = "../../crates/ew-print" }
 # The window on the wgpu renderer, so that WP-S2.02 paints into the same device (ADR-0014 decision 1); no glow,
 # no persistence, no default_fonts. `wgpu_no_default_features` instead of `wgpu`: eframe's `wgpu` turns on every
@@ -58,4 +60,7 @@ png = "0.18.1"
 # ew-scene and the CPU renderer (dev-only edges, `[allowed_dev_edges]`; no new package).
 ew-scene = { path = "../../crates/ew-scene" }
 ew-render-cpu = { path = "../../crates/ew-render-cpu" }
+# The display lists and lengths the tests build, named by their own crates (no new package).
+ew-dl = { path = "../../crates/ew-dl" }
+ew-units = { path = "../../crates/ew-units" }
 sha2 = { workspace = true }

@@ -8,7 +8,7 @@
 
 use std::path::Path;
 
-use ew_ui::ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
+use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::json;
 use sha2::{Digest, Sha256};
 

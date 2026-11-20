@@ -8,7 +8,7 @@
 use crate::support;
 
 use egui::{Modifiers, PointerButton};
-use ew_ui::ew_viewmodel::shell::Outcome;
+use ew_viewmodel::shell::Outcome;
 use ew_ui::visual::{Driver, Input, parse_chord};
 use serde_json::{Value, json};
 use support::Tmp;
@@ -444,7 +444,7 @@ fn box_now(d: &mut Driver) -> ((i64, i64), Vec<PinPlace>) {
         .map(|l| {
             (
                 l.name,
-                ew_ui::ew_viewmodel::shell::symbol_editor::side_word(&l.side),
+                ew_viewmodel::shell::symbol_editor::side_word(&l.side),
                 l.at,
             )
         })
@@ -470,7 +470,7 @@ fn a_pin_is_added_and_dragged_onto_another_edge_of_the_box() {
             .map(|l| {
                 (
                     l.name,
-                    ew_ui::ew_viewmodel::shell::symbol_editor::side_word(&l.side),
+                    ew_viewmodel::shell::symbol_editor::side_word(&l.side),
                 )
             })
             .collect()

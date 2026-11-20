@@ -22,15 +22,15 @@ use std::collections::BTreeSet;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::actions::{ActionItem, MenuEntry, menu_model};
-use ew_ui::ew_viewmodel::command_bar::Tab;
-use ew_ui::ew_viewmodel::ew_api::{FormatStep, MigrationError, Migrations};
-use ew_ui::ew_viewmodel::first_run::FirstRunStep;
-use ew_ui::ew_viewmodel::layout::PaneKind;
-use ew_ui::ew_viewmodel::navigators::NavKind;
-use ew_ui::ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellModel};
-use ew_ui::ew_viewmodel::wizard::Step;
-use ew_ui::ew_viewmodel::{key, strings};
+use ew_viewmodel::actions::{ActionItem, MenuEntry, menu_model};
+use ew_viewmodel::command_bar::Tab;
+use ew_viewmodel::ew_api::{FormatStep, MigrationError, Migrations};
+use ew_viewmodel::first_run::FirstRunStep;
+use ew_viewmodel::layout::PaneKind;
+use ew_viewmodel::navigators::NavKind;
+use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellModel};
+use ew_viewmodel::wizard::Step;
+use ew_viewmodel::{key, strings};
 use serde_json::{Value, json};
 use support::{Scripted, Tmp, harness, harness_with, wait_for_page};
 
@@ -483,7 +483,7 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
             let mut shell = ShellModel::new(Mode::Gui, tmp.config());
             let logo = |svg: &str| {
                 json!({"cmd": "project.company.set",
-                    "params": {"logo": ew_ui::ew_viewmodel::ew_api::base64_encode(svg.as_bytes())}})
+                    "params": {"logo": ew_viewmodel::ew_api::base64_encode(svg.as_bytes())}})
             };
             for (action, params) in [
                 ("file.open", json!({ "dir": dir.to_string_lossy() })),
@@ -645,8 +645,8 @@ support::shard_tests!(
 /// a user opens it, is a surface of the census.
 #[test]
 fn census_every_context_menu() {
-    use ew_ui::ew_viewmodel::canvas::{pick, rect_centre};
-    use ew_ui::ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
+    use ew_viewmodel::canvas::{pick, rect_centre};
+    use ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
     let mut census = Census::default();
     // The centre of an object's rectangle whose pick is that object, on the page on show; `only` narrows the objects.
     let object = |h: &Harness<'_, App>, only: &dyn Fn(String) -> bool| {
@@ -867,9 +867,9 @@ fn every_tool_cancels_with_escape_and_changes_nothing() {
 /// tool is tested.
 #[test]
 fn the_macro_and_text_edit_tools_cancel_with_escape_and_change_nothing() {
-    use ew_ui::ew_viewmodel::ew_api::library::{LibraryTiers, Registry};
-    use ew_ui::ew_viewmodel::navigators::NavRole;
-    use ew_ui::ew_viewmodel::shell::ShellConfig;
+    use ew_viewmodel::ew_api::library::{LibraryTiers, Registry};
+    use ew_viewmodel::navigators::NavRole;
+    use ew_viewmodel::shell::ShellConfig;
     let tmp = Tmp::new();
     let tiers = LibraryTiers {
         system: Vec::new(),

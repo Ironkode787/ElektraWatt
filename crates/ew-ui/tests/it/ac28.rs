@@ -12,10 +12,10 @@ use egui::{Key, Modifiers, PointerButton, Pos2};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::canvas::mm1;
-use ew_ui::ew_viewmodel::properties::{Provenance, RowValue, find_row};
-use ew_ui::ew_viewmodel::shell::Focus;
-use ew_ui::ew_viewmodel::{key, strings};
+use ew_viewmodel::canvas::mm1;
+use ew_viewmodel::properties::{Provenance, RowValue, find_row};
+use ew_viewmodel::shell::Focus;
+use ew_viewmodel::{key, strings};
 use serde_json::json;
 use support::{Scripted, Tmp, dispatch, harness, settle, wait_for_page};
 
@@ -234,7 +234,7 @@ fn ac28_the_four_steps_on_one_copy_of_golden_a() {
     // The window's dwell timer, dispatched as the window dispatches it: no clock is read.
     dispatch(&mut h, "canvas.dwell", json!({"ms": 80}));
     settle(&mut h);
-    let Some(ew_ui::ew_viewmodel::tools::Ghost::Place { tag: Some(tag), .. }) =
+    let Some(ew_viewmodel::tools::Ghost::Place { tag: Some(tag), .. }) =
         h.state().shell().tool_ghost()
     else {
         panic!("no predicted tag before the click");

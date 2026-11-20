@@ -11,7 +11,7 @@ use crate::support;
 use egui::{Key, Modifiers};
 use egui_kittest::Harness;
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::ew_api::output::TableEnd;
+use ew_viewmodel::ew_api::output::TableEnd;
 use serde_json::json;
 use support::{Tmp, dispatch, on_golden, screen, settle, wait_for_page};
 
@@ -47,7 +47,7 @@ fn step_to(h: &mut Harness<'_, App>, label: &str, key: Key) {
     panic!("the cursor never reached {label}");
 }
 
-fn connections(h: &Harness<'_, App>) -> Vec<ew_ui::ew_viewmodel::ew_api::output::TableConnection> {
+fn connections(h: &Harness<'_, App>) -> Vec<ew_viewmodel::ew_api::output::TableConnection> {
     h.state()
         .shell()
         .canvas()

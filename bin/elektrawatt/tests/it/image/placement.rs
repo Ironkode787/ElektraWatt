@@ -8,7 +8,7 @@
 
 use std::path::Path;
 
-use ew_ui::ew_viewmodel::ew_api::{CmdLog, Session};
+use ew_viewmodel::ew_api::{CmdLog, Session};
 use serde_json::{Value, json};
 
 use super::bin_exe;
@@ -22,7 +22,7 @@ const SVG_HASH: &str = "sha256:ec57251790a327f9afde596a256f674c950610537531d4ed0
 /// The script: the asset into the project (the company logo command, taken off again), the Image tool, the pick, two
 /// corners on the grid cursor, the describe texts.
 fn script(dir: &Path) -> Vec<(String, Value)> {
-    let b64 = ew_ui::ew_viewmodel::ew_api::base64_encode(SVG);
+    let b64 = ew_viewmodel::ew_api::base64_encode(SVG);
     steps(&[
         ("file.open", json!({ "dir": path(dir) })),
         ("page.goto", json!({"folio": "101"})),
@@ -122,7 +122,7 @@ pub fn im2_an_image_is_placed_by_a_script_twice_identically_and_replays_case(twi
     assert_eq!(placed.len(), 1, "one image on 101");
     // The save wrote the asset the item names: the project reopened from disk holds it (the logo was taken off, so the
     // item is the only record that names it), as a file `assets/<hash>.svg`.
-    let hash: ew_ui::ew_viewmodel::ew_api::Sha256 = SVG_HASH.parse().unwrap();
+    let hash: ew_viewmodel::ew_api::Sha256 = SVG_HASH.parse().unwrap();
     assert!(
         scripted.asset(&hash).is_some(),
         "the reopened project holds the image's asset"
@@ -153,13 +153,13 @@ pub fn im2_an_image_is_placed_by_a_script_twice_identically_and_replays_case(twi
         1,
         "{names:?}"
     );
-    let mut store = ew_ui::ew_viewmodel::ew_api::StoreOptions::new("test");
+    let mut store = ew_viewmodel::ew_api::StoreOptions::new("test");
     store.state_dir = Some(tmp.path("state"));
     let (mut s, _) = Session::open(
         &replay,
         store,
-        ew_ui::ew_viewmodel::ew_api::SessionOptions::default(),
-        ew_ui::ew_viewmodel::ew_api::Recovery::Keep,
+        ew_viewmodel::ew_api::SessionOptions::default(),
+        ew_viewmodel::ew_api::Recovery::Keep,
     )
     .unwrap();
     s.run_script(&log, "a.ewcmd").unwrap();

@@ -16,9 +16,9 @@ use egui_kittest::Harness;
 use egui_kittest::kittest::NodeT as _;
 use ew_testdir::copy_dir;
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::ew_api::{AnyCommand, Recovery, Session, SessionOptions, StoreOptions};
-use ew_ui::ew_viewmodel::shell::Dialog;
-use ew_ui::ew_viewmodel::strings;
+use ew_viewmodel::ew_api::{AnyCommand, Recovery, Session, SessionOptions, StoreOptions};
+use ew_viewmodel::shell::Dialog;
+use ew_viewmodel::strings;
 use serde_json::{Value, json};
 use support::{Scripted, Tmp, dispatch, harness, settle, wait_for_page};
 
@@ -87,7 +87,7 @@ fn enter_applies_mine(h: &mut Harness<'_, App>, path: &str) {
         matches!(h.state().shell().dialog(), Some(Dialog::ExternalChange { .. })),
         "{path}: the dialog is open"
     );
-    let apply = strings::text(ew_ui::ew_viewmodel::key!("external-apply"));
+    let apply = strings::text(ew_viewmodel::key!("external-apply"));
     let node = support::off_chrome(h, apply).unwrap_or_else(|| panic!("{path}: no {apply}"));
     assert!(
         node.accesskit_node().is_focused(),
@@ -141,7 +141,7 @@ fn f1b_a_rebuilt_collision_dialog_takes_its_first_focus_again() {
     let mut h = collided(&tmp);
     dispatch(&mut h, "project.check_disk", json!({}));
     settle(&mut h);
-    let theirs = strings::text(ew_ui::ew_viewmodel::key!("external-all-theirs"));
+    let theirs = strings::text(ew_viewmodel::key!("external-all-theirs"));
     for _ in 0..12 {
         if support::off_chrome(&h, theirs).is_some_and(|n| n.accesskit_node().is_focused()) {
             break;
@@ -175,7 +175,7 @@ fn a_refused_saves_banner_keeps_choose() {
         h.state().shell().banner(),
         Some("Saving failed: the change on disk collides with your edits; choose yours or theirs first.")
     );
-    let choose = strings::text(ew_ui::ew_viewmodel::key!("banner-external-choose"));
+    let choose = strings::text(ew_viewmodel::key!("banner-external-choose"));
     support::off_chrome(&h, choose)
         .unwrap_or_else(|| panic!("the banner shows {choose}"))
         .click();

@@ -7,7 +7,7 @@
 use crate::support;
 
 use egui_kittest::kittest::{NodeT as _, Queryable};
-use ew_ui::ew_viewmodel::command_bar::Tab;
+use ew_viewmodel::command_bar::Tab;
 use serde_json::json;
 use support::{Scripted, Tmp, dispatch, harness, settle};
 

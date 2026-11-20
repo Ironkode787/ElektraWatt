@@ -9,9 +9,9 @@
 use crate::persona_round::{click, key, new_project};
 use crate::support::Tmp;
 
-use ew_ui::ew_viewmodel::ew_api::output::Uuid;
-use ew_ui::ew_viewmodel::shell::Outcome;
-use ew_ui::ew_viewmodel::shell::station::TodoFix;
+use ew_viewmodel::ew_api::output::Uuid;
+use ew_viewmodel::shell::Outcome;
+use ew_viewmodel::shell::station::TodoFix;
 use ew_ui::visual::{Driver, Input};
 use serde_json::json;
 
@@ -246,7 +246,7 @@ fn undo_and_redo_under_the_open_view_leave_no_step_without_its_records() {
     );
     assert_eq!(
         toast.action(),
-        Some(ew_ui::ew_viewmodel::notifications::NoteAction::GoTo)
+        Some(ew_viewmodel::notifications::NoteAction::GoTo)
     );
     click_at(&mut d, (800, 400));
     assert!(d.shell_mut().banner().is_none(), "{:?}", d.shell_mut().banner());
@@ -280,8 +280,8 @@ fn undo_and_redo_under_the_open_view_leave_no_step_without_its_records() {
 }
 
 /// The PLC panel's row of PLC part `device` (its station's or its card's), as its right-click reads it.
-fn plc_row(d: &mut Driver, device: Uuid) -> ew_ui::ew_viewmodel::ew_api::output::NavNode {
-    use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
+fn plc_row(d: &mut Driver, device: Uuid) -> ew_viewmodel::ew_api::output::NavNode {
+    use ew_viewmodel::navigators::{NavKind, NavRole};
     let _ = d.shell_mut().dispatch("rail.show", &json!({"pane": "plc"}));
     d.settle();
     let _ = d.shell_mut().shown_rows(NavKind::Plc);
@@ -300,11 +300,11 @@ fn plc_row(d: &mut Driver, device: Uuid) -> ew_ui::ew_viewmodel::ew_api::output:
 }
 
 /// The Place here entry of `device`'s row in the PLC panel.
-fn place_here(d: &mut Driver, device: Uuid) -> ew_ui::ew_viewmodel::actions::ActionItem {
+fn place_here(d: &mut Driver, device: Uuid) -> ew_viewmodel::actions::ActionItem {
     let node = plc_row(d, device);
-    let menu = ew_ui::ew_viewmodel::command_bar::navigator_row_menu(
+    let menu = ew_viewmodel::command_bar::navigator_row_menu(
         d.shell_mut(),
-        ew_ui::ew_viewmodel::navigators::NavKind::Plc,
+        ew_viewmodel::navigators::NavKind::Plc,
         &node,
     );
     menu.into_iter()
@@ -354,9 +354,9 @@ fn place_here_puts_an_unplaced_plc_part_on_the_pointer() {
     assert_eq!(d.shell_mut().dispatch("plc.rack_editor", &rack), Outcome::Done);
     let select = json!({"card": card.to_string()});
     assert_eq!(d.shell_mut().dispatch("plc.rack_select", &select), Outcome::Done);
-    let tools = ew_ui::ew_viewmodel::actions::station_tools(d.shell_mut());
+    let tools = ew_viewmodel::actions::station_tools(d.shell_mut());
     let entry = tools.iter().find_map(|(_, e)| match e {
-        ew_ui::ew_viewmodel::actions::MenuEntry::Item(i) if i.id == "plc.module_place" => {
+        ew_viewmodel::actions::MenuEntry::Item(i) if i.id == "plc.module_place" => {
             Some(i.label.clone())
         }
         _ => None,
@@ -369,7 +369,7 @@ fn place_here_puts_an_unplaced_plc_part_on_the_pointer() {
 /// takes it away does: the click that follows draws nothing and names nothing gone.
 #[test]
 fn a_delete_in_a_navigator_ends_the_box_of_what_it_deleted() {
-    use ew_ui::ew_viewmodel::navigators::NavKind;
+    use ew_viewmodel::navigators::NavKind;
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     let page = json!({"folio": "101", "type": "multi_line", "title": "Control"});
@@ -401,10 +401,10 @@ fn a_delete_in_a_navigator_ends_the_box_of_what_it_deleted() {
 /// The Place here entry of the first PLC panel row of role `role` whose records satisfy `of`, with the row's badges.
 fn place_on_row(
     d: &mut Driver,
-    role: ew_ui::ew_viewmodel::navigators::NavRole,
+    role: ew_viewmodel::navigators::NavRole,
     of: impl Fn(&[Uuid]) -> bool,
-) -> (Option<ew_ui::ew_viewmodel::actions::ActionItem>, Vec<String>) {
-    use ew_ui::ew_viewmodel::navigators::NavKind;
+) -> (Option<ew_viewmodel::actions::ActionItem>, Vec<String>) {
+    use ew_viewmodel::navigators::NavKind;
     let _ = d.shell_mut().dispatch("rail.show", &json!({"pane": "plc"}));
     d.settle();
     let node = d
@@ -413,7 +413,7 @@ fn place_on_row(
         .and_then(|n| n.table())
         .and_then(|t| t.nodes.iter().find(|n| n.role == role && of(&n.records)).cloned())
         .unwrap_or_else(|| panic!("a {role:?} row"));
-    let menu = ew_ui::ew_viewmodel::command_bar::navigator_row_menu(d.shell_mut(), NavKind::Plc, &node);
+    let menu = ew_viewmodel::command_bar::navigator_row_menu(d.shell_mut(), NavKind::Plc, &node);
     let place = menu.into_iter().find(|i| i.id == "plc.module_place");
     (place, node.badges.clone())
 }
@@ -422,7 +422,7 @@ fn place_on_row(
 /// its row says "not drawn"; the entry puts the card's box on the pointer.
 #[test]
 fn a_channel_of_an_undrawn_card_offers_place_here() {
-    use ew_ui::ew_viewmodel::navigators::NavRole;
+    use ew_viewmodel::navigators::NavRole;
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     let page = json!({"folio": "101", "type": "multi_line", "title": "Control"});

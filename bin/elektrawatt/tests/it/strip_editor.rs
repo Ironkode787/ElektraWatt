@@ -15,7 +15,7 @@ use crate::support;
 
 use std::path::Path;
 
-use ew_ui::ew_viewmodel::ew_api::{BomMode, Export, Session};
+use ew_viewmodel::ew_api::{BomMode, Export, Session};
 use serde_json::json;
 
 use support::{GOLDEN_A, Tmp, all_done, bin_exe, copy_dir, path, run, steps};

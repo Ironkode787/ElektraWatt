@@ -10,7 +10,7 @@ use crate::support;
 
 use egui::Key;
 use egui_kittest::kittest::{NodeT as _, Queryable};
-use ew_ui::ew_viewmodel::shell::Dialog;
+use ew_viewmodel::shell::Dialog;
 use support::{Scripted, Tmp, harness, settle};
 
 /// The text field labelled `name` (the form fields have no placeholder; their label names them).
@@ -26,7 +26,7 @@ fn field<'a, 'h>(h: &'h egui_kittest::Harness<'a, ew_ui::app::App>, name: &str) 
 fn wait_until(
     h: &mut egui_kittest::Harness<'_, ew_ui::app::App>,
     what: &str,
-    done: impl Fn(&ew_ui::ew_viewmodel::shell::ShellModel) -> bool,
+    done: impl Fn(&ew_viewmodel::shell::ShellModel) -> bool,
 ) {
     for _ in 0..600 {
         h.run_ok();
@@ -40,7 +40,7 @@ fn wait_until(
 }
 
 /// Whether the open form shows a refusal.
-fn form_refused(shell: &ew_ui::ew_viewmodel::shell::ShellModel) -> bool {
+fn form_refused(shell: &ew_viewmodel::shell::ShellModel) -> bool {
     matches!(shell.dialog(), Some(Dialog::Form(f)) if f.error.is_some())
 }
 

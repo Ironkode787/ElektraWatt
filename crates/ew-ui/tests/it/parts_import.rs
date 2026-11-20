@@ -18,8 +18,8 @@ use egui::{Key, Modifiers, Vec2};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::{App, Pick, PickReply, Platform, setup};
-use ew_ui::ew_viewmodel::ew_api::Session;
-use ew_ui::ew_viewmodel::shell::{Mode, Outcome, Prompt, ShellModel};
+use ew_viewmodel::ew_api::Session;
+use ew_viewmodel::shell::{Mode, Outcome, Prompt, ShellModel};
 use serde_json::{Value, json};
 use support::{Scripted, Tmp, harness, harness_with, screen, settle, wait_for_page};
 
@@ -431,7 +431,7 @@ fn no_input_reaches_the_shell_while_a_file_dialog_is_open() {
     settle(&mut h);
     assert!(matches!(
         h.state().shell().dialog(),
-        Some(ew_ui::ew_viewmodel::shell::Dialog::ConfirmDiscard { .. })
+        Some(ew_viewmodel::shell::Dialog::ConfirmDiscard { .. })
     ));
     h.get_by_label("Don't save").click();
     h.step();

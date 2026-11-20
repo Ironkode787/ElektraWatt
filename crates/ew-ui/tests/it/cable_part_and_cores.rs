@@ -11,9 +11,9 @@ use crate::wires_and_cables::{
     two_wires, typed,
 };
 
-use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
-use ew_ui::ew_viewmodel::properties::{find_row, what_words};
-use ew_ui::ew_viewmodel::shell::{Dialog, Outcome};
+use ew_viewmodel::navigators::{NavKind, NavRole};
+use ew_viewmodel::properties::{find_row, what_words};
+use ew_viewmodel::shell::{Dialog, Outcome};
 use ew_ui::visual::{Driver, Input};
 use serde_json::json;
 

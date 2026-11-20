@@ -9,8 +9,8 @@
 use crate::support;
 
 use egui_kittest::kittest::{NodeT as _, Queryable};
-use ew_ui::ew_viewmodel::layout::PaneKind;
-use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
+use ew_viewmodel::layout::PaneKind;
+use ew_viewmodel::navigators::{NavKind, NavRole};
 use serde_json::json;
 use support::{Scripted, Tmp, dispatch, harness, on_golden, settle, wait_for_page};
 
@@ -308,7 +308,7 @@ fn a_card_without_a_cpu_is_attached_from_the_cpus_row() {
 /// lists and the fluid lists among them, never an embedded kind; a Bus overview chosen from the list adds its block.
 #[test]
 fn the_report_block_form_offers_the_plc_bus_and_fluid_lists() {
-    use ew_ui::ew_viewmodel::shell::Dialog;
+    use ew_viewmodel::shell::Dialog;
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "203");
     support::open_menu(&mut h, &["Output"]);
@@ -319,7 +319,7 @@ fn the_report_block_form_offers_the_plc_bus_and_fluid_lists() {
         Some(Dialog::Form(f)) => f.fields[0].options.iter().map(|(k, _)| k.clone()).collect(),
         other => panic!("{other:?}"),
     };
-    let kinds = ew_ui::ew_viewmodel::ew_api::output::page_report_kinds();
+    let kinds = ew_viewmodel::ew_api::output::page_report_kinds();
     assert_eq!(offered.len(), kinds.len());
     for k in ["safety_io_list", "bus_overview", "tube_list", "medium_overview"] {
         assert!(offered.iter().any(|o| o == k), "{k}: {offered:?}");
@@ -392,7 +392,7 @@ pub(crate) fn new_project_with_cpu(tmp: &Tmp) -> egui_kittest::Harness<'static, 
 /// The station whose view is on show.
 pub(crate) fn station_of(
     h: &egui_kittest::Harness<'static, ew_ui::app::App>,
-) -> ew_ui::ew_viewmodel::ew_api::output::Uuid {
+) -> ew_viewmodel::ew_api::output::Uuid {
     h.state()
         .shell()
         .station_tab()
@@ -590,7 +590,7 @@ fn a_long_station_stays_usable_and_a_taken_slot_is_refused() {
         .shell_mut()
         .dispatch("plc.rack_add", &json!({ "slot": 3, "part": "EW-GEN-DI-1" }));
     assert!(
-        matches!(refused, ew_ui::ew_viewmodel::shell::Outcome::Failed { .. }),
+        matches!(refused, ew_viewmodel::shell::Outcome::Failed { .. }),
         "{refused:?}"
     );
     settle(&mut h);
@@ -811,7 +811,7 @@ fn a_module_is_re_addressed_with_its_old_to_new_preview() {
 #[test]
 fn the_plc_exchange_exports_and_previews_an_import() {
     use ew_ui::app::Pick;
-    use ew_ui::ew_viewmodel::shell::Dialog;
+    use ew_viewmodel::shell::Dialog;
     let tmp = Tmp::new();
     let file = tmp.0.join("plc.aml");
     let platform = Scripted::default();
@@ -878,7 +878,7 @@ fn the_plc_exchange_exports_and_previews_an_import() {
 #[test]
 fn the_plc_export_asks_for_a_file_of_its_format_dated_today() {
     use ew_ui::app::Pick;
-    use ew_ui::ew_viewmodel::shell::Prompt;
+    use ew_viewmodel::shell::Prompt;
     let tmp = Tmp::new();
     let file = tmp.0.join("tags.xlsx");
     let platform = Scripted::default();
@@ -916,7 +916,7 @@ fn the_plc_export_asks_for_a_file_of_its_format_dated_today() {
 /// so the same file previewed again removes nothing.
 #[test]
 fn a_complete_imports_apply_removes_what_its_preview_listed() {
-    use ew_ui::ew_viewmodel::shell::Dialog;
+    use ew_viewmodel::shell::Dialog;
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "203");
     dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
@@ -948,7 +948,7 @@ fn a_complete_imports_apply_removes_what_its_preview_listed() {
     let again = json!({"format": "aml-1.4.0", "path": exported.to_string_lossy()});
     assert!(matches!(
         h.state_mut().shell_mut().dispatch("plc.export", &again),
-        ew_ui::ew_viewmodel::shell::Outcome::Refused { .. }
+        ew_viewmodel::shell::Outcome::Refused { .. }
     ));
     let foreign = text
         .replace(&station.to_string(), "tia-station")
@@ -986,7 +986,7 @@ fn a_complete_imports_apply_removes_what_its_preview_listed() {
 /// conflict's row has "Keep the project's" chosen and, in place of "Take the file's", the reason; Apply keeps it.
 #[test]
 fn a_conflict_shows_its_default_and_never_offers_what_cannot_be_taken() {
-    use ew_ui::ew_viewmodel::shell::Dialog;
+    use ew_viewmodel::shell::Dialog;
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "203");
     dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
@@ -1065,7 +1065,7 @@ fn a_conflict_shows_its_default_and_never_offers_what_cannot_be_taken() {
 /// the file complete.
 #[test]
 fn the_import_preview_says_what_apply_refuses_and_takes_the_file_complete() {
-    use ew_ui::ew_viewmodel::shell::Dialog;
+    use ew_viewmodel::shell::Dialog;
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "203");
     dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
@@ -1189,7 +1189,7 @@ fn a_settings_value_left_out_keeps_the_stored_one() {
     assert_eq!(form_value(&h, "material"), "pu", "kept");
     assert_eq!(form_value(&h, "line_tags"), "true", "kept");
     let materials: Vec<String> = match h.state().shell().dialog() {
-        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => f
+        Some(ew_viewmodel::shell::Dialog::Form(f)) => f
             .fields
             .iter()
             .find(|f| f.name == "material")
@@ -1253,7 +1253,7 @@ fn a_channel_row_selects_the_channel_alone() {
 /// the form, which stays open with what was typed, and no file is asked for.
 #[test]
 fn the_plc_export_form_refuses_a_bad_date_before_the_file() {
-    use ew_ui::ew_viewmodel::shell::Dialog;
+    use ew_viewmodel::shell::Dialog;
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "203");
     support::open_menu(&mut h, &["PLC"]);
@@ -1280,7 +1280,7 @@ fn the_plc_export_form_refuses_a_bad_date_before_the_file() {
 /// The value of field `name` of the open form.
 fn form_value(h: &egui_kittest::Harness<'_, ew_ui::app::App>, name: &str) -> String {
     match h.state().shell().dialog() {
-        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => f
+        Some(ew_viewmodel::shell::Dialog::Form(f)) => f
             .fields
             .iter()
             .find(|f| f.name == name)
@@ -1645,7 +1645,7 @@ fn a_terminal_on_a_traced_path_prints_the_channel_address() {
         };
         (t.page, pin, of("ew.iec.terminal"), of("ew.iec.coil"))
     };
-    let cp = |p: &ew_ui::ew_viewmodel::ew_api::output::TableCp| json!({"cp": {"function": p.function.to_string(), "idx": p.idx}});
+    let cp = |p: &ew_viewmodel::ew_api::output::TableCp| json!({"cp": {"function": p.function.to_string(), "idx": p.idx}});
     for (a, b) in [(&card_pin, &term[1]), (&term[0], &coil[0])] {
         dispatch(
             &mut h,
@@ -1708,7 +1708,7 @@ fn black_box(h: &mut egui_kittest::Harness<'_, ew_ui::app::App>, part: &str, a: 
 fn station_row(
     h: &egui_kittest::Harness<'_, ew_ui::app::App>,
     tag: &str,
-) -> ew_ui::ew_viewmodel::shell::ShownRow {
+) -> ew_viewmodel::shell::ShownRow {
     h.state()
         .shell()
         .shown_rows(NavKind::Plc)

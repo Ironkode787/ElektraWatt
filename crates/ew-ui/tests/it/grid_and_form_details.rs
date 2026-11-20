@@ -10,7 +10,7 @@ use crate::support;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::shell::{Mode, ShellModel};
+use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::{Value, json};
 use support::{Scripted, Tmp, done, harness_with, settle, wait_for_page};
 
@@ -66,7 +66,7 @@ fn window(tmp: &Tmp) -> Harness<'static, App> {
 /// The value of field `name` of the open form dialog.
 fn form_value(h: &Harness<'static, App>, name: &str) -> String {
     match h.state().shell().dialog() {
-        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => f
+        Some(ew_viewmodel::shell::Dialog::Form(f)) => f
             .fields
             .iter()
             .find(|f| f.name == name)

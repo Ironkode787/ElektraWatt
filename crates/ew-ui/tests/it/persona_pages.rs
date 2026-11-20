@@ -8,8 +8,8 @@ use crate::support::{Scripted, Tmp, bar_button, dispatch, harness, hud_value, se
 use egui_kittest::kittest::{NodeT as _, Queryable as _};
 
 use egui::{Modifiers, PointerButton};
-use ew_ui::ew_viewmodel::script::state_json;
-use ew_ui::ew_viewmodel::shell::Outcome;
+use ew_viewmodel::script::state_json;
+use ew_viewmodel::shell::Outcome;
 use ew_ui::visual::{Driver, Geometry, Input};
 use serde_json::{Value, json};
 
@@ -108,7 +108,7 @@ fn points(d: &mut Driver) -> Vec<(String, String)> {
 /// The name and direction the IP tool's ghost shows.
 fn ghost(d: &mut Driver) -> (String, String) {
     match d.shell_mut().tool_ghost() {
-        Some(ew_ui::ew_viewmodel::tools::Ghost::Ip { name, direction, .. }) => (name, direction.to_owned()),
+        Some(ew_viewmodel::tools::Ghost::Ip { name, direction, .. }) => (name, direction.to_owned()),
         other => panic!("no interruption point ghost: {other:?}"),
     }
 }
@@ -120,7 +120,7 @@ fn toast(d: &mut Driver) -> String {
 /// A page point in the left quarter of page 101's drawing area, `down` grid rows below its top quarter.
 fn left_quarter(d: &mut Driver, down: i64) -> (i64, i64) {
     let page = d.shell_mut().canvas().unwrap().page().clone();
-    let area = ew_ui::ew_viewmodel::tools::ip::drawing_area(&page).expect("a frame grid");
+    let area = ew_viewmodel::tools::ip::drawing_area(&page).expect("a frame grid");
     let (w, h) = (area[2] - area[0], area[3] - area[1]);
     let p = (area[0] + w / 10, area[1] + h * 3 / 10 + down * 12_000_000);
     page.snapper.snap_grid(page.snapper.page_to_sheet(p)).page_nm
@@ -163,7 +163,7 @@ fn a_panel_layout_in_a_new_project_by_the_pointer() {
     // `space.3` apart (36 points), the last row's centre 44 points above Create's, and the line under Type that says
     // where lists are made (one `type.small` line and `space.1`, 18 points) between it and the next row.
     let (fields, at) = match d.shell_mut().dialog() {
-        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => (
+        Some(ew_viewmodel::shell::Dialog::Form(f)) => (
             f.fields.len() as i64,
             f.fields
                 .iter()
@@ -182,7 +182,7 @@ fn a_panel_layout_in_a_new_project_by_the_pointer() {
     assert!(last.1 < i64::from(d.geometry().frame_height()), "{last:?}");
     press(&mut d, "Panel layout");
     let kind = match d.shell_mut().dialog() {
-        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => f
+        Some(ew_viewmodel::shell::Dialog::Form(f)) => f
             .fields
             .iter()
             .find(|f| f.name == "type")
@@ -437,7 +437,7 @@ fn the_bar_names_d_only_while_the_tool_has_the_keys() {
 /// The direction the IP tool's ghost shows.
 fn ip_direction(h: &egui_kittest::Harness<'_, ew_ui::app::App>) -> &'static str {
     match h.state().shell().tool_ghost() {
-        Some(ew_ui::ew_viewmodel::tools::Ghost::Ip { direction, .. }) => direction,
+        Some(ew_viewmodel::tools::Ghost::Ip { direction, .. }) => direction,
         other => panic!("no interruption point ghost: {other:?}"),
     }
 }
@@ -507,7 +507,7 @@ fn title_block_fields_say_the_revision_rule_first_and_apply_stays_put() {
     h.get_by_label("Apply").click();
     settle(&mut h);
     let refused = match h.state().shell().dialog() {
-        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => f.error.clone(),
+        Some(ew_viewmodel::shell::Dialog::Form(f)) => f.error.clone(),
         other => panic!("{other:?}"),
     };
     let refused = refused.expect("B is refused");

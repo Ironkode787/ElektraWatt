@@ -10,9 +10,9 @@ use crate::support::Tmp;
 use egui::{Modifiers, PointerButton};
 use ew_units::Pt2;
 use ew_dl::{Item, ItemKind};
-use ew_ui::ew_viewmodel::ew_api::output::{NavNode, Uuid};
-use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
-use ew_ui::ew_viewmodel::shell::Outcome;
+use ew_viewmodel::ew_api::output::{NavNode, Uuid};
+use ew_viewmodel::navigators::{NavKind, NavRole};
+use ew_viewmodel::shell::Outcome;
 use ew_ui::visual::{Driver, Input};
 use serde_json::json;
 
@@ -107,7 +107,7 @@ fn page_pixel(d: &mut Driver, at: (i64, i64)) -> (i64, i64) {
 }
 
 /// The cells of the valve terminal drawn as its positions on the page shown.
-fn cells(d: &mut Driver) -> Vec<ew_ui::ew_viewmodel::ew_api::output::SlotCell> {
+fn cells(d: &mut Driver) -> Vec<ew_viewmodel::ew_api::output::SlotCell> {
     let tables = std::sync::Arc::clone(&d.shell_mut().canvas().unwrap().page().tables);
     tables
         .reps
@@ -231,11 +231,11 @@ fn p2a_a_valve_terminal_is_built_from_nothing_and_its_overview_generated() {
     let mut d = fluid_page(&tmp);
     // Greyed with its reason while no valve terminal is selected.
     let reason =
-        ew_ui::ew_viewmodel::actions::find("fluid.generate_overview").map(|a| (a.enabled)(d.shell_mut()));
+        ew_viewmodel::actions::find("fluid.generate_overview").map(|a| (a.enabled)(d.shell_mut()));
     assert_eq!(
         reason
             .and_then(Result::err)
-            .map(ew_ui::ew_viewmodel::strings::text),
+            .map(ew_viewmodel::strings::text),
         Some("Select a valve terminal first: on its page or in the Fluid panel")
     );
     place_terminal(&mut d, (760, 300));
@@ -675,10 +675,10 @@ fn prop_row(d: &mut Driver, key: &str) -> (String, String) {
         .unwrap_or_else(|| panic!("no row {key}"))
         .clone();
     let text = match &row.value {
-        ew_ui::ew_viewmodel::properties::RowValue::One { text, .. } => text.clone(),
+        ew_viewmodel::properties::RowValue::One { text, .. } => text.clone(),
         other => format!("{other:?}"),
     };
-    (text, ew_ui::ew_viewmodel::properties::chip_text(&row.provenance))
+    (text, ew_viewmodel::properties::chip_text(&row.provenance))
 }
 
 /// P2-E: the medium could not be found from a tube (Properties showed Line kind, Tube part, Tube length), and Fluid
@@ -811,7 +811,7 @@ fn r2a_a_valve_placed_inside_a_valve_terminals_box_is_its_valve() {
         })
         .expect("the Valve position row");
     assert!(
-        ew_ui::ew_viewmodel::properties::is_primary("device", &row),
+        ew_viewmodel::properties::is_primary("device", &row),
         "Valve position is a Main row"
     );
     let set = json!({"row": "device/derived.position", "value": "4"});
@@ -1001,7 +1001,7 @@ fn r2f_new_medium_from_the_tubes_medium_and_the_supplys_medium() {
     assert_eq!(d.shell_mut().dispatch("props.choose", &choose), Outcome::Done);
     d.settle();
     let action = match d.shell_mut().dialog() {
-        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => f.action,
+        Some(ew_viewmodel::shell::Dialog::Form(f)) => f.action,
         other => panic!("{other:?}"),
     };
     assert_eq!(action, "fluid.medium_new");
@@ -1316,7 +1316,7 @@ fn set_beside(d: &mut Driver, device: Uuid, of: Uuid, steps: (i64, i64)) {
             .clone()
     };
     let (r, o) = (rep(device), rep(of));
-    let grid = ew_ui::ew_viewmodel::tools::wire::PageGridMap::new(tables.grid);
+    let grid = ew_viewmodel::tools::wire::PageGridMap::new(tables.grid);
     let k = |v: i64| grid.index(v);
     let by = [
         k(o.pos.0) + steps.0 - k(r.pos.0),
@@ -1608,7 +1608,7 @@ fn round3_the_generated_overview_stands_in_the_frame_readable_and_titled() {
 /// The device browser's part rows on show, each as (part number, the words of the tree node it stands under), and the
 /// tree's nodes in words.
 fn browser_parts(d: &mut Driver) -> (Vec<(String, String)>, Vec<String>) {
-    use ew_ui::ew_viewmodel::tools::{Node, PickerRow};
+    use ew_viewmodel::tools::{Node, PickerRow};
     let p = d.shell_mut().picker().expect("the device browser");
     let node_of = |category: &str| Node::of_word(category).unwrap_or(Node::Other).words();
     let rows = p
@@ -1905,7 +1905,7 @@ fn f15_a_terminal_is_drawn_as_its_positions_and_filled_where_they_are() {
     assert!(picker.cell.is_some(), "it fills the cell");
     assert!(
         picker.rows.iter().all(|r| match r {
-            ew_ui::ew_viewmodel::tools::PickerRow::Part(p) => picker.catalogue.parts[*p].terminal_valve,
+            ew_viewmodel::tools::PickerRow::Part(p) => picker.catalogue.parts[*p].terminal_valve,
             _ => true,
         }),
         "valves for a terminal only"
@@ -2012,7 +2012,7 @@ fn f15_the_multipin_plug_is_drawn_from_its_terminal_and_names_its_pins() {
         .iter()
         .find_map(|r| r.black_box.as_ref())
         .expect("the plug's box");
-    use ew_ui::ew_viewmodel::ew_api::geometry::Dir;
+    use ew_viewmodel::ew_api::geometry::Dir;
     assert!(
         plug.cps.iter().all(|c| matches!(c.2, Dir::Left | Dir::Right)),
         "pins down the sides: {:?}",
@@ -2066,9 +2066,9 @@ fn rc2_the_multipin_plug_is_drawn_from_the_terminal_on_the_fluid_page() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     let reason = |d: &mut Driver| {
-        ew_ui::ew_viewmodel::actions::find("fluid.draw_plug")
+        ew_viewmodel::actions::find("fluid.draw_plug")
             .and_then(|a| (a.enabled)(d.shell_mut()).err())
-            .map(ew_ui::ew_viewmodel::strings::text)
+            .map(ew_viewmodel::strings::text)
     };
     assert_eq!(
         reason(&mut d),
@@ -2124,7 +2124,7 @@ fn rc2_the_multipin_plug_is_drawn_from_the_terminal_on_the_fluid_page() {
 }
 
 /// The cells of the box of valve terminal `terminal` drawn as its positions on the page shown.
-fn cells_of(d: &mut Driver, terminal: Uuid) -> Vec<ew_ui::ew_viewmodel::ew_api::output::SlotCell> {
+fn cells_of(d: &mut Driver, terminal: Uuid) -> Vec<ew_viewmodel::ew_api::output::SlotCell> {
     let tables = std::sync::Arc::clone(&d.shell_mut().canvas().unwrap().page().tables);
     tables
         .reps
@@ -2172,7 +2172,7 @@ fn rc2_a_terminal_made_as_a_station_is_drawn_on_the_fluid_page() {
         Outcome::Done
     );
     let options: Vec<String> = match d.shell_mut().dialog() {
-        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => f.fields[0]
+        Some(ew_viewmodel::shell::Dialog::Form(f)) => f.fields[0]
             .options
             .iter()
             .map(|(_, words)| words.clone())
@@ -2254,7 +2254,7 @@ fn profinet_terminal(d: &mut Driver, valves: usize) -> Uuid {
 
 /// Whether the To do list of the station view on show still asks for the terminal on a fluid page.
 fn asks_for_fluid_page(d: &mut Driver) -> bool {
-    use ew_ui::ew_viewmodel::shell::station::TodoFix;
+    use ew_viewmodel::shell::station::TodoFix;
     d.shell_mut()
         .station_todo()
         .iter()
@@ -2486,7 +2486,7 @@ fn rc2_a_station_drawn_on_the_schematic_is_drawn_on_the_fluid_page_too() {
 /// heading; the cell's browser lists the valves made for a terminal, the first of them chosen.
 #[test]
 fn rc2_a_terminals_menu_lists_its_positions_from_the_body() {
-    use ew_ui::ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
+    use ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     let terminal = place_multipin(&mut d, (760, 300));
@@ -2520,7 +2520,7 @@ fn rc2_a_terminals_menu_lists_its_positions_from_the_body() {
         .rows
         .iter()
         .filter_map(|r| match r {
-            ew_ui::ew_viewmodel::tools::PickerRow::Part(p) => {
+            ew_viewmodel::tools::PickerRow::Part(p) => {
                 Some(picker.catalogue.parts[*p].part_number.as_str())
             }
             _ => None,
@@ -2536,7 +2536,7 @@ fn rc2_a_terminals_menu_lists_its_positions_from_the_body() {
     assert!(
         matches!(
             picker.rows.get(picker.row),
-            Some(ew_ui::ew_viewmodel::tools::PickerRow::Part(p))
+            Some(ew_viewmodel::tools::PickerRow::Part(p))
                 if picker.catalogue.parts[*p].terminal_valve
         ),
         "the first valve chosen"
@@ -2544,7 +2544,7 @@ fn rc2_a_terminals_menu_lists_its_positions_from_the_body() {
     // Its card names its valve function in words, the part's description, not its category ("Lever onoffvalve").
     let card = picker.card.as_ref().expect("the first valve's card");
     let words = &picker.catalogue.parts[match picker.rows[picker.row] {
-        ew_ui::ew_viewmodel::tools::PickerRow::Part(p) => p,
+        ew_viewmodel::tools::PickerRow::Part(p) => p,
         _ => unreachable!(),
     }]
     .description;
@@ -2620,7 +2620,7 @@ fn supply_ends(d: &mut Driver) -> Vec<(i64, i64)> {
 /// words.
 #[test]
 fn rc2_each_valve_terminal_says_its_kind() {
-    use ew_ui::ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
+    use ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     let multipin = place_multipin(&mut d, (760, 300));
@@ -2799,7 +2799,7 @@ fn rc2_the_solenoid_is_drawn_from_the_coils_row_and_followed_back() {
 /// its fix; Fix all blanks every empty position in one step, and one undo brings them back.
 #[test]
 fn rc2_a_blanking_plate_is_found_from_the_cell_and_the_check() {
-    use ew_ui::ew_viewmodel::tools::PickerRow;
+    use ew_viewmodel::tools::PickerRow;
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     place_terminal(&mut d, (760, 300));
@@ -2868,7 +2868,7 @@ fn rc2_a_blanking_plate_is_found_from_the_cell_and_the_check() {
 /// page chosen, New page… offered) and draws there; with an electrical page in front it draws there, asking nothing.
 #[test]
 fn rc2_draw_plug_draws_where_the_person_is() {
-    use ew_ui::ew_viewmodel::shell::Dialog;
+    use ew_viewmodel::shell::Dialog;
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     let page = json!({"folio": "202", "type": "multi_line", "title": "Clamp controls"});
@@ -2932,7 +2932,7 @@ fn rc2_a_terminal_placed_at_the_frames_edge_stands_inside_it() {
     let mut d = fluid_page(&tmp);
     let area = {
         let page = d.shell_mut().canvas().unwrap().page().clone();
-        ew_ui::ew_viewmodel::tools::ip::drawing_area(&page).expect("a frame grid")
+        ew_viewmodel::tools::ip::drawing_area(&page).expect("a frame grid")
     };
     // A frame under the pointer first, so the canvas reports where it is.
     d.input(&Input::Hover { at: (1000, 600) });
@@ -2983,7 +2983,7 @@ fn rc2_the_medium_row_and_the_tube_mode_say_what_was_chosen() {
         d.shell_mut().dispatch("tool.fluid_line", &json!({})),
         Outcome::Done
     );
-    let hud = ew_ui::ew_viewmodel::command_bar::hud(d.shell_mut());
+    let hud = ew_viewmodel::command_bar::hud(d.shell_mut());
     assert_eq!(hud.tool_label, "Tube");
     d.shell_mut().shutdown();
 }
@@ -3011,7 +3011,7 @@ fn rc2_the_tube_tool_draws_at_once_and_says_its_kind_and_size() {
     assert_eq!(d.shell_mut().tool().name(), "wire");
     let toast = d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
     assert!(toast.starts_with("This project has no default tube"), "{toast}");
-    let hud = |d: &mut Driver| ew_ui::ew_viewmodel::command_bar::hud(d.shell_mut());
+    let hud = |d: &mut Driver| ew_viewmodel::command_bar::hud(d.shell_mut());
     let h = hud(&mut d);
     assert!(
         h.prompt.starts_with("Working line · no default tube"),

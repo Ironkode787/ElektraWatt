@@ -9,7 +9,7 @@
 use crate::support;
 
 use egui::{Modifiers, PointerButton};
-use ew_ui::ew_viewmodel::shell::Outcome;
+use ew_viewmodel::shell::Outcome;
 use ew_ui::visual::{Driver, Input, parse_chord};
 use serde_json::json;
 use support::Tmp;
@@ -59,7 +59,7 @@ fn golden_on_101(tmp: &Tmp) -> Driver {
 
 /// Whether the left rail shows the panel of `word`.
 fn panel_shown(d: &mut Driver, word: &str) -> bool {
-    ew_ui::ew_viewmodel::rail::rail(d.shell_mut())
+    ew_viewmodel::rail::rail(d.shell_mut())
         .left
         .iter()
         .any(|b| b.word == word && b.active)
@@ -236,12 +236,12 @@ fn a_symbols_properties_name_its_symbol_and_definition_in_words() {
     d.settle();
     let rect = d.shell_mut().selected_rects(0)[0];
     let _ = d.shell_mut().dispatch("select.set", &json!({"refs": []}));
-    d.input(&click(pixel(ew_ui::ew_viewmodel::canvas::rect_centre(rect))));
+    d.input(&click(pixel(ew_viewmodel::canvas::rect_centre(rect))));
     d.settle();
     // The definition row waits in the function's closed More (rc.2): open it.
     let more = json!({"category": "more", "kind": "function", "expanded": true});
     let _ = d.shell_mut().dispatch("props.category", &more);
-    let text = ew_ui::ew_viewmodel::describe::describe(d.shell_mut());
+    let text = ew_viewmodel::describe::describe(d.shell_mut());
     let rows: Vec<&str> = text
         .lines()
         .filter(|l| l.contains("row \"representation/symbol\"") || l.contains("row \"function/def\""))
@@ -252,7 +252,7 @@ fn a_symbols_properties_name_its_symbol_and_definition_in_words() {
 }
 
 fn state(d: &mut Driver) -> serde_json::Value {
-    serde_json::from_str(&ew_ui::ew_viewmodel::script::state_json(d.shell_mut())).unwrap()
+    serde_json::from_str(&ew_viewmodel::script::state_json(d.shell_mut())).unwrap()
 }
 
 /// FT-819: Choose part's detail line printed the functions' keys ("functions ew.fn.mcb-1pn"). It names them in words.

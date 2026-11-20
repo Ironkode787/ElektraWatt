@@ -8,7 +8,7 @@
 use crate::support;
 
 use egui_kittest::kittest::Queryable;
-use ew_ui::ew_viewmodel::shell::{Dialog, ShellModel};
+use ew_viewmodel::shell::{Dialog, ShellModel};
 use support::{Scripted, Tmp, harness, settle, wait_for_page};
 
 /// Runs the frame until `done` holds of the shell (600 frames, 20 ms apart), then settles.
@@ -32,7 +32,7 @@ fn wait_until(
 /// The text of the toast on show.
 fn toast(shell: &ShellModel) -> String {
     let state: serde_json::Value =
-        serde_json::from_str(&ew_ui::ew_viewmodel::script::state_json(shell)).unwrap();
+        serde_json::from_str(&ew_viewmodel::script::state_json(shell)).unwrap();
     state["toast"]["text"].as_str().unwrap_or_default().to_owned()
 }
 

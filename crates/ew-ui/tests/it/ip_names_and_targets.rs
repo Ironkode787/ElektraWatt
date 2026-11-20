@@ -9,8 +9,8 @@
 use crate::persona_round::{click, cp_at, key, new_project, page_pixel, pixel_map, state, typed};
 use crate::support::Tmp;
 
-use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
-use ew_ui::ew_viewmodel::shell::Outcome;
+use ew_viewmodel::navigators::{NavKind, NavRole};
+use ew_viewmodel::shell::Outcome;
 use ew_ui::visual::{Driver, Input};
 use serde_json::json;
 
@@ -43,7 +43,7 @@ fn ghost_at(d: &mut Driver, at: (i64, i64)) -> (String, String) {
     d.input(&Input::Hover { at });
     d.settle();
     match d.shell_mut().tool_ghost() {
-        Some(ew_ui::ew_viewmodel::tools::Ghost::Ip { name, direction, .. }) => pair(&name, direction),
+        Some(ew_viewmodel::tools::Ghost::Ip { name, direction, .. }) => pair(&name, direction),
         other => panic!("no interruption point ghost: {other:?}"),
     }
 }
@@ -154,7 +154,7 @@ fn the_hud_says_before_the_click_that_the_next_point_is_where_the_name_arrives()
     place(&mut d, (930, 420));
     assert_eq!(ghost_at(&mut d, (930, 520)), pair("24V", "target"));
     assert_eq!(
-        ew_ui::ew_viewmodel::command_bar::hud(d.shell_mut()).prompt,
+        ew_viewmodel::command_bar::hud(d.shell_mut()).prompt,
         "24V \u{b7} next: where 24V arrives (its source is drawn) \u{b7} D: source"
     );
     d.shell_mut().shutdown();
@@ -314,7 +314,7 @@ fn the_direction_the_bar_shows_is_placed_and_a_point_too_close_says_how_far_apar
         d.input(&click(d.find(button).unwrap()));
         d.settle();
         assert_eq!(ghost_at(&mut d, free).1, word);
-        let hud = ew_ui::ew_viewmodel::command_bar::hud(d.shell_mut()).prompt;
+        let hud = ew_viewmodel::command_bar::hud(d.shell_mut()).prompt;
         assert!(hud.ends_with(&format!("D: {next}")), "{hud}");
     }
     // A free point right above another: refused, with the distance the two must stand apart.

@@ -18,9 +18,9 @@ use egui::{Key, Modifiers};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable as _};
 use ew_ui::app::{App, Pick};
-use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
-use ew_ui::ew_viewmodel::properties::CardOrigin;
-use ew_ui::ew_viewmodel::shell::{Dialog, Focus, Prompt};
+use ew_viewmodel::navigators::{NavKind, NavRole};
+use ew_viewmodel::properties::CardOrigin;
+use ew_viewmodel::shell::{Dialog, Focus, Prompt};
 use support::{Scripted, Tmp, harness, settle, wait_for_page};
 
 fn press(h: &mut Harness<'_, App>, key: Key) {

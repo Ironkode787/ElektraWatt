@@ -12,7 +12,7 @@ use egui::{Key, Modifiers};
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::shell::Outcome;
+use ew_viewmodel::shell::Outcome;
 use serde_json::json;
 use support::{Scripted, Tmp, dispatch, harness, settle, wait_for_page};
 
@@ -143,7 +143,7 @@ fn the_editor_records_a_pressed_chord_and_shows_conflicts_and_shadowing() {
     settle(&mut h);
     h.key_press_modifiers(Modifiers::COMMAND | Modifiers::SHIFT, Key::W);
     settle(&mut h);
-    let wire = ew_ui::ew_viewmodel::actions::find("tool.wire").unwrap();
+    let wire = ew_viewmodel::actions::find("tool.wire").unwrap();
     assert_eq!(h.state().shell().shortcuts_of(wire), ["Ctrl+Shift+W"]);
     assert!(h.state().shell().keymap_editor_open(), "the dialog stays open");
     // Shadowing: the row says what the canvas binding shadows.

@@ -8,7 +8,7 @@
 
 use crate::support;
 
-use ew_ui::ew_viewmodel::shell::Outcome;
+use ew_viewmodel::shell::Outcome;
 use serde_json::json;
 use support::{Scripted, Tmp, harness, settle, wait_for_page};
 
@@ -23,7 +23,7 @@ fn page_describe_makes_exactly_one_page_tables_call_per_revision_and_folio() {
     let shell = |h: &egui_kittest::Harness<'_, ew_ui::app::App>| h.state().shell().session_calls();
     let before = shell(&h);
     let memo_before = h.state().shell().memo_totals().unwrap();
-    let state_before = ew_ui::ew_viewmodel::script::state_json(h.state().shell());
+    let state_before = ew_viewmodel::script::state_json(h.state().shell());
 
     // A folio that is not on show and not in the cache: one page_tables call, one page content.
     let other = if h.state().shell().current_folio() == Some("102") {
@@ -63,7 +63,7 @@ fn page_describe_makes_exactly_one_page_tables_call_per_revision_and_folio() {
 
     // Neither step changed the interface's state.
     assert_eq!(
-        ew_ui::ew_viewmodel::script::state_json(h.state().shell()),
+        ew_viewmodel::script::state_json(h.state().shell()),
         state_before
     );
 }

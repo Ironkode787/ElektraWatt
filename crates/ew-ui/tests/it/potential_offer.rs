@@ -9,7 +9,7 @@
 use crate::support::Tmp;
 
 use egui::{Modifiers, PointerButton};
-use ew_ui::ew_viewmodel::shell::Outcome;
+use ew_viewmodel::shell::Outcome;
 use ew_ui::visual::{Driver, Input};
 use serde_json::json;
 
@@ -54,7 +54,7 @@ fn a2_wire(tmp: &Tmp, feeds: &[(usize, &str, &str)]) -> (Driver, (i64, i64), (i6
         .iter()
         .find(|c| c.polyline.contains(&a) || c.polyline.contains(&b))
         .expect("the A2 wire");
-    let longest = |c: &ew_ui::ew_viewmodel::ew_api::output::TableConnection| {
+    let longest = |c: &ew_viewmodel::ew_api::output::TableConnection| {
         c.polyline
             .windows(2)
             .map(|s| (s[0], s[1]))

@@ -6,9 +6,9 @@
 use crate::support::Tmp;
 
 use egui::{Modifiers, PointerButton};
-use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
-use ew_ui::ew_viewmodel::script::state_json;
-use ew_ui::ew_viewmodel::shell::Outcome;
+use ew_viewmodel::navigators::{NavKind, NavRole};
+use ew_viewmodel::script::state_json;
+use ew_viewmodel::shell::Outcome;
 use ew_ui::visual::{Driver, Input, parse_chord};
 use serde_json::{Value, json};
 
@@ -565,7 +565,7 @@ fn points(d: &mut Driver) -> Vec<(String, String, (i64, i64))> {
 /// The direction the tool's ghost shows.
 fn ghost_direction(d: &mut Driver) -> String {
     match d.shell_mut().tool_ghost() {
-        Some(ew_ui::ew_viewmodel::tools::Ghost::Ip { direction, .. }) => direction.to_owned(),
+        Some(ew_viewmodel::tools::Ghost::Ip { direction, .. }) => direction.to_owned(),
         other => panic!("no interruption point ghost: {other:?}"),
     }
 }

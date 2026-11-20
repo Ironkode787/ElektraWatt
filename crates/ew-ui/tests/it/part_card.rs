@@ -8,7 +8,7 @@ use crate::own_parts::new_project;
 use crate::persona_round::key;
 use crate::support::Tmp;
 
-use ew_ui::ew_viewmodel::shell::Outcome;
+use ew_viewmodel::shell::Outcome;
 use ew_ui::visual::Input;
 use serde_json::json;
 

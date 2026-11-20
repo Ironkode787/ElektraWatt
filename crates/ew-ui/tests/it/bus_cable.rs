@@ -8,8 +8,8 @@ use crate::own_parts::{new_project, place_box, press_cp};
 use crate::persona_round::key;
 use crate::support::Tmp;
 
-use ew_ui::ew_viewmodel::ew_api::{BomMode, Export, Session};
-use ew_ui::ew_viewmodel::shell::{Dialog, Outcome};
+use ew_viewmodel::ew_api::{BomMode, Export, Session};
+use ew_viewmodel::shell::{Dialog, Outcome};
 use serde_json::{Value, json};
 
 /// The value of the option of form field `name` whose words contain `words`.
@@ -56,8 +56,8 @@ fn a_bus_lines_kind_reads_in_words() {
     );
     d.settle();
     let sheet = d.shell_mut().properties().sheet().expect("the sheet").clone();
-    let kind = ew_ui::ew_viewmodel::properties::find_row(&sheet, "connection/kind")
-        .map(|(_, r)| ew_ui::ew_viewmodel::properties::value_text(r));
+    let kind = ew_viewmodel::properties::find_row(&sheet, "connection/kind")
+        .map(|(_, r)| ew_viewmodel::properties::value_text(r));
     assert_eq!(kind.as_deref(), Some("Bus line"));
 }
 
@@ -475,7 +475,7 @@ fn parts_now(d: &mut ew_ui::visual::Driver, nav: bool) -> (Vec<String>, Vec<Stri
     d.settle();
     let nav = d
         .shell_mut()
-        .nav(ew_ui::ew_viewmodel::ew_api::output::NavKind::Parts)
+        .nav(ew_viewmodel::ew_api::output::NavKind::Parts)
         .and_then(|n| n.table())
         .map(|t| {
             t.nodes
@@ -612,7 +612,7 @@ fn the_parts_list_shows_a_bus_lines_plugs_at_once() {
 /// renumber the newer, so no tag stands twice unseen.
 #[test]
 fn an_older_bus_cable_that_meets_a_page_tag_is_reported_with_renumber() {
-    use ew_ui::ew_viewmodel::ew_api::checks::{CheckMode, PRE_DELIVERY};
+    use ew_viewmodel::ew_api::checks::{CheckMode, PRE_DELIVERY};
     let tmp = Tmp::new();
     let (mut d, cpu, rio) = bus_page(&tmp);
     for dp in [true, false] {
@@ -739,9 +739,9 @@ fn a_bus_line_drawn_asks_for_its_cable() {
     let tmp = Tmp::new();
     let (mut d, cpu, rio) = bus_page(&tmp);
     bus_line(&mut d, &cpu, &rio, true);
-    let menu = ew_ui::ew_viewmodel::command_bar::canvas_menu(
+    let menu = ew_viewmodel::command_bar::canvas_menu(
         d.shell_mut(),
-        ew_ui::ew_viewmodel::command_bar::MenuSpot::Object,
+        ew_viewmodel::command_bar::MenuSpot::Object,
         None,
     );
     assert_eq!(

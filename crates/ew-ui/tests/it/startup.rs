@@ -8,8 +8,8 @@ use crate::support;
 
 use egui::Key;
 use egui_kittest::kittest::Queryable;
-use ew_ui::ew_viewmodel::shell::startup::{CRASH_DIR, ENDED_LINE};
-use ew_ui::ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
+use ew_viewmodel::shell::startup::{CRASH_DIR, ENDED_LINE};
+use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
 use support::{Scripted, Tmp, harness_with, settle};
 
 /// A crash log of a session whose panic ended it, at 2026-11-04 10:15 UTC.
@@ -107,7 +107,7 @@ fn crashed_project(tmp: &Tmp, name: &str) -> std::path::PathBuf {
     ] {
         assert_eq!(
             shell.dispatch(action, &params),
-            ew_ui::ew_viewmodel::shell::Outcome::Done,
+            ew_viewmodel::shell::Outcome::Done,
             "{action}"
         );
     }
@@ -141,7 +141,7 @@ fn the_second_of_two_projects_is_chosen_and_recovered() {
     settle(&mut h);
     assert!(h.state().shell().startup_offer().is_none());
     match h.state().shell().dialog() {
-        Some(ew_ui::ew_viewmodel::shell::Dialog::Recovery { name, .. }) => assert_eq!(*name, second),
+        Some(ew_viewmodel::shell::Dialog::Recovery { name, .. }) => assert_eq!(*name, second),
         other => panic!("the recovery of {second}, not {other:?}"),
     }
     h.state_mut().shell_mut().shutdown();
@@ -158,7 +158,7 @@ fn the_privacy_buttons_open_the_bundled_privacy_md() {
     resources.privacy_file = Some(file);
     let config = tmp.config().with_resources(resources);
     let shell = ShellModel::new(Mode::Gui, config.clone());
-    let target = ew_ui::ew_viewmodel::about::privacy_target(&shell);
+    let target = ew_viewmodel::about::privacy_target(&shell);
     assert!(
         target.starts_with("file://") && target.ends_with("/PRIVACY.md"),
         "{target}"

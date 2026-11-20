@@ -10,8 +10,8 @@ use crate::support;
 use std::path::{Path, PathBuf};
 
 use egui::{Key, Modifiers, PointerButton};
-use ew_ui::ew_viewmodel::script::state_json;
-use ew_ui::ew_viewmodel::shell::ShellConfig;
+use ew_viewmodel::script::state_json;
+use ew_viewmodel::shell::ShellConfig;
 use ew_ui::headless::{HeadlessArgs, ScriptSource};
 use ew_ui::visual::{
     self, Driver, FRAME_HEIGHT, FRAME_WIDTH, Geometry, Input, parse_chord, parse_frame, parse_input,
@@ -108,7 +108,7 @@ fn golden_on_101(tmp: &Tmp) -> Driver {
     let opened = d
         .shell_mut()
         .dispatch("file.open", &json!({"dir": golden.to_string_lossy()}));
-    assert_eq!(opened, ew_ui::ew_viewmodel::shell::Outcome::Done);
+    assert_eq!(opened, ew_viewmodel::shell::Outcome::Done);
     let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "101"}));
     d.settle();
     let _ = actions(&mut d);
@@ -277,8 +277,8 @@ fn the_drivers_double_clicks_on_two_rows_open_both() {
 /// them in the release's frame, where the grid reads the click); Ctrl+A marks every row of the filtered table.
 #[test]
 fn shift_and_ctrl_clicks_mark_table_rows_and_ctrl_a_marks_them_all() {
-    use ew_ui::ew_viewmodel::navigators::NavKind;
-    use ew_ui::ew_viewmodel::shell::Outcome;
+    use ew_viewmodel::navigators::NavKind;
+    use ew_viewmodel::shell::Outcome;
     let tmp = Tmp::new();
     let mut d = golden_on_101(&tmp);
     for (action, params) in [
@@ -703,7 +703,7 @@ fn a_click_at_the_extension_reaches_the_widget() {
     let opened = d
         .shell_mut()
         .dispatch("file.open", &json!({"dir": golden.to_string_lossy()}));
-    assert_eq!(opened, ew_ui::ew_viewmodel::shell::Outcome::Done);
+    assert_eq!(opened, ew_viewmodel::shell::Outcome::Done);
     let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "101"}));
     d.settle();
     let _ = actions(&mut d);
@@ -780,7 +780,7 @@ fn the_harness_key_names_are_keys() {
 /// reduced motion on, after a session that set 12 pt and motion.
 #[test]
 fn the_driver_pins_the_minimum_text_size_and_reduced_motion() {
-    use ew_ui::ew_viewmodel::shell::{Mode, Outcome, ShellModel};
+    use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
     let tmp = Tmp::new();
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     assert_eq!(shell.dispatch("view.min_font", &json!({"pt": 12})), Outcome::Done);
@@ -798,7 +798,7 @@ fn the_driver_pins_the_minimum_text_size_and_reduced_motion() {
 /// a double click on the row arms the Wire marker tool, and on the Interruption point row the Interruption tool.
 #[test]
 fn a_click_on_a_tool_s_symbol_in_the_insert_symbol_list_arms_the_tool() {
-    use ew_ui::ew_viewmodel::shell::Outcome;
+    use ew_viewmodel::shell::Outcome;
     let tmp = Tmp::new();
     let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
     d.enable_accesskit();
@@ -841,7 +841,7 @@ fn a_click_on_a_tool_s_symbol_in_the_insert_symbol_list_arms_the_tool() {
 /// the Select tool it opens the page's menu and dismisses nothing.
 #[test]
 fn a_right_click_on_the_page_cancels_the_active_tool() {
-    use ew_ui::ew_viewmodel::shell::Outcome;
+    use ew_viewmodel::shell::Outcome;
     let tmp = Tmp::new();
     let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
     d.enable_accesskit();
@@ -993,8 +993,8 @@ fn a_drag_on_a_selected_wire_edits_its_route_with_the_mouse() {
 /// are done, and Create writes the basic project.
 #[test]
 fn the_wizard_shows_each_steps_result_by_clicks_and_keys_and_creates_the_standard() {
-    use ew_ui::ew_viewmodel::strings;
-    use ew_ui::ew_viewmodel::wizard::Step;
+    use ew_viewmodel::strings;
+    use ew_viewmodel::wizard::Step;
     let tmp = Tmp::new();
     let mut d = Driver::in_folder(tmp.config_with_resources(), None, tmp.0.clone()).unwrap();
     d.enable_accesskit();
@@ -1098,7 +1098,7 @@ fn a_section_is_made_from_the_pages_panel_and_from_the_trees_right_click_menu() 
     d.settle();
     let form = |d: &mut Driver| -> Vec<(String, String)> {
         match d.shell_mut().dialog() {
-            Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => {
+            Some(ew_viewmodel::shell::Dialog::Form(f)) => {
                 assert_eq!(f.action, "section.new");
                 f.fields
                     .iter()
@@ -1180,7 +1180,7 @@ fn a_section_is_made_from_the_pages_panel_and_from_the_trees_right_click_menu() 
     ));
     d.settle();
     match d.shell_mut().dialog() {
-        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => {
+        Some(ew_viewmodel::shell::Dialog::Form(f)) => {
             let value = |name: &str| f.fields.iter().find(|x| x.name == name).unwrap().value.clone();
             assert_eq!(
                 (value("folio"), value("section")),
@@ -1202,7 +1202,7 @@ fn a_section_is_made_from_the_pages_panel_and_from_the_trees_right_click_menu() 
 /// which number), Marker arms the Wire marker, and Symbol editor opens the editor.
 #[test]
 fn the_draw_tab_has_buttons_for_terminal_wire_marker_and_the_symbol_editor() {
-    use ew_ui::ew_viewmodel::shell::Dialog;
+    use ew_viewmodel::shell::Dialog;
     let tmp = Tmp::new();
     let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
     d.enable_accesskit();

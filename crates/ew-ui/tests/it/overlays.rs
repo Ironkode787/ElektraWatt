@@ -22,14 +22,14 @@ use ew_render2d::overlay::{self, OverlayInput};
 use ew_render2d::view::{PxRect, View};
 use ew_ui::app::App;
 use ew_ui::canvas_chips::ChipKind;
-use ew_ui::ew_viewmodel::canvas::HOVER_SLOP_PT;
-use ew_ui::ew_viewmodel::canvas::chip::CHIP_OFFSET;
+use ew_viewmodel::canvas::HOVER_SLOP_PT;
+use ew_viewmodel::canvas::chip::CHIP_OFFSET;
 use ew_dl::EntityRef;
 use ew_units::{Nm, Rect as SheetRect};
-use ew_ui::ew_viewmodel::highlight::SLOT_COLOURS;
-use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
-use ew_ui::ew_viewmodel::shell::{Mode, ShellModel};
-use ew_ui::ew_viewmodel::tools::pick_stack;
+use ew_viewmodel::highlight::SLOT_COLOURS;
+use ew_viewmodel::navigators::{NavKind, NavRole};
+use ew_viewmodel::shell::{Mode, ShellModel};
+use ew_viewmodel::tools::pick_stack;
 use serde_json::{Value, json};
 use support::{Tmp, dispatch, done, on_golden, settle};
 
@@ -678,7 +678,7 @@ fn the_link_preview_has_a_named_region() {
         .cloned()
         .expect("a link to a cell of another page");
     let target = link.target.clone().unwrap();
-    let p = ew_ui::ew_viewmodel::canvas::rect_centre(link.rect);
+    let p = ew_viewmodel::canvas::rect_centre(link.rect);
     // The window's pointer rests over the link (its screen point from the canvas's view) until the preview shows.
     let bounds = h
         .get_all_by_role(egui::Role::Canvas)

@@ -19,9 +19,9 @@ use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_testdir::copy_dir;
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
-use ew_ui::ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellModel};
-use ew_ui::ew_viewmodel::strings;
+use ew_viewmodel::navigators::{NavKind, NavRole};
+use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellModel};
+use ew_viewmodel::strings;
 use serde_json::{Value, json};
 use support::{Scripted, Tmp, dispatch, harness, on_golden, settle, wait_for_page};
 
@@ -158,14 +158,14 @@ fn check_form(h: &mut Harness<'_, App>, action: &str, params: Value) -> String {
     };
     assert_eq!(form.action, action);
     // An action that asks when it is given nothing says so with "…" (doc 16a §8 item 8).
-    if let (true, Some(meta)) = (bare, ew_ui::ew_viewmodel::actions::find(action)) {
+    if let (true, Some(meta)) = (bare, ew_viewmodel::actions::find(action)) {
         let label = strings::text(strings::Key::run_time(&meta.label_key()));
         assert!(
             label.ends_with('…'),
             "{action} asks with a form, so its label \"{label}\" ends with …"
         );
     }
-    let primary = ew_ui::ew_viewmodel::dialogs::spec(&Dialog::Form(form.clone()), h.state().shell())
+    let primary = ew_viewmodel::dialogs::spec(&Dialog::Form(form.clone()), h.state().shell())
         .primary
         .label;
     match form.fields.iter().find(|f| f.is_text()) {
@@ -190,7 +190,7 @@ fn check_form(h: &mut Harness<'_, App>, action: &str, params: Value) -> String {
             );
         }
     }
-    let toggles = |f: &ew_ui::ew_viewmodel::shell::FormDialog| -> Vec<String> {
+    let toggles = |f: &ew_viewmodel::shell::FormDialog| -> Vec<String> {
         f.fields
             .iter()
             .filter(|x| x.is_toggle())
@@ -400,9 +400,9 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
             .iter()
             .find_map(|rep| {
                 dispatch(&mut h, "select.set", json!({ "ids": [rep] }));
-                let menu = ew_ui::ew_viewmodel::command_bar::canvas_menu(
+                let menu = ew_viewmodel::command_bar::canvas_menu(
                     h.state().shell(),
-                    ew_ui::ew_viewmodel::command_bar::MenuSpot::Object,
+                    ew_viewmodel::command_bar::MenuSpot::Object,
                     None,
                 );
                 menu.into_iter().find(|i| i.id == action).map(|i| i.params)
@@ -678,7 +678,7 @@ fn w49_2_f1_enter_on_a_forms_check_box_does_nothing() {
         }
         other => panic!("the form stays open: {other:?}"),
     };
-    let label = strings::text(ew_ui::ew_viewmodel::key!("form-include-frozen"));
+    let label = strings::text(ew_viewmodel::key!("form-include-frozen"));
     let focused = |h: &Harness<'_, App>| {
         h.get_all_by_role(egui::Role::CheckBox)
             .any(|n| n.accesskit_node().is_focused() && n.accesskit_node().label().as_deref() == Some(label))
