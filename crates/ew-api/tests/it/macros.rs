@@ -1,14 +1,14 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Macros: `Session::save_macro` of the PSU block of folio 102 and of the
-//! valve page 206 into a fixture user library, `insert_macro` with new identities and derived tags and
+//! Macros, on the sample project: `Session::save_macro` of its supply page 101, of the power supply with its input
+//! breaker, and of the pneumatics page 201 into a fixture user library, `insert_macro` with new identities and derived
+//! tags and
 //! `macro_conflicts` on the preview, the replay of the command with no library, twice-run determinism, the
 //! variables, value sets and placeholder groups, the refusals of `macro.insert`, and the old and new
 //! fragment forms (ADR-0011 amendment 5).
 
-use crate::common::{Dir, tiers};
-use crate::golden_common;
+use crate::common::{self, Dir, tiers};
 
 use ew_api::library::{LibraryTiers, Registry};
 use ew_api::window::parse_fragment;
@@ -18,7 +18,7 @@ use ew_api::{
 };
 use ew_ids::Uuid;
 use ew_mltext::MlText;
-use ew_schema::{LibDocument, Record};
+use ew_schema::LibDocument;
 use serde_json::{Value, json};
 
 /// A fresh, empty user library.
@@ -32,23 +32,37 @@ fn user_library(name: &str) -> (Dir, LibraryTiers, Uuid) {
     (root, t, lib)
 }
 
-/// Golden A with the libraries of `tiers` (in memory; the fixture is not opened).
-fn golden(tiers: Option<LibraryTiers>) -> Session {
-    let batch = golden_common::batch();
-    let mut project = None;
-    let mut records = Vec::new();
-    for r in &batch.records {
-        match r {
-            Record::Project(p) => project = Some(p.clone()),
-            other => records.push(other.clone()),
-        }
-    }
+/// The sample with the libraries of `tiers`, over its records in memory.
+fn sample(tiers: Option<LibraryTiers>) -> Session {
+    let (project, records, lib) = common::sample_records();
     let options = SessionOptions {
         libraries: tiers,
         ids: Some(ew_testids::seeded_ids(36)),
         ..SessionOptions::default()
     };
-    Session::from_records(project.unwrap(), records, batch.lib.clone(), options).unwrap()
+    Session::from_records(project, records, lib, options).unwrap()
+}
+
+/// The printed tag of every device.
+fn tags(s: &Session) -> Vec<String> {
+    let q = s.query();
+    let mut out: Vec<String> = q
+        .devices()
+        .ids()
+        .filter_map(|id| q.get::<ew_derive::DeviceTag>(id).as_ref().as_ref().map(|t| t.short()))
+        .collect();
+    out.sort();
+    out
+}
+
+/// The folio labels in page order.
+fn folios(s: &Session) -> Vec<String> {
+    let q = s.query();
+    q.get::<ew_derive::PageOrder>(())
+        .entries
+        .iter()
+        .map(|e| e.folio.clone())
+        .collect()
 }
 
 fn page_of(s: &Session, folio: &str) -> Uuid {
@@ -59,7 +73,7 @@ fn device(s: &Session, tag: &str) -> Uuid {
     s.resolve_reference(&format!("tag:{tag}")).expect(tag)
 }
 
-/// Every representation, connection and junction of `folio`: the PSU block of 102 is the whole page.
+/// Every representation, connection and junction of `folio`.
 fn whole_page(s: &Session, folio: &str) -> Vec<Uuid> {
     let t = s.page_tables(folio).expect("a drawn page");
     t.reps
@@ -70,24 +84,38 @@ fn whole_page(s: &Session, folio: &str) -> Vec<Uuid> {
         .collect()
 }
 
-/// The supply and its two breakers with the wires between them, without the interruption points (whose source
-/// points EW-CORE-052 allows once per name).
+/// The power supply -101G1 and its input breaker -101F1 with the two wires between them, without the interruption
+/// points (whose source points EW-CORE-052 allows once per name).
 fn psu_core(s: &Session) -> Vec<Uuid> {
-    let t = s.page_tables("102").expect("a drawn page");
+    let t = s.page_tables("101").expect("a drawn page");
+    let devices = [device(s, "-101F1"), device(s, "-101G1")];
+    let functions: Vec<Uuid> = t
+        .reps
+        .iter()
+        .filter(|r| r.device.is_some_and(|d| devices.contains(&d)))
+        .flat_map(|r| r.functions.clone())
+        .collect();
+    let inside = |e: &ew_api::output::TableEnd| {
+        matches!(e, ew_api::output::TableEnd::Cp { function, .. } if functions.contains(function))
+    };
     t.reps
         .iter()
-        .filter(|r| r.device.is_some())
+        .filter(|r| r.device.is_some_and(|d| devices.contains(&d)))
         .map(|r| r.id)
-        .chain(t.connections.iter().map(|c| c.id))
-        .chain(t.junctions.iter().map(|j| j.id))
+        .chain(
+            t.connections
+                .iter()
+                .filter(|c| inside(&c.a) && inside(&c.b))
+                .map(|c| c.id),
+        )
         .collect()
 }
 
-/// The whole PSU block of 102, interruption points included.
-fn psu_block(s: &Session) -> MacroSpec {
+/// A whole page as one window macro, interruption points included.
+fn page_block(s: &Session, folio: &str) -> MacroSpec {
     MacroSpec {
-        key: "psu-block".into(),
-        scope: MacroScope::Window(whole_page(s, "102")),
+        key: format!("page-{folio}"),
+        scope: MacroScope::Window(whole_page(s, folio)),
         ..psu_spec(s)
     }
 }
@@ -96,7 +124,7 @@ fn psu_spec(s: &Session) -> MacroSpec {
     MacroSpec {
         key: "psu-24vdc".into(),
         name: MlText::neutral("PSU 24 V DC"),
-        description: MlText::neutral("Power supply with two output breakers"),
+        description: MlText::neutral("Power supply with its input breaker"),
         scope: MacroScope::Window(psu_core(s)),
         origin: None,
         keep_tags: Vec::new(),
@@ -106,13 +134,13 @@ fn psu_spec(s: &Session) -> MacroSpec {
     }
 }
 
-/// Folio 105: a new multi-line page in 102's section and structure.
-fn add_folio_105(s: &mut Session) -> Uuid {
-    let p102 = page_of(s, "102");
+/// Folio 106: a new multi-line page in 101's section and structure.
+fn add_folio_106(s: &mut Session) -> Uuid {
+    let p101 = page_of(s, "101");
     let q = s.query();
-    let page = serde_json::to_value(q.pages().get(ew_ids::Id::from_uuid(p102)).unwrap().as_ref()).unwrap();
+    let page = serde_json::to_value(q.pages().get(ew_ids::Id::from_uuid(p101)).unwrap().as_ref()).unwrap();
     drop(q);
-    let mut params = json!({"number": 105, "title": "Power Supply 5"});
+    let mut params = json!({"number": 106, "title": "Power Supply 6"});
     if let Some(section) = page["folio"].get("section") {
         params["section"] = section.clone();
     }
@@ -124,7 +152,7 @@ fn add_folio_105(s: &mut Session) -> Uuid {
         params,
     })
     .unwrap();
-    page_of(s, "105")
+    page_of(s, "106")
 }
 
 fn commit(s: &mut Session, cmd: &AnyCommand) {
@@ -140,15 +168,16 @@ fn free_point() -> ew_units::Pt2 {
 
 const INSTANCE: Uuid = Uuid::from_u128(0x0190_0000_0000_7000_8000_0000_0000_0105);
 
-/// MC-1 and MC-3 (the card): the whole PSU block of 102 saves as one window macro into a user library; the parts
-/// and symbols are named by reference and, as Golden A's library is not installed, reported unresolved; a second
-/// save of the key is the next minor version of the same item. Inserted on a new folio 105, the conflicts list the
-/// pairings of L-1, N-1 and the second sources of 24VDC-1 … 4, which EW-CORE-052 refuses until they are resolved.
+/// MC-1 and MC-3 (the card): the whole supply page 101 saves as one window macro into a user library; the parts and
+/// symbols are named by reference, and the sample's (the starter's) all resolve; a second save of the key is the next
+/// minor version of the same item. Inserted on a new folio 106, the conflicts list the second sources of 101's six
+/// outgoing marks (1L1, 1L2, 1L3, PE, 0V, 24V), which EW-CORE-052 refuses until they are resolved; the control page
+/// 102 inserted so lists the pairings of its incoming marks 24V, 0V and PE.
 #[test]
 fn the_psu_block_saves_and_its_insertion_lists_the_conflicts() {
     let (_root, t, lib) = user_library("ew-api-mc1");
-    let mut s = golden(Some(t));
-    let saved = s.save_macro(lib, &psu_block(&s)).unwrap();
+    let mut s = sample(Some(t));
+    let saved = s.save_macro(lib, &page_block(&s, "101")).unwrap();
     assert_eq!(saved.version, "1.0.0");
     assert_eq!(saved.reference.version_req.to_string(), "^1.0.0");
     let doc = s.libraries().resolve(&saved.reference).unwrap();
@@ -166,36 +195,54 @@ fn the_psu_block_saves_and_its_insertion_lists_the_conflicts() {
     );
     let refs = fragment["lib"].as_array().unwrap();
     assert!(!refs.is_empty(), "the parts and symbols are named by reference");
-    assert!(
-        !saved.unresolved.is_empty(),
-        "Golden A's library is not installed"
-    );
-    for r in &saved.unresolved {
-        assert!(
-            refs.contains(&serde_json::to_value(r).unwrap()),
-            "{r:?} is one of the references"
-        );
-    }
-    let again = s.save_macro(lib, &psu_block(&s)).unwrap();
+    assert_eq!(saved.unresolved, [], "the starter's libraries are installed");
+    let again = s.save_macro(lib, &page_block(&s, "101")).unwrap();
     assert_eq!(
         (again.version.as_str(), again.reference.item),
         ("1.1.0", saved.reference.item)
     );
 
-    let p105 = add_folio_105(&mut s);
-    let cmd = s
-        .insert_macro(
-            &saved.reference,
+    let p106 = add_folio_106(&mut s);
+    let insert = |s: &Session, reference, instance| {
+        s.insert_macro(
+            reference,
             &InsertAt {
-                page: p105,
+                page: p106,
                 at: Some(free_point()),
                 orient: ew_units::Orient2::R0,
             },
             &MacroValues::default(),
-            INSTANCE,
+            instance,
         )
-        .unwrap();
+        .unwrap()
+    };
+    let cmd = insert(&s, &saved.reference, INSTANCE);
     assert_eq!(cmd.name, "macro.insert");
+    let conflicts = s.macro_conflicts(&cmd).unwrap();
+    let refused: Vec<&str> = conflicts
+        .iter()
+        .filter_map(|c| match c {
+            MacroConflict::Refused { rule, message } if rule == "EW-CORE-052" => Some(message.as_str()),
+            _ => None,
+        })
+        .collect();
+    for name in ["1L1", "1L2", "1L3", "PE", "0V", "24V"] {
+        assert!(
+            refused.iter().any(|m| m.contains(&format!("point {name}:"))),
+            "{name} in {conflicts:?}"
+        );
+    }
+    assert!(
+        !conflicts.iter().any(|c| matches!(c, MacroConflict::Tag(_))),
+        "the tags derive on 106: {conflicts:?}"
+    );
+    match s.preview(&cmd) {
+        Err(CmdError::Prevented { rule, .. }) => assert_eq!(rule, "EW-CORE-052"),
+        other => panic!("expected the second sources refused, got {other:?}"),
+    }
+    // The control page's incoming marks pair with 101's sources.
+    let control = s.save_macro(lib, &page_block(&s, "102")).unwrap();
+    let cmd = insert(&s, &control.reference, Uuid::from_u128(0x0190_0000_0000_7000_8000_0000_0000_0102));
     let conflicts = s.macro_conflicts(&cmd).unwrap();
     let pairs: Vec<&str> = conflicts
         .iter()
@@ -204,46 +251,25 @@ fn the_psu_block_saves_and_its_insertion_lists_the_conflicts() {
             _ => None,
         })
         .collect();
-    for name in ["L-1", "N-1"] {
+    for name in ["24V", "0V", "PE"] {
         assert!(pairs.contains(&name), "{name} in {conflicts:?}");
-    }
-    let refused: Vec<&str> = conflicts
-        .iter()
-        .filter_map(|c| match c {
-            MacroConflict::Refused { rule, message } if rule == "EW-CORE-052" => Some(message.as_str()),
-            _ => None,
-        })
-        .collect();
-    for name in ["24VDC-1", "24VDC-2", "24VDC-3", "24VDC-4"] {
-        assert!(
-            refused.iter().any(|m| m.contains(&format!("point {name}:"))),
-            "{name} in {conflicts:?}"
-        );
-    }
-    assert!(
-        !conflicts.iter().any(|c| matches!(c, MacroConflict::Tag(_))),
-        "the tags derive on 105: {conflicts:?}"
-    );
-    match s.preview(&cmd) {
-        Err(CmdError::Prevented { rule, .. }) => assert_eq!(rule, "EW-CORE-052"),
-        other => panic!("expected the second sources refused, got {other:?}"),
     }
 }
 
-/// MC-3: the supply and its breakers inserted on folio 105 yield -105G1, -105F1, -105F2 with the IDs
+/// MC-3: the supply and its breaker inserted on folio 106 yield -106G1 and -106F1 with the IDs
 /// v5(instance, local) (D13), one undo step, no conflict.
 #[test]
 fn the_psu_inserts_with_new_identities_and_derived_tags() {
     let (_root, t, lib) = user_library("ew-api-mc3");
-    let mut s = golden(Some(t));
+    let mut s = sample(Some(t));
     let saved = s.save_macro(lib, &psu_spec(&s)).unwrap();
-    let p105 = add_folio_105(&mut s);
+    let p106 = add_folio_106(&mut s);
     let undo_depth = s.history().entries().len();
     let cmd = s
         .insert_macro(
             &saved.reference,
             &InsertAt {
-                page: p105,
+                page: p106,
                 at: Some(free_point()),
                 orient: ew_units::Orient2::R0,
             },
@@ -252,40 +278,40 @@ fn the_psu_inserts_with_new_identities_and_derived_tags() {
         )
         .unwrap();
     assert_eq!(s.macro_conflicts(&cmd).unwrap(), []);
-    let before = golden_common::tags(&s).len();
+    let before = tags(&s).len();
     commit(&mut s, &cmd);
     assert_eq!(s.history().entries().len(), undo_depth + 1, "one undo step");
-    for tag in ["-105G1", "-105F1", "-105F2", "-102G1", "-102F1", "-102F2"] {
+    for tag in ["-106G1", "-106F1", "-101G1", "-101F1"] {
         device(&s, tag);
     }
-    assert_eq!(golden_common::tags(&s).len(), before + 3);
+    assert_eq!(tags(&s).len(), before + 2);
     let q = s.query();
     let inst = q
         .table::<ew_schema::MacroInstance>()
         .get(ew_ids::Id::from_uuid(INSTANCE))
         .expect("the instance record");
-    let g1 = device(&s, "-102G1");
+    let g1 = device(&s, "-101G1");
     let g1_new = Uuid::new_v5(&INSTANCE, g1.hyphenated().to_string().as_bytes());
     assert!(
         inst.members
             .iter()
             .any(|(local, new)| local.as_uuid() == g1 && new.as_uuid() == g1_new),
-        "-105G1 is v5(instance, -102G1)"
+        "-106G1 is v5(instance, -101G1)"
     );
-    assert_eq!(device(&s, "-105G1"), g1_new);
-    assert_eq!(inst.page.as_uuid(), p105);
+    assert_eq!(device(&s, "-106G1"), g1_new);
+    assert_eq!(inst.page.as_uuid(), p106);
     drop(q);
     s.undo(&ew_api::Origin::Gui).unwrap();
-    assert!(s.resolve_reference("tag:-105G1").is_err());
+    assert!(s.resolve_reference("tag:-106G1").is_err());
 }
 
-/// MC-2: page 206 saved as a page macro and inserted after 206 creates folio 207 with the module, its channels and
-/// the valves.
+/// MC-2: the pneumatics page 201 saved as a page macro and inserted after 201 creates folio 202 with the valve
+/// terminal, its channels and the valves.
 #[test]
-fn a_page_macro_inserted_after_206_proposes_207() {
+fn a_page_macro_inserted_after_201_proposes_202() {
     let (_root, t, lib) = user_library("ew-api-mc2");
-    let mut s = golden(Some(t));
-    let p206 = page_of(&s, "206");
+    let mut s = sample(Some(t));
+    let p206 = page_of(&s, "201");
     let spec = MacroSpec {
         key: "valve-page".into(),
         name: MlText::neutral("Valve manifold page"),
@@ -321,27 +347,27 @@ fn a_page_macro_inserted_after_206_proposes_207() {
         )
         .unwrap();
     commit(&mut s, &cmd);
-    let folios = golden_common::folios(&s);
-    let at = folios.iter().position(|f| f == "206").unwrap();
-    assert_eq!(folios[at + 1], "207", "{folios:?}");
+    let folios = folios(&s);
+    let at = folios.iter().position(|f| f == "201").unwrap();
+    assert_eq!(folios[at + 1], "202", "{folios:?}");
     assert!(s.query().table::<ew_schema::Channel>().iter().count() > channels_before);
-    s.page_tables("207").expect("a drawn page 207");
+    s.page_tables("202").expect("a drawn page 202");
 }
 
 /// MC-6: the command carries the macro and replays from a command log on a session with no library.
 #[test]
 fn the_insertion_replays_with_no_library() {
     let (_root, t, lib) = user_library("ew-api-mc6");
-    let mut s = golden(Some(t));
+    let mut s = sample(Some(t));
     let saved = s.save_macro(lib, &psu_spec(&s)).unwrap();
-    let p105 = add_folio_105(&mut s);
+    let p106 = add_folio_106(&mut s);
     let create = s.history().entries().len();
     assert_eq!(create, 1);
     let cmd = s
         .insert_macro(
             &saved.reference,
             &InsertAt {
-                page: p105,
+                page: p106,
                 at: Some(free_point()),
                 orient: ew_units::Orient2::R0,
             },
@@ -358,18 +384,18 @@ fn the_insertion_replays_with_no_library() {
     assert_eq!(
         kinds,
         ["macro"],
-        "Golden A holds the closure; the macro is carried"
+        "the sample holds the closure; the macro is carried"
     );
     commit(&mut s, &cmd);
 
-    let mut replay = golden(None);
-    add_folio_105(&mut replay);
+    let mut replay = sample(None);
+    add_folio_106(&mut replay);
     let line = json!({"cmd": cmd.name, "params": cmd.params});
     let text = format!("{{\"$schema\":\"ew.cmdlog/1\",\"label\":\"MC-6\"}}\n{line}\n");
     replay
         .run_script(&CmdLog::parse(&text).unwrap(), "mc6.ewcmd")
         .unwrap();
-    assert_eq!(golden_common::tags(&replay), golden_common::tags(&s));
+    assert_eq!(tags(&replay), tags(&s));
     assert_eq!(
         replay
             .query()
@@ -387,15 +413,15 @@ fn the_insertion_replays_with_no_library() {
 
 fn saved_bytes(name: &str) -> (SavedMacro, Value, AnyCommand) {
     let (_root, t, lib) = user_library(name);
-    let mut s = golden(Some(t));
+    let mut s = sample(Some(t));
     let saved = s.save_macro(lib, &psu_spec(&s)).unwrap();
     let doc = serde_json::to_value(s.libraries().resolve(&saved.reference).unwrap()).unwrap();
-    let p105 = add_folio_105(&mut s);
+    let p106 = add_folio_106(&mut s);
     let cmd = s
         .insert_macro(
             &saved.reference,
             &InsertAt {
-                page: p105,
+                page: p106,
                 at: Some(free_point()),
                 orient: ew_units::Orient2::R0,
             },
@@ -434,18 +460,18 @@ fn save_and_insert_are_deterministic() {
 #[test]
 fn values_bind_fields_and_a_false_group_is_dropped() {
     let (_root, t, lib) = user_library("ew-api-macro-values");
-    let mut s = golden(Some(t));
-    let g1 = device(&s, "-102G1");
-    let f2 = device(&s, "-102F2");
+    let mut s = sample(Some(t));
+    let g1 = device(&s, "-101G1");
+    let f1 = device(&s, "-101F1");
     let mut spec = psu_spec(&s);
     spec.key = "psu-values".into();
     spec.variables = serde_json::from_value(json!([
         {"name": "pt", "ty": "process_tag", "bindings": [{"record": g1.to_string(), "field": "device.process_tag"}]},
-        {"name": "with_f2", "ty": "bool", "default": true}
+        {"name": "with_f1", "ty": "bool", "default": true}
     ]))
     .unwrap();
     spec.groups = serde_json::from_value(json!([
-        {"name": "second_output", "members": [f2.to_string()], "include": "with_f2"}
+        {"name": "input_breaker", "members": [f1.to_string()], "include": "with_f1"}
     ]))
     .unwrap();
     spec.value_sets = serde_json::from_value(json!([
@@ -453,12 +479,12 @@ fn values_bind_fields_and_a_false_group_is_dropped() {
     ]))
     .unwrap();
     let saved = s.save_macro(lib, &spec).unwrap();
-    let p105 = add_folio_105(&mut s);
+    let p106 = add_folio_106(&mut s);
     let insert = |s: &Session, values: MacroValues, instance: u128| {
         s.insert_macro(
             &saved.reference,
             &InsertAt {
-                page: p105,
+                page: p106,
                 at: Some(free_point()),
                 orient: ew_units::Orient2::R0,
             },
@@ -481,16 +507,15 @@ fn values_bind_fields_and_a_false_group_is_dropped() {
         &s,
         MacroValues {
             value_set: Some("a".into()),
-            values: [("with_f2".to_owned(), json!(false))].into(),
+            values: [("with_f1".to_owned(), json!(false))].into(),
         },
         1,
     );
     commit(&mut s, &cmd);
-    assert_eq!(process_tag(&s, "-105G1").as_deref(), Some("PSU-A"));
-    assert!(s.resolve_reference("tag:-105F1").is_ok());
+    assert_eq!(process_tag(&s, "-106G1").as_deref(), Some("PSU-A"));
     assert!(
-        s.resolve_reference("tag:-105F2").is_err(),
-        "the second output is dropped"
+        s.resolve_reference("tag:-106F1").is_err(),
+        "the input breaker is dropped"
     );
     s.undo(&ew_api::Origin::Gui).unwrap();
     // A literal wins over the value set; the default includes the group.
@@ -503,8 +528,8 @@ fn values_bind_fields_and_a_false_group_is_dropped() {
         2,
     );
     commit(&mut s, &cmd);
-    assert_eq!(process_tag(&s, "-105G1").as_deref(), Some("PSU-B"));
-    assert!(s.resolve_reference("tag:-105F2").is_ok());
+    assert_eq!(process_tag(&s, "-106G1").as_deref(), Some("PSU-B"));
+    assert!(s.resolve_reference("tag:-106F1").is_ok());
     // A value set the macro does not have (or a name that is no identifier) is refused at `/value_set`, naming it
     // and the macro's sets.
     for name in ["zzz", "not a name"] {
@@ -512,7 +537,7 @@ fn values_bind_fields_and_a_false_group_is_dropped() {
             .insert_macro(
                 &saved.reference,
                 &InsertAt {
-                    page: p105,
+                    page: p106,
                     at: Some(free_point()),
                     orient: ew_units::Orient2::R0,
                 },
@@ -538,8 +563,8 @@ fn values_bind_fields_and_a_false_group_is_dropped() {
 #[test]
 fn an_inconsistent_spec_is_refused_with_its_pointer() {
     let (_root, t, lib) = user_library("ew-api-macro-spec");
-    let mut s = golden(Some(t));
-    let g1 = device(&s, "-102G1");
+    let mut s = sample(Some(t));
+    let g1 = device(&s, "-101G1");
     let mut spec = psu_spec(&s);
     spec.variables = serde_json::from_value(json!([
         {"name": "x", "ty": "text", "bindings": [{"record": g1.to_string(), "field": "device.id"}]}
@@ -563,7 +588,7 @@ fn an_inconsistent_spec_is_refused_with_its_pointer() {
 #[test]
 fn a_save_into_a_read_only_library_is_refused() {
     let (_root, t, _lib) = user_library("ew-api-macro-ro");
-    let mut s = golden(Some(t));
+    let mut s = sample(Some(t));
     assert_eq!(
         s.save_macro(ew_api::library::starter::LIBRARY, &psu_spec(&s))
             .unwrap_err(),
@@ -582,14 +607,14 @@ fn invalid_path(e: CmdError) -> String {
 #[test]
 fn macro_insert_refusals_name_their_pointer() {
     let (_root, t, lib) = user_library("ew-api-macro-refusals");
-    let mut s = golden(Some(t));
+    let mut s = sample(Some(t));
     let saved = s.save_macro(lib, &psu_spec(&s)).unwrap();
-    let p105 = add_folio_105(&mut s);
+    let p106 = add_folio_106(&mut s);
     let good = s
         .insert_macro(
             &saved.reference,
             &InsertAt {
-                page: p105,
+                page: p106,
                 at: Some(free_point()),
                 orient: ew_units::Orient2::R0,
             },
@@ -625,8 +650,9 @@ fn macro_insert_refusals_name_their_pointer() {
 /// widened object form; `edit.paste` refuses pages; the text form still refuses a channel line.
 #[test]
 fn old_fragments_round_trip_and_new_content_is_refused_where_it_does_not_belong() {
-    let mut s = golden(None);
+    let mut s = sample(None);
     let copied = s.copy_fragment(&whole_page(&s, "102")).unwrap();
+
     let old = parse_fragment(&copied.text).unwrap().params;
     let typed: ew_commands::commands::Fragment = serde_json::from_value(old.clone()).unwrap();
     assert_eq!(
