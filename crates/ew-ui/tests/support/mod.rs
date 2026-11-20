@@ -352,7 +352,24 @@ pub fn availability_problems(harness: &Harness<'_, App>, surface: &str) -> Vec<S
     let bar = command_bar::command_bar(shell);
     let mut problems = Vec::new();
     let menu_button = strings::text(key!("commandbar-menu"));
+    // The names on show, read in one walk (a label's text is its value, as the query reads it): a name no node bears
+    // has no node to check, and the query walks the whole tree once per name, which cost about 50 ms per settle.
+    let shown: std::collections::BTreeSet<String> = harness
+        .root()
+        .children_recursive()
+        .filter_map(|n| {
+            let n = n.accesskit_node();
+            if n.role() == Role::Label {
+                n.value()
+            } else {
+                n.label()
+            }
+        })
+        .collect();
     let mut check = |label: &str, in_menu: bool| {
+        if !shown.contains(label) {
+            return;
+        }
         for node in harness.query_all_by_label(label) {
             // The app menu's entries are children of its button ("Menu"); a context menu's are not.
             let at_place = if in_menu {
