@@ -496,8 +496,14 @@ impl Query for PageConnectionsOf {
     fn run(q: &Q, key: &Id<Page>) -> Arc<Vec<ConnectionView>> {
         let mut out = Vec::new();
         let grouped = grouped_connections(q, *key);
+        let grid = page_grid(q, PageRef::Drawn(*key));
         for cid in q.idx().connections_by_page(*key) {
-            let Some(c) = q.connections().get(cid).cloned() else {
+            // As read: a vertex within 1 nm of a grid position on the grid's own number (06a §2.1).
+            let Some(c) = q
+                .connections()
+                .get(cid)
+                .map(|c| ew_derive::read_connection(c, grid))
+            else {
                 continue;
             };
             let marker = connection_marker(q, &c, grouped.contains(&cid));
@@ -585,9 +591,11 @@ impl Query for PageJunctionsOf {
 
     fn run(q: &Q, key: &Id<Page>) -> Arc<Vec<JunctionView>> {
         let generic = generic_symbols();
+        let grid = page_grid(q, PageRef::Drawn(*key));
         let mut out = Vec::new();
         for jid in q.idx().junctions_by_page(*key) {
-            let Some(j) = q.junctions().get(jid).cloned() else {
+            // As read: a point within 1 nm of a grid position on the grid's own number (06a §2.1).
+            let Some(j) = q.junctions().get(jid).map(|j| ew_derive::read_junction(j, grid)) else {
                 continue;
             };
             let symbol = match j.style {

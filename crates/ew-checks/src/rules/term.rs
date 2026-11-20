@@ -903,10 +903,11 @@ impl Rule for TerminalOnUnjoinedWire {
             [&c.a, &c.b].into_iter().any(|e| match e {
                 Endpoint::Junction(j) => {
                     q.junctions().get(*j).is_some_and(|j| {
+                        let at = ew_derive::read_junction(j, ew_derive::page_grid(q, page)).at;
                         j.page == page
                             && cp_points
                                 .get(&terminal)
-                                .is_some_and(|p| p.contains(&(j.at.x.0, j.at.y.0)))
+                                .is_some_and(|p| p.contains(&(at.x.0, at.y.0)))
                     }) && q
                         .idx()
                         .connections_at(EndpointKey::Junction(*j))

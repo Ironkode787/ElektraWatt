@@ -891,6 +891,7 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   `route.reroute` removed (`layout.route` replaces both) (06a §7.1, §8)
 - behaviour-change: on a page of the QElectroTech grid a connection point's point is the grid's own number of its
   position where the symbol's place plus the pin's offset adds up to 1 nm beside it; the comparisons that read points
-  "settled" go; a route stored by an older build draws and measures as before; Golden A's routes regenerated, 38
-  coordinates moved by 1 nm (06a §2.1)
+  "settled" go; a route and a junction of a drawing made by an older build are read on the grid's numbers too, so a
+  symbol dropped on its wire is wired in and the checks meet its wires as before; a wire is written with those
+  numbers only when a command changes it; Golden A's routes regenerated, 38 coordinates moved by 1 nm (06a §2.1)
 <!-- Arrange and route (drafting step 4): its lines go here (`layout.arrange`, `layout.apply`'s `parts`, the preview). -->

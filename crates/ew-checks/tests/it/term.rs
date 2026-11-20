@@ -535,12 +535,24 @@ fn term006_reads_a_terminal_one_nm_beside_the_wires_number_as_on_the_wire() {
     let whole = term006_fx([1, 32_000_000], &[(TERM_WIRE, k1, k2, straight())]);
     let mut thirds = term006_fx([1, 32_000_000], &[(TERM_WIRE, k1, k2, straight())]);
     thirds.rec_mut(&us(P1))["grid"] = json!({"num": 7_937_500, "den": 3});
+    // An older build's drawing: the wire stored on the terminal's own sum, 1 nm beside the grid's number; it is read on
+    // that number too.
+    let mut older = term006_fx(
+        [1, 32_000_000],
+        &[(TERM_WIRE, k1, k2, vec![[1, 17_000_000], [1, 64_000_000]])],
+    );
+    older.rec_mut(&us(P1))["grid"] = json!({"num": 7_937_500, "den": 3});
     rule_table(
         "EW-TERM-006",
         vec![
             Case::reports(
                 "a grid of thirds",
                 thirds.build(),
+                term006_reports(TERM_WIRE, "1.1"),
+            ),
+            Case::reports(
+                "an older drawing on a grid of thirds",
+                older.build(),
                 term006_reports(TERM_WIRE, "1.1"),
             ),
             Case::silent("a grid of whole nm", whole.build()),

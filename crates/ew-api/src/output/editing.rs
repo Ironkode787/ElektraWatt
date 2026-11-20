@@ -2831,11 +2831,18 @@ impl Session {
         });
         let rect = page_rect(&q, page_ref);
         let mut junction_ids: Vec<_> = q.idx().junctions_by_page(page_id).collect();
-        junction_ids.sort_by_key(|j| (q.junctions().get(*j).map(|x| (x.at.y.0, x.at.x.0)), *j));
+        // A junction and a route as read: a point within 1 nm of a grid position on the grid's own number (06a §2.1).
+        let page_grid = ew_derive::page_grid(&q, page_id);
+        let read_junction = |j: Id<Junction>| {
+            q.junctions()
+                .get(j)
+                .map(|x| ew_derive::read_junction(x, page_grid))
+        };
+        junction_ids.sort_by_key(|j| (read_junction(*j).map(|x| (x.at.y.0, x.at.x.0)), *j));
         let mut junctions = Vec::new();
         let mut junction_at: BTreeMap<Uuid, Pt2> = BTreeMap::new();
         for jid in junction_ids {
-            let Some(j) = q.junctions().get(jid).cloned() else {
+            let Some(j) = read_junction(jid) else {
                 continue;
             };
             junction_at.insert(jid.as_uuid(), j.at);
@@ -2862,7 +2869,11 @@ impl Session {
         let connection_ids: Vec<_> = q.idx().connections_by_page(page_id).collect();
         let mut connections = Vec::new();
         for cid in connection_ids {
-            let Some(c) = q.connections().get(cid).cloned() else {
+            let Some(c) = q
+                .connections()
+                .get(cid)
+                .map(|c| ew_derive::read_connection(c, page_grid))
+            else {
                 continue;
             };
             let (Some(a), Some(b)) = (table_end(&c.a), table_end(&c.b)) else {

@@ -5,7 +5,8 @@
 //! symbol's place plus a pin's offset, each rounded, can add up to 1 nm beside the grid's own number of the pin's
 //! position, and the pin's point is that number (`Grid::at`). So the commands compare equal numbers: a wire between
 //! two such pins on one grid line is straight, a symbol dropped on it is wired in, and an autoconnect hint between two
-//! pins on one grid line is a straight wire, not an unrouted one.
+//! pins on one grid line is a straight wire, not an unrouted one. A drawing of an older build, its wire stored on the
+//! pins' place plus offset, is read with the same numbers, and a command that writes the wire writes them.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
@@ -14,7 +15,7 @@ use crate::common;
 use common::fixture::*;
 use common::*;
 use ew_commands::Engine;
-use ew_commands::commands::{Connect, ConnectHint, PlaceSymbol, PlaceTarget};
+use ew_commands::commands::{Connect, ConnectHint, EndpointParam, PlaceSymbol, PlaceTarget};
 use ew_commands::geometry::on_grid;
 use ew_ids::Id;
 use ew_model::Model;
@@ -31,6 +32,20 @@ const Y_GRID: i64 = 5_291_667;
 /// Two placed devices whose second pin (10 mm below the insertion point) adds up to `y = Y_PIN`, at x = 0 and
 /// x = 8G. The positions are in the records, not placed by a command (a command would refuse them).
 fn model() -> (Model, Id<Function>, Id<Function>) {
+    model_with(None)
+}
+
+/// The wire an older build stored between the two devices' second pins ([`older`]).
+const OLD: Id<Connection> = id(0x2000);
+
+/// [`model`] as an older build stored it, with the wire [`OLD`] between the two second pins on their place plus
+/// offset, `y = Y_PIN`: 1 nm beside the grid's number its pins have now.
+fn older() -> (Model, Id<Function>, Id<Function>) {
+    model_with(Some(vec![pt(0, Y_PIN), pt(8 * G, Y_PIN)]))
+}
+
+/// [`model`] with, given its route, the wire [`OLD`] as a record.
+fn model_with(route: Option<Vec<Pt2>>) -> (Model, Id<Function>, Id<Function>) {
     let (p, mut records, _) = mini_golden_parts();
     let mut fns = Vec::new();
     for (n, x) in [(0u128, 0i64), (1, 8 * G)] {
@@ -43,6 +58,11 @@ fn model() -> (Model, Id<Function>, Id<Function>) {
         rep.pos = pt(x, Y_PIN - MM10);
         records.push(Record::Representation(rep));
         fns.push(f);
+    }
+    if let Some(route) = route {
+        let mut wire = connection(OLD, Some(PAGE_102), cp(fns[0], 1), cp(fns[1], 1));
+        wire.route = route;
+        records.push(Record::Connection(wire));
     }
     let model = Model::from_records(p, records, library()).expect("valid model");
     assert!(!on_grid(grid(), Nm(Y_PIN)) && on_grid(grid(), Nm(Y_GRID)));
@@ -176,4 +196,64 @@ fn an_autoconnect_hint_between_such_pins_is_a_straight_wire() {
     let pins = new_pins(&e, &r);
     let own = pins.iter().find(|p| p.1 == 0).expect("the first pin").2;
     assert_eq!(route, vec![own, pt(0, Y_GRID)], "one straight stretch");
+}
+
+/// A symbol dropped on the wire of an older drawing is wired in: the commands read the wire on the grid's number of
+/// its line, and the two parts they write carry it.
+#[test]
+fn a_symbol_dropped_on_an_older_drawing_s_wire_is_wired_in() {
+    let (model, _, fb) = older();
+    let mut e = engine(model);
+    let r = e.execute(&on_its_side(Vec::new())).expect("placed");
+    let pins = new_pins(&e, &r);
+    let first = row(&e, OLD);
+    assert_eq!(first.b, Endpoint::Cp(pins[0].0, pins[0].1));
+    assert_eq!(first.route, vec![pt(0, Y_GRID), pins[0].2]);
+    let second: Id<Connection> = r
+        .created
+        .iter()
+        .find(|k| k.0 == Kind::Connection)
+        .map(|k| typed(*k))
+        .expect("the second part of the wire");
+    let second = row(&e, second);
+    assert_eq!(second.b, Endpoint::Cp(fb, 1));
+    assert_eq!(second.route, vec![pins[1].2, pt(8 * G, Y_GRID)]);
+}
+
+/// A wire drawn to end on the wire of an older drawing joins it with a junction on the grid's number of its line.
+#[test]
+fn a_wire_ended_on_an_older_drawing_s_wire_joins_it() {
+    let (model, fa, _) = older();
+    let mut e = engine(model);
+    let at = pt(4 * G, Y_GRID);
+    let r = e
+        .execute(&Connect {
+            a: EndpointParam::OnConnection { connection: OLD, at },
+            b: cp_param(fa, 0),
+            page: None,
+            route: Vec::new(),
+            kind: ConnectionKind::Wire,
+            computed: false,
+            dot: false,
+        })
+        .expect("the wire joins the stored one");
+    let junction: Id<ew_schema::Junction> = r
+        .created
+        .iter()
+        .find(|k| k.0 == Kind::Junction)
+        .map(|k| typed(*k))
+        .expect("a junction");
+    assert_eq!(row(&e, junction).at, at);
+    assert_eq!(row(&e, OLD).route, vec![pt(0, Y_GRID), at]);
+}
+
+/// A command that does not write the wire of an older drawing leaves its numbers as stored.
+#[test]
+fn a_command_that_does_not_touch_an_older_wire_keeps_its_numbers() {
+    let (model, _, _) = older();
+    let mut e = engine(model);
+    let mut away = on_its_side(Vec::new());
+    away.pos = pt(4 * G, Y_GRID + 6 * G);
+    e.execute(&away).expect("placed away from the wire");
+    assert_eq!(row(&e, OLD).route, vec![pt(0, Y_PIN), pt(8 * G, Y_PIN)]);
 }

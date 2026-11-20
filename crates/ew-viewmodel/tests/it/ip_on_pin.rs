@@ -403,6 +403,70 @@ fn a_point_on_a_junction_or_inside_a_wire_is_refused() {
     }
 }
 
+/// A drawing of an older build: a wire of folio 102 stored 1 nm beside the grid's number of its line (the pins' place
+/// plus offset). The page reads it on the grid's number, so a point dropped strictly inside it is on it and refused as
+/// above, not placed free beside it.
+#[test]
+fn a_point_inside_an_older_drawing_s_wire_is_on_it() {
+    let tmp = Tmp::new("ip-older-wire");
+    let s = shell(&tmp, "102");
+    let t = tables(&s);
+    let sn = s.canvas().unwrap().page().snapper.clone();
+    let on_grid = |v: i64| sn.page_of_index(sn.grid_index_of(v)) == v;
+    // A stored wire with a horizontal stretch on the grid, and a grid point strictly inside it on no pin or junction.
+    let (wire, y, inside) = t
+        .connections
+        .iter()
+        .filter(|c| c.stored_route)
+        .find_map(|c| {
+            let line = &c.polyline;
+            line.windows(2)
+                .filter(|w| w[0].1 == w[1].1 && on_grid(w[0].1))
+                .find_map(|w| {
+                    let (a, b) = (sn.grid_index_of(w[0].0), sn.grid_index_of(w[1].0));
+                    (a.min(b) + 1..a.max(b))
+                        .map(|k| (sn.page_of_index(k), w[0].1))
+                        .find(|p| {
+                            !t.cps.iter().any(|c| c.at == *p) && !t.junctions.iter().any(|j| j.at == *p)
+                        })
+                })
+                .map(|p| (c.id, p.1, p))
+        })
+        .expect("a wire with a free grid point inside on 102");
+    drop(s);
+    // Store that wire as an older build did: every vertex on its line's y 1 nm beside it.
+    let file = tmp.golden_copy().join("pages").join(format!("{}.jsonl", t.page));
+    let text = std::fs::read_to_string(&file).expect("the page's file");
+    let id = format!("\"id\":\"{wire}\"");
+    let older: Vec<String> = text
+        .lines()
+        .map(|l| {
+            let Some(start) = l.find("\"route\":[").filter(|_| l.contains(&id)) else {
+                return l.to_owned();
+            };
+            let end = start + l[start..].find("]]").expect("the route's end") + 2;
+            let route = l[start..end].replace(&format!(",{y}]"), &format!(",{}]", y + 1));
+            format!("{}{route}{}", &l[..start], &l[end..])
+        })
+        .collect();
+    assert_ne!(older.join("\n") + "\n", text, "the wire is rewritten");
+    std::fs::write(&file, older.join("\n") + "\n").expect("written");
+    let mut s = shell(&tmp, "102");
+    arm_on(&mut s, "W949", inside);
+    assert_eq!(ghost_cp(&s), inside);
+    assert_eq!(ghost(&s)["connects"], Value::Null, "no connection offered");
+    assert_eq!(
+        refused(&mut s, "canvas.activate", json!({})),
+        "reason-ip-not-placed"
+    );
+    assert_eq!(
+        s.tool_notice(),
+        Some(
+            "Not placed: the point would sit on a wire without joining it; place it on a pin or a free grid point"
+        )
+    );
+}
+
 /// An external connection point dropped on a pin connects to it as any point
 /// does: the HUD says so, the click commits `connection.draw_to_ip` with the point's `external`, in one undo step, and
 /// the saved point is external; on a free grid point it still places.

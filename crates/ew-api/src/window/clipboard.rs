@@ -879,11 +879,14 @@ impl Session {
             let key = (rank(Kind::Representation), key_of(pos_of_rep(*r)), r.as_uuid());
             lines.push((key, Record::Representation(rep)));
         }
+        // A wire and a junction are copied as read: a point within 1 nm of a grid position on the grid's own number
+        // (06a §2.1), so a paste stores the grid's numbers.
+        let grid = ew_derive::page_grid(&q, page_id);
         for c in &connections {
             let Some(con) = q.connections().get(*c) else {
                 continue;
             };
-            let mut con = (**con).clone();
+            let mut con = (*ew_derive::read_connection(con, grid)).clone();
             con.source_ref = None;
             match &mut con.kind {
                 ConnectionKind::Core(_) => {
@@ -898,7 +901,7 @@ impl Session {
         }
         for j in &junctions {
             let Some(jn) = q.junctions().get(*j) else { continue };
-            let mut jn = (**jn).clone();
+            let mut jn = (*ew_derive::read_junction(jn, grid)).clone();
             jn.source_ref = None;
             jn.sequence.retain(|c| connections.contains(c));
             let key = (

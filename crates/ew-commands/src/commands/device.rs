@@ -1186,11 +1186,36 @@ impl MoveReps {
                 next.page = Some(new_page);
                 off_page.push(cid);
             }
+            // Each moved end follows its CP's own displacement, which can differ from `delta` by 1 nm (a CP's point is
+            // its grid position's own number); a route with both ends moved translates by `delta` first.
+            let grid = tx.require::<Page>(page)?.grid;
+            let shift = |e: &Endpoint| -> Option<Pt2> {
+                let Endpoint::Cp(f, idx) = e else { return None };
+                reps.iter().zip(&moved).find_map(|(r, n)| {
+                    let point = |r: &Representation| {
+                        crate::geometry::rep_cps(tx, r)
+                            .into_iter()
+                            .find(|c| c.function == *f && c.idx == *idx)
+                            .map(|c| c.pos)
+                    };
+                    (r.page == page && drawn_functions(r).contains(f))
+                        .then(|| sub(point(n)?, point(r)?).ok())
+                        .flatten()
+                })
+            };
+            let (da, db) = (
+                a.then(|| shift(&c.a)).flatten().unwrap_or(self.delta),
+                b.then(|| shift(&c.b)).flatten().unwrap_or(self.delta),
+            );
             let followed = if a && b {
-                translate(&mut next.route, self.delta)
+                translate(&mut next.route, self.delta).and_then(|()| {
+                    let rest = |d: Pt2| sub(d, self.delta).ok().filter(|r| *r != Pt2::ORIGIN);
+                    follow_ends(&mut next.route, grid, rest(da), rest(db))
+                })
+            } else if a {
+                follow_end(&mut next.route, grid, true, da)
             } else {
-                let grid = tx.require::<Page>(page)?.grid;
-                follow_end(&mut next.route, grid, a, self.delta)
+                follow_end(&mut next.route, grid, false, db)
             };
             if followed.is_err() {
                 return tx.reject(text!(

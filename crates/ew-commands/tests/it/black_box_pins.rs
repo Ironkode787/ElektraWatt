@@ -414,6 +414,59 @@ fn a_black_box_saved_with_a_pin_one_nm_off_the_grid_still_wires() {
     assert_eq!(row(&e, r), before, "nothing rewrites the stored box");
 }
 
+/// A drawing of an older build: a box whose pin adds up to 1 nm beside its grid position, and a wire from that pin to a
+/// symbol stored on the pin's sum. Moved by grid steps and by a script's `delta`, the box takes the wire's end along
+/// onto its pin's point, and the wire keeps its right angles.
+#[test]
+fn an_older_drawing_s_wire_follows_its_box_onto_the_pin() {
+    let (dev, f, r): (Id<ew_schema::Device>, Id<Function>, Id<Representation>) =
+        (id(0x7001), id(0x7101), id(0x7201));
+    let (dev2, f2, r2): (Id<ew_schema::Device>, Id<Function>, Id<Representation>) =
+        (id(0x7002), id(0x7102), id(0x7202));
+    let wire: Id<Connection> = id(0x7301);
+    let (pos, mut spec) = play_box();
+    spec.cps[1].pos.x = Nm(spec.cps[1].pos.x.0 + 1);
+    let stored = pos + spec.cps[1].pos;
+    let (p, mut records, _) = mini_golden_parts();
+    records.push(Record::Device(device(dev, "A", 7)));
+    let mut func = function(f, dev, fndef_two(), FnRole::Main);
+    func.kind = FunctionKind::BlackBox;
+    records.push(Record::Function(func));
+    let mut rec = rep(r, PAGE_101, vec![f]);
+    rec.pos = pos;
+    rec.box_ = Some(spec);
+    records.push(Record::Representation(rec));
+    records.push(Record::Device(device(dev2, "K", 8)));
+    records.push(Record::Function(function(f2, dev2, FNDEF_CONTACT, FnRole::Main)));
+    let mut other = rep(r2, PAGE_101, vec![f2]);
+    other.symbol = SYM_TWO;
+    other.pos = gp(45, 40);
+    records.push(Record::Representation(other));
+    let mut c = connection(wire, Some(PAGE_101), Endpoint::Cp(f, 1), Endpoint::Cp(f2, 0));
+    c.route = vec![stored, pt(stored.x.0, at(40)), gp(45, 40)];
+    records.push(Record::Connection(c));
+    let model = Model::from_records(p, records, library()).expect("valid model");
+    let mut e = engine(model);
+    let check = |e: &Engine, what: &str| {
+        let pin = ew_derive::cp_point(&ew_derive::Q::new(e.model()), f, 1, PAGE_101).expect("drawn");
+        let c = row(e, wire);
+        assert_eq!(c.route.first(), Some(&pin), "{what}: the end on the pin's point");
+        assert_eq!(c.route.last(), Some(&gp(45, 40)), "{what}: the far end stays");
+        assert!(
+            c.route.windows(2).all(|s| s[0].x == s[1].x || s[0].y == s[1].y),
+            "{what}: {:?}",
+            c.route
+        );
+    };
+    e.execute(&steps(r, [1, 0])).expect("rep.move by steps");
+    check(&e, "a step right");
+    let mut by = steps(r, [0, 0]);
+    by.steps = None;
+    by.delta = pt(at(3), 0);
+    e.execute(&by).expect("rep.move by delta");
+    check(&e, "three steps right as a delta");
+}
+
 #[test]
 fn a_route_to_a_black_box_pin_follows_the_box_on_a_drag_and_a_transform() {
     let mut e = engine(golden_model());

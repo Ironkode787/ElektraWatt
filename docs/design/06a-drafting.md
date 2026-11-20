@@ -272,15 +272,22 @@ The design needs two things:
 functions that give a pin's and a box pin's point return it: ew-derive's `cp_end` (and `rep_cp_end`, which takes the
 page's grid), the commands' `rep_cps`, the drawn connection points of the scene and of the page tables, the two
 importers' (tables and QElectroTech), and the tools' ghost pins (placing, the interruption point, a moved symbol's
-proposals). A move by steps and the Select tool's re-solve move a wire's end by its pin's own displacement, which can
-differ from its symbol's by 1 nm. A junction keeps its stored point: it is made on a wire's line or at the router's
-place, which are the grid's numbers now, and an older drawing's junction keeps its point with the routes that end on
-it. A position 1 nm beside a grid point is still off the grid to the commands (its pins' points are on it, but it is
-no fitted symbol). The six settled comparisons are gone; `Grid::settle` stays as the rule `settle_point` applies. A
-route of an older build that ends 1 nm beside its pin is drawn with that step and read as one tick; EW-TERM-006,
-normaliser 7 and the interruption-point tool now compare exactly, so on an older drawing a wire whose line lies 1 nm
-beside a pin's number is not met there until it is routed again. Golden A's tables give its routes the grid's
-numbers: 38 coordinates moved by 1 nm, one jog of 1 nm on folio 101 went.
+proposals). A move (by steps, by a script's `delta`) and the Select tool's re-solve move a wire's end by its pin's own
+displacement, which can differ from its symbol's by 1 nm. A position 1 nm beside a grid point is still off the grid to
+the commands (its pins' points are on it, but it is no fitted symbol). The six settled comparisons are gone;
+`Grid::settle` stays as the rule `settle_point` applies. Golden A's tables give its routes the grid's numbers: 38
+coordinates moved by 1 nm, one jog of 1 nm on folio 101 went.
+
+*As built (step 8b).* A stored route and a junction are read by the same rule, so that a drawing of an older build
+(the last candidates' projects, every import) compares with its pins by equal numbers: `ew_derive::read_connection`
+(each vertex by `settle_point`, equal neighbours merged) and `ew_derive::read_junction`. They are applied where a
+record enters the working model: the commands' `TxBuilder::row` and `base_row` (every read of a connection or a
+junction in a command or a normaliser), the page's connection and junction views of the scene (and so the layout's
+page), the page tables of the tools, `drawn_path` (the checks) and the clipboard's copy. A record keeps its numbers
+until a command writes it, and is then written as read: opening and saving changes nothing, and a wire a command
+touches is stored on the grid's numbers, a change of that wire only. Before, a junction's point was compared exactly
+with a route's end (`require_route`), a split point and the tables' wire ends, and read settled against a terminal's
+pin by EW-TERM-006; now all of them read the one number.
 
 ### 2.2 What the layout sees
 

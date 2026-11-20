@@ -597,7 +597,7 @@ fn d3_junction_edit_takes_no_coordinates_and_works_off_the_grid() {
         for rec in r.iter_mut() {
             if let Record::Junction(j) = rec {
                 if j.id == J5 {
-                    j.at = pt(1, 1);
+                    j.at = pt(1000, 1000);
                 }
             }
         }
@@ -612,7 +612,7 @@ fn d3_junction_edit_takes_no_coordinates_and_works_off_the_grid() {
     })
     .expect("junction.edit has no coordinates to check");
     assert_eq!(row(&e, J5).style, bevel);
-    assert_eq!(row(&e, J5).at, pt(1, 1));
+    assert_eq!(row(&e, J5).at, pt(1000, 1000));
 }
 
 // ---------------------------------------------------------------------------------------------------------

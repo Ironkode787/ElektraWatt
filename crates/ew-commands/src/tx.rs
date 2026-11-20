@@ -447,21 +447,49 @@ impl<'a> TxBuilder<'a> {
         self.reads.borrow_mut().rows.entry(key).or_insert(present);
     }
 
-    /// The current row of a key (pending put, else base), kind-erased.
+    /// The current row of a key (pending put, else base), kind-erased; a connection or a junction as read
+    /// ([`TxBuilder::as_read`]).
     pub fn row(&self, key: &AnyKey) -> Option<AnyRow> {
         if let Some(p) = self.pending.get(key) {
-            return p.clone();
+            return p.clone().map(|r| self.as_read(r));
         }
         let row = self.base.row(key);
         self.note_row(*key, row.is_some());
-        row
+        row.map(|r| self.as_read(r))
     }
 
-    /// The base row of a key, ignoring pending puts (normalisers compare old and new endpoints).
+    /// The base row of a key, ignoring pending puts (normalisers compare old and new endpoints); a connection or a
+    /// junction as read.
     pub fn base_row(&self, key: &AnyKey) -> Option<AnyRow> {
         let row = self.base.row(key);
         self.note_row(*key, row.is_some());
-        row
+        row.map(|r| self.as_read(r))
+    }
+
+    /// A connection's or a junction's row as the commands read it: its route's vertices and its point on the grid's
+    /// own number where they lie within 1 nm of a position of its page's grid (`ew_derive::read_connection`,
+    /// `ew_derive::read_junction`, docs/design/06a-drafting.md §2.1), so that a drawing of an older build compares
+    /// with its pins by equal numbers. A command that writes the record writes it as read; any other row as it is.
+    fn as_read(&self, row: AnyRow) -> AnyRow {
+        let page = match &row {
+            AnyRow::Connection(c) => c.page,
+            AnyRow::Junction(j) => Some(j.page),
+            _ => return row,
+        };
+        let Some(page) = page else { return row };
+        let key: AnyKey = (Kind::Page, page.cast());
+        let page_row = match self.pending.get(&key) {
+            Some(p) => p.clone(),
+            None => self.base.row(&key),
+        };
+        let Some(grid) = page_row.as_ref().and_then(|r| r.get::<Page>()).map(|p| p.grid) else {
+            return row;
+        };
+        match row {
+            AnyRow::Connection(c) => AnyRow::Connection(ew_derive::read_connection(&c, grid)),
+            AnyRow::Junction(j) => AnyRow::Junction(ew_derive::read_junction(&j, grid)),
+            other => other,
+        }
     }
 
     /// The current record of kind `T` with this ID.

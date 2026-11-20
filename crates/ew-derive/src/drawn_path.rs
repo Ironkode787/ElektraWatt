@@ -15,16 +15,64 @@
 //! - An end at a CP is the CP's point and leaving direction on the page ([`cp_end`]); an end at a junction is the
 //!   junction's point, without a direction. A connection one of whose ends is not drawn on the page is not drawn.
 //!
+//! A stored route and a junction are read with one number per grid position ([`read_connection`],
+//! [`read_junction`], docs/design/06a-drafting.md §2.1): a vertex or a junction's point within 1 nm of a position of
+//! the page's grid is the grid's own number for it, as a connection point's is. The record keeps its numbers until a
+//! command writes it, and then writes them as read.
+//!
 //! The scene then pulls a vertex that lies off the sheet onto the sheet's edge (the sheet is the frame's, which only
 //! the scene knows); these paths keep every vertex where it is, so they differ from the drawing only next to an end
 //! off the sheet.
 
+use std::sync::Arc;
+
 use ew_ids::Id;
-use ew_schema::{Connection, Dir4, Endpoint, Page};
-use ew_units::{Nm, Orient2, Pt2};
+use ew_schema::{Connection, Dir4, Endpoint, Junction, Page};
+use ew_units::{Grid, Nm, Orient2, Pt2};
 
 use crate::Q;
 use crate::cp_point::cp_end;
+
+/// A stored route as it is read on a page of `grid`: each vertex on the grid's own number where it lies within 1 nm of
+/// a grid position ([`Grid::settle_point`]), equal neighbours merged; a route of two equal ends keeps both. A
+/// coordinate is read the same wherever it stands, so a stretch along a line stays along it.
+pub fn read_route(grid: Grid, route: &[Pt2]) -> Vec<Pt2> {
+    let mut out: Vec<Pt2> = route.iter().map(|p| grid.settle_point(*p)).collect();
+    out.dedup();
+    if out.len() == 1 && route.len() > 1 {
+        out.push(out[0]);
+    }
+    out
+}
+
+/// The connection `c` as it is read on a page of `grid`: its route by [`read_route`]; `c` itself where nothing
+/// changes.
+pub fn read_connection(c: &Arc<Connection>, grid: Grid) -> Arc<Connection> {
+    let route = read_route(grid, &c.route);
+    if route == c.route {
+        return Arc::clone(c);
+    }
+    Arc::new(Connection {
+        route,
+        ..(**c).clone()
+    })
+}
+
+/// The junction `j` as it is read on a page of `grid`: its point on the grid's own number where it lies within 1 nm
+/// of a grid position; `j` itself where nothing changes.
+pub fn read_junction(j: &Arc<Junction>, grid: Grid) -> Arc<Junction> {
+    let at = grid.settle_point(j.at);
+    if at == j.at {
+        return Arc::clone(j);
+    }
+    Arc::new(Junction { at, ..(**j).clone() })
+}
+
+/// The grid of `page` for reading its points (a 4 mm step, which reads every point as stored, for a page that is
+/// not there).
+pub fn page_grid(q: &Q, page: Id<Page>) -> Grid {
+    q.pages().get(page).map_or(Grid::MM4, |p| p.grid)
+}
 
 /// Whether a direction runs along y: `Some(true)` for `Up` and `Down`, `Some(false)` for `Left` and `Right`, `None`
 /// for an unknown direction.
@@ -77,17 +125,18 @@ pub fn drawn_path(q: &Q, c: &Connection, page: Id<Page>) -> Option<Vec<Pt2>> {
     if c.page != Some(page) || c.route.is_empty() {
         return None;
     }
+    let grid = page_grid(q, page);
     let end = |e: &Endpoint| match e {
         Endpoint::Cp(function, idx) => cp_end(q, *function, *idx, page),
         Endpoint::Junction(j) => q
             .junctions()
             .get(*j)
             .filter(|j| j.page == page)
-            .map(|j| (j.at, None)),
+            .map(|j| (read_junction(j, grid).at, None)),
         Endpoint::Unknown(_) => None,
     };
     let ((a, _), (b, _)) = (end(&c.a)?, end(&c.b)?);
-    Some(stored_path(a, &c.route, b))
+    Some(stored_path(a, &read_route(grid, &c.route), b))
 }
 
 /// The path a stored `route` is drawn along between the ends' points `a` and `b`: the route as stored,
