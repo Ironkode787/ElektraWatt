@@ -107,7 +107,7 @@ mod transform;
 pub use canonical::{CANONICAL_VERSION, Canonical};
 pub use item::{
     DisplayList, GeometryResolver, GroupItem, ImageData, ImageFormat, ImageItem, InstanceItem, Item,
-    ItemKind, MAX_GROUP_DEPTH, MAX_INSTANCE_DEPTH, PathItem, SymbolGeomId,
+    ItemKind, MAX_GROUP_DEPTH, MAX_INSTANCE_DEPTH, PathItem, Placed, PlacedItems, SymbolGeomId,
 };
 pub use layer::Layer;
 pub use link::{Destination, EntityRef, Link};

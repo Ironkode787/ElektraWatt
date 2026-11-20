@@ -713,32 +713,6 @@ fn paint_wire_colours(
     strokes
 }
 
-/// The frames, in sheet nm, of the printed texts of `list`: each glyph run at any depth (a device's texts,
-/// the title block's), its layout box through the transforms of the groups that hold it. Symbol instances are not
-/// resolved.
-fn printed_texts(list: &ew_viewmodel::ew_api::output::ew_dl::DisplayList) -> Vec<SheetRect> {
-    use ew_viewmodel::ew_api::output::ew_dl::ew_units::Pt2;
-    use ew_viewmodel::ew_api::output::ew_dl::{Item, ItemKind, Transform};
-    fn walk(items: &[Item], map: &dyn Fn(Pt2) -> Pt2, out: &mut Vec<SheetRect>) {
-        for item in items {
-            match &item.kind {
-                ItemKind::Glyphs(run) => {
-                    let [a, b, c, d] = run.layout_quad().map(map);
-                    out.push(SheetRect::from_points(a, b).union(SheetRect::from_points(c, d)));
-                }
-                ItemKind::Group(g) => {
-                    let t = g.transform.unwrap_or(Transform::IDENTITY);
-                    walk(&g.items, &|q| map(t.apply(q)), out);
-                }
-                _ => {}
-            }
-        }
-    }
-    let mut out = Vec::new();
-    walk(&list.items, &|p| p, &mut out);
-    out
-}
-
 /// Paints the wire-colour view's codes of `strokes` (D18): each code as a canvas chip (`canvas.chip` at 94 % with
 /// `canvas.chip_text` in `type.caption`, `radius.sm`, `space.1` padding) over every stroke, placed by doc 16a §7.4's
 /// rule from the middle of its stroke in its lane, clear of the codes placed before it, of the chrome
@@ -765,7 +739,7 @@ fn paint_wire_codes(
         let (x, y) = t.to_screen((p.x.0 as f64, p.y.0 as f64));
         rect.min + egui::Vec2::new(x as f32, y as f32) / ppp
     };
-    let texts: Vec<Rect> = printed_texts(&canvas.page().list)
+    let texts: Vec<Rect> = text_rects(&canvas.page().list)
         .into_iter()
         .map(|r| Rect::from_two_pos(screen(r.min()), screen(r.max())))
         .filter(|r| r.intersects(rect))
@@ -1202,32 +1176,20 @@ pub(crate) fn ring_runs(centre: Pos2, radius: f32, texts: &[Rect]) -> Vec<Vec<Po
     runs
 }
 
-/// The sheet rectangles of the texts (glyph runs) of the page's display list `list`, at any depth (the arrival
-/// ring runs under them).
+/// The frames, in sheet nm, of the printed texts of the page's display list `list` (a device's texts, the title
+/// block's): each glyph run at any depth, its layout box through the transforms of the groups that hold it. Symbol
+/// instances are not resolved. The wire codes and the arrival ring keep clear of them.
 pub(crate) fn text_rects(list: &ew_viewmodel::ew_api::output::ew_dl::DisplayList) -> Vec<SheetRect> {
-    use ew_viewmodel::ew_api::output::ew_dl::{Item, ItemKind, Transform, ew_units::Pt2};
-    fn walk(items: &[Item], map: &dyn Fn(Pt2) -> Pt2, out: &mut Vec<SheetRect>) {
-        for item in items {
-            match &item.kind {
-                ItemKind::Glyphs(run) => {
-                    let mut acc: Option<SheetRect> = None;
-                    for q in run.bound_points() {
-                        let r = SheetRect::from_point(map(q));
-                        acc = Some(acc.map_or(r, |a| a.union(r)));
-                    }
-                    out.extend(acc);
-                }
-                ItemKind::Group(g) => {
-                    let t = g.transform.unwrap_or(Transform::IDENTITY);
-                    walk(&g.items, &|q| map(t.apply(q)), out);
-                }
-                _ => {}
-            }
-        }
-    }
-    let mut out = Vec::new();
-    walk(&list.items, &|p| p, &mut out);
-    out
+    use ew_viewmodel::ew_api::output::ew_dl::ItemKind;
+    list.placed()
+        .filter_map(|placed| {
+            let ItemKind::Glyphs(run) = &placed.item.kind else {
+                return None;
+            };
+            let [a, b, c, d] = run.layout_quad().map(|q| placed.to_list(q));
+            Some(SheetRect::from_points(a, b).union(SheetRect::from_points(c, d)))
+        })
+        .collect()
 }
 
 impl Default for CanvasHost {

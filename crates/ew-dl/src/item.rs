@@ -6,6 +6,7 @@
 use std::collections::BTreeMap;
 use std::fmt;
 use std::hash::{Hash, Hasher};
+use std::rc::Rc;
 use std::sync::Arc;
 
 use ew_units::{Orient2, Pt2, Rect};
@@ -308,9 +309,14 @@ impl DisplayList {
     /// assert_eq!(dl.entity_bounds(), vec![(e, Rect::from_points(p(100, 0), p(110, 5)))]);
     /// ```
     pub fn entity_bounds(&self) -> Vec<(EntityRef, Rect)> {
-        let mut out = Vec::new();
-        collect_entities(&self.items, &|p| p, &mut out);
-        out
+        self.placed()
+            .filter_map(|p| {
+                let entity = p.item.entity?;
+                let mut acc = None;
+                collect(std::slice::from_ref(p.item), &|q| p.to_list(q), None, 0, &mut acc);
+                acc.map(|r| (entity, r))
+            })
+            .collect()
     }
 
     /// Every cross-reference link source of the list, at any depth: for each item whose [`link`](Item::link) is
@@ -336,52 +342,91 @@ impl DisplayList {
     /// assert_eq!(dl.link_sources(), vec![(d, Rect::from_points(p(100, 0), p(110, 5)))]);
     /// ```
     pub fn link_sources(&self) -> Vec<(Destination, Rect)> {
-        let mut out = Vec::new();
-        collect_links(&self.items, &|p| p, &mut out);
-        out
-    }
-}
-
-/// The walk of [`DisplayList::link_sources`]: `map` takes a point of `items`' coordinates to the list's.
-fn collect_links(items: &[Item], map: &dyn Fn(Pt2) -> Pt2, out: &mut Vec<(Destination, Rect)>) {
-    for item in items {
-        if let Some(Link::Source(d)) = item.link {
-            let points: Vec<Pt2> = match &item.kind {
-                ItemKind::Glyphs(run) => run.layout_quad().to_vec(),
-                _ => {
-                    let mut own = None;
-                    collect(std::slice::from_ref(item), &|p| p, None, 0, &mut own);
-                    own.map_or_else(Vec::new, |r: Rect| vec![r.min(), r.max()])
+        self.placed()
+            .filter_map(|p| {
+                let Some(Link::Source(d)) = p.item.link else {
+                    return None;
+                };
+                let points: Vec<Pt2> = match &p.item.kind {
+                    ItemKind::Glyphs(run) => run.layout_quad().to_vec(),
+                    _ => {
+                        let mut own = None;
+                        collect(std::slice::from_ref(p.item), &|q| q, None, 0, &mut own);
+                        own.map_or_else(Vec::new, |r: Rect| vec![r.min(), r.max()])
+                    }
+                };
+                let mut acc = None;
+                for q in points {
+                    add(&mut acc, p.to_list(q));
                 }
-            };
-            let mut acc = None;
-            for q in points {
-                add(&mut acc, map(q));
-            }
-            if let Some(r) = acc {
-                out.push((d, r));
-            }
-        }
-        if let ItemKind::Group(g) = &item.kind {
-            let t = g.transform.unwrap_or(Transform::IDENTITY);
-            collect_links(&g.items, &|q| map(t.apply(q)), out);
+                acc.map(|r| (d, r))
+            })
+            .collect()
+    }
+
+    /// Every item at any depth with the map of its coordinates to the list's, in paint order: depth first, a
+    /// group before its members (pre-order). Symbol instances are not resolved.
+    ///
+    /// ```
+    /// use ew_dl::{DisplayList, Item, Path, Transform};
+    /// use ew_units::{Nm, Pt2};
+    ///
+    /// let p = |x, y| Pt2::new(Nm(x), Nm(y));
+    /// let line = Item::path(Path::line(p(0, 0), p(10, 5)), None, None);
+    /// let dl = DisplayList {
+    ///     items: vec![Item::group(Some(Transform::from_translation(p(100, 0))), None, vec![line])],
+    /// };
+    /// let ends: Vec<Pt2> = dl.placed().skip(1).map(|placed| placed.to_list(p(10, 5))).collect();
+    /// assert_eq!(ends, [p(110, 5)]);
+    /// ```
+    pub fn placed(&self) -> PlacedItems<'_> {
+        PlacedItems {
+            open: vec![(self.items.iter(), Rc::from([]))],
         }
     }
 }
 
-/// The walk of [`DisplayList::entity_bounds`]: `map` takes a point of `items`' coordinates to the list's.
-fn collect_entities(items: &[Item], map: &dyn Fn(Pt2) -> Pt2, out: &mut Vec<(EntityRef, Rect)>) {
-    for item in items {
-        if let Some(entity) = item.entity {
-            let mut acc = None;
-            collect(std::slice::from_ref(item), map, None, 0, &mut acc);
-            if let Some(r) = acc {
-                out.push((entity, r));
+/// An item of a display list at any depth, as [`DisplayList::placed`] yields it.
+pub struct Placed<'a> {
+    /// The item.
+    pub item: &'a Item,
+    /// The transforms of the groups that hold the item, outermost first.
+    transforms: Rc<[Transform]>,
+}
+
+impl Placed<'_> {
+    /// A point of the item's coordinates in the list's: through the transforms of the groups that hold it,
+    /// innermost first, exactly as [`Transform::apply`] maps it.
+    pub fn to_list(&self, p: Pt2) -> Pt2 {
+        self.transforms.iter().rev().fold(p, |q, t| t.apply(q))
+    }
+}
+
+/// The iterator of [`DisplayList::placed`].
+pub struct PlacedItems<'a> {
+    /// The lists being walked, outermost first: the items left and the transforms that hold them.
+    open: Vec<(std::slice::Iter<'a, Item>, Rc<[Transform]>)>,
+}
+
+impl<'a> Iterator for PlacedItems<'a> {
+    type Item = Placed<'a>;
+
+    fn next(&mut self) -> Option<Placed<'a>> {
+        loop {
+            let (items, transforms) = self.open.last_mut()?;
+            let Some(item) = items.next() else {
+                self.open.pop();
+                continue;
+            };
+            let transforms = transforms.clone();
+            if let ItemKind::Group(g) = &item.kind {
+                let inner: Rc<[Transform]> = match g.transform {
+                    Some(t) => transforms.iter().copied().chain([t]).collect(),
+                    None => transforms.clone(),
+                };
+                self.open.push((g.items.iter(), inner));
             }
-        }
-        if let ItemKind::Group(g) = &item.kind {
-            let t = g.transform.unwrap_or(Transform::IDENTITY);
-            collect_entities(&g.items, &|q| map(t.apply(q)), out);
+            return Some(Placed { item, transforms });
         }
     }
 }

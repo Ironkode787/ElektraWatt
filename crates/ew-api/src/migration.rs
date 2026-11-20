@@ -17,7 +17,7 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use ew_dl::{Item, ItemKind, Transform};
+use ew_dl::{DisplayList, ItemKind};
 use ew_export::ew_render_cpu::RgbaImage;
 use ew_scene::pdf_text::{Piece, Segmenter, TextRun, pdf_page_labels, pdf_page_text};
 use ew_scene::underlay::{MAX_RASTER_SIDE, PdfError, pdf_pixmap};
@@ -255,7 +255,7 @@ pub fn verify_migration(
             continue;
         }
         report.pages += 1;
-        let mine = list_runs(&page.content.items);
+        let mine = list_runs(&page.content);
         let (matched, mut devs) = compare_texts(&page.label, &mine, &text.runs);
         report.texts_matched += matched;
         found.append(&mut devs);
@@ -338,46 +338,33 @@ fn pair_pages<'a>(folios: impl Iterator<Item = &'a str>, labels: &[Option<String
 
 /// The texts of a sheet's display list, in millimetres from the top left of the sheet: each run of one font a piece of
 /// the [`Segmenter`], so the project's texts are cut and joined by the rule the reference's are.
-fn list_runs(items: &[Item]) -> Vec<TextRun> {
-    fn walk(items: &[Item], stack: &mut Vec<Transform>, out: &mut Segmenter) {
-        for item in items {
-            match &item.kind {
-                ItemKind::Glyphs(run) => {
-                    let map = |p: Pt2| stack.iter().rev().fold(p, |p, t| t.apply(p));
-                    let mm = |p: Pt2| (p.x.0 as f64 / 1_000_000.0, p.y.0 as f64 / 1_000_000.0);
-                    let mut bounds = [f64::MAX, f64::MAX, f64::MIN, f64::MIN];
-                    for c in run.layout_quad() {
-                        let (x, y) = mm(map(c));
-                        bounds = [
-                            bounds[0].min(x),
-                            bounds[1].min(y),
-                            bounds[2].max(x),
-                            bounds[3].max(y),
-                        ];
-                    }
-                    // A run of one font of a text in several covers its own stretch of the pen's travel.
-                    let pen = |x| mm(map(run.to_parent(Pt2::new(x, ew_units::Nm(0)))));
-                    out.push(Piece {
-                        text: run.text.clone(),
-                        origin: pen(run.layout_box.min().x),
-                        end: pen(run.layout_box.max().x),
-                        em: run.size.0 as f64 / 1_000_000.0,
-                        bounds,
-                    });
-                }
-                ItemKind::Group(g) => {
-                    stack.extend(g.transform);
-                    walk(&g.items, stack, out);
-                    if g.transform.is_some() {
-                        stack.pop();
-                    }
-                }
-                _ => {}
-            }
-        }
-    }
+fn list_runs(list: &DisplayList) -> Vec<TextRun> {
     let mut out = Segmenter::default();
-    walk(items, &mut Vec::new(), &mut out);
+    for placed in list.placed() {
+        let ItemKind::Glyphs(run) = &placed.item.kind else {
+            continue;
+        };
+        let mm = |p: Pt2| (p.x.0 as f64 / 1_000_000.0, p.y.0 as f64 / 1_000_000.0);
+        let mut bounds = [f64::MAX, f64::MAX, f64::MIN, f64::MIN];
+        for c in run.layout_quad() {
+            let (x, y) = mm(placed.to_list(c));
+            bounds = [
+                bounds[0].min(x),
+                bounds[1].min(y),
+                bounds[2].max(x),
+                bounds[3].max(y),
+            ];
+        }
+        // A run of one font of a text in several covers its own stretch of the pen's travel.
+        let pen = |x| mm(placed.to_list(run.to_parent(Pt2::new(x, ew_units::Nm(0)))));
+        out.push(Piece {
+            text: run.text.clone(),
+            origin: pen(run.layout_box.min().x),
+            end: pen(run.layout_box.max().x),
+            em: run.size.0 as f64 / 1_000_000.0,
+            bounds,
+        });
+    }
     out.finish()
 }
 

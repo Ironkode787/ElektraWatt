@@ -646,24 +646,12 @@ fn anchor(item: &Item) -> Option<Pt2> {
     }
 }
 
-/// The sheet anchor of the first `Link::Target(dest)` of `items` in the PDF writer's scan order (pre-order;
+/// The sheet anchor of the first `Link::Target(dest)` of `list` in the PDF writer's scan order (pre-order;
 /// instances are not resolved: the sheet list has them inlined).
-fn find_target(items: &[Item], dest: Destination, stack: &[Transform]) -> Option<Pt2> {
-    for item in items {
-        if item.link == Some(Link::Target(dest))
-            && let Some(a) = anchor(item)
-        {
-            return Some(stack.iter().rev().fold(a, |q, t| t.apply(q)));
-        }
-        if let ItemKind::Group(g) = &item.kind {
-            let mut s = stack.to_vec();
-            s.push(g.transform.unwrap_or(Transform::IDENTITY));
-            if let Some(p) = find_target(&g.items, dest, &s) {
-                return Some(p);
-            }
-        }
-    }
-    None
+fn find_target(list: &DisplayList, dest: Destination) -> Option<Pt2> {
+    list.placed()
+        .filter(|p| p.item.link == Some(Link::Target(dest)))
+        .find_map(|p| anchor(p.item).map(|a| p.to_list(a)))
 }
 
 /// The xref engine's rendering of a target cell with the `ip` format: the target page's folio, its
@@ -714,7 +702,7 @@ impl Targets<'_> {
     fn locate(&mut self, dest: Destination, pages: &[usize]) -> Option<(usize, (i64, i64))> {
         pages.iter().find_map(|&pos| {
             let list = self.list(pos);
-            find_target(&list.items, dest, &[]).map(|p| (pos, (p.x.0, p.y.0)))
+            find_target(&list, dest).map(|p| (pos, (p.x.0, p.y.0)))
         })
     }
 
