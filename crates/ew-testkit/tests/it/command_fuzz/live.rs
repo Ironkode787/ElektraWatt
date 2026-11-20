@@ -193,6 +193,8 @@ pub struct RouteInfo {
     pub a: (i64, i64),
     pub b: (i64, i64),
     pub grid_num: i64,
+    /// Its page.
+    pub page: Value,
 }
 
 pub struct AsmInfo {
@@ -1068,6 +1070,7 @@ impl Live {
                     a: (a.x.0, a.y.0),
                     b: (b.x.0, b.y.0),
                     grid_num: i64::try_from(grid.num()).unwrap_or(1),
+                    page: id_json(page),
                 })
             })
             .collect();

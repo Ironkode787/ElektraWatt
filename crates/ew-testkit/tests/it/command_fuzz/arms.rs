@@ -533,9 +533,9 @@ pub const ARMS: &[Arm] = &[
     },
     // Last, so that the arms before it keep their seeds in `every_arm_commits_on_golden_a`
     Arm {
-        command: "connection.route_many",
+        command: "layout.apply",
         weight: 2,
-        build: connection_route_many,
+        build: layout_apply,
     },
 ];
 

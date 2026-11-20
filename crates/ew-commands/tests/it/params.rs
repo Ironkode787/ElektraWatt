@@ -80,8 +80,9 @@ fn examples() -> Vec<(&'static str, Value)> {
             json!({"connection": CON_W22.to_string(), "route": [[0, 0], [7_937_500, 7_937_500]]}),
         ),
         (
-            "connection.route_many",
-            json!({"routes": [{"connection": CON_W22.to_string(), "route": [[0, 0], [7_937_500, 7_937_500]]}]}),
+            "layout.apply",
+            json!({"page": PAGE_102.to_string(), "junctions": [{"junction": J5.to_string(), "at": [0, 0]}],
+                "routes": [{"connection": CON_W22.to_string(), "route": [[0, 0], [7_937_500, 7_937_500]]}]}),
         ),
         ("connection.delete", json!({"connections": [CON_W22.to_string()]})),
         (

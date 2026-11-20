@@ -115,6 +115,8 @@ fn a_symbol_dropped_on_a_wire_one_nm_beside_its_pins_is_wired_in() {
             page: Some(PAGE_102),
             route: vec![pt(0, Y_PIN), pt(8 * G, Y_PIN)],
             kind: ConnectionKind::Wire,
+            computed: false,
+            dot: false,
         })
         .expect("the wire");
     let w: Id<Connection> = typed(r.outcome.primary.expect("primary"));

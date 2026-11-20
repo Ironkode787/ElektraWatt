@@ -73,6 +73,8 @@ fn engine_with_wire() -> (Engine, Id<Connection>, Id<Function>) {
             page: Some(PAGE_102),
             route: vec![pt(0, Y_CP), pt(4 * G, Y_CP)],
             kind: ConnectionKind::Wire,
+            computed: false,
+            dot: false,
         })
         .expect("a wire between two CPs is accepted");
     let w: Id<Connection> = typed(r.outcome.primary.expect("primary"));
@@ -86,6 +88,8 @@ fn branch(w: Id<Connection>, at: Pt2, to: Id<Function>) -> Connect {
         page: None,
         route: vec![],
         kind: ConnectionKind::Wire,
+        computed: false,
+        dot: false,
     }
 }
 

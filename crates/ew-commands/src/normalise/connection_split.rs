@@ -63,6 +63,7 @@ pub fn split_connection(
         overrides: w.overrides.clone(),
         number: NumberSpec::Unassigned,
         source_ref: None,
+        computed: w.computed,
         extra: Extra::new(),
     };
     let mut first = (*w).clone();

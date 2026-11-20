@@ -55,7 +55,7 @@ command-connection-draw = Draw wire
 command-connection-draw_many = Draw wires
 command-connection-draw_to_ip = Draw wire to interruption point
 command-connection-route = Route wire
-command-connection-route_many = Route wires
+command-layout-apply = Route wires
 command-device-create = Create device
 command-device-link = Link device
 command-device-place = Place device
@@ -1563,7 +1563,14 @@ refusal-connection-fluid-branch = only a tube branches from { $p0 }
 refusal-connection-draw-many-entry = entry { $p0 }: { $p1 }
 refusal-connection-delete-none = no connection given; name at least one connection to delete
 refusal-connection-draw-many-too-many = { $p0 } connections are more than the { $p1 } one command takes
-refusal-connection-route-many-too-many = { $p0 } routes are more than the { $p1 } one command takes
+# layout.apply.
+refusal-layout-apply-nothing = the plan changes nothing; give at least one route, junction or wire marker
+refusal-layout-apply-too-many = { $p0 } entries are more than the { $p1 } one command takes
+refusal-layout-apply-other-page = { $p0 } is not drawn on { $p1 }; a plan changes one page
+refusal-layout-apply-junction-other-page = the junction is not on { $p0 }; a plan changes one page
+refusal-layout-apply-junction-route = the junction moves without the route of { $p0 }; give every routed wire of a moved junction its route
+refusal-layout-apply-not-a-marker = only a wire marker moves with its wires
+refusal-layout-apply-marker-other-page = the wire marker is not on { $p0 }; a plan changes one page
 # junction.edit.
 refusal-junction-sequence = `sequence` is not a permutation of the connections ending at the junction; list each of them exactly once
 # ip.place, ip.continue and the star of an interruption point.

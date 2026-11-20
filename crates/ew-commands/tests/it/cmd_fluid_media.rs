@@ -366,6 +366,8 @@ fn the_line_tag_scheme_numbers_new_fluid_lines_per_page() {
         page: Some(PAGE_102),
         route: vec![],
         kind: ConnectionKind::Fluid(Box::default()),
+        computed: false,
+        dot: false,
     };
     let new: Id<Connection> = e
         .execute(&draw(0))

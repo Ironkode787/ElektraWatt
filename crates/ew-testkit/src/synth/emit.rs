@@ -390,6 +390,7 @@ fn connection(
         overrides: WireOverrides::default(),
         number: NumberSpec::default(),
         source_ref: None,
+        computed: false,
         extra: Extra::new(),
     }
 }

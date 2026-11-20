@@ -10,7 +10,7 @@ use ew_ids::Id;
 use ew_mltext::Ident;
 use ew_model::{EndpointKey, FluidPortClass, fluid_port_class};
 use ew_schema::{
-    Bond, BondKind, CircuitClass, Connection, ConnectionKind, Device, Endpoint, ExternalRef, Extra, FnDef,
+    BevelSpec, Bond, BondKind, CircuitClass, Connection, ConnectionKind, Device, Endpoint, ExternalRef, Extra, FnDef,
     FnRole, Function, FunctionKind, IpDirection, IpSpec, Junction, JunctionStyle, JunctionWiring, Kind,
     LibCopy, NumberSpec, Page, PotentialDef, PotentialEnv, PotentialType, RepType, Representation, SymbolDef,
     WireOverrides, WireProps,
@@ -32,13 +32,14 @@ use crate::text::{Text, TextArg, text};
 use crate::tx::TxBuilder;
 
 /// Resolves one end of `connection.draw` to a record endpoint. A point on a connection W creates a
-/// junction there and splits W at it; an existing junction gets the new connection appended.
+/// junction there (the bevel form, or with `dot` the dot) and splits W at it, and the junction joins `made`; an
+/// existing junction gets the new connection appended.
 fn resolve_end(
     tx: &mut TxBuilder<'_>,
     end: &EndpointParam,
-    field: &str,
+    (field, dot): (&str, bool),
     new_id: Id<Connection>,
-    split_page: &mut Option<Id<Page>>,
+    (split_page, made): (&mut Option<Id<Page>>, &mut Vec<Id<Junction>>),
 ) -> Result<Endpoint, CmdError> {
     match end {
         EndpointParam::Cp { function, idx } => Ok(Endpoint::Cp(*function, *idx)),
@@ -47,40 +48,122 @@ fn resolve_end(
             Ok(Endpoint::Junction(*junction))
         }
         EndpointParam::OnConnection { connection, at } => {
-            let w = tx.require::<Connection>(*connection)?;
-            let Some(page) = w.page else {
-                return tx.reject(text!(
-                    "refusal-connection-no-page",
-                    crate::words::wire(tx, *connection)
-                ));
-            };
-            require_split_point(tx, &w, page, *at, &format!("{field}/on_connection/at"))?;
-            let junction: Id<Junction> = tx.mint();
-            tx.insert(Junction {
-                fitting: None,
-                id: junction,
-                v: 1,
-                page,
-                at: *at,
-                style: JunctionStyle::Dot,
-                wiring: None,
-                sequence: Vec::new(),
-                source_ref: None,
-                extra: Extra::new(),
-            })?;
-            let second = split_connection(
-                tx,
-                *connection,
-                *at,
-                Endpoint::Junction(junction),
-                *at,
-                Endpoint::Junction(junction),
-            )?;
-            tx.update::<Junction>(junction, |j| j.sequence = vec![*connection, second, new_id])?;
-            split_page.get_or_insert(page);
+            let junction = split_at(tx, *connection, *at, new_id, &format!("{field}/on_connection/at"), dot)?;
+            if let Some(page) = tx.get::<Junction>(junction).map(|j| j.page) {
+                split_page.get_or_insert(page);
+            }
+            made.push(junction);
             Ok(Endpoint::Junction(junction))
         }
     }
+}
+
+/// A new wire `new_wire` ending on a point `at` of `connection` (docs/design/06a-drafting.md §7.6): a new junction
+/// there, of the bevel form unless `dot` asks for the dot, the connection split at it, the junction's sequence
+/// `[W′, W″, new wire]`. The junction.
+pub(crate) fn split_at(
+    tx: &mut TxBuilder<'_>,
+    connection: Id<Connection>,
+    at: Pt2,
+    new_wire: Id<Connection>,
+    field: &str,
+    dot: bool,
+) -> Result<Id<Junction>, CmdError> {
+    let w = tx.require::<Connection>(connection)?;
+    let Some(page) = w.page else {
+        return tx.reject(text!(
+            "refusal-connection-no-page",
+            crate::words::wire(tx, connection)
+        ));
+    };
+    require_split_point(tx, &w, page, at, field)?;
+    let junction: Id<Junction> = tx.mint();
+    tx.insert(Junction {
+        fitting: None,
+        id: junction,
+        v: 1,
+        page,
+        at,
+        style: if dot {
+            JunctionStyle::Dot
+        } else {
+            JunctionStyle::Bevel(BevelSpec::default())
+        },
+        wiring: None,
+        sequence: Vec::new(),
+        source_ref: None,
+        extra: Extra::new(),
+    })?;
+    let second = split_connection(
+        tx,
+        connection,
+        at,
+        Endpoint::Junction(junction),
+        at,
+        Endpoint::Junction(junction),
+    )?;
+    tx.update::<Junction>(junction, |j| j.sequence = vec![connection, second, new_wire])?;
+    Ok(junction)
+}
+
+/// The way a bevel junction points (docs/design/06a-drafting.md §2.3, §7.6): its stroke joins the arm of the second
+/// wire of its sequence (which leads to the terminal that carries two wires of the chain) and the first wire's arm
+/// where the two stand square, else the third's; `None` where the routes give no such pair (an unrouted arm, arms in
+/// one line).
+pub(crate) fn bevel_orient(tx: &TxBuilder<'_>, j: &Junction) -> Option<Orient2> {
+    let arm = |c: &Id<Connection>| -> Option<(i64, i64)> {
+        let c = tx.get::<Connection>(*c)?;
+        let r = &c.route;
+        let next = if r.first() == Some(&j.at) {
+            r.iter().find(|p| **p != j.at)?
+        } else if r.last() == Some(&j.at) {
+            r.iter().rev().find(|p| **p != j.at)?
+        } else {
+            return None;
+        };
+        let (dx, dy) = (next.x.0 - j.at.x.0, next.y.0 - j.at.y.0);
+        Some(if dx.abs() >= dy.abs() {
+            (dx.signum(), 0)
+        } else {
+            (0, dy.signum())
+        })
+    };
+    let arms: Vec<Option<(i64, i64)>> = j.sequence.iter().map(arm).collect();
+    let b = (*arms.get(1)?)?;
+    let square = |a: &(i64, i64)| a.0 * b.0 + a.1 * b.1 == 0;
+    let other = arms
+        .first()
+        .copied()
+        .flatten()
+        .filter(square)
+        .or_else(|| arms.get(2).copied().flatten().filter(square))?;
+    // At `r0` the bevel's stroke joins the left arm and the one below.
+    Orient2::ALL[..4].iter().copied().find(|o| {
+        let unit = |p: Pt2| (p.x.0, p.y.0);
+        let pair = [
+            unit(o.apply(Pt2::new(ew_units::Nm(-1), ew_units::Nm(0)))),
+            unit(o.apply(Pt2::new(ew_units::Nm(0), ew_units::Nm(1)))),
+        ];
+        pair.contains(&b) && pair.contains(&other)
+    })
+}
+
+/// Sets the way each bevel junction of `junctions` points from the routes that meet at it ([`bevel_orient`]).
+pub(crate) fn point_bevels(tx: &mut TxBuilder<'_>, junctions: &[Id<Junction>]) -> Result<(), CmdError> {
+    for id in junctions {
+        let Some(j) = tx.get::<Junction>(*id) else { continue };
+        if !matches!(j.style, JunctionStyle::Bevel(_)) {
+            continue;
+        }
+        if let Some(orient) = bevel_orient(tx, &j) {
+            tx.update::<Junction>(*id, |j| {
+                if let JunctionStyle::Bevel(b) = &mut j.style {
+                    b.orient = orient;
+                }
+            })?;
+        }
+    }
+    Ok(())
 }
 
 /// Creates an IP function and its one representation; returns the function.
@@ -137,11 +220,13 @@ fn new_ip(
 /// `connection.draw` (`Connect`, doc 06 §3.5, §4.4): one explicit connection.
 ///
 /// - Each end is a CP, a junction or a point on an existing connection. A point on connection W (on its
-///   route, if W has one; W must have a page) creates a junction `{page: W.page, at, style: dot, wiring:
-///   style default}` there and splits W at it (`normalise::split_connection`: W′ keeps W's ID and ends at
-///   the junction, W″ starts there); the junction's sequence is `[W′, W″, new connection]`.
-/// - The new connection is `{a, b, page, route, kind}`; its number stays unassigned. An end at an
-///   existing junction appends the new connection to that junction's sequence.
+///   route, if W has one; W must have a page) creates a junction `{page: W.page, at, style: bevel (dot with `dot`),
+///   wiring: style default}` there and splits W at it (`normalise::split_connection`: W′ keeps W's ID and ends at
+///   the junction, W″ starts there); the junction's sequence is `[W′, W″, new connection]`, and a bevel points as
+///   the routes that meet at it ask (docs/design/06a-drafting.md §7.6).
+/// - The new connection is `{a, b, page, route, kind, computed}`; its number stays unassigned; `computed` (the Wire
+///   tool found the route) is stored only with a route. An end at an existing junction appends the new connection to
+///   that junction's sequence.
 /// - `page` defaults to the page of a split connection, else none (a page-less bridge).
 /// - On a page, the geometry must be on the page's connection grid (D3, doc 06 §5.7,
 ///   `geometry::require_route`): a split point, every route vertex, and route ends that meet their CPs
@@ -166,6 +251,12 @@ pub struct Connect {
     /// The connection kind; default a wire.
     #[serde(default)]
     pub kind: ConnectionKind,
+    /// The route was found by the program (the Wire tool's search between two clicked ends), not shaped by the person.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub computed: bool,
+    /// A junction made at an end on a connection is a dot instead of the bevel.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub dot: bool,
 }
 
 impl Command for Connect {
@@ -197,9 +288,9 @@ impl Command for Connect {
         }
         refuse_fluid_mismatch(tx, &self.kind, &[&self.a, &self.b])?;
         let new_id: Id<Connection> = tx.mint();
-        let mut split_page = None;
-        let a = resolve_end(tx, &self.a, "/a", new_id, &mut split_page)?;
-        let b = resolve_end(tx, &self.b, "/b", new_id, &mut split_page)?;
+        let (mut split_page, mut made) = (None, Vec::new());
+        let a = resolve_end(tx, &self.a, ("/a", self.dot), new_id, (&mut split_page, &mut made))?;
+        let b = resolve_end(tx, &self.b, ("/b", self.dot), new_id, (&mut split_page, &mut made))?;
         if let Some(page) = self.page.or(split_page) {
             require_route(tx, page, &a, &b, &self.route, "/route")?;
         }
@@ -215,8 +306,10 @@ impl Command for Connect {
             overrides: WireOverrides::default(),
             number: NumberSpec::default(),
             source_ref: None,
+            computed: self.computed && !self.route.is_empty(),
             extra: Extra::new(),
         })?;
+        point_bevels(tx, &made)?;
         Ok(Outcome::primary(key))
     }
 }
@@ -504,7 +597,8 @@ impl Command for ConnectMany {
     }
 }
 
-/// `connection.route`: replaces a connection's route (FR-CON-007). Connectivity is unchanged. On a page
+/// `connection.route`: replaces a connection's route (FR-CON-007): the route editor's, so the route is the person's
+/// and its `computed` mark is cleared (docs/design/06a-drafting.md §2.4). Connectivity is unchanged. On a page
 /// the route must be on the page's connection grid and its ends must meet their CPs (D3,
 /// `geometry::require_route`). Outcome: the connection. Coalesce route drags with a key.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -526,77 +620,27 @@ impl Command for RouteConnection {
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        self.store(tx, false)
+    }
+}
+
+impl RouteConnection {
+    /// Stores the route, checked as `connection.route` checks it, with its `computed` mark.
+    fn store(&self, tx: &mut TxBuilder<'_>, computed: bool) -> Result<Outcome, CmdError> {
         let c = tx.require::<Connection>(self.connection)?;
         if let Some(page) = c.page {
             require_route(tx, page, &c.a, &c.b, &self.route, "/route")?;
         }
-        tx.update::<Connection>(self.connection, |c| c.route = self.route.clone())?;
+        tx.update::<Connection>(self.connection, |c| {
+            c.route = self.route.clone();
+            c.computed = computed && !self.route.is_empty();
+        })?;
         Ok(Outcome::primary((Kind::Connection, self.connection.cast())))
     }
 }
 
-/// The most entries one `connection.route_many` takes.
-pub const ROUTE_MANY_MAX: usize = 10_000;
-
-/// `connection.route_many`: several [`RouteConnection`]s, in the given order, in **one** transaction
-/// (one undo step): Route page and Route selection commit the plan their preview showed with it, so replay never
-/// runs the router.
-///
-/// Each entry is applied exactly as `connection.route` with those parameters would be, in order. Rejected with
-/// [`CmdError::InvalidParams`] at `/routes`: no entry, or more than 10,000; an entry's own parameter error keeps its
-/// message with its JSON Pointer prefixed by `/routes/<i>`, and its refusal keeps its reason prefixed by
-/// `entry <i>: `. Every other error passes through unprefixed. Cost: `Bulk` above 500 entries, else interactive.
-/// Outcome: the first connection.
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(deny_unknown_fields)]
-pub struct RouteMany {
-    /// The routes, each the parameters of one `connection.route` (1 to 10,000).
-    pub routes: Vec<RouteConnection>,
-}
-
-impl Command for RouteMany {
-    const NAME: &'static str = "connection.route_many";
-
-    fn meta() -> CommandMeta {
-        CommandMeta::edit(Self::NAME)
-    }
-
-    fn cost(&self, _model: &ew_model::Model) -> crate::meta::Cost {
-        if self.routes.len() > crate::commands::BULK_ABOVE {
-            crate::meta::Cost::Bulk
-        } else {
-            crate::meta::Cost::Interactive
-        }
-    }
-
-    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
-        if self.routes.is_empty() {
-            return Err(CmdError::invalid_params(
-                Self::NAME,
-                "/routes",
-                text!("refusal-params-no-connection"),
-            ));
-        }
-        if self.routes.len() > ROUTE_MANY_MAX {
-            return Err(CmdError::invalid_params(
-                Self::NAME,
-                "/routes",
-                text!(
-                    "refusal-connection-route-many-too-many",
-                    self.routes.len().to_string(),
-                    ROUTE_MANY_MAX.to_string()
-                ),
-            ));
-        }
-        Ok(Outcome {
-            primary: run_routes(tx, Self::NAME, &self.routes)?,
-            ..Outcome::default()
-        })
-    }
-}
-
-/// Applies `routes` in order, each exactly as `connection.route` with those parameters would be, for the command
-/// `command` (`connection.route_many`, and `rep.move`'s `routes`): an entry's own parameter error keeps
+/// Applies `routes` in order, each checked and stored as `connection.route` would, marked `computed` (the program's
+/// routes: `rep.move`'s re-solve, `layout.apply`), for the command `command`: an entry's own parameter error keeps
 /// its message with its JSON Pointer prefixed by `/routes/<i>`, its refusal keeps its reason prefixed by `entry <i>: `,
 /// every other error passes through. The first connection.
 pub(crate) fn run_routes(
@@ -606,7 +650,7 @@ pub(crate) fn run_routes(
 ) -> Result<Option<ew_model::AnyKey>, CmdError> {
     let mut first = None;
     for (i, r) in routes.iter().enumerate() {
-        let out = r.run(tx).map_err(|err| match err {
+        let out = r.store(tx, true).map_err(|err| match err {
             CmdError::InvalidParams { path, text, .. } => {
                 CmdError::invalid_params(command, format!("/routes/{i}{path}"), *text)
             }
@@ -1282,8 +1326,8 @@ impl Command for DrawToIp {
             return tx.reject(text!("refusal-draw-to-ip-symbol-cp"));
         }
         let new_id: Id<Connection> = tx.mint();
-        let mut split_page = None;
-        let a = resolve_end(tx, &self.a, "/a", new_id, &mut split_page)?;
+        let (mut split_page, mut made) = (None, Vec::new());
+        let a = resolve_end(tx, &self.a, ("/a", false), new_id, (&mut split_page, &mut made))?;
         let b = Endpoint::Cp(function, idx);
         require_route(tx, self.page, &a, &b, &self.route, "/route")?;
         let key = (Kind::Connection, new_id.cast());
@@ -1298,8 +1342,10 @@ impl Command for DrawToIp {
             overrides: WireOverrides::default(),
             number: NumberSpec::default(),
             source_ref: None,
+            computed: false,
             extra: Extra::new(),
         })?;
+        point_bevels(tx, &made)?;
         Ok(Outcome::primary(key))
     }
 }

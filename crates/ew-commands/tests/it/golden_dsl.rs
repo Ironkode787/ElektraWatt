@@ -209,6 +209,8 @@ impl Dsl {
             page,
             route: vec![],
             kind,
+            computed: false,
+            dot: true,
         })
     }
 }

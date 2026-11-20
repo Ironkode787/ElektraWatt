@@ -285,6 +285,7 @@ pub(crate) fn emit_connections(cx: &mut Cx<'_>, table: Option<&Table>) {
             overrides,
             number: NumberSpec::default(),
             source_ref: Some(source_ref("connections", row.key())),
+            computed: false,
             extra: Default::default(),
         }));
     }

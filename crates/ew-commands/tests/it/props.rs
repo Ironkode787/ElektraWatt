@@ -191,6 +191,8 @@ fn build(model: &Model, step: &Step) -> Option<Box<dyn DynCommand>> {
             page: Some(PAGE_102),
             route: vec![],
             kind: Default::default(),
+            computed: false,
+            dot: false,
         }),
         Step::DrawOnConnection { conn, pick, f, cp } => {
             let c = nth::<Connection>(model, *conn)?;
@@ -208,6 +210,8 @@ fn build(model: &Model, step: &Step) -> Option<Box<dyn DynCommand>> {
                 page: None,
                 route: vec![],
                 kind: Default::default(),
+                computed: false,
+                dot: false,
             })
         }
         Step::DeleteConnection { conn } => boxed(DeleteConnections {

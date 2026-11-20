@@ -923,6 +923,7 @@ fn map_conductors_counted(
                 overrides: WireOverrides::default(),
                 number,
                 source_ref: Some(ids.source_ref(&key)),
+                computed: false,
                 extra,
             });
         }

@@ -84,6 +84,8 @@ fn draw(a: EndpointParam, b: EndpointParam, kind: ConnectionKind) -> Connect {
         page: None,
         route: vec![],
         kind,
+        computed: false,
+        dot: false,
     }
 }
 

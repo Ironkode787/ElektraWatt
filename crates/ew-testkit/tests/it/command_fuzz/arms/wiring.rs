@@ -577,8 +577,8 @@ pub(super) fn connection_route(live: &Live, rng: &mut SplitMix64) -> Option<Step
     }
 }
 
-// Several routes in one transaction, each as `connection.route` takes it.
-pub(super) fn connection_route_many(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+// A plan of Route in one transaction: routes, each as `connection.route` takes it.
+pub(super) fn layout_apply(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let r = rng.pick(&live.routes)?;
     let conn = r.connection.clone();
     let (a, b) = (r.a, r.b);
@@ -590,27 +590,27 @@ pub(super) fn connection_route_many(live: &Live, rng: &mut SplitMix64) -> Option
         }
     };
     match rng.below(6) {
-        // The command refuses: no entry.
-        0 => Some(Step::cmd("connection.route_many", json!({"routes": []}))),
+        // The command refuses: nothing to apply.
+        0 => Some(Step::cmd("layout.apply", json!({"page": r.page}))),
         // Refused: the second entry names a connection that does not exist; the first is not kept either.
         1 => Some(
             Step::cmd(
-                "connection.route_many",
-                json!({"routes": [
+                "layout.apply",
+                json!({"page": r.page, "routes": [
                     {"connection": conn, "route": route(a, b)},
                     {"connection": rng.uuid(), "route": []},
                 ]}),
             )
             .refuse(),
         ),
-        // A dog-leg route from end to end and a cleared one, as two entries.
+        // A dog-leg route from end to end and a cleared one of the same page, as two entries.
         _ => {
             let other = rng.pick(&live.routes)?;
             let mut routes = vec![json!({"connection": conn, "route": route(a, b)})];
-            if other.connection != conn {
+            if other.connection != conn && other.page == r.page {
                 routes.push(json!({"connection": other.connection, "route": []}));
             }
-            Some(Step::cmd("connection.route_many", json!({"routes": routes})))
+            Some(Step::cmd("layout.apply", json!({"page": r.page, "routes": routes})))
         }
     }
 }

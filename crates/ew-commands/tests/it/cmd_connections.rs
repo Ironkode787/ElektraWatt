@@ -12,7 +12,7 @@ use common::fixture::*;
 use common::*;
 use ew_commands::commands::{
     Connect, ConnectMany, ContinueIp, DefinePotential, DeleteConnections, EditJunction, EndpointParam,
-    PlaceIp, RouteConnection, RouteMany, WiringChoice,
+    ApplyLayout, JunctionPlace, PlaceIp, RouteConnection, WiringChoice,
 };
 use ew_commands::{CmdError, Engine};
 use ew_ids::Id;
@@ -54,6 +54,8 @@ fn draw(a: EndpointParam, b: EndpointParam, page: Option<Id<ew_schema::Page>>) -
         page,
         route: vec![],
         kind: ConnectionKind::Wire,
+        computed: false,
+        dot: false,
     }
 }
 
@@ -129,7 +131,8 @@ fn draw_on_a_connection_creates_a_junction_and_splits() {
         .expect("W''");
     assert_eq!(j.page, PAGE_102);
     assert_eq!(j.at, pt(2 * G, 0));
-    assert_eq!(j.style, JunctionStyle::Dot);
+    // A wire ended on a wire is joined in the bevel form (docs/design/06a-drafting.md §7.6): a chain.
+    assert!(matches!(j.style, JunctionStyle::Bevel(_)), "{:?}", j.style);
     assert_eq!(j.wiring, None);
     assert_eq!(j.sequence, vec![W, w2, new]);
     let w1 = row(&e, W);
@@ -377,52 +380,128 @@ fn route_replaces_the_route_only_and_refuses_a_missing_connection() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// connection.route_many
+// layout.apply and the form of a new junction
+
+/// The wire W split by a wire from T2:1 ending on it at two steps, routed down: the junction and the new wire.
+fn split_w(e: &mut Engine, dot: bool) -> (Id<Junction>, Id<Connection>) {
+    let mut cmd = draw(on_w(2), cp_param(FN_T2, 1), Some(PAGE_102));
+    cmd.dot = dot;
+    let r = e.execute(&cmd).expect("connection.draw");
+    let j = r
+        .created
+        .iter()
+        .find(|k| k.0 == Kind::Junction)
+        .map(|k| typed::<Junction>(*k))
+        .expect("a junction");
+    (j, typed(r.outcome.primary.expect("the new wire")))
+}
 
 #[test]
-fn route_many_sets_every_route_in_one_step_and_names_a_refused_entry() {
-    let mut e = engine(golden_model());
-    let (w29, w11) = (row(&e, CON_W29), row(&e, CON_W11A));
-    let route = vec![pt(0, 0), pt(0, G), pt(G, G)];
+fn a_wire_ended_on_a_wire_makes_a_bevel_and_with_the_dot_asked_for_a_dot() {
+    let mut e = engine(model_with_wire());
+    let (j, _) = split_w(&mut e, false);
+    assert!(matches!(row(&e, j).style, JunctionStyle::Bevel(_)));
+    let mut e = engine(model_with_wire());
+    let (j, _) = split_w(&mut e, true);
+    assert_eq!(row(&e, j).style, JunctionStyle::Dot);
+}
+
+#[test]
+fn layout_apply_stores_a_plan_in_one_step_marks_its_routes_and_refuses_a_junction_left_without_its_routes() {
+    let mut e = engine(model_with_wire());
+    let w = row(&e, W);
+    let route = vec![pt(0, 0), pt(0, G), pt(4 * G, G), pt(4 * G, 0)];
     let r = e
-        .execute(&RouteMany {
-            routes: vec![
-                RouteConnection {
-                    connection: CON_W29,
-                    route: route.clone(),
-                },
-                RouteConnection {
-                    connection: CON_W11A,
-                    route: vec![],
-                },
-            ],
-        })
-        .unwrap();
-    assert_eq!(r.outcome.primary, Some((Kind::Connection, CON_W29.cast())));
-    assert_eq!(row(&e, CON_W29).route, route);
-    // One undo step restores both.
-    e.undo(&ew_commands::Origin::Gui).unwrap();
-    assert_eq!((row(&e, CON_W29), row(&e, CON_W11A)), (w29, w11));
-    // No entry; a missing connection in the second entry: nothing changes.
-    let r = e.execute(&RouteMany { routes: vec![] });
-    assert!(
-        matches!(&r, Err(CmdError::InvalidParams { path, .. }) if path == "/routes"),
-        "{r:?}"
-    );
-    let r = e.execute(&RouteMany {
-        routes: vec![
-            RouteConnection {
-                connection: CON_W29,
+        .execute(&ApplyLayout {
+            page: PAGE_102,
+            junctions: vec![],
+            routes: vec![RouteConnection {
+                connection: W,
                 route: route.clone(),
-            },
-            RouteConnection {
-                connection: id(0xdead),
-                route: vec![],
-            },
-        ],
+            }],
+            markers: vec![],
+        })
+        .expect("layout.apply");
+    assert_eq!(r.outcome.primary, Some((Kind::Connection, W.cast())));
+    let after = row(&e, W);
+    assert_eq!(after.route, route);
+    assert!(after.computed, "the program's route");
+    // The route editor's route is the person's again.
+    e.execute(&RouteConnection {
+        connection: W,
+        route: w.route.clone(),
+    })
+    .unwrap();
+    assert!(!row(&e, W).computed);
+    e.undo(&ew_commands::Origin::Gui).unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
+    assert_eq!(row(&e, W), w, "one undo step each");
+    // Nothing to apply.
+    let r = e.execute(&ApplyLayout {
+        page: PAGE_102,
+        junctions: vec![],
+        routes: vec![],
+        markers: vec![],
     });
-    assert!(matches!(r, Err(CmdError::NotFound { .. })), "{r:?}");
-    assert_eq!(row(&e, CON_W29).route, Vec::new());
+    assert!(matches!(&r, Err(CmdError::InvalidParams { .. })), "{r:?}");
+    // A junction that moves without the route of a routed wire of it.
+    let (j, _) = split_w(&mut e, false);
+    let at = row(&e, j).at;
+    let r = e.execute(&ApplyLayout {
+        page: PAGE_102,
+        junctions: vec![JunctionPlace {
+            junction: j,
+            at: pt(at.x.0 + G, at.y.0),
+            orient: None,
+        }],
+        routes: vec![],
+        markers: vec![],
+    });
+    assert!(is_rejected(r));
+    assert_eq!(row(&e, j).at, at);
+}
+
+#[test]
+fn layout_apply_keeps_a_junction_s_form_and_sequence() {
+    // A plan has no member that changes a wire's ends, a junction's form, its wires or its sequence: a dot stays a dot
+    // whatever way it is told to point.
+    let mut e = engine(model_with_wire());
+    let (j, new) = split_w(&mut e, true);
+    let before = row(&e, j);
+    let ends = |e: &Engine| {
+        before
+            .sequence
+            .iter()
+            .map(|c| {
+                let c = row(e, *c);
+                (c.a, c.b)
+            })
+            .collect::<Vec<_>>()
+    };
+    let was = ends(&e);
+    let n = row(&e, new);
+    let to = n.route.last().copied();
+    let r = e.execute(&ApplyLayout {
+        page: PAGE_102,
+        junctions: vec![JunctionPlace {
+            junction: j,
+            at: before.at,
+            orient: Some(Orient2::R90),
+        }],
+        routes: to
+            .map(|_| RouteConnection {
+                connection: new,
+                route: n.route.clone(),
+            })
+            .into_iter()
+            .collect(),
+        markers: vec![],
+    });
+    assert!(r.is_ok(), "{r:?}");
+    let after = row(&e, j);
+    assert_eq!(after.style, JunctionStyle::Dot);
+    assert_eq!(after.sequence, before.sequence);
+    assert_eq!(ends(&e), was);
 }
 
 // ---------------------------------------------------------------------------------------------------------

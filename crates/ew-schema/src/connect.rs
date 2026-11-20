@@ -59,6 +59,11 @@ pub struct Connection {
     /// Import provenance.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_ref: Option<SourceRef>,
+    /// The stored route was computed by the program and may be computed again (docs/design/06a-drafting.md §2.5);
+    /// absent: the route is the person's. Optional and additive within format 0.1, after the released members
+    /// (ADR-0011 amendment 6).
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub computed: bool,
     /// Unknown members and plugin keys.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

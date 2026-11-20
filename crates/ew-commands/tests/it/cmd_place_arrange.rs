@@ -2361,6 +2361,8 @@ fn a_positional_contacts_endpoints_survive_a_pattern_re_index() {
         page: None,
         route: vec![],
         kind: ew_schema::ConnectionKind::Wire,
+        computed: false,
+        dot: false,
     };
     e.execute(&wire(contact, 0, coil, 0))
         .expect("contact 13 to coil A1");

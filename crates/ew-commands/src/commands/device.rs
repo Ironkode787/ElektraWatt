@@ -11,7 +11,7 @@ use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_schema::{
     AnchorPolicy, AnyId, BoxSpec, Connection, ConnectionKind, ContactKind, Device, DeviceAspects, DeviceKind,
-    Endpoint, Extra, FnDef, FnRole, FrozenTag, Function, FunctionKind, Junction, JunctionStyle, Kind,
+    Endpoint, Extra, FnDef, FnRole, FrozenTag, Function, FunctionKind, Junction, Kind,
     LibCopy, NumberSpec, Page, PageItem, PageItemKind, PageType, Part, PartRef, PartUse, RepType,
     Representation, SlotOverride, Strip, StructureAssignment, StructureBox, SymbolDef, TagSpec,
 };
@@ -27,7 +27,7 @@ use crate::commands::layout::push_after_growth;
 use crate::commands::terminal::{TerminalSpec, insert_terminal, strip_usage};
 use crate::error::CmdError;
 use crate::geometry::{
-    OutOfRange, add, follow_end, follow_ends, rep_cps_checked, require_on_grid, require_split_point, sub,
+    OutOfRange, add, follow_end, follow_ends, rep_cps_checked, require_on_grid, sub,
     translate,
 };
 use crate::meta::CommandMeta;
@@ -449,13 +449,14 @@ fn hint_wire(
     let id: Id<Connection> = tx.mint();
     let (to, joins_sequence) = match to {
         EndpointParam::OnConnection { connection, at } => (
-            split_for_hint(
+            Endpoint::Junction(crate::commands::connection::split_at(
                 tx,
                 *connection,
                 *at,
                 id,
                 &format!("/connect/{i}/to/on_connection/at"),
-            )?,
+                false,
+            )?),
             false,
         ),
         other => (
@@ -492,10 +493,15 @@ fn hint_wire(
         overrides: Default::default(),
         number: NumberSpec::default(),
         source_ref: None,
+        computed: false,
         extra: Extra::new(),
     })?;
-    if let (Endpoint::Junction(j), true) = (to, joins_sequence) {
-        tx.update::<Junction>(j, |j| j.sequence.push(id))?;
+    match (to, joins_sequence) {
+        (Endpoint::Junction(j), true) => {
+            tx.update::<Junction>(j, |j| j.sequence.push(id))?;
+        }
+        (Endpoint::Junction(j), false) => crate::commands::connection::point_bevels(tx, &[j])?,
+        _ => {}
     }
     Ok(())
 }
@@ -513,48 +519,6 @@ fn missing_target(tx: &TxBuilder<'_>, to: &EndpointParam) -> Option<String> {
             (!tx.exists::<Connection>(*connection)).then(|| "the wire it connects to".to_owned())
         }
     }
-}
-
-/// A hint ending on a point of a connection: a new junction at `at`, the connection split there, the
-/// junction's sequence `[W′, W″, new wire]` (as `connection.draw` does for an `on_connection` end).
-fn split_for_hint(
-    tx: &mut TxBuilder<'_>,
-    connection: Id<Connection>,
-    at: Pt2,
-    new_wire: Id<Connection>,
-    field: &str,
-) -> Result<Endpoint, CmdError> {
-    let w = tx.require::<Connection>(connection)?;
-    let Some(page) = w.page else {
-        return tx.reject(text!(
-            "refusal-connection-no-page",
-            crate::words::wire(tx, connection)
-        ));
-    };
-    require_split_point(tx, &w, page, at, field)?;
-    let junction: Id<Junction> = tx.mint();
-    tx.insert(Junction {
-        fitting: None,
-        id: junction,
-        v: 1,
-        page,
-        at,
-        style: JunctionStyle::Dot,
-        wiring: None,
-        sequence: Vec::new(),
-        source_ref: None,
-        extra: Extra::new(),
-    })?;
-    let second = crate::normalise::split_connection(
-        tx,
-        connection,
-        at,
-        Endpoint::Junction(junction),
-        at,
-        Endpoint::Junction(junction),
-    )?;
-    tx.update::<Junction>(junction, |j| j.sequence = vec![connection, second, new_wire])?;
-    Ok(Endpoint::Junction(junction))
 }
 
 /// The representation types a page type allows (doc 06 §2.2, page-type table); `None` when the page type
@@ -827,7 +791,7 @@ impl MoveReps {
         Ok(out)
     }
 
-    /// After the move: `routes` replace the followed routes, as `connection.route_many` applies
+    /// After the move: `routes` replace the followed routes, marked `computed` (the move's re-solve), as `layout.apply` applies
     /// them, then each hint of `connect` makes its wire as `device.place` does (a hint whose target no longer exists is
     /// dropped with a notice; a CP the representation does not draw is refused). The notices.
     fn routes_and_hints(&self, tx: &mut TxBuilder<'_>) -> Result<Vec<String>, CmdError> {

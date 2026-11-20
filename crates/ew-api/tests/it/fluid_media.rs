@@ -148,6 +148,7 @@ fn overlay() -> (Session, BTreeMap<String, String>, Id<Connection>, Id<Function>
             overrides: Default::default(),
             number: Default::default(),
             source_ref: None,
+            computed: false,
             extra: Default::default(),
         }));
     });

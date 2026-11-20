@@ -261,6 +261,8 @@ fn wire_every_pin(e: &mut Engine, rep: Id<Representation>, f: Id<Function>) -> V
                 page: Some(PAGE_101),
                 route: route.clone(),
                 kind: ConnectionKind::Wire,
+                computed: false,
+                dot: false,
             })
             .unwrap_or_else(|err| {
                 panic!("the wire to pin {idx} at {pin:?} (route {route:?}) is refused: {err}")
@@ -613,6 +615,8 @@ fn an_off_grid_wire_corner_is_refused_in_words() {
             pt(4 * G, G),
         ],
         kind: ConnectionKind::Wire,
+        computed: false,
+        dot: false,
     }));
     assert_eq!(
         reason,

@@ -28,6 +28,7 @@ pub mod common;
 mod company;
 mod connection;
 mod device;
+mod drafting;
 mod drawing;
 mod edit;
 mod exchange;
@@ -66,6 +67,7 @@ pub use checks::{CHECKS_MEMBER, SHIPPED_CHECK_SCHEMES};
 pub use common::{EndpointParam, KindName, TargetRef};
 pub use company::COMPANY_MEMBER;
 pub use connection::{IpAtEnd, WiringChoice};
+pub use drafting::{JunctionPlace, MarkerPlace};
 pub use device::{ConnectHint, PlaceTarget, PortBox, PortsTarget, allowed_rep_types};
 pub use drawing::{Crossings, MarkerModeParam};
 pub use edit::BULK_ABOVE;
@@ -146,8 +148,8 @@ commands! {
     connection::ArrangeIps,
     // The chain of bridges of Edit ▸ Bridge terminals
     connection::ConnectMany,
-    // A page's or a selection's routes in one step
-    connection::RouteMany,
+    // The plan of Route in one step
+    drafting::ApplyLayout,
     terminal::AddTerminals,
     terminal::DesignateTerminals,
     terminal::CreateCable,

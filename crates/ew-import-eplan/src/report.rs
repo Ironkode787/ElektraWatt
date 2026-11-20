@@ -629,6 +629,7 @@ pub fn read_report(
                         overrides: WireOverrides::default(),
                         number: NumberSpec::default(),
                         source_ref: Some(ids.source_ref(&ckey)),
+                        computed: false,
                         extra: Extra::new(),
                     }));
                 }

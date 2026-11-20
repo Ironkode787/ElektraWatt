@@ -536,6 +536,8 @@ fn d3_off_grid_positions_are_rejected() {
         page: Some(PAGE_102),
         route,
         kind: ConnectionKind::Wire,
+        computed: false,
+        dot: false,
     };
     assert_eq!(
         rejection(e.execute(&draw(vec![pt(G, G), pt(2 * G + 1, G), pt(4 * G, G)]))),
@@ -553,6 +555,8 @@ fn d3_off_grid_positions_are_rejected() {
         page: None,
         route: vec![],
         kind: ConnectionKind::Wire,
+        computed: false,
+        dot: false,
     };
     assert_eq!(
         rejection(e.execute(&split(pt(3 * G + 1, G)))),
@@ -652,6 +656,8 @@ fn draw_between(fa: Id<Function>, fb: Id<Function>, route: Vec<Pt2>) -> Connect 
         page: Some(PAGE_102),
         route,
         kind: ConnectionKind::Wire,
+        computed: false,
+        dot: false,
     }
 }
 

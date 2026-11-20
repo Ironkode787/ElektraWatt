@@ -547,6 +547,8 @@ fn emptying_a_valve_position_names_its_fluid_lines_and_the_unbound_channel() {
             page: None,
             route: vec![],
             kind: ew_schema::ConnectionKind::Fluid(Box::default()),
+            computed: false,
+            dot: false,
         })
         .expect("a fluid line");
     }
@@ -680,6 +682,8 @@ fn n_fl_1_carries_lines_closures_and_media_to_the_new_valve_and_names_what_goes(
             page: None,
             route: vec![],
             kind: ew_schema::ConnectionKind::Fluid(Box::default()),
+            computed: false,
+            dot: false,
         })
         .expect("a fluid line at port 1"),
     );

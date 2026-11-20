@@ -1055,7 +1055,8 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         page: Option<Id<Page>>,
         kind: &ConnectionKind,
     ) -> Result<Drawn> {
-        let params = json!({"a": a.param(), "b": b.param(), "page": page, "kind": kind});
+        // Golden A draws its junctions as dots: the form its source gives them.
+        let params = json!({"a": a.param(), "b": b.param(), "page": page, "kind": kind, "dot": true});
         let (connection, done) = self.primary::<Connection>("connection.draw", params)?;
         let junction = Self::created::<Junction>(&done, Kind::Junction).first().copied();
         let split = Self::created::<Connection>(&done, Kind::Connection)
@@ -1068,19 +1069,6 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         })
     }
 
-    /// `connection.route_many`: the `routes` of several connections in one transaction.
-    ///
-    /// # Errors
-    ///
-    /// A command's error.
-    pub fn route_many(&mut self, routes: &[(Id<Connection>, Value)]) -> Result<()> {
-        let routes: Vec<Value> = routes
-            .iter()
-            .map(|(id, route)| json!({"connection": id, "route": route}))
-            .collect();
-        self.run("connection.route_many", json!({"routes": routes}))
-            .map(|_| ())
-    }
 
     /// `fields.set` of a connection's `overrides` members and `number`; its ends, page and kind are written
     /// by `connection.draw`; a stored `route` is set by `connection.route`.
