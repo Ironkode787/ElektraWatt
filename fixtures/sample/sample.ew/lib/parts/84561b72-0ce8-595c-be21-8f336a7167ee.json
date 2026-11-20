@@ -1,0 +1,31 @@
+{
+  "$k": "part",
+  "id": "84561b72-0ce8-595c-be21-8f336a7167ee",
+  "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+  "item_id": "7b2ad922-5395-5f7a-9b84-3ba96b073523",
+  "version": "0.1.0",
+  "sha256": "sha256:c2b393706f4b628cb55e20a292bd05b198252d6e39643f3904417fd1987e8b96",
+  "meta": {"key": "EW-GEN-LMP-3", "licence": "CC0-1.0", "sources": ["ew.original"]},
+  "manufacturer": {
+    "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+    "item": "f4260253-4a2b-5c11-a3d6-b01e2aa5efe6",
+    "version_req": "^0.1"
+  },
+  "part_number": "EW-GEN-LMP-3",
+  "description": {"en": "Signal lamp, green"},
+  "category": ["Lighting", "Lamp", "Cabinet"],
+  "tech_data": [{"key": "colour", "value": "GN"}, {"key": "rated_voltage", "value": {"value": "24", "unit": "V"}}],
+  "cp_pattern": [{"idx": 0, "designation": "X1"}, {"idx": 1, "designation": "X2"}],
+  "function_template": [
+    {
+      "fndef": {
+        "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+        "item": "5f8cdc08-b9d7-5a47-a366-c7d99418f979",
+        "version_req": "^0.1",
+        "key": "ew.fn.lamp"
+      },
+      "main": true,
+      "cps": [0, 1]
+    }
+  ]
+}

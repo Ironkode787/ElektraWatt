@@ -1,0 +1,31 @@
+{
+  "$k": "part",
+  "id": "138b9dc0-edcd-50fe-baef-d85e5ce8e643",
+  "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+  "item_id": "cdde77a1-7d4c-5f3e-92a5-3d83706c8384",
+  "version": "0.1.0",
+  "sha256": "sha256:7130958c22ea5852029afd072e2b5c08e66b08926af7af44ac331f1ba240c4fd",
+  "meta": {"key": "EW-GEN-LMP-1", "licence": "CC0-1.0", "sources": ["ew.original"]},
+  "manufacturer": {
+    "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+    "item": "f4260253-4a2b-5c11-a3d6-b01e2aa5efe6",
+    "version_req": "^0.1"
+  },
+  "part_number": "EW-GEN-LMP-1",
+  "description": {"en": "Pilot lamp"},
+  "category": ["Lighting", "Lamp", "Cabinet"],
+  "tech_data": [{"key": "rated_voltage", "value": {"value": "24", "unit": "V"}}],
+  "cp_pattern": [{"idx": 0, "designation": "X1"}, {"idx": 1, "designation": "X2"}],
+  "function_template": [
+    {
+      "fndef": {
+        "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+        "item": "5f8cdc08-b9d7-5a47-a366-c7d99418f979",
+        "version_req": "^0.1",
+        "key": "ew.fn.lamp"
+      },
+      "main": true,
+      "cps": [0, 1]
+    }
+  ]
+}

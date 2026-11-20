@@ -1,0 +1,37 @@
+{
+  "$k": "part",
+  "id": "7f57b77a-6a32-5397-93e4-66e35de395d0",
+  "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+  "item_id": "079a22df-17f4-5370-a7d6-ed8f1ccd67c0",
+  "version": "0.1.0",
+  "sha256": "sha256:35554d8f3ac06b836c458b32b7289cc7003f40e208567e2554a1f095c392d6a3",
+  "meta": {"key": "EW-GEN-MCB-4", "licence": "CC0-1.0", "sources": ["ew.original"]},
+  "manufacturer": {
+    "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+    "item": "f4260253-4a2b-5c11-a3d6-b01e2aa5efe6",
+    "version_req": "^0.1"
+  },
+  "part_number": "EW-GEN-MCB-4",
+  "description": {"en": "Miniature circuit breaker, 2 poles"},
+  "category": ["ProtectionOvercurrent", "MCB", "2P"],
+  "tech_data": [{"key": "characteristic", "value": "C"}, {"key": "rated_current", "value": {"value": "16", "unit": "A"}}],
+  "cp_pattern": [
+    {"idx": 0, "designation": "1"},
+    {"idx": 1, "designation": "2"},
+    {"idx": 2, "designation": "3"},
+    {"idx": 3, "designation": "4"}
+  ],
+  "function_template": [
+    {
+      "fndef": {
+        "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+        "item": "acf4f3ee-c2af-56e2-8b8f-5eb5cbf57bd9",
+        "version_req": "^0.1",
+        "key": "ew.fn.mcb-2p"
+      },
+      "main": true,
+      "cps": [0, 1, 2, 3]
+    }
+  ],
+  "mech": {"width": 36000000, "height": 85000000, "depth": 70000000, "mount_kind": "ts35x7_5"}
+}

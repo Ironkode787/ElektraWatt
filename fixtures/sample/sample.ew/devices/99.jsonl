@@ -1,0 +1,2 @@
+{"$k":"device","id":"019b76da-a899-7000-8000-000000000099","tag":{"letter":"S","counter":1},"parts":[{"part":{"copy":"56dd3d59-7189-557f-b88b-7b8f096bd674"},"qty":"1"}]}
+{"$k":"function","id":"019b76da-a89a-7000-8000-00000000009a","device":"019b76da-a899-7000-8000-000000000099","def":"d0c2eab1-30a8-597d-96fb-3e7d3c343b72","template_entry":0}

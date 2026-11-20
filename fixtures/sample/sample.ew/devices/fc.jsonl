@@ -1,0 +1,4 @@
+{"$k":"device","id":"019b76da-a8fc-7000-8000-0000000000fc","tag":{"letter":"Q","counter":1,"scheme":"child"},"parent":"019b76da-a8f9-7000-8000-0000000000f9","position":1,"parts":[{"part":{"copy":"6aa2035d-ea1d-5cd5-9222-36621f8760fb"},"qty":"1"}]}
+{"$k":"function","id":"2c689c22-b3e2-50a1-8cb0-cf3dcaf00c41","device":"019b76da-a8fc-7000-8000-0000000000fc","def":"6390be2f-2232-5be9-a867-eb4be56aa823","role":"aux","template_entry":1}
+{"$k":"function","id":"abe75512-538e-5a23-a183-c849c0bf798c","device":"019b76da-a8fc-7000-8000-0000000000fc","def":"ab4c7813-e809-503b-a0cb-8978f1c4ac3a","template_entry":0}
+{"$k":"device_link","id":"e0b663c1-1a01-5df0-861f-491b869de36b","from":"019b76da-a8fc-7000-8000-0000000000fc","to":"019b76da-a906-7000-8000-000000000106","kind":"drives"}

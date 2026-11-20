@@ -1,0 +1,2 @@
+{"$k":"device","id":"019b76da-a8d7-7000-8000-0000000000d7","tag":{"letter":"M","counter":1},"structure":{"location":"019b76da-a805-7000-8000-000000000005"},"parts":[{"part":{"copy":"52d97005-a5b4-536a-af99-4a2224c98276"},"qty":"1"}]}
+{"$k":"function","id":"019b76da-a8d8-7000-8000-0000000000d8","device":"019b76da-a8d7-7000-8000-0000000000d7","def":"35c36073-2986-5d72-b7b9-4589385962b4","template_entry":0}

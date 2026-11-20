@@ -17,7 +17,7 @@ use std::path::Path;
 use egui::Key;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
-use ew_testdir::copy_dir;
+use ew_testdir::{RELEASE_MIN, copy_dir};
 use ew_ui::app::App;
 use ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellModel};
@@ -26,7 +26,6 @@ use serde_json::{Value, json};
 use support::{Scripted, Tmp, dispatch, harness, on_golden, settle, wait_for_page};
 
 const VIEWMODEL_SRC: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../ew-viewmodel/src");
-const RELEASE_MIN: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/fixtures/release-min");
 /// The date the window passes to a revision action.
 const DATE: &str = "2026-10-30";
 

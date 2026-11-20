@@ -5090,13 +5090,13 @@ fn ac23_refusal() -> Outcome {
     }
 }
 
-/// D15's success half (Golden A-R's release is FT-666): a copy of `golden/fixtures/release-min` is approved by the
+/// D15's success half (Golden A-R's release is FT-666): a copy of `fixtures/release-min` is approved by the
 /// checker (the confirmed `revision approve`) and released (the confirmed `revision release`) with the release
 /// gate passing; the written archive reads back with its project verified.
 fn ac23_success() -> Outcome {
     let base = scratch_dir("ac23");
     let dir = base.join("release-min");
-    ew_testdir::copy_dir(&repo().join("golden/fixtures/release-min"), &dir);
+    ew_testdir::copy_dir(std::path::Path::new(ew_testdir::RELEASE_MIN), &dir);
     let outcome = ac23_release(&base, &dir);
     let _ = std::fs::remove_dir_all(&base);
     outcome

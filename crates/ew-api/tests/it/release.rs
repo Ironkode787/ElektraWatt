@@ -2,15 +2,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The atomic release and the as-built archive through the `Session` facade, RA-1 to
-//! RA-7, on the release fixture `golden/fixtures/release-min` (one page, two devices, an author and a checker party,
+//! RA-7, on the release fixture `fixtures/release-min` (one page, two devices, an author and a checker party,
 //! the open revision V1.0 with its author; built by [`build_release_min`] and compared with the checked-in copy).
 //!
-//! Every release runs on a **copy** of the fixture (a fresh directory or a [`MemVfs`]); nothing under `golden/`
+//! Every release runs on a **copy** of the fixture (a fresh directory or a [`MemVfs`]); nothing under `fixtures/`
 //! changes. The tests that need no git pass [`NoGit`], which reports no worktree without looking at the disk, so no
 //! test walks up into the repository it runs in; RA-7's git test creates its own repository under its temporary
 //! directory.
 
-use crate::{common, golden_common};
+use crate::common;
 
 use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, BTreeSet};
@@ -38,14 +38,11 @@ use ew_testids::seeded_ids;
 // ---------------------------------------------------------------------------------------------------------------
 // The fixture
 
-/// The release fixture, relative to the repository.
-const FIXTURE: &str = "golden/fixtures/release-min";
-
 /// The open revision of the fixture.
 const LABEL: &str = "V1.0";
 
 fn fixture() -> PathBuf {
-    golden_common::repo().join(FIXTURE)
+    PathBuf::from(ew_testdir::RELEASE_MIN)
 }
 
 fn store_options(state: &Path) -> StoreOptions {

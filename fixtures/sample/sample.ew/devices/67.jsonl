@@ -1,0 +1,6 @@
+{"$k":"device","id":"019b76da-a867-7000-8000-000000000067","tag":{"letter":"W","counter":1},"parts":[{"part":{"copy":"ddc2f960-94c8-5485-bc7a-0ec065eb0cfa"},"qty":"1"}],"cable":{"length":{"manual":10000000000}}}
+{"$k":"conductor","id":"019b76da-a868-7000-8000-000000000068","cable":"019b76da-a867-7000-8000-000000000067","core":"BN","colour":["BN"],"csa":"2.5"}
+{"$k":"conductor","id":"019b76da-a869-7000-8000-000000000069","cable":"019b76da-a867-7000-8000-000000000067","core":"BK","colour":["BK"],"csa":"2.5"}
+{"$k":"conductor","id":"019b76da-a86a-7000-8000-00000000006a","cable":"019b76da-a867-7000-8000-000000000067","core":"GY","colour":["GY"],"csa":"2.5"}
+{"$k":"conductor","id":"019b76da-a86b-7000-8000-00000000006b","cable":"019b76da-a867-7000-8000-000000000067","core":"BU","colour":["BU"],"csa":"2.5"}
+{"$k":"conductor","id":"019b76da-a86c-7000-8000-00000000006c","cable":"019b76da-a867-7000-8000-000000000067","core":"GNYE","colour":["GN","YE"],"csa":"2.5"}

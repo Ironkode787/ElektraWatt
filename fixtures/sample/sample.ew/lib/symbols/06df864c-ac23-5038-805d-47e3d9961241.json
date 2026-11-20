@@ -1,0 +1,49 @@
+{
+  "$k": "symbol",
+  "id": "06df864c-ac23-5038-805d-47e3d9961241",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "c31f0383-5f70-56e9-a2be-4410e0d7ce57",
+  "version": "0.2.0",
+  "sha256": "sha256:183117ec9cf34015e592b99046f3b10507c3314e5f80ced96f2a93fa6d46b0f7",
+  "meta": {
+    "key": "ew.iso.air-supply@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": ["ew.original"],
+    "status": "draft"
+  },
+  "name": {"en": "Compressed-air supply point", "nl": "Persluchtaansluitpunt"},
+  "keywords": ["compressed air", "pneumatic", "source", "supply"],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "47e58bb3-eb07-5d8f-a837-6efb88f12370",
+    "version_req": "^0.1",
+    "key": "ew.fn.air-supply"
+  },
+  "grid": {"num": 7937500, "den": 3},
+  "graphics": [
+    {"circle": {"centre": [5291667, 5291667], "r": 2976562, "stroke": {"pen": {"width": 264583}}}},
+    {
+      "polygon": {
+        "points": [[5291667, 3307292], [3638021, 6614583], [6945312, 6614583]],
+        "closed": true,
+        "stroke": {"pen": {"width": 264583}}
+      }
+    },
+    {"line": {"from": [5291667, 8268229], "to": [5291667, 10583333], "stroke": {"pen": {"width": 264583}}}}
+  ],
+  "cps": [{"idx": 0, "fn_cp": 0, "pos": [5291667, 10583333], "dir": "down", "discipline": "pneumatic"}],
+  "text_slots": [
+    {"kind": "tag", "pos": [1984375, 3968750], "align": "middle_right", "visible": true},
+    {
+      "kind": "function_text",
+      "pos": [1984375, 6614583],
+      "align": "middle_right",
+      "visible": true,
+      "fallback": "process_tag"
+    },
+    {"kind": {"cp_designation": 0}, "pos": [5953125, 11244792], "align": "middle_left", "visible": true}
+  ],
+  "arrangements": [{"name": "full", "slots": [0, 1, 2]}, {"name": "tag", "slots": [0]}, {"name": "ports", "slots": [1, 2]}],
+  "anchor": {"named": [5291667, 5291667]}
+}

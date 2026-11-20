@@ -9,7 +9,7 @@
 //!   GPL), so each registry's own crate has a test that writes its file when `EW_REFERENCE_DIR` is set, and
 //!   [`reference`] runs those tests.
 //! - **Committed files** that a generator writes from data in the tree: the workspace-hack crate, the book's
-//!   contents and reference pages, the maps of the actions and the crates (`docs/map/`), the icon table, the lint list and the QET symbol edition. `--check` compares the
+//!   contents and reference pages, the maps of the actions and the crates (`docs/map/`), the icon table, the lint list, the QET symbol edition and the sample project's folder. `--check` compares the
 //!   ones that need no build. The guide's translation catalogue is not among them: `cargo xtask book-po` makes it,
 //!   when the guide is translated and before a release.
 
@@ -69,10 +69,32 @@ const OWN: &[(&str, Own)] = &[
         }
     }),
     ("symbols-qet10", crate::symbols::run),
+    // Comparing needs a build: the test itself compares the folder; here it is only written.
+    ("sample", sample),
     // Not here: the guide's translation catalogue (`cargo xtask book-po`). It is made when the guide is translated
     // and before a release, not with every change of a page: made here, every change of a page rewrote the
     // template and the translations in every branch, and they met at every merge.
 ];
+
+/// The test that writes the sample project's folder `fixtures/sample/sample.ew` from its UI script when `EW_BLESS=1`
+/// is set: the package, then the arguments that choose the test target and the test.
+const SAMPLE_TEST: (&str, &[&str]) = (
+    "ew-viewmodel",
+    &[
+        "--test",
+        "it",
+        "sample::the_committed_sample_is_what_its_script_makes",
+    ],
+);
+
+/// `sample`: runs [`SAMPLE_TEST`] with `EW_BLESS=1`, which writes the folder. In check mode it is up to date by
+/// definition: comparing needs a build, and the test compares it.
+fn sample(root: &Path, check: bool) -> Result<bool> {
+    if check {
+        return Ok(true);
+    }
+    test_with(root, ("EW_BLESS", "1".as_ref()), SAMPLE_TEST.0, SAMPLE_TEST.1)
+}
 
 /// `gen-maps [--check]`: the action map and the crate map under `docs/map/`, read from the source.
 pub(crate) fn maps(root: &Path, check: bool) -> Result<bool> {
@@ -163,18 +185,23 @@ pub(crate) fn write_actions(root: &Path) -> Result<bool> {
 
 /// Runs one test of [`REFERENCE`] with `EW_REFERENCE_DIR` set to `dir`.
 fn reference_test(root: &Path, dir: &Path, package: &str, args: &[&str]) -> Result<bool> {
+    test_with(root, ("EW_REFERENCE_DIR", dir.as_os_str()), package, args)
+}
+
+/// Runs the test that `args` choose in `package` (plain `cargo test`) with the environment variable `env` set.
+fn test_with(root: &Path, env: (&str, &std::ffi::OsStr), package: &str, args: &[&str]) -> Result<bool> {
     let (target, test) = args.split_at(2);
     let status = Command::new(crate::cargo())
         .current_dir(root)
-        .env("EW_REFERENCE_DIR", dir)
+        .env(env.0, env.1)
         .args(["test", "--quiet", "--all-features", "-p", package])
         .args(target)
         .arg("--")
         .args(test)
         .status()
-        .with_context(|| format!("running the reference test of {package}"))?;
+        .with_context(|| format!("running the test of {package}"))?;
     if !status.success() {
-        eprintln!("gen: the reference test of {package} ({}) FAILED", args.join(" "));
+        eprintln!("gen: the test of {package} ({}) FAILED", args.join(" "));
     }
     Ok(status.success())
 }

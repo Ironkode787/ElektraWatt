@@ -11,12 +11,11 @@ use std::path::Path;
 
 use egui_kittest::Harness;
 use egui_kittest::kittest::NodeT as _;
-use ew_testdir::copy_dir;
+use ew_testdir::{RELEASE_MIN, copy_dir};
 use ew_ui::app::App;
 use serde_json::json;
 use support::{Scripted, Tmp, dispatch, harness, settle};
 
-const RELEASE_MIN: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/fixtures/release-min");
 
 /// The texts of the window's last frame (each node's label, then its value; a label is often its value too) in the
 /// order AccessKit lists them.

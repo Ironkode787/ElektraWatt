@@ -1,0 +1,11 @@
+{
+  "$k": "manufacturer",
+  "id": "7ae048b6-63ea-5c01-83b2-e1a83b5b4414",
+  "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+  "item_id": "f4260253-4a2b-5c11-a3d6-b01e2aa5efe6",
+  "version": "0.1.0",
+  "sha256": "sha256:f3df52cb1e83bcc3bda7957948246bcb5a5a958739eca73dce4191db5ad15d9c",
+  "meta": {"licence": "CC0-1.0", "sources": ["ew.original"]},
+  "key": "Generic",
+  "name": {"en": "Generic"}
+}

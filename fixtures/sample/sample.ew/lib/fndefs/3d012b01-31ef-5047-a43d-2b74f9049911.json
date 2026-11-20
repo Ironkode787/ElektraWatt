@@ -1,0 +1,11 @@
+{
+  "$k": "fndef",
+  "id": "3d012b01-31ef-5047-a43d-2b74f9049911",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "8f2f5a49-a5bc-5d27-815c-47dd24106efb",
+  "version": "0.1.0",
+  "sha256": "sha256:194ae722c2b93aba02455b38c9859e74c587fe39abf390008b4c95a6d15aaf42",
+  "meta": {"key": "ew.fn.blackbox", "licence": "CC-BY-SA-4.0", "sources": ["ew.original"], "status": "draft"},
+  "category": ["Assembly", "BlackBox", "Generic"],
+  "contact_kind": "black_box"
+}

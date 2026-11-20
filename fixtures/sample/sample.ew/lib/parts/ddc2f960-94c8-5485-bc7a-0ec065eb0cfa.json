@@ -1,0 +1,27 @@
+{
+  "$k": "part",
+  "id": "ddc2f960-94c8-5485-bc7a-0ec065eb0cfa",
+  "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+  "item_id": "c518ef00-40ca-5075-8001-a007fca55a7f",
+  "version": "0.1.0",
+  "sha256": "sha256:8adb129d51766e35d03691ede388cfb7bf5697d3f57e9b6a2115fb99ff54c4c5",
+  "meta": {"key": "EW-GEN-CBL-17", "licence": "CC0-1.0", "sources": ["ew.original"]},
+  "kind": "cable",
+  "manufacturer": {
+    "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+    "item": "f4260253-4a2b-5c11-a3d6-b01e2aa5efe6",
+    "version_req": "^0.1"
+  },
+  "part_number": "EW-GEN-CBL-17",
+  "description": {"en": "Cable 5G2.5 mm², cores brown, black, grey, blue and green-yellow"},
+  "unit": "m",
+  "sections": {
+    "cable_cores": [
+      {"core": "BN", "colour": ["BN"], "csa": "2.5"},
+      {"core": "BK", "colour": ["BK"], "csa": "2.5"},
+      {"core": "GY", "colour": ["GY"], "csa": "2.5"},
+      {"core": "BU", "colour": ["BU"], "csa": "2.5"},
+      {"core": "GNYE", "colour": ["GN", "YE"], "csa": "2.5"}
+    ]
+  }
+}

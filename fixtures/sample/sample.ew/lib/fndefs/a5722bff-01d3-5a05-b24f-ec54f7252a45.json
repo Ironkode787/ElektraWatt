@@ -1,0 +1,20 @@
+{
+  "$k": "fndef",
+  "id": "a5722bff-01d3-5a05-b24f-ec54f7252a45",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "019de5a6-ca42-5fe3-9d58-a78501a2f377",
+  "version": "0.1.0",
+  "sha256": "sha256:76efd0986d3e6aeae8bde03ba9fb416e01edb6e4dc70aa8053d5ccf73c977864",
+  "meta": {"key": "ew.fn.psu-ac-dc", "licence": "CC-BY-SA-4.0", "sources": ["ew.original"], "status": "draft"},
+  "category": ["PowerSupplyAcDc", "PowerSupply", "AcDc"],
+  "contact_kind": "black_box",
+  "cps": [
+    {"idx": 0, "designation": "L", "potential_role": "l"},
+    {"idx": 1, "designation": "N", "potential_role": "n"},
+    {"idx": 2, "designation": "PE", "potential_role": "pe"},
+    {"idx": 3, "designation": "+", "potential_role": "l_plus", "source_output": true},
+    {"idx": 4, "designation": "+", "potential_role": "l_plus", "source_output": true},
+    {"idx": 5, "designation": "-", "potential_role": "m", "source_output": true},
+    {"idx": 6, "designation": "-", "potential_role": "m", "source_output": true}
+  ]
+}

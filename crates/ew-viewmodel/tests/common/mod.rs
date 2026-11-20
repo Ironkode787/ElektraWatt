@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Shared helpers of the tool-framework tests: temporary copies of Golden A, dispatch with checks,
-//! points of a page.
+//! Shared helpers of the tool-framework tests: temporary copies of Golden A, the sample project (read-only in place
+//! or a copy), dispatch with checks, points of a page.
 
 use std::path::{Path, PathBuf};
 
@@ -11,7 +11,7 @@ use ew_viewmodel::script;
 use ew_viewmodel::shell::{Dialog, FormDialog, Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::{Value, json};
 
-pub use ew_testdir::{GOLDEN_A, copy_dir};
+pub use ew_testdir::{GOLDEN_A, SAMPLE, copy_dir};
 
 pub use ew_testdir as fresh_dir;
 
@@ -62,6 +62,38 @@ impl Tmp {
     /// A headless shell with a read-only copy of Golden A on `folio`.
     pub fn shell(&self, folio: &str) -> ShellModel {
         self.shell_in(Mode::Headless, false, folio)
+    }
+
+    /// A shell in `mode` with the sample open, showing `folio`: read-only in place in the source tree, as the window
+    /// opens an installed sample, or (`writable`) a copy in this directory ([`Tmp::sample_copy`]).
+    pub fn sample_in(&self, mode: Mode, writable: bool, folio: &str) -> ShellModel {
+        let dir = if writable {
+            let dir = self.sample_copy();
+            if !dir.exists() {
+                copy_dir(Path::new(SAMPLE), &dir);
+            }
+            dir
+        } else {
+            PathBuf::from(SAMPLE)
+        };
+        let mut shell = self.empty_shell(mode);
+        done(
+            &mut shell,
+            "file.open",
+            json!({"dir": dir.to_string_lossy(), "read_only": !writable}),
+        );
+        done(&mut shell, "page.goto", json!({ "folio": folio }));
+        shell
+    }
+
+    /// The directory of the copy of the sample that a writable [`Tmp::sample_in`] opens.
+    pub fn sample_copy(&self) -> PathBuf {
+        self.0.join("sample.ew")
+    }
+
+    /// A headless shell with the sample open read-only in place on `folio`.
+    pub fn sample_shell(&self, folio: &str) -> ShellModel {
+        self.sample_in(Mode::Headless, false, folio)
     }
 }
 

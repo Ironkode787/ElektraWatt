@@ -1,0 +1,28 @@
+{
+  "$k": "part",
+  "id": "206622f8-b689-5f80-a044-cb83221d176a",
+  "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+  "item_id": "49ae7dac-6964-5215-a339-7aa5ed0314a4",
+  "version": "0.1.0",
+  "sha256": "sha256:4a8952beb6e0860565512f8853473ffe0fc998245d54c2be040647acc191120d",
+  "meta": {"key": "EW-GEN-AIR-1", "licence": "CC0-1.0", "sources": ["ew.original"]},
+  "manufacturer": {
+    "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+    "item": "f4260253-4a2b-5c11-a3d6-b01e2aa5efe6",
+    "version_req": "^0.1"
+  },
+  "part_number": "EW-GEN-AIR-1",
+  "description": {"en": "Air supply: service unit G1/4 with shut-off valve and filter regulator"},
+  "category": ["AirPreparation", "Source", "Supply"],
+  "function_template": [
+    {
+      "fndef": {
+        "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+        "item": "47e58bb3-eb07-5d8f-a837-6efb88f12370",
+        "version_req": "^0.1",
+        "key": "ew.fn.air-supply"
+      },
+      "main": true
+    }
+  ]
+}

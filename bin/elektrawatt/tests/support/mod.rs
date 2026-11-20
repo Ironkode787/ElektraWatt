@@ -791,6 +791,14 @@ impl Tmp {
     pub fn golden_dir(&self, name: &str) -> PathBuf {
         self.0.golden(name)
     }
+
+    /// A copy of the sample project at `name` in the directory (the program writes to what it opens).
+    // Allowed: no test reaches it yet; the program's tests move to it from `golden_dir`
+    // (docs/plan/m3.5-reference-project.md, section 5, lane 5).
+    #[allow(dead_code)]
+    pub fn sample(&self, name: &str) -> PathBuf {
+        self.0.sample(name)
+    }
 }
 
 /// The path of the `elektrawatt` binary under test. nextest sets `NEXTEST_BIN_EXE_elektrawatt` at run time (the

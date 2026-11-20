@@ -1,0 +1,15 @@
+{
+  "$k": "fndef",
+  "id": "5be1b05c-9afc-5d75-ab3a-31fce098399b",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "22b3e668-4a45-549e-817c-c210ecbdb0a0",
+  "version": "0.1.0",
+  "sha256": "sha256:dcd44b0727d93f84e8b3e7eb1c7dfa631b759cd4f0d96ec2477412fd106acc68",
+  "meta": {"key": "ew.fn.pn-port", "licence": "CC-BY-SA-4.0", "sources": ["ew.original"], "status": "draft"},
+  "category": ["Controller", "BusPort", "Profinet"],
+  "contact_kind": "bus_port",
+  "cps": [
+    {"idx": 0, "designation": "P1", "discipline": "bus"},
+    {"idx": 1, "designation": "P2", "discipline": "bus", "optional": true}
+  ]
+}

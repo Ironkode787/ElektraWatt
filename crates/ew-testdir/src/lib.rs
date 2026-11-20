@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 //! The temporary directory of a test, shared by the tests of every crate: [`Tmp`], which is removed when the test
-//! ends, [`copy_dir`], and the paths of the golden project and the starter content in the source tree. A dev-only
-//! helper crate without dependencies, so any crate may take it as a dev-dependency.
+//! ends, [`copy_dir`], and the paths of the test projects (the sample, the release fixture, the golden project) and
+//! the starter content in the source tree. A dev-only helper crate without dependencies, so any crate may take it as
+//! a dev-dependency. How each test binary opens the sample (in place, read-only, or a copy) is in its own support.
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -13,6 +14,15 @@ static COUNTER: AtomicU32 = AtomicU32::new(0);
 /// Golden A in the source tree. A test never opens it in a writing or locking mode: it works on a copy
 /// ([`Tmp::golden`]).
 pub const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
+
+/// The sample project in the source tree, written by `cargo xtask gen` from its UI script
+/// (`fixtures/sample/sample.uiscript`; the test `sample` of `ew-viewmodel` checks it). A test that only reads opens it
+/// in place, read-only; a test that writes works on a copy ([`Tmp::sample`]).
+pub const SAMPLE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/sample/sample.ew");
+
+/// The release fixture in the source tree: one page, two devices, an author and a checker, the open revision V1.0
+/// with its author (built and checked by the release tests of `ew-api`). Tests work on a copy.
+pub const RELEASE_MIN: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/release-min");
 
 /// The content tree of the source tree: the starter library and the templates.
 pub const CONTENT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../content");
@@ -40,6 +50,13 @@ impl Tmp {
     pub fn golden(&self, name: &str) -> PathBuf {
         let target = self.0.join(name);
         copy_dir(Path::new(GOLDEN_A), &target);
+        target
+    }
+
+    /// A copy of the sample project at `name` inside the directory, made now.
+    pub fn sample(&self, name: &str) -> PathBuf {
+        let target = self.0.join(name);
+        copy_dir(Path::new(SAMPLE), &target);
         target
     }
 }

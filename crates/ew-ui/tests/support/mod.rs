@@ -1,8 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Test support of the shell tests: a temporary copy of Golden A, a harness around the application frame without
-//! rendering, a scripted file dialog, and the accessibility walker (ADR-0014 amendment 2, NFR-A11Y-02).
+//! Test support of the shell tests: a temporary copy of Golden A or of the sample project, a harness around the
+//! application frame without rendering, a scripted file dialog, and the accessibility walker (ADR-0014 amendment 2,
+//! NFR-A11Y-02).
 
 #![allow(missing_docs)]
 
@@ -234,6 +235,22 @@ pub fn edit_toast(harness: &mut Harness<'_, App>) {
 /// The window on a writable copy of Golden A with folio `folio` on show and its image arrived.
 pub fn on_golden(tmp: &Tmp, folio: &str) -> Harness<'static, App> {
     let dir = tmp.golden("g.ew");
+    let mut h = harness(tmp, Scripted::default(), Some(dir));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    dispatch(&mut h, "page.goto", serde_json::json!({ "folio": folio }));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    settle(&mut h);
+    h
+}
+
+/// The window on a writable copy of the sample project with folio `folio` on show and its image arrived.
+// Allowed: no test reaches it yet; the window tests move to it from `on_golden` (docs/plan/m3.5-reference-project.md,
+// section 5, lane 3).
+#[allow(dead_code)]
+pub fn on_sample(tmp: &Tmp, folio: &str) -> Harness<'static, App> {
+    let dir = tmp.sample("s.ew");
     let mut h = harness(tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     wait_for_page(&mut h);

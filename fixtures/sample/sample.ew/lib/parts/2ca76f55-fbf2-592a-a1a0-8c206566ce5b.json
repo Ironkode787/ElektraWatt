@@ -1,0 +1,39 @@
+{
+  "$k": "part",
+  "id": "2ca76f55-fbf2-592a-a1a0-8c206566ce5b",
+  "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+  "item_id": "5a5dc939-a345-511f-8e7c-36be882244d5",
+  "version": "0.1.0",
+  "sha256": "sha256:910c4949a9ce1e76f991d4dc6ab15681d13ec89d9bcbda04a5223c00d9a1218c",
+  "meta": {"key": "EW-GEN-SW-3", "licence": "CC0-1.0", "sources": ["ew.original"]},
+  "manufacturer": {
+    "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+    "item": "f4260253-4a2b-5c11-a3d6-b01e2aa5efe6",
+    "version_req": "^0.1"
+  },
+  "part_number": "EW-GEN-SW-3",
+  "description": {"en": "Main switch, 3 poles"},
+  "category": ["SwitchingMain", "ManualSwitch", "3P"],
+  "tech_data": [{"key": "rated_current", "value": {"value": "25", "unit": "A"}}],
+  "cp_pattern": [
+    {"idx": 0, "designation": "1"},
+    {"idx": 1, "designation": "2"},
+    {"idx": 2, "designation": "3"},
+    {"idx": 3, "designation": "4"},
+    {"idx": 4, "designation": "5"},
+    {"idx": 5, "designation": "6"}
+  ],
+  "function_template": [
+    {
+      "fndef": {
+        "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+        "item": "270f2f62-d9a0-5b6f-84c3-cc3e923df284",
+        "version_req": "^0.1",
+        "key": "ew.fn.switch-3p-manual"
+      },
+      "main": true,
+      "cps": [0, 1, 2, 3, 4, 5]
+    }
+  ],
+  "mech": {"width": 54000000, "height": 85000000, "depth": 70000000, "mount_kind": "ts35x7_5"}
+}

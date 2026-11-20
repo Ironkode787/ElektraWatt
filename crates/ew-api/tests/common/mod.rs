@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The golden CSV bootstrap as a session, shared by the report tests (the same loading as
-//! `tests/golden_csv.rs`).
+//! `tests/golden_csv.rs`), the sample project opened in place, and a new project in memory.
 
 use std::path::{Path, PathBuf};
 
@@ -114,6 +114,16 @@ pub fn new_project(seed: u64) -> Session {
         options,
     )
     .unwrap()
+}
+
+/// The sample project opened read-only in place in the source tree: no copy, no lock, no journal.
+// Allowed: no test reaches it yet; the api tests move to it from the golden helpers
+// (docs/plan/m3.5-reference-project.md, section 5, lane 4).
+#[allow(dead_code)]
+pub fn sample() -> Session {
+    Session::open_read_only(Path::new(ew_testdir::SAMPLE), "test")
+        .expect("the sample opens")
+        .0
 }
 
 /// The copy ID of the starter part `number` among the library parts.

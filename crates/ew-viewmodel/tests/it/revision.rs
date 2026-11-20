@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! RU-3: the revision dialogs of Check ▸ Revision on copies of `golden/fixtures/release-min` (one open
+//! RU-3: the revision dialogs of Check ▸ Revision on copies of `fixtures/release-min` (one open
 //! revision V1.0 with its author; no finding but EW-REL-001 before the sign-off). The dialogs open, fill, validate and
 //! cancel in the headless shell through their own actions; a scripted confirm is refused with its whole text; a
 //! person at the window approves, releases and withdraws. The release's housekeeping warnings in Messages.
@@ -14,12 +14,12 @@ use crate::common;
 use std::path::{Path, PathBuf};
 
 use common::{Tmp, copy_dir, done, failed, refused};
+use ew_testdir::RELEASE_MIN;
 use ew_viewmodel::dialogs::{DialogAnswer, spec};
 use ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_viewmodel::shell::{Dialog, Mode, ShellConfig, ShellModel};
 use serde_json::{Value, json};
 
-const FIXTURE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/fixtures/release-min");
 /// The date the window would pass (the shell never reads a clock).
 const DATE: &str = "2026-10-30";
 /// The refusal of every confirm that no person at the window made, as a whole text.
@@ -29,7 +29,7 @@ const PERSON: &str = "This needs a person at the window: a revision is approved,
 /// A copy of the release fixture in `tmp`.
 fn fixture_copy(tmp: &Tmp) -> PathBuf {
     let dir = tmp.0.join("release-min");
-    copy_dir(Path::new(FIXTURE), &dir);
+    copy_dir(Path::new(RELEASE_MIN), &dir);
     dir
 }
 
@@ -218,7 +218,7 @@ fn a_scripted_confirm_is_refused_with_the_whole_text() {
 }
 
 /// RU-3, the completing half (an ew-viewmodel test proves the completing half (approve, release,
-/// withdraw on `golden/fixtures/release-min`) by confirming the dialog through the same window-input path a click
+/// withdraw on `fixtures/release-min`) by confirming the dialog through the same window-input path a click
 /// takes): the window's shell (`ShellModel::new(Mode::Gui, …)`) dispatches each dialog's confirm button, as the window
 /// does on a click (with the date it reads).
 #[test]
@@ -494,7 +494,7 @@ fn ruling2_completing_in_a_git_repository_passes_the_toggle_as_consent() {
     git_in(&repo, &["add", "README"]).unwrap();
     git_in(&repo, &["commit", "--quiet", "-m", "init"]).unwrap();
     let dir = repo.join("release-min");
-    copy_dir(Path::new(FIXTURE), &dir);
+    copy_dir(Path::new(RELEASE_MIN), &dir);
     let other = tmp.0.join("other").join("release-min");
     incomplete_beside(&tmp, &dir, &other);
     let head = git_in(&repo, &["rev-parse", "HEAD"]);

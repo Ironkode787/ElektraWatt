@@ -1,0 +1,4 @@
+{"$k":"device","id":"019b76da-a82e-7000-8000-00000000002e","tag":{"letter":"Q","counter":1},"parts":[{"part":{"copy":"2ca76f55-fbf2-592a-a1a0-8c206566ce5b"},"qty":"1"}]}
+{"$k":"device","id":"019b76da-a92e-7000-8000-00000000012e","tag":{"letter":"E","counter":1},"parts":[{"part":{"copy":"84561b72-0ce8-595c-be21-8f336a7167ee"},"qty":"1"}]}
+{"$k":"function","id":"019b76da-a82f-7000-8000-00000000002f","device":"019b76da-a82e-7000-8000-00000000002e","def":"0cf9956e-02ca-58c7-b1c5-36ee59bf37c9","template_entry":0}
+{"$k":"function","id":"019b76da-a92f-7000-8000-00000000012f","device":"019b76da-a92e-7000-8000-00000000012e","def":"c15149e0-a49b-52a4-8e9b-dede426d0f22","template_entry":0}

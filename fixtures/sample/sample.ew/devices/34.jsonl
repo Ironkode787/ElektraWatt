@@ -1,0 +1,4 @@
+{"$k":"device","id":"019b76da-a834-7000-8000-000000000034","tag":{"letter":"G","counter":1},"parts":[{"part":{"copy":"e427be05-825e-56c5-bfc0-ee9ce5d9122f"},"qty":"1"}]}
+{"$k":"function","id":"019b76da-a835-7000-8000-000000000035","device":"019b76da-a834-7000-8000-000000000034","def":"a5722bff-01d3-5a05-b24f-ec54f7252a45","kind":"black_box","template_entry":0}
+{"$k":"potential_def","id":"019b76da-a85f-7000-8000-00000000005f","at":{"cp":["019b76da-a835-7000-8000-000000000035",3]},"name":"24V","ptype":"l_plus","voltage":"24","env":{"ac_dc":"dc"}}
+{"$k":"potential_def","id":"019b76da-a860-7000-8000-000000000060","at":{"cp":["019b76da-a835-7000-8000-000000000035",5]},"name":"0V","ptype":"m"}
