@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The clipboard below the shell (spec §8.1 to §8.3, §8.6; D12): [`Session::copy_fragment`] writes a
+//! The clipboard below the shell: [`Session::copy_fragment`] writes a
 //! selection as a project fragment, [`parse_fragment`] reads clipboard text back into the parameters of `edit.paste`,
 //! and [`Session::tag_list`] gives the "Copy tag list" text.
 //!
@@ -584,7 +584,7 @@ fn drawn(r: &Representation) -> impl Iterator<Item = Id<Function>> + '_ {
 }
 
 impl Session {
-    /// The selection `ids` as a fragment (spec §8.2): the representations, connections, junctions, page items and
+    /// The selection `ids` as a fragment: the representations, connections, junctions, page items and
     /// structure boxes it names on one page, closed over what they need; [`CopyError::Empty`] without a
     /// representation, page item or structure box, [`CopyError::NotOnePage`] across pages, [`CopyError::Generated`]
     /// when no ID names a stored record of these kinds and some names none at all (generated content). Equal

@@ -687,7 +687,7 @@ fn two_releases_of_the_same_saved_state_write_the_same_bytes() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// The refusals before anything is written; reachability (spec §10)
+// The refusals before anything is written; reachability
 
 /// Every refusal of the release comes before a write: unsaved edits, a label that is not the open revision's, a
 /// blocked gate (before approval), a read-only session, an archive root inside the project, an existing archive of

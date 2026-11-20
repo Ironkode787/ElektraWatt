@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The field catalogue of the property grid (spec §6.1, §6.5; D2, D3, D4): every field of every
+//! The field catalogue of the property grid: every field of every
 //! implemented record kind with its value type, category, label key and edit route, derived from the committed record
 //! schemas by one walker; and the parse, display and choice rules of the typed editors, which live here and nowhere
 //! else.

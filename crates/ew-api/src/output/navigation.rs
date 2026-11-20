@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The reads a viewer finds its way with (spec §4.2): the rows of the page navigator
+//! The reads a viewer finds its way with: the rows of the page navigator
 //! ([`Session::page_rows`]), a page's frame cells ([`Session::page_cells`], [`PageCells`]), Go to page or cell
 //! ([`Session::resolve_goto`]) and the targets of cross-reference links ([`Session::link_targets`]); and for the
 //! canvas tools of part 2 the connection points drawn on a page ([`Session::page_cps`], [`PageCp`]).

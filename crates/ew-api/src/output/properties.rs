@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The property sheet (spec §6.2 to §6.4, §6.8; D8, D9, D10, D15): what the property grid shows for
+//! The property sheet: what the property grid shows for
 //! a set of records — the sections every record reaches, each field's value over the section's targets with its
 //! provenance and actions, and the closed list of derived rows with their authored partners.
 //!
