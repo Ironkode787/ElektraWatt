@@ -136,7 +136,7 @@ impl ShellModel {
             let aliases = glossary::aliases_of(meta.id);
             let state = match form_plan(meta) {
                 FormPlan::Disabled(reason) => Err(reason),
-                FormPlan::Direct | FormPlan::Form(_) => (meta.enabled)(self),
+                FormPlan::Direct | FormPlan::Form(_) => meta.enabled_now(self),
             };
             let uses = self.recents.uses(meta.id);
             let own = rank(
@@ -185,7 +185,7 @@ impl ShellModel {
             });
         }
         if panels && !query.is_empty() {
-            let state = actions::find("rail.show").map_or(Ok(()), |m| (m.enabled)(self));
+            let state = actions::find("rail.show").map_or(Ok(()), |m| m.enabled_now(self));
             let breadcrumb = format!(
                 "{} · {}",
                 strings::text(Menu::View.label_key()),
@@ -426,7 +426,8 @@ impl ShellModel {
                     Some(meta) => match form_plan(meta) {
                         FormPlan::Disabled(reason_key) => Outcome::Refused { reason_key },
                         _ => Outcome::Refused {
-                            reason_key: (meta.enabled)(self)
+                            reason_key: meta
+                                .enabled_now(self)
                                 .err()
                                 .unwrap_or(key!("reason-parameters-later")),
                         },

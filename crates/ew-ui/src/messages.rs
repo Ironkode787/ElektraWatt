@@ -399,7 +399,7 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let enabled = shell.is_writable();
     let disabled_reason = |id: &str| {
         ew_viewmodel::actions::find(id)
-            .and_then(|a| (a.enabled)(shell).err())
+            .and_then(|a| a.enabled_now(shell).err())
             .map(strings::text)
     };
     let small_link = |ui: &mut Ui, key: strings::Key<'_>, id: &str| {

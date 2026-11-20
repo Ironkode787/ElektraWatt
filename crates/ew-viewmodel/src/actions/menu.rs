@@ -11,7 +11,7 @@
 
 use serde_json::{Value, json};
 
-use super::enabled::{enabled_with, on_valve_position};
+use super::enabled::on_valve_position;
 use super::{ACTIONS, ActionMeta, Menu, Submenu, find, guides, tutorials};
 use crate::command_bar::Group;
 use crate::key;
@@ -168,7 +168,7 @@ pub struct MenuModel {
 
 /// The menu item of `meta` in the state of `model`.
 pub(crate) fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
-    let state = enabled_with(meta, model, &serde_json::Map::new());
+    let state = meta.enabled_now(model);
     // Paste names the page kind that cannot take it (window check, item 3): the reason is a text with the kind, not a
     // plain key, so the item formats it here.
     let paste_reason = match meta.id {

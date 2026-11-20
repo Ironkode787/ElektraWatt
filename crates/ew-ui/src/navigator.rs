@@ -239,7 +239,7 @@ impl NavigatorPane {
                     if pages {
                         // The New page entry beside the filter: the same action as Page, New page, disabled
                         // with its reason.
-                        let new_page = ew_viewmodel::actions::find("page.new").map(|a| (a.enabled)(shell));
+                        let new_page = ew_viewmodel::actions::find("page.new").map(|a| a.enabled_now(shell));
                         let enabled = matches!(new_page, Some(Ok(())));
                         let button = crate::components::icon_toggle(
                             ui,
@@ -257,7 +257,7 @@ impl NavigatorPane {
                         }
                         // New section beside it (FT-1634): the same action as Page, New section.
                         let new_section =
-                            ew_viewmodel::actions::find("section.new").map(|a| (a.enabled)(shell));
+                            ew_viewmodel::actions::find("section.new").map(|a| a.enabled_now(shell));
                         let button = crate::components::icon_toggle(
                             ui,
                             crate::icons::IconId::folder_plus,
@@ -286,7 +286,7 @@ impl NavigatorPane {
                             _ => &[],
                         };
                     for (id, icon, label) in own {
-                        let state = ew_viewmodel::actions::find(id).map(|a| (a.enabled)(shell));
+                        let state = ew_viewmodel::actions::find(id).map(|a| a.enabled_now(shell));
                         let button = crate::components::icon_toggle(
                             ui,
                             *icon,
@@ -315,7 +315,7 @@ impl NavigatorPane {
                                 key!("action-fluid-medium-new"),
                             ),
                         ] {
-                            let state = ew_viewmodel::actions::find(id).map(|a| (a.enabled)(shell));
+                            let state = ew_viewmodel::actions::find(id).map(|a| a.enabled_now(shell));
                             let button = crate::components::icon_toggle(
                                 ui,
                                 icon,

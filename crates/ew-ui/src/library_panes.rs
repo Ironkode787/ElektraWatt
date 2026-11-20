@@ -73,8 +73,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, kind: NavKind, events: &mut 
 fn update_bar(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     use components::Tip as _;
     let t = components::tokens(ui);
-    let state = ew_viewmodel::actions::find("libraries.update")
-        .map(|m| ew_viewmodel::actions::enabled_with(m, shell, &serde_json::Map::new()));
+    let state = ew_viewmodel::actions::find("libraries.update").map(|m| m.enabled_now(shell));
     let count = shell.libraries_update_count();
     let reason = match state {
         Some(Err(reason)) => Some(strings::text(reason).to_owned()),

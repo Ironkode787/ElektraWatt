@@ -118,7 +118,8 @@ impl TableUi {
         focus: (egui::Id, bool),
         events: &mut Vec<Event>,
     ) -> bool {
-        let writable = ew_viewmodel::actions::find("table.edit").is_some_and(|a| (a.enabled)(shell).is_ok());
+        let writable =
+            ew_viewmodel::actions::find("table.edit").is_some_and(|a| a.enabled_now(shell).is_ok());
         let (table_id, ours) = focus;
         let kind = nav.kind;
         let (Some(table), Some(mode)) = (nav.table(), nav.table_mode()) else {
@@ -611,7 +612,7 @@ pub(crate) fn chooser(
             ("navigator.import_table", key!("action-navigator-import-table")),
         ] {
             // Drawn from the action's predicate, disabled with its reason as the tooltip (doc 16a §6.1).
-            let reason = ew_viewmodel::actions::find(action).and_then(|a| (a.enabled)(shell).err());
+            let reason = ew_viewmodel::actions::find(action).and_then(|a| a.enabled_now(shell).err());
             let response = ui.add_enabled(reason.is_none(), egui::Button::new(strings::text(label)));
             let response = match reason {
                 Some(r) => response.disabled_tip(strings::text(r)),

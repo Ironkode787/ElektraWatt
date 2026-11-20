@@ -564,6 +564,19 @@ pub fn enabled_with(
     }
 }
 
+impl ActionMeta {
+    /// Whether the action can run now from a place that sends no parameters (a menu, the command search, a pane's
+    /// button): [`enabled_with`] without parameters, so that it is greyed where the dispatch would refuse it (the
+    /// symbol editor's rule included).
+    ///
+    /// # Errors
+    ///
+    /// The reason key of the refusal.
+    pub fn enabled_now(&self, m: &ShellModel) -> Result<(), Key<'static>> {
+        enabled_with(self, m, &serde_json::Map::new())
+    }
+}
+
 /// An editable page with exactly one junction selected (Edit ▸ Junction sequence…; window check).
 pub(super) fn one_junction(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;

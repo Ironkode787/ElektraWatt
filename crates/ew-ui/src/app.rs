@@ -596,7 +596,7 @@ impl App {
         // The table's paste likewise.
         if action == "table.paste"
             && params.get("text").is_none()
-            && ew_viewmodel::actions::find(action).is_some_and(|a| (a.enabled)(&self.shell).is_ok())
+            && ew_viewmodel::actions::find(action).is_some_and(|a| a.enabled_now(&self.shell).is_ok())
         {
             self.request_paste = true;
             return;
@@ -604,7 +604,7 @@ impl App {
         if action == "edit.paste_clip"
             && params.get("text").is_none()
             && self.shell.paste_page_reason().is_none()
-            && ew_viewmodel::actions::find(action).is_some_and(|a| (a.enabled)(&self.shell).is_ok())
+            && ew_viewmodel::actions::find(action).is_some_and(|a| a.enabled_now(&self.shell).is_ok())
         {
             self.request_paste = true;
             return;

@@ -92,7 +92,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 r.actions
                     .iter()
                     .filter_map(|a| actions::find(a))
-                    .find(|m| (m.enabled)(shell).is_ok())
+                    .find(|m| m.enabled_now(shell).is_ok())
             });
             if let Some(meta) = first {
                 events.push(Event::Action(meta.id, Value::Null));
@@ -322,7 +322,7 @@ fn action_button(ui: &mut Ui, shell: &ShellModel, id: &str, events: &mut Vec<Eve
     let (Some(meta), Some((text, name))) = (actions::find(id), action_words(id)) else {
         return;
     };
-    let state = (meta.enabled)(shell);
+    let state = meta.enabled_now(shell);
     let b = components::button(ui, Kind::Subtle, &text, state.is_ok(), 0.0);
     b.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, state.is_ok(), &name));
     let b = match state {

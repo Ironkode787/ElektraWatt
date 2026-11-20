@@ -2391,3 +2391,45 @@ fn the_symbols_to_copy_name_their_grid() {
     lamps.dedup();
     assert_eq!(lamps, ["Lamp (4 mm grid)", "Lamp (QET 10 px grid)"]);
 }
+
+/// While the symbol editor shows, the command search offers what the dispatch does: a drawing tool greyed with the
+/// editor's reason, as the menus grey it, and Save, which saves the symbol, enabled.
+#[test]
+fn the_command_search_in_the_symbol_editor_greys_what_the_editor_refuses() {
+    let tmp = Tmp::new("symbol-palette");
+    let mut shell = tmp.empty_shell(Mode::Headless);
+    done(
+        &mut shell,
+        "file.new",
+        json!({"dir":tmp.0.join("project"),"template":"builtin"}),
+    );
+    done(
+        &mut shell,
+        "symbol.new",
+        json!({"key":"example.searched","name":"Searched contact"}),
+    );
+    done(&mut shell, "tools.palette", json!({}));
+    for (query, id, enabled) in [("wire", "tool.wire", false), ("save", "file.save", true)] {
+        shell.set_palette_query(query);
+        let entry = shell
+            .palette_entries()
+            .into_iter()
+            .find(|e| e.id == id)
+            .unwrap_or_else(|| panic!("{id} is offered for {query:?}"));
+        assert_eq!(entry.enabled, enabled, "{id}: {:?}", entry.reason);
+        let refused = matches!(
+            shell.dispatch(id, &json!({})),
+            Outcome::Refused { .. }
+        );
+        assert_eq!(refused, !enabled, "{id} runs as the search offers it");
+        if !enabled {
+            assert_eq!(
+                entry.reason.as_deref(),
+                Some(ew_viewmodel::strings::text(ew_viewmodel::key!("symbol-editor-active")))
+            );
+        }
+        if shell.palette().is_none() {
+            done(&mut shell, "tools.palette", json!({}));
+        }
+    }
+}
