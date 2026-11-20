@@ -295,15 +295,17 @@ pub fn release_command(
     cmd
 }
 
-/// The re-solved routes of a move of `moved` by `steps`, as `rep.move`'s `routes` entries. On the page
-/// geometry with the move applied (the moved representations' bodies, CPs and texts displaced as `rep.move` displaces
-/// them; each connection with a moved end drawn along its rubber band), every such connection that is unrouted,
-/// breaks a hard rule there or has more bends than before is routed again (`route_page`, the other connections fixed);
-/// the others keep the followed route, and so does one the router finds no clear route for.
+/// The re-solved routes of a move of `moved` by `steps`, as `rep.move`'s `routes` entries (docs/design/06a-drafting.md
+/// §7.4). On the page as the layout sees it with the move applied (the moved symbols displaced with their pins and
+/// texts; each connection with a moved end drawn along its rubber band), every such connection that is unrouted, has a
+/// fault or runs across a text there, or has more bends than before is a job of `ew_drafting::route`, the other wires
+/// fixed and every junction where it stands; the others keep the followed route, and so does one the router finds no
+/// way for.
 pub fn resolved_routes(cx: &ToolCx<'_>, moved: &[EntityRef], steps: (i64, i64)) -> Vec<serde_json::Value> {
-    use ew_api::routing::{Measures, measure, route_page};
+    use ew_api::routing::{Jobs, Ticks, WireId, measure};
     let tables = &cx.page.tables;
-    let before = &*cx.page.geometry;
+    let ticks = Ticks::new(tables.grid);
+    let before = &*cx.page.draft;
     let delta_of = |rep: ew_api::output::Uuid| -> Option<(i64, i64)> {
         if !moved.iter().any(|e| e.0 == rep) {
             return None;
@@ -314,80 +316,110 @@ pub fn resolved_routes(cx: &ToolCx<'_>, moved: &[EntityRef], steps: (i64, i64)) 
             .find(|r| r.id == rep)
             .map(|r| rep_delta(cx, r.pos, steps))
     };
-    let shift = |r: [i64; 4], d: (i64, i64)| [r[0] + d.0, r[1] + d.1, r[2] + d.0, r[3] + d.1];
     let mut after = before.clone();
-    for b in &mut after.bodies {
-        if let Some(d) = delta_of(b.rep) {
-            b.rect = shift(b.rect, d);
+    for p in &mut after.parts {
+        if let Some(d) = delta_of(p.id.0) {
+            p.at = p.at.plus(ticks.pt(d));
         }
     }
-    for t in &mut after.texts {
-        if let Some(d) = delta_of(t.rep) {
-            t.rect = shift(t.rect, d);
+    // The moved CPs' new points, by (function, index).
+    let moved_cp = |function: ew_api::output::Uuid, idx: u16| -> Option<(i64, i64)> {
+        let cp = tables.cps.iter().find(|c| c.function == function && c.idx == idx)?;
+        let d = delta_of(cp.rep)?;
+        Some((cp.at.0 + d.0, cp.at.1 + d.1))
+    };
+    let end_point = |e: &ew_api::output::TableEnd| -> Option<(i64, i64)> {
+        match e {
+            ew_api::output::TableEnd::Cp { function, idx } => moved_cp(*function, *idx).or_else(|| {
+                tables
+                    .cps
+                    .iter()
+                    .find(|c| c.function == *function && c.idx == *idx)
+                    .map(|c| c.at)
+            }),
+            ew_api::output::TableEnd::Junction { id } => tables.junctions.iter().find(|j| j.id == *id).map(|j| j.at),
         }
-    }
-    let mut moved_cps: Vec<(ew_api::output::Uuid, (i64, i64))> = Vec::new();
-    for cp in &mut after.cps {
-        if let Some(d) = delta_of(cp.rep) {
-            cp.at = (cp.at.0 + d.0, cp.at.1 + d.1);
-            moved_cps.push((cp.id, d));
+    };
+    let end_delta = |e: &ew_api::output::TableEnd| match e {
+        ew_api::output::TableEnd::Cp { function, idx } => {
+            let cp = tables.cps.iter().find(|c| c.function == *function && c.idx == *idx)?;
+            delta_of(cp.rep)
         }
-    }
+        ew_api::output::TableEnd::Junction { .. } => None,
+    };
     let snap = |v: i64| grid_point_of(cx.snapper.grid(), v);
-    let end_delta = |end: ew_api::output::Uuid| moved_cps.iter().find(|(id, _)| *id == end).map(|(_, d)| *d);
     let mut affected = Vec::new();
-    for c in &mut after.connections {
-        let (da, db) = (end_delta(c.ends[0]), end_delta(c.ends[1]));
-        c.polyline = match (da, db) {
+    for c in &tables.connections {
+        let (da, db) = (end_delta(&c.a), end_delta(&c.b));
+        let followed = match (da, db) {
             (None, None) => continue,
             (Some(d), Some(_)) => c.polyline.iter().map(|p| (p.0 + d.0, p.1 + d.1)).collect(),
             _ => follow_polyline(&c.polyline, &snap, da, db),
         };
+        if let Some(w) = after.wires.iter_mut().find(|w| w.id.0 == c.id) {
+            w.route = if c.stored_route {
+                followed.iter().map(|p| ticks.pt(*p)).collect()
+            } else {
+                Vec::new()
+            };
+        }
         affected.push(c.id);
     }
     if affected.is_empty() {
         return Vec::new();
     }
-    // D3: an unrouted connection's dashed line is no wire, so the measures read the routed connections only (as the
-    // layout rules do); the unrouted ones stay in `after` as jobs.
-    let routed = |g: &ew_api::routing::PageGeometry| {
-        let mut g = g.clone();
-        g.connections.retain(|c| c.routed);
-        g
+    let (was, now) = (measure(before), measure(&after));
+    let bends = |q: &ew_api::routing::Quality, id: ew_api::output::Uuid| {
+        q.findings
+            .bends
+            .iter()
+            .find(|(w, _)| w.0 == id)
+            .map_or(0, |(_, n)| *n)
     };
-    let (was, now) = (measure(&routed(before)), measure(&routed(&after)));
-    let bends = |m: &Measures, id: ew_api::output::Uuid| {
-        m.bends.iter().find(|b| b.connection == id).map_or(0, |b| b.bends)
-    };
+    let f = &now.findings;
     let breaks = |id: ew_api::output::Uuid| {
-        now.touches.iter().any(|t| t.connection == id)
-            || now.overlaps.iter().any(|o| o.connections.contains(&id))
-            || now.through_bodies.iter().any(|t| t.connection == id)
-            || now.through_texts.iter().any(|t| t.connection == id)
+        f.through_points.iter().any(|x| x.0.0 == id)
+            || f.on_wires.iter().any(|x| x.0.iter().any(|w| w.0 == id))
+            || f.through_parts.iter().any(|x| x.0.0 == id)
+            || f.false_joints.iter().any(|x| x.0.iter().any(|w| w.0 == id))
+            || f.across_texts.iter().any(|x| x.0.0 == id)
     };
-    let jobs: Vec<ew_api::output::Uuid> = affected
+    let jobs: Vec<WireId> = affected
         .into_iter()
         .filter(|id| {
-            let Some(c) = after.connections.iter().find(|c| c.id == *id) else {
+            let Some(w) = after.wires.iter().find(|w| w.id.0 == *id) else {
                 return false;
             };
-            let unrouted = !c.routed && c.polyline.first() != c.polyline.last();
-            unrouted || (c.routed && (breaks(*id) || bends(&now, *id) > bends(&was, *id)))
+            let unrouted = f.unrouted.contains(&w.id);
+            unrouted || (!w.route.is_empty() && (breaks(*id) || bends(&now, *id) > bends(&was, *id)))
         })
+        .map(WireId)
         .collect();
     if jobs.is_empty() {
         return Vec::new();
     }
-    route_page(&after, &jobs)
-        .routes
+    let plan = ew_api::routing::route_on(
+        &after,
+        &Jobs {
+            wires: jobs,
+            keep_junctions: true,
+            ..Jobs::default()
+        },
+    );
+    plan.routes
         .iter()
-        .map(|(id, route)| {
-            let points: Vec<serde_json::Value> = route.iter().map(|p| json!([p.0, p.1])).collect();
-            json!({"connection": id.to_string(), "route": points})
+        .filter_map(|(w, route)| {
+            let c = tables.connections.iter().find(|c| c.id == w.0)?;
+            let (a, b) = (end_point(&c.a)?, end_point(&c.b)?);
+            let points: Vec<serde_json::Value> = ticks
+                .route(route, a, b)
+                .iter()
+                .map(|p| json!([p.0, p.1]))
+                .collect();
+            Some(json!({"connection": w.0.to_string(), "route": points}))
         })
         .collect()
 }
-
 /// `rep.move {reps, steps}` (plus `items` when page items or structure boxes move): the moved entities that are
 /// representations go to `reps` (always present, because the command requires it), those that are page items or
 /// structure boxes to `items`, each in `moved` order; `items` is serialised only when it is not empty, so a move of

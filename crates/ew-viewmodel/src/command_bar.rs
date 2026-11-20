@@ -643,11 +643,11 @@ pub fn menu_spot(
         return MenuSpot::Object;
     }
     let on_frame = canvas.pointer().is_some_and(|p| {
-        let (x, y) = page.snapper.sheet_to_page(p);
-        page.geometry
-            .frame_bands
+        let at = ew_api::routing::Ticks::new(page.tables.grid).pt(page.snapper.sheet_to_page(p));
+        page.draft
+            .keep_out
             .iter()
-            .any(|[x0, y0, x1, y1]| (*x0..=*x1).contains(&x) && (*y0..=*y1).contains(&y))
+            .any(|r| (r.x0..=r.x1).contains(&at.x) && (r.y0..=r.y1).contains(&at.y))
     });
     if on_frame {
         MenuSpot::Frame

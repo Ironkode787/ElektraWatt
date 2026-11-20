@@ -84,9 +84,6 @@ mod potentials;
 mod profile;
 mod q;
 mod query;
-// The schematic router's page model, the layout measures and the router core (the search and the
-// page solve).
-pub mod routing;
 mod settings;
 mod stitch;
 mod strip_bridges;

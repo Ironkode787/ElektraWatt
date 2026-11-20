@@ -246,13 +246,13 @@ enum Top {
     Layout(LayoutCli),
     /// Route the wires of the pages.
     ///
-    /// Routes the unrouted wires of the page `--page <folio>` names, else of every drawn page but the panel-layout
-    /// pages, with the page router (the window's Route page), and saves the routes in one step per page. With
-    /// `--selection <ids>` (record IDs joined by `,`) it routes the connections named and every connection with an end
-    /// on a representation named, routed ones again (Route selection). A wire no route keeps clear of the hard rules
-    /// for stays unrouted and is listed with why. `--dry-run` prints the plan and saves nothing. `--json` prints
-    /// `ew.route-result/1`. Exit 0 when every wire it routes is routed, 1 when a wire stays unrouted, 2 on usage,
-    /// open, an unknown folio, a refused command and save errors.
+    /// Runs the window's Route on the page `--page <folio>` names, else on every drawn page but the panel-layout
+    /// pages: the wires that are unrouted, broken or routed by the program are routed as nets, with trunks where the
+    /// pins allow, and the plan is saved in one step per page. With `--selection <ids>` (record IDs joined by `,`) it
+    /// routes the connections named and every connection with an end on a representation named, whoever shaped
+    /// them. A wire without a way keeps its route, or stays unrouted, and is listed with what is in its way.
+    /// `--dry-run` prints the plan and saves nothing. `--json` prints `ew.route-result/1`. Exit 0 when no wire is left
+    /// without a way, 1 when one is, 2 on usage, open, an unknown folio, a refused command and save errors.
     Route(RouteCli),
     /// List, search, reindex, create and import into libraries.
     ///

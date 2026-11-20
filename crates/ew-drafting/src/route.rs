@@ -59,6 +59,8 @@ pub struct Jobs {
     pub wires: Vec<WireId>,
     /// Those of them with a route the person shaped.
     pub his: Vec<WireId>,
+    /// Every junction stays where it stands (a move's re-solve: its command moves no junction).
+    pub keep_junctions: bool,
 }
 
 /// The jobs of a Route on `scope` (§3.2): a page-wide Route takes every wire that is unrouted, has a fault as stored
@@ -116,7 +118,11 @@ pub fn jobs(page: &DraftPage, scope: Scope<'_>) -> Jobs {
     }
     wires.sort();
     his.sort();
-    Jobs { wires, his }
+    Jobs {
+        wires,
+        his,
+        keep_junctions: false,
+    }
 }
 
 /// F1 as stored: a slanted segment, or an inner vertex off the half grid.
@@ -1023,7 +1029,8 @@ pub fn route(page: &DraftPage, jobs: &Jobs) -> Plan {
     };
     wanted.retain(|w| !r.points_meet(*w));
     let movable = |j: JunctionId| {
-        page.wires
+        !jobs.keep_junctions &&
+            page.wires
             .iter()
             .filter(|w| w.ends.contains(&End::Junction(j)))
             .all(|w| wanted.contains(&w.id))

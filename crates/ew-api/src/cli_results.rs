@@ -1210,11 +1210,11 @@ pub struct RouteResult {
 pub struct RoutePageResult {
     /// The printed folio label.
     pub folio: String,
-    /// The wires routed, by their ends (`E55:PE → PE-1.1`), in the order of their IDs.
+    /// The wires whose routes the plan changed, by their ends (`E55:PE → PE-1.1`), in the order of their IDs.
     pub routed: Vec<String>,
     /// The wires left unrouted, with why.
     pub unrouted: Vec<RouteUnrouted>,
-    /// The routed wires whose route crosses a text, as keeping clear of them is a far longer way or no way at all (ADR-0033 amendments 1 and 2), by
+    /// The routed wires whose new route crosses a text that could not step aside (docs/design/06a-drafting.md §3.7), by
     /// their ends.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub across_texts: Vec<String>,
@@ -1226,8 +1226,8 @@ pub struct RoutePageResult {
 pub struct RouteUnrouted {
     /// The wire by its ends.
     pub wire: String,
-    /// Why: `wires`, `symbols`, `texts`, `points` or `four_arms` (no route keeps clear of other wires, of the
-    /// symbols, of the texts, of the other connection points, or the junction would join four wires).
+    /// Why: `wires`, `symbols`, `points` or `four_arms` (the first thing in its way: other wires, the symbols, the
+    /// connection points of other wires, or a fourth arm at a junction; docs/design/06a-drafting.md §3.8).
     pub reason: String,
 }
 

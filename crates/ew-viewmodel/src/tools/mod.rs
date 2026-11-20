@@ -219,6 +219,8 @@ pub enum ToolKey {
     ToggleDirection,
     /// The interruption point's star toggle (part 3).
     ToggleStar,
+    /// `.` while a wire is drawn: the joint it makes on a wire is a dot instead of the bevel.
+    Dot,
     /// Shift+Enter or a double click: finish the gesture.
     Finish,
 }

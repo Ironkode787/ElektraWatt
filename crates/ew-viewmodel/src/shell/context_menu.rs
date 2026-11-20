@@ -83,14 +83,14 @@ impl ShellModel {
                 .all(|(e, _)| tables.connections.iter().any(|c| c.id == e.0 && c.kind == "bus"));
             if bus {
                 out.extend(self.menu_item("cable.from_wires"));
-                for id in ["route.reroute", "tool.marker"] {
+                for id in ["layout.route", "tool.marker"] {
                     out.extend(self.menu_item(id));
                 }
                 return out;
             }
             if kinds.len() == 1 {
                 for id in [
-                    "route.reroute",
+                    "layout.route",
                     "tool.marker",
                     "potential.draw",
                     "cable.from_wires",
@@ -103,6 +103,7 @@ impl ShellModel {
                     i.label = strings::text(key!("canvas-make-cable")).to_owned();
                     i
                 }));
+                out.extend(self.menu_item("layout.route"));
             }
             return out;
         }
@@ -132,6 +133,8 @@ impl ShellModel {
                         self.terminal_fits(rep, &mut out);
                     } else if rep.device.is_some() {
                         self.device_fits(rep, at, &mut out);
+                        // Route its wires (docs/design/06a-drafting.md §7.1).
+                        out.extend(self.menu_item("layout.route"));
                     }
                     // A drawn box: Add pin or Remove pin, and Centre the pins (rc.5).
                     if rep.black_box.is_some() {

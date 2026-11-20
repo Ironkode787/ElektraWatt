@@ -410,7 +410,7 @@ impl Builder<'_> {
                 } else {
                     pts.iter().map(|p| ticks.pt(*p).0).collect()
                 },
-                computed: false,
+                computed: c.computed,
                 class: match &c.kind {
                     ConnectionKind::Fluid(_) => WireClass::Tube,
                     ConnectionKind::Bus(_) => WireClass::Bus,

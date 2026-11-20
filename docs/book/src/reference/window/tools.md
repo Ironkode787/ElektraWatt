@@ -215,35 +215,31 @@ With the keyboard: select the wire, then `Tab` gives its first handle the focus 
 the pointer does; `Tab` and `Shift+Tab` go from handle to handle along the wire. The arrow keys move the handle one
 grid step, each step one undo step, and `Esc` gives the focus back to the wire.
 
-When it draws or reroutes a wire, the router never puts a corner of one wire on a corner or an end of another: it
+When it draws or routes a wire, the router never puts a corner of one wire on a corner or an end of another: it
 reads as a joint. Between pins that stand close, such as two two-pole devices wired cross-over a few grid steps
 apart, a wire may step half a grid step to cross the other once instead of going round.
 
-## Reroute
+## Route
 
-Routes the selected wires, and every wire with an end on a selected symbol, again; with nothing selected, every
-wire of the page. A wire gets a new route where its own breaks a rule (it lies on another wire, runs through a
-symbol) or where a shorter one with fewer corners and crossings exists; a wire that is drawn well keeps its route,
-so the page is never worse afterwards. A wire drawn through a text gets a route clear of it wherever the Wire tool
-would draw one, and a wire never gets a route through a symbol or across a text that its old route kept clear of.
-It applies at once, in one undo step; the toast names the wires it changed,
-by their numbers or their ends, three of them and then how many more ("3 wires rerouted: 101.3, 101.5 and 101.7."),
-and the page shows them as selected wires while the toast is up. When no route is better it says "No better route found: the wires already
-run as well as the program can route them.", followed by why for each wire that no route keeps clear. Open it with
-Draw ▸ Connect ▸ Reroute, or Reroute in a wire's menu. Route page, beside it, routes only the wires that have no route
-yet.
+Routes the wires of the selection (the selected wires and every wire with an end on a selected symbol), or with
+nothing selected the wires of the page that need it: those without a route, those whose route is broken (it lies on
+another wire, runs through a pin or a symbol) and those the program routed before. Symbols stay where they are. A
+wire you drew yourself keeps its route unless you select it or it is broken. Open it with Draw ▸ Connect ▸ Route, or
+Route in the menu of a wire or a symbol.
 
-## Route page
+The wires of one potential are routed together. A potential that runs over several symbols, from pin to pin or
+through junctions, becomes one straight line with a straight drop to each pin; the junctions move onto that line and
+keep their wires and their order. Two wires of one pin may run on one line out of it and part where they go different
+ways: the page draws the parting with a 45° bevel, the way two wires on one terminal are drawn. A wire between two
+pins that face each other on one line is one straight line. What is left is routed as the Wire tool routes it, and a
+tag that stands in a wire's way steps aside.
 
-Routes every unrouted wire of the page on show in one step. Open it with Draw ▸ Connect ▸ Route page. The Preview
-tab shows the plan first: "Route 3 wires on folio 101: 2 routed, 1 not routed.", and for each wire that no route
-keeps clear, why, such as "No route keeps clear of other wires: -101F1:2 → -101E55:L."; a wire routed across a text,
-as keeping clear of the text is a far longer way, is named too. Apply draws the routes, and
-one Undo takes them back; the toast says "Routed 2 wires on folio 101." When every wire of the page has a route it
-says "Every wire on folio 101 has a route." and that Reroute draws routed wires again. The router routes supply wires and long wires first, keeps the
-wires of a feed side by side in the order L1, L2, L3, N, PE where their ends allow it, and keeps every route clear as
-the Wire tool does.
-A wire it cannot route stays unrouted; move a symbol to make room, or place its bends with the Wire tool.
+Route applies at once, in one undo step: the toast names the wires it changed, by their numbers or their ends, three
+of them and then how many more ("Routed 5 wires: 101.3, 101.5, 101.7 and 2 more."), and the page shows them as
+selected wires while the toast is up. A wire without a way keeps its route, or stays a dashed line, and the toast says
+what is in its way, such as "No way for -101F1:2 → -101E55:L: other wires are in its way." When nothing is better, it
+says "Nothing to route: every wire runs as well as the rules allow." Where Route would replace a broken route you drew,
+the Preview tab shows the plan first and names those wires; Apply stores it, Cancel leaves the page as it is.
 
 ## Interruption point
 

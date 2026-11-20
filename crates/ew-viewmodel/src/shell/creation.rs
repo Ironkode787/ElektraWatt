@@ -845,10 +845,10 @@ impl ShellModel {
             pr.session
                 .route_plan(&folio, &ew_api::routing::RouteScope::Selection(ids))
         });
-        if let Some(params) = plan.as_ref().and_then(ew_api::routing::route_many_params) {
+        if let Some(params) = plan.as_ref().and_then(|p| p.params.clone()) {
             let rev = self.revision();
             let routed = self.run_commit(&AnyCommand {
-                name: "connection.route_many".into(),
+                name: "layout.apply".into(),
                 params,
             });
             if routed == Outcome::Done
@@ -881,7 +881,7 @@ impl ShellModel {
         };
         // The wires the router found no way for: counted, what their line means and what to do (rc.5: two wires were
         // thin and dashed after the change with no word why).
-        let lost = plan.as_ref().map_or(0, |p| p.unrouted.len());
+        let lost = plan.as_ref().map_or(0, |p| p.plan.unrouted.len());
         if lost > 0 {
             text.push(' ');
             text.push_str(&strings::format_count(

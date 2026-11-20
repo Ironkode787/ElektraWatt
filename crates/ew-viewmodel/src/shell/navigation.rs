@@ -492,9 +492,6 @@ impl ShellModel {
             page.tables = Arc::new(tables);
         }
         self.count(|c| c.page_tables += 1);
-        if let Some(geometry) = project.session.page_geometry(folio) {
-            page.geometry = Arc::new(geometry);
-        }
         if let Some(draft) = project.session.page_draft(folio) {
             page.draft = Arc::new(draft);
         }

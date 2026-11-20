@@ -100,9 +100,8 @@ pub static ANCHORS: &[Anchor] = &[
     on("reference/commands/index.md", "commands", ""),
     on(WINDOW, "about", "about"),
     // A topic for every tool action, every dialog without one above, every pane and navigator kind.
-    // The two route actions have their sections on the tools page.
-    on(TOOLS, "route-page", "route-page"),
-    on(TOOLS, "route-reroute", "reroute"),
+    // Route has its section on the tools page.
+    on(TOOLS, "layout-route", "route"),
     on(DIALOGS, "dialog-goto-page", "go-to-page-or-cell"),
     on(DIALOGS, "dialog-form", "form-dialogs"),
     on(DIALOGS, "dialog-purge", "purge-unused-images"),
@@ -336,8 +335,7 @@ fn own_topic(action: &str) -> Option<&'static str> {
         "messages.show" => "nav-messages",
         "strip.edit" => "strip-editor",
         "navigator.table" => "table-mode",
-        "route.page" => "route-page",
-        "route.reroute" => "route-reroute",
+        "layout.route" => "layout-route",
         "route.handle" | "route.handle_move" => "route-by-hand",
         a if a.starts_with("symbol.") => "symbol-editor",
         a if a.starts_with("tool.") => return tool_topic(a),
@@ -1427,11 +1425,10 @@ mod tests {
         }
     }
 
-    /// F1 on Route page and Reroute opens their sections of the tools page, not the
-    /// project view's page.
+    /// F1 on Route opens its section of the tools page, not the project view's page.
     #[test]
-    fn route_page_and_reroute_open_their_sections() {
-        for (action, fragment) in [("route.page", "route-page"), ("route.reroute", "reroute")] {
+    fn route_opens_its_section() {
+        for (action, fragment) in [("layout.route", "route")] {
             let a = action_topic(action).and_then(anchor).expect(action);
             assert_eq!(
                 (a.page.as_ref(), a.fragment.as_ref()),

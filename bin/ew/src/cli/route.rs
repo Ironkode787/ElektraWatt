@@ -1,14 +1,14 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `ew route [<project-dir>] [--page <folio>] [--selection <ids>] [--dry-run] [--json]`: the page
-//! router over the CLI. Each page's plan ([`ew_api::Session::route_plan`]) is committed as one
-//! `connection.route_many`, the command the window's Route page commits, and the project is saved once.
+//! `ew route [<project-dir>] [--page <folio>] [--selection <ids>] [--dry-run] [--json]`: Route over the CLI
+//! (docs/design/06a-drafting.md §7.4). Each page's plan ([`ew_api::Session::route_plan`]) is stored as one
+//! `layout.apply`, the command the window's Route stores, and the project is saved once; `--dry-run` prints the plan.
 
 use std::path::PathBuf;
 
 use ew_api::cli_results as results;
-use ew_api::routing::{RoutePlan, RouteScope, Unrouted};
+use ew_api::routing::{Reason, RoutePlan, RouteScope};
 use ew_api::{AnyCommand, Session};
 
 use super::{project_dir, reader_dir};
@@ -20,8 +20,8 @@ pub struct RouteArgs {
     pub project: Option<PathBuf>,
     /// The page by its folio label (`--page`); `None`: every drawn page but the panel-layout pages.
     pub page: Option<String>,
-    /// The connections and representations to route (`--selection`, IDs joined by `,`); empty: the pages' unrouted
-    /// connections.
+    /// The connections and representations to route (`--selection`, IDs joined by `,`); empty: the pages' wires that
+    /// are unrouted, broken or routed by the program.
     pub selection: Vec<String>,
     /// Route and print, but save nothing (`--dry-run`).
     pub dry_run: bool,
@@ -30,25 +30,24 @@ pub struct RouteArgs {
 }
 
 /// The reason's key in the JSON result and its sentence in the text.
-fn reason(why: Unrouted, wire: &str) -> (&'static str, String) {
+fn reason(why: Reason, wire: &str) -> (&'static str, String) {
     match why {
-        Unrouted::Wires => ("wires", format!("No route keeps clear of other wires: {wire}.")),
-        Unrouted::Symbols => ("symbols", format!("No route keeps clear of symbols: {wire}.")),
-        Unrouted::Texts => ("texts", format!("No route keeps clear of texts: {wire}.")),
-        Unrouted::Points => (
+        Reason::Wires => ("wires", format!("No way for {wire}: other wires are in its way.")),
+        Reason::Parts => ("symbols", format!("No way for {wire}: symbols are in its way.")),
+        Reason::Points => (
             "points",
-            format!("No route keeps clear of other connection points: {wire}."),
+            format!("No way for {wire}: connection points of other wires are in its way."),
         ),
-        Unrouted::FourArms => (
+        Reason::FourArms => (
             "four_arms",
-            format!("The junction would join four wires: {wire}."),
+            format!("No way for {wire}: it would be a fourth arm at a junction."),
         ),
     }
 }
 
-/// `ew route`: routes each page and saves (a reader with `--dry-run`). Exit 0 when every wire it routes is routed, 1
-/// when a wire stays unrouted, 2 on usage (a `--selection` item that is no record ID), open, an unknown folio, a
-/// refused command and save errors. A selection ID that names nothing on a page routes nothing there.
+/// `ew route`: routes each page and saves (a reader with `--dry-run`). Exit 0 when no wire it routes is left without
+/// a way, 1 when one is, 2 on usage (a `--selection` item that is no record ID), open, an unknown folio, a refused
+/// command and save errors. A selection ID that names nothing on a page routes nothing there.
 pub(super) fn run_route(a: &RouteArgs) -> i32 {
     let mut selection = Vec::with_capacity(a.selection.len());
     for s in &a.selection {
@@ -94,7 +93,7 @@ pub(super) fn run_route(a: &RouteArgs) -> i32 {
     };
     let folios = match &a.page {
         Some(f) => {
-            if session.page_geometry(f).is_none() {
+            if session.page_draft(f).is_none() {
                 eprintln!("error: the page order has no drawn page with the folio `{f}`");
                 return 2;
             }
@@ -123,10 +122,10 @@ pub(super) fn run_route(a: &RouteArgs) -> i32 {
         let page = page_result(&folio, &plan, words);
         text.push_str(&page_text(&page, &plan));
         if !a.dry_run
-            && let Some(params) = ew_api::routing::route_many_params(&plan)
+            && let Some(params) = plan.params.clone()
         {
             let cmd = AnyCommand {
-                name: "connection.route_many".to_owned(),
+                name: "layout.apply".to_owned(),
                 params,
             };
             if let Err(e) = session.execute(&cmd) {
@@ -159,51 +158,58 @@ pub(super) fn run_route(a: &RouteArgs) -> i32 {
     i32::from(unrouted)
 }
 
-/// One page's result: the routed wires and the unrouted ones with their reasons, named by `words`.
+/// One page's result: the wires the plan changes and those it left without a way with their reasons, named by `words`.
 fn page_result(
     folio: &str,
     plan: &RoutePlan,
     words: impl Fn(ew_api::output::Uuid) -> String,
 ) -> results::RoutePageResult {
+    let p = &plan.plan;
+    let changed: Vec<ew_api::output::Uuid> = plan.changed();
+    let across: std::collections::BTreeSet<ew_api::output::Uuid> = p
+        .after
+        .findings
+        .across_texts
+        .iter()
+        .map(|(w, _, _)| w.0)
+        .filter(|w| changed.contains(w))
+        .collect();
     results::RoutePageResult {
         folio: folio.to_owned(),
-        routed: plan.routes.iter().map(|(id, _)| words(*id)).collect(),
-        unrouted: plan
+        routed: changed.iter().map(|id| words(*id)).collect(),
+        unrouted: p
             .unrouted
             .iter()
             .map(|(id, why)| {
-                let wire = words(*id);
+                let wire = words(id.0);
                 results::RouteUnrouted {
                     reason: reason(*why, &wire).0.to_owned(),
                     wire,
                 }
             })
             .collect(),
-        across_texts: plan.over_texts.iter().map(|id| words(*id)).collect(),
+        across_texts: across.into_iter().map(words).collect(),
     }
 }
 
-/// The text of one page: its summary line (the page as `folio <label>`, as the window words it), then
-/// one line per unrouted wire.
+/// The text of one page: its summary line (the page as `folio <label>`, as the window words it), then one line per
+/// wire left without a way and per wire across a text.
 fn page_text(page: &results::RoutePageResult, plan: &RoutePlan) -> String {
     let (routed, unrouted) = (page.routed.len(), page.unrouted.len());
-    let mut out = match routed + unrouted {
-        0 => format!("Every wire on folio {} has a route.\n", page.folio),
-        1 => format!(
-            "Route 1 wire on folio {}: {routed} routed, {unrouted} not routed.\n",
+    let mut out = match (routed, unrouted) {
+        (0, 0) => format!(
+            "Nothing to route on folio {}: every wire runs as well as the rules allow.\n",
             page.folio
         ),
-        n => format!(
-            "Route {n} wires on folio {}: {routed} routed, {unrouted} not routed.\n",
-            page.folio
-        ),
+        (1, _) => format!("Routed 1 wire on folio {}.\n", page.folio),
+        (n, _) => format!("Routed {n} wires on folio {}.\n", page.folio),
     };
-    for ((_, why), u) in plan.unrouted.iter().zip(&page.unrouted) {
+    for ((_, why), u) in plan.plan.unrouted.iter().zip(&page.unrouted) {
         out.push_str(&format!("  {}\n", reason(*why, &u.wire).1));
     }
     for wire in &page.across_texts {
         out.push_str(&format!(
-            "  Routed across a text, as keeping clear of it is a far longer way: {wire}.\n"
+            "  Routed across a text that has no other place: {wire}.\n"
         ));
     }
     out
@@ -211,30 +217,36 @@ fn page_text(page: &results::RoutePageResult, plan: &RoutePlan) -> String {
 
 #[cfg(test)]
 mod tests {
-    use ew_api::routing::{RoutePlan, Unrouted};
+    use ew_api::routing::{Plan, Reason, RoutePlan, WireId};
 
     use super::{page_result, page_text};
 
     #[test]
-    fn the_text_has_the_summary_line_and_one_line_per_unrouted_wire() {
+    fn the_text_has_the_summary_line_and_one_line_per_wire_without_a_way() {
         let id = |n: u128| ew_api::output::Uuid::from_u128(n);
         let plan = RoutePlan {
-            routes: vec![(id(1), vec![(0, 0), (1, 0)])],
-            unrouted: vec![(id(2), Unrouted::Texts), (id(3), Unrouted::FourArms)],
-            over_texts: Vec::new(),
+            plan: Plan {
+                routes: vec![(WireId(id(1)), Vec::new())],
+                unrouted: vec![(WireId(id(2)), Reason::Parts), (WireId(id(3)), Reason::FourArms)],
+                ..Plan::default()
+            },
+            params: None,
         };
         let words = |i: ew_api::output::Uuid| format!("-K{}:1 → -X1:{}", i.as_u128(), i.as_u128());
         let page = page_result("101", &plan, words);
         assert_eq!(
             page_text(&page, &plan),
-            "Route 3 wires on folio 101: 1 routed, 2 not routed.\n  No route keeps clear of texts: -K2:1 → -X1:2.\n  The \
-             junction would join four wires: -K3:1 → -X1:3.\n"
+            "Routed 1 wire on folio 101.\n  No way for -K2:1 → -X1:2: symbols are in its way.\n  No way for -K3:1 → \
+             -X1:3: it would be a fourth arm at a junction.\n"
         );
         assert_eq!(page.unrouted[1].reason, "four_arms");
-        let empty = page_result("102", &RoutePlan::default(), words);
+        let empty = RoutePlan {
+            plan: Plan::default(),
+            params: None,
+        };
         assert_eq!(
-            page_text(&empty, &RoutePlan::default()),
-            "Every wire on folio 102 has a route.\n"
+            page_text(&page_result("102", &empty, words), &empty),
+            "Nothing to route on folio 102: every wire runs as well as the rules allow.\n"
         );
     }
 }

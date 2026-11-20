@@ -813,22 +813,32 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, p| s.act_tool_connect_on_move(p),
     )))),
-    // Reroute on the Draw tab's Connect group, beside Wire, where Edit route stood (rc.3): the selected wires routed
-    // again as if freshly drawn, at once; with nothing selected, the page's wires. It replaces Edit route and Route
-    // selection. Its icon is the polyline's (Wire has the route icon).
+    // Route on the Draw tab's Connect group, after Wire, where Reroute stood (docs/design/06a-drafting.md §7.1): the
+    // selection's wires, or the page's, routed as nets; parts stay. It replaces Route page and Reroute. Its icon is the
+    // polyline's (Wire has the route icon).
     keeps_banner(placed(
         place(Group::Connect, 2, CommandSize::Small, None),
         "ew-shape-polyline",
         act(
-            "route.reroute",
+            "layout.route",
             Command,
             Menu::Draw,
             &[],
             editable_page,
             grp(Group::Connect),
-            |s, _| s.act_route_reroute(),
+            |s, _| s.act_layout_route(),
         ),
     )),
+    // While a wire is drawn, `.` makes the joint it makes on a wire a dot instead of the bevel (§7.6).
+    keeps_banner(hidden(in_canvas(act(
+        "tool.wire_dot",
+        Command,
+        Menu::Draw,
+        &["Period"],
+        editable_page,
+        None,
+        |s, _| s.act_wire_dot(),
+    )))),
     // The selected wire's handles by keyboard (rc.3): Tab and Shift+Tab (`ShellModel::shortcut_action` maps them while
     // one wire is selected) give a handle the focus, the arrows move it.
     with_params(
@@ -855,20 +865,6 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_route_handle_move(p),
         ))),
     ),
-    // Route page after Interruption, previewed (no default key), in a column of its own: the page as a whole.
-    keeps_banner(placed(
-        place(Group::Connect, 8, CommandSize::Small, None),
-        "file-settings",
-        act(
-            "route.page",
-            Command,
-            Menu::Draw,
-            &[],
-            editable_page,
-            grp(Group::Connect),
-            |s, _| s.act_route_page(),
-        ),
-    )),
     keeps_banner(in_canvas(act(
         "junction.open",
         View,

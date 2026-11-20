@@ -4,46 +4,30 @@
 //! A page as the layout sees it and its measure in words: [`Session::page_draft`] is the page in ticks
 //! (`ew_drafting::DraftPage`, docs/design/06a-drafting.md §2), the labels layer's (`ew-scene`'s `draft` builds it from
 //! the page's view, with the scene's text sizes) with each wire's supply rank from its potential and the page's kind;
-//! [`Session::layout_report`] measures one page or every schematic page with `ew_drafting::measure` and names what it
-//! finds the way the page prints it, for `ew layout`; the layout rules (EW-CORE-067 to -070, -072 to -077) read the
-//! same measure. [`Session::page_geometry`] is the schematic router's page in nm, until the router moves onto the
-//! draft (§10, step 2):
-//!
-//! - **Bodies:** each representation's body (`TableRep::body`) and a black box's outline by its bounds, as the Wire
-//!   tool's obstacles without their growth (`ew-viewmodel`'s `rep_rects`).
-//! - **Text boxes:** the labels layer's entity rectangles that are not a point of the page's representations, free
-//!   texts and structure boxes: every line of a tag, a slot or pin text and a cross-reference text the scene prints
-//!   for a representation, a free text's lines and a structure box's caption, in page coordinates. A
-//!   wire marker's text moves with its wire and is left out. The texts beside the pins of a multipin plug (drawn on
-//!   the symbols layer) are texts too, each cut back to a quarter of a grid step from the line its own pin's wire
-//!   leaves along.
-//! - **Frame bands:** the frame's outer rectangle outside its drawing area (`ew_scene::forms::FrameGeometry`), up to
-//!   four bands, as the Wire tool's `frame_rects` without its inset.
-//! - **Connections:** each connection's drawn polyline (`TableConnection::polyline`, the scene's), ends included.
+//! the router reads it (`crate::routing`). [`Session::layout_report`] measures one page or every schematic page with
+//! `ew_drafting::measure` and names what it finds the way the page prints it, for `ew layout`; the layout rules
+//! (EW-CORE-067 to -070, -072 to -077) read the same measure.
 
 use std::collections::BTreeSet;
 use std::fmt;
 
 use ew_derive::ew_ids::{Id, Uuid};
+use ew_derive::ew_schema::PageType;
 use ew_derive::ew_schema::PotentialType;
-use ew_derive::ew_schema::{Dir4, PageType};
 use ew_derive::ew_units::{Grid, Nm, Pt2};
-use ew_derive::routing::SUPPLY_ORDER;
-use ew_derive::routing::{Body, CpPoint, DrawnConnection, JunctionPoint, PageGeometry, TextBox};
 use ew_derive::{CellOf, CpRef, DisplayedTag, PageOrder, PageRef, PotentialFlow, PotentialPartition, Q};
 use ew_dl::Layer;
 use ew_drafting::consts::TICKS_PER_STEP;
 use ew_drafting::{DraftPage, Passed, Quality, TextRef};
-use ew_scene::forms::FrameGeometry;
-use ew_scene::page::DEFAULT_SHEET;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use super::editing::{PageTables, TableConnection, TableCp, TableEnd};
-use super::layers::{page_layer, plug_note_boxes};
-use super::view::PageFrameOf;
+use super::layers::page_layer;
 use crate::Session;
-use crate::geometry::Dir;
+
+/// The order of the supply potentials (§3.4): L1, L2, L3, L, N, PEN, PE, FE, L+, M, L−, as a wire's supply rank.
+const SUPPLY_ORDER: [&str; 11] = ["L1", "L2", "L3", "L", "N", "PEN", "PE", "FE", "L+", "M", "L-"];
 
 /// Why a layout report is refused.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -233,16 +217,6 @@ pub struct LayoutTexts {
     pub cell: String,
 }
 
-/// The direction of a [`Dir`] in the model's spelling.
-fn dir4(d: Dir) -> Dir4 {
-    match d {
-        Dir::Up => Dir4::Up,
-        Dir::Down => Dir4::Down,
-        Dir::Left => Dir4::Left,
-        Dir::Right => Dir4::Right,
-    }
-}
-
 /// The page-order entry of `folio`.
 fn entry_of(q: &Q, folio: &str) -> Result<PageRef, LayoutError> {
     q.get::<PageOrder>(())
@@ -251,175 +225,6 @@ fn entry_of(q: &Q, folio: &str) -> Result<PageRef, LayoutError> {
         .find(|e| e.folio == folio)
         .map(|e| e.page)
         .ok_or_else(|| LayoutError::NoFolio(folio.to_owned()))
-}
-
-/// The geometry of a page from its tables (see the module documentation).
-fn geometry(q: &Q, page: PageRef, tables: &PageTables) -> PageGeometry {
-    let mut bodies = Vec::new();
-    for r in &tables.reps {
-        bodies.push(Body {
-            rep: r.id,
-            rect: r.body,
-        });
-        if let Some(b) = &r.black_box {
-            let xs = b.outline.iter().map(|p| p.0);
-            let ys = b.outline.iter().map(|p| p.1);
-            if let (Some(x0), Some(x1), Some(y0), Some(y1)) =
-                (xs.clone().min(), xs.max(), ys.clone().min(), ys.max())
-            {
-                bodies.push(Body {
-                    rep: r.id,
-                    rect: [x0, y0, x1, y1],
-                });
-            }
-        }
-    }
-    // The texts the labels layer draws for the page's representations, free texts and structure boxes (their
-    // captions); wire markers move with their wire and are left out.
-    let reps: BTreeSet<Uuid> = tables
-        .reps
-        .iter()
-        .map(|r| r.id)
-        .chain(
-            tables
-                .items
-                .iter()
-                .filter(|i| i.kind == "free_text")
-                .map(|i| i.id),
-        )
-        .chain(tables.structure_boxes.iter().map(|b| b.id))
-        .collect();
-    // A cross-reference's link area repeats its text's box: each box once.
-    let mut seen: BTreeSet<(Uuid, [i64; 4])> = BTreeSet::new();
-    let mut texts: Vec<TextBox> = page_layer(q, page, Layer::Labels)
-        .list
-        .entity_bounds()
-        .into_iter()
-        .filter(|(e, _)| reps.contains(&e.0))
-        .filter_map(|(e, r)| {
-            let (a, b) = (r.min(), r.max());
-            let rect = [a.x.0, a.y.0, b.x.0, b.y.0];
-            (a.x != b.x && a.y != b.y && seen.insert((e.0, rect))).then_some(TextBox { rep: e.0, rect })
-        })
-        .collect();
-    // The texts beside the pins of a multipin plug (the symbols layer draws them): a wire goes round them as round
-    // any text. A note stands right beside the line its own pin's wire leaves along, so its box is cut back to a
-    // quarter of a grid step from that line, the clearance a route keeps from a text: the pin's own wire runs past
-    // its note, never across it.
-    let clear = {
-        let (num, den) = tables.grid;
-        if den > 0 { (num + den / 2) / den / 4 } else { 0 }
-    };
-    for (note, r) in plug_note_boxes(q, page) {
-        let (a, b) = (r.min(), r.max());
-        let (mut x, mut y) = ((a.x.0, b.x.0), (a.y.0, b.y.0));
-        // The side of the pin's line the note stands on keeps the box; the line's side of it is cut back.
-        let cut = |(lo, hi): (i64, i64), line: i64| {
-            if lo + hi <= 2 * line {
-                (lo, hi.min(line - clear))
-            } else {
-                (lo.max(line + clear), hi)
-            }
-        };
-        if note.vertical {
-            x = cut(x, note.at.x.0);
-        } else {
-            y = cut(y, note.at.y.0);
-        }
-        if x.0 < x.1 && y.0 < y.1 {
-            texts.push(TextBox {
-                rep: note.rep.as_uuid(),
-                rect: [x.0, y.0, x.1, y.1],
-            });
-        }
-    }
-    let frame = q.get::<PageFrameOf>(page);
-    let frame_geometry = frame
-        .as_ref()
-        .as_ref()
-        .and_then(|f| FrameGeometry::of(&f.form, f.title_block.as_deref()));
-    let rect = |r: ew_derive::ew_units::Rect| [r.min().x.0, r.min().y.0, r.max().x.0, r.max().y.0];
-    let sheet = match (&frame_geometry, frame.as_ref().as_ref()) {
-        (Some(g), _) => rect(g.outer),
-        (None, Some(f)) => [0, 0, f.form.sheet.width.0, f.form.sheet.height.0],
-        (None, None) => [0, 0, DEFAULT_SHEET.0.0, DEFAULT_SHEET.1.0],
-    };
-    let drawing_area = frame_geometry.as_ref().map(|g| rect(g.drawing_area));
-    let frame_bands = frame_geometry
-        .as_ref()
-        .map(|g| {
-            let (o0, o1, d0, d1) = (
-                g.outer.min(),
-                g.outer.max(),
-                g.drawing_area.min(),
-                g.drawing_area.max(),
-            );
-            let (ox0, oy0, ox1, oy1) = (o0.x.0, o0.y.0, o1.x.0, o1.y.0);
-            let (dx0, dy0, dx1, dy1) = (d0.x.0, d0.y.0, d1.x.0, d1.y.0);
-            [
-                [ox0, oy0, ox1, dy0],
-                [ox0, dy1, ox1, oy1],
-                [ox0, dy0, dx0, dy1],
-                [dx1, dy0, ox1, dy1],
-            ]
-            .into_iter()
-            .filter(|r| r[0] < r[2] && r[1] < r[3])
-            .collect()
-        })
-        .unwrap_or_default();
-    let junctions = tables
-        .junctions
-        .iter()
-        .map(|j| JunctionPoint {
-            id: j.id,
-            at: j.at,
-            connections: tables
-                .connections
-                .iter()
-                .filter(|c| [c.a, c.b].contains(&TableEnd::Junction { id: j.id }))
-                .map(|c| c.id)
-                .collect(),
-        })
-        .collect();
-    let end_id = |e: &TableEnd| match e {
-        TableEnd::Cp { function, idx } => tables
-            .cps
-            .iter()
-            .find(|cp| cp.function == *function && cp.idx == *idx)
-            .map_or(Uuid::nil(), |cp| cp.id),
-        TableEnd::Junction { id } => *id,
-    };
-    PageGeometry {
-        grid: tables.grid,
-        sheet,
-        drawing_area,
-        bodies,
-        cps: tables
-            .cps
-            .iter()
-            .map(|cp| CpPoint {
-                id: cp.id,
-                at: cp.at,
-                dir: cp.dir.map(dir4),
-                rep: cp.rep,
-                connections: cp.connections.clone(),
-            })
-            .collect(),
-        texts,
-        junctions,
-        frame_bands,
-        connections: tables
-            .connections
-            .iter()
-            .map(|c| DrawnConnection {
-                id: c.id,
-                ends: [end_id(&c.a), end_id(&c.b)],
-                routed: c.stored_route,
-                supply: supply_rank(q, c),
-                polyline: c.polyline.clone(),
-            })
-            .collect(),
-    }
 }
 
 /// The frame cell of the point `p` on `page` as printed (`C4`); empty off the drawing area or without a frame grid.
@@ -1156,15 +961,6 @@ impl Session {
     pub fn connection_words(&self, folio: &str, id: Uuid) -> Option<crate::Text> {
         let tables = self.page_tables(folio)?;
         connection_words_text(&self.query(), &tables, id)
-    }
-
-    /// The geometry of the page labelled `folio` as the schematic router and the layout measures read it, in page nm
-    /// (see the module documentation); `None` for an unknown folio or a page that is not drawn.
-    pub fn page_geometry(&self, folio: &str) -> Option<PageGeometry> {
-        let tables = self.page_tables(folio)?;
-        let q = self.query();
-        let page = entry_of(&q, folio).ok()?;
-        Some(geometry(&q, page, &tables))
     }
 
     /// The page labelled `folio` as the layout sees it ([`DraftPage`], docs/design/06a-drafting.md §2.2); `None` for an

@@ -177,11 +177,26 @@ pub fn next_in_series(name: &str) -> String {
     format!("{name}-1")
 }
 
+/// The point `p` of the page of `tables` with every coordinate within 1 nm of a grid position on the grid's own number
+/// (`Grid::settle`), on a grid whose step is not a whole number of nm; else `p`.
+pub(super) fn settled(tables: &PageTables, p: (i64, i64)) -> (i64, i64) {
+    use ew_api::output::ew_dl::ew_units::{Grid, Nm};
+    let grid = u64::try_from(tables.grid.0)
+        .ok()
+        .zip(u64::try_from(tables.grid.1).ok())
+        .and_then(|(n, d)| Grid::new(n, d).ok())
+        .filter(|g| g.den() > 1);
+    match grid {
+        Some(g) => (g.settle(Nm(p.0)).0, g.settle(Nm(p.1)).0),
+        None => p,
+    }
+}
+
 /// Whether the page point `c` lies on a junction of `tables` or strictly inside a connection's polyline: on one of its
 /// segments, a bend included, but at neither of its ends. As the Wire tool's `resolve_target` looks, after
 /// the connection points: the junctions, then the segments.
 ///
-/// Every point is read through `settle`, the page's settled reading (`PageGeometry::settle`, ADR-0033 amendment 4):
+/// Every point is read through `settle`, the page's settled reading ([`settled`], ADR-0033 amendment 4):
 /// a point 1 nm beside the number of a wire's line lies on that wire.
 fn on_wire(tables: &PageTables, c: (i64, i64), settle: &dyn Fn((i64, i64)) -> (i64, i64)) -> bool {
     let c = settle(c);
@@ -678,7 +693,7 @@ impl IpTool {
         pos: (i64, i64),
     ) -> impl Iterator<Item = &'a TableCp> + use<'a> {
         let c = self.cp_at(pos);
-        let settle = move |p: (i64, i64)| cx.page.geometry.settle(p);
+        let settle = move |p: (i64, i64)| settled(&cx.page.tables, p);
         cx.page
             .tables
             .cps
@@ -824,7 +839,7 @@ impl IpTool {
             return DropOn::Free;
         };
         let tables = &cx.page.tables;
-        let settle = |p: (i64, i64)| cx.page.geometry.settle(p);
+        let settle = |p: (i64, i64)| settled(&cx.page.tables, p);
         let under: Vec<&TableCp> = self.pins_under(cx, pos).collect();
         // An interruption point's CP anywhere among them refuses, whatever the tables' order (after a connecting drop
         // the new point's CP and the pin coincide).

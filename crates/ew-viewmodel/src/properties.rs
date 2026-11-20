@@ -277,7 +277,7 @@ pub enum CardOrigin {
     /// `fields.set_many`.
     TableImport(Box<TableImportCard>),
     /// Route page (`route.page`): the card in the Preview tab with the plan's
-    /// lead line and one row per connection left unrouted; Apply commits the plan's `connection.route_many`.
+    /// lead line and one row per connection left unrouted; Apply commits the plan's `layout.apply`.
     Route {
         /// "Route 3 wires on folio 101: 2 routed, 1 not routed." (§12a).
         lead: String,
@@ -524,7 +524,7 @@ impl Card {
     /// it, "Route page" (the window check's C3).
     pub fn command(&self) -> &str {
         match &self.origin {
-            CardOrigin::Route { .. } => strings::text(key!("action-route-page")),
+            CardOrigin::Route { .. } => strings::text(key!("action-layout-route")),
             _ => strings::command_title(&self.preview.name),
         }
     }

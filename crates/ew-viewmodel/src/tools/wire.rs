@@ -53,7 +53,7 @@ use ew_api::geometry::Dir;
 use ew_api::output::Uuid;
 use ew_api::output::ew_dl::EntityRef;
 use ew_api::output::ew_dl::ew_units::Rect;
-use ew_api::routing::{OneEnd, RouteEnd, clear_one, crosses_text, heading, route_one, unrouted_line};
+use ew_api::routing::{ToolEnd, route_wire, unrouted_line, wire_clear};
 use serde_json::{Value, json};
 
 use super::{
@@ -394,7 +394,7 @@ pub fn resolve_target(cx: &ToolCx<'_>, at: (i64, i64), alt: bool) -> WireTarget 
             // arms: a crossing is no place to join.
             // (Read with a grid position as one number: a wire whose line's number lies 1 nm beside this point's
             // crosses here all the same.)
-            let settle = |q: (i64, i64)| cx.page.geometry.settle(q);
+            let settle = |q: (i64, i64)| super::ip::settled(tables, q);
             let crossed = tables.connections.iter().any(|o| {
                 o.id != c.id
                     && o.stored_route
@@ -468,7 +468,21 @@ fn near_full_junction(cx: &ToolCx<'_>, at: (i64, i64), alt: bool) -> bool {
 /// that holds a connection point of another representation is an outline drawn around it (a valve terminal's box
 /// around its valves), as the router treats it, and takes bends.
 fn inside_symbol(cx: &ToolCx<'_>, p: (i64, i64), route: &[(i64, i64)]) -> bool {
-    let page = &cx.page.geometry;
+    let tables = &cx.page.tables;
+    // Each symbol's body, and a drawn box's outline by its bounds.
+    let mut bodies: Vec<(Uuid, [i64; 4])> = Vec::new();
+    for r in &tables.reps {
+        bodies.push((r.id, r.body));
+        if let Some(b) = &r.black_box {
+            let xs = b.outline.iter().map(|q| q.0);
+            let ys = b.outline.iter().map(|q| q.1);
+            if let (Some(x0), Some(x1), Some(y0), Some(y1)) =
+                (xs.clone().min(), xs.max(), ys.clone().min(), ys.max())
+            {
+                bodies.push((r.id, [x0, y0, x1, y1]));
+            }
+        }
+    }
     let inside = |r: [i64; 4], q: (i64, i64)| r[0] < q.0 && q.0 < r[2] && r[1] < q.1 && q.1 < r[3];
     let on_route = |q: (i64, i64)| {
         route.windows(2).any(|w| {
@@ -478,10 +492,10 @@ fn inside_symbol(cx: &ToolCx<'_>, p: (i64, i64), route: &[(i64, i64)]) -> bool {
                 && (a.0 == b.0 || a.1 == b.1)
         })
     };
-    page.bodies.iter().any(|b| {
-        inside(b.rect, p)
-            && !page.cps.iter().any(|c| c.rep != b.rep && inside(b.rect, c.at))
-            && !page.cps.iter().any(|c| c.rep == b.rep && on_route(c.at))
+    bodies.iter().any(|(rep, rect)| {
+        inside(*rect, p)
+            && !tables.cps.iter().any(|c| c.rep != *rep && inside(*rect, c.at))
+            && !tables.cps.iter().any(|c| c.rep == *rep && on_route(c.at))
     })
 }
 
@@ -775,20 +789,29 @@ type RouteKey = (
 /// A routed tail in the cache: its key, its points, whether it is the router's fallback, and whether it crosses a text.
 type CachedTail = (RouteKey, Vec<(i64, i64)>, bool, bool);
 
-/// The router's end of a point with the direction a wire leaves it and the representation that draws it.
-fn one_end(at: (i64, i64), dir: Option<Dir>, rep: Option<EntityRef>) -> OneEnd {
-    OneEnd {
-        at,
-        dir: dir.map(heading),
-        rep: rep.map(|r| r.0),
-    }
-}
-
-/// A tool's end as the router takes it.
-fn route_end(at: (i64, i64), dir: Option<Dir>) -> RouteEnd {
-    RouteEnd {
-        at,
-        dir: dir.map(heading),
+/// A target as the router's end: a connection point of the page, a junction, a point on a wire, else a free point (a
+/// grid point, or a connection point of a symbol not drawn yet).
+fn tool_end(cx: &ToolCx<'_>, t: &WireTarget) -> ToolEnd {
+    match t {
+        WireTarget::Cp { function, idx, at, .. } => {
+            let drawn = cx
+                .page
+                .tables
+                .cps
+                .iter()
+                .any(|c| c.function == function.0 && c.idx == *idx);
+            if drawn {
+                ToolEnd::Cp {
+                    function: function.0,
+                    idx: *idx,
+                }
+            } else {
+                ToolEnd::Point(*at)
+            }
+        }
+        WireTarget::Junction { id, .. } => ToolEnd::Junction(id.0),
+        WireTarget::Segment { connection, at } => ToolEnd::OnWire(connection.0, *at),
+        WireTarget::Grid { at } => ToolEnd::Point(*at),
     }
 }
 
@@ -805,7 +828,7 @@ fn l_tail(
         return vec![from];
     }
     // The corner of the unrouted line's rule.
-    let line = unrouted_line(route_end(from, from_dir), route_end(to, to_dir));
+    let line = unrouted_line((from, from_dir), (to, to_dir));
     let [_, mut corner, _] = line[..] else {
         return line;
     };
@@ -833,11 +856,11 @@ fn l_tail(
 /// counted), every one passed a terminal (a fuse, a contact or a coil standing in line is gone round, not put in series
 /// by accident: dropped on a wire it is put in series), every passed CP lying on the route itself (not beside it, a
 /// jog away), and the router's own tests
-/// ([`clear_one`]: the page's bodies and texts, other wires, other CPs and stubs) find it clear with the passed
+/// ([`wire_clear`]: the page's bodies, other wires, other CPs and stubs) find it clear with the passed
 /// representations' bodies, texts and CPs left out. Otherwise `None`, and the router runs as before.
 fn through_route(
     cx: &ToolCx<'_>,
-    (from, from_dir, arrive): ((i64, i64), Option<Dir>, Option<Dir>),
+    ((from, from_dir, arrive), from_end): (((i64, i64), Option<Dir>, Option<Dir>), ToolEnd),
     own: [Option<EntityRef>; 2],
     to: &WireTarget,
 ) -> Option<Vec<(i64, i64)>> {
@@ -859,8 +882,8 @@ fn through_route(
     let mut through: Vec<Uuid> = found.passes.iter().map(|(entry, _)| entry.cp.rep).collect();
     through.sort_unstable();
     through.dedup();
-    let ends = (one_end(from, from_dir, own[0]), one_end(t, to.dir(), own[1]));
-    clear_one(&cx.page.geometry, ends, arrive.map(heading), &through, &direct).then_some(direct)
+    let ends = (from_end, tool_end(cx, to));
+    wire_clear(&cx.page.draft, cx.page.tables.grid, ends, arrive, &through, &direct).then_some(direct)
 }
 
 /// The Wire tool.
@@ -887,6 +910,9 @@ pub struct WireTool {
     /// A click that left a free point right beside a connection point, and that point (function, index): the hint says
     /// so until the next wire starts.
     missed: Option<(Missed, (Uuid, u16))>,
+    /// Whether a junction the wire makes on a wire is a dot instead of the bevel (`.` while routing, docs/design/06a-drafting.md
+    /// §7.6).
+    dot: bool,
 }
 
 /// What a click beside a connection point left (FT-1800).
@@ -931,6 +957,7 @@ impl WireTool {
             kind: None,
             line_kind: None,
             missed: None,
+            dot: false,
         }
     }
 
@@ -959,20 +986,20 @@ impl WireTool {
         }
     }
 
-    /// The router's tail from `from` (leaving along `from_dir`, or arrived at along `arrive`) to the end target,
-    /// through the cache; it sets `self.direct` to whether no clear route was found.
+    /// The router's tail from `from` (leaving along `from_dir`, or arrived at along `arrive`; `from_end` what it is)
+    /// to the end target, through the cache; it sets `self.direct` to whether no clear route was found.
     ///
-    /// The tail is [`route_one`]'s against the page as drawn (the host's page geometry): every
-    /// routed connection a fixed wire, every other CP with its stub and every junction not at an end reserved, the
-    /// ends' own bodies left only along a CP's escape corridor (`own`: the start's while the tail starts at it, the
-    /// end's). Before it, the direct route through a free terminal in line is taken when it qualifies
-    /// ([`through_route`]). Without a clear route the tail is the right-angled line an unrouted connection is
-    /// drawn with ([`unrouted_line`], the page's own rule, so the ghost is what a click stores); after a fixed bend
-    /// [`WireTool::full_route`] then routes the wire from its start instead.
+    /// The tail is [`route_wire`]'s against the page as the layout sees it (the host's draft, docs/design/06a-drafting.md
+    /// §7.4): every routed connection a fixed wire, every other CP with its stub and every junction not at an end
+    /// reserved, the ends' own bodies left only along a CP's escape corridor, a tag in the way priced as one that steps
+    /// aside, a wire of the same pin's run shared where that is the better way. Before it, the direct route through a
+    /// free terminal in line is taken when it qualifies ([`through_route`]). Without a clear route the tail is the
+    /// right-angled line an unrouted connection is drawn with ([`unrouted_line`], the page's own rule, so the ghost is
+    /// what a click stores); after a fixed bend [`WireTool::full_route`] then routes the wire from its start instead.
     fn tail(
         &mut self,
         cx: &ToolCx<'_>,
-        (from, from_dir, arrive): ((i64, i64), Option<Dir>, Option<Dir>),
+        ((from, from_dir, arrive), from_end): (((i64, i64), Option<Dir>, Option<Dir>), ToolEnd),
         own: [Option<EntityRef>; 2],
         to: &WireTarget,
     ) -> Vec<(i64, i64)> {
@@ -985,25 +1012,23 @@ impl WireTool {
             return r.clone();
         }
         let t = to.at();
-        if let Some(points) = through_route(cx, (from, from_dir, arrive), own, to) {
+        if let Some(points) = through_route(cx, ((from, from_dir, arrive), from_end), own, to) {
             self.routes += 1;
             self.direct = false;
             self.over_text = false;
             self.cache = Some((key, points.clone(), false, false));
             return points;
         }
-        let (a, b) = (one_end(from, from_dir, own[0]), one_end(t, to.dir(), own[1]));
-        let routed = route_one(&cx.page.geometry, a, b, arrive.map(heading));
-        // A route across a text, where keeping clear of it is a far longer way (ADR-0033 amendment 2): the hint says so.
-        let over_text = routed
-            .as_ref()
-            .is_some_and(|points| crosses_text(&cx.page.geometry, points));
-        let (points, direct) = match routed {
-            Some(points) => (points, false),
-            None => (
-                unrouted_line(route_end(from, from_dir), route_end(t, to.dir())),
-                true,
-            ),
+        let routed = route_wire(
+            &cx.page.draft,
+            cx.page.tables.grid,
+            (from_end, from),
+            (tool_end(cx, to), t),
+            arrive,
+        );
+        let (points, direct, over_text) = match routed {
+            Some((points, over_text)) => (points, false, over_text),
+            None => (unrouted_line((from, from_dir), (t, to.dir())), true, false),
         };
         self.routes += 1;
         self.direct = direct;
@@ -1032,12 +1057,22 @@ impl WireTool {
         // The start's representation is the tail's own only while the tail starts at it; after a bend it is an
         // obstacle like any other.
         let own = [start.rep().filter(|_| fixed.len() == 1), to.rep()];
-        let tail = self.tail(cx, (last, from_dir, arrive), own, to);
+        let from_end = if fixed.len() == 1 {
+            tool_end(cx, start)
+        } else {
+            ToolEnd::Point(last)
+        };
+        let tail = self.tail(cx, ((last, from_dir, arrive), from_end), own, to);
         // No clear way on from the last free point: the wire as if drawn anew from its start, its free points
         // dropped, else unrouted (rc.3: the corner of the user's L had run through a pin and along another wire).
         if self.direct && fixed.len() > 1 {
             let start_at = fixed[0];
-            return clean(self.tail(cx, (start_at, start.dir(), None), [start.rep(), to.rep()], to));
+            return clean(self.tail(
+                cx,
+                ((start_at, start.dir(), None), tool_end(cx, start)),
+                [start.rep(), to.rep()],
+                to,
+            ));
         }
         let mut pts: Vec<(i64, i64)> = fixed[..fixed.len() - 1].to_vec();
         pts.extend(tail);
@@ -1092,7 +1127,9 @@ impl WireTool {
 
     /// The command of the current route to `end`; `None` without a valid end. A route that passes through
     /// representations ([`pass_through`]) is `connection.draw_many` with one entry per piece, in one
-    /// transaction; any other is one `connection.draw`.
+    /// transaction; any other is one `connection.draw`. A route the tool found between two clicked ends is marked
+    /// `computed`; one with a bend the person fixed is his (docs/design/06a-drafting.md §2.4). A joint made on a wire
+    /// is a dot where `.` asked for one, else the bevel.
     fn command(&self, cx: &ToolCx<'_>) -> Option<Box<AnyCommand>> {
         let State::Routing {
             start, end, route, ..
@@ -1103,6 +1140,7 @@ impl WireTool {
         let end = end.as_ref().filter(|e| e.is_end() && !e.same_end(start))?;
         // Without a clear route, the wire is stored unrouted.
         let route: &[(i64, i64)] = if self.direct { &[] } else { route };
+        let computed = self.bends() == 0;
         let draw = |a: Value, b: Value, route: &[(i64, i64)]| {
             let mut params = json!({
                 "a": a,
@@ -1112,6 +1150,12 @@ impl WireTool {
             });
             if let Some(kind) = self.kind {
                 params["kind"] = kind_value(kind, self.line_kind);
+            }
+            if computed && !route.is_empty() {
+                params["computed"] = Value::Bool(true);
+            }
+            if self.dot {
+                params["dot"] = Value::Bool(true);
             }
             params
         };
@@ -1177,6 +1221,7 @@ impl WireTool {
                 self.labels = (target.label(cx), None);
                 self.direct = false;
                 self.over_text = false;
+                self.dot = false;
                 self.state = State::Routing {
                     fixed: vec![target.at()],
                     marks: Vec::new(),
@@ -1216,6 +1261,7 @@ impl WireTool {
                         route,
                     };
                     let cmd = self.command(cx);
+                    self.dot = false;
                     self.state = State::Armed { target: None };
                     self.cache = None;
                     return match cmd {
@@ -1461,6 +1507,11 @@ impl Tool for WireTool {
                 }
                 State::Armed { .. } => ToolOutput::None,
             },
+            // `.`: the joint this wire makes on a wire is a dot, or the bevel again.
+            CanvasEvent::Key(ToolKey::Dot) if matches!(self.state, State::Routing { .. }) => {
+                self.dot = !self.dot;
+                ToolOutput::Transient(self.overlay(cx))
+            }
             CanvasEvent::Dwell { ms } if *ms >= super::PREVIEW_DWELL_MS => match self.command(cx) {
                 Some(cmd) => ToolOutput::Preview(cmd),
                 None => ToolOutput::None,
@@ -1472,6 +1523,7 @@ impl Tool for WireTool {
                     self.cache = None;
                     self.direct = false;
                     self.over_text = false;
+                    self.dot = false;
                     ToolOutput::Cancel
                 }
                 State::Armed { .. } => ToolOutput::None,
@@ -1495,7 +1547,12 @@ impl Tool for WireTool {
         } = &self.state
         {
             if matches!(t, WireTarget::Segment { .. }) {
-                return super::Hint::plain(key!("hint-wire-click-tee"));
+                let key = if self.dot {
+                    key!("hint-wire-click-dot")
+                } else {
+                    key!("hint-wire-click-tee")
+                };
+                return super::Hint::new(key, &["tool.wire_dot"]);
             }
             if t.same_end(start) {
                 return super::Hint::plain(key!("hint-wire-click-start"));
