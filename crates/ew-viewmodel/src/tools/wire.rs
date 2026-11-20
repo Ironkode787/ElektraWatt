@@ -824,11 +824,7 @@ fn tool_end(cx: &ToolCx<'_>, t: &WireTarget) -> ToolEnd {
 /// `to_dir`) that [`through_route`] tries: the straight segment for aligned ends,
 /// else one corner from the ends' own coordinates, the first leg along `from_dir`'s axis, else the last along
 /// `to_dir`'s, else across first; a first leg that would double back over `arrive` takes the other corner.
-fn l_tail(
-    (from, from_dir, arrive): TailStart,
-    to: (i64, i64),
-    to_dir: Option<Dir>,
-) -> Vec<(i64, i64)> {
+fn l_tail((from, from_dir, arrive): TailStart, to: (i64, i64), to_dir: Option<Dir>) -> Vec<(i64, i64)> {
     if from == to {
         return vec![from];
     }
