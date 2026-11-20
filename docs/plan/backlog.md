@@ -139,10 +139,22 @@ These touch the files of "Lists and frames" above: not beside that lane.
 - FT-1791 `ew-viewmodel, ew-api`: The spacing between the terminals of a row (`shell/terminals.rs`) is kept by the open project only: keep it between sessions (a user setting, or a project setting, which is a format change).
 - FT-1840 `content`: There is no proximity or reed sensor among the starter parts: a three-wire PNP sensor with its symbol.
 
+#### What the sample project's script met
+
+Faults met while `fixtures/sample/sample.uiscript` was written; each has its steps in the script's own words.
+
+- FT-1899 `ew-commands, ew-derive`: A new enclosure and its mounting plate get frozen tags that deviate from the scheme at once: `layout.enclosure_new` on a new panel-layout page, then the check, gives EW-NUM-001 for both ("frozen, deviates from scheme"). Give them the scheme's tags, or do not freeze them.
+- FT-1900 `ew-api`: A project made by `file.new` without the template's pages takes its first page's id from the clock (`new_project.rs`: the scratch session runs with default options), so two runs of one script differ. Take the id from the session's id source.
+- FT-1901 `ew-commands, ew-viewmodel`: `supply.place` with a location written with its sign (`+UP`) prints `++UP` and makes a structure node of that name. Take the name with or without its sign, as the other commands do.
+- FT-1902 `ew-commands`: `bus.cable` finds a plug only by its record id; a part number, which every other part parameter takes, is refused with "choose one from the list".
+- FT-1903 `ew-checks`: A breaker with a phase pole and a neutral pole (1P+N) wired with L and N is reported as opening the neutral without the phase (EW-POT-013, an error): the rule does not see that both poles belong to one device and switch together.
+- FT-1907 `ew-viewmodel, ew-commands`: Draw on a page from the station view, for a station whose CPU is not placed yet, puts the CPU's box below the frame, off the sheet. Place it inside the drawing area as the cards are.
+
 #### The page's drawing
 
 - FT-1798 `ew-scene`: An interruption point on the bottom pin of a box draws its arrow along the box's edge.
 - FT-1786 `ew-scene`: A text under a wire on a schematic page is not knocked out: a text that a route crosses and that does not move is drawn under the line, and no renderer clears the line round it (ADR-0033, amendment 2). Only the panel layout's labels have knock-outs.
+- FT-1908 `ew-scene, ew-derive`: A strip's bridges are not drawn on a schematic page: four terminals joined by a bridge stand as four separate terminals, and a reader cannot see that a supply reaches the others (the sample's control page). Draw the bridge between the terminals it joins where they stand in one row on one page.
 
 #### A command's words
 
@@ -162,6 +174,7 @@ where a real page shows it; each row says whether one is known.
 - FT-1892 `ew-viewmodel`: The Arrange and route card, after rows are unticked, still lists a few wire rows that Route would redraw; find whether they belong there (the test's loop bound went from 8 to 64 without the cause). **Page:** none known; a window test shows it.
 - FT-1893 `ew-drafting`: On a page with cards a feed terminal without a channel stays in the middle of its strip and its wires cross the channels; it wants a place at the strip's end. **Page:** none named.
 - FT-1894 `ew-drafting`: A card does not step aside where another card's used columns interleave with its own (the columns should be chosen by the channels in use), and "Draw on a page" still sets a card of inputs under the controller, so supply wires cross its first channels until Arrange and route moves it. **Page:** any card drawn from the station view shows the second.
+- FT-1909 `ew-drafting, ew-scene`: A card's supply pins stand at its left end, where a page's incoming marks stand, so their wires bend round the marks, and Arrange and route makes the page worse, not better. **Page:** known, the sample's PLC page.
 - FT-1895 `ew-drafting`: Wires that go round a body between two rows of pins (an older two-row card, a box with pins on two sides) are searched one by one and cross each other; lay them side by side in nested tracks, with the placer opening the gap they need. **Page:** known, a page with an older two-row card.
 - FT-1896 `ew-drafting`: After Arrange and route a supply page gains one text on a text and a small zigzag between two pins a step apart; two wires that get their first route add three crossings; a wire goes round a part where the part could stand in line; wires cross texts on a page with an older card. **Page:** seen on single pages, not named.
 - FT-1897 `ew-commands, ew-viewmodel`: An older two-row card is drawn in the new form only by deleting its box and drawing it again from the station view, and terminals that then face the other way are rewired by hand: a command that redraws a card in place and keeps its wiring. **Page:** known, every page with an older two-row card.
