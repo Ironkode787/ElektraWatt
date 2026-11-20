@@ -112,9 +112,7 @@ impl ShellModel {
         }
         out
     }
-}
 
-impl ShellModel {
     /// The PLC tab's Module commands (`plc.module_replace {part}`, `plc.module_remove`, `plc.module_draw {folio}`,
     /// `plc.module_left`, `plc.module_right`): `plc.rack_slot`'s `op` on the module under the cursor.
     pub(crate) fn act_plc_module(&mut self, p: &Map<String, Value>, op: &str) -> Outcome {

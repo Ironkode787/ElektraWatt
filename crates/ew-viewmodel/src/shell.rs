@@ -77,9 +77,11 @@ mod cables;
 // The Preview tab, the renumber dialogs and the purge.
 mod box_pins;
 mod bulk;
+mod delete;
 mod editing;
 mod find;
 mod interruption;
+mod terminals;
 // Joining an existing device from the window.
 mod join;
 pub(crate) use interruption::natural_cmp;
