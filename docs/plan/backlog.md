@@ -80,6 +80,22 @@ answers is deleted with a line in its report.
 - FT-1845 `ew-viewmodel, ew-ui`: A part search for "sensor" finds nothing, "normally open contact" ranks the contactor first, and the first row of a part search is selected before the person chose it, so Enter takes it. Search by what a part is for as well as by its words, and preselect nothing.
 - FT-1846 `ew-viewmodel, ew-api`: Paste and fill-down in the PLC grid's Function text column say "no command yet"; type each cell. Let both act on the wired device's function text, as typing does.
 
+### What the drafting redesign left
+
+Accepted by the owner as built on 2026-11-20 (the sixth candidate); these are what the builder and the reviews of
+its pages left open (ADR-0034, `docs/design/06a-drafting.md`).
+
+- FT-1848 `ew-units, ew-drafting`: A second press of Arrange and route on a page of the QET grid may still route a few wires: a text's box is one tick larger or smaller according to where its symbol stands, so the stored page is not the plan's page. A tolerance in `Grid::tick_span` mends it and moves texts on every page of that grid (reference output, snapshots and tutorials regenerate).
+- FT-1849 `ew-drafting`: Route weighs a kept route per net, not per wire: on a page with an older two-row card its plan is two crossings worse than the page was, because one wire at a supply mark loses the person's route.
+- FT-1850 `ew-viewmodel`: The Arrange and route card, after rows are unticked, still lists a few wire rows that Route would redraw; find whether they belong there (the test's loop bound went from 8 to 64 without the cause).
+- FT-1851 `ew-drafting`: On a page with cards a feed terminal without a channel stays in the middle of its strip and its wires cross the channels; it wants a place at the strip's end.
+- FT-1852 `ew-drafting`: A card does not step aside where another card's used columns interleave with its own; the columns should be chosen by the channels in use. "Draw on a page" still sets a card of inputs under the controller, so supply wires cross its first channels until Arrange and route moves it.
+- FT-1853 `ew-drafting`: Wires that go round a body between two rows of pins (an older two-row card, a box with pins on two sides) are searched one by one and cross each other; lay them side by side in nested tracks, with the placer opening the gap they need. It removes no crossing the strip's order forces.
+- FT-1854 `ew-drafting`: Seen on single pages and not looked into: after Arrange and route a supply page gains one text on a text and a small zigzag between two pins a step apart; two wires that get their first route add three crossings; a wire goes round a part where the part could stand in line; wires across texts on a page with an older card.
+- FT-1855 `ew-commands, ew-viewmodel`: An older two-row card is drawn in the new form only by deleting its box and drawing it again from the station view; terminals that then face the other way are rewired by hand. A command that redraws a card in place and keeps its wiring.
+- FT-1856 `ew-scene, ew-api`: A card drawn in cells with level texts (address and function text per channel), as the pilot's reference set draws it; the pin texts of a drawn box stay turned a quarter until then. The bevel junction's symbol is a quarter step where two wires parting at a pin take half a step: one size.
+- FT-1857 `ew-api`: The acceptance report commits the SVG export's digest, a copy of what the code produces; every change to a drawn line regenerates it by hand (and its shards race when blessed together).
+
 ### The development loop
 
 - FT-1774 `xtask`: The compile cache shared between worktrees. Tried on 2026-11-16: no plain setting does it with sccache 0.19 (`SCCACHE_BASEDIRS` is read for C and C++ only, a remap in the flags enters the cache key, `trim-paths` is unstable). A small rustc wrapper behind sccache that remaps the build folder for crates with an `OUT_DIR` took the misses of a second worktree from 77 to 24 of 266 and about 35 s (16 %) off a lane's first build; it was not installed, because it sits in the machine's cargo settings for every project. Look again when sccache releases Rust base directories and its new proc-macro hashing. Also seen: a worktree inside the main checkout reads both `.cargo/config.toml` files and passes the linker flag twice, so the main checkout and the lanes never share cache entries.
