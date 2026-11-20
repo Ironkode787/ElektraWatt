@@ -1839,7 +1839,8 @@ fn the_undo_step_says_arrange_and_route_when_symbols_moved_and_route_wires_when_
 fn the_canvas_fits_again_after_the_arrange_preview_closes() {
     let tmp = Tmp::new("ar5");
     let mut s = coils_out_of_line(&tmp);
-    let pane = |s: &mut ShellModel, h: f64| done(s, "view.canvas_resize", json!({"width": 1200.0, "height": h}));
+    let pane =
+        |s: &mut ShellModel, h: f64| done(s, "view.canvas_resize", json!({"width": 1200.0, "height": h}));
     pane(&mut s, 900.0);
     done(&mut s, "view.fit_page", json!({}));
     done(&mut s, "layout.arrange", json!({}));

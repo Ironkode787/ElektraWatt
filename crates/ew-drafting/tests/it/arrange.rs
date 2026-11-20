@@ -151,11 +151,21 @@ fn every_fixture_once_arranged_gives_an_empty_plan_the_second_time() {
         // Arrange and route takes every wire of the page: on a page wired by hand it may route the wires anew, and set a
         // mark on the line its rail then takes, only where that is better (`run` checks it); a second run finds nothing.
         let (_, done) = run(&f.hand, &[]);
-        assert!(arrange(&done, Scope::Page, &[]).is_empty(), "{}: a second run", f.name);
+        assert!(
+            arrange(&done, Scope::Page, &[]).is_empty(),
+            "{}: a second run",
+            f.name
+        );
         // And an untidy page, once arranged, gives an empty plan the second time (D§9.3).
         let (_, tidy) = run(&f.untidy(), &[]);
         let again = arrange(&tidy, Scope::Page, &[]);
-        assert!(again.is_empty(), "{}: {:?} {:?}", f.name, again.moves, again.plan.routes.len());
+        assert!(
+            again.is_empty(),
+            "{}: {:?} {:?}",
+            f.name,
+            again.moves,
+            again.plan.routes.len()
+        );
     }
 }
 
