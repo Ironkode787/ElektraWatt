@@ -11,9 +11,9 @@ use crate::common;
 use std::path::Path;
 
 use common::{Tmp, done, user_library};
-use ew_viewmodel::ew_api::library::LibraryTiers;
-use ew_viewmodel::ew_api::output::Uuid;
-use ew_viewmodel::ew_api::{MacroScope, MacroSpec, Recovery, Session, SessionOptions, StoreOptions};
+use ew_api::library::LibraryTiers;
+use ew_api::output::Uuid;
+use ew_api::{MacroScope, MacroSpec, Recovery, Session, SessionOptions, StoreOptions};
 use ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_viewmodel::properties::{CardOrigin, MacroInsert};
 use ew_viewmodel::shell::{Dialog, FormDialog, Mode, Outcome, ShellConfig, ShellModel};
@@ -269,7 +269,7 @@ fn select_with_variable(shell: &mut ShellModel, row: &str, name: &str) {
 }
 
 /// The detail of the macro `name` of the Macros navigator.
-fn detail(shell: &mut ShellModel, name: &str) -> ew_viewmodel::ew_api::output::MacroDetail {
+fn detail(shell: &mut ShellModel, name: &str) -> ew_api::output::MacroDetail {
     done(shell, "navigator.show", json!({"kind": "macros"}));
     let key = {
         let t = shell.nav(NavKind::Macros).and_then(|n| n.table()).unwrap();

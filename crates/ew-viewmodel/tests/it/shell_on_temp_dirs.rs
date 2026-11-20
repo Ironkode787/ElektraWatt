@@ -10,7 +10,7 @@ use ew_viewmodel::key;
 
 use std::path::{Path, PathBuf};
 
-use ew_viewmodel::ew_api::Session;
+use ew_api::Session;
 use ew_viewmodel::shell::{AccessMode, Dialog, Mode, Outcome, Resources, ShellConfig, ShellModel};
 use serde_json::{Value, json};
 
@@ -1635,7 +1635,7 @@ fn the_draft_preview_shows_readable_texts_and_the_current_choices() {
 }
 
 /// The source texts of the shaped runs of a page output, in display-list order (the `text` member of each run).
-fn page_texts(pages: &ew_viewmodel::ew_api::output::ExportPages) -> Vec<String> {
+fn page_texts(pages: &ew_api::output::ExportPages) -> Vec<String> {
     use ew_dl::{Item, ItemKind};
     fn walk(items: &[Item], out: &mut Vec<String>) {
         for item in items {
@@ -1654,12 +1654,12 @@ fn page_texts(pages: &ew_viewmodel::ew_api::output::ExportPages) -> Vec<String> 
 }
 
 /// Folio `folio` of the project in `dir`, rendered through the page output.
-fn render_folio(dir: &Path, folio: &str) -> ew_viewmodel::ew_api::output::ExportPages {
+fn render_folio(dir: &Path, folio: &str) -> ew_api::output::ExportPages {
     let (session, _) = Session::open_read_only(dir, VERSION).expect("the project opens");
     session
-        .export_pages(&ew_viewmodel::ew_api::output::ExportOptions {
-            pages: ew_viewmodel::ew_api::output::PageSelection::Folios(vec![folio.to_owned()]),
-            ..ew_viewmodel::ew_api::output::ExportOptions::default()
+        .export_pages(&ew_api::output::ExportOptions {
+            pages: ew_api::output::PageSelection::Folios(vec![folio.to_owned()]),
+            ..ew_api::output::ExportOptions::default()
         })
         .expect("the folio renders")
 }
@@ -1776,7 +1776,7 @@ fn the_wizard_writes_the_company_the_frame_and_the_formats() {
         .map(|c| c.to_string())
         .chain(('A'..='H').map(String::from))
         .collect();
-    let printed = |p: &ew_viewmodel::ew_api::output::ExportPages| -> std::collections::BTreeSet<String> {
+    let printed = |p: &ew_api::output::ExportPages| -> std::collections::BTreeSet<String> {
         page_texts(p).into_iter().filter(|t| labels.contains(t)).collect()
     };
     assert_eq!(
@@ -1791,7 +1791,7 @@ fn the_wizard_writes_the_company_the_frame_and_the_formats() {
 /// The vector logos of a page output: the groups that an SVG image became, clipped to the image's rectangle,
 /// whose paths are filled; the placeholder logo is one filled rectangle over its whole view box, so its path bounds
 /// equal the clip.
-fn vector_logos(pages: &ew_viewmodel::ew_api::output::ExportPages) -> usize {
+fn vector_logos(pages: &ew_api::output::ExportPages) -> usize {
     use ew_dl::{Item, ItemKind};
     fn walk(items: &[Item], out: &mut usize) {
         for item in items {
@@ -1819,7 +1819,7 @@ fn vector_logos(pages: &ew_viewmodel::ew_api::output::ExportPages) -> usize {
 
 /// The images of a page output, by content hash and format, in display-list order.
 fn page_images(
-    pages: &ew_viewmodel::ew_api::output::ExportPages,
+    pages: &ew_api::output::ExportPages,
 ) -> Vec<([u8; 32], ew_dl::ImageFormat)> {
     use ew_dl::{Item, ItemKind};
     fn walk(items: &[Item], out: &mut Vec<([u8; 32], ew_dl::ImageFormat)>) {
@@ -1910,9 +1910,9 @@ fn the_wizard_writes_the_logo_the_shipped_profile_and_the_report_blocks() {
     );
     let (session, _) = Session::open_read_only(&basic, VERSION).unwrap();
     let held = session
-        .asset(&ew_viewmodel::ew_api::Sha256(sha))
+        .asset(&ew_api::Sha256(sha))
         .expect("the project holds the asset");
-    assert_eq!(held.0.format, ew_viewmodel::ew_api::AssetFormat::Svg);
+    assert_eq!(held.0.format, ew_api::AssetFormat::Svg);
     assert_eq!(&*held.1, LOGO);
     drop(session);
     // The shipped profile reaches the records.

@@ -663,7 +663,7 @@ fn names_of_two_potentials_and_codes_of_two_structure_nodes_open_the_card() {
 /// the session) opens the card (`reason-bulk`).
 #[test]
 fn a_fill_over_more_than_500_rows_opens_the_card() {
-    use ew_viewmodel::ew_api::{AnyCommand, Session, StoreOptions};
+    use ew_api::{AnyCommand, Session, StoreOptions};
     let tmp = Tmp::new("tb5-bulk");
     let (mut session, _) = Session::open_read_only(std::path::Path::new(common::GOLDEN_A), "test").unwrap();
     for _ in 0..501 {

@@ -7,7 +7,7 @@
 //! digest is `bin/elektrawatt`'s `tests/it/print.rs` and `ew-api`'s `export_job.rs`.
 
 use crate::common::{Tmp, done, failed, refused};
-use ew_viewmodel::ew_api::ew_jobs::Gate;
+use ew_api::ew_jobs::Gate;
 use ew_viewmodel::jobs::JobKind;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::shell::print::{PrintEnd, PrintVia};

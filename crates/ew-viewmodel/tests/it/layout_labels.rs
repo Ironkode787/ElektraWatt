@@ -12,7 +12,7 @@ use crate::common;
 use common::{Tmp, at, done, refused};
 use ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
 use ew_units::Rect;
-use ew_viewmodel::ew_api::output::{PanelTables, Uuid};
+use ew_api::output::{PanelTables, Uuid};
 use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
 

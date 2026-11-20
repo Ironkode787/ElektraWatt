@@ -9,7 +9,7 @@
 use crate::common;
 
 use common::{Tmp, at, done, refused};
-use ew_viewmodel::ew_api::output::{PageTables, TableConnection, TableEnd};
+use ew_api::output::{PageTables, TableConnection, TableEnd};
 use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
 

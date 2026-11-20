@@ -6,7 +6,7 @@
 //! paint order, which follow random IDs.
 
 use ew_viewmodel::canvas::{PageLink, sort_links};
-use ew_viewmodel::ew_api::output::LinkTarget;
+use ew_api::output::LinkTarget;
 use ew_dl::Destination;
 use ew_units::{Nm, Pt2, Rect};
 

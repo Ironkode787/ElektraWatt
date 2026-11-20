@@ -9,7 +9,7 @@
 use std::path::Path;
 
 use crate::common::{Tmp, done, failed, refused, state};
-use ew_viewmodel::ew_api::ew_jobs::Gate;
+use ew_api::ew_jobs::Gate;
 use ew_viewmodel::jobs::JobStatus;
 use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;

@@ -10,7 +10,7 @@ use crate::common;
 
 use common::{Tmp, done, form, state};
 use ew_viewmodel::actions::{Menu, MenuEntry, menu_model};
-use ew_viewmodel::ew_api::output::{NavRole, Uuid};
+use ew_api::output::{NavRole, Uuid};
 use ew_viewmodel::navigators::NavKind;
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::json;
@@ -361,8 +361,8 @@ fn report_block_refuses_a_folio_a_page_holds_in_both_languages() {
 }
 
 /// The library tiers of an installation: the content's system libraries, the rest in `root`.
-fn tiers(root: &std::path::Path) -> ew_viewmodel::ew_api::library::LibraryTiers {
-    ew_viewmodel::ew_api::library::LibraryTiers {
+fn tiers(root: &std::path::Path) -> ew_api::library::LibraryTiers {
+    ew_api::library::LibraryTiers {
         system: vec![std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../content/libraries")],
         community: root.join("data").join("packs"),
         company: Vec::new(),

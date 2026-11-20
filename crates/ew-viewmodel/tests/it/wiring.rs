@@ -14,7 +14,7 @@ use ew_viewmodel::key;
 use common::{
     Tmp, actual_size, at, canvas, click_at, cursor, describe_line, done, grid_point, refused, sheet, tables,
 };
-use ew_viewmodel::ew_api::output::{PageTables, TableConnection, TableCp, TableEnd};
+use ew_api::output::{PageTables, TableConnection, TableCp, TableEnd};
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::tools::route_edit::GripMove;
 use ew_viewmodel::tools::{MarkerKind, OverlayItem};
@@ -460,7 +460,7 @@ fn a_contact_between_two_facing_free_cps_proposes_two_connections_and_alt_commit
 /// follows, keeps its vertices translated.
 #[test]
 fn rm1_a_move_re_solves_a_followed_route_that_would_cross_a_symbol_and_keeps_a_clean_one() {
-    use ew_viewmodel::ew_api::routing::measure;
+    use ew_api::routing::measure;
     let tmp = Tmp::new("rm1");
     let mut s = actual_size(&tmp, "103");
     for k in [(55, 20), (65, 20), (60, 29)] {
@@ -866,7 +866,7 @@ fn route_routes_a_selected_wire_again_and_leaves_his_route_alone_otherwise() {
         .find(|c| c.id == wire.id)
         .expect("the wire");
     assert_ne!(now.polyline, wire.polyline, "routed again");
-    let others = |t: &PageTables| -> Vec<(ew_viewmodel::ew_api::output::Uuid, Vec<(i64, i64)>)> {
+    let others = |t: &PageTables| -> Vec<(ew_api::output::Uuid, Vec<(i64, i64)>)> {
         t.connections
             .iter()
             .filter(|c| c.id != wire.id)
@@ -1165,7 +1165,7 @@ fn a_stored_route_and_a_contact_inserted_split_the_wire() {
     // W13's printed number before the insert.
     let number_before = {
         let (golden, _) =
-            ew_viewmodel::ew_api::Session::open_read_only(&tmp.0.join("J-E-2416.ew"), "test").unwrap();
+            ew_api::Session::open_read_only(&tmp.0.join("J-E-2416.ew"), "test").unwrap();
         golden
             .property_sheet(&[w13.id.to_string().parse().unwrap()])
             .header
@@ -1236,7 +1236,7 @@ fn a_stored_route_and_a_contact_inserted_split_the_wire() {
     // next derived number, not `?`: `?` is the text of an unassigned number with online wire numbering off.)
     done(&mut s, "file.save", json!({}));
     let (session, _) =
-        ew_viewmodel::ew_api::Session::open_read_only(&tmp.0.join("J-E-2416.ew"), "test").unwrap();
+        ew_api::Session::open_read_only(&tmp.0.join("J-E-2416.ew"), "test").unwrap();
     let q = session.query();
     let rec = |id: &str| {
         let (_, c) = q
@@ -1696,7 +1696,7 @@ fn a_two_pole_breaker_under_a_narrower_two_pole_switch_gets_both_poles_wired() {
         .find(|c| c.at == first)
         .expect("the breaker's first pole")
         .rep;
-    let up = Some(ew_viewmodel::ew_api::geometry::Dir::Up);
+    let up = Some(ew_api::geometry::Dir::Up);
     let poles: Vec<&TableCp> = t.cps.iter().filter(|c| c.rep == breaker && c.dir == up).collect();
     assert_eq!(poles.len(), 2);
     for pole in poles {

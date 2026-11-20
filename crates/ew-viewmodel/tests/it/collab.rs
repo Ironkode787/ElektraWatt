@@ -13,7 +13,7 @@ use std::process::Command;
 
 use common::{GOLDEN_A, Tmp, copy_dir, done};
 use ew_viewmodel::describe::describe;
-use ew_viewmodel::ew_api::{
+use ew_api::{
     AnyCommand, FormatStep, MigrationError, Migrations, Recovery, Session, SessionOptions, StoreOptions,
 };
 use ew_viewmodel::shell::{AccessMode, Dialog, Mode, Outcome, ShellConfig, ShellModel};
@@ -428,7 +428,7 @@ fn export_and_open_ewz_and_the_upgrade_dialog() {
 #[test]
 fn a_save_in_an_unreleased_format_says_so_every_time() {
     static OLDER: [&str; 1] = ["0.0"];
-    static THIS: [&str; 1] = [ew_viewmodel::ew_api::FORMAT];
+    static THIS: [&str; 1] = [ew_api::FORMAT];
     let s1 = "Saved in a format that is not released yet. Released versions of ElektraWatt open this project read-only.";
     for (released, marked) in [(&OLDER[..], true), (&THIS[..], false)] {
         let tmp = Tmp::new("ft1154");
@@ -457,7 +457,7 @@ fn a_save_in_an_unreleased_format_says_so_every_time() {
 #[test]
 fn every_window_writer_of_an_unreleased_format_says_so() {
     static OLDER: [&str; 1] = ["0.0"];
-    static THIS: [&str; 1] = [ew_viewmodel::ew_api::FORMAT];
+    static THIS: [&str; 1] = [ew_api::FORMAT];
     let s1 = "Saved in a format that is not released yet. Released versions of ElektraWatt open this project read-only.";
     for (released, marked) in [(&OLDER[..], true), (&THIS[..], false)] {
         let tmp = Tmp::new("ft1489");
@@ -496,7 +496,7 @@ fn git_in(dir: &Path, args: &[&str]) -> Option<String> {
     let mut cmd = Command::new("git");
     cmd.arg("-C").arg(dir).args(args);
     // Every repository-selecting variable removed; the global configuration a file beside the repository, no system one.
-    for var in ew_viewmodel::ew_api::git::ISOLATE {
+    for var in ew_api::git::ISOLATE {
         cmd.env_remove(var);
     }
     let out = cmd
@@ -521,8 +521,8 @@ fn the_driver_badge_appears_without_the_configuration_and_goes_after_setup() {
         return;
     }
     // The window's own git reads the process's configuration.
-    let shell_git = ew_viewmodel::ew_api::git::GitExe::default();
-    let scope = ew_viewmodel::ew_api::git::ConfigScope::Repository;
+    let shell_git = ew_api::git::GitExe::default();
+    let scope = ew_api::git::ConfigScope::Repository;
     if !matches!(
         shell_git.config_has(&repo, "merge.elektrawatt.driver", scope),
         Ok(false)
@@ -582,9 +582,9 @@ fn merged_duplicate(dir: &Path) {
     assert_ne!(one, line);
     std::fs::write(&shard, text.replace(line, &one)).unwrap();
     let path = dir.join("manifest.json");
-    let limits = ew_viewmodel::ew_api::Limits::default();
+    let limits = ew_api::Limits::default();
     let mut manifest =
-        ew_viewmodel::ew_api::Manifest::parse(&std::fs::read(&path).unwrap(), &limits).unwrap();
+        ew_api::Manifest::parse(&std::fs::read(&path).unwrap(), &limits).unwrap();
     manifest.merged = true;
     std::fs::write(&path, manifest.to_text()).unwrap();
 }

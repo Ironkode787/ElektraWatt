@@ -15,7 +15,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use common::{GOLDEN_A, Tmp, copy_dir, done, refused};
-use ew_viewmodel::ew_api::{CmdLog, Recovery, Session, SessionOptions, StoreOptions};
+use ew_api::{CmdLog, Recovery, Session, SessionOptions, StoreOptions};
 use ew_viewmodel::shell::{AccessMode, ConfirmAnswer, Dialog, Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::json;
 

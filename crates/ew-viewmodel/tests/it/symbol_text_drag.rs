@@ -10,7 +10,7 @@ use crate::common;
 
 use common::{Tmp, at, done};
 use ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
-use ew_viewmodel::ew_api::output::SlotTextBox;
+use ew_api::output::SlotTextBox;
 use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
 
@@ -121,7 +121,7 @@ fn a_tag_drags_alone_without_its_symbol_selected_and_its_menu_puts_it_back() {
     let mut shell = tmp.shell_in(Mode::Headless, true, "101");
     let page = shell.canvas().unwrap().page().clone();
     // A symbol's tag: the text at its tag's anchor.
-    let is_tag = |r: &ew_viewmodel::ew_api::output::TableRep, t: &SlotTextBox| {
+    let is_tag = |r: &ew_api::output::TableRep, t: &SlotTextBox| {
         t.rep == r.id && r.tag_at.is_some_and(|a| a.0 == t.at.x.0)
     };
     let rep = page

@@ -11,7 +11,7 @@
 use crate::common;
 
 use common::{Tmp, at, done, grid_point, state, tables};
-use ew_viewmodel::ew_api::output::{PageTables, TableConnection, TableCp, TableEnd};
+use ew_api::output::{PageTables, TableConnection, TableCp, TableEnd};
 use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
 

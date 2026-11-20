@@ -13,7 +13,7 @@ use crate::common;
 use common::{
     Tmp, actual_size, at, canvas, cursor, describe_line, done, grid_point, refused, select_ids, sheet, tables,
 };
-use ew_viewmodel::ew_api::output::{PageTables, TableEnd, TableRep};
+use ew_api::output::{PageTables, TableEnd, TableRep};
 use ew_viewmodel::shell::{Outcome, ShellModel};
 use ew_viewmodel::tools::black_box::on_outline;
 use serde_json::{Value, json};
@@ -623,7 +623,7 @@ fn check_widened(s: &ShellModel, before: &TableRep, connected: usize) {
     // (rc.5).
     let (left, right) = (index_of(s, b1.outline[0]).0, index_of(s, b1.outline[1]).0);
     for y in [b1.outline[0].1, b1.outline[2].1] {
-        let xs = |cps: &[(u16, (i64, i64), ew_viewmodel::ew_api::geometry::Dir)]| -> Vec<i64> {
+        let xs = |cps: &[(u16, (i64, i64), ew_api::geometry::Dir)]| -> Vec<i64> {
             let mut v: Vec<(u16, i64)> = cps
                 .iter()
                 .filter(|c| c.1.1 == y)
@@ -821,7 +821,7 @@ fn sheet_mm(s: &ShellModel, p: (i64, i64)) -> Value {
 }
 
 /// The names the page prints for the pins of the box `rep` (the label after its colon), in index order.
-fn pin_names(s: &ShellModel, rep: ew_viewmodel::ew_api::output::Uuid) -> Vec<String> {
+fn pin_names(s: &ShellModel, rep: ew_api::output::Uuid) -> Vec<String> {
     let t = tables(s);
     let mut cps: Vec<_> = t.cps.iter().filter(|c| c.rep == rep).collect();
     cps.sort_by_key(|c| c.idx);
@@ -1108,14 +1108,14 @@ fn a_drawn_box_takes_pins_where_it_stands() {
 }
 
 /// The names the box `rep` stores for its pins, in index order.
-fn stored_names(s: &ShellModel, rep: ew_viewmodel::ew_api::output::Uuid) -> Vec<String> {
+fn stored_names(s: &ShellModel, rep: ew_api::output::Uuid) -> Vec<String> {
     let mut names = g1_box(s, rep).names;
     names.sort();
     names.into_iter().map(|(_, n)| n).collect()
 }
 
 /// The box `rep` of the page shown.
-fn g1_box(s: &ShellModel, rep: ew_viewmodel::ew_api::output::Uuid) -> ew_viewmodel::ew_api::output::TableBox {
+fn g1_box(s: &ShellModel, rep: ew_api::output::Uuid) -> ew_api::output::TableBox {
     tables(s)
         .reps
         .iter()
@@ -1150,7 +1150,7 @@ fn a_pin_dragged_towards_a_corner_stays_on_its_side() {
         grid_point(&s, (k1.0 - 1, k0.1)),
         "on its side, a step from the corner"
     );
-    assert_eq!(to.2, ew_viewmodel::ew_api::geometry::Dir::Up);
+    assert_eq!(to.2, ew_api::geometry::Dir::Up);
     // Onto the point pin 1 holds: it stays.
     let other = moved.cps.iter().find(|c| c.0 == 1).unwrap().1;
     let (sp, sq) = (sheet(&s, to.1), sheet(&s, other));
@@ -1322,7 +1322,7 @@ fn the_tools_read_nothing_while_moving() {
 /// A location node of Golden A, read from its external references (the copy keeps every ID).
 fn external_location() -> String {
     let (session, _) =
-        ew_viewmodel::ew_api::Session::open_read_only(std::path::Path::new(common::GOLDEN_A), "test")
+        ew_api::Session::open_read_only(std::path::Path::new(common::GOLDEN_A), "test")
             .unwrap();
     let q = session.query();
     let id = q

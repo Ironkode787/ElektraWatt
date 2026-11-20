@@ -12,10 +12,9 @@ use std::path::Path;
 
 use crate::common;
 use common::{Tmp, done, failed, refused};
-use ew_viewmodel::ew_api;
-use ew_viewmodel::ew_api::ew_jobs::Gate;
-use ew_viewmodel::ew_api::output::{NavKind, NavRole};
-use ew_viewmodel::ew_api::zip::{Method, ZipLimits, read as unzip, write as zip};
+use ew_api::ew_jobs::Gate;
+use ew_api::output::{NavKind, NavRole};
+use ew_api::zip::{Method, ZipLimits, read as unzip, write as zip};
 use ew_viewmodel::layout::PaneKind;
 use ew_viewmodel::script::card_summary;
 use ew_viewmodel::shell::{Mode, ShellModel};

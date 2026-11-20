@@ -220,7 +220,7 @@ fn the_pane_lists_the_findings_and_enter_opens_ef08() {
 }
 
 fn ef08_title() -> String {
-    ew_viewmodel::ew_api::checks::rule("EW-CORE-033")
+    ew_api::checks::rule("EW-CORE-033")
         .unwrap()
         .meta()
         .title

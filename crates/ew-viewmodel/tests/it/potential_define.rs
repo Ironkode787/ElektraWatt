@@ -13,7 +13,7 @@
 use crate::common;
 
 use common::{Tmp, done, failed};
-use ew_viewmodel::ew_api::output::PageTables;
+use ew_api::output::PageTables;
 use ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
@@ -445,10 +445,10 @@ fn define_potential_from_the_menu_the_context_menu_and_the_palette() {
         .map(|c| c.a)
         .unwrap();
     let from = match from {
-        ew_viewmodel::ew_api::output::TableEnd::Cp { function, idx } => {
+        ew_api::output::TableEnd::Cp { function, idx } => {
             json!({"cp": {"function": function.to_string(), "idx": idx}})
         }
-        ew_viewmodel::ew_api::output::TableEnd::Junction { id } => {
+        ew_api::output::TableEnd::Junction { id } => {
             json!({"junction": {"junction": id.to_string()}})
         }
     };

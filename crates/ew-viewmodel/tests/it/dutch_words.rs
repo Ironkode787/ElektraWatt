@@ -8,7 +8,7 @@ use std::collections::BTreeSet;
 
 use crate::common::{Tmp, done};
 use ew_viewmodel::actions;
-use ew_viewmodel::ew_api::checks::RuleKind;
+use ew_api::checks::RuleKind;
 use ew_viewmodel::navigators::NavKind;
 use ew_viewmodel::navigators::messages::FindingDetail;
 use ew_viewmodel::palette::{FormPlan, PaletteField, form_plan};
@@ -288,7 +288,7 @@ fn the_preview_chip_puts_the_action_mid_sentence_in_dutch() {
 }
 
 /// The navigator `kind`'s table of the window.
-fn table(shell: &ShellModel, kind: NavKind) -> std::sync::Arc<ew_viewmodel::ew_api::output::NavTable> {
+fn table(shell: &ShellModel, kind: NavKind) -> std::sync::Arc<ew_api::output::NavTable> {
     shell
         .nav(kind)
         .and_then(|n| n.table())
@@ -303,7 +303,7 @@ fn table(shell: &ShellModel, kind: NavKind) -> std::sync::Arc<ew_viewmodel::ew_a
 #[test]
 fn every_navigator_column_and_badge_reads_in_both_locales() {
     let (session, _) =
-        ew_viewmodel::ew_api::Session::open_read_only(std::path::Path::new(crate::common::GOLDEN_A), "test")
+        ew_api::Session::open_read_only(std::path::Path::new(crate::common::GOLDEN_A), "test")
             .unwrap();
     let mut wanted = BTreeSet::new();
     let mut wrong = Vec::new();
@@ -395,11 +395,11 @@ fn every_navigator_column_and_badge_reads_in_both_locales() {
 /// finding rows read in Dutch, the messages as the detail renders them, and so does the Properties pane's finding chip.
 #[test]
 fn the_messages_rows_and_the_chip_read_in_dutch() {
-    use ew_viewmodel::ew_api::checks::{CheckMode, messages};
-    use ew_viewmodel::ew_api::output::NavRole;
+    use ew_api::checks::{CheckMode, messages};
+    use ew_api::output::NavRole;
     let tmp = Tmp::new("ft1162");
     let mut shell = tmp.shell("102");
-    let (session, _) = ew_viewmodel::ew_api::Session::open_read_only(&tmp.golden_copy(), "test").unwrap();
+    let (session, _) = ew_api::Session::open_read_only(&tmp.golden_copy(), "test").unwrap();
     let report = session.check(session.online_scheme(), CheckMode::Online);
     done(&mut shell, "view.language", json!({"value": "nl"}));
     done(&mut shell, "messages.show", json!({}));
@@ -412,9 +412,9 @@ fn the_messages_rows_and_the_chip_read_in_dutch() {
         .collect();
     let mut expected_groups = Vec::new();
     for (severity, word) in [
-        (ew_viewmodel::ew_api::checks::Severity::Error, "Fouten"),
-        (ew_viewmodel::ew_api::checks::Severity::Warning, "Waarschuwingen"),
-        (ew_viewmodel::ew_api::checks::Severity::Info, "Info"),
+        (ew_api::checks::Severity::Error, "Fouten"),
+        (ew_api::checks::Severity::Warning, "Waarschuwingen"),
+        (ew_api::checks::Severity::Info, "Info"),
     ] {
         if report.findings.iter().any(|f| f.severity == severity) {
             expected_groups.push(word);
@@ -450,7 +450,7 @@ fn the_messages_rows_and_the_chip_read_in_dutch() {
         };
         let text = messages::render(f, "nl-NL");
         // The subject once: before the message unless the message names it.
-        let leads = ew_viewmodel::ew_api::output::names_subject(&f.subject, &text);
+        let leads = ew_api::output::names_subject(&f.subject, &text);
         let shown = if f.subject.is_empty() || leads {
             text
         } else {
@@ -497,7 +497,7 @@ fn the_messages_rows_and_the_chip_read_in_dutch() {
         .findings
         .iter()
         .find(|f| {
-            f.state == ew_viewmodel::ew_api::checks::FindingState::Open
+            f.state == ew_api::checks::FindingState::Open
                 && !f.targets.is_empty()
                 && messages::render(f, "nl-NL") != f.message
         })
@@ -523,7 +523,7 @@ fn the_messages_rows_and_the_chip_read_in_dutch() {
         .iter()
         .filter(|g| {
             g.rule == f.rule
-                && g.state == ew_viewmodel::ew_api::checks::FindingState::Open
+                && g.state == ew_api::checks::FindingState::Open
                 && g.targets.iter().any(|t| t.id == target)
         })
         .map(|g| messages::render(g, "nl-NL"))
@@ -1084,7 +1084,7 @@ fn every_report_kind_has_its_words_in_both_locales() {
         .collect();
     // What gives a block of a page kind its rows, said when it makes no page yet (persona round 3).
     wanted.extend(
-        ew_viewmodel::ew_api::output::page_report_kinds()
+        ew_api::output::page_report_kinds()
             .iter()
             .map(|k| format!("report-rows-{}", k.replace('_', "-"))),
     );
@@ -1190,7 +1190,7 @@ fn ft1483_kinds_tiers_and_block_kinds_read_in_dutch() {
     let tmp = Tmp::new("ft1483");
     let mut shell = tmp.shell_in(Mode::Headless, true, "102");
     let table = |shell: &ShellModel, kind: NavKind| shell.nav(kind).and_then(|n| n.table()).cloned().unwrap();
-    let col = |t: &ew_viewmodel::ew_api::output::NavTable, key: &str| {
+    let col = |t: &ew_api::output::NavTable, key: &str| {
         t.columns.iter().position(|c| c.key == key).expect("the column")
     };
     let mut seen = Vec::new();

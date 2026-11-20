@@ -11,8 +11,8 @@ use crate::common;
 use std::path::{Path, PathBuf};
 
 use common::{Tmp, done, refused};
-use ew_viewmodel::ew_api::Session;
-use ew_viewmodel::ew_api::import::read_parts_tables;
+use ew_api::Session;
+use ew_api::import::read_parts_tables;
 use ew_viewmodel::shell::{Mode, Outcome, Prompt, ShellConfig, ShellModel};
 use ew_viewmodel::tools::PickerRow;
 use serde_json::{Value, json};

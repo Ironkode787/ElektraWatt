@@ -11,7 +11,7 @@ use common::{
     Tmp, actual_size, assert_failed, assert_moves_read_nothing, at, canvas, click_at, cursor, describe_line,
     done, grid_point, refused, select_ids, sheet, tables,
 };
-use ew_viewmodel::ew_api::output::TableItem;
+use ew_api::output::TableItem;
 use ew_dl::EntityRef;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::tools::graphic::round_distance;

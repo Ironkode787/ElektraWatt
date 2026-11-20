@@ -14,7 +14,7 @@ use ew_viewmodel::key;
 use std::path::Path;
 
 use common::{Tmp, done, refused, row_key, user_library};
-use ew_viewmodel::ew_api::library::{LibraryTiers, Registry};
+use ew_api::library::{LibraryTiers, Registry};
 use ew_viewmodel::layout::PaneKind;
 use ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_viewmodel::properties::CardOrigin;
@@ -682,7 +682,7 @@ fn update_previews_keys_then_marked_then_cursor_then_all() {
 }
 
 /// The detail of the Macros navigator's row `name`.
-fn detail_of(shell: &mut ShellModel, name: &str) -> ew_viewmodel::ew_api::output::MacroDetail {
+fn detail_of(shell: &mut ShellModel, name: &str) -> ew_api::output::MacroDetail {
     done(shell, "navigator.show", json!({"kind": "macros"}));
     let key = row_key(shell, NavKind::Macros, NavRole::Macro, name);
     done(shell, "navigator.row", json!({"kind": "macros", "key": key}));

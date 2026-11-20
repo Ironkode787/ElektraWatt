@@ -11,7 +11,7 @@
 use crate::common;
 
 use common::{Tmp, at, done, state};
-use ew_viewmodel::ew_api::output::Uuid;
+use ew_api::output::Uuid;
 use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
 

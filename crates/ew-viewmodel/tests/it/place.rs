@@ -10,7 +10,7 @@ use crate::common;
 use ew_viewmodel::key;
 
 use common::{Tmp, at, click, done, grid_point, refused, sheet, state, tables};
-use ew_viewmodel::ew_api::output::TableRep;
+use ew_api::output::TableRep;
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use ew_viewmodel::tools::OverlayItem;
 use serde_json::{Value, json};

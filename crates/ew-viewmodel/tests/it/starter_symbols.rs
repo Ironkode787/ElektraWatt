@@ -11,10 +11,10 @@ use crate::common;
 use std::collections::BTreeSet;
 
 use common::{Tmp, at, click, done};
-use ew_viewmodel::ew_api::Session;
-use ew_viewmodel::ew_api::checks;
-use ew_viewmodel::ew_api::library::starter::{self, StarterKind};
-use ew_viewmodel::ew_api::output::{TableRep, Uuid};
+use ew_api::Session;
+use ew_api::checks;
+use ew_api::library::starter::{self, StarterKind};
+use ew_api::output::{TableRep, Uuid};
 use ew_viewmodel::properties::{RowValue, find_row};
 use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
 use ew_viewmodel::tools::PickerRow;
@@ -530,7 +530,7 @@ fn the_aids_are_no_device_symbols() {
 /// a chooser; and what the program draws itself (a junction's dot, a cable's marker) is no row.
 #[test]
 fn every_row_of_the_insert_symbol_list_arms_a_tool_or_says_why_not() {
-    use ew_viewmodel::ew_api::output::PlacedBy;
+    use ew_api::output::PlacedBy;
     let tmp = Tmp::new("starter-rows");
     let mut s = new_project(&tmp);
     for ty in [MULTI, FLUID, OVERVIEW, BUS] {

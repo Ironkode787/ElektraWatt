@@ -18,7 +18,7 @@ use std::path::Path;
 use crate::common::{GOLDEN_A, Tmp, copy_dir};
 use ew_viewmodel::alias;
 use ew_viewmodel::canvas::{HOVER_SLOP_PT, pick};
-use ew_viewmodel::ew_api::{EntropyError, IdSource, Session, UnixTime};
+use ew_api::{EntropyError, IdSource, Session, UnixTime};
 use ew_viewmodel::script::{self, NoExtension};
 use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
 use serde_json::{Value, json};

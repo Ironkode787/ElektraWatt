@@ -87,14 +87,14 @@ fn a_wire_is_selected_by_its_printed_point_or_by_its_ends() {
     let t = tables(&s);
     let ends_of = |id| {
         let c = t.connections.iter().find(|c| c.id == id).expect("a wire");
-        let label = |e: &ew_viewmodel::ew_api::output::TableEnd| match e {
-            ew_viewmodel::ew_api::output::TableEnd::Cp { function, idx } => t
+        let label = |e: &ew_api::output::TableEnd| match e {
+            ew_api::output::TableEnd::Cp { function, idx } => t
                 .cps
                 .iter()
                 .find(|x| x.function == *function && x.idx == *idx)
                 .map(|x| format!("\"{}\"", x.label))
                 .unwrap(),
-            ew_viewmodel::ew_api::output::TableEnd::Junction { .. } => "junction".to_owned(),
+            ew_api::output::TableEnd::Junction { .. } => "junction".to_owned(),
         };
         (label(&c.a), label(&c.b))
     };

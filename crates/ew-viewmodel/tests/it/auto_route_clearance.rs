@@ -12,7 +12,7 @@
 use crate::common;
 
 use common::{Tmp, at, done, tables};
-use ew_viewmodel::ew_api::output::{TableConnection, TableCp, TableRep};
+use ew_api::output::{TableConnection, TableCp, TableRep};
 use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
 use serde_json::json;
 
@@ -113,7 +113,7 @@ fn page(tmp: &Tmp) -> Page {
     let breaker = new_rep(&s, &before);
     let mut bottom: Vec<TableCp> = cps_of(&s, &breaker)
         .into_iter()
-        .filter(|c| c.dir == Some(ew_viewmodel::ew_api::geometry::Dir::Down))
+        .filter(|c| c.dir == Some(ew_api::geometry::Dir::Down))
         .collect();
     bottom.sort_by_key(|c| c.at.0);
     let bottom: [TableCp; 2] = bottom.try_into().expect("two bottom pins");
@@ -190,7 +190,7 @@ fn crosses(s: [(i64, i64); 2], r: [i64; 4]) -> bool {
 
 /// Every rectangle the scene draws for a representation (its symbol and its texts) and a black box's outline, page
 /// nm, with the representation.
-fn rep_boxes(s: &ShellModel) -> Vec<(ew_viewmodel::ew_api::output::Uuid, [i64; 4])> {
+fn rep_boxes(s: &ShellModel) -> Vec<(ew_api::output::Uuid, [i64; 4])> {
     let page = s.canvas().unwrap().page();
     let mut out = Vec::new();
     for (e, r) in &page.entities {
@@ -498,7 +498,7 @@ fn a_click_inside_a_symbol_places_no_bend() {
 /// The owner's case (rc.3): a two-pole breaker over another, two grid steps between the upper's bottom pins and the
 /// lower's top pins, in a new project; the upper's bottom pins and the lower's top pins, each left to right.
 fn breakers_over_one_another(tmp: &Tmp) -> (ShellModel, Vec<TableCp>, Vec<TableCp>) {
-    use ew_viewmodel::ew_api::geometry::Dir;
+    use ew_api::geometry::Dir;
     let mut s = new_project(tmp);
     let place = |s: &mut ShellModel, k: (i64, i64)| {
         let before = tables(s).reps.clone();
@@ -533,9 +533,9 @@ fn breakers_over_one_another(tmp: &Tmp) -> (ShellModel, Vec<TableCp>, Vec<TableC
 /// between the two, no corner of one on a corner or an end of the other (it reads as a joint), and neither a detour
 /// (more than 8/5 of the way between its pins).
 #[track_caller]
-fn crossed_once(s: &ShellModel, wires: [ew_viewmodel::ew_api::output::Uuid; 2]) {
+fn crossed_once(s: &ShellModel, wires: [ew_api::output::Uuid; 2]) {
     let page = s.canvas().unwrap().page();
-    let m = ew_viewmodel::ew_api::routing::measure(&page.draft);
+    let m = ew_api::routing::measure(&page.draft);
     assert_eq!(m.faults, 0, "{:?}", m.findings);
     let crossings: Vec<_> = m
         .findings
@@ -616,7 +616,7 @@ fn two_breakers_wired_cross_over_keep_the_hard_rules_drawn_and_rerouted() {
     let tmp = Tmp::new("rc3-cross-over");
     let (mut s, bottom, top) = breakers_over_one_another(&tmp);
     let clean = |s: &ShellModel| {
-        let m = ew_viewmodel::ew_api::routing::measure(&s.canvas().unwrap().page().draft);
+        let m = ew_api::routing::measure(&s.canvas().unwrap().page().draft);
         let f = &m.findings;
         assert!(
             f.through_points.is_empty() && f.on_wires.is_empty() && f.through_parts.is_empty(),
@@ -655,7 +655,7 @@ fn two_breakers_wired_cross_over_keep_the_hard_rules_drawn_and_rerouted() {
     );
     let rev = s.revision();
     let bends = |s: &ShellModel| {
-        ew_viewmodel::ew_api::routing::measure(&s.canvas().unwrap().page().draft)
+        ew_api::routing::measure(&s.canvas().unwrap().page().draft)
             .counts
             .bends
     };

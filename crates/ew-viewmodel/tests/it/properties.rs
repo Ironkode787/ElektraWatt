@@ -783,7 +783,7 @@ fn a_new_project_sets_its_size_profile_from_the_grid() {
 /// PG7's bulk rule through the shell: an edit of 501 targets opens the card (`reason-bulk`).
 #[test]
 fn an_edit_of_501_targets_opens_the_card() {
-    use ew_viewmodel::ew_api::{AnyCommand, Session, StoreOptions};
+    use ew_api::{AnyCommand, Session, StoreOptions};
     let tmp = Tmp::new("props-501");
     // A copy of Golden A with 501 devices more, made through the session (no hand-edited file).
     let (mut session, _) = Session::open_read_only(std::path::Path::new(common::GOLDEN_A), "test").unwrap();

@@ -5,7 +5,7 @@
 //! screen, saved with the part, and drawn that way when the part is placed.
 
 use crate::common::{Tmp, actual_size, cursor, done, failed, grid_point, new_project, tables};
-use ew_viewmodel::ew_api::geometry::Dir;
+use ew_api::geometry::Dir;
 use ew_viewmodel::shell::symbol_editor::{DeviceBox, side_word};
 use ew_viewmodel::shell::{Outcome, ShellModel};
 use serde_json::json;
@@ -334,9 +334,9 @@ fn a_box_lands_on_the_grid_of_the_page_it_is_drawn_on() {
         let t = tables(&s);
         assert_eq!(t.grid, grid);
         let b = t.reps.iter().find_map(|r| r.black_box.clone()).expect("the box");
-        let g = ew_viewmodel::ew_api::symbols::units::Grid::new(grid.0 as u64, grid.1 as u64).unwrap();
+        let g = ew_api::symbols::units::Grid::new(grid.0 as u64, grid.1 as u64).unwrap();
         let on_grid = |v: i64| {
-            g.snap_point(ew_viewmodel::ew_api::symbols::units::Nm(v))
+            g.snap_point(ew_api::symbols::units::Nm(v))
                 .map(|n| n.0)
                 == Some(v)
         };

@@ -8,7 +8,7 @@
 use crate::common;
 
 use common::{Tmp, at, done, tables};
-use ew_viewmodel::ew_api::output::TableRep;
+use ew_api::output::TableRep;
 use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
 use serde_json::json;
 
@@ -84,12 +84,12 @@ fn flow_controls_set_side_by_side_are_not_joined_and_one_facing_a_cylinder_is() 
     let t = tables(&s);
     let joined = t.connections.iter().any(|c| {
         let ends = [&c.a, &c.b].map(|e| match e {
-            ew_viewmodel::ew_api::output::TableEnd::Cp { function, idx } => t
+            ew_api::output::TableEnd::Cp { function, idx } => t
                 .cps
                 .iter()
                 .find(|p| p.function == *function && p.idx == *idx)
                 .map(|p| p.rep),
-            ew_viewmodel::ew_api::output::TableEnd::Junction { .. } => None,
+            ew_api::output::TableEnd::Junction { .. } => None,
         });
         ends.contains(&Some(cylinder.id)) && ends.contains(&Some(fitting.id))
     });

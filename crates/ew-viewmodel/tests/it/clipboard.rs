@@ -12,8 +12,8 @@ use ew_viewmodel::key;
 
 use common::{Tmp, at, done, refused, state};
 use ew_viewmodel::actions::{MenuEntry, find, menu_model, parse_signature};
-use ew_viewmodel::ew_api::window::parse_fragment;
-use ew_viewmodel::ew_api::{AnyCommand, CmdError, Origin, Session, Submit};
+use ew_api::window::parse_fragment;
+use ew_api::{AnyCommand, CmdError, Origin, Session, Submit};
 use ew_viewmodel::properties::{RowValue, find_row};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
@@ -40,7 +40,7 @@ fn the_dropped_count_survives_a_paste_of_the_same_text() {
     let wire = tables
         .connections
         .iter()
-        .find(|c| matches!(c.a, ew_viewmodel::ew_api::output::TableEnd::Cp { function, idx: 1 } if function == f1))
+        .find(|c| matches!(c.a, ew_api::output::TableEnd::Cp { function, idx: 1 } if function == f1))
         .expect("-102F1:2's wire")
         .id
         .to_string();
@@ -411,7 +411,7 @@ fn handle_fitted(shell: &mut ShellModel, g: (i64, i64)) {
     // A wire from one of its free pins to a free pin of another symbol.
     done(shell, "select.set", json!({ "ids": [] }));
     let t = tables(shell);
-    let free = |rep: ew_viewmodel::ew_api::output::Uuid, same: bool| {
+    let free = |rep: ew_api::output::Uuid, same: bool| {
         t.cps
             .iter()
             .find(|c| (c.rep == rep) == same && c.connections.is_empty())
@@ -937,9 +937,9 @@ fn assert_incomplete_cut_unchanged(shell: &mut ShellModel, ids: &[String]) {
 }
 
 fn cut_marker_fixture(shell: &mut ShellModel, partial: bool) -> (String, Vec<String>) {
-    use ew_viewmodel::ew_api::output::TableEnd;
+    use ew_api::output::TableEnd;
     let t = shell.canvas().unwrap().page().tables.clone();
-    let funcs = |c: &ew_viewmodel::ew_api::output::TableConnection| match (&c.a, &c.b) {
+    let funcs = |c: &ew_api::output::TableConnection| match (&c.a, &c.b) {
         (TableEnd::Cp { function: a, .. }, TableEnd::Cp { function: b, .. }) => Some([*a, *b]),
         _ => None,
     };
@@ -1043,7 +1043,7 @@ fn cut_partially_copied_marker_is_refused_without_changes() {
         .collect();
     done(&mut s, "select.set", json!({"ids":all}));
     done(&mut s, "edit.copy", json!({}));
-    let fragment = ew_viewmodel::ew_api::window::parse_fragment(s.clipboard().text().unwrap()).unwrap();
+    let fragment = ew_api::window::parse_fragment(s.clipboard().text().unwrap()).unwrap();
     let records = fragment.params["records"].as_array().unwrap();
     assert_eq!(
         records
@@ -1062,7 +1062,7 @@ fn cut_partially_copied_marker_is_refused_without_changes() {
 #[test]
 fn cut_unknown_page_item_alone_and_with_text_is_refused_without_changes() {
     // Load a forward-compatible variant through Session::from_records, then persist it in a temporary fixture.
-    use ew_viewmodel::ew_api::{Session, SessionOptions, StoreOptions};
+    use ew_api::{Session, SessionOptions, StoreOptions};
     let tmp = Tmp::new("cut-unknown");
     let mut s = tmp.shell_in(Mode::Gui, true, "101");
     let page = s.canvas().unwrap().page().tables.page.to_string();
@@ -1161,7 +1161,7 @@ fn complete_page_item_cut_still_undoes_and_redoes_once() {
     assert_eq!(s.revision(), rev.map(|r| r + 1));
     assert_eq!(s.recorded_commands().len(), recorded + 1);
     let clipped = s.clipboard().text().unwrap().to_owned();
-    let records = ew_viewmodel::ew_api::window::parse_fragment(&clipped)
+    let records = ew_api::window::parse_fragment(&clipped)
         .unwrap()
         .params["records"]
         .clone();

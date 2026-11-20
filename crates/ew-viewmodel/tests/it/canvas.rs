@@ -681,10 +681,10 @@ fn the_canvas_prints_every_text_where_the_export_does() {
     let tmp = Tmp::new("canvas-texts");
     let mut shell = tmp.shell_in(ew_viewmodel::shell::Mode::Headless, true, "101");
     let canvas = |s: &ShellModel| text_places(&s.canvas().unwrap().page().list.items);
-    let (fresh, _) = ew_viewmodel::ew_api::Session::open_read_only(&tmp.golden_copy(), "test").unwrap();
+    let (fresh, _) = ew_api::Session::open_read_only(&tmp.golden_copy(), "test").unwrap();
     let opened = fresh
-        .export_pages(&ew_viewmodel::ew_api::output::ExportOptions {
-            pages: ew_viewmodel::ew_api::output::PageSelection::Folios(vec!["101".to_owned()]),
+        .export_pages(&ew_api::output::ExportOptions {
+            pages: ew_api::output::PageSelection::Folios(vec!["101".to_owned()]),
             ..Default::default()
         })
         .unwrap();

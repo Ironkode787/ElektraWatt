@@ -8,7 +8,7 @@ use crate::common;
 
 use common::{Tmp, at, describe_line, done, failed, refused};
 use ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
-use ew_viewmodel::ew_api::output::TableRep;
+use ew_api::output::TableRep;
 use ew_viewmodel::properties::{
     PropertySheet, RowGroup, RowValue, chip_text, find_row, groups, visible_rows, what_words,
 };
@@ -269,7 +269,7 @@ fn an_air_supplys_menu_offers_its_medium_and_no_potential() {
 /// whatever its category.
 #[test]
 fn a_symbol_drawn_as_pneumatic_gives_a_pneumatic_device() {
-    use ew_viewmodel::ew_api::symbols::schema::Discipline;
+    use ew_api::symbols::schema::Discipline;
     use ew_viewmodel::shell::symbol_editor::function_kinds;
     let tmp = Tmp::new("props-kind-symbol");
     let mut s = tmp.empty_shell(Mode::Headless);

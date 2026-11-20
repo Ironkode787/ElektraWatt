@@ -14,7 +14,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::common::{Tmp, at, click, done, entity_points, state};
-use ew_viewmodel::ew_api::AnyCommand;
+use ew_api::AnyCommand;
 use ew_units::Rect;
 use ew_dl::{Destination, EntityRef};
 use ew_viewmodel::key;

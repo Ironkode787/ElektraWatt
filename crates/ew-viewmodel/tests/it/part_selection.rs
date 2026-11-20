@@ -670,8 +670,8 @@ fn the_parts_row_menu_opens_the_dialog_and_the_editor() {
             assert!(
                 matches!(
                     c.target,
-                    ew_viewmodel::ew_api::PartTarget::Devices {
-                        mode: ew_viewmodel::ew_api::AssignMode::Append,
+                    ew_api::PartTarget::Devices {
+                        mode: ew_api::AssignMode::Append,
                         ..
                     }
                 ),

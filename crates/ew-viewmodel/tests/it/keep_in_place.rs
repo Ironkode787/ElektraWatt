@@ -14,7 +14,7 @@ use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::json;
 
 /// Whether each of `reps` is kept in place, as the page tables say.
-fn kept(shell: &ShellModel, reps: &[ew_viewmodel::ew_api::output::Uuid]) -> Vec<bool> {
+fn kept(shell: &ShellModel, reps: &[ew_api::output::Uuid]) -> Vec<bool> {
     let page = shell.canvas().unwrap().page();
     reps.iter()
         .map(|id| page.tables.reps.iter().find(|r| r.id == *id).unwrap().locked)

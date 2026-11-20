@@ -556,7 +556,7 @@ fn record_as_own(tmp: &Tmp, dir: &Path) {
 
 /// [`record_as_own`] for the state directory `state`.
 fn write_own_record(dir: &Path, state: &Path) {
-    use ew_viewmodel::ew_api::{Recovery, Session, SessionOptions, StoreOptions, archive};
+    use ew_api::{Recovery, Session, SessionOptions, StoreOptions, archive};
     let mut options = StoreOptions::new("revision-test");
     options.state_dir = Some(state.to_path_buf());
     let (session, _) = Session::open(dir, options, SessionOptions::default(), Recovery::Keep).expect("opens");
@@ -882,7 +882,7 @@ fn the_revision_dialogs_list_the_findings_in_dutch() {
 fn ruling4_a_scripted_purge_is_refused() {
     let tmp = Tmp::new("revision-purge");
     let dir = tmp.0.join("small.ew");
-    let logo = |bytes: &[u8]| json!({"cmd": "project.company.set", "params": {"logo": ew_viewmodel::ew_api::base64_encode(bytes)}});
+    let logo = |bytes: &[u8]| json!({"cmd": "project.company.set", "params": {"logo": ew_api::base64_encode(bytes)}});
     {
         let mut s = ShellModel::new(Mode::Gui, config(&tmp));
         done(

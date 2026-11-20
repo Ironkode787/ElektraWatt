@@ -9,7 +9,7 @@
 use crate::common;
 
 use common::{Tmp, at, done};
-use ew_viewmodel::ew_api::output::TableCp;
+use ew_api::output::TableCp;
 use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::{Value, json};
 

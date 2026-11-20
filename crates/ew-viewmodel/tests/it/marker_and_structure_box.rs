@@ -15,7 +15,7 @@ use common::{
     refused, sheet, tables,
 };
 use ew_viewmodel::actions::{ActionItem, Menu, Submenu, menu_model};
-use ew_viewmodel::ew_api::output::{PageTables, TableConnection, TableEnd};
+use ew_api::output::{PageTables, TableConnection, TableEnd};
 use ew_viewmodel::shell::{Outcome, ShellModel};
 use ew_viewmodel::tools::{FineKind, crossed_connections};
 use serde_json::{Value, json};
@@ -175,7 +175,7 @@ fn empty_marker_line(s: &ShellModel) -> ((i64, i64), (i64, i64)) {
 
 /// The UUID text of the structure node `J-E-206` of Golden A.
 fn location_node_uuid() -> String {
-    let (session, _) = ew_viewmodel::ew_api::Session::open_read_only(Path::new(GOLDEN_A), "test")
+    let (session, _) = ew_api::Session::open_read_only(Path::new(GOLDEN_A), "test")
         .expect("Golden A opens read-only");
     let q = session.query();
     q.structure_nodes()

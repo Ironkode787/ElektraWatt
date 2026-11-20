@@ -82,7 +82,7 @@ fn published_symbol_is_available_in_insert_and_scratch_retains_its_own_identity(
     done(&mut shell, "file.save", json!({}));
     let path = tmp.0.join("project");
     shell.shutdown();
-    let (session, _) = ew_viewmodel::ew_api::Session::open_read_only(&path, "ElektraWatt test").unwrap();
+    let (session, _) = ew_api::Session::open_read_only(&path, "ElektraWatt test").unwrap();
     let q = session.query();
     let scratch = q
         .symbols()
@@ -99,7 +99,7 @@ fn published_symbol_is_available_in_insert_and_scratch_retains_its_own_identity(
         .clone();
     assert_eq!(
         scratch.library_id.as_uuid(),
-        ew_viewmodel::ew_api::symbols::DRAFT_LIBRARY
+        ew_api::symbols::DRAFT_LIBRARY
     );
     assert!(q.symbols().iter().any(|(_, s)| {
         s.item
@@ -248,7 +248,7 @@ fn authored_qet_symbol_without_key_suffix_keeps_grid_and_shape_after_insertion()
     done(&mut shell, "file.save", json!({}));
     shell.shutdown();
     let (session, _) =
-        ew_viewmodel::ew_api::Session::open_read_only(&tmp.0.join("project"), "ElektraWatt test").unwrap();
+        ew_api::Session::open_read_only(&tmp.0.join("project"), "ElektraWatt test").unwrap();
     assert!(
         session
             .place_catalogue("2")
@@ -310,7 +310,7 @@ fn standalone_library_chooser_and_fork_keep_the_source_independent() {
 
 #[test]
 fn project_and_library_sources_with_the_same_key_fork_the_selected_copy() {
-    use ew_viewmodel::ew_api::symbols;
+    use ew_api::symbols;
     let tmp = Tmp::new("symbol-source-identity");
     let mut shell = tmp.empty_shell(Mode::Headless);
     done(
@@ -550,7 +550,7 @@ fn editor_power_block_history_export_save_and_place_in_both_frontends() {
         done(&mut shell, "symbol.new", json!({}));
         let draft = shell.symbol_editor().unwrap().draft.clone();
         let mut qet = serde_json::to_value(&draft).unwrap();
-        let grid = ew_viewmodel::ew_api::symbols::units::Grid::QET_10PX;
+        let grid = ew_api::symbols::units::Grid::QET_10PX;
         qet["symbol"]["grid"] = serde_json::to_value(grid).unwrap();
         for (i, pin) in qet["symbol"]["cps"]
             .as_array_mut()
@@ -836,7 +836,7 @@ fn saving_without_configured_tiers_keeps_the_index_in_the_settings_folder() {
     // A library of the user tier opens from it: it is not remembered as a company library.
     let data = tmp.0.join("data");
     let tiers =
-        ew_viewmodel::ew_api::library::LibraryTiers::under(&data, &tmp.0.join("cache"), vec![], vec![]);
+        ew_api::library::LibraryTiers::under(&data, &tmp.0.join("cache"), vec![], vec![]);
     let user = tmp.0.join("user-config");
     let mut shell = ShellModel::new(
         Mode::Headless,
@@ -1060,7 +1060,7 @@ fn a_test_copy_placed_again_after_reopening_the_project_takes_its_own_key() {
     done(&mut shell, "symbol.scratch", json!({}));
     done(&mut shell, "file.save", json!({}));
     shell.shutdown();
-    let (session, _) = ew_viewmodel::ew_api::Session::open_read_only(&dir, "ElektraWatt test").unwrap();
+    let (session, _) = ew_api::Session::open_read_only(&dir, "ElektraWatt test").unwrap();
     let keys: std::collections::BTreeSet<String> = session
         .query()
         .symbols()
@@ -1194,7 +1194,7 @@ fn saving_a_published_draft_under_another_key_adds_a_symbol_and_says_so() {
 /// takes (a file the JSON reader would refuse otherwise), `.pxf` among them.
 #[test]
 fn the_symbol_file_picker_offers_every_extension_an_importer_reads() {
-    use ew_viewmodel::ew_api::symbols;
+    use ew_api::symbols;
     use ew_viewmodel::shell::symbol_editor::FILE_EXTENSIONS;
     let tmp = Tmp::new("symbol-extensions");
     let refusal = |ext: &str| {
@@ -1275,11 +1275,11 @@ fn a_symbol_on_another_grid_is_placed_on_the_page_in_front_on_its_grid() {
     done(&mut shell, "ui.dismiss", json!({}));
     let tables = std::sync::Arc::clone(&shell.canvas().unwrap().page().tables);
     assert_eq!(tables.grid, (7_937_500, 3), "on the page in front");
-    let grid = ew_viewmodel::ew_api::symbols::units::Grid::QET_10PX;
+    let grid = ew_api::symbols::units::Grid::QET_10PX;
     // A point of the QET grid is a third of a nanometre off a whole one: a placed point is the sum of two of them, as
     // with the starter library's QET edition, so within a nanometre of the grid (8 mm is no point of it).
     let on_grid = |v: i64| {
-        let n = ew_viewmodel::ew_api::symbols::units::Nm(v);
+        let n = ew_api::symbols::units::Nm(v);
         grid.at(grid.snap(n)).is_some_and(|g| (g.0 - v).abs() <= 1)
     };
     assert_eq!(tables.cps.len(), 2, "the symbol is placed with its two points");
@@ -1497,7 +1497,7 @@ fn the_editors_offer_places_the_published_symbol_only_while_the_draft_is_as_save
     done(&mut shell, "file.save", json!({}));
     shell.shutdown();
     // The project embeds the published symbol under its own key, no test copy.
-    let (session, _) = ew_viewmodel::ew_api::Session::open_read_only(&dir, "ElektraWatt test").unwrap();
+    let (session, _) = ew_api::Session::open_read_only(&dir, "ElektraWatt test").unwrap();
     let q = session.query();
     let keys: Vec<String> = q
         .symbols()
@@ -1655,7 +1655,7 @@ fn saving_a_copy_under_its_own_key_announces_no_new_symbol() {
 /// amendment 4); a save whose owned function definition differs at its version takes the next patch version.
 #[test]
 fn the_test_copys_ids_join_their_parts_with_the_unit_separator() {
-    use ew_viewmodel::ew_api::{output::Uuid, symbols};
+    use ew_api::{output::Uuid, symbols};
     let tmp = Tmp::new("symbol-v5");
     let dir = tmp.0.join("project.ew");
     let mut shell = tmp.empty_shell(Mode::Headless);
@@ -1671,7 +1671,7 @@ fn the_test_copys_ids_join_their_parts_with_the_unit_separator() {
     done(&mut shell, "symbol.scratch", json!({}));
     done(&mut shell, "file.save", json!({}));
     shell.shutdown();
-    let (session, _) = ew_viewmodel::ew_api::Session::open_read_only(&dir, "ElektraWatt test").unwrap();
+    let (session, _) = ew_api::Session::open_read_only(&dir, "ElektraWatt test").unwrap();
     let q = session.query();
     let (_, copy) = q
         .symbols()
@@ -1764,7 +1764,7 @@ fn the_titles_name_the_symbol_in_the_windows_language() {
     assert_eq!(title, "Symbool Voedingsblok opslaan?");
     done(&mut shell, "file.save", json!({}));
     shell.shutdown();
-    let (session, _) = ew_viewmodel::ew_api::Session::open_read_only(&dir, "ElektraWatt test").unwrap();
+    let (session, _) = ew_api::Session::open_read_only(&dir, "ElektraWatt test").unwrap();
     let titles: Vec<String> = session
         .query()
         .pages()
@@ -1861,7 +1861,7 @@ fn the_same_content_placed_twice_reuses_one_copy() {
     done(&mut shell, "symbol.place", json!({"x":80,"y":80}));
     done(&mut shell, "file.save", json!({}));
     shell.shutdown();
-    let (session, _) = ew_viewmodel::ew_api::Session::open_read_only(&dir, "ElektraWatt test").unwrap();
+    let (session, _) = ew_api::Session::open_read_only(&dir, "ElektraWatt test").unwrap();
     let q = session.query();
     let copies: Vec<_> = q
         .symbols()

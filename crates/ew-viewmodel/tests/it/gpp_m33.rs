@@ -9,7 +9,7 @@ use crate::common;
 use ew_viewmodel::key;
 
 use common::{GOLDEN_A, Tmp, done, new_project, state, toast};
-use ew_viewmodel::ew_api::{Session, checks};
+use ew_api::{Session, checks};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::json;
 

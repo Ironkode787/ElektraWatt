@@ -4,7 +4,7 @@
 //! NFR-COMP-04: the engineering-verification disclaimer in one wording. The About dialog's
 //! sentence (`about-disclaimer`) is the check report's `DISCLAIMER`.
 
-use ew_viewmodel::ew_api::checks;
+use ew_api::checks;
 use ew_viewmodel::key;
 use ew_viewmodel::strings;
 

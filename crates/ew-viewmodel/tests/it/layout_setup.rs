@@ -12,8 +12,8 @@ use ew_viewmodel::key;
 
 use common::{Tmp, at, done, refused, state};
 use ew_viewmodel::command_bar::{Tab, command_bar_of};
-use ew_viewmodel::ew_api::library::{LibManifest, LibraryTiers, STARTER_PARTS_KEY, starter_parts_library};
-use ew_viewmodel::ew_api::output::{PanelCarrier, PanelTables, Uuid};
+use ew_api::library::{LibManifest, LibraryTiers, STARTER_PARTS_KEY, starter_parts_library};
+use ew_api::output::{PanelCarrier, PanelTables, Uuid};
 use ew_viewmodel::navigators::NavKind;
 use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::json;
@@ -446,20 +446,20 @@ fn a_new_projects_panel_page_takes_the_fitting_scale() {
     // back, one redo brings them again.
     assert_eq!(
         s.legend_offer(),
-        ew_viewmodel::ew_api::output::LegendOffer::Exists
+        ew_api::output::LegendOffer::Exists
     );
     done(&mut s, "edit.undo", json!({}));
     assert_eq!(row_text(&s, "page/scale"), "Absent", "drawn not to scale");
     assert!(s.panel_tables().is_none(), "no surface view");
     assert_eq!(
         s.legend_offer(),
-        ew_viewmodel::ew_api::output::LegendOffer::NoLayout
+        ew_api::output::LegendOffer::NoLayout
     );
     assert_ne!(s.revision(), rev);
     done(&mut s, "edit.redo", json!({}));
     assert_eq!(
         s.legend_offer(),
-        ew_viewmodel::ew_api::output::LegendOffer::Exists
+        ew_api::output::LegendOffer::Exists
     );
     // A scale chosen by hand is kept by the next Surface edit.
     done(&mut s, "props.set", json!({"row": "page/scale", "value": "1:20"}));
@@ -540,7 +540,7 @@ fn surfaces(s: &ShellModel) -> Vec<String> {
         .find(|r| r.key == "page/derived.surface")
         .expect("the Surface row");
     match &row.ty {
-        ew_viewmodel::ew_api::output::FieldType::Enum { options } => options.clone(),
+        ew_api::output::FieldType::Enum { options } => options.clone(),
         other => panic!("{other:?}"),
     }
 }
@@ -839,7 +839,7 @@ fn row_text(s: &ShellModel, key: &str) -> String {
         .find(|r| r.key == key)
         .unwrap_or_else(|| panic!("no row {key}"));
     match &row.value {
-        ew_viewmodel::ew_api::output::RowValue::One { text, .. } => text.clone(),
+        ew_api::output::RowValue::One { text, .. } => text.clone(),
         other => format!("{other:?}"),
     }
 }

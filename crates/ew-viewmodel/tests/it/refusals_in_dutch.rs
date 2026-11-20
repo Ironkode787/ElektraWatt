@@ -114,8 +114,8 @@ fn a_route_off_its_junction_is_refused_with_the_aftakking() {
         .connections
         .iter()
         .find(|c| {
-            matches!(c.a, ew_viewmodel::ew_api::output::TableEnd::Cp { .. })
-                && matches!(c.b, ew_viewmodel::ew_api::output::TableEnd::Junction { .. })
+            matches!(c.a, ew_api::output::TableEnd::Cp { .. })
+                && matches!(c.b, ew_api::output::TableEnd::Junction { .. })
                 && c.polyline.len() == 2
         })
         .expect("a straight wire from a CP to a junction on folio 102")

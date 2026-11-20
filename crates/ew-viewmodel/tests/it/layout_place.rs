@@ -14,7 +14,7 @@ use ew_viewmodel::key;
 use common::{Tmp, at, done, refused, state};
 use ew_viewmodel::actions::ActionItem;
 use ew_viewmodel::command_bar::{MenuSpot, canvas_menu, hud};
-use ew_viewmodel::ew_api::output::{PanelTables, Uuid};
+use ew_api::output::{PanelTables, Uuid};
 use ew_viewmodel::navigators::NavKind;
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
@@ -423,12 +423,12 @@ fn f55_pushed_onto_rail_1_by_a_drag() {
     );
     assert_eq!(
         shell.layout_card_options().mode,
-        ew_viewmodel::ew_api::output::SnapMode::Push,
+        ew_api::output::SnapMode::Push,
         "the card shows the mode Ctrl holds"
     );
     assert_eq!(
         shell.layout_options().mode,
-        ew_viewmodel::ew_api::output::SnapMode::Free,
+        ew_api::output::SnapMode::Free,
         "the sticky mode stays"
     );
     let predicted = shell.layout_predicted_poses();

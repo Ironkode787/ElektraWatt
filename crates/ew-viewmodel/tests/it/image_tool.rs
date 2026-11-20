@@ -25,7 +25,7 @@ const SVG_HASH: &str = "sha256:ec57251790a327f9afde596a256f674c950610537531d4ed0
 /// Brings the placeholder asset into the project (the company logo command is the one that stores an asset) and takes
 /// the logo off again: the asset stays in the project's store.
 fn hold_asset(s: &mut ShellModel) {
-    for logo in [ew_viewmodel::ew_api::base64_encode(SVG), String::new()] {
+    for logo in [ew_api::base64_encode(SVG), String::new()] {
         done(
             s,
             "command.run",
@@ -277,7 +277,7 @@ fn a_new_file_is_placed_as_data_and_arms_the_tool_from_any_tool() {
     let mut s = actual_size(&tmp, "101");
     let png = tiny_png();
     let file = write_file(&tmp, "pick.png", &png);
-    let reference = ew_viewmodel::ew_api::asset_ref_of(&png).unwrap();
+    let reference = ew_api::asset_ref_of(&png).unwrap();
     assert_eq!(s.tool().name(), "select");
     done(&mut s, "image.file", json!({ "path": file }));
     assert_eq!(s.tool().name(), "image", "a drop arms the Image tool");
@@ -297,7 +297,7 @@ fn a_new_file_is_placed_as_data_and_arms_the_tool_from_any_tool() {
     assert_eq!(
         last.params,
         json!({"page": page, "kind": {"image": {
-            "data": ew_viewmodel::ew_api::base64_encode(&png),
+            "data": ew_api::base64_encode(&png),
             "rect": [[min.0, min.1], [max.0, max.1]]}}}),
         "{last:?}"
     );

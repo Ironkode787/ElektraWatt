@@ -8,7 +8,7 @@ use crate::common;
 use ew_viewmodel::key;
 
 use common::{Tmp, done, refused, state};
-use ew_viewmodel::ew_api::output::NavRole;
+use ew_api::output::NavRole;
 use ew_viewmodel::navigators::NavKind;
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::{Value, json};

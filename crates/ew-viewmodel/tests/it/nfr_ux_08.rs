@@ -205,6 +205,6 @@ fn a_template_of_the_wizard_carries_the_readable_text_styles() {
     let project = &records(&new, &["project.jsonl"])[0];
     assert_eq!(
         project["settings"]["text_styles"],
-        serde_json::to_value(ew_viewmodel::ew_api::new_project_text_styles()).unwrap()
+        serde_json::to_value(ew_api::new_project_text_styles()).unwrap()
     );
 }

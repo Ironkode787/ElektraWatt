@@ -79,7 +79,7 @@ fn offer_lines(shell: &ShellModel) -> Vec<String> {
 
 /// `yyyy-mm-dd hh:mm` of epoch milliseconds.
 fn minutes(ms: u64) -> String {
-    let d = ew_viewmodel::ew_api::output::date_from_epoch(i64::try_from(ms / 1000).unwrap()).unwrap();
+    let d = ew_api::output::date_from_epoch(i64::try_from(ms / 1000).unwrap()).unwrap();
     format!(
         "{:04}-{:02}-{:02} {:02}:{:02}",
         d.year, d.month, d.day, d.hour, d.minute
@@ -255,7 +255,7 @@ fn a_project_that_is_gone_is_refused_in_words() {
 fn old_and_surplus_crash_logs_are_pruned_at_start() {
     let tmp = Tmp::new("startup-prune");
     let old = crash_log(&tmp, "20260901T000000Z-1.log", "2026-09-01T00:00:00Z", false);
-    let month_ago = ew_viewmodel::ew_api::Clock::now(&ew_viewmodel::ew_api::SystemClock)
+    let month_ago = ew_api::Clock::now(&ew_api::SystemClock)
         - Duration::from_secs(31 * 24 * 3600);
     std::fs::File::options()
         .write(true)

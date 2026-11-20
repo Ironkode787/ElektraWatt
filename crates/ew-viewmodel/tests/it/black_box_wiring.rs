@@ -9,8 +9,8 @@
 use crate::common;
 
 use common::{Tmp, at, done};
-use ew_viewmodel::ew_api::geometry::Dir;
-use ew_viewmodel::ew_api::output::{PageTables, TableCp};
+use ew_api::geometry::Dir;
+use ew_api::output::{PageTables, TableCp};
 use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::{Value, json};
 

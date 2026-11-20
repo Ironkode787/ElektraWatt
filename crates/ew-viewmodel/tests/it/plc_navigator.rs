@@ -11,7 +11,7 @@
 use crate::common;
 
 use common::{Tmp, done, refused, tables};
-use ew_viewmodel::ew_api::output::Uuid;
+use ew_api::output::Uuid;
 use ew_viewmodel::navigators::{NavKind, PLC_FLAGS, Query};
 use ew_viewmodel::shell::{DragSource, Mode, ShellModel};
 use serde_json::json;
@@ -338,7 +338,7 @@ fn pasting_eight_symbols_is_one_undo_step() {
 }
 
 /// The CP labelled `label` (`-101A2:3`).
-fn cp(s: &ShellModel, label: &str) -> ew_viewmodel::ew_api::output::TableCp {
+fn cp(s: &ShellModel, label: &str) -> ew_api::output::TableCp {
     let t = tables(s);
     let found = t.cps.iter().find(|c| c.label == label).cloned();
     found.unwrap_or_else(|| {
@@ -703,7 +703,7 @@ fn transcript_and_counts() {
         .collect();
     assert!(plc.len() > 2, "{d}");
     for l in plc {
-        assert!(ew_viewmodel::ew_api::output::Uuid::parse_str(l).is_err(), "{l}");
+        assert!(ew_api::output::Uuid::parse_str(l).is_err(), "{l}");
         assert!(!l.contains(&ch0), "no record ID: {l}");
     }
     // A commit: one more table.

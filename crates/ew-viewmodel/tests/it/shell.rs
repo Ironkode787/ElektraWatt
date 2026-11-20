@@ -8,7 +8,7 @@ use ew_testdir::Tmp;
 
 use std::path::Path;
 
-use ew_viewmodel::ew_api::Session;
+use ew_api::Session;
 use ew_viewmodel::shell::{AccessMode, Dialog, Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::{Value, json};
 

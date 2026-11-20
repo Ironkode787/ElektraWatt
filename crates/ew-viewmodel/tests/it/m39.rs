@@ -111,7 +111,7 @@ fn the_place_hud_names_the_symbol() {
 /// page, the folio compared case-folded; nothing is pending without an editing page.
 #[test]
 fn chips_and_rows_share_the_pending_rule() {
-    use ew_viewmodel::ew_api::output::FindingChip;
+    use ew_api::output::FindingChip;
     use ew_viewmodel::navigators::messages::{chip_pending, pending_on};
     let chip = |page: Option<&str>| FindingChip {
         rule: "EW-CORE-041".into(),

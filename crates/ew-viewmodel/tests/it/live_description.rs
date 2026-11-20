@@ -10,8 +10,8 @@
 use crate::common;
 
 use common::{Tmp, done, tables};
-use ew_viewmodel::ew_api::Session;
-use ew_viewmodel::ew_api::output::{NavKind, NavRole, PageTables, TableEnd};
+use ew_api::Session;
+use ew_api::output::{NavKind, NavRole, PageTables, TableEnd};
 use ew_viewmodel::shell::{Mode, ShellModel};
 use ew_viewmodel::status::canvas_node;
 use serde_json::json;
@@ -290,7 +290,7 @@ fn a_wire_to_a_junction_names_that_end_a_junction() {
 /// category text nor a key) says its tag and "Device", in en-GB and, after a language switch, nl-NL.
 #[test]
 fn an_unplaced_device_without_a_kind_says_device() {
-    use ew_viewmodel::ew_api::{AnyCommand, StoreOptions};
+    use ew_api::{AnyCommand, StoreOptions};
     let tmp = Tmp::new("ft1252-device");
     // A copy of Golden A with one device more, made through the session.
     let (mut session, _) = Session::open_read_only(std::path::Path::new(common::GOLDEN_A), "test").unwrap();

@@ -9,9 +9,9 @@
 use crate::common;
 
 use common::{Tmp, at, done, refused, state, tables, toast};
-use ew_viewmodel::ew_api::Session;
-use ew_viewmodel::ew_api::checks;
-use ew_viewmodel::ew_api::output::{
+use ew_api::Session;
+use ew_api::checks;
+use ew_api::output::{
     PageTables, TableConnection, TableCp, TableEnd, TablePotential, TableRep,
 };
 use ew_viewmodel::shell::{Mode, ShellModel};

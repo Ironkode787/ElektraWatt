@@ -10,7 +10,7 @@ use crate::common;
 use std::path::Path;
 
 use common::{Tmp, done};
-use ew_viewmodel::ew_api::{Sha256, base64_encode};
+use ew_api::{Sha256, base64_encode};
 use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
 use ew_viewmodel::strings;
 use serde_json::json;
@@ -28,7 +28,7 @@ fn png(w: u32, h: u32) -> Vec<u8> {
 
 /// The SHA-256 of `bytes` in hex.
 fn hex(bytes: &[u8]) -> String {
-    let sums = ew_viewmodel::ew_api::archive::sha256sums([("f", bytes)]);
+    let sums = ew_api::archive::sha256sums([("f", bytes)]);
     sums.split_once("  ").unwrap().0.to_owned()
 }
 

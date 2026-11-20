@@ -15,8 +15,8 @@ use ew_viewmodel::key;
 use std::path::{Path, PathBuf};
 
 use common::{Tmp, at, done, refused};
-use ew_viewmodel::ew_api::catalog::{self, ColumnMap, Limits};
-use ew_viewmodel::ew_api::library::{LibraryTiers, Registry};
+use ew_api::catalog::{self, ColumnMap, Limits};
+use ew_api::library::{LibraryTiers, Registry};
 use ew_viewmodel::properties::CardOrigin;
 use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::json;

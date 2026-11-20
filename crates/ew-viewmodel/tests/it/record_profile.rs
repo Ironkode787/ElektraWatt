@@ -10,7 +10,7 @@ use crate::common;
 use std::path::Path;
 
 use common::{GOLDEN_A, Tmp, copy_dir, done};
-use ew_viewmodel::ew_api::library::{LibraryTiers, Registry};
+use ew_api::library::{LibraryTiers, Registry};
 use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
 use serde_json::{Value, json};
 

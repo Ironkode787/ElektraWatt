@@ -9,7 +9,7 @@ use crate::common;
 
 use common::{Tmp, at, done};
 use ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
-use ew_viewmodel::ew_api::output::{TableRep, Uuid};
+use ew_api::output::{TableRep, Uuid};
 use ew_viewmodel::navigators::NavKind;
 use ew_viewmodel::properties::{RowValue, find_row};
 use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};

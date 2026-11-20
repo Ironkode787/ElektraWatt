@@ -747,7 +747,7 @@ fn set_logo(s: &mut ShellModel, bytes: &[u8]) {
     done(
         s,
         "command.run",
-        json!({"cmd": "project.company.set", "params": {"logo": ew_viewmodel::ew_api::base64_encode(bytes)}}),
+        json!({"cmd": "project.company.set", "params": {"logo": ew_api::base64_encode(bytes)}}),
     );
 }
 

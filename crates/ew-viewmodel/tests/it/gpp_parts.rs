@@ -9,9 +9,9 @@
 use crate::common;
 
 use common::{Tmp, click, done, empty_point, failed, state};
-use ew_viewmodel::ew_api::checks;
-use ew_viewmodel::ew_api::output::Uuid;
-use ew_viewmodel::ew_api::{BomMode, Export, Session};
+use ew_api::checks;
+use ew_api::output::Uuid;
+use ew_api::{BomMode, Export, Session};
 use ew_viewmodel::properties::{RowValue, find_row};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::json;

@@ -9,8 +9,8 @@ use crate::common;
 use std::path::Path;
 
 use common::{Tmp, at, done, tables};
-use ew_viewmodel::ew_api::Session;
-use ew_viewmodel::ew_api::output::NavKind;
+use ew_api::Session;
+use ew_api::output::NavKind;
 use ew_viewmodel::layout::PaneKind;
 use ew_viewmodel::notifications::{NoteAction, NoteTone};
 use ew_viewmodel::settings::Settings;

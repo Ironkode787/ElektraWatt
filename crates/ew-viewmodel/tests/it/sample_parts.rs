@@ -11,10 +11,10 @@ use crate::common;
 use std::path::{Path, PathBuf};
 
 use common::{Tmp, at, click, done};
-use ew_viewmodel::ew_api::Session;
-use ew_viewmodel::ew_api::library::LibraryTiers;
-use ew_viewmodel::ew_api::library::starter;
-use ew_viewmodel::ew_api::output::{TableRep, Uuid};
+use ew_api::Session;
+use ew_api::library::LibraryTiers;
+use ew_api::library::starter;
+use ew_api::output::{TableRep, Uuid};
 use ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
 use ew_viewmodel::tools::PickerRow;

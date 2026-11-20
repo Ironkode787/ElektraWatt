@@ -24,7 +24,7 @@ fn records_where(
     kind: NavKind,
     col: usize,
     text: &str,
-) -> Vec<ew_viewmodel::ew_api::output::Uuid> {
+) -> Vec<ew_api::output::Uuid> {
     let t = shell.nav(kind).and_then(|n| n.table()).unwrap();
     let mut v: Vec<_> = t
         .nodes
@@ -38,7 +38,7 @@ fn records_where(
 }
 
 /// The drawn polylines of `members` on the shown page of group 0, in sheet nm.
-fn drawn(shell: &ShellModel, members: &[ew_viewmodel::ew_api::output::Uuid]) -> Vec<Vec<(i64, i64)>> {
+fn drawn(shell: &ShellModel, members: &[ew_api::output::Uuid]) -> Vec<Vec<(i64, i64)>> {
     let page = shell.canvas().unwrap().page();
     page.tables
         .connections

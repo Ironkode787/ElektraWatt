@@ -9,7 +9,7 @@
 use crate::common;
 
 use common::{Tmp, at, done, tables};
-use ew_viewmodel::ew_api::output::{TableCp, TableEnd, TableRep};
+use ew_api::output::{TableCp, TableEnd, TableRep};
 use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
 use serde_json::json;
 
@@ -60,7 +60,7 @@ fn place(s: &mut ShellModel, part: &str, k: (i64, i64)) -> TableRep {
 }
 
 /// The connection point of `rep` that leaves in direction `dir`.
-fn pin(s: &ShellModel, rep: &TableRep, dir: ew_viewmodel::ew_api::geometry::Dir) -> TableCp {
+fn pin(s: &ShellModel, rep: &TableRep, dir: ew_api::geometry::Dir) -> TableCp {
     tables(s)
         .cps
         .iter()
@@ -141,7 +141,7 @@ fn reach_and_beside(s: &mut ShellModel, tool: &str, (a, b, c): (&TableCp, &Table
 
 #[test]
 fn the_wire_tool_takes_a_pin_ten_points_off_and_says_a_click_beside_one() {
-    use ew_viewmodel::ew_api::geometry::Dir;
+    use ew_api::geometry::Dir;
     let tmp = Tmp::new("beside-wire");
     let mut s = project(&tmp, "102", "multi_line");
     let (one, two, three) = (
@@ -159,7 +159,7 @@ fn the_wire_tool_takes_a_pin_ten_points_off_and_says_a_click_beside_one() {
 
 #[test]
 fn the_tube_tool_takes_a_port_ten_points_off_and_says_a_click_beside_one() {
-    use ew_viewmodel::ew_api::geometry::Dir;
+    use ew_api::geometry::Dir;
     let tmp = Tmp::new("beside-tube");
     let mut s = project(&tmp, "201", "fluid");
     let (one, two, three) = (

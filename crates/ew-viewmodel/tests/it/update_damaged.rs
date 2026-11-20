@@ -12,8 +12,8 @@ use crate::common;
 use std::path::{Path, PathBuf};
 
 use common::{Tmp, copy_dir, done, failed, refused};
-use ew_viewmodel::ew_api::library::{LibraryTiers, Registry};
-use ew_viewmodel::ew_api::{OpenMode, Recovery, Session, SessionOptions, StoreOptions};
+use ew_api::library::{LibraryTiers, Registry};
+use ew_api::{OpenMode, Recovery, Session, SessionOptions, StoreOptions};
 use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
 use ew_viewmodel::{key, strings};
 use serde_json::{Value, json};
