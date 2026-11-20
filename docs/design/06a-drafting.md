@@ -262,7 +262,11 @@ the plan could leave two devices of two terminals of one strip in each other's o
 ### 2.1 Units: grid ticks, never nanometres
 
 The layout computes in **ticks**: 1/16 of a grid step, as `i32`. A grid position is a multiple of 16, a half-grid
-position a multiple of 8, and a text box is rounded outward to whole ticks (0.25 mm on a native page). The adapter
+position a multiple of 8, and a text box is rounded outward to whole ticks (0.25 mm on a native page); an edge
+within two nanometres of a tick takes that tick. (On a grid whose step is no whole number of nanometres a grid
+point is up to half a nanometre off its own line. A text set on a tick of its symbol then had a box one tick
+larger or smaller according to where the symbol stood, the page as stored was not the page the plan was made
+for, and a second press routed a few wires again.) The adapter
 in `ew-api` converts the page into ticks once and a plan back into nanometres once, through `ew_units::Grid`.
 Inside the crate no nanometre exists, so two numbers for one grid position cannot meet.
 
@@ -638,6 +642,11 @@ A part of one pin that is set on the end's own point (a potential's mark on a pi
 leaves its own part: the mark does not wall the pin in. Before, such a wire had no way and kept the route the
 person drew.
 
+*Never worse, and a wire without a route (2026-11-20).* A wire without a route is the worst state a wire has. A
+plan that routes one is offered although a text then lies across a wire that was routed before (the text had to
+step aside; the result names the wire); only a fault on such a wire refuses it. Before, one such text refused the
+whole plan and every wire stayed without a route.
+
 Order: the remaining jobs by the city-block distance of their ends, shortest first, then by the first end's
 place, then by ID. Then at most `PASSES` passes in the same order: lift one wire, search it against all the
 others, keep the new route when its cost is lower. A pass that changes nothing ends the passes.
@@ -879,6 +888,14 @@ The order within a row or a stack follows the hosts' pins, not the places the fo
 - **Who is in the way.** A tree is set as if the units of the trees after it will step aside. A unit that then
   kept its place where a moved unit came to stand is in the way from the start, and the trees are set again,
   `PASSES` times at most.
+- **A card steps along its edge.** A card that is the root of its tree, with its channel pins on its upper or
+  lower edge and its supply pins on its left side, steps right along its edge (a) until every pin its supply is
+  wired to on the side its channels face (the controller's supply pin, a mark, the supply pin of a card at the
+  other edge) stands left of it, so that the supply drops beside its first channel and crosses none, and (b)
+  half a pitch further where its columns would fall on those of a card of the same pitch that faces it. Whether
+  that is the better page the judge finds: where a card would step, the arrangement is made with (a) and (b),
+  with (a) alone and with neither, each is routed and judged, and the best by the measure with the price of its
+  moves is offered. The command that draws a card still sets it from the left edge; the placer moves it.
 
 ### 4.5 Room, and the texts
 
@@ -1312,8 +1329,8 @@ from the left edge, finds no room on a page where a symbol stands within two gap
 then offers another page). Two things the box still does that a draughtsman would not: a card of inputs stands
 at the foot under the controller's box, so the supply wires from the head cross its first channels; and the pins
 of a card at the head and one at the foot stand on columns two steps apart where the controller's box is not a
-whole number of pitches wide. Setting the cards of one page on common columns, half a pitch apart, clear of the
-controller's column, is the next change of this section; it is not built.
+whole number of pitches wide. The command still draws them so; Arrange and route steps the card aside (§4.4), for
+a card the person drew as well.
 
 ### 7.6 Joining wires: the bevel by default
 
@@ -1451,7 +1468,8 @@ Not measured: no timing test goes into the repository.
   for the price; a press makes at most `ROUNDS` runs. Setting the arrangement: relations and a sort per row; for
   each tree at most `ANCHORS` anchors, each with at most 4 × `REACH` steps of its root; the text placer once per
   row and per pitch of a stack, on a page of those parts alone; the trees are set again for each unit found in the
-  way, `PASSES` times at most. So the work of a press grows with the wires of the page times a bounded number of
+  way, `PASSES` times at most. On a page where a card would step along its edge the whole run is made three times
+  (§4.4). So the work of a press grows with the wires of the page times a bounded number of
   plans, and with the number of trees times the steps tried for each.
 - Trunks: nets × candidates (a handful) × taps. Tracks: per channel a sort of its wires.
 - The search: per remaining wire, the nodes of its area (at most `MAX_NODES`, five states each) times a
