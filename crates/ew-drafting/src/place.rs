@@ -110,9 +110,12 @@ pub fn arrange(page: &DraftPage, scope: Scope<'_>, fixed: &[ew_ids::Uuid]) -> Ar
                 let quality = measure(&after);
                 let (bad, texts) = route::worse(page, &before, &quality);
                 if std::env::var("EW_PLACE_DEBUG").is_ok() { eprintln!("judged {:?} {:?} bad {} texts {} clashes {:?} {:?} {:?}", quality.key(), before.key(), bad.len(), texts, quality.findings.texts_on_texts.iter().map(|x| (x.0.owner.to_string()[32..].to_owned(), x.1)).collect::<Vec<_>>(), quality.findings.texts_on_parts.iter().map(|x| (x.0.owner.to_string()[32..].to_owned(), x.1.0.to_string()[32..].to_owned())).collect::<Vec<_>>(), quality.findings.texts_outside.len()); }
-                let figures = quality.counts.crossings > before.counts.crossings
-                    || quality.counts.bends > before.counts.bends
-                    || quality.faults > before.faults;
+                // No figure a reader compares worse (crossings, bends, faults), where the plan routes no wire that had
+                // no route (routing a dashed wire is the larger gain).
+                let figures = quality.faults > before.faults
+                    || quality.unrouted >= before.unrouted
+                        && (quality.counts.crossings > before.counts.crossings
+                            || quality.counts.bends > before.counts.bends);
                 if (!quality.better_than(&before) || !bad.is_empty() || texts || figures) && std::env::var("EW_PLACE_FORCE").is_err() {
                     return fallback();
                 }
@@ -401,9 +404,9 @@ impl<'a> Placer<'a> {
             unit.weight += 4 * pins + area / 16;
         }
         let m = units.len();
-        // Each part's texts where the page shows them now, relative to the part: they move with it.
+        // Each part's texts that stand at their first places now, relative to the part: they move with it.
         let mut texts: Vec<Vec<Rect>> = vec![Vec::new(); n];
-        for s in settle_labels(page) {
+        for s in settle_labels(page).into_iter().filter(|s| s.rank == 0) {
             let Some(l) = page.labels.iter().find(|l| l.id == s.id) else { continue };
             if let Owner::Part(p) = l.owner
                 && let Some(i) = w.parts.iter().position(|x| x.id == p)
@@ -787,7 +790,7 @@ impl<'a> Placer<'a> {
                         self.needed.insert(*f);
                     }
                 }
-                _ if dist >= CHAIN_GAP_MIN && !self.meets(*f, &[h]) && !self.meets(*f, &self.settled) => keep.push(dist),
+                _ if dist >= CHAIN_GAP_MIN && !self.meets(*f, &[h]) => keep.push(dist),
                 _ => movers.push((*f, dist)),
             }
         }
