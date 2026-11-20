@@ -34,6 +34,8 @@ the complete-cabinet job in it.
 
 Decided by the owner on the fourth candidate: pin texts of a drawn box stay as they were (turned a quarter on the top and bottom sides, horizontal on the left and right); the golden project has done its work and is retired after this release, and until then a decided change regenerates it instead of bending round it; after the fix lanes one full review with its fixes and a persona round, and the complete-cabinet job run again when every lane has delivered; the title block's layout and the frame's columns and rows become editable in the next milestone, design first; the milestone after that is given to fluid power, and the later milestones move one up.
 
+Decided by the owner on the way to the sixth candidate: the router is redesigned and also places devices and parts, with research, a design he saw as pictures and agreed to, and then the build (ADR-0034); the first placer was far from acceptable and went to a fresh builder; the box of a PLC card has all its channel pins on one side; the slanted corner where two wires part at a pin is half a grid step, the size of his reference set; the router and the placer are accepted as built on 2026-11-20, and what they leave open is in the backlog; a short hygiene milestone follows the release, before the next milestone's new work.
+
 ## 2. The candidates
 
 | Candidate | Cut from | Checklist | State |
@@ -42,7 +44,8 @@ Decided by the owner on the fourth candidate: pin texts of a drawn box stay as t
 | `v0.3.0-rc.2` | `release/0.3`, the commit the tag names | [`checklist-rc.2.md`](checklist-rc.2.md) | Cut on 2026-11-16; its release build passed (run 12 of `release.yml`). **Tested by the owner by hand: not passed.** He wrote sixteen points (the plan's log lists them as G1 to G16), three of them asking for a screen to be designed anew; no go |
 | `v0.3.0-rc.3` | `release/0.3`, the commit the tag names | [`checklist-rc.3.md`](checklist-rc.3.md) | Cut on 2026-11-18. Its release build made every package (run 13 of `release.yml`: verify, the guide, the Linux and the Windows package and the sums passed) and **failed at the draft**: the release notes had grown longer than GitHub takes as a release's text. No draft exists; nobody tested it |
 | `v0.3.0-rc.4` | `release/0.3`, the commit the tag names | [`checklist-rc.4.md`](checklist-rc.4.md) | Cut on 2026-11-18: the third candidate's program with the release script mended; its release build passed (run 14 of `release.yml`). **Tested by the owner by hand: not passed.** He wrote seventeen points and answered one open question (the plan's log lists them by theme); two of the points are asks for the next milestone |
-| `v0.3.0-rc.5` | `release/0.3`, the commit the tag names | [`checklist-rc.5.md`](checklist-rc.5.md) | Cut on 2026-11-19. Its release build passed (run 15 of `release.yml`: verify, the guide, the Linux and the Windows package, the sums and the draft); the draft prerelease holds its files. Waits for the owner's hands-on test. The owner has asked for a redesign of the router that also places devices and parts before 0.3.0 is released: it goes into a sixth candidate |
+| `v0.3.0-rc.5` | `release/0.3`, the commit the tag names | [`checklist-rc.5.md`](checklist-rc.5.md) | Cut on 2026-11-19. Its release build passed (run 15 of `release.yml`: verify, the guide, the Linux and the Windows package, the sums and the draft). **Not tested by the owner:** he asked for a redesign of the router that also places devices and parts before 0.3.0 is released, and the sixth candidate holds it |
+| `v0.3.0-rc.6` | `release/0.3`, the commit the tag names | [`checklist-rc.6.md`](checklist-rc.6.md) | Cut on 2026-11-20; waits for its release build and for the owner's hands-on test |
 
 Before the first cut, on the tip that the release branch starts from: eight reviews by area and one of the whole
 milestone, each with its fix lane; a persona round of three picture-led runs on a new project, two re-tests, two
@@ -67,6 +70,8 @@ the deep run with the private corpus (18 of 18) passed. The release branch was m
 branch's tip again, for the same reason.
 
 Before the fifth cut: five lanes for the owner's seventeen points, each told to find the root cause (a wire from 0 V to earth is the bond; a page position stored one nanometre apart from itself; a box armed with something an Undo took away; a cable that only carries a bus line counted as on no page), one review of the whole round (one major finding, a symbol fitted to another grid that could not be moved, mended), a persona round of three runs, five fix lanes from it, two re-tests, a last round of fixes, and the complete cabinet drawn once more with twice the turns, which finished every step (the log's entries from "The owner's test of the fourth candidate" on). One decision was read wrongly on the way (the pin texts were built horizontal) and put back before the cut. On the candidate's tree the whole workspace (7,619 tests) and the deep run with the private corpus (18 of 18) passed; the deep run had first failed twice, and both causes were mended. The release branch was moved forward to the working branch's tip again.
+
+Before the sixth cut: the drafting core was built anew in eight steps by separate builders (one measure of a page, the places of texts, a router of nets with trunks and drops, guides while placing, the rules of a drawing of each kind, the card drawn as one row of pins, grid positions on the grid's own numbers, and the placer behind Arrange and route), each checked and merged on its own; the old router, its commands and the reference project's pinned routes were deleted. The placer was built twice: the first one ranked arrangements by an estimate and gave pages below the designed pictures; the second routes every arrangement it weighs for real and measures it. It was judged on seven pages against their designed pictures and on all 28 pages of the test projects with the command-line program: fourteen pages improve with parts moved, the others keep their parts, and a second press offers nothing on any of them. Two pages with a full PLC card drawn in the older two-row box come back as they went in; with the card drawn again in the new box they come out with every channel a straight line. **No review of the whole change and no persona round were run:** the owner accepted the redesign as built and put it to use in a production job, which is this candidate's test. On the candidate's tree the whole workspace (7,635 tests) and the deep run with the private corpus (18 of 18) passed. The release branch was moved forward to the working branch's tip again.
 
 ## 3. Known when the candidates were cut
 
@@ -152,6 +157,24 @@ With the fifth candidate:
   deep run passed on that tree, and the owner's test is the gate.
 - A redesign of the router that also places devices and parts, asked for by the owner at the end of this round,
   is not in this candidate.
+
+With the sixth candidate:
+
+- Arrange and route takes every wire of its scope, the person's own too, because it always shows a preview first;
+  his wires are ticked rows he can untick, alone or all at once. It is never offered where Route over the same
+  wires is better, and then says that no part moves.
+- A plan that routes a wire which had no route is refused only for a fault on a wire that was kept; a wire that
+  cannot be routed without crossing a text is routed and the message names it.
+- The weights of the measure stay as designed (a crossing counts six steps); pictures with eight and ten were no
+  better.
+- A card's channel pins stand eight grid steps apart, at most eight a box, so that a device with its tag fits over
+  a pin; a card of sixteen channels is two boxes. Cards already drawn are not changed.
+- The reference project's pictures and digests were regenerated where a text's first place, a starter symbol's
+  slots or the bevel's size moved a drawn line; no route of it is pinned any longer.
+- Known and left open, as rows of the backlog: a second press on a page of the QET grid may still route a few
+  wires; on a page with an older two-row card Route's plan can be two crossings worse than the page was; wires
+  round a body between two rows of pins are not laid side by side; "Draw on a page" still sets a card of inputs
+  under the controller.
 
 Only a real desktop shows three things (the checklist's RC-05): the installers, a printer, a screen reader. The
 owner's test says whether an open row holds the release.
