@@ -924,14 +924,26 @@ mod tests {
         for r in [&root_a, &root_b, &state] {
             let _ = std::fs::remove_dir_all(r);
         }
-        let (code, shown) = run_in(&a, release_into("V2.0", &root_a), true, "V2.0\n", Some(state.dir()));
+        let (code, shown) = run_in(
+            &a,
+            release_into("V2.0", &root_a),
+            true,
+            "V2.0\n",
+            Some(state.dir()),
+        );
         assert_eq!(code, 0, "{shown}");
 
         // B, a copy of A, on A's archive folder with the same state directory: `discard` is not offered, and typed it
         // removes nothing.
         let archived = std::fs::read(root_a.join("V2.0.ewarchive")).unwrap();
         let before_b = files(&b);
-        let (code, shown) = run_in(&b, release_into("V2.0", &root_a), true, "discard\n", Some(state.dir()));
+        let (code, shown) = run_in(
+            &b,
+            release_into("V2.0", &root_a),
+            true,
+            "discard\n",
+            Some(state.dir()),
+        );
         assert_eq!(code, 1, "{shown}");
         assert!(
             shown.contains(
@@ -962,7 +974,13 @@ mod tests {
         // With a run record of B's folder for the archive (what B's own crashed run leaves), `discard` is offered and
         // removes the archive and the record.
         let record = run_record_of(&b, &root_b, &state);
-        let (code, shown) = run_in(&b, release_into("V2.0", &root_b), true, "discard\n", Some(state.dir()));
+        let (code, shown) = run_in(
+            &b,
+            release_into("V2.0", &root_b),
+            true,
+            "discard\n",
+            Some(state.dir()),
+        );
         assert_eq!(code, 0, "{shown}");
         assert!(shown.contains(", `discard` to remove it"), "{shown}");
         assert!(
