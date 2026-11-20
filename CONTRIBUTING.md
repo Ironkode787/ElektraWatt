@@ -33,6 +33,9 @@ cargo xtask rules                               # the repository rules alone, in
   the tests were narrowed. The last check of a change runs without a filter.
 - **`gen`** rewrites every file that is generated from code or data. Run it after you change a command, a check
   rule, a text key, a keymap, an icon or a library symbol, and commit what it changed with your change.
+  `cargo xtask gen-maps` alone, in seconds, after you add, move or delete an action, a handler's file, a text key, a
+  source file or a crate, or change a file's head comment: the maps under `docs/map/` follow, and `rules` fails
+  until they do.
 - **`rules`** checks the crate layers and the licence boundary, test-only features, raw reads of the model,
   confidential tokens, and that the generated files xtask writes are current. It builds nothing.
 
