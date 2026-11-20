@@ -204,7 +204,7 @@ pub(crate) fn ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_ident
     let rows = finding_rows(d);
     // Golden A's findings in their groups: a lower bound, not a total (CONTRIBUTING: no pinned totals).
     assert!(rows.len() >= 35, "{d}");
-    // Folio 3's error leads: EF-03 on the DP port; EF-08 on -3W1 is a warning while the drawing grows (rc.3).
+    // Folio 3's error leads: EF-03 on the DP port; EF-08 on -3W1 is a warning while the drawing grows.
     assert!(
         rows[0].contains("-201U1:DP") && rows[0].ends_with(" badge \"error\""),
         "{d}"

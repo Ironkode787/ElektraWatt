@@ -39,7 +39,7 @@ fn main() {
     println!("cargo:rustc-link-arg-bins={}", path.display());
     // The main thread's stack. Windows fixes it in the executable at link time and gives 1 MiB by default, where
     // Linux gives 8 MiB: the window's dispatch ran so close to that megabyte that one more inlined function made
-    // the offscreen self-test overflow it in some runs (rc.2). The window runs on the main thread, so the room is
+    // the offscreen self-test overflow it in some runs. The window runs on the main thread, so the room is
     // given here, to link.exe and lld-link alike, and does not hang on how the compiler lays out one function.
     println!("cargo:rustc-link-arg-bins=/STACK:{STACK_BYTES}");
 }

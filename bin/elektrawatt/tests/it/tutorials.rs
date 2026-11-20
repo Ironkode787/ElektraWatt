@@ -528,8 +528,7 @@ fn tutorial_4_reports_and_pdf_runs_as_its_page_says() {
             "row level 2 page \"911\" \"Revision Overview\" generated changed \"V1.0\"",
         ]
     );
-    // Step 1's toast, which says where the copy is (F4), and step 3's, with the devices the parts list leaves out
-    // (rc.2).
+    // Step 1's toast, which says where the copy is (F4), and step 3's, with the devices the parts list leaves out.
     assert_eq!(
         lines_of(&parts, &["toast"]),
         [
@@ -743,7 +742,7 @@ fn line_of(describe: &str, start: &str) -> String {
         .unwrap_or_default()
 }
 
-/// The PLC tutorial (rc.2, F5): a position switch and a lamp, a station made in a New station tab with an input
+/// The PLC tutorial: a position switch and a lamp, a station made in a New station tab with an input
 /// and an output module and drawn on the page, the two wired to the first channels, their symbols typed in the PLC
 /// grid, the PLC overview added, the export to PLC software and the save: every step done, the end state the page
 /// names, and the page passes the lint.
@@ -806,7 +805,7 @@ fn tutorial_a_plc_with_its_modules_runs_as_its_page_says() {
     );
 }
 
-/// The bus tutorial (rc.2, F5): a bus-topology page with the generic CPU, remote I/O station and switch, the bus
+/// The bus tutorial: a bus-topology page with the generic CPU, remote I/O station and switch, the bus
 /// lines, the node addresses, a bus cable, a PROFINET device of one's own made in the part editor, the check and the
 /// save: every step done, the end state the page names, and the page passes the lint. The plugs of step 10 are chosen
 /// in the window only (a script names a plug by its record, not its part number).
@@ -834,7 +833,7 @@ fn tutorial_a_bus_network_runs_as_its_page_says() {
         ]
     );
     // Step 10: the cable.
-    // (the toast of the line drawn, with Choose cable…, stands beside it; rc.5)
+    // (the toast of the line drawn, with Choose cable…, stands beside it)
     assert!(
         lines_of(&cable, &["toast"]).contains(&"toast \"Cable -2W1 carries the bus line.\" undo".to_owned()),
         "{cable}"
@@ -850,7 +849,7 @@ fn tutorial_a_bus_network_runs_as_its_page_says() {
             "row \"-2A2\" \"X1\" \"rio1 192.168.0.2\" \"\" \"PROFINET\" \"device\" \"PROFINET\" \"\"",
             "row \"-2K1\" \"X1\" \"\" \"\" \"PROFINET\" \"passive\" \"\" \"\"",
             "row \"-2K2\" \"X1\" \"drive1 192.168.0.3\" \"\" \"PROFINET\" \"device\" \"PROFINET\" \"\" cursor \"Address\"",
-            // The lines to the drive have no cable yet, which a toast offers to choose (rc.5).
+            // The lines to the drive have no cable yet, which a toast offers to choose.
             "toast \"Bus line drawn: it has no cable yet.\" choose_cable",
             "toast \"Check: 0 errors, 0 warnings, 5 infos.\"",
         ]
@@ -868,10 +867,10 @@ fn tutorial_a_bus_network_runs_as_its_page_says() {
     );
 }
 
-/// The pneumatic tutorial (rc.2, F5): a fluid page with the air supply and its medium, the service unit, a 5/2 valve
+/// The pneumatic tutorial: a fluid page with the air supply and its medium, the service unit, a 5/2 valve
 /// and a cylinder with flow controls, the tubes, the valve's solenoid drawn on page 1 and wired to a PLC output, a
 /// valve terminal with two positions filled, its own supply fed from a second air supply and a cylinder driven by the
-/// first valve in it (rc.3), the default tube and the tube table, and the save: every step done, the end state the
+/// first valve in it, the default tube and the tube table, and the save: every step done, the end state the
 /// page names, and the page passes the lint.
 #[test]
 fn tutorial_a_pneumatic_circuit_runs_as_its_page_says() {
@@ -917,7 +916,7 @@ fn tutorial_a_pneumatic_circuit_runs_as_its_page_says() {
              \"—\" \"missing\" \"\" \"\" \"\" \"2\"",
             "row \"\" \"-2Q1:4\" \"working\" \"-2R1:2\" \"port\" \"Compressed air\" \"working\" \"6×4\" \"PU\" \"\" \"\" \
              \"—\" \"missing\" \"\" \"\" \"\" \"2\"",
-            // Steps 21 and 22 (rc.3): the terminal's valve -2Q2 drives the cylinder -2M2, fed through the terminal.
+            // Steps 21 and 22: the terminal's valve -2Q2 drives the cylinder -2M2, fed through the terminal.
             "row \"\" \"-2Q2:2\" \"working\" \"-2M2:B\" \"consumer\" \"Compressed air\" \"working\" \"6×4\" \"PU\" \"\" \"\" \
              \"—\" \"missing\" \"\" \"\" \"\" \"2\"",
             "row \"\" \"-2Q2:4\" \"working\" \"-2M2:A\" \"consumer\" \"Compressed air\" \"working\" \"6×4\" \"PU\" \"\" \"\" \
