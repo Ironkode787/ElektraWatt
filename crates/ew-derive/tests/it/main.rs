@@ -6,7 +6,7 @@
 #[path = "../common/mod.rs"]
 mod common;
 // The golden fixture of `golden` (it imports it as `golden`; the name is taken by the module `golden`).
-#[path = "../common/golden.rs"]
+#[path = "../common/fixture.rs"]
 mod golden_fixture;
 
 // Every other file of tests/it is a module (automod 1.0, sorted by name).
