@@ -8,25 +8,17 @@
 //! with its tick across when the pins stand in line, a Level guide dotted in the `ghost` token. Nothing is stored.
 
 use ew_api::drafting::consts::TICKS_PER_STEP;
-use ew_api::drafting::{self, GuideKind, Part, PartId, Pin, PinId, Pt, Rect, Side, Tick};
+use ew_api::drafting::{self, GuideKind, Part, PartId, Pin, PinId, Pt, Side, Tick};
 use ew_api::geometry::Dir;
 use ew_api::output::Uuid;
 use ew_api::routing::Ticks;
-use ew_units::Grid;
+use ew_units::{Nm, Pt2};
 
 use super::{OverlayItem, Style, Token, ToolCx};
 
 /// A tick of `i64` as the model's `i32`, saturating.
 fn tick(v: i64) -> Tick {
     Tick::try_from(v).unwrap_or(if v < 0 { Tick::MIN } else { Tick::MAX })
-}
-
-/// The page's conversion into ticks, `None` for a grid the units refuse.
-fn grid(cx: &ToolCx<'_>) -> Option<Ticks> {
-    let (num, den) = cx.page.tables.grid;
-    Grid::new(u64::try_from(num).ok()?, u64::try_from(den).ok()?)
-        .ok()
-        .map(Ticks::of)
 }
 
 /// `k` grid steps in ticks.
@@ -36,24 +28,26 @@ pub(crate) fn steps(k: (i64, i64)) -> Pt {
 }
 
 /// A part floating on the pointer at grid index `index`, from its shape relative to its origin in page nm: its body
-/// `[x0, y0, x1, y1]` and its pins with their directions.
+/// `[x0, y0, x1, y1]` (rounded outward, as the page's parts are) and its pins with their directions.
 pub(crate) fn hanging(
     cx: &ToolCx<'_>,
     index: (i64, i64),
     body: [i64; 4],
     pins: impl Iterator<Item = ((i64, i64), Dir)>,
-) -> Option<Part> {
-    let g = grid(cx)?;
+) -> Part {
+    let g = Ticks::new(cx.page.tables.grid);
+    let corner = |x: i64, y: i64| Pt2::new(Nm(x), Nm(y));
+    let body = ew_units::Rect::from_points(corner(body[0], body[1]), corner(body[2], body[3]));
     let side = |d: Dir| match d {
         Dir::Up => Side::Up,
         Dir::Down => Side::Down,
         Dir::Left => Side::Left,
         Dir::Right => Side::Right,
     };
-    Some(Part {
+    Part {
         id: PartId(Uuid::nil()),
         at: steps(index),
-        body: Rect::new(g.pt((body[0], body[1])), g.pt((body[2], body[3]))),
+        body: g.outward(body),
         frame_only: false,
         pins: pins
             .map(|(at, d)| Pin {
@@ -67,15 +61,13 @@ pub(crate) fn hanging(
         role: drafting::Role::Other,
         locked: false,
         off_grid: false,
-    })
+    }
 }
 
 /// The grid steps the nudge moves the hanging `part` by (none, or one across a guide) and the overlay of its guides,
 /// for `part` at the ordinary snap's place and `pointer`, the page point the pointer asks its origin to be at.
 pub(crate) fn guide(cx: &ToolCx<'_>, part: &Part, pointer: (i64, i64)) -> ((i64, i64), Vec<OverlayItem>) {
-    let Some(g) = grid(cx) else {
-        return ((0, 0), Vec::new());
-    };
+    let g = Ticks::new(cx.page.tables.grid);
     let s = cx.snapper;
     let step = (s.sheet_of_index(1, 0) - s.sheet_of_index(0, 0)) as f64;
     let guided = drafting::guides(&cx.page.draft, part, g.pt(pointer), cx.points_per_nm * step);

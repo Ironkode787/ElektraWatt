@@ -266,13 +266,33 @@ impl Grid {
     }
 
     /// The span `lo..hi` in ticks of `1 / per_step` of a step, rounded outward: the box of a text (§2.1 of
-    /// docs/design/06a-drafting.md). Saturates at the `i64` limits.
+    /// docs/design/06a-drafting.md). Saturates at the `i64` limits; `hi` is never below `lo`.
+    ///
+    /// **An end near a tick takes that tick.** On a grid whose tick is no whole number of nm (the QET grid's), a grid
+    /// position is up to half a nm off its own line and a symbol's offset is rounded to a whole nm, so an end set on a
+    /// tick of its symbol lies up to about a nm beside that tick, on one side or the other according to where the
+    /// symbol stands. An end within two nm of a tick therefore takes that tick, and only an end further from every
+    /// tick is rounded outward: a box keeps its ticks wherever its symbol stands. On a grid whose tick is a whole
+    /// number of nm nothing is rounded and every end is rounded outward.
+    ///
+    /// ```
+    /// use ew_units::{Grid, Nm};
+    ///
+    /// let g = Grid::QET_10PX;
+    /// // A box from 0.75 to 1.75 steps right of grid points 1 and 2: ticks 12 to 28 beside each, though at(1) lies a
+    /// // third of a nm below its line and at(2) a third above.
+    /// for k in [1, 2] {
+    ///     let at = g.at(k).unwrap();
+    ///     assert_eq!(g.tick_span(at + Nm(1_984_375), at + Nm(4_630_208), 16), (16 * k + 12, 16 * k + 28));
+    /// }
+    /// ```
     pub fn tick_span(self, lo: Nm, hi: Nm, per_step: u32) -> (i64, i64) {
         let (num, den, per) = (i128::from(self.num), i128::from(self.den), i128::from(per_step));
+        let near = if per != 0 && num % (den * per) == 0 { 0 } else { 2 };
         let sat = |v: i128| i64::try_from(v).unwrap_or(if v < 0 { i64::MIN } else { i64::MAX });
-        let floor = (i128::from(lo.0) * den * per).div_euclid(num);
-        let ceil = -(-(i128::from(hi.0) * den * per)).div_euclid(num);
-        (sat(floor), sat(ceil))
+        let floor = ((i128::from(lo.0) + near) * den * per).div_euclid(num);
+        let ceil = -(-((i128::from(hi.0) - near) * den * per)).div_euclid(num);
+        (sat(floor), sat(ceil.max(floor)))
     }
 
     /// The coordinate of tick `t` of `1 / per_step` of a step: `round(t × num / (den × per_step))`, ties toward zero,
@@ -352,6 +372,10 @@ mod tests {
         // 0.165 mm to a tick: a box from 1 mm to 2 mm reaches from tick 6 to tick 13.
         assert_eq!(g.tick_span(Nm(1_000_000), Nm(2_000_000), 16), (6, 13));
         assert_eq!(g.tick_span(Nm(-1_000_000), Nm(0), 16), (-7, 0));
+        // An end within two nm of a tick takes it; on a grid of whole-nm ticks every end is rounded outward.
+        assert_eq!(g.tick_span(Nm(-2), Nm(2), 16), (0, 0));
+        assert_eq!(g.tick_span(Nm(-3), Nm(3), 16), (-1, 1));
+        assert_eq!(Grid::MM4.tick_span(Nm(-1), Nm(1), 16), (-1, 1));
         for k in [-7, 0, 1, 25, 159] {
             assert_eq!(g.nm_of_tick(16 * k, 16), g.at(k));
             assert_eq!(g.tick_of(g.at(k).unwrap(), 16), (16 * k, true));
@@ -495,6 +519,23 @@ mod tests {
                 prop_assert_eq!((2 * up - 1, 2 * down + 1), (h, h));
             }
             prop_assert_eq!(up + down, h);
+        }
+
+        /// A box whose ends lie on ticks of its symbol, as a whole nm offset from the symbol's grid point, has the same
+        /// ticks beside that point wherever the symbol stands (on a grid whose tick is wider than a few nm, as every
+        /// page's is).
+        #[test]
+        fn a_box_on_ticks_of_its_symbol_keeps_its_ticks_wherever_it_stands(
+            g in grids().prop_filter("a tick of a few nm", |g| g.num() / g.den() >= 1_000),
+            k in -1_000_000i64..1_000_000,
+            lo in -64i64..64,
+            len in 0i64..64,
+        ) {
+            let (num, den) = (i128::from(g.num()), i128::from(g.den()));
+            let offset = |t: i64| Nm(arith::div_round(i128::from(t) * num, den * 16) as i64);
+            let at = g.at(k).unwrap();
+            let (a, b) = g.tick_span(at + offset(lo), at + offset(lo + len), 16);
+            prop_assert_eq!((a - 16 * k, b - 16 * k), (lo, lo + len));
         }
 
         #[test]

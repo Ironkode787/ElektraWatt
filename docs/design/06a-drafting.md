@@ -266,13 +266,17 @@ position a multiple of 8, and a text box is rounded outward to whole ticks (0.25
 in `ew-api` converts the page into ticks once and a plan back into nanometres once, through `ew_units::Grid`.
 Inside the crate no nanometre exists, so two numbers for one grid position cannot meet.
 
-*Known, not mended (2026-11-20).* On the QET grid, whose step is no whole number of nanometres, a grid point is up
-to half a nanometre off its own line. A text set on a tick of its symbol then has a box one tick larger or smaller
-according to where the symbol stands, so after a plan moves symbols the page as stored is not quite the page the
-plan was made for, and a second press may route a few wires again (seen on one page: five wires, ten points of
-cost; the third press offers nothing). Taking an edge within two nanometres of a tick as on it (in
-`Grid::tick_span`) mends it and moves texts by a tick on every page of that grid, which changes the reference
-project's expected output; it waits for that decision.
+**A box in ticks.** On the QET grid, whose step is no whole number of nanometres, a grid point is up to half a
+nanometre off its own line and a symbol's offset is rounded to a whole nanometre, so an edge set on a tick of its
+symbol lies up to about a nanometre beside that tick, on one side or the other according to where the symbol
+stands. Rounded outward as it is, a text's box was one tick larger or smaller by its symbol's place, the page as
+stored after a plan moved symbols was not quite the page the plan was made for, and a second press could route a
+few wires again. So an edge within two nanometres of a tick takes that tick, and only an edge further from every
+tick is rounded outward (`Grid::tick_span`): a box keeps its ticks wherever its symbol stands. On a grid whose tick
+is a whole number of nanometres (the native 4 mm grid) nothing is rounded and every edge is rounded outward. The
+scene's one conversion (`ew_scene::ticks::Ticks`) applies the rule to every box the layout sees: the texts, the
+symbols' bodies, the frame's bands, the drawing area (rounded inward by the same rule), a structure box's fence and
+the body of a part floating on the pointer (§6).
 
 **What the design needs from the position model.** On a page whose step is not a whole number of nanometres, a
 pin's stored point is a sum of two rounded numbers and can lie 1 nm beside the grid's number for that position.

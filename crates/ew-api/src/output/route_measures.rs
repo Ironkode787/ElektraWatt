@@ -14,7 +14,7 @@ use std::fmt;
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_schema::PageType;
 use ew_derive::ew_schema::PotentialType;
-use ew_derive::ew_units::{Grid, Nm, Pt2};
+use ew_derive::ew_units::{Grid, Nm, Pt2, Rect};
 use ew_derive::{CellOf, CpRef, DisplayedTag, PageOrder, PageRef, PotentialFlow, PotentialPartition, Q};
 use ew_dl::Layer;
 use ew_drafting::consts::TICKS_PER_STEP;
@@ -531,20 +531,14 @@ fn draft(q: &Q, page: PageRef, tables: &PageTables) -> DraftPage {
         rank.and_then(|r| SUPPLY_ORDER.get(usize::from(r)))
             .is_some_and(|w| ["PEN", "PE", "FE"].contains(w))
     };
+    // A fence is rounded outward, as the bodies it holds are.
     let ticks = crate::routing::Ticks::new(tables.grid);
     let fences: Vec<ew_drafting::Rect> = tables
         .structure_boxes
         .iter()
         .filter_map(|b| {
-            let (x0, x1) = (
-                b.outline.iter().map(|p| p.0).min()?,
-                b.outline.iter().map(|p| p.0).max()?,
-            );
-            let (y0, y1) = (
-                b.outline.iter().map(|p| p.1).min()?,
-                b.outline.iter().map(|p| p.1).max()?,
-            );
-            Some(ew_drafting::Rect::new(ticks.pt((x0, y0)), ticks.pt((x1, y1))))
+            let outline = b.outline.iter().map(|p| Rect::from_point(Pt2::new(Nm(p.0), Nm(p.1))));
+            Some(ticks.outward(outline.reduce(Rect::union)?))
         })
         .collect();
     let kind = d.kind;

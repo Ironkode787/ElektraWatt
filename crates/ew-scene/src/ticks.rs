@@ -61,7 +61,9 @@ impl Ticks {
         self.point(Pt2::new(Nm(p.0), Nm(p.1))).0
     }
 
-    /// **A box rounded outward** (a text's box, a symbol's body): `Grid::tick_span` on each axis.
+    /// **A box rounded outward** (a text's box, a symbol's body, a structure box's fence, a floating part's body):
+    /// `Grid::tick_span` on each axis, where an end within 2 nm of a tick takes that tick, so that a box keeps its
+    /// ticks wherever its symbol stands.
     pub fn outward(self, r: Rect) -> ew_drafting::Rect {
         let (x0, x1) = self.0.tick_span(r.min().x, r.max().x, PER);
         let (y0, y1) = self.0.tick_span(r.min().y, r.max().y, PER);
@@ -74,7 +76,7 @@ impl Ticks {
     }
 
     /// **An area rounded inward** (the drawing area): its low ends rounded up, its high ends down, never below the
-    /// low ones.
+    /// low ones; an end within 2 nm of a tick takes that tick, as in [`Ticks::outward`].
     pub fn inward(self, r: Rect) -> ew_drafting::Rect {
         // ceil(a) = −floor(−a); floor(b) is the low end of b's span.
         let ceil = |v: Nm| {

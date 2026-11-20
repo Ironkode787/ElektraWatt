@@ -940,3 +940,6 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: inside the symbol editor the command search and the window's panes ask the same check as the menus:
   a drawing tool that cannot run there is no longer offered as enabled, and Save, which saves the symbol, is no
   longer greyed
+- behaviour-change: on a page of the QElectroTech grid a text's box keeps its size wherever its symbol stands, so a
+  second press of Arrange and route finds the page the first stored; texts on such pages may stand a sixth of a
+  millimetre from where they stood, and a wire beside such a text may take another route (06a §2.1, FT-1848)

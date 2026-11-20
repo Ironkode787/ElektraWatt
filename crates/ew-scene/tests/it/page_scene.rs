@@ -322,6 +322,47 @@ fn a_page_stored_by_an_older_build_draws_the_same_and_measures_without_a_fault()
     );
 }
 
+/// On the QET grid a grid position is up to half a nm off its own line, so a text set on a tick of its symbol lies a
+/// fraction of a nm beside that tick (docs/design/06a-drafting.md §2.1). The layout's page of a terminal with two slot
+/// texts is the same, relative to the part, wherever on the grid the terminal stands: its labels' sizes and places and
+/// its body, in ticks.
+#[test]
+fn a_texts_box_in_ticks_does_not_depend_on_where_its_symbol_stands() {
+    let t = symbol(TERMINAL);
+    let slot = |slot: u16, text: &str| SlotValue {
+        slot,
+        text: text.into(),
+        link: None,
+        item_links: Vec::new(),
+    };
+    let draft_at = |k: i64| {
+        let mut r = (*rep(0x11, 0xF1, t.id, 0, 20, "r0")).clone();
+        r.pos = Pt2::new(
+            ew_units::Grid::QET_10PX.at(k).expect("on the grid"),
+            ew_units::Grid::QET_10PX.at(20).expect("on the grid"),
+        );
+        let v = PageView {
+            reps: vec![RepView {
+                rep: Arc::new(r),
+                symbol: Some(t.def.clone()),
+                slots: vec![slot(0, "-X1"), slot(1, "Feed")],
+                terminals: Vec::new(),
+                pins: Vec::new(),
+            }],
+            ..blank_page(PAGE)
+        };
+        let labels = page_display_list(&v, Layer::Labels, bundled(), builtin());
+        let d = labels.draft.expect("the page as the layout sees it");
+        let texts: Vec<_> = d.labels.iter().map(|l| (l.size, l.places.clone())).collect();
+        (texts, d.parts.iter().map(|p| p.body).collect::<Vec<_>>())
+    };
+    let first = draft_at(10);
+    assert_eq!(first.0.len(), 2, "two labels: {first:?}");
+    for k in 11..22 {
+        assert_eq!(draft_at(k), first, "the terminal at grid position {k}");
+    }
+}
+
 #[test]
 fn symbols_are_instances_tagged_and_link_targets() {
     let v = view();

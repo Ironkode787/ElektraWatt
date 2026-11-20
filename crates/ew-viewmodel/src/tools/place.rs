@@ -728,8 +728,7 @@ impl PlaceTool {
                     .iter()
                     .map(|cp| (orient_point(self.orient, cp.at), orient_dir(self.orient, cp.dir)));
                 super::guides::hanging(cx, s.grid_index, body, pins)
-            })
-            .flatten();
+            });
         let (nudge, guides) = match part {
             Some(part) => super::guides::guide(cx, &part, cx.snapper.sheet_to_page(at)),
             None => ((0, 0), Vec::new()),

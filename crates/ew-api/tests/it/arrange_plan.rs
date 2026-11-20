@@ -94,9 +94,26 @@ fn layout_apply_refuses_a_kept_symbol_a_symbol_without_its_routes_and_one_out_of
     assert!(kept.contains("kept in place"), "{kept}");
 }
 
+/// What of a page's layout model a move by whole steps leaves as it is: each text's size and places (relative to its
+/// owner) and each symbol's body (relative to its origin), in ticks.
+type Shapes = (
+    Vec<(ew_drafting::LabelId, (i32, i32), ew_drafting::Places)>,
+    Vec<(ew_drafting::PartId, ew_drafting::Rect)>,
+);
+
+fn shapes(s: &ew_api::Session, folio: &str) -> Shapes {
+    let d = s.page_draft(folio).expect("a drawn page");
+    (
+        d.labels.iter().map(|l| (l.id, l.size, l.places.clone())).collect(),
+        d.parts.iter().map(|p| (p.id, p.body)).collect(),
+    )
+}
+
 /// Every plan Arrange and route offers on a page of Golden A is stored by its `layout.apply`: on its grid, whose step
 /// is no whole number of nm, the route of a moved symbol's wire ends on the number the moved connection point then
-/// has (docs/design/06a-drafting.md §2.1). And on the page as stored a second press offers nothing.
+/// has (docs/design/06a-drafting.md §2.1). The page as stored is the page the plan was judged on: every text keeps its
+/// box in ticks and every symbol its body where it was moved to. And on the page as stored a second press offers
+/// nothing.
 #[test]
 fn every_plan_arrange_offers_is_stored_by_its_command() {
     let batch = golden_common::batch();
@@ -112,10 +129,12 @@ fn every_plan_arrange_offers_is_stored_by_its_command() {
         let Some(params) = plan.params.clone() else {
             continue;
         };
+        let before = shapes(&s, &folio);
         if let Err(e) = s.execute(&apply(params)) {
             panic!("folio {folio}: {e}");
         }
         stored |= !plan.moves.is_empty();
+        assert_eq!(shapes(&s, &folio), before, "folio {folio}: the stored page's texts and bodies");
         // The stored page is the plan's own fixed point: a second press offers nothing (§4.8).
         let again = s.arrange_plan(&folio, &RouteScope::Page, &[]);
         assert!(
