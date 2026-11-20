@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The Fluid workspace in the window (FR-UI-003, FR-UI-006, doc 11 §7), at 1920 × 1080: View ▸ Workspaces ▸ Fluid power
-//! shows the fluid navigator with Golden A's valve terminal, its modules and its valves with their lines, and the tube
+//! shows the fluid navigator with the sample's valve terminal and its valves with their lines, and the tube
 //! and medium tables in the bottom dock; a tube's length typed into its cell becomes manual; New medium… adds a medium,
 //! a fluid line's context menu sets it and picks the line's kind, and the medium's row highlights its zones.
 
@@ -12,7 +12,7 @@ use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_viewmodel::layout::PaneKind;
 use ew_viewmodel::navigators::{NavKind, NavRole};
 use serde_json::json;
-use support::{Tmp, dispatch, on_golden, settle};
+use support::{Tmp, dispatch, on_sample, settle};
 
 /// The four pointer events of a double click at `at`, in one frame.
 fn double_click(h: &mut egui_kittest::Harness<'_, ew_ui::app::App>, at: egui::Pos2) {
@@ -32,7 +32,7 @@ fn double_click(h: &mut egui_kittest::Harness<'_, ew_ui::app::App>, at: egui::Po
 #[test]
 fn the_fluid_workspace_lists_valves_lines_and_tubes_and_edits_a_length() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "203");
+    let mut h = on_sample(&tmp, "201");
     h.get_by_role_and_label(egui::Role::Tab, "View").click();
     settle(&mut h);
     support::bar_button(&h, "Workspaces").click();
@@ -54,25 +54,21 @@ fn the_fluid_workspace_lists_valves_lines_and_tubes_and_edits_a_length() {
     assert!(rows.iter().any(|r| r.text == "Valve terminals"));
     let terminal = rows
         .iter()
-        .find(|r| r.label == "-201U1")
+        .find(|r| r.label == "-201K1")
         .expect("the valve terminal");
-    let modules: Vec<&str> = rows
+    // FR-UI-006: the four valves the sample's script adds to the terminal's four positions.
+    let valves: Vec<&str> = rows
         .iter()
         .filter(|r| r.parent.as_deref() == Some(terminal.key.as_str()) && r.role == NavRole::Device.word())
         .map(|r| r.label.as_str())
         .collect();
-    assert!(
-        modules.contains(&"-201U3") && modules.contains(&"-202U2"),
-        "{modules:?}"
+    assert_eq!(
+        valves,
+        ["-201K1-Q1", "-201K1-Q2", "-201K1-Q3", "-201K1-Q4"]
     );
-    let valves = rows
-        .iter()
-        .filter(|r| r.level == 4 && r.role == NavRole::Device.word())
-        .count();
-    assert_eq!(valves, 28, "FR-UI-006: the 28 golden valves");
     assert!(
         rows.iter()
-            .any(|r| r.role == NavRole::Connection.word() && r.label.starts_with("→ -203Q1:")),
+            .any(|r| r.role == NavRole::Connection.word() && r.label.starts_with("→ -201M1:")),
         "the first valve's lines to its cylinder"
     );
     // The tube table: a length typed into the first tube's cell becomes manual.
@@ -108,7 +104,7 @@ fn the_fluid_workspace_lists_valves_lines_and_tubes_and_edits_a_length() {
 fn a_medium_set_on_a_line_replaces_the_definition_of_its_net() {
     use ew_viewmodel::ew_api::output::TableEnd;
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "203");
+    let mut h = on_sample(&tmp, "201");
     for (name, p_nom) in [("Air 6 bar", "6"), ("Air 4 bar", "4")] {
         dispatch(&mut h, "fluid.medium_new", json!({"name": name, "p_nom": p_nom}));
     }
@@ -120,7 +116,7 @@ fn a_medium_set_on_a_line_replaces_the_definition_of_its_net() {
             .connections
             .iter()
             .find(|c| c.kind == "fluid" && c.polyline.len() >= 2 && matches!(c.b, TableEnd::Cp { .. }))
-            .expect("a fluid line on 203");
+            .expect("a fluid line on 201");
         (line.id.to_string(), line.b)
     };
     let TableEnd::Cp { function, idx } = b else {
@@ -171,13 +167,13 @@ fn a_medium_set_on_a_line_replaces_the_definition_of_its_net() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// Media from nothing on Golden A, which defines none: Fluid ▸ New medium… adds one; a fluid line's context menu on
-/// folio 203 sets it on the line's net and sets the line's kind; the medium table's row counts the consumers and
+/// Media from nothing on the sample, which defines none: Fluid ▸ New medium… adds one; a fluid line's context menu on
+/// folio 201 sets it on the line's net and sets the line's kind; the medium table's row counts the consumers and
 /// highlights the zones.
 #[test]
 fn a_medium_is_added_set_on_a_line_and_highlighted() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "203");
+    let mut h = on_sample(&tmp, "201");
     support::open_menu(&mut h, &["Fluid"]);
     settle(&mut h);
     support::menu_node(&h, "New medium…").click();
@@ -203,7 +199,7 @@ fn a_medium_is_added_set_on_a_line_and_highlighted() {
             .connections
             .iter()
             .find(|c| c.kind == "fluid" && c.polyline.len() >= 2)
-            .expect("a fluid line on 203")
+            .expect("a fluid line on 201")
             .id
             .to_string()
     };
@@ -288,17 +284,17 @@ fn a_medium_is_added_set_on_a_line_and_highlighted() {
     settle(&mut h);
     let highlights = h.state().shell().highlights().items().len();
     assert_eq!(highlights, 1, "the zones are highlighted");
-    assert!(!h.state().shell().highlight_overlay(0).is_empty(), "drawn on 203");
+    assert!(!h.state().shell().highlight_overlay(0).is_empty(), "drawn on 201");
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1733: on fluid page 203 a silencer placed facing a valve's free fluid port autoconnects to it, and the committed
+/// FT-1733: on fluid page 201 a silencer placed facing a valve's free fluid port autoconnects to it, and the committed
 /// connection is a fluid line, not a wire.
 #[test]
 fn a_silencer_autoconnects_to_a_free_fluid_port_with_a_fluid_line() {
     use ew_viewmodel::tools::Ghost;
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "203");
+    let mut h = on_sample(&tmp, "201");
     let (free, step) = {
         let c = h.state().shell().canvas().unwrap();
         let t = &c.page().tables;
@@ -310,7 +306,7 @@ fn a_silencer_autoconnects_to_a_free_fluid_port_with_a_fluid_line() {
             .collect();
         (free, t.grid.0 / t.grid.1.max(1))
     };
-    assert!(!free.is_empty(), "Golden A's spare valves have free fluid ports");
+    assert!(!free.is_empty(), "free fluid ports");
     let before: usize = {
         let c = h.state().shell().canvas().unwrap();
         c.page()
@@ -362,11 +358,11 @@ fn a_silencer_autoconnects_to_a_free_fluid_port_with_a_fluid_line() {
 }
 
 /// FT-1733, rc.2: Fluid ▸ Tube draws at once; the HUD's Line kind steps to Pilot, and the Wire tool then draws a
-/// pilot line between two free fluid ports of fluid page 203.
+/// pilot line between two free fluid ports of fluid page 201.
 #[test]
 fn the_tube_tools_line_kind_draws_a_pilot_line() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "203");
+    let mut h = on_sample(&tmp, "201");
     support::open_menu(&mut h, &["Fluid"]);
     settle(&mut h);
     support::menu_node(&h, "Tube").click();
@@ -460,25 +456,25 @@ fn items(h: &egui_kittest::Harness<'_, ew_ui::app::App>, prefix: &str) -> Vec<St
 }
 
 /// The device navigator's fluid actions on a fluid navigator's rows (doc 11 §7, FT-1733): a valve is set spare and its
-/// position blanked; the module's row then adds a valve of the terminal's part at that position, whose working ports
+/// position blanked; the terminal's row then adds a valve of the terminal's part at that position, whose working ports
 /// are open and plugged from its own row; each one undo step.
 #[test]
 fn valves_ports_and_positions_are_set_from_the_fluid_navigator() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "203");
+    let mut h = on_sample(&tmp, "201");
     dispatch(&mut h, "view.workspace_load", json!({"name": "Fluid"}));
     settle(&mut h);
-    row_menu(&mut h, "-201U3-Q1");
+    row_menu(&mut h, "-201K1-Q1");
     support::menu_node(&h, "Set spare").click();
     settle(&mut h);
-    row_menu(&mut h, "-201U3-Q1");
+    row_menu(&mut h, "-201K1-Q1");
     assert!(!items(&h, "Set used").is_empty(), "the valve is spare now");
     support::menu_node(&h, "Blank position 1").click();
     settle(&mut h);
-    row_menu(&mut h, "-201U3");
+    row_menu(&mut h, "-201K1");
     support::menu_node(&h, "Add valve at position 1").click();
     settle(&mut h);
-    row_menu(&mut h, "-201U3-Q1");
+    row_menu(&mut h, "-201K1-Q1");
     let plugs = items(&h, "Plug port ");
     assert_eq!(
         plugs.len(),
@@ -487,133 +483,99 @@ fn valves_ports_and_positions_are_set_from_the_fluid_navigator() {
     );
     support::menu_node(&h, &plugs[0]).click();
     settle(&mut h);
-    row_menu(&mut h, "-201U3-Q1");
+    row_menu(&mut h, "-201K1-Q1");
     assert_eq!(items(&h, "Plug port ").len(), 1, "one port plugged");
     h.state_mut().shell_mut().shutdown();
 }
 
-/// The overview page generator (FR-FLU-033, doc 11 §5.5): a module added to Golden A's valve terminal in the rack and
-/// slot editor has no overview yet; the terminal's row in the fluid navigator offers Generate overview…, whose preview
-/// names each page's members; Apply draws the new module with the starter overview module beside the others.
+/// The members Generate overview… previews on each page, by folio, from the Preview pane's notices
+/// (`page <folio>: <tag>, <tag>, …`; the mark of a page it adds, `<folio> (new page)`, left out).
+fn overview_pages(h: &egui_kittest::Harness<'_, ew_ui::app::App>) -> Vec<(String, Vec<String>)> {
+    h.state()
+        .shell()
+        .preview_pane()
+        .notices()
+        .iter()
+        .filter_map(|n| n.strip_prefix("page "))
+        .filter_map(|n| n.split_once(": "))
+        .map(|(folio, members)| {
+            (
+                folio.split(' ').next().unwrap_or_default().to_owned(),
+                members.split(", ").map(str::to_owned).collect(),
+            )
+        })
+        .collect()
+}
+
+/// The overview page generator (FR-FLU-033, doc 11 §5.5): the sample's valve terminal has no overview yet; its row in
+/// the fluid navigator offers Generate overview…, whose preview names each page's members, the terminal first; Apply
+/// draws them with the starter overview symbols.
 #[test]
 fn the_valve_terminals_overview_is_generated_from_its_row() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "201");
-    dispatch(&mut h, "plc.rack_editor", json!({"station": "tag:-201U1"}));
-    settle(&mut h);
-    let station = h
-        .state()
-        .shell()
-        .station_tab()
-        .and_then(|t| t.station)
-        .expect("the valve terminal's view");
-    let before = h.state().shell().rack_view(station).expect("the rack");
-    let free = before
-        .rows
-        .iter()
-        .find(|r| r.module.is_none())
-        .expect("a free slot")
-        .slot;
-    dispatch(&mut h, "plc.rack_add", json!({"slot": free, "part": "533361"}));
-    dispatch(&mut h, "tab.close", json!({}));
-    dispatch(&mut h, "select.set", json!({"ids": []}));
-    settle(&mut h);
-    let added = h
-        .state()
-        .shell()
-        .rack_view(station)
-        .and_then(|v| {
-            v.rows
-                .into_iter()
-                .find(|r| r.module.is_some() && !before.rows.iter().any(|b| b.module == r.module))
-        })
-        .expect("the new module");
+    let mut h = on_sample(&tmp, "201");
     dispatch(&mut h, "view.workspace_load", json!({"name": "Fluid"}));
     settle(&mut h);
-    let row = h
+    // The row selected first is scrolled into view: it stands below every line the filter of `row_menu` matches.
+    let key = h
         .state()
         .shell()
         .shown_rows(NavKind::Fluid)
         .into_iter()
-        .find(|r| r.label == "-201U1")
-        .expect("the terminal's row");
-    // The navigator's filter (the text field at the left column's top) narrows the tree to the terminal.
-    h.get_all_by_role(egui::accesskit::Role::TextInput)
-        .filter(|n| n.rect().left() < 600.0 && n.rect().top() > 100.0)
-        .min_by(|a, b| a.rect().top().total_cmp(&b.rect().top()))
-        .expect("the navigator's filter")
-        .click();
-    h.run_ok();
-    h.event(egui::Event::Text("201U1".to_owned()));
+        .find(|r| r.label == "-201K1")
+        .expect("the terminal's row")
+        .key;
+    dispatch(&mut h, "navigator.select", json!({"kind": "fluid", "keys": [key]}));
     settle(&mut h);
-    h.get_by_label(&row.name).click_secondary();
-    settle(&mut h);
+    row_menu(&mut h, "-201K1");
     support::menu_node(&h, "Generate overview…").click();
     settle(&mut h);
-    let notices = h.state().shell().preview_pane().notices().to_vec();
-    assert!(
-        notices.iter().any(|n| n.starts_with("page 201: -201U1, ")),
-        "{notices:?}"
-    );
-    assert!(notices.iter().any(|n| n.contains(&added.tag)), "{notices:?}");
+    let pages = overview_pages(&h);
+    let (page, members) = pages.first().cloned().expect("a page of the overview");
+    assert_eq!(members.first().map(String::as_str), Some("-201K1"), "{pages:?}");
     support::off_chrome(&h, "Apply")
         .expect("the card's Apply")
         .click();
     settle(&mut h);
-    let page = notices
-        .iter()
-        .find(|n| n.contains(&added.tag))
-        .and_then(|n| n.strip_prefix("page "))
-        .and_then(|n| n.split([':', ' ']).next())
-        .unwrap()
-        .to_owned();
     dispatch(&mut h, "page.goto", json!({"folio": page}));
     settle(&mut h);
     let drawn = h.state().shell().canvas().is_some_and(|c| {
-        c.page().tables.reps.iter().any(|r| {
-            r.rep_type == "overview" && r.device == added.module && r.symbol_key.starts_with("ew.ovw.module")
-        })
+        c.page()
+            .tables
+            .reps
+            .iter()
+            .any(|r| r.rep_type == "overview" && r.symbol_key.starts_with("ew.ovw."))
     });
-    assert!(drawn, "the new module drawn on {page}");
+    assert!(drawn, "the overview drawn on {page}");
     h.state_mut().shell_mut().shutdown();
 }
 
-/// Doc 11 §11, AC-32: Generate overview… on Golden A's valve terminal, whose overviews 201 and 202 are drawn in member
-/// order, keeps every member where it stands: the preview names -201U1 … -201U9 on 201 and -202U1 … -202U3 on 202, and
-/// changes no record.
+/// Doc 11 §11, AC-32: Generate overview… on a valve terminal whose overview is drawn keeps every member where it
+/// stands: the preview names the same members on the same pages, and changes no record.
 #[test]
-fn golden_as_overview_is_refreshed_without_a_change() {
+fn a_drawn_overview_is_refreshed_without_a_change() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "201");
-    dispatch(
-        &mut h,
-        "fluid.generate_overview",
-        json!({"station": "tag:-201U1"}),
-    );
+    let mut h = on_sample(&tmp, "201");
+    let generate = json!({"station": "tag:-201K1"});
+    dispatch(&mut h, "fluid.generate_overview", generate.clone());
     settle(&mut h);
+    let drawn = overview_pages(&h);
+    assert!(!drawn.is_empty(), "the first overview's pages");
+    dispatch(&mut h, "preview.apply", json!({}));
+    dispatch(&mut h, "fluid.generate_overview", generate);
+    settle(&mut h);
+    assert_eq!(overview_pages(&h), drawn);
     let pane = h.state().shell().preview_pane();
-    let notices = pane.notices().to_vec();
-    let on = |folio: &str| {
-        notices
-            .iter()
-            .find_map(|n| n.strip_prefix(&format!("page {folio}: ")))
-            .map(|m| m.split(", ").map(str::to_owned).collect::<Vec<_>>())
-            .unwrap_or_default()
-    };
-    let first = on("201");
-    assert_eq!(first.first().map(String::as_str), Some("-201U1"), "{notices:?}");
-    assert_eq!(first.last().map(String::as_str), Some("-201U9"), "{notices:?}");
-    assert_eq!(on("202"), ["-202U1", "-202U2", "-202U3"], "{notices:?}");
     assert!(pane.entities().is_empty(), "{:?}", pane.entities());
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1757: on a fluid page (Golden A's 203) the interruption-point tool places the fluid line's form `ew.iso.ip`, not
+/// FT-1757: on a fluid page (the sample's 201) the interruption-point tool places the fluid line's form `ew.iso.ip`, not
 /// the wire's.
 #[test]
 fn the_interruption_tool_places_the_fluid_form_on_a_fluid_page() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "203");
+    let mut h = on_sample(&tmp, "201");
     let forms = |h: &egui_kittest::Harness<'_, ew_ui::app::App>| {
         h.state()
             .shell()
@@ -644,7 +606,7 @@ fn the_interruption_tool_places_the_fluid_form_on_a_fluid_page() {
 #[test]
 fn the_fluid_workspace_speaks_dutch() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "203");
+    let mut h = on_sample(&tmp, "201");
     dispatch(&mut h, "view.language", json!({ "value": "nl" }));
     dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
     dispatch(&mut h, "navigator.show", json!({"kind": "tubes"}));
@@ -652,7 +614,7 @@ fn the_fluid_workspace_speaks_dutch() {
     let rows = h.state().shell().shown_rows(NavKind::Plc);
     let terminal = rows
         .iter()
-        .find(|r| r.role == NavRole::Station.word())
+        .find(|r| r.role == NavRole::Station.word() && r.label == "-201K1")
         .expect("the valve terminal");
     assert!(
         terminal.badges.iter().any(|b| b == "ventieleiland"),

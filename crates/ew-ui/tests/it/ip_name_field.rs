@@ -12,7 +12,7 @@ use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
 use serde_json::json;
-use support::{Tmp, dispatch, on_golden, settle};
+use support::{Tmp, dispatch, on_sample, settle};
 
 fn press(h: &mut Harness<'_, App>, key: Key) {
     h.key_press(key);
@@ -33,7 +33,7 @@ fn direction(h: &Harness<'_, App>) -> &'static str {
 #[test]
 fn p_d_and_b_stay_with_the_ip_name_field_while_it_has_the_focus() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "103");
+    let mut h = on_sample(&tmp, "103");
     // P on the canvas arms the IP tool; D turns its direction.
     press(&mut h, Key::P);
     assert_eq!(h.state().shell().tool().name(), "ip");
@@ -85,7 +85,7 @@ fn ghost_name(h: &Harness<'_, App>) -> String {
 #[test]
 fn tab_ends_the_ip_name_and_gives_the_keys_back_to_the_tool() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "103");
+    let mut h = on_sample(&tmp, "103");
     press(&mut h, Key::P);
     assert_eq!(h.state().shell().tool().name(), "ip");
     let first = direction(&h);
@@ -114,7 +114,7 @@ fn the_ip_name_tooltip_names_the_keys_that_end_it() {
         TIP
     );
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "103");
+    let mut h = on_sample(&tmp, "103");
     press(&mut h, Key::P);
     assert!(h.query_by_label(TIP).is_none(), "no tooltip before the hover");
     h.get_all_by_role(egui::Role::TextInput)
@@ -169,7 +169,7 @@ fn type_in_name_field(h: &mut Harness<'_, App>, text: &str) {
 #[test]
 fn a_typed_name_left_by_a_click_on_the_canvas_names_the_placed_point() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "103");
+    let mut h = on_sample(&tmp, "103");
     press(&mut h, Key::P);
     assert_eq!(h.state().shell().tool().name(), "ip");
     type_in_name_field(&mut h, "0V");
@@ -184,7 +184,7 @@ fn a_typed_name_left_by_a_click_on_the_canvas_names_the_placed_point() {
 #[test]
 fn a_name_typed_once_names_the_source_and_its_target_and_d_on_the_sheet_turns_the_direction() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "103");
+    let mut h = on_sample(&tmp, "103");
     press(&mut h, Key::P);
     press(&mut h, Key::D);
     while direction(&h) != "source" {
@@ -266,7 +266,7 @@ fn a_name_typed_once_names_the_source_and_its_target_and_d_on_the_sheet_turns_th
 #[test]
 fn the_tool_options_card_is_whole_while_its_name_field_is_used() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "103");
+    let mut h = on_sample(&tmp, "103");
     press(&mut h, Key::P);
     settle(&mut h);
     let t = ew_ui::theme::current(&h.ctx);
@@ -311,7 +311,7 @@ fn card_painted(h: &Harness<'_, App>, fill: egui::Color32) -> bool {
 #[test]
 fn the_ip_name_field_keeps_the_typed_name_for_the_partner_point() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "103");
+    let mut h = on_sample(&tmp, "103");
     press(&mut h, Key::P);
     assert_eq!(h.state().shell().tool().name(), "ip");
     let proposal = ghost_name(&h);
@@ -351,7 +351,7 @@ fn name_field_placeholder(h: &Harness<'_, App>) -> Option<String> {
 #[test]
 fn a_typed_name_erased_from_the_field_is_cancelled() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "103");
+    let mut h = on_sample(&tmp, "103");
     press(&mut h, Key::P);
     assert_eq!(h.state().shell().tool().name(), "ip");
     type_in_name_field(&mut h, "0V");
@@ -404,7 +404,7 @@ fn click_canvas_centre(h: &mut Harness<'_, App>) -> Vec<String> {
 #[test]
 fn a_click_on_the_free_area_of_the_tool_options_card_reaches_the_sheet() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "103");
+    let mut h = on_sample(&tmp, "103");
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     press(&mut h, Key::P);
@@ -482,7 +482,7 @@ fn a_click_on_the_free_area_of_the_tool_options_card_reaches_the_sheet() {
 #[test]
 fn a_click_in_a_gap_of_the_tool_options_band_reaches_the_sheet() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "3");
+    let mut h = on_sample(&tmp, "105");
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     press(&mut h, Key::P);
@@ -529,7 +529,7 @@ fn a_click_in_a_gap_of_the_tool_options_band_reaches_the_sheet() {
 #[test]
 fn a_row_with_no_value_lets_its_label_run_across_the_value_column() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "103");
+    let mut h = on_sample(&tmp, "103");
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     press(&mut h, Key::P);
@@ -583,7 +583,7 @@ fn a_row_with_no_value_lets_its_label_run_across_the_value_column() {
 #[test]
 fn source_and_target_are_two_choices_beside_the_name() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "103");
+    let mut h = on_sample(&tmp, "103");
     press(&mut h, Key::P);
     let chosen = |h: &Harness<'_, App>, label: &str| {
         h.get_all_by_role(egui::Role::Tab)
@@ -631,7 +631,7 @@ fn pointer_at(h: &mut Harness<'_, App>, fraction: f64) -> egui::Pos2 {
 #[test]
 fn a_direction_clicked_where_the_tool_proposed_it_holds() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "103");
+    let mut h = on_sample(&tmp, "103");
     press(&mut h, Key::P);
     type_in_name_field(&mut h, "T5");
     press(&mut h, Key::Enter);
@@ -679,7 +679,7 @@ fn a_direction_clicked_where_the_tool_proposed_it_holds() {
 #[test]
 fn a_tool_chosen_while_a_navigator_has_the_focus_takes_the_keys() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "103");
+    let mut h = on_sample(&tmp, "103");
     dispatch(&mut h, "ui.focus", json!({"area": "navigator"}));
     dispatch(&mut h, "tool.ip", json!({}));
     assert!(

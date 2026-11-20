@@ -29,9 +29,9 @@ fn tiers(root: &Path) -> LibraryTiers {
     }
 }
 
-/// A window shell with the tiers `t` on the copy `name` of Golden A, showing folio 102.
+/// A window shell with the tiers `t` on the copy `name` of the sample, showing folio 102.
 fn shell_on(tmp: &Tmp, name: &str, t: &LibraryTiers) -> ShellModel {
-    let dir = tmp.golden(name);
+    let dir = tmp.sample(name);
     let config = ShellConfig::in_dir(&tmp.0.join(format!("config-{name}")), "0.0.0-test")
         .with_libraries(Some(t.clone()));
     let mut shell = ShellModel::new(Mode::Gui, config);
@@ -44,11 +44,11 @@ fn shell_on(tmp: &Tmp, name: &str, t: &LibraryTiers) -> ShellModel {
     shell
 }
 
-/// Make variable on -102G1's process tag (`pt`) and tag counter (`n`), then folio 102's supply and breakers with
+/// Make variable on -102Q1's process tag (`pt`) and tag counter (`n`), then folio 102's devices with
 /// their wires selected.
 fn variables_and_selection(shell: &mut ShellModel) {
     done(shell, "page.goto", json!({"folio": "102"}));
-    done(shell, "select.set", json!({"refs": ["tag:-102G1"]}));
+    done(shell, "select.set", json!({"refs": ["tag:-102Q1"]}));
     done(shell, "props.show", json!({"on": true}));
     for (row, name) in [("device/process_tag", "pt"), ("device/tag.counter", "n")] {
         done(shell, "props.make_variable", json!({"row": row, "name": name}));
@@ -102,7 +102,7 @@ fn the_card_and_the_table_render_their_fields() {
         .unwrap()
         .create(&t.user.join("mine.ewlib"), "mine", "Mine", "CC0-1.0")
         .unwrap();
-    let mut shell = shell_on(&tmp, "g.ew", &t);
+    let mut shell = shell_on(&tmp, "s.ew", &t);
     variables_and_selection(&mut shell);
     done(&mut shell, "macros.save", json!({ "value_sets": three_sets() }));
     let mut h = harness_with(shell, Scripted::default(), None);
@@ -127,7 +127,7 @@ fn the_card_and_the_table_render_their_fields() {
     h.get_by_label("Remove value set Set 4").click();
     settle(&mut h);
 
-    // Save it, then insert it on folio 105.
+    // Save it, then insert it on folio 106.
     let shell = h.state_mut().shell_mut();
     shell.set_form_field("name", "PSU sizes");
     shell.set_form_field("library", "Mine");
@@ -135,9 +135,9 @@ fn the_card_and_the_table_render_their_fields() {
     done(
         shell,
         "page.new",
-        json!({"folio": "105", "type": "multi_line", "title": "Power Supply 5"}),
+        json!({"folio": "106", "type": "multi_line", "title": "Control 2"}),
     );
-    done(shell, "page.goto", json!({"folio": "105"}));
+    done(shell, "page.goto", json!({"folio": "106"}));
     done(shell, "navigator.show", json!({"kind": "macros"}));
     let key = {
         let t = shell.nav(NavKind::Macros).and_then(|n| n.table()).unwrap();

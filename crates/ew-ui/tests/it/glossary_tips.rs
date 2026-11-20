@@ -6,7 +6,6 @@
 
 use crate::support;
 
-use std::path::Path;
 use std::sync::Arc;
 
 use egui_kittest::Harness;
@@ -14,7 +13,6 @@ use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_render2d::view::DrawTransform;
 use ew_ui::app::App;
 use serde_json::json;
-use sha2::{Digest, Sha256};
 use support::{Scripted, Tmp, assert_accessible, dispatch, harness, settle};
 
 /// Whether a `Group` node is named `name`.
@@ -26,7 +24,7 @@ fn group(h: &Harness<'_, App>, name: &str) -> bool {
 #[test]
 fn the_glossary_pane_is_named_and_folio_reports_insert_arms_the_ip_tool_in_english_and_dutch() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     dispatch(&mut h, "help.glossary", json!({}));
@@ -110,7 +108,7 @@ fn field<'h>(h: &'h Harness<'_, App>) -> egui_kittest::Node<'h> {
 #[test]
 fn the_glossary_has_a_keyboard_row_cursor() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     dispatch(&mut h, "page.goto", json!({"folio": "102"}));
@@ -206,7 +204,7 @@ fn a_cased_strokes_casing_is_painted_first_one_pixel_wider_on_each_side() {
 #[test]
 fn the_dutch_term_keeps_its_longest_word_whole() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
@@ -312,7 +310,7 @@ fn the_wire_codes_stand_apart_by_the_chip_rule() {
 #[test]
 fn the_wire_codes_keep_clear_of_the_printed_texts_and_the_chrome() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     dispatch(&mut h, "page.goto", json!({"folio": "102"}));
@@ -356,24 +354,18 @@ fn the_wire_codes_keep_clear_of_the_printed_texts_and_the_chrome() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// The SHA-256 of `bytes` in hex.
-fn sha256(bytes: &[u8]) -> String {
-    Sha256::digest(bytes).iter().map(|b| format!("{b:02x}")).collect()
-}
-
+/// The view draws over the page and never into it: the snapshot shows the sample's 24 V wires of folio 102 in DBU
+/// only while the view is on, and the PDF exported with the view on is the one exported with it off, byte for byte.
 #[test]
-fn the_exported_pdf_is_the_golden_one_with_the_wire_colour_view_on_and_off() {
-    let expected = std::fs::read_to_string(
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416/expected/pdf/sha256.txt"),
-    )
-    .unwrap();
+fn the_exported_pdf_is_the_same_with_the_wire_colour_view_on_and_off() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
-    dispatch(&mut h, "page.goto", json!({"folio": "103"}));
+    dispatch(&mut h, "page.goto", json!({"folio": "102"}));
     settle(&mut h);
     let list = Arc::clone(&h.state().shell().canvas().unwrap().page().list);
+    let mut pdfs = Vec::new();
     for (n, on) in [true, false].into_iter().enumerate() {
         dispatch(&mut h, "view.wire_colours", json!({ "on": on }));
         settle(&mut h);
@@ -401,7 +393,7 @@ fn the_exported_pdf_is_the_golden_one_with_the_wire_colour_view_on_and_off() {
             })
             .sum();
         assert_eq!(shapes.len(), count);
-        // The headless snapshot shows the view as the window does: W29's DBU only while it is on.
+        // The headless snapshot shows the view as the window does: 24V's DBU only while it is on.
         let (image, _) = ew_ui::canvas::snapshot_image(shell, 0).unwrap();
         let dbu = ew_viewmodel::wire_colours::company_rgb(
             "DBU",
@@ -428,8 +420,8 @@ fn the_exported_pdf_is_the_golden_one_with_the_wire_colour_view_on_and_off() {
         );
         h.state_mut().shell_mut().wait_jobs();
         settle(&mut h);
-        let bytes = std::fs::read(&pdf).expect("the PDF is written");
-        assert_eq!(sha256(&bytes), expected.trim(), "view on: {on}");
+        pdfs.push(std::fs::read(&pdf).expect("the PDF is written"));
     }
+    assert!(pdfs[0] == pdfs[1], "the PDF with the view on is the one with it off");
     h.state_mut().shell_mut().shutdown();
 }

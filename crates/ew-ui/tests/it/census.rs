@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The accessibility census (NFR-A11Y-02, G-M2-10): every surface of the window is opened on a
-//! copy of Golden A that the suite's `Tmp` made (the committed project is only read), and the walker's six rules
+//! copy of the sample project that the suite's `Tmp` made (the committed project is only read), and the walker's six rules
 //! (`support::accessibility_problems`, `support::availability_problems`) run on each. A failing node is a line of its
 //! surface, and every line of every surface is reported at once.
 //!
@@ -70,9 +70,9 @@ fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
     );
 }
 
-/// The window on a writable copy of Golden A at folio 101 (an open of the committed project would be read-only).
-fn on_golden(tmp: &Tmp, name: &str) -> Harness<'static, App> {
-    let dir = tmp.golden(name);
+/// The window on a writable copy of the sample at folio 101 (an open of the committed project would be read-only).
+fn on_sample(tmp: &Tmp, name: &str) -> Harness<'static, App> {
+    let dir = tmp.sample(name);
     let mut h = harness(tmp, Scripted::default(), Some(dir));
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     h.run_ok();
@@ -157,7 +157,7 @@ fn open_navigator(h: &mut Harness<'_, App>, kind: NavKind) {
 #[test]
 fn census_the_window_its_tabs_menus_panes_and_navigators() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "g.ew");
+    let mut h = on_sample(&tmp, "g.ew");
     let mut census = Census::default();
     let ids: Vec<String> = {
         let tables = &h.state().shell().canvas().expect("folio 101").page().tables;
@@ -382,9 +382,9 @@ static CHAIN: Migrations = Migrations {
     }],
 };
 
-/// A copy of Golden A whose last session ended with unsaved changes: its journal stays (`scaling.rs`'s recovery).
+/// A copy of the sample whose last session ended with unsaved changes: its journal stays (`scaling.rs`'s recovery).
 fn crashed(tmp: &Tmp) -> std::path::PathBuf {
-    let dir = tmp.golden("crashed.ew");
+    let dir = tmp.sample("crashed.ew");
     let mut shell = ShellModel::new(Mode::Gui, tmp.config());
     for (action, params) in [
         ("file.open", json!({ "dir": dir.to_string_lossy() })),
@@ -403,7 +403,7 @@ fn crashed(tmp: &Tmp) -> std::path::PathBuf {
 /// test hooks only, D5).
 fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
     let simple = |action: &str, params: Value| {
-        let mut h = on_golden(tmp, &format!("{kind:?}.ew"));
+        let mut h = on_sample(tmp, &format!("{kind:?}.ew"));
         dispatch(&mut h, action, params);
         h
     };
@@ -438,7 +438,7 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
             crate::plc_workspace::draw_black_box(&mut h, "EW-GEN-DI-1", (10, 10));
             h
         }
-        // Golden A's own export, read back.
+        // The sample's own export, read back.
         DialogKind::PlcImport => {
             let file = tmp.0.join("plc.aml");
             let mut h = simple(
@@ -458,7 +458,7 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
             h
         }
         DialogKind::PartChoose | DialogKind::PartEdit => {
-            let mut h = simple("select.set", json!({"refs": ["tag:F55"]}));
+            let mut h = simple("select.set", json!({"refs": ["tag:-101F1"]}));
             let action = if kind == DialogKind::PartChoose {
                 ("part.choose", json!({"use": 0}))
             } else {
@@ -479,7 +479,7 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
         }
         DialogKind::ConfirmPurge => {
             // The first logo is unused once the project is re-opened (`snapshots.rs`'s purge question).
-            let dir = tmp.golden("purge.ew");
+            let dir = tmp.sample("purge.ew");
             let mut shell = ShellModel::new(Mode::Gui, tmp.config());
             let logo = |svg: &str| {
                 json!({"cmd": "project.company.set",
@@ -509,17 +509,17 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
             h
         }
         DialogKind::ExternalChange => {
-            // The collision: W20's colour edited here, and saved otherwise by a colleague on disk.
-            let dir = tmp.golden("live.ew");
+            // The collision: the wire's colour edited here, and saved otherwise by a colleague on disk.
+            let dir = tmp.sample("live.ew");
             let mut h = harness(tmp, Scripted::default(), Some(dir.clone()));
             h.set_size(egui::Vec2::new(1920.0, 1080.0));
             h.run_ok();
             wait_for_page(&mut h);
-            let w20 = crate::collision_dialog_focus::w20(&dir);
+            let wire = crate::collision_dialog_focus::a_wire(&dir);
             dispatch(
                 &mut h,
                 "command.run",
-                json!({"cmd": "fields.set", "params": {"kind": "connection", "targets": [w20],
+                json!({"cmd": "fields.set", "params": {"kind": "connection", "targets": [wire],
                     "path": "overrides.colour", "value": ["BU"]}}),
             );
             crate::collision_dialog_focus::colleague(tmp, &dir, "WH");
@@ -527,7 +527,7 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
             h
         }
         DialogKind::ConfirmUpgrade => {
-            let dir = tmp.golden("older.ew");
+            let dir = tmp.sample("older.ew");
             let manifest = std::fs::read_to_string(dir.join("manifest.json")).unwrap();
             let old = manifest
                 .replace("\"format\": \"0.1\"", "\"format\": \"0.0\"")
@@ -576,7 +576,7 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
         DialogKind::ConfirmGitSetup => {
             // A worktree is a folder with `.git` in it or above it: the question needs no git executable.
             std::fs::create_dir_all(tmp.0.join("repo").join(".git")).unwrap();
-            let dir = tmp.golden("repo/project.ew");
+            let dir = tmp.sample("repo/project.ew");
             let mut h = harness(tmp, Scripted::default(), Some(dir));
             h.set_size(egui::Vec2::new(1920.0, 1080.0));
             h.run_ok();
@@ -671,12 +671,12 @@ fn census_every_context_menu() {
             .first()
             .map(|i| i.label.clone())
             .expect("a menu");
-        assert!(h.query_by_label_contains(&first).is_some(), "{surface}: {first}");
+        assert!(h.query_all_by_label_contains(&first).next().is_some(), "{surface}: {first}");
         census.visit(h, surface);
     };
     // Each menu in a window of its own: a right click elsewhere first closes an open menu.
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "nothing.ew");
+    let mut h = on_sample(&tmp, "nothing.ew");
     let rep = h.state().shell().canvas().unwrap().page().tables.reps[0]
         .id
         .to_string();
@@ -693,7 +693,7 @@ fn census_every_context_menu() {
         "the canvas context menu over nothing",
     );
     h.state_mut().shell_mut().shutdown();
-    let mut h = on_golden(&tmp, "object.ew");
+    let mut h = on_sample(&tmp, "object.ew");
     let at = crate::tools::screen(&h, object(&h, &|_| true));
     open(
         &mut h,
@@ -703,7 +703,7 @@ fn census_every_context_menu() {
         "the canvas context menu over an object",
     );
     h.state_mut().shell_mut().shutdown();
-    let mut h = on_golden(&tmp, "placement.ew");
+    let mut h = on_sample(&tmp, "placement.ew");
     dispatch(&mut h, "page.goto", json!({ "folio": "902" }));
     wait_for_page(&mut h);
     h.run_ok();
@@ -726,7 +726,7 @@ fn census_every_context_menu() {
     );
     assert!(h.state().shell().selected_placements() > 0, "a placement");
     h.state_mut().shell_mut().shutdown();
-    let mut h = on_golden(&tmp, "row.ew");
+    let mut h = on_sample(&tmp, "row.ew");
     let (name, _) = crate::potential_define::a_row_to_define(&mut h);
     h.get_by_label(&name).click_secondary();
     h.run_ok();
@@ -749,11 +749,12 @@ type ToolRow<'a> = (&'a str, &'a str, Vec<(&'a str, Value)>);
 #[test]
 fn every_tool_cancels_with_escape_and_changes_nothing() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "tools.ew");
+    let mut h = on_sample(&tmp, "tools.ew");
     let mut started = BTreeSet::new();
     let mut problems = Vec::new();
-    // `<rep>` and `<device>` stand for the first representation of the page on show and the first device the panel
-    // page has not placed.
+    support::unplace(&mut h, "-101F1");
+    // `<rep>` and `<device>` stand for the first device's representation on the page on show and the first device the
+    // panel page has not placed.
     let rows: [ToolRow<'_>; 15] = [
         ("101", "wire", vec![("tool.wire", json!({}))]),
         ("101", "ip", vec![("tool.ip", json!({}))]),
@@ -810,7 +811,14 @@ fn every_tool_cancels_with_escape_and_changes_nothing() {
         let shell = h.state().shell();
         let tables = &shell.canvas().expect("a page").page().tables;
         let fill = [
-            ("<rep>", tables.reps.first().map(|r| r.id.to_string())),
+            (
+                "<rep>",
+                tables
+                    .reps
+                    .iter()
+                    .find(|r| r.device.is_some())
+                    .map(|r| r.id.to_string()),
+            ),
             (
                 "<device>",
                 shell
@@ -860,7 +868,7 @@ fn every_tool_cancels_with_escape_and_changes_nothing() {
     assert_eq!(problems, Vec::<String>::new(), "started: {started:?}");
 }
 
-/// NFR-UX-07: the two tools Golden A cannot reach, on a fixture the test builds: a copy of Golden A with a
+/// NFR-UX-07: the two tools the sample cannot reach, on a fixture the test builds: a copy of the sample with a
 /// user library that holds a macro saved from folio 102 (installed, so the Macros navigator arms the macro tool on
 /// it) and a free text placed on folio 101 (F2 on it starts the text-edit tool). Each gives way to Select at Escape
 /// and leaves the revision as it was; with the sixteen of [`every_tool_cancels_with_escape_and_changes_nothing`] every
@@ -882,7 +890,7 @@ fn the_macro_and_text_edit_tools_cancel_with_escape_and_change_nothing() {
         .unwrap()
         .create(&tiers.user.join("mine.ewlib"), "mine", "Mine", "CC0-1.0")
         .unwrap();
-    let dir = tmp.golden("tools.ew");
+    let dir = tmp.sample("tools.ew");
     let config = ShellConfig::in_dir(&tmp.0.join("config-tools"), "0.0.0-test").with_libraries(Some(tiers));
     let mut shell = ShellModel::new(Mode::Gui, config);
     let done = |shell: &mut ShellModel, action: &str, params: Value| {
@@ -1023,7 +1031,7 @@ fn census_the_start_page_the_first_run_and_the_wizard() {
     h.state_mut().shell_mut().shutdown();
     drop(h);
 
-    let dir = tmp.golden("wizard.ew");
+    let dir = tmp.sample("wizard.ew");
     let mut shell = ShellModel::new(Mode::Gui, tmp.config_with_resources());
     assert_eq!(
         shell.dispatch("file.open", &json!({ "dir": dir.to_string_lossy() })),
@@ -1145,7 +1153,7 @@ fn the_form_check_names_a_form_the_census_does_not_open() {
 #[test]
 fn census_the_symbol_editor() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "g.ew");
+    let mut h = on_sample(&tmp, "g.ew");
     let mut census = Census::default();
     dispatch(&mut h, "symbol.new", json!({}));
     h.run_ok();
@@ -1191,7 +1199,7 @@ fn census_the_symbol_editor() {
     dispatch(&mut h, "symbol.tool", json!({"tool": "cp"}));
     h.run_ok();
     census.visit(&mut h, "the symbol editor with the Connection point tool");
-    dispatch(&mut h, "part.box", json!({"part": "MICO 4.10"}));
+    dispatch(&mut h, "part.box", json!({"part": "EW-GEN-PSU-1"}));
     dispatch(&mut h, "part.box_select", json!({"pins": [0]}));
     h.run_ok();
     census.visit(&mut h, "the device box with a pin selected");
@@ -1208,7 +1216,7 @@ fn census_the_symbol_editor() {
 #[test]
 fn the_symbol_editors_refusal_answers_above_the_drawing_and_in_to_do() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "g.ew");
+    let mut h = on_sample(&tmp, "g.ew");
     for (action, params) in [
         ("symbol.new", json!({"key": "example.once", "name": "Once"})),
         (
@@ -1253,7 +1261,7 @@ fn the_symbol_editors_refusal_answers_above_the_drawing_and_in_to_do() {
 fn the_symbol_editors_tool_buttons_name_their_keys() {
     use egui::accesskit::Role;
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "g.ew");
+    let mut h = on_sample(&tmp, "g.ew");
     dispatch(
         &mut h,
         "symbol.new",

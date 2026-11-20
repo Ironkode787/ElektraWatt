@@ -44,7 +44,7 @@ fn wait_jobs_then_settle(h: &mut Harness<'_, App>) {
 #[test]
 fn the_save_dialogs_answer_replaces_an_existing_file_through_a_job() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let pdf = tmp.0.join("out.pdf");
     std::fs::write(&pdf, b"an older file").unwrap();
     let platform = Scripted::default();
@@ -59,9 +59,12 @@ fn the_save_dialogs_answer_replaces_an_existing_file_through_a_job() {
     let bytes = std::fs::read(&pdf).unwrap();
     assert!(bytes.starts_with(b"%PDF-"), "the file was replaced");
     let kib = bytes.len().div_ceil(1024);
-    // The pages by kind.
+    // The pages by kind: the sample's title page and its seven drawn pages, the dividers of its three sections, and
+    // its generated pages, as many as its reports run to.
+    let rows = h.state().shell().page_rows().to_vec();
+    let reports = rows.iter().filter(|r| r.kind == "report").count();
     let text = format!(
-        "Exported out.pdf: 13 drawing pages, 3 section divider pages and 20 report pages, {kib} KiB."
+        "Exported out.pdf: 8 drawing pages, 3 section divider pages and {reports} report pages, {kib} KiB."
     );
     assert!(h.query_by_label(&text).is_some(), "the toast");
     assert!(
@@ -71,7 +74,10 @@ fn the_save_dialogs_answer_replaces_an_existing_file_through_a_job() {
     // The Jobs pane keeps the result with Open.
     dispatch(&mut h, "jobs.show", json!({}));
     settle(&mut h);
-    assert!(h.query_by_label(&format!("36 pages, {kib} KiB")).is_some());
+    assert!(
+        h.query_by_label(&format!("{} pages, {kib} KiB", rows.len()))
+            .is_some()
+    );
     // Open PDF (FT-1689): the toast's and the pane's buttons each hand the written file, by its path, to the system's
     // file opener; no URL goes to the browser.
     let opens = h.get_all_by_label("Open").count();
@@ -93,7 +99,7 @@ fn the_save_dialogs_answer_replaces_an_existing_file_through_a_job() {
 #[test]
 fn a_running_export_is_a_named_progress_indicator_with_cancel_and_the_job_field() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let pdf = tmp.0.join("held.pdf");
     let mut shell = ShellModel::new(Mode::Gui, tmp.config());
     let gate = Gate::new();
@@ -137,7 +143,7 @@ fn a_running_export_is_a_named_progress_indicator_with_cancel_and_the_job_field(
 #[test]
 fn the_toasts_stack_and_the_log_opens_from_the_status_bar() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     edit_toast(&mut h);
@@ -179,7 +185,7 @@ fn the_toasts_stack_and_the_log_opens_from_the_status_bar() {
 #[test]
 fn the_recovery_dialog_offers_recover_open_read_only_and_discard() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     {
         let mut crashed = ShellModel::new(Mode::Gui, tmp.config());
         assert_eq!(
@@ -204,7 +210,7 @@ fn the_recovery_dialog_offers_recover_open_read_only_and_discard() {
     ));
     assert!(h.query_by_label("Recover unsaved changes?").is_some());
     assert!(
-        h.query_by_label("g.ew has unsaved changes from a session that ended unexpectedly.")
+        h.query_by_label("s.ew has unsaved changes from a session that ended unexpectedly.")
             .is_some()
     );
     assert!(h.query_by_label("Unsaved changes: 1").is_some());

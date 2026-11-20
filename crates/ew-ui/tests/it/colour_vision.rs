@@ -6,9 +6,9 @@
 //! tritanopes see them (Machado et al. 2009, severity 1.0); the CIEDE2000 code meets Sharma, Wu and Dalal's test pairs;
 //! the slots' hatch angles are distinct, so a weak colour pair is still told apart by its pattern.
 //!
-//! The renders of folio 103 with 24VDC-1, 0V, PE and 24VDC-2 in slots 1 to 4 and of folio 102 with 24VDC-1 and 0V, at
-//! 150 dpi through `ew-render-cpu` and under each simulation, are written for review with `EW_BLESS=1` under
-//! `tests/expected/canvas/cvd/` and never compared (D15: not gated).
+//! The render of the sample's folio 101 with L1, N, PE and 24V in slots 1 to 4, at 150 dpi through `ew-render-cpu`
+//! and under each simulation, is written for review with `EW_BLESS=1` under `tests/expected/canvas/cvd/` and never
+//! compared (D15: not gated).
 
 use crate::support;
 
@@ -151,9 +151,9 @@ fn done(shell: &mut ShellModel, action: &str, params: Value) {
 /// The resolution of the renders (doc 16 §15.6).
 const DPI: f64 = 150.0;
 
-/// A copy of Golden A open on `folio` in a headless shell whose pane is the sheet at 150 dpi (ppp 1, zoom 150/96).
+/// A copy of the sample open on `folio` in a headless shell whose pane is the sheet at 150 dpi (ppp 1, zoom 150/96).
 fn at_150_dpi(tmp: &Tmp, folio: &str) -> ShellModel {
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     done(
         &mut shell,
@@ -204,51 +204,47 @@ fn bless() -> bool {
 #[test]
 fn the_highlight_renders_under_each_simulation_are_written_for_review() {
     let dir = PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/expected/canvas/cvd"));
-    for (folio, names) in [
-        ("103", &["24VDC-1", "0V", "PE", "24VDC-2"][..]),
-        ("102", &["24VDC-1", "0V"][..]),
-    ] {
-        let tmp = Tmp::new();
-        let mut shell = at_150_dpi(&tmp, folio);
-        highlight(&mut shell, names);
-        let slots: Vec<(u8, &str)> = shell
-            .highlights()
-            .items()
-            .iter()
-            .map(|h| (h.slot, h.name.as_str()))
-            .collect();
-        let expected: Vec<(u8, &str)> = (0..).zip(names.iter().copied()).collect();
-        assert_eq!(
-            slots,
-            expected,
-            "{folio}: the potentials in slots 1 to {}",
-            names.len()
+    let (folio, names) = ("101", ["L1", "N", "PE", "24V"]);
+    let tmp = Tmp::new();
+    let mut shell = at_150_dpi(&tmp, folio);
+    highlight(&mut shell, &names);
+    let slots: Vec<(u8, &str)> = shell
+        .highlights()
+        .items()
+        .iter()
+        .map(|h| (h.slot, h.name.as_str()))
+        .collect();
+    let expected: Vec<(u8, &str)> = (0..).zip(names.iter().copied()).collect();
+    assert_eq!(
+        slots,
+        expected,
+        "{folio}: the potentials in slots 1 to {}",
+        names.len()
+    );
+    assert_eq!(
+        shell.highlight_overlay(0).len(),
+        names.len(),
+        "{folio}: every highlight is drawn"
+    );
+    let (image, dpi) = ew_ui::canvas::snapshot_image(&shell, 0).expect("a snapshot");
+    assert_eq!(dpi, 150, "{folio}");
+    let (w, h) = shell.canvas().unwrap().sheet();
+    let px = |nm: i64| (nm as f64 / 25_400_000.0 * DPI).round() as u32;
+    assert_eq!((image.width, image.height), (px(w), px(h)), "{folio}: the sheet");
+    for sim in Simulation::ALL {
+        let mut seen = image.clone();
+        sim.apply(&mut seen.pixels);
+        assert_ne!(
+            seen.pixels,
+            image.pixels,
+            "{folio} {}: the hues change",
+            sim.word()
         );
-        assert_eq!(
-            shell.highlight_overlay(0).len(),
-            names.len(),
-            "{folio}: every highlight is drawn"
-        );
-        let (image, dpi) = ew_ui::canvas::snapshot_image(&shell, 0).expect("a snapshot");
-        assert_eq!(dpi, 150, "{folio}");
-        let (w, h) = shell.canvas().unwrap().sheet();
-        let px = |nm: i64| (nm as f64 / 25_400_000.0 * DPI).round() as u32;
-        assert_eq!((image.width, image.height), (px(w), px(h)), "{folio}: the sheet");
-        for sim in Simulation::ALL {
-            let mut seen = image.clone();
-            sim.apply(&mut seen.pixels);
-            assert_ne!(
-                seen.pixels,
-                image.pixels,
-                "{folio} {}: the hues change",
-                sim.word()
-            );
-            if bless() {
-                std::fs::create_dir_all(&dir).unwrap();
-                let path = dir.join(format!("{folio}-{}.png", sim.word()));
-                std::fs::write(&path, ew_render_cpu::encode_png(&seen, Some(150))).unwrap();
-            }
+        if bless() {
+            std::fs::create_dir_all(&dir).unwrap();
+            let path = dir.join(format!("{folio}-{}.png", sim.word()));
+            std::fs::write(&path, ew_render_cpu::encode_png(&seen, Some(150))).unwrap();
         }
-        shell.shutdown();
     }
+    shell.shutdown();
 }

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! In the window: in the Potentials table, a potential
-//! known only at its connection points (its definition deleted) has editable Name and Type cells (their AccessKit
+//! known only at its connection points (no definition) has editable Name and Type cells (their AccessKit
 //! names do not end ", read-only"); a double click on the Name opens the cell editor, and the typed name defines the
 //! potential in one step.
 
@@ -12,7 +12,7 @@ use egui::{Modifiers, PointerButton};
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
 use ew_ui::app::App;
-use ew_viewmodel::navigators::{NavKind, NavRole};
+use ew_viewmodel::navigators::NavKind;
 use ew_viewmodel::shell::{Outcome, ShellModel};
 use serde_json::{Value, json};
 use support::{Scripted, Tmp, done, harness, settle, wait_for_page};
@@ -52,34 +52,22 @@ fn cell_name(shell: &ShellModel, node: u32, label: &str) -> String {
     format!("{head}, row {at} of {}", rows.len())
 }
 
-/// The Potentials table on show with 24VDC-4's definition deleted: the potential is known only at its connection points.
-fn undefine_24vdc4(shell: &mut ShellModel) {
+/// The Potentials table on show. The sample defines its supplies' potentials only (L1 … PE, 24V, 0V): the potentials
+/// behind a protective device or a contact are known only at their connection points.
+fn potentials_table(shell: &mut ShellModel) {
     done(shell, "navigator.show", json!({"kind": "potentials"}));
     done(shell, "navigator.table", json!({"kind": "potentials"}));
-    let def = {
-        let t = shell.nav(NavKind::Potentials).and_then(|n| n.table()).unwrap();
-        t.nodes
-            .iter()
-            .find(|n| n.role == NavRole::Potential && n.label == "24VDC-4")
-            .map(|n| n.records[0])
-            .expect("24VDC-4")
-    };
-    done(
-        shell,
-        "command.run",
-        json!({"cmd": "edit.delete", "params": {"targets": [{"kind": "potential_def", "id": def.to_string()}]}}),
-    );
 }
 
 #[test]
 fn the_type_cell_of_an_undefined_potential_is_editable() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h: Harness<'static, App> = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     wait_for_page(&mut h);
     let shell = h.state_mut().shell_mut();
-    undefine_24vdc4(shell);
+    potentials_table(shell);
     let (node, label) = {
         let t = shell.nav(NavKind::Potentials).and_then(|n| n.table()).unwrap();
         let i = t
@@ -139,14 +127,14 @@ fn the_type_cell_of_an_undefined_potential_is_editable() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// The row with a context menu, in the window `h` on a copy of Golden A: the Potentials table, 24VDC-4's
-/// definition deleted, filtered to the first row with a point to define its potential at; the accessible name of its
+/// The row with a context menu, in the window `h` on a copy of the sample: the Potentials table
+/// filtered to the first row with a point to define its potential at; the accessible name of its
 /// Potential cell and the point (the census opens its menu too).
 pub(crate) fn a_row_to_define(
     h: &mut Harness<'static, App>,
 ) -> (String, (impl std::fmt::Display + use<>, u16)) {
     let shell = h.state_mut().shell_mut();
-    undefine_24vdc4(shell);
+    potentials_table(shell);
     let (node, label, at) = {
         let t = shell.nav(NavKind::Potentials).and_then(|n| n.table()).unwrap();
         let i = t
@@ -174,7 +162,7 @@ pub(crate) fn a_row_to_define(
 #[test]
 fn a_potentials_rows_context_menu_defines_its_potential() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h: Harness<'static, App> = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     wait_for_page(&mut h);
@@ -210,12 +198,12 @@ fn a_potentials_rows_context_menu_defines_its_potential() {
 #[test]
 fn a_failed_define_stays_in_its_form_and_no_banner_follows() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h: Harness<'static, App> = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     wait_for_page(&mut h);
     let shell = h.state_mut().shell_mut();
-    // Golden A's definitions deleted, as the model's test of Define potential… does: its wires define anew.
+    // The sample's definitions deleted, as the model's test of Define potential… does: its wires define anew.
     done(shell, "navigator.show", json!({"kind": "potentials"}));
     done(shell, "navigator.table", json!({"kind": "potentials"}));
     let defs: Vec<Value> = {
@@ -302,13 +290,14 @@ fn a_failed_define_stays_in_its_form_and_no_banner_follows() {
 #[test]
 fn define_potentials_type_is_chosen_from_a_list() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h: Harness<'static, App> = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     wait_for_page(&mut h);
     let shell = h.state_mut().shell_mut();
     done(shell, "page.goto", json!({"folio": "102"}));
-    let wire = shell.canvas().unwrap().page().tables.connections[0]
+    // The second wire of 102: the first is on 24V, whose definition shows its type L+ in Properties.
+    let wire = shell.canvas().unwrap().page().tables.connections[1]
         .id
         .to_string();
     done(shell, "select.set", json!({"ids": [wire]}));
@@ -347,13 +336,14 @@ fn define_potentials_type_is_chosen_from_a_list() {
 #[test]
 fn a_click_beside_an_open_list_closes_the_list_not_the_form() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h: Harness<'static, App> = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     wait_for_page(&mut h);
     let shell = h.state_mut().shell_mut();
     done(shell, "page.goto", json!({"folio": "102"}));
-    let wire = shell.canvas().unwrap().page().tables.connections[0]
+    // The second wire of 102: the first is on 24V, whose definition shows its type L+ in Properties.
+    let wire = shell.canvas().unwrap().page().tables.connections[1]
         .id
         .to_string();
     done(shell, "select.set", json!({"ids": [wire]}));
@@ -394,11 +384,11 @@ fn a_click_beside_an_open_list_closes_the_list_not_the_form() {
 #[test]
 fn escape_in_a_context_menu_keeps_the_selection() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h: Harness<'static, App> = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     wait_for_page(&mut h);
-    // 24VDC-4's definition deleted, so its row offers Define potential….
+    // A potential known only at its points: its row offers Define potential….
     let (name, _) = a_row_to_define(&mut h);
     done(
         h.state_mut().shell_mut(),

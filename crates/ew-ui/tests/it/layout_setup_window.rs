@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! In the window, on a writable copy of Golden A, folio 902: Draw ▸ Layout's
+//! In the window, on a writable copy of the sample, folio 902: Draw ▸ Layout's
 //! Duct button arming Draw duct with its options card; the Create enclosure dialog with its two choice lists and its
 //! refusal under the fields, and its Create disabled without a part; the Auto-fill rail dialog's line and its Fill
 //! button; Rail 1's Properties with its free length. The drawing, the commits and the poses are the viewmodel's
@@ -14,14 +14,23 @@ use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
 use ew_viewmodel::shell::{Dialog, Mode, ShellModel};
 use serde_json::json;
-use support::{Tmp, dispatch, on_golden, settle};
+use support::{Tmp, dispatch, on_sample, settle};
+
+/// The sample on 902 with a duct part that gives no size, first among the duct parts by its number: the sample's own
+/// duct part gives one (40 × 60 mm), and Draw duct takes the first part when none was chosen.
+fn with_a_duct_without_a_size(tmp: &Tmp) -> Harness<'static, App> {
+    let mut h = on_sample(tmp, "902");
+    let duct = "D-1,Sample Maker,D-1,duct,,Wiring duct,m,,,,,,,,,,,".to_owned();
+    support::import_parts(&mut h, tmp, &[duct]);
+    h
+}
 
 /// At 1440 × 900, where the Draw row shows the Layout group whole (in a smaller window the group folds
 /// into its menu since Cable joined Connect (FT-1685).
 #[test]
 fn the_duct_button_arms_draw_duct_with_its_options_card() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "902");
+    let mut h = with_a_duct_without_a_size(&tmp);
     h.set_size(egui::Vec2::new(1440.0, 900.0));
     dispatch(&mut h, "view.command_tab", json!({ "tab": "draw" }));
     settle(&mut h);
@@ -37,7 +46,7 @@ fn the_duct_button_arms_draw_duct_with_its_options_card() {
         "the grid's tab list"
     );
     assert!(h.query_all_by_label("Part").next().is_some(), "the part's label");
-    // Golden A's duct part gives no size, so the card asks for it.
+    // The duct part gives no size, so the card asks for it.
     assert!(
         h.query_all_by_label("Width (mm)").next().is_some(),
         "the width's label"
@@ -58,12 +67,12 @@ fn the_duct_button_arms_draw_duct_with_its_options_card() {
     );
 }
 
-/// Draw duct armed after Draw rail sizes its own card: Golden A's duct part gives no size, so the
+/// Draw duct armed after Draw rail sizes its own card: its duct part gives no size, so the
 /// card shows Width and Height, each at least its desired width (48 px), and Height reads its value whole (60).
 #[test]
 fn the_duct_card_after_the_rail_card_keeps_its_fields_width() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "902");
+    let mut h = with_a_duct_without_a_size(&tmp);
     dispatch(&mut h, "tool.rail_draw", json!({}));
     settle(&mut h);
     assert_eq!(h.state().shell().tool().name(), "rail_draw");
@@ -380,7 +389,7 @@ fn two_clicks_and_enter_with_the_duct_tool_draw_a_duct() {
 #[test]
 fn the_create_enclosure_dialog_keeps_its_refusal_under_the_fields() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "902");
+    let mut h = on_sample(&tmp, "902");
     dispatch(&mut h, "layout.enclosure_new", json!({}));
     settle(&mut h);
     assert!(
@@ -390,7 +399,7 @@ fn the_create_enclosure_dialog_keeps_its_refusal_under_the_fields() {
     assert!(h.query_all_by_label("Location").next().is_some());
     assert!(h.query_all_by_label("Enclosure part").next().is_some());
     assert!(
-        h.query_all_by_label_contains("+J-E-2416").next().is_some(),
+        h.query_all_by_label_contains("+CAB").next().is_some(),
         "the page's location chosen"
     );
     h.get_by_label("Create").click();
@@ -410,7 +419,7 @@ fn the_create_enclosure_dialog_keeps_its_refusal_under_the_fields() {
 #[test]
 fn create_is_disabled_without_a_part() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "902");
+    let mut h = on_sample(&tmp, "902");
     dispatch(&mut h, "layout.enclosure_new", json!({}));
     settle(&mut h);
     h.state_mut().shell_mut().set_form_field("part", "");
@@ -428,7 +437,7 @@ fn create_is_disabled_without_a_part() {
 #[test]
 fn the_auto_fill_dialog_says_which_devices_it_fills_with() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "902");
+    let mut h = on_sample(&tmp, "902");
     dispatch(&mut h, "layout.auto_fill_rail", json!({}));
     settle(&mut h);
     assert!(
@@ -451,8 +460,8 @@ fn the_auto_fill_dialog_says_which_devices_it_fills_with() {
 #[test]
 fn rail_1s_properties_show_its_free_length() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "902");
-    let r1 = h
+    let mut h = on_sample(&tmp, "902");
+    let (r1, free) = h
         .state()
         .shell()
         .panel_tables()
@@ -460,12 +469,14 @@ fn rail_1s_properties_show_its_free_length() {
         .carriers
         .iter()
         .find(|c| c.label == "Rail 1")
-        .unwrap()
-        .id;
+        .map(|c| (c.id, c.free_length.expect("a rail's free length")))
+        .unwrap();
     dispatch(&mut h, "select.set", json!({ "ids": [r1.to_string()] }));
     settle(&mut h);
     assert!(h.query_all_by_label("Free length").next().is_some());
-    assert!(h.query_all_by_label("341 mm").next().is_some());
+    // The rail's length less what Auto-fill rail placed on it and its end brackets, in millimetres.
+    let text = format!("{} mm", free as f64 / 1e6);
+    assert!(h.query_all_by_label(&text).next().is_some(), "{text}");
 }
 
 /// The placement of device `tag` on 902.
@@ -505,35 +516,35 @@ fn focused_field(h: &Harness<'_, App>) -> (String, egui::Rect) {
     )
 }
 
-/// -102F1's Realised part edited, then the same row of -201U1's placement edited: the editor shows
-/// -201U1's own part, not -102F1's. Once with the first editor cancelled and frames between, once with `select.set` on -201U1's placement and `props.edit` on the same row with no frame between, the
-/// first editor's field still focused: the field keeps its focus across the change and still shows -201U1's own part.
+/// -102F1's Realised part edited, then the same row of -101G1's placement edited: the editor shows
+/// -101G1's own part, not -102F1's. Once with the first editor cancelled and frames between, once with `select.set` on -101G1's placement and `props.edit` on the same row with no frame between, the
+/// first editor's field still focused: the field keeps its focus across the change and still shows -101G1's own part.
 #[test]
 fn the_editor_of_another_selection_shows_its_own_value() {
     for frames_between in [true, false] {
         let tmp = Tmp::new();
-        let mut h = on_golden(&tmp, "902");
+        let mut h = on_sample(&tmp, "902");
         let row = json!({"row": "placement/derived.realised_part"});
         let f1 = placement_of(&h, "-102F1");
-        let u1 = placement_of(&h, "-201U1");
+        let g1 = placement_of(&h, "-101G1");
         dispatch(&mut h, "select.set", json!({"ids": [f1]}));
         settle(&mut h);
         dispatch(&mut h, "props.edit", row.clone());
         settle(&mut h);
         assert_eq!(
             focused_field(&h).0,
-            "A9F78116",
+            "EW-GEN-MCB-1",
             "frames between: {frames_between}"
         );
         if frames_between {
             dispatch(&mut h, "props.cancel", json!({}));
             settle(&mut h);
-            dispatch(&mut h, "select.set", json!({"ids": [u1]}));
+            dispatch(&mut h, "select.set", json!({"ids": [g1]}));
             settle(&mut h);
             dispatch(&mut h, "props.edit", row);
             settle(&mut h);
         } else {
-            dispatch(&mut h, "select.set", json!({"ids": [u1]}));
+            dispatch(&mut h, "select.set", json!({"ids": [g1]}));
             dispatch(&mut h, "props.edit", row);
             settle(&mut h);
         }
@@ -547,7 +558,7 @@ fn the_editor_of_another_selection_shows_its_own_value() {
             .clone();
         assert_eq!(
             (focused_field(&h).0, buffer.as_str()),
-            ("195740".to_owned(), "195740"),
+            ("EW-GEN-PSU-1".to_owned(), "EW-GEN-PSU-1"),
             "frames between: {frames_between}"
         );
     }
@@ -557,7 +568,7 @@ fn the_editor_of_another_selection_shows_its_own_value() {
 #[test]
 fn the_editors_text_is_padded_from_the_fields_edge() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "902");
+    let mut h = on_sample(&tmp, "902");
     dispatch(&mut h, "select.set", json!({"ids": []}));
     settle(&mut h);
     dispatch(&mut h, "props.edit", json!({"row": "page/derived.surface"}));
@@ -584,7 +595,7 @@ fn the_editors_text_is_padded_from_the_fields_edge() {
 #[test]
 fn the_surface_view_rows_have_their_own_heading() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "902");
+    let mut h = on_sample(&tmp, "902");
     dispatch(&mut h, "select.set", json!({"ids": []}));
     settle(&mut h);
     let headings: Vec<String> = h
@@ -601,7 +612,7 @@ fn the_surface_view_rows_have_their_own_heading() {
 #[test]
 fn an_editor_opened_out_of_view_scrolls_into_view() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "902");
+    let mut h = on_sample(&tmp, "902");
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     dispatch(&mut h, "select.set", json!({"refs": ["tag:-102F1"]}));
@@ -670,7 +681,7 @@ fn painted_texts(h: &Harness<'_, App>) -> Vec<(String, egui::Pos2)> {
 #[test]
 fn create_enclosure_disabled_at_open_focuses_its_first_control() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "902");
+    let mut h = on_sample(&tmp, "902");
     dispatch(&mut h, "layout.enclosure_new", json!({}));
     h.state_mut().shell_mut().set_form_field("part", "");
     settle(&mut h);

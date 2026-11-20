@@ -45,9 +45,9 @@ fn dutch_at(h: &mut Harness<'_, App>, scale: f32) {
     assert!((h.ctx.pixels_per_point() - scale).abs() < 1e-6);
 }
 
-/// Golden A open on folio 101 in the window, in Dutch at `scale` (the setup of `place.rs`).
-fn on_golden(tmp: &Tmp, scale: f32) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
+/// The sample open on folio 101 in the window, in Dutch at `scale` (the setup of `place.rs`).
+fn on_sample(tmp: &Tmp, scale: f32) -> Harness<'static, App> {
+    let dir = tmp.sample("s.ew");
     let mut h = harness(tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     wait_for_page(&mut h);
@@ -98,7 +98,7 @@ fn first_run(scale: f32) {
         .click();
     step(&mut h);
     assert!(h.state().shell().first_run().is_none());
-    assert_eq!(h.state().shell().project_name(), Some("J-E-2416.ew"));
+    assert_eq!(h.state().shell().project_name(), Some("sample.ew"));
     wait_for_page(&mut h);
     step(&mut h);
     h.state_mut().shell_mut().shutdown();
@@ -131,7 +131,7 @@ fn new_project(scale: f32) {
 /// finish.
 fn place_and_wire(scale: f32) {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, scale);
+    let mut h = on_sample(&tmp, scale);
     dispatch(&mut h, "place.pick", json!({"symbol": "ew.iec.mcb-1p@qet10"}));
     step(&mut h);
     dispatch(&mut h, "canvas.pointer", json!({"x_mm": 120.0, "y_mm": 120.0}));
@@ -152,7 +152,7 @@ fn place_and_wire(scale: f32) {
 /// The terminal-strip flow of `table_mode.rs`: the strip editor on -X1031 and a cell of its grid.
 fn terminal_strip(scale: f32) {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, scale);
+    let mut h = on_sample(&tmp, scale);
     dispatch(&mut h, "strip.edit", json!({"strip": "-X1031"}));
     step(&mut h);
     let row = {
@@ -169,7 +169,7 @@ fn terminal_strip(scale: f32) {
 /// The renumber flow of `preview_history.rs`: Renumber devices…, its dialog, the Preview tab, Apply.
 fn renumber(scale: f32) {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, scale);
+    let mut h = on_sample(&tmp, scale);
     dispatch(
         &mut h,
         "command.run",
@@ -194,7 +194,7 @@ fn renumber(scale: f32) {
 /// The export flow of `jobs.rs`: Export PDF through the save dialog, the job, its toast and the Jobs pane.
 fn export_pdf(scale: f32) {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let pdf: PathBuf = tmp.0.join("out.pdf");
     let platform = Scripted::default();
     platform.answers.borrow_mut().push_back(Pick::Path(pdf.clone()));
@@ -329,11 +329,11 @@ fn labels(h: &Harness<'_, App>) -> Vec<String> {
 fn the_pages_navigator_follows_the_language_in_its_first_frame() {
     let modes: [(bool, &[&str], &[&str]); 2] = [
         (false, &["Sectie 1", "gegenereerd"], &["Section 1", "generated"]),
-        (true, &[", rij 1 van 36"], &[", row 1 of 36"]),
+        (true, &[", rij 1 van "], &[", row 1 of "]),
     ];
     for (table, dutch_words, english_words) in modes {
         let tmp = Tmp::new();
-        let mut h = on_golden(&tmp, 1.0);
+        let mut h = on_sample(&tmp, 1.0);
         // Tall enough that every page row is painted, the generated report pages among them.
         h.set_size(egui::Vec2::new(1000.0, 3000.0));
         if table {

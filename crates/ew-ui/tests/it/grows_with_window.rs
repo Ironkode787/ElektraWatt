@@ -14,8 +14,8 @@ use ew_ui::app::App;
 use serde_json::json;
 use support::{Scripted, Tmp, dispatch, harness, settle, wait_for_page};
 
-fn on_golden(tmp: &Tmp, size: egui::Vec2) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
+fn on_sample(tmp: &Tmp, size: egui::Vec2) -> Harness<'static, App> {
+    let dir = tmp.sample("s.ew");
     let mut h = harness(tmp, Scripted::default(), Some(dir));
     h.set_size(size);
     settle(&mut h);
@@ -50,7 +50,7 @@ fn at_both_sizes(
     let mut out = Vec::new();
     for size in SIZES {
         let tmp = Tmp::new();
-        let mut h = on_golden(&tmp, size);
+        let mut h = on_sample(&tmp, size);
         open(&mut h);
         settle(&mut h);
         settle(&mut h);
@@ -76,7 +76,7 @@ fn assert_grows(what: &str, main: f32, extension: f32) {
 fn the_choose_part_dialog_grows_with_the_window() {
     let (main, extension) = at_both_sizes(
         |h| {
-            dispatch(h, "select.set", json!({"refs": ["tag:F55"]}));
+            dispatch(h, "select.set", json!({"refs": ["tag:-101F1"]}));
             dispatch(h, "part.choose", json!({"use": 0}));
         },
         |h| {
@@ -105,7 +105,7 @@ fn the_part_picker_grows_with_the_window() {
 fn the_part_picker_keeps_its_width_and_stays_inside_the_window() {
     for size in SIZES {
         let tmp = Tmp::new();
-        let mut h = on_golden(&tmp, size);
+        let mut h = on_sample(&tmp, size);
         open_part_picker(&mut h);
         settle(&mut h);
         settle(&mut h);
@@ -137,13 +137,14 @@ fn the_part_picker_keeps_its_width_and_stays_inside_the_window() {
     }
 }
 
-/// In Device from part the part names are whole at 1920 and at 2560 beside a part number as long as Golden A's
-/// "32P-VGL-R-…" order code: the table uses the space it has.
+/// In Device from part the part names are whole at 1920 and at 2560 beside a part number as long as a valve terminal's
+/// "32P-VGL-R-…" order code (a part of the test tables imported into the sample): the table uses the space it has.
 #[test]
 fn part_names_are_whole_in_device_from_part() {
     for size in SIZES {
         let tmp = Tmp::new();
-        let mut h = on_golden(&tmp, size);
+        let mut h = on_sample(&tmp, size);
+        support::import_parts(&mut h, &tmp, &[support::table_part("32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS")]);
         open_part_picker(&mut h);
         settle(&mut h);
         settle(&mut h);
@@ -205,7 +206,7 @@ fn open_every_part(h: &mut Harness<'_, App>) {
 #[test]
 fn a_parts_function_rows_stay_inside_the_row_and_read_in_words() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, SIZES[0]);
+    let mut h = on_sample(&tmp, SIZES[0]);
     open_part_picker(&mut h);
     open_every_part(&mut h);
     // Each painted text, its rectangle.
@@ -264,7 +265,7 @@ fn selected_labels(h: &Harness<'_, App>) -> Vec<String> {
 #[test]
 fn the_palette_and_the_picker_mark_their_selected_row() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, SIZES[0]);
+    let mut h = on_sample(&tmp, SIZES[0]);
     dispatch(&mut h, "tools.palette", json!({}));
     h.state_mut().shell_mut().set_palette_query("save");
     settle(&mut h);
@@ -349,7 +350,7 @@ fn open_mapping(path: &std::path::Path) -> impl Fn(&mut Harness<'_, App>) + '_ {
 }
 
 /// The parts import's column mapping card is a form that grows with the window when its samples need
-/// the room (a table with a long description): wider at 2560 than at 1920. Golden A's own table fits the form
+/// the room (a table with a long description): wider at 2560 than at 1920. The test tables' parts table fits the form
 /// width at both sizes, so it is not stretched.
 #[test]
 fn the_parts_mapping_card_grows_with_the_window() {
@@ -361,12 +362,12 @@ fn the_parts_mapping_card_grows_with_the_window() {
     std::fs::write(&csv, format!("{head}\nA1,Acme,A1,,,{long},piece,,\n")).unwrap();
     let (main, extension) = at_both_sizes(open_mapping(&csv), mapping_card);
     assert_grows_from("the mapping card", tokens().size_dialog_form, main, extension);
-    let golden =
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416/tables/parts.csv");
-    let (main, extension) = at_both_sizes(open_mapping(&golden), mapping_card);
+    let tables =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/tables/parts.csv");
+    let (main, extension) = at_both_sizes(open_mapping(&tables), mapping_card);
     assert!(
         (main - extension).abs() < 0.5 && main < tokens().size_dialog_form + 0.5,
-        "Golden A's table keeps the form width: {main} and {extension}"
+        "the test tables' parts table keeps the form width: {main} and {extension}"
     );
 }
 
@@ -423,12 +424,12 @@ fn the_show_changes_popup_grows_with_the_window() {
     );
 }
 
-/// FT-798: at 1920 × 1080 no row of Golden A's Pages tree on show is cut (each button is as wide as its whole
+/// FT-798: at 1920 × 1080 no row of the sample's Pages tree on show is cut (each button is as wide as its whole
 /// title), and the left column is wider than `size.panel.left`.
 #[test]
 fn no_pages_row_is_cut_at_1920() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, egui::Vec2::new(1920.0, 1080.0));
+    let mut h = on_sample(&tmp, egui::Vec2::new(1920.0, 1080.0));
     dispatch(&mut h, "page.goto", json!({"folio": "101"}));
     settle(&mut h);
     settle(&mut h);
@@ -478,7 +479,7 @@ fn no_pages_row_is_cut_at_1920() {
 #[test]
 fn the_pages_table_title_refills_on_a_resize() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, egui::Vec2::new(1280.0, 800.0));
+    let mut h = on_sample(&tmp, egui::Vec2::new(1280.0, 800.0));
     dispatch(&mut h, "navigator.table", json!({"kind": "pages", "on": true}));
     settle(&mut h);
     settle(&mut h);
@@ -508,7 +509,7 @@ fn the_strip_editor_shows_its_side_columns_at_1920() {
             .expect("the strip editor's grid")
     };
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, SIZES[0]);
+    let mut h = on_sample(&tmp, SIZES[0]);
     dispatch(&mut h, "strip.edit", json!({"strip": "-X1031"}));
     for _ in 0..4 {
         settle(&mut h);
@@ -525,7 +526,7 @@ fn the_strip_editor_shows_its_side_columns_at_1920() {
 #[test]
 fn the_libraries_table_shows_its_state_column_at_1920() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, egui::Vec2::new(1920.0, 1080.0));
+    let mut h = on_sample(&tmp, egui::Vec2::new(1920.0, 1080.0));
     dispatch(&mut h, "navigator.show", json!({"kind": "libraries"}));
     dispatch(
         &mut h,
@@ -551,7 +552,7 @@ fn the_libraries_table_shows_its_state_column_at_1920() {
 fn the_strip_editor_comes_to_rest() {
     for size in SIZES {
         let tmp = Tmp::new();
-        let mut h = on_golden(&tmp, size);
+        let mut h = on_sample(&tmp, size);
         dispatch(&mut h, "strip.edit", json!({"strip": "-X1031"}));
         for _ in 0..4 {
             h.run_ok();

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! FT-1693 and FT-1707: the canvas's right-click menu is the quick way to what fits the thing under the pointer, each
-//! test by the pointer on a copy of Golden A: a terminal adds a terminal and opens its strip's editor; a wire offers
+//! test by the pointer on a copy of the sample: a terminal adds a terminal and opens its strip's editor; a wire offers
 //! its route, marker, potential, cable and wire numbers, two wires a cable; a coil its free contacts and a contact its
 //! coil; an interruption point its partner; the title block its fields; Shift+F10 opens the menu at the selection.
 
@@ -19,7 +19,7 @@ use ew_viewmodel::ew_api::output::TableRep;
 use ew_viewmodel::navigators::NavKind;
 use ew_viewmodel::shell::{Dialog, Outcome};
 use serde_json::json;
-use support::{Tmp, dispatch, on_golden, screen, settle, wait_for_page};
+use support::{Tmp, dispatch, on_sample, screen, settle, wait_for_page};
 
 use crate::wires_and_cables::{
     click, key, new_project, page_pixel, pixel_map, place_relay, starting_with, tables,
@@ -94,7 +94,7 @@ fn rep_whose_menu(h: &mut Harness<'static, App>, want: &dyn Fn(&str, &str) -> bo
     found
 }
 
-/// The first page of Golden A in page order with a symbol whose menu holds an entry `want` takes, left on show; the
+/// The first page of the sample in page order with a symbol whose menu holds an entry `want` takes, left on show; the
 /// symbol's ID.
 fn find_rep(h: &mut Harness<'static, App>, want: &dyn Fn(&str, &str) -> bool) -> String {
     let folios: Vec<String> = h.state().shell().page_labels().to_vec();
@@ -107,7 +107,7 @@ fn find_rep(h: &mut Harness<'static, App>, want: &dyn Fn(&str, &str) -> bool) ->
             return id;
         }
     }
-    panic!("no symbol of Golden A has such an entry");
+    panic!("no symbol of the sample has such an entry");
 }
 
 /// The entry of the menu opened at `at` whose label holds `label`: of the widgets so named, the one whose left edge
@@ -132,7 +132,7 @@ fn listed(h: &Harness<'_, App>, at: Pos2, labels: &[&str]) -> Vec<f32> {
 #[test]
 fn a_terminals_menu_adds_a_terminal_and_edits_its_strip() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     let terminal = find_rep(&mut h, &|id, _| id == "tool.place_terminal");
     let at = point_on(&h, &terminal);
     right_click(&mut h, at);
@@ -154,7 +154,7 @@ fn a_terminals_menu_adds_a_terminal_and_edits_its_strip() {
 #[test]
 fn a_wires_menu_and_two_wires_make_a_cable() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "102");
+    let mut h = on_sample(&tmp, "102");
     let wires: Vec<String> = h
         .state()
         .shell()
@@ -338,7 +338,7 @@ fn a_right_click_after_a_click_gives_the_items_menu() {
 #[test]
 fn an_interruption_points_menu_goes_to_its_partner() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     let ip = find_rep(&mut h, &|_, label| label.starts_with("Go to partner "));
     let folio = h.state().shell().current_folio().map(str::to_owned);
     let view = h.state().shell().canvas().unwrap().viewport();
@@ -360,7 +360,7 @@ fn an_interruption_points_menu_goes_to_its_partner() {
 #[test]
 fn the_title_blocks_menu_edits_its_fields_and_shift_f10_opens_the_menu() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "103");
+    let mut h = on_sample(&tmp, "103");
     let band = {
         let c = h.state().shell().canvas().unwrap();
         let page = std::sync::Arc::clone(c.page());
@@ -429,7 +429,7 @@ fn the_title_blocks_menu_edits_its_fields_and_shift_f10_opens_the_menu() {
 #[test]
 fn a_strip_rows_menu_edits_the_strip() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     dispatch(&mut h, "navigator.show", json!({ "kind": "strips" }));
     settle(&mut h);
     let name = h
@@ -473,18 +473,18 @@ fn a_device_rows_menu_offers_what_its_symbol_offers_and_goes_to_it() {
     use ew_viewmodel::command_bar::navigator_row_menu;
     use ew_viewmodel::navigators::NavRole;
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "102");
+    let mut h = on_sample(&tmp, "102");
     dispatch(&mut h, "navigator.show", json!({ "kind": "devices" }));
     settle(&mut h);
-    // -201U3 is placed on 201 and 203, not on the page shown: reveal its row.
+    // -103F1 is placed on 103, not on the page shown: reveal its row.
     let node = {
         let shell = h.state().shell();
         let t = shell.nav(NavKind::Devices).and_then(|n| n.table()).unwrap();
         t.nodes
             .iter()
-            .find(|n| n.role == NavRole::Device && n.label == "-201U3")
+            .find(|n| n.role == NavRole::Device && n.label == "-103F1")
             .cloned()
-            .expect("the row of -201U3")
+            .expect("the row of -103F1")
     };
     dispatch(
         &mut h,
@@ -492,10 +492,10 @@ fn a_device_rows_menu_offers_what_its_symbol_offers_and_goes_to_it() {
         json!({ "kind": "devices", "key": node.key }),
     );
     settle(&mut h);
-    let at = item_at(&h, "-201U3, device");
+    let at = item_at(&h, "-103F1, device");
     right_click(&mut h, at);
     for label in [
-        "Go to 201-E4",
+        "Go to 103-C2",
         "Choose part…",
         "Copy and edit",
         "Properties of selection",
@@ -513,12 +513,12 @@ fn a_device_rows_menu_offers_what_its_symbol_offers_and_goes_to_it() {
     h.key_press(egui::Key::Escape);
     settle(&mut h);
     let row = navigator_row_menu(h.state().shell(), NavKind::Devices, &node);
-    let at = item_at(&h, "-201U3, device");
+    let at = item_at(&h, "-103F1, device");
     right_click(&mut h, at);
-    entry(&h, at, "Go to 201-E4").click();
+    entry(&h, at, "Go to 103-C2").click();
     settle(&mut h);
     wait_for_page(&mut h);
-    assert_eq!(h.state().shell().current_folio(), Some("201"));
+    assert_eq!(h.state().shell().current_folio(), Some("103"));
     // On the page its symbol, selected by Go to, offers the same entries (but Go to and Properties, which the page's
     // general entries hold, and Location…, the Devices list's own for many devices at once).
     let page: Vec<String> = canvas_menu(h.state().shell(), MenuSpot::Object, None)
@@ -540,7 +540,7 @@ fn a_device_rows_menu_offers_what_its_symbol_offers_and_goes_to_it() {
 fn a_cable_rows_menu_opens_the_cable_form() {
     use ew_viewmodel::navigators::NavRole;
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     dispatch(&mut h, "navigator.show", json!({ "kind": "cables" }));
     settle(&mut h);
     let label = {
@@ -584,7 +584,7 @@ fn a_cable_rows_menu_opens_the_cable_form() {
 #[test]
 fn a_page_rows_menu_edits_the_pages_title_block() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "102");
+    let mut h = on_sample(&tmp, "102");
     let title = h
         .state()
         .shell()

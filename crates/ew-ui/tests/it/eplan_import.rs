@@ -21,7 +21,7 @@ const EDZ: &str = concat!(
     "/../ew-import-eplan/tests/fixtures/synthetic-psu-7z.edz"
 );
 
-fn open_golden(tmp: &Tmp, files: &[&std::path::Path]) -> egui_kittest::Harness<'static, ew_ui::app::App> {
+fn open_sample(tmp: &Tmp, files: &[&std::path::Path]) -> egui_kittest::Harness<'static, ew_ui::app::App> {
     let platform = Scripted::default();
     for f in files {
         platform
@@ -32,7 +32,7 @@ fn open_golden(tmp: &Tmp, files: &[&std::path::Path]) -> egui_kittest::Harness<'
     let tiers = LibraryTiers::under(&tmp.0.join("data"), &tmp.0.join("cache"), Vec::new(), Vec::new());
     let config = tmp.config().with_libraries(Some(tiers));
     let mut shell = ShellModel::new(Mode::Gui, config);
-    let project = tmp.golden("proj.ew");
+    let project = tmp.sample("proj.ew");
     assert_eq!(
         shell.dispatch("file.open", &json!({"dir": project.to_string_lossy()})),
         Outcome::Done
@@ -56,7 +56,9 @@ fn an_edz_asks_the_terms_once_then_updates_the_part_copy_on_the_card_and_fills_t
     let tmp = Tmp::new();
     let edz = tmp.0.join("psu.edz");
     std::fs::copy(EDZ, &edz).unwrap();
-    let mut h = open_golden(&tmp, &[&edz, &edz, &edz]);
+    let mut h = open_sample(&tmp, &[&edz, &edz, &edz]);
+    // The sample holds no copy of the EDZ's part: the test tables' row gives it one whose fields the EDZ changes.
+    support::import_parts(&mut h, &tmp, &[support::table_part("2904602")]);
 
     import_menu(&mut h);
     assert!(matches!(
@@ -126,7 +128,7 @@ fn an_edz_under_another_name_and_a_named_step_still_stop_at_the_terms() {
     let tmp = Tmp::new();
     let disguised = tmp.0.join("psu.xml");
     std::fs::copy(EDZ, &disguised).unwrap();
-    let mut h = open_golden(&tmp, &[]);
+    let mut h = open_sample(&tmp, &[]);
     for how in ["library", "update"] {
         support::dispatch(
             &mut h,
@@ -166,7 +168,7 @@ fn a_report_that_fits_a_mapping_becomes_a_new_project_and_a_pageless_project_jud
     )
     .unwrap();
     let dir = tmp.0.join("report.ew");
-    let mut h = open_golden(&tmp, &[&report]);
+    let mut h = open_sample(&tmp, &[&report]);
     import_menu(&mut h);
     let Some(Dialog::ImportEplan {
         step: EplanStep::Report { fits, .. },
@@ -215,10 +217,10 @@ fn one_import_goes_on_by_what_the_file_is() {
         "<partsmanagement><part P_ARTICLE_PARTNR=\"X1\" P_ARTICLE_MANUFACTURER=\"Acme\"/></partsmanagement>",
     )
     .unwrap();
-    let parts = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416/tables/parts.csv");
+    let parts = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/tables/parts.csv");
     let report = tmp.0.join("report.csv");
     std::fs::write(&report, "Terminal strip,Terminal\n-X1,1\n").unwrap();
-    let mut h = open_golden(&tmp, &[&dxf, &edz, &xml, &parts, &report]);
+    let mut h = open_sample(&tmp, &[&dxf, &edz, &xml, &parts, &report]);
     import_menu(&mut h);
     assert!(matches!(
         h.state().shell().dialog(),
@@ -285,7 +287,7 @@ fn the_column_mapper_maps_a_report_and_saves_the_mapping_for_the_next_file() {
         std::fs::create_dir_all(f.parent().unwrap()).unwrap();
         std::fs::write(f, "Title row\nLeiste;Klemme;Stufe\n-X1;1;1\n-X1;2;1\n").unwrap();
     }
-    let mut h = open_golden(&tmp, &[&one, &two]);
+    let mut h = open_sample(&tmp, &[&one, &two]);
     import_menu(&mut h);
     let Some(Dialog::ImportEplan {
         step: EplanStep::Report { fits, .. },

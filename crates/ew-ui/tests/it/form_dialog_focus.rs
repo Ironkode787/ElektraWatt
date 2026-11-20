@@ -23,7 +23,7 @@ use ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellModel};
 use ew_viewmodel::strings;
 use serde_json::{Value, json};
-use support::{Scripted, Tmp, dispatch, harness, on_golden, settle, wait_for_page};
+use support::{Scripted, Tmp, dispatch, harness, on_sample, settle, wait_for_page};
 
 const VIEWMODEL_SRC: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../ew-viewmodel/src");
 /// The date the window passes to a revision action.
@@ -241,8 +241,8 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
     let mut checked = BTreeSet::new();
     let tmp = Tmp::new();
 
-    // Golden A: the creation, renumber, macro and waiver forms, then the layout set-up forms on the panel page.
-    let mut h = on_golden(&tmp, "102");
+    // The sample: the creation, renumber, macro and waiver forms, then the layout set-up forms on the panel page.
+    let mut h = on_sample(&tmp, "102");
     // Save as macro… of what is selected: the wires of folio 102.
     let tables = &h.state().shell().canvas().expect("folio 102").page().tables;
     let ids: Vec<String> = tables.connections.iter().map(|c| c.id.to_string()).collect();
@@ -258,7 +258,7 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
         .nav(NavKind::Messages)
         .and_then(|n| n.table())
         .and_then(|t| t.nodes.iter().find(|n| n.role == NavRole::Finding).cloned())
-        .expect("a finding of Golden A");
+        .expect("a finding of the sample");
     dispatch(
         &mut h,
         "navigator.row",
@@ -268,9 +268,9 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
     dispatch(&mut h, "messages.show", json!({ "on": false }));
     // New terminal strip…'s form opens by its own parameter (bare, the action makes a strip).
     checked.insert(check_form(&mut h, "strip.new", json!({ "dialog": true })));
-    // Spacing… with two terminals of one row selected (folio 101's 1X1).
-    goto(&mut h, "101");
-    let tables = &h.state().shell().canvas().expect("folio 101").page().tables;
+    // Spacing… with two terminals of one row selected (folio 102's -X1021).
+    goto(&mut h, "102");
+    let tables = &h.state().shell().canvas().expect("folio 102").page().tables;
     let first = tables.reps.iter().find(|r| r.terminal).expect("a terminal");
     let row: Vec<String> = tables
         .reps
@@ -285,7 +285,7 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
     // Every form that opens here from no parameters (New page…, New section…, the renumber forms, New cable…): the
     // source's forms are walked, so a new plain form needs no line in this test.
     check_plain_forms(&mut h, &listed, &mut checked);
-    // Edit section… of Golden A's first section.
+    // Edit section… of the sample's first section.
     checked.insert(check_form(&mut h, "section.edit", json!({ "number": 1 })));
     // Connect cores… and Cable… with a wire of the page selected.
     goto(&mut h, "102");
@@ -303,31 +303,33 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
     checked.insert(check_form(&mut h, "cable.connect_cores", json!({})));
     // Cable… with the same wire selected.
     checked.insert(check_form(&mut h, "cable.from_wires", json!({})));
-    // A bus line's Cable form, on Golden A's DP line of folio 3.
-    goto(&mut h, "3");
+    // A bus line's Cable form, on the sample's PROFIBUS line of folio 105.
+    goto(&mut h, "105");
     let line = h
         .state()
         .shell()
         .canvas()
-        .expect("folio 3")
+        .expect("folio 105")
         .page()
         .tables
         .connections
         .iter()
         .find(|c| c.kind == "bus")
-        .expect("the DP line")
+        .expect("the PROFIBUS line")
         .id
         .to_string();
     dispatch(&mut h, "select.set", json!({ "ids": [line] }));
     checked.insert(check_form(&mut h, "bus.cable", json!({})));
     goto(&mut h, "102");
     dispatch(&mut h, "select.set", json!({ "ids": [wire] }));
-    // Supply comes in here… with an interruption point of the page selected.
+    // Supply comes in here… with an interruption point of folio 103 selected (on 102's 24V, Enter then opens the
+    // supply's potentials panel, whose rows' controls are a fault of their own).
+    goto(&mut h, "103");
     let point = h
         .state()
         .shell()
         .canvas()
-        .expect("folio 102")
+        .expect("folio 103")
         .page()
         .tables
         .reps
@@ -367,7 +369,7 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
     dispatch(&mut h, "plc.rack_set", json!({"head": "EW-GEN-VTM-1"}));
     dispatch(&mut h, "plc.rack_create", json!({}));
     dispatch(&mut h, "ui.dismiss", json!({}));
-    goto(&mut h, "203");
+    goto(&mut h, "201");
     checked.insert(check_form(&mut h, "fluid.valve_terminal", json!({})));
     dispatch(&mut h, "ui.dismiss", json!({}));
     // Draw the plug… and Draw solenoid 14… from the fluid page: the page they are drawn on is asked, for a
@@ -549,13 +551,13 @@ fn texts(h: &Harness<'_, App>) -> Vec<String> {
 }
 
 /// Edit ▸ Strip editor on a new strip without a terminal opens the table on that strip
-/// by its ID: no filter text, its own rows (none, so the empty state "No terminals yet"), while Golden A's other strips
+/// by its ID: no filter text, its own rows (none, so the empty state "No terminals yet"), while the sample's other strips
 /// have rows. No text of the window and no line of `ui.describe` holds the placeholder tag, in English or in Dutch; the
 /// describe header names the strip in words. Before, the filter `strip:-?x?` showed with "Nothing matches".
 #[test]
 fn w49_2_f2_the_strip_editor_opens_a_strip_without_a_tag_by_its_id() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "102");
+    let mut h = on_sample(&tmp, "102");
     dispatch(&mut h, "strip.new", json!({}));
     dispatch(&mut h, "navigator.show", json!({ "kind": "strips" }));
     settle(&mut h);
@@ -620,7 +622,7 @@ fn w49_2_f2_the_strip_editor_opens_a_strip_without_a_tag_by_its_id() {
         let tagged: Vec<String> = texts(&h).into_iter().filter(|t| placeholder(t)).collect();
         assert!(tagged.is_empty(), "{language}: {tagged:?}");
     }
-    // Golden A's strips have rows, the editor showed the new strip alone. The scope's Clear ends it, and
+    // The sample's strips have rows, the editor showed the new strip alone. The scope's Clear ends it, and
     // so does Escape on the empty filter.
     let scoped = |h: &Harness<'_, App>| {
         let nav = h.state().shell().nav(NavKind::Strips).expect("the strip editor");
@@ -662,7 +664,7 @@ fn w49_2_f2_the_strip_editor_opens_a_strip_without_a_tag_by_its_id() {
 #[test]
 fn w49_2_f1_enter_on_a_forms_check_box_does_nothing() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "102");
+    let mut h = on_sample(&tmp, "102");
     dispatch(&mut h, "devices.renumber", json!({}));
     settle(&mut h);
     let value = |h: &Harness<'_, App>| match h.state().shell().dialog() {

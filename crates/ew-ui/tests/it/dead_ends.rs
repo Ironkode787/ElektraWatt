@@ -43,14 +43,14 @@ fn new_project(tmp: &Tmp) -> Driver {
     d
 }
 
-/// A driver over a copy of Golden A on folio 101.
-fn golden_on_101(tmp: &Tmp) -> Driver {
-    let golden = tmp.golden("g.ew");
+/// A driver over a copy of the sample on folio 101.
+fn sample_on_101(tmp: &Tmp) -> Driver {
+    let sample = tmp.sample("s.ew");
     let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
     d.enable_accesskit();
     let opened = d
         .shell_mut()
-        .dispatch("file.open", &json!({"dir": golden.to_string_lossy()}));
+        .dispatch("file.open", &json!({"dir": sample.to_string_lossy()}));
     assert_eq!(opened, Outcome::Done);
     let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "101"}));
     d.settle();
@@ -126,9 +126,9 @@ fn a_plc_card_without_a_cpu_says_in_the_plc_panel_that_it_waits_for_one() {
 #[test]
 fn a_device_selected_by_its_tag_is_outlined_on_the_page() {
     let tmp = Tmp::new();
-    let mut d = golden_on_101(&tmp);
+    let mut d = sample_on_101(&tmp);
     d.input(&key("ctrl+k"));
-    d.input(&typed("F55"));
+    d.input(&typed("-101F1"));
     d.input(&key("enter"));
     d.settle();
     let s = d.shell_mut();
@@ -141,7 +141,7 @@ fn a_device_selected_by_its_tag_is_outlined_on_the_page() {
 #[test]
 fn ctrl_a_on_the_page_selects_everything_it_draws() {
     let tmp = Tmp::new();
-    let mut d = golden_on_101(&tmp);
+    let mut d = sample_on_101(&tmp);
     // The canvas has the keys after a click on an empty spot of the sheet (below the drawing, above the title block).
     let empty = d.find("Zoom out").map(|(x, y)| (x - 200, y)).unwrap();
     d.input(&click(empty));
@@ -213,7 +213,7 @@ fn has_uuid(text: &str) -> bool {
 #[test]
 fn a_symbols_properties_name_its_symbol_and_definition_in_words() {
     let tmp = Tmp::new();
-    let mut d = golden_on_101(&tmp);
+    let mut d = sample_on_101(&tmp);
     // The window's pixels of a sheet point, from two pointer positions the canvas reports.
     let probe = |d: &mut Driver, at: (i64, i64)| {
         d.input(&Input::Hover { at });
@@ -229,10 +229,10 @@ fn a_symbols_properties_name_its_symbol_and_definition_in_words() {
             f0.1 + (sheet.1 - s0.1) * (f1.1 - f0.1) / (s1.1 - s0.1),
         )
     };
-    // F55's symbol: the outline its device draws, found by the tag.
+    // -101F1's symbol: the outline its device draws, found by the tag.
     let _ = d
         .shell_mut()
-        .dispatch("select.set", &json!({"refs": ["tag:F55"]}));
+        .dispatch("select.set", &json!({"refs": ["tag:-101F1"]}));
     d.settle();
     let rect = d.shell_mut().selected_rects(0)[0];
     let _ = d.shell_mut().dispatch("select.set", &json!({"refs": []}));
@@ -259,10 +259,10 @@ fn state(d: &mut Driver) -> serde_json::Value {
 #[test]
 fn choose_part_names_a_parts_functions_in_words() {
     let tmp = Tmp::new();
-    let mut d = golden_on_101(&tmp);
+    let mut d = sample_on_101(&tmp);
     let _ = d
         .shell_mut()
-        .dispatch("select.set", &json!({"refs": ["tag:F55"]}));
+        .dispatch("select.set", &json!({"refs": ["tag:-101F1"]}));
     d.settle();
     assert_eq!(
         d.shell_mut().dispatch("part.choose", &json!({"use": 0})),

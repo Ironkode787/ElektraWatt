@@ -22,16 +22,25 @@ use ew_viewmodel::strings;
 use serde_json::{Value, json};
 use support::{Scripted, Tmp, dispatch, harness, settle, wait_for_page};
 
-/// W20's ID, from its source key in the project's page files.
-pub(crate) fn w20(dir: &Path) -> String {
-    for e in std::fs::read_dir(dir.join("pages")).unwrap() {
-        let text = std::fs::read_to_string(e.unwrap().path()).unwrap();
-        if let Some(line) = text.lines().find(|l| l.contains("\"key\":\"connections|W20\"")) {
-            let v: Value = serde_json::from_str(line).unwrap();
+/// The ID of the project's first plain wire (a connection neither a cable's core nor a fluid line, so without a kind),
+/// from its page files in name order.
+pub(crate) fn a_wire(dir: &Path) -> String {
+    let mut pages: Vec<_> = std::fs::read_dir(dir.join("pages"))
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .collect();
+    pages.sort();
+    for page in pages {
+        let text = std::fs::read_to_string(page).unwrap();
+        if let Some(v) = text
+            .lines()
+            .map(|l| serde_json::from_str::<Value>(l).unwrap())
+            .find(|v| v["$k"] == "connection" && v.get("kind").is_none())
+        {
             return v["id"].as_str().unwrap().to_owned();
         }
     }
-    panic!("W20 is on no page");
+    panic!("no page holds a wire");
 }
 
 fn colour(wire: &str, value: Value) -> AnyCommand {
@@ -41,7 +50,7 @@ fn colour(wire: &str, value: Value) -> AnyCommand {
     }
 }
 
-/// A colleague's save of W20's colour `value` on a copy of `live`: its written files copied into `live`, the manifest last.
+/// A colleague's save of the wire's colour `value` on a copy of `live`: its written files copied into `live`, the manifest last.
 pub(crate) fn colleague(tmp: &Tmp, live: &Path, value: &str) {
     let copy = tmp.0.join("colleague.ew");
     let _ = std::fs::remove_dir_all(&copy);
@@ -51,7 +60,7 @@ pub(crate) fn colleague(tmp: &Tmp, live: &Path, value: &str) {
     store.state_dir = None;
     let (mut s, _) =
         Session::open(&copy, store, SessionOptions::default(), Recovery::Keep).expect("the copy opens");
-    s.execute(&colour(&w20(&copy), json!([value])))
+    s.execute(&colour(&a_wire(&copy), json!([value])))
         .expect("the colleague's edit");
     let report = s.save().expect("the colleague saves");
     s.close();
@@ -61,16 +70,16 @@ pub(crate) fn colleague(tmp: &Tmp, live: &Path, value: &str) {
     std::fs::copy(copy.join("manifest.json"), live.join("manifest.json")).unwrap();
 }
 
-/// The window on a copy of Golden A with W20's colour BU edited here and WH saved by a colleague on disk.
+/// The window on a copy of the sample with the wire's colour BU edited here and WH saved by a colleague on disk.
 fn collided(tmp: &Tmp) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(tmp, Scripted::default(), Some(dir.clone()));
     settle(&mut h);
     wait_for_page(&mut h);
     dispatch(
         &mut h,
         "command.run",
-        json!({"cmd": "fields.set", "params": {"kind": "connection", "targets": [w20(&dir)],
+        json!({"cmd": "fields.set", "params": {"kind": "connection", "targets": [a_wire(&dir)],
             "path": "overrides.colour", "value": ["BU"]}}),
     );
     colleague(tmp, &dir, "WH");
@@ -153,7 +162,7 @@ fn a_rebuilt_collision_dialog_takes_its_first_focus_again() {
         support::off_chrome(&h, theirs).is_some_and(|n| n.accesskit_node().is_focused()),
         "All theirs has the focus"
     );
-    let dir = tmp.0.join("g.ew");
+    let dir = tmp.0.join("s.ew");
     colleague(&tmp, &dir, "RD");
     dispatch(&mut h, "project.check_disk", json!({}));
     enter_applies_mine(&mut h, "a rebuilt dialog");

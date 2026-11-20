@@ -5,7 +5,7 @@
 //! section, a wire on the page the wires', a row of Properties its row's place in the properties reference. While the
 //! pointer rests there the status bar says what F1 opens, and the button's tooltip ends with "F1: help".
 
-use crate::support::{self, Tmp, dispatch, on_golden, screen, settle};
+use crate::support::{self, Tmp, dispatch, on_sample, screen, settle};
 use egui::Key;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_viewmodel::{key, strings};
@@ -19,7 +19,7 @@ fn opened(h: &egui_kittest::Harness<'_, ew_ui::app::App>) -> String {
 #[test]
 fn f1_opens_the_page_of_what_the_pointer_rests_on() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "102");
+    let mut h = on_sample(&tmp, "102");
     // A button of the command bar: its tool's section; the tooltip and the status bar say so.
     support::bar_button(&h, "Wire").hover();
     settle(&mut h);
@@ -58,7 +58,7 @@ fn f1_opens_the_page_of_what_the_pointer_rests_on() {
     settle(&mut h);
     assert_eq!(opened(&h), "reference/window/things.html#wires");
     // A row of Properties: its anchor in the properties reference.
-    dispatch(&mut h, "select.set", json!({"refs": ["tag:-102G1"]}));
+    dispatch(&mut h, "select.set", json!({"refs": ["tag:-102Q1"]}));
     dispatch(&mut h, "props.show", json!({"on": true}));
     // The cursor row scrolls into view; the cursor goes elsewhere again, so the pointer alone names the row.
     dispatch(&mut h, "props.row", json!({"to": "device/process_tag"}));

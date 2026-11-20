@@ -160,19 +160,27 @@ fn the_hud_says_before_the_click_that_the_next_point_is_where_the_name_arrives()
     d.shell_mut().shutdown();
 }
 
-/// A driver over a copy of Golden A on folio 102, the page fitted: -102F2:13 and :14 have no wire.
-fn golden_102(tmp: &Tmp) -> Driver {
-    let golden = tmp.golden("g.ew");
+/// A driver over a copy of the sample on folio 102, the page fitted, with a second lamp -102E2 placed right of the
+/// drawing without joining anything: its pins X1 and X2 have no wire (the sample wires every device pin, and the checks
+/// leave out terminals and spare PLC channels).
+fn sample_102(tmp: &Tmp) -> Driver {
+    let sample = tmp.sample("s.ew");
     let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
     d.enable_accesskit();
     let opened = d
         .shell_mut()
-        .dispatch("file.open", &json!({"dir": golden.to_string_lossy()}));
+        .dispatch("file.open", &json!({"dir": sample.to_string_lossy()}));
     assert_eq!(opened, Outcome::Done);
-    assert_eq!(
-        d.shell_mut().dispatch("page.goto", &json!({"folio": "102"})),
-        Outcome::Done
-    );
+    for (action, params) in [
+        ("page.goto", json!({"folio": "102"})),
+        ("cursor.set", json!({"x_mm": 200.0, "y_mm": 100.0})),
+        ("tool.place", json!({})),
+        ("place.pick", json!({"part": "EW-GEN-LMP-1"})),
+        ("canvas.activate", json!({"alt": true})),
+        ("ui.dismiss", json!({})),
+    ] {
+        assert_eq!(d.shell_mut().dispatch(action, &params), Outcome::Done, "{action}");
+    }
     let _ = d.shell_mut().dispatch("view.fit_page", &json!({}));
     d.settle();
     d
@@ -199,9 +207,9 @@ fn toast(d: &mut Driver) -> String {
 #[test]
 fn a_mark_dropped_on_a_pin_joins_it_and_one_left_beside_it_is_told_and_joined_by_the_fix() {
     let tmp = Tmp::new();
-    let mut d = golden_102(&tmp);
+    let mut d = sample_102(&tmp);
     let pixel = pixel_map(&mut d);
-    let pin = cp_at(&mut d, "-102F2:14");
+    let pin = cp_at(&mut d, "-102E2:X1");
     let at = page_pixel(&mut d, &pixel, pin);
     d.input(&click(d.find("Interruption").unwrap()));
     d.settle();
@@ -213,12 +221,12 @@ fn a_mark_dropped_on_a_pin_joins_it_and_one_left_beside_it_is_told_and_joined_by
     d.settle();
     d.input(&click(at));
     d.settle();
-    assert_eq!(wires_at(&mut d, "-102F2:14"), 1, "{}", toast(&mut d));
+    assert_eq!(wires_at(&mut d, "-102E2:X1"), 1, "{}", toast(&mut d));
     assert!(toast(&mut d).contains("and connected it to"), "{}", toast(&mut d));
     // The same with Alt, which places a point without joining: it stands on the pin unjoined, and says so.
     d.input(&key("ctrl+z"));
     d.settle();
-    assert_eq!(wires_at(&mut d, "-102F2:14"), 0);
+    assert_eq!(wires_at(&mut d, "-102E2:X1"), 0);
     d.input(&Input::Hover { at });
     d.settle();
     d.input(&Input::Click {
@@ -227,10 +235,10 @@ fn a_mark_dropped_on_a_pin_joins_it_and_one_left_beside_it_is_told_and_joined_by
         mods: egui::Modifiers::ALT,
     });
     d.settle();
-    assert_eq!(wires_at(&mut d, "-102F2:14"), 0);
+    assert_eq!(wires_at(&mut d, "-102E2:X1"), 0);
     let said = toast(&mut d);
     assert!(
-        said.contains("+24V stands beside -102F2") && said.contains("without joining it"),
+        said.contains("+24V stands beside -102E2") && said.contains("without joining it"),
         "{said}"
     );
     d.input(&key("escape"));
@@ -253,7 +261,7 @@ fn a_mark_dropped_on_a_pin_joins_it_and_one_left_beside_it_is_told_and_joined_by
             t.nodes
                 .iter()
                 .find(|n| {
-                    n.role == NavRole::Finding && n.cells[1] == "EW-POT-009" && n.cells[3].ends_with(":14")
+                    n.role == NavRole::Finding && n.cells[1] == "EW-POT-009" && n.cells[3].ends_with(":X1")
                 })
                 .cloned()
         })
@@ -273,7 +281,7 @@ fn a_mark_dropped_on_a_pin_joins_it_and_one_left_beside_it_is_told_and_joined_by
         Outcome::Done
     );
     d.settle();
-    assert_eq!(wires_at(&mut d, "-102F2:14"), 1, "the fix joins them");
+    assert_eq!(wires_at(&mut d, "-102E2:X1"), 1, "the fix joins them");
     d.shell_mut().shutdown();
 }
 
@@ -284,11 +292,11 @@ fn a_mark_dropped_on_a_pin_joins_it_and_one_left_beside_it_is_told_and_joined_by
 #[test]
 fn the_direction_the_bar_shows_is_placed_and_a_point_too_close_says_how_far_apart() {
     let tmp = Tmp::new();
-    let mut d = golden_102(&tmp);
+    let mut d = sample_102(&tmp);
     let pixel = pixel_map(&mut d);
-    let (p13, p14) = (cp_at(&mut d, "-102F2:13"), cp_at(&mut d, "-102F2:14"));
-    let first = page_pixel(&mut d, &pixel, p13);
-    let second = page_pixel(&mut d, &pixel, p14);
+    let (x2, x1) = (cp_at(&mut d, "-102E2:X2"), cp_at(&mut d, "-102E2:X1"));
+    let first = page_pixel(&mut d, &pixel, x2);
+    let second = page_pixel(&mut d, &pixel, x1);
     d.input(&click(d.find("Interruption").unwrap()));
     d.settle();
     d.input(&typed("+24V"));
@@ -307,7 +315,7 @@ fn the_direction_the_bar_shows_is_placed_and_a_point_too_close_says_how_far_apar
     let shown = ghost_at(&mut d, second).1;
     place(&mut d, second);
     assert!(points(&mut d).contains(&pair("0V", &shown)), "{}", toast(&mut d));
-    assert_eq!(wires_at(&mut d, "-102F2:13") + wires_at(&mut d, "-102F2:14"), 2);
+    assert_eq!(wires_at(&mut d, "-102E2:X2") + wires_at(&mut d, "-102E2:X1"), 2);
     // The two buttons set the next point's direction, and the HUD says the same.
     let free = (first.0, first.1 - 200);
     for (button, word, next) in [("Target", "target", "source"), ("Source", "source", "target")] {

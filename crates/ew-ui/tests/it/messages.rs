@@ -20,8 +20,58 @@ use ew_viewmodel::shell::{Focus, Mode, Resources, ShellModel};
 use serde_json::{Value, json};
 use support::{Scripted, Tmp, dispatch, harness_with, settle, wait_for_page};
 
-/// A copy of Golden A in the window, with an installed user guide that holds the rule pages.
-fn on_golden(tmp: &Tmp, platform: Scripted) -> Harness<'static, App> {
+/// The motor cable -103W1's length taken away: EW-CORE-033 ("Cable without length", a warning) stands on it. The
+/// sample is clean but for infos; a test that needs a warning makes one.
+fn a_cable_without_length(h: &mut Harness<'_, App>) {
+    dispatch(
+        h,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-103W1"}],
+            "path": "cable.length", "value": null}}),
+    );
+    settle(h);
+}
+
+/// Folio 102's description overridden: EW-CORE-023 stands on the page, with its quick fix.
+fn an_overridden_description(h: &mut Harness<'_, App>) {
+    let page = h
+        .state()
+        .shell()
+        .page_rows()
+        .iter()
+        .find(|r| r.folio == "102")
+        .map(|r| r.id.to_string())
+        .expect("folio 102");
+    dispatch(
+        h,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "page", "targets": [page],
+            "path": "description_override", "value": "Overridden"}}),
+    );
+    settle(h);
+}
+
+/// Every placement of the panel page 902 deleted: an EW-LAY-001 ("Unplaced device") for each of the cabinet's
+/// devices, a list longer than the dock shows.
+fn every_device_unplaced(h: &mut Harness<'_, App>) {
+    dispatch(h, "page.goto", json!({"folio": "902"}));
+    wait_for_page(h);
+    let ids: Vec<String> = h
+        .state()
+        .shell()
+        .panel_tables()
+        .expect("the panel page")
+        .placements
+        .iter()
+        .map(|p| p.id.to_string())
+        .collect();
+    dispatch(h, "select.set", json!({ "ids": ids }));
+    dispatch(h, "edit.delete_selection", json!({}));
+    settle(h);
+}
+
+/// A copy of the sample in the window, with an installed user guide that holds the rule pages.
+fn on_sample(tmp: &Tmp, platform: Scripted) -> Harness<'static, App> {
     let docs = tmp.0.join("docs");
     std::fs::create_dir_all(docs.join("reference/rules")).unwrap();
     std::fs::write(docs.join("reference/rules/ew-core-033.html"), "<html></html>").unwrap();
@@ -32,7 +82,7 @@ fn on_golden(tmp: &Tmp, platform: Scripted) -> Harness<'static, App> {
         notices_file: None,
         privacy_file: None,
     });
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness_with(ShellModel::new(Mode::Gui, config), platform, Some(dir));
     settle(&mut h);
     wait_for_page(&mut h);
@@ -109,10 +159,11 @@ fn the_pane_in_the_window_named_rows_keyboard_detail_and_pending() {
     let tmp = Tmp::new();
     let platform = Scripted::default();
     let opened = platform.opened.clone();
-    let mut h = on_golden(&tmp, platform);
+    let mut h = on_sample(&tmp, platform);
     // With the controls and rows at their token sizes (28 points) the docked pane of a 700-point
     // window has no room left for a row below its header; 800 points (the height of the snapshots' window) does.
     h.set_size(egui::Vec2::new(1000.0, 800.0));
+    a_cable_without_length(&mut h);
     dispatch(&mut h, "page.goto", json!({"folio": "101"}));
     dispatch(&mut h, "view.zoom_actual", json!({}));
     settle(&mut h);
@@ -193,7 +244,7 @@ fn the_pane_in_the_window_named_rows_keyboard_detail_and_pending() {
     );
     // EF-08: a warning row named with its severity; the detail block names its rule; the Rule page link opens the
     // rule's page of the installed user guide.
-    let ef08 = finding(&h, "EW-CORE-033", "-3W1");
+    let ef08 = finding(&h, "EW-CORE-033", "-103W1");
     dispatch(
         &mut h,
         "navigator.row",
@@ -263,12 +314,13 @@ fn the_pane_in_the_window_named_rows_keyboard_detail_and_pending() {
 #[test]
 fn waive_from_the_detail_takes_an_empty_reason_and_author() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, Scripted::default());
+    let mut h = on_sample(&tmp, Scripted::default());
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
+    a_cable_without_length(&mut h);
     dispatch(&mut h, "page.goto", json!({"folio": "102"}));
     dispatch(&mut h, "messages.show", json!({"on": true}));
     settle(&mut h);
-    let row = finding(&h, "EW-CORE-033", "-3W1");
+    let row = finding(&h, "EW-CORE-033", "-103W1");
     dispatch(
         &mut h,
         "navigator.row",
@@ -306,7 +358,7 @@ fn waive_from_the_detail_takes_an_empty_reason_and_author() {
 #[test]
 fn w31_1_the_selected_row_and_its_detail_are_both_on_show() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, Scripted::default());
+    let mut h = on_sample(&tmp, Scripted::default());
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     support::open_menu(&mut h, &["Check"]);
@@ -377,14 +429,14 @@ fn w31_1_the_selected_row_and_its_detail_are_both_on_show() {
 }
 
 /// `navigator.row` to a finding under a collapsed group expands the path and scrolls the cursor row into view;
-/// a finding out of view is scrolled to as well (Golden A's findings, the window 1920 by 1080; the dock leaves the
-/// page view half the window, so a 640-high window shows too few rows).
+/// a finding out of view is scrolled to as well (the sample with every device unplaced, the window 1920 by 1080; the dock
+/// leaves the page view half the window, so a 640-high window shows too few rows).
 #[test]
 fn navigator_row_into_a_collapsed_group_expands_it_and_scrolls_the_row_into_view() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, Scripted::default());
+    let mut h = on_sample(&tmp, Scripted::default());
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
-    settle(&mut h);
+    every_device_unplaced(&mut h);
     support::open_menu(&mut h, &["Check"]);
     settle(&mut h);
     support::menu_node(&h, "Messages").click();
@@ -480,14 +532,14 @@ fn navigator_row_into_a_collapsed_group_expands_it_and_scrolls_the_row_into_view
 #[test]
 fn the_dock_tab_counts_the_findings_and_the_close_button_closes_the_dock() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, Scripted::default());
+    let mut h = on_sample(&tmp, Scripted::default());
     h.set_size(egui::Vec2::new(1000.0, 800.0));
     dispatch(&mut h, "messages.show", json!({"on": true}));
     dispatch(&mut h, "history.show", json!({"on": true}));
     settle(&mut h);
     let c = h.state().shell().messages_counts().unwrap();
     let open = c.errors + c.warnings + c.infos;
-    assert!(open > 0, "Golden A has open findings");
+    assert!(open > 0, "the sample has open findings (its infos)");
     let tab = h
         .get_all_by_role(egui::Role::Button)
         .find(|n| {
@@ -520,14 +572,14 @@ fn the_dock_tab_counts_the_findings_and_the_close_button_closes_the_dock() {
     assert!(shell.navigator_open(NavKind::Messages) && !shell.history_shown());
 }
 
-/// Golden A's folio 103 without its bond B1 (0 V and PE merge, EW-POT-001 stands). The
+/// The sample without its bond B1 (0 V and PE merge, EW-POT-001 stands). The
 /// finding's message names three member CPs and counts the rest, and in a short dock (300 points; in a window
 /// 900 high, as the dock leaves the page view half the window) its detail block scrolls to
 /// the message's last line above the status bar instead of cutting it at the pane's edge.
 #[test]
 fn the_detail_of_a_long_conflict_scrolls_and_names_three_member_cps() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, Scripted::default());
+    let mut h = on_sample(&tmp, Scripted::default());
     h.set_size(egui::Vec2::new(1000.0, 900.0));
     dispatch(&mut h, "page.goto", json!({"folio": "103"}));
     dispatch(&mut h, "navigator.show", json!({"kind": "potentials"}));
@@ -538,7 +590,7 @@ fn the_detail_of_a_long_conflict_scrolls_and_names_three_member_cps() {
             .and_then(|n| n.table())
             .expect("the Potentials table");
         let rows: Vec<_> = t.nodes.iter().filter(|n| n.kinds == ["bond"]).collect();
-        assert_eq!(rows.len(), 1, "Golden A has the one bond B1");
+        assert_eq!(rows.len(), 1, "the sample has the one bond B1");
         rows[0].records[0]
     };
     dispatch(
@@ -578,7 +630,7 @@ fn the_detail_of_a_long_conflict_scrolls_and_names_three_member_cps() {
     );
 }
 
-/// With Golden A's first EW-LAY-001 finding selected, the detail block holds its message whole, wrapped
+/// With an EW-LAY-001 finding selected (-101F1 unplaced), the detail block holds its message whole, wrapped
 /// to the pane's width, between the list and the status bar, and the list keeps at least two whole rows; at 1920 × 1080
 /// and at 2560 × 1440 (doc 16a §2). The detail is as tall as its content, the list above it keeps at least two rows (was three), and only a
 /// still taller detail scrolls; never an ellipsis, a clipped line or a fixed pixel cap.
@@ -586,15 +638,15 @@ fn the_detail_of_a_long_conflict_scrolls_and_names_three_member_cps() {
 fn the_lay_001_detail_shows_its_message_whole_at_the_floor_and_at_1920() {
     for (w, hgt) in [(1920.0, 1080.0), (2560.0, 1440.0)] {
         let tmp = Tmp::new();
-        let mut h = on_golden(&tmp, Scripted::default());
+        let mut h = on_sample(&tmp, Scripted::default());
         h.set_size(egui::Vec2::new(w, hgt));
-        settle(&mut h);
+        support::unplace(&mut h, "-101F1");
         dispatch(&mut h, "messages.show", json!({"on": true}));
         settle(&mut h);
         let row = table_nodes(&h)
             .into_iter()
             .find(|n| n.role == NavRole::Finding && n.cells[1] == "EW-LAY-001")
-            .expect("an EW-LAY-001 finding in Golden A");
+            .expect("the EW-LAY-001 finding of -101F1");
         dispatch(
             &mut h,
             "navigator.row",
@@ -647,32 +699,36 @@ fn painted_texts(h: &Harness<'_, App>) -> Vec<(String, egui::Rect, bool)> {
     out
 }
 
-/// Golden A's folio 101 with its two junctions joined by a wire and both wiring orders listing that wire first: each
-/// junction takes it for its feed, so EW-POT-011 stands on the merged potential, named `24VDC`.
+/// The sample's folio 104 with the first two junctions of its 0V rail joined by a wire and both wiring orders listing
+/// that wire first: each junction takes it for its feed, so EW-POT-011 stands on 0V (at a junction of the 0V net).
 fn ambiguous_junction_feed(h: &mut Harness<'_, App>) {
-    dispatch(h, "page.goto", json!({"folio": "101"}));
+    dispatch(h, "page.goto", json!({"folio": "104"}));
     settle(h);
     let page = h
         .state()
         .shell()
         .page_rows()
         .iter()
-        .find(|r| r.folio == "101")
-        .expect("folio 101")
+        .find(|r| r.folio == "104")
+        .expect("folio 104")
         .id;
-    let junctions: Vec<_> = h
-        .state()
-        .shell()
-        .canvas()
-        .unwrap()
-        .page()
-        .tables
-        .junctions
-        .iter()
-        .map(|j| j.id)
-        .collect();
+    let junctions: Vec<_> = {
+        let tables = &h.state().shell().canvas().unwrap().page().tables;
+        let on_0v = |wire: &ew_viewmodel::ew_api::output::Uuid| {
+            tables.cps.iter().any(|p| {
+                p.connections.contains(wire) && p.potential.as_ref().is_some_and(|p| p.name == "0V")
+            })
+        };
+        tables
+            .junctions
+            .iter()
+            .filter(|j| j.sequence.iter().any(on_0v))
+            .map(|j| j.id)
+            .take(2)
+            .collect()
+    };
     let [j1, j2] = junctions[..] else {
-        panic!("folio 101 has two junctions: {junctions:?}")
+        panic!("folio 104 has junctions on its 0V rail: {junctions:?}")
     };
     fn junction(id: impl ToString) -> Value {
         json!({"junction": {"junction": id.to_string()}})
@@ -713,11 +769,6 @@ fn ambiguous_junction_feed(h: &mut Harness<'_, App>) {
             json!({"cmd": "junction.edit", "params": {"junction": j.to_string(), "sequence": sequence}}),
         );
     }
-    dispatch(
-        h,
-        "command.run",
-        json!({"cmd": "potential.define", "params": {"at": junction(j1), "name": "24VDC"}}),
-    );
     settle(h);
 }
 
@@ -727,14 +778,9 @@ fn ambiguous_junction_feed(h: &mut Harness<'_, App>) {
 #[test]
 fn the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_at_1920() {
     const TITLE: &str = "EW-POT-011 Junction feed ambiguous";
-    // The potential once, first; the row shows the message alone (it leads with its
-    // subject).
-    // Which junction, where, and its wires (FT-933).
-    const MESSAGE: &str = "24VDC: it is unclear which wire feeds the junction at C11 on folio 101 (wires 101.15, \
-                           101.16, 101.17); draw one wire into it from the supply side";
     for (w, hgt) in [(1920.0, 1080.0), (2560.0, 1440.0)] {
         let tmp = Tmp::new();
-        let mut h = on_golden(&tmp, Scripted::default());
+        let mut h = on_sample(&tmp, Scripted::default());
         h.set_size(egui::Vec2::new(w, hgt));
         settle(&mut h);
         ambiguous_junction_feed(&mut h);
@@ -745,7 +791,16 @@ fn the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_at_1920
             .into_iter()
             .find(|n| n.role == NavRole::Finding && n.cells[1] == "EW-POT-011")
             .expect("an EW-POT-011 finding on the joined junctions");
-        assert_eq!(row.label, MESSAGE, "{w}×{hgt}: the row names 24VDC once");
+        // The potential once, first, so the row shows the message alone (it leads with its subject); then which
+        // junction, where, and its wires (FT-933).
+        let message = row.label.clone();
+        assert!(
+            message.starts_with("0V: it is unclear which wire feeds the junction at ")
+                && message.contains(" on folio 10") && message.contains(" (wires ")
+                && message.ends_with("); draw one wire into it from the supply side")
+                && message.matches("0V").count() == 1,
+            "{w}×{hgt}: {message}"
+        );
         dispatch(
             &mut h,
             "navigator.row",
@@ -760,7 +815,7 @@ fn the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_at_1920
                 format!("{} {}", detail.rule, detail.title),
                 detail.message.as_str()
             ),
-            (TITLE.to_owned(), MESSAGE),
+            (TITLE.to_owned(), message.as_str()),
             "{w}×{hgt}"
         );
         let list = h.get_by_label("Messages navigator").rect();
@@ -768,7 +823,7 @@ fn the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_at_1920
         let painted = painted_texts(&h);
         // The detail block: the title and the message, each painted whole (no ellipsis), inside the pane, between the
         // list and the status bar.
-        for text in [TITLE, MESSAGE] {
+        for text in [TITLE, message.as_str()] {
             let shown: Vec<_> = painted
                 .iter()
                 .filter(|(t, r, _)| t == text && r.top() >= list.bottom() - 0.5)
@@ -810,23 +865,10 @@ fn the_quick_fix_card_counts_in_words_in_english_and_dutch() {
         ),
     ] {
         let tmp = Tmp::new();
-        let mut h = on_golden(&tmp, Scripted::default());
+        let mut h = on_sample(&tmp, Scripted::default());
         dispatch(&mut h, "view.language", json!({ "value": lang }));
         dispatch(&mut h, "page.goto", json!({"folio": "102"}));
-        let page = h
-            .state()
-            .shell()
-            .page_rows()
-            .iter()
-            .find(|r| r.folio == "102")
-            .map(|r| r.id.to_string())
-            .expect("folio 102");
-        dispatch(
-            &mut h,
-            "command.run",
-            json!({"cmd": "fields.set", "params": {"kind": "page", "targets": [page],
-                "path": "description_override", "value": "Overridden"}}),
-        );
+        an_overridden_description(&mut h);
         dispatch(&mut h, "messages.show", json!({"on": true}));
         settle(&mut h);
         let fix = table_nodes(&h)
@@ -858,8 +900,9 @@ fn the_quick_fix_card_counts_in_words_in_english_and_dutch() {
 fn a_finding_keeps_its_fix_badge_in_dutch() {
     use ew_viewmodel::{key, strings};
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, Scripted::default());
+    let mut h = on_sample(&tmp, Scripted::default());
     dispatch(&mut h, "view.language", json!({ "value": "nl" }));
+    an_overridden_description(&mut h);
     dispatch(&mut h, "messages.show", json!({"on": true}));
     settle(&mut h);
     let fixable = table_nodes(&h)
@@ -898,7 +941,7 @@ fn a_finding_keeps_its_fix_badge_in_dutch() {
 fn a_group_rows_count_follows_its_name() {
     for size in [egui::Vec2::new(1920.0, 1080.0), egui::Vec2::new(2560.0, 1440.0)] {
         let tmp = Tmp::new();
-        let mut h = on_golden(&tmp, Scripted::default());
+        let mut h = on_sample(&tmp, Scripted::default());
         h.set_size(size);
         dispatch(&mut h, "navigator.show", json!({"kind": "messages"}));
         settle(&mut h);
@@ -947,7 +990,8 @@ fn a_group_rows_count_follows_its_name() {
 #[test]
 fn a_findings_row_menu_offers_its_fix_and_waive() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, Scripted::default());
+    let mut h = on_sample(&tmp, Scripted::default());
+    an_overridden_description(&mut h);
     dispatch(&mut h, "messages.show", json!({"on": true}));
     settle(&mut h);
     let nodes = table_nodes(&h);

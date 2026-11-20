@@ -15,7 +15,7 @@ use ew_ui::app::App;
 use ew_viewmodel::properties::CardOrigin;
 use ew_viewmodel::shell::{Dialog, Focus};
 use serde_json::json;
-use support::{Tmp, dispatch, on_golden, settle};
+use support::{Tmp, dispatch, on_sample, settle};
 
 /// Types `text` as keyboard input into whatever has the focus.
 fn type_keys(h: &mut Harness<'_, App>, text: &str) {
@@ -34,7 +34,7 @@ fn form(h: &Harness<'_, App>) -> Option<(&'static str, Option<String>)> {
 #[test]
 fn ctrl_enter_submits_a_form_from_any_focus_before_the_keys_under_it() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "204");
+    let mut h = on_sample(&tmp, "201");
     // The find pane with a replacement typed and the search run: its Ctrl+Enter would build the replace card.
     h.key_press_modifiers(Modifiers::COMMAND, Key::H);
     settle(&mut h);
@@ -124,7 +124,7 @@ fn open_the_form_and_ctrl_enter_in_one_frame(h: &mut Harness<'_, App>, scope: Op
 #[test]
 fn ctrl_enter_on_the_forms_first_frame_stays_with_the_form() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "204");
+    let mut h = on_sample(&tmp, "201");
     h.key_press_modifiers(Modifiers::COMMAND, Key::H);
     settle(&mut h);
     type_keys(&mut h, "Spare");
@@ -170,7 +170,7 @@ fn refused_in_the_form(h: &Harness<'_, App>, how: &str) {
 #[test]
 fn w49_1a_a_refused_renumber_says_why_in_the_form_by_click_enter_and_ctrl_enter() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
+    let mut h = on_sample(&tmp, "101");
     assert!(h.state().shell().selection().is_empty());
     h.key_press_modifiers(Modifiers::COMMAND | Modifiers::SHIFT, Key::N);
     settle(&mut h);

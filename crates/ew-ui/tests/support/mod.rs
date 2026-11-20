@@ -22,7 +22,7 @@ use ew_ui::app::{App, Pick, Platform, setup};
 use ew_viewmodel::shell::{Mode, Outcome, Prompt, Resources, ShellConfig, ShellModel};
 use ew_viewmodel::{key, strings};
 
-/// The temporary directory of a test ([`ew_testdir::Tmp`], reached through `Deref`: `dir()`, `path()`, `golden()` and
+/// The temporary directory of a test ([`ew_testdir::Tmp`], reached through `Deref`: `dir()`, `path()`, `sample()` and
 /// the public path `.0`), with the shell configurations of the tests.
 pub struct Tmp(ew_testdir::Tmp);
 
@@ -51,7 +51,7 @@ impl Tmp {
     /// The configuration with the sample project and the starter content of the source tree as resources.
     pub fn config_with_resources(&self) -> ShellConfig {
         self.config().with_resources(Resources {
-            sample_dir: Some(PathBuf::from(ew_testdir::GOLDEN_A)),
+            sample_dir: Some(PathBuf::from(ew_testdir::SAMPLE)),
             content_dir: Some(PathBuf::from(ew_testdir::CONTENT)),
             docs_dir: None,
             notices_file: None,
@@ -200,6 +200,63 @@ pub fn done(shell: &mut ShellModel, action: &str, params: serde_json::Value) {
     );
 }
 
+/// The parts table of the test tables, whose columns [`import_parts`] takes.
+const TABLE_PARTS: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/tables/parts.csv");
+
+/// The row of the test tables' parts table whose key is `key`.
+pub fn table_part(key: &str) -> String {
+    std::fs::read_to_string(TABLE_PARTS)
+        .unwrap()
+        .lines()
+        .find(|l| l.starts_with(&format!("{key},")))
+        .unwrap_or_else(|| panic!("the row of {key}"))
+        .to_owned()
+}
+
+/// `rows` (in the columns of the test tables' parts table) imported into the open project as File ▸ Import… of a parts
+/// table imports them: project part copies the sample's starter parts do not give (a supplier's part number, a long
+/// order code, a duct without a size).
+pub fn import_parts(harness: &mut Harness<'_, App>, tmp: &Tmp, rows: &[String]) {
+    let table = std::fs::read_to_string(TABLE_PARTS).unwrap();
+    let header = table.lines().next().expect("the header");
+    let file = tmp.path("parts.csv");
+    std::fs::write(&file, format!("{header}\n{}\n", rows.join("\n"))).unwrap();
+    dispatch(
+        harness,
+        "parts.import",
+        serde_json::json!({"path": file.to_string_lossy()}),
+    );
+    dispatch(harness, "parts.map_import", serde_json::json!({}));
+    dispatch(harness, "preview.apply", serde_json::json!({}));
+    settle(harness);
+}
+
+/// The sample's panel page 902 places every device of the cabinet: the placement of `tag` deleted, the page has a
+/// device to place. Leaves 902 on show.
+#[track_caller]
+pub fn unplace(harness: &mut Harness<'_, App>, tag: &str) {
+    dispatch(harness, "page.goto", serde_json::json!({"folio": "902"}));
+    wait_for_page(harness);
+    let placement = harness
+        .state()
+        .shell()
+        .panel_tables()
+        .expect("the panel page")
+        .placements
+        .iter()
+        .find(|p| p.tag == tag)
+        .unwrap_or_else(|| panic!("the placement of {tag}"))
+        .id
+        .to_string();
+    dispatch(
+        harness,
+        "select.set",
+        serde_json::json!({ "ids": [placement] }),
+    );
+    dispatch(harness, "edit.delete_selection", serde_json::json!({}));
+    settle(harness);
+}
+
 /// The window position (points) of the sheet point `p` on the focused canvas.
 pub fn screen(harness: &Harness<'_, App>, p: (i64, i64)) -> egui::Pos2 {
     let bounds = harness
@@ -232,23 +289,7 @@ pub fn edit_toast(harness: &mut Harness<'_, App>) {
     );
 }
 
-/// The window on a writable copy of Golden A with folio `folio` on show and its image arrived.
-pub fn on_golden(tmp: &Tmp, folio: &str) -> Harness<'static, App> {
-    let dir = tmp.golden("g.ew");
-    let mut h = harness(tmp, Scripted::default(), Some(dir));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    dispatch(&mut h, "page.goto", serde_json::json!({ "folio": folio }));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    settle(&mut h);
-    h
-}
-
 /// The window on a writable copy of the sample project with folio `folio` on show and its image arrived.
-// Allowed: no test reaches it yet; the window tests move to it from `on_golden` (docs/plan/m3.5-reference-project.md,
-// section 5, lane 3).
-#[allow(dead_code)]
 pub fn on_sample(tmp: &Tmp, folio: &str) -> Harness<'static, App> {
     let dir = tmp.sample("s.ew");
     let mut h = harness(tmp, Scripted::default(), Some(dir));
@@ -425,10 +466,18 @@ pub fn availability_problems(harness: &Harness<'_, App>, surface: &str) -> Vec<S
     }
     let menus = actions::menu_model(shell);
     let menu_names: Vec<&str> = menus.iter().map(|m| m.label.as_str()).collect();
+    // An entry of the same name that is available elsewhere (a station under Rack… and, without cards waiting, under
+    // Attach cards) is a node the walk cannot tell apart from this one.
+    let available: std::collections::BTreeSet<String> = menus
+        .iter()
+        .flat_map(|m| m.items())
+        .filter(|i| i.enabled)
+        .map(menu_label)
+        .collect();
     for menu in &menus {
         for item in menu.items().into_iter().filter(|i| !i.enabled) {
             let label = menu_label(item);
-            if !menu_names.contains(&label.as_str()) {
+            if !menu_names.contains(&label.as_str()) && !available.contains(&label) {
                 check(&label, true);
             }
         }

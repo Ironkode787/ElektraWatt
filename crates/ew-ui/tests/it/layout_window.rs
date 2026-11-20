@@ -1,43 +1,45 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! In the window, on a writable copy of Golden A, folio 902: the Unplaced devices navigator's rows on
-//! show; the tool options card while F55 floats, its two segmented controls (tab lists "Placing mode" and "Grid step")
-//! sending `layout.options`; the card gone again when the tool ends. The placing flows themselves (the ghost against
-//! the commit) are the viewmodel's `tests/it/layout_place.rs`.
+//! In the window, on a writable copy of the sample, folio 902: the Unplaced devices navigator's rows on show; the tool
+//! options card while -101F1 (its placement deleted) floats, its two segmented controls (tab lists "Placing mode" and
+//! "Grid step") sending `layout.options`; the card gone again when the tool ends. The placing flows themselves (the
+//! ghost against the commit) are the viewmodel's `tests/it/layout_place.rs`.
 
 use crate::support;
 
 use egui_kittest::kittest::Queryable;
 use ew_viewmodel::ew_api::output::SnapMode;
 use serde_json::json;
-use support::{Tmp, dispatch, on_golden, settle};
+use support::{Tmp, dispatch, on_sample, settle};
 
 #[test]
 fn the_unplaced_navigator_and_the_layout_options_card() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "902");
+    let mut h = on_sample(&tmp, "902");
+    support::unplace(&mut h, "-101F1");
     dispatch(&mut h, "navigator.show", json!({ "kind": "unplaced" }));
     settle(&mut h);
-    for label in ["-201U9", "E55", "E56", "F55", "S56"] {
-        assert!(h.query_by_label_contains(label).is_some(), "the row {label}");
-    }
+    assert!(
+        h.query_by_label_contains("-101F1").is_some(),
+        "the row -101F1"
+    );
     assert!(
         h.query_by_label("Placing mode").is_none(),
         "no card before the tool runs"
     );
 
-    let f55 = h
+    let device = h
         .state()
         .shell()
         .panel_tables()
         .unwrap()
         .unplaced
         .iter()
-        .find(|u| u.label == "F55")
+        .find(|u| u.label == "-101F1")
         .unwrap()
         .device;
-    dispatch(&mut h, "tool.place_layout", json!({ "device": f55.to_string() }));
+    dispatch(&mut h, "tool.place_layout", json!({ "device": device.to_string() }));
     settle(&mut h);
     assert!(h.query_by_label("Placing mode").is_some(), "the mode's tab list");
     assert!(h.query_by_label("Grid step").is_some(), "the grid's tab list");
@@ -64,7 +66,7 @@ fn the_unplaced_navigator_and_the_layout_options_card() {
 #[test]
 fn a_locked_placement_shows_the_lock_icon() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "902");
+    let mut h = on_sample(&tmp, "902");
     assert!(h.state_mut().canvas_host().lock_marks(0).is_empty());
     let panel = h.state().shell().panel_tables().unwrap();
     let row = panel

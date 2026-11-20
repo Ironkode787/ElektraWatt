@@ -58,7 +58,7 @@ fn form_values(h: &egui_kittest::Harness<'_, ew_ui::app::App>) -> Vec<(String, S
 #[test]
 fn page_new_asks_for_the_fields_enter_creates_and_escape_cancels() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     let before = h.state().shell().page_count();
@@ -70,8 +70,8 @@ fn page_new_asks_for_the_fields_enter_creates_and_escape_cancels() {
     // The navigator's button and the dialog's title.
     assert_eq!(h.query_all_by_label("New page").count(), 2);
     // The folio field holds the proposal for a multi-line page: the first free folio of the section that holds the
-    // multi-line pages, never one in the front matter that page 1 stands in.
-    assert_eq!(form_values(&h)[0], ("folio".into(), "107".into()));
+    // multi-line pages (the sample's section 1 holds 101 to 105), never one in the front matter that page 1 stands in.
+    assert_eq!(form_values(&h)[0], ("folio".into(), "106".into()));
     // Folio 999 stands in no section: the section the proposal chose is cleared.
     h.state_mut().shell_mut().set_form_field("section", "");
     h.state_mut().shell_mut().set_form_field("folio", "");
@@ -112,7 +112,7 @@ fn page_new_asks_for_the_fields_enter_creates_and_escape_cancels() {
 #[test]
 fn a_refusal_stays_in_the_dialog_and_the_type_is_a_choice() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     let before = h.state().shell().page_count();
@@ -165,7 +165,7 @@ fn a_refusal_stays_in_the_dialog_and_the_type_is_a_choice() {
 #[test]
 fn the_insert_entries_open_the_structure_and_external_reference_dialogs() {
     let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
+    let dir = tmp.sample("s.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     // Enclosure… makes the Project group four entries, a submenu (doc 16a §9.2).
