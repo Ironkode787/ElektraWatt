@@ -28,7 +28,7 @@ pub const LINK_PREVIEW_DWELL_MS: u32 = 300;
 /// The symbol shapes of one revision, by copy ID text.
 pub type ShapeCache = BTreeMap<String, Arc<SymbolShape>>;
 
-/// The kept preview of a tool's command (spec §7.3): the real command run on a fork by `Session::preview_with`.
+/// The kept preview of a tool's command: the real command run on a fork by `Session::preview_with`.
 #[derive(Debug)]
 pub struct PreviewState {
     /// The revision the preview ran on.
@@ -77,7 +77,7 @@ impl PreviewState {
     }
 }
 
-/// The link hover preview (spec §7.8): the hovered link's target and the view of its region, a 320 × 200 point pane
+/// The link hover preview: the hovered link's target and the view of its region, a 320 × 200 point pane
 /// around the target at the jump view's zoom for that size.
 #[derive(Clone, Debug)]
 pub struct LinkPreview {

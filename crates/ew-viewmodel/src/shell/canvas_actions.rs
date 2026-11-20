@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The canvas actions of the shell (spec sections 6.1 and 6.2): zoom, pan, fit, the pointer, the
+//! The canvas actions of the shell: zoom, pan, fit, the pointer, the
 //! pane size, the grid and the frame statistics, and the page content the canvas shows.
 //!
 //! The page content is fetched once per (revision, folio) at the end of a dispatch that changed either

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The texts of the shell, by key, in the UI language (spec section 5.2).
+//! The texts of the shell, by key, in the UI language.
 //!
 //! Every user-facing text of `ew-viewmodel` and `ew-ui` is a message of the en-GB Fluent file
 //! `locales/en-GB/shell.ftl`; no other literal reaches a screen, a menu, a banner or a transcript. The code names a key

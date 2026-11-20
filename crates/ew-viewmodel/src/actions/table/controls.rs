@@ -283,7 +283,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_text_styles_standard(),
     )),
-    // The property grid's own controls (spec §6.10): the window and the headless mode dispatch them.
+    // The property grid's own controls: the window and the headless mode dispatch them.
     keeps_banner(with_params(
         "ids?:list(ref), refs?:list(ref)",
         hidden(with_aliases(

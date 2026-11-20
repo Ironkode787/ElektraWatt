@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The action registry (spec section 5.2; UX/UI doc 16 section 2.4) in toolkit-neutral form.
+//! The action registry (UX/UI doc 16 section 2.4) in toolkit-neutral form.
 //!
 //! Every menu item, palette entry, keyboard shortcut and dialog result of the shell is an action of
 //! [`ACTIONS`], dispatched with [`ShellModel::dispatch`]; the headless mode drives the same registry. An action

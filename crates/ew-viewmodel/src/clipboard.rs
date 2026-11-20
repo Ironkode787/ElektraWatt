@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The shell's clipboard (spec §8.5 to §8.8): one text value, what it holds, and the text the window
+//! The shell's clipboard: one text value, what it holds, and the text the window
 //! puts on the system clipboard.
 //!
 //! **Headless** runs have no system clipboard: the shell keeps the text (§8.7). `clipboard.text` sets it as an

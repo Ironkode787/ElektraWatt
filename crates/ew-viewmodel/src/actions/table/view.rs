@@ -199,7 +199,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_wire_colours(p),
         ),
     )),
-    // The property grid (spec §6.10).
+    // The property grid.
     keeps_banner(with_params(
         "on?:bool",
         placed(

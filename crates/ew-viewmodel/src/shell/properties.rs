@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The property grid in the shell (spec §6.2 to §6.11): the sheet fetched once per key, the row
+//! The property grid in the shell: the sheet fetched once per key, the row
 //! cursor, the edit buffer, the commit path, the card, the toast and `select.set`.
 //!
 //! **The sheet** is fetched at the end of a dispatch when the pane is in the layout and its key (project session,

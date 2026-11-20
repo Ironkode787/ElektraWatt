@@ -1,14 +1,14 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The shell model (spec section 5.1): all application state of the desktop shell and its one
+//! The shell model: all application state of the desktop shell and its one
 //! mutating entry point, [`ShellModel::dispatch`].
 //!
 //! The model owns the settings, the optional open project (its `Session`, directory and access mode), the current
 //! page, the banner, the palette and dialog state, and the record of committed `command.run` steps. It reaches the
 //! project only through `ew_api::Session`. The egui frame (`ew-ui`) and the headless runner call `dispatch` for
 //! every menu item, palette entry, shortcut and dialog result and read the getters to paint or to describe, so
-//! anything the headless mode cannot do the shell does not do (spec section 6).
+//! anything the headless mode cannot do the shell does not do.
 
 use std::cell::Cell;
 use std::path::{Path, PathBuf};
@@ -607,7 +607,7 @@ pub struct RecordedCommand {
     pub params: Value,
 }
 
-/// The committed `command.run` steps of the project of this run (spec section 6.4).
+/// The committed `command.run` steps of the project of this run.
 #[derive(Default)]
 struct Record {
     /// The directory the steps belong to; opening another directory starts a new record.
@@ -1547,7 +1547,7 @@ impl ShellModel {
         self.prompt.take()
     }
 
-    /// The status-bar fields, left to right (spec section 5.3; §6.5): with the notifications field
+    /// The status-bar fields, left to right (§6.5): with the notifications field
     /// while the log is not empty and, last, the job field while a job runs; `hide_job` leaves the job field out (the
     /// window's 200 ms rule: a job younger than that shows none; the describe text and the transcript pass `false`).
     pub fn status_fields(&self, hide_job: bool) -> Vec<String> {
@@ -2400,7 +2400,7 @@ impl ShellModel {
     }
 
     /// One command-log line through the session's own replay: reference resolution, preview and commit for bulk
-    /// commands, one undo step, origin CmdLog (spec section 6.3); a committed step joins the record. The
+    /// commands, one undo step, origin CmdLog; a committed step joins the record. The
     /// path of `command.run` and of the tool host's headless commits.
     fn run_logged(&mut self, cmd: String, params: Value) -> Outcome {
         let text = format!(

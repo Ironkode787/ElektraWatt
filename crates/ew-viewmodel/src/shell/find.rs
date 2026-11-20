@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The find pane in the shell (spec §7.3 to §7.6): the query as typed, `find.run` (one
+//! The find pane in the shell: the query as typed, `find.run` (one
 //! `Session::find` call; typing makes none), the result cursor and the jump, and the replace through the inline
 //! preview card.
 //!

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The property grid's panel model (spec §6.2 to §6.11): the sheet the shell fetched, the focused
+//! The property grid's panel model: the sheet the shell fetched, the focused
 //! row, the edit buffer, the choices and popups, the inline preview card and the toast, and the pure rules over them —
 //! the edit policy of FR-UI-044 ([`policy`]), the composition of a leaf into its settable member ([`compose`]), the
 //! read-only reasons ([`read_only_reason`]) and the rows on show ([`visible_rows`]).

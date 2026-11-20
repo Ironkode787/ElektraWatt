@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The canvas model (spec section 6.1): what the page canvas shows, in plain Rust, so that the
+//! The canvas model: what the page canvas shows, in plain Rust, so that the
 //! window and the headless mode zoom, pan and point through the same `ShellModel::dispatch`.
 //!
 //! **Coordinates.** Sheet nanometres, origin top-left, y down. The zoom is a factor of paper size: at 100 % one

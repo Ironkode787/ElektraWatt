@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The application settings file `settings.toml` (spec section 5.1; FR-UI-033, FR-UI-049).
+//! The application settings file `settings.toml` (FR-UI-033, FR-UI-049).
 //!
 //! `version = 1`, `recent_projects` (at most [`MAX_RECENT`], most recent first, no duplicates), `ui_scale` (one
 //! of [`UI_SCALES`]) and, since part 2, the first-run answers and quick switches: `first_run_done`, `language`,

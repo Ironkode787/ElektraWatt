@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The find pane's model (spec §7.3 to §7.6): the query being typed, the last results with the
+//! The find pane's model: the query being typed, the last results with the
 //! revision they were made at, the result cursor and the pane's note.
 //!
 //! Only the shell (`ShellModel`'s `find.*` actions) calls the `Session`: `find.run` makes exactly one

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The UI script and its transcript (spec section 6): the headless mode's input and output.
+//! The UI script and its transcript: the headless mode's input and output.
 //!
 //! **Script** (`ew.uiscript/1`, JSON Lines). The first non-empty line is the header
 //! `{"$schema":"ew.uiscript/1","label":"..."}`; every further line is `{"action":"<id>","params":{...}}` with

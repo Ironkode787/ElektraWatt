@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The `ui.describe` text (spec section 6.2): the visible user interface as text, one line per
+//! The `ui.describe` text: the visible user interface as text, one line per
 //! element, in paint order. It is what an agent reads instead of a screenshot.
 //!
 //! Paint order: the window title, the app menu with every entry and its enabled state (and reason), the command bar,

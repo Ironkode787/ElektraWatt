@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The viewer's state and actions in the shell (spec sections 6.1 to 6.7): the canvas area with its
+//! The viewer's state and actions in the shell: the canvas area with its
 //! tabs and groups, the page-content cache, walks, jumps and the per-tab history, cross-reference links, Go to page
 //! or cell, the keyboard grid cursor, the page navigator and the focus.
 //!

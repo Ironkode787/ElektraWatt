@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The page navigator (spec section 6.1; FR-PAG-024, the viewing part): the pages of the derived
+//! The page navigator (FR-PAG-024, the viewing part): the pages of the derived
 //! page order as a flat list, by section, or by structure (function, location, section), sorted by folio (page
 //! order) or by page type, with a filter and a row cursor. It is the page list of the `pages` pane.
 //!

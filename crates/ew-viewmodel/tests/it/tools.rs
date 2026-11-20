@@ -35,7 +35,7 @@ fn entities(shell: &ShellModel) -> Vec<(EntityRef, Vec<Rect>)> {
     out
 }
 
-/// The band oracle (spec §7.6): left to right every rectangle inside, right to left any rectangle touching.
+/// The band oracle: left to right every rectangle inside, right to left any rectangle touching.
 fn band_oracle(shell: &ShellModel, a: (i64, i64), b: (i64, i64)) -> Vec<EntityRef> {
     let (x0, x1) = (a.0.min(b.0), a.0.max(b.0));
     let (y0, y1) = (a.1.min(b.1), a.1.max(b.1));

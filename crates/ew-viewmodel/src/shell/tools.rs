@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The tool host in the shell (spec §7.2 to §7.9): one active tool per window acting on the
+//! The tool host in the shell: one active tool per window acting on the
 //! focused group's canvas, its overlay, the preview protocol over `Session::preview_with`, the Escape chain, the
 //! keyboard tool input, the link hover preview and the selection.
 //!
@@ -313,7 +313,7 @@ impl ShellModel {
     }
 
     /// Makes `tool` the active tool, as a tool of the registry would be (feature `testkit` only: the probe tool of
-    /// the tests exercises the commit path, which no shipped tool takes; spec §7.6).
+    /// the tests exercises the commit path, which no shipped tool takes).
     #[cfg(feature = "testkit")]
     pub fn set_tool_for_tests(&mut self, tool: Box<dyn Tool>) {
         self.activate_tool(tool);

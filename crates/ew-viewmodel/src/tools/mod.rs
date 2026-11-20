@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The canvas tool framework (spec §7): the tool contract, the overlay, the
+//! The canvas tool framework: the tool contract, the overlay, the
 //! snapper, the selection and the two shipped tools, Select and Measure, which change nothing.
 //!
 //! **The contract** (§7.1). A [`Tool`] is a state machine over typed input events ([`CanvasEvent`], in sheet nm):
@@ -145,7 +145,7 @@ pub enum Button {
     Middle,
 }
 
-/// An input event of a tool, in sheet nm (spec §7.1).
+/// An input event of a tool, in sheet nm.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum CanvasEvent {
     /// The pointer moved to `at`.
@@ -417,7 +417,7 @@ pub enum SelectionChange {
     Toggle(EntityRef),
 }
 
-/// What a tool answers to one event (spec §7.1, §7.2).
+/// What a tool answers to one event.
 pub enum ToolOutput {
     /// Nothing.
     None,
@@ -521,7 +521,7 @@ pub(crate) const BACK: &str = "tool.back";
 /// The action of Shift+Enter (the tool's finish).
 pub(crate) const FINISH: &str = "tool.finish";
 
-/// A canvas tool: a state machine over [`CanvasEvent`]s (spec §7.1).
+/// A canvas tool: a state machine over [`CanvasEvent`]s.
 pub trait Tool {
     /// The tool's name (`select`, `measure`): the transcript's word and the key of its label (`tool-<name>`).
     fn name(&self) -> &'static str;
@@ -612,7 +612,7 @@ pub trait Tool {
     }
 }
 
-/// What a tool sees of the canvas (spec §7.1): the prepared page, never a `World`.
+/// What a tool sees of the canvas: the prepared page, never a `World`.
 pub struct ToolCx<'a> {
     /// The page content of the focused canvas: display list, entity rectangles, links, cells, grid, connection
     /// points.
@@ -798,7 +798,7 @@ pub fn link_at(links: &[PageLink], p: (i64, i64), points_per_nm: f64) -> Option<
     best.map(|(_, _, i)| i)
 }
 
-/// The window's selection (spec §7.6): entities in selection order without duplicates, the primary one, and a
+/// The window's selection: entities in selection order without duplicates, the primary one, and a
 /// generation counted up by every change. It survives page and tab changes.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct Selection {
