@@ -160,8 +160,11 @@ fn cps_of(tx: &TxBuilder<'_>, rep: &Representation) -> Vec<Result<RepCp, OutOfRa
     let grid = tx.get::<Page>(rep.page).map_or(Grid::MM4, |p| p.grid);
     let placed = |local: Pt2| {
         if point_in_range(local) {
-            add(rep.pos, rep.orient.apply(local))
-                .map(|p| Some(grid.settle_point(p)).filter(|s| point_in_range(*s)).unwrap_or(p))
+            add(rep.pos, rep.orient.apply(local)).map(|p| {
+                Some(grid.settle_point(p))
+                    .filter(|s| point_in_range(*s))
+                    .unwrap_or(p)
+            })
         } else {
             Err(OutOfRange)
         }

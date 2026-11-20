@@ -38,8 +38,8 @@ use std::sync::Arc;
 
 use ew_api::AnyCommand;
 use ew_api::geometry::{orient_dir, orient_point, orient_then, variant_letter};
-use ew_api::output::{PageTables, SymbolShape};
 use ew_api::output::ew_dl::EntityRef;
+use ew_api::output::{PageTables, SymbolShape};
 use serde_json::{Value, json};
 
 use super::autoconnect::{
@@ -669,7 +669,11 @@ impl PlaceTool {
                 }),
                 ProposalTarget::Split { other, .. } => {
                     items.push(stub(p.cp.at, p.cp.dir));
-                    if let Some(o) = self.ghost_cps(pos, &cx.page.tables).iter().find(|c| c.symbol_cp == other.0) {
+                    if let Some(o) = self
+                        .ghost_cps(pos, &cx.page.tables)
+                        .iter()
+                        .find(|c| c.symbol_cp == other.0)
+                    {
                         items.push(stub(o.at, o.dir));
                     }
                 }
@@ -772,7 +776,10 @@ impl PlaceTool {
     /// along the sheet's edge.
     fn on_off_sheet(&self, cx: &ToolCx<'_>) -> bool {
         self.at.is_some_and(|(_, at)| {
-            on_off_sheet_segment(&self.ghost_cps(self.stacked_pos(cx, at), &cx.page.tables), &cx.page.tables)
+            on_off_sheet_segment(
+                &self.ghost_cps(self.stacked_pos(cx, at), &cx.page.tables),
+                &cx.page.tables,
+            )
         })
     }
 

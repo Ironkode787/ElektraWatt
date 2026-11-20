@@ -732,7 +732,11 @@ fn a_point_dropped_on_a_pin_connects_to_it_on_the_pin_s_own_number() {
     assert!(!pins.is_empty(), "pins to drop a point on");
     for pin in &pins {
         arm_on(&mut s, "T1", pin.at);
-        assert_eq!(ghost(&s)["connects"], pin.label.as_str(), "the pin under the point");
+        assert_eq!(
+            ghost(&s)["connects"],
+            pin.label.as_str(),
+            "the pin under the point"
+        );
         done(&mut s, "tool.select", json!({}));
     }
     let pin = &pins[0];

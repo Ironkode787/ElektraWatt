@@ -406,7 +406,11 @@ fn a_black_box_saved_with_a_pin_one_nm_off_the_grid_still_wires() {
     let wires = wire_every_pin(&mut e, r, f);
     assert_eq!(wires.len(), spec.cps.len());
     let w = row(&e, wires[1]);
-    assert_eq!(w.route.first(), Some(&pin), "the wire ends on the pin's grid number");
+    assert_eq!(
+        w.route.first(),
+        Some(&pin),
+        "the wire ends on the pin's grid number"
+    );
     assert_eq!(row(&e, r), before, "nothing rewrites the stored box");
 }
 

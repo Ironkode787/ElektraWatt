@@ -360,9 +360,10 @@ fn the_page_tables_of_folios_101_to_103_match_the_golden_tables_and_the_scene() 
             let rep = t.reps.iter().find(|r| r.id == cp.rep).unwrap();
             if rep.black_box.is_none() && rep.rep_type != "strip_segment" {
                 let shape = s.symbol_shape(rep.symbol).unwrap();
-                let hit = shape.cps.iter().any(|sc| {
-                    drawn_at(t.grid, rep.pos, orient_point(rep.orient, sc.at)) == cp.at
-                });
+                let hit = shape
+                    .cps
+                    .iter()
+                    .any(|sc| drawn_at(t.grid, rep.pos, orient_point(rep.orient, sc.at)) == cp.at);
                 assert!(hit, "{}", cp.label);
             }
             assert!(cp.dir.is_some(), "{}", cp.label);

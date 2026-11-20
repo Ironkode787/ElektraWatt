@@ -2498,7 +2498,8 @@ fn drawn_cps(q: &Q, page: Id<Page>) -> DrawnCps {
         let o = orient_index(rep.orient);
         let mut put = |function: Id<Function>, idx: u16, at: Option<Pt2>, dir: Dir| {
             let Some(at) = at else { return };
-            map.entry((function, idx)).or_insert((grid.settle_point(at), dir, rid));
+            map.entry((function, idx))
+                .or_insert((grid.settle_point(at), dir, rid));
         };
         let placed = |offset: Pt2| rep.pos.checked_add(rep.orient.checked_apply(offset)?);
         for cp in def.cps.iter() {

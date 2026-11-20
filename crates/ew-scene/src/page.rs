@@ -897,8 +897,11 @@ fn drawn_cps(view: &PageView) -> BTreeMap<(Uuid, u16), (Pt2, Dir4, Uuid)> {
                     .chain(t.side2.iter().map(|&i| (i, side2, Dir4::Down)))
                 {
                     let dir = symbol::transform_dir(&dir, rep.orient);
-                    map.entry((t.function.as_uuid(), idx))
-                        .or_insert((view.grid.settle_point(at), dir, rep.id.as_uuid()));
+                    map.entry((t.function.as_uuid(), idx)).or_insert((
+                        view.grid.settle_point(at),
+                        dir,
+                        rep.id.as_uuid(),
+                    ));
                 }
             }
         }

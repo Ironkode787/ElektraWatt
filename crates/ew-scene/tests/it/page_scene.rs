@@ -97,7 +97,10 @@ fn view() -> PageView {
     let junction = json!({ "junction": uuid(0x31) });
     // The terminals' CPs: idx 0 one grid step below the origin, idx 1 one above, where the routes end on them.
     let xy = |p: Pt2| (p.x.0, p.y.0);
-    let (below, above) = (|x: i64, y: i64| xy(pin(x, y + 1)), |x: i64, y: i64| xy(pin(x, y - 1)));
+    let (below, above) = (
+        |x: i64, y: i64| xy(pin(x, y + 1)),
+        |x: i64, y: i64| xy(pin(x, y - 1)),
+    );
     PageView {
         frame: Some(FrameView {
             form: form(FRAME),
@@ -313,7 +316,10 @@ fn a_page_stored_by_an_older_build_draws_the_same_and_measures_without_a_fault()
     let q = ew_drafting::measure(labels.draft.as_deref().expect("the page as the layout sees it"));
     assert_eq!(q.faults, 0, "{:?}", q.findings);
     assert_eq!((q.counts.bends, q.counts.turn_backs), (2, 0), "{:?}", q.counts);
-    assert_eq!(v.connections[0].connection.route, stored.route, "nothing is rewritten");
+    assert_eq!(
+        v.connections[0].connection.route, stored.route,
+        "nothing is rewritten"
+    );
 }
 
 #[test]
