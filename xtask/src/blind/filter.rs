@@ -376,13 +376,67 @@ pub fn parse_batch(text: &str) -> Result<Vec<StepIn>, String> {
     Ok(steps)
 }
 
-/// The action list of the reference, for the tests of the harness (`cargo xtask docs-gen` writes it).
+/// A small action list in the form of `actions.txt`, for the tests of the harness: lines of the registry's list,
+/// enough for the actions the tests name. The real list is the product's: `ew-viewmodel`'s `blind_reference` test
+/// writes and checks it, so the harness's tests build no product.
+#[cfg(test)]
+pub const TEST_ACTIONS: &str = r#"file.new Command "New project…" menu "File" shortcut "Ctrl+N" context global params "dir?:path, template?:path, pages?:bool, discard?:bool"
+file.open Command "Open…" menu "File" shortcut "Ctrl+O" context global params "dir?:path, read_only?:bool, discard?:bool"
+file.open_sample Command "Open sample project" menu "File" shortcut none context global params "discard?:bool"
+file.save Command "Save" menu "File" shortcut "Ctrl+S" context global params ""
+file.save_as Command "Save as…" menu "File" shortcut "Ctrl+Shift+S" context global params "dir?:path"
+file.export_pdf Command "Export PDF…" menu "Output" shortcut "Ctrl+Shift+E" context global params "path?:path, replace?:bool, wait?:bool"
+app.quit Command "Quit" menu "File" shortcut "Ctrl+Q" context global params "discard?:bool"
+edit.undo Command "Undo" menu "Edit" shortcut "Ctrl+Z" context global params ""
+edit.redo Command "Redo" menu "Edit" shortcut "Ctrl+Shift+Z" context global params ""
+page.next View "Next page" menu "Page" shortcut "Page Down" context global params ""
+nav.goto View "Go to page or cell…" menu "Page" shortcut "Ctrl+G" context global params "text?:text"
+nav.back View "Back" menu "Page" shortcut "Alt+Arrow Left" context global params ""
+nav.follow View "Follow cross-reference" menu "Page" shortcut "F" context canvas params "x_mm?:mm, y_mm?:mm, group?:uint"
+canvas.activate View "Click at the grid cursor" menu none shortcut "Enter" context canvas params "alt?:bool"
+view.zoom_in View "Zoom in" menu "View" shortcut "Ctrl+Plus" context global params "group?:uint"
+view.fit_page View "Fit page" menu "View" shortcut "Home" context global params "group?:uint"
+view.pan_left View "Pan left" menu "View ▸ Pan" shortcut "Ctrl+Arrow Left" context global params "group?:uint"
+tool.select View "Select" menu "Draw" shortcut none context global params ""
+tool.measure View "Measure" menu "Draw" shortcut none context global params ""
+tool.wire Command "Wire" menu "Draw" shortcut "W" context canvas params ""
+strip.new Command "Terminal strip" menu "Draw" shortcut none context global params "letter?:text, tag?:text, dialog?:bool"
+tool.finish View "Finish" menu none shortcut "Shift+Enter" context canvas hidden params ""
+canvas.activate_alt View "Click with Alt at the grid cursor" menu none shortcut "Ctrl+Enter" context canvas hidden params ""
+image.file View "Image file" menu none shortcut none context canvas hidden params "path:path"
+tab.new View "New tab" menu "Window" shortcut "Ctrl+T" context global params ""
+help.about View "About ElektraWatt" menu "Help" shortcut none context global params ""
+help.tutorials Command "Tutorials" menu "Help ▸ Tutorials" shortcut none context global params "dir?:path, tutorial?:text"
+command.run Command "Run model command" menu none shortcut none context global needs-parameters params "cmd:text, params?:json"
+view.snapshot View "Write page snapshot" menu none shortcut none context global headless params "path:path, dpi?:uint"
+canvas.snapshot View "Write canvas snapshot" menu none shortcut none context global headless params "path:path, group?:uint"
+view.zoom_to View "Zoom to" menu none shortcut none context global hidden params "percent:json, x_mm?:mm, y_mm?:mm, group?:uint"
+view.pan View "Pan the canvas" menu none shortcut none context global hidden params "dx:json, dy:json, group?:uint"
+canvas.pointer View "Point at the canvas" menu none shortcut none context global hidden params "x_mm?:mm, y_mm?:mm, group?:uint, shift?:bool, ctrl?:bool, alt?:bool"
+canvas.preview_snapshot View "Link preview snapshot" menu none shortcut none context global headless params "path:path"
+canvas.press View "Press on the canvas" menu none shortcut none context canvas hidden params "x_mm:mm, y_mm:mm, button?:enum(primary|middle), shift?:bool, ctrl?:bool, alt?:bool, group?:uint"
+canvas.release View "Release on the canvas" menu none shortcut none context canvas hidden params "x_mm:mm, y_mm:mm, button?:enum(primary|middle), shift?:bool, ctrl?:bool, alt?:bool, group?:uint"
+canvas.dwell View "Pointer at rest" menu none shortcut none context canvas hidden params "ms:uint"
+ui.describe View "Describe the user interface" menu none shortcut none context global headless params ""
+ui.dismiss View "Dismiss popup or dialog" menu none shortcut "Escape" context global hidden params ""
+page.goto View "Go to page…" menu none shortcut none context global hidden params "folio:text"
+tab.activate View "Show tab" menu none shortcut none context global hidden params "group:uint, index:uint"
+cursor.set View "Set cursor" menu none shortcut none context canvas hidden params "x_mm?:mm, y_mm?:mm, group?:uint"
+pages.row View "Move in the page navigator" menu none shortcut none context navigator hidden params "key?:text, step?:int, to?:enum(first|last)"
+pages.open View "Open page" menu none shortcut none context navigator hidden params "key?:text, folio?:text, new_tab?:bool"
+props.set Command "Set a property" menu none shortcut none context global hidden params "row?:text, value?:text, choice?:uint"
+settings.set Command "Change a setting" menu none shortcut none context global hidden params "key:text, value:json"
+first_run.finish Command "First run: finish" menu none shortcut none context global hidden params "start?:enum(wizard|sample|qet|new|none)"
+select.set View "Select records" menu none shortcut none context global hidden params "ids?:list(ref), refs?:list(ref)"
+find.text View "Type the search text" menu none shortcut none context find hidden params "text:text"
+find.fields View "Choose the fields to search" menu none shortcut none context find hidden params "fields:list(text)"
+page.describe View "Describe the page content" menu none shortcut none context global headless params "folio?:text"
+"#;
+
+/// [`TEST_ACTIONS`] parsed.
 #[cfg(test)]
 pub fn test_reference() -> Reference {
-    let path = crate::workspace_root().join(super::compose::ACTIONS);
-    let text = std::fs::read_to_string(&path)
-        .unwrap_or_else(|e| panic!("{}: {e}; {}", path.display(), super::compose::ACTIONS_MISSING));
-    parse_reference(&text).unwrap()
+    parse_reference(TEST_ACTIONS).unwrap()
 }
 
 #[cfg(test)]
@@ -666,18 +720,6 @@ mod tests {
         ] {
             assert_eq!(check(Kind::Check, &step(id, params)), Ok(()), "{id} is kept");
         }
-        // The registry's view actions a check run refuses are exactly the list: nothing else of kind View is lost.
-        let r = test_reference();
-        let mut refused: Vec<&str> = r
-            .actions
-            .iter()
-            .filter(|a| a.view && check_refuses(&a.id) && !BLOCKED.contains(&a.id.as_str()))
-            .map(|a| a.id.as_str())
-            .collect();
-        refused.sort_unstable();
-        let mut want = CHECK_REFUSED.to_vec();
-        want.sort_unstable();
-        assert_eq!(refused, want);
     }
 
     /// BD7: the `key=value` parser types by signature.

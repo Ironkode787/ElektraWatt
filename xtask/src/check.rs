@@ -5,9 +5,10 @@
 //!
 //! In this order, each step printed with its result: rustfmt over every Rust file (it formats, it does not only
 //! compare), clippy with warnings as errors, the tests and the doctests, and the repository rules. Before the tests of
-//! xtask the action list of the reference is written (`target/reference/actions.txt`), which its harness tests read. The scope of
-//! clippy and the tests is the packages named with `-p`, or the whole workspace; all features are on, so the pixel
-//! snapshots of `ew-ui` run too. A failed step does not stop the later ones.
+//! the whole workspace the action list of the reference is written (`target/reference/actions.txt`), which the
+//! harness's replay of its briefs on the built product reads. The scope of clippy and the tests is the packages named
+//! with `-p`, or the whole workspace; all features are on, so the pixel snapshots of `ew-ui` run too. A failed step
+//! does not stop the later ones.
 
 use std::io::{BufRead, BufReader};
 use std::path::Path;
@@ -65,9 +66,13 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
     summary.push(("clippy", clippy(root, &scope)?));
 
     if args.test {
-        // The harness's tests read the action list of the reference: written anew, never trusted from an older tree.
-        if args.packages.is_empty() || args.packages.iter().any(|p| p == "xtask") {
-            println!("==> actions.txt: written from the registry for xtask's tests (target/reference)");
+        // The harness's replay of its briefs on the built product reads the action list of the reference: written
+        // anew, never trusted from an older tree. Only the whole workspace builds the product; the harness's own
+        // tests read a small list of their own.
+        if args.packages.is_empty() {
+            println!(
+                "==> actions.txt: written from the registry for the harness's replay (target/reference)"
+            );
             if !crate::generate::write_actions(root)? {
                 summary.push(("actions", false));
             }

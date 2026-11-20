@@ -21,7 +21,8 @@ use anyhow::{Context, Result};
 /// Where the reference is written, relative to the root.
 pub(crate) const REFERENCE_DIR: &str = "target/reference";
 
-/// The test that writes `actions.txt`, the persona harness's action list; `check` runs it alone before xtask's tests.
+/// The test that writes `actions.txt`, the persona harness's action list; `check` of the whole workspace runs it
+/// alone before the tests.
 const ACTIONS_TEST: (&str, &[&str]) = (
     "ew-viewmodel",
     &["--test", "it", "blind_reference::the_action_list"],
@@ -129,7 +130,7 @@ pub(crate) fn reference(root: &Path) -> Result<bool> {
     Ok(true)
 }
 
-/// Writes `actions.txt` alone, over the one there is: the tests of the persona harness read it.
+/// Writes `actions.txt` alone, over the one there is: the harness's replay of its briefs reads it.
 pub(crate) fn write_actions(root: &Path) -> Result<bool> {
     let dir: PathBuf = root.join(REFERENCE_DIR);
     std::fs::create_dir_all(&dir).with_context(|| format!("creating {}", dir.display()))?;

@@ -60,7 +60,8 @@ pub struct Composed {
 pub const ACTIONS: &str = "target/reference/actions.txt";
 
 /// What to say where [`ACTIONS`] is missing.
-pub const ACTIONS_MISSING: &str = "`cargo xtask check -p xtask` or `cargo xtask docs-gen` writes it";
+pub const ACTIONS_MISSING: &str =
+    "`cargo xtask docs-gen`, `cargo xtask gen` or `cargo xtask check` of the whole workspace writes it";
 
 /// The reference files the harness copies and the run records.
 pub const REFERENCE_FILES: [&str; 1] = [ACTIONS];

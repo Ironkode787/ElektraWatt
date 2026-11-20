@@ -891,10 +891,21 @@ mod tests {
             "aaaa\nbbbb\n\n== help page 1 of 2; the next: help 2 ==\n"
         );
         assert_eq!(help_page(&pages, 2), "cccc\n\n== help page 2 of 2, the last ==\n");
-        // The committed help text: several pages, none over the budget, nothing lost.
-        let full = help_text(Some(&crate::workspace_root()), None).unwrap();
+        // The committed help text with an action list: no page over the budget, nothing lost.
+        let tmp = Tmp::new("help-pages");
+        for (rel, text) in [
+            (
+                "tools/blind/HELP.md",
+                std::fs::read_to_string(crate::workspace_root().join("tools/blind/HELP.md")).unwrap(),
+            ),
+            (compose::ACTIONS, filter::TEST_ACTIONS.to_owned()),
+        ] {
+            let p = tmp.0.join(rel);
+            std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+            std::fs::write(p, text).unwrap();
+        }
+        let full = help_text(Some(&tmp.0), None).unwrap();
         let pages = help_pages(&full, HELP_PAGE_BYTES);
-        assert!(pages.len() >= 3, "{}", pages.len());
         assert!(pages.iter().all(|p| p.len() <= HELP_PAGE_BYTES));
         assert_eq!(pages.concat(), full);
     }

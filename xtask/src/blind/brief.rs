@@ -860,14 +860,14 @@ mod tests {
         assert!(!has_word("file.save.x", "file.save"));
     }
 
-    /// A copy of `brief` (and the action list) under a temporary root, for a test to break.
+    /// A copy of `brief` with the tests' action list under a temporary root, for a test to break.
     fn copy_brief(brief: &str) -> (crate::blind::testkit::Tmp, PathBuf) {
         let tmp = crate::blind::testkit::Tmp::new("brief");
         let root = crate::workspace_root();
         let dir = tmp.0.join("tools/blind/tasks").join(brief);
         std::fs::create_dir_all(&dir).unwrap();
         std::fs::create_dir_all(tmp.0.join("target/reference")).unwrap();
-        std::fs::copy(root.join(ACTIONS), tmp.0.join(ACTIONS)).unwrap();
+        std::fs::write(tmp.0.join(ACTIONS), crate::blind::filter::TEST_ACTIONS).unwrap();
         // The starter content, where a `symbol:` or `fndef:` requirement is looked up.
         for folder in ["content/symbols", "content/symbols/qet10", "content/fndefs"] {
             std::fs::create_dir_all(tmp.0.join(folder)).unwrap();
@@ -1114,17 +1114,20 @@ mod tests {
     }
 
     /// UR-8 and §9.3 item 1: every committed usability task is runnable on the build, every hard item met by its
-    /// reference solution from its start project. Needs `elektrawatt` and `ew` built in `target/debug`; without them
-    /// the test says so and checks nothing.
+    /// reference solution from its start project. Needs `elektrawatt` and `ew` built in `target/debug` and the action
+    /// list written (the workspace's `check` does both); without them the test says so and checks nothing.
     #[test]
     fn the_usability_tasks_replay_on_the_build() {
         let root = crate::workspace_root();
         let bin = root.join("target/debug");
         let built = ["elektrawatt", "ew"]
             .iter()
-            .all(|n| bin.join(format!("{n}{}", std::env::consts::EXE_SUFFIX)).is_file());
+            .all(|n| bin.join(format!("{n}{}", std::env::consts::EXE_SUFFIX)).is_file())
+            && root.join(ACTIONS).is_file();
         if !built {
-            eprintln!("ur8: elektrawatt and ew are not built in target/debug; the replay is not checked");
+            eprintln!(
+                "ur8: elektrawatt and ew are not built in target/debug, or {ACTIONS} is not written; the replay is not checked"
+            );
             return;
         }
         let tmp = crate::blind::testkit::Tmp::new("ur8-check");
@@ -1156,8 +1159,8 @@ mod tests {
     /// `place.pick function=<tag>:13-14` puts each relay's contact on its relay's auxiliary slot
     /// (the contactor's contacts are template slots and `device=<tag>` fills the first, 1-2).
     /// The other is `brief-plc-io`.
-    /// Needs `elektrawatt` and `ew` built in `target/debug` (the workspace run builds them); without them the test says
-    /// so and checks nothing. Its scratch folders live in a temporary folder of its own, removed after it, so a parallel
+    /// Needs `elektrawatt` and `ew` built in `target/debug` and the action list written (the workspace's `check` does
+    /// both); without them the test says so and checks nothing. Its scratch folders live in a temporary folder of its own, removed after it, so a parallel
     /// run shares none of them.
     #[test]
     fn check_brief_replays_the_reference_solutions() {
@@ -1165,9 +1168,12 @@ mod tests {
         let bin = root.join("target/debug");
         let built = ["elektrawatt", "ew"]
             .iter()
-            .all(|n| bin.join(format!("{n}{}", std::env::consts::EXE_SUFFIX)).is_file());
+            .all(|n| bin.join(format!("{n}{}", std::env::consts::EXE_SUFFIX)).is_file())
+            && root.join(ACTIONS).is_file();
         if !built {
-            eprintln!("bv9: elektrawatt and ew are not built in target/debug; the replay is not checked");
+            eprintln!(
+                "bv9: elektrawatt and ew are not built in target/debug, or {ACTIONS} is not written; the replay is not checked"
+            );
             return;
         }
         let tmp = crate::blind::testkit::Tmp::new("bv9-check");
