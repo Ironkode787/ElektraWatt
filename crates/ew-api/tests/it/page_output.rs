@@ -456,7 +456,7 @@ fn the_display_list_of_folio_101_is_stable() {
             labels glyphs 57543b91 "3" origin=(42994792,38836865) size=1322917 angle=0
             labels glyphs 57543b91 "4" origin=(42994792,44128531) size=1322917 angle=0
             labels glyphs 5e0e0f25 "J-E-206-N" origin=(10789841,140854377) size=2381250 angle=0
-            labels glyphs 5e0e0f25 "+J-E-206 / JE-N1000-03" origin=(3590132,146743473) size=2381250 angle=0
+            labels glyphs 5e0e0f25 "+J-E-206 / JE-N1000-03" origin=(5574507,146743473) size=2381250 angle=0
             labels glyphs 6112da7c "E56" origin=(226324584,105738348) size=3439583 angle=0
             labels glyphs 6112da7c "X1" origin=(236140625,101675406) size=1322917 angle=0
             labels glyphs 6112da7c "X2" origin=(236140625,108289990) size=1322917 angle=0
@@ -483,8 +483,8 @@ fn the_display_list_of_folio_101_is_stable() {
             labels glyphs 8c4dbb72 "N" origin=(209682291,33545198) size=1322917 angle=0
             labels glyphs 8c4dbb72 "N" origin=(209682291,41482698) size=1322917 angle=0
             labels glyphs 92878d9b "J-E-206-PE" origin=(10312400,151437710) size=2381250 angle=0
-            labels glyphs 92878d9b "+J-E-206 / JE-N1000-03" origin=(3590132,157326806) size=2381250 angle=0
-            labels glyphs 9945b5aa "2" origin=(38381517,80602931) size=3439583 angle=0
+            labels glyphs 92878d9b "+J-E-206 / JE-N1000-03" origin=(5574507,157326806) size=2381250 angle=0
+            labels glyphs 9945b5aa "2" origin=(40035163,83414129) size=3439583 angle=0
             labels glyphs 9b2316f2 "PE-1.1" origin=(246584391,140854377) size=2381250 angle=0
             labels glyphs 9b2316f2 "103-G6" origin=(243405555,146743473) size=2381250 angle=0
             labels path 9b2316f2 els=5 first=(243405555,144197917) last=(251354167,144197917) stroke=- fill=-
@@ -496,8 +496,8 @@ fn the_display_list_of_folio_101_is_stable() {
             labels glyphs de795e26 "N" origin=(204390625,104982698) size=1322917 angle=0
             labels glyphs de795e26 "PE" origin=(207036459,99492593) size=1322917 angle=0
             labels glyphs f4fdc202 "J-E-206-L" origin=(11070828,130271044) size=2381250 angle=0
-            labels glyphs f4fdc202 "+J-E-206 / JE-N1000-03" origin=(3590132,136160140) size=2381250 angle=0
-            labels glyphs 66c620c1 "1X1" origin=(29106813,75721369) size=3439583 angle=0
+            labels glyphs f4fdc202 "+J-E-206 / JE-N1000-03" origin=(5574507,136160140) size=2381250 angle=0
+            labels glyphs 66c620c1 "1X1" origin=(29933636,75225275) size=3439583 angle=0
             labels path 09ed5beb els=2 first=(40833333,68791667) last=(43833333,68791667) stroke=264583 fill=-
             labels glyphs 09ed5beb "2.5" origin=(44833333,69263948) size=1322917 angle=0
             labels path 17b31bbc els=2 first=(93927083,24958333) last=(93927083,27958333) stroke=264583 fill=-

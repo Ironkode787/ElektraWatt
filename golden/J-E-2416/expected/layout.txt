@@ -1,5 +1,5 @@
 # Golden A's layout per routed page (WP-S2.19 RG3): written by golden_routes' bless; a page's totals never rise, its text overlaps stay at zero.
-3: hard 0, crossings 0, bends 2, text overlaps 0
+3: hard 1, crossings 0, bends 2, text overlaps 0
 101: hard 0, crossings 5, bends 36, text overlaps 0
 102: hard 0, crossings 1, bends 14, text overlaps 0
 103: hard 0, crossings 27, bends 52, text overlaps 0

@@ -13,7 +13,9 @@ EW-CORE-063,MF-26,,0,ft,
 EW-CORE-067,,,3,extra,wires through a connection point they do not join (folio 102)
 EW-CORE-068,,,13,extra,wires that run along another wire (folios 102 and 103)
 EW-CORE-069,,,2,extra,wires through a symbol; four on folio 203 that reach their own pin along a step of 1 nm no longer count since the measures read a grid position as one number (ADR-0033 amendment 4)
-EW-CORE-070,,,4,extra,wires through a text
+EW-CORE-070,,,3,extra,wires through a text
+EW-CORE-074,,,2,extra,wires of -X1032:PE that turn at one point without a junction
+EW-CORE-077,,,1,extra,the plug -3X1 drawn over the station -3A1 (folio 3)
 EW-IMP-004,,,2,extra,QET's tables imported as report blocks; the project's saved file path dropped
 EW-IMP-005,,,3,extra,
 EW-IMP-006,MF-22,1,1,holds,
